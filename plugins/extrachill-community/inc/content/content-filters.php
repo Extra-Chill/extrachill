@@ -221,4 +221,35 @@ function ec_get_forum_last_active_id_with_subforums_filter($id, $forum_id) {
     return ec_get_forum_last_active_id_with_subforums($forum_id);
 }
 
+/**
+ * Filter topic revisions to only show explicitly logged edits.
+ *
+ * Fixes bbPress bug where all WordPress revisions display in the revision log,
+ * regardless of whether user chose to log each individual edit.
+ */
+add_filter('bbp_get_topic_revisions', 'extrachill_filter_logged_revisions', 10, 2);
+function extrachill_filter_logged_revisions($revisions, $topic_id) {
+    $revision_log = get_post_meta($topic_id, '_bbp_revision_log', true);
+
+    if (empty($revision_log) || !is_array($revision_log)) {
+        return array();
+    }
+
+    return array_filter($revisions, function($revision) use ($revision_log) {
+        return isset($revision_log[$revision->ID]);
+    });
+}
+
+add_filter('bbp_get_reply_revisions', 'extrachill_filter_logged_reply_revisions', 10, 2);
+function extrachill_filter_logged_reply_revisions($revisions, $reply_id) {
+    $revision_log = get_post_meta($reply_id, '_bbp_revision_log', true);
+
+    if (empty($revision_log) || !is_array($revision_log)) {
+        return array();
+    }
+
+    return array_filter($revisions, function($revision) use ($revision_log) {
+        return isset($revision_log[$revision->ID]);
+    });
+}
 
