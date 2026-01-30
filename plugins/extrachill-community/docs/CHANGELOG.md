@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.4] - 2026-01-30
+
+### Fixed
+- Fix revision log showing unlogged edits, refine styling
+
 ## [1.3.3] - 2026-01-28
 
 ### Changed
