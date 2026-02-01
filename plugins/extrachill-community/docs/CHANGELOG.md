@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.7] - 2026-02-01
+
+### Fixed
+- Fix profile reply/topic counts using raw database queries
+
 ## [1.3.6] - 2026-01-31
 
 ### Changed
