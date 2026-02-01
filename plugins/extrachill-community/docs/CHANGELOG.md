@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.6] - 2026-01-31
+
+### Changed
+- Add edge-to-edge forum cards on small screens (≤400px)
+
+### Fixed
+- Fix user profile reply count and add pagination to user content pages
+
 ## [1.3.5] - 2026-01-30
 
 ### Fixed
