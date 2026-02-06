@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.6.1] - 2026-02-06
 
 ### Changed
 - Add forgot password link and register prompt to login form
