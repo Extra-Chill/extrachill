@@ -137,6 +137,12 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 						<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $login_redirect_url ); ?>">
 
 						<input type="submit" id="wp-submit" class="button-2 button-medium" value="<?php esc_attr_e( 'Log In', 'extrachill-users' ); ?>">
+
+						<div class="login-forgot-password">
+							<a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/reset-password/' ); ?>">
+								<?php esc_html_e( 'Forgot your password?', 'extrachill-users' ); ?>
+							</a>
+						</div>
 					</form>
 
 					<?php if ( $google_oauth_enabled ) : ?>
@@ -148,7 +154,12 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 						</div>
 					<?php endif; ?>
 
-					
+					<p class="login-register-prompt">
+						<?php esc_html_e( "Don't have an account?", 'extrachill-users' ); ?>
+						<a href="#tab-register" class="js-switch-to-register">
+							<?php esc_html_e( 'Register here', 'extrachill-users' ); ?>
+						</a>
+					</p>
 				</div>
 			</div>
 		</div>

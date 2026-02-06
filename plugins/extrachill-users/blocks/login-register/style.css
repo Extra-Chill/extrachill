@@ -183,3 +183,30 @@
     min-height: 44px;
     min-width: 320px;
 }
+
+/* --- Forgot Password Link --- */
+.login-forgot-password {
+    margin-top: var(--spacing-md);
+    text-align: right;
+}
+
+.login-forgot-password a {
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.login-forgot-password a:hover {
+    color: var(--text-color);
+}
+
+/* --- Register Prompt --- */
+.login-register-prompt {
+    margin-top: var(--spacing-xl);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.login-register-prompt a {
+    color: var(--link-color);
+}

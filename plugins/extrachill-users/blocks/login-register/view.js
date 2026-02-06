@@ -91,7 +91,8 @@
                     })
                     .catch(function (err) {
                         var message = err && err.message ? err.message : 'Login failed. Please try again.';
-                        utils.renderNotice(form.closest('.login-register-form'), 'error', message);
+                        var helpLink = ' <a href="' + utils.getCommunityUrl() + '/reset-password/">Forgot your password?</a>';
+                        utils.renderNotice(form.closest('.login-register-form'), 'error', message + helpLink, true);
                         restore();
                     });
             },

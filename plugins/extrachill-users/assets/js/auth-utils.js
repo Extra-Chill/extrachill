@@ -90,7 +90,7 @@
         }
     }
 
-    function renderNotice(container, type, message) {
+    function renderNotice(container, type, message, allowHtml) {
         if (!container) {
             return;
         }
@@ -106,7 +106,11 @@
         notice.innerHTML = '';
 
         var p = document.createElement('p');
-        p.textContent = message;
+        if (allowHtml) {
+            p.innerHTML = message;
+        } else {
+            p.textContent = message;
+        }
         notice.appendChild(p);
     }
 
@@ -155,6 +159,10 @@
         return el ? !!el.checked : false;
     }
 
+    function getCommunityUrl() {
+        return 'https://community.extrachill.com';
+    }
+
     window.ECAuthUtils = {
         getRestRoot: getRestRoot,
         getDeviceId: getDeviceId,
@@ -162,6 +170,7 @@
         clearNotice: clearNotice,
         setSubmitting: setSubmitting,
         getFormValue: getFormValue,
-        getFormChecked: getFormChecked
+        getFormChecked: getFormChecked,
+        getCommunityUrl: getCommunityUrl
     };
 })();
