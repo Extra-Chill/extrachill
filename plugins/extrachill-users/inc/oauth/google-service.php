@@ -341,8 +341,8 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 			'email'        => $user->user_email,
 			'display_name' => $user->display_name,
 			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
-			'profile_url'  => function_exists( 'ec_get_user_profile_url' )
-				? ec_get_user_profile_url( $user->ID, $user->user_email )
+			'profile_url'  => function_exists( 'extrachill_get_user_profile_url' )
+				? extrachill_get_user_profile_url( $user->ID, $user->user_email )
 				: '',
 		),
 	);

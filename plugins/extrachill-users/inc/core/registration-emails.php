@@ -33,7 +33,7 @@ function extrachill_notify_admin_new_user( $user_id, $registration_page, $regist
 
 	$message .= "Registration Source: {$source_label} ({$method_label})\n";
 	$message .= 'Registration Page: ' . ( $registration_page ? esc_url( $registration_page ) : 'Unknown' ) . "\n";
-	$message .= "\nUser Profile: " . ec_get_user_profile_url( $user_id, $email );
+	$message .= "\nUser Profile: " . extrachill_get_user_profile_url( $user_id, $email );
 
 	wp_mail( $admin_email, $subject, $message );
 }

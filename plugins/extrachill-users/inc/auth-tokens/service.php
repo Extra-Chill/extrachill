@@ -225,8 +225,8 @@ function extrachill_users_refresh_tokens( string $refresh_token, string $device_
 			'username'     => $user->user_login,
 			'display_name' => $user->display_name,
 			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
-			'profile_url'  => function_exists( 'ec_get_user_profile_url' )
-				? ec_get_user_profile_url( $user->ID, $user->user_email )
+			'profile_url'  => function_exists( 'extrachill_get_user_profile_url' )
+				? extrachill_get_user_profile_url( $user->ID, $user->user_email )
 				: '',
 		),
 	);
@@ -326,8 +326,8 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 			'username'     => $user->user_login,
 			'display_name' => $user->display_name,
 			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
-			'profile_url'  => function_exists( 'ec_get_user_profile_url' )
-				? ec_get_user_profile_url( $user->ID, $user->user_email )
+			'profile_url'  => function_exists( 'extrachill_get_user_profile_url' )
+				? extrachill_get_user_profile_url( $user->ID, $user->user_email )
 				: '',
 		),
 	);
@@ -582,7 +582,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 			'username'     => $user->user_login,
 			'display_name' => $user->display_name,
 			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
-			'profile_url'  => function_exists( 'ec_get_user_profile_url' ) ? ec_get_user_profile_url( $user->ID, $user->user_email ) : '',
+			'profile_url'  => function_exists( 'extrachill_get_user_profile_url' ) ? extrachill_get_user_profile_url( $user->ID, $user->user_email ) : '',
 		),
 	);
 
