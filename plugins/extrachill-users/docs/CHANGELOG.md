@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.3] - 2026-02-12
+
+### Changed
+- Revert disabled submit button that blocks registration when Turnstile PAT fails
+
 ## [0.6.2] - 2026-02-12
 
 ### Fixed
