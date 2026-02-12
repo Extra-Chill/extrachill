@@ -193,10 +193,10 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 						<input type="password" name="extrachill_password_confirm" id="extrachill_password_confirm" placeholder="<?php esc_attr_e( 'Repeat your password', 'extrachill-users' ); ?>" required minlength="8">
 
 						<div class="registration-submit-section">
-							<input type="submit" name="extrachill_register" class="button-1 button-medium" value="<?php esc_attr_e( 'Join Now', 'extrachill-users' ); ?>">
+							<input type="submit" name="extrachill_register" class="button-1 button-medium" value="<?php esc_attr_e( 'Please wait...', 'extrachill-users' ); ?>" disabled>
 						</div>
 
-						<?php echo ec_render_turnstile_widget(); ?>
+						<?php echo ec_render_turnstile_widget( array( 'data-callback' => 'ecTurnstileReady' ) ); ?>
 					</form>
 
 					<?php if ( $google_oauth_enabled ) : ?>

@@ -1,6 +1,14 @@
 (function () {
     'use strict';
 
+    window.ecTurnstileReady = function () {
+        var buttons = document.querySelectorAll('input[name="extrachill_register"]');
+        buttons.forEach(function (btn) {
+            btn.disabled = false;
+            btn.value = 'Join Now';
+        });
+    };
+
     var utils = window.ECAuthUtils;
 
     function initRegisterTabLinks() {
@@ -190,6 +198,11 @@
                         var message = err && err.message ? err.message : 'Registration failed. Please try again.';
                         utils.renderNotice(form.closest('.login-register-form'), 'error', message);
                         restore();
+
+                        var turnstileWidget = form.querySelector('.cf-turnstile');
+                        if (turnstileWidget && window.turnstile) {
+                            window.turnstile.reset(turnstileWidget);
+                        }
                     });
             },
             true
