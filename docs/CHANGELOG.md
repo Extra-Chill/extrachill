@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.0.9] - 2026-02-12
+
+### Fixed
+- Fix profile URLs: rename ec_get_user_profile_url to extrachill_get_user_profile_url
+
 ## [2.0.8] - 2026-01-30
 
 ### Fixed
