@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Blog
  * Plugin URI: https://extrachill.com
  * Description: Blog-specific functionality for extrachill.com (Blog ID 1). Provides secondary header navigation, homepage customizations, and custom Gutenberg blocks for community engagement.
- * Version: 0.3.13
+ * Version: 0.3.14
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_BLOG_VERSION', '0.3.13' );
+define( 'EXTRACHILL_BLOG_VERSION', '0.3.14' );
 define( 'EXTRACHILL_BLOG_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_BLOG_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

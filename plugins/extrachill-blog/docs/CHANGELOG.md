@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.14] - 2026-02-12
+
+### Changed
+- Remove vendor directory from git tracking
+- Test message 1
+- Bump version to 0.3.13 - Refactor homepage queries to use REST API
+- Bump version to 0.3.12 - Remove redundant artist profile link logic
+- Bump version to 0.3.11 - Refine homepage events section description
+- Bump version to 0.3.10 - Restrict homepage event discovery to childless location terms
+- Bump version to 0.3.9 - Implement dynamic network discovery grid on homepage
+- Bump version to 0.3.8 - Refactor homepage CSS and cleanup redundant styles
+- Bump version to 0.3.7 - Standardize CSS with theme variables
+- Bump version to 0.3.6 - Add homepage search section
+- Bump version to 0.3.5 - Refactor homepage to grid layout and add new content sections
+- Bump version to 0.3.4 - Add single post share card
+- Bump version to 0.3.3 - Add ads filtering, refactor artist profiles, and improve editor styles
+- Bump version to 0.3.2 - Add artist profiles, co-authors integration, and admin customizations
+- updated about section and some styles
+- updated about section on homepage
+- Bump version to 0.3.1 - Enhance block system with SSR and documentation
+- gitignore node modules...
+- Bump version to 0.3.0 - Add Gutenberg blocks system
+- Bump version to 0.2.3
+- Bump version to 0.2.2
+- Bump version to 0.2.1
+- Initial commit: extrachill-blog plugin v0.2.0
+
+### Fixed
+- Fix profile URL: rename ec_get_user_profile_url to extrachill_get_user_profile_url
+
 ## [0.3.13] - 2026-01-05
 
 ### Changed
