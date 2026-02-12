@@ -34,8 +34,8 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 			$date   = isset( $post->post_date ) ? gmdate( 'F j, Y', strtotime( $post->post_date ) ) : 'Unknown';
 
 			$author_id  = isset( $post->post_author ) ? $post->post_author : 0;
-			$author_url = function_exists( 'ec_get_user_profile_url' )
-				? ec_get_user_profile_url( $author_id )
+			$author_url = function_exists( 'extrachill_get_user_profile_url' )
+				? extrachill_get_user_profile_url( $author_id )
 				: ec_get_site_url( 'community' ) . '/u/' . sanitize_title( $author );
 
 			$forum_title = isset( $post->_forum['title'] ) ? esc_html( $post->_forum['title'] ) : 'Unknown Forum';
