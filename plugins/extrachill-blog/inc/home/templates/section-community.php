@@ -9,8 +9,8 @@
 $is_logged_in = is_user_logged_in();
 $profile_url  = '';
 
-if ( $is_logged_in && function_exists( 'ec_get_user_profile_url' ) ) {
-	$profile_url = ec_get_user_profile_url( get_current_user_id() );
+if ( $is_logged_in && function_exists( 'extrachill_get_user_profile_url' ) ) {
+	$profile_url = extrachill_get_user_profile_url( get_current_user_id() );
 }
 ?>
 <div class="home-network-card" aria-labelledby="community-header">
