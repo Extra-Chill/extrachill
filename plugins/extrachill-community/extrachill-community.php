@@ -38,6 +38,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/sidebar.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/nav.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/cache-invalidation.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-scripts.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/filter-bar.php';
 
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/tinymce-customization.php';
