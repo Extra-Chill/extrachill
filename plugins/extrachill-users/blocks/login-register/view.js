@@ -1,14 +1,6 @@
 (function () {
     'use strict';
 
-    window.ecTurnstileReady = function () {
-        var buttons = document.querySelectorAll('input[name="extrachill_register"]');
-        buttons.forEach(function (btn) {
-            btn.disabled = false;
-            btn.value = 'Join Now';
-        });
-    };
-
     var utils = window.ECAuthUtils;
 
     function initRegisterTabLinks() {
