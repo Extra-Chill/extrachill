@@ -81,8 +81,8 @@ if ( ! function_exists( 'extrachill_get_community_activity_items' ) ) {
 					$forum_url        = $forum_id ? get_permalink( $forum_id ) : '';
 					$topic_url        = $topic_id ? get_permalink( $topic_id ) : '';
 					$username         = get_the_author();
-					$user_profile_url = ( $author_id && function_exists( 'ec_get_user_profile_url' ) )
-						? ec_get_user_profile_url( $author_id )
+					$user_profile_url = ( $author_id && function_exists( 'extrachill_get_user_profile_url' ) )
+						? extrachill_get_user_profile_url( $author_id )
 						: '';
 
 					if ( ! $topic_url || ! $forum_url ) {
