@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.6.2] - 2026-02-12
 
 ### Fixed
 - Fix intermittent captcha error by resetting Turnstile widget after failed registration and disabling submit button until captcha loads
