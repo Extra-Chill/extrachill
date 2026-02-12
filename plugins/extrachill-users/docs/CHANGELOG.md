@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.4] - 2026-02-12
+
+### Fixed
+- Fix fatal crash: rename ec_get_user_profile_url to extrachill_get_user_profile_url
+
 ## [0.6.3] - 2026-02-12
 
 ### Changed
