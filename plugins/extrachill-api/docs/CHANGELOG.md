@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.11] - 2026-02-12
+
+### Fixed
+- Fix profile URLs: rename ec_get_user_profile_url to extrachill_get_user_profile_url
+
 ## [0.10.10] - 2026-01-28
 
 ### Fixed
