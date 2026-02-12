@@ -147,8 +147,8 @@ function extrachill_api_user_search_handler( WP_REST_Request $request ) {
 			);
 		} else {
 			// Mentions context - lightweight response
-			$profile_url = function_exists( 'ec_get_user_profile_url' )
-				? ec_get_user_profile_url( $user->ID, $user->user_email )
+			$profile_url = function_exists( 'extrachill_get_user_profile_url' )
+				? extrachill_get_user_profile_url( $user->ID, $user->user_email )
 				: '';
 
 			$users_data[] = array(
@@ -222,8 +222,8 @@ function extrachill_api_search_artist_capable_users( WP_REST_Request $request ) 
 		}
 
 		// Build profile URL
-		$profile_url = function_exists( 'ec_get_user_profile_url' )
-			? ec_get_user_profile_url( $user->ID, $user->user_email )
+		$profile_url = function_exists( 'extrachill_get_user_profile_url' )
+			? extrachill_get_user_profile_url( $user->ID, $user->user_email )
 			: '';
 
 		$users_data[] = array(

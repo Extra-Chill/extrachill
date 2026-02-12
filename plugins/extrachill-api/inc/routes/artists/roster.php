@@ -176,7 +176,7 @@ function extrachill_api_artist_roster_list_handler( WP_REST_Request $request ) {
 						'username'     => $user_info->user_login,
 						'email'        => $user_info->user_email,
 						'avatar_url'   => get_avatar_url( $user_info->ID, array( 'size' => 60 ) ),
-						'profile_url'  => function_exists( 'ec_get_user_profile_url' ) ? ec_get_user_profile_url( $user_info->ID, $user_info->user_email ) : '',
+						'profile_url'  => function_exists( 'extrachill_get_user_profile_url' ) ? extrachill_get_user_profile_url( $user_info->ID, $user_info->user_email ) : '',
 					);
 				}
 			}

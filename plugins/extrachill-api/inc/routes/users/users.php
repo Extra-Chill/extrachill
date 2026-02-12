@@ -87,8 +87,8 @@ function extrachill_api_build_user_response( $user, $full_data = false ) {
 	$avatar_url = get_avatar_url( $user_id, array( 'size' => 96 ) );
 
 	// Profile URL (uses extrachill-users canonical function if available)
-	$profile_url = function_exists( 'ec_get_user_profile_url' )
-		? ec_get_user_profile_url( $user_id, $user->user_email )
+	$profile_url = function_exists( 'extrachill_get_user_profile_url' )
+		? extrachill_get_user_profile_url( $user_id, $user->user_email )
 		: get_author_posts_url( $user_id );
 
 	// Team member status

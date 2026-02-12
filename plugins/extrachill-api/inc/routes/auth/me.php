@@ -57,8 +57,8 @@ function extrachill_api_auth_me_handler( WP_REST_Request $request ) {
 		'email'                => $user->user_email,
 		'display_name'         => $user->display_name,
 		'avatar_url'           => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
-		'profile_url'          => function_exists( 'ec_get_user_profile_url' )
-			? ec_get_user_profile_url( $user->ID, $user->user_email )
+		'profile_url'          => function_exists( 'extrachill_get_user_profile_url' )
+			? extrachill_get_user_profile_url( $user->ID, $user->user_email )
 			: '',
 		'registered'           => $user->user_registered,
 		'onboarding_completed' => $onboarding_completed,

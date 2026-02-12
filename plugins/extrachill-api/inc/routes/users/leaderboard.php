@@ -70,8 +70,8 @@ function extrachill_api_users_leaderboard_get_handler( WP_REST_Request $request 
 		$rank    = function_exists( 'ec_get_rank_for_points' ) ? ec_get_rank_for_points( $points ) : '';
 		$badges  = function_exists( 'ec_get_user_badges' ) ? ec_get_user_badges( $user_id ) : array();
 
-		$profile_url = function_exists( 'ec_get_user_profile_url' )
-			? ec_get_user_profile_url( $user_id, $user->user_email )
+		$profile_url = function_exists( 'extrachill_get_user_profile_url' )
+			? extrachill_get_user_profile_url( $user_id, $user->user_email )
 			: get_author_posts_url( $user_id );
 
 		$items[] = array(
