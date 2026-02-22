@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.0.11] - 2026-02-22
+
+### Fixed
+- Fix pagination current page styling with higher CSS specificity
+
 ## [2.0.10] - 2026-02-22
 
 ### Fixed
