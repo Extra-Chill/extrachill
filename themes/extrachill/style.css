@@ -2,7 +2,7 @@
 Theme Name: Extra Chill
 Author: Chris Huber
 Author URI: https://chubes.net
-Version: 2.0.11
+Version: 2.0.12
 Text Domain: extrachill
 License: GNU General Public License v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -1436,4 +1436,3 @@ blockquote,
 q {
 	quotes: "" "";
 }
-

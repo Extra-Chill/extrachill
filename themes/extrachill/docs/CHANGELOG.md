@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.0.12] - 2026-02-22
+
+### Changed
+- Remove duplicate CSS sections from style.css
+- Remove community activity from theme
+
 ## [2.0.11] - 2026-02-22
 
 ### Fixed
