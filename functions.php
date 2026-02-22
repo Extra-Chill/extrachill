@@ -69,7 +69,6 @@ require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/pagination.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/no-results.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/share.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/social-links.php';
-require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/community-activity.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/taxonomy-badges.php';
 
 require_once EXTRACHILL_INCLUDES_DIR . '/core/actions.php';
@@ -85,7 +84,6 @@ require_once EXTRACHILL_INCLUDES_DIR . '/core/custom-taxonomies.php';
 
 
 require_once EXTRACHILL_INCLUDES_DIR . '/sidebar/recent-posts.php';
-require_once EXTRACHILL_INCLUDES_DIR . '/sidebar/community-activity.php';
 
 require_once EXTRACHILL_INCLUDES_DIR . '/footer/back-to-home-link.php';
 
