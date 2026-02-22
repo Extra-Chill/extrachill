@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.0.10] - 2026-02-22
+
+### Fixed
+- Fix pagination current page styling - skip button classes on non-clickable current page
+
 ## [2.0.9] - 2026-02-12
 
 ### Fixed
