@@ -617,7 +617,7 @@ a.author.url.fn, .forum-meta a {
 	list-style: none;
 }
 
-.pagination-links ul.page-numbers .page-numbers.current {
+.pagination-links ul.page-numbers .page-numbers.current.button-2 {
 	cursor: default;
 	background-color: var(--card-background);
 	color: var(--text-color);
@@ -2062,7 +2062,7 @@ a.author.url.fn, .forum-meta a {
 	list-style: none;
 }
 
-.pagination-links ul.page-numbers .page-numbers.current {
+.pagination-links ul.page-numbers .page-numbers.current.button-2 {
 	cursor: default;
 	background-color: var(--card-background);
 	color: var(--text-color);
