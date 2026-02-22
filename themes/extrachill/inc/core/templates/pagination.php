@@ -86,11 +86,11 @@ function extrachill_pagination( $query_or_data = null, $context = 'default', $it
 		)
 	);
 
-	// Add button-2 class to pagination links and current page
+	// Add button-2 class to pagination links (skip current page - not clickable)
 	if ( $links_html ) {
 		$links_html = str_replace( 'class="prev page-numbers', 'class="prev page-numbers button-2 button-medium', $links_html );
 		$links_html = str_replace( 'class="next page-numbers', 'class="next page-numbers button-2 button-medium', $links_html );
-		$links_html = str_replace( 'class="page-numbers', 'class="page-numbers button-2 button-medium', $links_html );
+		$links_html = preg_replace( '/class="page-numbers"(?!\sclass)/', 'class="page-numbers button-2 button-medium"', $links_html );
 	}
 
 	if ( $links_html ) {
