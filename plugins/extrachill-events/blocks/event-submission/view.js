@@ -85,9 +85,10 @@
 			form.reset();
 			resetTurnstile(form);
 			setStatus(statusEl, successMessage, false);
-		} catch (error) {
-			setStatus(statusEl, error.message || 'Something went wrong. Please try again later.', true);
-		} finally {
+	} catch (error) {
+		setStatus(statusEl, error.message || 'Something went wrong. Please try again later.', true);
+		resetTurnstile(form);
+	} finally {
 			delete form.dataset.submitting;
 			form.classList.remove('is-loading');
 		}
