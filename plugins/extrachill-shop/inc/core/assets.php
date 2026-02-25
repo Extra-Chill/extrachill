@@ -21,6 +21,17 @@ defined( 'ABSPATH' ) || exit;
  */
 add_filter( 'woocommerce_enqueue_styles', '__return_empty_array' );
 
+/**
+ * Keep jQuery on WooCommerce pages — theme deregisters it for performance,
+ * but WooCommerce add-to-cart and other scripts depend on it.
+ */
+add_filter( 'extrachill_dequeue_jquery_frontend', function ( $should_dequeue ) {
+	if ( function_exists( 'is_woocommerce' ) && ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() ) ) {
+		return false;
+	}
+	return $should_dequeue;
+} );
+
 add_action( 'wp_enqueue_scripts', 'extrachill_shop_enqueue_assets' );
 function extrachill_shop_enqueue_assets() {
 	$css_file = EXTRACHILL_SHOP_PLUGIN_DIR . 'assets/css/woocommerce.css';
