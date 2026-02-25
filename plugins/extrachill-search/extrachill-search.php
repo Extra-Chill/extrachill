@@ -46,6 +46,29 @@ class ExtraChill_Search_Plugin {
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         add_filter( 'extrachill_template_search', array( $this, 'override_search_template' ), 10 );
         add_action( 'template_redirect', array( $this, 'fix_search_404' ), 1 );
+        add_action( 'wp_footer', array( $this, 'inject_search_source_tracking' ) );
+    }
+
+    /**
+     * Inject inline JS that adds source_page hidden field to all search forms.
+     *
+     * Captures the current page URL so analytics can reliably track where
+     * searches originate, instead of relying on wp_get_referer().
+     */
+    public function inject_search_source_tracking() {
+        ?>
+        <script>
+        document.querySelectorAll('form[role="search"], form.search-form').forEach(function(form) {
+            if (!form.querySelector('input[name="source_page"]')) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'source_page';
+                input.value = window.location.href;
+                form.appendChild(input);
+            }
+        });
+        </script>
+        <?php
     }
 
     private function includes() {

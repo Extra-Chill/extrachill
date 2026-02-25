@@ -346,14 +346,18 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	$total_results = count( $all_results );
 	$all_results = array_slice( $all_results, $args['offset'], $args['limit'] );
 
+	// Prefer JS-injected source_page over unreliable wp_get_referer().
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$search_source_url = ! empty( $_GET['source_page'] ) ? esc_url_raw( wp_unslash( $_GET['source_page'] ) ) : wp_get_referer();
+
 	/**
 	 * Fires after a search is performed.
 	 *
-	 * @param string $search_term   The search query.
-	 * @param int    $total_results Total number of results found.
-	 * @param string $referer       The page user was on before searching.
+	 * @param string $search_term      The search query.
+	 * @param int    $total_results    Total number of results found.
+	 * @param string $search_source_url The page user was on before searching.
 	 */
-	do_action( 'extrachill_search_performed', $search_term, $total_results, wp_get_referer() );
+	do_action( 'extrachill_search_performed', $search_term, $total_results, $search_source_url );
 
 	// Track analytics.
 	if ( ! empty( trim( $search_term ) ) ) {
@@ -363,9 +367,9 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 				'search_term'  => $search_term,
 				'result_count' => (int) $total_results,
 			),
-			'source_url' => wp_get_referer() ?: '',
+			'source_url' => $search_source_url ?: '',
 		);
-		
+
 		$ability = wp_get_ability( 'extrachill/track-analytics-event' );
 		if ( $ability ) {
 			$ability->execute( $analytics_data );
