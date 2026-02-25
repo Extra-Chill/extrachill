@@ -29,6 +29,12 @@ define( 'EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_EVENTS_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
+// WP-CLI commands.
+if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCommand.php' ) ) {
+	require_once __DIR__ . '/inc/Cli/AddCityCommand.php';
+	\WP_CLI::add_command( 'extrachill-events add-city', \ExtraChillEvents\Cli\AddCityCommand::class );
+}
+
 /**
  * ExtraChillEvents
  *
@@ -132,6 +138,9 @@ class ExtraChillEvents {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/PriorityEventAbilities.php';
 		new \ExtraChillEvents\Abilities\PriorityEventAbilities();
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/CityAbilities.php';
+		new \ExtraChillEvents\Abilities\CityAbilities();
 	}
 
 	/**
