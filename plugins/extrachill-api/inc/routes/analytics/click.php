@@ -3,10 +3,10 @@
  * REST route: POST /wp-json/extrachill/v1/analytics/click
  *
  * Unified click tracking endpoint. Routes to appropriate storage based on click_type:
- * - 'share': Writes to ec_events table for admin-level analytics
+ * - 'share': Tracks via extrachill/track-analytics-event ability to ec_events table
  * - 'link_page_link': Fires action hook for artist link page daily tables
  *
- * Future click types (internal_link, taxonomy_badge, cta, etc.) will route to ec_events.
+ * Future click types (internal_link, taxonomy_badge, cta, etc.) will route through abilities.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -134,24 +134,27 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 				);
 			}
 
-			if ( ! function_exists( 'ec_track_event' ) ) {
+			$ability = wp_get_ability( 'extrachill/track-analytics-event' );
+			if ( ! $ability ) {
 				return new WP_Error(
-					'function_missing',
-					'Analytics tracking function not available.',
+					'ability_missing',
+					'Analytics tracking ability not available.',
 					array( 'status' => 500 )
 				);
 			}
 
-			$event_id = ec_track_event(
-				'share_click',
+			$event_id = $ability->execute(
 				array(
-					'destination' => $share_destination,
-					'share_url'   => $normalized_destination ?: $source_url,
-				),
-				$source_url
+					'event_type' => 'share_click',
+					'event_data' => array(
+						'destination' => $share_destination,
+						'share_url'   => $normalized_destination ?: $source_url,
+					),
+					'source_url' => $source_url,
+				)
 			);
 
-			if ( false === $event_id ) {
+			if ( empty( $event_id ) ) {
 				return new WP_Error(
 					'tracking_failed',
 					'Failed to record share event.',
