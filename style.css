@@ -490,7 +490,9 @@ text-decoration: none;
 }
 .below-entry-meta-left .meta-top-row {
     display: flex;
+    flex-wrap: wrap;
     column-gap: var(--spacing-xs);
+    align-items: baseline;
     margin: var(--spacing-sm) 0;
 	line-height: 1.2;
 }
@@ -507,6 +509,7 @@ text-decoration: none;
 a.author.url.fn, .forum-meta a {
   border-bottom: .5px dotted var(--link-color);
   text-decoration: none;
+  white-space: nowrap;
 }
 
 #updated-date {
