@@ -71,13 +71,15 @@ function extrachill_enqueue_settings_page_assets() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_settings_page_assets');
 
 function enqueue_bbpress_global_styles() {
+    wp_register_style(
+        'extrachill-bbpress',
+        EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/bbpress.css',
+        array(),
+        filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/bbpress.css')
+    );
+
     if (is_bbpress() || is_front_page() || is_home() || is_page('recent')) {
-        wp_enqueue_style(
-            'extrachill-bbpress',
-            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/bbpress.css',
-            array(),
-            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/bbpress.css')
-        );
+        wp_enqueue_style( 'extrachill-bbpress' );
     }
 }
 add_action('wp_enqueue_scripts', 'enqueue_bbpress_global_styles');
