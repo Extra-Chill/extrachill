@@ -221,9 +221,8 @@ class CityAbilities {
 
 		$pipeline_result = $pipeline_ability->execute(
 			array(
-				'pipeline_name'     => $pipeline_name,
-				'skip_default_flow' => true,
-				'steps'             => array(
+				'pipeline_name' => $pipeline_name,
+				'steps'         => array(
 					array(
 						'step_type' => 'event_import',
 						'label'     => 'Event Import',
