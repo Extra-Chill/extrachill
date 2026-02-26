@@ -82,10 +82,14 @@ class CityAbilities {
 								'type'        => 'boolean',
 								'description' => 'Skip creating a Dice.fm flow. Defaults to false.',
 							),
-							'dry_run'      => array(
-								'type'        => 'boolean',
-								'description' => 'Preview what would be created without making changes.',
-							),
+						'force'        => array(
+							'type'        => 'boolean',
+							'description' => 'Force creation even if a pipeline for this city already exists.',
+						),
+						'dry_run'      => array(
+							'type'        => 'boolean',
+							'description' => 'Preview what would be created without making changes.',
+						),
 						),
 					),
 					'output_schema'       => array(
@@ -127,8 +131,8 @@ class CityAbilities {
 			return array( 'error' => 'City name is required. Example: "Nashville, TN"' );
 		}
 
-		$radius   = $input['radius'] ?? self::DEFAULT_RADIUS;
-		$interval = $input['interval'] ?? self::DEFAULT_INTERVAL;
+		$radius    = $input['radius'] ?? self::DEFAULT_RADIUS;
+		$interval  = $input['interval'] ?? self::DEFAULT_INTERVAL;
 		$skip_dice = ! empty( $input['skip_dice'] );
 		$dry_run   = ! empty( $input['dry_run'] );
 
@@ -147,17 +151,21 @@ class CityAbilities {
 		// Derive the location taxonomy term (matches existing pattern).
 		$location_term = $city_label;
 
+		// Step 1b: Check for idempotency — does this city already have a pipeline?
+		$pipeline_name   = $city_label . ' Events';
+		$existing_pipeline = $this->findExistingPipeline( $pipeline_name );
+
 		if ( $dry_run ) {
 			$preview = array(
-				'message'     => 'Dry run — no changes made.',
-				'city'        => $city_name,
-				'city_label'  => $city_label,
-				'coordinates' => $coordinates,
+				'message'      => 'Dry run — no changes made.',
+				'city'         => $city_name,
+				'city_label'   => $city_label,
+				'coordinates'  => $coordinates,
 				'display_name' => $display_name,
-				'pipeline'    => $city_label . ' Events',
-				'flows'       => array(
+				'pipeline'     => $pipeline_name,
+				'flows'        => array(
 					array(
-						'name'    => $city_label . ' Ticketmaster',
+						'name'    => 'Ticketmaster',
 						'handler' => 'ticketmaster',
 						'config'  => array(
 							'classification_type' => 'music',
@@ -166,12 +174,20 @@ class CityAbilities {
 						),
 					),
 				),
-				'interval'    => $interval,
+				'interval'     => $interval,
 			);
+
+			if ( $existing_pipeline ) {
+				$preview['warning'] = sprintf(
+					'Pipeline "%s" already exists (ID: %d). Use --force to recreate.',
+					$pipeline_name,
+					$existing_pipeline
+				);
+			}
 
 			if ( ! $skip_dice ) {
 				$preview['flows'][] = array(
-					'name'    => $city_label . ' Dice.fm',
+					'name'    => 'Dice.fm',
 					'handler' => 'dice_fm',
 					'config'  => array(
 						'city' => $city_label,
@@ -182,17 +198,32 @@ class CityAbilities {
 			return $preview;
 		}
 
+		// Idempotency guard: reject if pipeline already exists (unless forced).
+		if ( $existing_pipeline && empty( $input['force'] ) ) {
+			return array(
+				'error'       => sprintf(
+					'City "%s" already exists (pipeline ID: %d). Pass force=true to recreate.',
+					$city_label,
+					$existing_pipeline
+				),
+				'pipeline_id' => $existing_pipeline,
+			);
+		}
+
+		// Step 1c: Ensure the location taxonomy term exists.
+		$this->ensureLocationTerm( $city_label );
+
 		// Step 2: Create the pipeline.
 		$pipeline_ability = wp_get_ability( 'datamachine/create-pipeline' );
 		if ( ! $pipeline_ability ) {
 			return array( 'error' => 'Data Machine create-pipeline ability not available. Is Data Machine active?' );
 		}
 
-		$pipeline_name = $city_label . ' Events';
 		$pipeline_result = $pipeline_ability->execute(
 			array(
-				'pipeline_name' => $pipeline_name,
-				'steps'         => array(
+				'pipeline_name'     => $pipeline_name,
+				'skip_default_flow' => true,
+				'steps'             => array(
 					array(
 						'step_type' => 'event_import',
 						'label'     => 'Event Import',
@@ -255,6 +286,54 @@ class CityAbilities {
 			'pipeline_id' => $pipeline_id,
 			'flows'       => $flows_created,
 		);
+	}
+
+	/**
+	 * Find an existing pipeline by name.
+	 *
+	 * @param string $pipeline_name Pipeline name to search for.
+	 * @return int|null Pipeline ID if found, null otherwise.
+	 */
+	private function findExistingPipeline( string $pipeline_name ): ?int {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_pipelines';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$pipeline_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT pipeline_id FROM {$table} WHERE pipeline_name = %s LIMIT 1",
+				$pipeline_name
+			)
+		);
+
+		return $pipeline_id ? (int) $pipeline_id : null;
+	}
+
+	/**
+	 * Ensure a location taxonomy term exists for the given city.
+	 *
+	 * Creates the term if it doesn't already exist. The location taxonomy
+	 * is registered by the ExtraChill theme in custom-taxonomies.php.
+	 *
+	 * @param string $city_label City name (e.g. "Nashville").
+	 * @return int|null Term ID if created or found, null on failure.
+	 */
+	private function ensureLocationTerm( string $city_label ): ?int {
+		if ( ! taxonomy_exists( 'location' ) ) {
+			return null;
+		}
+
+		$existing = term_exists( $city_label, 'location' );
+		if ( $existing ) {
+			return is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
+		}
+
+		$result = wp_insert_term( $city_label, 'location' );
+		if ( is_wp_error( $result ) ) {
+			return null;
+		}
+
+		return (int) $result['term_id'];
 	}
 
 	/**

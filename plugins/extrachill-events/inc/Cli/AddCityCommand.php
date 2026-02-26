@@ -51,6 +51,9 @@ class AddCityCommand {
 	 * [--skip-dice]
 	 * : Skip creating a Dice.fm flow.
 	 *
+	 * [--force]
+	 * : Force creation even if a pipeline for this city already exists.
+	 *
 	 * [--dry-run]
 	 * : Preview what would be created without making changes.
 	 *
@@ -60,6 +63,7 @@ class AddCityCommand {
 	 *     wp extrachill-events add-city "New York, NY" --radius=25
 	 *     wp extrachill-events add-city "Portland, OR" --dry-run
 	 *     wp extrachill-events add-city "Denver, CO" --interval=every_4_hours --skip-dice
+	 *     wp extrachill-events add-city "Nashville, TN" --force
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Named arguments.
@@ -80,6 +84,7 @@ class AddCityCommand {
 			'radius'    => $assoc_args['radius'] ?? '50',
 			'interval'  => $assoc_args['interval'] ?? 'every_6_hours',
 			'skip_dice' => isset( $assoc_args['skip-dice'] ),
+			'force'     => isset( $assoc_args['force'] ),
 			'dry_run'   => isset( $assoc_args['dry-run'] ),
 		);
 
@@ -101,6 +106,12 @@ class AddCityCommand {
 			\WP_CLI::log( '  Resolved:    ' . $result['display_name'] );
 			\WP_CLI::log( '  Pipeline:    ' . $result['pipeline'] );
 			\WP_CLI::log( '  Interval:    ' . $result['interval'] );
+
+			if ( ! empty( $result['warning'] ) ) {
+				\WP_CLI::log( '' );
+				\WP_CLI::warning( $result['warning'] );
+			}
+
 			\WP_CLI::log( '' );
 			\WP_CLI::log( '  Flows to create:' );
 			foreach ( $result['flows'] as $flow ) {
