@@ -43,6 +43,8 @@ export default function EventsTable( {
 				return 'ec-badge ec-badge--success';
 			case 'search':
 				return 'ec-badge ec-badge--warning';
+			case '404_error':
+				return 'ec-badge ec-badge--error';
 			default:
 				return 'ec-badge';
 		}

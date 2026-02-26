@@ -81,6 +81,32 @@ export default function EventDetail( { event, onClose } ) {
 					</dl>
 				);
 
+			case '404_error':
+				return (
+					<dl className="ec-event-detail__parsed">
+						<dt>Requested URL</dt>
+						<dd>{ event_data.requested_url || '-' }</dd>
+						<dt>Referer</dt>
+						<dd>
+							{ event_data.referer ? (
+								<a
+									href={ event_data.referer }
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									{ event_data.referer }
+								</a>
+							) : (
+								'Direct / None'
+							) }
+						</dd>
+						<dt>User Agent</dt>
+						<dd>
+							<code>{ event_data.user_agent || '-' }</code>
+						</dd>
+					</dl>
+				);
+
 			default:
 				// For unknown event types, show raw JSON
 				return (

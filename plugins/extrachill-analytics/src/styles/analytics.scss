@@ -69,6 +69,38 @@
 	}
 }
 
+// Badges
+.ec-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 500;
+	text-transform: capitalize;
+	background: #dcdcde;
+	color: #1e1e1e;
+
+	&--info {
+		background: #e7f5fe;
+		color: #2271b1;
+	}
+
+	&--success {
+		background: #edfaef;
+		color: #008a20;
+	}
+
+	&--warning {
+		background: #fcf0e3;
+		color: #996800;
+	}
+
+	&--error {
+		background: #fce4e4;
+		color: #cc1818;
+	}
+}
+
 // Event Detail
 .ec-event-detail {
 	margin-top: 20px;
