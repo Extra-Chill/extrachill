@@ -13,7 +13,7 @@
  * Plugin Name: Extra Chill SEO
  * Plugin URI: https://extrachill.com
  * Description: Lean SEO plugin replacing Yoast with code-first meta tags, structured data, and robots directives
- * Version: 0.8.0
+ * Version: 0.8.1
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'EXTRACHILL_SEO_VERSION', '0.6.1' );
+define( 'EXTRACHILL_SEO_VERSION', '0.8.1' );
 define( 'EXTRACHILL_SEO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_SEO_URL', plugin_dir_url( __FILE__ ) );
 
