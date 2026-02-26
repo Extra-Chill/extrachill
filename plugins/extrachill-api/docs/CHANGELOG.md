@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## Unreleased
+
+### Changed
+- Remove obsolete admin REST routes for 404 logger, tag migration, and forum topic migration
+
+### Fixed
+- Fix share click tracking: migrate from broken ec_track_event() to Abilities API
+
 ## [0.10.11] - 2026-02-12
 
 ### Fixed
