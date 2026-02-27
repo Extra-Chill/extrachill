@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+- Add wp_mail observability — log all email send attempts and failures
+- v0.5.0
+- Add 404 error tracking as analytics events with bot filtering, dashboard rendering, and badge styles
+- Add CLAUDE.md documentation for extra-chill-analytics plugin
+
 ## [0.4.5] - 2026-01-25
 
 - Fix React crash when events have null event_type values by adding null safety checks
