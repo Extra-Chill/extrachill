@@ -247,6 +247,45 @@ function extrachill_events_near_me_map_summary( string $summary, array $venues, 
 }
 add_filter( 'datamachine_events_map_summary', 'extrachill_events_near_me_map_summary', 10, 3 );
 
+/**
+ * Render radius dropdown and change location link below the map summary.
+ *
+ * @hook datamachine_events_map_after_summary
+ */
+function extrachill_events_near_me_map_controls( array $venues, array $context ) {
+	if ( ! extrachill_events_is_near_me_page() ) {
+		return;
+	}
+
+	$geo = extrachill_events_get_geo_params();
+	if ( null === $geo['lat'] || null === $geo['lng'] ) {
+		return;
+	}
+
+	$page_url       = get_permalink();
+	$radius_options = array( 5, 10, 25, 50, 100 );
+	?>
+	<div class="near-me-controls">
+		<label class="near-me-radius-label">
+			<span>Radius:</span>
+			<select class="near-me-radius-select"
+				data-lat="<?php echo esc_attr( $geo['lat'] ); ?>"
+				data-lng="<?php echo esc_attr( $geo['lng'] ); ?>"
+				data-url="<?php echo esc_url( $page_url ); ?>">
+				<?php foreach ( $radius_options as $r ) : ?>
+					<option value="<?php echo esc_attr( $r ); ?>"<?php selected( $r, $geo['radius'] ); ?>>
+						<?php echo esc_html( $r ); ?> miles
+					</option>
+				<?php endforeach; ?>
+			</select>
+		</label>
+		<span class="near-me-separator">·</span>
+		<a href="<?php echo esc_url( $page_url ); ?>" class="near-me-reset">Change location</a>
+	</div>
+	<?php
+}
+add_action( 'datamachine_events_map_after_summary', 'extrachill_events_near_me_map_controls', 10, 2 );
+
 // --- User Location Marker ---
 
 /**
@@ -271,46 +310,6 @@ function extrachill_events_near_me_user_location( $user_location, array $context
 	return $user_location;
 }
 add_filter( 'datamachine_events_map_user_location', 'extrachill_events_near_me_user_location', 10, 2 );
-
-// --- Context Bar (when location is active) ---
-
-/**
- * Build the context bar shown above the map when geo params are present.
- *
- * Shows radius dropdown and reset link so users can adjust their search.
- *
- * @param array $geo Sanitized geo params.
- * @return string HTML for the context bar.
- */
-function extrachill_events_near_me_context_bar( array $geo ): string {
-	$radius_options = array( 5, 10, 25, 50, 100 );
-	$current_radius = $geo['radius'];
-	$page_url       = get_permalink();
-
-	$html  = '<div class="near-me-context-bar">';
-	$html .= '<div class="near-me-context-controls">';
-
-	// Radius selector.
-	$html .= '<label class="near-me-radius-label">';
-	$html .= '<span>Within</span>';
-	$html .= '<select class="near-me-radius-select" data-lat="' . esc_attr( $geo['lat'] ) . '" data-lng="' . esc_attr( $geo['lng'] ) . '" data-url="' . esc_url( $page_url ) . '">';
-
-	foreach ( $radius_options as $r ) {
-		$selected = ( $r === $current_radius ) ? ' selected' : '';
-		$html    .= sprintf( '<option value="%d"%s>%d miles</option>', $r, $selected, $r );
-	}
-
-	$html .= '</select>';
-	$html .= '</label>';
-
-	// Reset link.
-	$html .= '<a href="' . esc_url( $page_url ) . '" class="near-me-reset">Change location</a>';
-
-	$html .= '</div>';
-	$html .= '</div>';
-
-	return $html;
-}
 
 // --- Content: Loading State + City Grid Fallback ---
 
@@ -337,9 +336,9 @@ function extrachill_events_near_me_content( string $content ): string {
 
 	$geo = extrachill_events_get_geo_params();
 
-	// Location present — show context bar above blocks.
+	// Location present — blocks render with filtered data, no extra UI needed.
 	if ( null !== $geo['lat'] && null !== $geo['lng'] ) {
-		return extrachill_events_near_me_context_bar( $geo ) . $content;
+		return $content;
 	}
 
 	// No location — build the detection UI.
