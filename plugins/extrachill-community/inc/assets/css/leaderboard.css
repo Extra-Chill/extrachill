@@ -6,7 +6,7 @@
     margin: 20px auto;
     max-width: 960px; /* Adjust as needed */
     box-shadow: var(--card-shadow);
-    border-radius: 10px;
+    border-radius: var(--border-radius-lg);
 }
 
 .leaderboard-header {
@@ -78,11 +78,6 @@
     .leaderboard-table th,
     .leaderboard-table td {
         padding: 8px 10px;
-        font-size: 0.9em;
-    }
-
-    .leaderboard-table th,
-    .leaderboard-table td {
-        font-size: 0.85em; /* Further reduce font size on mobile */
+        font-size: 0.85em;
     }
 }

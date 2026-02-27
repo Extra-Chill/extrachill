@@ -20,7 +20,7 @@
     width: 100%;
     border: 2px solid var(--notice-border);
     padding: 12px;
-    border-radius: 5px;
+    border-radius: var(--border-radius-sm);
     font-size: var(--font-size-sm);
     margin-bottom: 15px;
     box-sizing: border-box;
@@ -48,7 +48,7 @@
 .bbp-forum-card {
     background-color: var(--card-background);
     border: 1px solid var(--border-color);
-    border-radius: 5px;
+    border-radius: var(--border-radius-sm);
     padding: 20px;
     box-sizing: border-box;
     flex: 1 1 calc(50% - 10px);
@@ -79,7 +79,7 @@
 }
 
 /* Mobile styles (1 column) */
-@media (max-width: 767px) {
+@media (max-width: 768px) {
     #forums-list-homepage.bbp-forums-grid {
         flex-direction: column;
         gap: 20px;
@@ -106,7 +106,7 @@ ul.recently-active-topic-row {
     flex: 1 1 calc(33.333% - 1rem);
     box-sizing: border-box;
     background-color: var(--card-background);
-    border-radius: 4px;
+    border-radius: var(--border-radius-sm);
     padding: 2rem;
     font-size: var(--font-size-sm);
     border: 1px solid var(--border-color);
@@ -208,7 +208,7 @@ ul.recently-active-topic-row {
 .artist-homepage-card {
     background: var(--card-background);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--border-radius-md);
     padding: 20px;
     transition: all 0.2s ease;
     position: relative;
@@ -320,7 +320,7 @@ ul.recently-active-topic-row {
 /* Artist platform footer buttons - should use .button-1 and .button-3 classes in HTML */
 .artist-platform-view-all,
 .artist-platform-manage {
-    border-radius: 6px;
+    border-radius: var(--border-radius-sm);
     text-decoration: none;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -372,7 +372,7 @@ ul.recently-active-topic-row {
 
 /* Homepage top action buttons - should use .button-1, .button-2, .button-3 classes in HTML */
 .homepage-top-actions .button {
-    border-radius: 5px;
+    border-radius: var(--border-radius-sm);
     text-decoration: none;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -418,7 +418,7 @@ ul.recently-active-topic-row {
 
 /* Artist platform homepage action buttons - should use .button-1, .button-2, .button-3 classes in HTML */
 .artist-platform-homepage-actions .button {
-    border-radius: 5px;
+    border-radius: var(--border-radius-sm);
     text-decoration: none;
     font-weight: 500;
     transition: all 0.2s ease;

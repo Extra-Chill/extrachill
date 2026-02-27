@@ -20,7 +20,7 @@
 .bbp-topic-card {
     background-color: var(--card-background);
     border: 1px solid var(--border-color);
-    border-radius: 5px;
+    border-radius: var(--border-radius-sm);
     padding: 20px;
     margin-bottom: 20px;
     width: 100%;
@@ -69,7 +69,7 @@
 }
 
 /* Mobile Styles (1 column) */
-@media (max-width: 767px) {
+@media (max-width: 768px) {
     .bbp-topics-grid {
         flex-direction: column;
     }

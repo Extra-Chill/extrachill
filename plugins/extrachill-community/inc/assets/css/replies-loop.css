@@ -59,7 +59,7 @@
 /* Reply Card Styles */
 .bbp-reply-card {
     background: var(--card-background);
-    border-radius: 8px;
+    border-radius: var(--border-radius-md);
     box-shadow: var(--card-shadow);
     margin-bottom: 1.5rem;
     /* Compression: reduce width as depth increases, keeping right edge aligned */
@@ -96,7 +96,7 @@
     gap: 1rem;
     background: linear-gradient(to bottom, var(--card-background), var(--background-color));
     padding: 16px;
-    border-radius: 8px;
+    border-radius: var(--border-radius-md);
 }
 
 /* Reset header padding */
@@ -193,7 +193,7 @@ li.bbp-body div.hentry {
 .forum-badges .badge {
     background-color: var(--card-background);
     padding: 2px 6px;
-    border-radius: 12px;
+    border-radius: var(--border-radius-lg);
     font-size: 0.75em;
     border: 1px solid var(--border-color);
     color: var(--text-color);
@@ -221,7 +221,7 @@ li.bbp-body div.hentry {
     padding: 12px 20px;
     border-top: 1px solid var(--border-color);
     background: var(--card-background);
-    border-radius: 0 0 8px 8px;
+    border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
 }
 
 .bbp-reply-admin-actions {
@@ -357,7 +357,7 @@ span.bbp-topic-post-date {
 }
 #bbpress-forums .topic-card-sidebar {
     background-color: var(--card-background);
-    border-radius: 4px;
+    border-radius: var(--border-radius-sm);
     margin-bottom: 1rem;
     padding: 1rem;
     font-size: var(--font-size-sm);
@@ -489,7 +489,7 @@ blockquote p{
 
 .ec-inline-reply-form {
     background: var(--card-background);
-    border-radius: 8px;
+    border-radius: var(--border-radius-md);
     box-shadow: var(--card-shadow);
     margin-bottom: 1.5rem;
     margin-top: 1rem;
