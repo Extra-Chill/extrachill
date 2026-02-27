@@ -2,12 +2,12 @@
 /**
  * Location Map
  *
- * Renders a Leaflet map on location archive pages showing all venues
- * in that city with their coordinates. Map centers on the location's
- * geo tag and auto-fits to show all venue markers.
+ * Hooks into the datamachine-events/events-map block to display venue maps
+ * on location archive pages. Filters venues by city, sets map center from
+ * location coordinates, and generates summary text.
  *
  * @package ExtraChillEvents
- * @since 0.6.0
+ * @since 0.7.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,10 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Render venue map on location archive pages.
+ * Render the events-map block on location archive pages.
  *
- * Hooked to extrachill_archive_below_description which fires in the
- * archive template between the header and the calendar block.
+ * Outputs the block markup via do_blocks() — the block handles its own
+ * asset loading and rendering. Filter callbacks below customize the
+ * venue list, center point, and summary text.
  *
  * @hook extrachill_archive_below_description
  */
@@ -32,114 +33,115 @@ function extrachill_events_render_location_map() {
 		return;
 	}
 
-	// Get location center coordinates.
+	// Only render if this location has coordinates.
 	$center = extrachill_events_get_location_coordinates( $term->term_id );
 	if ( ! $center ) {
 		return;
 	}
 
-	// Get all venues in this location.
-	$venues = extrachill_events_get_location_venues( $term->term_id );
-
-	// Build venue data for JS.
-	$venue_data = array();
-	foreach ( $venues as $venue ) {
-		$venue_data[] = array(
-			'name'    => $venue['name'],
-			'lat'     => $venue['lat'],
-			'lon'     => $venue['lon'],
-			'address' => $venue['address'],
-			'url'     => $venue['url'],
-		);
-	}
-
-	$map_type = 'osm-standard';
-	if ( class_exists( 'DataMachineEvents\Admin\Settings_Page' ) ) {
-		$map_type = \DataMachineEvents\Admin\Settings_Page::get_map_display_type();
-	}
-
-	$map_id = 'location-venue-map-' . $term->term_id;
-	?>
-	<div class="location-map-container">
-		<div
-			id="<?php echo esc_attr( $map_id ); ?>"
-			class="location-venue-map"
-			data-center-lat="<?php echo esc_attr( $center['lat'] ); ?>"
-			data-center-lon="<?php echo esc_attr( $center['lon'] ); ?>"
-			data-map-type="<?php echo esc_attr( $map_type ); ?>"
-			data-venues="<?php echo esc_attr( wp_json_encode( $venue_data ) ); ?>"
-		></div>
-		<?php
-		$venue_count = count( $venues );
-		$event_count = extrachill_events_get_upcoming_event_count( $term->term_id );
-		if ( $event_count > 0 && $venue_count > 0 ) :
-		?>
-			<p class="location-map-summary">
-				<?php
-				printf(
-					/* translators: 1: number of events, 2: number of venues */
-					esc_html__( '%1$d events at %2$d venues', 'extrachill-events' ),
-					$event_count,
-					$venue_count
-				);
-				?>
-			</p>
-		<?php elseif ( $venue_count > 0 ) : ?>
-			<p class="location-map-summary">
-				<?php
-				printf(
-					/* translators: %d: number of venues */
-					esc_html( _n( '%d venue', '%d venues', $venue_count, 'extrachill-events' ) ),
-					$venue_count
-				);
-				?>
-			</p>
-		<?php endif; ?>
-	</div>
-	<?php
+	// Render the block — filters below provide the data.
+	echo do_blocks( '<!-- wp:datamachine-events/events-map /-->' );
 }
 add_action( 'extrachill_archive_below_description', 'extrachill_events_render_location_map' );
 
 /**
- * Enqueue Leaflet and location map assets on location archive pages.
+ * Filter map venues to only show venues in the current location's city.
  *
- * @hook wp_enqueue_scripts
+ * @hook datamachine_events_map_venues
+ * @param array $venues  All venues with coordinates.
+ * @param array $context Map context with taxonomy/term info.
+ * @return array Filtered venues matching the location.
  */
-function extrachill_events_enqueue_location_map_assets() {
-	if ( ! is_tax( 'location' ) ) {
-		return;
+function extrachill_events_filter_map_venues( array $venues, array $context ): array {
+	if ( ! $context['is_taxonomy'] || 'location' !== $context['taxonomy'] ) {
+		return $venues;
 	}
 
-	$term = get_queried_object();
-	if ( ! $term || ! isset( $term->term_id ) ) {
-		return;
+	$location = get_term( $context['term_id'], 'location' );
+	if ( ! $location || is_wp_error( $location ) ) {
+		return $venues;
 	}
 
-	// Only load if this location has coordinates.
-	$center = extrachill_events_get_location_coordinates( $term->term_id );
-	if ( ! $center ) {
-		return;
+	$city_name = $location->name;
+
+	// Filter to only venues whose _venue_city matches this location.
+	$filtered = array();
+	foreach ( $venues as $venue ) {
+		$venue_city = get_term_meta( $venue['term_id'], '_venue_city', true );
+
+		if ( ! empty( $venue_city ) && strcasecmp( $venue_city, $city_name ) === 0 ) {
+			$filtered[] = $venue;
+		}
 	}
 
-	// Leaflet CSS & JS (same versions as datamachine-events).
-	wp_enqueue_style( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', array(), '1.9.4' );
-	wp_enqueue_script( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', array(), '1.9.4', true );
+	// Sort by priority first, then by event count descending.
+	$priority_ids = function_exists( 'ec_get_priority_venue_ids' ) ? ec_get_priority_venue_ids() : array();
+	usort( $filtered, function ( $a, $b ) use ( $priority_ids ) {
+		$a_priority = in_array( $a['term_id'], $priority_ids, true ) ? 1 : 0;
+		$b_priority = in_array( $b['term_id'], $priority_ids, true ) ? 1 : 0;
 
-	// Location map CSS.
-	wp_enqueue_style(
-		'extrachill-events-location-map',
-		EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/css/location-map.css',
-		array( 'leaflet' ),
-		EXTRACHILL_EVENTS_VERSION
-	);
+		if ( $a_priority !== $b_priority ) {
+			return $b_priority - $a_priority;
+		}
 
-	// Location map JS.
-	wp_enqueue_script(
-		'extrachill-events-location-map',
-		EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/js/location-map.js',
-		array( 'leaflet' ),
-		EXTRACHILL_EVENTS_VERSION,
-		true
+		return $b['event_count'] - $a['event_count'];
+	} );
+
+	return $filtered;
+}
+add_filter( 'datamachine_events_map_venues', 'extrachill_events_filter_map_venues', 10, 2 );
+
+/**
+ * Set map center to the location's coordinates.
+ *
+ * @hook datamachine_events_map_center
+ * @param array|null $center  Current center or null.
+ * @param array      $context Map context.
+ * @return array|null Center coordinates array or null.
+ */
+function extrachill_events_filter_map_center( $center, array $context ) {
+	if ( ! $context['is_taxonomy'] || 'location' !== $context['taxonomy'] ) {
+		return $center;
+	}
+
+	return extrachill_events_get_location_coordinates( $context['term_id'] );
+}
+add_filter( 'datamachine_events_map_center', 'extrachill_events_filter_map_center', 10, 2 );
+
+/**
+ * Generate summary text with event/venue counts for location maps.
+ *
+ * @hook datamachine_events_map_summary
+ * @param string $summary Current summary (empty by default).
+ * @param array  $venues  Venue data array.
+ * @param array  $context Map context.
+ * @return string Summary text.
+ */
+function extrachill_events_filter_map_summary( string $summary, array $venues, array $context ): string {
+	if ( ! $context['is_taxonomy'] || 'location' !== $context['taxonomy'] ) {
+		return $summary;
+	}
+
+	$venue_count = count( $venues );
+	if ( $venue_count === 0 ) {
+		return $summary;
+	}
+
+	$event_count = extrachill_events_get_upcoming_event_count( $context['term_id'] );
+
+	if ( $event_count > 0 ) {
+		return sprintf(
+			/* translators: 1: number of events, 2: number of venues */
+			__( '%1$d events at %2$d venues', 'extrachill-events' ),
+			$event_count,
+			$venue_count
+		);
+	}
+
+	return sprintf(
+		/* translators: %d: number of venues */
+		_n( '%d venue', '%d venues', $venue_count, 'extrachill-events' ),
+		$venue_count
 	);
 }
-add_action( 'wp_enqueue_scripts', 'extrachill_events_enqueue_location_map_assets' );
+add_filter( 'datamachine_events_map_summary', 'extrachill_events_filter_map_summary', 10, 3 );
