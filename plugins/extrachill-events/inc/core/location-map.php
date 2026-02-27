@@ -69,13 +69,28 @@ function extrachill_events_render_location_map() {
 			data-map-type="<?php echo esc_attr( $map_type ); ?>"
 			data-venues="<?php echo esc_attr( wp_json_encode( $venue_data ) ); ?>"
 		></div>
-		<?php if ( ! empty( $venues ) ) : ?>
-			<p class="location-map-venue-count">
+		<?php
+		$venue_count = count( $venues );
+		$event_count = extrachill_events_get_upcoming_event_count( $term->term_id );
+		if ( $event_count > 0 && $venue_count > 0 ) :
+		?>
+			<p class="location-map-summary">
+				<?php
+				printf(
+					/* translators: 1: number of events, 2: number of venues */
+					esc_html__( '%1$d events at %2$d venues', 'extrachill-events' ),
+					$event_count,
+					$venue_count
+				);
+				?>
+			</p>
+		<?php elseif ( $venue_count > 0 ) : ?>
+			<p class="location-map-summary">
 				<?php
 				printf(
 					/* translators: %d: number of venues */
-					esc_html( _n( '%d venue', '%d venues', count( $venues ), 'extrachill-events' ) ),
-					count( $venues )
+					esc_html( _n( '%d venue', '%d venues', $venue_count, 'extrachill-events' ) ),
+					$venue_count
 				);
 				?>
 			</p>
