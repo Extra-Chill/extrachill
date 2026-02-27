@@ -6,6 +6,12 @@
  * Uses browser Geolocation API to detect user location, then filters the
  * events-map and calendar blocks to show nearby venues and events.
  *
+ * Flow:
+ * 1. First visit (no params): loading state → JS requests geolocation
+ * 2. Geolocation granted: redirects to ?lat=X&lng=Y&radius=25
+ * 3. Page reloads with params: map + calendar render with geo-filtered results
+ * 4. Geolocation denied: city grid fallback shown via JS
+ *
  * @package ExtraChillEvents
  * @since 0.7.0
  */
@@ -266,26 +272,49 @@ function extrachill_events_near_me_user_location( $user_location, array $context
 }
 add_filter( 'datamachine_events_map_user_location', 'extrachill_events_near_me_user_location', 10, 2 );
 
-// --- Static Fallback Content ---
+// --- Content: Loading State + City Grid Fallback ---
 
 /**
- * Inject city grid before the blocks for SEO and no-JS users.
+ * Inject loading state and hidden city grid before the blocks.
+ *
+ * When the page has geo params (from redirect), this does nothing —
+ * the map and calendar blocks render normally with filtered data.
+ *
+ * When no geo params, shows:
+ * - Loading spinner (visible) — JS will request geolocation
+ * - City grid (hidden) — JS reveals if geolocation is denied
+ * - Status message area — JS updates with error messages
+ *
+ * The city grid also serves as SEO fallback for crawlers that can't
+ * execute JavaScript.
  *
  * @hook the_content
  */
-function extrachill_events_near_me_fallback_content( string $content ): string {
+function extrachill_events_near_me_content( string $content ): string {
 	if ( ! extrachill_events_is_near_me_page() ) {
 		return $content;
 	}
 
 	$geo = extrachill_events_get_geo_params();
 
-	// If we already have location, don't show the fallback grid.
+	// Location present — blocks render with filtered data, no extra UI needed.
 	if ( null !== $geo['lat'] && null !== $geo['lng'] ) {
 		return $content;
 	}
 
-	// Get active locations (cities with events).
+	// No location — build the detection UI.
+	$html = '<div class="near-me-detect">';
+
+	// Loading state (visible by default, JS hides if geo fails).
+	$html .= '<div class="near-me-loading">';
+	$html .= '<div class="near-me-spinner"></div>';
+	$html .= '<p class="near-me-status">Detecting your location...</p>';
+	$html .= '</div>';
+
+	$html .= '</div>';
+
+	// City grid fallback (hidden by default, JS reveals if geo denied).
+	// Also visible to search engines / no-JS users via noscript or as crawlable content.
 	$locations = get_terms( array(
 		'taxonomy'   => 'location',
 		'hide_empty' => true,
@@ -300,39 +329,35 @@ function extrachill_events_near_me_fallback_content( string $content ): string {
 		),
 	) );
 
-	if ( is_wp_error( $locations ) || empty( $locations ) ) {
-		return $content;
-	}
+	if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
+		$html .= '<div class="near-me-cities" style="display:none;">';
+		$html .= '<h2>Browse by City</h2>';
+		$html .= '<div class="near-me-city-grid">';
 
-	$html  = '<div class="near-me-detect">';
-	$html .= '<p class="near-me-cta">Allow location access to find live music near you, or browse by city below.</p>';
-	$html .= '</div>';
+		foreach ( $locations as $location ) {
+			$url = get_term_link( $location );
+			if ( is_wp_error( $url ) ) {
+				continue;
+			}
 
-	$html .= '<div class="near-me-cities">';
-	$html .= '<h2>Browse by City</h2>';
-	$html .= '<div class="near-me-city-grid">';
-
-	foreach ( $locations as $location ) {
-		$url   = get_term_link( $location );
-		$count = $location->count;
-		if ( is_wp_error( $url ) ) {
-			continue;
+			$html .= sprintf(
+				'<a href="%s" class="near-me-city-card"><span class="near-me-city-name">%s</span><span class="near-me-city-count">%d events</span></a>',
+				esc_url( $url ),
+				esc_html( $location->name ),
+				$location->count
+			);
 		}
 
-		$html .= sprintf(
-			'<a href="%s" class="near-me-city-card"><span class="near-me-city-name">%s</span><span class="near-me-city-count">%d events</span></a>',
-			esc_url( $url ),
-			esc_html( $location->name ),
-			$count
-		);
+		$html .= '</div>';
+		$html .= '</div>';
 	}
 
-	$html .= '</div>';
-	$html .= '</div>';
+	// Noscript fallback — show city grid for users without JS.
+	$html .= '<noscript><style>.near-me-loading{display:none!important}.near-me-cities{display:block!important}</style></noscript>';
 
-	return $html . $content;
+	return $html;
 }
-add_filter( 'the_content', 'extrachill_events_near_me_fallback_content' );
+add_filter( 'the_content', 'extrachill_events_near_me_content' );
 
 // --- Secondary Header ---
 
