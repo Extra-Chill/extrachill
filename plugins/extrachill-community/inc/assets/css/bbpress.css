@@ -685,9 +685,9 @@ p.private-forums {
 }
 
 /* ==================================================
-   Small Screen Edge-to-Edge (≤400px)
+   Small Screen Edge-to-Edge (≤480px)
 ================================================== */
-@media (max-width: 400px) {
+@media (max-width: 480px) {
     .bbp-topic-form,
     .bbp-reply-form {
         border-radius: 0;
