@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.10] - 2026-02-27
+
+### Changed
+- Migrate hardcoded border-radius values to CSS variables across 9 files
+- Normalize 767px breakpoints to 768px in topics-loop.css and home.css
+
+### Fixed
+- Fix duplicate font-size rule in leaderboard.css
+
+## [1.3.9] - 2026-02-27
+
+### Changed
+- Bump edge-to-edge breakpoint from 400px to 480px in replies-loop.css, topics-loop.css, bbpress.css
+
 ## [1.3.8] - 2026-02-12
 
 ### Fixed
