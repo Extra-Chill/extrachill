@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.0.14] - 2026-02-27
+
+### Fixed
+- Normalize 767px breakpoint to 768px in filter-bar.css for consistent tablet/mobile transition
+
+## [2.0.13] - 2026-02-27
+
+### Fixed
+- Fix mobile edge-to-edge for community (bbPress) pages — use correct body classes (`body.topic`, `body.forum`, `body.forum-archive`)
+- Bump edge-to-edge breakpoint from 400px to 480px across style.css, single-post.css, sidebar.css
+- Add `overflow-x: hidden` to body to prevent horizontal scroll on mobile
+
 ## [2.0.12] - 2026-02-22
 
 ### Changed
