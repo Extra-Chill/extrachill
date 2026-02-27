@@ -36,8 +36,8 @@ h2.recent-title {
 	}
 }
 
-/* Small screens - edge-to-edge */
-@media (max-width: 400px) {
+/* Small screens - edge-to-edge (480px covers virtually all phones in portrait) */
+@media (max-width: 480px) {
 	.sidebar-card {
 		padding: var(--spacing-md);
 		margin-left: 0;

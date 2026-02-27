@@ -25,8 +25,8 @@
   }
 }
 
-/* Small screens - edge-to-edge for Mediavine 300px ad minimum */
-@media (max-width: 400px) {
+/* Small screens - edge-to-edge (480px covers virtually all phones in portrait) */
+@media (max-width: 480px) {
   .single-post-card {
     padding: var(--spacing-md);
     margin: 0;
