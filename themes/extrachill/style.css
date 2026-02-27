@@ -649,6 +649,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	background: var(--background-color);
+	overflow-x: hidden;
 }
 
 .extrachill-content {
