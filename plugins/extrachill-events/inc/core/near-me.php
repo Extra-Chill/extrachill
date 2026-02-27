@@ -272,6 +272,46 @@ function extrachill_events_near_me_user_location( $user_location, array $context
 }
 add_filter( 'datamachine_events_map_user_location', 'extrachill_events_near_me_user_location', 10, 2 );
 
+// --- Context Bar (when location is active) ---
+
+/**
+ * Build the context bar shown above the map when geo params are present.
+ *
+ * Shows radius dropdown and reset link so users can adjust their search.
+ *
+ * @param array $geo Sanitized geo params.
+ * @return string HTML for the context bar.
+ */
+function extrachill_events_near_me_context_bar( array $geo ): string {
+	$radius_options = array( 5, 10, 25, 50, 100 );
+	$current_radius = $geo['radius'];
+	$page_url       = get_permalink();
+
+	$html  = '<div class="near-me-context-bar">';
+	$html .= '<div class="near-me-context-controls">';
+
+	// Radius selector.
+	$html .= '<label class="near-me-radius-label">';
+	$html .= '<span>Within</span>';
+	$html .= '<select class="near-me-radius-select" data-lat="' . esc_attr( $geo['lat'] ) . '" data-lng="' . esc_attr( $geo['lng'] ) . '" data-url="' . esc_url( $page_url ) . '">';
+
+	foreach ( $radius_options as $r ) {
+		$selected = ( $r === $current_radius ) ? ' selected' : '';
+		$html    .= sprintf( '<option value="%d"%s>%d miles</option>', $r, $selected, $r );
+	}
+
+	$html .= '</select>';
+	$html .= '</label>';
+
+	// Reset link.
+	$html .= '<a href="' . esc_url( $page_url ) . '" class="near-me-reset">Change location</a>';
+
+	$html .= '</div>';
+	$html .= '</div>';
+
+	return $html;
+}
+
 // --- Content: Loading State + City Grid Fallback ---
 
 /**
@@ -297,9 +337,9 @@ function extrachill_events_near_me_content( string $content ): string {
 
 	$geo = extrachill_events_get_geo_params();
 
-	// Location present — blocks render with filtered data, no extra UI needed.
+	// Location present — show context bar above blocks.
 	if ( null !== $geo['lat'] && null !== $geo['lng'] ) {
-		return $content;
+		return extrachill_events_near_me_context_bar( $geo ) . $content;
 	}
 
 	// No location — build the detection UI.

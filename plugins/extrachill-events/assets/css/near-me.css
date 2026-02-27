@@ -39,6 +39,47 @@
 	margin: 0;
 }
 
+/* Context bar (when location is active) */
+.near-me-context-bar {
+	margin-bottom: var(--spacing-md, 1rem);
+}
+
+.near-me-context-controls {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md, 1rem);
+	flex-wrap: wrap;
+}
+
+.near-me-radius-label {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.near-me-radius-select {
+	padding: 0.25rem 0.5rem;
+	font-size: var(--font-size-sm, 0.875rem);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--card-background, #fff);
+	color: var(--text-color, #1a1a1a);
+	cursor: pointer;
+}
+
+.near-me-reset {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.near-me-reset:hover {
+	color: var(--text-color, #1a1a1a);
+}
+
 /* City grid fallback */
 .near-me-cities {
 	margin-bottom: var(--spacing-xl, 2rem);

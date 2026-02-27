@@ -25,6 +25,7 @@
 	// Already have location in URL — page is server-rendered with results.
 	if ( ecNearMe.hasLocation ) {
 		if ( detect ) { detect.style.display = 'none'; }
+		initRadiusSelect();
 		return;
 	}
 
@@ -84,6 +85,19 @@
 		if ( loading ) { loading.style.display = 'none'; }
 		if ( status )  { status.textContent = msg; status.style.display = 'block'; }
 		if ( cities )  { cities.style.display = 'block'; }
+	}
+
+	function initRadiusSelect() {
+		var select = document.querySelector( '.near-me-radius-select' );
+		if ( ! select ) { return; }
+
+		select.addEventListener( 'change', function () {
+			var url = new URL( select.getAttribute( 'data-url' ) );
+			url.searchParams.set( 'lat', select.getAttribute( 'data-lat' ) );
+			url.searchParams.set( 'lng', select.getAttribute( 'data-lng' ) );
+			url.searchParams.set( 'radius', select.value );
+			window.location.href = url.toString();
+		} );
 	}
 
 })();
