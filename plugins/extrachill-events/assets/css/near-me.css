@@ -1,0 +1,66 @@
+/**
+ * Near Me Page Styles
+ *
+ * @package ExtraChillEvents
+ * @since 0.7.0
+ */
+
+.near-me-detect {
+	text-align: center;
+	margin-bottom: var(--spacing-lg, 1.5rem);
+}
+
+.near-me-cta {
+	font-size: var(--font-size-base, 1rem);
+	color: var(--muted-text, #6b7280);
+	margin: 0;
+}
+
+.near-me-cities {
+	margin-bottom: var(--spacing-xl, 2rem);
+}
+
+.near-me-cities h2 {
+	font-size: var(--font-size-lg, 1.25rem);
+	margin-bottom: var(--spacing-md, 1rem);
+}
+
+.near-me-city-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: var(--spacing-sm, 0.75rem);
+}
+
+.near-me-city-card {
+	display: flex;
+	flex-direction: column;
+	padding: var(--spacing-md, 1rem);
+	background: var(--card-background, #fff);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: var(--border-radius-md, 8px);
+	text-decoration: none;
+	color: var(--text-color, #1a1a1a);
+	transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.near-me-city-card:hover {
+	border-color: var(--accent, #53940b);
+	box-shadow: var(--card-hover-shadow, 0 4px 12px rgba(0, 0, 0, 0.1));
+}
+
+.near-me-city-name {
+	font-weight: 600;
+	font-size: var(--font-size-base, 1rem);
+}
+
+.near-me-city-count {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+	margin-top: 0.25rem;
+}
+
+@media (max-width: 480px) {
+	.near-me-city-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
