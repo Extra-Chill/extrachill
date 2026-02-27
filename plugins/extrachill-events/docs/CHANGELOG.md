@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## Unreleased
+
+## [0.6.0] - 2026-02-27
+
+### Added
+- Location venue map on city archive pages — Leaflet map centered on location geo tag showing all venue pins with clickable popups
+- `_location_coordinates` meta field for location taxonomy terms (city center lat/lon)
+- Dynamic SEO title: "Live Music in {City} Tonight & This Week" for location archives
+- Dynamic meta descriptions with event count, venue count, and top venue names
+- Venue sorting by priority flag first, then by event count
+- Responsive map sizing: 400px desktop, 300px tablet, 250px mobile (edge-to-edge)
+- New files: `location-meta.php`, `location-map.php`, `location-seo.php`, `location-map.js`, `location-map.css`
+
+### Changed
+- Location archive H1 from "{City} Live Music Calendar" to "Live Music in {City}"
+- Seeded coordinates for 58 existing city location terms
+
+### Fixed
+- remove skip_default_flow from pipeline creation
+- add-city idempotency, location term creation, skip ghost flows (#11, #12)
+
 ## [0.5.3] - 2026-02-24
 
 - Reset Turnstile widget after failed event submissions so single-use tokens are refreshed for retry
