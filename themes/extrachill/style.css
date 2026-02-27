@@ -1160,16 +1160,14 @@ p.site-title {
 	}
 }
 
-/* Small screens - edge-to-edge for single posts (Mediavine 300px ad minimum) */
-@media screen and (max-width: 400px) {
+/* Small screens - edge-to-edge (480px covers virtually all phones in portrait) */
+@media screen and (max-width: 480px) {
 	body.single-post .extrachill-content,
 	body.single-datamachine_events .extrachill-content,
 	body.single-newsletter .extrachill-content,
-	body.bbp-topic .extrachill-content,
-	body.bbp-reply .extrachill-content,
-	body.bbp-forum .extrachill-content,
-	body.topic-edit .extrachill-content,
-	body.reply-edit .extrachill-content {
+	body.topic .extrachill-content,
+	body.forum .extrachill-content,
+	body.forum-archive .extrachill-content {
 		padding-left: 0;
 		padding-right: 0;
 	}
