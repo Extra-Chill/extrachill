@@ -1164,7 +1164,12 @@ p.site-title {
 @media screen and (max-width: 400px) {
 	body.single-post .extrachill-content,
 	body.single-datamachine_events .extrachill-content,
-	body.single-newsletter .extrachill-content {
+	body.single-newsletter .extrachill-content,
+	body.bbp-topic .extrachill-content,
+	body.bbp-reply .extrachill-content,
+	body.bbp-forum .extrachill-content,
+	body.topic-edit .extrachill-content,
+	body.reply-edit .extrachill-content {
 		padding-left: 0;
 		padding-right: 0;
 	}
