@@ -3,14 +3,19 @@
  * Near Me Page
  *
  * Hooks into the /near-me/ page to provide geolocation-based event discovery.
- * Uses browser Geolocation API to detect user location, then filters the
- * events-map and calendar blocks to show nearby venues and events.
+ * Uses browser Geolocation API to detect user location, then the dynamic
+ * events-map block fetches nearby venues via REST and the calendar block
+ * syncs automatically via geo-sync.
  *
  * Flow:
- * 1. First visit (no params): loading state → JS requests geolocation
- * 2. Geolocation granted: redirects to ?lat=X&lng=Y&radius=25
- * 3. Page reloads with params: map + calendar render with geo-filtered results
- * 4. Geolocation denied: city grid fallback shown via JS
+ * 1. Page loads: loading spinner + geolocation request
+ * 2. Geolocation granted: map centers on user, dynamic mode fetches venues
+ * 3. Map fires bounds-changed → calendar geo-sync re-fetches events
+ * 4. User pans/zooms map → everything updates reactively (no page reload)
+ * 5. Geolocation denied: city grid fallback shown via JS
+ *
+ * The map viewport IS the radius. Zooming in/out controls which venues
+ * and events are visible. No separate radius control needed.
  *
  * @package ExtraChillEvents
  * @since 0.7.0
@@ -37,12 +42,13 @@ function extrachill_events_is_near_me_page(): bool {
 /**
  * Get sanitized geo params from the URL.
  *
- * @return array{lat: float|null, lng: float|null, radius: int}
+ * Used for direct-link support: ?lat=X&lng=Y still works for shareable URLs.
+ *
+ * @return array{lat: float|null, lng: float|null}
  */
 function extrachill_events_get_geo_params(): array {
-	$lat    = isset( $_GET['lat'] ) ? floatval( $_GET['lat'] ) : null;
-	$lng    = isset( $_GET['lng'] ) ? floatval( $_GET['lng'] ) : null;
-	$radius = isset( $_GET['radius'] ) ? absint( $_GET['radius'] ) : 25;
+	$lat = isset( $_GET['lat'] ) ? floatval( $_GET['lat'] ) : null;
+	$lng = isset( $_GET['lng'] ) ? floatval( $_GET['lng'] ) : null;
 
 	// Validate coordinates.
 	if ( null !== $lat && ( $lat < -90 || $lat > 90 ) ) {
@@ -52,13 +58,9 @@ function extrachill_events_get_geo_params(): array {
 		$lng = null;
 	}
 
-	// Clamp radius.
-	$radius = max( 5, min( 100, $radius ) );
-
 	return array(
-		'lat'    => $lat,
-		'lng'    => $lng,
-		'radius' => $radius,
+		'lat' => $lat,
+		'lng' => $lng,
 	);
 }
 
@@ -149,58 +151,44 @@ function extrachill_events_near_me_scripts() {
 		'hasLocation' => null !== $geo['lat'] && null !== $geo['lng'],
 		'lat'         => $geo['lat'],
 		'lng'         => $geo['lng'],
-		'radius'      => $geo['radius'],
 		'pageUrl'     => get_permalink(),
 	) );
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_events_near_me_scripts' );
 
-// --- Map Block Filter ---
+// --- Map Block: Force Dynamic Mode ---
 
 /**
- * Filter map venues on the Near Me page to show venues near the user.
+ * Force the events-map block into dynamic mode on the Near Me page.
  *
- * @hook datamachine_events_map_venues
+ * Dynamic mode means the map fetches venues from the REST API on pan/zoom
+ * instead of relying on server-embedded JSON. This is essential because
+ * the near-me page starts without a location — venues load after
+ * geolocation resolves and the map centers on the user.
+ *
+ * @hook render_block_data
  */
-function extrachill_events_near_me_map_venues( array $venues, array $context ): array {
+function extrachill_events_near_me_force_dynamic_map( array $parsed_block ): array {
 	if ( ! extrachill_events_is_near_me_page() ) {
-		return $venues;
+		return $parsed_block;
 	}
 
-	$geo = extrachill_events_get_geo_params();
-
-	// No location yet — show nothing (JS will request geolocation).
-	if ( null === $geo['lat'] || null === $geo['lng'] ) {
-		return array();
+	if ( 'datamachine-events/events-map' === $parsed_block['blockName'] ) {
+		$parsed_block['attrs']['dynamic'] = true;
 	}
 
-	// Filter to venues within radius.
-	$nearby = array();
-	foreach ( $venues as $venue ) {
-		$distance = extrachill_events_haversine_distance(
-			$geo['lat'],
-			$geo['lng'],
-			$venue['lat'],
-			$venue['lon']
-		);
-
-		if ( $distance <= $geo['radius'] ) {
-			$venue['distance'] = round( $distance, 1 );
-			$nearby[]          = $venue;
-		}
-	}
-
-	// Sort by distance.
-	usort( $nearby, function ( $a, $b ) {
-		return $a['distance'] <=> $b['distance'];
-	} );
-
-	return $nearby;
+	return $parsed_block;
 }
-add_filter( 'datamachine_events_map_venues', 'extrachill_events_near_me_map_venues', 10, 2 );
+add_filter( 'render_block_data', 'extrachill_events_near_me_force_dynamic_map' );
+
+// --- Map Block Filters ---
 
 /**
  * Set map center to user location on the Near Me page.
+ *
+ * Only applies when URL has geo params (direct link / shareable URL).
+ * On first visit without params, the map starts empty and JS centers it
+ * after geolocation resolves.
  *
  * @hook datamachine_events_map_center
  */
@@ -223,73 +211,9 @@ function extrachill_events_near_me_map_center( $center, array $context ) {
 add_filter( 'datamachine_events_map_center', 'extrachill_events_near_me_map_center', 10, 2 );
 
 /**
- * Summary text for the Near Me map.
- *
- * @hook datamachine_events_map_summary
- */
-function extrachill_events_near_me_map_summary( string $summary, array $venues, array $context ): string {
-	if ( ! extrachill_events_is_near_me_page() ) {
-		return $summary;
-	}
-
-	$venue_count = count( $venues );
-	if ( 0 === $venue_count ) {
-		return $summary;
-	}
-
-	$geo = extrachill_events_get_geo_params();
-
-	return sprintf(
-		'%d venues within %d miles',
-		$venue_count,
-		$geo['radius']
-	);
-}
-add_filter( 'datamachine_events_map_summary', 'extrachill_events_near_me_map_summary', 10, 3 );
-
-/**
- * Render radius dropdown and change location link below the map summary.
- *
- * @hook datamachine_events_map_after_summary
- */
-function extrachill_events_near_me_map_controls( array $venues, array $context ) {
-	if ( ! extrachill_events_is_near_me_page() ) {
-		return;
-	}
-
-	$geo = extrachill_events_get_geo_params();
-	if ( null === $geo['lat'] || null === $geo['lng'] ) {
-		return;
-	}
-
-	$page_url       = get_permalink();
-	$radius_options = array( 5, 10, 25, 50, 100 );
-	?>
-	<div class="near-me-controls">
-		<label class="near-me-radius-label">
-			<span>Radius:</span>
-			<select class="near-me-radius-select"
-				data-lat="<?php echo esc_attr( $geo['lat'] ); ?>"
-				data-lng="<?php echo esc_attr( $geo['lng'] ); ?>"
-				data-url="<?php echo esc_url( $page_url ); ?>">
-				<?php foreach ( $radius_options as $r ) : ?>
-					<option value="<?php echo esc_attr( $r ); ?>"<?php selected( $r, $geo['radius'] ); ?>>
-						<?php echo esc_html( $r ); ?> miles
-					</option>
-				<?php endforeach; ?>
-			</select>
-		</label>
-		<span class="near-me-separator">·</span>
-		<a href="<?php echo esc_url( $page_url ); ?>" class="near-me-reset">Change location</a>
-	</div>
-	<?php
-}
-add_action( 'datamachine_events_map_after_summary', 'extrachill_events_near_me_map_controls', 10, 2 );
-
-// --- User Location Marker ---
-
-/**
  * Pass user location to the map block for the blue dot marker.
+ *
+ * Only applies when URL has geo params.
  *
  * @hook datamachine_events_map_user_location
  */
@@ -311,21 +235,41 @@ function extrachill_events_near_me_user_location( $user_location, array $context
 }
 add_filter( 'datamachine_events_map_user_location', 'extrachill_events_near_me_user_location', 10, 2 );
 
+/**
+ * Render "Change location" link below the map.
+ *
+ * @hook datamachine_events_map_after_summary
+ */
+function extrachill_events_near_me_map_controls( array $venues, array $context ) {
+	if ( ! extrachill_events_is_near_me_page() ) {
+		return;
+	}
+
+	$geo = extrachill_events_get_geo_params();
+	if ( null === $geo['lat'] || null === $geo['lng'] ) {
+		return;
+	}
+
+	$page_url = get_permalink();
+	?>
+	<div class="near-me-controls">
+		<a href="<?php echo esc_url( $page_url ); ?>" class="near-me-reset">Change location</a>
+	</div>
+	<?php
+}
+add_action( 'datamachine_events_map_after_summary', 'extrachill_events_near_me_map_controls', 10, 2 );
+
 // --- Content: Loading State + City Grid Fallback ---
 
 /**
- * Inject loading state and hidden city grid before the blocks.
+ * Inject loading state, city grid fallback, and block wrapper.
  *
- * When the page has geo params (from redirect), this does nothing —
- * the map and calendar blocks render normally with filtered data.
+ * The blocks always render (map in dynamic mode starts empty, calendar
+ * starts with all events). When geolocation resolves, JS hides the detect
+ * UI and the blocks populate via REST.
  *
- * When no geo params, shows:
- * - Loading spinner (visible) — JS will request geolocation
- * - City grid (hidden) — JS reveals if geolocation is denied
- * - Status message area — JS updates with error messages
- *
- * The city grid also serves as SEO fallback for crawlers that can't
- * execute JavaScript.
+ * When URL already has geo params (shareable link), the detect UI is hidden
+ * and blocks render with server-side data immediately.
  *
  * @hook the_content
  */
@@ -335,17 +279,16 @@ function extrachill_events_near_me_content( string $content ): string {
 	}
 
 	$geo = extrachill_events_get_geo_params();
+	$has_location = null !== $geo['lat'] && null !== $geo['lng'];
 
-	// Location present — blocks render with filtered data, no extra UI needed.
-	if ( null !== $geo['lat'] && null !== $geo['lng'] ) {
-		return $content;
-	}
+	// Detection UI — hidden when URL already has location.
+	$detect_style = $has_location ? ' style="display:none;"' : '';
 
-	// No location — build the detection UI.
-	$html = '<div class="near-me-detect">';
+	$html = '<div class="near-me-detect"' . $detect_style . '>';
 
-	// Loading state (visible by default, JS hides if geo fails).
-	$html .= '<div class="near-me-loading">';
+	// Loading state (visible by default when no location, JS hides if geo fails).
+	$loading_display = $has_location ? 'none' : 'flex';
+	$html .= '<div class="near-me-loading" style="display:' . $loading_display . ';">';
 	$html .= '<div class="near-me-spinner"></div>';
 	$html .= '<p class="near-me-status">Detecting your location...</p>';
 	$html .= '</div>';
@@ -353,7 +296,6 @@ function extrachill_events_near_me_content( string $content ): string {
 	$html .= '</div>';
 
 	// City grid fallback (hidden by default, JS reveals if geo denied).
-	// Also visible to search engines / no-JS users via noscript or as crawlable content.
 	$locations = get_terms( array(
 		'taxonomy'   => 'location',
 		'hide_empty' => true,
@@ -393,6 +335,9 @@ function extrachill_events_near_me_content( string $content ): string {
 
 	// Noscript fallback — show city grid for users without JS.
 	$html .= '<noscript><style>.near-me-loading{display:none!important}.near-me-cities{display:block!important}</style></noscript>';
+
+	// Blocks container — always rendered, JS populates via REST.
+	$html .= '<div class="near-me-results">' . $content . '</div>';
 
 	return $html;
 }

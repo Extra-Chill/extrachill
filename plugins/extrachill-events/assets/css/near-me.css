@@ -39,7 +39,7 @@
 	margin: 0;
 }
 
-/* Map controls (radius + change location) */
+/* Map controls (change location link) */
 .near-me-controls {
 	display: flex;
 	align-items: center;
@@ -48,26 +48,6 @@
 	margin-top: 0.375rem;
 	font-size: 0.8125rem;
 	color: var(--muted-text, #6b7280);
-}
-
-.near-me-radius-label {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
-}
-
-.near-me-radius-select {
-	padding: 0.125rem 0.375rem;
-	font-size: 0.8125rem;
-	border: 1px solid var(--border-color, #e5e7eb);
-	border-radius: 4px;
-	background: var(--card-background, #fff);
-	color: var(--text-color, #1a1a1a);
-	cursor: pointer;
-}
-
-.near-me-separator {
-	color: var(--border-color, #e5e7eb);
 }
 
 .near-me-reset {
