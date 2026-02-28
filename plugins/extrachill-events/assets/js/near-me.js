@@ -1,16 +1,21 @@
 /**
- * Near Me Page Geolocation
+ * Near Me Page — Reactive Geolocation
  *
- * Detects user location via browser Geolocation API. Shows a loading
- * state while detecting, then redirects with lat/lng params so the
- * server renders the map and calendar with geo-filtered results.
+ * Detects user location via browser Geolocation API. On success, updates
+ * the map center and lets the dynamic map + geo-sync handle the rest:
+ * - Map fetches venues from REST API based on viewport
+ * - Map fires datamachine-map-bounds-changed
+ * - Calendar geo-sync catches it and re-fetches events
+ * - URL updates via History API (shareable)
+ *
+ * No page reloads. The map viewport IS the radius.
  *
  * If geolocation is denied or unavailable, reveals the city grid fallback.
  *
  * @package ExtraChillEvents
- * @since 0.7.0
+ * @since 0.8.0
  */
-(function () {
+( function () {
 	'use strict';
 
 	if ( typeof ecNearMe === 'undefined' ) {
@@ -22,10 +27,12 @@
 	var cities  = document.querySelector( '.near-me-cities' );
 	var status  = document.querySelector( '.near-me-status' );
 
-	// Already have location in URL — page is server-rendered with results.
+	// Already have location in URL — map renders with server-side center,
+	// dynamic mode fetches venues, geo-sync updates calendar.
 	if ( ecNearMe.hasLocation ) {
-		if ( detect ) { detect.style.display = 'none'; }
-		initRadiusSelect();
+		if ( detect ) {
+			detect.style.display = 'none';
+		}
 		return;
 	}
 
@@ -36,8 +43,12 @@
 	}
 
 	// Show loading state.
-	if ( loading ) { loading.style.display = 'flex'; }
-	if ( cities )  { cities.style.display = 'none'; }
+	if ( loading ) {
+		loading.style.display = 'flex';
+	}
+	if ( cities ) {
+		cities.style.display = 'none';
+	}
 
 	// Request location.
 	navigator.geolocation.getCurrentPosition( onSuccess, onError, {
@@ -55,12 +66,36 @@
 			status.textContent = 'Found you! Loading nearby events...';
 		}
 
-		// Navigate with geo params — server renders map + calendar.
+		// Update URL via History API — no page reload.
 		var url = new URL( ecNearMe.pageUrl );
 		url.searchParams.set( 'lat', lat );
 		url.searchParams.set( 'lng', lng );
-		url.searchParams.set( 'radius', ecNearMe.radius );
-		window.location.href = url.toString();
+		window.history.replaceState( {}, '', url.toString() );
+
+		// Set the map center by updating data attributes on the map root.
+		// The map React component reads these on init. If the map has already
+		// initialized, we dispatch a custom event to recenter it.
+		var mapRoot = document.querySelector( '.datamachine-events-map-root' );
+		if ( mapRoot ) {
+			mapRoot.dataset.centerLat = lat;
+			mapRoot.dataset.centerLon = lng;
+			mapRoot.dataset.userLat   = lat;
+			mapRoot.dataset.userLon   = lng;
+
+			// If map is already initialized, dispatch recenter event.
+			if ( mapRoot.dataset.initialized === '1' ) {
+				document.dispatchEvent( new CustomEvent( 'datamachine-map-recenter', {
+					detail: {
+						lat: parseFloat( lat ),
+						lng: parseFloat( lng ),
+						zoom: 12,
+					},
+				} ) );
+			}
+		}
+
+		// Hide the detection UI — map and calendar are now loading.
+		hideDetectUI();
 	}
 
 	function onError( error ) {
@@ -81,23 +116,22 @@
 		showFallback( msg );
 	}
 
+	function hideDetectUI() {
+		if ( detect ) {
+			detect.style.display = 'none';
+		}
+	}
+
 	function showFallback( msg ) {
-		if ( loading ) { loading.style.display = 'none'; }
-		if ( status )  { status.textContent = msg; status.style.display = 'block'; }
-		if ( cities )  { cities.style.display = 'block'; }
+		if ( loading ) {
+			loading.style.display = 'none';
+		}
+		if ( status ) {
+			status.textContent = msg;
+			status.style.display = 'block';
+		}
+		if ( cities ) {
+			cities.style.display = 'block';
+		}
 	}
-
-	function initRadiusSelect() {
-		var select = document.querySelector( '.near-me-radius-select' );
-		if ( ! select ) { return; }
-
-		select.addEventListener( 'change', function () {
-			var url = new URL( select.getAttribute( 'data-url' ) );
-			url.searchParams.set( 'lat', select.getAttribute( 'data-lat' ) );
-			url.searchParams.set( 'lng', select.getAttribute( 'data-lng' ) );
-			url.searchParams.set( 'radius', select.value );
-			window.location.href = url.toString();
-		} );
-	}
-
-})();
+} )();
