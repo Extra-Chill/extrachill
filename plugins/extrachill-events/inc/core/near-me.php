@@ -156,31 +156,6 @@ function extrachill_events_near_me_scripts() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_events_near_me_scripts' );
 
-// --- Map Block: Force Dynamic Mode ---
-
-/**
- * Force the events-map block into dynamic mode on the Near Me page.
- *
- * Dynamic mode means the map fetches venues from the REST API on pan/zoom
- * instead of relying on server-embedded JSON. This is essential because
- * the near-me page starts without a location — venues load after
- * geolocation resolves and the map centers on the user.
- *
- * @hook render_block_data
- */
-function extrachill_events_near_me_force_dynamic_map( array $parsed_block ): array {
-	if ( ! extrachill_events_is_near_me_page() ) {
-		return $parsed_block;
-	}
-
-	if ( 'datamachine-events/events-map' === $parsed_block['blockName'] ) {
-		$parsed_block['attrs']['dynamic'] = true;
-	}
-
-	return $parsed_block;
-}
-add_filter( 'render_block_data', 'extrachill_events_near_me_force_dynamic_map' );
-
 // --- Map Block Filters ---
 
 /**
