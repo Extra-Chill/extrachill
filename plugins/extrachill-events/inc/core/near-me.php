@@ -211,28 +211,20 @@ function extrachill_events_near_me_user_location( $user_location, array $context
 add_filter( 'datamachine_events_map_user_location', 'extrachill_events_near_me_user_location', 10, 2 );
 
 /**
- * Render "Change location" link below the map.
+ * Enable location search input on the EventsMap block for the Near Me page.
  *
- * @hook datamachine_events_map_after_summary
+ * The location search is a datamachine-events block feature (block attribute).
+ * We just enable it here for the near-me context.
+ *
+ * @hook datamachine_events_map_show_location_search
  */
-function extrachill_events_near_me_map_controls( array $venues, array $context ) {
-	if ( ! extrachill_events_is_near_me_page() ) {
-		return;
+function extrachill_events_near_me_location_search( bool $show, array $context ): bool {
+	if ( extrachill_events_is_near_me_page() ) {
+		return true;
 	}
-
-	$geo = extrachill_events_get_geo_params();
-	if ( null === $geo['lat'] || null === $geo['lng'] ) {
-		return;
-	}
-
-	$page_url = get_permalink();
-	?>
-	<div class="near-me-controls">
-		<a href="<?php echo esc_url( $page_url ); ?>" class="near-me-reset">Change location</a>
-	</div>
-	<?php
+	return $show;
 }
-add_action( 'datamachine_events_map_after_summary', 'extrachill_events_near_me_map_controls', 10, 2 );
+add_filter( 'datamachine_events_map_show_location_search', 'extrachill_events_near_me_location_search', 10, 2 );
 
 // --- Content: Loading State + City Grid Fallback ---
 

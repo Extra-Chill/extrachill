@@ -12,6 +12,9 @@
  *
  * If geolocation is denied or unavailable, reveals the city grid fallback.
  *
+ * The location search input is part of the EventsMap block (datamachine layer),
+ * enabled on this page via the datamachine_events_map_show_location_search filter.
+ *
  * @package ExtraChillEvents
  * @since 0.8.0
  */

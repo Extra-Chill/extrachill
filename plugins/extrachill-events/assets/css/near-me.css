@@ -39,26 +39,7 @@
 	margin: 0;
 }
 
-/* Map controls (change location link) */
-.near-me-controls {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.5rem;
-	margin-top: 0.375rem;
-	font-size: 0.8125rem;
-	color: var(--muted-text, #6b7280);
-}
-
-.near-me-reset {
-	color: var(--muted-text, #6b7280);
-	text-decoration: underline;
-	text-underline-offset: 2px;
-}
-
-.near-me-reset:hover {
-	color: var(--text-color, #1a1a1a);
-}
+/* Map controls — location search is now part of the EventsMap block (datamachine layer) */
 
 /* City grid fallback */
 .near-me-cities {
