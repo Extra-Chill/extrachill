@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+- Complete rename migration: `datamachine-events` → `data-machine-events` across all 47 files
+- Directory rename: `inc/core/datamachine-events/` → `inc/core/data-machine-events/`
+- PHP filter hooks: `datamachine_events_*` → `data_machine_events_*`
+- CSS classes: `.datamachine-event-details` → `.data-machine-event-details`, `.datamachine-more-info-button` → `.data-machine-more-info-button`
+- JS custom events: `datamachine-map-*` → `data-machine-map-*`
+- Style handles: `wp-block-datamachine-events-calendar` → `wp-block-data-machine-events-calendar`
+- Internal PHP methods renamed to match (`init_datamachine_*` → `init_data_machine_*`)
+
+### Removed
+- Dead `build.sh` symlink — homeboy is the build system
+
 ## [0.6.0] - 2026-02-27
 
 ### Added
