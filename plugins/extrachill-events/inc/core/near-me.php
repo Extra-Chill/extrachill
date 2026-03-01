@@ -318,6 +318,11 @@ add_filter( 'the_content', 'extrachill_events_near_me_content' );
  * @hook extrachill_secondary_header_items
  */
 function extrachill_events_near_me_header_item( array $items ): array {
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	if ( (int) get_current_blog_id() !== $events_blog_id ) {
+		return $items;
+	}
+
 	$items[] = array(
 		'url'      => home_url( '/near-me/' ),
 		'label'    => __( 'Near Me', 'extrachill-events' ),
