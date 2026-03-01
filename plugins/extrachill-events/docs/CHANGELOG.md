@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - feat: add discovery pages — time-scoped landing pages for location archives (tonight, this-weekend, this-week)
 - fix: register missing add_filter for extrachill_seo_skip_meta_description in location-seo.php
+- fix: discovery template override priority (15 > events archive at 10) and skip location-seo on discovery pages
 
 ## [0.7.0] - 2026-03-01
 

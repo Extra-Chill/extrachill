@@ -114,8 +114,8 @@ function extrachill_events_get_scope_label( string $scope ): string {
 /**
  * Override the archive template for discovery pages.
  *
- * Runs on the same filter as the standard archive override but at a higher
- * priority (5 vs default 10) so it takes precedence when event_scope is set.
+ * Runs on the same filter as the standard archive override but at a lower
+ * priority (15 vs default 10) so it runs after and takes precedence when event_scope is set.
  *
  * @hook extrachill_template_archive
  * @param string $template Current template path.
@@ -128,7 +128,7 @@ function extrachill_events_discovery_template( string $template ): string {
 
 	return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/discovery.php';
 }
-add_filter( 'extrachill_template_archive', 'extrachill_events_discovery_template', 5 );
+add_filter( 'extrachill_template_archive', 'extrachill_events_discovery_template', 15 );
 
 // --- SEO: Title ---
 

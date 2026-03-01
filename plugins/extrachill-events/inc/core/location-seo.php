@@ -35,6 +35,11 @@ function extrachill_events_location_title( array $title_parts ): array {
 		return $title_parts;
 	}
 
+	// Discovery pages set their own scoped title.
+	if ( function_exists( 'extrachill_events_is_discovery_page' ) && extrachill_events_is_discovery_page() ) {
+		return $title_parts;
+	}
+
 	$term_name            = single_term_title( '', false );
 	$title_parts['title'] = sprintf( 'Live Music in %s Tonight & This Week', $term_name );
 
@@ -59,6 +64,11 @@ function extrachill_events_location_meta_description() {
 	}
 
 	if ( ! is_tax( 'location' ) ) {
+		return;
+	}
+
+	// Discovery pages render their own scoped meta description.
+	if ( function_exists( 'extrachill_events_is_discovery_page' ) && extrachill_events_is_discovery_page() ) {
 		return;
 	}
 
