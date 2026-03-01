@@ -2,7 +2,7 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
-## Unreleased
+## [0.10.13] - 2026-03-01
 
 ### Changed
 - Remove obsolete admin REST routes for 404 logger, tag migration, and forum topic migration
