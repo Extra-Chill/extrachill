@@ -68,7 +68,7 @@ function extrachill_shop_parse_event_url( $url ) {
 
 	switch_to_blog( $events_blog_id );
 	try {
-		$event = get_page_by_path( $slug, OBJECT, 'datamachine_events' );
+		$event = get_page_by_path( $slug, OBJECT, 'data_machine_events' );
 		if ( ! $event ) {
 			return new WP_Error( 'event_not_found', 'Event not found' );
 		}
@@ -203,7 +203,7 @@ function extrachill_shop_validate_event_cart() {
 		switch_to_blog( $events_blog_id );
 		try {
 			$event = get_post( $event_id );
-			if ( ! $event || 'datamachine_events' !== $event->post_type ) {
+			if ( ! $event || 'data_machine_events' !== $event->post_type ) {
 				wc_add_notice( __( 'The selected event no longer exists.', 'extrachill-shop' ), 'error' );
 			}
 
@@ -307,7 +307,7 @@ function extrachill_shop_handle_priority_boost_purchase( $order_id ) {
 		switch_to_blog( $events_blog_id );
 		try {
 			$event = get_post( $event_id );
-			if ( ! $event || 'datamachine_events' !== $event->post_type ) {
+			if ( ! $event || 'data_machine_events' !== $event->post_type ) {
 				restore_current_blog();
 				continue;
 			}
