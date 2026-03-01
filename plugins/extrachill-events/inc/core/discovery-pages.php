@@ -286,7 +286,7 @@ function extrachill_events_discovery_remove_default_canonical() {
 }
 add_action( 'wp_head', 'extrachill_events_discovery_remove_default_canonical', 0 );
 
-// --- SEO: Skip Duplicate Meta ---
+// --- SEO: Skip Duplicate Meta & Canonical ---
 
 /**
  * Prevent extrachill-seo from outputting a duplicate meta description on discovery pages.
@@ -302,6 +302,63 @@ function extrachill_events_discovery_skip_seo_description( bool $skip ): bool {
 	return $skip;
 }
 add_filter( 'extrachill_seo_skip_meta_description', 'extrachill_events_discovery_skip_seo_description' );
+
+/**
+ * Prevent extrachill-seo from outputting a duplicate canonical on discovery pages.
+ *
+ * Discovery pages output their own canonical with the scope segment at priority 1.
+ *
+ * @hook extrachill_seo_skip_canonical
+ * @param bool $skip Whether to skip.
+ * @return bool
+ */
+function extrachill_events_discovery_skip_seo_canonical( bool $skip ): bool {
+	if ( extrachill_events_is_discovery_page() ) {
+		return true;
+	}
+	return $skip;
+}
+add_filter( 'extrachill_seo_skip_canonical', 'extrachill_events_discovery_skip_seo_canonical' );
+
+// --- SEO: Override OG Data ---
+
+/**
+ * Fix Open Graph data on discovery pages.
+ *
+ * Overrides og:url to include the scope segment and og:description
+ * to use the scoped description instead of the generic one.
+ *
+ * @hook extrachill_seo_open_graph_data
+ * @param array $og_data OG property => value pairs.
+ * @return array Modified OG data.
+ */
+function extrachill_events_discovery_og_data( array $og_data ): array {
+	if ( ! extrachill_events_is_discovery_page() ) {
+		return $og_data;
+	}
+
+	$term = get_queried_object();
+	if ( ! $term ) {
+		return $og_data;
+	}
+
+	$term_link = get_term_link( $term );
+	if ( is_wp_error( $term_link ) ) {
+		return $og_data;
+	}
+
+	$scope = extrachill_events_get_current_scope();
+
+	// Fix og:url to include scope segment.
+	$og_data['og:url'] = trailingslashit( $term_link ) . $scope . '/';
+
+	// Fix og:title to include scope label.
+	$scope_label         = extrachill_events_get_scope_label( $scope );
+	$og_data['og:title'] = sprintf( 'Live Music in %s %s', $term->name, $scope_label );
+
+	return $og_data;
+}
+add_filter( 'extrachill_seo_open_graph_data', 'extrachill_events_discovery_og_data' );
 
 // --- Breadcrumbs ---
 
