@@ -22,6 +22,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action(
 	'wp_head',
 	function () {
+		// Allow other plugins to suppress the canonical tag (e.g., discovery pages).
+		if ( apply_filters( 'extrachill_seo_skip_canonical', false ) ) {
+			return;
+		}
+
 		// Login pages across the network canonicalize to community site.
 		if ( is_page( 'login' ) ) {
 			$canonical = ec_seo_get_login_canonical_url();

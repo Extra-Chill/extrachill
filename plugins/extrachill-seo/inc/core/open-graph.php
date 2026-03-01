@@ -22,6 +22,16 @@ add_action(
 	function () {
 		$og_data = ec_seo_get_open_graph_data();
 
+		/**
+		 * Filter Open Graph data before output.
+		 *
+		 * Allows plugins to override individual OG properties (e.g., og:url,
+		 * og:description) for specialized page types like discovery pages.
+		 *
+		 * @param array $og_data Associative array of OG property => value.
+		 */
+		$og_data = apply_filters( 'extrachill_seo_open_graph_data', $og_data );
+
 		echo "\n<!-- Open Graph -->\n";
 
 		foreach ( $og_data as $property => $content ) {
