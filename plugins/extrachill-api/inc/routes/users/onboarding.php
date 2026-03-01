@@ -5,6 +5,8 @@
  * GET /wp-json/extrachill/v1/users/onboarding - Get onboarding status
  * POST /wp-json/extrachill/v1/users/onboarding - Complete onboarding
  *
+ * Delegates to extrachill-users abilities as the canonical primitives.
+ *
  * @package ExtraChillAPI
  */
 
@@ -66,12 +68,12 @@ function extrachill_api_onboarding_permission_check( WP_REST_Request $request ) 
 }
 
 /**
- * GET handler - retrieve onboarding status
+ * GET handler - retrieve onboarding status via ability.
  */
 function extrachill_api_onboarding_get_handler( WP_REST_Request $request ) {
-	$user_id = get_current_user_id();
+	$ability = wp_get_ability( 'extrachill/get-onboarding-status' );
 
-	if ( ! function_exists( 'ec_get_onboarding_status' ) ) {
+	if ( ! $ability ) {
 		return new WP_Error(
 			'service_unavailable',
 			__( 'Onboarding service not available.', 'extrachill-api' ),
@@ -79,18 +81,22 @@ function extrachill_api_onboarding_get_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	$status = ec_get_onboarding_status( $user_id );
+	$result = $ability->execute( array( 'user_id' => get_current_user_id() ) );
 
-	return rest_ensure_response( $status );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
 
 /**
- * POST handler - complete onboarding
+ * POST handler - complete onboarding via ability.
  */
 function extrachill_api_onboarding_post_handler( WP_REST_Request $request ) {
-	$user_id = get_current_user_id();
+	$ability = wp_get_ability( 'extrachill/complete-onboarding' );
 
-	if ( ! function_exists( 'ec_complete_onboarding' ) ) {
+	if ( ! $ability ) {
 		return new WP_Error(
 			'service_unavailable',
 			__( 'Onboarding service not available.', 'extrachill-api' ),
@@ -98,13 +104,14 @@ function extrachill_api_onboarding_post_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	$data = array(
-		'username'             => $request->get_param( 'username' ),
-		'user_is_artist'       => $request->get_param( 'user_is_artist' ),
-		'user_is_professional' => $request->get_param( 'user_is_professional' ),
+	$result = $ability->execute(
+		array(
+			'user_id'              => get_current_user_id(),
+			'username'             => $request->get_param( 'username' ),
+			'user_is_artist'       => $request->get_param( 'user_is_artist' ),
+			'user_is_professional' => $request->get_param( 'user_is_professional' ),
+		)
 	);
-
-	$result = ec_complete_onboarding( $user_id, $data );
 
 	if ( is_wp_error( $result ) ) {
 		return new WP_Error(
