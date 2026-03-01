@@ -355,7 +355,7 @@ function extrachill_api_get_markdown_export( $request ) {
 		}
 
 		$meta_lines = array();
-		if ( 'datamachine_events' === $post->post_type ) {
+		if ( 'data_machine_events' === $post->post_type ) {
 			$meta_lines = extrachill_api_get_event_markdown_meta_lines( $post );
 		}
 

@@ -202,7 +202,7 @@ function extrachill_api_count_upcoming_events_for_term( $term_id, $taxonomy ) {
 
 	$query = new WP_Query(
 		array(
-			'post_type'      => 'datamachine_events',
+			'post_type'      => 'data_machine_events',
 			'post_status'    => 'publish',
 			'posts_per_page' => -1,
 			'fields'         => 'ids',

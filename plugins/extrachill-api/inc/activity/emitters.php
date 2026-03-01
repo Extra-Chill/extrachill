@@ -94,7 +94,7 @@ function extrachill_api_activity_emit_post_events( $post_id, $post, $update ) {
         'permalink' => get_permalink( $post ),
     );
 
-    if ( $post->post_type === 'datamachine_events' ) {
+    if ( $post->post_type === 'data_machine_events' ) {
         $card = array_merge( $card, extrachill_api_activity_build_event_card( $post ) );
     }
 
