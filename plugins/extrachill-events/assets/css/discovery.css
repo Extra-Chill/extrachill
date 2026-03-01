@@ -1,0 +1,66 @@
+/**
+ * Discovery Page Styles
+ *
+ * Scope navigation tabs for discovery pages and location archives.
+ * Tabs: Tonight | This Weekend | This Week | All Shows
+ *
+ * @package ExtraChillEvents
+ * @since 0.7.0
+ */
+
+/* Scope Navigation Tabs */
+.discovery-scope-nav {
+    margin-bottom: var(--spacing-lg);
+}
+
+.discovery-scope-nav ul {
+    display: flex;
+    gap: var(--spacing-xs);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+}
+
+.discovery-scope-nav li a {
+    display: block;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--muted-text);
+    text-decoration: none;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.discovery-scope-nav li a:hover {
+    color: var(--text-color);
+    border-color: var(--text-color);
+}
+
+.discovery-scope-nav li.active a {
+    color: var(--text-color);
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 600;
+}
+
+/* Mobile: full-width tabs */
+@media (max-width: 480px) {
+    .discovery-scope-nav ul {
+        gap: var(--spacing-xxs, 0.25rem);
+    }
+
+    .discovery-scope-nav li {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .discovery-scope-nav li a {
+        text-align: center;
+        padding: var(--spacing-xs);
+        font-size: var(--font-size-xs, 0.75rem);
+    }
+}

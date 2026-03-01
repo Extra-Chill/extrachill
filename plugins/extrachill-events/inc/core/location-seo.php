@@ -145,6 +145,7 @@ function extrachill_events_skip_seo_description( bool $skip ): bool {
 
 	return $skip;
 }
+add_filter( 'extrachill_seo_skip_meta_description', 'extrachill_events_skip_seo_description' );
 
 /**
  * Count upcoming events for a location term.

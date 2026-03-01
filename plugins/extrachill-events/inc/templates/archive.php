@@ -60,13 +60,20 @@ extrachill_breadcrumbs();
 				</div>
 			<?php endif; ?>
 		</header>
-	<?php elseif ( is_tax( 'location' ) ) : ?>
+	<?php elseif ( is_tax( 'location' ) ) :
+		$term = get_queried_object();
+	?>
 		<header class="taxonomy-archive-header location-archive-header">
 			<h1 class="page-title">Live Music in <?php single_term_title(); ?></h1>
 			<?php if ( term_description() ) : ?>
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
 			<?php endif; ?>
 		</header>
+		<?php
+		if ( function_exists( 'extrachill_events_render_scope_nav' ) ) {
+			extrachill_events_render_scope_nav( $term, '' );
+		}
+		?>
 	<?php elseif ( is_tax() ) : ?>
 		<header class="taxonomy-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
