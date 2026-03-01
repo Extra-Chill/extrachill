@@ -438,6 +438,14 @@ function extrachill_events_discovery_scripts() {
 		array(),
 		EXTRACHILL_EVENTS_VERSION
 	);
+
+	wp_enqueue_script(
+		'extrachill-events-discovery',
+		EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/js/discovery.js',
+		array(),
+		EXTRACHILL_EVENTS_VERSION,
+		true
+	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_events_discovery_scripts' );
 
@@ -466,7 +474,12 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current ) {
 		''             => 'All Shows',
 	);
 
-	echo '<nav class="discovery-scope-nav" aria-label="Time scope navigation">';
+	printf(
+		'<nav class="discovery-scope-nav" aria-label="Time scope navigation" data-term-id="%d" data-term-name="%s" data-term-link="%s">',
+		$term->term_id,
+		esc_attr( $term->name ),
+		esc_url( $term_link )
+	);
 	echo '<ul>';
 
 	foreach ( $tabs as $scope_slug => $label ) {
@@ -480,9 +493,10 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current ) {
 		}
 
 		printf(
-			'<li%s><a href="%s"%s>%s</a></li>',
+			'<li%s><a href="%s" data-scope="%s"%s>%s</a></li>',
 			$class,
 			esc_url( $url ),
+			esc_attr( $scope_slug ),
 			$is_active ? ' aria-current="page"' : '',
 			esc_html( $label )
 		);
