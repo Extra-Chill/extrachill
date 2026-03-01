@@ -104,7 +104,7 @@ add_filter(
 		// Only apply on events.extrachill.com
 		$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
 		if ( $blog_id === $events_blog_id ) {
-			if ( is_post_type_archive( 'datamachine_events' ) ) {
+			if ( is_post_type_archive( 'data_machine_events' ) ) {
 				$title_parts['title'] = 'Live Music Calendar';
 			}
 
