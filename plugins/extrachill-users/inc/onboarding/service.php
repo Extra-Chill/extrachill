@@ -1,10 +1,10 @@
 <?php
 /**
- * Onboarding Service
+ * Onboarding Utilities
  *
- * Handles user onboarding: username generation, status tracking, and completion.
- * New users get auto-generated usernames and must complete onboarding to set
- * their final username and artist/professional flags.
+ * Username generation, status checks, and onboarding meta helpers.
+ * Orchestration logic (completing onboarding, validating usernames) lives
+ * in abilities — see inc/core/abilities/onboarding.php.
  *
  * @package ExtraChill\Users
  */
@@ -161,155 +161,52 @@ function ec_get_onboarding_status( $user_id ) {
 }
 
 /**
- * Validate username for onboarding.
- *
- * @param string $username New username.
- * @param int    $user_id  Current user ID (to allow keeping same username).
- * @return true|WP_Error True if valid, WP_Error otherwise.
- */
-function ec_validate_onboarding_username( $username, $user_id ) {
-	$username = sanitize_user( $username, true );
-
-	if ( strlen( $username ) < 3 ) {
-		return new WP_Error(
-			'username_too_short',
-			__( 'Username must be at least 3 characters.', 'extrachill-users' )
-		);
-	}
-
-	if ( strlen( $username ) > 60 ) {
-		return new WP_Error(
-			'username_too_long',
-			__( 'Username must be 60 characters or less.', 'extrachill-users' )
-		);
-	}
-
-	if ( ! preg_match( '/^[a-zA-Z0-9_-]+$/', $username ) ) {
-		return new WP_Error(
-			'username_invalid_chars',
-			__( 'Username can only contain letters, numbers, hyphens, and underscores.', 'extrachill-users' )
-		);
-	}
-
-	$existing_user = get_user_by( 'login', $username );
-	if ( $existing_user && $existing_user->ID !== $user_id ) {
-		return new WP_Error(
-			'username_exists',
-			__( 'This username is already taken.', 'extrachill-users' )
-		);
-	}
-
-	$reserved_usernames = array(
-		'admin',
-		'administrator',
-		'extrachill',
-		'support',
-		'help',
-		'info',
-		'contact',
-		'webmaster',
-		'root',
-		'system',
-		'moderator',
-		'mod',
-	);
-
-	if ( in_array( strtolower( $username ), $reserved_usernames, true ) ) {
-		return new WP_Error(
-			'username_reserved',
-			__( 'This username is reserved.', 'extrachill-users' )
-		);
-	}
-
-	return true;
-}
-
-/**
  * Complete onboarding for a user.
  *
- * Updates username, sets artist/professional flags, and marks onboarding complete.
+ * Delegates to the extrachill/complete-onboarding ability.
  *
  * @param int   $user_id User ID.
  * @param array $data    {username: string, user_is_artist: bool, user_is_professional: bool}.
  * @return array|WP_Error Success array or error.
  */
 function ec_complete_onboarding( $user_id, $data ) {
-	$user_id = absint( $user_id );
-	$user    = get_userdata( $user_id );
+	$ability = wp_get_ability( 'extrachill/complete-onboarding' );
 
-	if ( ! $user ) {
-		return new WP_Error( 'invalid_user', __( 'Invalid user.', 'extrachill-users' ) );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill/complete-onboarding ability is not registered.' );
 	}
 
-	if ( ec_is_onboarding_complete( $user_id ) ) {
-		return new WP_Error( 'already_completed', __( 'Onboarding already completed.', 'extrachill-users' ) );
-	}
-
-	$username             = isset( $data['username'] ) ? sanitize_user( $data['username'], true ) : '';
-	$user_is_artist       = ! empty( $data['user_is_artist'] );
-	$user_is_professional = ! empty( $data['user_is_professional'] );
-
-	$username_valid = ec_validate_onboarding_username( $username, $user_id );
-	if ( is_wp_error( $username_valid ) ) {
-		return $username_valid;
-	}
-
-	$from_join = ec_is_onboarding_from_join( $user_id );
-	if ( $from_join && ! $user_is_artist && ! $user_is_professional ) {
-		return new WP_Error(
-			'artist_or_professional_required',
-			__( 'Please select "I am a musician" or "I work in the music industry" to continue.', 'extrachill-users' )
-		);
-	}
-
-	global $wpdb;
-
-	$result = $wpdb->update(
-		$wpdb->users,
+	return $ability->execute(
 		array(
-			'user_login'    => $username,
-			'user_nicename' => sanitize_title( $username ),
-			'display_name'  => $username,
-		),
-		array( 'ID' => $user_id ),
-		array( '%s', '%s', '%s' ),
-		array( '%d' )
+			'user_id'              => absint( $user_id ),
+			'username'             => isset( $data['username'] ) ? $data['username'] : '',
+			'user_is_artist'       => ! empty( $data['user_is_artist'] ),
+			'user_is_professional' => ! empty( $data['user_is_professional'] ),
+		)
 	);
+}
 
-	if ( false === $result ) {
-		return new WP_Error( 'update_failed', __( 'Failed to update username.', 'extrachill-users' ) );
+/**
+ * Validate username for onboarding.
+ *
+ * Delegates to the extrachill/validate-username ability.
+ *
+ * @param string $username New username.
+ * @param int    $user_id  Current user ID (to allow keeping same username).
+ * @return true|WP_Error True if valid, WP_Error otherwise.
+ */
+function ec_validate_onboarding_username( $username, $user_id ) {
+	$ability = wp_get_ability( 'extrachill/validate-username' );
+
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill/validate-username ability is not registered.' );
 	}
 
-	update_user_meta( $user_id, 'user_is_artist', $user_is_artist ? '1' : '0' );
-	update_user_meta( $user_id, 'user_is_professional', $user_is_professional ? '1' : '0' );
-	update_user_meta( $user_id, 'onboarding_completed', '1' );
-	update_user_meta( $user_id, 'onboarding_completed_at', time() );
-
-	clean_user_cache( $user_id );
-
-	wp_set_current_user( $user_id );
-	wp_set_auth_cookie( $user_id, true );
-
-	do_action( 'ec_onboarding_completed', $user_id, $data );
-
-	$redirect_url = get_user_meta( $user_id, 'onboarding_redirect_url', true );
-	if ( empty( $redirect_url ) ) {
-		$redirect_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url();
-	}
-
-	if ( $from_join && function_exists( 'ec_get_site_url' ) ) {
-		$redirect_url = ec_get_site_url( 'artist' ) . '/create-artist/';
-	}
-
-	return array(
-		'success'      => true,
-		'user'         => array(
-			'id'                   => $user_id,
-			'username'             => $username,
-			'user_is_artist'       => $user_is_artist,
-			'user_is_professional' => $user_is_professional,
-		),
-		'redirect_url' => $redirect_url,
+	return $ability->execute(
+		array(
+			'username' => $username,
+			'user_id'  => absint( $user_id ),
+		)
 	);
 }
 

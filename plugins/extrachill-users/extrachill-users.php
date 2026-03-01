@@ -89,7 +89,7 @@ add_action( 'plugins_loaded', 'extrachill_users_init' );
 function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/abilities.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/abilities/register.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/online-users.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/user-creation.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/registration-emails.php';

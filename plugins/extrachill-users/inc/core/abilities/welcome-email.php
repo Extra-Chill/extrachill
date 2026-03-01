@@ -1,42 +1,33 @@
 <?php
 /**
- * Abilities API Integration
+ * Welcome Email Ability
  *
- * Registers user management capabilities via the WordPress Abilities API.
+ * Core primitive for sending welcome emails. Sends different content based on
+ * whether the user completed onboarding or not. Idempotent — skips if already sent.
+ *
+ * Called by:
+ * - extrachill/complete-onboarding ability (on successful onboarding)
+ * - Hourly cron fallback (for users who never completed onboarding)
  *
  * @package ExtraChill\Users
- * @since 0.5.16
+ * @since 0.7.0
  */
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'wp_abilities_api_categories_init', 'extrachill_users_register_category' );
-add_action( 'wp_abilities_api_init', 'extrachill_users_register_abilities' );
+add_action( 'wp_abilities_api_init', 'extrachill_users_register_welcome_email_ability' );
 
 /**
- * Register users ability category.
+ * Register the send-welcome-email ability.
  */
-function extrachill_users_register_category() {
-	wp_register_ability_category(
-		'extrachill-users',
-		array(
-			'label'       => __( 'Extra Chill Users', 'extrachill-users' ),
-			'description' => __( 'User management capabilities', 'extrachill-users' ),
-		)
-	);
-}
-
-/**
- * Register user abilities.
- */
-function extrachill_users_register_abilities() {
+function extrachill_users_register_welcome_email_ability() {
 	wp_register_ability(
 		'extrachill/send-welcome-email',
 		array(
-			'label'        => __( 'Send Welcome Email', 'extrachill-users' ),
-			'description'  => __( 'Send welcome email to user with content based on onboarding status.', 'extrachill-users' ),
-			'category'     => 'extrachill-users',
-			'input_schema' => array(
+			'label'               => __( 'Send Welcome Email', 'extrachill-users' ),
+			'description'         => __( 'Send welcome email with content based on onboarding status. Skips if already sent.', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'user_id'    => array(
@@ -46,7 +37,7 @@ function extrachill_users_register_abilities() {
 					'email_type' => array(
 						'type'        => 'string',
 						'enum'        => array( 'onboarding_complete', 'onboarding_incomplete' ),
-						'description' => __( 'Type of welcome email. onboarding_complete uses final username; onboarding_incomplete encourages finishing setup.', 'extrachill-users' ),
+						'description' => __( 'Email variant: onboarding_complete uses final username; onboarding_incomplete encourages finishing setup.', 'extrachill-users' ),
 					),
 				),
 				'required'   => array( 'user_id', 'email_type' ),
@@ -70,9 +61,11 @@ function extrachill_users_register_abilities() {
 }
 
 /**
- * Execute callback for send-welcome-email ability.
+ * Send welcome email based on onboarding status.
  *
- * @param array $input Input parameters (user_id, email_type).
+ * Skips if welcome email was already sent. Marks as sent on success.
+ *
+ * @param array $input {user_id, email_type}.
  * @return bool True if email sent successfully.
  */
 function extrachill_users_ability_send_welcome_email( $input ) {

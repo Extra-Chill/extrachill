@@ -1,9 +1,10 @@
 <?php
 /**
- * Registration Email System
+ * Registration Email Templates
  *
- * Sends HTML welcome email via Abilities API after onboarding completion
- * and admin notification on extrachill_new_user_registered hook.
+ * Email template functions called by the extrachill/send-welcome-email ability
+ * and admin notification hook. These are renderers only — orchestration lives
+ * in the abilities.
  *
  * @package ExtraChill\Users
  */
@@ -40,26 +41,6 @@ function extrachill_notify_admin_new_user( $user_id, $registration_page, $regist
 }
 
 add_action( 'extrachill_new_user_registered', 'extrachill_notify_admin_new_user', 10, 4 );
-
-/**
- * Send welcome email after onboarding completion.
- *
- * @param int   $user_id User ID.
- * @param array $data    Onboarding data.
- */
-function extrachill_send_welcome_email_on_onboarding( $user_id, $data ) {
-	$ability = wp_get_ability( 'extrachill/send-welcome-email' );
-	if ( $ability ) {
-		$ability->execute(
-			array(
-				'user_id'    => $user_id,
-				'email_type' => 'onboarding_complete',
-			)
-		);
-	}
-}
-
-add_action( 'ec_onboarding_completed', 'extrachill_send_welcome_email_on_onboarding', 10, 2 );
 
 /**
  * Send welcome email for users who completed onboarding.
