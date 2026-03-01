@@ -31,7 +31,7 @@ Object-oriented classes provided by the ExtraChill Events plugin.
 **Structure:**
 ```php
 array(
-    'datamachine_events' => DataMachineEventsIntegration instance
+    'data_machine_events' => DataMachineEventsIntegration instance
 )
 ```
 
@@ -100,7 +100,7 @@ $plugin = ExtraChillEvents::get_instance();
 
 **Files Loaded:**
 1. `vendor/autoload.php` (if exists, for development dependencies)
-2. `inc/core/datamachine-events-integration.php`
+2. `inc/core/data-machine-events-integration.php`
 3. `inc/core/nav.php`
 4. `inc/single-event/breadcrumbs.php`
 5. `inc/single-event/related-events.php`
@@ -141,7 +141,7 @@ $plugin = ExtraChillEvents::get_instance();
 **Detection Logic:**
 ```php
 if (class_exists('DataMachineEvents\Core\Event_Post_Type')) {
-    $this->integrations['datamachine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
+    $this->integrations['data_machine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
 }
 ```
 
@@ -181,7 +181,7 @@ if (class_exists('DataMachineEvents\Core\Event_Post_Type')) {
 **Usage:**
 ```php
 $integrations = extrachill_events()->get_integrations();
-if (isset($integrations['datamachine_events'])) {
+if (isset($integrations['data_machine_events'])) {
     // Integration loaded
 }
 ```
@@ -192,9 +192,9 @@ if (isset($integrations['datamachine_events'])) {
 
 **Namespace:** ExtraChillEvents
 
-**File:** `inc/core/datamachine-events-integration.php`
+**File:** `inc/core/data-machine-events-integration.php`
 
-**Purpose:** Complete datamachine-events integration providing badge/button styling, breadcrumb override, related events, share button, and CSS management
+**Purpose:** Complete data-machine-events integration providing badge/button styling, breadcrumb override, related events, share button, and CSS management
 
 ### Class Methods
 
@@ -236,7 +236,7 @@ if (isset($integrations['datamachine_events'])) {
 - `$post_type` (string)
 - `$post_type_object` (WP_Post_Type)
 
-**Purpose:** Trigger taxonomy registration when datamachine_events post type registers
+**Purpose:** Trigger taxonomy registration when data_machine_events post type registers
 
 **Condition:** Only acts if `DataMachineEvents\Core\Event_Post_Type` class exists and matches the registered post type
 
@@ -269,12 +269,12 @@ if (isset($integrations['datamachine_events'])) {
 
 **Hook:** `init` (priority 20)
 
-**Purpose:** Dynamically register all event taxonomies for datamachine_events post type
+**Purpose:** Dynamically register all event taxonomies for data_machine_events post type
 
 **Taxonomy List:** location, artist, festival, venue
 
 **Actions:**
-1. Checks that datamachine_events post type exists
+1. Checks that data_machine_events post type exists
 2. Iterates through each taxonomy
 3. Registers each taxonomy for the post type via `register_taxonomy_for_object_type()`
 
@@ -298,7 +298,7 @@ if (isset($integrations['datamachine_events'])) {
 ---
 **Visibility:** public
 
-**Hook:** `datamachine_events_badge_wrapper_classes`
+**Hook:** `data_machine_events_badge_wrapper_classes`
 
 **Parameters:**
 - `$wrapper_classes` (array)
@@ -313,7 +313,7 @@ if (isset($integrations['datamachine_events'])) {
 #### add_badge_classes()
 **Visibility:** public
 
-**Hook:** `datamachine_events_badge_classes`
+**Hook:** `data_machine_events_badge_classes`
 
 **Parameters:**
 - `$badge_classes` (array)
@@ -330,7 +330,7 @@ if (isset($integrations['datamachine_events'])) {
 #### exclude_venue_taxonomy()
 **Visibility:** public
 
-**Hook:** `datamachine_events_excluded_taxonomies`
+**Hook:** `data_machine_events_excluded_taxonomies`
 
 **Parameters:**
 - `$excluded` (array)
@@ -344,7 +344,7 @@ if (isset($integrations['datamachine_events'])) {
 #### add_modal_button_classes()
 **Visibility:** public
 
-**Hook:** `datamachine_events_modal_button_classes`
+**Hook:** `data_machine_events_modal_button_classes`
 
 **Parameters:**
 - `$classes` (array)
@@ -359,7 +359,7 @@ if (isset($integrations['datamachine_events'])) {
 #### add_ticket_button_classes()
 **Visibility:** public
 
-**Hook:** `datamachine_events_ticket_button_classes`
+**Hook:** `data_machine_events_ticket_button_classes`
 
 **Parameters:**
 - `$classes` (array)
@@ -373,7 +373,7 @@ if (isset($integrations['datamachine_events'])) {
 #### override_breadcrumbs()
 **Visibility:** public
 
-**Hook:** `datamachine_events_breadcrumbs`
+**Hook:** `data_machine_events_breadcrumbs`
 
 **Parameters:**
 - `$breadcrumbs` (string|null)
@@ -381,7 +381,7 @@ if (isset($integrations['datamachine_events'])) {
 
 **Return Value:** string
 
-**Purpose:** Replace datamachine-events breadcrumbs with theme breadcrumbs
+**Purpose:** Replace data-machine-events breadcrumbs with theme breadcrumbs
 
 ---
 
@@ -463,7 +463,7 @@ if (isset($integrations['datamachine_events'])) {
 
 **Return Value:** string
 
-**Purpose:** Hide theme post meta for datamachine_events post type
+**Purpose:** Hide theme post meta for data_machine_events post type
 
 ---
 
@@ -480,7 +480,7 @@ if (isset($integrations['datamachine_events'])) {
 3. Plugin's single-event.css
 4. Theme's share.css
 
-**Condition:** Only on `is_singular('datamachine_events')`
+**Condition:** Only on `is_singular('data_machine_events')`
 
 ---
 
@@ -501,7 +501,7 @@ if (isset($integrations['datamachine_events'])) {
 #### render_share_button()
 **Visibility:** public
 
-**Hook:** `datamachine_events_action_buttons`
+**Hook:** `data_machine_events_action_buttons`
 
 **Parameters:**
 - `$post_id` (int)
@@ -525,7 +525,7 @@ $plugin = ExtraChillEvents::get_instance();
 ```php
 // Instantiated by ExtraChillEvents::init_integrations()
 if (class_exists('DataMachineEvents\Core\Event_Post_Type')) {
-    $this->integrations['datamachine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
+    $this->integrations['data_machine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
 }
 ```
 
@@ -534,7 +534,7 @@ if (class_exists('DataMachineEvents\Core\Event_Post_Type')) {
 Both classes are loaded via direct `require_once` statements (NO PSR-4 autoloading):
 
 ```php
-require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
+require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/data-machine-events-integration.php';
 ```
 
 Composer autoloader exists only for development dependencies (PHPUnit, PHPCS).

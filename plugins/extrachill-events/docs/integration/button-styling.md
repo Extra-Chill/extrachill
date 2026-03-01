@@ -1,10 +1,10 @@
 # Button Styling Integration
 
-The button styling system maps datamachine-events modal and ticket buttons to ExtraChill theme's button class structure.
+The button styling system maps data-machine-events modal and ticket buttons to ExtraChill theme's button class structure.
 
 ## How It Works
 
-The plugin filters datamachine-events button classes to add theme-compatible classes without modifying the plugin's templates.
+The plugin filters data-machine-events button classes to add theme-compatible classes without modifying the plugin's templates.
 
 ### Integration Points
 1. **Modal Buttons**: Primary and secondary buttons in event modals
@@ -12,12 +12,12 @@ The plugin filters datamachine-events button classes to add theme-compatible cla
 
 ## Modal Button Styling
 
-### datamachine_events_modal_button_classes Filter
+### data_machine_events_modal_button_classes Filter
 
 Adds theme button classes to modal buttons based on button type.
 
 **Filter Parameters:**
-- `$classes` (array): Default button classes from datamachine-events
+- `$classes` (array): Default button classes from data-machine-events
 - `$button_type` (string): Button type ('primary' or 'secondary')
 
 **Button Type Mapping:**
@@ -67,17 +67,17 @@ public function add_modal_button_classes($classes, $button_type) {
     }
     return $classes;
 }
-add_filter('datamachine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
+add_filter('data_machine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
 ```
 
 ## Ticket Button Styling
 
-### datamachine_events_ticket_button_classes Filter
+### data_machine_events_ticket_button_classes Filter
 
 Adds theme button classes to ticket purchase buttons for prominent call-to-action appearance.
 
 **Filter Parameters:**
-- `$classes` (array): Default button classes from datamachine-events
+- `$classes` (array): Default button classes from data-machine-events
 
 **Class Mapping:**
 ```php
@@ -99,7 +99,7 @@ public function add_ticket_button_classes($classes) {
     $classes[] = 'button-large';
     return $classes;
 }
-add_filter('datamachine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
+add_filter('data_machine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
 ```
 
 ## Theme Button Classes
@@ -154,7 +154,7 @@ Medium button size for secondary actions:
 
 ## Dual Compatibility
 
-The plugin maintains both datamachine-events classes AND theme classes:
+The plugin maintains both data-machine-events classes AND theme classes:
 
 **Modal Primary Button:**
 ```html
@@ -167,7 +167,7 @@ The plugin maintains both datamachine-events classes AND theme classes:
 ```
 
 This ensures:
-- datamachine-events default styles apply
+- data-machine-events default styles apply
 - Theme custom styles enhance appearance
 - No conflicts between plugin and theme CSS
 

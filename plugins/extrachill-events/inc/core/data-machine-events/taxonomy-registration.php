@@ -2,7 +2,7 @@
 /**
  * Taxonomy Registration
  *
- * Register extrachill taxonomies (location, artist, festival) for the datamachine_events post type.
+ * Register extrachill taxonomies (location, artist, festival) for the data_machine_events post type.
  *
  * @package ExtraChillEvents
  * @since 0.4.0
@@ -21,7 +21,7 @@ function extrachill_events_init_taxonomy_registration() {
 	add_action( 'registered_post_type', 'extrachill_events_on_registered_post_type', 10, 2 );
 	add_action( 'registered_taxonomy', 'extrachill_events_on_registered_taxonomy', 10, 3 );
 	add_action( 'init', 'extrachill_events_register_taxonomies', 20 );
-	add_filter( 'datamachine_events_post_type_menu_items', 'extrachill_events_allow_taxonomy_menu_items' );
+	add_filter( 'data_machine_events_post_type_menu_items', 'extrachill_events_allow_taxonomy_menu_items' );
 }
 
 /**

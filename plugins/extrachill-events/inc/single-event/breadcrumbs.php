@@ -13,12 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Override datamachine-events breadcrumbs with theme breadcrumb system
+ * Override data-machine-events breadcrumbs with theme breadcrumb system
  *
- * Replaces datamachine-events breadcrumbs with theme's extrachill_breadcrumbs() function
+ * Replaces data-machine-events breadcrumbs with theme's extrachill_breadcrumbs() function
  * for consistent breadcrumb styling across site.
  *
- * @hook datamachine_events_breadcrumbs
+ * @hook data_machine_events_breadcrumbs
  * @param string|null $breadcrumbs Plugin's default breadcrumb HTML
  * @param int $post_id Event post ID
  * @return string Theme breadcrumb HTML
@@ -32,7 +32,7 @@ function ec_events_override_breadcrumbs( $breadcrumbs, $post_id ) {
 	}
 	return $breadcrumbs;
 }
-add_filter( 'datamachine_events_breadcrumbs', 'ec_events_override_breadcrumbs', 10, 2 );
+add_filter( 'data_machine_events_breadcrumbs', 'ec_events_override_breadcrumbs', 10, 2 );
 
 /**
  * Customize breadcrumb root for events site
@@ -99,7 +99,7 @@ function ec_events_breadcrumb_trail_archives( $custom_trail ) {
 		}
 	}
 
-	if ( is_post_type_archive( 'datamachine_events' ) ) {
+	if ( is_post_type_archive( 'data_machine_events' ) ) {
 		return '<span class="network-dropdown-target">Events Calendar</span>';
 	}
 
@@ -121,7 +121,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_single( $custom_trail ) {
-	if ( is_singular( 'datamachine_events' ) ) {
+	if ( is_singular( 'data_machine_events' ) ) {
 		return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
 	}
 
@@ -186,7 +186,7 @@ function ec_events_schema_breadcrumb_items( $items ) {
 	}
 
 	// Single event: Extra Chill → Events Calendar → Event Title
-	if ( is_singular( 'datamachine_events' ) ) {
+	if ( is_singular( 'data_machine_events' ) ) {
 		return array(
 			array(
 				'name' => 'Extra Chill',
@@ -225,7 +225,7 @@ function ec_events_schema_breadcrumb_items( $items ) {
 	}
 
 	// Post type archive: Extra Chill → Events Calendar
-	if ( is_post_type_archive( 'datamachine_events' ) ) {
+	if ( is_post_type_archive( 'data_machine_events' ) ) {
 		return array(
 			array(
 				'name' => 'Extra Chill',

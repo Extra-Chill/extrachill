@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Initialize archive title hooks
  */
 function extrachill_events_init_archive_title() {
-	add_filter( 'datamachine_events_archive_title', 'extrachill_events_filter_archive_title', 10, 2 );
+	add_filter( 'data_machine_events_archive_title', 'extrachill_events_filter_archive_title', 10, 2 );
 }
 
 /**

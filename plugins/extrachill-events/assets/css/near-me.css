@@ -39,7 +39,7 @@
 	margin: 0;
 }
 
-/* Map controls — location search is now part of the EventsMap block (datamachine layer) */
+/* Map controls — location search is now part of the EventsMap block (data-machine layer) */
 
 /* City grid fallback */
 .near-me-cities {

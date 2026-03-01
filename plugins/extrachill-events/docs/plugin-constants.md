@@ -41,7 +41,7 @@ define('EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
 **Example Usage:**
 ```php
-require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
+require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/data-machine-events-integration.php';
 
 $template_path = EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
 
@@ -178,7 +178,7 @@ if (defined('EXTRACHILL_EVENTS_PLUGIN_DIR')) {
 ### Direct Usage (in plugin files)
 ```php
 // Safe to use directly within plugin files
-require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
+require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/data-machine-events-integration.php';
 ```
 
 ## WordPress Functions Used

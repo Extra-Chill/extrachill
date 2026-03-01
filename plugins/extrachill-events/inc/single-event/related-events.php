@@ -18,13 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.1.1
  */
 function ec_events_enqueue_related_assets() {
-	if ( ! is_singular( 'datamachine_events' ) ) {
+	if ( ! is_singular( 'data_machine_events' ) ) {
 		return;
 	}
 
 	// Ensure core block styles are loaded since we are manually rendering components
-	if ( wp_style_is( 'wp-block-datamachine-events-calendar', 'registered' ) ) {
-		wp_enqueue_style( 'wp-block-datamachine-events-calendar' );
+	if ( wp_style_is( 'wp-block-data-machine-events-calendar', 'registered' ) ) {
+		wp_enqueue_style( 'wp-block-data-machine-events-calendar' );
 	}
 
 	// Enqueue custom related events styles
@@ -52,7 +52,7 @@ add_action( 'wp_enqueue_scripts', 'ec_events_enqueue_related_assets' );
  * @since 0.1.0
  */
 function ec_events_filter_related_taxonomies( $taxonomies, $post_id, $post_type ) {
-	if ( $post_type === 'datamachine_events' ) {
+	if ( $post_type === 'data_machine_events' ) {
 		return array( 'venue', 'location' );
 	}
 	return $taxonomies;
@@ -69,7 +69,7 @@ add_filter( 'extrachill_related_posts_taxonomies', 'ec_events_filter_related_tax
  * @since 0.1.0
  */
 function ec_events_allow_related_taxonomies( $allowed, $post_type ) {
-	if ( $post_type === 'datamachine_events' ) {
+	if ( $post_type === 'data_machine_events' ) {
 		return array_merge( $allowed, array( 'venue', 'location' ) );
 	}
 	return $allowed;
@@ -77,7 +77,7 @@ function ec_events_allow_related_taxonomies( $allowed, $post_type ) {
 add_filter( 'extrachill_related_posts_allowed_taxonomies', 'ec_events_allow_related_taxonomies', 10, 2 );
 
 /**
- * Override related posts display for datamachine_events
+ * Override related posts display for data_machine_events
  *
  * @param bool   $override Whether to override default display
  * @param string $taxonomy Taxonomy being queried
@@ -85,7 +85,7 @@ add_filter( 'extrachill_related_posts_allowed_taxonomies', 'ec_events_allow_rela
  * @return bool
  */
 function ec_events_override_related_posts( $override, $taxonomy, $post_id ) {
-	if ( get_post_type( $post_id ) === 'datamachine_events' ) {
+	if ( get_post_type( $post_id ) === 'data_machine_events' ) {
 		return true;
 	}
 	return $override;
@@ -140,7 +140,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 	}
 
 	$query_args = array(
-		'post_type'      => 'datamachine_events',
+		'post_type'      => 'data_machine_events',
 		'posts_per_page' => 3,
 		'post_status'    => 'publish',
 		'tax_query'      => $tax_query,
@@ -220,7 +220,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 								</div>
 							<?php endif; ?>
 
-							<a href="<?php the_permalink(); ?>" class="datamachine-more-info-button button-3 button-small">More Info</a>
+							<a href="<?php the_permalink(); ?>" class="data-machine-more-info-button button-3 button-small">More Info</a>
 						</div>
 					</div>
 					<?php

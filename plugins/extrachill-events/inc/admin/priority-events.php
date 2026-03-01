@@ -21,7 +21,7 @@ function extrachill_events_priority_event_meta_box() {
 		'extrachill-priority-event',
 		__( 'Priority Event', 'extrachill-events' ),
 		'extrachill_events_priority_event_meta_box_callback',
-		'datamachine_events',
+		'data_machine_events',
 		'side',
 		'high'
 	);
@@ -76,7 +76,7 @@ function extrachill_events_save_priority_event( $post_id ) {
 
 	wp_cache_delete( 'extrachill_priority_event_ids', 'extrachill-events' );
 }
-add_action( 'save_post_datamachine_events', 'extrachill_events_save_priority_event' );
+add_action( 'save_post_data_machine_events', 'extrachill_events_save_priority_event' );
 
 /**
  * Get all priority event IDs (cached)

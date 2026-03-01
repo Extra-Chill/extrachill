@@ -170,7 +170,7 @@ class PriorityEventAbilities {
 
 		$posts = get_posts(
 			array(
-				'post_type'      => 'datamachine_events',
+				'post_type'      => 'data_machine_events',
 				'post__in'       => $ids,
 				'posts_per_page' => -1,
 				'orderby'        => 'title',
@@ -210,9 +210,9 @@ class PriorityEventAbilities {
 
 		$post = is_numeric( $event )
 			? get_post( (int) $event )
-			: get_page_by_path( $event, OBJECT, 'datamachine_events' );
+			: get_page_by_path( $event, OBJECT, 'data_machine_events' );
 
-		if ( ! $post || 'datamachine_events' !== $post->post_type ) {
+		if ( ! $post || 'data_machine_events' !== $post->post_type ) {
 			return new \WP_Error(
 				'event_not_found',
 				sprintf(

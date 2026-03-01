@@ -1,6 +1,6 @@
 # Calendar CSS
 
-Placeholder for future datamachine-events calendar block styling enhancements on events.extrachill.com homepage.
+Placeholder for future data-machine-events calendar block styling enhancements on events.extrachill.com homepage.
 
 ## File Location
 ```
@@ -15,7 +15,7 @@ The file currently contains minimal placeholder content with no active styles:
 /**
  * Calendar Page Enhancements
  *
- * Placeholder for future datamachine-events calendar block styling enhancements
+ * Placeholder for future data-machine-events calendar block styling enhancements
  * on events.extrachill.com homepage. Currently minimal structure.
  *
  * @package ExtraChillEvents
@@ -66,11 +66,11 @@ add_action('wp_enqueue_scripts', array($this, 'enqueue_calendar_styles'));
 ## Why Placeholder
 
 ### Future Enhancement
-The calendar.css file exists as a placeholder for potential future enhancements to the datamachine-events calendar block display on the homepage.
+The calendar.css file exists as a placeholder for potential future enhancements to the data-machine-events calendar block display on the homepage.
 
 ### Current Styling
 Calendar block currently uses:
-1. **datamachine-events default styles**: Plugin's built-in calendar styling
+1. **data-machine-events default styles**: Plugin's built-in calendar styling
 2. **Theme styles**: ExtraChill theme's general styling
 3. **Automatic filtering**: Calendar block handles filtering and display logic
 
@@ -81,7 +81,7 @@ No custom calendar-specific styles needed at this time.
 ### Calendar Layout Adjustments
 ```css
 /* Example: Adjust calendar grid spacing */
-.datamachine-events-calendar .calendar-grid {
+.data-machine-events-calendar .calendar-grid {
     gap: 2rem;
 }
 ```
@@ -89,7 +89,7 @@ No custom calendar-specific styles needed at this time.
 ### Filter Bar Styling
 ```css
 /* Example: Style calendar filter controls */
-.datamachine-events-calendar .calendar-filters {
+.data-machine-events-calendar .calendar-filters {
     background: var(--background-color);
     padding: 1.5rem;
     border-radius: 8px;
@@ -99,7 +99,7 @@ No custom calendar-specific styles needed at this time.
 ### Event Card Customization
 ```css
 /* Example: Customize event card appearance in calendar view */
-.datamachine-events-calendar .event-card {
+.data-machine-events-calendar .event-card {
     border: 1px solid var(--border-color);
     box-shadow: var(--card-shadow);
 }
@@ -109,7 +109,7 @@ No custom calendar-specific styles needed at this time.
 ```css
 /* Example: Mobile-specific calendar adjustments */
 @media (max-width: 768px) {
-    .datamachine-events-calendar .calendar-grid {
+    .data-machine-events-calendar .calendar-grid {
         grid-template-columns: 1fr;
     }
 }
@@ -121,7 +121,7 @@ No custom calendar-specific styles needed at this time.
 Provides dedicated location for calendar-specific CSS without mixing with:
 - **single-event.css**: Event detail page styling
 - **Theme CSS**: General site-wide styling
-- **datamachine-events CSS**: Plugin default styling
+- **data-machine-events CSS**: Plugin default styling
 
 ### Easy Enhancement
 When calendar customization becomes needed:
@@ -165,14 +165,14 @@ Only enqueues if file exists, preventing 404 errors.
 The homepage template includes the calendar container:
 ```html
 <div class="events-calendar-container full-width-content">
-    <!-- datamachine-events calendar block renders here -->
+    <!-- data-machine-events calendar block renders here -->
 </div>
 ```
 
 Future calendar.css styles can target:
 - `.events-calendar-container`: Calendar wrapper
 - `.full-width-content`: Full-width layout class
-- Calendar block classes from datamachine-events
+- Calendar block classes from data-machine-events
 
 ## When to Add Styles
 
@@ -183,4 +183,4 @@ Add calendar-specific styles when:
 - Mobile calendar view needs optimization
 - Pagination needs custom styling
 
-Currently, default styles from datamachine-events and theme provide sufficient calendar display.
+Currently, default styles from data-machine-events and theme provide sufficient calendar display.

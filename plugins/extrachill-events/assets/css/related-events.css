@@ -31,7 +31,7 @@
 }
 
 /* Button positioning in event cards */
-.related-tax-meta .datamachine-more-info-button {
+.related-tax-meta .data-machine-more-info-button {
   align-self: flex-start;
   width: fit-content;
   margin-top: auto; /* Pushes button to bottom of meta container */

@@ -1,6 +1,6 @@
 # Archive Template Override
 
-The archive template provides unified handling for all archive types (taxonomy, post type, date, author) by rendering the datamachine-events calendar block with automatic context-aware filtering.
+The archive template provides unified handling for all archive types (taxonomy, post type, date, author) by rendering the data-machine-events calendar block with automatic context-aware filtering.
 
 ## How It Works
 
@@ -31,17 +31,17 @@ Festival, venue, and location taxonomy archive pages. The calendar block automat
 The `/events/` post type archive is **redirected** to the homepage (301 permanent redirect) for SEO consolidation. See SEO Redirect section below.
 
 ### Date Archives
-Date-based event archives (if applicable to datamachine_events post type).
+Date-based event archives (if applicable to data_machine_events post type).
 
 ### Author Archives
-Author-based event archives (if applicable to datamachine_events post type).
+Author-based event archives (if applicable to data_machine_events post type).
 
 ## Template Structure
 
 ### Elements Rendered
 1. **Theme Header**: `get_header()` renders standard site header
 2. **Breadcrumbs**: `extrachill_breadcrumbs()` displays navigation breadcrumbs
-3. **Calendar Block**: `do_blocks('<!-- wp:datamachine-events/calendar /-->')` renders calendar
+3. **Calendar Block**: `do_blocks('<!-- wp:data-machine-events/calendar /-->')` renders calendar
 4. **Theme Footer**: `get_footer()` renders standard site footer
 
 ### HTML Output
@@ -49,14 +49,14 @@ Author-based event archives (if applicable to datamachine_events post type).
 <!-- Theme header -->
 <!-- Breadcrumbs: "Extra Chill › Events › [Term Name]" -->
 <div class="events-calendar-container full-width-content">
-    <!-- datamachine-events calendar block with automatic filtering -->
+    <!-- data-machine-events calendar block with automatic filtering -->
 </div>
 <!-- Theme footer -->
 ```
 
 ## Context-Aware Filtering
 
-The datamachine-events calendar block automatically detects the archive context and filters events accordingly:
+The data-machine-events calendar block automatically detects the archive context and filters events accordingly:
 
 ### Taxonomy Archive Detection
 When viewing `/festival/bonnaroo/`, the calendar block:
@@ -80,7 +80,7 @@ No manual configuration needed - the block handles filtering automatically based
 
 ### Function Used
 ```php
-do_blocks('<!-- wp:datamachine-events/calendar /-->')
+do_blocks('<!-- wp:data-machine-events/calendar /-->')
 ```
 
 This programmatically renders the calendar block without requiring the block editor.
@@ -142,7 +142,7 @@ function ec_events_redirect_post_type_archive() {
         return;
     }
     
-    if ( is_post_type_archive( 'datamachine_events' ) ) {
+    if ( is_post_type_archive( 'data_machine_events' ) ) {
         wp_redirect( home_url(), 301 );
         exit;
     }

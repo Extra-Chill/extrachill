@@ -2,7 +2,7 @@
 /**
  * Events Archive Template
  *
- * Renders datamachine-events calendar block with automatic context-aware filtering.
+ * Renders data-machine-events calendar block with automatic context-aware filtering.
  * Handles all archive types (taxonomy, post type, date, author).
  * Only applies on blog ID 7 (events.extrachill.com).
  *
@@ -78,7 +78,7 @@ extrachill_breadcrumbs();
 
 	<?php do_action( 'extrachill_archive_below_description' ); ?>
 
-	<?php echo do_blocks( '<!-- wp:datamachine-events/calendar /-->' ); ?>
+	<?php echo do_blocks( '<!-- wp:data-machine-events/calendar /-->' ); ?>
 </div>
 
 <?php get_footer(); ?>

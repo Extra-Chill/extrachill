@@ -33,7 +33,7 @@ Array of taxonomy slugs: `array('venue', 'location')`
 **Implementation:**
 ```php
 public function filter_event_taxonomies($taxonomies, $post_id, $post_type) {
-    if (get_current_blog_id() === ec_get_blog_id('events') && $post_type === 'datamachine_events') {
+    if (get_current_blog_id() === ec_get_blog_id('events') && $post_type === 'data_machine_events') {
         return array('venue', 'location');
     }
     return $taxonomies;
@@ -55,7 +55,7 @@ Array with location taxonomy added to whitelist
 **Implementation:**
 ```php
 public function allow_event_taxonomies($allowed, $post_type) {
-    if ($post_type === 'datamachine_events') {
+    if ($post_type === 'data_machine_events') {
         return array_merge($allowed, array('location'));
     }
     return $allowed;
@@ -74,18 +74,18 @@ add_filter('extrachill_related_posts_allowed_taxonomies', array($this, 'allow_ev
 - `$post_type` (string): Current post type
 
 **Query Modifications:**
-- **Post Type**: `datamachine_events`
+- **Post Type**: `data_machine_events`
 - **Meta Query**: Events with `_datamachine_event_datetime >= current_time('mysql')`
 - **Order By**: `_datamachine_event_datetime` ascending (soonest first)
 
 **Implementation:**
 ```php
 public function filter_event_query_args($query_args, $taxonomy, $post_id, $post_type) {
-    if (get_current_blog_id() !== 7 || $post_type !== 'datamachine_events') {
+    if (get_current_blog_id() !== 7 || $post_type !== 'data_machine_events') {
         return $query_args;
     }
     
-    $query_args['post_type'] = 'datamachine_events';
+    $query_args['post_type'] = 'data_machine_events';
     
     $query_args['meta_query'] = array(
         array(
@@ -122,7 +122,7 @@ When displaying location-based related events, exclude events at the same venue 
 **Implementation:**
 ```php
 public function exclude_venue_from_location($tax_query, $taxonomy, $term_id, $post_id, $post_type) {
-    if (get_current_blog_id() !== 7 || $post_type !== 'datamachine_events' || $taxonomy !== 'location') {
+    if (get_current_blog_id() !== 7 || $post_type !== 'data_machine_events' || $taxonomy !== 'location') {
         return $tax_query;
     }
     

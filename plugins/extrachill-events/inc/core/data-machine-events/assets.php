@@ -23,13 +23,13 @@ function extrachill_events_init_assets() {
 /**
  * Enqueue single event page styles
  *
- * Loads three CSS files for datamachine_events post type:
+ * Loads three CSS files for data_machine_events post type:
  * 1. Theme's single-post.css (post layout and typography)
  * 2. Theme's sidebar.css (sidebar styling)
  * 3. Plugin's single-event.css (event-specific card treatment and action buttons)
  */
 function extrachill_events_enqueue_single_styles() {
-	if ( ! is_singular( 'datamachine_events' ) ) {
+	if ( ! is_singular( 'data_machine_events' ) ) {
 		return;
 	}
 

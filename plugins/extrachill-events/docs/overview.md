@@ -1,13 +1,13 @@
 # ExtraChill Events Overview
 
-WordPress plugin providing seamless integration between ExtraChill themes and the datamachine-events plugin for events.extrachill.com (blog ID 7).
+WordPress plugin providing seamless integration between ExtraChill themes and the data-machine-events plugin for events.extrachill.com (blog ID 7).
 
 ## What This Plugin Does
 
 ExtraChill Events creates a dedicated event calendar site within the ExtraChill multisite network by:
 
 - **Template Integration**: Renders homepage content via the theme action hook `extrachill_homepage_content` and overrides archive templates via the `extrachill_template_archive` filter.
-- **Visual Integration**: Maps datamachine-events badges and buttons to ExtraChill theme styling
+- **Visual Integration**: Maps data-machine-events badges and buttons to ExtraChill theme styling
 - **Breadcrumb System**: Provides custom navigation breadcrumbs with "Extra Chill → Events" hierarchy
 - **Related Events**: Displays related events by venue and location taxonomies
 - **SEO Optimization**: Redirects `/events/` post type archive to homepage for link equity consolidation
@@ -17,7 +17,7 @@ ExtraChill Events creates a dedicated event calendar site within the ExtraChill 
 This plugin powers **events.extrachill.com** (site #7 in the multisite network) as a centralized event hub:
 
 - **Data Machine Integration**: Handles event import and automation pipelines
-- **datamachine-events Calendar**: Provides calendar block with filtering and pagination
+- **data-machine-events Calendar**: Provides calendar block with filtering and pagination
 - **Centralized Management**: Single source of truth for all network events
 - **Clean Separation**: Main site focuses on content, events site handles calendar functionality
 
@@ -48,7 +48,7 @@ This plugin powers **events.extrachill.com** (site #7 in the multisite network) 
 
 - **WordPress**: 5.0+
 - **PHP**: 7.4+
-- **Required Plugins**: Data Machine, datamachine-events
+- **Required Plugins**: Data Machine, data-machine-events
 - **Theme Requirement**: ExtraChill theme with breadcrumb functions and badge-colors.css
 
 ## Blog ID Targeting

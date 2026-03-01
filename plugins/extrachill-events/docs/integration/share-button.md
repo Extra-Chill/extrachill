@@ -4,7 +4,7 @@ The share button integration renders a share button alongside the ticket button 
 
 ## How It Works
 
-The plugin hooks into datamachine-events' `datamachine_events_action_buttons` action to render the theme's share button function.
+The plugin hooks into data-machine-events' `data_machine_events_action_buttons` action to render the theme's share button function.
 
 ### Blog ID Targeting
 Only applies when:
@@ -14,7 +14,7 @@ get_current_blog_id() === ec_get_blog_id('events')  // events.extrachill.com
 
 ## Action Hook
 
-### datamachine_events_action_buttons
+### data_machine_events_action_buttons
 
 **Purpose:** Render share button in action buttons container
 
@@ -35,7 +35,7 @@ public function render_share_button($post_id, $ticket_url) {
         'button_size' => 'button-large'
     ));
 }
-add_action('datamachine_events_action_buttons', array($this, 'render_share_button'), 10, 2);
+add_action('data_machine_events_action_buttons', array($this, 'render_share_button'), 10, 2);
 ```
 
 ## Theme Function Integration
@@ -59,7 +59,7 @@ HTML for share button with social sharing functionality.
 
 ### Flexbox Layout
 
-The datamachine-events plugin renders action buttons container:
+The data-machine-events plugin renders action buttons container:
 ```html
 <div class="event-action-buttons">
     <!-- Ticket button (if ticket URL exists) -->
@@ -168,7 +168,7 @@ The plugin automatically enqueues `share.css` on single event pages:
 
 ```php
 public function enqueue_single_post_styles() {
-    if (!is_singular('datamachine_events')) {
+    if (!is_singular('data_machine_events')) {
         return;
     }
     
@@ -191,7 +191,7 @@ add_action('wp_enqueue_scripts', array($this, 'enqueue_single_post_styles'));
 ### Complete Action Buttons HTML
 ```html
 <div class="event-action-buttons">
-    <!-- Ticket button (from datamachine-events) -->
+    <!-- Ticket button (from data-machine-events) -->
     <a href="https://tickets.example.com/event/123" 
        class="datamachine-ticket-button button-1 button-large" 
        target="_blank" 

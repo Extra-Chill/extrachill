@@ -105,7 +105,7 @@ function ec_events_reorder_by_priority( $events, $date_key, $context ) {
 
 	return $events;
 }
-add_filter( 'datamachine_events_day_group_events', 'ec_events_reorder_by_priority', 10, 3 );
+add_filter( 'data_machine_events_day_group_events', 'ec_events_reorder_by_priority', 10, 3 );
 
 /**
  * Check if event is at a priority venue

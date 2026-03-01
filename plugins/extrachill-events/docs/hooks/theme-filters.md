@@ -98,7 +98,7 @@ function ec_events_breadcrumb_trail_single($custom_trail) {
         return $custom_trail;
     }
     
-    if (is_singular('datamachine_events')) {
+    if (is_singular('data_machine_events')) {
         return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
     }
     
@@ -152,7 +152,7 @@ Theme's breadcrumb function when rendering back-to-home link
 
 ### extrachill_post_meta
 
-**Purpose:** Remove theme's post meta output for datamachine_events post type
+**Purpose:** Remove theme's post meta output for data_machine_events post type
 
 **Parameters:**
 - `$default_meta` (string): Default post meta HTML from theme
@@ -160,14 +160,14 @@ Theme's breadcrumb function when rendering back-to-home link
 - `$post_type` (string): Post type
 
 **Return Value:**
-Empty string for `datamachine_events`, unchanged for other post types
+Empty string for `data_machine_events`, unchanged for other post types
 
 **Usage:**
 ```php
 add_filter('extrachill_post_meta', array($this, 'hide_post_meta_for_events'), 10, 3);
 
 public function hide_post_meta_for_events($default_meta, $post_id, $post_type) {
-    if ($post_type === 'datamachine_events') {
+    if ($post_type === 'data_machine_events') {
         return '';
     }
     return $default_meta;
@@ -196,7 +196,7 @@ Array of taxonomy slugs: `array('venue', 'location')`
 add_filter('extrachill_related_posts_taxonomies', array($this, 'filter_event_taxonomies'), 10, 3);
 
 public function filter_event_taxonomies($taxonomies, $post_id, $post_type) {
-    if (get_current_blog_id() === ec_get_blog_id('events') && $post_type === 'datamachine_events') {
+    if (get_current_blog_id() === ec_get_blog_id('events') && $post_type === 'data_machine_events') {
         return array('venue', 'location');
     }
     return $taxonomies;
@@ -224,7 +224,7 @@ Array with location taxonomy added to whitelist
 add_filter('extrachill_related_posts_allowed_taxonomies', array($this, 'allow_event_taxonomies'), 10, 2);
 
 public function allow_event_taxonomies($allowed, $post_type) {
-    if ($post_type === 'datamachine_events') {
+    if ($post_type === 'data_machine_events') {
         return array_merge($allowed, array('location'));
     }
     return $allowed;
@@ -254,11 +254,11 @@ Modified query args with event-specific filters (upcoming only, ordered by date)
 add_filter('extrachill_related_posts_query_args', array($this, 'filter_event_query_args'), 10, 4);
 
 public function filter_event_query_args($query_args, $taxonomy, $post_id, $post_type) {
-    if (get_current_blog_id() !== 7 || $post_type !== 'datamachine_events') {
+    if (get_current_blog_id() !== 7 || $post_type !== 'data_machine_events') {
         return $query_args;
     }
     
-    $query_args['post_type'] = 'datamachine_events';
+    $query_args['post_type'] = 'data_machine_events';
     $query_args['meta_query'] = array(
         array(
             'key'     => '_datamachine_event_datetime',
@@ -299,7 +299,7 @@ Modified tax query with venue exclusion for location queries
 add_filter('extrachill_related_posts_tax_query', array($this, 'exclude_venue_from_location'), 10, 5);
 
 public function exclude_venue_from_location($tax_query, $taxonomy, $term_id, $post_id, $post_type) {
-    if (get_current_blog_id() !== 7 || $post_type !== 'datamachine_events' || $taxonomy !== 'location') {
+    if (get_current_blog_id() !== 7 || $post_type !== 'data_machine_events' || $taxonomy !== 'location') {
         return $tax_query;
     }
     

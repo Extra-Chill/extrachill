@@ -4,7 +4,7 @@
  * Detects user location via browser Geolocation API. On success, updates
  * the map center and lets the dynamic map + geo-sync handle the rest:
  * - Map fetches venues from REST API based on viewport
- * - Map fires datamachine-map-bounds-changed
+ * - Map fires data-machine-map-bounds-changed
  * - Calendar geo-sync catches it and re-fetches events
  * - URL updates via History API (shareable)
  *
@@ -12,8 +12,8 @@
  *
  * If geolocation is denied or unavailable, reveals the city grid fallback.
  *
- * The location search input is part of the EventsMap block (datamachine layer),
- * enabled on this page via the datamachine_events_map_show_location_search filter.
+ * The location search input is part of the EventsMap block (data-machine layer),
+ * enabled on this page via the data_machine_events_map_show_location_search filter.
  *
  * @package ExtraChillEvents
  * @since 0.8.0
@@ -78,7 +78,7 @@
 		// Set the map center by updating data attributes on the map root.
 		// The map React component reads these on init. If the map has already
 		// initialized, we dispatch a custom event to recenter it.
-		var mapRoot = document.querySelector( '.datamachine-events-map-root' );
+		var mapRoot = document.querySelector( '.data-machine-events-map-root' );
 		if ( mapRoot ) {
 			mapRoot.dataset.centerLat = lat;
 			mapRoot.dataset.centerLon = lng;
@@ -87,7 +87,7 @@
 
 			// If map is already initialized, dispatch recenter event.
 			if ( mapRoot.dataset.initialized === '1' ) {
-				document.dispatchEvent( new CustomEvent( 'datamachine-map-recenter', {
+				document.dispatchEvent( new CustomEvent( 'data-machine-map-recenter', {
 					detail: {
 						lat: parseFloat( lat ),
 						lng: parseFloat( lng ),

@@ -1,11 +1,11 @@
 # Post Meta Hiding
 
-The post meta hiding system removes theme's default post meta (author, date, categories) from datamachine_events post type.
+The post meta hiding system removes theme's default post meta (author, date, categories) from data_machine_events post type.
 
 ## Why Hide Post Meta
 
-### Event Meta Handled by datamachine-events
-The datamachine-events plugin displays comprehensive event metadata:
+### Event Meta Handled by data-machine-events
+The data-machine-events plugin displays comprehensive event metadata:
 - Event date and time
 - Venue information (9 metadata fields)
 - Location details
@@ -15,7 +15,7 @@ The datamachine-events plugin displays comprehensive event metadata:
 
 ### Prevent Duplicate Display
 Theme's default post meta (author, publish date, categories) is:
-- **Redundant**: Event datetime displayed by datamachine-events
+- **Redundant**: Event datetime displayed by data-machine-events
 - **Irrelevant**: Author/publish date not meaningful for events
 - **Cluttering**: Creates visual noise above event details
 
@@ -23,7 +23,7 @@ Theme's default post meta (author, publish date, categories) is:
 
 ### extrachill_post_meta Filter
 
-**Purpose:** Remove theme's post meta output for datamachine_events post type
+**Purpose:** Remove theme's post meta output for data_machine_events post type
 
 **Filter Parameters:**
 - `$default_meta` (string): Default post meta HTML from theme
@@ -31,12 +31,12 @@ Theme's default post meta (author, publish date, categories) is:
 - `$post_type` (string): Post type
 
 **Return Value:**
-Empty string for `datamachine_events`, unchanged for other post types
+Empty string for `data_machine_events`, unchanged for other post types
 
 **Implementation:**
 ```php
 public function hide_post_meta_for_events($default_meta, $post_id, $post_type) {
-    if ($post_type === 'datamachine_events') {
+    if ($post_type === 'data_machine_events') {
         return '';
     }
     return $default_meta;
@@ -87,7 +87,7 @@ function extrachill_post_meta($post_id = null) {
 </div>
 ```
 
-**With Filter (not datamachine_events):**
+**With Filter (not data_machine_events):**
 ```html
 <div class="post-meta">
     By Chris Huber • June 15, 2024 • Music News, Concert Reviews
@@ -95,7 +95,7 @@ function extrachill_post_meta($post_id = null) {
 ```
 (Unchanged for standard posts)
 
-### Event Post (datamachine_events)
+### Event Post (data_machine_events)
 **Without Filter:**
 ```html
 <div class="post-meta">
@@ -132,7 +132,7 @@ function extrachill_post_meta($post_id = null) {
 
 ## Event Meta Display (Not Hidden)
 
-The datamachine-events plugin displays its own metadata structure:
+The data-machine-events plugin displays its own metadata structure:
 
 ### Event Details
 - Event date and time
@@ -182,9 +182,9 @@ Cleaner header without redundant meta information.
 
 ## Post Type Targeting
 
-### Only Affects datamachine_events
+### Only Affects data_machine_events
 ```php
-if ($post_type === 'datamachine_events') {
+if ($post_type === 'data_machine_events') {
     return '';
 }
 ```

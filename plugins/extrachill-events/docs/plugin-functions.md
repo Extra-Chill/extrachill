@@ -19,8 +19,8 @@ $plugin = extrachill_events();
 ```php
 $integrations = extrachill_events()->get_integrations();
 
-if (isset($integrations['datamachine_events'])) {
-    // datamachine-events integration is active
+if (isset($integrations['data_machine_events'])) {
+    // data-machine-events integration is active
 }
 ```
 
@@ -108,7 +108,7 @@ function ec_events_redirect_post_type_archive() {
         return;
     }
     
-    if (is_post_type_archive('datamachine_events')) {
+    if (is_post_type_archive('data_machine_events')) {
         wp_redirect(home_url(), 301);
         exit;
     }
@@ -220,7 +220,7 @@ function ec_events_breadcrumb_trail_archives($custom_trail) {
         }
     }
 
-    if (is_post_type_archive('datamachine_events')) {
+    if (is_post_type_archive('data_machine_events')) {
         return '<span class="network-dropdown-target">Events Calendar</span>';
     }
 
@@ -252,7 +252,7 @@ function ec_events_breadcrumb_trail_archives($custom_trail) {
 add_filter('extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_single');
 
 function ec_events_breadcrumb_trail_single($custom_trail) {
-    if (is_singular('datamachine_events')) {
+    if (is_singular('data_machine_events')) {
         return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
     }
 

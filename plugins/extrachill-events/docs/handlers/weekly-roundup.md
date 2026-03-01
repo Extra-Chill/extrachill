@@ -337,8 +337,8 @@ Run multiple roundup flows with different location_term_id values to create sepa
 ## Requirements
 
 - **Data Machine** plugin active (for FetchHandler/PublishHandler base classes)
-- **datamachine-events** plugin (for Calendar_Query, events)
-- **Location taxonomy** must exist and be assigned to datamachine_events post type
+- **data-machine-events** plugin (for Calendar_Query, events)
+- **Location taxonomy** must exist and be assigned to data_machine_events post type
 - **GD library** (PHP extension) for image generation
 - **Fonts** (optional): Theme fonts in `/assets/fonts/` (falls back to system fonts)
 - **Media library access** for uploading images

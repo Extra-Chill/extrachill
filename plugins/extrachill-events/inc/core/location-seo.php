@@ -154,7 +154,7 @@ function extrachill_events_skip_seo_description( bool $skip ): bool {
  */
 function extrachill_events_get_upcoming_event_count( int $term_id ): int {
 	$args = array(
-		'post_type'      => 'datamachine_events',
+		'post_type'      => 'data_machine_events',
 		'post_status'    => 'publish',
 		'posts_per_page' => 1,
 		'fields'         => 'ids',

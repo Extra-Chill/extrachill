@@ -23,7 +23,7 @@ function extrachill_events_init_promoter_badges() {
  * Skip promoter badge if name matches venue name
  *
  * Prevents redundant display when promoter and venue are the same entity.
- * Mirrors logic from datamachine-events Calendar block Taxonomy_Badges.
+ * Mirrors logic from data-machine-events Calendar block Taxonomy_Badges.
  *
  * @param bool    $skip     Whether to skip this term.
  * @param WP_Term $term     The term being rendered.

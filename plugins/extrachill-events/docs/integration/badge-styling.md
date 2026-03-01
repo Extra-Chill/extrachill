@@ -1,10 +1,10 @@
 # Badge Styling Integration
 
-The badge styling system maps datamachine-events taxonomy badges to ExtraChill theme's badge class structure, enabling custom festival and location colors.
+The badge styling system maps data-machine-events taxonomy badges to ExtraChill theme's badge class structure, enabling custom festival and location colors.
 
 ## How It Works
 
-The plugin filters datamachine-events badge classes to add theme-compatible classes without modifying the plugin's templates.
+The plugin filters data-machine-events badge classes to add theme-compatible classes without modifying the plugin's templates.
 
 ### Integration Points
 1. **Wrapper Classes**: Add theme wrapper class to badge container
@@ -66,7 +66,7 @@ Taxonomies other than festival, location, and venue receive base class only:
 
 ## Wrapper Class
 
-### datamachine_events_badge_wrapper_classes Filter
+### data_machine_events_badge_wrapper_classes Filter
 
 Adds `taxonomy-badges` class to badge container for theme styling.
 
@@ -90,17 +90,17 @@ public function add_wrapper_classes($wrapper_classes, $post_id) {
     $wrapper_classes[] = 'taxonomy-badges';
     return $wrapper_classes;
 }
-add_filter('datamachine_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
+add_filter('data_machine_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
 ```
 
 ## Badge Classes
 
-### datamachine_events_badge_classes Filter
+### data_machine_events_badge_classes Filter
 
 Adds taxonomy-specific classes to individual badges based on taxonomy type.
 
 **Filter Parameters:**
-- `$badge_classes` (array): Default classes from datamachine-events
+- `$badge_classes` (array): Default classes from data-machine-events
 - `$taxonomy_slug` (string): Taxonomy name (festival, venue, location, etc.)
 - `$term` (WP_Term): Term object
 - `$post_id` (int): Event post ID
@@ -129,12 +129,12 @@ public function add_badge_classes($badge_classes, $taxonomy_slug, $term, $post_i
     
     return $badge_classes;
 }
-add_filter('datamachine_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
+add_filter('data_machine_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
 ```
 
 ## Taxonomy Exclusion
 
-### datamachine_events_excluded_taxonomies Filter
+### data_machine_events_excluded_taxonomies Filter
 
 Excludes venue and artist taxonomies from badge display.
 
@@ -149,7 +149,7 @@ public function exclude_venue_taxonomy($excluded) {
     $excluded[] = 'artist';
     return $excluded;
 }
-add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
+add_filter('data_machine_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
 ```
 
 **Result:**
@@ -158,24 +158,24 @@ Venue and artist badges do not appear in the taxonomy badge list. Venue informat
 ## CSS Integration Strategy
 
 ### Dual Compatibility
-The plugin maintains both datamachine-events classes AND theme classes:
+The plugin maintains both data-machine-events classes AND theme classes:
 ```html
 <span class="datamachine-taxonomy-badge taxonomy-badge festival-badge festival-bonnaroo">
 ```
 
 This ensures:
-- datamachine-events default styles apply
+- data-machine-events default styles apply
 - Theme custom styles enhance appearance
 - No conflicts between plugin and theme CSS
 
 ### CSS Class Hierarchy
 ```css
-/* datamachine-events default wrapper with added theme class */
+/* data-machine-events default wrapper with added theme class */
 .datamachine-taxonomy-badges.taxonomy-badges .taxonomy-badge.festival-badge.festival-bonnaroo {
     /* Custom Bonnaroo festival colors from theme */
 }
 
-/* datamachine-events default badge with added theme classes */
+/* data-machine-events default badge with added theme classes */
 .datamachine-taxonomy-badge.taxonomy-badge.location-badge.location-charleston {
     /* Custom Charleston location colors from theme */
 }
@@ -224,8 +224,8 @@ The theme must include base classes:
 
 ## Badge Enhancement Process
 
-1. **datamachine-events renders badge** with default classes (datamachine-taxonomy-badges, datamachine-taxonomy-badge)
-2. **Integration filters add ExtraChill classes** via datamachine_events_badge_wrapper_classes and datamachine_events_badge_classes
+1. **data-machine-events renders badge** with default classes (datamachine-taxonomy-badges, datamachine-taxonomy-badge)
+2. **Integration filters add ExtraChill classes** via data_machine_events_badge_wrapper_classes and data_machine_events_badge_classes
 3. **Theme's badge-colors.css applies styling** using taxonomy-specific classes
 4. **Both plugin and theme styles apply** maintaining dual compatibility
 

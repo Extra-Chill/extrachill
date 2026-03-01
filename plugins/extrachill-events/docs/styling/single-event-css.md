@@ -1,6 +1,6 @@
 # Single Event CSS
 
-Provides card treatment for datamachine-events event info grid and flexbox layout for action buttons.
+Provides card treatment for data-machine-events event info grid and flexbox layout for action buttons.
 
 ## File Location
 ```
@@ -11,7 +11,7 @@ assets/css/single-event.css
 
 Only loads when:
 ```php
-is_singular('datamachine_events')  // Single event page
+is_singular('data_machine_events')  // Single event page
 ```
 
 ### Dependencies
@@ -126,7 +126,7 @@ Removes default margins from share button to prevent flexbox spacing issues.
 ## Element Selectors
 
 ### .datamachine-event-details
-Parent container class from datamachine-events plugin wrapping entire event display.
+Parent container class from data-machine-events plugin wrapping entire event display.
 
 ### .event-info-grid
 Grid container for event metadata fields (date, venue, location, etc.).
@@ -227,7 +227,7 @@ The plugin also enqueues theme CSS files on single event pages:
 ### Loading Function
 ```php
 public function enqueue_single_post_styles() {
-    if (!is_singular('datamachine_events')) {
+    if (!is_singular('data_machine_events')) {
         return;
     }
     

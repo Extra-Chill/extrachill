@@ -2,7 +2,7 @@
 /**
  * Post Meta
  *
- * Hide theme post meta for datamachine_events post type.
+ * Hide theme post meta for data_machine_events post type.
  *
  * @package ExtraChillEvents
  * @since 0.4.0
@@ -20,17 +20,17 @@ function extrachill_events_init_post_meta() {
 }
 
 /**
- * Hide post meta for datamachine_events post type
+ * Hide post meta for data_machine_events post type
  *
- * Event meta handled by datamachine-events plugin, prevents duplicate display.
+ * Event meta handled by data-machine-events plugin, prevents duplicate display.
  *
  * @param string $default_meta Default post meta HTML from theme.
  * @param int    $post_id      Post ID.
  * @param string $post_type    Post type.
- * @return string Empty for datamachine_events, unchanged for other post types.
+ * @return string Empty for data_machine_events, unchanged for other post types.
  */
 function extrachill_events_hide_post_meta( $default_meta, $post_id, $post_type ) {
-	if ( $post_type === 'datamachine_events' ) {
+	if ( $post_type === 'data_machine_events' ) {
 		return '';
 	}
 	return $default_meta;

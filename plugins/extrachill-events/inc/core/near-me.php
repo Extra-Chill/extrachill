@@ -165,7 +165,7 @@ add_action( 'wp_enqueue_scripts', 'extrachill_events_near_me_scripts' );
  * On first visit without params, the map starts empty and JS centers it
  * after geolocation resolves.
  *
- * @hook datamachine_events_map_center
+ * @hook data_machine_events_map_center
  */
 function extrachill_events_near_me_map_center( $center, array $context ) {
 	if ( ! extrachill_events_is_near_me_page() ) {
@@ -183,14 +183,14 @@ function extrachill_events_near_me_map_center( $center, array $context ) {
 
 	return $center;
 }
-add_filter( 'datamachine_events_map_center', 'extrachill_events_near_me_map_center', 10, 2 );
+add_filter( 'data_machine_events_map_center', 'extrachill_events_near_me_map_center', 10, 2 );
 
 /**
  * Pass user location to the map block for the blue dot marker.
  *
  * Only applies when URL has geo params.
  *
- * @hook datamachine_events_map_user_location
+ * @hook data_machine_events_map_user_location
  */
 function extrachill_events_near_me_user_location( $user_location, array $context ) {
 	if ( ! extrachill_events_is_near_me_page() ) {
@@ -208,15 +208,15 @@ function extrachill_events_near_me_user_location( $user_location, array $context
 
 	return $user_location;
 }
-add_filter( 'datamachine_events_map_user_location', 'extrachill_events_near_me_user_location', 10, 2 );
+add_filter( 'data_machine_events_map_user_location', 'extrachill_events_near_me_user_location', 10, 2 );
 
 /**
  * Enable location search input on the EventsMap block for the Near Me page.
  *
- * The location search is a datamachine-events block feature (block attribute).
+ * The location search is a data-machine-events block feature (block attribute).
  * We just enable it here for the near-me context.
  *
- * @hook datamachine_events_map_show_location_search
+ * @hook data_machine_events_map_show_location_search
  */
 function extrachill_events_near_me_location_search( bool $show, array $context ): bool {
 	if ( extrachill_events_is_near_me_page() ) {
@@ -224,7 +224,7 @@ function extrachill_events_near_me_location_search( bool $show, array $context )
 	}
 	return $show;
 }
-add_filter( 'datamachine_events_map_show_location_search', 'extrachill_events_near_me_location_search', 10, 2 );
+add_filter( 'data_machine_events_map_show_location_search', 'extrachill_events_near_me_location_search', 10, 2 );
 
 // --- Content: Loading State + City Grid Fallback ---
 

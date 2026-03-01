@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Displays share button alongside ticket button using flexbox container.
  * Only applies on blog ID 7 (events.extrachill.com).
  *
- * @hook datamachine_events_action_buttons
+ * @hook data_machine_events_action_buttons
  * @param int $post_id Event post ID
  * @param string $ticket_url Ticket URL (may be empty)
  * @return void
@@ -33,4 +33,4 @@ function ec_events_render_share_button( $post_id, $ticket_url ) {
 		) );
 	}
 }
-add_action( 'datamachine_events_action_buttons', 'ec_events_render_share_button', 10, 2 );
+add_action( 'data_machine_events_action_buttons', 'ec_events_render_share_button', 10, 2 );

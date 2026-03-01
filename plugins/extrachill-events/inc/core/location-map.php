@@ -2,7 +2,7 @@
 /**
  * Location Map
  *
- * Renders the datamachine-events/events-map block on location archive pages.
+ * Renders the data-machine-events/events-map block on location archive pages.
  * Sets map center from location coordinates and generates summary text.
  *
  * The map operates in dynamic mode — venues are fetched via REST API based
@@ -43,14 +43,14 @@ function extrachill_events_render_location_map() {
 	}
 
 	// Render the block — filters below provide center and summary.
-	echo do_blocks( '<!-- wp:datamachine-events/events-map /-->' );
+	echo do_blocks( '<!-- wp:data-machine-events/events-map /-->' );
 }
 add_action( 'extrachill_archive_below_description', 'extrachill_events_render_location_map' );
 
 /**
  * Set map center to the location's coordinates.
  *
- * @hook datamachine_events_map_center
+ * @hook data_machine_events_map_center
  * @param array|null $center  Current center or null.
  * @param array      $context Map context.
  * @return array|null Center coordinates array or null.
@@ -62,7 +62,7 @@ function extrachill_events_filter_map_center( $center, array $context ) {
 
 	return extrachill_events_get_location_coordinates( $context['term_id'] );
 }
-add_filter( 'datamachine_events_map_center', 'extrachill_events_filter_map_center', 10, 2 );
+add_filter( 'data_machine_events_map_center', 'extrachill_events_filter_map_center', 10, 2 );
 
 /**
  * Generate summary text with event/venue counts for location maps.
@@ -70,7 +70,7 @@ add_filter( 'datamachine_events_map_center', 'extrachill_events_filter_map_cente
  * Queries venue and event counts directly from the database instead of
  * relying on a pre-filtered venue array.
  *
- * @hook datamachine_events_map_summary
+ * @hook data_machine_events_map_summary
  * @param string $summary Current summary (empty by default).
  * @param array  $venues  Venue data array (empty — dynamic mode).
  * @param array  $context Map context.
@@ -106,4 +106,4 @@ function extrachill_events_filter_map_summary( string $summary, array $venues, a
 		$venue_count
 	);
 }
-add_filter( 'datamachine_events_map_summary', 'extrachill_events_filter_map_summary', 10, 3 );
+add_filter( 'data_machine_events_map_summary', 'extrachill_events_filter_map_summary', 10, 3 );

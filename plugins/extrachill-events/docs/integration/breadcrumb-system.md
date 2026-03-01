@@ -84,7 +84,7 @@ Extra Chill › Events › [Event Title]
 ```
 
 **Blog ID Check:**
-Only applies when `get_current_blog_id() === ec_get_blog_id('events')` AND `is_singular('datamachine_events')`
+Only applies when `get_current_blog_id() === ec_get_blog_id('events')` AND `is_singular('data_machine_events')`
 
 ### 5. ec_events_back_to_home_label()
 Modifies back-to-home link label.

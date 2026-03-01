@@ -131,7 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Taxonomy registration refactored from simple initialization to hook-based system with proper timing
-  - `on_registered_post_type()` - Registers taxonomies when datamachine_events post type registers
+  - `on_registered_post_type()` - Registers taxonomies when data_machine_events post type registers
   - `on_registered_taxonomy()` - Ensures taxonomies register when event taxonomies initialize
   - `register_event_taxonomies()` changed from private to public for external use
   - `get_event_taxonomies()` centralized taxonomy list method (location, artist, festival, venue)
@@ -141,13 +141,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.6] - 2025-12-20
 
 ### Added
-- Taxonomy registration for datamachine_events post type (location, artist, festival, venue) with dynamic hooks (`registered_post_type`, `registered_taxonomy`, `init`)
+- Taxonomy registration for data_machine_events post type (location, artist, festival, venue) with dynamic hooks (`registered_post_type`, `registered_taxonomy`, `init`)
 - Added EXTRACHILL_EVENTS_PLUGIN_BASENAME constant for proper textdomain path handling
 - Added `init_datamachine_handlers()` public method for flexible handler initialization
 
 ### Changed
 - **Textdomain Loading**: Moved from 'plugins_loaded' to 'init' hook with proper path handling via `dirname(EXTRACHILL_EVENTS_PLUGIN_BASENAME)`
-- **Text Domain**: Updated to use 'extrachill-events' (was 'datamachine-events') for proper translation loading
+- **Text Domain**: Updated to use 'extrachill-events' (was 'data-machine-events') for proper translation loading
 - **Taxonomy Registration**: Refactored from static registration to dynamic hooks ensuring proper timing and flexibility
   - Changed from private to public method `register_event_taxonomies()`
   - Added `on_registered_post_type()` hook handler
@@ -166,7 +166,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Rebranded "Events Calendar" to "Live Music Calendar" across homepage and archive titles
 - Added archive title display on taxonomy archive pages using DataMachineEvents Archive_Title class
-- Added datamachine_events_archive_title filter to customize archive titles with "Live Music Calendar" branding
+- Added data_machine_events_archive_title filter to customize archive titles with "Live Music Calendar" branding
 
 ## [0.2.3] - 2025-12-16
 
@@ -303,14 +303,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added `inc/single-event/related-events.php` to handle related events display.
-- Integrated with `extrachill` theme's `extrachill_override_related_posts_display` hook to replace default related posts with `datamachine-events` calendar cards.
+- Integrated with `extrachill` theme's `extrachill_override_related_posts_display` hook to replace default related posts with `data-machine-events` calendar cards.
 - Added logic to exclude the current event's venue from the related events query to encourage discovery.
 
 ## [0.1.0] - 2023-10-25
 
 ### Added
 - Initial release.
-- Integration with `datamachine-events` plugin.
+- Integration with `data-machine-events` plugin.
 - Homepage and Archive template overrides for events subdomain.
 - Breadcrumb system.
 - Share button functionality.

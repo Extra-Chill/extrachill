@@ -33,7 +33,7 @@ This docs page refers to the events site (events.extrachill.com, blog ID 7). The
 
 ## Homepage Content Source
 
-The homepage displays the content of the WordPress "page on front" (`page_on_front`) and runs it through `the_content`, so blocks (including the datamachine-events calendar block) render normally.
+The homepage displays the content of the WordPress "page on front" (`page_on_front`) and runs it through `the_content`, so blocks (including the data-machine-events calendar block) render normally.
 
 ## Content Rendering
 
@@ -43,7 +43,7 @@ apply_filters('the_content', $homepage->post_content)
 ```
 
 This processes all WordPress blocks and shortcodes in the static page content, enabling:
-- datamachine-events calendar block
+- data-machine-events calendar block
 - WordPress core blocks (paragraphs, headings, images)
 - Third-party blocks from other plugins
 - Shortcodes

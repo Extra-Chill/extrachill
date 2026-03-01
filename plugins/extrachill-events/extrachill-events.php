@@ -2,11 +2,11 @@
 /**
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
- * Description: Calendar integration with template overrides, datamachine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
+ * Description: Calendar integration with template overrides, data-machine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
  * Version: 0.6.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
- * Requires Plugins: data-machine, datamachine-events
+ * Requires Plugins: data-machine, data-machine-events
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: extrachill-events
@@ -38,7 +38,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCo
 /**
  * ExtraChillEvents
  *
- * Singleton class managing datamachine-events integration with homepage/archive template
+ * Singleton class managing data-machine-events integration with homepage/archive template
  * overrides, badge/button styling, breadcrumb system, and SEO redirects for
  * events.extrachill.com (blog ID 7).
  *
@@ -69,7 +69,7 @@ class ExtraChillEvents {
 
 	private function init_hooks() {
 		add_action( 'init', array( $this, 'load_textdomain' ) );
-		add_action( 'init', array( $this, 'init_datamachine_handlers' ), 20 );
+		add_action( 'init', array( $this, 'init_data_machine_handlers' ), 20 );
 		add_action( 'init', array( $this, 'init_abilities' ), 25 );
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
@@ -95,7 +95,7 @@ class ExtraChillEvents {
 			require_once $autoload_file;
 		}
 
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events/init.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/data-machine-events/init.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/nav.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-venue-ordering.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-event-ordering.php';
@@ -111,7 +111,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/actions.php';
 	}
 
-	public function init_datamachine_handlers() {
+	public function init_data_machine_handlers() {
 		if ( ! class_exists( 'DataMachine\Core\Steps\Fetch\Handlers\FetchHandler' ) ) {
 			return;
 		}
@@ -150,11 +150,11 @@ class ExtraChillEvents {
 	/**
 	 * Initialize event plugin integrations
 	 *
-	 * Conditionally initializes datamachine-events integration if plugin is active.
+	 * Conditionally initializes data-machine-events integration if plugin is active.
 	 */
 	private function init_integrations() {
 		if ( class_exists( 'DataMachineEvents\Core\Event_Post_Type' ) ) {
-			extrachill_events_init_datamachine_integration();
+			extrachill_events_init_data_machine_integration();
 		}
 	}
 
@@ -204,7 +204,7 @@ add_action( 'extrachill_homepage_content', 'ec_events_render_homepage' );
 /**
  * Override archive template on events.extrachill.com
  *
- * Unified archive template renders datamachine-events calendar block with automatic
+ * Unified archive template renders data-machine-events calendar block with automatic
  * taxonomy filtering based on archive context. Applies to all archive types
  * including taxonomy, post type, date, and author archives.
  * Only applies on blog ID 7 (events.extrachill.com).
@@ -240,7 +240,7 @@ function ec_events_redirect_post_type_archive() {
 		return;
 	}
 
-	if ( is_post_type_archive( 'datamachine_events' ) ) {
+	if ( is_post_type_archive( 'data_machine_events' ) ) {
 		wp_redirect( home_url(), 301 );
 		exit;
 	}

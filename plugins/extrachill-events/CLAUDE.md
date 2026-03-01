@@ -2,7 +2,7 @@
 
 WordPress plugin providing theme-level integration for events.extrachill.com.
 
-The event calendar system itself (Data Machine + datamachine-events) is external to this repo; this plugin focuses on template routing, styling integration, and event submission/automation glue.
+The event calendar system itself (Data Machine + data-machine-events) is external to this repo; this plugin focuses on template routing, styling integration, and event submission/automation glue.
 
 This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 11 active sites.
 
@@ -18,11 +18,11 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 - **Tested up to**: 6.4
 - **Requires PHP**: 7.4
 - **Network**: false
-- **Requires Plugins**: datamachine, datamachine-events
+- **Requires Plugins**: datamachine, data-machine-events
 
 ## events.extrachill.com Integration
 
-This plugin provides homepage template override for **events.extrachill.com** (site #7 in the multisite network). The calendar hub is powered by **external** Data Machine + datamachine-events plugins; this plugin supplies the ExtraChill-side integration.
+This plugin provides homepage template override for **events.extrachill.com** (site #7 in the multisite network). The calendar hub is powered by **external** Data Machine + data-machine-events plugins; this plugin supplies the ExtraChill-side integration.
 
 ### Homepage Content Rendering Architecture
 
@@ -46,17 +46,17 @@ function ec_events_render_homepage() {
 **Homepage Template** (`inc/templates/homepage.php`):
 - Displays content from WordPress static homepage (Settings → Reading → "A static page")
 - Renders homepage post content via `apply_filters('the_content', $homepage->post_content)`
-- Allows adding datamachine-events calendar block (or any blocks) via WordPress editor
+- Allows adding data-machine-events calendar block (or any blocks) via WordPress editor
 - Full-width container with `get_header()` and `get_footer()` for complete page control
 - DM Events calendar block handles all filtering, pagination, and event display logic
 
 **Homepage setup**:
-- Uses a WordPress static homepage whose content includes the datamachine-events calendar block.
-- This repo does not ship the calendar block; it comes from the external `datamachine-events` plugin.
+- Uses a WordPress static homepage whose content includes the data-machine-events calendar block.
+- This repo does not ship the calendar block; it comes from the external `data-machine-events` plugin.
 
 **Required Plugins** (site-activated on events.extrachill.com):
 - **Data Machine** - Event automation and content pipeline
-- **datamachine-events** - Calendar block and event post type
+- **data-machine-events** - Calendar block and event post type
 - **extrachill-events** - Homepage template override (this plugin)
 
 ### Multisite Network Architecture
@@ -65,11 +65,11 @@ function ec_events_render_homepage() {
 1. Create site in Network Admin → Sites → Add New
 2. Site URL: events.extrachill.com
 3. Site Title: "ExtraChill Events"
-4. Activate Data Machine, datamachine-events, and extrachill-events on the new site
+4. Activate Data Machine, data-machine-events, and extrachill-events on the new site
 
 **Data Flow**:
 - Data Machine handles event import and automation on events.extrachill.com
-- datamachine-events calendar block provides full event display and filtering
+- data-machine-events calendar block provides full event display and filtering
 - Main site (extrachill.com) focuses on content automation without event processing
 - Events site serves as centralized event hub for entire network
 
@@ -91,7 +91,7 @@ function ec_events_render_homepage() {
 
 ### Core Classes
 - **ExtraChillEvents** (`extrachill-events.php`) - Main singleton class managing initialization, template overrides, SEO redirects, and handler initialization via public `init_datamachine_handlers()` method
-- **DataMachineEventsIntegration** (`inc/core/datamachine-events-integration.php`) - datamachine-events integration with badge/button styling, CSS enqueuing, post meta management, and dynamic taxonomy registration via `registered_post_type` and `registered_taxonomy` hooks
+- **DataMachineEventsIntegration** (`inc/core/data-machine-events-integration.php`) - data-machine-events integration with badge/button styling, CSS enqueuing, post meta management, and dynamic taxonomy registration via `registered_post_type` and `registered_taxonomy` hooks
 
 ## Key Features
 
@@ -99,16 +99,16 @@ function ec_events_render_homepage() {
 **events.extrachill.com Integration**:
 - **Blog ID Targeting**: Only applies to events.extrachill.com using `ec_get_blog_id('events')`
 - **Static Page Display**: Renders content from Settings → Reading → "A static page" with full block editor support
-- **Calendar Block Support**: Supports datamachine-events calendar block and any other blocks via WordPress editor
+- **Calendar Block Support**: Supports data-machine-events calendar block and any other blocks via WordPress editor
 - **Breadcrumb Integration**: Displays theme breadcrumbs via `extrachill_breadcrumbs()` function
 
 ### Archive Template Override
 **Unified Archive System**:
 - **Single Template Approach**: One template handles all archive types (taxonomy, post type, date, author)
-- **Calendar Block Rendering**: Displays datamachine-events calendar block via `do_blocks('<!-- wp:datamachine-events/calendar /-->')`
+- **Calendar Block Rendering**: Displays data-machine-events calendar block via `do_blocks('<!-- wp:data-machine-events/calendar /-->')`
 - **Context-Aware Filtering**: Calendar block automatically detects archive context and filters events accordingly
 - **Taxonomy Archives**: Handles festival, venue, and location taxonomy archives
-- **Post Type Archives**: Manages datamachine_events post type archive (redirects to homepage)
+- **Post Type Archives**: Manages data_machine_events post type archive (redirects to homepage)
 - **SEO Optimization**: /events/ post type archive redirects to homepage (301 permanent)
 
 ### Event Submission Block
@@ -147,16 +147,16 @@ function ec_events_render_homepage() {
 
 ### DM Events Integration
 **Complete Integration Implementation**:
-- **Badge Styling Integration**: Maps datamachine-events taxonomy badges to ExtraChill's badge class structure via datamachine_events_badge_wrapper_classes and datamachine_events_badge_classes filters
+- **Badge Styling Integration**: Maps data-machine-events taxonomy badges to ExtraChill's badge class structure via data_machine_events_badge_wrapper_classes and data_machine_events_badge_classes filters
 - **Festival-Specific Colors**: Enables custom festival colors (Bonnaroo, Coachella) from theme's badge-colors.css
 - **Location Styling**: Converts venue taxonomies to location styling for regional color coding
-- **Taxonomy Exclusion**: Excludes artist taxonomy from badge display via datamachine_events_excluded_taxonomies filter (prevents redundant display)
-- **Button Styling Integration**: Maps datamachine-events modal, ticket, and more info buttons to theme's button styling classes
-- **Share Button Integration**: Renders share button alongside ticket button in flexbox container via datamachine_events_action_buttons hook (events.extrachill.com only)
-- **Breadcrumb Override**: Replaces datamachine-events breadcrumbs with theme's breadcrumb system via datamachine_events_breadcrumbs filter
+- **Taxonomy Exclusion**: Excludes artist taxonomy from badge display via data_machine_events_excluded_taxonomies filter (prevents redundant display)
+- **Button Styling Integration**: Maps data-machine-events modal, ticket, and more info buttons to theme's button styling classes
+- **Share Button Integration**: Renders share button alongside ticket button in flexbox container via data_machine_events_action_buttons hook (events.extrachill.com only)
+- **Breadcrumb Override**: Replaces data-machine-events breadcrumbs with theme's breadcrumb system via data_machine_events_breadcrumbs filter
 - **Related Events Display**: Shows related events by festival and venue taxonomies using theme's related posts function
 - **CSS Integration**: Enqueues theme's single-post.css, sidebar.css, and plugin's single-event.css for event pages
-- **Post Meta Management**: Hides post meta display for datamachine_events post type
+- **Post Meta Management**: Hides post meta display for data_machine_events post type
 - **Promoter Badge Skipping**: Skips promoter badges when promoter name matches venue name
 
 ### Taxonomy Mapping System
@@ -166,23 +166,23 @@ function ec_events_render_homepage() {
 - **other taxonomies** → Uses plugin's default styling with base `taxonomy-badge` class
 
 **Integration Hooks**:
-- **datamachine_events_badge_wrapper_classes** - Adds `taxonomy-badges` wrapper class for theme styling
-- **datamachine_events_badge_classes** - Adds `taxonomy-badge` base class and festival/location/venue-specific classes
-- **datamachine_events_excluded_taxonomies** - Excludes artist taxonomy from badge display
-- **datamachine_events_modal_button_classes** - Adds theme button classes to modal buttons (primary/secondary)
-- **datamachine_events_ticket_button_classes** - Adds theme button classes to ticket purchase button
-- **datamachine_events_more_info_button_classes** - Adds theme button classes to more info buttons
-- **extrachill_post_meta** - Hides post meta for datamachine_events post type
+- **data_machine_events_badge_wrapper_classes** - Adds `taxonomy-badges` wrapper class for theme styling
+- **data_machine_events_badge_classes** - Adds `taxonomy-badge` base class and festival/location/venue-specific classes
+- **data_machine_events_excluded_taxonomies** - Excludes artist taxonomy from badge display
+- **data_machine_events_modal_button_classes** - Adds theme button classes to modal buttons (primary/secondary)
+- **data_machine_events_ticket_button_classes** - Adds theme button classes to ticket purchase button
+- **data_machine_events_more_info_button_classes** - Adds theme button classes to more info buttons
+- **extrachill_post_meta** - Hides post meta for data_machine_events post type
 - **extrachill_taxonomy_badges_skip_term** - Skips promoter badges matching venue name
 
 ### Single Event Template Integration
 **Integration Flow**:
-1. **Badge Enhancement**: datamachine-events renders badges → extrachill-events filters add theme classes → theme CSS applies styling
-2. **Breadcrumb Override**: datamachine-events calls breadcrumb filter → extrachill-events returns theme breadcrumbs via `ec_events_override_breadcrumbs()`
-3. **Share Button Integration**: datamachine-events fires action buttons hook → extrachill-events renders share button with `button-large` styling (events.extrachill.com only)
-4. **Related Events**: datamachine-events fires related events hook → extrachill-events displays related events by festival/venue taxonomy
+1. **Badge Enhancement**: data-machine-events renders badges → extrachill-events filters add theme classes → theme CSS applies styling
+2. **Breadcrumb Override**: data-machine-events calls breadcrumb filter → extrachill-events returns theme breadcrumbs via `ec_events_override_breadcrumbs()`
+3. **Share Button Integration**: data-machine-events fires action buttons hook → extrachill-events renders share button with `button-large` styling (events.extrachill.com only)
+4. **Related Events**: data-machine-events fires related events hook → extrachill-events displays related events by festival/venue taxonomy
 5. **CSS Integration**: Plugin enqueues theme styles (single-post.css, sidebar.css) and plugin styles (single-event.css)
-6. **Post Meta Management**: Hides post meta for datamachine_events post type via `extrachill_post_meta` filter
+6. **Post Meta Management**: Hides post meta for data_machine_events post type via `extrachill_post_meta` filter
 7. **Promoter Badge Skipping**: Skips promoter badges when promoter name matches venue name
 
 ### Template Override System
@@ -195,7 +195,7 @@ function ec_events_render_homepage() {
 **Archive Override** (events.extrachill.com only):
 - **Filter Hook**: `extrachill_template_archive` (all archive types)
 - **Unified Template**: Handles taxonomy, post type, date, and author archives
-- **Calendar Rendering**: Displays calendar via `do_blocks('<!-- wp:datamachine-events/calendar /-->')`
+- **Calendar Rendering**: Displays calendar via `do_blocks('<!-- wp:data-machine-events/calendar /-->')`
 - **SEO Redirect**: `/events/` post type archive redirects to homepage (301 permanent)
 - **Implementation**: `ec_events_override_archive_template()` and `ec_events_redirect_post_type_archive()` functions
 
@@ -266,19 +266,19 @@ function ec_events_render_homepage() {
 
 ### CSS Integration Strategy
 **Badge Enhancement Process**:
-1. datamachine-events renders badge with default classes (dm-taxonomy-badges, dm-taxonomy-badge)
-2. Integration filters add ExtraChill-compatible classes via datamachine_events_badge_wrapper_classes and datamachine_events_badge_classes
+1. data-machine-events renders badge with default classes (dm-taxonomy-badges, dm-taxonomy-badge)
+2. Integration filters add ExtraChill-compatible classes via data_machine_events_badge_wrapper_classes and data_machine_events_badge_classes
 3. Theme's badge-colors.css automatically applies custom styling
 4. Maintains dual compatibility (plugin + theme styles)
 
 **CSS Class Hierarchy**:
 ```css
-/* datamachine-events default wrapper with added theme class */
+/* data-machine-events default wrapper with added theme class */
 .datamachine-taxonomy-badges.taxonomy-badges .taxonomy-badge.festival-badge.festival-bonnaroo {
     /* Custom Bonnaroo festival colors from theme */
 }
 
-/* datamachine-events default badge with added theme classes */
+/* data-machine-events default badge with added theme classes */
 .datamachine-taxonomy-badge.taxonomy-badge.location-badge.location-charleston {
     /* Custom Charleston location colors from theme */
 }
@@ -383,7 +383,7 @@ public function render_share_button($post_id, $ticket_url) {
 **Post Meta Hiding**:
 ```php
 public function hide_post_meta_for_events($default_meta, $post_id, $post_type) {
-    if ($post_type === 'datamachine_events') {
+    if ($post_type === 'data_machine_events') {
         return '';
     }
     return $default_meta;
@@ -418,9 +418,9 @@ public function hide_post_meta_for_events($default_meta, $post_id, $post_type) {
 - **WPCS**: WordPress Coding Standards ruleset
 
 ### Plugin Dependencies
-- **Required Plugins**: Data Machine, datamachine-events (enforced via WordPress native plugin dependency system)
+- **Required Plugins**: Data Machine, data-machine-events (enforced via WordPress native plugin dependency system)
 - **Theme Requirements**: ExtraChill theme with badge-colors.css, breadcrumb functions, share button function
-- **Auto-Detection**: DataMachineEventsIntegration loads conditionally if datamachine-events is active
+- **Auto-Detection**: DataMachineEventsIntegration loads conditionally if data-machine-events is active
 - **Extensible**: Ready for additional event plugin integrations
 
 ## Common Development Commands
@@ -469,7 +469,7 @@ homeboy test extrachill-events
 ### Supported Plugins
 - **Current Support**: DM Events plugin with complete integration
 - **Extensible Architecture**: Ready for additional event plugin integrations
-- **Replacement Function**: Replaces previous datamachine-events integration from theme
+- **Replacement Function**: Replaces previous data-machine-events integration from theme
 
 ### Integration Scope
 - **Visual Integration Focus**: Primarily handles badge styling and breadcrumb consistency

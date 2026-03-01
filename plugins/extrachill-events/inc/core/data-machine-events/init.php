@@ -24,7 +24,7 @@ require_once __DIR__ . '/venue-promos.php';
 /**
  * Initialize all DataMachine Events integrations
  */
-function extrachill_events_init_datamachine_integration() {
+function extrachill_events_init_data_machine_integration() {
 	extrachill_events_init_taxonomy_registration();
 	extrachill_events_init_badge_styling();
 	extrachill_events_init_button_styling();

@@ -2,7 +2,7 @@
 /**
  * Badge Styling
  *
- * Map datamachine-events badges to theme badge classes for festival/location/venue styling.
+ * Map data-machine-events badges to theme badge classes for festival/location/venue styling.
  *
  * @package ExtraChillEvents
  * @since 0.4.0
@@ -22,15 +22,15 @@ function extrachill_events_init_badge_styling() {
 		return;
 	}
 
-	add_filter( 'datamachine_events_badge_wrapper_classes', 'extrachill_events_add_wrapper_classes', 10, 2 );
-	add_filter( 'datamachine_events_badge_classes', 'extrachill_events_add_badge_classes', 10, 4 );
-	add_filter( 'datamachine_events_excluded_taxonomies', 'extrachill_events_exclude_taxonomies', 10, 2 );
+	add_filter( 'data_machine_events_badge_wrapper_classes', 'extrachill_events_add_wrapper_classes', 10, 2 );
+	add_filter( 'data_machine_events_badge_classes', 'extrachill_events_add_badge_classes', 10, 4 );
+	add_filter( 'data_machine_events_excluded_taxonomies', 'extrachill_events_exclude_taxonomies', 10, 2 );
 }
 
 /**
  * Add theme-compatible wrapper class to badge container
  *
- * @param array $wrapper_classes Default wrapper classes from datamachine-events.
+ * @param array $wrapper_classes Default wrapper classes from data-machine-events.
  * @param int   $post_id         Event post ID.
  * @return array Enhanced wrapper classes with theme compatibility.
  */
@@ -45,7 +45,7 @@ function extrachill_events_add_wrapper_classes( $wrapper_classes, $post_id ) {
  * Enables custom colors from theme's badge-colors.css via taxonomy-specific
  * classes (e.g., festival-bonnaroo, location-charleston).
  *
- * @param array   $badge_classes  Default badge classes from datamachine-events.
+ * @param array   $badge_classes  Default badge classes from data-machine-events.
  * @param string  $taxonomy_slug  Taxonomy name (festival, venue, location, etc.).
  * @param WP_Term $term           The taxonomy term object.
  * @param int     $post_id        Event post ID.

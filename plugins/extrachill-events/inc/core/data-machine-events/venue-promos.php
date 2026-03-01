@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Initialize venue promo hooks
  */
 function extrachill_events_init_venue_promos() {
-	add_action( 'datamachine_events_after_price_display', 'extrachill_events_display_farm_friends_promo', 10, 2 );
+	add_action( 'data_machine_events_after_price_display', 'extrachill_events_display_farm_friends_promo', 10, 2 );
 }
 
 /**
