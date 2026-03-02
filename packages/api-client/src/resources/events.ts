@@ -10,11 +10,12 @@ import type {
 
 export interface CalendarParams {
   page?: number;
-  per_page?: number;
   venue?: string;
   promoter?: string;
   location?: string;
   scope?: string;
+  search?: string;
+  past?: boolean;
   lat?: number;
   lng?: number;
   radius?: number;
@@ -33,17 +34,20 @@ export class EventsResource extends BaseResource {
   }
 
   /**
-   * Get available filter options (venues, promoters).
+   * Get available filter options (venues, promoters, locations).
    */
   filters(): Promise<CalendarFilters> {
     return this.get('extrachill/v1/events/filters');
   }
 
   /**
-   * List venues, optionally with geo bounds.
+   * List venues, optionally with geo bounds or proximity search.
    */
   venues(params: {
     location?: string;
+    lat?: number;
+    lng?: number;
+    radius?: number;
     sw_lat?: number;
     sw_lng?: number;
     ne_lat?: number;

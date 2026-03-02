@@ -265,6 +265,7 @@ export interface CalendarResponse {
 export interface CalendarFilters {
   venues: Array<{ id: number; name: string; slug: string; count: number }>;
   promoters: Array<{ id: number; name: string; slug: string; count: number }>;
+  locations: Array<{ id: number; name: string; slug: string; count: number }>;
 }
 
 export interface Venue {
