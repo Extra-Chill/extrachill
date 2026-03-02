@@ -14,6 +14,9 @@
  * to the %event_scope% query var, which the discovery template reads to
  * render a scoped calendar block.
  *
+ * SEO data is provided via extrachill-seo filters — the SEO plugin is
+ * the single rendering engine for all meta tags.
+ *
  * @package ExtraChillEvents
  * @since 0.7.0
  */
@@ -114,8 +117,8 @@ function extrachill_events_get_scope_label( string $scope ): string {
 /**
  * Override the archive template for discovery pages.
  *
- * Runs on the same filter as the standard archive override but at a lower
- * priority (15 vs default 10) so it runs after and takes precedence when event_scope is set.
+ * Runs at priority 15 (after the events archive override at priority 10)
+ * so it takes precedence when event_scope is set.
  *
  * @hook extrachill_template_archive
  * @param string $template Current template path.
@@ -159,174 +162,71 @@ function extrachill_events_discovery_title( array $title_parts ): array {
 }
 add_filter( 'document_title_parts', 'extrachill_events_discovery_title', 1000 );
 
-// --- SEO: Meta Description ---
+// --- SEO: Meta Description (via extrachill-seo filter) ---
 
 /**
- * Output meta description for discovery pages.
+ * Provide meta description for discovery pages via extrachill-seo filter.
  *
- * Dynamic description with event count, venue names, and scope context.
- * Runs at priority 4 (before extrachill-seo at priority 5).
+ * Uses the shared helper from location-seo.php to build a scoped description.
  *
- * @hook wp_head
+ * @hook extrachill_seo_meta_description
+ * @param string $description Default description from extrachill-seo.
+ * @return string Scoped description or pass-through.
  */
-function extrachill_events_discovery_meta_description() {
+function extrachill_events_discovery_description( string $description ): string {
 	if ( ! extrachill_events_is_discovery_page() ) {
-		return;
+		return $description;
 	}
 
 	$term = get_queried_object();
 	if ( ! $term || ! isset( $term->term_id ) ) {
-		return;
+		return $description;
 	}
 
-	$city_name   = $term->name;
 	$scope       = extrachill_events_get_current_scope();
 	$scope_label = strtolower( extrachill_events_get_scope_label( $scope ) );
 
-	// Count upcoming events for this location.
-	$event_count = extrachill_events_get_upcoming_event_count( $term->term_id );
-
-	// Get venue data.
-	$venues      = extrachill_events_get_location_venues( $term->term_id );
-	$venue_count = count( $venues );
-
-	// Build scope-specific description.
-	$description = sprintf( 'Find live music in %s %s.', $city_name, $scope_label );
-
-	if ( $event_count > 0 && $venue_count > 0 ) {
-		$description .= sprintf(
-			' %d upcoming shows across %d venues',
-			$event_count,
-			$venue_count
-		);
-
-		$venue_names = array_column( $venues, 'name' );
-		if ( count( $venue_names ) >= 2 ) {
-			$description .= sprintf(
-				' including %s, %s, and more.',
-				$venue_names[0],
-				$venue_names[1]
-			);
-		} elseif ( count( $venue_names ) === 1 ) {
-			$description .= sprintf( ' including %s.', $venue_names[0] );
-		} else {
-			$description .= '.';
-		}
-	} else {
-		$description .= sprintf(
-			' Browse the full %s live music calendar on Extra Chill.',
-			$city_name
-		);
-	}
-
-	// Truncate to 160 chars at word boundary.
-	if ( strlen( $description ) > 160 ) {
-		$description = substr( $description, 0, 157 );
-		$last_space  = strrpos( $description, ' ' );
-		if ( false !== $last_space ) {
-			$description = substr( $description, 0, $last_space );
-		}
-		$description .= '...';
-	}
-
-	printf(
-		'<meta name="description" content="%s" />' . "\n",
-		esc_attr( $description )
-	);
-	printf(
-		'<meta property="og:description" content="%s" />' . "\n",
-		esc_attr( $description )
-	);
+	return extrachill_events_build_location_description( $term->name, $term->term_id, $scope_label );
 }
-add_action( 'wp_head', 'extrachill_events_discovery_meta_description', 4 );
+add_filter( 'extrachill_seo_meta_description', 'extrachill_events_discovery_description' );
 
-// --- SEO: Canonical URL ---
+// --- SEO: Canonical URL (via extrachill-seo filter) ---
 
 /**
- * Output canonical URL for discovery pages.
+ * Override canonical URL for discovery pages via extrachill-seo filter.
  *
- * WordPress generates a canonical for the base location term. We need to
- * override it to include the scope segment.
+ * Appends the scope segment to the base location term URL.
  *
- * @hook wp_head
+ * @hook extrachill_seo_canonical_url
+ * @param string $canonical Default canonical from extrachill-seo.
+ * @return string Discovery canonical or pass-through.
  */
-function extrachill_events_discovery_canonical() {
+function extrachill_events_discovery_canonical( string $canonical ): string {
 	if ( ! extrachill_events_is_discovery_page() ) {
-		return;
+		return $canonical;
 	}
 
 	$term = get_queried_object();
 	if ( ! $term ) {
-		return;
+		return $canonical;
 	}
 
 	$term_link = get_term_link( $term );
 	if ( is_wp_error( $term_link ) ) {
-		return;
+		return $canonical;
 	}
 
-	$canonical = trailingslashit( $term_link ) . extrachill_events_get_current_scope() . '/';
-
-	printf(
-		'<link rel="canonical" href="%s" />' . "\n",
-		esc_url( $canonical )
-	);
+	return trailingslashit( $term_link ) . extrachill_events_get_current_scope() . '/';
 }
-add_action( 'wp_head', 'extrachill_events_discovery_canonical', 1 );
-
-/**
- * Remove WordPress default canonical on discovery pages to avoid duplicates.
- *
- * @hook wp_head
- */
-function extrachill_events_discovery_remove_default_canonical() {
-	if ( extrachill_events_is_discovery_page() ) {
-		remove_action( 'wp_head', 'rel_canonical' );
-	}
-}
-add_action( 'wp_head', 'extrachill_events_discovery_remove_default_canonical', 0 );
-
-// --- SEO: Skip Duplicate Meta & Canonical ---
-
-/**
- * Prevent extrachill-seo from outputting a duplicate meta description on discovery pages.
- *
- * @hook extrachill_seo_skip_meta_description
- * @param bool $skip Whether to skip.
- * @return bool
- */
-function extrachill_events_discovery_skip_seo_description( bool $skip ): bool {
-	if ( extrachill_events_is_discovery_page() ) {
-		return true;
-	}
-	return $skip;
-}
-add_filter( 'extrachill_seo_skip_meta_description', 'extrachill_events_discovery_skip_seo_description' );
-
-/**
- * Prevent extrachill-seo from outputting a duplicate canonical on discovery pages.
- *
- * Discovery pages output their own canonical with the scope segment at priority 1.
- *
- * @hook extrachill_seo_skip_canonical
- * @param bool $skip Whether to skip.
- * @return bool
- */
-function extrachill_events_discovery_skip_seo_canonical( bool $skip ): bool {
-	if ( extrachill_events_is_discovery_page() ) {
-		return true;
-	}
-	return $skip;
-}
-add_filter( 'extrachill_seo_skip_canonical', 'extrachill_events_discovery_skip_seo_canonical' );
+add_filter( 'extrachill_seo_canonical_url', 'extrachill_events_discovery_canonical' );
 
 // --- SEO: Override OG Data ---
 
 /**
  * Fix Open Graph data on discovery pages.
  *
- * Overrides og:url to include the scope segment and og:description
- * to use the scoped description instead of the generic one.
+ * The og:url and og:title are derived from canonical and document title
+ * by extrachill-seo, but we override via filter for explicit control.
  *
  * @hook extrachill_seo_open_graph_data
  * @param array $og_data OG property => value pairs.
@@ -342,23 +242,61 @@ function extrachill_events_discovery_og_data( array $og_data ): array {
 		return $og_data;
 	}
 
-	$term_link = get_term_link( $term );
-	if ( is_wp_error( $term_link ) ) {
-		return $og_data;
-	}
-
-	$scope = extrachill_events_get_current_scope();
-
-	// Fix og:url to include scope segment.
-	$og_data['og:url'] = trailingslashit( $term_link ) . $scope . '/';
-
-	// Fix og:title to include scope label.
-	$scope_label         = extrachill_events_get_scope_label( $scope );
+	// og:title — include scope label.
+	$scope_label         = extrachill_events_get_scope_label( extrachill_events_get_current_scope() );
 	$og_data['og:title'] = sprintf( 'Live Music in %s %s', $term->name, $scope_label );
 
 	return $og_data;
 }
 add_filter( 'extrachill_seo_open_graph_data', 'extrachill_events_discovery_og_data' );
+
+// --- Sitemap: Register Discovery URLs ---
+
+/**
+ * Register discovery page URLs in the sitemap.
+ *
+ * Generates URLs for all city × scope combinations.
+ *
+ * @hook extrachill_seo_sitemap_urls
+ * @param array $urls Existing sitemap URLs.
+ * @return array URLs with discovery pages appended.
+ */
+function extrachill_events_discovery_sitemap_urls( array $urls ): array {
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	if ( (int) get_current_blog_id() !== $events_blog_id ) {
+		return $urls;
+	}
+
+	// Get all location terms that are cities (leaf nodes with events).
+	$locations = get_terms( array(
+		'taxonomy'   => 'location',
+		'hide_empty' => true,
+		'childless'  => true,
+	) );
+
+	if ( is_wp_error( $locations ) || empty( $locations ) ) {
+		return $urls;
+	}
+
+	// Scopes to include in sitemap (exclude "today" — same as "tonight" for SEO).
+	$sitemap_scopes = array( 'tonight', 'this-weekend', 'this-week' );
+
+	foreach ( $locations as $location ) {
+		$term_link = get_term_link( $location );
+		if ( is_wp_error( $term_link ) ) {
+			continue;
+		}
+
+		foreach ( $sitemap_scopes as $scope ) {
+			$urls[] = array(
+				'loc' => trailingslashit( $term_link ) . $scope . '/',
+			);
+		}
+	}
+
+	return $urls;
+}
+add_filter( 'extrachill_seo_sitemap_urls', 'extrachill_events_discovery_sitemap_urls' );
 
 // --- Breadcrumbs ---
 
@@ -417,7 +355,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_events_discover
 // --- Assets ---
 
 /**
- * Enqueue discovery page CSS.
+ * Enqueue discovery page CSS and JS.
  *
  * @hook wp_enqueue_scripts
  */
@@ -505,18 +443,3 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current ) {
 	echo '</ul>';
 	echo '</nav>';
 }
-
-// --- Prevent Location SEO From Running on Discovery Pages ---
-
-/**
- * Short-circuit the location-seo title on discovery pages.
- *
- * location-seo.php runs at the same priority (1000) — our discovery title
- * also runs at 1000. Because discovery-pages.php is loaded after location-seo.php,
- * our filter runs second and wins. But to be explicit, we also suppress the
- * location-seo meta description from firing on discovery pages by detecting
- * the scope in its own callback.
- *
- * No action needed — the filter chain handles this naturally since our
- * title callback overwrites the title_parts['title'] set by location-seo.
- */

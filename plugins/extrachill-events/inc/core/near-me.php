@@ -83,40 +83,20 @@ function extrachill_events_near_me_title( array $title_parts ): array {
 add_filter( 'document_title_parts', 'extrachill_events_near_me_title', 1000 );
 
 /**
- * Meta description for the Near Me page.
+ * Provide meta description for the Near Me page via extrachill-seo filter.
  *
- * @hook wp_head
+ * @hook extrachill_seo_meta_description
+ * @param string $description Default description from extrachill-seo.
+ * @return string Near Me description or pass-through.
  */
-function extrachill_events_near_me_meta_description() {
+function extrachill_events_near_me_description( string $description ): string {
 	if ( ! extrachill_events_is_near_me_page() ) {
-		return;
+		return $description;
 	}
 
-	$description = 'Find live music near you tonight. Discover concerts, shows, and events at venues near your location. Browse by city or let us detect where you are.';
-
-	printf(
-		'<meta name="description" content="%s" />' . "\n",
-		esc_attr( $description )
-	);
-	printf(
-		'<meta property="og:description" content="%s" />' . "\n",
-		esc_attr( $description )
-	);
+	return 'Find live music near you tonight. Discover concerts, shows, and events at venues near your location. Browse by city or let us detect where you are.';
 }
-add_action( 'wp_head', 'extrachill_events_near_me_meta_description', 4 );
-
-/**
- * Skip extrachill-seo meta description on Near Me page.
- *
- * @hook extrachill_seo_skip_meta_description
- */
-function extrachill_events_near_me_skip_seo_description( bool $skip ): bool {
-	if ( extrachill_events_is_near_me_page() ) {
-		return true;
-	}
-	return $skip;
-}
-add_filter( 'extrachill_seo_skip_meta_description', 'extrachill_events_near_me_skip_seo_description' );
+add_filter( 'extrachill_seo_meta_description', 'extrachill_events_near_me_description' );
 
 // --- Geolocation JS ---
 

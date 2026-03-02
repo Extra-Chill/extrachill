@@ -2,10 +2,13 @@
 /**
  * Location SEO
  *
- * Improves title tags and meta descriptions for location archive pages
- * on the events site. Overrides the generic "{City} Live Music Calendar"
- * pattern with "Live Music in {City}" and adds dynamic meta descriptions
- * with event counts and venue information.
+ * Provides SEO data for location archive pages on the events site.
+ * Uses extrachill-seo filters instead of direct output — the SEO plugin
+ * is the single rendering engine.
+ *
+ * Filters used:
+ *   - document_title_parts (WordPress native, priority 1000)
+ *   - extrachill_seo_meta_description
  *
  * @package ExtraChillEvents
  * @since 0.6.0
@@ -15,10 +18,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// --- Helpers ---
+
 /**
- * Filter document title for location archives on the events site.
+ * Check if we're on a location archive on the events site (but not a discovery page).
  *
- * Changes "{City} Live Music Calendar" → "Live Music in {City}".
+ * @return bool
+ */
+function extrachill_events_is_location_archive(): bool {
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	if ( (int) get_current_blog_id() !== $events_blog_id ) {
+		return false;
+	}
+
+	if ( ! is_tax( 'location' ) ) {
+		return false;
+	}
+
+	// Discovery pages handle their own SEO.
+	if ( function_exists( 'extrachill_events_is_discovery_page' ) && extrachill_events_is_discovery_page() ) {
+		return false;
+	}
+
+	return true;
+}
+
+// --- Title ---
+
+/**
+ * Override document title for location archives on the events site.
+ *
+ * Changes "{City} Live Music Calendar" → "Live Music in {City} Tonight & This Week".
  * Runs at priority 1000 to override extrachill-seo's default pattern.
  *
  * @hook document_title_parts
@@ -26,17 +56,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Modified title parts.
  */
 function extrachill_events_location_title( array $title_parts ): array {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
-	if ( (int) get_current_blog_id() !== $events_blog_id ) {
-		return $title_parts;
-	}
-
-	if ( ! is_tax( 'location' ) ) {
-		return $title_parts;
-	}
-
-	// Discovery pages set their own scoped title.
-	if ( function_exists( 'extrachill_events_is_discovery_page' ) && extrachill_events_is_discovery_page() ) {
+	if ( ! extrachill_events_is_location_archive() ) {
 		return $title_parts;
 	}
 
@@ -47,47 +67,56 @@ function extrachill_events_location_title( array $title_parts ): array {
 }
 add_filter( 'document_title_parts', 'extrachill_events_location_title', 1000 );
 
+// --- Meta Description ---
+
 /**
- * Add dynamic meta description for location archives.
+ * Provide meta description for location archives via extrachill-seo filter.
  *
  * Generates descriptions like:
  * "Find live music in Charleston tonight and this week. 45 upcoming shows
  * across 17 venues including The Royal American, Charleston Pour House, and more."
  *
- * @hook wp_head
- * @priority 4 (before extrachill-seo's meta description at priority 5)
+ * @hook extrachill_seo_meta_description
+ * @param string $description Default description from extrachill-seo.
+ * @return string Location-specific description or pass-through.
  */
-function extrachill_events_location_meta_description() {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
-	if ( (int) get_current_blog_id() !== $events_blog_id ) {
-		return;
-	}
-
-	if ( ! is_tax( 'location' ) ) {
-		return;
-	}
-
-	// Discovery pages render their own scoped meta description.
-	if ( function_exists( 'extrachill_events_is_discovery_page' ) && extrachill_events_is_discovery_page() ) {
-		return;
+function extrachill_events_location_description( string $description ): string {
+	if ( ! extrachill_events_is_location_archive() ) {
+		return $description;
 	}
 
 	$term = get_queried_object();
 	if ( ! $term || ! isset( $term->term_id ) ) {
-		return;
+		return $description;
 	}
 
-	$city_name = $term->name;
+	return extrachill_events_build_location_description( $term->name, $term->term_id );
+}
+add_filter( 'extrachill_seo_meta_description', 'extrachill_events_location_description' );
+
+// --- Shared Helpers ---
+
+/**
+ * Build a dynamic meta description for a location.
+ *
+ * Used by both location archives and discovery pages.
+ *
+ * @param string $city_name City display name.
+ * @param int    $term_id   Location term ID.
+ * @param string $scope_label Optional scope suffix (e.g., "tonight", "this weekend").
+ * @return string Meta description (max 160 chars).
+ */
+function extrachill_events_build_location_description( string $city_name, int $term_id, string $scope_label = '' ): string {
+	$scope_text = ! empty( $scope_label ) ? ' ' . $scope_label : ' tonight and this week';
+
+	$description = sprintf( 'Find live music in %s%s.', $city_name, $scope_text );
 
 	// Count upcoming events for this location.
-	$event_count = extrachill_events_get_upcoming_event_count( $term->term_id );
+	$event_count = extrachill_events_get_upcoming_event_count( $term_id );
 
 	// Get venue data.
-	$venues      = extrachill_events_get_location_venues( $term->term_id );
+	$venues      = extrachill_events_get_location_venues( $term_id );
 	$venue_count = count( $venues );
-
-	// Build description.
-	$description = sprintf( 'Find live music in %s tonight and this week.', $city_name );
 
 	if ( $event_count > 0 && $venue_count > 0 ) {
 		$description .= sprintf(
@@ -123,39 +152,8 @@ function extrachill_events_location_meta_description() {
 		$description .= '...';
 	}
 
-	printf(
-		'<meta name="description" content="%s" />' . "\n",
-		esc_attr( $description )
-	);
-
-	// Also add OG description.
-	printf(
-		'<meta property="og:description" content="%s" />' . "\n",
-		esc_attr( $description )
-	);
+	return $description;
 }
-add_action( 'wp_head', 'extrachill_events_location_meta_description', 4 );
-
-/**
- * Prevent extrachill-seo from outputting a duplicate meta description on location archives.
- *
- * @hook extrachill_seo_skip_meta_description
- * @param bool $skip Whether to skip the meta description.
- * @return bool
- */
-function extrachill_events_skip_seo_description( bool $skip ): bool {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
-	if ( (int) get_current_blog_id() !== $events_blog_id ) {
-		return $skip;
-	}
-
-	if ( is_tax( 'location' ) ) {
-		return true;
-	}
-
-	return $skip;
-}
-add_filter( 'extrachill_seo_skip_meta_description', 'extrachill_events_skip_seo_description' );
 
 /**
  * Count upcoming events for a location term.
