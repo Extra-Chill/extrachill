@@ -21,14 +21,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Register our custom provider into the sitemap index.
  *
- * Uses wp_sitemaps_init hook, which fires each time wp_sitemaps_get_server()
- * initializes a new server instance. In multisite, this fires per-blog
- * when the sitemaps server is first accessed for that blog context.
+ * Uses wp_loaded hook to call wp_register_sitemap_provider() after the
+ * sitemaps server has been initialized (init priority 10). The function
+ * internally calls wp_sitemaps_get_server() which returns the already-
+ * initialized server, so the provider is added to the existing registry.
  *
- * @hook wp_sitemaps_init
+ * @hook wp_loaded
  */
 add_action(
-	'wp_sitemaps_init',
+	'wp_loaded',
 	function () {
 		\wp_register_sitemap_provider( 'extrachill', new EC_Sitemaps_Custom_Provider() );
 	}

@@ -53,7 +53,7 @@ register_activation_hook(
 	}
 );
 
-// Sitemap provider must register before init (wp_sitemaps_init fires during init).
+// Sitemap provider loaded early so the class is defined before wp_loaded registration.
 require_once EXTRACHILL_SEO_PATH . 'inc/core/sitemap.php';
 
 /**
@@ -89,7 +89,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/robots.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/open-graph.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/twitter-cards.php';
-		// sitemap.php loaded at plugin load time (before init for wp_sitemaps_init timing).
+		// sitemap.php loaded at plugin load time (class definition + wp_loaded registration).
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-output.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-website.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-organization.php';
