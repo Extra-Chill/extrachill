@@ -1,6 +1,6 @@
 {
   "name": "@extrachill/api-client",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Universal typed API client for the Extra Chill platform. Works in WordPress blocks, React Native, and Node.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

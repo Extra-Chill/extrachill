@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.2] - 2026-03-02
+
+- fix: updateSocials pass-through body, generateQrCode size param
+
 ## [0.2.1] - 2026-03-02
 
 - Align AdminResource, SeoResource, and AnalyticsResource methods with actual REST API signatures
