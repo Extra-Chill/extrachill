@@ -7,10 +7,14 @@ import type {
 
 export interface AnalyticsEventsParams {
   event_type?: string;
-  page?: number;
-  per_page?: number;
+  blog_id?: number;
   date_from?: string;
   date_to?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  page?: number;
+  per_page?: number;
 }
 
 export class AnalyticsResource extends BaseResource {
@@ -19,8 +23,8 @@ export class AnalyticsResource extends BaseResource {
     return this.get(`extrachill/v1/analytics/events${query}`);
   }
 
-  getSummary(params: { period?: string } = {}): Promise<AnalyticsSummaryResponse> {
-    const query = this.buildQuery(params);
+  getSummary(eventType: string, days = 30, blogId?: number): Promise<AnalyticsSummaryResponse> {
+    const query = this.buildQuery({ event_type: eventType, days, blog_id: blogId });
     return this.get(`extrachill/v1/analytics/events/summary${query}`);
   }
 
