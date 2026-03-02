@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Refactored
+- Remove skip_meta_description and skip_canonical filter usage
+
+### Refactored
+- Register discovery page URLs via extrachill_seo_sitemap_urls filter
+
+### Refactored
+- Replace direct wp_head meta output with extrachill_seo_meta_description filter in near-me.php, location-seo.php, discovery-pages.php
+
+### Refactored
+- Migrate all SEO output to extrachill-seo filter architecture
+
 - fix: restrict Near Me header link to events site only
 
 ## [0.8.1] - 2026-03-01
