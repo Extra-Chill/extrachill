@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- Use wp_loaded hook for sitemap provider registration to fix multisite compatibility
+
 ### Refactored
 - Remove skip_meta_description and skip_canonical filters
 
