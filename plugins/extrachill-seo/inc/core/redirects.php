@@ -32,10 +32,14 @@ add_action(
 			return;
 		}
 
-		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+		$raw_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
 
-		// Match /YYYY/MM/slug.html pattern.
-		if ( ! preg_match( '#^/\d{4}/\d{2}/(.+)\.html$#', $request_uri, $matches ) ) {
+		// Strip query string and fragment before matching.
+		$request_path = strtok( $raw_uri, '?' );
+		$request_path = strtok( $request_path, '#' );
+
+		// Match /YYYY/MM/slug.html with optional trailing slash.
+		if ( ! preg_match( '#^/\d{4}/\d{2}/(.+)\.html/?$#', $request_path, $matches ) ) {
 			return;
 		}
 

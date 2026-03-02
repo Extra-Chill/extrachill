@@ -53,6 +53,9 @@ register_activation_hook(
 	}
 );
 
+// Redirect rules database table (runs migration check on admin_init + wp_loaded for CLI).
+require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-db.php';
+
 // Sitemap provider loaded early so the class is defined before wp_loaded registration.
 require_once EXTRACHILL_SEO_PATH . 'inc/core/sitemap.php';
 
@@ -82,6 +85,10 @@ add_action(
 		if ( is_admin() && is_network_admin() ) {
 			require_once EXTRACHILL_SEO_PATH . 'inc/admin/network-settings.php';
 		}
+
+		// Redirect handling (pattern-based first at priority 5, then rule-based at priority 6).
+		require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-matcher.php';
 
 		// Load core SEO components
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/meta-tags.php';
@@ -132,6 +139,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/audit-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/config-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/analysis-abilities.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/redirect-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/class-seo-abilities.php';
 
 		new \ExtraChill\SEO\Abilities\SEO_Abilities();

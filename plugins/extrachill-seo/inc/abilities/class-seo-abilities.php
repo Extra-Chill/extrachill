@@ -47,6 +47,9 @@ class SEO_Abilities {
 		$this->register_get_seo_config();
 		$this->register_update_seo_config();
 		$this->register_ping_indexnow();
+
+		// Redirect management abilities.
+		\ExtraChill\SEO\Abilities\register_redirect_abilities();
 	}
 
 	private function register_run_seo_audit(): void {
