@@ -33,6 +33,8 @@ export { ExtraChillClient } from './client';
 // Transports
 export { FetchTransport, ApiError } from './transports/fetch';
 export type { FetchTransportConfig } from './transports/fetch';
+export { AuthFetchTransport } from './transports/auth-fetch';
+export type { AuthFetchTransportConfig, StoredTokens } from './transports/auth-fetch';
 export type { Transport, TransportRequest, TransportResponse } from './transports/types';
 
 // All types

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add AuthFetchTransport with full token lifecycle (proactive refresh, 401 retry, refresh lock, auth failure callback)
+
 ## [0.1.2] - 2026-03-02
 
 ### Changed
