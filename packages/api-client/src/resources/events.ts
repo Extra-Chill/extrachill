@@ -23,18 +23,20 @@ export interface CalendarParams {
 export class EventsResource extends BaseResource {
   /**
    * Get calendar events grouped by date.
-   * Namespace: datamachine/v1 (registered by data-machine-events)
+   *
+   * Wraps the data-machine-events calendar ability via extrachill-api.
+   * The extrachill-events plugin registers this wrapper endpoint.
    */
   calendar(params: CalendarParams = {}): Promise<CalendarResponse> {
     const query = this.buildQuery(params as Record<string, string | number | boolean | undefined>);
-    return this.get(`datamachine/v1/events/calendar${query}`);
+    return this.get(`extrachill/v1/events/calendar${query}`);
   }
 
   /**
    * Get available filter options (venues, promoters).
    */
   filters(): Promise<CalendarFilters> {
-    return this.get('datamachine/v1/events/filters');
+    return this.get('extrachill/v1/events/filters');
   }
 
   /**
@@ -48,14 +50,14 @@ export class EventsResource extends BaseResource {
     ne_lng?: number;
   } = {}): Promise<Venue[]> {
     const query = this.buildQuery(params as Record<string, string | number | boolean | undefined>);
-    return this.get(`datamachine/v1/events/venues${query}`);
+    return this.get(`extrachill/v1/events/venues${query}`);
   }
 
   /**
    * Get a single venue by ID.
    */
   venue(id: number): Promise<Venue> {
-    return this.get(`datamachine/v1/events/venues/${id}`);
+    return this.get(`extrachill/v1/events/venues/${id}`);
   }
 
   /**
@@ -63,19 +65,18 @@ export class EventsResource extends BaseResource {
    */
   checkDuplicateVenue(params: { name: string; city?: string }): Promise<Venue[]> {
     const query = this.buildQuery(params);
-    return this.get(`datamachine/v1/events/venues/check-duplicate${query}`);
+    return this.get(`extrachill/v1/events/venues/check-duplicate${query}`);
   }
 
   /**
-   * Geocode search (Nominatim proxy).
+   * Geocode search.
    */
   geocodeSearch(query: string): Promise<GeoSearchResult[]> {
-    return this.get(`datamachine/v1/events/geocode/search?q=${encodeURIComponent(query)}`);
+    return this.get(`extrachill/v1/events/geocode?q=${encodeURIComponent(query)}`);
   }
 
   /**
    * Submit a community event.
-   * Namespace: extrachill/v1 (registered by extrachill-events)
    */
   submitEvent(data: EventSubmissionRequest): Promise<{ success: boolean; id: number }> {
     return this.post('extrachill/v1/event-submissions', data as unknown as Record<string, unknown>);

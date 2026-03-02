@@ -121,12 +121,9 @@ try {
 }
 ```
 
-## REST Namespaces
+## REST Namespace
 
-The client covers two REST namespaces:
-
-- **`extrachill/v1`** — registered by `extrachill-api` plugin (auth, artists, blog, community, shop, users, admin, analytics, activity, seo)
-- **`datamachine/v1`** — registered by `data-machine-events` plugin (calendar, venues, geocode)
+All endpoints are under `extrachill/v1`. This client does not call `datamachine/v1` directly — events data (calendar, venues, geocode) is accessed through Extra Chill wrapper endpoints that internally call Data Machine abilities. This keeps the API surface clean and Data Machine theme-agnostic.
 
 ## Used By
 
@@ -134,9 +131,8 @@ The client covers two REST namespaces:
 - `extrachill-artist-platform` — Artist management blocks
 - `extrachill-blog` — Interactive blog blocks
 - `extrachill-community` — Community leaderboard
-- `data-machine-events` — Calendar and map blocks
 - `extrachill-users` — Auth blocks
-- `extrachill-events` — Event submission
+- `extrachill-events` — Event submission, calendar, venues
 - `extrachill-analytics` — Analytics dashboard
 - `extrachill-seo` — SEO audit dashboard
 
