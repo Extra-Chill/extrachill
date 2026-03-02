@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.0] - 2026-03-02
+
+### Added
+- Add 6 events wrapper endpoints for DM abilities (calendar, filters, venues, venue detail, duplicate check, geocode)
+
 ## [0.10.13] - 2026-03-01
 
 ### Changed
