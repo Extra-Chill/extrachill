@@ -10,6 +10,6 @@
     "@wordpress/scripts": "^30.0.0"
   },
   "dependencies": {
-    "@extrachill/components": "file:../../../extrachill-components"
+    "@extrachill/components": "file:../../extrachill-components"
   }
 }
