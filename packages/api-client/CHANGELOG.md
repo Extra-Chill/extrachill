@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Align AdminResource, SeoResource, and AnalyticsResource methods with actual REST API signatures
+
 ## [0.2.0] - 2026-03-02
 
 - Add AuthFetchTransport with full token lifecycle (proactive refresh, 401 retry, refresh lock, auth failure callback)
