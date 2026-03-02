@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
+## Unreleased
+
+### Refactored
+- Remove skip_meta_description and skip_canonical filters
+
+### Refactored
+- Add custom sitemap provider with extrachill_seo_sitemap_urls filter
+
+### Refactored
+- Add extrachill_seo_canonical_url filter for plugin canonical overrides
+
+### Refactored
+- Add extrachill_seo_meta_description filter for plugin description overrides
+
+### Refactored
+- Centralize SEO output with filter-driven architecture
+
 ## [0.8.3] - 2026-03-01
 
 - feat: add extrachill_seo_skip_canonical filter and extrachill_seo_open_graph_data filter for plugin overrides
