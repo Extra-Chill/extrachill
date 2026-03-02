@@ -84,7 +84,9 @@ export class AdminResource extends BaseResource {
 
   // ─── QR Code ─────────────────────────────────────────────────────────
 
-  generateQrCode(url: string): Promise<QrCodeResponse> {
-    return this.post('extrachill/v1/tools/qr-code', { url });
+  generateQrCode(url: string, size?: number): Promise<QrCodeResponse> {
+    const body: Record<string, unknown> = { url };
+    if (size !== undefined) body.size = size;
+    return this.post('extrachill/v1/tools/qr-code', body);
   }
 }

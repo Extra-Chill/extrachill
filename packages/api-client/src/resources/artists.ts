@@ -32,8 +32,8 @@ export class ArtistsResource extends BaseResource {
     return this.get(`extrachill/v1/artists/${artistId}/links`);
   }
 
-  updateLinks(artistId: number, links: ArtistLink[]): Promise<ArtistLink[]> {
-    return this.put(`extrachill/v1/artists/${artistId}/links`, { links } as Record<string, unknown>);
+  updateLinks(artistId: number, data: Record<string, unknown>): Promise<ArtistLink[]> {
+    return this.put(`extrachill/v1/artists/${artistId}/links`, data);
   }
 
   // ─── Socials ─────────────────────────────────────────────────────────
@@ -43,8 +43,8 @@ export class ArtistsResource extends BaseResource {
     return this.get(`extrachill/v1/artists/${artistId}/socials${query}`);
   }
 
-  updateSocials(artistId: number, socials: ArtistSocial[]): Promise<ArtistSocial[]> {
-    return this.put(`extrachill/v1/artists/${artistId}/socials`, { socials } as Record<string, unknown>);
+  updateSocials(artistId: number, data: Record<string, unknown>): Promise<ArtistSocial[]> {
+    return this.put(`extrachill/v1/artists/${artistId}/socials`, data);
   }
 
   // ─── Analytics ───────────────────────────────────────────────────────
