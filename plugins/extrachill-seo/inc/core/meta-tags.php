@@ -5,6 +5,14 @@
  * Handles title tag modification and meta description generation.
  * Uses WordPress native document_title_parts filter for title manipulation.
  *
+ * Description pipeline:
+ *   1. ec_seo_get_default_description() computes the default from WP context
+ *   2. extrachill_seo_meta_description filter lets plugins override it
+ *   3. Single output point renders the final <meta> tag
+ *
+ * Plugins should NOT output their own <meta name="description"> tags.
+ * Instead, hook into the extrachill_seo_meta_description filter.
+ *
  * @package ExtraChill\SEO
  */
 
@@ -125,7 +133,11 @@ add_filter(
 );
 
 /**
- * Output meta description tag
+ * Output meta description tag.
+ *
+ * Single output point. Computes default description, applies filter,
+ * and renders. Plugins should use the extrachill_seo_meta_description
+ * filter instead of outputting their own <meta> tag.
  */
 add_action(
 	'wp_head',
@@ -143,13 +155,37 @@ add_action(
 );
 
 /**
- * Generate meta description for current page
+ * Get the final meta description for the current page.
+ *
+ * Computes a default from WordPress context, then applies the
+ * extrachill_seo_meta_description filter so plugins can override.
+ *
+ * @return string Meta description (max 160 chars).
+ */
+function ec_seo_get_meta_description() {
+	$description = ec_seo_get_default_description();
+
+	/**
+	 * Filter the meta description before output.
+	 *
+	 * Plugins should return a non-empty string to override the default
+	 * description. Return empty string to suppress output entirely.
+	 *
+	 * @param string $description Default meta description.
+	 */
+	$description = apply_filters( 'extrachill_seo_meta_description', $description );
+
+	return $description;
+}
+
+/**
+ * Compute default meta description from WordPress context.
  *
  * Priority: Auth pages > Post excerpt > Auto-generated from content > Site tagline (homepage)
  *
- * @return string Meta description (max 160 chars)
+ * @return string Meta description (max 160 chars).
  */
-function ec_seo_get_meta_description() {
+function ec_seo_get_default_description() {
 	// Auth page descriptions (login exists on all sites, reset-password on community only).
 	if ( is_page( 'login' ) ) {
 		return 'Sign in to Extra Chill to access your profile, join community discussions, and connect with independent music fans.';

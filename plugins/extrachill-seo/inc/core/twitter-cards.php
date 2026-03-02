@@ -3,6 +3,7 @@
  * Twitter Card Meta Tags
  *
  * Outputs Twitter Card tags for social sharing on X/Twitter.
+ * Reads the filtered OG data so plugin overrides apply to Twitter too.
  *
  * @package ExtraChill\SEO
  */
@@ -15,12 +16,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Output Twitter Card meta tags
+ * Output Twitter Card meta tags.
+ *
+ * Uses the filtered OG data so plugins that override og:title,
+ * og:description, etc. automatically get correct Twitter cards.
  */
 add_action(
 	'wp_head',
 	function () {
 		$og_data = ec_seo_get_open_graph_data();
+
+		/** This filter is documented in inc/core/open-graph.php. */
+		$og_data = apply_filters( 'extrachill_seo_open_graph_data', $og_data );
 
 		echo "\n<!-- Twitter Card -->\n";
 

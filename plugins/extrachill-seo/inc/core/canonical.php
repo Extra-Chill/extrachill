@@ -2,9 +2,12 @@
 /**
  * Canonical URL Output
  *
- * WordPress core's rel_canonical() only outputs for singular contexts.
- * This outputs a canonical URL for all page types using the same URL
- * logic as Open Graph.
+ * Single output point for <link rel="canonical">. Computes a default
+ * canonical URL, applies the extrachill_seo_canonical_url filter, and
+ * renders.
+ *
+ * Plugins should NOT output their own <link rel="canonical"> tags.
+ * Instead, hook into the extrachill_seo_canonical_url filter.
  *
  * @package ExtraChill\SEO
  */
@@ -17,76 +20,104 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Output canonical link tag
+ * Output canonical link tag.
+ *
+ * Single output point. Computes default canonical, applies filter, renders.
  */
 add_action(
 	'wp_head',
 	function () {
-		// Allow other plugins to suppress the canonical tag (e.g., discovery pages).
-		if ( apply_filters( 'extrachill_seo_skip_canonical', false ) ) {
-			return;
+		$canonical = ec_seo_get_final_canonical_url();
+
+		if ( ! empty( $canonical ) ) {
+			printf(
+				'<link rel="canonical" href="%s" />' . "\n",
+				esc_url( $canonical )
+			);
 		}
-
-		// Login pages across the network canonicalize to community site.
-		if ( is_page( 'login' ) ) {
-			$canonical = ec_seo_get_login_canonical_url();
-			if ( $canonical ) {
-				printf(
-					'<link rel="canonical" href="%s" />' . "\n",
-					esc_url( $canonical )
-				);
-				return;
-			}
-		}
-
-		// bbPress user subpages canonicalize to main user profile.
-		if ( function_exists( 'is_bbpress' ) && is_bbpress() ) {
-			$canonical = ec_seo_get_bbp_user_subpage_canonical();
-			if ( $canonical ) {
-				printf(
-					'<link rel="canonical" href="%s" />' . "\n",
-					esc_url( $canonical )
-				);
-				return;
-			}
-		}
-
-		// Taxonomy archives may have cross-site canonical authority.
-		if ( is_tax() ) {
-			$term = get_queried_object();
-			if ( $term instanceof \WP_Term && isset( $term->taxonomy ) ) {
-				// Location archives must be indexable on all sites, so keep them self-canonical.
-				if ( 'location' !== $term->taxonomy ) {
-					$canonical = ec_seo_get_taxonomy_canonical_url();
-					if ( $canonical ) {
-						printf(
-							'<link rel="canonical" href="%s" />' . "\n",
-							esc_url( $canonical )
-						);
-						return;
-					}
-				}
-			}
-		}
-
-		// Avoid duplicate canonical on singular content (WordPress core outputs this).
-		if ( is_singular() ) {
-			return;
-		}
-
-		$canonical = ec_seo_get_canonical_url();
-
-		if ( empty( $canonical ) ) {
-			return;
-		}
-
-		printf(
-			'<link rel="canonical" href="%s" />' . "\n",
-			esc_url( $canonical )
-		);
 	},
 	5
 );
+
+/**
+ * Remove WordPress default canonical on non-singular pages.
+ *
+ * WordPress core only outputs rel_canonical for singular content.
+ * We handle all canonical output ourselves, so remove the default
+ * to prevent duplicates on singular pages too.
+ */
+add_action(
+	'wp',
+	function () {
+		remove_action( 'wp_head', 'rel_canonical' );
+	}
+);
+
+/**
+ * Get the final canonical URL for the current page.
+ *
+ * Computes a default, then applies the extrachill_seo_canonical_url filter.
+ *
+ * @return string Canonical URL or empty string.
+ */
+function ec_seo_get_final_canonical_url() {
+	$canonical = ec_seo_get_default_canonical_url();
+
+	/**
+	 * Filter the canonical URL before output.
+	 *
+	 * Plugins should return a URL string to override the default canonical.
+	 * Return empty string to suppress canonical output entirely.
+	 *
+	 * @param string $canonical Default canonical URL.
+	 */
+	$canonical = apply_filters( 'extrachill_seo_canonical_url', $canonical );
+
+	return $canonical;
+}
+
+/**
+ * Compute default canonical URL from WordPress context.
+ *
+ * Handles login pages, bbPress subpages, taxonomy cross-site authority,
+ * and standard WordPress page types.
+ *
+ * @return string Canonical URL.
+ */
+function ec_seo_get_default_canonical_url() {
+	// Login pages across the network canonicalize to community site.
+	if ( is_page( 'login' ) ) {
+		$canonical = ec_seo_get_login_canonical_url();
+		if ( $canonical ) {
+			return $canonical;
+		}
+	}
+
+	// bbPress user subpages canonicalize to main user profile.
+	if ( function_exists( 'is_bbpress' ) && is_bbpress() ) {
+		$canonical = ec_seo_get_bbp_user_subpage_canonical();
+		if ( $canonical ) {
+			return $canonical;
+		}
+	}
+
+	// Taxonomy archives may have cross-site canonical authority.
+	if ( is_tax() ) {
+		$term = get_queried_object();
+		if ( $term instanceof \WP_Term && isset( $term->taxonomy ) ) {
+			// Location archives must be indexable on all sites, so keep them self-canonical.
+			if ( 'location' !== $term->taxonomy ) {
+				$canonical = ec_seo_get_taxonomy_canonical_url();
+				if ( $canonical ) {
+					return $canonical;
+				}
+			}
+		}
+	}
+
+	// Standard canonical from shared helper.
+	return ec_seo_get_canonical_url();
+}
 
 /**
  * Get canonical URL for login page (community site is canonical).

@@ -3,6 +3,8 @@
  * Open Graph Meta Tags
  *
  * Outputs OG tags for social sharing on Facebook, LinkedIn, etc.
+ * Uses the filtered description and canonical from meta-tags.php
+ * and canonical.php so plugins only need to hook in one place.
  *
  * @package ExtraChill\SEO
  */
@@ -48,7 +50,10 @@ add_action(
 );
 
 /**
- * Get Open Graph data for current page
+ * Get Open Graph data for current page.
+ *
+ * Uses the filtered description and canonical URL so OG tags
+ * automatically reflect any plugin overrides.
  *
  * @return array OG properties and values
  */
@@ -58,10 +63,10 @@ function ec_seo_get_open_graph_data() {
 		'og:site_name' => 'Extra Chill',
 		'og:type'      => 'website',
 		'og:title'     => wp_get_document_title(),
-		'og:url'       => ec_seo_get_canonical_url(),
+		'og:url'       => ec_seo_get_final_canonical_url(),
 	);
 
-	// Get description
+	// Use the filtered description (same as <meta name="description">).
 	$description = ec_seo_get_meta_description();
 	if ( ! empty( $description ) ) {
 		$data['og:description'] = $description;
@@ -113,6 +118,7 @@ function ec_seo_get_open_graph_data() {
 /**
  * Get canonical URL for current page
  *
+ * @deprecated Use ec_seo_get_final_canonical_url() or ec_seo_get_default_canonical_url() instead.
  * @return string Canonical URL
  */
 function ec_seo_get_canonical_url() {
