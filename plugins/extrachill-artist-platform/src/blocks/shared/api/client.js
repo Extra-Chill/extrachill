@@ -1,8 +1,20 @@
 /**
  * Shared Artist Platform API Client
+ *
+ * Delegates all calls to @extrachill/api-client via WpApiFetchTransport.
+ * Exports match the original function names so all consuming components
+ * need zero changes.
+ *
+ * shopFetch calls remain as raw fetch() — they target shop.extrachill.com
+ * cross-origin and cannot go through the api-client transport.
  */
 
 import apiFetch from '@wordpress/api-fetch';
+import { ExtraChillClient } from '@extrachill/api-client';
+import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
+
+const transport = new WpApiFetchTransport( apiFetch );
+const client = new ExtraChillClient( transport );
 
 const getConfig = () =>
 	window.ecArtistPlatformConfig ||
@@ -10,124 +22,88 @@ const getConfig = () =>
 	window.ecArtistShopManagerConfig ||
 	{};
 
-// Configure apiFetch middleware to include nonce from config
-apiFetch.use( ( options, next ) => {
-	const config = getConfig();
-	if ( config.nonce && ! options.headers?.['X-WP-Nonce'] ) {
-		options.headers = {
-			...options.headers,
-			'X-WP-Nonce': config.nonce,
-		};
-	}
-	return next( options );
-} );
-
 export { getConfig };
 
-const get = ( path ) => apiFetch( { path, method: 'GET' } );
-const post = ( path, data ) => apiFetch( { path, method: 'POST', data } );
-const put = ( path, data ) => apiFetch( { path, method: 'PUT', data } );
-const del = ( path, data ) => apiFetch( { path, method: 'DELETE', data } );
+// ─── Artist core ────────────────────────────────────────────────────────────
 
-// Artist core
-export const getArtist = ( artistId ) => get( `extrachill/v1/artists/${ artistId }` );
-export const createArtist = ( data ) => post( 'extrachill/v1/artists', data );
-export const updateArtist = ( artistId, data ) => put( `extrachill/v1/artists/${ artistId }`, data );
+export const getArtist = ( artistId ) => client.artists.getArtist( artistId );
+export const createArtist = ( data ) => client.artists.create( data );
+export const updateArtist = ( artistId, data ) =>
+	client.artists.update( artistId, data );
 
-// Link page
-export const getLinks = ( artistId ) => get( `extrachill/v1/artists/${ artistId }/links` );
-export const updateLinks = ( artistId, data ) => put( `extrachill/v1/artists/${ artistId }/links`, data );
+// ─── Link page ──────────────────────────────────────────────────────────────
 
-// Socials
+export const getLinks = ( artistId ) => client.artists.getLinks( artistId );
+export const updateLinks = ( artistId, data ) =>
+	client.artists.updateLinks( artistId, data );
+
+// ─── Socials ────────────────────────────────────────────────────────────────
+
 export const getSocials = ( artistId ) =>
-	get( `extrachill/v1/artists/${ artistId }/socials?include_icon_class=1` );
+	client.artists.getSocials( artistId, true );
 export const updateSocials = ( artistId, data ) =>
-	put( `extrachill/v1/artists/${ artistId }/socials`, data );
+	client.artists.updateSocials( artistId, data );
 
-// Analytics (artist scoped via API plugin)
+// ─── Analytics ──────────────────────────────────────────────────────────────
+
 export const getAnalytics = ( artistId, dateRange = 30 ) =>
-	get( `extrachill/v1/artists/${ artistId }/analytics?date_range=${ dateRange }` );
+	client.artists.getAnalytics( artistId, dateRange );
 
-// Media
+// ─── Media ──────────────────────────────────────────────────────────────────
+
 export const uploadMedia = ( context, targetId, file ) => {
-	const formData = new FormData();
-	formData.append( 'context', context );
-	if ( targetId ) {
-		formData.append( 'target_id', targetId );
-	}
-	formData.append( 'file', file );
-
-	return apiFetch( {
-		path: 'extrachill/v1/media',
-		method: 'POST',
-		body: formData,
-	} );
+	const formData = client.media.buildUploadForm( context, targetId, file );
+	return client.media.upload( formData );
 };
 
 export const deleteMedia = ( context, targetId ) =>
-	del( 'extrachill/v1/media', {
-		context,
-		target_id: targetId,
-	} );
+	client.media.delete( context, targetId );
 
-// Roster
-export const getRoster = ( artistId ) => get( `extrachill/v1/artists/${ artistId }/roster` );
+// ─── Roster ─────────────────────────────────────────────────────────────────
+
+export const getRoster = ( artistId ) => client.artists.getRoster( artistId );
 export const inviteRosterMember = ( artistId, email ) =>
-	post( `extrachill/v1/artists/${ artistId }/roster`, { email } );
+	client.artists.inviteRosterMember( artistId, email );
 export const removeRosterMember = ( artistId, userId ) =>
-	del( `extrachill/v1/artists/${ artistId }/roster/${ userId }` );
+	client.artists.removeRosterMember( artistId, userId );
 export const cancelRosterInvite = ( artistId, inviteId ) =>
-	del( `extrachill/v1/artists/${ artistId }/roster/invites/${ inviteId }` );
+	client.artists.cancelRosterInvite( artistId, inviteId );
 
-// User search
-export const searchArtistCapableUsers = ( term, excludeArtistId ) => {
-	const params = new URLSearchParams( {
-		term,
-		context: 'artist-capable',
-	} );
-	if ( excludeArtistId ) {
-		params.append( 'exclude_artist_id', excludeArtistId );
-	}
-	return get( `extrachill/v1/users/search?${ params.toString() }` );
-};
+// ─── User search ────────────────────────────────────────────────────────────
 
-// Subscribers
+export const searchArtistCapableUsers = ( term, excludeArtistId ) =>
+	client.users.search( term, 'artist-capable', excludeArtistId );
+
+// ─── Subscribers ────────────────────────────────────────────────────────────
+
 export const getSubscribers = ( artistId, page = 1, perPage = 20 ) =>
-	get( `extrachill/v1/artists/${ artistId }/subscribers?page=${ page }&per_page=${ perPage }` );
+	client.artists.getSubscribers( artistId, page, perPage );
 
-export const exportSubscribers = ( artistId, includeExported = false ) => {
-	const query = includeExported ? '?include_exported=1' : '';
-	return get( `extrachill/v1/artists/${ artistId }/subscribers/export${ query }` );
-};
+export const exportSubscribers = ( artistId, includeExported = false ) =>
+	client.artists.exportSubscribers( artistId, includeExported );
 
-// Shop products
-export const listShopProducts = () => get( 'extrachill/v1/shop/products' );
-export const createShopProduct = ( data ) => post( 'extrachill/v1/shop/products', data );
+// ─── Shop products ──────────────────────────────────────────────────────────
+
+export const listShopProducts = () => client.shop.listProducts();
+export const createShopProduct = ( data ) => client.shop.createProduct( data );
 export const updateShopProduct = ( productId, data ) =>
-	put( `extrachill/v1/shop/products/${ productId }`, data );
+	client.shop.updateProduct( productId, data );
 export const deleteShopProduct = ( productId ) =>
-	del( `extrachill/v1/shop/products/${ productId }` );
+	client.shop.deleteProduct( productId );
 
 export const uploadShopProductImages = ( productId, files ) => {
 	const formData = new FormData();
 	( files || [] ).forEach( ( file ) => {
 		formData.append( 'files[]', file );
 	} );
-
-	return apiFetch( {
-		path: `extrachill/v1/shop/products/${ productId }/images`,
-		method: 'POST',
-		body: formData,
-	} );
+	return client.shop.uploadProductImages( productId, formData );
 };
 
 export const deleteShopProductImage = ( productId, attachmentId ) =>
-	apiFetch( {
-		path: `extrachill/v1/shop/products/${ productId }/images/${ attachmentId }`,
-		method: 'DELETE',
-	} );
+	client.shop.deleteProductImage( productId, attachmentId );
 
-// Shop payments (Stripe Connect) - calls shop site directly
+// ─── Shop payments (Stripe Connect) — cross-origin, stays as raw fetch ─────
+
 const shopFetch = ( path, options = {} ) => {
 	const config = getConfig();
 	const shopRestUrl = config.shopRestUrl || config.restUrl;
@@ -152,7 +128,9 @@ const shopFetch = ( path, options = {} ) => {
 };
 
 export const getStripeConnectStatus = ( artistId ) =>
-	shopFetch( `shop/stripe-connect/status?artist_id=${ artistId }`, { method: 'GET' } );
+	shopFetch( `shop/stripe-connect/status?artist_id=${ artistId }`, {
+		method: 'GET',
+	} );
 export const createStripeConnectOnboardingLink = ( artistId ) =>
 	shopFetch( 'shop/stripe-connect/onboarding-link', {
 		method: 'POST',
@@ -164,14 +142,20 @@ export const createStripeConnectDashboardLink = ( artistId ) =>
 		body: JSON.stringify( { artist_id: artistId } ),
 	} );
 
-// Shop orders
+// ─── Shop orders — cross-origin ─────────────────────────────────────────────
+
 export const listShopOrders = ( artistId, status = 'all', page = 1 ) =>
 	shopFetch(
 		`shop/orders?artist_id=${ artistId }&status=${ status }&page=${ page }`,
 		{ method: 'GET' }
 	);
 
-export const updateShopOrderStatus = ( orderId, artistId, status, trackingNumber = null ) =>
+export const updateShopOrderStatus = (
+	orderId,
+	artistId,
+	status,
+	trackingNumber = null
+) =>
 	shopFetch( `shop/orders/${ orderId }/status`, {
 		method: 'PUT',
 		body: JSON.stringify( {
@@ -187,28 +171,31 @@ export const refundShopOrder = ( orderId, artistId ) =>
 		body: JSON.stringify( { artist_id: artistId } ),
 	} );
 
-// Shipping
+// ─── Shipping ───────────────────────────────────────────────────────────────
+
 export const getArtistShippingAddress = ( artistId ) =>
-	get( `extrachill/v1/shop/shipping-address?artist_id=${ artistId }` );
+	client.shop.getShippingAddress( artistId );
 
 export const updateArtistShippingAddress = ( artistId, address ) =>
-	put( 'extrachill/v1/shop/shipping-address', {
-		artist_id: artistId,
-		...address,
-	} );
+	client.shop.updateShippingAddress( artistId, address );
 
 export const purchaseShippingLabel = ( orderId, artistId ) =>
-	post( 'extrachill/v1/shop/shipping-labels', {
-		order_id: orderId,
-		artist_id: artistId,
-	} );
+	client.shop.purchaseShippingLabel( orderId, artistId );
 
 export const getShippingLabel = ( orderId, artistId ) =>
-	get( `extrachill/v1/shop/shipping-labels/${ orderId }?artist_id=${ artistId }` );
+	client.shop.getShippingLabel( orderId, artistId );
 
-// Permissions
+// ─── Permissions ────────────────────────────────────────────────────────────
+
 export const getArtistPermissions = ( artistId ) =>
-	get( `extrachill/v1/artists/${ artistId }/permissions` );
+	client.artists.getPermissions( artistId );
+
+// ─── QR Code ────────────────────────────────────────────────────────────────
+
+export const generateQRCode = ( url, size ) =>
+	client.admin.generateQrCode( url, size );
+
+// ─── Default export ─────────────────────────────────────────────────────────
 
 export default {
 	getConfig,
@@ -246,4 +233,5 @@ export default {
 	purchaseShippingLabel,
 	getShippingLabel,
 	getArtistPermissions,
+	generateQRCode,
 };

@@ -7,12 +7,9 @@
 
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import apiFetch from '@wordpress/api-fetch';
-
-const getConfig = () => window.ecLinkPageEditorConfig || {};
+import { generateQRCode } from '../../../shared/api/client';
 
 export default function QRCodeModal( { isOpen, onClose, publicUrl, artistSlug } ) {
-	const config = getConfig();
 	const [ imageUrl, setImageUrl ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ isDownloading, setIsDownloading ] = useState( false );
@@ -24,12 +21,7 @@ export default function QRCodeModal( { isOpen, onClose, publicUrl, artistSlug } 
 			return null;
 		}
 
-		const response = await apiFetch( {
-			path: 'extrachill/v1/tools/qr-code',
-			method: 'POST',
-			data: { url: publicUrl, size },
-		} );
-
+		const response = await generateQRCode( publicUrl, size );
 		return response.image_url;
 	}, [ publicUrl ] );
 
