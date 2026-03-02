@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.2] - 2026-03-02
+
+### Changed
+- Align events types with live wrapper endpoints (locations filter, search/past params, venue geo proximity)
+
 ## [0.1.1] - 2026-03-02
 
 ### Added
