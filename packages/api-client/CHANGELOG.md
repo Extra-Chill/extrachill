@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.1.1] - 2026-03-02
 
 ### Added
 - Initial release: universal typed API client with FetchTransport and WpApiFetchTransport
