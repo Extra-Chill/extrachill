@@ -19,37 +19,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Register the custom sitemap provider.
- *
- * @hook wp_sitemaps_add_provider
- */
-add_filter(
-	'wp_sitemaps_add_provider',
-	function ( $provider, $name ) {
-		return $provider;
-	},
-	10,
-	2
-);
-
-/**
  * Register our custom provider into the sitemap index.
  *
- * @hook init
+ * Uses wp_sitemaps_init hook, which fires each time wp_sitemaps_get_server()
+ * initializes a new server instance. In multisite, this fires per-blog
+ * when the sitemaps server is first accessed for that blog context.
+ *
+ * @hook wp_sitemaps_init
  */
 add_action(
-	'init',
+	'wp_sitemaps_init',
 	function () {
-		if ( ! class_exists( 'WP_Sitemaps_Provider' ) ) {
-			return;
-		}
-
-		$provider = new EC_Sitemaps_Custom_Provider();
-
-		// Only register if there are URLs to serve.
-		// We can't check this at init time (too early for some filters),
-		// so we always register and the provider returns empty if no URLs.
-		wp_register_sitemap_provider( 'extrachill', $provider );
+		\wp_register_sitemap_provider( 'extrachill', new EC_Sitemaps_Custom_Provider() );
 	}
 );
 
