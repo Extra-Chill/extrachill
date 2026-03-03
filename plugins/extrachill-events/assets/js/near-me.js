@@ -85,16 +85,24 @@
 			mapRoot.dataset.userLat   = lat;
 			mapRoot.dataset.userLon   = lng;
 
-			// If map is already initialized, dispatch recenter event.
-			if ( mapRoot.dataset.initialized === '1' ) {
-				document.dispatchEvent( new CustomEvent( 'data-machine-map-recenter', {
-					detail: {
-						lat: parseFloat( lat ),
-						lng: parseFloat( lng ),
-						zoom: 12,
-					},
-				} ) );
-			}
+		// If map is already initialized, dispatch recenter + user location events.
+		if ( mapRoot.dataset.initialized === '1' ) {
+			document.dispatchEvent( new CustomEvent( 'data-machine-map-recenter', {
+				detail: {
+					lat: parseFloat( lat ),
+					lng: parseFloat( lng ),
+					zoom: 12,
+				},
+			} ) );
+
+			// Add the blue dot marker for user location.
+			document.dispatchEvent( new CustomEvent( 'data-machine-map-set-user-location', {
+				detail: {
+					lat: parseFloat( lat ),
+					lng: parseFloat( lng ),
+				},
+			} ) );
+		}
 		}
 
 		// Hide the detection UI — map and calendar are now loading.
