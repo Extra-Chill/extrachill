@@ -40,16 +40,18 @@ add_action(
 );
 
 /**
- * Remove WordPress default canonical on non-singular pages.
+ * Remove default wp_head output that extrachill-seo replaces or doesn't need.
  *
- * WordPress core only outputs rel_canonical for singular content.
- * We handle all canonical output ourselves, so remove the default
- * to prevent duplicates on singular pages too.
+ * - rel_canonical: We handle all canonical output ourselves.
+ * - rsd_link: RSD (Really Simple Discoverability) advertises xmlrpc.php,
+ *   which is blocked by nginx. Removing it stops bots from hitting the
+ *   blocked endpoint (~100 requests/day of log noise).
  */
 add_action(
 	'wp',
 	function () {
 		remove_action( 'wp_head', 'rel_canonical' );
+		remove_action( 'wp_head', 'rsd_link' );
 	}
 );
 
