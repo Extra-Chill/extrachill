@@ -11,7 +11,7 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 - Add new feature modules in an appropriate `inc/<area>/` file; include them from `functions.php` (or an existing aggregator file) only if needed globally. Consider future conditional requires.
 - Always enqueue assets with dynamic versioning: `filemtime( $path )` and narrow page conditions (e.g. `is_front_page()`, `is_singular('post')`).
 - Root CSS variables must load first (`assets/css/root.css`) → other styles depend on handle `extrachill-root`. If adding a stylesheet, declare dependency on that handle.
-- Page/context-specific CSS: archive → `assets/css/archive.css`, single post → `assets/css/single-post.css`, home → `assets/css/home.css`, navigation → `assets/css/nav.css`, notices → `assets/css/notice.css`.
+- Page/context-specific CSS: archive → `assets/css/archive.css`, single post → `assets/css/single-post.css`, sidebar → `assets/css/sidebar.css`, search → `assets/css/search.css`, filter bar → `assets/css/filter-bar.css`, share → `assets/css/share.css`. Navigation and notice styles live in `root.css` / `style.css`.
 - Do NOT resurrect removed CSS concatenation/inline "optimization" (comment notes memory issues). Keep individual files.
 - Use local fonts in `/fonts/`; don't introduce external font CDNs. QR code and download icons added to SVG sprite system.
 - Image sizes: custom policy removes many defaults; avoid relying on `thumbnail` or WooCommerce sizes—check existing sizes before using.
