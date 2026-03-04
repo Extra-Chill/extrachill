@@ -25,6 +25,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.1.0
  */
 function ec_events_override_breadcrumbs( $breadcrumbs, $post_id ) {
+	if ( ! ec_is_events_site() ) {
+		return $breadcrumbs;
+	}
 	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
 		ob_start();
 		extrachill_breadcrumbs();
@@ -46,6 +49,9 @@ add_filter( 'data_machine_events_breadcrumbs', 'ec_events_override_breadcrumbs',
  * @since 0.1.0
  */
 function ec_events_breadcrumb_root( $root_link ) {
+	if ( ! ec_is_events_site() ) {
+		return $root_link;
+	}
 	if ( is_front_page() ) {
 		$main_site_url = ec_get_site_url( 'main' );
 		return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a>';
@@ -68,6 +74,9 @@ add_filter( 'extrachill_breadcrumbs_root', 'ec_events_breadcrumb_root' );
  * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_homepage( $custom_trail ) {
+	if ( ! ec_is_events_site() ) {
+		return $custom_trail;
+	}
 	if ( is_front_page() ) {
 		return '<span class="network-dropdown-target">Events Calendar</span>';
 	}
@@ -92,6 +101,9 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_archives( $custom_trail ) {
+	if ( ! ec_is_events_site() ) {
+		return $custom_trail;
+	}
 	if ( is_tax() ) {
 		$term = get_queried_object();
 		if ( $term && isset( $term->name ) ) {
@@ -121,6 +133,9 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_single( $custom_trail ) {
+	if ( ! ec_is_events_site() ) {
+		return $custom_trail;
+	}
 	if ( is_singular( 'data_machine_events' ) ) {
 		return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
 	}
@@ -143,6 +158,9 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @since 0.1.0
  */
 function ec_events_back_to_home_label( $label, $url ) {
+	if ( ! ec_is_events_site() ) {
+		return $label;
+	}
 	if ( is_front_page() ) {
 		return $label;
 	}
@@ -169,6 +187,9 @@ add_filter( 'extrachill_back_to_home_label', 'ec_events_back_to_home_label', 10,
  * @since 0.2.0
  */
 function ec_events_schema_breadcrumb_items( $items ) {
+	if ( ! ec_is_events_site() ) {
+		return $items;
+	}
 	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
 
 	// Homepage: Extra Chill → Events Calendar
