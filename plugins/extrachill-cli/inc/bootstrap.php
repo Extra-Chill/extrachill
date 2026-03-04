@@ -22,3 +22,6 @@ WP_CLI::add_command( 'extrachill analytics 404', ExtraChill\CLI\Commands\Analyti
 
 // SEO commands.
 WP_CLI::add_command( 'extrachill seo redirects', ExtraChill\CLI\Commands\SEO\RedirectsCommand::class );
+
+// Tools commands.
+WP_CLI::add_command( 'extrachill tools qr', ExtraChill\CLI\Commands\Tools\QRCodeCommand::class );

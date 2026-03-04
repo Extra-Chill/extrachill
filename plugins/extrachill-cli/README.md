@@ -31,6 +31,18 @@ wp plugin activate extrachill-cli --network --allow-root
 
 ## Commands
 
+### Tools — QR Code
+
+Generate print-ready QR code PNG files through the existing admin-tools ability primitive.
+
+```bash
+# Generate a QR code in current directory
+wp extrachill tools qr generate https://example.com
+
+# Write to a specific output path
+wp extrachill tools qr generate https://example.com --output=/tmp/example-qr.png
+```
+
 ### Analytics — 404 Errors
 
 Analyze, categorize, and manage 404 errors tracked by extrachill-analytics.
