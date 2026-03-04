@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.1] - 2026-03-04
+
+### Fixed
+- Rebuild release package so Composer vendor dependencies ship in deploy artifacts (Endroid QR code support).
+
 ## [0.11.0] - 2026-03-02
 
 ### Added
