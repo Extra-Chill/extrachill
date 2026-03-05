@@ -101,48 +101,51 @@ function extrachill_api_validate_qr_size( $size ) {
 }
 
 /**
- * Generates a QR code for the provided URL.
+ * Generates a QR code for the provided URL via Abilities API primitive.
  *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Response with QR code data URI or error.
  */
 function extrachill_api_generate_qr_code( $request ) {
-    $url  = $request->get_param( 'url' );
-    $size = $request->get_param( 'size' ) ?: 1000;
-
-    // Verify Endroid QR Code library is available
-    if ( ! class_exists( 'Endroid\QrCode\QrCode' ) ) {
+    $ability = wp_get_ability( 'extrachill/generate-qr-code' );
+    if ( ! $ability ) {
         return new WP_Error(
-            'library_missing',
-            'QR code generation library is not available.',
+            'ability_missing',
+            'QR code ability is not available.',
             array( 'status' => 500 )
         );
     }
 
-    try {
-        $qr_code = new Endroid\QrCode\QrCode(
-            data: $url,
-            encoding: new Endroid\QrCode\Encoding\Encoding( 'UTF-8' ),
-            errorCorrectionLevel: Endroid\QrCode\ErrorCorrectionLevel::High,
-            size: $size,
-            margin: 40
-        );
+    $url  = $request->get_param( 'url' );
+    $size = $request->get_param( 'size' );
 
-        $writer   = new Endroid\QrCode\Writer\PngWriter();
-        $result   = $writer->write( $qr_code );
-        $data_uri = $result->getDataUri();
+    $input = array(
+        'url' => $url,
+    );
 
-        return rest_ensure_response( array(
-            'image_url' => $data_uri,
-            'url'       => $url,
-            'size'      => $size,
-        ) );
+    if ( null !== $size ) {
+        $input['size'] = absint( $size );
+    }
 
-    } catch ( Exception $e ) {
+    $result = $ability->execute( $input );
+    if ( is_wp_error( $result ) ) {
+        $result->add_data( array( 'status' => 500 ) );
+        return $result;
+    }
+
+    if ( empty( $result['image'] ) || ! is_string( $result['image'] ) ) {
         return new WP_Error(
             'generation_failed',
-            'Failed to generate QR code: ' . $e->getMessage(),
+            'QR generation returned invalid image payload.',
             array( 'status' => 500 )
         );
     }
+
+    $data_uri = 'data:image/png;base64,' . $result['image'];
+
+    return rest_ensure_response( array(
+        'image_url' => $data_uri,
+        'url'       => $result['url'] ?? $url,
+        'size'      => $result['size'] ?? ( $size ?: 1000 ),
+    ) );
 }
