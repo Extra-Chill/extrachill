@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.2] - 2026-03-05
+
+### Changed
+- Wrap QR route around extrachill/generate-qr-code ability so endpoint is a thin API surface.
+
 ## [0.11.1] - 2026-03-04
 
 ### Fixed
