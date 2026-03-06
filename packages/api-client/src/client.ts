@@ -33,6 +33,7 @@ import { UsersResource } from './resources/users';
 import { AdminResource } from './resources/admin';
 import { ActivityResource } from './resources/activity';
 import { SeoResource } from './resources/seo';
+import { SocialsResource } from './resources/socials';
 
 export class ExtraChillClient {
   readonly transport: Transport;
@@ -49,6 +50,7 @@ export class ExtraChillClient {
   readonly admin: AdminResource;
   readonly activity: ActivityResource;
   readonly seo: SeoResource;
+  readonly socials: SocialsResource;
 
   constructor(transport: Transport) {
     this.transport = transport;
@@ -65,5 +67,6 @@ export class ExtraChillClient {
     this.admin = new AdminResource(transport);
     this.activity = new ActivityResource(transport);
     this.seo = new SeoResource(transport);
+    this.socials = new SocialsResource(transport);
   }
 }

@@ -461,6 +461,65 @@ export interface QrCodeResponse {
   data_url: string;
 }
 
+// ─── Socials ─────────────────────────────────────────────────────────────────
+
+export interface SocialPlatformAuthStatus {
+  platform: string;
+  authenticated: boolean;
+  username: string | null;
+}
+
+export interface SocialPlatformConfig {
+  label: string;
+  maxImages?: number;
+  aspectRatios?: string[];
+  defaultAspectRatio?: string;
+  charLimit?: number;
+  supportsCarousel?: boolean;
+  type?: string;
+  scopes?: string;
+}
+
+export type SocialPlatformsResponse = Record<string, SocialPlatformConfig>;
+
+export interface SocialImageInput {
+  url: string;
+}
+
+export interface SocialPublishRequest {
+  platforms: string[];
+  images: SocialImageInput[];
+  caption: string;
+  post_id?: number;
+  aspect_ratio?: string;
+}
+
+export interface SocialPublishResult {
+  platform: string;
+  success: boolean;
+  media_id?: string | null;
+  permalink?: string | null;
+  error?: string;
+}
+
+export interface SocialPublishResponse {
+  success: boolean;
+  results: SocialPublishResult[];
+  errors?: string[] | null;
+}
+
+export interface SocialMediaUploadResponse {
+  url: string;
+}
+
+export interface SocialStatusEntry {
+  timestamp: number;
+  platforms?: string[];
+  images?: number;
+  image_count?: number;
+  results?: SocialPublishResult[];
+}
+
 // ─── Activity ────────────────────────────────────────────────────────────────
 
 export interface ActivityObject {
