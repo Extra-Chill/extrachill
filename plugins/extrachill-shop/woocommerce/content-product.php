@@ -32,7 +32,7 @@ if ( empty( $product ) || ! $product->is_visible() ) {
 			<?php foreach ( $artist_terms as $term ) : ?>
 				<a href="<?php echo esc_url( get_term_link( $term ) ); ?>"
 				class="taxonomy-badge artist-badge artist-<?php echo esc_attr( $term->slug ); ?>">
-				<?php echo esc_html( $term->name . ' ' . __( 'Artist Profile', 'extrachill-shop' ) ); ?>
+				<?php echo esc_html( $term->name ); ?>
 			</a>
 			<?php endforeach; ?>
 		</div>

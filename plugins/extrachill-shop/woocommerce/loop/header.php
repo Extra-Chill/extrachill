@@ -27,5 +27,13 @@ defined( 'ABSPATH' ) || exit;
 	 * Hook: woocommerce_archive_description.
 	 */
 	do_action( 'woocommerce_archive_description' );
+
+	/**
+	 * Hook: extrachill_archive_below_description.
+	 *
+	 * Fires cross-site taxonomy links (e.g. blog posts, events, artist profile)
+	 * on taxonomy archive pages like /artist/extra-chill/.
+	 */
+	do_action( 'extrachill_archive_below_description' );
 	?>
 </header>
