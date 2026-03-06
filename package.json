@@ -1,0 +1,12 @@
+{
+  "name": "extrachill-theme",
+  "private": true,
+  "version": "2.0.12",
+  "description": "Extra Chill WordPress theme",
+  "scripts": {
+    "build": "cp node_modules/@extrachill/tokens/css/root.css assets/css/root.css"
+  },
+  "dependencies": {
+    "@extrachill/tokens": "^0.2.0"
+  }
+}

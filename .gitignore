@@ -1,5 +1,6 @@
 # Ignore build artifacts
 build/
+assets/css/root.css
 
 # Node modules (if ever added)
 node_modules/
