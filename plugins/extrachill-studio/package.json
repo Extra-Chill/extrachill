@@ -1,0 +1,15 @@
+{
+	"name": "extrachill-studio",
+	"version": "0.1.0",
+	"description": "Internal studio tooling for the Extra Chill team.",
+	"private": true,
+	"scripts": {
+		"build": "npm run build:studio && npm run build:studio-view && npm run copy:block-files",
+		"build:studio": "wp-scripts build blocks/studio/src/index.js --output-path=build/studio",
+		"build:studio-view": "wp-scripts build blocks/studio/src/view.js --output-path=build/studio",
+		"copy:block-files": "cp blocks/studio/block.json blocks/studio/render.php blocks/studio/style.css build/studio/"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^31.1.0"
+	}
+}
