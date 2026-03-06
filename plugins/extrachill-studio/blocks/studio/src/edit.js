@@ -52,7 +52,7 @@ export default function Edit( { attributes, setAttributes } ) {
 
 						<div className="shared-tab-item">
 							<button type="button" className="shared-tab-button">
-								{ __( 'Captions', 'extrachill-studio' ) }
+								{ __( 'QR Codes', 'extrachill-studio' ) }
 								<span className="shared-tab-arrow" />
 							</button>
 						</div>

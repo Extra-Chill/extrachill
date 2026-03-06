@@ -1,5 +1,6 @@
+import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, createRoot, render, useMemo, useState } from '@wordpress/element';
+import { createElement, createRoot, render, useState } from '@wordpress/element';
 
 const ROOT_SELECTOR = '[data-ec-studio-root]';
 
@@ -46,7 +47,7 @@ const OverviewPane = ( { context } ) => createElement(
 			createElement(
 				'ul',
 				null,
-				createElement( 'li', null, __( 'Hook Studio tools into real API endpoints.', 'extrachill-studio' ) ),
+				createElement( 'li', null, __( 'Build on the QR generator with more real team tools.', 'extrachill-studio' ) ),
 				createElement( 'li', null, __( 'Add Data Machine-backed caption and publishing jobs where async work makes sense.', 'extrachill-studio' ) ),
 				createElement( 'li', null, __( 'Expand toward team-specific assistants and social workflows.', 'extrachill-studio' ) )
 			)
@@ -54,81 +55,131 @@ const OverviewPane = ( { context } ) => createElement(
 	)
 );
 
-const CaptionsPane = () => {
-	const [ notes, setNotes ] = useState( '' );
-	const [ tone, setTone ] = useState( 'extra-chill' );
+const QrCodesPane = () => {
+	const [ url, setUrl ] = useState( '' );
+	const [ size, setSize ] = useState( '1000' );
+	const [ imageUrl, setImageUrl ] = useState( '' );
+	const [ status, setStatus ] = useState( '' );
+	const [ error, setError ] = useState( '' );
+	const [ isLoading, setIsLoading ] = useState( false );
 
-	const preview = useMemo( () => {
-		if ( ! notes.trim() ) {
-			return __( 'Drop a few notes about a post, a show, or a release here. Studio will turn this area into a real caption workflow next.', 'extrachill-studio' );
+	const generateQrCode = async () => {
+		const trimmedUrl = url.trim();
+		const parsedSize = Number.parseInt( size, 10 );
+
+		if ( ! trimmedUrl ) {
+			setError( __( 'Enter a URL to generate a QR code.', 'extrachill-studio' ) );
+			setStatus( '' );
+			return;
 		}
 
-		const toneLabelMap = {
-			'extra-chill': __( 'extra chill', 'extrachill-studio' ),
-			editorial: __( 'editorial', 'extrachill-studio' ),
-			hype: __( 'hype', 'extrachill-studio' ),
-		};
+		setIsLoading( true );
+		setError( '' );
+		setStatus( __( 'Generating QR code…', 'extrachill-studio' ) );
 
-		return sprintf(
-			__( 'Draft vibe: %1$s\n\n%2$s\n\n— Phase 0 note: this is a local preview shell. The next step is wiring this tab to a real caption generation workflow.', 'extrachill-studio' ),
-			toneLabelMap[ tone ] || tone,
-			notes.trim()
-		);
-	}, [ notes, tone ] );
+		try {
+			const response = await apiFetch( {
+				path: '/extrachill/v1/tools/qr-code',
+				method: 'POST',
+				data: {
+					url: trimmedUrl,
+					size: Number.isNaN( parsedSize ) ? 1000 : parsedSize,
+				},
+			} );
+
+			setImageUrl( response.image_url || '' );
+			setStatus( __( 'QR code ready to preview and download.', 'extrachill-studio' ) );
+		} catch ( fetchError ) {
+			setImageUrl( '' );
+			setStatus( '' );
+			setError( fetchError?.message || __( 'QR generation failed. Please try again.', 'extrachill-studio' ) );
+		} finally {
+			setIsLoading( false );
+		}
+	};
 
 	return createElement(
 		'div',
-		{ className: 'ec-studio-pane ec-studio-pane--captions' },
+		{ className: 'ec-studio-pane ec-studio-pane--qr-codes' },
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Caption lab', 'extrachill-studio' ) ),
-			createElement( 'h3', null, __( 'Shape the next caption workflow', 'extrachill-studio' ) ),
-			createElement( 'p', null, __( 'This tab is the first shell for future AI caption generation. Use it to preview the workflow shape before wiring backend actions.', 'extrachill-studio' ) ),
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'QR generator', 'extrachill-studio' ) ),
+			createElement( 'h3', null, __( 'Generate a print-ready QR code from any URL', 'extrachill-studio' ) ),
+			createElement( 'p', null, __( 'This uses the existing Extra Chill QR code tool through the current REST endpoint and ability.', 'extrachill-studio' ) ),
 			createElement(
 				'div',
 				{ className: 'ec-studio-composer' },
 				createElement(
 					'div',
 					null,
-					createElement( 'label', { htmlFor: 'ec-studio-caption-notes' }, __( 'Notes', 'extrachill-studio' ) ),
-					createElement( 'textarea', {
-						id: 'ec-studio-caption-notes',
-						rows: 6,
-						value: notes,
-						onChange: ( event ) => setNotes( event.target.value ),
-						placeholder: __( 'Example: short reel from the Thursday show, spotlight the crowd energy, mention tickets in bio.', 'extrachill-studio' ),
+					createElement( 'label', { htmlFor: 'ec-studio-qr-url' }, __( 'URL', 'extrachill-studio' ) ),
+					createElement( 'input', {
+						id: 'ec-studio-qr-url',
+						type: 'url',
+						value: url,
+						onChange: ( event ) => setUrl( event.target.value ),
+						placeholder: 'https://extrachill.com/',
+						autoComplete: 'url',
 					} )
 				),
 				createElement(
 					'div',
 					null,
-					createElement( 'label', { htmlFor: 'ec-studio-caption-tone' }, __( 'Tone', 'extrachill-studio' ) ),
-					createElement(
-						'select',
-						{
-							id: 'ec-studio-caption-tone',
-							value: tone,
-							onChange: ( event ) => setTone( event.target.value ),
-						},
-						createElement( 'option', { value: 'extra-chill' }, __( 'Extra Chill', 'extrachill-studio' ) ),
-						createElement( 'option', { value: 'editorial' }, __( 'Editorial', 'extrachill-studio' ) ),
-						createElement( 'option', { value: 'hype' }, __( 'Hype', 'extrachill-studio' ) )
-					)
+					createElement( 'label', { htmlFor: 'ec-studio-qr-size' }, __( 'Size', 'extrachill-studio' ) ),
+					createElement( 'input', {
+						id: 'ec-studio-qr-size',
+						type: 'number',
+						min: '100',
+						max: '2000',
+						step: '100',
+						value: size,
+						onChange: ( event ) => setSize( event.target.value ),
+					} )
 				),
 				createElement(
 					'div',
 					{ className: 'ec-studio-composer__actions' },
-					createElement( 'button', { type: 'button', className: 'button-1 button-medium', disabled: true }, __( 'Generate with AI', 'extrachill-studio' ) ),
-					createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'Backend wiring comes next.', 'extrachill-studio' ) )
+					createElement(
+						'button',
+						{
+							type: 'button',
+							className: 'button-1 button-medium',
+							onClick: generateQrCode,
+							disabled: isLoading,
+						},
+						isLoading ? __( 'Generating…', 'extrachill-studio' ) : __( 'Generate QR Code', 'extrachill-studio' )
+					),
+					createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'Sizes from 100 to 2000 pixels are supported.', 'extrachill-studio' ) )
 				)
-			)
+			),
+			error ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, error ) : null,
+			! error && status ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--success' }, status ) : null
 		),
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
 			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Preview', 'extrachill-studio' ) ),
-			createElement( 'div', { className: 'ec-studio-preview' }, preview )
+			imageUrl
+				? createElement(
+					'div',
+					{ className: 'ec-studio-qr-result' },
+					createElement( 'img', {
+						className: 'ec-studio-qr-result__image',
+						alt: __( 'Generated QR code preview', 'extrachill-studio' ),
+						src: imageUrl,
+					} ),
+					createElement(
+						'a',
+						{
+							className: 'button-1 button-medium ec-studio-qr-result__download',
+							href: imageUrl,
+							download: 'extrachill-qr-code.png',
+						},
+						__( 'Download PNG', 'extrachill-studio' )
+					)
+				)
+				: createElement( 'div', { className: 'ec-studio-preview' }, __( 'Your QR code preview will appear here after generation.', 'extrachill-studio' ) )
 		)
 	);
 };
@@ -140,14 +191,15 @@ const PublishingPane = () => createElement(
 		'div',
 		{ className: 'ec-studio-panel' },
 		createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Publishing roadmap', 'extrachill-studio' ) ),
-		createElement( 'h3', null, __( 'Feature path from shell to real workflow engine', 'extrachill-studio' ) ),
-		createElement(
-			'ul',
-			{ className: 'ec-studio-roadmap' },
-			createElement( 'li', null, createElement( 'span', null, __( 'Caption generation with reusable prompts and site context', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Next', 'extrachill-studio' ) ) ),
-			createElement( 'li', null, createElement( 'span', null, __( 'Draft social publishing workflows for Instagram and related channels', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Planned', 'extrachill-studio' ) ) ),
-			createElement( 'li', null, createElement( 'span', null, __( 'Per-team-member assistants connected to WordPress tools and Data Machine jobs', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Vision', 'extrachill-studio' ) ) )
-		)
+			createElement( 'h3', null, __( 'Feature path from QR utility to real workflow engine', 'extrachill-studio' ) ),
+			createElement(
+				'ul',
+				{ className: 'ec-studio-roadmap' },
+				createElement( 'li', null, createElement( 'span', null, __( 'QR code generation for flyers, signage, and print materials', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Live', 'extrachill-studio' ) ) ),
+				createElement( 'li', null, createElement( 'span', null, __( 'Caption generation with reusable prompts and site context', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Next', 'extrachill-studio' ) ) ),
+				createElement( 'li', null, createElement( 'span', null, __( 'Draft social publishing workflows for Instagram and related channels', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Planned', 'extrachill-studio' ) ) ),
+				createElement( 'li', null, createElement( 'span', null, __( 'Per-team-member assistants connected to WordPress tools and Data Machine jobs', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Vision', 'extrachill-studio' ) ) )
+			)
 	)
 );
 
@@ -174,8 +226,8 @@ const initRoot = ( root ) => {
 			return;
 		}
 
-		if ( pane === 'captions' ) {
-			mountComponent( mount, createElement( CaptionsPane ) );
+		if ( pane === 'qr-codes' ) {
+			mountComponent( mount, createElement( QrCodesPane ) );
 			return;
 		}
 

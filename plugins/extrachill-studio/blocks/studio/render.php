@@ -144,12 +144,12 @@ $site_url     = home_url( '/' );
 				</div>
 
 				<div class="shared-tab-item">
-					<button type="button" class="shared-tab-button" data-tab="tab-studio-captions">
-						<?php esc_html_e( 'Captions', 'extrachill-studio' ); ?>
+					<button type="button" class="shared-tab-button" data-tab="tab-studio-qr-codes">
+						<?php esc_html_e( 'QR Codes', 'extrachill-studio' ); ?>
 						<span class="shared-tab-arrow"></span>
 					</button>
-					<div id="tab-studio-captions" class="shared-tab-pane">
-						<div class="ec-studio-pane__mount" data-ec-studio-pane="captions"></div>
+					<div id="tab-studio-qr-codes" class="shared-tab-pane">
+						<div class="ec-studio-pane__mount" data-ec-studio-pane="qr-codes"></div>
 					</div>
 				</div>
 
