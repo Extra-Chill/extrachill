@@ -34,6 +34,7 @@ const required = [
 	'css/tokens.css',
 	'css/tokens-dark.css',
 	'css/tokens-all.css',
+	'css/root.css',
 	'tokens.json',
 ];
 

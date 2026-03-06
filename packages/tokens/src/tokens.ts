@@ -25,6 +25,7 @@ import type {
 	LayoutTokenKey,
 	LineHeightTokenKey,
 	SpacingTokenKey,
+	BadgeTokenKey,
 } from './types';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
@@ -392,6 +393,26 @@ export const spacing: Record< SpacingTokenKey, SpacingToken > = {
 	},
 } as const;
 
+// ─── Badge Colors ────────────────────────────────────────────────────────────
+
+export const badge: Record< BadgeTokenKey, StaticToken > = {
+	artistBadgeColor: {
+		cssVar: '--artist-badge-color',
+		value: '#E21FC5',
+		description: 'Artist role badge color',
+	},
+	teamBadgeColor: {
+		cssVar: '--team-badge-color',
+		value: '#1fc5e2',
+		description: 'Team member role badge color',
+	},
+	professionalBadgeColor: {
+		cssVar: '--professional-badge-color',
+		value: '#9D1FE2',
+		description: 'Professional role badge color',
+	},
+} as const;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
@@ -418,6 +439,7 @@ export function getAllCssVarNames(): string[] {
 		...Object.values( layout ),
 		...Object.values( lineHeight ),
 		...Object.values( spacing ),
+		...Object.values( badge ),
 	];
 	return allTokens.map( ( t ) => t.cssVar );
 }

@@ -15,6 +15,7 @@ export {
 	layout,
 	lineHeight,
 	spacing,
+	badge,
 	cssVar,
 	getAllCssVarNames,
 } from './tokens';
@@ -34,5 +35,6 @@ export type {
 	LayoutTokenKey,
 	LineHeightTokenKey,
 	SpacingTokenKey,
+	BadgeTokenKey,
 	TokenKey,
 } from './types';

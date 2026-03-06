@@ -13,7 +13,8 @@ export type TokenCategory =
 	| 'borderRadius'
 	| 'layout'
 	| 'lineHeight'
-	| 'spacing';
+	| 'spacing'
+	| 'badge';
 
 /** Color scheme variants */
 export type ColorScheme = 'light' | 'dark';
@@ -122,6 +123,12 @@ export type SpacingTokenKey =
 	| 'spacingLg'
 	| 'spacingXl';
 
+/** All badge color token keys */
+export type BadgeTokenKey =
+	| 'artistBadgeColor'
+	| 'teamBadgeColor'
+	| 'professionalBadgeColor';
+
 /** Union of all token keys */
 export type TokenKey =
 	| ColorTokenKey
@@ -130,4 +137,5 @@ export type TokenKey =
 	| BorderRadiusTokenKey
 	| LayoutTokenKey
 	| LineHeightTokenKey
-	| SpacingTokenKey;
+	| SpacingTokenKey
+	| BadgeTokenKey;
