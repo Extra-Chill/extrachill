@@ -34,6 +34,7 @@ const categoryConfig = [
 	{ key: 'line-height', label: 'Line Heights', type: 'static' },
 	{ key: 'spacing', label: 'Spacing Scale', type: 'static' },
 	{ key: 'badge', label: 'Badge Colors', type: 'static' },
+	{ key: 'taxonomy-badge', label: 'Taxonomy Badge Colors', type: 'taxonomy-badge' },
 ];
 
 // ─── Build :root block ──────────────────────────────────────────────────────
@@ -49,9 +50,12 @@ for ( const { key, label, type } of categoryConfig ) {
 	lightLines.push( `    /* ${ label } */` );
 
 	for ( const [ name, token ] of Object.entries( tokens ) ) {
-		const varName = `--${ name }`;
-
-		if ( type === 'color' ) {
+		if ( type === 'taxonomy-badge' ) {
+			// Taxonomy badge tokens emit two vars: --badge-{key}-bg and --badge-{key}-text
+			lightLines.push( `    --badge-${ name }-bg: ${ token.bg };` );
+			lightLines.push( `    --badge-${ name }-text: ${ token.text };` );
+		} else if ( type === 'color' ) {
+			const varName = `--${ name }`;
 			// Color tokens have light/dark variants
 			const lightValue = token.cssRef || token.light;
 			lightLines.push( `    ${ varName }: ${ lightValue };` );
@@ -64,6 +68,7 @@ for ( const { key, label, type } of categoryConfig ) {
 				darkLines.push( `        ${ varName }: ${ token.dark };` );
 			}
 		} else {
+			const varName = `--${ name }`;
 			// Static tokens — only in :root, no dark override
 			lightLines.push( `    ${ varName }: ${ token.value };` );
 		}

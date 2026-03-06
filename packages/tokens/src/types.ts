@@ -14,7 +14,8 @@ export type TokenCategory =
 	| 'layout'
 	| 'lineHeight'
 	| 'spacing'
-	| 'badge';
+	| 'badge'
+	| 'taxonomyBadge';
 
 /** Color scheme variants */
 export type ColorScheme = 'light' | 'dark';
@@ -31,6 +32,15 @@ export interface ColorToken {
 export interface StaticToken {
 	readonly cssVar: string;
 	readonly value: string;
+	readonly description: string;
+}
+
+/** A taxonomy badge token with background and text colors */
+export interface TaxonomyBadgeToken {
+	readonly cssVarBg: string;
+	readonly cssVarText: string;
+	readonly bg: string;
+	readonly text: string;
 	readonly description: string;
 }
 
@@ -129,7 +139,17 @@ export type BadgeTokenKey =
 	| 'teamBadgeColor'
 	| 'professionalBadgeColor';
 
-/** Union of all token keys */
+/**
+ * Taxonomy badge token key (camelCase of the kebab-case slug).
+ *
+ * This is a string type because taxonomy badges grow dynamically as
+ * new cities, festivals, venues, and artists are added. Use the
+ * `taxonomyBadge` record at runtime for autocompletion via the keys
+ * that exist in the current build.
+ */
+export type TaxonomyBadgeTokenKey = string;
+
+/** Union of all static token keys */
 export type TokenKey =
 	| ColorTokenKey
 	| TypographyTokenKey

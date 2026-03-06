@@ -18,6 +18,7 @@ import type {
 	StaticToken,
 	FontSizeToken,
 	SpacingToken,
+	TaxonomyBadgeToken,
 	ColorTokenKey,
 	TypographyTokenKey,
 	FontSizeTokenKey,
@@ -26,7 +27,11 @@ import type {
 	LineHeightTokenKey,
 	SpacingTokenKey,
 	BadgeTokenKey,
+	TaxonomyBadgeTokenKey,
 } from './types';
+
+// Import raw taxonomy badge data from tokens.json
+import tokensJson from '../tokens.json';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
 
@@ -413,6 +418,46 @@ export const badge: Record< BadgeTokenKey, StaticToken > = {
 	},
 } as const;
 
+// ─── Taxonomy Badges ─────────────────────────────────────────────────────────
+// Built dynamically from tokens.json so new entries require zero TS changes.
+
+function kebabToCamel( str: string ): string {
+	return str.replace( /-([a-z])/g, ( _, c: string ) => c.toUpperCase() );
+}
+
+function buildTaxonomyBadgeRecord(): Record< string, TaxonomyBadgeToken > {
+	const raw = ( tokensJson as Record< string, any > ).categories[ 'taxonomy-badge' ] ?? {};
+	const record: Record< string, TaxonomyBadgeToken > = {};
+
+	for ( const [ kebabKey, token ] of Object.entries< any >( raw ) ) {
+		const camelKey = kebabToCamel( kebabKey );
+		record[ camelKey ] = {
+			cssVarBg: `--badge-${ kebabKey }-bg`,
+			cssVarText: `--badge-${ kebabKey }-text`,
+			bg: token.bg,
+			text: token.text,
+			description: token.description,
+		};
+	}
+
+	return record;
+}
+
+/**
+ * Taxonomy badge tokens — colors for festivals, locations, venues,
+ * categories, and artists. Each entry has bg + text color values
+ * and corresponding CSS variable names.
+ *
+ * Built from tokens.json at module load time.
+ *
+ * @example
+ *   taxonomyBadge.locationCharleston.bg      // '#660000'
+ *   taxonomyBadge.locationCharleston.cssVarBg // '--badge-location-charleston-bg'
+ *   taxonomyBadge.festivalBonnaroo.text       // '#79c031'
+ */
+export const taxonomyBadge: Record< TaxonomyBadgeTokenKey, TaxonomyBadgeToken > =
+	buildTaxonomyBadgeRecord();
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
@@ -427,11 +472,31 @@ export function cssVar( token: { cssVar: string } ): string {
 }
 
 /**
+ * Get a CSS var() reference for a taxonomy badge background.
+ *
+ * @example
+ *   cssVarBg( taxonomyBadge.locationCharleston ) // 'var(--badge-location-charleston-bg)'
+ */
+export function cssVarBg( token: TaxonomyBadgeToken ): string {
+	return `var(${ token.cssVarBg })`;
+}
+
+/**
+ * Get a CSS var() reference for a taxonomy badge text color.
+ *
+ * @example
+ *   cssVarText( taxonomyBadge.locationCharleston ) // 'var(--badge-location-charleston-text)'
+ */
+export function cssVarText( token: TaxonomyBadgeToken ): string {
+	return `var(${ token.cssVarText })`;
+}
+
+/**
  * Get all CSS variable names as a flat array.
  * Useful for tooling, validation, and documentation.
  */
 export function getAllCssVarNames(): string[] {
-	const allTokens = [
+	const staticTokens = [
 		...Object.values( colors ),
 		...Object.values( typography ),
 		...Object.values( fontSize ),
@@ -441,5 +506,12 @@ export function getAllCssVarNames(): string[] {
 		...Object.values( spacing ),
 		...Object.values( badge ),
 	];
-	return allTokens.map( ( t ) => t.cssVar );
+	const names = staticTokens.map( ( t ) => t.cssVar );
+
+	// Add taxonomy badge CSS vars (two per entry).
+	for ( const token of Object.values( taxonomyBadge ) ) {
+		names.push( token.cssVarBg, token.cssVarText );
+	}
+
+	return names;
 }

@@ -16,7 +16,10 @@ export {
 	lineHeight,
 	spacing,
 	badge,
+	taxonomyBadge,
 	cssVar,
+	cssVarBg,
+	cssVarText,
 	getAllCssVarNames,
 } from './tokens';
 
@@ -26,6 +29,7 @@ export type {
 	ColorScheme,
 	ColorToken,
 	StaticToken,
+	TaxonomyBadgeToken,
 	FontSizeToken,
 	SpacingToken,
 	ColorTokenKey,
@@ -36,5 +40,6 @@ export type {
 	LineHeightTokenKey,
 	SpacingTokenKey,
 	BadgeTokenKey,
+	TaxonomyBadgeTokenKey,
 	TokenKey,
 } from './types';

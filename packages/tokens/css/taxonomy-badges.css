@@ -1,0 +1,419 @@
+/*
+ * Taxonomy Badge Colors
+ *
+ * Generated from @extrachill/tokens — DO NOT EDIT MANUALLY.
+ * Source: tokens.json > categories > taxonomy-badge
+ *
+ * 99 badges across 5 taxonomies
+ */
+
+/* === Festival Badges === */
+
+.taxonomy-badge.festival-bonnaroo {
+    background-color: var(--badge-festival-bonnaroo-bg);
+    color: var(--badge-festival-bonnaroo-text);
+}
+.taxonomy-badge.festival-coachella {
+    background-color: var(--badge-festival-coachella-bg);
+    color: var(--badge-festival-coachella-text);
+}
+.taxonomy-badge.festival-acl-festival {
+    background-color: var(--badge-festival-acl-festival-bg);
+    color: var(--badge-festival-acl-festival-text);
+}
+.taxonomy-badge.festival-sxsw {
+    background-color: var(--badge-festival-sxsw-bg);
+    color: var(--badge-festival-sxsw-text);
+}
+.taxonomy-badge.festival-electric-forest {
+    background-color: var(--badge-festival-electric-forest-bg);
+    color: var(--badge-festival-electric-forest-text);
+}
+.taxonomy-badge.festival-hulaween {
+    background-color: var(--badge-festival-hulaween-bg);
+    color: var(--badge-festival-hulaween-text);
+}
+.taxonomy-badge.festival-shaky-knees {
+    background-color: var(--badge-festival-shaky-knees-bg);
+    color: var(--badge-festival-shaky-knees-text);
+}
+.taxonomy-badge.festival-governors-ball {
+    background-color: var(--badge-festival-governors-ball-bg);
+    color: var(--badge-festival-governors-ball-text);
+}
+.taxonomy-badge.festival-all-things-go-festival {
+    background-color: var(--badge-festival-all-things-go-festival-bg);
+    color: var(--badge-festival-all-things-go-festival-text);
+}
+.taxonomy-badge.festival-lollapalooza {
+    background-color: var(--badge-festival-lollapalooza-bg);
+    color: var(--badge-festival-lollapalooza-text);
+}
+.taxonomy-badge.festival-ultra-music-festival {
+    background-color: var(--badge-festival-ultra-music-festival-bg);
+    color: var(--badge-festival-ultra-music-festival-text);
+}
+.taxonomy-badge.festival-glastonbury-festival {
+    background-color: var(--badge-festival-glastonbury-festival-bg);
+    color: var(--badge-festival-glastonbury-festival-text);
+}
+.taxonomy-badge.festival-lost-lands {
+    background-color: var(--badge-festival-lost-lands-bg);
+    color: var(--badge-festival-lost-lands-text);
+}
+.taxonomy-badge.festival-riot-fest {
+    background-color: var(--badge-festival-riot-fest-bg);
+    color: var(--badge-festival-riot-fest-text);
+}
+.taxonomy-badge.festival-outside-lands {
+    background-color: var(--badge-festival-outside-lands-bg);
+    color: var(--badge-festival-outside-lands-text);
+}
+.taxonomy-badge.festival-shambhala {
+    background-color: var(--badge-festival-shambhala-bg);
+    color: var(--badge-festival-shambhala-text);
+}
+.taxonomy-badge.festival-new-orleans-jazz-heritage-festival {
+    background-color: var(--badge-festival-new-orleans-jazz-heritage-festival-bg);
+    color: var(--badge-festival-new-orleans-jazz-heritage-festival-text);
+}
+.taxonomy-badge.festival-electric-daisy-carnival {
+    background-color: var(--badge-festival-electric-daisy-carnival-bg);
+    color: var(--badge-festival-electric-daisy-carnival-text);
+}
+.taxonomy-badge.festival-burning-man {
+    background-color: var(--badge-festival-burning-man-bg);
+    color: var(--badge-festival-burning-man-text);
+}
+.taxonomy-badge.festival-farm-aid {
+    background-color: var(--badge-festival-farm-aid-bg);
+    color: var(--badge-festival-farm-aid-text);
+}
+.taxonomy-badge.festival-hopscotch-festival {
+    background-color: var(--badge-festival-hopscotch-festival-bg);
+    color: var(--badge-festival-hopscotch-festival-text);
+}
+.taxonomy-badge.festival-boogieman-fest {
+    background-color: var(--badge-festival-boogieman-fest-bg);
+    color: var(--badge-festival-boogieman-fest-text);
+}
+
+/* === Location Badges === */
+
+.taxonomy-badge.location-charleston {
+    background-color: var(--badge-location-charleston-bg);
+    color: var(--badge-location-charleston-text);
+}
+.taxonomy-badge.location-austin {
+    background-color: var(--badge-location-austin-bg);
+    color: var(--badge-location-austin-text);
+}
+.taxonomy-badge.location-asheville {
+    background-color: var(--badge-location-asheville-bg);
+    color: var(--badge-location-asheville-text);
+}
+.taxonomy-badge.location-columbia {
+    background-color: var(--badge-location-columbia-bg);
+    color: var(--badge-location-columbia-text);
+}
+.taxonomy-badge.location-boston {
+    background-color: var(--badge-location-boston-bg);
+    color: var(--badge-location-boston-text);
+}
+.taxonomy-badge.location-jamaica {
+    background-color: var(--badge-location-jamaica-bg);
+    color: var(--badge-location-jamaica-text);
+}
+.taxonomy-badge.location-usa {
+    background-color: var(--badge-location-usa-bg);
+    color: var(--badge-location-usa-text);
+}
+.taxonomy-badge.location-charlotte {
+    background-color: var(--badge-location-charlotte-bg);
+    color: var(--badge-location-charlotte-text);
+}
+.taxonomy-badge.location-chicago {
+    background-color: var(--badge-location-chicago-bg);
+    color: var(--badge-location-chicago-text);
+}
+.taxonomy-badge.location-nashville {
+    background-color: var(--badge-location-nashville-bg);
+    color: var(--badge-location-nashville-text);
+}
+.taxonomy-badge.location-new-orleans {
+    background-color: var(--badge-location-new-orleans-bg);
+    color: var(--badge-location-new-orleans-text);
+}
+.taxonomy-badge.location-philadelphia {
+    background-color: var(--badge-location-philadelphia-bg);
+    color: var(--badge-location-philadelphia-text);
+}
+.taxonomy-badge.location-atlanta {
+    background-color: var(--badge-location-atlanta-bg);
+    color: var(--badge-location-atlanta-text);
+}
+.taxonomy-badge.location-europe {
+    background-color: var(--badge-location-europe-bg);
+    color: var(--badge-location-europe-text);
+}
+.taxonomy-badge.location-california {
+    background-color: var(--badge-location-california-bg);
+    color: var(--badge-location-california-text);
+}
+.taxonomy-badge.location-tennessee {
+    background-color: var(--badge-location-tennessee-bg);
+    color: var(--badge-location-tennessee-text);
+}
+.taxonomy-badge.location-florida {
+    background-color: var(--badge-location-florida-bg);
+    color: var(--badge-location-florida-text);
+}
+.taxonomy-badge.location-maryland {
+    background-color: var(--badge-location-maryland-bg);
+    color: var(--badge-location-maryland-text);
+}
+.taxonomy-badge.location-michigan {
+    background-color: var(--badge-location-michigan-bg);
+    color: var(--badge-location-michigan-text);
+}
+.taxonomy-badge.location-nevada {
+    background-color: var(--badge-location-nevada-bg);
+    color: var(--badge-location-nevada-text);
+}
+.taxonomy-badge.location-las-vegas {
+    background-color: var(--badge-location-las-vegas-bg);
+    color: var(--badge-location-las-vegas-text);
+}
+.taxonomy-badge.location-new-jersey {
+    background-color: var(--badge-location-new-jersey-bg);
+    color: var(--badge-location-new-jersey-text);
+}
+.taxonomy-badge.location-washington {
+    background-color: var(--badge-location-washington-bg);
+    color: var(--badge-location-washington-text);
+}
+.taxonomy-badge.location-raleigh {
+    background-color: var(--badge-location-raleigh-bg);
+    color: var(--badge-location-raleigh-text);
+}
+.taxonomy-badge.location-peru {
+    background-color: var(--badge-location-peru-bg);
+    color: var(--badge-location-peru-text);
+}
+.taxonomy-badge.location-ohio {
+    background-color: var(--badge-location-ohio-bg);
+    color: var(--badge-location-ohio-text);
+}
+.taxonomy-badge.location-texas {
+    background-color: var(--badge-location-texas-bg);
+    color: var(--badge-location-texas-text);
+}
+.taxonomy-badge.location-north-carolina {
+    background-color: var(--badge-location-north-carolina-bg);
+    color: var(--badge-location-north-carolina-text);
+}
+.taxonomy-badge.location-savannah {
+    background-color: var(--badge-location-savannah-bg);
+    color: var(--badge-location-savannah-text);
+}
+.taxonomy-badge.location-athens {
+    background-color: var(--badge-location-athens-bg);
+    color: var(--badge-location-athens-text);
+}
+.taxonomy-badge.location-greenville {
+    background-color: var(--badge-location-greenville-bg);
+    color: var(--badge-location-greenville-text);
+}
+.taxonomy-badge.location-denver {
+    background-color: var(--badge-location-denver-bg);
+    color: var(--badge-location-denver-text);
+}
+.taxonomy-badge.location-san-francisco {
+    background-color: var(--badge-location-san-francisco-bg);
+    color: var(--badge-location-san-francisco-text);
+}
+.taxonomy-badge.location-detroit {
+    background-color: var(--badge-location-detroit-bg);
+    color: var(--badge-location-detroit-text);
+}
+.taxonomy-badge.location-los-angeles {
+    background-color: var(--badge-location-los-angeles-bg);
+    color: var(--badge-location-los-angeles-text);
+}
+.taxonomy-badge.location-san-diego {
+    background-color: var(--badge-location-san-diego-bg);
+    color: var(--badge-location-san-diego-text);
+}
+.taxonomy-badge.location-miami {
+    background-color: var(--badge-location-miami-bg);
+    color: var(--badge-location-miami-text);
+}
+.taxonomy-badge.location-new-york {
+    background-color: var(--badge-location-new-york-bg);
+    color: var(--badge-location-new-york-text);
+}
+.taxonomy-badge.location-brooklyn {
+    background-color: var(--badge-location-brooklyn-bg);
+    color: var(--badge-location-brooklyn-text);
+}
+.taxonomy-badge.location-seattle {
+    background-color: var(--badge-location-seattle-bg);
+    color: var(--badge-location-seattle-text);
+}
+.taxonomy-badge.location-boise {
+    background-color: var(--badge-location-boise-bg);
+    color: var(--badge-location-boise-text);
+}
+.taxonomy-badge.location-houston {
+    background-color: var(--badge-location-houston-bg);
+    color: var(--badge-location-houston-text);
+}
+.taxonomy-badge.location-columbus {
+    background-color: var(--badge-location-columbus-bg);
+    color: var(--badge-location-columbus-text);
+}
+.taxonomy-badge.location-memphis {
+    background-color: var(--badge-location-memphis-bg);
+    color: var(--badge-location-memphis-text);
+}
+.taxonomy-badge.location-tampa {
+    background-color: var(--badge-location-tampa-bg);
+    color: var(--badge-location-tampa-text);
+}
+.taxonomy-badge.location-minneapolis {
+    background-color: var(--badge-location-minneapolis-bg);
+    color: var(--badge-location-minneapolis-text);
+}
+.taxonomy-badge.location-orlando {
+    background-color: var(--badge-location-orlando-bg);
+    color: var(--badge-location-orlando-text);
+}
+.taxonomy-badge.location-phoenix {
+    background-color: var(--badge-location-phoenix-bg);
+    color: var(--badge-location-phoenix-text);
+}
+.taxonomy-badge.location-pittsburgh {
+    background-color: var(--badge-location-pittsburgh-bg);
+    color: var(--badge-location-pittsburgh-text);
+}
+.taxonomy-badge.location-portland {
+    background-color: var(--badge-location-portland-bg);
+    color: var(--badge-location-portland-text);
+}
+.taxonomy-badge.location-sacramento {
+    background-color: var(--badge-location-sacramento-bg);
+    color: var(--badge-location-sacramento-text);
+}
+.taxonomy-badge.location-salt-lake-city {
+    background-color: var(--badge-location-salt-lake-city-bg);
+    color: var(--badge-location-salt-lake-city-text);
+}
+.taxonomy-badge.location-san-antonio {
+    background-color: var(--badge-location-san-antonio-bg);
+    color: var(--badge-location-san-antonio-text);
+}
+.taxonomy-badge.location-st-louis {
+    background-color: var(--badge-location-st-louis-bg);
+    color: var(--badge-location-st-louis-text);
+}
+.taxonomy-badge.location-tucson {
+    background-color: var(--badge-location-tucson-bg);
+    color: var(--badge-location-tucson-text);
+}
+.taxonomy-badge.location-birmingham {
+    background-color: var(--badge-location-birmingham-bg);
+    color: var(--badge-location-birmingham-text);
+}
+.taxonomy-badge.location-cleveland {
+    background-color: var(--badge-location-cleveland-bg);
+    color: var(--badge-location-cleveland-text);
+}
+.taxonomy-badge.location-indianapolis {
+    background-color: var(--badge-location-indianapolis-bg);
+    color: var(--badge-location-indianapolis-text);
+}
+.taxonomy-badge.location-kansas-city {
+    background-color: var(--badge-location-kansas-city-bg);
+    color: var(--badge-location-kansas-city-text);
+}
+.taxonomy-badge.location-milwaukee {
+    background-color: var(--badge-location-milwaukee-bg);
+    color: var(--badge-location-milwaukee-text);
+}
+.taxonomy-badge.location-oakland {
+    background-color: var(--badge-location-oakland-bg);
+    color: var(--badge-location-oakland-text);
+}
+.taxonomy-badge.location-honolulu {
+    background-color: var(--badge-location-honolulu-bg);
+    color: var(--badge-location-honolulu-text);
+}
+.taxonomy-badge.location-omaha {
+    background-color: var(--badge-location-omaha-bg);
+    color: var(--badge-location-omaha-text);
+}
+.taxonomy-badge.location-dallas {
+    background-color: var(--badge-location-dallas-bg);
+    color: var(--badge-location-dallas-text);
+}
+
+/* === Category Badges === */
+
+.taxonomy-badge.category-festival-news-badge {
+    background-color: var(--badge-category-festival-news-bg);
+    color: var(--badge-category-festival-news-text);
+}
+.taxonomy-badge.category-interviews-badge {
+    background-color: var(--badge-category-interviews-bg);
+    color: var(--badge-category-interviews-text);
+}
+.taxonomy-badge.category-concerts-badge {
+    background-color: var(--badge-category-concerts-bg);
+    color: var(--badge-category-concerts-text);
+}
+.taxonomy-badge.category-festivals-badge {
+    background-color: var(--badge-category-festivals-bg);
+    color: var(--badge-category-festivals-text);
+}
+.taxonomy-badge.category-music-news-badge {
+    background-color: var(--badge-category-music-news-bg);
+    color: var(--badge-category-music-news-text);
+}
+.taxonomy-badge.category-song-meanings-badge {
+    background-color: var(--badge-category-song-meanings-bg);
+    color: var(--badge-category-song-meanings-text);
+}
+
+/* === Venue Badges === */
+
+.taxonomy-badge.venue-badge {
+    background-color: var(--badge-venue-default-bg);
+    color: var(--badge-venue-default-text);
+}
+.taxonomy-badge.venue-the-royal-american {
+    background-color: var(--badge-venue-the-royal-american-bg);
+    color: var(--badge-venue-the-royal-american-text);
+}
+.taxonomy-badge.venue-the-bounty-bar {
+    background-color: var(--badge-venue-the-bounty-bar-bg);
+    color: var(--badge-venue-the-bounty-bar-text);
+}
+.taxonomy-badge.venue-the-refinery {
+    background-color: var(--badge-venue-the-refinery-bg);
+    color: var(--badge-venue-the-refinery-text);
+}
+.taxonomy-badge.venue-lo-fi-brewing {
+    background-color: var(--badge-venue-lo-fi-brewing-bg);
+    color: var(--badge-venue-lo-fi-brewing-text);
+}
+.taxonomy-badge.venue-charleston-tin-roof {
+    background-color: var(--badge-venue-charleston-tin-roof-bg);
+    color: var(--badge-venue-charleston-tin-roof-text);
+}
+
+/* === Artist Badges === */
+
+.taxonomy-badge.artist-susto {
+    background-color: var(--badge-artist-susto-bg);
+    color: var(--badge-artist-susto-text);
+}

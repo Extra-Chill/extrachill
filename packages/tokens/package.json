@@ -15,6 +15,7 @@
     "./css/tokens-dark.css": "./css/tokens-dark.css",
     "./css/tokens-all.css": "./css/tokens-all.css",
     "./css/root.css": "./css/root.css",
+    "./css/taxonomy-badges.css": "./css/taxonomy-badges.css",
     "./tokens.json": "./tokens.json"
   },
   "files": [
@@ -25,10 +26,12 @@
   "scripts": {
     "build": "tsc && tsc --module esnext --outDir dist/esm && node scripts/build.mjs",
     "generate:root-css": "node scripts/generate-root-css.mjs --out css/root.css",
+    "generate:taxonomy-badges-css": "node scripts/generate-taxonomy-badges-css.mjs --out css/taxonomy-badges.css",
+    "generate": "npm run generate:root-css && npm run generate:taxonomy-badges-css",
     "validate": "node scripts/validate.mjs",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build && npm run generate:root-css && npm run validate"
+    "prepublishOnly": "npm run clean && npm run build && npm run generate && npm run validate"
   },
   "keywords": [
     "extrachill",
