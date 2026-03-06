@@ -45,7 +45,9 @@
   "bugs": {
     "url": "https://github.com/Extra-Chill/extrachill-tokens/issues"
   },
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "typescript": "^5.4.0"
   }

@@ -7,11 +7,10 @@ This is a **platform primitive**. It owns the canonical token definitions that t
 ## Installation
 
 ```bash
-# From the monorepo workspace or via file: reference
 npm install @extrachill/tokens
 ```
 
-> **Note:** This package is currently `private: true` and consumed via workspace or file references, not published to npm.
+Published to npm as `@extrachill/tokens` alongside `@extrachill/components` and `@extrachill/api-client`.
 
 ## Exports
 
@@ -111,11 +110,13 @@ tokens.json          ← Single source of truth
 
 ### Relationship to Theme
 
-The Extra Chill theme (`wp-content/themes/extrachill/assets/css/root.css`) currently defines these same tokens inline. The migration path:
+The Extra Chill theme (`wp-content/themes/extrachill/assets/css/root.css`) currently defines these same tokens inline. The theme is the **runtime delivery mechanism** — it loads CSS variables onto the page via `wp_enqueue_style()`. This package is the **source of truth** for what those values are.
 
-1. **Now:** `extrachill-tokens` is the canonical definition. Theme still has its own `root.css`.
-2. **Next:** Theme's `root.css` imports from `@extrachill/tokens/css/tokens-all.css` instead of defining inline.
-3. **Later:** Plugins and blocks import tokens directly instead of relying on the theme's CSS cascade.
+The theme has no build step (raw CSS files), so it doesn't `@import` from npm packages. Instead:
+
+1. **Now:** `@extrachill/tokens` is the canonical definition. Theme keeps its own `root.css` in sync manually.
+2. **Next:** A script or CI check validates that theme `root.css` matches `tokens.json`.
+3. **First real consumers:** Blocks and React apps (`@extrachill/components`, `extrachill-studio`) import tokens via TypeScript — things that already have npm and build steps.
 
 ### Relationship to Data Machine
 
@@ -139,8 +140,8 @@ npm run validate
 
 ## Future Work
 
-- [ ] Theme migration: make `root.css` import from this package
-- [ ] Plugin migration: `extrachill-events`, `extrachill-users`, etc. consume tokens directly
+- [ ] Theme sync validation: CI script to verify `root.css` matches `tokens.json`
+- [ ] Plugin block migration: blocks with build steps consume tokens via TS imports
 - [ ] Token prefixing: optional `--ec-*` prefixed variant for namespace safety
 - [ ] `extrachill-components` integration: consume tokens instead of hardcoded values
 - [ ] `extrachill-studio` integration: consume tokens for consistent theming
