@@ -88,9 +88,15 @@ if ( function_exists( 'extrachill_breadcrumbs' ) ) {
 				</div>
 			<?php endif; ?>
 
-		<?php else : ?>
-			<div class="product-gallery__main-image product-placeholder-image"></div>
-		<?php endif; ?>
+	<?php else : ?>
+		<div class="product-gallery__main-image">
+			<img
+				id="product-main-image"
+				src="<?php echo esc_url( wc_placeholder_img_src( 'large' ) ); ?>"
+				alt="<?php echo esc_attr( $product->get_name() ); ?>"
+			/>
+		</div>
+	<?php endif; ?>
 	</div>
 
 	<!-- Product Summary -->

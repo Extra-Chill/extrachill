@@ -19,11 +19,7 @@ if ( empty( $product ) || ! $product->is_visible() ) {
 <li <?php wc_product_class( '', $product ); ?>>
 	<div class="product-card-image">
 		<a href="<?php echo esc_url( get_permalink() ); ?>">
-			<?php if ( $product->get_image_id() ) : ?>
-				<?php echo $product->get_image( 'woocommerce_thumbnail' ); ?>
-			<?php else : ?>
-				<div class="product-placeholder-image"></div>
-			<?php endif; ?>
+		<?php echo $product->get_image( 'woocommerce_thumbnail' ); ?>
 		</a>
 	</div>
 
