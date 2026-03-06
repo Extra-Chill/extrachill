@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0] - 2026-03-06
+
+### Changed
+- Add badge color tokens, root.css generator, and cssRef support
+- Remove private flag, fix theme migration guidance in README
+- Initial scaffold: design tokens extracted from theme root.css
+
 ## [0.1.0] - 2026-03-05
 
 - Initial release
