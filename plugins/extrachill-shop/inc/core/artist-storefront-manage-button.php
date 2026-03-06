@@ -37,11 +37,11 @@ function extrachill_shop_maybe_render_manage_shop_button() {
 		return;
 	}
 
-	if ( ! function_exists( 'ec_get_artist_profile_by_slug' ) ) {
+	if ( ! function_exists( 'extrachill_get_artist_profile_by_slug' ) ) {
 		return;
 	}
 
-	$artist_data = ec_get_artist_profile_by_slug( $term->slug );
+	$artist_data = extrachill_get_artist_profile_by_slug( $term->slug );
 	if ( empty( $artist_data['id'] ) ) {
 		return;
 	}
