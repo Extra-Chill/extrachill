@@ -100,6 +100,8 @@ extrachill_studio_enqueue_shared_tabs_assets();
 $current_user = wp_get_current_user();
 $site_name    = get_bloginfo( 'name' );
 $site_url     = home_url( '/' );
+$rest_nonce   = wp_create_nonce( 'wp_rest' );
+$socials_api  = rest_url( 'datamachine-socials/v1/' );
 ?>
 
 <div
@@ -108,6 +110,8 @@ $site_url     = home_url( '/' );
 	data-user-name="<?php echo esc_attr( $current_user->display_name ); ?>"
 	data-site-name="<?php echo esc_attr( $site_name ); ?>"
 	data-site-url="<?php echo esc_url( $site_url ); ?>"
+	data-rest-nonce="<?php echo esc_attr( $rest_nonce ); ?>"
+	data-socials-api-base="<?php echo esc_url( $socials_api ); ?>"
 >
 	<div class="ec-studio-shell">
 		<?php if ( $headline ) : ?>
@@ -154,12 +158,12 @@ $site_url     = home_url( '/' );
 				</div>
 
 				<div class="shared-tab-item">
-					<button type="button" class="shared-tab-button" data-tab="tab-studio-publishing">
-						<?php esc_html_e( 'Publishing', 'extrachill-studio' ); ?>
+					<button type="button" class="shared-tab-button" data-tab="tab-studio-instagram">
+						<?php esc_html_e( 'Instagram', 'extrachill-studio' ); ?>
 						<span class="shared-tab-arrow"></span>
 					</button>
-					<div id="tab-studio-publishing" class="shared-tab-pane">
-						<div class="ec-studio-pane__mount" data-ec-studio-pane="publishing"></div>
+					<div id="tab-studio-instagram" class="shared-tab-pane">
+						<div class="ec-studio-pane__mount" data-ec-studio-pane="instagram"></div>
 					</div>
 				</div>
 			</div>

@@ -161,6 +161,18 @@
 	color: var(--success-color);
 }
 
+.ec-studio-message--info {
+	background: rgba(0, 123, 255, 0.08);
+	border: 1px solid rgba(0, 123, 255, 0.2);
+	color: var(--link-color);
+}
+
+.ec-studio-message--warning {
+	background: rgba(255, 193, 7, 0.12);
+	border: 1px solid rgba(255, 193, 7, 0.28);
+	color: var(--text-color);
+}
+
 .ec-studio-preview {
 	white-space: pre-wrap;
 	padding: var(--spacing-md);
@@ -191,6 +203,46 @@
 
 .ec-studio-qr-result__download {
 	text-decoration: none;
+}
+
+.ec-studio-image-list {
+	display: grid;
+	gap: var(--spacing-sm);
+	list-style: none;
+	padding: 0;
+	margin: var(--spacing-md) 0 0;
+}
+
+.ec-studio-image-list__item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-md);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--background-color);
+}
+
+.ec-studio-image-list__url {
+	word-break: break-word;
+	font-size: var(--font-size-sm);
+}
+
+.ec-studio-image-list__remove {
+	background: transparent;
+	border: none;
+	color: var(--link-color);
+	cursor: pointer;
+	font: inherit;
+	padding: 0;
+	white-space: nowrap;
+}
+
+.ec-studio-instagram-result {
+	margin-top: var(--spacing-lg);
+	padding-top: var(--spacing-md);
+	border-top: 1px solid var(--border-color);
 }
 
 .ec-studio-roadmap {

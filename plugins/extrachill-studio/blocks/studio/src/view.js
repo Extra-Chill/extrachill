@@ -1,6 +1,5 @@
-import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, createRoot, render, useState } from '@wordpress/element';
+import { createElement, createRoot, render, useEffect, useState } from '@wordpress/element';
 
 const ROOT_SELECTOR = '[data-ec-studio-root]';
 
@@ -20,6 +19,49 @@ const mountComponent = ( container, component ) => {
 	}
 };
 
+const requestJson = async ( url, nonce, options = {} ) => {
+	const headers = {
+		Accept: 'application/json',
+		'X-WP-Nonce': nonce,
+		...( options.headers || {} ),
+	};
+
+	if ( options.body && ! headers['Content-Type'] ) {
+		headers['Content-Type'] = 'application/json';
+	}
+
+	const response = await fetch( url, {
+		credentials: 'same-origin',
+		...options,
+		headers,
+	} );
+
+	let data = null;
+
+	try {
+		data = await response.json();
+	} catch ( error ) {
+		data = null;
+	}
+
+	if ( ! response.ok ) {
+		throw new Error( data?.message || data?.error || sprintf( __( 'Request failed (%d)', 'extrachill-studio' ), response.status ) );
+	}
+
+	return data;
+};
+
+const uploadFile = async ( url, nonce, file ) => {
+	const formData = new FormData();
+	formData.append( 'file', file );
+
+	return requestJson( url, nonce, {
+		method: 'POST',
+		body: formData,
+		headers: {},
+	} );
+};
+
 const OverviewPane = ( { context } ) => createElement(
 	'div',
 	{ className: 'ec-studio-pane ec-studio-pane--overview' },
@@ -31,25 +73,25 @@ const OverviewPane = ( { context } ) => createElement(
 			{ className: 'ec-studio-panel' },
 			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Welcome', 'extrachill-studio' ) ),
 			createElement( 'h3', null, sprintf( __( 'Hey %s', 'extrachill-studio' ), context.userName || __( 'team member', 'extrachill-studio' ) ) ),
-			createElement( 'p', null, __( 'Studio 0.1.0 is live as the internal shell for publishing workflows, caption drafting, and future AI-assisted team tools.', 'extrachill-studio' ) )
+			createElement( 'p', null, __( 'Studio 0.1.0 is now a working internal shell with real utilities for the team.', 'extrachill-studio' ) )
 		),
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
 			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Current site', 'extrachill-studio' ) ),
 			createElement( 'h3', null, context.siteName || __( 'Extra Chill', 'extrachill-studio' ) ),
-			createElement( 'p', null, __( 'This first release stays lightweight and aligned with the existing multisite theme system, team-member permissions, and shared tabs UI.', 'extrachill-studio' ) )
+			createElement( 'p', null, __( 'Studio stays aligned with the existing multisite theme system, team-member permissions, and shared tabs UI.', 'extrachill-studio' ) )
 		),
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'What comes next', 'extrachill-studio' ) ),
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'What works now', 'extrachill-studio' ) ),
 			createElement(
 				'ul',
 				null,
-				createElement( 'li', null, __( 'Build on the QR generator with more real team tools.', 'extrachill-studio' ) ),
-				createElement( 'li', null, __( 'Add Data Machine-backed caption and publishing jobs where async work makes sense.', 'extrachill-studio' ) ),
-				createElement( 'li', null, __( 'Expand toward team-specific assistants and social workflows.', 'extrachill-studio' ) )
+				createElement( 'li', null, __( 'Generate print-ready QR codes from any URL.', 'extrachill-studio' ) ),
+				createElement( 'li', null, __( 'Upload image files for Instagram posting through Data Machine Socials.', 'extrachill-studio' ) ),
+				createElement( 'li', null, __( 'Publish an Instagram post with caption and image URLs using the existing socials backend.', 'extrachill-studio' ) )
 			)
 		)
 	)
@@ -78,16 +120,25 @@ const QrCodesPane = () => {
 		setStatus( __( 'Generating QR code…', 'extrachill-studio' ) );
 
 		try {
-			const response = await apiFetch( {
-				path: '/extrachill/v1/tools/qr-code',
+			const response = await fetch( '/wp-json/extrachill/v1/tools/qr-code', {
 				method: 'POST',
-				data: {
+				headers: {
+					'Content-Type': 'application/json',
+					Accept: 'application/json',
+				},
+				body: JSON.stringify( {
 					url: trimmedUrl,
 					size: Number.isNaN( parsedSize ) ? 1000 : parsedSize,
-				},
+				} ),
 			} );
 
-			setImageUrl( response.image_url || '' );
+			const responseData = await response.json();
+
+			if ( ! response.ok ) {
+				throw new Error( responseData?.message || responseData?.error || __( 'QR generation failed. Please try again.', 'extrachill-studio' ) );
+			}
+
+			setImageUrl( responseData.image_url || '' );
 			setStatus( __( 'QR code ready to preview and download.', 'extrachill-studio' ) );
 		} catch ( fetchError ) {
 			setImageUrl( '' );
@@ -184,24 +235,287 @@ const QrCodesPane = () => {
 	);
 };
 
-const PublishingPane = () => createElement(
-	'div',
-	{ className: 'ec-studio-pane ec-studio-pane--publishing' },
-	createElement(
+const InstagramPane = ( { context } ) => {
+	const [ authStatus, setAuthStatus ] = useState( null );
+	const [ authError, setAuthError ] = useState( '' );
+	const [ isCheckingAuth, setIsCheckingAuth ] = useState( true );
+	const [ caption, setCaption ] = useState( '' );
+	const [ imageUrlInput, setImageUrlInput ] = useState( '' );
+	const [ imageUrls, setImageUrls ] = useState( [] );
+	const [ selectedFile, setSelectedFile ] = useState( null );
+	const [ isUploading, setIsUploading ] = useState( false );
+	const [ isPublishing, setIsPublishing ] = useState( false );
+	const [ status, setStatus ] = useState( '' );
+	const [ error, setError ] = useState( '' );
+	const [ publishResult, setPublishResult ] = useState( null );
+
+	useEffect( () => {
+		const loadAuthStatus = async () => {
+			setIsCheckingAuth( true );
+			setAuthError( '' );
+
+			try {
+				const statuses = await requestJson( `${ context.socialsApiBase }auth/status`, context.restNonce, {
+					method: 'GET',
+				} );
+
+				const instagram = Array.isArray( statuses )
+					? statuses.find( ( item ) => item.platform === 'instagram' )
+					: null;
+
+				setAuthStatus( instagram || null );
+			} catch ( fetchError ) {
+				setAuthError( fetchError?.message || __( 'Unable to load Instagram auth status.', 'extrachill-studio' ) );
+			} finally {
+				setIsCheckingAuth( false );
+			}
+		};
+
+		loadAuthStatus();
+	}, [ context.restNonce, context.socialsApiBase ] );
+
+	const addImageUrl = () => {
+		const nextUrl = imageUrlInput.trim();
+
+		if ( ! nextUrl ) {
+			setError( __( 'Enter an image URL first.', 'extrachill-studio' ) );
+			return;
+		}
+
+		try {
+			new URL( nextUrl );
+		} catch ( urlError ) {
+			setError( __( 'Please enter a valid image URL.', 'extrachill-studio' ) );
+			return;
+		}
+
+		setImageUrls( ( current ) => [ ...current, nextUrl ] );
+		setImageUrlInput( '' );
+		setError( '' );
+		setStatus( __( 'Image URL added to publish queue.', 'extrachill-studio' ) );
+	};
+
+	const handleUpload = async () => {
+		if ( ! selectedFile ) {
+			setError( __( 'Choose an image file to upload first.', 'extrachill-studio' ) );
+			return;
+		}
+
+		setIsUploading( true );
+		setError( '' );
+		setStatus( __( 'Uploading image…', 'extrachill-studio' ) );
+
+		try {
+			const response = await uploadFile( `${ context.socialsApiBase }media/crop`, context.restNonce, selectedFile );
+
+			if ( ! response?.url ) {
+				throw new Error( __( 'Upload did not return an image URL.', 'extrachill-studio' ) );
+			}
+
+			setImageUrls( ( current ) => [ ...current, response.url ] );
+			setSelectedFile( null );
+			setStatus( __( 'Image uploaded and added to publish queue.', 'extrachill-studio' ) );
+		} catch ( uploadError ) {
+			setError( uploadError?.message || __( 'Image upload failed.', 'extrachill-studio' ) );
+			setStatus( '' );
+		} finally {
+			setIsUploading( false );
+		}
+	};
+
+	const removeImageUrl = ( index ) => {
+		setImageUrls( ( current ) => current.filter( ( item, itemIndex ) => itemIndex !== index ) );
+		setStatus( __( 'Image removed from publish queue.', 'extrachill-studio' ) );
+		setError( '' );
+	};
+
+	const publishInstagramPost = async () => {
+		if ( ! caption.trim() ) {
+			setError( __( 'Add a caption before publishing.', 'extrachill-studio' ) );
+			setStatus( '' );
+			return;
+		}
+
+		if ( imageUrls.length === 0 ) {
+			setError( __( 'Add at least one image URL before publishing.', 'extrachill-studio' ) );
+			setStatus( '' );
+			return;
+		}
+
+		setIsPublishing( true );
+		setError( '' );
+		setPublishResult( null );
+		setStatus( __( 'Publishing to Instagram…', 'extrachill-studio' ) );
+
+		try {
+			const response = await requestJson( `${ context.socialsApiBase }post`, context.restNonce, {
+				method: 'POST',
+				body: JSON.stringify( {
+					platforms: [ 'instagram' ],
+					images: imageUrls.map( ( url ) => ( { url } ) ),
+					caption: caption.trim(),
+				} ),
+			} );
+
+			setPublishResult( response );
+
+			if ( response?.success ) {
+				setStatus( __( 'Instagram publish completed.', 'extrachill-studio' ) );
+				setCaption( '' );
+				setImageUrls( [] );
+			} else {
+				setStatus( '' );
+				setError( response?.errors?.join( ' ' ) || __( 'Instagram publish failed.', 'extrachill-studio' ) );
+			}
+		} catch ( publishError ) {
+			setStatus( '' );
+			setError( publishError?.message || __( 'Instagram publish failed.', 'extrachill-studio' ) );
+		} finally {
+			setIsPublishing( false );
+		}
+	};
+
+	const instagramResult = Array.isArray( publishResult?.results )
+		? publishResult.results.find( ( result ) => result.platform === 'instagram' )
+		: null;
+
+	return createElement(
 		'div',
-		{ className: 'ec-studio-panel' },
-		createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Publishing roadmap', 'extrachill-studio' ) ),
-			createElement( 'h3', null, __( 'Feature path from QR utility to real workflow engine', 'extrachill-studio' ) ),
+		{ className: 'ec-studio-pane ec-studio-pane--instagram' },
+		createElement(
+			'div',
+			{ className: 'ec-studio-panel' },
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Instagram publish', 'extrachill-studio' ) ),
+			createElement( 'h3', null, __( 'Publish a post through Data Machine Socials', 'extrachill-studio' ) ),
+			createElement( 'p', null, __( 'This first Studio flow uses the existing socials auth, upload, and cross-post endpoints without adding new backend primitives.', 'extrachill-studio' ) ),
+			isCheckingAuth
+				? createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Checking Instagram authentication…', 'extrachill-studio' ) )
+				: null,
+			authError ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, authError ) : null,
+			authStatus
+				? createElement(
+					'p',
+					{ className: `ec-studio-message ${ authStatus.authenticated ? 'ec-studio-message--success' : 'ec-studio-message--warning' }` },
+					authStatus.authenticated
+						? sprintf( __( 'Instagram is authenticated as @%s.', 'extrachill-studio' ), authStatus.username || 'unknown' )
+						: __( 'Instagram is not authenticated yet in Data Machine Socials.', 'extrachill-studio' )
+				)
+				: null,
 			createElement(
-				'ul',
-				{ className: 'ec-studio-roadmap' },
-				createElement( 'li', null, createElement( 'span', null, __( 'QR code generation for flyers, signage, and print materials', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Live', 'extrachill-studio' ) ) ),
-				createElement( 'li', null, createElement( 'span', null, __( 'Caption generation with reusable prompts and site context', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Next', 'extrachill-studio' ) ) ),
-				createElement( 'li', null, createElement( 'span', null, __( 'Draft social publishing workflows for Instagram and related channels', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Planned', 'extrachill-studio' ) ) ),
-				createElement( 'li', null, createElement( 'span', null, __( 'Per-team-member assistants connected to WordPress tools and Data Machine jobs', 'extrachill-studio' ) ), createElement( 'span', { className: 'ec-studio-roadmap__status' }, __( 'Vision', 'extrachill-studio' ) ) )
+				'div',
+				{ className: 'ec-studio-composer' },
+				createElement(
+					'div',
+					null,
+					createElement( 'label', { htmlFor: 'ec-studio-instagram-caption' }, __( 'Caption', 'extrachill-studio' ) ),
+					createElement( 'textarea', {
+						id: 'ec-studio-instagram-caption',
+						rows: 6,
+						value: caption,
+						onChange: ( event ) => setCaption( event.target.value ),
+						placeholder: __( 'Write the Instagram caption here…', 'extrachill-studio' ),
+					} )
+				),
+				createElement(
+					'div',
+					null,
+					createElement( 'label', { htmlFor: 'ec-studio-instagram-image-url' }, __( 'Image URL', 'extrachill-studio' ) ),
+					createElement( 'input', {
+						id: 'ec-studio-instagram-image-url',
+						type: 'url',
+						value: imageUrlInput,
+						onChange: ( event ) => setImageUrlInput( event.target.value ),
+						placeholder: 'https://example.com/image.jpg',
+						autoComplete: 'url',
+					} )
+				),
+				createElement(
+					'div',
+					{ className: 'ec-studio-composer__actions' },
+					createElement( 'button', { type: 'button', className: 'button-1 button-medium', onClick: addImageUrl }, __( 'Add Image URL', 'extrachill-studio' ) ),
+					createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'Use a public image URL or upload a file below.', 'extrachill-studio' ) )
+				),
+				createElement(
+					'div',
+					null,
+					createElement( 'label', { htmlFor: 'ec-studio-instagram-upload' }, __( 'Upload image', 'extrachill-studio' ) ),
+					createElement( 'input', {
+						id: 'ec-studio-instagram-upload',
+						type: 'file',
+						accept: 'image/*',
+						onChange: ( event ) => {
+							setSelectedFile( event.target.files?.[0] || null );
+							setError( '' );
+							setStatus( '' );
+						},
+					} )
+				),
+				createElement(
+					'div',
+					{ className: 'ec-studio-composer__actions' },
+					createElement(
+						'button',
+						{
+							type: 'button',
+							className: 'button-1 button-medium',
+							onClick: handleUpload,
+							disabled: isUploading || ! selectedFile,
+						},
+						isUploading ? __( 'Uploading…', 'extrachill-studio' ) : __( 'Upload Image', 'extrachill-studio' )
+					),
+					selectedFile
+						? createElement( 'span', { className: 'ec-studio-composer__hint' }, selectedFile.name )
+						: null
+				),
+				error ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, error ) : null,
+				! error && status ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--success' }, status ) : null,
+				createElement(
+					'div',
+					{ className: 'ec-studio-composer__actions' },
+					createElement(
+						'button',
+						{
+							type: 'button',
+							className: 'button-1 button-medium',
+							onClick: publishInstagramPost,
+							disabled: isPublishing || ! authStatus?.authenticated,
+						},
+						isPublishing ? __( 'Publishing…', 'extrachill-studio' ) : __( 'Publish to Instagram', 'extrachill-studio' )
+					),
+					createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'This uses the existing `datamachine-socials/v1/post` route.', 'extrachill-studio' ) )
+				)
 			)
-	)
-);
+		),
+		createElement(
+			'div',
+			{ className: 'ec-studio-panel' },
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Queued images', 'extrachill-studio' ) ),
+			imageUrls.length > 0
+				? createElement(
+					'ul',
+					{ className: 'ec-studio-image-list' },
+					...imageUrls.map( ( url, index ) => createElement(
+						'li',
+						{ key: `${ url }-${ index }`, className: 'ec-studio-image-list__item' },
+						createElement( 'span', { className: 'ec-studio-image-list__url' }, url ),
+						createElement( 'button', { type: 'button', className: 'ec-studio-image-list__remove', onClick: () => removeImageUrl( index ) }, __( 'Remove', 'extrachill-studio' ) )
+					) )
+				)
+				: createElement( 'div', { className: 'ec-studio-preview' }, __( 'No images added yet. Add image URLs or upload files before publishing.', 'extrachill-studio' ) ),
+			instagramResult
+				? createElement(
+					'div',
+					{ className: 'ec-studio-instagram-result' },
+					createElement( 'h4', null, __( 'Latest publish result', 'extrachill-studio' ) ),
+					instagramResult.permalink
+						? createElement( 'p', null, createElement( 'a', { href: instagramResult.permalink, target: '_blank', rel: 'noreferrer' }, __( 'View Instagram post', 'extrachill-studio' ) ) )
+						: null,
+					instagramResult.media_id ? createElement( 'p', null, sprintf( __( 'Media ID: %s', 'extrachill-studio' ), instagramResult.media_id ) ) : null
+				)
+				: null
+		)
+	);
+};
 
 const initRoot = ( root ) => {
 	if ( ! root || root.dataset.ecStudioMounted === 'true' ) {
@@ -214,6 +528,8 @@ const initRoot = ( root ) => {
 		userName: root.dataset.userName || '',
 		siteName: root.dataset.siteName || '',
 		siteUrl: root.dataset.siteUrl || '',
+		restNonce: root.dataset.restNonce || '',
+		socialsApiBase: root.dataset.socialsApiBase || '',
 	};
 
 	const mounts = root.querySelectorAll( '[data-ec-studio-pane]' );
@@ -231,8 +547,8 @@ const initRoot = ( root ) => {
 			return;
 		}
 
-		if ( pane === 'publishing' ) {
-			mountComponent( mount, createElement( PublishingPane ) );
+		if ( pane === 'instagram' ) {
+			mountComponent( mount, createElement( InstagramPane, { context } ) );
 		}
 	} );
 };

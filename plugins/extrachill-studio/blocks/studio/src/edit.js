@@ -59,7 +59,7 @@ export default function Edit( { attributes, setAttributes } ) {
 
 						<div className="shared-tab-item">
 							<button type="button" className="shared-tab-button">
-								{ __( 'Publishing', 'extrachill-studio' ) }
+								{ __( 'Instagram', 'extrachill-studio' ) }
 								<span className="shared-tab-arrow" />
 							</button>
 						</div>
