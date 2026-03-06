@@ -87,8 +87,11 @@ class ExtraChillShop {
 		// Artist notifications
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-order-notifications.php';
 
-		// Templates
-		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/cart-icon.php';
+	// Notices
+	require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/under-construction-notice.php';
+
+	// Templates
+	require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/cart-icon.php';
 	}
 
 	public function load_textdomain() {
