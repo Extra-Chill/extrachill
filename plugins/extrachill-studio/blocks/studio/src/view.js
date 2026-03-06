@@ -1,7 +1,11 @@
+import apiFetch from '@wordpress/api-fetch';
+import { ExtraChillClient } from '@extrachill/api-client';
+import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, createRoot, render, useEffect, useState } from '@wordpress/element';
 
 const ROOT_SELECTOR = '[data-ec-studio-root]';
+const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 
 const mountComponent = ( container, component ) => {
 	if ( ! container ) {
@@ -19,47 +23,11 @@ const mountComponent = ( container, component ) => {
 	}
 };
 
-const requestJson = async ( url, nonce, options = {} ) => {
-	const headers = {
-		Accept: 'application/json',
-		'X-WP-Nonce': nonce,
-		...( options.headers || {} ),
-	};
-
-	if ( options.body && ! headers['Content-Type'] ) {
-		headers['Content-Type'] = 'application/json';
-	}
-
-	const response = await fetch( url, {
-		credentials: 'same-origin',
-		...options,
-		headers,
-	} );
-
-	let data = null;
-
-	try {
-		data = await response.json();
-	} catch ( error ) {
-		data = null;
-	}
-
-	if ( ! response.ok ) {
-		throw new Error( data?.message || data?.error || sprintf( __( 'Request failed (%d)', 'extrachill-studio' ), response.status ) );
-	}
-
-	return data;
-};
-
-const uploadFile = async ( url, nonce, file ) => {
+const uploadFile = async ( file ) => {
 	const formData = new FormData();
 	formData.append( 'file', file );
 
-	return requestJson( url, nonce, {
-		method: 'POST',
-		body: formData,
-		headers: {},
-	} );
+	return client.socials.uploadCroppedMedia( formData );
 };
 
 const OverviewPane = ( { context } ) => createElement(
@@ -120,24 +88,7 @@ const QrCodesPane = () => {
 		setStatus( __( 'Generating QR code…', 'extrachill-studio' ) );
 
 		try {
-			const response = await fetch( '/wp-json/extrachill/v1/tools/qr-code', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Accept: 'application/json',
-				},
-				body: JSON.stringify( {
-					url: trimmedUrl,
-					size: Number.isNaN( parsedSize ) ? 1000 : parsedSize,
-				} ),
-			} );
-
-			const responseData = await response.json();
-
-			if ( ! response.ok ) {
-				throw new Error( responseData?.message || responseData?.error || __( 'QR generation failed. Please try again.', 'extrachill-studio' ) );
-			}
-
+			const responseData = await client.admin.generateQrCode( trimmedUrl, Number.isNaN( parsedSize ) ? 1000 : parsedSize );
 			setImageUrl( responseData.image_url || '' );
 			setStatus( __( 'QR code ready to preview and download.', 'extrachill-studio' ) );
 		} catch ( fetchError ) {
@@ -255,9 +206,7 @@ const InstagramPane = ( { context } ) => {
 			setAuthError( '' );
 
 			try {
-				const statuses = await requestJson( `${ context.socialsApiBase }auth/status`, context.restNonce, {
-					method: 'GET',
-				} );
+				const statuses = await client.socials.getAuthStatus();
 
 				const instagram = Array.isArray( statuses )
 					? statuses.find( ( item ) => item.platform === 'instagram' )
@@ -272,7 +221,7 @@ const InstagramPane = ( { context } ) => {
 		};
 
 		loadAuthStatus();
-	}, [ context.restNonce, context.socialsApiBase ] );
+	}, [] );
 
 	const addImageUrl = () => {
 		const nextUrl = imageUrlInput.trim();
@@ -306,7 +255,7 @@ const InstagramPane = ( { context } ) => {
 		setStatus( __( 'Uploading image…', 'extrachill-studio' ) );
 
 		try {
-			const response = await uploadFile( `${ context.socialsApiBase }media/crop`, context.restNonce, selectedFile );
+			const response = await uploadFile( selectedFile );
 
 			if ( ! response?.url ) {
 				throw new Error( __( 'Upload did not return an image URL.', 'extrachill-studio' ) );
@@ -348,13 +297,10 @@ const InstagramPane = ( { context } ) => {
 		setStatus( __( 'Publishing to Instagram…', 'extrachill-studio' ) );
 
 		try {
-			const response = await requestJson( `${ context.socialsApiBase }post`, context.restNonce, {
-				method: 'POST',
-				body: JSON.stringify( {
-					platforms: [ 'instagram' ],
-					images: imageUrls.map( ( url ) => ( { url } ) ),
-					caption: caption.trim(),
-				} ),
+			const response = await client.socials.crossPost( {
+				platforms: [ 'instagram' ],
+				images: imageUrls.map( ( url ) => ( { url } ) ),
+				caption: caption.trim(),
 			} );
 
 			setPublishResult( response );

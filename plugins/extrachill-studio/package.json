@@ -10,6 +10,7 @@
 		"copy:block-files": "cp blocks/studio/block.json blocks/studio/render.php blocks/studio/style.css build/studio/"
 	},
 	"devDependencies": {
+		"@extrachill/api-client": "file:../extrachill-api-client",
 		"@wordpress/scripts": "^31.1.0"
 	}
 }
