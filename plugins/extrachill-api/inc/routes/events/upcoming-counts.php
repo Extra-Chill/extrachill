@@ -42,10 +42,9 @@ function extrachill_api_register_events_upcoming_counts_route() {
 				'limit'    => array(
 					'required'          => false,
 					'type'              => 'integer',
-					'default'           => 8,
-					'minimum'           => 1,
-					'maximum'           => 50,
-					'description'       => 'Max terms to return for bulk queries (default: 8, max: 50)',
+					'default'           => 0,
+					'minimum'           => 0,
+					'description'       => 'Max terms to return for bulk queries. 0 = unlimited (default).',
 					'sanitize_callback' => 'absint',
 				),
 			),
@@ -62,7 +61,7 @@ function extrachill_api_register_events_upcoming_counts_route() {
 function extrachill_api_events_upcoming_counts_handler( WP_REST_Request $request ) {
 	$taxonomy = $request->get_param( 'taxonomy' );
 	$slug     = $request->get_param( 'slug' );
-	$limit    = $request->get_param( 'limit' ) ?: 8;
+	$limit    = (int) $request->get_param( 'limit' );
 
 	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
 	if ( ! $events_blog_id ) {
@@ -187,7 +186,7 @@ function extrachill_api_get_bulk_upcoming_counts( $taxonomy, $events_blog_id, $l
 		}
 	);
 
-	return array_slice( $results, 0, $limit );
+	return $limit > 0 ? array_slice( $results, 0, $limit ) : $results;
 }
 
 /**

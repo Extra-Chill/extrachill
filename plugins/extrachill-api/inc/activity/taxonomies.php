@@ -20,6 +20,14 @@ define( 'EXTRACHILL_ACTIVITY_TAXONOMY_ALLOWLIST', array(
 	'promoter',
 ) );
 
+/**
+ * Get taxonomy badge color map from @extrachill/tokens.
+ *
+ * Reads the taxonomy-badge category from the tokens.json installed via npm
+ * in the theme's node_modules. Returns a map of "{taxonomy}-{slug}" => colors.
+ *
+ * @return array Map of badge_key => array( 'background_color', 'text_color' ).
+ */
 function extrachill_api_activity_get_taxonomy_badge_color_map() {
 	static $badge_map = null;
 	if ( null !== $badge_map ) {
@@ -28,56 +36,37 @@ function extrachill_api_activity_get_taxonomy_badge_color_map() {
 
 	$badge_map = array();
 
-	$css_path = get_stylesheet_directory() . '/assets/css/taxonomy-badges.css';
-	if ( ! file_exists( $css_path ) ) {
+	// Read from @extrachill/tokens package in theme node_modules.
+	$tokens_path = get_stylesheet_directory() . '/node_modules/@extrachill/tokens/tokens.json';
+
+	// Fallback: check the multisite plugin for a bundled copy.
+	if ( ! file_exists( $tokens_path ) ) {
+		$tokens_path = WP_PLUGIN_DIR . '/extrachill-multisite/tokens.json';
+	}
+
+	if ( ! file_exists( $tokens_path ) ) {
 		return $badge_map;
 	}
 
-	$css = file_get_contents( $css_path );
-	if ( false === $css || '' === $css ) {
+	$json = file_get_contents( $tokens_path );
+	if ( false === $json || '' === $json ) {
 		return $badge_map;
 	}
 
-	preg_match_all( '/([^{}]+)\{([^}]*)\}/s', $css, $blocks, PREG_SET_ORDER );
-	foreach ( $blocks as $block ) {
-		if ( ! isset( $block[1], $block[2] ) ) {
+	$tokens = json_decode( $json, true );
+	if ( ! is_array( $tokens ) || ! isset( $tokens['categories']['taxonomy-badge'] ) ) {
+		return $badge_map;
+	}
+
+	foreach ( $tokens['categories']['taxonomy-badge'] as $key => $token ) {
+		if ( ! isset( $token['bg'], $token['text'] ) ) {
 			continue;
 		}
 
-		$selectors = (string) $block[1];
-		$body      = (string) $block[2];
-
-		if ( false === strpos( $selectors, '.taxonomy-badge.' ) ) {
-			continue;
-		}
-
-		if ( ! preg_match( '/background-color\s*:\s*([^;]+);/i', $body, $bg_match ) ) {
-			continue;
-		}
-
-		if ( ! preg_match( '/(?<!background-)color\s*:\s*([^;]+);/i', $body, $color_match ) ) {
-			continue;
-		}
-
-		$background_color = trim( (string) $bg_match[1] );
-		$text_color       = trim( (string) $color_match[1] );
-
-		preg_match_all( '/\.taxonomy-badge\.([a-z0-9-]+)/i', $selectors, $selector_matches );
-		if ( empty( $selector_matches[1] ) ) {
-			continue;
-		}
-
-		foreach ( $selector_matches[1] as $selector_key ) {
-			$selector_key = sanitize_key( $selector_key );
-			if ( '' === $selector_key ) {
-				continue;
-			}
-
-			$badge_map[ $selector_key ] = array(
-				'background_color' => $background_color,
-				'text_color'       => $text_color,
-			);
-		}
+		$badge_map[ $key ] = array(
+			'background_color' => $token['bg'],
+			'text_color'       => $token['text'],
+		);
 	}
 
 	return $badge_map;
