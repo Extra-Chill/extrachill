@@ -157,11 +157,7 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
 			// Use manually constructed cross-site link if available, otherwise use get_term_link()
 			$term_link = isset( $term->cross_site_link ) ? $term->cross_site_link : get_term_link( $term );
 
-			// Artist badges get a suffix to clarify they link to artist content.
 			$badge_label = $term->name;
-			if ( 'artist' === $taxonomy ) {
-				$badge_label .= ' ' . __( 'Artist Profile', 'extrachill' );
-			}
 
 			$badges_html .= sprintf(
 				'<a href="%s" class="taxonomy-badge %s">%s</a>',
