@@ -16,7 +16,6 @@ $request = new WP_REST_Request( 'GET', '/extrachill/v1/events/upcoming-counts' )
 $request->set_query_params(
 	array(
 		'taxonomy' => 'location',
-		'limit'    => 8,
 	)
 );
 
