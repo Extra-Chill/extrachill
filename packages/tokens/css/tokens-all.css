@@ -1,0 +1,12 @@
+/**
+ * Extra Chill Design Tokens — Light + Dark (auto-switching)
+ *
+ * Source of truth: tokens.json
+ * Package: @extrachill/tokens
+ *
+ * Drop-in replacement for the theme's root.css token layer.
+ * Includes light mode defaults and dark mode via prefers-color-scheme.
+ */
+
+@import './tokens.css';
+@import './tokens-dark.css';

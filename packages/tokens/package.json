@@ -1,0 +1,52 @@
+{
+  "name": "@extrachill/tokens",
+  "version": "0.1.0",
+  "description": "Design tokens for the Extra Chill platform — colors, typography, spacing, and more. Platform-agnostic primitive.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./css/tokens.css": "./css/tokens.css",
+    "./css/tokens-dark.css": "./css/tokens-dark.css",
+    "./css/tokens-all.css": "./css/tokens-all.css",
+    "./tokens.json": "./tokens.json"
+  },
+  "files": [
+    "dist",
+    "css",
+    "tokens.json"
+  ],
+  "scripts": {
+    "build": "tsc && tsc --module esnext --outDir dist/esm && node scripts/build.mjs",
+    "validate": "node scripts/validate.mjs",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm run validate"
+  },
+  "keywords": [
+    "extrachill",
+    "design-tokens",
+    "css-variables",
+    "design-system",
+    "platform-primitive"
+  ],
+  "author": "Chris Huber <hello@chubes.net>",
+  "license": "GPL-2.0+",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Extra-Chill/extrachill-tokens.git"
+  },
+  "homepage": "https://github.com/Extra-Chill/extrachill-tokens#readme",
+  "bugs": {
+    "url": "https://github.com/Extra-Chill/extrachill-tokens/issues"
+  },
+  "private": true,
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

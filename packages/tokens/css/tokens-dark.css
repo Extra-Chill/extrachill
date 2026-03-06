@@ -1,0 +1,41 @@
+/**
+ * Extra Chill Design Tokens — Dark Theme Overrides
+ *
+ * Source of truth: tokens.json
+ * Package: @extrachill/tokens
+ *
+ * Import this file alongside tokens.css for manual dark mode control.
+ * For automatic prefers-color-scheme switching, use tokens-all.css instead.
+ *
+ * Usage:
+ *   .dark { @import '@extrachill/tokens/css/tokens-dark.css'; }
+ *   — or apply the class-based selector below.
+ */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #1a1a1a;
+        --text-color: #e5e5e5;
+        --link-color: #53940b;
+        --link-color-hover: #1a6bb8;
+        --link-hover-color: var(--text-color);
+        --border-color: #555;
+        --accent: #53940b;
+        --accent-hover: #6ab312;
+        --accent-2: #9fc5e8;
+        --accent-2-rgb: 159, 197, 232;
+        --accent-3: #0b5394;
+        --error-color: #ef4444;
+        --success-color: #46b450;
+        --notice-bg: #1e1e1e;
+        --notice-border: #444;
+        --card-background: #2a2a2a;
+        --muted-text: #b0b0b0;
+        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        --card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        --focus-border-color: #8aa6bf;
+        --focus-box-shadow: 0 0 0 3px rgba(138, 166, 191, 0.2);
+        --post-title-link-color: var(--text-color);
+        --post-title-link-hover-color: var(--text-color);
+    }
+}

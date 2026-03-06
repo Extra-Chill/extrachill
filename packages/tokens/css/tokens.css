@@ -1,0 +1,83 @@
+/**
+ * Extra Chill Design Tokens — Light Theme
+ *
+ * Source of truth: tokens.json
+ * Package: @extrachill/tokens
+ *
+ * Import this file for light-mode-only tokens.
+ * For light + dark (with prefers-color-scheme), use tokens-all.css instead.
+ */
+
+:root {
+    /* ===== Colors ===== */
+    --background-color: #fff;
+    --text-color: #000;
+    --link-color: #0b5394;
+    --link-color-hover: #083b6c;
+    --link-hover-color: var(--text-color);
+    --border-color: #ddd;
+    --accent: #53940b;
+    --accent-hover: #3d6b08;
+    --accent-2: #36454F;
+    --accent-2-rgb: 54, 69, 79;
+    --accent-3: #00c8e3;
+    --error-color: #dc3232;
+    --success-color: #28a745;
+    --button-text-color: #fff;
+    --header-background: #000;
+    --header-text-color: #fff;
+    --notice-bg: #f8f9fa;
+    --notice-border: #0b5394;
+    --card-background: #f1f5f9;
+    --muted-text: #6b7280;
+    --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    --card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --focus-border-color: #53940b;
+    --focus-box-shadow: 0 0 0 3px rgba(83, 148, 11, 0.2);
+    --post-title-link-color: var(--text-color);
+    --post-title-link-hover-color: var(--text-color);
+
+    /* ===== Typography ===== */
+    --font-family-heading: "Loft Sans", sans-serif;
+    --font-family-body: 'Helvetica', 'Open Sans', serif;
+    --font-family-brand: "Lobster", sans-serif;
+    --font-family-mono: 'Helvetica', Arial, sans-serif;
+
+    /* ===== Font Sizes ===== */
+    --font-size-xs: 0.625rem;
+    --font-size-sm: 0.8125rem;
+    --font-size-base: 1rem;
+    --font-size-body: 1.125rem;
+    --font-size-lg: 1.25rem;
+    --font-size-xl: 1.5rem;
+    --font-size-2xl: 1.75rem;
+    --font-size-3xl: 2rem;
+    --font-size-brand: 2.25rem;
+
+    /* ===== Border Radius ===== */
+    --border-radius-sm: 5px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 10px;
+    --border-radius-xl: 14px;
+    --border-radius-pill: 50px;
+    --border-radius-circle: 50%;
+
+    /* ===== Layout ===== */
+    --container-width: 1200px;
+    --content-width: 800px;
+    --container-wide: 1600px;
+    --sidebar-width: 380px;
+    --form-width: 500px;
+
+    /* ===== Line Heights ===== */
+    --line-height-tight: 1.2;
+    --line-height-base: 1.5;
+    --line-height-relaxed: 1.8;
+
+    /* ===== Spacing ===== */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+}
