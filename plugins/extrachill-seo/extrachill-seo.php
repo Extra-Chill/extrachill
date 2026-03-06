@@ -94,6 +94,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/meta-tags.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/canonical.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/robots.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/core/robots-txt.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/open-graph.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/twitter-cards.php';
 		// sitemap.php loaded at plugin load time (class definition + wp_loaded registration).
