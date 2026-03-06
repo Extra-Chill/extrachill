@@ -9,6 +9,9 @@
 		"build:studio-view": "wp-scripts build blocks/studio/src/view.js --output-path=build/studio",
 		"copy:block-files": "cp blocks/studio/block.json blocks/studio/render.php blocks/studio/style.css build/studio/"
 	},
+	"dependencies": {
+		"@extrachill/tokens": "^0.1.0"
+	},
 	"devDependencies": {
 		"@extrachill/api-client": "file:../extrachill-api-client",
 		"@wordpress/scripts": "^31.1.0"
