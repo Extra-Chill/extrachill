@@ -158,12 +158,12 @@ $socials_api  = rest_url( 'datamachine-socials/v1/' );
 				</div>
 
 				<div class="shared-tab-item">
-					<button type="button" class="shared-tab-button" data-tab="tab-studio-instagram">
-						<?php esc_html_e( 'Instagram', 'extrachill-studio' ); ?>
+					<button type="button" class="shared-tab-button" data-tab="tab-studio-socials">
+						<?php esc_html_e( 'Socials', 'extrachill-studio' ); ?>
 						<span class="shared-tab-arrow"></span>
 					</button>
-					<div id="tab-studio-instagram" class="shared-tab-pane">
-						<div class="ec-studio-pane__mount" data-ec-studio-pane="instagram"></div>
+					<div id="tab-studio-socials" class="shared-tab-pane">
+						<div class="ec-studio-pane__mount" data-ec-studio-pane="socials"></div>
 					</div>
 				</div>
 			</div>

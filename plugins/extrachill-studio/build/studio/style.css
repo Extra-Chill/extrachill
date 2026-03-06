@@ -245,6 +245,43 @@
 	border-top: 1px solid var(--border-color);
 }
 
+.ec-studio-social-platforms {
+	display: grid;
+	gap: var(--spacing-sm);
+	list-style: none;
+	padding: 0;
+	margin: var(--spacing-md) 0 0;
+}
+
+.ec-studio-social-platforms__item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-md);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--background-color);
+}
+
+.ec-studio-social-platforms__name {
+	font-weight: 700;
+	text-transform: capitalize;
+}
+
+.ec-studio-social-platforms__status {
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
+.ec-studio-social-platforms__status.is-connected {
+	color: var(--success-color);
+}
+
+.ec-studio-social-platforms__status.is-disconnected {
+	color: var(--muted-text);
+}
+
 .ec-studio-roadmap {
 	display: grid;
 	gap: var(--spacing-sm);
