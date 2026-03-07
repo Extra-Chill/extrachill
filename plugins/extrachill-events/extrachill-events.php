@@ -104,6 +104,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-seo.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/near-me.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/discovery-pages.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-normalizer.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/priority-venues.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/priority-events.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/breadcrumbs.php';
@@ -179,20 +180,6 @@ function extrachill_events() {
 extrachill_events();
 
 /**
- * Check if the current site is the events site.
- *
- * Central guard for all hooks that should only run on events.extrachill.com.
- * Uses ec_get_blog_id() from extrachill-multisite when available.
- *
- * @since 0.9.0
- * @return bool True if current blog is the events site.
- */
-function ec_is_events_site() {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
-	return $events_blog_id && get_current_blog_id() === $events_blog_id;
-}
-
-/**
  * Register event-submission block from build directory
  *
  * @hook init
@@ -200,9 +187,6 @@ function ec_is_events_site() {
  * @since 0.1.5
  */
 function extrachill_events_register_blocks() {
-	if ( ! ec_is_events_site() ) {
-		return;
-	}
 	register_block_type( EXTRACHILL_EVENTS_PLUGIN_DIR . 'build/event-submission' );
 }
 add_action( 'init', 'extrachill_events_register_blocks' );
@@ -215,9 +199,6 @@ add_action( 'init', 'extrachill_events_register_blocks' );
  * @since 0.1.0
  */
 function ec_events_render_homepage() {
-	if ( ! ec_is_events_site() ) {
-		return;
-	}
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
 }
 add_action( 'extrachill_homepage_content', 'ec_events_render_homepage' );
