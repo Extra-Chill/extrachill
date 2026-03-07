@@ -15,11 +15,12 @@ extrachill_breadcrumbs();
 ?>
 
 <div class="events-calendar-container full-width-content">
-	<?php if ( is_tax( 'venue' ) ) :
-		$term = get_queried_object();
-		$venue_data = \DataMachineEvents\Core\Venue_Taxonomy::get_venue_data( $term->term_id );
+	<?php
+	if ( is_tax( 'venue' ) ) :
+		$term              = get_queried_object();
+		$venue_data        = \DataMachineEvents\Core\Venue_Taxonomy::get_venue_data( $term->term_id );
 		$formatted_address = \DataMachineEvents\Core\Venue_Taxonomy::get_formatted_address( $term->term_id );
-	?>
+		?>
 		<header class="taxonomy-archive-header venue-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
 			
@@ -41,10 +42,11 @@ extrachill_breadcrumbs();
 				</div>
 			<?php endif; ?>
 		</header>
-	<?php elseif ( is_tax( 'promoter' ) ) :
-		$term = get_queried_object();
+		<?php
+	elseif ( is_tax( 'promoter' ) ) :
+		$term          = get_queried_object();
 		$promoter_data = \DataMachineEvents\Core\Promoter_Taxonomy::get_promoter_data( $term->term_id );
-	?>
+		?>
 		<header class="taxonomy-archive-header promoter-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
 			
@@ -60,9 +62,10 @@ extrachill_breadcrumbs();
 				</div>
 			<?php endif; ?>
 		</header>
-	<?php elseif ( is_tax( 'location' ) ) :
+		<?php
+	elseif ( is_tax( 'location' ) ) :
 		$term = get_queried_object();
-	?>
+		?>
 		<header class="taxonomy-archive-header location-archive-header">
 			<h1 class="page-title">Live Music in <?php single_term_title(); ?></h1>
 			<?php if ( term_description() ) : ?>

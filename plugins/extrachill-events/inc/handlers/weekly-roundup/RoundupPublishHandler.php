@@ -35,23 +35,23 @@ class RoundupPublishHandler extends PublishHandler {
 			null,
 			RoundupPublishSettings::class,
 			function($tools, $handler_slug, $handler_config) {
-				if ($handler_slug === 'roundup_publish') {
-					$tools['roundup_publish'] = [
-						'class' => self::class,
-						'method' => 'handle_tool_call',
-						'handler' => 'roundup_publish',
+				if ( 'roundup_publish' === $handler_slug ) {
+					$tools['roundup_publish'] = array(
+						'class'       => self::class,
+						'method'      => 'handle_tool_call',
+						'handler'     => 'roundup_publish',
 						'description' => 'Create a WordPress post with Instagram carousel images and caption.',
-						'parameters' => [
-							'type' => 'object',
-							'properties' => [
-								'instagram_caption' => [
-									'type' => 'string',
-									'description' => 'The Instagram caption text to place at the top of the post'
-								]
-							],
-							'required' => ['instagram_caption']
-						]
-					];
+						'parameters'  => array(
+							'type'       => 'object',
+							'properties' => array(
+								'instagram_caption' => array(
+									'type'        => 'string',
+									'description' => 'The Instagram caption text to place at the top of the post',
+								),
+							),
+							'required'   => array( 'instagram_caption' ),
+						),
+					);
 				}
 				return $tools;
 			}
@@ -99,9 +99,9 @@ class RoundupPublishHandler extends PublishHandler {
 			'info',
 			'Starting roundup publish',
 			array(
-				'image_count'   => count( $image_paths ),
-				'location_name' => $location_name,
-				'date_range'    => $date_range,
+				'image_count'    => count( $image_paths ),
+				'location_name'  => $location_name,
+				'date_range'     => $date_range,
 				'caption_length' => strlen( $instagram_caption ),
 			)
 		);

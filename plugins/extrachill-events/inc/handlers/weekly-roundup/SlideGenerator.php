@@ -20,10 +20,10 @@ class SlideGenerator {
 	private const HEIGHT = 1350;
 
 	private const COLORS = array(
-		'background'       => array( 26, 26, 26 ),   // #1a1a1a
-		'text'             => array( 229, 229, 229 ), // #e5e5e5
-		'muted'            => array( 176, 176, 176 ), // #b0b0b0
-		'title_underline'  => array( 83, 148, 11 ),   // #53940b (accent green)
+		'background'      => array( 26, 26, 26 ),   // #1a1a1a
+		'text'            => array( 229, 229, 229 ), // #e5e5e5
+		'muted'           => array( 176, 176, 176 ), // #b0b0b0
+		'title_underline' => array( 83, 148, 11 ),   // #53940b (accent green)
 	);
 
 	private const DAY_COLORS = array(
@@ -36,7 +36,7 @@ class SlideGenerator {
 		'saturday'  => array( 84, 160, 255 ),  // #54a0ff
 	);
 
-	private const TITLE_SIZE            = 36;
+	private const TITLE_SIZE             = 36;
 	private const TITLE_UNDERLINE_HEIGHT = 2;
 	private const TITLE_UNDERLINE_GAP    = 8;
 
@@ -67,7 +67,7 @@ class SlideGenerator {
 		$image_paths = array();
 
 		foreach ( $slides_data as $index => $slide_days ) {
-			$slide_title = ( $index === 0 ) ? $title : '';
+			$slide_title = ( 0 === $index ) ? $title : '';
 			$image_path  = $this->render_slide( $slide_days, $index + 1, $context, $slide_title );
 			if ( $image_path ) {
 				$image_paths[] = $image_path;
@@ -91,7 +91,7 @@ class SlideGenerator {
 		$is_first_slide   = true;
 
 		$title_height = 0;
-		if ( $title !== '' ) {
+		if ( '' !== $title ) {
 			$title_height = $this->calculate_title_height( $title );
 		}
 
@@ -105,7 +105,7 @@ class SlideGenerator {
 				$current_height            += $day_height;
 			} else {
 				if ( ! empty( $current_slide ) ) {
-					$slides[] = $current_slide;
+					$slides[]       = $current_slide;
 					$is_first_slide = false;
 				}
 				$current_slide  = array( $date_key => $day_group );
@@ -127,12 +127,12 @@ class SlideGenerator {
 	 * @return int Height in pixels
 	 */
 	private function calculate_title_height( string $title ): int {
-		if ( $title === '' ) {
+		if ( '' === $title ) {
 			return 0;
 		}
 
-		$max_width = self::WIDTH - ( self::PADDING * 2 );
-		$lines = $this->wrap_text( $title, self::TITLE_SIZE, $this->header_font_path, $max_width );
+		$max_width   = self::WIDTH - ( self::PADDING * 2 );
+		$lines       = $this->wrap_text( $title, self::TITLE_SIZE, $this->header_font_path, $max_width );
 		$line_height = (int) ( self::TITLE_SIZE * self::LINE_HEIGHT_MULTIPLIER );
 		$text_height = count( $lines ) * $line_height;
 
@@ -149,15 +149,15 @@ class SlideGenerator {
 		$events = $day_group['events'] ?? array();
 
 		$day_header_height = (int) ( self::DAY_HEADER_SIZE * self::LINE_HEIGHT_MULTIPLIER ) + 20;
-		$max_width = self::WIDTH - ( self::PADDING * 2 );
+		$max_width         = self::WIDTH - ( self::PADDING * 2 );
 
 		$events_height = 0;
 		foreach ( $events as $event_item ) {
-			$post = $event_item['post'] ?? null;
+			$post  = $event_item['post'] ?? null;
 			$title = $post ? $post->post_title : 'Untitled Event';
 
 			$title_height = $this->get_wrapped_text_height( $title, self::EVENT_TITLE_SIZE, $this->body_font_path, $max_width );
-			$meta_height = (int) ( self::EVENT_META_SIZE * self::LINE_HEIGHT_MULTIPLIER );
+			$meta_height  = (int) ( self::EVENT_META_SIZE * self::LINE_HEIGHT_MULTIPLIER );
 
 			$events_height += $title_height + $meta_height + 15;
 		}
@@ -180,16 +180,16 @@ class SlideGenerator {
 			return null;
 		}
 
-		$bg_color         = imagecolorallocate( $image, ...self::COLORS['background'] );
-		$text_color       = imagecolorallocate( $image, ...self::COLORS['text'] );
-		$muted_color      = imagecolorallocate( $image, ...self::COLORS['muted'] );
-		$underline_color  = imagecolorallocate( $image, ...self::COLORS['title_underline'] );
+		$bg_color        = imagecolorallocate( $image, ...self::COLORS['background'] );
+		$text_color      = imagecolorallocate( $image, ...self::COLORS['text'] );
+		$muted_color     = imagecolorallocate( $image, ...self::COLORS['muted'] );
+		$underline_color = imagecolorallocate( $image, ...self::COLORS['title_underline'] );
 
 		imagefill( $image, 0, 0, $bg_color );
 
 		$y = self::PADDING;
 
-		if ( $title !== '' ) {
+		if ( '' !== $title ) {
 			$y = $this->render_title( $image, $title, $y, $text_color, $underline_color );
 		}
 
@@ -214,16 +214,16 @@ class SlideGenerator {
 	 * @return int New Y position after rendering
 	 */
 	private function render_title( $image, string $title, int $y, int $text_color, int $underline_color ): int {
-		$max_width = self::WIDTH - ( self::PADDING * 2 );
-		$lines = $this->wrap_text( $title, self::TITLE_SIZE, $this->header_font_path, $max_width );
+		$max_width   = self::WIDTH - ( self::PADDING * 2 );
+		$lines       = $this->wrap_text( $title, self::TITLE_SIZE, $this->header_font_path, $max_width );
 		$line_height = (int) ( self::TITLE_SIZE * self::LINE_HEIGHT_MULTIPLIER );
 
 		$max_line_width = 0;
 		foreach ( $lines as $line ) {
 			imagettftext( $image, self::TITLE_SIZE, 0, self::PADDING, $y + self::TITLE_SIZE, $text_color, $this->header_font_path, $line );
 
-			$bbox = imagettfbbox( self::TITLE_SIZE, 0, $this->header_font_path, $line );
-			$line_width = abs( $bbox[4] - $bbox[0] );
+			$bbox           = imagettfbbox( self::TITLE_SIZE, 0, $this->header_font_path, $line );
+			$line_width     = abs( $bbox[4] - $bbox[0] );
 			$max_line_width = max( $max_line_width, $line_width );
 
 			$y += $line_height;
@@ -257,8 +257,8 @@ class SlideGenerator {
 		$date_obj = $day_group['date_obj'] ?? null;
 		$events   = $day_group['events'] ?? array();
 
-		$day_name = $date_obj ? strtolower( $date_obj->format( 'l' ) ) : 'monday';
-		$day_color_rgb = self::DAY_COLORS[ $day_name ] ?? self::DAY_COLORS['monday'];
+		$day_name         = $date_obj ? strtolower( $date_obj->format( 'l' ) ) : 'monday';
+		$day_color_rgb    = self::DAY_COLORS[ $day_name ] ?? self::DAY_COLORS['monday'];
 		$day_header_color = imagecolorallocate( $image, ...$day_color_rgb );
 
 		$day_label = $date_obj ? strtoupper( $date_obj->format( 'l, M j' ) ) : 'UNKNOWN DATE';
@@ -309,8 +309,8 @@ class SlideGenerator {
 		$meta_parts = array_filter( array( $venue, $formatted_time ) );
 		$meta_line  = implode( ' · ', $meta_parts );
 
-		$max_width = self::WIDTH - ( self::PADDING * 2 );
-		$title_lines = $this->wrap_text( $title, self::EVENT_TITLE_SIZE, $this->body_font_path, $max_width );
+		$max_width         = self::WIDTH - ( self::PADDING * 2 );
+		$title_lines       = $this->wrap_text( $title, self::EVENT_TITLE_SIZE, $this->body_font_path, $max_width );
 		$title_line_height = (int) ( self::EVENT_TITLE_SIZE * self::LINE_HEIGHT_MULTIPLIER );
 
 		foreach ( $title_lines as $line ) {
@@ -400,26 +400,26 @@ class SlideGenerator {
 	 * @return array Array of text lines
 	 */
 	private function wrap_text( string $text, int $font_size, string $font_path, int $max_width ): array {
-		$words = explode( ' ', $text );
-		$lines = array();
+		$words        = explode( ' ', $text );
+		$lines        = array();
 		$current_line = '';
 
 		foreach ( $words as $word ) {
-			$test_line = $current_line === '' ? $word : $current_line . ' ' . $word;
-			$bbox = imagettfbbox( $font_size, 0, $font_path, $test_line );
+			$test_line  = '' === $current_line ? $word : $current_line . ' ' . $word;
+			$bbox       = imagettfbbox( $font_size, 0, $font_path, $test_line );
 			$line_width = abs( $bbox[4] - $bbox[0] );
 
 			if ( $line_width <= $max_width ) {
 				$current_line = $test_line;
 			} else {
-				if ( $current_line !== '' ) {
+				if ( '' !== $current_line ) {
 					$lines[] = $current_line;
 				}
 				$current_line = $word;
 			}
 		}
 
-		if ( $current_line !== '' ) {
+		if ( '' !== $current_line ) {
 			$lines[] = $current_line;
 		}
 
@@ -436,7 +436,7 @@ class SlideGenerator {
 	 * @return int Height in pixels
 	 */
 	private function get_wrapped_text_height( string $text, int $font_size, string $font_path, int $max_width ): int {
-		$lines = $this->wrap_text( $text, $font_size, $font_path, $max_width );
+		$lines       = $this->wrap_text( $text, $font_size, $font_path, $max_width );
 		$line_height = (int) ( $font_size * self::LINE_HEIGHT_MULTIPLIER );
 		return count( $lines ) * $line_height;
 	}

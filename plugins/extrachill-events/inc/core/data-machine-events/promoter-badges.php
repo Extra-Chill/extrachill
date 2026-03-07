@@ -32,7 +32,7 @@ function extrachill_events_init_promoter_badges() {
  * @return bool True to skip promoter matching venue, unchanged otherwise.
  */
 function extrachill_events_skip_duplicate_promoter( $skip, $term, $taxonomy, $post_id ) {
-	if ( $taxonomy !== 'promoter' ) {
+	if ( 'promoter' !== $taxonomy ) {
 		return $skip;
 	}
 

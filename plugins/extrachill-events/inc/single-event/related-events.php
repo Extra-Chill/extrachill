@@ -52,7 +52,7 @@ add_action( 'wp_enqueue_scripts', 'ec_events_enqueue_related_assets' );
  * @since 0.1.0
  */
 function ec_events_filter_related_taxonomies( $taxonomies, $post_id, $post_type ) {
-	if ( $post_type === 'data_machine_events' ) {
+	if ( 'data_machine_events' === $post_type ) {
 		return array( 'venue', 'location' );
 	}
 	return $taxonomies;
@@ -69,7 +69,7 @@ add_filter( 'extrachill_related_posts_taxonomies', 'ec_events_filter_related_tax
  * @since 0.1.0
  */
 function ec_events_allow_related_taxonomies( $allowed, $post_type ) {
-	if ( $post_type === 'data_machine_events' ) {
+	if ( 'data_machine_events' === $post_type ) {
 		return array_merge( $allowed, array( 'venue', 'location' ) );
 	}
 	return $allowed;
@@ -126,7 +126,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 	);
 
 	// Exclude same venue when showing location-based related events
-	if ( $taxonomy === 'location' ) {
+	if ( 'location' === $taxonomy ) {
 		$venue_terms = get_the_terms( $post_id, 'venue' );
 		if ( $venue_terms && ! is_wp_error( $venue_terms ) ) {
 			$venue_term_ids = wp_list_pluck( $venue_terms, 'term_id' );
@@ -160,7 +160,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 
 	$related_posts = new WP_Query( $query_args );
 
-	$preposition = ( $taxonomy === 'venue' ) ? 'at' : 'in';
+	$preposition = ( 'venue' === $taxonomy ) ? 'at' : 'in';
 
 	if ( $related_posts->have_posts() ) :
 		?>
@@ -172,14 +172,14 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 				while ( $related_posts->have_posts() ) :
 					$related_posts->the_post();
 					$post = get_post();
-					
+
 					$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
 					$image_url  = get_the_post_thumbnail_url( $post, 'medium_large' );
-					
+
 					// Format date and time
 					$date_str = '';
 					$time_str = '';
-					
+
 					if ( ! empty( $event_data['startDate'] ) ) {
 						$start_time = ! empty( $event_data['startTime'] ) ? $event_data['startTime'] : '00:00:00';
 						$date_obj   = new DateTime( $event_data['startDate'] . ' ' . $start_time, wp_timezone() );

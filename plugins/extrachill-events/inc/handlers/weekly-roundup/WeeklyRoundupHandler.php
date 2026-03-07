@@ -56,7 +56,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 
 		if ( empty( $week_start_day ) || empty( $week_end_day ) ) {
 			$context->log( 'error', 'Weekly Roundup requires week_start_day and week_end_day' );
-			return [];
+			return array();
 		}
 
 		$date_range = $this->resolve_next_weekday_range( $week_start_day, $week_end_day );
@@ -75,7 +75,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 					'location_term_id' => $location_term_id,
 				)
 			);
-			return [];
+			return array();
 		}
 
 		$total_events = $this->count_events( $day_groups );
@@ -95,7 +95,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 
 		if ( empty( $image_paths ) ) {
 			$context->log( 'error', 'Failed to generate carousel images' );
-			return [];
+			return array();
 		}
 
 		$event_summary = $generator->build_event_summary( $day_groups );
@@ -124,24 +124,24 @@ class WeeklyRoundupHandler extends FetchHandler {
 		$context->log(
 			'info',
 			'Weekly Roundup complete',
-			[
+			array(
 				'slides_generated' => count( $image_paths ),
 				'total_events'     => $total_events,
-			]
+			)
 		);
 
-		return [
+		return array(
 			'title'    => sprintf( '%s Events: %s', $location_name, $this->format_date_range( $date_start, $date_end ) ),
 			'content'  => $event_summary,
-			'metadata' => [
+			'metadata' => array(
 				'source_type' => 'weekly_roundup',
 				'location'    => $location_name,
 				'date_start'  => $date_start,
 				'date_end'    => $date_end,
 				'event_count' => $total_events,
 				'slide_count' => count( $image_paths ),
-			],
-		];
+			),
+		);
 	}
 
 	/**
@@ -222,5 +222,4 @@ class WeeklyRoundupHandler extends FetchHandler {
 
 		return $start_obj->format( 'M j' ) . ' - ' . $end_obj->format( 'M j, Y' );
 	}
-
 }

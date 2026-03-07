@@ -66,30 +66,30 @@ class CityAbilities {
 						'type'       => 'object',
 						'required'   => array( 'city' ),
 						'properties' => array(
-							'city'         => array(
+							'city'      => array(
 								'type'        => 'string',
 								'description' => 'City name with state, e.g. "Nashville, TN" or "Portland, OR"',
 							),
-							'radius'       => array(
+							'radius'    => array(
 								'type'        => 'string',
 								'description' => 'Ticketmaster search radius in miles. Defaults to 50.',
 							),
-							'interval'     => array(
+							'interval'  => array(
 								'type'        => 'string',
 								'description' => 'Scheduling interval for flows. Defaults to every_6_hours.',
 							),
-							'skip_dice'    => array(
+							'skip_dice' => array(
 								'type'        => 'boolean',
 								'description' => 'Skip creating a Dice.fm flow. Defaults to false.',
 							),
-						'force'        => array(
-							'type'        => 'boolean',
-							'description' => 'Force creation even if a pipeline for this city already exists.',
-						),
-						'dry_run'      => array(
-							'type'        => 'boolean',
-							'description' => 'Preview what would be created without making changes.',
-						),
+							'force'     => array(
+								'type'        => 'boolean',
+								'description' => 'Force creation even if a pipeline for this city already exists.',
+							),
+							'dry_run'   => array(
+								'type'        => 'boolean',
+								'description' => 'Preview what would be created without making changes.',
+							),
 						),
 					),
 					'output_schema'       => array(
@@ -152,7 +152,7 @@ class CityAbilities {
 		$location_term = $city_label;
 
 		// Step 1b: Check for idempotency — does this city already have a pipeline?
-		$pipeline_name   = $city_label . ' Events';
+		$pipeline_name     = $city_label . ' Events';
 		$existing_pipeline = $this->findExistingPipeline( $pipeline_name );
 
 		if ( $dry_run ) {
@@ -253,7 +253,7 @@ class CityAbilities {
 
 		// Step 3: Create Ticketmaster flow.
 		$flows_created = array();
-		$tm_result = $this->createTicketmasterFlow( $pipeline_id, $city_label, $city_name, $coordinates, $radius, $interval, $location_term );
+		$tm_result     = $this->createTicketmasterFlow( $pipeline_id, $city_label, $city_name, $coordinates, $radius, $interval, $location_term );
 		if ( isset( $tm_result['error'] ) ) {
 			return array(
 				'error'       => 'Pipeline created (ID: ' . $pipeline_id . ') but Ticketmaster flow failed: ' . $tm_result['error'],
@@ -268,9 +268,9 @@ class CityAbilities {
 			if ( isset( $dice_result['error'] ) ) {
 				// Non-fatal — Ticketmaster flow is already created.
 				$flows_created[] = array(
-					'name'    => $city_label . ' Dice.fm',
-					'status'  => 'failed',
-					'error'   => $dice_result['error'],
+					'name'   => $city_label . ' Dice.fm',
+					'status' => 'failed',
+					'error'  => $dice_result['error'],
 				);
 			} else {
 				$flows_created[] = $dice_result;
@@ -396,18 +396,18 @@ class CityAbilities {
 
 		foreach ( $config as $step_id => &$step ) {
 			if ( ( $step['step_type'] ?? '' ) === 'ai' ) {
-				$step['provider']       = self::DEFAULT_AI_PROVIDER;
-				$step['model']          = self::DEFAULT_AI_MODEL;
-				$step['providers']      = array(
+				$step['provider']      = self::DEFAULT_AI_PROVIDER;
+				$step['model']         = self::DEFAULT_AI_MODEL;
+				$step['providers']     = array(
 					self::DEFAULT_AI_PROVIDER => array( 'model' => self::DEFAULT_AI_MODEL ),
 				);
-				$step['system_prompt']  = sprintf(
+				$step['system_prompt'] = sprintf(
 					'You run the Extra Chill events feed for %s. Process the event and prepare it for update to the calendar, assigning the appropriate details to the event based on the available information.
 
 The festival taxonomy should only be used if the event in question is a festival; otherwise ignore it.',
 					$city_label
 				);
-				$step['enabled_tools']  = array();
+				$step['enabled_tools'] = array();
 			}
 		}
 		unset( $step );
@@ -431,12 +431,12 @@ The festival taxonomy should only be used if the event in question is a festival
 
 		$result = $flow_ability->execute(
 			array(
-				'pipeline_id'      => $pipeline_id,
-				'flow_name'        => 'Ticketmaster',
+				'pipeline_id'       => $pipeline_id,
+				'flow_name'         => 'Ticketmaster',
 				'scheduling_config' => array(
 					'interval' => $interval,
 				),
-				'step_configs'     => array(
+				'step_configs'      => array(
 					'event_import' => array(
 						'handler_slug'   => 'ticketmaster',
 						'handler_config' => array(
@@ -449,22 +449,22 @@ The festival taxonomy should only be used if the event in question is a festival
 							'exclude_keywords'    => '',
 						),
 					),
-					'update' => array(
+					'update'       => array(
 						'handler_slug'   => 'upsert_event',
 						'handler_config' => array(
-							'post_status'                   => 'publish',
-							'include_images'                => false,
-							'post_author'                   => self::DEFAULT_POST_AUTHOR,
-							'taxonomy_category_selection'   => 'skip',
-							'taxonomy_post_tag_selection'   => 'skip',
-							'taxonomy_location_selection'   => $location_term,
-							'taxonomy_festival_selection'   => 'ai_decides',
-							'taxonomy_artist_selection'     => 'ai_decides',
-							'taxonomy_promoter_selection'   => 'skip',
+							'post_status'                 => 'publish',
+							'include_images'              => false,
+							'post_author'                 => self::DEFAULT_POST_AUTHOR,
+							'taxonomy_category_selection' => 'skip',
+							'taxonomy_post_tag_selection' => 'skip',
+							'taxonomy_location_selection' => $location_term,
+							'taxonomy_festival_selection' => 'ai_decides',
+							'taxonomy_artist_selection'   => 'ai_decides',
+							'taxonomy_promoter_selection' => 'skip',
 						),
-						'user_message' => "IMPORTANT SYSTEM-WIDE RULE: Do not assign WordPress Categories or Tags for events. Always set:\n- taxonomy_category_selection = \"skip\"\n- taxonomy_post_tag_selection = \"skip\"\nIf any source includes categories/tags, ignore them.",
+						'user_message'   => "IMPORTANT SYSTEM-WIDE RULE: Do not assign WordPress Categories or Tags for events. Always set:\n- taxonomy_category_selection = \"skip\"\n- taxonomy_post_tag_selection = \"skip\"\nIf any source includes categories/tags, ignore them.",
 					),
-					'ai' => array(
+					'ai'           => array(
 						'user_message' => sprintf(
 							'Process this Ticketmaster music event for the %s events calendar',
 							$city_full
@@ -519,12 +519,12 @@ The festival taxonomy should only be used if the event in question is a festival
 
 		$result = $flow_ability->execute(
 			array(
-				'pipeline_id'      => $pipeline_id,
-				'flow_name'        => 'Dice.fm',
+				'pipeline_id'       => $pipeline_id,
+				'flow_name'         => 'Dice.fm',
 				'scheduling_config' => array(
 					'interval' => $interval,
 				),
-				'step_configs'     => array(
+				'step_configs'      => array(
 					'event_import' => array(
 						'handler_slug'   => 'dice_fm',
 						'handler_config' => array(
@@ -602,28 +602,28 @@ The festival taxonomy should only be used if the event in question is a festival
 			$step_type = $step['step_type'] ?? '';
 
 			if ( 'event_import' === $step_type ) {
-				$step['handler_slugs']  = array( $import_handler );
+				$step['handler_slugs']   = array( $import_handler );
 				$step['handler_configs'] = array( $import_handler => $import_config );
-				$step['enabled']        = true;
+				$step['enabled']         = true;
 			}
 
 			if ( 'update' === $step_type ) {
-				$step['handler_slugs']  = array( 'upsert_event' );
+				$step['handler_slugs']   = array( 'upsert_event' );
 				$step['handler_configs'] = array(
 					'upsert_event' => array(
-						'post_status'                   => 'publish',
-						'include_images'                => false,
-						'post_author'                   => self::DEFAULT_POST_AUTHOR,
-						'taxonomy_category_selection'   => 'skip',
-						'taxonomy_post_tag_selection'   => 'skip',
-						'taxonomy_location_selection'   => $location_term,
-						'taxonomy_festival_selection'   => 'ai_decides',
-						'taxonomy_artist_selection'     => 'ai_decides',
-						'taxonomy_promoter_selection'   => 'skip',
+						'post_status'                 => 'publish',
+						'include_images'              => false,
+						'post_author'                 => self::DEFAULT_POST_AUTHOR,
+						'taxonomy_category_selection' => 'skip',
+						'taxonomy_post_tag_selection' => 'skip',
+						'taxonomy_location_selection' => $location_term,
+						'taxonomy_festival_selection' => 'ai_decides',
+						'taxonomy_artist_selection'   => 'ai_decides',
+						'taxonomy_promoter_selection' => 'skip',
 					),
 				);
-				$step['user_message'] = "IMPORTANT SYSTEM-WIDE RULE: Do not assign WordPress Categories or Tags for events. Always set:\n- taxonomy_category_selection = \"skip\"\n- taxonomy_post_tag_selection = \"skip\"\nIf any source includes categories/tags, ignore them.";
-				$step['enabled']      = true;
+				$step['user_message']    = "IMPORTANT SYSTEM-WIDE RULE: Do not assign WordPress Categories or Tags for events. Always set:\n- taxonomy_category_selection = \"skip\"\n- taxonomy_post_tag_selection = \"skip\"\nIf any source includes categories/tags, ignore them.";
+				$step['enabled']         = true;
 			}
 
 			if ( 'ai' === $step_type ) {

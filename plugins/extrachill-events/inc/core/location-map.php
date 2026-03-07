@@ -85,7 +85,7 @@ function extrachill_events_filter_map_summary( string $summary, array $venues, a
 	$location_venues = extrachill_events_get_location_venues( $context['term_id'] );
 	$venue_count     = count( $location_venues );
 
-	if ( $venue_count === 0 ) {
+	if ( 0 === $venue_count ) {
 		return $summary;
 	}
 

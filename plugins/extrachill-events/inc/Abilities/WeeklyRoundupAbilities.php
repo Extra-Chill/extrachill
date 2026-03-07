@@ -40,17 +40,17 @@ class WeeklyRoundupAbilities {
 		wp_register_ability(
 			'extrachill/weekly-roundup-query',
 			array(
-				'label'        => __( 'Weekly Roundup Query', 'extrachill-events' ),
-				'description'  => __( 'Query events for weekly roundup by date range and location.', 'extrachill-events' ),
-				'category'     => 'extrachill-events',
-				'input_schema' => array(
+				'label'               => __( 'Weekly Roundup Query', 'extrachill-events' ),
+				'description'         => __( 'Query events for weekly roundup by date range and location.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'week_start_day' => array(
+						'week_start_day'   => array(
 							'type'        => 'string',
 							'description' => __( 'Weekday name to start the range (e.g., "thursday").', 'extrachill-events' ),
 						),
-						'week_end_day' => array(
+						'week_end_day'     => array(
 							'type'        => 'string',
 							'description' => __( 'Weekday name to end the range (e.g., "sunday").', 'extrachill-events' ),
 						),
@@ -59,28 +59,43 @@ class WeeklyRoundupAbilities {
 							'description' => __( 'Optional location taxonomy term ID to filter events.', 'extrachill-events' ),
 						),
 					),
-					'required' => array( 'week_start_day', 'week_end_day' ),
+					'required'   => array( 'week_start_day', 'week_end_day' ),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						'date_start'    => array( 'type' => 'string', 'description' => 'Start date (Y-m-d)' ),
-						'date_end'      => array( 'type' => 'string', 'description' => 'End date (Y-m-d)' ),
-						'location_name' => array( 'type' => 'string', 'description' => 'Location term name' ),
-						'total_events'  => array( 'type' => 'integer', 'description' => 'Total event count' ),
+						'date_start'    => array(
+							'type'        => 'string',
+							'description' => 'Start date (Y-m-d)',
+						),
+						'date_end'      => array(
+							'type'        => 'string',
+							'description' => 'End date (Y-m-d)',
+						),
+						'location_name' => array(
+							'type'        => 'string',
+							'description' => 'Location term name',
+						),
+						'total_events'  => array(
+							'type'        => 'integer',
+							'description' => 'Total event count',
+						),
 						'day_groups'    => array(
 							'type'        => 'array',
 							'description' => 'Events grouped by date',
 							'items'       => array( 'type' => 'object' ),
 						),
-						'event_summary' => array( 'type' => 'string', 'description' => 'Plain text event summary' ),
+						'event_summary' => array(
+							'type'        => 'string',
+							'description' => 'Plain text event summary',
+						),
 					),
 				),
 				'execute_callback'    => array( $this, 'executeQuery' ),
 				'permission_callback' => function() {
 					return current_user_can( 'manage_options' );
 				},
-				'meta' => array( 'show_in_rest' => true ),
+				'meta'                => array( 'show_in_rest' => true ),
 			)
 		);
 	}
@@ -89,18 +104,18 @@ class WeeklyRoundupAbilities {
 		wp_register_ability(
 			'extrachill/weekly-roundup-generate',
 			array(
-				'label'        => __( 'Weekly Roundup Generate', 'extrachill-events' ),
-				'description'  => __( 'Generate Instagram carousel images from event data.', 'extrachill-events' ),
-				'category'     => 'extrachill-events',
-				'input_schema' => array(
+				'label'               => __( 'Weekly Roundup Generate', 'extrachill-events' ),
+				'description'         => __( 'Generate Instagram carousel images from event data.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'day_groups' => array(
+						'day_groups'      => array(
 							'type'        => 'array',
 							'description' => __( 'Day-grouped events from weekly-roundup-query.', 'extrachill-events' ),
 							'items'       => array( 'type' => 'object' ),
 						),
-						'title' => array(
+						'title'           => array(
 							'type'        => 'string',
 							'description' => __( 'Optional title for first slide.', 'extrachill-events' ),
 						),
@@ -109,9 +124,9 @@ class WeeklyRoundupAbilities {
 							'description' => __( 'Optional storage context with pipeline_id and flow_id.', 'extrachill-events' ),
 						),
 					),
-					'required' => array( 'day_groups' ),
+					'required'   => array( 'day_groups' ),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'success'     => array( 'type' => 'boolean' ),
@@ -127,7 +142,7 @@ class WeeklyRoundupAbilities {
 				'permission_callback' => function() {
 					return current_user_can( 'upload_files' );
 				},
-				'meta' => array( 'show_in_rest' => true ),
+				'meta'                => array( 'show_in_rest' => true ),
 			)
 		);
 	}

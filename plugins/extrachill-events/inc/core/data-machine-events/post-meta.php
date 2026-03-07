@@ -30,7 +30,7 @@ function extrachill_events_init_post_meta() {
  * @return string Empty for data_machine_events, unchanged for other post types.
  */
 function extrachill_events_hide_post_meta( $default_meta, $post_id, $post_type ) {
-	if ( $post_type === 'data_machine_events' ) {
+	if ( 'data_machine_events' === $post_type ) {
 		return '';
 	}
 	return $default_meta;

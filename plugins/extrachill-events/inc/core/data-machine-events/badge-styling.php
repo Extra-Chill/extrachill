@@ -86,7 +86,7 @@ function extrachill_events_add_badge_classes( $badge_classes, $taxonomy_slug, $t
 function extrachill_events_exclude_taxonomies( $excluded, $context = '' ) {
 	$excluded[] = 'artist';
 
-	if ( $context !== 'modal' ) {
+	if ( 'modal' !== $context ) {
 		return array_values( array_unique( $excluded ) );
 	}
 
@@ -100,7 +100,7 @@ function extrachill_events_exclude_taxonomies( $excluded, $context = '' ) {
 	}
 
 	foreach ( $taxonomies as $taxonomy_slug ) {
-		if ( $taxonomy_slug === 'location' ) {
+		if ( 'location' === $taxonomy_slug ) {
 			continue;
 		}
 

@@ -9,7 +9,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 /**
@@ -20,14 +20,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Items with submit link added
  */
 function extrachill_events_secondary_header_items( $items ) {
-    if ( ! ec_is_events_site() ) {
-        return $items;
-    }
-    $items[] = array(
-        'url'      => home_url( '/submit/' ),
-        'label'    => __( 'Submit Event', 'extrachill-events' ),
-        'priority' => 10,
-    );
-    return $items;
+	if ( ! ec_is_events_site() ) {
+		return $items;
+	}
+	$items[] = array(
+		'url'      => home_url( '/submit/' ),
+		'label'    => __( 'Submit Event', 'extrachill-events' ),
+		'priority' => 10,
+	);
+	return $items;
 }
 add_filter( 'extrachill_secondary_header_items', 'extrachill_events_secondary_header_items' );

@@ -243,7 +243,7 @@ function ec_events_redirect_post_type_archive() {
 	}
 
 	if ( is_post_type_archive( 'data_machine_events' ) ) {
-		wp_redirect( home_url(), 301 );
+		wp_safe_redirect( home_url(), 301 );
 		exit;
 	}
 }

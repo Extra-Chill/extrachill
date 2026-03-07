@@ -43,14 +43,14 @@ class PriorityVenueAbilities {
 		wp_register_ability(
 			'extrachill/list-priority-venues',
 			array(
-				'label'        => __( 'List Priority Venues', 'extrachill-events' ),
-				'description'  => __( 'List all venues marked as priority for calendar sorting.', 'extrachill-events' ),
-				'category'     => 'extrachill-events',
-				'input_schema' => array(
+				'label'               => __( 'List Priority Venues', 'extrachill-events' ),
+				'description'         => __( 'List all venues marked as priority for calendar sorting.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'venues' => array(
@@ -99,10 +99,10 @@ class PriorityVenueAbilities {
 		wp_register_ability(
 			'extrachill/set-priority-venue',
 			array(
-				'label'        => __( 'Set Priority Venue', 'extrachill-events' ),
-				'description'  => __( 'Mark or unmark a venue as priority for calendar sorting.', 'extrachill-events' ),
-				'category'     => 'extrachill-events',
-				'input_schema' => array(
+				'label'               => __( 'Set Priority Venue', 'extrachill-events' ),
+				'description'         => __( 'Mark or unmark a venue as priority for calendar sorting.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
 						'venue'    => array(
@@ -117,7 +117,7 @@ class PriorityVenueAbilities {
 					),
 					'required'   => array( 'venue' ),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'success' => array(

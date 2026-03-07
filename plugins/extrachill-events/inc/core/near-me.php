@@ -225,7 +225,7 @@ function extrachill_events_near_me_content( string $content ): string {
 		return $content;
 	}
 
-	$geo = extrachill_events_get_geo_params();
+	$geo          = extrachill_events_get_geo_params();
 	$has_location = null !== $geo['lat'] && null !== $geo['lng'];
 
 	// Detection UI — hidden when URL already has location.
@@ -235,10 +235,10 @@ function extrachill_events_near_me_content( string $content ): string {
 
 	// Loading state (visible by default when no location, JS hides if geo fails).
 	$loading_display = $has_location ? 'none' : 'flex';
-	$html .= '<div class="near-me-loading" style="display:' . $loading_display . ';">';
-	$html .= '<div class="near-me-spinner"></div>';
-	$html .= '<p class="near-me-status">Detecting your location...</p>';
-	$html .= '</div>';
+	$html           .= '<div class="near-me-loading" style="display:' . $loading_display . ';">';
+	$html           .= '<div class="near-me-spinner"></div>';
+	$html           .= '<p class="near-me-status">Detecting your location...</p>';
+	$html           .= '</div>';
 
 	$html .= '</div>';
 

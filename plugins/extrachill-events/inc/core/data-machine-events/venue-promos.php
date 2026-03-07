@@ -40,7 +40,7 @@ function extrachill_events_display_farm_friends_promo( $post_id, $price ) {
 	}
 
 	$venue_slug = $venue_terms[0]->slug;
-	if ( $venue_slug !== 'music-farm' ) {
+	if ( 'music-farm' !== $venue_slug ) {
 		return;
 	}
 

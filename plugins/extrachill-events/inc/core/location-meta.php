@@ -47,7 +47,7 @@ function extrachill_events_get_location_coordinates( int $term_id ): ?array {
 	$lat   = floatval( trim( $parts[0] ) );
 	$lon   = floatval( trim( $parts[1] ) );
 
-	if ( $lat === 0.0 && $lon === 0.0 ) {
+	if ( 0.0 === $lat && 0.0 === $lon ) {
 		return null;
 	}
 
@@ -103,7 +103,7 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 		$lat   = floatval( trim( $parts[0] ) );
 		$lon   = floatval( trim( $parts[1] ) );
 
-		if ( $lat === 0.0 && $lon === 0.0 ) {
+		if ( 0.0 === $lat && 0.0 === $lon ) {
 			continue;
 		}
 

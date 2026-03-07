@@ -34,13 +34,13 @@ class LocationEventAbilities {
 		wp_register_ability(
 			'extrachill/get-location-events',
 			array(
-				'label'        => __( 'Get Location Events', 'extrachill-events' ),
-				'description'  => __( 'Query events by Extra Chill location taxonomy.', 'extrachill-events' ),
-				'category'     => 'extrachill-events',
-				'input_schema' => array(
+				'label'               => __( 'Get Location Events', 'extrachill-events' ),
+				'description'         => __( 'Query events by Extra Chill location taxonomy.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'location' => array(
+						'location'   => array(
 							'type'        => 'string',
 							'description' => __( 'Location term slug or ID.', 'extrachill-events' ),
 						),
@@ -48,22 +48,22 @@ class LocationEventAbilities {
 							'type'        => 'string',
 							'description' => __( 'Optional start date (Y-m-d). Defaults to today.', 'extrachill-events' ),
 						),
-						'date_end' => array(
+						'date_end'   => array(
 							'type'        => 'string',
 							'description' => __( 'Optional end date (Y-m-d). Defaults to 30 days from start.', 'extrachill-events' ),
 						),
-						'limit' => array(
+						'limit'      => array(
 							'type'        => 'integer',
 							'description' => __( 'Maximum events to return (default: 50).', 'extrachill-events' ),
 							'default'     => 50,
 						),
 					),
-					'required' => array( 'location' ),
+					'required'   => array( 'location' ),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						'location' => array(
+						'location'       => array(
 							'type'       => 'object',
 							'properties' => array(
 								'term_id' => array( 'type' => 'integer' ),
@@ -71,7 +71,7 @@ class LocationEventAbilities {
 								'slug'    => array( 'type' => 'string' ),
 							),
 						),
-						'events' => array(
+						'events'         => array(
 							'type'  => 'array',
 							'items' => array(
 								'type'       => 'object',
@@ -93,7 +93,7 @@ class LocationEventAbilities {
 				'permission_callback' => function() {
 					return current_user_can( 'read' );
 				},
-				'meta' => array( 'show_in_rest' => true ),
+				'meta'                => array( 'show_in_rest' => true ),
 			)
 		);
 	}
@@ -137,7 +137,7 @@ class LocationEventAbilities {
 		$events = $this->queryEventsByLocation( $term->term_id, $date_start, $date_end, $limit );
 
 		return array(
-			'location' => array(
+			'location'       => array(
 				'term_id' => $term->term_id,
 				'name'    => $term->name,
 				'slug'    => $term->slug,
@@ -145,7 +145,7 @@ class LocationEventAbilities {
 			'events'         => $events,
 			'returned_count' => count( $events ),
 			'message'        => sprintf(
-				__( 'Found %d events in %s.', 'extrachill-events' ),
+				__( 'Found %1$d events in %2$s.', 'extrachill-events' ),
 				count( $events ),
 				$term->name
 			),
@@ -180,7 +180,7 @@ class LocationEventAbilities {
 			),
 		);
 
-		$query_args                  = Calendar_Query::build_query_args( $params );
+		$query_args                   = Calendar_Query::build_query_args( $params );
 		$query_args['posts_per_page'] = $limit;
 
 		$query        = new \WP_Query( $query_args );

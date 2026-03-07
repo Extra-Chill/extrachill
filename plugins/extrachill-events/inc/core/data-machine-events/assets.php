@@ -33,8 +33,8 @@ function extrachill_events_enqueue_single_styles() {
 		return;
 	}
 
-	$theme_dir = get_template_directory();
-	$theme_uri = get_template_directory_uri();
+	$theme_dir       = get_template_directory();
+	$theme_uri       = get_template_directory_uri();
 	$single_post_css = $theme_dir . '/assets/css/single-post.css';
 
 	if ( file_exists( $single_post_css ) ) {
