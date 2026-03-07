@@ -30,6 +30,15 @@ $location_counts = $response->get_data();
 if ( empty( $location_counts ) || ! is_array( $location_counts ) ) {
 	return;
 }
+
+$min_events = apply_filters( 'extrachill_events_badge_min_count', 20 );
+$location_counts = array_filter( $location_counts, function ( $location ) use ( $min_events ) {
+	return $location['count'] >= $min_events;
+} );
+
+if ( empty( $location_counts ) ) {
+	return;
+}
 ?>
 <div class="taxonomy-badges">
 	<?php foreach ( $location_counts as $location ) : ?>
