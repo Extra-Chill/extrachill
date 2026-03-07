@@ -7,6 +7,6 @@
     "build": "cp node_modules/@extrachill/tokens/css/root.css assets/css/root.css"
   },
   "dependencies": {
-    "@extrachill/tokens": "^0.2.0"
+    "@extrachill/tokens": "latest"
   }
 }
