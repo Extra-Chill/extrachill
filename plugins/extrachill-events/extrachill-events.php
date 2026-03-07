@@ -180,6 +180,17 @@ function extrachill_events() {
 extrachill_events();
 
 /**
+ * Check if the current site is the events site.
+ *
+ * @return bool True if on events.extrachill.com, false otherwise.
+ * @since 0.9.1
+ */
+function ec_is_events_site() {
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
+	return $events_blog_id && (int) get_current_blog_id() === (int) $events_blog_id;
+}
+
+/**
  * Register event-submission block from build directory
  *
  * @hook init
