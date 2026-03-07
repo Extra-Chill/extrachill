@@ -198,6 +198,9 @@ function ec_is_events_site() {
  * @since 0.1.5
  */
 function extrachill_events_register_blocks() {
+	if ( ! ec_is_events_site() ) {
+		return;
+	}
 	register_block_type( EXTRACHILL_EVENTS_PLUGIN_DIR . 'build/event-submission' );
 }
 add_action( 'init', 'extrachill_events_register_blocks' );
@@ -210,6 +213,9 @@ add_action( 'init', 'extrachill_events_register_blocks' );
  * @since 0.1.0
  */
 function ec_events_render_homepage() {
+	if ( ! ec_is_events_site() ) {
+		return;
+	}
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
 }
 add_action( 'extrachill_homepage_content', 'ec_events_render_homepage' );
