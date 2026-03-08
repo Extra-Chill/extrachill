@@ -12,6 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'wp_abilities_api_categories_init', 'extrachill_analytics_register_category' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_abilities' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_summary_ability' );
 
 /**
  * Register analytics ability category.
