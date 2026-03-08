@@ -17,13 +17,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Redirect old Blogger-era .html permalinks to current slug-based URLs.
+ * Redirect legacy date-prefixed URLs to current slug-based URLs.
  *
- * Old format: /YYYY/MM/slug.html
- * New format: /slug/
+ * Handles two patterns:
+ *   1. Blogger-era:  /YYYY/MM/slug.html  → /slug/
+ *   2. Date-prefix:  /YYYY/MM/slug       → /slug/
  *
  * Only redirects if a published post with the matching slug actually exists,
  * to avoid redirecting to another 404.
+ *
+ * @since 0.7.0 Blogger-era .html redirects.
+ * @since 0.8.6 Bare date-prefix redirects (no .html suffix).
  */
 add_action(
 	'template_redirect',
@@ -38,12 +42,17 @@ add_action(
 		$request_path = strtok( $raw_uri, '?' );
 		$request_path = strtok( $request_path, '#' );
 
-		// Match /YYYY/MM/slug.html with optional trailing slash.
-		if ( ! preg_match( '#^/\d{4}/\d{2}/(.+)\.html/?$#', $request_path, $matches ) ) {
-			return;
+		$slug = '';
+
+		// Pattern 1: /YYYY/MM/slug.html (Blogger-era).
+		if ( preg_match( '#^/\d{4}/\d{2}/(.+)\.html/?$#', $request_path, $matches ) ) {
+			$slug = sanitize_title( $matches[1] );
 		}
 
-		$slug = sanitize_title( $matches[1] );
+		// Pattern 2: /YYYY/MM/slug (bare date-prefix, no .html).
+		if ( empty( $slug ) && preg_match( '#^/(\d{4})/(\d{2})/([^/.]+)/?$#', $request_path, $matches ) ) {
+			$slug = sanitize_title( $matches[3] );
+		}
 
 		if ( empty( $slug ) ) {
 			return;
