@@ -107,6 +107,28 @@ function ec_seo_get_open_graph_data() {
 		}
 	}
 
+	// Taxonomy archives — allow plugins to provide a term-specific image.
+	if ( empty( $data['og:image'] ) && ( is_category() || is_tag() || is_tax() ) ) {
+		$term = get_queried_object();
+
+		if ( $term instanceof \WP_Term ) {
+			/**
+			 * Filter the OG image URL for a taxonomy archive page.
+			 *
+			 * Allows plugins to supply a term-specific image (e.g. a city
+			 * photo for a location term on the events site).
+			 *
+			 * @param string   $image_url Empty string by default.
+			 * @param \WP_Term $term      The queried term object.
+			 */
+			$term_image = apply_filters( 'extrachill_seo_term_og_image_url', '', $term );
+
+			if ( ! empty( $term_image ) ) {
+				$data['og:image'] = $term_image;
+			}
+		}
+	}
+
 	// Default image fallback for pages without featured image
 	if ( empty( $data['og:image'] ) ) {
 		$data['og:image'] = ec_seo_get_default_image();
@@ -203,6 +225,10 @@ function ec_seo_get_canonical_url() {
 /**
  * Get default OG image
  *
+ * The default image is a network option pointing to an attachment on the
+ * main site (blog ID 1).  On subsites `wp_get_attachment_image_url()`
+ * cannot resolve it without switching context first.
+ *
  * @return string Default image URL
  */
 function ec_seo_get_default_image() {
@@ -211,6 +237,22 @@ function ec_seo_get_default_image() {
 		return '';
 	}
 
+	// Try current site first (works on the main site).
 	$url = wp_get_attachment_image_url( $attachment_id, 'large' );
+
+	// On subsites the attachment lives on the main site — switch context.
+	if ( ! $url && function_exists( 'ec_get_blog_id' ) ) {
+		$main_blog_id = ec_get_blog_id( 'main' );
+
+		if ( $main_blog_id && (int) get_current_blog_id() !== $main_blog_id ) {
+			try {
+				switch_to_blog( $main_blog_id );
+				$url = wp_get_attachment_image_url( $attachment_id, 'large' );
+			} finally {
+				restore_current_blog();
+			}
+		}
+	}
+
 	return $url ? $url : '';
 }
