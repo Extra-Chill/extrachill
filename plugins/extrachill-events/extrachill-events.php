@@ -101,6 +101,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-event-ordering.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-meta.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-map.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-map.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-seo.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/near-me.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/discovery-pages.php';
