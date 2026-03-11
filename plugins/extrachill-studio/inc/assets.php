@@ -18,7 +18,7 @@ function extrachill_studio_enqueue_shared_tabs_assets() {
 	$theme_dir = get_template_directory();
 	$theme_url = get_template_directory_uri();
 
-	$style_path = $theme_dir . '/assets/css/shared-tabs.css';
+	$style_path  = $theme_dir . '/assets/css/shared-tabs.css';
 	$script_path = $theme_dir . '/assets/js/shared-tabs.js';
 
 	if ( file_exists( $style_path ) && ! wp_style_is( 'extrachill-shared-tabs', 'registered' ) ) {
@@ -47,5 +47,4 @@ function extrachill_studio_enqueue_shared_tabs_assets() {
 	if ( wp_script_is( 'extrachill-shared-tabs', 'registered' ) ) {
 		wp_enqueue_script( 'extrachill-shared-tabs' );
 	}
-
 }
