@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.2] - 2026-03-11
+
+### Changed
+- add Studio Instagram comment reply interface
+- add contextual Studio homepage notices
+- move Studio homepage auth flow outside block
+
+### Fixed
+- fix Studio PHP lint cleanup issues
+
 ## [0.1.1] - 2026-03-11
 
 ### Changed
