@@ -1,0 +1,17 @@
+{
+  "id": "extrachill-studio",
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {}
+  },
+  "version_targets": [
+    {
+      "file": "extrachill-studio.php",
+      "pattern": "Version:\\s*([\\d.]+)"
+    },
+    {
+      "file": "extrachill-studio.php",
+      "pattern": "EXTRACHILL_STUDIO_VERSION',\\s*'([\\d.]+)"
+    }
+  ]
+}
