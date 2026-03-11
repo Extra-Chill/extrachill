@@ -79,3 +79,13 @@ function extrachill_studio_register_blocks() {
 	register_block_type( EXTRACHILL_STUDIO_PLUGIN_DIR . $blocks_dir . '/studio' );
 }
 add_action( 'init', 'extrachill_studio_register_blocks' );
+
+/**
+ * Render homepage content for studio.extrachill.com.
+ *
+ * @return void
+ */
+function extrachill_studio_render_homepage() {
+	include EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/templates/studio-homepage.php';
+}
+add_action( 'extrachill_homepage_content', 'extrachill_studio_render_homepage' );

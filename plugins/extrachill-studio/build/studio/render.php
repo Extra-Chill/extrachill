@@ -15,15 +15,11 @@ $defaults = array(
 	'deniedMessage' => __( 'Studio is currently available to Extra Chill team members only.', 'extrachill-studio' ),
 );
 
-$attributes = isset( $attributes ) && is_array( $attributes ) ? $attributes : array();
+$attributes     = isset( $attributes ) && is_array( $attributes ) ? $attributes : array();
 $attributes     = wp_parse_args( $attributes, $defaults );
 $headline       = $attributes['headline'] ?? $defaults['headline'];
 $description    = $attributes['description'] ?? $defaults['description'];
 $denied_message = $attributes['deniedMessage'] ?? $defaults['deniedMessage'];
-
-$current_url = set_url_scheme(
-	( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . strtok( $_SERVER['REQUEST_URI'], '?' )
-);
 
 $wrapper_attributes = get_block_wrapper_attributes(
 	array(
@@ -43,20 +39,6 @@ if ( ! function_exists( 'ec_is_team_member' ) ) :
 endif;
 
 if ( ! is_user_logged_in() ) :
-	$login_block = '';
-
-	if ( WP_Block_Type_Registry::get_instance()->is_registered( 'extrachill/login-register' ) ) {
-		$login_block = do_blocks(
-			sprintf(
-				'<!-- wp:extrachill/login-register %s /-->',
-				wp_json_encode(
-					array(
-						'redirectUrl' => $current_url,
-					)
-				)
-			)
-		);
-	}
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?>>
 		<div class="ec-studio-card ec-studio-card--logged-out">
@@ -66,14 +48,6 @@ if ( ! is_user_logged_in() ) :
 
 			<?php if ( $description ) : ?>
 				<p class="ec-studio-card__description"><?php echo esc_html( $description ); ?></p>
-			<?php endif; ?>
-
-			<?php if ( $login_block ) : ?>
-				<div class="ec-studio-card__login"><?php echo $login_block; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- do_blocks() returns rendered block markup. ?></div>
-			<?php else : ?>
-				<div class="notice notice-error">
-					<p><?php esc_html_e( 'The login form block is unavailable right now.', 'extrachill-studio' ); ?></p>
-				</div>
 			<?php endif; ?>
 		</div>
 	</div>
@@ -98,11 +72,11 @@ endif;
 
 extrachill_studio_enqueue_shared_tabs_assets();
 
-$studio_user  = wp_get_current_user();
-$site_name    = get_bloginfo( 'name' );
-$site_url     = home_url( '/' );
-$rest_nonce   = wp_create_nonce( 'wp_rest' );
-$socials_api  = rest_url( 'datamachine-socials/v1/' );
+$studio_user = wp_get_current_user();
+$site_name   = get_bloginfo( 'name' );
+$site_url    = home_url( '/' );
+$rest_nonce  = wp_create_nonce( 'wp_rest' );
+$socials_api = rest_url( 'datamachine-socials/v1/' );
 ?>
 
 <div
