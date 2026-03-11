@@ -12,6 +12,7 @@ This package provides reusable UI components used across multiple Extra Chill Wo
 - **Pagination** - Page navigation with configurable items per page
 - **SearchBox** - Debounced search input
 - **Modal** - Accessible modal dialog
+- **Tabs** - Controlled tab navigation for React apps and blocks
 
 ## Installation
 
@@ -28,7 +29,7 @@ From a plugin within the Extra Chill Platform:
 ## Usage
 
 ```jsx
-import { DataTable, Pagination, SearchBox, Modal } from '@extrachill/components';
+import { DataTable, Pagination, SearchBox, Modal, Tabs } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 
 function MyComponent() {
@@ -57,6 +58,7 @@ This package requires the following peer dependencies (provided by `@wordpress/s
 
 - `extrachill-admin-tools` - Network administration tools
 - `extrachill-analytics` - Analytics dashboard
+- `extrachill-studio` - Team collaboration workspace
 
 ## License
 
