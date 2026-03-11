@@ -2,9 +2,12 @@ import { __ } from '@wordpress/i18n';
 import { InspectorControls, RichText, useBlockProps } from '@wordpress/block-editor';
 import { PanelBody, TextareaControl } from '@wordpress/components';
 
+import { getStudioTabs } from './app/tabs';
+
 export default function Edit( { attributes, setAttributes } ) {
 	const { headline, description, deniedMessage } = attributes;
 	const blockProps = useBlockProps( { className: 'ec-studio-editor' } );
+	const tabs = getStudioTabs();
 
 	return (
 		<>
@@ -40,29 +43,19 @@ export default function Edit( { attributes, setAttributes } ) {
 
 				<div className="shared-tabs-component ec-studio-editor__preview">
 					<div className="shared-tabs-buttons-container">
-						<div className="shared-tab-item">
-							<button type="button" className="shared-tab-button active">
-								{ __( 'Overview', 'extrachill-studio' ) }
-								<span className="shared-tab-arrow open" />
-							</button>
-							<div className="shared-tab-pane" style={ { display: 'block' } }>
-								<p>{ __( 'Team-gated Studio shell with tabbed workspace.', 'extrachill-studio' ) }</p>
+						{ tabs.map( ( tab, index ) => (
+							<div key={ tab.pane } className="shared-tab-item">
+								<button type="button" className={ `shared-tab-button${ index === 0 ? ' active' : '' }` }>
+									{ tab.label }
+									<span className={ `shared-tab-arrow${ index === 0 ? ' open' : '' }` } />
+								</button>
+								{ index === 0 ? (
+									<div className="shared-tab-pane" style={ { display: 'block' } }>
+										<p>{ tab.preview }</p>
+									</div>
+								) : null }
 							</div>
-						</div>
-
-						<div className="shared-tab-item">
-							<button type="button" className="shared-tab-button">
-								{ __( 'QR Codes', 'extrachill-studio' ) }
-								<span className="shared-tab-arrow" />
-							</button>
-						</div>
-
-						<div className="shared-tab-item">
-							<button type="button" className="shared-tab-button">
-								{ __( 'Socials', 'extrachill-studio' ) }
-								<span className="shared-tab-arrow" />
-							</button>
-						</div>
+						) ) }
 					</div>
 				</div>
 			</div>
