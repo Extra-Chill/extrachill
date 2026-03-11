@@ -59,6 +59,14 @@
 	font-size: var(--font-size-sm);
 }
 
+.ec-studio-app__panel {
+	margin-top: var(--spacing-md);
+	padding: var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--background-color);
+}
+
 .ec-studio-pane {
 	display: grid;
 	gap: var(--spacing-lg);

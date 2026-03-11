@@ -38,22 +38,9 @@ if ( ! function_exists( 'ec_is_team_member' ) ) :
 	return;
 endif;
 
-if ( ! is_user_logged_in() ) :
-	?>
-	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?>>
-		<div class="ec-studio-card ec-studio-card--logged-out">
-			<?php if ( $headline ) : ?>
-				<h2 class="ec-studio-card__title"><?php echo esc_html( $headline ); ?></h2>
-			<?php endif; ?>
-
-			<?php if ( $description ) : ?>
-				<p class="ec-studio-card__description"><?php echo esc_html( $description ); ?></p>
-			<?php endif; ?>
-		</div>
-	</div>
-	<?php
+if ( ! is_user_logged_in() ) {
 	return;
-endif;
+}
 
 if ( ! ec_is_team_member() ) :
 	?>
@@ -69,8 +56,6 @@ if ( ! ec_is_team_member() ) :
 	<?php
 	return;
 endif;
-
-extrachill_studio_enqueue_shared_tabs_assets();
 
 $studio_user = wp_get_current_user();
 $site_name   = get_bloginfo( 'name' );
@@ -110,40 +95,6 @@ $socials_api = rest_url( 'datamachine-socials/v1/' );
 			</span>
 		</div>
 
-		<div class="shared-tabs-component ec-studio-tabs">
-			<div class="shared-tabs-buttons-container">
-				<div class="shared-tab-item">
-					<button type="button" class="shared-tab-button active" data-tab="tab-studio-overview">
-						<?php esc_html_e( 'Overview', 'extrachill-studio' ); ?>
-						<span class="shared-tab-arrow open"></span>
-					</button>
-					<div id="tab-studio-overview" class="shared-tab-pane">
-						<div class="ec-studio-pane__mount" data-ec-studio-pane="overview"></div>
-					</div>
-				</div>
-
-				<div class="shared-tab-item">
-					<button type="button" class="shared-tab-button" data-tab="tab-studio-qr-codes">
-						<?php esc_html_e( 'QR Codes', 'extrachill-studio' ); ?>
-						<span class="shared-tab-arrow"></span>
-					</button>
-					<div id="tab-studio-qr-codes" class="shared-tab-pane">
-						<div class="ec-studio-pane__mount" data-ec-studio-pane="qr-codes"></div>
-					</div>
-				</div>
-
-				<div class="shared-tab-item">
-					<button type="button" class="shared-tab-button" data-tab="tab-studio-socials">
-						<?php esc_html_e( 'Socials', 'extrachill-studio' ); ?>
-						<span class="shared-tab-arrow"></span>
-					</button>
-					<div id="tab-studio-socials" class="shared-tab-pane">
-						<div class="ec-studio-pane__mount" data-ec-studio-pane="socials"></div>
-					</div>
-				</div>
-			</div>
-
-			<div class="shared-desktop-tab-content-area"></div>
-		</div>
+		<div class="ec-studio-app__mount" data-ec-studio-app></div>
 	</div>
 </div>

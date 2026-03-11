@@ -1,6 +1,9 @@
-import { createElement } from '@wordpress/element';
+import { createElement, useState } from '@wordpress/element';
+import { Tabs } from '@extrachill/components';
+import '@extrachill/components/styles/components.scss';
 
 import { mountComponent } from './app/mount';
+import { getStudioTabs } from './app/tabs';
 import OverviewPane from './tabs/overview';
 import QrCodesPane from './tabs/qr-codes';
 import SocialsPane from './tabs/socials';
@@ -11,6 +14,28 @@ const STUDIO_PANES = {
 	overview: OverviewPane,
 	'qr-codes': QrCodesPane,
 	socials: SocialsPane,
+};
+
+const StudioApp = ( { context } ) => {
+	const tabs = getStudioTabs();
+	const [ activeTab, setActiveTab ] = useState( tabs[ 0 ]?.id || 'overview' );
+	const ActivePane = STUDIO_PANES[ activeTab ] || OverviewPane;
+
+	return createElement(
+		'div',
+		{ className: 'ec-studio-app' },
+		createElement( Tabs, {
+			tabs,
+			activeTab,
+			onChange: setActiveTab,
+			className: 'ec-studio-app__tabs',
+		} ),
+		createElement(
+			'div',
+			{ className: 'ec-studio-app__panel', role: 'tabpanel' },
+			createElement( ActivePane, { context } )
+		)
+	);
 };
 
 const initRoot = ( root ) => {
@@ -28,18 +53,8 @@ const initRoot = ( root ) => {
 		socialsApiBase: root.dataset.socialsApiBase || '',
 	};
 
-	const mounts = root.querySelectorAll( '[data-ec-studio-pane]' );
-
-	mounts.forEach( ( mount ) => {
-		const pane = mount.dataset.ecStudioPane;
-		const PaneComponent = STUDIO_PANES[ pane ];
-
-		if ( ! PaneComponent ) {
-			return;
-		}
-
-		mountComponent( mount, createElement( PaneComponent, { context } ) );
-	} );
+	const appMount = root.querySelector( '[data-ec-studio-app]' );
+	mountComponent( appMount, createElement( StudioApp, { context } ) );
 };
 
 const init = () => {
