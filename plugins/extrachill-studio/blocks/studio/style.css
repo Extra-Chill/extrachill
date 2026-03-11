@@ -239,6 +239,35 @@
 	white-space: nowrap;
 }
 
+.ec-studio-comment-list {
+	display: grid;
+	gap: var(--spacing-md);
+	list-style: none;
+	padding: 0;
+	margin: var(--spacing-md) 0 0;
+}
+
+.ec-studio-comment-list__item {
+	padding: var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--background-color);
+}
+
+.ec-studio-comment-list__meta {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-md);
+	margin-bottom: var(--spacing-sm);
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
+.ec-studio-comment-list__text {
+	margin-bottom: var(--spacing-md);
+}
+
 .ec-studio-instagram-result {
 	margin-top: var(--spacing-lg);
 	padding-top: var(--spacing-md);

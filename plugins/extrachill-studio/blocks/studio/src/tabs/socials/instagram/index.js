@@ -1,7 +1,7 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useState } from '@wordpress/element';
 
-import { studioClient, uploadStudioFile } from '../../../app/client';
+import { studioClient, studioSocialsApi, uploadStudioFile } from '../../../app/client';
 
 const InstagramPane = () => {
 	const [ authStatus, setAuthStatus ] = useState( null );
@@ -16,6 +16,15 @@ const InstagramPane = () => {
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
 	const [ publishResult, setPublishResult ] = useState( null );
+	const [ mediaItems, setMediaItems ] = useState( [] );
+	const [ selectedMediaId, setSelectedMediaId ] = useState( '' );
+	const [ comments, setComments ] = useState( [] );
+	const [ isLoadingMedia, setIsLoadingMedia ] = useState( false );
+	const [ isLoadingComments, setIsLoadingComments ] = useState( false );
+	const [ commentsError, setCommentsError ] = useState( '' );
+	const [ commentsStatus, setCommentsStatus ] = useState( '' );
+	const [ replyDrafts, setReplyDrafts ] = useState( {} );
+	const [ replyingCommentId, setReplyingCommentId ] = useState( '' );
 
 	useEffect( () => {
 		const loadAuthStatus = async () => {
@@ -39,6 +48,57 @@ const InstagramPane = () => {
 
 		loadAuthStatus();
 	}, [] );
+
+	useEffect( () => {
+		if ( ! authStatus?.authenticated ) {
+			return;
+		}
+
+		const loadInstagramMedia = async () => {
+			setIsLoadingMedia( true );
+			setCommentsError( '' );
+
+			try {
+				const response = await studioSocialsApi.getInstagramMedia( { limit: 10 } );
+				const nextMediaItems = response?.data?.media || [];
+				setMediaItems( nextMediaItems );
+
+				if ( nextMediaItems.length > 0 ) {
+					setSelectedMediaId( ( current ) => current || nextMediaItems[ 0 ].id );
+				}
+			} catch ( fetchError ) {
+				setCommentsError( fetchError?.message || __( 'Unable to load recent Instagram posts.', 'extrachill-studio' ) );
+			} finally {
+				setIsLoadingMedia( false );
+			}
+		};
+
+		loadInstagramMedia();
+	}, [ authStatus?.authenticated ] );
+
+	useEffect( () => {
+		if ( ! selectedMediaId || ! authStatus?.authenticated ) {
+			return;
+		}
+
+		const loadComments = async () => {
+			setIsLoadingComments( true );
+			setCommentsError( '' );
+			setCommentsStatus( '' );
+
+			try {
+				const response = await studioSocialsApi.getInstagramComments( selectedMediaId, { limit: 25 } );
+				setComments( response?.data?.comments || [] );
+			} catch ( fetchError ) {
+				setComments( [] );
+				setCommentsError( fetchError?.message || __( 'Unable to load comments for this post.', 'extrachill-studio' ) );
+			} finally {
+				setIsLoadingComments( false );
+			}
+		};
+
+		loadComments();
+	}, [ selectedMediaId, authStatus?.authenticated ] );
 
 	const addImageUrl = () => {
 		const nextUrl = imageUrlInput.trim();
@@ -141,6 +201,43 @@ const InstagramPane = () => {
 	const instagramResult = Array.isArray( publishResult?.results )
 		? publishResult.results.find( ( result ) => result.platform === 'instagram' )
 		: null;
+
+	const selectedMedia = mediaItems.find( ( item ) => item.id === selectedMediaId ) || null;
+
+	const setReplyDraft = ( commentId, value ) => {
+		setReplyDrafts( ( current ) => ( {
+			...current,
+			[ commentId ]: value,
+		} ) );
+	};
+
+	const replyToComment = async ( commentId ) => {
+		const message = ( replyDrafts[ commentId ] || '' ).trim();
+
+		if ( ! message ) {
+			setCommentsError( __( 'Write a reply before posting.', 'extrachill-studio' ) );
+			setCommentsStatus( '' );
+			return;
+		}
+
+		setReplyingCommentId( commentId );
+		setCommentsError( '' );
+		setCommentsStatus( __( 'Posting reply…', 'extrachill-studio' ) );
+
+		try {
+			await studioSocialsApi.replyToInstagramComment( commentId, message );
+			setReplyDraft( commentId, '' );
+			setCommentsStatus( __( 'Reply posted successfully.', 'extrachill-studio' ) );
+
+			const response = await studioSocialsApi.getInstagramComments( selectedMediaId, { limit: 25 } );
+			setComments( response?.data?.comments || [] );
+		} catch ( replyError ) {
+			setCommentsStatus( '' );
+			setCommentsError( replyError?.message || __( 'Failed to reply to comment.', 'extrachill-studio' ) );
+		} finally {
+			setReplyingCommentId( '' );
+		}
+	};
 
 	return createElement(
 		createElement.Fragment,
@@ -274,6 +371,90 @@ const InstagramPane = () => {
 						? createElement( 'p', null, createElement( 'a', { href: instagramResult.permalink, target: '_blank', rel: 'noreferrer' }, __( 'View Instagram post', 'extrachill-studio' ) ) )
 						: null,
 					instagramResult.media_id ? createElement( 'p', null, sprintf( __( 'Media ID: %s', 'extrachill-studio' ), instagramResult.media_id ) ) : null
+				)
+				: null
+		),
+		createElement(
+			'div',
+			{ className: 'ec-studio-panel' },
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Instagram comments', 'extrachill-studio' ) ),
+			createElement( 'h3', null, __( 'Review and reply to post comments', 'extrachill-studio' ) ),
+			createElement( 'p', null, __( 'This prepares Studio for comment management using the same backend primitives exposed through Data Machine Socials REST, CLI, and chat tools.', 'extrachill-studio' ) ),
+			isLoadingMedia ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Loading recent Instagram posts…', 'extrachill-studio' ) ) : null,
+			commentsError ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, commentsError ) : null,
+			! commentsError && commentsStatus ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--success' }, commentsStatus ) : null,
+			mediaItems.length > 0
+				? createElement(
+					'div',
+					{ className: 'ec-studio-composer' },
+					createElement(
+						'div',
+						null,
+						createElement( 'label', { htmlFor: 'ec-studio-instagram-media-selector' }, __( 'Select post', 'extrachill-studio' ) ),
+						createElement(
+							'select',
+							{
+								id: 'ec-studio-instagram-media-selector',
+								value: selectedMediaId,
+								onChange: ( event ) => setSelectedMediaId( event.target.value ),
+							},
+							...mediaItems.map( ( item ) => createElement(
+								'option',
+								{ key: item.id, value: item.id },
+								item.caption ? item.caption.slice( 0, 60 ) : item.id
+							) )
+						)
+					),
+					selectedMedia
+						? createElement( 'p', { className: 'ec-studio-composer__hint' }, sprintf( __( 'Selected post has %d tracked comment(s).', 'extrachill-studio' ), selectedMedia.comments_count || 0 ) )
+						: null
+				)
+				: createElement( 'div', { className: 'ec-studio-preview' }, __( 'No recent Instagram posts available yet.', 'extrachill-studio' ) ),
+			selectedMediaId
+				? (
+					isLoadingComments
+						? createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Loading comments…', 'extrachill-studio' ) )
+						: comments.length > 0
+							? createElement(
+								'ul',
+								{ className: 'ec-studio-comment-list' },
+								...comments.map( ( comment ) => createElement(
+									'li',
+									{ key: comment.id, className: 'ec-studio-comment-list__item' },
+									createElement(
+										'div',
+										{ className: 'ec-studio-comment-list__meta' },
+										createElement( 'strong', null, `@${ comment.username || 'unknown' }` ),
+										comment.timestamp ? createElement( 'span', null, comment.timestamp ) : null
+									),
+									createElement( 'p', { className: 'ec-studio-comment-list__text' }, comment.text || '' ),
+									createElement(
+										'div',
+										{ className: 'ec-studio-composer' },
+										createElement( 'textarea', {
+											rows: 3,
+											value: replyDrafts[ comment.id ] || '',
+											onChange: ( event ) => setReplyDraft( comment.id, event.target.value ),
+											placeholder: __( 'Write a reply…', 'extrachill-studio' ),
+										} ),
+										createElement(
+											'div',
+											{ className: 'ec-studio-composer__actions' },
+											createElement(
+												'button',
+												{
+													type: 'button',
+													className: 'button-1 button-medium',
+													onClick: () => replyToComment( comment.id ),
+													disabled: replyingCommentId === comment.id,
+												},
+												replyingCommentId === comment.id ? __( 'Replying…', 'extrachill-studio' ) : __( 'Reply', 'extrachill-studio' )
+											)
+										)
+									)
+								) )
+							)
+							: createElement( 'div', { className: 'ec-studio-preview' }, __( 'No comments found for the selected post.', 'extrachill-studio' ) )
 				)
 				: null
 		)
