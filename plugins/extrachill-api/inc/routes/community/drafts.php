@@ -143,29 +143,23 @@ function extrachill_api_community_drafts_get_context_from_request( WP_REST_Reque
 }
 
 function extrachill_api_community_drafts_get_handler( WP_REST_Request $request ) {
-    $valid = extrachill_api_community_drafts_validate_context( $request );
-    if ( true !== $valid ) {
-        return $valid;
-    }
+	$valid = extrachill_api_community_drafts_validate_context( $request );
+	if ( true !== $valid ) {
+		return $valid;
+	}
 
-    if ( ! function_exists( 'extrachill_api_bbpress_draft_get' ) ) {
-        return new WP_Error( 'missing_helpers', 'Draft utilities not loaded.', [ 'status' => 500 ] );
-    }
+	$ability = wp_get_ability( 'extrachill/get-bbpress-draft' );
+	if ( ! $ability ) {
+		return new WP_Error( 'missing_ability', 'Draft ability not available.', [ 'status' => 500 ] );
+	}
 
-    $context = extrachill_api_community_drafts_get_context_from_request( $request );
-    $user_id = get_current_user_id();
+	$context = extrachill_api_community_drafts_get_context_from_request( $request );
+	$context['user_id']           = get_current_user_id();
+	$context['prefer_unassigned'] = (bool) $request->get_param( 'prefer_unassigned' );
 
-    $prefer_unassigned = (bool) $request->get_param( 'prefer_unassigned' );
+	$draft = $ability->execute( $context );
 
-    $draft = extrachill_api_bbpress_draft_get( $user_id, $context );
-
-    if ( null === $draft && 'topic' === $context['type'] && $prefer_unassigned && $context['forum_id'] > 0 ) {
-        $fallback_context = $context;
-        $fallback_context['forum_id'] = 0;
-        $draft = extrachill_api_bbpress_draft_get( $user_id, $fallback_context );
-    }
-
-    return rest_ensure_response( [ 'draft' => $draft ] );
+	return rest_ensure_response( [ 'draft' => $draft ] );
 }
 
 function extrachill_api_community_drafts_post_handler( WP_REST_Request $request ) {
@@ -174,9 +168,10 @@ function extrachill_api_community_drafts_post_handler( WP_REST_Request $request 
         return $valid;
     }
 
-    if ( ! function_exists( 'extrachill_api_bbpress_draft_upsert' ) ) {
-        return new WP_Error( 'missing_helpers', 'Draft utilities not loaded.', [ 'status' => 500 ] );
-    }
+	$ability = wp_get_ability( 'extrachill/save-bbpress-draft' );
+	if ( ! $ability ) {
+		return new WP_Error( 'missing_ability', 'Draft ability not available.', [ 'status' => 500 ] );
+	}
 
     $context = extrachill_api_community_drafts_get_context_from_request( $request );
 
@@ -194,7 +189,9 @@ function extrachill_api_community_drafts_post_handler( WP_REST_Request $request 
         'content' => $content,
     ];
 
-    $saved = extrachill_api_bbpress_draft_upsert( get_current_user_id(), $draft );
+	$draft['user_id'] = get_current_user_id();
+
+	$saved = $ability->execute( $draft );
 
     return rest_ensure_response( [
         'saved' => true,
@@ -208,12 +205,14 @@ function extrachill_api_community_drafts_delete_handler( WP_REST_Request $reques
         return $valid;
     }
 
-    if ( ! function_exists( 'extrachill_api_bbpress_draft_delete' ) ) {
-        return new WP_Error( 'missing_helpers', 'Draft utilities not loaded.', [ 'status' => 500 ] );
-    }
+	$ability = wp_get_ability( 'extrachill/delete-bbpress-draft' );
+	if ( ! $ability ) {
+		return new WP_Error( 'missing_ability', 'Draft ability not available.', [ 'status' => 500 ] );
+	}
 
-    $context = extrachill_api_community_drafts_get_context_from_request( $request );
-    $deleted = extrachill_api_bbpress_draft_delete( get_current_user_id(), $context );
+	$context = extrachill_api_community_drafts_get_context_from_request( $request );
+	$context['user_id'] = get_current_user_id();
+	$deleted = $ability->execute( $context );
 
-    return rest_ensure_response( [ 'deleted' => (bool) $deleted ] );
+	return rest_ensure_response( [ 'deleted' => (bool) $deleted ] );
 }
