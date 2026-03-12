@@ -78,22 +78,28 @@ function extrachill_community_append_location_links_to_description( $description
 	}
 
 	$forum_id       = bbp_get_forum_id();
+	$has_subforums  = ! empty( bbp_forum_get_subforums( $forum_id ) );
 	$location_terms = get_the_terms( $forum_id, 'location' );
+	$button_html    = '';
+
+	if ( ! bbp_is_forum_category() && ! $has_subforums ) {
+		$button_html = '<p class="ec-single-forum-create-topic"><a class="button-1 button-large" href="#new-post">' . esc_html__( 'Create Topic', 'extrachill-community' ) . '</a></p>';
+	}
 
 	if ( empty( $location_terms ) || is_wp_error( $location_terms ) ) {
-		return $description;
+		return $description . $button_html;
 	}
 
 	$term = $location_terms[0];
 
 	if ( ! function_exists( 'extrachill_get_cross_site_term_links' ) ) {
-		return $description;
+		return $description . $button_html;
 	}
 
 	$links = extrachill_get_cross_site_term_links( $term, 'location' );
 
 	if ( empty( $links ) ) {
-		return $description;
+		return $description . $button_html;
 	}
 
 	ob_start();
@@ -104,6 +110,6 @@ function extrachill_community_append_location_links_to_description( $description
 	echo '</div>';
 	$links_html = ob_get_clean();
 
-	return $description . $links_html;
+	return $description . $links_html . $button_html;
 }
 add_filter( 'bbp_get_single_forum_description', 'extrachill_community_append_location_links_to_description' );
