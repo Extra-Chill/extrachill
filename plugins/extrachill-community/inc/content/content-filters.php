@@ -134,6 +134,15 @@ function extrachill_truncate_html_content($content, $length = 500, $ellipsis = '
 function ec_display_forum_description() {
     if ( $description = bbp_get_forum_content() ) {
         echo '<div class="bbp-forum-description">' . $description . '</div>';
+
+		$forum_id = function_exists( 'bbp_get_forum_id' ) ? (int) bbp_get_forum_id() : 0;
+		$has_subforums = $forum_id > 0 && function_exists( 'bbp_forum_get_subforums' )
+			? ! empty( bbp_forum_get_subforums( $forum_id ) )
+			: false;
+
+		if ( ! bbp_is_forum_category() && ! $has_subforums ) {
+			echo '<p class="ec-single-forum-create-topic"><a class="button-1 button-large" href="#new-post">' . esc_html__( 'Create Topic', 'extrachill-community' ) . '</a></p>';
+		}
     }
 }
 add_action( 'bbp_template_before_single_forum', 'ec_display_forum_description' );
@@ -252,4 +261,3 @@ function extrachill_filter_logged_reply_revisions($revisions, $reply_id) {
         return isset($revision_log[$revision->ID]);
     });
 }
-

@@ -26,19 +26,6 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php bbp_single_forum_description(); ?>
 
-		<?php
-		$forum_id = function_exists( 'bbp_get_forum_id' ) ? (int) bbp_get_forum_id() : 0;
-		$has_subforums = $forum_id > 0 && function_exists( 'bbp_forum_get_subforums' )
-			? ! empty( bbp_forum_get_subforums( $forum_id ) )
-			: false;
-		?>
-
-		<?php if ( ! bbp_is_forum_category() && ! $has_subforums ) : ?>
-			<p class="ec-single-forum-create-topic">
-				<a class="button-1 button-large" href="#new-post"><?php esc_html_e( 'Create Topic', 'extrachill-community' ); ?></a>
-			</p>
-		<?php endif; ?>
-
 		<?php if ( bbp_has_forums() ) : ?>
 
 			<?php bbp_get_template_part( 'loop', 'subforums' ); ?>
