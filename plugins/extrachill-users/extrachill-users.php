@@ -124,10 +124,6 @@ function extrachill_users_init() {
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-auto-approval.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/footer/online-users-stats.php';
-
-	if ( defined( 'WP_CLI' ) && WP_CLI ) {
-		require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/cli/users-command.php';
-	}
 }
 
 add_filter( 'newsletter_form_integrations', 'extrachill_users_newsletter_integration' );
