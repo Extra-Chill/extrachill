@@ -14,7 +14,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function extrachill_community_bbpress_drafts_enabled() {
-    return is_user_logged_in() && function_exists( 'extrachill_api_bbpress_draft_get' );
+	return is_user_logged_in() && function_exists( 'wp_get_ability' ) && wp_get_ability( 'extrachill/get-bbpress-draft' );
+}
+
+function extrachill_community_execute_get_draft_ability( array $input ) {
+	$ability = wp_get_ability( 'extrachill/get-bbpress-draft' );
+	if ( ! $ability ) {
+		return null;
+	}
+
+	$input['user_id'] = get_current_user_id();
+
+	return $ability->execute( $input );
+}
+
+function extrachill_community_execute_delete_draft_ability( array $input ) {
+	$ability = wp_get_ability( 'extrachill/delete-bbpress-draft' );
+	if ( ! $ability ) {
+		return false;
+	}
+
+	$input['user_id'] = isset( $input['user_id'] ) ? (int) $input['user_id'] : get_current_user_id();
+
+	return (bool) $ability->execute( $input );
 }
 
 function extrachill_community_bbpress_get_current_forum_id_for_topic_draft() {
@@ -44,25 +66,14 @@ function extrachill_community_bbpress_restore_topic_draft_content( $content ) {
 
     $forum_id = extrachill_community_bbpress_get_current_forum_id_for_topic_draft();
 
-    $draft = extrachill_api_bbpress_draft_get(
-        get_current_user_id(),
-        [
-            'type'    => 'topic',
-            'blog_id' => (int) get_current_blog_id(),
-            'forum_id' => $forum_id,
-        ]
-    );
-
-    if ( ! $draft && $forum_id !== 0 ) {
-        $draft = extrachill_api_bbpress_draft_get(
-            get_current_user_id(),
-            [
-                'type'    => 'topic',
-                'blog_id' => (int) get_current_blog_id(),
-                'forum_id' => 0,
-            ]
-        );
-    }
+	$draft = extrachill_community_execute_get_draft_ability(
+		[
+			'type'              => 'topic',
+			'blog_id'           => (int) get_current_blog_id(),
+			'forum_id'          => $forum_id,
+			'prefer_unassigned' => true,
+		]
+	);
 
     if ( ! $draft || empty( $draft['content'] ) ) {
         return $content;
@@ -99,15 +110,14 @@ function extrachill_community_bbpress_restore_reply_draft_content( $content ) {
         $reply_to = (int) bbp_get_form_reply_to();
     }
 
-    $draft = extrachill_api_bbpress_draft_get(
-        get_current_user_id(),
-        [
-            'type'     => 'reply',
-            'blog_id'  => (int) get_current_blog_id(),
-            'topic_id' => $topic_id,
-            'reply_to' => $reply_to,
-        ]
-    );
+	$draft = extrachill_community_execute_get_draft_ability(
+		[
+			'type'     => 'reply',
+			'blog_id'  => (int) get_current_blog_id(),
+			'topic_id' => $topic_id,
+			'reply_to' => $reply_to,
+		]
+	);
 
     if ( ! $draft || empty( $draft['content'] ) ) {
         return $content;
@@ -132,25 +142,14 @@ function extrachill_community_bbpress_restore_topic_draft_title( $title ) {
 
     $forum_id = extrachill_community_bbpress_get_current_forum_id_for_topic_draft();
 
-    $draft = extrachill_api_bbpress_draft_get(
-        get_current_user_id(),
-        [
-            'type'    => 'topic',
-            'blog_id' => (int) get_current_blog_id(),
-            'forum_id' => $forum_id,
-        ]
-    );
-
-    if ( ! $draft && $forum_id !== 0 ) {
-        $draft = extrachill_api_bbpress_draft_get(
-            get_current_user_id(),
-            [
-                'type'    => 'topic',
-                'blog_id' => (int) get_current_blog_id(),
-                'forum_id' => 0,
-            ]
-        );
-    }
+	$draft = extrachill_community_execute_get_draft_ability(
+		[
+			'type'              => 'topic',
+			'blog_id'           => (int) get_current_blog_id(),
+			'forum_id'          => $forum_id,
+			'prefer_unassigned' => true,
+		]
+	);
 
     if ( ! $draft || empty( $draft['title'] ) ) {
         return $title;
@@ -174,14 +173,13 @@ function extrachill_community_bbpress_restore_topic_draft_forum_id( $forum_id ) 
         return $forum_id;
     }
 
-    $draft = extrachill_api_bbpress_draft_get(
-        get_current_user_id(),
-        [
-            'type'    => 'topic',
-            'blog_id' => (int) get_current_blog_id(),
-            'forum_id' => 0,
-        ]
-    );
+	$draft = extrachill_community_execute_get_draft_ability(
+		[
+			'type'    => 'topic',
+			'blog_id' => (int) get_current_blog_id(),
+			'forum_id' => 0,
+		]
+	);
 
     if ( ! $draft ) {
         return $forum_id;
@@ -196,9 +194,9 @@ function extrachill_community_bbpress_restore_topic_draft_forum_id( $forum_id ) 
 add_filter( 'bbp_get_form_topic_forum', 'extrachill_community_bbpress_restore_topic_draft_forum_id', 50 );
 
 function extrachill_community_bbpress_clear_topic_drafts_on_new_topic( $topic_id, $forum_id ) {
-    if ( ! function_exists( 'extrachill_api_bbpress_draft_delete' ) ) {
-        return;
-    }
+	if ( ! function_exists( 'wp_get_ability' ) ) {
+		return;
+	}
 
     if ( ! function_exists( 'bbp_get_topic_author_id' ) ) {
         return;
@@ -212,30 +210,30 @@ function extrachill_community_bbpress_clear_topic_drafts_on_new_topic( $topic_id
     $blog_id  = (int) get_current_blog_id();
     $forum_id = (int) $forum_id;
 
-    extrachill_api_bbpress_draft_delete(
-        $user_id,
-        [
-            'type'    => 'topic',
-            'blog_id' => $blog_id,
-            'forum_id' => $forum_id,
-        ]
-    );
+	extrachill_community_execute_delete_draft_ability(
+		[
+			'user_id'  => $user_id,
+			'type'     => 'topic',
+			'blog_id'  => $blog_id,
+			'forum_id' => $forum_id,
+		]
+	);
 
-    extrachill_api_bbpress_draft_delete(
-        $user_id,
-        [
-            'type'    => 'topic',
-            'blog_id' => $blog_id,
-            'forum_id' => 0,
-        ]
-    );
+	extrachill_community_execute_delete_draft_ability(
+		[
+			'user_id'  => $user_id,
+			'type'     => 'topic',
+			'blog_id'  => $blog_id,
+			'forum_id' => 0,
+		]
+	);
 }
 add_action( 'bbp_new_topic', 'extrachill_community_bbpress_clear_topic_drafts_on_new_topic', 20, 2 );
 
 function extrachill_community_bbpress_clear_reply_drafts_on_new_reply( $reply_id ) {
-    if ( ! function_exists( 'extrachill_api_bbpress_draft_delete' ) ) {
-        return;
-    }
+	if ( ! function_exists( 'wp_get_ability' ) ) {
+		return;
+	}
 
     if ( ! function_exists( 'bbp_get_reply_topic_id' ) || ! function_exists( 'bbp_get_reply_author_id' ) ) {
         return;
@@ -256,14 +254,14 @@ function extrachill_community_bbpress_clear_reply_drafts_on_new_reply( $reply_id
         $reply_to = (int) bbp_get_reply_to( $reply_id );
     }
 
-    extrachill_api_bbpress_draft_delete(
-        $user_id,
-        [
-            'type'     => 'reply',
-            'blog_id'  => (int) get_current_blog_id(),
-            'topic_id' => $topic_id,
-            'reply_to' => $reply_to,
-        ]
-    );
+	extrachill_community_execute_delete_draft_ability(
+		[
+			'user_id'  => $user_id,
+			'type'     => 'reply',
+			'blog_id'  => (int) get_current_blog_id(),
+			'topic_id' => $topic_id,
+			'reply_to' => $reply_to,
+		]
+	);
 }
 add_action( 'bbp_new_reply', 'extrachill_community_bbpress_clear_reply_drafts_on_new_reply', 20, 1 );

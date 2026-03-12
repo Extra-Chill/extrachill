@@ -286,6 +286,7 @@ function extrachill_community_configure_blocks_everywhere_bbpress_endpoints( $se
 
 	$settings['bbpress']['draftEndpoint'] = rest_url( 'extrachill/v1/community/drafts' );
 	$settings['bbpress']['mediaEndpoint'] = rest_url( 'extrachill/v1/media' );
+	$settings['bbpress']['mentionsEndpoint'] = rest_url( 'extrachill/v1/users/search' );
 
 	return $settings;
 }
