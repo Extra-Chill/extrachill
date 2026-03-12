@@ -299,6 +299,14 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 		);
 	}
 
+	if ( function_exists( 'extrachill_users_is_banned' ) && extrachill_users_is_banned( (int) $user->ID ) ) {
+		return new WP_Error(
+			'extrachill_user_banned',
+			'This account has been suspended. Please contact support if you believe this is a mistake.',
+			array( 'status' => 403 )
+		);
+	}
+
 	if ( ! is_user_member_of_blog( $user->ID, $community_blog_id ) ) {
 		return new WP_Error(
 			'extrachill_not_a_member',
