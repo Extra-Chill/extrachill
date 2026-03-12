@@ -33,7 +33,7 @@ defined( 'ABSPATH' ) || exit;
 			: false;
 		?>
 
-		<?php if ( ! bbp_is_forum_category() && ! $has_subforums && bbp_current_user_can_access_create_topic_form() ) : ?>
+		<?php if ( ! bbp_is_forum_category() && ! $has_subforums ) : ?>
 			<p class="ec-single-forum-create-topic">
 				<a class="button-1 button-large" href="#new-post"><?php esc_html_e( 'Create Topic', 'extrachill-community' ); ?></a>
 			</p>
