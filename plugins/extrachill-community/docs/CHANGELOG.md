@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.12] - 2026-03-12
+
+### Changed
+- Show forum create topic shortcut before login gate
+
 ## [1.3.11] - 2026-03-12
 
 ### Changed
