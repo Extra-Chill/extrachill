@@ -277,6 +277,14 @@ ul {
     margin: 0 0 var(--spacing-lg) 0;
 }
 
+.ec-single-forum-create-topic {
+    margin: 0 0 var(--spacing-lg) 0;
+}
+
+.ec-single-forum-create-topic .button-1 {
+    display: inline-flex;
+}
+
 [id^="forums-list-subforums-"] > .bbp-body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
