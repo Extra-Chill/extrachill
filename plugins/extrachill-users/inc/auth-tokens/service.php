@@ -299,9 +299,9 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 		);
 	}
 
-	if ( function_exists( 'extrachill_users_is_banned' ) && extrachill_users_is_banned( (int) $user->ID ) ) {
+	if ( function_exists( 'extrachill_users_is_blocked' ) && extrachill_users_is_blocked( (int) $user->ID ) ) {
 		return new WP_Error(
-			'extrachill_user_banned',
+			'extrachill_user_blocked',
 			'This account has been suspended. Please contact support if you believe this is a mistake.',
 			array( 'status' => 403 )
 		);

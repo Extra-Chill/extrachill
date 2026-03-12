@@ -104,7 +104,7 @@ function extrachill_users_validate_access_token( string $token ): ?array {
 		return null;
 	}
 
-	if ( function_exists( 'extrachill_users_is_banned' ) && extrachill_users_is_banned( (int) $user->ID ) ) {
+	if ( function_exists( 'extrachill_users_is_blocked' ) && extrachill_users_is_blocked( (int) $user->ID ) ) {
 		return null;
 	}
 
