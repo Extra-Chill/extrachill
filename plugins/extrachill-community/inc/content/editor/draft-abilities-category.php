@@ -9,7 +9,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'wp_abilities_api_categories_init', 'extrachill_community_register_ability_category' );
+if ( did_action( 'wp_abilities_api_categories_init' ) ) {
+	extrachill_community_register_ability_category();
+} else {
+	add_action( 'wp_abilities_api_categories_init', 'extrachill_community_register_ability_category' );
+}
 
 function extrachill_community_register_ability_category() {
 	wp_register_ability_category(
