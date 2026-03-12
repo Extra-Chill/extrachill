@@ -275,6 +275,22 @@ function extrachill_enqueue_bbpress_editor_dependencies() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_bbpress_editor_dependencies', 110);
 
+function extrachill_community_configure_blocks_everywhere_bbpress_endpoints( $settings ) {
+	if ( ! function_exists( 'extrachill_community_bbpress_editor_is_active' ) || ! extrachill_community_bbpress_editor_is_active() ) {
+		return $settings;
+	}
+
+	if ( ! isset( $settings['bbpress'] ) || ! is_array( $settings['bbpress'] ) ) {
+		$settings['bbpress'] = array();
+	}
+
+	$settings['bbpress']['draftEndpoint'] = rest_url( 'extrachill/v1/community/drafts' );
+	$settings['bbpress']['mediaEndpoint'] = rest_url( 'extrachill/v1/media' );
+
+	return $settings;
+}
+add_filter( 'blocks_everywhere_editor_settings', 'extrachill_community_configure_blocks_everywhere_bbpress_endpoints', 20 );
+
 
 
 function extrachill_dequeue_bbpress_default_styles() {
