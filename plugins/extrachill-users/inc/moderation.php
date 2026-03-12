@@ -303,7 +303,6 @@ function extrachill_users_apply_spam_visibility_to_user_content( int $user_id ) 
 
 			$post_id   = (int) $object['object_id'];
 			$post_type = isset( $object['post_type'] ) ? (string) $object['post_type'] : '';
-			$post_type_object = $post_type ? get_post_type_object( $post_type ) : null;
 
 			if ( 'topic' === $post_type && function_exists( 'bbp_spam_topic' ) ) {
 				bbp_spam_topic( $post_id );
@@ -317,7 +316,7 @@ function extrachill_users_apply_spam_visibility_to_user_content( int $user_id ) 
 				continue;
 			}
 
-			if ( ! $post_type_object || ( empty( $post_type_object->public ) && empty( $post_type_object->publicly_queryable ) ) || 'attachment' === $post_type ) {
+			if ( 'attachment' === $post_type ) {
 				continue;
 			}
 
