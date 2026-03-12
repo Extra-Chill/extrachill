@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.11] - 2026-03-12
+
+### Changed
+- Add create topic shortcut on bottom level forums
+- Update changelog for v1.3.9 and v1.3.10
+
 ## [1.3.10] - 2026-02-27
 
 ### Changed
