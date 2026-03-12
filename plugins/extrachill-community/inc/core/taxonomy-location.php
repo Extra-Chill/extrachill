@@ -110,6 +110,6 @@ function extrachill_community_append_location_links_to_description( $description
 	echo '</div>';
 	$links_html = ob_get_clean();
 
-	return $description . $links_html . $button_html;
+	return $description . $button_html . $links_html;
 }
 add_filter( 'bbp_get_single_forum_description', 'extrachill_community_append_location_links_to_description' );
