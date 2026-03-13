@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.3.13] - 2026-03-13
+
+### Changed
+- Register community ability category safely
+- Register community ability category
+- Make community drafts abilities first
+- Inject bbPress editor endpoints for Blocks Everywhere
+- Show forum create topic shortcut before cross site links
+- Append forum create topic shortcut to visible description output
+- Render forum create topic shortcut with description hook
+
 ## [1.3.12] - 2026-03-12
 
 ### Changed
