@@ -1,0 +1,19 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {}
+  },
+  "id": "extrachill-cli",
+  "remote_path": "wp-content/plugins/extrachill-cli",
+  "version_targets": [
+    {
+      "file": "extrachill-cli.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-cli.php",
+      "pattern": "EXTRACHILL_CLI_VERSION',\\s*'([0-9.]+)'"
+    }
+  ]
+}

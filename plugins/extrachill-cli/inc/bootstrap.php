@@ -21,6 +21,9 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 WP_CLI::add_command( 'extrachill analytics summary', ExtraChill\CLI\Commands\Analytics\SummaryCommand::class );
 WP_CLI::add_command( 'extrachill analytics 404', ExtraChill\CLI\Commands\Analytics\FourOhFourCommand::class );
 
+// Events commands.
+WP_CLI::add_command( 'extrachill events', ExtraChill\CLI\Commands\Events\LocationCommand::class );
+
 // SEO commands.
 WP_CLI::add_command( 'extrachill seo redirects', ExtraChill\CLI\Commands\SEO\RedirectsCommand::class );
 
