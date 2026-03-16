@@ -137,6 +137,9 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/WeeklyRoundupAbilities.php';
 		new \ExtraChillEvents\Abilities\WeeklyRoundupAbilities();
 
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/EventLocationAlignmentAbilities.php';
+		new \ExtraChillEvents\Abilities\EventLocationAlignmentAbilities();
+
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/LocationEventAbilities.php';
 		new \ExtraChillEvents\Abilities\LocationEventAbilities();
 

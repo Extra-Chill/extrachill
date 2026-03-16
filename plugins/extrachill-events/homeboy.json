@@ -1,0 +1,19 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {}
+  },
+  "id": "extrachill-events",
+  "remote_path": "wp-content/plugins/extrachill-events",
+  "version_targets": [
+    {
+      "file": "extrachill-events.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-events.php",
+      "pattern": "EXTRACHILL_EVENTS_VERSION',\\s*'([0-9.]+)'"
+    }
+  ]
+}
