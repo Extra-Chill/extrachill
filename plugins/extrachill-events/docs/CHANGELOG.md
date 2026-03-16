@@ -5,11 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
-## Unreleased
+## [0.9.1] - 2026-03-16
 
 ### Added
 - add `extrachill/reconcile-event-locations` ability to audit or repair event location terms against venue city, with source-flow diagnostics for mismatch cleanup
 - add `homeboy.json` component config for clean Homeboy registration and deployment
+
+### Changed
+- add event location reconciliation ability
+- show centered map block on venue archives
+- auto-fix 483 PHPCS violations via homeboy lint --fix
+
+### Fixed
+- restore ec_is_events_site() guards on block registration and homepage render
+- define missing ec_is_events_site() — was causing fatal error on main site
 
 ## [0.9.0] - 2026-03-07
 
