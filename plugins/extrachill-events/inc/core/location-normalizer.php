@@ -3,10 +3,13 @@
  * Location Normalizer
  *
  * Corrects the location taxonomy term on imported events based on the
- * venue's zip code. Handles cities where geographic radius-based imports
- * (Ticketmaster, etc.) cause events to be tagged with the wrong sub-location.
+ * venue's market. Handles cities where geographic radius-based imports
+ * (Ticketmaster, etc.) cause events to be tagged with the wrong market or
+ * wrong sub-location.
  *
- * Currently handles: New York City boroughs (Brooklyn, Queens, Manhattan, Bronx, Staten Island).
+ * Currently handles:
+ * - New York City boroughs (Brooklyn, Queens, Manhattan, Bronx, Staten Island)
+ * - Extra Chill municipality-to-market rollups (for example North Charleston → Charleston)
  *
  * @package ExtraChillEvents
  * @since 0.8.4
@@ -19,9 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'save_post_data_machine_events', 'extrachill_events_normalize_location', 20, 2 );
 
 /**
- * Normalize event location based on venue zip code.
+ * Normalize event location based on venue market.
  *
- * Fires on event save. Looks up the venue's zip code from term meta
+ * Fires on event save. Looks up the venue city/state/zip from term meta
  * and corrects the location taxonomy if it maps to a different term
  * than what was assigned by the import pipeline.
  *
@@ -38,14 +41,11 @@ function extrachill_events_normalize_location( $post_id, $post ) {
 		return;
 	}
 
-	$venue = $venues[0];
-	$zip   = get_term_meta( $venue->term_id, '_venue_zip', true );
-
-	if ( empty( $zip ) ) {
-		return;
-	}
-
-	$correct_location_slug = extrachill_events_get_location_slug_for_zip( $zip );
+	$venue                = $venues[0];
+	$venue_city           = (string) get_term_meta( $venue->term_id, '_venue_city', true );
+	$venue_state          = (string) get_term_meta( $venue->term_id, '_venue_state', true );
+	$zip                  = (string) get_term_meta( $venue->term_id, '_venue_zip', true );
+	$correct_location_slug = extrachill_events_get_market_slug_for_venue( $venue_city, $venue_state, $zip );
 	if ( ! $correct_location_slug ) {
 		return;
 	}
@@ -68,6 +68,119 @@ function extrachill_events_normalize_location( $post_id, $post ) {
 
 	// Replace all location terms with the correct one.
 	wp_set_object_terms( $post_id, array( $correct_term->term_id ), 'location' );
+}
+
+/**
+ * Get the canonical market slug for a venue.
+ *
+ * Resolution order:
+ * 1. NYC zip → borough mapping
+ * 2. Explicit municipality → market mapping
+ * 3. No opinion (null)
+ *
+ * @param string $city  Venue city.
+ * @param string $state Venue state.
+ * @param string $zip   Venue zip.
+ * @return string|null Canonical location slug, or null if no mapping exists.
+ */
+function extrachill_events_get_market_slug_for_venue( $city, $state = '', $zip = '' ) {
+	$borough_slug = extrachill_events_get_location_slug_for_zip( $zip );
+	if ( $borough_slug ) {
+		return $borough_slug;
+	}
+
+	$city  = strtolower( trim( (string) $city ) );
+	$state = strtolower( trim( (string) $state ) );
+
+	if ( '' === $city ) {
+		return null;
+	}
+
+	$market_map = extrachill_events_get_city_market_map();
+	if ( ! isset( $market_map[ $city ] ) ) {
+		return null;
+	}
+
+	$mapping = $market_map[ $city ];
+
+	if ( is_string( $mapping ) ) {
+		return $mapping;
+	}
+
+	if ( '' !== $state && isset( $mapping[ $state ] ) ) {
+		return $mapping[ $state ];
+	}
+
+	if ( isset( $mapping['default'] ) ) {
+		return $mapping['default'];
+	}
+
+	return null;
+}
+
+/**
+ * Get municipality → market mapping for Extra Chill events.
+ *
+ * The location taxonomy represents discovery markets, not every municipality.
+ * NYC boroughs are handled separately via zip mapping.
+ *
+ * @return array<string, string|array<string, string>>
+ */
+function extrachill_events_get_city_market_map() {
+	return array(
+		'allentown'       => 'philadelphia',
+		'anderson'        => 'greenville',
+		'ann arbor'       => 'detroit',
+		'ardmore'         => 'philadelphia',
+		'bensalem'        => 'philadelphia',
+		'berwyn'          => 'chicago',
+		'bethlehem'       => 'philadelphia',
+		'bloomingdale'    => 'savannah',
+		'buda'            => 'austin',
+		'cambridge'       => 'boston',
+		'cedar park'      => 'austin',
+		'cherokee'        => 'asheville',
+		'clemson'         => 'greenville',
+		'danielsville'    => 'athens',
+		'decatur'         => 'atlanta',
+		'duluth'          => 'atlanta',
+		'durham'          => 'raleigh',
+		'evanston'        => 'chicago',
+		'folly beach'     => 'charleston',
+		'forest park'     => 'chicago',
+		'ft lauderdale'   => 'miami',
+		'frenchtown'      => 'philadelphia',
+		'glendale'        => 'phoenix',
+		'glenside'        => 'philadelphia',
+		'hamtramck'       => 'detroit',
+		'henderson'       => 'las-vegas',
+		'hollywood'       => array(
+			'california'     => 'los-angeles',
+			'florida'        => 'miami',
+			'south carolina' => 'charleston',
+		),
+		'isle of palms'   => 'charleston',
+		'lakewood'        => 'cleveland',
+		'lockhart'        => 'austin',
+		'metairie'        => 'new-orleans',
+		'miami beach'     => 'miami',
+		'murfreesboro'    => 'nashville',
+		'north charleston'=> 'charleston',
+		'pflugerville'    => 'austin',
+		'pottstown'       => 'philadelphia',
+		'reading'         => 'philadelphia',
+		'round rock'      => 'austin',
+		'san marcos'      => 'austin',
+		'simpsonville'    => 'greenville',
+		'solana beach'    => 'san-diego',
+		'spartanburg'     => 'greenville',
+		'st. paul'        => 'minneapolis',
+		'tempe'           => 'phoenix',
+		'watkinsville'    => 'athens',
+		'west hollywood'  => 'los-angeles',
+		'wilmington'      => 'philadelphia',
+		'worcester'       => 'boston',
+	);
 }
 
 /**

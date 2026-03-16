@@ -281,9 +281,11 @@ class EventLocationAlignmentAbilities {
 			);
 		}
 
-		$venue      = $venue_terms[0];
-		$venue_city = trim( (string) get_term_meta( $venue->term_id, '_venue_city', true ) );
-		$expected   = $this->resolveExpectedLocationTerm( $venue_city, $flow_location['term'] );
+		$venue       = $venue_terms[0];
+		$venue_city  = trim( (string) get_term_meta( $venue->term_id, '_venue_city', true ) );
+		$venue_state = trim( (string) get_term_meta( $venue->term_id, '_venue_state', true ) );
+		$venue_zip   = trim( (string) get_term_meta( $venue->term_id, '_venue_zip', true ) );
+		$expected    = $this->resolveExpectedLocationTerm( $venue_city, $venue_state, $venue_zip, $flow_location['term'] );
 
 		if ( ! $expected['term'] ) {
 			return array(
@@ -345,18 +347,43 @@ class EventLocationAlignmentAbilities {
 	}
 
 	/**
-	 * Resolve the canonical location term for a venue city.
+	 * Resolve the canonical market/location term for a venue.
 	 *
-	 * @param string        $venue_city Venue city name.
-	 * @param \WP_Term|null $flow_term  Flow-configured location term for tie-breaking.
+	 * Resolution order:
+	 * 1. Flow-configured location term (strongest signal)
+	 * 2. Shared venue market resolver (NYC borough zip rules + city→market mapping)
+	 * 3. Exact location term name match fallback
+	 *
+	 * @param string        $venue_city  Venue city name.
+	 * @param string        $venue_state Venue state name.
+	 * @param string        $venue_zip   Venue zip code.
+	 * @param \WP_Term|null $flow_term   Flow-configured location term.
 	 * @return array{term: \WP_Term|null, reason: string}
 	 */
-	private function resolveExpectedLocationTerm( string $venue_city, ?\WP_Term $flow_term ): array {
+	private function resolveExpectedLocationTerm( string $venue_city, string $venue_state, string $venue_zip, ?\WP_Term $flow_term ): array {
+		if ( $flow_term ) {
+			return array(
+				'term'   => $flow_term,
+				'reason' => 'matched_flow_location',
+			);
+		}
+
 		if ( '' === $venue_city ) {
 			return array(
 				'term'   => null,
 				'reason' => 'missing_venue_city',
 			);
+		}
+
+		$market_slug = extrachill_events_get_market_slug_for_venue( $venue_city, $venue_state, $venue_zip );
+		if ( $market_slug ) {
+			$market_term = get_term_by( 'slug', $market_slug, 'location' );
+			if ( $market_term && ! is_wp_error( $market_term ) ) {
+				return array(
+					'term'   => $market_term,
+					'reason' => 'matched_market_mapping',
+				);
+			}
 		}
 
 		$city_key = strtolower( $venue_city );
@@ -374,17 +401,6 @@ class EventLocationAlignmentAbilities {
 				'term'   => reset( $matches ),
 				'reason' => 'matched_venue_city',
 			);
-		}
-
-		if ( $flow_term ) {
-			foreach ( $matches as $match ) {
-				if ( (int) $match->term_id === (int) $flow_term->term_id ) {
-					return array(
-						'term'   => $match,
-						'reason' => 'matched_flow_location',
-					);
-				}
-			}
 		}
 
 		return array(
