@@ -2,6 +2,15 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.3] - 2026-03-17
+
+### Changed
+- delegate artist REST endpoints to abilities
+- add validation_dependencies for data-machine, fix skipped test reference
+- add event submission endpoint tests via homeboy wordpress extension
+- Wrap community draft routes around abilities
+- replace CSS regex parser with tokens.json reader
+
 ## [0.11.2] - 2026-03-05
 
 ### Changed
