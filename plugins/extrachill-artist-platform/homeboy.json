@@ -1,0 +1,23 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {}
+  },
+  "id": "extrachill-artist-platform",
+  "remote_path": "wp-content/plugins/extrachill-artist-platform",
+  "version_targets": [
+    {
+      "file": "extrachill-artist-platform.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-artist-platform.php",
+      "pattern": "EXTRACHILL_ARTIST_PLATFORM_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "package.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    }
+  ]
+}
