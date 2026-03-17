@@ -30,5 +30,8 @@ WP_CLI::add_command( 'extrachill seo redirects', ExtraChill\CLI\Commands\SEO\Red
 // Tools commands.
 WP_CLI::add_command( 'extrachill tools qr', ExtraChill\CLI\Commands\Tools\QRCodeCommand::class );
 
+// Artists commands.
+WP_CLI::add_command( 'extrachill artists', ExtraChill\CLI\Commands\Artists\ArtistCommand::class );
+
 // Users commands.
 WP_CLI::add_command( 'extrachill users', ExtraChill\CLI\Commands\Users\BanCommand::class );
