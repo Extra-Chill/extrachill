@@ -9,5 +9,11 @@
     }
   },
   "id": "extrachill-api",
-  "remote_path": "wp-content/plugins/extrachill-api"
+  "remote_path": "wp-content/plugins/extrachill-api",
+  "version_targets": [
+    {
+      "file": "extrachill-api.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    }
+  ]
 }
