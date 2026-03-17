@@ -104,129 +104,128 @@ function extrachill_prevent_canonical_redirect_for_link_domain( $redirect_url, $
 }
 
 /**
- * Handle template routing for extrachill.link domain
- * 
- * Consolidated routing for all extrachill.link domain requests including
- * root domain, admin interface, join redirects, and link page slugs.
+ * Resolve the link page query for extrachill.link domain requests.
  *
- * @param string $template The template WordPress wants to load
- * @return string The template to actually load
+ * Runs on template_redirect at priority 5 so that:
+ *   1. WP_Query is corrected (is_404 = false, status 200) before HEAD requests
+ *      exit at template-loader.php line 36 (WordPress exits HEAD before template_include).
+ *   2. The 404 analytics tracker (priority 10) never sees a false 404 for valid link pages.
+ *
+ * Handles redirects (join, extra-chill alias) and populates wp_query for the matched
+ * link page. The companion template_include filter just returns the template path.
+ *
+ * @since 1.7.0
  */
-function extrachill_handle_link_domain_routing( $template ) {
-    // Skip if in development mode
+function extrachill_resolve_link_domain_query() {
+    // Skip if in development mode.
     if ( defined( 'EXTRCH_LINKPAGE_DEV' ) && EXTRCH_LINKPAGE_DEV ) {
-        return $template;
+        return;
     }
 
     $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
-    $is_link_page_domain = ( stripos( $current_host, 'extrachill.link' ) !== false );
-
-    // Only handle extrachill.link domain requests
-    if ( ! $is_link_page_domain ) {
-        return $template;
+    if ( stripos( $current_host, 'extrachill.link' ) === false ) {
+        return;
     }
 
     global $wp_query;
-    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+    $request_uri  = $_SERVER['REQUEST_URI'] ?? '';
     $request_path = trim( parse_url( $request_uri, PHP_URL_PATH ), '/' );
 
-    // Handle join redirect
+    // Handle join redirect.
     if ( $request_path === 'join' ) {
         $redirect_url = ec_get_site_url( 'artist' ) . '/login/?from_join=true';
         if ( ! headers_sent() ) {
             wp_redirect( esc_url_raw( $redirect_url ), 301 );
             exit;
         }
-        return $template;
+        return;
     }
 
-
-    // Handle root domain request or extra-chill request
+    // Determine slug to look up.
     $is_root_or_extra_chill = ( empty( $request_path ) || $request_path === 'extra-chill' );
+
     if ( $is_root_or_extra_chill ) {
-        // Handle extra-chill redirect to root
+        // Redirect /extra-chill to root.
         if ( $request_path === 'extra-chill' ) {
             if ( ! headers_sent() ) {
                 wp_redirect( esc_url_raw( 'https://extrachill.link/' ), 301 );
                 exit;
             }
         }
-
-        // Look for default extra-chill link page
-        $default_slug = 'extra-chill';
-        $default_link_pages = get_posts( array(
-            'name'           => $default_slug,
-            'post_type'      => 'artist_link_page',
-            'post_status'    => 'publish',
-            'numberposts'    => 1,
-            'fields'         => 'ids',
-        ) );
-
-        if ( $default_link_pages ) {
-            $default_link_page_id = $default_link_pages[0];
-            $default_link_page = get_post( $default_link_page_id );
-
-            $wp_query->posts = array( $default_link_page );
-            $wp_query->post_count = 1;
-            $wp_query->found_posts = 1;
-            $wp_query->max_num_pages = 1;
-            $wp_query->is_single = true;
-            $wp_query->is_singular = true;
-            $wp_query->is_404 = false;
-            status_header(200);
-            $wp_query->query_vars['name'] = $default_slug;
-            $wp_query->query_vars['post_type'] = 'artist_link_page';
-            $wp_query->queried_object_id = $default_link_page_id;
-            $wp_query->queried_object = $default_link_page;
-
-            $template_to_load = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/templates/single-artist_link_page.php';
-            if ( file_exists( $template_to_load ) ) {
-                return $template_to_load;
-            }
-        } else {
-            status_header( 404 );
-            return get_404_template();
-        }
+        $slug = 'extra-chill';
+    } else {
+        $slug = $request_path;
     }
 
-    // Handle specific link page slug requests
+    // Look up the link page.
     $link_pages = get_posts( array(
-        'name'           => $request_path,
-        'post_type'      => 'artist_link_page',
-        'post_status'    => 'publish',
-        'numberposts'    => 1,
-        'fields'         => 'ids'
+        'name'        => $slug,
+        'post_type'   => 'artist_link_page',
+        'post_status' => 'publish',
+        'numberposts' => 1,
+        'fields'      => 'ids',
     ) );
 
     if ( ! empty( $link_pages ) ) {
         $link_page_id = $link_pages[0];
-        $link_page = get_post( $link_page_id );
+        $link_page    = get_post( $link_page_id );
 
-        $wp_query->posts = array( $link_page );
-        $wp_query->post_count = 1;
-        $wp_query->found_posts = 1;
-        $wp_query->max_num_pages = 1;
-        $wp_query->is_single = true;
-        $wp_query->is_singular = true;
-        $wp_query->is_404 = false;
-        status_header(200);
-        $wp_query->query_vars['name'] = $request_path;
+        // Override the main query so WordPress treats this as a found singular post.
+        $wp_query->posts             = array( $link_page );
+        $wp_query->post_count        = 1;
+        $wp_query->found_posts       = 1;
+        $wp_query->max_num_pages     = 1;
+        $wp_query->is_single         = true;
+        $wp_query->is_singular       = true;
+        $wp_query->is_404            = false;
+        $wp_query->query_vars['name']      = $slug;
         $wp_query->query_vars['post_type'] = 'artist_link_page';
         $wp_query->queried_object_id = $link_page_id;
-        $wp_query->queried_object = $link_page;
-
-        $template_to_load = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/templates/single-artist_link_page.php';
-        if ( file_exists( $template_to_load ) ) {
-            return $template_to_load;
-        }
+        $wp_query->queried_object    = $link_page;
+        status_header( 200 );
+    } elseif ( $is_root_or_extra_chill ) {
+        // Root domain but no default link page — genuine 404.
+        status_header( 404 );
     } else {
-        // No link page found - redirect to root
+        // No link page found — redirect to root.
         if ( ! headers_sent() ) {
             wp_redirect( esc_url_raw( 'https://extrachill.link/' ), 301 );
             exit;
         }
     }
+}
 
+/**
+ * Load the link page template for extrachill.link domain requests.
+ *
+ * By the time this runs, extrachill_resolve_link_domain_query() has already
+ * resolved the query. This filter only returns the correct template path.
+ *
+ * @since 1.0.0
+ *
+ * @param string $template The template WordPress wants to load.
+ * @return string The template to actually load.
+ */
+function extrachill_handle_link_domain_routing( $template ) {
+    if ( defined( 'EXTRCH_LINKPAGE_DEV' ) && EXTRCH_LINKPAGE_DEV ) {
+        return $template;
+    }
+
+    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
+    if ( stripos( $current_host, 'extrachill.link' ) === false ) {
+        return $template;
+    }
+
+    // If the query was resolved to a link page, load the template.
+    global $wp_query;
+    if ( ! empty( $wp_query->posts ) && isset( $wp_query->posts[0] ) && 'artist_link_page' === get_post_type( $wp_query->posts[0] ) ) {
+        $template_to_load = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/templates/single-artist_link_page.php';
+        if ( file_exists( $template_to_load ) ) {
+            return $template_to_load;
+        }
+    }
+
+    // Genuinely not found — let WordPress handle the 404 template.
     return $template;
 }
 
@@ -293,5 +292,7 @@ add_action( 'init', 'extrachill_init_rewrite_rules', 25 );
 add_filter( 'query_vars', 'extrachill_add_query_vars' );
 add_filter( 'redirect_canonical', 'extrachill_prevent_canonical_redirect_for_link_domain', 10, 2 );
 
+// Priority 5: resolve query + fix status BEFORE 404 tracking (priority 10) and HEAD exit.
+add_action( 'template_redirect', 'extrachill_resolve_link_domain_query', 5 );
 add_filter( 'template_include', 'extrachill_handle_link_domain_routing' );
 add_action( 'template_redirect', 'extrachill_redirect_artist_link_page_cpt_to_custom_domain' );
