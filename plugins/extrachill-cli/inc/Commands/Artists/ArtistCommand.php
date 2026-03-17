@@ -537,6 +537,211 @@ class ArtistCommand {
 	}
 
 	/**
+	 * Save link page styles (CSS variables).
+	 *
+	 * Pass individual CSS variables as flags. Use --list to see all current values.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <artist_id>
+	 * : Artist profile post ID.
+	 *
+	 * [--list]
+	 * : Show current CSS variables instead of saving.
+	 *
+	 * [--button-bg=<color>]
+	 * : Button background color.
+	 *
+	 * [--button-hover-bg=<color>]
+	 * : Button hover background color.
+	 *
+	 * [--button-text=<color>]
+	 * : Button text color (--link-page-link-text-color).
+	 *
+	 * [--button-hover-text=<color>]
+	 * : Button hover text color.
+	 *
+	 * [--button-border=<color>]
+	 * : Button border color.
+	 *
+	 * [--button-radius=<value>]
+	 * : Button border radius (e.g. "8px").
+	 *
+	 * [--bg-color=<color>]
+	 * : Page background color.
+	 *
+	 * [--text-color=<color>]
+	 * : Page text color.
+	 *
+	 * [--css-var=<value>]
+	 * : Set any CSS variable directly (key=value format, repeatable). E.g. --css-var="--link-page-accent=#ff0000"
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill artists save-styles 12180 --list
+	 *     wp extrachill artists save-styles 12180 --button-bg="#0044cc" --button-hover-bg="#0033aa"
+	 *     wp extrachill artists save-styles 12180 --css-var="--link-page-overlay-color=rgba(0,0,0,0.7)"
+	 *
+	 * @subcommand save-styles
+	 * @when after_wp_load
+	 */
+	public function save_styles( $args, $assoc_args ) {
+		$this->ensure_abilities_api();
+
+		$artist_id = absint( $args[0] );
+
+		// --list mode: show current CSS vars.
+		if ( isset( $assoc_args['list'] ) ) {
+			$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+			$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+
+			if ( is_wp_error( $current ) ) {
+				WP_CLI::error( $current->get_error_message() );
+			}
+
+			$display = array();
+			foreach ( $current['css_vars'] ?? array() as $key => $value ) {
+				$display[] = array( 'Variable' => $key, 'Value' => $value );
+			}
+			Utils\format_items( 'table', $display, array( 'Variable', 'Value' ) );
+			return;
+		}
+
+		// Map friendly flags to CSS variable names.
+		$flag_map = array(
+			'button-bg'         => '--link-page-button-bg-color',
+			'button-hover-bg'   => '--link-page-button-hover-bg-color',
+			'button-text'       => '--link-page-link-text-color',
+			'button-hover-text' => '--link-page-button-hover-text-color',
+			'button-border'     => '--link-page-button-border-color',
+			'button-radius'     => '--link-page-button-radius',
+			'bg-color'          => '--link-page-background-color',
+			'text-color'        => '--link-page-text-color',
+		);
+
+		$css_vars = array();
+
+		foreach ( $flag_map as $flag => $var_name ) {
+			if ( isset( $assoc_args[ $flag ] ) ) {
+				$css_vars[ $var_name ] = $assoc_args[ $flag ];
+			}
+		}
+
+		// Handle raw --css-var flags.
+		if ( isset( $assoc_args['css-var'] ) ) {
+			$raw_vars = is_array( $assoc_args['css-var'] ) ? $assoc_args['css-var'] : array( $assoc_args['css-var'] );
+			foreach ( $raw_vars as $pair ) {
+				$eq_pos = strpos( $pair, '=' );
+				if ( $eq_pos !== false ) {
+					$key            = substr( $pair, 0, $eq_pos );
+					$value          = substr( $pair, $eq_pos + 1 );
+					$css_vars[ $key ] = $value;
+				}
+			}
+		}
+
+		if ( empty( $css_vars ) ) {
+			WP_CLI::error( 'No style changes specified. Use --list to see current values, or pass flags like --button-bg="#0044cc".' );
+		}
+
+		$ability = $this->get_ability( 'extrachill/save-link-page-styles' );
+		$result  = $ability->execute(
+			array(
+				'artist_id' => $artist_id,
+				'css_vars'  => $css_vars,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		foreach ( $css_vars as $var => $val ) {
+			WP_CLI::log( sprintf( '  %s: %s', $var, $val ) );
+		}
+		WP_CLI::success( sprintf( 'Updated %d style(s) for artist %d.', count( $css_vars ), $artist_id ) );
+	}
+
+	/**
+	 * Save link page settings.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <artist_id>
+	 * : Artist profile post ID.
+	 *
+	 * [--list]
+	 * : Show current settings instead of saving.
+	 *
+	 * [--<field>=<value>]
+	 * : Any settings field (e.g. --redirect_enabled=1, --subscribe_display_mode=icon_modal).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill artists save-settings 12180 --list
+	 *     wp extrachill artists save-settings 12180 --subscribe_display_mode=button
+	 *
+	 * @subcommand save-settings
+	 * @when after_wp_load
+	 */
+	public function save_settings( $args, $assoc_args ) {
+		$this->ensure_abilities_api();
+
+		$artist_id = absint( $args[0] );
+
+		// --list mode.
+		if ( isset( $assoc_args['list'] ) ) {
+			$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+			$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+
+			if ( is_wp_error( $current ) ) {
+				WP_CLI::error( $current->get_error_message() );
+			}
+
+			$display = array();
+			foreach ( $current['settings'] ?? array() as $key => $value ) {
+				$display[] = array(
+					'Setting' => $key,
+					'Value'   => is_bool( $value ) ? ( $value ? 'true' : 'false' ) : (string) $value,
+				);
+			}
+			Utils\format_items( 'table', $display, array( 'Setting', 'Value' ) );
+			return;
+		}
+
+		// Strip WP-CLI meta flags.
+		$skip_keys = array( 'path', 'url', 'user', 'format', 'list', 'allow-root', 'skip-plugins', 'skip-themes', 'require', 'exec', 'color', 'no-color', 'debug', 'quiet', 'prompt', 'context', 'ssh', 'http', 'skip-packages' );
+		$settings  = array();
+
+		foreach ( $assoc_args as $key => $value ) {
+			if ( ! in_array( $key, $skip_keys, true ) ) {
+				$settings[ $key ] = $value;
+			}
+		}
+
+		if ( empty( $settings ) ) {
+			WP_CLI::error( 'No settings specified. Use --list to see current values.' );
+		}
+
+		$ability = $this->get_ability( 'extrachill/save-link-page-settings' );
+		$result  = $ability->execute(
+			array(
+				'artist_id' => $artist_id,
+				'settings'  => $settings,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		foreach ( $settings as $key => $val ) {
+			WP_CLI::log( sprintf( '  %s: %s', $key, $val ) );
+		}
+		WP_CLI::success( sprintf( 'Updated %d setting(s) for artist %d.', count( $settings ), $artist_id ) );
+	}
+
+	/**
 	 * Ensure the Abilities API is available.
 	 */
 	private function ensure_abilities_api() {
