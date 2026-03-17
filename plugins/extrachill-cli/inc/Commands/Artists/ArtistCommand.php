@@ -326,6 +326,217 @@ class ArtistCommand {
 	}
 
 	/**
+	 * Save link page links (full replacement).
+	 *
+	 * ## OPTIONS
+	 *
+	 * <artist_id>
+	 * : Artist profile post ID.
+	 *
+	 * <json>
+	 * : JSON array of link sections. Each section: { section_title, links: [{ link_text, link_url }] }.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill artists save-links 12180 '[{"section_title":"","links":[{"link_text":"Home","link_url":"https://example.com"}]}]'
+	 *
+	 * @subcommand save-links
+	 * @when after_wp_load
+	 */
+	public function save_links( $args, $assoc_args ) {
+		$this->ensure_abilities_api();
+
+		$artist_id = absint( $args[0] );
+		$links     = json_decode( $args[1], true );
+
+		if ( ! is_array( $links ) ) {
+			WP_CLI::error( 'Second argument must be a valid JSON array of link sections.' );
+		}
+
+		$ability = $this->get_ability( 'extrachill/save-link-page-links' );
+		$result  = $ability->execute(
+			array(
+				'artist_id' => $artist_id,
+				'links'     => $links,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$total_links = 0;
+		foreach ( $result['links'] ?? array() as $section ) {
+			$total_links += count( $section['links'] ?? array() );
+		}
+
+		WP_CLI::success( sprintf( 'Saved %d link(s) for artist %d.', $total_links, $artist_id ) );
+		WP_CLI::log( wp_json_encode( $result['links'], JSON_PRETTY_PRINT ) );
+	}
+
+	/**
+	 * Add a single link to an artist's link page.
+	 *
+	 * Reads existing links, appends the new one to the specified section
+	 * (default: first section), and saves.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <artist_id>
+	 * : Artist profile post ID.
+	 *
+	 * <url>
+	 * : Link URL.
+	 *
+	 * <text>
+	 * : Link display text.
+	 *
+	 * [--section=<index>]
+	 * : Section index to add to (0-based). Default: 0.
+	 *
+	 * [--section-title=<title>]
+	 * : If section doesn't exist, create it with this title.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill artists add-link 12180 "https://extrachill.com/grateful-dead-trivia" "Grateful Dead Trivia"
+	 *     wp extrachill artists add-link 12180 "https://extrachill.com/page" "Page Title" --section=1 --section-title="More Reading"
+	 *
+	 * @subcommand add-link
+	 * @when after_wp_load
+	 */
+	public function add_link( $args, $assoc_args ) {
+		$this->ensure_abilities_api();
+
+		$artist_id = absint( $args[0] );
+		$url       = $args[1];
+		$text      = $args[2];
+		$section   = absint( $assoc_args['section'] ?? 0 );
+
+		// Read current links.
+		$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+		$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+
+		if ( is_wp_error( $current ) ) {
+			WP_CLI::error( $current->get_error_message() );
+		}
+
+		$links = $current['links'] ?? array();
+
+		// Ensure the target section exists.
+		while ( count( $links ) <= $section ) {
+			$links[] = array(
+				'section_title' => $assoc_args['section-title'] ?? '',
+				'links'         => array(),
+			);
+		}
+
+		// Check for duplicate URL in the target section.
+		foreach ( $links[ $section ]['links'] as $existing ) {
+			if ( $existing['link_url'] === $url ) {
+				WP_CLI::warning( sprintf( 'Link already exists in section %d: %s', $section, $url ) );
+				return;
+			}
+		}
+
+		// Append the new link.
+		$links[ $section ]['links'][] = array(
+			'link_text' => $text,
+			'link_url'  => $url,
+		);
+
+		// Save.
+		$save_ability = $this->get_ability( 'extrachill/save-link-page-links' );
+		$result       = $save_ability->execute(
+			array(
+				'artist_id' => $artist_id,
+				'links'     => $links,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$total_links = 0;
+		foreach ( $result['links'] ?? array() as $s ) {
+			$total_links += count( $s['links'] ?? array() );
+		}
+
+		WP_CLI::success( sprintf( 'Added "%s" → %s (section %d, %d total links).', $text, $url, $section, $total_links ) );
+	}
+
+	/**
+	 * Remove a link from an artist's link page by link ID or URL.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <artist_id>
+	 * : Artist profile post ID.
+	 *
+	 * <identifier>
+	 * : Link ID (e.g. "link_123_abc") or URL to remove.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill artists remove-link 12180 "link_1756700193_EoSCFg6vB"
+	 *     wp extrachill artists remove-link 12180 "https://extrachill.com/some-page/"
+	 *
+	 * @subcommand remove-link
+	 * @when after_wp_load
+	 */
+	public function remove_link( $args, $assoc_args ) {
+		$this->ensure_abilities_api();
+
+		$artist_id  = absint( $args[0] );
+		$identifier = $args[1];
+
+		// Read current links.
+		$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+		$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+
+		if ( is_wp_error( $current ) ) {
+			WP_CLI::error( $current->get_error_message() );
+		}
+
+		$links = $current['links'] ?? array();
+		$found = false;
+
+		foreach ( $links as $si => $section ) {
+			foreach ( $section['links'] as $li => $link ) {
+				$match = ( isset( $link['id'] ) && $link['id'] === $identifier )
+					|| $link['link_url'] === $identifier;
+
+				if ( $match ) {
+					$removed_text = $link['link_text'];
+					array_splice( $links[ $si ]['links'], $li, 1 );
+					$found = true;
+					break 2;
+				}
+			}
+		}
+
+		if ( ! $found ) {
+			WP_CLI::error( sprintf( 'No link found matching "%s".', $identifier ) );
+		}
+
+		// Save.
+		$save_ability = $this->get_ability( 'extrachill/save-link-page-links' );
+		$result       = $save_ability->execute(
+			array(
+				'artist_id' => $artist_id,
+				'links'     => $links,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::success( sprintf( 'Removed link: "%s".', $removed_text ) );
+	}
+
+	/**
 	 * Ensure the Abilities API is available.
 	 */
 	private function ensure_abilities_api() {
