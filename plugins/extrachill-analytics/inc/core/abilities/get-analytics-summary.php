@@ -29,11 +29,16 @@ function extrachill_analytics_register_summary_ability() {
 						'description' => __( 'Number of days to look back. 0 for all time.', 'extrachill-analytics' ),
 						'default'     => 28,
 					),
-					'event_type' => array(
-						'type'        => 'string',
-						'description' => __( 'Filter to a specific event type. Empty for all types.', 'extrachill-analytics' ),
-						'default'     => '',
-					),
+				'event_type' => array(
+					'type'        => 'string',
+					'description' => __( 'Filter to a specific event type. Empty for all types.', 'extrachill-analytics' ),
+					'default'     => '',
+				),
+				'blog_id'    => array(
+					'type'        => 'integer',
+					'description' => __( 'Filter to a specific blog ID. 0 for all sites.', 'extrachill-analytics' ),
+					'default'     => 0,
+				),
 				),
 			),
 			'output_schema' => array(
@@ -67,6 +72,7 @@ function extrachill_analytics_ability_get_summary( $input ) {
 
 	$days       = isset( $input['days'] ) ? (int) $input['days'] : 28;
 	$event_type = isset( $input['event_type'] ) ? sanitize_key( $input['event_type'] ) : '';
+	$blog_id    = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
 
 	$table  = extrachill_analytics_events_table();
 	$where  = array( '1=1' );
@@ -80,6 +86,11 @@ function extrachill_analytics_ability_get_summary( $input ) {
 	if ( ! empty( $event_type ) ) {
 		$where[]  = 'event_type = %s';
 		$values[] = $event_type;
+	}
+
+	if ( $blog_id > 0 ) {
+		$where[]  = 'blog_id = %d';
+		$values[] = $blog_id;
 	}
 
 	$where_clause = implode( ' AND ', $where );
