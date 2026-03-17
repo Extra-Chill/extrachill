@@ -3,10 +3,13 @@
  * Artist REST API Endpoint
  *
  * GET /wp-json/extrachill/v1/artists/{id} - Retrieve core artist data
+ * POST /wp-json/extrachill/v1/artists - Create a new artist profile
  * PUT /wp-json/extrachill/v1/artists/{id} - Update core artist data (partial updates supported)
  *
- * Core artist data includes name, bio, images, and link_page_id.
- * Images are managed via the /media endpoint, not here.
+ * Delegates to abilities:
+ * - extrachill/get-artist-data
+ * - extrachill/create-artist
+ * - extrachill/update-artist
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -160,234 +163,83 @@ function extrachill_api_artist_permission_check( WP_REST_Request $request ) {
 }
 
 /**
- * GET handler - retrieve core artist data
+ * GET handler - retrieve core artist data via ability.
  */
 function extrachill_api_artist_get_handler( WP_REST_Request $request ) {
-	$artist_id = $request->get_param( 'id' );
+	$ability = wp_get_ability( 'extrachill/get-artist-data' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_missing', 'Artist data ability not available.', array( 'status' => 500 ) );
+	}
 
-	return rest_ensure_response( extrachill_api_build_artist_response( $artist_id ) );
+	$result = $ability->execute( array( 'artist_id' => $request->get_param( 'id' ) ) );
+
+	if ( is_wp_error( $result ) ) {
+		$status = $result->get_error_code() === 'invalid_artist' ? 404 : 500;
+		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
+	}
+
+	return rest_ensure_response( $result );
 }
 
 /**
- * POST handler - create artist
+ * POST handler - create artist via ability.
  */
 function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
-	$current_user = get_current_user_id();
-	$name         = $request->get_param( 'name' );
-	$bio          = $request->get_param( 'bio' );
-	$local_city   = $request->get_param( 'local_city' );
-	$genre        = $request->get_param( 'genre' );
-
-	$name = trim( $name );
-	if ( strlen( $name ) < 1 ) {
-		restore_current_blog();
-		return new WP_Error(
-			'invalid_artist_name',
-			'Artist name is required.',
-			array( 'status' => 400 )
-		);
+	$ability = wp_get_ability( 'extrachill/create-artist' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_missing', 'Create artist ability not available.', array( 'status' => 500 ) );
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	if ( ! $artist_blog_id ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Multisite not configured.',
-			array( 'status' => 500 )
-		);
-	}
+	$input = array( 'name' => $request->get_param( 'name' ) );
 
-	switch_to_blog( $artist_blog_id );
-
-	$post_data = array(
-		'post_title'   => $name,
-		'post_content' => $bio ? wp_kses_post( wp_unslash( $bio ) ) : '',
-		'post_type'    => 'artist_profile',
-		'post_status'  => 'publish',
-		'post_author'  => $current_user,
-	);
-
-	$artist_id = wp_insert_post( $post_data, true );
-
-	if ( is_wp_error( $artist_id ) ) {
-		restore_current_blog();
-		return new WP_Error(
-			'create_failed',
-			$artist_id->get_error_message(),
-			array( 'status' => 500 )
-		);
-	}
-
-	if ( $local_city !== null ) {
-		$city_value = sanitize_text_field( wp_unslash( $local_city ) );
-		if ( $city_value !== '' ) {
-			update_post_meta( $artist_id, '_local_city', $city_value );
+	$optional = array( 'bio', 'local_city', 'genre' );
+	foreach ( $optional as $field ) {
+		$value = $request->get_param( $field );
+		if ( $value !== null ) {
+			$input[ $field ] = $value;
 		}
 	}
 
-	if ( $genre !== null ) {
-		$genre_value = sanitize_text_field( wp_unslash( $genre ) );
-		if ( $genre_value !== '' ) {
-			update_post_meta( $artist_id, '_genre', $genre_value );
-		}
+	$result = $ability->execute( $input );
+
+	if ( is_wp_error( $result ) ) {
+		$status = $result->get_error_code() === 'invalid_artist_name' ? 400 : 500;
+		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
 	}
 
-	restore_current_blog();
-
-	// Link user to artist (runs outside blog context - uses user meta which is network-wide)
-	if ( function_exists( 'ec_add_artist_membership' ) ) {
-		ec_add_artist_membership( $current_user, $artist_id );
-	}
-
-	return rest_ensure_response( extrachill_api_build_artist_response( $artist_id ) );
+	return rest_ensure_response( $result );
 }
 
 /**
- * PUT handler - update core artist data (partial updates)
+ * PUT handler - update core artist data via ability.
  */
 function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
-	$artist_id = $request->get_param( 'id' );
-	$body      = $request->get_json_params();
+	$ability = wp_get_ability( 'extrachill/update-artist' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_missing', 'Update artist ability not available.', array( 'status' => 500 ) );
+	}
+
+	$body = $request->get_json_params();
 
 	if ( empty( $body ) ) {
-		return new WP_Error(
-			'empty_body',
-			'Request body is empty.',
-			array( 'status' => 400 )
-		);
+		return new WP_Error( 'empty_body', 'Request body is empty.', array( 'status' => 400 ) );
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	if ( ! $artist_blog_id ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Multisite not configured.',
-			array( 'status' => 500 )
-		);
-	}
+	$input = array( 'artist_id' => $request->get_param( 'id' ) );
 
-	switch_to_blog( $artist_blog_id );
-
-	$post_data = array( 'ID' => $artist_id );
-	$has_updates = false;
-
-	// Update name (post_title)
-	if ( isset( $body['name'] ) ) {
-		$post_data['post_title'] = sanitize_text_field( wp_unslash( $body['name'] ) );
-		$has_updates = true;
-	}
-
-	// Update bio (post_content)
-	if ( isset( $body['bio'] ) ) {
-		$post_data['post_content'] = wp_kses_post( wp_unslash( $body['bio'] ) );
-		$has_updates = true;
-	}
-
-	// Update local city
-	if ( array_key_exists( 'local_city', $body ) ) {
-		$local_city = sanitize_text_field( wp_unslash( $body['local_city'] ) );
-		if ( $local_city === '' ) {
-			delete_post_meta( $artist_id, '_local_city' );
-		} else {
-			update_post_meta( $artist_id, '_local_city', $local_city );
+	$fields = array( 'name', 'bio', 'local_city', 'genre', 'profile_image_id', 'header_image_id' );
+	foreach ( $fields as $field ) {
+		if ( array_key_exists( $field, $body ) ) {
+			$input[ $field ] = $body[ $field ];
 		}
 	}
 
-	// Update genre
-	if ( array_key_exists( 'genre', $body ) ) {
-		$genre = sanitize_text_field( wp_unslash( $body['genre'] ) );
-		if ( $genre === '' ) {
-			delete_post_meta( $artist_id, '_genre' );
-		} else {
-			update_post_meta( $artist_id, '_genre', $genre );
-		}
+	$result = $ability->execute( $input );
+
+	if ( is_wp_error( $result ) ) {
+		$status = $result->get_error_code() === 'invalid_artist' ? 404 : 500;
+		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
 	}
 
-	// Update profile image association
-	if ( array_key_exists( 'profile_image_id', $body ) ) {
-		$profile_image_id = absint( $body['profile_image_id'] );
-		if ( $profile_image_id > 0 ) {
-			set_post_thumbnail( $artist_id, $profile_image_id );
-		} else {
-			delete_post_thumbnail( $artist_id );
-		}
-	}
-
-	// Update header image association
-	if ( array_key_exists( 'header_image_id', $body ) ) {
-		$header_image_id = absint( $body['header_image_id'] );
-		if ( $header_image_id > 0 ) {
-			update_post_meta( $artist_id, '_artist_profile_header_image_id', $header_image_id );
-		} else {
-			delete_post_meta( $artist_id, '_artist_profile_header_image_id' );
-		}
-	}
-
-	// Perform post update if we have changes
-	if ( $has_updates ) {
-		$result = wp_update_post( $post_data, true );
-
-		if ( is_wp_error( $result ) ) {
-			restore_current_blog();
-			return new WP_Error(
-				'update_failed',
-				$result->get_error_message(),
-				array( 'status' => 500 )
-			);
-		}
-	}
-
-	restore_current_blog();
-
-	return rest_ensure_response( extrachill_api_build_artist_response( $artist_id ) );
-}
-
-/**
- * Build artist response data
- */
-function extrachill_api_build_artist_response( $artist_id ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	$did_switch     = false;
-
-	if ( $artist_blog_id && get_current_blog_id() !== $artist_blog_id ) {
-		switch_to_blog( $artist_blog_id );
-		$did_switch = true;
-	}
-
-	$artist = get_post( $artist_id );
-
-	$local_city = get_post_meta( $artist_id, '_local_city', true );
-	$genre      = get_post_meta( $artist_id, '_genre', true );
-
-	// Profile image
-	$profile_image_id  = get_post_thumbnail_id( $artist_id );
-	$profile_image_url = $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'medium' ) : null;
-
-	// Header image
-	$header_image_id  = get_post_meta( $artist_id, '_artist_profile_header_image_id', true );
-	$header_image_url = $header_image_id ? wp_get_attachment_image_url( (int) $header_image_id, 'large' ) : null;
-
-	// Link page ID
-	$link_page_id = null;
-	if ( function_exists( 'ec_get_link_page_id' ) ) {
-		$link_page_id = ec_get_link_page_id( $artist_id );
-	}
-
-	if ( $did_switch ) {
-		restore_current_blog();
-	}
-
-	return array(
-		'id'                => (int) $artist_id,
-		'name'              => $artist->post_title,
-		'slug'              => $artist->post_name,
-		'bio'               => $artist->post_content,
-		'local_city'        => $local_city !== '' ? $local_city : null,
-		'genre'             => $genre !== '' ? $genre : null,
-		'profile_image_id'  => $profile_image_id ? (int) $profile_image_id : null,
-		'profile_image_url' => $profile_image_url,
-		'header_image_id'   => $header_image_id ? (int) $header_image_id : null,
-		'header_image_url'  => $header_image_url,
-		'link_page_id'      => $link_page_id ? (int) $link_page_id : null,
-	);
+	return rest_ensure_response( $result );
 }

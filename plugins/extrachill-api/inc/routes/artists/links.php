@@ -5,8 +5,12 @@
  * GET /wp-json/extrachill/v1/artists/{id}/links - Retrieve link page data
  * PUT /wp-json/extrachill/v1/artists/{id}/links - Update link page data (partial updates supported)
  *
- * Link page data includes button links (sections), CSS variables, and settings.
- * Background images are managed via the /media endpoint, not here.
+ * Delegates to abilities:
+ * - extrachill/get-link-page-data
+ * - extrachill/save-link-page-links
+ * - extrachill/save-link-page-styles
+ * - extrachill/save-link-page-settings
+ * - extrachill/save-social-links
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -86,328 +90,152 @@ function extrachill_api_artist_links_permission_check( WP_REST_Request $request 
 }
 
 /**
- * GET handler - retrieve link page data via canonical ec_get_link_page_data()
+ * GET handler - retrieve link page data via ability.
  */
 function extrachill_api_artist_links_get_handler( WP_REST_Request $request ) {
-	$artist_id = $request->get_param( 'id' );
-
-	if ( ! function_exists( 'ec_get_link_page_data' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Link page functions not available.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/get-link-page-data' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_missing', 'Link page data ability not available.', array( 'status' => 500 ) );
 	}
 
-	$data = ec_get_link_page_data( $artist_id );
+	$result = $ability->execute( array( 'artist_id' => $request->get_param( 'id' ) ) );
 
-	if ( empty( $data ) || empty( $data['link_page_id'] ) ) {
-		return new WP_Error(
-			'no_link_page',
-			'No link page exists for this artist.',
-			array( 'status' => 404 )
-		);
+	if ( is_wp_error( $result ) ) {
+		$status = $result->get_error_code() === 'no_link_page' ? 404 : 500;
+		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
 	}
 
-	return rest_ensure_response( $data );
+	return rest_ensure_response( $result );
 }
 
 /**
- * PUT handler - update link page data (partial updates)
+ * PUT handler - update link page data via abilities.
  *
- * Accepts the canonical payload shape emitted by ec_get_link_page_data():
- * - links (array of sections)
- * - css_vars (object)
- * - settings (object)
- * - socials (array of {type, url})
- * - background_image_id (int, optional)
- * - profile_image_id (int, optional - stored on artist)
+ * Routes each payload section to the appropriate ability:
+ * - links       -> extrachill/save-link-page-links
+ * - css_vars    -> extrachill/save-link-page-styles
+ * - settings    -> extrachill/save-link-page-settings
+ * - socials     -> extrachill/save-social-links
+ * - background_image_id, profile_image_id -> extrachill/save-link-page-settings
  */
 function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 	$artist_id = $request->get_param( 'id' );
 	$body      = $request->get_json_params();
 
-	if ( ! function_exists( 'ec_get_link_page_for_artist' ) || ! function_exists( 'ec_handle_link_page_save' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Link page functions not available.',
-			array( 'status' => 500 )
-		);
-	}
-
-	$link_page_id = ec_get_link_page_for_artist( $artist_id );
-
-	if ( ! $link_page_id ) {
-		return new WP_Error(
-			'no_link_page',
-			'No link page exists for this artist.',
-			array( 'status' => 404 )
-		);
-	}
-
 	if ( empty( $body ) ) {
-		return new WP_Error(
-			'empty_body',
-			'Request body is empty.',
-			array( 'status' => 400 )
-		);
+		return new WP_Error( 'empty_body', 'Request body is empty.', array( 'status' => 400 ) );
 	}
 
-	$save_data = array();
-
-	// Links - full replacement
+	// Save links via ability.
 	if ( isset( $body['links'] ) ) {
 		if ( ! is_array( $body['links'] ) ) {
-			return new WP_Error(
-				'invalid_format',
-				'links must be an array.',
-				array( 'status' => 400 )
-			);
+			return new WP_Error( 'invalid_format', 'links must be an array.', array( 'status' => 400 ) );
 		}
-        $save_data['links'] = extrachill_api_sanitize_links( $body['links'], $link_page_id );
-    }
 
+		$ability = wp_get_ability( 'extrachill/save-link-page-links' );
+		if ( ! $ability ) {
+			return new WP_Error( 'ability_missing', 'Save links ability not available.', array( 'status' => 500 ) );
+		}
 
-    // CSS vars - merge with existing
+		$result = $ability->execute(
+			array(
+				'artist_id' => $artist_id,
+				'links'     => $body['links'],
+			)
+		);
 
+		if ( is_wp_error( $result ) ) {
+			return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
+		}
+	}
+
+	// Save CSS vars via ability.
 	if ( isset( $body['css_vars'] ) ) {
 		if ( ! is_array( $body['css_vars'] ) ) {
-			return new WP_Error(
-				'invalid_format',
-				'css_vars must be an object.',
-				array( 'status' => 400 )
-			);
+			return new WP_Error( 'invalid_format', 'css_vars must be an object.', array( 'status' => 400 ) );
 		}
-		$existing_vars = get_post_meta( $link_page_id, '_link_page_custom_css_vars', true );
-		$existing_vars = is_array( $existing_vars ) ? $existing_vars : array();
-		$sanitized_vars = extrachill_api_sanitize_css_vars( $body['css_vars'] );
-		$save_data['css_vars'] = array_merge( $existing_vars, $sanitized_vars );
+
+		$ability = wp_get_ability( 'extrachill/save-link-page-styles' );
+		if ( ! $ability ) {
+			return new WP_Error( 'ability_missing', 'Save styles ability not available.', array( 'status' => 500 ) );
+		}
+
+		$result = $ability->execute(
+			array(
+				'artist_id' => $artist_id,
+				'css_vars'  => $body['css_vars'],
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
+		}
 	}
 
-	// Settings - merge with existing, extract to save_data keys
-	if ( isset( $body['settings'] ) ) {
-		if ( ! is_array( $body['settings'] ) ) {
-			return new WP_Error(
-				'invalid_format',
-				'settings must be an object.',
-				array( 'status' => 400 )
-			);
+	// Save settings via ability.
+	$has_settings = isset( $body['settings'] ) || isset( $body['background_image_id'] ) || isset( $body['profile_image_id'] );
+	if ( $has_settings ) {
+		if ( isset( $body['settings'] ) && ! is_array( $body['settings'] ) ) {
+			return new WP_Error( 'invalid_format', 'settings must be an object.', array( 'status' => 400 ) );
 		}
-		$sanitized_settings = extrachill_api_sanitize_link_settings( $body['settings'] );
-		$save_data = array_merge( $save_data, $sanitized_settings );
+
+		$ability = wp_get_ability( 'extrachill/save-link-page-settings' );
+		if ( ! $ability ) {
+			return new WP_Error( 'ability_missing', 'Save settings ability not available.', array( 'status' => 500 ) );
+		}
+
+		$settings_input = array( 'artist_id' => $artist_id );
+		if ( isset( $body['settings'] ) ) {
+			$settings_input['settings'] = $body['settings'];
+		}
+		if ( isset( $body['background_image_id'] ) ) {
+			$settings_input['background_image_id'] = absint( $body['background_image_id'] );
+		}
+		if ( isset( $body['profile_image_id'] ) ) {
+			$settings_input['profile_image_id'] = absint( $body['profile_image_id'] );
+		}
+
+		$result = $ability->execute( $settings_input );
+
+		if ( is_wp_error( $result ) ) {
+			return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
+		}
 	}
 
-	// Socials - pass to save handler as social_icons
+	// Save socials via ability.
 	if ( isset( $body['socials'] ) ) {
 		if ( ! is_array( $body['socials'] ) ) {
-			return new WP_Error(
-				'invalid_format',
-				'socials must be an array.',
-				array( 'status' => 400 )
-			);
+			return new WP_Error( 'invalid_format', 'socials must be an array.', array( 'status' => 400 ) );
 		}
-        $save_data['social_icons'] = extrachill_api_sanitize_socials( $body['socials'], $link_page_id );
-    }
 
+		$ability = wp_get_ability( 'extrachill/save-social-links' );
+		if ( ! $ability ) {
+			return new WP_Error( 'ability_missing', 'Save socials ability not available.', array( 'status' => 500 ) );
+		}
 
-	// Background image ID (stored on link page)
-	if ( isset( $body['background_image_id'] ) ) {
-		$save_data['background_image_id'] = absint( $body['background_image_id'] );
-	}
-
-	// Profile image ID (stored on artist as thumbnail)
-	if ( isset( $body['profile_image_id'] ) ) {
-		$save_data['profile_image_id'] = absint( $body['profile_image_id'] );
-	}
-
-	// Use existing save handler (no file uploads via REST)
-	$result = ec_handle_link_page_save( $link_page_id, $save_data );
-
-	if ( is_wp_error( $result ) ) {
-		return new WP_Error(
-			'save_failed',
-			$result->get_error_message(),
-			array( 'status' => 500 )
+		$result = $ability->execute(
+			array(
+				'artist_id'    => $artist_id,
+				'social_links' => $body['socials'],
+			)
 		);
-	}
 
-	// Return fresh data from canonical source
-	return rest_ensure_response( ec_get_link_page_data( $artist_id, $link_page_id ) );
-}
-
-/**
- * Sanitize links array (full replacement)
- */
-function extrachill_api_sanitize_links( $links, $link_page_id = 0 ) {
-	if ( ! is_array( $links ) ) {
-		return array();
-	}
-
-	$sanitized = array();
-
-    foreach ( $links as $section ) {
-        if ( ! is_array( $section ) ) {
-            continue;
-        }
-
-        $section_id = isset( $section['id'] ) ? sanitize_text_field( $section['id'] ) : '';
-        if ( $link_page_id && extrachill_api_needs_id_assignment( $section_id ) ) {
-            $section_id = extrachill_api_get_next_id( $link_page_id, 'section' );
-        } elseif ( $link_page_id ) {
-            extrachill_api_sync_counter_from_id( $link_page_id, 'section', $section_id );
-        }
-
-
-        $sanitized_section = array(
-            'id'            => $section_id,
-            'section_title' => isset( $section['section_title'] ) ? sanitize_text_field( wp_unslash( $section['section_title'] ) ) : '',
-            'links'         => array(),
-        );
-
-
-		if ( isset( $section['links'] ) && is_array( $section['links'] ) ) {
-			foreach ( $section['links'] as $link ) {
-				if ( ! is_array( $link ) ) {
-					continue;
-				}
-
-                $link_id = isset( $link['id'] ) ? sanitize_text_field( $link['id'] ) : '';
-                if ( $link_page_id && extrachill_api_needs_id_assignment( $link_id ) ) {
-                    $link_id = extrachill_api_get_next_id( $link_page_id, 'link' );
-                } elseif ( $link_page_id ) {
-                    extrachill_api_sync_counter_from_id( $link_page_id, 'link', $link_id );
-                }
-
-                $sanitized_link = array(
-                    'id'        => $link_id,
-                    'link_text' => isset( $link['link_text'] ) ? sanitize_text_field( wp_unslash( $link['link_text'] ) ) : '',
-                    'link_url'  => isset( $link['link_url'] ) ? esc_url_raw( wp_unslash( $link['link_url'] ) ) : '',
-                );
-
-
-				// Optional expiration
-				if ( isset( $link['expires_at'] ) && ! empty( $link['expires_at'] ) ) {
-					$sanitized_link['expires_at'] = sanitize_text_field( wp_unslash( $link['expires_at'] ) );
-				}
-
-				$sanitized_section['links'][] = $sanitized_link;
-			}
-		}
-
-		$sanitized[] = $sanitized_section;
-	}
-
-	return $sanitized;
-}
-
-/**
- * Sanitize CSS variables (merge-friendly)
- */
-function extrachill_api_sanitize_css_vars( $vars ) {
-	if ( ! is_array( $vars ) ) {
-		return array();
-	}
-
-	$sanitized = array();
-
-	foreach ( $vars as $key => $value ) {
-		// Only accept --link-page-* variables and overlay
-		if ( strpos( $key, '--link-page-' ) !== 0 && $key !== 'overlay' ) {
-			continue;
-		}
-
-		// Color values
-		if ( strpos( $key, 'color' ) !== false || strpos( $key, '-bg' ) !== false ) {
-			$sanitized[ $key ] = sanitize_hex_color( $value );
-		} else {
-			$sanitized[ $key ] = sanitize_text_field( wp_unslash( $value ) );
+		if ( is_wp_error( $result ) ) {
+			return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
 		}
 	}
 
-	return $sanitized;
-}
-
-/**
- * Sanitize link page settings (returns flat array for ec_handle_link_page_save)
- */
-function extrachill_api_sanitize_link_settings( $settings ) {
-	if ( ! is_array( $settings ) ) {
-		return array();
+	// Return fresh data via read ability.
+	$read_ability = wp_get_ability( 'extrachill/get-link-page-data' );
+	if ( ! $read_ability ) {
+		return new WP_Error( 'ability_missing', 'Link page data ability not available.', array( 'status' => 500 ) );
 	}
 
-	$sanitized = array();
+	$fresh_data = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
-	// Boolean fields (stored as '1' or '0')
-	// Note: overlay_enabled is not included here - overlay is stored via css_vars.overlay
-	$bool_fields = array(
-		'link_expiration_enabled',
-		'redirect_enabled',
-		'youtube_embed_enabled',
-	);
-
-	foreach ( $bool_fields as $field ) {
-		if ( isset( $settings[ $field ] ) ) {
-			$sanitized[ $field ] = $settings[ $field ] ? '1' : '0';
-		}
+	if ( is_wp_error( $fresh_data ) ) {
+		return new WP_Error( $fresh_data->get_error_code(), $fresh_data->get_error_message(), array( 'status' => 500 ) );
 	}
 
-	// String fields
-	$string_fields = array(
-		'redirect_target_url',
-		'meta_pixel_id',
-		'google_tag_id',
-		'google_tag_manager_id',
-		'subscribe_display_mode',
-		'subscribe_description',
-		'social_icons_position',
-		'profile_image_shape',
-	);
-
-	foreach ( $string_fields as $field ) {
-		if ( isset( $settings[ $field ] ) ) {
-			$sanitized[ $field ] = sanitize_text_field( wp_unslash( $settings[ $field ] ) );
-		}
-	}
-
-	return $sanitized;
-}
-
-/**
- * Sanitize socials array for REST input
- */
-function extrachill_api_sanitize_socials( $socials, $link_page_id = 0 ) {
-	if ( ! is_array( $socials ) ) {
-		return array();
-	}
-
-	$sanitized = array();
-
-    foreach ( $socials as $social ) {
-        $social_id = isset( $social['id'] ) ? sanitize_text_field( $social['id'] ) : '';
-        if ( $link_page_id && extrachill_api_needs_id_assignment( $social_id ) ) {
-            $social_id = extrachill_api_get_next_id( $link_page_id, 'social' );
-        } elseif ( $link_page_id ) {
-            extrachill_api_sync_counter_from_id( $link_page_id, 'social', $social_id );
-        }
-
-		if ( ! is_array( $social ) ) {
-			continue;
-		}
-
-		$type = isset( $social['type'] ) ? sanitize_text_field( wp_unslash( $social['type'] ) ) : '';
-		$url  = isset( $social['url'] ) ? esc_url_raw( wp_unslash( $social['url'] ) ) : '';
-
-		if ( empty( $type ) || empty( $url ) ) {
-			continue;
-		}
-
-        $sanitized[] = array(
-            'id'   => $social_id,
-            'type' => $type,
-            'url'  => $url,
-        );
-
-	}
-
-	return $sanitized;
+	return rest_ensure_response( $fresh_data );
 }

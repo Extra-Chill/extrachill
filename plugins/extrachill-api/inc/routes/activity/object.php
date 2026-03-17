@@ -195,8 +195,9 @@ function extrachill_api_object_resolve_artist( $artist_id ) {
 		return new WP_Error( 'invalid_id', 'Invalid artist id.', array( 'status' => 400 ) );
 	}
 
-	if ( function_exists( 'extrachill_api_build_artist_response' ) ) {
-		$data = extrachill_api_build_artist_response( $artist_id );
+	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-artist-data' ) : null;
+	if ( $ability ) {
+		$data = $ability->execute( array( 'artist_id' => $artist_id ) );
 		if ( is_wp_error( $data ) ) {
 			return $data;
 		}

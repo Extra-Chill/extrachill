@@ -1,81 +1,103 @@
 <?php
 /**
  * Link page ID generation helpers.
+ *
+ * @deprecated 0.11.0 These functions are now in extrachill-artist-platform.
+ *             Wrappers kept for backward compatibility (tests, etc.).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 /**
  * Map ID type to meta key storage on link page post.
  *
+ * @deprecated Use extrachill_artist_platform_id_meta_key_map().
  * @return array<string, string>
  */
 function extrachill_api_id_meta_key_map() {
-    return array(
-        'section' => '_ec_section_id_counter',
-        'link'    => '_ec_link_id_counter',
-        'social'  => '_ec_social_id_counter',
-    );
+	if ( function_exists( 'extrachill_artist_platform_id_meta_key_map' ) ) {
+		return extrachill_artist_platform_id_meta_key_map();
+	}
+
+	return array(
+		'section' => '_ec_section_id_counter',
+		'link'    => '_ec_link_id_counter',
+		'social'  => '_ec_social_id_counter',
+	);
 }
 
 /**
  * Returns next available ID for a given type.
  *
+ * @deprecated Use extrachill_artist_platform_get_next_id().
  * @param int    $link_page_id Link page post ID.
  * @param string $type         Type key: section|link|social.
- *
  * @return string
  */
 function extrachill_api_get_next_id( $link_page_id, $type ) {
-    $map = extrachill_api_id_meta_key_map();
-    if ( ! isset( $map[ $type ] ) ) {
-        return '';
-    }
+	if ( function_exists( 'extrachill_artist_platform_get_next_id' ) ) {
+		return extrachill_artist_platform_get_next_id( $link_page_id, $type );
+	}
 
-    $meta_key   = $map[ $type ];
-    $next_index = (int) get_post_meta( $link_page_id, $meta_key, true );
-    $next_index++;
-    update_post_meta( $link_page_id, $meta_key, $next_index );
+	$map = extrachill_api_id_meta_key_map();
+	if ( ! isset( $map[ $type ] ) ) {
+		return '';
+	}
 
-    return sprintf( '%d-%s-%d', $link_page_id, $type, $next_index );
+	$meta_key   = $map[ $type ];
+	$next_index = (int) get_post_meta( $link_page_id, $meta_key, true );
+	$next_index++;
+	update_post_meta( $link_page_id, $meta_key, $next_index );
+
+	return sprintf( '%d-%s-%d', $link_page_id, $type, $next_index );
 }
 
 /**
  * Determines if ID needs assignment (blank or temp).
  *
+ * @deprecated Use extrachill_artist_platform_needs_id_assignment().
  * @param string $id Input ID.
- *
  * @return bool
  */
 function extrachill_api_needs_id_assignment( $id ) {
-    return empty( $id ) || str_starts_with( $id, 'temp-' );
+	if ( function_exists( 'extrachill_artist_platform_needs_id_assignment' ) ) {
+		return extrachill_artist_platform_needs_id_assignment( $id );
+	}
+
+	return empty( $id ) || str_starts_with( $id, 'temp-' );
 }
 
 /**
  * Sync counter based on an existing ID value.
  *
+ * @deprecated Use extrachill_artist_platform_sync_counter_from_id().
  * @param int    $link_page_id Link page post ID.
  * @param string $type         Type key.
  * @param string $id           Existing ID.
  */
 function extrachill_api_sync_counter_from_id( $link_page_id, $type, $id ) {
-    $map = extrachill_api_id_meta_key_map();
-    if ( ! isset( $map[ $type ] ) ) {
-        return;
-    }
+	if ( function_exists( 'extrachill_artist_platform_sync_counter_from_id' ) ) {
+		extrachill_artist_platform_sync_counter_from_id( $link_page_id, $type, $id );
+		return;
+	}
 
-    $pattern = sprintf( '/^(%d)\-%s\-(\d+)$/', (int) $link_page_id, preg_quote( $type, '/' ) );
-    if ( 1 !== preg_match( $pattern, $id, $matches ) ) {
-        return;
-    }
+	$map = extrachill_api_id_meta_key_map();
+	if ( ! isset( $map[ $type ] ) ) {
+		return;
+	}
 
-    $current  = (int) $matches[2];
-    $meta_key = $map[ $type ];
-    $stored   = (int) get_post_meta( $link_page_id, $meta_key, true );
+	$pattern = sprintf( '/^(%d)\-%s\-(\d+)$/', (int) $link_page_id, preg_quote( $type, '/' ) );
+	if ( 1 !== preg_match( $pattern, $id, $matches ) ) {
+		return;
+	}
 
-    if ( $current > $stored ) {
-        update_post_meta( $link_page_id, $meta_key, $current );
-    }
+	$current  = (int) $matches[2];
+	$meta_key = $map[ $type ];
+	$stored   = (int) get_post_meta( $link_page_id, $meta_key, true );
+
+	if ( $current > $stored ) {
+		update_post_meta( $link_page_id, $meta_key, $current );
+	}
 }

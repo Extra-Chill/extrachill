@@ -5,8 +5,8 @@
  * GET /wp-json/extrachill/v1/artists/{id}/socials - Retrieve social links
  * PUT /wp-json/extrachill/v1/artists/{id}/socials - Update social links (full replacement)
  *
- * Social links are icon buttons (Instagram, Spotify, etc.) stored on the artist profile.
- * Uses extrachill_artist_platform_social_links() manager for all operations.
+ * Delegates to abilities:
+ * - extrachill/save-social-links
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -86,7 +86,10 @@ function extrachill_api_artist_socials_permission_check( WP_REST_Request $reques
 }
 
 /**
- * GET handler - retrieve social links
+ * GET handler - retrieve social links.
+ *
+ * Builds response directly since there's no dedicated read ability for socials
+ * (they're part of the link page data ability).
  */
 function extrachill_api_artist_socials_get_handler( WP_REST_Request $request ) {
 	$artist_id = $request->get_param( 'id' );
@@ -95,112 +98,68 @@ function extrachill_api_artist_socials_get_handler( WP_REST_Request $request ) {
 }
 
 /**
- * PUT handler - update social links (full replacement)
+ * PUT handler - update social links via ability.
  */
 function extrachill_api_artist_socials_put_handler( WP_REST_Request $request ) {
 	$artist_id = $request->get_param( 'id' );
 	$body      = $request->get_json_params();
 
-	if ( ! function_exists( 'extrachill_artist_platform_social_links' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Social links manager not available.',
-			array( 'status' => 500 )
-		);
-	}
-
-	if ( ! function_exists( 'ec_get_link_page_for_artist' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Link page functions not available.',
-			array( 'status' => 500 )
-		);
-	}
-
-	$link_page_id = ec_get_link_page_for_artist( $artist_id );
-
-	if ( ! $link_page_id ) {
-		return new WP_Error(
-			'no_link_page',
-			'No link page exists for this artist.',
-			array( 'status' => 404 )
-		);
-	}
-
 	if ( empty( $body ) ) {
-		return new WP_Error(
-			'empty_body',
-			'No data provided.',
-			array( 'status' => 400 )
-		);
+		return new WP_Error( 'empty_body', 'No data provided.', array( 'status' => 400 ) );
 	}
 
-	// Validate social_links is present
 	if ( ! isset( $body['social_links'] ) ) {
-		return new WP_Error(
-			'missing_field',
-			'social_links field is required.',
-			array( 'status' => 400 )
-		);
+		return new WP_Error( 'missing_field', 'social_links field is required.', array( 'status' => 400 ) );
 	}
 
 	if ( ! is_array( $body['social_links'] ) ) {
-		return new WP_Error(
-			'invalid_format',
-			'social_links must be an array.',
-			array( 'status' => 400 )
-		);
+		return new WP_Error( 'invalid_format', 'social_links must be an array.', array( 'status' => 400 ) );
 	}
 
-	$sanitized_socials = extrachill_api_sanitize_socials( $body['social_links'], $link_page_id );
-
-	if ( empty( $sanitized_socials ) && ! empty( $body['social_links'] ) ) {
-		return new WP_Error(
-			'validation_failed',
-			'No valid social links found.',
-			array( 'status' => 400 )
-		);
+	$ability = wp_get_ability( 'extrachill/save-social-links' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_missing', 'Save social links ability not available.', array( 'status' => 500 ) );
 	}
 
-	$social_manager = extrachill_artist_platform_social_links();
-
-	$result = $social_manager->save( $artist_id, $sanitized_socials );
+	$result = $ability->execute(
+		array(
+			'artist_id'    => $artist_id,
+			'social_links' => $body['social_links'],
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
-		return new WP_Error(
-			'save_failed',
-			$result->get_error_message(),
-			array( 'status' => 500 )
-		);
+		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
 	}
 
-	return rest_ensure_response( extrachill_api_build_socials_response( $artist_id ) );
+	return rest_ensure_response( $result );
 }
 
 /**
- * Build social links response data
+ * Build social links response data.
+ *
+ * Used by the GET handler. Reads directly from the social links manager
+ * since there's no dedicated read-socials ability.
  */
 function extrachill_api_build_socials_response( $artist_id ) {
-    $social_links = array();
+	$social_links = array();
 
-    if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
-        $social_manager = extrachill_artist_platform_social_links();
-        $social_links   = $social_manager->get( $artist_id );
+	if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
+		$social_manager = extrachill_artist_platform_social_links();
+		$social_links   = $social_manager->get( $artist_id );
 
-        // Enrich each link with icon_class for frontend rendering
-        if ( is_array( $social_links ) ) {
-            foreach ( $social_links as $index => $social_link ) {
-                if ( ! is_array( $social_link ) || empty( $social_link['type'] ) || empty( $social_link['id'] ) ) {
-                    continue;
-                }
+		if ( is_array( $social_links ) ) {
+			foreach ( $social_links as $index => $social_link ) {
+				if ( ! is_array( $social_link ) || empty( $social_link['type'] ) || empty( $social_link['id'] ) ) {
+					continue;
+				}
 
-                $social_links[ $index ]['icon_class'] = $social_manager->get_icon_class( $social_link['type'], $social_link );
-            }
-        }
-    }
+				$social_links[ $index ]['icon_class'] = $social_manager->get_icon_class( $social_link['type'], $social_link );
+			}
+		}
+	}
 
-    return array(
-        'social_links' => is_array( $social_links ) ? $social_links : array(),
-    );
+	return array(
+		'social_links' => is_array( $social_links ) ? $social_links : array(),
+	);
 }
-
