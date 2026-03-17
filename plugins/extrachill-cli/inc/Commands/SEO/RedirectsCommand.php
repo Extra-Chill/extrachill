@@ -240,6 +240,12 @@ class RedirectsCommand {
 	 * Scans the top 404 URLs in the analytics table, matches them against
 	 * published posts by slug, and creates redirect rules for any matches.
 	 *
+	 * When --fuzzy is enabled, uses a 4-tier matching strategy:
+	 *   1. Exact slug match (post_name = slug)
+	 *   2. Slug substring match (post_name LIKE %slug%)
+	 *   3. Title search with suffix filter (artist + song + "meaning" in title)
+	 *   4. Best-of pattern match (best-X → the-N-best-X)
+	 *
 	 * ## OPTIONS
 	 *
 	 * [--days=<days>]
@@ -251,7 +257,7 @@ class RedirectsCommand {
 	 * [--min-hits=<min>]
 	 * : Minimum hit count to consider.
 	 * ---
-	 * default: 3
+	 * default: 2
 	 * ---
 	 *
 	 * [--category=<category>]
@@ -265,14 +271,18 @@ class RedirectsCommand {
 	 *   - date-prefix
 	 * ---
 	 *
+	 * [--fuzzy]
+	 * : Enable fuzzy title matching when exact slug match fails.
+	 *
 	 * [--dry-run]
 	 * : Show what would be imported without creating rules.
 	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill seo redirects import --dry-run
+	 *     wp extrachill seo redirects import --fuzzy --dry-run --days=7 --min-hits=2
+	 *     wp extrachill seo redirects import --fuzzy --dry-run --days=7 --category=content
 	 *     wp extrachill seo redirects import --category=legacy-html --min-hits=5
-	 *     wp extrachill seo redirects import --days=7
 	 *
 	 * @subcommand import
 	 */
@@ -283,15 +293,16 @@ class RedirectsCommand {
 		global $wpdb;
 
 		$days     = (int) ( $assoc_args['days'] ?? 30 );
-		$min_hits = (int) ( $assoc_args['min-hits'] ?? 3 );
+		$min_hits = (int) ( $assoc_args['min-hits'] ?? 2 );
 		$category = $assoc_args['category'] ?? 'all';
 		$dry_run  = Utils\get_flag_value( $assoc_args, 'dry-run', false );
+		$fuzzy    = Utils\get_flag_value( $assoc_args, 'fuzzy', false );
 
 		$table     = extrachill_analytics_events_table();
 		$date_from = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
 		// Get top 404 URLs.
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from helper, not user input.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT 
@@ -313,6 +324,12 @@ class RedirectsCommand {
 			WP_CLI::log( 'No 404 URLs with enough hits to import.' );
 			return;
 		}
+
+		WP_CLI::log( sprintf( 'Found %d unique 404 URLs (min %d hits, last %d days).', count( $results ), $min_hits, $days ) );
+		if ( $fuzzy ) {
+			WP_CLI::log( 'Fuzzy matching enabled.' );
+		}
+		WP_CLI::log( '' );
 
 		$importable_categories = array( 'legacy-html', 'content', 'date-prefix' );
 		$created               = 0;
@@ -342,7 +359,19 @@ class RedirectsCommand {
 				continue;
 			}
 
-			$post_id = $this->find_post_by_slug( $slug );
+			// Tier 1: exact slug match.
+			$post_id      = $this->find_post_by_slug( $slug );
+			$match_method = 'exact';
+
+			// Tiers 2-4: fuzzy matching fallback.
+			if ( ! $post_id && $fuzzy ) {
+				$fuzzy_result = $this->find_post_fuzzy( $slug );
+				if ( $fuzzy_result ) {
+					$post_id      = $fuzzy_result['post_id'];
+					$match_method = $fuzzy_result['method'];
+				}
+			}
+
 			if ( ! $post_id ) {
 				++$skipped_no_match;
 				continue;
@@ -359,16 +388,24 @@ class RedirectsCommand {
 				continue;
 			}
 
+			// Skip self-redirects.
+			$to_path = wp_make_link_relative( $permalink );
+			if ( untrailingslashit( $from_path ) === untrailingslashit( $to_path ) ) {
+				++$skipped_no_match;
+				continue;
+			}
+
 			$rows[] = array(
-				'from'    => $from_path,
-				'to'      => wp_make_link_relative( $permalink ),
-				'hits'    => (int) $row->hits,
-				'post_id' => $post_id,
-				'cat'     => $url_cat,
+				'from'   => $from_path,
+				'to'     => $to_path,
+				'method' => $match_method,
+				'hits'   => (int) $row->hits,
+				'post'   => $post_id,
+				'cat'    => $url_cat,
 			);
 
 			if ( ! $dry_run ) {
-				$note = sprintf( 'Auto-imported from 404 data (%d hits, post #%d)', $row->hits, $post_id );
+				$note = sprintf( 'Auto-imported from 404 data (%d hits, post #%d, match: %s)', $row->hits, $post_id, $match_method );
 				$id   = \ExtraChill\SEO\Core\extrachill_seo_add_redirect( $from_path, $permalink, 301, $note, 'cli-import' );
 				if ( $id ) {
 					++$created;
@@ -384,7 +421,7 @@ class RedirectsCommand {
 			WP_CLI::log( sprintf( '%s %d redirect rules:', $label, count( $rows ) ) );
 			WP_CLI::log( '' );
 
-			Utils\format_items( 'table', $rows, array( 'from', 'to', 'hits', 'post_id', 'cat' ) );
+			Utils\format_items( 'table', $rows, array( 'from', 'to', 'method', 'hits', 'post', 'cat' ) );
 		}
 
 		WP_CLI::log( '' );
@@ -397,6 +434,256 @@ class RedirectsCommand {
 			WP_CLI::log( '' );
 			WP_CLI::log( 'Run without --dry-run to create these rules.' );
 		}
+	}
+
+	// ─── Fuzzy Matching ───────────────────────────────────────────────────
+
+	/**
+	 * Known content-type suffixes that can be stripped from slugs.
+	 *
+	 * @var string[]
+	 */
+	private static $known_suffixes = array(
+		'-meaning',
+		'-biography',
+		'-review',
+		'-lyrics',
+		'-history',
+		'-setlist',
+		'-explained',
+		'-ranked',
+		'-analysis',
+		'-guide',
+		'-tour',
+		'-discography',
+		'-net-worth',
+		'-songs',
+	);
+
+	/**
+	 * Find a post using fuzzy matching (tiers 2-4).
+	 *
+	 * @param string $slug The 404 slug to match.
+	 * @return array|false Array with 'post_id' and 'method' keys, or false.
+	 */
+	private function find_post_fuzzy( $slug ) {
+		// Tier 2: slug substring in post_name.
+		$result = $this->find_post_by_slug_like( $slug );
+		if ( $result ) {
+			return array(
+				'post_id' => $result,
+				'method'  => 'slug-like',
+			);
+		}
+
+		// Tier 3: title search with suffix filter.
+		$result = $this->find_post_by_title_search( $slug );
+		if ( $result ) {
+			return array(
+				'post_id' => $result,
+				'method'  => 'title',
+			);
+		}
+
+		// Tier 4: best-of pattern match.
+		$result = $this->find_post_by_best_of_pattern( $slug );
+		if ( $result ) {
+			return array(
+				'post_id' => $result,
+				'method'  => 'best-of',
+			);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Tier 2: Find a post where the slug is a substring of an existing post_name.
+	 *
+	 * Handles cases where the published post has a longer/different slug but
+	 * contains the core search slug (e.g. "sugaree-meaning" matches
+	 * "jerry-garcia-sugaree-meaning").
+	 *
+	 * @param string $slug The slug to search for.
+	 * @return int|false Post ID or false.
+	 */
+	private function find_post_by_slug_like( $slug ) {
+		global $wpdb;
+
+		// Skip very short slugs to avoid false positives.
+		if ( strlen( $slug ) < 10 ) {
+			return false;
+		}
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery
+		$post_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT ID FROM {$wpdb->posts}
+				WHERE post_name LIKE %s
+				AND post_type IN ('post', 'page')
+				AND post_status = 'publish'
+				ORDER BY post_date DESC
+				LIMIT 1",
+				'%' . $wpdb->esc_like( $slug ) . '%'
+			)
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery
+
+		return $post_id ? (int) $post_id : false;
+	}
+
+	/**
+	 * Tier 3: Search post titles using the slug words and suffix filtering.
+	 *
+	 * Strips known suffixes (e.g. "-meaning") from the slug, converts the
+	 * remainder to search terms, then searches titles that contain BOTH
+	 * the main search terms AND the suffix word.
+	 *
+	 * Also tries artist+song splitting: splits the slug at different word
+	 * boundaries (first 1-3 words as artist, rest as song) and searches
+	 * with both as separate LIKE conditions plus the suffix.
+	 *
+	 * @param string $slug The slug to search for.
+	 * @return int|false Post ID or false.
+	 */
+	private function find_post_by_title_search( $slug ) {
+		global $wpdb;
+
+		$suffix_info = $this->strip_known_suffix( $slug );
+		if ( ! $suffix_info ) {
+			return false;
+		}
+
+		$base_slug   = $suffix_info['base'];
+		$suffix_word = $suffix_info['suffix'];
+		$words       = explode( '-', $base_slug );
+
+		// Need at least 2 words for a meaningful search.
+		if ( count( $words ) < 2 ) {
+			return false;
+		}
+
+		// First try: full base terms + suffix word in title.
+		$search_terms = implode( ' ', $words );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery
+		$post_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT ID FROM {$wpdb->posts}
+				WHERE post_title LIKE %s
+				AND post_title LIKE %s
+				AND post_type IN ('post', 'page')
+				AND post_status = 'publish'
+				ORDER BY post_date DESC
+				LIMIT 1",
+				'%' . $wpdb->esc_like( $search_terms ) . '%',
+				'%' . $wpdb->esc_like( $suffix_word ) . '%'
+			)
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery
+
+		if ( $post_id ) {
+			return (int) $post_id;
+		}
+
+		// Second try: artist+song splitting.
+		// Try splitting at word boundaries 1-3 as "artist", rest as "song/topic".
+		$max_artist_words = min( 3, count( $words ) - 1 );
+		for ( $split = 1; $split <= $max_artist_words; $split++ ) {
+			$artist_part = implode( ' ', array_slice( $words, 0, $split ) );
+			$song_part   = implode( ' ', array_slice( $words, $split ) );
+
+			if ( strlen( $song_part ) < 3 ) {
+				continue;
+			}
+
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery
+			$post_id = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT ID FROM {$wpdb->posts}
+					WHERE post_title LIKE %s
+					AND post_title LIKE %s
+					AND post_title LIKE %s
+					AND post_type IN ('post', 'page')
+					AND post_status = 'publish'
+					ORDER BY post_date DESC
+					LIMIT 1",
+					'%' . $wpdb->esc_like( $artist_part ) . '%',
+					'%' . $wpdb->esc_like( $song_part ) . '%',
+					'%' . $wpdb->esc_like( $suffix_word ) . '%'
+				)
+			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery
+
+			if ( $post_id ) {
+				return (int) $post_id;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Tier 4: Match "best-X" patterns to "the-N-best-X" posts.
+	 *
+	 * Handles cases like "best-blink-182-songs" matching
+	 * "the-10-best-blink-182-songs" or "the-15-best-blink-182-songs".
+	 *
+	 * @param string $slug The slug to search for.
+	 * @return int|false Post ID or false.
+	 */
+	private function find_post_by_best_of_pattern( $slug ) {
+		// Only handle slugs starting with "best-".
+		if ( strpos( $slug, 'best-' ) !== 0 ) {
+			return false;
+		}
+
+		$remainder = substr( $slug, 5 ); // Strip "best-".
+
+		if ( strlen( $remainder ) < 3 ) {
+			return false;
+		}
+
+		global $wpdb;
+
+		// Search for "the-N-best-{remainder}" pattern in post_name.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery
+		$post_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT ID FROM {$wpdb->posts}
+				WHERE post_name LIKE %s
+				AND post_type IN ('post', 'page')
+				AND post_status = 'publish'
+				ORDER BY post_date DESC
+				LIMIT 1",
+				$wpdb->esc_like( 'the-' ) . '%-' . $wpdb->esc_like( 'best-' . $remainder )
+			)
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery
+
+		return $post_id ? (int) $post_id : false;
+	}
+
+	/**
+	 * Strip a known suffix from a slug and return the base and suffix word.
+	 *
+	 * @param string $slug The slug to strip.
+	 * @return array|false Array with 'base' and 'suffix' keys, or false if no suffix found.
+	 */
+	private function strip_known_suffix( $slug ) {
+		foreach ( self::$known_suffixes as $suffix ) {
+			$suffix_len = strlen( $suffix );
+			if ( substr( $slug, -$suffix_len ) === $suffix ) {
+				$base = substr( $slug, 0, -$suffix_len );
+				if ( strlen( $base ) >= 3 ) {
+					return array(
+						'base'   => $base,
+						'suffix' => ltrim( $suffix, '-' ), // e.g. "meaning".
+					);
+				}
+			}
+		}
+		return false;
 	}
 
 	// ─── Helpers ───────────────────────────────────────────────────────────
