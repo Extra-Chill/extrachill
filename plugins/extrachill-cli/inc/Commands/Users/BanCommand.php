@@ -66,13 +66,13 @@ class BanCommand {
 
 		$result = $ability->execute(
 			array(
-				'user_id'   => (int) $user->ID,
-				'state'     => $state,
-				'reason_key'=> $reason_key,
-				'reason'    => isset( $assoc_args['reason'] ) ? (string) $assoc_args['reason'] : '',
-				'note'      => isset( $assoc_args['note'] ) ? (string) $assoc_args['note'] : '',
-				'source'    => 'wp-cli',
-				'acted_by'  => 0,
+				'user_id'    => (int) $user->ID,
+				'state'      => $state,
+				'reason_key' => $reason_key,
+				'reason'     => isset( $assoc_args['reason'] ) ? (string) $assoc_args['reason'] : '',
+				'note'       => isset( $assoc_args['note'] ) ? (string) $assoc_args['note'] : '',
+				'source'     => 'wp-cli',
+				'acted_by'   => 0,
 			)
 		);
 

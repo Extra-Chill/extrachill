@@ -57,7 +57,7 @@ trait NetworkAwareTrait {
 		if ( null === $site ) {
 			// No --site flag: default to current blog context.
 			// On the main site (blog 1), default to all for backward compat.
-			$current = get_current_blog_id();
+			$current                = get_current_blog_id();
 			$this->resolved_blog_id = ( 1 === $current ) ? 0 : $current;
 			return $this->resolved_blog_id;
 		}

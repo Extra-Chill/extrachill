@@ -107,15 +107,15 @@ class RedirectsCommand {
 		$rows = array();
 		foreach ( $rules as $rule ) {
 			$rows[] = array(
-				'id'          => $rule->id,
-				'from'        => $rule->from_url,
-				'to'          => $rule->to_url,
-				'code'        => $rule->status_code,
-				'hits'        => number_format( $rule->hit_count ),
-				'last_hit'    => $rule->last_hit ?: '—',
-				'active'      => $rule->active ? 'yes' : 'no',
-				'note'        => $rule->note,
-				'created'     => $rule->created_at,
+				'id'       => $rule->id,
+				'from'     => $rule->from_url,
+				'to'       => $rule->to_url,
+				'code'     => $rule->status_code,
+				'hits'     => number_format( $rule->hit_count ),
+				'last_hit' => $rule->last_hit ? $rule->last_hit : '—',
+				'active'   => $rule->active ? 'yes' : 'no',
+				'note'     => $rule->note,
+				'created'  => $rule->created_at,
 			);
 		}
 
@@ -187,7 +187,7 @@ class RedirectsCommand {
 	 *
 	 * @subcommand remove
 	 */
-	public function remove( $args, $assoc_args ) {
+	public function remove( $args) {
 		$this->ensure_seo();
 
 		$id      = (int) $args[0];
@@ -215,6 +215,7 @@ class RedirectsCommand {
 	 * @subcommand test
 	 */
 	public function test( $args, $assoc_args ) {
+		$assoc_args;
 		$this->ensure_seo();
 
 		$url  = $args[0];
@@ -290,6 +291,7 @@ class RedirectsCommand {
 		$date_from = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
 		// Get top 404 URLs.
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT 
@@ -305,6 +307,7 @@ class RedirectsCommand {
 				$min_hits
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		if ( empty( $results ) ) {
 			WP_CLI::log( 'No 404 URLs with enough hits to import.' );
@@ -319,29 +322,29 @@ class RedirectsCommand {
 		$rows                  = array();
 
 		foreach ( $results as $row ) {
-			$url      = $row->url;
-			$url_cat  = $this->categorize_url( $url );
+			$url     = $row->url;
+			$url_cat = $this->categorize_url( $url );
 
 			// Category filter.
 			if ( 'all' !== $category && $url_cat !== $category ) {
-				$skipped_category++;
+				++$skipped_category;
 				continue;
 			}
 
 			if ( ! in_array( $url_cat, $importable_categories, true ) ) {
-				$skipped_category++;
+				++$skipped_category;
 				continue;
 			}
 
 			$slug = $this->extract_slug( $url );
 			if ( empty( $slug ) ) {
-				$skipped_no_match++;
+				++$skipped_no_match;
 				continue;
 			}
 
 			$post_id = $this->find_post_by_slug( $slug );
 			if ( ! $post_id ) {
-				$skipped_no_match++;
+				++$skipped_no_match;
 				continue;
 			}
 
@@ -352,7 +355,7 @@ class RedirectsCommand {
 			// Check if redirect already exists.
 			$existing = \ExtraChill\SEO\Core\extrachill_seo_get_redirect_by_url( $from_path );
 			if ( $existing ) {
-				$skipped_exists++;
+				++$skipped_exists;
 				continue;
 			}
 
@@ -368,10 +371,10 @@ class RedirectsCommand {
 				$note = sprintf( 'Auto-imported from 404 data (%d hits, post #%d)', $row->hits, $post_id );
 				$id   = \ExtraChill\SEO\Core\extrachill_seo_add_redirect( $from_path, $permalink, 301, $note, 'cli-import' );
 				if ( $id ) {
-					$created++;
+					++$created;
 				}
 			} else {
-				$created++;
+				++$created;
 			}
 		}
 
@@ -439,10 +442,10 @@ class RedirectsCommand {
 	 * Extract a post slug from a URL.
 	 */
 	private function extract_slug( $url ) {
-		$url = strtok( $url, '?' );
-		$url = strtok( $url, '#' );
-		$url = preg_replace( '#\.html/?$#', '', $url );
-		$url = preg_replace( '#^/\d{4}/\d{2}/#', '/', $url );
+		$url  = strtok( $url, '?' );
+		$url  = strtok( $url, '#' );
+		$url  = preg_replace( '#\.html/?$#', '', $url );
+		$url  = preg_replace( '#^/\d{4}/\d{2}/#', '/', $url );
 		$slug = trim( $url, '/' );
 		if ( strpos( $slug, '/' ) !== false ) {
 			$parts = explode( '/', $slug );

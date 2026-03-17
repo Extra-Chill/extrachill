@@ -26,15 +26,15 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 
 // PSR-4 autoloader for ExtraChill\CLI namespace.
 spl_autoload_register(
-	function ( $class ) {
+	function ( $class_name ) {
 		$prefix = 'ExtraChill\\CLI\\';
 		$len    = strlen( $prefix );
 
-		if ( strncmp( $prefix, $class, $len ) !== 0 ) {
+		if ( strncmp( $prefix, $class_name, $len ) !== 0 ) {
 			return;
 		}
 
-		$relative = substr( $class, $len );
+		$relative = substr( $class_name, $len );
 		$file     = EXTRACHILL_CLI_PATH . 'inc/' . str_replace( '\\', '/', $relative ) . '.php';
 
 		if ( file_exists( $file ) ) {

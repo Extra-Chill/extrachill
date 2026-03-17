@@ -44,6 +44,7 @@ class QRCodeCommand {
 	 * @subcommand generate
 	 */
 	public function generate( $args, $assoc_args ) {
+		global $wp_filesystem;
 		$this->ensure_qr_ability();
 
 		$url        = $args[0];
@@ -83,7 +84,7 @@ class QRCodeCommand {
 			WP_CLI::error( sprintf( 'Output directory does not exist: %s', $directory ) );
 		}
 
-		$bytes_written = file_put_contents( $output, $binary );
+		$bytes_written = $wp_filesystem->put_contents( $output, $binary );
 		if ( false === $bytes_written ) {
 			WP_CLI::error( sprintf( 'Failed to write QR code file: %s', $output ) );
 		}

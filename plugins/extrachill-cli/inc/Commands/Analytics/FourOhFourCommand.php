@@ -173,7 +173,9 @@ class FourOhFourCommand {
 				LIMIT %d";
 		$values = array_merge( array( $date_from ), $site_where['values'], array( $min_hits, $limit ) );
 
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		if ( empty( $results ) ) {
 			WP_CLI::success( 'No 404 URLs with ' . $min_hits . '+ hits in the last ' . $days . ' days.' );
@@ -255,7 +257,9 @@ class FourOhFourCommand {
 				GROUP BY url";
 		$values = array_merge( array( $date_from ), $site_where['values'] );
 
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		if ( empty( $results ) ) {
 			WP_CLI::success( 'No 404 errors in the last ' . $days . ' days.' );
@@ -386,7 +390,9 @@ class FourOhFourCommand {
 				ORDER BY hits DESC";
 		$values = array_merge( array( $date_from ), $site_where['values'] );
 
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		// Filter to matching category.
 		$filtered = array();
@@ -413,11 +419,11 @@ class FourOhFourCommand {
 
 			// For legacy-html and content, check if a matching post exists.
 			if ( in_array( $category, array( 'legacy-html', 'content', 'date-prefix' ), true ) ) {
-				$slug              = $this->extract_slug( $row->url );
-				$post_id           = $this->find_post_by_slug( $slug );
-				$extra['slug']     = $slug;
-				$extra['post_id']  = $post_id ?: '—';
-				$extra['fixable']  = $post_id ? 'redirect' : 'no match';
+				$slug             = $this->extract_slug( $row->url );
+				$post_id          = $this->find_post_by_slug( $slug );
+				$extra['slug']    = $slug;
+				$extra['post_id'] = $post_id ? $post_id : '—';
+				$extra['fixable'] = $post_id ? 'redirect' : 'no match';
 			}
 
 			$rows[] = $extra;
@@ -472,14 +478,18 @@ class FourOhFourCommand {
 
 		// Total count.
 		$sql    = "SELECT COUNT(*) FROM {$table} WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}";
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$values = array_merge( array( $date_from ), $site_where['values'] );
 		$total  = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		// Unique URLs.
 		$sql    = "SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url'))) 
 				FROM {$table} WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}";
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$values = array_merge( array( $date_from ), $site_where['values'] );
 		$unique = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		// Per day average.
 		$per_day = $days > 0 ? round( $total / $days, 1 ) : $total;
@@ -487,8 +497,10 @@ class FourOhFourCommand {
 		// Unique IPs.
 		$sql        = "SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.ip_hash'))) 
 				FROM {$table} WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}";
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$values     = array_merge( array( $date_from ), $site_where['values'] );
 		$unique_ips = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		// By day breakdown.
 		$sql    = "SELECT DATE(created_at) as date, COUNT(*) as hits
@@ -496,8 +508,10 @@ class FourOhFourCommand {
 				WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}
 				GROUP BY DATE(created_at)
 				ORDER BY date DESC";
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$values = array_merge( array( $date_from ), $site_where['values'] );
 		$by_day = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		$site_label = $this->format_site_label();
 		WP_CLI::log( sprintf( '404 Error Summary — Last %d days (%s)', $days, $site_label ) );
@@ -557,15 +571,17 @@ class FourOhFourCommand {
 		$site_label = $this->format_site_label();
 
 		$sql    = "SELECT COUNT(*) FROM {$table} WHERE event_type = '404_error' AND created_at < %s{$site_where['sql']}";
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$values = array_merge( array( $date_from ), $site_where['values'] );
 		$count  = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		if ( $dry_run ) {
 			WP_CLI::log( sprintf( 'Would delete %s 404 events older than %d days on %s.', number_format( $count ), $days, $site_label ) );
 			return;
 		}
 
-		if ( (int) $count === 0 ) {
+		if ( (int) 0 === $count ) {
 			WP_CLI::success( sprintf( 'No 404 events older than %d days on %s.', $days, $site_label ) );
 			return;
 		}
@@ -573,8 +589,10 @@ class FourOhFourCommand {
 		WP_CLI::confirm( sprintf( 'Delete %s 404 events older than %d days on %s?', number_format( $count ), $days, $site_label ) );
 
 		$sql     = "DELETE FROM {$table} WHERE event_type = '404_error' AND created_at < %s{$site_where['sql']}";
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 		$values  = array_merge( array( $date_from ), $site_where['values'] );
 		$deleted = $wpdb->query( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		WP_CLI::success( sprintf( 'Purged %s 404 events on %s.', number_format( $deleted ), $site_label ) );
 	}
