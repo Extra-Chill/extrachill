@@ -12,12 +12,15 @@ namespace ExtraChill\CLI\Commands\Analytics;
 
 use WP_CLI;
 use WP_CLI\Utils;
+use ExtraChill\CLI\Traits\NetworkAwareTrait;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 class FourOhFourCommand {
+
+	use NetworkAwareTrait;
 
 	/**
 	 * List recent 404 errors.
@@ -36,6 +39,9 @@ class FourOhFourCommand {
 	 * default: 50
 	 * ---
 	 *
+	 * [--site=<site>]
+	 * : Filter by site. Use a blog ID, 'all' for network-wide, or omit for current site.
+	 *
 	 * [--format=<format>]
 	 * : Output format.
 	 * ---
@@ -50,6 +56,7 @@ class FourOhFourCommand {
 	 *
 	 *     wp extrachill analytics 404 list
 	 *     wp extrachill analytics 404 list --days=1 --limit=20
+	 *     wp extrachill analytics 404 list --site=7
 	 *     wp extrachill analytics 404 list --format=json
 	 *
 	 * @subcommand list
@@ -57,17 +64,22 @@ class FourOhFourCommand {
 	public function list_errors( $args, $assoc_args ) {
 		$this->ensure_analytics();
 
-		$days   = (int) ( $assoc_args['days'] ?? 7 );
-		$limit  = (int) ( $assoc_args['limit'] ?? 50 );
-		$format = $assoc_args['format'] ?? 'table';
+		$blog_id = $this->get_site_filter( $assoc_args );
+		$days    = (int) ( $assoc_args['days'] ?? 7 );
+		$limit   = (int) ( $assoc_args['limit'] ?? 50 );
+		$format  = $assoc_args['format'] ?? 'table';
 
-		$events = extrachill_get_analytics_events(
-			array(
-				'event_type' => '404_error',
-				'date_from'  => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ),
-				'limit'      => $limit,
-			)
+		$query_args = array(
+			'event_type' => '404_error',
+			'date_from'  => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ),
+			'limit'      => $limit,
 		);
+
+		if ( $blog_id > 0 ) {
+			$query_args['blog_id'] = $blog_id;
+		}
+
+		$events = extrachill_get_analytics_events( $query_args );
 
 		if ( empty( $events ) ) {
 			WP_CLI::success( 'No 404 errors in the last ' . $days . ' days.' );
@@ -111,6 +123,9 @@ class FourOhFourCommand {
 	 * default: 2
 	 * ---
 	 *
+	 * [--site=<site>]
+	 * : Filter by site. Use a blog ID, 'all' for network-wide, or omit for current site.
+	 *
 	 * [--format=<format>]
 	 * : Output format.
 	 * ---
@@ -125,6 +140,7 @@ class FourOhFourCommand {
 	 *
 	 *     wp extrachill analytics 404 top
 	 *     wp extrachill analytics 404 top --days=30 --min-hits=5
+	 *     wp extrachill analytics 404 top --site=7
 	 *
 	 * @subcommand top
 	 */
@@ -133,32 +149,31 @@ class FourOhFourCommand {
 
 		global $wpdb;
 
+		$this->get_site_filter( $assoc_args );
 		$days     = (int) ( $assoc_args['days'] ?? 7 );
 		$limit    = (int) ( $assoc_args['limit'] ?? 30 );
 		$min_hits = (int) ( $assoc_args['min-hits'] ?? 2 );
 		$format   = $assoc_args['format'] ?? 'table';
 
-		$table     = extrachill_analytics_events_table();
-		$date_from = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$table      = extrachill_analytics_events_table();
+		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$site_where = $this->get_site_where_clause();
 
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT 
+		$sql    = "SELECT 
 					JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
 					COUNT(*) AS hits,
 					MAX(created_at) AS last_seen
 				FROM {$table}
 				WHERE event_type = '404_error'
 				AND created_at >= %s
+				{$site_where['sql']}
 				GROUP BY url
 				HAVING hits >= %d
 				ORDER BY hits DESC
-				LIMIT %d",
-				$date_from,
-				$min_hits,
-				$limit
-			)
-		);
+				LIMIT %d";
+		$values = array_merge( array( $date_from ), $site_where['values'], array( $min_hits, $limit ) );
+
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
 
 		if ( empty( $results ) ) {
 			WP_CLI::success( 'No 404 URLs with ' . $min_hits . '+ hits in the last ' . $days . ' days.' );
@@ -196,6 +211,9 @@ class FourOhFourCommand {
 	 * default: 7
 	 * ---
 	 *
+	 * [--site=<site>]
+	 * : Filter by site. Use a blog ID, 'all' for network-wide, or omit for current site.
+	 *
 	 * [--format=<format>]
 	 * : Output format.
 	 * ---
@@ -210,6 +228,7 @@ class FourOhFourCommand {
 	 *
 	 *     wp extrachill analytics 404 patterns
 	 *     wp extrachill analytics 404 patterns --days=30
+	 *     wp extrachill analytics 404 patterns --site=7
 	 *
 	 * @subcommand patterns
 	 */
@@ -218,24 +237,25 @@ class FourOhFourCommand {
 
 		global $wpdb;
 
+		$this->get_site_filter( $assoc_args );
 		$days   = (int) ( $assoc_args['days'] ?? 7 );
 		$format = $assoc_args['format'] ?? 'table';
 
-		$table     = extrachill_analytics_events_table();
-		$date_from = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$table      = extrachill_analytics_events_table();
+		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$site_where = $this->get_site_where_clause();
 
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT 
+		$sql    = "SELECT 
 					JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
 					COUNT(*) AS hits
 				FROM {$table}
 				WHERE event_type = '404_error'
 				AND created_at >= %s
-				GROUP BY url",
-				$date_from
-			)
-		);
+				{$site_where['sql']}
+				GROUP BY url";
+		$values = array_merge( array( $date_from ), $site_where['values'] );
+
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
 
 		if ( empty( $results ) ) {
 			WP_CLI::success( 'No 404 errors in the last ' . $days . ' days.' );
@@ -317,6 +337,9 @@ class FourOhFourCommand {
 	 * default: 20
 	 * ---
 	 *
+	 * [--site=<site>]
+	 * : Filter by site. Use a blog ID, 'all' for network-wide, or omit for current site.
+	 *
 	 * [--format=<format>]
 	 * : Output format.
 	 * ---
@@ -332,6 +355,7 @@ class FourOhFourCommand {
 	 *     wp extrachill analytics 404 drill legacy-html
 	 *     wp extrachill analytics 404 drill content --days=30
 	 *     wp extrachill analytics 404 drill missing-upload --limit=50
+	 *     wp extrachill analytics 404 drill content --site=7
 	 *
 	 * @subcommand drill
 	 */
@@ -340,28 +364,29 @@ class FourOhFourCommand {
 
 		global $wpdb;
 
+		$this->get_site_filter( $assoc_args );
 		$category = $args[0];
 		$days     = (int) ( $assoc_args['days'] ?? 7 );
 		$limit    = (int) ( $assoc_args['limit'] ?? 20 );
 		$format   = $assoc_args['format'] ?? 'table';
 
-		$table     = extrachill_analytics_events_table();
-		$date_from = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$table      = extrachill_analytics_events_table();
+		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$site_where = $this->get_site_where_clause();
 
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT 
+		$sql    = "SELECT 
 					JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
 					COUNT(*) AS hits,
 					MAX(created_at) AS last_seen
 				FROM {$table}
 				WHERE event_type = '404_error'
 				AND created_at >= %s
+				{$site_where['sql']}
 				GROUP BY url
-				ORDER BY hits DESC",
-				$date_from
-			)
-		);
+				ORDER BY hits DESC";
+		$values = array_merge( array( $date_from ), $site_where['values'] );
+
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
 
 		// Filter to matching category.
 		$filtered = array();
@@ -421,10 +446,15 @@ class FourOhFourCommand {
 	 * default: 7
 	 * ---
 	 *
+	 * [--site=<site>]
+	 * : Filter by site. Use a blog ID, 'all' for network-wide, or omit for current site.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill analytics 404 summary
 	 *     wp extrachill analytics 404 summary --days=30
+	 *     wp extrachill analytics 404 summary --site=7
+	 *     wp extrachill analytics 404 summary --site=all
 	 *
 	 * @subcommand summary
 	 */
@@ -433,53 +463,44 @@ class FourOhFourCommand {
 
 		global $wpdb;
 
+		$this->get_site_filter( $assoc_args );
 		$days = (int) ( $assoc_args['days'] ?? 7 );
 
-		$table     = extrachill_analytics_events_table();
-		$date_from = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$table      = extrachill_analytics_events_table();
+		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$site_where = $this->get_site_where_clause();
 
 		// Total count.
-		$total = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table} WHERE event_type = '404_error' AND created_at >= %s",
-				$date_from
-			)
-		);
+		$sql    = "SELECT COUNT(*) FROM {$table} WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}";
+		$values = array_merge( array( $date_from ), $site_where['values'] );
+		$total  = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
 
 		// Unique URLs.
-		$unique = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url'))) 
-				FROM {$table} WHERE event_type = '404_error' AND created_at >= %s",
-				$date_from
-			)
-		);
+		$sql    = "SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url'))) 
+				FROM {$table} WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}";
+		$values = array_merge( array( $date_from ), $site_where['values'] );
+		$unique = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
 
 		// Per day average.
 		$per_day = $days > 0 ? round( $total / $days, 1 ) : $total;
 
 		// Unique IPs.
-		$unique_ips = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.ip_hash'))) 
-				FROM {$table} WHERE event_type = '404_error' AND created_at >= %s",
-				$date_from
-			)
-		);
+		$sql        = "SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.ip_hash'))) 
+				FROM {$table} WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}";
+		$values     = array_merge( array( $date_from ), $site_where['values'] );
+		$unique_ips = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
 
 		// By day breakdown.
-		$by_day = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT DATE(created_at) as date, COUNT(*) as hits
+		$sql    = "SELECT DATE(created_at) as date, COUNT(*) as hits
 				FROM {$table} 
-				WHERE event_type = '404_error' AND created_at >= %s
+				WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}
 				GROUP BY DATE(created_at)
-				ORDER BY date DESC",
-				$date_from
-			)
-		);
+				ORDER BY date DESC";
+		$values = array_merge( array( $date_from ), $site_where['values'] );
+		$by_day = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
 
-		WP_CLI::log( sprintf( '404 Error Summary — Last %d days', $days ) );
+		$site_label = $this->format_site_label();
+		WP_CLI::log( sprintf( '404 Error Summary — Last %d days (%s)', $days, $site_label ) );
 		WP_CLI::log( str_repeat( '─', 40 ) );
 		WP_CLI::log( sprintf( 'Total hits:     %s', number_format( $total ) ) );
 		WP_CLI::log( sprintf( 'Unique URLs:    %s', number_format( $unique ) ) );
@@ -507,6 +528,9 @@ class FourOhFourCommand {
 	 * default: 30
 	 * ---
 	 *
+	 * [--site=<site>]
+	 * : Filter by site. Use a blog ID, 'all' for network-wide, or omit for current site.
+	 *
 	 * [--dry-run]
 	 * : Show what would be deleted without deleting.
 	 *
@@ -514,6 +538,7 @@ class FourOhFourCommand {
 	 *
 	 *     wp extrachill analytics 404 purge --days=30
 	 *     wp extrachill analytics 404 purge --days=7 --dry-run
+	 *     wp extrachill analytics 404 purge --days=14 --site=7
 	 *
 	 * @subcommand purge
 	 */
@@ -522,39 +547,36 @@ class FourOhFourCommand {
 
 		global $wpdb;
 
+		$this->get_site_filter( $assoc_args );
 		$days    = (int) ( $assoc_args['days'] ?? 30 );
 		$dry_run = Utils\get_flag_value( $assoc_args, 'dry-run', false );
 
-		$table     = extrachill_analytics_events_table();
-		$date_from = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$table      = extrachill_analytics_events_table();
+		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$site_where = $this->get_site_where_clause();
+		$site_label = $this->format_site_label();
 
-		$count = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table} WHERE event_type = '404_error' AND created_at < %s",
-				$date_from
-			)
-		);
+		$sql    = "SELECT COUNT(*) FROM {$table} WHERE event_type = '404_error' AND created_at < %s{$site_where['sql']}";
+		$values = array_merge( array( $date_from ), $site_where['values'] );
+		$count  = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
 
 		if ( $dry_run ) {
-			WP_CLI::log( sprintf( 'Would delete %s 404 events older than %d days.', number_format( $count ), $days ) );
+			WP_CLI::log( sprintf( 'Would delete %s 404 events older than %d days on %s.', number_format( $count ), $days, $site_label ) );
 			return;
 		}
 
 		if ( (int) $count === 0 ) {
-			WP_CLI::success( 'No 404 events older than ' . $days . ' days.' );
+			WP_CLI::success( sprintf( 'No 404 events older than %d days on %s.', $days, $site_label ) );
 			return;
 		}
 
-		WP_CLI::confirm( sprintf( 'Delete %s 404 events older than %d days?', number_format( $count ), $days ) );
+		WP_CLI::confirm( sprintf( 'Delete %s 404 events older than %d days on %s?', number_format( $count ), $days, $site_label ) );
 
-		$deleted = $wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM {$table} WHERE event_type = '404_error' AND created_at < %s",
-				$date_from
-			)
-		);
+		$sql     = "DELETE FROM {$table} WHERE event_type = '404_error' AND created_at < %s{$site_where['sql']}";
+		$values  = array_merge( array( $date_from ), $site_where['values'] );
+		$deleted = $wpdb->query( $wpdb->prepare( $sql, $values ) );
 
-		WP_CLI::success( sprintf( 'Purged %s 404 events.', number_format( $deleted ) ) );
+		WP_CLI::success( sprintf( 'Purged %s 404 events on %s.', number_format( $deleted ), $site_label ) );
 	}
 
 	// ─── Helpers ───────────────────────────────────────────────────────────
