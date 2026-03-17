@@ -2,7 +2,11 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "settings": {
+        "validation_dependencies": ["data-machine"]
+      }
+    }
   },
   "id": "extrachill-api",
   "remote_path": "wp-content/plugins/extrachill-api"

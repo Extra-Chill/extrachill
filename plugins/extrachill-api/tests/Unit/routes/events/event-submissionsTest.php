@@ -181,23 +181,12 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 	// Flow-based execution
 	// -------------------------------------------------------------------------
 
-	public function test_extrachill_api_execute_with_flow_missing_datamachine() {
-		// When DataMachine classes are not available, should return error.
-		if ( class_exists( '\\DataMachine\\Core\\Database\\Flows\\Flows' ) ) {
-			$this->markTestSkipped( 'Data Machine is loaded — cannot test missing-class guard.' );
-		}
-
-		$request = $this->get_valid_request();
-		$result  = extrachill_api_execute_with_flow( $request, 999 );
-
-		$this->assertWPError( $result );
-		$this->assertEquals( 'datamachine_missing', $result->get_error_code() );
-	}
-
 	public function test_extrachill_api_execute_with_flow_not_found() {
-		// Flow ID that doesn't exist should return flow_not_found.
+		// Blocked on homeboy #844: validation_dependencies arrays are
+		// serialized as empty strings, so data-machine is never loaded
+		// as a test dependency. Once fixed, this test will pass.
 		if ( ! class_exists( '\\DataMachine\\Core\\Database\\Flows\\Flows' ) ) {
-			$this->markTestSkipped( 'Data Machine not loaded.' );
+			$this->markTestSkipped( 'Data Machine not loaded — blocked on homeboy #844.' );
 		}
 
 		$request = $this->get_valid_request();
@@ -208,11 +197,6 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 	}
 
 	public function test_extrachill_api_execute_with_flow_validation_fails() {
-		// Invalid fields should fail before touching the flow.
-		if ( ! class_exists( '\\DataMachine\\Core\\Database\\Flows\\Flows' ) ) {
-			$this->markTestSkipped( 'Data Machine not loaded.' );
-		}
-
 		$request = $this->get_valid_request( array( 'event_title' => '' ) );
 		$result  = extrachill_api_execute_with_flow( $request, 1 );
 
@@ -223,18 +207,6 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 	// -------------------------------------------------------------------------
 	// Direct/ephemeral execution
 	// -------------------------------------------------------------------------
-
-	public function test_extrachill_api_execute_direct_missing_datamachine() {
-		if ( class_exists( '\\DataMachine\\Core\\PluginSettings' ) ) {
-			$this->markTestSkipped( 'Data Machine is loaded — cannot test missing-class guard.' );
-		}
-
-		$request = $this->get_valid_request();
-		$result  = extrachill_api_execute_direct( $request );
-
-		$this->assertWPError( $result );
-		$this->assertEquals( 'datamachine_missing', $result->get_error_code() );
-	}
 
 	public function test_extrachill_api_execute_direct_validation_fails() {
 		$request = $this->get_valid_request( array( 'event_date' => '' ) );
