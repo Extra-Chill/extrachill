@@ -126,6 +126,14 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'empty_body', 'Request body is empty.', array( 'status' => 400 ) );
 	}
 
+	// The JS client wraps the full payload as {links: {links, settings, css_vars, ...}}.
+	// Unwrap nested compound object to top-level keys for backward compatibility.
+	if ( isset( $body['links'] ) && is_array( $body['links'] ) && isset( $body['links']['links'] ) ) {
+		$nested = $body['links'];
+		$body   = array_merge( $body, $nested );
+		$body['links'] = $nested['links'];
+	}
+
 	// Save links via ability.
 	if ( isset( $body['links'] ) ) {
 		if ( ! is_array( $body['links'] ) ) {
