@@ -115,6 +115,8 @@ class ExtraChillArtistPlatform {
         ExtraChillArtistPlatform_SocialLinks::instance();
         ExtraChillArtistPlatform_Fonts::instance();
 
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/abilities/abilities.php';
+
         add_action('after_switch_theme', 'extrachill_artist_create_subscribers_table');
     }
 
