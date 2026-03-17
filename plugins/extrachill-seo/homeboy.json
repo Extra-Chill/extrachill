@@ -1,0 +1,19 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {}
+  },
+  "id": "extrachill-seo",
+  "remote_path": "wp-content/plugins/extrachill-seo",
+  "version_targets": [
+    {
+      "file": "extrachill-seo.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-seo.php",
+      "pattern": "EXTRACHILL_SEO_VERSION',\\s*'([0-9.]+)'"
+    }
+  ]
+}
