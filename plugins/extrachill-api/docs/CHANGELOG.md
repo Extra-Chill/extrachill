@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.4] - 2026-03-17
+
+### Fixed
+- handle nested links payload from JS client
+
 ## [0.11.3] - 2026-03-17
 
 ### Changed
