@@ -68,15 +68,36 @@ add_action(
 			)
 		);
 
-		if ( empty( $posts ) ) {
-			return;
+		if ( ! empty( $posts ) ) {
+			$permalink = get_permalink( $posts[0] );
+
+			if ( $permalink ) {
+				wp_safe_redirect( $permalink, 301 );
+				exit;
+			}
 		}
 
-		$permalink = get_permalink( $posts[0] );
+		// No published post found — check the redirect rules table for this slug.
+		// This handles renamed posts where /YYYY/MM/old-slug.html needs to chain
+		// through the redirect rule for /old-slug → /new-slug.
+		if ( function_exists( __NAMESPACE__ . '\\extrachill_seo_get_redirect_by_url' ) ) {
+			$rule = extrachill_seo_get_redirect_by_url( '/' . $slug );
 
-		if ( $permalink ) {
-			wp_safe_redirect( $permalink, 301 );
-			exit;
+			if ( $rule ) {
+				extrachill_seo_record_redirect_hit( $rule->id );
+
+				$to_url     = $rule->to_url;
+				$status_code = in_array( (int) $rule->status_code, array( 301, 302, 307, 308 ), true )
+					? (int) $rule->status_code
+					: 301;
+
+				if ( strpos( $to_url, 'http' ) !== 0 ) {
+					$to_url = home_url( $to_url );
+				}
+
+				wp_safe_redirect( $to_url, $status_code );
+				exit;
+			}
 		}
 	},
 	5
