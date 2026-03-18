@@ -202,28 +202,44 @@ class VenueDiscoveryCommand {
 
 		if ( $result['qualified'] ) {
 			WP_CLI::success( sprintf( 'QUALIFIED — events found at %s', $result['events_url'] ) );
-			WP_CLI::log( sprintf( '  Method: %s', $result['method'] ) );
-			WP_CLI::log( sprintf( '  Score: %d', $result['score'] ) );
+			WP_CLI::log( sprintf( '  Method: %s', $result['method'] ?? 'unknown' ) );
+			if ( ! empty( $result['event_count'] ) ) {
+				WP_CLI::log( sprintf( '  Events detected: %d', $result['event_count'] ) );
+			}
 			if ( ! empty( $result['link_text'] ) ) {
 				WP_CLI::log( sprintf( '  Found via link: "%s"', $result['link_text'] ) );
 			}
-			WP_CLI::log( sprintf( '  Signals: %s', implode( ', ', $result['signals'] ) ) );
+			$extraction = $result['extraction_info'] ?? array();
+			if ( ! empty( $extraction['extraction_method'] ) ) {
+				WP_CLI::log( sprintf( '  Extraction method: %s', $extraction['extraction_method'] ) );
+			}
+			if ( ! empty( $extraction['source_type'] ) ) {
+				WP_CLI::log( sprintf( '  Source type: %s', $extraction['source_type'] ) );
+			}
+			if ( ! empty( $result['warnings'] ) ) {
+				foreach ( $result['warnings'] as $w ) {
+					WP_CLI::warning( $w );
+				}
+			}
 			WP_CLI::log( '' );
 			WP_CLI::log( 'Add this venue with:' );
-			WP_CLI::log( sprintf( '  wp extrachill venues add --pipeline=<id> --name="%s" --url="%s"',
+			WP_CLI::log( sprintf( '  wp extrachill venues add --pipeline=<id> --name="%s" --events-url="%s"',
 				$result['name'] ?: '(venue name)',
 				$result['events_url']
 			) );
 		} else {
-			WP_CLI::warning( 'NOT QUALIFIED — no scrapable event listings detected.' );
-			if ( ! empty( $result['checked_urls'] ) ) {
-				WP_CLI::log( '  Checked URLs:' );
-				foreach ( array_slice( $result['checked_urls'], 0, 8 ) as $checked ) {
-					WP_CLI::log( "    - {$checked}" );
+			WP_CLI::warning( 'NOT QUALIFIED — scraper could not extract events.' );
+			if ( ! empty( $result['urls_tested'] ) ) {
+				WP_CLI::log( '  URLs tested:' );
+				foreach ( array_slice( $result['urls_tested'], 0, 10 ) as $tested ) {
+					WP_CLI::log( "    - {$tested}" );
 				}
 			}
-			WP_CLI::log( '' );
-			WP_CLI::log( '  The site may use JavaScript rendering (SPA), require login, or not list events publicly.' );
+			if ( ! empty( $result['warnings'] ) ) {
+				foreach ( $result['warnings'] as $w ) {
+					WP_CLI::warning( $w );
+				}
+			}
 		}
 	}
 
