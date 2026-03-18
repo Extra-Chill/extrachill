@@ -537,6 +537,114 @@ class ArtistCommand {
 	}
 
 	/**
+	 * Move a link to a different position within or across sections.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <artist_id>
+	 * : Artist profile post ID.
+	 *
+	 * <identifier>
+	 * : Link ID (e.g. "link_123_abc") or URL to move.
+	 *
+	 * [--to-section=<index>]
+	 * : Target section index (0-based). Default: same section.
+	 *
+	 * [--to-position=<index>]
+	 * : Target position within section (0-based). Default: end.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Move a link to the top of its section
+	 *     wp extrachill artists move-link 12180 "https://extrachill.com/page/" --to-position=0
+	 *
+	 *     # Move a link to a different section
+	 *     wp extrachill artists move-link 12180 "link_123_abc" --to-section=1 --to-position=0
+	 *
+	 * @subcommand move-link
+	 * @when after_wp_load
+	 */
+	public function move_link( $args, $assoc_args ) {
+		$this->ensure_abilities_api();
+
+		$artist_id  = absint( $args[0] );
+		$identifier = $args[1];
+
+		// Read current links.
+		$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+		$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+
+		if ( is_wp_error( $current ) ) {
+			WP_CLI::error( $current->get_error_message() );
+		}
+
+		$links      = $current['links'] ?? array();
+		$found      = false;
+		$found_link = null;
+		$from_si    = null;
+
+		// Find and remove the link from its current position.
+		foreach ( $links as $si => $section ) {
+			foreach ( $section['links'] as $li => $link ) {
+				$match = ( isset( $link['id'] ) && $link['id'] === $identifier )
+					|| $link['link_url'] === $identifier;
+
+				if ( $match ) {
+					$found_link = $link;
+					$from_si    = $si;
+					array_splice( $links[ $si ]['links'], $li, 1 );
+					$found = true;
+					break 2;
+				}
+			}
+		}
+
+		if ( ! $found ) {
+			WP_CLI::error( sprintf( 'No link found matching "%s".', $identifier ) );
+		}
+
+		$to_section = isset( $assoc_args['to-section'] ) ? absint( $assoc_args['to-section'] ) : $from_si;
+
+		// Ensure target section exists.
+		while ( count( $links ) <= $to_section ) {
+			$links[] = array(
+				'section_title' => '',
+				'links'         => array(),
+			);
+		}
+
+		$target_links = &$links[ $to_section ]['links'];
+
+		if ( isset( $assoc_args['to-position'] ) ) {
+			$to_pos = absint( $assoc_args['to-position'] );
+			$to_pos = min( $to_pos, count( $target_links ) );
+			array_splice( $target_links, $to_pos, 0, array( $found_link ) );
+		} else {
+			$target_links[] = $found_link;
+		}
+
+		// Save.
+		$save_ability = $this->get_ability( 'extrachill/save-link-page-links' );
+		$result       = $save_ability->execute(
+			array(
+				'artist_id' => $artist_id,
+				'links'     => $links,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::success( sprintf(
+			'Moved "%s" to section %d, position %d.',
+			$found_link['link_text'],
+			$to_section,
+			isset( $assoc_args['to-position'] ) ? $to_pos : count( $target_links ) - 1
+		) );
+	}
+
+	/**
 	 * Save link page styles (CSS variables).
 	 *
 	 * Pass individual CSS variables as flags. Use --list to see all current values.
