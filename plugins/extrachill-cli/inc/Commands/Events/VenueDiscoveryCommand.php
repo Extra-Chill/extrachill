@@ -226,4 +226,106 @@ class VenueDiscoveryCommand {
 			WP_CLI::log( '  The site may use JavaScript rendering (SPA), require login, or not list events publicly.' );
 		}
 	}
+
+	/**
+	 * Add a venue scraper flow to an existing city pipeline.
+	 *
+	 * Creates the venue taxonomy term and a universal_web_scraper flow
+	 * configured to scrape the venue's events page.
+	 *
+	 * ## OPTIONS
+	 *
+	 * --pipeline=<id>
+	 * : Pipeline ID for the city this venue belongs to.
+	 *
+	 * --name=<name>
+	 * : Venue name, e.g. "Exit/In".
+	 *
+	 * --url=<url>
+	 * : Venue events page URL (the page the scraper will hit).
+	 *
+	 * [--address=<address>]
+	 * : Venue street address.
+	 *
+	 * [--city=<city>]
+	 * : Venue city name. Defaults to pipeline's city.
+	 *
+	 * [--state=<state>]
+	 * : Venue state.
+	 *
+	 * [--zip=<zip>]
+	 * : Venue zip code.
+	 *
+	 * [--website=<website>]
+	 * : Venue homepage URL (if different from events page).
+	 *
+	 * [--interval=<interval>]
+	 * : Scheduling interval. Default: twicedaily.
+	 *
+	 * [--dry-run]
+	 * : Preview what would be created without making changes.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill venues add --pipeline=20 --name="Exit/In" --url="https://exitin.com"
+	 *     wp extrachill venues add --pipeline=20 --name="Station Inn" --url="https://www.stationinn.com" --address="402 12th Ave S" --city=Nashville --state=Tennessee
+	 *     wp extrachill venues add --pipeline=3 --name="The Royal American" --url="https://theroyalamerican.com/shows" --dry-run
+	 *
+	 * @subcommand add
+	 * @when after_wp_load
+	 */
+	public function add( $args, $assoc_args ) {
+		$ability = wp_get_ability( 'extrachill/add-venue' );
+
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/add-venue ability not available. Is extrachill-events active on this site?' );
+		}
+
+		$required = array( 'pipeline', 'name', 'url' );
+		foreach ( $required as $key ) {
+			if ( empty( $assoc_args[ $key ] ) ) {
+				WP_CLI::error( sprintf( '--%s is required.', $key ) );
+			}
+		}
+
+		WP_CLI::log( sprintf( 'Adding venue "%s" to pipeline %s...', $assoc_args['name'], $assoc_args['pipeline'] ) );
+
+		$result = $ability->execute( array(
+			'pipeline_id' => (int) $assoc_args['pipeline'],
+			'name'        => $assoc_args['name'],
+			'url'         => $assoc_args['url'],
+			'address'     => $assoc_args['address'] ?? '',
+			'city'        => $assoc_args['city'] ?? '',
+			'state'       => $assoc_args['state'] ?? '',
+			'zip'         => $assoc_args['zip'] ?? '',
+			'website'     => $assoc_args['website'] ?? '',
+			'interval'    => $assoc_args['interval'] ?? '',
+			'dry_run'     => ! empty( $assoc_args['dry-run'] ),
+		) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		if ( ! empty( $result['error'] ) ) {
+			WP_CLI::error( $result['error'] );
+		}
+
+		if ( ! empty( $result['dry_run'] ) || ( $result['message'] ?? '' ) === 'Dry run — no changes made.' ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( 'DRY RUN — would create:' );
+			WP_CLI::log( sprintf( '  Pipeline: %s (ID: %d)', $result['pipeline_name'] ?? '?', $result['pipeline_id'] ) );
+			WP_CLI::log( sprintf( '  Venue: %s', $result['venue_name'] ?? '?' ) );
+			WP_CLI::log( sprintf( '  Events URL: %s', $result['events_url'] ?? '?' ) );
+			WP_CLI::log( sprintf( '  Location: %s', $result['location_term'] ?? '?' ) );
+			WP_CLI::log( sprintf( '  Interval: %s', $result['interval'] ?? '?' ) );
+			return;
+		}
+
+		WP_CLI::success( $result['message'] );
+		WP_CLI::log( sprintf( '  Flow ID: %d', $result['flow_id'] ?? 0 ) );
+		WP_CLI::log( sprintf( '  Venue term ID: %d', $result['venue_term_id'] ?? 0 ) );
+		WP_CLI::log( sprintf( '  Events URL: %s', $result['events_url'] ?? '' ) );
+		WP_CLI::log( sprintf( '  Interval: %s', $result['interval'] ?? '' ) );
+	}
 }
