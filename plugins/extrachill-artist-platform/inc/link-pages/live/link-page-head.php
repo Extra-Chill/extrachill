@@ -5,6 +5,9 @@
  * Outputs minimal head elements for artist link pages, replacing wp_head()
  * to maintain lightweight isolated page templates.
  *
+ * Uses ec_seo_render_head() from extrachill-seo for canonical, OG, Twitter
+ * Cards, meta description, and Schema.org JSON-LD output.
+ *
  * @package ExtraChillArtistPlatform
  *
  * @param int $artist_id The ID of the associated artist_profile post.
@@ -16,10 +19,19 @@ function extrachill_artist_link_page_custom_head( $artist_id, $link_page_id ) {
     echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
 
     $artist_title = $artist_id ? get_the_title( $artist_id ) : 'Link Page';
-    $artist_excerpt = $artist_id ? get_the_excerpt( $artist_id ) : 'All important links in one place.';
     echo '<title>' . esc_html( $artist_title ) . ' | extrachill.link</title>';
-    echo '<meta name="description" content="' . esc_attr( wp_strip_all_tags( $artist_excerpt ) ) . '">';
 
+    // --- SEO Meta Tags via extrachill-seo ---
+    if ( function_exists( 'ExtraChill\SEO\Core\ec_seo_render_head' ) && function_exists( 'extrachill_artist_link_page_seo_context' ) ) {
+        $seo_context = extrachill_artist_link_page_seo_context( $artist_id, $link_page_id );
+        \ExtraChill\SEO\Core\ec_seo_render_head( $seo_context );
+    } else {
+        // Fallback: basic meta description when extrachill-seo is not available.
+        $artist_excerpt = $artist_id ? get_the_excerpt( $artist_id ) : 'All important links in one place.';
+        echo '<meta name="description" content="' . esc_attr( wp_strip_all_tags( $artist_excerpt ) ) . '">';
+    }
+
+    // Favicon.
     $site_icon_url = get_site_icon_url( 32 );
     if ( $site_icon_url ) {
         echo '<link rel="icon" href="' . esc_url( $site_icon_url ) . '" sizes="32x32" />';
