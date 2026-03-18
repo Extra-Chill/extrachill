@@ -20,7 +20,7 @@ class VenueAddAbilities {
 	/**
 	 * Default scheduling interval for venue scraper flows.
 	 */
-	private const DEFAULT_INTERVAL = 'twicedaily';
+	private const DEFAULT_INTERVAL = 'daily';
 
 	/**
 	 * Default AI model.
@@ -92,7 +92,7 @@ class VenueAddAbilities {
 							),
 							'interval'    => array(
 								'type'        => 'string',
-								'description' => 'Scheduling interval. Defaults to "twicedaily".',
+								'description' => 'Scheduling interval. Defaults to "daily".',
 							),
 							'dry_run'     => array(
 								'type'        => 'boolean',
