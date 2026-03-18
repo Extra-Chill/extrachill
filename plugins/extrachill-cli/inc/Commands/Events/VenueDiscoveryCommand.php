@@ -241,7 +241,7 @@ class VenueDiscoveryCommand {
 	 * --name=<name>
 	 * : Venue name, e.g. "Exit/In".
 	 *
-	 * --url=<url>
+	 * --events-url=<url>
 	 * : Venue events page URL (the page the scraper will hit).
 	 *
 	 * [--address=<address>]
@@ -267,9 +267,9 @@ class VenueDiscoveryCommand {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp extrachill venues add --pipeline=20 --name="Exit/In" --url="https://exitin.com"
-	 *     wp extrachill venues add --pipeline=20 --name="Station Inn" --url="https://www.stationinn.com" --address="402 12th Ave S" --city=Nashville --state=Tennessee
-	 *     wp extrachill venues add --pipeline=3 --name="The Royal American" --url="https://theroyalamerican.com/shows" --dry-run
+	 *     wp extrachill venues add --pipeline=20 --name="Exit/In" --events-url="https://exitin.com"
+	 *     wp extrachill venues add --pipeline=20 --name="Station Inn" --events-url="https://www.stationinn.com" --address="402 12th Ave S" --city=Nashville --state=Tennessee
+	 *     wp extrachill venues add --pipeline=3 --name="The Royal American" --events-url="https://theroyalamerican.com/shows" --dry-run
 	 *
 	 * @subcommand add
 	 * @when after_wp_load
@@ -281,7 +281,7 @@ class VenueDiscoveryCommand {
 			WP_CLI::error( 'extrachill/add-venue ability not available. Is extrachill-events active on this site?' );
 		}
 
-		$required = array( 'pipeline', 'name', 'url' );
+		$required = array( 'pipeline', 'name', 'events-url' );
 		foreach ( $required as $key ) {
 			if ( empty( $assoc_args[ $key ] ) ) {
 				WP_CLI::error( sprintf( '--%s is required.', $key ) );
@@ -293,7 +293,7 @@ class VenueDiscoveryCommand {
 		$result = $ability->execute( array(
 			'pipeline_id' => (int) $assoc_args['pipeline'],
 			'name'        => $assoc_args['name'],
-			'url'         => $assoc_args['url'],
+			'url'         => $assoc_args['events-url'],
 			'address'     => $assoc_args['address'] ?? '',
 			'city'        => $assoc_args['city'] ?? '',
 			'state'       => $assoc_args['state'] ?? '',
