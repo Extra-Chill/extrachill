@@ -68,6 +68,14 @@ function ec_events_reorder_by_priority( $events, $date_key, $context ) {
 	usort(
 		$events,
 		function ( $a, $b ) use ( $priority_venue_ids, $priority_event_ids ) {
+			// Tier 0: Non-continuation events always before continuation events.
+			$a_continuation = ! empty( $a['display_context']['is_continuation'] );
+			$b_continuation = ! empty( $b['display_context']['is_continuation'] );
+
+			if ( $a_continuation !== $b_continuation ) {
+				return $a_continuation ? 1 : -1;
+			}
+
 			$a_event_priority = extrachill_is_priority_event( $a, $priority_event_ids );
 			$b_event_priority = extrachill_is_priority_event( $b, $priority_event_ids );
 			$a_venue_priority = ec_is_priority_venue_event( $a, $priority_venue_ids );
