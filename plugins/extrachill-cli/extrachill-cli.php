@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill CLI
  * Plugin URI: https://extrachill.com
  * Description: WP-CLI command surface for the Extra Chill platform. Wraps abilities from feature plugins into a unified `wp extrachill` namespace.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_CLI_VERSION', '0.4.0' );
+define( 'EXTRACHILL_CLI_VERSION', '0.5.0' );
 define( 'EXTRACHILL_CLI_PATH', plugin_dir_path( __FILE__ ) );
 
 // Only load in WP-CLI context.
