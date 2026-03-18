@@ -4,7 +4,7 @@
  * Generated from @extrachill/tokens — DO NOT EDIT MANUALLY.
  * Source: tokens.json > categories > taxonomy-badge
  *
- * 99 badges across 5 taxonomies
+ * 122 badges across 5 taxonomies
  */
 
 /* === Festival Badges === */
@@ -355,6 +355,98 @@
 .taxonomy-badge.location-dallas {
     background-color: var(--badge-location-dallas-bg);
     color: var(--badge-location-dallas-text);
+}
+.taxonomy-badge.location-richmond {
+    background-color: var(--badge-location-richmond-bg);
+    color: var(--badge-location-richmond-text);
+}
+.taxonomy-badge.location-baltimore {
+    background-color: var(--badge-location-baltimore-bg);
+    color: var(--badge-location-baltimore-text);
+}
+.taxonomy-badge.location-louisville {
+    background-color: var(--badge-location-louisville-bg);
+    color: var(--badge-location-louisville-text);
+}
+.taxonomy-badge.location-jacksonville {
+    background-color: var(--badge-location-jacksonville-bg);
+    color: var(--badge-location-jacksonville-text);
+}
+.taxonomy-badge.location-chattanooga {
+    background-color: var(--badge-location-chattanooga-bg);
+    color: var(--badge-location-chattanooga-text);
+}
+.taxonomy-badge.location-knoxville {
+    background-color: var(--badge-location-knoxville-bg);
+    color: var(--badge-location-knoxville-text);
+}
+.taxonomy-badge.location-burlington {
+    background-color: var(--badge-location-burlington-bg);
+    color: var(--badge-location-burlington-text);
+}
+.taxonomy-badge.location-chapel-hill {
+    background-color: var(--badge-location-chapel-hill-bg);
+    color: var(--badge-location-chapel-hill-text);
+}
+.taxonomy-badge.location-tulsa {
+    background-color: var(--badge-location-tulsa-bg);
+    color: var(--badge-location-tulsa-text);
+}
+.taxonomy-badge.location-madison {
+    background-color: var(--badge-location-madison-bg);
+    color: var(--badge-location-madison-text);
+}
+.taxonomy-badge.location-ann-arbor {
+    background-color: var(--badge-location-ann-arbor-bg);
+    color: var(--badge-location-ann-arbor-text);
+}
+.taxonomy-badge.location-providence {
+    background-color: var(--badge-location-providence-bg);
+    color: var(--badge-location-providence-text);
+}
+.taxonomy-badge.location-gainesville {
+    background-color: var(--badge-location-gainesville-bg);
+    color: var(--badge-location-gainesville-text);
+}
+.taxonomy-badge.location-lexington {
+    background-color: var(--badge-location-lexington-bg);
+    color: var(--badge-location-lexington-text);
+}
+.taxonomy-badge.location-iowa-city {
+    background-color: var(--badge-location-iowa-city-bg);
+    color: var(--badge-location-iowa-city-text);
+}
+.taxonomy-badge.location-lawrence {
+    background-color: var(--badge-location-lawrence-bg);
+    color: var(--badge-location-lawrence-text);
+}
+.taxonomy-badge.location-denton {
+    background-color: var(--badge-location-denton-bg);
+    color: var(--badge-location-denton-text);
+}
+.taxonomy-badge.location-fayetteville {
+    background-color: var(--badge-location-fayetteville-bg);
+    color: var(--badge-location-fayetteville-text);
+}
+.taxonomy-badge.location-oxford {
+    background-color: var(--badge-location-oxford-bg);
+    color: var(--badge-location-oxford-text);
+}
+.taxonomy-badge.location-new-haven {
+    background-color: var(--badge-location-new-haven-bg);
+    color: var(--badge-location-new-haven-text);
+}
+.taxonomy-badge.location-eugene {
+    background-color: var(--badge-location-eugene-bg);
+    color: var(--badge-location-eugene-text);
+}
+.taxonomy-badge.location-missoula {
+    background-color: var(--badge-location-missoula-bg);
+    color: var(--badge-location-missoula-text);
+}
+.taxonomy-badge.location-northampton {
+    background-color: var(--badge-location-northampton-bg);
+    color: var(--badge-location-northampton-text);
 }
 
 /* === Category Badges === */
