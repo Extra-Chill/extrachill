@@ -144,6 +144,8 @@ class CityAbilities {
 
 		$coordinates  = $geocode_result['lat'] . ',' . $geocode_result['lon'];
 		$display_name = $geocode_result['display_name'];
+		$state_name   = $geocode_result['state'] ?? '';
+		$country_name = $geocode_result['country'] ?? '';
 
 		// Derive a short city label (e.g. "Nashville" from "Nashville, TN").
 		$city_label = $this->deriveCityLabel( $city_name );
@@ -210,8 +212,8 @@ class CityAbilities {
 			);
 		}
 
-		// Step 1c: Ensure the location taxonomy term exists.
-		$this->ensureLocationTerm( $city_label );
+		// Step 1c: Ensure the location taxonomy term exists (nested under state/country).
+		$this->ensureLocationTerm( $city_label, $state_name, $country_name );
 
 		// Step 2: Create the pipeline.
 		$pipeline_ability = wp_get_ability( 'datamachine/create-pipeline' );
@@ -309,25 +311,107 @@ class CityAbilities {
 	}
 
 	/**
-	 * Ensure a location taxonomy term exists for the given city.
+	 * Ensure a location taxonomy term exists for the given city,
+	 * properly nested under its state and country.
 	 *
-	 * Creates the term if it doesn't already exist. The location taxonomy
-	 * is registered by the ExtraChill theme in custom-taxonomies.php.
+	 * Hierarchy: Country (e.g. "United States") → State (e.g. "Tennessee") → City (e.g. "Nashville").
 	 *
-	 * @param string $city_label City name (e.g. "Nashville").
+	 * @param string $city_label   City name (e.g. "Nashville").
+	 * @param string $state_name   Full state name from geocoding (e.g. "Tennessee").
+	 * @param string $country_name Full country name from geocoding (e.g. "United States").
 	 * @return int|null Term ID if created or found, null on failure.
 	 */
-	private function ensureLocationTerm( string $city_label ): ?int {
+	private function ensureLocationTerm( string $city_label, string $state_name = '', string $country_name = '' ): ?int {
 		if ( ! taxonomy_exists( 'location' ) ) {
 			return null;
 		}
 
+		// Resolve the parent chain: Country → State → City.
+		$state_term_id = 0;
+
+		if ( ! empty( $state_name ) && ! empty( $country_name ) ) {
+			// Find or create the country term at root level.
+			$country_term_id = $this->ensureTermWithParent( $country_name, 0 );
+
+			if ( $country_term_id ) {
+				// Find or create the state term under the country.
+				$state_term_id = $this->ensureTermWithParent( $state_name, $country_term_id );
+			}
+		} elseif ( ! empty( $state_name ) ) {
+			// No country — look for state at any level (fallback).
+			$existing_state = term_exists( $state_name, 'location' );
+			if ( $existing_state ) {
+				$state_term_id = is_array( $existing_state ) ? (int) $existing_state['term_id'] : (int) $existing_state;
+			}
+		}
+
+		// Find existing city term under the resolved parent.
+		$parent_id = $state_term_id ?: 0;
+
+		if ( $parent_id ) {
+			$existing = term_exists( $city_label, 'location', $parent_id );
+			if ( $existing ) {
+				return is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
+			}
+		}
+
+		// Check for city at any level (may already exist from legacy creation).
 		$existing = term_exists( $city_label, 'location' );
+		if ( $existing ) {
+			$term_id = is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
+
+			// If the term exists but at the wrong parent, re-parent it.
+			if ( $parent_id ) {
+				$term = get_term( $term_id, 'location' );
+				if ( $term && ! is_wp_error( $term ) && (int) $term->parent !== $parent_id ) {
+					wp_update_term( $term_id, 'location', array( 'parent' => $parent_id ) );
+				}
+			}
+
+			return $term_id;
+		}
+
+		// Create the city term under its state (or root if no state resolved).
+		$args = array();
+		if ( $parent_id ) {
+			$args['parent'] = $parent_id;
+		}
+
+		$result = wp_insert_term( $city_label, 'location', $args );
+		if ( is_wp_error( $result ) ) {
+			return null;
+		}
+
+		return (int) $result['term_id'];
+	}
+
+	/**
+	 * Find or create a location term under a specific parent.
+	 *
+	 * @param string $name      Term name (e.g. "Tennessee" or "United States").
+	 * @param int    $parent_id Parent term ID (0 for root).
+	 * @return int|null Term ID if found or created, null on failure.
+	 */
+	private function ensureTermWithParent( string $name, int $parent_id ): ?int {
+		// Check for existing term under this specific parent.
+		$existing = term_exists( $name, 'location', $parent_id );
 		if ( $existing ) {
 			return is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
 		}
 
-		$result = wp_insert_term( $city_label, 'location' );
+		// Also check without parent constraint (term may exist at wrong level).
+		$existing = term_exists( $name, 'location' );
+		if ( $existing ) {
+			return is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
+		}
+
+		// Create the term under the specified parent.
+		$args = array();
+		if ( $parent_id > 0 ) {
+			$args['parent'] = $parent_id;
+		}
+
+		$result = wp_insert_term( $name, 'location', $args );
 		if ( is_wp_error( $result ) ) {
 			return null;
 		}
@@ -355,12 +439,16 @@ class CityAbilities {
 			return array( 'error' => 'No geocoding results for: ' . $city_name );
 		}
 
-		$result = $data['results'][0];
+		$result  = $data['results'][0];
+		$address = $result['address'] ?? array();
 
 		return array(
 			'lat'          => $result['lat'],
 			'lon'          => $result['lon'],
 			'display_name' => $result['display_name'] ?? $city_name,
+			'state'        => $address['state'] ?? '',
+			'country'      => $address['country'] ?? '',
+			'country_code' => $address['country_code'] ?? '',
 		);
 	}
 
