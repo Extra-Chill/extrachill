@@ -1,0 +1,14 @@
+{
+  "auto_cleanup": false,
+  "extensions": {
+    "wordpress": {}
+  },
+  "id": "extrachill-theme",
+  "remote_path": "wp-content/themes/extrachill",
+  "version_targets": [
+    {
+      "file": "style.css",
+      "pattern": "(?m)^\\s*Version:\\s*([0-9.]+)"
+    }
+  ]
+}
