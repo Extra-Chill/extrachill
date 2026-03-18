@@ -3,8 +3,14 @@
  * Venue Qualification Abilities
  *
  * Qualifies a venue website by finding its events/calendar page and testing
- * whether it contains scrapable event listings. Crawls the homepage for
- * common event page links, tries known URL patterns, and reports results.
+ * whether the universal web scraper can extract events from it. Uses the
+ * datamachine/test-event-scraper ability for real scraper validation.
+ *
+ * Strategy:
+ * 1. Try the given URL directly with the scraper
+ * 2. Crawl the homepage for event page links and test each
+ * 3. Probe common URL patterns (/events, /calendar, /shows) and test each
+ * 4. Check for WordPress Tribe Events API
  *
  * @package ExtraChillEvents\Abilities
  */
@@ -57,37 +63,6 @@ class VenueQualificationAbilities {
 		'tickets',
 	);
 
-	/**
-	 * Indicators that a page contains event listings.
-	 */
-	private const EVENT_INDICATORS = array(
-		// Structured data.
-		'application/ld+json',
-		'MusicEvent',
-		'EventScheduled',
-		// Common event page patterns.
-		'event-list',
-		'event-item',
-		'event-card',
-		'eventlist',
-		'upcoming-events',
-		'show-listing',
-		// Tribe Events (WordPress).
-		'tribe-events',
-		'tribe/events/v1',
-		// Squarespace.
-		'collection-type-events',
-		'eventlist-event',
-		// Etix / See Tickets / Eventbrite.
-		'etix.com',
-		'seetickets',
-		'eventbrite',
-		// Dice.fm embeds.
-		'dice.fm',
-		// Date patterns (multiple dates = probably event listings).
-		'datetime',
-	);
-
 	private static bool $registered = false;
 
 	public function __construct() {
@@ -103,30 +78,31 @@ class VenueQualificationAbilities {
 				'extrachill/qualify-venue',
 				array(
 					'label'               => __( 'Qualify Venue', 'extrachill-events' ),
-					'description'         => __( 'Check if a venue website has a scrapable events page. Finds the events URL and tests for event listings.', 'extrachill-events' ),
+					'description'         => __( 'Test if a venue website has scrapable events by running the actual universal web scraper against it.', 'extrachill-events' ),
 					'category'            => 'extrachill-events',
 					'input_schema'        => array(
 						'type'       => 'object',
 						'required'   => array( 'url' ),
 						'properties' => array(
-							'url' => array(
+							'url'  => array(
 								'type'        => 'string',
-								'description' => 'Venue website URL (homepage). The ability will crawl to find the events page.',
+								'description' => 'Venue website URL (homepage). The ability will find the events page and test the scraper.',
 							),
 							'name' => array(
 								'type'        => 'string',
-								'description' => 'Venue name (optional, for logging).',
+								'description' => 'Venue name (optional, for display).',
 							),
 						),
 					),
 					'output_schema'       => array(
 						'type'       => 'object',
 						'properties' => array(
-							'qualified'  => array( 'type' => 'boolean' ),
-							'events_url' => array( 'type' => 'string' ),
-							'method'     => array( 'type' => 'string' ),
-							'signals'    => array( 'type' => 'array' ),
-							'score'      => array( 'type' => 'integer' ),
+							'qualified'       => array( 'type' => 'boolean' ),
+							'events_url'      => array( 'type' => 'string' ),
+							'method'          => array( 'type' => 'string' ),
+							'extraction_info' => array( 'type' => 'object' ),
+							'event_count'     => array( 'type' => 'integer' ),
+							'warnings'        => array( 'type' => 'array' ),
 						),
 					),
 					'execute_callback'    => array( $this, 'executeQualifyVenue' ),
@@ -159,7 +135,6 @@ class VenueQualificationAbilities {
 			return array( 'error' => 'URL is required.' );
 		}
 
-		// Normalize URL.
 		$url = rtrim( $url, '/' );
 		if ( ! preg_match( '#^https?://#', $url ) ) {
 			$url = 'https://' . $url;
@@ -168,116 +143,192 @@ class VenueQualificationAbilities {
 		$parsed = wp_parse_url( $url );
 		$origin = ( $parsed['scheme'] ?? 'https' ) . '://' . ( $parsed['host'] ?? '' );
 
-		// Strategy 1: Check if the given URL itself has events.
-		$homepage_result = $this->checkPage( $url );
-		if ( $homepage_result['score'] >= 3 ) {
-			return array(
-				'qualified'  => true,
-				'events_url' => $url,
-				'method'     => 'homepage_direct',
-				'signals'    => $homepage_result['signals'],
-				'score'      => $homepage_result['score'],
-				'name'       => $name,
-			);
+		$urls_tested = array();
+
+		// Strategy 1: Test the given URL directly with the real scraper.
+		$result = $this->testWithScraper( $url );
+		$urls_tested[] = $url;
+
+		if ( $result['qualified'] ) {
+			$result['name']   = $name;
+			$result['method'] = 'direct';
+			return $result;
 		}
 
-		// Strategy 2: Look for event page links in homepage HTML.
-		$found_links = $this->findEventLinks( $homepage_result['html'], $origin );
-		foreach ( $found_links as $link ) {
-			$link_result = $this->checkPage( $link['url'] );
-			if ( $link_result['score'] >= 2 ) {
-				return array(
-					'qualified'  => true,
-					'events_url' => $link['url'],
-					'method'     => 'nav_link',
-					'link_text'  => $link['text'],
-					'signals'    => $link_result['signals'],
-					'score'      => $link_result['score'],
-					'name'       => $name,
-				);
+		// Strategy 2: Find event page links in homepage HTML and test each.
+		$homepage_html = $this->fetchPage( $url );
+		if ( ! empty( $homepage_html ) ) {
+			$event_links = $this->findEventLinks( $homepage_html, $origin );
+
+			foreach ( $event_links as $link ) {
+				if ( in_array( $link['url'], $urls_tested, true ) ) {
+					continue;
+				}
+
+				$result = $this->testWithScraper( $link['url'] );
+				$urls_tested[] = $link['url'];
+
+				if ( $result['qualified'] ) {
+					$result['name']      = $name;
+					$result['method']    = 'nav_link';
+					$result['link_text'] = $link['text'];
+					return $result;
+				}
 			}
 		}
 
-		// Strategy 3: Try common URL patterns.
+		// Strategy 3: Probe common URL patterns.
 		foreach ( self::EVENT_PATHS as $path ) {
-			$test_url    = $origin . $path;
-			$path_result = $this->checkPage( $test_url );
-			if ( $path_result['score'] >= 2 ) {
-				return array(
-					'qualified'  => true,
-					'events_url' => $test_url,
-					'method'     => 'path_probe',
-					'signals'    => $path_result['signals'],
-					'score'      => $path_result['score'],
-					'name'       => $name,
-				);
+			$test_url = $origin . $path;
+
+			if ( in_array( $test_url, $urls_tested, true ) ) {
+				continue;
+			}
+
+			$result = $this->testWithScraper( $test_url );
+			$urls_tested[] = $test_url;
+
+			if ( $result['qualified'] ) {
+				$result['name']   = $name;
+				$result['method'] = 'path_probe';
+				return $result;
 			}
 		}
 
-		// Strategy 4: Check for WordPress REST API (Tribe Events).
-		$wp_api_url  = $origin . '/wp-json/tribe/events/v1/events';
-		$api_result  = $this->checkPage( $wp_api_url );
-		if ( $api_result['score'] >= 1 && strpos( $api_result['html'], '"events"' ) !== false ) {
-			return array(
-				'qualified'  => true,
-				'events_url' => $wp_api_url,
-				'method'     => 'tribe_api',
-				'signals'    => array( 'WordPress Tribe Events API detected' ),
-				'score'      => 5,
-				'name'       => $name,
-			);
+		// Strategy 4: Check for WordPress Tribe Events API.
+		$wp_api_url = $origin . '/wp-json/tribe/events/v1/events';
+		if ( ! in_array( $wp_api_url, $urls_tested, true ) ) {
+			$result = $this->testWithScraper( $wp_api_url );
+			$urls_tested[] = $wp_api_url;
+
+			if ( $result['qualified'] ) {
+				$result['name']   = $name;
+				$result['method'] = 'tribe_api';
+				return $result;
+			}
 		}
 
-		// Not qualified.
 		return array(
-			'qualified'       => false,
-			'events_url'      => '',
-			'method'          => 'none',
-			'signals'         => $homepage_result['signals'] ?: array( 'No event indicators found on homepage or common paths' ),
-			'score'           => 0,
-			'name'            => $name,
-			'checked_urls'    => array_merge(
-				array( $url ),
-				array_column( $found_links, 'url' ),
-				array_map( fn( $p ) => $origin . $p, array_slice( self::EVENT_PATHS, 0, 5 ) )
-			),
+			'qualified'    => false,
+			'events_url'   => '',
+			'method'       => 'none',
+			'name'         => $name,
+			'urls_tested'  => $urls_tested,
+			'warnings'     => array( 'Scraper could not extract events from any discovered URL.' ),
 		);
 	}
 
 	/**
-	 * Fetch a page and check for event listing indicators.
+	 * Test a URL with the actual universal web scraper.
+	 *
+	 * @param string $url URL to test.
+	 * @return array Qualification result.
+	 */
+	private function testWithScraper( string $url ): array {
+		$ability = wp_get_ability( 'datamachine/test-event-scraper' );
+
+		if ( ! $ability ) {
+			// Fallback: if ability not available, use lightweight HTTP check.
+			return $this->fallbackCheck( $url );
+		}
+
+		$result = $ability->execute( array( 'target_url' => $url ) );
+
+		if ( is_wp_error( $result ) ) {
+			return array( 'qualified' => false );
+		}
+
+		$success         = ! empty( $result['success'] );
+		$extraction_info = $result['extraction_info'] ?? array();
+		$event_data      = $result['event_data'] ?? array();
+
+		if ( ! $success ) {
+			return array(
+				'qualified' => false,
+				'warnings'  => $result['warnings'] ?? array(),
+			);
+		}
+
+		return array(
+			'qualified'       => true,
+			'events_url'      => $url,
+			'extraction_info' => $extraction_info,
+			'event_count'     => $this->countEvents( $event_data ),
+			'warnings'        => $result['warnings'] ?? array(),
+			'coverage_issues' => $result['coverage_issues'] ?? array(),
+		);
+	}
+
+	/**
+	 * Count events in scraper result data.
+	 *
+	 * @param array $event_data Event data from scraper test.
+	 * @return int Number of events found.
+	 */
+	private function countEvents( array $event_data ): int {
+		if ( isset( $event_data['items'] ) && is_array( $event_data['items'] ) ) {
+			return count( $event_data['items'] );
+		}
+
+		// Single event result.
+		if ( ! empty( $event_data['title'] ) || ! empty( $event_data['raw_html'] ) ) {
+			return 1;
+		}
+
+		return 0;
+	}
+
+	/**
+	 * Lightweight fallback check if scraper ability is unavailable.
 	 *
 	 * @param string $url URL to check.
-	 * @return array With 'score', 'signals', and 'html' keys.
+	 * @return array Result.
 	 */
-	private function checkPage( string $url ): array {
+	private function fallbackCheck( string $url ): array {
 		$response = wp_remote_get( $url, array(
 			'timeout'    => 10,
 			'user-agent' => 'Mozilla/5.0 (compatible; ExtraChillBot/1.0; +https://extrachill.com)',
-			'headers'    => array( 'Accept' => 'text/html,application/json' ),
 		) );
 
-		if ( is_wp_error( $response ) ) {
-			return array( 'score' => 0, 'signals' => array(), 'html' => '' );
+		if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) >= 400 ) {
+			return array( 'qualified' => false );
 		}
 
-		$status = wp_remote_retrieve_response_code( $response );
-		if ( $status < 200 || $status >= 400 ) {
-			return array( 'score' => 0, 'signals' => array(), 'html' => '' );
-		}
+		$html     = wp_remote_retrieve_body( $response );
+		$signals  = array( 'application/ld+json', 'tribe-events', 'event-list', 'eventlist', 'etix.com', 'seetickets', 'dice.fm' );
+		$found    = 0;
 
-		$html    = wp_remote_retrieve_body( $response );
-		$signals = array();
-		$score   = 0;
-
-		foreach ( self::EVENT_INDICATORS as $indicator ) {
-			if ( stripos( $html, $indicator ) !== false ) {
-				$signals[] = $indicator;
-				++$score;
+		foreach ( $signals as $signal ) {
+			if ( stripos( $html, $signal ) !== false ) {
+				++$found;
 			}
 		}
 
-		return array( 'score' => $score, 'signals' => $signals, 'html' => $html );
+		return array(
+			'qualified'  => $found >= 2,
+			'events_url' => $found >= 2 ? $url : '',
+			'method'     => 'fallback_pattern_match',
+		);
+	}
+
+	/**
+	 * Fetch a page's HTML.
+	 *
+	 * @param string $url URL to fetch.
+	 * @return string HTML content or empty string.
+	 */
+	private function fetchPage( string $url ): string {
+		$response = wp_remote_get( $url, array(
+			'timeout'    => 10,
+			'user-agent' => 'Mozilla/5.0 (compatible; ExtraChillBot/1.0; +https://extrachill.com)',
+			'headers'    => array( 'Accept' => 'text/html' ),
+		) );
+
+		if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) >= 400 ) {
+			return '';
+		}
+
+		return wp_remote_retrieve_body( $response );
 	}
 
 	/**
@@ -295,7 +346,6 @@ class VenueQualificationAbilities {
 		$links = array();
 		$seen  = array();
 
-		// Extract all <a> tags.
 		if ( ! preg_match_all( '/<a\s[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/si', $html, $matches, PREG_SET_ORDER ) ) {
 			return array();
 		}
@@ -304,7 +354,6 @@ class VenueQualificationAbilities {
 			$href = $match[1];
 			$text = strtolower( strip_tags( trim( $match[2] ) ) );
 
-			// Check if link text matches event keywords.
 			$is_event_link = false;
 			foreach ( self::LINK_KEYWORDS as $keyword ) {
 				if ( str_contains( $text, $keyword ) ) {
@@ -313,7 +362,6 @@ class VenueQualificationAbilities {
 				}
 			}
 
-			// Also check href for event path patterns.
 			if ( ! $is_event_link ) {
 				$href_lower = strtolower( $href );
 				foreach ( self::EVENT_PATHS as $path ) {
@@ -328,21 +376,18 @@ class VenueQualificationAbilities {
 				continue;
 			}
 
-			// Resolve relative URLs.
 			if ( strpos( $href, '/' ) === 0 ) {
 				$href = $origin . $href;
 			} elseif ( ! preg_match( '#^https?://#', $href ) ) {
 				$href = $origin . '/' . $href;
 			}
 
-			// Skip external links (different domain).
-			$href_host = wp_parse_url( $href, PHP_URL_HOST );
+			$href_host   = wp_parse_url( $href, PHP_URL_HOST );
 			$origin_host = wp_parse_url( $origin, PHP_URL_HOST );
 			if ( $href_host && $origin_host && $href_host !== $origin_host ) {
 				continue;
 			}
 
-			// Deduplicate.
 			$key = strtolower( $href );
 			if ( isset( $seen[ $key ] ) ) {
 				continue;
