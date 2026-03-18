@@ -48,6 +48,14 @@
     color: var(--link-hover-color);
 }
 
+/* Calendar Stats Counter */
+.calendar-stats {
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+    margin-bottom: 0;
+}
+
 /* Priority event indicator */
 .extrachill-priority-event {
     position: relative;
