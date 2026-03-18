@@ -23,6 +23,7 @@ WP_CLI::add_command( 'extrachill analytics 404', ExtraChill\CLI\Commands\Analyti
 
 // Events commands.
 WP_CLI::add_command( 'extrachill events', ExtraChill\CLI\Commands\Events\LocationCommand::class );
+WP_CLI::add_command( 'extrachill venues', ExtraChill\CLI\Commands\Events\VenueDiscoveryCommand::class );
 
 // SEO commands.
 WP_CLI::add_command( 'extrachill seo redirects', ExtraChill\CLI\Commands\SEO\RedirectsCommand::class );
