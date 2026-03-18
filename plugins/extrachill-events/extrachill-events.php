@@ -151,6 +151,9 @@ class ExtraChillEvents {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/CityAbilities.php';
 		new \ExtraChillEvents\Abilities\CityAbilities();
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueDiscoveryAbilities.php';
+		new \ExtraChillEvents\Abilities\VenueDiscoveryAbilities();
 	}
 
 	/**
