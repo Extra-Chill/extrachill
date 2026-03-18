@@ -206,7 +206,16 @@ function extrachill_artist_platform_sanitize_css_vars( $vars ) {
 		}
 
 		if ( strpos( $key, 'color' ) !== false || strpos( $key, '-bg' ) !== false ) {
-			$sanitized[ $key ] = sanitize_hex_color( $value );
+			// Accept hex (#rgb, #rrggbb), rgb(), rgba(), hsl(), hsla() — not just hex.
+			$hex = sanitize_hex_color( $value );
+			if ( $hex ) {
+				$sanitized[ $key ] = $hex;
+			} elseif ( preg_match( '/^(rgba?|hsla?)\(\s*[\d.,\s%]+\)$/', $value ) ) {
+				$sanitized[ $key ] = $value;
+			} else {
+				// Skip invalid color values silently.
+				continue;
+			}
 		} else {
 			$sanitized[ $key ] = sanitize_text_field( wp_unslash( $value ) );
 		}
