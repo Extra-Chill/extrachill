@@ -124,7 +124,106 @@ class VenueDiscoveryCommand {
 		WP_CLI::log( '' );
 		if ( $with_website > 0 ) {
 			WP_CLI::log( sprintf( '%d new venues have websites — qualify them with:', $with_website ) );
-			WP_CLI::log( '  wp extrachill venues qualify --url=<website>/events' );
+			WP_CLI::log( '  wp extrachill venues qualify --url=<website>' );
+		}
+	}
+
+	/**
+	 * Qualify a venue website — find its events page and check for scrapable listings.
+	 *
+	 * Crawls the homepage for event page links, tries common URL patterns
+	 * (/events, /calendar, /shows, etc.), checks for WordPress Tribe Events API,
+	 * and reports whether the site has scrapable event data.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <url>
+	 * : Venue website URL (homepage). The tool will crawl to find the events page.
+	 *
+	 * [--name=<name>]
+	 * : Venue name (for display).
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill venues qualify https://exitin.com
+	 *     wp extrachill venues qualify https://www.stationinn.com --name="The Station Inn"
+	 *     wp extrachill venues qualify https://endnashville.com --format=json
+	 *
+	 * @subcommand qualify
+	 * @when after_wp_load
+	 */
+	public function qualify( $args, $assoc_args ) {
+		$url = $args[0] ?? '';
+
+		if ( empty( $url ) ) {
+			WP_CLI::error( 'URL is required. Example: wp extrachill venues qualify https://exitin.com' );
+		}
+
+		$ability = wp_get_ability( 'extrachill/qualify-venue' );
+
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/qualify-venue ability not available. Is extrachill-events active on this site?' );
+		}
+
+		$name = $assoc_args['name'] ?? '';
+		$label = $name ? "{$name} ({$url})" : $url;
+		WP_CLI::log( sprintf( 'Qualifying %s...', $label ) );
+
+		$result = $ability->execute( array(
+			'url'  => $url,
+			'name' => $name,
+		) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		if ( ! empty( $result['error'] ) ) {
+			WP_CLI::error( $result['error'] );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( 'json' === $format ) {
+			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+			return;
+		}
+
+		WP_CLI::log( '' );
+
+		if ( $result['qualified'] ) {
+			WP_CLI::success( sprintf( 'QUALIFIED — events found at %s', $result['events_url'] ) );
+			WP_CLI::log( sprintf( '  Method: %s', $result['method'] ) );
+			WP_CLI::log( sprintf( '  Score: %d', $result['score'] ) );
+			if ( ! empty( $result['link_text'] ) ) {
+				WP_CLI::log( sprintf( '  Found via link: "%s"', $result['link_text'] ) );
+			}
+			WP_CLI::log( sprintf( '  Signals: %s', implode( ', ', $result['signals'] ) ) );
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Add this venue with:' );
+			WP_CLI::log( sprintf( '  wp extrachill venues add --pipeline=<id> --name="%s" --url="%s"',
+				$result['name'] ?: '(venue name)',
+				$result['events_url']
+			) );
+		} else {
+			WP_CLI::warning( 'NOT QUALIFIED — no scrapable event listings detected.' );
+			if ( ! empty( $result['checked_urls'] ) ) {
+				WP_CLI::log( '  Checked URLs:' );
+				foreach ( array_slice( $result['checked_urls'], 0, 8 ) as $checked ) {
+					WP_CLI::log( "    - {$checked}" );
+				}
+			}
+			WP_CLI::log( '' );
+			WP_CLI::log( '  The site may use JavaScript rendering (SPA), require login, or not list events publicly.' );
 		}
 	}
 }
