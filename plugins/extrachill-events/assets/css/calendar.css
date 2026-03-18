@@ -49,10 +49,13 @@
 }
 
 /* Calendar Stats Counter */
+.page-title + .calendar-stats {
+    margin-top: calc(-1 * var(--spacing-sm));
+}
+
 .calendar-stats {
     color: var(--muted-text);
     font-size: var(--font-size-sm);
-    margin-top: var(--spacing-xs);
     margin-bottom: 0;
 }
 
