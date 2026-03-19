@@ -1,0 +1,19 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {}
+  },
+  "id": "extrachill-users",
+  "remote_path": "wp-content/plugins/extrachill-users",
+  "version_targets": [
+    {
+      "file": "extrachill-users.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-users.php",
+      "pattern": "EXTRACHILL_USERS_VERSION',\\s*'([0-9.]+)'"
+    }
+  ]
+}
