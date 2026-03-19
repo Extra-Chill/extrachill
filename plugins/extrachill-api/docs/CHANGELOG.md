@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.5] - 2026-03-19
+
+### Changed
+- replace N+1 WP_Query with single SQL for upcoming counts
+
 ## [0.11.4] - 2026-03-17
 
 ### Fixed
