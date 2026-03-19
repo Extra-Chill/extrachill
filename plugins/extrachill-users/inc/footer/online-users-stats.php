@@ -48,16 +48,16 @@ function extrachill_users_display_online_stats() {
 	?>
 	<div class="online-stats-card">
 		<div class="online-stat">
-			<?php echo ec_icon( 'circle', 'online-indicator' ); ?>
+			<?php echo wp_kses_post( ec_icon( 'circle', 'online-indicator' ) ); ?>
 			<div class="stat-content">
-				<span class="stat-value"><?php echo esc_html( $online_users_count ); ?></span>
+				<span class="stat-value"><?php echo esc_html( (string) $online_users_count ); ?></span>
 				<span class="stat-label"><?php echo esc_html( apply_filters( 'extrachill_users_online_label', __( 'Online Now', 'extrachill-users' ) ) ); ?></span>
 			</div>
 		</div>
 		<div class="online-stat">
-			<?php echo ec_icon( 'users' ); ?>
+			<?php echo wp_kses_post( ec_icon( 'users' ) ); ?>
 			<div class="stat-content">
-				<span class="stat-value"><?php echo esc_html( $total_members ); ?></span>
+				<span class="stat-value"><?php echo esc_html( (string) $total_members ); ?></span>
 				<span class="stat-label"><?php echo esc_html( apply_filters( 'extrachill_users_members_label', __( 'Total Members', 'extrachill-users' ) ) ); ?></span>
 			</div>
 		</div>

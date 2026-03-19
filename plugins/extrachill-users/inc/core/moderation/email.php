@@ -24,6 +24,7 @@ function extrachill_users_send_moderation_email( WP_User $user, array $status ) 
 	}
 
 	if ( $reason ) {
+		/* translators: %s: moderation reason text. */
 		$message .= "\n\n" . sprintf( __( 'Reason: %s', 'extrachill-users' ), $reason );
 	}
 

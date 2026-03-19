@@ -12,6 +12,11 @@
 		"wp-coding-standards/wpcs": "^3.0",
 		"phpunit/phpunit": "^9.0"
 	},
+	"autoload-dev": {
+		"files": [
+			"tests/phpstan-stubs.php"
+		]
+	},
 	"scripts": {
 		"lint:php": "vendor/bin/phpcs --standard=WordPress --extensions=php .",
 		"lint:fix": "vendor/bin/phpcbf --standard=WordPress --extensions=php .",

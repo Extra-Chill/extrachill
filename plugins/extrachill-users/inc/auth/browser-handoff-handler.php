@@ -19,7 +19,9 @@ add_action( 'admin_post_extrachill_browser_handoff', 'extrachill_users_handle_br
  * Handle browser handoff requests.
  */
 function extrachill_users_handle_browser_handoff() {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- One-time token endpoint uses bearer-like token validation, not WP nonces.
 	$token = isset( $_REQUEST['ec_browser_handoff'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['ec_browser_handoff'] ) ) : '';
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	if ( '' === $token ) {
 		status_header( 400 );
 		exit;

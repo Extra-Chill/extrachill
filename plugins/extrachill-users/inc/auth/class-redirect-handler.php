@@ -35,8 +35,10 @@ class EC_Redirect_Handler {
 	 * @return self
 	 */
 	public static function from_post( string $transient_prefix = 'ec_form' ): self {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce is verified by the handler after values are normalized.
 		$source_url = isset( $_POST['source_url'] ) ? esc_url_raw( wp_unslash( $_POST['source_url'] ) ) : home_url();
 		$fragment   = isset( $_POST['source_fragment'] ) ? sanitize_text_field( wp_unslash( $_POST['source_fragment'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		return new self( $source_url, $fragment, $transient_prefix );
 	}
 
@@ -84,9 +86,11 @@ class EC_Redirect_Handler {
 	 * @return bool True if valid (never returns false - redirects on failure)
 	 */
 	public function verify_nonce( string $nonce_field, string $nonce_action ): bool {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- This method performs the nonce verification directly.
 		if ( ! isset( $_POST[ $nonce_field ] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ $nonce_field ] ) ), $nonce_action ) ) {
 			$this->error( __( 'Security verification failed. Please try again.', 'extrachill-users' ) );
 		}
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		return true;
 	}
 

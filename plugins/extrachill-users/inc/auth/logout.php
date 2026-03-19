@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * @param string $redirect   Redirect destination
  * @return string Modified logout URL
  */
+// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WordPress logout_url filter signature.
 function extrachill_custom_logout_url( $logout_url, $redirect ) {
 	$current_url = set_url_scheme(
 		( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . strtok( $_SERVER['REQUEST_URI'], '?' )

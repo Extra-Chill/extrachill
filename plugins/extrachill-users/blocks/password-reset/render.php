@@ -6,10 +6,10 @@
  */
 
 if ( is_user_logged_in() ) {
-	$current_user = wp_get_current_user();
+	$logged_in_user = wp_get_current_user();
 	?>
 	<div class="password-reset-form">
-		<p><strong>You're already logged in as <?php echo esc_html( $current_user->display_name ); ?></strong></p>
+		<p><strong>You're already logged in as <?php echo esc_html( $logged_in_user->display_name ); ?></strong></p>
 		<p>
 			<a href="<?php echo esc_url( home_url() ); ?>" class="button-1 button-medium">Go to Homepage</a>
 			<a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="button-3 button-medium">Log Out</a>
@@ -19,11 +19,11 @@ if ( is_user_logged_in() ) {
 	return;
 }
 
-$action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : 'request';
-$key    = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
-$login  = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
+$password_reset_action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : 'request';
+$key                   = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
+$login                 = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
 
-if ( 'reset' === $action && ! empty( $key ) && ! empty( $login ) ) {
+if ( 'reset' === $password_reset_action && ! empty( $key ) && ! empty( $login ) ) {
 	$user = check_password_reset_key( $key, $login );
 
 	if ( is_wp_error( $user ) ) {

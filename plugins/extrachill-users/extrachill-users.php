@@ -39,6 +39,7 @@ function extrachill_users_deactivate() {
 }
 
 function extrachill_users_enqueue_block_styles() {
+	global $wp_filesystem;
 	if ( is_admin() ) {
 		return;
 	}
@@ -60,7 +61,7 @@ function extrachill_users_enqueue_block_styles() {
 				) ? 'wp-block-library' : 'wp-block-library';
 
 				// Read the stylesheet
-				$styles = file_get_contents( $style_path );
+				$styles = $wp_filesystem->get_contents( $style_path );
 
 				// Inline to WordPress core handle
 				wp_add_inline_style( $handle, $styles );

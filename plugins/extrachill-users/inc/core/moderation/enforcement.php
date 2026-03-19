@@ -7,6 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WordPress authenticate filter signature.
 function extrachill_users_block_moderated_cookie_auth( $user, $username, $password ) {
 	if ( is_wp_error( $user ) || ! $user instanceof WP_User ) {
 		return $user;

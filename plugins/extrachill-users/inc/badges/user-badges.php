@@ -28,7 +28,7 @@ function ec_get_user_badges( $user_id ) {
 
 	$badges = array();
 
-	if ( get_user_meta( $user_id, 'user_is_artist', true ) == '1' ) {
+	if ( get_user_meta( $user_id, 'user_is_artist', true ) === '1' ) {
 		$badges[] = array(
 			'key'        => 'artist',
 			'icon'       => 'guitar',
@@ -37,7 +37,7 @@ function ec_get_user_badges( $user_id ) {
 		);
 	}
 
-	if ( get_user_meta( $user_id, 'user_is_professional', true ) == '1' ) {
+	if ( get_user_meta( $user_id, 'user_is_professional', true ) === '1' ) {
 		$badges[] = array(
 			'key'        => 'professional',
 			'icon'       => 'briefcase',

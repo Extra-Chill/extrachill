@@ -33,7 +33,7 @@ function ec_can_manage_shop( $user_id = null ) {
 
 	if ( function_exists( 'ec_get_artists_for_user' ) ) {
 		$artist_ids = ec_get_artists_for_user( $user_id );
-		if ( is_array( $artist_ids ) && ! empty( $artist_ids ) ) {
+		if ( ! empty( $artist_ids ) ) {
 			return true;
 		}
 	}

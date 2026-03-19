@@ -16,6 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * @param string $redirect         Redirect destination
  * @return string Modified lost password URL
  */
+// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WordPress lostpassword_url filter signature.
 function ec_custom_lostpassword_url( $lostpassword_url, $redirect ) {
 	return ec_get_site_url( 'community' ) . '/reset-password/';
 }
@@ -29,6 +30,7 @@ function ec_handle_password_reset_request() {
 
 	$redirect->verify_nonce( 'ec_password_reset_nonce', 'ec_password_reset_request' );
 
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above through EC_Redirect_Handler.
 	$user_login = isset( $_POST['user_login'] ) ? sanitize_text_field( wp_unslash( $_POST['user_login'] ) ) : '';
 
 	if ( empty( $user_login ) ) {
@@ -54,6 +56,7 @@ function ec_handle_password_reset_request() {
 	} else {
 		$redirect->error( __( 'Failed to send reset email. Please try again.', 'extrachill-users' ) );
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 }
 add_action( 'admin_post_nopriv_ec_password_reset_request', 'ec_handle_password_reset_request' );
 add_action( 'admin_post_ec_password_reset_request', 'ec_handle_password_reset_request' );
@@ -66,10 +69,12 @@ function ec_handle_reset_password() {
 
 	$redirect->verify_nonce( 'ec_reset_password_nonce', 'ec_reset_password' );
 
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above through EC_Redirect_Handler.
 	$key   = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
 	$login = isset( $_POST['login'] ) ? sanitize_text_field( wp_unslash( $_POST['login'] ) ) : '';
 	$pass1 = isset( $_POST['pass1'] ) ? wp_unslash( $_POST['pass1'] ) : '';
 	$pass2 = isset( $_POST['pass2'] ) ? wp_unslash( $_POST['pass2'] ) : '';
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	if ( $pass1 !== $pass2 ) {
 		$redirect->error(
@@ -127,6 +132,7 @@ function ec_send_password_reset_email( $user, $reset_key ) {
 
 	$subject  = __( 'Password Reset Request - Extra Chill', 'extrachill-users' );
 	$message  = '<html><body>';
+	/* translators: %s: user display name. */
 	$message .= '<p>' . sprintf( __( 'Hello <strong>%s</strong>,', 'extrachill-users' ), esc_html( $user->display_name ) ) . '</p>';
 	$message .= '<p>' . __( 'Someone requested a password reset for your Extra Chill account.', 'extrachill-users' ) . '</p>';
 	$message .= '<p>' . __( 'If this was you, click the link below to reset your password:', 'extrachill-users' ) . '</p>';

@@ -495,7 +495,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 
 	$user_id = apply_filters( 'extrachill_create_community_user', false, $registration_data );
 	if ( is_wp_error( $user_id ) ) {
-		// Log detailed error server-side, return generic message to user.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for failed auth/registration flows.
 		error_log( 'User registration failed: ' . $user_id->get_error_code() . ' - ' . implode( ', ', $user_id->get_error_messages() ) );
 		return new WP_Error(
 			'registration_failed',
@@ -521,6 +521,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
 		$sync_result = extrachill_multisite_subscribe( $email, 'registration' );
 		if ( isset( $sync_result['success'] ) && ! $sync_result['success'] ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for newsletter sync failures.
 			error_log( 'Registration newsletter subscription failed: ' . ( isset( $sync_result['message'] ) ? $sync_result['message'] : '' ) );
 		}
 	}

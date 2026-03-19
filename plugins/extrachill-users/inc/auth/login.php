@@ -93,7 +93,7 @@ add_filter( 'authenticate', 'ec_rate_limit_login', 20, 2 );
  * @param WP_User $user       User object.
  */
 function ec_clear_attempts_on_login( $user_login, $user ) {
-	if ( empty( $user_login ) || ! $user ) {
+	if ( empty( $user_login ) ) {
 		return;
 	}
 	ec_clear_login_attempts( $user_login );
@@ -117,8 +117,10 @@ function extrachill_handle_login_failed( $username ) {
 		return;
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Login failure callback runs after core auth handling; values are used only for redirect context.
 	$source_url = isset( $_POST['source_url'] ) ? esc_url_raw( wp_unslash( $_POST['source_url'] ) ) : '';
 	$fragment   = isset( $_POST['source_fragment'] ) ? sanitize_text_field( wp_unslash( $_POST['source_fragment'] ) ) : 'tab-login';
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	if ( empty( $source_url ) ) {
 		$source_url = home_url( '/login/' );
@@ -137,15 +139,17 @@ add_action( 'wp_login_failed', 'extrachill_handle_login_failed' );
  * @param string           $password Password
  * @return WP_User|WP_Error
  */
+// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WordPress authenticate filter signature.
 function extrachill_intercept_auth_error( $user, $username, $password ) {
 	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
 		return $user;
 	}
 
-	if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+	if ( empty( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
 		return $user;
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Authenticate filter runs during core login handling; values are used only for redirect context.
 	if ( ! isset( $_POST['log'] ) || ! isset( $_POST['pwd'] ) ) {
 		return $user;
 	}
@@ -156,6 +160,7 @@ function extrachill_intercept_auth_error( $user, $username, $password ) {
 
 	$source_url = isset( $_POST['source_url'] ) ? esc_url_raw( wp_unslash( $_POST['source_url'] ) ) : '';
 	$fragment   = isset( $_POST['source_fragment'] ) ? sanitize_text_field( wp_unslash( $_POST['source_fragment'] ) ) : 'tab-login';
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	if ( empty( $source_url ) ) {
 		$source_url = home_url( '/login/' );

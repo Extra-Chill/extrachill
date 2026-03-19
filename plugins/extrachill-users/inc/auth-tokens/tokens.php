@@ -9,6 +9,7 @@ const EXTRACHILL_USERS_ACCESS_TOKEN_TTL  = 15 * MINUTE_IN_SECONDS;
 const EXTRACHILL_USERS_REFRESH_TOKEN_TTL = 30 * DAY_IN_SECONDS;
 
 function extrachill_users_base64url_encode( string $data ): string {
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions -- Required for API authentication, not obfuscation.
 	return rtrim( strtr( base64_encode( $data ), '+/', '-_' ), '=' );
 }
 
@@ -18,6 +19,7 @@ function extrachill_users_base64url_decode( string $data ): string {
 		$data .= str_repeat( '=', 4 - $remainder );
 	}
 
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions -- Required for JWT decoding, not obfuscation.
 	return base64_decode( strtr( $data, '-_', '+/' ) );
 }
 

@@ -35,6 +35,7 @@ function ec_verify_google_token( $id_token ) {
 
 	$payload = ec_verify_rs256_jwt( $id_token, EC_GOOGLE_JWKS_URL, $client_id, EC_GOOGLE_ISSUER );
 	if ( is_wp_error( $payload ) ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for OAuth verification failures.
 		error_log( 'Google token verification failed: ' . $payload->get_error_message() );
 		return new WP_Error(
 			'invalid_google_token',
@@ -316,15 +317,13 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 		$redirect_url = function_exists( 'ec_get_site_url' )
 			? ec_get_site_url( 'community' ) . '/onboarding/'
 			: home_url( '/onboarding/' );
-	} else {
 		// Existing user with completed onboarding - redirect to success URL or community home.
-		if ( ! empty( $success_redirect_url ) ) {
-			$redirect_url = $success_redirect_url;
-		} else {
-			$redirect_url = function_exists( 'ec_get_site_url' )
-				? ec_get_site_url( 'community' )
-				: home_url();
-		}
+	} elseif ( ! empty( $success_redirect_url ) ) {
+		$redirect_url = $success_redirect_url;
+	} else {
+		$redirect_url = function_exists( 'ec_get_site_url' )
+			? ec_get_site_url( 'community' )
+			: home_url();
 	}
 
 	return array(

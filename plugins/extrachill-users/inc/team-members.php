@@ -35,7 +35,7 @@ function ec_is_team_member( $user_id = 0 ) {
 		return false;
 	}
 
-	return get_user_meta( $user_id, 'extrachill_team', true ) == 1;
+	return get_user_meta( $user_id, 'extrachill_team', true ) === 1;
 }
 
 /**

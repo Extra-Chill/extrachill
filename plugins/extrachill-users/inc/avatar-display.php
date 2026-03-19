@@ -30,7 +30,7 @@ function extrachill_custom_avatar( $avatar, $id_or_email, $args ) {
 		$user = get_user_by( 'email', $id_or_email );
 	}
 
-	if ( $user && is_object( $user ) ) {
+	if ( $user ) {
 		$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
 		if ( ! $community_blog_id ) {
 			return null;
@@ -99,9 +99,9 @@ function generate_custom_avatar_ids() {
 
 		if ( $attachment_id && wp_attachment_is_image( $attachment_id ) ) {
 			add_user_meta( $user->ID, 'custom_avatar_id', $attachment_id, true );
-			echo "User {$user->ID}: Added custom avatar ID.\n";
+			printf( "User %d: Added custom avatar ID.\n", (int) $user->ID );
 		} else {
-			echo "User {$user->ID}: Failed to add custom avatar ID.\n";
+			printf( "User %d: Failed to add custom avatar ID.\n", (int) $user->ID );
 		}
 	}
 
@@ -113,8 +113,10 @@ function generate_custom_avatar_ids() {
  */
 add_action( 'admin_init', 'handle_custom_avatar_id_generation' );
 function handle_custom_avatar_id_generation() {
-	if ( isset( $_GET['generate_custom_avatar_ids'] ) && current_user_can( 'administrator' ) ) {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Admin-only maintenance trigger gated by capability and explicit query arg.
+	if ( isset( $_GET['generate_custom_avatar_ids'] ) && current_user_can( 'manage_options' ) ) {
 		generate_custom_avatar_ids();
 		exit;
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 }

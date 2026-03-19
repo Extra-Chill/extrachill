@@ -20,6 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param array $commentdata Comment data array
  * @return int|string|WP_Error Modified approval status
  */
+// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WordPress pre_comment_approved filter signature.
 function ec_auto_approve_logged_in_comments( $approved, $commentdata ) {
 	if ( is_user_logged_in() ) {
 		return 1;

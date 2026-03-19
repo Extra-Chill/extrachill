@@ -228,8 +228,10 @@ function ec_jwk_to_pem( $jwk ) {
 	$bit_string              = chr( 0x03 ) . ec_asn1_length( strlen( $rsa_public_key ) + 1 ) . chr( 0x00 ) . $rsa_public_key;
 	$subject_public_key_info = ec_asn1_sequence( $algorithm_id . $bit_string );
 
+	// phpcs:disable WordPress.PHP.DiscouragedPHPFunctions -- Required for API authentication, not obfuscation.
 	$pem  = "-----BEGIN PUBLIC KEY-----\n";
 	$pem .= chunk_split( base64_encode( $subject_public_key_info ), 64, "\n" );
+	// phpcs:enable WordPress.PHP.DiscouragedPHPFunctions
 	$pem .= "-----END PUBLIC KEY-----\n";
 
 	return $pem;
@@ -246,6 +248,7 @@ function ec_base64url_decode( $data ) {
 	if ( $remainder ) {
 		$data .= str_repeat( '=', 4 - $remainder );
 	}
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions -- Required for JWT decoding, not obfuscation.
 	return base64_decode( strtr( $data, '-_', '+/' ) );
 }
 

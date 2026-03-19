@@ -51,7 +51,7 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 				)
 			);
 
-			return is_array( $artist_posts ) ? $artist_posts : array();
+			return $artist_posts;
 		} finally {
 			restore_current_blog();
 		}

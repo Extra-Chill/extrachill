@@ -23,6 +23,7 @@ function extrachill_handle_registration() {
 
 	$redirect->verify_nonce( 'extrachill_register_nonce_field', 'extrachill_register_nonce' );
 
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above through EC_Redirect_Handler.
 	$email            = sanitize_email( wp_unslash( $_POST['extrachill_email'] ) );
 	$password         = isset( $_POST['extrachill_password'] ) ? wp_unslash( $_POST['extrachill_password'] ) : '';
 	$password_confirm = isset( $_POST['extrachill_password_confirm'] ) ? wp_unslash( $_POST['extrachill_password_confirm'] ) : '';
@@ -78,6 +79,7 @@ function extrachill_handle_registration() {
 
 	if ( is_wp_error( $user_id ) ) {
 		$error_messages = implode( ', ', $user_id->get_error_messages() );
+		/* translators: %s: registration failure messages. */
 		$redirect->error( sprintf( __( 'Registration failed: %s', 'extrachill-users' ), $error_messages ) );
 	}
 
@@ -90,6 +92,7 @@ function extrachill_handle_registration() {
 	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
 		$sync_result = extrachill_multisite_subscribe( $email, 'registration' );
 		if ( ! $sync_result['success'] ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for newsletter sync failures.
 			error_log( 'Registration newsletter subscription failed: ' . $sync_result['message'] );
 		}
 	}
@@ -122,6 +125,7 @@ function extrachill_handle_registration() {
 	}
 
 	$success_redirect_url = isset( $_POST['success_redirect_url'] ) ? esc_url_raw( wp_unslash( $_POST['success_redirect_url'] ) ) : '';
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	extrachill_auto_login_new_user( $user_id, $redirect, $processed_invite_artist_id, $success_redirect_url );
 }

@@ -10,8 +10,8 @@ defined( 'ABSPATH' ) || exit;
 function extrachill_users_get_moderation_status( int $user_id ): array {
 	if ( $user_id <= 0 ) {
 		return array(
-			'active' => true,
-			'state'  => 'active',
+			'active'  => true,
+			'state'   => 'active',
 			'user_id' => $user_id,
 		);
 	}
@@ -36,8 +36,8 @@ function extrachill_users_get_moderation_status( int $user_id ): array {
 
 	if ( ! is_array( $record ) || empty( $record['state'] ) || 'active' === $record['state'] ) {
 		return array(
-			'active' => true,
-			'state'  => 'active',
+			'active'  => true,
+			'state'   => 'active',
 			'user_id' => $user_id,
 		);
 	}
@@ -46,17 +46,17 @@ function extrachill_users_get_moderation_status( int $user_id ): array {
 	$policy     = extrachill_users_get_moderation_policy( $reason_key );
 
 	return array(
-		'active'      => false,
-		'state'       => isset( $record['state'] ) ? (string) $record['state'] : 'banned',
-		'reason_key'  => $reason_key,
-		'reason'      => isset( $record['reason'] ) ? (string) $record['reason'] : '',
-		'note'        => isset( $record['note'] ) ? (string) $record['note'] : '',
-		'source'      => isset( $record['source'] ) ? (string) $record['source'] : '',
-		'acted_at'    => isset( $record['acted_at'] ) ? (int) $record['acted_at'] : 0,
-		'acted_by'    => isset( $record['acted_by'] ) ? (int) $record['acted_by'] : 0,
-		'effects'     => isset( $policy['effects'] ) ? $policy['effects'] : array(),
-		'policy'      => $policy,
-		'user_id'     => $user_id,
+		'active'     => false,
+		'state'      => (string) $record['state'],
+		'reason_key' => $reason_key,
+		'reason'     => isset( $record['reason'] ) ? (string) $record['reason'] : '',
+		'note'       => isset( $record['note'] ) ? (string) $record['note'] : '',
+		'source'     => isset( $record['source'] ) ? (string) $record['source'] : '',
+		'acted_at'   => isset( $record['acted_at'] ) ? (int) $record['acted_at'] : 0,
+		'acted_by'   => isset( $record['acted_by'] ) ? (int) $record['acted_by'] : 0,
+		'effects'    => isset( $policy['effects'] ) ? $policy['effects'] : array(),
+		'policy'     => $policy,
+		'user_id'    => $user_id,
 	);
 }
 

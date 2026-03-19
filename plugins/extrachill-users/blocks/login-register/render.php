@@ -6,14 +6,14 @@
  */
 
 if ( is_user_logged_in() ) {
-	$current_user = wp_get_current_user();
-	$profile_url  = ec_get_site_url( 'community' ) . '/u/' . $current_user->user_nicename . '/';
+	$logged_in_user = wp_get_current_user();
+	$profile_url    = ec_get_site_url( 'community' ) . '/u/' . $logged_in_user->user_nicename . '/';
 	?>
 	<div class="login-already-logged-in-card">
 		<div class="logged-in-avatar">
-			<?php echo get_avatar( $current_user->ID, 80 ); ?>
+			<?php echo get_avatar( $logged_in_user->ID, 80 ); ?>
 		</div>
-		<h3><?php echo esc_html( $current_user->display_name ); ?></h3>
+		<h3><?php echo esc_html( $logged_in_user->display_name ); ?></h3>
 		<p class="logged-in-status"><?php esc_html_e( 'You are logged in', 'extrachill-users' ); ?></p>
 		<div class="logged-in-actions">
 			<a href="<?php echo esc_url( $profile_url ); ?>" class="button-1 button-medium"><?php esc_html_e( 'View Profile', 'extrachill-users' ); ?></a>
@@ -37,7 +37,7 @@ if ( $google_oauth_enabled ) {
 		'google-gsi',
 		'https://accounts.google.com/gsi/client',
 		array(),
-		null,
+		EXTRACHILL_USERS_VERSION,
 		true
 	);
 
@@ -80,6 +80,7 @@ $invited_email                  = '';
 $artist_name_for_invite_message = '';
 
 if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only invite context from signed URL parameters for rendering.
 	$token_from_url     = sanitize_text_field( wp_unslash( $_GET['token'] ) );
 	$artist_id_from_url = absint( $_GET['artist_id'] );
 
@@ -93,7 +94,7 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 				$artist_post_for_invite = get_post( $invite_artist_id );
 				if ( $artist_post_for_invite ) {
 					$artist_name_for_invite_message = $artist_post_for_invite->post_title;
-					// Set centralized notice for invitation
+					/* translators: %s: invited artist name. */
 					extrachill_set_notice(
 						sprintf( __( 'You have been invited to join the artist \'%s\'! Please complete your registration below to accept.', 'extrachill-users' ), $artist_name_for_invite_message ),
 						'info'
@@ -103,6 +104,7 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 			}
 		}
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 }
 
 ?>
@@ -180,7 +182,7 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 					<input type="hidden" name="success_redirect_url" value="<?php echo esc_url( ! empty( $attributes['redirectUrl'] ) ? $attributes['redirectUrl'] : $current_url ); ?>">
 						<?php if ( $invite_token && $invite_artist_id ) : ?>
 							<input type="hidden" name="invite_token" value="<?php echo esc_attr( $invite_token ); ?>">
-							<input type="hidden" name="invite_artist_id" value="<?php echo esc_attr( $invite_artist_id ); ?>">
+							<input type="hidden" name="invite_artist_id" value="<?php echo esc_attr( (string) $invite_artist_id ); ?>">
 						<?php endif; ?>
 
 						<label for="extrachill_email"><?php esc_html_e( 'Email', 'extrachill-users' ); ?></label>
@@ -196,7 +198,7 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 							<input type="submit" name="extrachill_register" class="button-1 button-medium" value="<?php esc_attr_e( 'Join Now', 'extrachill-users' ); ?>">
 						</div>
 
-						<?php echo ec_render_turnstile_widget(); ?>
+						<?php echo wp_kses_post( ec_render_turnstile_widget() ); ?>
 					</form>
 
 					<?php if ( $google_oauth_enabled ) : ?>

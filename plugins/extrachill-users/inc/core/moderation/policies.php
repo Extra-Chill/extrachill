@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 function extrachill_users_get_moderation_policy_definitions() {
 	return array(
-		'spam' => array(
+		'spam'          => array(
 			'label'   => __( 'Spam', 'extrachill-users' ),
 			'effects' => array(
 				'block_login'       => true,
@@ -19,7 +19,7 @@ function extrachill_users_get_moderation_policy_definitions() {
 				'mark_content_spam' => true,
 			),
 		),
-		'abuse' => array(
+		'abuse'         => array(
 			'label'   => __( 'Abuse', 'extrachill-users' ),
 			'effects' => array(
 				'block_login'       => true,
@@ -39,7 +39,7 @@ function extrachill_users_get_moderation_policy_definitions() {
 				'mark_content_spam' => false,
 			),
 		),
-		'fraud' => array(
+		'fraud'         => array(
 			'label'   => __( 'Fraud', 'extrachill-users' ),
 			'effects' => array(
 				'block_login'       => true,
@@ -49,7 +49,7 @@ function extrachill_users_get_moderation_policy_definitions() {
 				'mark_content_spam' => false,
 			),
 		),
-		'other' => array(
+		'other'         => array(
 			'label'   => __( 'Other', 'extrachill-users' ),
 			'effects' => array(
 				'block_login'       => true,

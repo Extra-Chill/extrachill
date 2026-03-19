@@ -21,7 +21,7 @@ global $online_users_count;
 function ec_record_user_activity() {
 	$user_id = get_current_user_id();
 	if ( $user_id ) {
-		$current_time            = current_time( 'timestamp' );
+		$current_time            = time();
 		$user_activity_cache_key = 'user_activity_' . $user_id;
 
 		$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
@@ -74,7 +74,7 @@ function ec_get_online_users_count() {
 
 				if ( false === $online_users_count ) {
 					$time_limit     = 15 * MINUTE_IN_SECONDS;
-					$time_threshold = current_time( 'timestamp' ) - $time_limit;
+					$time_threshold = time() - $time_limit;
 
 					$online_users_count = $wpdb->get_var(
 						$wpdb->prepare(
