@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.6] - 2026-03-19
+
+### Changed
+- REST artist-access handlers now wrap abilities from extrachill-users
+
+### Fixed
+- email approval links return 403 due to REST cookie auth gap
+
 ## [0.11.5] - 2026-03-19
 
 ### Changed
