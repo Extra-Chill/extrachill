@@ -128,7 +128,10 @@ function extrachill_api_get_single_term_upcoming_count( $slug, $taxonomy, $event
 }
 
 /**
- * Get bulk upcoming counts for top terms
+ * Get bulk upcoming counts for top terms.
+ *
+ * Uses a single SQL query with GROUP BY instead of N separate WP_Query calls.
+ * Results are cached in a transient for 30 minutes.
  *
  * @param string $taxonomy        Taxonomy slug.
  * @param int    $events_blog_id  Events site blog ID.
@@ -136,93 +139,111 @@ function extrachill_api_get_single_term_upcoming_count( $slug, $taxonomy, $event
  * @return array Array of term data sorted by count descending.
  */
 function extrachill_api_get_bulk_upcoming_counts( $taxonomy, $events_blog_id, $limit ) {
-	$results = array();
+	$cache_key = 'ec_upcoming_counts_' . $taxonomy;
 
 	switch_to_blog( $events_blog_id );
 	try {
+		$cached = get_transient( $cache_key );
+		if ( false !== $cached ) {
+			$results = $cached;
+			if ( $limit > 0 ) {
+				$results = array_slice( $results, 0, $limit );
+			}
+			return $results;
+		}
+
 		if ( ! taxonomy_exists( $taxonomy ) ) {
 			return array();
 		}
 
-		$terms = get_terms(
-			array(
-				'taxonomy'   => $taxonomy,
-				'hide_empty' => true,
-				'childless'  => true,
+		global $wpdb;
+
+		$today = gmdate( 'Y-m-d 00:00:00' );
+
+		// Single query: count upcoming events per term, grouped by term.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT t.term_id, t.name, t.slug, COUNT(DISTINCT p.ID) AS event_count
+				FROM {$wpdb->term_relationships} tr
+				INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+				INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+				INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
+				INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+				WHERE tt.taxonomy = %s
+				AND p.post_type = 'data_machine_events'
+				AND p.post_status = 'publish'
+				AND pm.meta_key = '_datamachine_event_datetime'
+				AND pm.meta_value >= %s
+				AND tt.parent != 0
+				GROUP BY t.term_id
+				ORDER BY event_count DESC",
+				$taxonomy,
+				$today
 			)
 		);
 
-		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+		if ( empty( $rows ) ) {
+			set_transient( $cache_key, array(), 30 * MINUTE_IN_SECONDS );
 			return array();
 		}
 
-		foreach ( $terms as $term ) {
-			$count = extrachill_api_count_upcoming_events_for_term( $term->term_id, $taxonomy );
-			if ( $count < 1 ) {
-				continue;
-			}
-
-			$url = get_term_link( $term );
+		$results = array();
+		foreach ( $rows as $row ) {
+			$url = get_term_link( (int) $row->term_id, $taxonomy );
 			if ( is_wp_error( $url ) ) {
 				continue;
 			}
 
 			$results[] = array(
-				'slug'  => $term->slug,
-				'name'  => $term->name,
-				'count' => $count,
+				'slug'  => $row->slug,
+				'name'  => $row->name,
+				'count' => (int) $row->event_count,
 				'url'   => $url,
 			);
 		}
+
+		set_transient( $cache_key, $results, 30 * MINUTE_IN_SECONDS );
 	} finally {
 		restore_current_blog();
 	}
-
-	// Sort by count descending
-	usort(
-		$results,
-		function ( $a, $b ) {
-			return $b['count'] - $a['count'];
-		}
-	);
 
 	return $limit > 0 ? array_slice( $results, 0, $limit ) : $results;
 }
 
 /**
- * Count upcoming events for a term
+ * Count upcoming events for a single term.
+ *
+ * Used by the single-term query path (slug parameter).
  *
  * @param int    $term_id  Term ID.
  * @param string $taxonomy Taxonomy slug.
  * @return int Count of upcoming events.
  */
 function extrachill_api_count_upcoming_events_for_term( $term_id, $taxonomy ) {
+	global $wpdb;
+
 	$today = gmdate( 'Y-m-d 00:00:00' );
 
-	$query = new WP_Query(
-		array(
-			'post_type'      => 'data_machine_events',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'no_found_rows'  => false,
-			'tax_query'      => array(
-				array(
-					'taxonomy' => $taxonomy,
-					'field'    => 'term_id',
-					'terms'    => $term_id,
-				),
-			),
-			'meta_query'     => array(
-				array(
-					'key'     => '_datamachine_event_datetime',
-					'value'   => $today,
-					'compare' => '>=',
-					'type'    => 'DATETIME',
-				),
-			),
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	$count = $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT COUNT(DISTINCT p.ID)
+			FROM {$wpdb->posts} p
+			INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+			INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+			WHERE tt.term_id = %d
+			AND tt.taxonomy = %s
+			AND p.post_type = 'data_machine_events'
+			AND p.post_status = 'publish'
+			AND pm.meta_key = '_datamachine_event_datetime'
+			AND pm.meta_value >= %s",
+			$term_id,
+			$taxonomy,
+			$today
 		)
 	);
 
-	return $query->found_posts;
+	return (int) $count;
 }
