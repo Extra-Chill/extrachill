@@ -31,3 +31,4 @@ require_once __DIR__ . '/create-user.php';
 require_once __DIR__ . '/onboarding.php';
 require_once __DIR__ . '/moderation.php';
 require_once __DIR__ . '/welcome-email.php';
+require_once __DIR__ . '/artist-access.php';
