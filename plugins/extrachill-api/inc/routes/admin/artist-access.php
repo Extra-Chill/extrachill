@@ -160,42 +160,23 @@ function extrachill_api_artist_access_admin_check() {
 /**
  * Gets all pending artist access requests.
  *
+ * Wraps the extrachill/list-artist-access-requests ability from extrachill-users.
+ *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Response with request list or error.
  */
 function extrachill_api_get_artist_access_requests( $request ) {
-	$args = array(
-		'blog_id'    => 0, // Network-wide
-		'meta_key'   => 'artist_access_request',
-		'fields'     => 'all',
-		'orderby'    => 'registered',
-		'order'      => 'DESC',
-	);
-
-	$user_query = new WP_User_Query( $args );
-	$users      = $user_query->get_results();
-
-	$requests = array();
-	foreach ( $users as $user ) {
-		$request_data = get_user_meta( $user->ID, 'artist_access_request', true );
-		if ( empty( $request_data ) || ! is_array( $request_data ) ) {
-			continue;
-		}
-
-		$requests[] = array(
-			'user_id'      => $user->ID,
-			'user_login'   => $user->user_login,
-			'user_email'   => $user->user_email,
-			'type'         => isset( $request_data['type'] ) ? $request_data['type'] : 'artist',
-			'requested_at' => isset( $request_data['timestamp'] ) ? $request_data['timestamp'] : 0,
-		);
+	$ability = wp_get_ability( 'extrachill/list-artist-access-requests' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	return rest_ensure_response(
-		array(
-			'requests' => $requests,
-		)
-	);
+	$result = $ability->execute( array() );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
 
 /**
@@ -258,48 +239,35 @@ function extrachill_api_validate_artist_access_token( $token, $user_id ) {
 /**
  * Handles one-click email approval (GET request with redirect).
  *
+ * Wraps the extrachill/approve-artist-access ability from extrachill-users.
+ * Token validation happens in the permission callback (extrachill_api_artist_access_email_check).
+ *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Response or redirect.
  */
 function extrachill_api_artist_access_email_approve( $request ) {
 	$user_id = $request->get_param( 'user_id' );
 	$type    = $request->get_param( 'type' );
-	$token   = $request->get_param( 'token' );
 
-	$token_data = extrachill_api_validate_artist_access_token( $token, $user_id );
-	if ( ! $token_data ) {
-		wp_die( 'Invalid or expired approval link. Please use the admin tools page to approve this request.' );
+	$ability = wp_get_ability( 'extrachill/approve-artist-access' );
+	if ( ! $ability ) {
+		wp_die( 'Artist access system unavailable. Please use the admin tools page.' );
 	}
 
-	if ( $token_data['type'] !== $type ) {
-		wp_die( 'Invalid request parameters.' );
+	$result = $ability->execute(
+		array(
+			'user_id' => absint( $user_id ),
+			'type'    => $type,
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		wp_die( esc_html( $result->get_error_message() ) );
 	}
 
-	$user = get_user_by( 'ID', $user_id );
-	if ( ! $user ) {
-		wp_die( 'User not found.' );
-	}
-
-	$has_artist       = get_user_meta( $user_id, 'user_is_artist', true ) === '1';
-	$has_professional = get_user_meta( $user_id, 'user_is_professional', true ) === '1';
-
-	if ( $has_artist || $has_professional ) {
+	if ( ! empty( $result['skipped'] ) ) {
 		wp_safe_redirect( admin_url( 'tools.php?page=extrachill-admin-tools#artist-access-requests&already_approved=1' ) );
 		exit;
-	}
-
-	$pending_request = get_user_meta( $user_id, 'artist_access_request', true );
-	if ( empty( $pending_request ) || ! is_array( $pending_request ) ) {
-		wp_die( 'No pending request found for this user.' );
-	}
-
-	$meta_key = $type === 'artist' ? 'user_is_artist' : 'user_is_professional';
-	update_user_meta( $user_id, $meta_key, '1' );
-
-	delete_user_meta( $user_id, 'artist_access_request' );
-
-	if ( function_exists( 'ec_send_artist_access_approval_email' ) ) {
-		ec_send_artist_access_approval_email( $user );
 	}
 
 	wp_safe_redirect( admin_url( 'tools.php?page=extrachill-admin-tools#artist-access-requests&approved=1' ) );
@@ -309,63 +277,56 @@ function extrachill_api_artist_access_email_approve( $request ) {
 /**
  * Handles admin tools button approval (POST request with JSON response).
  *
+ * Wraps the extrachill/approve-artist-access ability from extrachill-users.
+ *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Response with result or error.
  */
 function extrachill_api_artist_access_approve( $request ) {
-	$user_id = $request->get_param( 'user_id' );
-	$type    = $request->get_param( 'type' );
-
-	$user = get_user_by( 'ID', $user_id );
-	if ( ! $user ) {
-		return new WP_Error(
-			'user_not_found',
-			'User not found.',
-			array( 'status' => 404 )
-		);
+	$ability = wp_get_ability( 'extrachill/approve-artist-access' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$meta_key = $type === 'artist' ? 'user_is_artist' : 'user_is_professional';
-	update_user_meta( $user_id, $meta_key, '1' );
-
-	delete_user_meta( $user_id, 'artist_access_request' );
-
-	if ( function_exists( 'ec_send_artist_access_approval_email' ) ) {
-		ec_send_artist_access_approval_email( $user );
-	}
-
-	return rest_ensure_response(
+	$result = $ability->execute(
 		array(
-			'success' => true,
-			'message' => 'User approved successfully',
+			'user_id' => absint( $request->get_param( 'user_id' ) ),
+			'type'    => sanitize_text_field( $request->get_param( 'type' ) ),
 		)
 	);
+
+	if ( is_wp_error( $result ) ) {
+		$status = 'user_not_found' === $result->get_error_code() ? 404 : 400;
+		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
+	}
+
+	return rest_ensure_response( $result );
 }
 
 /**
  * Handles admin tools button rejection (POST request with JSON response).
  *
+ * Wraps the extrachill/reject-artist-access ability from extrachill-users.
+ *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Response with result or error.
  */
 function extrachill_api_artist_access_reject( $request ) {
-	$user_id = $request->get_param( 'user_id' );
-
-	$user = get_user_by( 'ID', $user_id );
-	if ( ! $user ) {
-		return new WP_Error(
-			'user_not_found',
-			'User not found.',
-			array( 'status' => 404 )
-		);
+	$ability = wp_get_ability( 'extrachill/reject-artist-access' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	delete_user_meta( $user_id, 'artist_access_request' );
-
-	return rest_ensure_response(
+	$result = $ability->execute(
 		array(
-			'success' => true,
-			'message' => 'Request rejected',
+			'user_id' => absint( $request->get_param( 'user_id' ) ),
 		)
 	);
+
+	if ( is_wp_error( $result ) ) {
+		$status = 'user_not_found' === $result->get_error_code() ? 404 : 400;
+		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
+	}
+
+	return rest_ensure_response( $result );
 }
