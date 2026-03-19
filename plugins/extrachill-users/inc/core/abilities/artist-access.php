@@ -186,9 +186,7 @@ function extrachill_users_ability_approve_artist_access( $input ) {
 	delete_user_meta( $user_id, 'artist_access_request' );
 
 	// Send approval notification email.
-	if ( function_exists( 'ec_send_artist_access_approval_email' ) ) {
-		ec_send_artist_access_approval_email( $user );
-	}
+	extrachill_users_send_artist_access_approval_email( $user, $type );
 
 	return array(
 		'success'    => true,
@@ -227,4 +225,29 @@ function extrachill_users_ability_reject_artist_access( $input ) {
 		'user_id'    => $user_id,
 		'user_login' => $user->user_login,
 	);
+}
+
+/**
+ * Send an approval notification email to the user.
+ *
+ * @param \WP_User $user The approved user.
+ * @param string   $type Access type granted ('artist' or 'professional').
+ */
+function extrachill_users_send_artist_access_approval_email( $user, $type ) {
+	$create_url = 'https://artist.extrachill.com/create-artist/';
+	$type_label = 'artist' === $type ? 'artist' : 'music industry professional';
+
+	$subject = 'Your Extra Chill Artist Platform Access Has Been Approved';
+	$message = "Hey {$user->display_name},\n\n";
+	$message .= "Your request for {$type_label} access on Extra Chill has been approved!\n\n";
+	$message .= "You can now create your artist profile and link page:\n";
+	$message .= "{$create_url}\n\n";
+	$message .= "Your link page will be available at extrachill.link/your-artist-name once you set it up.\n\n";
+	$message .= "Welcome to the platform.\n\n";
+	$message .= "— Extra Chill\n";
+	$message .= "https://extrachill.com";
+
+	$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+
+	wp_mail( $user->user_email, $subject, $message, $headers );
 }
