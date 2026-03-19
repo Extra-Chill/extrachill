@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.7.0] - 2026-03-19
+
+### Added
+- send approval email directly from ability instead of depending on artist-platform
+- add artist access abilities (list, approve, reject)
+
+### Changed
+- reconcile workspace with production state
+- Move moderation internals into core module
+- Moderate owned artist content without CPT registry checks
+- Include owned artist content in spam moderation
+- Refactor user bans into moderation policies
+- Move user ban commands into extrachill CLI
+- Add reusable user ban system with abilities and CLI
+- Update login register block for iframe editor compatibility
+- Refactor user lifecycle to abilities-first architecture
+
+### Fixed
+- Fix ghost URLs in admin registration email
+
 ## [0.6.4] - 2026-02-12
 
 ### Fixed
