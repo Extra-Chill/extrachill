@@ -32,13 +32,16 @@ function extrachill_api_register_artist_access_routes() {
 	);
 
 	// GET: One-click email approval (redirects to admin tools)
+	// Uses HMAC token auth instead of cookie auth because email links
+	// are plain GET requests without a WP nonce — the REST API won't
+	// trust the cookie, so current_user_can() always returns false.
 	register_rest_route(
 		'extrachill/v1',
 		'/admin/artist-access/(?P<user_id>\d+)/approve',
 		array(
 			'methods'             => WP_REST_Server::READABLE,
 			'callback'            => 'extrachill_api_artist_access_email_approve',
-			'permission_callback' => 'extrachill_api_artist_access_admin_check',
+			'permission_callback' => 'extrachill_api_artist_access_email_check',
 			'args'                => array(
 				'user_id' => array(
 					'required'          => true,
@@ -102,6 +105,40 @@ function extrachill_api_register_artist_access_routes() {
 			),
 		)
 	);
+}
+
+/**
+ * Permission check for one-click email approval links.
+ *
+ * Validates the HMAC token from the email instead of relying on cookie auth.
+ * Cookie auth fails for email links because GET requests to the REST API
+ * don't include a WP nonce, so WordPress treats them as unauthenticated.
+ *
+ * @param WP_REST_Request $request The REST request.
+ * @return bool|WP_Error True if token is valid, WP_Error otherwise.
+ */
+function extrachill_api_artist_access_email_check( $request ) {
+	$user_id = $request->get_param( 'user_id' );
+	$token   = $request->get_param( 'token' );
+
+	if ( empty( $token ) || empty( $user_id ) ) {
+		return new WP_Error(
+			'rest_forbidden',
+			'Missing approval token.',
+			array( 'status' => 403 )
+		);
+	}
+
+	$token_data = extrachill_api_validate_artist_access_token( $token, absint( $user_id ) );
+	if ( ! $token_data ) {
+		return new WP_Error(
+			'rest_forbidden',
+			'Invalid or expired approval link.',
+			array( 'status' => 403 )
+		);
+	}
+
+	return true;
 }
 
 /**
