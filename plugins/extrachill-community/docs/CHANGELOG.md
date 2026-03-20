@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.14] - 2026-03-20
+
+### Changed
+- Add community abilities for upvotes, notifications, ranks, forums, stats, and cache
+
 ## [1.3.13] - 2026-03-13
 
 ### Changed
