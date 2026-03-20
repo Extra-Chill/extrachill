@@ -1,12 +1,18 @@
-import './style.scss';
-import './editor.scss';
-
 import { registerBlockType } from '@wordpress/blocks';
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
 import { PanelBody, RangeControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { cssVar, spacing, colors } from '@extrachill/tokens';
 
-function Edit( { attributes, setAttributes } ) {
+
+interface Attributes {
+	perPage: number;
+}
+
+function Edit( { attributes, setAttributes }: {
+	attributes: Attributes;
+	setAttributes: ( attrs: Partial< Attributes > ) => void;
+} ) {
 	const { perPage } = attributes;
 	const blockProps = useBlockProps();
 
@@ -17,10 +23,8 @@ function Edit( { attributes, setAttributes } ) {
 					title={ __( 'Leaderboard', 'extra-chill-community' ) }
 				>
 					<RangeControl
-						label={ __(
-							'Users per page',
-							'extra-chill-community'
-						) }
+						__nextHasNoMarginBottom
+						label={ __( 'Users per page', 'extra-chill-community' ) }
 						value={ perPage }
 						onChange={ ( value ) =>
 							setAttributes( { perPage: value } )
@@ -31,12 +35,15 @@ function Edit( { attributes, setAttributes } ) {
 				</PanelBody>
 			</InspectorControls>
 			<div { ...blockProps }>
-				<p>
-					{ __(
-						'Leaderboard will render on the frontend.',
-						'extra-chill-community'
-					) }
-				</p>
+				<div style={ {
+					padding: cssVar( spacing.spacingMd ),
+					color: cssVar( colors.mutedText ),
+					borderRadius: '4px',
+					border: `1px dashed ${ cssVar( colors.borderColor ) }`,
+					textAlign: 'center',
+				} }>
+					{ __( 'Leaderboard — renders on the frontend.', 'extra-chill-community' ) }
+				</div>
 			</div>
 		</>
 	);
