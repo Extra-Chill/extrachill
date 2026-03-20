@@ -144,19 +144,36 @@ export interface OnboardingSubmitResponse {
   redirect_url: string;
 }
 
+export interface LeaderboardBadge {
+  icon: string;
+  class_name: string;
+  title: string;
+}
+
 export interface LeaderboardEntry {
   id: number;
   display_name: string;
+  username: string;
+  slug: string;
   avatar_url?: string;
+  profile_url?: string;
+  registered: string;
   points: number;
-  rank: number;
+  rank: string;
+  badges: LeaderboardBadge[];
+  position: number;
+}
+
+export interface LeaderboardPagination {
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
 }
 
 export interface LeaderboardResponse {
-  entries: LeaderboardEntry[];
-  total: number;
-  page: number;
-  per_page: number;
+  items: LeaderboardEntry[];
+  pagination: LeaderboardPagination;
 }
 
 // ─── Artists ─────────────────────────────────────────────────────────────────

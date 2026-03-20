@@ -19,8 +19,9 @@ export class UsersResource extends BaseResource {
     return this.get(`extrachill/v1/users/search${query}`);
   }
 
-  leaderboard(page = 1, perPage = 20): Promise<LeaderboardResponse> {
-    return this.get(`extrachill/v1/users/leaderboard?page=${page}&per_page=${perPage}`);
+  leaderboard(page = 1, perPage = 25): Promise<LeaderboardResponse> {
+    const query = this.buildQuery({ page, per_page: perPage });
+    return this.get(`extrachill/v1/users/leaderboard${query}`);
   }
 
   // ─── Onboarding ──────────────────────────────────────────────────────
