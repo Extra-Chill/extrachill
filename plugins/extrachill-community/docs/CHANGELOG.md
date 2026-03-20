@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.16] - 2026-03-20
+
+### Changed
+- Add location-colored borders to Local Scenes forum cards
+
 ## [1.3.15] - 2026-03-20
 
 ### Changed
