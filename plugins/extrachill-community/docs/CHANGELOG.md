@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.15] - 2026-03-20
+
+### Changed
+- Render Local Scenes subforums as taxonomy badges with topic counts
+
 ## [1.3.14] - 2026-03-20
 
 ### Changed
