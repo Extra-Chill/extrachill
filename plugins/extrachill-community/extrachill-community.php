@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+define( 'EXTRACHILL_COMMUNITY_VERSION', '1.3.13' );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_FILE', __FILE__ );
@@ -47,19 +48,24 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-abilities-category.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/drafts.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/ability-helpers.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/infrastructure-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/content-filters.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/recent-feed.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/main-site-comments.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/subforum-button-classes.php';
 
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/upvote.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/upvote-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/forum-badges.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/point-calculation.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/chill-forums-rank.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/rank-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-bell.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-card.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-handler.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-cleanup.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-replies.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-mentions.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notifications-content.php';
