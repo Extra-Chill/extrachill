@@ -240,8 +240,8 @@ const InstagramPane = () => {
 	};
 
 	return createElement(
-		createElement.Fragment,
-		null,
+		'div',
+		{ className: 'ec-studio-pane ec-studio-pane--instagram' },
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
