@@ -424,15 +424,38 @@ class EventSubmissionAbilities {
 		}
 
 		$default_prompt = 'You are processing an event submission. '
-			. 'Extract and validate event details. '
-			. 'Use the upsert_event tool to create the event with accurate information.';
+			. 'Use the upsert_event tool to create the event with the details provided. '
+			. 'Do NOT ask for more information — use exactly what is given.';
+
+		$user_message = "Create this event using the upsert_event tool:\n\n"
+			. "Title: {$submission['event_title']}\n"
+			. "Date: {$submission['event_date']}\n";
+
+		if ( ! empty( $submission['event_time'] ) ) {
+			$user_message .= "Time: {$submission['event_time']}\n";
+		}
+		if ( ! empty( $submission['venue_name'] ) ) {
+			$user_message .= "Venue: {$submission['venue_name']}\n";
+		}
+		if ( ! empty( $submission['event_city'] ) ) {
+			$user_message .= "City: {$submission['event_city']}\n";
+		}
+		if ( ! empty( $submission['event_lineup'] ) ) {
+			$user_message .= "Lineup: {$submission['event_lineup']}\n";
+		}
+		if ( ! empty( $submission['event_link'] ) ) {
+			$user_message .= "Ticket/Info URL: {$submission['event_link']}\n";
+		}
+		if ( ! empty( $submission['notes'] ) ) {
+			$user_message .= "Notes: {$submission['notes']}\n";
+		}
 
 		$steps[] = array(
 			'type'          => 'ai',
 			'provider'      => $provider,
 			'model'         => $model,
 			'system_prompt' => $system_prompt ?: $default_prompt,
-			'user_message'  => 'Process this event submission and create the event.',
+			'user_message'  => $user_message,
 			'enabled_tools' => array( 'upsert_event' ),
 		);
 
