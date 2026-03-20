@@ -159,6 +159,138 @@ class LocationCommand {
 	}
 
 	/**
+	 * Generate a market overview report for event calendar locations.
+	 *
+	 * Combines event/venue counts, flow breakdown (venue scrapers / TM / Dice),
+	 * GA4 traffic, and GSC search data into a single view. Use --sort=opportunity
+	 * to find cities where adding venue scrapers would have the biggest impact.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--location=<slug>]
+	 * : Filter to a single location by slug.
+	 *
+	 * [--days=<days>]
+	 * : Days of analytics data to include.
+	 * ---
+	 * default: 7
+	 * ---
+	 *
+	 * [--limit=<limit>]
+	 * : Max locations to show.
+	 * ---
+	 * default: 30
+	 * ---
+	 *
+	 * [--sort=<field>]
+	 * : Sort by: opportunity, events, venues, sessions, impressions, scrapers.
+	 * ---
+	 * default: opportunity
+	 * ---
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events market-report --url=events.extrachill.com
+	 *     wp extrachill events market-report --location=nashville --url=events.extrachill.com
+	 *     wp extrachill events market-report --sort=sessions --days=14 --url=events.extrachill.com
+	 *     wp extrachill events market-report --sort=scrapers --url=events.extrachill.com
+	 *     wp extrachill events market-report --format=json --url=events.extrachill.com
+	 *
+	 * @subcommand market-report
+	 * @when after_wp_load
+	 */
+	public function market_report( $args, $assoc_args ) {
+		$ability = wp_get_ability( 'extrachill/market-report' );
+
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/market-report ability not available. Is extrachill-events active on this site?' );
+		}
+
+		$input = array(
+			'days'  => (int) ( $assoc_args['days'] ?? 7 ),
+			'limit' => (int) ( $assoc_args['limit'] ?? 30 ),
+			'sort'  => $assoc_args['sort'] ?? 'opportunity',
+		);
+
+		if ( ! empty( $assoc_args['location'] ) ) {
+			$input['location'] = $assoc_args['location'];
+		}
+
+		WP_CLI::log( 'Generating market report...' );
+
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		if ( empty( $result['success'] ) ) {
+			WP_CLI::error( $result['error'] ?? 'Failed to generate report.' );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( 'json' === $format ) {
+			WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		// Build table rows.
+		$rows = array();
+		foreach ( $result['locations'] as $loc ) {
+			$rows[] = array(
+				'location'    => $loc['name'],
+				'events'      => $loc['events'],
+				'upcoming'    => $loc['upcoming_events'],
+				'venues'      => $loc['venues'],
+				'scrapers'    => $loc['flows']['venue_scrapers'],
+				'tm'          => $loc['flows']['ticketmaster'],
+				'dice'        => $loc['flows']['dice'],
+				'ga_sessions' => $loc['ga']['sessions'],
+				'gsc_impr'    => $loc['gsc']['impressions'],
+				'gsc_clicks'  => $loc['gsc']['clicks'],
+				'opportunity' => $loc['opportunity_score'],
+			);
+		}
+
+		if ( 'table' === $format ) {
+			$summary = $result['summary'];
+			WP_CLI::log( sprintf(
+				'Market Report — %d locations, %s events, %s venues, %d flows (%d days analytics)',
+				$summary['total_locations'],
+				number_format( $summary['total_events'] ),
+				number_format( $summary['total_venues'] ),
+				$summary['total_flows'],
+				$input['days']
+			) );
+			WP_CLI::log( sprintf( 'Sorted by: %s', $input['sort'] ) );
+			WP_CLI::log( str_repeat( '─', 110 ) );
+		}
+
+		Utils\format_items(
+			$format,
+			$rows,
+			array( 'location', 'events', 'upcoming', 'venues', 'scrapers', 'tm', 'dice', 'ga_sessions', 'gsc_impr', 'gsc_clicks', 'opportunity' )
+		);
+
+		if ( 'table' === $format && ! empty( $result['locations'] ) ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Legend: scrapers=venue website scrapers | tm=Ticketmaster | dice=Dice.fm' );
+			WP_CLI::log( 'Opportunity = (sessions×5 + impressions×0.5 + events×0.1) × (10 / (scrapers+1))' );
+		}
+	}
+
+	/**
 	 * Render ability result.
 	 *
 	 * @param array  $result Ability result.
