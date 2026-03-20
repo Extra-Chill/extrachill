@@ -77,6 +77,13 @@ extrachill_breadcrumbs();
 			extrachill_events_render_scope_nav( $term, '' );
 		}
 		?>
+	<?php elseif ( is_tax( 'artist' ) ) : ?>
+		<header class="taxonomy-archive-header artist-archive-header">
+			<h1 class="page-title"><?php single_term_title(); ?> Tour Dates</h1>
+			<?php if ( term_description() ) : ?>
+				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
+			<?php endif; ?>
+		</header>
 	<?php elseif ( is_tax() ) : ?>
 		<header class="taxonomy-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
