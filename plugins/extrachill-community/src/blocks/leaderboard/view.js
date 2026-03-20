@@ -1,4 +1,8 @@
 import apiFetch from '@wordpress/api-fetch';
+import { ExtraChillClient } from '@extrachill/api-client';
+import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
+
+const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 
 function extrachillLeaderboardRender( container, state ) {
 	const { page, data, error, loading } = state;
@@ -204,9 +208,8 @@ function extrachillLeaderboardLoad( container, state ) {
 	state.error = null;
 	extrachillLeaderboardRender( container, state );
 
-	apiFetch( {
-		path: `/extrachill/v1/users/leaderboard?page=${ state.page }&per_page=${ state.perPage }`,
-	} )
+	client.users
+		.leaderboard( state.page, state.perPage )
 		.then( ( data ) => {
 			state.data = data;
 			state.loading = false;
