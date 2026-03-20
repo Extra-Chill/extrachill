@@ -29,9 +29,9 @@ const StudioApp = ( { context } ) => {
 		{ className: 'ec-studio-app' },
 		createElement( Tabs, {
 			tabs,
-			activeTab,
+			active: activeTab,
 			onChange: setActiveTab,
-			className: 'ec-studio-app__tabs',
+			classPrefix: 'ec-studio',
 		} ),
 		createElement(
 			'div',
