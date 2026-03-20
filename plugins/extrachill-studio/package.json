@@ -5,9 +5,9 @@
 	"private": true,
 	"scripts": {
 		"build": "npm run build:studio && npm run build:studio-view && npm run copy:block-files",
-		"build:studio": "wp-scripts build blocks/studio/src/index.js --output-path=build/studio",
-		"build:studio-view": "wp-scripts build blocks/studio/src/view.js --output-path=build/studio",
-		"copy:block-files": "cp blocks/studio/block.json blocks/studio/render.php blocks/studio/style.css build/studio/"
+		"build:studio": "wp-scripts build blocks/studio/src/index.js --output-path=dist/studio",
+		"build:studio-view": "wp-scripts build blocks/studio/src/view.js --output-path=dist/studio",
+		"copy:block-files": "cp blocks/studio/block.json blocks/studio/render.php blocks/studio/style.css dist/studio/"
 	},
 	"dependencies": {
 		"@extrachill/components": "file:../extrachill-components",

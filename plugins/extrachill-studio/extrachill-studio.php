@@ -72,8 +72,8 @@ add_action( 'init', 'extrachill_studio_load_textdomain' );
  * @return void
  */
 function extrachill_studio_register_blocks() {
-	$blocks_dir = file_exists( EXTRACHILL_STUDIO_PLUGIN_DIR . 'build/studio' )
-		? 'build'
+	$blocks_dir = file_exists( EXTRACHILL_STUDIO_PLUGIN_DIR . 'dist/studio' )
+		? 'dist'
 		: 'blocks';
 
 	register_block_type( EXTRACHILL_STUDIO_PLUGIN_DIR . $blocks_dir . '/studio' );
