@@ -22,7 +22,7 @@ function extrachill_api_register_event_submission_route() {
 				'type'     => 'integer',
 			),
 			'turnstile_response' => array(
-				'required' => true,
+				'required' => false,
 				'type'     => 'string',
 			),
 			'system_prompt' => array(
