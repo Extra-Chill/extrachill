@@ -297,6 +297,12 @@ ul {
     height: auto;
 }
 
+/* Location-colored borders for forum cards tagged with a location term.
+   Uses the same --badge-location-{slug}-bg variable from @extrachill/tokens. */
+.bbp-forum-card[class*="location-"] {
+    border-color: var(--forum-location-border-color, var(--border-color));
+}
+
 /* ==================================================
    Upvoting
 ================================================== */

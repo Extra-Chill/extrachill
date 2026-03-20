@@ -12,7 +12,17 @@ defined( 'ABSPATH' ) || exit;
 
 ?>
 
-<div id="bbp-forum-card-<?php bbp_forum_id(); ?>" class="bbp-forum-card">
+<?php
+$forum_card_classes    = array( 'bbp-forum-card' );
+$forum_card_style      = '';
+$forum_location_terms  = wp_get_object_terms( bbp_get_forum_id(), 'location', array( 'fields' => 'slugs' ) );
+if ( ! empty( $forum_location_terms ) && ! is_wp_error( $forum_location_terms ) ) {
+	$location_slug         = $forum_location_terms[0];
+	$forum_card_classes[]  = 'location-' . $location_slug;
+	$forum_card_style      = '--forum-location-border-color: var(--badge-location-' . esc_attr( $location_slug ) . '-bg);';
+}
+?>
+<div id="bbp-forum-card-<?php bbp_forum_id(); ?>" class="<?php echo esc_attr( implode( ' ', $forum_card_classes ) ); ?>"<?php echo $forum_card_style ? ' style="' . esc_attr( $forum_card_style ) . '"' : ''; ?>>
     <div class="bbp-forum-info">
         <?php do_action( 'bbp_theme_before_forum_title' ); ?>
         <a class="bbp-forum-title" href="<?php bbp_forum_permalink(); ?>"><?php bbp_forum_title(); ?></a>
