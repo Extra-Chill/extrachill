@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.7] - 2026-03-20
+
+### Changed
+- event submission REST handler delegates to extrachill/submit-event ability
+
+### Fixed
+- make turnstile_response param optional for event submissions
+
 ## [0.11.6] - 2026-03-19
 
 ### Changed
