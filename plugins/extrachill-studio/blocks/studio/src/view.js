@@ -1,10 +1,12 @@
 import { createElement, useState } from '@wordpress/element';
 import { Tabs } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
+import '@extrachill/chat/css';
 
 import { mountComponent } from './app/mount';
 import { getStudioTabs } from './app/tabs';
 import OverviewPane from './tabs/overview';
+import ChatPane from './tabs/chat';
 import QrCodesPane from './tabs/qr-codes';
 import SocialsPane from './tabs/socials';
 
@@ -12,6 +14,7 @@ const ROOT_SELECTOR = '[data-ec-studio-root]';
 
 const STUDIO_PANES = {
 	overview: OverviewPane,
+	chat: ChatPane,
 	'qr-codes': QrCodesPane,
 	socials: SocialsPane,
 };

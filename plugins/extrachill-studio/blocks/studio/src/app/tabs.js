@@ -8,6 +8,12 @@ export const getStudioTabs = () => [
 		preview: __( 'Team-gated Studio shell with tabbed workspace.', 'extrachill-studio' ),
 	},
 	{
+		id: 'chat',
+		pane: 'chat',
+		label: __( 'Chat', 'extrachill-studio' ),
+		preview: __( 'Chat with the Studio agent to manage the platform.', 'extrachill-studio' ),
+	},
+	{
 		id: 'qr-codes',
 		pane: 'qr-codes',
 		label: __( 'QR Codes', 'extrachill-studio' ),

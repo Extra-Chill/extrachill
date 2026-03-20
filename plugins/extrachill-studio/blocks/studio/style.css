@@ -346,6 +346,57 @@
 	color: var(--link-color);
 }
 
+/* ============================================
+   Chat Pane
+   ============================================ */
+
+.ec-studio-pane--chat {
+	display: flex;
+	flex-direction: column;
+}
+
+.ec-studio-pane--chat .ec-chat {
+	--ec-chat-bg: var(--background-color);
+	--ec-chat-text: var(--text-color);
+	--ec-chat-text-muted: var(--muted-text);
+	--ec-chat-border: var(--border-color);
+	--ec-chat-user-bg: var(--accent);
+	--ec-chat-user-text: var(--background-color);
+	--ec-chat-assistant-bg: var(--card-background);
+	--ec-chat-assistant-text: var(--text-color);
+	--ec-chat-input-bg: var(--background-color);
+	--ec-chat-input-border: var(--border-color);
+	--ec-chat-input-focus-border: var(--accent);
+	--ec-chat-send-bg: var(--accent);
+	--ec-chat-send-text: var(--background-color);
+	--ec-chat-tool-bg: var(--card-background);
+	--ec-chat-tool-border: var(--border-color);
+	--ec-chat-session-active-bg: var(--card-background);
+	--ec-chat-session-hover-bg: var(--card-background);
+	--ec-chat-font-family: var(--font-family-body);
+	--ec-chat-border-radius: var(--border-radius-md);
+
+	min-height: 500px;
+	max-height: 70vh;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	overflow: hidden;
+}
+
+.ec-studio-chat-empty {
+	text-align: center;
+}
+
+.ec-studio-chat-empty h3 {
+	margin: 0 0 var(--spacing-xs);
+	font-family: var(--font-family-heading);
+}
+
+.ec-studio-chat-empty p {
+	margin: 0;
+	color: var(--muted-text);
+}
+
 @media (max-width: 768px) {
 	.ec-studio-card,
 	.ec-studio-shell {
@@ -354,5 +405,10 @@
 
 	.ec-studio-roadmap li {
 		flex-direction: column;
+	}
+
+	.ec-studio-pane--chat .ec-chat {
+		min-height: 400px;
+		max-height: 60vh;
 	}
 }

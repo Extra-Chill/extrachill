@@ -10,6 +10,7 @@
 		"copy:block-files": "cp blocks/studio/block.json blocks/studio/render.php blocks/studio/style.css dist/studio/"
 	},
 	"dependencies": {
+		"@extrachill/chat": "file:../chat",
 		"@extrachill/components": "file:../extrachill-components",
 		"@extrachill/tokens": "^0.1.0"
 	},
