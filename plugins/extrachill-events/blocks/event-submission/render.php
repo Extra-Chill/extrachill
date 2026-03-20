@@ -161,7 +161,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 			<div class="ec-event-submission__turnstile">
 				<?php
 				if ( function_exists( 'ec_render_turnstile_widget' ) ) {
-					echo wp_kses_post( ec_render_turnstile_widget() );
+					echo wp_kses_post( ec_render_turnstile_widget( array( 'data-appearance' => 'always' ) ) );
 				} else {
 					esc_html_e( 'Security challenge unavailable. Please contact support.', 'data-machine-events' );
 				}
