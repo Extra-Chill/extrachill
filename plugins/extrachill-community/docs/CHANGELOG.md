@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.18] - 2026-03-20
+
+### Changed
+- Rewrite leaderboard block as headless React/TypeScript with tokens
+
 ## [1.3.17] - 2026-03-20
 
 ### Changed
