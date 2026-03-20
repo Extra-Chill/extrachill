@@ -14,7 +14,7 @@ import {
 	deleteMedia,
 } from '../shared/api/client';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
-import TabNav from '../shared/components/TabNav';
+import { Tabs } from '@extrachill/components';
 
 const isValidEmail = (email) => {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -614,7 +614,7 @@ const App = () => {
 
 			{loading && <p>Loading artist…</p>}
 
-			<TabNav tabs={tabs} active={activeTab} onChange={setActiveTab} classPrefix="ec-am" />
+			<Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} classPrefix="ec-am" />
 
 			{activeTab === 'info' && (
 				<InfoTab

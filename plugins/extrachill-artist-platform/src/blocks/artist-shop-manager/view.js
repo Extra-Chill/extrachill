@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from '@wordpress/element';
 import { render } from '@wordpress/element';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
-import TabNav from '../shared/components/TabNav';
+import { Tabs } from '@extrachill/components';
 import OrdersTab from './components/tabs/OrdersTab';
 import PaymentsTab from './components/tabs/PaymentsTab';
 import ProductsTab from './components/tabs/ProductsTab';
@@ -260,7 +260,7 @@ const App = () => {
 				</div>
 			</div>
 
-			<TabNav tabs={ tabs } active={ activeTab } onChange={ setActiveTab } classPrefix="ec-asm" />
+			<Tabs tabs={ tabs } active={ activeTab } onChange={ setActiveTab } classPrefix="ec-asm" />
 
 			{ activeTab === 'products' && (
 				<ProductsTab
