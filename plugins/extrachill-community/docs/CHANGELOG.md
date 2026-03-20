@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.17] - 2026-03-20
+
+### Changed
+- Migrate leaderboard block to @extrachill/api-client
+
 ## [1.3.16] - 2026-03-20
 
 ### Changed
