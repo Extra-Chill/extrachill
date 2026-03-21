@@ -124,7 +124,7 @@ class VenueDiscoveryCommand {
 		WP_CLI::log( '' );
 		if ( $with_website > 0 ) {
 			WP_CLI::log( sprintf( '%d new venues have websites — qualify them with:', $with_website ) );
-			WP_CLI::log( '  wp extrachill venues qualify --url=<website>' );
+			WP_CLI::log( '  wp extrachill venues qualify "<website>"' );
 		}
 	}
 
