@@ -44,23 +44,18 @@ class VenueQualificationAbilities {
 	);
 
 	/**
-	 * Patterns indicating Ticketmaster / Live Nation / AEG venue.
+	 * Patterns indicating Ticketmaster / Live Nation venue.
 	 *
 	 * If ANY of these are found in the homepage HTML (or a redirect lands on
 	 * one of these domains), the venue is disqualified because it is already
 	 * covered by the dedicated Ticketmaster pipeline flow.
+	 *
+	 * NOTE: AEG/AXS venues are NOT disqualified — we have a dedicated
+	 * AegAxsExtractor that scrapes their structured JSON feeds.
 	 */
 	private const TICKETMASTER_PATTERNS = array(
-		// Domains — redirects or links.
 		'ticketmaster.com',
 		'livenation.com',
-		// AEG Presents CDN / identifiers.
-		'aegwebprod.blob.core.windows.net',
-		'(888) 226-0076',
-		'aegpresents.com',
-		'aegworldwide.com',
-		// AXS is AEG's ticketing platform.
-		'axs.com',
 	);
 
 	/**
@@ -163,7 +158,7 @@ class VenueQualificationAbilities {
 		$parsed = wp_parse_url( $url );
 		$origin = ( $parsed['scheme'] ?? 'https' ) . '://' . ( $parsed['host'] ?? '' );
 
-		// Pre-check: disqualify Ticketmaster / Live Nation / AEG venues.
+		// Pre-check: disqualify Ticketmaster / Live Nation venues.
 		$tm_check = $this->checkTicketmasterVenue( $url );
 		if ( $tm_check['disqualified'] ) {
 			return array(
@@ -252,10 +247,10 @@ class VenueQualificationAbilities {
 	}
 
 	/**
-	 * Check whether a venue URL belongs to Ticketmaster, Live Nation, or AEG.
+	 * Check whether a venue URL belongs to Ticketmaster or Live Nation.
 	 *
 	 * Fetches the homepage and inspects both the final URL (after redirects)
-	 * and the HTML body for known TM/LN/AEG patterns. If any pattern matches,
+	 * and the HTML body for known TM/LN patterns. If any pattern matches,
 	 * the venue is disqualified because it is already covered by the dedicated
 	 * Ticketmaster pipeline flow.
 	 *
