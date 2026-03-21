@@ -150,12 +150,22 @@ class CityAbilities {
 		// Derive a short city label (e.g. "Nashville" from "Nashville, TN").
 		$city_label = $this->deriveCityLabel( $city_name );
 
-		// Derive the location taxonomy term (matches existing pattern).
-		$location_term = $city_label;
-
 		// Step 1b: Check for idempotency — does this city already have a pipeline?
 		$pipeline_name     = $city_label . ' Events';
 		$existing_pipeline = $this->findExistingPipeline( $pipeline_name );
+
+		// If pipeline name collides and this is a different state, disambiguate.
+		// e.g. "Portland Events" exists (OR) → use "Portland ME Events" instead.
+		if ( $existing_pipeline && ! empty( $input['force'] ) && ! empty( $state_name ) ) {
+			$state_abbr            = $this->deriveStateAbbreviation( $city_name );
+			$disambiguated_name    = $city_label . ' ' . $state_abbr . ' Events';
+			$existing_disambiguated = $this->findExistingPipeline( $disambiguated_name );
+
+			if ( ! $existing_disambiguated ) {
+				$pipeline_name     = $disambiguated_name;
+				$existing_pipeline = null; // No longer a collision.
+			}
+		}
 
 		if ( $dry_run ) {
 			$preview = array(
@@ -213,7 +223,11 @@ class CityAbilities {
 		}
 
 		// Step 1c: Ensure the location taxonomy term exists (nested under state/country).
-		$this->ensureLocationTerm( $city_label, $state_name, $country_name );
+		$location_term_id = $this->ensureLocationTerm( $city_label, $state_name, $country_name );
+
+		// Use term ID for flow configs to avoid ambiguity with duplicate city names
+		// (e.g. Portland OR vs Portland ME, Charleston SC vs Charleston WV).
+		$location_term = $location_term_id ? (string) $location_term_id : $city_label;
 
 		// Step 2: Create the pipeline.
 		$pipeline_ability = wp_get_ability( 'datamachine/create-pipeline' );
@@ -360,12 +374,43 @@ class CityAbilities {
 		if ( $existing ) {
 			$term_id = is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
 
-			// If the term exists but at the wrong parent, re-parent it.
 			if ( $parent_id ) {
 				$term = get_term( $term_id, 'location' );
 				if ( $term && ! is_wp_error( $term ) && (int) $term->parent !== $parent_id ) {
-					wp_update_term( $term_id, 'location', array( 'parent' => $parent_id ) );
+					// Term exists under a DIFFERENT parent (e.g. "Portland" under Oregon).
+					// Do NOT re-parent — create a new term with a disambiguated slug.
+					$parent_term = get_term( $parent_id, 'location' );
+					$state_abbr  = $parent_term && ! is_wp_error( $parent_term )
+						? sanitize_title( $parent_term->name )
+						: (string) $parent_id;
+
+					$disambiguated_slug = sanitize_title( $city_label ) . '-' . $state_abbr;
+
+					$result = wp_insert_term(
+						$city_label,
+						'location',
+						array(
+							'parent' => $parent_id,
+							'slug'   => $disambiguated_slug,
+						)
+					);
+
+					if ( is_wp_error( $result ) ) {
+						// Slug collision — term may already exist with this slug.
+						$existing_disambiguated = get_term_by( 'slug', $disambiguated_slug, 'location' );
+						if ( $existing_disambiguated ) {
+							return (int) $existing_disambiguated->term_id;
+						}
+						return null;
+					}
+
+					return (int) $result['term_id'];
 				}
+			}
+
+			// Term exists at root or under the correct parent — re-parent if orphaned.
+			if ( $parent_id && 0 === (int) $term->parent ) {
+				wp_update_term( $term_id, 'location', array( 'parent' => $parent_id ) );
 			}
 
 			return $term_id;
@@ -458,6 +503,20 @@ class CityAbilities {
 	private function deriveCityLabel( string $city_name ): string {
 		$parts = explode( ',', $city_name );
 		return trim( $parts[0] );
+	}
+
+	/**
+	 * Derive a state abbreviation from a "City, ST" input string.
+	 *
+	 * @param string $city_name Input like "Portland, ME" or "Charleston, WV".
+	 * @return string State abbreviation (e.g. "ME", "WV"), or empty string.
+	 */
+	private function deriveStateAbbreviation( string $city_name ): string {
+		$parts = explode( ',', $city_name );
+		if ( count( $parts ) < 2 ) {
+			return '';
+		}
+		return strtoupper( trim( $parts[1] ) );
 	}
 
 	/**
