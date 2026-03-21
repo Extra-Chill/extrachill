@@ -493,8 +493,12 @@ export interface SocialPlatformConfig {
   defaultAspectRatio?: string;
   charLimit?: number;
   supportsCarousel?: boolean;
+  supportsVideo?: boolean;
+  supportedMediaKinds?: string[];
   type?: string;
   scopes?: string;
+  authenticated: boolean;
+  username: string | null;
 }
 
 export type SocialPlatformsResponse = Record<string, SocialPlatformConfig>;
