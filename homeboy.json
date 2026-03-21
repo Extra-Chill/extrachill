@@ -4,7 +4,7 @@
     "wordpress": {}
   },
   "id": "extrachill-theme",
-  "remote_path": "wp-content/themes/extrachill-theme",
+  "remote_path": "wp-content/themes/extrachill",
   "version_targets": [
     {
       "file": "style.css",
