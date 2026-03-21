@@ -8,6 +8,12 @@ export const getStudioTabs = () => [
 		preview: __( 'Team-gated Studio shell with tabbed workspace.', 'extrachill-studio' ),
 	},
 	{
+		id: 'compose',
+		pane: 'compose',
+		label: __( 'Compose', 'extrachill-studio' ),
+		preview: __( 'Write posts with the block editor — no wp-admin required.', 'extrachill-studio' ),
+	},
+	{
 		id: 'chat',
 		pane: 'chat',
 		label: __( 'Chat', 'extrachill-studio' ),

@@ -31,6 +31,7 @@ define( 'EXTRACHILL_STUDIO_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/assets.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/social-drafts.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose-editor.php';
 
 register_activation_hook( __FILE__, 'extrachill_studio_activate' );
 register_deactivation_hook( __FILE__, 'extrachill_studio_deactivate' );

@@ -28,9 +28,10 @@ const OverviewPane = ( { context } ) => createElement(
 			createElement(
 				'ul',
 				null,
+				createElement( 'li', null, __( 'Compose posts with the full block editor — no wp-admin required.', 'extrachill-studio' ) ),
 				createElement( 'li', null, __( 'Generate print-ready QR codes from any URL.', 'extrachill-studio' ) ),
 				createElement( 'li', null, __( 'Manage social platforms with live auth status from Data Machine Socials.', 'extrachill-studio' ) ),
-				createElement( 'li', null, __( 'Publish to connected social platforms using the cross-post workflow.', 'extrachill-studio' ) )
+				createElement( 'li', null, __( 'Submit social posts for admin review before cross-posting.', 'extrachill-studio' ) )
 			)
 		)
 	)
