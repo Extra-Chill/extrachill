@@ -5,37 +5,63 @@ import { studioClient } from '../../app/client';
 import InstagramPane from './instagram';
 
 const SocialsPane = () => {
-	const [ authStatuses, setAuthStatuses ] = useState( [] );
-	const [ authError, setAuthError ] = useState( '' );
-	const [ isCheckingAuth, setIsCheckingAuth ] = useState( true );
+	const [ platforms, setPlatforms ] = useState( {} );
+	const [ error, setError ] = useState( '' );
+	const [ isLoading, setIsLoading ] = useState( true );
 
 	useEffect( () => {
-		const loadAuthStatus = async () => {
-			setIsCheckingAuth( true );
-			setAuthError( '' );
+		const loadPlatforms = async () => {
+			setIsLoading( true );
+			setError( '' );
 
 			try {
-				const statuses = await studioClient.socials.getAuthStatus();
-				setAuthStatuses( Array.isArray( statuses ) ? statuses : [] );
+				const data = await studioClient.socials.getPlatforms();
+				setPlatforms( data && typeof data === 'object' ? data : {} );
 			} catch ( fetchError ) {
-				setAuthStatuses( [] );
-				setAuthError( fetchError?.message || __( 'Unable to load Instagram auth status.', 'extrachill-studio' ) );
+				setPlatforms( {} );
+				setError( fetchError?.message || __( 'Unable to load social platforms.', 'extrachill-studio' ) );
 			} finally {
-				setIsCheckingAuth( false );
+				setIsLoading( false );
 			}
 		};
 
-		loadAuthStatus();
+		loadPlatforms();
 	}, [] );
 
-	const connectedPlatforms = authStatuses.filter( ( statusItem ) => statusItem.authenticated );
-	const availablePlatforms = authStatuses.length > 0 ? authStatuses : [
-		{ platform: 'instagram', authenticated: false, username: null },
-		{ platform: 'threads', authenticated: false, username: null },
-		{ platform: 'facebook', authenticated: false, username: null },
-		{ platform: 'bluesky', authenticated: false, username: null },
-		{ platform: 'pinterest', authenticated: false, username: null },
-	];
+	const availablePlatforms = Object.entries( platforms ).map( ( [ slug, config ] ) => ( {
+		slug,
+		label: config?.label || slug,
+		authenticated: config?.authenticated || false,
+		username: config?.username || null,
+		type: config?.type || 'publish',
+	} ) );
+
+	const connectedPlatforms = availablePlatforms.filter( ( item ) => item.authenticated );
+	const publishPlatforms = availablePlatforms.filter( ( item ) => item.type !== 'fetch' );
+
+	if ( isLoading ) {
+		return createElement(
+			'div',
+			{ className: 'ec-studio-pane ec-studio-pane--socials' },
+			createElement(
+				'div',
+				{ className: 'ec-studio-panel' },
+				createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Loading social platforms…', 'extrachill-studio' ) )
+			)
+		);
+	}
+
+	if ( error ) {
+		return createElement(
+			'div',
+			{ className: 'ec-studio-pane ec-studio-pane--socials' },
+			createElement(
+				'div',
+				{ className: 'ec-studio-panel' },
+				createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, error )
+			)
+		);
+	}
 
 	return createElement(
 		'div',
@@ -47,21 +73,28 @@ const SocialsPane = () => {
 				'div',
 				{ className: 'ec-studio-panel' },
 				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Socials overview', 'extrachill-studio' ) ),
-				createElement( 'h3', null, __( 'Studio treats socials as one app area', 'extrachill-studio' ) ),
-				createElement( 'p', null, __( 'The Studio block stays whole while each social workflow remains modular inside it. Instagram is the first live path, and the rest can slot in here next.', 'extrachill-studio' ) ),
+				createElement( 'h3', null, sprintf( __( '%d platforms available', 'extrachill-studio' ), publishPlatforms.length ) ),
+				createElement( 'p', null, sprintf( __( '%d connected, %d publish-capable. Platform list is driven by Data Machine Socials — new platforms appear here automatically.', 'extrachill-studio' ), connectedPlatforms.length, publishPlatforms.length ) ),
 				createElement(
 					'ul',
 					{ className: 'ec-studio-social-platforms' },
-					...availablePlatforms.map( ( statusItem ) => createElement(
+					...availablePlatforms.map( ( item ) => createElement(
 						'li',
-						{ key: statusItem.platform, className: 'ec-studio-social-platforms__item' },
-						createElement( 'span', { className: 'ec-studio-social-platforms__name' }, statusItem.platform ),
+						{ key: item.slug, className: 'ec-studio-social-platforms__item' },
 						createElement(
 							'span',
-							{ className: `ec-studio-social-platforms__status ${ statusItem.authenticated ? 'is-connected' : 'is-disconnected' }` },
-							statusItem.authenticated
-								? sprintf( __( 'Connected as @%s', 'extrachill-studio' ), statusItem.username || 'unknown' )
-								: __( 'Not connected yet', 'extrachill-studio' )
+							{ className: 'ec-studio-social-platforms__name' },
+							item.label,
+							item.type === 'fetch'
+								? createElement( 'span', { className: 'ec-studio-social-platforms__badge' }, __( 'read-only', 'extrachill-studio' ) )
+								: null
+						),
+						createElement(
+							'span',
+							{ className: `ec-studio-social-platforms__status ${ item.authenticated ? 'is-connected' : 'is-disconnected' }` },
+							item.authenticated
+								? sprintf( __( 'Connected as @%s', 'extrachill-studio' ), item.username || 'unknown' )
+								: __( 'Not connected', 'extrachill-studio' )
 						)
 					) )
 				)
@@ -69,15 +102,15 @@ const SocialsPane = () => {
 			createElement(
 				'div',
 				{ className: 'ec-studio-panel' },
-				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Current focus', 'extrachill-studio' ) ),
-				createElement( 'h3', null, __( 'Instagram is the first live workflow', 'extrachill-studio' ) ),
-				createElement( 'p', null, __( 'The backend is already authenticated and ready, so this tab focuses on getting the first real operator flow in place before expanding to other networks.', 'extrachill-studio' ) ),
+				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Status', 'extrachill-studio' ) ),
+				createElement( 'h3', null, __( 'Active workflows', 'extrachill-studio' ) ),
+				createElement( 'p', null, __( 'Each connected platform can have its own publishing workflow inside this tab. Instagram is live now — additional platform panes slot in here as they ship.', 'extrachill-studio' ) ),
 				createElement(
 					'ul',
 					null,
-					createElement( 'li', null, sprintf( __( '%d connected platform(s) detected.', 'extrachill-studio' ), connectedPlatforms.length ) ),
-					createElement( 'li', null, __( 'Instagram publishing is wired now.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Additional platform panes can be added here without splitting the Studio block apart.', 'extrachill-studio' ) )
+					createElement( 'li', null, sprintf( __( '%d of %d platform(s) connected.', 'extrachill-studio' ), connectedPlatforms.length, availablePlatforms.length ) ),
+					createElement( 'li', null, __( 'Instagram publishing is live.', 'extrachill-studio' ) ),
+					createElement( 'li', null, __( 'Cross-posting uses the datamachine-socials/v1/post endpoint.', 'extrachill-studio' ) )
 				)
 			)
 		),

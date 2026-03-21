@@ -334,8 +334,19 @@
 }
 
 .ec-studio-social-platforms__name {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
 	font-weight: 700;
-	text-transform: capitalize;
+}
+
+.ec-studio-social-platforms__badge {
+	font-size: var(--font-size-xs, 0.7rem);
+	font-weight: 400;
+	color: var(--muted-text);
+	padding: 1px 6px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 3px);
 }
 
 .ec-studio-social-platforms__status {

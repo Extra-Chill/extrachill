@@ -32,9 +32,9 @@ const InstagramPane = () => {
 			setAuthError( '' );
 
 			try {
-				const statuses = await studioClient.socials.getAuthStatus();
-				const instagram = Array.isArray( statuses )
-					? statuses.find( ( item ) => item.platform === 'instagram' )
+				const platforms = await studioClient.socials.getPlatforms();
+				const instagram = platforms?.instagram
+					? { platform: 'instagram', authenticated: platforms.instagram.authenticated || false, username: platforms.instagram.username || null }
 					: null;
 
 				setAuthStatus( instagram || null );

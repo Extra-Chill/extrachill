@@ -29,8 +29,8 @@ const OverviewPane = ( { context } ) => createElement(
 				'ul',
 				null,
 				createElement( 'li', null, __( 'Generate print-ready QR codes from any URL.', 'extrachill-studio' ) ),
-				createElement( 'li', null, __( 'Upload image files for Instagram posting through Data Machine Socials.', 'extrachill-studio' ) ),
-				createElement( 'li', null, __( 'Publish an Instagram post with caption and image URLs using the existing socials backend.', 'extrachill-studio' ) )
+				createElement( 'li', null, __( 'Manage social platforms with live auth status from Data Machine Socials.', 'extrachill-studio' ) ),
+				createElement( 'li', null, __( 'Publish to connected social platforms using the cross-post workflow.', 'extrachill-studio' ) )
 			)
 		)
 	)
