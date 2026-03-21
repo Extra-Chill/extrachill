@@ -44,6 +44,26 @@ class VenueQualificationAbilities {
 	);
 
 	/**
+	 * Patterns indicating Ticketmaster / Live Nation / AEG venue.
+	 *
+	 * If ANY of these are found in the homepage HTML (or a redirect lands on
+	 * one of these domains), the venue is disqualified because it is already
+	 * covered by the dedicated Ticketmaster pipeline flow.
+	 */
+	private const TICKETMASTER_PATTERNS = array(
+		// Domains — redirects or links.
+		'ticketmaster.com',
+		'livenation.com',
+		// AEG Presents CDN / identifiers.
+		'aegwebprod.blob.core.windows.net',
+		'(888) 226-0076',
+		'aegpresents.com',
+		'aegworldwide.com',
+		// AXS is AEG's ticketing platform.
+		'axs.com',
+	);
+
+	/**
 	 * Keywords that indicate an events page link in navigation.
 	 */
 	private const LINK_KEYWORDS = array(
@@ -143,6 +163,19 @@ class VenueQualificationAbilities {
 		$parsed = wp_parse_url( $url );
 		$origin = ( $parsed['scheme'] ?? 'https' ) . '://' . ( $parsed['host'] ?? '' );
 
+		// Pre-check: disqualify Ticketmaster / Live Nation / AEG venues.
+		$tm_check = $this->checkTicketmasterVenue( $url );
+		if ( $tm_check['disqualified'] ) {
+			return array(
+				'qualified'  => false,
+				'events_url' => '',
+				'method'     => 'ticketmaster_precheck',
+				'name'       => $name,
+				'reason'     => $tm_check['reason'],
+				'warnings'   => array( $tm_check['reason'] ),
+			);
+		}
+
 		$urls_tested = array();
 
 		// Strategy 1: Test the given URL directly with the real scraper.
@@ -216,6 +249,106 @@ class VenueQualificationAbilities {
 			'urls_tested'  => $urls_tested,
 			'warnings'     => array( 'Scraper could not extract events from any discovered URL.' ),
 		);
+	}
+
+	/**
+	 * Check whether a venue URL belongs to Ticketmaster, Live Nation, or AEG.
+	 *
+	 * Fetches the homepage and inspects both the final URL (after redirects)
+	 * and the HTML body for known TM/LN/AEG patterns. If any pattern matches,
+	 * the venue is disqualified because it is already covered by the dedicated
+	 * Ticketmaster pipeline flow.
+	 *
+	 * @param string $url Venue homepage URL.
+	 * @return array { disqualified: bool, reason: string, matched: string }
+	 */
+	private function checkTicketmasterVenue( string $url ): array {
+		$not_tm = array( 'disqualified' => false, 'reason' => '', 'matched' => '' );
+
+		// Quick domain-level check before even fetching.
+		$host = strtolower( wp_parse_url( $url, PHP_URL_HOST ) ?? '' );
+		foreach ( self::TICKETMASTER_PATTERNS as $pattern ) {
+			if ( str_contains( $host, $pattern ) ) {
+				return array(
+					'disqualified' => true,
+					'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
+					'matched'      => $pattern . ' (in URL host)',
+				);
+			}
+		}
+
+		// Fetch the page, following redirects, so we can inspect the final URL
+		// and the HTML body.
+		$response = wp_remote_get( $url, array(
+			'timeout'     => 10,
+			'redirection' => 5,
+			'user-agent'  => 'Mozilla/5.0 (compatible; ExtraChillBot/1.0; +https://extrachill.com)',
+			'headers'     => array( 'Accept' => 'text/html' ),
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			return $not_tm;
+		}
+
+		// Check if redirect landed on a TM/LN domain.
+		$final_url  = wp_remote_retrieve_header( $response, 'x-redirect-by' );
+		$response_url = $response['http_response']->get_response_object()->url ?? '';
+		$urls_to_check = array_filter( array( $final_url, $response_url ) );
+
+		foreach ( $urls_to_check as $check_url ) {
+			$check_host = strtolower( wp_parse_url( $check_url, PHP_URL_HOST ) ?? '' );
+			foreach ( self::TICKETMASTER_PATTERNS as $pattern ) {
+				if ( str_contains( $check_host, $pattern ) ) {
+					return array(
+						'disqualified' => true,
+						'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
+						'matched'      => $pattern . ' (redirect destination)',
+					);
+				}
+			}
+		}
+
+		// Inspect the HTML body.
+		$html = strtolower( wp_remote_retrieve_body( $response ) );
+		if ( empty( $html ) ) {
+			return $not_tm;
+		}
+
+		foreach ( self::TICKETMASTER_PATTERNS as $pattern ) {
+			if ( str_contains( $html, strtolower( $pattern ) ) ) {
+				return array(
+					'disqualified' => true,
+					'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
+					'matched'      => $pattern . ' (in page HTML)',
+				);
+			}
+		}
+
+		// Extra checks: TM iframes and event/venue links.
+		$tm_link_patterns = array(
+			'ticketmaster.com/event/',
+			'ticketmaster.com/venue/',
+		);
+		foreach ( $tm_link_patterns as $link_pattern ) {
+			if ( str_contains( $html, $link_pattern ) ) {
+				return array(
+					'disqualified' => true,
+					'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
+					'matched'      => $link_pattern . ' (link in HTML)',
+				);
+			}
+		}
+
+		// Check for TM embedded widgets (iframes with ticketmaster.com in src).
+		if ( preg_match( '/<iframe[^>]+src=["\'][^"\']*ticketmaster\.com[^"\']*["\'][^>]*>/i', wp_remote_retrieve_body( $response ) ) ) {
+			return array(
+				'disqualified' => true,
+				'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
+				'matched'      => 'ticketmaster.com iframe widget',
+			);
+		}
+
+		return $not_tm;
 	}
 
 	/**
