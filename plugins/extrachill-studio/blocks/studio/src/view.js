@@ -1,5 +1,5 @@
 import { createElement, useState } from '@wordpress/element';
-import { Tabs } from '@extrachill/components';
+import Tabs from '@extrachill/components/components/Tabs';
 import '@extrachill/components/styles/components.scss';
 import '@extrachill/chat/css';
 
