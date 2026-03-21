@@ -24,7 +24,6 @@ const client = new ExtraChillClient(
 );
 
 const artist = await client.artists.getArtist(42);
-const feed = await client.activity.getFeed();
 const events = await client.events.calendar({ venue: 'continental-club' });
 ```
 
@@ -76,7 +75,6 @@ ExtraChillClient
     ├── shop       products, orders, Stripe Connect, shipping
     ├── users      search, leaderboard, onboarding
     ├── admin      access requests, memberships, team, QR codes
-    ├── activity   feed, object hydration
     └── seo        config, audits
 ```
 
@@ -99,7 +97,6 @@ import type {
   CalendarEvent,
   LoginResponse,
   ShopProduct,
-  ActivityItem,
 } from '@extrachill/api-client';
 ```
 

@@ -31,7 +31,6 @@ import { MediaResource } from './resources/media';
 import { ShopResource } from './resources/shop';
 import { UsersResource } from './resources/users';
 import { AdminResource } from './resources/admin';
-import { ActivityResource } from './resources/activity';
 import { SeoResource } from './resources/seo';
 import { SocialsResource } from './resources/socials';
 
@@ -48,7 +47,6 @@ export class ExtraChillClient {
   readonly shop: ShopResource;
   readonly users: UsersResource;
   readonly admin: AdminResource;
-  readonly activity: ActivityResource;
   readonly seo: SeoResource;
   readonly socials: SocialsResource;
 
@@ -65,7 +63,6 @@ export class ExtraChillClient {
     this.shop = new ShopResource(transport);
     this.users = new UsersResource(transport);
     this.admin = new AdminResource(transport);
-    this.activity = new ActivityResource(transport);
     this.seo = new SeoResource(transport);
     this.socials = new SocialsResource(transport);
   }

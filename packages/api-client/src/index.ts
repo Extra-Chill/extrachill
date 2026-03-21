@@ -51,7 +51,6 @@ export { MediaResource } from './resources/media';
 export { ShopResource } from './resources/shop';
 export { UsersResource } from './resources/users';
 export { AdminResource } from './resources/admin';
-export { ActivityResource } from './resources/activity';
 export { SeoResource } from './resources/seo';
 export { SocialsResource } from './resources/socials';
 
