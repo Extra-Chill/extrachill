@@ -27,16 +27,6 @@ if ( ! defined( 'EXTRACHILL_API_URL' ) ) {
     define( 'EXTRACHILL_API_URL', plugin_dir_url( __FILE__ ) );
 }
 
-register_activation_hook( __FILE__, 'extrachill_api_activate' );
-
-function extrachill_api_activate() {
-    require_once EXTRACHILL_API_PATH . 'inc/activity/db.php';
-
-    if ( function_exists( 'extrachill_api_activity_install_table' ) ) {
-        extrachill_api_activity_install_table();
-    }
-}
-
 final class ExtraChill_API_Plugin {
     /**
      * Singleton instance storage.
@@ -75,20 +65,6 @@ final class ExtraChill_API_Plugin {
         require_once EXTRACHILL_API_PATH . 'inc/utils/id-generator.php';
         require_once EXTRACHILL_API_PATH . 'inc/utils/bbpress-drafts.php';
 
-		if ( file_exists( EXTRACHILL_API_PATH . 'inc/activity/db.php' ) ) {
-			require_once EXTRACHILL_API_PATH . 'inc/activity/db.php';
-			require_once EXTRACHILL_API_PATH . 'inc/activity/schema.php';
-			require_once EXTRACHILL_API_PATH . 'inc/activity/storage.php';
-			require_once EXTRACHILL_API_PATH . 'inc/activity/taxonomies.php';
-			require_once EXTRACHILL_API_PATH . 'inc/activity/throttle.php';
-			require_once EXTRACHILL_API_PATH . 'inc/activity/emitter.php';
-			require_once EXTRACHILL_API_PATH . 'inc/activity/emitters.php';
-
-			// Ensure activity table exists (network activation doesn't trigger activation hook)
-			$this->maybe_create_activity_table();
-		}
-
-
         do_action( 'extrachill_api_bootstrap' );
     }
 
@@ -120,25 +96,6 @@ final class ExtraChill_API_Plugin {
      */
     public function register_routes() {
         do_action( 'extrachill_api_register_routes' );
-    }
-
-    /**
-     * Creates activity table if it doesn't exist.
-     * Failsafe for network activation which doesn't trigger activation hooks.
-     */
-    private function maybe_create_activity_table() {
-        global $wpdb;
-
-        $table_name = extrachill_api_activity_get_table_name();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-        $table_exists = $wpdb->get_var(
-            $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name )
-        );
-
-        if ( $table_exists !== $table_name ) {
-            extrachill_api_activity_install_table();
-        }
     }
 }
 
