@@ -1,6 +1,7 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useState } from '@wordpress/element';
 
+import apiFetch from '@wordpress/api-fetch';
 import { studioClient, studioSocialsApi, uploadStudioFile } from '../../../app/client';
 
 const InstagramPane = () => {
@@ -198,6 +199,55 @@ const InstagramPane = () => {
 		}
 	};
 
+	const submitForReview = async () => {
+		if ( ! caption.trim() ) {
+			setError( __( 'Add a caption before submitting.', 'extrachill-studio' ) );
+			setStatus( '' );
+			return;
+		}
+
+		if ( imageUrls.length === 0 ) {
+			setError( __( 'Add at least one image before submitting.', 'extrachill-studio' ) );
+			setStatus( '' );
+			return;
+		}
+
+		setIsPublishing( true );
+		setError( '' );
+		setStatus( __( 'Submitting for review…', 'extrachill-studio' ) );
+
+		try {
+			const post = await apiFetch( {
+				path: '/wp/v2/posts',
+				method: 'POST',
+				data: {
+					title: caption.trim().substring( 0, 80 ) + ( caption.trim().length > 80 ? '…' : '' ),
+					content: caption.trim(),
+					status: 'pending',
+					meta: {
+						_studio_social_platforms: [ 'instagram' ],
+						_studio_social_caption: caption.trim(),
+						_studio_social_images: imageUrls.map( ( url ) => ( { url } ) ),
+						_studio_social_aspect_ratio: '4:5',
+						_studio_social_media_kind: imageUrls.length > 1 ? 'carousel' : 'image',
+					},
+				},
+			} );
+
+			setStatus(
+				/* translators: %d: post ID */
+				sprintf( __( 'Draft #%d submitted for review. An admin will approve it before it goes live.', 'extrachill-studio' ), post.id )
+			);
+			setCaption( '' );
+			setImageUrls( [] );
+		} catch ( submitError ) {
+			setStatus( '' );
+			setError( submitError?.message || __( 'Failed to submit draft.', 'extrachill-studio' ) );
+		} finally {
+			setIsPublishing( false );
+		}
+	};
+
 	const instagramResult = Array.isArray( publishResult?.results )
 		? publishResult.results.find( ( result ) => result.platform === 'instagram' )
 		: null;
@@ -337,12 +387,22 @@ const InstagramPane = () => {
 						{
 							type: 'button',
 							className: 'button-1 button-medium',
+							onClick: submitForReview,
+							disabled: isPublishing,
+						},
+						isPublishing ? __( 'Submitting…', 'extrachill-studio' ) : __( 'Submit for Review', 'extrachill-studio' )
+					),
+					createElement(
+						'button',
+						{
+							type: 'button',
+							className: 'button-1 button-medium button-secondary',
 							onClick: publishInstagramPost,
 							disabled: isPublishing || ! authStatus?.authenticated,
 						},
-						isPublishing ? __( 'Publishing…', 'extrachill-studio' ) : __( 'Publish to Instagram', 'extrachill-studio' )
+						isPublishing ? __( 'Publishing…', 'extrachill-studio' ) : __( 'Publish Now', 'extrachill-studio' )
 					),
-					createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'This uses the existing `datamachine-socials/v1/post` route.', 'extrachill-studio' ) )
+					createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'Submit creates a draft for admin approval. Publish Now posts immediately.', 'extrachill-studio' ) )
 				)
 			)
 		),
