@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.8] - 2026-03-21
+
+### Changed
+- deprecate activity feed system entirely
+
 ## [0.11.7] - 2026-03-20
 
 ### Changed
