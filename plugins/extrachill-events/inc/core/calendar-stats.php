@@ -35,18 +35,26 @@ function extrachill_events_get_calendar_stats(): array {
 
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
 
-	// Use end_datetime (same as calendar pagination) so the count matches
-	// the "X of Y Events" shown in the results counter. An event is "upcoming"
-	// if its end time hasn't passed yet, even if the start time has.
+	// An event is "upcoming" if its start datetime is in the future, OR if it
+	// has an end datetime that hasn't passed yet (still ongoing). Most events
+	// don't have end_datetime meta (no real end time was provided), so we use
+	// start_datetime as the primary filter with an end_datetime fallback.
 	$now = current_time( 'mysql' );
+
+	// Upcoming = start >= now, OR end >= now (still in progress).
+	$upcoming_condition = "
+		JOIN {$meta_table} pm_start ON p.ID = pm_start.post_id AND pm_start.meta_key = '_datamachine_event_datetime'
+		LEFT JOIN {$meta_table} pm_end ON p.ID = pm_end.post_id AND pm_end.meta_key = '_datamachine_event_end_datetime'
+		WHERE p.post_type = 'data_machine_events' AND p.post_status = 'publish'
+		AND (pm_start.meta_value >= %s OR pm_end.meta_value >= %s)
+	";
 
 	$events = (int) $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT COUNT(DISTINCT p.ID)
 			FROM {$events_table} p
-			JOIN {$meta_table} pm ON p.ID = pm.post_id AND pm.meta_key = '_datamachine_event_end_datetime'
-			WHERE p.post_type = 'data_machine_events' AND p.post_status = 'publish'
-			AND pm.meta_value >= %s",
+			{$upcoming_condition}",
+			$now,
 			$now
 		)
 	);
@@ -55,11 +63,13 @@ function extrachill_events_get_calendar_stats(): array {
 		$wpdb->prepare(
 			"SELECT COUNT(DISTINCT tt.term_id)
 			FROM {$events_table} p
-			JOIN {$meta_table} pm ON p.ID = pm.post_id AND pm.meta_key = '_datamachine_event_end_datetime'
+			JOIN {$meta_table} pm_start ON p.ID = pm_start.post_id AND pm_start.meta_key = '_datamachine_event_datetime'
+			LEFT JOIN {$meta_table} pm_end ON p.ID = pm_end.post_id AND pm_end.meta_key = '_datamachine_event_end_datetime'
 			JOIN {$tr_table} tr ON p.ID = tr.object_id
 			JOIN {$tt_table} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id AND tt.taxonomy = 'venue'
 			WHERE p.post_type = 'data_machine_events' AND p.post_status = 'publish'
-			AND pm.meta_value >= %s",
+			AND (pm_start.meta_value >= %s OR pm_end.meta_value >= %s)",
+			$now,
 			$now
 		)
 	);
@@ -68,11 +78,13 @@ function extrachill_events_get_calendar_stats(): array {
 		$wpdb->prepare(
 			"SELECT COUNT(DISTINCT tt.term_id)
 			FROM {$events_table} p
-			JOIN {$meta_table} pm ON p.ID = pm.post_id AND pm.meta_key = '_datamachine_event_end_datetime'
+			JOIN {$meta_table} pm_start ON p.ID = pm_start.post_id AND pm_start.meta_key = '_datamachine_event_datetime'
+			LEFT JOIN {$meta_table} pm_end ON p.ID = pm_end.post_id AND pm_end.meta_key = '_datamachine_event_end_datetime'
 			JOIN {$tr_table} tr ON p.ID = tr.object_id
 			JOIN {$tt_table} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id AND tt.taxonomy = 'location'
 			WHERE p.post_type = 'data_machine_events' AND p.post_status = 'publish'
-			AND pm.meta_value >= %s",
+			AND (pm_start.meta_value >= %s OR pm_end.meta_value >= %s)",
+			$now,
 			$now
 		)
 	);
@@ -93,7 +105,7 @@ function extrachill_events_get_calendar_stats(): array {
 /**
  * Render the calendar stats line.
  *
- * Output: "2,771 events at 596 venues in 56 locations"
+ * Output: "25,318 upcoming events at 596 venues in 56 locations"
  */
 function extrachill_events_render_calendar_stats(): void {
 	$stats = extrachill_events_get_calendar_stats();
@@ -103,7 +115,7 @@ function extrachill_events_render_calendar_stats(): void {
 	}
 
 	printf(
-		'<p class="calendar-stats">%s events at %s venues in %s locations</p>',
+		'<p class="calendar-stats">%s upcoming events at %s venues in %s locations</p>',
 		esc_html( number_format( $stats['events'] ) ),
 		esc_html( number_format( $stats['venues'] ) ),
 		esc_html( number_format( $stats['locations'] ) )
