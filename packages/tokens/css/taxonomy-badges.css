@@ -4,7 +4,7 @@
  * Generated from @extrachill/tokens — DO NOT EDIT MANUALLY.
  * Source: tokens.json > categories > taxonomy-badge
  *
- * 122 badges across 5 taxonomies
+ * 134 badges across 5 taxonomies
  */
 
 /* === Festival Badges === */
@@ -447,6 +447,54 @@
 .taxonomy-badge.location-northampton {
     background-color: var(--badge-location-northampton-bg);
     color: var(--badge-location-northampton-text);
+}
+.taxonomy-badge.location-st-augustine {
+    background-color: var(--badge-location-st-augustine-bg);
+    color: var(--badge-location-st-augustine-text);
+}
+.taxonomy-badge.location-charlottesville {
+    background-color: var(--badge-location-charlottesville-bg);
+    color: var(--badge-location-charlottesville-text);
+}
+.taxonomy-badge.location-greensboro {
+    background-color: var(--badge-location-greensboro-bg);
+    color: var(--badge-location-greensboro-text);
+}
+.taxonomy-badge.location-roanoke {
+    background-color: var(--badge-location-roanoke-bg);
+    color: var(--badge-location-roanoke-text);
+}
+.taxonomy-badge.location-portsmouth {
+    background-color: var(--badge-location-portsmouth-bg);
+    color: var(--badge-location-portsmouth-text);
+}
+.taxonomy-badge.location-syracuse {
+    background-color: var(--badge-location-syracuse-bg);
+    color: var(--badge-location-syracuse-text);
+}
+.taxonomy-badge.location-bend {
+    background-color: var(--badge-location-bend-bg);
+    color: var(--badge-location-bend-text);
+}
+.taxonomy-badge.location-portland-me {
+    background-color: var(--badge-location-portland-me-bg);
+    color: var(--badge-location-portland-me-text);
+}
+.taxonomy-badge.location-hartford {
+    background-color: var(--badge-location-hartford-bg);
+    color: var(--badge-location-hartford-text);
+}
+.taxonomy-badge.location-charleston-wv {
+    background-color: var(--badge-location-charleston-wv-bg);
+    color: var(--badge-location-charleston-wv-text);
+}
+.taxonomy-badge.location-bethel {
+    background-color: var(--badge-location-bethel-bg);
+    color: var(--badge-location-bethel-text);
+}
+.taxonomy-badge.location-ionia {
+    background-color: var(--badge-location-ionia-bg);
+    color: var(--badge-location-ionia-text);
 }
 
 /* === Category Badges === */

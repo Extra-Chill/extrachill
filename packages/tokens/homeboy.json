@@ -1,3 +1,11 @@
 {
-  "id": "extrachill-tokens"
+  "auto_cleanup": false,
+  "changelog_target": "CHANGELOG.md",
+  "id": "extrachill-tokens",
+  "remote_path": "",
+  "version_targets": [
+    {
+      "file": "package.json"
+    }
+  ]
 }
