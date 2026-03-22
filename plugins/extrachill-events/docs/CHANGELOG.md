@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.14.2] - 2026-03-22
+
+### Changed
+- use DateFilter from data-machine-events for calendar stats
+- Include submission details in ephemeral workflow AI user_message
+- Add 'Tour Dates' header for artist taxonomy archives
+
+### Fixed
+- remove AEG/AXS from TM pre-qualify disqualification
+- disqualify Ticketmaster/Live Nation/AEG venues in qualify step (fixes #47)
+- calendar stats query uses start_datetime and adds 'upcoming' label
+- prevent ensureLocationTerm from re-parenting existing terms to wrong state
+
 ## [0.14.1] - 2026-03-20
 
 ### Changed
