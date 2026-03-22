@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.3] - 2026-03-22
+
+### Fixed
+- rename location-new-york badge to location-new-york-city
+
 ## [0.2.0] - 2026-03-06
 
 ### Changed

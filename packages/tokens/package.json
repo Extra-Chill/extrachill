@@ -1,6 +1,6 @@
 {
   "name": "@extrachill/tokens",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Design tokens for the Extra Chill platform — colors, typography, spacing, and more. Platform-agnostic primitive.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
