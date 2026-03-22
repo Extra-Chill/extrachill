@@ -509,6 +509,316 @@ class CommunityCommand {
 	}
 
 	/**
+	 * List topics in a forum or across all forums.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--forum_id=<forum_id>]
+	 * : Filter by forum ID.
+	 *
+	 * [--per_page=<per_page>]
+	 * : Topics per page.
+	 * ---
+	 * default: 20
+	 * ---
+	 *
+	 * [--page=<page>]
+	 * : Page number.
+	 * ---
+	 * default: 1
+	 * ---
+	 *
+	 * [--orderby=<orderby>]
+	 * : Order by: date, modified, title.
+	 * ---
+	 * default: date
+	 * ---
+	 *
+	 * [--order=<order>]
+	 * : Sort order: ASC or DESC.
+	 * ---
+	 * default: DESC
+	 * ---
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill community topics --url=community.extrachill.com
+	 *     wp extrachill community topics --forum_id=123 --url=community.extrachill.com
+	 *
+	 * @when after_wp_load
+	 */
+	public function topics( $args, $assoc_args ) {
+		$ability = wp_get_ability( 'extrachill/community-list-topics' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/community-list-topics ability not available. Is extrachill-community active on this site?' );
+		}
+
+		$format = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
+
+		$result = $ability->execute(
+			array(
+				'forum_id' => isset( $assoc_args['forum_id'] ) ? (int) $assoc_args['forum_id'] : 0,
+				'per_page' => isset( $assoc_args['per_page'] ) ? (int) $assoc_args['per_page'] : 20,
+				'page'     => isset( $assoc_args['page'] ) ? (int) $assoc_args['page'] : 1,
+				'orderby'  => isset( $assoc_args['orderby'] ) ? (string) $assoc_args['orderby'] : 'date',
+				'order'    => isset( $assoc_args['order'] ) ? (string) $assoc_args['order'] : 'DESC',
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::log( sprintf( 'Page %d of %d (%d total topics)', $result['page'], $result['pages'], $result['total'] ) );
+
+		if ( empty( $result['topics'] ) ) {
+			WP_CLI::log( 'No topics found.' );
+			return;
+		}
+
+		Utils\format_items( $format, $result['topics'], array( 'topic_id', 'title', 'forum_id', 'author_name', 'reply_count', 'date' ) );
+	}
+
+	/**
+	 * Get a single topic with its replies.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <topic_id>
+	 * : Topic post ID.
+	 *
+	 * [--no-replies]
+	 * : Skip loading replies.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill community topic 456 --url=community.extrachill.com
+	 *     wp extrachill community topic 456 --no-replies --url=community.extrachill.com
+	 *
+	 * @when after_wp_load
+	 */
+	public function topic( $args, $assoc_args ) {
+		$topic_id = isset( $args[0] ) ? (int) $args[0] : 0;
+		if ( ! $topic_id ) {
+			WP_CLI::error( 'A topic_id is required.' );
+		}
+
+		$ability = wp_get_ability( 'extrachill/community-get-topic' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/community-get-topic ability not available. Is extrachill-community active on this site?' );
+		}
+
+		$include_replies = ! Utils\get_flag_value( $assoc_args, 'no-replies', false );
+		$format          = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
+
+		$result = $ability->execute(
+			array(
+				'topic_id'        => $topic_id,
+				'include_replies' => $include_replies,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		if ( 'json' === $format ) {
+			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		$t = $result['topic'];
+		$items = array(
+			array( 'Field' => 'Topic ID', 'Value' => $t['topic_id'] ),
+			array( 'Field' => 'Title', 'Value' => $t['title'] ),
+			array( 'Field' => 'Forum ID', 'Value' => $t['forum_id'] ),
+			array( 'Field' => 'Author', 'Value' => sprintf( '%s (%d)', $t['author_name'], $t['author_id'] ) ),
+			array( 'Field' => 'Replies', 'Value' => $t['reply_count'] ),
+			array( 'Field' => 'Voices', 'Value' => $t['voice_count'] ),
+			array( 'Field' => 'Date', 'Value' => $t['date'] ),
+			array( 'Field' => 'URL', 'Value' => $t['url'] ),
+		);
+
+		Utils\format_items( 'table', $items, array( 'Field', 'Value' ) );
+
+		if ( ! empty( $t['content'] ) ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( '--- Content ---' );
+			WP_CLI::log( wp_strip_all_tags( $t['content'] ) );
+		}
+
+		if ( $include_replies && ! empty( $result['replies'] ) ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( '--- Replies (%d of %d) ---', count( $result['replies'] ), $result['replies_total'] ) );
+
+			$rows = array();
+			foreach ( $result['replies'] as $r ) {
+				$rows[] = array(
+					'reply_id'    => $r['reply_id'],
+					'author_name' => $r['author_name'],
+					'content'     => mb_substr( wp_strip_all_tags( $r['content'] ), 0, 80 ),
+					'date'        => $r['date'],
+				);
+			}
+
+			Utils\format_items( 'table', $rows, array( 'reply_id', 'author_name', 'content', 'date' ) );
+		}
+	}
+
+	/**
+	 * Create a new topic in a forum.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <forum_id>
+	 * : Forum to post in.
+	 *
+	 * <title>
+	 * : Topic title.
+	 *
+	 * <content>
+	 * : Topic content.
+	 *
+	 * [--user=<user>]
+	 * : Author user ID, login, or email (defaults to current user).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill community create-topic 123 "My Topic Title" "Topic content here" --url=community.extrachill.com
+	 *     wp extrachill community create-topic 123 "Topic" "Content" --user=saraichinwag --url=community.extrachill.com
+	 *
+	 * @subcommand create-topic
+	 * @when after_wp_load
+	 */
+	public function create_topic( $args, $assoc_args ) {
+		$forum_id = isset( $args[0] ) ? (int) $args[0] : 0;
+		$title    = isset( $args[1] ) ? (string) $args[1] : '';
+		$content  = isset( $args[2] ) ? (string) $args[2] : '';
+
+		if ( ! $forum_id ) {
+			WP_CLI::error( 'A forum_id is required.' );
+		}
+		if ( empty( $title ) ) {
+			WP_CLI::error( 'A title is required.' );
+		}
+		if ( empty( $content ) ) {
+			WP_CLI::error( 'Content is required.' );
+		}
+
+		$ability = wp_get_ability( 'extrachill/community-create-topic' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/community-create-topic ability not available. Is extrachill-community active on this site?' );
+		}
+
+		$input = array(
+			'forum_id' => $forum_id,
+			'title'    => $title,
+			'content'  => $content,
+		);
+
+		if ( isset( $assoc_args['user'] ) ) {
+			$user = $this->resolve_user( (string) $assoc_args['user'] );
+			if ( ! $user ) {
+				WP_CLI::error( 'User not found.' );
+			}
+			$input['user_id'] = (int) $user->ID;
+		}
+
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::success( sprintf( 'Created topic "%s" (ID: %d) in forum %d.', $result['title'], $result['topic_id'], $result['forum_id'] ) );
+		WP_CLI::log( sprintf( '  URL: %s', $result['url'] ) );
+	}
+
+	/**
+	 * Create a reply to a topic.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <topic_id>
+	 * : Topic to reply to.
+	 *
+	 * <content>
+	 * : Reply content.
+	 *
+	 * [--reply-to=<reply_id>]
+	 * : Parent reply ID for threaded replies.
+	 *
+	 * [--user=<user>]
+	 * : Author user ID, login, or email (defaults to current user).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill community create-reply 456 "Great topic!" --url=community.extrachill.com
+	 *     wp extrachill community create-reply 456 "Reply content" --user=saraichinwag --url=community.extrachill.com
+	 *
+	 * @subcommand create-reply
+	 * @when after_wp_load
+	 */
+	public function create_reply( $args, $assoc_args ) {
+		$topic_id = isset( $args[0] ) ? (int) $args[0] : 0;
+		$content  = isset( $args[1] ) ? (string) $args[1] : '';
+
+		if ( ! $topic_id ) {
+			WP_CLI::error( 'A topic_id is required.' );
+		}
+		if ( empty( $content ) ) {
+			WP_CLI::error( 'Content is required.' );
+		}
+
+		$ability = wp_get_ability( 'extrachill/community-create-reply' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/community-create-reply ability not available. Is extrachill-community active on this site?' );
+		}
+
+		$input = array(
+			'topic_id' => $topic_id,
+			'content'  => $content,
+			'reply_to' => isset( $assoc_args['reply-to'] ) ? (int) $assoc_args['reply-to'] : 0,
+		);
+
+		if ( isset( $assoc_args['user'] ) ) {
+			$user = $this->resolve_user( (string) $assoc_args['user'] );
+			if ( ! $user ) {
+				WP_CLI::error( 'User not found.' );
+			}
+			$input['user_id'] = (int) $user->ID;
+		}
+
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::success( sprintf( 'Created reply (ID: %d) in topic %d.', $result['reply_id'], $result['topic_id'] ) );
+		WP_CLI::log( sprintf( '  URL: %s', $result['url'] ) );
+	}
+
+	/**
 	 * Flush community caches.
 	 *
 	 * Clears leaderboard, recent feed, forum stats, and edge caches.
