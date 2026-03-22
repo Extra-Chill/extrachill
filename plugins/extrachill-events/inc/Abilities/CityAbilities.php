@@ -28,7 +28,7 @@ class CityAbilities {
 	/**
 	 * Default scheduling interval for city flows.
 	 */
-	private const DEFAULT_INTERVAL = 'every_6_hours';
+	private const DEFAULT_INTERVAL = 'twicedaily';
 
 	/**
 	 * Default AI model for event processing.
