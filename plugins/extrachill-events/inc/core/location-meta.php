@@ -113,10 +113,29 @@ function extrachill_events_get_location_city_names( WP_Term $location ): array {
  * names, or explicit aliases (case-insensitive). Returns venue data including
  * coordinates for map rendering.
  *
+ * Results are cached per-request in a static variable (same location term is
+ * queried by both the map and SEO hooks on a single page load) and in a
+ * transient with 1-hour TTL for cross-request caching.
+ *
  * @param int $term_id Location term ID.
  * @return array Array of venue data arrays with keys: term_id, name, slug, lat, lon, address, url.
  */
 function extrachill_events_get_location_venues( int $term_id ): array {
+	// Per-request static cache — prevents duplicate work when called by
+	// both location-map.php and location-seo.php in the same page load.
+	static $request_cache = array();
+	if ( isset( $request_cache[ $term_id ] ) ) {
+		return $request_cache[ $term_id ];
+	}
+
+	// Transient cache — avoids the venue query across requests.
+	$cache_key = 'ec_location_venues_' . $term_id;
+	$cached    = get_transient( $cache_key );
+	if ( false !== $cached ) {
+		$request_cache[ $term_id ] = $cached;
+		return $cached;
+	}
+
 	$location = get_term( $term_id, 'location' );
 	if ( ! $location || is_wp_error( $location ) ) {
 		return array();
@@ -125,32 +144,33 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 	// Build set of matchable city names: term name + child term names + aliases.
 	$city_names = extrachill_events_get_location_city_names( $location );
 
-	// Get all venue terms (no hide_empty to include venues with past-only events).
-	$venues = get_terms( array(
-		'taxonomy'   => 'venue',
-		'hide_empty' => false,
-		'number'     => 0,
-	) );
+	// Single SQL query to find matching venues with city + coordinates meta,
+	// replacing the N+1 get_term_meta() loop over all 2,000+ venues.
+	global $wpdb;
+	$city_placeholders = implode( ', ', array_fill( 0, count( $city_names ), '%s' ) );
 
-	if ( is_wp_error( $venues ) || empty( $venues ) ) {
-		return array();
-	}
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	$venue_rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT t.term_id, t.name, t.slug,
+			        tt.count AS event_count,
+			        tm_city.meta_value AS venue_city,
+			        tm_coords.meta_value AS venue_coordinates
+			FROM {$wpdb->terms} t
+			INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id AND tt.taxonomy = 'venue'
+			INNER JOIN {$wpdb->termmeta} tm_city ON t.term_id = tm_city.term_id AND tm_city.meta_key = '_venue_city'
+			INNER JOIN {$wpdb->termmeta} tm_coords ON t.term_id = tm_coords.term_id AND tm_coords.meta_key = '_venue_coordinates'
+			WHERE LOWER(tm_city.meta_value) IN ({$city_placeholders})
+			AND tm_coords.meta_value != ''
+			AND tm_coords.meta_value LIKE '%%,%%'",
+			...$city_names
+		)
+	);
 
 	$matched = array();
 
-	foreach ( $venues as $venue ) {
-		$venue_city = get_term_meta( $venue->term_id, '_venue_city', true );
-
-		if ( empty( $venue_city ) || ! in_array( strtolower( $venue_city ), $city_names, true ) ) {
-			continue;
-		}
-
-		$coordinates = get_term_meta( $venue->term_id, '_venue_coordinates', true );
-		if ( empty( $coordinates ) || strpos( $coordinates, ',' ) === false ) {
-			continue;
-		}
-
-		$parts = explode( ',', $coordinates );
+	foreach ( $venue_rows as $row ) {
+		$parts = explode( ',', $row->venue_coordinates );
 		$lat   = floatval( trim( $parts[0] ) );
 		$lon   = floatval( trim( $parts[1] ) );
 
@@ -160,18 +180,18 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 
 		$address = '';
 		if ( class_exists( 'DataMachineEvents\Core\Venue_Taxonomy' ) ) {
-			$address = \DataMachineEvents\Core\Venue_Taxonomy::get_formatted_address( $venue->term_id );
+			$address = \DataMachineEvents\Core\Venue_Taxonomy::get_formatted_address( $row->term_id );
 		}
 
 		$matched[] = array(
-			'term_id'     => $venue->term_id,
-			'name'        => $venue->name,
-			'slug'        => $venue->slug,
+			'term_id'     => (int) $row->term_id,
+			'name'        => $row->name,
+			'slug'        => $row->slug,
 			'lat'         => $lat,
 			'lon'         => $lon,
 			'address'     => $address,
-			'url'         => get_term_link( $venue ),
-			'event_count' => $venue->count,
+			'url'         => get_term_link( (int) $row->term_id, 'venue' ),
+			'event_count' => (int) $row->event_count,
 		);
 	}
 
@@ -188,5 +208,29 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 		return $b['event_count'] - $a['event_count'];
 	} );
 
+	$request_cache[ $term_id ] = $matched;
+	set_transient( $cache_key, $matched, HOUR_IN_SECONDS );
+
 	return $matched;
 }
+
+/**
+ * Invalidate the venue cache for a location when venues change.
+ *
+ * Clears all location venue transients since any venue edit could
+ * affect any location's venue list.
+ *
+ * @param int $term_id Venue term ID.
+ */
+function extrachill_events_invalidate_location_venue_cache( int $term_id ) {
+	global $wpdb;
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options}
+		WHERE option_name LIKE '_transient_ec_location_venues_%'
+		OR option_name LIKE '_transient_timeout_ec_location_venues_%'"
+	);
+}
+add_action( 'edited_venue', 'extrachill_events_invalidate_location_venue_cache' );
+add_action( 'created_venue', 'extrachill_events_invalidate_location_venue_cache' );
+add_action( 'delete_venue', 'extrachill_events_invalidate_location_venue_cache' );
