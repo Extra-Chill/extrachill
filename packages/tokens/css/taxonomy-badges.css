@@ -248,9 +248,9 @@
     background-color: var(--badge-location-miami-bg);
     color: var(--badge-location-miami-text);
 }
-.taxonomy-badge.location-new-york {
-    background-color: var(--badge-location-new-york-bg);
-    color: var(--badge-location-new-york-text);
+.taxonomy-badge.location-new-york-city {
+    background-color: var(--badge-location-new-york-city-bg);
+    color: var(--badge-location-new-york-city-text);
 }
 .taxonomy-badge.location-brooklyn {
     background-color: var(--badge-location-brooklyn-bg);
