@@ -27,6 +27,14 @@ function extrachill_events_register_location_meta() {
 		'show_in_rest'      => true,
 		'sanitize_callback' => 'sanitize_text_field',
 	) );
+
+	register_term_meta( 'location', '_location_city_aliases', array(
+		'type'              => 'string',
+		'description'       => 'Comma-separated city name aliases for venue matching.',
+		'single'            => true,
+		'show_in_rest'      => true,
+		'sanitize_callback' => 'sanitize_text_field',
+	) );
 }
 add_action( 'init', 'extrachill_events_register_location_meta' );
 
@@ -58,10 +66,52 @@ function extrachill_events_get_location_coordinates( int $term_id ): ?array {
 }
 
 /**
+ * Build the set of matchable city names for a location term.
+ *
+ * Collects the term's own name, names of direct child location terms,
+ * and any aliases stored in `_location_city_aliases` term meta (comma-separated).
+ * All names are returned lowercased for case-insensitive matching.
+ *
+ * @param WP_Term $location Location term object.
+ * @return array Lowercased city name strings.
+ */
+function extrachill_events_get_location_city_names( WP_Term $location ): array {
+	$names = array( strtolower( $location->name ) );
+
+	// Add child location term names (e.g. Brooklyn under New York City).
+	$children = get_terms( array(
+		'taxonomy'   => 'location',
+		'parent'     => $location->term_id,
+		'hide_empty' => false,
+		'fields'     => 'names',
+	) );
+
+	if ( ! is_wp_error( $children ) ) {
+		foreach ( $children as $child_name ) {
+			$names[] = strtolower( $child_name );
+		}
+	}
+
+	// Add explicit aliases from term meta (comma-separated).
+	$aliases = get_term_meta( $location->term_id, '_location_city_aliases', true );
+	if ( ! empty( $aliases ) ) {
+		foreach ( explode( ',', $aliases ) as $alias ) {
+			$alias = strtolower( trim( $alias ) );
+			if ( '' !== $alias ) {
+				$names[] = $alias;
+			}
+		}
+	}
+
+	return array_unique( $names );
+}
+
+/**
  * Get all venues that belong to a location by matching venue city name.
  *
- * Matches venues where _venue_city equals the location term name (case-insensitive).
- * Returns venue data including coordinates for map rendering.
+ * Matches venues where _venue_city matches the location term name, child term
+ * names, or explicit aliases (case-insensitive). Returns venue data including
+ * coordinates for map rendering.
  *
  * @param int $term_id Location term ID.
  * @return array Array of venue data arrays with keys: term_id, name, slug, lat, lon, address, url.
@@ -72,7 +122,8 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 		return array();
 	}
 
-	$city_name = $location->name;
+	// Build set of matchable city names: term name + child term names + aliases.
+	$city_names = extrachill_events_get_location_city_names( $location );
 
 	// Get all venue terms (no hide_empty to include venues with past-only events).
 	$venues = get_terms( array(
@@ -90,7 +141,7 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 	foreach ( $venues as $venue ) {
 		$venue_city = get_term_meta( $venue->term_id, '_venue_city', true );
 
-		if ( empty( $venue_city ) || strcasecmp( $venue_city, $city_name ) !== 0 ) {
+		if ( empty( $venue_city ) || ! in_array( strtolower( $venue_city ), $city_names, true ) ) {
 			continue;
 		}
 
