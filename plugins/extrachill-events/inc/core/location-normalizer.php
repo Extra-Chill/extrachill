@@ -441,7 +441,7 @@ function extrachill_events_get_nyc_zip_map() {
 		10286,
 	);
 	foreach ( $manhattan_zips as $z ) {
-		$map[ $z ] = 'new-york';
+		$map[ $z ] = 'new-york-city';
 	}
 
 	// Queens: 110xx (partial) + 113xx–116xx range.
@@ -524,7 +524,7 @@ function extrachill_events_get_nyc_zip_map() {
 		11697,
 	);
 	foreach ( $queens_zips as $z ) {
-		$map[ $z ] = 'new-york';
+		$map[ $z ] = 'new-york-city';
 	}
 
 	// Bronx: 104xx range.
@@ -556,7 +556,7 @@ function extrachill_events_get_nyc_zip_map() {
 		10475,
 	);
 	foreach ( $bronx_zips as $z ) {
-		$map[ $z ] = 'new-york';
+		$map[ $z ] = 'new-york-city';
 	}
 
 	// Staten Island: 103xx range.
@@ -576,7 +576,7 @@ function extrachill_events_get_nyc_zip_map() {
 		10314,
 	);
 	foreach ( $staten_island_zips as $z ) {
-		$map[ $z ] = 'new-york';
+		$map[ $z ] = 'new-york-city';
 	}
 
 	return $map;
