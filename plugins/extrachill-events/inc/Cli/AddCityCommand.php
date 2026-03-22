@@ -37,7 +37,7 @@ class AddCityCommand {
 	 * [--interval=<interval>]
 	 * : Scheduling interval for flows.
 	 * ---
-	 * default: twicedaily
+	 * default: daily
 	 * options:
 	 *   - manual
 	 *   - hourly
@@ -84,7 +84,7 @@ class AddCityCommand {
 		$input = array(
 			'city'      => $city,
 			'radius'    => $assoc_args['radius'] ?? '50',
-			'interval'  => $assoc_args['interval'] ?? 'twicedaily',
+			'interval'  => $assoc_args['interval'] ?? 'daily',
 			'skip_dice' => isset( $assoc_args['skip-dice'] ),
 			'force'     => isset( $assoc_args['force'] ),
 			'dry_run'   => isset( $assoc_args['dry-run'] ),
