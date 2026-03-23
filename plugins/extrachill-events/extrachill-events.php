@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
  * Description: Calendar integration with template overrides, data-machine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
- * Version: 0.14.4
+ * Version: 0.15.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Requires Plugins: data-machine, data-machine-events
