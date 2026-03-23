@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.0] - 2026-03-23
+
+### Added
+- add badge colors for 96 new cities
+
 ## [0.3.3] - 2026-03-22
 
 ### Fixed
