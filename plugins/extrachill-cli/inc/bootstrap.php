@@ -40,3 +40,6 @@ WP_CLI::add_command( 'extrachill users access', ExtraChill\CLI\Commands\Users\Ar
 
 // Community commands.
 WP_CLI::add_command( 'extrachill community', ExtraChill\CLI\Commands\Community\CommunityCommand::class );
+
+// Cache commands.
+WP_CLI::add_command( 'extrachill cache', ExtraChill\CLI\Commands\Cache\WarmCommand::class );
