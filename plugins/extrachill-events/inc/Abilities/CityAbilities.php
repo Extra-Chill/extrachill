@@ -152,18 +152,28 @@ class CityAbilities {
 
 		// Step 1b: Check for idempotency — does this city already have a pipeline?
 		$pipeline_name     = $city_label . ' Events';
+		$state_abbr        = $this->deriveStateAbbreviation( $city_name );
 		$existing_pipeline = $this->findExistingPipeline( $pipeline_name );
 
-		// If pipeline name collides and this is a different state, disambiguate.
-		// e.g. "Portland Events" exists (OR) → use "Portland ME Events" instead.
-		if ( $existing_pipeline && ! empty( $input['force'] ) && ! empty( $state_name ) ) {
-			$state_abbr            = $this->deriveStateAbbreviation( $city_name );
-			$disambiguated_name    = $city_label . ' ' . $state_abbr . ' Events';
-			$existing_disambiguated = $this->findExistingPipeline( $disambiguated_name );
+		// Auto-disambiguate when a same-named city exists in a different state.
+		// e.g. "Charleston Events" exists (SC) → auto-use "Charleston WV Events".
+		// No --force required — different states are different cities, not duplicates.
+		if ( $existing_pipeline && ! empty( $state_abbr ) ) {
+			// Check if the existing pipeline is for a different state by comparing
+			// the TM coordinates. If they differ significantly, it's a different city.
+			$is_same_city = $this->pipelineMatchesCoordinates( $existing_pipeline, $coordinates );
 
-			if ( ! $existing_disambiguated ) {
-				$pipeline_name     = $disambiguated_name;
-				$existing_pipeline = null; // No longer a collision.
+			if ( ! $is_same_city ) {
+				$disambiguated_name     = $city_label . ' ' . $state_abbr . ' Events';
+				$existing_disambiguated = $this->findExistingPipeline( $disambiguated_name );
+
+				if ( ! $existing_disambiguated ) {
+					$pipeline_name     = $disambiguated_name;
+					$existing_pipeline = null; // Different city — not a collision.
+				} else {
+					// Disambiguated name also exists — true duplicate.
+					$existing_pipeline = $existing_disambiguated;
+				}
 			}
 		}
 
@@ -301,6 +311,65 @@ class CityAbilities {
 			'pipeline_id' => $pipeline_id,
 			'flows'       => $flows_created,
 		);
+	}
+
+	/**
+	 * Check if an existing pipeline's TM flow targets the same coordinates.
+	 *
+	 * Compares the Ticketmaster location coordinates from the pipeline's flows
+	 * against the new city's coordinates. If they're within ~50km, it's the
+	 * same city. If they differ significantly, it's a different city with the
+	 * same name (e.g. Charleston SC vs Charleston WV).
+	 *
+	 * @param int    $pipeline_id Pipeline ID to check.
+	 * @param string $coordinates New city coordinates ("lat,lon").
+	 * @return bool True if the pipeline targets the same location.
+	 */
+	private function pipelineMatchesCoordinates( int $pipeline_id, string $coordinates ): bool {
+		global $wpdb;
+		$flows_table = $wpdb->prefix . 'datamachine_flows';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$flows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT flow_config FROM {$flows_table} WHERE pipeline_id = %d",
+				$pipeline_id
+			)
+		);
+
+		$new_parts = explode( ',', $coordinates );
+		$new_lat   = floatval( $new_parts[0] ?? 0 );
+		$new_lon   = floatval( $new_parts[1] ?? 0 );
+
+		foreach ( $flows as $flow ) {
+			$config = json_decode( $flow->flow_config, true );
+			if ( ! is_array( $config ) ) {
+				continue;
+			}
+
+			foreach ( $config as $step ) {
+				$handler_configs = $step['handler_configs'] ?? array();
+				foreach ( $handler_configs as $hconfig ) {
+					$location = $hconfig['location'] ?? '';
+					if ( empty( $location ) || strpos( $location, ',' ) === false ) {
+						continue;
+					}
+
+					$parts     = explode( ',', $location );
+					$exist_lat = floatval( $parts[0] );
+					$exist_lon = floatval( $parts[1] );
+
+					// Haversine approximation: ~0.5 degrees ≈ 50km.
+					$lat_diff = abs( $new_lat - $exist_lat );
+					$lon_diff = abs( $new_lon - $exist_lon );
+
+					return ( $lat_diff < 0.5 && $lon_diff < 0.5 );
+				}
+			}
+		}
+
+		// No TM flow found — can't determine, assume same city to be safe.
+		return true;
 	}
 
 	/**
