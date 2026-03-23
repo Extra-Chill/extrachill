@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.8] - 2026-03-23
+
+### Fixed
+- prevent jQuery dequeue when compose editor is active
+
 ## [0.2.7] - 2026-03-23
 
 ### Fixed
