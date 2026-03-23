@@ -2,6 +2,12 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.11.9] - 2026-03-23
+
+### Changed
+- rewrite taxonomy count endpoints with transient caching
+- Add REST endpoints for community topics and replies
+
 ## [0.11.8] - 2026-03-21
 
 ### Changed
