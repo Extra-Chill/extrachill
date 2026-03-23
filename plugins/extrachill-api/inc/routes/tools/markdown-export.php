@@ -296,7 +296,12 @@ function extrachill_api_get_event_markdown_meta_lines( WP_Post $post ) {
 	}
 
 	if ( empty( $meta_lines ) ) {
-		$event_datetime = get_post_meta( $post->ID, '_datamachine_event_datetime', true );
+		if ( class_exists( '\DataMachineEvents\Core\EventDatesTable' ) ) {
+			$dates = \DataMachineEvents\Core\EventDatesTable::get( $post->ID );
+			$event_datetime = $dates ? $dates->start_datetime : '';
+		} else {
+			$event_datetime = '';
+		}
 		if ( $event_datetime ) {
 			$dt           = new DateTime( $event_datetime, wp_timezone() );
 			$meta_lines[] = '**Date:** ' . $dt->format( 'F j, Y g:i A' );
