@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.1.0] - 2026-03-23
+
+### Added
+- add badge colors for 96 new location cities from @extrachill/tokens
+- append 'Artist Profile' label to artist taxonomy badges
+
+### Changed
+- restore remote_path to wp-content/themes/extrachill
+- Add build step: generate root.css from @extrachill/tokens
+- Update changelog for v2.0.13 and v2.0.14
+
+### Fixed
+- restore base .taxonomy-badge styles wiped by generated CSS
+- correct remote_path to extrachill-theme
+- remove 'Artist Profile' suffix from artist taxonomy badges
+- Fix stale CSS references in copilot-instructions.md
+
 ## [2.0.14] - 2026-02-27
 
 ### Fixed
