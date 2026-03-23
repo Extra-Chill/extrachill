@@ -48,6 +48,18 @@ function extrachill_events_get_venue_coordinates( int $term_id ): ?array {
  * @return int Number of upcoming events.
  */
 function extrachill_events_get_upcoming_venue_event_count( int $term_id ): int {
+	$now = current_time( 'mysql' );
+	$event_date_filter = function ( $clauses ) use ( $now ) {
+		global $wpdb;
+		$table = \DataMachineEvents\Core\EventDatesTable::table_name();
+		if ( strpos( $clauses['join'], $table ) === false ) {
+			$clauses['join'] .= " INNER JOIN {$table} AS ed ON {$wpdb->posts}.ID = ed.post_id";
+		}
+		$clauses['where'] .= $wpdb->prepare( ' AND ed.start_datetime >= %s', $now );
+		return $clauses;
+	};
+	add_filter( 'posts_clauses', $event_date_filter );
+
 	$query = new \WP_Query(
 		array(
 			'post_type'      => 'data_machine_events',
@@ -60,15 +72,10 @@ function extrachill_events_get_upcoming_venue_event_count( int $term_id ): int {
 					'terms'    => $term_id,
 				),
 			),
-			'meta_query'     => array(
-				array(
-					'key'     => '_datamachine_event_datetime',
-					'value'   => current_time( 'mysql' ),
-					'compare' => '>=',
-				),
-			),
 		)
 	);
+
+	remove_filter( 'posts_clauses', $event_date_filter );
 
 	return $query->found_posts;
 }

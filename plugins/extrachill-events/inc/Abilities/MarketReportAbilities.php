@@ -329,20 +329,22 @@ class MarketReportAbilities {
 			return $counts;
 		}
 
-		$placeholders = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
-		$now          = current_time( 'mysql' );
+		$placeholders      = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
+		$now               = current_time( 'mysql' );
+		$event_dates_table = $wpdb->prefix . 'datamachine_event_dates';
 
 		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT tt.term_id AS location_id, COUNT(DISTINCT p.ID) AS upcoming_count
 				FROM {$wpdb->posts} p
-				JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_datamachine_event_end_datetime'
+				JOIN {$event_dates_table} ed ON p.ID = ed.post_id
 				JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
 				JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
 				WHERE p.post_type = 'data_machine_events'
 				AND p.post_status = 'publish'
-				AND pm.meta_value >= %s
+				AND ed.end_datetime IS NOT NULL
+				AND ed.end_datetime >= %s
 				AND tt.taxonomy = 'location'
 				AND tt.term_id IN ($placeholders)
 				GROUP BY tt.term_id",
