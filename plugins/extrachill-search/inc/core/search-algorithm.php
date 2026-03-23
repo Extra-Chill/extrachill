@@ -2,9 +2,13 @@
 /**
  * Search Algorithm for ExtraChill Search Plugin
  *
- * Contains the multisite search execution, PHP fallback matching, and
- * relevance scoring routines that operate on the helper utilities from
- * search-functions.php.
+ * Contains the multisite search execution, FULLTEXT search integration,
+ * and relevance scoring routines that operate on the helper utilities
+ * from search-functions.php.
+ *
+ * Uses MySQL FULLTEXT indexes (MATCH AGAINST) instead of WordPress's
+ * default LIKE '%term%' pattern matching. FULLTEXT uses an inverted
+ * index for sub-second searches even on 37K+ post tables.
  *
  * @package ExtraChill\Search
  * @since 0.1.0
@@ -15,10 +19,154 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Word-level search fallback when WordPress native search returns zero results.
+ * Check if the current site's posts table has a FULLTEXT index.
  *
- * Fetches all posts and filters in PHP by checking if ALL search words exist
- * in title or content. Only triggered when WordPress search finds nothing.
+ * Caches the result per blog_id for the duration of the request.
+ *
+ * @return bool Whether FULLTEXT index exists on the posts table.
+ */
+function extrachill_has_fulltext_index() {
+	global $wpdb;
+	static $cache = array();
+
+	$table = $wpdb->posts;
+	if ( isset( $cache[ $table ] ) ) {
+		return $cache[ $table ];
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	$indexes = $wpdb->get_results(
+		$wpdb->prepare(
+			'SHOW INDEX FROM %i WHERE Index_type = %s',
+			$wpdb->posts,
+			'FULLTEXT'
+		)
+	);
+
+	$cache[ $table ] = ! empty( $indexes );
+	return $cache[ $table ];
+}
+
+/**
+ * Build a FULLTEXT MATCH AGAINST clause for the current posts table.
+ *
+ * Uses BOOLEAN MODE for precise matching: each word must appear.
+ * Prefixes each word with '+' so all terms are required.
+ *
+ * @param string $search_term Raw search term.
+ * @return string|false MATCH() AGAINST() clause, or false if term is empty.
+ */
+function extrachill_build_fulltext_clause( $search_term ) {
+	global $wpdb;
+
+	$normalized = extrachill_normalize_search_term( $search_term );
+	$words      = preg_split( '/\s+/', $normalized, -1, PREG_SPLIT_NO_EMPTY );
+
+	if ( empty( $words ) ) {
+		return false;
+	}
+
+	// Build boolean search: +word1 +word2 (all required).
+	$boolean_terms = array();
+	foreach ( $words as $word ) {
+		$escaped = $wpdb->_real_escape( $word );
+		$boolean_terms[] = '+' . $escaped . '*';
+	}
+	$boolean_string = implode( ' ', $boolean_terms );
+
+	return sprintf(
+		"MATCH(%s.post_title, %s.post_excerpt, %s.post_content) AGAINST('%s' IN BOOLEAN MODE)",
+		$wpdb->posts,
+		$wpdb->posts,
+		$wpdb->posts,
+		$boolean_string
+	);
+}
+
+/**
+ * Filter: Replace WordPress LIKE search with FULLTEXT MATCH AGAINST.
+ *
+ * Hooked to 'posts_search' to replace the WHERE clause WordPress generates
+ * for the 's' parameter. Only active when FULLTEXT index exists.
+ *
+ * @param string   $search SQL search clause.
+ * @param WP_Query $query  WP_Query instance.
+ * @return string Modified SQL search clause.
+ */
+function extrachill_fulltext_posts_search( $search, $query ) {
+	if ( empty( $query->get( 'extrachill_fulltext_term' ) ) ) {
+		return $search;
+	}
+
+	$clause = extrachill_build_fulltext_clause( $query->get( 'extrachill_fulltext_term' ) );
+	if ( ! $clause ) {
+		return $search;
+	}
+
+	return ' AND ' . $clause;
+}
+
+/**
+ * Filter: Add FULLTEXT relevance to ORDER BY.
+ *
+ * Hooked to 'posts_search_orderby' to sort by MySQL's FULLTEXT relevance
+ * score instead of WordPress's default date ordering for searches.
+ *
+ * @param string   $orderby SQL orderby clause for search.
+ * @param WP_Query $query   WP_Query instance.
+ * @return string Modified ORDER BY clause.
+ */
+function extrachill_fulltext_posts_orderby( $orderby, $query ) {
+	if ( empty( $query->get( 'extrachill_fulltext_term' ) ) ) {
+		return $orderby;
+	}
+
+	$clause = extrachill_build_fulltext_clause( $query->get( 'extrachill_fulltext_term' ) );
+	if ( ! $clause ) {
+		return $orderby;
+	}
+
+	return $clause . ' DESC';
+}
+
+/**
+ * Run a WP_Query with FULLTEXT search enabled.
+ *
+ * Adds the FULLTEXT filters before the query and removes them after.
+ * Falls back to standard WP_Query 's' parameter if no FULLTEXT index.
+ *
+ * @param array  $query_args  WP_Query arguments (without 's' param).
+ * @param string $search_term Search term.
+ * @return WP_Query Query result.
+ */
+function extrachill_fulltext_query( $query_args, $search_term ) {
+	if ( ! empty( $search_term ) && extrachill_has_fulltext_index() ) {
+		// Use FULLTEXT: set custom query var, don't use 's' (avoids LIKE).
+		$query_args['extrachill_fulltext_term'] = $search_term;
+
+		add_filter( 'posts_search', 'extrachill_fulltext_posts_search', 10, 2 );
+		add_filter( 'posts_search_orderby', 'extrachill_fulltext_posts_orderby', 10, 2 );
+
+		$query = new WP_Query( $query_args );
+
+		remove_filter( 'posts_search', 'extrachill_fulltext_posts_search', 10 );
+		remove_filter( 'posts_search_orderby', 'extrachill_fulltext_posts_orderby', 10 );
+	} else {
+		// Fallback: standard WordPress LIKE search.
+		if ( ! empty( $search_term ) ) {
+			$query_args['s'] = extrachill_normalize_search_term( $search_term );
+		}
+		$query = new WP_Query( $query_args );
+	}
+
+	return $query;
+}
+
+/**
+ * Word-level search fallback when primary search returns zero results.
+ *
+ * Uses FULLTEXT NATURAL LANGUAGE MODE (more forgiving than BOOLEAN MODE)
+ * to find partial matches. Falls back to PHP strpos if no FULLTEXT index.
  *
  * @param string $search_term Search query.
  * @param array  $blog_ids    Blog IDs to inspect.
@@ -26,12 +174,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Matching search results.
  */
 function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args ) {
-	$search_words = preg_split( '/\s+/', strtolower( extrachill_normalize_search_term( $search_term ) ), -1, PREG_SPLIT_NO_EMPTY );
-	$all_results = array();
+	$search_words   = preg_split( '/\s+/', strtolower( extrachill_normalize_search_term( $search_term ) ), -1, PREG_SPLIT_NO_EMPTY );
+	$all_results    = array();
 	$site_post_types = extrachill_get_site_post_types();
 
 	foreach ( $blog_ids as $blog_id ) {
-		// Verify blog exists before switching to prevent state corruption
 		$blog_details = get_blog_details( $blog_id );
 		if ( ! $blog_details ) {
 			continue;
@@ -40,7 +187,6 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 		switch_to_blog( $blog_id );
 
 		try {
-
 			$post_types = isset( $site_post_types[ $blog_id ] )
 				? $site_post_types[ $blog_id ]
 				: array( 'post', 'page' );
@@ -54,7 +200,7 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 			$query_args = array(
 				'post_type'      => array_values( $post_types ),
 				'post_status'    => $args['post_status'],
-				'posts_per_page' => -1,
+				'posts_per_page' => 200,
 				'orderby'        => $args['orderby'],
 				'order'          => $args['order'],
 			);
@@ -67,85 +213,65 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 				$query_args['tax_query'] = $args['tax_query'];
 			}
 
-			$query = new WP_Query( $query_args );
+			// Try FULLTEXT natural language mode (forgiving — returns partial matches).
+			if ( extrachill_has_fulltext_index() ) {
+				global $wpdb;
+				$escaped = $wpdb->_real_escape( extrachill_normalize_search_term( $search_term ) );
+
+				$natural_clause = sprintf(
+					"MATCH(%s.post_title, %s.post_excerpt, %s.post_content) AGAINST('%s' IN NATURAL LANGUAGE MODE)",
+					$wpdb->posts,
+					$wpdb->posts,
+					$wpdb->posts,
+					$escaped
+				);
+
+				$query_args['extrachill_fulltext_natural'] = $natural_clause;
+
+				add_filter(
+					'posts_search',
+					function ( $search ) use ( $natural_clause ) {
+						return ' AND ' . $natural_clause;
+					},
+					10,
+					1
+				);
+
+				$query = new WP_Query( $query_args );
+
+				// Remove the closure filter by resetting.
+				remove_all_filters( 'posts_search', 10 );
+			} else {
+				// No FULLTEXT — fetch all and filter in PHP (original fallback).
+				$query_args['posts_per_page'] = -1;
+				$query = new WP_Query( $query_args );
+			}
 
 			if ( $query->have_posts() ) {
 				while ( $query->have_posts() ) {
 					$query->the_post();
 					global $post;
 
-					$title_normalized = strtolower( extrachill_normalize_search_term( get_the_title() ) );
-					$content_normalized = strtolower( extrachill_normalize_search_term( strip_tags( get_the_content() ) ) );
-					$combined = $title_normalized . ' ' . $content_normalized;
+					// If no FULLTEXT, verify all words exist in PHP.
+					if ( ! extrachill_has_fulltext_index() ) {
+						$title_normalized   = strtolower( extrachill_normalize_search_term( get_the_title() ) );
+						$content_normalized = strtolower( extrachill_normalize_search_term( strip_tags( get_the_content() ) ) );
+						$combined           = $title_normalized . ' ' . $content_normalized;
 
-					$all_words_found = true;
-					foreach ( $search_words as $word ) {
-						if ( strpos( $combined, $word ) === false ) {
-							$all_words_found = false;
-							break;
+						$all_words_found = true;
+						foreach ( $search_words as $word ) {
+							if ( strpos( $combined, $word ) === false ) {
+								$all_words_found = false;
+								break;
+							}
+						}
+
+						if ( ! $all_words_found ) {
+							continue;
 						}
 					}
 
-					if ( ! $all_words_found ) {
-						continue;
-					}
-
-					$post_title = get_the_title();
-					$permalink  = get_permalink();
-
-					if ( $post->post_type === 'reply' && ! empty( $post->post_parent ) ) {
-						$topic_id = $post->post_parent;
-						$topic_title = get_the_title( $topic_id );
-
-						if ( ! empty( $topic_title ) ) {
-							$post_title = 'Re: ' . $topic_title;
-							$permalink = get_permalink( $topic_id ) . '#post-' . $post->ID;
-						}
-					}
-
-					$taxonomies = array();
-					$public_taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
-					foreach ( $public_taxonomies as $taxonomy ) {
-						$terms = get_the_terms( $post->ID, $taxonomy->name );
-						if ( $terms && ! is_wp_error( $terms ) ) {
-							$taxonomies[ $taxonomy->name ] = wp_list_pluck( $terms, 'term_id', 'name' );
-						}
-					}
-
-					$thumbnail_id = get_post_thumbnail_id( $post->ID );
-					$thumbnail_data = array();
-					if ( $thumbnail_id ) {
-						$thumbnail_metadata = wp_get_attachment_metadata( $thumbnail_id );
-						$thumbnail_data = array(
-							'thumbnail_id'     => $thumbnail_id,
-							'thumbnail_url'    => wp_get_attachment_image_url( $thumbnail_id, 'medium_large' ),
-							'thumbnail_srcset' => wp_get_attachment_image_srcset( $thumbnail_id, 'medium_large' ),
-							'thumbnail_sizes'  => wp_get_attachment_image_sizes( $thumbnail_id, 'medium_large' ),
-							'thumbnail_alt'    => get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ),
-							'thumbnail_width'  => isset( $thumbnail_metadata['sizes']['medium_large']['width'] ) ? $thumbnail_metadata['sizes']['medium_large']['width'] : null,
-							'thumbnail_height' => isset( $thumbnail_metadata['sizes']['medium_large']['height'] ) ? $thumbnail_metadata['sizes']['medium_large']['height'] : null,
-						);
-					}
-
-					$result = array(
-						'ID'            => $post->ID,
-						'post_title'    => $post_title,
-						'post_content'  => get_the_content(),
-						'post_excerpt'  => has_excerpt() ? get_the_excerpt() : wp_trim_words( get_the_content(), 30 ),
-						'post_date'     => $post->post_date,
-						'post_modified' => $post->post_modified,
-						'post_type'     => $post->post_type,
-						'post_name'     => $post->post_name,
-						'post_author'   => $post->post_author,
-						'site_id'       => $blog_id,
-						'site_name'     => $blog_details->blogname,
-						'site_url'      => parse_url( $blog_details->siteurl, PHP_URL_HOST ),
-						'permalink'     => $permalink,
-						'taxonomies'    => $taxonomies,
-						'thumbnail'     => $thumbnail_data,
-					);
-
-					$all_results[] = $result;
+					$all_results[] = extrachill_hydrate_search_result( $post, $blog_id, $blog_details );
 				}
 				wp_reset_postdata();
 			}
@@ -160,7 +286,79 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 }
 
 /**
+ * Hydrate a search result array from a WP_Post object.
+ *
+ * Extracts post data, taxonomies, and thumbnail information into the
+ * standardized search result format.
+ *
+ * @param WP_Post $post         Post object.
+ * @param int     $blog_id      Blog ID.
+ * @param object  $blog_details Blog details object.
+ * @return array Hydrated search result.
+ */
+function extrachill_hydrate_search_result( $post, $blog_id, $blog_details ) {
+	$post_title = get_the_title();
+	$permalink  = get_permalink();
+
+	if ( $post->post_type === 'reply' && ! empty( $post->post_parent ) ) {
+		$topic_id    = $post->post_parent;
+		$topic_title = get_the_title( $topic_id );
+
+		if ( ! empty( $topic_title ) ) {
+			$post_title = 'Re: ' . $topic_title;
+			$permalink  = get_permalink( $topic_id ) . '#post-' . $post->ID;
+		}
+	}
+
+	$taxonomies        = array();
+	$public_taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
+	foreach ( $public_taxonomies as $taxonomy ) {
+		$terms = get_the_terms( $post->ID, $taxonomy->name );
+		if ( $terms && ! is_wp_error( $terms ) ) {
+			$taxonomies[ $taxonomy->name ] = wp_list_pluck( $terms, 'term_id', 'name' );
+		}
+	}
+
+	$thumbnail_id   = get_post_thumbnail_id( $post->ID );
+	$thumbnail_data = array();
+	if ( $thumbnail_id ) {
+		$thumbnail_metadata = wp_get_attachment_metadata( $thumbnail_id );
+		$thumbnail_data     = array(
+			'thumbnail_id'     => $thumbnail_id,
+			'thumbnail_url'    => wp_get_attachment_image_url( $thumbnail_id, 'medium_large' ),
+			'thumbnail_srcset' => wp_get_attachment_image_srcset( $thumbnail_id, 'medium_large' ),
+			'thumbnail_sizes'  => wp_get_attachment_image_sizes( $thumbnail_id, 'medium_large' ),
+			'thumbnail_alt'    => get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ),
+			'thumbnail_width'  => isset( $thumbnail_metadata['sizes']['medium_large']['width'] ) ? $thumbnail_metadata['sizes']['medium_large']['width'] : null,
+			'thumbnail_height' => isset( $thumbnail_metadata['sizes']['medium_large']['height'] ) ? $thumbnail_metadata['sizes']['medium_large']['height'] : null,
+		);
+	}
+
+	return array(
+		'ID'            => $post->ID,
+		'post_title'    => $post_title,
+		'post_content'  => get_the_content(),
+		'post_excerpt'  => has_excerpt() ? get_the_excerpt() : wp_trim_words( get_the_content(), 30 ),
+		'post_date'     => $post->post_date,
+		'post_modified' => $post->post_modified,
+		'post_type'     => $post->post_type,
+		'post_name'     => $post->post_name,
+		'post_author'   => $post->post_author,
+		'site_id'       => $blog_id,
+		'site_name'     => $blog_details->blogname,
+		'site_url'      => parse_url( $blog_details->siteurl, PHP_URL_HOST ),
+		'permalink'     => $permalink,
+		'taxonomies'    => $taxonomies,
+		'thumbnail'     => $thumbnail_data,
+	);
+}
+
+/**
  * Search across multisite network with relevance scoring.
+ *
+ * Uses FULLTEXT indexes (MATCH AGAINST) when available for sub-second
+ * searches across all network sites. Falls back to WordPress LIKE
+ * search when FULLTEXT index is missing on a site.
  *
  * @param string $search_term Search query.
  * @param array  $site_urls   Optional site URL/domain list to restrict search.
@@ -198,11 +396,10 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 		return array();
 	}
 
-	$all_results = array();
+	$all_results     = array();
 	$site_post_types = extrachill_get_site_post_types();
 
 	foreach ( $blog_ids as $blog_id ) {
-		// Verify blog exists before switching to prevent state corruption
 		$blog_details = get_blog_details( $blog_id );
 		if ( ! $blog_details ) {
 			continue;
@@ -224,14 +421,10 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 			$query_args = array(
 				'post_type'      => array_values( $post_types ),
 				'post_status'    => $args['post_status'],
-				'posts_per_page' => -1,
+				'posts_per_page' => 200,
 				'orderby'        => $args['orderby'],
 				'order'          => $args['order'],
 			);
-
-			if ( ! empty( $search_term ) ) {
-				$query_args['s'] = extrachill_normalize_search_term( $search_term );
-			}
 
 			if ( ! empty( $args['meta_query'] ) ) {
 				$query_args['meta_query'] = $args['meta_query'];
@@ -241,69 +434,14 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 				$query_args['tax_query'] = $args['tax_query'];
 			}
 
-			$query = new WP_Query( $query_args );
+			$query = extrachill_fulltext_query( $query_args, $search_term );
 
 			if ( $query->have_posts() ) {
 				while ( $query->have_posts() ) {
 					$query->the_post();
 					global $post;
 
-					$post_title = get_the_title();
-					$permalink  = get_permalink();
-
-					if ( $post->post_type === 'reply' && ! empty( $post->post_parent ) ) {
-						$topic_id = $post->post_parent;
-						$topic_title = get_the_title( $topic_id );
-
-						if ( ! empty( $topic_title ) ) {
-							$post_title = 'Re: ' . $topic_title;
-							$permalink = get_permalink( $topic_id ) . '#post-' . $post->ID;
-						}
-					}
-
-					$taxonomies = array();
-					$public_taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
-					foreach ( $public_taxonomies as $taxonomy ) {
-						$terms = get_the_terms( $post->ID, $taxonomy->name );
-						if ( $terms && ! is_wp_error( $terms ) ) {
-							$taxonomies[ $taxonomy->name ] = wp_list_pluck( $terms, 'term_id', 'name' );
-						}
-					}
-
-					$thumbnail_id = get_post_thumbnail_id( $post->ID );
-					$thumbnail_data = array();
-					if ( $thumbnail_id ) {
-						$thumbnail_metadata = wp_get_attachment_metadata( $thumbnail_id );
-						$thumbnail_data = array(
-							'thumbnail_id'     => $thumbnail_id,
-							'thumbnail_url'    => wp_get_attachment_image_url( $thumbnail_id, 'medium_large' ),
-							'thumbnail_srcset' => wp_get_attachment_image_srcset( $thumbnail_id, 'medium_large' ),
-							'thumbnail_sizes'  => wp_get_attachment_image_sizes( $thumbnail_id, 'medium_large' ),
-							'thumbnail_alt'    => get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ),
-							'thumbnail_width'  => isset( $thumbnail_metadata['sizes']['medium_large']['width'] ) ? $thumbnail_metadata['sizes']['medium_large']['width'] : null,
-							'thumbnail_height' => isset( $thumbnail_metadata['sizes']['medium_large']['height'] ) ? $thumbnail_metadata['sizes']['medium_large']['height'] : null,
-						);
-					}
-
-					$result = array(
-						'ID'            => $post->ID,
-						'post_title'    => $post_title,
-						'post_content'  => get_the_content(),
-						'post_excerpt'  => has_excerpt() ? get_the_excerpt() : wp_trim_words( get_the_content(), 30 ),
-						'post_date'     => $post->post_date,
-						'post_modified' => $post->post_modified,
-						'post_type'     => $post->post_type,
-						'post_name'     => $post->post_name,
-						'post_author'   => $post->post_author,
-						'site_id'       => $blog_id,
-						'site_name'     => $blog_details->blogname,
-						'site_url'      => parse_url( $blog_details->siteurl, PHP_URL_HOST ),
-						'permalink'     => $permalink,
-						'taxonomies'    => $taxonomies,
-						'thumbnail'     => $thumbnail_data,
-					);
-
-					$all_results[] = $result;
+					$all_results[] = extrachill_hydrate_search_result( $post, $blog_id, $blog_details );
 				}
 				wp_reset_postdata();
 			}
@@ -344,7 +482,7 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	}
 
 	$total_results = count( $all_results );
-	$all_results = array_slice( $all_results, $args['offset'], $args['limit'] );
+	$all_results   = array_slice( $all_results, $args['offset'], $args['limit'] );
 
 	// Prefer JS-injected source_page over unreliable wp_get_referer().
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -396,23 +534,23 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
  * @return int Relevance score.
  */
 function extrachill_calculate_search_score( $result, $search_term ) {
-	$score = 0;
-	$term_lower = strtolower( extrachill_normalize_search_term( $search_term ) );
+	$score       = 0;
+	$term_lower  = strtolower( extrachill_normalize_search_term( $search_term ) );
 	$title_lower = strtolower( extrachill_normalize_search_term( $result['post_title'] ) );
 	$content_lower = strtolower( extrachill_normalize_search_term( strip_tags( $result['post_content'] ) ) );
 
 	$weights = apply_filters(
 		'extrachill_search_scoring_weights',
 		array(
-			'exact_title_match'   => 1000,
-			'title_phrase_match'  => 500,
-			'title_start_bonus'   => 200,
-			'all_words_in_title'  => 400,
-			'per_word_in_title'   => 25,
-			'content_per_match'   => 50,
-			'content_max'         => 200,
-			'recency_max'         => 100,
-			'recency_days'        => 365,
+			'exact_title_match'  => 1000,
+			'title_phrase_match' => 500,
+			'title_start_bonus'  => 200,
+			'all_words_in_title' => 400,
+			'per_word_in_title'  => 25,
+			'content_per_match'  => 50,
+			'content_max'        => 200,
+			'recency_max'        => 100,
+			'recency_days'       => 365,
 		)
 	);
 
@@ -425,7 +563,7 @@ function extrachill_calculate_search_score( $result, $search_term ) {
 		}
 	} else {
 		$search_words = preg_split( '/\s+/', $term_lower, -1, PREG_SPLIT_NO_EMPTY );
-		$words_found = 0;
+		$words_found  = 0;
 
 		foreach ( $search_words as $word ) {
 			if ( strpos( $title_lower, $word ) !== false ) {
@@ -440,11 +578,11 @@ function extrachill_calculate_search_score( $result, $search_term ) {
 	}
 
 	$content_count = substr_count( $content_lower, $term_lower );
-	$score += min( $content_count * $weights['content_per_match'], $weights['content_max'] );
+	$score        += min( $content_count * $weights['content_per_match'], $weights['content_max'] );
 
-	$days_old = ( time() - strtotime( $result['post_date'] ) ) / DAY_IN_SECONDS;
+	$days_old      = ( time() - strtotime( $result['post_date'] ) ) / DAY_IN_SECONDS;
 	$recency_score = max( 0, $weights['recency_max'] - ( $days_old / ( $weights['recency_days'] / 100 ) ) );
-	$score += $recency_score;
+	$score        += $recency_score;
 
 	return $score;
 }
