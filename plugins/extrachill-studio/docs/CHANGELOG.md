@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.5] - 2026-03-23
+
+### Fixed
+- poll for blocksEverywhereCreateEditor instead of checking synchronously
+
 ## [0.2.4] - 2026-03-23
 
 ### Changed
