@@ -63,17 +63,6 @@ $site_url    = home_url( '/' );
 $rest_nonce  = wp_create_nonce( 'wp_rest' );
 $socials_api = rest_url( 'datamachine-socials/v1/' );
 
-// Ensure the view script is enqueued — WordPress doesn't auto-enqueue
-// viewScript when the block is rendered via do_blocks() in a template
-// (only when it appears in post_content).
-$view_handle = generate_block_asset_handle( 'extrachill/studio', 'viewScript' );
-if ( wp_script_is( $view_handle, 'registered' ) && ! wp_script_is( $view_handle, 'enqueued' ) ) {
-	wp_enqueue_script( $view_handle );
-}
-$view_style_handle = generate_block_asset_handle( 'extrachill/studio', 'viewStyle' );
-if ( wp_style_is( $view_style_handle, 'registered' ) && ! wp_style_is( $view_style_handle, 'enqueued' ) ) {
-	wp_enqueue_style( $view_style_handle );
-}
 ?>
 
 <div
