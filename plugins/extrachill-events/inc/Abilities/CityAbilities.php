@@ -235,6 +235,14 @@ class CityAbilities {
 		// Step 1c: Ensure the location taxonomy term exists (nested under state/country).
 		$location_term_id = $this->ensureLocationTerm( $city_label, $state_name, $country_name );
 
+		// Save geocoded coordinates to the location term for archive page maps.
+		if ( $location_term_id ) {
+			$existing_coords = get_term_meta( $location_term_id, '_location_coordinates', true );
+			if ( empty( $existing_coords ) ) {
+				update_term_meta( $location_term_id, '_location_coordinates', $coordinates );
+			}
+		}
+
 		// Use term ID for flow configs to avoid ambiguity with duplicate city names
 		// (e.g. Portland OR vs Portland ME, Charleston SC vs Charleston WV).
 		$location_term = $location_term_id ? (string) $location_term_id : $city_label;
