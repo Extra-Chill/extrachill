@@ -19,13 +19,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Load Blocks Everywhere editor assets on the Studio homepage.
  *
- * We instantiate the bbPress handler (which is the most feature-complete
- * handler in blocks-everywhere) but configure it for our own use via
- * the editor settings filter. The handler's load_editor() method handles
- * all Gutenberg asset loading, REST API setup, and editor initialization.
- *
- * The JS side uses window.blocksEverywhereCreateEditor to mount the
- * editor on the textarea rendered in the Compose tab.
+ * Uses the generic Frontend handler from Blocks Everywhere (our fork)
+ * to load the isolated block editor. The handler's load_editor() method
+ * handles all Gutenberg asset loading, REST API setup, and editor
+ * initialization. The JS side uses window.blocksEverywhereCreateEditor
+ * to mount the editor when the Compose tab renders.
  */
 function load_compose_editor() {
 	// Only on the front page of the studio site.
@@ -42,14 +40,12 @@ function load_compose_editor() {
 		return;
 	}
 
-	// Blocks Everywhere must be active.
-	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Handler\\Handler' ) ) {
+	// Blocks Everywhere must be active with the Frontend handler.
+	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Handler\\Frontend' ) ) {
 		return;
 	}
 
-	// Use the bbPress handler as our base — it's the most complete.
-	// We configure it via the settings filter below.
-	$handler = new \Automattic\Blocks_Everywhere\Handler\bbPress();
+	$handler = new \Automattic\Blocks_Everywhere\Handler\Frontend();
 
 	// Load the editor targeting our compose textarea.
 	$handler->load_editor(
