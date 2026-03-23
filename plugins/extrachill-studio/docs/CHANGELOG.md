@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.6] - 2026-03-23
+
+### Fixed
+- enqueue Gutenberg editor deps during wp_enqueue_scripts for Compose tab
+
 ## [0.2.5] - 2026-03-23
 
 ### Fixed
