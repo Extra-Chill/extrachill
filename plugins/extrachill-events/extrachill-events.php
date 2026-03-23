@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_EVENTS_VERSION', '0.14.4' );
+define( 'EXTRACHILL_EVENTS_VERSION', '0.15.0' );
 define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
