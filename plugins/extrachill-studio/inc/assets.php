@@ -48,26 +48,3 @@ function extrachill_studio_enqueue_shared_tabs_assets() {
 		wp_enqueue_script( 'extrachill-shared-tabs' );
 	}
 }
-
-/**
- * Move Studio block viewScript to the footer.
- *
- * WordPress registers viewScript in the header by default, but Studio
- * renders its block via do_blocks() in a PHP template (after wp_head).
- * Scripts enqueued for the header after wp_head() has fired are silently
- * skipped. Moving to the footer ensures the script prints via wp_footer().
- *
- * @return void
- * @since 0.2.2
- */
-function extrachill_studio_move_view_script_to_footer() {
-	$view_handle = generate_block_asset_handle( 'extrachill/studio', 'viewScript' );
-
-	if ( wp_script_is( $view_handle, 'registered' ) ) {
-		$scripts = wp_scripts();
-		if ( isset( $scripts->registered[ $view_handle ] ) ) {
-			$scripts->registered[ $view_handle ]->extra['group'] = 1;
-		}
-	}
-}
-add_action( 'wp_enqueue_scripts', 'extrachill_studio_move_view_script_to_footer' );

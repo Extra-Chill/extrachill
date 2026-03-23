@@ -56,25 +56,6 @@ function load_compose_editor() {
 		'#ec-studio-compose-content',
 		'.ec-studio-compose-editor'
 	);
-
-	// Ensure Studio's view.js loads after Blocks Everywhere so
-	// window.blocksEverywhereCreateEditor is available when the
-	// Compose tab mounts.
-	add_action(
-		'wp_enqueue_scripts',
-		function () {
-			$view_handle = generate_block_asset_handle( 'extrachill/studio', 'viewScript' );
-
-			if ( wp_script_is( $view_handle, 'registered' ) ) {
-				$script = wp_scripts()->registered[ $view_handle ] ?? null;
-
-				if ( $script && ! in_array( 'blocks-everywhere', $script->deps, true ) ) {
-					$script->deps[] = 'blocks-everywhere';
-				}
-			}
-		},
-		20
-	);
 }
 add_action( 'wp', __NAMESPACE__ . '\\load_compose_editor' );
 
