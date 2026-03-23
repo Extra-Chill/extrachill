@@ -852,9 +852,9 @@
     background-color: var(--badge-location-virginia-beach-bg);
     color: var(--badge-location-virginia-beach-text);
 }
-.taxonomy-badge.location-washington-dc {
-    background-color: var(--badge-location-washington-dc-bg);
-    color: var(--badge-location-washington-dc-text);
+.taxonomy-badge.location-washington-d-c {
+    background-color: var(--badge-location-washington-d-c-bg);
+    color: var(--badge-location-washington-d-c-text);
 }
 .taxonomy-badge.location-west-palm-beach {
     background-color: var(--badge-location-west-palm-beach-bg);
