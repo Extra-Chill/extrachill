@@ -1,0 +1,14 @@
+{
+  "auto_cleanup": false,
+  "extensions": {
+    "wordpress": {}
+  },
+  "id": "extrachill-search",
+  "remote_path": "wp-content/plugins/extrachill-search",
+  "version_targets": [
+    {
+      "file": "extrachill-search.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    }
+  ]
+}
