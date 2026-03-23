@@ -33,8 +33,10 @@
 /*
  * Taxonomy Badge Colors
  *
- * Generated from @extrachill/tokens
+ * Generated from @extrachill/tokens — DO NOT EDIT MANUALLY.
  * Source: tokens.json > categories > taxonomy-badge
+ *
+ * 232 badges across 5 taxonomies
  */
 
 /* === Festival Badges === */
@@ -218,9 +220,9 @@
     background-color: var(--badge-location-new-jersey-bg);
     color: var(--badge-location-new-jersey-text);
 }
-.taxonomy-badge.location-washington {
-    background-color: var(--badge-location-washington-bg);
-    color: var(--badge-location-washington-text);
+.taxonomy-badge.location-washington-state {
+    background-color: var(--badge-location-washington-state-bg);
+    color: var(--badge-location-washington-state-text);
 }
 .taxonomy-badge.location-raleigh {
     background-color: var(--badge-location-raleigh-bg);
@@ -881,6 +883,10 @@
 .taxonomy-badge.location-virginia-beach {
     background-color: var(--badge-location-virginia-beach-bg);
     color: var(--badge-location-virginia-beach-text);
+}
+.taxonomy-badge.location-washington-dc {
+    background-color: var(--badge-location-washington-dc-bg);
+    color: var(--badge-location-washington-dc-text);
 }
 .taxonomy-badge.location-west-palm-beach {
     background-color: var(--badge-location-west-palm-beach-bg);
