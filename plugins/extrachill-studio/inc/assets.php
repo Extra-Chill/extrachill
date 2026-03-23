@@ -50,6 +50,34 @@ function extrachill_studio_enqueue_shared_tabs_assets() {
 }
 
 /**
+ * Check whether the Studio compose editor needs to load.
+ *
+ * Shared condition used by both the editor enqueue and jQuery filter.
+ *
+ * @return bool
+ * @since 0.2.7
+ */
+function extrachill_studio_compose_editor_is_active() {
+	if ( ! is_front_page() && ! is_home() ) {
+		return false;
+	}
+
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+
+	if ( function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
+		return false;
+	}
+
+	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Handler\\Frontend' ) ) {
+		return false;
+	}
+
+	return true;
+}
+
+/**
  * Enqueue Gutenberg editor dependencies for the Compose tab.
  *
  * Blocks Everywhere needs the full Gutenberg stack on the frontend.
@@ -63,22 +91,30 @@ function extrachill_studio_enqueue_shared_tabs_assets() {
  * @since 0.2.5
  */
 function extrachill_studio_enqueue_editor_dependencies() {
-	if ( ! is_front_page() && ! is_home() ) {
-		return;
-	}
-
-	if ( ! is_user_logged_in() ) {
-		return;
-	}
-
-	if ( function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
-		return;
-	}
-
-	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Handler\\Handler' ) ) {
+	if ( ! extrachill_studio_compose_editor_is_active() ) {
 		return;
 	}
 
 	wp_enqueue_editor();
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_studio_enqueue_editor_dependencies', 110 );
+
+/**
+ * Prevent jQuery from being dequeued when the compose editor is active.
+ *
+ * The theme dequeues jQuery on the frontend for performance. Blocks
+ * Everywhere and wp_enqueue_editor() both depend on jQuery, so we
+ * must keep it when the compose editor loads.
+ *
+ * @param bool $should_dequeue Whether jQuery should be dequeued.
+ * @return bool
+ * @since 0.2.7
+ */
+function extrachill_studio_filter_dequeue_jquery( $should_dequeue ) {
+	if ( extrachill_studio_compose_editor_is_active() ) {
+		return false;
+	}
+
+	return $should_dequeue;
+}
+add_filter( 'extrachill_dequeue_jquery_frontend', 'extrachill_studio_filter_dequeue_jquery' );
