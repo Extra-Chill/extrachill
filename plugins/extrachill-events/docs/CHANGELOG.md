@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.15.0] - 2026-03-23
+
+### Added
+- venue matching supports child location terms and city aliases
+- `extrachill_events_get_location_venues()` transient + static cache with invalidation on venue CRUD
+
+### Fixed
+- auto-disambiguate pipeline names in `add-city` when city name collides across states — compares TM coordinates instead of just pipeline name
+- update NYC zip normalizer to map boroughs to new-york-city term
+
+### Changed
+- `extrachill_events_get_location_venues()` replaced N+1 `get_term_meta()` loop over 2,234 venues with single SQL JOIN query
+
 ## [0.14.4] - 2026-03-22
 
 ### Fixed
