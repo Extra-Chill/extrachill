@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.1] - 2026-03-23
+
+### Fixed
+- split duplicate location-washington into location-washington-state and location-washington-dc
+
 ## [0.4.0] - 2026-03-23
 
 ### Added
