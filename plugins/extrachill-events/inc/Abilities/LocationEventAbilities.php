@@ -9,8 +9,6 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use DataMachineEvents\Blocks\Calendar\Calendar_Query;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -167,33 +165,34 @@ class LocationEventAbilities {
 	}
 
 	private function queryEventsByLocation( int $term_id, string $date_start, string $date_end, int $limit ): array {
-		if ( ! class_exists( 'DataMachineEvents\Blocks\Calendar\Calendar_Query' ) ) {
-			return array();
-		}
-
-		$params = array(
+		$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
+		$result  = $ability->executeQueryEvents( array(
 			'date_start'  => $date_start,
 			'date_end'    => $date_end,
-			'show_past'   => false,
-			'tax_filters' => array(
-				'location' => array( $term_id ),
-			),
-		);
+			'tax_filters' => array( 'location' => array( $term_id ) ),
+			'per_page'    => $limit,
+			'order'       => 'ASC',
+		) );
 
-		$query_args                   = Calendar_Query::build_query_args( $params );
-		$query_args['posts_per_page'] = $limit;
-
-		$query        = new \WP_Query( $query_args );
-		$paged_events = Calendar_Query::build_paged_events( $query );
+		if ( ! class_exists( 'DataMachineEvents\Blocks\Calendar\Calendar_Query' ) ) {
+			// Fallback: return basic data without parsed event_data.
+			$events = array();
+			foreach ( $result['posts'] as $post ) {
+				$events[] = array(
+					'id'         => $post->ID,
+					'title'      => $post->post_title,
+					'date'       => '',
+					'start_time' => '',
+					'venue'      => '',
+					'permalink'  => get_permalink( $post->ID ),
+				);
+			}
+			return $events;
+		}
 
 		$events = array();
-		foreach ( $paged_events as $event_item ) {
-			$post       = $event_item['post'] ?? null;
-			$event_data = $event_item['event_data'] ?? array();
-
-			if ( ! $post ) {
-				continue;
-			}
+		foreach ( $result['posts'] as $post ) {
+			$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
 
 			$start_time     = $event_data['startTime'] ?? '';
 			$formatted_time = '';

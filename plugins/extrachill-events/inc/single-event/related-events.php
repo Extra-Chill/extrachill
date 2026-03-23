@@ -116,68 +116,54 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 	$term_link = get_term_link( $term );
 	$term_name = esc_html( $term->name );
 
-	// Build query args
-	$tax_query = array(
-		array(
-			'taxonomy' => $taxonomy,
-			'field'    => 'term_id',
-			'terms'    => $term_id,
-		),
-	);
+	// Build tax_filters for the ability.
+	$ability_tax_filters = array( $taxonomy => array( $term_id ) );
 
-	// Exclude same venue when showing location-based related events
+	// For location-based related events, exclude same venue in PHP
+	// since the ability's tax_filters only supports IN, not NOT IN.
+	$exclude_venue_ids = array();
 	if ( 'location' === $taxonomy ) {
 		$venue_terms = get_the_terms( $post_id, 'venue' );
 		if ( $venue_terms && ! is_wp_error( $venue_terms ) ) {
-			$venue_term_ids = wp_list_pluck( $venue_terms, 'term_id' );
-			$tax_query[]    = array(
-				'taxonomy' => 'venue',
-				'field'    => 'term_id',
-				'terms'    => $venue_term_ids,
-				'operator' => 'NOT IN',
-			);
+			$exclude_venue_ids = wp_list_pluck( $venue_terms, 'term_id' );
 		}
 	}
 
-	$query_args = array(
-		'post_type'      => 'data_machine_events',
-		'posts_per_page' => 3,
-		'post_status'    => 'publish',
-		'tax_query'      => $tax_query,
-		'post__not_in'   => array( $post_id ),
-		'orderby'        => 'none',
-		'order'          => 'ASC',
-	);
+	$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
+	$result  = $ability->executeQueryEvents( array(
+		'scope'       => 'upcoming',
+		'tax_filters' => $ability_tax_filters,
+		'exclude'     => array( $post_id ),
+		'per_page'    => ! empty( $exclude_venue_ids ) ? 20 : 3,
+		'order'       => 'ASC',
+	) );
 
-	$now = current_time( 'mysql' );
-	$event_date_filter = function ( $clauses ) use ( $now ) {
-		global $wpdb;
-		$table = \DataMachineEvents\Core\EventDatesTable::table_name();
-		if ( strpos( $clauses['join'], $table ) === false ) {
-			$clauses['join'] .= " INNER JOIN {$table} AS ed ON {$wpdb->posts}.ID = ed.post_id";
-		}
-		$clauses['where']   .= $wpdb->prepare( ' AND ed.start_datetime >= %s', $now );
-		$clauses['orderby']  = 'ed.start_datetime ASC';
-		return $clauses;
-	};
-	add_filter( 'posts_clauses', $event_date_filter );
+	$related_posts_array = $result['posts'];
 
-	$related_posts = new WP_Query( $query_args );
-
-	remove_filter( 'posts_clauses', $event_date_filter );
+	// Filter out events at excluded venues (for location-based related events).
+	if ( ! empty( $exclude_venue_ids ) && ! empty( $related_posts_array ) ) {
+		$related_posts_array = array_filter( $related_posts_array, function ( $rp ) use ( $exclude_venue_ids ) {
+			$rp_venues = wp_get_post_terms( $rp->ID, 'venue', array( 'fields' => 'ids' ) );
+			if ( is_wp_error( $rp_venues ) ) {
+				return true;
+			}
+			return empty( array_intersect( $rp_venues, $exclude_venue_ids ) );
+		} );
+		$related_posts_array = array_slice( array_values( $related_posts_array ), 0, 3 );
+	}
 
 	$preposition = ( 'venue' === $taxonomy ) ? 'at' : 'in';
 
-	if ( $related_posts->have_posts() ) :
+	if ( ! empty( $related_posts_array ) ) :
 		?>
 		<div class="related-tax-section">
 			<h3 class="related-tax-header">More <?php echo esc_html( $preposition ); ?> <a href="<?php echo esc_url( $term_link ); ?>"><?php echo $term_name; ?></a></h3>
 			
 			<div class="related-tax-grid">
 				<?php
-				while ( $related_posts->have_posts() ) :
-					$related_posts->the_post();
-					$post = get_post();
+				foreach ( $related_posts_array as $related_post ) :
+					setup_postdata( $GLOBALS['post'] = $related_post );
+					$post = $related_post;
 
 					$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
 					$image_url  = get_the_post_thumbnail_url( $post, 'medium_large' );
@@ -230,7 +216,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 						</div>
 					</div>
 					<?php
-				endwhile;
+				endforeach;
 				wp_reset_postdata();
 				?>
 			</div>

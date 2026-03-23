@@ -13,8 +13,6 @@ namespace ExtraChillEvents\Handlers\WeeklyRoundup;
 use DataMachine\Core\ExecutionContext;
 use DataMachine\Core\Steps\Fetch\Handlers\FetchHandler;
 use DataMachine\Core\Steps\HandlerRegistrationTrait;
-use DataMachineEvents\Blocks\Calendar\Calendar_Query;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -145,26 +143,40 @@ class WeeklyRoundupHandler extends FetchHandler {
 	}
 
 	/**
-	 * Query events using Calendar_Query with location filter.
+	 * Query events using the query-events ability with location filter.
 	 */
 	private function query_events( string $date_start, string $date_end, int $location_term_id ): array {
-		$params = array(
+		$input = array(
 			'date_start' => $date_start,
 			'date_end'   => $date_end,
-			'show_past'  => false,
+			'per_page'   => -1,
+			'order'      => 'ASC',
 		);
 
 		if ( $location_term_id > 0 ) {
-			$params['tax_filters'] = array(
+			$input['tax_filters'] = array(
 				'location' => array( $location_term_id ),
 			);
 		}
 
-		$query_args   = Calendar_Query::build_query_args( $params );
-		$query        = new \WP_Query( $query_args );
-		$paged_events = Calendar_Query::build_paged_events( $query );
+		$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
+		$result  = $ability->executeQueryEvents( $input );
 
-		return Calendar_Query::group_events_by_date( $paged_events );
+		if ( ! class_exists( 'DataMachineEvents\Blocks\Calendar\Calendar_Query' ) ) {
+			return array();
+		}
+
+		// Build paged_events from WP_Post objects and group by date.
+		$paged_events = array();
+		foreach ( $result['posts'] as $post ) {
+			$event_data     = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
+			$paged_events[] = array(
+				'post'       => $post,
+				'event_data' => $event_data,
+			);
+		}
+
+		return \DataMachineEvents\Blocks\Calendar\Calendar_Query::group_events_by_date( $paged_events );
 	}
 
 	private function resolve_next_weekday_range( string $week_start_day, string $week_end_day ): array {

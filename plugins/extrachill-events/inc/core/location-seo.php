@@ -162,34 +162,12 @@ function extrachill_events_build_location_description( string $city_name, int $t
  * @return int Number of upcoming events.
  */
 function extrachill_events_get_upcoming_event_count( int $term_id ): int {
-	$args = array(
-		'post_type'      => 'data_machine_events',
-		'post_status'    => 'publish',
-		'posts_per_page' => 1,
-		'fields'         => 'ids',
-		'tax_query'      => array(
-			array(
-				'taxonomy' => 'location',
-				'terms'    => $term_id,
-			),
-		),
-	);
+	$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
+	$result  = $ability->executeQueryEvents( array(
+		'scope'       => 'upcoming',
+		'tax_filters' => array( 'location' => array( $term_id ) ),
+		'fields'      => 'count',
+	) );
 
-	$now = current_time( 'mysql' );
-	$event_date_filter = function ( $clauses ) use ( $now ) {
-		global $wpdb;
-		$table = \DataMachineEvents\Core\EventDatesTable::table_name();
-		if ( strpos( $clauses['join'], $table ) === false ) {
-			$clauses['join'] .= " INNER JOIN {$table} AS ed ON {$wpdb->posts}.ID = ed.post_id";
-		}
-		$clauses['where'] .= $wpdb->prepare( ' AND ed.start_datetime >= %s', $now );
-		return $clauses;
-	};
-	add_filter( 'posts_clauses', $event_date_filter );
-
-	$query = new \WP_Query( $args );
-
-	remove_filter( 'posts_clauses', $event_date_filter );
-
-	return $query->found_posts;
+	return $result['total'];
 }

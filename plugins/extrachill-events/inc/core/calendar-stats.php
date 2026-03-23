@@ -26,60 +26,33 @@ function extrachill_events_get_calendar_stats(): array {
 		return $cached;
 	}
 
-	global $wpdb;
+	// Requires data-machine-events to be active.
+	if ( ! class_exists( '\DataMachineEvents\Abilities\EventDateQueryAbilities' ) ) {
+		return array( 'events' => 0, 'venues' => 0, 'locations' => 0 );
+	}
 
-	$events_table = $wpdb->prefix . 'posts';
-	$tr_table     = $wpdb->prefix . 'term_relationships';
-	$tt_table     = $wpdb->prefix . 'term_taxonomy';
+	// Count upcoming events via query-events ability.
+	$event_query = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
+	$result      = $event_query->executeQueryEvents( array(
+		'scope'  => 'upcoming',
+		'fields' => 'count',
+	) );
+	$events = (int) $result['total'];
 
-	// Uses DateFilter from data-machine-events as the single source of truth
-	// for what "upcoming" means. Requires data-machine-events to be active.
-	$filter = \DataMachineEvents\Blocks\Calendar\Query\DateFilter::upcoming_sql( $wpdb->prefix . 'postmeta' );
-	$now    = current_time( 'mysql' );
+	// Count upcoming venues and locations via get-upcoming-counts ability.
+	$counts_ability = new \DataMachineEvents\Abilities\UpcomingCountAbilities();
 
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
+	$venue_result = $counts_ability->executeGetUpcomingCounts( array(
+		'taxonomy'      => 'venue',
+		'exclude_roots' => false,
+	) );
+	$venues = count( $venue_result['terms'] ?? array() );
 
-	$events = (int) $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT COUNT(DISTINCT p.ID)
-			FROM {$events_table} p
-			{$filter['joins']}
-			WHERE p.post_type = 'data_machine_events' AND p.post_status = 'publish'
-			AND {$filter['where']}",
-			$now,
-			$now
-		)
-	);
-
-	$venues = (int) $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT COUNT(DISTINCT tt.term_id)
-			FROM {$events_table} p
-			{$filter['joins']}
-			JOIN {$tr_table} tr ON p.ID = tr.object_id
-			JOIN {$tt_table} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id AND tt.taxonomy = 'venue'
-			WHERE p.post_type = 'data_machine_events' AND p.post_status = 'publish'
-			AND {$filter['where']}",
-			$now,
-			$now
-		)
-	);
-
-	$locations = (int) $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT COUNT(DISTINCT tt.term_id)
-			FROM {$events_table} p
-			{$filter['joins']}
-			JOIN {$tr_table} tr ON p.ID = tr.object_id
-			JOIN {$tt_table} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id AND tt.taxonomy = 'location'
-			WHERE p.post_type = 'data_machine_events' AND p.post_status = 'publish'
-			AND {$filter['where']}",
-			$now,
-			$now
-		)
-	);
-
-	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery
+	$location_result = $counts_ability->executeGetUpcomingCounts( array(
+		'taxonomy'      => 'location',
+		'exclude_roots' => false,
+	) );
+	$locations = count( $location_result['terms'] ?? array() );
 
 	$stats = array(
 		'events'    => $events,

@@ -81,28 +81,22 @@ class WeeklyRoundupSettings extends SettingsHandler {
 			return $options;
 		}
 
-		if ( ! class_exists( '\\DataMachineEvents\\Blocks\\Calendar\\Calendar_Query' ) ) {
+		if ( ! class_exists( '\\DataMachineEvents\\Abilities\\EventDateQueryAbilities' ) ) {
 			return $options;
 		}
 
-		$query_args = \DataMachineEvents\Blocks\Calendar\Calendar_Query::build_query_args(
-			array(
-				'show_past' => false,
-			)
-		);
+		$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
+		$result  = $ability->executeQueryEvents( array(
+			'scope'  => 'upcoming',
+			'fields' => 'ids',
+		) );
 
-		$query_args['fields']                 = 'ids';
-		$query_args['no_found_rows']          = true;
-		$query_args['update_post_meta_cache'] = false;
-		$query_args['update_post_term_cache'] = false;
-
-		$query = new \WP_Query( $query_args );
-		if ( empty( $query->posts ) ) {
+		if ( empty( $result['posts'] ) ) {
 			return $options;
 		}
 
 		$terms = \wp_get_object_terms(
-			$query->posts,
+			$result['posts'],
 			'location',
 			array(
 				'orderby' => 'name',
