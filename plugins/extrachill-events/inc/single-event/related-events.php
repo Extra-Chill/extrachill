@@ -145,18 +145,26 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 		'post_status'    => 'publish',
 		'tax_query'      => $tax_query,
 		'post__not_in'   => array( $post_id ),
-		'orderby'        => 'event_start',
+		'orderby'        => 'none',
 		'order'          => 'ASC',
-		'meta_query'     => array(
-			'event_start' => array(
-				'key'     => '_datamachine_event_datetime',
-				'value'   => current_time( 'mysql' ),
-				'compare' => '>=',
-			),
-		),
 	);
 
+	$now = current_time( 'mysql' );
+	$event_date_filter = function ( $clauses ) use ( $now ) {
+		global $wpdb;
+		$table = \DataMachineEvents\Core\EventDatesTable::table_name();
+		if ( strpos( $clauses['join'], $table ) === false ) {
+			$clauses['join'] .= " INNER JOIN {$table} AS ed ON {$wpdb->posts}.ID = ed.post_id";
+		}
+		$clauses['where']   .= $wpdb->prepare( ' AND ed.start_datetime >= %s', $now );
+		$clauses['orderby']  = 'ed.start_datetime ASC';
+		return $clauses;
+	};
+	add_filter( 'posts_clauses', $event_date_filter );
+
 	$related_posts = new WP_Query( $query_args );
+
+	remove_filter( 'posts_clauses', $event_date_filter );
 
 	$preposition = ( 'venue' === $taxonomy ) ? 'at' : 'in';
 
