@@ -1,10 +1,12 @@
 {
   "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
     "wordpress": {}
   },
   "id": "extrachill-search",
   "remote_path": "wp-content/plugins/extrachill-search",
+  "remote_url": "https://github.com/Extra-Chill/extrachill-search.git",
   "version_targets": [
     {
       "file": "extrachill-search.php",
