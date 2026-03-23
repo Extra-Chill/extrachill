@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.4] - 2026-03-23
+
+### Changed
+- remove blocks-everywhere dep injection and footer group hack
+
 ## [0.2.3] - 2026-03-23
 
 ### Fixed
