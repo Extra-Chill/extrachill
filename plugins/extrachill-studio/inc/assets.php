@@ -48,3 +48,37 @@ function extrachill_studio_enqueue_shared_tabs_assets() {
 		wp_enqueue_script( 'extrachill-shared-tabs' );
 	}
 }
+
+/**
+ * Enqueue Gutenberg editor dependencies for the Compose tab.
+ *
+ * Blocks Everywhere needs the full Gutenberg stack on the frontend.
+ * These must be enqueued during wp_enqueue_scripts so they load in
+ * wp_head — if deferred until load_editor() fires on the wp hook,
+ * the header-group deps miss the wp_head output window.
+ *
+ * Mirrors the pattern used by extrachill-community for bbPress editing.
+ *
+ * @return void
+ * @since 0.2.5
+ */
+function extrachill_studio_enqueue_editor_dependencies() {
+	if ( ! is_front_page() && ! is_home() ) {
+		return;
+	}
+
+	if ( ! is_user_logged_in() ) {
+		return;
+	}
+
+	if ( function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
+		return;
+	}
+
+	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Handler\\Handler' ) ) {
+		return;
+	}
+
+	wp_enqueue_editor();
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_studio_enqueue_editor_dependencies', 110 );

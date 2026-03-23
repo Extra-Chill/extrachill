@@ -20,47 +20,24 @@ const ComposePane = () => {
 	const [ error, setError ] = useState( '' );
 	const [ editorReady, setEditorReady ] = useState( false );
 
-	// Mount the block editor once Blocks Everywhere is ready.
-	// The BE script loads with strategy=defer so it may arrive after
-	// this component mounts. Poll briefly before giving up.
+	// Mount the block editor on first render.
 	useEffect( () => {
 		if ( editorMountedRef.current ) {
 			return;
 		}
 
-		const tryMount = () => {
-			if ( ! textareaRef.current || editorMountedRef.current ) {
-				return true;
-			}
-
-			if ( typeof window.blocksEverywhereCreateEditor === 'function' ) {
-				window.blocksEverywhereCreateEditor( textareaRef.current );
-				editorMountedRef.current = true;
-				setEditorReady( true );
-				return true;
-			}
-
-			return false;
-		};
-
-		// Try immediately, then poll up to 5 seconds.
-		if ( tryMount() ) {
+		if ( ! textareaRef.current ) {
 			return;
 		}
 
-		let attempts = 0;
-		const maxAttempts = 25;
-		const interval = setInterval( () => {
-			attempts++;
-			if ( tryMount() || attempts >= maxAttempts ) {
-				clearInterval( interval );
-				if ( ! editorMountedRef.current ) {
-					setError( __( 'Block editor not available. Ensure Blocks Everywhere plugin is active.', 'extrachill-studio' ) );
-				}
-			}
-		}, 200 );
-
-		return () => clearInterval( interval );
+		// Blocks Everywhere exposes this globally when loaded.
+		if ( typeof window.blocksEverywhereCreateEditor === 'function' ) {
+			window.blocksEverywhereCreateEditor( textareaRef.current );
+			editorMountedRef.current = true;
+			setEditorReady( true );
+		} else {
+			setError( __( 'Block editor not available. Ensure Blocks Everywhere plugin is active.', 'extrachill-studio' ) );
+		}
 	}, [] );
 
 	/**
