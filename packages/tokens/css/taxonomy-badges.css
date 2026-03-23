@@ -4,7 +4,7 @@
  * Generated from @extrachill/tokens — DO NOT EDIT MANUALLY.
  * Source: tokens.json > categories > taxonomy-badge
  *
- * 134 badges across 5 taxonomies
+ * 231 badges across 5 taxonomies
  */
 
 /* === Festival Badges === */
@@ -495,6 +495,394 @@
 .taxonomy-badge.location-ionia {
     background-color: var(--badge-location-ionia-bg);
     color: var(--badge-location-ionia-text);
+}
+.taxonomy-badge.location-akron {
+    background-color: var(--badge-location-akron-bg);
+    color: var(--badge-location-akron-text);
+}
+.taxonomy-badge.location-albany {
+    background-color: var(--badge-location-albany-bg);
+    color: var(--badge-location-albany-text);
+}
+.taxonomy-badge.location-albuquerque {
+    background-color: var(--badge-location-albuquerque-bg);
+    color: var(--badge-location-albuquerque-text);
+}
+.taxonomy-badge.location-allentown {
+    background-color: var(--badge-location-allentown-bg);
+    color: var(--badge-location-allentown-text);
+}
+.taxonomy-badge.location-amherst {
+    background-color: var(--badge-location-amherst-bg);
+    color: var(--badge-location-amherst-text);
+}
+.taxonomy-badge.location-annapolis {
+    background-color: var(--badge-location-annapolis-bg);
+    color: var(--badge-location-annapolis-text);
+}
+.taxonomy-badge.location-asbury-park {
+    background-color: var(--badge-location-asbury-park-bg);
+    color: var(--badge-location-asbury-park-text);
+}
+.taxonomy-badge.location-atlantic-city {
+    background-color: var(--badge-location-atlantic-city-bg);
+    color: var(--badge-location-atlantic-city-text);
+}
+.taxonomy-badge.location-augusta {
+    background-color: var(--badge-location-augusta-bg);
+    color: var(--badge-location-augusta-text);
+}
+.taxonomy-badge.location-baton-rouge {
+    background-color: var(--badge-location-baton-rouge-bg);
+    color: var(--badge-location-baton-rouge-text);
+}
+.taxonomy-badge.location-bellingham {
+    background-color: var(--badge-location-bellingham-bg);
+    color: var(--badge-location-bellingham-text);
+}
+.taxonomy-badge.location-blacksburg {
+    background-color: var(--badge-location-blacksburg-bg);
+    color: var(--badge-location-blacksburg-text);
+}
+.taxonomy-badge.location-bloomington {
+    background-color: var(--badge-location-bloomington-bg);
+    color: var(--badge-location-bloomington-text);
+}
+.taxonomy-badge.location-bloomington-illinois {
+    background-color: var(--badge-location-bloomington-illinois-bg);
+    color: var(--badge-location-bloomington-illinois-text);
+}
+.taxonomy-badge.location-boulder {
+    background-color: var(--badge-location-boulder-bg);
+    color: var(--badge-location-boulder-text);
+}
+.taxonomy-badge.location-bozeman {
+    background-color: var(--badge-location-bozeman-bg);
+    color: var(--badge-location-bozeman-text);
+}
+.taxonomy-badge.location-buffalo {
+    background-color: var(--badge-location-buffalo-bg);
+    color: var(--badge-location-buffalo-text);
+}
+.taxonomy-badge.location-cambridge {
+    background-color: var(--badge-location-cambridge-bg);
+    color: var(--badge-location-cambridge-text);
+}
+.taxonomy-badge.location-cedar-rapids {
+    background-color: var(--badge-location-cedar-rapids-bg);
+    color: var(--badge-location-cedar-rapids-text);
+}
+.taxonomy-badge.location-champaign {
+    background-color: var(--badge-location-champaign-bg);
+    color: var(--badge-location-champaign-text);
+}
+.taxonomy-badge.location-cincinnati {
+    background-color: var(--badge-location-cincinnati-bg);
+    color: var(--badge-location-cincinnati-text);
+}
+.taxonomy-badge.location-colorado-springs {
+    background-color: var(--badge-location-colorado-springs-bg);
+    color: var(--badge-location-colorado-springs-text);
+}
+.taxonomy-badge.location-columbia-missouri {
+    background-color: var(--badge-location-columbia-missouri-bg);
+    color: var(--badge-location-columbia-missouri-text);
+}
+.taxonomy-badge.location-dayton {
+    background-color: var(--badge-location-dayton-bg);
+    color: var(--badge-location-dayton-text);
+}
+.taxonomy-badge.location-des-moines {
+    background-color: var(--badge-location-des-moines-bg);
+    color: var(--badge-location-des-moines-text);
+}
+.taxonomy-badge.location-duluth {
+    background-color: var(--badge-location-duluth-bg);
+    color: var(--badge-location-duluth-text);
+}
+.taxonomy-badge.location-durham {
+    background-color: var(--badge-location-durham-bg);
+    color: var(--badge-location-durham-text);
+}
+.taxonomy-badge.location-eau-claire {
+    background-color: var(--badge-location-eau-claire-bg);
+    color: var(--badge-location-eau-claire-text);
+}
+.taxonomy-badge.location-el-paso {
+    background-color: var(--badge-location-el-paso-bg);
+    color: var(--badge-location-el-paso-text);
+}
+.taxonomy-badge.location-fargo {
+    background-color: var(--badge-location-fargo-bg);
+    color: var(--badge-location-fargo-text);
+}
+.taxonomy-badge.location-fort-collins {
+    background-color: var(--badge-location-fort-collins-bg);
+    color: var(--badge-location-fort-collins-text);
+}
+.taxonomy-badge.location-fort-lauderdale {
+    background-color: var(--badge-location-fort-lauderdale-bg);
+    color: var(--badge-location-fort-lauderdale-text);
+}
+.taxonomy-badge.location-fort-wayne {
+    background-color: var(--badge-location-fort-wayne-bg);
+    color: var(--badge-location-fort-wayne-text);
+}
+.taxonomy-badge.location-fort-worth {
+    background-color: var(--badge-location-fort-worth-bg);
+    color: var(--badge-location-fort-worth-text);
+}
+.taxonomy-badge.location-fresno {
+    background-color: var(--badge-location-fresno-bg);
+    color: var(--badge-location-fresno-text);
+}
+.taxonomy-badge.location-galveston {
+    background-color: var(--badge-location-galveston-bg);
+    color: var(--badge-location-galveston-text);
+}
+.taxonomy-badge.location-grand-rapids {
+    background-color: var(--badge-location-grand-rapids-bg);
+    color: var(--badge-location-grand-rapids-text);
+}
+.taxonomy-badge.location-green-bay {
+    background-color: var(--badge-location-green-bay-bg);
+    color: var(--badge-location-green-bay-text);
+}
+.taxonomy-badge.location-harrisburg {
+    background-color: var(--badge-location-harrisburg-bg);
+    color: var(--badge-location-harrisburg-text);
+}
+.taxonomy-badge.location-harrisonburg {
+    background-color: var(--badge-location-harrisonburg-bg);
+    color: var(--badge-location-harrisonburg-text);
+}
+.taxonomy-badge.location-hattiesburg {
+    background-color: var(--badge-location-hattiesburg-bg);
+    color: var(--badge-location-hattiesburg-text);
+}
+.taxonomy-badge.location-huntsville {
+    background-color: var(--badge-location-huntsville-bg);
+    color: var(--badge-location-huntsville-text);
+}
+.taxonomy-badge.location-ithaca {
+    background-color: var(--badge-location-ithaca-bg);
+    color: var(--badge-location-ithaca-text);
+}
+.taxonomy-badge.location-jackson {
+    background-color: var(--badge-location-jackson-bg);
+    color: var(--badge-location-jackson-text);
+}
+.taxonomy-badge.location-johnson-city {
+    background-color: var(--badge-location-johnson-city-bg);
+    color: var(--badge-location-johnson-city-text);
+}
+.taxonomy-badge.location-kalamazoo {
+    background-color: var(--badge-location-kalamazoo-bg);
+    color: var(--badge-location-kalamazoo-text);
+}
+.taxonomy-badge.location-key-west {
+    background-color: var(--badge-location-key-west-bg);
+    color: var(--badge-location-key-west-text);
+}
+.taxonomy-badge.location-lancaster {
+    background-color: var(--badge-location-lancaster-bg);
+    color: var(--badge-location-lancaster-text);
+}
+.taxonomy-badge.location-lansing {
+    background-color: var(--badge-location-lansing-bg);
+    color: var(--badge-location-lansing-text);
+}
+.taxonomy-badge.location-las-cruces {
+    background-color: var(--badge-location-las-cruces-bg);
+    color: var(--badge-location-las-cruces-text);
+}
+.taxonomy-badge.location-lincoln {
+    background-color: var(--badge-location-lincoln-bg);
+    color: var(--badge-location-lincoln-text);
+}
+.taxonomy-badge.location-little-rock {
+    background-color: var(--badge-location-little-rock-bg);
+    color: var(--badge-location-little-rock-text);
+}
+.taxonomy-badge.location-long-beach {
+    background-color: var(--badge-location-long-beach-bg);
+    color: var(--badge-location-long-beach-text);
+}
+.taxonomy-badge.location-lubbock {
+    background-color: var(--badge-location-lubbock-bg);
+    color: var(--badge-location-lubbock-text);
+}
+.taxonomy-badge.location-macon {
+    background-color: var(--badge-location-macon-bg);
+    color: var(--badge-location-macon-text);
+}
+.taxonomy-badge.location-manchester {
+    background-color: var(--badge-location-manchester-bg);
+    color: var(--badge-location-manchester-text);
+}
+.taxonomy-badge.location-mobile {
+    background-color: var(--badge-location-mobile-bg);
+    color: var(--badge-location-mobile-text);
+}
+.taxonomy-badge.location-montgomery {
+    background-color: var(--badge-location-montgomery-bg);
+    color: var(--badge-location-montgomery-text);
+}
+.taxonomy-badge.location-morgantown {
+    background-color: var(--badge-location-morgantown-bg);
+    color: var(--badge-location-morgantown-text);
+}
+.taxonomy-badge.location-murfreesboro {
+    background-color: var(--badge-location-murfreesboro-bg);
+    color: var(--badge-location-murfreesboro-text);
+}
+.taxonomy-badge.location-myrtle-beach {
+    background-color: var(--badge-location-myrtle-beach-bg);
+    color: var(--badge-location-myrtle-beach-text);
+}
+.taxonomy-badge.location-new-brunswick {
+    background-color: var(--badge-location-new-brunswick-bg);
+    color: var(--badge-location-new-brunswick-text);
+}
+.taxonomy-badge.location-new-york {
+    background-color: var(--badge-location-new-york-bg);
+    color: var(--badge-location-new-york-text);
+}
+.taxonomy-badge.location-newark {
+    background-color: var(--badge-location-newark-bg);
+    color: var(--badge-location-newark-text);
+}
+.taxonomy-badge.location-norfolk {
+    background-color: var(--badge-location-norfolk-bg);
+    color: var(--badge-location-norfolk-text);
+}
+.taxonomy-badge.location-norman {
+    background-color: var(--badge-location-norman-bg);
+    color: var(--badge-location-norman-text);
+}
+.taxonomy-badge.location-oklahoma-city {
+    background-color: var(--badge-location-oklahoma-city-bg);
+    color: var(--badge-location-oklahoma-city-text);
+}
+.taxonomy-badge.location-olympia {
+    background-color: var(--badge-location-olympia-bg);
+    color: var(--badge-location-olympia-text);
+}
+.taxonomy-badge.location-park-city {
+    background-color: var(--badge-location-park-city-bg);
+    color: var(--badge-location-park-city-text);
+}
+.taxonomy-badge.location-pensacola {
+    background-color: var(--badge-location-pensacola-bg);
+    color: var(--badge-location-pensacola-text);
+}
+.taxonomy-badge.location-portsmouth-new-hampshire {
+    background-color: var(--badge-location-portsmouth-new-hampshire-bg);
+    color: var(--badge-location-portsmouth-new-hampshire-text);
+}
+.taxonomy-badge.location-provo {
+    background-color: var(--badge-location-provo-bg);
+    color: var(--badge-location-provo-text);
+}
+.taxonomy-badge.location-red-bank {
+    background-color: var(--badge-location-red-bank-bg);
+    color: var(--badge-location-red-bank-text);
+}
+.taxonomy-badge.location-reno {
+    background-color: var(--badge-location-reno-bg);
+    color: var(--badge-location-reno-text);
+}
+.taxonomy-badge.location-rochester {
+    background-color: var(--badge-location-rochester-bg);
+    color: var(--badge-location-rochester-text);
+}
+.taxonomy-badge.location-salem {
+    background-color: var(--badge-location-salem-bg);
+    color: var(--badge-location-salem-text);
+}
+.taxonomy-badge.location-san-jose {
+    background-color: var(--badge-location-san-jose-bg);
+    color: var(--badge-location-san-jose-text);
+}
+.taxonomy-badge.location-san-marcos {
+    background-color: var(--badge-location-san-marcos-bg);
+    color: var(--badge-location-san-marcos-text);
+}
+.taxonomy-badge.location-santa-barbara {
+    background-color: var(--badge-location-santa-barbara-bg);
+    color: var(--badge-location-santa-barbara-text);
+}
+.taxonomy-badge.location-santa-cruz {
+    background-color: var(--badge-location-santa-cruz-bg);
+    color: var(--badge-location-santa-cruz-text);
+}
+.taxonomy-badge.location-sarasota {
+    background-color: var(--badge-location-sarasota-bg);
+    color: var(--badge-location-sarasota-text);
+}
+.taxonomy-badge.location-sioux-falls {
+    background-color: var(--badge-location-sioux-falls-bg);
+    color: var(--badge-location-sioux-falls-text);
+}
+.taxonomy-badge.location-spokane {
+    background-color: var(--badge-location-spokane-bg);
+    color: var(--badge-location-spokane-text);
+}
+.taxonomy-badge.location-springfield {
+    background-color: var(--badge-location-springfield-bg);
+    color: var(--badge-location-springfield-text);
+}
+.taxonomy-badge.location-st-paul {
+    background-color: var(--badge-location-st-paul-bg);
+    color: var(--badge-location-st-paul-text);
+}
+.taxonomy-badge.location-state-college {
+    background-color: var(--badge-location-state-college-bg);
+    color: var(--badge-location-state-college-text);
+}
+.taxonomy-badge.location-tacoma {
+    background-color: var(--badge-location-tacoma-bg);
+    color: var(--badge-location-tacoma-text);
+}
+.taxonomy-badge.location-toledo {
+    background-color: var(--badge-location-toledo-bg);
+    color: var(--badge-location-toledo-text);
+}
+.taxonomy-badge.location-virginia-beach {
+    background-color: var(--badge-location-virginia-beach-bg);
+    color: var(--badge-location-virginia-beach-text);
+}
+.taxonomy-badge.location-west-palm-beach {
+    background-color: var(--badge-location-west-palm-beach-bg);
+    color: var(--badge-location-west-palm-beach-text);
+}
+.taxonomy-badge.location-wichita {
+    background-color: var(--badge-location-wichita-bg);
+    color: var(--badge-location-wichita-text);
+}
+.taxonomy-badge.location-wilmington {
+    background-color: var(--badge-location-wilmington-bg);
+    color: var(--badge-location-wilmington-text);
+}
+.taxonomy-badge.location-wilmington-north-carolina {
+    background-color: var(--badge-location-wilmington-north-carolina-bg);
+    color: var(--badge-location-wilmington-north-carolina-text);
+}
+.taxonomy-badge.location-winston-salem {
+    background-color: var(--badge-location-winston-salem-bg);
+    color: var(--badge-location-winston-salem-text);
+}
+.taxonomy-badge.location-woodstock {
+    background-color: var(--badge-location-woodstock-bg);
+    color: var(--badge-location-woodstock-text);
+}
+.taxonomy-badge.location-worcester {
+    background-color: var(--badge-location-worcester-bg);
+    color: var(--badge-location-worcester-text);
+}
+.taxonomy-badge.location-anchorage {
+    background-color: var(--badge-location-anchorage-bg);
+    color: var(--badge-location-anchorage-text);
 }
 
 /* === Category Badges === */
