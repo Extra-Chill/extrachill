@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.3] - 2026-03-23
+
+### Fixed
+- move viewScript to footer so it prints when enqueued during do_blocks()
+
 ## [0.2.2] - 2026-03-23
 
 ### Fixed
