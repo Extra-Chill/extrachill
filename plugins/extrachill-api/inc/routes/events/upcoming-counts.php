@@ -141,12 +141,11 @@ function extrachill_api_query_upcoming_counts( $taxonomy ) {
 			INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
 			INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
 			INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
-			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+			INNER JOIN {$wpdb->prefix}datamachine_event_dates ed ON p.ID = ed.post_id
 			WHERE tt.taxonomy = %s
 			AND p.post_type = 'data_machine_events'
 			AND p.post_status = 'publish'
-			AND pm.meta_key = '_datamachine_event_datetime'
-			AND pm.meta_value >= %s
+			AND ed.start_datetime >= %s
 			{$parent_clause}
 			GROUP BY t.term_id
 			ORDER BY event_count DESC",
@@ -207,13 +206,12 @@ function extrachill_api_single_upcoming_count( $slug, $taxonomy ) {
 			FROM {$wpdb->posts} p
 			INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
 			INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+			INNER JOIN {$wpdb->prefix}datamachine_event_dates ed ON p.ID = ed.post_id
 			WHERE tt.term_id = %d
 			AND tt.taxonomy = %s
 			AND p.post_type = 'data_machine_events'
 			AND p.post_status = 'publish'
-			AND pm.meta_key = '_datamachine_event_datetime'
-			AND pm.meta_value >= %s",
+			AND ed.start_datetime >= %s",
 			$term->term_id,
 			$taxonomy,
 			$today
