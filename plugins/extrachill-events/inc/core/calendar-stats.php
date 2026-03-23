@@ -87,7 +87,7 @@ function extrachill_events_get_calendar_stats(): array {
 		'locations' => $locations,
 	);
 
-	set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
+	set_transient( $cache_key, $stats, 6 * HOUR_IN_SECONDS );
 
 	return $stats;
 }
