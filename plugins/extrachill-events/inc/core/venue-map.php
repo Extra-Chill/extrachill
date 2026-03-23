@@ -65,7 +65,6 @@ function extrachill_events_get_upcoming_venue_event_count( int $term_id ): int {
 					'key'     => '_datamachine_event_datetime',
 					'value'   => current_time( 'mysql' ),
 					'compare' => '>=',
-					'type'    => 'DATETIME',
 				),
 			),
 		)

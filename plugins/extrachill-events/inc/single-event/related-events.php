@@ -145,15 +145,13 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 		'post_status'    => 'publish',
 		'tax_query'      => $tax_query,
 		'post__not_in'   => array( $post_id ),
-		'meta_key'       => '_datamachine_event_datetime',
-		'orderby'        => 'meta_value',
+		'orderby'        => 'event_start',
 		'order'          => 'ASC',
 		'meta_query'     => array(
-			array(
+			'event_start' => array(
 				'key'     => '_datamachine_event_datetime',
 				'value'   => current_time( 'mysql' ),
 				'compare' => '>=',
-				'type'    => 'DATETIME',
 			),
 		),
 	);
