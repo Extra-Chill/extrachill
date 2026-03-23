@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.1] - 2026-03-23
+
+### Fixed
+- add blocks-everywhere as view script dependency to resolve race condition
+
 ## [0.2.0] - 2026-03-23
 
 ### Added
