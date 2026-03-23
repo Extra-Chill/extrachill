@@ -2,8 +2,8 @@
 /**
  * Blog Taxonomy Counts Endpoint
  *
- * Returns post counts for taxonomy terms on the main blog site.
- * Used by cross-site linking and mobile app.
+ * Thin REST wrapper around the extrachill/taxonomy-post-counts ability.
+ * Routes to the blog site via switch_to_blog.
  *
  * @package ExtraChillAPI
  */
@@ -53,7 +53,9 @@ function extrachill_api_register_blog_taxonomy_counts_route() {
 }
 
 /**
- * Handle blog taxonomy counts request
+ * Handle blog taxonomy counts request.
+ *
+ * Routes to blog site, checks transient, falls back to ability.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
@@ -72,130 +74,67 @@ function extrachill_api_blog_taxonomy_counts_handler( WP_REST_Request $request )
 		);
 	}
 
-	// Single term query
-	if ( ! empty( $slug ) ) {
-		$result = extrachill_api_get_single_blog_term_count( $slug, $taxonomy, $main_blog_id );
-		if ( ! $result ) {
-			return rest_ensure_response( null );
-		}
-		return rest_ensure_response( $result );
-	}
-
-	// Bulk query - top terms by count
-	$results = extrachill_api_get_bulk_blog_counts( $taxonomy, $main_blog_id, $limit );
-	return rest_ensure_response( $results );
-}
-
-/**
- * Get post count for a single term on blog site
- *
- * @param string $slug         Term slug.
- * @param string $taxonomy     Taxonomy slug.
- * @param int    $main_blog_id Blog site blog ID.
- * @return array|null Term data or null if not found/no posts.
- */
-function extrachill_api_get_single_blog_term_count( $slug, $taxonomy, $main_blog_id ) {
 	switch_to_blog( $main_blog_id );
 	try {
-		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return null;
+		// Single term query.
+		if ( ! empty( $slug ) ) {
+			$result = extrachill_api_get_single_blog_term_count( $slug, $taxonomy );
+			return rest_ensure_response( $result );
 		}
 
-		$term = get_term_by( 'slug', $slug, $taxonomy );
-		if ( ! $term || is_wp_error( $term ) ) {
-			return null;
+		// Bulk query — check transient, fall back to ability.
+		$cache_key = 'ec_blog_counts_' . $taxonomy;
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached ) {
+			return rest_ensure_response( array_slice( $cached, 0, $limit ) );
 		}
 
-		$count = extrachill_api_count_blog_posts_for_term( $term->term_id, $taxonomy );
-		if ( $count < 1 ) {
-			return null;
+		// Cold cache — call the ability.
+		$ability = function_exists( 'wp_get_ability' )
+			? wp_get_ability( 'extrachill/taxonomy-post-counts' )
+			: null;
+
+		if ( ! $ability ) {
+			return rest_ensure_response( array() );
 		}
 
-		$url = get_term_link( $term );
-		if ( is_wp_error( $url ) ) {
-			return null;
-		}
-
-		return array(
-			'slug'  => $term->slug,
-			'name'  => $term->name,
-			'count' => $count,
-			'url'   => $url,
-		);
-	} finally {
-		restore_current_blog();
-	}
-}
-
-/**
- * Get bulk post counts for top terms on blog site
- *
- * @param string $taxonomy     Taxonomy slug.
- * @param int    $main_blog_id Blog site blog ID.
- * @param int    $limit        Max terms to return.
- * @return array Array of term data sorted by count descending.
- */
-function extrachill_api_get_bulk_blog_counts( $taxonomy, $main_blog_id, $limit ) {
-	$results = array();
-
-	switch_to_blog( $main_blog_id );
-	try {
-		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return array();
-		}
-
-		$terms = get_terms(
+		$result = $ability->execute(
 			array(
-				'taxonomy'   => $taxonomy,
-				'hide_empty' => true,
+				'taxonomy' => $taxonomy,
+				'site'     => 'main',
 			)
 		);
 
-		if ( is_wp_error( $terms ) || empty( $terms ) ) {
-			return array();
-		}
+		$terms = ( ! empty( $result['success'] ) ) ? ( $result['terms'] ?? array() ) : array();
 
-		foreach ( $terms as $term ) {
-			$count = extrachill_api_count_blog_posts_for_term( $term->term_id, $taxonomy );
-			if ( $count < 1 ) {
-				continue;
-			}
+		set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
 
-			$url = get_term_link( $term );
-			if ( is_wp_error( $url ) ) {
-				continue;
-			}
-
-			$results[] = array(
-				'slug'  => $term->slug,
-				'name'  => $term->name,
-				'count' => $count,
-				'url'   => $url,
-			);
-		}
+		return rest_ensure_response( array_slice( $terms, 0, $limit ) );
 	} finally {
 		restore_current_blog();
 	}
-
-	// Sort by count descending
-	usort(
-		$results,
-		function ( $a, $b ) {
-			return $b['count'] - $a['count'];
-		}
-	);
-
-	return array_slice( $results, 0, $limit );
 }
 
 /**
- * Count published posts for a term on blog site
+ * Get count for a single term on blog site.
  *
- * @param int    $term_id  Term ID.
+ * Must be called while switched to blog context.
+ *
+ * @param string $slug     Term slug.
  * @param string $taxonomy Taxonomy slug.
- * @return int Count of published posts.
+ * @return array|null Term data or null.
  */
-function extrachill_api_count_blog_posts_for_term( $term_id, $taxonomy ) {
+function extrachill_api_get_single_blog_term_count( $slug, $taxonomy ) {
+	if ( ! taxonomy_exists( $taxonomy ) ) {
+		return null;
+	}
+
+	$term = get_term_by( 'slug', $slug, $taxonomy );
+	if ( ! $term || is_wp_error( $term ) ) {
+		return null;
+	}
+
 	$post_types = get_taxonomy( $taxonomy )->object_type;
 
 	$query = new WP_Query(
@@ -209,11 +148,26 @@ function extrachill_api_count_blog_posts_for_term( $term_id, $taxonomy ) {
 				array(
 					'taxonomy' => $taxonomy,
 					'field'    => 'term_id',
-					'terms'    => $term_id,
+					'terms'    => $term->term_id,
 				),
 			),
 		)
 	);
 
-	return $query->found_posts;
+	if ( $query->found_posts < 1 ) {
+		return null;
+	}
+
+	$url = get_term_link( $term );
+	if ( is_wp_error( $url ) ) {
+		return null;
+	}
+
+	return array(
+		'term_id' => $term->term_id,
+		'slug'    => $term->slug,
+		'name'    => $term->name,
+		'count'   => $query->found_posts,
+		'url'     => $url,
+	);
 }

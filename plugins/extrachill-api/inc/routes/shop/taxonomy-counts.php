@@ -2,8 +2,8 @@
 /**
  * Shop Taxonomy Counts Endpoint
  *
- * Returns product counts for taxonomy terms in the shop.
- * Used by cross-site linking and artist profiles.
+ * Thin REST wrapper around the extrachill/taxonomy-post-counts ability.
+ * Routes to the shop site via switch_to_blog.
  *
  * @package ExtraChillAPI
  */
@@ -54,7 +54,9 @@ function extrachill_api_register_shop_taxonomy_counts_route() {
 }
 
 /**
- * Handle shop taxonomy counts request
+ * Handle shop taxonomy counts request.
+ *
+ * Routes to shop site, checks transient, falls back to ability.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
@@ -73,130 +75,68 @@ function extrachill_api_shop_taxonomy_counts_handler( WP_REST_Request $request )
 		);
 	}
 
-	// Single term query
-	if ( ! empty( $slug ) ) {
-		$result = extrachill_api_get_single_term_product_count( $slug, $taxonomy, $shop_blog_id );
-		if ( ! $result ) {
-			return rest_ensure_response( null );
-		}
-		return rest_ensure_response( $result );
-	}
-
-	// Bulk query - top terms by count
-	$results = extrachill_api_get_bulk_product_counts( $taxonomy, $shop_blog_id, $limit );
-	return rest_ensure_response( $results );
-}
-
-/**
- * Get product count for a single term
- *
- * @param string $slug          Term slug.
- * @param string $taxonomy      Taxonomy slug.
- * @param int    $shop_blog_id  Shop site blog ID.
- * @return array|null Term data or null if not found/no products.
- */
-function extrachill_api_get_single_term_product_count( $slug, $taxonomy, $shop_blog_id ) {
 	switch_to_blog( $shop_blog_id );
 	try {
-		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return null;
+		// Single term query.
+		if ( ! empty( $slug ) ) {
+			$result = extrachill_api_get_single_term_product_count( $slug, $taxonomy );
+			return rest_ensure_response( $result );
 		}
 
-		$term = get_term_by( 'slug', $slug, $taxonomy );
-		if ( ! $term || is_wp_error( $term ) ) {
-			return null;
+		// Bulk query — check transient, fall back to ability.
+		$cache_key = 'ec_shop_counts_' . $taxonomy;
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached ) {
+			return rest_ensure_response( array_slice( $cached, 0, $limit ) );
 		}
 
-		$count = extrachill_api_count_products_for_term( $term->term_id, $taxonomy );
-		if ( $count < 1 ) {
-			return null;
+		// Cold cache — call the ability.
+		$ability = function_exists( 'wp_get_ability' )
+			? wp_get_ability( 'extrachill/taxonomy-post-counts' )
+			: null;
+
+		if ( ! $ability ) {
+			return rest_ensure_response( array() );
 		}
 
-		$url = get_term_link( $term );
-		if ( is_wp_error( $url ) ) {
-			return null;
-		}
-
-		return array(
-			'slug'  => $term->slug,
-			'name'  => $term->name,
-			'count' => $count,
-			'url'   => $url,
-		);
-	} finally {
-		restore_current_blog();
-	}
-}
-
-/**
- * Get bulk product counts for top terms
- *
- * @param string $taxonomy      Taxonomy slug.
- * @param int    $shop_blog_id  Shop site blog ID.
- * @param int    $limit         Max terms to return.
- * @return array Array of term data sorted by count descending.
- */
-function extrachill_api_get_bulk_product_counts( $taxonomy, $shop_blog_id, $limit ) {
-	$results = array();
-
-	switch_to_blog( $shop_blog_id );
-	try {
-		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return array();
-		}
-
-		$terms = get_terms(
+		$result = $ability->execute(
 			array(
-				'taxonomy'   => $taxonomy,
-				'hide_empty' => true,
+				'taxonomy'  => $taxonomy,
+				'site'      => 'shop',
+				'post_type' => 'product',
 			)
 		);
 
-		if ( is_wp_error( $terms ) || empty( $terms ) ) {
-			return array();
-		}
+		$terms = ( ! empty( $result['success'] ) ) ? ( $result['terms'] ?? array() ) : array();
 
-		foreach ( $terms as $term ) {
-			$count = extrachill_api_count_products_for_term( $term->term_id, $taxonomy );
-			if ( $count < 1 ) {
-				continue;
-			}
+		set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
 
-			$url = get_term_link( $term );
-			if ( is_wp_error( $url ) ) {
-				continue;
-			}
-
-			$results[] = array(
-				'slug'  => $term->slug,
-				'name'  => $term->name,
-				'count' => $count,
-				'url'   => $url,
-			);
-		}
+		return rest_ensure_response( array_slice( $terms, 0, $limit ) );
 	} finally {
 		restore_current_blog();
 	}
-
-	// Sort by count descending
-	usort(
-		$results,
-		function ( $a, $b ) {
-			return $b['count'] - $a['count'];
-		}
-	);
-
-	return array_slice( $results, 0, $limit );
 }
 
 /**
- * Count published products for a term
+ * Get product count for a single term.
  *
- * @param int    $term_id  Term ID.
+ * Must be called while switched to shop blog context.
+ *
+ * @param string $slug     Term slug.
  * @param string $taxonomy Taxonomy slug.
- * @return int Count of published products.
+ * @return array|null Term data or null.
  */
-function extrachill_api_count_products_for_term( $term_id, $taxonomy ) {
+function extrachill_api_get_single_term_product_count( $slug, $taxonomy ) {
+	if ( ! taxonomy_exists( $taxonomy ) ) {
+		return null;
+	}
+
+	$term = get_term_by( 'slug', $slug, $taxonomy );
+	if ( ! $term || is_wp_error( $term ) ) {
+		return null;
+	}
+
 	$query = new WP_Query(
 		array(
 			'post_type'      => 'product',
@@ -208,11 +148,26 @@ function extrachill_api_count_products_for_term( $term_id, $taxonomy ) {
 				array(
 					'taxonomy' => $taxonomy,
 					'field'    => 'term_id',
-					'terms'    => $term_id,
+					'terms'    => $term->term_id,
 				),
 			),
 		)
 	);
 
-	return $query->found_posts;
+	if ( $query->found_posts < 1 ) {
+		return null;
+	}
+
+	$url = get_term_link( $term );
+	if ( is_wp_error( $url ) ) {
+		return null;
+	}
+
+	return array(
+		'term_id' => $term->term_id,
+		'slug'    => $term->slug,
+		'name'    => $term->name,
+		'count'   => $query->found_posts,
+		'url'     => $url,
+	);
 }
