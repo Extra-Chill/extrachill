@@ -4,15 +4,11 @@
 
 .ec-studio-card,
 .ec-studio-shell {
-	background: var(--background-color);
+	background: var(--card-background);
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius-lg);
 	padding: var(--spacing-lg);
 	box-sizing: border-box;
-}
-
-.ec-studio-card--logged-out {
-	background: var(--card-background);
 }
 
 .ec-studio-card__title,
