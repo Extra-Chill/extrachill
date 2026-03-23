@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.7] - 2026-03-23
+
+### Fixed
+- use Frontend handler instead of bbPress, add wp_enqueue_editor for Gutenberg deps
+
 ## [0.2.6] - 2026-03-23
 
 ### Fixed
