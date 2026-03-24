@@ -1,159 +1,31 @@
 /**
- * Extra Chill Block Editor Theming
+ * Extra Chill Block Editor Branding
  *
- * Maps WordPress Gutenberg component CSS variables to Extra Chill design tokens.
- * Provides consistent block editor styling across all contexts: community forums,
- * studio compose, admin editor, and future mobile app.
+ * EC-specific overrides for the Blocks Everywhere frontend editor.
+ * Blocks Everywhere handles generic Gutenberg theming (variable mappings,
+ * container styling, toolbar, popovers). This file adds EC brand touches
+ * on top — accent colors on inserter buttons, branded border radii, etc.
  *
- * Requires: tokens.css (or tokens-all.css) loaded first for EC variable definitions.
+ * Requires:
+ *   - EC design tokens loaded (root.css / tokens-all.css)
+ *   - Blocks Everywhere active (provides .gutenberg-support scope)
+ *
  * Package: @extrachill/tokens
  *
- * Two scopes:
- *   1. Host page — applied under .gutenberg-support (toolbar, popovers, sidebar)
- *   2. Editor iframe — applied under :root (canvas, in-iframe components)
- *
  * Usage:
- *   - WordPress: import in blocks-everywhere via SCSS or PHP inline style
- *   - Mobile: import alongside tokens-all.css for native editor theming
+ *   - WordPress: enqueue on host page via wp_enqueue_scripts AND
+ *     inject into iframe via blocks_everywhere_enqueue_iframe_assets
+ *   - Mobile: import alongside tokens-all.css for native editor branding
  */
 
-/* ==========================================================================
-   1. WP Component Variable Mappings
-   Gutenberg's component library reads these CSS variables for all UI chrome.
-   Mapping them to EC tokens gives us dark mode + brand theming for free.
-   ========================================================================== */
-
-/* --- Host page scope (toolbar, popovers, sidebar) --- */
-.gutenberg-support {
-    /* Core colors */
-    --wp-components-color-foreground: var(--text-color);
-    --wp-components-color-foreground-inverted: var(--background-color);
-    --wp-components-color-background: var(--background-color);
-    --wp-components-color-icon: var(--text-color);
-    --wp-components-color-icon-inverted: var(--background-color);
-
-    /* Accent (brand green) */
-    --wp-components-color-accent: var(--accent);
-    --wp-components-color-accent-darker-10: var(--accent-hover);
-    --wp-components-color-accent-darker-20: var(--accent-hover);
-    --wp-components-color-accent-inverted: var(--button-text-color);
-
-    /* WP admin focus/selection (kills default WP blue) */
-    --wp-admin-theme-color: var(--accent);
-    --wp-admin-theme-color-darker-10: var(--accent-hover);
-    --wp-admin-theme-color-darker-20: var(--accent-hover);
-
-    /* Gray scale → EC semantic tokens */
-    --wp-components-color-gray-100: var(--card-background);
-    --wp-components-color-gray-200: var(--border-color);
-    --wp-components-color-gray-300: var(--border-color);
-    --wp-components-color-gray-400: var(--muted-text);
-    --wp-components-color-gray-600: var(--muted-text);
-    --wp-components-color-gray-700: var(--text-color);
-    --wp-components-color-gray-800: var(--text-color);
-    --wp-components-color-gray-900: var(--text-color);
-    --wp-components-color-gray-950: var(--text-color);
-}
-
-/* --- Iframe scope (editor canvas) --- */
-.ec-block-editor-iframe-tokens {
-    /* Identical mappings, scoped for iframe :root injection */
-    --wp-components-color-foreground: var(--text-color);
-    --wp-components-color-foreground-inverted: var(--background-color);
-    --wp-components-color-background: var(--background-color);
-    --wp-components-color-icon: var(--text-color);
-    --wp-components-color-icon-inverted: var(--background-color);
-
-    --wp-components-color-accent: var(--accent);
-    --wp-components-color-accent-darker-10: var(--accent-hover);
-    --wp-components-color-accent-darker-20: var(--accent-hover);
-    --wp-components-color-accent-inverted: var(--button-text-color);
-
-    --wp-admin-theme-color: var(--accent);
-    --wp-admin-theme-color-darker-10: var(--accent-hover);
-    --wp-admin-theme-color-darker-20: var(--accent-hover);
-
-    --wp-components-color-gray-100: var(--card-background);
-    --wp-components-color-gray-200: var(--border-color);
-    --wp-components-color-gray-300: var(--border-color);
-    --wp-components-color-gray-400: var(--muted-text);
-    --wp-components-color-gray-600: var(--muted-text);
-    --wp-components-color-gray-700: var(--text-color);
-    --wp-components-color-gray-800: var(--text-color);
-    --wp-components-color-gray-900: var(--text-color);
-    --wp-components-color-gray-950: var(--text-color);
-}
-
 
 /* ==========================================================================
-   2. Editor Container (Host Page)
-   Styles the .iso-editor wrapper that contains the toolbar and iframe.
+   1. Inserter Buttons — Host Page
+   The toolbar (+) button and empty-block inserter use EC's accent-3 (cyan)
+   instead of the default WP inserter color.
    ========================================================================== */
 
-.gutenberg-support .iso-editor {
-    border: 1px solid var(--border-color);
-    background-color: var(--background-color);
-}
-
-.gutenberg-support .iso-editor iframe[name="editor-canvas"] {
-    min-height: 400px;
-}
-
-@media (min-width: 601px) and (max-width: 768px) {
-    .gutenberg-support .iso-editor iframe[name="editor-canvas"] {
-        min-height: 300px;
-    }
-}
-
-@media (max-width: 600px) {
-    .gutenberg-support .iso-editor iframe[name="editor-canvas"] {
-        min-height: 240px;
-    }
-}
-
-/* Mobile contextual toolbar */
-@media (max-width: 781px) {
-    .gutenberg-support .iso-editor .block-editor-block-contextual-toolbar.is-fixed,
-    .gutenberg-support .iso-editor .block-editor-block-contextual-toolbar.is-unstyled {
-        background-color: var(--background-color);
-        border-bottom: 1px solid var(--border-color);
-    }
-}
-
-/* Header and footer */
-.gutenberg-support .iso-editor .interface-interface-skeleton__header,
-.gutenberg-support .iso-editor .interface-interface-skeleton__footer {
-    background-color: var(--background-color);
-    color: var(--text-color);
-}
-
-.gutenberg-support .iso-editor .interface-interface-skeleton__header,
-.gutenberg-support .iso-editor .interface-interface-skeleton__header .edit-post-header,
-.gutenberg-support .iso-editor .interface-interface-skeleton__header .edit-post-editor-regions__header {
-    background-color: var(--background-color);
-    color: var(--text-color);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.gutenberg-support .iso-editor .interface-interface-skeleton__footer {
-    border-top: 1px solid var(--border-color);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: var(--font-size-sm);
-    line-height: 1.1;
-}
-
-.gutenberg-support .iso-editor .interface-interface-skeleton__footer .edit-post-layout__footer {
-    padding: 0;
-}
-
-
-/* ==========================================================================
-   3. Toolbar & Inserter (Host Page)
-   Styles toolbar buttons, inserter panel, popovers that render on the host
-   page outside the editor iframe.
-   ========================================================================== */
-
-/* Inserter (+) button — mirrors EC .button-2 */
+/* Toolbar inserter (+) — mirrors EC .button-2 */
 .gutenberg-support .iso-editor .interface-interface-skeleton__header .editor-document-tools__inserter-toggle.is-primary {
     background-color: var(--accent);
     border-color: var(--accent);
@@ -169,138 +41,7 @@
     color: var(--button-text-color);
 }
 
-/* Icon hover highlight */
-.gutenberg-support .iso-editor .edit-post-header__toolbar button:hover svg,
-.gutenberg-support .iso-editor .block-editor-block-types-list__list-item:hover span {
-    color: var(--accent);
-    fill: currentColor;
-}
-
-/* Font size normalization */
-.gutenberg-support .iso-editor .block-editor-inserter__panel-header h2 {
-    font-size: 11px;
-}
-
-.gutenberg-support .iso-editor .block-editor-block-types-list__item-title span {
-    font-size: 12px;
-}
-
-.gutenberg-support .iso-editor .components-menu-group span {
-    font-size: 13px;
-}
-
-/* Popover backgrounds */
-.gutenberg-support .components-popover__content,
-.gutenberg-support .block-editor-inserter__menu,
-.gutenberg-support .block-editor-tabbed-sidebar {
-    background-color: var(--background-color);
-    border: 1px solid var(--border-color);
-    color: var(--wp-components-color-foreground);
-}
-
-/* List View popover */
-.gutenberg-support .components-popover.block-editor-block-navigation__popover .components-popover__content {
-    background-color: var(--background-color);
-    border: 1px solid var(--border-color);
-    color: var(--wp-components-color-foreground);
-}
-
-/* List view tree row hover */
-.gutenberg-support .block-editor-list-view-tree .block-editor-list-view-block-select-button {
-    color: var(--text-color);
-}
-
-.gutenberg-support .block-editor-list-view-tree .block-editor-list-view-block-select-button:hover,
-.gutenberg-support .block-editor-list-view-tree .block-editor-list-view-block-select-button:focus,
-.gutenberg-support .block-editor-list-view-tree .block-editor-list-view-block-select-button:focus-visible {
-    background-color: var(--card-background);
-    color: var(--wp-components-color-accent);
-    box-shadow: inset 0 0 0 var(--wp-admin-border-width-focus) var(--wp-components-color-accent);
-}
-
-/* Inserter icon colors */
-.gutenberg-support .block-editor-inserter__menu .block-editor-block-types-list__item-icon,
-.gutenberg-support .block-editor-inserter__menu .block-editor-block-patterns-list__item-icon,
-.gutenberg-support .block-editor-inserter__menu .block-editor-block-types-list__item svg,
-.gutenberg-support .block-editor-inserter__menu .block-editor-block-patterns-list__item svg,
-.gutenberg-support .block-editor-inserter__menu .block-editor-block-types-list__item svg *,
-.gutenberg-support .block-editor-inserter__menu .block-editor-block-patterns-list__item svg *,
-.gutenberg-support .block-editor-inserter__menu .block-editor-inserter__tabs button svg,
-.gutenberg-support .block-editor-inserter__menu .block-editor-inserter__tabs button svg *,
-.gutenberg-support .block-editor-inserter__menu button[aria-label="Close"] svg,
-.gutenberg-support .block-editor-inserter__menu button[aria-label="Close"] svg * {
-    color: var(--wp-components-color-icon);
-    fill: currentColor;
-}
-
-.gutenberg-support .block-editor-inserter__menu svg [stroke]:not([stroke="none"]) {
-    stroke: currentColor;
-}
-
-/* Quick inserter popover */
-.gutenberg-support .components-popover.block-editor-inserter__popover.is-quick {
-    color: var(--wp-components-color-foreground);
-}
-
-.gutenberg-support .components-popover.block-editor-inserter__popover.is-quick .components-search-control__icon,
-.gutenberg-support .components-popover.block-editor-inserter__popover.is-quick .block-editor-inserter__quick-inserter svg,
-.gutenberg-support .components-popover.block-editor-inserter__popover.is-quick .block-editor-inserter__quick-inserter svg *,
-.gutenberg-support .components-popover.block-editor-inserter__popover.is-quick .block-editor-block-icon,
-.gutenberg-support .components-popover.block-editor-inserter__popover.is-quick .block-editor-block-icon.has-colors {
-    color: var(--wp-components-color-icon);
-    fill: currentColor;
-}
-
-.gutenberg-support .components-popover.block-editor-inserter__popover.is-quick svg [stroke]:not([stroke="none"]) {
-    stroke: currentColor;
-}
-
-/* Tabbed sidebar */
-.gutenberg-support .block-editor-tabbed-sidebar__tablist-and-close-button {
-    border-bottom: 1px solid var(--border-color);
-}
-
-/* Active tab indicator */
-.gutenberg-support .block-editor-tabbed-sidebar__tab[aria-selected="true"],
-.gutenberg-support .block-editor-tabbed-sidebar__tab[data-active-item="true"] {
-    color: var(--accent);
-}
-
-/* Close/icon buttons in inserter and popovers */
-.gutenberg-support .block-editor-inserter__menu .components-button.has-icon,
-.gutenberg-support .components-popover__content .components-button.has-icon {
-    background: transparent;
-    color: var(--wp-components-color-icon);
-}
-
-.gutenberg-support .block-editor-inserter__menu .components-button.has-icon:hover,
-.gutenberg-support .block-editor-inserter__menu .components-button.has-icon:focus,
-.gutenberg-support .block-editor-inserter__menu .components-button.has-icon:focus-visible,
-.gutenberg-support .components-popover__content .components-button.has-icon:hover,
-.gutenberg-support .components-popover__content .components-button.has-icon:focus,
-.gutenberg-support .components-popover__content .components-button.has-icon:focus-visible {
-    background-color: var(--card-background);
-}
-
-.gutenberg-support .block-editor-inserter__menu .components-button.has-icon svg,
-.gutenberg-support .block-editor-inserter__menu .components-button.has-icon svg *,
-.gutenberg-support .components-popover__content .components-button.has-icon svg,
-.gutenberg-support .components-popover__content .components-button.has-icon svg * {
-    color: var(--wp-components-color-icon);
-    fill: currentColor;
-}
-
-.gutenberg-support .block-editor-inserter__menu .components-button.has-icon svg [stroke]:not([stroke="none"]),
-.gutenberg-support .components-popover__content .components-button.has-icon svg [stroke]:not([stroke="none"]) {
-    stroke: currentColor;
-}
-
-/* Side inserter popover — no visible border */
-.gutenberg-support .block-editor-block-list__block-side-inserter-popover > .components-popover__content {
-    border: 0;
-}
-
-/* Empty block inserter button (host page, when block is selected) */
+/* Empty block inserter (host page, when block is selected) */
 .gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon {
     background-color: var(--accent-3);
     border: none;
@@ -325,79 +66,67 @@
     stroke: currentColor;
 }
 
-/* Toolbar button active/pressed states (dark mode fix) */
-.gutenberg-support .components-toolbar-button.is-active,
-.gutenberg-support .components-toolbar-button.is-pressed,
-.gutenberg-support .components-toolbar-button[aria-pressed="true"] {
-    background-color: var(--wp-components-color-gray-100);
-    color: var(--wp-components-color-foreground);
-    border-color: var(--wp-components-color-accent);
+
+/* ==========================================================================
+   2. Inserter Buttons — Editor Iframe
+   Same accent-3 branding for inserter buttons inside the editor canvas.
+   ========================================================================== */
+
+/* Empty block inserter, default appender, list appender, insertion point */
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon,
+.editor-styles-wrapper .block-list-appender__toggle,
+.editor-styles-wrapper .block-editor-button-block-appender,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter {
+    background-color: var(--accent-3);
+    border: none;
+    color: var(--button-text-color);
+    border-radius: var(--border-radius-sm, 5px);
+    transition: background-color 0.3s ease;
 }
 
-.gutenberg-support .components-accessible-toolbar .components-button.is-pressed::before,
-.gutenberg-support .components-toolbar .components-button.is-pressed::before {
-    background-color: var(--wp-components-color-gray-100);
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible,
+.editor-styles-wrapper .block-list-appender__toggle:hover,
+.editor-styles-wrapper .block-list-appender__toggle:focus,
+.editor-styles-wrapper .block-editor-button-block-appender:hover,
+.editor-styles-wrapper .block-editor-button-block-appender:focus,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter:hover,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter:focus {
+    background-color: var(--link-color-hover);
+    border: none;
+    color: var(--button-text-color);
 }
 
-/* Upload disabled state */
-body:not(.gutenberg-support-upload) .block-editor-media-flow__url-input {
-    margin-top: 0;
-    border-top: none;
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg *,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg *,
+.editor-styles-wrapper .block-list-appender__toggle svg,
+.editor-styles-wrapper .block-editor-button-block-appender svg,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg,
+.editor-styles-wrapper .block-list-appender__toggle svg *,
+.editor-styles-wrapper .block-editor-button-block-appender svg *,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg * {
+    fill: currentColor;
 }
 
-body:not(.gutenberg-support-upload) .block-editor-media-replace-flow__media-upload-menu {
-    display: none;
-}
-
-/* Loading skeleton */
-.blocks-everywhere.iso-editor__loading {
-    min-height: 200px;
+.editor-styles-wrapper .block-list-appender__toggle svg [stroke]:not([stroke="none"]),
+.editor-styles-wrapper .block-editor-button-block-appender svg [stroke]:not([stroke="none"]),
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg [stroke]:not([stroke="none"]) {
+    stroke: currentColor;
 }
 
 
 /* ==========================================================================
-   4. Editor Canvas (Iframe)
-   Styles for the block editing surface inside the iframe. These must be
-   injected into the iframe document alongside EC token variables.
+   3. Placeholder Branding — Editor Iframe
+   Embed/image/gallery placeholder blocks use EC card styling.
    ========================================================================== */
 
-/* Root container padding */
-.editor-styles-wrapper .block-editor-block-list__layout.is-root-container {
-    padding: var(--spacing-sm);
-}
-
-/* Block vertical spacing */
-.editor-styles-wrapper :where(.wp-block):not(ul > li > ul, li) {
-    margin-top: var(--spacing-lg);
-    margin-bottom: var(--spacing-lg);
-}
-
-.editor-styles-wrapper .block-editor-block-list__layout.is-root-container > :first-child {
-    margin-top: 0;
-}
-
-/* Paragraph reset */
-.editor-styles-wrapper p {
-    margin: 0;
-}
-
-.editor-styles-wrapper p.block-editor-default-block-appender__content {
-    margin: 0;
-}
-
-/* List blocks */
-.editor-styles-wrapper ul,
-.editor-styles-wrapper ol {
-    list-style: revert;
-    margin: 0.5em 0;
-    padding-left: 1.5em;
-}
-
-.editor-styles-wrapper li {
-    margin-bottom: 0.5em;
-}
-
-/* Placeholder (embed, image, etc.) */
 .editor-styles-wrapper .components-placeholder {
     background-color: var(--card-background);
     border: 1px solid var(--border-color);
@@ -463,143 +192,18 @@ body:not(.gutenberg-support-upload) .block-editor-media-replace-flow__media-uplo
     stroke: currentColor;
 }
 
-/* In-iframe popover/inserter */
-.components-popover__content,
-.block-editor-inserter__menu {
-    background-color: var(--background-color);
-    border: 1px solid var(--border-color);
-    color: var(--wp-components-color-foreground);
-}
-
-.block-editor-inserter__menu .block-editor-block-types-list__item-icon,
-.block-editor-inserter__menu .block-editor-block-patterns-list__item-icon,
-.block-editor-inserter__menu svg,
-.block-editor-inserter__menu svg * {
-    color: var(--wp-components-color-icon);
-    fill: currentColor;
-}
-
-.block-editor-inserter__menu svg [stroke]:not([stroke="none"]) {
-    stroke: currentColor;
-}
-
-/* Quick inserter (iframe) */
-.components-popover.block-editor-inserter__popover.is-quick {
-    color: var(--wp-components-color-foreground);
-}
-
-.components-popover.block-editor-inserter__popover.is-quick .components-search-control__icon,
-.components-popover.block-editor-inserter__popover.is-quick .block-editor-inserter__quick-inserter svg,
-.components-popover.block-editor-inserter__popover.is-quick .block-editor-inserter__quick-inserter svg *,
-.components-popover.block-editor-inserter__popover.is-quick .block-editor-block-icon,
-.components-popover.block-editor-inserter__popover.is-quick .block-editor-block-icon.has-colors {
-    color: var(--wp-components-color-icon);
-    fill: currentColor;
-}
-
-.components-popover.block-editor-inserter__popover.is-quick svg [stroke]:not([stroke="none"]) {
-    stroke: currentColor;
-}
-
-/* Inserter buttons (iframe — empty block, default appender, list appender) */
-.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon,
-.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon,
-.editor-styles-wrapper .block-list-appender__toggle,
-.editor-styles-wrapper .block-editor-button-block-appender,
-.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter {
-    background-color: var(--accent-3);
-    border: none;
-    color: var(--button-text-color);
-    border-radius: var(--border-radius-sm, 5px);
-    transition: background-color 0.3s ease;
-}
-
-.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
-.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
-.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible,
-.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
-.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
-.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible,
-.editor-styles-wrapper .block-list-appender__toggle:hover,
-.editor-styles-wrapper .block-list-appender__toggle:focus,
-.editor-styles-wrapper .block-editor-button-block-appender:hover,
-.editor-styles-wrapper .block-editor-button-block-appender:focus,
-.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter:hover,
-.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter:focus {
-    background-color: var(--link-color-hover);
-    border: none;
-    color: var(--button-text-color);
-}
-
-.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
-.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg *,
-.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
-.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg *,
-.editor-styles-wrapper .block-list-appender__toggle svg,
-.editor-styles-wrapper .block-editor-button-block-appender svg,
-.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg,
-.editor-styles-wrapper .block-list-appender__toggle svg *,
-.editor-styles-wrapper .block-editor-button-block-appender svg *,
-.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg * {
-    fill: currentColor;
-}
-
-.editor-styles-wrapper .block-list-appender__toggle svg [stroke]:not([stroke="none"]),
-.editor-styles-wrapper .block-editor-button-block-appender svg [stroke]:not([stroke="none"]),
-.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg [stroke]:not([stroke="none"]) {
-    stroke: currentColor;
-}
-
-/* Modals (iframe) */
-.components-modal__frame {
-    background-color: var(--background-color);
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-}
-
-.components-modal__header {
-    border-bottom: 1px solid var(--border-color);
-}
-
-.components-modal__frame svg,
-.components-modal__frame svg * {
-    fill: currentColor;
-}
-
-.components-modal__frame svg [stroke]:not([stroke="none"]) {
-    stroke: currentColor;
-}
-
 
 /* ==========================================================================
-   5. Responsive Embeds (Iframe)
-   Aspect ratio styles for embedded content inside the editor canvas.
+   4. Footer Branding
+   EC-specific footer styling for the editor status bar.
    ========================================================================== */
 
-.wp-has-aspect-ratio .wp-block-embed__wrapper {
-    position: relative;
+.gutenberg-support .iso-editor .interface-interface-skeleton__footer {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    line-height: 1.1;
 }
 
-.wp-has-aspect-ratio .wp-block-embed__wrapper::before {
-    content: "";
-    display: block;
-    padding-top: 50%;
+.gutenberg-support .iso-editor .interface-interface-skeleton__footer .edit-post-layout__footer {
+    padding: 0;
 }
-
-.wp-has-aspect-ratio iframe {
-    bottom: 0;
-    height: 100%;
-    left: 0;
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 100%;
-}
-
-.wp-embed-aspect-21-9 .wp-block-embed__wrapper::before { padding-top: 42.85%; }
-.wp-embed-aspect-18-9 .wp-block-embed__wrapper::before { padding-top: 50%; }
-.wp-embed-aspect-16-9 .wp-block-embed__wrapper::before { padding-top: 56.25%; }
-.wp-embed-aspect-4-3 .wp-block-embed__wrapper::before { padding-top: 75%; }
-.wp-embed-aspect-1-1 .wp-block-embed__wrapper::before { padding-top: 100%; }
-.wp-embed-aspect-9-16 .wp-block-embed__wrapper::before { padding-top: 177.77%; }
-.wp-embed-aspect-1-2 .wp-block-embed__wrapper::before { padding-top: 200%; }
