@@ -29,32 +29,6 @@
 	margin-top: var(--spacing-lg);
 }
 
-.ec-studio-shell__status-bar {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--spacing-sm);
-	align-items: center;
-	margin-bottom: var(--spacing-lg);
-}
-
-.ec-studio-shell__status-pill {
-	display: inline-flex;
-	align-items: center;
-	padding: 0.25rem 0.75rem;
-	border-radius: var(--border-radius-pill);
-	background: var(--accent);
-	color: var(--background-color);
-	font-size: var(--font-size-sm);
-	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-}
-
-.ec-studio-shell__status-copy {
-	color: var(--muted-text);
-	font-size: var(--font-size-sm);
-}
-
 .ec-studio__tabs {
 	display: inline-flex;
 	gap: var(--spacing-sm);
@@ -358,32 +332,7 @@
 	color: var(--muted-text);
 }
 
-.ec-studio-roadmap {
-	display: grid;
-	gap: var(--spacing-sm);
-	padding: 0;
-	margin: 0;
-	list-style: none;
-}
 
-.ec-studio-roadmap li {
-	display: flex;
-	justify-content: space-between;
-	gap: var(--spacing-md);
-	padding: var(--spacing-sm) var(--spacing-md);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-md);
-	background: var(--background-color);
-}
-
-.ec-studio-roadmap__status {
-	flex-shrink: 0;
-	font-size: var(--font-size-xs);
-	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	color: var(--link-color);
-}
 
 /* ============================================
    Chat Pane
@@ -440,10 +389,6 @@
 	.ec-studio-card,
 	.ec-studio-shell {
 		padding: var(--spacing-md);
-	}
-
-	.ec-studio-roadmap li {
-		flex-direction: column;
 	}
 
 	.ec-studio-pane--chat .ec-chat {

@@ -72,9 +72,9 @@ const SocialsPane = () => {
 			createElement(
 				'div',
 				{ className: 'ec-studio-panel' },
-				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Socials overview', 'extrachill-studio' ) ),
-				createElement( 'h3', null, sprintf( __( '%d platforms available', 'extrachill-studio' ), publishPlatforms.length ) ),
-				createElement( 'p', null, sprintf( __( '%d connected, %d publish-capable. Platform list is driven by Data Machine Socials — new platforms appear here automatically.', 'extrachill-studio' ), connectedPlatforms.length, publishPlatforms.length ) ),
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Platforms', 'extrachill-studio' ) ),
+			createElement( 'h3', null, sprintf( __( '%d platforms available', 'extrachill-studio' ), publishPlatforms.length ) ),
+			createElement( 'p', null, sprintf( __( '%d connected, %d publish-capable.', 'extrachill-studio' ), connectedPlatforms.length, publishPlatforms.length ) ),
 				createElement(
 					'ul',
 					{ className: 'ec-studio-social-platforms' },
@@ -102,16 +102,15 @@ const SocialsPane = () => {
 			createElement(
 				'div',
 				{ className: 'ec-studio-panel' },
-				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Status', 'extrachill-studio' ) ),
-				createElement( 'h3', null, __( 'Active workflows', 'extrachill-studio' ) ),
-				createElement( 'p', null, __( 'Each connected platform can have its own publishing workflow inside this tab. Instagram is live now — additional platform panes slot in here as they ship.', 'extrachill-studio' ) ),
-				createElement(
-					'ul',
-					null,
-					createElement( 'li', null, sprintf( __( '%d of %d platform(s) connected.', 'extrachill-studio' ), connectedPlatforms.length, availablePlatforms.length ) ),
-					createElement( 'li', null, __( 'Instagram publishing is live.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Cross-posting uses the datamachine-socials/v1/post endpoint.', 'extrachill-studio' ) )
-				)
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Workflows', 'extrachill-studio' ) ),
+			createElement( 'h3', null, __( 'Publishing workflows', 'extrachill-studio' ) ),
+			createElement( 'p', null, __( 'Each connected platform has its own publishing workflow below. New platforms appear automatically when connected in Data Machine.', 'extrachill-studio' ) ),
+			createElement(
+				'ul',
+				null,
+				createElement( 'li', null, sprintf( __( '%d of %d platform(s) connected.', 'extrachill-studio' ), connectedPlatforms.length, availablePlatforms.length ) ),
+				createElement( 'li', null, __( 'Instagram — publish posts, manage comments, submit drafts for review.', 'extrachill-studio' ) )
+			)
 			)
 		),
 		createElement( InstagramPane )

@@ -17,7 +17,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						label={ __( 'Denied Message', 'extrachill-studio' ) }
 						value={ deniedMessage }
 						onChange={ ( value ) => setAttributes( { deniedMessage: value } ) }
-						help={ __( 'Shown to logged-in users who are not team members.', 'extrachill-studio' ) }
+						help={ __( 'Displayed when a logged-in user does not have team member access.', 'extrachill-studio' ) }
 					/>
 				</PanelBody>
 			</InspectorControls>

@@ -295,9 +295,9 @@ const InstagramPane = () => {
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Instagram publish', 'extrachill-studio' ) ),
-			createElement( 'h3', null, __( 'Publish a post through Data Machine Socials', 'extrachill-studio' ) ),
-			createElement( 'p', null, __( 'This is the first live workflow inside the broader Socials area. It uses the existing socials auth, upload, and cross-post endpoints without adding new backend primitives.', 'extrachill-studio' ) ),
+		createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Instagram', 'extrachill-studio' ) ),
+		createElement( 'h3', null, __( 'Publish to Instagram', 'extrachill-studio' ) ),
+		createElement( 'p', null, __( 'Write a caption, add images, and publish directly or submit for admin review. Supports single images and carousels.', 'extrachill-studio' ) ),
 			isCheckingAuth
 				? createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Checking Instagram authentication…', 'extrachill-studio' ) )
 				: null,
@@ -437,9 +437,9 @@ const InstagramPane = () => {
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Instagram comments', 'extrachill-studio' ) ),
-			createElement( 'h3', null, __( 'Review and reply to post comments', 'extrachill-studio' ) ),
-			createElement( 'p', null, __( 'This prepares Studio for comment management using the same backend primitives exposed through Data Machine Socials REST, CLI, and chat tools.', 'extrachill-studio' ) ),
+		createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Comments', 'extrachill-studio' ) ),
+		createElement( 'h3', null, __( 'Instagram comments', 'extrachill-studio' ) ),
+		createElement( 'p', null, __( 'Select a recent post to view and reply to comments without leaving Studio.', 'extrachill-studio' ) ),
 			isLoadingMedia ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Loading recent Instagram posts…', 'extrachill-studio' ) ) : null,
 			commentsError ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, commentsError ) : null,
 			! commentsError && commentsStatus ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--success' }, commentsStatus ) : null,

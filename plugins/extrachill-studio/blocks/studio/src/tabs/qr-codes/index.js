@@ -44,9 +44,9 @@ const QrCodesPane = () => {
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'QR generator', 'extrachill-studio' ) ),
-			createElement( 'h3', null, __( 'Generate a print-ready QR code from any URL', 'extrachill-studio' ) ),
-			createElement( 'p', null, __( 'This uses the existing Extra Chill QR code tool through the current REST endpoint and ability.', 'extrachill-studio' ) ),
+		createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'QR generator', 'extrachill-studio' ) ),
+		createElement( 'h3', null, __( 'Generate a QR code', 'extrachill-studio' ) ),
+		createElement( 'p', null, __( 'Enter any URL to generate a high-resolution QR code PNG. Useful for flyers, merch, and event signage.', 'extrachill-studio' ) ),
 			createElement(
 				'div',
 				{ className: 'ec-studio-composer' },

@@ -11,8 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $defaults = array(
 	'headline'      => __( 'Extra Chill Studio', 'extrachill-studio' ),
-	'description'   => __( 'Internal tools for the Extra Chill team. Shape captions, organize publishing tasks, and prepare the next wave of AI-assisted workflows.', 'extrachill-studio' ),
-	'deniedMessage' => __( 'Studio is currently available to Extra Chill team members only.', 'extrachill-studio' ),
+	'description'   => __( 'Publishing tools, social workflows, and AI chat for the Extra Chill team.', 'extrachill-studio' ),
+	'deniedMessage' => __( 'Studio is available to Extra Chill team members. Contact Chris if you need access.', 'extrachill-studio' ),
 );
 
 $attributes     = isset( $attributes ) && is_array( $attributes ) ? $attributes : array();
@@ -82,19 +82,6 @@ $socials_api = rest_url( 'datamachine-socials/v1/' );
 		<?php if ( $description ) : ?>
 			<p class="ec-studio-shell__description"><?php echo esc_html( $description ); ?></p>
 		<?php endif; ?>
-
-		<div class="ec-studio-shell__status-bar">
-			<span class="ec-studio-shell__status-pill"><?php esc_html_e( 'Phase 0', 'extrachill-studio' ); ?></span>
-			<span class="ec-studio-shell__status-copy">
-				<?php
-				printf(
-					/* translators: %s: team member display name */
-					esc_html__( 'Signed in as %s', 'extrachill-studio' ),
-					esc_html( $studio_user->display_name )
-				);
-				?>
-			</span>
-		</div>
 
 		<div class="ec-studio-app__mount" data-ec-studio-app></div>
 	</div>

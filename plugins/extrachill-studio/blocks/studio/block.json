@@ -6,7 +6,7 @@
 	"title": "Extra Chill Studio",
 	"category": "widgets",
 	"icon": "format-audio",
-	"description": "Team-gated studio workspace for internal publishing and AI-assisted media workflows.",
+	"description": "Publishing tools, social workflows, and AI chat for the Extra Chill team.",
 	"keywords": ["studio", "team", "publishing"],
 	"textdomain": "extrachill-studio",
 	"attributes": {
@@ -16,11 +16,11 @@
 		},
 		"description": {
 			"type": "string",
-			"default": "Internal tools for the Extra Chill team. Shape captions, organize publishing tasks, and prepare the next wave of AI-assisted workflows."
+			"default": "Publishing tools, social workflows, and AI chat for the Extra Chill team."
 		},
 		"deniedMessage": {
 			"type": "string",
-			"default": "Studio is currently available to Extra Chill team members only."
+			"default": "Studio is available to Extra Chill team members. Contact Chris if you need access."
 		}
 	},
 	"supports": {

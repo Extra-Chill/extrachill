@@ -223,17 +223,16 @@ const ComposePane = () => {
 			createElement(
 				'div',
 				{ className: 'ec-studio-panel' },
-				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'How it works', 'extrachill-studio' ) ),
-				createElement( 'h3', null, __( 'Frontend publishing', 'extrachill-studio' ) ),
-				createElement( 'p', null, __( 'Write posts using the full block editor right here in Studio. No wp-admin required.', 'extrachill-studio' ) ),
-				createElement(
-					'ul',
-					null,
-					createElement( 'li', null, __( 'Use the block editor to compose rich content with images, embeds, and formatting.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Save Draft keeps your work-in-progress without submitting.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Submit for Review sends the post for admin approval.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Once approved, the post goes live.', 'extrachill-studio' ) )
-				)
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Publishing', 'extrachill-studio' ) ),
+			createElement( 'h3', null, __( 'How posts get published', 'extrachill-studio' ) ),
+			createElement( 'p', null, __( 'Write with the full block editor — paragraphs, images, embeds, and formatting all work here.', 'extrachill-studio' ) ),
+			createElement(
+				'ul',
+				null,
+				createElement( 'li', null, __( 'Save Draft — saves your work privately so you can come back to it.', 'extrachill-studio' ) ),
+				createElement( 'li', null, __( 'Submit for Review — flags the post for an admin to approve and publish.', 'extrachill-studio' ) ),
+				createElement( 'li', null, __( 'Posts target the main blog (extrachill.com) by default.', 'extrachill-studio' ) )
+			)
 			)
 		)
 	);

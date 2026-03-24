@@ -23,17 +23,17 @@ const ChatPane = () =>
 			agentId: STUDIO_AGENT_ID,
 			showTools: true,
 			showSessions: true,
-			placeholder: __( 'Ask the Studio agent...', 'extrachill-studio' ),
-			emptyState: createElement(
-				'div',
-				{ className: 'ec-studio-chat-empty' },
-				createElement( 'h3', null, __( 'Studio Agent', 'extrachill-studio' ) ),
-				createElement(
-					'p',
-					null,
-					__( 'Chat with the Studio agent to manage socials, generate content, and operate the Extra Chill platform.', 'extrachill-studio' )
-				)
-			),
+		placeholder: __( 'Ask Roadie anything…', 'extrachill-studio' ),
+		emptyState: createElement(
+			'div',
+			{ className: 'ec-studio-chat-empty' },
+			createElement( 'h3', null, __( 'Roadie', 'extrachill-studio' ) ),
+			createElement(
+				'p',
+				null,
+				__( 'Manage socials, draft content, check analytics, and run platform operations through chat.', 'extrachill-studio' )
+			)
+		),
 			processingLabel: ( turnCount ) =>
 				/* translators: %d is the current turn number */
 				// eslint-disable-next-line @wordpress/i18n-no-variables
