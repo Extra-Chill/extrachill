@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.9] - 2026-03-24
+
+### Changed
+- use blocks_everywhere_contexts API instead of Frontend handler
+
 ## [0.2.8] - 2026-03-23
 
 ### Fixed
