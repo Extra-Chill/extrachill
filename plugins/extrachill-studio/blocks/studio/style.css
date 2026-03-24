@@ -408,6 +408,35 @@
 	gap: var(--spacing-sm);
 }
 
+.ec-studio-compose-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-sm);
+}
+
+.ec-studio-compose-toolbar__controls {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.ec-studio-compose-draft-picker {
+	padding: var(--spacing-xs) var(--spacing-sm);
+	font-size: var(--font-size-sm);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--background-color);
+	color: var(--text-color);
+	max-width: 260px;
+}
+
+.ec-studio-compose-toolbar__empty {
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
 .ec-studio-compose-title {
 	width: 100%;
 	padding: var(--spacing-sm) var(--spacing-md);
