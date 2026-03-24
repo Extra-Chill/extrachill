@@ -1,6 +1,7 @@
 import { createRoot, render } from '@wordpress/element';
+import type { ReactNode } from 'react';
 
-export const mountComponent = ( container, component ) => {
+export const mountComponent = ( container: HTMLElement | null, component: ReactNode ): void => {
 	if ( ! container ) {
 		return;
 	}

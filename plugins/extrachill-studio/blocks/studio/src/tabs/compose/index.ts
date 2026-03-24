@@ -1,6 +1,18 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useRef, useState } from '@wordpress/element';
+import type { ReactElement, ChangeEvent } from 'react';
 import apiFetch from '@wordpress/api-fetch';
+import type { StudioPaneProps } from '../../types/studio';
+
+declare global {
+	interface Window {
+		blocksEverywhereCreateEditor?: ( textarea: HTMLTextAreaElement ) => void;
+	}
+}
+
+interface WpPost {
+	id: number;
+}
 
 /**
  * Compose Pane — Block editor for drafting posts.
@@ -9,9 +21,9 @@ import apiFetch from '@wordpress/api-fetch';
  * Content is serialized as block markup and saved to wp/v2/posts with
  * status: pending for admin review.
  */
-const ComposePane = () => {
-	const editorContainerRef = useRef( null );
-	const textareaRef = useRef( null );
+const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
+	const editorContainerRef = useRef< HTMLDivElement >( null );
+	const textareaRef = useRef< HTMLTextAreaElement >( null );
 	const editorMountedRef = useRef( false );
 
 	const [ title, setTitle ] = useState( '' );
@@ -45,14 +57,14 @@ const ComposePane = () => {
 	 * Blocks Everywhere syncs the editor content back to the textarea
 	 * on every change via its onSaveContent callback.
 	 */
-	const getContent = () => {
+	const getContent = (): string => {
 		if ( textareaRef.current ) {
 			return textareaRef.current.value || '';
 		}
 		return '';
 	};
 
-	const submitForReview = async () => {
+	const submitForReview = async (): Promise< void > => {
 		const content = getContent();
 
 		if ( ! title.trim() ) {
@@ -72,7 +84,7 @@ const ComposePane = () => {
 		setStatus( __( 'Submitting for review…', 'extrachill-studio' ) );
 
 		try {
-			const post = await apiFetch( {
+			const post = await apiFetch< WpPost >( {
 				path: '/wp/v2/posts',
 				method: 'POST',
 				data: {
@@ -99,13 +111,13 @@ const ComposePane = () => {
 			}
 		} catch ( submitError ) {
 			setStatus( '' );
-			setError( submitError?.message || __( 'Failed to submit post.', 'extrachill-studio' ) );
+			setError( ( submitError as Error )?.message || __( 'Failed to submit post.', 'extrachill-studio' ) );
 		} finally {
 			setIsSubmitting( false );
 		}
 	};
 
-	const saveDraft = async () => {
+	const saveDraft = async (): Promise< void > => {
 		const content = getContent();
 
 		if ( ! title.trim() && ! content.trim() ) {
@@ -119,7 +131,7 @@ const ComposePane = () => {
 		setStatus( __( 'Saving draft…', 'extrachill-studio' ) );
 
 		try {
-			const post = await apiFetch( {
+			const post = await apiFetch< WpPost >( {
 				path: '/wp/v2/posts',
 				method: 'POST',
 				data: {
@@ -137,7 +149,7 @@ const ComposePane = () => {
 			);
 		} catch ( saveError ) {
 			setStatus( '' );
-			setError( saveError?.message || __( 'Failed to save draft.', 'extrachill-studio' ) );
+			setError( ( saveError as Error )?.message || __( 'Failed to save draft.', 'extrachill-studio' ) );
 		} finally {
 			setIsSubmitting( false );
 		}
@@ -162,7 +174,7 @@ const ComposePane = () => {
 					className: 'ec-studio-compose-title',
 					placeholder: __( 'Post title…', 'extrachill-studio' ),
 					value: title,
-					onChange: ( e ) => {
+					onChange: ( e: ChangeEvent< HTMLInputElement > ) => {
 						setTitle( e.target.value );
 						setError( '' );
 						setStatus( '' );
@@ -223,16 +235,16 @@ const ComposePane = () => {
 			createElement(
 				'div',
 				{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Publishing', 'extrachill-studio' ) ),
-			createElement( 'h3', null, __( 'How posts get published', 'extrachill-studio' ) ),
-			createElement( 'p', null, __( 'Write with the full block editor — paragraphs, images, embeds, and formatting all work here.', 'extrachill-studio' ) ),
-			createElement(
-				'ul',
-				null,
-				createElement( 'li', null, __( 'Save Draft — saves your work privately so you can come back to it.', 'extrachill-studio' ) ),
-				createElement( 'li', null, __( 'Submit for Review — flags the post for an admin to approve and publish.', 'extrachill-studio' ) ),
-				createElement( 'li', null, __( 'Posts target the main blog (extrachill.com) by default.', 'extrachill-studio' ) )
-			)
+				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Publishing', 'extrachill-studio' ) ),
+				createElement( 'h3', null, __( 'How posts get published', 'extrachill-studio' ) ),
+				createElement( 'p', null, __( 'Write with the full block editor — paragraphs, images, embeds, and formatting all work here.', 'extrachill-studio' ) ),
+				createElement(
+					'ul',
+					null,
+					createElement( 'li', null, __( 'Save Draft — saves your work privately so you can come back to it.', 'extrachill-studio' ) ),
+					createElement( 'li', null, __( 'Submit for Review — flags the post for an admin to approve and publish.', 'extrachill-studio' ) ),
+					createElement( 'li', null, __( 'Posts target the main blog (extrachill.com) by default.', 'extrachill-studio' ) )
+				)
 			)
 		)
 	);

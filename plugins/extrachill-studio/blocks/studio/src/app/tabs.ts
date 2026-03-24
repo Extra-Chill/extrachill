@@ -1,6 +1,7 @@
 import { __ } from '@wordpress/i18n';
+import type { StudioTab } from '../types/studio';
 
-export const getStudioTabs = () => [
+export const getStudioTabs = (): StudioTab[] => [
 	{
 		id: 'compose',
 		pane: 'compose',

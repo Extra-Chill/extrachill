@@ -4,7 +4,18 @@ import { PanelBody, TextareaControl } from '@wordpress/components';
 
 import { getStudioTabs } from './app/tabs';
 
-export default function Edit( { attributes, setAttributes } ) {
+interface StudioAttributes {
+	headline: string;
+	description: string;
+	deniedMessage: string;
+}
+
+interface EditProps {
+	attributes: StudioAttributes;
+	setAttributes: ( attrs: Partial< StudioAttributes > ) => void;
+}
+
+export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const { headline, description, deniedMessage } = attributes;
 	const blockProps = useBlockProps( { className: 'ec-studio-editor' } );
 	const tabs = getStudioTabs();
@@ -16,7 +27,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					<TextareaControl
 						label={ __( 'Denied Message', 'extrachill-studio' ) }
 						value={ deniedMessage }
-						onChange={ ( value ) => setAttributes( { deniedMessage: value } ) }
+						onChange={ ( value: string ) => setAttributes( { deniedMessage: value } ) }
 						help={ __( 'Displayed when a logged-in user does not have team member access.', 'extrachill-studio' ) }
 					/>
 				</PanelBody>
@@ -28,7 +39,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					className="ec-studio-editor__headline"
 					placeholder={ __( 'Add a Studio headline…', 'extrachill-studio' ) }
 					value={ headline }
-					onChange={ ( value ) => setAttributes( { headline: value } ) }
+					onChange={ ( value: string ) => setAttributes( { headline: value } ) }
 					allowedFormats={ [] }
 				/>
 
@@ -37,7 +48,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					className="ec-studio-editor__description"
 					placeholder={ __( 'Describe what the Studio is for…', 'extrachill-studio' ) }
 					value={ description }
-					onChange={ ( value ) => setAttributes( { description: value } ) }
+					onChange={ ( value: string ) => setAttributes( { description: value } ) }
 					allowedFormats={ [ 'core/bold', 'core/italic', 'core/link' ] }
 				/>
 

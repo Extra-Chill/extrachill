@@ -1,16 +1,27 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useState } from '@wordpress/element';
+import type { ReactElement } from 'react';
+import type { SocialPlatformsResponse } from '@extrachill/api-client';
 
 import { studioClient } from '../../app/client';
+import type { StudioPaneProps } from '../../types/studio';
 import InstagramPane from './instagram';
 
-const SocialsPane = () => {
-	const [ platforms, setPlatforms ] = useState( {} );
+interface PlatformEntry {
+	slug: string;
+	label: string;
+	authenticated: boolean;
+	username: string | null;
+	type: string;
+}
+
+const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
+	const [ platforms, setPlatforms ] = useState< SocialPlatformsResponse >( {} );
 	const [ error, setError ] = useState( '' );
 	const [ isLoading, setIsLoading ] = useState( true );
 
 	useEffect( () => {
-		const loadPlatforms = async () => {
+		const loadPlatforms = async (): Promise< void > => {
 			setIsLoading( true );
 			setError( '' );
 
@@ -19,7 +30,7 @@ const SocialsPane = () => {
 				setPlatforms( data && typeof data === 'object' ? data : {} );
 			} catch ( fetchError ) {
 				setPlatforms( {} );
-				setError( fetchError?.message || __( 'Unable to load social platforms.', 'extrachill-studio' ) );
+				setError( ( fetchError as Error )?.message || __( 'Unable to load social platforms.', 'extrachill-studio' ) );
 			} finally {
 				setIsLoading( false );
 			}
@@ -28,7 +39,7 @@ const SocialsPane = () => {
 		loadPlatforms();
 	}, [] );
 
-	const availablePlatforms = Object.entries( platforms ).map( ( [ slug, config ] ) => ( {
+	const availablePlatforms: PlatformEntry[] = Object.entries( platforms ).map( ( [ slug, config ] ) => ( {
 		slug,
 		label: config?.label || slug,
 		authenticated: config?.authenticated || false,
@@ -72,9 +83,9 @@ const SocialsPane = () => {
 			createElement(
 				'div',
 				{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Platforms', 'extrachill-studio' ) ),
-			createElement( 'h3', null, sprintf( __( '%d platforms available', 'extrachill-studio' ), publishPlatforms.length ) ),
-			createElement( 'p', null, sprintf( __( '%d connected, %d publish-capable.', 'extrachill-studio' ), connectedPlatforms.length, publishPlatforms.length ) ),
+				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Platforms', 'extrachill-studio' ) ),
+				createElement( 'h3', null, sprintf( __( '%d platforms available', 'extrachill-studio' ), publishPlatforms.length ) ),
+				createElement( 'p', null, sprintf( __( '%d connected, %d publish-capable.', 'extrachill-studio' ), connectedPlatforms.length, publishPlatforms.length ) ),
 				createElement(
 					'ul',
 					{ className: 'ec-studio-social-platforms' },
@@ -102,15 +113,15 @@ const SocialsPane = () => {
 			createElement(
 				'div',
 				{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Workflows', 'extrachill-studio' ) ),
-			createElement( 'h3', null, __( 'Publishing workflows', 'extrachill-studio' ) ),
-			createElement( 'p', null, __( 'Each connected platform has its own publishing workflow below. New platforms appear automatically when connected in Data Machine.', 'extrachill-studio' ) ),
-			createElement(
-				'ul',
-				null,
-				createElement( 'li', null, sprintf( __( '%d of %d platform(s) connected.', 'extrachill-studio' ), connectedPlatforms.length, availablePlatforms.length ) ),
-				createElement( 'li', null, __( 'Instagram — publish posts, manage comments, submit drafts for review.', 'extrachill-studio' ) )
-			)
+				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Workflows', 'extrachill-studio' ) ),
+				createElement( 'h3', null, __( 'Publishing workflows', 'extrachill-studio' ) ),
+				createElement( 'p', null, __( 'Each connected platform has its own publishing workflow below. New platforms appear automatically when connected in Data Machine.', 'extrachill-studio' ) ),
+				createElement(
+					'ul',
+					null,
+					createElement( 'li', null, sprintf( __( '%d of %d platform(s) connected.', 'extrachill-studio' ), connectedPlatforms.length, availablePlatforms.length ) ),
+					createElement( 'li', null, __( 'Instagram — publish posts, manage comments, submit drafts for review.', 'extrachill-studio' ) )
+				)
 			)
 		),
 		createElement( InstagramPane )

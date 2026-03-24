@@ -1,47 +1,60 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useState } from '@wordpress/element';
+import type { ReactElement, ChangeEvent } from 'react';
 
 import apiFetch from '@wordpress/api-fetch';
+import type { SocialPublishResponse, SocialPublishResult } from '@extrachill/api-client';
 import { studioClient, studioSocialsApi, uploadStudioFile } from '../../../app/client';
+import type { InstagramMediaItem, InstagramComment } from '../../../app/client';
 
-const InstagramPane = () => {
-	const [ authStatus, setAuthStatus ] = useState( null );
+interface InstagramAuthStatus {
+	platform: string;
+	authenticated: boolean;
+	username: string | null;
+}
+
+interface WpPost {
+	id: number;
+}
+
+const InstagramPane = (): ReactElement => {
+	const [ authStatus, setAuthStatus ] = useState< InstagramAuthStatus | null >( null );
 	const [ authError, setAuthError ] = useState( '' );
 	const [ isCheckingAuth, setIsCheckingAuth ] = useState( true );
 	const [ caption, setCaption ] = useState( '' );
 	const [ imageUrlInput, setImageUrlInput ] = useState( '' );
-	const [ imageUrls, setImageUrls ] = useState( [] );
-	const [ selectedFile, setSelectedFile ] = useState( null );
+	const [ imageUrls, setImageUrls ] = useState< string[] >( [] );
+	const [ selectedFile, setSelectedFile ] = useState< File | null >( null );
 	const [ isUploading, setIsUploading ] = useState( false );
 	const [ isPublishing, setIsPublishing ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
-	const [ publishResult, setPublishResult ] = useState( null );
-	const [ mediaItems, setMediaItems ] = useState( [] );
+	const [ publishResult, setPublishResult ] = useState< SocialPublishResponse | null >( null );
+	const [ mediaItems, setMediaItems ] = useState< InstagramMediaItem[] >( [] );
 	const [ selectedMediaId, setSelectedMediaId ] = useState( '' );
-	const [ comments, setComments ] = useState( [] );
+	const [ comments, setComments ] = useState< InstagramComment[] >( [] );
 	const [ isLoadingMedia, setIsLoadingMedia ] = useState( false );
 	const [ isLoadingComments, setIsLoadingComments ] = useState( false );
 	const [ commentsError, setCommentsError ] = useState( '' );
 	const [ commentsStatus, setCommentsStatus ] = useState( '' );
-	const [ replyDrafts, setReplyDrafts ] = useState( {} );
+	const [ replyDrafts, setReplyDrafts ] = useState< Record< string, string > >( {} );
 	const [ replyingCommentId, setReplyingCommentId ] = useState( '' );
 
 	useEffect( () => {
-		const loadAuthStatus = async () => {
+		const loadAuthStatus = async (): Promise< void > => {
 			setIsCheckingAuth( true );
 			setAuthError( '' );
 
 			try {
 				const platforms = await studioClient.socials.getPlatforms();
-				const instagram = platforms?.instagram
+				const instagram: InstagramAuthStatus | null = platforms?.instagram
 					? { platform: 'instagram', authenticated: platforms.instagram.authenticated || false, username: platforms.instagram.username || null }
 					: null;
 
-				setAuthStatus( instagram || null );
+				setAuthStatus( instagram );
 			} catch ( fetchError ) {
 				setAuthStatus( null );
-				setAuthError( fetchError?.message || __( 'Unable to load Instagram auth status.', 'extrachill-studio' ) );
+				setAuthError( ( fetchError as Error )?.message || __( 'Unable to load Instagram auth status.', 'extrachill-studio' ) );
 			} finally {
 				setIsCheckingAuth( false );
 			}
@@ -55,7 +68,7 @@ const InstagramPane = () => {
 			return;
 		}
 
-		const loadInstagramMedia = async () => {
+		const loadInstagramMedia = async (): Promise< void > => {
 			setIsLoadingMedia( true );
 			setCommentsError( '' );
 
@@ -68,7 +81,7 @@ const InstagramPane = () => {
 					setSelectedMediaId( ( current ) => current || nextMediaItems[ 0 ].id );
 				}
 			} catch ( fetchError ) {
-				setCommentsError( fetchError?.message || __( 'Unable to load recent Instagram posts.', 'extrachill-studio' ) );
+				setCommentsError( ( fetchError as Error )?.message || __( 'Unable to load recent Instagram posts.', 'extrachill-studio' ) );
 			} finally {
 				setIsLoadingMedia( false );
 			}
@@ -82,7 +95,7 @@ const InstagramPane = () => {
 			return;
 		}
 
-		const loadComments = async () => {
+		const loadComments = async (): Promise< void > => {
 			setIsLoadingComments( true );
 			setCommentsError( '' );
 			setCommentsStatus( '' );
@@ -92,7 +105,7 @@ const InstagramPane = () => {
 				setComments( response?.data?.comments || [] );
 			} catch ( fetchError ) {
 				setComments( [] );
-				setCommentsError( fetchError?.message || __( 'Unable to load comments for this post.', 'extrachill-studio' ) );
+				setCommentsError( ( fetchError as Error )?.message || __( 'Unable to load comments for this post.', 'extrachill-studio' ) );
 			} finally {
 				setIsLoadingComments( false );
 			}
@@ -101,7 +114,7 @@ const InstagramPane = () => {
 		loadComments();
 	}, [ selectedMediaId, authStatus?.authenticated ] );
 
-	const addImageUrl = () => {
+	const addImageUrl = (): void => {
 		const nextUrl = imageUrlInput.trim();
 
 		if ( ! nextUrl ) {
@@ -111,7 +124,7 @@ const InstagramPane = () => {
 
 		try {
 			new URL( nextUrl );
-		} catch ( urlError ) {
+		} catch {
 			setError( __( 'Please enter a valid image URL.', 'extrachill-studio' ) );
 			return;
 		}
@@ -122,7 +135,7 @@ const InstagramPane = () => {
 		setStatus( __( 'Image URL added to publish queue.', 'extrachill-studio' ) );
 	};
 
-	const handleUpload = async () => {
+	const handleUpload = async (): Promise< void > => {
 		if ( ! selectedFile ) {
 			setError( __( 'Choose an image file to upload first.', 'extrachill-studio' ) );
 			return;
@@ -143,20 +156,20 @@ const InstagramPane = () => {
 			setSelectedFile( null );
 			setStatus( __( 'Image uploaded and added to publish queue.', 'extrachill-studio' ) );
 		} catch ( uploadError ) {
-			setError( uploadError?.message || __( 'Image upload failed.', 'extrachill-studio' ) );
+			setError( ( uploadError as Error )?.message || __( 'Image upload failed.', 'extrachill-studio' ) );
 			setStatus( '' );
 		} finally {
 			setIsUploading( false );
 		}
 	};
 
-	const removeImageUrl = ( index ) => {
-		setImageUrls( ( current ) => current.filter( ( item, itemIndex ) => itemIndex !== index ) );
+	const removeImageUrl = ( index: number ): void => {
+		setImageUrls( ( current ) => current.filter( ( _item, itemIndex ) => itemIndex !== index ) );
 		setStatus( __( 'Image removed from publish queue.', 'extrachill-studio' ) );
 		setError( '' );
 	};
 
-	const publishInstagramPost = async () => {
+	const publishInstagramPost = async (): Promise< void > => {
 		if ( ! caption.trim() ) {
 			setError( __( 'Add a caption before publishing.', 'extrachill-studio' ) );
 			setStatus( '' );
@@ -193,13 +206,13 @@ const InstagramPane = () => {
 			}
 		} catch ( publishError ) {
 			setStatus( '' );
-			setError( publishError?.message || __( 'Instagram publish failed.', 'extrachill-studio' ) );
+			setError( ( publishError as Error )?.message || __( 'Instagram publish failed.', 'extrachill-studio' ) );
 		} finally {
 			setIsPublishing( false );
 		}
 	};
 
-	const submitForReview = async () => {
+	const submitForReview = async (): Promise< void > => {
 		if ( ! caption.trim() ) {
 			setError( __( 'Add a caption before submitting.', 'extrachill-studio' ) );
 			setStatus( '' );
@@ -217,7 +230,7 @@ const InstagramPane = () => {
 		setStatus( __( 'Submitting for review…', 'extrachill-studio' ) );
 
 		try {
-			const post = await apiFetch( {
+			const post = await apiFetch< WpPost >( {
 				path: '/wp/v2/posts',
 				method: 'POST',
 				data: {
@@ -235,33 +248,32 @@ const InstagramPane = () => {
 			} );
 
 			setStatus(
-				/* translators: %d: post ID */
 				sprintf( __( 'Draft #%d submitted for review. An admin will approve it before it goes live.', 'extrachill-studio' ), post.id )
 			);
 			setCaption( '' );
 			setImageUrls( [] );
 		} catch ( submitError ) {
 			setStatus( '' );
-			setError( submitError?.message || __( 'Failed to submit draft.', 'extrachill-studio' ) );
+			setError( ( submitError as Error )?.message || __( 'Failed to submit draft.', 'extrachill-studio' ) );
 		} finally {
 			setIsPublishing( false );
 		}
 	};
 
-	const instagramResult = Array.isArray( publishResult?.results )
-		? publishResult.results.find( ( result ) => result.platform === 'instagram' )
+	const instagramResult: SocialPublishResult | null = Array.isArray( publishResult?.results )
+		? publishResult!.results.find( ( result ) => result.platform === 'instagram' ) || null
 		: null;
 
 	const selectedMedia = mediaItems.find( ( item ) => item.id === selectedMediaId ) || null;
 
-	const setReplyDraft = ( commentId, value ) => {
+	const setReplyDraft = ( commentId: string, value: string ): void => {
 		setReplyDrafts( ( current ) => ( {
 			...current,
 			[ commentId ]: value,
 		} ) );
 	};
 
-	const replyToComment = async ( commentId ) => {
+	const replyToComment = async ( commentId: string ): Promise< void > => {
 		const message = ( replyDrafts[ commentId ] || '' ).trim();
 
 		if ( ! message ) {
@@ -283,7 +295,7 @@ const InstagramPane = () => {
 			setComments( response?.data?.comments || [] );
 		} catch ( replyError ) {
 			setCommentsStatus( '' );
-			setCommentsError( replyError?.message || __( 'Failed to reply to comment.', 'extrachill-studio' ) );
+			setCommentsError( ( replyError as Error )?.message || __( 'Failed to reply to comment.', 'extrachill-studio' ) );
 		} finally {
 			setReplyingCommentId( '' );
 		}
@@ -295,9 +307,9 @@ const InstagramPane = () => {
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-		createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Instagram', 'extrachill-studio' ) ),
-		createElement( 'h3', null, __( 'Publish to Instagram', 'extrachill-studio' ) ),
-		createElement( 'p', null, __( 'Write a caption, add images, and publish directly or submit for admin review. Supports single images and carousels.', 'extrachill-studio' ) ),
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Instagram', 'extrachill-studio' ) ),
+			createElement( 'h3', null, __( 'Publish to Instagram', 'extrachill-studio' ) ),
+			createElement( 'p', null, __( 'Write a caption, add images, and publish directly or submit for admin review. Supports single images and carousels.', 'extrachill-studio' ) ),
 			isCheckingAuth
 				? createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Checking Instagram authentication…', 'extrachill-studio' ) )
 				: null,
@@ -322,7 +334,7 @@ const InstagramPane = () => {
 						id: 'ec-studio-instagram-caption',
 						rows: 6,
 						value: caption,
-						onChange: ( event ) => setCaption( event.target.value ),
+						onChange: ( event: ChangeEvent< HTMLTextAreaElement > ) => setCaption( event.target.value ),
 						placeholder: __( 'Write the Instagram caption here…', 'extrachill-studio' ),
 					} )
 				),
@@ -334,7 +346,7 @@ const InstagramPane = () => {
 						id: 'ec-studio-instagram-image-url',
 						type: 'url',
 						value: imageUrlInput,
-						onChange: ( event ) => setImageUrlInput( event.target.value ),
+						onChange: ( event: ChangeEvent< HTMLInputElement > ) => setImageUrlInput( event.target.value ),
 						placeholder: 'https://example.com/image.jpg',
 						autoComplete: 'url',
 					} )
@@ -353,7 +365,7 @@ const InstagramPane = () => {
 						id: 'ec-studio-instagram-upload',
 						type: 'file',
 						accept: 'image/*',
-						onChange: ( event ) => {
+						onChange: ( event: ChangeEvent< HTMLInputElement > ) => {
 							setSelectedFile( event.target.files?.[ 0 ] || null );
 							setError( '' );
 							setStatus( '' );
@@ -437,9 +449,9 @@ const InstagramPane = () => {
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-		createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Comments', 'extrachill-studio' ) ),
-		createElement( 'h3', null, __( 'Instagram comments', 'extrachill-studio' ) ),
-		createElement( 'p', null, __( 'Select a recent post to view and reply to comments without leaving Studio.', 'extrachill-studio' ) ),
+			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Comments', 'extrachill-studio' ) ),
+			createElement( 'h3', null, __( 'Instagram comments', 'extrachill-studio' ) ),
+			createElement( 'p', null, __( 'Select a recent post to view and reply to comments without leaving Studio.', 'extrachill-studio' ) ),
 			isLoadingMedia ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Loading recent Instagram posts…', 'extrachill-studio' ) ) : null,
 			commentsError ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, commentsError ) : null,
 			! commentsError && commentsStatus ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--success' }, commentsStatus ) : null,
@@ -456,7 +468,7 @@ const InstagramPane = () => {
 							{
 								id: 'ec-studio-instagram-media-selector',
 								value: selectedMediaId,
-								onChange: ( event ) => setSelectedMediaId( event.target.value ),
+								onChange: ( event: ChangeEvent< HTMLSelectElement > ) => setSelectedMediaId( event.target.value ),
 							},
 							...mediaItems.map( ( item ) => createElement(
 								'option',
@@ -494,7 +506,7 @@ const InstagramPane = () => {
 										createElement( 'textarea', {
 											rows: 3,
 											value: replyDrafts[ comment.id ] || '',
-											onChange: ( event ) => setReplyDraft( comment.id, event.target.value ),
+											onChange: ( event: ChangeEvent< HTMLTextAreaElement > ) => setReplyDraft( comment.id, event.target.value ),
 											placeholder: __( 'Write a reply…', 'extrachill-studio' ),
 										} ),
 										createElement(
