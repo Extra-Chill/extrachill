@@ -94,6 +94,31 @@ function extrachill_enqueue_taxonomy_badges() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_taxonomy_badges', 10 );
 
+/**
+ * Enqueue EC block editor branding on host page when Blocks Everywhere is active.
+ *
+ * Sources from @extrachill/tokens css/block-editor.css. Styles scoped under
+ * .gutenberg-support apply to the host page (toolbar, popovers, sidebar).
+ * Iframe styles from the same file are injected via
+ * blocks_everywhere_enqueue_iframe_assets.
+ */
+function extrachill_enqueue_block_editor_branding() {
+	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Blocks_Everywhere' ) ) {
+		return;
+	}
+
+	$block_editor_css_path = get_stylesheet_directory() . '/assets/css/block-editor.css';
+	if ( file_exists( $block_editor_css_path ) ) {
+		wp_enqueue_style(
+			'extrachill-block-editor',
+			get_stylesheet_directory_uri() . '/assets/css/block-editor.css',
+			array( 'extrachill-root' ),
+			filemtime( $block_editor_css_path )
+		);
+	}
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_block_editor_branding', 15 );
+
 function extrachill_modify_default_style() {
 	wp_dequeue_style( 'extrachill-style' );
 	wp_deregister_style( 'extrachill-style' );
@@ -134,6 +159,21 @@ function extrachill_enqueue_blocks_everywhere_iframe_assets() {
 		}
 
 		wp_enqueue_style( 'extrachill-style' );
+	}
+
+	// EC block editor branding (from @extrachill/tokens).
+	$block_editor_css_path = get_stylesheet_directory() . '/assets/css/block-editor.css';
+	if ( file_exists( $block_editor_css_path ) ) {
+		if ( ! wp_style_is( 'extrachill-block-editor', 'registered' ) ) {
+			wp_register_style(
+				'extrachill-block-editor',
+				get_stylesheet_directory_uri() . '/assets/css/block-editor.css',
+				array( 'extrachill-root' ),
+				filemtime( $block_editor_css_path )
+			);
+		}
+
+		wp_enqueue_style( 'extrachill-block-editor' );
 	}
 }
 add_action( 'blocks_everywhere_enqueue_iframe_assets', 'extrachill_enqueue_blocks_everywhere_iframe_assets' );
