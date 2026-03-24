@@ -19,12 +19,16 @@ interface WpPost {
 	modified: string;
 }
 
+/** Autosave debounce interval in milliseconds. */
+const AUTOSAVE_DELAY = 2000;
+
 /**
  * Compose Pane — Block editor for drafting posts.
  *
  * Mounts the Blocks Everywhere isolated block editor on a hidden textarea.
  * Auto-loads the most recent draft on mount. Supports switching between
  * drafts, creating new ones, and updating existing ones in place.
+ * Autosaves every 2s after changes when editing an existing draft.
  */
 const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	const editorContainerRef = useRef< HTMLDivElement >( null );
@@ -41,6 +45,17 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	const [ drafts, setDrafts ] = useState< WpPost[] >( [] );
 	const [ activePostId, setActivePostId ] = useState< number | null >( null );
 	const [ isLoadingDrafts, setIsLoadingDrafts ] = useState( true );
+
+	// Autosave tracking refs (not state — no re-renders needed).
+	const autosaveTimerRef = useRef< ReturnType< typeof setTimeout > | null >( null );
+	const lastSavedPayloadRef = useRef( '' );
+	const isAutosavingRef = useRef( false );
+	const activePostIdRef = useRef< number | null >( null );
+	const titleRef = useRef( '' );
+
+	// Keep refs in sync with state so autosave callbacks read current values.
+	activePostIdRef.current = activePostId;
+	titleRef.current = title;
 
 	/** Push block content into the hidden textarea so Blocks Everywhere picks it up. */
 	const setEditorContent = useCallback( ( content: string ): void => {
@@ -72,21 +87,99 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 	/** Load a specific draft into the editor. */
 	const loadDraft = useCallback( ( post: WpPost ): void => {
+		// Clear any pending autosave for the previous draft.
+		if ( autosaveTimerRef.current ) {
+			clearTimeout( autosaveTimerRef.current );
+			autosaveTimerRef.current = null;
+		}
+
 		setActivePostId( post.id );
 		setTitle( post.title.raw || post.title.rendered || '' );
 		setEditorContent( post.content.raw || post.content.rendered || '' );
 		setError( '' );
 		setStatus( '' );
+
+		// Snapshot the loaded state so autosave doesn't fire immediately.
+		lastSavedPayloadRef.current = JSON.stringify( {
+			title: post.title.raw || post.title.rendered || '',
+			content: post.content.raw || post.content.rendered || '',
+		} );
 	}, [ setEditorContent ] );
 
 	/** Start a new blank post — clears editor and unsets active draft. */
 	const startNew = useCallback( (): void => {
+		if ( autosaveTimerRef.current ) {
+			clearTimeout( autosaveTimerRef.current );
+			autosaveTimerRef.current = null;
+		}
+
 		setActivePostId( null );
 		setTitle( '' );
 		setEditorContent( '' );
 		setError( '' );
 		setStatus( '' );
+		lastSavedPayloadRef.current = '';
 	}, [ setEditorContent ] );
+
+	/**
+	 * Autosave the current draft.
+	 *
+	 * Only fires when an activePostId exists (i.e., user has saved at least once
+	 * or loaded an existing draft). Skips if content hasn't changed since last save.
+	 * Runs silently — no status messages unless there's an error.
+	 */
+	const performAutosave = useCallback( async (): Promise< void > => {
+		const postId = activePostIdRef.current;
+		if ( ! postId || isAutosavingRef.current ) {
+			return;
+		}
+
+		const currentTitle = titleRef.current.trim();
+		const currentContent = getContent().trim();
+
+		// Don't autosave empty posts.
+		if ( ! currentTitle && ! currentContent ) {
+			return;
+		}
+
+		// Skip if nothing changed.
+		const payload = JSON.stringify( { title: currentTitle, content: currentContent } );
+		if ( payload === lastSavedPayloadRef.current ) {
+			return;
+		}
+
+		isAutosavingRef.current = true;
+
+		try {
+			await apiFetch< WpPost >( {
+				path: `/wp/v2/posts/${ postId }`,
+				method: 'POST',
+				data: {
+					title: currentTitle,
+					content: currentContent,
+					status: 'draft',
+				},
+			} );
+
+			lastSavedPayloadRef.current = payload;
+		} catch {
+			// Silent failure — user can still manually save.
+		} finally {
+			isAutosavingRef.current = false;
+		}
+	}, [] );
+
+	/** Schedule a debounced autosave. */
+	const scheduleAutosave = useCallback( (): void => {
+		if ( autosaveTimerRef.current ) {
+			clearTimeout( autosaveTimerRef.current );
+		}
+
+		autosaveTimerRef.current = setTimeout( () => {
+			autosaveTimerRef.current = null;
+			performAutosave();
+		}, AUTOSAVE_DELAY );
+	}, [ performAutosave ] );
 
 	// Mount the block editor on first render.
 	useEffect( () => {
@@ -102,6 +195,29 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			setError( __( 'Block editor not available. Ensure Blocks Everywhere plugin is active.', 'extrachill-studio' ) );
 		}
 	}, [] );
+
+	// Listen for content changes on the textarea (Blocks Everywhere fires input events).
+	useEffect( () => {
+		const textarea = textareaRef.current;
+		if ( ! textarea ) {
+			return;
+		}
+
+		const onContentChange = (): void => {
+			scheduleAutosave();
+		};
+
+		textarea.addEventListener( 'input', onContentChange );
+
+		return () => {
+			textarea.removeEventListener( 'input', onContentChange );
+			// Flush any pending autosave on unmount.
+			if ( autosaveTimerRef.current ) {
+				clearTimeout( autosaveTimerRef.current );
+				performAutosave();
+			}
+		};
+	}, [ scheduleAutosave, performAutosave ] );
 
 	// Load drafts on mount, auto-load the most recent one.
 	useEffect( () => {
@@ -146,12 +262,17 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
+		// Cancel any pending autosave.
+		if ( autosaveTimerRef.current ) {
+			clearTimeout( autosaveTimerRef.current );
+			autosaveTimerRef.current = null;
+		}
+
 		setIsSubmitting( true );
 		setError( '' );
 		setStatus( __( 'Submitting for review…', 'extrachill-studio' ) );
 
 		try {
-			// If editing an existing draft, update it to pending. Otherwise create new.
 			const path = activePostId
 				? `/wp/v2/posts/${ activePostId }`
 				: '/wp/v2/posts';
@@ -173,7 +294,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				)
 			);
 
-			// Clear editor and refresh drafts list (the submitted post is no longer a draft).
 			startNew();
 			const refreshed = await loadDrafts();
 			setDrafts( refreshed );
@@ -194,12 +314,17 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
+		// Cancel any pending autosave — we're doing an explicit save.
+		if ( autosaveTimerRef.current ) {
+			clearTimeout( autosaveTimerRef.current );
+			autosaveTimerRef.current = null;
+		}
+
 		setIsSubmitting( true );
 		setError( '' );
 		setStatus( __( 'Saving…', 'extrachill-studio' ) );
 
 		try {
-			// Update existing draft or create a new one.
 			const path = activePostId
 				? `/wp/v2/posts/${ activePostId }`
 				: '/wp/v2/posts';
@@ -214,11 +339,10 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				},
 			} );
 
-			// Track the post ID so subsequent saves update the same draft.
 			setActivePostId( post.id );
+			lastSavedPayloadRef.current = JSON.stringify( { title: title.trim(), content } );
 			setStatus( __( 'Draft saved.', 'extrachill-studio' ) );
 
-			// Refresh the drafts list.
 			const refreshed = await loadDrafts();
 			setDrafts( refreshed );
 		} catch ( saveError ) {
@@ -241,6 +365,14 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		if ( post ) {
 			loadDraft( post );
 		}
+	};
+
+	/** Handle title changes — update state and schedule autosave. */
+	const onTitleChange = ( e: ChangeEvent< HTMLInputElement > ): void => {
+		setTitle( e.target.value );
+		setError( '' );
+		setStatus( '' );
+		scheduleAutosave();
 	};
 
 	return createElement(
@@ -306,11 +438,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 					className: 'ec-studio-compose-title',
 					placeholder: __( 'Post title…', 'extrachill-studio' ),
 					value: title,
-					onChange: ( e: ChangeEvent< HTMLInputElement > ) => {
-						setTitle( e.target.value );
-						setError( '' );
-						setStatus( '' );
-					},
+					onChange: onTitleChange,
 				} ),
 
 				// Block editor container
@@ -377,9 +505,9 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				createElement(
 					'ul',
 					null,
-					createElement( 'li', null, __( 'Save Draft — saves your work privately so you can come back to it.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Submit for Review — flags the post for an admin to approve and publish.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Posts target the main blog (extrachill.com) by default.', 'extrachill-studio' ) )
+					createElement( 'li', null, __( 'Your work autosaves every few seconds while editing an existing draft.', 'extrachill-studio' ) ),
+					createElement( 'li', null, __( 'Save Draft — creates or updates a draft you can return to later.', 'extrachill-studio' ) ),
+					createElement( 'li', null, __( 'Submit for Review — flags the post for an admin to approve and publish.', 'extrachill-studio' ) )
 				)
 			)
 		)
