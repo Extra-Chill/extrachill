@@ -29,22 +29,31 @@ const AUTOSAVE_DELAY = 2000;
  * Auto-loads the most recent draft on mount. Supports switching between
  * drafts, creating new ones, and updating existing ones in place.
  * Autosaves every 2s after changes when editing an existing draft.
+ *
+ * Content loading strategy:
+ * - Blocks Everywhere reads textarea.value exactly once at mount time via onLoad.
+ * - There is no API to hot-swap content into a running editor.
+ * - To switch drafts, we increment `editorKey` which forces React to unmount
+ *   and remount the editor container. The new instance reads the pre-filled
+ *   textarea value on initialization.
  */
 const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
-	const editorContainerRef = useRef< HTMLDivElement >( null );
-	const textareaRef = useRef< HTMLTextAreaElement >( null );
-	const editorMountedRef = useRef( false );
-
 	const [ title, setTitle ] = useState( '' );
 	const [ isSubmitting, setIsSubmitting ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
-	const [ editorReady, setEditorReady ] = useState( false );
 
 	// Draft management state.
 	const [ drafts, setDrafts ] = useState< WpPost[] >( [] );
 	const [ activePostId, setActivePostId ] = useState< number | null >( null );
 	const [ isLoadingDrafts, setIsLoadingDrafts ] = useState( true );
+
+	// Editor mount key — incrementing forces a full remount of the editor.
+	// This is the same pattern Blocks Everywhere uses internally for draft switching.
+	const [ editorKey, setEditorKey ] = useState( 0 );
+
+	// The content to pre-fill the textarea with before the editor mounts.
+	const pendingContentRef = useRef( '' );
 
 	// Autosave tracking refs (not state — no re-renders needed).
 	const autosaveTimerRef = useRef< ReturnType< typeof setTimeout > | null >( null );
@@ -52,18 +61,11 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	const isAutosavingRef = useRef( false );
 	const activePostIdRef = useRef< number | null >( null );
 	const titleRef = useRef( '' );
+	const textareaRef = useRef< HTMLTextAreaElement | null >( null );
 
 	// Keep refs in sync with state so autosave callbacks read current values.
 	activePostIdRef.current = activePostId;
 	titleRef.current = title;
-
-	/** Push block content into the hidden textarea so Blocks Everywhere picks it up. */
-	const setEditorContent = useCallback( ( content: string ): void => {
-		if ( textareaRef.current ) {
-			textareaRef.current.value = content;
-			textareaRef.current.dispatchEvent( new Event( 'input', { bubbles: true } ) );
-		}
-	}, [] );
 
 	/** Read serialized block content from the hidden textarea. */
 	const getContent = (): string => {
@@ -85,48 +87,47 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		}
 	}, [] );
 
-	/** Load a specific draft into the editor. */
-	const loadDraft = useCallback( ( post: WpPost ): void => {
+	/**
+	 * Switch to a draft (or blank). Sets pending content and increments editorKey
+	 * to force a full editor remount with the new content.
+	 */
+	const switchToDraft = useCallback( ( post: WpPost | null ): void => {
 		// Clear any pending autosave for the previous draft.
 		if ( autosaveTimerRef.current ) {
 			clearTimeout( autosaveTimerRef.current );
 			autosaveTimerRef.current = null;
 		}
 
-		setActivePostId( post.id );
-		setTitle( post.title.raw || post.title.rendered || '' );
-		setEditorContent( post.content.raw || post.content.rendered || '' );
-		setError( '' );
-		setStatus( '' );
-
-		// Snapshot the loaded state so autosave doesn't fire immediately.
-		lastSavedPayloadRef.current = JSON.stringify( {
-			title: post.title.raw || post.title.rendered || '',
-			content: post.content.raw || post.content.rendered || '',
-		} );
-	}, [ setEditorContent ] );
-
-	/** Start a new blank post — clears editor and unsets active draft. */
-	const startNew = useCallback( (): void => {
-		if ( autosaveTimerRef.current ) {
-			clearTimeout( autosaveTimerRef.current );
-			autosaveTimerRef.current = null;
+		if ( post ) {
+			setActivePostId( post.id );
+			setTitle( post.title.raw || post.title.rendered || '' );
+			pendingContentRef.current = post.content.raw || post.content.rendered || '';
+			lastSavedPayloadRef.current = JSON.stringify( {
+				title: post.title.raw || post.title.rendered || '',
+				content: post.content.raw || post.content.rendered || '',
+			} );
+		} else {
+			setActivePostId( null );
+			setTitle( '' );
+			pendingContentRef.current = '';
+			lastSavedPayloadRef.current = '';
 		}
 
-		setActivePostId( null );
-		setTitle( '' );
-		setEditorContent( '' );
 		setError( '' );
 		setStatus( '' );
-		lastSavedPayloadRef.current = '';
-	}, [ setEditorContent ] );
+
+		// Force editor remount — React will unmount the old editor and mount a fresh one.
+		setEditorKey( ( k ) => k + 1 );
+	}, [] );
+
+	/** Start a new blank post. */
+	const startNew = useCallback( (): void => {
+		switchToDraft( null );
+	}, [ switchToDraft ] );
 
 	/**
 	 * Autosave the current draft.
-	 *
-	 * Only fires when an activePostId exists (i.e., user has saved at least once
-	 * or loaded an existing draft). Skips if content hasn't changed since last save.
-	 * Runs silently — no status messages unless there's an error.
+	 * Only fires when an activePostId exists. Skips if content hasn't changed.
 	 */
 	const performAutosave = useCallback( async (): Promise< void > => {
 		const postId = activePostIdRef.current;
@@ -137,12 +138,10 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		const currentTitle = titleRef.current.trim();
 		const currentContent = getContent().trim();
 
-		// Don't autosave empty posts.
 		if ( ! currentTitle && ! currentContent ) {
 			return;
 		}
 
-		// Skip if nothing changed.
 		const payload = JSON.stringify( { title: currentTitle, content: currentContent } );
 		if ( payload === lastSavedPayloadRef.current ) {
 			return;
@@ -181,44 +180,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		}, AUTOSAVE_DELAY );
 	}, [ performAutosave ] );
 
-	// Mount the block editor on first render.
-	useEffect( () => {
-		if ( editorMountedRef.current || ! textareaRef.current ) {
-			return;
-		}
-
-		if ( typeof window.blocksEverywhereCreateEditor === 'function' ) {
-			window.blocksEverywhereCreateEditor( textareaRef.current );
-			editorMountedRef.current = true;
-			setEditorReady( true );
-		} else {
-			setError( __( 'Block editor not available. Ensure Blocks Everywhere plugin is active.', 'extrachill-studio' ) );
-		}
-	}, [] );
-
-	// Listen for content changes on the textarea (Blocks Everywhere fires input events).
-	useEffect( () => {
-		const textarea = textareaRef.current;
-		if ( ! textarea ) {
-			return;
-		}
-
-		const onContentChange = (): void => {
-			scheduleAutosave();
-		};
-
-		textarea.addEventListener( 'input', onContentChange );
-
-		return () => {
-			textarea.removeEventListener( 'input', onContentChange );
-			// Flush any pending autosave on unmount.
-			if ( autosaveTimerRef.current ) {
-				clearTimeout( autosaveTimerRef.current );
-				performAutosave();
-			}
-		};
-	}, [ scheduleAutosave, performAutosave ] );
-
 	// Load drafts on mount, auto-load the most recent one.
 	useEffect( () => {
 		let cancelled = false;
@@ -234,10 +195,20 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			setDrafts( result );
 			setIsLoadingDrafts( false );
 
-			// Auto-load the most recent draft if one exists.
+			// Pre-fill with the most recent draft so the first editor mount has content.
 			if ( result.length > 0 ) {
-				loadDraft( result[ 0 ] );
+				const post = result[ 0 ];
+				setActivePostId( post.id );
+				setTitle( post.title.raw || post.title.rendered || '' );
+				pendingContentRef.current = post.content.raw || post.content.rendered || '';
+				lastSavedPayloadRef.current = JSON.stringify( {
+					title: post.title.raw || post.title.rendered || '',
+					content: post.content.raw || post.content.rendered || '',
+				} );
 			}
+
+			// Trigger the first editor mount.
+			setEditorKey( 1 );
 		};
 
 		init();
@@ -245,7 +216,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		return () => {
 			cancelled = true;
 		};
-	}, [ loadDrafts, loadDraft ] );
+	}, [ loadDrafts ] );
 
 	const submitForReview = async (): Promise< void > => {
 		const content = getContent();
@@ -262,7 +233,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
-		// Cancel any pending autosave.
 		if ( autosaveTimerRef.current ) {
 			clearTimeout( autosaveTimerRef.current );
 			autosaveTimerRef.current = null;
@@ -294,9 +264,10 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				)
 			);
 
-			startNew();
+			// Clear editor and refresh drafts list.
 			const refreshed = await loadDrafts();
 			setDrafts( refreshed );
+			switchToDraft( null );
 		} catch ( submitError ) {
 			setStatus( '' );
 			setError( ( submitError as Error )?.message || __( 'Failed to submit post.', 'extrachill-studio' ) );
@@ -314,7 +285,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
-		// Cancel any pending autosave — we're doing an explicit save.
 		if ( autosaveTimerRef.current ) {
 			clearTimeout( autosaveTimerRef.current );
 			autosaveTimerRef.current = null;
@@ -356,14 +326,13 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	/** Handle draft picker change. */
 	const onDraftChange = ( e: ChangeEvent< HTMLSelectElement > ): void => {
 		const postId = Number.parseInt( e.target.value, 10 );
-
 		if ( ! postId ) {
 			return;
 		}
 
 		const post = drafts.find( ( d ) => d.id === postId );
 		if ( post ) {
-			loadDraft( post );
+			switchToDraft( post );
 		}
 	};
 
@@ -440,20 +409,22 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 					onChange: onTitleChange,
 				} ),
 
-				// Block editor container
-				createElement(
-					'div',
-					{
-						className: 'ec-studio-compose-editor',
-						ref: editorContainerRef,
-					},
-					createElement( 'textarea', {
-						id: 'ec-studio-compose-content',
-						ref: textareaRef,
-						style: { display: 'none' },
-						defaultValue: '',
+				// Block editor container — keyed by editorKey to force remount on draft switch.
+				// editorKey=0 means "not ready yet" (waiting for draft list to load).
+				editorKey > 0
+					? createElement( EditorMount, {
+						key: editorKey,
+						pendingContent: pendingContentRef.current,
+						onTextareaReady: ( el: HTMLTextAreaElement ) => {
+							textareaRef.current = el;
+						},
+						onContentChange: scheduleAutosave,
 					} )
-				),
+					: createElement(
+						'div',
+						{ className: 'ec-studio-compose-editor' },
+						createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Loading editor…', 'extrachill-studio' ) )
+					),
 
 				// Status messages
 				error
@@ -473,7 +444,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 							type: 'button',
 							className: 'button-1 button-medium',
 							onClick: submitForReview,
-							disabled: isSubmitting || ! editorReady,
+							disabled: isSubmitting || editorKey === 0,
 						},
 						isSubmitting ? __( 'Submitting…', 'extrachill-studio' ) : __( 'Submit for Review', 'extrachill-studio' )
 					),
@@ -483,7 +454,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 							type: 'button',
 							className: 'button-1 button-medium button-secondary',
 							onClick: saveDraft,
-							disabled: isSubmitting || ! editorReady,
+							disabled: isSubmitting || editorKey === 0,
 						},
 						isSubmitting ? __( 'Saving…', 'extrachill-studio' ) : (
 							activePostId
@@ -509,6 +480,71 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				)
 			)
 		)
+	);
+};
+
+/**
+ * Editor mount component — handles the textarea + Blocks Everywhere lifecycle.
+ *
+ * This is a separate component so React's `key` prop can force a full unmount/remount
+ * when the draft changes. Each mount:
+ * 1. Creates a textarea pre-filled with draft content
+ * 2. Calls blocksEverywhereCreateEditor which reads textarea.value via onLoad
+ * 3. Listens for textarea input events (content changes from BE) for autosave
+ */
+interface EditorMountProps {
+	pendingContent: string;
+	onTextareaReady: ( el: HTMLTextAreaElement ) => void;
+	onContentChange: () => void;
+}
+
+const EditorMount = ( { pendingContent, onTextareaReady, onContentChange }: EditorMountProps ): ReactElement => {
+	const containerRef = useRef< HTMLDivElement >( null );
+	const textareaRef = useRef< HTMLTextAreaElement >( null );
+	const mountedRef = useRef( false );
+
+	useEffect( () => {
+		if ( mountedRef.current || ! textareaRef.current ) {
+			return;
+		}
+
+		// Pre-fill the textarea so BE's onLoad reads it.
+		textareaRef.current.value = pendingContent;
+
+		// Expose the textarea ref to the parent for content reads.
+		onTextareaReady( textareaRef.current );
+
+		if ( typeof window.blocksEverywhereCreateEditor === 'function' ) {
+			window.blocksEverywhereCreateEditor( textareaRef.current );
+			mountedRef.current = true;
+		}
+	}, [] );
+
+	// Listen for content changes (BE writes to textarea on every block change).
+	useEffect( () => {
+		const textarea = textareaRef.current;
+		if ( ! textarea ) {
+			return;
+		}
+
+		textarea.addEventListener( 'input', onContentChange );
+		return () => {
+			textarea.removeEventListener( 'input', onContentChange );
+		};
+	}, [ onContentChange ] );
+
+	return createElement(
+		'div',
+		{
+			className: 'ec-studio-compose-editor',
+			ref: containerRef,
+		},
+		createElement( 'textarea', {
+			id: 'ec-studio-compose-content',
+			ref: textareaRef,
+			style: { display: 'none' },
+			defaultValue: '',
+		} )
 	);
 };
 
