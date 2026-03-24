@@ -87,16 +87,6 @@
 	padding: var(--spacing-md);
 }
 
-.ec-studio-panel__eyebrow {
-	display: block;
-	margin-bottom: var(--spacing-xs);
-	font-size: var(--font-size-xs);
-	font-weight: 700;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-	color: var(--muted-text);
-}
-
 .ec-studio-panel h3,
 .ec-studio-panel h4 {
 	margin: 0 0 var(--spacing-xs);

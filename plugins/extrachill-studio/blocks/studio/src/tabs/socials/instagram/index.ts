@@ -307,7 +307,6 @@ const InstagramPane = (): ReactElement => {
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Instagram', 'extrachill-studio' ) ),
 			createElement( 'h3', null, __( 'Publish to Instagram', 'extrachill-studio' ) ),
 			createElement( 'p', null, __( 'Write a caption, add images, and publish directly or submit for admin review. Supports single images and carousels.', 'extrachill-studio' ) ),
 			isCheckingAuth
@@ -421,7 +420,6 @@ const InstagramPane = (): ReactElement => {
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Queued images', 'extrachill-studio' ) ),
 			imageUrls.length > 0
 				? createElement(
 					'ul',
@@ -449,7 +447,6 @@ const InstagramPane = (): ReactElement => {
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Comments', 'extrachill-studio' ) ),
 			createElement( 'h3', null, __( 'Instagram comments', 'extrachill-studio' ) ),
 			createElement( 'p', null, __( 'Select a recent post to view and reply to comments without leaving Studio.', 'extrachill-studio' ) ),
 			isLoadingMedia ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Loading recent Instagram posts…', 'extrachill-studio' ) ) : null,

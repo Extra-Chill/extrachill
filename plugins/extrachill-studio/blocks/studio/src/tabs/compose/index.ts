@@ -391,7 +391,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				createElement(
 					'div',
 					{ className: 'ec-studio-compose-toolbar' },
-					createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Compose', 'extrachill-studio' ) ),
 					createElement(
 						'div',
 						{ className: 'ec-studio-compose-toolbar__controls' },
@@ -499,7 +498,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			createElement(
 				'div',
 				{ className: 'ec-studio-panel' },
-				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Publishing', 'extrachill-studio' ) ),
 				createElement( 'h3', null, __( 'How posts get published', 'extrachill-studio' ) ),
 				createElement( 'p', null, __( 'Write with the full block editor — paragraphs, images, embeds, and formatting all work here.', 'extrachill-studio' ) ),
 				createElement(

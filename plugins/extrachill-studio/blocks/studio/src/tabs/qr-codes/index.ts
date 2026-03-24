@@ -50,7 +50,6 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 		createElement(
 			'div',
 			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'QR generator', 'extrachill-studio' ) ),
 			createElement( 'h3', null, __( 'Generate a QR code', 'extrachill-studio' ) ),
 			createElement( 'p', null, __( 'Paste any URL to get a high-res QR code PNG for flyers, merch, and event signage.', 'extrachill-studio' ) ),
 			createElement(
@@ -91,7 +90,6 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 			? createElement(
 				'div',
 				{ className: 'ec-studio-panel' },
-				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Result', 'extrachill-studio' ) ),
 				createElement(
 					'div',
 					{ className: 'ec-studio-qr-result' },
