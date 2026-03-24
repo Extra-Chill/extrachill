@@ -9,12 +9,6 @@ export const getStudioTabs = (): StudioTab[] => [
 		preview: __( 'Draft and submit posts using the block editor.', 'extrachill-studio' ),
 	},
 	{
-		id: 'chat',
-		pane: 'chat',
-		label: __( 'Chat', 'extrachill-studio' ),
-		preview: __( 'Talk to the Studio agent to manage content and operations.', 'extrachill-studio' ),
-	},
-	{
 		id: 'qr-codes',
 		pane: 'qr-codes',
 		label: __( 'QR Codes', 'extrachill-studio' ),

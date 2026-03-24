@@ -328,12 +328,69 @@
    Chat Pane
    ============================================ */
 
-.ec-studio-pane--chat {
+/* ============================================
+   Floating Chat
+   ============================================ */
+
+.ec-studio-app {
 	display: flex;
-	flex-direction: column;
+	gap: var(--spacing-md);
+	align-items: flex-start;
 }
 
-.ec-studio-pane--chat .ec-chat {
+.ec-studio-app__main {
+	flex: 1;
+	min-width: 0;
+}
+
+.ec-studio-floating-chat {
+	position: sticky;
+	top: var(--spacing-md);
+	flex-shrink: 0;
+	width: 380px;
+	z-index: 10;
+}
+
+.ec-studio-floating-chat.is-closed {
+	width: auto;
+}
+
+.ec-studio-floating-chat__toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-sm) var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm);
+	background: var(--header-background);
+	color: var(--header-text-color);
+	font: inherit;
+	font-size: var(--font-size-sm);
+	font-weight: 700;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background-color 0.2s;
+}
+
+.ec-studio-floating-chat.is-open .ec-studio-floating-chat__toggle {
+	width: 100%;
+	border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
+	border-bottom: none;
+}
+
+.ec-studio-floating-chat.is-closed .ec-studio-floating-chat__toggle {
+	border-radius: var(--border-radius-sm);
+}
+
+.ec-studio-floating-chat__panel {
+	display: none;
+}
+
+.ec-studio-floating-chat.is-open .ec-studio-floating-chat__panel {
+	display: block;
+}
+
+.ec-studio-floating-chat__chat {
 	--ec-chat-bg: var(--background-color);
 	--ec-chat-text: var(--text-color);
 	--ec-chat-text-muted: var(--muted-text);
@@ -352,12 +409,13 @@
 	--ec-chat-session-active-bg: var(--card-background);
 	--ec-chat-session-hover-bg: var(--card-background);
 	--ec-chat-font-family: var(--font-family-body);
-	--ec-chat-border-radius: var(--border-radius-md);
+	--ec-chat-border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
 
-	min-height: 500px;
-	max-height: 70vh;
+	height: 70vh;
+	max-height: 700px;
 	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-md);
+	border-top: none;
+	border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
 	overflow: hidden;
 }
 
@@ -381,9 +439,18 @@
 		padding: var(--spacing-md);
 	}
 
-	.ec-studio-pane--chat .ec-chat {
-		min-height: 400px;
-		max-height: 60vh;
+	.ec-studio-app {
+		flex-direction: column;
+	}
+
+	.ec-studio-floating-chat {
+		position: static;
+		width: 100%;
+	}
+
+	.ec-studio-floating-chat__chat {
+		height: 50vh;
+		max-height: 400px;
 	}
 }
 

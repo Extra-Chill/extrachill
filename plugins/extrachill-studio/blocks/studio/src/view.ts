@@ -1,4 +1,4 @@
-import { createElement, useState } from '@wordpress/element';
+import { createElement, useState, useCallback } from '@wordpress/element';
 import type { ComponentType, ReactElement } from 'react';
 import Tabs from '@extrachill/components/components/Tabs';
 import '@extrachill/components/styles/components.scss';
@@ -6,9 +6,9 @@ import '@extrachill/chat/css';
 
 import { mountComponent } from './app/mount';
 import { getStudioTabs } from './app/tabs';
+import FloatingChat from './app/floating-chat';
 import type { StudioContext, StudioPaneProps } from './types/studio';
 import ComposePane from './tabs/compose';
-import ChatPane from './tabs/chat';
 import QrCodesPane from './tabs/qr-codes';
 import SocialsPane from './tabs/socials';
 
@@ -16,7 +16,6 @@ const ROOT_SELECTOR = '[data-ec-studio-root]';
 
 const STUDIO_PANES: Record< string, ComponentType< StudioPaneProps > > = {
 	compose: ComposePane,
-	chat: ChatPane,
 	'qr-codes': QrCodesPane,
 	socials: SocialsPane,
 };
@@ -26,20 +25,38 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 	const [ activeTab, setActiveTab ] = useState( tabs[ 0 ]?.id || 'compose' );
 	const ActivePane = STUDIO_PANES[ activeTab ] || ComposePane;
 
+	// Track the active draft for client context (set by Compose pane).
+	const [ activePostId, setActivePostId ] = useState< number | null >( null );
+	const [ activePostTitle, setActivePostTitle ] = useState( '' );
+
+	const onDraftChange = useCallback( ( postId: number | null, title: string ) => {
+		setActivePostId( postId );
+		setActivePostTitle( title );
+	}, [] );
+
 	return createElement(
 		'div',
 		{ className: 'ec-studio-app' },
-		createElement( Tabs, {
-			tabs,
-			active: activeTab,
-			onChange: setActiveTab,
-			classPrefix: 'ec-studio',
-		} ),
 		createElement(
 			'div',
-			{ className: 'ec-studio-app__panel', role: 'tabpanel' },
-			createElement( ActivePane, { context } )
-		)
+			{ className: 'ec-studio-app__main' },
+			createElement( Tabs, {
+				tabs,
+				active: activeTab,
+				onChange: setActiveTab,
+				classPrefix: 'ec-studio',
+			} ),
+			createElement(
+				'div',
+				{ className: 'ec-studio-app__panel', role: 'tabpanel' },
+				createElement( ActivePane, { context, onDraftChange } )
+			)
+		),
+		createElement( FloatingChat, {
+			activeTab,
+			activePostId,
+			activePostTitle,
+		} )
 	);
 };
 

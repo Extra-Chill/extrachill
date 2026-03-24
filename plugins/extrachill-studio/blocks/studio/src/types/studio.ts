@@ -19,4 +19,6 @@ export interface StudioTab {
 
 export interface StudioPaneProps {
 	context: StudioContext;
+	/** Called by the Compose pane when the active draft changes. */
+	onDraftChange?: ( postId: number | null, title: string ) => void;
 }

@@ -38,7 +38,7 @@ const AUTOSAVE_DELAY = 2000;
  *
  * Auto-loads the most recent draft on mount. Autosaves every 2s.
  */
-const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
+const ComposePane = ( { onDraftChange }: StudioPaneProps ): ReactElement => {
 	const textareaRef = useRef< HTMLTextAreaElement >( null );
 	const editorMountedRef = useRef( false );
 
@@ -63,6 +63,12 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	// Keep refs in sync with state.
 	activePostIdRef.current = activePostId;
 	titleRef.current = title;
+
+	// Notify parent (StudioApp) when the active draft changes so
+	// the floating chat can include it in client context.
+	useEffect( () => {
+		onDraftChange?.( activePostId, title );
+	}, [ activePostId, title, onDraftChange ] );
 
 	/** Get the content API from the Blocks Everywhere ContentBridge. */
 	const getContentApi = (): BlocksEverywhereContentApi | null => {
@@ -354,12 +360,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		{ className: 'ec-studio-pane ec-studio-pane--compose' },
 		createElement(
 			'div',
-			{ className: 'ec-studio-pane__grid ec-studio-pane__grid--compose' },
-
-			// Left: Editor
-			createElement(
-				'div',
-				{ className: 'ec-studio-panel ec-studio-panel--editor' },
+			{ className: 'ec-studio-panel ec-studio-panel--editor' },
 
 				// Draft toolbar
 				createElement(
@@ -463,22 +464,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 						)
 					)
 				)
-			),
-
-			// Right: Info panel
-			createElement(
-				'div',
-				{ className: 'ec-studio-panel' },
-				createElement( 'h3', null, __( 'How posts get published', 'extrachill-studio' ) ),
-				createElement( 'p', null, __( 'Write with the full block editor — paragraphs, images, embeds, and formatting all work here.', 'extrachill-studio' ) ),
-				createElement(
-					'ul',
-					null,
-					createElement( 'li', null, __( 'Your work autosaves every few seconds while editing an existing draft.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Save Draft — creates or updates a draft you can return to later.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Submit for Review — flags the post for an admin to approve and publish.', 'extrachill-studio' ) )
-				)
-			)
 		)
 	);
 };
