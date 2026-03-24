@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.12] - 2026-03-24
+
+### Changed
+- migrate studio block from JavaScript to TypeScript
+- remove overview tab, Phase 0 badge, and user status bar; clean up help text
+
+### Fixed
+- remove double border on compose editor — container already has one
+- add .gutenberg-support body class for toolbar dark mode
+
 ## [0.2.11] - 2026-03-24
 
 ### Fixed
