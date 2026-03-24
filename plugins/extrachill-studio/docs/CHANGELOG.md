@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.18] - 2026-03-24
+
+### Changed
+- replace Chat tab with floating Roadie panel
+
 ## [0.2.17] - 2026-03-24
 
 ### Changed
