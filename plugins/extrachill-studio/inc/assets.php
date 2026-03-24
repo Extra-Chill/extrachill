@@ -70,7 +70,7 @@ function extrachill_studio_compose_editor_is_active() {
 		return false;
 	}
 
-	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Handler\\Frontend' ) ) {
+	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Engine' ) ) {
 		return false;
 	}
 

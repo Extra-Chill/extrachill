@@ -2,9 +2,9 @@
 /**
  * Compose Editor — Blocks Everywhere integration for Studio.
  *
- * Loads the isolated block editor on the Studio homepage so team
- * members can compose posts using the full Gutenberg experience.
- * The editor mounts inside the Compose tab of the Studio React app.
+ * Registers a Studio context via the blocks_everywhere_contexts filter
+ * so the isolated block editor loads on the Studio homepage for team
+ * members. The editor mounts inside the Compose tab of the Studio React app.
  *
  * @package ExtraChillStudio
  * @since   0.2.0
@@ -17,43 +17,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Load Blocks Everywhere editor assets on the Studio homepage.
+ * Register the Studio compose editor as a Blocks Everywhere context.
  *
- * Uses the generic Frontend handler from Blocks Everywhere (our fork)
- * to load the isolated block editor. The handler's load_editor() method
- * handles all Gutenberg asset loading, REST API setup, and editor
- * initialization. The JS side uses window.blocksEverywhereCreateEditor
- * to mount the editor when the Compose tab renders.
+ * @param array $contexts Registered contexts.
+ * @return array
  */
-function load_compose_editor() {
-	// Only on the front page of the studio site.
-	if ( ! is_front_page() && ! is_home() ) {
-		return;
-	}
+function register_compose_context( array $contexts ): array {
+	$contexts['studio'] = [
+		'type'      => 'studio',
+		'textarea'  => '#ec-studio-compose-content',
+		'container' => '.ec-studio-compose-editor',
+		'trigger'   => 'wp',
+		'condition' => function () {
+			if ( ! is_front_page() && ! is_home() ) {
+				return false;
+			}
 
-	// Require login and team membership.
-	if ( ! is_user_logged_in() ) {
-		return;
-	}
+			if ( ! is_user_logged_in() ) {
+				return false;
+			}
 
-	if ( function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
-		return;
-	}
+			if ( function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
+				return false;
+			}
 
-	// Blocks Everywhere must be active with the Frontend handler.
-	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Handler\\Frontend' ) ) {
-		return;
-	}
+			return true;
+		},
+	];
 
-	$handler = new \Automattic\Blocks_Everywhere\Handler\Frontend();
-
-	// Load the editor targeting our compose textarea.
-	$handler->load_editor(
-		'#ec-studio-compose-content',
-		'.ec-studio-compose-editor'
-	);
+	return $contexts;
 }
-add_action( 'wp', __NAMESPACE__ . '\\load_compose_editor' );
+add_filter( 'blocks_everywhere_contexts', __NAMESPACE__ . '\\register_compose_context' );
 
 /**
  * Configure the block editor for Studio's compose context.
