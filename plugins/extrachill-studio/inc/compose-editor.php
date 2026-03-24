@@ -44,9 +44,11 @@ function register_compose_context( array $contexts ): array {
 			return true;
 		},
 		'editor_setup' => function () {
-			// Inject theme CSS into the editor iframe so dark mode
-			// and EC design tokens apply inside the editing canvas.
-			add_action( 'blocks_everywhere_enqueue_iframe_assets', __NAMESPACE__ . '\\enqueue_iframe_assets' );
+			// The IBE renders inline (shouldIframe=false), not in an iframe.
+			// Theme root.css variables are available on the host page, but
+			// the editor wrapper needs explicit mapping for dark mode and
+			// proper sizing.
+			add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue_editor_inline_styles', 50 );
 		},
 	];
 
@@ -55,43 +57,74 @@ function register_compose_context( array $contexts ): array {
 add_filter( 'blocks_everywhere_contexts', __NAMESPACE__ . '\\register_compose_context' );
 
 /**
- * Enqueue theme styles into the Blocks Everywhere editor iframe.
+ * Enqueue inline styles for the compose editor.
  *
- * The editor runs in an iframe so page-level CSS doesn't reach it.
- * We inject root.css (design tokens + dark mode) and style.css
- * (theme globals) so the editing experience matches the site.
+ * The IBE renders inline (shouldIframe=false), so host-page CSS
+ * variables from root.css are available. We add editor-specific
+ * styles for proper sizing, dark mode background, and WP component
+ * variable mapping inside .editor-styles-wrapper.
  */
-function enqueue_iframe_assets() {
-	$theme_dir = get_template_directory();
-	$theme_url = get_template_directory_uri();
+function enqueue_editor_inline_styles() {
+	$css = <<<'CSS'
+/* Studio compose editor — inline editor theming */
+.ec-studio-compose-editor .iso-editor {
+	min-height: 400px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md, 8px);
+	overflow: hidden;
+}
 
-	// Design tokens + dark mode variables.
-	$root_path = $theme_dir . '/assets/css/root.css';
-	if ( file_exists( $root_path ) ) {
-		if ( ! wp_style_is( 'extrachill-root', 'registered' ) ) {
-			wp_register_style(
-				'extrachill-root',
-				$theme_url . '/assets/css/root.css',
-				array(),
-				filemtime( $root_path )
-			);
-		}
-		wp_enqueue_style( 'extrachill-root' );
-	}
+.ec-studio-compose-editor .editor-styles-wrapper {
+	background-color: var(--background-color);
+	color: var(--text-color);
+	font-family: var(--font-family-body);
+	font-size: var(--font-size-body, 1.125rem);
+	line-height: 1.6;
+	min-height: 350px;
+	padding: var(--spacing-md);
+}
 
-	// Theme global styles.
-	$style_path = $theme_dir . '/style.css';
-	if ( file_exists( $style_path ) ) {
-		if ( ! wp_style_is( 'extrachill-style', 'registered' ) ) {
-			wp_register_style(
-				'extrachill-style',
-				get_stylesheet_uri(),
-				array( 'extrachill-root' ),
-				filemtime( $style_path )
-			);
-		}
-		wp_enqueue_style( 'extrachill-style' );
-	}
+.ec-studio-compose-editor .editor-styles-wrapper p {
+	color: var(--text-color);
+}
+
+.ec-studio-compose-editor .editor-styles-wrapper a {
+	color: var(--link-color);
+}
+
+.ec-studio-compose-editor .editor-styles-wrapper h1,
+.ec-studio-compose-editor .editor-styles-wrapper h2,
+.ec-studio-compose-editor .editor-styles-wrapper h3 {
+	font-family: var(--font-family-heading);
+	color: var(--text-color);
+}
+
+.ec-studio-compose-editor .editor-styles-wrapper blockquote {
+	border-left: 3px solid var(--accent);
+	padding-left: var(--spacing-md);
+	color: var(--muted-text);
+}
+
+/* Toolbar theming */
+.ec-studio-compose-editor .interface-interface-skeleton__header {
+	background-color: var(--card-background);
+	border-bottom: 1px solid var(--border-color);
+}
+
+/* Placeholder styling */
+.ec-studio-compose-editor .block-editor-default-block-appender__content {
+	color: var(--muted-text);
+}
+
+/* Footer */
+.ec-studio-compose-editor .interface-interface-skeleton__footer {
+	background-color: var(--card-background);
+	border-top: 1px solid var(--border-color);
+	font-size: var(--font-size-sm);
+}
+CSS;
+
+	wp_add_inline_style( 'extrachill-root', $css );
 }
 
 /**
