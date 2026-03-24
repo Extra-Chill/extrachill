@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.17] - 2026-03-24
+
+### Changed
+- use ContentBridge API for draft switching instead of editor remount
+
 ## [0.2.16] - 2026-03-24
 
 ### Fixed
