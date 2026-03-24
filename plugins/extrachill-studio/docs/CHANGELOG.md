@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.11] - 2026-03-24
+
+### Fixed
+- use inline host-page styles for editor dark mode instead of iframe injection
+
 ## [0.2.10] - 2026-03-24
 
 ### Fixed
