@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.14] - 2026-03-24
+
+### Changed
+- add 2s debounced autosave to compose tab
+- add draft picker and auto-restore to compose tab
+
 ## [0.2.13] - 2026-03-24
 
 ### Changed
