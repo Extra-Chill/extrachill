@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.13] - 2026-03-24
+
+### Changed
+- simplify QR code tab: remove size field, paste-and-generate
+
 ## [0.2.12] - 2026-03-24
 
 ### Changed
