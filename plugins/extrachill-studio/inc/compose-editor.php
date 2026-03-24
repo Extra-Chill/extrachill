@@ -24,11 +24,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function register_compose_context( array $contexts ): array {
 	$contexts['studio'] = [
-		'type'      => 'studio',
-		'textarea'  => '#ec-studio-compose-content',
-		'container' => '.ec-studio-compose-editor',
-		'trigger'   => 'wp',
-		'condition' => function () {
+		'type'         => 'studio',
+		'textarea'     => '#ec-studio-compose-content',
+		'container'    => '.ec-studio-compose-editor',
+		'trigger'      => 'wp',
+		'condition'    => function () {
 			if ( ! is_front_page() && ! is_home() ) {
 				return false;
 			}
@@ -43,11 +43,56 @@ function register_compose_context( array $contexts ): array {
 
 			return true;
 		},
+		'editor_setup' => function () {
+			// Inject theme CSS into the editor iframe so dark mode
+			// and EC design tokens apply inside the editing canvas.
+			add_action( 'blocks_everywhere_enqueue_iframe_assets', __NAMESPACE__ . '\\enqueue_iframe_assets' );
+		},
 	];
 
 	return $contexts;
 }
 add_filter( 'blocks_everywhere_contexts', __NAMESPACE__ . '\\register_compose_context' );
+
+/**
+ * Enqueue theme styles into the Blocks Everywhere editor iframe.
+ *
+ * The editor runs in an iframe so page-level CSS doesn't reach it.
+ * We inject root.css (design tokens + dark mode) and style.css
+ * (theme globals) so the editing experience matches the site.
+ */
+function enqueue_iframe_assets() {
+	$theme_dir = get_template_directory();
+	$theme_url = get_template_directory_uri();
+
+	// Design tokens + dark mode variables.
+	$root_path = $theme_dir . '/assets/css/root.css';
+	if ( file_exists( $root_path ) ) {
+		if ( ! wp_style_is( 'extrachill-root', 'registered' ) ) {
+			wp_register_style(
+				'extrachill-root',
+				$theme_url . '/assets/css/root.css',
+				array(),
+				filemtime( $root_path )
+			);
+		}
+		wp_enqueue_style( 'extrachill-root' );
+	}
+
+	// Theme global styles.
+	$style_path = $theme_dir . '/style.css';
+	if ( file_exists( $style_path ) ) {
+		if ( ! wp_style_is( 'extrachill-style', 'registered' ) ) {
+			wp_register_style(
+				'extrachill-style',
+				get_stylesheet_uri(),
+				array( 'extrachill-root' ),
+				filemtime( $style_path )
+			);
+		}
+		wp_enqueue_style( 'extrachill-style' );
+	}
+}
 
 /**
  * Configure the block editor for Studio's compose context.
