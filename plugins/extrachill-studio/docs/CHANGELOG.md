@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.16] - 2026-03-24
+
+### Fixed
+- fix draft content loading with editorKey remount pattern
+
 ## [0.2.15] - 2026-03-24
 
 ### Changed
