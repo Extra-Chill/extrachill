@@ -43,7 +43,11 @@ function register_compose_context( array $contexts ): array {
 
 			return true;
 		},
-		'editor_setup' => function () {
+		'editor_setup' => function ( $engine ) {
+			// Add .gutenberg-support body class so BE's scoped toolbar/component
+			// dark mode styles in style-index.min.css apply.
+			add_filter( 'body_class', [ $engine, 'body_class' ] );
+
 			// The IBE renders inline (shouldIframe=false), not in an iframe.
 			// Theme root.css variables are available on the host page, but
 			// the editor wrapper needs explicit mapping for dark mode and
