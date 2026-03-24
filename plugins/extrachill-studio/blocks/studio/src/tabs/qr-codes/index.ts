@@ -5,13 +5,14 @@ import type { ReactElement, ChangeEvent } from 'react';
 import { studioClient } from '../../app/client';
 import type { StudioPaneProps } from '../../types/studio';
 
+const QR_SIZE = 1000;
+
 interface QrCodeResult {
 	image_url?: string;
 }
 
 const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 	const [ url, setUrl ] = useState( '' );
-	const [ size, setSize ] = useState( '1000' );
 	const [ imageUrl, setImageUrl ] = useState( '' );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
@@ -19,22 +20,21 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 
 	const generateQrCode = async (): Promise< void > => {
 		const trimmedUrl = url.trim();
-		const parsedSize = Number.parseInt( size, 10 );
 
 		if ( ! trimmedUrl ) {
-			setError( __( 'Enter a URL to generate a QR code.', 'extrachill-studio' ) );
+			setError( __( 'Paste a URL to generate a QR code.', 'extrachill-studio' ) );
 			setStatus( '' );
 			return;
 		}
 
 		setIsLoading( true );
 		setError( '' );
-		setStatus( __( 'Generating QR code…', 'extrachill-studio' ) );
+		setStatus( __( 'Generating…', 'extrachill-studio' ) );
 
 		try {
-			const responseData = await studioClient.admin.generateQrCode( trimmedUrl, Number.isNaN( parsedSize ) ? 1000 : parsedSize ) as QrCodeResult;
+			const responseData = await studioClient.admin.generateQrCode( trimmedUrl, QR_SIZE ) as QrCodeResult;
 			setImageUrl( responseData.image_url || '' );
-			setStatus( __( 'QR code ready to preview and download.', 'extrachill-studio' ) );
+			setStatus( '' );
 		} catch ( fetchError ) {
 			setImageUrl( '' );
 			setStatus( '' );
@@ -52,7 +52,7 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 			{ className: 'ec-studio-panel' },
 			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'QR generator', 'extrachill-studio' ) ),
 			createElement( 'h3', null, __( 'Generate a QR code', 'extrachill-studio' ) ),
-			createElement( 'p', null, __( 'Enter any URL to generate a high-resolution QR code PNG. Useful for flyers, merch, and event signage.', 'extrachill-studio' ) ),
+			createElement( 'p', null, __( 'Paste any URL to get a high-res QR code PNG for flyers, merch, and event signage.', 'extrachill-studio' ) ),
 			createElement(
 				'div',
 				{ className: 'ec-studio-composer' },
@@ -71,20 +71,6 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 				),
 				createElement(
 					'div',
-					null,
-					createElement( 'label', { htmlFor: 'ec-studio-qr-size' }, __( 'Size', 'extrachill-studio' ) ),
-					createElement( 'input', {
-						id: 'ec-studio-qr-size',
-						type: 'number',
-						min: '100',
-						max: '2000',
-						step: '100',
-						value: size,
-						onChange: ( event: ChangeEvent< HTMLInputElement > ) => setSize( event.target.value ),
-					} )
-				),
-				createElement(
-					'div',
 					{ className: 'ec-studio-composer__actions' },
 					createElement(
 						'button',
@@ -94,25 +80,24 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 							onClick: generateQrCode,
 							disabled: isLoading,
 						},
-						isLoading ? __( 'Generating…', 'extrachill-studio' ) : __( 'Generate QR Code', 'extrachill-studio' )
-					),
-					createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'Sizes from 100 to 2000 pixels are supported.', 'extrachill-studio' ) )
+						isLoading ? __( 'Generating…', 'extrachill-studio' ) : __( 'Generate', 'extrachill-studio' )
+					)
 				)
 			),
 			error ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, error ) : null,
 			! error && status ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--success' }, status ) : null
 		),
-		createElement(
-			'div',
-			{ className: 'ec-studio-panel' },
-			createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Preview', 'extrachill-studio' ) ),
-			imageUrl
-				? createElement(
+		imageUrl
+			? createElement(
+				'div',
+				{ className: 'ec-studio-panel' },
+				createElement( 'span', { className: 'ec-studio-panel__eyebrow' }, __( 'Result', 'extrachill-studio' ) ),
+				createElement(
 					'div',
 					{ className: 'ec-studio-qr-result' },
 					createElement( 'img', {
 						className: 'ec-studio-qr-result__image',
-						alt: __( 'Generated QR code preview', 'extrachill-studio' ),
+						alt: __( 'Generated QR code', 'extrachill-studio' ),
 						src: imageUrl,
 					} ),
 					createElement(
@@ -125,8 +110,8 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 						__( 'Download PNG', 'extrachill-studio' )
 					)
 				)
-				: createElement( 'div', { className: 'ec-studio-preview' }, __( 'Your QR code preview will appear here after generation.', 'extrachill-studio' ) )
-		)
+			)
+			: null
 	);
 };
 
