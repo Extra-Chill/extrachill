@@ -16,6 +16,7 @@
     "./css/tokens-all.css": "./css/tokens-all.css",
     "./css/root.css": "./css/root.css",
     "./css/taxonomy-badges.css": "./css/taxonomy-badges.css",
+    "./css/block-editor.css": "./css/block-editor.css",
     "./tokens.json": "./tokens.json"
   },
   "files": [
