@@ -70,12 +70,11 @@ add_filter( 'blocks_everywhere_contexts', __NAMESPACE__ . '\\register_compose_co
  */
 function enqueue_editor_inline_styles() {
 	$css = <<<'CSS'
-/* Studio compose editor — inline editor theming */
+/* Studio compose editor — inline editor theming.
+   The parent .ec-studio-compose-editor (style.css) provides the outer
+   border and radius. The iso-editor sits flush inside it. */
 .ec-studio-compose-editor .iso-editor {
 	min-height: 400px;
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-md, 8px);
-	overflow: hidden;
 }
 
 .ec-studio-compose-editor .editor-styles-wrapper {
