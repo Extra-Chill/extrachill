@@ -1,0 +1,209 @@
+/**
+ * Extra Chill Block Editor Branding
+ *
+ * EC-specific overrides for the Blocks Everywhere frontend editor.
+ * Blocks Everywhere handles generic Gutenberg theming (variable mappings,
+ * container styling, toolbar, popovers). This file adds EC brand touches
+ * on top — accent colors on inserter buttons, branded border radii, etc.
+ *
+ * Requires:
+ *   - EC design tokens loaded (root.css / tokens-all.css)
+ *   - Blocks Everywhere active (provides .gutenberg-support scope)
+ *
+ * Package: @extrachill/tokens
+ *
+ * Usage:
+ *   - WordPress: enqueue on host page via wp_enqueue_scripts AND
+ *     inject into iframe via blocks_everywhere_enqueue_iframe_assets
+ *   - Mobile: import alongside tokens-all.css for native editor branding
+ */
+
+
+/* ==========================================================================
+   1. Inserter Buttons — Host Page
+   The toolbar (+) button and empty-block inserter use EC's accent-3 (cyan)
+   instead of the default WP inserter color.
+   ========================================================================== */
+
+/* Toolbar inserter (+) — mirrors EC .button-2 */
+.gutenberg-support .iso-editor .interface-interface-skeleton__header .editor-document-tools__inserter-toggle.is-primary {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--button-text-color);
+    transition: background-color 0.3s ease;
+}
+
+.gutenberg-support .iso-editor .interface-interface-skeleton__header .editor-document-tools__inserter-toggle.is-primary:hover,
+.gutenberg-support .iso-editor .interface-interface-skeleton__header .editor-document-tools__inserter-toggle.is-primary:focus,
+.gutenberg-support .iso-editor .interface-interface-skeleton__header .editor-document-tools__inserter-toggle.is-primary:focus-visible {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: var(--button-text-color);
+}
+
+/* Empty block inserter (host page, when block is selected) */
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon {
+    background-color: var(--accent-3);
+    border: none;
+    color: var(--button-text-color);
+    transition: background-color 0.3s ease;
+}
+
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible {
+    background-color: var(--link-color-hover);
+    border: none;
+    color: var(--button-text-color);
+}
+
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg * {
+    fill: currentColor;
+}
+
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg [stroke]:not([stroke="none"]) {
+    stroke: currentColor;
+}
+
+
+/* ==========================================================================
+   2. Inserter Buttons — Editor Iframe
+   Same accent-3 branding for inserter buttons inside the editor canvas.
+   ========================================================================== */
+
+/* Empty block inserter, default appender, list appender, insertion point */
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon,
+.editor-styles-wrapper .block-list-appender__toggle,
+.editor-styles-wrapper .block-editor-button-block-appender,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter {
+    background-color: var(--accent-3);
+    border: none;
+    color: var(--button-text-color);
+    border-radius: var(--border-radius-sm, 5px);
+    transition: background-color 0.3s ease;
+}
+
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible,
+.editor-styles-wrapper .block-list-appender__toggle:hover,
+.editor-styles-wrapper .block-list-appender__toggle:focus,
+.editor-styles-wrapper .block-editor-button-block-appender:hover,
+.editor-styles-wrapper .block-editor-button-block-appender:focus,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter:hover,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter:focus {
+    background-color: var(--link-color-hover);
+    border: none;
+    color: var(--button-text-color);
+}
+
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg *,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg *,
+.editor-styles-wrapper .block-list-appender__toggle svg,
+.editor-styles-wrapper .block-editor-button-block-appender svg,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg,
+.editor-styles-wrapper .block-list-appender__toggle svg *,
+.editor-styles-wrapper .block-editor-button-block-appender svg *,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg * {
+    fill: currentColor;
+}
+
+.editor-styles-wrapper .block-list-appender__toggle svg [stroke]:not([stroke="none"]),
+.editor-styles-wrapper .block-editor-button-block-appender svg [stroke]:not([stroke="none"]),
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg [stroke]:not([stroke="none"]) {
+    stroke: currentColor;
+}
+
+
+/* ==========================================================================
+   3. Placeholder Branding — Editor Iframe
+   Embed/image/gallery placeholder blocks use EC card styling.
+   ========================================================================== */
+
+.editor-styles-wrapper .components-placeholder {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md, 8px);
+    color: var(--text-color);
+    box-shadow: var(--card-shadow);
+    padding: var(--spacing-md);
+}
+
+.editor-styles-wrapper .components-placeholder__label {
+    color: var(--text-color);
+}
+
+.editor-styles-wrapper .components-placeholder__instructions {
+    color: var(--muted-text);
+}
+
+.editor-styles-wrapper .components-placeholder__input,
+.editor-styles-wrapper .components-placeholder__textarea,
+.editor-styles-wrapper .components-placeholder input {
+    background-color: var(--background-color);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.editor-styles-wrapper .components-placeholder .components-button {
+    border-radius: var(--border-radius-sm, 5px);
+}
+
+.editor-styles-wrapper .components-placeholder .components-button.is-primary {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--button-text-color);
+    box-shadow: none;
+}
+
+.editor-styles-wrapper .components-placeholder .components-button.is-primary:hover,
+.editor-styles-wrapper .components-placeholder .components-button.is-primary:focus {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: var(--button-text-color);
+}
+
+.editor-styles-wrapper .components-placeholder .components-button:not(.is-primary) {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    box-shadow: none;
+}
+
+.editor-styles-wrapper .components-placeholder .components-button:not(.is-primary):hover,
+.editor-styles-wrapper .components-placeholder .components-button:not(.is-primary):focus {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.editor-styles-wrapper .components-placeholder svg,
+.editor-styles-wrapper .components-placeholder svg * {
+    fill: currentColor;
+}
+
+.editor-styles-wrapper .components-placeholder svg [stroke]:not([stroke="none"]) {
+    stroke: currentColor;
+}
+
+
+/* ==========================================================================
+   4. Footer Branding
+   EC-specific footer styling for the editor status bar.
+   ========================================================================== */
+
+.gutenberg-support .iso-editor .interface-interface-skeleton__footer {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    line-height: 1.1;
+}
+
+.gutenberg-support .iso-editor .interface-interface-skeleton__footer .edit-post-layout__footer {
+    padding: 0;
+}
