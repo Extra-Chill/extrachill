@@ -175,6 +175,44 @@
 	color: var(--text-color, #111);
 }
 
+.ec-block-shell-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-md, 1rem);
+	flex-wrap: wrap;
+	padding-bottom: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #ddd);
+	background: var(--card-background, #f1f5f9);
+}
+
+.ec-block-shell-header__main {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-block-shell-header__title {
+	margin: 0;
+	font-family: var(--font-family-heading, inherit);
+	font-size: var(--font-size-2xl, 1.75rem);
+	font-weight: 700;
+	color: var(--text-color, #111);
+}
+
+.ec-block-shell-header__description {
+	margin: 0;
+	font-size: var(--font-size-body, 1.125rem);
+	line-height: 1.6;
+	color: var(--text-color, #111);
+}
+
+.ec-block-shell-header__actions {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+}
+
 .ec-panel--compact {
 	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
 	border-radius: var(--border-radius-md, 6px);
@@ -300,6 +338,10 @@
 		margin: 0;
 		max-width: 100%;
 		padding: var(--spacing-md, 1rem);
+	}
+
+	.ec-block-shell-header {
+		padding-bottom: var(--spacing-sm, 0.5rem);
 	}
 
 	.ec-panel {
