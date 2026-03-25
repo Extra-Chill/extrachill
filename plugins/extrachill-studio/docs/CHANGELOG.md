@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.33] - 2026-03-25
+
+### Changed
+- Remove Studio breakout and defer mobile shell styling to shared components
+
 ## [0.2.32] - 2026-03-25
 
 ### Changed
