@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.12] - 2026-03-25
+
+### Changed
+- Make shell and responsive tabs use one shared path
+
 ## [0.4.11] - 2026-03-25
 
 ### Changed
