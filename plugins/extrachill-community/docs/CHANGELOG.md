@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.40] - 2026-03-25
+
+### Changed
+- Adopt clean-break shared settings shell and tabs
+
 ## [1.3.39] - 2026-03-25
 
 ### Changed
