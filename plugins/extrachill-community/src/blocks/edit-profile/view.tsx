@@ -11,7 +11,7 @@ import {
 	InlineStatus,
 	Panel,
 	PanelHeader,
-	Tabs,
+	ShellTabs,
 } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
@@ -338,16 +338,14 @@ function EditProfileApp( {
 				<BlockShellHeader
 					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."
+					showDivider={ false }
 				/>
 				{ notice && <Notice type={ notice.type } message={ notice.message } /> }
-				<Panel>
-					<div style={ styles.tabsWrapper }>
-						<Tabs
-							tabs={ tabs as Array<{ id: string; label: string }> }
-							active={ activeTab }
-							onChange={ ( id ) => switchTab( id as TabId ) }
-						/>
-					</div>
+				<ShellTabs
+					tabs={ tabs as Array<{ id: string; label: string }> }
+					active={ activeTab }
+					onChange={ ( id ) => switchTab( id as TabId ) }
+				/>
 
 					{ activeTab === 'avatar-title' && (
 						<Panel>
@@ -449,7 +447,6 @@ function EditProfileApp( {
 							</a>
 						) }
 					</ActionRow>
-				</Panel>
 			</div>
 		</BlockShell>
 	);

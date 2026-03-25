@@ -3,7 +3,7 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
-import { BlockShell, Tabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
+import { BlockShell, ShellTabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type {
@@ -325,14 +325,12 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 	return (
 		<BlockShell className="ec-community-settings-shell">
 			<div style={ styles.container }>
-			<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." />
-			<Panel>
-				<div style={ styles.tabsWrapper }><Tabs tabs={ tabs } active={ activeTab } onChange={ ( id ) => switchTab( id as TabId ) } /></div>
+				<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
+				<ShellTabs tabs={ tabs } active={ activeTab } onChange={ ( id ) => switchTab( id as TabId ) } />
 				{ activeTab === 'account-details' && <AccountTab settings={ settings } onUpdate={ setSettings } /> }
 				{ activeTab === 'security' && <SecurityTab settings={ settings } onSettingsChange={ setSettings } /> }
 				{ activeTab === 'subscriptions' && <SubscriptionsTab /> }
 				{ activeTab === 'artist-platform' && <ArtistPlatformTab artistAccess={ artistAccess } artistSiteUrl={ artistSiteUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } /> }
-			</Panel>
 			</div>
 		</BlockShell>
 	);
