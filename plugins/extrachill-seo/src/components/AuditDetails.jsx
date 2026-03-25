@@ -3,7 +3,7 @@
  *
  * Displays detailed results for a specific audit category.
  */
-import { DataTable, Pagination } from '@extrachill/components';
+import { DataTable, Pagination, Panel, PanelHeader } from '@extrachill/components';
 import { useAudit } from '../context/AuditContext';
 
 const CHECK_NAMES = {
@@ -96,18 +96,20 @@ const AuditDetails = () => {
 	};
 
 	return (
-		<div className="extrachill-seo-details">
-			<div className="extrachill-seo-details-header">
-				<h3>Details: { title }</h3>
-				<div className="extrachill-seo-details-actions">
+		<Panel className="extrachill-seo-details" depth={ 1 }>
+			<PanelHeader
+				title={ `Details: ${ title }` }
+				actions={
+					<div className="extrachill-seo-details-actions">
 					<button type="button" className="button" onClick={ handleExport }>
 						Export JSON
 					</button>
 					<button type="button" className="button" onClick={ closeDetails }>
 						Close
 					</button>
-				</div>
-			</div>
+					</div>
+				}
+			/>
 
 			{ detailsLoading ? (
 				<p>Loading...</p>
@@ -130,7 +132,7 @@ const AuditDetails = () => {
 					) }
 				</>
 			) }
-		</div>
+		</Panel>
 	);
 };
 
