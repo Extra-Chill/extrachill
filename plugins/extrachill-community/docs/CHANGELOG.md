@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.25] - 2026-03-25
+
+### Changed
+- Adopt shared shell wrapper at community block roots
+
 ## [1.3.24] - 2026-03-25
 
 ### Changed
