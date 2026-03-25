@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.34] - 2026-03-25
+
+### Changed
+- Prototype unwrapped settings shell with carded panels
+
 ## [1.3.33] - 2026-03-25
 
 ### Changed
