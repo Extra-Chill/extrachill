@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from '@wordpress/element';
 import { render } from '@wordpress/element';
-import { ActionRow, BlockShell, BlockShellHeader, Tabs } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, Panel, Tabs } from '@extrachill/components';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
 import OrdersTab from './components/tabs/OrdersTab';
 import PaymentsTab from './components/tabs/PaymentsTab';
