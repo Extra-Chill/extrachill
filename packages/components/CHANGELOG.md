@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.10] - 2026-03-25
+
+### Changed
+- Port shared tab styling into responsive tabs component
+
 ## [0.4.9] - 2026-03-25
 
 ### Changed
