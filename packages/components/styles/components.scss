@@ -128,6 +128,127 @@
 	}
 }
 
+// Panel
+.ec-panel {
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-lg, 8px);
+	padding: var(--spacing-md, 1rem);
+	background: var(--card-background, #f8f8f8);
+	display: grid;
+	gap: var(--spacing-md, 1rem);
+}
+
+.ec-panel--compact {
+	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+	border-radius: var(--border-radius-md, 6px);
+}
+
+// Panel Header
+.ec-panel-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-md, 1rem);
+	flex-wrap: wrap;
+	padding-bottom: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+.ec-panel-header__main {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-panel-header__title {
+	margin: 0;
+	font-family: var(--font-family-heading, inherit);
+	font-weight: 600;
+	color: var(--text-color, #111);
+}
+
+.ec-panel-header__description {
+	color: var(--muted-text, #666);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ec-panel-header__actions {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+}
+
+// Action Row
+.ec-action-row {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+}
+
+.ec-action-row--between {
+	justify-content: space-between;
+}
+
+.ec-action-row--end {
+	justify-content: flex-end;
+}
+
+// Field Group
+.ec-field-group {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+	margin-bottom: var(--spacing-md, 1rem);
+}
+
+.ec-field-group__label {
+	display: block;
+	font-weight: 600;
+	color: var(--text-color, #111);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ec-field-group__required {
+	color: var(--error-color, #dc3232);
+}
+
+.ec-field-group__control {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-field-group__help {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #666);
+}
+
+.ec-field-group__error {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--error-color, #dc3232);
+}
+
+// Inline Status
+.ec-inline-status {
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 500;
+}
+
+.ec-inline-status--success {
+	color: var(--success-color, #2e7d32);
+}
+
+.ec-inline-status--error {
+	color: var(--error-color, #dc3232);
+}
+
+.ec-inline-status--warning {
+	color: #856404;
+}
+
+.ec-inline-status--info {
+	color: #004085;
+}
+
 // Badges (commonly used with tables)
 .ec-badge {
 	display: inline-block;
