@@ -26,13 +26,15 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 	return createElement(
 		'div',
 		{ className: 'ec-studio-app' },
-		createElement( Tabs, {
-			tabs,
-			active: activeTab,
-			onChange: setActiveTab,
-			classPrefix: 'ec-studio',
-		} ),
-		createElement( Panel, { className: 'ec-studio-app__panel', classPrefix: 'ec-panel', compact: true }, createElement( ActivePane, { context } ) )
+		createElement( Panel, { className: 'ec-studio-app__panel', classPrefix: 'ec-panel', compact: true },
+			createElement( Tabs, {
+				tabs,
+				active: activeTab,
+				onChange: setActiveTab,
+				classPrefix: 'ec-studio',
+			} ),
+			createElement( Panel, { className: 'ec-studio-app__inner-panel', classPrefix: 'ec-panel', compact: true }, createElement( ActivePane, { context } ) )
+		)
 	);
 };
 
