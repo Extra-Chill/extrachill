@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { ActionRow, InlineStatus, Panel, PanelHeader, Tabs } from '@extrachill/components';
+import { ActionRow, BlockShellHeader, InlineStatus, Panel, Tabs } from '@extrachill/components';
 import { useEditor } from '../context/EditorContext';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 import Preview from './Preview';
@@ -137,7 +137,7 @@ export default function Editor() {
 
 	return (
 		<div className="ec-block-shell ec-editor">
-			<PanelHeader
+			<BlockShellHeader
 				className="ec-editor__header"
 				title={
 					<div className="ec-editor__header-left">

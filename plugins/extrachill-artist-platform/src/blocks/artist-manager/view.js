@@ -3,12 +3,13 @@ import { render } from '@wordpress/element';
 import {
 	ActionRow,
 	Badge,
+	BlockShell,
+	BlockShellHeader,
 	FieldGroup,
 	ImagePreview,
 	InlineStatus,
 	MediaField,
 	Panel,
-	PanelHeader,
 	Tabs,
 } from '@extrachill/components';
 import {
@@ -601,9 +602,9 @@ const App = () => {
 	const saveButtonLabel = saving ? 'Saving…' : 'Save';
 
 	return (
-		<div className="ec-am">
-			<PanelHeader
-				title={<h2 className="ec-am__title">{artistName || 'Manage Artist'}</h2>}
+		<BlockShell className="ec-am">
+			<BlockShellHeader
+				title={artistName || 'Manage Artist'}
 				actions={
 					<ActionRow align="end" className="ec-am__toolbar">
 						<ArtistSwitcher
@@ -633,21 +634,23 @@ const App = () => {
 				}
 			/>
 
-			{loading && <p>Loading artist…</p>}
+			<Panel>
+				{loading && <p>Loading artist…</p>}
 
-			<Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
+				<Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
 
-			{activeTab === 'info' && (
-				<InfoTab
-					formState={formState}
-					setFormState={setFormState}
-					selectedId={selectedId}
-				/>
-			)}
+				{activeTab === 'info' && (
+					<InfoTab
+						formState={formState}
+						setFormState={setFormState}
+						selectedId={selectedId}
+					/>
+				)}
 
-		{selectedId && activeTab === 'managers' && <ManagersTab artistId={selectedId} />}
-		{selectedId && activeTab === 'subscribers' && <SubscribersTab artistId={selectedId} />}
-	</div>
+				{selectedId && activeTab === 'managers' && <ManagersTab artistId={selectedId} />}
+				{selectedId && activeTab === 'subscribers' && <SubscribersTab artistId={selectedId} />}
+			</Panel>
+		</BlockShell>
 	);
 };
 

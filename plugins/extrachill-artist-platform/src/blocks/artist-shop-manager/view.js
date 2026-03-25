@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from '@wordpress/element';
 import { render } from '@wordpress/element';
-import { ActionRow, PanelHeader, Tabs } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, Tabs } from '@extrachill/components';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
 import OrdersTab from './components/tabs/OrdersTab';
 import PaymentsTab from './components/tabs/PaymentsTab';
@@ -238,9 +238,9 @@ const App = () => {
 	const artistSlug = currentArtist?.slug || '';
 
 	return (
-		<div className="ec-asm">
-			<PanelHeader
-				title={<h2 className="ec-asm__title">Shop Manager</h2>}
+		<BlockShell className="ec-asm">
+			<BlockShellHeader
+				title="Shop Manager"
 				actions={
 					<ActionRow align="end" className="ec-asm__toolbar">
 						<ArtistSwitcher
@@ -260,52 +260,54 @@ const App = () => {
 				}
 			/>
 
-			<Tabs tabs={ tabs } active={ activeTab } onChange={ setActiveTab } />
+			<Panel>
+				<Tabs tabs={ tabs } active={ activeTab } onChange={ setActiveTab } />
 
-			{ activeTab === 'products' && (
-				<ProductsTab
-					artistId={ artistId }
-					products={ products }
-					loading={ loading }
-					error={ error }
-					stripeStatus={ stripeStatus }
-					onOpenPayments={ openPaymentsTab }
-					onRefresh={ load }
-				/>
-			) }
+				{ activeTab === 'products' && (
+					<ProductsTab
+						artistId={ artistId }
+						products={ products }
+						loading={ loading }
+						error={ error }
+						stripeStatus={ stripeStatus }
+						onOpenPayments={ openPaymentsTab }
+						onRefresh={ load }
+					/>
+				) }
 
-			{ activeTab === 'orders' && (
-				<OrdersTab
-					artistId={ artistId }
-					orders={ orders }
-					loading={ ordersLoading }
-					error={ ordersError }
-					filter={ ordersFilter }
-					selectedOrder={ selectedOrder }
-					onFilterChange={ setOrdersFilter }
-					onSelectOrder={ setSelectedOrder }
-					onMarkShipped={ handleMarkShipped }
-					onRefund={ handleRefundOrder }
-					onRefresh={ loadOrders }
-				/>
-			) }
+				{ activeTab === 'orders' && (
+					<OrdersTab
+						artistId={ artistId }
+						orders={ orders }
+						loading={ ordersLoading }
+						error={ ordersError }
+						filter={ ordersFilter }
+						selectedOrder={ selectedOrder }
+						onFilterChange={ setOrdersFilter }
+						onSelectOrder={ setSelectedOrder }
+						onMarkShipped={ handleMarkShipped }
+						onRefund={ handleRefundOrder }
+						onRefresh={ loadOrders }
+					/>
+				) }
 
-			{ activeTab === 'shipping' && (
-				<ShippingTab artistId={ artistId } />
-			) }
+				{ activeTab === 'shipping' && (
+					<ShippingTab artistId={ artistId } />
+				) }
 
-			{ activeTab === 'payments' && (
-				<PaymentsTab
-					artistId={ artistId }
-					status={ stripeStatus }
-					loading={ stripeLoading }
-					error={ stripeError }
-					onConnect={ connectStripe }
-					onOpenDashboard={ openStripeDashboard }
-					onRefresh={ loadStripe }
-				/>
-			) }
-		</div>
+				{ activeTab === 'payments' && (
+					<PaymentsTab
+						artistId={ artistId }
+						status={ stripeStatus }
+						loading={ stripeLoading }
+						error={ stripeError }
+						onConnect={ connectStripe }
+						onOpenDashboard={ openStripeDashboard }
+						onRefresh={ loadStripe }
+					/>
+				) }
+			</Panel>
+		</BlockShell>
 	);
 };
 
