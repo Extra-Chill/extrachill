@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.28] - 2026-03-25
+
+### Changed
+- Refactor settings shell layout around shared header and tabs
+
 ## [1.3.27] - 2026-03-25
 
 ### Changed
