@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1] - 2026-03-25
+
+### Changed
+- Add user settings, profile, and subscription abilities
+
+### Fixed
+- Fix three bugs found in cleanup audit
+
 ## [0.7.0] - 2026-03-19
 
 ### Added
