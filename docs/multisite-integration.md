@@ -4,19 +4,18 @@ Integration with WordPress multisite network and the extrachill-multisite plugin
 
 ## Network Overview
 
-ExtraChill theme serves the active sites in the WordPress multisite network (Blog ID 6 unused):
+ExtraChill theme serves the active sites in the WordPress multisite network (Blog IDs 5–6 unused):
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
 3. **shop.extrachill.com** - E-commerce platform with WooCommerce (Blog ID 3)
 4. **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
-5. **chat.extrachill.com** - AI chatbot system (Blog ID 5)
-6. **events.extrachill.com** - Event calendar hub (Blog ID 7; calendar engine comes from external Data Machine + datamachine-events plugins)
-7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
-8. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
-9. **docs.extrachill.com** - Documentation hub (Blog ID 10)
-10. **wire.extrachill.com** - Automated news feeds directory (Blog ID 11)
-11. **horoscope.extrachill.com** - Horoscope functionality (Blog ID 12)
+5. **events.extrachill.com** - Event calendar hub (Blog ID 7; calendar engine comes from external Data Machine + datamachine-events plugins)
+6. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
+7. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
+8. **docs.extrachill.com** - Documentation hub (Blog ID 10)
+9. **wire.extrachill.com** - Automated news feeds directory (Blog ID 11)
+10. **horoscope.extrachill.com** - Horoscope functionality (Blog ID 12)
 
 ## Plugin Dependency
 

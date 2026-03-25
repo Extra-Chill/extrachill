@@ -11,7 +11,7 @@ Technical documentation for developers working on the ExtraChill WordPress theme
 
 ## Overview
 
-ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers the active sites (Blog IDs 1–5, 7–12) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10, wire.extrachill.com at Blog ID 11, and horoscope.extrachill.com at Blog ID 12.
+ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers the active sites (Blog IDs 1–4, 7–12) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10, wire.extrachill.com at Blog ID 11, and horoscope.extrachill.com at Blog ID 12.
 
 **Version**: 1.3.12
 **Author**: Chubes
@@ -228,19 +228,18 @@ Theme integrations are intentionally minimal. Most advanced behavior (SEO, forum
 
 ## Multisite Network
 
-Theme serves the active sites in the Extra Chill Platform network (Blog ID 6 unused):
+Theme serves the active sites in the Extra Chill Platform network (Blog IDs 5–6 unused):
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
 3. **shop.extrachill.com** - E-commerce platform with WooCommerce (Blog ID 3)
 4. **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
-5. **chat.extrachill.com** - AI chatbot system (Blog ID 5)
-6. **events.extrachill.com** - Event calendar hub (Blog ID 7; calendar engine comes from external Data Machine + datamachine-events plugins)
-7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
-8. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
-9. **docs.extrachill.com** - Documentation hub (Blog ID 10)
-10. **wire.extrachill.com** - Automated news feeds directory (Blog ID 11)
-11. **horoscope.extrachill.com** - Horoscope functionality (Blog ID 12)
+5. **events.extrachill.com** - Event calendar hub (Blog ID 7; calendar engine comes from external Data Machine + datamachine-events plugins)
+6. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
+7. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
+8. **docs.extrachill.com** - Documentation hub (Blog ID 10)
+9. **wire.extrachill.com** - Automated news feeds directory (Blog ID 11)
+10. **horoscope.extrachill.com** - Horoscope functionality (Blog ID 12)
 
 Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters. Cross-site features are handled by network-activated plugins (extrachill-multisite, extrachill-search, extrachill-users). The theme directly queries bbPress data for community activity with graceful fallback. The header includes a network navigation dropdown.
 
