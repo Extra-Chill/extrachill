@@ -63,10 +63,6 @@ The plugin ships route files under `inc/routes/` (loaded recursively) and regist
 - `GET /blog/image-voting/vote-count/{post_id}/{instance_id}` - Get vote counts
 - `POST /blog/image-voting/vote` - Cast a vote
 
-### Chat Endpoints (2)
-- `POST /chat/message` - Send chat message (authenticated)
-- `DELETE /chat/history` - Clear chat history (authenticated)
-
 ### Community Endpoints (3)
 - `GET /users/search` - Search users for @mentions and admin
 - `POST /community/upvote` - Upvote topics or replies (authenticated)

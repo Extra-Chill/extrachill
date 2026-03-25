@@ -173,12 +173,6 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/blog/](../extrachill-plugins/extrachill-api/docs/routes/blog/)
 
-### Chat Endpoints (2)
-- `POST /chat/message` - Send chat message (authenticated)
-- `DELETE /chat/history` - Clear chat history (authenticated)
-
-**Documentation**: [docs/routes/chat/](../extrachill-plugins/extrachill-api/docs/routes/chat/)
-
 ### Community Endpoints (3)
 - `GET /users/search` - Search users for @mentions and admin
 - `POST /community/upvote` - Upvote topics or replies (authenticated)
