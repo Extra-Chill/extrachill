@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.32] - 2026-03-25
+
+### Changed
+- Update lockfile for shared shell header rollout
+- Add shell-contained header and deeper nesting to Studio
+
 ## [0.2.31] - 2026-03-25
 
 ### Changed
