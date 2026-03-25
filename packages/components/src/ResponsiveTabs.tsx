@@ -36,7 +36,7 @@ export function ResponsiveTabs( {
 
 		return window.innerWidth < mobileBreakpoint;
 	} );
-	const [ mobileActive, setMobileActive ] = useState( active );
+	const [ mobileActive, setMobileActive ] = useState<string | null>( active );
 
 	useEffect( () => {
 		if ( typeof window === 'undefined' ) {
@@ -102,6 +102,11 @@ export function ResponsiveTabs( {
 								className={ `${ classPrefix }__trigger${ isActive ? ' is-active' : '' }` }
 								aria-expanded={ isActive }
 								onClick={ () => {
+									if ( isActive ) {
+										setMobileActive( null );
+										return;
+									}
+
 									setMobileActive( tab.id );
 									onChange( tab.id );
 								} }
