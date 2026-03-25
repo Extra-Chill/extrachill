@@ -42,7 +42,7 @@ if ( ! is_user_logged_in() ) {
 	return;
 }
 
-if ( ! ec_is_team_member() ) :
+if ( ! current_user_can( 'manage_options' ) && ! ec_is_team_member() ) :
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?>>
 		<div class="ec-studio-card ec-studio-card--denied notice notice-info">

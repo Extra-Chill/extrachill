@@ -37,7 +37,7 @@ function register_compose_context( array $contexts ): array {
 				return false;
 			}
 
-			if ( function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
+			if ( ! current_user_can( 'manage_options' ) && function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
 				return false;
 			}
 

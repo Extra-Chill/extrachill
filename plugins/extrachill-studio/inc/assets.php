@@ -66,7 +66,7 @@ function extrachill_studio_compose_editor_is_active() {
 		return false;
 	}
 
-	if ( function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
+	if ( ! current_user_can( 'manage_options' ) && function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
 		return false;
 	}
 
