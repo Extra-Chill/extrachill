@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.3] - 2026-03-25
+
+### Fixed
+- fix online users footer icons
+
 ## [0.7.2] - 2026-03-25
 
 ### Fixed
