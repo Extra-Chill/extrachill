@@ -61,6 +61,23 @@ input[type="email"]#new_email:focus {
 	width: 100%;
 }
 
+.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	gap: var(--spacing-lg);
+}
+
+.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-block-shell-header,
+.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-shell-tabs {
+	background: transparent;
+}
+
+.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-panel {
+	background: var(--card-background);
+}
+
 @media screen and (max-width: 480px) {
 	.wp-block-extrachill-user-settings .ec-community-settings-shell__inner {
 		max-width: none;

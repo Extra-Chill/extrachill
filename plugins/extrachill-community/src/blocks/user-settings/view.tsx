@@ -327,7 +327,7 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 	];
 
 	return (
-		<BlockShell className="ec-community-settings-shell">
+		<BlockShell className="ec-community-settings-shell ec-community-settings-shell--unstyled">
 			<div className="ec-community-settings-shell__inner" style={ styles.container }>
 				<div style={ styles.headerRegion }>
 					<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
