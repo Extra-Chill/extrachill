@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.36] - 2026-03-25
+
+### Changed
+- Restore mobile inset padding inside unwrapped settings shell
+
 ## [1.3.35] - 2026-03-25
 
 ### Changed
