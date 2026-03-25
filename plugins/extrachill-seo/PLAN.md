@@ -262,7 +262,6 @@ extrachill-plugins/extrachill-seo/
 | shop.extrachill.com | `{Title} - Extra Chill Shop` | "T-Shirt - Extra Chill Shop" |
 | artist.extrachill.com | `{Title} - Extra Chill Artists` | "Artist Name - Extra Chill Artists" |
 | events.extrachill.com | `{Title} - Extra Chill Events` | "SXSW 2025 - Extra Chill Events" |
-| chat.extrachill.com | `{Title} - Extra Chill Chat` | "Chat - Extra Chill Chat" |
 | stream.extrachill.com | `{Title} - Extra Chill Stream` | "Live - Extra Chill Stream" |
 | newsletter.extrachill.com | `{Title} - Extra Chill Newsletter` | "Subscribe - Extra Chill Newsletter" |
 | docs.extrachill.com | `{Title} - Extra Chill Docs` | "Getting Started - Extra Chill Docs" |
