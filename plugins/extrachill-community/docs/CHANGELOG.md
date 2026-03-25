@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.19] - 2026-03-25
+
+### Changed
+- Update @extrachill/api-client dependency to 0.3.0
+- Remove legacy settings and profile editor code
+- Patch parity gaps in settings and edit-profile blocks
+- Add headless Gutenberg blocks for user settings and edit profile
+- Add topic/reply CRUD abilities for programmatic forum interaction
+
+### Fixed
+- Fix fatal error: replace undefined bbp_is_user_moderator() with user_can moderate check
+
 ## [1.3.18] - 2026-03-20
 
 ### Changed
