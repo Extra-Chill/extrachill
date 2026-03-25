@@ -275,6 +275,14 @@
 	.ec-responsive-tabs__desktop-panel {
 		display: none;
 	}
+
+	.ec-responsive-tabs--mobile-edge-to-edge .ec-responsive-tabs__item {
+		margin-left: calc(var(--spacing-md, 1rem) * -1);
+		margin-right: calc(var(--spacing-md, 1rem) * -1);
+		border-left: 0;
+		border-right: 0;
+		border-radius: 0;
+	}
 }
 
 // Panel
@@ -296,6 +304,13 @@
 	box-sizing: border-box;
 	display: grid;
 	gap: var(--spacing-lg, 1.5rem);
+}
+
+.ec-block-shell--plain {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
 }
 
 .ec-block-shell--depth-0 {
