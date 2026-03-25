@@ -86,6 +86,14 @@ input[type="email"]#new_email:focus {
 @media screen and (max-width: 480px) {
 	.wp-block-extrachill-user-settings .ec-community-settings-shell__inner {
 		max-width: none;
+		padding-left: var(--spacing-md);
+		padding-right: var(--spacing-md);
+	}
+
+	.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-block-shell-header,
+	.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-shell-tabs {
+		padding-left: 0;
+		padding-right: 0;
 	}
 }
 
