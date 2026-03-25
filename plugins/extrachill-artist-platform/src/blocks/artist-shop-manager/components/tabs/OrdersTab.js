@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from '@wordpress/element';
-import { ActionRow, FieldGroup, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, Badge, FieldGroup, Panel, PanelHeader } from '@extrachill/components';
 import { purchaseShippingLabel } from '../../../shared/api/client';
 
 const ORDER_FILTERS = [
@@ -122,6 +122,22 @@ const OrdersTab = ( {
 	const canMarkShipped = selectedOrder && ( selectedOrder.status === 'processing' || selectedOrder.status === 'on-hold' );
 	const canRefund = selectedOrder && selectedOrder.status !== 'refunded';
 
+	const getOrderStatusTone = ( status ) => {
+		if ( status === 'completed' ) {
+			return 'success';
+		}
+
+		if ( status === 'processing' || status === 'on-hold' ) {
+			return 'warning';
+		}
+
+		if ( status === 'refunded' ) {
+			return 'muted';
+		}
+
+		return 'default';
+	};
+
 	return (
 		<Panel className="ec-asm__orders">
 			<PanelHeader
@@ -173,9 +189,9 @@ const OrdersTab = ( {
 						>
 							<div className="ec-asm__order-card-header">
 								<span className="ec-asm__order-number">#{ order.number }</span>
-								<span className={ `ec-asm__order-status ec-asm__order-status--${ order.status }` }>
-									{ order.status }
-								</span>
+							<Badge tone={ getOrderStatusTone( order.status ) } variant="solid">
+								{ order.status }
+							</Badge>
 							</div>
 							<div className="ec-asm__order-card-meta">
 								<span>{ order.customer?.name }</span>
@@ -201,9 +217,9 @@ const OrdersTab = ( {
 							&larr; Back
 						</button>
 						<h4>Order #{ selectedOrder.number }</h4>
-						<span className={ `ec-asm__order-status ec-asm__order-status--${ selectedOrder.status }` }>
+						<Badge tone={ getOrderStatusTone( selectedOrder.status ) } variant="solid">
 							{ selectedOrder.status }
-						</span>
+						</Badge>
 					</div>
 
 					{ actionError && <div className="notice notice-error"><p>{ actionError }</p></div> }

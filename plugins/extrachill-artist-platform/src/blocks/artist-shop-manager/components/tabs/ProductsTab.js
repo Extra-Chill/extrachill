@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from '@wordpress/element';
-import { ActionRow, FieldGroup, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, Badge, FieldGroup, Panel, PanelHeader } from '@extrachill/components';
 import DraggableList from '../../../shared/components/DraggableList';
 import {
 	createShopProduct,
@@ -70,6 +70,8 @@ const ProductsTab = ( {
 	}, [ products, artistId ] );
 
 	const canReceivePayments = !! stripeStatus?.can_receive_payments;
+
+	const getProductStatusTone = ( status ) => ( status === 'publish' ? 'success' : 'muted' );
 
 	const startEdit = ( product ) => {
 		setEditingId( product.id );
@@ -406,9 +408,9 @@ const ProductsTab = ( {
 							<div className="ec-asm__name">{ product.name }</div>
 							<div className="ec-asm__muted">
 								<span>${ product.sale_price || product.price }</span>
-								<span className={ `ec-asm__status ec-asm__status--${ product.status }` }>
+								<Badge tone={ getProductStatusTone( product.status ) } variant="solid">
 									{ product.status }
-								</span>
+								</Badge>
 							</div>
 							{ Array.isArray( product.sizes ) && product.sizes.length > 0 && (
 								<div className="ec-asm__product-sizes">
@@ -545,9 +547,9 @@ const ProductsTab = ( {
 													<img className="ec-asm__image-preview" src={ img.url } alt="" />
 													<div className="ec-asm__image-meta">
 														{ index === 0 ? (
-															<span className="ec-asm__badge">Featured</span>
+															<Badge tone="success" variant="solid">Featured</Badge>
 														) : (
-															<span className="ec-asm__badge ec-asm__badge--muted">Gallery</span>
+															<Badge tone="muted">Gallery</Badge>
 														) }
 													</div>
 													<button

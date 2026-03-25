@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import { render } from '@wordpress/element';
 import {
 	ActionRow,
+	Badge,
 	FieldGroup,
 	ImagePreview,
 	InlineStatus,
@@ -386,7 +387,7 @@ const ManagersTab = ({ artistId }) => {
 							) : (
 								<strong>{member.display_name}</strong>
 							)}
-							{member.status && <span className="ec-am__pill">{member.status}</span>}
+							{member.status && <Badge tone="muted">{member.status}</Badge>}
 						</div>
 						<button type="button" className="button-danger button-small" onClick={() => remove(member.id)}>
 							Remove
@@ -397,7 +398,7 @@ const ManagersTab = ({ artistId }) => {
 					<div key={inv.id} className="ec-am__list-item">
 						<div>
 							<strong>{inv.email}</strong>
-							<span className="ec-am__pill">Pending</span>
+							<Badge tone="warning">Pending</Badge>
 						</div>
 						<button type="button" className="button-danger button-small" onClick={() => handleCancelInvite(inv.id)}>
 							Cancel
@@ -469,9 +470,9 @@ const SubscribersTab = ({ artistId }) => {
 					<div key={sub.subscriber_id} className="ec-am__list-item">
 						<div>
 							<strong>{sub.subscriber_email}</strong>
-							{sub.username && <span className="ec-am__pill">{sub.username}</span>}
+							{sub.username && <Badge tone="muted">{sub.username}</Badge>}
 						</div>
-						<span className="ec-am__pill">{sub.subscribed_at}</span>
+						<Badge tone="default">{sub.subscribed_at}</Badge>
 					</div>
 				))}
 				{!loading && subs.length === 0 && <p>No subscribers yet.</p>}

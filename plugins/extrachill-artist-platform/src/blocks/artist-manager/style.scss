@@ -142,15 +142,8 @@
   gap: var(--spacing-sm);
 }
 
-.ec-am__pill {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--border-radius-pill);
-  background: var(--border-color);
+.ec-am .ec-badge {
   margin-left: var(--spacing-sm);
-  font-size: var(--font-size-sm);
-  color: var(--muted-text);
 }
 
 .ec-am__footer {

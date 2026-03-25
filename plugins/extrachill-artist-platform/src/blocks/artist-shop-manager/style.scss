@@ -194,21 +194,9 @@
 	gap: var(--spacing-sm);
 }
 
-.ec-asm__badge {
-	display: inline-block;
-	padding: 2px 8px;
-	border-radius: var(--border-radius-sm);
-	font-size: var(--font-size-xs);
-	font-weight: 600;
-	background: var(--accent);
-	color: var(--background-color);
+.ec-asm .ec-badge {
 	text-transform: uppercase;
 	letter-spacing: 0.02em;
-}
-
-.ec-asm__badge--muted {
-	background: var(--border-color);
-	color: var(--muted-text);
 }
 
 .ec-asm__pending {
@@ -453,30 +441,10 @@
 	font-weight: 600;
 }
 
-.ec-asm__order-status {
-	display: inline-block;
-	padding: 2px 8px;
-	border-radius: var(--border-radius-sm);
-	font-size: var(--font-size-xs);
-	font-weight: 600;
+.ec-asm__order-detail-header .ec-badge,
+.ec-asm__order-card-header .ec-badge {
 	text-transform: uppercase;
 	letter-spacing: 0.025em;
-
-	&--processing,
-	&--on-hold {
-		background: #f0ad4e;
-		color: #000;
-	}
-
-	&--completed {
-		background: var(--accent);
-		color: var(--background-color);
-	}
-
-	&--refunded {
-		background: var(--muted-text);
-		color: var(--background-color);
-	}
 }
 
 .ec-asm__order-card-meta {
