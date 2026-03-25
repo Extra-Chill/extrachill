@@ -276,7 +276,7 @@
 		display: none;
 	}
 
-	.ec-responsive-tabs--mobile-edge-to-edge .ec-responsive-tabs__item {
+	.ec-responsive-tabs__item {
 		margin-left: calc(var(--spacing-md, 1rem) * -1);
 		margin-right: calc(var(--spacing-md, 1rem) * -1);
 		border-left: 0;
@@ -297,33 +297,26 @@
 
 // Block shell / top-level wrapper
 .ec-block-shell {
-	background: var(--card-background, #f1f5f9);
-	border: 1px solid var(--border-color, #ddd);
-	border-radius: var(--border-radius-xl, 14px);
-	padding: var(--spacing-lg, 1.5rem);
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
 	box-sizing: border-box;
 	display: grid;
 	gap: var(--spacing-lg, 1.5rem);
 }
 
-.ec-block-shell--plain {
-	background: transparent;
-	border: 0;
-	border-radius: 0;
-	padding: 0;
-}
-
 .ec-block-shell--depth-0 {
-	background: var(--card-background, #f1f5f9);
+	background: transparent;
 }
 
 .ec-block-shell--depth-1,
 .ec-block-shell--depth-3 {
-	background: var(--background-color, #fff);
+	background: transparent;
 }
 
 .ec-block-shell--depth-2 {
-	background: var(--card-background, #f1f5f9);
+	background: transparent;
 }
 
 .ec-block-shell--compact {

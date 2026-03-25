@@ -14,7 +14,6 @@ export interface ResponsiveTabsProps {
 	mobileBreakpoint?: number;
 	accordionClassName?: string;
 	showDesktopTabs?: boolean;
-	mobileEdgeToEdge?: boolean;
 }
 
 export function ResponsiveTabs( {
@@ -29,7 +28,6 @@ export function ResponsiveTabs( {
 	mobileBreakpoint = 768,
 	accordionClassName = '',
 	showDesktopTabs = true,
-	mobileEdgeToEdge = false,
 }: ResponsiveTabsProps ) {
 	const [ isMobile, setIsMobile ] = useState( () => {
 		if ( typeof window === 'undefined' ) {
@@ -58,12 +56,11 @@ export function ResponsiveTabs( {
 		() => [
 			classPrefix,
 			isMobile ? `${ classPrefix }--mobile` : `${ classPrefix }--desktop`,
-			mobileEdgeToEdge ? `${ classPrefix }--mobile-edge-to-edge` : '',
 			className,
 		]
 			.filter( Boolean )
 			.join( ' ' ),
-		[ className, classPrefix, isMobile, mobileEdgeToEdge ]
+		[ className, classPrefix, isMobile ]
 	);
 
 	if ( tabs.length === 0 ) {
