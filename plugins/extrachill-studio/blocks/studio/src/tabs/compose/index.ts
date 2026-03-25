@@ -337,7 +337,7 @@ const ComposePane = ( { onDraftChange }: StudioPaneProps ): ReactElement => {
 		}
 	};
 
-	const onDraftChange = ( e: ChangeEvent< HTMLSelectElement > ): void => {
+	const onDraftSelect = ( e: ChangeEvent< HTMLSelectElement > ): void => {
 		const postId = Number.parseInt( e.target.value, 10 );
 		if ( ! postId ) {
 			return;
@@ -375,7 +375,7 @@ const ComposePane = ( { onDraftChange }: StudioPaneProps ): ReactElement => {
 								{
 									className: 'ec-studio-compose-draft-picker',
 									value: activePostId || '',
-									onChange: onDraftChange,
+									onChange: onDraftSelect,
 									disabled: isLoadingDrafts,
 								},
 								createElement( 'option', { value: '', disabled: true },
