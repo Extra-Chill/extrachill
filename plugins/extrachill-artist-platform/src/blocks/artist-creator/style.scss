@@ -31,18 +31,8 @@
 }
 
 .ec-artist-creator-image-preview {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	margin-bottom: 0.5rem;
-
-	img {
-		width: 80px;
-		height: 80px;
-		object-fit: cover;
-		border-radius: 50%;
-		border: 2px solid var(--border-color);
-	}
+	--ec-image-preview-max-width: 80px;
+	border-radius: 50%;
 }
 
 .ec-artist-creator-actions {

@@ -32,9 +32,11 @@
 }
 
 .ec-am__image-preview {
-  max-width: 220px;
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--border-color);
+  --ec-image-preview-max-width: 220px;
+}
+
+.ec-am__image-preview--header {
+  --ec-image-preview-max-width: 320px;
 }
 
 .ec-am__inline {

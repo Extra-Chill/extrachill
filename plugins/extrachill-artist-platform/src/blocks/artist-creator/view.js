@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { render } from '@wordpress/element';
-import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, FieldGroup, ImagePreview, InlineStatus, MediaField, Panel, PanelHeader } from '@extrachill/components';
 import { createArtist, uploadMedia } from '../shared/api/client';
 
 const useConfig = () => {
@@ -156,29 +156,31 @@ const App = () => {
 					/>
 				</FieldGroup>
 
-				<FieldGroup label="Profile Picture" htmlFor="ec-artist-profile-image">
-					{ formState.profileImage && (
-						<div className="ec-artist-creator-image-preview">
-							<img
-								src={ formState.profileImage }
-								alt="Profile preview"
+				<MediaField
+					label="Profile Picture"
+					htmlFor="ec-artist-profile-image"
+					preview={ formState.profileImage ? <ImagePreview src={ formState.profileImage } alt="Profile preview" className="ec-artist-creator-image-preview" /> : null }
+					empty="No profile image selected yet."
+						actions={
+							<>
+								<input
+									id="ec-artist-profile-image"
+								type="file"
+								accept="image/*"
+								onChange={ ( e ) => handleFileSelect( e.target.files?.[ 0 ] ) }
 							/>
-							<button
-								type="button"
-								className="button-danger button-small"
-								onClick={ handleRemoveImage }
-							>
-								Remove
-							</button>
-						</div>
-					) }
-					<input
-						id="ec-artist-profile-image"
-						type="file"
-						accept="image/*"
-						onChange={ ( e ) => handleFileSelect( e.target.files?.[ 0 ] ) }
-					/>
-				</FieldGroup>
+							{ formState.profileImage ? (
+								<button
+									type="button"
+									className="button-danger button-small"
+									onClick={ handleRemoveImage }
+								>
+									Remove
+								</button>
+							) : null }
+						</>
+					}
+				/>
 
 				{ error && <InlineStatus tone="error">{ error }</InlineStatus> }
 

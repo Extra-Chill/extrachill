@@ -3,7 +3,9 @@ import { render } from '@wordpress/element';
 import {
 	ActionRow,
 	FieldGroup,
+	ImagePreview,
 	InlineStatus,
+	MediaField,
 	Panel,
 	PanelHeader,
 	Tabs,
@@ -109,39 +111,51 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 
 	return (
 		<Panel>
-			<FieldGroup label="Profile Picture">
-				{formState.profileImage && <img src={formState.profileImage} alt="Profile" className="ec-am__image-preview" />}
-				<input
-					type="file"
-					accept="image/*"
-					onChange={(e) => {
-						const file = e.target.files?.[0];
-						if (file) handleFileUpload(file, 'profile');
-					}}
-				/>
-				{formState.profileImage && (
-					<button type="button" className="button-danger button-small" onClick={() => handleRemoveImage('profile')}>
-						Remove
-					</button>
-				)}
-			</FieldGroup>
+			<MediaField
+				label="Profile Picture"
+				preview={formState.profileImage ? <ImagePreview src={formState.profileImage} alt="Profile" className="ec-am__image-preview" /> : null}
+				empty="No profile image selected yet."
+				actions={
+					<>
+						<input
+							type="file"
+							accept="image/*"
+							onChange={(e) => {
+								const file = e.target.files?.[0];
+								if (file) handleFileUpload(file, 'profile');
+							}}
+						/>
+						{formState.profileImage && (
+							<button type="button" className="button-danger button-small" onClick={() => handleRemoveImage('profile')}>
+								Remove
+							</button>
+						)}
+					</>
+				}
+			/>
 
-			<FieldGroup label="Header Image">
-				{formState.headerImage && <img src={formState.headerImage} alt="Header" className="ec-am__image-preview" />}
-				<input
-					type="file"
-					accept="image/*"
-					onChange={(e) => {
-						const file = e.target.files?.[0];
-						if (file) handleFileUpload(file, 'header');
-					}}
-				/>
-				{formState.headerImage && (
-					<button type="button" className="button-danger button-small" onClick={() => handleRemoveImage('header')}>
-						Remove
-					</button>
-				)}
-			</FieldGroup>
+			<MediaField
+				label="Header Image"
+				preview={formState.headerImage ? <ImagePreview src={formState.headerImage} alt="Header" className="ec-am__image-preview ec-am__image-preview--header" /> : null}
+				empty="No header image selected yet."
+				actions={
+					<>
+						<input
+							type="file"
+							accept="image/*"
+							onChange={(e) => {
+								const file = e.target.files?.[0];
+								if (file) handleFileUpload(file, 'header');
+							}}
+						/>
+						{formState.headerImage && (
+							<button type="button" className="button-danger button-small" onClick={() => handleRemoveImage('header')}>
+								Remove
+							</button>
+						)}
+					</>
+				}
+			/>
 
 			<FieldGroup label="Artist Name" required>
 				<input

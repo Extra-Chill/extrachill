@@ -6,6 +6,7 @@
 
 import { useCallback, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { MediaField } from '@extrachill/components';
 
 export default function ImageUploader( {
 	imageUrl,
@@ -13,6 +14,8 @@ export default function ImageUploader( {
 	onRemove,
 	isUploading,
 	accept = 'image/*',
+	label,
+	help,
 } ) {
 	const fileInputRef = useRef( null );
 
@@ -32,42 +35,14 @@ export default function ImageUploader( {
 	}, [] );
 
 	return (
-		<div className="ec-image-uploader">
-			<input
-				ref={ fileInputRef }
-				type="file"
-				accept={ accept }
-				onChange={ handleFileSelect }
-				className="ec-image-uploader__input"
-				disabled={ isUploading }
-			/>
-
-			{ imageUrl ? (
-				<div className="ec-image-uploader__preview">
-					<img src={ imageUrl } alt="" className="ec-image-uploader__image" />
-					<div className="ec-image-uploader__actions">
-						<button
-							type="button"
-							className="button-2 button-small"
-							onClick={ handleButtonClick }
-							disabled={ isUploading }
-						>
-							{ isUploading
-								? __( 'Uploading...', 'extrachill-artist-platform' )
-								: __( 'Change', 'extrachill-artist-platform' ) }
-						</button>
-						<button
-							type="button"
-							className="button-danger button-small"
-							onClick={ onRemove }
-							disabled={ isUploading }
-						>
-							{ __( 'Remove', 'extrachill-artist-platform' ) }
-						</button>
-					</div>
-				</div>
-			) : (
-				<div className="ec-image-uploader__empty">
+		<MediaField
+			label={ label }
+			help={ help }
+			previewUrl={ imageUrl }
+			previewAlt=""
+			empty={ __( 'No image selected yet.', 'extrachill-artist-platform' ) }
+			actions={
+				<>
 					<button
 						type="button"
 						className="button-2 button-small"
@@ -76,10 +51,32 @@ export default function ImageUploader( {
 					>
 						{ isUploading
 							? __( 'Uploading...', 'extrachill-artist-platform' )
-							: __( 'Upload Image', 'extrachill-artist-platform' ) }
+							: imageUrl
+								? __( 'Change', 'extrachill-artist-platform' )
+								: __( 'Upload Image', 'extrachill-artist-platform' ) }
 					</button>
-				</div>
-			) }
-		</div>
+					{ imageUrl ? (
+						<button
+							type="button"
+							className="button-danger button-small"
+							onClick={ onRemove }
+							disabled={ isUploading }
+						>
+							{ __( 'Remove', 'extrachill-artist-platform' ) }
+						</button>
+					) : null }
+				</>
+			}
+			className="ec-image-uploader"
+		>
+			<input
+				ref={ fileInputRef }
+				type="file"
+				accept={ accept }
+				onChange={ handleFileSelect }
+				className="ec-image-uploader__input"
+				disabled={ isUploading }
+			/>
+		</MediaField>
 	);
 }
