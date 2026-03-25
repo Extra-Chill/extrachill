@@ -11,6 +11,6 @@
   },
   "dependencies": {
     "@extrachill/api-client": "^0.2.0",
-    "@extrachill/components": "^0.4.0"
+    "@extrachill/components": "^0.4.3"
   }
 }
