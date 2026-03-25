@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.21] - 2026-03-25
+
+### Fixed
+- fix floating chat positioning and mount timing
+
 ## [0.2.20] - 2026-03-25
 
 ### Fixed
