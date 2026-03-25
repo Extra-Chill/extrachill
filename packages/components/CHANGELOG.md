@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.11] - 2026-03-25
+
+### Changed
+- Add plain shell and mobile edge options to shared tabs
+
 ## [0.4.10] - 2026-03-25
 
 ### Changed
