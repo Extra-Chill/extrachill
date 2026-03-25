@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.39] - 2026-03-25
+
+### Changed
+- Reduce settings shell styling to shared component usage
+
 ## [1.3.38] - 2026-03-25
 
 ### Changed
