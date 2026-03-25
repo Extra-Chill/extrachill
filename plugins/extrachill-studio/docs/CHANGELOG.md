@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.29] - 2026-03-25
+
+### Changed
+- Improve Studio mobile edge-to-edge panel behavior
+
 ## [0.2.28] - 2026-03-25
 
 ### Changed
