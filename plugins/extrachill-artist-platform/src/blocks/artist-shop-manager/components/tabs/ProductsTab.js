@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from '@wordpress/element';
+import { ActionRow, FieldGroup, Panel, PanelHeader } from '@extrachill/components';
 import DraggableList from '../../../shared/components/DraggableList';
 import {
 	createShopProduct,
@@ -361,23 +362,26 @@ const ProductsTab = ( {
 	}, [ artistId, canReceivePayments, stripeStatus ] );
 
 	return (
-		<div className="ec-asm__panel" ref={ panelRef }>
-			<div className="ec-asm__form-header">
-				<h3>Products</h3>
-				{ artistId && ! loading && ! showForm && artistProducts.length > 0 && (
-					<button
-						type="button"
-						className="button-1 button-small"
-						onClick={ startNew }
-					>
-						Add Product
-					</button>
-				) }
-			</div>
-			{ loading && <p>Loading</p> }
-			{ error && <p className="notice notice-error">{ error }</p> }
-			{ localError && <div className="notice notice-error"><p>{ localError }</p></div> }
-			{ stripeNote && (
+		<div ref={ panelRef }>
+			<Panel className="ec-asm__products-panel">
+				<PanelHeader
+				title="Products"
+				actions={
+					artistId && ! loading && ! showForm && artistProducts.length > 0 ? (
+						<button
+							type="button"
+							className="button-1 button-small"
+							onClick={ startNew }
+						>
+							Add Product
+						</button>
+					) : null
+				}
+				/>
+				{ loading && <p>Loading</p> }
+				{ error && <p className="notice notice-error">{ error }</p> }
+				{ localError && <div className="notice notice-error"><p>{ localError }</p></div> }
+				{ stripeNote && (
 				<div className="notice notice-info">
 					<p>
 						<strong>Note:</strong> { stripeNote }
@@ -388,9 +392,9 @@ const ProductsTab = ( {
 						</button>
 					) }
 				</div>
-			) }
+				) }
 
-			<div className="ec-asm__products">
+				<div className="ec-asm__products">
 				{ artistProducts.map( ( product ) => (
 					<div key={ product.id } className="ec-asm__product">
 						<img
@@ -442,57 +446,58 @@ const ProductsTab = ( {
 						</div>
 					</div>
 				) ) }
-			</div>
+				</div>
 
-			{ ! loading && artistProducts.length === 0 && ! showForm && (
-				<div className="ec-asm__panel">
+				{ ! loading && artistProducts.length === 0 && ! showForm && (
+				<Panel compact>
 					<p>No products yet.</p>
 					<button type="button" className="button-1 button-medium" onClick={ startNew }>
 						Create your first product
 					</button>
-				</div>
-			) }
+				</Panel>
+				) }
 
-			{ showForm && (
-				<div className="ec-asm__panel">
-					<div className="ec-asm__form-header">
-						<h3>{ editingId ? 'Edit Product' : 'New Product' }</h3>
-						<select
-							className="ec-asm__status-select"
-							value={ draft.status }
-							aria-label="Product visibility"
-							onChange={ ( e ) => {
-								const next = e.target.value;
-								if ( next === 'publish' && ! canReceivePayments ) {
-									setLocalError( 'Connect Stripe in the Payments tab before products can go live.' );
-									return;
-								}
-								setLocalError( '' );
-								setDraft( ( prev ) => ( { ...prev, status: next } ) );
-							} }
-							disabled={ saving }
-						>
-							<option value="draft">Draft</option>
-							<option value="publish">Published</option>
-						</select>
-					</div>
+				{ showForm && (
+				<Panel>
+					<PanelHeader
+						title={ editingId ? 'Edit Product' : 'New Product' }
+						actions={
+							<select
+								className="ec-asm__status-select"
+								value={ draft.status }
+								aria-label="Product visibility"
+								onChange={ ( e ) => {
+									const next = e.target.value;
+									if ( next === 'publish' && ! canReceivePayments ) {
+										setLocalError( 'Connect Stripe in the Payments tab before products can go live.' );
+										return;
+									}
+									setLocalError( '' );
+									setDraft( ( prev ) => ( { ...prev, status: next } ) );
+								} }
+								disabled={ saving }
+							>
+								<option value="draft">Draft</option>
+								<option value="publish">Published</option>
+							</select>
+						}
+					/>
 					<div className="ec-asm__form">
-						<label className="ec-asm__field">
-							<span>Name *</span>
+						<FieldGroup label="Name" required>
 							<input
 								type="text"
 								value={ draft.name }
 								onChange={ ( e ) => setDraft( ( prev ) => ( { ...prev, name: e.target.value } ) ) }
 							/>
-						</label>
+						</FieldGroup>
 
 						<div className="ec-asm__image">
-							<div className="ec-asm__image-header">
-								<h4>Product Images</h4>
-								<p className="ec-asm__muted">Up to 5 images. First image is featured. Drag to reorder.</p>
-							</div>
+							<PanelHeader
+								title="Product Images"
+								description="Up to 5 images. First image is featured. Drag to reorder."
+							/>
 
-							<div className="ec-asm__actions">
+							<ActionRow className="ec-asm__actions">
 								<label className="button-2 button-small">
 									<input
 										className="ec-asm__file-input"
@@ -527,7 +532,7 @@ const ProductsTab = ( {
 										Clear selection
 									</button>
 								) : null }
-							</div>
+							</ActionRow>
 
 							{ ( imagesDraft.length > 0 || pendingImageFiles.length > 0 ) && (
 								<div className="ec-asm__images">
@@ -581,8 +586,7 @@ const ProductsTab = ( {
 						</div>
 
 					<div className="ec-asm__row">
-						<label className="ec-asm__field">
-							<span>Price *</span>
+						<FieldGroup label="Price" required>
 							<input
 								type="number"
 								step="0.01"
@@ -591,9 +595,8 @@ const ProductsTab = ( {
 									setDraft( ( prev ) => ( { ...prev, price: e.target.value } ) )
 								}
 							/>
-						</label>
-						<label className="ec-asm__field">
-							<span>Sale Price</span>
+						</FieldGroup>
+						<FieldGroup label="Sale Price">
 							<input
 								type="number"
 								step="0.01"
@@ -602,11 +605,10 @@ const ProductsTab = ( {
 									setDraft( ( prev ) => ( { ...prev, sale_price: e.target.value } ) )
 								}
 							/>
-						</label>
+						</FieldGroup>
 					</div>
 
-					<label className="ec-asm__field">
-						<span>Description</span>
+					<FieldGroup label="Description">
 						<textarea
 							rows={ 4 }
 							value={ draft.description }
@@ -614,13 +616,13 @@ const ProductsTab = ( {
 								setDraft( ( prev ) => ( { ...prev, description: e.target.value } ) )
 							}
 						/>
-					</label>
+					</FieldGroup>
 
 					<div className="ec-asm__stock-section">
 						<h4>Stock</h4>
 
 						{ ! draft.has_sizes && (
-							<label className="ec-asm__field">
+							<FieldGroup label="Stock Quantity">
 								<input
 									type="number"
 									min="0"
@@ -630,7 +632,7 @@ const ProductsTab = ( {
 									}
 									placeholder="Unlimited"
 								/>
-							</label>
+							</FieldGroup>
 						) }
 
 						<label className="ec-asm__sizes-toggle">
@@ -663,17 +665,17 @@ const ProductsTab = ( {
 									{ draft.sizes.map( ( size, index ) => (
 										<div key={ size.name } className="ec-asm__size-row">
 											<span className="ec-asm__size-name">{ size.name }</span>
-										<input
-											type="number"
-											min="0"
-											value={ size.stock }
-											onChange={ ( e ) => {
-												const newSizes = [ ...draft.sizes ];
-												newSizes[ index ] = { ...size, stock: e.target.value };
-												setDraft( ( prev ) => ( { ...prev, sizes: newSizes } ) );
-											} }
-											placeholder="0"
-										/>
+											<input
+												type="number"
+												min="0"
+												value={ size.stock }
+												onChange={ ( e ) => {
+													const newSizes = [ ...draft.sizes ];
+													newSizes[ index ] = { ...size, stock: e.target.value };
+													setDraft( ( prev ) => ( { ...prev, sizes: newSizes } ) );
+												} }
+												placeholder="0"
+											/>
 										</div>
 									) ) }
 								</div>
@@ -704,7 +706,7 @@ const ProductsTab = ( {
 						</p>
 					</div>
 
-					<div className="ec-asm__actions">
+					<ActionRow className="ec-asm__actions">
 						<button
 							type="button"
 							className="button-1 button-medium"
@@ -723,10 +725,11 @@ const ProductsTab = ( {
 								Cancel
 							</button>
 						) : null }
-					</div>
+					</ActionRow>
 				</div>
-			</div>
-			) }
+				</Panel>
+				) }
+			</Panel>
 		</div>
 	);
 };

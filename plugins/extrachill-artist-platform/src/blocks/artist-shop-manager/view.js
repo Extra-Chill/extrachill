@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from '@wordpress/element';
 import { render } from '@wordpress/element';
+import { ActionRow, PanelHeader, Tabs } from '@extrachill/components';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
-import { Tabs } from '@extrachill/components';
 import OrdersTab from './components/tabs/OrdersTab';
 import PaymentsTab from './components/tabs/PaymentsTab';
 import ProductsTab from './components/tabs/ProductsTab';
@@ -239,28 +239,28 @@ const App = () => {
 
 	return (
 		<div className="ec-asm">
-			<div className="ec-asm__header">
-				<div className="ec-asm__header-left">
-					<h2>Shop Manager</h2>
-					<ArtistSwitcher
-						artists={ config.userArtists }
-						selectedId={ artistId }
-						onChange={ onArtistChange }
-					/>
-				</div>
-				<div className="ec-asm__header-right">
-					{ artistSlug && config.shopSiteUrl && (
-						<a
-							href={ `${ config.shopSiteUrl }/artist/${ artistSlug }/` }
-							className="button-3 button-medium"
-						>
-							View Shop
-						</a>
-					) }
-				</div>
-			</div>
+			<PanelHeader
+				title={<h2 className="ec-asm__title">Shop Manager</h2>}
+				actions={
+					<ActionRow align="end" className="ec-asm__toolbar">
+						<ArtistSwitcher
+							artists={ config.userArtists }
+							selectedId={ artistId }
+							onChange={ onArtistChange }
+						/>
+						{ artistSlug && config.shopSiteUrl && (
+							<a
+								href={ `${ config.shopSiteUrl }/artist/${ artistSlug }/` }
+								className="button-3 button-medium"
+							>
+								View Shop
+							</a>
+						) }
+					</ActionRow>
+				}
+			/>
 
-			<Tabs tabs={ tabs } active={ activeTab } onChange={ setActiveTab } classPrefix="ec-asm" />
+			<Tabs tabs={ tabs } active={ activeTab } onChange={ setActiveTab } />
 
 			{ activeTab === 'products' && (
 				<ProductsTab

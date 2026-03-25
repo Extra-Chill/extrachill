@@ -1,94 +1,33 @@
 @import '../shared/styles/artist-switcher';
+@import '../../../node_modules/@extrachill/components/styles/components';
 
 .ec-asm {
 	display: grid;
 	gap: var(--spacing-md);
 }
 
-.ec-asm__header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: var(--spacing-md);
-	flex-wrap: wrap;
-	padding-bottom: var(--spacing-md);
-	border-bottom: 1px solid var(--border-color);
-
-	h2 {
-		margin: 0;
-		font-family: var(--font-family-heading);
-	}
+.ec-asm__title {
+	margin: 0;
+	font-family: var(--font-family-heading);
 }
 
-.ec-asm__header-left {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-md);
-	flex-wrap: wrap;
+.ec-asm__toolbar {
+	justify-content: flex-end;
 }
 
-.ec-asm__header-right {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-sm);
-}
+.ec-asm .ec-field-group {
+	margin-bottom: 0;
 
-.ec-asm__tabs {
-	display: inline-flex;
-	gap: var(--spacing-sm);
-	flex-wrap: wrap;
-}
-
-.ec-asm__tab {
-	border: 1px solid var(--border-color);
-	background: var(--background-color);
-	padding: var(--spacing-sm) var(--spacing-md);
-	border-radius: var(--border-radius-sm);
-	cursor: pointer;
-	color: var(--text-color);
-	font-size: var(--font-size-base);
-	transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-	display: inline-flex;
-	align-items: center;
-	gap: var(--spacing-xs);
-
-	&:hover {
-		background: var(--card-background);
+	input[type="text"],
+	input[type="number"],
+	textarea,
+	select {
+		width: 100%;
 	}
 
-	&.is-active {
-		border-color: var(--header-background);
-		background: var(--header-background);
-		color: var(--header-text-color);
+	&__help {
+		margin-top: 0;
 	}
-}
-
-.ec-asm__tab-badge {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 20px;
-	height: 20px;
-	padding: 0 6px;
-	border-radius: 10px;
-	background: var(--accent);
-	color: var(--background-color);
-	font-size: var(--font-size-xs);
-	font-weight: 600;
-
-	.ec-asm__tab.is-active & {
-		background: var(--background-color);
-		color: var(--header-background);
-	}
-}
-
-.ec-asm__panel {
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-lg);
-	padding: var(--spacing-md);
-	background: var(--card-background);
-	display: grid;
-	gap: var(--spacing-md);
 }
 
 .ec-asm__products {

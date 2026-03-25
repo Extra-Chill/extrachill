@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect } from '@wordpress/element';
+import { ActionRow, FieldGroup, Panel, PanelHeader } from '@extrachill/components';
 import { purchaseShippingLabel } from '../../../shared/api/client';
 
 const ORDER_FILTERS = [
@@ -122,18 +123,20 @@ const OrdersTab = ( {
 	const canRefund = selectedOrder && selectedOrder.status !== 'refunded';
 
 	return (
-		<div className="ec-asm__panel ec-asm__orders">
-			<div className="ec-asm__form-header">
-				<h3>Orders</h3>
-				<button
-					type="button"
-					className="button-2 button-small"
-					onClick={ onRefresh }
-					disabled={ loading }
-				>
-					Refresh
-				</button>
-			</div>
+		<Panel className="ec-asm__orders">
+			<PanelHeader
+				title="Orders"
+				actions={
+					<button
+						type="button"
+						className="button-2 button-small"
+						onClick={ onRefresh }
+						disabled={ loading }
+					>
+						Refresh
+					</button>
+				}
+			/>
 
 			<div className="ec-asm__orders-filters">
 				{ ORDER_FILTERS.map( ( f ) => (
@@ -321,8 +324,7 @@ const OrdersTab = ( {
 
 								<hr className="ec-asm__divider" />
 
-								<label className="ec-asm__field">
-									<span>Tracking Number { selectedOrder.tracking_number || labelSuccess ? '' : '(optional)' }</span>
+								<FieldGroup label={ `Tracking Number ${ selectedOrder.tracking_number || labelSuccess ? '' : '(optional)' }` }>
 									<input
 										type="text"
 										value={ trackingInput }
@@ -330,7 +332,7 @@ const OrdersTab = ( {
 										placeholder="e.g. 1Z999AA10123456784"
 										disabled={ !! selectedOrder.tracking_number || !! labelSuccess }
 									/>
-								</label>
+								</FieldGroup>
 								<button
 									type="button"
 									className="button-1 button-medium"
@@ -356,7 +358,7 @@ const OrdersTab = ( {
 						{ showRefundConfirm && (
 							<div className="ec-asm__refund-confirm">
 								<p><strong>Are you sure?</strong> This will issue a full refund of ${ ( selectedOrder.order_total || 0 ).toFixed( 2 ) }.</p>
-								<div className="ec-asm__actions">
+								<ActionRow className="ec-asm__actions">
 									<button
 										type="button"
 										className="button-danger button-medium"
@@ -373,13 +375,13 @@ const OrdersTab = ( {
 									>
 										Cancel
 									</button>
-								</div>
+								</ActionRow>
 							</div>
 						) }
 					</div>
 				</div>
 			) }
-		</div>
+		</Panel>
 	);
 };
 

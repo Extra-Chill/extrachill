@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { render } from '@wordpress/element';
 import {
+	ActionRow,
+	FieldGroup,
+	InlineStatus,
+	Panel,
+	PanelHeader,
+	Tabs,
+} from '@extrachill/components';
+import {
 	getArtist,
 	updateArtist,
 	getRoster,
@@ -14,7 +22,6 @@ import {
 	deleteMedia,
 } from '../shared/api/client';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
-import { Tabs } from '@extrachill/components';
 
 const isValidEmail = (email) => {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -101,9 +108,8 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 	};
 
 	return (
-		<div className="ec-am__panel">
-			<label className="ec-am__field">
-				<span>Profile Picture</span>
+		<Panel>
+			<FieldGroup label="Profile Picture">
 				{formState.profileImage && <img src={formState.profileImage} alt="Profile" className="ec-am__image-preview" />}
 				<input
 					type="file"
@@ -118,10 +124,9 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 						Remove
 					</button>
 				)}
-			</label>
+			</FieldGroup>
 
-			<label className="ec-am__field">
-				<span>Header Image</span>
+			<FieldGroup label="Header Image">
 				{formState.headerImage && <img src={formState.headerImage} alt="Header" className="ec-am__image-preview" />}
 				<input
 					type="file"
@@ -136,45 +141,41 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 						Remove
 					</button>
 				)}
-			</label>
+			</FieldGroup>
 
-			<label className="ec-am__field">
-				<span>Artist Name *</span>
+			<FieldGroup label="Artist Name" required>
 				<input
 					type="text"
 					value={formState.name}
 					onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
 					required
 				/>
-			</label>
+			</FieldGroup>
 
-			<label className="ec-am__field">
-				<span>City / Region</span>
+			<FieldGroup label="City / Region">
 				<input
 					type="text"
 					value={formState.localCity}
 					onChange={(e) => setFormState((prev) => ({ ...prev, localCity: e.target.value }))}
 				/>
-			</label>
+			</FieldGroup>
 
-			<label className="ec-am__field">
-				<span>Genre</span>
+			<FieldGroup label="Genre">
 				<input
 					type="text"
 					value={formState.genre}
 					onChange={(e) => setFormState((prev) => ({ ...prev, genre: e.target.value }))}
 				/>
-			</label>
+			</FieldGroup>
 
-			<label className="ec-am__field">
-				<span>Artist Bio</span>
+			<FieldGroup label="Artist Bio">
 				<textarea
 					value={formState.bio}
 					onChange={(e) => setFormState((prev) => ({ ...prev, bio: e.target.value }))}
 					rows={6}
 				/>
-			</label>
-		</div>
+			</FieldGroup>
+		</Panel>
 	);
 };
 
@@ -315,11 +316,11 @@ const ManagersTab = ({ artistId }) => {
 	};
 
 	return (
-		<div className="ec-am__panel">
-			<h3>Profile Managers</h3>
+		<Panel>
+			<PanelHeader title="Profile Managers" />
 			{loading && <p>Loading…</p>}
-			{error && <p className="ec-am__error">{error}</p>}
-			<div className="ec-am__inline">
+			{error && <InlineStatus tone="error">{error}</InlineStatus>}
+			<ActionRow className="ec-am__inline">
 				<div className="ec-am__search-container" ref={containerRef}>
 					<input
 						type="text"
@@ -359,7 +360,7 @@ const ManagersTab = ({ artistId }) => {
 				>
 					Send Invite
 				</button>
-			</div>
+			</ActionRow>
 			<div className="ec-am__list">
 				{roster.map((member) => (
 					<div key={member.id} className="ec-am__list-item">
@@ -391,7 +392,7 @@ const ManagersTab = ({ artistId }) => {
 				))}
 				{!loading && roster.length === 0 && invites.length === 0 && <p>No managers yet.</p>}
 			</div>
-		</div>
+		</Panel>
 	);
 };
 
@@ -438,10 +439,17 @@ const SubscribersTab = ({ artistId }) => {
 	const totalPages = Math.max(1, Math.ceil(total / 20));
 
 	return (
-		<div className="ec-am__panel">
-			<h3>Subscribers</h3>
+		<Panel>
+			<PanelHeader
+				title="Subscribers"
+				actions={
+					<button type="button" className="button-2 button-medium" onClick={exportCsv} disabled={!subs.length}>
+						Export CSV
+					</button>
+				}
+			/>
 			{loading && <p>Loading…</p>}
-			{error && <p className="ec-am__error">{error}</p>}
+			{error && <InlineStatus tone="error">{error}</InlineStatus>}
 			<div className="ec-am__list">
 				{subs.map((sub) => (
 					<div key={sub.subscriber_id} className="ec-am__list-item">
@@ -454,10 +462,8 @@ const SubscribersTab = ({ artistId }) => {
 				))}
 				{!loading && subs.length === 0 && <p>No subscribers yet.</p>}
 			</div>
-			<div className="ec-am__footer">
-				<button type="button" className="button-2 button-medium" onClick={exportCsv} disabled={!subs.length}>
-					Export CSV
-				</button>
+			<ActionRow align="between" className="ec-am__footer">
+				<div />
 				<div className="ec-am__pagination">
 					<button type="button" className="button-3 button-small" onClick={() => load(Math.max(1, page - 1))} disabled={page <= 1}>
 						Prev
@@ -469,8 +475,8 @@ const SubscribersTab = ({ artistId }) => {
 						Next
 					</button>
 				</div>
-			</div>
-		</div>
+			</ActionRow>
+		</Panel>
 	);
 };
 
@@ -581,40 +587,40 @@ const App = () => {
 
 	return (
 		<div className="ec-am">
-			<div className="ec-am__header">
-				<div className="ec-am__header-left">
-					<h2>{artistName}</h2>
-					<ArtistSwitcher
-						artists={config.userArtists}
-						selectedId={selectedId}
-						onChange={handleSelect}
-					/>
-				</div>
-			<div className="ec-am__header-right">
-				{error && <span className="ec-am__save-error">{error}</span>}
-				{saveSuccess && <span className="ec-am__save-success">Saved!</span>}
-				{artist?.slug && config.artistSiteUrl && (
-					<a
-						href={`${config.artistSiteUrl}/${artist.slug}`}
-						className="button-3 button-medium"
-					>
-						View Profile
-					</a>
-				)}
-				<button
-					type="button"
-					className="button-1 button-medium"
-					onClick={handleSave}
-					disabled={saving || !selectedId}
-				>
-					{saveButtonLabel}
-				</button>
-			</div>
-			</div>
+			<PanelHeader
+				title={<h2 className="ec-am__title">{artistName || 'Manage Artist'}</h2>}
+				actions={
+					<ActionRow align="end" className="ec-am__toolbar">
+						<ArtistSwitcher
+							artists={config.userArtists}
+							selectedId={selectedId}
+							onChange={handleSelect}
+						/>
+						{error && <InlineStatus tone="error">{error}</InlineStatus>}
+						{saveSuccess && <InlineStatus tone="success">Saved!</InlineStatus>}
+						{artist?.slug && config.artistSiteUrl && (
+							<a
+								href={`${config.artistSiteUrl}/${artist.slug}`}
+								className="button-3 button-medium"
+							>
+								View Profile
+							</a>
+						)}
+						<button
+							type="button"
+							className="button-1 button-medium"
+							onClick={handleSave}
+							disabled={saving || !selectedId}
+						>
+							{saveButtonLabel}
+						</button>
+					</ActionRow>
+				}
+			/>
 
 			{loading && <p>Loading artist…</p>}
 
-			<Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} classPrefix="ec-am" />
+			<Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
 
 			{activeTab === 'info' && (
 				<InfoTab

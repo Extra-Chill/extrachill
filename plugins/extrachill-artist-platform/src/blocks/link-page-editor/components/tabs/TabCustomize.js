@@ -7,6 +7,7 @@
 
 import { useCallback, useState, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { FieldGroup, Panel, PanelHeader } from '@extrachill/components';
 import { useEditor } from '../../context/EditorContext';
 import ColorPicker from '../shared/ColorPicker';
 import ImageUploader from '../shared/ImageUploader';
@@ -102,15 +103,10 @@ export default function TabCustomize() {
 	return (
 		<div className="ec-tab ec-tab--customize">
 			{ /* Fonts Section */ }
-			<div className="ec-customize-card">
-				<h3 className="ec-tab__section-title">
-					{ __( 'Fonts', 'extrachill-artist-platform' ) }
-				</h3>
+			<Panel className="ec-customize-card" compact>
+				<PanelHeader title={ __( 'Fonts', 'extrachill-artist-platform' ) } />
 
-				<div className="ec-field">
-					<label htmlFor="ec-title-font" className="ec-field__label">
-						{ __( 'Title Font', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Title Font', 'extrachill-artist-platform' ) } htmlFor="ec-title-font">
 					<select
 						id="ec-title-font"
 						className="ec-field__select"
@@ -123,12 +119,9 @@ export default function TabCustomize() {
 							</option>
 						) ) }
 					</select>
-				</div>
+				</FieldGroup>
 
-				<div className="ec-field">
-					<label htmlFor="ec-title-size" className="ec-field__label">
-						{ __( 'Title Size', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Title Size', 'extrachill-artist-platform' ) } htmlFor="ec-title-size">
 					<div className="ec-field__range-container">
 						<input
 							id="ec-title-size"
@@ -145,12 +138,9 @@ export default function TabCustomize() {
 						/>
 						<span className="ec-field__range-value">{ titleSizeSlider }%</span>
 					</div>
-				</div>
+				</FieldGroup>
 
-				<div className="ec-field">
-					<label htmlFor="ec-body-font" className="ec-field__label">
-						{ __( 'Body Font', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Body Font', 'extrachill-artist-platform' ) } htmlFor="ec-body-font">
 					<select
 						id="ec-body-font"
 						className="ec-field__select"
@@ -163,19 +153,14 @@ export default function TabCustomize() {
 							</option>
 						) ) }
 					</select>
-				</div>
-			</div>
+				</FieldGroup>
+			</Panel>
 
 			{ /* Profile Image Section */ }
-			<div className="ec-customize-card">
-				<h3 className="ec-tab__section-title">
-					{ __( 'Profile Image', 'extrachill-artist-platform' ) }
-				</h3>
+			<Panel className="ec-customize-card" compact>
+				<PanelHeader title={ __( 'Profile Image', 'extrachill-artist-platform' ) } />
 
-				<div className="ec-field">
-					<label className="ec-field__label">
-						{ __( 'Profile Image Shape', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Profile Image Shape', 'extrachill-artist-platform' ) }>
 					<div className="ec-radio-group">
 						{ [ 'circle', 'square', 'rectangle' ].map( ( shape ) => (
 							<label key={ shape } className="ec-radio">
@@ -190,12 +175,13 @@ export default function TabCustomize() {
 							</label>
 						) ) }
 					</div>
-				</div>
+				</FieldGroup>
 
-				<div className="ec-field">
-					<label htmlFor="ec-profile-size" className="ec-field__label">
-						{ __( 'Profile Image Size', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup
+					label={ __( 'Profile Image Size', 'extrachill-artist-platform' ) }
+					htmlFor="ec-profile-size"
+					help={ __( 'Adjust the profile image size (relative to the card width).', 'extrachill-artist-platform' ) }
+				>
 					<div className="ec-field__range-container">
 						<input
 							id="ec-profile-size"
@@ -209,22 +195,14 @@ export default function TabCustomize() {
 						/>
 						<span className="ec-field__range-value">{ currentProfileSize }%</span>
 					</div>
-					<p className="ec-field__help">
-						{ __( 'Adjust the profile image size (relative to the card width).', 'extrachill-artist-platform' ) }
-					</p>
-				</div>
-			</div>
+				</FieldGroup>
+			</Panel>
 
 			{ /* Background Section */ }
-			<div className="ec-customize-card">
-				<h3 className="ec-tab__section-title">
-					{ __( 'Background', 'extrachill-artist-platform' ) }
-				</h3>
+			<Panel className="ec-customize-card" compact>
+				<PanelHeader title={ __( 'Background', 'extrachill-artist-platform' ) } />
 
-				<div className="ec-field">
-					<label htmlFor="ec-bg-type" className="ec-field__label">
-						{ __( 'Background Type', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Background Type', 'extrachill-artist-platform' ) } htmlFor="ec-bg-type">
 					<select
 						id="ec-bg-type"
 						className="ec-field__select"
@@ -235,28 +213,22 @@ export default function TabCustomize() {
 						<option value="gradient">{ __( 'Gradient', 'extrachill-artist-platform' ) }</option>
 						<option value="image">{ __( 'Image', 'extrachill-artist-platform' ) }</option>
 					</select>
-				</div>
+				</FieldGroup>
 
 				{ backgroundType === 'color' && (
-					<div className="ec-field">
-						<label className="ec-field__label">
-							{ __( 'Background Color', 'extrachill-artist-platform' ) }
-						</label>
+					<FieldGroup label={ __( 'Background Color', 'extrachill-artist-platform' ) }>
 						<ColorPicker
 							color={ cssVars?.[ '--link-page-background-color' ] || '#121212' }
 							onChange={ ( color ) =>
 								handleCssVarChange( '--link-page-background-color', color )
 							}
 						/>
-					</div>
+					</FieldGroup>
 				) }
 
 				{ backgroundType === 'gradient' && (
 					<>
-						<div className="ec-field">
-							<label className="ec-field__label">
-								{ __( 'Gradient Colors', 'extrachill-artist-platform' ) }
-							</label>
+						<FieldGroup label={ __( 'Gradient Colors', 'extrachill-artist-platform' ) }>
 							<div className="ec-gradient-colors">
 								<ColorPicker
 									color={ cssVars?.[ '--link-page-background-gradient-start' ] || '#0b5394' }
@@ -271,11 +243,8 @@ export default function TabCustomize() {
 									}
 								/>
 							</div>
-						</div>
-						<div className="ec-field">
-							<label htmlFor="ec-gradient-dir" className="ec-field__label">
-								{ __( 'Gradient Direction', 'extrachill-artist-platform' ) }
-							</label>
+						</FieldGroup>
+						<FieldGroup label={ __( 'Gradient Direction', 'extrachill-artist-platform' ) } htmlFor="ec-gradient-dir">
 							<select
 								id="ec-gradient-dir"
 								className="ec-field__select"
@@ -288,15 +257,15 @@ export default function TabCustomize() {
 								<option value="to bottom">↓ { __( 'Top to Bottom', 'extrachill-artist-platform' ) }</option>
 								<option value="135deg">↘ { __( 'Diagonal', 'extrachill-artist-platform' ) }</option>
 							</select>
-						</div>
+						</FieldGroup>
 					</>
 				) }
 
 				{ backgroundType === 'image' && (
-					<div className="ec-field">
-						<label className="ec-field__label">
-							{ __( 'Background Image', 'extrachill-artist-platform' ) }
-						</label>
+					<FieldGroup
+						label={ __( 'Background Image', 'extrachill-artist-platform' ) }
+						help={ __( 'Maximum file size: 5MB.', 'extrachill-artist-platform' ) }
+					>
 						<ImageUploader
 							imageUrl={ backgroundImageUrl }
 							onUpload={ handleBackgroundUpload }
@@ -304,13 +273,10 @@ export default function TabCustomize() {
 							isUploading={ isUploading }
 							accept="image/*"
 						/>
-						<p className="ec-field__help">
-							{ __( 'Maximum file size: 5MB.', 'extrachill-artist-platform' ) }
-						</p>
-					</div>
+					</FieldGroup>
 				) }
 
-				<div className="ec-field">
+				<FieldGroup>
 					<label className="ec-checkbox">
 						<input
 							type="checkbox"
@@ -321,86 +287,68 @@ export default function TabCustomize() {
 						/>
 						{ __( 'Overlay (Card Background & Shadow)', 'extrachill-artist-platform' ) }
 					</label>
-				</div>
-			</div>
+				</FieldGroup>
+			</Panel>
 
 			{ /* Colors Section */ }
-			<div className="ec-customize-card">
-				<h3 className="ec-tab__section-title">
-					{ __( 'Colors', 'extrachill-artist-platform' ) }
-				</h3>
+			<Panel className="ec-customize-card" compact>
+				<PanelHeader title={ __( 'Colors', 'extrachill-artist-platform' ) } />
 
-				<div className="ec-field">
-					<label className="ec-field__label">
-						{ __( 'Button Color', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Button Color', 'extrachill-artist-platform' ) }>
 					<ColorPicker
 						color={ cssVars?.[ '--link-page-button-bg-color' ] || '#0b5394' }
 						onChange={ ( color ) =>
 							handleCssVarChange( '--link-page-button-bg-color', color )
-						}
-					/>
-				</div>
+							}
+						/>
+				</FieldGroup>
 
-				<div className="ec-field">
-					<label className="ec-field__label">
-						{ __( 'Text Color', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Text Color', 'extrachill-artist-platform' ) }>
 					<ColorPicker
 						color={ cssVars?.[ '--link-page-text-color' ] || '#e5e5e5' }
 						onChange={ ( color ) =>
 							handleCssVarChange( '--link-page-text-color', color )
-						}
-					/>
-				</div>
+							}
+						/>
+				</FieldGroup>
 
-				<div className="ec-field">
-					<label className="ec-field__label">
-						{ __( 'Link Text Color', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Link Text Color', 'extrachill-artist-platform' ) }>
 					<ColorPicker
 						color={ cssVars?.[ '--link-page-link-text-color' ] || '#ffffff' }
 						onChange={ ( color ) =>
 							handleCssVarChange( '--link-page-link-text-color', color )
-						}
-					/>
-				</div>
+							}
+						/>
+				</FieldGroup>
 
-				<div className="ec-field">
-					<label className="ec-field__label">
-						{ __( 'Hover Color', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Hover Color', 'extrachill-artist-platform' ) }>
 					<ColorPicker
 						color={ cssVars?.[ '--link-page-button-hover-bg-color' ] || '#53940b' }
 						onChange={ ( color ) =>
 							handleCssVarChange( '--link-page-button-hover-bg-color', color )
-						}
-					/>
-				</div>
+							}
+						/>
+				</FieldGroup>
 
-				<div className="ec-field">
-					<label className="ec-field__label">
-						{ __( 'Button Border Color', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup label={ __( 'Button Border Color', 'extrachill-artist-platform' ) }>
 					<ColorPicker
 						color={ cssVars?.[ '--link-page-button-border-color' ] || '#0b5394' }
 						onChange={ ( color ) =>
 							handleCssVarChange( '--link-page-button-border-color', color )
-						}
-					/>
-				</div>
-			</div>
+							}
+						/>
+				</FieldGroup>
+			</Panel>
 
 			{ /* Buttons Section */ }
-			<div className="ec-customize-card">
-				<h3 className="ec-tab__section-title">
-					{ __( 'Buttons', 'extrachill-artist-platform' ) }
-				</h3>
+			<Panel className="ec-customize-card" compact>
+				<PanelHeader title={ __( 'Buttons', 'extrachill-artist-platform' ) } />
 
-				<div className="ec-field">
-					<label htmlFor="ec-button-radius" className="ec-field__label">
-						{ __( 'Button Radius', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup
+					label={ __( 'Button Radius', 'extrachill-artist-platform' ) }
+					htmlFor="ec-button-radius"
+					help={ __( 'Adjust the button border radius from square (0px) to pill (50px).', 'extrachill-artist-platform' ) }
+				>
 					<div className="ec-field__range-container">
 						<input
 							id="ec-button-radius"
@@ -414,11 +362,8 @@ export default function TabCustomize() {
 						/>
 						<span className="ec-field__range-value">{ currentButtonRadius }px</span>
 					</div>
-					<p className="ec-field__help">
-						{ __( 'Adjust the button border radius from square (0px) to pill (50px).', 'extrachill-artist-platform' ) }
-					</p>
-				</div>
-			</div>
+				</FieldGroup>
+			</Panel>
 		</div>
 	);
 }

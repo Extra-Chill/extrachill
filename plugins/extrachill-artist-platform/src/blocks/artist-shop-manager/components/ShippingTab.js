@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import {
 	getArtistShippingAddress,
 	updateArtistShippingAddress,
@@ -149,66 +150,61 @@ const ShippingTab = ( { artistId } ) => {
 
 	if ( loading ) {
 		return (
-			<div className="ec-asm__panel">
+			<Panel>
 				<p>Loading...</p>
-			</div>
+			</Panel>
 		);
 	}
 
 	return (
-		<div className="ec-asm__panel ec-asm__shipping">
-			<h3>Shipping Address</h3>
-			<p className="ec-asm__muted">
-				Set up your shipping address for printing labels. This is where your orders will ship from.
-			</p>
+		<Panel className="ec-asm__shipping">
+			<PanelHeader
+				title="Shipping Address"
+				description="Set up your shipping address for printing labels. This is where your orders will ship from."
+			/>
 
-			{ error && <div className="notice notice-error"><p>{ error }</p></div> }
-			{ success && <div className="notice notice-success"><p>Address saved successfully.</p></div> }
+			{ error && <InlineStatus tone="error">{ error }</InlineStatus> }
+			{ success && <InlineStatus tone="success">Address saved successfully.</InlineStatus> }
 
 			<div className="ec-asm__form">
-				<label className="ec-asm__field">
-					<span>Name (for shipping label) *</span>
+				<FieldGroup label="Name (for shipping label)" required>
 					<input
 						type="text"
 						value={ address.name }
 						onChange={ ( e ) => updateField( 'name', e.target.value ) }
 						placeholder="Your name or business name"
 					/>
-				</label>
+				</FieldGroup>
 
-				<label className="ec-asm__field">
-					<span>Street Address *</span>
+				<FieldGroup label="Street Address" required>
 					<input
 						type="text"
 						value={ address.street1 }
 						onChange={ ( e ) => updateField( 'street1', e.target.value ) }
 						placeholder="123 Main St"
 					/>
-				</label>
+				</FieldGroup>
 
-				<label className="ec-asm__field">
-					<span>Apartment, suite, etc.</span>
+				<FieldGroup label="Apartment, suite, etc.">
 					<input
 						type="text"
 						value={ address.street2 }
 						onChange={ ( e ) => updateField( 'street2', e.target.value ) }
 						placeholder="Apt 4B"
 					/>
-				</label>
+				</FieldGroup>
 
 				<div className="ec-asm__row">
-					<label className="ec-asm__field">
-						<span>City *</span>
+					<FieldGroup label="City" required>
 						<input
 							type="text"
 							value={ address.city }
 							onChange={ ( e ) => updateField( 'city', e.target.value ) }
 							placeholder="City"
 						/>
-					</label>
+					</FieldGroup>
 
-					<label className="ec-asm__field">
-						<span>State *</span>
+					<FieldGroup label="State" required>
 						<select
 							value={ address.state }
 							onChange={ ( e ) => updateField( 'state', e.target.value ) }
@@ -219,10 +215,9 @@ const ShippingTab = ( { artistId } ) => {
 								</option>
 							) ) }
 						</select>
-					</label>
+					</FieldGroup>
 
-					<label className="ec-asm__field">
-						<span>ZIP Code *</span>
+					<FieldGroup label="ZIP Code" required>
 						<input
 							type="text"
 							value={ address.zip }
@@ -230,21 +225,19 @@ const ShippingTab = ( { artistId } ) => {
 							placeholder="12345"
 							maxLength={ 10 }
 						/>
-					</label>
+					</FieldGroup>
 				</div>
 
-				<label className="ec-asm__field">
-					<span>Country</span>
+				<FieldGroup label="Country" help={<span className="ec-asm__muted">US domestic shipping only</span>}>
 					<input
 						type="text"
 						value="United States"
 						disabled
 						className="ec-asm__field--disabled"
 					/>
-					<span className="ec-asm__muted">US domestic shipping only</span>
-				</label>
+				</FieldGroup>
 
-				<div className="ec-asm__actions">
+				<ActionRow className="ec-asm__actions">
 					<button
 						type="button"
 						className="button-1 button-medium"
@@ -253,9 +246,9 @@ const ShippingTab = ( { artistId } ) => {
 					>
 						{ saving ? 'Saving...' : 'Save Address' }
 					</button>
-				</div>
+				</ActionRow>
 			</div>
-		</div>
+		</Panel>
 	);
 };
 

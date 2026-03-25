@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { ActionRow, Panel, PanelHeader } from '@extrachill/components';
 import { useAnalyticsContext } from '../context/AnalyticsContext';
 import useAnalytics from '../hooks/useAnalytics';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
@@ -104,35 +105,35 @@ export default function Analytics() {
 
 	return (
 		<div className="ec-aa">
-			<div className="ec-aa__header">
-				<div className="ec-aa__header-left">
-					<h2>{ __( 'Artist Analytics', 'extrachill-artist-platform' ) }</h2>
-					<ArtistSwitcher
-						artists={ userArtists }
-						selectedId={ artistId }
-						onChange={ switchArtist }
-					/>
-				</div>
-				<div className="ec-aa__header-right">
-					{ artistSlug && linkPageBaseUrl && (
-						<a
-							href={ `${ linkPageBaseUrl }/${ artistSlug }` }
-							className="button-3 button-medium"
+			<PanelHeader
+				title={<h2 className="ec-aa__title">{ __( 'Artist Analytics', 'extrachill-artist-platform' ) }</h2>}
+				actions={
+					<ActionRow align="end" className="ec-aa__toolbar">
+						<ArtistSwitcher
+							artists={ userArtists }
+							selectedId={ artistId }
+							onChange={ switchArtist }
+						/>
+						{ artistSlug && linkPageBaseUrl && (
+							<a
+								href={ `${ linkPageBaseUrl }/${ artistSlug }` }
+								className="button-3 button-medium"
+							>
+								{ __( 'View Link Page', 'extrachill-artist-platform' ) }
+							</a>
+						) }
+						<select
+							value={ dateRange }
+							onChange={ handleDateRangeChange }
+							className="ec-aa__date-range"
 						>
-							{ __( 'View Link Page', 'extrachill-artist-platform' ) }
-						</a>
-					) }
-					<select
-						value={ dateRange }
-						onChange={ handleDateRangeChange }
-						className="ec-aa__date-range"
-					>
-						<option value={ 7 }>{ __( 'Last 7 days', 'extrachill-artist-platform' ) }</option>
-						<option value={ 30 }>{ __( 'Last 30 days', 'extrachill-artist-platform' ) }</option>
-						<option value={ 90 }>{ __( 'Last 90 days', 'extrachill-artist-platform' ) }</option>
-					</select>
-				</div>
-			</div>
+							<option value={ 7 }>{ __( 'Last 7 days', 'extrachill-artist-platform' ) }</option>
+							<option value={ 30 }>{ __( 'Last 30 days', 'extrachill-artist-platform' ) }</option>
+							<option value={ 90 }>{ __( 'Last 90 days', 'extrachill-artist-platform' ) }</option>
+						</select>
+					</ActionRow>
+				}
+			/>
 
 			<div className="ec-aa__stats">
 				<div className="ec-aa__stat">
@@ -153,12 +154,12 @@ export default function Analytics() {
 				</div>
 			</div>
 
-			<div className="ec-aa__chart">
+			<Panel className="ec-aa__chart" compact>
 				<canvas ref={ chartRef } height="300"></canvas>
-			</div>
+			</Panel>
 
-			<div className="ec-aa__top-links">
-				<h3>{ __( 'Top Links', 'extrachill-artist-platform' ) }</h3>
+			<Panel className="ec-aa__top-links" compact>
+				<PanelHeader title={ __( 'Top Links', 'extrachill-artist-platform' ) } />
 				<table className="ec-aa__table">
 					<thead>
 						<tr>
@@ -186,7 +187,7 @@ export default function Analytics() {
 						) }
 					</tbody>
 				</table>
-			</div>
+			</Panel>
 
 			<p className="ec-aa__note">
 				{ __( 'Analytics data is updated daily. Data older than 90 days is automatically pruned.', 'extrachill-artist-platform' ) }

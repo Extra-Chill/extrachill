@@ -9,6 +9,7 @@
 
 import { useCallback, useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { FieldGroup, Panel, PanelHeader } from '@extrachill/components';
 import { useEditor } from '../../context/EditorContext';
 
 export default function TabAdvanced() {
@@ -54,11 +55,10 @@ export default function TabAdvanced() {
 	return (
 		<div className="ec-tab ec-tab--advanced">
 			{ /* General Settings */ }
-			<h3 className="ec-tab__section-title">
-				{ __( 'General Settings', 'extrachill-artist-platform' ) }
-			</h3>
+			<Panel compact>
+				<PanelHeader title={ __( 'General Settings', 'extrachill-artist-platform' ) } />
 
-			<div className="ec-field">
+				<FieldGroup>
 				<label className="ec-checkbox">
 					<input
 						type="checkbox"
@@ -69,12 +69,9 @@ export default function TabAdvanced() {
 					/>
 					{ __( 'Enable Link Expiration Dates', 'extrachill-artist-platform' ) }
 				</label>
-				<p className="ec-field__help">
-					{ __( 'When enabled, you can set expiration dates for individual links in the "Links" tab. Expired links will be deleted automatically.', 'extrachill-artist-platform' ) }
-				</p>
-			</div>
+				</FieldGroup>
 
-			<div className="ec-field">
+				<FieldGroup>
 				<label className="ec-checkbox">
 					<input
 						type="checkbox"
@@ -85,16 +82,15 @@ export default function TabAdvanced() {
 					/>
 					{ __( 'Enable Temporary Redirect', 'extrachill-artist-platform' ) }
 				</label>
-				<p className="ec-field__help">
-					{ __( 'Redirect visitors from your main extrachill.link URL to a specific link temporarily.', 'extrachill-artist-platform' ) }
-				</p>
-			</div>
+				</FieldGroup>
 
 			{ settings?.redirect_enabled && (
-				<div className="ec-field ec-field--indent">
-					<label htmlFor="ec-redirect-target" className="ec-field__label">
-						{ __( 'Redirect To:', 'extrachill-artist-platform' ) }
-					</label>
+				<FieldGroup
+					label={ __( 'Redirect To:', 'extrachill-artist-platform' ) }
+					htmlFor="ec-redirect-target"
+					help={ __( 'Select one of your existing links to redirect visitors to.', 'extrachill-artist-platform' ) }
+					className="ec-field--indent"
+				>
 					<select
 						id="ec-redirect-target"
 						className="ec-field__select"
@@ -108,17 +104,14 @@ export default function TabAdvanced() {
 						</option>
 						{ allLinks.map( ( link, index ) => (
 							<option key={ index } value={ link.url }>
-								{ link.text } ({ link.url })
+							{ link.text } ({ link.url })
 							</option>
 						) ) }
 					</select>
-					<p className="ec-field__help">
-						{ __( 'Select one of your existing links to redirect visitors to.', 'extrachill-artist-platform' ) }
-					</p>
-				</div>
+				</FieldGroup>
 			) }
 
-			<div className="ec-field">
+				<FieldGroup>
 				<label className="ec-checkbox">
 					<input
 						type="checkbox"
@@ -129,21 +122,18 @@ export default function TabAdvanced() {
 					/>
 					{ __( 'Disable Inline YouTube Video Player', 'extrachill-artist-platform' ) }
 				</label>
-				<p className="ec-field__help">
-					{ __( 'By default, YouTube links play directly on the page. Check this box if you prefer YouTube links to navigate to YouTube.com instead.', 'extrachill-artist-platform' ) }
-				</p>
-			</div>
+				</FieldGroup>
+			</Panel>
 
 			{ /* Subscription Settings */ }
-			<h3 className="ec-tab__section-title">
-				{ __( 'Subscription Settings', 'extrachill-artist-platform' ) }
-			</h3>
+			<Panel compact>
+				<PanelHeader title={ __( 'Subscription Settings', 'extrachill-artist-platform' ) } />
 
 			<p className="ec-field__intro">
 				{ __( 'Choose how the email subscription option is displayed on your public link page.', 'extrachill-artist-platform' ) }
 			</p>
 
-			<div className="ec-field ec-field--radio-group">
+				<FieldGroup className="ec-field--radio-group">
 				<label className="ec-radio">
 					<input
 						type="radio"
@@ -174,15 +164,13 @@ export default function TabAdvanced() {
 					/>
 					{ __( 'Disable Subscription Feature', 'extrachill-artist-platform' ) }
 				</label>
-			</div>
-			<p className="ec-field__help">
-				{ __( 'This setting controls the appearance of the email subscription feature on your live link page.', 'extrachill-artist-platform' ) }
-			</p>
+				</FieldGroup>
 
-			<div className="ec-field">
-				<label htmlFor="ec-subscribe-description" className="ec-field__label">
-					{ __( 'Subscribe Form Description', 'extrachill-artist-platform' ) }
-				</label>
+				<FieldGroup
+					label={ __( 'Subscribe Form Description', 'extrachill-artist-platform' ) }
+					htmlFor="ec-subscribe-description"
+					help={ __( 'This text appears in the subscribe modal or inline form on your public link page.', 'extrachill-artist-platform' ) }
+				>
 				<textarea
 					id="ec-subscribe-description"
 					className="ec-field__textarea"
@@ -192,20 +180,18 @@ export default function TabAdvanced() {
 						handleChange( 'subscribe_description', e.target.value )
 					}
 				/>
-				<p className="ec-field__help">
-					{ __( 'This text appears in the subscribe modal or inline form on your public link page.', 'extrachill-artist-platform' ) }
-				</p>
-			</div>
+				</FieldGroup>
+			</Panel>
 
 			{ /* Tracking Pixels */ }
-			<h3 className="ec-tab__section-title">
-				{ __( 'Tracking Pixels', 'extrachill-artist-platform' ) }
-			</h3>
+			<Panel compact>
+				<PanelHeader title={ __( 'Tracking Pixels', 'extrachill-artist-platform' ) } />
 
-			<div className="ec-field">
-				<label htmlFor="ec-meta-pixel" className="ec-field__label">
-					{ __( 'Meta Pixel ID', 'extrachill-artist-platform' ) }
-				</label>
+				<FieldGroup
+					label={ __( 'Meta Pixel ID', 'extrachill-artist-platform' ) }
+					htmlFor="ec-meta-pixel"
+					help={ __( 'Enter your Meta (Facebook) Pixel ID to track page views and events.', 'extrachill-artist-platform' ) }
+				>
 				<input
 					id="ec-meta-pixel"
 					type="text"
@@ -214,15 +200,13 @@ export default function TabAdvanced() {
 					onChange={ ( e ) => handleChange( 'meta_pixel_id', e.target.value ) }
 					placeholder="e.g., 123456789012345"
 				/>
-				<p className="ec-field__help">
-					{ __( 'Enter your Meta (Facebook) Pixel ID to track page views and events.', 'extrachill-artist-platform' ) }
-				</p>
-			</div>
+				</FieldGroup>
 
-			<div className="ec-field">
-				<label htmlFor="ec-google-tag" className="ec-field__label">
-					{ __( 'Google Tag ID (GA4 / Ads)', 'extrachill-artist-platform' ) }
-				</label>
+				<FieldGroup
+					label={ __( 'Google Tag ID (GA4 / Ads)', 'extrachill-artist-platform' ) }
+					htmlFor="ec-google-tag"
+					help={ __( 'Enter your Google Tag ID for Google Analytics 4 or Google Ads. This enables tracking page views, events, and allows for targeted advertising campaigns.', 'extrachill-artist-platform' ) }
+				>
 				<input
 					id="ec-google-tag"
 					type="text"
@@ -231,10 +215,8 @@ export default function TabAdvanced() {
 					onChange={ ( e ) => handleChange( 'google_tag_id', e.target.value ) }
 					placeholder="e.g., G-XXXXXXXXXX or AW-XXXXXXXXXX"
 				/>
-				<p className="ec-field__help">
-					{ __( 'Enter your Google Tag ID for Google Analytics 4 or Google Ads. This enables tracking page views, events, and allows for targeted advertising campaigns.', 'extrachill-artist-platform' ) }
-				</p>
-			</div>
+				</FieldGroup>
+			</Panel>
 		</div>
 	);
 }

@@ -6,6 +6,7 @@
 
 import { useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { FieldGroup } from '@extrachill/components';
 import { useEditor } from '../../context/EditorContext';
 import ImageUploader from '../shared/ImageUploader';
 
@@ -52,10 +53,7 @@ export default function TabInfo() {
 
 	return (
 		<div className="ec-tab ec-tab--info">
-			<div className="ec-field">
-				<label htmlFor="ec-artist-name" className="ec-field__label">
-					{ __( 'Display Name', 'extrachill-artist-platform' ) }
-				</label>
+			<FieldGroup label={ __( 'Display Name', 'extrachill-artist-platform' ) } htmlFor="ec-artist-name">
 				<input
 					id="ec-artist-name"
 					type="text"
@@ -64,12 +62,9 @@ export default function TabInfo() {
 					onChange={ handleNameChange }
 					placeholder={ __( 'Your name or artist name', 'extrachill-artist-platform' ) }
 				/>
-			</div>
+			</FieldGroup>
 
-			<div className="ec-field">
-				<label htmlFor="ec-artist-bio" className="ec-field__label">
-					{ __( 'Bio', 'extrachill-artist-platform' ) }
-				</label>
+			<FieldGroup label={ __( 'Bio', 'extrachill-artist-platform' ) } htmlFor="ec-artist-bio">
 				<textarea
 					id="ec-artist-bio"
 					className="ec-field__textarea"
@@ -78,12 +73,9 @@ export default function TabInfo() {
 					rows={ 4 }
 					placeholder={ __( 'A short bio about you...', 'extrachill-artist-platform' ) }
 				/>
-			</div>
+			</FieldGroup>
 
-			<div className="ec-field">
-				<label className="ec-field__label">
-					{ __( 'Profile Image', 'extrachill-artist-platform' ) }
-				</label>
+			<FieldGroup label={ __( 'Profile Image', 'extrachill-artist-platform' ) }>
 				<ImageUploader
 					imageUrl={ artist?.profile_image_url }
 					onUpload={ handleImageUpload }
@@ -91,7 +83,7 @@ export default function TabInfo() {
 					isUploading={ isUploading }
 					accept="image/*"
 				/>
-			</div>
+			</FieldGroup>
 		</div>
 	);
 }

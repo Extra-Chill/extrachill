@@ -2,6 +2,8 @@
  * PaymentsTab - Stripe Connect integration for artist payments
  */
 
+import { ActionRow, Panel, PanelHeader } from '@extrachill/components';
+
 const PaymentsTab = ( {
 	artistId,
 	status,
@@ -17,8 +19,8 @@ const PaymentsTab = ( {
 	const showPaymentsNote = artistId && connected && ! canReceivePayments;
 
 	return (
-		<div className="ec-asm__panel ec-asm__payments">
-			<h3>Payments</h3>
+		<Panel className="ec-asm__payments">
+			<PanelHeader title="Payments" />
 
 			{ showPaymentsNote && (
 				<div className="notice notice-info">
@@ -47,7 +49,7 @@ const PaymentsTab = ( {
 						) : null }
 					</div>
 
-					<div className="ec-asm__actions">
+					<ActionRow className="ec-asm__actions">
 						{ ! connected ? (
 							<button
 								type="button"
@@ -75,12 +77,12 @@ const PaymentsTab = ( {
 						>
 							Refresh Status
 						</button>
-					</div>
+					</ActionRow>
 				</div>
 			) : (
 				<p>Select an artist to manage payments.</p>
 			) }
-		</div>
+		</Panel>
 	);
 };
 

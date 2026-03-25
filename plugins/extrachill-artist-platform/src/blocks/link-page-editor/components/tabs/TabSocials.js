@@ -6,6 +6,7 @@
 
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { FieldGroup } from '@extrachill/components';
 import { useEditor } from '../../context/EditorContext';
 import DraggableList from '../../../shared/components/DraggableList';
 
@@ -106,10 +107,7 @@ export default function TabSocials() {
 
 	return (
 		<div className="ec-tab ec-tab--socials">
-			<div className="ec-field">
-				<label className="ec-field__label">
-					{ __( 'Position', 'extrachill-artist-platform' ) }
-				</label>
+			<FieldGroup label={ __( 'Position', 'extrachill-artist-platform' ) }>
 				<div className="ec-radio-group">
 					<label className="ec-radio">
 						<input
@@ -132,7 +130,7 @@ export default function TabSocials() {
 						{ __( 'Below Links', 'extrachill-artist-platform' ) }
 					</label>
 				</div>
-			</div>
+			</FieldGroup>
 
 			<div className="ec-socials-list">
 				<DraggableList

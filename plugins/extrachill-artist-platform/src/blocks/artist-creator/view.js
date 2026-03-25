@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { render } from '@wordpress/element';
+import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import { createArtist, uploadMedia } from '../shared/api/client';
 
 const useConfig = () => {
@@ -96,15 +97,12 @@ const App = () => {
 
 	if ( createdArtist ) {
 		return (
-			<>
-				<div className="notice notice-success">
-					<p>
-						<strong>
-							Your artist profile "{ createdArtist.name }" has been created!
-						</strong>
-					</p>
-					<p>What would you like to do next?</p>
-					<div className="ec-artist-creator__actions">
+				<Panel>
+					<PanelHeader
+						title={ `Your artist profile "${ createdArtist.name }" has been created!` }
+						description="What would you like to do next?"
+					/>
+					<ActionRow className="ec-artist-creator__actions">
 						<a
 							href={ config.manageArtistUrl }
 							className="button-2 button-medium"
@@ -125,32 +123,24 @@ const App = () => {
 								Create Shop
 							</a>
 						) }
-					</div>
-				</div>
+					</ActionRow>
 
 				{ error && (
-					<div className="notice notice-error">
-						<p>
-							<strong>Error:</strong> { error }
-						</p>
-					</div>
+					<InlineStatus tone="error">Error: { error }</InlineStatus>
 				) }
-			</>
+				</Panel>
 		);
 	}
 
 	return (
-		<div className="ec-artist-creator-form">
-			<h2>Create Artist Profile</h2>
-			<p className="ec-artist-creator-intro">
-				Set up your artist profile to start building your presence on Extra Chill.
-			</p>
+		<Panel className="ec-artist-creator-form">
+			<PanelHeader
+				title="Create Artist Profile"
+				description="Set up your artist profile to start building your presence on Extra Chill."
+			/>
 
 			<form onSubmit={ handleSubmit }>
-				<div className="ec-artist-creator-field">
-					<label htmlFor="ec-artist-name">
-						Artist Name <span className="required">*</span>
-					</label>
+				<FieldGroup label="Artist Name" htmlFor="ec-artist-name" required>
 					<input
 						type="text"
 						id="ec-artist-name"
@@ -164,10 +154,9 @@ const App = () => {
 						placeholder="Enter your artist or band name"
 						required
 					/>
-				</div>
+				</FieldGroup>
 
-				<div className="ec-artist-creator-field">
-					<label htmlFor="ec-artist-profile-image">Profile Picture</label>
+				<FieldGroup label="Profile Picture" htmlFor="ec-artist-profile-image">
 					{ formState.profileImage && (
 						<div className="ec-artist-creator-image-preview">
 							<img
@@ -189,11 +178,11 @@ const App = () => {
 						accept="image/*"
 						onChange={ ( e ) => handleFileSelect( e.target.files?.[ 0 ] ) }
 					/>
-				</div>
+				</FieldGroup>
 
-				{ error && <p className="ec-artist-creator-error">{ error }</p> }
+				{ error && <InlineStatus tone="error">{ error }</InlineStatus> }
 
-				<div className="ec-artist-creator-actions">
+				<ActionRow className="ec-artist-creator-actions">
 					<button
 						type="submit"
 						className="button-1 button-large"
@@ -201,9 +190,9 @@ const App = () => {
 					>
 						{ saving ? 'Creating...' : 'Create Artist Profile' }
 					</button>
-				</div>
+				</ActionRow>
 			</form>
-		</div>
+		</Panel>
 	);
 };
 

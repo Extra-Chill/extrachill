@@ -6,6 +6,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { ActionRow, InlineStatus, Panel, PanelHeader, Tabs } from '@extrachill/components';
 import { useEditor } from '../context/EditorContext';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 import Preview from './Preview';
@@ -136,40 +137,42 @@ export default function Editor() {
 
 	return (
 		<div className="ec-editor">
-			<div className="ec-editor__header">
-				<div className="ec-editor__header-left">
-					<LinkPageUrl
-						publicUrl={ publicUrl }
-						onQRCodeClick={ () => setIsQRModalOpen( true ) }
-					/>
-					<ArtistSwitcher
-						artists={ userArtists }
-						selectedId={ artistId }
-						onChange={ handleArtistChange }
-					/>
-				</div>
-
-				<div className="ec-editor__header-right">
-					{ saveError && (
-						<span className="ec-editor__save-error">{ saveError }</span>
-					) }
-					{ saveSuccess && (
-						<span className="ec-editor__save-success">
-							{ __( 'Saved!', 'extrachill-artist-platform' ) }
-						</span>
-					) }
-					<button
-						type="button"
-						className="button-1 button-medium"
-						onClick={ handleSave }
-						disabled={ isSaving }
-					>
-						{ isSaving
-							? __( 'Saving...', 'extrachill-artist-platform' )
-							: __( 'Save All', 'extrachill-artist-platform' ) }
-					</button>
-				</div>
-			</div>
+			<PanelHeader
+				className="ec-editor__header"
+				title={
+					<div className="ec-editor__header-left">
+						<LinkPageUrl
+							publicUrl={ publicUrl }
+							onQRCodeClick={ () => setIsQRModalOpen( true ) }
+						/>
+					</div>
+				}
+				actions={
+					<ActionRow align="end" className="ec-editor__header-right">
+						<ArtistSwitcher
+							artists={ userArtists }
+							selectedId={ artistId }
+							onChange={ handleArtistChange }
+						/>
+						{ saveError && <InlineStatus tone="error">{ saveError }</InlineStatus> }
+						{ saveSuccess && (
+							<InlineStatus tone="success">
+								{ __( 'Saved!', 'extrachill-artist-platform' ) }
+							</InlineStatus>
+						) }
+						<button
+							type="button"
+							className="button-1 button-medium"
+							onClick={ handleSave }
+							disabled={ isSaving }
+						>
+							{ isSaving
+								? __( 'Saving...', 'extrachill-artist-platform' )
+								: __( 'Save All', 'extrachill-artist-platform' ) }
+						</button>
+					</ActionRow>
+				}
+			/>
 
 			<QRCodeModal
 				isOpen={ isQRModalOpen }
@@ -180,24 +183,16 @@ export default function Editor() {
 
 			<div className="ec-editor__body">
 				<div className="ec-editor__sidebar">
-					<nav className="ec-editor__tabs">
-						{ TABS.map( ( tab ) => (
-							<button
-								key={ tab.id }
-								type="button"
-								className={ `ec-editor__tab ${
-									activeTab === tab.id ? 'is-active' : ''
-								}` }
-								onClick={ () => setActiveTab( tab.id ) }
-							>
-								{ tab.label }
-							</button>
-						) ) }
-					</nav>
+					<Tabs
+						tabs={ TABS }
+						active={ activeTab }
+						onChange={ setActiveTab }
+						className="ec-editor__tabs"
+					/>
 
-					<div className="ec-editor__tab-content">
+					<Panel className="ec-editor__tab-content" compact>
 						{ renderTabContent() }
-					</div>
+					</Panel>
 				</div>
 
 			<div className="ec-editor__preview-container">

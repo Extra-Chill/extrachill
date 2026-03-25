@@ -2,106 +2,31 @@
 // Uses theme design system from extrachill/assets/css/root.css
 
 @import '../shared/styles/artist-switcher';
+@import '../../../node_modules/@extrachill/components/styles/components';
 
 .ec-am {
   display: grid;
   gap: var(--spacing-md);
 }
 
-.ec-am__tabs {
-  display: inline-flex;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
+.ec-am__title {
+  margin: 0;
+  font-family: var(--font-family-heading);
 }
 
-.ec-am__tab {
-  border: 1px solid var(--border-color);
-  background: var(--background-color);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  color: var(--text-color);
-  font-size: var(--font-size-base);
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-
-  &:hover {
-    background: var(--card-background);
-  }
-
-  &.is-active {
-    border-color: var(--header-background);
-    background: var(--header-background);
-    color: var(--header-text-color);
-  }
+.ec-am__toolbar {
+  justify-content: flex-end;
 }
 
-.ec-am__panel {
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-md);
-  background: var(--card-background);
-  display: grid;
-  gap: var(--spacing-md);
-
-  h3 {
-    margin: 0;
-    font-family: var(--font-family-heading);
-  }
-}
-
-.ec-am__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
-  padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid var(--border-color);
-
-  h2 {
-    margin: 0;
-    font-family: var(--font-family-heading);
-  }
-}
-
-.ec-am__header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
-}
-
-.ec-am__header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.ec-am__save-error {
-  color: var(--error-color);
-  font-size: var(--font-size-sm);
-}
-
-.ec-am__save-success {
-  color: var(--success-color);
-  font-size: var(--font-size-sm);
-}
-
-.ec-am__field {
-  display: grid;
-  gap: var(--spacing-sm);
-
-  > span {
-    font-weight: 600;
-    color: var(--text-color);
-  }
+.ec-am .ec-field-group {
+  margin-bottom: 0;
 
   input:not([type="file"]),
   textarea {
     width: 100%;
   }
 
-  > .button-danger {
+  .button-danger {
     width: max-content;
   }
 }
@@ -113,9 +38,6 @@
 }
 
 .ec-am__inline {
-  display: flex;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
   align-items: flex-start;
 }
 
@@ -230,11 +152,7 @@
 }
 
 .ec-am__footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
+  width: 100%;
 }
 
 .ec-am__pagination {
