@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.20] - 2026-03-25
+
+### Changed
+- Use shared Tabs and expose existing artist state in settings
+
 ## [1.3.19] - 2026-03-25
 
 ### Changed
