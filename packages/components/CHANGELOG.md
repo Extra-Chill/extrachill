@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.13] - 2026-03-25
+
+### Changed
+- Limit responsive tabs styling changes to mobile only
+
 ## [0.4.12] - 2026-03-25
 
 ### Changed
