@@ -310,7 +310,8 @@ function SecurityTab( { settings, onSettingsChange }: {
 				/>
 				{ settings.pending_email && (
 					<div style={ styles.pendingBadge }>
-						Email change pending — verification sent to <strong>{ settings.pending_email }</strong>
+						<div>Email change pending - verification sent to <strong>{ settings.pending_email }</strong></div>
+						<small>Check your inbox and click the verification link.</small>
 					</div>
 				) }
 			</div>
@@ -327,7 +328,7 @@ function SecurityTab( { settings, onSettingsChange }: {
 					placeholder="Enter new email address"
 				/>
 				<div style={ styles.description }>
-					A verification email will be sent to your new address.
+					A verification email will be sent to your new address. Your current email will remain active until verification is complete.
 				</div>
 			</div>
 
@@ -345,7 +346,7 @@ function SecurityTab( { settings, onSettingsChange }: {
 
 			{ /* Password Change */ }
 			<div style={ styles.fieldGroup }>
-				<label style={ styles.label } htmlFor="ec-current-pass">Current Password</label>
+				<label style={ styles.label } htmlFor="ec-current-pass">Current Password <span className="required">*</span></label>
 				<input
 					id="ec-current-pass"
 					type="password"
@@ -591,10 +592,10 @@ function ArtistPlatformTab( { artistAccess, artistSiteUrl }: {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-type TabId = 'account' | 'security' | 'subscriptions' | 'artist-platform';
+type TabId = 'account-details' | 'security' | 'subscriptions' | 'artist-platform';
 
 function UserSettingsApp( { artistSiteUrl }: { artistSiteUrl: string } ) {
-	const [ activeTab, setActiveTab ] = useState< TabId >( 'account' );
+	const [ activeTab, setActiveTab ] = useState< TabId >( 'account-details' );
 	const [ settings, setSettings ] = useState< UserSettings | null >( null );
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState< string | null >( null );
@@ -622,7 +623,7 @@ function UserSettingsApp( { artistSiteUrl }: { artistSiteUrl: string } ) {
 	// Restore tab from hash.
 	useEffect( () => {
 		const hash = window.location.hash.replace( '#tab-', '' );
-		if ( [ 'account', 'security', 'subscriptions', 'artist-platform' ].includes( hash ) ) {
+		if ( [ 'account-details', 'security', 'subscriptions', 'artist-platform' ].includes( hash ) ) {
 			setActiveTab( hash as TabId );
 		}
 	}, [] );
@@ -641,7 +642,7 @@ function UserSettingsApp( { artistSiteUrl }: { artistSiteUrl: string } ) {
 	}
 
 	const tabs: Array< { id: TabId; label: string } > = [
-		{ id: 'account', label: 'Account Details' },
+		{ id: 'account-details', label: 'Account Details' },
 		{ id: 'security', label: 'Security' },
 		{ id: 'subscriptions', label: 'Subscriptions' },
 		{ id: 'artist-platform', label: 'Artist Platform' },
@@ -664,7 +665,7 @@ function UserSettingsApp( { artistSiteUrl }: { artistSiteUrl: string } ) {
 				) ) }
 			</div>
 
-			{ activeTab === 'account' && (
+			{ activeTab === 'account-details' && (
 				<AccountTab settings={ settings } onUpdate={ setSettings } />
 			) }
 			{ activeTab === 'security' && (

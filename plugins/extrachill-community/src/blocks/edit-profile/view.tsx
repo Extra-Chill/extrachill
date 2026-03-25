@@ -165,8 +165,9 @@ function Notice( { type, message }: { type: 'success' | 'error'; message: string
 
 // ─── Avatar Upload ───────────────────────────────────────────────────────────
 
-function AvatarUpload( { avatarUrl, onAvatarChange }: {
+function AvatarUpload( { avatarUrl, userId, onAvatarChange }: {
 	avatarUrl: string;
+	userId: number;
 	onAvatarChange: ( url: string ) => void;
 } ) {
 	const [ uploading, setUploading ] = useState( false );
@@ -177,7 +178,7 @@ function AvatarUpload( { avatarUrl, onAvatarChange }: {
 
 		setUploading( true );
 		try {
-			const formData = client.media.buildUploadForm( 'user_avatar', null, file );
+			const formData = client.media.buildUploadForm( 'user_avatar', userId, file );
 			const result = await client.media.upload( formData );
 			if ( result.url ) {
 				onAvatarChange( result.url );
@@ -186,14 +187,18 @@ function AvatarUpload( { avatarUrl, onAvatarChange }: {
 			// Silently fail — avatar upload is non-critical.
 		}
 		setUploading( false );
-	}, [ onAvatarChange ] );
+	}, [ onAvatarChange, userId ] );
 
 	return (
 		<div style={ styles.avatarContainer }>
 			<img src={ avatarUrl } alt="Avatar" style={ styles.avatar } />
 			<div>
+				<h4 style={ { margin: 0, marginBottom: '4px' } }>Current Avatar</h4>
+				<p style={ { marginTop: 0, marginBottom: '8px', color: cssVar( colors.mutedText ) } }>
+					This is the avatar you currently have set. Upload a new image to change it.
+				</p>
 				<label style={ { ...styles.secondaryButton, display: 'inline-block', opacity: uploading ? 0.7 : 1 } }>
-					{ uploading ? 'Uploading...' : 'Change Avatar' }
+					{ uploading ? 'Uploading...' : 'Upload New Avatar' }
 					<input
 						type="file"
 						accept="image/*"
@@ -286,7 +291,7 @@ function LinksManager( { links, linkTypes, onChange }: {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-function EditProfileApp( { spriteUrl, artistSiteUrl }: { spriteUrl: string; artistSiteUrl: string } ) {
+function EditProfileApp( { spriteUrl, artistSiteUrl, userId, profileUrl, hasArtists, canCreateArtists }: { spriteUrl: string; artistSiteUrl: string; userId: number; profileUrl: string; hasArtists: boolean; canCreateArtists: boolean } ) {
 	const [ profile, setProfile ] = useState< UserProfile | null >( null );
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState< string | null >( null );
@@ -357,7 +362,7 @@ function EditProfileApp( { spriteUrl, artistSiteUrl }: { spriteUrl: string; arti
 			<div style={ styles.card }>
 				<h3 style={ styles.cardTitle }>Avatar & Title</h3>
 
-				<AvatarUpload avatarUrl={ avatarUrl } onAvatarChange={ setAvatarUrl } />
+				<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
 
 				<div style={ styles.fieldGroup }>
 					<label style={ styles.label } htmlFor="ec-custom-title">
@@ -416,18 +421,33 @@ function EditProfileApp( { spriteUrl, artistSiteUrl }: { spriteUrl: string; arti
 			{ hasArtistAccess && (
 				<div style={ styles.card }>
 					<h3 style={ styles.cardTitle }>Artist Profiles</h3>
-					<p>Manage your artist profiles and link pages on the Extra Chill Artist Platform.</p>
-					<a
-						href={ `${ artistSiteUrl }/` }
-						style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
-					>
-						Manage Artists
-					</a>
+					<p>Manage your artist profiles and link pages.</p>
+					{ hasArtists ? (
+						<a
+							href={ `${ artistSiteUrl }/manage-artist/` }
+							style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
+						>
+							Manage Artist
+						</a>
+					) : canCreateArtists ? (
+						<a
+							href={ `${ artistSiteUrl }/create-artist/` }
+							style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
+						>
+							Create Artist Profile
+						</a>
+					) : null }
 				</div>
 			) }
 
 			{ /* Save Button */ }
-			<div style={ { marginTop: cssVar( spacing.spacingMd ) } }>
+			<div style={ { marginTop: cssVar( spacing.spacingMd ), display: 'flex', gap: cssVar( spacing.spacingSm ), flexWrap: 'wrap' } }>
+				<a
+					href={ profileUrl }
+					style={ { ...styles.secondaryButton, display: 'inline-block', textDecoration: 'none' } }
+				>
+					View Profile
+				</a>
 				<button
 					style={ { ...styles.button, opacity: saving ? 0.7 : 1 } }
 					onClick={ handleSave }
@@ -451,9 +471,13 @@ function init(): void {
 
 			const spriteUrl = container.dataset.spriteUrl || '';
 			const artistSiteUrl = container.dataset.artistSiteUrl || 'https://artist.extrachill.com';
+			const userId = Number( container.dataset.userId || '0' );
+			const profileUrl = container.dataset.profileUrl || '#';
+			const hasArtists = container.dataset.hasArtists === '1';
+			const canCreateArtists = container.dataset.canCreateArtists === '1';
 
 			const root = createRoot( container );
-			root.render( <EditProfileApp spriteUrl={ spriteUrl } artistSiteUrl={ artistSiteUrl } /> );
+			root.render( <EditProfileApp spriteUrl={ spriteUrl } artistSiteUrl={ artistSiteUrl } userId={ userId } profileUrl={ profileUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } /> );
 		} );
 }
 
