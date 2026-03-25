@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.12.0] - 2026-03-25
+
+### Added
+- switch event date queries from postmeta to event_dates table
+
+### Changed
+- remove deprecated chat routes (replaced by Data Machine chat API)
+
 ## [0.11.9] - 2026-03-23
 
 ### Changed
