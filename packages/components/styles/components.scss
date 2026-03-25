@@ -249,6 +249,32 @@
 	color: #004085;
 }
 
+// Mobile edge-to-edge panel principle
+// Matches the established theme pattern: small phone screens go full-width,
+// drop rounded corners, and reduce wasted side space.
+@media screen and (max-width: 480px) {
+	.ec-panel {
+		border-radius: 0;
+		padding: var(--spacing-sm, 0.5rem) 0;
+		margin-left: calc(var(--spacing-md, 1rem) * -1);
+		margin-right: calc(var(--spacing-md, 1rem) * -1);
+		padding-left: var(--spacing-md, 1rem);
+		padding-right: var(--spacing-md, 1rem);
+	}
+
+	.ec-panel-header {
+		padding-bottom: var(--spacing-sm, 0.5rem);
+	}
+
+	.ec-action-row {
+		align-items: stretch;
+	}
+
+	.ec-action-row > * {
+		max-width: 100%;
+	}
+}
+
 // Image Preview
 .ec-image-preview {
 	display: inline-flex;
