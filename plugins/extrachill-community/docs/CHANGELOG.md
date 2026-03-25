@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.31] - 2026-03-25
+
+### Changed
+- Align settings shell and panels with shared depth surfaces
+
 ## [1.3.30] - 2026-03-25
 
 ### Changed
