@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.25] - 2026-03-25
+
+### Changed
+- adopt shared studio UI primitives
+
 ## [0.2.24] - 2026-03-25
 
 ### Changed
