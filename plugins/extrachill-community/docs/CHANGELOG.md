@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.29] - 2026-03-25
+
+### Changed
+- Remove legacy settings page shell and tab bridge
+
 ## [1.3.28] - 2026-03-25
 
 ### Changed
