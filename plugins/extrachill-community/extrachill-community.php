@@ -92,6 +92,8 @@ function extrachill_community_register_blocks() {
 	$blocks_dir = file_exists( __DIR__ . '/build/blocks' ) ? 'build/blocks' : 'src/blocks';
 
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/leaderboard' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/user-settings' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/edit-profile' );
 }
 
 register_activation_hook( __FILE__, 'extrachill_community_activate' );
