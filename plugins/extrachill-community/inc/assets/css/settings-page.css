@@ -74,6 +74,11 @@ input[type="email"]#new_email:focus {
 	background: transparent;
 }
 
+.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-shell-tabs--with-divider {
+	padding-bottom: calc(var(--spacing-md) + var(--spacing-sm));
+	margin-bottom: var(--spacing-sm);
+}
+
 .wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-panel {
 	background: var(--card-background);
 }
