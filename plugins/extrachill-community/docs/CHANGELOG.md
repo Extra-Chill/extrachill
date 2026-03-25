@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.37] - 2026-03-25
+
+### Changed
+- Use shared responsive tabs with mobile accordion settings
+
 ## [1.3.36] - 2026-03-25
 
 ### Changed
