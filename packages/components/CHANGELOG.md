@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.7] - 2026-03-25
+
+### Changed
+- Add shell-level tabs layout for consistent block structure
+
 ## [0.4.6] - 2026-03-25
 
 ### Changed
