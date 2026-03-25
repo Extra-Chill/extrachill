@@ -172,14 +172,9 @@ function extrachill_users_ability_get_profile( $input ) {
 		$links = array();
 	}
 
-	// Avatar URL.
-	$avatar_url = '';
-	if ( function_exists( 'extrachill_get_custom_avatar_url' ) ) {
-		$avatar_url = extrachill_get_custom_avatar_url( $user_id );
-	}
-	if ( empty( $avatar_url ) ) {
-		$avatar_url = get_avatar_url( $user_id, array( 'size' => 300 ) );
-	}
+	// Avatar URL — get_avatar_url() already respects the custom avatar filter
+	// in extrachill-users/inc/avatar-display.php (pre_get_avatar hook).
+	$avatar_url = get_avatar_url( $user_id, array( 'size' => 300 ) );
 
 	// Artist status.
 	$has_artist       = get_user_meta( $user_id, 'user_is_artist', true ) === '1';

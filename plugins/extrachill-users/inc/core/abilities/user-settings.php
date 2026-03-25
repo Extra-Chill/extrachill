@@ -169,9 +169,10 @@ function extrachill_users_ability_get_settings( $input ) {
 
 	$display_name_options = array_unique( array_filter( array_map( 'trim', $display_name_options ) ) );
 
-	// Pending email change.
+	// Pending email change — WordPress core uses '_new_email' meta key.
+	// (The old community settings page incorrectly read '_new_user_email'.)
 	$pending_email      = null;
-	$pending_email_data = get_user_meta( $user_id, '_new_user_email', true );
+	$pending_email_data = get_user_meta( $user_id, '_new_email', true );
 	if ( $pending_email_data && isset( $pending_email_data['newemail'] ) ) {
 		$pending_email = $pending_email_data['newemail'];
 	}
@@ -293,11 +294,11 @@ function extrachill_users_ability_change_email( $input ) {
 		'hash'     => $hash,
 		'newemail' => $new_email,
 	);
-	update_user_meta( $user_id, '_new_user_email', $new_user_email );
+	update_user_meta( $user_id, '_new_email', $new_user_email );
 
-	// Build confirmation URL.
+	// Build confirmation URL — matches WordPress core (wp-includes/user.php).
 	$confirm_url = esc_url(
-		admin_url(
+		self_admin_url(
 			'profile.php?newuseremail=' . $hash
 		)
 	);
@@ -339,7 +340,7 @@ Regards,
 	);
 
 	if ( ! $sent ) {
-		delete_user_meta( $user_id, '_new_user_email' );
+		delete_user_meta( $user_id, '_new_email' );
 		return new WP_Error( 'email_send_failed', 'Failed to send verification email. Please try again.' );
 	}
 
