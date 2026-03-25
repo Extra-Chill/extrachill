@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.26] - 2026-03-25
+
+### Changed
+- reuse shared media field in studio
+
 ## [0.2.25] - 2026-03-25
 
 ### Changed
