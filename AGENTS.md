@@ -1,6 +1,6 @@
 # Extra Chill Theme - Architecture & Development Guide
 
-WordPress theme serving the Extra Chill Platform multisite network across 11 active sites (Blog IDs 1-5, 7-12). This document provides architectural guidance for theme development and integration with the platform ecosystem.
+WordPress theme serving the Extra Chill Platform multisite network across 10 active sites (Blog IDs 1-4, 7-12). This document provides architectural guidance for theme development and integration with the platform ecosystem.
 
 ## Theme Architecture & Organization
 
@@ -350,7 +350,7 @@ if (is_singular()) {
 
 ### Blog Context Awareness
 
-The theme operates across 11 sites with aware context switching:
+The theme operates across 10 sites with aware context switching:
 
 ```php
 // Get current blog ID
