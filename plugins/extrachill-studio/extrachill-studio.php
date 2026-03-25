@@ -115,6 +115,9 @@ function extrachill_studio_render_floating_chat() {
 		return;
 	}
 
-	echo '<div data-ec-studio-chat></div>';
+	// Container is positioned fixed so it doesn't affect footer flow.
+	// pointer-events:none on container, auto on children so only the
+	// FAB and panel are interactive, not the invisible container.
+	echo '<div data-ec-studio-chat style="position:fixed;z-index:9999;bottom:0;right:0;pointer-events:none"></div>';
 }
 add_action( 'wp_footer', 'extrachill_studio_render_floating_chat', 50 );

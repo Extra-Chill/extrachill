@@ -65,15 +65,38 @@ const initRoot = ( root: HTMLElement ): void => {
 /**
  * Mount the floating chat into the PHP-rendered container in wp_footer.
  * This is separate from the studio block — it's a viewport-level overlay.
+ *
+ * The container may not exist yet when this script runs (viewScript loads
+ * via block enqueue, which can fire before wp_footer priority 50). We use
+ * a MutationObserver to catch it when it appears, with a fallback poll.
  */
 const initFloatingChat = (): void => {
-	const chatMount = document.querySelector< HTMLElement >( CHAT_MOUNT_SELECTOR );
-	if ( ! chatMount || chatMount.dataset.ecChatMounted === 'true' ) {
+	const tryMount = (): boolean => {
+		const chatMount = document.querySelector< HTMLElement >( CHAT_MOUNT_SELECTOR );
+		if ( ! chatMount || chatMount.dataset.ecChatMounted === 'true' ) {
+			return chatMount !== null;
+		}
+
+		chatMount.dataset.ecChatMounted = 'true';
+		mountComponent( chatMount, createElement( FloatingChat ) );
+		return true;
+	};
+
+	if ( tryMount() ) {
 		return;
 	}
 
-	chatMount.dataset.ecChatMounted = 'true';
-	mountComponent( chatMount, createElement( FloatingChat ) );
+	// Container not in DOM yet — watch for it.
+	const observer = new MutationObserver( () => {
+		if ( tryMount() ) {
+			observer.disconnect();
+		}
+	} );
+
+	observer.observe( document.body, { childList: true, subtree: true } );
+
+	// Safety timeout — stop observing after 10s.
+	setTimeout( () => observer.disconnect(), 10000 );
 };
 
 const init = (): void => {

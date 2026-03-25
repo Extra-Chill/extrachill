@@ -333,10 +333,7 @@
    ============================================ */
 
 .ec-roadie {
-	position: fixed;
-	z-index: 9999;
-	bottom: 0;
-	right: 0;
+	pointer-events: auto;
 }
 
 /* ── FAB button ── */
