@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.35] - 2026-03-25
+
+### Changed
+- Add breathing room below settings tab divider
+
 ## [1.3.34] - 2026-03-25
 
 ### Changed
