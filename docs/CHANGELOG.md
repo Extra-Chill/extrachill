@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.0] - 2026-03-25
+
+### Added
+- enqueue EC block editor branding from @extrachill/tokens
+
+### Changed
+- remove chat.extrachill.com from site list, add studio
+
+### Fixed
+- fix global unordered list styles
+- rebuild CSS with @extrachill/tokens 0.4.2 (DC badge slug fix)
+- rebuild taxonomy-badges.css from @extrachill/tokens@0.4.1, add build script for generated badge CSS
+
 ## [2.1.0] - 2026-03-23
 
 ### Added
