@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.5] - 2026-03-25
+
+### Changed
+- Add shared shell-contained header primitive
+
 ## [0.4.2] - 2026-03-25
 
 ### Changed
