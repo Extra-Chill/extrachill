@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.33] - 2026-03-25
+
+### Changed
+- Allow settings shell to expand edge to edge on mobile
+
 ## [1.3.32] - 2026-03-25
 
 ### Changed
