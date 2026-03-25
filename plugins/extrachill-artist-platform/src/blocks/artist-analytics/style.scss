@@ -206,6 +206,13 @@
 
 /* Responsive - Mobile */
 @media (max-width: 480px) {
+	.ec-aa {
+		margin-left: calc(var(--spacing-md) * -1);
+		margin-right: calc(var(--spacing-md) * -1);
+		padding: 16px;
+		border-radius: 0;
+	}
+
 	.ec-aa__header-left {
 		width: 100%;
 	}

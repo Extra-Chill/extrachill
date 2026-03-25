@@ -759,6 +759,19 @@
 
 /* Responsive - Mobile */
 @media (max-width: 600px) {
+	.ec-link-page-editor {
+		margin-left: calc(var(--spacing-md) * -1);
+		margin-right: calc(var(--spacing-md) * -1);
+		max-width: none;
+		width: auto;
+	}
+
+	.ec-editor {
+		border-radius: 0;
+		border-left: 0;
+		border-right: 0;
+	}
+
 	.ec-editor__header {
 		flex-direction: column;
 		gap: 12px;
@@ -786,6 +799,11 @@
 
 	.ec-editor__tab-content {
 		padding: 16px;
+	}
+
+	.ec-editor__preview-container {
+		padding-left: 16px;
+		padding-right: 16px;
 	}
 }
 
