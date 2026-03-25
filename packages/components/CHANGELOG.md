@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.16] - 2026-03-25
+
+### Changed
+- Tune shared tabs and panel surfaces to current settings design
+
 ## [0.4.13] - 2026-03-25
 
 ### Changed
