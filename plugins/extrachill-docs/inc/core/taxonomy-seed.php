@@ -17,7 +17,6 @@
  * | stream          | stream/           | stream.extrachill.com     |
  * | newsletter      | newsletter/       | newsletter.extrachill.com |
  * | shop            | shop/             | shop.extrachill.com       |
- * | chat            | chat/             | chat.extrachill.com       |
  * | blog            | blog/             | extrachill.com            |
  * | horoscopes      | horoscopes/       | horoscope.extrachill.com  |
  *
@@ -46,7 +45,6 @@ function extrachill_docs_seed_platforms() {
 		'stream'          => 'Stream',
 		'newsletter'      => 'Newsletter',
 		'shop'            => 'Shop',
-		'chat'            => 'Chat',
 		'blog'            => 'Blog',
 		'horoscopes'      => 'Horoscopes',
 	);
