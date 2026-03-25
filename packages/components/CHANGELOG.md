@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.4.23] - 2026-03-25
+
+### Changed
+- Refine responsive accordion spacing and interaction styling
+
+## [0.4.22] - 2026-03-25
+
+### Changed
+- Preserve local accordion collapse state on mobile
+
+## [0.4.21] - 2026-03-25
+
+### Changed
+- Allow responsive accordion items to collapse on second tap
+
+## [0.4.20] - 2026-03-25
+
+### Changed
+- Keep responsive tabs root structural only
+
+## [0.4.19] - 2026-03-25
+
+### Changed
+- Limit responsive tabs accordion mode to phone breakpoint
+
+## [0.4.18] - 2026-03-25
+
+### Changed
+- Remove mobile color overrides from shared surfaces
+
+## [0.4.17] - 2026-03-25
+
+### Changed
+- Fix responsive tabs mobile interaction and shared hover styling
+
 ## [0.4.16] - 2026-03-25
 
 ### Changed
