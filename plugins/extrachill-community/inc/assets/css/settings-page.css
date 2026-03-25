@@ -91,6 +91,12 @@ input[type="email"]#new_email:focus {
 	margin-top: var(--spacing-sm);
 }
 
+.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-tabs__tabs {
+	padding-bottom: calc(var(--spacing-md) + var(--spacing-sm));
+	margin-bottom: var(--spacing-sm);
+	border-bottom: 1px solid var(--border-color);
+}
+
 .wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__accordion {
 	display: none;
 }
