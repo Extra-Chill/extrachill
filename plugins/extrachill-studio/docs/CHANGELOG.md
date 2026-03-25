@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.28] - 2026-03-25
+
+### Changed
+- Update shared components dependency to 0.4.2
+
 ## [0.2.27] - 2026-03-25
 
 ### Changed
