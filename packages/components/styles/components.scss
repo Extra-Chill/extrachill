@@ -153,9 +153,9 @@
 	display: grid;
 	background: var(--background-color, #fff);
 	border: 1px solid var(--border-color, #ddd);
-	border-radius: 0 var(--border-radius-md, 8px) var(--border-radius-md, 8px) var(--border-radius-md, 8px);
-	padding: var(--spacing-lg, 1.5rem) var(--spacing-md, 1rem);
-	margin-bottom: var(--spacing-sm, 0.5rem);
+	border-radius: 0 0 var(--border-radius-md, 8px) var(--border-radius-md, 8px);
+	padding: 0;
+	margin-bottom: 0;
 	position: relative;
 	z-index: 1;
 	box-sizing: border-box;
