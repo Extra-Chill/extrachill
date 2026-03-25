@@ -3,6 +3,7 @@
  *
  * Buttons to run/continue audits.
  */
+import { ActionRow, InlineStatus } from '@extrachill/components';
 import { useAudit } from '../context/AuditContext';
 
 const AuditActions = () => {
@@ -18,7 +19,7 @@ const AuditActions = () => {
 	const showContinue = status === 'in_progress';
 
 	return (
-		<div className="extrachill-seo-audit-actions">
+		<ActionRow className="extrachill-seo-audit-actions">
 			<button
 				type="button"
 				className="button button-primary"
@@ -49,17 +50,17 @@ const AuditActions = () => {
 			) }
 
 			{ isLoading && (
-				<span className="extrachill-seo-audit-status loading">
+				<InlineStatus tone="info" className="extrachill-seo-audit-status">
 					Running audit...
-				</span>
+				</InlineStatus>
 			) }
 
 			{ error && (
-				<span className="extrachill-seo-audit-status error">
+				<InlineStatus tone="error" className="extrachill-seo-audit-status">
 					{ error }
-				</span>
+				</InlineStatus>
 			) }
-		</div>
+		</ActionRow>
 	);
 };
 

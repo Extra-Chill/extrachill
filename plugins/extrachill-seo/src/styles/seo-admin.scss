@@ -9,9 +9,6 @@
 }
 
 .extrachill-seo-audit-actions {
-	display: flex;
-	align-items: center;
-	gap: 8px;
 	margin-bottom: 16px;
 
 	.button {
@@ -21,16 +18,6 @@
 
 .extrachill-seo-audit-status {
 	margin-left: 16px;
-	color: #50575e;
-	font-size: 13px;
-
-	&.loading {
-		color: #2271b1;
-	}
-
-	&.error {
-		color: #d63638;
-	}
 }
 
 // Progress indicator
@@ -192,24 +179,12 @@
 	max-width: 1200px;
 
 	&__tabs {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
 		margin-bottom: 20px;
 		padding-bottom: 15px;
 		border-bottom: 1px solid #ccd0d4;
 	}
 
-	&__tab {
-		&.is-primary {
-			background: #2271b1;
-		}
-	}
-
 	&__content {
-		background: #fff;
-		border: 1px solid #ccd0d4;
-		border-radius: 4px;
 		padding: 20px;
 	}
 }

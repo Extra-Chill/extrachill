@@ -5,7 +5,8 @@
  */
 
 import { useState } from '@wordpress/element';
-import { Button } from '@wordpress/components';
+import { Panel, Tabs } from '@extrachill/components';
+import '@extrachill/components/styles/components.scss';
 import { AuditProvider } from './context/AuditContext';
 import AuditDashboard from './components/AuditDashboard';
 import ConfigPanel from './components/ConfigPanel';
@@ -28,20 +29,9 @@ const App = () => {
 
 	return (
 		<div className="extrachill-seo-admin">
-			<div className="extrachill-seo-admin__tabs">
-				{ tabs.map( ( tab ) => (
-					<Button
-						key={ tab.id }
-						variant={ activeTab === tab.id ? 'primary' : 'secondary' }
-						onClick={ () => setActiveTab( tab.id ) }
-						className="extrachill-seo-admin__tab"
-					>
-						{ tab.title }
-					</Button>
-				) ) }
-			</div>
+			<Tabs tabs={ tabs.map( ( tab ) => ( { id: tab.id, label: tab.title } ) ) } active={ activeTab } onChange={ setActiveTab } className="extrachill-seo-admin__tabs" classPrefix="extrachill-seo-admin" />
 
-			<div className="extrachill-seo-admin__content">
+			<Panel className="extrachill-seo-admin__content" compact>
 				{ activeTab === 'audit' ? (
 					<AuditProvider initialData={ initialData }>
 						<AuditDashboard />
@@ -49,7 +39,7 @@ const App = () => {
 				) : (
 					<ConfigPanel />
 				) }
-			</div>
+			</Panel>
 		</div>
 	);
 };
