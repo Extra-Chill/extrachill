@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.5] - 2026-03-25
+
+### Changed
+- Remove login surface styling now owned by shared shells
+
 ## [0.7.4] - 2026-03-25
 
 ### Changed
