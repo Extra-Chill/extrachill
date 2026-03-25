@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.27] - 2026-03-25
+
+### Changed
+- Update community settings surfaces for shared mobile shell hierarchy
+
 ## [1.3.26] - 2026-03-25
 
 ### Changed
