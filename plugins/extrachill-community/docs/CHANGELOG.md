@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.43] - 2026-03-25
+
+### Changed
+- Bump block assets after shared surface tweaks
+
 ## [1.3.42] - 2026-03-25
 
 ### Changed
