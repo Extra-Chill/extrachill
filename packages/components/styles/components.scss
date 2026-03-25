@@ -133,7 +133,7 @@
 	border: 1px solid var(--border-color, #ddd);
 	border-radius: var(--border-radius-lg, 8px);
 	padding: var(--spacing-md, 1rem);
-	background: var(--card-background, #f8f8f8);
+	background: var(--background-color, #fff);
 	display: grid;
 	gap: var(--spacing-md, 1rem);
 }
@@ -147,6 +147,19 @@
 	box-sizing: border-box;
 	display: grid;
 	gap: var(--spacing-lg, 1.5rem);
+}
+
+.ec-block-shell--depth-0 {
+	background: var(--card-background, #f1f5f9);
+}
+
+.ec-block-shell--depth-1,
+.ec-block-shell--depth-3 {
+	background: var(--background-color, #fff);
+}
+
+.ec-block-shell--depth-2 {
+	background: var(--card-background, #f1f5f9);
 }
 
 .ec-block-shell--compact {
@@ -216,6 +229,34 @@
 .ec-panel--compact {
 	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
 	border-radius: var(--border-radius-md, 6px);
+}
+
+.ec-panel--depth-0,
+.ec-panel--depth-2 {
+	background: var(--card-background, #f8f8f8);
+}
+
+.ec-panel--depth-1,
+.ec-panel--depth-3 {
+	background: var(--background-color, #fff);
+}
+
+.ec-section {
+	display: grid;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-md, 1rem);
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-md, 6px);
+}
+
+.ec-section--depth-0,
+.ec-section--depth-2 {
+	background: var(--card-background, #f8f8f8);
+}
+
+.ec-section--depth-1,
+.ec-section--depth-3 {
+	background: var(--background-color, #fff);
 }
 
 // Panel Header
@@ -356,8 +397,28 @@
 		padding-right: var(--spacing-md, 1rem);
 	}
 
-	.ec-panel .ec-panel {
+	.ec-panel--depth-0,
+	.ec-panel--depth-2,
+	.ec-section--depth-0,
+	.ec-section--depth-2 {
 		background: var(--card-background, #f1f5f9);
+	}
+
+	.ec-panel--depth-1,
+	.ec-panel--depth-3,
+	.ec-section--depth-1,
+	.ec-section--depth-3 {
+		background: var(--background-color, #fff);
+	}
+
+	.ec-section {
+		border-radius: 0;
+		border-left: 0;
+		border-right: 0;
+		margin-left: calc(var(--spacing-md, 1rem) * -1);
+		margin-right: calc(var(--spacing-md, 1rem) * -1);
+		padding-left: var(--spacing-md, 1rem);
+		padding-right: var(--spacing-md, 1rem);
 	}
 
 	.ec-panel-header {

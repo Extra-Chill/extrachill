@@ -5,6 +5,7 @@ export interface BlockShellProps {
 	className?: string;
 	classPrefix?: string;
 	compact?: boolean;
+	depth?: 0 | 1 | 2 | 3;
 }
 
 export function BlockShell( {
@@ -12,10 +13,12 @@ export function BlockShell( {
 	className = '',
 	classPrefix = 'ec-block-shell',
 	compact = false,
+	depth = 0,
 }: BlockShellProps ) {
 	const shellClass = [
 		classPrefix,
 		compact ? `${ classPrefix }--compact` : '',
+		`${ classPrefix }--depth-${ depth }`,
 		className,
 	].filter( Boolean ).join( ' ' );
 
