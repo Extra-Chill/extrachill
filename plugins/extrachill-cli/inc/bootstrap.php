@@ -37,6 +37,8 @@ WP_CLI::add_command( 'extrachill artists', ExtraChill\CLI\Commands\Artists\Artis
 // Users commands.
 WP_CLI::add_command( 'extrachill users', ExtraChill\CLI\Commands\Users\BanCommand::class );
 WP_CLI::add_command( 'extrachill users access', ExtraChill\CLI\Commands\Users\ArtistAccessCommand::class );
+WP_CLI::add_command( 'extrachill users settings', ExtraChill\CLI\Commands\Users\SettingsCommand::class );
+WP_CLI::add_command( 'extrachill users profile', ExtraChill\CLI\Commands\Users\ProfileCommand::class );
 
 // Community commands.
 WP_CLI::add_command( 'extrachill community', ExtraChill\CLI\Commands\Community\CommunityCommand::class );
