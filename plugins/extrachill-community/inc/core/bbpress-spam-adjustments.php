@@ -77,7 +77,7 @@ function ec_user_exempt_from_spam_detection($user_id = 0) {
         return true;
     }
 
-    if (bbp_is_user_moderator($user_id)) {
+    if (user_can($user_id, 'moderate')) {
         return true;
     }
 
