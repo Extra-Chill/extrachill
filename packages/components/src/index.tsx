@@ -9,6 +9,7 @@ export { Pagination, type PaginationProps } from './Pagination.tsx';
 export { SearchBox, type SearchBoxProps } from './SearchBox.tsx';
 export { Modal, type ModalProps } from './Modal.tsx';
 export { Tabs, type TabsProps, type TabItem } from './Tabs.tsx';
+export { ShellTabs, type ShellTabsProps } from './ShellTabs.tsx';
 export { Panel, type PanelProps } from './Panel.tsx';
 export { Surface, type SurfaceProps } from './Surface.tsx';
 export { PanelHeader, type PanelHeaderProps } from './PanelHeader.tsx';

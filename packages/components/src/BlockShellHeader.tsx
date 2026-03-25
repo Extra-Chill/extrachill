@@ -6,6 +6,7 @@ export interface BlockShellHeaderProps {
 	actions?: ReactNode;
 	className?: string;
 	classPrefix?: string;
+	showDivider?: boolean;
 }
 
 export function BlockShellHeader( {
@@ -14,9 +15,16 @@ export function BlockShellHeader( {
 	actions,
 	className = '',
 	classPrefix = 'ec-block-shell-header',
+	showDivider = true,
 }: BlockShellHeaderProps ) {
 	return (
-		<div className={ [ classPrefix, className ].filter( Boolean ).join( ' ' ) }>
+		<div
+			className={ [
+				classPrefix,
+				showDivider ? `${ classPrefix }--with-divider` : `${ classPrefix }--without-divider`,
+				className,
+			].filter( Boolean ).join( ' ' ) }
+		>
 			<div className={ `${ classPrefix }__main` }>
 				{ title && <div className={ `${ classPrefix }__title` }>{ title }</div> }
 				{ description && <div className={ `${ classPrefix }__description` }>{ description }</div> }

@@ -128,6 +128,14 @@
 	}
 }
 
+.ec-shell-tabs {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+	padding-bottom: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #ddd);
+	background: var(--card-background, #f1f5f9);
+}
+
 // Panel
 .ec-panel {
 	border: 1px solid var(--border-color, #ddd);
@@ -195,8 +203,16 @@
 	gap: var(--spacing-md, 1rem);
 	flex-wrap: wrap;
 	padding-bottom: var(--spacing-md, 1rem);
-	border-bottom: 1px solid var(--border-color, #ddd);
 	background: var(--card-background, #f1f5f9);
+}
+
+.ec-block-shell-header--with-divider {
+	border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+.ec-block-shell-header--without-divider {
+	border-bottom: 0;
+	padding-bottom: 0;
 }
 
 .ec-block-shell-header__main {
@@ -383,6 +399,13 @@
 
 	.ec-block-shell-header {
 		padding-bottom: var(--spacing-sm, 0.5rem);
+	}
+
+	.ec-shell-tabs {
+		margin-left: calc(var(--spacing-md, 1rem) * -1);
+		margin-right: calc(var(--spacing-md, 1rem) * -1);
+		padding-left: var(--spacing-md, 1rem);
+		padding-right: var(--spacing-md, 1rem);
 	}
 
 	.ec-panel {
