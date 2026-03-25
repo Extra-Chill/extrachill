@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.20] - 2026-03-25
+
+### Fixed
+- fix floating chat: move to viewport overlay, restore compose sidebar
+
 ## [0.2.19] - 2026-03-25
 
 ### Fixed
