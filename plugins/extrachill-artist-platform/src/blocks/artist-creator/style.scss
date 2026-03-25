@@ -10,15 +10,11 @@
 }
 
 .ec-artist-creator-form {
-	background-color: var(--card-background);
 	padding: var(--spacing-xl);
-	border-radius: var(--border-radius-lg);
-	box-shadow: var(--card-shadow);
-	border: 1px solid var(--border-color);
 }
 
 .ec-artist-creator-form .ec-field-group {
-	margin-bottom: 1.5rem;
+	margin-bottom: 0;
 
 	input[type="text"],
 	textarea {
