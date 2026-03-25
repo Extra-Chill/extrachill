@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.1] - 2026-03-25
+
+### Changed
+- add shared badge primitive
+
 ## [0.2.0] - 2026-03-25
 
 ### Changed
