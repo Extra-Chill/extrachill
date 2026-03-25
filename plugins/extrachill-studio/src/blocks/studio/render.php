@@ -23,7 +23,7 @@ $denied_message = $attributes['deniedMessage'] ?? $defaults['deniedMessage'];
 
 $wrapper_attributes = get_block_wrapper_attributes(
 	array(
-		'class' => 'ec-studio-block full-width-breakout',
+		'class' => 'ec-studio-block',
 	)
 );
 

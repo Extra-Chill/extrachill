@@ -4,10 +4,6 @@
 
 .ec-studio-card,
 .ec-studio-shell {
-	background: var(--card-background);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-lg);
-	padding: var(--spacing-lg);
 	box-sizing: border-box;
 }
 
@@ -63,10 +59,6 @@
 
 .ec-studio-app__panel {
 	margin-top: var(--spacing-md);
-	padding: var(--spacing-md);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-md);
-	background: var(--background-color);
 }
 
 .ec-studio-pane {
@@ -81,10 +73,6 @@
 }
 
 .ec-studio-panel {
-	background: var(--card-background);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-md);
-	padding: var(--spacing-md);
 }
 
 .ec-studio-panel h3,
@@ -313,13 +301,6 @@
 }
 
 @media (max-width: 480px) {
-	.ec-studio-block {
-		width: calc(100% + (var(--spacing-md) * 2));
-		max-width: none;
-		margin-left: calc(var(--spacing-md) * -1);
-		margin-right: calc(var(--spacing-md) * -1);
-	}
-
 	.ec-studio-card,
 	.ec-studio-shell,
 	.ec-studio-app__panel,
@@ -330,24 +311,6 @@
 	.ec-studio-comment-list__item,
 	.ec-studio-social-platforms__item {
 		border-radius: 0;
-	}
-
-	.ec-studio-card,
-	.ec-studio-shell {
-		border-left: 0;
-		border-right: 0;
-		width: 100%;
-		max-width: none;
-		padding-left: var(--spacing-md);
-		padding-right: var(--spacing-md);
-	}
-
-	.ec-studio-app__panel,
-	.ec-studio-panel {
-		border-left: 0;
-		border-right: 0;
-		padding-left: var(--spacing-md);
-		padding-right: var(--spacing-md);
 	}
 
 	.ec-studio-pane__grid,
