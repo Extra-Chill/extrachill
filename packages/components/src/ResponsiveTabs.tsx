@@ -54,8 +54,10 @@ export function ResponsiveTabs( {
 	}, [ mobileBreakpoint ] );
 
 	useEffect( () => {
-		setMobileActive( active );
-	}, [ active ] );
+		if ( ! isMobile ) {
+			setMobileActive( active );
+		}
+	}, [ active, isMobile ] );
 
 	const rootClass = useMemo(
 		() => [
