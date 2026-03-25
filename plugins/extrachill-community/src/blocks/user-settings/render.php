@@ -33,7 +33,7 @@ $can_create_artists = function_exists( 'ec_can_create_artist_profiles' )
 	: false;
 
 printf(
-	'<div class="%1$s" data-artist-site-url="%2$s" data-has-artists="%3$s" data-can-create-artists="%4$s"></div>',
+	'<div class="%1$s ec-block-shell" data-artist-site-url="%2$s" data-has-artists="%3$s" data-can-create-artists="%4$s"></div>',
 	esc_attr( $class ),
 	esc_url( $artist_site_url ),
 	$has_artists ? '1' : '0',
