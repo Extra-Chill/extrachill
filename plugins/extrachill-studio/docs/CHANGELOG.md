@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.30] - 2026-03-25
+
+### Fixed
+- Fix Studio outer shell mobile breakout
+
 ## [0.2.29] - 2026-03-25
 
 ### Changed
