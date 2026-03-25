@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.22] - 2026-03-25
+
+### Changed
+- Use shared Tabs in edit-profile block
+
 ## [1.3.21] - 2026-03-25
 
 ### Changed
