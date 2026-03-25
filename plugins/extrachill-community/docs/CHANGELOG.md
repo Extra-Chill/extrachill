@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.23] - 2026-03-25
+
+### Changed
+- Use shared panel and action primitives in community blocks
+
 ## [1.3.22] - 2026-03-25
 
 ### Changed
