@@ -8,7 +8,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@extrachill/components": "^0.4.1",
+		"@extrachill/components": "^0.4.2",
 		"@extrachill/tokens": "^0.4.2"
 	},
 	"devDependencies": {
