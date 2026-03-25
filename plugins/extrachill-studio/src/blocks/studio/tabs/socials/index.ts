@@ -1,7 +1,7 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useState } from '@wordpress/element';
 import type { ReactElement } from 'react';
-import { InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import { Badge, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { SocialPlatformsResponse } from '@extrachill/api-client';
 
 import { studioClient } from '../../app/client';
@@ -97,12 +97,16 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 							{ className: 'ec-studio-social-platforms__name' },
 							item.label,
 							item.type === 'fetch'
-								? createElement( 'span', { className: 'ec-studio-social-platforms__badge' }, __( 'read-only', 'extrachill-studio' ) )
+								? createElement( Badge, { tone: 'muted', variant: 'outline', className: 'ec-studio-social-platforms__badge' }, __( 'read-only', 'extrachill-studio' ) )
 								: null
 						),
 						createElement(
-							'span',
-							{ className: `ec-studio-social-platforms__status ${ item.authenticated ? 'is-connected' : 'is-disconnected' }` },
+							Badge,
+							{
+								tone: item.authenticated ? 'success' : 'muted',
+								variant: item.authenticated ? 'subtle' : 'outline',
+								className: 'ec-studio-social-platforms__status',
+							},
 							item.authenticated
 								? sprintf( __( 'Connected as @%s', 'extrachill-studio' ), item.username || 'unknown' )
 								: __( 'Not connected', 'extrachill-studio' )
