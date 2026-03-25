@@ -19,26 +19,27 @@ while ( have_posts() ) :
 	the_post();
 	?>
 
-	<article id="post-<?php the_ID(); ?>" <?php post_class( 'single-page-card' ); ?>>
-		<?php do_action( 'extrachill_before_page_content' ); ?>
+	<?php extrachill_breadcrumbs(); ?>
 
-		<?php
-		extrachill_breadcrumbs();
-		?>
-		<?php if ( apply_filters( 'extrachill_show_page_title', true, get_the_ID() ) ) : ?>
-			<header>
-				<h1>
-					<?php the_title(); ?>
-				</h1>
-			</header>
-		<?php endif; ?>
+	<div class="single-page-card">
+		<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+			<?php do_action( 'extrachill_before_page_content' ); ?>
 
-		<div class="entry-content">
-			<?php the_content(); ?>
-		</div>
+			<?php if ( apply_filters( 'extrachill_show_page_title', true, get_the_ID() ) ) : ?>
+				<header>
+					<h1>
+						<?php the_title(); ?>
+					</h1>
+				</header>
+			<?php endif; ?>
 
-		<?php do_action( 'extrachill_after_page_content' ); ?>
-	</article>
+			<div class="entry-content">
+				<?php the_content(); ?>
+			</div>
+
+			<?php do_action( 'extrachill_after_page_content' ); ?>
+		</article>
+	</div>
 
 <?php endwhile; ?>
 	</section>
