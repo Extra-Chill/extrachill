@@ -14,6 +14,18 @@
     {
       "file": "extrachill-community.php",
       "pattern": "EXTRACHILL_COMMUNITY_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "src/blocks/user-settings/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/edit-profile/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/leaderboard/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
 }
