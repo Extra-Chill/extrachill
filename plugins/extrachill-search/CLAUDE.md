@@ -89,18 +89,17 @@ WordPress native search only checks the current site for results. When paginatin
 ## WordPress Multisite Integration
 
 ### Network Sites Covered
-The plugin searches across all 11 active sites in the Extra Chill Platform network (Blog IDs 1–5, 7–12). docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com at Blog ID 12:
+The plugin searches across all 10 active sites in the Extra Chill Platform network (Blog IDs 1–4, 7–12). docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com at Blog ID 12:
 1. **extrachill.com** - Main music journalism site (Blog ID 1)
 2. **community.extrachill.com** - Community forums (bbPress) (Blog ID 2)
 3. **shop.extrachill.com** - E-commerce (WooCommerce) (Blog ID 3)
 4. **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
-5. **chat.extrachill.com** - AI chatbot interface (Blog ID 5)
-6. **events.extrachill.com** - Event calendar hub (Blog ID 7; calendar engine comes from external Data Machine + datamachine-events plugins)
-7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
-8. **newsletter.extrachill.com** - Newsletter management hub (Blog ID 9)
-9. **docs.extrachill.com** - Documentation hub (Blog ID 10)
-10. **wire.extrachill.com** - News feeds (Blog ID 11)
-11. **horoscope.extrachill.com** - Daily horoscopes (Blog ID 12)
+5. **events.extrachill.com** - Event calendar hub (Blog ID 7; calendar engine comes from external Data Machine + datamachine-events plugins)
+6. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
+7. **newsletter.extrachill.com** - Newsletter management hub (Blog ID 9)
+8. **docs.extrachill.com** - Documentation hub (Blog ID 10)
+9. **wire.extrachill.com** - News feeds (Blog ID 11)
+10. **horoscope.extrachill.com** - Daily horoscopes (Blog ID 12)
 
 ### Native WordPress Functions Used
 - **`switch_to_blog()`**: Cross-site database access

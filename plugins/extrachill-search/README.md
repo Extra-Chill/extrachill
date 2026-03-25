@@ -90,19 +90,18 @@ $excerpt = ec_get_contextual_excerpt_multisite( $post_content, $search_term, 300
 ## Architecture
 
 ### Network Sites Covered
-The plugin searches across all sites in your WordPress multisite network. In the Extra Chill Platform, this includes all 11 active sites:
+The plugin searches across all sites in your WordPress multisite network. In the Extra Chill Platform, this includes all 10 active sites:
 
 1. extrachill.com - Main site (Blog ID 1)
 2. community.extrachill.com - Forums (Blog ID 2)
 3. shop.extrachill.com - E-commerce (Blog ID 3)
 4. artist.extrachill.com - Artist platform (Blog ID 4)
-5. chat.extrachill.com - AI chatbot (Blog ID 5)
-6. events.extrachill.com - Events calendar (Blog ID 7)
-7. stream.extrachill.com - Live streaming (Blog ID 8)
-8. newsletter.extrachill.com - Newsletter (Blog ID 9)
-9. docs.extrachill.com - Documentation (Blog ID 10)
-10. wire.extrachill.com - News wire (Blog ID 11)
-11. horoscope.extrachill.com - Horoscopes (Blog ID 12)
+5. events.extrachill.com - Events calendar (Blog ID 7)
+6. stream.extrachill.com - Live streaming (Blog ID 8)
+7. newsletter.extrachill.com - Newsletter (Blog ID 9)
+8. docs.extrachill.com - Documentation (Blog ID 10)
+9. wire.extrachill.com - News wire (Blog ID 11)
+10. horoscope.extrachill.com - Horoscopes (Blog ID 12)
 
 ### Search Result Structure
 ```php

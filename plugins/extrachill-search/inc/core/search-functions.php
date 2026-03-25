@@ -144,7 +144,6 @@ function extrachill_get_site_post_types() {
 		2  => array( 'topic', 'reply', 'forum' ),              // community.extrachill.com (bbPress)
 		3  => array( 'product', 'page' ),                      // shop.extrachill.com (WooCommerce)
 		4  => array( 'artist_profile', 'topic', 'reply' ),     // artist.extrachill.com
-		5  => array( 'page' ),                                 // chat.extrachill.com
 		7  => array( 'data_machine_events', 'page' ),          // events.extrachill.com (Data Machine)
 		8  => array( 'page' ),                                 // stream.extrachill.com
 		9  => array( 'newsletter' ),                           // newsletter.extrachill.com
