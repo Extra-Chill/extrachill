@@ -3,6 +3,7 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
+import { Tabs } from '@extrachill/components';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type {
 	UserSettings,
@@ -21,27 +22,8 @@ const styles = {
 	container: {
 		maxWidth: '700px',
 	},
-	tabs: {
-		display: 'flex',
-		gap: cssVar( spacing.spacingSm ),
-		borderBottom: `1px solid ${ cssVar( colors.borderColor ) }`,
+	tabsWrapper: {
 		marginBottom: cssVar( spacing.spacingLg ),
-		flexWrap: 'wrap' as const,
-	},
-	tab: {
-		padding: `${ cssVar( spacing.spacingSm ) } ${ cssVar( spacing.spacingMd ) }`,
-		border: 'none',
-		borderBottom: '2px solid transparent',
-		background: 'none',
-		cursor: 'pointer',
-		fontSize: cssVar( fontSize.fontSizeBase ),
-		color: cssVar( colors.mutedText ),
-		whiteSpace: 'nowrap' as const,
-	},
-	activeTab: {
-		color: cssVar( colors.textColor ),
-		borderBottomColor: cssVar( colors.linkColor ),
-		fontWeight: 600,
 	},
 	fieldGroup: {
 		marginBottom: cssVar( spacing.spacingMd ),
@@ -492,9 +474,11 @@ function SubscriptionsTab() {
 
 // ─── Artist Platform Tab ─────────────────────────────────────────────────────
 
-function ArtistPlatformTab( { artistAccess, artistSiteUrl }: {
+function ArtistPlatformTab( { artistAccess, artistSiteUrl, hasArtists, canCreateArtists }: {
 	artistAccess: { status: string; type: string; request_type?: string; requested_at?: number };
 	artistSiteUrl: string;
+	hasArtists: boolean;
+	canCreateArtists: boolean;
 } ) {
 	const [ accessType, setAccessType ] = useState< 'artist' | 'professional' >( 'artist' );
 	const [ submitting, setSubmitting ] = useState( false );
@@ -523,14 +507,25 @@ function ArtistPlatformTab( { artistAccess, artistSiteUrl }: {
 				<div style={ styles.artistAccessGranted }>
 					<p><strong>You have artist platform access!</strong></p>
 					<p>You can create artist profiles and link pages on extrachill.link.</p>
-					<p>
-						<a
-							href={ `${ artistSiteUrl }/create-artist/` }
-							style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
-						>
-							Create Artist Profile
-						</a>
-					</p>
+					{ hasArtists ? (
+						<p>
+							<a
+								href={ `${ artistSiteUrl }/manage-artist/` }
+								style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
+							>
+								Manage Artist
+							</a>
+						</p>
+					) : canCreateArtists ? (
+						<p>
+							<a
+								href={ `${ artistSiteUrl }/create-artist/` }
+								style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
+							>
+								Create Artist Profile
+							</a>
+						</p>
+					) : null }
 				</div>
 			) }
 
@@ -594,7 +589,7 @@ function ArtistPlatformTab( { artistAccess, artistSiteUrl }: {
 
 type TabId = 'account-details' | 'security' | 'subscriptions' | 'artist-platform';
 
-function UserSettingsApp( { artistSiteUrl }: { artistSiteUrl: string } ) {
+function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { artistSiteUrl: string; hasArtists: boolean; canCreateArtists: boolean } ) {
 	const [ activeTab, setActiveTab ] = useState< TabId >( 'account-details' );
 	const [ settings, setSettings ] = useState< UserSettings | null >( null );
 	const [ loading, setLoading ] = useState( true );
@@ -650,19 +645,8 @@ function UserSettingsApp( { artistSiteUrl }: { artistSiteUrl: string } ) {
 
 	return (
 		<div style={ styles.container }>
-			<div style={ styles.tabs }>
-				{ tabs.map( ( tab ) => (
-					<button
-						key={ tab.id }
-						style={ {
-							...styles.tab,
-							...( activeTab === tab.id ? styles.activeTab : {} ),
-						} }
-						onClick={ () => switchTab( tab.id ) }
-					>
-						{ tab.label }
-					</button>
-				) ) }
+			<div style={ styles.tabsWrapper }>
+				<Tabs tabs={ tabs } active={ activeTab } onChange={ ( id ) => switchTab( id as TabId ) } />
 			</div>
 
 			{ activeTab === 'account-details' && (
@@ -675,7 +659,7 @@ function UserSettingsApp( { artistSiteUrl }: { artistSiteUrl: string } ) {
 				<SubscriptionsTab />
 			) }
 			{ activeTab === 'artist-platform' && (
-				<ArtistPlatformTab artistAccess={ artistAccess } artistSiteUrl={ artistSiteUrl } />
+				<ArtistPlatformTab artistAccess={ artistAccess } artistSiteUrl={ artistSiteUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } />
 			) }
 		</div>
 	);
@@ -691,9 +675,11 @@ function init(): void {
 			container.dataset.initialized = '1';
 
 			const artistSiteUrl = container.dataset.artistSiteUrl || 'https://artist.extrachill.com';
+			const hasArtists = container.dataset.hasArtists === '1';
+			const canCreateArtists = container.dataset.canCreateArtists === '1';
 
 			const root = createRoot( container );
-			root.render( <UserSettingsApp artistSiteUrl={ artistSiteUrl } /> );
+			root.render( <UserSettingsApp artistSiteUrl={ artistSiteUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } /> );
 		} );
 }
 
