@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.38] - 2026-03-25
+
+### Changed
+- Restore desktop tab spacing after responsive tabs refactor
+
 ## [1.3.37] - 2026-03-25
 
 ### Changed
