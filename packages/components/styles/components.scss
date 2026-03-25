@@ -144,6 +144,63 @@
 	padding-bottom: 0;
 }
 
+.ec-responsive-tabs {
+	display: grid;
+	gap: var(--spacing-md, 1rem);
+}
+
+.ec-responsive-tabs__desktop-panel {
+	display: grid;
+}
+
+.ec-responsive-tabs__accordion {
+	display: grid;
+	gap: var(--spacing-md, 1rem);
+}
+
+.ec-responsive-tabs__item {
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-md, 6px);
+	overflow: hidden;
+	background: var(--card-background, #f8f8f8);
+}
+
+.ec-responsive-tabs__trigger {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+	border: 0;
+	border-bottom: 1px solid var(--border-color, #ddd);
+	background: var(--card-background, #f8f8f8);
+	color: var(--text-color, #111);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+	text-align: left;
+}
+
+.ec-responsive-tabs__trigger:not(.is-active) {
+	border-bottom-color: transparent;
+}
+
+.ec-responsive-tabs__trigger.is-active {
+	background: var(--background-color, #fff);
+	color: var(--link-color, #0b5394);
+}
+
+.ec-responsive-tabs__panel {
+	padding: var(--spacing-sm, 0.5rem);
+	background: var(--background-color, #fff);
+}
+
+.ec-responsive-tabs__arrow {
+	flex-shrink: 0;
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
 // Panel
 .ec-panel {
 	border: 1px solid var(--border-color, #ddd);
