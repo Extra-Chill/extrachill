@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.21] - 2026-03-25
+
+### Changed
+- Enqueue shared tabs styles for user settings block
+
 ## [1.3.20] - 2026-03-25
 
 ### Changed
