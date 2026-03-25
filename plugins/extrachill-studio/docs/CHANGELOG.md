@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.31] - 2026-03-25
+
+### Changed
+- Update shared components and opt Studio into generic breakout utility
+- Opt Studio block into generic full-width breakout utility
+
 ## [0.2.30] - 2026-03-25
 
 ### Fixed
