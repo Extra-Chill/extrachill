@@ -1,19 +1,16 @@
 import { createElement, useState } from '@wordpress/element';
 import type { ComponentType, ReactElement } from 'react';
-import Tabs from '@extrachill/components/components/Tabs';
+import { Tabs } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
-import '@extrachill/chat/css';
 
 import { mountComponent } from './app/mount';
 import { getStudioTabs } from './app/tabs';
-import FloatingChat from './app/floating-chat';
 import type { StudioContext, StudioPaneProps } from './types/studio';
 import ComposePane from './tabs/compose';
 import QrCodesPane from './tabs/qr-codes';
 import SocialsPane from './tabs/socials';
 
 const ROOT_SELECTOR = '[data-ec-studio-root]';
-const CHAT_MOUNT_SELECTOR = '[data-ec-studio-chat]';
 
 const STUDIO_PANES: Record< string, ComponentType< StudioPaneProps > > = {
 	compose: ComposePane,
@@ -62,46 +59,8 @@ const initRoot = ( root: HTMLElement ): void => {
 	mountComponent( appMount, createElement( StudioApp, { context } ) );
 };
 
-/**
- * Mount the floating chat into the PHP-rendered container in wp_footer.
- * This is separate from the studio block — it's a viewport-level overlay.
- *
- * The container may not exist yet when this script runs (viewScript loads
- * via block enqueue, which can fire before wp_footer priority 50). We use
- * a MutationObserver to catch it when it appears, with a fallback poll.
- */
-const initFloatingChat = (): void => {
-	const tryMount = (): boolean => {
-		const chatMount = document.querySelector< HTMLElement >( CHAT_MOUNT_SELECTOR );
-		if ( ! chatMount || chatMount.dataset.ecChatMounted === 'true' ) {
-			return chatMount !== null;
-		}
-
-		chatMount.dataset.ecChatMounted = 'true';
-		mountComponent( chatMount, createElement( FloatingChat ) );
-		return true;
-	};
-
-	if ( tryMount() ) {
-		return;
-	}
-
-	// Container not in DOM yet — watch for it.
-	const observer = new MutationObserver( () => {
-		if ( tryMount() ) {
-			observer.disconnect();
-		}
-	} );
-
-	observer.observe( document.body, { childList: true, subtree: true } );
-
-	// Safety timeout — stop observing after 10s.
-	setTimeout( () => observer.disconnect(), 10000 );
-};
-
 const init = (): void => {
 	document.querySelectorAll< HTMLElement >( ROOT_SELECTOR ).forEach( initRoot );
-	initFloatingChat();
 };
 
 if ( document.readyState === 'loading' ) {

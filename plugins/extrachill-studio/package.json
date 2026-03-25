@@ -4,17 +4,15 @@
 	"description": "Internal studio tooling for the Extra Chill team.",
 	"private": true,
 	"scripts": {
-		"build": "wp-scripts build && npm run copy:block-files",
-		"copy:block-files": "cp blocks/studio/block.json blocks/studio/render.php blocks/studio/style.css dist/studio/",
+		"build": "wp-scripts build && cp src/blocks/studio/style.css build/blocks/studio/",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@extrachill/chat": "file:../chat",
-		"@extrachill/components": "file:../extrachill-components",
-		"@extrachill/tokens": "^0.1.0"
+		"@extrachill/components": "^0.2.0",
+		"@extrachill/tokens": "^0.4.2"
 	},
 	"devDependencies": {
-		"@extrachill/api-client": "file:../extrachill-api-client",
+		"@extrachill/api-client": "^0.2.3",
 		"@types/wordpress__block-editor": "^15.0.5",
 		"@types/wordpress__blocks": "^15.10.2",
 		"@wordpress/scripts": "^31.1.0",
