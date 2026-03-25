@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.2] - 2026-03-25
+
+### Changed
+- Add mobile edge-to-edge behavior for shared panels
+
 ## [0.4.1] - 2026-03-25
 
 ### Changed
