@@ -1,0 +1,54 @@
+<?php
+/**
+ * Edit Profile block server render.
+ *
+ * Outputs a container div that the React app hydrates into.
+ * Passes configuration via data attributes.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// Redirect to login if not authenticated.
+if ( ! is_user_logged_in() ) {
+	auth_redirect();
+	return;
+}
+
+$class = 'wp-block-extrachill-edit-profile';
+
+$sprite_url = get_template_directory_uri() . '/assets/fonts/extrachill.svg';
+
+if ( defined( 'EXTRACHILL_THEME_VERSION' ) && EXTRACHILL_THEME_VERSION ) {
+	$sprite_url .= '?v=' . urlencode( EXTRACHILL_THEME_VERSION );
+}
+
+$artist_site_url = function_exists( 'ec_get_site_url' )
+	? ec_get_site_url( 'artist' )
+	: 'https://artist.extrachill.com';
+
+$current_user_id = get_current_user_id();
+
+$profile_url = function_exists( 'bbp_get_user_profile_url' )
+	? bbp_get_user_profile_url( $current_user_id )
+	: '#';
+
+$has_artists = function_exists( 'ec_get_artists_for_user' )
+	? ! empty( ec_get_artists_for_user( $current_user_id ) )
+	: false;
+
+$can_create_artists = function_exists( 'ec_can_create_artist_profiles' )
+	? ec_can_create_artist_profiles( $current_user_id )
+	: false;
+
+printf(
+	'<div class="%1$s" data-sprite-url="%2$s" data-artist-site-url="%3$s" data-user-id="%4$d" data-profile-url="%5$s" data-has-artists="%6$s" data-can-create-artists="%7$s"></div>',
+	esc_attr( $class ),
+	esc_url( $sprite_url ),
+	esc_url( $artist_site_url ),
+	(int) $current_user_id,
+	esc_url( $profile_url ),
+	$has_artists ? '1' : '0',
+	$can_create_artists ? '1' : '0'
+);

@@ -1,0 +1,18 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/user-settings",
+	"version": "0.1.0",
+	"title": "User Settings",
+	"category": "widgets",
+	"icon": "admin-generic",
+	"description": "Account settings page: name, display name, email, password, subscriptions, and artist platform access.",
+	"supports": {
+		"html": false,
+		"anchor": true
+	},
+	"textdomain": "extra-chill-community",
+	"editorScript": "file:./index.js",
+	"viewScript": "file:./view.js",
+	"render": "file:./render.php"
+}
