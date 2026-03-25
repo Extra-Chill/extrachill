@@ -36,6 +36,7 @@ export function ResponsiveTabs( {
 
 		return window.innerWidth < mobileBreakpoint;
 	} );
+	const [ mobileActive, setMobileActive ] = useState( active );
 
 	useEffect( () => {
 		if ( typeof window === 'undefined' ) {
@@ -51,6 +52,10 @@ export function ResponsiveTabs( {
 
 		return () => window.removeEventListener( 'resize', handleResize );
 	}, [ mobileBreakpoint ] );
+
+	useEffect( () => {
+		setMobileActive( active );
+	}, [ active ] );
 
 	const rootClass = useMemo(
 		() => [
@@ -88,7 +93,7 @@ export function ResponsiveTabs( {
 		<div className={ rootClass }>
 			<div className={ [ `${ classPrefix }__accordion`, accordionClassName ].filter( Boolean ).join( ' ' ) }>
 				{ tabs.map( ( tab ) => {
-					const isActive = tab.id === active;
+					const isActive = tab.id === mobileActive;
 
 					return (
 						<div key={ tab.id } className={ `${ classPrefix }__item${ isActive ? ' is-active' : '' }` }>
@@ -96,7 +101,10 @@ export function ResponsiveTabs( {
 								type="button"
 								className={ `${ classPrefix }__trigger${ isActive ? ' is-active' : '' }` }
 								aria-expanded={ isActive }
-								onClick={ () => onChange( tab.id ) }
+								onClick={ () => {
+									setMobileActive( tab.id );
+									onChange( tab.id );
+								} }
 							>
 								<span>{ tab.label }</span>
 								<span className={ `${ classPrefix }__arrow` } aria-hidden="true">
