@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.22] - 2026-03-25
+
+### Changed
+- rewrite floating chat: conditional render, flat CSS classes, theme vars
+
 ## [0.2.21] - 2026-03-25
 
 ### Fixed
