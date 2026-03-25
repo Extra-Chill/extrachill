@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.32] - 2026-03-25
+
+### Changed
+- Bump block asset versions for settings cache busting
+
 ## [1.3.31] - 2026-03-25
 
 ### Changed
