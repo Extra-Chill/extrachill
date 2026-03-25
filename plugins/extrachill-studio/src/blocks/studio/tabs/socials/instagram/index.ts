@@ -1,7 +1,7 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useState } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
-import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, FieldGroup, InlineStatus, MediaField, Panel, PanelHeader } from '@extrachill/components';
 
 import apiFetch from '@wordpress/api-fetch';
 import type { SocialPublishResponse, SocialPublishResult } from '@extrachill/api-client';
@@ -26,6 +26,7 @@ const InstagramPane = (): ReactElement => {
 	const [ imageUrlInput, setImageUrlInput ] = useState( '' );
 	const [ imageUrls, setImageUrls ] = useState< string[] >( [] );
 	const [ selectedFile, setSelectedFile ] = useState< File | null >( null );
+	const [ selectedFilePreviewUrl, setSelectedFilePreviewUrl ] = useState( '' );
 	const [ isUploading, setIsUploading ] = useState( false );
 	const [ isPublishing, setIsPublishing ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
@@ -63,6 +64,20 @@ const InstagramPane = (): ReactElement => {
 
 		loadAuthStatus();
 	}, [] );
+
+	useEffect( () => {
+		if ( ! selectedFile ) {
+			setSelectedFilePreviewUrl( '' );
+			return;
+		}
+
+		const previewUrl = URL.createObjectURL( selectedFile );
+		setSelectedFilePreviewUrl( previewUrl );
+
+		return () => {
+			URL.revokeObjectURL( previewUrl );
+		};
+	}, [ selectedFile ] );
 
 	useEffect( () => {
 		if ( ! authStatus?.authenticated ) {
@@ -155,6 +170,7 @@ const InstagramPane = (): ReactElement => {
 
 			setImageUrls( ( current ) => [ ...current, response.url ] );
 			setSelectedFile( null );
+			setSelectedFilePreviewUrl( '' );
 			setStatus( __( 'Image uploaded and added to publish queue.', 'extrachill-studio' ) );
 		} catch ( uploadError ) {
 			setError( ( uploadError as Error )?.message || __( 'Image upload failed.', 'extrachill-studio' ) );
@@ -357,37 +373,40 @@ const InstagramPane = (): ReactElement => {
 					createElement( 'button', { type: 'button', className: 'button-1 button-medium', onClick: addImageUrl }, __( 'Add Image URL', 'extrachill-studio' ) ),
 					createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'Use a public image URL or upload a file below.', 'extrachill-studio' ) )
 				),
-				createElement(
-					FieldGroup,
-					{ label: __( 'Upload image', 'extrachill-studio' ), htmlFor: 'ec-studio-instagram-upload' },
-					createElement( 'input', {
-						id: 'ec-studio-instagram-upload',
-						type: 'file',
-						accept: 'image/*',
-						onChange: ( event: ChangeEvent< HTMLInputElement > ) => {
-							setSelectedFile( event.target.files?.[ 0 ] || null );
-							setError( '' );
-							setStatus( '' );
-						},
-					} )
-				),
-				createElement(
-					ActionRow,
-					{ className: 'ec-studio-composer__actions' },
-					createElement(
-						'button',
-						{
-							type: 'button',
-							className: 'button-1 button-medium',
-							onClick: handleUpload,
-							disabled: isUploading || ! selectedFile,
-						},
-						isUploading ? __( 'Uploading…', 'extrachill-studio' ) : __( 'Upload Image', 'extrachill-studio' )
-					),
-					selectedFile
-						? createElement( 'span', { className: 'ec-studio-composer__hint' }, selectedFile.name )
-						: null
-				),
+				createElement( MediaField, {
+					label: __( 'Upload image', 'extrachill-studio' ),
+					htmlFor: 'ec-studio-instagram-upload',
+					previewUrl: selectedFilePreviewUrl || null,
+					previewAlt: selectedFile?.name || __( 'Selected upload preview', 'extrachill-studio' ),
+					empty: __( 'No local image selected yet.', 'extrachill-studio' ),
+					actions: createElement(
+						ActionRow,
+						null,
+						createElement( 'input', {
+							id: 'ec-studio-instagram-upload',
+							type: 'file',
+							accept: 'image/*',
+							onChange: ( event: ChangeEvent< HTMLInputElement > ) => {
+								setSelectedFile( event.target.files?.[ 0 ] || null );
+								setError( '' );
+								setStatus( '' );
+							},
+						} ),
+						createElement(
+							'button',
+							{
+								type: 'button',
+								className: 'button-1 button-medium',
+								onClick: handleUpload,
+								disabled: isUploading || ! selectedFile,
+							},
+							isUploading ? __( 'Uploading…', 'extrachill-studio' ) : __( 'Upload Image', 'extrachill-studio' )
+						),
+						selectedFile
+							? createElement( 'span', { className: 'ec-studio-composer__hint' }, selectedFile.name )
+							: null
+					)
+				} ),
 				error ? createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
 				! error && status ? createElement( InlineStatus, { tone: 'success', className: 'ec-studio-message' }, status ) : null,
 				createElement(
