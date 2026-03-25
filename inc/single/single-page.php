@@ -21,25 +21,23 @@ while ( have_posts() ) :
 
 	<?php extrachill_breadcrumbs(); ?>
 
-	<div class="single-page-card">
-		<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
-			<?php do_action( 'extrachill_before_page_content' ); ?>
+	<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+		<?php do_action( 'extrachill_before_page_content' ); ?>
 
-			<?php if ( apply_filters( 'extrachill_show_page_title', true, get_the_ID() ) ) : ?>
-				<header>
-					<h1>
-						<?php the_title(); ?>
-					</h1>
-				</header>
-			<?php endif; ?>
+		<?php if ( apply_filters( 'extrachill_show_page_title', true, get_the_ID() ) ) : ?>
+			<header>
+				<h1>
+					<?php the_title(); ?>
+				</h1>
+			</header>
+		<?php endif; ?>
 
-			<div class="entry-content">
-				<?php the_content(); ?>
-			</div>
+		<div class="entry-content">
+			<?php the_content(); ?>
+		</div>
 
-			<?php do_action( 'extrachill_after_page_content' ); ?>
-		</article>
-	</div>
+		<?php do_action( 'extrachill_after_page_content' ); ?>
+	</article>
 
 <?php endwhile; ?>
 	</section>
