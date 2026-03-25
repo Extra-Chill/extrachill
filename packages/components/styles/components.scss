@@ -249,6 +249,70 @@
 	color: #004085;
 }
 
+// Image Preview
+.ec-image-preview {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	max-width: 100%;
+	overflow: hidden;
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-md, 6px);
+	background: var(--background-color, #fff);
+	padding: var(--spacing-xs, 0.25rem);
+	box-sizing: border-box;
+}
+
+.ec-image-preview__image {
+	display: block;
+	max-width: min(100%, var(--ec-image-preview-max-width, 220px));
+	width: auto;
+	height: auto;
+	border-radius: inherit;
+}
+
+.ec-image-preview__overlay {
+	position: absolute;
+	inset: 0;
+}
+
+// Media Field
+.ec-media-field {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-media-field__input {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-media-field__surface {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-media-field__preview,
+.ec-media-field__empty {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+	justify-items: start;
+}
+
+.ec-media-field__empty {
+	padding: var(--spacing-md, 1rem);
+	border: 1px dashed var(--border-color, #ddd);
+	border-radius: var(--border-radius-md, 6px);
+	background: var(--background-color, #fff);
+	color: var(--muted-text, #666);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ec-media-field__actions {
+	margin-top: 0;
+}
+
 // Badges (commonly used with tables)
 .ec-badge {
 	display: inline-block;
