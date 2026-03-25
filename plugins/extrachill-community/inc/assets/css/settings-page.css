@@ -61,28 +61,6 @@ input[type="email"]#new_email:focus {
 	width: 100%;
 }
 
-.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled {
-	background: transparent;
-	border: 0;
-	border-radius: 0;
-	padding: 0;
-	gap: var(--spacing-lg);
-}
-
-.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-block-shell-header,
-.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-shell-tabs {
-	background: transparent;
-}
-
-.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-shell-tabs--with-divider {
-	padding-bottom: calc(var(--spacing-md) + var(--spacing-sm));
-	margin-bottom: var(--spacing-sm);
-}
-
-.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-panel {
-	background: var(--card-background);
-}
-
 .wp-block-extrachill-user-settings .ec-community-settings-tabs {
 	gap: 0;
 }
@@ -97,38 +75,11 @@ input[type="email"]#new_email:focus {
 	border-bottom: 1px solid var(--border-color);
 }
 
-.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__accordion {
-	display: none;
-}
-
 @media screen and (max-width: 480px) {
 	.wp-block-extrachill-user-settings .ec-community-settings-shell__inner {
 		max-width: none;
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);
-	}
-
-	.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-block-shell-header,
-	.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-shell-tabs {
-		padding-left: 0;
-		padding-right: 0;
-	}
-
-	.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-tabs__tabs,
-	.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__desktop-panel {
-		display: none;
-	}
-
-	.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__accordion {
-		display: grid;
-	}
-
-	.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__item {
-		margin-left: calc(var(--spacing-md) * -1);
-		margin-right: calc(var(--spacing-md) * -1);
-		border-left: 0;
-		border-right: 0;
-		border-radius: 0;
 	}
 }
 

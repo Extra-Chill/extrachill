@@ -342,7 +342,7 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 	};
 
 	return (
-		<BlockShell className="ec-community-settings-shell ec-community-settings-shell--unstyled">
+		<BlockShell className="ec-community-settings-shell" variant="plain">
 			<div className="ec-community-settings-shell__inner" style={ styles.container }>
 				<div style={ styles.headerRegion }>
 					<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
@@ -352,8 +352,8 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 						onChange={ ( id ) => switchTab( id as TabId ) }
 						renderPanel={ renderTabPanel }
 						className="ec-community-settings-tabs"
-						tabsClassName="ec-community-settings-tabs__desktop"
 						showDesktopTabs={ true }
+						mobileEdgeToEdge={ true }
 					/>
 				</div>
 			</div>
