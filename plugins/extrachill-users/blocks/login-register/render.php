@@ -9,7 +9,7 @@ if ( is_user_logged_in() ) {
 	$logged_in_user = wp_get_current_user();
 	$profile_url    = ec_get_site_url( 'community' ) . '/u/' . $logged_in_user->user_nicename . '/';
 	?>
-	<div class="login-already-logged-in-card">
+	<div class="ec-block-shell login-already-logged-in-card">
 		<div class="logged-in-avatar">
 			<?php echo get_avatar( $logged_in_user->ID, 80 ); ?>
 		</div>
@@ -109,7 +109,15 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 
 ?>
 
-<div class="shared-tabs-component">
+<div class="ec-block-shell login-register-shell">
+	<div class="ec-block-shell-header login-register-shell__header">
+		<div class="ec-block-shell-header__main">
+			<div class="ec-block-shell-header__title"><?php esc_html_e( 'Login or Register', 'extrachill-users' ); ?></div>
+			<div class="ec-block-shell-header__description"><?php esc_html_e( 'Access the Extra Chill community and artist platform.', 'extrachill-users' ); ?></div>
+		</div>
+	</div>
+
+	<div class="shared-tabs-component login-register-shell__body">
 	<div class="shared-tabs-buttons-container">
 		<!-- Login Tab -->
 		<div class="shared-tab-item">
@@ -216,6 +224,7 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 
 	<!-- Desktop Tab Content Area -->
 	<div class="shared-desktop-tab-content-area" style="display: none;"></div>
+	</div>
 </div>
 
 <?php
