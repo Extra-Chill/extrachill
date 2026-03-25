@@ -94,3 +94,27 @@ function extrachill_studio_render_homepage() {
 	include EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/templates/studio-homepage.php';
 }
 add_action( 'extrachill_homepage_content', 'extrachill_studio_render_homepage' );
+
+/**
+ * Render the floating Roadie chat container in wp_footer.
+ *
+ * The container is mounted outside the studio block so it's a viewport-level
+ * overlay that works across all pages on the studio site. The React component
+ * in view.ts picks this up and mounts the chat UI into it.
+ *
+ * Only renders for authenticated team members on the studio site.
+ *
+ * @return void
+ */
+function extrachill_studio_render_floating_chat() {
+	if ( ! is_user_logged_in() ) {
+		return;
+	}
+
+	if ( function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
+		return;
+	}
+
+	echo '<div data-ec-studio-chat></div>';
+}
+add_action( 'wp_footer', 'extrachill_studio_render_floating_chat', 50 );

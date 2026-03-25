@@ -329,68 +329,115 @@
    ============================================ */
 
 /* ============================================
-   Floating Chat
+   Roadie — Floating Chat Overlay
    ============================================ */
 
-.ec-studio-app {
-	display: flex;
-	gap: var(--spacing-md);
-	align-items: flex-start;
+.ec-roadie {
+	position: fixed;
+	z-index: 9999;
+	bottom: 0;
+	right: 0;
 }
 
-.ec-studio-app__main {
-	flex: 1;
-	min-width: 0;
-}
+/* ── FAB button ── */
 
-.ec-studio-floating-chat {
-	position: sticky;
-	top: var(--spacing-md);
-	flex-shrink: 0;
-	width: 380px;
-	z-index: 10;
-}
-
-.ec-studio-floating-chat.is-closed {
-	width: auto;
-}
-
-.ec-studio-floating-chat__toggle {
+.ec-roadie__fab {
+	position: fixed;
+	bottom: var(--spacing-lg, 24px);
+	right: var(--spacing-lg, 24px);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: var(--spacing-sm) var(--spacing-md);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-sm);
-	background: var(--header-background);
-	color: var(--header-text-color);
+	height: 56px;
+	padding: 0 var(--spacing-lg, 24px);
+	border: none;
+	border-radius: 28px;
+	background: var(--header-background, #1a1a2e);
+	color: var(--header-text-color, #fff);
 	font: inherit;
-	font-size: var(--font-size-sm);
+	font-size: var(--font-size-base, 15px);
 	font-weight: 700;
 	cursor: pointer;
-	white-space: nowrap;
-	transition: background-color 0.2s;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+	transition: transform 0.15s, box-shadow 0.15s;
 }
 
-.ec-studio-floating-chat.is-open .ec-studio-floating-chat__toggle {
-	width: 100%;
-	border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
-	border-bottom: none;
+.ec-roadie__fab:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
-.ec-studio-floating-chat.is-closed .ec-studio-floating-chat__toggle {
-	border-radius: var(--border-radius-sm);
+.ec-roadie__fab:active {
+	transform: translateY(0);
 }
 
-.ec-studio-floating-chat__panel {
+/* ── Backdrop ── */
+
+.ec-roadie__backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.4);
+	z-index: 9998;
+}
+
+/* ── Panel ── */
+
+.ec-roadie__panel {
 	display: none;
+	position: fixed;
+	z-index: 9999;
+	bottom: 0;
+	right: 0;
+	width: 100%;
+	height: 100%;
+	max-width: 420px;
+	max-height: 100dvh;
+	background: var(--background-color, #fff);
+	box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+	flex-direction: column;
 }
 
-.ec-studio-floating-chat.is-open .ec-studio-floating-chat__panel {
-	display: block;
+.ec-roadie.is-open .ec-roadie__panel {
+	display: flex;
 }
 
-.ec-studio-floating-chat__chat {
+.ec-roadie__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--spacing-sm, 12px) var(--spacing-md, 16px);
+	border-bottom: 1px solid var(--border-color, #e0e0e0);
+	flex-shrink: 0;
+}
+
+.ec-roadie__title {
+	font-family: var(--font-family-heading, sans-serif);
+	font-size: var(--font-size-lg, 18px);
+	font-weight: 700;
+}
+
+.ec-roadie__close {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--text-color, #1a1a2e);
+	font-size: 18px;
+	cursor: pointer;
+	transition: background 0.15s;
+}
+
+.ec-roadie__close:hover {
+	background: var(--card-background, #f5f5f5);
+}
+
+/* ── Chat instance ── */
+
+.ec-roadie__chat {
 	--ec-chat-bg: var(--background-color);
 	--ec-chat-text: var(--text-color);
 	--ec-chat-text-muted: var(--muted-text);
@@ -409,26 +456,23 @@
 	--ec-chat-session-active-bg: var(--card-background);
 	--ec-chat-session-hover-bg: var(--card-background);
 	--ec-chat-font-family: var(--font-family-body);
-	--ec-chat-border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+	--ec-chat-border-radius: 0;
 
-	height: 70vh;
-	max-height: 700px;
-	border: 1px solid var(--border-color);
-	border-top: none;
-	border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+	flex: 1;
+	min-height: 0;
 	overflow: hidden;
 }
 
-.ec-studio-chat-empty {
+.ec-roadie__empty {
 	text-align: center;
 }
 
-.ec-studio-chat-empty h3 {
+.ec-roadie__empty h3 {
 	margin: 0 0 var(--spacing-xs);
 	font-family: var(--font-family-heading);
 }
 
-.ec-studio-chat-empty p {
+.ec-roadie__empty p {
 	margin: 0;
 	color: var(--muted-text);
 }
@@ -439,18 +483,8 @@
 		padding: var(--spacing-md);
 	}
 
-	.ec-studio-app {
-		flex-direction: column;
-	}
-
-	.ec-studio-floating-chat {
-		position: static;
-		width: 100%;
-	}
-
-	.ec-studio-floating-chat__chat {
-		height: 50vh;
-		max-height: 400px;
+	.ec-roadie__panel {
+		max-width: 100%;
 	}
 }
 

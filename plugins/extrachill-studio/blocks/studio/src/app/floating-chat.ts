@@ -7,56 +7,48 @@ import { Chat } from '@extrachill/chat';
 const STUDIO_AGENT_ID = 5;
 const CHAT_BASE_PATH = '/datamachine/v1/chat';
 
-interface FloatingChatProps {
-	activeTab: string;
-	activePostId: number | null;
-	activePostTitle: string;
-}
-
 /**
- * Floating chat panel — persistent across all Studio tabs.
+ * Floating Roadie chat — mounted outside the Studio block in wp_footer.
  *
- * Collapsible sidebar that provides Roadie chat with client context
- * awareness. The agent knows which tab the user is on and what draft
- * they're editing.
+ * Bottom-right FAB button that opens a full-screen chat overlay on mobile
+ * and a fixed drawer on desktop. Always available on every Studio page.
+ * Chat component stays mounted when closed (hidden via CSS) to preserve
+ * conversation state.
  */
-const FloatingChat = ( { activeTab, activePostId, activePostTitle }: FloatingChatProps ): ReactElement => {
+const FloatingChat = (): ReactElement => {
 	const [ isOpen, setIsOpen ] = useState( false );
-
-	const clientContext: Record< string, unknown > = {
-		site: 'studio.extrachill.com',
-		tab: activeTab,
-	};
-
-	if ( activePostId ) {
-		clientContext.post_id = activePostId;
-	}
-	if ( activePostTitle ) {
-		clientContext.post_title = activePostTitle;
-	}
 
 	return createElement(
 		'div',
-		{ className: `ec-studio-floating-chat ${ isOpen ? 'is-open' : 'is-closed' }` },
+		{ className: `ec-roadie ${ isOpen ? 'is-open' : '' }` },
 
-		// Toggle button
-		createElement(
-			'button',
-			{
-				type: 'button',
-				className: 'ec-studio-floating-chat__toggle',
-				onClick: () => setIsOpen( ( open ) => ! open ),
-				'aria-label': isOpen ? __( 'Close Roadie', 'extrachill-studio' ) : __( 'Open Roadie', 'extrachill-studio' ),
-			},
-			isOpen
-				? __( '✕', 'extrachill-studio' )
-				: __( 'Roadie', 'extrachill-studio' )
-		),
+		// Overlay backdrop — click to close
+		isOpen
+			? createElement( 'div', {
+				className: 'ec-roadie__backdrop',
+				onClick: () => setIsOpen( false ),
+			} )
+			: null,
 
-		// Chat panel (always rendered, hidden via CSS when closed to preserve state)
+		// Chat panel — always rendered, visibility controlled by CSS
 		createElement(
 			'div',
-			{ className: 'ec-studio-floating-chat__panel' },
+			{ className: 'ec-roadie__panel' },
+			createElement(
+				'div',
+				{ className: 'ec-roadie__header' },
+				createElement( 'span', { className: 'ec-roadie__title' }, __( 'Roadie', 'extrachill-studio' ) ),
+				createElement(
+					'button',
+					{
+						type: 'button',
+						className: 'ec-roadie__close',
+						onClick: () => setIsOpen( false ),
+						'aria-label': __( 'Close chat', 'extrachill-studio' ),
+					},
+					'✕'
+				)
+			),
 			createElement( Chat, {
 				basePath: CHAT_BASE_PATH,
 				fetchFn: apiFetch,
@@ -65,11 +57,13 @@ const FloatingChat = ( { activeTab, activePostId, activePostTitle }: FloatingCha
 				showSessions: true,
 				placeholder: __( 'Ask Roadie anything…', 'extrachill-studio' ),
 				metadata: {
-					client_context: clientContext,
+					client_context: {
+						site: 'studio.extrachill.com',
+					},
 				},
 				emptyState: createElement(
 					'div',
-					{ className: 'ec-studio-chat-empty' },
+					{ className: 'ec-roadie__empty' },
 					createElement( 'h3', null, __( 'Roadie', 'extrachill-studio' ) ),
 					createElement(
 						'p',
@@ -79,9 +73,23 @@ const FloatingChat = ( { activeTab, activePostId, activePostTitle }: FloatingCha
 				),
 				processingLabel: ( turnCount: number ) =>
 					__( `Working... (turn ${ turnCount })`, 'extrachill-studio' ),
-				className: 'ec-studio-floating-chat__chat',
+				className: 'ec-roadie__chat',
 			} )
-		)
+		),
+
+		// FAB button — bottom right, visible when closed
+		! isOpen
+			? createElement(
+				'button',
+				{
+					type: 'button',
+					className: 'ec-roadie__fab',
+					onClick: () => setIsOpen( true ),
+					'aria-label': __( 'Open Roadie chat', 'extrachill-studio' ),
+				},
+				createElement( 'span', { className: 'ec-roadie__fab-label' }, __( 'Roadie', 'extrachill-studio' ) )
+			)
+			: null
 	);
 };
 
