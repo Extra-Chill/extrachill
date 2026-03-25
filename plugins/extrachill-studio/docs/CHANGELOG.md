@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.19] - 2026-03-25
+
+### Fixed
+- rename onDraftChange select handler to avoid collision with prop
+
 ## [0.2.18] - 2026-03-24
 
 ### Changed
