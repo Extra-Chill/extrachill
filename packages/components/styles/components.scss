@@ -295,18 +295,27 @@
 		border-radius: 0;
 		border-left: 0;
 		border-right: 0;
+		border-top: 1px solid var(--border-color, #ddd);
+		border-bottom: 1px solid var(--border-color, #ddd);
 		margin: 0;
 		max-width: 100%;
 		padding: var(--spacing-md, 1rem);
 	}
 
 	.ec-panel {
+		background: var(--background-color, #fff);
 		border-radius: 0;
+		border-left: 0;
+		border-right: 0;
 		padding: var(--spacing-sm, 0.5rem) 0;
 		margin-left: calc(var(--spacing-md, 1rem) * -1);
 		margin-right: calc(var(--spacing-md, 1rem) * -1);
 		padding-left: var(--spacing-md, 1rem);
 		padding-right: var(--spacing-md, 1rem);
+	}
+
+	.ec-panel .ec-panel {
+		background: var(--card-background, #f1f5f9);
 	}
 
 	.ec-panel-header {
