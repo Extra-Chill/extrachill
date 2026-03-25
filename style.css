@@ -1197,11 +1197,16 @@ p.site-title {
 	}
 	/* Padding for everything except the post card */
 	body.single-post .main-content > :not(.single-post-card),
-	body.page .main-content > :not(.single-page-card),
+	body.page .main-content > :not(.single-page-card):not(.page-edge-shell),
 	body.single-datamachine_events .main-content > :not(.single-post-card),
 	body.single-newsletter .main-content > :not(.single-post-card) {
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);
+	}
+
+	body.page .main-content > .page-edge-shell {
+		padding-left: 0;
+		padding-right: 0;
 	}
 }
 
