@@ -138,6 +138,43 @@
 	gap: var(--spacing-md, 1rem);
 }
 
+// Block shell / top-level wrapper
+.ec-block-shell {
+	background: var(--card-background, #f1f5f9);
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-xl, 14px);
+	padding: var(--spacing-lg, 1.5rem);
+	box-sizing: border-box;
+	display: grid;
+	gap: var(--spacing-lg, 1.5rem);
+}
+
+.ec-block-shell--compact {
+	padding: var(--spacing-md, 1rem);
+	border-radius: var(--border-radius-lg, 8px);
+}
+
+.ec-block-intro {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+	background: var(--card-background, #f1f5f9);
+}
+
+.ec-block-intro__title {
+	margin: 0;
+	font-family: var(--font-family-heading, inherit);
+	font-size: var(--font-size-2xl, 1.75rem);
+	font-weight: 700;
+	color: var(--text-color, #111);
+}
+
+.ec-block-intro__description {
+	margin: 0;
+	font-size: var(--font-size-body, 1.125rem);
+	line-height: 1.6;
+	color: var(--text-color, #111);
+}
+
 .ec-panel--compact {
 	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
 	border-radius: var(--border-radius-md, 6px);
@@ -253,6 +290,16 @@
 // Matches the established theme pattern: small phone screens go full-width,
 // drop rounded corners, and reduce wasted side space.
 @media screen and (max-width: 480px) {
+	.ec-block-shell {
+		background: var(--card-background, #f1f5f9);
+		border-radius: 0;
+		border-left: 0;
+		border-right: 0;
+		margin: 0;
+		max-width: 100%;
+		padding: var(--spacing-md, 1rem);
+	}
+
 	.ec-panel {
 		border-radius: 0;
 		padding: var(--spacing-sm, 0.5rem) 0;

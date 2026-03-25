@@ -17,3 +17,5 @@ export { InlineStatus, type InlineStatusProps } from './InlineStatus.tsx';
 export { Badge, type BadgeProps } from './Badge.tsx';
 export { ImagePreview, type ImagePreviewProps } from './ImagePreview.tsx';
 export { MediaField, type MediaFieldProps } from './MediaField.tsx';
+export { BlockShell, type BlockShellProps } from './BlockShell.tsx';
+export { BlockIntro, type BlockIntroProps } from './BlockIntro.tsx';
