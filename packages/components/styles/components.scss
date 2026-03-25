@@ -160,11 +160,6 @@
 	box-sizing: border-box;
 }
 
-.ec-responsive-tabs__accordion {
-	display: grid;
-	gap: var(--spacing-md, 1rem);
-}
-
 .ec-responsive-tabs__item {
 	border: 1px solid var(--border-color, #ddd);
 	border-radius: var(--border-radius-md, 8px);
@@ -186,13 +181,11 @@
 	gap: var(--spacing-sm, 0.5rem);
 	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
 	border: 0;
-	border-bottom: 1px solid var(--border-color, #ddd);
 	background: var(--card-background, #f8f8f8);
 	color: var(--text-color, #111);
 	font-family: var(--font-family-body, inherit);
 	font-size: var(--font-size-body, 1.125rem);
 	font-weight: 600;
-	line-height: 1.4;
 	cursor: pointer;
 	text-align: left;
 	transition: background 0.15s ease, color 0.15s ease;
@@ -207,11 +200,6 @@
 	color: var(--link-color, #0b5394);
 }
 
-.ec-responsive-tabs__trigger:hover {
-	background: var(--background-color, #fff);
-	color: var(--link-color-hover, var(--link-color, #0b5394));
-}
-
 .ec-responsive-tabs__trigger:focus-visible {
 	outline: 2px solid var(--focus-border-color, #53940b);
 	outline-offset: -2px;
@@ -219,7 +207,7 @@
 }
 
 .ec-responsive-tabs__panel {
-	padding: var(--spacing-sm, 0.5rem);
+	padding: 0 var(--spacing-md, 1rem);
 	background: var(--background-color, #fff);
 	margin-bottom: 0;
 }
