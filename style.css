@@ -154,12 +154,22 @@ th {
 /*
 ====> 3.3 Lists
 --------------------------------------------------------------*/
+ul,
+ol {
+	margin: 0 0 var(--spacing-lg);
+	padding-left: var(--spacing-xl);
+}
+
 ul {
-	list-style: none;
+	list-style: disc;
 }
 
 ol {
 	list-style: decimal;
+}
+
+li {
+	margin: var(--spacing-xs) 0;
 }
 
 /*
@@ -449,6 +459,12 @@ background-color: var(--background-color);
 
 .social-links {
 	text-align: center;
+}
+
+.social-links ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
 }
 
 .social-links ul li {
