@@ -1,14 +1,62 @@
 {
   "name": "@extrachill/components",
-  "version": "0.1.0",
-  "description": "Shared React components for Extra Chill Platform",
-  "main": "index.js",
+  "version": "0.2.0",
+  "description": "Shared React components for the Extra Chill Platform.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles/components.scss": "./styles/components.scss",
+    "./styles/*": "./styles/*",
+    "./src": {
+      "types": "./src/index.tsx",
+      "default": "./src/index.tsx"
+    },
+    "./src/*": {
+      "types": "./src/*.tsx",
+      "default": "./src/*.tsx"
+    }
+  },
+  "files": [
+    "src",
+    "dist",
+    "styles",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "rm -rf dist *.tsbuildinfo && tsc",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "extrachill",
+    "react",
+    "components",
+    "wordpress",
+    "design-system"
+  ],
   "author": "Chris Huber <hello@chubes.net>",
   "license": "GPL-2.0+",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Extra-Chill/extrachill-components.git"
+  },
+  "homepage": "https://github.com/Extra-Chill/extrachill-components",
+  "bugs": "https://github.com/Extra-Chill/extrachill-components/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
-    "@wordpress/components": "^28.0.0",
-    "@wordpress/element": "^6.0.0",
-    "react": "^18.0.0"
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "typescript": "^5.7.0"
   }
 }
