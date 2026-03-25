@@ -314,6 +314,8 @@
 
 @media (max-width: 480px) {
 	.ec-studio-block {
+		width: calc(100% + (var(--spacing-md) * 2));
+		max-width: none;
 		margin-left: calc(var(--spacing-md) * -1);
 		margin-right: calc(var(--spacing-md) * -1);
 	}
@@ -334,6 +336,8 @@
 	.ec-studio-shell {
 		border-left: 0;
 		border-right: 0;
+		width: 100%;
+		max-width: none;
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);
 	}
