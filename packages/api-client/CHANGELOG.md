@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0] - 2026-03-25
+
+### Added
+- add auth fields to SocialPlatformConfig type
+
+### Changed
+- Add Homeboy component config
+- Add typed methods for user settings, profile, subscriptions, and artist access
+- drop activity resource, types, and exports
+- add socials resource to universal API client
+
+### Fixed
+- Fix LeaderboardResponse types to match actual REST endpoint
+
 ## [0.2.2] - 2026-03-02
 
 - fix: updateSocials pass-through body, generateQrCode size param
