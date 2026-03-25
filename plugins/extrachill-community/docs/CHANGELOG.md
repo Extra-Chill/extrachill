@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.41] - 2026-03-25
+
+### Changed
+- Bump block asset versions after mobile tabs fix
+
 ## [1.3.40] - 2026-03-25
 
 ### Changed
