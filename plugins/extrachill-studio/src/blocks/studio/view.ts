@@ -1,6 +1,6 @@
 import { createElement, useState } from '@wordpress/element';
 import type { ComponentType, ReactElement } from 'react';
-import { Tabs } from '@extrachill/components';
+import { Panel, Tabs } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 
 import { mountComponent } from './app/mount';
@@ -32,11 +32,7 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 			onChange: setActiveTab,
 			classPrefix: 'ec-studio',
 		} ),
-		createElement(
-			'div',
-			{ className: 'ec-studio-app__panel', role: 'tabpanel' },
-			createElement( ActivePane, { context } )
-		)
+		createElement( Panel, { className: 'ec-studio-app__panel', classPrefix: 'ec-panel', compact: true }, createElement( ActivePane, { context } ) )
 	);
 };
 

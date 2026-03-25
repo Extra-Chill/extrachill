@@ -2,6 +2,7 @@ import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useRef, useState, useCallback } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
 import apiFetch from '@wordpress/api-fetch';
+import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { StudioPaneProps } from '../../types/studio';
 
 declare global {
@@ -360,61 +361,72 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 			// Left: Editor
 			createElement(
-				'div',
-				{ className: 'ec-studio-panel ec-studio-panel--editor' },
+				Panel,
+				{ className: 'ec-studio-panel ec-studio-panel--editor', compact: true },
 
 				// Draft toolbar
 				createElement(
-					'div',
-					{ className: 'ec-studio-compose-toolbar' },
-					createElement(
-						'div',
-						{ className: 'ec-studio-compose-toolbar__controls' },
-						drafts.length > 0
-							? createElement(
-								'select',
-								{
-									className: 'ec-studio-compose-draft-picker',
-									value: activePostId || '',
-									onChange: onDraftSelect,
-									disabled: isLoadingDrafts,
-								},
-								createElement( 'option', { value: '', disabled: true },
-									isLoadingDrafts
-										? __( 'Loading drafts…', 'extrachill-studio' )
-										: __( 'Select a draft…', 'extrachill-studio' )
-								),
-								...drafts.map( ( d ) =>
-									createElement( 'option', { key: d.id, value: d.id },
-										`#${ d.id } — ${ ( d.title.raw || d.title.rendered || __( 'Untitled', 'extrachill-studio' ) ).slice( 0, 50 ) }`
+					PanelHeader,
+					{
+						title: __( 'Compose', 'extrachill-studio' ),
+						actions: createElement(
+							ActionRow,
+							{ className: 'ec-studio-compose-toolbar' },
+							createElement(
+								'div',
+								{ className: 'ec-studio-compose-toolbar__controls' },
+								drafts.length > 0
+									? createElement(
+										'select',
+										{
+											className: 'ec-studio-compose-draft-picker',
+											value: activePostId || '',
+											onChange: onDraftSelect,
+											disabled: isLoadingDrafts,
+										},
+										createElement( 'option', { value: '', disabled: true },
+											isLoadingDrafts
+												? __( 'Loading drafts…', 'extrachill-studio' )
+												: __( 'Select a draft…', 'extrachill-studio' )
+										),
+										...drafts.map( ( d ) =>
+											createElement( 'option', { key: d.id, value: d.id },
+												`#${ d.id } — ${ ( d.title.raw || d.title.rendered || __( 'Untitled', 'extrachill-studio' ) ).slice( 0, 50 ) }`
+											)
+										)
 									)
+									: ( ! isLoadingDrafts
+										? createElement( 'span', { className: 'ec-studio-compose-toolbar__empty' }, __( 'No drafts yet', 'extrachill-studio' ) )
+										: createElement( 'span', { className: 'ec-studio-compose-toolbar__empty' }, __( 'Loading…', 'extrachill-studio' ) )
+									),
+								createElement(
+									'button',
+									{
+										type: 'button',
+										className: 'button-1 button-small',
+										onClick: startNew,
+										disabled: isSubmitting,
+									},
+									__( 'New', 'extrachill-studio' )
 								)
 							)
-							: ( ! isLoadingDrafts
-								? createElement( 'span', { className: 'ec-studio-compose-toolbar__empty' }, __( 'No drafts yet', 'extrachill-studio' ) )
-								: createElement( 'span', { className: 'ec-studio-compose-toolbar__empty' }, __( 'Loading…', 'extrachill-studio' ) )
-							),
-						createElement(
-							'button',
-							{
-								type: 'button',
-								className: 'button-1 button-small',
-								onClick: startNew,
-								disabled: isSubmitting,
-							},
-							__( 'New', 'extrachill-studio' )
 						)
-					)
+					}
 				),
 
 				// Title input
-				createElement( 'input', {
-					type: 'text',
-					className: 'ec-studio-compose-title',
-					placeholder: __( 'Post title…', 'extrachill-studio' ),
-					value: title,
-					onChange: onTitleChange,
-				} ),
+				createElement(
+					FieldGroup,
+					{ label: __( 'Title', 'extrachill-studio' ), htmlFor: 'ec-studio-compose-title' },
+					createElement( 'input', {
+						id: 'ec-studio-compose-title',
+						type: 'text',
+						className: 'ec-studio-compose-title',
+						placeholder: __( 'Post title…', 'extrachill-studio' ),
+						value: title,
+						onChange: onTitleChange,
+					} )
+				),
 
 				// Block editor container — mounted once, content swapped via replaceContent API.
 				createElement(
@@ -430,15 +442,15 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 				// Status messages
 				error
-					? createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, error )
+					? createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, error )
 					: null,
 				! error && status
-					? createElement( 'p', { className: 'ec-studio-message ec-studio-message--success' }, status )
+					? createElement( InlineStatus, { tone: 'success', className: 'ec-studio-message' }, status )
 					: null,
 
 				// Actions
 				createElement(
-					'div',
+					ActionRow,
 					{ className: 'ec-studio-composer__actions' },
 					createElement(
 						'button',
@@ -469,9 +481,9 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 			// Right: Sidebar
 			createElement(
-				'div',
-				{ className: 'ec-studio-panel' },
-				createElement( 'h3', null, __( 'Publishing', 'extrachill-studio' ) ),
+				Panel,
+				{ className: 'ec-studio-panel', compact: true },
+				createElement( PanelHeader, { title: __( 'Publishing', 'extrachill-studio' ) } ),
 				createElement(
 					'ul',
 					null,
@@ -480,7 +492,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 					createElement( 'li', null, __( 'Submit for Review — flags the post for an admin to approve and publish.', 'extrachill-studio' ) )
 				),
 				activePostId
-					? createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' },
+					? createElement( InlineStatus, { tone: 'info', className: 'ec-studio-message' },
 						sprintf( __( 'Editing draft #%d', 'extrachill-studio' ), activePostId )
 					)
 					: null

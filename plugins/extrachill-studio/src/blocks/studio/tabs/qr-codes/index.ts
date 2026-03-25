@@ -1,6 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import { createElement, useState } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
+import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 
 import { studioClient } from '../../app/client';
 import type { StudioPaneProps } from '../../types/studio';
@@ -48,17 +49,18 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 		'div',
 		{ className: 'ec-studio-pane ec-studio-pane--qr-codes' },
 		createElement(
-			'div',
-			{ className: 'ec-studio-panel' },
-			createElement( 'h3', null, __( 'Generate a QR code', 'extrachill-studio' ) ),
-			createElement( 'p', null, __( 'Paste any URL to get a high-res QR code PNG for flyers, merch, and event signage.', 'extrachill-studio' ) ),
+			Panel,
+			{ className: 'ec-studio-panel', compact: true },
+			createElement( PanelHeader, {
+				title: __( 'Generate a QR code', 'extrachill-studio' ),
+				description: __( 'Paste any URL to get a high-res QR code PNG for flyers, merch, and event signage.', 'extrachill-studio' ),
+			} ),
 			createElement(
 				'div',
 				{ className: 'ec-studio-composer' },
 				createElement(
-					'div',
-					null,
-					createElement( 'label', { htmlFor: 'ec-studio-qr-url' }, __( 'URL', 'extrachill-studio' ) ),
+					FieldGroup,
+					{ label: __( 'URL', 'extrachill-studio' ), htmlFor: 'ec-studio-qr-url' },
 					createElement( 'input', {
 						id: 'ec-studio-qr-url',
 						type: 'url',
@@ -69,7 +71,7 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 					} )
 				),
 				createElement(
-					'div',
+					ActionRow,
 					{ className: 'ec-studio-composer__actions' },
 					createElement(
 						'button',
@@ -83,13 +85,13 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 					)
 				)
 			),
-			error ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, error ) : null,
-			! error && status ? createElement( 'p', { className: 'ec-studio-message ec-studio-message--success' }, status ) : null
+			error ? createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
+			! error && status ? createElement( InlineStatus, { tone: 'success', className: 'ec-studio-message' }, status ) : null
 		),
 		imageUrl
 			? createElement(
-				'div',
-				{ className: 'ec-studio-panel' },
+				Panel,
+				{ className: 'ec-studio-panel', compact: true },
 				createElement(
 					'div',
 					{ className: 'ec-studio-qr-result' },

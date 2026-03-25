@@ -1,6 +1,7 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useState } from '@wordpress/element';
 import type { ReactElement } from 'react';
+import { InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { SocialPlatformsResponse } from '@extrachill/api-client';
 
 import { studioClient } from '../../app/client';
@@ -55,9 +56,9 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 			'div',
 			{ className: 'ec-studio-pane ec-studio-pane--socials' },
 			createElement(
-				'div',
-				{ className: 'ec-studio-panel' },
-				createElement( 'p', { className: 'ec-studio-message ec-studio-message--info' }, __( 'Loading social platforms…', 'extrachill-studio' ) )
+				Panel,
+				{ className: 'ec-studio-panel', compact: true },
+				createElement( InlineStatus, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading social platforms…', 'extrachill-studio' ) )
 			)
 		);
 	}
@@ -67,9 +68,9 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 			'div',
 			{ className: 'ec-studio-pane ec-studio-pane--socials' },
 			createElement(
-				'div',
-				{ className: 'ec-studio-panel' },
-				createElement( 'p', { className: 'ec-studio-message ec-studio-message--error' }, error )
+				Panel,
+				{ className: 'ec-studio-panel', compact: true },
+				createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, error )
 			)
 		);
 	}
@@ -81,9 +82,9 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 			'div',
 			{ className: 'ec-studio-pane__grid' },
 			createElement(
-				'div',
-				{ className: 'ec-studio-panel' },
-				createElement( 'h3', null, sprintf( __( '%d platforms available', 'extrachill-studio' ), publishPlatforms.length ) ),
+				Panel,
+				{ className: 'ec-studio-panel', compact: true },
+				createElement( PanelHeader, { title: sprintf( __( '%d platforms available', 'extrachill-studio' ), publishPlatforms.length ) } ),
 				createElement( 'p', null, sprintf( __( '%d connected, %d publish-capable.', 'extrachill-studio' ), connectedPlatforms.length, publishPlatforms.length ) ),
 				createElement(
 					'ul',
@@ -110,9 +111,9 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 				)
 			),
 			createElement(
-				'div',
-				{ className: 'ec-studio-panel' },
-				createElement( 'h3', null, __( 'Publishing workflows', 'extrachill-studio' ) ),
+				Panel,
+				{ className: 'ec-studio-panel', compact: true },
+				createElement( PanelHeader, { title: __( 'Publishing workflows', 'extrachill-studio' ) } ),
 				createElement( 'p', null, __( 'Each connected platform has its own publishing workflow below. New platforms appear automatically when connected in Data Machine.', 'extrachill-studio' ) ),
 				createElement(
 					'ul',

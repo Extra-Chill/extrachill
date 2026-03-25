@@ -1,6 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import { InspectorControls, RichText, useBlockProps } from '@wordpress/block-editor';
 import { PanelBody, TextareaControl } from '@wordpress/components';
+import { Tabs } from '@extrachill/components';
 
 import { getStudioTabs } from './app/tabs';
 
@@ -52,21 +53,15 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 					allowedFormats={ [ 'core/bold', 'core/italic', 'core/link' ] }
 				/>
 
-				<div className="shared-tabs-component ec-studio-editor__preview">
-					<div className="shared-tabs-buttons-container">
-						{ tabs.map( ( tab, index ) => (
-							<div key={ tab.pane } className="shared-tab-item">
-								<button type="button" className={ `shared-tab-button${ index === 0 ? ' active' : '' }` }>
-									{ tab.label }
-									<span className={ `shared-tab-arrow${ index === 0 ? ' open' : '' }` } />
-								</button>
-								{ index === 0 ? (
-									<div className="shared-tab-pane" style={ { display: 'block' } }>
-										<p>{ tab.preview }</p>
-									</div>
-								) : null }
-							</div>
-						) ) }
+				<div className="ec-studio-editor__preview">
+					<Tabs
+						tabs={ tabs.map( ( tab ) => ( { id: tab.id, label: tab.label } ) ) }
+						active={ tabs[ 0 ]?.id || 'compose' }
+						onChange={ () => undefined }
+						classPrefix="ec-studio"
+					/>
+					<div className="ec-studio-editor__preview-panel">
+						<p>{ tabs[ 0 ]?.preview }</p>
 					</div>
 				</div>
 			</div>
