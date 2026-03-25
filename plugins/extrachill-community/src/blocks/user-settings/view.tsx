@@ -3,7 +3,7 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
-import { Tabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
+import { BlockShell, Tabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type {
@@ -323,7 +323,8 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 	];
 
 	return (
-		<div style={ styles.container }>
+		<BlockShell className="ec-community-settings-shell">
+			<div style={ styles.container }>
 			<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." />
 			<Panel>
 				<div style={ styles.tabsWrapper }><Tabs tabs={ tabs } active={ activeTab } onChange={ ( id ) => switchTab( id as TabId ) } /></div>
@@ -332,7 +333,8 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 				{ activeTab === 'subscriptions' && <SubscriptionsTab /> }
 				{ activeTab === 'artist-platform' && <ArtistPlatformTab artistAccess={ artistAccess } artistSiteUrl={ artistSiteUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } /> }
 			</Panel>
-		</div>
+			</div>
+		</BlockShell>
 	);
 }
 

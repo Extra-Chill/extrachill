@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@extrachill/api-client": "^0.3.0",
-    "@extrachill/components": "^0.4.5",
+    "@extrachill/components": "^0.4.6",
     "@extrachill/tokens": "^0.3.1",
     "@wordpress/api-fetch": "^7.0.0",
     "@wordpress/block-editor": "^14.0.0",
