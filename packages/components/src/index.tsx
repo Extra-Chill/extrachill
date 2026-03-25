@@ -14,5 +14,6 @@ export { PanelHeader, type PanelHeaderProps } from './PanelHeader.tsx';
 export { ActionRow, type ActionRowProps } from './ActionRow.tsx';
 export { FieldGroup, type FieldGroupProps } from './FieldGroup.tsx';
 export { InlineStatus, type InlineStatusProps } from './InlineStatus.tsx';
+export { Badge, type BadgeProps } from './Badge.tsx';
 export { ImagePreview, type ImagePreviewProps } from './ImagePreview.tsx';
 export { MediaField, type MediaFieldProps } from './MediaField.tsx';
