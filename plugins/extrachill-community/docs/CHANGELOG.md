@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.24] - 2026-03-25
+
+### Changed
+- Update shared components to 0.4.2 for mobile panel behavior
+
 ## [1.3.23] - 2026-03-25
 
 ### Changed
