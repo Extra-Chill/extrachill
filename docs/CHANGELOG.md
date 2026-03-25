@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.4] - 2026-03-25
+
+### Changed
+- Keep page mobile width override without card styling
+
 ## [2.2.3] - 2026-03-25
 
 ### Changed
