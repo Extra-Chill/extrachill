@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.12.1] - 2026-03-25
+
+### Changed
+- Add REST routes for user settings, profile, links, subscriptions, and artist access requests
+
 ## [0.12.0] - 2026-03-25
 
 ### Added
