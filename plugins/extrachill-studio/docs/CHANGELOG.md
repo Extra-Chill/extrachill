@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.24] - 2026-03-25
+
+### Changed
+- cleanup studio panel list spacing
+
 ## [0.2.23] - 2026-03-25
 
 ### Changed
