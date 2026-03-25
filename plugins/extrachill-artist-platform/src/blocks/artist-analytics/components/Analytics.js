@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { ActionRow, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, Panel, Section } from '@extrachill/components';
 import { useAnalyticsContext } from '../context/AnalyticsContext';
 import useAnalytics from '../hooks/useAnalytics';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
@@ -104,9 +104,9 @@ export default function Analytics() {
 	}
 
 	return (
-		<div className="ec-aa">
-			<PanelHeader
-				title={<h2 className="ec-aa__title">{ __( 'Artist Analytics', 'extrachill-artist-platform' ) }</h2>}
+		<BlockShell className="ec-aa">
+			<BlockShellHeader
+				title={ __( 'Artist Analytics', 'extrachill-artist-platform' ) }
 				actions={
 					<ActionRow align="end" className="ec-aa__toolbar">
 						<ArtistSwitcher
@@ -135,7 +135,7 @@ export default function Analytics() {
 				}
 			/>
 
-			<div className="ec-aa__stats">
+			<Section className="ec-aa__stats" depth={ 1 }>
 				<div className="ec-aa__stat">
 					<span className="ec-aa__stat-value">{ analytics?.summary?.total_views || 0 }</span>
 					<span className="ec-aa__stat-label">{ __( 'Total Views', 'extrachill-artist-platform' ) }</span>
@@ -152,14 +152,14 @@ export default function Analytics() {
 					</span>
 					<span className="ec-aa__stat-label">{ __( 'Click Rate', 'extrachill-artist-platform' ) }</span>
 				</div>
-			</div>
+			</Section>
 
-			<Panel className="ec-aa__chart" compact>
+			<Panel className="ec-aa__chart" compact depth={ 1 }>
 				<canvas ref={ chartRef } height="300"></canvas>
 			</Panel>
 
-			<Panel className="ec-aa__top-links" compact>
-				<PanelHeader title={ __( 'Top Links', 'extrachill-artist-platform' ) } />
+			<Panel className="ec-aa__top-links" compact depth={ 1 }>
+				<BlockShellHeader title={ __( 'Top Links', 'extrachill-artist-platform' ) } />
 				<table className="ec-aa__table">
 					<thead>
 						<tr>
@@ -192,6 +192,6 @@ export default function Analytics() {
 			<p className="ec-aa__note">
 				{ __( 'Analytics data is updated daily. Data older than 90 days is automatically pruned.', 'extrachill-artist-platform' ) }
 			</p>
-		</div>
+		</BlockShell>
 	);
 }

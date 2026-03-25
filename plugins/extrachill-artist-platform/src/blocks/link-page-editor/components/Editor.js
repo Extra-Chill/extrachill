@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { ActionRow, BlockShellHeader, InlineStatus, Panel, Tabs } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, InlineStatus, Panel, Section, Tabs } from '@extrachill/components';
 import { useEditor } from '../context/EditorContext';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 import Preview from './Preview';
@@ -136,7 +136,7 @@ export default function Editor() {
 	};
 
 	return (
-		<div className="ec-block-shell ec-editor">
+		<BlockShell className="ec-editor">
 			<BlockShellHeader
 				className="ec-editor__header"
 				title={
@@ -182,7 +182,7 @@ export default function Editor() {
 			/>
 
 			<div className="ec-editor__body">
-				<div className="ec-editor__sidebar">
+				<Section className="ec-editor__sidebar" depth={ 1 }>
 					<Tabs
 						tabs={ TABS }
 						active={ activeTab }
@@ -190,16 +190,16 @@ export default function Editor() {
 						className="ec-editor__tabs"
 					/>
 
-					<Panel className="ec-editor__tab-content" compact>
+					<Panel className="ec-editor__tab-content" compact depth={ 2 }>
 						{ renderTabContent() }
 					</Panel>
-				</div>
+				</Section>
 
-			<div className="ec-editor__preview-container">
-				<Preview />
+				<Section className="ec-editor__preview-container" depth={ 1 }>
+					<Preview />
+				</Section>
 			</div>
-		</div>
-		<JumpToPreview />
-	</div>
+			<JumpToPreview />
+		</BlockShell>
 	);
 }
