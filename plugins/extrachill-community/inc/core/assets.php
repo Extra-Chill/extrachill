@@ -52,21 +52,6 @@ function extrachill_enqueue_settings_page_assets() {
         array(),
         filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/settings-page.css')
     );
-
-    wp_enqueue_style(
-        'extrachill-shared-tabs',
-        get_template_directory_uri() . '/assets/css/shared-tabs.css',
-        array(),
-        filemtime(get_template_directory() . '/assets/css/shared-tabs.css')
-    );
-
-    wp_enqueue_script(
-        'extrachill-shared-tabs',
-        get_template_directory_uri() . '/assets/js/shared-tabs.js',
-        array(),
-        filemtime(get_template_directory() . '/assets/js/shared-tabs.js'),
-        true
-    );
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_settings_page_assets');
 

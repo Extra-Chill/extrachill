@@ -22,8 +22,6 @@ function extrachill_community_render_settings_content() {
 		return;
 	}
 
-	echo '<div class="account-settings-page">';
 	echo render_block( array( 'blockName' => 'extrachill/user-settings' ) );
-	echo '</div>';
 }
 add_action( 'extrachill_after_page_content', 'extrachill_community_render_settings_content', 5 );

@@ -54,11 +54,7 @@ input[type="email"]#new_email:focus {
     line-height: 1.4;
 }
 
-.account-settings-page h1 {
-    margin-bottom: 20px;
-}
-
-/* Old tab structural CSS removed - handled by shared-tabs.css */
+/* Legacy page shell/tab ownership removed. The user-settings block owns the shell now. */
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(5px); }
