@@ -373,13 +373,12 @@ Same CSS/layout system works across all sites:
 - community.extrachill.com (Blog 2): Community forums
 - shop.extrachill.com (Blog 3): E-commerce
 - artist.extrachill.com (Blog 4): Artist platform
-- chat.extrachill.com (Blog 5): AI chatbot
 - events.extrachill.com (Blog 7): Event calendar hub (calendar engine: external Data Machine + datamachine-events plugins)
 - stream.extrachill.com (Blog 8): Live streaming
 - newsletter.extrachill.com (Blog 9): Newsletter
 - docs.extrachill.com (Blog 10): Documentation
 - wire.extrachill.com (Blog 11): News wire
-- horoscope.extrachill.com (Blog 12): Horoscope
+- studio.extrachill.com (Blog 12): Studio
 
 ### Site-Specific Template Variations
 
