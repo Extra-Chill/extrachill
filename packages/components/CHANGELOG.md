@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.8] - 2026-03-25
+
+### Changed
+- Refine shell tabs as a grouped header region
+
 ## [0.4.7] - 2026-03-25
 
 ### Changed
