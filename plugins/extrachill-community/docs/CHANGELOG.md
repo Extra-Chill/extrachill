@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.26] - 2026-03-25
+
+### Changed
+- Add shell-contained headers and deeper nesting to community blocks
+
 ## [1.3.25] - 2026-03-25
 
 ### Changed
