@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.2] - 2026-03-25
+
+### Fixed
+- fix team member meta check
+
 ## [0.7.1] - 2026-03-25
 
 ### Changed
