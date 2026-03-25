@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.4] - 2026-03-25
+
+### Changed
+- Add shell-contained header to login-register block structure
+
 ## [0.7.3] - 2026-03-25
 
 ### Fixed
