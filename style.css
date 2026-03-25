@@ -1068,6 +1068,12 @@ p.site-title {
     padding: 0;
 }
 
+.footer-menu-column .footer-column-menu .sub-menu {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
 .footer-menu-column .footer-column-menu li {
     line-height: 2.2;
 }
