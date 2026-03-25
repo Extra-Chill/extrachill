@@ -89,6 +89,11 @@ const styles = {
 		cursor: 'pointer',
 	},
 	mutedText: { color: cssVar( colors.mutedText ) },
+	headerRegion: {
+		display: 'grid',
+		gap: cssVar( spacing.spacingLg ),
+		backgroundColor: cssVar( colors.cardBackground ),
+	},
 } as const;
 
 function Notice( { type, message }: { type: 'success' | 'error'; message: string } ) {
@@ -325,8 +330,10 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 	return (
 		<BlockShell className="ec-community-settings-shell">
 			<div style={ styles.container }>
-				<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
-				<ShellTabs tabs={ tabs } active={ activeTab } onChange={ ( id ) => switchTab( id as TabId ) } />
+				<div style={ styles.headerRegion }>
+					<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
+					<ShellTabs tabs={ tabs } active={ activeTab } onChange={ ( id ) => switchTab( id as TabId ) } showDivider={ true } />
+				</div>
 				{ activeTab === 'account-details' && <AccountTab settings={ settings } onUpdate={ setSettings } /> }
 				{ activeTab === 'security' && <SecurityTab settings={ settings } onSettingsChange={ setSettings } /> }
 				{ activeTab === 'subscriptions' && <SubscriptionsTab /> }
