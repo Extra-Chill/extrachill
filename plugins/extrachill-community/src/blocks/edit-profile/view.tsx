@@ -3,6 +3,8 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
+import { Tabs } from '@extrachill/components';
+import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type { UserProfile, UserLink } from '@extrachill/api-client';
 
@@ -13,6 +15,9 @@ const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 const styles = {
 	container: {
 		maxWidth: '700px',
+	},
+	tabsWrapper: {
+		marginBottom: cssVar( spacing.spacingLg ),
 	},
 	card: {
 		border: `1px solid ${ cssVar( colors.borderColor ) }`,
@@ -292,6 +297,7 @@ function LinksManager( { links, linkTypes, onChange }: {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 function EditProfileApp( { spriteUrl, artistSiteUrl, userId, profileUrl, hasArtists, canCreateArtists }: { spriteUrl: string; artistSiteUrl: string; userId: number; profileUrl: string; hasArtists: boolean; canCreateArtists: boolean } ) {
+	const [ activeTab, setActiveTab ] = useState< 'avatar-title' | 'about' | 'links' | 'artist-profiles' >( 'avatar-title' );
 	const [ profile, setProfile ] = useState< UserProfile | null >( null );
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState< string | null >( null );
@@ -318,6 +324,18 @@ function EditProfileApp( { spriteUrl, artistSiteUrl, userId, profileUrl, hasArti
 			setError( err instanceof Error ? err.message : 'Failed to load profile.' );
 			setLoading( false );
 		} );
+	}, [] );
+
+	useEffect( () => {
+		const hash = window.location.hash.replace( '#tab-', '' );
+		if ( [ 'avatar-title', 'about', 'links', 'artist-profiles' ].includes( hash ) ) {
+			setActiveTab( hash as 'avatar-title' | 'about' | 'links' | 'artist-profiles' );
+		}
+	}, [] );
+
+	const switchTab = useCallback( ( tab: 'avatar-title' | 'about' | 'links' | 'artist-profiles' ) => {
+		setActiveTab( tab );
+		window.location.hash = `tab-${ tab }`;
 	}, [] );
 
 	const handleSave = useCallback( async () => {
@@ -353,13 +371,23 @@ function EditProfileApp( { spriteUrl, artistSiteUrl, userId, profileUrl, hasArti
 	}
 
 	const hasArtistAccess = profile.artist_access.status === 'approved';
+	const tabs = [
+		{ id: 'avatar-title', label: 'Avatar & Title' },
+		{ id: 'about', label: 'About' },
+		{ id: 'links', label: 'Your Links' },
+		...( hasArtistAccess ? [ { id: 'artist-profiles', label: 'Artist Profiles' } ] : [] ),
+	] as const;
 
 	return (
 		<div style={ styles.container }>
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 
+			<div style={ styles.tabsWrapper }>
+				<Tabs tabs={ tabs as Array<{ id: string; label: string }> } active={ activeTab } onChange={ ( id ) => switchTab( id as 'avatar-title' | 'about' | 'links' | 'artist-profiles' ) } />
+			</div>
+
 			{ /* Avatar & Title Card */ }
-			<div style={ styles.card }>
+			{ activeTab === 'avatar-title' && <div style={ styles.card }>
 				<h3 style={ styles.cardTitle }>Avatar & Title</h3>
 
 				<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
@@ -378,10 +406,10 @@ function EditProfileApp( { spriteUrl, artistSiteUrl, userId, profileUrl, hasArti
 					/>
 					<div style={ styles.description }>Enter a custom title, or leave blank for default.</div>
 				</div>
-			</div>
+			</div> }
 
 			{ /* About Card */ }
-			<div style={ styles.card }>
+			{ activeTab === 'about' && <div style={ styles.card }>
 				<h3 style={ styles.cardTitle }>About</h3>
 
 				<div style={ styles.fieldGroup }>
@@ -405,20 +433,20 @@ function EditProfileApp( { spriteUrl, artistSiteUrl, userId, profileUrl, hasArti
 						placeholder="Your local city/region..."
 					/>
 				</div>
-			</div>
+			</div> }
 
 			{ /* Links Card */ }
-			<div style={ styles.card }>
+			{ activeTab === 'links' && <div style={ styles.card }>
 				<h3 style={ styles.cardTitle }>Your Links</h3>
 				<LinksManager
 					links={ links }
 					linkTypes={ profile.link_types }
 					onChange={ setLinks }
 				/>
-			</div>
+			</div> }
 
 			{ /* Artist Profiles Card (conditional) */ }
-			{ hasArtistAccess && (
+			{ hasArtistAccess && activeTab === 'artist-profiles' && (
 				<div style={ styles.card }>
 					<h3 style={ styles.cardTitle }>Artist Profiles</h3>
 					<p>Manage your artist profiles and link pages.</p>
