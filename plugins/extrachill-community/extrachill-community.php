@@ -74,10 +74,6 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/custom-user-profile.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/verification.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/settings/settings-content.php';
-	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/settings/settings-form-handler.php';
-	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/edit/user-links.php';
-	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/edit/user-info.php';
-	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/edit/avatar-upload.php';
 
 	require_once plugin_dir_path( __FILE__ ) . 'inc/home/latest-post.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/home/actions.php';
