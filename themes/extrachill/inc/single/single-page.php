@@ -13,12 +13,13 @@ get_header(); ?>
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
+<section class="main-content">
 <?php
 while ( have_posts() ) :
 	the_post();
 	?>
 
-	<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+	<article id="post-<?php the_ID(); ?>" <?php post_class( 'single-page-card' ); ?>>
 		<?php do_action( 'extrachill_before_page_content' ); ?>
 
 		<?php
@@ -40,6 +41,7 @@ while ( have_posts() ) :
 	</article>
 
 <?php endwhile; ?>
+	</section>
 
 <?php do_action( 'extrachill_after_body_content' ); ?>
 
