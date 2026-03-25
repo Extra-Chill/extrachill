@@ -71,6 +71,35 @@ function extrachill_users_register_artist_access_abilities() {
 	);
 
 	wp_register_ability(
+		'extrachill/request-artist-access',
+		array(
+			'label'               => __( 'Request Artist Access', 'extrachill-users' ),
+			'description'         => __( 'Submit a request for artist platform access. User-facing ability.', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'user_id' => array( 'type' => 'integer' ),
+					'type'    => array(
+						'type' => 'string',
+						'enum' => array( 'artist', 'professional' ),
+					),
+				),
+				'required'   => array( 'user_id', 'type' ),
+			),
+			'output_schema'       => array( 'type' => 'object' ),
+			'execute_callback'    => 'extrachill_users_ability_request_artist_access',
+			'permission_callback' => '__return_true',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array(
+					'readonly' => false,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
 		'extrachill/reject-artist-access',
 		array(
 			'label'               => __( 'Reject Artist Access', 'extrachill-users' ),
@@ -225,6 +254,117 @@ function extrachill_users_ability_reject_artist_access( $input ) {
 		'user_id'    => $user_id,
 		'user_login' => $user->user_login,
 	);
+}
+
+/**
+ * Request artist platform access (user-facing).
+ *
+ * Creates a pending request and sends notification email to admin.
+ * Used by the settings page block.
+ *
+ * @param array $input Input with 'user_id' and 'type' (artist|professional).
+ * @return array|WP_Error Result or error.
+ */
+function extrachill_users_ability_request_artist_access( $input ) {
+	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
+	$type    = isset( $input['type'] ) ? sanitize_text_field( $input['type'] ) : '';
+
+	if ( ! $user_id ) {
+		return new WP_Error( 'missing_user_id', 'user_id is required.' );
+	}
+
+	if ( ! in_array( $type, array( 'artist', 'professional' ), true ) ) {
+		return new WP_Error( 'invalid_type', 'type must be "artist" or "professional".' );
+	}
+
+	$user = get_user_by( 'ID', $user_id );
+	if ( ! $user ) {
+		return new WP_Error( 'user_not_found', 'User not found.' );
+	}
+
+	// Already has access?
+	$has_artist       = get_user_meta( $user_id, 'user_is_artist', true ) === '1';
+	$has_professional = get_user_meta( $user_id, 'user_is_professional', true ) === '1';
+
+	if ( $has_artist || $has_professional ) {
+		return new WP_Error( 'already_has_access', 'You already have artist platform access.' );
+	}
+
+	// Already has pending request?
+	$pending = get_user_meta( $user_id, 'artist_access_request', true );
+	if ( ! empty( $pending ) && is_array( $pending ) ) {
+		return new WP_Error( 'already_pending', 'You already have a pending access request.' );
+	}
+
+	// Create the request.
+	$request_data = array(
+		'type'         => $type,
+		'requested_at' => time(),
+		'user_email'   => $user->user_email,
+	);
+	update_user_meta( $user_id, 'artist_access_request', $request_data );
+
+	// Send admin notification email.
+	extrachill_users_send_artist_access_request_email( $user_id, $user, $type );
+
+	return array(
+		'success' => true,
+		'message' => 'Your request has been submitted. An administrator will review it shortly.',
+		'user_id' => $user_id,
+		'type'    => $type,
+	);
+}
+
+/**
+ * Send artist access request notification email to admin.
+ *
+ * @param int      $user_id     User ID requesting access.
+ * @param \WP_User $user        User object.
+ * @param string   $access_type Type of access requested.
+ */
+function extrachill_users_send_artist_access_request_email( $user_id, $user, $access_type ) {
+	$admin_email = get_option( 'admin_email' );
+	$type_label  = 'artist' === $access_type
+		? __( 'I am a musician', 'extrachill-users' )
+		: __( 'I work in the music industry', 'extrachill-users' );
+
+	$token = function_exists( 'extrachill_api_generate_artist_access_token' )
+		? extrachill_api_generate_artist_access_token( $user_id, $access_type, time() )
+		: '';
+
+	$approve_url = '';
+	if ( $token ) {
+		$approve_url = add_query_arg(
+			array(
+				'type'  => $access_type,
+				'token' => $token,
+			),
+			rest_url( 'extrachill/v1/admin/artist-access/' . $user_id . '/approve' )
+		);
+	}
+
+	$admin_tools_url = admin_url( 'tools.php?page=extrachill-admin-tools#artist-access-requests' );
+
+	$subject = sprintf(
+		/* translators: %s: user display name */
+		__( 'Artist Access Request - %s', 'extrachill-users' ),
+		$user->display_name
+	);
+
+	$message = sprintf(
+		"%s (%s) has requested artist platform access.\n\nRequest type: %s\n\n",
+		$user->display_name,
+		$user->user_email,
+		$type_label
+	);
+
+	if ( $approve_url ) {
+		$message .= sprintf( "Approve this request:\n%s\n\n", $approve_url );
+	}
+
+	$message .= sprintf( "Manage all requests:\n%s", $admin_tools_url );
+
+	wp_mail( $admin_email, $subject, $message );
 }
 
 /**
