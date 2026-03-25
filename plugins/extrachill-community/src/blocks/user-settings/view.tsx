@@ -92,7 +92,6 @@ const styles = {
 	headerRegion: {
 		display: 'grid',
 		gap: cssVar( spacing.spacingLg ),
-		backgroundColor: cssVar( colors.cardBackground ),
 	},
 } as const;
 
@@ -121,7 +120,7 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 	}, [ firstName, lastName, displayName, onUpdate ] );
 
 	return (
-		<Panel>
+		<Panel depth={ 1 }>
 			<PanelHeader title="Account Details" />
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			<FieldGroup label="First Name" htmlFor="ec-first-name">
@@ -181,7 +180,7 @@ function SecurityTab( { settings, onSettingsChange }: { settings: UserSettings; 
 	}, [ currentPassword, newPassword, confirmPassword ] );
 
 	return (
-		<Panel>
+		<Panel depth={ 1 }>
 			<PanelHeader title="Security" />
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			<FieldGroup label="Current Email Address">
@@ -248,7 +247,7 @@ function SubscriptionsTab() {
 	const artists = data?.followed_artists || [];
 
 	return (
-		<Panel>
+		<Panel depth={ 1 }>
 			<PanelHeader title="Subscriptions & Email Preferences" description="Manage email consent for bands you follow. Unchecking will prevent a band from seeing your email or including it in their exports." />
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			{ artists.length === 0 ? <p style={ styles.mutedText }>You are not currently following any bands.</p> : <>
@@ -281,7 +280,7 @@ function ArtistPlatformTab( { artistAccess, artistSiteUrl, hasArtists, canCreate
 	}, [ accessType ] );
 
 	return (
-		<Panel>
+		<Panel depth={ 1 }>
 			<PanelHeader title="Artist Platform" />
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			{ currentStatus === 'approved' && <div style={ styles.artistAccessGranted }><p><strong>You have artist platform access!</strong></p><p>You can create artist profiles and link pages on extrachill.link.</p>{ hasArtists ? <ActionRow><a href={ `${ artistSiteUrl }/manage-artist/` } style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }>Manage Artist</a></ActionRow> : canCreateArtists ? <ActionRow><a href={ `${ artistSiteUrl }/create-artist/` } style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }>Create Artist Profile</a></ActionRow> : null }</div> }
