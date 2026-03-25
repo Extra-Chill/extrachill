@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.6] - 2026-03-25
+
+### Changed
+- Add explicit surface depth primitives for shared mobile shell layering
+
 ## [0.4.5] - 2026-03-25
 
 ### Changed
