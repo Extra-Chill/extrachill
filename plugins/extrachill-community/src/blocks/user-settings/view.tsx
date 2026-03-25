@@ -3,7 +3,7 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
-import { BlockShell, ShellTabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
+import { BlockShell, ResponsiveTabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type {
@@ -326,17 +326,36 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 		{ id: 'artist-platform', label: 'Artist Platform' },
 	];
 
+	const renderTabPanel = ( id: string ) => {
+		switch ( id as TabId ) {
+			case 'account-details':
+				return <AccountTab settings={ settings } onUpdate={ setSettings } />;
+			case 'security':
+				return <SecurityTab settings={ settings } onSettingsChange={ setSettings } />;
+			case 'subscriptions':
+				return <SubscriptionsTab />;
+			case 'artist-platform':
+				return <ArtistPlatformTab artistAccess={ artistAccess } artistSiteUrl={ artistSiteUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } />;
+			default:
+				return null;
+		}
+	};
+
 	return (
 		<BlockShell className="ec-community-settings-shell ec-community-settings-shell--unstyled">
 			<div className="ec-community-settings-shell__inner" style={ styles.container }>
 				<div style={ styles.headerRegion }>
 					<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
-					<ShellTabs tabs={ tabs } active={ activeTab } onChange={ ( id ) => switchTab( id as TabId ) } showDivider={ true } />
+					<ResponsiveTabs
+						tabs={ tabs }
+						active={ activeTab }
+						onChange={ ( id ) => switchTab( id as TabId ) }
+						renderPanel={ renderTabPanel }
+						className="ec-community-settings-tabs"
+						tabsClassName="ec-community-settings-tabs__desktop"
+						showDesktopTabs={ true }
+					/>
 				</div>
-				{ activeTab === 'account-details' && <AccountTab settings={ settings } onUpdate={ setSettings } /> }
-				{ activeTab === 'security' && <SecurityTab settings={ settings } onSettingsChange={ setSettings } /> }
-				{ activeTab === 'subscriptions' && <SubscriptionsTab /> }
-				{ activeTab === 'artist-platform' && <ArtistPlatformTab artistAccess={ artistAccess } artistSiteUrl={ artistSiteUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } /> }
 			</div>
 		</BlockShell>
 	);

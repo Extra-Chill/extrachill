@@ -83,6 +83,18 @@ input[type="email"]#new_email:focus {
 	background: var(--card-background);
 }
 
+.wp-block-extrachill-user-settings .ec-community-settings-tabs {
+	gap: 0;
+}
+
+.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__desktop-panel {
+	margin-top: var(--spacing-sm);
+}
+
+.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__accordion {
+	display: none;
+}
+
 @media screen and (max-width: 480px) {
 	.wp-block-extrachill-user-settings .ec-community-settings-shell__inner {
 		max-width: none;
@@ -94,6 +106,23 @@ input[type="email"]#new_email:focus {
 	.wp-block-extrachill-user-settings .ec-community-settings-shell--unstyled .ec-shell-tabs {
 		padding-left: 0;
 		padding-right: 0;
+	}
+
+	.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-tabs__tabs,
+	.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__desktop-panel {
+		display: none;
+	}
+
+	.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__accordion {
+		display: grid;
+	}
+
+	.wp-block-extrachill-user-settings .ec-community-settings-tabs .ec-responsive-tabs__item {
+		margin-left: calc(var(--spacing-md) * -1);
+		margin-right: calc(var(--spacing-md) * -1);
+		border-left: 0;
+		border-right: 0;
+		border-radius: 0;
 	}
 }
 
