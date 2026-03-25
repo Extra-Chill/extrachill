@@ -56,6 +56,17 @@ input[type="email"]#new_email:focus {
 
 /* Legacy page shell/tab ownership removed. The user-settings block owns the shell now. */
 
+.wp-block-extrachill-user-settings .ec-community-settings-shell__inner {
+	max-width: 700px;
+	width: 100%;
+}
+
+@media screen and (max-width: 480px) {
+	.wp-block-extrachill-user-settings .ec-community-settings-shell__inner {
+		max-width: none;
+	}
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }

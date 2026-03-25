@@ -18,7 +18,7 @@ import type {
 const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 
 const styles = {
-	container: { maxWidth: '700px' },
+	container: { width: '100%' },
 	tabsWrapper: { marginBottom: cssVar( spacing.spacingLg ) },
 	input: {
 		width: '100%',
@@ -328,7 +328,7 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 
 	return (
 		<BlockShell className="ec-community-settings-shell">
-			<div style={ styles.container }>
+			<div className="ec-community-settings-shell__inner" style={ styles.container }>
 				<div style={ styles.headerRegion }>
 					<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
 					<ShellTabs tabs={ tabs } active={ activeTab } onChange={ ( id ) => switchTab( id as TabId ) } showDivider={ true } />
