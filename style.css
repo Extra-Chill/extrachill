@@ -1186,6 +1186,7 @@ p.site-title {
 /* Small screens - edge-to-edge (480px covers virtually all phones in portrait) */
 @media screen and (max-width: 480px) {
 	body.single-post .extrachill-content,
+	body.page .extrachill-content,
 	body.single-datamachine_events .extrachill-content,
 	body.single-newsletter .extrachill-content,
 	body.topic .extrachill-content,
@@ -1196,6 +1197,7 @@ p.site-title {
 	}
 	/* Padding for everything except the post card */
 	body.single-post .main-content > :not(.single-post-card),
+	body.page .main-content > :not(.single-page-card),
 	body.single-datamachine_events .main-content > :not(.single-post-card),
 	body.single-newsletter .main-content > :not(.single-post-card) {
 		padding-left: var(--spacing-md);
