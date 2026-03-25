@@ -6,6 +6,21 @@ import type {
   OnboardingSubmitRequest,
   OnboardingSubmitResponse,
   LeaderboardResponse,
+  UserSettings,
+  UpdateUserSettingsRequest,
+  ChangeEmailRequest,
+  ChangeEmailResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
+  UserProfile,
+  UpdateUserProfileRequest,
+  UpdateUserLinksRequest,
+  UpdateUserLinksResponse,
+  UserSubscriptions,
+  UpdateSubscriptionsRequest,
+  UpdateSubscriptionsResponse,
+  RequestArtistAccessRequest,
+  RequestArtistAccessResponse,
 } from '../types';
 
 export class UsersResource extends BaseResource {
@@ -46,5 +61,53 @@ export class UsersResource extends BaseResource {
 
   unlinkArtist(userId: number, artistId: number): Promise<void> {
     return this.del(`extrachill/v1/users/${userId}/artists/${artistId}`);
+  }
+
+  // ─── Settings ────────────────────────────────────────────────────────
+
+  getSettings(): Promise<UserSettings> {
+    return this.get('extrachill/v1/users/me/settings');
+  }
+
+  updateSettings(data: UpdateUserSettingsRequest): Promise<UserSettings> {
+    return this.post('extrachill/v1/users/me/settings', data as unknown as Record<string, unknown>);
+  }
+
+  changeEmail(data: ChangeEmailRequest): Promise<ChangeEmailResponse> {
+    return this.post('extrachill/v1/users/me/email', data as unknown as Record<string, unknown>);
+  }
+
+  changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
+    return this.post('extrachill/v1/users/me/password', data as unknown as Record<string, unknown>);
+  }
+
+  // ─── Profile ─────────────────────────────────────────────────────────
+
+  getProfile(): Promise<UserProfile> {
+    return this.get('extrachill/v1/users/me/profile');
+  }
+
+  updateProfile(data: UpdateUserProfileRequest): Promise<UserProfile> {
+    return this.post('extrachill/v1/users/me/profile', data as unknown as Record<string, unknown>);
+  }
+
+  updateLinks(data: UpdateUserLinksRequest): Promise<UpdateUserLinksResponse> {
+    return this.post('extrachill/v1/users/me/links', data as unknown as Record<string, unknown>);
+  }
+
+  // ─── Subscriptions ───────────────────────────────────────────────────
+
+  getSubscriptions(): Promise<UserSubscriptions> {
+    return this.get('extrachill/v1/users/me/subscriptions');
+  }
+
+  updateSubscriptions(data: UpdateSubscriptionsRequest): Promise<UpdateSubscriptionsResponse> {
+    return this.post('extrachill/v1/users/me/subscriptions', data as unknown as Record<string, unknown>);
+  }
+
+  // ─── Artist Access Request ───────────────────────────────────────────
+
+  requestArtistAccess(data: RequestArtistAccessRequest): Promise<RequestArtistAccessResponse> {
+    return this.post('extrachill/v1/users/me/artist-access', data as unknown as Record<string, unknown>);
   }
 }

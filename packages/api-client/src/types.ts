@@ -176,6 +176,127 @@ export interface LeaderboardResponse {
   pagination: LeaderboardPagination;
 }
 
+// ─── User Settings ──────────────────────────────────────────────────────────
+
+export interface UserSettings {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  display_name: string;
+  display_name_options: string[];
+  email: string;
+  pending_email: string | null;
+}
+
+export interface UpdateUserSettingsRequest {
+  first_name?: string;
+  last_name?: string;
+  display_name?: string;
+}
+
+export interface ChangeEmailRequest {
+  new_email: string;
+}
+
+export interface ChangeEmailResponse {
+  success: boolean;
+  message: string;
+  pending_email: string;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+// ─── User Profile ───────────────────────────────────────────────────────────
+
+export interface UserLink {
+  type_key: string;
+  url: string;
+  custom_label?: string;
+}
+
+export interface ArtistAccessStatus {
+  status: 'none' | 'pending' | 'approved';
+  type: string;
+  request_type?: string;
+  requested_at?: number;
+}
+
+export interface UserProfile {
+  user_id: number;
+  display_name: string;
+  username: string;
+  avatar_url: string;
+  custom_title: string;
+  bio: string;
+  local_city: string;
+  links: UserLink[];
+  link_types: Record<string, string>;
+  artist_access: ArtistAccessStatus;
+}
+
+export interface UpdateUserProfileRequest {
+  custom_title?: string;
+  bio?: string;
+  local_city?: string;
+}
+
+export interface UpdateUserLinksRequest {
+  links: UserLink[];
+}
+
+export interface UpdateUserLinksResponse {
+  success: boolean;
+  message: string;
+  user_id: number;
+  links: UserLink[];
+}
+
+// ─── User Subscriptions ─────────────────────────────────────────────────────
+
+export interface FollowedArtist {
+  artist_id: number;
+  name: string;
+  url: string;
+  email_consent: boolean;
+}
+
+export interface UserSubscriptions {
+  user_id: number;
+  followed_artists: FollowedArtist[];
+}
+
+export interface UpdateSubscriptionsRequest {
+  consented_artists: number[];
+}
+
+export interface UpdateSubscriptionsResponse {
+  success: boolean;
+  message: string;
+  user_id: number;
+}
+
+// ─── Artist Access Request ──────────────────────────────────────────────────
+
+export interface RequestArtistAccessRequest {
+  type: 'artist' | 'professional';
+}
+
+export interface RequestArtistAccessResponse {
+  success: boolean;
+  message: string;
+  user_id: number;
+  type: string;
+}
+
 // ─── Artists ─────────────────────────────────────────────────────────────────
 
 export interface Artist {
