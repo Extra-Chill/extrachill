@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.5] - 2026-03-25
+
+### Changed
+- Exclude settings page shell from mobile page padding
+
 ## [2.2.4] - 2026-03-25
 
 ### Changed
