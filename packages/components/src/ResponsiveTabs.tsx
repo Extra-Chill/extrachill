@@ -25,7 +25,7 @@ export function ResponsiveTabs( {
 	classPrefix = 'ec-responsive-tabs',
 	tabsClassName = '',
 	tabsClassPrefix = 'ec-tabs',
-	mobileBreakpoint = 768,
+	mobileBreakpoint = 480,
 	accordionClassName = '',
 	showDesktopTabs = true,
 }: ResponsiveTabsProps ) {

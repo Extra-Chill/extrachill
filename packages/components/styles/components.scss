@@ -236,13 +236,13 @@
 	color: currentColor;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 481px) {
 	.ec-responsive-tabs__accordion {
 		display: none;
 	}
 }
 
-@media (max-width: 768px) {
+@media (max-width: 480px) {
 	.ec-responsive-tabs .ec-tabs__tabs,
 	.ec-responsive-tabs__desktop-panel {
 		display: none;
