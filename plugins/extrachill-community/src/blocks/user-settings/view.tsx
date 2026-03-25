@@ -4,6 +4,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
 import { Tabs } from '@extrachill/components';
+import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type {
 	UserSettings,
