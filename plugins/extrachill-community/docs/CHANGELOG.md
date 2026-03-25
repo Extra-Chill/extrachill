@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.30] - 2026-03-25
+
+### Changed
+- Group settings tabs into the shell header region
+
 ## [1.3.29] - 2026-03-25
 
 ### Changed
