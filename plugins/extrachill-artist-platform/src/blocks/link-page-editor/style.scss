@@ -767,15 +767,28 @@
 	}
 
 	.ec-editor {
+		background: var(--card-background);
 		border-radius: 0;
 		border-left: 0;
 		border-right: 0;
+		border-top: 1px solid var(--border-color);
+		border-bottom: 1px solid var(--border-color);
 	}
 
 	.ec-editor__header {
+		background: var(--background-color);
 		flex-direction: column;
 		gap: 12px;
 		padding: 12px 16px;
+	}
+
+	.ec-editor__body,
+	.ec-editor__sidebar {
+		background: var(--background-color);
+	}
+
+	.ec-editor__sidebar {
+		border-right: 0;
 	}
 
 	.ec-editor__header-left,
@@ -798,10 +811,19 @@
 	}
 
 	.ec-editor__tab-content {
+		background: var(--card-background);
 		padding: 16px;
 	}
 
+	.ec-customize-card,
+	.ec-section,
+	.ec-section__content,
+	.ec-editor__link-url {
+		background: var(--card-background);
+	}
+
 	.ec-editor__preview-container {
+		background: var(--background-color);
 		padding-left: 16px;
 		padding-right: 16px;
 	}
