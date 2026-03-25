@@ -132,8 +132,16 @@
 	display: grid;
 	gap: var(--spacing-sm, 0.5rem);
 	padding-bottom: var(--spacing-md, 1rem);
-	border-bottom: 1px solid var(--border-color, #ddd);
 	background: var(--card-background, #f1f5f9);
+}
+
+.ec-shell-tabs--with-divider {
+	border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+.ec-shell-tabs--without-divider {
+	border-bottom: 0;
+	padding-bottom: 0;
 }
 
 // Panel

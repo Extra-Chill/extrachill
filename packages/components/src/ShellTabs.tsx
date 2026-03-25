@@ -8,6 +8,7 @@ export interface ShellTabsProps {
 	classPrefix?: string;
 	tabsClassName?: string;
 	tabsClassPrefix?: string;
+	showDivider?: boolean;
 }
 
 export function ShellTabs( {
@@ -18,9 +19,16 @@ export function ShellTabs( {
 	classPrefix = 'ec-shell-tabs',
 	tabsClassName = '',
 	tabsClassPrefix = 'ec-tabs',
+	showDivider = true,
 }: ShellTabsProps ) {
 	return (
-		<div className={ [ classPrefix, className ].filter( Boolean ).join( ' ' ) }>
+		<div
+			className={ [
+				classPrefix,
+				showDivider ? `${ classPrefix }--with-divider` : `${ classPrefix }--without-divider`,
+				className,
+			].filter( Boolean ).join( ' ' ) }
+		>
 			<Tabs
 				tabs={ tabs }
 				active={ active }
