@@ -5,8 +5,7 @@
  * Extremely subtle or no box-shadow for gentle structure.
  */
 
-.single-post-card,
-.single-page-card {
+.single-post-card {
   background: var(--card-background);
   border-radius: var(--border-radius-xl);
   box-shadow: 0 2px 8px rgba(0,0,0,0.04); /* very subtle shadow */
@@ -19,8 +18,7 @@
 }
 
 @media (max-width: 900px) {
-  .single-post-card,
-  .single-page-card {
+  .single-post-card {
     padding: var(--spacing-md);
     margin: var(--spacing-md) auto;
     max-width: 98vw;
@@ -29,8 +27,7 @@
 
 /* Small screens - edge-to-edge (480px covers virtually all phones in portrait) */
 @media (max-width: 480px) {
-  .single-post-card,
-  .single-page-card {
+  .single-post-card {
     padding: var(--spacing-md);
     margin: 0;
     max-width: 100%;
