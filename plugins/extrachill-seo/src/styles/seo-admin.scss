@@ -211,21 +211,9 @@
 	}
 
 	&__media {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	&__preview {
-		max-width: 200px;
-		height: auto;
-		border: 1px solid #c3c4c7;
-		border-radius: 4px;
-	}
-
-	&__buttons {
-		display: flex;
-		gap: 8px;
+		.ec-image-preview {
+			--ec-image-preview-max-width: 200px;
+		}
 	}
 
 	.submit {

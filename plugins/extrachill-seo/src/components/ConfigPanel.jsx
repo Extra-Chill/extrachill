@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from '@wordpress/element';
 import { Button, TextControl, Notice } from '@wordpress/components';
+import { MediaField } from '@extrachill/components';
 import { getConfig, saveConfig } from '../api/client';
 
 export default function ConfigPanel() {
@@ -88,38 +89,32 @@ export default function ConfigPanel() {
 					<tr>
 						<th scope="row">Default OG Image</th>
 						<td>
-							<div className="extrachill-seo-config__media">
-								{ defaultOgImageUrl && (
-									<img
-										src={ defaultOgImageUrl }
-										alt="Default OG"
-										className="extrachill-seo-config__preview"
-									/>
-								) }
-								<div className="extrachill-seo-config__buttons">
-									<Button
-										variant="secondary"
-										onClick={ openMediaLibrary }
-									>
-										{ defaultOgImageUrl
-											? 'Change Image'
-											: 'Select Image' }
-									</Button>
-									{ defaultOgImageUrl && (
+							<MediaField
+								previewUrl={ defaultOgImageUrl }
+								previewAlt="Default OG"
+								empty="No fallback image selected yet."
+								help="Fallback og:image when no featured image exists."
+								actions={
+									<>
 										<Button
-											variant="tertiary"
-											isDestructive
-											onClick={ handleRemoveImage }
+											variant="secondary"
+											onClick={ openMediaLibrary }
 										>
-											Remove
+											{ defaultOgImageUrl ? 'Change Image' : 'Select Image' }
 										</Button>
-									) }
-								</div>
-								<p className="description">
-									Fallback og:image when no featured image
-									exists.
-								</p>
-							</div>
+										{ defaultOgImageUrl ? (
+											<Button
+												variant="tertiary"
+												isDestructive
+												onClick={ handleRemoveImage }
+											>
+												Remove
+											</Button>
+										) : null }
+									</>
+								}
+								className="extrachill-seo-config__media"
+							/>
 						</td>
 					</tr>
 					<tr>
