@@ -136,7 +136,7 @@ export default function Editor() {
 	};
 
 	return (
-		<div className="ec-editor">
+		<div className="ec-block-shell ec-editor">
 			<PanelHeader
 				className="ec-editor__header"
 				title={
