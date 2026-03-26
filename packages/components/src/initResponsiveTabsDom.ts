@@ -74,7 +74,7 @@ function renderAccordion(
 			const template = root.querySelector<HTMLTemplateElement>( `template[data-tab-panel="${ tabId }"]` );
 			if ( template ) {
 				const panel = document.createElement( 'div' );
-				panel.className = 'ec-responsive-tabs__panel';
+				panel.className = 'ec-responsive-tabs__panel ec-edge-gutter';
 				const content = createNodeFromTemplate( template );
 				if ( content ) {
 					panel.appendChild( content );

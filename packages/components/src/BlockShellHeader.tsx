@@ -21,6 +21,7 @@ export function BlockShellHeader( {
 		<div
 			className={ [
 				classPrefix,
+				'ec-edge-gutter',
 				showDivider ? `${ classPrefix }--with-divider` : `${ classPrefix }--without-divider`,
 				className,
 			].filter( Boolean ).join( ' ' ) }
