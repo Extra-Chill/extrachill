@@ -20,7 +20,7 @@ get_header(); ?>
 
 	do_action( 'extrachill_archive_above_posts' );
 	?>
-	<div class="full-width-breakout ec-edge-shell">
+	<div class="full-width-breakout ec-mobile-full-width-panel">
 		<div class="article-container">
 			<?php
 			global $post_i;
@@ -34,9 +34,7 @@ get_header(); ?>
 			<?php endwhile; ?>
 		</div><!-- .article-container -->
 
-		<div class="ec-edge-gutter">
-			<?php extrachill_pagination( null, 'archive' ); ?>
-		</div>
+		<?php extrachill_pagination( null, 'archive' ); ?>
 	</div><!-- .full-width-breakout -->
 
 

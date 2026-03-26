@@ -144,7 +144,7 @@ a.card-link-target:hover,
  */
 
 /* Grid layout for full-width archives and search results */
-.ec-edge-shell .article-container {
+.ec-mobile-full-width-panel .article-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(325px, 1fr));
     gap: var(--spacing-lg);
@@ -154,7 +154,7 @@ a.card-link-target:hover,
 }
 
 /* Ensure individual articles fill the grid cell */
-.ec-edge-shell .article-container .post {
+.ec-mobile-full-width-panel .article-container .post {
     width: 100%;
     margin-bottom: 0; /* Remove bottom margin as gap is now handled by grid */
     display: flex;
@@ -162,20 +162,20 @@ a.card-link-target:hover,
 }
 
 /* Adjust card styles for grid */
-.ec-edge-shell .post .article-content {
+.ec-mobile-full-width-panel .post .article-content {
     flex-grow: 1; /* Allows content to fill available space, aligning footers */
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .ec-edge-shell .article-container {
+	.ec-mobile-full-width-panel .article-container {
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: var(--spacing-lg);
     }
 }
 
 @media (max-width: 480px) {
-    .ec-edge-shell .article-container {
+	.ec-mobile-full-width-panel .article-container {
         grid-template-columns: 1fr; /* Single column on mobile */
         gap: var(--spacing-md);
     }

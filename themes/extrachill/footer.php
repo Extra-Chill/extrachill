@@ -12,7 +12,7 @@
 
 <?php do_action( 'extrachill_above_footer' ); ?>
 
-<footer id="extra-footer" class="ec-full-width-panel" >
+<footer id="extra-footer" class="ec-global-full-width-panel" >
 	<?php do_action( 'extrachill_social_links' ); ?>
 
 	<div class="footer-menus-wrapper ec-edge-gutter">

@@ -14,7 +14,7 @@ get_header(); ?>
 	<?php do_action( 'extrachill_before_body_content' ); ?>
 
 	<section class="main-content">
-		<section class="error-404 not-found ec-edge-gutter">
+		<section class="error-404 not-found">
 			<?php extrachill_breadcrumbs(); ?>
 			<div class="page-content">
 				<header class="page-header">
