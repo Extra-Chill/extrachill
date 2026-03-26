@@ -14,6 +14,8 @@ export interface ResponsiveTabsProps {
 	mobileBreakpoint?: number;
 	accordionClassName?: string;
 	showDesktopTabs?: boolean;
+	syncWithHash?: boolean;
+	hashPrefix?: string;
 }
 
 export function ResponsiveTabs( {
@@ -28,6 +30,8 @@ export function ResponsiveTabs( {
 	mobileBreakpoint = 480,
 	accordionClassName = '',
 	showDesktopTabs = true,
+	syncWithHash = false,
+	hashPrefix = 'tab-',
 }: ResponsiveTabsProps ) {
 	const [ isMobile, setIsMobile ] = useState( () => {
 		if ( typeof window === 'undefined' ) {
@@ -37,6 +41,29 @@ export function ResponsiveTabs( {
 		return window.innerWidth < mobileBreakpoint;
 	} );
 	const [ mobileActive, setMobileActive ] = useState<string | null>( active );
+
+	const resolveTabIdFromHash = ( hash: string ) => {
+		const normalized = hash.replace( /^#/, '' );
+		if ( ! normalized.startsWith( hashPrefix ) ) {
+			return null;
+		}
+
+		const id = normalized.slice( hashPrefix.length );
+		return tabs.some( ( tab ) => tab.id === id ) ? id : null;
+	};
+
+	const updateHash = ( id: string ) => {
+		if ( ! syncWithHash || typeof window === 'undefined' ) {
+			return;
+		}
+
+		window.location.hash = `${ hashPrefix }${ id }`;
+	};
+
+	const handleChange = ( id: string ) => {
+		onChange( id );
+		updateHash( id );
+	};
 
 	useEffect( () => {
 		if ( typeof window === 'undefined' ) {
@@ -58,6 +85,27 @@ export function ResponsiveTabs( {
 			setMobileActive( active );
 		}
 	}, [ active, isMobile ] );
+
+	useEffect( () => {
+		if ( ! syncWithHash || typeof window === 'undefined' || tabs.length === 0 ) {
+			return undefined;
+		}
+
+		const syncFromHash = () => {
+			const id = resolveTabIdFromHash( window.location.hash );
+			if ( ! id ) {
+				return;
+			}
+
+			onChange( id );
+			setMobileActive( id );
+		};
+
+		syncFromHash();
+		window.addEventListener( 'hashchange', syncFromHash );
+
+		return () => window.removeEventListener( 'hashchange', syncFromHash );
+	}, [ hashPrefix, onChange, syncWithHash, tabs ] );
 
 	const rootClass = useMemo(
 		() => [
@@ -81,7 +129,7 @@ export function ResponsiveTabs( {
 					<Tabs
 						tabs={ tabs }
 						active={ active }
-						onChange={ onChange }
+						onChange={ handleChange }
 						className={ tabsClassName }
 						classPrefix={ tabsClassPrefix }
 					/>
@@ -104,15 +152,15 @@ export function ResponsiveTabs( {
 								className={ `${ classPrefix }__trigger${ isActive ? ' is-active' : '' }` }
 								aria-expanded={ isActive }
 								onClick={ () => {
-									if ( isActive ) {
-										setMobileActive( null );
-										return;
-									}
+								if ( isActive ) {
+									setMobileActive( null );
+									return;
+								}
 
-									setMobileActive( tab.id );
-									onChange( tab.id );
-								} }
-							>
+								setMobileActive( tab.id );
+								handleChange( tab.id );
+							} }
+						>
 								<span>{ tab.label }</span>
 								<span className={ `${ classPrefix }__arrow` } aria-hidden="true">
 									{ isActive ? '▲' : '▼' }

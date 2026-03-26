@@ -10,6 +10,7 @@ export { SearchBox, type SearchBoxProps } from './SearchBox.tsx';
 export { Modal, type ModalProps } from './Modal.tsx';
 export { Tabs, type TabsProps, type TabItem } from './Tabs.tsx';
 export { ResponsiveTabs, type ResponsiveTabsProps } from './ResponsiveTabs.tsx';
+export { initResponsiveTabsDom, type ResponsiveTabsDomOptions } from './initResponsiveTabsDom.ts';
 export { ShellTabs, type ShellTabsProps } from './ShellTabs.tsx';
 export { Panel, type PanelProps } from './Panel.tsx';
 export { Surface, type SurfaceProps } from './Surface.tsx';
