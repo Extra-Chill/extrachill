@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.12] - 2026-03-26
+
+### Changed
+- scope list spacing to real content
+
 ## [2.2.11] - 2026-03-26
 
 ### Changed
