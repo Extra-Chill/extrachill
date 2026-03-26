@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.36] - 2026-03-26
+
+### Changed
+- split global and mobile full-width utilities
+
 ## [0.4.35] - 2026-03-26
 
 ### Changed
