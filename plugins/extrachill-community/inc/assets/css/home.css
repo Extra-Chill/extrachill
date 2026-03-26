@@ -65,7 +65,7 @@
 @media (max-width: 480px) {
     #forums-list-homepage.bbp-forums-grid {
         gap: var(--spacing-md);
-        margin: var(--spacing-lg) calc(-1 * max(0.75em, env(safe-area-inset-left))) 0;
+        margin: var(--spacing-lg) calc(-1 * var(--spacing-md)) 0;
     }
 
     #forums-list-homepage.bbp-forums-grid .bbp-forum-card {
