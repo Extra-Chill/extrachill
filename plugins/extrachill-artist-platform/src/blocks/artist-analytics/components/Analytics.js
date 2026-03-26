@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { ActionRow, BlockShell, BlockShellHeader, Panel, Section } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, Panel, Section } from '@extrachill/components';
 import { useAnalyticsContext } from '../context/AnalyticsContext';
 import useAnalytics from '../hooks/useAnalytics';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
@@ -105,37 +105,38 @@ export default function Analytics() {
 
 	return (
 		<BlockShell className="ec-aa">
-			<BlockShellHeader
-				title={ __( 'Artist Analytics', 'extrachill-artist-platform' ) }
-				actions={
-					<ActionRow align="end" className="ec-aa__toolbar">
-						<ArtistSwitcher
-							artists={ userArtists }
-							selectedId={ artistId }
-							onChange={ switchArtist }
-						/>
-						{ artistSlug && linkPageBaseUrl && (
-							<a
-								href={ `${ linkPageBaseUrl }/${ artistSlug }` }
-								className="button-3 button-small"
+			<BlockShellInner maxWidth="wide">
+				<BlockShellHeader
+					title={ __( 'Artist Analytics', 'extrachill-artist-platform' ) }
+					actions={
+						<ActionRow align="end" className="ec-aa__toolbar">
+							<ArtistSwitcher
+								artists={ userArtists }
+								selectedId={ artistId }
+								onChange={ switchArtist }
+							/>
+							{ artistSlug && linkPageBaseUrl && (
+								<a
+									href={ `${ linkPageBaseUrl }/${ artistSlug }` }
+									className="button-3 button-small"
+								>
+									{ __( 'View Link Page', 'extrachill-artist-platform' ) }
+								</a>
+							) }
+							<select
+								value={ dateRange }
+								onChange={ handleDateRangeChange }
+								className="ec-aa__date-range"
 							>
-								{ __( 'View Link Page', 'extrachill-artist-platform' ) }
-							</a>
-						) }
-						<select
-							value={ dateRange }
-							onChange={ handleDateRangeChange }
-							className="ec-aa__date-range"
-						>
-							<option value={ 7 }>{ __( 'Last 7 days', 'extrachill-artist-platform' ) }</option>
-							<option value={ 30 }>{ __( 'Last 30 days', 'extrachill-artist-platform' ) }</option>
-							<option value={ 90 }>{ __( 'Last 90 days', 'extrachill-artist-platform' ) }</option>
-						</select>
-					</ActionRow>
-				}
-			/>
+								<option value={ 7 }>{ __( 'Last 7 days', 'extrachill-artist-platform' ) }</option>
+								<option value={ 30 }>{ __( 'Last 30 days', 'extrachill-artist-platform' ) }</option>
+								<option value={ 90 }>{ __( 'Last 90 days', 'extrachill-artist-platform' ) }</option>
+							</select>
+						</ActionRow>
+					}
+				/>
 
-			<Section className="ec-aa__stats" depth={ 1 }>
+				<Section className="ec-aa__stats" depth={ 1 }>
 				<div className="ec-aa__stat">
 					<span className="ec-aa__stat-value">{ analytics?.summary?.total_views || 0 }</span>
 					<span className="ec-aa__stat-label">{ __( 'Total Views', 'extrachill-artist-platform' ) }</span>
@@ -152,15 +153,15 @@ export default function Analytics() {
 					</span>
 					<span className="ec-aa__stat-label">{ __( 'Click Rate', 'extrachill-artist-platform' ) }</span>
 				</div>
-			</Section>
+				</Section>
 
-			<Panel className="ec-aa__chart" compact depth={ 1 }>
-				<canvas ref={ chartRef } height="300"></canvas>
-			</Panel>
+				<Panel className="ec-aa__chart" compact depth={ 1 }>
+					<canvas ref={ chartRef } height="300"></canvas>
+				</Panel>
 
-			<Panel className="ec-aa__top-links" compact depth={ 1 }>
-				<BlockShellHeader title={ __( 'Top Links', 'extrachill-artist-platform' ) } />
-				<table className="ec-aa__table">
+				<Panel className="ec-aa__top-links" compact depth={ 1 }>
+					<BlockShellHeader title={ __( 'Top Links', 'extrachill-artist-platform' ) } />
+					<table className="ec-aa__table">
 					<thead>
 						<tr>
 							<th>{ __( 'Link Text / URL', 'extrachill-artist-platform' ) }</th>
@@ -186,12 +187,13 @@ export default function Analytics() {
 							</tr>
 						) }
 					</tbody>
-				</table>
-			</Panel>
+					</table>
+				</Panel>
 
-			<p className="ec-aa__note">
-				{ __( 'Analytics data is updated daily. Data older than 90 days is automatically pruned.', 'extrachill-artist-platform' ) }
-			</p>
+				<p className="ec-aa__note">
+					{ __( 'Analytics data is updated daily. Data older than 90 days is automatically pruned.', 'extrachill-artist-platform' ) }
+				</p>
+			</BlockShellInner>
 		</BlockShell>
 	);
 }
