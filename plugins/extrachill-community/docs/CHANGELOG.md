@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.57] - 2026-03-26
+
+### Fixed
+- fix single forum create topic action
+
 ## [1.3.56] - 2026-03-26
 
 ### Changed
