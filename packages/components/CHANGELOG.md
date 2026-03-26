@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.27] - 2026-03-26
+
+### Changed
+- remove responsive tab divider styling
+
 ## [0.4.26] - 2026-03-26
 
 ### Changed
