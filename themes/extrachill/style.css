@@ -154,18 +154,26 @@ th {
 /*
 ====> 3.3 Lists
 --------------------------------------------------------------*/
-ul,
-ol {
-	margin: 0 0 var(--spacing-lg);
-	padding-left: var(--spacing-xl);
-}
-
 ul {
 	list-style: disc;
 }
 
 ol {
 	list-style: decimal;
+}
+
+.entry-content ul,
+.entry-content ol,
+.page-content ul,
+.page-content ol,
+.bbp-topic-content ul,
+.bbp-topic-content ol,
+.bbp-reply-content ul,
+.bbp-reply-content ol,
+.bbp-forum-content ul,
+.bbp-forum-content ol {
+	margin: 0 0 var(--spacing-lg);
+	padding-left: var(--spacing-xl);
 }
 
 li {
@@ -1197,12 +1205,12 @@ p.site-title {
 	}
 	/* Padding for everything except the post card */
 	body.single-post .main-content > :not(.single-post-card),
-	body.page .main-content > :not(.single-page-card):not(.page-edge-shell),
+	body.page .main-content > :not(.single-page-card):not(.page-edge-shell):not(.ec-block-shell),
 	body.single-datamachine_events .main-content > :not(.single-post-card),
 	body.single-newsletter .main-content > :not(.single-post-card),
-	body.topic .main-content > :not(#bbpress-forums),
-	body.forum .main-content > :not(#bbpress-forums),
-	body.forum-archive .main-content > :not(#bbpress-forums) {
+	body.topic .extrachill-content > :not(#bbpress-forums),
+	body.forum .extrachill-content > :not(#bbpress-forums),
+	body.forum-archive .extrachill-content > :not(#bbpress-forums) {
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);
 	}
@@ -1210,6 +1218,19 @@ p.site-title {
 	body.page .main-content > .page-edge-shell {
 		padding-left: 0;
 		padding-right: 0;
+	}
+
+	body.topic .bbp-topic-card,
+	body.topic .bbp-reply-card,
+	body.topic .ec-inline-reply-form,
+	body.forum .bbp-topic-form,
+	body.forum .bbp-reply-form,
+	body.forum-archive #forums-list-homepage.bbp-forums-grid .bbp-forum-card,
+	body.forum [id^="forums-list-subforums-"] .bbp-forum-card {
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+		box-shadow: none;
 	}
 }
 
