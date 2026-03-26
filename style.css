@@ -744,6 +744,11 @@ body {
 	position: relative;
 }
 
+.ec-edge-gutter {
+	padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
+	padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
+}
+
 /*
 ====> 13.3 Primary & Secondary Content Area
 --------------------------------------------------------------*/
