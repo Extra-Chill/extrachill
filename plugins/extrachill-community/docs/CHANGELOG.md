@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.59] - 2026-03-26
+
+### Changed
+- simplify forum homepage and chrome layout
+
 ## [1.3.57] - 2026-03-26
 
 ### Fixed
