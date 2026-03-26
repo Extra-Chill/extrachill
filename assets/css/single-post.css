@@ -22,15 +22,6 @@
   }
 }
 
-/* Small screens - edge-to-edge (480px covers virtually all phones in portrait) */
-@media (max-width: 480px) {
-  .single-post-card {
-    padding: var(--spacing-md);
-    margin: 0;
-    max-width: 100%;
-  }
-}
-
 /* Post Content H2 Styling */
 .entry-content h2 {
 	border-bottom: 2px solid var(--accent);

@@ -706,6 +706,21 @@ body {
 	display: block;
 }
 
+/*
+ * Mobile edge contract
+ *
+ * Layer 1 — shell: owns the outer horizontal span / viewport breakout.
+ *   Class: .ec-edge-shell
+ *
+ * Layer 2 — gutter: restores safe inner horizontal padding for loose page chrome
+ * like breadcrumbs, headings, toolbars, descriptions, CTA rows.
+ *   Class: .ec-edge-gutter
+ *
+ * Layer 3 — surface: actual card/panel/form that should flatten and run flush on
+ * phones while keeping desktop card styling.
+ *   Class: .ec-edge-surface
+ */
+
 /* Full-width breakout utility - breaks out of .extrachill-content container */
 .extrachill-content .full-width-breakout {
 	width: 100vw;
@@ -718,9 +733,9 @@ body {
 	position: relative;
 }
 
-.extrachill-content > .main-content > .ec-page-edge-shell,
-.extrachill-content > .ec-page-edge-shell,
-.extrachill-content .full-width-breakout.ec-page-edge-shell {
+.extrachill-content > .main-content > .ec-edge-shell,
+.extrachill-content > .ec-edge-shell,
+.extrachill-content .full-width-breakout.ec-edge-shell {
 	width: 100vw;
 	max-width: 100vw;
 	margin-left: 50%;
@@ -1216,15 +1231,21 @@ p.site-title {
 		padding-right: max(0.75em, env(safe-area-inset-right));
 	}
 
-	.extrachill-content > .main-content > .ec-page-edge-shell,
-	.extrachill-content > .ec-page-edge-shell,
-	.extrachill-content .full-width-breakout.ec-page-edge-shell {
+	.extrachill-content > .main-content > .ec-edge-shell,
+	.extrachill-content > .ec-edge-shell,
+	.extrachill-content .full-width-breakout.ec-edge-shell {
 		padding-left: max(0.75em, env(safe-area-inset-left));
 		padding-right: max(0.75em, env(safe-area-inset-right));
 	}
 }
 
-/* Small screens - edge-to-edge (480px covers virtually all phones in portrait) */
+/*
+ * Small screens - edge-to-edge (480px covers virtually all phones in portrait)
+	 * This is the canonical source of truth for mobile left/right screen-edge behavior.
+	 * Shells own the outer span (.ec-edge-shell), gutters restore inner horizontal
+	 * padding (.ec-edge-gutter), and surfaces opt in to flush mobile card behavior
+	 * (.ec-edge-surface).
+	 */
 @media screen and (max-width: 480px) {
 	body.single-post .extrachill-content,
 	body.page .extrachill-content,
@@ -1238,7 +1259,7 @@ p.site-title {
 	}
 	/* Padding for everything except the post card */
 	body.single-post .main-content > :not(.single-post-card),
-	body.page .main-content > :not(.single-page-card):not(.page-edge-shell):not(.ec-page-edge-shell):not(.ec-block-shell),
+	body.page .main-content > :not(.single-page-card):not(.ec-edge-shell):not(.ec-block-shell),
 	body.single-datamachine_events .main-content > :not(.single-post-card),
 	body.single-newsletter .main-content > :not(.single-post-card),
 	body.topic .extrachill-content > :not(#bbpress-forums),
@@ -1248,25 +1269,28 @@ p.site-title {
 		padding-right: var(--spacing-md);
 	}
 
-	.ec-page-chrome {
+	.ec-edge-gutter {
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);
 	}
 
-	body.page .main-content > .page-edge-shell,
-	body.page .main-content > .ec-page-edge-shell {
+	body.page .main-content > .ec-edge-shell {
 		padding-left: 0;
 		padding-right: 0;
 	}
 
-	body.page .main-content > .ec-page-edge-shell {
+	body.page .main-content > .ec-edge-shell {
 		margin-left: 50%;
 		transform: translateX(-50%);
 		width: 100vw;
 		max-width: 100vw;
 	}
 
-	.ec-mobile-edge-surface {
+	.ec-edge-surface {
+		width: 100%;
+		max-width: 100%;
+		margin-left: 0;
+		margin-right: 0;
 		border-radius: 0;
 		border-left: none;
 		border-right: none;
