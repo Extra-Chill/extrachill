@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.13] - 2026-03-26
+
+### Changed
+- make page edge shells break out of content padding
+- align page shells with shared mobile edge contract
+
 ## [2.2.12] - 2026-03-26
 
 ### Changed
