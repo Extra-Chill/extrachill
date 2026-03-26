@@ -40,7 +40,6 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 							key: 'header',
 							title: context.headline,
 							description: context.description,
-							showDivider: false,
 						} ),
 						createElement( ResponsiveTabs, {
 							key: 'tabs',
