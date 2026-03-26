@@ -8,6 +8,8 @@ export interface StudioContext {
 	siteUrl: string;
 	restNonce: string;
 	socialsApiBase: string;
+	headline: string;
+	description: string;
 }
 
 export interface StudioTab {

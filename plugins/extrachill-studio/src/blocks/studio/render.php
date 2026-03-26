@@ -68,27 +68,15 @@ $socials_api = rest_url( 'datamachine-socials/v1/' );
 <div
 	<?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?>
 	data-ec-studio-root
-	data-user-name="<?php echo esc_attr( $studio_user->display_name ); ?>"
+ data-user-name="<?php echo esc_attr( $studio_user->display_name ); ?>"
 	data-site-name="<?php echo esc_attr( $site_name ); ?>"
 	data-site-url="<?php echo esc_url( $site_url ); ?>"
 	data-rest-nonce="<?php echo esc_attr( $rest_nonce ); ?>"
 	data-socials-api-base="<?php echo esc_url( $socials_api ); ?>"
+	data-headline="<?php echo esc_attr( $headline ); ?>"
+	data-description="<?php echo esc_attr( $description ); ?>"
 >
-	<div class="ec-block-shell ec-studio-shell">
-		<?php if ( $headline || $description ) : ?>
-			<div class="ec-block-shell-header ec-studio-shell__header">
-				<div class="ec-block-shell-header__main">
-					<?php if ( $headline ) : ?>
-						<div class="ec-block-shell-header__title ec-studio-shell__title"><?php echo esc_html( $headline ); ?></div>
-					<?php endif; ?>
-
-					<?php if ( $description ) : ?>
-						<div class="ec-block-shell-header__description ec-studio-shell__description"><?php echo esc_html( $description ); ?></div>
-					<?php endif; ?>
-				</div>
-			</div>
-		<?php endif; ?>
-
+	<div class="ec-studio-shell">
 		<div class="ec-studio-app__mount" data-ec-studio-app></div>
 	</div>
 </div>

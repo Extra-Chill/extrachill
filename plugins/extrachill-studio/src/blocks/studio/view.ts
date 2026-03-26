@@ -1,6 +1,6 @@
 import { createElement, useState } from '@wordpress/element';
 import type { ComponentType, ReactElement } from 'react';
-import { Panel, Tabs } from '@extrachill/components';
+import { BlockShell, BlockShellHeader, ResponsiveTabs } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 
 import { mountComponent } from './app/mount';
@@ -21,19 +21,31 @@ const STUDIO_PANES: Record< string, ComponentType< StudioPaneProps > > = {
 const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 	const tabs = getStudioTabs();
 	const [ activeTab, setActiveTab ] = useState( tabs[ 0 ]?.id || 'compose' );
-	const ActivePane = STUDIO_PANES[ activeTab ] || ComposePane;
+	const renderPanel = ( id: string ): ReactElement => {
+		const ActivePane = STUDIO_PANES[ id ] || ComposePane;
+		return createElement( ActivePane, { context } );
+	};
 
 	return createElement(
-		'div',
+		BlockShell,
 		{ className: 'ec-studio-app' },
-		createElement( Panel, { className: 'ec-studio-app__panel', classPrefix: 'ec-panel', compact: true },
-			createElement( Tabs, {
+		createElement(
+			'div',
+			{ className: 'ec-studio-app__inner' },
+			createElement( BlockShellHeader, {
+				title: context.headline,
+				description: context.description,
+				showDivider: false,
+				className: 'ec-studio-app__header',
+			} ),
+			createElement( ResponsiveTabs, {
 				tabs,
 				active: activeTab,
 				onChange: setActiveTab,
-				classPrefix: 'ec-studio',
-			} ),
-			createElement( Panel, { className: 'ec-studio-app__inner-panel', classPrefix: 'ec-panel', compact: true }, createElement( ActivePane, { context } ) )
+				renderPanel,
+				className: 'ec-studio-app__tabs',
+				showDesktopTabs: true,
+			} )
 		)
 	);
 };
@@ -51,6 +63,8 @@ const initRoot = ( root: HTMLElement ): void => {
 		siteUrl: root.dataset.siteUrl || '',
 		restNonce: root.dataset.restNonce || '',
 		socialsApiBase: root.dataset.socialsApiBase || '',
+		headline: root.dataset.headline || '',
+		description: root.dataset.description || '',
 	};
 
 	const appMount = root.querySelector< HTMLElement >( '[data-ec-studio-app]' );
