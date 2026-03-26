@@ -7,7 +7,7 @@
 
 .single-post-card {
   box-shadow: 0 2px 8px rgba(0,0,0,0.04); /* very subtle shadow */
-  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+  padding: var(--spacing-xl) 0 var(--spacing-lg) 0;
   margin: var(--spacing-lg) auto;
   max-width: var(--content-width);
   width: 100%;
@@ -16,7 +16,7 @@
 
 @media (max-width: 900px) {
   .single-post-card {
-    padding: var(--spacing-md);
+    padding: var(--spacing-md) 0;
     margin: var(--spacing-md) auto;
   }
 }
