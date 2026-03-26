@@ -19,15 +19,16 @@ echo '</div>';
 ?>
 
 <article class="events-homepage">
-	<div class="inside-article">
+	<div class="ec-edge-gutter">
 		<header>
 			<h1 class="page-title"><?php esc_html_e( 'Live Music Calendar', 'extrachill-events' ); ?></h1>
 			<?php extrachill_events_render_calendar_stats(); ?>
 		</header>
+	</div>
 
 		<div class="entry-content" itemprop="text">
 			<?php do_action( 'extrachill_events_home_before_calendar' ); ?>
-			<div class="events-calendar-container full-width-content">
+			<div class="events-calendar-container ec-edge-shell">
 				<?php
 				$homepage_id = get_option( 'page_on_front' );
 
@@ -40,5 +41,4 @@ echo '</div>';
 				?>
 			</div>
 		</div><!-- .entry-content -->
-	</div><!-- .inside-article -->
 </article><!-- .events-homepage -->

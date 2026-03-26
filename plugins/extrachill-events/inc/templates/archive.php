@@ -11,10 +11,14 @@
  */
 
 get_header();
+echo '<div class="ec-edge-gutter">';
 extrachill_breadcrumbs();
+echo '</div>';
 ?>
 
-<div class="events-calendar-container full-width-content">
+
+<div class="events-calendar-container ec-edge-shell">
+	<div class="ec-edge-gutter">
 	<?php
 	if ( is_tax( 'venue' ) ) :
 		$term              = get_queried_object();
@@ -94,6 +98,7 @@ extrachill_breadcrumbs();
 	<?php endif; ?>
 
 	<?php do_action( 'extrachill_archive_below_description' ); ?>
+	</div>
 
 	<?php echo do_blocks( '<!-- wp:data-machine-events/calendar /-->' ); ?>
 </div>

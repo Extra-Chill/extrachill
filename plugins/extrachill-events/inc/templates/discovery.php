@@ -10,14 +10,18 @@
  */
 
 get_header();
+echo '<div class="ec-edge-gutter">';
 extrachill_breadcrumbs();
+echo '</div>';
 
 $term  = get_queried_object();
 $scope = extrachill_events_get_current_scope();
 $label = extrachill_events_get_scope_label( $scope );
 ?>
 
-<div class="events-calendar-container full-width-content">
+
+<div class="events-calendar-container ec-edge-shell">
+	<div class="ec-edge-gutter">
 	<header class="taxonomy-archive-header location-archive-header">
 		<h1 class="page-title">Live Music in <?php echo esc_html( $term->name ); ?> <?php echo esc_html( $label ); ?></h1>
 		<?php if ( term_description() ) : ?>
@@ -28,6 +32,7 @@ $label = extrachill_events_get_scope_label( $scope );
 	<?php extrachill_events_render_scope_nav( $term, $scope ); ?>
 
 	<?php do_action( 'extrachill_archive_below_description' ); ?>
+	</div>
 
 	<?php
 	echo do_blocks(
