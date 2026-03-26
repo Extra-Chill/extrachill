@@ -78,11 +78,12 @@ defined( 'ABSPATH' ) || exit;
         $topic_id_for_forum = bbp_get_topic_id(); 
         $forum_id_for_topic = bbp_get_topic_forum_id($topic_id_for_forum);
 
-        $show_forum_name_on_card = false;
-        if ( is_page_template('page-templates/recent-feed-template.php') ||
-             is_search() ||
-             bbp_is_search() ) {
-            $show_forum_name_on_card = true;
+		$show_forum_name_on_card = false;
+		if ( is_page_template('page-templates/recent-feed-template.php') ||
+		     is_front_page() ||
+		     is_search() ||
+		     bbp_is_search() ) {
+			$show_forum_name_on_card = true;
         }
 
         if ( $show_forum_name_on_card && !empty($forum_id_for_topic) ) :

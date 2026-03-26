@@ -74,70 +74,23 @@
         margin: 0;
     }
 
-    ul.recently-active-topic-row {
+    .recently-active-topic-row {
+        display: flex;
         flex-direction: column;
         gap: var(--spacing-md);
         margin: var(--spacing-lg) calc(-1 * var(--spacing-md)) 0;
-    }
-
-    .recently-active-topic-row .topic-card-row {
-        flex: 1 1 100%;
-        width: 100%;
-        max-width: 100%;
-        margin: 0;
     }
 }
 
 /* =========================================
    1) Container: Display horizontally
    ========================================= */
-ul.recently-active-topic-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
-    list-style: none;
-    padding: 0;
+.recently-active-topic-row {
     margin: var(--spacing-lg) 0;
-}
-
-.recently-active-topic-row .topic-card-row {
-    flex: 1 1 calc(33.333% - var(--spacing-md));
-    box-sizing: border-box;
-    padding: var(--spacing-xl);
-    font-size: var(--font-size-sm);
-    margin-bottom: 0;
-}
-
-/* =========================================
-   3) Heading style
-   ========================================= */
-.recently-active-topic-row .topic-card-row h3 {
-    font-size: var(--font-size-body);
-    margin-bottom: 1rem;
-    color: var(--heading-color);
-    font-weight: bold;
 }
 
 .recently-active-topic-row .bbp-author-link {
     display: inline;
-}
-
-.recently-active-card-meta a {
-    text-decoration: none;
-}
-.recently-active-card-meta .bbp-author-avatar {
-    height: 64px;
-    margin: 0 3px;
-}
-.recently-active-card-header {
-    margin-bottom: var(--spacing-md);
-}
-
-/* =========================================
-   5) Tweak spacing between meta lines
-   ========================================= */
-.recently-active-topic-row .topic-card-row br {
-    line-height: 1.6;
 }
 
 .forum-badges {
