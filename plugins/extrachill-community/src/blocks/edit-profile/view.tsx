@@ -86,10 +86,7 @@ const styles = {
 		boxSizing: 'border-box' as const,
 	},
 	mutedText: { color: cssVar( colors.mutedText ) },
-	headerRegion: {
-		display: 'grid',
-		gap: cssVar( spacing.spacingLg ),
-	},
+	headerRegion: { display: 'grid' },
 	disabledButton: {
 		opacity: 0.7,
 		pointerEvents: 'none' as const,
