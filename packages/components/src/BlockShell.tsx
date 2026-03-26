@@ -17,7 +17,7 @@ export function BlockShell( {
 }: BlockShellProps ) {
 	const shellClass = [
 		classPrefix,
-		'ec-page-edge-shell',
+		'ec-edge-shell',
 		compact ? `${ classPrefix }--compact` : '',
 		`${ classPrefix }--depth-${ depth }`,
 		className,

@@ -265,7 +265,7 @@
 		display: none;
 	}
 
-	.ec-page-edge-shell .ec-responsive-tabs__item {
+	.ec-edge-shell .ec-responsive-tabs__item {
 		margin-left: calc(var(--spacing-md, 1rem) * -1);
 		margin-right: calc(var(--spacing-md, 1rem) * -1);
 		border-left: 0;
@@ -539,14 +539,14 @@
 		padding-bottom: var(--spacing-sm, 0.5rem);
 	}
 
-	.ec-page-edge-shell .ec-shell-tabs {
+	.ec-edge-shell .ec-shell-tabs {
 		margin-left: calc(var(--spacing-md, 1rem) * -1);
 		margin-right: calc(var(--spacing-md, 1rem) * -1);
 		padding-left: var(--spacing-md, 1rem);
 		padding-right: var(--spacing-md, 1rem);
 	}
 
-	.ec-page-edge-shell .ec-panel {
+	.ec-edge-shell .ec-panel {
 		border-radius: 0;
 		border-left: 0;
 		border-right: 0;
@@ -557,7 +557,7 @@
 		padding-right: var(--spacing-md, 1rem);
 	}
 
-	.ec-page-edge-shell .ec-section {
+	.ec-edge-shell .ec-section {
 		border-radius: 0;
 		border-left: 0;
 		border-right: 0;
