@@ -314,7 +314,7 @@ function EditProfileApp( {
 
 	return (
 		<BlockShell className="ec-community-edit-profile-shell">
-			<BlockShellInner maxWidth="narrow">
+			<BlockShellInner className="ec-block-shell-inner--centered" maxWidth="narrow">
 				<BlockShellHeader
 					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."
