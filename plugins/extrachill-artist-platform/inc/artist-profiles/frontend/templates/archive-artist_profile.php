@@ -16,12 +16,14 @@ get_header();
 
 <?php extrachill_breadcrumbs(); ?>
 
-<header class="page-header">
-    <h1 class="page-title"><?php esc_html_e( 'Artist Directory', 'extrachill-artist-platform' ); ?></h1>
-</header>
+<div class="ec-edge-gutter">
+    <header class="page-header">
+        <h1 class="page-title"><?php esc_html_e( 'Artist Directory', 'extrachill-artist-platform' ); ?></h1>
+    </header>
 
-<div class="taxonomy-description">
-    <p><?php esc_html_e( 'These are all the artists who are part of the Extra Chill Artist Platform. Explore and get to know them below.', 'extrachill-artist-platform' ); ?></p>
+    <div class="taxonomy-description">
+        <p><?php esc_html_e( 'These are all the artists who are part of the Extra Chill Artist Platform. Explore and get to know them below.', 'extrachill-artist-platform' ); ?></p>
+    </div>
 </div>
 
 
@@ -30,7 +32,7 @@ get_header();
 do_action( 'extrachill_archive_above_posts' );
 ?>
 
-<div class="full-width-breakout">
+<div class="full-width-breakout ec-edge-shell">
     <div class="article-container">
         <?php ec_display_artist_cards_grid( 24, false, true ); ?>
     </div>

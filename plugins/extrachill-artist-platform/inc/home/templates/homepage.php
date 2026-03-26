@@ -12,7 +12,7 @@ extrachill_breadcrumbs();
 ?>
 
 <article class="artist-platform-homepage">
-	<div class="inside-article">
+	<div class="ec-edge-gutter">
 		<div class="entry-content" itemprop="text">
 			<?php
 			$current_user     = wp_get_current_user();
@@ -96,5 +96,5 @@ extrachill_breadcrumbs();
 			<?php endif; ?>
 
 		</div><!-- .entry-content -->
-	</div><!-- .inside-article -->
+	</div>
 </article><!-- .artist-platform-homepage -->

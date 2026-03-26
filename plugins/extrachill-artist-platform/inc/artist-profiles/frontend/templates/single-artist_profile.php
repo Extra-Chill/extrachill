@@ -41,7 +41,7 @@ get_header(); ?>
             ?>
 
                 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?> >
-                    <div class="inside-article">
+                    <div class="ec-edge-gutter">
                         <?php 
                         // Prepare for Hero Section
                         $hero_background_style = '';
@@ -191,7 +191,7 @@ get_header(); ?>
                          */
                         do_action( 'extra_chill_after_content' );
                         ?>
-                    </div><!-- .inside-article -->
+                    </div>
                 </article><!-- #post-## -->
 
             <?php endwhile; // end of the loop. ?>
