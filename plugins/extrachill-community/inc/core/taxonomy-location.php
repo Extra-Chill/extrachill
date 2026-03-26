@@ -83,7 +83,7 @@ function extrachill_community_append_location_links_to_description( $description
 	$button_html    = '';
 
 	if ( ! bbp_is_forum_category() && ! $has_subforums ) {
-		$button_html = '<p class="ec-single-forum-create-topic"><a class="button-1 button-large" href="#new-post">' . esc_html__( 'Create Topic', 'extrachill-community' ) . '</a></p>';
+		$button_html = '<div class="ec-page-chrome"><p class="ec-single-forum-create-topic"><a class="button-1 button-medium" href="#new-post">' . esc_html__( 'Create Topic', 'extrachill-community' ) . '</a></p></div>';
 	}
 
 	if ( empty( $location_terms ) || is_wp_error( $location_terms ) ) {
