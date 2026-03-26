@@ -11,7 +11,7 @@
 $featured_image_size = 'medium_large';
 ?>
 
-<div class="archive-card ec-mobile-edge-surface">
+<div class="archive-card ec-surface-card ec-mobile-edge-surface">
 	<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
 		<?php do_action( 'extrachill_archive_above_tax_badges' ); ?>
 		<?php extrachill_display_taxonomy_badges( get_the_ID() ); ?>

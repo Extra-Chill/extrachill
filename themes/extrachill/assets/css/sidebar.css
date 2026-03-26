@@ -20,13 +20,10 @@ h2.recent-title {
 
 /* Sidebar Card Layout */
 .sidebar-card {
-	background: var(--card-background);
-	border-radius: var(--border-radius-xl);
 	box-shadow: 0 2px 12px rgba(0,0,0,0.10);
 	margin-bottom: var(--spacing-lg);
 	padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md) var(--spacing-md);
 	transition: box-shadow 0.18s;
-	border: 1px solid var(--border-color);
 }
 
 @media (max-width: 700px) {

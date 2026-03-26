@@ -68,10 +68,7 @@ body.post-type-archive .page-header .page-title {
  */
 
 .archive-card {
-  background: var(--card-background);
-  border-radius: var(--border-radius-xl);
   box-shadow: 0 1.5px 6px rgba(0,0,0,0.03); /* even more subtle than single post */
-  border: 1px solid var(--border-color);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
   width: 100%;
