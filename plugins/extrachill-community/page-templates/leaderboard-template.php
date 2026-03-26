@@ -9,22 +9,10 @@
 
 get_header();
 ?>
-<div class="page-content">
-    <?php
-    /**
-     * Custom hook for inside site container.
-     */
-    do_action( 'extra_chill_inside_site_container' );
-    ?>
-    <div class="site-content">
-        <div class="container">
-            <?php
-            /**
-             * Custom hook for inside container.
-             */
-            do_action( 'extra_chill_inside_container' );
-            ?>
-        <?php extrachill_breadcrumbs(); ?>
+<section class="main-content">
+<?php extrachill_breadcrumbs(); ?>
+
+<div class="ec-edge-gutter">
 
 <?php
 
@@ -84,9 +72,8 @@ if ($total_pages > 1) {
 }
 
 ?>
-        </div><!-- .container -->
-    </div><!-- .site-content -->
-</div><!-- .page-content -->
+</div>
+</section>
 <?php
 get_footer();
 ?>
