@@ -174,7 +174,7 @@ export function ResponsiveTabs( {
 									{ isActive ? '▲' : '▼' }
 								</span>
 							</button>
-							{ isActive && <div className={ `${ classPrefix }__panel` }>{ renderPanel( tab.id ) }</div>}
+							{ isActive && <div className={ `${ classPrefix }__panel page-content` }>{ renderPanel( tab.id ) }</div>}
 						</div>
 					);
 				} ) }
