@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.53] - 2026-03-26
+
+### Changed
+- simplify community bbPress CSS
+- refine community mobile and bbPress list styling
+- update community components dependency to 0.4.31
+
 ## [1.3.52] - 2026-03-26
 
 ### Changed
