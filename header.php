@@ -38,7 +38,7 @@ if ( function_exists( 'wp_body_open' ) ) {
 <?php do_action( 'extrachill_above_header' ); ?>
 
 <header id="masthead" class="site-header ec-global-full-width-panel" role="banner">
-	<div class="site-branding ec-edge-gutter">
+	<div class="site-branding">
 		<?php if ( is_front_page() ) : ?>
 			<h1 class="site-title"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home"><?php echo esc_html( extrachill_get_site_title() ); ?></a></h1>
 		<?php else : ?>
