@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.82] - 2026-03-26
+
+### Fixed
+- scope community gutters to page chrome
+
 ## [1.3.81] - 2026-03-26
 
 ### Changed
