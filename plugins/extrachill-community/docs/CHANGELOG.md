@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.84] - 2026-03-26
+
+### Changed
+- align community surfaces with shared padding
+- align headless community blocks with shared and theme systems
+
+### Fixed
+- restore homepage topic action gutters
+
 ## [1.3.83] - 2026-03-26
 
 ### Changed
