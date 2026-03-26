@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, Panel, Section } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, Panel, PanelHeader, Section } from '@extrachill/components';
 import { useAnalyticsContext } from '../context/AnalyticsContext';
 import useAnalytics from '../hooks/useAnalytics';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
@@ -160,7 +160,7 @@ export default function Analytics() {
 				</Panel>
 
 				<Panel className="ec-aa__top-links" compact depth={ 1 }>
-					<BlockShellHeader title={ __( 'Top Links', 'extrachill-artist-platform' ) } />
+					<PanelHeader title={ __( 'Top Links', 'extrachill-artist-platform' ) } />
 					<table className="ec-aa__table">
 					<thead>
 						<tr>

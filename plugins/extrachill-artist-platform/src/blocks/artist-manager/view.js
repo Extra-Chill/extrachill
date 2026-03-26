@@ -11,6 +11,7 @@ import {
 	InlineStatus,
 	MediaField,
 	Panel,
+	PanelHeader,
 	ResponsiveTabs,
 } from '@extrachill/components';
 import {
@@ -335,7 +336,7 @@ const ManagersTab = ({ artistId }) => {
 	return (
 		<Panel>
 			<PanelHeader title="Profile Managers" />
-			{loading && <p>Loading…</p>}
+			{loading && <InlineStatus tone="info">Loading managers…</InlineStatus>}
 			{error && <InlineStatus tone="error">{error}</InlineStatus>}
 			<ActionRow className="ec-am__inline">
 				<div className="ec-am__search-container" ref={containerRef}>
@@ -465,7 +466,7 @@ const SubscribersTab = ({ artistId }) => {
 					</button>
 				}
 			/>
-			{loading && <p>Loading…</p>}
+			{loading && <InlineStatus tone="info">Loading subscribers…</InlineStatus>}
 			{error && <InlineStatus tone="error">{error}</InlineStatus>}
 			<div className="ec-am__list">
 				{subs.map((sub) => (
@@ -655,7 +656,7 @@ const App = () => {
 					}
 				/>
 
-				{loading && <p>Loading artist…</p>}
+				{loading && <InlineStatus tone="info">Loading artist…</InlineStatus>}
 
 				<ResponsiveTabs
 					tabs={tabs}

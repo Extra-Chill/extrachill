@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from '@wordpress/element';
-import { ActionRow, Badge, FieldGroup, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, Badge, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import { purchaseShippingLabel } from '../../../shared/api/client';
 
 const ORDER_FILTERS = [
@@ -167,8 +167,8 @@ const OrdersTab = ( {
 				) ) }
 			</div>
 
-			{ loading && <p>Loading</p> }
-			{ error && <div className="notice notice-error"><p>{ error }</p></div> }
+			{ loading && <InlineStatus tone="info">Loading orders…</InlineStatus> }
+			{ error && <InlineStatus tone="error">{ error }</InlineStatus> }
 
 			{ ! loading && ! artistId && <p>Select an artist to view orders.</p> }
 
@@ -222,7 +222,7 @@ const OrdersTab = ( {
 						</Badge>
 					</div>
 
-					{ actionError && <div className="notice notice-error"><p>{ actionError }</p></div> }
+					{ actionError && <InlineStatus tone="error">{ actionError }</InlineStatus> }
 
 					<div className="ec-asm__order-sections">
 						<div className="ec-asm__order-section">

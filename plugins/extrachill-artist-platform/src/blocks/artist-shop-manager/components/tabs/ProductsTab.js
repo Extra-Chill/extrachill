@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from '@wordpress/element';
-import { ActionRow, Badge, FieldGroup, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, Badge, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import DraggableList from '../../../shared/components/DraggableList';
 import {
 	createShopProduct,
@@ -380,14 +380,14 @@ const ProductsTab = ( {
 					) : null
 				}
 				/>
-				{ loading && <p>Loading</p> }
-				{ error && <p className="notice notice-error">{ error }</p> }
-				{ localError && <div className="notice notice-error"><p>{ localError }</p></div> }
+				{ loading && <InlineStatus tone="info">Loading products…</InlineStatus> }
+				{ error && <InlineStatus tone="error">{ error }</InlineStatus> }
+				{ localError && <InlineStatus tone="error">{ localError }</InlineStatus> }
 				{ stripeNote && (
-				<div className="notice notice-info">
-					<p>
+				<div>
+					<InlineStatus tone="warning">
 						<strong>Note:</strong> { stripeNote }
-					</p>
+					</InlineStatus>
 					{ typeof onOpenPayments === 'function' && (
 						<button type="button" className="button-2 button-small" onClick={ onOpenPayments }>
 							Go to Payments

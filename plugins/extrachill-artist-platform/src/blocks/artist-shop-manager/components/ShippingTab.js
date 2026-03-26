@@ -151,7 +151,7 @@ const ShippingTab = ( { artistId } ) => {
 	if ( loading ) {
 		return (
 			<Panel>
-				<p>Loading...</p>
+				<InlineStatus tone="info">Loading shipping address…</InlineStatus>
 			</Panel>
 		);
 	}

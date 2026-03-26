@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, InlineStatus, Panel, Section, Tabs } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, InlineStatus, Panel, Tabs } from '@extrachill/components';
 import { useEditor } from '../context/EditorContext';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 import Preview from './Preview';
@@ -36,7 +36,6 @@ export default function Editor() {
 		isSaving,
 		error,
 		saveError,
-		hasUnsavedChanges,
 		userArtists,
 		artist,
 		saveAll,
@@ -183,7 +182,7 @@ export default function Editor() {
 				/>
 
 				<div className="ec-editor__body">
-					<Section className="ec-editor__sidebar" depth={ 1 }>
+					<div className="ec-editor__sidebar">
 						<Tabs
 							tabs={ TABS }
 							active={ activeTab }
@@ -194,11 +193,11 @@ export default function Editor() {
 						<Panel className="ec-editor__tab-content" compact depth={ 2 }>
 							{ renderTabContent() }
 						</Panel>
-					</Section>
+					</div>
 
-					<Section className="ec-editor__preview-container" depth={ 1 }>
+					<div className="ec-editor__preview-container">
 						<Preview />
-					</Section>
+					</div>
 				</div>
 				<JumpToPreview />
 			</BlockShellInner>

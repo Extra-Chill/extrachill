@@ -167,11 +167,8 @@
 	display: flex;
 	flex-direction: column;
 	border-right: 1px solid var(--border-color);
-	border-radius: 0;
-	border-top: 0;
-	border-bottom: 0;
-	border-left: 0;
 	padding: 0;
+	background: var(--card-background);
 }
 
 
@@ -184,8 +181,6 @@
 	padding: 24px;
 	overflow: visible;
 	border: 0;
-	border-radius: 0;
-	background: inherit;
 }
 
 /* Preview Container */
@@ -198,8 +193,6 @@
 	top: var(--spacing-lg);
 	align-self: start;
 	height: fit-content;
-	border: 0;
-	border-radius: 0;
 }
 
 /* Tab Shared Styles */
@@ -746,24 +739,6 @@
 
 /* Responsive - Mobile */
 @media (max-width: 600px) {
-	.ec-editor {
-		background: var(--card-background);
-		border-radius: 0;
-		border-left: 0;
-		border-right: 0;
-		border-top: 1px solid var(--border-color);
-		border-bottom: 1px solid var(--border-color);
-	}
-
-	.ec-editor__body,
-	.ec-editor__sidebar {
-		background: var(--background-color);
-	}
-
-	.ec-editor__sidebar {
-		border-right: 0;
-	}
-
 	.ec-editor__header-left,
 	.ec-editor__header-right {
 		width: 100%;
@@ -778,7 +753,6 @@
 	}
 
 	.ec-editor__tab-content {
-		background: var(--card-background);
 		padding: 16px;
 	}
 
@@ -790,7 +764,6 @@
 	}
 
 	.ec-editor__preview-container {
-		background: var(--background-color);
 		padding-left: 16px;
 		padding-right: 16px;
 	}
