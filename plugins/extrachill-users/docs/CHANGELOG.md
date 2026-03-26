@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.10] - 2026-03-26
+
+### Changed
+- migrate login register block to headless React
+
 ## [0.7.9] - 2026-03-26
 
 ### Changed
