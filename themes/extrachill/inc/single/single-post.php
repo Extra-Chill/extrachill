@@ -22,7 +22,7 @@ get_header(); ?>
 <article id="post-<?php the_ID(); ?>">
 		<?php do_action( 'extrachill_before_post_content' ); ?>
 
-	<header id="postvote">
+	<header id="postvote" class="ec-edge-gutter">
 		<?php do_action( 'extrachill_above_post_title' ); ?>
 		<h1>
 			<?php the_title(); ?>
@@ -43,7 +43,7 @@ get_header(); ?>
 		</figure>
 	<?php endif; ?>
 
-	<div class="entry-content">
+	<div class="entry-content ec-edge-gutter">
 		<?php the_content(); ?>
 	</div>
 

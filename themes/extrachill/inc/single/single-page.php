@@ -25,14 +25,14 @@ while ( have_posts() ) :
 		<?php do_action( 'extrachill_before_page_content' ); ?>
 
 		<?php if ( apply_filters( 'extrachill_show_page_title', true, get_the_ID() ) ) : ?>
-			<header>
+			<header class="ec-edge-gutter">
 				<h1>
 					<?php the_title(); ?>
 				</h1>
 			</header>
 		<?php endif; ?>
 
-		<div class="entry-content">
+		<div class="entry-content ec-edge-gutter">
 			<?php the_content(); ?>
 		</div>
 
