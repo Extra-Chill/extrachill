@@ -304,7 +304,6 @@ function LoginRegisterApp( { config } ) {
 				<BlockShellHeader
 					title="Login or Register"
 					description="Access the Extra Chill community and artist platform."
-					showDivider={ false }
 				/>
 				<ResponsiveTabs
 					className="login-register-shell__tabs"
@@ -319,7 +318,7 @@ function LoginRegisterApp( { config } ) {
 							<RegisterPanel config={ config } notice={ registerNotice } setNotice={ setRegisterNotice } />
 						)
 					}
-					tabsClassName="ec-shell-tabs ec-shell-tabs--with-divider"
+					tabsClassName="ec-shell-tabs"
 					hashPrefix="tab-"
 					syncWithHash
 				/>
