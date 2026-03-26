@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.86] - 2026-03-26
+
+### Fixed
+- restore forum subscription gutter
+
 ## [1.3.85] - 2026-03-26
 
 ### Changed
