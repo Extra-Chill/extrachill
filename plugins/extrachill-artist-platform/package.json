@@ -1,6 +1,6 @@
 {
   "name": "extrachill-artist-platform",
-  "version": "1.8.17",
+  "version": "1.8.18",
   "description": "WordPress plugin providing comprehensive artist platform functionality for the Extra Chill community",
   "main": "extrachill-artist-platform.php",
   "scripts": {
