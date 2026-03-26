@@ -4,41 +4,13 @@
 	width: 100%;
 }
 
-.login-register-shell__body {
-	display: grid;
-	gap: var(--spacing-lg);
-}
-
-.login-register-shell__tabs {
-	padding-bottom: calc(var(--spacing-md) + var(--spacing-sm));
-	margin-bottom: var(--spacing-sm);
-	border-bottom: 1px solid var(--border-color);
-}
-
-.login-register-shell__body .ec-responsive-tabs__desktop-panel {
-	margin-top: var(--spacing-sm);
-}
-
 /* --- Utility Classes --- */
 .hidden {
     display: none;
 }
 
-/* --- Login Signup Link --- */
-.login-signup-link {
-    margin-top: 15px;
-}
-
 .login-register-form {
 	padding: 0;
-	max-width: 600px;
-	margin: 0 auto;
-}
-
-.login-register-form h2 {
-    color: var(--link-color);
-    margin-bottom: 10px;
-    font-size: 28px;
 }
 
 .login-register-form p {
@@ -112,30 +84,7 @@
 
 
 /* --- Dark Mode Overrides --- */
-@media (prefers-color-scheme: dark) {
-	.login-register-form {
-	}
-
-    .login-register-form h2,
-    .login-register-form p,
-    .login-register-form label {
-        color: var(--text-color);
-    }
-
-
-}
-
 /* --- Additional Notice and Form Element Styles --- */
-
-/* Form Section Styles */
-.registration-user-types {
-    margin-top: 15px;
-}
-
-.registration-user-types label {
-    display: block;
-    margin-bottom: 5px;
-}
 
 .registration-submit-section {
     margin-top: 15px;
@@ -148,10 +97,13 @@
 
 /* --- Already Logged In Card --- */
 .login-already-logged-in-card {
-	padding: 2em;
-	text-align: center;
+	width: 100%;
+}
+
+.login-already-logged-in-card__panel {
 	max-width: 400px;
-    margin: 10px auto;
+	margin: 10px auto;
+	text-align: center;
 }
 
 .login-already-logged-in-card .logged-in-avatar {
@@ -249,10 +201,4 @@
 
 .login-register-prompt a {
     color: var(--link-color);
-}
-
-@media (max-width: 480px) {
-	.login-register-shell__tabs {
-		margin-bottom: 0;
-	}
 }

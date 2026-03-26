@@ -10,15 +10,19 @@ if ( is_user_logged_in() ) {
 	$profile_url    = ec_get_site_url( 'community' ) . '/u/' . $logged_in_user->user_nicename . '/';
 	?>
 	<div class="ec-block-shell ec-page-edge-shell login-already-logged-in-card">
-		<div class="logged-in-avatar">
-			<?php echo get_avatar( $logged_in_user->ID, 80 ); ?>
-		</div>
-		<h3><?php echo esc_html( $logged_in_user->display_name ); ?></h3>
-		<p class="logged-in-status"><?php esc_html_e( 'You are logged in', 'extrachill-users' ); ?></p>
-		<div class="logged-in-actions">
-			<a href="<?php echo esc_url( $profile_url ); ?>" class="button-1 button-medium"><?php esc_html_e( 'View Profile', 'extrachill-users' ); ?></a>
-			<a href="<?php echo esc_url( home_url() ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Go to Homepage', 'extrachill-users' ); ?></a>
-			<a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="button-3 button-medium"><?php esc_html_e( 'Log Out', 'extrachill-users' ); ?></a>
+		<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
+			<div class="ec-panel login-already-logged-in-card__panel">
+				<div class="logged-in-avatar">
+					<?php echo get_avatar( $logged_in_user->ID, 80 ); ?>
+				</div>
+				<h3><?php echo esc_html( $logged_in_user->display_name ); ?></h3>
+				<p class="logged-in-status"><?php esc_html_e( 'You are logged in', 'extrachill-users' ); ?></p>
+				<div class="logged-in-actions">
+					<a href="<?php echo esc_url( $profile_url ); ?>" class="button-1 button-medium"><?php esc_html_e( 'View Profile', 'extrachill-users' ); ?></a>
+					<a href="<?php echo esc_url( home_url() ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Go to Homepage', 'extrachill-users' ); ?></a>
+					<a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="button-3 button-medium"><?php esc_html_e( 'Log Out', 'extrachill-users' ); ?></a>
+				</div>
+			</div>
 		</div>
 	</div>
 	<?php
@@ -110,25 +114,30 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 ?>
 
 <div class="ec-block-shell ec-page-edge-shell login-register-shell">
-	<div class="ec-block-shell-header ec-block-shell-header--without-divider login-register-shell__header">
-		<div class="ec-block-shell-header__main">
-			<div class="ec-block-shell-header__title"><?php esc_html_e( 'Login or Register', 'extrachill-users' ); ?></div>
-			<div class="ec-block-shell-header__description"><?php esc_html_e( 'Access the Extra Chill community and artist platform.', 'extrachill-users' ); ?></div>
-		</div>
-	</div>
-
-	<div class="ec-responsive-tabs login-register-shell__body" data-ec-responsive-tabs data-hash-prefix="tab-" data-active-tab="login">
-		<div class="ec-tabs__tabs login-register-shell__tabs" role="tablist" aria-orientation="horizontal">
-			<button type="button" role="tab" aria-selected="true" class="ec-tabs__tab is-active" data-tab-id="login"><?php esc_html_e( 'Login', 'extrachill-users' ); ?></button>
-			<button type="button" role="tab" aria-selected="false" class="ec-tabs__tab" data-tab-id="register"><?php esc_html_e( 'Register', 'extrachill-users' ); ?></button>
+	<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
+		<div class="ec-block-shell-header ec-block-shell-header--without-divider">
+			<div class="ec-block-shell-header__main">
+				<div class="ec-block-shell-header__title"><?php esc_html_e( 'Login or Register', 'extrachill-users' ); ?></div>
+				<div class="ec-block-shell-header__description"><?php esc_html_e( 'Access the Extra Chill community and artist platform.', 'extrachill-users' ); ?></div>
+			</div>
 		</div>
 
-		<div class="ec-responsive-tabs__desktop-panel"></div>
-		<div class="ec-responsive-tabs__accordion"></div>
+		<div class="ec-responsive-tabs ec-responsive-tabs--inner-narrow" data-ec-responsive-tabs data-hash-prefix="tab-" data-active-tab="login">
+			<div class="ec-responsive-tabs__inner">
+				<div class="ec-shell-tabs ec-shell-tabs--with-divider" role="presentation">
+					<div class="ec-tabs__tabs" role="tablist" aria-orientation="horizontal">
+						<button type="button" role="tab" aria-selected="true" class="ec-tabs__tab is-active" data-tab-id="login"><?php esc_html_e( 'Login', 'extrachill-users' ); ?></button>
+						<button type="button" role="tab" aria-selected="false" class="ec-tabs__tab" data-tab-id="register"><?php esc_html_e( 'Register', 'extrachill-users' ); ?></button>
+					</div>
+				</div>
 
-		<template data-tab-panel="login">
-			<div class="ec-panel ec-panel--depth-1">
-				<div class="login-register-form" data-login-register-panel>
+				<div class="ec-responsive-tabs__desktop-panel"></div>
+			</div>
+			<div class="ec-responsive-tabs__accordion"></div>
+
+			<template data-tab-panel="login">
+				<div class="ec-panel ec-panel--depth-1">
+					<div class="login-register-form" data-login-register-panel>
 					<form id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 						<?php EC_Redirect_Handler::render_hidden_fields( 'tab-login' ); ?>
 
@@ -165,17 +174,17 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 						</div>
 					<?php endif; ?>
 
-					<p class="login-register-prompt">
-						<?php esc_html_e( "Don't have an account?", 'extrachill-users' ); ?>
-						<a href="#tab-register"><?php esc_html_e( 'Register here', 'extrachill-users' ); ?></a>
-					</p>
+						<p class="login-register-prompt">
+							<?php esc_html_e( "Don't have an account?", 'extrachill-users' ); ?>
+							<a href="#tab-register"><?php esc_html_e( 'Register here', 'extrachill-users' ); ?></a>
+						</p>
+					</div>
 				</div>
-			</div>
-		</template>
+			</template>
 
-		<template data-tab-panel="register">
-			<div class="ec-panel ec-panel--depth-1">
-				<div class="login-register-form" data-login-register-panel>
+			<template data-tab-panel="register">
+				<div class="ec-panel ec-panel--depth-1">
+					<div class="login-register-form" data-login-register-panel>
 					<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
 						<input type="hidden" name="action" value="extrachill_register_user">
 						<?php EC_Redirect_Handler::render_hidden_fields( 'tab-register' ); ?>
@@ -210,9 +219,10 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 							<div class="google-signin-button"></div>
 						</div>
 					<?php endif; ?>
+					</div>
 				</div>
-			</div>
-		</template>
+			</template>
+		</div>
 	</div>
 </div>
 
