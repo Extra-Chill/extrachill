@@ -466,78 +466,73 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		'div',
 		{ className: 'ec-studio-pane ec-studio-pane--compose' },
 		h(
-			'div',
-			{ className: 'ec-studio-pane__grid ec-studio-pane__grid--compose' },
+			PanelView,
+			{ className: 'ec-studio-panel ec-studio-panel--editor', compact: true },
 
-			// Left: Editor
-				h(
-					PanelView,
-				{ className: 'ec-studio-panel ec-studio-panel--editor', compact: true },
-
-				// Draft toolbar
-				h(
-					PanelHeader,
-					{
-						actions: h(
-							ActionRowView,
-							{ className: 'ec-studio-compose-toolbar' },
-							createElement(
-								'div',
-								{ className: 'ec-studio-compose-toolbar__controls' },
-								drafts.length > 0
-									? createElement(
-										'select',
-										{
-											className: 'ec-studio-compose-draft-picker',
-											value: activePostId || '',
-											onChange: onDraftSelect,
-											disabled: isLoadingDrafts,
-										},
-										createElement( 'option', { value: '', disabled: true },
-											isLoadingDrafts
-												? __( 'Loading drafts…', 'extrachill-studio' )
-												: __( 'Select a draft…', 'extrachill-studio' )
-										),
-										...drafts.map( ( d ) =>
-											createElement( 'option', { key: d.id, value: d.id },
-												`#${ d.id } — ${ ( d.title.raw || d.title.rendered || __( 'Untitled', 'extrachill-studio' ) ).slice( 0, 50 ) }`
-											)
+			// Draft toolbar
+			h(
+				PanelHeader,
+				{
+					actions: h(
+						ActionRowView,
+						{ className: 'ec-studio-compose-toolbar' },
+						createElement(
+							'div',
+							{ className: 'ec-studio-compose-toolbar__controls' },
+							drafts.length > 0
+								? createElement(
+									'select',
+									{
+										className: 'ec-studio-compose-draft-picker',
+										value: activePostId || '',
+										onChange: onDraftSelect,
+										disabled: isLoadingDrafts,
+									},
+									createElement( 'option', { value: '', disabled: true },
+										isLoadingDrafts
+											? __( 'Loading drafts…', 'extrachill-studio' )
+											: __( 'Select a draft…', 'extrachill-studio' )
+									),
+									...drafts.map( ( d ) =>
+										createElement( 'option', { key: d.id, value: d.id },
+											`#${ d.id } — ${ ( d.title.raw || d.title.rendered || __( 'Untitled', 'extrachill-studio' ) ).slice( 0, 50 ) }`
 										)
 									)
-									: ( ! isLoadingDrafts
-										? createElement( 'span', { className: 'ec-studio-compose-toolbar__empty' }, __( 'No drafts yet', 'extrachill-studio' ) )
-										: createElement( 'span', { className: 'ec-studio-compose-toolbar__empty' }, __( 'Loading…', 'extrachill-studio' ) )
-									),
-								createElement(
-									'button',
-									{
-										type: 'button',
-										className: 'button-1 button-small',
-										onClick: startNew,
-										disabled: isSubmitting,
-									},
-									__( 'New', 'extrachill-studio' )
 								)
+								: ( ! isLoadingDrafts
+									? createElement( 'span', { className: 'ec-studio-compose-toolbar__empty' }, __( 'No drafts yet', 'extrachill-studio' ) )
+									: createElement( 'span', { className: 'ec-studio-compose-toolbar__empty' }, __( 'Loading…', 'extrachill-studio' ) )
+								),
+							createElement(
+								'button',
+								{
+									type: 'button',
+									className: 'button-1 button-small',
+									onClick: startNew,
+									disabled: isSubmitting,
+								},
+								__( 'New', 'extrachill-studio' )
 							)
 						)
-					}
-				),
+					)
+				}
+			),
 
-				// Title input
-					h(
-					FieldGroupView,
-					{ label: __( 'Title', 'extrachill-studio' ), htmlFor: 'ec-studio-compose-title' },
-					createElement( 'input', {
-						id: 'ec-studio-compose-title',
-						type: 'text',
-						className: 'ec-studio-compose-title',
-						placeholder: __( 'Post title…', 'extrachill-studio' ),
-						value: title,
-						onChange: onTitleChange,
-					} )
-				),
+			// Title input
+				h(
+				FieldGroupView,
+				{ label: __( 'Title', 'extrachill-studio' ), htmlFor: 'ec-studio-compose-title' },
+				createElement( 'input', {
+					id: 'ec-studio-compose-title',
+					type: 'text',
+					className: 'ec-studio-compose-title',
+					placeholder: __( 'Post title…', 'extrachill-studio' ),
+					value: title,
+					onChange: onTitleChange,
+				} )
+			),
 
-				// Block editor container — mounted once, content swapped via replaceContent API.
+			// Block editor container — mounted once, content swapped via replaceContent API.
 				h(
 					'div',
 					{ className: 'ec-studio-compose-editor' },
@@ -549,56 +544,41 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 					} )
 				),
 
-				// Status messages
-					error
-					? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error )
-					: null,
-				! error && status
-					? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status )
-					: null,
+			// Status messages
+				error
+				? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error )
+				: null,
+			! error && status
+				? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status )
+				: null,
 
-				// Actions
+			// Actions
 				h(
-					ActionRowView,
-					{ className: 'ec-studio-composer__actions' },
-					createElement(
-						'button',
-						{
-							type: 'button',
-							className: 'button-1 button-medium',
-							onClick: submitForReview,
-							disabled: isSubmitting || ! editorReady,
-						},
-						isSubmitting ? __( 'Submitting…', 'extrachill-studio' ) : __( 'Submit for Review', 'extrachill-studio' )
-					),
-					createElement(
-						'button',
-						{
-							type: 'button',
-							className: 'button-1 button-medium button-secondary',
-							onClick: saveDraft,
-							disabled: isSubmitting || ! editorReady,
-						},
-						isSubmitting ? __( 'Saving…', 'extrachill-studio' ) : (
-							activePostId
-								? __( 'Update Draft', 'extrachill-studio' )
-								: __( 'Save Draft', 'extrachill-studio' )
-						)
+				ActionRowView,
+				{ className: 'ec-studio-composer__actions' },
+				createElement(
+					'button',
+					{
+						type: 'button',
+						className: 'button-1 button-medium',
+						onClick: submitForReview,
+						disabled: isSubmitting || ! editorReady,
+					},
+					isSubmitting ? __( 'Submitting…', 'extrachill-studio' ) : __( 'Submit for Review', 'extrachill-studio' )
+				),
+				createElement(
+					'button',
+					{
+						type: 'button',
+						className: 'button-1 button-medium button-secondary',
+						onClick: saveDraft,
+						disabled: isSubmitting || ! editorReady,
+					},
+					isSubmitting ? __( 'Saving…', 'extrachill-studio' ) : (
+						activePostId
+							? __( 'Update Draft', 'extrachill-studio' )
+							: __( 'Save Draft', 'extrachill-studio' )
 					)
-				)
-			),
-
-			// Right: Sidebar
-				h(
-					PanelView,
-				{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, null ),
-				h(
-					'ul',
-					null,
-					createElement( 'li', null, __( 'Your work autosaves every few seconds while editing an existing draft.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Save Draft — creates or updates a draft you can return to later.', 'extrachill-studio' ) ),
-					createElement( 'li', null, __( 'Submit for Review — flags the post for an admin to approve and publish.', 'extrachill-studio' ) )
 				),
 				activePostId
 					? h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' },
