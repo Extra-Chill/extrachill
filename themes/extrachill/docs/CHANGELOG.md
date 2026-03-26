@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.14] - 2026-03-26
+
+### Changed
+- standardize mobile edge contract
+
 ## [2.2.13] - 2026-03-26
 
 ### Changed
