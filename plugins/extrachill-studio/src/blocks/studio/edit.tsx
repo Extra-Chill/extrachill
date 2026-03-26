@@ -58,7 +58,6 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 						tabs={ tabs.map( ( tab ) => ( { id: tab.id, label: tab.label } ) ) }
 						active={ tabs[ 0 ]?.id || 'compose' }
 						onChange={ () => undefined }
-						classPrefix="ec-studio"
 					/>
 					<div className="ec-studio-editor__preview-panel">
 						<p>{ tabs[ 0 ]?.preview }</p>

@@ -265,16 +265,6 @@
 }
 
 @media (max-width: 480px) {
-	.ec-studio-card,
-	.ec-studio-panel,
-	.ec-studio-preview,
-	.ec-studio-qr-result__image,
-	.ec-studio-image-list__item,
-	.ec-studio-comment-list__item,
-	.ec-studio-social-platforms__item {
-		border-radius: 0;
-	}
-
 	.ec-studio-pane__grid,
 	.ec-studio-pane__grid--compose {
 		grid-template-columns: 1fr;
