@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.45] - 2026-03-26
+
+### Changed
+- consume shared tab layout in community blocks
+
 ## [1.3.44] - 2026-03-26
 
 ### Changed
