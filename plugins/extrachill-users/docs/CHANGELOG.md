@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.7] - 2026-03-26
+
+### Changed
+- align login register shell with shared mobile edges
+
 ## [0.7.6] - 2026-03-26
 
 ### Changed
