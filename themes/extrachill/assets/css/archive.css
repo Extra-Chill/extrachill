@@ -69,7 +69,6 @@ body.post-type-archive .page-header .page-title {
 
 .archive-card {
   box-shadow: 0 1.5px 6px rgba(0,0,0,0.03); /* even more subtle than single post */
-  padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
   width: 100%;
   box-sizing: border-box;
@@ -128,7 +127,6 @@ a.card-link-target:hover,
 
 @media (max-width: 900px) {
   .archive-card {
-    padding: var(--spacing-md) var(--spacing-sm);
     margin-bottom: var(--spacing-md);
   }
 } 
