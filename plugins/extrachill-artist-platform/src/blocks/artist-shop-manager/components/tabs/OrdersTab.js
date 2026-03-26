@@ -141,7 +141,6 @@ const OrdersTab = ( {
 	return (
 		<Panel className="ec-asm__orders">
 			<PanelHeader
-				title="Orders"
 				actions={
 					<button
 						type="button"

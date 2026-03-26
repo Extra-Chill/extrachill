@@ -159,7 +159,6 @@ const ShippingTab = ( { artistId } ) => {
 	return (
 		<Panel className="ec-asm__shipping">
 			<PanelHeader
-				title="Shipping Address"
 				description="Set up your shipping address for printing labels. This is where your orders will ship from."
 			/>
 

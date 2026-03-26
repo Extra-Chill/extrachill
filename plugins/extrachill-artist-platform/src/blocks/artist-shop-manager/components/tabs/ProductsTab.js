@@ -367,7 +367,6 @@ const ProductsTab = ( {
 		<div ref={ panelRef }>
 			<Panel className="ec-asm__products-panel">
 				<PanelHeader
-				title="Products"
 				actions={
 					artistId && ! loading && ! showForm && artistProducts.length > 0 ? (
 						<button
@@ -418,7 +417,6 @@ const ProductsTab = ( {
 										<span
 											key={ size.name }
 											className={ `ec-asm__product-size${ size.stock > 0 ? '' : ' is-out' }` }
-											title={ `${ size.name }: ${ size.stock } in stock` }
 										>
 											{ size.name }
 										</span>
@@ -432,7 +430,6 @@ const ProductsTab = ( {
 								className="ec-asm__icon-btn"
 								onClick={ () => startEdit( product ) }
 								disabled={ saving }
-								title="Edit"
 							>
 								<span className="dashicons dashicons-edit"></span>
 							</button>
@@ -441,7 +438,6 @@ const ProductsTab = ( {
 								className="ec-asm__icon-btn ec-asm__icon-btn--danger"
 								onClick={ () => trash( product.id ) }
 								disabled={ saving }
-								title="Trash"
 							>
 								<span className="dashicons dashicons-trash"></span>
 							</button>
@@ -462,7 +458,6 @@ const ProductsTab = ( {
 				{ showForm && (
 				<Panel>
 					<PanelHeader
-						title={ editingId ? 'Edit Product' : 'New Product' }
 						actions={
 							<select
 								className="ec-asm__status-select"
@@ -495,7 +490,6 @@ const ProductsTab = ( {
 
 						<div className="ec-asm__image">
 							<PanelHeader
-								title="Product Images"
 								description="Up to 5 images. First image is featured. Drag to reorder."
 							/>
 
@@ -552,13 +546,12 @@ const ProductsTab = ( {
 															<Badge tone="muted">Gallery</Badge>
 														) }
 													</div>
-													<button
-														type="button"
-														className="ec-asm__icon-btn ec-asm__icon-btn--danger"
-														onClick={ () => deleteImage( img.id ) }
-														disabled={ saving }
-														title="Delete"
-													>
+											<button
+												type="button"
+												className="ec-asm__icon-btn ec-asm__icon-btn--danger"
+												onClick={ () => deleteImage( img.id ) }
+												disabled={ saving }
+											>
 														<span className="dashicons dashicons-trash"></span>
 													</button>
 												</div>
