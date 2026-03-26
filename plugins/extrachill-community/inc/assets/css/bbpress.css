@@ -707,16 +707,6 @@ p.private-forums {
    Small Screen Edge-to-Edge (≤480px)
 ================================================== */
 @media (max-width: 480px) {
-    body.topic .main-content > .breadcrumbs,
-    body.topic .main-content > h1,
-    body.forum .main-content > .breadcrumbs,
-    body.forum .main-content > h1,
-    body.forum-archive .main-content > .breadcrumbs,
-    body.forum-archive .main-content > h1 {
-        padding-left: var(--spacing-md);
-        padding-right: var(--spacing-md);
-    }
-
     .bbp-topic-form,
     .bbp-reply-form {
         border-radius: 0;
