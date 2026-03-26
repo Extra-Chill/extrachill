@@ -7,11 +7,12 @@ import {
 	ActionRow,
 	BlockShell,
 	BlockShellHeader,
+	BlockShellInner,
 	FieldGroup,
 	InlineStatus,
 	Panel,
 	PanelHeader,
-	ShellTabs,
+	ResponsiveTabs,
 } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
@@ -20,8 +21,6 @@ import type { UserProfile, UserLink } from '@extrachill/api-client';
 const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 
 const styles = {
-	container: { maxWidth: '700px' },
-	tabsWrapper: { marginBottom: cssVar( spacing.spacingLg ) },
 	input: {
 		width: '100%',
 		maxWidth: '400px',
@@ -45,36 +44,6 @@ const styles = {
 		minHeight: '120px',
 		resize: 'vertical' as const,
 		fontFamily: 'inherit',
-	},
-	button: {
-		padding: '10px 20px',
-		border: 'none',
-		borderRadius: '3px',
-		cursor: 'pointer',
-		fontWeight: 600,
-		fontSize: cssVar( fontSize.fontSizeBase ),
-		backgroundColor: cssVar( colors.linkColor ),
-		color: '#fff',
-	},
-	secondaryButton: {
-		padding: '8px 16px',
-		border: `1px solid ${ cssVar( colors.borderColor ) }`,
-		borderRadius: '3px',
-		cursor: 'pointer',
-		fontWeight: 500,
-		fontSize: cssVar( fontSize.fontSizeSm ),
-		backgroundColor: 'transparent',
-		color: cssVar( colors.textColor ),
-	},
-	dangerButton: {
-		padding: '6px 12px',
-		border: 'none',
-		borderRadius: '3px',
-		cursor: 'pointer',
-		fontWeight: 500,
-		fontSize: cssVar( fontSize.fontSizeSm ),
-		backgroundColor: 'rgba(211, 47, 47, 0.1)',
-		color: '#d32f2f',
 	},
 	avatarContainer: {
 		display: 'flex',
@@ -117,6 +86,14 @@ const styles = {
 		boxSizing: 'border-box' as const,
 	},
 	mutedText: { color: cssVar( colors.mutedText ) },
+	disabledButton: {
+		opacity: 0.7,
+		pointerEvents: 'none' as const,
+	},
+	inlineButtonLink: { textDecoration: 'none' },
+	visuallyHiddenInput: {
+		display: 'none',
+	},
 } as const;
 
 function Notice( { type, message }: { type: 'success' | 'error'; message: string } ) {
@@ -159,14 +136,14 @@ function AvatarUpload( {
 				<p style={ { marginTop: 0, marginBottom: '8px', color: cssVar( colors.mutedText ) } }>
 					This is the avatar you currently have set. Upload a new image to change it.
 				</p>
-				<label style={ { ...styles.secondaryButton, display: 'inline-block', opacity: uploading ? 0.7 : 1 } }>
+				<label className={ `button-3 button-small${ uploading ? ' is-disabled' : '' }` } style={ uploading ? styles.disabledButton : undefined }>
 					{ uploading ? 'Uploading...' : 'Upload New Avatar' }
 					<input
 						type="file"
 						accept="image/*"
 						onChange={ handleFileChange }
 						disabled={ uploading }
-						style={ { display: 'none' } }
+						style={ styles.visuallyHiddenInput }
 					/>
 				</label>
 			</div>
@@ -225,19 +202,19 @@ function LinksManager( {
 							placeholder="Label"
 						/>
 					) }
-					<button type="button" style={ styles.dangerButton } onClick={ () => removeLink( index ) } title="Remove link">
+					<button type="button" className="button-3 button-small" onClick={ () => removeLink( index ) } title="Remove link">
 						Remove
 					</button>
 				</div>
 			) ) }
 			<ActionRow>
-				<button type="button" style={ styles.secondaryButton } onClick={ addLink }>
+				<button type="button" className="button-3 button-small" onClick={ addLink }>
 					+ Add Link
 				</button>
 			</ActionRow>
 		</div>
 	);
-}
+	}
 
 type TabId = 'avatar-title' | 'about' | 'links' | 'artist-profiles';
 
@@ -290,7 +267,6 @@ function EditProfileApp( {
 
 	const switchTab = useCallback( ( tab: TabId ) => {
 		setActiveTab( tab );
-		window.location.hash = `tab-${ tab }`;
 	}, [] );
 
 	const handleSave = useCallback( async () => {
@@ -317,7 +293,7 @@ function EditProfileApp( {
 	}, [ customTitle, bio, localCity, links ] );
 
 	if ( loading ) {
-		return <div style={ { padding: cssVar( spacing.spacingMd ), color: cssVar( colors.mutedText ) } }>Loading profile...</div>;
+		return <InlineStatus tone="info">Loading profile...</InlineStatus>;
 	}
 
 	if ( error || ! profile ) {
@@ -334,120 +310,79 @@ function EditProfileApp( {
 
 	return (
 		<BlockShell className="ec-community-edit-profile-shell">
-			<div style={ styles.container }>
+			<BlockShellInner maxWidth="narrow">
 				<BlockShellHeader
 					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."
 					showDivider={ false }
 				/>
 				{ notice && <Notice type={ notice.type } message={ notice.message } /> }
-				<ShellTabs
+				<ResponsiveTabs
 					tabs={ tabs as Array<{ id: string; label: string }> }
 					active={ activeTab }
 					onChange={ ( id ) => switchTab( id as TabId ) }
+					syncWithHash={ true }
+					renderPanel={ ( id ) => {
+						switch ( id as TabId ) {
+							case 'avatar-title':
+								return (
+									<Panel depth={ 1 }>
+										<PanelHeader title="Avatar & Title" />
+										<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
+										<FieldGroup label={ `Custom Title${ customTitle ? ` (Current: ${ customTitle })` : '' }` } htmlFor="ec-custom-title" help="Enter a custom title, or leave blank for default.">
+											<input id="ec-custom-title" type="text" style={ styles.input } value={ customTitle } onChange={ ( e ) => setCustomTitle( e.target.value ) } placeholder="Extra Chillian" />
+										</FieldGroup>
+									</Panel>
+								);
+							case 'about':
+								return (
+									<Panel depth={ 1 }>
+										<PanelHeader title="About" />
+										<FieldGroup label="Bio" htmlFor="ec-bio">
+											<textarea id="ec-bio" style={ styles.textarea } value={ bio } onChange={ ( e ) => setBio( e.target.value ) } />
+										</FieldGroup>
+										<FieldGroup label="Local Scene (City/Region)" htmlFor="ec-local-city">
+											<input id="ec-local-city" type="text" style={ styles.input } value={ localCity } onChange={ ( e ) => setLocalCity( e.target.value ) } placeholder="Your local city/region..." />
+										</FieldGroup>
+									</Panel>
+								);
+							case 'links':
+								return (
+									<Panel depth={ 1 }>
+										<PanelHeader title="Your Links" />
+										<LinksManager links={ links } linkTypes={ profile.link_types } onChange={ setLinks } />
+									</Panel>
+								);
+							case 'artist-profiles':
+								return hasArtistAccess ? (
+									<Panel depth={ 1 }>
+										<PanelHeader title="Artist Profiles" description="Manage your artist profiles and link pages." />
+										{ hasArtists ? (
+											<ActionRow>
+												<a href={ `${ artistSiteUrl }/manage-artist/` } className="button-2 button-small" style={ styles.inlineButtonLink }>Manage Artist</a>
+											</ActionRow>
+										) : canCreateArtists ? (
+											<ActionRow>
+												<a href={ `${ artistSiteUrl }/create-artist/` } className="button-2 button-small" style={ styles.inlineButtonLink }>Create Artist Profile</a>
+											</ActionRow>
+										) : (
+											<p style={ styles.mutedText }>No artist profiles available yet.</p>
+										) }
+									</Panel>
+								) : null;
+							default:
+								return null;
+						}
+					} }
+					showDesktopTabs={ true }
 				/>
-
-					{ activeTab === 'avatar-title' && (
-						<Panel>
-							<PanelHeader title="Avatar & Title" />
-							<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
-							<FieldGroup
-								label={ `Custom Title${ customTitle ? ` (Current: ${ customTitle })` : '' }` }
-								htmlFor="ec-custom-title"
-								help="Enter a custom title, or leave blank for default."
-							>
-								<input
-									id="ec-custom-title"
-									type="text"
-									style={ styles.input }
-									value={ customTitle }
-									onChange={ ( e ) => setCustomTitle( e.target.value ) }
-									placeholder="Extra Chillian"
-								/>
-							</FieldGroup>
-						</Panel>
-					) }
-
-					{ activeTab === 'about' && (
-						<Panel>
-							<PanelHeader title="About" />
-							<FieldGroup label="Bio" htmlFor="ec-bio">
-								<textarea
-									id="ec-bio"
-									style={ styles.textarea }
-									value={ bio }
-									onChange={ ( e ) => setBio( e.target.value ) }
-								/>
-							</FieldGroup>
-							<FieldGroup label="Local Scene (City/Region)" htmlFor="ec-local-city">
-								<input
-									id="ec-local-city"
-									type="text"
-									style={ styles.input }
-									value={ localCity }
-									onChange={ ( e ) => setLocalCity( e.target.value ) }
-									placeholder="Your local city/region..."
-								/>
-							</FieldGroup>
-						</Panel>
-					) }
-
-					{ activeTab === 'links' && (
-						<Panel>
-							<PanelHeader title="Your Links" />
-							<LinksManager links={ links } linkTypes={ profile.link_types } onChange={ setLinks } />
-						</Panel>
-					) }
-
-					{ hasArtistAccess && activeTab === 'artist-profiles' && (
-						<Panel>
-							<PanelHeader
-								title="Artist Profiles"
-								description="Manage your artist profiles and link pages."
-							/>
-							{ hasArtists ? (
-								<ActionRow>
-									<a
-										href={ `${ artistSiteUrl }/manage-artist/` }
-										style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
-									>
-										Manage Artist
-									</a>
-								</ActionRow>
-							) : canCreateArtists ? (
-								<ActionRow>
-									<a
-										href={ `${ artistSiteUrl }/create-artist/` }
-										style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
-									>
-										Create Artist Profile
-									</a>
-								</ActionRow>
-							) : (
-								<p style={ styles.mutedText }>No artist profiles available yet.</p>
-							) }
-						</Panel>
-					) }
-
-					<ActionRow>
-						<button
-							type="button"
-							style={ { ...styles.button, opacity: saving ? 0.7 : 1 } }
-							onClick={ handleSave }
-							disabled={ saving }
-						>
-							{ saving ? 'Saving...' : 'Save Profile Changes' }
-						</button>
-						{ profileUrl && (
-							<a
-								href={ profileUrl }
-								style={ { ...styles.secondaryButton, textDecoration: 'none', display: 'inline-block' } }
-							>
-								View Public Profile
-							</a>
-						) }
-					</ActionRow>
-			</div>
+				<ActionRow>
+					<button type="button" className={ `button-2 button-small${ saving ? ' is-disabled' : '' }` } style={ saving ? styles.disabledButton : undefined } onClick={ handleSave } disabled={ saving }>
+						{ saving ? 'Saving...' : 'Save Profile Changes' }
+					</button>
+					{ profileUrl && <a href={ profileUrl } className="button-3 button-small" style={ styles.inlineButtonLink }>View Public Profile</a> }
+				</ActionRow>
+			</BlockShellInner>
 		</BlockShell>
 	);
 }

@@ -18,12 +18,6 @@ if ( ! is_user_logged_in() ) {
 
 $class = 'wp-block-extrachill-edit-profile';
 
-$sprite_url = get_template_directory_uri() . '/assets/fonts/extrachill.svg';
-
-if ( defined( 'EXTRACHILL_THEME_VERSION' ) && EXTRACHILL_THEME_VERSION ) {
-	$sprite_url .= '?v=' . urlencode( EXTRACHILL_THEME_VERSION );
-}
-
 $artist_site_url = function_exists( 'ec_get_site_url' )
 	? ec_get_site_url( 'artist' )
 	: 'https://artist.extrachill.com';
@@ -43,9 +37,8 @@ $can_create_artists = function_exists( 'ec_can_create_artist_profiles' )
 	: false;
 
 printf(
-	'<div class="%1$s" data-sprite-url="%2$s" data-artist-site-url="%3$s" data-user-id="%4$d" data-profile-url="%5$s" data-has-artists="%6$s" data-can-create-artists="%7$s"></div>',
+	'<div class="%1$s" data-artist-site-url="%2$s" data-user-id="%3$d" data-profile-url="%4$s" data-has-artists="%5$s" data-can-create-artists="%6$s"></div>',
 	esc_attr( $class ),
-	esc_url( $sprite_url ),
 	esc_url( $artist_site_url ),
 	(int) $current_user_id,
 	esc_url( $profile_url ),
