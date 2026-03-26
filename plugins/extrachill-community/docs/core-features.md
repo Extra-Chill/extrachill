@@ -54,7 +54,6 @@ Context-aware stylesheet enqueuing based on page templates and bbPress contexts.
 - **replies-loop.css**: Reply display styles
 - **user-profile.css**: Profile page styling
 - **notifications.css**: Notification interface
-- **settings-page.css**: User settings styling
 
 ### JavaScript Architecture
 Modular script loading with conditional enqueuing.
