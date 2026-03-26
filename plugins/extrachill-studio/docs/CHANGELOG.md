@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.35] - 2026-03-26
+
+### Changed
+- remove legacy studio wrapper and shell overrides
+
 ## [0.2.34] - 2026-03-26
 
 ### Changed
