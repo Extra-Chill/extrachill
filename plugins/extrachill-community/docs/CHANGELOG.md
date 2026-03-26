@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.77] - 2026-03-26
+
+### Changed
+- align forum homepage cards to theme edge contract
+
+### Fixed
+- add gutter to community homepage actions
+
 ## [1.3.76] - 2026-03-26
 
 ### Fixed
