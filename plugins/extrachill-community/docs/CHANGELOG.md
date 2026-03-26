@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.85] - 2026-03-26
+
+### Changed
+- align community layout with full-width utilities
+
 ## [1.3.84] - 2026-03-26
 
 ### Changed
