@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.79] - 2026-03-26
+
+### Changed
+- remove community panel titles
+
 ## [1.3.78] - 2026-03-26
 
 ### Fixed
