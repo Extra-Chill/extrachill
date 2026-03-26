@@ -350,7 +350,6 @@
 	min-height: 400px;
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius-sm, 4px);
-	overflow: hidden;
 }
 
 .ec-studio-compose-editor .blocks-everywhere {
@@ -359,6 +358,40 @@
 
 .ec-studio-compose-editor .block-editor-block-list__layout {
 	padding: var(--spacing-md);
+}
+
+.ec-studio-panel--compose-sidebar {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.ec-studio-compose-sidebar__slot,
+.ec-studio-compose-sidebar__content {
+	flex: 1;
+	min-height: 400px;
+	height: 100%;
+}
+
+.ec-studio-compose-sidebar__slot {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+	overflow: hidden;
+	background: var(--background-color);
+}
+
+.ec-studio-compose-sidebar__content {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.ec-studio-compose-sidebar__content .edit-widgets-layout__inserter-panel,
+.ec-studio-compose-sidebar__content .editor-list-view-sidebar {
+	height: 100%;
 }
 
 @media (max-width: 768px) {

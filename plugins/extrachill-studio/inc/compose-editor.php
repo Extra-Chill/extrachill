@@ -156,8 +156,13 @@ function configure_compose_editor( array $settings ): array {
 		)
 	);
 
-	// Show the block inserter for a richer editing experience.
+	// Show the block inserter in the shared sidebar mode, but detach the
+	// rendered sidebar into Studio's dedicated compose sidebar slot.
 	$settings['iso']['sidebar']['inserter'] = true;
+	$settings['iso']['sidebar']['detached'] = array(
+		'target'    => '.ec-studio-compose-sidebar__slot',
+		'className' => 'ec-studio-compose-sidebar__content',
+	);
 
 	// Allow common embed types.
 	$settings['iso']['allowEmbeds'] = array(
