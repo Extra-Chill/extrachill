@@ -93,9 +93,9 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: var(--spacing-md);
     background: linear-gradient(to bottom, var(--card-background), var(--background-color));
-    padding: 16px;
+    padding: var(--spacing-md);
     border-radius: var(--border-radius-md);
 }
 
@@ -218,7 +218,7 @@ li.bbp-body div.hentry {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 20px;
+    padding: var(--spacing-md) var(--spacing-lg);
     border-top: 1px solid var(--border-color);
     background: var(--card-background);
     border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
@@ -241,7 +241,7 @@ li.bbp-body div.hentry {
 {
     flex: 1;
     min-width: 0;
-    padding: 15px 20px;
+    padding: var(--spacing-md) var(--spacing-lg);
     margin: 0;
     word-break: break-word;
     overflow-wrap: anywhere;
@@ -528,10 +528,6 @@ blockquote p{
 ================================================== */
 @media (max-width: 480px) {
     .bbp-reply-card {
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        box-shadow: none;
         margin-left: 0;
         margin-right: 0;
         width: 100%;
@@ -554,12 +550,5 @@ blockquote p{
 
     .bbp-reply-header-content {
         border-radius: 0;
-    }
-
-    .ec-inline-reply-form {
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        box-shadow: none;
     }
 }

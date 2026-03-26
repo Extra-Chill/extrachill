@@ -14,15 +14,15 @@
 .bbp-topics-grid {
     display: flex;
     flex-wrap: wrap;
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-lg);
 }
 
 .bbp-topic-card {
     background-color: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
     width: 100%;
     box-sizing: border-box;
 }
@@ -42,8 +42,8 @@
 
 .bbp-topic-stats {
     display: flex;
-    margin-bottom: 10px;
-    gap: 10px;
+    margin-bottom: var(--spacing-sm);
+    gap: var(--spacing-sm);
 }
 
 .bbp-topic-meta {
@@ -57,7 +57,7 @@
     }
     .bbp-topic-card {
         width: calc(33.33% - 10px);
-        margin-right: 10px;
+        margin-right: var(--spacing-sm);
     }
     /* Remove margin from the last card in each row */
     .bbp-topic-card:nth-child(3n) {
@@ -65,7 +65,7 @@
     }
 }
 .bbp-forum-description {
-    margin-bottom: 15px;
+    margin-bottom: var(--spacing-md);
 }
 
 /* Mobile Styles (1 column) */
@@ -96,7 +96,7 @@
 /* Topic Header Inner Layout */
 .bbp-topic-header-inner {
     display: flex;
-    gap: 10px;
+    gap: var(--spacing-sm);
     align-items: baseline;
 }
 
@@ -117,16 +117,4 @@
     vertical-align: middle;
 }
 
-/* ==================================================
-   Small Screen Edge-to-Edge (≤480px)
-================================================== */
-@media (max-width: 480px) {
-    .bbp-topic-card {
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        box-shadow: none;
-        margin-left: 0;
-        margin-right: 0;
-    }
-}
+/* Small-screen edge-to-edge topic card surface is owned by theme/style.css */
