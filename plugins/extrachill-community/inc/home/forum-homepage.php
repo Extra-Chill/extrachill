@@ -20,6 +20,6 @@ do_action('extrachill_community_home_top');
 
 // Output bbPress forum index via shortcode
 // This will use the plugin's loop-forums.php template (registered via template stack)
-echo '<div class="ec-page-chrome">' . do_shortcode('[bbp-forum-index]') . '</div>';
+echo do_shortcode('[bbp-forum-index]');
 
 do_action('extrachill_community_home_after_forums');

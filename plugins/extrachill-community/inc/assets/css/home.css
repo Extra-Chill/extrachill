@@ -122,7 +122,7 @@ ul.recently-active-topic-row {
     box-sizing: border-box;
     padding: var(--spacing-xl);
     font-size: var(--font-size-sm);
-    margin-bottom: 0; /* No bottom margin needed if horizontal */
+    margin-bottom: 0;
 }
 
 /* =========================================
@@ -139,16 +139,15 @@ ul.recently-active-topic-row {
     display: inline;
 }
 
-.card-meta a {
-    padding: auto;
+.recently-active-card-meta a {
     text-decoration: none;
 }
-.card-meta .bbp-author-avatar {
+.recently-active-card-meta .bbp-author-avatar {
     height: 64px;
-    margin:0 3px;
+    margin: 0 3px;
 }
-.card-header{
-    margin-bottom:15px;
+.recently-active-card-header {
+    margin-bottom: var(--spacing-md);
 }
 
 /* =========================================
@@ -170,11 +169,6 @@ ul.recently-active-topic-row {
     display: flex;
     gap: 0.5rem;
     align-items: center;
-}
-
-#bbpress-forums .bbp-forums-list .bbp-forum{
-    font-size: var(--font-size-sm);
-    list-style: none;
 }
 
 .bbp-forum-last-active-time, .bbp-forum-activity-location {
@@ -207,15 +201,15 @@ ul.recently-active-topic-row {
 .artist-platform-homepage-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
-    margin: 16px 0;
+    gap: var(--spacing-md);
+    margin: var(--spacing-md) 0;
 }
 
 .artist-homepage-card {
     background: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
-    padding: 20px;
+    padding: var(--spacing-lg);
     transition: all 0.2s ease;
     position: relative;
 }
@@ -231,7 +225,7 @@ ul.recently-active-topic-row {
     color: inherit;
     display: flex;
     align-items: flex-start;
-    gap: 16px;
+    gap: var(--spacing-md);
 }
 
 .artist-homepage-avatar {
@@ -259,7 +253,7 @@ ul.recently-active-topic-row {
 }
 
 .artist-homepage-name {
-	margin: 0 0 6px 0;
+	margin: 0 0 var(--spacing-xs) 0;
 	font-size: var(--font-size-base);
 	font-weight: 600;
 	line-height: 1.3;
@@ -271,7 +265,7 @@ ul.recently-active-topic-row {
 .artist-homepage-genre,
 .artist-homepage-activity,
 .artist-homepage-views {
-    margin: 4px 0;
+    margin: var(--spacing-xs) 0;
     font-size: var(--font-size-sm);
     color: var(--muted-text);
     line-height: 1.5;
@@ -279,21 +273,21 @@ ul.recently-active-topic-row {
 
 .artist-homepage-activity i,
 .artist-homepage-views i {
-    margin-right: 6px;
+    margin-right: var(--spacing-xs);
     width: 14px;
 }
 
 /* Latest Topic Section - Separate from main info */
 .artist-homepage-latest-topic-section {
     border-top: 1px solid var(--border-color);
-    margin-top: 12px;
-    padding-top: 8px;
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
 }
 
 .artist-homepage-latest-topic {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--spacing-xs);
     font-size: var(--font-size-xs);
     color: var(--muted-text);
 }
@@ -315,37 +309,28 @@ ul.recently-active-topic-row {
 
 .artist-platform-homepage-footer {
     display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    padding-top: 16px;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
     border-top: 1px solid var(--border-color);
     justify-content: center;
     flex-wrap: wrap;
-}
-
-/* Artist platform footer buttons - should use .button-1 and .button-3 classes in HTML */
-.artist-platform-view-all,
-.artist-platform-manage {
-    border-radius: var(--border-radius-sm);
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.2s ease;
 }
 
 /* Mobile responsive for Band Platform */
 @media (max-width: 768px) {
     .artist-platform-homepage-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: var(--spacing-md);
     }
     
     .artist-homepage-card {
-        padding: 16px;
+        padding: var(--spacing-md);
     }
     
     .artist-homepage-latest-topic-section {
-        margin-top: 8px;
-        padding-top: 6px;
+        margin-top: var(--spacing-sm);
+        padding-top: var(--spacing-xs);
     }
     
     .artist-homepage-latest-topic {
@@ -357,47 +342,6 @@ ul.recently-active-topic-row {
         align-items: center;
     }
     
-    .artist-platform-view-all,
-    .artist-platform-manage {
-        width: 100%;
-        text-align: center;
-        max-width: 200px;
-    }
-}
-
-/* ===============================================
-   Homepage Top Action Buttons Styles
-   =============================================== */
-
-.homepage-top-actions {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    align-items: center;
-}
-
-/* Homepage top action buttons - should use .button-1, .button-2, .button-3 classes in HTML */
-.homepage-top-actions .button {
-    border-radius: var(--border-radius-sm);
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-/* Mobile responsive for homepage buttons */
-@media (max-width: 768px) {
-    .homepage-top-actions {
-        flex-direction: row;
-        gap: 8px;
-        justify-content: flex-start;
-    }
-    
-    .homepage-top-actions .button {
-        width: auto;
-        text-align: center;
-        flex: 1;
-        max-width: 200px;
-    }
 }
 
 /* ===============================================
@@ -414,29 +358,17 @@ ul.recently-active-topic-row {
 
 .artist-platform-homepage-actions {
     display: flex;
-    gap: 12px;
-    margin: 24px 0;
-    padding: 20px;
+    gap: var(--spacing-md);
+    margin: var(--spacing-xl) 0;
     justify-content: center;
     align-items: center;
-    border-top: 1px solid var(--border-color);
-}
-
-/* Artist platform homepage action buttons - should use .button-1, .button-2, .button-3 classes in HTML */
-.artist-platform-homepage-actions .button {
-    border-radius: var(--border-radius-sm);
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    border: 2px solid transparent;
 }
 
 /* Mobile responsive for artist platform buttons */
 @media (max-width: 768px) {
     .artist-platform-homepage-actions {
         flex-direction: column;
-        gap: 10px;
-        padding: 16px;
+        gap: var(--spacing-sm);
     }
 
     .artist-platform-homepage-actions .button {

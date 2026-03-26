@@ -239,12 +239,6 @@ blockquote {
 /* ==================================================
    Lists
 ================================================== */
-#bbpress-forums li {
-    background: 0 0;
-    margin: 0;
-    list-style: none;
-}
-
 #bbpress-forums ul.bbp-replies-list,
 #bbpress-forums ul.bbp-child-replies,
 #bbpress-forums ul.bbp-replies,
@@ -253,6 +247,17 @@ blockquote {
 #bbpress-forums .bbp-body > ol {
     margin: 0;
     padding: 0;
+    list-style: none;
+}
+
+#bbpress-forums ul.bbp-replies-list > li,
+#bbpress-forums ul.bbp-child-replies > li,
+#bbpress-forums ul.bbp-replies > li,
+#bbpress-forums ul.bbp-threaded-replies > li,
+#bbpress-forums .bbp-body > ul > li,
+#bbpress-forums .bbp-body > ol > li {
+    background: 0 0;
+    margin: 0;
     list-style: none;
 }
 

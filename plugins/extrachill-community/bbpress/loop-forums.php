@@ -12,7 +12,9 @@ defined( 'ABSPATH' ) || exit;
 ?>
 
 <!-- Community Forums Section -->
-<h2>Community Forums</h2>
+<div class="ec-page-chrome">
+	<h2>Community Forums</h2>
+</div>
 <?php do_action('extrachill_community_home_before_forums'); ?>
 <?php
 $args = array(
@@ -36,5 +38,7 @@ if ( bbp_has_forums( $args ) ) : ?>
         <?php endwhile; ?>
     </div>
 <?php else : ?>
-    <p>No forums are currently set to display on the homepage.</p>
+    <div class="ec-page-chrome">
+		<p>No forums are currently set to display on the homepage.</p>
+	</div>
 <?php endif; ?>

@@ -28,8 +28,10 @@ $query_args = array(
 $query = new WP_Query( $query_args );
 ?>
 
-<div class="front-page-section recently-active-topics">
-    <h2>Recently Active Topics</h2>
+<div class="recently-active-topics">
+    <div class="ec-page-chrome">
+        <h2>Recently Active Topics</h2>
+    </div>
     <ul class="recently-active-topic-row">
         <?php
         if ( $query->have_posts() ) :
@@ -42,12 +44,12 @@ $query = new WP_Query( $query_args );
                 bbpress()->current_topic_id = $topic_id;
                 ?>
                 <li class="topic-card-row ec-surface-card ec-mobile-edge-surface">
-                    <div class="card-header">
+                    <div class="recently-active-card-header">
                         <a class="bbp-forum-title" href="<?php bbp_topic_permalink( $topic_id ); ?>">
                             <?php bbp_topic_title( $topic_id ); ?>
                         </a>
                     </div>
-                    <div class="card-meta">
+                    <div class="recently-active-card-meta">
                         <div class="bbp-forum-stats">
                             <div class="bbp-forum-views">
                                 <?php echo number_format( ec_get_post_views( $topic_id ) ); ?> views
@@ -78,7 +80,9 @@ $query = new WP_Query( $query_args );
         endif;
         ?>
     </ul>
-    <div class="view-all-users-link">
-        <a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
+    <div class="ec-page-chrome">
+        <div class="view-all-users-link">
+            <a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
+        </div>
     </div>
 </div>
