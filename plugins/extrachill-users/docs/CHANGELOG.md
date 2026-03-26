@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.8] - 2026-03-26
+
+### Changed
+- restore login register google button rendering
+
 ## [0.7.7] - 2026-03-26
 
 ### Changed
