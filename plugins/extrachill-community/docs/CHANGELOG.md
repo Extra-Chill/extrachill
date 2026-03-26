@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.75] - 2026-03-26
+
+### Changed
+- standardize mobile edge classes
+
 ## [1.3.74] - 2026-03-26
 
 ### Changed
