@@ -18,7 +18,6 @@
   .single-post-card {
     padding: var(--spacing-md);
     margin: var(--spacing-md) auto;
-    max-width: 98vw;
   }
 }
 

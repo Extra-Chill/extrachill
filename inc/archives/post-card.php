@@ -45,7 +45,7 @@ $featured_image_size = 'medium_large';
 			</div>
 		<?php } ?>
 
-		<div class="archive-post">
+		<div class="archive-post ec-edge-gutter">
 			<header>
 				<h2>
 					<a href="<?php echo isset( $post->permalink ) ? esc_url( $post->permalink ) : the_permalink(); ?>" class="card-link-target" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>

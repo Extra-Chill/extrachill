@@ -15,9 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-	if ( ! function_exists( 'extrachill_breadcrumbs' ) ) {
-		function extrachill_breadcrumbs() {
-			echo '<div class="ec-edge-gutter"><nav class="breadcrumbs" itemprop="breadcrumb">';
+if ( ! function_exists( 'extrachill_breadcrumbs' ) ) {
+	function extrachill_breadcrumbs() {
+		echo '<div class="ec-edge-gutter"><nav class="breadcrumbs" itemprop="breadcrumb">';
 
 		// Allow plugins to override the root breadcrumb link
 		$root_link = apply_filters( 'extrachill_breadcrumbs_root', '<a href="' . home_url() . '">' . esc_html( extrachill_get_site_title() ) . '</a>' );
@@ -126,11 +126,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 			} else {
 				echo '<span>Archives</span>';
 			}
-		} // Close the custom_trail else block
+		}
 
 		// Allow plugins to append custom breadcrumb items
 		do_action( 'extrachill_breadcrumbs_append' );
 
-			echo '</nav></div>';
-		}
+		echo '</nav></div>';
 	}
+}
