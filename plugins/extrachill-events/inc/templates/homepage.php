@@ -13,7 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+echo '<div class="ec-edge-gutter">';
 extrachill_breadcrumbs();
+echo '</div>';
 ?>
 
 <article class="events-homepage">

@@ -9,15 +9,6 @@
  * @since 0.1.0
  */
 
-.data-machine-event-details .event-info-grid {
-    background: var(--background-color);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1.75em;
-    box-shadow: var(--card-shadow);
-    margin-bottom: 1.5rem;
-}
-
 /* Event Action Buttons Container (Ticket + Share) */
 .data-machine-event-details .event-action-buttons {
     display: flex;
@@ -54,23 +45,8 @@
 }
 
 @media (max-width: 768px) {
-    .data-machine-event-details .event-info-grid {
-        padding: 1.2em;
-        border-radius: 10px;
-    }
-
     .data-machine-event-details .event-action-buttons {
         flex-direction: column;
         gap: 0.75rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .single .data-machine-event-details.alignfull {
-        width: 100vw;
-        max-width: 100vw;
-        margin-left: 50%;
-        margin-right: 0;
-        transform: translateX(-50%);
     }
 }
