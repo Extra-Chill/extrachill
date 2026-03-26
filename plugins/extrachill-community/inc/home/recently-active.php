@@ -29,9 +29,7 @@ $query = new WP_Query( $query_args );
 ?>
 
 <div class="recently-active-topics">
-    <div class="ec-page-chrome">
-        <h2>Recently Active Topics</h2>
-    </div>
+    <h2>Recently Active Topics</h2>
     <ul class="recently-active-topic-row">
         <?php
         if ( $query->have_posts() ) :
