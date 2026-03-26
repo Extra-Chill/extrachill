@@ -63,6 +63,10 @@
 }
 
 @media (max-width: 480px) {
+    .community-home-topic-actions {
+        justify-content: center;
+    }
+
     #forums-list-homepage.bbp-forums-grid {
         gap: var(--spacing-md);
     }
