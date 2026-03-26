@@ -249,10 +249,14 @@
 }
 
 @media (max-width: 480px) {
-	.ec-responsive-tabs__inner {
+	.ec-block-shell-inner {
 		max-width: none;
 		padding-left: var(--spacing-md, 1rem);
 		padding-right: var(--spacing-md, 1rem);
+	}
+
+	.ec-responsive-tabs__inner {
+		max-width: none;
 	}
 
 	.ec-responsive-tabs .ec-tabs__tabs,
@@ -306,6 +310,21 @@
 .ec-block-shell--compact {
 	padding: var(--spacing-md, 1rem);
 	border-radius: var(--border-radius-lg, 8px);
+}
+
+.ec-block-shell-inner {
+	width: 100%;
+	min-width: 0;
+	display: grid;
+	gap: var(--spacing-lg, 1.5rem);
+}
+
+.ec-block-shell-inner--narrow {
+	max-width: 700px;
+}
+
+.ec-block-shell-inner--wide {
+	max-width: 1080px;
 }
 
 .ec-block-intro {

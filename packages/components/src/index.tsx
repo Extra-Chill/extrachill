@@ -24,5 +24,6 @@ export { Badge, type BadgeProps } from './Badge.tsx';
 export { ImagePreview, type ImagePreviewProps } from './ImagePreview.tsx';
 export { MediaField, type MediaFieldProps } from './MediaField.tsx';
 export { BlockShell, type BlockShellProps } from './BlockShell.tsx';
+export { BlockShellInner, type BlockShellInnerProps } from './BlockShellInner.tsx';
 export { BlockIntro, type BlockIntroProps } from './BlockIntro.tsx';
 export { BlockShellHeader, type BlockShellHeaderProps } from './BlockShellHeader.tsx';
