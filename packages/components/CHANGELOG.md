@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.30] - 2026-03-26
+
+### Changed
+- let block shell inner own vertical spacing
+
 ## [0.4.29] - 2026-03-26
 
 ### Changed
