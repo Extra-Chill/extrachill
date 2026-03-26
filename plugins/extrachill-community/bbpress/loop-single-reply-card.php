@@ -25,7 +25,7 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( $current_post_
 ?>
 
 <div id="post-<?php bbp_reply_id(); ?>" 
-     class="bbp-reply-card ec-mobile-edge-surface <?php echo $is_lead_topic ? 'is-lead-topic' : ''; ?> <?php if ( bbp_get_reply_author_id() == bbp_get_topic_author_id( bbp_get_topic_id() ) ) echo 'is-topic-author'; ?>"
+     class="bbp-reply-card ec-surface-card ec-mobile-edge-surface <?php echo $is_lead_topic ? 'is-lead-topic' : ''; ?> <?php if ( bbp_get_reply_author_id() == bbp_get_topic_author_id( bbp_get_topic_id() ) ) echo 'is-topic-author'; ?>"
      data-reply-id="<?php bbp_reply_id(); ?>"
      data-depth="<?php echo esc_attr( $reply_depth ); ?>"
      style="--depth: <?php echo esc_attr( $reply_depth ); ?>">

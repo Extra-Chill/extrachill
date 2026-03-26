@@ -18,9 +18,6 @@
 }
 
 .bbp-topic-card {
-    background-color: var(--card-background);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
     padding: var(--spacing-lg);
     margin-bottom: var(--spacing-lg);
     width: 100%;

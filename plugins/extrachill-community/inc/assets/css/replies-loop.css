@@ -58,8 +58,6 @@
 
 /* Reply Card Styles */
 .bbp-reply-card {
-    background: var(--card-background);
-    border-radius: var(--border-radius-md);
     box-shadow: var(--card-shadow);
     margin-bottom: 1.5rem;
     /* Compression: reduce width as depth increases, keeping right edge aligned */
@@ -67,7 +65,6 @@
     margin-left: calc(var(--depth) * 2rem);
     position: relative;
     transition: box-shadow 0.2s ease-in-out;
-    border: 1px solid var(--border-color);
 }
 
 /* Topic Author Highlight */

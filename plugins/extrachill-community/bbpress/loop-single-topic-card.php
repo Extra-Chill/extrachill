@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 ?>
 
-<div id="bbp-topic-card-<?php bbp_topic_id(); ?>" class="bbp-topic-card ec-mobile-edge-surface<?php echo ( bbp_is_topic_sticky( bbp_get_topic_id() ) ? ' bbp-topic-card-sticky' : '' ); ?>">
+<div id="bbp-topic-card-<?php bbp_topic_id(); ?>" class="bbp-topic-card ec-surface-card ec-mobile-edge-surface<?php echo ( bbp_is_topic_sticky( bbp_get_topic_id() ) ? ' bbp-topic-card-sticky' : '' ); ?>">
     <div class="bbp-topic-info">
         <?php do_action( 'bbp_theme_before_topic_title' ); ?>
         <div class="topic-card-header-area">
