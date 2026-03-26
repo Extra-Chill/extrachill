@@ -1296,12 +1296,12 @@ p.site-title {
 		padding-right: 0;
 	}
 
-	body.page .main-content > .ec-mobile-full-width-panel {
+	body .main-content > .ec-mobile-full-width-panel {
 		padding-left: 0;
 		padding-right: 0;
 	}
 
-	body.page .main-content > .ec-mobile-full-width-panel {
+	body .main-content > .ec-mobile-full-width-panel {
 		margin-left: 50%;
 		transform: translateX(-50%);
 		width: 100vw;
