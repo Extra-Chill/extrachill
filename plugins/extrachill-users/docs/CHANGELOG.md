@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.6] - 2026-03-26
+
+### Changed
+- update components dependency to 0.4.24
+- migrate login block off theme shared tabs
+
 ## [0.7.5] - 2026-03-25
 
 ### Changed
