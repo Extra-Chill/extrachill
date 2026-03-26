@@ -12,8 +12,6 @@ get_header();
 <section class="main-content">
 <?php extrachill_breadcrumbs(); ?>
 
-<div class="ec-edge-gutter">
-
 <?php
 
 // Check if we are on a user profile page
@@ -21,17 +19,17 @@ $isUserProfile = bbp_is_single_user();
 
 if ($isUserProfile) {
     $title = '@' . bbp_get_displayed_user_field('user_nicename');
-    echo '<h1 class="profile-title-inline">' . $title . '</h1>';
+    echo '<div class="ec-edge-gutter"><h1 class="profile-title-inline">' . $title . '</h1></div>';
 
 } else {
     // Display the title for non-profile pages
-    echo '<h1>' . get_the_title() . '</h1>';
+    echo '<div class="ec-edge-gutter"><h1>' . get_the_title() . '</h1></div>';
 }
 
 if (is_user_logged_in()) :
-    echo '<p>Logged in as <a href="' . bbp_get_user_profile_url(wp_get_current_user()->ID) . '">' . esc_html(wp_get_current_user()->display_name) . '.</a></p>';
+    echo '<div class="ec-edge-gutter"><p>Logged in as <a href="' . bbp_get_user_profile_url(wp_get_current_user()->ID) . '">' . esc_html(wp_get_current_user()->display_name) . '.</a></p></div>';
 else :
-    echo '<p>You are not signed in. <a href="/login">Login</a> or <a href="/register">Register</a></p>';
+    echo '<div class="ec-edge-gutter"><p>You are not signed in. <a href="/login">Login</a> or <a href="/register">Register</a></p></div>';
 endif;
 
 ?>
@@ -53,8 +51,6 @@ endif;
     endwhile; // End of the loop.
 
     ?>
-
-</div>
 </section>
 <?php
 get_footer();

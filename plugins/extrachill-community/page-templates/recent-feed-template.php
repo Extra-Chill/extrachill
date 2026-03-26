@@ -9,8 +9,6 @@ get_header();
 <section class="main-content">
 <?php extrachill_breadcrumbs(); ?>
 
-<div class="ec-edge-gutter">
-
 <?php
 
 // Check if we are on a user profile page
@@ -18,9 +16,9 @@ $isUserProfile = bbp_is_single_user();
 
 if ($isUserProfile) {
     $title = '@' . bbp_get_displayed_user_field('user_nicename');
-    echo '<h1 class="profile-title-inline">' . $title . '</h1>';
+    echo '<div class="ec-edge-gutter"><h1 class="profile-title-inline">' . $title . '</h1></div>';
 } else {
-    echo '<h1>Recent Activity</h1>';
+    echo '<div class="ec-edge-gutter"><h1>Recent Activity</h1></div>';
 }
 
 // Output the standard WordPress content within the div
@@ -105,7 +103,6 @@ if ($recent_feed && !empty($recent_feed['items'])) {
 }
 
 ?>
-</div>
 </section>
 <?php
 get_footer();

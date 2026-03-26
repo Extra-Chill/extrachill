@@ -12,12 +12,10 @@ get_header();
 <section class="main-content">
 <?php extrachill_breadcrumbs(); ?>
 
-<div class="ec-edge-gutter">
-
 <?php
 
 // Display leaderboard title
-echo '<h1 class="leaderboard-title">' . __('Leaderboard', 'your-theme') . '</h1>';
+echo '<div class="ec-edge-gutter"><h1 class="leaderboard-title">' . __('Leaderboard', 'your-theme') . '</h1></div>';
 
 // Output the standard WordPress content within the div
 if (have_posts()) :
@@ -72,7 +70,6 @@ if ($total_pages > 1) {
 }
 
 ?>
-</div>
 </section>
 <?php
 get_footer();
