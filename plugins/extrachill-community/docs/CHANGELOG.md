@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.74] - 2026-03-26
+
+### Changed
+- normalize homepage mobile edge breakout
+
 ## [1.3.73] - 2026-03-26
 
 ### Changed
