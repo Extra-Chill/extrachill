@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.70] - 2026-03-26
+
+### Fixed
+- fix homepage topic card include path
+
 ## [1.3.69] - 2026-03-26
 
 ### Changed
