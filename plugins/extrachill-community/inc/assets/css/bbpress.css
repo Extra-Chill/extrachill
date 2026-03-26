@@ -300,7 +300,6 @@ blockquote {
 }
 
 .bbp-forum-card {
-    padding: var(--spacing-lg);
     margin: 0;
     height: auto;
 }
@@ -322,7 +321,6 @@ blockquote {
 }
 
 .bbp-topic-card {
-    padding: var(--spacing-lg);
     margin-bottom: var(--spacing-lg);
     width: 100%;
     box-sizing: border-box;
