@@ -51,7 +51,7 @@ function extrachill_filter_bar() {
 
 	$form_action = is_search() ? home_url( '/' ) : strtok( $_SERVER['REQUEST_URI'], '?' );
 
-	echo '<form method="get" action="' . esc_url( $form_action ) . '" class="extrachill-filter-bar">';
+	echo '<form method="get" action="' . esc_url( $form_action ) . '" class="extrachill-filter-bar ec-edge-surface">';
 
 	do_action( 'extrachill_filter_bar_start' );
 
