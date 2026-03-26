@@ -1218,7 +1218,7 @@ p.site-title {
 	}
 	/* Padding for everything except the post card */
 	body.single-post .main-content > :not(.single-post-card),
-	body.page .main-content > :not(.single-page-card):not(.page-edge-shell):not(.ec-block-shell),
+	body.page .main-content > :not(.single-page-card):not(.page-edge-shell):not(.ec-page-edge-shell):not(.ec-block-shell),
 	body.single-datamachine_events .main-content > :not(.single-post-card),
 	body.single-newsletter .main-content > :not(.single-post-card),
 	body.topic .extrachill-content > :not(#bbpress-forums),
@@ -1233,7 +1233,8 @@ p.site-title {
 		padding-right: var(--spacing-md);
 	}
 
-	body.page .main-content > .page-edge-shell {
+	body.page .main-content > .page-edge-shell,
+	body.page .main-content > .ec-page-edge-shell {
 		padding-left: 0;
 		padding-right: 0;
 	}
