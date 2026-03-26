@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.28] - 2026-03-26
+
+### Changed
+- restore responsive tab padding only
+
 ## [0.4.27] - 2026-03-26
 
 ### Changed
