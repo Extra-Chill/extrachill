@@ -57,8 +57,7 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 		h(
 			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, {
-				title: __( 'Generate a QR code', 'extrachill-studio' ),
+			h( PanelHeader, {
 				description: __( 'Paste any URL to get a high-res QR code PNG for flyers, merch, and event signage.', 'extrachill-studio' ),
 			} ),
 			h(

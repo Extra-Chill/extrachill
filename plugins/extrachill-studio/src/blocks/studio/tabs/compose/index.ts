@@ -478,7 +478,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				h(
 					PanelHeader,
 					{
-						title: __( 'Compose', 'extrachill-studio' ),
 						actions: h(
 							ActionRowView,
 							{ className: 'ec-studio-compose-toolbar' },
@@ -591,9 +590,9 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 			// Right: Sidebar
 				h(
-				PanelView,
+					PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, { title: __( 'Publishing', 'extrachill-studio' ) } ),
+				h( PanelHeader, null ),
 				h(
 					'ul',
 					null,

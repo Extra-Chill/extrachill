@@ -334,7 +334,6 @@ const InstagramPane = (): ReactElement => {
 			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
 			h( PanelHeader, {
-				title: __( 'Publish to Instagram', 'extrachill-studio' ),
 				description: __( 'Write a caption, add images, and publish directly or submit for admin review. Supports single images and carousels.', 'extrachill-studio' ),
 			} ),
 			isCheckingAuth
@@ -476,7 +475,6 @@ const InstagramPane = (): ReactElement => {
 			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
 			h( PanelHeader, {
-				title: __( 'Instagram comments', 'extrachill-studio' ),
 				description: __( 'Select a recent post to view and reply to comments without leaving Studio.', 'extrachill-studio' ),
 			} ),
 			isLoadingMedia ? h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading recent Instagram posts…', 'extrachill-studio' ) ) : null,
