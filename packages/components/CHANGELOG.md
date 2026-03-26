@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.29] - 2026-03-26
+
+### Changed
+- make block inner wrapper own mobile spacing
+
 ## [0.4.28] - 2026-03-26
 
 ### Changed
