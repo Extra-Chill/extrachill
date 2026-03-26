@@ -5,30 +5,6 @@
  * @package ExtraChillUsers
  */
 
-if ( is_user_logged_in() ) {
-	$logged_in_user = wp_get_current_user();
-	$profile_url    = ec_get_site_url( 'community' ) . '/u/' . $logged_in_user->user_nicename . '/';
-	?>
-	<div class="ec-block-shell ec-page-edge-shell login-already-logged-in-card">
-		<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
-			<div class="ec-panel login-already-logged-in-card__panel">
-				<div class="logged-in-avatar">
-					<?php echo get_avatar( $logged_in_user->ID, 80 ); ?>
-				</div>
-				<h3><?php echo esc_html( $logged_in_user->display_name ); ?></h3>
-				<p class="logged-in-status"><?php esc_html_e( 'You are logged in', 'extrachill-users' ); ?></p>
-				<div class="logged-in-actions">
-					<a href="<?php echo esc_url( $profile_url ); ?>" class="button-1 button-medium"><?php esc_html_e( 'View Profile', 'extrachill-users' ); ?></a>
-					<a href="<?php echo esc_url( home_url() ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Go to Homepage', 'extrachill-users' ); ?></a>
-					<a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="button-3 button-medium"><?php esc_html_e( 'Log Out', 'extrachill-users' ); ?></a>
-				</div>
-			</div>
-		</div>
-	</div>
-	<?php
-	return;
-}
-
 if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 	ec_enqueue_turnstile_script();
 }
@@ -63,25 +39,27 @@ if ( $google_oauth_enabled ) {
 				'restUrl'  => rest_url( 'extrachill/v1/' ),
 			)
 		);
-
-		wp_add_inline_script(
-			'extrachill-google-signin',
-			'document.addEventListener("DOMContentLoaded", function() { if (window.ECGoogleSignIn && window.ecGoogleConfig) { ECGoogleSignIn.init(ecGoogleConfig); } });',
-			'after'
-		);
 	}
 }
 
+$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
 $current_url = set_url_scheme(
-	( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . strtok( $_SERVER['REQUEST_URI'], '?' )
+	( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . strtok( $request_uri, '?' )
 );
 
 $login_redirect_url = ! empty( $attributes['redirectUrl'] ) ? esc_url( $attributes['redirectUrl'] ) : $current_url;
+$success_redirect   = ! empty( $attributes['redirectUrl'] ) ? esc_url( $attributes['redirectUrl'] ) : $current_url;
 
 $invite_token                   = null;
 $invite_artist_id               = null;
 $invited_email                  = '';
 $artist_name_for_invite_message = '';
+$initial_notice                 = EC_Redirect_Handler::get_message( 'ec_login' );
+
+$registration_notice = EC_Redirect_Handler::get_message( 'ec_registration' );
+if ( $registration_notice ) {
+	$initial_notice = $registration_notice;
+}
 
 if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only invite context from signed URL parameters for rendering.
@@ -96,14 +74,15 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 				$invite_artist_id       = $artist_id_from_url;
 				$invited_email          = isset( $invite['email'] ) ? sanitize_email( $invite['email'] ) : '';
 				$artist_post_for_invite = get_post( $invite_artist_id );
+
 				if ( $artist_post_for_invite ) {
 					$artist_name_for_invite_message = $artist_post_for_invite->post_title;
-					/* translators: %s: invited artist name. */
-					extrachill_set_notice(
-						sprintf( __( 'You have been invited to join the artist \'%s\'! Please complete your registration below to accept.', 'extrachill-users' ), $artist_name_for_invite_message ),
-						'info'
+					$initial_notice                 = array(
+						'text' => sprintf( __( 'You have been invited to join the artist \'%s\'! Please complete your registration below to accept.', 'extrachill-users' ), $artist_name_for_invite_message ),
+						'type' => 'info',
 					);
 				}
+
 				break;
 			}
 		}
@@ -111,120 +90,45 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 }
 
+$config = array(
+	'loggedIn'            => is_user_logged_in(),
+	'googleOAuthEnabled'  => $google_oauth_enabled,
+	'currentUrl'          => $current_url,
+	'loginRedirectUrl'    => $login_redirect_url,
+	'successRedirectUrl'  => $success_redirect,
+	'resetPasswordUrl'    => ec_get_site_url( 'community' ) . '/reset-password/',
+	'inviteToken'         => $invite_token,
+	'inviteArtistId'      => $invite_artist_id,
+	'invitedEmail'        => $invited_email,
+	'turnstileHtml'       => wp_kses_post( ec_render_turnstile_widget() ),
+	'initialNotice'       => $initial_notice ? array(
+		'message' => $initial_notice['text'] ?? '',
+		'type'    => $initial_notice['type'] ?? 'info',
+	) : null,
+);
+
+if ( is_user_logged_in() ) {
+	$logged_in_user         = wp_get_current_user();
+	$config['displayName']  = $logged_in_user->display_name;
+	$config['profileUrl']   = ec_get_site_url( 'community' ) . '/u/' . $logged_in_user->user_nicename . '/';
+	$config['homeUrl']      = home_url();
+	$config['logoutUrl']    = wp_logout_url( home_url() );
+	$config['avatarHtml']   = get_avatar( $logged_in_user->ID, 80 );
+}
+
+$wrapper_attributes = get_block_wrapper_attributes(
+	array(
+		'class' => 'wp-block-extrachill-login-register',
+	)
+);
+
 ?>
 
-<div class="ec-block-shell ec-page-edge-shell login-register-shell">
-	<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
-		<div class="ec-block-shell-header ec-block-shell-header--without-divider">
-			<div class="ec-block-shell-header__main">
-				<div class="ec-block-shell-header__title"><?php esc_html_e( 'Login or Register', 'extrachill-users' ); ?></div>
-				<div class="ec-block-shell-header__description"><?php esc_html_e( 'Access the Extra Chill community and artist platform.', 'extrachill-users' ); ?></div>
-			</div>
-		</div>
-
-		<div class="ec-responsive-tabs ec-responsive-tabs--inner-narrow" data-ec-responsive-tabs data-hash-prefix="tab-" data-active-tab="login">
-			<div class="ec-responsive-tabs__inner">
-				<div class="ec-shell-tabs ec-shell-tabs--with-divider" role="presentation">
-					<div class="ec-tabs__tabs" role="tablist" aria-orientation="horizontal">
-						<button type="button" role="tab" aria-selected="true" class="ec-tabs__tab is-active" data-tab-id="login"><?php esc_html_e( 'Login', 'extrachill-users' ); ?></button>
-						<button type="button" role="tab" aria-selected="false" class="ec-tabs__tab" data-tab-id="register"><?php esc_html_e( 'Register', 'extrachill-users' ); ?></button>
-					</div>
-				</div>
-
-				<div class="ec-responsive-tabs__desktop-panel"></div>
-			</div>
-			<div class="ec-responsive-tabs__accordion"></div>
-
-			<template data-tab-panel="login">
-				<div class="ec-panel ec-panel--depth-1">
-					<div class="login-register-form" data-login-register-panel>
-					<form id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
-						<?php EC_Redirect_Handler::render_hidden_fields( 'tab-login' ); ?>
-
-						<label for="user_login"><?php esc_html_e( 'Username', 'extrachill-users' ); ?></label>
-						<input type="text" name="log" id="user_login" class="input" placeholder="<?php esc_attr_e( 'Your username', 'extrachill-users' ); ?>" required>
-
-						<label for="user_pass"><?php esc_html_e( 'Password', 'extrachill-users' ); ?></label>
-						<input type="password" name="pwd" id="user_pass" class="input" placeholder="<?php esc_attr_e( 'Your password', 'extrachill-users' ); ?>" required>
-
-						<div class="login-remember-me">
-							<label>
-								<input type="checkbox" name="rememberme" value="forever">
-								<?php esc_html_e( 'Remember me', 'extrachill-users' ); ?>
-							</label>
-						</div>
-
-						<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $login_redirect_url ); ?>">
-
-						<input type="submit" id="wp-submit" class="button-2 button-medium" value="<?php esc_attr_e( 'Log In', 'extrachill-users' ); ?>">
-
-						<div class="login-forgot-password">
-							<a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/reset-password/' ); ?>">
-								<?php esc_html_e( 'Forgot your password?', 'extrachill-users' ); ?>
-							</a>
-						</div>
-					</form>
-
-					<?php if ( $google_oauth_enabled ) : ?>
-						<div class="social-login-divider">
-							<span><?php esc_html_e( 'or', 'extrachill-users' ); ?></span>
-						</div>
-						<div class="social-login-buttons">
-							<div class="google-signin-button"></div>
-						</div>
-					<?php endif; ?>
-
-						<p class="login-register-prompt">
-							<?php esc_html_e( "Don't have an account?", 'extrachill-users' ); ?>
-							<a href="#tab-register"><?php esc_html_e( 'Register here', 'extrachill-users' ); ?></a>
-						</p>
-					</div>
-				</div>
-			</template>
-
-			<template data-tab-panel="register">
-				<div class="ec-panel ec-panel--depth-1">
-					<div class="login-register-form" data-login-register-panel>
-					<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
-						<input type="hidden" name="action" value="extrachill_register_user">
-						<?php EC_Redirect_Handler::render_hidden_fields( 'tab-register' ); ?>
-						<?php wp_nonce_field( 'extrachill_register_nonce', 'extrachill_register_nonce_field' ); ?>
-						<input type="hidden" name="success_redirect_url" value="<?php echo esc_url( ! empty( $attributes['redirectUrl'] ) ? $attributes['redirectUrl'] : $current_url ); ?>">
-						<?php if ( $invite_token && $invite_artist_id ) : ?>
-							<input type="hidden" name="invite_token" value="<?php echo esc_attr( $invite_token ); ?>">
-							<input type="hidden" name="invite_artist_id" value="<?php echo esc_attr( (string) $invite_artist_id ); ?>">
-						<?php endif; ?>
-
-						<label for="extrachill_email"><?php esc_html_e( 'Email', 'extrachill-users' ); ?></label>
-						<input type="email" name="extrachill_email" id="extrachill_email" placeholder="<?php esc_attr_e( 'you@example.com', 'extrachill-users' ); ?>" required value="<?php echo esc_attr( $invited_email ); ?>">
-
-						<label for="extrachill_password"><?php esc_html_e( 'Password', 'extrachill-users' ); ?></label>
-						<input type="password" name="extrachill_password" id="extrachill_password" placeholder="<?php esc_attr_e( 'Create a password', 'extrachill-users' ); ?>" required minlength="8">
-
-						<label for="extrachill_password_confirm"><?php esc_html_e( 'Confirm Password', 'extrachill-users' ); ?></label>
-						<input type="password" name="extrachill_password_confirm" id="extrachill_password_confirm" placeholder="<?php esc_attr_e( 'Repeat your password', 'extrachill-users' ); ?>" required minlength="8">
-
-						<div class="registration-submit-section">
-							<input type="submit" name="extrachill_register" class="button-1 button-medium" value="<?php esc_attr_e( 'Join Now', 'extrachill-users' ); ?>">
-						</div>
-
-						<?php echo wp_kses_post( ec_render_turnstile_widget() ); ?>
-					</form>
-
-					<?php if ( $google_oauth_enabled ) : ?>
-						<div class="social-login-divider">
-							<span><?php esc_html_e( 'or', 'extrachill-users' ); ?></span>
-						</div>
-						<div class="social-login-buttons">
-							<div class="google-signin-button"></div>
-						</div>
-					<?php endif; ?>
-					</div>
-				</div>
-			</template>
-		</div>
-	</div>
+<div <?php echo $wrapper_attributes; ?>>
+	<div
+		data-ec-login-register-root
+		data-ec-login-register-config="<?php echo esc_attr( wp_json_encode( $config ) ); ?>"
+	></div>
 </div>
 
-<?php
-do_action( 'extrachill_below_login_register_form' );
+<?php do_action( 'extrachill_below_login_register_form' ); ?>
