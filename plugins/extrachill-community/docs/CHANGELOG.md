@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.60] - 2026-03-26
+
+### Changed
+- remove homepage action chrome wrappers
+
 ## [1.3.59] - 2026-03-26
 
 ### Changed
