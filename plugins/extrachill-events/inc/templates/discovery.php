@@ -10,9 +10,7 @@
  */
 
 get_header();
-echo '<div class="ec-edge-gutter">';
 extrachill_breadcrumbs();
-echo '</div>';
 
 $term  = get_queried_object();
 $scope = extrachill_events_get_current_scope();

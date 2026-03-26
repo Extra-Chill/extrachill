@@ -11,9 +11,7 @@
  */
 
 get_header();
-echo '<div class="ec-edge-gutter">';
 extrachill_breadcrumbs();
-echo '</div>';
 ?>
 
 
