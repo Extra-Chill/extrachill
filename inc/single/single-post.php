@@ -18,11 +18,11 @@ get_header(); ?>
 
 		<?php extrachill_breadcrumbs(); ?>
 
-<div class="single-post-card ec-surface-card ec-edge-surface">
+<div class="single-post-card ec-surface-card ec-mobile-full-width-panel">
 <article id="post-<?php the_ID(); ?>">
 		<?php do_action( 'extrachill_before_post_content' ); ?>
 
-	<header id="postvote" class="ec-edge-gutter">
+	<header id="postvote">
 		<?php do_action( 'extrachill_above_post_title' ); ?>
 		<h1>
 			<?php the_title(); ?>
@@ -43,7 +43,7 @@ get_header(); ?>
 		</figure>
 	<?php endif; ?>
 
-	<div class="entry-content ec-edge-gutter">
+	<div class="entry-content">
 		<?php the_content(); ?>
 	</div>
 

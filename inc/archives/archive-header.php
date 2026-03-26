@@ -11,7 +11,6 @@
 ?>
 
 
-<div class="ec-edge-gutter">
 	<header class="page-header">
 	<div class="archive-header-row">
 		<h1 class="page-title">
@@ -65,19 +64,18 @@
 		</div>
 	</div>
 	</header><!-- .page-header -->
-</div>
 
 <?php
 if ( ! is_paged() ) {
 	$term_description = term_description();
 	if ( ! empty( $term_description ) ) {
-		printf( '<div class="ec-edge-gutter"><div class="taxonomy-description">%s</div></div>', wp_kses_post( $term_description ) );
+		printf( '<div class="taxonomy-description">%s</div>', wp_kses_post( $term_description ) );
 	}
 
 	if ( is_author() ) {
 		$author_bio = get_the_author_meta( 'description' );
 		if ( ! empty( $author_bio ) ) {
-			echo '<div class="ec-edge-gutter"><div class="author-bio">' . wpautop( $author_bio ) . '</div></div>';
+			echo '<div class="author-bio">' . wpautop( $author_bio ) . '</div>';
 		}
 		do_action( 'extrachill_after_author_bio', get_queried_object_id() );
 	}

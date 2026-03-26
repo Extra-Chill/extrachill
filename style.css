@@ -730,11 +730,23 @@ body {
 .extrachill-content > .main-content > .ec-edge-shell,
 .extrachill-content > .ec-edge-shell,
 .extrachill-content .full-width-breakout.ec-edge-shell,
-.ec-full-width-panel {
+.ec-full-width-panel,
+.ec-global-full-width-panel {
 	width: 100vw;
 	max-width: 100vw;
 	margin-left: 50%;
 	transform: translateX(-50%);
+	padding-left: 0;
+	padding-right: 0;
+	box-sizing: border-box;
+	position: relative;
+}
+
+.ec-mobile-full-width-panel {
+	width: auto;
+	max-width: 100%;
+	margin-left: 0;
+	transform: none;
 	padding-left: 0;
 	padding-right: 0;
 	box-sizing: border-box;
@@ -746,7 +758,17 @@ body {
 	padding-bottom: var(--spacing-md);
 }
 
-.ec-edge-gutter {
+.main-content,
+.entry-content,
+.page-content,
+.footer-menus-wrapper,
+.footer-copyright,
+.site-branding,
+.breadcrumbs,
+.archive-header-row,
+.archive-header-actions,
+.taxonomy-description,
+.author-bio {
 	padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
 	padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
 }
@@ -1234,9 +1256,10 @@ p.site-title {
 		padding-right: max(0.75em, env(safe-area-inset-right));
 	}
 
-	.extrachill-content > .main-content > .ec-edge-shell,
-	.extrachill-content > .ec-edge-shell,
-	.extrachill-content .full-width-breakout.ec-edge-shell {
+	.extrachill-content > .main-content > .ec-mobile-full-width-panel,
+	.extrachill-content > .ec-mobile-full-width-panel,
+	.extrachill-content .full-width-breakout.ec-mobile-full-width-panel,
+	.ec-global-full-width-panel {
 		padding-left: 0;
 		padding-right: 0;
 	}
@@ -1245,38 +1268,52 @@ p.site-title {
 /*
  * Small screens - edge-to-edge (480px covers virtually all phones in portrait)
 	 * This is the canonical source of truth for mobile left/right screen-edge behavior.
-	 * Shells own the outer span (.ec-edge-shell), gutters restore inner horizontal
-	 * padding (.ec-edge-gutter), and surfaces opt in to flush mobile card behavior
-	 * (.ec-edge-surface).
+	 * Global chrome uses .ec-global-full-width-panel. Selective mobile breakouts
+	 * use .ec-mobile-full-width-panel. Default page chrome keeps upstream gutter.
 	 */
-@media screen and (max-width: 480px) {
-	.ec-edge-gutter {
-		padding-left: var(--spacing-md);
-		padding-right: var(--spacing-md);
-	}
+	@media screen and (max-width: 480px) {
+		.main-content,
+		.entry-content,
+		.page-content,
+		.footer-menus-wrapper,
+		.footer-copyright,
+		.site-branding,
+		.breadcrumbs,
+		.archive-header-row,
+		.archive-header-actions,
+		.taxonomy-description,
+		.author-bio {
+			padding-left: var(--spacing-md);
+			padding-right: var(--spacing-md);
+		}
 
-	body.page .main-content > .ec-edge-shell {
+	.ec-mobile-full-width-panel {
+		width: 100vw;
+		max-width: 100vw;
+		margin-left: 50%;
+		transform: translateX(-50%);
 		padding-left: 0;
 		padding-right: 0;
 	}
 
-	body.page .main-content > .ec-edge-shell {
+	body.page .main-content > .ec-mobile-full-width-panel {
+		padding-left: 0;
+		padding-right: 0;
+	}
+
+	body.page .main-content > .ec-mobile-full-width-panel {
 		margin-left: 50%;
 		transform: translateX(-50%);
 		width: 100vw;
 		max-width: 100vw;
 	}
 
-	.ec-edge-surface {
-		width: 100%;
-		max-width: 100%;
-		margin-left: 0;
-		margin-right: 0;
-		border-radius: 0;
-		border-left: none;
-		border-right: none;
-		box-shadow: none;
-	}
+		.ec-mobile-full-width-panel {
+			border-radius: 0;
+			border-left: none;
+			border-right: none;
+			box-shadow: none;
+		}
 
 	body.single-post .entry-content > .alignfull,
 	body.single-datamachine_events .entry-content > .alignfull,

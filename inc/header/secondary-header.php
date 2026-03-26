@@ -26,7 +26,7 @@ usort(
 );
 ?>
 
-<nav class="secondary-header" role="navigation" aria-label="<?php esc_attr_e( 'Secondary Navigation', 'extrachill' ); ?>">
+<nav class="secondary-header ec-global-full-width-panel" role="navigation" aria-label="<?php esc_attr_e( 'Secondary Navigation', 'extrachill' ); ?>">
 	<?php
 	foreach ( $secondary_header_items as $item ) {
 		if ( isset( $item['url'] ) && isset( $item['label'] ) ) {
