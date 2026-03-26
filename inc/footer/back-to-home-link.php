@@ -35,7 +35,7 @@ function extrachill_display_back_to_home_link() {
 	$label = apply_filters( 'extrachill_back_to_home_label', $label, $url );
 
 	?>
-	<div class="back-to-home-container">
+	<div class="back-to-home-container ec-mobile-edge-surface">
 		<a href="<?php echo esc_url( $url ); ?>" class="button-1 button-large"><?php echo esc_html( $label ); ?></a>
 	</div>
 	<?php
