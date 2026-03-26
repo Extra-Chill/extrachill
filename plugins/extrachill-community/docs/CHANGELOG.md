@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.76] - 2026-03-26
+
+### Fixed
+- restore shared edge gutters on homepage topics
+
 ## [1.3.75] - 2026-03-26
 
 ### Changed
