@@ -19,12 +19,11 @@ while ( have_posts() ) :
 	the_post();
 	?>
 
-	<article id="post-<?php the_ID(); ?>" <?php post_class( 'single-page-card' ); ?>>
+	<?php extrachill_breadcrumbs(); ?>
+
+	<article id="post-<?php the_ID(); ?>" <?php post_class( is_page( 'settings' ) ? 'page-edge-shell' : '' ); ?>>
 		<?php do_action( 'extrachill_before_page_content' ); ?>
 
-		<?php
-		extrachill_breadcrumbs();
-		?>
 		<?php if ( apply_filters( 'extrachill_show_page_title', true, get_the_ID() ) ) : ?>
 			<header>
 				<h1>
