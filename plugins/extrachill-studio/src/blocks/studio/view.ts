@@ -33,7 +33,6 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 			title: context.headline,
 			description: context.description,
 			showDivider: false,
-			className: 'ec-studio-app__header',
 		} ),
 		createElement( ResponsiveTabs, {
 			tabs,
@@ -41,7 +40,6 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 			onChange: setActiveTab,
 			renderPanel,
 			innerMaxWidth: 'wide',
-			className: 'ec-studio-app__tabs',
 			showDesktopTabs: true,
 		} )
 	);

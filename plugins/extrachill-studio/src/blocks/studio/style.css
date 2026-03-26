@@ -23,15 +23,6 @@
 	margin-top: var(--spacing-lg);
 }
 
-.ec-studio-app__tabs .ec-responsive-tabs__desktop-panel {
-	min-width: 0;
-}
-
-.ec-studio-app__tabs .ec-responsive-tabs__desktop-panel > * {
-	min-width: 0;
-	max-width: 100%;
-}
-
 .ec-studio-pane {
 	display: grid;
 	min-width: 0;
