@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.38] - 2026-03-26
+
+### Changed
+- track studio block metadata version
+
 ## [0.2.37] - 2026-03-26
 
 ### Changed
