@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.46] - 2026-03-26
+
+### Changed
+- update shared components for edge shell rename
+
 ## [0.2.45] - 2026-03-26
 
 ### Changed
