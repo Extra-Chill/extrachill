@@ -223,8 +223,6 @@
 
 @media (max-width: 480px) {
 	.login-register-shell__tabs {
-		border-bottom: 0;
 		margin-bottom: 0;
-		padding-bottom: 0;
 	}
 }
