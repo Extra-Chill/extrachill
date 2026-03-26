@@ -37,7 +37,7 @@ $query = new WP_Query( $query_args );
                 $query->the_post();
                 $topic_id = get_the_ID();
                 ?>
-				<?php require locate_template( 'bbpress/loop-single-topic-card.php', false, false ); ?>
+				<?php require EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'bbpress/loop-single-topic-card.php'; ?>
                 <?php
             endwhile;
 
