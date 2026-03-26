@@ -184,15 +184,38 @@
 }
 
 /* Preview Container */
-.ec-editor__preview-container {
-	display: flex;
-	align-items: flex-start;
-	justify-content: center;
+.ec-editor__preview-region {
+	display: grid;
+	gap: var(--spacing-md);
 	padding: var(--spacing-lg);
 	position: sticky;
 	top: var(--spacing-lg);
 	align-self: start;
 	height: fit-content;
+}
+
+.ec-editor__preview-header {
+	display: grid;
+	gap: 4px;
+}
+
+.ec-editor__preview-title {
+	margin: 0;
+	font-size: var(--font-size-lg);
+	color: var(--text-color);
+}
+
+.ec-editor__preview-description {
+	margin: 0;
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
+.ec-editor__preview-container {
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	min-width: 0;
 }
 
 /* Tab Shared Styles */
@@ -728,7 +751,7 @@
 		border-bottom: 1px solid var(--border-color);
 	}
 
-	.ec-editor__preview-container {
+	.ec-editor__preview-region {
 		padding: var(--spacing-lg) var(--spacing-md);
 		position: static;
 		top: auto;
@@ -756,87 +779,19 @@
 		padding: 16px;
 	}
 
+	.ec-editor__preview-region {
+		gap: 12px;
+		padding: 16px;
+	}
+
+	.ec-editor__preview-title {
+		font-size: var(--font-size-base);
+	}
+
 	.ec-customize-card,
 	.ec-section,
 	.ec-section__content,
 	.ec-editor__link-url {
 		background: var(--card-background);
-	}
-
-	.ec-editor__preview-container {
-	}
-}
-
-/* Jump to Preview Button - Mobile only */
-.ec-jump-to-preview {
-	position: fixed;
-	bottom: 20px;
-	right: 20px;
-	z-index: 1000;
-	padding: 0;
-	background-color: var(--accent);
-	color: #fff;
-	border: none;
-	border-radius: 50%;
-	cursor: pointer;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-	width: 50px;
-	height: 50px;
-	display: none;
-	align-items: center;
-	justify-content: center;
-	transition: opacity 0.3s ease;
-
-	&:focus {
-		background-color: var(--accent);
-		outline: 2px solid #fff;
-		outline-offset: 2px;
-	}
-
-	&:hover {
-		opacity: 0.9;
-	}
-
-	.ec-jump-to-preview__main-icon {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-
-		.dashicons {
-			font-size: 20px;
-			width: 20px;
-			height: 20px;
-		}
-	}
-
-	.ec-jump-to-preview__arrow {
-		position: absolute;
-		color: #fff;
-
-		.dashicons {
-			font-size: 10px;
-			width: 10px;
-			height: 10px;
-		}
-
-		&.arrow-down {
-			bottom: 6px;
-			top: auto;
-			left: 50%;
-			transform: translateX(-50%);
-		}
-
-		&.arrow-up {
-			top: 6px;
-			bottom: auto;
-			left: 50%;
-			transform: translateX(-50%);
-		}
-	}
-}
-
-@media (max-width: 900px) {
-	.ec-jump-to-preview {
-		display: flex;
 	}
 }

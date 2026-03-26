@@ -2,7 +2,7 @@
  * PaymentsTab - Stripe Connect integration for artist payments
  */
 
-import { ActionRow, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, InlineStatus, Panel } from '@extrachill/components';
 
 const PaymentsTab = ( {
 	artistId,
@@ -20,8 +20,6 @@ const PaymentsTab = ( {
 
 	return (
 		<Panel className="ec-asm__payments">
-			<PanelHeader title="Payments" />
-
 			{ showPaymentsNote && (
 				<InlineStatus tone="warning">
 					<strong>Note:</strong> Products stay as drafts until your Stripe account can receive payments.

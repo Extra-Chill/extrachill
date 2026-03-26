@@ -15,7 +15,6 @@ import TabLinks from './tabs/TabLinks';
 import TabSocials from './tabs/TabSocials';
 import TabCustomize from './tabs/TabCustomize';
 import TabAdvanced from './tabs/TabAdvanced';
-import JumpToPreview from './JumpToPreview';
 import LinkPageUrl from './shared/LinkPageUrl';
 import QRCodeModal from './shared/QRCodeModal';
 
@@ -195,11 +194,21 @@ export default function Editor() {
 						</Panel>
 					</div>
 
-					<div className="ec-editor__preview-container">
-						<Preview />
+					<div className="ec-editor__preview-region">
+						<div className="ec-editor__preview-header">
+							<h2 className="ec-editor__preview-title">
+								{ __( 'Preview', 'extrachill-artist-platform' ) }
+							</h2>
+							<p className="ec-editor__preview-description">
+								{ __( 'Live preview of your public link page.', 'extrachill-artist-platform' ) }
+							</p>
+						</div>
+
+						<div className="ec-editor__preview-container">
+							<Preview />
+						</div>
 					</div>
 				</div>
-				<JumpToPreview />
 			</BlockShellInner>
 		</BlockShell>
 	);
