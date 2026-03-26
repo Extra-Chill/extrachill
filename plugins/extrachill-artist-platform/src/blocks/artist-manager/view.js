@@ -626,7 +626,6 @@ const App = () => {
 			<BlockShellInner maxWidth="wide">
 				<BlockShellHeader
 					title={artistName || 'Manage Artist'}
-					showDivider={false}
 					actions={
 						<ActionRow align="end" className="ec-am__toolbar">
 							<ArtistSwitcher
