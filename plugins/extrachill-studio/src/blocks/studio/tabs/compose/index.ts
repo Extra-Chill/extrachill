@@ -2,6 +2,10 @@ import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useRef, useState, useCallback } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
 import apiFetch from '@wordpress/api-fetch';
+import {
+	getOrCreateClientContextRegistry,
+	registerClientContextProvider,
+} from '@extrachill/chat';
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { StudioPaneProps } from '../../types/studio';
 
@@ -29,6 +33,21 @@ interface WpPost {
 
 /** Autosave debounce interval in milliseconds. */
 const AUTOSAVE_DELAY = 2000;
+const CLIENT_CONTEXT_UPDATE_DELAY = 250;
+const CLIENT_CONTEXT_PROVIDER_ID = 'extrachill-studio.compose';
+
+function extractPlainText( html: string ): string {
+	if ( ! html ) {
+		return '';
+	}
+
+	if ( typeof window !== 'undefined' && typeof window.DOMParser !== 'undefined' ) {
+		const parsed = new window.DOMParser().parseFromString( html, 'text/html' );
+		return ( parsed.body.textContent || '' ).replace( /\s+/g, ' ' ).trim();
+	}
+
+	return html.replace( /<[^>]+>/g, ' ' ).replace( /\s+/g, ' ' ).trim();
+}
 
 /**
  * Compose Pane — Block editor for drafting posts.
@@ -60,10 +79,48 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	const isAutosavingRef = useRef( false );
 	const activePostIdRef = useRef< number | null >( null );
 	const titleRef = useRef( '' );
+	const contentSnapshotRef = useRef( '' );
+	const clientContextTimerRef = useRef< ReturnType< typeof setTimeout > | null >( null );
+	const unregisterClientContextRef = useRef< ( () => void ) | null >( null );
 
 	// Keep refs in sync with state.
 	activePostIdRef.current = activePostId;
 	titleRef.current = title;
+
+	const buildClientContext = useCallback( (): Record< string, unknown > => {
+		const plainText = extractPlainText( contentSnapshotRef.current );
+		const activeDraftId = activePostIdRef.current;
+		const currentTitle = titleRef.current.trim();
+
+		return {
+			source: CLIENT_CONTEXT_PROVIDER_ID,
+			kind: 'editor',
+			surface: 'compose',
+			resource: {
+				entityType: 'post',
+				postType: 'post',
+				id: activeDraftId,
+				status: activeDraftId ? 'draft' : 'unsaved',
+				title: currentTitle || __( 'Untitled Draft', 'extrachill-studio' ),
+			},
+			content: {
+				hasContent: plainText.length > 0,
+				characterCount: plainText.length,
+				excerpt: plainText.slice( 0, 280 ),
+			},
+		};
+	}, [] );
+
+	const scheduleClientContextUpdate = useCallback( (): void => {
+		if ( clientContextTimerRef.current ) {
+			clearTimeout( clientContextTimerRef.current );
+		}
+
+		clientContextTimerRef.current = setTimeout( () => {
+			clientContextTimerRef.current = null;
+			getOrCreateClientContextRegistry().notify();
+		}, CLIENT_CONTEXT_UPDATE_DELAY );
+	}, [] );
 
 
 
@@ -112,15 +169,21 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		}
 
 		if ( post ) {
+			activePostIdRef.current = post.id;
+			titleRef.current = post.title.raw || post.title.rendered || '';
 			setActivePostId( post.id );
 			setTitle( post.title.raw || post.title.rendered || '' );
 			const content = post.content.raw || post.content.rendered || '';
+			contentSnapshotRef.current = content;
 			replaceEditorContent( content );
 			lastSavedPayloadRef.current = JSON.stringify( {
 				title: post.title.raw || post.title.rendered || '',
 				content,
 			} );
 		} else {
+			activePostIdRef.current = null;
+			titleRef.current = '';
+			contentSnapshotRef.current = '';
 			setActivePostId( null );
 			setTitle( '' );
 			replaceEditorContent( '' );
@@ -129,7 +192,8 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 		setError( '' );
 		setStatus( '' );
-	}, [] );
+		scheduleClientContextUpdate();
+	}, [ scheduleClientContextUpdate ] );
 
 	const startNew = useCallback( (): void => {
 		switchToDraft( null );
@@ -144,6 +208,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 		const currentTitle = titleRef.current.trim();
 		const currentContent = getContent().trim();
+		contentSnapshotRef.current = currentContent;
 
 		if ( ! currentTitle && ! currentContent ) {
 			return;
@@ -180,6 +245,25 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		}, AUTOSAVE_DELAY );
 	}, [ performAutosave ] );
 
+	useEffect( () => {
+		unregisterClientContextRef.current = registerClientContextProvider( {
+			id: CLIENT_CONTEXT_PROVIDER_ID,
+			priority: 100,
+			getContext: buildClientContext,
+		} );
+		getOrCreateClientContextRegistry().notify();
+
+		return () => {
+			if ( clientContextTimerRef.current ) {
+				clearTimeout( clientContextTimerRef.current );
+				clientContextTimerRef.current = null;
+			}
+
+			unregisterClientContextRef.current?.();
+			unregisterClientContextRef.current = null;
+		};
+	}, [ buildClientContext ] );
+
 	// Mount the editor once and load drafts.
 	useEffect( () => {
 		let cancelled = false;
@@ -199,13 +283,20 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			// Pre-fill textarea with the most recent draft.
 			if ( result.length > 0 && textareaRef.current ) {
 				const post = result[ 0 ];
+				activePostIdRef.current = post.id;
+				titleRef.current = post.title.raw || post.title.rendered || '';
 				setActivePostId( post.id );
 				setTitle( post.title.raw || post.title.rendered || '' );
 				textareaRef.current.value = post.content.raw || post.content.rendered || '';
+				contentSnapshotRef.current = post.content.raw || post.content.rendered || '';
 				lastSavedPayloadRef.current = JSON.stringify( {
 					title: post.title.raw || post.title.rendered || '',
 					content: post.content.raw || post.content.rendered || '',
 				} );
+			} else {
+				activePostIdRef.current = null;
+				titleRef.current = '';
+				contentSnapshotRef.current = '';
 			}
 
 			// Mount the editor — it reads textarea.value via onLoad.
@@ -218,6 +309,8 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 					setError( __( 'Block editor not available. Ensure Blocks Everywhere plugin is active.', 'extrachill-studio' ) );
 				}
 			}
+
+			scheduleClientContextUpdate();
 		};
 
 		init();
@@ -225,7 +318,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		return () => {
 			cancelled = true;
 		};
-	}, [ loadDrafts ] );
+	}, [ loadDrafts, scheduleClientContextUpdate ] );
 
 	// Listen for content changes on the textarea for autosave.
 	useEffect( () => {
@@ -235,6 +328,8 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		}
 
 		const onContentChange = (): void => {
+			contentSnapshotRef.current = getContent();
+			scheduleClientContextUpdate();
 			scheduleAutosave();
 		};
 
@@ -247,7 +342,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				performAutosave();
 			}
 		};
-	}, [ scheduleAutosave, performAutosave ] );
+	}, [ scheduleAutosave, performAutosave, scheduleClientContextUpdate ] );
 
 	const submitForReview = async (): Promise< void > => {
 		const content = getContent();
@@ -281,6 +376,9 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				data: { title: title.trim(), content, status: 'pending' },
 			} );
 
+			activePostIdRef.current = null;
+			titleRef.current = '';
+			contentSnapshotRef.current = '';
 			setStatus( sprintf( __( 'Post #%d submitted for review.', 'extrachill-studio' ), post.id ) );
 
 			const refreshed = await loadDrafts();
@@ -320,12 +418,16 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				data: { title: title.trim(), content, status: 'draft' },
 			} );
 
+			activePostIdRef.current = post.id;
+			titleRef.current = title.trim();
+			contentSnapshotRef.current = content;
 			setActivePostId( post.id );
 			lastSavedPayloadRef.current = JSON.stringify( { title: title.trim(), content } );
 			setStatus( __( 'Draft saved.', 'extrachill-studio' ) );
 
 			const refreshed = await loadDrafts();
 			setDrafts( refreshed );
+			scheduleClientContextUpdate();
 		} catch ( saveError ) {
 			setStatus( '' );
 			setError( ( saveError as Error )?.message || __( 'Failed to save draft.', 'extrachill-studio' ) );
@@ -346,9 +448,11 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	};
 
 	const onTitleChange = ( e: ChangeEvent< HTMLInputElement > ): void => {
+		titleRef.current = e.target.value;
 		setTitle( e.target.value );
 		setError( '' );
 		setStatus( '' );
+		scheduleClientContextUpdate();
 		scheduleAutosave();
 	};
 
