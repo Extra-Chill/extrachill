@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.51] - 2026-03-26
+
+### Changed
+- update components dependency to 0.4.30
+- remove duplicate edit profile shell gap
+
 ## [1.3.50] - 2026-03-26
 
 ### Changed
