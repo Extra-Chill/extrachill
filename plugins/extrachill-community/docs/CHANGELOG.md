@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.83] - 2026-03-26
+
+### Changed
+- rely on shell header defaults
+
+### Fixed
+- remove homepage topic actions gutter
+
 ## [1.3.82] - 2026-03-26
 
 ### Fixed
