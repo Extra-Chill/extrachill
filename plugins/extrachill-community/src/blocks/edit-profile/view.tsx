@@ -6,6 +6,7 @@ import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
 import {
 	ActionRow,
 	BlockShell,
+	BlockShellInner,
 	BlockShellHeader,
 	FieldGroup,
 	InlineStatus,
@@ -20,7 +21,6 @@ import type { UserProfile, UserLink } from '@extrachill/api-client';
 const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 
 const styles = {
-	container: { width: '100%', maxWidth: '700px' },
 	input: {
 		width: '100%',
 		maxWidth: '400px',
@@ -317,19 +317,19 @@ function EditProfileApp( {
 
 	return (
 		<BlockShell className="ec-community-edit-profile-shell">
-			<BlockShellHeader
-				title="Edit Profile"
-				description="Update your public profile, links, and artist profile access."
-				showDivider={ false }
-			/>
-			<div style={ styles.headerRegion }>
-				{ notice && <Notice type={ notice.type } message={ notice.message } /> }
-				<ResponsiveTabs
+			<BlockShellInner maxWidth="narrow">
+				<BlockShellHeader
+					title="Edit Profile"
+					description="Update your public profile, links, and artist profile access."
+					showDivider={ false }
+				/>
+				<div style={ styles.headerRegion }>
+					{ notice && <Notice type={ notice.type } message={ notice.message } /> }
+					<ResponsiveTabs
 						tabs={ tabs as Array<{ id: string; label: string }> }
 						active={ activeTab }
 						onChange={ ( id ) => switchTab( id as TabId ) }
 						syncWithHash={ true }
-						innerMaxWidth="narrow"
 						renderPanel={ ( id ) => {
 							switch ( id as TabId ) {
 								case 'avatar-title':
@@ -423,8 +423,8 @@ function EditProfileApp( {
 						className="ec-community-settings-tabs"
 						showDesktopTabs={ true }
 					/>
-				<ActionRow>
-					<button
+					<ActionRow>
+						<button
 						type="button"
 						className={ `button-2 button-small${ saving ? ' is-disabled' : '' }` }
 						style={ saving ? styles.disabledButton : undefined }
@@ -442,8 +442,9 @@ function EditProfileApp( {
 							View Public Profile
 						</a>
 					) }
-				</ActionRow>
-			</div>
+					</ActionRow>
+				</div>
+			</BlockShellInner>
 		</BlockShell>
 	);
 }

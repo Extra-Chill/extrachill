@@ -3,7 +3,7 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
-import { BlockShell, ResponsiveTabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
+import { BlockShell, BlockShellInner, ResponsiveTabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type {
@@ -333,17 +333,18 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 
 	return (
 		<BlockShell className="ec-community-settings-shell">
-			<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
-			<ResponsiveTabs
-				tabs={ tabs }
-				active={ activeTab }
-				onChange={ ( id ) => switchTab( id as TabId ) }
-				renderPanel={ renderTabPanel }
-				syncWithHash={ true }
-				innerMaxWidth="narrow"
-				className="ec-community-settings-tabs"
-				showDesktopTabs={ true }
-			/>
+			<BlockShellInner maxWidth="narrow">
+				<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
+				<ResponsiveTabs
+					tabs={ tabs }
+					active={ activeTab }
+					onChange={ ( id ) => switchTab( id as TabId ) }
+					renderPanel={ renderTabPanel }
+					syncWithHash={ true }
+					className="ec-community-settings-tabs"
+					showDesktopTabs={ true }
+				/>
+			</BlockShellInner>
 		</BlockShell>
 	);
 }
