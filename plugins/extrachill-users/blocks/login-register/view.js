@@ -183,9 +183,20 @@ import '@extrachill/components/styles/components.scss';
 			return;
 		}
 
-		initResponsiveTabsDom( { selector: '[data-ec-responsive-tabs]' } );
+		initResponsiveTabsDom( {
+			selector: '[data-ec-responsive-tabs]',
+			onPanelRender: function () {
+				if ( window.ECGoogleSignIn && typeof window.ECGoogleSignIn.renderAllButtons === 'function' ) {
+					window.ECGoogleSignIn.renderAllButtons();
+				}
+			},
+		} );
 		initLoginForm();
 		initRegisterForm();
+
+		if ( window.ECGoogleSignIn && typeof window.ECGoogleSignIn.renderAllButtons === 'function' ) {
+			window.ECGoogleSignIn.renderAllButtons();
+		}
 	}
 
 	if ( document.readyState === 'loading' ) {

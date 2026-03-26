@@ -48,10 +48,7 @@
             cancel_on_tap_outside: true
         });
 
-        var containers = document.querySelectorAll('.google-signin-button');
-        containers.forEach(function (container) {
-            renderButton(container);
-        });
+        renderAllButtons();
     }
 
     /**
@@ -64,6 +61,12 @@
             return;
         }
 
+        if (container.dataset.ecGoogleRendered === '1') {
+            return;
+        }
+
+        container.innerHTML = '';
+
         google.accounts.id.renderButton(container, {
             type: 'standard',
             theme: 'outline',
@@ -72,6 +75,19 @@
             shape: 'rectangular',
             logo_alignment: 'left',
             width: 300
+        });
+
+        container.dataset.ecGoogleRendered = '1';
+    }
+
+    function renderAllButtons() {
+        if (typeof google === 'undefined' || !google.accounts) {
+            return;
+        }
+
+        var containers = document.querySelectorAll('.google-signin-button');
+        containers.forEach(function (container) {
+            renderButton(container);
         });
     }
 
@@ -193,6 +209,7 @@
     }
 
     window.ECGoogleSignIn = {
-        init: init
+        init: init,
+        renderAllButtons: renderAllButtons
     };
 })();

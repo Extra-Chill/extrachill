@@ -33,7 +33,6 @@
 	padding: 0;
 	max-width: 600px;
 	margin: 0 auto;
-	font-family: 'Arial', sans-serif;
 }
 
 .login-register-form h2 {
@@ -45,6 +44,34 @@
 .login-register-form p {
     font-size: 16px;
     color: var(--muted-text);
+}
+
+.ec-auth-notice {
+	margin-bottom: var(--spacing-md);
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+}
+
+.ec-auth-notice p {
+	margin: 0;
+	font-size: inherit;
+	color: inherit;
+}
+
+.ec-auth-notice--error {
+	color: var(--error-color);
+}
+
+.ec-auth-notice--warning {
+	color: #856404;
+}
+
+.ec-auth-notice--info {
+	color: #004085;
+}
+
+.ec-auth-notice--success {
+	color: var(--success-color);
 }
 
 .login-register-form label {
@@ -187,9 +214,12 @@
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    width: 100%;
 }
 
 .google-signin-button {
+    display: flex;
+    justify-content: center;
     min-height: 44px;
     min-width: 320px;
 }
