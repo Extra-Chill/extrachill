@@ -3,9 +3,9 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
-import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, InlineStatus, Panel } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, Panel, BlockIntro } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
-import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
+import { cssVar, colors, fontSize } from '@extrachill/tokens';
 import type { LeaderboardResponse, LeaderboardEntry } from '@extrachill/api-client';
 
 const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
@@ -13,37 +13,9 @@ const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = {
-	table: {
-		width: '100%',
-		borderCollapse: 'collapse' as const,
-	},
-	th: {
-		padding: `${ cssVar( spacing.spacingSm ) } ${ cssVar( spacing.spacingMd ) }`,
-		borderBottom: `1px solid ${ cssVar( colors.borderColor ) }`,
-		textAlign: 'left' as const,
-	},
-	td: {
-		padding: `${ cssVar( spacing.spacingSm ) } ${ cssVar( spacing.spacingMd ) }`,
-		borderBottom: `1px solid ${ cssVar( colors.borderColor ) }`,
-		textAlign: 'left' as const,
-	},
-	pagination: {
-		display: 'flex',
-		gap: cssVar( spacing.spacingMd ),
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		marginTop: cssVar( spacing.spacingMd ),
-	},
 	pageLabel: {
 		color: cssVar( colors.mutedText ),
 		fontSize: cssVar( fontSize.fontSizeBase ),
-	},
-	headerRegion: {
-		display: 'grid',
-		gap: cssVar( spacing.spacingLg ),
-	},
-	tableWrap: {
-		overflowX: 'auto' as const,
 	},
 } as const;
 
@@ -82,7 +54,7 @@ function UserCell( { item, spriteUrl }: UserCellProps ) {
 	const hasBadges = Array.isArray( item.badges ) && item.badges.length > 0 && spriteUrl;
 
 	return (
-		<td style={ styles.td }>
+		<td>
 			{ nameEl }
 			{ hasBadges && (
 				<span className="ec-user-badges">
@@ -147,15 +119,15 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 	}, [ page, load ] );
 
 	if ( loading ) {
-		return <InlineStatus tone="info">Loading leaderboard…</InlineStatus>;
+		return <div className="notice notice-info"><p>Loading leaderboard…</p></div>;
 	}
 
 	if ( error ) {
-		return <InlineStatus tone="error">{ error }</InlineStatus>;
+		return <div className="notice notice-error"><p>{ error }</p></div>;
 	}
 
 	if ( ! data || ! Array.isArray( data.items ) ) {
-		return <InlineStatus tone="info">No leaderboard data.</InlineStatus>;
+		return <div className="notice notice-info"><p>No leaderboard data.</p></div>;
 	}
 
 	const totalPages = data.pagination?.total_pages ?? 1;
@@ -163,31 +135,31 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 	return (
 		<BlockShell className="ec-community-leaderboard-shell">
 			<BlockShellInner className="ec-community-leaderboard-shell__inner" maxWidth="narrow">
-				<div style={ styles.headerRegion }>
+				<div className="ec-block-shell-inner">
 				<BlockShellHeader
 					title="Leaderboard"
 					description="See the most active members of the Extra Chill community."
 				/>
 				<Panel depth={ 1 }>
-					<div style={ styles.tableWrap }>
-						<table style={ styles.table }>
+					<div className="leaderboard-table-container">
+						<table className="leaderboard-table">
 							<thead>
 								<tr>
-									<th style={ styles.th }>#</th>
-									<th style={ styles.th }>User</th>
-									<th style={ styles.th }>Points</th>
-									<th style={ styles.th }>Rank</th>
-									<th style={ styles.th }>Joined</th>
+									<th>#</th>
+									<th>User</th>
+									<th>Points</th>
+									<th>Rank</th>
+									<th>Joined</th>
 								</tr>
 							</thead>
 							<tbody>
 								{ data.items.map( ( item ) => (
 									<tr key={ item.id }>
-										<td style={ styles.td }>{ item.position }</td>
+										<td>{ item.position }</td>
 										<UserCell item={ item } spriteUrl={ spriteUrl } />
-										<td style={ styles.td }>{ item.points }</td>
-										<td style={ styles.td }>{ item.rank }</td>
-										<td style={ styles.td }>{ item.registered ? formatDate( item.registered ) : '' }</td>
+										<td>{ item.points }</td>
+										<td>{ item.rank }</td>
+										<td>{ item.registered ? formatDate( item.registered ) : '' }</td>
 									</tr>
 								) ) }
 							</tbody>
