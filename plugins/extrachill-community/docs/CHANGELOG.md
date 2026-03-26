@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.78] - 2026-03-26
+
+### Fixed
+- remove double gutters from forum homepage cards
+
 ## [1.3.77] - 2026-03-26
 
 ### Changed
