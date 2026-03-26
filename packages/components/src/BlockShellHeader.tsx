@@ -6,7 +6,6 @@ export interface BlockShellHeaderProps {
 	actions?: ReactNode;
 	className?: string;
 	classPrefix?: string;
-	showDivider?: boolean;
 }
 
 export function BlockShellHeader( {
@@ -15,14 +14,12 @@ export function BlockShellHeader( {
 	actions,
 	className = '',
 	classPrefix = 'ec-block-shell-header',
-	showDivider = true,
 }: BlockShellHeaderProps ) {
 	return (
 		<div
 			className={ [
 				classPrefix,
 				'ec-edge-gutter',
-				showDivider ? `${ classPrefix }--with-divider` : `${ classPrefix }--without-divider`,
 				className,
 			].filter( Boolean ).join( ' ' ) }
 		>
