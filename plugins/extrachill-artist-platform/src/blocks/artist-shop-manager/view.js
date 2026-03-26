@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from '@wordpress/element';
 import { render } from '@wordpress/element';
-import { ActionRow, BlockShell, BlockShellHeader, Panel, Tabs } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, ResponsiveTabs } from '@extrachill/components';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
 import OrdersTab from './components/tabs/OrdersTab';
 import PaymentsTab from './components/tabs/PaymentsTab';
@@ -236,34 +236,10 @@ const App = () => {
 
 	const currentArtist = config.userArtists.find( ( a ) => a.id === artistId );
 	const artistSlug = currentArtist?.slug || '';
-
-	return (
-		<BlockShell className="ec-asm">
-			<BlockShellHeader
-				title="Shop Manager"
-				actions={
-					<ActionRow align="end" className="ec-asm__toolbar">
-						<ArtistSwitcher
-							artists={ config.userArtists }
-							selectedId={ artistId }
-							onChange={ onArtistChange }
-						/>
-						{ artistSlug && config.shopSiteUrl && (
-							<a
-								href={ `${ config.shopSiteUrl }/artist/${ artistSlug }/` }
-								className="button-3 button-medium"
-							>
-								View Shop
-							</a>
-						) }
-					</ActionRow>
-				}
-			/>
-
-			<Panel>
-				<Tabs tabs={ tabs } active={ activeTab } onChange={ setActiveTab } />
-
-				{ activeTab === 'products' && (
+	const renderPanel = ( id ) => {
+		switch ( id ) {
+			case 'products':
+				return (
 					<ProductsTab
 						artistId={ artistId }
 						products={ products }
@@ -273,9 +249,9 @@ const App = () => {
 						onOpenPayments={ openPaymentsTab }
 						onRefresh={ load }
 					/>
-				) }
-
-				{ activeTab === 'orders' && (
+				);
+			case 'orders':
+				return (
 					<OrdersTab
 						artistId={ artistId }
 						orders={ orders }
@@ -289,13 +265,11 @@ const App = () => {
 						onRefund={ handleRefundOrder }
 						onRefresh={ loadOrders }
 					/>
-				) }
-
-				{ activeTab === 'shipping' && (
-					<ShippingTab artistId={ artistId } />
-				) }
-
-				{ activeTab === 'payments' && (
+				);
+			case 'shipping':
+				return <ShippingTab artistId={ artistId } />;
+			case 'payments':
+				return (
 					<PaymentsTab
 						artistId={ artistId }
 						status={ stripeStatus }
@@ -305,8 +279,45 @@ const App = () => {
 						onOpenDashboard={ openStripeDashboard }
 						onRefresh={ loadStripe }
 					/>
-				) }
-			</Panel>
+				);
+			default:
+				return null;
+		}
+	};
+
+	return (
+		<BlockShell className="ec-asm">
+			<BlockShellInner maxWidth="wide">
+				<BlockShellHeader
+					title="Shop Manager"
+					showDivider={ false }
+					actions={
+						<ActionRow align="end" className="ec-asm__toolbar">
+							<ArtistSwitcher
+								artists={ config.userArtists }
+								selectedId={ artistId }
+								onChange={ onArtistChange }
+							/>
+							{ artistSlug && config.shopSiteUrl && (
+								<a
+									href={ `${ config.shopSiteUrl }/artist/${ artistSlug }/` }
+									className="button-3 button-small"
+								>
+									View Shop
+								</a>
+							) }
+						</ActionRow>
+					}
+				/>
+
+				<ResponsiveTabs
+					tabs={ tabs }
+					active={ activeTab }
+					onChange={ setActiveTab }
+					renderPanel={ renderPanel }
+					showDesktopTabs={ true }
+				/>
+			</BlockShellInner>
 		</BlockShell>
 	);
 };

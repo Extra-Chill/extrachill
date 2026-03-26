@@ -4,13 +4,14 @@ import {
 	ActionRow,
 	Badge,
 	BlockShell,
+	BlockShellInner,
 	BlockShellHeader,
 	FieldGroup,
 	ImagePreview,
 	InlineStatus,
 	MediaField,
 	Panel,
-	Tabs,
+	ResponsiveTabs,
 } from '@extrachill/components';
 import {
 	getArtist,
@@ -600,56 +601,70 @@ const App = () => {
 
 	const artistName = formState.name || '';
 	const saveButtonLabel = saving ? 'Saving…' : 'Save';
+	const renderPanel = ( id ) => {
+		switch ( id ) {
+			case 'info':
+				return (
+					<InfoTab
+						formState={ formState }
+						setFormState={ setFormState }
+						selectedId={ selectedId }
+					/>
+				);
+			case 'managers':
+				return selectedId ? <ManagersTab artistId={ selectedId } /> : null;
+			case 'subscribers':
+				return selectedId ? <SubscribersTab artistId={ selectedId } /> : null;
+			default:
+				return null;
+		}
+	};
 
 	return (
 		<BlockShell className="ec-am">
-			<BlockShellHeader
-				title={artistName || 'Manage Artist'}
-				actions={
-					<ActionRow align="end" className="ec-am__toolbar">
-						<ArtistSwitcher
-							artists={config.userArtists}
-							selectedId={selectedId}
-							onChange={handleSelect}
-						/>
-						{error && <InlineStatus tone="error">{error}</InlineStatus>}
-						{saveSuccess && <InlineStatus tone="success">Saved!</InlineStatus>}
-						{artist?.slug && config.artistSiteUrl && (
-							<a
-								href={`${config.artistSiteUrl}/${artist.slug}`}
-								className="button-3 button-medium"
+			<BlockShellInner maxWidth="wide">
+				<BlockShellHeader
+					title={artistName || 'Manage Artist'}
+					showDivider={false}
+					actions={
+						<ActionRow align="end" className="ec-am__toolbar">
+							<ArtistSwitcher
+								artists={config.userArtists}
+								selectedId={selectedId}
+								onChange={handleSelect}
+							/>
+							{error && <InlineStatus tone="error">{error}</InlineStatus>}
+							{saveSuccess && <InlineStatus tone="success">Saved!</InlineStatus>}
+							{artist?.slug && config.artistSiteUrl && (
+								<a
+									href={`${config.artistSiteUrl}/${artist.slug}`}
+									className="button-3 button-small"
+								>
+									View Profile
+								</a>
+							)}
+							<button
+								type="button"
+								className="button-1 button-small"
+								onClick={handleSave}
+								disabled={saving || !selectedId}
 							>
-								View Profile
-							</a>
-						)}
-						<button
-							type="button"
-							className="button-1 button-medium"
-							onClick={handleSave}
-							disabled={saving || !selectedId}
-						>
-							{saveButtonLabel}
-						</button>
-					</ActionRow>
-				}
-			/>
+								{saveButtonLabel}
+							</button>
+						</ActionRow>
+					}
+				/>
 
-			<Panel>
 				{loading && <p>Loading artist…</p>}
 
-				<Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
-
-				{activeTab === 'info' && (
-					<InfoTab
-						formState={formState}
-						setFormState={setFormState}
-						selectedId={selectedId}
-					/>
-				)}
-
-				{selectedId && activeTab === 'managers' && <ManagersTab artistId={selectedId} />}
-				{selectedId && activeTab === 'subscribers' && <SubscribersTab artistId={selectedId} />}
-			</Panel>
+				<ResponsiveTabs
+					tabs={tabs}
+					active={activeTab}
+					onChange={setActiveTab}
+					renderPanel={renderPanel}
+					showDesktopTabs={true}
+				/>
+			</BlockShellInner>
 		</BlockShell>
 	);
 };

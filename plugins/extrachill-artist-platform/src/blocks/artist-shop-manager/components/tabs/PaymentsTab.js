@@ -53,7 +53,7 @@ const PaymentsTab = ( {
 						{ ! connected ? (
 							<button
 								type="button"
-								className="button-1 button-medium"
+								className="button-1 button-small"
 								onClick={ onConnect }
 								disabled={ loading }
 							>
@@ -62,7 +62,7 @@ const PaymentsTab = ( {
 						) : (
 							<button
 								type="button"
-								className="button-2 button-medium"
+								className="button-2 button-small"
 								onClick={ onOpenDashboard }
 								disabled={ loading }
 							>
@@ -71,7 +71,7 @@ const PaymentsTab = ( {
 						) }
 						<button
 							type="button"
-							className="button-2 button-medium"
+							className="button-2 button-small"
 							onClick={ onRefresh }
 							disabled={ loading }
 						>

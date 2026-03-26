@@ -5,14 +5,8 @@
  * Uses CSS variables from root.css for brand consistency.
  */
 
-@import '../shared/styles/artist-switcher';
-@import '../../../node_modules/@extrachill/components/styles/components';
-
-.ec-link-page-editor {
-	width: 100%;
-	max-width: 1400px;
-	margin: 0 auto;
-}
+@use '../shared/styles/artist-switcher' as *;
+@use '../../../node_modules/@extrachill/components/styles/components' as *;
 
 /* Loading State */
 .ec-editor-loading {
@@ -36,15 +30,7 @@
 
 /* Main Editor Layout */
 .ec-editor {
-	display: flex;
-	flex-direction: column;
-	gap: 0;
 	min-height: 600px;
-}
-
-.ec-editor__header {
-	padding: 0;
-	border-bottom: 0;
 }
 
 .ec-editor__header-left {
@@ -190,8 +176,7 @@
 
 
 .ec-editor__tabs {
-	padding: 16px;
-	border-bottom: 1px solid var(--border-color);
+	padding: 16px 16px 0;
 }
 
 /* Tab Content Area */
@@ -761,13 +746,6 @@
 
 /* Responsive - Mobile */
 @media (max-width: 600px) {
-	.ec-link-page-editor {
-		margin-left: calc(var(--spacing-md) * -1);
-		margin-right: calc(var(--spacing-md) * -1);
-		max-width: none;
-		width: auto;
-	}
-
 	.ec-editor {
 		background: var(--card-background);
 		border-radius: 0;
@@ -775,13 +753,6 @@
 		border-right: 0;
 		border-top: 1px solid var(--border-color);
 		border-bottom: 1px solid var(--border-color);
-	}
-
-	.ec-editor__header {
-		background: var(--background-color);
-		flex-direction: column;
-		gap: 12px;
-		padding: 12px 16px;
 	}
 
 	.ec-editor__body,
@@ -803,13 +774,7 @@
 
 
 	.ec-editor__tabs {
-		padding: 12px;
-		gap: 6px;
-	}
-
-	.ec-editor__tab {
-		padding: 6px 10px;
-		font-size: 13px;
+		padding: 12px 12px 0;
 	}
 
 	.ec-editor__tab-content {

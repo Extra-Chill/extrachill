@@ -105,20 +105,20 @@ const App = () => {
 					<ActionRow className="ec-artist-creator__actions">
 						<a
 							href={ config.manageArtistUrl }
-							className="button-2 button-medium"
+							className="button-2 button-small"
 						>
 							Manage Artist Profile
 						</a>
 						<a
 							href={ config.createLinkPageUrl }
-							className="button-1 button-medium"
+							className="button-1 button-small"
 						>
 							Create Link Page
 						</a>
 						{ config.createShopUrl && (
 							<a
 								href={ config.createShopUrl }
-								className="button-1 button-medium"
+								className="button-1 button-small"
 							>
 								Create Shop
 							</a>
@@ -187,7 +187,7 @@ const App = () => {
 				<ActionRow className="ec-artist-creator-actions">
 					<button
 						type="submit"
-						className="button-1 button-large"
+						className="button-1 button-medium"
 						disabled={ saving }
 					>
 						{ saving ? 'Creating...' : 'Create Artist Profile' }

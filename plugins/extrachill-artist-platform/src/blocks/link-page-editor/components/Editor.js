@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { ActionRow, BlockShell, BlockShellHeader, InlineStatus, Panel, Section, Tabs } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, InlineStatus, Panel, Section, Tabs } from '@extrachill/components';
 import { useEditor } from '../context/EditorContext';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 import Preview from './Preview';
@@ -137,69 +137,71 @@ export default function Editor() {
 
 	return (
 		<BlockShell className="ec-editor">
-			<BlockShellHeader
-				className="ec-editor__header"
-				title={
-					<div className="ec-editor__header-left">
-						<LinkPageUrl
-							publicUrl={ publicUrl }
-							onQRCodeClick={ () => setIsQRModalOpen( true ) }
+			<BlockShellInner maxWidth="wide">
+				<BlockShellHeader
+					title={
+						<div className="ec-editor__header-left">
+							<LinkPageUrl
+								publicUrl={ publicUrl }
+								onQRCodeClick={ () => setIsQRModalOpen( true ) }
+							/>
+						</div>
+					}
+					actions={
+						<ActionRow align="end" className="ec-editor__header-right">
+							<ArtistSwitcher
+								artists={ userArtists }
+								selectedId={ artistId }
+								onChange={ handleArtistChange }
+							/>
+							{ saveError && <InlineStatus tone="error">{ saveError }</InlineStatus> }
+							{ saveSuccess && (
+								<InlineStatus tone="success">
+									{ __( 'Saved!', 'extrachill-artist-platform' ) }
+								</InlineStatus>
+							) }
+							<button
+								type="button"
+								className="button-1 button-small"
+								onClick={ handleSave }
+								disabled={ isSaving }
+							>
+								{ isSaving
+									? __( 'Saving...', 'extrachill-artist-platform' )
+									: __( 'Save All', 'extrachill-artist-platform' ) }
+							</button>
+						</ActionRow>
+					}
+					showDivider={ false }
+				/>
+
+				<QRCodeModal
+					isOpen={ isQRModalOpen }
+					onClose={ () => setIsQRModalOpen( false ) }
+					publicUrl={ publicUrl }
+					artistSlug={ artist?.slug || currentArtist?.slug }
+				/>
+
+				<div className="ec-editor__body">
+					<Section className="ec-editor__sidebar" depth={ 1 }>
+						<Tabs
+							tabs={ TABS }
+							active={ activeTab }
+							onChange={ setActiveTab }
+							className="ec-editor__tabs"
 						/>
-					</div>
-				}
-				actions={
-					<ActionRow align="end" className="ec-editor__header-right">
-						<ArtistSwitcher
-							artists={ userArtists }
-							selectedId={ artistId }
-							onChange={ handleArtistChange }
-						/>
-						{ saveError && <InlineStatus tone="error">{ saveError }</InlineStatus> }
-						{ saveSuccess && (
-							<InlineStatus tone="success">
-								{ __( 'Saved!', 'extrachill-artist-platform' ) }
-							</InlineStatus>
-						) }
-						<button
-							type="button"
-							className="button-1 button-medium"
-							onClick={ handleSave }
-							disabled={ isSaving }
-						>
-							{ isSaving
-								? __( 'Saving...', 'extrachill-artist-platform' )
-								: __( 'Save All', 'extrachill-artist-platform' ) }
-						</button>
-					</ActionRow>
-				}
-			/>
 
-			<QRCodeModal
-				isOpen={ isQRModalOpen }
-				onClose={ () => setIsQRModalOpen( false ) }
-				publicUrl={ publicUrl }
-				artistSlug={ artist?.slug || currentArtist?.slug }
-			/>
+						<Panel className="ec-editor__tab-content" compact depth={ 2 }>
+							{ renderTabContent() }
+						</Panel>
+					</Section>
 
-			<div className="ec-editor__body">
-				<Section className="ec-editor__sidebar" depth={ 1 }>
-					<Tabs
-						tabs={ TABS }
-						active={ activeTab }
-						onChange={ setActiveTab }
-						className="ec-editor__tabs"
-					/>
-
-					<Panel className="ec-editor__tab-content" compact depth={ 2 }>
-						{ renderTabContent() }
-					</Panel>
-				</Section>
-
-				<Section className="ec-editor__preview-container" depth={ 1 }>
-					<Preview />
-				</Section>
-			</div>
-			<JumpToPreview />
+					<Section className="ec-editor__preview-container" depth={ 1 }>
+						<Preview />
+					</Section>
+				</div>
+				<JumpToPreview />
+			</BlockShellInner>
 		</BlockShell>
 	);
 }

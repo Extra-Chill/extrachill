@@ -116,7 +116,7 @@ export default function QRCodeModal( { isOpen, onClose, publicUrl, artistSlug } 
 					<div className="ec-qr-modal__actions">
                         <button
                             type="button"
-                            className="button-2 button-medium"
+                            className="button-2 button-small"
                             onClick={ handleDownload }
                             disabled={ isDownloading }
                         >

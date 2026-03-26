@@ -292,7 +292,7 @@ const OrdersTab = ( {
 											<>
 												<button
 													type="button"
-													className="button-1 button-medium"
+								className="button-1 button-small"
 													onClick={ handlePrintLabel }
 													disabled={ labelPurchasing || actionLoading }
 												>
@@ -351,7 +351,7 @@ const OrdersTab = ( {
 								</FieldGroup>
 								<button
 									type="button"
-									className="button-1 button-medium"
+							className="button-1 button-small"
 									onClick={ handleMarkShipped }
 									disabled={ actionLoading || labelPurchasing }
 								>
@@ -363,7 +363,7 @@ const OrdersTab = ( {
 						{ canRefund && ! showRefundConfirm && (
 							<button
 								type="button"
-								className="button-danger button-medium"
+							className="button-danger button-small"
 								onClick={ () => setShowRefundConfirm( true ) }
 								disabled={ actionLoading }
 							>
@@ -377,7 +377,7 @@ const OrdersTab = ( {
 								<ActionRow className="ec-asm__actions">
 									<button
 										type="button"
-										className="button-danger button-medium"
+									className="button-danger button-small"
 										onClick={ handleRefund }
 										disabled={ actionLoading }
 									>
@@ -385,7 +385,7 @@ const OrdersTab = ( {
 									</button>
 									<button
 										type="button"
-										className="button-2 button-medium"
+									className="button-2 button-small"
 										onClick={ () => setShowRefundConfirm( false ) }
 										disabled={ actionLoading }
 									>

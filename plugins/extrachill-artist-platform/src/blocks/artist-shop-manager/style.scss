@@ -1,5 +1,5 @@
-@import '../shared/styles/artist-switcher';
-@import '../../../node_modules/@extrachill/components/styles/components';
+@use '../shared/styles/artist-switcher' as *;
+@use '../../../node_modules/@extrachill/components/styles/components' as *;
 
 .ec-asm {
 	display: grid;

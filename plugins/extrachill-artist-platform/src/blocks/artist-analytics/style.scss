@@ -2,8 +2,8 @@
  * Artist Analytics Block - Frontend Styles
  */
 
-@import '../shared/styles/artist-switcher';
-@import '../../../node_modules/@extrachill/components/styles/components';
+@use '../shared/styles/artist-switcher' as *;
+@use '../../../node_modules/@extrachill/components/styles/components' as *;
 
 .ec-artist-analytics {
 	max-width: 1200px;
@@ -176,15 +176,6 @@
 		gap: 16px;
 	}
 
-	.ec-aa__header {
-		padding-bottom: 16px;
-	}
-
-	.ec-aa__title {
-		width: 100%;
-		font-size: 20px;
-	}
-
 	.ec-aa__date-range {
 		width: 100%;
 	}
@@ -204,10 +195,6 @@
 
 /* Responsive - Mobile */
 @media (max-width: 480px) {
-	.ec-aa__header-left {
-		width: 100%;
-	}
-
 	.ec-aa__table {
 		th,
 		td {

@@ -240,7 +240,7 @@ const ShippingTab = ( { artistId } ) => {
 				<ActionRow className="ec-asm__actions">
 					<button
 						type="button"
-						className="button-1 button-medium"
+						className="button-1 button-small"
 						onClick={ handleSave }
 						disabled={ saving }
 					>

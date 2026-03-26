@@ -1,8 +1,8 @@
 // Artist Manager Block Styles
 // Uses theme design system from extrachill/assets/css/root.css
 
-@import '../shared/styles/artist-switcher';
-@import '../../../node_modules/@extrachill/components/styles/components';
+@use '../shared/styles/artist-switcher' as *;
+@use '../../../node_modules/@extrachill/components/styles/components' as *;
 
 .ec-am {
   display: grid;
@@ -155,16 +155,6 @@
 }
 
 @media (max-width: 480px) {
-	.ec-am {
-		margin-left: calc(var(--spacing-md) * -1);
-		margin-right: calc(var(--spacing-md) * -1);
-	}
-
-	.ec-am .ec-panel {
-		border-left: 0;
-		border-right: 0;
-	}
-
 	.ec-am__inline {
 		flex-direction: column;
 	}

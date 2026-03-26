@@ -18,6 +18,26 @@
     {
       "file": "package.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/artist-manager/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/artist-shop-manager/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/artist-creator/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/artist-analytics/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/link-page-editor/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
 }

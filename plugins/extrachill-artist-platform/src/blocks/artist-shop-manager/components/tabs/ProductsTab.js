@@ -453,7 +453,7 @@ const ProductsTab = ( {
 				{ ! loading && artistProducts.length === 0 && ! showForm && (
 				<Panel compact>
 					<p>No products yet.</p>
-					<button type="button" className="button-1 button-medium" onClick={ startNew }>
+					<button type="button" className="button-1 button-small" onClick={ startNew }>
 						Create your first product
 					</button>
 				</Panel>
@@ -711,7 +711,7 @@ const ProductsTab = ( {
 					<ActionRow className="ec-asm__actions">
 						<button
 							type="button"
-							className="button-1 button-medium"
+						className="button-1 button-small"
 							onClick={ save }
 							disabled={ saving }
 						>
@@ -720,7 +720,7 @@ const ProductsTab = ( {
 						{ editingId ? (
 							<button
 								type="button"
-								className="button-2 button-medium"
+							className="button-2 button-small"
 								onClick={ reset }
 								disabled={ saving }
 							>

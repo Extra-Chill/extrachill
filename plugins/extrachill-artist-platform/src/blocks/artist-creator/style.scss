@@ -2,7 +2,7 @@
  * Artist Creator - Frontend Styles
  */
 
-@import '../../../node_modules/@extrachill/components/styles/components';
+@use '../../../node_modules/@extrachill/components/styles/components' as *;
 
 .ec-artist-creator {
 	max-width: var(--form-width);

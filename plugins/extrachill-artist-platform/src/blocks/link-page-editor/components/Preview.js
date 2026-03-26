@@ -229,7 +229,7 @@ export default function Preview() {
 							aria-label="Email Address"
 						/>
 					</div>
-					<button type="button" className="button-1 button-medium">
+					<button type="button" className="button-1 button-small">
 						Subscribe
 					</button>
 					<div className="extrch-form-message" aria-live="polite"></div>
@@ -277,7 +277,7 @@ export default function Preview() {
 								aria-label="Email Address"
 							/>
 						</div>
-						<button type="button" className="button-1 button-medium">
+						<button type="button" className="button-1 button-small">
 							Subscribe
 						</button>
 						<div className="extrch-form-message" aria-live="polite"></div>

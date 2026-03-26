@@ -117,7 +117,7 @@ export default function Analytics() {
 						{ artistSlug && linkPageBaseUrl && (
 							<a
 								href={ `${ linkPageBaseUrl }/${ artistSlug }` }
-								className="button-3 button-medium"
+								className="button-3 button-small"
 							>
 								{ __( 'View Link Page', 'extrachill-artist-platform' ) }
 							</a>
