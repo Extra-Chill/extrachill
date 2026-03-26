@@ -167,7 +167,6 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 				<BlockShellHeader
 					title="Leaderboard"
 					description="See the most active members of the Extra Chill community."
-					showDivider={ false }
 				/>
 				<Panel depth={ 1 }>
 					<div style={ styles.tableWrap }>

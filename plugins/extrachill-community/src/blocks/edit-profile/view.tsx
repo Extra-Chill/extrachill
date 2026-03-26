@@ -318,7 +318,6 @@ function EditProfileApp( {
 				<BlockShellHeader
 					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."
-					showDivider={ false }
 				/>
 				<div style={ styles.headerRegion }>
 					{ notice && <Notice type={ notice.type } message={ notice.message } /> }

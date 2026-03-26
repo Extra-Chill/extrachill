@@ -331,7 +331,7 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 	return (
 		<BlockShell className="ec-community-settings-shell">
 			<BlockShellInner className="ec-block-shell-inner--centered" maxWidth="narrow">
-				<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
+				<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." />
 				<ResponsiveTabs
 					tabs={ tabs }
 					active={ activeTab }
