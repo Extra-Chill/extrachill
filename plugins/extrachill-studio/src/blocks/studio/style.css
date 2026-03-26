@@ -3,8 +3,7 @@
 }
 
 
-.ec-studio-card,
-.ec-studio-app__inner {
+.ec-studio-card {
 	box-sizing: border-box;
 }
 
@@ -22,11 +21,6 @@
 
 .ec-studio-card__login {
 	margin-top: var(--spacing-lg);
-}
-
-.ec-studio-app__inner {
-	width: 100%;
-	max-width: 1080px;
 }
 
 .ec-studio-app__tabs .ec-responsive-tabs__desktop-panel {
