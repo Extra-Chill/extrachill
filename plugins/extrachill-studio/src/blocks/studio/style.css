@@ -379,29 +379,8 @@
 	min-height: 0;
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius-sm, 4px);
-	background: var(--background-color);
-}
-
-.ec-studio-compose-sidebar__tabs-shell {
-	padding: var(--spacing-sm);
-	border-bottom: 1px solid var(--border-color);
-	background: var(--card-background);
-}
-
-.ec-studio-compose-sidebar__tabs {
-	width: 100%;
-}
-
-.ec-studio-compose-sidebar__panels {
-	position: relative;
-	flex: 1;
-	min-height: 0;
-}
-
-.ec-studio-compose-sidebar__panel {
-	height: 100%;
-	min-height: 0;
 	overflow: hidden;
+	background: var(--background-color);
 }
 
 .ec-studio-compose-sidebar__content {
@@ -410,18 +389,8 @@
 	min-height: 0;
 }
 
-.ec-studio-compose-sidebar__view {
-	height: 100%;
-	min-height: 0;
-}
-
 .ec-studio-compose-sidebar__content .edit-widgets-layout__inserter-panel,
 .ec-studio-compose-sidebar__content .editor-list-view-sidebar {
-	height: 100%;
-}
-
-.ec-studio-compose-sidebar__view .edit-widgets-layout__inserter-panel,
-.ec-studio-compose-sidebar__view .editor-list-view-sidebar {
 	height: 100%;
 }
 
