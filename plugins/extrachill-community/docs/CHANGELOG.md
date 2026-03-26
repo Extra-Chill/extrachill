@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.56] - 2026-03-26
+
+### Changed
+- reuse surface card primitive in bbPress
+
 ## [1.3.55] - 2026-03-26
 
 ### Changed
