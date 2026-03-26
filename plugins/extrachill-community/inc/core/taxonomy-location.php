@@ -103,11 +103,11 @@ function extrachill_community_append_location_links_to_description( $description
 	}
 
 	ob_start();
-	echo '<div class="ec-cross-site-links ec-forum-location-links">';
+	echo '<div class="ec-page-chrome"><div class="ec-cross-site-links ec-forum-location-links">';
 	foreach ( $links as $link ) {
 		extrachill_cross_site_link_button( $link );
 	}
-	echo '</div>';
+	echo '</div></div>';
 	$links_html = ob_get_clean();
 
 	return $description . $button_html . $links_html;

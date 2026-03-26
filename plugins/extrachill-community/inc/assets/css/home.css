@@ -86,6 +86,21 @@
     }
 
     #forums-list-homepage.bbp-forums-grid .bbp-forum-card {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    ul.recently-active-topic-row {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        margin: var(--spacing-lg) calc(-1 * max(0.75em, env(safe-area-inset-left))) 0;
+    }
+
+    .recently-active-topic-row .topic-card-row {
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
         margin: 0;
     }
 }
