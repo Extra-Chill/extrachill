@@ -1220,20 +1220,7 @@ p.site-title {
 		padding-right: 0;
 	}
 
-	.single-post-card,
-	.page-edge-shell,
-	.ec-block-shell,
-	.archive-card,
-	.sidebar-card,
-	.online-stats-card,
-	.back-to-home-container,
-	body.topic .bbp-topic-card,
-	body.topic .bbp-reply-card,
-	body.topic .ec-inline-reply-form,
-	body.forum .bbp-topic-form,
-	body.forum .bbp-reply-form,
-	body.forum-archive #forums-list-homepage.bbp-forums-grid .bbp-forum-card,
-	body.forum [id^="forums-list-subforums-"] .bbp-forum-card {
+	.ec-mobile-edge-surface {
 		border-radius: 0;
 		border-left: none;
 		border-right: none;

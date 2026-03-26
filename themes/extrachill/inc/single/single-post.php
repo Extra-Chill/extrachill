@@ -18,7 +18,7 @@ get_header(); ?>
 
 		<?php extrachill_breadcrumbs(); ?>
 
-<div class="single-post-card">
+<div class="single-post-card ec-mobile-edge-surface">
 <article id="post-<?php the_ID(); ?>">
 		<?php do_action( 'extrachill_before_post_content' ); ?>
 

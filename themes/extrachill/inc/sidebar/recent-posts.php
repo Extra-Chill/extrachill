@@ -80,7 +80,7 @@ if ( ! function_exists( 'extrachill_sidebar_recent_posts' ) ) :
 		$query = new WP_Query( $args );
 
 		if ( $query->have_posts() ) :
-			echo '<div class="sidebar-card">';
+			echo '<div class="sidebar-card ec-mobile-edge-surface">';
 			echo '<div class="widget my-recent-posts-widget">';
 			echo '<div class="my-recent-posts">';
 			echo '<h3 class="widget-title sidebar-recent-title-margin"><span>' . $title . '</span></h3>';
