@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.67] - 2026-03-26
+
+### Changed
+- pass explicit topic context to shared card template
+- remove leftover homepage topic overrides
+
 ## [1.3.66] - 2026-03-26
 
 ### Changed
