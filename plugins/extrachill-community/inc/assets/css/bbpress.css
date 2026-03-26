@@ -299,7 +299,7 @@ blockquote {
     width: 100%;
 }
 
-[id^="forums-list-subforums-"] .bbp-forum-card {
+.bbp-forum-card {
     padding: var(--spacing-lg);
     margin: 0;
     height: auto;
