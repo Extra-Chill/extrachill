@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.7] - 2026-03-26
+
+### Changed
+- refine bbPress mobile surface primitives
+
 ## [2.2.6] - 2026-03-26
 
 ### Fixed
