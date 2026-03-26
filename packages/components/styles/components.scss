@@ -263,11 +263,7 @@
 	}
 
 	.ec-responsive-tabs__item {
-		margin-left: calc(var(--spacing-md, 1rem) * -1);
-		margin-right: calc(var(--spacing-md, 1rem) * -1);
-		border-left: 0;
-		border-right: 0;
-		border-radius: 0;
+		border-radius: var(--border-radius-md, 8px);
 	}
 }
 
@@ -538,32 +534,13 @@
 		padding-bottom: var(--spacing-sm, 0.5rem);
 	}
 
-	.ec-shell-tabs {
-		margin-left: calc(var(--spacing-md, 1rem) * -1);
-		margin-right: calc(var(--spacing-md, 1rem) * -1);
-		padding-left: var(--spacing-md, 1rem);
-		padding-right: var(--spacing-md, 1rem);
-	}
-
 	.ec-panel {
 		border-radius: 0;
-		border-left: 0;
-		border-right: 0;
-		padding: var(--spacing-sm, 0.5rem) 0;
-		margin-left: calc(var(--spacing-md, 1rem) * -1);
-		margin-right: calc(var(--spacing-md, 1rem) * -1);
-		padding-left: var(--spacing-md, 1rem);
-		padding-right: var(--spacing-md, 1rem);
+		padding: var(--spacing-sm, 0.5rem);
 	}
 
 	.ec-section {
 		border-radius: 0;
-		border-left: 0;
-		border-right: 0;
-		margin-left: calc(var(--spacing-md, 1rem) * -1);
-		margin-right: calc(var(--spacing-md, 1rem) * -1);
-		padding-left: var(--spacing-md, 1rem);
-		padding-right: var(--spacing-md, 1rem);
 	}
 
 	.ec-panel-header {
