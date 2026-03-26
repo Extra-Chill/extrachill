@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.16] - 2026-03-26
+
+### Changed
+- align archive and event wrappers to edge contract
+
 ## [2.2.15] - 2026-03-26
 
 ### Fixed
