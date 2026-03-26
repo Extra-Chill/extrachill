@@ -2,7 +2,8 @@ import { registerBlockType } from '@wordpress/blocks';
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
 import { PanelBody, RangeControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { cssVar, spacing, colors } from '@extrachill/tokens';
+import { BlockIntro } from '@extrachill/components';
+import '@extrachill/components/styles/components.scss';
 
 
 interface Attributes {
@@ -35,15 +36,7 @@ function Edit( { attributes, setAttributes }: {
 				</PanelBody>
 			</InspectorControls>
 			<div { ...blockProps }>
-				<div style={ {
-					padding: cssVar( spacing.spacingMd ),
-					color: cssVar( colors.mutedText ),
-					borderRadius: '4px',
-					border: `1px dashed ${ cssVar( colors.borderColor ) }`,
-					textAlign: 'center',
-				} }>
-					{ __( 'Leaderboard — renders on the frontend.', 'extra-chill-community' ) }
-				</div>
+				<BlockIntro description={ __( 'Leaderboard — renders on the frontend.', 'extra-chill-community' ) } />
 			</div>
 		</>
 	);

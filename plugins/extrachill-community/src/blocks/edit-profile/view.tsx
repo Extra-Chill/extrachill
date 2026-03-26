@@ -8,43 +8,19 @@ import {
 	BlockShell,
 	BlockShellInner,
 	BlockShellHeader,
+	BlockIntro,
 	FieldGroup,
-	InlineStatus,
 	Panel,
 	PanelHeader,
 	ResponsiveTabs,
 } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
-import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
+import { cssVar, spacing, colors } from '@extrachill/tokens';
 import type { UserProfile, UserLink } from '@extrachill/api-client';
 
 const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 
 const styles = {
-	input: {
-		width: '100%',
-		maxWidth: '400px',
-		padding: '8px',
-		border: `1px solid ${ cssVar( colors.borderColor ) }`,
-		borderRadius: '3px',
-		backgroundColor: cssVar( colors.backgroundColor ),
-		color: cssVar( colors.textColor ),
-		fontSize: cssVar( fontSize.fontSizeBase ),
-		boxSizing: 'border-box' as const,
-	},
-	textarea: {
-		width: '100%',
-		padding: '8px',
-		border: `1px solid ${ cssVar( colors.borderColor ) }`,
-		borderRadius: '3px',
-		backgroundColor: cssVar( colors.backgroundColor ),
-		color: cssVar( colors.textColor ),
-		fontSize: cssVar( fontSize.fontSizeBase ),
-		boxSizing: 'border-box' as const,
-		minHeight: '120px',
-		resize: 'vertical' as const,
-		fontFamily: 'inherit',
-	},
 	avatarContainer: {
 		display: 'flex',
 		alignItems: 'center',
@@ -66,27 +42,13 @@ const styles = {
 		flexWrap: 'wrap' as const,
 	},
 	linkSelect: {
-		padding: '8px',
-		border: `1px solid ${ cssVar( colors.borderColor ) }`,
-		borderRadius: '3px',
-		backgroundColor: cssVar( colors.backgroundColor ),
-		color: cssVar( colors.textColor ),
-		fontSize: cssVar( fontSize.fontSizeBase ),
 		minWidth: '140px',
 	},
 	linkInput: {
 		flex: 1,
 		minWidth: '200px',
-		padding: '8px',
-		border: `1px solid ${ cssVar( colors.borderColor ) }`,
-		borderRadius: '3px',
-		backgroundColor: cssVar( colors.backgroundColor ),
-		color: cssVar( colors.textColor ),
-		fontSize: cssVar( fontSize.fontSizeBase ),
-		boxSizing: 'border-box' as const,
 	},
 	mutedText: { color: cssVar( colors.mutedText ) },
-	headerRegion: { display: 'grid' },
 	disabledButton: {
 		opacity: 0.7,
 		pointerEvents: 'none' as const,
@@ -98,7 +60,11 @@ const styles = {
 } as const;
 
 function Notice( { type, message }: { type: 'success' | 'error'; message: string } ) {
-	return <InlineStatus tone={ type }>{ message }</InlineStatus>;
+	return (
+		<div className={ `notice notice-${ type }` }>
+			<p>{ message }</p>
+		</div>
+	);
 }
 
 function AvatarUpload( {
@@ -297,7 +263,11 @@ function EditProfileApp( {
 	}, [ customTitle, bio, localCity, links ] );
 
 	if ( loading ) {
-		return <InlineStatus tone="info">Loading profile...</InlineStatus>;
+		return (
+			<div className="notice notice-info">
+				<p>Loading profile...</p>
+			</div>
+		);
 	}
 
 	if ( error || ! profile ) {
@@ -319,7 +289,7 @@ function EditProfileApp( {
 					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."
 				/>
-				<div style={ styles.headerRegion }>
+				<div className="ec-block-shell-inner">
 					{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 					<ResponsiveTabs
 						tabs={ tabs as Array<{ id: string; label: string }> }
@@ -337,13 +307,12 @@ function EditProfileApp( {
 											htmlFor="ec-custom-title"
 											help="Enter a custom title, or leave blank for default."
 										>
-											<input
-												id="ec-custom-title"
-												type="text"
-												style={ styles.input }
-												value={ customTitle }
-												onChange={ ( e ) => setCustomTitle( e.target.value ) }
-												placeholder="Extra Chillian"
+										<input
+											id="ec-custom-title"
+											type="text"
+											value={ customTitle }
+											onChange={ ( e ) => setCustomTitle( e.target.value ) }
+											placeholder="Extra Chillian"
 											/>
 										</FieldGroup>
 									</Panel>
@@ -354,7 +323,6 @@ function EditProfileApp( {
 										<FieldGroup label="Bio" htmlFor="ec-bio">
 											<textarea
 												id="ec-bio"
-												style={ styles.textarea }
 												value={ bio }
 												onChange={ ( e ) => setBio( e.target.value ) }
 											/>
@@ -363,7 +331,6 @@ function EditProfileApp( {
 											<input
 												id="ec-local-city"
 												type="text"
-												style={ styles.input }
 												value={ localCity }
 												onChange={ ( e ) => setLocalCity( e.target.value ) }
 												placeholder="Your local city/region..."
@@ -418,7 +385,7 @@ function EditProfileApp( {
 					<ActionRow>
 						<button
 						type="button"
-						className={ `button-2 button-small${ saving ? ' is-disabled' : '' }` }
+						className="button-1 button-small"
 						style={ saving ? styles.disabledButton : undefined }
 						onClick={ handleSave }
 						disabled={ saving }
