@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.17] - 2026-03-26
+
+### Changed
+- centralize mobile edge shell and gutter behavior
+- let breadcrumbs own edge gutters
+
 ## [2.2.16] - 2026-03-26
 
 ### Changed
