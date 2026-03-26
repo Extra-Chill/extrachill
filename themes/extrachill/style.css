@@ -2,7 +2,7 @@
 Theme Name: Extra Chill
 Author: Chris Huber
 Author URI: https://chubes.net
-Version: 2.2.2
+Version: 2.2.5
 Text Domain: extrachill
 License: GNU General Public License v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -1197,11 +1197,19 @@ p.site-title {
 	}
 	/* Padding for everything except the post card */
 	body.single-post .main-content > :not(.single-post-card),
-	body.page .main-content > :not(.single-page-card),
+	body.page .main-content > :not(.single-page-card):not(.page-edge-shell),
 	body.single-datamachine_events .main-content > :not(.single-post-card),
-	body.single-newsletter .main-content > :not(.single-post-card) {
+	body.single-newsletter .main-content > :not(.single-post-card),
+	body.topic .main-content > :not(#bbpress-forums),
+	body.forum .main-content > :not(#bbpress-forums),
+	body.forum-archive .main-content > :not(#bbpress-forums) {
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);
+	}
+
+	body.page .main-content > .page-edge-shell {
+		padding-left: 0;
+		padding-right: 0;
 	}
 }
 
