@@ -4,7 +4,7 @@
   "extensions": {
     "wordpress": {}
   },
-  "id": "extrachill-theme",
+  "id": "extrachill",
   "remote_path": "wp-content/themes/extrachill",
   "version_targets": [
     {
