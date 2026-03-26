@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.32] - 2026-03-26
+
+### Changed
+- centralize mobile edge surfaces behind page shells
+- remove block shell child mobile padding
+
 ## [0.4.31] - 2026-03-26
 
 ### Changed
