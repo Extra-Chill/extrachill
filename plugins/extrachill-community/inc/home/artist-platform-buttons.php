@@ -16,12 +16,10 @@ if (!defined('ABSPATH')) {
  */
 function ec_community_add_artist_platform_buttons() {
     ?>
-    <div class="ec-page-chrome">
-        <div class="artist-platform-homepage-actions">
-            <a href="<?php echo esc_url( ec_get_site_url( 'artist' ) ); ?>" class="button-2 button-medium">
-                <?php esc_html_e('Artist Platform', 'extra-chill-community'); ?>
-            </a>
-        </div>
+    <div class="artist-platform-homepage-actions">
+        <a href="<?php echo esc_url( ec_get_site_url( 'artist' ) ); ?>" class="button-2 button-medium">
+            <?php esc_html_e('Artist Platform', 'extra-chill-community'); ?>
+        </a>
     </div>
     <?php
 }
