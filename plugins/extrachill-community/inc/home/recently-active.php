@@ -78,9 +78,7 @@ $query = new WP_Query( $query_args );
         endif;
         ?>
     </ul>
-    <div class="ec-page-chrome">
-        <div class="view-all-users-link">
-            <a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
-        </div>
+    <div class="view-all-users-link">
+        <a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
     </div>
 </div>
