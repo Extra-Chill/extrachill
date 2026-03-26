@@ -30,7 +30,7 @@ $args = array(
     'posts_per_page' => -1,
 );
 if ( bbp_has_forums( $args ) ) : ?>
-    <div id="forums-list-homepage" class="bbp-forums-grid">
+    <div id="forums-list-homepage" class="bbp-forums-grid ec-edge-shell">
         <?php while ( bbp_forums() ) : bbp_the_forum(); ?>
             <?php bbp_get_template_part( 'loop', 'single-forum-card' ); ?>
         <?php endwhile; ?>

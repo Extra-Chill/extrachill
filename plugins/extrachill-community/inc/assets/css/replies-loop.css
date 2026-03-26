@@ -524,18 +524,6 @@ blockquote p{
    Small Screen Edge-to-Edge (≤480px)
 ================================================== */
 @media (max-width: 480px) {
-    .bbp-reply-card {
-        margin-left: 0;
-        margin-right: 0;
-        width: 100%;
-    }
-
-    /* Remove nested reply indentation on small screens */
-    .bbp-reply-card[data-depth] {
-        width: 100%;
-        margin-left: 0;
-    }
-
     /* Remove depth indicator line on small screens */
     .bbp-reply-card[data-depth]:not([data-depth="0"])::before {
         display: none;

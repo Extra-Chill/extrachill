@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 ?>
 
 <?php
-$forum_card_classes    = array( 'bbp-forum-card', 'ec-surface-card', 'ec-mobile-edge-surface' );
+$forum_card_classes    = array( 'bbp-forum-card', 'ec-surface-card', 'ec-edge-surface' );
 $forum_card_style      = '';
 $forum_location_terms  = wp_get_object_terms( bbp_get_forum_id(), 'location', array( 'fields' => 'slugs' ) );
 if ( ! empty( $forum_location_terms ) && ! is_wp_error( $forum_location_terms ) ) {

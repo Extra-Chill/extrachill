@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 <div id="bbpress-forums" class="bbpress-wrapper">
 
-	<div class="ec-page-chrome">
+	<div class="ec-edge-gutter">
 		<?php bbp_forum_subscription_link(); ?>
 	</div>
 

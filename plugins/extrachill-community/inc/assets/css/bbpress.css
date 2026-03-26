@@ -789,15 +789,3 @@ p.private-forums {
     width: 100%;
     height: 100%;
 }
-
-/* ==================================================
-   Small Screen Edge-to-Edge (≤480px)
-================================================== */
-@media (max-width: 480px) {
-    .bbp-topic-form,
-    .bbp-reply-form {
-        margin-left: 0;
-        margin-right: 0;
-        max-width: 100%;
-    }
-}
