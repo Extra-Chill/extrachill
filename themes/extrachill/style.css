@@ -555,10 +555,6 @@ a.author.url.fn, .forum-meta a {
 
 
 
-.main-content ol, .main-content ul{
-	margin: 0 var(--spacing-lg);
-	}
-
 .error-404 .search-wrap {
 	display: flex;
 	justify-content: center;
@@ -733,7 +729,8 @@ body {
 
 .extrachill-content > .main-content > .ec-edge-shell,
 .extrachill-content > .ec-edge-shell,
-.extrachill-content .full-width-breakout.ec-edge-shell {
+.extrachill-content .full-width-breakout.ec-edge-shell,
+.ec-full-width-panel {
 	width: 100vw;
 	max-width: 100vw;
 	margin-left: 50%;
@@ -742,6 +739,11 @@ body {
 	padding-right: 0;
 	box-sizing: border-box;
 	position: relative;
+}
+
+.ec-card-vertical-padding {
+	padding-top: var(--spacing-md);
+	padding-bottom: var(--spacing-md);
 }
 
 .ec-edge-gutter {
