@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.72] - 2026-03-26
+
+### Changed
+- move shared topic card styles upstream
+
 ## [1.3.71] - 2026-03-26
 
 ### Changed
