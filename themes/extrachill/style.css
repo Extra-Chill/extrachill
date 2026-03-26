@@ -1220,6 +1220,13 @@ p.site-title {
 		padding-right: 0;
 	}
 
+	.single-post-card,
+	.page-edge-shell,
+	.ec-block-shell,
+	.archive-card,
+	.sidebar-card,
+	.online-stats-card,
+	.back-to-home-container,
 	body.topic .bbp-topic-card,
 	body.topic .bbp-reply-card,
 	body.topic .ec-inline-reply-form,
