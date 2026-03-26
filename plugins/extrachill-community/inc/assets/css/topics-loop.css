@@ -10,41 +10,11 @@
     border: none;
 }
 
-/* Topic Card Styles */
+/* Topic Loop Layout */
 .bbp-topics-grid {
     display: flex;
     flex-wrap: wrap;
     margin-bottom: var(--spacing-lg);
-}
-
-.bbp-topic-card {
-    padding: var(--spacing-lg);
-    margin-bottom: var(--spacing-lg);
-    width: 100%;
-    box-sizing: border-box;
-}
-
-
-
-.bbp-topic-content {
-    font-size: var(--font-size-sm);
-    color: var(--muted-text);
-}
-
-.bbp-topic-stats,
-.bbp-topic-freshness {
-    font-size: var(--font-size-sm);
-    color: var(--muted-text);
-}
-
-.bbp-topic-stats {
-    display: flex;
-    margin-bottom: var(--spacing-sm);
-    gap: var(--spacing-sm);
-}
-
-.bbp-topic-meta {
-    font-size: var(--font-size-sm);
 }
 
 /* Desktop Styles (3 columns) */
@@ -76,43 +46,8 @@
     }
 }
 
-/* Link Styling Within Topic Cards */
-.bbp-topic-card a {
-    color: var(--link-color);
-    text-decoration: none;
-}
-
-/* Link hover handled by theme */
-
-.bbp-topic-card h3 a {
-    text-decoration: underline;
-}
-
-/* H3 link hover handled by theme */
-
-/* Topic Header Inner Layout */
-.bbp-topic-header-inner {
-    display: flex;
-    gap: var(--spacing-sm);
-    align-items: baseline;
-}
-
-/* Styling for sticky topic cards */
-.bbp-topic-card.bbp-topic-card-sticky {
-    border-left: 3px solid var(--accent-2); /* Accent-2 border */
-}
-
 .artist-forum-topics ol, .artist-forum-topics ul {
 	margin: 0;
-}
-
-/* Topic Card Author Avatar */
-.bbp-topic-card .bbp-author-avatar img {
-    width: 24px;
-    height: 24px;
-    border: none;
-    object-fit: cover;
-    vertical-align: middle;
 }
 
 /* Small-screen edge-to-edge topic card surface is owned by theme/style.css */

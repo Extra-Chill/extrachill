@@ -321,6 +321,61 @@ blockquote {
     color: var(--muted-text);
 }
 
+.bbp-topic-card {
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.bbp-topic-content {
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.bbp-topic-stats,
+.bbp-topic-freshness {
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.bbp-topic-stats {
+    display: flex;
+    margin-bottom: var(--spacing-sm);
+    gap: var(--spacing-sm);
+}
+
+.bbp-topic-meta {
+    font-size: var(--font-size-sm);
+}
+
+.bbp-topic-card a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.bbp-topic-card h3 a {
+    text-decoration: underline;
+}
+
+.bbp-topic-header-inner {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: baseline;
+}
+
+.bbp-topic-card.bbp-topic-card-sticky {
+    border-left: 3px solid var(--accent-2);
+}
+
+.bbp-topic-card .bbp-author-avatar img {
+    width: 24px;
+    height: 24px;
+    border: none;
+    object-fit: cover;
+    vertical-align: middle;
+}
+
 .bbp-forum-last-active-time,
 .bbp-forum-activity-location {
     margin: 0;
