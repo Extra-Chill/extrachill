@@ -9,6 +9,8 @@ export interface ResponsiveTabsProps {
 	renderPanel: ( id: string ) => ReactNode;
 	className?: string;
 	classPrefix?: string;
+	innerClassName?: string;
+	innerMaxWidth?: 'none' | 'narrow' | 'wide';
 	tabsClassName?: string;
 	tabsClassPrefix?: string;
 	mobileBreakpoint?: number;
@@ -25,6 +27,8 @@ export function ResponsiveTabs( {
 	renderPanel,
 	className = '',
 	classPrefix = 'ec-responsive-tabs',
+	innerClassName = '',
+	innerMaxWidth = 'none',
 	tabsClassName = '',
 	tabsClassPrefix = 'ec-tabs',
 	mobileBreakpoint = 480,
@@ -111,6 +115,7 @@ export function ResponsiveTabs( {
 		() => [
 			classPrefix,
 			isMobile ? `${ classPrefix }--mobile` : `${ classPrefix }--desktop`,
+			innerMaxWidth !== 'none' ? `${ classPrefix }--inner-${ innerMaxWidth }` : '',
 			className,
 		]
 			.filter( Boolean )
@@ -125,23 +130,26 @@ export function ResponsiveTabs( {
 	if ( ! isMobile ) {
 		return (
 			<div className={ rootClass }>
-				{ showDesktopTabs && (
-					<Tabs
-						tabs={ tabs }
-						active={ active }
-						onChange={ handleChange }
-						className={ tabsClassName }
-						classPrefix={ tabsClassPrefix }
-					/>
-				) }
-				<div className={ `${ classPrefix }__desktop-panel` }>{ renderPanel( active ) }</div>
+				<div className={ [ `${ classPrefix }__inner`, innerClassName ].filter( Boolean ).join( ' ' ) }>
+					{ showDesktopTabs && (
+						<Tabs
+							tabs={ tabs }
+							active={ active }
+							onChange={ handleChange }
+							className={ tabsClassName }
+							classPrefix={ tabsClassPrefix }
+						/>
+					) }
+					<div className={ `${ classPrefix }__desktop-panel` }>{ renderPanel( active ) }</div>
+				</div>
 			</div>
 		);
 	}
 
 	return (
 		<div className={ rootClass }>
-			<div className={ [ `${ classPrefix }__accordion`, accordionClassName ].filter( Boolean ).join( ' ' ) }>
+			<div className={ [ `${ classPrefix }__inner`, innerClassName ].filter( Boolean ).join( ' ' ) }>
+				<div className={ [ `${ classPrefix }__accordion`, accordionClassName ].filter( Boolean ).join( ' ' ) }>
 				{ tabs.map( ( tab ) => {
 					const isActive = tab.id === mobileActive;
 
@@ -170,6 +178,7 @@ export function ResponsiveTabs( {
 						</div>
 					);
 				} ) }
+				</div>
 			</div>
 		</div>
 	);
