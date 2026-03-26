@@ -178,6 +178,12 @@ ol {
 	padding-left: var(--spacing-xl);
 }
 
+.ec-surface-card {
+	background-color: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm);
+}
+
 li {
 	margin: var(--spacing-xs) 0;
 }
