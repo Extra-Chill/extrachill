@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0] - 2026-03-26
+
+### Added
+- register compose context for shared chat clients
+
+### Changed
+- simplify studio compose layout
+- remove studio panel header titles
+
+### Fixed
+- restore green studio typecheck
+
 ## [0.2.46] - 2026-03-26
 
 ### Changed
