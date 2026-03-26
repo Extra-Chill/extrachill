@@ -77,6 +77,10 @@ body.post-type-archive .page-header .page-title {
   position: relative;
 }
 
+.archive-card > .taxonomy-badges {
+  padding: var(--spacing-md) var(--spacing-md) 0;
+}
+
 .archive-card .archive-post,
 .archive-card h2,
 .archive-card .featured-image {
@@ -128,6 +132,10 @@ a.card-link-target:hover,
 @media (max-width: 900px) {
   .archive-card {
     margin-bottom: var(--spacing-md);
+  }
+
+  .archive-card > .taxonomy-badges {
+    padding: var(--spacing-md) var(--spacing-sm) 0;
   }
 } 
 
