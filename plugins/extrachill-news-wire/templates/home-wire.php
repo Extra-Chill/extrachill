@@ -25,10 +25,12 @@ $latest_posts = get_posts(
 ?>
 
 <div class="festival-wire-page">
-	<header class="page-header">
-		<h1 class="page-title">Extra Chill News Wire</h1>
-		<div class="archive-description">Automated news feeds across the Extra Chill network.</div>
-	</header>
+	<div class="ec-edge-gutter">
+		<header class="page-header">
+			<h1 class="page-title">Extra Chill News Wire</h1>
+			<div class="archive-description">Automated news feeds across the Extra Chill network.</div>
+		</header>
+	</div>
 
 	<section class="ec-wire-hub-card">
 		<h2>Festival Wire</h2>

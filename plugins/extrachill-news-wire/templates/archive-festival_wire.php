@@ -19,7 +19,7 @@ get_header(); ?>
 
 			if ( have_posts() ) : ?>
 
-				<header class="page-header">
+				<div class="ec-edge-gutter"><header class="page-header">
 					<h1 class="page-title">Festival Wire</h1>
 					<div class="archive-description">Stay updated with the latest music festival news, announcements, and updates.</div>
 					
@@ -75,7 +75,7 @@ get_header(); ?>
 							</div>
 						</div>
 					</div>
-				</header><!-- .page-header -->
+				</header></div><!-- .page-header -->
 
 				<?php
 				// --- Display Last Updated Time ---
@@ -112,7 +112,7 @@ get_header(); ?>
 
 					</div><!-- .festival-wire-grid-container -->
 
-                <?php extrachill_pagination( null, 'festival-wire', 'post' ); ?>
+				<div class="ec-edge-gutter"><?php extrachill_pagination( null, 'festival-wire', 'post' ); ?></div>
 
 				<!-- Music Festivals Forum CTA -->
 				<div class="forum-cta-container">

@@ -25,7 +25,7 @@ get_header(); ?>
 <div class="single-post-card">
 <article id="post-<?php the_ID(); ?>" <?php post_class( array( 'festival-wire-single-post', 'single-post' ) ); ?>>
 	<?php do_action('extrachill_before_post_content'); ?>
-				<header>
+				<header class="ec-edge-gutter">
 					<?php do_action( 'extrachill_above_post_title' ); ?>
 					<?php the_title( '<h1>', '</h1>' ); ?>
 				</header>
@@ -47,7 +47,7 @@ get_header(); ?>
 					</div>
 				<?php } ?>
 
-				<div class="entry-content">
+				<div class="entry-content ec-edge-gutter">
 					<?php
 					the_content();
 
