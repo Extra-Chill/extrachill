@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BlockShell, BlockShellHeader, BlockShellInner, Panel, ResponsiveTabs } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
@@ -14,6 +14,26 @@ function GoogleButtons() {
 			</div>
 		</>
 	);
+}
+
+function renderTurnstile( container ) {
+	if ( ! container || ! window.turnstile ) {
+		return;
+	}
+
+	const widget = container.querySelector( '.cf-turnstile' );
+	if ( ! widget ) {
+		return;
+	}
+
+	if ( widget.dataset.ecTurnstileRendered === '1' ) {
+		return;
+	}
+
+	if ( typeof window.turnstile.render === 'function' ) {
+		window.turnstile.render( widget );
+		widget.dataset.ecTurnstileRendered = '1';
+	}
 }
 
 function LoggedInCard( { config } ) {
@@ -132,6 +152,12 @@ function LoginPanel( { config, notice, setNotice } ) {
 }
 
 function RegisterPanel( { config, notice, setNotice } ) {
+	const panelRef = useRef( null );
+
+	useEffect( () => {
+		renderTurnstile( panelRef.current );
+	} );
+
 	const handleSubmit = async ( event ) => {
 		event.preventDefault();
 		setNotice( null );
@@ -214,7 +240,7 @@ function RegisterPanel( { config, notice, setNotice } ) {
 
 	return (
 		<Panel>
-			<div className="login-register-form">
+			<div className="login-register-form" ref={ panelRef }>
 				{ notice && (
 					<div className={ `ec-auth-notice ec-auth-notice--${ notice.type }` }>
 						<p>{ notice.message }</p>
@@ -233,7 +259,7 @@ function RegisterPanel( { config, notice, setNotice } ) {
 					<div className="registration-submit-section">
 						<input type="submit" name="extrachill_register" className="button-1 button-medium" value="Join Now" />
 					</div>
-					<div dangerouslySetInnerHTML={ { __html: config.turnstileHtml } } />
+					<div className="login-register-turnstile" dangerouslySetInnerHTML={ { __html: config.turnstileHtml } } />
 				</form>
 				{ config.googleOAuthEnabled && <GoogleButtons /> }
 			</div>
