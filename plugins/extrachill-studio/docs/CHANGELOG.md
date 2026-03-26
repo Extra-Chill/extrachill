@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.45] - 2026-03-26
+
+### Changed
+- remove redundant studio shell overrides
+
 ## [0.2.44] - 2026-03-26
 
 ### Changed
