@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.54] - 2026-03-26
+
+### Changed
+- adopt theme mobile surface primitive
+
 ## [1.3.53] - 2026-03-26
 
 ### Changed
