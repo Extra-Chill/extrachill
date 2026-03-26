@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.2] - 2026-03-26
+
+### Fixed
+- suppress duplicate studio page titles
+- center studio shell inner width
+
 ## [0.3.1] - 2026-03-26
 
 ### Changed
