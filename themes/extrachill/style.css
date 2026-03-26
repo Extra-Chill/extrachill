@@ -166,6 +166,8 @@ ol {
 .entry-content ol,
 .page-content ul,
 .page-content ol,
+.ec-page-chrome ul,
+.ec-page-chrome ol,
 .bbp-topic-content ul,
 .bbp-topic-content ol,
 .bbp-reply-content ul,
@@ -1211,6 +1213,11 @@ p.site-title {
 	body.topic .extrachill-content > :not(#bbpress-forums),
 	body.forum .extrachill-content > :not(#bbpress-forums),
 	body.forum-archive .extrachill-content > :not(#bbpress-forums) {
+		padding-left: var(--spacing-md);
+		padding-right: var(--spacing-md);
+	}
+
+	.ec-page-chrome {
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);
 	}
