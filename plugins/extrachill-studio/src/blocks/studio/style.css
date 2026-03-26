@@ -293,6 +293,7 @@
 /* Compose tab — block editor */
 .ec-studio-pane__grid--compose {
 	grid-template-columns: 2fr 1fr;
+	align-items: start;
 }
 
 .ec-studio-panel--editor {
