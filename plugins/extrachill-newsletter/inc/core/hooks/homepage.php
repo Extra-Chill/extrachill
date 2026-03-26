@@ -39,11 +39,13 @@ function newsletter_override_archive_header() {
 	}
 
 	?>
-	<header class="page-header">
-		<h1 class="page-title">Extra Chill Newsletters</h1>
-	</header>
-	<div class="taxonomy-description">
+	<div class="ec-edge-gutter">
+		<header class="page-header">
+			<h1 class="page-title">Extra Chill Newsletters</h1>
+		</header>
+		<div class="taxonomy-description">
 		<p>Original music journalism from the underground.</p>
+		</div>
 	</div>
 	<?php
 

@@ -20,16 +20,16 @@ if (have_posts()) :
 
     do_action('extrachill_archive_above_posts');
     ?>
-    <div class="full-width-breakout">
-        <div class="article-container">
+	<div class="full-width-breakout ec-edge-shell">
+		<div class="article-container">
             <?php global $post_i; $post_i = 1; ?>
             <?php while (have_posts()) : the_post(); ?>
                 <?php get_template_part('inc/archives/post-card'); ?>
             <?php endwhile; ?>
         </div><!-- .article-container -->
 
-        <?php extrachill_pagination(null, 'archive'); ?>
-    </div><!-- .full-width-breakout -->
+		<div class="ec-edge-gutter"><?php extrachill_pagination(null, 'archive'); ?></div>
+	</div><!-- .full-width-breakout -->
 
 <?php else : ?>
     <?php extrachill_no_results(); ?>
