@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.40] - 2026-03-26
+
+### Changed
+- update components dependency to 0.4.31
+
+### Fixed
+- fix bbPress mobile forum page spacing
+
 ## [1.3.39] - 2026-03-25
 
 ### Changed
