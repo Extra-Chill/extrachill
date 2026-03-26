@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.65] - 2026-03-26
+
+### Changed
+- remove homepage forum chrome wrappers
+
 ## [1.3.64] - 2026-03-26
 
 ### Changed
