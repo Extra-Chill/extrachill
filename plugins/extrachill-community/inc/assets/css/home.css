@@ -89,10 +89,6 @@
     margin: var(--spacing-lg) 0;
 }
 
-.recently-active-topic-row .bbp-author-link {
-    display: inline;
-}
-
 .forum-badges {
     font-size: var(--font-size-sm);
 }
@@ -107,15 +103,6 @@
     align-items: center;
 }
 
-.bbp-forum-last-active-time, .bbp-forum-activity-location {
-    margin: 0;
-}
-
-#bbpress-forums p.bbp-topic-meta img.avatar{
-    border:none;
-    height: 20px;
-    width: 20px;
-}
 .bbp-forum-artist-directory{
     border: 1px solid var(--accent-2);
     /* Subtle glow using the accent-2 color. Adjust spread and opacity as needed. */

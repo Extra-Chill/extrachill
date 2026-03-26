@@ -110,6 +110,7 @@
 .bbp-topic-card .bbp-author-avatar img {
     width: 24px;
     height: 24px;
+    border: none;
     object-fit: cover;
     vertical-align: middle;
 }
