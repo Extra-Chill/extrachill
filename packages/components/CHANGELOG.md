@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.35] - 2026-03-26
+
+### Changed
+- unify shared card vertical padding
+- remove shell divider variants
+
 ## [0.4.34] - 2026-03-26
 
 ### Fixed
