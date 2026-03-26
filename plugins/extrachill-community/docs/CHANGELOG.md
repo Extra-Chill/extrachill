@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.57] - 2026-03-26
+
+### Fixed
+- fix forum chrome and homepage card surfaces
+- fix single forum create topic action
+
 ## [1.3.56] - 2026-03-26
 
 ### Changed
