@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.26] - 2026-03-26
+
+### Changed
+- add shared block inner wrapper
+
 ## [0.4.25] - 2026-03-26
 
 ### Changed
