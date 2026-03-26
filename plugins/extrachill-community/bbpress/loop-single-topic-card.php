@@ -10,9 +10,15 @@
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
+$topic_id = isset( $topic_id ) ? (int) $topic_id : bbp_get_topic_id();
+
+if ( ! $topic_id ) {
+	return;
+}
+
 ?>
 
-<div id="bbp-topic-card-<?php bbp_topic_id(); ?>" class="bbp-topic-card ec-surface-card ec-mobile-edge-surface<?php echo ( bbp_is_topic_sticky( bbp_get_topic_id() ) ? ' bbp-topic-card-sticky' : '' ); ?>">
+<div id="bbp-topic-card-<?php echo esc_attr( $topic_id ); ?>" class="bbp-topic-card ec-surface-card ec-mobile-edge-surface<?php echo ( bbp_is_topic_sticky( $topic_id ) ? ' bbp-topic-card-sticky' : '' ); ?>">
     <div class="bbp-topic-info">
         <?php do_action( 'bbp_theme_before_topic_title' ); ?>
         <div class="topic-card-header-area">
@@ -45,7 +51,7 @@ defined( 'ABSPATH' ) || exit;
                         </div> 
                     </div> 
                 </div><!-- .bbp-meta-upvote -->
-                <a class="bbp-topic-title" href="<?php bbp_topic_permalink(); ?>"><?php bbp_topic_title(); ?></a>
+                <a class="bbp-topic-title" href="<?php echo esc_url( bbp_get_topic_permalink( $topic_id ) ); ?>"><?php echo esc_html( bbp_get_topic_title( $topic_id ) ); ?></a>
                 <?php
                 // Forum name display REMOVED from here
                 ?>
@@ -57,26 +63,25 @@ defined( 'ABSPATH' ) || exit;
     <div class="bbp-topic-stats">
         <span class="topic-views"><?php echo number_format(ec_get_post_views()); ?> views</span>
         <div class="bbp-topic-voice-count">
-            <?php bbp_topic_voice_count(); ?> Voices
+            <?php echo esc_html( bbp_get_topic_voice_count( $topic_id ) ); ?> Voices
         </div>
         <div class="bbp-topic-reply-count">
-            <?php bbp_show_lead_topic() ? bbp_topic_reply_count() : bbp_topic_post_count(); ?> Replies
+            <?php echo esc_html( bbp_show_lead_topic() ? bbp_get_topic_reply_count( $topic_id ) : bbp_get_topic_post_count( $topic_id ) ); ?> Replies
         </div>
     </div>
 
     <div class="bbp-topic-freshness">
         <?php do_action( 'bbp_theme_before_topic_freshness_link' ); ?>
-        <?php bbp_topic_freshness_link(); ?>
+        <?php bbp_topic_freshness_link( $topic_id ); ?>
         <?php do_action( 'bbp_theme_after_topic_freshness_link' ); ?>
         <div class="bbp-topic-meta">
             <?php do_action( 'bbp_theme_before_topic_author' ); ?>
-            <span class="bbp-topic-freshness-author"><?php bbp_author_link( array( 'post_id' => bbp_get_topic_last_active_id(), 'size' => 24 ) ); ?></span>
+	            <span class="bbp-topic-freshness-author"><?php bbp_author_link( array( 'post_id' => bbp_get_topic_last_active_id( $topic_id ), 'size' => 24 ) ); ?></span>
             <?php do_action( 'bbp_theme_after_topic_author' ); ?>
         </div>
         <?php
         // Display forum name if topic has one AND it's a relevant page context
-        $topic_id_for_forum = bbp_get_topic_id(); 
-        $forum_id_for_topic = bbp_get_topic_forum_id($topic_id_for_forum);
+	        $forum_id_for_topic = bbp_get_topic_forum_id( $topic_id );
 
 		$show_forum_name_on_card = false;
 		if ( is_page_template('page-templates/recent-feed-template.php') ||

@@ -33,21 +33,15 @@ $query = new WP_Query( $query_args );
     <div class="bbp-topics-grid recently-active-topic-row">
         <?php
         if ( $query->have_posts() ) :
-            $primary_bbp = bbpress();
-            $original_topic_id = isset( $primary_bbp->current_topic_id ) ? $primary_bbp->current_topic_id : 0;
-
             while ( $query->have_posts() ) :
                 $query->the_post();
                 $topic_id = get_the_ID();
-                bbpress()->current_topic_id = $topic_id;
                 ?>
                 <?php bbp_get_template_part( 'loop', 'single-topic-card' ); ?>
                 <?php
-                bbpress()->current_topic_id = 0;
             endwhile;
 
             wp_reset_postdata();
-            $primary_bbp->current_topic_id = $original_topic_id;
         else :
             echo '<p>No recently active topics found.</p>';
         endif;
