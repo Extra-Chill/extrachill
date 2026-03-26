@@ -45,36 +45,6 @@ const styles = {
 		resize: 'vertical' as const,
 		fontFamily: 'inherit',
 	},
-	button: {
-		padding: '10px 20px',
-		border: 'none',
-		borderRadius: '3px',
-		cursor: 'pointer',
-		fontWeight: 600,
-		fontSize: cssVar( fontSize.fontSizeBase ),
-		backgroundColor: cssVar( colors.linkColor ),
-		color: '#fff',
-	},
-	secondaryButton: {
-		padding: '8px 16px',
-		border: `1px solid ${ cssVar( colors.borderColor ) }`,
-		borderRadius: '3px',
-		cursor: 'pointer',
-		fontWeight: 500,
-		fontSize: cssVar( fontSize.fontSizeSm ),
-		backgroundColor: 'transparent',
-		color: cssVar( colors.textColor ),
-	},
-	dangerButton: {
-		padding: '6px 12px',
-		border: 'none',
-		borderRadius: '3px',
-		cursor: 'pointer',
-		fontWeight: 500,
-		fontSize: cssVar( fontSize.fontSizeSm ),
-		backgroundColor: 'rgba(211, 47, 47, 0.1)',
-		color: '#d32f2f',
-	},
 	avatarContainer: {
 		display: 'flex',
 		alignItems: 'center',
@@ -120,6 +90,14 @@ const styles = {
 		display: 'grid',
 		gap: cssVar( spacing.spacingLg ),
 	},
+	disabledButton: {
+		opacity: 0.7,
+		pointerEvents: 'none' as const,
+	},
+	inlineButtonLink: { textDecoration: 'none' },
+	visuallyHiddenInput: {
+		display: 'none',
+	},
 } as const;
 
 function Notice( { type, message }: { type: 'success' | 'error'; message: string } ) {
@@ -162,14 +140,17 @@ function AvatarUpload( {
 				<p style={ { marginTop: 0, marginBottom: '8px', color: cssVar( colors.mutedText ) } }>
 					This is the avatar you currently have set. Upload a new image to change it.
 				</p>
-				<label style={ { ...styles.secondaryButton, display: 'inline-block', opacity: uploading ? 0.7 : 1 } }>
+				<label
+					className={ `button-3 button-small${ uploading ? ' is-disabled' : '' }` }
+					style={ uploading ? styles.disabledButton : undefined }
+				>
 					{ uploading ? 'Uploading...' : 'Upload New Avatar' }
 					<input
 						type="file"
 						accept="image/*"
 						onChange={ handleFileChange }
 						disabled={ uploading }
-						style={ { display: 'none' } }
+						style={ styles.visuallyHiddenInput }
 					/>
 				</label>
 			</div>
@@ -228,13 +209,13 @@ function LinksManager( {
 							placeholder="Label"
 						/>
 					) }
-					<button type="button" style={ styles.dangerButton } onClick={ () => removeLink( index ) } title="Remove link">
+					<button type="button" className="button-3 button-small" onClick={ () => removeLink( index ) } title="Remove link">
 						Remove
 					</button>
 				</div>
 			) ) }
 			<ActionRow>
-				<button type="button" style={ styles.secondaryButton } onClick={ addLink }>
+				<button type="button" className="button-3 button-small" onClick={ addLink }>
 					+ Add Link
 				</button>
 			</ActionRow>
@@ -336,19 +317,19 @@ function EditProfileApp( {
 
 	return (
 		<BlockShell className="ec-community-edit-profile-shell">
-			<div className="ec-community-block-shell__inner ec-community-block-shell__inner--narrow ec-community-edit-profile-shell__inner" style={ styles.container }>
-				<div style={ styles.headerRegion }>
-					<BlockShellHeader
-						title="Edit Profile"
-						description="Update your public profile, links, and artist profile access."
-						showDivider={ false }
-					/>
-					{ notice && <Notice type={ notice.type } message={ notice.message } /> }
-					<ResponsiveTabs
+			<BlockShellHeader
+				title="Edit Profile"
+				description="Update your public profile, links, and artist profile access."
+				showDivider={ false }
+			/>
+			<div style={ styles.headerRegion }>
+				{ notice && <Notice type={ notice.type } message={ notice.message } /> }
+				<ResponsiveTabs
 						tabs={ tabs as Array<{ id: string; label: string }> }
 						active={ activeTab }
 						onChange={ ( id ) => switchTab( id as TabId ) }
 						syncWithHash={ true }
+						innerMaxWidth="narrow"
 						renderPanel={ ( id ) => {
 							switch ( id as TabId ) {
 								case 'avatar-title':
@@ -414,7 +395,8 @@ function EditProfileApp( {
 												<ActionRow>
 													<a
 														href={ `${ artistSiteUrl }/manage-artist/` }
-														style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
+								className="button-2 button-small"
+								style={ styles.inlineButtonLink }
 													>
 														Manage Artist
 													</a>
@@ -423,7 +405,8 @@ function EditProfileApp( {
 												<ActionRow>
 													<a
 														href={ `${ artistSiteUrl }/create-artist/` }
-														style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }
+								className="button-2 button-small"
+								style={ styles.inlineButtonLink }
 													>
 														Create Artist Profile
 													</a>
@@ -440,25 +423,26 @@ function EditProfileApp( {
 						className="ec-community-settings-tabs"
 						showDesktopTabs={ true }
 					/>
-					<ActionRow>
-						<button
-							type="button"
-							style={ { ...styles.button, opacity: saving ? 0.7 : 1 } }
-							onClick={ handleSave }
-							disabled={ saving }
+				<ActionRow>
+					<button
+						type="button"
+						className={ `button-2 button-small${ saving ? ' is-disabled' : '' }` }
+						style={ saving ? styles.disabledButton : undefined }
+						onClick={ handleSave }
+						disabled={ saving }
+					>
+						{ saving ? 'Saving...' : 'Save Profile Changes' }
+					</button>
+					{ profileUrl && (
+						<a
+							href={ profileUrl }
+							className="button-3 button-small"
+							style={ styles.inlineButtonLink }
 						>
-							{ saving ? 'Saving...' : 'Save Profile Changes' }
-						</button>
-						{ profileUrl && (
-							<a
-								href={ profileUrl }
-								style={ { ...styles.secondaryButton, textDecoration: 'none', display: 'inline-block' } }
-							>
-								View Public Profile
-							</a>
-						) }
-					</ActionRow>
-				</div>
+							View Public Profile
+						</a>
+					) }
+				</ActionRow>
 			</div>
 		</BlockShell>
 	);
