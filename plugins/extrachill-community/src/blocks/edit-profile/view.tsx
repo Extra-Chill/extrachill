@@ -329,90 +329,86 @@ function EditProfileApp( {
 						syncWithHash={ true }
 						renderPanel={ ( id ) => {
 							switch ( id as TabId ) {
-								case 'avatar-title':
-									return (
-										<Panel depth={ 1 }>
-											<PanelHeader title="Avatar & Title" />
-											<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
-											<FieldGroup
-												label={ `Custom Title${ customTitle ? ` (Current: ${ customTitle })` : '' }` }
-												htmlFor="ec-custom-title"
-												help="Enter a custom title, or leave blank for default."
-											>
-												<input
-													id="ec-custom-title"
-													type="text"
-													style={ styles.input }
-													value={ customTitle }
-													onChange={ ( e ) => setCustomTitle( e.target.value ) }
-													placeholder="Extra Chillian"
-												/>
-											</FieldGroup>
-										</Panel>
-									);
-								case 'about':
-									return (
-										<Panel depth={ 1 }>
-											<PanelHeader title="About" />
-											<FieldGroup label="Bio" htmlFor="ec-bio">
-												<textarea
-													id="ec-bio"
-													style={ styles.textarea }
-													value={ bio }
-													onChange={ ( e ) => setBio( e.target.value ) }
-												/>
-											</FieldGroup>
-											<FieldGroup label="Local Scene (City/Region)" htmlFor="ec-local-city">
-												<input
-													id="ec-local-city"
-													type="text"
-													style={ styles.input }
-													value={ localCity }
-													onChange={ ( e ) => setLocalCity( e.target.value ) }
-													placeholder="Your local city/region..."
-												/>
-											</FieldGroup>
-										</Panel>
-									);
-								case 'links':
-									return (
-										<Panel depth={ 1 }>
-											<PanelHeader title="Your Links" />
-											<LinksManager links={ links } linkTypes={ profile.link_types } onChange={ setLinks } />
-										</Panel>
-									);
-								case 'artist-profiles':
-									return hasArtistAccess ? (
-										<Panel depth={ 1 }>
-											<PanelHeader
-												title="Artist Profiles"
-												description="Manage your artist profiles and link pages."
+							case 'avatar-title':
+								return (
+									<Panel depth={ 1 } className="ec-edge-surface">
+										<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
+										<FieldGroup
+											label={ `Custom Title${ customTitle ? ` (Current: ${ customTitle })` : '' }` }
+											htmlFor="ec-custom-title"
+											help="Enter a custom title, or leave blank for default."
+										>
+											<input
+												id="ec-custom-title"
+												type="text"
+												style={ styles.input }
+												value={ customTitle }
+												onChange={ ( e ) => setCustomTitle( e.target.value ) }
+												placeholder="Extra Chillian"
 											/>
-											{ hasArtists ? (
-												<ActionRow>
-													<a
-														href={ `${ artistSiteUrl }/manage-artist/` }
-								className="button-2 button-small"
-								style={ styles.inlineButtonLink }
-													>
-														Manage Artist
-													</a>
-												</ActionRow>
-											) : canCreateArtists ? (
-												<ActionRow>
-													<a
-														href={ `${ artistSiteUrl }/create-artist/` }
-								className="button-2 button-small"
-								style={ styles.inlineButtonLink }
-													>
-														Create Artist Profile
-													</a>
-												</ActionRow>
-											) : (
-												<p style={ styles.mutedText }>No artist profiles available yet.</p>
-											) }
-										</Panel>
-									) : null;
+										</FieldGroup>
+									</Panel>
+								);
+							case 'about':
+								return (
+									<Panel depth={ 1 } className="ec-edge-surface">
+										<FieldGroup label="Bio" htmlFor="ec-bio">
+											<textarea
+												id="ec-bio"
+												style={ styles.textarea }
+												value={ bio }
+												onChange={ ( e ) => setBio( e.target.value ) }
+											/>
+										</FieldGroup>
+										<FieldGroup label="Local Scene (City/Region)" htmlFor="ec-local-city">
+											<input
+												id="ec-local-city"
+												type="text"
+												style={ styles.input }
+												value={ localCity }
+												onChange={ ( e ) => setLocalCity( e.target.value ) }
+												placeholder="Your local city/region..."
+											/>
+										</FieldGroup>
+									</Panel>
+								);
+							case 'links':
+								return (
+									<Panel depth={ 1 } className="ec-edge-surface">
+										<LinksManager links={ links } linkTypes={ profile.link_types } onChange={ setLinks } />
+									</Panel>
+								);
+							case 'artist-profiles':
+								return hasArtistAccess ? (
+									<Panel depth={ 1 } className="ec-edge-surface">
+										<PanelHeader
+											description="Manage your artist profiles and link pages."
+										/>
+										{ hasArtists ? (
+											<ActionRow>
+												<a
+													href={ `${ artistSiteUrl }/manage-artist/` }
+													className="button-2 button-small"
+													style={ styles.inlineButtonLink }
+												>
+													Manage Artist
+												</a>
+											</ActionRow>
+										) : canCreateArtists ? (
+											<ActionRow>
+												<a
+													href={ `${ artistSiteUrl }/create-artist/` }
+													className="button-2 button-small"
+													style={ styles.inlineButtonLink }
+												>
+													Create Artist Profile
+												</a>
+											</ActionRow>
+										) : (
+											<p style={ styles.mutedText }>No artist profiles available yet.</p>
+										) }
+									</Panel>
+								) : null;
 								default:
 									return null;
 							}

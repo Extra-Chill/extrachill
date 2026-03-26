@@ -115,8 +115,7 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 	}, [ firstName, lastName, displayName, onUpdate ] );
 
 	return (
-		<Panel depth={ 1 }>
-			<PanelHeader title="Account Details" />
+		<Panel depth={ 1 } className="ec-edge-surface">
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			<FieldGroup label="First Name" htmlFor="ec-first-name">
 				<input id="ec-first-name" type="text" style={ styles.input } value={ firstName } onChange={ ( e ) => setFirstName( e.target.value ) } />
@@ -175,8 +174,7 @@ function SecurityTab( { settings, onSettingsChange }: { settings: UserSettings; 
 	}, [ currentPassword, newPassword, confirmPassword ] );
 
 	return (
-		<Panel depth={ 1 }>
-			<PanelHeader title="Security" />
+		<Panel depth={ 1 } className="ec-edge-surface">
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			<FieldGroup label="Current Email Address">
 				<input type="email" style={ { ...styles.input, ...styles.disabledInput } } value={ settings.email } disabled />
@@ -242,8 +240,8 @@ function SubscriptionsTab() {
 	const artists = data?.followed_artists || [];
 
 	return (
-		<Panel depth={ 1 }>
-			<PanelHeader title="Subscriptions & Email Preferences" description="Manage email consent for bands you follow. Unchecking will prevent a band from seeing your email or including it in their exports." />
+		<Panel depth={ 1 } className="ec-edge-surface">
+			<PanelHeader description="Manage email consent for bands you follow. Unchecking will prevent a band from seeing your email or including it in their exports." />
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			{ artists.length === 0 ? <p style={ styles.mutedText }>You are not currently following any bands.</p> : <>
 				<ul style={ styles.checkboxList }>
@@ -275,8 +273,7 @@ function ArtistPlatformTab( { artistAccess, artistSiteUrl, hasArtists, canCreate
 	}, [ accessType ] );
 
 	return (
-		<Panel depth={ 1 }>
-			<PanelHeader title="Artist Platform" />
+		<Panel depth={ 1 } className="ec-edge-surface">
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			{ currentStatus === 'approved' && <div style={ styles.artistAccessGranted }><p><strong>You have artist platform access!</strong></p><p>You can create artist profiles and link pages on extrachill.link.</p>{ hasArtists ? <ActionRow><a href={ `${ artistSiteUrl }/manage-artist/` } style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }>Manage Artist</a></ActionRow> : canCreateArtists ? <ActionRow><a href={ `${ artistSiteUrl }/create-artist/` } style={ { ...styles.button, display: 'inline-block', textDecoration: 'none' } }>Create Artist Profile</a></ActionRow> : null }</div> }
 			{ currentStatus === 'pending' && <div style={ styles.pendingBadge }><p><strong>Your request is pending admin review.</strong></p>{ artistAccess.request_type && <p>You requested access as "{ artistAccess.request_type === 'artist' ? 'I am a musician' : 'I work in the music industry' }"{ artistAccess.requested_at ? ` on ${ new Date( artistAccess.requested_at * 1000 ).toLocaleDateString() }` : '' }.</p> }<p>An administrator will review your request shortly.</p></div> }
