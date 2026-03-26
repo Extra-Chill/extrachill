@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.39] - 2026-03-26
+
+### Changed
+- use shared inner wrapper in studio layout
+- use shared block inner wrapper in studio
+
 ## [0.2.38] - 2026-03-26
 
 ### Changed
