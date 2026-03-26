@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.33] - 2026-03-26
+
+### Changed
+- rename mobile edge shell contract
+
 ## [0.4.32] - 2026-03-26
 
 ### Changed
