@@ -33,7 +33,7 @@ $query = new WP_Query( $query_args );
         <h2>Recently Active Topics</h2>
     </div>
     <div class="bbp-topics-grid recently-active-topic-row ec-edge-shell">
-        <div class="bbp-body ec-edge-gutter">
+        <div class="bbp-body">
             <?php
             if ( $query->have_posts() ) :
                 while ( $query->have_posts() ) :

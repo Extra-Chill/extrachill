@@ -19,7 +19,7 @@ if ( ! $topic_id ) {
 ?>
 
 <div id="bbp-topic-card-<?php echo esc_attr( $topic_id ); ?>" class="bbp-topic-card ec-surface-card ec-edge-surface<?php echo ( bbp_is_topic_sticky( $topic_id ) ? ' bbp-topic-card-sticky' : '' ); ?>">
-    <div class="bbp-topic-info ec-edge-gutter">
+    <div class="bbp-topic-info">
         <?php do_action( 'bbp_theme_before_topic_title' ); ?>
 		<div class="topic-card-header-area">
 			<div class="bbp-topic-header-inner">
@@ -59,7 +59,7 @@ if ( ! $topic_id ) {
         <?php do_action( 'bbp_theme_after_topic_title' ); ?>
     </div>
 
-	<div class="bbp-topic-stats ec-edge-gutter">
+	<div class="bbp-topic-stats">
 		<span class="topic-views"><?php echo esc_html( number_format( ec_get_post_views( $topic_id ) ) ); ?> views</span>
         <div class="bbp-topic-voice-count">
             <?php echo esc_html( bbp_get_topic_voice_count( $topic_id ) ); ?> Voices
@@ -69,7 +69,7 @@ if ( ! $topic_id ) {
         </div>
     </div>
 
-    <div class="bbp-topic-freshness ec-edge-gutter">
+    <div class="bbp-topic-freshness">
         <?php do_action( 'bbp_theme_before_topic_freshness_link' ); ?>
         <?php bbp_topic_freshness_link( $topic_id ); ?>
         <?php do_action( 'bbp_theme_after_topic_freshness_link' ); ?>

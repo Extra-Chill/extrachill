@@ -23,7 +23,7 @@ if ( ! empty( $forum_location_terms ) && ! is_wp_error( $forum_location_terms ) 
 }
 ?>
 <div id="bbp-forum-card-<?php bbp_forum_id(); ?>" class="<?php echo esc_attr( implode( ' ', $forum_card_classes ) ); ?>"<?php echo $forum_card_style ? ' style="' . esc_attr( $forum_card_style ) . '"' : ''; ?>>
-	<div class="bbp-forum-info ec-edge-gutter">
+	<div class="bbp-forum-info">
 		<?php do_action( 'bbp_theme_before_forum_title' ); ?>
 		<a class="bbp-forum-title" href="<?php bbp_forum_permalink(); ?>"><?php bbp_forum_title(); ?></a>
 		<?php do_action( 'bbp_theme_after_forum_title' ); ?>
@@ -40,7 +40,7 @@ if ( ! empty( $forum_location_terms ) && ! is_wp_error( $forum_location_terms ) 
         <?php do_action( 'bbp_theme_after_forum_sub_forums' ); ?>
     </div>
 
-    <div class="bbp-forum-stats ec-edge-gutter">
+    <div class="bbp-forum-stats">
         <div class="bbp-forum-topic-count">
             <?php bbp_forum_topic_count(); ?> Topics
         </div>
@@ -49,7 +49,7 @@ if ( ! empty( $forum_location_terms ) && ! is_wp_error( $forum_location_terms ) 
         </div>
     </div>
 
-    <div class="bbp-forum-freshness ec-edge-gutter">
+    <div class="bbp-forum-freshness">
         <?php 
         $forum_id = bbp_get_forum_id();
         $active_id = bbp_get_forum_last_active_id($forum_id);
