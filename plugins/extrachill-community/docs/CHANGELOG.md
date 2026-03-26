@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.81] - 2026-03-26
+
+### Changed
+- remove legacy community page wrappers
+
 ## [1.3.80] - 2026-03-26
 
 ### Fixed
