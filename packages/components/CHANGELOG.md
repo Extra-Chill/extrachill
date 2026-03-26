@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.38] - 2026-03-26
+
+### Fixed
+- give mobile tab panels default gutter
+
 ## [0.4.37] - 2026-03-26
 
 ### Fixed
