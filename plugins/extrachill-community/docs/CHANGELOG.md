@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.80] - 2026-03-26
+
+### Fixed
+- center community settings shells
+
 ## [1.3.79] - 2026-03-26
 
 ### Changed
