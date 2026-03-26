@@ -12,7 +12,7 @@ if ( is_user_logged_in() ) {
 	$username = $user->user_nicename;
 }
 ?>
-<div class="full-width-breakout">
+<div class="full-width-breakout ec-edge-shell">
 <section id="hero-section">
 	<h2>
 		<?php

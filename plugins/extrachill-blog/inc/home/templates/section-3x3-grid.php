@@ -8,7 +8,7 @@
 
 global $live_reviews_posts, $interviews_posts;
 ?>
-<div class="full-width-breakout">
+<div class="full-width-breakout ec-edge-shell">
 	<div class="home-3x3-grid">
 	<!-- Interviews Column -->
 	<div class="home-3x3-col">
