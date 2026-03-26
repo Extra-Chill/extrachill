@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.69] - 2026-03-26
+
+### Changed
+- restore homepage card rendering and padding
+
 ## [1.3.68] - 2026-03-26
 
 ### Changed
