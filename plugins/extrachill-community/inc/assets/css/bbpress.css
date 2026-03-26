@@ -249,9 +249,14 @@ blockquote {
     list-style: disc;
 }
 
-ol,
-ul {
-    margin: 0 0 1.5em 1em;
+#bbpress-forums .bbp-forum-content ol,
+#bbpress-forums .bbp-forum-content ul,
+#bbpress-forums .bbp-topic-content ol,
+#bbpress-forums .bbp-topic-content ul,
+#bbpress-forums .bbp-reply-content ol,
+#bbpress-forums .bbp-reply-content ul {
+    margin: 0 0 var(--spacing-lg);
+    padding-left: var(--spacing-xl);
 }
 
 /* Subforum button grid inside forum cards */

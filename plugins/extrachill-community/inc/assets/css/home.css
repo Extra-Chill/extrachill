@@ -90,6 +90,21 @@
     }
 }
 
+@media (max-width: 480px) {
+    #forums-list-homepage.bbp-forums-grid {
+        gap: 0;
+        margin-left: -0.75em;
+        margin-right: -0.75em;
+    }
+
+    #forums-list-homepage.bbp-forums-grid .bbp-forum-card {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+    }
+}
+
 /* =========================================
    1) Container: Display horizontally
    ========================================= */
