@@ -3,7 +3,7 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
-import { ActionRow, BlockShell, BlockShellHeader, InlineStatus, Panel } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, InlineStatus, Panel } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type { LeaderboardResponse, LeaderboardEntry } from '@extrachill/api-client';
@@ -162,7 +162,7 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 
 	return (
 		<BlockShell className="ec-community-leaderboard-shell">
-			<div className="ec-community-block-shell__inner ec-community-leaderboard-shell__inner">
+			<BlockShellInner className="ec-community-leaderboard-shell__inner" maxWidth="narrow">
 				<div style={ styles.headerRegion }>
 				<BlockShellHeader
 					title="Leaderboard"
@@ -217,7 +217,7 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 					</ActionRow>
 				</Panel>
 				</div>
-			</div>
+			</BlockShellInner>
 		</BlockShell>
 	);
 }
