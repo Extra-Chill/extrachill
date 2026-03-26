@@ -21,7 +21,7 @@ while ( have_posts() ) :
 
 	<?php extrachill_breadcrumbs(); ?>
 
-	<article id="post-<?php the_ID(); ?>" <?php post_class( is_page( 'settings' ) ? 'page-edge-shell ec-page-edge-shell ec-mobile-edge-surface' : '' ); ?>>
+	<article id="post-<?php the_ID(); ?>" <?php post_class( is_page( 'settings' ) ? 'ec-edge-shell ec-edge-surface' : '' ); ?>>
 		<?php do_action( 'extrachill_before_page_content' ); ?>
 
 		<?php if ( apply_filters( 'extrachill_show_page_title', true, get_the_ID() ) ) : ?>
