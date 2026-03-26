@@ -166,8 +166,8 @@ ol {
 .entry-content ol,
 .page-content ul,
 .page-content ol,
-.ec-page-chrome ul,
-.ec-page-chrome ol,
+.bbp-forum-description ul,
+.bbp-forum-description ol,
 .bbp-topic-content ul,
 .bbp-topic-content ol,
 .bbp-reply-content ul,
@@ -184,7 +184,12 @@ ol {
 	border-radius: var(--border-radius-sm);
 }
 
-li {
+.entry-content li,
+.page-content li,
+.bbp-forum-description li,
+.bbp-topic-content li,
+.bbp-reply-content li,
+.bbp-forum-content li {
 	margin: var(--spacing-xs) 0;
 }
 
