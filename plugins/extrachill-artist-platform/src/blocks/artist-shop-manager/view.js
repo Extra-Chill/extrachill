@@ -289,7 +289,6 @@ const App = () => {
 		<BlockShell className="ec-asm">
 			<BlockShellInner maxWidth="wide">
 				<BlockShellHeader
-					title="Shop Manager"
 					showDivider={ false }
 					actions={
 						<ActionRow align="end" className="ec-asm__toolbar">
