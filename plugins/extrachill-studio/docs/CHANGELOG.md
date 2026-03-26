@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.34] - 2026-03-26
+
+### Changed
+- update components dependency to 0.4.24
+- standardize studio block tabs and shell
+
 ## [0.2.33] - 2026-03-25
 
 ### Changed
