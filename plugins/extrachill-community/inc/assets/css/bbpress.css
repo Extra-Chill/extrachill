@@ -376,6 +376,47 @@ blockquote {
     vertical-align: middle;
 }
 
+.bbp-body {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    margin: auto;
+    justify-content: space-around;
+    border: none;
+}
+
+.bbp-topics-grid {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+    .bbp-topics-grid {
+        flex-direction: row;
+    }
+
+    .bbp-topic-card {
+        width: calc(33.33% - 10px);
+        margin-right: var(--spacing-sm);
+    }
+
+    .bbp-topic-card:nth-child(3n) {
+        margin-right: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .bbp-topics-grid {
+        flex-direction: column;
+    }
+
+    .bbp-topic-card {
+        width: 100%;
+        margin-right: 0;
+    }
+}
+
 .bbp-forum-last-active-time,
 .bbp-forum-activity-location {
     margin: 0;
