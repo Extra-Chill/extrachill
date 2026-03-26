@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.9] - 2026-03-26
+
+### Changed
+- fully align login register block with shared shell tabs
+
 ## [0.7.8] - 2026-03-26
 
 ### Changed
