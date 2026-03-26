@@ -21,15 +21,14 @@ if ( ! $topic_id ) {
 <div id="bbp-topic-card-<?php echo esc_attr( $topic_id ); ?>" class="bbp-topic-card ec-surface-card ec-mobile-edge-surface<?php echo ( bbp_is_topic_sticky( $topic_id ) ? ' bbp-topic-card-sticky' : '' ); ?>">
     <div class="bbp-topic-info">
         <?php do_action( 'bbp_theme_before_topic_title' ); ?>
-        <div class="topic-card-header-area">
-            <div class="bbp-topic-header-inner">
-                <div class="bbp-meta-upvote">
-                    <?php
-                    $user_id = get_current_user_id();
-                    $topic_id = bbp_get_topic_id();
-                    // Determine icon based on user's upvote status
-                    $upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
-                    $is_upvoted = is_array($upvoted_posts) && in_array($topic_id, $upvoted_posts);
+		<div class="topic-card-header-area">
+			<div class="bbp-topic-header-inner">
+				<div class="bbp-meta-upvote">
+					<?php
+					$user_id = get_current_user_id();
+					// Determine icon based on user's upvote status
+					$upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
+					$is_upvoted = is_array($upvoted_posts) && in_array($topic_id, $upvoted_posts);
                     $icon_id = $is_upvoted ? 'circle-up' : 'circle-up-outline';
 
                     // Fetch the upvote count.
@@ -60,8 +59,8 @@ if ( ! $topic_id ) {
         <?php do_action( 'bbp_theme_after_topic_title' ); ?>
     </div>
 
-    <div class="bbp-topic-stats">
-        <span class="topic-views"><?php echo number_format(ec_get_post_views()); ?> views</span>
+	<div class="bbp-topic-stats">
+		<span class="topic-views"><?php echo esc_html( number_format( ec_get_post_views( $topic_id ) ) ); ?> views</span>
         <div class="bbp-topic-voice-count">
             <?php echo esc_html( bbp_get_topic_voice_count( $topic_id ) ); ?> Voices
         </div>
@@ -91,7 +90,7 @@ if ( ! $topic_id ) {
 			$show_forum_name_on_card = true;
         }
 
-        if ( $show_forum_name_on_card && !empty($forum_id_for_topic) ) :
+	        if ( $show_forum_name_on_card && ! empty( $forum_id_for_topic ) ) :
             ?>
             <div class="bbp-topic-forum-origin"> 
                 <span class="bbp-topic-started-in">
@@ -105,4 +104,4 @@ if ( ! $topic_id ) {
         endif;
         ?>
     </div>
-</div><!-- #bbp-topic-card-<?php bbp_topic_id(); ?> -->
+</div><!-- #bbp-topic-card-<?php echo esc_attr( $topic_id ); ?> -->
