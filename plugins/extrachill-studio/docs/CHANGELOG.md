@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.37] - 2026-03-26
+
+### Changed
+- remove studio tab wrapper overrides
+
 ## [0.2.36] - 2026-03-26
 
 ### Changed
