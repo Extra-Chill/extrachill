@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.63] - 2026-03-26
+
+### Changed
+- align recently active mobile breakout
+
 ## [1.3.62] - 2026-03-26
 
 ### Changed
