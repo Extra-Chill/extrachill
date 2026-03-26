@@ -428,20 +428,6 @@ span.bbp-author-ip {
     color: #747474;
 }
 
-/* Content Lists (excluding revision logs) */
-#bbpress-forums div.bbp-reply-content ul li,
-#bbpress-forums div.bbp-topic-content ul li {
-    list-style-type: disc;
-}
-
-#bbpress-forums div.bbp-reply-content ol,
-#bbpress-forums div.bbp-reply-content ul:not(.bbp-reply-revision-log),
-#bbpress-forums div.bbp-topic-content ol,
-#bbpress-forums div.bbp-topic-content ul:not(.bbp-topic-revision-log) {
-    margin: 0 15px 15px;
-    padding: 0;
-}
-
 /* Revision Log (Edit History Footer) */
 #bbpress-forums ul.bbp-reply-revision-log,
 #bbpress-forums ul.bbp-topic-revision-log {

@@ -245,18 +245,15 @@ blockquote {
     list-style: none;
 }
 
-#bbpress-forums .bbp-reply-content li {
-    list-style: disc;
-}
-
-#bbpress-forums .bbp-forum-content ol,
-#bbpress-forums .bbp-forum-content ul,
-#bbpress-forums .bbp-topic-content ol,
-#bbpress-forums .bbp-topic-content ul,
-#bbpress-forums .bbp-reply-content ol,
-#bbpress-forums .bbp-reply-content ul {
-    margin: 0 0 var(--spacing-lg);
-    padding-left: var(--spacing-xl);
+#bbpress-forums ul.bbp-replies-list,
+#bbpress-forums ul.bbp-child-replies,
+#bbpress-forums ul.bbp-replies,
+#bbpress-forums ul.bbp-threaded-replies,
+#bbpress-forums .bbp-body > ul,
+#bbpress-forums .bbp-body > ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 /* Subforum button grid inside forum cards */
