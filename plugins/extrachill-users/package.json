@@ -13,7 +13,7 @@
     "start": "wp-scripts start blocks/login-register/src/index.js --output-path=build/login-register"
   },
   "dependencies": {
-    "@extrachill/components": "^0.4.23"
+    "@extrachill/components": "^0.4.24"
   },
   "devDependencies": {
     "@wordpress/scripts": "^31.1.0"
