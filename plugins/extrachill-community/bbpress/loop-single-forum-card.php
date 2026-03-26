@@ -23,14 +23,17 @@ if ( ! empty( $forum_location_terms ) && ! is_wp_error( $forum_location_terms ) 
 }
 ?>
 <div id="bbp-forum-card-<?php bbp_forum_id(); ?>" class="<?php echo esc_attr( implode( ' ', $forum_card_classes ) ); ?>"<?php echo $forum_card_style ? ' style="' . esc_attr( $forum_card_style ) . '"' : ''; ?>>
-    <div class="bbp-forum-info">
-        <?php do_action( 'bbp_theme_before_forum_title' ); ?>
-        <a class="bbp-forum-title" href="<?php bbp_forum_permalink(); ?>"><?php bbp_forum_title(); ?></a>
-        <?php do_action( 'bbp_theme_after_forum_title' ); ?>
+	<div class="bbp-forum-info">
+		<?php do_action( 'bbp_theme_before_forum_title' ); ?>
+		<a class="bbp-forum-title" href="<?php bbp_forum_permalink(); ?>"><?php bbp_forum_title(); ?></a>
+		<?php do_action( 'bbp_theme_after_forum_title' ); ?>
 
-        <?php do_action( 'bbp_theme_before_forum_description' ); ?>
-        <div class="bbp-forum-content"><?php bbp_forum_content(); ?></div>
-        <?php do_action( 'bbp_theme_after_forum_description' ); ?>
+		<?php do_action( 'bbp_theme_before_forum_description' ); ?>
+		<?php $forum_content = bbp_get_forum_content(); ?>
+		<?php if ( '' !== trim( wp_strip_all_tags( $forum_content ) ) ) : ?>
+			<div class="bbp-forum-content"><?php echo $forum_content; ?></div>
+		<?php endif; ?>
+		<?php do_action( 'bbp_theme_after_forum_description' ); ?>
 
         <?php do_action( 'bbp_theme_before_forum_sub_forums' ); ?>
         <?php bbp_list_forums(); ?>

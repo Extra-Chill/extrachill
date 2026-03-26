@@ -300,8 +300,25 @@ blockquote {
 }
 
 [id^="forums-list-subforums-"] .bbp-forum-card {
+    padding: var(--spacing-lg);
     margin: 0;
     height: auto;
+}
+
+.bbp-forum-card .bbp-forum-info {
+    margin-bottom: var(--spacing-md);
+}
+
+.bbp-forum-card .bbp-forum-title {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+    display: block;
+    margin-bottom: var(--spacing-xs);
+}
+
+.bbp-forum-card .bbp-forum-content {
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
 }
 
 /* Location-colored borders for forum cards tagged with a location term.

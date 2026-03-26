@@ -38,26 +38,9 @@
 
 /* --- Forum Card Styles --- */
 #forums-list-homepage.bbp-forums-grid .bbp-forum-card {
-    padding: var(--spacing-lg);
     box-sizing: border-box;
     flex: 1 1 calc(50% - (var(--spacing-lg) / 2));
     min-width: 0;
-}
-
-#forums-list-homepage.bbp-forums-grid .bbp-forum-info {
-    margin-bottom: var(--spacing-md);
-}
-
-#forums-list-homepage.bbp-forums-grid .bbp-forum-title {
-    font-size: var(--font-size-lg);
-    font-weight: bold;
-    display: block;
-    margin-bottom: var(--spacing-xs);
-}
-
-#forums-list-homepage.bbp-forums-grid .bbp-forum-content {
-    font-size: var(--font-size-sm);
-    color: var(--muted-text);
 }
 
 /* Desktop styles (2 columns) */
