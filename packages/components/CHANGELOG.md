@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.25] - 2026-03-26
+
+### Changed
+- move shared tab layout into components
+
 ## [0.4.23] - 2026-03-25
 
 ### Changed
