@@ -326,6 +326,11 @@
 	max-width: 1080px;
 }
 
+.ec-block-shell-inner--centered {
+	margin-left: auto;
+	margin-right: auto;
+}
+
 .ec-block-intro {
 	display: grid;
 	gap: var(--spacing-sm, 0.5rem);
