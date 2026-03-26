@@ -31,21 +31,23 @@ $query = new WP_Query( $query_args );
 <div class="recently-active-topics">
     <h2>Recently Active Topics</h2>
     <div class="bbp-topics-grid recently-active-topic-row">
-        <?php
-        if ( $query->have_posts() ) :
-            while ( $query->have_posts() ) :
-                $query->the_post();
-                $topic_id = get_the_ID();
-                ?>
-				<?php require EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'bbpress/loop-single-topic-card.php'; ?>
-                <?php
-            endwhile;
+        <div class="bbp-body">
+            <?php
+            if ( $query->have_posts() ) :
+                while ( $query->have_posts() ) :
+                    $query->the_post();
+                    $topic_id = get_the_ID();
+                    ?>
+					<?php require EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'bbpress/loop-single-topic-card.php'; ?>
+                    <?php
+                endwhile;
 
-            wp_reset_postdata();
-        else :
-            echo '<p>No recently active topics found.</p>';
-        endif;
-        ?>
+                wp_reset_postdata();
+            else :
+                echo '<p>No recently active topics found.</p>';
+            endif;
+            ?>
+        </div>
     </div>
     <div class="view-all-users-link">
         <a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
