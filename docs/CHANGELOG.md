@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.11] - 2026-03-26
+
+### Changed
+- add generic surface card primitive
+
 ## [2.2.10] - 2026-03-26
 
 ### Changed
