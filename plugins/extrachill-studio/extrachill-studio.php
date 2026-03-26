@@ -86,6 +86,24 @@ function extrachill_studio_register_blocks() {
 add_action( 'init', 'extrachill_studio_register_blocks' );
 
 /**
+ * Hide the theme page title on the Studio homepage.
+ *
+ * The Studio block shell renders its own headline/description, so the page
+ * template H1 should not duplicate that chrome.
+ *
+ * @param bool $show Whether to show the page title.
+ * @return bool
+ */
+function extrachill_studio_hide_page_title( $show ) {
+	if ( is_front_page() || is_home() ) {
+		return false;
+	}
+
+	return $show;
+}
+add_filter( 'extrachill_show_page_title', 'extrachill_studio_hide_page_title' );
+
+/**
  * Render homepage content for studio.extrachill.com.
  *
  * @return void

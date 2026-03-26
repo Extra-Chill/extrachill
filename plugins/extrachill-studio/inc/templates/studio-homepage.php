@@ -19,9 +19,6 @@ $can_access     = $is_logged_in && ( current_user_can( 'manage_options' ) || ( $
 extrachill_breadcrumbs();
 ?>
 
-<h2><?php esc_html_e( 'Extra Chill Studio', 'extrachill-studio' ); ?></h2>
-
-
 <?php if ( ! $is_logged_in ) : ?>
 	<div class="notice notice-info">
 		<p><?php esc_html_e( 'Sign in to access Extra Chill Studio.', 'extrachill-studio' ); ?></p>
