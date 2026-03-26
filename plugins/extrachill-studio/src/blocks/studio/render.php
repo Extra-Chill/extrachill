@@ -68,7 +68,7 @@ $socials_api = rest_url( 'datamachine-socials/v1/' );
 <div
 	<?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?>
 	data-ec-studio-root
- data-user-name="<?php echo esc_attr( $studio_user->display_name ); ?>"
+	data-user-name="<?php echo esc_attr( $studio_user->display_name ); ?>"
 	data-site-name="<?php echo esc_attr( $site_name ); ?>"
 	data-site-url="<?php echo esc_url( $site_url ); ?>"
 	data-rest-nonce="<?php echo esc_attr( $rest_nonce ); ?>"
@@ -76,7 +76,5 @@ $socials_api = rest_url( 'datamachine-socials/v1/' );
 	data-headline="<?php echo esc_attr( $headline ); ?>"
 	data-description="<?php echo esc_attr( $description ); ?>"
 >
-	<div class="ec-studio-shell">
-		<div class="ec-studio-app__mount" data-ec-studio-app></div>
-	</div>
+	<div class="ec-studio-app__mount" data-ec-studio-app></div>
 </div>
