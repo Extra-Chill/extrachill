@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.55] - 2026-03-26
+
+### Changed
+- wrap forum description in page chrome
+
 ## [1.3.54] - 2026-03-26
 
 ### Changed
