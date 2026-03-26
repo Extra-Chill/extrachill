@@ -473,6 +473,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			h(
 				PanelHeader,
 				{
+					description: __( 'Submit drafts to the extrachill.com blog.', 'extrachill-studio' ),
 					actions: h(
 						ActionRowView,
 						{ className: 'ec-studio-compose-toolbar' },
@@ -579,12 +580,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 							? __( 'Update Draft', 'extrachill-studio' )
 							: __( 'Save Draft', 'extrachill-studio' )
 					)
-				),
-				activePostId
-					? h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' },
-						sprintf( __( 'Editing draft #%d', 'extrachill-studio' ), activePostId )
-					)
-					: null
+				)
 			)
 		)
 	);
