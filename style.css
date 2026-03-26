@@ -1199,7 +1199,10 @@ p.site-title {
 	body.single-post .main-content > :not(.single-post-card),
 	body.page .main-content > :not(.single-page-card):not(.page-edge-shell),
 	body.single-datamachine_events .main-content > :not(.single-post-card),
-	body.single-newsletter .main-content > :not(.single-post-card) {
+	body.single-newsletter .main-content > :not(.single-post-card),
+	body.topic .main-content > :not(#bbpress-forums),
+	body.forum .main-content > :not(#bbpress-forums),
+	body.forum-archive .main-content > :not(#bbpress-forums) {
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);
 	}
