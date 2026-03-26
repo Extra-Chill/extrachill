@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.36] - 2026-03-26
+
+### Changed
+- update studio lockfile for components 0.4.25
+- consume shared tab layout in studio
+
 ## [0.2.35] - 2026-03-26
 
 ### Changed
