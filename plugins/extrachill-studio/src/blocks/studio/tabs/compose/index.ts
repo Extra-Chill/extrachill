@@ -6,7 +6,7 @@ import {
 	getOrCreateClientContextRegistry,
 	registerClientContextProvider,
 } from '@extrachill/chat';
-import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader, ShellTabs } from '@extrachill/components';
 import type { StudioPaneProps } from '../../types/studio';
 
 const h = createElement as typeof import( 'react' ).createElement;
@@ -14,6 +14,7 @@ const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
 const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
 const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+const ShellTabsView = ShellTabs as unknown as ( props: any ) => ReactElement;
 
 declare global {
 	interface Window {
@@ -73,6 +74,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
 	const [ editorReady, setEditorReady ] = useState( false );
+	const [ activeSidebarTab, setActiveSidebarTab ] = useState( 'insert' );
 
 	// Draft management state.
 	const [ drafts, setDrafts ] = useState< WpPost[] >( [] );
@@ -492,6 +494,11 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			isLoadingDrafts ? __( 'Loading…', 'extrachill-studio' ) : __( 'No drafts yet', 'extrachill-studio' )
 		);
 
+	const sidebarTabs = [
+		{ id: 'insert', label: __( 'Insert', 'extrachill-studio' ) },
+		{ id: 'structure', label: __( 'Structure', 'extrachill-studio' ) },
+	];
+
 	return h(
 		'div',
 		{ className: 'ec-studio-pane ec-studio-pane--compose' },
@@ -584,9 +591,31 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				h( PanelHeader, {
 					description: __( 'Browse blocks and structure without crowding the writing canvas.', 'extrachill-studio' ),
 				} ),
-				createElement( 'div', {
-					className: 'ec-studio-compose-sidebar__slot',
-				} )
+				h(
+					'div',
+					{ className: 'ec-studio-compose-sidebar__slot' },
+					h( ShellTabsView, {
+						tabs: sidebarTabs,
+						active: activeSidebarTab,
+						onChange: setActiveSidebarTab,
+						className: 'ec-studio-compose-sidebar__tabs-shell',
+						tabsClassName: 'ec-studio-compose-sidebar__tabs',
+					} ),
+					createElement(
+						'div',
+						{ className: 'ec-studio-compose-sidebar__panels' },
+						createElement( 'div', {
+							className: `ec-studio-compose-sidebar__panel${ activeSidebarTab === 'insert' ? ' is-active' : '' }`,
+							'data-sidebar-panel': 'insert',
+							hidden: activeSidebarTab !== 'insert',
+						} ),
+						createElement( 'div', {
+							className: `ec-studio-compose-sidebar__panel${ activeSidebarTab === 'structure' ? ' is-active' : '' }`,
+							'data-sidebar-panel': 'structure',
+							hidden: activeSidebarTab !== 'structure',
+						} )
+					)
+				)
 			)
 		)
 	);
