@@ -31,7 +31,7 @@ $posts_per_page = get_option( 'posts_per_page', 10 );
 	do_action( 'extrachill_archive_above_posts' );
 	?>
 
-	<div class="full-width-breakout">
+	<div class="full-width-breakout ec-edge-shell">
 		<div class="article-container">
 			<?php global $post_i; $post_i = 1; ?>
 			<?php foreach ( $search_results as $result ) : ?>
@@ -52,12 +52,14 @@ $posts_per_page = get_option( 'posts_per_page', 10 );
 			<?php wp_reset_postdata(); ?>
 		</div><!-- .article-container -->
 
-		<?php
-		if ( function_exists( 'extrachill_pagination' ) && function_exists( 'extrachill_create_search_query_object' ) ) {
-			$search_query = extrachill_create_search_query_object( $total_results, $posts_per_page );
-			extrachill_pagination( $search_query, 'search' );
-		}
-		?>
+		<div class="ec-edge-gutter">
+			<?php
+			if ( function_exists( 'extrachill_pagination' ) && function_exists( 'extrachill_create_search_query_object' ) ) {
+				$search_query = extrachill_create_search_query_object( $total_results, $posts_per_page );
+				extrachill_pagination( $search_query, 'search' );
+			}
+			?>
+		</div>
 	</div><!-- .full-width-breakout -->
 
 <?php else : ?>
