@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.1] - 2026-03-26
+
+### Changed
+- clarify studio compose header
+
 ## [0.3.0] - 2026-03-26
 
 ### Added
