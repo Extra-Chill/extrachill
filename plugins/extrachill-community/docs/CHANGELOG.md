@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.66] - 2026-03-26
+
+### Changed
+- reuse topic card template on homepage
+
 ## [1.3.65] - 2026-03-26
 
 ### Changed
