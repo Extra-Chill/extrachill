@@ -46,10 +46,6 @@ if ( ! current_user_can( 'manage_options' ) && ! ec_is_team_member() ) :
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?> >
 		<div class="ec-block-shell ec-studio-card ec-studio-card--denied notice notice-info">
-			<?php if ( $headline ) : ?>
-				<h2 class="ec-studio-card__title"><?php echo esc_html( $headline ); ?></h2>
-			<?php endif; ?>
-
 			<p class="ec-studio-card__description"><?php echo esc_html( $denied_message ); ?></p>
 		</div>
 	</div>

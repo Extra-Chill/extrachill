@@ -7,6 +7,14 @@ import apiFetch from '@wordpress/api-fetch';
 import type { SocialPublishResponse, SocialPublishResult } from '@extrachill/api-client';
 import { studioClient, studioSocialsApi, uploadStudioFile } from '../../../app/client';
 import type { InstagramMediaItem, InstagramComment } from '../../../app/client';
+import type { SocialPlatformConfig } from '../../../types/externals';
+
+const h = createElement as typeof import( 'react' ).createElement;
+const PanelView = Panel as unknown as ( props: any ) => ReactElement;
+const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
+const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+const MediaFieldView = MediaField as unknown as ( props: any ) => ReactElement;
 
 interface InstagramAuthStatus {
 	platform: string;
@@ -49,8 +57,9 @@ const InstagramPane = (): ReactElement => {
 
 			try {
 				const platforms = await studioClient.socials.getPlatforms();
+				const instagramPlatform = platforms?.instagram as SocialPlatformConfig | undefined;
 				const instagram: InstagramAuthStatus | null = platforms?.instagram
-					? { platform: 'instagram', authenticated: platforms.instagram.authenticated || false, username: platforms.instagram.username || null }
+					? { platform: 'instagram', authenticated: instagramPlatform?.authenticated || false, username: instagramPlatform?.username || null }
 					: null;
 
 				setAuthStatus( instagram );
@@ -318,34 +327,33 @@ const InstagramPane = (): ReactElement => {
 		}
 	};
 
-	return createElement(
+	return h(
 		'div',
 		{ className: 'ec-studio-pane ec-studio-pane--instagram' },
-		createElement(
-			Panel,
+		h(
+			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
-			createElement( PanelHeader, {
-				title: __( 'Publish to Instagram', 'extrachill-studio' ),
+			h( PanelHeader, {
 				description: __( 'Write a caption, add images, and publish directly or submit for admin review. Supports single images and carousels.', 'extrachill-studio' ),
 			} ),
 			isCheckingAuth
-				? createElement( InlineStatus, { tone: 'info', className: 'ec-studio-message' }, __( 'Checking Instagram authentication…', 'extrachill-studio' ) )
+				? h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' }, __( 'Checking Instagram authentication…', 'extrachill-studio' ) )
 				: null,
-			authError ? createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, authError ) : null,
+			authError ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, authError ) : null,
 			authStatus
-				? createElement(
-					InlineStatus,
+				? h(
+					InlineStatusView,
 					{ tone: authStatus.authenticated ? 'success' : 'warning', className: 'ec-studio-message' },
 					authStatus.authenticated
 						? sprintf( __( 'Instagram is authenticated as @%s.', 'extrachill-studio' ), authStatus.username || 'unknown' )
 						: __( 'Instagram is not authenticated yet in Data Machine Socials.', 'extrachill-studio' )
 				)
 				: null,
-			createElement(
+			h(
 				'div',
 				{ className: 'ec-studio-composer' },
-				createElement(
-					FieldGroup,
+					h(
+					FieldGroupView,
 					{ label: __( 'Caption', 'extrachill-studio' ), htmlFor: 'ec-studio-instagram-caption' },
 					createElement( 'textarea', {
 						id: 'ec-studio-instagram-caption',
@@ -355,8 +363,8 @@ const InstagramPane = (): ReactElement => {
 						placeholder: __( 'Write the Instagram caption here…', 'extrachill-studio' ),
 					} )
 				),
-				createElement(
-					FieldGroup,
+					h(
+					FieldGroupView,
 					{ label: __( 'Image URL', 'extrachill-studio' ), htmlFor: 'ec-studio-instagram-image-url' },
 					createElement( 'input', {
 						id: 'ec-studio-instagram-image-url',
@@ -367,20 +375,20 @@ const InstagramPane = (): ReactElement => {
 						autoComplete: 'url',
 					} )
 				),
-				createElement(
-					ActionRow,
+					h(
+					ActionRowView,
 					{ className: 'ec-studio-composer__actions' },
 					createElement( 'button', { type: 'button', className: 'button-1 button-medium', onClick: addImageUrl }, __( 'Add Image URL', 'extrachill-studio' ) ),
 					createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'Use a public image URL or upload a file below.', 'extrachill-studio' ) )
 				),
-				createElement( MediaField, {
+					h( MediaFieldView, {
 					label: __( 'Upload image', 'extrachill-studio' ),
 					htmlFor: 'ec-studio-instagram-upload',
 					previewUrl: selectedFilePreviewUrl || null,
 					previewAlt: selectedFile?.name || __( 'Selected upload preview', 'extrachill-studio' ),
 					empty: __( 'No local image selected yet.', 'extrachill-studio' ),
-					actions: createElement(
-						ActionRow,
+						actions: h(
+							ActionRowView,
 						null,
 						createElement( 'input', {
 							id: 'ec-studio-instagram-upload',
@@ -407,10 +415,10 @@ const InstagramPane = (): ReactElement => {
 							: null
 					)
 				} ),
-				error ? createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
-				! error && status ? createElement( InlineStatus, { tone: 'success', className: 'ec-studio-message' }, status ) : null,
-				createElement(
-					ActionRow,
+				error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
+				! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null,
+				h(
+					ActionRowView,
 					{ className: 'ec-studio-composer__actions' },
 					createElement(
 						'button',
@@ -436,8 +444,8 @@ const InstagramPane = (): ReactElement => {
 				)
 			)
 		),
-		createElement(
-			Panel,
+		h(
+			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
 			imageUrls.length > 0
 				? createElement(
@@ -452,7 +460,7 @@ const InstagramPane = (): ReactElement => {
 				)
 				: createElement( 'div', { className: 'ec-studio-preview' }, __( 'No images added yet. Add image URLs or upload files before publishing.', 'extrachill-studio' ) ),
 			instagramResult
-				? createElement(
+				? h(
 					'div',
 					{ className: 'ec-studio-instagram-result' },
 					createElement( 'h4', null, __( 'Latest publish result', 'extrachill-studio' ) ),
@@ -463,22 +471,21 @@ const InstagramPane = (): ReactElement => {
 				)
 				: null
 		),
-		createElement(
-			Panel,
+		h(
+			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
-			createElement( PanelHeader, {
-				title: __( 'Instagram comments', 'extrachill-studio' ),
+			h( PanelHeader, {
 				description: __( 'Select a recent post to view and reply to comments without leaving Studio.', 'extrachill-studio' ),
 			} ),
-			isLoadingMedia ? createElement( InlineStatus, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading recent Instagram posts…', 'extrachill-studio' ) ) : null,
-			commentsError ? createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, commentsError ) : null,
-			! commentsError && commentsStatus ? createElement( InlineStatus, { tone: 'success', className: 'ec-studio-message' }, commentsStatus ) : null,
+			isLoadingMedia ? h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading recent Instagram posts…', 'extrachill-studio' ) ) : null,
+			commentsError ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, commentsError ) : null,
+			! commentsError && commentsStatus ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, commentsStatus ) : null,
 			mediaItems.length > 0
-				? createElement(
+				? h(
 					'div',
 					{ className: 'ec-studio-composer' },
-					createElement(
-						FieldGroup,
+					h(
+						FieldGroupView,
 						{ label: __( 'Select post', 'extrachill-studio' ), htmlFor: 'ec-studio-instagram-media-selector' },
 						createElement(
 							'select',
@@ -502,9 +509,9 @@ const InstagramPane = (): ReactElement => {
 			selectedMediaId
 				? (
 					isLoadingComments
-						? createElement( InlineStatus, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading comments…', 'extrachill-studio' ) )
+						? h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading comments…', 'extrachill-studio' ) )
 						: comments.length > 0
-							? createElement(
+							? h(
 								'ul',
 								{ className: 'ec-studio-comment-list' },
 								...comments.map( ( comment ) => createElement(
@@ -520,8 +527,8 @@ const InstagramPane = (): ReactElement => {
 									createElement(
 										'div',
 										{ className: 'ec-studio-composer' },
-										createElement(
-											FieldGroup,
+										h(
+											FieldGroupView,
 											{ label: __( 'Reply', 'extrachill-studio' ) },
 											createElement( 'textarea', {
 												rows: 3,
@@ -530,8 +537,8 @@ const InstagramPane = (): ReactElement => {
 												placeholder: __( 'Write a reply…', 'extrachill-studio' ),
 											} )
 										),
-										createElement(
-											ActionRow,
+										h(
+											ActionRowView,
 											{ className: 'ec-studio-composer__actions' },
 											createElement(
 												'button',

@@ -28,23 +28,31 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 
 	return createElement(
 		BlockShell,
-		{ className: 'ec-studio-app' },
-		createElement(
-			BlockShellInner,
-			{ maxWidth: 'wide' },
-			createElement( BlockShellHeader, {
-				title: context.headline,
-				description: context.description,
-				showDivider: false,
-			} ),
-			createElement( ResponsiveTabs, {
-				tabs,
-				active: activeTab,
-				onChange: setActiveTab,
-				renderPanel,
-				showDesktopTabs: true,
-			} )
-		)
+		{
+			className: 'ec-studio-app',
+			children: createElement(
+				BlockShellInner,
+				{
+					maxWidth: 'wide',
+					children: [
+						createElement( BlockShellHeader, {
+							key: 'header',
+							title: context.headline,
+							description: context.description,
+							showDivider: false,
+						} ),
+						createElement( ResponsiveTabs, {
+							key: 'tabs',
+							tabs,
+							active: activeTab,
+							onChange: setActiveTab,
+							renderPanel,
+							showDesktopTabs: true,
+						} ),
+					],
+				}
+			),
+		},
 	);
 };
 
