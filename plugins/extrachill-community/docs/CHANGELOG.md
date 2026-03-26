@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.46] - 2026-03-26
+
+### Changed
+- use standard button sizes in edit profile
+
 ## [1.3.45] - 2026-03-26
 
 ### Changed
