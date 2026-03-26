@@ -162,12 +162,6 @@
 	max-width: 1080px;
 }
 
-.ec-responsive-tabs .ec-tabs__tabs {
-	padding-bottom: calc(var(--spacing-md, 1rem) + var(--spacing-sm, 0.5rem));
-	margin-bottom: var(--spacing-sm, 0.5rem);
-	border-bottom: 1px solid var(--border-color, #ddd);
-}
-
 .ec-responsive-tabs__desktop-panel {
 	display: grid;
 	background: var(--background-color, #fff);
