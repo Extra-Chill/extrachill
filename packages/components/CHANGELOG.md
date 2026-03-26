@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.34] - 2026-03-26
+
+### Fixed
+- keep active tabs on card background
+
 ## [0.4.33] - 2026-03-26
 
 ### Changed
