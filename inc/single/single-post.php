@@ -22,13 +22,15 @@ get_header(); ?>
 <article id="post-<?php the_ID(); ?>">
 		<?php do_action( 'extrachill_before_post_content' ); ?>
 
-	<header id="postvote">
-		<?php do_action( 'extrachill_above_post_title' ); ?>
-		<h1>
-			<?php the_title(); ?>
-		</h1>
-	</header>
+	<div class="page-content">
+		<header id="postvote">
+			<?php do_action( 'extrachill_above_post_title' ); ?>
+			<h1>
+				<?php the_title(); ?>
+			</h1>
+		</header>
 		<?php extrachill_entry_meta(); ?>
+	</div>
 
 		<?php if ( has_post_thumbnail() ) : ?>
 			<?php $featured_image_id = get_post_thumbnail_id(); ?>
