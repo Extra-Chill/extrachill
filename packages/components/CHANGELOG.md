@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.37] - 2026-03-26
+
+### Fixed
+- give block shell inner default gutter
+
 ## [0.4.36] - 2026-03-26
 
 ### Changed
