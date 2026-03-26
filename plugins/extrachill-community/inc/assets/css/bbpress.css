@@ -378,8 +378,8 @@ blockquote {
     display: flex;
     flex-wrap: wrap;
     width: 100%;
-    margin: auto;
-    justify-content: space-around;
+    margin: 0;
+    justify-content: flex-start;
     border: none;
 }
 

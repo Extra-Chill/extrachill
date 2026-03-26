@@ -12,8 +12,10 @@ defined( 'ABSPATH' ) || exit;
 ?>
 
 <!-- Community Forums Section -->
-<h2>Community Forums</h2>
-<?php do_action('extrachill_community_home_before_forums'); ?>
+<div class="ec-edge-gutter">
+	<h2>Community Forums</h2>
+	<?php do_action('extrachill_community_home_before_forums'); ?>
+</div>
 <?php
 $args = array(
     'post_parent' => 0,

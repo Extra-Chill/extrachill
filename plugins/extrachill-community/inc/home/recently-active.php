@@ -29,7 +29,9 @@ $query = new WP_Query( $query_args );
 ?>
 
 <div class="recently-active-topics">
-    <h2>Recently Active Topics</h2>
+    <div class="ec-edge-gutter">
+        <h2>Recently Active Topics</h2>
+    </div>
     <div class="bbp-topics-grid recently-active-topic-row ec-edge-shell">
         <div class="bbp-body ec-edge-gutter">
             <?php
@@ -49,7 +51,9 @@ $query = new WP_Query( $query_args );
             ?>
         </div>
     </div>
-    <div class="view-all-users-link">
-        <a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
+    <div class="ec-edge-gutter">
+        <div class="view-all-users-link">
+            <a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
+        </div>
     </div>
 </div>
