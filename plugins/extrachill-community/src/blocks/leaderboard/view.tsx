@@ -3,6 +3,8 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
+import { ActionRow, BlockShell, BlockShellHeader, InlineStatus, Panel } from '@extrachill/components';
+import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type { LeaderboardResponse, LeaderboardEntry } from '@extrachill/api-client';
 
@@ -36,9 +38,12 @@ const styles = {
 		color: cssVar( colors.mutedText ),
 		fontSize: cssVar( fontSize.fontSizeBase ),
 	},
-	message: {
-		padding: cssVar( spacing.spacingMd ),
-		color: cssVar( colors.mutedText ),
+	headerRegion: {
+		display: 'grid',
+		gap: cssVar( spacing.spacingLg ),
+	},
+	tableWrap: {
+		overflowX: 'auto' as const,
 	},
 } as const;
 
@@ -142,67 +147,78 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 	}, [ page, load ] );
 
 	if ( loading ) {
-		return <div style={ styles.message }>Loading…</div>;
+		return <InlineStatus tone="info">Loading leaderboard…</InlineStatus>;
 	}
 
 	if ( error ) {
-		return <div style={ styles.message }>{ error }</div>;
+		return <InlineStatus tone="error">{ error }</InlineStatus>;
 	}
 
 	if ( ! data || ! Array.isArray( data.items ) ) {
-		return <div style={ styles.message }>No leaderboard data.</div>;
+		return <InlineStatus tone="info">No leaderboard data.</InlineStatus>;
 	}
 
 	const totalPages = data.pagination?.total_pages ?? 1;
 
 	return (
-		<>
-			<table style={ styles.table }>
-				<thead>
-					<tr>
-						<th style={ styles.th }>#</th>
-						<th style={ styles.th }>User</th>
-						<th style={ styles.th }>Points</th>
-						<th style={ styles.th }>Rank</th>
-						<th style={ styles.th }>Joined</th>
-					</tr>
-				</thead>
-				<tbody>
-					{ data.items.map( ( item ) => (
-						<tr key={ item.id }>
-							<td style={ styles.td }>{ item.position }</td>
-							<UserCell item={ item } spriteUrl={ spriteUrl } />
-							<td style={ styles.td }>{ item.points }</td>
-							<td style={ styles.td }>{ item.rank }</td>
-							<td style={ styles.td }>
-								{ item.registered ? formatDate( item.registered ) : '' }
-							</td>
-						</tr>
-					) ) }
-				</tbody>
-			</table>
-			<div style={ styles.pagination }>
-				<button
-					type="button"
-					className="button-3 button-small"
-					disabled={ page <= 1 }
-					onClick={ () => setPage( ( p ) => Math.max( 1, p - 1 ) ) }
-				>
-					Previous
-				</button>
-				<span style={ styles.pageLabel }>
-					Page { page } of { totalPages }
-				</span>
-				<button
-					type="button"
-					className="button-3 button-small"
-					disabled={ page >= totalPages }
-					onClick={ () => setPage( ( p ) => p + 1 ) }
-				>
-					Next
-				</button>
+		<BlockShell className="ec-community-leaderboard-shell">
+			<div className="ec-community-block-shell__inner ec-community-leaderboard-shell__inner">
+				<div style={ styles.headerRegion }>
+				<BlockShellHeader
+					title="Leaderboard"
+					description="See the most active members of the Extra Chill community."
+					showDivider={ false }
+				/>
+				<Panel depth={ 1 }>
+					<div style={ styles.tableWrap }>
+						<table style={ styles.table }>
+							<thead>
+								<tr>
+									<th style={ styles.th }>#</th>
+									<th style={ styles.th }>User</th>
+									<th style={ styles.th }>Points</th>
+									<th style={ styles.th }>Rank</th>
+									<th style={ styles.th }>Joined</th>
+								</tr>
+							</thead>
+							<tbody>
+								{ data.items.map( ( item ) => (
+									<tr key={ item.id }>
+										<td style={ styles.td }>{ item.position }</td>
+										<UserCell item={ item } spriteUrl={ spriteUrl } />
+										<td style={ styles.td }>{ item.points }</td>
+										<td style={ styles.td }>{ item.rank }</td>
+										<td style={ styles.td }>{ item.registered ? formatDate( item.registered ) : '' }</td>
+									</tr>
+								) ) }
+							</tbody>
+						</table>
+					</div>
+					<ActionRow align="between">
+						<button
+							type="button"
+							className="button-3 button-small"
+							disabled={ page <= 1 }
+							onClick={ () => setPage( ( p ) => Math.max( 1, p - 1 ) ) }
+						>
+							Previous
+						</button>
+						<span style={ styles.pageLabel }>
+							Page { page } of { totalPages }
+						</span>
+						<button
+							type="button"
+							className="button-3 button-small"
+							disabled={ page >= totalPages }
+							onClick={ () => setPage( ( p ) => p + 1 ) }
+						>
+							Next
+						</button>
+					</ActionRow>
+				</Panel>
+				</div>
 			</div>
-		</>
+		</BlockShell>
 	);
 }
 

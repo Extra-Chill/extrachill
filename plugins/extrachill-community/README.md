@@ -159,7 +159,7 @@ function modular_bbpress_styles() {
 }
 
 // All CSS files: bbpress.css, blog-comments-feed.css, global.css, home.css, leaderboard.css,
-// notifications.css, replies-loop.css, settings-page.css, tinymce-editor.css, topics-loop.css, user-profile.css
+// notifications.css, replies-loop.css, tinymce-editor.css, topics-loop.css, user-profile.css
 ```
 
 **JavaScript Architecture** (6 files in inc/assets/js/):

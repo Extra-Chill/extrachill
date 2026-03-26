@@ -6,8 +6,8 @@ import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
 import {
 	ActionRow,
 	BlockShell,
-	BlockShellHeader,
 	BlockShellInner,
+	BlockShellHeader,
 	FieldGroup,
 	InlineStatus,
 	Panel,
@@ -86,6 +86,7 @@ const styles = {
 		boxSizing: 'border-box' as const,
 	},
 	mutedText: { color: cssVar( colors.mutedText ) },
+	headerRegion: { display: 'grid' },
 	disabledButton: {
 		opacity: 0.7,
 		pointerEvents: 'none' as const,
@@ -136,7 +137,10 @@ function AvatarUpload( {
 				<p style={ { marginTop: 0, marginBottom: '8px', color: cssVar( colors.mutedText ) } }>
 					This is the avatar you currently have set. Upload a new image to change it.
 				</p>
-				<label className={ `button-3 button-small${ uploading ? ' is-disabled' : '' }` } style={ uploading ? styles.disabledButton : undefined }>
+				<label
+					className={ `button-3 button-small${ uploading ? ' is-disabled' : '' }` }
+					style={ uploading ? styles.disabledButton : undefined }
+				>
 					{ uploading ? 'Uploading...' : 'Upload New Avatar' }
 					<input
 						type="file"
@@ -214,7 +218,7 @@ function LinksManager( {
 			</ActionRow>
 		</div>
 	);
-	}
+}
 
 type TabId = 'avatar-title' | 'about' | 'links' | 'artist-profiles';
 
@@ -316,72 +320,127 @@ function EditProfileApp( {
 					description="Update your public profile, links, and artist profile access."
 					showDivider={ false }
 				/>
-				{ notice && <Notice type={ notice.type } message={ notice.message } /> }
-				<ResponsiveTabs
-					tabs={ tabs as Array<{ id: string; label: string }> }
-					active={ activeTab }
-					onChange={ ( id ) => switchTab( id as TabId ) }
-					syncWithHash={ true }
-					renderPanel={ ( id ) => {
-						switch ( id as TabId ) {
-							case 'avatar-title':
-								return (
-									<Panel depth={ 1 }>
-										<PanelHeader title="Avatar & Title" />
-										<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
-										<FieldGroup label={ `Custom Title${ customTitle ? ` (Current: ${ customTitle })` : '' }` } htmlFor="ec-custom-title" help="Enter a custom title, or leave blank for default.">
-											<input id="ec-custom-title" type="text" style={ styles.input } value={ customTitle } onChange={ ( e ) => setCustomTitle( e.target.value ) } placeholder="Extra Chillian" />
-										</FieldGroup>
-									</Panel>
-								);
-							case 'about':
-								return (
-									<Panel depth={ 1 }>
-										<PanelHeader title="About" />
-										<FieldGroup label="Bio" htmlFor="ec-bio">
-											<textarea id="ec-bio" style={ styles.textarea } value={ bio } onChange={ ( e ) => setBio( e.target.value ) } />
-										</FieldGroup>
-										<FieldGroup label="Local Scene (City/Region)" htmlFor="ec-local-city">
-											<input id="ec-local-city" type="text" style={ styles.input } value={ localCity } onChange={ ( e ) => setLocalCity( e.target.value ) } placeholder="Your local city/region..." />
-										</FieldGroup>
-									</Panel>
-								);
-							case 'links':
-								return (
-									<Panel depth={ 1 }>
-										<PanelHeader title="Your Links" />
-										<LinksManager links={ links } linkTypes={ profile.link_types } onChange={ setLinks } />
-									</Panel>
-								);
-							case 'artist-profiles':
-								return hasArtistAccess ? (
-									<Panel depth={ 1 }>
-										<PanelHeader title="Artist Profiles" description="Manage your artist profiles and link pages." />
-										{ hasArtists ? (
-											<ActionRow>
-												<a href={ `${ artistSiteUrl }/manage-artist/` } className="button-2 button-small" style={ styles.inlineButtonLink }>Manage Artist</a>
-											</ActionRow>
-										) : canCreateArtists ? (
-											<ActionRow>
-												<a href={ `${ artistSiteUrl }/create-artist/` } className="button-2 button-small" style={ styles.inlineButtonLink }>Create Artist Profile</a>
-											</ActionRow>
-										) : (
-											<p style={ styles.mutedText }>No artist profiles available yet.</p>
-										) }
-									</Panel>
-								) : null;
-							default:
-								return null;
-						}
-					} }
-					showDesktopTabs={ true }
-				/>
-				<ActionRow>
-					<button type="button" className={ `button-2 button-small${ saving ? ' is-disabled' : '' }` } style={ saving ? styles.disabledButton : undefined } onClick={ handleSave } disabled={ saving }>
+				<div style={ styles.headerRegion }>
+					{ notice && <Notice type={ notice.type } message={ notice.message } /> }
+					<ResponsiveTabs
+						tabs={ tabs as Array<{ id: string; label: string }> }
+						active={ activeTab }
+						onChange={ ( id ) => switchTab( id as TabId ) }
+						syncWithHash={ true }
+						renderPanel={ ( id ) => {
+							switch ( id as TabId ) {
+								case 'avatar-title':
+									return (
+										<Panel depth={ 1 }>
+											<PanelHeader title="Avatar & Title" />
+											<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
+											<FieldGroup
+												label={ `Custom Title${ customTitle ? ` (Current: ${ customTitle })` : '' }` }
+												htmlFor="ec-custom-title"
+												help="Enter a custom title, or leave blank for default."
+											>
+												<input
+													id="ec-custom-title"
+													type="text"
+													style={ styles.input }
+													value={ customTitle }
+													onChange={ ( e ) => setCustomTitle( e.target.value ) }
+													placeholder="Extra Chillian"
+												/>
+											</FieldGroup>
+										</Panel>
+									);
+								case 'about':
+									return (
+										<Panel depth={ 1 }>
+											<PanelHeader title="About" />
+											<FieldGroup label="Bio" htmlFor="ec-bio">
+												<textarea
+													id="ec-bio"
+													style={ styles.textarea }
+													value={ bio }
+													onChange={ ( e ) => setBio( e.target.value ) }
+												/>
+											</FieldGroup>
+											<FieldGroup label="Local Scene (City/Region)" htmlFor="ec-local-city">
+												<input
+													id="ec-local-city"
+													type="text"
+													style={ styles.input }
+													value={ localCity }
+													onChange={ ( e ) => setLocalCity( e.target.value ) }
+													placeholder="Your local city/region..."
+												/>
+											</FieldGroup>
+										</Panel>
+									);
+								case 'links':
+									return (
+										<Panel depth={ 1 }>
+											<PanelHeader title="Your Links" />
+											<LinksManager links={ links } linkTypes={ profile.link_types } onChange={ setLinks } />
+										</Panel>
+									);
+								case 'artist-profiles':
+									return hasArtistAccess ? (
+										<Panel depth={ 1 }>
+											<PanelHeader
+												title="Artist Profiles"
+												description="Manage your artist profiles and link pages."
+											/>
+											{ hasArtists ? (
+												<ActionRow>
+													<a
+														href={ `${ artistSiteUrl }/manage-artist/` }
+								className="button-2 button-small"
+								style={ styles.inlineButtonLink }
+													>
+														Manage Artist
+													</a>
+												</ActionRow>
+											) : canCreateArtists ? (
+												<ActionRow>
+													<a
+														href={ `${ artistSiteUrl }/create-artist/` }
+								className="button-2 button-small"
+								style={ styles.inlineButtonLink }
+													>
+														Create Artist Profile
+													</a>
+												</ActionRow>
+											) : (
+												<p style={ styles.mutedText }>No artist profiles available yet.</p>
+											) }
+										</Panel>
+									) : null;
+								default:
+									return null;
+							}
+						} }
+						className="ec-community-settings-tabs"
+						showDesktopTabs={ true }
+					/>
+					<ActionRow>
+						<button
+						type="button"
+						className={ `button-2 button-small${ saving ? ' is-disabled' : '' }` }
+						style={ saving ? styles.disabledButton : undefined }
+						onClick={ handleSave }
+						disabled={ saving }
+					>
 						{ saving ? 'Saving...' : 'Save Profile Changes' }
 					</button>
-					{ profileUrl && <a href={ profileUrl } className="button-3 button-small" style={ styles.inlineButtonLink }>View Public Profile</a> }
-				</ActionRow>
+					{ profileUrl && (
+						<a
+							href={ profileUrl }
+							className="button-3 button-small"
+							style={ styles.inlineButtonLink }
+						>
+							View Public Profile
+						</a>
+					) }
+					</ActionRow>
+				</div>
 			</BlockShellInner>
 		</BlockShell>
 	);

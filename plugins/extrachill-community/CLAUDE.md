@@ -229,7 +229,7 @@ The `main` branch contains stable, production-ready code. All production builds 
 
 ### CSS Files (11 files in inc/assets/css/)
 - bbpress.css, blog-comments-feed.css, global.css, home.css, leaderboard.css
-- notifications.css, replies-loop.css, settings-page.css, tinymce-editor.css
+- notifications.css, replies-loop.css, tinymce-editor.css
 - topics-loop.css, user-profile.css
 
 ### bbPress Template Overrides

@@ -3,7 +3,7 @@ import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
-import { BlockShell, ResponsiveTabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
+import { BlockShell, BlockShellInner, ResponsiveTabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type {
@@ -19,7 +19,6 @@ const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 
 const styles = {
 	container: { width: '100%' },
-	tabsWrapper: { marginBottom: cssVar( spacing.spacingLg ) },
 	input: {
 		width: '100%',
 		maxWidth: '400px',
@@ -89,10 +88,6 @@ const styles = {
 		cursor: 'pointer',
 	},
 	mutedText: { color: cssVar( colors.mutedText ) },
-	headerRegion: {
-		display: 'grid',
-		gap: cssVar( spacing.spacingLg ),
-	},
 } as const;
 
 function Notice( { type, message }: { type: 'success' | 'error'; message: string } ) {
@@ -310,13 +305,8 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 		} );
 	}, [] );
 
-	useEffect( () => {
-		const hash = window.location.hash.replace( '#tab-', '' );
-		if ( [ 'account-details', 'security', 'subscriptions', 'artist-platform' ].includes( hash ) ) setActiveTab( hash as TabId );
-	}, [] );
-
-	const switchTab = useCallback( ( tab: TabId ) => { setActiveTab( tab ); window.location.hash = `tab-${ tab }`; }, [] );
-	if ( loading ) return <div style={ { padding: cssVar( spacing.spacingMd ), color: cssVar( colors.mutedText ) } }>Loading settings...</div>;
+	const switchTab = useCallback( ( tab: TabId ) => { setActiveTab( tab ); }, [] );
+	if ( loading ) return <InlineStatus tone="info">Loading settings...</InlineStatus>;
 	if ( error || ! settings ) return <Notice type="error" message={ error || 'Failed to load settings.' } />;
 
 	const tabs: Array<{ id: TabId; label: string }> = [
@@ -342,21 +332,19 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 	};
 
 	return (
-		<BlockShell className="ec-community-settings-shell" variant="plain">
-			<div className="ec-community-settings-shell__inner" style={ styles.container }>
-				<div style={ styles.headerRegion }>
-					<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
-					<ResponsiveTabs
-						tabs={ tabs }
-						active={ activeTab }
-						onChange={ ( id ) => switchTab( id as TabId ) }
-						renderPanel={ renderTabPanel }
-						className="ec-community-settings-tabs"
-						showDesktopTabs={ true }
-						mobileEdgeToEdge={ true }
-					/>
-				</div>
-			</div>
+		<BlockShell className="ec-community-settings-shell">
+			<BlockShellInner maxWidth="narrow">
+				<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
+				<ResponsiveTabs
+					tabs={ tabs }
+					active={ activeTab }
+					onChange={ ( id ) => switchTab( id as TabId ) }
+					renderPanel={ renderTabPanel }
+					syncWithHash={ true }
+					className="ec-community-settings-tabs"
+					showDesktopTabs={ true }
+				/>
+			</BlockShellInner>
 		</BlockShell>
 	);
 }

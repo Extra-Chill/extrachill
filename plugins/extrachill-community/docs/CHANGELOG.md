@@ -1,12 +1,76 @@
 # Changelog
 
-## [1.3.40] - 2026-03-26
+## [1.3.51] - 2026-03-26
 
 ### Changed
-- update components dependency to 0.4.31
+- update components dependency to 0.4.30
+- remove duplicate edit profile shell gap
 
-### Fixed
-- fix bbPress mobile forum page spacing
+## [1.3.50] - 2026-03-26
+
+### Changed
+- update components dependency to 0.4.29
+
+## [1.3.49] - 2026-03-26
+
+### Changed
+- update components dependency to 0.4.28
+
+## [1.3.48] - 2026-03-26
+
+### Changed
+- update components dependency to 0.4.27
+
+## [1.3.47] - 2026-03-26
+
+### Changed
+- use shared inner wrapper across community blocks
+- use shared block inner wrapper in community
+
+## [1.3.46] - 2026-03-26
+
+### Changed
+- use standard button sizes in edit profile
+
+## [1.3.45] - 2026-03-26
+
+### Changed
+- consume shared tab layout in community blocks
+
+## [1.3.44] - 2026-03-26
+
+### Changed
+- align community block metadata versions
+- update components dependency to 0.4.24
+- align headless community blocks with shared shell model
+- Update community to components 0.4.23
+- Bump block assets after accordion collapse behavior
+- Bump block assets after responsive tabs root cleanup
+- Bump block assets after responsive tabs phone breakpoint fix
+- Bump block assets after removing mobile color overrides
+- Bump block assets after responsive tabs interaction fix
+- Update community to components 0.4.16
+- Add block metadata to Homeboy version targets
+
+## [1.3.43] - 2026-03-25
+
+### Changed
+- Bump block assets after shared surface tweaks
+
+## [1.3.42] - 2026-03-25
+
+### Changed
+- Bump block assets after shared desktop panel fix
+
+## [1.3.41] - 2026-03-25
+
+### Changed
+- Bump block asset versions after mobile tabs fix
+
+## [1.3.40] - 2026-03-25
+
+### Changed
+- Adopt clean-break shared settings shell and tabs
 
 ## [1.3.39] - 2026-03-25
 
