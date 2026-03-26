@@ -14,7 +14,6 @@ import {
 	ResponsiveTabs,
 } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
-import '../shared-shell.css';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type { UserProfile, UserLink } from '@extrachill/api-client';
 

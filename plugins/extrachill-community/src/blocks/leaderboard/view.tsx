@@ -5,7 +5,6 @@ import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
 import { ActionRow, BlockShell, BlockShellHeader, InlineStatus, Panel } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
-import '../shared-shell.css';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type { LeaderboardResponse, LeaderboardEntry } from '@extrachill/api-client';
 

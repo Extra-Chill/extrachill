@@ -5,7 +5,6 @@ import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
 import { BlockShell, ResponsiveTabs, Panel, PanelHeader, ActionRow, FieldGroup, InlineStatus, BlockShellHeader } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
-import '../shared-shell.css';
 import { cssVar, spacing, colors, fontSize } from '@extrachill/tokens';
 import type {
 	UserSettings,
@@ -89,10 +88,6 @@ const styles = {
 		cursor: 'pointer',
 	},
 	mutedText: { color: cssVar( colors.mutedText ) },
-	headerRegion: {
-		display: 'grid',
-		gap: cssVar( spacing.spacingLg ),
-	},
 } as const;
 
 function Notice( { type, message }: { type: 'success' | 'error'; message: string } ) {
@@ -338,20 +333,17 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 
 	return (
 		<BlockShell className="ec-community-settings-shell">
-			<div className="ec-community-block-shell__inner ec-community-block-shell__inner--narrow ec-community-settings-shell__inner" style={ styles.container }>
-				<div style={ styles.headerRegion }>
-					<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
-					<ResponsiveTabs
-						tabs={ tabs }
-						active={ activeTab }
-						onChange={ ( id ) => switchTab( id as TabId ) }
-						renderPanel={ renderTabPanel }
-						syncWithHash={ true }
-						className="ec-community-settings-tabs"
-						showDesktopTabs={ true }
-					/>
-				</div>
-			</div>
+			<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." showDivider={ false } />
+			<ResponsiveTabs
+				tabs={ tabs }
+				active={ activeTab }
+				onChange={ ( id ) => switchTab( id as TabId ) }
+				renderPanel={ renderTabPanel }
+				syncWithHash={ true }
+				innerMaxWidth="narrow"
+				className="ec-community-settings-tabs"
+				showDesktopTabs={ true }
+			/>
 		</BlockShell>
 	);
 }
