@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.61] - 2026-03-26
+
+### Changed
+- remove recently active heading chrome
+
 ## [1.3.60] - 2026-03-26
 
 ### Changed
