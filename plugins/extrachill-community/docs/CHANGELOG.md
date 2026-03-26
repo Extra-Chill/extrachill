@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.71] - 2026-03-26
+
+### Changed
+- match topics loop wrapper on homepage
+
 ## [1.3.70] - 2026-03-26
 
 ### Fixed
