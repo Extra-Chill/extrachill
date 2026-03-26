@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.64] - 2026-03-26
+
+### Changed
+- unify forum card inner layout
+
 ## [1.3.63] - 2026-03-26
 
 ### Changed
