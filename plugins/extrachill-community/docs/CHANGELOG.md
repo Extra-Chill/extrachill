@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.68] - 2026-03-26
+
+### Changed
+- reuse BlockShellInner for leaderboard layout
+
+### Fixed
+- fix homepage topic card context regression
+
 ## [1.3.67] - 2026-03-26
 
 ### Changed
