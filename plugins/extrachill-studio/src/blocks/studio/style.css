@@ -265,12 +265,6 @@
 }
 
 @media (max-width: 480px) {
-	.ec-studio-app__inner {
-		max-width: none;
-		padding-left: var(--spacing-md);
-		padding-right: var(--spacing-md);
-	}
-
 	.ec-studio-card,
 	.ec-studio-panel,
 	.ec-studio-preview,

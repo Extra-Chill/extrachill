@@ -1,6 +1,6 @@
 import { createElement, useState } from '@wordpress/element';
 import type { ComponentType, ReactElement } from 'react';
-import { BlockShell, BlockShellHeader, ResponsiveTabs } from '@extrachill/components';
+import { BlockShell, BlockShellHeader, BlockShellInner, ResponsiveTabs } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 
 import { mountComponent } from './app/mount';
@@ -29,19 +29,22 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 	return createElement(
 		BlockShell,
 		{ className: 'ec-studio-app' },
-		createElement( BlockShellHeader, {
-			title: context.headline,
-			description: context.description,
-			showDivider: false,
-		} ),
-		createElement( ResponsiveTabs, {
-			tabs,
-			active: activeTab,
-			onChange: setActiveTab,
-			renderPanel,
-			innerMaxWidth: 'wide',
-			showDesktopTabs: true,
-		} )
+		createElement(
+			BlockShellInner,
+			{ maxWidth: 'wide' },
+			createElement( BlockShellHeader, {
+				title: context.headline,
+				description: context.description,
+				showDivider: false,
+			} ),
+			createElement( ResponsiveTabs, {
+				tabs,
+				active: activeTab,
+				onChange: setActiveTab,
+				renderPanel,
+				showDesktopTabs: true,
+			} )
+		)
 	);
 };
 
