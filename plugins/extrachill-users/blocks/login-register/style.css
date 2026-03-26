@@ -1,5 +1,24 @@
 /* --- Login/Register Form Styles - Using Centralized Variables --- */
 
+.login-register-shell {
+	width: 100%;
+}
+
+.login-register-shell__body {
+	display: grid;
+	gap: var(--spacing-lg);
+}
+
+.login-register-shell__tabs {
+	padding-bottom: calc(var(--spacing-md) + var(--spacing-sm));
+	margin-bottom: var(--spacing-sm);
+	border-bottom: 1px solid var(--border-color);
+}
+
+.login-register-shell__body .ec-responsive-tabs__desktop-panel {
+	margin-top: var(--spacing-sm);
+}
+
 /* --- Utility Classes --- */
 .hidden {
     display: none;
@@ -9,10 +28,11 @@
 .login-signup-link {
     margin-top: 15px;
 }
+
 .login-register-form {
-	padding: 30px;
+	padding: 0;
 	max-width: 600px;
-	margin: 30px auto;
+	margin: 0 auto;
 	font-family: 'Arial', sans-serif;
 }
 
@@ -199,4 +219,12 @@
 
 .login-register-prompt a {
     color: var(--link-color);
+}
+
+@media (max-width: 480px) {
+	.login-register-shell__tabs {
+		border-bottom: 0;
+		margin-bottom: 0;
+		padding-bottom: 0;
+	}
 }

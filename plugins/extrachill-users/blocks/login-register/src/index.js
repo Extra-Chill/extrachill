@@ -1,5 +1,6 @@
 import { registerBlockType } from '@wordpress/blocks';
 import { useBlockProps } from '@wordpress/block-editor';
+import '@extrachill/components/styles/components.scss';
 import './editor.css';
 
 registerBlockType( 'extrachill/login-register', {

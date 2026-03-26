@@ -1,34 +1,10 @@
-(function () {
-    'use strict';
+import { initResponsiveTabsDom } from '@extrachill/components';
+import '@extrachill/components/styles/components.scss';
 
-    var utils = window.ECAuthUtils;
+( function () {
+	'use strict';
 
-    function initRegisterTabLinks() {
-        document.querySelectorAll('.js-switch-to-register').forEach(function (link) {
-            link.addEventListener('click', function (event) {
-                event.preventDefault();
-
-                var tabsComponent = link.closest('.shared-tabs-component');
-                if (!tabsComponent) {
-                    return;
-                }
-
-                var registerTabButton = tabsComponent.querySelector('.shared-tab-button[data-tab="tab-register"]');
-                if (!registerTabButton) {
-                    return;
-                }
-
-                registerTabButton.click();
-
-                var url = window.location.pathname + window.location.search.split('#')[0] + '#tab-register';
-                if (window.history && window.history.pushState) {
-                    window.history.pushState(null, '', url);
-                } else {
-                    window.location.hash = '#tab-register';
-                }
-            });
-        });
-    }
+	var utils = window.ECAuthUtils;
 
     function initLoginForm() {
         document.addEventListener(
@@ -201,19 +177,20 @@
         );
     }
 
-    function init() {
-        if (!utils) {
-            console.error('ECAuthUtils not loaded');
-            return;
-        }
-        initRegisterTabLinks();
-        initLoginForm();
-        initRegisterForm();
-    }
+	function init() {
+		if ( ! utils ) {
+			console.error( 'ECAuthUtils not loaded' );
+			return;
+		}
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-})();
+		initResponsiveTabsDom( { selector: '[data-ec-responsive-tabs]' } );
+		initLoginForm();
+		initRegisterForm();
+	}
+
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', init );
+	} else {
+		init();
+	}
+} )();

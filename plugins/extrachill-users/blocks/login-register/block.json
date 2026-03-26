@@ -22,5 +22,6 @@
 	"editorStyle": "file:./index.css",
 	"render": "file:./render.php",
 	"style": "file:./style.css",
-	"viewScript": "file:./view.js"
+	"viewScript": "file:./view.js",
+	"viewStyle": "file:./view.css"
 }

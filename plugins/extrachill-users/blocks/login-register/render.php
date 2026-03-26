@@ -110,24 +110,25 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 ?>
 
 <div class="ec-block-shell login-register-shell">
-	<div class="ec-block-shell-header login-register-shell__header">
+	<div class="ec-block-shell-header ec-block-shell-header--without-divider login-register-shell__header">
 		<div class="ec-block-shell-header__main">
 			<div class="ec-block-shell-header__title"><?php esc_html_e( 'Login or Register', 'extrachill-users' ); ?></div>
 			<div class="ec-block-shell-header__description"><?php esc_html_e( 'Access the Extra Chill community and artist platform.', 'extrachill-users' ); ?></div>
 		</div>
 	</div>
 
-	<div class="shared-tabs-component login-register-shell__body">
-	<div class="shared-tabs-buttons-container">
-		<!-- Login Tab -->
-		<div class="shared-tab-item">
-			<button type="button" class="shared-tab-button active" data-tab="tab-login">
-				Login
-				<span class="shared-tab-arrow open"></span>
-			</button>
-			<div id="tab-login" class="shared-tab-pane active">
-				<div class="login-register-form">
+	<div class="ec-responsive-tabs login-register-shell__body" data-ec-responsive-tabs data-hash-prefix="tab-" data-active-tab="login">
+		<div class="ec-tabs__tabs login-register-shell__tabs" role="tablist" aria-orientation="horizontal">
+			<button type="button" role="tab" aria-selected="true" class="ec-tabs__tab is-active" data-tab-id="login"><?php esc_html_e( 'Login', 'extrachill-users' ); ?></button>
+			<button type="button" role="tab" aria-selected="false" class="ec-tabs__tab" data-tab-id="register"><?php esc_html_e( 'Register', 'extrachill-users' ); ?></button>
+		</div>
 
+		<div class="ec-responsive-tabs__desktop-panel"></div>
+		<div class="ec-responsive-tabs__accordion"></div>
+
+		<template data-tab-panel="login">
+			<div class="ec-panel ec-panel--depth-1">
+				<div class="login-register-form" data-login-register-panel>
 					<form id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 						<?php EC_Redirect_Handler::render_hidden_fields( 'tab-login' ); ?>
 
@@ -166,28 +167,20 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 
 					<p class="login-register-prompt">
 						<?php esc_html_e( "Don't have an account?", 'extrachill-users' ); ?>
-						<a href="#tab-register" class="js-switch-to-register">
-							<?php esc_html_e( 'Register here', 'extrachill-users' ); ?>
-						</a>
+						<a href="#tab-register"><?php esc_html_e( 'Register here', 'extrachill-users' ); ?></a>
 					</p>
 				</div>
 			</div>
-		</div>
+		</template>
 
-		<!-- Register Tab -->
-		<div class="shared-tab-item">
-			<button type="button" class="shared-tab-button" data-tab="tab-register">
-				Register
-				<span class="shared-tab-arrow"></span>
-			</button>
-			<div id="tab-register" class="shared-tab-pane">
-				<div class="login-register-form">
-
+		<template data-tab-panel="register">
+			<div class="ec-panel ec-panel--depth-1">
+				<div class="login-register-form" data-login-register-panel>
 					<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
 						<input type="hidden" name="action" value="extrachill_register_user">
 						<?php EC_Redirect_Handler::render_hidden_fields( 'tab-register' ); ?>
 						<?php wp_nonce_field( 'extrachill_register_nonce', 'extrachill_register_nonce_field' ); ?>
-					<input type="hidden" name="success_redirect_url" value="<?php echo esc_url( ! empty( $attributes['redirectUrl'] ) ? $attributes['redirectUrl'] : $current_url ); ?>">
+						<input type="hidden" name="success_redirect_url" value="<?php echo esc_url( ! empty( $attributes['redirectUrl'] ) ? $attributes['redirectUrl'] : $current_url ); ?>">
 						<?php if ( $invite_token && $invite_artist_id ) : ?>
 							<input type="hidden" name="invite_token" value="<?php echo esc_attr( $invite_token ); ?>">
 							<input type="hidden" name="invite_artist_id" value="<?php echo esc_attr( (string) $invite_artist_id ); ?>">
@@ -219,16 +212,9 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 					<?php endif; ?>
 				</div>
 			</div>
-		</div>
-	</div>
-
-	<!-- Desktop Tab Content Area -->
-	<div class="shared-desktop-tab-content-area" style="display: none;"></div>
+		</template>
 	</div>
 </div>
 
 <?php
 do_action( 'extrachill_below_login_register_form' );
-
-wp_enqueue_style( 'extrachill-shared-tabs' );
-wp_enqueue_script( 'extrachill-shared-tabs' );
