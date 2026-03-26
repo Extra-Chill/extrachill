@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.11] - 2026-03-26
+
+### Changed
+- harden headless login register turnstile rendering
+
 ## [0.7.10] - 2026-03-26
 
 ### Changed
