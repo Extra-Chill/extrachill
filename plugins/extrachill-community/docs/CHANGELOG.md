@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.49] - 2026-03-26
+
+### Changed
+- update components dependency to 0.4.28
+
 ## [1.3.48] - 2026-03-26
 
 ### Changed
