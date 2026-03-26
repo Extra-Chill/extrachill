@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.6] - 2026-03-26
+
+### Fixed
+- fix bbPress mobile chrome padding
+
 ## [2.2.5] - 2026-03-25
 
 ### Changed
