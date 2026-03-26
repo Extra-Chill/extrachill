@@ -1317,6 +1317,11 @@ div.article-container :before {
   z-index: 2;
 }
 
+.archive-post {
+	padding-top: var(--spacing-md);
+	padding-bottom: var(--spacing-md);
+}
+
 /* Cross-Site Links Container */
 .ec-cross-site-links {
   margin-top: var(--spacing-md);
