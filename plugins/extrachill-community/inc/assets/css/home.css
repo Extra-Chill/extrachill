@@ -38,9 +38,6 @@
 
 /* --- Forum Card Styles --- */
 #forums-list-homepage.bbp-forums-grid .bbp-forum-card {
-    background-color: var(--card-background);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
     padding: var(--spacing-lg);
     box-sizing: border-box;
     flex: 1 1 calc(50% - (var(--spacing-lg) / 2));
@@ -84,7 +81,7 @@
 
 @media (max-width: 480px) {
     #forums-list-homepage.bbp-forums-grid {
-        gap: 0;
+        gap: var(--spacing-md);
         margin: var(--spacing-lg) calc(-1 * max(0.75em, env(safe-area-inset-left))) 0;
     }
 
@@ -108,11 +105,8 @@ ul.recently-active-topic-row {
 .recently-active-topic-row .topic-card-row {
     flex: 1 1 calc(33.333% - var(--spacing-md));
     box-sizing: border-box;
-    background-color: var(--card-background);
-    border-radius: var(--border-radius-sm);
     padding: var(--spacing-xl);
     font-size: var(--font-size-sm);
-    border: 1px solid var(--border-color);
     margin-bottom: 0; /* No bottom margin needed if horizontal */
 }
 

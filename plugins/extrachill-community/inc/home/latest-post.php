@@ -71,7 +71,7 @@ function extrachill_fetch_all_artist_forum_ids() {
  */
 function extrachill_construct_activity_output($current_post_id) {
     if (!$current_post_id) {
-        return "<div class=\"community-latest-post\"><p>No recent activity found in this section.</p></div>";
+        return "<div class=\"ec-page-chrome\"><div class=\"community-latest-post\"><p>No recent activity found in this section.</p></div></div>";
     }
 
     // Fetch post information
@@ -92,7 +92,7 @@ function extrachill_construct_activity_output($current_post_id) {
 
     // Construct output
     $output = sprintf(
-        '<div class="community-latest-post"><ul><li><b>Latest:</b> <a href="%s">%s</a> %s <a href="%s">%s</a> in <a href="%s">%s</a> - %s</li></ul></div>',
+        '<div class="ec-page-chrome"><div class="community-latest-post"><ul><li><b>Latest:</b> <a href="%s">%s</a> %s <a href="%s">%s</a> in <a href="%s">%s</a> - %s</li></ul></div></div>',
         esc_url($author_profile_url),
         esc_html($author_name),
         $type_label,
@@ -121,7 +121,7 @@ function fetch_latest_post_info_for_homepage() {
     $all_forum_ids = array_unique(array_filter($all_forum_ids));
 
     if (empty($all_forum_ids)) {
-        return "<div class=\"community-latest-post\"><p>No forums found for homepage.</p></div>";
+        return "<div class=\"ec-page-chrome\"><div class=\"community-latest-post\"><p>No forums found for homepage.</p></div></div>";
     }
 
     // Query for the single latest post across all these forums
@@ -159,5 +159,5 @@ function fetch_latest_post_info_for_homepage() {
  * Outputs the latest forum activity HTML
  */
 function extrachill_display_latest_post() {
-    echo '<p>' . fetch_latest_post_info_for_homepage() . '</p>';
+    echo fetch_latest_post_info_for_homepage();
 }

@@ -41,7 +41,7 @@ $query = new WP_Query( $query_args );
                 $topic_id = get_the_ID();
                 bbpress()->current_topic_id = $topic_id;
                 ?>
-                <li class="topic-card-row">
+                <li class="topic-card-row ec-surface-card ec-mobile-edge-surface">
                     <div class="card-header">
                         <a class="bbp-forum-title" href="<?php bbp_topic_permalink( $topic_id ); ?>">
                             <?php bbp_topic_title( $topic_id ); ?>
