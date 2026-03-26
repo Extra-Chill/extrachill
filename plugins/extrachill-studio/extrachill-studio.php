@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Studio
  * Plugin URI: https://extrachill.com
  * Description: Internal studio workspace for the Extra Chill team with a team-gated block shell for publishing and AI-assisted workflows.
- * Version: 0.2.40
+ * Version: 0.2.41
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Requires Plugins: extrachill-users
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_STUDIO_VERSION', '0.2.40' );
+define( 'EXTRACHILL_STUDIO_VERSION', '0.2.41' );
 define( 'EXTRACHILL_STUDIO_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_STUDIO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_STUDIO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

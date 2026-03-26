@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.41] - 2026-03-26
+
+### Changed
+- update studio components dependency to 0.4.28
+
 ## [0.2.40] - 2026-03-26
 
 ### Changed
