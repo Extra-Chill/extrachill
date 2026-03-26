@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.44] - 2026-03-26
+
+### Changed
+- align community block metadata versions
+- update components dependency to 0.4.24
+- align headless community blocks with shared shell model
+- Update community to components 0.4.23
+- Bump block assets after accordion collapse behavior
+- Bump block assets after responsive tabs root cleanup
+- Bump block assets after responsive tabs phone breakpoint fix
+- Bump block assets after removing mobile color overrides
+- Bump block assets after responsive tabs interaction fix
+- Update community to components 0.4.16
+- Add block metadata to Homeboy version targets
+
 ## [1.3.43] - 2026-03-25
 
 ### Changed

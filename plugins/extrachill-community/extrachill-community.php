@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Community
  * Description: bbPress extension plugin providing community and forum functionality for the Extra Chill platform.
- * Version: 1.3.43
+ * Version: 1.3.44
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_COMMUNITY_VERSION', '1.3.43' );
+define( 'EXTRACHILL_COMMUNITY_VERSION', '1.3.44' );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_FILE', __FILE__ );
