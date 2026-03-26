@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, InlineStatus, Panel, Tabs } from '@extrachill/components';
+import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, InlineStatus, Panel, ResponsiveTabs } from '@extrachill/components';
 import { useEditor } from '../context/EditorContext';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 import Preview from './Preview';
@@ -170,7 +170,6 @@ export default function Editor() {
 							</button>
 						</ActionRow>
 					}
-					showDivider={ false }
 				/>
 
 				<QRCodeModal
@@ -182,16 +181,18 @@ export default function Editor() {
 
 				<div className="ec-editor__body">
 					<div className="ec-editor__sidebar">
-						<Tabs
+						<ResponsiveTabs
+							className="ec-editor__sidebar-tabs"
 							tabs={ TABS }
 							active={ activeTab }
 							onChange={ setActiveTab }
-							className="ec-editor__tabs"
+							showDesktopTabs={ true }
+							renderPanel={ () => (
+								<Panel className="ec-editor__tab-content" compact depth={ 2 }>
+									{ renderTabContent() }
+								</Panel>
+							) }
 						/>
-
-						<Panel className="ec-editor__tab-content" compact depth={ 2 }>
-							{ renderTabContent() }
-						</Panel>
 					</div>
 
 					<div className="ec-editor__preview-region">

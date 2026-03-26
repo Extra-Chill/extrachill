@@ -172,8 +172,20 @@
 }
 
 
-.ec-editor__tabs {
+
+.ec-editor__sidebar-tabs {
+	display: grid;
+	gap: 0;
+	height: 100%;
+}
+
+.ec-editor__sidebar-tabs .ec-tabs__tabs {
 	padding: 16px 16px 0;
+}
+
+.ec-editor__sidebar-tabs .ec-responsive-tabs__inner,
+.ec-editor__sidebar-tabs .ec-responsive-tabs__desktop-panel {
+	max-width: none;
 }
 
 /* Tab Content Area */
@@ -771,7 +783,7 @@
 
 
 
-	.ec-editor__tabs {
+	.ec-editor__sidebar-tabs .ec-tabs__tabs {
 		padding: 12px 12px 0;
 	}
 
