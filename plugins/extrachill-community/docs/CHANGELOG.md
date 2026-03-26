@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.73] - 2026-03-26
+
+### Changed
+- restore shared topic grid layout
+
 ## [1.3.72] - 2026-03-26
 
 ### Changed
