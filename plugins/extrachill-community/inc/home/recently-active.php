@@ -29,11 +29,11 @@ $query = new WP_Query( $query_args );
 ?>
 
 <div class="recently-active-topics">
-    <div class="ec-edge-gutter">
-        <h2>Recently Active Topics</h2>
-    </div>
-    <div class="bbp-topics-grid recently-active-topic-row ec-edge-shell">
-        <div class="bbp-body">
+	<div class="page-content">
+		<h2>Recently Active Topics</h2>
+	</div>
+	<div class="bbp-topics-grid recently-active-topic-row ec-mobile-full-width-panel">
+		<div class="bbp-body">
             <?php
             if ( $query->have_posts() ) :
                 while ( $query->have_posts() ) :
@@ -51,9 +51,9 @@ $query = new WP_Query( $query_args );
             ?>
         </div>
     </div>
-    <div class="ec-edge-gutter">
-        <div class="view-all-users-link">
-            <a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
-        </div>
+	<div class="page-content">
+		<div class="view-all-users-link">
+			<a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
+		</div>
     </div>
 </div>

@@ -26,7 +26,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 <?php if ( bbp_current_user_can_access_create_topic_form() ) : ?>
 
-	<div id="new-topic-<?php bbp_topic_id(); ?>" class="bbp-topic-form ec-edge-surface">
+	<div id="new-topic-<?php bbp_topic_id(); ?>" class="bbp-topic-form ec-mobile-full-width-panel">
 
 		<form id="new-post" name="new-post" method="post">
 

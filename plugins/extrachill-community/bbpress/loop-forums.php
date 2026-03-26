@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 ?>
 
 <!-- Community Forums Section -->
-<div class="ec-edge-gutter">
+<div class="page-content">
 	<h2>Community Forums</h2>
 	<?php do_action('extrachill_community_home_before_forums'); ?>
 </div>
@@ -32,7 +32,7 @@ $args = array(
     'posts_per_page' => -1,
 );
 if ( bbp_has_forums( $args ) ) : ?>
-    <div id="forums-list-homepage" class="bbp-forums-grid ec-edge-shell">
+	<div id="forums-list-homepage" class="bbp-forums-grid ec-mobile-full-width-panel">
         <?php while ( bbp_forums() ) : bbp_the_forum(); ?>
             <?php bbp_get_template_part( 'loop', 'single-forum-card' ); ?>
         <?php endwhile; ?>

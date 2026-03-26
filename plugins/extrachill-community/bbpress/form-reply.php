@@ -20,7 +20,7 @@ if ( bbp_is_reply_edit() ) : ?>
 
 <?php if ( bbp_current_user_can_access_create_reply_form() ) : ?>
 
-	<div id="new-reply-<?php bbp_topic_id(); ?>" class="bbp-reply-form ec-edge-surface">
+	<div id="new-reply-<?php bbp_topic_id(); ?>" class="bbp-reply-form ec-mobile-full-width-panel">
 
 
 		<form id="new-post" name="new-post" method="post">

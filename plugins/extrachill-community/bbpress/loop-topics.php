@@ -92,7 +92,7 @@ extrachill_filter_bar();
 
 if (bbp_has_topics($loop_args)) :
 ?>
-    <div id="bbp-topic-loop-<?php echo esc_attr(bbp_get_forum_id()); ?>" class="bbp-topics-grid ec-edge-shell">
+	<div id="bbp-topic-loop-<?php echo esc_attr(bbp_get_forum_id()); ?>" class="bbp-topics-grid ec-mobile-full-width-panel">
         <div class="bbp-body">
             <?php while (bbp_topics()) : bbp_the_topic(); ?>
                 <?php bbp_get_template_part('loop', 'single-topic-card'); ?>

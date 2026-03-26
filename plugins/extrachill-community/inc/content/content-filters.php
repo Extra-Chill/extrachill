@@ -133,7 +133,7 @@ function extrachill_truncate_html_content($content, $length = 500, $ellipsis = '
 
 function ec_display_forum_description() {
     if ( $description = bbp_get_forum_content() ) {
-        echo '<div class="ec-edge-gutter"><div class="bbp-forum-description">' . $description . '</div></div>';
+        echo '<div class="bbp-forum-description">' . $description . '</div>';
     }
 }
 add_action( 'bbp_template_before_single_forum', 'ec_display_forum_description' );
