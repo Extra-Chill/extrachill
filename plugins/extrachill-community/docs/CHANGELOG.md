@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.52] - 2026-03-26
+
+### Changed
+- merge released community lineage into main
+- align community block source of truth
+- v1.3.41
+- remove redundant bbPress mobile chrome override
+- v1.3.40
+- update components dependency to 0.4.31
+
+### Fixed
+- fix bbPress mobile forum page spacing
+
 ## [1.3.51] - 2026-03-26
 
 ### Changed
