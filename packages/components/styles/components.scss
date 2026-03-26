@@ -131,17 +131,7 @@
 .ec-shell-tabs {
 	display: grid;
 	gap: var(--spacing-sm, 0.5rem);
-	padding-bottom: var(--spacing-md, 1rem);
 	background: var(--card-background, #f1f5f9);
-}
-
-.ec-shell-tabs--with-divider {
-	border-bottom: 1px solid var(--border-color, #ddd);
-}
-
-.ec-shell-tabs--without-divider {
-	border-bottom: 0;
-	padding-bottom: 0;
 }
 
 .ec-responsive-tabs {
@@ -357,16 +347,6 @@
 	align-items: center;
 	gap: var(--spacing-md, 1rem);
 	flex-wrap: wrap;
-	padding-bottom: var(--spacing-md, 1rem);
-}
-
-.ec-block-shell-header--with-divider {
-	border-bottom: 1px solid var(--border-color, #ddd);
-}
-
-.ec-block-shell-header--without-divider {
-	border-bottom: 0;
-	padding-bottom: 0;
 }
 
 .ec-block-shell-header__main {
@@ -501,6 +481,39 @@
 .ec-field-group__control {
 	display: grid;
 	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-field-group__control > input:not([type='checkbox']):not([type='radio']):not([type='file']),
+.ec-field-group__control > select,
+.ec-field-group__control > textarea {
+	width: 100%;
+	padding: var(--spacing-sm, 0.5rem);
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--background-color, #fff);
+	color: var(--text-color, #111);
+	font: inherit;
+	font-size: var(--font-size-base, 1rem);
+	box-sizing: border-box;
+	max-width: 100%;
+}
+
+.ec-field-group__control > textarea {
+	min-height: 120px;
+	resize: vertical;
+	font-family: inherit;
+}
+
+.ec-field-group__control > input[disabled],
+.ec-field-group__control > select[disabled],
+.ec-field-group__control > textarea[disabled] {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.ec-field-group__control > input[type='checkbox'],
+.ec-field-group__control > input[type='radio'] {
+	margin: 0;
 }
 
 .ec-field-group__help {
