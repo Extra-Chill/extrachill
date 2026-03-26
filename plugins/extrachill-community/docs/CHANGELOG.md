@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.47] - 2026-03-26
+
+### Changed
+- use shared inner wrapper across community blocks
+- use shared block inner wrapper in community
+
 ## [1.3.46] - 2026-03-26
 
 ### Changed
