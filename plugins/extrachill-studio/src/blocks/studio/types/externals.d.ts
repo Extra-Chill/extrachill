@@ -1,3 +1,5 @@
+import type { ReactElement, ReactNode } from 'react';
+
 /**
  * Type declarations for external packages that don't ship their own types.
  */
@@ -23,6 +25,85 @@ declare module '@extrachill/components/components/Tabs' {
 
 	const Tabs: ComponentType< TabsProps >;
 	export default Tabs;
+}
+
+export interface SocialPlatformConfig {
+	label: string;
+	maxImages?: number;
+	aspectRatios?: string[];
+	defaultAspectRatio?: string;
+	charLimit?: number;
+	supportsCarousel?: boolean;
+	type?: string;
+	scopes?: string;
+	authenticated?: boolean;
+	username?: string | null;
+}
+
+declare module '@extrachill/components' {
+	export interface PanelProps {
+		children: ReactNode;
+		className?: string;
+		classPrefix?: string;
+		compact?: boolean;
+		depth?: 0 | 1 | 2 | 3;
+	}
+	export function Panel( props: PanelProps ): ReactElement;
+
+	export interface ActionRowProps {
+		children: ReactNode;
+		align?: 'start' | 'between' | 'end';
+		className?: string;
+		classPrefix?: string;
+	}
+	export function ActionRow( props: ActionRowProps ): ReactElement;
+
+	export interface FieldGroupProps {
+		label?: ReactNode;
+		help?: ReactNode;
+		error?: ReactNode;
+		required?: boolean;
+		children: ReactNode;
+		className?: string;
+		classPrefix?: string;
+		htmlFor?: string;
+	}
+	export function FieldGroup( props: FieldGroupProps ): ReactElement;
+
+	export interface InlineStatusProps {
+		children: ReactNode;
+		tone: 'success' | 'error' | 'warning' | 'info';
+		className?: string;
+		classPrefix?: string;
+	}
+	export function InlineStatus( props: InlineStatusProps ): ReactElement;
+
+	export interface BadgeProps {
+		children: ReactNode;
+		tone?: 'default' | 'muted' | 'success' | 'error' | 'warning' | 'info';
+		variant?: 'solid' | 'outline' | 'subtle';
+		size?: 'sm' | 'md';
+		className?: string;
+		classPrefix?: string;
+	}
+	export function Badge( props: BadgeProps ): ReactElement;
+
+	export interface BlockShellProps {
+		children: ReactNode;
+		className?: string;
+		classPrefix?: string;
+		compact?: boolean;
+		depth?: 0 | 1 | 2 | 3;
+	}
+	export function BlockShell( props: BlockShellProps ): ReactElement;
+
+	export interface BlockShellInnerProps {
+		children: ReactNode;
+		className?: string;
+		classPrefix?: string;
+		maxWidth?: 'none' | 'narrow' | 'wide';
+	}
+	export function BlockShellInner( props: BlockShellInnerProps ): ReactElement;
 }
 
 declare module '@extrachill/components/styles/components.scss';

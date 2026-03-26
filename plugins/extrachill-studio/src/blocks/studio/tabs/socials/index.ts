@@ -7,6 +7,12 @@ import type { SocialPlatformsResponse } from '@extrachill/api-client';
 import { studioClient } from '../../app/client';
 import type { StudioPaneProps } from '../../types/studio';
 import InstagramPane from './instagram';
+import type { SocialPlatformConfig } from '../../types/externals';
+
+const h = createElement as typeof import( 'react' ).createElement;
+const PanelView = Panel as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+const BadgeView = Badge as unknown as ( props: any ) => ReactElement;
 
 interface PlatformEntry {
 	slug: string;
@@ -40,51 +46,55 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 		loadPlatforms();
 	}, [] );
 
-	const availablePlatforms: PlatformEntry[] = Object.entries( platforms ).map( ( [ slug, config ] ) => ( {
+	const availablePlatforms: PlatformEntry[] = Object.entries( platforms ).map( ( [ slug, config ] ) => {
+		const platformConfig = config as SocialPlatformConfig | undefined;
+
+		return {
 		slug,
-		label: config?.label || slug,
-		authenticated: config?.authenticated || false,
-		username: config?.username || null,
-		type: config?.type || 'publish',
-	} ) );
+		label: platformConfig?.label || slug,
+		authenticated: platformConfig?.authenticated || false,
+		username: platformConfig?.username || null,
+		type: platformConfig?.type || 'publish',
+		};
+	} );
 
 	const connectedPlatforms = availablePlatforms.filter( ( item ) => item.authenticated );
 	const publishPlatforms = availablePlatforms.filter( ( item ) => item.type !== 'fetch' );
 
 	if ( isLoading ) {
-		return createElement(
+		return h(
 			'div',
 			{ className: 'ec-studio-pane ec-studio-pane--socials' },
-			createElement(
-				Panel,
-				{ className: 'ec-studio-panel', compact: true },
-				createElement( InlineStatus, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading social platforms…', 'extrachill-studio' ) )
+				h(
+					PanelView,
+					{ className: 'ec-studio-panel', compact: true },
+					h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading social platforms…', 'extrachill-studio' ) )
 			)
 		);
 	}
 
 	if ( error ) {
-		return createElement(
+		return h(
 			'div',
 			{ className: 'ec-studio-pane ec-studio-pane--socials' },
-			createElement(
-				Panel,
-				{ className: 'ec-studio-panel', compact: true },
-				createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, error )
+				h(
+					PanelView,
+					{ className: 'ec-studio-panel', compact: true },
+					h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error )
 			)
 		);
 	}
 
-	return createElement(
+	return h(
 		'div',
 		{ className: 'ec-studio-pane ec-studio-pane--socials' },
-		createElement(
+		h(
 			'div',
 			{ className: 'ec-studio-pane__grid' },
-			createElement(
-				Panel,
+				h(
+					PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				createElement( PanelHeader, { title: sprintf( __( '%d platforms available', 'extrachill-studio' ), publishPlatforms.length ) } ),
+				h( PanelHeader, { title: sprintf( __( '%d platforms available', 'extrachill-studio' ), publishPlatforms.length ) } ),
 				createElement( 'p', null, sprintf( __( '%d connected, %d publish-capable.', 'extrachill-studio' ), connectedPlatforms.length, publishPlatforms.length ) ),
 				createElement(
 					'ul',
@@ -97,11 +107,11 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 							{ className: 'ec-studio-social-platforms__name' },
 							item.label,
 							item.type === 'fetch'
-								? createElement( Badge, { tone: 'muted', variant: 'outline', className: 'ec-studio-social-platforms__badge' }, __( 'read-only', 'extrachill-studio' ) )
+								? h( BadgeView, { tone: 'muted', variant: 'outline', className: 'ec-studio-social-platforms__badge' }, __( 'read-only', 'extrachill-studio' ) )
 								: null
 						),
 						createElement(
-							Badge,
+							BadgeView,
 							{
 								tone: item.authenticated ? 'success' : 'muted',
 								variant: item.authenticated ? 'subtle' : 'outline',
@@ -114,10 +124,10 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 					) )
 				)
 			),
-			createElement(
-				Panel,
+				h(
+					PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				createElement( PanelHeader, { title: __( 'Publishing workflows', 'extrachill-studio' ) } ),
+				h( PanelHeader, { title: __( 'Publishing workflows', 'extrachill-studio' ) } ),
 				createElement( 'p', null, __( 'Each connected platform has its own publishing workflow below. New platforms appear automatically when connected in Data Machine.', 'extrachill-studio' ) ),
 				createElement(
 					'ul',
@@ -127,7 +137,7 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 				)
 			)
 		),
-		createElement( InstagramPane )
+		h( InstagramPane )
 	);
 };
 

@@ -6,6 +6,12 @@ import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrac
 import { studioClient } from '../../app/client';
 import type { StudioPaneProps } from '../../types/studio';
 
+const h = createElement as typeof import( 'react' ).createElement;
+const PanelView = Panel as unknown as ( props: any ) => ReactElement;
+const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
+const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+
 const QR_SIZE = 1000;
 
 interface QrCodeResult {
@@ -45,21 +51,21 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 		}
 	};
 
-	return createElement(
+	return h(
 		'div',
 		{ className: 'ec-studio-pane ec-studio-pane--qr-codes' },
-		createElement(
-			Panel,
+		h(
+			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
-			createElement( PanelHeader, {
+				h( PanelHeader, {
 				title: __( 'Generate a QR code', 'extrachill-studio' ),
 				description: __( 'Paste any URL to get a high-res QR code PNG for flyers, merch, and event signage.', 'extrachill-studio' ),
 			} ),
-			createElement(
+			h(
 				'div',
 				{ className: 'ec-studio-composer' },
-				createElement(
-					FieldGroup,
+				h(
+					FieldGroupView,
 					{ label: __( 'URL', 'extrachill-studio' ), htmlFor: 'ec-studio-qr-url' },
 					createElement( 'input', {
 						id: 'ec-studio-qr-url',
@@ -70,8 +76,8 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 						autoComplete: 'url',
 					} )
 				),
-				createElement(
-					ActionRow,
+				h(
+					ActionRowView,
 					{ className: 'ec-studio-composer__actions' },
 					createElement(
 						'button',
@@ -85,12 +91,12 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 					)
 				)
 			),
-			error ? createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
-			! error && status ? createElement( InlineStatus, { tone: 'success', className: 'ec-studio-message' }, status ) : null
+			error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
+			! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null
 		),
 		imageUrl
-			? createElement(
-				Panel,
+			? h(
+				PanelView,
 				{ className: 'ec-studio-panel', compact: true },
 				createElement(
 					'div',

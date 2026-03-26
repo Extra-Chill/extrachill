@@ -9,6 +9,12 @@ import {
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { StudioPaneProps } from '../../types/studio';
 
+const h = createElement as typeof import( 'react' ).createElement;
+const PanelView = Panel as unknown as ( props: any ) => ReactElement;
+const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
+const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+
 declare global {
 	interface Window {
 		blocksEverywhereCreateEditor?: ( textarea: HTMLTextAreaElement ) => void;
@@ -456,25 +462,25 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		scheduleAutosave();
 	};
 
-	return createElement(
+	return h(
 		'div',
 		{ className: 'ec-studio-pane ec-studio-pane--compose' },
-		createElement(
+		h(
 			'div',
 			{ className: 'ec-studio-pane__grid ec-studio-pane__grid--compose' },
 
 			// Left: Editor
-			createElement(
-				Panel,
+				h(
+					PanelView,
 				{ className: 'ec-studio-panel ec-studio-panel--editor', compact: true },
 
 				// Draft toolbar
-				createElement(
+				h(
 					PanelHeader,
 					{
 						title: __( 'Compose', 'extrachill-studio' ),
-						actions: createElement(
-							ActionRow,
+						actions: h(
+							ActionRowView,
 							{ className: 'ec-studio-compose-toolbar' },
 							createElement(
 								'div',
@@ -519,8 +525,8 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				),
 
 				// Title input
-				createElement(
-					FieldGroup,
+					h(
+					FieldGroupView,
 					{ label: __( 'Title', 'extrachill-studio' ), htmlFor: 'ec-studio-compose-title' },
 					createElement( 'input', {
 						id: 'ec-studio-compose-title',
@@ -533,7 +539,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				),
 
 				// Block editor container — mounted once, content swapped via replaceContent API.
-				createElement(
+				h(
 					'div',
 					{ className: 'ec-studio-compose-editor' },
 					createElement( 'textarea', {
@@ -545,16 +551,16 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				),
 
 				// Status messages
-				error
-					? createElement( InlineStatus, { tone: 'error', className: 'ec-studio-message' }, error )
+					error
+					? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error )
 					: null,
 				! error && status
-					? createElement( InlineStatus, { tone: 'success', className: 'ec-studio-message' }, status )
+					? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status )
 					: null,
 
 				// Actions
-				createElement(
-					ActionRow,
+				h(
+					ActionRowView,
 					{ className: 'ec-studio-composer__actions' },
 					createElement(
 						'button',
@@ -584,11 +590,11 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			),
 
 			// Right: Sidebar
-			createElement(
-				Panel,
+				h(
+				PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				createElement( PanelHeader, { title: __( 'Publishing', 'extrachill-studio' ) } ),
-				createElement(
+				h( PanelHeader, { title: __( 'Publishing', 'extrachill-studio' ) } ),
+				h(
 					'ul',
 					null,
 					createElement( 'li', null, __( 'Your work autosaves every few seconds while editing an existing draft.', 'extrachill-studio' ) ),
@@ -596,7 +602,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 					createElement( 'li', null, __( 'Submit for Review — flags the post for an admin to approve and publish.', 'extrachill-studio' ) )
 				),
 				activePostId
-					? createElement( InlineStatus, { tone: 'info', className: 'ec-studio-message' },
+					? h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' },
 						sprintf( __( 'Editing draft #%d', 'extrachill-studio' ), activePostId )
 					)
 					: null
