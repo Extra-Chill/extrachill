@@ -247,10 +247,18 @@
 }
 
 @media (max-width: 480px) {
-	.ec-block-shell-inner {
-		max-width: none;
+	.ec-block-shell {
+		padding-left: 0;
+		padding-right: 0;
+	}
+
+	.ec-block-shell > * {
 		padding-left: var(--spacing-md, 1rem);
 		padding-right: var(--spacing-md, 1rem);
+	}
+
+	.ec-block-shell-inner {
+		max-width: none;
 	}
 
 	.ec-responsive-tabs__inner {
