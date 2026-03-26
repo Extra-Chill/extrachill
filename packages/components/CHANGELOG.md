@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.31] - 2026-03-26
+
+### Changed
+- mirror theme mobile shell gutter model
+
 ## [0.4.30] - 2026-03-26
 
 ### Changed
