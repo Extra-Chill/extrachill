@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.0] - 2026-03-26
+
+### Added
+- add detached compose sidebar
+
 ## [0.3.2] - 2026-03-26
 
 ### Fixed
