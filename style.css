@@ -693,8 +693,6 @@ body {
 	margin: auto;
 	max-width: var(--container-width);
 	width: 100%;
-	padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
-	padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
 	box-sizing: border-box;
 	display: grid;
 	grid-template-columns: 1fr var(--sidebar-width);
@@ -1223,8 +1221,6 @@ p.site-title {
 	}
 	.extrachill-content {
 		grid-template-columns: 1fr; /* single column on mobile */
-		padding-left: max(0.75em, env(safe-area-inset-left));
-		padding-right: max(0.75em, env(safe-area-inset-right));
 	}
 	.extrachill-content .full-width-breakout {
 		padding-left: max(0.75em, env(safe-area-inset-left));
@@ -1247,28 +1243,6 @@ p.site-title {
 	 * (.ec-edge-surface).
 	 */
 @media screen and (max-width: 480px) {
-	body.single-post .extrachill-content,
-	body.page .extrachill-content,
-	body.single-datamachine_events .extrachill-content,
-	body.single-newsletter .extrachill-content,
-	body.topic .extrachill-content,
-	body.forum .extrachill-content,
-	body.forum-archive .extrachill-content {
-		padding-left: 0;
-		padding-right: 0;
-	}
-	/* Legacy fallback padding for direct children not yet migrated to ec-edge-gutter */
-	body.single-post .main-content > :not(.single-post-card):not(.ec-edge-gutter),
-	body.page .main-content > :not(.single-page-card):not(.ec-edge-shell):not(.ec-block-shell):not(.ec-edge-gutter),
-	body.single-datamachine_events .main-content > :not(.single-post-card):not(.ec-edge-gutter),
-	body.single-newsletter .main-content > :not(.single-post-card):not(.ec-edge-gutter),
-	body.topic .extrachill-content > :not(#bbpress-forums):not(.ec-edge-gutter),
-	body.forum .extrachill-content > :not(#bbpress-forums):not(.ec-edge-gutter),
-	body.forum-archive .extrachill-content > :not(#bbpress-forums):not(.ec-edge-gutter) {
-		padding-left: var(--spacing-md);
-		padding-right: var(--spacing-md);
-	}
-
 	.ec-edge-gutter {
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);

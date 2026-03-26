@@ -14,7 +14,7 @@ if ( ! function_exists( 'extrachill_no_results' ) ) :
 		?>
 		<section class="no-results not-found">
 
-			<div class="page-content">
+			<div class="page-content ec-edge-gutter">
 				<?php if ( is_home() && current_user_can( 'publish_posts' ) ) : ?>
 
 					<p><?php printf( __( 'Ready to publish your first post? <a href="%1$s">Get started here</a>.', 'extrachill' ), esc_url( admin_url( 'post-new.php' ) ) ); ?></p>
