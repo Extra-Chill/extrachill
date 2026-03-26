@@ -254,7 +254,8 @@
 		display: none;
 	}
 
-	.ec-edge-shell .ec-responsive-tabs__item {
+	.ec-edge-shell .ec-responsive-tabs__item,
+	.ec-mobile-full-width-panel .ec-responsive-tabs__item {
 		margin-left: calc(var(--spacing-md, 1rem) * -1);
 		margin-right: calc(var(--spacing-md, 1rem) * -1);
 		border-left: 0;
@@ -563,14 +564,16 @@
 		padding-bottom: var(--spacing-sm, 0.5rem);
 	}
 
-	.ec-edge-shell .ec-shell-tabs {
+	.ec-edge-shell .ec-shell-tabs,
+	.ec-mobile-full-width-panel .ec-shell-tabs {
 		margin-left: calc(var(--spacing-md, 1rem) * -1);
 		margin-right: calc(var(--spacing-md, 1rem) * -1);
 		padding-left: var(--spacing-md, 1rem);
 		padding-right: var(--spacing-md, 1rem);
 	}
 
-	.ec-edge-shell .ec-panel {
+	.ec-edge-shell .ec-panel,
+	.ec-mobile-full-width-panel .ec-panel {
 		border-radius: 0;
 		border-left: 0;
 		border-right: 0;
@@ -584,7 +587,8 @@
 		padding-right: var(--spacing-md, 1rem);
 	}
 
-	.ec-edge-shell .ec-section {
+	.ec-edge-shell .ec-section,
+	.ec-mobile-full-width-panel .ec-section {
 		border-radius: 0;
 		border-left: 0;
 		border-right: 0;

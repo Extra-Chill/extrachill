@@ -19,7 +19,6 @@ export function BlockShellHeader( {
 		<div
 			className={ [
 				classPrefix,
-				'ec-edge-gutter',
 				className,
 			].filter( Boolean ).join( ' ' ) }
 		>
