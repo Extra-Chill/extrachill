@@ -271,18 +271,12 @@
 	}
 
 	.ec-studio-compose-toolbar,
-	.ec-studio-compose-toolbar__controls,
 	.ec-studio-composer__actions,
 	.ec-studio-social-platforms__item,
 	.ec-studio-image-list__item,
 	.ec-studio-comment-list__meta {
 		flex-direction: column;
 		align-items: stretch;
-	}
-
-	.ec-studio-compose-draft-picker {
-		max-width: none;
-		width: 100%;
 	}
 
 	.ec-studio-qr-result {
@@ -317,13 +311,8 @@
 }
 
 .ec-studio-compose-draft-picker {
-	padding: var(--spacing-xs) var(--spacing-sm);
 	font-size: var(--font-size-sm);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-sm, 4px);
-	background: var(--background-color);
-	color: var(--text-color);
-	max-width: 260px;
+	min-width: 0;
 }
 
 .ec-studio-compose-toolbar__empty {
