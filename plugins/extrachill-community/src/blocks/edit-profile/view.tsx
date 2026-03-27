@@ -284,12 +284,14 @@ function EditProfileApp( {
 
 	return (
 		<BlockShell className="ec-community-edit-profile-shell">
-			<BlockShellInner maxWidth="narrow">
+			<BlockShellInner className="ec-block-shell-inner--centered" maxWidth="narrow">
 				<BlockShellHeader
+					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."
 				/>
-				{ notice && <Notice type={ notice.type } message={ notice.message } /> }
-				<ResponsiveTabs
+				<div className="ec-block-shell-inner">
+					{ notice && <Notice type={ notice.type } message={ notice.message } /> }
+					<ResponsiveTabs
 						tabs={ tabs as Array<{ id: string; label: string }> }
 						active={ activeTab }
 						onChange={ ( id ) => switchTab( id as TabId ) }
@@ -298,7 +300,7 @@ function EditProfileApp( {
 							switch ( id as TabId ) {
 							case 'avatar-title':
 								return (
-									<Panel depth={ 1 } className="ec-mobile-full-width-panel">
+									<Panel depth={ 1 } className="ec-edge-surface">
 										<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
 										<FieldGroup
 											label={ `Custom Title${ customTitle ? ` (Current: ${ customTitle })` : '' }` }
@@ -317,7 +319,7 @@ function EditProfileApp( {
 								);
 							case 'about':
 								return (
-									<Panel depth={ 1 } className="ec-mobile-full-width-panel">
+									<Panel depth={ 1 } className="ec-edge-surface">
 										<FieldGroup label="Bio" htmlFor="ec-bio">
 											<textarea
 												id="ec-bio"
@@ -338,13 +340,13 @@ function EditProfileApp( {
 								);
 							case 'links':
 								return (
-									<Panel depth={ 1 } className="ec-mobile-full-width-panel">
+									<Panel depth={ 1 } className="ec-edge-surface">
 										<LinksManager links={ links } linkTypes={ profile.link_types } onChange={ setLinks } />
 									</Panel>
 								);
 							case 'artist-profiles':
 								return hasArtistAccess ? (
-									<Panel depth={ 1 } className="ec-mobile-full-width-panel">
+									<Panel depth={ 1 } className="ec-edge-surface">
 										<PanelHeader
 											description="Manage your artist profiles and link pages."
 										/>
@@ -400,6 +402,7 @@ function EditProfileApp( {
 						</a>
 					) }
 					</ActionRow>
+				</div>
 			</BlockShellInner>
 		</BlockShell>
 	);

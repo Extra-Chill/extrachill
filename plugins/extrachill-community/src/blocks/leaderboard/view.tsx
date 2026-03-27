@@ -134,8 +134,10 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 
 	return (
 		<BlockShell className="ec-community-leaderboard-shell">
-			<BlockShellInner maxWidth="narrow">
+			<BlockShellInner className="ec-community-leaderboard-shell__inner" maxWidth="narrow">
+				<div className="ec-block-shell-inner">
 				<BlockShellHeader
+					title="Leaderboard"
 					description="See the most active members of the Extra Chill community."
 				/>
 				<Panel depth={ 1 }>
@@ -185,6 +187,7 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 						</button>
 					</ActionRow>
 				</Panel>
+				</div>
 			</BlockShellInner>
 		</BlockShell>
 	);
