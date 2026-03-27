@@ -171,6 +171,14 @@
     justify-content: center;
     min-height: 44px;
     min-width: 320px;
+    max-width: 100%;
+}
+
+@media (max-width: 360px) {
+    .google-signin-button {
+        min-width: 0;
+        width: 100%;
+    }
 }
 
 /* --- Forgot Password Link --- */
