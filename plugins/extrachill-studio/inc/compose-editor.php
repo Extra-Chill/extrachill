@@ -162,6 +162,8 @@ function configure_compose_editor( array $settings ): array {
 	$settings['iso']['sidebar']['detached'] = array(
 		'target'    => '.ec-studio-compose-sidebar__slot',
 		'className' => 'ec-studio-compose-sidebar__content',
+		'persistent' => true,
+		'defaultView' => 'inserter',
 	);
 
 	// Allow common embed types.

@@ -578,16 +578,16 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 					)
 				)
 			),
-			h(
-				PanelView,
-				{ className: 'ec-studio-panel ec-studio-panel--compose-sidebar', compact: true },
-				h( PanelHeader, {
-					description: __( 'Browse blocks and structure without crowding the writing canvas.', 'extrachill-studio' ),
-				} ),
-				createElement( 'div', {
-					className: 'ec-studio-compose-sidebar__slot',
-				} )
-			)
+				h(
+					PanelView,
+					{ className: 'ec-studio-panel ec-studio-panel--compose-sidebar', compact: true },
+					h( PanelHeader, {
+						description: __( 'Browse blocks and structure without crowding the writing canvas.', 'extrachill-studio' ),
+					} ),
+					createElement( 'div', {
+						className: 'ec-studio-compose-sidebar__slot',
+					} )
+				)
 		)
 	);
 };
