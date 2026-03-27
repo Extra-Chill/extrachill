@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.12] - 2026-03-27
+
+### Changed
+- align login-register block with standard pattern
+- align login register tabs with shared shell defaults
+- update shared components for edge shell rename
+
+### Fixed
+- remove dead classes and padding reset from login-register
+
 ## [0.7.11] - 2026-03-26
 
 ### Changed
