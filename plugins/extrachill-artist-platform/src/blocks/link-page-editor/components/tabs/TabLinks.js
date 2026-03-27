@@ -195,14 +195,14 @@ export default function TabLinks() {
 		const isExpanded = expandedSections[ sectionId ] !== false;
 
 		return (
-			<div key={ sectionId } className="ec-section" data-section-id={ sectionId }>
-				<div className="ec-section__header">
-					<span className="ec-section__drag-handle">
+			<div key={ sectionId } className="ec-lpe-section" data-section-id={ sectionId }>
+				<div className="ec-lpe-section__header">
+					<span className="ec-lpe-section__drag-handle">
 						<span className="dashicons dashicons-menu"></span>
 					</span>
 					<input
 						type="text"
-						className="ec-section__title-input"
+						className="ec-lpe-section__title-input"
 						value={ section.section_title || '' }
 						onChange={ ( e ) =>
 							updateSectionTitle( sectionIndex, e.target.value )
@@ -211,7 +211,7 @@ export default function TabLinks() {
 					/>
 					<button
 						type="button"
-						className="ec-section__toggle"
+						className="ec-lpe-section__toggle"
 						onClick={ () => toggleSection( sectionId ) }
 					>
 						<span
@@ -222,7 +222,7 @@ export default function TabLinks() {
 					</button>
 					<button
 						type="button"
-						className="ec-section__remove"
+						className="ec-lpe-section__remove"
 						onClick={ () => removeSection( sectionIndex ) }
 					>
 						<span className="dashicons dashicons-trash"></span>
@@ -230,7 +230,7 @@ export default function TabLinks() {
 				</div>
 
 				{ isExpanded && (
-					<div className="ec-section__content">
+					<div className="ec-lpe-section__content">
 						<DraggableList
 							items={ section.links || [] }
 							onReorder={ ( newLinks ) =>
@@ -242,7 +242,7 @@ export default function TabLinks() {
 						/>
 						<button
 							type="button"
-							className="ec-section__add-link"
+							className="ec-lpe-section__add-link"
 							onClick={ () => addLink( sectionIndex ) }
 						>
 							<span className="dashicons dashicons-plus"></span>

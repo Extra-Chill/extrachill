@@ -150,19 +150,19 @@ export default function TabSocials() {
 			</button>
 
 			{ showAddModal && (
-				<div className="ec-modal-overlay" onClick={ () => setShowAddModal( false ) }>
-					<div className="ec-modal" onClick={ ( e ) => e.stopPropagation() }>
-						<div className="ec-modal__header">
+				<div className="ec-lpe-modal-overlay" onClick={ () => setShowAddModal( false ) }>
+					<div className="ec-lpe-modal" onClick={ ( e ) => e.stopPropagation() }>
+						<div className="ec-lpe-modal__header">
 							<h3>{ __( 'Add Social Link', 'extrachill-artist-platform' ) }</h3>
 							<button
 								type="button"
-								className="ec-modal__close"
+								className="ec-lpe-modal__close"
 								onClick={ () => setShowAddModal( false ) }
 							>
 								<span className="dashicons dashicons-no-alt"></span>
 							</button>
 						</div>
-						<div className="ec-modal__body">
+						<div className="ec-lpe-modal__body">
 							<div className="ec-social-type-grid">
 								{ ( socialTypes || [] ).map( ( type ) => (
 									<button

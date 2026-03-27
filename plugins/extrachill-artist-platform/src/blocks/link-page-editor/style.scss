@@ -349,14 +349,14 @@
 	}
 }
 
-.ec-section {
+.ec-lpe-section {
 	background: var(--card-background);
 	border-radius: 8px;
 	border: 1px solid var(--border-color);
 	overflow: hidden;
 }
 
-.ec-section__header {
+.ec-lpe-section__header {
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -365,7 +365,7 @@
 	border-bottom: 1px solid var(--border-color);
 }
 
-.ec-section__drag-handle,
+.ec-lpe-section__drag-handle,
 .ec-link-item__drag-handle,
 .ec-social-item__drag-handle {
 	cursor: grab;
@@ -380,7 +380,7 @@
 	}
 }
 
-.ec-section__title-input {
+.ec-lpe-section__title-input {
 	flex: 1;
 	padding: 6px 10px;
 	border: 1px solid transparent;
@@ -396,8 +396,8 @@
 	}
 }
 
-.ec-section__toggle,
-.ec-section__remove,
+.ec-lpe-section__toggle,
+.ec-lpe-section__remove,
 .ec-link-item__remove,
 .ec-link-item__expiration,
 .ec-social-item__remove {
@@ -418,7 +418,7 @@
 	}
 }
 
-.ec-section__remove:hover,
+.ec-lpe-section__remove:hover,
 .ec-link-item__remove:hover,
 .ec-social-item__remove:hover {
 	color: var(--error-color);
@@ -428,14 +428,14 @@
 	color: var(--accent);
 }
 
-.ec-section__content {
+.ec-lpe-section__content {
 	padding: 16px;
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
 }
 
-.ec-section__add-link {
+.ec-lpe-section__add-link {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -548,7 +548,7 @@
 }
 
 /* Modal */
-.ec-modal-overlay {
+.ec-lpe-modal-overlay {
 	position: fixed;
 	inset: 0;
 	background: rgba(0, 0, 0, 0.7);
@@ -558,7 +558,7 @@
 	z-index: 1000;
 }
 
-.ec-modal {
+.ec-lpe-modal {
 	background: var(--background-color);
 	border-radius: 12px;
 	width: 90%;
@@ -570,7 +570,7 @@
 	border: 1px solid var(--border-color);
 }
 
-.ec-modal__header {
+.ec-lpe-modal__header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -584,7 +584,7 @@
 	}
 }
 
-.ec-modal__close {
+.ec-lpe-modal__close {
 	padding: 4px;
 	border: none;
 	background: transparent;
@@ -596,7 +596,7 @@
 	}
 }
 
-.ec-modal__body {
+.ec-lpe-modal__body {
 	padding: 20px;
 	overflow-y: auto;
 }
@@ -801,8 +801,8 @@
 	}
 
 	.ec-customize-card,
-	.ec-section,
-	.ec-section__content,
+	.ec-lpe-section,
+	.ec-lpe-section__content,
 	.ec-editor__link-url {
 		background: var(--card-background);
 	}
