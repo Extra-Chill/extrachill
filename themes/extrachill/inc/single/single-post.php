@@ -17,11 +17,9 @@ get_header(); ?>
 
 		<?php extrachill_breadcrumbs(); ?>
 
-<div class="single-post-card ec-surface-card ec-mobile-full-width-panel">
-<article id="post-<?php the_ID(); ?>">
+<article id="post-<?php the_ID(); ?>" class="single-post-card ec-mobile-full-width-panel">
 		<?php do_action( 'extrachill_before_post_content' ); ?>
 
-	<div class="page-content">
 		<header id="postvote">
 			<?php do_action( 'extrachill_above_post_title' ); ?>
 			<h1>
@@ -29,7 +27,6 @@ get_header(); ?>
 			</h1>
 		</header>
 		<?php extrachill_entry_meta(); ?>
-	</div>
 
 		<?php if ( has_post_thumbnail() ) : ?>
 			<?php $featured_image_id = get_post_thumbnail_id(); ?>
@@ -44,13 +41,10 @@ get_header(); ?>
 		</figure>
 	<?php endif; ?>
 
-	<div class="entry-content">
 		<?php the_content(); ?>
-	</div>
 
 		<?php do_action( 'extrachill_after_post_content' ); ?>
 </article>
-</div>
 
 	<?php endwhile; ?>
 
