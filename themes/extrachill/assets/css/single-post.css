@@ -17,10 +17,14 @@
   box-sizing: border-box;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 480px) {
   .single-post-card {
     padding: var(--spacing-md);
-    margin: var(--spacing-md) auto;
+    margin: 0;
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 
