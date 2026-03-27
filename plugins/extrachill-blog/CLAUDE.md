@@ -22,16 +22,9 @@ WordPress plugin providing blog-specific functionality for extrachill.com (Blog 
   - Community and Artist Platform sections with dual-button CTA layouts
 - 3x3 content grid for featured posts
 
-### Gutenberg Blocks
-- **Band Name Generator**: Interactive block for generating random band names with genre selection
-- **Rapper Name Generator**: Interactive block for generating random rapper names
-- **Image Voting**: Community voting block with email capture functionality
-- **Trivia**: Interactive trivia questions with multiple choice answers and automatic scoring
-- **AI Adventure**: Text-based adventure game with branching paths and prompt-based storytelling
-- **AI Adventure Path**: Path component for structuring adventure game narratives
-- **AI Adventure Step**: Step component for individual adventure game interactions
-
-All blocks use the `extrachill/` namespace and are built with @wordpress/scripts. Block versions are independently managed (currently v1.1.0) separate from plugin versioning.
+### Shared Content Blocks
+- Shared authoring/content blocks now live in the standalone `extrachill-content-blocks` plugin.
+- `extrachill-blog` consumes those blocks on the main site but does not own their registration or source files.
 
 ### Navigation
 - Secondary header navigation specific to blog site
@@ -47,8 +40,7 @@ All blocks use the `extrachill/` namespace and are built with @wordpress/scripts
 ## Architecture
 
 ### File Organization
-- **extrachill-blog.php** - Main plugin file with block registration and initialization
-- **src/blocks/** - Gutenberg block source files (JavaScript, PHP, SCSS)
+- **extrachill-blog.php** - Main plugin file and initialization
 - **inc/home/** - Homepage system (hooks, queries, templates)
 - **inc/core/** - Core functionality (navigation)
 - **inc/archive/** - Archive template routing and breadcrumbs
@@ -101,26 +93,7 @@ homeboy build extrachill-blog
 # Output: build/extrachill-blog.zip
 ```
 
-The build process:
-1. Installs production Composer dependencies (`composer install --no-dev`)
-2. Compiles Gutenberg blocks using `@wordpress/scripts` (`npm run build`)
-3. Creates compiled assets in `build/blocks/` directory
-4. Packages everything into a production ZIP excluding development files via `.buildignore`
-
-### Block Asset Management
-Blocks use separate source and build directories:
-- **Source**: `src/blocks/` - Contains block.json, JS, SCSS, and PHP files
-- **Build**: `build/blocks/` - Contains compiled CSS/JS and copied PHP files (created by `npm run build`)
-- **Registration**: Blocks are registered from `build/blocks/`
-
-### Development Workflow
-```bash
-# Start development server with hot reloading
-npm run start
-
-# Build blocks for testing
-npm run build
-```
+The build process packages the blog-specific PHP/CSS assets for deployment.
 
 ## Related Documentation
 

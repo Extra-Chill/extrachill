@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Blog
  * Plugin URI: https://extrachill.com
- * Description: Blog-specific functionality for extrachill.com (Blog ID 1). Provides secondary header navigation, homepage customizations, and custom Gutenberg blocks for community engagement.
+ * Description: Blog-specific functionality for extrachill.com (Blog ID 1). Provides secondary header navigation, homepage customizations, and blog-specific templates.
  * Version: 0.3.14
  * Author: Chris Huber
  * Author URI: https://chubes.net
@@ -47,21 +47,3 @@ function extrachill_blog_register_styles() {
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_blog_register_styles', 5 );
-
-/**
- * Register Gutenberg blocks.
- * In development: registers from src/blocks/
- * In production: registers from build/blocks/ (created by build process)
- */
-function extrachill_blog_register_blocks() {
-	$blocks_dir = file_exists( __DIR__ . '/build/blocks' ) ? 'build/blocks' : 'src/blocks';
-
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/trivia' );
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/image-voting' );
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/band-name-generator' );
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/rapper-name-generator' );
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/ai-adventure' );
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/ai-adventure-path' );
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/ai-adventure-step' );
-}
-add_action( 'init', 'extrachill_blog_register_blocks' );
