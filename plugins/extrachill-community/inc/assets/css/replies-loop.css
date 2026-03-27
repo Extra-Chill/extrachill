@@ -342,6 +342,25 @@ span.bbp-topic-post-date {
     }
 }
 
+@media (max-width: 480px) {
+    .views-container {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+
+    #bbpress-forums .topic-card-sidebar {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+    }
+
+    .topic-sidebar h2 {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+}
+
 /* ==================================================
    Sidebar Topic Card Styles
 ================================================== */

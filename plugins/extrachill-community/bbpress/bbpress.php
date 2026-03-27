@@ -10,7 +10,7 @@ extrachill_breadcrumbs();
 $isUserProfile = bbp_is_single_user();
 
 if ( ! $isUserProfile ) {
-	echo '<div class="page-content"><h1>' . esc_html( get_the_title() ) . '</h1></div>';
+	echo '<div class="community-section-header"><h1>' . esc_html( get_the_title() ) . '</h1></div>';
 }
 
 if ( have_posts() ) :
