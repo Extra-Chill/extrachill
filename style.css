@@ -758,10 +758,20 @@ body {
 ----------------------------------------------- */
 /* WooCommerce functionality handled by ExtraChill Shop plugin */
 
-.main-content {
-	min-width: 0; /* prevents grid overflow */
+/* Default horizontal gutter for content containers.
+ * .main-content owns the outermost gutter.
+ * .page-content and .entry-content own the gutter inside cards/panels
+ * that may break out via ec-mobile-full-width-panel.
+ */
+.main-content,
+.page-content,
+.entry-content {
 	padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
 	padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
+}
+
+.main-content {
+	min-width: 0; /* prevents grid overflow */
 }
 
 
@@ -821,6 +831,8 @@ body {
 #masthead {
     z-index: 1000;
     background-color: var(--header-background);
+    padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
+    padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
 }
 
 body.sticky-header #masthead {
@@ -984,8 +996,6 @@ header#masthead.site-header {
 
 .site-branding {
     flex: 1;
-    padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
-    padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
 }
 
 #site-title {
@@ -1255,7 +1265,9 @@ p.site-title {
 	 */
 	@media screen and (max-width: 480px) {
 		.main-content,
-		.site-branding,
+		.page-content,
+		.entry-content,
+		#masthead,
 		.footer-menus-wrapper,
 		.footer-copyright {
 			padding-left: var(--spacing-md);
