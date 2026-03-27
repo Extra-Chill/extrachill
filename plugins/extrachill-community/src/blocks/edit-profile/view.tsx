@@ -284,9 +284,8 @@ function EditProfileApp( {
 
 	return (
 		<BlockShell className="ec-community-edit-profile-shell">
-			<BlockShellInner className="ec-block-shell-inner--centered" maxWidth="narrow">
+			<BlockShellInner maxWidth="narrow">
 				<BlockShellHeader
-					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."
 				/>
 				<div className="ec-block-shell-inner">
@@ -300,7 +299,7 @@ function EditProfileApp( {
 							switch ( id as TabId ) {
 							case 'avatar-title':
 								return (
-									<Panel depth={ 1 } className="ec-edge-surface">
+									<Panel depth={ 1 } className="ec-mobile-full-width-panel">
 										<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
 										<FieldGroup
 											label={ `Custom Title${ customTitle ? ` (Current: ${ customTitle })` : '' }` }
@@ -319,7 +318,7 @@ function EditProfileApp( {
 								);
 							case 'about':
 								return (
-									<Panel depth={ 1 } className="ec-edge-surface">
+									<Panel depth={ 1 } className="ec-mobile-full-width-panel">
 										<FieldGroup label="Bio" htmlFor="ec-bio">
 											<textarea
 												id="ec-bio"
@@ -340,13 +339,13 @@ function EditProfileApp( {
 								);
 							case 'links':
 								return (
-									<Panel depth={ 1 } className="ec-edge-surface">
+									<Panel depth={ 1 } className="ec-mobile-full-width-panel">
 										<LinksManager links={ links } linkTypes={ profile.link_types } onChange={ setLinks } />
 									</Panel>
 								);
 							case 'artist-profiles':
 								return hasArtistAccess ? (
-									<Panel depth={ 1 } className="ec-edge-surface">
+									<Panel depth={ 1 } className="ec-mobile-full-width-panel">
 										<PanelHeader
 											description="Manage your artist profiles and link pages."
 										/>
