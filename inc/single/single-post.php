@@ -48,25 +48,25 @@ get_header(); ?>
 	</article>
 
 	<?php endwhile; ?>
+
+	<aside>
+		<?php
+		do_action( 'extrachill_before_comments_template' );
+		if ( comments_open() || '0' != get_comments_number() ) {
+			do_action( 'extrachill_comments_section' );
+		}
+		do_action( 'extrachill_after_comments_template' );
+		require_once get_template_directory() . '/inc/single/related-posts.php';
+
+		$post_id            = get_the_ID();
+		$related_taxonomies = apply_filters( 'extrachill_related_posts_taxonomies', array( 'artist', 'venue' ), $post_id, get_post_type() );
+
+		foreach ( $related_taxonomies as $taxonomy ) {
+			extrachill_display_related_posts( $taxonomy, $post_id );
+		}
+		?>
+	</aside>
 </div>
-
-<aside>
-	<?php
-	do_action( 'extrachill_before_comments_template' );
-	if ( comments_open() || '0' != get_comments_number() ) {
-		do_action( 'extrachill_comments_section' );
-	}
-	do_action( 'extrachill_after_comments_template' );
-	require_once get_template_directory() . '/inc/single/related-posts.php';
-
-	$post_id            = get_the_ID();
-	$related_taxonomies = apply_filters( 'extrachill_related_posts_taxonomies', array( 'artist', 'venue' ), $post_id, get_post_type() );
-
-	foreach ( $related_taxonomies as $taxonomy ) {
-		extrachill_display_related_posts( $taxonomy, $post_id );
-	}
-	?>
-</aside>
 
 
 <?php get_sidebar(); ?>
