@@ -40,12 +40,10 @@ if ( empty( $location_counts ) ) {
 	return;
 }
 ?>
-<div class="ec-edge-gutter">
-	<div class="taxonomy-badges">
+	<div class="taxonomy-badges ec-edge-gutter">
 	<?php foreach ( $location_counts as $location ) : ?>
 		<a href="<?php echo esc_url( $location['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $location['slug'] ); ?>">
 			<?php echo esc_html( $location['name'] ); ?> (<?php echo esc_html( $location['count'] ); ?>)
 		</a>
 	<?php endforeach; ?>
 	</div>
-</div>
