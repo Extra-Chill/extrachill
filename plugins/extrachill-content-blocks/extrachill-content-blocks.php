@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Content Blocks
  * Plugin URI: https://extrachill.com
  * Description: Reusable content creation Gutenberg blocks for the Extra Chill platform. Provides editorial and interactive blocks for any site that activates the plugin.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Requires at least: 6.4
  * Requires PHP: 7.4
  * Author: Chris Huber
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_CONTENT_BLOCKS_VERSION', '1.2.0' );
+define( 'EXTRACHILL_CONTENT_BLOCKS_VERSION', '1.2.1' );
 define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

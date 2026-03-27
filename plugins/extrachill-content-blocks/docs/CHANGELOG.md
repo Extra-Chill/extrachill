@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-03-27
+
+### Changed
+- remove AI adventure blocks, now in standalone extrachill-ai-adventure plugin
+
 ## [1.2.0] - 2026-03-27
 
 ### Added
