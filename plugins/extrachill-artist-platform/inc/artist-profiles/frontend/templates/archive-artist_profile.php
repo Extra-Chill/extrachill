@@ -32,7 +32,7 @@ get_header();
 do_action( 'extrachill_archive_above_posts' );
 ?>
 
-<div class="full-width-breakout ec-edge-shell">
+<div class="full-width-breakout ec-mobile-full-width-panel">
     <div class="article-container">
         <?php ec_display_artist_cards_grid( 24, false, true ); ?>
     </div>
