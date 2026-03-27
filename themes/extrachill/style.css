@@ -1240,7 +1240,8 @@ p.site-title {
 			padding-right: 0;
 		}
 
-		body.page .extrachill-content {
+		body.page .extrachill-content,
+		body.home .extrachill-content {
 			padding-left: var(--spacing-md);
 			padding-right: var(--spacing-md);
 		}
