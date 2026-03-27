@@ -31,7 +31,7 @@ $posts_per_page = get_option( 'posts_per_page', 10 );
 	do_action( 'extrachill_archive_above_posts' );
 	?>
 
-	<div class="full-width-breakout ec-edge-shell">
+	<div class="full-width-breakout ec-mobile-full-width-panel">
 		<div class="article-container">
 			<?php global $post_i; $post_i = 1; ?>
 			<?php foreach ( $search_results as $result ) : ?>
