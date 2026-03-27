@@ -15,45 +15,15 @@ import {
 	ResponsiveTabs,
 } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
-import { cssVar, spacing, colors } from '@extrachill/tokens';
 import type { UserProfile, UserLink } from '@extrachill/api-client';
 
 const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
 
 const styles = {
-	avatarContainer: {
-		display: 'flex',
-		alignItems: 'center',
-		gap: cssVar( spacing.spacingMd ),
-		marginBottom: cssVar( spacing.spacingMd ),
-	},
-	avatar: {
-		width: '80px',
-		height: '80px',
-		borderRadius: '50%',
-		objectFit: 'cover' as const,
-		border: `2px solid ${ cssVar( colors.borderColor ) }`,
-	},
-	linkRow: {
-		display: 'flex',
-		gap: cssVar( spacing.spacingSm ),
-		alignItems: 'flex-start',
-		marginBottom: cssVar( spacing.spacingSm ),
-		flexWrap: 'wrap' as const,
-	},
-	linkSelect: {
-		minWidth: '140px',
-	},
-	linkInput: {
-		flex: 1,
-		minWidth: '200px',
-	},
-	mutedText: { color: cssVar( colors.mutedText ) },
 	disabledButton: {
 		opacity: 0.7,
 		pointerEvents: 'none' as const,
 	},
-	inlineButtonLink: { textDecoration: 'none' },
 	visuallyHiddenInput: {
 		display: 'none',
 	},
@@ -96,28 +66,29 @@ function AvatarUpload( {
 	}, [ onAvatarChange, userId ] );
 
 	return (
-		<div style={ styles.avatarContainer }>
-			<img src={ avatarUrl } alt="Avatar" style={ styles.avatar } />
-			<div>
-				<h4 style={ { margin: 0, marginBottom: '4px' } }>Current Avatar</h4>
-				<p style={ { marginTop: 0, marginBottom: '8px', color: cssVar( colors.mutedText ) } }>
-					This is the avatar you currently have set. Upload a new image to change it.
-				</p>
-				<label
-					className={ `button-3 button-small${ uploading ? ' is-disabled' : '' }` }
-					style={ uploading ? styles.disabledButton : undefined }
-				>
-					{ uploading ? 'Uploading...' : 'Upload New Avatar' }
-					<input
-						type="file"
-						accept="image/*"
-						onChange={ handleFileChange }
-						disabled={ uploading }
-						style={ styles.visuallyHiddenInput }
-					/>
-				</label>
+		<FieldGroup label="Avatar">
+			<div className="ec-avatar-upload">
+				<img src={ avatarUrl } alt="Avatar" className="ec-avatar-upload__image" />
+				<div>
+					<p className="ec-field-group__help">
+						Upload a new image to change your avatar.
+					</p>
+					<label
+						className={ `button-3 button-small${ uploading ? ' is-disabled' : '' }` }
+						style={ uploading ? styles.disabledButton : undefined }
+					>
+						{ uploading ? 'Uploading...' : 'Upload New Avatar' }
+						<input
+							type="file"
+							accept="image/*"
+							onChange={ handleFileChange }
+							disabled={ uploading }
+							style={ styles.visuallyHiddenInput }
+						/>
+					</label>
+				</div>
 			</div>
-		</div>
+		</FieldGroup>
 	);
 }
 
@@ -144,38 +115,37 @@ function LinksManager( {
 
 	return (
 		<div>
-			<p style={ styles.mutedText }>Add links to your website, social media, streaming, etc.</p>
+			<p className="ec-field-group__help">Add links to your website, social media, streaming, etc.</p>
 			{ links.map( ( link, index ) => (
-				<div key={ index } style={ styles.linkRow }>
-					<select
-						style={ styles.linkSelect }
-						value={ link.type_key }
-						onChange={ ( e ) => updateLink( index, 'type_key', e.target.value ) }
-					>
-						{ Object.entries( linkTypes ).map( ( [ key, label ] ) => (
-							<option key={ key } value={ key }>{ label }</option>
-						) ) }
-					</select>
-					<input
-						type="url"
-						style={ styles.linkInput }
-						value={ link.url }
-						onChange={ ( e ) => updateLink( index, 'url', e.target.value ) }
-						placeholder="https://..."
-					/>
-					{ link.type_key === 'other' && (
+				<FieldGroup key={ index }>
+					<div className="ec-link-row">
+						<select
+							value={ link.type_key }
+							onChange={ ( e ) => updateLink( index, 'type_key', e.target.value ) }
+						>
+							{ Object.entries( linkTypes ).map( ( [ key, label ] ) => (
+								<option key={ key } value={ key }>{ label }</option>
+							) ) }
+						</select>
 						<input
-							type="text"
-							style={ { ...styles.linkInput, minWidth: '120px', flex: 'none', width: '140px' } }
-							value={ link.custom_label || '' }
-							onChange={ ( e ) => updateLink( index, 'custom_label', e.target.value ) }
-							placeholder="Label"
+							type="url"
+							value={ link.url }
+							onChange={ ( e ) => updateLink( index, 'url', e.target.value ) }
+							placeholder="https://..."
 						/>
-					) }
-					<button type="button" className="button-3 button-small" onClick={ () => removeLink( index ) } title="Remove link">
-						Remove
-					</button>
-				</div>
+						{ link.type_key === 'other' && (
+							<input
+								type="text"
+								value={ link.custom_label || '' }
+								onChange={ ( e ) => updateLink( index, 'custom_label', e.target.value ) }
+								placeholder="Label"
+							/>
+						) }
+						<button type="button" className="button-3 button-small" onClick={ () => removeLink( index ) } title="Remove link">
+							Remove
+						</button>
+					</div>
+				</FieldGroup>
 			) ) }
 			<ActionRow>
 				<button type="button" className="button-3 button-small" onClick={ addLink }>
@@ -354,7 +324,6 @@ function EditProfileApp( {
 												<a
 													href={ `${ artistSiteUrl }/manage-artist/` }
 													className="button-2 button-small"
-													style={ styles.inlineButtonLink }
 												>
 													Manage Artist
 												</a>
@@ -364,13 +333,12 @@ function EditProfileApp( {
 												<a
 													href={ `${ artistSiteUrl }/create-artist/` }
 													className="button-2 button-small"
-													style={ styles.inlineButtonLink }
 												>
 													Create Artist Profile
 												</a>
 											</ActionRow>
 										) : (
-											<p style={ styles.mutedText }>No artist profiles available yet.</p>
+											<p className="ec-field-group__help">No artist profiles available yet.</p>
 										) }
 									</Panel>
 								) : null;
@@ -393,7 +361,6 @@ function EditProfileApp( {
 						<a
 							href={ profileUrl }
 							className="button-3 button-small"
-							style={ styles.inlineButtonLink }
 						>
 							View Public Profile
 						</a>
