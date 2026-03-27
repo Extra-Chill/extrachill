@@ -126,6 +126,9 @@ class LocationCommand {
 	 * @return array
 	 */
 	private function run_alignment_ability( array $assoc_args, bool $apply ): array {
+		// CLI commands run as admin — set current user so ability permission check passes.
+		wp_set_current_user( 1 );
+
 		$ability = wp_get_ability( 'extrachill/reconcile-event-locations' );
 
 		if ( ! $ability ) {
