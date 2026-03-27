@@ -623,6 +623,7 @@ const App = () => {
 		<BlockShell className="ec-am">
 			<BlockShellInner maxWidth="wide">
 				<BlockShellHeader
+					title={artistName || 'Manage Artist'}
 					actions={
 						<ActionRow align="end" className="ec-am__toolbar">
 							<ArtistSwitcher
