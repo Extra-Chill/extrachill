@@ -6,7 +6,6 @@
 
 get_header();
 ?>
-<section class="main-content">
 <?php extrachill_breadcrumbs(); ?>
 
 <?php
@@ -103,7 +102,6 @@ if ($recent_feed && !empty($recent_feed['items'])) {
 }
 
 ?>
-</section>
 <?php
 get_footer();
 ?>

@@ -5,14 +5,12 @@
 
 get_header();
 
-echo '<section class="main-content">';
-
 extrachill_breadcrumbs();
 
 $isUserProfile = bbp_is_single_user();
 
 if ( ! $isUserProfile ) {
-	echo '<div class="ec-edge-gutter"><h1>' . esc_html( get_the_title() ) . '</h1></div>';
+	echo '<div class="page-content"><h1>' . esc_html( get_the_title() ) . '</h1></div>';
 }
 
 if ( have_posts() ) :
@@ -20,7 +18,5 @@ if ( have_posts() ) :
 		the_content();
 	endwhile;
 endif;
-
-echo '</section>';
 
 get_footer();

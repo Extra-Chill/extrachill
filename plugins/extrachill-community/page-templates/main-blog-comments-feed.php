@@ -9,7 +9,6 @@
 
 get_header();
 ?>
-<section class="main-content">
 <?php extrachill_breadcrumbs(); ?>
 
 <?php
@@ -51,7 +50,6 @@ endif;
     endwhile; // End of the loop.
 
     ?>
-</section>
 <?php
 get_footer();
 ?>

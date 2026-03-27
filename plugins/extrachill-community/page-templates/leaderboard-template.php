@@ -9,7 +9,6 @@
 
 get_header();
 ?>
-<section class="main-content">
 <?php extrachill_breadcrumbs(); ?>
 
 <?php
@@ -70,7 +69,6 @@ if ($total_pages > 1) {
 }
 
 ?>
-</section>
 <?php
 get_footer();
 ?>
