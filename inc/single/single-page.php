@@ -13,7 +13,6 @@ get_header(); ?>
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
-<section class="main-content">
 <?php
 while ( have_posts() ) :
 	the_post();
@@ -40,7 +39,6 @@ while ( have_posts() ) :
 	</article>
 
 <?php endwhile; ?>
-	</section>
 
 <?php do_action( 'extrachill_after_body_content' ); ?>
 

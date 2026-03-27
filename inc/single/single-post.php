@@ -10,7 +10,6 @@ get_header(); ?>
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
-<section class="main-content">
 	<?php
 	while ( have_posts() ) :
 		the_post();
@@ -72,7 +71,7 @@ get_header(); ?>
 	}
 	?>
 </aside>
-</section><!-- .main-content -->
+
 
 <?php get_sidebar(); ?>
 
