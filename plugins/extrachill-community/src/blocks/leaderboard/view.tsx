@@ -136,6 +136,7 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
 				<BlockShellHeader
+					title="Leaderboard"
 					description="See the most active members of the Extra Chill community."
 				/>
 				<Panel depth={ 1 }>

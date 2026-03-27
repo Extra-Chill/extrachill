@@ -286,6 +286,7 @@ function EditProfileApp( {
 		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
 				<BlockShellHeader
+					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."
 				/>
 				{ notice && <Notice type={ notice.type } message={ notice.message } /> }

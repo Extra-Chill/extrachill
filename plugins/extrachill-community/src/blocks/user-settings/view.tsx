@@ -277,7 +277,7 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 	return (
 		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
-				<BlockShellHeader description="Manage your account, security, subscriptions, and artist platform access." />
+				<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." />
 				<ResponsiveTabs
 					tabs={ tabs }
 					active={ activeTab }
