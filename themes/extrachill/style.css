@@ -1245,7 +1245,8 @@ p.site-title {
 			padding-right: var(--spacing-md);
 		}
 
-		body.page.bbpress .extrachill-content {
+		body.page.bbpress .extrachill-content,
+		body.page-template .extrachill-content {
 			padding-left: 0;
 			padding-right: 0;
 		}
