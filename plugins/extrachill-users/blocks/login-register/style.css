@@ -1,8 +1,6 @@
 /* --- Login/Register Form Styles - Using Centralized Variables --- */
 
-.login-register-shell {
-	width: 100%;
-}
+
 
 /* --- Utility Classes --- */
 .hidden {
@@ -10,7 +8,6 @@
 }
 
 .login-register-form {
-	padding: 0;
 }
 
 .login-register-form p {
