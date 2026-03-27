@@ -243,6 +243,8 @@
 
 	.ec-block-shell-inner {
 		max-width: none;
+		padding-left: var(--spacing-md, 1rem);
+		padding-right: var(--spacing-md, 1rem);
 	}
 
 	.ec-responsive-tabs__inner {

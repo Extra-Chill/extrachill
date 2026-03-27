@@ -15,7 +15,6 @@ export function BlockShellInner( {
 }: BlockShellInnerProps ) {
 	const innerClass = [
 		classPrefix,
-		'page-content',
 		maxWidth !== 'none' ? `${ classPrefix }--${ maxWidth }` : '',
 		className,
 	]
