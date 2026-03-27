@@ -703,16 +703,9 @@ body {
 /*
  * Mobile edge contract
  *
- * Layer 1 — shell: owns the outer horizontal span / viewport breakout.
- *   Class: .ec-edge-shell
- *
- * Layer 2 — gutter: restores safe inner horizontal padding for loose page chrome
- * like breadcrumbs, headings, toolbars, descriptions, CTA rows.
- *   Class: .ec-edge-gutter
- *
- * Layer 3 — surface: actual card/panel/form that should flatten and run flush on
- * phones while keeping desktop card styling.
- *   Class: .ec-edge-surface
+ * Global chrome uses .ec-global-full-width-panel (header, footer, secondary header).
+ * Selective mobile breakouts use .ec-mobile-full-width-panel (cards, panels, grids).
+ * Default page chrome keeps upstream gutter via .page-content / .entry-content.
  */
 
 /* Full-width breakout utility - breaks out of .extrachill-content container */
@@ -727,9 +720,9 @@ body {
 	position: relative;
 }
 
-.extrachill-content > .main-content > .ec-edge-shell,
-.extrachill-content > .ec-edge-shell,
-.extrachill-content .full-width-breakout.ec-edge-shell,
+.extrachill-content > .main-content > .ec-mobile-full-width-panel,
+.extrachill-content > .ec-mobile-full-width-panel,
+.extrachill-content .full-width-breakout.ec-mobile-full-width-panel,
 .ec-full-width-panel,
 .ec-global-full-width-panel {
 	width: 100vw;
