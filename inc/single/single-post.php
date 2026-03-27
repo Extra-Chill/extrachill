@@ -42,7 +42,9 @@ get_header(); ?>
 		</figure>
 	<?php endif; ?>
 
-		<?php the_content(); ?>
+		<div class="entry-content">
+			<?php the_content(); ?>
+		</div>
 
 		<?php do_action( 'extrachill_after_post_content' ); ?>
 	</article>
