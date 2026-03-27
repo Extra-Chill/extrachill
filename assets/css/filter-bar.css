@@ -109,6 +109,10 @@
 		justify-content: space-between;
 		gap: var(--spacing-sm);
 		padding: var(--spacing-sm);
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+		box-shadow: none;
 	}
 
 	.filter-bar-dropdowns {
