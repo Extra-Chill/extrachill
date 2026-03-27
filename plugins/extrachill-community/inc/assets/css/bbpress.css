@@ -799,7 +799,9 @@ p.private-forums {
 
 @media (max-width: 480px) {
     .community-section-header,
-    .breadcrumbs {
+    .breadcrumbs,
+    .bbp-forum-description,
+    .ec-single-forum-create-topic {
         padding-left: var(--spacing-md);
         padding-right: var(--spacing-md);
     }
