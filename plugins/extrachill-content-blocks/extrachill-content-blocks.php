@@ -89,3 +89,65 @@ function extrachill_content_blocks_register_newsletter_integration( $integration
 	return $integrations;
 }
 add_filter( 'newsletter_form_integrations', 'extrachill_content_blocks_register_newsletter_integration' );
+
+/**
+ * Content blocks available in all editors (Gutenberg, Studio IBE, Community BE).
+ *
+ * @return string[] Block names.
+ */
+function extrachill_content_blocks_get_all_block_names() {
+	return array(
+		'extrachill/trivia',
+		'extrachill/image-voting',
+		'extrachill/band-name-generator',
+		'extrachill/rapper-name-generator',
+		'extrachill/ai-adventure',
+		'extrachill/ai-adventure-path',
+		'extrachill/ai-adventure-step',
+	);
+}
+
+/**
+ * Content blocks suitable for lightweight editors (forums, comments).
+ * Excludes AI adventure which is a heavy interactive experience.
+ *
+ * @return string[] Block names.
+ */
+function extrachill_content_blocks_get_lightweight_block_names() {
+	return array(
+		'extrachill/trivia',
+		'extrachill/image-voting',
+		'extrachill/band-name-generator',
+		'extrachill/rapper-name-generator',
+	);
+}
+
+/**
+ * Self-register content blocks into Blocks Everywhere allowlist.
+ *
+ * Uses lightweight set for bbPress (community forums) to keep posts focused.
+ * Uses full set for other editor types (studio, etc.).
+ *
+ * @param string[] $allowed_blocks Current allowed blocks.
+ * @param string   $editor_type    Editor context (e.g., 'bbpress').
+ * @return string[]
+ */
+function extrachill_content_blocks_be_allowlist( $allowed_blocks, $editor_type = '' ) {
+	$blocks = ( 'bbpress' === $editor_type )
+		? extrachill_content_blocks_get_lightweight_block_names()
+		: extrachill_content_blocks_get_all_block_names();
+
+	return array_values( array_unique( array_merge( $allowed_blocks, $blocks ) ) );
+}
+add_filter( 'blocks_everywhere_allowed_blocks', 'extrachill_content_blocks_be_allowlist', 20, 2 );
+
+/**
+ * Self-register content blocks into Studio Compose IBE allowlist.
+ *
+ * @param string[] $allowed_blocks Current allowed blocks.
+ * @return string[]
+ */
+function extrachill_content_blocks_studio_allowlist( $allowed_blocks ) {
+	return array_values( array_unique( array_merge( $allowed_blocks, extrachill_content_blocks_get_all_block_names() ) ) );
+}
+add_filter( 'extrachill_studio_allowed_blocks', 'extrachill_content_blocks_studio_allowlist' );
