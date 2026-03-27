@@ -695,6 +695,10 @@ body {
 	gap: var(--spacing-lg);
 }
 
+.content-column {
+	min-width: 0;
+}
+
 /* Single column layout when no sidebar */
 .extrachill-content:not(:has(.sidebar)) {
 	display: block;
