@@ -22,12 +22,6 @@
     flex-wrap: wrap;
 }
 
-/* Override theme .page-content ul margin/padding */
-.page-content .discovery-scope-nav ul {
-    margin: 0;
-    padding: 0;
-}
-
 .discovery-scope-nav li a {
     display: block;
     padding: var(--spacing-xs) var(--spacing-md);
