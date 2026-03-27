@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2026-03-27
+
+### Fixed
+- load block business logic PHP files for REST API endpoints
+
 ## [1.1.1] - 2026-03-27
 
 ### Changed
