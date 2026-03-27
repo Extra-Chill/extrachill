@@ -42,7 +42,7 @@
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@extrachill/api-client": "^0.2.1",
-    "@extrachill/components": "^0.4.47",
+    "@extrachill/components": "^0.4.48",
     "@wordpress/api-fetch": "^7.0.0",
     "@wordpress/block-editor": "^14.0.0",
     "@wordpress/blocks": "^15.9.0",
