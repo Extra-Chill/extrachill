@@ -114,15 +114,6 @@ function enqueue_editor_inline_styles() {
 	border-bottom: 1px solid var(--border-color);
 }
 
-/* Hide the empty IBE header on mobile — the detached sidebar
-   collapses to single-column and the inserter is unreachable,
-   so the header bar is dead chrome eating vertical space. */
-@media (max-width: 480px) {
-	.ec-studio-compose-editor .interface-interface-skeleton__header {
-		display: none;
-	}
-}
-
 /* Placeholder styling */
 .ec-studio-compose-editor .block-editor-default-block-appender__content {
 	color: var(--muted-text);
@@ -187,6 +178,10 @@ function configure_compose_editor( array $settings ): array {
 
 	// Upload permissions for logged-in team members.
 	$settings['editor']['hasUploadPermissions'] = current_user_can( 'upload_files' );
+
+	// Provide MIME types so the Media tab in the inserter can show
+	// existing uploads filtered by type (images, video, audio).
+	$settings['editor']['allowedMimeTypes'] = get_allowed_mime_types();
 
 	// Provide Studio-specific REST endpoints.
 	$settings['studio'] = array(
