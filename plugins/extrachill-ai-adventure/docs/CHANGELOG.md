@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-03-27
+
+### Added
+- initial release - standalone AI adventure plugin
+
 ## [1.0.0] - 2026-03-27
 
 ### Added
