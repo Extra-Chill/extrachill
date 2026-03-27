@@ -703,9 +703,10 @@ body {
 /*
  * Mobile edge contract
  *
- * Global chrome uses .ec-global-full-width-panel (header, footer, secondary header).
- * Selective mobile breakouts use .ec-mobile-full-width-panel (cards, panels, grids).
- * Default page chrome keeps upstream gutter via .page-content / .entry-content.
+ * .extrachill-content owns the default gutter.
+ * .ec-mobile-full-width-panel is the single opt-out: elements that should
+ * go edge-to-edge on mobile (cards, panels, grids, accordions).
+ * On desktop, ec-mobile-full-width-panel does nothing.
  */
 
 /* Full-width breakout utility - breaks out of .extrachill-content container */
@@ -716,32 +717,6 @@ body {
 	transform: translateX(-50%);
 	padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
 	padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
-	box-sizing: border-box;
-	position: relative;
-}
-
-.extrachill-content > .main-content > .ec-mobile-full-width-panel,
-.extrachill-content > .ec-mobile-full-width-panel,
-.extrachill-content .full-width-breakout.ec-mobile-full-width-panel,
-.ec-full-width-panel,
-.ec-global-full-width-panel {
-	width: 100vw;
-	max-width: 100vw;
-	margin-left: 50%;
-	transform: translateX(-50%);
-	padding-left: 0;
-	padding-right: 0;
-	box-sizing: border-box;
-	position: relative;
-}
-
-.ec-mobile-full-width-panel {
-	width: auto;
-	max-width: 100%;
-	margin-left: 0;
-	transform: none;
-	padding-left: 0;
-	padding-right: 0;
 	box-sizing: border-box;
 	position: relative;
 }
@@ -760,12 +735,9 @@ body {
 
 /* Default horizontal gutter.
  * .extrachill-content is the single upstream wrapper between header and footer.
- * .page-content and .entry-content own the gutter inside cards/panels
- * that break out via ec-mobile-full-width-panel.
+ * ec-mobile-full-width-panel is the only opt-out.
  */
-.extrachill-content,
-.page-content,
-.entry-content {
+.extrachill-content {
 	padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
 	padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
 }
@@ -1254,15 +1226,12 @@ p.site-title {
 }
 
 /*
- * Small screens - edge-to-edge (480px covers virtually all phones in portrait)
-	 * This is the canonical source of truth for mobile left/right screen-edge behavior.
-	 * Global chrome uses .ec-global-full-width-panel. Selective mobile breakouts
-	 * use .ec-mobile-full-width-panel. Default page chrome keeps upstream gutter.
-	 */
+ * Small screens (480px covers virtually all phones in portrait)
+ * .extrachill-content tightens the default gutter.
+ * .ec-mobile-full-width-panel breaks out edge-to-edge.
+ */
 	@media screen and (max-width: 480px) {
 		.extrachill-content,
-		.page-content,
-		.entry-content,
 		#masthead,
 		.footer-menus-wrapper,
 		.footer-copyright {
@@ -1270,28 +1239,13 @@ p.site-title {
 			padding-right: var(--spacing-md);
 		}
 
-	.ec-mobile-full-width-panel {
-		width: 100vw;
-		max-width: 100vw;
-		margin-left: 50%;
-		transform: translateX(-50%);
-		padding-left: 0;
-		padding-right: 0;
-	}
-
-	body .main-content > .ec-mobile-full-width-panel {
-		padding-left: 0;
-		padding-right: 0;
-	}
-
-	body .main-content > .ec-mobile-full-width-panel {
-		margin-left: 50%;
-		transform: translateX(-50%);
-		width: 100vw;
-		max-width: 100vw;
-	}
-
 		.ec-mobile-full-width-panel {
+			width: 100vw;
+			max-width: 100vw;
+			margin-left: 50%;
+			transform: translateX(-50%);
+			padding-left: 0;
+			padding-right: 0;
 			border-radius: 0;
 			border-left: none;
 			border-right: none;
