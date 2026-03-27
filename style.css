@@ -318,6 +318,7 @@ select {
 }
 
 textarea {
+	width: 100%;
 	padding: var(--spacing-sm) var(--spacing-md);
 	border: 1px solid var(--border-color);
 	line-height: 1.5;
@@ -1273,6 +1274,18 @@ p.site-title {
 			border-left: none;
 			border-right: none;
 			box-shadow: none;
+		}
+
+		/* Form elements must never overflow their container on small screens. */
+		select {
+			width: 100%;
+			max-width: 100%;
+		}
+
+		input[type="text"], input[type="email"], input[type="url"],
+		input[type="password"], input[type="number"], input[type="date"],
+		input[type="time"], input[type="search"], textarea {
+			max-width: 100%;
 		}
 
 	body.single-post .entry-content > .alignfull,
