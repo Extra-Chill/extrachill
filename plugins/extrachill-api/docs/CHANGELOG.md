@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.12.3] - 2026-03-27
+
+### Changed
+- remove AI adventure route, now owned by extrachill-ai-adventure plugin
+
 ## [0.12.2] - 2026-03-27
 
 ### Changed
