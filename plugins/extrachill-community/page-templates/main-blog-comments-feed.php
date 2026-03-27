@@ -18,17 +18,17 @@ $isUserProfile = bbp_is_single_user();
 
 if ($isUserProfile) {
     $title = '@' . bbp_get_displayed_user_field('user_nicename');
-    echo '<div class="page-content"><h1 class="profile-title-inline">' . $title . '</h1></div>';
+    echo '<div class="community-section-header"><h1 class="profile-title-inline">' . $title . '</h1></div>';
 
 } else {
     // Display the title for non-profile pages
-    echo '<div class="page-content"><h1>' . get_the_title() . '</h1></div>';
+    echo '<div class="community-section-header"><h1>' . get_the_title() . '</h1></div>';
 }
 
 if (is_user_logged_in()) :
-    echo '<div class="page-content"><p>Logged in as <a href="' . bbp_get_user_profile_url(wp_get_current_user()->ID) . '">' . esc_html(wp_get_current_user()->display_name) . '.</a></p></div>';
+    echo '<div class="community-section-header"><p>Logged in as <a href="' . bbp_get_user_profile_url(wp_get_current_user()->ID) . '">' . esc_html(wp_get_current_user()->display_name) . '.</a></p></div>';
 else :
-    echo '<div class="page-content"><p>You are not signed in. <a href="/login">Login</a> or <a href="/register">Register</a></p></div>';
+    echo '<div class="community-section-header"><p>You are not signed in. <a href="/login">Login</a> or <a href="/register">Register</a></p></div>';
 endif;
 
 ?>

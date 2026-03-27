@@ -14,7 +14,7 @@ get_header();
 <?php
 
 // Display leaderboard title
-echo '<div class="page-content"><h1 class="leaderboard-title">' . __('Leaderboard', 'your-theme') . '</h1></div>';
+echo '<div class="community-section-header"><h1 class="leaderboard-title">' . __('Leaderboard', 'your-theme') . '</h1></div>';
 
 // Output the standard WordPress content within the div
 if (have_posts()) :
