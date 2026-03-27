@@ -1247,11 +1247,15 @@ p.site-title {
 
 		#masthead,
 		.footer-menus-wrapper,
-		.footer-copyright,
-		.breadcrumbs,
-		.page-header,
-		.taxonomy-description,
-		.author-bio {
+		.footer-copyright {
+			padding-left: var(--spacing-md);
+			padding-right: var(--spacing-md);
+		}
+
+		body:not(.page) .breadcrumbs,
+		body:not(.page) .page-header,
+		body:not(.page) .taxonomy-description,
+		body:not(.page) .author-bio {
 			padding-left: var(--spacing-md);
 			padding-right: var(--spacing-md);
 		}
