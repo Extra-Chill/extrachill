@@ -98,6 +98,14 @@ function renderAccordion(
 			renderDesktopPanel( root, tabId, onPanelRender );
 			renderAccordion( root, tabId, hashPrefix, onPanelRender );
 			setActiveDesktopTab( root, tabId );
+
+			// Scroll the newly-opened trigger into view after the panel renders.
+			requestAnimationFrame( () => {
+				const newTrigger = root.querySelector<HTMLElement>(
+					`.ec-responsive-tabs__trigger[data-tab-id="${ tabId }"]`
+				);
+				newTrigger?.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+			} );
 		} );
 
 		accordion.appendChild( item );

@@ -159,7 +159,7 @@ export function ResponsiveTabs( {
 								type="button"
 								className={ `${ classPrefix }__trigger${ isActive ? ' is-active' : '' }` }
 								aria-expanded={ isActive }
-								onClick={ () => {
+								onClick={ ( e ) => {
 								if ( isActive ) {
 									setMobileActive( null );
 									return;
@@ -167,6 +167,10 @@ export function ResponsiveTabs( {
 
 								setMobileActive( tab.id );
 								handleChange( tab.id );
+								const trigger = e.currentTarget;
+								requestAnimationFrame( () => {
+									trigger.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+								} );
 							} }
 						>
 								<span>{ tab.label }</span>
