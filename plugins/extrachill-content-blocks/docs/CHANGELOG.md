@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-03-27
+
+### Changed
+- auto-fix PHPCS coding standard violations
+- extract shared content blocks plugin
+- Bump version to 1.1.0
+- moved api into extrachill-api as foundational step for creation of the extra chill api
+- blocks functional and ready for boogieman costume contest
+- getting image voting block ready for Boogieman Festival Costume Contest 2025
+- Enhance image-voting block with newsletter integration and WordPress standards compliance
+- Update blocks, remove deprecated files, and refine AI adventure
+- Add vendor/ to .gitignore
+- Add .gitignore and remove node_modules/build from tracking
+- Initial commit: ExtraChill Blocks plugin
+
 ## [1.1.0] - 2026-03-27
 
 ### Added
