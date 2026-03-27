@@ -11,12 +11,10 @@
 $featured_image_size = 'medium_large';
 ?>
 
-<div class="archive-card ec-surface-card ec-mobile-full-width-panel">
+<div class="archive-card">
 	<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
-		<div class="page-content">
-			<?php do_action( 'extrachill_archive_above_tax_badges' ); ?>
-			<?php extrachill_display_taxonomy_badges( get_the_ID() ); ?>
-		</div>
+		<?php do_action( 'extrachill_archive_above_tax_badges' ); ?>
+		<?php extrachill_display_taxonomy_badges( get_the_ID() ); ?>
 
 		<?php
 		if ( isset( $post->_thumbnail ) && ! empty( $post->_thumbnail['thumbnail_url'] ) ) {
@@ -47,7 +45,7 @@ $featured_image_size = 'medium_large';
 			</div>
 		<?php } ?>
 
-		<div class="archive-post page-content">
+		<div class="archive-post">
 			<header>
 				<h2>
 					<a href="<?php echo isset( $post->permalink ) ? esc_url( $post->permalink ) : the_permalink(); ?>" class="card-link-target" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>
