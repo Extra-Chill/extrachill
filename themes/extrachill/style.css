@@ -759,10 +759,12 @@ body {
 /* WooCommerce functionality handled by ExtraChill Shop plugin */
 
 /* Default horizontal gutter for content containers.
- * .main-content owns the outermost gutter.
- * .page-content and .entry-content own the gutter inside cards/panels
- * that may break out via ec-mobile-full-width-panel.
+ * .extrachill-content is the outermost wrapper (some templates
+ * render breadcrumbs here before .main-content).
+ * .main-content, .page-content, .entry-content own the gutter
+ * inside cards/panels that may break out via ec-mobile-full-width-panel.
  */
+.extrachill-content,
 .main-content,
 .page-content,
 .entry-content {
@@ -1264,6 +1266,7 @@ p.site-title {
 	 * use .ec-mobile-full-width-panel. Default page chrome keeps upstream gutter.
 	 */
 	@media screen and (max-width: 480px) {
+		.extrachill-content,
 		.main-content,
 		.page-content,
 		.entry-content,
