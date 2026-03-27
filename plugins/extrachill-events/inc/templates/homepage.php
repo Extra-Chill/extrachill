@@ -17,7 +17,7 @@ extrachill_breadcrumbs();
 ?>
 
 <article class="events-homepage">
-	<div class="ec-edge-gutter">
+	<div class="page-content">
 		<header>
 			<h1 class="page-title"><?php esc_html_e( 'Live Music Calendar', 'extrachill-events' ); ?></h1>
 			<?php extrachill_events_render_calendar_stats(); ?>
@@ -26,7 +26,7 @@ extrachill_breadcrumbs();
 
 		<div class="entry-content" itemprop="text">
 			<?php do_action( 'extrachill_events_home_before_calendar' ); ?>
-			<div class="events-calendar-container ec-edge-shell">
+			<div class="events-calendar-container ec-mobile-full-width-panel">
 				<?php
 				$homepage_id = get_option( 'page_on_front' );
 

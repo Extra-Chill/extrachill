@@ -18,8 +18,8 @@ $label = extrachill_events_get_scope_label( $scope );
 ?>
 
 
-<div class="events-calendar-container ec-edge-shell">
-	<div class="ec-edge-gutter">
+<div class="events-calendar-container ec-mobile-full-width-panel">
+	<div class="page-content">
 	<header class="taxonomy-archive-header location-archive-header">
 		<h1 class="page-title">Live Music in <?php echo esc_html( $term->name ); ?> <?php echo esc_html( $label ); ?></h1>
 		<?php if ( term_description() ) : ?>
@@ -32,14 +32,16 @@ $label = extrachill_events_get_scope_label( $scope );
 	<?php do_action( 'extrachill_archive_below_description' ); ?>
 	</div>
 
-	<?php
-	echo do_blocks(
-		sprintf(
-			'<!-- wp:data-machine-events/calendar {"defaultDateRange":"%s"} /-->',
-			esc_attr( $scope )
-		)
-	);
-	?>
+	<div class="page-content">
+		<?php
+		echo do_blocks(
+			sprintf(
+				'<!-- wp:data-machine-events/calendar {"defaultDateRange":"%s"} /-->',
+				esc_attr( $scope )
+			)
+		);
+		?>
+	</div>
 </div>
 
 <?php get_footer(); ?>

@@ -15,8 +15,8 @@ extrachill_breadcrumbs();
 ?>
 
 
-<div class="events-calendar-container ec-edge-shell">
-	<div class="ec-edge-gutter">
+<div class="events-calendar-container ec-mobile-full-width-panel">
+	<div class="page-content">
 	<?php
 	if ( is_tax( 'venue' ) ) :
 		$term              = get_queried_object();
@@ -98,7 +98,9 @@ extrachill_breadcrumbs();
 	<?php do_action( 'extrachill_archive_below_description' ); ?>
 	</div>
 
-	<?php echo do_blocks( '<!-- wp:data-machine-events/calendar /-->' ); ?>
+	<div class="page-content">
+		<?php echo do_blocks( '<!-- wp:data-machine-events/calendar /-->' ); ?>
+	</div>
 </div>
 
 <?php get_footer(); ?>
