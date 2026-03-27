@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.12.2] - 2026-03-27
+
+### Changed
+- move block API routes from /blog/ to /content-blocks/ namespace
+
 ## [0.12.1] - 2026-03-25
 
 ### Changed
