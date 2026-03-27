@@ -11,6 +11,11 @@
  * - New York City boroughs (Brooklyn, Queens, Manhattan, Bronx, Staten Island)
  * - Extra Chill municipality-to-market rollups (for example North Charleston → Charleston)
  *
+ * Fires on the `datamachine_event_taxonomy_processed` action, which runs after
+ * TaxonomyHandler has set all taxonomy terms (including location). This ensures
+ * the normalizer can read and correct the location term that was assigned by the
+ * import flow.
+ *
  * @package ExtraChillEvents
  * @since 0.8.4
  */
@@ -19,19 +24,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action( 'save_post_data_machine_events', 'extrachill_events_normalize_location', 20, 2 );
+add_action( 'datamachine_event_taxonomy_processed', 'extrachill_events_normalize_location' );
 
 /**
  * Normalize event location based on venue market.
  *
- * Fires on event save. Looks up the venue city/state/zip from term meta
- * and corrects the location taxonomy if it maps to a different term
- * than what was assigned by the import pipeline.
+ * Fires after TaxonomyHandler has set all taxonomy terms on an event.
+ * Looks up the venue city/state/zip from term meta and corrects the
+ * location taxonomy if it maps to a different term than what was assigned
+ * by the import pipeline.
  *
- * @param int     $post_id Post ID.
- * @param WP_Post $post    Post object.
+ * @param int $post_id Post ID.
  */
-function extrachill_events_normalize_location( $post_id, $post ) {
+function extrachill_events_normalize_location( $post_id ) {
 	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
 		return;
 	}
