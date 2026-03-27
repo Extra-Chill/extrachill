@@ -51,9 +51,9 @@ function ec_news_wire_render_festival_hub_header() {
 		return;
 	}
 
-	echo '<div class="full-width-breakout ec-edge-shell">';
+	echo '<div class="full-width-breakout ec-mobile-full-width-panel">';
 	echo '<div class="article-container">';
-	echo '<div class="archive-extra-meta ec-edge-gutter">';
+	echo '<div class="archive-extra-meta page-content">';
 
 	if ( '' !== $meta['start_date'] || '' !== $meta['end_date'] ) {
 		echo '<div class="archive-extra-meta-item">';
