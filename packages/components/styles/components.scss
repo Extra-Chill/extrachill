@@ -239,6 +239,8 @@
 	.ec-block-shell {
 		padding-left: 0;
 		padding-right: 0;
+		margin-left: calc(-1 * var(--spacing-md, 1rem));
+		margin-right: calc(-1 * var(--spacing-md, 1rem));
 	}
 
 	.ec-block-shell-inner {
@@ -560,6 +562,8 @@
 @media screen and (max-width: 480px) {
 	.ec-block-shell-header {
 		padding-bottom: var(--spacing-sm, 0.5rem);
+		padding-left: var(--spacing-md, 1rem);
+		padding-right: var(--spacing-md, 1rem);
 	}
 
 	.ec-mobile-full-width-panel .ec-shell-tabs {
