@@ -26,6 +26,31 @@ define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
+ * Load block business logic (PHP functions called by REST API routes).
+ *
+ * These index.php files contain the server-side logic for interactive blocks
+ * (name generators, image voting). They are not auto-loaded by register_block_type()
+ * since block.json only references render.php, JS, and CSS.
+ */
+function extrachill_content_blocks_load_business_logic() {
+	$blocks_dir = file_exists( __DIR__ . '/build/blocks' ) ? 'build/blocks' : 'src/blocks';
+	$base       = __DIR__ . '/' . $blocks_dir;
+
+	$logic_files = array(
+		'/band-name-generator/index.php',
+		'/rapper-name-generator/index.php',
+		'/image-voting/index.php',
+	);
+
+	foreach ( $logic_files as $file ) {
+		if ( file_exists( $base . $file ) ) {
+			require_once $base . $file;
+		}
+	}
+}
+extrachill_content_blocks_load_business_logic();
+
+/**
  * Register the shared content blocks.
  *
  * In development: registers from src/blocks/
