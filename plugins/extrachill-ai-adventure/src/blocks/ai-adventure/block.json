@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/ai-adventure",
+	"version": "1.1.1",
+	"title": "AI Adventure",
+	"category": "widgets",
+	"icon": "games",
+	"description": "The main container block for an AI-powered text adventure.",
+	"example": {},
+	"supports": {
+		"html": false
+	},
+	"attributes": {
+		"title": {
+			"type": "string"
+		},
+		"adventurePrompt": {
+			"type": "string"
+		},
+		"gameMasterPersona": {
+			"type": "string",
+			"default": "You are a helpful and creative text-based adventure game master."
+		},
+		"innerBlocksJSON": {
+			"type": "string",
+			"default": "[]"
+		}
+	},
+	"textdomain": "extrachill-ai-adventure",
+	"editorScript": "file:./index.js",
+	"viewScript": "file:./view.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"render": "file:./render.php",
+	"providesContext": {
+		"extrachill/adventurePrompt": "adventurePrompt"
+	}
+}

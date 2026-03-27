@@ -1,0 +1,12 @@
+{
+  "name": "extrachill-ai-adventure",
+  "version": "1.0.0",
+  "description": "AI-powered interactive text adventure block for WordPress",
+  "scripts": {
+    "build": "wp-scripts build --webpack-copy-php",
+    "start": "wp-scripts start --webpack-copy-php"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^30.0.0"
+  }
+}

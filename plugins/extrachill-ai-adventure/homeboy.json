@@ -1,0 +1,23 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {}
+  },
+  "id": "extrachill-ai-adventure",
+  "remote_path": "wp-content/plugins/extrachill-ai-adventure",
+  "version_targets": [
+    {
+      "file": "extrachill-ai-adventure.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-ai-adventure.php",
+      "pattern": "EXTRACHILL_AI_ADVENTURE_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "package.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    }
+  ]
+}
