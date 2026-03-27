@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.13] - 2026-03-27
+
+### Fixed
+- allow Google sign-in button to shrink below 360px
+
 ## [0.7.12] - 2026-03-27
 
 ### Changed
