@@ -1246,7 +1246,8 @@ p.site-title {
 		}
 
 		body.page.bbpress .extrachill-content,
-		body.page-template .extrachill-content {
+		body.page-template-recent-feed-template .extrachill-content,
+		body.page-template-main-blog-comments-feed .extrachill-content {
 			padding-left: 0;
 			padding-right: 0;
 		}
