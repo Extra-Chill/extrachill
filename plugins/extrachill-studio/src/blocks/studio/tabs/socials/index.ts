@@ -94,7 +94,6 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 				h(
 					PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, null ),
 				createElement( 'p', null, sprintf( __( '%d connected, %d publish-capable.', 'extrachill-studio' ), connectedPlatforms.length, publishPlatforms.length ) ),
 				createElement(
 					'ul',
@@ -127,7 +126,6 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 				h(
 					PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, null ),
 				createElement( 'p', null, __( 'Each connected platform has its own publishing workflow below. New platforms appear automatically when connected in Data Machine.', 'extrachill-studio' ) ),
 				createElement(
 					'ul',
