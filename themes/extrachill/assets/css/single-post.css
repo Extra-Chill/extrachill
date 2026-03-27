@@ -19,7 +19,7 @@
 
 @media (max-width: 900px) {
   .single-post-card {
-    padding: var(--spacing-md) 0;
+    padding: var(--spacing-md);
     margin: var(--spacing-md) auto;
   }
 }

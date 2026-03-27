@@ -1235,17 +1235,20 @@ p.site-title {
  * .ec-mobile-full-width-panel breaks out edge-to-edge.
  */
 	@media screen and (max-width: 480px) {
-		.extrachill-content,
+		.extrachill-content {
+			padding-left: 0;
+			padding-right: 0;
+		}
+
 		#masthead,
 		.footer-menus-wrapper,
-		.footer-copyright {
+		.footer-copyright,
+		.breadcrumbs {
 			padding-left: var(--spacing-md);
 			padding-right: var(--spacing-md);
 		}
 
 		.ec-mobile-full-width-panel {
-			margin-left: calc(-1 * var(--spacing-md));
-			margin-right: calc(-1 * var(--spacing-md));
 			border-radius: 0;
 			border-left: none;
 			border-right: none;
