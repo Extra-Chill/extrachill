@@ -402,6 +402,15 @@ class EventLocationAlignmentAbilities {
 		}
 
 		if ( count( $matches ) > 1 ) {
+			// Disambiguate using venue state — match against parent term (state level).
+			$resolved = $this->disambiguateByState( $matches, $venue_state );
+			if ( $resolved ) {
+				return array(
+					'term'   => $resolved,
+					'reason' => 'matched_venue_city_state',
+				);
+			}
+
 			return array(
 				'term'   => null,
 				'reason' => 'ambiguous_location_term',
@@ -419,6 +428,82 @@ class EventLocationAlignmentAbilities {
 		return array(
 			'term'   => null,
 			'reason' => 'location_term_not_found',
+		);
+	}
+
+	/**
+	 * Disambiguate multiple location terms with the same city name using venue state.
+	 *
+	 * Each location term has a parent hierarchy: Country > State > City.
+	 * Compares the venue's state (abbreviation or full name) against the parent
+	 * term name to find the correct match.
+	 *
+	 * @param array<int, \WP_Term> $matches     Location terms sharing the same city name.
+	 * @param string               $venue_state Venue state (abbreviation like "SC" or full like "South Carolina").
+	 * @return \WP_Term|null Matched term, or null if state doesn't resolve ambiguity.
+	 */
+	private function disambiguateByState( array $matches, string $venue_state ): ?\WP_Term {
+		$venue_state = trim( $venue_state );
+		if ( '' === $venue_state ) {
+			return null;
+		}
+
+		$state_lower = strtolower( $venue_state );
+
+		// Normalize abbreviation to full name for comparison.
+		$abbrev_map = self::getStateAbbreviationMap();
+		$full_name  = $abbrev_map[ strtoupper( $venue_state ) ] ?? null;
+
+		foreach ( $matches as $match ) {
+			if ( $match->parent <= 0 ) {
+				continue;
+			}
+
+			$parent = get_term( $match->parent, 'location' );
+			if ( ! $parent || is_wp_error( $parent ) ) {
+				continue;
+			}
+
+			$parent_lower = strtolower( $parent->name );
+
+			// Match full state name directly.
+			if ( $parent_lower === $state_lower ) {
+				return $match;
+			}
+
+			// Match abbreviation expanded to full name.
+			if ( $full_name && strtolower( $full_name ) === $parent_lower ) {
+				return $match;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * US state abbreviation → full name map.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function getStateAbbreviationMap(): array {
+		return array(
+			'AL' => 'Alabama',        'AK' => 'Alaska',          'AZ' => 'Arizona',
+			'AR' => 'Arkansas',        'CA' => 'California',      'CO' => 'Colorado',
+			'CT' => 'Connecticut',     'DE' => 'Delaware',        'DC' => 'District of Columbia',
+			'FL' => 'Florida',         'GA' => 'Georgia',         'HI' => 'Hawaii',
+			'ID' => 'Idaho',           'IL' => 'Illinois',        'IN' => 'Indiana',
+			'IA' => 'Iowa',            'KS' => 'Kansas',          'KY' => 'Kentucky',
+			'LA' => 'Louisiana',       'ME' => 'Maine',           'MD' => 'Maryland',
+			'MA' => 'Massachusetts',   'MI' => 'Michigan',        'MN' => 'Minnesota',
+			'MS' => 'Mississippi',     'MO' => 'Missouri',        'MT' => 'Montana',
+			'NE' => 'Nebraska',        'NV' => 'Nevada',          'NH' => 'New Hampshire',
+			'NJ' => 'New Jersey',      'NM' => 'New Mexico',      'NY' => 'New York',
+			'NC' => 'North Carolina',  'ND' => 'North Dakota',    'OH' => 'Ohio',
+			'OK' => 'Oklahoma',        'OR' => 'Oregon',          'PA' => 'Pennsylvania',
+			'RI' => 'Rhode Island',    'SC' => 'South Carolina',  'SD' => 'South Dakota',
+			'TN' => 'Tennessee',       'TX' => 'Texas',           'UT' => 'Utah',
+			'VT' => 'Vermont',         'VA' => 'Virginia',        'WA' => 'Washington',
+			'WV' => 'West Virginia',   'WI' => 'Wisconsin',       'WY' => 'Wyoming',
 		);
 	}
 
