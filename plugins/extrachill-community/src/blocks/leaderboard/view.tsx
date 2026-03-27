@@ -133,11 +133,9 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 	const totalPages = data.pagination?.total_pages ?? 1;
 
 	return (
-		<BlockShell className="ec-community-leaderboard-shell">
-			<BlockShellInner className="ec-community-leaderboard-shell__inner" maxWidth="narrow">
-				<div className="ec-block-shell-inner">
+		<BlockShell>
+			<BlockShellInner maxWidth="narrow">
 				<BlockShellHeader
-					title="Leaderboard"
 					description="See the most active members of the Extra Chill community."
 				/>
 				<Panel depth={ 1 }>
@@ -187,7 +185,6 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 						</button>
 					</ActionRow>
 				</Panel>
-				</div>
 			</BlockShellInner>
 		</BlockShell>
 	);
