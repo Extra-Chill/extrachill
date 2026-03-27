@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Content Blocks
  * Plugin URI: https://extrachill.com
- * Description: Reusable content creation Gutenberg blocks for the Extra Chill platform. Provides editorial, interactive, and AI-powered blocks for any site that activates the plugin.
+ * Description: Reusable content creation Gutenberg blocks for the Extra Chill platform. Provides editorial and interactive blocks for any site that activates the plugin.
  * Version: 1.2.0
  * Requires at least: 6.4
  * Requires PHP: 7.4
@@ -63,9 +63,6 @@ function extrachill_content_blocks_register_blocks() {
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/image-voting' );
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/band-name-generator' );
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/rapper-name-generator' );
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/ai-adventure' );
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/ai-adventure-path' );
-	register_block_type( __DIR__ . '/' . $blocks_dir . '/ai-adventure-step' );
 }
 add_action( 'init', 'extrachill_content_blocks_register_blocks' );
 
@@ -91,29 +88,11 @@ function extrachill_content_blocks_register_newsletter_integration( $integration
 add_filter( 'newsletter_form_integrations', 'extrachill_content_blocks_register_newsletter_integration' );
 
 /**
- * Content blocks available in all editors (Gutenberg, Studio IBE, Community BE).
+ * All content block names registered by this plugin.
  *
  * @return string[] Block names.
  */
-function extrachill_content_blocks_get_all_block_names() {
-	return array(
-		'extrachill/trivia',
-		'extrachill/image-voting',
-		'extrachill/band-name-generator',
-		'extrachill/rapper-name-generator',
-		'extrachill/ai-adventure',
-		'extrachill/ai-adventure-path',
-		'extrachill/ai-adventure-step',
-	);
-}
-
-/**
- * Content blocks suitable for lightweight editors (forums, comments).
- * Excludes AI adventure which is a heavy interactive experience.
- *
- * @return string[] Block names.
- */
-function extrachill_content_blocks_get_lightweight_block_names() {
+function extrachill_content_blocks_get_block_names() {
 	return array(
 		'extrachill/trivia',
 		'extrachill/image-voting',
@@ -133,11 +112,7 @@ function extrachill_content_blocks_get_lightweight_block_names() {
  * @return string[]
  */
 function extrachill_content_blocks_be_allowlist( $allowed_blocks, $editor_type = '' ) {
-	$blocks = ( 'bbpress' === $editor_type )
-		? extrachill_content_blocks_get_lightweight_block_names()
-		: extrachill_content_blocks_get_all_block_names();
-
-	return array_values( array_unique( array_merge( $allowed_blocks, $blocks ) ) );
+	return array_values( array_unique( array_merge( $allowed_blocks, extrachill_content_blocks_get_block_names() ) ) );
 }
 add_filter( 'blocks_everywhere_allowed_blocks', 'extrachill_content_blocks_be_allowlist', 20, 2 );
 
@@ -148,6 +123,6 @@ add_filter( 'blocks_everywhere_allowed_blocks', 'extrachill_content_blocks_be_al
  * @return string[]
  */
 function extrachill_content_blocks_studio_allowlist( $allowed_blocks ) {
-	return array_values( array_unique( array_merge( $allowed_blocks, extrachill_content_blocks_get_all_block_names() ) ) );
+	return array_values( array_unique( array_merge( $allowed_blocks, extrachill_content_blocks_get_block_names() ) ) );
 }
 add_filter( 'extrachill_studio_allowed_blocks', 'extrachill_content_blocks_studio_allowlist' );
