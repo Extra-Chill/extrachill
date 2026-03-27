@@ -1243,7 +1243,10 @@ p.site-title {
 		#masthead,
 		.footer-menus-wrapper,
 		.footer-copyright,
-		.breadcrumbs {
+		.breadcrumbs,
+		.page-header,
+		.taxonomy-description,
+		.author-bio {
 			padding-left: var(--spacing-md);
 			padding-right: var(--spacing-md);
 		}
