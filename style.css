@@ -1245,6 +1245,11 @@ p.site-title {
 			padding-right: var(--spacing-md);
 		}
 
+		body.page.bbpress .extrachill-content {
+			padding-left: 0;
+			padding-right: 0;
+		}
+
 		#masthead,
 		.footer-menus-wrapper,
 		.footer-copyright {
