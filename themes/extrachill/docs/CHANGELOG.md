@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.2.19] - 2026-03-27
+
+### Changed
+- kill ec-global-full-width-panel and simplify single post
+- remove main-content wrapper, consolidate onto extrachill-content
+- consolidate gutter onto main-content upstream owner
+- eliminate ec-edge-shell from theme CSS
+- align theme surfaces with mobile full-width panels
+- remove redundant theme gutter classes
+- align theme layouts with full-width utilities
+- standardize default gutters and full-width panels
+
+### Fixed
+- constrain form elements on small screens to prevent overflow
+- exclude .home from mobile breadcrumbs padding to prevent double gutter
+- give homepage mobile gutter for studio block
+- scope zero-padding to specific community feed templates only
+- zero gutter on custom page templates for edge-to-edge cards
+- zero page gutter on bbpress page templates
+- restore entry-content wrapper for post content styling
+- filter bar owns its own mobile treatment
+- prevent double padding on page breadcrumbs
+- keep mobile gutter on pages since they dont use cards
+- archive cards own internal padding, clean up redundant wrappers
+- add mobile gutter to comments and related posts section
+- images and embeds break out edge-to-edge on mobile
+- enforce mobile full-width visual treatment on single post card
+- zero extrachill-content padding on mobile, cards own internal gutter
+- mobile full-width panel uses negative margins not viewport width
+- keep mobile full-width panel internal padding
+- restore single post card styles and move comments into content column
+- restore content column grid child for sidebar layout
+- add extrachill-content to gutter owners for breadcrumbs
+- restore content container gutters properly
+- restore archive chrome gutters
+- restore single post chrome gutter
+- apply mobile full-width panels beyond pages
+- align single post and filter bar edge surfaces
+- add archive gutters and card spacing
+- restore edge gutters for full-width page chrome
+
 ## [2.2.18] - 2026-03-26
 
 ### Changed
