@@ -10,6 +10,7 @@ get_header(); ?>
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
+<div class="content-column">
 	<?php
 	while ( have_posts() ) :
 		the_post();
@@ -17,7 +18,7 @@ get_header(); ?>
 
 		<?php extrachill_breadcrumbs(); ?>
 
-<article id="post-<?php the_ID(); ?>" class="single-post-card ec-mobile-full-width-panel">
+	<article id="post-<?php the_ID(); ?>" class="single-post-card ec-mobile-full-width-panel">
 		<?php do_action( 'extrachill_before_post_content' ); ?>
 
 		<header id="postvote">
@@ -44,9 +45,10 @@ get_header(); ?>
 		<?php the_content(); ?>
 
 		<?php do_action( 'extrachill_after_post_content' ); ?>
-</article>
+	</article>
 
 	<?php endwhile; ?>
+</div>
 
 <aside>
 	<?php
