@@ -1,10 +1,10 @@
 {
-  "name": "extrachill-blocks",
-  "version": "1.0.0",
-  "description": "A collection of custom Gutenberg blocks for community engagement including trivia, voting, and music industry generators.",
+  "name": "extrachill-content-blocks",
+  "version": "1.1.0",
+  "description": "Reusable content creation Gutenberg blocks for the Extra Chill platform.",
   "author": "Chris Huber <https://extrachill.com>",
   "license": "GPL-2.0-or-later",
-  "main": "extrachill-blocks.php",
+  "main": "extrachill-content-blocks.php",
   "scripts": {
     "build": "wp-scripts build --webpack-copy-php",
     "start": "wp-scripts start",
@@ -20,7 +20,7 @@
     "@wordpress/block-editor": "^14.0.0",
     "@wordpress/blocks": "^15.9.0",
     "@wordpress/components": "^28.0.0",
-    "@wordpress/data": "^11.0.0",
+    "@wordpress/data": "^10.36.0",
     "@wordpress/element": "^6.0.0",
     "@wordpress/i18n": "^5.0.0",
     "@wordpress/icons": "^10.0.0"

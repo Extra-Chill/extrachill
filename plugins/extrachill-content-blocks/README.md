@@ -1,10 +1,16 @@
-# Extra Chill Blocks
+# Extra Chill Content Blocks
 
-Custom Gutenberg blocks for extrachill.com (Blog ID 1) providing interactive content elements for creative blog posts.
+Reusable Gutenberg blocks for content creation across the Extra Chill platform.
 
-## Site-Specific Plugin
+## Purpose
 
-This plugin is intended for use **only on extrachill.com** (the main blog site). It should not be network-activated. The blocks enhance content creation with interactive and AI-powered elements specific to the blog's creative content needs.
+This plugin owns the shared `extrachill/*` content blocks so they can be used on any site that activates the plugin, starting with the main blog and extending to Studio and Community.
+
+It is the content-block layer for:
+
+- `extrachill-blog`
+- `extrachill-studio`
+- `extrachill-community`
 
 ## Blocks
 
@@ -18,43 +24,38 @@ This plugin is intended for use **only on extrachill.com** (the main blog site).
 | **AI Adventure Path** | Story path/branch container (child of AI Adventure) |
 | **AI Adventure Step** | Individual story step with triggers (child of AI Adventure Path) |
 
+## Namespace
+
+All blocks keep the portable `extrachill/*` namespace for saved-content compatibility and cross-site reuse.
+
 ## Dependencies
 
-- **extrachill-api**: REST API endpoints for all block operations
-- **extrachill-ai-client**: AI provider for Adventure blocks and name generators
+- **extrachill-api**: REST API endpoints for block operations
 - **extrachill-newsletter**: Newsletter subscription for Image Voting block
 
-## API Endpoints
-
-All endpoints registered via extrachill-api plugin:
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/extrachill/v1/blocks/rapper-name` | POST | Generate rapper name |
-| `/extrachill/v1/blocks/band-name` | POST | Generate band name |
-| `/extrachill/v1/blocks/image-voting/vote` | POST | Submit vote |
-| `/extrachill/v1/blocks/image-voting/vote-count/{post_id}/{instance_id}` | GET | Get vote count |
-| `/extrachill/v1/blocks/ai-adventure` | POST | AI adventure game logic |
+Some block behaviors may also depend on other Extra Chill platform plugins being active in the target environment.
 
 ## Build System
 
 Uses `@wordpress/scripts` for block compilation:
 
 ```bash
-npm install     # Install dependencies
-npm run build   # Production build
-npm run start   # Development with hot reload
+npm install
+npm run build
+npm run start
 ```
 
-Build output goes to `/build/` directory. The universal `build.sh` script handles npm build automatically when `@wordpress/scripts` is detected.
+Build output goes to `/build/blocks/`.
 
-## Version
+## Activation model
 
-- **Current**: 1.0.0
-- **WordPress**: 5.8+
-- **PHP**: 7.4+
-- **Network**: false (site-specific activation only)
+This plugin is intended to be activated on any site that should expose these content blocks in the editor.
 
-## Author
+Initial rollout target:
 
-Chris Huber - [chubes.net](https://chubes.net)
+- **extrachill.com**
+
+Future consumers:
+
+- **studio.extrachill.com**
+- **community.extrachill.com**

@@ -1,0 +1,23 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {}
+  },
+  "id": "extrachill-content-blocks",
+  "remote_path": "wp-content/plugins/extrachill-content-blocks",
+  "version_targets": [
+    {
+      "file": "extrachill-content-blocks.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-content-blocks.php",
+      "pattern": "EXTRACHILL_CONTENT_BLOCKS_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "package.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    }
+  ]
+}
