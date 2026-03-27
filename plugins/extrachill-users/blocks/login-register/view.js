@@ -38,9 +38,9 @@ function renderTurnstile( container ) {
 
 function LoggedInCard( { config } ) {
 	return (
-		<BlockShell className="login-already-logged-in-card">
+		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
-				<Panel className="login-already-logged-in-card__panel">
+				<Panel>
 					<div className="logged-in-avatar" dangerouslySetInnerHTML={ { __html: config.avatarHtml } } />
 					<h3>{ config.displayName }</h3>
 					<p className="logged-in-status">You are logged in</p>
@@ -299,15 +299,13 @@ function LoginRegisterApp( { config } ) {
 	}
 
 	return (
-		<BlockShell className="login-register-shell">
+		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
 				<BlockShellHeader
 					title="Login or Register"
 					description="Access the Extra Chill community and artist platform."
 				/>
 				<ResponsiveTabs
-					className="login-register-shell__tabs"
-					innerMaxWidth="narrow"
 					tabs={ tabs }
 					active={ activeTab }
 					onChange={ setActiveTab }
@@ -318,9 +316,8 @@ function LoginRegisterApp( { config } ) {
 							<RegisterPanel config={ config } notice={ registerNotice } setNotice={ setRegisterNotice } />
 						)
 					}
-					tabsClassName="ec-shell-tabs"
-					hashPrefix="tab-"
-					syncWithHash
+					showDesktopTabs={ true }
+					syncWithHash={ true }
 				/>
 			</BlockShellInner>
 		</BlockShell>
