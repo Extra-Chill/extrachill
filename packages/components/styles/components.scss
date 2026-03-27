@@ -170,14 +170,19 @@
 .ec-responsive-tabs__item {
 	border: 1px solid var(--border-color, #ddd);
 	border-radius: var(--border-radius-md, 8px);
-	margin-bottom: var(--spacing-md, 1rem);
 	overflow: hidden;
 	background: var(--card-background, #f8f8f8);
 	box-sizing: border-box;
 }
 
-.ec-responsive-tabs__item:last-of-type {
-	margin-bottom: 0;
+@media (min-width: 481px) {
+	.ec-responsive-tabs__item {
+		margin-bottom: var(--spacing-md, 1rem);
+	}
+
+	.ec-responsive-tabs__item:last-of-type {
+		margin-bottom: 0;
+	}
 }
 
 .ec-responsive-tabs__trigger {
