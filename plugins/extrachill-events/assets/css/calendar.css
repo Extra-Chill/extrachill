@@ -73,3 +73,12 @@
     font-size: 0.875rem;
     line-height: 1;
 }
+
+/* Archive pages get mobile padding since .extrachill-content is zero-padded
+   at 480px for body.archive (no .page/.home override). */
+@media (max-width: 480px) {
+    .events-calendar-container .page-content {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+}
