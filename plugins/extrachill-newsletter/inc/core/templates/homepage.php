@@ -20,7 +20,7 @@ if (have_posts()) :
 
     do_action('extrachill_archive_above_posts');
     ?>
-	<div class="full-width-breakout ec-edge-shell">
+	<div class="full-width-breakout ec-mobile-full-width-panel">
 		<div class="article-container">
             <?php global $post_i; $post_i = 1; ?>
             <?php while (have_posts()) : the_post(); ?>
