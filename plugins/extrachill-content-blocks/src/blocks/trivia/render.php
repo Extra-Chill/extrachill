@@ -30,12 +30,12 @@ if ( empty( $question ) || empty( array_filter( $options ) ) ) {
 
 $wrapper_attributes = get_block_wrapper_attributes(
 	array(
-		'class'                 => 'trivia-block',
-		'data-block-id'         => esc_attr( $block_id ),
-		'data-correct-answer'   => esc_attr( $correct_answer ),
+		'class'                     => 'trivia-block',
+		'data-block-id'             => esc_attr( $block_id ),
+		'data-correct-answer'       => esc_attr( $correct_answer ),
 		'data-answer-justification' => esc_attr( $answer_justification ),
-		'data-result-messages'  => esc_attr( wp_json_encode( $result_messages ) ),
-		'data-score-ranges'     => esc_attr( wp_json_encode( $score_ranges ) ),
+		'data-result-messages'      => esc_attr( wp_json_encode( $result_messages ) ),
+		'data-score-ranges'         => esc_attr( wp_json_encode( $score_ranges ) ),
 	)
 );
 ?>

@@ -27,7 +27,7 @@ $voters            = isset( $attributes['voters'] ) ? $attributes['voters'] : ar
 
 $wrapper_attributes = get_block_wrapper_attributes(
 	array(
-		'class'                => 'extrachill-blocks-image-voting-container',
+		'class'                  => 'extrachill-blocks-image-voting-container',
 		'data-block-instance-id' => esc_attr( $block_instance_id ),
 		'data-post-id'           => esc_attr( $post_id ),
 		'data-voters'            => esc_attr( wp_json_encode( $voters ) ),
