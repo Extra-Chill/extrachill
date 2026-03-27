@@ -349,10 +349,13 @@ class EventLocationAlignmentAbilities {
 	/**
 	 * Resolve the canonical market/location term for a venue.
 	 *
-	 * Resolution order:
-	 * 1. Flow-configured location term (strongest signal)
-	 * 2. Shared venue market resolver (NYC borough zip rules + city→market mapping)
-	 * 3. Exact location term name match fallback
+	 * Resolution order (venue city is ground truth, flow config is fallback):
+	 * 1. Market mapping (NYC zip rules + city→market rollup) — e.g. Cambridge → Boston
+	 * 2. Exact location term name match — e.g. venue city "Charleston" → Charleston term
+	 * 3. Flow-configured location term — only when venue city has no mapping
+	 *
+	 * This ensures that a Ticketmaster flow with a 50mi radius centered on Worcester
+	 * does not override the actual venue location for Boston-area events.
 	 *
 	 * @param string        $venue_city  Venue city name.
 	 * @param string        $venue_state Venue state name.
@@ -361,20 +364,21 @@ class EventLocationAlignmentAbilities {
 	 * @return array{term: \WP_Term|null, reason: string}
 	 */
 	private function resolveExpectedLocationTerm( string $venue_city, string $venue_state, string $venue_zip, ?\WP_Term $flow_term ): array {
-		if ( $flow_term ) {
-			return array(
-				'term'   => $flow_term,
-				'reason' => 'matched_flow_location',
-			);
-		}
-
 		if ( '' === $venue_city ) {
+			// No venue city — fall back to flow config if available.
+			if ( $flow_term ) {
+				return array(
+					'term'   => $flow_term,
+					'reason' => 'fallback_flow_location_no_venue_city',
+				);
+			}
 			return array(
 				'term'   => null,
 				'reason' => 'missing_venue_city',
 			);
 		}
 
+		// 1. Market mapping — venue city maps to a canonical market.
 		$market_slug = extrachill_events_get_market_slug_for_venue( $venue_city, $venue_state, $venue_zip );
 		if ( $market_slug ) {
 			$market_term = get_term_by( 'slug', $market_slug, 'location' );
@@ -386,15 +390,9 @@ class EventLocationAlignmentAbilities {
 			}
 		}
 
+		// 2. Exact location term name match — venue city directly matches a location term.
 		$city_key = strtolower( $venue_city );
 		$matches  = $this->getLocationTermsByName()[ $city_key ] ?? array();
-
-		if ( empty( $matches ) ) {
-			return array(
-				'term'   => null,
-				'reason' => 'location_term_not_found',
-			);
-		}
 
 		if ( 1 === count( $matches ) ) {
 			return array(
@@ -403,9 +401,24 @@ class EventLocationAlignmentAbilities {
 			);
 		}
 
+		if ( count( $matches ) > 1 ) {
+			return array(
+				'term'   => null,
+				'reason' => 'ambiguous_location_term',
+			);
+		}
+
+		// 3. No venue-based resolution — fall back to flow config.
+		if ( $flow_term ) {
+			return array(
+				'term'   => $flow_term,
+				'reason' => 'fallback_flow_location',
+			);
+		}
+
 		return array(
 			'term'   => null,
-			'reason' => 'ambiguous_location_term',
+			'reason' => 'location_term_not_found',
 		);
 	}
 
