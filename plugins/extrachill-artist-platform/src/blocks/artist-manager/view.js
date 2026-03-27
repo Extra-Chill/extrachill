@@ -335,7 +335,6 @@ const ManagersTab = ({ artistId }) => {
 
 	return (
 		<Panel>
-			<PanelHeader title="Profile Managers" />
 			{loading && <InlineStatus tone="info">Loading managers…</InlineStatus>}
 			{error && <InlineStatus tone="error">{error}</InlineStatus>}
 			<ActionRow className="ec-am__inline">
@@ -459,7 +458,6 @@ const SubscribersTab = ({ artistId }) => {
 	return (
 		<Panel>
 			<PanelHeader
-				title="Subscribers"
 				actions={
 					<button type="button" className="button-2 button-medium" onClick={exportCsv} disabled={!subs.length}>
 						Export CSV
@@ -625,7 +623,6 @@ const App = () => {
 		<BlockShell className="ec-am">
 			<BlockShellInner maxWidth="wide">
 				<BlockShellHeader
-					title={artistName || 'Manage Artist'}
 					actions={
 						<ActionRow align="end" className="ec-am__toolbar">
 							<ArtistSwitcher
