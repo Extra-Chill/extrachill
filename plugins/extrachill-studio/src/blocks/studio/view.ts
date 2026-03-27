@@ -29,7 +29,6 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 	return createElement(
 		BlockShell,
 		{
-			className: 'ec-studio-app',
 			children: createElement(
 				BlockShellInner,
 				{
@@ -37,6 +36,7 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 					children: [
 						createElement( BlockShellHeader, {
 							key: 'header',
+							title: context.headline || 'Studio',
 							description: context.description,
 						} ),
 						createElement( ResponsiveTabs, {
