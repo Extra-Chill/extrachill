@@ -40,6 +40,11 @@
     max-width: none;
     border-radius: 0;
   }
+
+  .content-column > aside {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
 }
 
 /* Post Content H2 Styling */
