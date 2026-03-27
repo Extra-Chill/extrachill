@@ -30,7 +30,7 @@ $wrapper_attributes = get_block_wrapper_attributes(
 if ( ! function_exists( 'ec_is_team_member' ) ) :
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?> >
-		<div class="ec-block-shell ec-studio-card ec-studio-card--dependency-missing notice notice-error">
+		<div class="ec-studio-card ec-studio-card--dependency-missing notice notice-error">
 			<p><?php esc_html_e( 'Extra Chill Studio requires the Extra Chill Users plugin to load team permissions.', 'extrachill-studio' ); ?></p>
 		</div>
 	</div>
@@ -45,7 +45,7 @@ if ( ! is_user_logged_in() ) {
 if ( ! current_user_can( 'manage_options' ) && ! ec_is_team_member() ) :
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?> >
-		<div class="ec-block-shell ec-studio-card ec-studio-card--denied notice notice-info">
+		<div class="ec-studio-card ec-studio-card--denied notice notice-info">
 			<p class="ec-studio-card__description"><?php echo esc_html( $denied_message ); ?></p>
 		</div>
 	</div>

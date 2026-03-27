@@ -33,12 +33,10 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 			children: createElement(
 				BlockShellInner,
 				{
-					className: 'ec-block-shell-inner--centered',
 					maxWidth: 'wide',
 					children: [
 						createElement( BlockShellHeader, {
 							key: 'header',
-							title: context.headline,
 							description: context.description,
 						} ),
 						createElement( ResponsiveTabs, {
