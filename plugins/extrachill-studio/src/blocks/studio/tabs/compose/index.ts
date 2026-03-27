@@ -8,6 +8,8 @@ import {
 } from '@extrachill/chat';
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { StudioPaneProps } from '../../types/studio';
+import type { SocialPlatformsResponse } from '@extrachill/api-client';
+import { studioClient } from '../../app/client';
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
@@ -41,6 +43,19 @@ interface WpPost {
 const AUTOSAVE_DELAY = 2000;
 const CLIENT_CONTEXT_UPDATE_DELAY = 250;
 const CLIENT_CONTEXT_PROVIDER_ID = 'extrachill-studio.compose';
+
+/** Site transfer targets — tag slug to label. */
+const SITE_TARGETS: Record< string, string > = {
+	blog: 'Blog (extrachill.com)',
+	wire: 'Wire (wire.extrachill.com)',
+};
+
+interface PublishTarget {
+	key: string;
+	label: string;
+	type: 'site' | 'social';
+	username?: string | null;
+}
 
 function extractPlainText( html: string ): string {
 	if ( ! html ) {
@@ -78,6 +93,10 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	const [ drafts, setDrafts ] = useState< WpPost[] >( [] );
 	const [ activePostId, setActivePostId ] = useState< number | null >( null );
 	const [ isLoadingDrafts, setIsLoadingDrafts ] = useState( true );
+
+	// Publish targets state.
+	const [ publishTargets, setPublishTargets ] = useState< Set< string > >( new Set() );
+	const [ availableTargets, setAvailableTargets ] = useState< PublishTarget[] >( [] );
 
 	// Autosave tracking refs.
 	const autosaveTimerRef = useRef< ReturnType< typeof setTimeout > | null >( null );
@@ -326,6 +345,33 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		};
 	}, [ loadDrafts, scheduleClientContextUpdate ] );
 
+	// Load available publish targets (site targets + authenticated social platforms).
+	useEffect( () => {
+		const targets: PublishTarget[] = Object.entries( SITE_TARGETS ).map( ( [ key, label ] ) => ( {
+			key,
+			label,
+			type: 'site' as const,
+		} ) );
+
+		studioClient.socials.getPlatforms().then( ( data: SocialPlatformsResponse ) => {
+			if ( data && typeof data === 'object' ) {
+				for ( const [ slug, config ] of Object.entries( data ) ) {
+					if ( ! config?.authenticated ) {
+						continue;
+					}
+					const label = config.username
+						? `${ config.label || slug } (@${ config.username })`
+						: config.label || slug;
+					targets.push( { key: slug, label, type: 'social', username: config.username } );
+				}
+			}
+			setAvailableTargets( [ ...targets ] );
+		} ).catch( () => {
+			// Social platforms unavailable — site targets still work.
+			setAvailableTargets( [ ...targets ] );
+		} );
+	}, [] );
+
 	// Listen for content changes on the textarea for autosave.
 	useEffect( () => {
 		const textarea = textareaRef.current;
@@ -349,6 +395,51 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			}
 		};
 	}, [ scheduleAutosave, performAutosave, scheduleClientContextUpdate ] );
+
+	const toggleTarget = ( key: string ): void => {
+		setPublishTargets( ( prev ) => {
+			const next = new Set( prev );
+			if ( next.has( key ) ) {
+				next.delete( key );
+			} else {
+				next.add( key );
+			}
+			return next;
+		} );
+	};
+
+	/**
+	 * Derive a social caption from block HTML content.
+	 * Extracts the first paragraph's text content.
+	 */
+	const deriveCaption = ( html: string ): string => {
+		if ( ! html ) {
+			return '';
+		}
+		const doc = new DOMParser().parseFromString( html, 'text/html' );
+		const firstP = doc.querySelector( 'p' );
+		return firstP?.textContent?.trim() || extractPlainText( html );
+	};
+
+	/**
+	 * Extract image URLs from block HTML content.
+	 * Finds all img elements (from core/image and core/gallery blocks).
+	 */
+	const deriveImageUrls = ( html: string ): Array< { url: string } > => {
+		if ( ! html ) {
+			return [];
+		}
+		const doc = new DOMParser().parseFromString( html, 'text/html' );
+		const imgs = doc.querySelectorAll( 'img[src]' );
+		const urls: Array< { url: string } > = [];
+		imgs.forEach( ( img ) => {
+			const src = img.getAttribute( 'src' );
+			if ( src && src.startsWith( 'http' ) ) {
+				urls.push( { url: src } );
+			}
+		} );
+		return urls;
+	};
 
 	const submitForReview = async (): Promise< void > => {
 		const content = getContent();
@@ -376,16 +467,78 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 		try {
 			const path = activePostId ? `/wp/v2/posts/${ activePostId }` : '/wp/v2/posts';
+
+			// Build the post data with publish targets.
+			const postData: Record< string, unknown > = {
+				title: title.trim(),
+				content,
+				status: 'pending',
+			};
+
+			// Site targets → tags. Resolve tag names to IDs (create if needed).
+			const siteTagSlugs = availableTargets
+				.filter( ( t ) => t.type === 'site' && publishTargets.has( t.key ) )
+				.map( ( t ) => t.key );
+			if ( siteTagSlugs.length > 0 ) {
+				const tagIds: number[] = [];
+				for ( const slug of siteTagSlugs ) {
+					try {
+						// Try to find existing tag first.
+						const existing = await apiFetch< Array< { id: number } > >( {
+							path: `/wp/v2/tags?slug=${ slug }`,
+						} );
+						if ( existing.length > 0 ) {
+							tagIds.push( existing[ 0 ].id );
+						} else {
+							// Create the tag.
+							const created = await apiFetch< { id: number } >( {
+								path: '/wp/v2/tags',
+								method: 'POST',
+								data: { name: slug },
+							} );
+							tagIds.push( created.id );
+						}
+					} catch {
+						// Skip tag if resolution fails.
+					}
+				}
+				if ( tagIds.length > 0 ) {
+					postData.tags = tagIds;
+				}
+			}
+
+			// Social targets → post meta.
+			const socialPlatforms = availableTargets
+				.filter( ( t ) => t.type === 'social' && publishTargets.has( t.key ) )
+				.map( ( t ) => t.key );
+			if ( socialPlatforms.length > 0 ) {
+				const caption = deriveCaption( content );
+				const images = deriveImageUrls( content );
+				postData.meta = {
+					_studio_social_platforms: socialPlatforms,
+					_studio_social_caption: caption,
+					_studio_social_images: images,
+					_studio_social_media_kind: images.length > 1 ? 'carousel' : 'image',
+				};
+			}
+
 			const post = await apiFetch< WpPost >( {
 				path,
 				method: 'POST',
-				data: { title: title.trim(), content, status: 'pending' },
+				data: postData,
 			} );
 
 			activePostIdRef.current = null;
 			titleRef.current = '';
 			contentSnapshotRef.current = '';
-			setStatus( sprintf( __( 'Post #%d submitted for review.', 'extrachill-studio' ), post.id ) );
+			setPublishTargets( new Set() );
+
+			// Build status message showing where the post will go.
+			const targetNames = [ ...siteTags, ...socialPlatforms ];
+			const targetSuffix = targetNames.length > 0
+				? sprintf( __( ' → %s', 'extrachill-studio' ), targetNames.join( ', ' ) )
+				: '';
+			setStatus( sprintf( __( 'Post #%d submitted for review.', 'extrachill-studio' ), post.id ) + targetSuffix );
 
 			const refreshed = await loadDrafts();
 			setDrafts( refreshed );
@@ -502,7 +655,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				PanelView,
 				{ className: 'ec-studio-panel ec-studio-panel--editor', compact: true },
 				h( PanelHeader, {
-					description: __( 'Submit drafts to the extrachill.com blog.', 'extrachill-studio' ),
+					description: __( 'Draft content and publish across the Extra Chill network.', 'extrachill-studio' ),
 					actions: h(
 						ActionRowView,
 						{ className: 'ec-studio-compose-toolbar' },
@@ -548,6 +701,32 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
 				! error && status
 					? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status )
+					: null,
+				availableTargets.length > 0
+					? h(
+						'fieldset',
+						{ className: 'ec-studio-publish-targets' },
+						createElement( 'legend', { className: 'ec-studio-publish-targets__legend' }, __( 'Publish to', 'extrachill-studio' ) ),
+						createElement(
+							'div',
+							{ className: 'ec-studio-publish-targets__grid' },
+							...availableTargets.map( ( target ) =>
+								createElement(
+									'label',
+									{
+										key: target.key,
+										className: `ec-studio-publish-targets__item ec-studio-publish-targets__item--${ target.type }`,
+									},
+									createElement( 'input', {
+										type: 'checkbox',
+										checked: publishTargets.has( target.key ),
+										onChange: () => toggleTarget( target.key ),
+									} ),
+									createElement( 'span', null, target.label )
+								)
+							)
+						)
+					)
 					: null,
 				h(
 					ActionRowView,
