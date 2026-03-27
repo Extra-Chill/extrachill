@@ -302,6 +302,11 @@ blockquote {
 .bbp-forum-card {
 	margin: 0;
 	height: auto;
+	padding: var(--spacing-md);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+	box-sizing: border-box;
 }
 
 .bbp-forum-card .bbp-forum-info {
@@ -324,6 +329,10 @@ blockquote {
 	margin-bottom: var(--spacing-lg);
 	width: 100%;
 	box-sizing: border-box;
+	padding: var(--spacing-md);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
 }
 
 .bbp-topic-content {

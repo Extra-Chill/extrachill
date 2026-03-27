@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 $music_discussion_forum = get_page_by_path( 'music-discussion', OBJECT, bbp_get_forum_post_type() );
 ?>
 
-<div class="ec-edge-gutter">
+<div class="community-section-header">
 	<div class="community-home-topic-actions">
 		<a href="/" id="new-topic-modal-trigger" class="button-1 button-medium" data-modal-mode="discussion"><?php esc_html_e( 'Create Discussion', 'extra-chill-community' ); ?></a>
 

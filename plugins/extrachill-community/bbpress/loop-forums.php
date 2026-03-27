@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 ?>
 
 <!-- Community Forums Section -->
-<div class="page-content">
+<div class="community-section-header">
 	<h2>Community Forums</h2>
 	<?php do_action('extrachill_community_home_before_forums'); ?>
 </div>
