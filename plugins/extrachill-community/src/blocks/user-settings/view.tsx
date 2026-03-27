@@ -61,7 +61,7 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 	}, [ firstName, lastName, displayName, onUpdate ] );
 
 	return (
-		<Panel depth={ 1 }>
+		<Panel depth={ 1 } className="ec-mobile-full-width-panel">
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			<FieldGroup label="First Name" htmlFor="ec-first-name">
 				<input id="ec-first-name" type="text" value={ firstName } onChange={ ( e ) => setFirstName( e.target.value ) } />
@@ -120,7 +120,7 @@ function SecurityTab( { settings, onSettingsChange }: { settings: UserSettings; 
 	}, [ currentPassword, newPassword, confirmPassword ] );
 
 	return (
-		<Panel depth={ 1 }>
+		<Panel depth={ 1 } className="ec-mobile-full-width-panel">
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			<FieldGroup label="Current Email Address">
 				<input type="email" value={ settings.email } disabled />
@@ -186,7 +186,7 @@ function SubscriptionsTab() {
 	const artists = data?.followed_artists || [];
 
 	return (
-		<Panel depth={ 1 }>
+		<Panel depth={ 1 } className="ec-mobile-full-width-panel">
 			<PanelHeader description="Manage email consent for bands you follow. Unchecking will prevent a band from seeing your email or including it in their exports." />
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			{ artists.length === 0 ? <p style={ styles.mutedText }>You are not currently following any bands.</p> : <>
@@ -219,7 +219,7 @@ function ArtistPlatformTab( { artistAccess, artistSiteUrl, hasArtists, canCreate
 	}, [ accessType ] );
 
 	return (
-		<Panel depth={ 1 }>
+		<Panel depth={ 1 } className="ec-mobile-full-width-panel">
 			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
 			{ currentStatus === 'approved' && <div className="notice notice-success"><p><strong>You have artist platform access!</strong></p><p>You can create artist profiles and link pages on extrachill.link.</p>{ hasArtists ? <ActionRow><a href={ `${ artistSiteUrl }/manage-artist/` } className="button-1 button-small">Manage Artist</a></ActionRow> : canCreateArtists ? <ActionRow><a href={ `${ artistSiteUrl }/create-artist/` } className="button-1 button-small">Create Artist Profile</a></ActionRow> : null }</div> }
 			{ currentStatus === 'pending' && <div className="notice notice-info"><p><strong>Your request is pending admin review.</strong></p>{ artistAccess.request_type && <p>You requested access as "{ artistAccess.request_type === 'artist' ? 'I am a musician' : 'I work in the music industry' }"{ artistAccess.requested_at ? ` on ${ new Date( artistAccess.requested_at * 1000 ).toLocaleDateString() }` : '' }.</p> }<p>An administrator will review your request shortly.</p></div> }
