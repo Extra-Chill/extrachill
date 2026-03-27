@@ -1240,6 +1240,11 @@ p.site-title {
 			padding-right: 0;
 		}
 
+		body.page .extrachill-content {
+			padding-left: var(--spacing-md);
+			padding-right: var(--spacing-md);
+		}
+
 		#masthead,
 		.footer-menus-wrapper,
 		.footer-copyright,
