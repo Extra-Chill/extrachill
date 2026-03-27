@@ -9,7 +9,7 @@
 	},
 	"dependencies": {
 		"@extrachill/chat": "^0.7.0",
-		"@extrachill/components": "^0.4.48",
+		"@extrachill/components": "^0.4.49",
 		"@extrachill/tokens": "^0.4.2"
 	},
 	"devDependencies": {
