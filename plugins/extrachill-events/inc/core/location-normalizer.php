@@ -156,6 +156,10 @@ function extrachill_events_get_city_market_map() {
 		'bloomingdale'    => 'savannah',
 		'buda'            => 'austin',
 		'cambridge'       => 'boston',
+		'columbia'        => array(
+			'maryland'  => 'baltimore',
+			'md'        => 'baltimore',
+		),
 		'cedar park'      => 'austin',
 		'cherokee'        => 'asheville',
 		'clemson'         => 'greenville',
