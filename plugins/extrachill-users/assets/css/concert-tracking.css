@@ -1,0 +1,57 @@
+/**
+ * Concert Tracking — Attendance Button Styles
+ *
+ * Minimal styles — inherits theme button patterns.
+ * BEM: .ec-attendance, .ec-attendance__button, .ec-attendance__count
+ *
+ * @package ExtraChill\Users
+ * @since 0.8.0
+ */
+
+.ec-attendance {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.ec-attendance__button {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 14px;
+	border: 1px solid var(--color-border, #d1d5db);
+	border-radius: 4px;
+	background: transparent;
+	color: var(--color-text, #1f2937);
+	font-size: 0.85rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+	line-height: 1.4;
+}
+
+.ec-attendance__button:hover {
+	background-color: var(--color-surface-hover, #f3f4f6);
+	border-color: var(--color-border-hover, #9ca3af);
+}
+
+.ec-attendance__button--active {
+	background-color: var(--color-accent-subtle, #eff6ff);
+	border-color: var(--color-accent, #3b82f6);
+	color: var(--color-accent, #3b82f6);
+}
+
+.ec-attendance__button--active:hover {
+	background-color: var(--color-accent-subtle-hover, #dbeafe);
+}
+
+.ec-attendance__check {
+	font-size: 0.75rem;
+	line-height: 1;
+}
+
+.ec-attendance__count {
+	font-size: 0.8rem;
+	color: var(--color-text-muted, #6b7280);
+	white-space: nowrap;
+}

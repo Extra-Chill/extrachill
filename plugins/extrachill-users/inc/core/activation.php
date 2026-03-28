@@ -25,6 +25,13 @@ function extrachill_users_run_activation() {
 
 	update_site_option( 'extrachill_users_refresh_token_table_created', 1 );
 
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/db.php';
+	if ( function_exists( 'extrachill_users_install_concert_tracking_table' ) ) {
+		extrachill_users_install_concert_tracking_table();
+	}
+
+	update_site_option( 'extrachill_users_concert_tracking_table_created', 1 );
+
 	extrachill_users_create_login_pages_network();
 
 	if ( ! wp_next_scheduled( 'extrachill_welcome_email_fallback' ) ) {
@@ -196,6 +203,24 @@ function extrachill_users_maybe_create_refresh_token_table() {
 	update_site_option( 'extrachill_users_refresh_token_table_created', 1 );
 }
 add_action( 'admin_init', 'extrachill_users_maybe_create_refresh_token_table' );
+
+/**
+ * Ensure concert tracking table exists.
+ * Fallback for existing installations where table was added after activation.
+ */
+function extrachill_users_maybe_create_concert_tracking_table() {
+	if ( get_site_option( 'extrachill_users_concert_tracking_table_created' ) ) {
+		return;
+	}
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/db.php';
+	if ( function_exists( 'extrachill_users_install_concert_tracking_table' ) ) {
+		extrachill_users_install_concert_tracking_table();
+	}
+
+	update_site_option( 'extrachill_users_concert_tracking_table_created', 1 );
+}
+add_action( 'admin_init', 'extrachill_users_maybe_create_concert_tracking_table' );
 
 /**
  * Create onboarding page on community site only.

@@ -125,6 +125,9 @@ function extrachill_users_init() {
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-auto-approval.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/footer/online-users-stats.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/buttons.php';
 }
 
 add_filter( 'newsletter_form_integrations', 'extrachill_users_newsletter_integration' );
