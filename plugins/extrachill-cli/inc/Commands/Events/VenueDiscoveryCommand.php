@@ -276,7 +276,7 @@ class VenueDiscoveryCommand {
 	 * : Venue homepage URL (if different from events page).
 	 *
 	 * [--interval=<interval>]
-	 * : Scheduling interval. Default: twicedaily.
+	 * : Scheduling interval. Default: daily.
 	 *
 	 * [--dry-run]
 	 * : Preview what would be created without making changes.
@@ -306,7 +306,7 @@ class VenueDiscoveryCommand {
 
 		WP_CLI::log( sprintf( 'Adding venue "%s" to pipeline %s...', $assoc_args['name'], $assoc_args['pipeline'] ) );
 
-		$result = $ability->execute( array(
+		$input = array(
 			'pipeline_id' => (int) $assoc_args['pipeline'],
 			'name'        => $assoc_args['name'],
 			'url'         => $assoc_args['events-url'],
@@ -315,9 +315,16 @@ class VenueDiscoveryCommand {
 			'state'       => $assoc_args['state'] ?? '',
 			'zip'         => $assoc_args['zip'] ?? '',
 			'website'     => $assoc_args['website'] ?? '',
-			'interval'    => $assoc_args['interval'] ?? '',
 			'dry_run'     => ! empty( $assoc_args['dry-run'] ),
-		) );
+		);
+
+		// Only pass interval if explicitly provided — let the ability use
+		// its default (daily) otherwise.
+		if ( ! empty( $assoc_args['interval'] ) ) {
+			$input['interval'] = $assoc_args['interval'];
+		}
+
+		$result = $ability->execute( $input );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
