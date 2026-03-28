@@ -9,6 +9,14 @@
  * @since 0.1.0
  */
 
+/* Event Info Grid Section Treatment */
+.data-machine-event-details .event-info-grid {
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+}
+
 /* Event Action Buttons Container (Ticket + Share) */
 .data-machine-event-details .event-action-buttons {
     display: flex;
