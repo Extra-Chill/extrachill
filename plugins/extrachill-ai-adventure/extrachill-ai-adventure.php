@@ -30,6 +30,21 @@ define( 'EXTRACHILL_AI_ADVENTURE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
  */
 define( 'EXTRACHILL_AI_ADVENTURE_AGENT_SLUG', 'game-master' );
 
+// Load ability registration (hooks into wp_abilities_api_init).
+require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/abilities/progress-story.php';
+
+// Load tool registration (hooks into datamachine_tools via BaseTool).
+add_action(
+	'plugins_loaded',
+	function () {
+		if ( ! class_exists( '\DataMachine\Engine\AI\Tools\BaseTool' ) ) {
+			return;
+		}
+		require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/tools/class-progress-story.php';
+		new ExtraChill_AI_Adventure_ProgressStory();
+	}
+);
+
 /**
  * Register the AI adventure blocks.
  *
@@ -144,6 +159,7 @@ function extrachill_ai_adventure_handle_introduction( $params ) {
 	return new WP_REST_Response(
 		array(
 			'narrative'  => $response['narrative'],
+			'nextStepId' => $response['next_step_id'] ?? null,
 			'sessionId'  => $response['session_id'],
 		),
 		200
@@ -157,26 +173,6 @@ function extrachill_ai_adventure_handle_introduction( $params ) {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_ai_adventure_handle_conversation( $params ) {
-	$next_step_id = null;
-
-	// Check for step progression first if triggers exist.
-	if ( ! empty( $params['triggers'] ) ) {
-		$next_step_id = extrachill_ai_adventure_analyze_progression( $params );
-	}
-
-	// If progressing to a new step, skip the narrative call entirely.
-	if ( $next_step_id ) {
-		return new WP_REST_Response(
-			array(
-				'narrative'  => '',
-				'nextStepId' => $next_step_id,
-				'sessionId'  => $params['session_id'],
-			),
-			200
-		);
-	}
-
-	// No progression — generate narrative response.
 	$context  = extrachill_ai_adventure_build_context( $params, 'conversation' );
 	$message  = 'Player says/does: ' . $params['player_input'];
 	$response = extrachill_ai_adventure_send_to_dm( $message, $context, $params['session_id'] );
@@ -188,66 +184,11 @@ function extrachill_ai_adventure_handle_conversation( $params ) {
 	return new WP_REST_Response(
 		array(
 			'narrative'  => $response['narrative'],
-			'nextStepId' => null,
+			'nextStepId' => $response['next_step_id'],
 			'sessionId'  => $response['session_id'],
 		),
 		200
 	);
-}
-
-/**
- * Analyze player input for step progression triggers.
- *
- * Uses a separate one-shot DM call (no session) for structured JSON analysis.
- *
- * @param array $params Game parameters.
- * @return string|null Next step ID or null.
- */
-function extrachill_ai_adventure_analyze_progression( $params ) {
-	$triggers_list = array_map(
-		function ( $t ) {
-			return array(
-				'id'        => $t['id'] ?? '',
-				'condition' => $t['action'] ?? '',
-			);
-		},
-		$params['triggers']
-	);
-
-	$context = extrachill_ai_adventure_build_context( $params, 'progression' );
-	$context['triggers_json'] = wp_json_encode( $triggers_list, JSON_PRETTY_PRINT );
-
-	$message = "Player's action: " . $params['player_input'] . "\n\n"
-		. "Has the player made a clear decision that matches any available story branches?\n"
-		. "Respond with ONLY a JSON object:\n"
-		. '- If no progression: {"shouldProgress": false}' . "\n"
-		. '- If progression: {"shouldProgress": true, "triggerId": "matching_trigger_id"}';
-
-	// Progression analysis is a one-shot call — no session continuity needed.
-	$response = extrachill_ai_adventure_send_to_dm( $message, $context, '' );
-
-	if ( is_wp_error( $response ) || empty( $response['narrative'] ) ) {
-		return null;
-	}
-
-	$json_start = strpos( $response['narrative'], '{' );
-	if ( false === $json_start ) {
-		return null;
-	}
-
-	$progression_data = json_decode( substr( $response['narrative'], $json_start ), true );
-
-	if ( empty( $progression_data['shouldProgress'] ) || empty( $progression_data['triggerId'] ) ) {
-		return null;
-	}
-
-	foreach ( $params['triggers'] as $trigger ) {
-		if ( isset( $trigger['id'] ) && $trigger['id'] === $progression_data['triggerId'] ) {
-			return $trigger['destination'] ?? null;
-		}
-	}
-
-	return null;
 }
 
 /**
@@ -289,7 +230,8 @@ function extrachill_ai_adventure_build_context( $params, $turn_type ) {
 		$context['conversation_history'] = implode( "\n", $lines );
 	}
 
-	// Triggers for progression analysis.
+	// Triggers — both human-readable descriptions for the AI and structured
+	// data for the progress_story tool to validate against.
 	if ( ! empty( $params['triggers'] ) ) {
 		$trigger_descriptions = array_map(
 			function ( $t ) {
@@ -298,6 +240,18 @@ function extrachill_ai_adventure_build_context( $params, $turn_type ) {
 			$params['triggers']
 		);
 		$context['available_choices'] = implode( ' | ', $trigger_descriptions );
+
+		// Structured triggers for the progress_story tool.
+		$context['triggers'] = array_map(
+			function ( $t ) {
+				return array(
+					'id'          => $t['id'] ?? '',
+					'action'      => $t['action'] ?? '',
+					'destination' => $t['destination'] ?? '',
+				);
+			},
+			$params['triggers']
+		);
 	}
 
 	// Transition context for introductions.
@@ -404,17 +358,33 @@ function extrachill_ai_adventure_send_to_dm( $message, $context, $session_id ) {
 		return $result;
 	}
 
-	// Extract the AI's response from the conversation.
-	$narrative  = '';
-	$dm_session = $result['session_id'] ?? '';
+	// Extract the AI's response and any tool call results from the conversation.
+	$narrative     = '';
+	$next_step_id  = null;
+	$dm_session    = $result['session_id'] ?? '';
 
 	if ( ! empty( $result['conversation'] ) && is_array( $result['conversation'] ) ) {
-		// Find the last assistant message.
+		// Walk conversation in reverse to find the last assistant message
+		// and any progress_story tool results.
 		$messages = array_reverse( $result['conversation'] );
+
 		foreach ( $messages as $msg ) {
-			if ( isset( $msg['role'] ) && 'assistant' === $msg['role'] ) {
-				$narrative = $msg['content'] ?? '';
-				break;
+			$role = $msg['role'] ?? '';
+
+			// Extract narrative from the last assistant text message.
+			if ( 'assistant' === $role && empty( $narrative ) && ! empty( $msg['content'] ) ) {
+				$narrative = $msg['content'];
+			}
+
+			// Check for progress_story tool results.
+			if ( 'tool' === $role && ( 'progress_story' === ( $msg['name'] ?? '' ) ) ) {
+				$tool_result = is_string( $msg['content'] ?? '' )
+					? json_decode( $msg['content'], true )
+					: ( $msg['content'] ?? array() );
+
+				if ( ! empty( $tool_result['data']['progressed'] ) && ! empty( $tool_result['data']['next_step_id'] ) ) {
+					$next_step_id = $tool_result['data']['next_step_id'];
+				}
 			}
 		}
 	} elseif ( ! empty( $result['response'] ) ) {
@@ -422,8 +392,9 @@ function extrachill_ai_adventure_send_to_dm( $message, $context, $session_id ) {
 	}
 
 	return array(
-		'narrative'  => $narrative,
-		'session_id' => $dm_session,
+		'narrative'    => $narrative,
+		'next_step_id' => $next_step_id,
+		'session_id'   => $dm_session,
 	);
 }
 
