@@ -35,3 +35,4 @@ require_once __DIR__ . '/artist-access.php';
 require_once __DIR__ . '/user-settings.php';
 require_once __DIR__ . '/user-profile.php';
 require_once __DIR__ . '/subscriptions.php';
+require_once __DIR__ . '/concert-tracking.php';
