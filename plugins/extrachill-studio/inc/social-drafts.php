@@ -28,6 +28,7 @@ const META_MEDIA_KIND   = '_studio_social_media_kind';
 const META_VIDEO_URL    = '_studio_social_video_url';
 const META_COVER_URL    = '_studio_social_cover_url';
 const META_PUBLISH_LOG  = '_studio_social_publish_log';
+const META_JOB_ID       = '_studio_social_job_id';
 
 /**
  * Register post meta for social drafts.
@@ -125,6 +126,14 @@ function register_social_meta() {
 				),
 			),
 		),
+		META_JOB_ID       => array(
+			'type'              => 'integer',
+			'description'       => 'Data Machine job ID for async cross-post tracking.',
+			'default'           => 0,
+			'single'            => true,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'absint',
+		),
 	);
 
 	foreach ( $meta_fields as $key => $args ) {
@@ -176,13 +185,13 @@ function on_publish_crosspost( string $new_status, string $old_status, \WP_Post 
 		return;
 	}
 
-	// Check that Data Machine Socials REST cross-post is available.
-	if ( ! class_exists( 'DataMachineSocials\\RestApi' ) ) {
+	// Require DM Task System for async execution.
+	if ( ! class_exists( 'DataMachine\\Engine\\Tasks\\TaskScheduler' ) ) {
 		log_publish_result( $post->ID, array(
 			array(
 				'platform'  => 'system',
 				'success'   => false,
-				'error'     => 'Data Machine Socials plugin not active.',
+				'error'     => 'Data Machine Task System not available.',
 				'timestamp' => gmdate( 'c' ),
 			),
 		) );
@@ -195,47 +204,38 @@ function on_publish_crosspost( string $new_status, string $old_status, \WP_Post 
 	$video_url    = get_post_meta( $post->ID, META_VIDEO_URL, true ) ?: '';
 	$cover_url    = get_post_meta( $post->ID, META_COVER_URL, true ) ?: '';
 
-	// Build a WP_REST_Request to the cross-post endpoint.
-	$request = new \WP_REST_Request( 'POST', '/datamachine-socials/v1/post' );
-	$request->set_header( 'Content-Type', 'application/json' );
-	$request->set_body( wp_json_encode( array(
-		'platforms'     => $platforms,
-		'caption'       => $caption,
-		'images'        => $images,
-		'aspect_ratio'  => $aspect_ratio,
-		'media_kind'    => $media_kind,
-		'video_url'     => $video_url,
-		'cover_url'     => $cover_url,
-		'post_id'       => $post->ID,
-		'share_to_feed' => true,
-	) ) );
+	// Schedule async cross-post via DM Task System.
+	$job_id = \DataMachine\Engine\Tasks\TaskScheduler::schedule(
+		'social_cross_post',
+		array(
+			'post_id'      => $post->ID,
+			'platforms'    => $platforms,
+			'caption'      => $caption,
+			'images'       => $images,
+			'aspect_ratio' => $aspect_ratio,
+			'media_kind'   => $media_kind,
+			'video_url'    => $video_url,
+			'cover_url'    => $cover_url,
+		),
+		array(
+			'user_id' => (int) $post->post_author,
+			'origin'  => 'studio_publish',
+		)
+	);
 
-	$response = rest_do_request( $request );
-	$data     = $response->get_data();
-
-	// Log results.
-	$log = array();
-	if ( isset( $data['results'] ) && is_array( $data['results'] ) ) {
-		foreach ( $data['results'] as $result ) {
-			$log[] = array(
-				'platform'  => $result['platform'] ?? 'unknown',
-				'success'   => $result['success'] ?? false,
-				'post_id'   => $result['post_id'] ?? '',
-				'url'       => $result['url'] ?? '',
-				'error'     => $result['error'] ?? '',
-				'timestamp' => gmdate( 'c' ),
-			);
-		}
+	if ( $job_id ) {
+		// Store job reference on the post for traceability.
+		update_post_meta( $post->ID, '_studio_social_job_id', $job_id );
 	} else {
-		$log[] = array(
-			'platform'  => 'system',
-			'success'   => false,
-			'error'     => $data['error'] ?? 'Unknown cross-post error.',
-			'timestamp' => gmdate( 'c' ),
-		);
+		log_publish_result( $post->ID, array(
+			array(
+				'platform'  => 'system',
+				'success'   => false,
+				'error'     => 'Failed to schedule cross-post job.',
+				'timestamp' => gmdate( 'c' ),
+			),
+		) );
 	}
-
-	log_publish_result( $post->ID, $log );
 }
 add_action( 'transition_post_status', __NAMESPACE__ . '\\on_publish_crosspost', 10, 3 );
 
