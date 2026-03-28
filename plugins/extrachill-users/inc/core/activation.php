@@ -97,16 +97,22 @@ add_action( 'extrachill_welcome_email_fallback', 'extrachill_welcome_email_fallb
 
 /**
  * Create login page on all network sites.
- * Uses ec_get_blog_ids() from extrachill-multisite as single source of truth.
+ *
+ * Prefers ec_get_all_site_ids() for dynamic discovery of all active sites,
+ * falling back to ec_get_blog_ids() if the multisite plugin is outdated.
  */
 function extrachill_users_create_login_pages_network() {
-	if ( ! function_exists( 'ec_get_blog_ids' ) ) {
+	if ( function_exists( 'ec_get_all_site_ids' ) ) {
+		$site_ids = ec_get_all_site_ids();
+	} elseif ( function_exists( 'ec_get_blog_ids' ) ) {
+		$site_ids = array_values( ec_get_blog_ids() );
+	} else {
 		return;
 	}
 
-	$blog_ids = ec_get_blog_ids();
+	foreach ( $site_ids as $blog_id ) {
+		$blog_id = (int) $blog_id;
 
-	foreach ( $blog_ids as $slug => $blog_id ) {
 		if ( ! get_blog_details( $blog_id ) ) {
 			continue;
 		}
@@ -141,7 +147,26 @@ function extrachill_users_create_login_page() {
 }
 
 /**
- * Fallback for new sites added after initial activation.
+ * Auto-create login page when a new site is added to the network.
+ *
+ * Hooks into wp_initialize_site (WordPress 5.1+) at high priority
+ * so the site is fully initialized before we insert the page.
+ *
+ * @param WP_Site $new_site The newly created site object.
+ */
+function extrachill_users_on_new_site( $new_site ) {
+	try {
+		switch_to_blog( $new_site->blog_id );
+		extrachill_users_create_login_page();
+		update_option( 'extrachill_users_login_page_created', 1 );
+	} finally {
+		restore_current_blog();
+	}
+}
+add_action( 'wp_initialize_site', 'extrachill_users_on_new_site', 200 );
+
+/**
+ * Fallback for sites that existed before the wp_initialize_site hook was added.
  * Runs on admin_init with site option flag to prevent repeated checks.
  */
 function extrachill_users_maybe_create_login_page() {
