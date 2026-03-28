@@ -211,42 +211,31 @@ function ec_users_get_user_event_count( int $user_id, int $blog_id = 0 ): int {
  * @return string 'upcoming' | 'ongoing' | 'past'
  */
 function ec_users_get_event_timing( int $event_id ): string {
-	global $wpdb;
-
-	// Query the datamachine_event_dates table (the canonical source for event times).
-	$blog_id       = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id();
-	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
-	$dates_table   = $events_prefix . 'datamachine_event_dates';
-
-	$row = $wpdb->get_row(
-		$wpdb->prepare(
-			"SELECT start_datetime, end_datetime FROM {$dates_table} WHERE post_id = %d LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted prefix.
-			$event_id
-		),
-		ARRAY_A
-	);
-
-	if ( ! $row || empty( $row['start_datetime'] ) ) {
+	// Use the data-machine-events canonical API for event dates.
+	if ( ! function_exists( 'datamachine_get_event_dates' ) ) {
 		return 'past';
 	}
 
-	$now            = current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- needed for timezone-aware comparison.
-	$event_start_ts = strtotime( $row['start_datetime'] );
+	$dates = datamachine_get_event_dates( $event_id );
 
-	if ( ! $event_start_ts ) {
+	if ( ! $dates || empty( $dates->start_datetime ) ) {
 		return 'past';
 	}
 
-	// Use end_datetime if available, otherwise default 4-hour show window.
-	$event_end_ts = ! empty( $row['end_datetime'] )
-		? strtotime( $row['end_datetime'] )
-		: $event_start_ts + ( 4 * HOUR_IN_SECONDS );
+	// Match UpcomingFilter logic from data-machine-events:
+	// upcoming = start >= now OR end >= now
+	// past     = start < now AND (end < now OR end IS NULL)
+	$now            = current_time( 'mysql' );
+	$event_start    = $dates->start_datetime;
+	$event_end      = $dates->end_datetime ?? null;
 
-	if ( $now < $event_start_ts ) {
+	// If start is in the future, it's upcoming.
+	if ( $event_start >= $now ) {
 		return 'upcoming';
 	}
 
-	if ( $now >= $event_start_ts && $now <= $event_end_ts ) {
+	// If end exists and is still in the future, it's ongoing.
+	if ( $event_end && $event_end >= $now ) {
 		return 'ongoing';
 	}
 

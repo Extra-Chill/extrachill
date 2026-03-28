@@ -1,57 +1,30 @@
 /**
  * Concert Tracking — Attendance Button Styles
  *
- * Minimal styles — inherits theme button patterns.
- * BEM: .ec-attendance, .ec-attendance__button, .ec-attendance__count
+ * Supplements the theme's button class system (button-2, button-3, button-large).
+ * Only defines layout for the attendance container and count label.
+ * Button styling comes from the theme's button-* classes in style.css.
  *
  * @package ExtraChill\Users
  * @since 0.8.0
  */
 
+/* Container: inline-flex for button + count side by side */
 .ec-attendance {
 	display: inline-flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--spacing-sm, 0.5rem);
 }
 
-.ec-attendance__button {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	padding: 6px 14px;
-	border: 1px solid var(--color-border, #d1d5db);
-	border-radius: 4px;
-	background: transparent;
-	color: var(--color-text, #1f2937);
-	font-size: 0.85rem;
-	font-weight: 500;
-	cursor: pointer;
-	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-	line-height: 1.4;
-}
-
-.ec-attendance__button:hover {
-	background-color: var(--color-surface-hover, #f3f4f6);
-	border-color: var(--color-border-hover, #9ca3af);
-}
-
-.ec-attendance__button--active {
-	background-color: var(--color-accent-subtle, #eff6ff);
-	border-color: var(--color-accent, #3b82f6);
-	color: var(--color-accent, #3b82f6);
-}
-
-.ec-attendance__button--active:hover {
-	background-color: var(--color-accent-subtle-hover, #dbeafe);
-}
-
+/* Check mark inside button — inherits button text color */
 .ec-attendance__check {
-	font-size: 0.75rem;
+	font-size: 0.85em;
 	line-height: 1;
 }
 
+/* Attendance count label */
 .ec-attendance__count {
-	font-size: 0.8rem;
-	color: var(--color-text-muted, #6b7280);
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
 	white-space: nowrap;
 }
