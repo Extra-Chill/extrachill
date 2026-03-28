@@ -131,6 +131,10 @@
 		if ( detect ) {
 			detect.style.display = 'none';
 		}
+
+		// The map container's viewport changes when the detect UI hides.
+		// Leaflet needs to recalculate its size to enable proper interaction.
+		window.dispatchEvent( new Event( 'resize' ) );
 	}
 
 	function showFallback( msg ) {
