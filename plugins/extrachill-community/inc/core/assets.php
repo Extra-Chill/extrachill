@@ -152,7 +152,7 @@ function extrachill_enqueue_scripts() {
 
     $upvote_script_version = filemtime( $stylesheet_dir . '/inc/assets/js/upvote.js' );
 
-    if ( is_bbpress() || is_page('recent') ) {
+    if ( is_bbpress() || is_front_page() || is_page('recent') ) {
         wp_enqueue_script('extrachill-upvote', $stylesheet_dir_uri . '/inc/assets/js/upvote.js', array(), $upvote_script_version, true);
         wp_localize_script('extrachill-upvote', 'extrachillCommunity', array(
             'restNonce' => wp_create_nonce('wp_rest'),
