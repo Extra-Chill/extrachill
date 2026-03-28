@@ -63,9 +63,7 @@ if ( bbp_is_forum_edit() ) : ?>
 
 				<?php endif; ?>
 
-				<?php do_action( 'bbp_template_notices' ); ?>
-
-				<div>
+					<div>
 
 					<?php do_action( 'bbp_theme_before_forum_form_title' ); ?>
 

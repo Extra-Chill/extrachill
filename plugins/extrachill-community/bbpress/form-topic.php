@@ -59,9 +59,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 				<?php endif; ?>
 
-				<?php do_action( 'bbp_template_notices' ); ?>
-
-				<div>
+					<div>
 
 					<?php bbp_get_template_part( 'form', 'anonymous' ); ?>
 

@@ -745,35 +745,6 @@ p.private-forums {
     margin-top: 15px;
 }
 
-/* ==================================================
-   bbPress Notice Compatibility - Map to Unified Notice System
-================================================== */
-.bbp-template-notice {
-    padding: 1em 1.5em;
-    margin: 0 auto 1.5em auto;
-    max-width: 1200px;
-    border-radius: var(--border-radius-sm);
-    border-left: 4px solid;
-    background-color: var(--card-background);
-    color: var(--text-color);
-}
-
-.bbp-template-notice.important {
-    background-color: var(--notice-bg);
-    border-left-color: var(--accent);
-}
-
-.bbp-template-notice.info {
-    background-color: var(--notice-bg);
-    border-left-color: var(--accent-2);
-}
-
-.bbp-template-notice.error,
-.bbp-template-notice.warning {
-    background-color: var(--card-background);
-    border-left-color: var(--error-color);
-}
-
 /* ==========================================================================
    Responsive Video Embeds
    ========================================================================== */

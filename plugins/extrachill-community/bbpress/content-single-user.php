@@ -14,8 +14,6 @@ defined( 'ABSPATH' ) || exit;
 
 <div id="bbpress-forums" class="bbpress-wrapper">
 
-	<?php do_action( 'bbp_template_notices' ); ?>
-
 	<?php do_action( 'bbp_template_before_user_wrapper' ); ?>
 
 	<div id="bbp-user-wrapper">
