@@ -54,6 +54,41 @@ function extrachill_enqueue_root_styles() {
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 );
 add_action( 'enqueue_block_assets', 'extrachill_enqueue_root_styles', 5 );
 
+/**
+ * Enqueue theme stylesheet and block-editor branding inside the editor iframe.
+ *
+ * Gutenberg 22.8+ renders the editor in an iframe. Styles registered via
+ * add_editor_style() sometimes fail to reach the iframe in time.
+ * enqueue_block_assets fires for both frontend AND editor iframe, ensuring
+ * the styles are available in both contexts.
+ */
+function extrachill_enqueue_editor_iframe_styles() {
+	if ( ! is_admin() ) {
+		return;
+	}
+
+	$theme_style_path = get_template_directory() . '/style.css';
+	if ( file_exists( $theme_style_path ) ) {
+		wp_enqueue_style(
+			'extrachill-style',
+			get_stylesheet_uri(),
+			array( 'extrachill-root' ),
+			filemtime( $theme_style_path )
+		);
+	}
+
+	$block_editor_css_path = get_stylesheet_directory() . '/assets/css/block-editor.css';
+	if ( file_exists( $block_editor_css_path ) ) {
+		wp_enqueue_style(
+			'extrachill-block-editor',
+			get_stylesheet_directory_uri() . '/assets/css/block-editor.css',
+			array( 'extrachill-root' ),
+			filemtime( $block_editor_css_path )
+		);
+	}
+}
+add_action( 'enqueue_block_assets', 'extrachill_enqueue_editor_iframe_styles', 10 );
+
 function extrachill_enqueue_embed_iframe_styles() {
 	$root_css_path = get_stylesheet_directory() . '/assets/css/root.css';
 	if ( file_exists( $root_css_path ) ) {
