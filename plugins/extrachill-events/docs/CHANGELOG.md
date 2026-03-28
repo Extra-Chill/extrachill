@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.17.4] - 2026-03-28
+
+### Changed
+- Remove fallback pattern matcher from venue qualification
+- Revert scope nav specificity override
+- flatten location badges wrapper div
+- Add mobile gutter to events archive pages at 480px
+- eliminate ec-edge-shell from events templates
+- remove redundant breadcrumb gutters
+
+### Fixed
+- add Columbia MD to market map, backfill venue state data
+- disambiguate location terms by venue state
+- venue city is ground truth for location reconciliation
+- Fix scope nav tabs caught by theme .page-content ul rule
+- hook normalizer to datamachine_event_taxonomy_processed
+
 ## [0.17.3] - 2026-03-26
 
 ### Changed
