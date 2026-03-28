@@ -113,6 +113,8 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/related-events.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/actions.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/concert-tracking-integration.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows.php';
 	}
 
 	public function init_data_machine_handlers() {

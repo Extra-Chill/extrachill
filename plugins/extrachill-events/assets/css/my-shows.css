@@ -1,0 +1,205 @@
+/**
+ * My Shows — Concert History Page Styles
+ *
+ * @package ExtraChillEvents
+ * @since 0.18.0
+ */
+
+/* Header */
+.my-shows-header__title-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.my-shows-year-filter select {
+	padding: 6px 12px;
+	border: 1px solid var(--color-border, #d1d5db);
+	border-radius: 4px;
+	background: var(--color-surface, #fff);
+	font-size: 0.9rem;
+	color: var(--color-text, #1f2937);
+	cursor: pointer;
+}
+
+/* Empty state */
+.my-shows-empty {
+	text-align: center;
+	padding: 48px 24px;
+}
+
+.my-shows-empty__heading {
+	font-size: 1.25rem;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.my-shows-empty__text {
+	color: var(--color-text-muted, #6b7280);
+	margin-bottom: 24px;
+}
+
+/* Stats bar */
+.my-shows-stats {
+	display: flex;
+	gap: 24px;
+	padding: 16px 0;
+	margin-bottom: 24px;
+	border-bottom: 1px solid var(--color-border, #e5e7eb);
+	flex-wrap: wrap;
+}
+
+.my-shows-stats__item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 60px;
+}
+
+.my-shows-stats__number {
+	font-size: 1.5rem;
+	font-weight: 700;
+	line-height: 1.2;
+	color: var(--color-text, #1f2937);
+}
+
+.my-shows-stats__label {
+	font-size: 0.8rem;
+	color: var(--color-text-muted, #6b7280);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+/* Sections */
+.my-shows-section {
+	margin-bottom: 32px;
+}
+
+.my-shows-section__title {
+	font-size: 1rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--color-text-muted, #6b7280);
+	margin-bottom: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+/* Show cards */
+.my-shows-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.my-shows-card {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	padding: 12px 8px;
+	text-decoration: none;
+	color: inherit;
+	border-radius: 4px;
+	transition: background-color 0.1s ease;
+}
+
+.my-shows-card:hover {
+	background-color: var(--color-surface-hover, #f9fafb);
+}
+
+.my-shows-card__date {
+	flex-shrink: 0;
+	width: 50px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--color-text-muted, #6b7280);
+	white-space: nowrap;
+}
+
+.my-shows-card__details {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.my-shows-card__artist {
+	font-weight: 500;
+	font-size: 0.95rem;
+	color: var(--color-text, #1f2937);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.my-shows-card__venue {
+	font-size: 0.85rem;
+	color: var(--color-text-muted, #6b7280);
+}
+
+/* Load more */
+.my-shows-load-more {
+	text-align: center;
+	padding: 16px 0;
+}
+
+/* Leaderboards */
+.my-shows-leaderboards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 24px;
+	margin-top: 32px;
+	padding-top: 24px;
+	border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+.my-shows-leaderboard__title {
+	font-size: 0.9rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--color-text-muted, #6b7280);
+	margin-bottom: 12px;
+}
+
+.my-shows-leaderboard__list {
+	list-style: decimal;
+	padding-left: 24px;
+	margin: 0;
+}
+
+.my-shows-leaderboard__list li {
+	padding: 4px 0;
+	font-size: 0.9rem;
+}
+
+.my-shows-leaderboard__name {
+	color: var(--color-text, #1f2937);
+}
+
+.my-shows-leaderboard__count {
+	color: var(--color-text-muted, #6b7280);
+	font-size: 0.8rem;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+	.my-shows-stats {
+		gap: 16px;
+	}
+
+	.my-shows-stats__number {
+		font-size: 1.25rem;
+	}
+
+	.my-shows-card__date {
+		width: 44px;
+	}
+
+	.my-shows-leaderboards {
+		grid-template-columns: 1fr;
+	}
+}
