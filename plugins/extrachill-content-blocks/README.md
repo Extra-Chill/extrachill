@@ -20,9 +20,6 @@ It is the content-block layer for:
 | **Image Voting** | Image-based polls with email capture and newsletter integration |
 | **Rapper Name Generator** | Generates rapper stage names based on user input |
 | **Band Name Generator** | Generates band names by genre with customizable options |
-| **AI Adventure** | AI-powered text adventure games with branching narratives |
-| **AI Adventure Path** | Story path/branch container (child of AI Adventure) |
-| **AI Adventure Step** | Individual story step with triggers (child of AI Adventure Path) |
 
 ## Namespace
 
