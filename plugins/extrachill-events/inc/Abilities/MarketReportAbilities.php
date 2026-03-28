@@ -361,9 +361,13 @@ class MarketReportAbilities {
 	}
 
 	/**
-	 * Get flow breakdown per city (from pipeline names).
+	 * Get flow breakdown per location term ID from flow configs.
 	 *
-	 * @return array Map of city name => { venue_scrapers, ticketmaster, dice, total }.
+	 * Reads the `taxonomy_location_selection` from each flow's upsert step
+	 * to determine the location. Falls back to pipeline name matching if
+	 * no location term is found in the config.
+	 *
+	 * @return array Map of term_id => { venue_scrapers, ticketmaster, dice, total }.
 	 */
 	private function getFlowBreakdownByCity(): array {
 		global $wpdb;
@@ -377,30 +381,34 @@ class MarketReportAbilities {
 			JOIN {$table_pipelines} p ON f.pipeline_id = p.pipeline_id"
 		);
 
+		// Build a name-to-term-id lookup for fallback matching.
+		$all_locations = get_terms( array(
+			'taxonomy'   => 'location',
+			'hide_empty' => false,
+		) );
+		$name_to_id = array();
+		foreach ( $all_locations as $term ) {
+			$name_to_id[ $term->name ] = $term->term_id;
+		}
+
 		$city_data = array();
 
 		foreach ( $flows as $f ) {
-			$city = str_replace( ' Events', '', $f->pipeline_name );
+			$pipeline_city = str_replace( ' Events', '', $f->pipeline_name );
 
-			if ( 'Frontend' === $city || 'Weekly Roundup' === $city ) {
+			if ( 'Frontend' === $pipeline_city || 'Weekly Roundup' === $pipeline_city ) {
 				continue;
 			}
 
-			if ( ! isset( $city_data[ $city ] ) ) {
-				$city_data[ $city ] = array(
-					'venue_scrapers' => 0,
-					'ticketmaster'   => 0,
-					'dice'           => 0,
-					'total'          => 0,
-				);
-			}
-
-			$config  = json_decode( $f->flow_config, true );
-			$handler = 'other';
+			$config      = json_decode( $f->flow_config, true );
+			$handler     = 'other';
+			$location_id = 0;
 
 			if ( is_array( $config ) ) {
 				foreach ( $config as $step ) {
 					$slugs = $step['handler_slugs'] ?? array();
+
+					// Determine handler type.
 					if ( in_array( 'universal_web_scraper', $slugs, true ) ) {
 						$handler = 'venue_scrapers';
 					} elseif ( in_array( 'ticketmaster', $slugs, true ) ) {
@@ -408,13 +416,51 @@ class MarketReportAbilities {
 					} elseif ( in_array( 'dice_fm', $slugs, true ) ) {
 						$handler = 'dice';
 					}
+
+					// Extract location term ID from upsert step config.
+					if ( in_array( 'upsert_event', $slugs, true ) && ! $location_id ) {
+						$upsert_config = $step['handler_configs']['upsert_event'] ?? array();
+						$loc_val       = $upsert_config['taxonomy_location_selection'] ?? '';
+						if ( is_numeric( $loc_val ) && (int) $loc_val > 0 ) {
+							$location_id = (int) $loc_val;
+						} elseif ( is_string( $loc_val ) && ! empty( $loc_val ) ) {
+							// Location selection might be a term name/slug.
+							$location_id = $name_to_id[ $loc_val ] ?? 0;
+						}
+					}
 				}
 			}
 
-			if ( isset( $city_data[ $city ][ $handler ] ) ) {
-				$city_data[ $city ][ $handler ]++;
+			// Fallback: match pipeline name to location term name.
+			if ( ! $location_id ) {
+				$location_id = $name_to_id[ $pipeline_city ] ?? 0;
 			}
-			$city_data[ $city ]['total']++;
+
+			if ( ! $location_id ) {
+				continue;
+			}
+
+			// Resolve term name for the key (used in execute() matching).
+			$term = get_term( $location_id, 'location' );
+			if ( ! $term || is_wp_error( $term ) ) {
+				continue;
+			}
+
+			$key = $term->name;
+
+			if ( ! isset( $city_data[ $key ] ) ) {
+				$city_data[ $key ] = array(
+					'venue_scrapers' => 0,
+					'ticketmaster'   => 0,
+					'dice'           => 0,
+					'total'          => 0,
+				);
+			}
+
+			if ( isset( $city_data[ $key ][ $handler ] ) ) {
+				$city_data[ $key ][ $handler ]++;
+			}
+			$city_data[ $key ]['total']++;
 		}
 
 		return $city_data;
