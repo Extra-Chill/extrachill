@@ -4,12 +4,21 @@
 	"description": "ExtraChill Events block tooling",
 	"private": true,
 	"scripts": {
-		"build": "npm run build:event-submission && npm run copy:block-files",
+		"build": "npm run build:event-submission && npm run build:concert-stats && npm run copy:block-files",
 		"build:event-submission": "wp-scripts build blocks/event-submission/src/index.js --output-path=build/event-submission",
-		"copy:block-files": "cp blocks/event-submission/block.json blocks/event-submission/render.php blocks/event-submission/style.css blocks/event-submission/view.js build/event-submission/",
-		"start": "wp-scripts start blocks/event-submission/src/index.js --output-path=build/event-submission"
+		"build:concert-stats": "wp-scripts build blocks/concert-stats/src/index.js blocks/concert-stats/src/view.js --output-path=build/concert-stats",
+		"copy:block-files": "npm run copy:event-submission && npm run copy:concert-stats",
+		"copy:event-submission": "cp blocks/event-submission/block.json blocks/event-submission/render.php blocks/event-submission/style.css blocks/event-submission/view.js build/event-submission/",
+		"copy:concert-stats": "cp blocks/concert-stats/block.json blocks/concert-stats/render.php build/concert-stats/",
+		"start": "wp-scripts start blocks/event-submission/src/index.js --output-path=build/event-submission",
+		"start:concert-stats": "wp-scripts start blocks/concert-stats/src/index.js blocks/concert-stats/src/view.js --output-path=build/concert-stats"
 	},
 	"devDependencies": {
 		"@wordpress/scripts": "^27.1.0"
+	},
+	"dependencies": {
+		"@extrachill/components": "file:../extrachill-components",
+		"react": "^19.2.4",
+		"react-dom": "^19.2.4"
 	}
 }

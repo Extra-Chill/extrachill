@@ -1,0 +1,29 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/concert-stats",
+	"version": "1.0.0",
+	"title": "Concert Stats",
+	"category": "widgets",
+	"icon": "tickets-alt",
+	"description": "Interactive concert history dashboard. Shows attendance stats, show timeline, and leaderboards for the current user.",
+	"keywords": [ "concerts", "shows", "stats", "attendance", "music", "phish" ],
+	"textdomain": "extrachill-events",
+	"attributes": {
+		"userId": {
+			"type": "integer",
+			"default": 0
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ],
+		"spacing": {
+			"margin": [ "top", "bottom" ]
+		}
+	},
+	"editorScript": "file:./index.js",
+	"render": "file:./render.php",
+	"style": "file:./style-index.css",
+	"viewScript": "file:./view.js"
+}

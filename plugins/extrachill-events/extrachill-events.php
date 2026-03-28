@@ -224,6 +224,11 @@ function extrachill_events_register_blocks() {
 		return;
 	}
 	register_block_type( EXTRACHILL_EVENTS_PLUGIN_DIR . 'build/event-submission' );
+
+	$concert_stats_dir = EXTRACHILL_EVENTS_PLUGIN_DIR . 'build/concert-stats';
+	if ( file_exists( $concert_stats_dir . '/block.json' ) ) {
+		register_block_type( $concert_stats_dir );
+	}
 }
 add_action( 'init', 'extrachill_events_register_blocks' );
 
