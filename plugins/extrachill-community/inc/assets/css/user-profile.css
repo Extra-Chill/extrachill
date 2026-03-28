@@ -356,6 +356,15 @@
     width: 100%;
 }
 
+/* Edit-profile block gutter.
+ * The bbPress routing path strips .extrachill-content padding on mobile
+ * (body.page.bbpress rule in theme style.css) for edge-to-edge forum cards.
+ * The edit-profile block is a form, not a card list — restore the gutter. */
+.bbp-user-profile-edit-container {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+}
+
 /* Avatar thumbnail preview */
 #avatar-thumbnail img {
     max-width: 100px;
