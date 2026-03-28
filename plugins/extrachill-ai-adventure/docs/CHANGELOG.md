@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-03-28
+
+### Added
+- add progress_story ability + tool for game-master agent
+
 ## [1.1.1] - 2026-03-28
 
 ### Changed

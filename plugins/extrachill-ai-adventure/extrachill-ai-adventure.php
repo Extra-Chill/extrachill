@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill AI Adventure
  * Plugin URI: https://extrachill.com
  * Description: AI-powered interactive text adventure block for WordPress. Create branching narratives with an AI game master powered by Data Machine.
- * Version: 1.1.1
+ * Version: 1.2.0
  * Requires at least: 6.4
  * Requires PHP: 7.4
  * Author: Chris Huber
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_AI_ADVENTURE_VERSION', '1.1.1' );
+define( 'EXTRACHILL_AI_ADVENTURE_VERSION', '1.2.0' );
 define( 'EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_AI_ADVENTURE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
