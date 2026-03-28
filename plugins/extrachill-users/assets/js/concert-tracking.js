@@ -3,7 +3,9 @@
  *
  * Handles click events on .ec-attendance__button elements.
  * Uses wp.apiFetch for authenticated REST calls.
- * Optimistic UI updates for instant feedback.
+ * Optimistic UI updates toggle between theme button classes:
+ *   - button-3 (neutral) when unmarked
+ *   - button-2 (green accent) when marked
  *
  * @package ExtraChill\Users
  * @since 0.8.0
@@ -11,6 +13,40 @@
 
 ( function () {
 	'use strict';
+
+	/**
+	 * Toggle button between marked (button-2) and unmarked (button-3) states.
+	 */
+	function setButtonState( button, container, marked, labelEl, labelDefault, labelActive ) {
+		if ( marked ) {
+			container.classList.add( 'ec-attendance--marked' );
+			button.classList.remove( 'button-3' );
+			button.classList.add( 'button-2' );
+			if ( labelEl ) {
+				labelEl.textContent = labelActive;
+			}
+			// Add check mark if not present.
+			if ( ! button.querySelector( '.ec-attendance__check' ) ) {
+				var check = document.createElement( 'span' );
+				check.className = 'ec-attendance__check';
+				check.setAttribute( 'aria-hidden', 'true' );
+				check.textContent = '\u2713';
+				button.insertBefore( check, labelEl );
+			}
+		} else {
+			container.classList.remove( 'ec-attendance--marked' );
+			button.classList.remove( 'button-2' );
+			button.classList.add( 'button-3' );
+			if ( labelEl ) {
+				labelEl.textContent = labelDefault;
+			}
+			// Remove check mark.
+			var checkEl = button.querySelector( '.ec-attendance__check' );
+			if ( checkEl ) {
+				checkEl.remove();
+			}
+		}
+	}
 
 	document.addEventListener( 'click', function ( e ) {
 		var button = e.target.closest( '.ec-attendance__button' );
@@ -49,37 +85,11 @@
 		var blogId = parseInt( container.getAttribute( 'data-blog-id' ), 10 );
 		var labelDefault = container.getAttribute( 'data-label-default' );
 		var labelActive = container.getAttribute( 'data-label-active' );
+		var labelEl = button.querySelector( '.ec-attendance__label' );
 
 		// Optimistic UI update.
 		var isCurrentlyMarked = container.classList.contains( 'ec-attendance--marked' );
-		var labelEl = button.querySelector( '.ec-attendance__label' );
-		var checkEl = button.querySelector( '.ec-attendance__check' );
-
-		if ( isCurrentlyMarked ) {
-			// Unmarking.
-			container.classList.remove( 'ec-attendance--marked' );
-			button.classList.remove( 'ec-attendance__button--active' );
-			if ( labelEl ) {
-				labelEl.textContent = labelDefault;
-			}
-			if ( checkEl ) {
-				checkEl.remove();
-			}
-		} else {
-			// Marking.
-			container.classList.add( 'ec-attendance--marked' );
-			button.classList.add( 'ec-attendance__button--active' );
-			if ( labelEl ) {
-				labelEl.textContent = labelActive;
-			}
-			if ( ! checkEl ) {
-				var newCheck = document.createElement( 'span' );
-				newCheck.className = 'ec-attendance__check';
-				newCheck.setAttribute( 'aria-hidden', 'true' );
-				newCheck.textContent = '\u2713';
-				button.insertBefore( newCheck, labelEl );
-			}
-		}
+		setButtonState( button, container, ! isCurrentlyMarked, labelEl, labelDefault, labelActive );
 
 		// API call.
 		wp.apiFetch( {
@@ -106,24 +116,11 @@
 			}
 
 			// Sync actual state (in case optimistic was wrong).
-			if ( response.marked ) {
-				container.classList.add( 'ec-attendance--marked' );
-				button.classList.add( 'ec-attendance__button--active' );
-			} else {
-				container.classList.remove( 'ec-attendance--marked' );
-				button.classList.remove( 'ec-attendance__button--active' );
-			}
-
+			setButtonState( button, container, response.marked, labelEl, labelDefault, labelActive );
 			button.disabled = false;
 		} ).catch( function () {
 			// Revert optimistic update on failure.
-			if ( isCurrentlyMarked ) {
-				container.classList.add( 'ec-attendance--marked' );
-				button.classList.add( 'ec-attendance__button--active' );
-			} else {
-				container.classList.remove( 'ec-attendance--marked' );
-				button.classList.remove( 'ec-attendance__button--active' );
-			}
+			setButtonState( button, container, isCurrentlyMarked, labelEl, labelDefault, labelActive );
 			button.disabled = false;
 		} );
 	} );
