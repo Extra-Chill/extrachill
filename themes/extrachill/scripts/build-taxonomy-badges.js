@@ -28,7 +28,7 @@ const baseStyles = `/*
   line-height: 1;
   text-decoration: none;
   display: inline-block;
-  background-color: var(--card-background);
+  background-color: var(--background-color);
   color: var(--link-color);
   border: 1px solid var(--border-color);
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
