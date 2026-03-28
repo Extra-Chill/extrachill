@@ -212,13 +212,11 @@ function ec_users_get_user_event_count( int $user_id, int $blog_id = 0 ): int {
  */
 function ec_users_get_event_timing( int $event_id ): string {
 	// Use the data-machine-events canonical API for event dates.
-	// Try the convenience function first, then the class directly.
-	$dates = null;
-	if ( function_exists( 'datamachine_get_event_dates' ) ) {
-		$dates = datamachine_get_event_dates( $event_id );
-	} elseif ( class_exists( '\DataMachineEvents\Core\EventDatesTable' ) ) {
-		$dates = \DataMachineEvents\Core\EventDatesTable::get( $event_id );
+	if ( ! function_exists( 'datamachine_get_event_dates' ) ) {
+		return 'past';
 	}
+
+	$dates = datamachine_get_event_dates( $event_id );
 
 	if ( ! $dates || empty( $dates->start_datetime ) ) {
 		return 'past';
