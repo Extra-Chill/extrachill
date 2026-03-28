@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-03-28
+
+### Changed
+- replace direct AI calls with Data Machine ChatOrchestrator
+
 ## [1.1.0] - 2026-03-27
 
 ### Added
