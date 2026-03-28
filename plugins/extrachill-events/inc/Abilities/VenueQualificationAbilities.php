@@ -356,8 +356,10 @@ class VenueQualificationAbilities {
 		$ability = wp_get_ability( 'datamachine/test-event-scraper' );
 
 		if ( ! $ability ) {
-			// Fallback: if ability not available, use lightweight HTTP check.
-			return $this->fallbackCheck( $url );
+			return array(
+				'qualified' => false,
+				'error'     => 'datamachine/test-event-scraper ability not available — is data-machine-events active?',
+			);
 		}
 
 		$result = $ability->execute( array( 'target_url' => $url ) );
@@ -404,39 +406,6 @@ class VenueQualificationAbilities {
 		}
 
 		return 0;
-	}
-
-	/**
-	 * Lightweight fallback check if scraper ability is unavailable.
-	 *
-	 * @param string $url URL to check.
-	 * @return array Result.
-	 */
-	private function fallbackCheck( string $url ): array {
-		$response = wp_remote_get( $url, array(
-			'timeout'    => 10,
-			'user-agent' => 'Mozilla/5.0 (compatible; ExtraChillBot/1.0; +https://extrachill.com)',
-		) );
-
-		if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) >= 400 ) {
-			return array( 'qualified' => false );
-		}
-
-		$html     = wp_remote_retrieve_body( $response );
-		$signals  = array( 'application/ld+json', 'tribe-events', 'event-list', 'eventlist', 'etix.com', 'seetickets', 'dice.fm' );
-		$found    = 0;
-
-		foreach ( $signals as $signal ) {
-			if ( stripos( $html, $signal ) !== false ) {
-				++$found;
-			}
-		}
-
-		return array(
-			'qualified'  => $found >= 2,
-			'events_url' => $found >= 2 ? $url : '',
-			'method'     => 'fallback_pattern_match',
-		);
 	}
 
 	/**
