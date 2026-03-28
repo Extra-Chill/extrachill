@@ -215,6 +215,9 @@ class ConcertTrackingCommand {
 	 *
 	 * @when after_wp_load
 	 */
+	/**
+	 * @subcommand list
+	 */
 	public function list_( $args, $assoc_args ) {
 		$this->ensure_tracking();
 
