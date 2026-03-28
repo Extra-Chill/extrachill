@@ -211,31 +211,36 @@ function ec_users_get_user_event_count( int $user_id, int $blog_id = 0 ): int {
  * @return string 'upcoming' | 'ongoing' | 'past'
  */
 function ec_users_get_event_timing( int $event_id ): string {
-	$event_date  = get_post_meta( $event_id, '_event_date', true );
-	$event_start = get_post_meta( $event_id, '_event_start_time', true );
-	$event_end   = get_post_meta( $event_id, '_event_end_time', true );
+	global $wpdb;
 
-	if ( ! $event_date ) {
+	// Query the datamachine_event_dates table (the canonical source for event times).
+	$blog_id       = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id();
+	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
+	$dates_table   = $events_prefix . 'datamachine_event_dates';
+
+	$row = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT start_datetime, end_datetime FROM {$dates_table} WHERE post_id = %d LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted prefix.
+			$event_id
+		),
+		ARRAY_A
+	);
+
+	if ( ! $row || empty( $row['start_datetime'] ) ) {
 		return 'past';
 	}
 
 	$now            = current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- needed for timezone-aware comparison.
-	$start_string   = $event_date . ' ' . ( $event_start ?: '00:00:00' );
-	$event_start_ts = strtotime( $start_string );
+	$event_start_ts = strtotime( $row['start_datetime'] );
 
 	if ( ! $event_start_ts ) {
 		return 'past';
 	}
 
-	// Default 4-hour show window if no end time specified.
-	$event_end_ts = $event_end
-		? strtotime( $event_date . ' ' . $event_end )
+	// Use end_datetime if available, otherwise default 4-hour show window.
+	$event_end_ts = ! empty( $row['end_datetime'] )
+		? strtotime( $row['end_datetime'] )
 		: $event_start_ts + ( 4 * HOUR_IN_SECONDS );
-
-	// Handle overnight shows (end time is earlier than start time = next day).
-	if ( $event_end_ts && $event_end_ts < $event_start_ts ) {
-		$event_end_ts += DAY_IN_SECONDS;
-	}
 
 	if ( $now < $event_start_ts ) {
 		return 'upcoming';
@@ -324,29 +329,31 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	$where   = array( 'ct.user_id = %d', 'ct.blog_id = %d' );
 	$prepare = array( $user_id, $blog_id );
 
-	// Date filtering via event post meta.
+	$dates_table = $events_prefix . 'datamachine_event_dates';
+
+	// Date filtering via datamachine_event_dates table.
 	$now_date = current_time( 'Y-m-d' );
 
 	if ( 'upcoming' === $args['period'] ) {
-		$where[]   = 'pm_date.meta_value >= %s';
+		$where[]   = 'DATE(ed.start_datetime) >= %s';
 		$prepare[] = $now_date;
 	} elseif ( 'past' === $args['period'] ) {
-		$where[]   = 'pm_date.meta_value < %s';
+		$where[]   = 'DATE(ed.start_datetime) < %s';
 		$prepare[] = $now_date;
 	}
 
 	if ( $args['year'] ) {
-		$where[]   = 'YEAR(pm_date.meta_value) = %d';
+		$where[]   = 'YEAR(ed.start_datetime) = %d';
 		$prepare[] = (int) $args['year'];
 	}
 
 	if ( $args['date_from'] ) {
-		$where[]   = 'pm_date.meta_value >= %s';
+		$where[]   = 'DATE(ed.start_datetime) >= %s';
 		$prepare[] = sanitize_text_field( $args['date_from'] );
 	}
 
 	if ( $args['date_to'] ) {
-		$where[]   = 'pm_date.meta_value <= %s';
+		$where[]   = 'DATE(ed.start_datetime) <= %s';
 		$prepare[] = sanitize_text_field( $args['date_to'] );
 	}
 
@@ -357,7 +364,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	$count_sql = $wpdb->prepare(
 		"SELECT COUNT(*)
 		FROM {$table} ct
-		INNER JOIN {$events_prefix}postmeta pm_date ON ct.event_id = pm_date.post_id AND pm_date.meta_key = '_event_date'
+		INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
 		WHERE {$where_sql}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from trusted helpers, where_sql built from %d/%s placeholders.
 		...$prepare
 	);
@@ -370,11 +377,11 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 
 	// Fetch event IDs with date ordering.
 	$query = $wpdb->prepare(
-		"SELECT ct.event_id, ct.created_at AS marked_at, pm_date.meta_value AS event_date
+		"SELECT ct.event_id, ct.created_at AS marked_at, DATE(ed.start_datetime) AS event_date
 		FROM {$table} ct
-		INNER JOIN {$events_prefix}postmeta pm_date ON ct.event_id = pm_date.post_id AND pm_date.meta_key = '_event_date'
+		INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
 		WHERE {$where_sql}
-		ORDER BY pm_date.meta_value {$order_sql}
+		ORDER BY ed.start_datetime {$order_sql}
 		LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from trusted helpers, where_sql built from prepare placeholders, order_sql validated against whitelist.
 		...array_merge( $prepare, array( $args['per_page'], $offset ) )
 	);
@@ -490,8 +497,8 @@ function ec_users_build_show_data( WP_Post $post, array $row ): array {
 	return array(
 		'event_id'   => $event_id,
 		'title'      => $post->post_title,
-		'event_date' => $row['event_date'] ?? get_post_meta( $event_id, '_event_date', true ),
-		'event_time' => get_post_meta( $event_id, '_event_start_time', true ),
+		'event_date' => $row['event_date'] ?? '',
+		'event_time' => $row['event_time'] ?? '',
 		'venue'      => $venue,
 		'city'       => $city,
 		'artists'    => $artists,
@@ -524,20 +531,22 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	$table         = extrachill_users_concert_tracking_table_name();
 	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
 
+	$dates_table = $events_prefix . 'datamachine_event_dates';
+
 	// Base WHERE for this user + blog.
 	$where   = array( 'ct.user_id = %d', 'ct.blog_id = %d' );
 	$prepare = array( $user_id, $blog_id );
 
 	if ( ! empty( $args['year'] ) ) {
-		$where[]   = 'YEAR(pm_date.meta_value) = %d';
+		$where[]   = 'YEAR(ed.start_datetime) = %d';
 		$prepare[] = (int) $args['year'];
 	}
 	if ( ! empty( $args['date_from'] ) ) {
-		$where[]   = 'pm_date.meta_value >= %s';
+		$where[]   = 'DATE(ed.start_datetime) >= %s';
 		$prepare[] = sanitize_text_field( $args['date_from'] );
 	}
 	if ( ! empty( $args['date_to'] ) ) {
-		$where[]   = 'pm_date.meta_value <= %s';
+		$where[]   = 'DATE(ed.start_datetime) <= %s';
 		$prepare[] = sanitize_text_field( $args['date_to'] );
 	}
 
@@ -548,7 +557,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 		$wpdb->prepare(
 			"SELECT COUNT(*)
 			FROM {$table} ct
-			INNER JOIN {$events_prefix}postmeta pm_date ON ct.event_id = pm_date.post_id AND pm_date.meta_key = '_event_date'
+			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
 			WHERE {$where_sql}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			...$prepare
 		)
@@ -574,7 +583,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 		$wpdb->prepare(
 			"SELECT ct.event_id
 			FROM {$table} ct
-			INNER JOIN {$events_prefix}postmeta pm_date ON ct.event_id = pm_date.post_id AND pm_date.meta_key = '_event_date'
+			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
 			WHERE {$where_sql}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			...$prepare
 		)
@@ -667,9 +676,9 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	// Shows by year.
 	$shows_by_year_raw = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT YEAR(pm_date.meta_value) AS yr, COUNT(*) AS count
+			"SELECT YEAR(ed.start_datetime) AS yr, COUNT(*) AS count
 			FROM {$table} ct
-			INNER JOIN {$events_prefix}postmeta pm_date ON ct.event_id = pm_date.post_id AND pm_date.meta_key = '_event_date'
+			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
 			WHERE {$where_sql}
 			GROUP BY yr
 			ORDER BY yr DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -686,11 +695,11 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	// First and latest show.
 	$first_show_row = $wpdb->get_row(
 		$wpdb->prepare(
-			"SELECT ct.event_id, pm_date.meta_value AS event_date
+			"SELECT ct.event_id, DATE(ed.start_datetime) AS event_date
 			FROM {$table} ct
-			INNER JOIN {$events_prefix}postmeta pm_date ON ct.event_id = pm_date.post_id AND pm_date.meta_key = '_event_date'
+			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
 			WHERE {$where_sql}
-			ORDER BY pm_date.meta_value ASC
+			ORDER BY ed.start_datetime ASC
 			LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			...$prepare
 		),
@@ -699,11 +708,11 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 
 	$latest_show_row = $wpdb->get_row(
 		$wpdb->prepare(
-			"SELECT ct.event_id, pm_date.meta_value AS event_date
+			"SELECT ct.event_id, DATE(ed.start_datetime) AS event_date
 			FROM {$table} ct
-			INNER JOIN {$events_prefix}postmeta pm_date ON ct.event_id = pm_date.post_id AND pm_date.meta_key = '_event_date'
+			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
 			WHERE {$where_sql}
-			ORDER BY pm_date.meta_value DESC
+			ORDER BY ed.start_datetime DESC
 			LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			...$prepare
 		),
