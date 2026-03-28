@@ -14,6 +14,7 @@ const AIAdventureGame = ( { attributes, innerBlocks } ) => {
 	const [currentStepId, setCurrentStepId] = useState(null);
 	const [previousSteps, setPreviousSteps] = useState([]);
 	const [storyProgression, setStoryProgression] = useState([]);
+	const [sessionId, setSessionId] = useState(''); // DM chat session ID
 	const storyLogRef = useRef(null);
 	
 	const handleNameSubmit = (e) => {
@@ -68,8 +69,9 @@ const AIAdventureGame = ( { attributes, innerBlocks } ) => {
 				data: {
 					isIntroduction: true,
 					characterName,
-					triggers, // Send the triggers for context
-					transitionContext, // Send the last few messages
+					triggers,
+					transitionContext,
+					sessionId,
 					gameMasterPersona: attributes.gameMasterPersona,
 					adventureTitle: attributes.title,
 					adventurePrompt: attributes.adventurePrompt,
@@ -77,6 +79,7 @@ const AIAdventureGame = ( { attributes, innerBlocks } ) => {
 					stepPrompt: step.attributes.stepPrompt,
 				},
 			});
+			if (response.sessionId) setSessionId(response.sessionId);
 			setStoryLog(prevLog => [...prevLog, { type: 'ai', content: response.narrative }]);
 		} catch (err) {
 			setError(err.message || "Error fetching the step's introduction.");
@@ -146,7 +149,8 @@ const AIAdventureGame = ( { attributes, innerBlocks } ) => {
 				data: {
 					playerInput: currentInput,
 					characterName,
-					triggers: triggers,
+					triggers,
+					sessionId,
 					gameMasterPersona: attributes.gameMasterPersona,
 					adventureTitle: attributes.title,
 					adventurePrompt: attributes.adventurePrompt,
@@ -157,6 +161,7 @@ const AIAdventureGame = ( { attributes, innerBlocks } ) => {
 					storyProgression: prevStoryProgression,
 				},
 			});
+			if (response.sessionId) setSessionId(response.sessionId);
 
 			// Add the AI's narrative response to the story log
 			setStoryLog(prevLog => [...prevLog, { type: 'ai', content: response.narrative }]);
@@ -197,6 +202,7 @@ const AIAdventureGame = ( { attributes, innerBlocks } ) => {
 		setStoryProgression([]);
 		setCharacterName('');
 		setTempName('');
+		setSessionId('');
 	};
 
 	let content;
@@ -264,10 +270,6 @@ const AIAdventureGame = ( { attributes, innerBlocks } ) => {
 };
 
 const App = ({ attributes, innerBlocks }) => {
-	console.log('AI Adventure App - Received data:', { attributes, innerBlocks });
-	console.log('InnerBlocks length:', innerBlocks ? innerBlocks.length : 'undefined');
-	console.log('InnerBlocks structure:', innerBlocks);
-	
 	if (!attributes || !innerBlocks || innerBlocks.length === 0) {
 		return <p>Loading Adventure...</p>;
 	}
