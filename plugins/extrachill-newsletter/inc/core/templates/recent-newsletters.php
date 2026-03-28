@@ -36,7 +36,7 @@ if ( $newsletter_query->have_posts() ) :
 	wp_enqueue_script( 'extrachill-newsletter' );
 	wp_enqueue_style( 'extrachill-newsletter-sidebar' );
 	?>
-	<div class="sidebar-card recent-newsletters-widget">
+	<div class="sidebar-card ec-surface-card recent-newsletters-widget">
 		<h3 class="widget-title"><?php esc_html_e( 'Recent Newsletters', 'extrachill-newsletter' ); ?></h3>
 		<ul class="recent-newsletters-list">
 			<?php
