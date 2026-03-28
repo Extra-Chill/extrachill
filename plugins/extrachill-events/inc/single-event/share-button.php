@@ -29,7 +29,7 @@ function ec_events_render_share_button( $post_id, $ticket_url ) {
 		extrachill_share_button( array(
 			'share_url'   => get_permalink( $post_id ),
 			'share_title' => get_the_title( $post_id ),
-			'button_size' => 'button-large',
+			'button_size' => 'button-medium',
 		) );
 	}
 }

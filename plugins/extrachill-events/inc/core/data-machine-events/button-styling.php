@@ -57,7 +57,7 @@ function extrachill_events_add_modal_button_classes( $classes, $button_type ) {
  */
 function extrachill_events_add_ticket_button_classes( $classes ) {
 	$classes[] = 'button-1';
-	$classes[] = 'button-large';
+	$classes[] = 'button-medium';
 	return $classes;
 }
 
