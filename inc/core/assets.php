@@ -318,13 +318,6 @@ function extrachill_register_mini_dropdown() {
 add_action( 'wp_enqueue_scripts', 'extrachill_register_mini_dropdown', 5 );
 
 function extrachill_register_share_assets() {
-	wp_register_style(
-		'extrachill-share',
-		get_template_directory_uri() . '/assets/css/share.css',
-		array(),
-		filemtime( get_template_directory() . '/assets/css/share.css' )
-	);
-
 	wp_register_script(
 		'extrachill-share',
 		get_template_directory_uri() . '/assets/js/share.js',
