@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.3.3] - 2026-03-29
+
+### Changed
+- Defer non-critical CSS and add defer strategy to JS
+
 ## [2.3.2] - 2026-03-29
 
 ### Changed
