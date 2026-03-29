@@ -17,7 +17,6 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
 	 * @param array $args Optional arguments (share_url, share_title, button_size)
 	 */
 	function extrachill_share_button( $args = array() ) {
-		wp_enqueue_style( 'extrachill-share' );
 		wp_enqueue_script( 'extrachill-share' );
 
 		if ( isset( $args ) && is_array( $args ) ) {
