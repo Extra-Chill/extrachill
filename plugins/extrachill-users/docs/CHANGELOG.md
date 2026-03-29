@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.14] - 2026-03-29
+
+### Changed
+- Add defer strategy to avatar-menu and auth-utils scripts
+- Use button-medium for attendance button
+- Add attendance button UI with time-derived labels and optimistic toggle
+- Add concert tracking data layer: DB schema, CRUD, stats queries, and abilities
+- Auto-create login pages on new network sites
+
+### Fixed
+- fallback to EventDatesTable class when convenience function unavailable
+- use theme button classes and DM events date API
+- Fix concert tracking queries to use datamachine_event_dates table
+
 ## [0.7.13] - 2026-03-27
 
 ### Fixed
