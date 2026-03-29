@@ -7,6 +7,6 @@
  * @package ExtraChill
  */
 
-.share-dropdown {
+.share-dropdown[aria-expanded="true"] {
     margin: var(--spacing-lg) 0;
 }
