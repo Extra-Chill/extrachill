@@ -294,6 +294,244 @@ class LocationCommand {
 	}
 
 	/**
+	 * Audit event times for timezone mismatches and suspicious values.
+	 *
+	 * Scans events for: UTC timezone on US venues, missing venue timezone,
+	 * timezone mismatch with location hierarchy, suspicious show times (1-6 AM).
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--flow=<flow_id>]
+	 * : Filter to events from a specific flow.
+	 *
+	 * [--location=<slug_or_id>]
+	 * : Filter by location term slug or ID.
+	 *
+	 * [--venue=<slug_or_id>]
+	 * : Filter by venue term slug or ID.
+	 *
+	 * [--limit=<limit>]
+	 * : Maximum events to scan. Use 0 for all.
+	 * ---
+	 * default: 500
+	 * ---
+	 *
+	 * [--offset=<offset>]
+	 * : Offset for batched audits.
+	 * ---
+	 * default: 0
+	 * ---
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events audit-times --url=events.extrachill.com
+	 *     wp extrachill events audit-times --flow=704 --url=events.extrachill.com
+	 *     wp extrachill events audit-times --location=salt-lake-city --url=events.extrachill.com
+	 *     wp extrachill events audit-times --limit=0 --format=json --url=events.extrachill.com
+	 *
+	 * @subcommand audit-times
+	 * @when after_wp_load
+	 */
+	public function audit_times( $args, $assoc_args ) {
+		wp_set_current_user( 1 );
+
+		$ability = wp_get_ability( 'extrachill/audit-event-times' );
+
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/audit-event-times ability not available. Is extrachill-events active?' );
+		}
+
+		$input = array(
+			'limit'  => isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 500,
+			'offset' => isset( $assoc_args['offset'] ) ? (int) $assoc_args['offset'] : 0,
+		);
+
+		if ( ! empty( $assoc_args['flow'] ) ) {
+			$input['flow_id'] = (int) $assoc_args['flow'];
+		}
+		if ( ! empty( $assoc_args['location'] ) ) {
+			$input['location'] = $assoc_args['location'];
+		}
+		if ( ! empty( $assoc_args['venue'] ) ) {
+			$input['venue'] = $assoc_args['venue'];
+		}
+
+		WP_CLI::log( 'Auditing event times...' );
+
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( 'json' === $format ) {
+			WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		if ( ! empty( $result['results'] ) ) {
+			Utils\format_items(
+				$format,
+				$result['results'],
+				array( 'post_id', 'title', 'venue', 'start_time', 'venue_tz', 'expected_tz', 'location', 'flow_id', 'issues' )
+			);
+		} elseif ( 'table' === $format ) {
+			WP_CLI::success( 'No time issues found.' );
+		}
+
+		if ( 'table' === $format ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( 'Checked: %d', (int) $result['checked_count'] ) );
+			WP_CLI::log( sprintf( 'Flagged: %d', (int) $result['flagged_count'] ) );
+		}
+	}
+
+	/**
+	 * Fix event times by converting between timezones.
+	 *
+	 * Finds events with venues in the --from timezone and converts their
+	 * block attribute times to the --to timezone. Updates post content and
+	 * venue timezone meta.
+	 *
+	 * ## OPTIONS
+	 *
+	 * --from=<timezone>
+	 * : Source timezone (the wrong one currently stored).
+	 *
+	 * --to=<timezone>
+	 * : Target timezone (the correct one to convert to).
+	 *
+	 * [--flow=<flow_id>]
+	 * : Scope to events from a specific flow.
+	 *
+	 * [--limit=<limit>]
+	 * : Maximum events to fix. Use 0 for all.
+	 * ---
+	 * default: 500
+	 * ---
+	 *
+	 * [--dry-run]
+	 * : Preview changes without applying.
+	 *
+	 * [--yes]
+	 * : Skip confirmation prompt.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events fix-times --from=UTC --to=America/Denver --dry-run --url=events.extrachill.com
+	 *     wp extrachill events fix-times --from=UTC --to=America/Denver --flow=704 --yes --url=events.extrachill.com
+	 *     wp extrachill events fix-times --from=America/Chicago --to=America/New_York --dry-run --url=events.extrachill.com
+	 *
+	 * @subcommand fix-times
+	 * @when after_wp_load
+	 */
+	public function fix_times( $args, $assoc_args ) {
+		wp_set_current_user( 1 );
+
+		$ability = wp_get_ability( 'extrachill/fix-event-times' );
+
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/fix-event-times ability not available. Is extrachill-events active?' );
+		}
+
+		$from    = $assoc_args['from'] ?? '';
+		$to      = $assoc_args['to'] ?? '';
+		$dry_run = ! empty( $assoc_args['dry-run'] );
+
+		if ( empty( $from ) || empty( $to ) ) {
+			WP_CLI::error( 'Both --from and --to timezone parameters are required.' );
+		}
+
+		if ( ! $dry_run && empty( $assoc_args['yes'] ) ) {
+			WP_CLI::confirm( sprintf( 'This will convert event times from %s to %s and update venue timezone meta. Continue?', $from, $to ) );
+		}
+
+		$input = array(
+			'from'    => $from,
+			'to'      => $to,
+			'dry_run' => $dry_run,
+			'limit'   => isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 500,
+		);
+
+		if ( ! empty( $assoc_args['flow'] ) ) {
+			$input['flow_id'] = (int) $assoc_args['flow'];
+		}
+
+		WP_CLI::log( sprintf( '%s event times: %s → %s', $dry_run ? 'Previewing' : 'Fixing', $from, $to ) );
+
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( 'json' === $format ) {
+			WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		if ( ! empty( $result['results'] ) ) {
+			// Build display rows with old→new columns.
+			$rows    = array();
+			$columns = array( 'post_id', 'title', 'venue', 'status' );
+
+			// Detect which time fields changed to build dynamic columns.
+			$time_fields = array( 'startDate', 'startTime', 'endDate', 'endTime' );
+			$active_cols = array();
+			foreach ( $result['results'] as $item ) {
+				foreach ( $time_fields as $tf ) {
+					if ( isset( $item[ $tf . '_old' ] ) ) {
+						$active_cols[ $tf ] = true;
+					}
+				}
+			}
+
+			foreach ( $active_cols as $tf => $v ) {
+				$columns[] = $tf . '_old';
+				$columns[] = $tf . '_new';
+			}
+
+			Utils\format_items( $format, $result['results'], $columns );
+		} elseif ( 'table' === $format ) {
+			WP_CLI::success( 'No events found with the specified timezone.' );
+		}
+
+		if ( 'table' === $format ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( 'Checked: %d', (int) $result['checked_count'] ) );
+			WP_CLI::log( sprintf( '%s: %d', $dry_run ? 'Would fix' : 'Fixed', (int) $result['fixed_count'] ) );
+			if ( $dry_run && $result['fixed_count'] > 0 ) {
+				WP_CLI::log( '' );
+				WP_CLI::log( 'Run without --dry-run and with --yes to apply changes.' );
+			}
+		}
+	}
+
+	/**
 	 * Render ability result.
 	 *
 	 * @param array  $result Ability result.
