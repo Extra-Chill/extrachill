@@ -78,34 +78,40 @@ add_action( 'after_setup_theme', 'extrachill_register_image_sizes' );
  * In reality, gallery images display in 2-3 columns at ~300px height, so the browser
  * downloads 1024px images when 400-600px would suffice.
  *
- * This filter detects images inside gallery blocks and sets an appropriate sizes
- * attribute so browsers pick smaller source files.
+ * Uses the_content filter (late priority) because wp_content_img_tag only receives
+ * the <img> tag, not the surrounding <figure class="wp-block-image"> wrapper. We
+ * need the wrapper context to detect gallery images.
  *
- * @param string $html    The img tag HTML.
- * @param string $context The context (e.g. 'the_content').
- * @param int    $attachment_id The attachment ID.
- * @return string Modified img tag HTML.
+ * @param string $content Post content HTML.
+ * @return string Modified content with gallery-aware sizes attributes.
  */
-function extrachill_gallery_image_sizes( string $html, string $context, int $attachment_id ): string {
-	// Only process content context (gallery images rendered via the_content).
-	if ( 'the_content' !== $context ) {
-		return $html;
-	}
-
-	// Detect gallery images by their WordPress block class.
-	if ( strpos( $html, 'wp-block-image' ) === false ) {
-		return $html;
+function extrachill_gallery_image_sizes( string $content ): string {
+	if ( strpos( $content, 'wp-block-gallery' ) === false ) {
+		return $content;
 	}
 
 	// Gallery images display in columns: ~50vw on tablet, ~33vw on desktop.
 	// On mobile they go full-width. This tells the browser to pick appropriately
 	// sized sources instead of always downloading the largest available.
 	$gallery_sizes = '(max-width: 480px) 100vw, (max-width: 768px) 50vw, 33vw';
-	$html          = preg_replace( '/sizes="[^"]*"/', 'sizes="' . esc_attr( $gallery_sizes ) . '"', $html );
 
-	return $html;
+	// Match <figure class="wp-block-image ...">...<img ... sizes="...">...</figure>
+	// and replace the sizes attribute on images inside gallery figures.
+	$content = preg_replace_callback(
+		'/<figure\s[^>]*class="[^"]*wp-block-image[^"]*"[^>]*>.*?<\/figure>/s',
+		function ( $match ) use ( $gallery_sizes ) {
+			return preg_replace(
+				'/sizes="[^"]*"/',
+				'sizes="' . esc_attr( $gallery_sizes ) . '"',
+				$match[0]
+			);
+		},
+		$content
+	);
+
+	return $content;
 }
-add_filter( 'wp_content_img_tag', 'extrachill_gallery_image_sizes', 10, 3 );
+add_filter( 'the_content', 'extrachill_gallery_image_sizes', 999 );
 
 define( 'EXTRACHILL_PARENT_DIR', get_template_directory() );
 
