@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.3.1] - 2026-03-29
+
+### Fixed
+- Fix gallery sizes filter: use the_content instead of wp_content_img_tag
+
 ## [2.3.0] - 2026-03-29
 
 ### Changed
