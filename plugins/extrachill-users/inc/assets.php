@@ -33,7 +33,10 @@ function extrachill_users_enqueue_avatar_menu_assets() {
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/avatar-menu.js',
 			array(),
 			filemtime( $js_path ),
-			true
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
 		);
 	}
 
@@ -72,7 +75,10 @@ function extrachill_users_register_auth_utils_script() {
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/auth-utils.js',
 			array(),
 			filemtime( $js_path ),
-			true
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
 		);
 	}
 }
