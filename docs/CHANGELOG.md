@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.3.0] - 2026-03-29
+
+### Changed
+- Optimize gallery image loading: sizes filter, gallery size, restore 2048x2048
+- Remove .page-content from list style rules
+
+### Fixed
+- use background-color instead of card-background for taxonomy badges
+- Fix editor iframe style injection for Gutenberg 22.8+
+- inline SVG sprite for reliable cross-subdomain icon rendering
+- Fix double gutter on community homepage at 480px
+
 ## [2.2.19] - 2026-03-27
 
 ### Changed
