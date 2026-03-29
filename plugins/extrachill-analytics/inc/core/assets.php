@@ -27,7 +27,10 @@ function extrachill_analytics_enqueue_view_tracking() {
 		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'assets/js/view-tracking.js',
 		array(),
 		filemtime( $js_path ),
-		true
+		array(
+			'strategy'  => 'defer',
+			'in_footer' => true,
+		)
 	);
 
 	wp_localize_script( 'extrachill-view-tracking', 'ecViewTracking', array(
