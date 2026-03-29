@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.17.6] - 2026-03-29
+
+### Changed
+- Use button-medium for all event action buttons (ticket, share)
+- Migrate /my-shows/ from PHP template to WordPress page with concert-stats block
+- Add extrachill/concert-stats Gutenberg block with React frontend
+- Add concert tracking integration and My Shows page
+
+### Fixed
+- Fix React error #31 on My Shows page: remove React 19 from dependencies
+- Fix market report: match flows to locations via term ID, not pipeline name
+
 ## [0.17.5] - 2026-03-28
 
 ### Changed
