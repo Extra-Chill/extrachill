@@ -62,7 +62,10 @@ function newsletter_enqueue_frontend_assets() {
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/js/newsletter.js',
 			array(),
 			filemtime( $newsletter_js_path ),
-			true
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
 		);
 
 		wp_localize_script(
