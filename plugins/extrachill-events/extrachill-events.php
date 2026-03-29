@@ -169,6 +169,9 @@ class ExtraChillEvents {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/MarketReportAbilities.php';
 		new \ExtraChillEvents\Abilities\MarketReportAbilities();
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/EventTimeAuditAbilities.php';
+		new \ExtraChillEvents\Abilities\EventTimeAuditAbilities();
 	}
 
 	/**
