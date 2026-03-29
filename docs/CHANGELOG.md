@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.3.2] - 2026-03-29
+
+### Changed
+- Remove share.css — move single rule into style.css
+
+### Fixed
+- Fix share dropdown adding margin when closed
+
 ## [2.3.1] - 2026-03-29
 
 ### Fixed
