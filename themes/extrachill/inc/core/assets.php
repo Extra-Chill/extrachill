@@ -17,11 +17,64 @@ function extrachill_enqueue_navigation_assets() {
 			get_template_directory_uri() . '/assets/js/nav-menu.js',
 			array(),
 			filemtime( $nav_js_path ),
-			true
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
 		);
 	}
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_navigation_assets' );
+
+/**
+ * Defer non-critical CSS to unblock rendering.
+ *
+ * Converts render-blocking <link rel="stylesheet"> tags to non-blocking by
+ * using the media="print" swap technique. The browser loads the CSS in the
+ * background and applies it once loaded, allowing the page to paint immediately
+ * with only the critical theme CSS.
+ *
+ * @since 2.3.1
+ *
+ * @param string $html   The <link> tag HTML.
+ * @param string $handle The stylesheet handle.
+ * @return string Modified HTML with deferred loading.
+ */
+function extrachill_defer_non_critical_css( string $html, string $handle ): string {
+	// Stylesheets that are safe to defer (below-fold or interaction-dependent).
+	$deferred_handles = array(
+		'extrachill-taxonomy-badges',   // Sidebar/below-fold badge colors (35 KB).
+		'wp-block-library',             // Gutenberg block styles for all blocks (132 KB).
+		'extrachill-newsletter-forms',  // Newsletter form in sidebar (6 KB).
+		'chubes-gallery-lightbox',      // Only needed on lightbox click (1 KB).
+		'extrachill-multisite-community-activity', // Sidebar widget (1.4 KB).
+	);
+
+	if ( ! in_array( $handle, $deferred_handles, true ) ) {
+		return $html;
+	}
+
+	// media="print" prevents render-blocking. onload swaps to "all" once loaded.
+	// <noscript> fallback ensures CSS loads when JS is disabled.
+	$html = str_replace(
+		"media='all'",
+		"media='print' onload=\"this.media='all'\"",
+		$html
+	);
+	$html = str_replace(
+		'media="all"',
+		'media="print" onload="this.media=\'all\'"',
+		$html
+	);
+
+	// Add noscript fallback.
+	$noscript = str_replace( array( " media='print'", ' media="print"' ), '', $html );
+	$noscript = str_replace( array( " onload=\"this.media='all'\"", " onload=\"this.media='all'\"" ), '', $noscript );
+	$html    .= '<noscript>' . $noscript . '</noscript>';
+
+	return $html;
+}
+add_filter( 'style_loader_tag', 'extrachill_defer_non_critical_css', 10, 2 );
 
 
 
@@ -301,7 +354,10 @@ function extrachill_register_shared_tabs() {
 		get_template_directory_uri() . '/assets/js/shared-tabs.js',
 		array(),
 		filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ),
-		true
+		array(
+			'strategy'  => 'defer',
+			'in_footer' => true,
+		)
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_register_shared_tabs', 5 );
@@ -312,7 +368,10 @@ function extrachill_register_mini_dropdown() {
 		get_template_directory_uri() . '/assets/js/mini-dropdown.js',
 		array(),
 		filemtime( get_template_directory() . '/assets/js/mini-dropdown.js' ),
-		true
+		array(
+			'strategy'  => 'defer',
+			'in_footer' => true,
+		)
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_register_mini_dropdown', 5 );
@@ -323,7 +382,10 @@ function extrachill_register_share_assets() {
 		get_template_directory_uri() . '/assets/js/share.js',
 		array( 'extrachill-mini-dropdown' ),
 		filemtime( get_template_directory() . '/assets/js/share.js' ),
-		true
+		array(
+			'strategy'  => 'defer',
+			'in_footer' => true,
+		)
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_register_share_assets', 5 );
