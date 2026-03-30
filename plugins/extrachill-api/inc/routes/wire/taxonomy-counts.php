@@ -91,9 +91,7 @@ function extrachill_api_wire_taxonomy_counts_handler( WP_REST_Request $request )
 		}
 
 		// Cold cache — call the ability.
-		$ability = function_exists( 'wp_get_ability' )
-			? wp_get_ability( 'extrachill/taxonomy-post-counts' )
-			: null;
+		$ability = wp_get_ability( 'extrachill/taxonomy-post-counts' );
 
 		if ( ! $ability ) {
 			return rest_ensure_response( array() );
@@ -107,7 +105,11 @@ function extrachill_api_wire_taxonomy_counts_handler( WP_REST_Request $request )
 			)
 		);
 
-		$terms = ( ! empty( $result['success'] ) ) ? ( $result['terms'] ?? array() ) : array();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$terms = $result['terms'] ?? array();
 
 		set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
 

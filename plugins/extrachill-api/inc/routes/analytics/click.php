@@ -154,6 +154,10 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 				)
 			);
 
+			if ( is_wp_error( $event_id ) ) {
+				return $event_id;
+			}
+
 			if ( empty( $event_id ) ) {
 				return new WP_Error(
 					'tracking_failed',

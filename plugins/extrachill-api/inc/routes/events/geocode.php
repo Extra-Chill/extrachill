@@ -71,19 +71,7 @@ function extrachill_api_events_geocode_handler( WP_REST_Request $request ) {
 		) );
 
 		if ( is_wp_error( $result ) ) {
-			return new WP_Error(
-				'geocode_error',
-				$result->get_error_message(),
-				array( 'status' => 500 )
-			);
-		}
-
-		if ( empty( $result['success'] ) ) {
-			return new WP_Error(
-				'geocode_failed',
-				$result['error'] ?? __( 'Geocode search failed.', 'extrachill-api' ),
-				array( 'status' => 400 )
-			);
+			return $result;
 		}
 
 		// Transform Nominatim results to GeoSearchResult shape.

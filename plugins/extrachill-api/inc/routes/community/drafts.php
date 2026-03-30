@@ -159,6 +159,10 @@ function extrachill_api_community_drafts_get_handler( WP_REST_Request $request )
 
 	$draft = $ability->execute( $context );
 
+	if ( is_wp_error( $draft ) ) {
+		return $draft;
+	}
+
 	return rest_ensure_response( [ 'draft' => $draft ] );
 }
 
@@ -193,6 +197,10 @@ function extrachill_api_community_drafts_post_handler( WP_REST_Request $request 
 
 	$saved = $ability->execute( $draft );
 
+	if ( is_wp_error( $saved ) ) {
+		return $saved;
+	}
+
     return rest_ensure_response( [
         'saved' => true,
         'draft' => $saved,
@@ -213,6 +221,10 @@ function extrachill_api_community_drafts_delete_handler( WP_REST_Request $reques
 	$context = extrachill_api_community_drafts_get_context_from_request( $request );
 	$context['user_id'] = get_current_user_id();
 	$deleted = $ability->execute( $context );
+
+	if ( is_wp_error( $deleted ) ) {
+		return $deleted;
+	}
 
 	return rest_ensure_response( [ 'deleted' => (bool) $deleted ] );
 }

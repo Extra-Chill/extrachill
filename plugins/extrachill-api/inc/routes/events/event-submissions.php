@@ -34,7 +34,7 @@ function extrachill_api_register_event_submission_route() {
 }
 
 function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
-	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/submit-event' ) : null;
+	$ability = wp_get_ability( 'extrachill/submit-event' );
 	if ( ! $ability ) {
 		return new WP_Error(
 			'ability_unavailable',
@@ -67,20 +67,8 @@ function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
 
 	$result = $ability->execute( $input );
 
-	if ( isset( $result['error'] ) ) {
-		$status = 400;
-
-		// Map specific errors to appropriate HTTP status codes.
-		$error_message = $result['error'];
-		if ( str_contains( $error_message, 'Security verification' ) ) {
-			$status = 403;
-		} elseif ( str_contains( $error_message, 'unavailable' ) || str_contains( $error_message, 'Scheduler' ) ) {
-			$status = 500;
-		} elseif ( str_contains( $error_message, 'not found' ) ) {
-			$status = 404;
-		}
-
-		return new WP_Error( 'submission_failed', $error_message, array( 'status' => $status ) );
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
 	return rest_ensure_response( $result );
