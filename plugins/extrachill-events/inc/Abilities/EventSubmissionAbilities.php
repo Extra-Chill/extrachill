@@ -131,17 +131,17 @@ class EventSubmissionAbilities {
 	 * @param array $input Submission data.
 	 * @return array Result with message and job_id, or error.
 	 */
-	public function executeSubmitEvent( array $input ): array {
+	public function executeSubmitEvent( array $input ): array|\WP_Error {
 
 		// 1. Verify Turnstile.
 		$turnstile_result = $this->verifyTurnstile( $input['turnstile_response'] ?? '' );
-		if ( is_array( $turnstile_result ) && isset( $turnstile_result['error'] ) ) {
+		if ( is_wp_error( $turnstile_result ) ) {
 			return $turnstile_result;
 		}
 
 		// 2. Resolve contact info (logged-in user or form fields).
 		$contact = $this->resolveContact( $input );
-		if ( isset( $contact['error'] ) ) {
+		if ( is_wp_error( $contact ) ) {
 			return $contact;
 		}
 
@@ -150,7 +150,7 @@ class EventSubmissionAbilities {
 		$event_date  = sanitize_text_field( $input['event_date'] ?? '' );
 
 		if ( empty( $event_title ) || empty( $event_date ) ) {
-			return array( 'error' => __( 'Event title and date are required.', 'extrachill-events' ) );
+			return new \WP_Error( 'missing_fields', __( 'Event title and date are required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
 		// 4. Build sanitized submission.
@@ -184,7 +184,7 @@ class EventSubmissionAbilities {
 	 * Verify Cloudflare Turnstile response.
 	 *
 	 * @param string $token Turnstile token from frontend.
-	 * @return true|array True on success, error array on failure.
+	 * @return true|\WP_Error True on success, WP_Error on failure.
 	 */
 	private function verifyTurnstile( string $token ) {
 		$is_local   = defined( 'WP_ENVIRONMENT_TYPE' ) && 'local' === WP_ENVIRONMENT_TYPE;
@@ -195,11 +195,11 @@ class EventSubmissionAbilities {
 		}
 
 		if ( ! function_exists( 'ec_verify_turnstile_response' ) ) {
-			return array( 'error' => __( 'Security verification unavailable.', 'extrachill-events' ) );
+			return new \WP_Error( 'turnstile_unavailable', __( 'Security verification unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
 		if ( empty( $token ) || ! ec_verify_turnstile_response( $token ) ) {
-			return array( 'error' => __( 'Security verification failed. Please try again.', 'extrachill-events' ) );
+			return new \WP_Error( 'turnstile_failed', __( 'Security verification failed. Please try again.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
 
 		return true;
@@ -209,9 +209,9 @@ class EventSubmissionAbilities {
 	 * Resolve contact information from logged-in user or form input.
 	 *
 	 * @param array $input Raw input.
-	 * @return array Contact data with user_id, contact_name, contact_email — or error.
+	 * @return array|\WP_Error Contact data with user_id, contact_name, contact_email — or WP_Error.
 	 */
-	private function resolveContact( array $input ): array {
+	private function resolveContact( array $input ): array|\WP_Error {
 		$user_id = get_current_user_id();
 
 		if ( $user_id ) {
@@ -227,11 +227,11 @@ class EventSubmissionAbilities {
 		$email = sanitize_email( $input['contact_email'] ?? '' );
 
 		if ( empty( $name ) || empty( $email ) ) {
-			return array( 'error' => __( 'Name and email are required.', 'extrachill-events' ) );
+			return new \WP_Error( 'missing_contact', __( 'Name and email are required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
 		if ( ! is_email( $email ) ) {
-			return array( 'error' => __( 'Enter a valid email address.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_email', __( 'Enter a valid email address.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
 		return array(
@@ -249,14 +249,14 @@ class EventSubmissionAbilities {
 	 * @param array|null $flyer      File data from $_FILES, or null.
 	 * @return array Result.
 	 */
-	private function executeWithFlow( array $submission, int $flow_id, ?array $flyer ): array {
-		$execute = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'datamachine/execute-workflow' ) : null;
+	private function executeWithFlow( array $submission, int $flow_id, ?array $flyer ): array|\WP_Error {
+		$execute = wp_get_ability( 'datamachine/execute-workflow' );
 		if ( ! $execute ) {
-			return array( 'error' => __( 'Data Machine is unavailable.', 'extrachill-events' ) );
+			return new \WP_Error( 'dm_unavailable', __( 'Data Machine is unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
 		$stored_flyer = $this->storeFlyer( $flyer, $flow_id, 0 );
-		if ( is_array( $stored_flyer ) && isset( $stored_flyer['error'] ) ) {
+		if ( is_wp_error( $stored_flyer ) ) {
 			return $stored_flyer;
 		}
 
@@ -274,7 +274,7 @@ class EventSubmissionAbilities {
 			'initial_data' => $initial_data,
 		) );
 
-		if ( isset( $result['error'] ) ) {
+		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
@@ -300,19 +300,19 @@ class EventSubmissionAbilities {
 	 * @param string     $system_prompt Custom system prompt. Optional.
 	 * @return array Result.
 	 */
-	private function executeDirect( array $submission, ?array $flyer, string $system_prompt = '' ): array {
-		$execute = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'datamachine/execute-workflow' ) : null;
+	private function executeDirect( array $submission, ?array $flyer, string $system_prompt = '' ): array|\WP_Error {
+		$execute = wp_get_ability( 'datamachine/execute-workflow' );
 		if ( ! $execute ) {
-			return array( 'error' => __( 'Data Machine is unavailable.', 'extrachill-events' ) );
+			return new \WP_Error( 'dm_unavailable', __( 'Data Machine is unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
 		$stored_flyer = $this->storeFlyer( $flyer, 'direct', 'direct' );
-		if ( is_array( $stored_flyer ) && isset( $stored_flyer['error'] ) ) {
+		if ( is_wp_error( $stored_flyer ) ) {
 			return $stored_flyer;
 		}
 
 		if ( ! class_exists( '\\DataMachine\\Core\\PluginSettings' ) ) {
-			return array( 'error' => __( 'Data Machine settings unavailable.', 'extrachill-events' ) );
+			return new \WP_Error( 'dm_settings_unavailable', __( 'Data Machine settings unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
 		$provider = \DataMachine\Core\PluginSettings::get( 'default_provider', 'anthropic' );
@@ -329,7 +329,7 @@ class EventSubmissionAbilities {
 			'initial_data' => $initial_data,
 		) );
 
-		if ( isset( $result['error'] ) ) {
+		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
@@ -356,7 +356,7 @@ class EventSubmissionAbilities {
 	 * @param array|null     $flyer       File data from $_FILES.
 	 * @param int|string     $flow_id     Flow ID or 'direct'.
 	 * @param int|string     $pipeline_id Pipeline ID or 'direct'.
-	 * @return array|null Stored file data, null if no flyer, or error array.
+	 * @return array|\WP_Error|null Stored file data, null if no flyer, or WP_Error.
 	 */
 	private function storeFlyer( ?array $flyer, $flow_id, $pipeline_id ) {
 		if ( empty( $flyer ) || empty( $flyer['tmp_name'] ) ) {
@@ -366,7 +366,7 @@ class EventSubmissionAbilities {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		$upload = wp_handle_upload( $flyer, array( 'test_form' => false ) );
 		if ( isset( $upload['error'] ) ) {
-			return array( 'error' => $upload['error'] );
+			return new \WP_Error( 'upload_failed', $upload['error'], array( 'status' => 400 ) );
 		}
 
 		$storage = new \DataMachine\Core\FilesRepository\FileStorage();
@@ -380,7 +380,7 @@ class EventSubmissionAbilities {
 		}
 
 		if ( ! $stored ) {
-			return array( 'error' => __( 'Could not save the flyer.', 'extrachill-events' ) );
+			return new \WP_Error( 'storage_failed', __( 'Could not save the flyer.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
 		$file_info = wp_check_filetype( $flyer['name'] );

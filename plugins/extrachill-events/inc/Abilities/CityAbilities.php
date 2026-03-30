@@ -124,11 +124,11 @@ class CityAbilities {
 	 * @param array $input City configuration.
 	 * @return array Result with pipeline_id, flow details, or error.
 	 */
-	public function executeAddCity( array $input ): array {
+	public function executeAddCity( array $input ): array|\WP_Error {
 		$city_name = trim( $input['city'] ?? '' );
 
 		if ( empty( $city_name ) ) {
-			return array( 'error' => 'City name is required. Example: "Nashville, TN"' );
+			return new \WP_Error( 'missing_city', 'City name is required. Example: "Nashville, TN"', array( 'status' => 400 ) );
 		}
 
 		$radius    = $input['radius'] ?? self::DEFAULT_RADIUS;
@@ -138,7 +138,7 @@ class CityAbilities {
 
 		// Step 1: Geocode the city.
 		$geocode_result = $this->geocodeCity( $city_name );
-		if ( isset( $geocode_result['error'] ) ) {
+		if ( is_wp_error( $geocode_result ) ) {
 			return $geocode_result;
 		}
 
@@ -222,13 +222,10 @@ class CityAbilities {
 
 		// Idempotency guard: reject if pipeline already exists (unless forced).
 		if ( $existing_pipeline && empty( $input['force'] ) ) {
-			return array(
-				'error'       => sprintf(
-					'City "%s" already exists (pipeline ID: %d). Pass force=true to recreate.',
-					$city_label,
-					$existing_pipeline
-				),
-				'pipeline_id' => $existing_pipeline,
+			return new \WP_Error(
+				'city_exists',
+				sprintf( 'City "%s" already exists (pipeline ID: %d). Pass force=true to recreate.', $city_label, $existing_pipeline ),
+				array( 'status' => 409, 'pipeline_id' => $existing_pipeline )
 			);
 		}
 
@@ -250,7 +247,7 @@ class CityAbilities {
 		// Step 2: Create the pipeline.
 		$pipeline_ability = wp_get_ability( 'datamachine/create-pipeline' );
 		if ( ! $pipeline_ability ) {
-			return array( 'error' => 'Data Machine create-pipeline ability not available. Is Data Machine active?' );
+			return new \WP_Error( 'missing_ability', 'Data Machine create-pipeline ability not available. Is Data Machine active?', array( 'status' => 500 ) );
 		}
 
 		$pipeline_result = $pipeline_ability->execute(
@@ -273,13 +270,13 @@ class CityAbilities {
 			)
 		);
 
-		if ( isset( $pipeline_result['error'] ) ) {
-			return array( 'error' => 'Failed to create pipeline: ' . $pipeline_result['error'] );
+		if ( is_wp_error( $pipeline_result ) ) {
+			return new \WP_Error( 'pipeline_creation_failed', 'Failed to create pipeline: ' . $pipeline_result->get_error_message(), array( 'status' => 500 ) );
 		}
 
 		$pipeline_id = $pipeline_result['pipeline_id'] ?? null;
 		if ( ! $pipeline_id ) {
-			return array( 'error' => 'Pipeline was created but no pipeline_id returned.' );
+			return new \WP_Error( 'pipeline_no_id', 'Pipeline was created but no pipeline_id returned.', array( 'status' => 500 ) );
 		}
 
 		// Configure the AI step on the pipeline with city-specific system prompt.
@@ -288,10 +285,11 @@ class CityAbilities {
 		// Step 3: Create Ticketmaster flow.
 		$flows_created = array();
 		$tm_result     = $this->createTicketmasterFlow( $pipeline_id, $city_label, $city_name, $coordinates, $radius, $interval, $location_term );
-		if ( isset( $tm_result['error'] ) ) {
-			return array(
-				'error'       => 'Pipeline created (ID: ' . $pipeline_id . ') but Ticketmaster flow failed: ' . $tm_result['error'],
-				'pipeline_id' => $pipeline_id,
+		if ( is_wp_error( $tm_result ) ) {
+			return new \WP_Error(
+				'flow_creation_failed',
+				'Pipeline created (ID: ' . $pipeline_id . ') but Ticketmaster flow failed: ' . $tm_result->get_error_message(),
+				array( 'status' => 500, 'pipeline_id' => $pipeline_id )
 			);
 		}
 		$flows_created[] = $tm_result;
@@ -299,12 +297,12 @@ class CityAbilities {
 		// Step 4: Create Dice.fm flow (unless skipped).
 		if ( ! $skip_dice ) {
 			$dice_result = $this->createDiceFmFlow( $pipeline_id, $city_label, $city_name, $interval, $location_term );
-			if ( isset( $dice_result['error'] ) ) {
+			if ( is_wp_error( $dice_result ) ) {
 				// Non-fatal — Ticketmaster flow is already created.
 				$flows_created[] = array(
 					'name'   => $city_label . ' Dice.fm',
 					'status' => 'failed',
-					'error'  => $dice_result['error'],
+					'error'  => $dice_result->get_error_message(),
 				);
 			} else {
 				$flows_created[] = $dice_result;
@@ -544,7 +542,7 @@ class CityAbilities {
 	/**
 	 * Geocode a city name to coordinates via Nominatim.
 	 */
-	private function geocodeCity( string $city_name ): array {
+	private function geocodeCity( string $city_name ): array|\WP_Error {
 		$geocoding = new Geocoding();
 		$request   = new \WP_REST_Request( 'GET' );
 		$request->set_param( 'query', $city_name );
@@ -552,13 +550,13 @@ class CityAbilities {
 		$response = $geocoding->search( $request );
 
 		if ( is_wp_error( $response ) ) {
-			return array( 'error' => 'Geocoding failed: ' . $response->get_error_message() );
+			return new \WP_Error( 'geocoding_failed', 'Geocoding failed: ' . $response->get_error_message(), array( 'status' => 500 ) );
 		}
 
 		$data = $response->get_data();
 
 		if ( empty( $data['results'] ) ) {
-			return array( 'error' => 'No geocoding results for: ' . $city_name );
+			return new \WP_Error( 'geocoding_no_results', 'No geocoding results for: ' . $city_name, array( 'status' => 404 ) );
 		}
 
 		$result  = $data['results'][0];
@@ -647,10 +645,10 @@ The festival taxonomy should only be used if the event in question is a festival
 	/**
 	 * Create a Ticketmaster flow for a city.
 	 */
-	private function createTicketmasterFlow( int $pipeline_id, string $city_label, string $city_full, string $coordinates, string $radius, string $interval, string $location_term ): array {
+	private function createTicketmasterFlow( int $pipeline_id, string $city_label, string $city_full, string $coordinates, string $radius, string $interval, string $location_term ): array|\WP_Error {
 		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
 		if ( ! $flow_ability ) {
-			return array( 'error' => 'Data Machine create-flow ability not available.' );
+			return new \WP_Error( 'missing_ability', 'Data Machine create-flow ability not available.', array( 'status' => 500 ) );
 		}
 
 		$result = $flow_ability->execute(
@@ -698,8 +696,8 @@ The festival taxonomy should only be used if the event in question is a festival
 			)
 		);
 
-		if ( isset( $result['error'] ) ) {
-			return array( 'error' => $result['error'] );
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
 
 		$flow_id = $result['flow_id'] ?? null;
@@ -735,10 +733,10 @@ The festival taxonomy should only be used if the event in question is a festival
 	/**
 	 * Create a Dice.fm flow for a city.
 	 */
-	private function createDiceFmFlow( int $pipeline_id, string $city_label, string $city_full, string $interval, string $location_term ): array {
+	private function createDiceFmFlow( int $pipeline_id, string $city_label, string $city_full, string $interval, string $location_term ): array|\WP_Error {
 		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
 		if ( ! $flow_ability ) {
-			return array( 'error' => 'Data Machine create-flow ability not available.' );
+			return new \WP_Error( 'missing_ability', 'Data Machine create-flow ability not available.', array( 'status' => 500 ) );
 		}
 
 		$result = $flow_ability->execute(
@@ -761,8 +759,8 @@ The festival taxonomy should only be used if the event in question is a festival
 			)
 		);
 
-		if ( isset( $result['error'] ) ) {
-			return array( 'error' => $result['error'] );
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
 
 		$flow_id = $result['flow_id'] ?? null;

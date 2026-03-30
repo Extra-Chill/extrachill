@@ -145,16 +145,13 @@ class WeeklyRoundupAbilities {
 		);
 	}
 
-	public function executeQuery( array $input ): array {
+	public function executeQuery( array $input ): array|\WP_Error {
 		$week_start_day   = $input['week_start_day'] ?? '';
 		$week_end_day     = $input['week_end_day'] ?? '';
 		$location_term_id = $input['location_term_id'] ?? 0;
 
 		if ( empty( $week_start_day ) || empty( $week_end_day ) ) {
-			return array(
-				'error'   => true,
-				'message' => __( 'week_start_day and week_end_day are required.', 'extrachill-events' ),
-			);
+			return new \WP_Error( 'missing_dates', __( 'week_start_day and week_end_day are required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
 		$date_range = $this->resolveNextWeekdayRange( $week_start_day, $week_end_day );
@@ -188,18 +185,13 @@ class WeeklyRoundupAbilities {
 		);
 	}
 
-	public function executeGenerate( array $input ): array {
+	public function executeGenerate( array $input ): array|\WP_Error {
 		$day_groups      = $input['day_groups'] ?? array();
 		$title           = $input['title'] ?? '';
 		$storage_context = $input['storage_context'] ?? array();
 
 		if ( empty( $day_groups ) ) {
-			return array(
-				'success'     => false,
-				'image_paths' => array(),
-				'slide_count' => 0,
-				'message'     => __( 'day_groups is required.', 'extrachill-events' ),
-			);
+			return new \WP_Error( 'missing_day_groups', __( 'day_groups is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
 		if ( ! class_exists( '\ExtraChillEvents\Handlers\WeeklyRoundup\SlideGenerator' ) ) {
@@ -210,12 +202,7 @@ class WeeklyRoundupAbilities {
 		$image_paths = $generator->generate_slides( $day_groups, $storage_context, $title );
 
 		if ( empty( $image_paths ) ) {
-			return array(
-				'success'     => false,
-				'image_paths' => array(),
-				'slide_count' => 0,
-				'message'     => __( 'Failed to generate carousel images.', 'extrachill-events' ),
-			);
+			return new \WP_Error( 'generation_failed', __( 'Failed to generate carousel images.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
 		return array(

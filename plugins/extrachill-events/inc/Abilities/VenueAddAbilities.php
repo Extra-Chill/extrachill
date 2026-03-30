@@ -131,7 +131,7 @@ class VenueAddAbilities {
 	 * @param array $input Venue parameters.
 	 * @return array Result.
 	 */
-	public function executeAddVenue( array $input ): array {
+	public function executeAddVenue( array $input ): array|\WP_Error {
 		$pipeline_id = (int) ( $input['pipeline_id'] ?? 0 );
 		$name        = sanitize_text_field( $input['name'] ?? '' );
 		$url         = esc_url_raw( $input['url'] ?? '' );
@@ -144,19 +144,19 @@ class VenueAddAbilities {
 		$dry_run     = ! empty( $input['dry_run'] );
 
 		if ( $pipeline_id <= 0 ) {
-			return array( 'error' => 'pipeline_id is required.' );
+			return new \WP_Error( 'missing_pipeline', 'pipeline_id is required.', array( 'status' => 400 ) );
 		}
 		if ( empty( $name ) ) {
-			return array( 'error' => 'Venue name is required.' );
+			return new \WP_Error( 'missing_name', 'Venue name is required.', array( 'status' => 400 ) );
 		}
 		if ( empty( $url ) ) {
-			return array( 'error' => 'Events page URL is required.' );
+			return new \WP_Error( 'missing_url', 'Events page URL is required.', array( 'status' => 400 ) );
 		}
 
 		// Validate pipeline exists.
 		$pipeline = $this->getPipeline( $pipeline_id );
 		if ( ! $pipeline ) {
-			return array( 'error' => sprintf( 'Pipeline %d not found.', $pipeline_id ) );
+			return new \WP_Error( 'pipeline_not_found', sprintf( 'Pipeline %d not found.', $pipeline_id ), array( 'status' => 404 ) );
 		}
 
 		$pipeline_name = $pipeline['pipeline_name'] ?? '';
@@ -172,9 +172,10 @@ class VenueAddAbilities {
 		// Check for idempotency — does a flow with this venue already exist in this pipeline?
 		$existing_flow = $this->findExistingVenueFlow( $pipeline_id, $name );
 		if ( $existing_flow ) {
-			return array(
-				'error'   => sprintf( 'Venue "%s" already has a flow in pipeline %d (flow ID: %d).', $name, $pipeline_id, $existing_flow ),
-				'flow_id' => $existing_flow,
+			return new \WP_Error(
+				'venue_exists',
+				sprintf( 'Venue "%s" already has a flow in pipeline %d (flow ID: %d).', $name, $pipeline_id, $existing_flow ),
+				array( 'status' => 409, 'flow_id' => $existing_flow )
 			);
 		}
 
@@ -193,13 +194,13 @@ class VenueAddAbilities {
 		// Step 1: Create or find venue taxonomy term.
 		$venue_term_id = $this->ensureVenueTerm( $name );
 		if ( ! $venue_term_id ) {
-			return array( 'error' => sprintf( 'Failed to create venue term for "%s".', $name ) );
+			return new \WP_Error( 'venue_term_failed', sprintf( 'Failed to create venue term for "%s".', $name ), array( 'status' => 500 ) );
 		}
 
 		// Step 2: Create the flow.
 		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
 		if ( ! $flow_ability ) {
-			return array( 'error' => 'Data Machine create-flow ability not available.' );
+			return new \WP_Error( 'missing_ability', 'Data Machine create-flow ability not available.', array( 'status' => 500 ) );
 		}
 
 		$flow_result = $flow_ability->execute(
@@ -212,13 +213,13 @@ class VenueAddAbilities {
 			)
 		);
 
-		if ( isset( $flow_result['error'] ) ) {
-			return array( 'error' => 'Failed to create flow: ' . $flow_result['error'] );
+		if ( is_wp_error( $flow_result ) ) {
+			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $flow_result->get_error_message(), array( 'status' => 500 ) );
 		}
 
 		$flow_id = $flow_result['flow_id'] ?? null;
 		if ( ! $flow_id ) {
-			return array( 'error' => 'Flow was created but no flow_id returned.' );
+			return new \WP_Error( 'flow_no_id', 'Flow was created but no flow_id returned.', array( 'status' => 500 ) );
 		}
 
 		// Step 3: Patch flow steps with handler configs.

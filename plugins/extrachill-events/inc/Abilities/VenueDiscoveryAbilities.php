@@ -111,13 +111,13 @@ class VenueDiscoveryAbilities {
 	 * @param array $input Discovery parameters.
 	 * @return array Results with venue list.
 	 */
-	public function executeDiscoverVenues( array $input ): array {
+	public function executeDiscoverVenues( array $input ): array|\WP_Error {
 		$city          = sanitize_text_field( $input['city'] ?? '' );
 		$custom_query  = sanitize_text_field( $input['query'] ?? '' );
 		$include_known = ! empty( $input['include_known'] );
 
 		if ( empty( $city ) ) {
-			return array( 'error' => 'City is required.' );
+			return new \WP_Error( 'missing_city', 'City is required.', array( 'status' => 400 ) );
 		}
 
 		$query = ! empty( $custom_query ) ? $custom_query : "music venues in {$city}";
@@ -125,13 +125,13 @@ class VenueDiscoveryAbilities {
 		// Get access token.
 		$token = $this->getAccessToken();
 		if ( is_wp_error( $token ) ) {
-			return array( 'error' => $token->get_error_message() );
+			return $token;
 		}
 
 		// Query Google Places.
 		$places = $this->searchPlaces( $token, $query );
 		if ( is_wp_error( $places ) ) {
-			return array( 'error' => $places->get_error_message() );
+			return $places;
 		}
 
 		// Get existing venue terms for cross-reference.

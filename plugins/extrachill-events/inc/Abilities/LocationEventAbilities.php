@@ -96,17 +96,14 @@ class LocationEventAbilities {
 		);
 	}
 
-	public function executeGetLocationEvents( array $input ): array {
+	public function executeGetLocationEvents( array $input ): array|\WP_Error {
 		$location   = $input['location'] ?? '';
 		$date_start = $input['date_start'] ?? '';
 		$date_end   = $input['date_end'] ?? '';
 		$limit      = $input['limit'] ?? 50;
 
 		if ( empty( $location ) ) {
-			return array(
-				'error'   => true,
-				'message' => __( 'location is required.', 'extrachill-events' ),
-			);
+			return new \WP_Error( 'missing_location', __( 'location is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
 		$term = $this->resolveLocationTerm( $location );

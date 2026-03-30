@@ -142,12 +142,12 @@ class VenueQualificationAbilities {
 	 * @param array $input Qualification parameters.
 	 * @return array Results.
 	 */
-	public function executeQualifyVenue( array $input ): array {
+	public function executeQualifyVenue( array $input ): array|\WP_Error {
 		$url  = esc_url_raw( $input['url'] ?? '' );
 		$name = sanitize_text_field( $input['name'] ?? '' );
 
 		if ( empty( $url ) ) {
-			return array( 'error' => 'URL is required.' );
+			return new \WP_Error( 'missing_url', 'URL is required.', array( 'status' => 400 ) );
 		}
 
 		$url = rtrim( $url, '/' );
