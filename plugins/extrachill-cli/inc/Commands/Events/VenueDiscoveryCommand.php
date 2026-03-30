@@ -81,10 +81,6 @@ class VenueDiscoveryCommand {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		if ( ! empty( $result['error'] ) ) {
-			WP_CLI::error( $result['error'] );
-		}
-
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
@@ -185,10 +181,6 @@ class VenueDiscoveryCommand {
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
-		}
-
-		if ( ! empty( $result['error'] ) ) {
-			WP_CLI::error( $result['error'] );
 		}
 
 		$format = $assoc_args['format'] ?? 'table';
@@ -328,10 +320,6 @@ class VenueDiscoveryCommand {
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
-		}
-
-		if ( ! empty( $result['error'] ) ) {
-			WP_CLI::error( $result['error'] );
 		}
 
 		if ( ! empty( $result['dry_run'] ) || ( $result['message'] ?? '' ) === 'Dry run — no changes made.' ) {

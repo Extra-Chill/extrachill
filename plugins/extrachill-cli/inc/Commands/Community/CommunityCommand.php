@@ -501,10 +501,6 @@ class CommunityCommand {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		if ( ! $result['success'] ) {
-			WP_CLI::error( $result['message'] );
-		}
-
 		WP_CLI::success( sprintf( '%s (count: %d)', $result['message'], $result['new_count'] ) );
 	}
 

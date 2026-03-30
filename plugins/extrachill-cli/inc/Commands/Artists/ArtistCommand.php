@@ -45,7 +45,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function get( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$artist_id = absint( $args[0] );
 		$ability   = $this->get_ability( 'extrachill/get-artist-data' );
@@ -108,7 +108,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function create( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$input = array( 'name' => $args[0] );
 
@@ -184,7 +184,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function update( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$input = array( 'artist_id' => absint( $args[0] ) );
 
@@ -248,7 +248,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function link_page( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$artist_id = absint( $args[0] );
 		$ability   = $this->get_ability( 'extrachill/get-link-page-data' );
@@ -295,7 +295,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_socials( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$artist_id    = absint( $args[0] );
 		$social_links = json_decode( $args[1], true );
@@ -344,7 +344,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_links( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$artist_id = absint( $args[0] );
 		$links     = json_decode( $args[1], true );
@@ -406,7 +406,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function add_link( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$artist_id = absint( $args[0] );
 		$url       = $args[1];
@@ -486,7 +486,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function remove_link( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$artist_id  = absint( $args[0] );
 		$identifier = $args[1];
@@ -565,7 +565,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function move_link( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$artist_id  = absint( $args[0] );
 		$identifier = $args[1];
@@ -694,7 +694,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_styles( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$artist_id = absint( $args[0] );
 
@@ -793,7 +793,7 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_settings( $args, $assoc_args ) {
-		$this->ensure_abilities_api();
+
 
 		$artist_id = absint( $args[0] );
 
@@ -847,15 +847,6 @@ class ArtistCommand {
 			WP_CLI::log( sprintf( '  %s: %s', $key, $val ) );
 		}
 		WP_CLI::success( sprintf( 'Updated %d setting(s) for artist %d.', count( $settings ), $artist_id ) );
-	}
-
-	/**
-	 * Ensure the Abilities API is available.
-	 */
-	private function ensure_abilities_api() {
-		if ( ! function_exists( 'wp_get_ability' ) ) {
-			WP_CLI::error( 'WordPress Abilities API is not available in this environment.' );
-		}
 	}
 
 	/**

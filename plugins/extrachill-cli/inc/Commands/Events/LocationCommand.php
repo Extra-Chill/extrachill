@@ -237,10 +237,6 @@ class LocationCommand {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		if ( empty( $result['success'] ) ) {
-			WP_CLI::error( $result['error'] ?? 'Failed to generate report.' );
-		}
-
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {

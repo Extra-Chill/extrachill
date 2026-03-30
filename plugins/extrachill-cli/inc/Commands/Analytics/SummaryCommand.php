@@ -86,6 +86,10 @@ class SummaryCommand {
 
 		$result = $ability->execute( $input );
 
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
 		// Warn if site filtering was requested but the ability doesn't support it yet.
 		if ( $blog_id > 0 && ! empty( $result['event_types'] ) ) {
 			// Check if the ability actually filtered — if input_schema lacks blog_id, it was ignored.
@@ -93,10 +97,6 @@ class SummaryCommand {
 			if ( empty( $schema['properties']['blog_id'] ) ) {
 				WP_CLI::warning( 'The extrachill/get-analytics-summary ability does not support blog_id filtering yet. Showing network-wide data.' );
 			}
-		}
-
-		if ( is_wp_error( $result ) ) {
-			WP_CLI::error( $result->get_error_message() );
 		}
 
 		if ( empty( $result['event_types'] ) ) {

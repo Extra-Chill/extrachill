@@ -94,13 +94,9 @@ class QRCodeCommand {
 	}
 
 	/**
-	 * Ensure the ability API and QR ability are available.
+	 * Ensure the QR ability is available.
 	 */
 	private function ensure_qr_ability() {
-		if ( ! function_exists( 'wp_get_ability' ) ) {
-			WP_CLI::error( 'WordPress Abilities API is not available in this environment.' );
-		}
-
 		if ( ! wp_get_ability( 'extrachill/generate-qr-code' ) ) {
 			WP_CLI::error( 'QR code ability is unavailable. Ensure extrachill-admin-tools is active and abilities are registered.' );
 		}
