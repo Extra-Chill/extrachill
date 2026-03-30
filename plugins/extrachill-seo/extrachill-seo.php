@@ -86,9 +86,11 @@ add_action(
 			require_once EXTRACHILL_SEO_PATH . 'inc/admin/network-settings.php';
 		}
 
-		// Redirect handling (pattern-based first at priority 5, then rule-based at priority 6).
+		// Redirect handling (pattern-based first at priority 5, then rule-based at priority 6,
+		// then taxonomy fallback at priority 7).
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-matcher.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-taxonomy-fallback.php';
 
 		// Load core SEO components
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/render.php';
