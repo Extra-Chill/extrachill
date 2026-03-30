@@ -4,7 +4,7 @@
  *
  * Qualifies a venue website by finding its events/calendar page and testing
  * whether the universal web scraper can extract events from it. Uses the
- * datamachine/test-event-scraper ability for real scraper validation.
+ * data-machine-events/test-event-scraper ability for real scraper validation.
  *
  * Strategy:
  * 1. Try the given URL directly with the scraper
@@ -353,12 +353,12 @@ class VenueQualificationAbilities {
 	 * @return array Qualification result.
 	 */
 	private function testWithScraper( string $url ): array {
-		$ability = wp_get_ability( 'datamachine/test-event-scraper' );
+		$ability = wp_get_ability( 'data-machine-events/test-event-scraper' );
 
 		if ( ! $ability ) {
 			return array(
 				'qualified' => false,
-				'error'     => 'datamachine/test-event-scraper ability not available — is data-machine-events active?',
+				'error'     => 'data-machine-events/test-event-scraper ability not available — is data-machine-events active?',
 			);
 		}
 
