@@ -5,10 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
-## [0.9.6] - 2026-03-30
+## Unreleased
 
-### Changed
-- Add taxonomy fallback for deleted tag redirects
+### Added
+- Taxonomy fallback redirect for deleted tag archives — automatically redirects `/tag/{slug}/` to the correct artist, venue, or festival archive when the slug exists in those taxonomies
 
 ## [0.9.5] - 2026-03-26
 
