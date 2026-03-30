@@ -39,6 +39,46 @@ interface InstagramCommentsResponse {
 	};
 }
 
+/**
+ * Normalized comment shape returned by the generic comments API.
+ * Platform-agnostic — works for Instagram, Facebook, and future platforms.
+ */
+export interface SocialComment {
+	id: string;
+	platform: string;
+	author_username: string;
+	text: string;
+	timestamp: string;
+	like_count: number;
+	reply_count: number;
+	mentions: string[];
+	parent_id: string | null;
+	raw: Record< string, unknown >;
+}
+
+interface GenericCommentsResponse {
+	success: boolean;
+	data: {
+		comments: SocialComment[];
+		count: number;
+		platform: string;
+		partial?: boolean;
+		pages?: number;
+		error?: string;
+	};
+	error?: string;
+}
+
+interface CommentReplyResponse {
+	success: boolean;
+	data?: {
+		comment_id: string;
+		reply_id: string;
+		message: string;
+	};
+	error?: string;
+}
+
 export const studioSocialsApi = {
 	getInstagramMedia( params: InstagramMediaParams = {} ): Promise< InstagramMediaResponse > {
 		const query = new URLSearchParams( {
@@ -65,6 +105,32 @@ export const studioSocialsApi = {
 	replyToInstagramComment( commentId: string, message: string ): Promise< unknown > {
 		return apiFetch( {
 			path: '/datamachine-socials/v1/instagram/comments/reply',
+			method: 'POST',
+			data: {
+				comment_id: commentId,
+				message,
+			},
+		} );
+	},
+
+	/**
+	 * Generic comments API — fetch all comments for a post, normalized.
+	 */
+	getAllComments( platform: string, mediaId: string ): Promise< GenericCommentsResponse > {
+		const query = new URLSearchParams( {
+			media_id: mediaId,
+			all: 'true',
+		} );
+
+		return apiFetch( { path: `/datamachine-socials/v1/comments/${ platform }?${ query.toString() }` } );
+	},
+
+	/**
+	 * Generic comment reply API.
+	 */
+	replyToComment( platform: string, commentId: string, message: string ): Promise< CommentReplyResponse > {
+		return apiFetch( {
+			path: `/datamachine-socials/v1/comments/${ platform }/reply`,
 			method: 'POST',
 			data: {
 				comment_id: commentId,

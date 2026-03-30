@@ -9,6 +9,12 @@ export const getStudioTabs = (): StudioTab[] => [
 		preview: __( 'Draft and submit posts using the block editor.', 'extrachill-studio' ),
 	},
 	{
+		id: 'giveaway',
+		pane: 'giveaway',
+		label: __( 'Giveaway', 'extrachill-studio' ),
+		preview: __( 'Pick random winners from Instagram giveaway posts.', 'extrachill-studio' ),
+	},
+	{
 		id: 'qr-codes',
 		pane: 'qr-codes',
 		label: __( 'QR Codes', 'extrachill-studio' ),
