@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function extrachill_community_bbpress_drafts_enabled() {
-	return is_user_logged_in() && function_exists( 'wp_get_ability' ) && wp_get_ability( 'extrachill/get-bbpress-draft' );
+	return is_user_logged_in() && wp_get_ability( 'extrachill/get-bbpress-draft' );
 }
 
 function extrachill_community_execute_get_draft_ability( array $input ) {
@@ -194,10 +194,6 @@ function extrachill_community_bbpress_restore_topic_draft_forum_id( $forum_id ) 
 add_filter( 'bbp_get_form_topic_forum', 'extrachill_community_bbpress_restore_topic_draft_forum_id', 50 );
 
 function extrachill_community_bbpress_clear_topic_drafts_on_new_topic( $topic_id, $forum_id ) {
-	if ( ! function_exists( 'wp_get_ability' ) ) {
-		return;
-	}
-
     if ( ! function_exists( 'bbp_get_topic_author_id' ) ) {
         return;
     }
@@ -231,10 +227,6 @@ function extrachill_community_bbpress_clear_topic_drafts_on_new_topic( $topic_id
 add_action( 'bbp_new_topic', 'extrachill_community_bbpress_clear_topic_drafts_on_new_topic', 20, 2 );
 
 function extrachill_community_bbpress_clear_reply_drafts_on_new_reply( $reply_id ) {
-	if ( ! function_exists( 'wp_get_ability' ) ) {
-		return;
-	}
-
     if ( ! function_exists( 'bbp_get_reply_topic_id' ) || ! function_exists( 'bbp_get_reply_author_id' ) ) {
         return;
     }
