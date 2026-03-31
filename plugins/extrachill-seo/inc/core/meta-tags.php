@@ -108,10 +108,42 @@ add_filter(
 			$title_parts['title'] = sprintf( 'Posts by %s - Page %d', $author_name, $page_num );
 		}
 
-		// Event archive titles: "Live Music Calendar" or "{Term} Live Music Calendar"
-		// Only apply on events.extrachill.com
+		// Event titles on events.extrachill.com
 		$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
 		if ( $blog_id === $events_blog_id ) {
+
+			// Single event: append venue, city, and date to disambiguate recurring events.
+			// e.g. "Heybale at The Continental Club, Austin (Mar 26, 2028)"
+			if ( is_singular( 'data_machine_events' ) ) {
+				$event_id    = get_queried_object_id();
+				$title_extra = array();
+
+				// Venue name.
+				$venues = wp_get_post_terms( $event_id, 'venue', array( 'fields' => 'names' ) );
+				if ( ! is_wp_error( $venues ) && ! empty( $venues ) ) {
+					$title_extra[] = 'at ' . $venues[0];
+				}
+
+				// City from location taxonomy.
+				$locations = wp_get_post_terms( $event_id, 'location', array( 'fields' => 'names' ) );
+				if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
+					$title_extra[] = $locations[0];
+				}
+
+				// Event date.
+				if ( function_exists( 'datamachine_get_event_dates' ) ) {
+					$dates = datamachine_get_event_dates( $event_id );
+					if ( $dates && ! empty( $dates->start_datetime ) ) {
+						$title_extra[] = '(' . wp_date( 'M j, Y', strtotime( $dates->start_datetime ) ) . ')';
+					}
+				}
+
+				if ( ! empty( $title_extra ) ) {
+					$title_parts['title'] = $title_parts['title'] . ' ' . implode( ', ', $title_extra );
+				}
+			}
+
+			// Archive: "Live Music Calendar"
 			if ( is_post_type_archive( 'data_machine_events' ) ) {
 				$title_parts['title'] = 'Live Music Calendar';
 			}
