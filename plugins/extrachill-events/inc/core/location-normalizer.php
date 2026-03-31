@@ -200,8 +200,9 @@ function extrachill_events_get_city_market_map() {
 		'pflugerville'    => 'austin',
 		'pottstown'       => 'philadelphia',
 		'port wentworth'  => 'savannah',
-		'queens'          => 'new-york-city',
+		'queens'          => 'queens',
 		'reading'         => 'philadelphia',
+		'ridgewood'       => 'queens',
 		'round rock'      => 'austin',
 		'san marcos'      => 'austin',
 		'simpsonville'    => 'greenville',
@@ -557,7 +558,7 @@ function extrachill_events_get_nyc_zip_map() {
 		11697,
 	);
 	foreach ( $queens_zips as $z ) {
-		$map[ $z ] = 'new-york-city';
+		$map[ $z ] = 'queens';
 	}
 
 	// Bronx: 104xx range.
