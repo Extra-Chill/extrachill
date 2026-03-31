@@ -7,6 +7,6 @@
     "build": "cp node_modules/@extrachill/tokens/css/root.css assets/css/root.css && node scripts/build-taxonomy-badges.js"
   },
   "dependencies": {
-    "@extrachill/tokens": "^0.4.1"
+    "@extrachill/tokens": "^0.5.0"
   }
 }
