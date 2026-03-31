@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0] - 2026-03-31
+
+### Added
+- add block-editor.css — shared Gutenberg theming via EC tokens
+
+### Changed
+- Add Queens location badge
+- slim block-editor.css to EC-specific branding only
+
+### Fixed
+- use correct slug for Washington D.C. badge token
+
 ## [0.4.1] - 2026-03-23
 
 ### Fixed
