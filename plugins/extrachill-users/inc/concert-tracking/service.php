@@ -211,32 +211,9 @@ function ec_users_get_user_event_count( int $user_id, int $blog_id = 0 ): int {
  * @return string 'upcoming' | 'ongoing' | 'past'
  */
 function ec_users_get_event_timing( int $event_id ): string {
-	// Use the data-machine-events canonical API for event dates.
-	if ( ! function_exists( 'datamachine_get_event_dates' ) ) {
-		return 'past';
-	}
-
-	$dates = datamachine_get_event_dates( $event_id );
-
-	if ( ! $dates || empty( $dates->start_datetime ) ) {
-		return 'past';
-	}
-
-	// Match UpcomingFilter logic from data-machine-events:
-	// upcoming = start >= now OR end >= now
-	// past     = start < now AND (end < now OR end IS NULL)
-	$now            = current_time( 'mysql' );
-	$event_start    = $dates->start_datetime;
-	$event_end      = $dates->end_datetime ?? null;
-
-	// If start is in the future, it's upcoming.
-	if ( $event_start >= $now ) {
-		return 'upcoming';
-	}
-
-	// If end exists and is still in the future, it's ongoing.
-	if ( $event_end && $event_end >= $now ) {
-		return 'ongoing';
+	// Delegate to the core primitive in data-machine-events.
+	if ( function_exists( 'datamachine_get_event_timing' ) ) {
+		return datamachine_get_event_timing( $event_id );
 	}
 
 	return 'past';
