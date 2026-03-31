@@ -4,7 +4,7 @@
  * Generated from @extrachill/tokens — DO NOT EDIT MANUALLY.
  * Source: tokens.json > categories > taxonomy-badge
  *
- * 232 badges across 5 taxonomies
+ * 233 badges across 5 taxonomies
  */
 
 /* === Festival Badges === */
@@ -255,6 +255,10 @@
 .taxonomy-badge.location-brooklyn {
     background-color: var(--badge-location-brooklyn-bg);
     color: var(--badge-location-brooklyn-text);
+}
+.taxonomy-badge.location-queens {
+    background-color: var(--badge-location-queens-bg);
+    color: var(--badge-location-queens-text);
 }
 .taxonomy-badge.location-seattle {
     background-color: var(--badge-location-seattle-bg);
