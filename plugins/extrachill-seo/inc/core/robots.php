@@ -57,9 +57,8 @@ add_filter(
 
 		// Noindex past events on events.extrachill.com.
 		// Past events have no user value (can't buy tickets, can't attend) and inflate the index.
-		if ( is_singular( 'data_machine_events' ) && function_exists( 'datamachine_get_event_dates' ) ) {
-			$dates = datamachine_get_event_dates( get_queried_object_id() );
-			if ( $dates && ! empty( $dates->start_datetime ) && strtotime( $dates->start_datetime ) < time() ) {
+		if ( is_singular( 'data_machine_events' ) && function_exists( 'ec_users_get_event_timing' ) ) {
+			if ( 'past' === ec_users_get_event_timing( get_queried_object_id() ) ) {
 				$robots['noindex'] = true;
 				$robots['follow']  = true;
 				unset( $robots['max-image-preview'] );
