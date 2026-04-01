@@ -26,6 +26,13 @@
     --focus-box-shadow: 0 0 0 3px rgba(83, 148, 11, 0.2);
     --post-title-link-color: var(--text-color);
     --post-title-link-hover-color: var(--text-color);
+    --warning-color: #d97706;
+    --warning-bg: rgba(217, 119, 6, 0.1);
+    --info-color: #0b5394;
+    --info-bg: rgba(11, 83, 148, 0.08);
+    --interactive-hover-bg: rgba(11, 83, 148, 0.06);
+    --interactive-active-bg: rgba(11, 83, 148, 0.12);
+    --interactive-active-border: var(--link-color);
 
     /* Font Families */
     --font-family-heading: "Loft Sans", sans-serif;
@@ -43,6 +50,12 @@
     --font-size-2xl: 1.75rem;
     --font-size-3xl: 2rem;
     --font-size-brand: 2.25rem;
+
+    /* Font Weights */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
 
     /* Border Radius */
     --border-radius-sm: 5px;
@@ -70,6 +83,11 @@
     --spacing-md: 1rem;
     --spacing-lg: 1.5rem;
     --spacing-xl: 2rem;
+
+    /* Motion / Transitions */
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-slow: 350ms ease-in-out;
 
     /* Badge Colors */
     --artist-badge-color: #E21FC5;
@@ -569,5 +587,12 @@
         --focus-box-shadow: 0 0 0 3px rgba(138, 166, 191, 0.2);
         --post-title-link-color: var(--text-color);
         --post-title-link-hover-color: var(--text-color);
+        --warning-color: #fbbf24;
+        --warning-bg: rgba(251, 191, 36, 0.1);
+        --info-color: #93c5fd;
+        --info-bg: rgba(147, 197, 253, 0.08);
+        --interactive-hover-bg: rgba(83, 148, 11, 0.08);
+        --interactive-active-bg: rgba(83, 148, 11, 0.15);
+        --interactive-active-border: var(--link-color);
     }
 }

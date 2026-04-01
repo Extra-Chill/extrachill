@@ -29,10 +29,12 @@ const categoryConfig = [
 	{ key: 'color', label: 'Colors', type: 'color' },
 	{ key: 'typography', label: 'Font Families', type: 'static' },
 	{ key: 'font-size', label: 'Font Sizes', type: 'static' },
+	{ key: 'font-weight', label: 'Font Weights', type: 'static' },
 	{ key: 'border-radius', label: 'Border Radius', type: 'static' },
 	{ key: 'layout', label: 'Container Widths', type: 'static' },
 	{ key: 'line-height', label: 'Line Heights', type: 'static' },
 	{ key: 'spacing', label: 'Spacing Scale', type: 'static' },
+	{ key: 'motion', label: 'Motion / Transitions', type: 'static' },
 	{ key: 'badge', label: 'Badge Colors', type: 'static' },
 	{ key: 'taxonomy-badge', label: 'Taxonomy Badge Colors', type: 'taxonomy-badge' },
 ];
