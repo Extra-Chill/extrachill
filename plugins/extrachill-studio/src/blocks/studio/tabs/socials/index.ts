@@ -23,7 +23,8 @@ interface PlatformEntry {
 	config: SocialPlatformConfig;
 }
 
-const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
+const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
+	const allowedSlugs = context.socialPlatforms;
 	const [ platforms, setPlatforms ] = useState< SocialPlatformsResponse >( {} );
 	const [ error, setError ] = useState( '' );
 	const [ isLoading, setIsLoading ] = useState( true );
@@ -63,9 +64,17 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 
 	// Only show authenticated, publish-capable platforms. Event scrapers,
 	// read-only fetchers, and unauthenticated platforms are hidden entirely.
-	const publishablePlatforms = availablePlatforms.filter(
-		( item ) => item.authenticated && item.type !== 'fetch'
-	);
+	// If an allowlist is configured via the extrachill_studio_social_platforms
+	// filter, only those slugs are shown.
+	const publishablePlatforms = availablePlatforms.filter( ( item ) => {
+		if ( ! item.authenticated || item.type === 'fetch' ) {
+			return false;
+		}
+		if ( allowedSlugs.length > 0 && ! allowedSlugs.includes( item.slug ) ) {
+			return false;
+		}
+		return true;
+	} );
 
 	// Auto-select first publishable platform if none is active.
 	useEffect( () => {

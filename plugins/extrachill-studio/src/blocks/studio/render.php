@@ -59,6 +59,22 @@ $site_url    = home_url( '/' );
 $rest_nonce  = wp_create_nonce( 'wp_rest' );
 $socials_api = rest_url( 'datamachine-socials/v1/' );
 
+/**
+ * Filter the social platform slugs shown in Studio's Socials tab.
+ *
+ * Return an array of platform slugs to show (allowlist). Platforms not
+ * in this list are hidden from the Socials tab UI. Return an empty
+ * array to show all authenticated publish-capable platforms (default).
+ *
+ * @param string[] $platforms Allowed platform slugs. Empty = show all.
+ */
+$allowed_platforms = apply_filters( 'extrachill_studio_social_platforms', array(
+	'instagram',
+	'twitter',
+	'bluesky',
+	'facebook',
+) );
+
 ?>
 
 <div
@@ -71,6 +87,7 @@ $socials_api = rest_url( 'datamachine-socials/v1/' );
 	data-socials-api-base="<?php echo esc_url( $socials_api ); ?>"
 	data-headline="<?php echo esc_attr( $headline ); ?>"
 	data-description="<?php echo esc_attr( $description ); ?>"
+	data-social-platforms="<?php echo esc_attr( wp_json_encode( $allowed_platforms ) ); ?>"
 >
 	<div class="ec-studio-app__mount" data-ec-studio-app></div>
 </div>

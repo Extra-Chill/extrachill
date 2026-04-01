@@ -63,6 +63,13 @@ const initRoot = ( root: HTMLElement ): void => {
 
 	root.dataset.ecStudioMounted = 'true';
 
+	let socialPlatforms: string[] = [];
+	try {
+		socialPlatforms = JSON.parse( root.dataset.socialPlatforms || '[]' );
+	} catch {
+		socialPlatforms = [];
+	}
+
 	const context: StudioContext = {
 		userName: root.dataset.userName || '',
 		siteName: root.dataset.siteName || '',
@@ -71,6 +78,7 @@ const initRoot = ( root: HTMLElement ): void => {
 		socialsApiBase: root.dataset.socialsApiBase || '',
 		headline: root.dataset.headline || '',
 		description: root.dataset.description || '',
+		socialPlatforms,
 	};
 
 	const appMount = root.querySelector< HTMLElement >( '[data-ec-studio-app]' );

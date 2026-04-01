@@ -10,6 +10,8 @@ export interface StudioContext {
 	socialsApiBase: string;
 	headline: string;
 	description: string;
+	/** Allowed social platform slugs. Empty array = show all. */
+	socialPlatforms: string[];
 }
 
 export interface StudioTab {
