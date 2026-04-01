@@ -61,8 +61,11 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 		};
 	} );
 
-	const connectedPlatforms = availablePlatforms.filter( ( item ) => item.authenticated );
-	const publishablePlatforms = connectedPlatforms.filter( ( item ) => item.type !== 'fetch' );
+	// Only show authenticated, publish-capable platforms. Event scrapers,
+	// read-only fetchers, and unauthenticated platforms are hidden entirely.
+	const publishablePlatforms = availablePlatforms.filter(
+		( item ) => item.authenticated && item.type !== 'fetch'
+	);
 
 	// Auto-select first publishable platform if none is active.
 	useEffect( () => {
@@ -107,60 +110,52 @@ const SocialsPane = ( _props: StudioPaneProps ): ReactElement | null => {
 				PanelView,
 				{ className: 'ec-studio-panel', compact: true },
 				h( PanelHeader, {
-					description: sprintf(
-						__( '%d platform(s) connected, %d publish-capable. Select a platform below to compose and publish.', 'extrachill-studio' ),
-						connectedPlatforms.length,
-						publishablePlatforms.length
-					),
+					description: publishablePlatforms.length > 0
+						? __( 'Select a platform to compose and publish.', 'extrachill-studio' )
+						: __( 'No social platforms are connected yet.', 'extrachill-studio' ),
 				} ),
-				createElement(
-					'ul',
-					{ className: 'ec-studio-social-platforms' },
-					...availablePlatforms.map( ( item ) => createElement(
-						'li',
-						{
-							key: item.slug,
-							className: [
-								'ec-studio-social-platforms__item',
-								item.authenticated && item.type !== 'fetch' ? 'ec-studio-social-platforms__item--clickable' : '',
-								activePlatform === item.slug ? 'ec-studio-social-platforms__item--active' : '',
-							].filter( Boolean ).join( ' ' ),
-							onClick: item.authenticated && item.type !== 'fetch'
-								? () => setActivePlatform( item.slug )
-								: undefined,
-							role: item.authenticated && item.type !== 'fetch' ? 'button' : undefined,
-							tabIndex: item.authenticated && item.type !== 'fetch' ? 0 : undefined,
-						},
-						createElement(
-							'span',
-							{ className: 'ec-studio-social-platforms__name' },
-							item.label,
-							item.type === 'fetch'
-								? h( BadgeView, { tone: 'muted', variant: 'outline', className: 'ec-studio-social-platforms__badge' }, __( 'read-only', 'extrachill-studio' ) )
-								: null
-						),
-						createElement(
-							BadgeView,
+				publishablePlatforms.length > 0
+					? createElement(
+						'ul',
+						{ className: 'ec-studio-social-platforms' },
+						...publishablePlatforms.map( ( item ) => createElement(
+							'li',
 							{
-								tone: item.authenticated ? 'success' : 'muted',
-								variant: item.authenticated ? 'subtle' : 'outline',
-								className: 'ec-studio-social-platforms__status',
+								key: item.slug,
+								className: [
+									'ec-studio-social-platforms__item',
+									'ec-studio-social-platforms__item--clickable',
+									activePlatform === item.slug ? 'ec-studio-social-platforms__item--active' : '',
+								].filter( Boolean ).join( ' ' ),
+								onClick: () => setActivePlatform( item.slug ),
+								role: 'button',
+								tabIndex: 0,
 							},
-							item.authenticated
-								? sprintf( __( 'Connected as @%s', 'extrachill-studio' ), item.username || 'unknown' )
-								: __( 'Not connected', 'extrachill-studio' )
-						)
-					) )
-				)
-			),
-			h(
-				PanelView,
-				{ className: 'ec-studio-panel', compact: true },
-				createElement( 'p', null, __( 'Connected platforms appear automatically when authenticated in Data Machine. Select a platform from the list to compose and publish content.', 'extrachill-studio' ) ),
-				publishablePlatforms.length === 0
-					? h( InlineStatusView, { tone: 'warning', className: 'ec-studio-message' }, __( 'No publish-capable platforms are connected yet. Authenticate a platform in Data Machine Socials to get started.', 'extrachill-studio' ) )
+							createElement(
+								'span',
+								{ className: 'ec-studio-social-platforms__name' },
+								item.label
+							),
+							createElement(
+								BadgeView,
+								{
+									tone: 'success',
+									variant: 'subtle',
+									className: 'ec-studio-social-platforms__status',
+								},
+								sprintf( __( '@%s', 'extrachill-studio' ), item.username || 'unknown' )
+							)
+						) )
+					)
 					: null
-			)
+			),
+			publishablePlatforms.length === 0
+				? h(
+					PanelView,
+					{ className: 'ec-studio-panel', compact: true },
+					h( InlineStatusView, { tone: 'warning', className: 'ec-studio-message' }, __( 'Authenticate a social platform in Data Machine Socials to get started.', 'extrachill-studio' ) )
+				)
+				: null
 		),
 		selectedPlatform
 			? h( PlatformPublishPane, {
