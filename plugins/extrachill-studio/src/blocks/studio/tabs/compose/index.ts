@@ -1,4 +1,4 @@
-import { __, sprintf } from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
 import { createElement, useEffect, useRef, useState, useCallback } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
 import apiFetch from '@wordpress/api-fetch';
@@ -42,12 +42,6 @@ const AUTOSAVE_DELAY = 2000;
 const CLIENT_CONTEXT_UPDATE_DELAY = 250;
 const CLIENT_CONTEXT_PROVIDER_ID = 'extrachill-studio.compose';
 
-/** Site transfer targets — tag slug to label. */
-const SITE_TARGETS: Record< string, string > = {
-	blog: 'Blog (extrachill.com)',
-	wire: 'Wire (wire.extrachill.com)',
-};
-
 function extractPlainText( html: string ): string {
 	if ( ! html ) {
 		return '';
@@ -86,9 +80,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	const [ drafts, setDrafts ] = useState< WpPost[] >( [] );
 	const [ activePostId, setActivePostId ] = useState< number | null >( null );
 	const [ isLoadingDrafts, setIsLoadingDrafts ] = useState( true );
-
-	// Publish targets state (site targets only — social publishing is in the Socials tab).
-	const [ publishTargets, setPublishTargets ] = useState< Set< string > >( new Set() );
 
 	// Autosave tracking refs.
 	const autosaveTimerRef = useRef< ReturnType< typeof setTimeout > | null >( null );
@@ -251,7 +242,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			lastSavedPayloadRef.current = '';
 		}
 
-		setPublishTargets( new Set() );
 		setHasUnsavedChanges( false );
 		setError( '' );
 		setStatus( '' );
@@ -412,18 +402,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		};
 	}, [ scheduleAutosave, performAutosave, scheduleClientContextUpdate ] );
 
-	const toggleTarget = ( key: string ): void => {
-		setPublishTargets( ( prev ) => {
-			const next = new Set( prev );
-			if ( next.has( key ) ) {
-				next.delete( key );
-			} else {
-				next.add( key );
-			}
-			return next;
-		} );
-	};
-
 	const submitForReview = async (): Promise< void > => {
 		const content = getContent();
 
@@ -451,59 +429,21 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		try {
 			const path = activePostId ? `/wp/v2/posts/${ activePostId }` : '/wp/v2/posts';
 
-			// Build the post data with publish targets.
-			const postData: Record< string, unknown > = {
-				title: title.trim(),
-				content,
-				status: 'pending',
-			};
-
-			// Site targets → tags. Resolve tag names to IDs (create if needed).
-			const siteTagSlugs = Object.keys( SITE_TARGETS ).filter( ( key ) => publishTargets.has( key ) );
-			if ( siteTagSlugs.length > 0 ) {
-				const tagIds: number[] = [];
-				for ( const slug of siteTagSlugs ) {
-					try {
-						// Try to find existing tag first.
-						const existing = await apiFetch< Array< { id: number } > >( {
-							path: `/wp/v2/tags?slug=${ slug }`,
-						} );
-						if ( existing.length > 0 ) {
-							tagIds.push( existing[ 0 ].id );
-						} else {
-							// Create the tag.
-							const created = await apiFetch< { id: number } >( {
-								path: '/wp/v2/tags',
-								method: 'POST',
-								data: { name: slug },
-							} );
-							tagIds.push( created.id );
-						}
-					} catch {
-						// Skip tag if resolution fails.
-					}
-				}
-				if ( tagIds.length > 0 ) {
-					postData.tags = tagIds;
-				}
-			}
-
 			const post = await apiFetch< WpPost >( {
 				path,
 				method: 'POST',
-				data: postData,
+				data: {
+					title: title.trim(),
+					content,
+					status: 'pending',
+				},
 			} );
 
 			activePostIdRef.current = null;
 			titleRef.current = '';
 			contentSnapshotRef.current = '';
-			setPublishTargets( new Set() );
 
-			// Build status message showing where the post will go.
-			const targetSuffix = siteTagSlugs.length > 0
-				? sprintf( __( ' → %s', 'extrachill-studio' ), siteTagSlugs.join( ', ' ) )
-				: '';
-			setStatus( sprintf( __( 'Post #%d submitted for review.', 'extrachill-studio' ), post.id ) + targetSuffix );
+			setStatus( __( 'Submitted for review.', 'extrachill-studio' ) );
 
 			const refreshed = await loadDrafts();
 			setDrafts( refreshed );
@@ -630,7 +570,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				PanelView,
 				{ className: 'ec-studio-panel ec-studio-panel--editor', compact: true },
 				h( PanelHeader, {
-					description: __( 'Draft content and publish across the Extra Chill network.', 'extrachill-studio' ),
+					description: __( 'Draft blog content and submit for editorial review.', 'extrachill-studio' ),
 					actions: h(
 						ActionRowView,
 						{ className: 'ec-studio-compose-toolbar' },
@@ -680,30 +620,6 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 				! error && status
 					? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status )
 					: null,
-			h(
-				'fieldset',
-				{ className: 'ec-studio-publish-targets' },
-				createElement( 'legend', { className: 'ec-studio-publish-targets__legend' }, __( 'Publish to', 'extrachill-studio' ) ),
-				createElement(
-					'div',
-					{ className: 'ec-studio-publish-targets__grid' },
-					...Object.entries( SITE_TARGETS ).map( ( [ key, label ] ) =>
-						createElement(
-							'label',
-							{
-								key,
-								className: 'ec-studio-publish-targets__item ec-studio-publish-targets__item--site',
-							},
-							createElement( 'input', {
-								type: 'checkbox',
-								checked: publishTargets.has( key ),
-								onChange: () => toggleTarget( key ),
-							} ),
-							createElement( 'span', null, label )
-						)
-					)
-				)
-			),
 				h(
 					ActionRowView,
 					{ className: 'ec-studio-composer__actions' },

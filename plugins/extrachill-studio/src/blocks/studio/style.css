@@ -515,42 +515,6 @@
 	height: 100%;
 }
 
-/* Publish targets — inline checkboxes between editor and action buttons */
-.ec-studio-publish-targets {
-	border: 1px solid var(--border-color, #e0e0e0);
-	border-radius: var(--radius-sm, 6px);
-	padding: var(--spacing-sm) var(--spacing-md);
-	margin: 0;
-}
-
-.ec-studio-publish-targets__legend {
-	font-size: 0.8125rem;
-	font-weight: 600;
-	padding: 0 var(--spacing-xs, 4px);
-	color: var(--text-secondary, #6b7280);
-}
-
-.ec-studio-publish-targets__grid {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--spacing-sm) var(--spacing-lg, 24px);
-	margin-top: var(--spacing-xs, 4px);
-}
-
-.ec-studio-publish-targets__item {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-xs, 4px);
-	font-size: 0.875rem;
-	cursor: pointer;
-	white-space: nowrap;
-}
-
-.ec-studio-publish-targets__item input[type="checkbox"] {
-	margin: 0;
-	cursor: pointer;
-}
-
 @media (max-width: 768px) {
 	.ec-studio-pane__grid--compose {
 		grid-template-columns: 1fr;
