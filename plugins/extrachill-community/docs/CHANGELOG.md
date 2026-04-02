@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.4.0] - 2026-04-02
+
+### Added
+- unify bbPress notices into theme notice system
+
+### Changed
+- remove function_exists('wp_get_ability') guards
+- Add mobile gutter to forum description and create topic button
+- Revert "refactor: remove inline styles from edit-profile, use shared components"
+- remove inline styles from edit-profile, use shared components
+- align edit-profile and user-settings to same block pattern
+- kill phantom classes and fix double-nesting in community blocks
+- remove main-content wrapper from community templates
+- restore working edit-profile and user-settings blocks
+- remove redundant wrappers and panel classes
+- align user blocks with layout contract
+
+### Fixed
+- align block.json versions with plugin version
+- add gutter to edit-profile block on bbPress route
+- enqueue upvote JS on community homepage
+- align block.json version with plugin version
+- restore block header titles
+- breadcrumbs mobile gutter on community pages
+- replace dead page-content wrappers with community-section-header
+- community-section-header mobile gutter on all bbpress pages
+- single topic gutters and sidebar card mobile treatment
+- community homepage card padding and header gutters
+- restore mobile full-width panels on tab panels
+
 ## [1.3.86] - 2026-03-26
 
 ### Fixed
