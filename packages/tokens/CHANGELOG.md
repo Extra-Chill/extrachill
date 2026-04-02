@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.0] - 2026-04-02
+
+### Added
+- add interactive state, motion, font-weight, warning, and info tokens
+
 ## [0.5.0] - 2026-03-31
 
 ### Added
