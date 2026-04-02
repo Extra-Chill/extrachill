@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.3.5] - 2026-04-02
+
+### Changed
+- Disable hover zoom animation on mobile archive cards
+
 ## [2.3.4] - 2026-03-31
 
 ### Changed
