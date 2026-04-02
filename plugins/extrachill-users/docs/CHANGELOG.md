@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.15] - 2026-04-02
+
+### Changed
+- optimize custom avatar rendering with static cache, size-aware images, and lazy loading
+- delegate ec_users_get_event_timing() to core primitive
+
+### Fixed
+- whitelist two-factor 2FA challenge actions in wp-login redirect
+
 ## [0.7.14] - 2026-03-29
 
 ### Changed
