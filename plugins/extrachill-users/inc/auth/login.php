@@ -189,6 +189,12 @@ function extrachill_redirect_wp_login_access() {
 		return;
 	}
 
+	// Allow two-factor authentication challenge pages through.
+	$action = isset( $_GET['action'] ) ? $_GET['action'] : '';
+	if ( in_array( $action, array( 'validate_2fa', 'revalidate_2fa' ), true ) ) {
+		return;
+	}
+
 	wp_safe_redirect( home_url( '/login/' ) );
 	exit;
 }
