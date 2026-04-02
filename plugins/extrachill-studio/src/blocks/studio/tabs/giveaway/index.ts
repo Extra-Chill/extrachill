@@ -14,10 +14,41 @@ const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
 const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
 
 /**
- * Parse an Instagram post URL or shortcode URL into a media ID.
- * Instagram URLs don't contain the numeric media ID directly, so we
- * allow pasting the numeric ID or a URL (URL resolution would need
- * an API call; for now we accept the numeric media ID).
+ * Instagram shortcode alphabet for base64 decoding.
+ * Shortcodes use this custom alphabet to encode the numeric media ID.
+ */
+const IG_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+/**
+ * Decode an Instagram shortcode to a numeric media ID.
+ * Pure math — no API call needed.
+ */
+const shortcodeToMediaId = ( shortcode: string ): string => {
+	let id = BigInt( 0 );
+	for ( const char of shortcode ) {
+		const index = IG_ALPHABET.indexOf( char );
+		if ( index === -1 ) {
+			return '';
+		}
+		id = id * BigInt( 64 ) + BigInt( index );
+	}
+	return id.toString();
+};
+
+/**
+ * Extract a shortcode from an Instagram URL.
+ * Supports /p/SHORTCODE/, /reel/SHORTCODE/, /tv/SHORTCODE/.
+ */
+const extractShortcode = ( url: string ): string | null => {
+	const match = url.match( /instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/ );
+	return match ? match[ 1 ] : null;
+};
+
+/**
+ * Parse user input into a platform + media ID.
+ * Accepts:
+ *   - A numeric media ID (e.g. 17891234567890123)
+ *   - An Instagram URL (e.g. https://www.instagram.com/p/CxYz1234abc/)
  */
 const parseMediaInput = ( input: string ): { platform: string; mediaId: string } | null => {
 	const trimmed = input.trim();
@@ -26,27 +57,38 @@ const parseMediaInput = ( input: string ): { platform: string; mediaId: string }
 		return null;
 	}
 
-	// Numeric media ID (Instagram Graph API IDs are long numeric strings).
+	// Already a numeric media ID.
 	if ( /^\d{10,}$/.test( trimmed ) ) {
 		return { platform: 'instagram', mediaId: trimmed };
 	}
 
-	// Instagram URL with /p/ or /reel/ shortcode — user may paste URL but
-	// we need the numeric media ID from the API. For now, show guidance.
+	// Instagram URL — extract shortcode and decode to numeric ID.
 	if ( trimmed.includes( 'instagram.com' ) ) {
+		const shortcode = extractShortcode( trimmed );
+		if ( shortcode ) {
+			const mediaId = shortcodeToMediaId( shortcode );
+			if ( mediaId ) {
+				return { platform: 'instagram', mediaId };
+			}
+		}
 		return { platform: 'instagram', mediaId: '' };
 	}
 
-	// Treat any other string as a direct media ID attempt.
+	// Could be a bare shortcode — try decoding it.
+	if ( /^[A-Za-z0-9_-]{6,}$/.test( trimmed ) ) {
+		const mediaId = shortcodeToMediaId( trimmed );
+		if ( mediaId ) {
+			return { platform: 'instagram', mediaId };
+		}
+	}
+
 	return { platform: 'instagram', mediaId: trimmed };
 };
 
 interface GiveawayRules {
 	requireTag: boolean;
 	minTags: number;
-	excludeUsernames: string;
 	winnerCount: number;
-	requireKeyword: string;
 }
 
 interface GiveawayWinner {
@@ -67,22 +109,18 @@ interface GiveawayStats {
  */
 const filterEntries = (
 	comments: SocialComment[],
-	rules: GiveawayRules
+	rules: GiveawayRules,
+	excludeUsernames: string[] = []
 ): { entries: SocialComment[]; stats: GiveawayStats } => {
-	const excludeList = rules.excludeUsernames
-		.split( ',' )
-		.map( ( u ) => u.trim().toLowerCase().replace( /^@/, '' ) )
-		.filter( Boolean );
-
-	const keyword = rules.requireKeyword.trim().toLowerCase();
 	const seen = new Set< string >();
 	const entries: SocialComment[] = [];
+	const excludeSet = new Set( excludeUsernames.map( ( u ) => u.toLowerCase() ) );
 
 	for ( const comment of comments ) {
 		const username = ( comment.author_username || '' ).toLowerCase();
 
-		// Exclude specified usernames.
-		if ( excludeList.includes( username ) ) {
+		// Exclude previously drawn winners.
+		if ( excludeSet.has( username ) ) {
 			continue;
 		}
 
@@ -93,11 +131,6 @@ const filterEntries = (
 
 		// Must have @mentions if required.
 		if ( rules.requireTag && ( comment.mentions?.length ?? 0 ) < rules.minTags ) {
-			continue;
-		}
-
-		// Must contain keyword if specified.
-		if ( keyword && ! ( comment.text || '' ).toLowerCase().includes( keyword ) ) {
 			continue;
 		}
 
@@ -158,9 +191,7 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 	const [ rules, setRules ] = useState< GiveawayRules >( {
 		requireTag: true,
 		minTags: 1,
-		excludeUsernames: '',
 		winnerCount: 1,
-		requireKeyword: '',
 	} );
 
 	// Data state.
@@ -182,7 +213,7 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 		// Re-filter if we already have comments.
 		if ( allComments.length > 0 ) {
 			const newRules = { ...rules, [ key ]: value };
-			const { stats: newStats } = filterEntries( allComments, newRules );
+			const { stats: newStats } = filterEntries( allComments, newRules, excludedWinners );
 			setStats( newStats );
 		}
 	};
@@ -194,7 +225,7 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 		const parsed = parseMediaInput( mediaInput );
 
 		if ( ! parsed || ! parsed.mediaId ) {
-			setError( __( 'Enter the numeric Instagram media ID. Find it in Studio → Socials → Instagram, or via the CLI.', 'extrachill-studio' ) );
+			setError( __( 'Paste an Instagram post URL or numeric media ID.', 'extrachill-studio' ) );
 			return;
 		}
 
@@ -243,21 +274,11 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 		setIsDrawing( true );
 		setError( '' );
 
-		const allExcluded = [
-			...rules.excludeUsernames.split( ',' ).map( ( u ) => u.trim().toLowerCase().replace( /^@/, '' ) ).filter( Boolean ),
-			...excludedWinners.map( ( u ) => u.toLowerCase() ),
-		];
-
-		const rulesWithExclusions: GiveawayRules = {
-			...rules,
-			excludeUsernames: allExcluded.join( ',' ),
-		};
-
-		const { entries, stats: newStats } = filterEntries( allComments, rulesWithExclusions );
+		const { entries, stats: newStats } = filterEntries( allComments, rules, excludedWinners );
 		setStats( newStats );
 
 		if ( entries.length === 0 ) {
-			setError( __( 'No valid entries after applying rules. Try loosening the filters.', 'extrachill-studio' ) );
+			setError( __( 'No valid entries after applying rules.', 'extrachill-studio' ) );
 			setIsDrawing( false );
 			return;
 		}
@@ -294,7 +315,7 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 		setError( '' );
 
 		const message = sprintf(
-			__( '🎉 Congratulations @%s, you won the giveaway! Check your DMs for details.', 'extrachill-studio' ),
+			__( 'Congratulations @%s, you won the giveaway! Check your DMs for details.', 'extrachill-studio' ),
 			winner.comment.author_username
 		);
 
@@ -325,7 +346,7 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
 			h( PanelHeader, {
-				description: __( 'Pick a random winner from Instagram post comments. Commenters who tag a friend are eligible — fully automated, no manual steps.', 'extrachill-studio' ),
+				description: __( 'Pick a random winner from Instagram post comments. Paste a post URL, load the comments, and draw.', 'extrachill-studio' ),
 			} ),
 			h(
 				'div',
@@ -333,20 +354,17 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 
 				h(
 					FieldGroupView,
-					{ label: __( 'Instagram Media ID', 'extrachill-studio' ), htmlFor: 'ec-studio-giveaway-media-id' },
+					{ label: __( 'Instagram Post', 'extrachill-studio' ), htmlFor: 'ec-studio-giveaway-post' },
 					createElement( 'input', {
-						id: 'ec-studio-giveaway-media-id',
+						id: 'ec-studio-giveaway-post',
 						type: 'text',
 						value: mediaInput,
 						onChange: ( event: ChangeEvent< HTMLInputElement > ) => {
 							setMediaInput( event.target.value );
 							setHasPreview( false );
 						},
-						placeholder: __( 'e.g. 17891234567890123', 'extrachill-studio' ),
-					} ),
-					createElement( 'span', { className: 'ec-studio-composer__hint' },
-						__( 'Find the media ID in Studio → Socials → Instagram, or run: wp datamachine-socials instagram posts', 'extrachill-studio' )
-					)
+						placeholder: __( 'https://www.instagram.com/p/... or numeric media ID', 'extrachill-studio' ),
+					} )
 				),
 
 				// Rules.
@@ -379,30 +397,6 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 								: null
 						),
 					)
-				),
-
-				h(
-					FieldGroupView,
-					{ label: __( 'Exclude Usernames', 'extrachill-studio' ), htmlFor: 'ec-studio-giveaway-exclude' },
-					createElement( 'input', {
-						id: 'ec-studio-giveaway-exclude',
-						type: 'text',
-						value: rules.excludeUsernames,
-						onChange: ( event: ChangeEvent< HTMLInputElement > ) => updateRule( 'excludeUsernames', event.target.value ),
-						placeholder: __( 'extrachill, botaccount', 'extrachill-studio' ),
-					} )
-				),
-
-				h(
-					FieldGroupView,
-					{ label: __( 'Require Keyword', 'extrachill-studio' ), htmlFor: 'ec-studio-giveaway-keyword' },
-					createElement( 'input', {
-						id: 'ec-studio-giveaway-keyword',
-						type: 'text',
-						value: rules.requireKeyword,
-						onChange: ( event: ChangeEvent< HTMLInputElement > ) => updateRule( 'requireKeyword', event.target.value ),
-						placeholder: __( 'Optional — e.g. "contest"', 'extrachill-studio' ),
-					} )
 				),
 
 				h(
