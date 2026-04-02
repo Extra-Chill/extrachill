@@ -9,21 +9,15 @@ export const getStudioTabs = (): StudioTab[] => [
 		preview: __( 'Draft and submit posts using the block editor.', 'extrachill-studio' ),
 	},
 	{
-		id: 'giveaway',
-		pane: 'giveaway',
-		label: __( 'Giveaway', 'extrachill-studio' ),
-		preview: __( 'Pick random winners from Instagram giveaway posts.', 'extrachill-studio' ),
+		id: 'socials',
+		pane: 'socials',
+		label: __( 'Socials', 'extrachill-studio' ),
+		preview: __( 'Publish and manage posts across social platforms.', 'extrachill-studio' ),
 	},
 	{
 		id: 'qr-codes',
 		pane: 'qr-codes',
 		label: __( 'QR Codes', 'extrachill-studio' ),
 		preview: __( 'Generate downloadable QR codes for any URL.', 'extrachill-studio' ),
-	},
-	{
-		id: 'socials',
-		pane: 'socials',
-		label: __( 'Socials', 'extrachill-studio' ),
-		preview: __( 'Publish and manage posts across social platforms.', 'extrachill-studio' ),
 	},
 ];

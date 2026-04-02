@@ -1,18 +1,21 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, useEffect, useState } from '@wordpress/element';
-import type { ReactElement } from 'react';
-import { Badge, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import { createElement, useEffect, useMemo, useState } from '@wordpress/element';
+import type { ReactElement, ChangeEvent } from 'react';
+import { InlineStatus, Panel, PanelHeader, Tabs, Toolbar } from '@extrachill/components';
 import type { SocialPlatformsResponse } from '@extrachill/api-client';
+import type { TabItem } from '@extrachill/components';
 
 import { studioClient } from '../../app/client';
 import type { StudioPaneProps } from '../../types/studio';
-import PlatformPublishPane from './publish';
 import type { SocialPlatformConfig } from '../../types/externals';
+import PlatformPublishPane from './publish';
+import GiveawayView from '../giveaway';
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
-const BadgeView = Badge as unknown as ( props: any ) => ReactElement;
+const ToolbarView = Toolbar as unknown as ( props: any ) => ReactElement;
+const TabsView = Tabs as unknown as ( props: any ) => ReactElement;
 
 interface PlatformEntry {
 	slug: string;
@@ -23,12 +26,26 @@ interface PlatformEntry {
 	config: SocialPlatformConfig;
 }
 
+/** Views available per platform. Giveaway only shows for Instagram. */
+const getViewsForPlatform = ( platformSlug: string | null ): TabItem[] => {
+	const views: TabItem[] = [
+		{ id: 'publish', label: __( 'Publish', 'extrachill-studio' ) },
+	];
+
+	if ( platformSlug === 'instagram' ) {
+		views.push( { id: 'giveaway', label: __( 'Giveaway', 'extrachill-studio' ) } );
+	}
+
+	return views;
+};
+
 const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	const allowedSlugs = context.socialPlatforms;
 	const [ platforms, setPlatforms ] = useState< SocialPlatformsResponse >( {} );
 	const [ error, setError ] = useState( '' );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ activePlatform, setActivePlatform ] = useState< string | null >( null );
+	const [ activeView, setActiveView ] = useState( 'publish' );
 
 	useEffect( () => {
 		const loadPlatforms = async (): Promise< void > => {
@@ -49,39 +66,45 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		loadPlatforms();
 	}, [] );
 
-	const availablePlatforms: PlatformEntry[] = Object.entries( platforms ).map( ( [ slug, config ] ) => {
-		const platformConfig = config as SocialPlatformConfig | undefined;
+	const publishablePlatforms: PlatformEntry[] = useMemo( () => {
+		const available = Object.entries( platforms ).map( ( [ slug, config ] ) => {
+			const platformConfig = config as SocialPlatformConfig | undefined;
 
-		return {
-			slug,
-			label: platformConfig?.label || slug,
-			authenticated: platformConfig?.authenticated || false,
-			username: platformConfig?.username || null,
-			type: platformConfig?.type || 'publish',
-			config: platformConfig || { label: slug },
-		};
-	} );
+			return {
+				slug,
+				label: platformConfig?.label || slug,
+				authenticated: platformConfig?.authenticated || false,
+				username: platformConfig?.username || null,
+				type: platformConfig?.type || 'publish',
+				config: platformConfig || { label: slug },
+			};
+		} );
 
-	// Only show authenticated, publish-capable platforms. Event scrapers,
-	// read-only fetchers, and unauthenticated platforms are hidden entirely.
-	// If an allowlist is configured via the extrachill_studio_social_platforms
-	// filter, only those slugs are shown.
-	const publishablePlatforms = availablePlatforms.filter( ( item ) => {
-		if ( ! item.authenticated || item.type === 'fetch' ) {
-			return false;
-		}
-		if ( allowedSlugs.length > 0 && ! allowedSlugs.includes( item.slug ) ) {
-			return false;
-		}
-		return true;
-	} );
+		return available.filter( ( item ) => {
+			if ( ! item.authenticated || item.type === 'fetch' ) {
+				return false;
+			}
+			if ( allowedSlugs.length > 0 && ! allowedSlugs.includes( item.slug ) ) {
+				return false;
+			}
+			return true;
+		} );
+	}, [ platforms, allowedSlugs ] );
 
-	// Auto-select first publishable platform if none is active.
+	// Auto-select first publishable platform.
 	useEffect( () => {
 		if ( ! activePlatform && publishablePlatforms.length > 0 ) {
 			setActivePlatform( publishablePlatforms[ 0 ].slug );
 		}
 	}, [ activePlatform, publishablePlatforms.length ] );
+
+	// Reset view to publish if the active view is not available for the new platform.
+	useEffect( () => {
+		const views = getViewsForPlatform( activePlatform );
+		if ( ! views.some( ( v ) => v.id === activeView ) ) {
+			setActiveView( 'publish' );
+		}
+	}, [ activePlatform ] );
 
 	if ( isLoading ) {
 		return h(
@@ -107,74 +130,82 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		);
 	}
 
-	const selectedPlatform = publishablePlatforms.find( ( p ) => p.slug === activePlatform ) || null;
+	if ( publishablePlatforms.length === 0 ) {
+		return h(
+			'div',
+			{ className: 'ec-studio-pane ec-studio-pane--socials' },
+			h(
+				PanelView,
+				{ className: 'ec-studio-panel', compact: true },
+				h( PanelHeader, {
+					description: __( 'No social platforms are connected yet.', 'extrachill-studio' ),
+				} ),
+				h( InlineStatusView, { tone: 'warning', className: 'ec-studio-message' }, __( 'Authenticate a social platform in Data Machine Socials to get started.', 'extrachill-studio' ) )
+			)
+		);
+	}
+
+	const selectedPlatform = publishablePlatforms.find( ( p ) => p.slug === activePlatform ) || publishablePlatforms[ 0 ];
+	const views = getViewsForPlatform( selectedPlatform.slug );
+
+	const handlePlatformChange = ( event: ChangeEvent< HTMLSelectElement > ): void => {
+		setActivePlatform( event.target.value );
+	};
+
+	// Platform dropdown for the toolbar's actions slot.
+	const platformDropdown = createElement(
+		'select',
+		{
+			className: 'ec-toolbar__select',
+			value: selectedPlatform.slug,
+			onChange: handlePlatformChange,
+			'aria-label': __( 'Select platform', 'extrachill-studio' ),
+		},
+		...publishablePlatforms.map( ( item ) =>
+			createElement( 'option', { key: item.slug, value: item.slug },
+				sprintf( '%s — @%s', item.label, item.username || 'unknown' )
+			)
+		)
+	);
+
+	// Render the active view content.
+	const renderView = (): ReactElement | null => {
+		switch ( activeView ) {
+			case 'publish':
+				return h( PlatformPublishPane, {
+					key: selectedPlatform.slug,
+					slug: selectedPlatform.slug,
+					label: selectedPlatform.label,
+					username: selectedPlatform.username,
+					config: selectedPlatform.config,
+				} );
+
+			case 'giveaway':
+				return h( GiveawayView, {
+					key: `giveaway-${ selectedPlatform.slug }`,
+					context,
+				} );
+
+			default:
+				return null;
+		}
+	};
 
 	return h(
 		'div',
 		{ className: 'ec-studio-pane ec-studio-pane--socials' },
 		h(
-			'div',
-			{ className: 'ec-studio-pane__grid' },
-			h(
-				PanelView,
-				{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, {
-					description: publishablePlatforms.length > 0
-						? __( 'Select a platform to compose and publish.', 'extrachill-studio' )
-						: __( 'No social platforms are connected yet.', 'extrachill-studio' ),
-				} ),
-				publishablePlatforms.length > 0
-					? createElement(
-						'ul',
-						{ className: 'ec-studio-social-platforms' },
-						...publishablePlatforms.map( ( item ) => createElement(
-							'li',
-							{
-								key: item.slug,
-								className: [
-									'ec-studio-social-platforms__item',
-									'ec-studio-social-platforms__item--clickable',
-									activePlatform === item.slug ? 'ec-studio-social-platforms__item--active' : '',
-								].filter( Boolean ).join( ' ' ),
-								onClick: () => setActivePlatform( item.slug ),
-								role: 'button',
-								tabIndex: 0,
-							},
-							createElement(
-								'span',
-								{ className: 'ec-studio-social-platforms__name' },
-								item.label
-							),
-							createElement(
-								BadgeView,
-								{
-									tone: 'success',
-									variant: 'subtle',
-									className: 'ec-studio-social-platforms__status',
-								},
-								sprintf( __( '@%s', 'extrachill-studio' ), item.username || 'unknown' )
-							)
-						) )
-					)
-					: null
-			),
-			publishablePlatforms.length === 0
-				? h(
-					PanelView,
-					{ className: 'ec-studio-panel', compact: true },
-					h( InlineStatusView, { tone: 'warning', className: 'ec-studio-message' }, __( 'Authenticate a social platform in Data Machine Socials to get started.', 'extrachill-studio' ) )
-				)
-				: null
-		),
-		selectedPlatform
-			? h( PlatformPublishPane, {
-				key: selectedPlatform.slug,
-				slug: selectedPlatform.slug,
-				label: selectedPlatform.label,
-				username: selectedPlatform.username,
-				config: selectedPlatform.config,
+			ToolbarView,
+			{
+				actions: platformDropdown,
+			},
+			h( TabsView, {
+				tabs: views,
+				active: activeView,
+				onChange: setActiveView,
 			} )
-			: null
+		),
+		renderView()
 	);
 };
 

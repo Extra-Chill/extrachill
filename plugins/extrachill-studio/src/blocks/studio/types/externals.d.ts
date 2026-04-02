@@ -41,6 +41,29 @@ export interface SocialPlatformConfig {
 }
 
 declare module '@extrachill/components' {
+	export interface TabItem {
+		id: string;
+		label: string;
+		badge?: number;
+	}
+
+	export interface TabsProps {
+		tabs: TabItem[];
+		active: string;
+		onChange: ( id: string ) => void;
+		classPrefix?: string;
+		className?: string;
+	}
+	export function Tabs( props: TabsProps ): ReactElement;
+
+	export interface ToolbarProps {
+		children: ReactNode;
+		actions?: ReactNode;
+		className?: string;
+		classPrefix?: string;
+	}
+	export function Toolbar( props: ToolbarProps ): ReactElement;
+
 	export interface PanelProps {
 		children: ReactNode;
 		className?: string;

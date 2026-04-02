@@ -7,7 +7,6 @@ import { mountComponent } from './app/mount';
 import { getStudioTabs } from './app/tabs';
 import type { StudioContext, StudioPaneProps } from './types/studio';
 import ComposePane from './tabs/compose';
-import GiveawayPane from './tabs/giveaway';
 import QrCodesPane from './tabs/qr-codes';
 import SocialsPane from './tabs/socials';
 
@@ -15,7 +14,6 @@ const ROOT_SELECTOR = '[data-ec-studio-root]';
 
 const STUDIO_PANES: Record< string, ComponentType< StudioPaneProps > > = {
 	compose: ComposePane,
-	giveaway: GiveawayPane,
 	'qr-codes': QrCodesPane,
 	socials: SocialsPane,
 };
