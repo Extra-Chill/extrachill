@@ -33,6 +33,20 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/assets.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/breadcrumbs.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/social-drafts.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose-editor.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/resolve-instagram-media.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/run-giveaway.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/tasks/giveaway-task.php';
+
+/**
+ * Register the giveaway task with the Data Machine Task System.
+ *
+ * @param array $tasks Registered task classes.
+ * @return array
+ */
+add_filter( 'datamachine_tasks', function ( array $tasks ): array {
+	$tasks['giveaway'] = \ExtraChillStudio\Tasks\GiveawayTask::class;
+	return $tasks;
+} );
 
 register_activation_hook( __FILE__, 'extrachill_studio_activate' );
 register_deactivation_hook( __FILE__, 'extrachill_studio_deactivate' );
