@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-04-02
+
+### Changed
+- Remove stale AI Adventure references from README
+- Bump block apiVersion 2 → 3 for Gutenberg 22.8 iframe editor compatibility
+
 ## [1.2.1] - 2026-03-27
 
 ### Changed
