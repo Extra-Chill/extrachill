@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.20] - 2026-04-02
+
+### Changed
+- rename ec-section and ec-modal to avoid shared class collisions
+- eliminate ec-edge-shell from artist archive
+- remove redundant header and panel titles
+- align artist editor tabs with shared shell patterns
+
+### Fixed
+- restore artist manager block title
+
 ## [1.8.19] - 2026-03-26
 
 ### Changed
