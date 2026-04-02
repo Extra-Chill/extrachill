@@ -46,3 +46,6 @@ WP_CLI::add_command( 'extrachill community', ExtraChill\CLI\Commands\Community\C
 
 // Cache commands.
 WP_CLI::add_command( 'extrachill cache', ExtraChill\CLI\Commands\Cache\WarmCommand::class );
+
+// Giveaway commands.
+WP_CLI::add_command( 'extrachill giveaway', ExtraChill\CLI\Commands\Giveaway\GiveawayCommand::class );
