@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.5.0] - 2026-04-02
+
+### Added
+- add giveaway abilities and task for server-side execution + scheduling
+- filterable social platform allowlist via extrachill_studio_social_platforms
+- unified publish targets in Compose tab
+- wire up Media tab by providing allowedMimeTypes to editor settings
+- add persistent compose sidebar shell
+
+### Changed
+- simplify Giveaway — accept Instagram URLs, remove exclude/keyword fields
+- move Giveaway into Socials tab as a view, add Toolbar view switcher
+- Remove .homeboy-build-meta.json — homeboy no longer generates this file
+- Decouple Compose from social publishing, platform-agnostic Socials tab
+- Add Giveaway tab for automated Instagram winner picking
+- Bump studio block apiVersion 2 → 3 for Gutenberg 22.8 iframe editor compatibility
+- replace synchronous cross-post with async DM Task System
+- align studio block with standard pattern
+- remove empty PanelHeaders
+- align studio with layout contract
+- rely on shared studio shell defaults
+
+### Fixed
+- align block.json version with plugin version
+- platform switcher uses design system tokens for all interactive states
+- Socials tab only shows authenticated publish-capable platforms
+- remove publish target routing from Compose tab entirely
+- inline draft picker and new button on mobile, use theme select styles
+- hide empty IBE header on mobile when detached sidebar is active
+- prevent compose columns from stretching
+- simplify compose sidebar shell
+
 ## [0.4.0] - 2026-03-26
 
 ### Added
