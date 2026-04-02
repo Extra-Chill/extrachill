@@ -2,6 +2,15 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.13.0] - 2026-04-02
+
+### Added
+- add giveaway REST endpoints (run, schedule, resolve)
+
+### Changed
+- Align REST handlers with ability contract: WP_Error returns, remove guards
+- Add concert tracking REST endpoints: toggle, event info, user shows, user stats
+
 ## [0.12.3] - 2026-03-27
 
 ### Changed
