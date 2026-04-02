@@ -38,6 +38,8 @@ export interface SocialPlatformConfig {
 	scopes?: string;
 	authenticated?: boolean;
 	username?: string | null;
+	/** Platform capabilities declared by the handler. Each entry has a slug and display label. */
+	capabilities?: Array< { slug: string; label: string } >;
 }
 
 declare module '@extrachill/components' {

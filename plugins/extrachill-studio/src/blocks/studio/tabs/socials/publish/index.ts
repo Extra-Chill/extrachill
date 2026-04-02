@@ -5,8 +5,7 @@ import { ActionRow, FieldGroup, InlineStatus, MediaField, Panel, PanelHeader } f
 
 import apiFetch from '@wordpress/api-fetch';
 import type { SocialPublishResponse, SocialPublishResult } from '@extrachill/api-client';
-import { studioClient, studioSocialsApi, uploadStudioFile } from '../../../app/client';
-import type { SocialComment } from '../../../app/client';
+import { studioClient, uploadStudioFile } from '../../../app/client';
 import type { SocialPlatformConfig } from '../../../types/externals';
 
 const h = createElement as typeof import( 'react' ).createElement;
@@ -45,12 +44,6 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
 	const [ publishResult, setPublishResult ] = useState< SocialPublishResponse | null >( null );
-	const [ comments, setComments ] = useState< SocialComment[] >( [] );
-	const [ isLoadingComments, setIsLoadingComments ] = useState( false );
-	const [ commentsError, setCommentsError ] = useState( '' );
-	const [ commentsStatus, setCommentsStatus ] = useState( '' );
-	const [ replyDrafts, setReplyDrafts ] = useState< Record< string, string > >( {} );
-	const [ replyingCommentId, setReplyingCommentId ] = useState( '' );
 
 	const platformLabel = label || slug;
 	const charLimit = config.charLimit || 0;
@@ -220,56 +213,6 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		? publishResult!.results.find( ( result ) => result.platform === slug ) || null
 		: null;
 
-	const setReplyDraft = ( commentId: string, value: string ): void => {
-		setReplyDrafts( ( current ) => ( {
-			...current,
-			[ commentId ]: value,
-		} ) );
-	};
-
-	const loadComments = async (): Promise< void > => {
-		setIsLoadingComments( true );
-		setCommentsError( '' );
-		setCommentsStatus( '' );
-
-		try {
-			const response = await studioSocialsApi.getAllComments( slug, '' );
-			setComments( response?.data?.comments || [] );
-		} catch ( fetchError ) {
-			setComments( [] );
-			setCommentsError( ( fetchError as Error )?.message || __( 'Unable to load comments.', 'extrachill-studio' ) );
-		} finally {
-			setIsLoadingComments( false );
-		}
-	};
-
-	const replyToComment = async ( commentId: string ): Promise< void > => {
-		const message = ( replyDrafts[ commentId ] || '' ).trim();
-
-		if ( ! message ) {
-			setCommentsError( __( 'Write a reply before posting.', 'extrachill-studio' ) );
-			setCommentsStatus( '' );
-			return;
-		}
-
-		setReplyingCommentId( commentId );
-		setCommentsError( '' );
-		setCommentsStatus( __( 'Posting reply…', 'extrachill-studio' ) );
-
-		try {
-			await studioSocialsApi.replyToComment( slug, commentId, message );
-			setReplyDraft( commentId, '' );
-			setCommentsStatus( __( 'Reply posted successfully.', 'extrachill-studio' ) );
-
-			await loadComments();
-		} catch ( replyError ) {
-			setCommentsStatus( '' );
-			setCommentsError( ( replyError as Error )?.message || __( 'Failed to reply to comment.', 'extrachill-studio' ) );
-		} finally {
-			setReplyingCommentId( '' );
-		}
-	};
-
 	return h(
 		'div',
 		{ className: `ec-studio-pane ec-studio-pane--platform ec-studio-pane--${ slug }` },
@@ -417,79 +360,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 					)
 					: null
 			)
-			: null,
-		h(
-			PanelView,
-			{ className: 'ec-studio-panel', compact: true },
-			h( PanelHeader, {
-				description: sprintf( __( 'View and reply to recent comments on your %s posts.', 'extrachill-studio' ), platformLabel ),
-			} ),
-			h(
-				ActionRowView,
-				{ className: 'ec-studio-composer__actions' },
-				createElement(
-					'button',
-					{
-						type: 'button',
-						className: 'button-1 button-medium',
-						onClick: loadComments,
-						disabled: isLoadingComments,
-					},
-					isLoadingComments ? __( 'Loading…', 'extrachill-studio' ) : __( 'Load Comments', 'extrachill-studio' )
-				)
-			),
-			commentsError ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, commentsError ) : null,
-			! commentsError && commentsStatus ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, commentsStatus ) : null,
-			isLoadingComments ? h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading comments…', 'extrachill-studio' ) ) : null,
-			comments.length > 0
-				? h(
-					'ul',
-					{ className: 'ec-studio-comment-list' },
-					...comments.map( ( comment ) => createElement(
-						'li',
-						{ key: comment.id, className: 'ec-studio-comment-list__item' },
-						createElement(
-							'div',
-							{ className: 'ec-studio-comment-list__meta' },
-							createElement( 'strong', null, `@${ comment.author_username || 'unknown' }` ),
-							comment.timestamp ? createElement( 'span', null, comment.timestamp ) : null
-						),
-						createElement( 'p', { className: 'ec-studio-comment-list__text' }, comment.text || '' ),
-						createElement(
-							'div',
-							{ className: 'ec-studio-composer' },
-							h(
-								FieldGroupView,
-								{ label: __( 'Reply', 'extrachill-studio' ) },
-								createElement( 'textarea', {
-									rows: 3,
-									value: replyDrafts[ comment.id ] || '',
-									onChange: ( event: ChangeEvent< HTMLTextAreaElement > ) => setReplyDraft( comment.id, event.target.value ),
-									placeholder: __( 'Write a reply…', 'extrachill-studio' ),
-								} )
-							),
-							h(
-								ActionRowView,
-								{ className: 'ec-studio-composer__actions' },
-								createElement(
-									'button',
-									{
-										type: 'button',
-										className: 'button-1 button-medium',
-										onClick: () => replyToComment( comment.id ),
-										disabled: replyingCommentId === comment.id,
-									},
-									replyingCommentId === comment.id ? __( 'Replying…', 'extrachill-studio' ) : __( 'Reply', 'extrachill-studio' )
-								)
-							)
-						)
-					) )
-				)
-				: ( ! isLoadingComments
-					? createElement( 'div', { className: 'ec-studio-preview' }, __( 'Click "Load Comments" to view recent comments.', 'extrachill-studio' ) )
-					: null
-				)
-		)
+			: null
 	);
 };
 

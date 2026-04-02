@@ -1,21 +1,41 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useMemo, useState } from '@wordpress/element';
-import type { ReactElement, ChangeEvent } from 'react';
-import { InlineStatus, Panel, PanelHeader, Tabs, Toolbar } from '@extrachill/components';
+import type { ComponentType, ReactElement } from 'react';
+import { InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { SocialPlatformsResponse } from '@extrachill/api-client';
-import type { TabItem } from '@extrachill/components';
 
 import { studioClient } from '../../app/client';
 import type { StudioPaneProps } from '../../types/studio';
 import type { SocialPlatformConfig } from '../../types/externals';
+import SocialsSidebar from './sidebar';
+import type { SidebarPlatform, CapabilityEntry } from './sidebar';
 import PlatformPublishPane from './publish';
+import CommentsView from './comments';
 import GiveawayView from '../giveaway';
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
-const ToolbarView = Toolbar as unknown as ( props: any ) => ReactElement;
-const TabsView = Tabs as unknown as ( props: any ) => ReactElement;
+
+/**
+ * View component registry.
+ *
+ * Maps capability slugs to their rendering components. When a handler declares
+ * a capability the client doesn't have a component for yet, the UI shows a
+ * placeholder instead of silently failing.
+ *
+ * To support a new capability, add a component here and import it.
+ */
+const VIEW_REGISTRY: Record< string, ComponentType< any > > = {
+	publish: PlatformPublishPane,
+	comments: CommentsView,
+	giveaway: GiveawayView,
+};
+
+/** Fallback when the handler doesn't declare capabilities. */
+const DEFAULT_CAPABILITIES: CapabilityEntry[] = [
+	{ slug: 'publish', label: 'Publish' },
+];
 
 interface PlatformEntry {
 	slug: string;
@@ -23,20 +43,33 @@ interface PlatformEntry {
 	authenticated: boolean;
 	username: string | null;
 	type: string;
+	capabilities: CapabilityEntry[];
 	config: SocialPlatformConfig;
 }
 
-/** Views available per platform. Giveaway only shows for Instagram. */
-const getViewsForPlatform = ( platformSlug: string | null ): TabItem[] => {
-	const views: TabItem[] = [
-		{ id: 'publish', label: __( 'Publish', 'extrachill-studio' ) },
-	];
-
-	if ( platformSlug === 'instagram' ) {
-		views.push( { id: 'giveaway', label: __( 'Giveaway', 'extrachill-studio' ) } );
+/**
+ * Normalize capabilities from the server response.
+ *
+ * Handles both the structured format ({ slug, label }[]) and a bare
+ * string[] fallback for backwards compatibility with older handler versions.
+ */
+const normalizeCapabilities = ( raw: unknown ): CapabilityEntry[] => {
+	if ( ! Array.isArray( raw ) || raw.length === 0 ) {
+		return DEFAULT_CAPABILITIES;
 	}
 
-	return views;
+	return raw.map( ( entry ) => {
+		if ( typeof entry === 'string' ) {
+			// Bare string fallback — capitalize for display.
+			return { slug: entry, label: entry.charAt( 0 ).toUpperCase() + entry.slice( 1 ) };
+		}
+
+		if ( entry && typeof entry === 'object' && typeof entry.slug === 'string' ) {
+			return { slug: entry.slug, label: entry.label || entry.slug };
+		}
+
+		return { slug: String( entry ), label: String( entry ) };
+	} );
 };
 
 const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
@@ -45,7 +78,7 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	const [ error, setError ] = useState( '' );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ activePlatform, setActivePlatform ] = useState< string | null >( null );
-	const [ activeView, setActiveView ] = useState( 'publish' );
+	const [ activeCapability, setActiveCapability ] = useState( 'publish' );
 
 	useEffect( () => {
 		const loadPlatforms = async (): Promise< void > => {
@@ -66,21 +99,23 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		loadPlatforms();
 	}, [] );
 
-	const publishablePlatforms: PlatformEntry[] = useMemo( () => {
-		const available = Object.entries( platforms ).map( ( [ slug, config ] ) => {
-			const platformConfig = config as SocialPlatformConfig | undefined;
+	/** Filter to authenticated, non-fetch platforms within the allowlist. */
+	const availablePlatforms: PlatformEntry[] = useMemo( () => {
+		const entries = Object.entries( platforms ).map( ( [ slug, config ] ) => {
+			const cfg = config as SocialPlatformConfig | undefined;
 
 			return {
 				slug,
-				label: platformConfig?.label || slug,
-				authenticated: platformConfig?.authenticated || false,
-				username: platformConfig?.username || null,
-				type: platformConfig?.type || 'publish',
-				config: platformConfig || { label: slug },
+				label: cfg?.label || slug,
+				authenticated: cfg?.authenticated || false,
+				username: cfg?.username || null,
+				type: cfg?.type || 'publish',
+				capabilities: normalizeCapabilities( cfg?.capabilities ),
+				config: cfg || { label: slug },
 			};
 		} );
 
-		return available.filter( ( item ) => {
+		return entries.filter( ( item ) => {
 			if ( ! item.authenticated || item.type === 'fetch' ) {
 				return false;
 			}
@@ -91,20 +126,42 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		} );
 	}, [ platforms, allowedSlugs ] );
 
-	// Auto-select first publishable platform.
-	useEffect( () => {
-		if ( ! activePlatform && publishablePlatforms.length > 0 ) {
-			setActivePlatform( publishablePlatforms[ 0 ].slug );
-		}
-	}, [ activePlatform, publishablePlatforms.length ] );
+	/** Shape platforms for the sidebar component. */
+	const sidebarPlatforms: SidebarPlatform[] = useMemo(
+		() => availablePlatforms.map( ( p ) => ( {
+			slug: p.slug,
+			label: p.label,
+			username: p.username,
+			capabilities: p.capabilities,
+		} ) ),
+		[ availablePlatforms ]
+	);
 
-	// Reset view to publish if the active view is not available for the new platform.
+	// Auto-select first platform on load.
 	useEffect( () => {
-		const views = getViewsForPlatform( activePlatform );
-		if ( ! views.some( ( v ) => v.id === activeView ) ) {
-			setActiveView( 'publish' );
+		if ( ! activePlatform && availablePlatforms.length > 0 ) {
+			setActivePlatform( availablePlatforms[ 0 ].slug );
+		}
+	}, [ activePlatform, availablePlatforms.length ] );
+
+	// Reset capability if the newly selected platform doesn't support the current one.
+	useEffect( () => {
+		if ( ! activePlatform ) {
+			return;
+		}
+
+		const platform = availablePlatforms.find( ( p ) => p.slug === activePlatform );
+		if ( platform && ! platform.capabilities.some( ( c ) => c.slug === activeCapability ) ) {
+			setActiveCapability( platform.capabilities[ 0 ]?.slug || 'publish' );
 		}
 	}, [ activePlatform ] );
+
+	const handleSidebarSelect = ( platformSlug: string, capability: string ): void => {
+		setActivePlatform( platformSlug );
+		setActiveCapability( capability );
+	};
+
+	// ── Loading / Error / Empty states ──
 
 	if ( isLoading ) {
 		return h(
@@ -130,7 +187,7 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		);
 	}
 
-	if ( publishablePlatforms.length === 0 ) {
+	if ( availablePlatforms.length === 0 ) {
 		return h(
 			'div',
 			{ className: 'ec-studio-pane ec-studio-pane--socials' },
@@ -145,67 +202,55 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		);
 	}
 
-	const selectedPlatform = publishablePlatforms.find( ( p ) => p.slug === activePlatform ) || publishablePlatforms[ 0 ];
-	const views = getViewsForPlatform( selectedPlatform.slug );
+	// ── Active platform and view rendering ──
 
-	const handlePlatformChange = ( event: ChangeEvent< HTMLSelectElement > ): void => {
-		setActivePlatform( event.target.value );
-	};
+	const selectedPlatform = availablePlatforms.find( ( p ) => p.slug === activePlatform ) || availablePlatforms[ 0 ];
 
-	// Platform dropdown for the toolbar's actions slot.
-	const platformDropdown = createElement(
-		'select',
-		{
-			className: 'ec-toolbar__select',
-			value: selectedPlatform.slug,
-			onChange: handlePlatformChange,
-			'aria-label': __( 'Select platform', 'extrachill-studio' ),
-		},
-		...publishablePlatforms.map( ( item ) =>
-			createElement( 'option', { key: item.slug, value: item.slug },
-				sprintf( '%s — @%s', item.label, item.username || 'unknown' )
-			)
-		)
-	);
+	const renderContent = (): ReactElement => {
+		const ViewComponent = VIEW_REGISTRY[ activeCapability ];
 
-	// Render the active view content.
-	const renderView = (): ReactElement | null => {
-		switch ( activeView ) {
-			case 'publish':
-				return h( PlatformPublishPane, {
-					key: selectedPlatform.slug,
-					slug: selectedPlatform.slug,
-					label: selectedPlatform.label,
-					username: selectedPlatform.username,
-					config: selectedPlatform.config,
-				} );
-
-			case 'giveaway':
-				return h( GiveawayView, {
-					key: `giveaway-${ selectedPlatform.slug }`,
-					context,
-				} );
-
-			default:
-				return null;
+		if ( ! ViewComponent ) {
+			// Handler declared a capability the client doesn't have a view for yet.
+			return h(
+				PanelView,
+				{ className: 'ec-studio-panel', compact: true },
+				h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' },
+					sprintf( __( 'The "%s" view is not available in this version of Studio.', 'extrachill-studio' ), activeCapability )
+				)
+			);
 		}
+
+		// Props vary by view — publish/comments get platform props, giveaway gets context.
+		if ( activeCapability === 'giveaway' ) {
+			return h( ViewComponent, {
+				key: `giveaway-${ selectedPlatform.slug }`,
+				context,
+			} );
+		}
+
+		return h( ViewComponent, {
+			key: `${ activeCapability }-${ selectedPlatform.slug }`,
+			slug: selectedPlatform.slug,
+			label: selectedPlatform.label,
+			username: selectedPlatform.username,
+			config: selectedPlatform.config,
+		} );
 	};
 
 	return h(
 		'div',
-		{ className: 'ec-studio-pane ec-studio-pane--socials' },
+		{ className: 'ec-studio-pane ec-studio-pane--socials ec-studio-socials-layout' },
+		h( SocialsSidebar, {
+			platforms: sidebarPlatforms,
+			activePlatform: activePlatform,
+			activeCapability,
+			onSelect: handleSidebarSelect,
+		} ),
 		h(
-			ToolbarView,
-			{
-				actions: platformDropdown,
-			},
-			h( TabsView, {
-				tabs: views,
-				active: activeView,
-				onChange: setActiveView,
-			} )
-		),
-		renderView()
+			'div',
+			{ className: 'ec-studio-socials-content' },
+			renderContent()
+		)
 	);
 };
 
