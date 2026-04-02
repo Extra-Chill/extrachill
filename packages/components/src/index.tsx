@@ -27,3 +27,4 @@ export { BlockShell, type BlockShellProps } from './BlockShell.tsx';
 export { BlockShellInner, type BlockShellInnerProps } from './BlockShellInner.tsx';
 export { BlockIntro, type BlockIntroProps } from './BlockIntro.tsx';
 export { BlockShellHeader, type BlockShellHeaderProps } from './BlockShellHeader.tsx';
+export { Toolbar, type ToolbarProps } from './Toolbar.tsx';
