@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.16] - 2026-04-03
+
+### Changed
+- Add .homeboy-build-meta.json to gitignore
+
+### Fixed
+- Fix login-register block incompatibility with Two-Factor Authentication
+
 ## [0.7.15] - 2026-04-02
 
 ### Changed
