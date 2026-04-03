@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.14.0] - 2026-04-03
+
+### Added
+- add route affinity middleware and missing community endpoints
+
 ## [0.13.0] - 2026-04-02
 
 ### Added
