@@ -57,7 +57,7 @@ $studio_user = wp_get_current_user();
 $site_name   = get_bloginfo( 'name' );
 $site_url    = home_url( '/' );
 $rest_nonce  = wp_create_nonce( 'wp_rest' );
-$socials_api = rest_url( 'datamachine-socials/v1/' );
+$socials_api = rest_url( 'datamachine/v1/socials/' );
 
 /**
  * Filter the social platform slugs shown in Studio's Socials tab.

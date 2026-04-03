@@ -88,7 +88,7 @@ export const studioSocialsApi = {
 			...( params.after ? { after: params.after } : {} ),
 		} );
 
-		return apiFetch( { path: `/datamachine-socials/v1/instagram/media?${ query.toString() }` } );
+		return apiFetch( { path: `/datamachine/v1/socials/instagram/media?${ query.toString() }` } );
 	},
 
 	getInstagramComments( mediaId: string, params: { limit?: number; after?: string } = {} ): Promise< InstagramCommentsResponse > {
@@ -99,12 +99,12 @@ export const studioSocialsApi = {
 			...( params.after ? { after: params.after } : {} ),
 		} );
 
-		return apiFetch( { path: `/datamachine-socials/v1/instagram/media?${ query.toString() }` } );
+		return apiFetch( { path: `/datamachine/v1/socials/instagram/media?${ query.toString() }` } );
 	},
 
 	replyToInstagramComment( commentId: string, message: string ): Promise< unknown > {
 		return apiFetch( {
-			path: '/datamachine-socials/v1/instagram/comments/reply',
+			path: '/datamachine/v1/socials/instagram/comments/reply',
 			method: 'POST',
 			data: {
 				comment_id: commentId,
@@ -122,7 +122,7 @@ export const studioSocialsApi = {
 			all: 'true',
 		} );
 
-		return apiFetch( { path: `/datamachine-socials/v1/comments/${ platform }?${ query.toString() }` } );
+		return apiFetch( { path: `/datamachine/v1/socials/comments/${ platform }?${ query.toString() }` } );
 	},
 
 	/**
@@ -130,7 +130,7 @@ export const studioSocialsApi = {
 	 */
 	replyToComment( platform: string, commentId: string, message: string ): Promise< CommentReplyResponse > {
 		return apiFetch( {
-			path: `/datamachine-socials/v1/comments/${ platform }/reply`,
+			path: `/datamachine/v1/socials/comments/${ platform }/reply`,
 			method: 'POST',
 			data: {
 				comment_id: commentId,
