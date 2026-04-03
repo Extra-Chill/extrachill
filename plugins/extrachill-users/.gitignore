@@ -6,3 +6,4 @@ composer.lock
 package-lock.json
 *.log
 .phpunit.result.cache
+.homeboy-build-meta.json
