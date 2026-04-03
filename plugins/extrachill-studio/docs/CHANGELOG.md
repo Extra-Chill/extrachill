@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1] - 2026-04-03
+
+### Added
+- data-driven Socials tab with sidebar navigation and standalone comments view
+
+### Changed
+- update socials API paths to datamachine/v1/socials namespace
+
 ## [0.5.0] - 2026-04-02
 
 ### Added
