@@ -93,6 +93,13 @@ function extrachill_enqueue_wp_embed_for_bbpress() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_wp_embed_for_bbpress', 20 );
 
+/**
+ * Enqueue root design tokens on the frontend.
+ *
+ * For the wp-admin block editor, root.css is delivered via add_editor_style()
+ * in functions.php — that pipeline injects CSS into the editor iframe without
+ * leaking onto the outer admin page.
+ */
 function extrachill_enqueue_root_styles() {
 	$css_path = get_stylesheet_directory() . '/assets/css/root.css';
 	if ( file_exists( $css_path ) ) {
@@ -105,42 +112,17 @@ function extrachill_enqueue_root_styles() {
 	}
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 );
-add_action( 'enqueue_block_assets', 'extrachill_enqueue_root_styles', 5 );
 
-/**
- * Enqueue theme stylesheet and block-editor branding inside the editor iframe.
+/*
+ * Editor iframe styles (root.css, editor-style.css, single-post.css,
+ * block-editor.css) are delivered via add_editor_style() in functions.php.
+ * That pipeline injects CSS into the iframe via EditorStyles React component
+ * without leaking onto the outer wp-admin page.
  *
- * Gutenberg 22.8+ renders the editor in an iframe. Styles registered via
- * add_editor_style() sometimes fail to reach the iframe in time.
- * enqueue_block_assets fires for both frontend AND editor iframe, ensuring
- * the styles are available in both contexts.
+ * Previously extrachill_enqueue_editor_iframe_styles() used enqueue_block_assets
+ * which fires on BOTH the outer admin page and the iframe, causing style.css
+ * and block-editor.css to leak onto wp-admin chrome.
  */
-function extrachill_enqueue_editor_iframe_styles() {
-	if ( ! is_admin() ) {
-		return;
-	}
-
-	$theme_style_path = get_template_directory() . '/style.css';
-	if ( file_exists( $theme_style_path ) ) {
-		wp_enqueue_style(
-			'extrachill-style',
-			get_stylesheet_uri(),
-			array( 'extrachill-root' ),
-			filemtime( $theme_style_path )
-		);
-	}
-
-	$block_editor_css_path = get_stylesheet_directory() . '/assets/css/block-editor.css';
-	if ( file_exists( $block_editor_css_path ) ) {
-		wp_enqueue_style(
-			'extrachill-block-editor',
-			get_stylesheet_directory_uri() . '/assets/css/block-editor.css',
-			array( 'extrachill-root' ),
-			filemtime( $block_editor_css_path )
-		);
-	}
-}
-add_action( 'enqueue_block_assets', 'extrachill_enqueue_editor_iframe_styles', 10 );
 
 function extrachill_enqueue_embed_iframe_styles() {
 	$root_css_path = get_stylesheet_directory() . '/assets/css/root.css';

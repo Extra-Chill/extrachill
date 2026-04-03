@@ -1,8 +1,33 @@
 /* 
  * Editor Styles
- * Fixes styling issues in the WordPress block editor for all post types
- * Ensures proper text contrast and title sizing
+ * Content styles for the WordPress block editor (wp-admin post editor).
+ * Delivered via add_editor_style() — lives inside the editor iframe only.
+ * Selectors are auto-scoped to .editor-styles-wrapper by Gutenberg.
+ *
+ * @package ExtraChill
  */
+
+/* ==========================================================================
+   0. Font Faces
+   Duplicated from style.css so the editor iframe can resolve them.
+   Paths are relative to this file; Gutenberg rewrites via baseURL.
+   ========================================================================== */
+
+@font-face {
+    font-family: 'Loft Sans';
+    src: url('../fonts/WilcoLoftSans-Treble.woff2') format('woff2');
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Lobster';
+    src: url('../fonts/Lobster2.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
 
 /* Root variables are loaded separately via functions.php */
 
@@ -281,4 +306,92 @@ body .edit-post-visual-editor .editor-post-title__input {
 .editor-styles-wrapper ul li::marker,
 .editor-styles-wrapper ol li::marker {
     color: var(--text-color);
+}
+
+/* ==========================================================================
+   8. Content Formatting
+   Blockquotes, code, strong/em, etc. — mirroring style.css for the editor.
+   ========================================================================== */
+
+.wp-block-quote {
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+    background-color: var(--background-color);
+    border-left: 5px solid var(--accent-2);
+    overflow: auto;
+    font-style: italic;
+}
+
+.wp-block-quote p {
+    line-height: 1.6;
+    position: relative;
+    padding-top: 0;
+    font-size: 0.9em;
+    margin-left: var(--spacing-sm);
+}
+
+.wp-block-quote cite {
+    font-style: italic;
+    font-family: inherit;
+    font-weight: 300;
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+    line-height: 1.2;
+}
+
+strong {
+    font-weight: 700;
+}
+
+b {
+    font-weight: 600;
+}
+
+cite, em, i {
+    font-style: italic;
+}
+
+pre,
+.wp-block-code {
+    background-color: var(--background-color);
+    margin-bottom: var(--spacing-lg);
+    overflow: auto;
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-base);
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+code, kbd, var, samp, tt {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-base);
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+hr,
+.wp-block-separator {
+    border-color: var(--border-color);
+    border-style: solid none none;
+    border-width: 1px 0 0;
+    height: 0;
+    margin: var(--spacing-xl) 0;
+}
+
+table,
+.wp-block-table table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 0 0 var(--spacing-lg);
+    width: 100%;
+}
+
+.wp-block-table th {
+    font-weight: bold;
+    border: 1px solid var(--border-color);
+}
+
+.wp-block-table td {
+    border: 1px solid var(--border-color);
 }
