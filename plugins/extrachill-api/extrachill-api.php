@@ -40,6 +40,7 @@ final class ExtraChill_API_Plugin {
      */
     private function __construct() {
         $this->load_route_files();
+        $this->load_middleware();
         add_action( 'plugins_loaded', array( $this, 'boot' ) );
         add_action( 'rest_api_init', array( $this, 'register_routes' ) );
     }
@@ -88,6 +89,21 @@ final class ExtraChill_API_Plugin {
             }
 
             require_once $file->getRealPath();
+        }
+    }
+
+    /**
+     * Loads middleware files for request interception.
+     */
+    private function load_middleware() {
+        $middleware_dir = EXTRACHILL_API_PATH . 'inc/middleware/';
+
+        if ( ! is_dir( $middleware_dir ) ) {
+            return;
+        }
+
+        foreach ( glob( $middleware_dir . '*.php' ) as $file ) {
+            require_once $file;
         }
     }
 
