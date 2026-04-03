@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.1] - 2026-04-03
+
+### Changed
+- update socials API paths to datamachine/v1/socials namespace
+
 ## [0.3.0] - 2026-03-25
 
 ### Added
