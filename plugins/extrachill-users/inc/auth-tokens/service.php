@@ -260,6 +260,73 @@ function extrachill_users_revoke_refresh_token( int $user_id, string $device_id 
 }
 
 /**
+ * Check if a user has Two-Factor Authentication enabled and handle the redirect.
+ *
+ * Resolves the user by identifier, validates their password, and if they have
+ * 2FA enabled, creates a Two Factor login nonce and returns a response that
+ * instructs the frontend to redirect to the wp-login.php validate_2fa page.
+ *
+ * @param string $identifier Username or email.
+ * @param string $password   Password.
+ * @param bool   $remember   Whether to remember the user.
+ * @return array|WP_Error|null Array with requires_2fa on 2FA redirect, WP_Error on bad credentials, null to continue normal flow.
+ */
+function extrachill_users_maybe_handle_two_factor( string $identifier, string $password, bool $remember = false ) {
+	if ( ! class_exists( 'Two_Factor_Core' ) ) {
+		return null;
+	}
+
+	// Resolve the user by username or email.
+	$user = get_user_by( 'login', $identifier );
+	if ( ! $user ) {
+		$user = get_user_by( 'email', $identifier );
+	}
+	if ( ! $user ) {
+		return null; // Let wp_authenticate() handle the "user not found" error.
+	}
+
+	if ( ! Two_Factor_Core::is_user_using_two_factor( $user->ID ) ) {
+		return null; // Not a 2FA user, continue normal flow.
+	}
+
+	// 2FA user detected — validate password before creating nonce.
+	if ( ! wp_check_password( $password, $user->user_pass, $user->ID ) ) {
+		return new WP_Error(
+			'invalid_credentials',
+			'Invalid username or password.',
+			array( 'status' => 401 )
+		);
+	}
+
+	// Password valid, 2FA required. Create the login nonce.
+	$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+	if ( ! $login_nonce ) {
+		return new WP_Error(
+			'two_factor_nonce_failed',
+			'Unable to initiate two-factor authentication. Please try again.',
+			array( 'status' => 500 )
+		);
+	}
+
+	// Build the validate_2fa URL with the same parameters Two Factor expects.
+	$redirect_url = add_query_arg(
+		array(
+			'action'        => 'validate_2fa',
+			'wp-auth-id'    => $user->ID,
+			'wp-auth-nonce' => $login_nonce['key'],
+			'rememberme'    => $remember ? 1 : 0,
+			'redirect_to'   => home_url(),
+		),
+		site_url( 'wp-login.php' )
+	);
+
+	return array(
+		'requires_2fa' => true,
+		'redirect_url' => $redirect_url,
+	);
+}
+
+/**
  * Login service: authenticates, optionally sets cookies, and returns tokens.
  *
  * @param string $identifier Username or email.
@@ -288,6 +355,22 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 			'Community blog ID is not available.',
 			array( 'status' => 500 )
 		);
+	}
+
+	/*
+	 * Two-Factor Authentication compatibility.
+	 *
+	 * The Two Factor plugin's filter_authenticate() (priority 31) blocks REST API
+	 * login for 2FA users by returning WP_Error('invalid_application_credentials').
+	 * Its wp_login action handler also calls exit after rendering HTML.
+	 *
+	 * To avoid both interception points, we detect 2FA users before calling
+	 * wp_authenticate(), validate the password manually, create a Two Factor
+	 * login nonce, and return a redirect URL to the existing validate_2fa page.
+	 */
+	$two_factor_redirect = extrachill_users_maybe_handle_two_factor( $identifier, $password, $remember );
+	if ( null !== $two_factor_redirect ) {
+		return $two_factor_redirect;
 	}
 
 	$user = wp_authenticate( $identifier, $password );

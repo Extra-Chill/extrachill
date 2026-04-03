@@ -103,6 +103,12 @@ function LoginPanel( { config, notice, setNotice } ) {
 				throw new Error( data?.message || 'Login failed. Please try again.' );
 			}
 
+			// Two-Factor Authentication: redirect to the 2FA challenge page.
+			if ( data?.requires_2fa && data?.redirect_url ) {
+				window.location.assign( data.redirect_url );
+				return;
+			}
+
 			window.location.assign( redirectTo );
 		} catch ( error ) {
 			const message = error instanceof Error ? error.message : 'Login failed. Please try again.';
