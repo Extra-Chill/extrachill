@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.3.6] - 2026-04-03
+
+### Fixed
+- Fix editor styles leaking onto wp-admin page
+
 ## [2.3.5] - 2026-04-02
 
 ### Changed
