@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.14.1] - 2026-04-04
+
+### Changed
+- remove switch_to_blog from 8 ability-powered route handlers
+
 ## [0.14.0] - 2026-04-03
 
 ### Added
