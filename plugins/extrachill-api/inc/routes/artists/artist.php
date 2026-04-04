@@ -109,7 +109,10 @@ function extrachill_api_artist_create_permission_check( WP_REST_Request $request
 }
 
 /**
- * Permission check for artist endpoints
+ * Permission check for artist endpoints.
+ *
+ * Route affinity middleware ensures this runs on the artist site,
+ * so get_post_type() and ec_can_manage_artist() are in the correct context.
  */
 function extrachill_api_artist_permission_check( WP_REST_Request $request ) {
 	if ( ! is_user_logged_in() ) {
@@ -122,20 +125,7 @@ function extrachill_api_artist_permission_check( WP_REST_Request $request ) {
 
 	$artist_id = $request->get_param( 'id' );
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	if ( ! $artist_blog_id ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Multisite not configured.',
-			array( 'status' => 500 )
-		);
-	}
-
-	switch_to_blog( $artist_blog_id );
-	$post_type = get_post_type( $artist_id );
-	restore_current_blog();
-
-	if ( $post_type !== 'artist_profile' ) {
+	if ( get_post_type( $artist_id ) !== 'artist_profile' ) {
 		return new WP_Error(
 			'invalid_artist',
 			'Artist not found.',

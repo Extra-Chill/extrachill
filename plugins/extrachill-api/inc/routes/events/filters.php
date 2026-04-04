@@ -33,44 +33,32 @@ function extrachill_api_register_events_filters_route() {
 /**
  * Handle filters request.
  *
+ * Route affinity middleware ensures this runs on the events site.
+ *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
  */
 function extrachill_api_events_filters_handler( WP_REST_Request $request ) {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
-	if ( ! $events_blog_id ) {
+	$ability = wp_get_ability( 'data-machine-events/get-filter-options' );
+	if ( ! $ability ) {
 		return new WP_Error(
-			'events_site_unavailable',
-			__( 'Events site is not configured.', 'extrachill-api' ),
+			'ability_unavailable',
+			__( 'Filter options ability is not registered.', 'extrachill-api' ),
 			array( 'status' => 500 )
 		);
 	}
 
-	switch_to_blog( $events_blog_id );
-	try {
-		$ability = wp_get_ability( 'data-machine-events/get-filter-options' );
-		if ( ! $ability ) {
-			return new WP_Error(
-				'ability_unavailable',
-				__( 'Filter options ability is not registered.', 'extrachill-api' ),
-				array( 'status' => 500 )
-			);
-		}
+	$result = $ability->execute( array() );
 
-		$result = $ability->execute( array() );
-
-		if ( is_wp_error( $result ) ) {
-			return new WP_Error(
-				'filters_error',
-				$result->get_error_message(),
-				array( 'status' => 500 )
-			);
-		}
-
-		return rest_ensure_response( extrachill_api_transform_filters_response( $result ) );
-	} finally {
-		restore_current_blog();
+	if ( is_wp_error( $result ) ) {
+		return new WP_Error(
+			'filters_error',
+			$result->get_error_message(),
+			array( 'status' => 500 )
+		);
 	}
+
+	return rest_ensure_response( extrachill_api_transform_filters_response( $result ) );
 }
 
 /**

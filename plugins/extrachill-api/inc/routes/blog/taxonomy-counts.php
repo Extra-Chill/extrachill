@@ -55,7 +55,8 @@ function extrachill_api_register_blog_taxonomy_counts_route() {
 /**
  * Handle blog taxonomy counts request.
  *
- * Routes to blog site, checks transient, falls back to ability.
+ * Checks transient cache, falls back to ability. Route affinity middleware
+ * ensures this runs on the main blog where taxonomies are registered.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
@@ -65,63 +66,49 @@ function extrachill_api_blog_taxonomy_counts_handler( WP_REST_Request $request )
 	$slug     = $request->get_param( 'slug' );
 	$limit    = $request->get_param( 'limit' ) ?: 8;
 
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
-	if ( ! $main_blog_id ) {
-		return new WP_Error(
-			'blog_site_unavailable',
-			__( 'Blog site is not configured.', 'extrachill-api' ),
-			array( 'status' => 500 )
-		);
+	// Single term query.
+	if ( ! empty( $slug ) ) {
+		$result = extrachill_api_get_single_blog_term_count( $slug, $taxonomy );
+		return rest_ensure_response( $result );
 	}
 
-	switch_to_blog( $main_blog_id );
-	try {
-		// Single term query.
-		if ( ! empty( $slug ) ) {
-			$result = extrachill_api_get_single_blog_term_count( $slug, $taxonomy );
-			return rest_ensure_response( $result );
-		}
+	// Bulk query — check transient, fall back to ability.
+	$cache_key = 'ec_blog_counts_' . $taxonomy;
+	$cached    = get_transient( $cache_key );
 
-		// Bulk query — check transient, fall back to ability.
-		$cache_key = 'ec_blog_counts_' . $taxonomy;
-		$cached    = get_transient( $cache_key );
-
-		if ( false !== $cached ) {
-			return rest_ensure_response( array_slice( $cached, 0, $limit ) );
-		}
-
-		// Cold cache — call the ability.
-		$ability = wp_get_ability( 'extrachill/taxonomy-post-counts' );
-
-		if ( ! $ability ) {
-			return rest_ensure_response( array() );
-		}
-
-		$result = $ability->execute(
-			array(
-				'taxonomy' => $taxonomy,
-				'site'     => 'main',
-			)
-		);
-
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		$terms = $result['terms'] ?? array();
-
-		set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
-
-		return rest_ensure_response( array_slice( $terms, 0, $limit ) );
-	} finally {
-		restore_current_blog();
+	if ( false !== $cached ) {
+		return rest_ensure_response( array_slice( $cached, 0, $limit ) );
 	}
+
+	// Cold cache — call the ability.
+	$ability = wp_get_ability( 'extrachill/taxonomy-post-counts' );
+
+	if ( ! $ability ) {
+		return rest_ensure_response( array() );
+	}
+
+	$result = $ability->execute(
+		array(
+			'taxonomy' => $taxonomy,
+			'site'     => 'main',
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	$terms = $result['terms'] ?? array();
+
+	set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
+
+	return rest_ensure_response( array_slice( $terms, 0, $limit ) );
 }
 
 /**
- * Get count for a single term on blog site.
+ * Get count for a single term on the blog site.
  *
- * Must be called while switched to blog context.
+ * Route affinity middleware ensures this runs on the main blog.
  *
  * @param string $slug     Term slug.
  * @param string $taxonomy Taxonomy slug.

@@ -97,79 +97,66 @@ function extrachill_api_register_events_calendar_route() {
 /**
  * Handle calendar request.
  *
- * Switches to the events site, executes the calendar ability,
- * and transforms the output into the api-client CalendarResponse shape.
+ * Executes the calendar ability and transforms the output into the
+ * api-client CalendarResponse shape. Route affinity middleware ensures
+ * this runs on the events site where the ability and taxonomies exist.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
  */
 function extrachill_api_events_calendar_handler( WP_REST_Request $request ) {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
-	if ( ! $events_blog_id ) {
+	$ability = wp_get_ability( 'data-machine-events/get-calendar-page' );
+	if ( ! $ability ) {
 		return new WP_Error(
-			'events_site_unavailable',
-			__( 'Events site is not configured.', 'extrachill-api' ),
+			'ability_unavailable',
+			__( 'Calendar ability is not registered.', 'extrachill-api' ),
 			array( 'status' => 500 )
 		);
 	}
 
-	switch_to_blog( $events_blog_id );
-	try {
-		$ability = wp_get_ability( 'data-machine-events/get-calendar-page' );
-		if ( ! $ability ) {
-			return new WP_Error(
-				'ability_unavailable',
-				__( 'Calendar ability is not registered.', 'extrachill-api' ),
-				array( 'status' => 500 )
-			);
-		}
+	$input = array(
+		'paged'        => $request->get_param( 'page' ) ?: 1,
+		'include_html' => false,
+		'include_gaps' => false,
+		'past'         => (bool) $request->get_param( 'past' ),
+	);
 
-		$input = array(
-			'paged'        => $request->get_param( 'page' ) ?: 1,
-			'include_html' => false,
-			'include_gaps' => false,
-			'past'         => (bool) $request->get_param( 'past' ),
-		);
-
-		$scope = $request->get_param( 'scope' );
-		if ( $scope ) {
-			$input['scope'] = $scope;
-		}
-
-		$search = $request->get_param( 'search' );
-		if ( $search ) {
-			$input['event_search'] = $search;
-		}
-
-		// Build taxonomy filter from slug params.
-		$tax_filter = extrachill_api_build_calendar_tax_filter( $request );
-		if ( ! empty( $tax_filter ) ) {
-			$input['tax_filter'] = $tax_filter;
-		}
-
-		// Geo params.
-		$lat = $request->get_param( 'lat' );
-		$lng = $request->get_param( 'lng' );
-		if ( null !== $lat && null !== $lng ) {
-			$input['geo_lat']    = (float) $lat;
-			$input['geo_lng']    = (float) $lng;
-			$input['geo_radius'] = $request->get_param( 'radius' ) ?: 25;
-		}
-
-		$result = $ability->execute( $input );
-
-		if ( is_wp_error( $result ) ) {
-			return new WP_Error(
-				'calendar_error',
-				$result->get_error_message(),
-				array( 'status' => 500 )
-			);
-		}
-
-		return rest_ensure_response( extrachill_api_transform_calendar_response( $result ) );
-	} finally {
-		restore_current_blog();
+	$scope = $request->get_param( 'scope' );
+	if ( $scope ) {
+		$input['scope'] = $scope;
 	}
+
+	$search = $request->get_param( 'search' );
+	if ( $search ) {
+		$input['event_search'] = $search;
+	}
+
+	// Build taxonomy filter from slug params.
+	$tax_filter = extrachill_api_build_calendar_tax_filter( $request );
+	if ( ! empty( $tax_filter ) ) {
+		$input['tax_filter'] = $tax_filter;
+	}
+
+	// Geo params.
+	$lat = $request->get_param( 'lat' );
+	$lng = $request->get_param( 'lng' );
+	if ( null !== $lat && null !== $lng ) {
+		$input['geo_lat']    = (float) $lat;
+		$input['geo_lng']    = (float) $lng;
+		$input['geo_radius'] = $request->get_param( 'radius' ) ?: 25;
+	}
+
+	$result = $ability->execute( $input );
+
+	if ( is_wp_error( $result ) ) {
+		return new WP_Error(
+			'calendar_error',
+			$result->get_error_message(),
+			array( 'status' => 500 )
+		);
+	}
+
+	return rest_ensure_response( extrachill_api_transform_calendar_response( $result ) );
 }
 
 /**

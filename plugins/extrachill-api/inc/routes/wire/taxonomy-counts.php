@@ -55,7 +55,8 @@ function extrachill_api_register_wire_taxonomy_counts_route() {
 /**
  * Handle wire taxonomy counts request.
  *
- * Routes to wire site, checks transient, falls back to ability.
+ * Checks transient cache, falls back to ability. Route affinity middleware
+ * ensures this runs on the wire site where wire taxonomies exist.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
@@ -65,64 +66,50 @@ function extrachill_api_wire_taxonomy_counts_handler( WP_REST_Request $request )
 	$slug     = $request->get_param( 'slug' );
 	$limit    = $request->get_param( 'limit' ) ?: 8;
 
-	$wire_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'wire' ) : null;
-	if ( ! $wire_blog_id ) {
-		return new WP_Error(
-			'wire_site_unavailable',
-			__( 'Wire site is not configured.', 'extrachill-api' ),
-			array( 'status' => 500 )
-		);
+	// Single term query.
+	if ( ! empty( $slug ) ) {
+		$result = extrachill_api_get_single_wire_term_count( $slug, $taxonomy );
+		return rest_ensure_response( $result );
 	}
 
-	switch_to_blog( $wire_blog_id );
-	try {
-		// Single term query.
-		if ( ! empty( $slug ) ) {
-			$result = extrachill_api_get_single_wire_term_count( $slug, $taxonomy );
-			return rest_ensure_response( $result );
-		}
+	// Bulk query — check transient, fall back to ability.
+	$cache_key = 'ec_wire_counts_' . $taxonomy;
+	$cached    = get_transient( $cache_key );
 
-		// Bulk query — check transient, fall back to ability.
-		$cache_key = 'ec_wire_counts_' . $taxonomy;
-		$cached    = get_transient( $cache_key );
-
-		if ( false !== $cached ) {
-			return rest_ensure_response( array_slice( $cached, 0, $limit ) );
-		}
-
-		// Cold cache — call the ability.
-		$ability = wp_get_ability( 'extrachill/taxonomy-post-counts' );
-
-		if ( ! $ability ) {
-			return rest_ensure_response( array() );
-		}
-
-		$result = $ability->execute(
-			array(
-				'taxonomy'  => $taxonomy,
-				'site'      => 'wire',
-				'post_type' => 'festival_wire',
-			)
-		);
-
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		$terms = $result['terms'] ?? array();
-
-		set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
-
-		return rest_ensure_response( array_slice( $terms, 0, $limit ) );
-	} finally {
-		restore_current_blog();
+	if ( false !== $cached ) {
+		return rest_ensure_response( array_slice( $cached, 0, $limit ) );
 	}
+
+	// Cold cache — call the ability.
+	$ability = wp_get_ability( 'extrachill/taxonomy-post-counts' );
+
+	if ( ! $ability ) {
+		return rest_ensure_response( array() );
+	}
+
+	$result = $ability->execute(
+		array(
+			'taxonomy'  => $taxonomy,
+			'site'      => 'wire',
+			'post_type' => 'festival_wire',
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	$terms = $result['terms'] ?? array();
+
+	set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
+
+	return rest_ensure_response( array_slice( $terms, 0, $limit ) );
 }
 
 /**
- * Get count for a single term on wire site.
+ * Get count for a single term on the wire site.
  *
- * Must be called while switched to wire blog context.
+ * Route affinity middleware ensures this runs on the wire site.
  *
  * @param string $slug     Term slug.
  * @param string $taxonomy Taxonomy slug.
