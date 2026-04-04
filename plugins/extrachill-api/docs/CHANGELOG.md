@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.14.2] - 2026-04-04
+
+### Changed
+- remove switch_to_blog(shop) from 4 shop route handlers
+
 ## [0.14.1] - 2026-04-04
 
 ### Changed
