@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.14.3] - 2026-04-04
+
+### Changed
+- remove switch_to_blog from community and events legacy handlers
+
 ## [0.14.2] - 2026-04-04
 
 ### Changed
