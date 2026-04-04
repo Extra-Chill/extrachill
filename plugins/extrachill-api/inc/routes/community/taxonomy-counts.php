@@ -58,69 +58,54 @@ function extrachill_api_community_taxonomy_counts_handler( WP_REST_Request $requ
 	$taxonomy = $request->get_param( 'taxonomy' );
 	$slug     = $request->get_param( 'slug' );
 
-	$community_blog_id = function_exists( 'ec_get_blog_id' )
-		? ec_get_blog_id( 'community' )
-		: null;
-
-	if ( ! $community_blog_id ) {
+	if ( ! taxonomy_exists( $taxonomy ) ) {
 		return rest_ensure_response( null );
 	}
 
-	switch_to_blog( $community_blog_id );
-	try {
-		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return rest_ensure_response( null );
-		}
-
-		$term = get_term_by( 'slug', $slug, $taxonomy );
-		if ( ! $term || is_wp_error( $term ) ) {
-			return rest_ensure_response( null );
-		}
-
-		$forums = get_posts(
-			array(
-				'post_type'      => 'forum',
-				'post_status'    => 'publish',
-				'posts_per_page' => 1,
-				'tax_query'      => array(
-					array(
-						'taxonomy' => $taxonomy,
-						'field'    => 'term_id',
-						'terms'    => $term->term_id,
-					),
-				),
-			)
-		);
-
-		if ( empty( $forums ) ) {
-			return rest_ensure_response( null );
-		}
-
-		$forum = $forums[0];
-
-		// Count topics directly since bbPress functions may not be loaded
-		// when called via internal REST request from another site.
-		$topic_query = new WP_Query(
-			array(
-				'post_type'      => 'topic',
-				'post_status'    => 'publish',
-				'post_parent'    => $forum->ID,
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-				'no_found_rows'  => false,
-			)
-		);
-		$topic_count = $topic_query->found_posts;
-
-		return rest_ensure_response(
-			array(
-				'slug'  => $term->slug,
-				'name'  => $term->name,
-				'count' => (int) $topic_count,
-				'url'   => get_permalink( $forum ),
-			)
-		);
-	} finally {
-		restore_current_blog();
+	$term = get_term_by( 'slug', $slug, $taxonomy );
+	if ( ! $term || is_wp_error( $term ) ) {
+		return rest_ensure_response( null );
 	}
+
+	$forums = get_posts(
+		array(
+			'post_type'      => 'forum',
+			'post_status'    => 'publish',
+			'posts_per_page' => 1,
+			'tax_query'      => array(
+				array(
+					'taxonomy' => $taxonomy,
+					'field'    => 'term_id',
+					'terms'    => $term->term_id,
+				),
+			),
+		)
+	);
+
+	if ( empty( $forums ) ) {
+		return rest_ensure_response( null );
+	}
+
+	$forum = $forums[0];
+
+	$topic_query = new WP_Query(
+		array(
+			'post_type'      => 'topic',
+			'post_status'    => 'publish',
+			'post_parent'    => $forum->ID,
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'no_found_rows'  => false,
+		)
+	);
+	$topic_count = $topic_query->found_posts;
+
+	return rest_ensure_response(
+		array(
+			'slug'  => $term->slug,
+			'name'  => $term->name,
+			'count' => (int) $topic_count,
+			'url'   => get_permalink( $forum ),
+		)
+	);
 }

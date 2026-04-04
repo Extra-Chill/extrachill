@@ -3,7 +3,7 @@
  * Shop Taxonomy Counts Endpoint
  *
  * Thin REST wrapper around the extrachill/taxonomy-post-counts ability.
- * Routes to the shop site via switch_to_blog.
+ * Route affinity middleware ensures this runs on the shop site.
  *
  * @package ExtraChillAPI
  */

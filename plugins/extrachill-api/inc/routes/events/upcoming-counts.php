@@ -3,8 +3,7 @@
  * Upcoming Event Counts Endpoint
  *
  * Returns counts of upcoming events (date >= today) for taxonomy terms.
- * Routes to the events site via switch_to_blog since extrachill-api is
- * network-activated and this endpoint may be called from any site.
+ * Route affinity middleware ensures this runs on the events site.
  *
  * The heavy SQL query result is cached in a transient (6hr TTL) and
  * pre-warmed by the cron warmer in extrachill-multisite.
@@ -59,7 +58,8 @@ function extrachill_api_register_events_upcoming_counts_route() {
 /**
  * Handle upcoming counts request.
  *
- * Switches to events site, checks transient, runs SQL on cold cache.
+ * Checks transient cache, runs SQL on cold cache.
+ * Route affinity middleware ensures this runs on the events site.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
@@ -69,55 +69,41 @@ function extrachill_api_events_upcoming_counts_handler( WP_REST_Request $request
 	$slug     = $request->get_param( 'slug' );
 	$limit    = (int) $request->get_param( 'limit' );
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
-	if ( ! $events_blog_id ) {
-		return new WP_Error(
-			'events_site_unavailable',
-			__( 'Events site is not configured.', 'extrachill-api' ),
-			array( 'status' => 500 )
+	// Single term query.
+	if ( ! empty( $slug ) ) {
+		return rest_ensure_response(
+			extrachill_api_single_upcoming_count( $slug, $taxonomy )
 		);
 	}
 
-	switch_to_blog( $events_blog_id );
-	try {
-		// Single term query.
-		if ( ! empty( $slug ) ) {
-			return rest_ensure_response(
-				extrachill_api_single_upcoming_count( $slug, $taxonomy )
-			);
-		}
+	// Bulk query — check transient, run SQL on cold cache.
+	$cache_key = 'ec_upcoming_counts_' . $taxonomy;
+	$cached    = get_transient( $cache_key );
 
-		// Bulk query — check transient, run SQL on cold cache.
-		$cache_key = 'ec_upcoming_counts_' . $taxonomy;
-		$cached    = get_transient( $cache_key );
-
-		if ( false !== $cached ) {
-			$results = $cached;
-			if ( $limit > 0 ) {
-				$results = array_slice( $results, 0, $limit );
-			}
-			return rest_ensure_response( $results );
-		}
-
-		// Cold cache — run the query.
-		$terms = extrachill_api_query_upcoming_counts( $taxonomy );
-
-		set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
-
+	if ( false !== $cached ) {
+		$results = $cached;
 		if ( $limit > 0 ) {
-			$terms = array_slice( $terms, 0, $limit );
+			$results = array_slice( $results, 0, $limit );
 		}
-
-		return rest_ensure_response( $terms );
-	} finally {
-		restore_current_blog();
+		return rest_ensure_response( $results );
 	}
+
+	// Cold cache — run the query.
+	$terms = extrachill_api_query_upcoming_counts( $taxonomy );
+
+	set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
+
+	if ( $limit > 0 ) {
+		$terms = array_slice( $terms, 0, $limit );
+	}
+
+	return rest_ensure_response( $terms );
 }
 
 /**
  * Query upcoming event counts grouped by taxonomy term.
  *
- * Single SQL query with GROUP BY. Must be called in events blog context.
+ * Single SQL query with GROUP BY. Route affinity middleware ensures events blog context.
  *
  * @param string $taxonomy Taxonomy slug.
  * @return array Array of term data sorted by count descending.
@@ -180,7 +166,7 @@ function extrachill_api_query_upcoming_counts( $taxonomy ) {
 /**
  * Get upcoming event count for a single term.
  *
- * Must be called in events blog context.
+ * Route affinity middleware ensures events blog context.
  *
  * @param string $slug     Term slug.
  * @param string $taxonomy Taxonomy slug.

@@ -3,7 +3,7 @@
  * Wire Taxonomy Counts Endpoint
  *
  * Thin REST wrapper around the extrachill/taxonomy-post-counts ability.
- * Routes to the wire site via switch_to_blog.
+ * Route affinity middleware ensures this runs on the wire site.
  *
  * @package ExtraChillAPI
  */
