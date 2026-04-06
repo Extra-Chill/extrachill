@@ -40,11 +40,27 @@ if ( function_exists( 'get_coauthors' ) ) {
 
 	function extrachill_blog_register_coauthors() {
 		register_rest_field( 'post',
-			'coauthors',
+			'coauthor_profiles',
 			array(
 				'get_callback'    => 'extrachill_blog_get_coauthors',
 				'update_callback' => null,
-				'schema'          => null,
+				'schema'          => array(
+					'description' => __( 'Co-author display profiles for the post.', 'extrachill-blog' ),
+					'type'        => 'array',
+					'items'       => array(
+						'type'       => 'object',
+						'properties' => array(
+							'display_name'  => array(
+								'type' => 'string',
+							),
+							'user_nicename' => array(
+								'type' => 'string',
+							),
+						),
+					),
+					'readonly'    => true,
+					'context'     => array( 'view', 'edit' ),
+				),
 			)
 		);
 	}
