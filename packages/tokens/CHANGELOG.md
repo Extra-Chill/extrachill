@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- add bridges system for mapping EC tokens to plugin-namespaced CSS custom properties
+- add Data Machine Frontend Chat bridge (--datamachine-* properties)
+
 ## [0.6.0] - 2026-04-02
 
 ### Added
