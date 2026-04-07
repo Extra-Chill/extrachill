@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.0]
 
 ### Added
 - add bridges system for mapping EC tokens to plugin-namespaced CSS custom properties
