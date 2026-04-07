@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.1] - 2026-04-07
+
+### Changed
+- align bridges with DM core token names, add core bridge
+
 ## [0.7.0]
 
 ### Added
