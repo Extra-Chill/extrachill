@@ -561,28 +561,6 @@
     --badge-venue-charleston-tin-roof-text: #ffffff;
     --badge-artist-susto-bg: #20B3A9;
     --badge-artist-susto-text: #F4FFFF;
-
-    /* Data Machine Core bridge */
-    --datamachine-text-primary: var(--text-color);
-    --datamachine-text-muted: var(--muted-text);
-    --datamachine-border-1: var(--border-color);
-    --datamachine-bg-light: var(--card-background);
-    --datamachine-bg-lighter: var(--background-color);
-    --datamachine-blue: var(--accent);
-    --datamachine-color-error: var(--error-color);
-    --datamachine-spacing-xs: var(--spacing-sm);
-    --datamachine-spacing-md: var(--spacing-md);
-    --datamachine-spacing-lg: var(--spacing-lg);
-    --datamachine-font-family: var(--font-family-body);
-
-    /* Data Machine Frontend Chat bridge */
-    --datamachine-fab-bg: var(--header-background);
-    --datamachine-fab-color: var(--header-text-color);
-    --datamachine-fab-border-color: var(--border-color);
-    --datamachine-fab-font-family: var(--font-family-heading);
-    --datamachine-fab-font-size: var(--font-size-base);
-    --datamachine-drawer-bg: var(--card-background);
-    --datamachine-header-font-family: var(--font-family-heading);
 }
 
 @media (prefers-color-scheme: dark) {

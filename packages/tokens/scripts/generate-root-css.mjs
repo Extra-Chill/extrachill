@@ -85,24 +85,6 @@ if ( lightLines[ lightLines.length - 1 ] === '' ) {
 	lightLines.pop();
 }
 
-// ─── Plugin bridges ─────────────────────────────────────────────────────────
-// Map EC tokens to plugin-namespaced custom properties.
-// These go inside :root so plugins never reference EC tokens directly.
-// Each bridge entry: [target-var, source-var-reference].
-
-const pluginBridges = tokensJson.bridges || {};
-
-for ( const [ namespace, mappings ] of Object.entries( pluginBridges ) ) {
-	if ( ! Array.isArray( mappings ) || mappings.length === 0 ) continue;
-
-	lightLines.push( '' );
-	lightLines.push( `    /* ${ namespace } bridge */` );
-
-	for ( const { target, source } of mappings ) {
-		lightLines.push( `    ${ target }: ${ source };` );
-	}
-}
-
 // ─── Assemble output ────────────────────────────────────────────────────────
 
 const output = [
