@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.2] - 2026-04-07
+
+### Changed
+- remove bridges system from tokens
+
 ## [0.7.1] - 2026-04-07
 
 ### Changed
