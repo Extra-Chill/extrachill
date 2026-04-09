@@ -40,7 +40,7 @@ function extrachill_newsletter_register_push_campaign_ability() {
 					'campaign_id' => array(
 						'type' => array( 'string', 'null' ),
 					),
-					'message' => array( 'type' => 'string' ),
+					'message'     => array( 'type' => 'string' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_newsletter_ability_push_campaign',
@@ -90,6 +90,7 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
 
 	$config      = get_sendy_config();
 	$campaign_id = get_post_meta( $post_id, '_sendy_campaign_id', true );
+	$campaign_id = $campaign_id ? (string) $campaign_id : null;
 
 	// Check if campaign exists.
 	$check_url  = $config['sendy_url'] . '/api/campaigns/status.php';
@@ -113,7 +114,7 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
 		error_log( 'Sendy campaign check failed: ' . $check_response->get_error_message() );
 		return array(
 			'success'     => false,
-			'campaign_id' => $campaign_id ?: null,
+			'campaign_id' => $campaign_id,
 			'message'     => __( 'Failed to check campaign status', 'extrachill-newsletter' ),
 		);
 	}
@@ -125,7 +126,7 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
 		$api_endpoint = '/api/campaigns/update.php';
 	} else {
 		$api_endpoint = '/api/campaigns/create.php';
-		$campaign_id  = false;
+		$campaign_id  = null;
 	}
 
 	// Prepare campaign data.
@@ -160,7 +161,7 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
 		error_log( 'Sendy campaign send/update failed: ' . $campaign_response->get_error_message() );
 		return array(
 			'success'     => false,
-			'campaign_id' => $campaign_id ?: null,
+			'campaign_id' => $campaign_id,
 			'message'     => __( 'Failed to send campaign to Sendy', 'extrachill-newsletter' ),
 		);
 	}
@@ -170,7 +171,7 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
 	// Save new campaign ID if created.
 	if ( ! $campaign_id && is_numeric( $response_body ) ) {
 		update_post_meta( $post_id, '_sendy_campaign_id', $response_body );
-		$campaign_id = $response_body;
+		$campaign_id = (string) $response_body;
 
 		error_log( sprintf( 'Newsletter campaign created for post %d with campaign ID: %s', $post_id, $response_body ) );
 	}
