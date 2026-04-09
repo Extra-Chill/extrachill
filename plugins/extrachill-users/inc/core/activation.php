@@ -163,7 +163,7 @@ function extrachill_users_create_login_page() {
  */
 function extrachill_users_on_new_site( $new_site ) {
 	try {
-		switch_to_blog( $new_site->blog_id );
+		switch_to_blog( (int) $new_site->blog_id );
 		extrachill_users_create_login_page();
 		update_option( 'extrachill_users_login_page_created', 1 );
 	} finally {

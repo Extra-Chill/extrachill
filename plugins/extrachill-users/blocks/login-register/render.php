@@ -78,6 +78,7 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 				if ( $artist_post_for_invite ) {
 					$artist_name_for_invite_message = $artist_post_for_invite->post_title;
 					$initial_notice                 = array(
+						/* translators: %s: artist name */
 						'text' => sprintf( __( 'You have been invited to join the artist \'%s\'! Please complete your registration below to accept.', 'extrachill-users' ), $artist_name_for_invite_message ),
 						'type' => 'info',
 					);
@@ -124,7 +125,7 @@ $wrapper_attributes = get_block_wrapper_attributes(
 
 ?>
 
-<div <?php echo $wrapper_attributes; ?>>
+<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML. ?>>
 	<div
 		data-ec-login-register-root
 		data-ec-login-register-config="<?php echo esc_attr( wp_json_encode( $config ) ); ?>"

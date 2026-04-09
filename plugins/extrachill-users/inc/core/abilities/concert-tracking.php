@@ -315,7 +315,7 @@ function extrachill_users_ability_get_user_concert_stats( array $input ) {
  * Get event attendance ability callback.
  *
  * @param array $input Ability input.
- * @return array|WP_Error
+ * @return array
  */
 function extrachill_users_ability_get_event_attendance( array $input ) {
 	$event_id = (int) $input['event_id'];

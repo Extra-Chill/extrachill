@@ -87,7 +87,19 @@ add_action( 'init', 'extrachill_users_register_blocks' );
 
 add_action( 'plugins_loaded', 'extrachill_users_init' );
 
+// In test context, init immediately since the plugin file is loaded during
+// plugins_loaded by the test bootstrap — any add_action on the same hook
+// at the same priority would be silently skipped.
+if ( defined( 'WP_TESTS_DOMAIN' ) ) {
+	extrachill_users_init();
+}
+
 function extrachill_users_init() {
+	static $initialized = false;
+	if ( $initialized ) {
+		return;
+	}
+	$initialized = true;
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/moderation/bootstrap.php';

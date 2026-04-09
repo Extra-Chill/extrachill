@@ -128,7 +128,7 @@ function extrachill_users_ability_get_subscriptions( $input ) {
 
 			$results = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT artist_profile_id FROM {$table_name} WHERE user_id = %d AND source = 'platform_follow_consent'",
+					"SELECT artist_profile_id FROM {$table_name} WHERE user_id = %d AND source = 'platform_follow_consent'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted prefix.
 					$user_id
 				),
 				ARRAY_A
@@ -209,7 +209,7 @@ function extrachill_users_ability_update_subscriptions( $input ) {
 			// Add consent if not exists.
 			$exists = $wpdb->get_var(
 				$wpdb->prepare(
-					"SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND artist_profile_id = %d AND source = 'platform_follow_consent'",
+					"SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND artist_profile_id = %d AND source = 'platform_follow_consent'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted prefix.
 					$user_id,
 					$artist_id
 				)

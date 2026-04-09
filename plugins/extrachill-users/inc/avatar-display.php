@@ -133,7 +133,7 @@ function extrachill_get_avatar_url_cached( $attachment_id, $wp_size ) {
 
 	try {
 		$url = wp_get_attachment_image_url( $attachment_id, $wp_size );
-		$url_cache[ $cache_key ] = $url ?: false;
+		$url_cache[ $cache_key ] = $url ? $url : false;
 	} finally {
 		restore_current_blog();
 	}
@@ -154,7 +154,7 @@ function extrachill_get_avatar_url_cached( $attachment_id, $wp_size ) {
  */
 function extrachill_custom_avatar( $avatar, $id_or_email, $args ) {
 	$user = extrachill_resolve_avatar_user( $id_or_email );
-	if ( ! $user || ! ( $user instanceof WP_User ) ) {
+	if ( ! $user ) {
 		return null;
 	}
 
@@ -224,7 +224,7 @@ add_filter( 'pre_get_avatar', 'extrachill_custom_avatar', 10, 3 );
  */
 function extrachill_custom_avatar_data( $args, $id_or_email ) {
 	$user = extrachill_resolve_avatar_user( $id_or_email );
-	if ( ! $user || ! ( $user instanceof WP_User ) ) {
+	if ( ! $user ) {
 		return $args;
 	}
 

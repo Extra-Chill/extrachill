@@ -385,7 +385,7 @@ function extrachill_users_send_artist_access_approval_email( $user, $type ) {
 	$message .= "Your link page will be available at extrachill.link/your-artist-name once you set it up.\n\n";
 	$message .= "Welcome to the platform.\n\n";
 	$message .= "— Extra Chill\n";
-	$message .= "https://extrachill.com";
+	$message .= 'https://extrachill.com';
 
 	$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
 
