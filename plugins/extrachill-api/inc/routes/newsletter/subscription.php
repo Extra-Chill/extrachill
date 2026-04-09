@@ -3,6 +3,8 @@
  * REST route: POST /wp-json/extrachill/v1/newsletter/subscribe
  *
  * Unified newsletter subscription endpoint supporting both single and bulk subscriptions.
+ * Wraps the extrachill/subscribe ability from extrachill-newsletter.
+ *
  * - Public: Uses 'context' to look up Sendy list from integrations config
  * - Admin: Uses 'list_id' directly (requires manage_options capability)
  */
@@ -102,24 +104,17 @@ function extrachill_api_newsletter_subscribe_handler( $request ) {
 		}
 	}
 
-	// Verify newsletter functions are available
-	if ( $is_admin_mode && ! function_exists( 'extrachill_subscribe_to_list' ) ) {
+	// Use ability.
+	$ability = wp_get_ability( 'extrachill/subscribe' );
+	if ( ! $ability ) {
 		return new WP_Error(
-			'function_missing',
-			'Newsletter subscription function not available. Please ensure extrachill-newsletter plugin is activated.',
+			'ability_not_available',
+			'Newsletter subscribe ability not available. Ensure extrachill-newsletter plugin is activated.',
 			array( 'status' => 500 )
 		);
 	}
 
-	if ( ! $is_admin_mode && ! function_exists( 'extrachill_multisite_subscribe' ) ) {
-		return new WP_Error(
-			'function_missing',
-			'Newsletter subscription function not available. Please ensure extrachill-newsletter plugin is activated.',
-			array( 'status' => 500 )
-		);
-	}
-
-	// Process subscriptions
+	// Process subscriptions via ability.
 	$subscribed         = 0;
 	$already_subscribed = 0;
 	$failed             = 0;
@@ -129,15 +124,30 @@ function extrachill_api_newsletter_subscribe_handler( $request ) {
 		$email = sanitize_email( $entry['email'] );
 		$name  = isset( $entry['name'] ) ? sanitize_text_field( $entry['name'] ) : '';
 
+		$input = array(
+			'email'      => $email,
+			'name'       => $name,
+			'source_url' => $source_url,
+		);
+
 		if ( $is_admin_mode ) {
-			$result = extrachill_subscribe_to_list( $list_id, $email, $name, $source, $source_url );
+			$input['list_id'] = $list_id;
+			$input['context'] = $source;
 		} else {
-			$result = extrachill_multisite_subscribe( $email, $context, $source_url, $name );
+			$input['context'] = $context;
 		}
 
-		if ( $result['success'] ) {
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			++$failed;
+			$errors[] = $email . ': ' . $result->get_error_message();
+			continue;
+		}
+
+		if ( ! empty( $result['success'] ) ) {
 			++$subscribed;
-		} elseif ( isset( $result['status'] ) && $result['status'] === 'already_subscribed' ) {
+		} elseif ( isset( $result['status'] ) && 'already_subscribed' === $result['status'] ) {
 			++$already_subscribed;
 		} else {
 			++$failed;
