@@ -17,10 +17,6 @@ function extrachill_api_register_event_submission_route() {
 		'callback'            => 'extrachill_api_handle_event_submission',
 		'permission_callback' => '__return_true',
 		'args'                => array(
-			'flow_id'            => array(
-				'required' => false,
-				'type'     => 'integer',
-			),
 			'turnstile_response' => array(
 				'required' => false,
 				'type'     => 'string',
@@ -55,7 +51,6 @@ function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
 		'contact_name'       => sanitize_text_field( $request->get_param( 'contact_name' ) ),
 		'contact_email'      => sanitize_email( $request->get_param( 'contact_email' ) ),
 		'turnstile_response' => sanitize_text_field( $request->get_param( 'turnstile_response' ) ),
-		'flow_id'            => absint( $request->get_param( 'flow_id' ) ),
 		'system_prompt'      => sanitize_textarea_field( $request->get_param( 'system_prompt' ) ),
 	);
 
