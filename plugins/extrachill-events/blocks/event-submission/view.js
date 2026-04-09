@@ -39,7 +39,6 @@
 
 		const statusEl = form.querySelector('.ec-event-submission__status');
 		const endpoint = container.dataset.endpoint;
-		const flowId = container.dataset.flowId;
 		const systemPrompt = container.dataset.systemPrompt;
 		const successMessage = container.dataset.successMessage || 'Thanks for sending this in!';
 
@@ -61,9 +60,6 @@
 		setStatus(statusEl, 'Sending…');
 
 		const formData = new FormData(form);
-		if (flowId) {
-			formData.set('flow_id', flowId);
-		}
 		if (systemPrompt) {
 			formData.set('system_prompt', systemPrompt);
 		}

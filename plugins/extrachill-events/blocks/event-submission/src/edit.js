@@ -6,14 +6,11 @@ import {
 } from '@wordpress/block-editor';
 import {
 	PanelBody,
-	TextControl,
 	TextareaControl,
 } from '@wordpress/components';
 
-const sanitizeFlowId = (value = '') => value.replace(/[^0-9]/g, '');
-
 export default function Edit({ attributes, setAttributes }) {
-	const { headline, description, flowId, successMessage, buttonLabel, systemPrompt } = attributes;
+	const { headline, description, successMessage, buttonLabel, systemPrompt } = attributes;
 	const blockProps = useBlockProps({ className: 'ec-event-submission-editor' });
 
 	return (
@@ -41,15 +38,7 @@ export default function Edit({ attributes, setAttributes }) {
 						rows={ 6 }
 					/>
 				</PanelBody>
-				<PanelBody title={ __('Advanced', 'data-machine-events') } initialOpen={ false }>
-					<TextControl
-						label={ __('Flow ID (Optional)', 'data-machine-events') }
-						value={ flowId }
-						onChange={(value) => setAttributes({ flowId: sanitizeFlowId(value) })}
-						help={ __('Override default processing with a specific Data Machine flow. Leave empty to use built-in workflow.', 'data-machine-events') }
-					/>
-				</PanelBody>
-			</InspectorControls>
+				</InspectorControls>
 
 			<div {...blockProps}>
 

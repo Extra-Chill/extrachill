@@ -4,7 +4,7 @@
  *
  * Handles event submissions from the public form — validates input,
  * verifies Turnstile, stores flyers, and executes via Data Machine
- * (either a pre-configured flow or an ephemeral workflow).
+ * ephemeral workflow.
  *
  * @package ExtraChillEvents\Abilities
  */
@@ -32,7 +32,7 @@ class EventSubmissionAbilities {
 				'extrachill/submit-event',
 				array(
 					'label'               => __( 'Submit Event', 'extrachill-events' ),
-					'description'         => __( 'Process an event submission from the public form. Validates input, verifies Turnstile, stores flyers, and queues for processing via Data Machine.', 'extrachill-events' ),
+					'description'         => __( 'Process an event submission from the public form. Validates input, verifies Turnstile, stores flyers, and executes an ephemeral Data Machine workflow.', 'extrachill-events' ),
 					'category'            => 'extrachill-events',
 					'input_schema'        => array(
 						'type'       => 'object',
@@ -81,10 +81,6 @@ class EventSubmissionAbilities {
 							'turnstile_response' => array(
 								'type'        => 'string',
 								'description' => 'Cloudflare Turnstile verification token.',
-							),
-							'flow_id'            => array(
-								'type'        => 'integer',
-								'description' => 'Data Machine flow ID. If omitted, uses ephemeral workflow.',
 							),
 							'system_prompt'      => array(
 								'type'        => 'string',
@@ -169,14 +165,9 @@ class EventSubmissionAbilities {
 		);
 
 		// 5. Store flyer if provided.
-		$flow_id = absint( $input['flow_id'] ?? 0 );
-		$flyer   = $input['flyer'] ?? null;
+		$flyer = $input['flyer'] ?? null;
 
-		// 6. Route to flow-based or direct execution.
-		if ( $flow_id ) {
-			return $this->executeWithFlow( $submission, $flow_id, $flyer );
-		}
-
+		// 6. Execute ephemeral workflow.
 		return $this->executeDirect( $submission, $flyer, sanitize_textarea_field( $input['system_prompt'] ?? '' ) );
 	}
 
@@ -238,57 +229,6 @@ class EventSubmissionAbilities {
 			'user_id'       => 0,
 			'contact_name'  => $name,
 			'contact_email' => $email,
-		);
-	}
-
-	/**
-	 * Execute submission via a pre-configured Data Machine flow.
-	 *
-	 * @param array      $submission Sanitized submission data.
-	 * @param int        $flow_id    Data Machine flow ID.
-	 * @param array|null $flyer      File data from $_FILES, or null.
-	 * @return array Result.
-	 */
-	private function executeWithFlow( array $submission, int $flow_id, ?array $flyer ): array|\WP_Error {
-		$execute = wp_get_ability( 'datamachine/execute-workflow' );
-		if ( ! $execute ) {
-			return new \WP_Error( 'dm_unavailable', __( 'Data Machine is unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
-		}
-
-		$stored_flyer = $this->storeFlyer( $flyer, $flow_id, 0 );
-		if ( is_wp_error( $stored_flyer ) ) {
-			return $stored_flyer;
-		}
-
-		if ( $stored_flyer ) {
-			$submission['flyer'] = $stored_flyer;
-		}
-
-		$initial_data = array( 'submission' => $submission );
-		if ( $stored_flyer && ! empty( $stored_flyer['stored_path'] ) ) {
-			$initial_data['image_file_path'] = $stored_flyer['stored_path'];
-		}
-
-		$result = $execute->execute( array(
-			'flow_id'      => $flow_id,
-			'initial_data' => $initial_data,
-		) );
-
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		$job_id = $result['job_id'] ?? $result['data']['job_id'] ?? 0;
-
-		do_action( 'extrachill_event_submission', $submission, array(
-			'flow_id' => $flow_id,
-			'job_id'  => $job_id,
-			'mode'    => 'flow',
-		) );
-
-		return array(
-			'message' => __( 'Thanks! We queued your submission for review.', 'extrachill-events' ),
-			'job_id'  => $job_id,
 		);
 	}
 

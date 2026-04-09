@@ -12,14 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 $defaults   = array(
 	'headline'       => '',
 	'description'    => '',
-	'flowId'         => '',
 	'successMessage' => '',
 	'buttonLabel'    => '',
 	'systemPrompt'   => '',
 );
 $attributes = wp_parse_args( $attributes, $defaults );
 
-$flow_id         = preg_replace( '/[^0-9]/', '', (string) ( $attributes['flowId'] ?? '' ) );
 $headline        = $attributes['headline'] ?? '';
 $description     = $attributes['description'] ?? '';
 $success_message = $attributes['successMessage'] ?? '';
@@ -38,7 +36,6 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 <div
 	class="ec-event-submission"
 	data-endpoint="<?php echo esc_url( $endpoint ); ?>"
-	data-flow-id="<?php echo esc_attr( $flow_id ); ?>"
 	data-success-message="<?php echo $success_attr; ?>"
 	data-system-prompt="<?php echo esc_attr( $system_prompt ); ?>"
 >
@@ -59,8 +56,6 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 			enctype="multipart/form-data"
 			autocomplete="off"
 		>
-			<input type="hidden" name="flow_id" value="<?php echo esc_attr( $flow_id ); ?>" />
-
 			<?php if ( is_user_logged_in() ) : ?>
 				<div class="ec-event-submission__user-info">
 					<?php
