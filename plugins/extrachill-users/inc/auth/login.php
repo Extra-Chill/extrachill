@@ -101,6 +101,20 @@ function ec_clear_attempts_on_login( $user_login, $user ) {
 add_action( 'wp_login', 'ec_clear_attempts_on_login', 10, 2 );
 
 /**
+ * Clear login attempts after successful Two-Factor Authentication.
+ *
+ * The REST login flow redirects 2FA users before wp_authenticate() runs,
+ * so the wp_login action never fires. This hooks into the Two Factor plugin's
+ * own authenticated action to clear the attempts counter.
+ *
+ * @param WP_User $user User that completed 2FA.
+ */
+function ec_clear_attempts_on_two_factor( WP_User $user ) {
+	ec_clear_login_attempts( $user->user_login );
+}
+add_action( 'two_factor_user_authenticated', 'ec_clear_attempts_on_two_factor' );
+
+/**
  * Handle failed login attempts by setting error transient and redirecting.
  *
  * @param string $username Username attempted

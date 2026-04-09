@@ -269,9 +269,10 @@ function extrachill_users_revoke_refresh_token( int $user_id, string $device_id 
  * @param string $identifier Username or email.
  * @param string $password   Password.
  * @param bool   $remember   Whether to remember the user.
+ * @param string $redirect_to Optional. URL to redirect to after 2FA. Defaults to home_url().
  * @return array|WP_Error|null Array with requires_2fa on 2FA redirect, WP_Error on bad credentials, null to continue normal flow.
  */
-function extrachill_users_maybe_handle_two_factor( string $identifier, string $password, bool $remember = false ) {
+function extrachill_users_maybe_handle_two_factor( string $identifier, string $password, bool $remember = false, string $redirect_to = '' ) {
 	if ( ! class_exists( 'Two_Factor_Core' ) ) {
 		return null;
 	}
@@ -315,7 +316,7 @@ function extrachill_users_maybe_handle_two_factor( string $identifier, string $p
 			'wp-auth-id'    => $user->ID,
 			'wp-auth-nonce' => $login_nonce['key'],
 			'rememberme'    => $remember ? 1 : 0,
-			'redirect_to'   => home_url(),
+			'redirect_to'   => $redirect_to ? $redirect_to : home_url(),
 		),
 		site_url( 'wp-login.php' )
 	);
@@ -339,6 +340,7 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 	$device_name = isset( $options['device_name'] ) ? (string) $options['device_name'] : '';
 	$remember    = ! empty( $options['remember'] );
 	$set_cookie  = ! empty( $options['set_cookie'] );
+	$redirect_to = isset( $options['redirect_to'] ) ? (string) $options['redirect_to'] : '';
 
 	if ( ! function_exists( 'ec_get_blog_id' ) ) {
 		return new WP_Error(
@@ -368,7 +370,7 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 	 * wp_authenticate(), validate the password manually, create a Two Factor
 	 * login nonce, and return a redirect URL to the existing validate_2fa page.
 	 */
-	$two_factor_redirect = extrachill_users_maybe_handle_two_factor( $identifier, $password, $remember );
+	$two_factor_redirect = extrachill_users_maybe_handle_two_factor( $identifier, $password, $remember, $redirect_to );
 	if ( null !== $two_factor_redirect ) {
 		return $two_factor_redirect;
 	}
