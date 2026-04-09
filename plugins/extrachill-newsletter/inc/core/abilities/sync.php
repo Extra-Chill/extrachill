@@ -51,6 +51,7 @@ function extrachill_newsletter_register_sync_ability() {
 				'properties' => array(
 					'synced'            => array( 'type' => 'integer' ),
 					'already_subscribed' => array( 'type' => 'integer' ),
+					'skipped'           => array( 'type' => 'integer' ),
 					'failed'            => array( 'type' => 'integer' ),
 					'errors'            => array(
 						'type'  => 'array',
@@ -144,6 +145,7 @@ function extrachill_newsletter_ability_sync_subscribers( $input ) {
 	$results = array(
 		'synced'            => 0,
 		'already_subscribed' => 0,
+		'skipped'           => 0,
 		'failed'            => 0,
 		'errors'            => array(),
 		'total'             => count( $emails ),
@@ -155,7 +157,29 @@ function extrachill_newsletter_ability_sync_subscribers( $input ) {
 		return $results;
 	}
 
+	$config = get_sendy_config();
+
 	foreach ( $emails as $email ) {
+		// Guard: check subscription status before subscribing.
+		// Skip anyone who previously unsubscribed, bounced, or complained.
+		$status = extrachill_newsletter_check_subscriber_status( $email, $list_id, $config );
+
+		if ( is_wp_error( $status ) ) {
+			// Status check failed — skip to avoid re-subscribing blindly.
+			$results['skipped']++;
+			$results['errors'][] = $email . ': status check failed (' . $status->get_error_message() . ')';
+			continue;
+		}
+
+		// Skip users who explicitly opted out or had deliverability issues.
+		if ( in_array( $status, array( 'Unsubscribed', 'Bounced', 'Complained', 'Soft bounced' ), true ) ) {
+			$results['skipped']++;
+			continue;
+		}
+
+		// "Email does not exist in list" means they're new — safe to subscribe.
+		// "Subscribed" or "Unconfirmed" — re-subscribing is fine.
+
 		$result = $subscribe_ability->execute(
 			array(
 				'email'   => $email,
@@ -181,4 +205,38 @@ function extrachill_newsletter_ability_sync_subscribers( $input ) {
 	}
 
 	return $results;
+}
+
+/**
+ * Check a subscriber's status in a Sendy list via API.
+ *
+ * Returns the status string from Sendy: Subscribed, Unsubscribed, Bounced,
+ * Complained, Unconfirmed, Soft bounced, or "Email does not exist in list".
+ *
+ * @param string $email  Email address.
+ * @param string $list_id Encrypted Sendy list ID.
+ * @param array  $config  Sendy config (api_key, sendy_url).
+ * @return string|WP_Error Status string or error.
+ */
+function extrachill_newsletter_check_subscriber_status( $email, $list_id, $config ) {
+	$response = wp_remote_post(
+		$config['sendy_url'] . '/api/subscribers/subscription-status.php',
+		array(
+			'headers' => array(
+				'Content-Type' => 'application/x-www-form-urlencoded',
+			),
+			'body'    => array(
+				'api_key' => $config['api_key'],
+				'email'   => $email,
+				'list_id' => $list_id,
+			),
+			'timeout' => 10,
+		)
+	);
+
+	if ( is_wp_error( $response ) ) {
+		return $response;
+	}
+
+	return trim( wp_remote_retrieve_body( $response ) );
 }
