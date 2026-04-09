@@ -52,6 +52,11 @@ function extrachill_api_register_auth_login_route() {
 					'required' => false,
 					'type'     => 'boolean',
 				),
+				'redirect_to' => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'esc_url_raw',
+				),
 			),
 		)
 	);
@@ -104,6 +109,7 @@ function extrachill_api_auth_login_handler( WP_REST_Request $request ) {
 		'device_name' => (string) $request->get_param( 'device_name' ),
 		'remember'    => rest_sanitize_boolean( $request->get_param( 'remember' ) ),
 		'set_cookie'  => rest_sanitize_boolean( $request->get_param( 'set_cookie' ) ),
+		'redirect_to' => (string) $request->get_param( 'redirect_to' ),
 	);
 
 	$result = extrachill_users_login_with_tokens( $identifier, $password, $device_id, $options );
