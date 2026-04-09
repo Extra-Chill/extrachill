@@ -95,6 +95,7 @@ function LoginPanel( { config, notice, setNotice } ) {
 					remember,
 					set_cookie: true,
 					device_name: 'Web',
+					redirect_to: redirectTo,
 				} ),
 			} );
 
