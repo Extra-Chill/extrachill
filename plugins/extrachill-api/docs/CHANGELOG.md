@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.14.4] - 2026-04-09
+
+### Changed
+- Accept redirect_to param in login REST route for 2FA flow
+
 ## [0.14.3] - 2026-04-04
 
 ### Changed
