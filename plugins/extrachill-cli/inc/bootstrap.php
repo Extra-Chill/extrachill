@@ -49,3 +49,6 @@ WP_CLI::add_command( 'extrachill cache', ExtraChill\CLI\Commands\Cache\WarmComma
 
 // Giveaway commands.
 WP_CLI::add_command( 'extrachill giveaway', ExtraChill\CLI\Commands\Giveaway\GiveawayCommand::class );
+
+// Newsletter commands.
+WP_CLI::add_command( 'extrachill newsletter', ExtraChill\CLI\Commands\Newsletter\NewsletterCommand::class );
