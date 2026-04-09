@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.18] - 2026-04-09
+
+### Changed
+- Clean up PHPCS, PHPStan, and integration test issues
+
 ## [0.7.17] - 2026-04-09
 
 ### Changed
