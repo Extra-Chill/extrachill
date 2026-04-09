@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.14.6] - 2026-04-09
+
+### Changed
+- Add newsletter management REST routes wrapping abilities
+
 ## [0.14.5] - 2026-04-09
 
 ### Changed
