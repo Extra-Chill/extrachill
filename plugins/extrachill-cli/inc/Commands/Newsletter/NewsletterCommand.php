@@ -281,4 +281,164 @@ class NewsletterCommand {
 			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
+
+	/**
+	 * List Sendy campaigns.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--status=<status>]
+	 * : Filter by status (sent, draft, scheduled).
+	 *
+	 * [--per-page=<per-page>]
+	 * : Number of results. Default 20.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill newsletter campaigns
+	 *     wp extrachill newsletter campaigns --status=sent
+	 *     wp extrachill newsletter campaigns --format=json
+	 *
+	 * @when after_wp_load
+	 */
+	public function campaigns( $args, $assoc_args ) {
+		$result = extrachill_newsletter_ability_list_campaigns( array(
+			'per_page' => (int) ( $assoc_args['per-page'] ?? 20 ),
+			'status'   => $assoc_args['status'] ?? '',
+		) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( 'table' === $format ) {
+			$rows = array();
+			foreach ( $result['campaigns'] as $c ) {
+				$rows[] = array(
+					'ID'         => $c['id'],
+					'Title'      => $c['title'],
+					'Status'     => $c['status'],
+					'Sent'       => $c['sent_date'] ?? '-',
+					'To Send'    => $c['to_send'],
+					'Recipients' => $c['recipients'],
+				);
+			}
+			WP_CLI::line( sprintf( 'Showing %d of %d campaigns', count( $rows ), $result['total'] ) );
+			\WP_CLI\Utils\format_items( 'table', $rows, array( 'ID', 'Title', 'Status', 'Sent', 'To Send', 'Recipients' ) );
+		} else {
+			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+		}
+	}
+
+	/**
+	 * Get details for a single Sendy campaign.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <campaign_id>
+	 * : Sendy campaign ID.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill newsletter campaign 185
+	 *
+	 * @when after_wp_load
+	 */
+	public function campaign( $args, $assoc_args ) {
+		$campaign_id = absint( $args[0] ?? 0 );
+
+		if ( ! $campaign_id ) {
+			WP_CLI::error( 'Campaign ID is required.' );
+		}
+
+		$result = extrachill_newsletter_ability_get_campaign( array( 'campaign_id' => $campaign_id ) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	/**
+	 * Delete a Sendy campaign (drafts only).
+	 *
+	 * ## OPTIONS
+	 *
+	 * <campaign_id>
+	 * : Sendy campaign ID to delete.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill newsletter delete-campaign 184
+	 *
+	 * @when after_wp_load
+	 */
+	public function delete_campaign( $args, $assoc_args ) {
+		$campaign_id = absint( $args[0] ?? 0 );
+
+		if ( ! $campaign_id ) {
+			WP_CLI::error( 'Campaign ID is required.' );
+		}
+
+		$result = extrachill_newsletter_ability_delete_campaign( array( 'campaign_id' => $campaign_id ) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::success( $result['message'] );
+	}
+
+	/**
+	 * Check a subscriber's status in a Sendy list.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <email>
+	 * : Email address to check.
+	 *
+	 * --list-id=<list-id>
+	 * : Sendy list ID (encrypted).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill newsletter subscriber-status user@example.com --list-id=abc123
+	 *
+	 * @when after_wp_load
+	 */
+	public function subscriber_status( $args, $assoc_args ) {
+		$email   = $args[0] ?? '';
+		$list_id = $assoc_args['list-id'] ?? '';
+
+		if ( empty( $email ) || ! is_email( $email ) ) {
+			WP_CLI::error( 'Valid email address is required.' );
+		}
+
+		if ( empty( $list_id ) ) {
+			WP_CLI::error( '--list-id is required.' );
+		}
+
+		$result = extrachill_newsletter_ability_subscriber_status( array(
+			'email'   => $email,
+			'list_id' => $list_id,
+		) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::line( sprintf( '%s: %s', $result['email'], $result['status'] ) );
+	}
 }
