@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.17] - 2026-04-09
+
+### Changed
+- Pass redirect_to from login form through to 2FA flow
+
+### Fixed
+- Fix 2FA login flow: clear attempts and honor redirect_to
+
 ## [0.7.16] - 2026-04-03
 
 ### Changed
