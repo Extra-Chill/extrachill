@@ -39,6 +39,9 @@ require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/assets.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/sendy-api.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/templates/email-template.php';
 
+// Abilities API (network-wide).
+require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/abilities/register.php';
+
 // Hook integrations (network-wide)
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/hooks/breadcrumbs.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/hooks/forms.php';

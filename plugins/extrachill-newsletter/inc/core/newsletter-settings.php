@@ -185,6 +185,23 @@ function ec_newsletter_render_settings_page() {
 }
 
 function get_newsletter_settings() {
+	$ability = wp_get_ability( 'extrachill/get-newsletter-settings' );
+	if ( $ability ) {
+		$result = $ability->execute( array() );
+		if ( ! is_wp_error( $result ) ) {
+			// Flatten ability output back to legacy flat format for admin UI.
+			$settings = $result['settings'];
+			foreach ( $result['integrations'] as $context => $integration ) {
+				$integrations = get_newsletter_integrations();
+				if ( isset( $integrations[ $context ]['list_id_key'] ) ) {
+					$settings[ $integrations[ $context ]['list_id_key'] ] = $integration['list_id'];
+				}
+			}
+			return $settings;
+		}
+	}
+
+	// Legacy fallback below.
 	$defaults = array(
 		'sendy_api_key' => '',
 		'sendy_url' => 'https://mail.extrachill.com/sendy',
