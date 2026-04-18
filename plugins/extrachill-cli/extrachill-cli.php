@@ -19,7 +19,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'EXTRACHILL_CLI_VERSION', '0.9.1' );
 define( 'EXTRACHILL_CLI_PATH', plugin_dir_path( __FILE__ ) );
 
-// Only load in WP-CLI context.
+/*
+|--------------------------------------------------------------------------
+| AGENTS.md — composable file section registration
+|--------------------------------------------------------------------------
+| Registers the Extra Chill CLI section in the AGENTS.md composable file
+| so that external agent runtimes (Claude Code, OpenCode, etc.) discover
+| the platform CLI surface automatically. Runs outside the WP_CLI guard
+| because the compose command and auto-regeneration may fire in non-CLI
+| WordPress contexts (e.g. plugin activation hooks).
+*/
+add_action( 'plugins_loaded', function () {
+	if ( ! class_exists( '\DataMachine\Engine\AI\SectionRegistry' ) ) {
+		return;
+	}
+
+	$wp = 'wp --allow-root --path=' . ABSPATH;
+
+	\DataMachine\Engine\AI\SectionRegistry::register( 'AGENTS.md', 'extrachill-cli', 50, function () use ( $wp ) {
+		return <<<MD
+### Extra Chill CLI
+
+Platform-specific tooling wrapping common operations into unified commands.
+Discover everything: `{$wp} extrachill --help`
+
+- `{$wp} extrachill artists` — artist profile management and search
+- `{$wp} extrachill events` — events calendar operations
+- `{$wp} extrachill seo` — SEO audit, meta tags, and structured data
+- `{$wp} extrachill analytics` — analytics and traffic reports
+- `{$wp} extrachill newsletter` — newsletter campaigns and Sendy integration
+- `{$wp} extrachill community` — community forum operations
+- `{$wp} extrachill users` — user management and team membership
+- `{$wp} extrachill venues` — venue lookups
+- `{$wp} extrachill shows` — show/concert operations
+- `{$wp} extrachill cache` — object cache and page cache management
+- `{$wp} extrachill tools` — miscellaneous platform tools
+- `{$wp} extrachill giveaway` — giveaway management
+
+All commands support `--help` for subcommand discovery.
+MD;
+	}, array(
+		'label'       => 'Extra Chill CLI',
+		'description' => 'Platform-specific WP-CLI commands for Extra Chill.',
+	) );
+}, 22 );
+
+// Only load CLI commands in WP-CLI context.
 if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 	return;
 }
