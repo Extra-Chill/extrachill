@@ -913,10 +913,9 @@ This file records notable changes in the ExtraChill API plugin.
   - Delegates processing to extrachill-shop plugin business logic
   - Supports payment completion, failed payments, and subscription events
 
-- **Stream Status Endpoint**: Live streaming status monitoring
-  - `GET /wp-json/extrachill/v1/stream/status` - Retrieve current stream status and metadata
-  - Integrates with extrachill-stream plugin for status information
-  - Supports permission-based access control for stream management
+- **Stream Status Endpoint** *(Removed April 2026 — stream.extrachill.com decommissioned)*:
+  - `GET /wp-json/extrachill/v1/stream/status` - Was live streaming status monitoring
+  - Route file removed in `inc/routes/stream/` cleanup
 
 ### Changed
 
@@ -934,8 +933,7 @@ This file records notable changes in the ExtraChill API plugin.
 
 - **Authentication Flow**: New endpoints enable mobile app authentication and persistent sessions
 - **Payment Integration**: Webhook endpoint enables real-time payment processing and order fulfillment
-- **Stream Monitoring**: Status endpoint supports live streaming features and audience analytics
-- **Dependencies**: Authentication endpoints require extrachill-users plugin; Stripe webhook requires extrachill-shop plugin; Stream status requires extrachill-stream plugin
+- **Dependencies**: Authentication endpoints require extrachill-users plugin; Stripe webhook requires extrachill-shop plugin
 - **Backward Compatibility**: All existing endpoints maintain their current behavior and contracts
 
 ## 0.4.0
