@@ -134,7 +134,7 @@ function extrachill_resolve_site_urls( $site_urls ) {
  * Return post type allowances for each site ID.
  *
  * Centralizes post type mapping for search queries, SEO audits, and fallbacks.
- * Blog ID 6 is unused. Blog ID 12 (horoscope) not yet provisioned.
+ * Blog ID 6 is unused. Blog ID 8 was stream.extrachill.com (decommissioned April 2026).
  *
  * @return array<int, array<int, string>>
  */
@@ -145,7 +145,6 @@ function extrachill_get_site_post_types() {
 		3  => array( 'product', 'page' ),                      // shop.extrachill.com (WooCommerce)
 		4  => array( 'artist_profile', 'topic', 'reply' ),     // artist.extrachill.com
 		7  => array( 'data_machine_events', 'page' ),          // events.extrachill.com (Data Machine)
-		8  => array( 'page' ),                                 // stream.extrachill.com
 		9  => array( 'newsletter' ),                           // newsletter.extrachill.com
 		10 => array( 'ec_doc', 'page' ),                       // docs.extrachill.com
 		11 => array( 'festival_wire', 'page' ),                // wire.extrachill.com
