@@ -14,7 +14,6 @@
  * | artist-platform | artist-platform/  | artist.extrachill.com     |
  * | community       | community/        | community.extrachill.com  |
  * | events-calendar | events-calendar/  | events.extrachill.com     |
- * | stream          | stream/           | stream.extrachill.com     |
  * | newsletter      | newsletter/       | newsletter.extrachill.com |
  * | shop            | shop/             | shop.extrachill.com       |
  * | blog            | blog/             | extrachill.com            |
@@ -42,7 +41,6 @@ function extrachill_docs_seed_platforms() {
 		'artist-platform' => 'Artist Platform',
 		'community'       => 'Community',
 		'events-calendar' => 'Events',
-		'stream'          => 'Stream',
 		'newsletter'      => 'Newsletter',
 		'shop'            => 'Shop',
 		'blog'            => 'Blog',
