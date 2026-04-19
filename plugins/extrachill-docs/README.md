@@ -61,7 +61,7 @@ The homepage displays platform cards for platform terms that have published docu
 
 ### Platform Archive
 
-Each platform archive (`/artist-platform/`, `/community/`, etc.) displays all docs for that platform with:
+Each platform archive (`/artist/`, `/community/`, etc.) displays all docs for that platform with:
 - **Title** - Doc name
 - **Excerpt** - Brief description
 - **Meta** - Publication date, author

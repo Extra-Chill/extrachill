@@ -20,7 +20,7 @@ The public `GET /wp-json/extrachill/v1/docs-info` endpoint returns docs metadata
 ### URL Structure
 ```
 docs.extrachill.com/                              → Homepage with platform cards
-docs.extrachill.com/artist-platform/              → Platform archive (all artist docs)
+docs.extrachill.com/artist/                     → Platform archive (all artist docs)
 docs.extrachill.com/doc/create-link-page/         → Individual doc article
 ```
 
@@ -47,15 +47,16 @@ extrachill-docs/
 ```
 
 ## Default Platforms
-Seeded on activation (network platforms):
-- Extra Chill Artist Platform
-- Extra Chill Community
-- Extra Chill Events
-- Extra Chill Stream
-- Extra Chill Newsletter
-- Extra Chill Shop
-- Extra Chill Chat
-- Extra Chill Horoscopes
+
+Derived from `ec_get_blog_ids()` in `extrachill-multisite` (canonical source of truth). Excludes `docs` (self).
+- artist → Artist Platform
+- community → Community
+- events → Events
+- shop → Shop
+- main → Blog
+- newsletter → Newsletter
+- wire → News Wire
+- studio → Studio
 
 Platforms without published documentation are not displayed on the homepage.
 
@@ -73,7 +74,7 @@ Platforms without published documentation are not displayed on the homepage.
 
 ## Dependencies
 - extrachill theme (CSS variables)
-- No cross-plugin dependencies (standalone)
+- extrachill-multisite (canonical site map for platform seeding)
 
 ## Future Considerations
 - AI-assisted content generation from plugin CLAUDE.md files

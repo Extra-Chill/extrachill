@@ -9,7 +9,7 @@ This directory contains **user-facing documentation** for the Extra Chill platfo
 3. **Markdown Only**: All files must be valid Markdown (`.md`).
 4. **No Frontmatter**: Do not use YAML frontmatter. Title comes from the H1 header, slug from filename, platform from directory.
 5. **Structure**:
-    * Create a subdirectory for each platform (must match slug in `taxonomy-seed.php`)
+    * Create a subdirectory for each platform (must match canonical slug from `ec_get_blog_ids()` in `extrachill-multisite`)
     * The subdirectory name becomes the `ec_doc_platform` taxonomy term
     * Use clear, descriptive filenames in kebab-case (e.g., `getting-started.md`, `managing-products.md`)
 
@@ -44,4 +44,4 @@ These files are the **Source of Truth**. Do not edit documentation directly in W
 
 ## Platform Directories
 
-See `inc/core/taxonomy-seed.php` for the authoritative platform mapping.
+Directory names match canonical site slugs from `ec_get_blog_ids()` (defined in `extrachill-multisite/inc/core/blog-ids.php`). See `inc/core/taxonomy-seed.php` for the seed function.
