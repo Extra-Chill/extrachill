@@ -1,3 +1,19 @@
+# 0.4.0 - Apr 19, 2026
+
+### Changed
+- Platform taxonomy terms now derived from `ec_get_blog_ids()` (canonical multisite source of truth) instead of hardcoded list
+- Renamed `ec_docs/artist-platform/` → `ec_docs/artist/` and `ec_docs/events-calendar/` → `ec_docs/events/` to match canonical slugs
+- Removed phantom platform terms (stream, horoscopes) and added missing ones (wire, studio)
+- Updated plugin requirements: PHP 8.2+, WordPress 6.9+
+
+### Removed
+- Legacy `build.sh` (replaced by homeboy build system)
+- Legacy `.buildignore` (homeboy uses `homeboy.json` config)
+
+### Added
+- `homeboy.json` portable component config for standardized build/deploy
+- `extrachill_docs_get_seed_slugs()` and `extrachill_docs_get_platform_label()` helper functions
+
 # 0.3.3 - Jan 04, 2026
 
 ### Added
