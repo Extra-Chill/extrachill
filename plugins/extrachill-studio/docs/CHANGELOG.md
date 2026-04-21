@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.0] - 2026-04-21
+
+### Added
+- migrate GiveawayTask to executeTask() contract
+
 ## [0.5.1] - 2026-04-03
 
 ### Added
