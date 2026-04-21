@@ -26,7 +26,7 @@ class GiveawayTask extends SystemTask {
 	 * @param array $params Task parameters (same shape as run-giveaway ability input).
 	 * @return void
 	 */
-	public function execute( int $jobId, array $params ): void {
+	public function executeTask( int $jobId, array $params ): void {
 		$ability = wp_get_ability( 'extrachill/run-giveaway' );
 
 		if ( ! $ability ) {
