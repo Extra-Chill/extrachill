@@ -190,7 +190,15 @@ class EventRoundupHandler extends FetchHandler {
 			);
 		}
 
-		return \DataMachineEvents\Blocks\Calendar\Grouping\DateGrouper::group_events_by_date( $paged_events );
+		// Pass date_start + date_end so DateGrouper filters out bleed-in
+		// from late-night events that span midnight (see EventRoundupAbilities
+		// for the full rationale).
+		return \DataMachineEvents\Blocks\Calendar\Grouping\DateGrouper::group_events_by_date(
+			$paged_events,
+			false,
+			$date_start,
+			$date_end
+		);
 	}
 
 	private function resolve_next_weekday_range( string $week_start_day, string $week_end_day ): array {

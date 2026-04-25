@@ -481,7 +481,20 @@ class EventRoundupAbilities {
 			);
 		}
 
-		return \DataMachineEvents\Blocks\Calendar\Grouping\DateGrouper::group_events_by_date( $paged_events );
+		// Pass date_start + date_end to DateGrouper so it filters out
+		// bleed-in from late-night events that span midnight. Without this,
+		// a show that starts Friday 9pm and ends Saturday 12am would land
+		// in the Friday day_group even when the caller asked for Saturday
+		// only. (The underlying query ability deliberately uses overlap
+		// semantics — start_datetime >= range_start OR end_datetime >= range_start —
+		// for calendar-style "in-progress" callers. Roundups want strict
+		// per-day grouping.)
+		return \DataMachineEvents\Blocks\Calendar\Grouping\DateGrouper::group_events_by_date(
+			$paged_events,
+			false,
+			$date_start,
+			$date_end
+		);
 	}
 
 	private function countEvents( array $day_groups ): int {
