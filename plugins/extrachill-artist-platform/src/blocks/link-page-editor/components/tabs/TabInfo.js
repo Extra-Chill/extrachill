@@ -1,7 +1,7 @@
 /**
  * TabInfo Component
  *
- * Artist profile info: name, bio, profile image.
+ * Link page display info: name, short bio, profile image.
  */
 
 import { useCallback } from '@wordpress/element';
@@ -64,7 +64,14 @@ export default function TabInfo() {
 				/>
 			</FieldGroup>
 
-			<FieldGroup label={ __( 'Bio', 'extrachill-artist-platform' ) } htmlFor="ec-artist-bio">
+			<FieldGroup
+				label={ __( 'Link Page Bio', 'extrachill-artist-platform' ) }
+				htmlFor="ec-artist-bio"
+				help={ __(
+					'This short bio appears on your public extrachill.link page. Edit your full artist profile bio in Artist Manager.',
+					'extrachill-artist-platform'
+				) }
+			>
 				<textarea
 					id="ec-artist-bio"
 					className="ec-field__textarea"
