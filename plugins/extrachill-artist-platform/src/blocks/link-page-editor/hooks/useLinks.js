@@ -1,7 +1,7 @@
 /**
  * useLinks Hook
  *
- * Manages link page data (links, settings, cssVars, rawFontValues).
+ * Manages link page data (bio, links, settings, cssVars, rawFontValues).
  */
 
 import { useState, useEffect, useCallback } from '@wordpress/element';
@@ -9,6 +9,7 @@ import { getLinks, updateLinks, getConfig } from '../../shared/api/client';
 
 export default function useLinks( artistId ) {
 	const [ links, setLinks ] = useState( [] );
+	const [ bio, setBio ] = useState( '' );
 	const [ settings, setSettings ] = useState( {} );
 	const [ cssVars, setCssVars ] = useState( {} );
 	const [ rawFontValues, setRawFontValues ] = useState( {
@@ -39,9 +40,12 @@ export default function useLinks( artistId ) {
 		try {
 			const data = await getLinks( artistId );
 			setLinks( data.links || [] );
+			setBio( data.bio || '' );
 			setSettings( data.settings || {} );
 			setCssVars( data.css_vars || {} );
-			setRawFontValues( data.raw_font_values || { title_font: '', body_font: '' } );
+			setRawFontValues(
+				data.raw_font_values || { title_font: '', body_font: '' }
+			);
 			setBackgroundImageId( data.background_image_id || null );
 			setBackgroundImageUrl( data.background_image_url || null );
 		} catch ( err ) {
@@ -70,9 +74,12 @@ export default function useLinks( artistId ) {
 			try {
 				const updated = await updateLinks( artistId, data );
 				setLinks( updated.links || [] );
+				setBio( updated.bio || '' );
 				setSettings( updated.settings || {} );
 				setCssVars( updated.css_vars || {} );
-				setRawFontValues( updated.raw_font_values || { title_font: '', body_font: '' } );
+				setRawFontValues(
+					updated.raw_font_values || { title_font: '', body_font: '' }
+				);
 				setBackgroundImageId( updated.background_image_id || null );
 				setBackgroundImageUrl( updated.background_image_url || null );
 				return updated;
@@ -86,6 +93,10 @@ export default function useLinks( artistId ) {
 
 	const updateLocalLinks = useCallback( ( newLinks ) => {
 		setLinks( newLinks );
+	}, [] );
+
+	const updateLocalBio = useCallback( ( newBio ) => {
+		setBio( newBio );
 	}, [] );
 
 	const updateLocalSettings = useCallback( ( newSettings ) => {
@@ -107,6 +118,7 @@ export default function useLinks( artistId ) {
 
 	return {
 		links,
+		bio,
 		settings,
 		cssVars,
 		rawFontValues,
@@ -117,6 +129,7 @@ export default function useLinks( artistId ) {
 		refetch: fetchLinks,
 		update,
 		updateLocalLinks,
+		updateLocalBio,
 		updateLocalSettings,
 		updateLocalCssVars,
 		updateLocalRawFontValues,

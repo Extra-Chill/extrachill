@@ -99,7 +99,6 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 				promises.push(
 					artistData.update( {
 						name: artistData.artist?.name,
-						bio: artistData.artist?.bio,
 						profile_image_id: artistData.artist?.profile_image_id,
 					} )
 				);
@@ -109,7 +108,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 				promises.push(
 					linksData.update( {
 						links: linksData.links,
-						settings: linksData.settings,
+						settings: { ...linksData.settings, bio: linksData.bio },
 						css_vars: linksData.cssVars,
 						background_image_id: linksData.backgroundImageId,
 					} )
@@ -221,13 +220,18 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 		return getGoogleFontsUrl( fontValues, fonts );
 	}, [ linksData.rawFontValues, fonts ] );
 
+	const editorArtist = useMemo(
+		() => artistData.artist ? { ...artistData.artist, bio: linksData.bio || '' } : null,
+		[ artistData.artist, linksData.bio ]
+	);
+
 	/**
 	 * Preview data - structured data for the Preview component.
 	 */
 	const previewData = useMemo(
 		() => ( {
 			name: artistData.artist?.name || '',
-			bio: artistData.artist?.bio || '',
+			bio: linksData.bio || '',
 			profileImageUrl: artistData.artist?.profile_image_url || '',
 			profileShape: linksData.settings?.profile_image_shape || 'circle',
 			links: linksData.links || [],
@@ -237,7 +241,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			overlayEnabled: linksData.cssVars?.overlay !== '0',
 			backgroundType: linksData.cssVars?.[ '--link-page-background-type' ] || 'color',
 		} ),
-		[ artistData.artist, linksData.links, linksData.settings, linksData.cssVars, socialsData.socials ]
+		[ artistData.artist, linksData.bio, linksData.links, linksData.settings, linksData.cssVars, socialsData.socials ]
 	);
 
 	const value = useMemo(
@@ -251,14 +255,14 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			saveError,
 			hasUnsavedChanges,
 
-			artist: artistData.artist,
+			artist: editorArtist,
 			setName: ( name ) => {
 				artistData.setName( name );
 				markDirty( 'artist' );
 			},
 			setBio: ( bio ) => {
-				artistData.setBio( bio );
-				markDirty( 'artist' );
+				linksData.updateLocalBio( bio );
+				markDirty( 'links' );
 			},
 			setProfileImage: ( id, url ) => {
 				artistData.setProfileImage( id, url );
@@ -334,6 +338,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			linksData,
 			socialsData,
 			mediaUpload,
+			editorArtist,
 			config.userArtists,
 			fonts,
 			config.socialTypes,
