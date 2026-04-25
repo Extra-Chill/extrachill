@@ -105,6 +105,40 @@ function ec_seo_get_open_graph_data() {
 				}
 			}
 		}
+
+		// Plugin-provided fallback for posts without featured images.
+		// Allows plugins (e.g. data-machine-events) to supply a generated
+		// per-post OG image — typically rendered from a Data Machine template.
+		if ( empty( $data['og:image'] ) ) {
+			/**
+			 * Filter the OG image URL for a singular post.
+			 *
+			 * Fires only when the post has no featured image. Plugins should
+			 * return a fully qualified image URL (1200x630 recommended) or an
+			 * empty string to defer to the network default.
+			 *
+			 * @param string   $image_url Empty string by default.
+			 * @param \WP_Post $post      The queried post object.
+			 */
+			$singular_image = apply_filters( 'extrachill_seo_singular_og_image_url', '', $post );
+
+			if ( ! empty( $singular_image ) ) {
+				$data['og:image']        = $singular_image;
+				$data['og:image:width']  = 1200;
+				$data['og:image:height'] = 630;
+
+				/**
+				 * Filter the alt text for a plugin-provided singular OG image.
+				 *
+				 * @param string   $alt_text Empty string by default.
+				 * @param \WP_Post $post     The queried post object.
+				 */
+				$singular_alt = apply_filters( 'extrachill_seo_singular_og_image_alt', '', $post );
+				if ( ! empty( $singular_alt ) ) {
+					$data['og:image:alt'] = $singular_alt;
+				}
+			}
+		}
 	}
 
 	// Taxonomy archives — allow plugins to provide a term-specific image.
