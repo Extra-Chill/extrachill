@@ -128,6 +128,7 @@ require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/taxonomy-badges.php';
 
 require_once EXTRACHILL_INCLUDES_DIR . '/core/actions.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/assets.php';
+require_once EXTRACHILL_INCLUDES_DIR . '/core/og-brand-tokens.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/icons.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/notices.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/rewrite.php';
