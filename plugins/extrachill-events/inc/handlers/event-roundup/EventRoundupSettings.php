@@ -1,13 +1,15 @@
 <?php
 /**
- * Weekly Roundup Handler Settings
+ * Event Roundup Handler Settings
  *
- * Configuration fields for the weekly roundup image generator.
+ * Configuration fields for the event roundup image generator. Despite using
+ * weekday-name inputs in the pipeline UI, the underlying template renders any
+ * date range — see EventRoundupAbilities for arbitrary-date callers.
  *
- * @package ExtraChillEvents\Handlers\WeeklyRoundup
+ * @package ExtraChillEvents\Handlers\EventRoundup
  */
 
-namespace ExtraChillEvents\Handlers\WeeklyRoundup;
+namespace ExtraChillEvents\Handlers\EventRoundup;
 
 use DataMachine\Core\Steps\Settings\SettingsHandler;
 
@@ -15,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WeeklyRoundupSettings extends SettingsHandler {
+class EventRoundupSettings extends SettingsHandler {
 
 	/**
 	 * Get handler configuration fields.

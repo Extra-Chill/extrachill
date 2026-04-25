@@ -122,23 +122,23 @@ class ExtraChillEvents {
 			return;
 		}
 
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/WeeklyRoundupSettings.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/WeeklyRoundupHandler.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/RoundupPublishSettings.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/RoundupPublishHandler.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/event-roundup/EventRoundupSettings.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/event-roundup/EventRoundupHandler.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/event-roundup/RoundupPublishSettings.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/event-roundup/RoundupPublishHandler.php';
 
-		new \ExtraChillEvents\Handlers\WeeklyRoundup\WeeklyRoundupHandler();
-		new \ExtraChillEvents\Handlers\WeeklyRoundup\RoundupPublishHandler();
+		new \ExtraChillEvents\Handlers\EventRoundup\EventRoundupHandler();
+		new \ExtraChillEvents\Handlers\EventRoundup\RoundupPublishHandler();
 
-		// Register the weekly roundup slide template with Data Machine's
-		// image template registry. The actual GD work lives in the template
-		// class; the handler just calls datamachine/render-image-template.
-		if ( file_exists( EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/WeeklyRoundupSlideTemplate.php' ) ) {
-			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/WeeklyRoundupSlideTemplate.php';
+		// Register the event roundup template with Data Machine's image
+		// template registry. The actual GD work lives in the template class;
+		// the handler/abilities just call datamachine/render-image-template.
+		if ( file_exists( EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/EventRoundupTemplate.php' ) ) {
+			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/EventRoundupTemplate.php';
 			add_filter(
 				'datamachine/image_generation/templates',
 				function ( array $templates ): array {
-					$templates['weekly_roundup_slide'] = \ExtraChillEvents\Templates\WeeklyRoundupSlideTemplate::class;
+					$templates['event_roundup'] = \ExtraChillEvents\Templates\EventRoundupTemplate::class;
 					return $templates;
 				}
 			);
@@ -150,8 +150,8 @@ class ExtraChillEvents {
 			return;
 		}
 
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/WeeklyRoundupAbilities.php';
-		new \ExtraChillEvents\Abilities\WeeklyRoundupAbilities();
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/EventRoundupAbilities.php';
+		new \ExtraChillEvents\Abilities\EventRoundupAbilities();
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/EventLocationAlignmentAbilities.php';
 		new \ExtraChillEvents\Abilities\EventLocationAlignmentAbilities();

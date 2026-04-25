@@ -396,7 +396,7 @@ class MarketReportAbilities {
 		foreach ( $flows as $f ) {
 			$pipeline_city = str_replace( ' Events', '', $f->pipeline_name );
 
-			if ( 'Frontend' === $pipeline_city || 'Weekly Roundup' === $pipeline_city ) {
+			if ( 'Frontend' === $pipeline_city || 'Event Roundup' === $pipeline_city ) {
 				continue;
 			}
 

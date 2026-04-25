@@ -5,10 +5,10 @@
  * Creates WordPress posts with generated carousel images from engine data.
  * Uploads images to media library and inserts them as image blocks.
  *
- * @package ExtraChillEvents\Handlers\WeeklyRoundup
+ * @package ExtraChillEvents\Handlers\EventRoundup
  */
 
-namespace ExtraChillEvents\Handlers\WeeklyRoundup;
+namespace ExtraChillEvents\Handlers\EventRoundup;
 
 use DataMachine\Core\Steps\Publish\Handlers\PublishHandler;
 use DataMachine\Core\Steps\HandlerRegistrationTrait;

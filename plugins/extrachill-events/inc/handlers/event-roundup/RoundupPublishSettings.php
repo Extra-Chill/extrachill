@@ -4,10 +4,10 @@
  *
  * Minimal configuration for the roundup image publish handler.
  *
- * @package ExtraChillEvents\Handlers\WeeklyRoundup
+ * @package ExtraChillEvents\Handlers\EventRoundup
  */
 
-namespace ExtraChillEvents\Handlers\WeeklyRoundup;
+namespace ExtraChillEvents\Handlers\EventRoundup;
 
 use DataMachine\Core\Steps\Publish\Handlers\PublishHandlerSettings;
 

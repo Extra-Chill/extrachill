@@ -1,17 +1,21 @@
 <?php
 /**
- * Weekly Roundup Slide Template
+ * Event Roundup Template
  *
  * Renders a multi-slide Instagram carousel (1080x1350) listing events
  * grouped by day. Brand identity (colors, fonts, day-of-week palette)
  * comes from BrandTokens — the template is intentionally brand-agnostic.
+ *
+ * Works for any date range: tonight, this weekend, a custom 5-day stretch,
+ * a full week. The template only sees `day_groups`; date semantics live
+ * in callers (EventRoundupAbilities, EventRoundupHandler, the CLI).
  *
  * Returns string[] of slide paths because the carousel format is
  * inherently multi-image: events are distributed across slides based on
  * available vertical space, with the title only on the first slide.
  *
  * Layout per slide:
- *   - Background fill (colors['weekly_roundup_bg'] or background_dark)
+ *   - Background fill (colors['event_roundup_bg'] or background_dark)
  *   - Title block (first slide only) with accent underline
  *   - Day group sections: day header in day-palette color + event rows
  *   - Each event row: title + venue/time meta line
@@ -24,9 +28,9 @@
  *   - title (string) — appears only on first slide
  *
  * Optional brand token extensions consumed by this template:
- *   - colors['weekly_roundup_bg']    — slide background (falls back to background_dark)
- *   - colors['weekly_roundup_text']  — primary text (falls back to text_inverse)
- *   - colors['weekly_roundup_muted'] — venue/time meta (falls back to text_muted)
+ *   - colors['event_roundup_bg']    — slide background (falls back to background_dark)
+ *   - colors['event_roundup_text']  — primary text (falls back to text_inverse)
+ *   - colors['event_roundup_muted'] — venue/time meta (falls back to text_muted)
  *   - day_palette['sunday'..'saturday'] — hex per weekday (falls back to neutral palette)
  *
  * @package ExtraChillEvents\Templates
@@ -43,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WeeklyRoundupSlideTemplate implements TemplateInterface {
+class EventRoundupTemplate implements TemplateInterface {
 
 	private const PADDING                = 60;
 	private const TITLE_SIZE             = 36;
@@ -72,15 +76,15 @@ class WeeklyRoundupSlideTemplate implements TemplateInterface {
 	);
 
 	public function get_id(): string {
-		return 'weekly_roundup_slide';
+		return 'event_roundup';
 	}
 
 	public function get_name(): string {
-		return 'Weekly Roundup Slide';
+		return 'Event Roundup';
 	}
 
 	public function get_description(): string {
-		return 'Instagram carousel slides (1080x1350) listing events grouped by day. Returns multiple images when events span more vertical space than a single slide.';
+		return 'Instagram carousel slides (1080x1350) listing events grouped by day. Returns multiple images when events span more vertical space than a single slide. Works for any date range — tonight, this weekend, a custom stretch.';
 	}
 
 	public function get_fields(): array {
@@ -124,9 +128,9 @@ class WeeklyRoundupSlideTemplate implements TemplateInterface {
 		// Color and palette resolution. Roundup slides are dark-themed by
 		// default, so we map onto background_dark + text_inverse rather
 		// than the OG card's light-mode background/text_primary defaults.
-		$bg_hex    = (string) ( $tokens['colors']['weekly_roundup_bg'] ?? $tokens['colors']['background_dark'] ?? '#1a1a1a' );
-		$text_hex  = (string) ( $tokens['colors']['weekly_roundup_text'] ?? $tokens['colors']['text_inverse'] ?? '#e5e5e5' );
-		$muted_hex = (string) ( $tokens['colors']['weekly_roundup_muted'] ?? $tokens['colors']['text_muted'] ?? '#b0b0b0' );
+		$bg_hex    = (string) ( $tokens['colors']['event_roundup_bg'] ?? $tokens['colors']['background_dark'] ?? '#1a1a1a' );
+		$text_hex  = (string) ( $tokens['colors']['event_roundup_text'] ?? $tokens['colors']['text_inverse'] ?? '#e5e5e5' );
+		$muted_hex = (string) ( $tokens['colors']['event_roundup_muted'] ?? $tokens['colors']['text_muted'] ?? '#b0b0b0' );
 		$accent_hex = (string) ( $tokens['colors']['accent'] ?? '#53940b' );
 
 		$day_palette = isset( $tokens['day_palette'] ) && is_array( $tokens['day_palette'] )

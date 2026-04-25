@@ -1,14 +1,21 @@
 <?php
 /**
- * Weekly Roundup Handler
+ * Event Roundup Handler
  *
- * Queries local events by date range and location, generates Instagram carousel images.
- * Outputs image paths and text summary to engine data for downstream steps.
+ * Pipeline fetch handler for event roundup carousel generation. Queries
+ * local events by weekday window and location, renders Instagram carousel
+ * images via the event_roundup template, and stores image paths + summary
+ * text on engine data for downstream publish steps.
  *
- * @package ExtraChillEvents\Handlers\WeeklyRoundup
+ * The pipeline UI uses weekday-name inputs (e.g. "thursday" → "sunday") for
+ * scheduling convenience. For arbitrary date ranges (e.g. "tonight",
+ * "this Friday only", "April 28-30"), call the EventRoundupAbilities
+ * directly — the underlying template handles any range.
+ *
+ * @package ExtraChillEvents\Handlers\EventRoundup
  */
 
-namespace ExtraChillEvents\Handlers\WeeklyRoundup;
+namespace ExtraChillEvents\Handlers\EventRoundup;
 
 use DataMachine\Core\ExecutionContext;
 use DataMachine\Core\Steps\Fetch\Handlers\FetchHandler;
@@ -17,22 +24,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WeeklyRoundupHandler extends FetchHandler {
+class EventRoundupHandler extends FetchHandler {
 
 	use HandlerRegistrationTrait;
 
 	public function __construct() {
-		parent::__construct( 'weekly_roundup' );
+		parent::__construct( 'event_roundup' );
 
 		self::registerHandler(
-			'weekly_roundup',
+			'event_roundup',
 			'fetch',
 			self::class,
-			\__( 'Weekly Event Roundup', 'extrachill-events' ),
+			\__( 'Event Roundup', 'extrachill-events' ),
 			\__( 'Generate Instagram carousel images from local events by weekday window and location', 'extrachill-events' ),
 			false,
 			null,
-			WeeklyRoundupSettings::class,
+			EventRoundupSettings::class,
 			null
 		);
 	}
@@ -40,7 +47,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 	protected function executeFetch( array $config, ExecutionContext $context ): array {
 		$context->log(
 			'info',
-			'Starting Weekly Roundup generation',
+			'Starting Event Roundup generation',
 			array(
 				'pipeline_id' => $context->getPipelineId(),
 				'job_id'      => $context->getJobId(),
@@ -53,7 +60,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 		$location_term_id = $config['location_term_id'] ?? 0;
 
 		if ( empty( $week_start_day ) || empty( $week_end_day ) ) {
-			$context->log( 'error', 'Weekly Roundup requires week_start_day and week_end_day' );
+			$context->log( 'error', 'Event Roundup requires week_start_day and week_end_day' );
 			return array();
 		}
 
@@ -121,7 +128,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 
 		$context->log(
 			'info',
-			'Weekly Roundup complete',
+			'Event Roundup complete',
 			array(
 				'slides_generated' => count( $image_paths ),
 				'total_events'     => $total_events,
@@ -132,7 +139,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 			'title'    => sprintf( '%s Events: %s', $location_name, $this->format_date_range( $date_start, $date_end ) ),
 			'content'  => $event_summary,
 			'metadata' => array(
-				'source_type' => 'weekly_roundup',
+				'source_type' => 'event_roundup',
 				'location'    => $location_name,
 				'date_start'  => $date_start,
 				'date_end'    => $date_end,
@@ -144,6 +151,9 @@ class WeeklyRoundupHandler extends FetchHandler {
 
 	/**
 	 * Query events using the query-events ability with location filter.
+	 *
+	 * Uses EventHydrator + DateGrouper directly (the previous Calendar_Query
+	 * static facade was renamed during the data-machine-events 0.29.x cleanup).
 	 */
 	private function query_events( string $date_start, string $date_end, int $location_term_id ): array {
 		$input = array(
@@ -162,21 +172,25 @@ class WeeklyRoundupHandler extends FetchHandler {
 		$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
 		$result  = $ability->executeQueryEvents( $input );
 
-		if ( ! class_exists( 'DataMachineEvents\Blocks\Calendar\Calendar_Query' ) ) {
+		if ( ! class_exists( '\DataMachineEvents\Blocks\Calendar\Data\EventHydrator' )
+			|| ! class_exists( '\DataMachineEvents\Blocks\Calendar\Grouping\DateGrouper' ) ) {
 			return array();
 		}
 
 		// Build paged_events from WP_Post objects and group by date.
 		$paged_events = array();
 		foreach ( $result['posts'] as $post ) {
-			$event_data     = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
+			$event_data = \DataMachineEvents\Blocks\Calendar\Data\EventHydrator::parse_event_data( $post );
+			if ( ! $event_data ) {
+				continue;
+			}
 			$paged_events[] = array(
 				'post'       => $post,
 				'event_data' => $event_data,
 			);
 		}
 
-		return \DataMachineEvents\Blocks\Calendar\Calendar_Query::group_events_by_date( $paged_events );
+		return \DataMachineEvents\Blocks\Calendar\Grouping\DateGrouper::group_events_by_date( $paged_events );
 	}
 
 	private function resolve_next_weekday_range( string $week_start_day, string $week_end_day ): array {
@@ -238,10 +252,10 @@ class WeeklyRoundupHandler extends FetchHandler {
 	/**
 	 * Render slide images via the Data Machine render-image-template ability.
 	 *
-	 * The actual GD work lives in WeeklyRoundupSlideTemplate, which reads
-	 * brand identity (colors, fonts, day-of-week palette) from the
-	 * BrandTokens primitive. This handler just hands off the data and
-	 * collects the resulting file paths.
+	 * The actual GD work lives in EventRoundupTemplate, which reads brand
+	 * identity (colors, fonts, day-of-week palette) from the BrandTokens
+	 * primitive. This handler just hands off the data and collects the
+	 * resulting file paths.
 	 *
 	 * @param array            $day_groups      Day-grouped events.
 	 * @param string           $title           Optional carousel title (first slide only).
@@ -263,7 +277,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 
 		$result = $ability->execute(
 			array(
-				'template_id' => 'weekly_roundup_slide',
+				'template_id' => 'event_roundup',
 				'data'        => array(
 					'day_groups' => $day_groups,
 					'title'      => $title,
@@ -298,8 +312,8 @@ class WeeklyRoundupHandler extends FetchHandler {
 	/**
 	 * Build a plain-text summary of events for downstream AI caption generation.
 	 *
-	 * Formerly part of SlideGenerator. Lives here now because it is text
-	 * output, not GD image work — the slide template only owns rendering.
+	 * Lives here (not in the slide template) because it's plain text output
+	 * for AI captioning, not GD image work — the template only owns rendering.
 	 *
 	 * @param array $day_groups Day-grouped events.
 	 * @return string Plain text summary.
