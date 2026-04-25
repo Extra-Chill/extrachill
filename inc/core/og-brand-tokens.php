@@ -114,3 +114,125 @@ add_filter(
 	10,
 	3
 );
+
+/**
+ * Load and cache badge color pairs from the theme's CSS variables.
+ *
+ * `root.css` is generated from @extrachill/tokens at build time and is the
+ * production source of truth. We parse the shipped CSS once per request and
+ * extract the `--badge-*-bg` / `--badge-*-text` pairs into a lookup map.
+ *
+ * @return array<string, array{bg: string, text: string}> Keyed by full token key (e.g. 'location-austin').
+ */
+function extrachill_og_badge_tokens(): array {
+	static $cache = null;
+	if ( null !== $cache ) {
+		return $cache;
+	}
+
+	$path = get_template_directory() . '/assets/css/root.css';
+	if ( ! file_exists( $path ) ) {
+		$cache = array();
+		return $cache;
+	}
+
+	$raw = file_get_contents( $path );
+	if ( ! $raw ) {
+		$cache = array();
+		return $cache;
+	}
+
+	// Capture --badge-<key>-bg and --badge-<key>-text declarations.
+	// The key itself may contain hyphens (e.g. festival-acl-festival).
+	if ( ! preg_match_all( '/--badge-([a-z0-9-]+?)-(bg|text):\s*([#a-fA-F0-9rgba(),.\s]+?);/', $raw, $matches, PREG_SET_ORDER ) ) {
+		$cache = array();
+		return $cache;
+	}
+
+	$pairs = array();
+	foreach ( $matches as $match ) {
+		$key   = $match[1];
+		$role  = $match[2];
+		$value = trim( $match[3] );
+
+		if ( ! isset( $pairs[ $key ] ) ) {
+			$pairs[ $key ] = array();
+		}
+		$pairs[ $key ][ $role ] = $value;
+	}
+
+	$out = array();
+	foreach ( $pairs as $key => $value ) {
+		if ( isset( $value['bg'], $value['text'] ) ) {
+			$out[ $key ] = array(
+				'bg'   => $value['bg'],
+				'text' => $value['text'],
+			);
+		}
+	}
+
+	$cache = $out;
+	return $cache;
+}
+
+/**
+ * Resolve the badge colors for a single taxonomy term.
+ *
+ * @param \WP_Term $term     Term object.
+ * @param string   $tax_slug Taxonomy slug (location, festival, venue, category).
+ * @return array{bg: string, text: string}|null
+ */
+function extrachill_og_term_badge_colors( \WP_Term $term, string $tax_slug ): ?array {
+	$tokens = extrachill_og_badge_tokens();
+	$key    = $tax_slug . '-' . $term->slug;
+	return $tokens[ $key ] ?? null;
+}
+
+/**
+ * Inject location-based brand colors into event OG card data.
+ *
+ * Events inherit the Extra Chill `location` taxonomy, which has curated
+ * per-city color pairs in @extrachill/tokens. When an event is tagged with
+ * a location, we override the accent color of the OG card with that
+ * location's badge palette — Charleston events read maroon, Austin events
+ * read burnt orange, NYC reads charcoal, etc.
+ *
+ * The events plugin itself stays unaware of the `location` taxonomy. This
+ * hook is the bridge.
+ *
+ * @param array    $data Event OG card data.
+ * @param \WP_Post $post Event post.
+ * @return array Augmented data.
+ */
+add_filter(
+	'datamachine_events_og_card_data',
+	function ( array $data, $post ): array {
+		if ( ! $post instanceof \WP_Post ) {
+			return $data;
+		}
+
+		$terms = get_the_terms( $post->ID, 'location' );
+		if ( ! $terms || is_wp_error( $terms ) ) {
+			return $data;
+		}
+
+		// Prefer the most specific (deepest) location term.
+		$term   = $terms[0];
+		$colors = extrachill_og_term_badge_colors( $term, 'location' );
+		if ( ! $colors ) {
+			return $data;
+		}
+
+		$data['_brand_override'] = array(
+			'colors'         => array(
+				'accent'      => $colors['bg'],
+				'accent_text' => $colors['text'],
+			),
+			'location_label' => $term->name,
+		);
+
+		return $data;
+	},
+	10,
+	2
+);
