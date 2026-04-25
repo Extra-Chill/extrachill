@@ -194,12 +194,33 @@ class WeeklyRoundupAbilities {
 			return new \WP_Error( 'missing_day_groups', __( 'day_groups is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
-		if ( ! class_exists( '\ExtraChillEvents\Handlers\WeeklyRoundup\SlideGenerator' ) ) {
-			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/SlideGenerator.php';
+		if ( ! function_exists( 'wp_get_ability' ) ) {
+			return new \WP_Error( 'abilities_unavailable', __( 'Abilities API not available.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
-		$generator   = new \ExtraChillEvents\Handlers\WeeklyRoundup\SlideGenerator();
-		$image_paths = $generator->generate_slides( $day_groups, $storage_context, $title );
+		$ability = \wp_get_ability( 'datamachine/render-image-template' );
+		if ( ! $ability ) {
+			return new \WP_Error( 'template_renderer_missing', __( 'datamachine/render-image-template ability not registered.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		$result = $ability->execute(
+			array(
+				'template_id' => 'weekly_roundup_slide',
+				'data'        => array(
+					'day_groups' => $day_groups,
+					'title'      => (string) $title,
+				),
+				'preset'      => 'instagram_feed_portrait',
+				'format'      => 'png',
+				'context'     => $storage_context,
+			)
+		);
+
+		if ( \is_wp_error( $result ) ) {
+			return new \WP_Error( 'generation_failed', $result->get_error_message(), array( 'status' => 500 ) );
+		}
+
+		$image_paths = (array) ( $result['file_paths'] ?? array() );
 
 		if ( empty( $image_paths ) ) {
 			return new \WP_Error( 'generation_failed', __( 'Failed to generate carousel images.', 'extrachill-events' ), array( 'status' => 500 ) );
@@ -210,6 +231,7 @@ class WeeklyRoundupAbilities {
 			'image_paths' => $image_paths,
 			'slide_count' => count( $image_paths ),
 			'message'     => sprintf(
+				/* translators: %d: number of generated slides */
 				__( 'Generated %d carousel slides.', 'extrachill-events' ),
 				count( $image_paths )
 			),

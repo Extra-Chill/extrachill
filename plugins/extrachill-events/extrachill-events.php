@@ -122,7 +122,6 @@ class ExtraChillEvents {
 			return;
 		}
 
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/SlideGenerator.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/WeeklyRoundupSettings.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/WeeklyRoundupHandler.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/RoundupPublishSettings.php';
@@ -130,6 +129,20 @@ class ExtraChillEvents {
 
 		new \ExtraChillEvents\Handlers\WeeklyRoundup\WeeklyRoundupHandler();
 		new \ExtraChillEvents\Handlers\WeeklyRoundup\RoundupPublishHandler();
+
+		// Register the weekly roundup slide template with Data Machine's
+		// image template registry. The actual GD work lives in the template
+		// class; the handler just calls datamachine/render-image-template.
+		if ( file_exists( EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/WeeklyRoundupSlideTemplate.php' ) ) {
+			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/WeeklyRoundupSlideTemplate.php';
+			add_filter(
+				'datamachine/image_generation/templates',
+				function ( array $templates ): array {
+					$templates['weekly_roundup_slide'] = \ExtraChillEvents\Templates\WeeklyRoundupSlideTemplate::class;
+					return $templates;
+				}
+			);
+		}
 	}
 
 	public function init_abilities() {

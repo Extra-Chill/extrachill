@@ -86,17 +86,17 @@ class WeeklyRoundupHandler extends FetchHandler {
 			)
 		);
 
-		$generator       = new \ExtraChillEvents\Handlers\WeeklyRoundup\SlideGenerator();
 		$storage_context = $context->getFileContext();
-		$title           = $config['title'] ?? '';
-		$image_paths     = $generator->generate_slides( $day_groups, $storage_context, $title );
+		$title           = (string) ( $config['title'] ?? '' );
+
+		$image_paths = $this->render_slides( $day_groups, $title, $storage_context, $context );
 
 		if ( empty( $image_paths ) ) {
 			$context->log( 'error', 'Failed to generate carousel images' );
 			return array();
 		}
 
-		$event_summary = $generator->build_event_summary( $day_groups );
+		$event_summary = $this->build_event_summary( $day_groups );
 		$location_name = $this->get_location_name( $location_term_id );
 
 		$context->storeEngineData(
@@ -233,5 +233,117 @@ class WeeklyRoundupHandler extends FetchHandler {
 		}
 
 		return $start_obj->format( 'M j' ) . ' - ' . $end_obj->format( 'M j, Y' );
+	}
+
+	/**
+	 * Render slide images via the Data Machine render-image-template ability.
+	 *
+	 * The actual GD work lives in WeeklyRoundupSlideTemplate, which reads
+	 * brand identity (colors, fonts, day-of-week palette) from the
+	 * BrandTokens primitive. This handler just hands off the data and
+	 * collects the resulting file paths.
+	 *
+	 * @param array            $day_groups      Day-grouped events.
+	 * @param string           $title           Optional carousel title (first slide only).
+	 * @param array            $storage_context Pipeline/flow context for FilesRepository storage.
+	 * @param ExecutionContext $context         Pipeline execution context (for logging).
+	 * @return string[] Array of generated slide file paths.
+	 */
+	private function render_slides( array $day_groups, string $title, array $storage_context, ExecutionContext $context ): array {
+		if ( ! function_exists( 'wp_get_ability' ) ) {
+			$context->log( 'error', 'Abilities API not available — cannot render roundup slides' );
+			return array();
+		}
+
+		$ability = \wp_get_ability( 'datamachine/render-image-template' );
+		if ( ! $ability ) {
+			$context->log( 'error', 'datamachine/render-image-template ability not registered' );
+			return array();
+		}
+
+		$result = $ability->execute(
+			array(
+				'template_id' => 'weekly_roundup_slide',
+				'data'        => array(
+					'day_groups' => $day_groups,
+					'title'      => $title,
+				),
+				'preset'      => 'instagram_feed_portrait',
+				'format'      => 'png',
+				'context'     => $storage_context,
+			)
+		);
+
+		if ( \is_wp_error( $result ) ) {
+			$context->log(
+				'error',
+				'render-image-template ability returned WP_Error',
+				array( 'message' => $result->get_error_message() )
+			);
+			return array();
+		}
+
+		if ( empty( $result['success'] ) ) {
+			$context->log(
+				'error',
+				'render-image-template ability reported failure',
+				array( 'message' => $result['message'] ?? '(no message)' )
+			);
+			return array();
+		}
+
+		return (array) ( $result['file_paths'] ?? array() );
+	}
+
+	/**
+	 * Build a plain-text summary of events for downstream AI caption generation.
+	 *
+	 * Formerly part of SlideGenerator. Lives here now because it is text
+	 * output, not GD image work — the slide template only owns rendering.
+	 *
+	 * @param array $day_groups Day-grouped events.
+	 * @return string Plain text summary.
+	 */
+	public function build_event_summary( array $day_groups ): string {
+		$lines = array();
+
+		foreach ( $day_groups as $day_group ) {
+			$date_obj = $day_group['date_obj'] ?? null;
+			$events   = $day_group['events'] ?? array();
+
+			$day_label = $date_obj ? $date_obj->format( 'l, M j' ) : 'Unknown Date';
+			$lines[]   = $day_label . ':';
+
+			foreach ( $events as $event_item ) {
+				$post       = $event_item['post'] ?? null;
+				$event_data = $event_item['event_data'] ?? array();
+
+				$title      = $post ? (string) $post->post_title : 'Untitled';
+				$venue      = (string) ( $event_data['venue'] ?? '' );
+				$start_time = (string) ( $event_data['startTime'] ?? '' );
+
+				$formatted_time = '';
+				if ( '' !== $start_time ) {
+					$time_obj = \DateTime::createFromFormat( 'H:i:s', $start_time );
+					if ( $time_obj ) {
+						$formatted_time = $time_obj->format( 'g:i A' );
+					}
+				}
+
+				$event_line = "- {$title}";
+				if ( '' !== $venue ) {
+					$event_line .= " @ {$venue}";
+				}
+				if ( '' !== $formatted_time ) {
+					$event_line .= " ({$formatted_time})";
+				}
+
+				$lines[] = $event_line;
+			}
+
+			$lines[] = '';
+		}
+
+		return implode( "\n", $lines );
 	}
 }
