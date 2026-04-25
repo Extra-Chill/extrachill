@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Save advanced settings for a link page. Merges with existing settings.
  *
- * @param array $input { artist_id: int, settings?: array, background_image_id?: int, profile_image_id?: int }
+ * @param array $input { artist_id: int, settings?: array, bio?: string, background_image_id?: int, profile_image_id?: int }
  * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_save_link_page_settings( $input ) {
@@ -31,6 +31,10 @@ function extrachill_artist_platform_ability_save_link_page_settings( $input ) {
 	if ( isset( $input['settings'] ) && is_array( $input['settings'] ) ) {
 		$sanitized_settings = extrachill_artist_platform_sanitize_link_settings( $input['settings'] );
 		$save_data          = array_merge( $save_data, $sanitized_settings );
+	}
+
+	if ( array_key_exists( 'bio', $input ) ) {
+		$save_data['bio'] = sanitize_text_field( wp_unslash( (string) $input['bio'] ) );
 	}
 
 	if ( isset( $input['background_image_id'] ) ) {

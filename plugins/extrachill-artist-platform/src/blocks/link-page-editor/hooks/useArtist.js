@@ -1,7 +1,7 @@
 /**
  * useArtist Hook
  *
- * Manages artist core data (name, bio, profile image).
+ * Manages artist core data (name and profile image).
  */
 
 import { useState, useEffect, useCallback } from '@wordpress/element';
@@ -67,19 +67,9 @@ export default function useArtist( artistId ) {
 		[ artistId ]
 	);
 
-	const setName = useCallback(
-		( name ) => {
-			setArtist( ( prev ) => ( { ...prev, name } ) );
-		},
-		[]
-	);
-
-	const setBio = useCallback(
-		( bio ) => {
-			setArtist( ( prev ) => ( { ...prev, bio } ) );
-		},
-		[]
-	);
+	const setName = useCallback( ( name ) => {
+		setArtist( ( prev ) => ( { ...prev, name } ) );
+	}, [] );
 
 	const setProfileImage = useCallback(
 		( profileImageId, profileImageUrl ) => {
@@ -99,7 +89,6 @@ export default function useArtist( artistId ) {
 		refetch: fetchArtist,
 		update,
 		setName,
-		setBio,
 		setProfileImage,
 	};
 }

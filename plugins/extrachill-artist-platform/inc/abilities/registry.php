@@ -284,6 +284,10 @@ function extrachill_artist_platform_register_abilities() {
 						'type'        => 'object',
 						'description' => __( 'Settings to save.', 'extrachill-artist-platform' ),
 					),
+					'bio' => array(
+						'type'        => 'string',
+						'description' => __( 'Short bio displayed on the public link page.', 'extrachill-artist-platform' ),
+					),
 					'background_image_id' => array(
 						'type'        => 'integer',
 						'description' => __( 'Background image attachment ID. 0 to remove.', 'extrachill-artist-platform' ),

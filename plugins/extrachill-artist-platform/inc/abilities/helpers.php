@@ -250,6 +250,7 @@ function extrachill_artist_platform_sanitize_link_settings( $settings ) {
 	}
 
 	$string_fields = array(
+		'bio',
 		'redirect_target_url',
 		'meta_pixel_id',
 		'google_tag_id',

@@ -31,6 +31,15 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
         
     }
 
+    // Short bio displayed on the public link page.
+    if ( array_key_exists( 'bio', $save_data ) ) {
+        if ( $save_data['bio'] === '' || $save_data['bio'] === null ) {
+            delete_post_meta( $link_page_id, '_link_page_bio_text' );
+        } else {
+            update_post_meta( $link_page_id, '_link_page_bio_text', $save_data['bio'] );
+        }
+    }
+
     // Advanced settings (Advanced tab fields only)
     $advanced_fields = array(
         'link_expiration_enabled' => '_link_expiration_enabled',
@@ -135,6 +144,84 @@ function ec_handle_link_page_save_completion( $link_page_id ) {
     }
 }
 add_action( 'ec_link_page_save', 'ec_handle_link_page_save_completion', 10, 1 );
+
+/**
+ * Get public URLs for a link page on the extrachill.link domain.
+ *
+ * @param int $link_page_id The link page post ID.
+ * @return string[] Public link page URLs.
+ */
+function ec_get_link_page_public_urls( $link_page_id ) {
+    if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+        return array();
+    }
+
+    $slug = get_post_field( 'post_name', $link_page_id );
+    if ( ! $slug ) {
+        return array();
+    }
+
+    $urls = array( 'https://extrachill.link/' . rawurlencode( $slug ) . '/' );
+
+    if ( 'extra-chill' === $slug ) {
+        $urls[] = 'https://extrachill.link/';
+    }
+
+    return $urls;
+}
+
+/**
+ * Include public link page URLs when Breeze purges a link page post.
+ *
+ * @param string[] $urls    URLs queued for purge.
+ * @param int      $post_id Post ID being purged.
+ * @param string   $context Purge context.
+ * @return string[] URLs queued for purge.
+ */
+function ec_add_link_page_urls_to_breeze_purge( $urls, $post_id, $context ) {
+    if ( get_post_type( $post_id ) !== 'artist_link_page' ) {
+        return $urls;
+    }
+
+    return array_merge( $urls, ec_get_link_page_public_urls( $post_id ) );
+}
+add_filter( 'breeze_purge_post_cache_urls', 'ec_add_link_page_urls_to_breeze_purge', 10, 3 );
+
+/**
+ * Request cache purge after link page saves.
+ *
+ * @param int $link_page_id The saved link page ID.
+ */
+function ec_purge_link_page_cache( $link_page_id ) {
+    $urls = ec_get_link_page_public_urls( $link_page_id );
+    if ( empty( $urls ) ) {
+        return;
+    }
+
+    if ( function_exists( 'breeze_get_filesystem' ) && function_exists( 'breeze_get_cache_base_path' ) ) {
+        $wp_filesystem = breeze_get_filesystem();
+        foreach ( $urls as $url ) {
+            $cache_path = breeze_get_cache_base_path() . hash( 'sha512', $url );
+            if ( $wp_filesystem->exists( $cache_path ) ) {
+                $wp_filesystem->rmdir( $cache_path, true );
+            }
+        }
+    }
+
+    if ( class_exists( 'Breeze_CloudFlare_Helper' ) && method_exists( 'Breeze_CloudFlare_Helper', 'purge_cloudflare_cache_urls' ) ) {
+        Breeze_CloudFlare_Helper::purge_cloudflare_cache_urls( $urls );
+    }
+
+    if ( class_exists( 'Breeze_PurgeVarnish' ) ) {
+        $varnish = new Breeze_PurgeVarnish();
+        foreach ( $urls as $url ) {
+            $varnish->purge_cache( untrailingslashit( $url ) . '/?breeze' );
+        }
+    }
+
+    do_action( 'ec_link_page_cache_purged', $link_page_id, $urls );
+}
+add_action( 'ec_link_page_save', 'ec_purge_link_page_cache', 20, 1 );
 
 
 /**
