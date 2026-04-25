@@ -584,4 +584,230 @@ class LocationCommand {
 			WP_CLI::log( sprintf( 'Unresolved: %d', (int) $result['unresolved_count'] ) );
 		}
 	}
+
+	/**
+	 * Generate an event roundup carousel graphic for a date range.
+	 *
+	 * Renders Instagram-portrait (1080x1350) carousel slides listing events
+	 * grouped by day, branded with Extra Chill colors and fonts. Works for
+	 * any date range — tonight, this weekend, a custom 5-day stretch — and
+	 * can be filtered to a single location.
+	 *
+	 * Wraps the extrachill/event-roundup-build ability.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--date-start=<date>]
+	 * : Start date (Y-m-d) or "today". Defaults to today.
+	 *
+	 * [--date-end=<date>]
+	 * : End date (Y-m-d). Defaults to date-start (single-day roundup).
+	 *
+	 * [--week-start-day=<day>]
+	 * : Weekday-name shortcut (e.g. "thursday"). Resolves to the next occurrence.
+	 * Mutually exclusive with date-start.
+	 *
+	 * [--week-end-day=<day>]
+	 * : Weekday-name shortcut (e.g. "sunday"). Used with week-start-day.
+	 *
+	 * [--location=<slug-or-id>]
+	 * : Location taxonomy term slug or numeric term ID. Optional.
+	 *
+	 * [--title=<string>]
+	 * : Title shown on the first slide. Optional.
+	 *
+	 * [--output=<dir>]
+	 * : Directory to copy generated slides into. When omitted, prints the
+	 * temp file paths produced by the ability (caller must handle cleanup).
+	 *
+	 * [--format=<format>]
+	 * : Output format for the result summary.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Tonight in Charleston
+	 *     wp extrachill events roundup --location=charleston --title="Tonight in Charleston" --url=events.extrachill.com
+	 *
+	 *     # This weekend (next Fri-Sun) in Charleston, save to a folder
+	 *     wp extrachill events roundup --week-start-day=friday --week-end-day=sunday \
+	 *       --location=charleston --title="This Weekend in Charleston" \
+	 *       --output=/tmp/charleston-weekend --url=events.extrachill.com
+	 *
+	 *     # Custom 5-day stretch, all locations, JSON output for piping
+	 *     wp extrachill events roundup --date-start=2026-04-25 --date-end=2026-04-30 \
+	 *       --title="End of April Lineup" --format=json --url=events.extrachill.com
+	 *
+	 *     # Single day, by date
+	 *     wp extrachill events roundup --date-start=2026-05-15 \
+	 *       --location=austin --title="Friday in Austin" --url=events.extrachill.com
+	 *
+	 * @subcommand roundup
+	 * @when after_wp_load
+	 */
+	public function roundup( $args, $assoc_args ) {
+		$ability = wp_get_ability( 'extrachill/event-roundup-build' );
+
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/event-roundup-build ability not available. Is extrachill-events active on this site?' );
+		}
+
+		// Map CLI flag names (kebab) → ability input keys (snake). Empty
+		// inputs are intentionally NOT passed so the ability uses its own
+		// defaults (e.g. date_start defaults to today).
+		//
+		// Date inputs are resolved at the CLI layer (natural language like
+		// "today", "tomorrow", "+3 days", or "next friday"). The ability
+		// keeps a strict Y-m-d contract for machine callers.
+		$input = array();
+
+		foreach (
+			array(
+				'date-start'     => 'date_start',
+				'date-end'       => 'date_end',
+			) as $cli_key => $ability_key
+		) {
+			if ( isset( $assoc_args[ $cli_key ] ) && '' !== $assoc_args[ $cli_key ] ) {
+				$resolved = $this->resolve_date_input( (string) $assoc_args[ $cli_key ] );
+				if ( null === $resolved ) {
+					WP_CLI::error( sprintf( 'Could not parse %s value: %s', $cli_key, $assoc_args[ $cli_key ] ) );
+				}
+				$input[ $ability_key ] = $resolved;
+			}
+		}
+
+		foreach (
+			array(
+				'week-start-day' => 'week_start_day',
+				'week-end-day'   => 'week_end_day',
+				'location'       => 'location',
+				'title'          => 'title',
+			) as $cli_key => $ability_key
+		) {
+			if ( isset( $assoc_args[ $cli_key ] ) && '' !== $assoc_args[ $cli_key ] ) {
+				$input[ $ability_key ] = (string) $assoc_args[ $cli_key ];
+			}
+		}
+
+		WP_CLI::log( 'Building event roundup...' );
+
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$image_paths = (array) ( $result['image_paths'] ?? array() );
+		$output_dir  = isset( $assoc_args['output'] ) ? rtrim( (string) $assoc_args['output'], '/' ) : '';
+		$saved_paths = array();
+
+		if ( '' !== $output_dir && ! empty( $image_paths ) ) {
+			if ( ! is_dir( $output_dir ) ) {
+				if ( ! wp_mkdir_p( $output_dir ) ) {
+					WP_CLI::error( sprintf( 'Could not create output directory: %s', $output_dir ) );
+				}
+			}
+
+			foreach ( $image_paths as $i => $src ) {
+				if ( ! file_exists( $src ) ) {
+					WP_CLI::warning( sprintf( 'Slide %d source missing: %s', $i + 1, $src ) );
+					continue;
+				}
+
+				$ext  = pathinfo( $src, PATHINFO_EXTENSION ) ?: 'png';
+				$dest = sprintf( '%s/roundup-slide-%d.%s', $output_dir, $i + 1, $ext );
+
+				if ( ! copy( $src, $dest ) ) {
+					WP_CLI::warning( sprintf( 'Could not copy slide %d to %s', $i + 1, $dest ) );
+					continue;
+				}
+
+				$saved_paths[] = $dest;
+			}
+		} else {
+			$saved_paths = $image_paths;
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( 'json' === $format ) {
+			WP_CLI::print_value(
+				array(
+					'success'       => (bool) ( $result['success'] ?? false ),
+					'date_start'    => (string) ( $result['date_start'] ?? '' ),
+					'date_end'      => (string) ( $result['date_end'] ?? '' ),
+					'location'      => (string) ( $result['location_name'] ?? '' ),
+					'total_events'  => (int) ( $result['total_events'] ?? 0 ),
+					'slide_count'   => (int) ( $result['slide_count'] ?? 0 ),
+					'image_paths'   => $saved_paths,
+					'event_summary' => (string) ( $result['event_summary'] ?? '' ),
+					'message'       => (string) ( $result['message'] ?? '' ),
+				),
+				array( 'format' => 'json' )
+			);
+			return;
+		}
+
+		// Table format.
+		if ( empty( $result['success'] ) ) {
+			WP_CLI::warning( $result['message'] ?? 'No slides generated.' );
+			WP_CLI::log( sprintf( 'Date range: %s → %s', $result['date_start'] ?? '?', $result['date_end'] ?? '?' ) );
+			WP_CLI::log( sprintf( 'Location:   %s', $result['location_name'] ?? '?' ) );
+			return;
+		}
+
+		WP_CLI::success( sprintf( 'Generated %d slide%s', $result['slide_count'], 1 === (int) $result['slide_count'] ? '' : 's' ) );
+		WP_CLI::log( sprintf( 'Date range:   %s → %s', $result['date_start'], $result['date_end'] ) );
+		WP_CLI::log( sprintf( 'Location:     %s', $result['location_name'] ) );
+		WP_CLI::log( sprintf( 'Total events: %d', (int) $result['total_events'] ) );
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Slides:' );
+		foreach ( $saved_paths as $i => $p ) {
+			WP_CLI::log( sprintf( '  %d. %s', $i + 1, $p ) );
+		}
+	}
+
+	/**
+	 * Resolve a natural-language date input into Y-m-d.
+	 *
+	 * Accepts:
+	 *   - Exact Y-m-d strings (passed through verbatim)
+	 *   - "today", "tomorrow", "yesterday"
+	 *   - PHP relative date strings: "+3 days", "next friday", "last monday"
+	 *
+	 * Resolution uses the WordPress site timezone so "today" matches what
+	 * an editor would expect, not server UTC.
+	 *
+	 * @param string $input Raw date input from the CLI flag.
+	 * @return string|null Y-m-d string on success, null on parse failure.
+	 */
+	private function resolve_date_input( string $input ): ?string {
+		$input = trim( $input );
+		if ( '' === $input ) {
+			return null;
+		}
+
+		// Exact Y-m-d → pass through (cheap path; avoids the DateTime parser
+		// reinterpreting "2026-01-02" as something weird).
+		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $input ) ) {
+			$check = \DateTime::createFromFormat( 'Y-m-d', $input );
+			if ( $check && $check->format( 'Y-m-d' ) === $input ) {
+				return $input;
+			}
+			return null;
+		}
+
+		try {
+			$tz   = function_exists( 'wp_timezone' ) ? wp_timezone() : new \DateTimeZone( 'UTC' );
+			$date = new \DateTime( $input, $tz );
+			return $date->format( 'Y-m-d' );
+		} catch ( \Exception $e ) {
+			return null;
+		}
+	}
 }
