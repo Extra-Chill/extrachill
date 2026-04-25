@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.17.9] - 2026-04-25
+
+### Changed
+- refactor(weekly-roundup): migrate SlideGenerator to TemplateInterface + BrandTokens
+- Add integration tests for EventSubmissionAbilities
+- Remove legacy flow-based event submission path, use ephemeral workflow only
+
 ## [0.17.8] - 2026-03-31
 
 ### Changed
