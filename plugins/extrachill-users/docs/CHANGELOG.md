@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.19] - 2026-04-26
+
+### Fixed
+- auto-link Google OAuth on verified email match instead of returning a dead-end 409 error users could not recover from
+
 ## [0.7.18] - 2026-04-09
 
 ### Changed
