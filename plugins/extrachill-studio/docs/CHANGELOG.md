@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.2] - 2026-04-26
+
+### Added
+- rename Compose tab to Blog
+
 ## [0.7.1] - 2026-04-26
 
 ### Added
