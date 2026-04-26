@@ -5,8 +5,8 @@ export const getStudioTabs = (): StudioTab[] => [
 	{
 		id: 'compose',
 		pane: 'compose',
-		label: __( 'Compose', 'extrachill-studio' ),
-		preview: __( 'Draft and submit posts using the block editor.', 'extrachill-studio' ),
+		label: __( 'Blog', 'extrachill-studio' ),
+		preview: __( 'Draft and submit blog posts using the block editor.', 'extrachill-studio' ),
 	},
 	{
 		id: 'socials',
