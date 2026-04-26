@@ -38,6 +38,26 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/run-giveaway.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/tasks/giveaway-task.php';
 
 /**
+ * Register Studio's ability category before abilities are registered.
+ *
+ * @return void
+ */
+function extrachill_studio_register_ability_category() {
+	if ( ! function_exists( 'wp_register_ability_category' ) ) {
+		return;
+	}
+
+	wp_register_ability_category(
+		'extrachill',
+		array(
+			'label'       => __( 'Extra Chill', 'extrachill-studio' ),
+			'description' => __( 'Extra Chill platform tools and workflows.', 'extrachill-studio' ),
+		)
+	);
+}
+add_action( 'wp_abilities_api_categories_init', 'extrachill_studio_register_ability_category' );
+
+/**
  * Register the giveaway task with the Data Machine Task System.
  *
  * @param array $tasks Registered task classes.
