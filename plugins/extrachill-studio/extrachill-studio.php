@@ -48,6 +48,24 @@ add_filter( 'datamachine_tasks', function ( array $tasks ): array {
 	return $tasks;
 } );
 
+/**
+ * Pin Instagram to the top of the social platforms response.
+ *
+ * Studio's primary social workflow targets Instagram, so the platform
+ * sidebar should default to Instagram instead of the alphabetically-first
+ * authenticated platform. Studio prepends 'instagram' to whatever priority
+ * list other plugins may have set, rather than replacing it.
+ *
+ * Filter contract is documented in
+ * data-machine-socials/inc/RestApi.php::get_platforms (since v0.13.1).
+ *
+ * @param array $priority Ordered list of platform slugs.
+ * @return array
+ */
+add_filter( 'datamachine_socials_platform_priority', function ( array $priority ): array {
+	return array_values( array_unique( array_merge( array( 'instagram' ), $priority ) ) );
+} );
+
 register_activation_hook( __FILE__, 'extrachill_studio_activate' );
 register_deactivation_hook( __FILE__, 'extrachill_studio_deactivate' );
 
