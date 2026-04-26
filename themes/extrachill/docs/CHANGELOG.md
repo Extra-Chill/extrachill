@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.3.8] - 2026-04-26
+
+### Fixed
+- register @font-face via wp_theme_json_data_theme
+
 ## [2.3.7] - 2026-04-26
 
 ### Fixed
