@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.1] - 2026-04-26
+
+### Fixed
+- enable Studio fullscreen menu item
+
 ## [0.9.0] - 2026-04-26
 
 ### Added
