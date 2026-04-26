@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.0] - 2026-04-26
+
+### Added
+- consume new /platforms array contract, drop client-side normalization and filtering
+
 ## [0.6.0] - 2026-04-21
 
 ### Added
