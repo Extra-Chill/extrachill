@@ -304,6 +304,77 @@ function extrachill_filter_admin_only_editor_styles( $settings ) {
 }
 add_filter( 'block_editor_settings_all', 'extrachill_filter_admin_only_editor_styles', 20 );
 
+/**
+ * Register EC theme fonts via the theme.json data filter.
+ *
+ * This is the WordPress-canonical mechanism for getting @font-face declarations
+ * into the block editor iframe. Core calls wp_print_font_faces() inside
+ * _wp_get_iframed_editor_assets() and on wp_head — both pull from
+ * WP_Font_Face_Resolver::get_fonts_from_theme_json() which reads this filter's
+ * output. Result: proper @font-face <style> tags with absolute URLs land in
+ * every editor iframe (wp-admin post editor, Blocks Everywhere bbPress,
+ * Studio) AND on the frontend without any per-context wiring.
+ *
+ * Replaces the previous approach of putting @font-face declarations inside
+ * editor-style.css with relative ../fonts/ URLs — those failed to resolve
+ * because postcss-urlrebase doesn't reliably rewrite paths inside @font-face
+ * src lists when CSS is inlined as a <style> tag. Computed font-family on
+ * headings fell back to the browser default (Times) in wp-admin.
+ *
+ * Uses update_with() to merge into the existing theme.json data rather than
+ * replacing it, so font-family slugs added by other filters (or a future
+ * theme.json file) are preserved.
+ *
+ * @param WP_Theme_JSON_Data $theme_json Theme JSON data wrapper.
+ * @return WP_Theme_JSON_Data
+ */
+function extrachill_register_theme_fonts( $theme_json ) {
+	$fonts_uri = get_template_directory_uri() . '/assets/fonts';
+
+	$theme_json->update_with(
+		array(
+			'version'  => 2,
+			'settings' => array(
+				'typography' => array(
+					'fontFamilies' => array(
+						array(
+							'name'       => 'Loft Sans',
+							'slug'       => 'loft-sans',
+							'fontFamily' => '"Loft Sans", sans-serif',
+							'fontFace'   => array(
+								array(
+									'fontFamily'  => 'Loft Sans',
+									'fontStyle'   => 'normal',
+									'fontWeight'  => '100 900',
+									'fontDisplay' => 'swap',
+									'src'         => array( $fonts_uri . '/WilcoLoftSans-Treble.woff2' ),
+								),
+							),
+						),
+						array(
+							'name'       => 'Lobster',
+							'slug'       => 'lobster',
+							'fontFamily' => 'Lobster, cursive',
+							'fontFace'   => array(
+								array(
+									'fontFamily'  => 'Lobster',
+									'fontStyle'   => 'normal',
+									'fontWeight'  => '400',
+									'fontDisplay' => 'swap',
+									'src'         => array( $fonts_uri . '/Lobster2.woff2' ),
+								),
+							),
+						),
+					),
+				),
+			),
+		)
+	);
+
+	return $theme_json;
+}
+add_filter( 'wp_theme_json_data_theme', 'extrachill_register_theme_fonts' );
+
 function extrachill_enqueue_single_post_styles() {
 	$single_post_types = apply_filters( 'extrachill_single_post_style_post_types', array( 'post' ) );
 	if ( is_singular( $single_post_types ) || is_page() ) {

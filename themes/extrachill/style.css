@@ -63,21 +63,10 @@ embed, iframe, object {
 	max-width: 100%;
 }
 
-@font-face {
-    font-family: 'Loft Sans';
-    src: url('assets/fonts/WilcoLoftSans-Treble.woff2') format('woff2');
-    font-style: normal;
-    font-weight: 100 900; 
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Lobster';
-    src: url('assets/fonts/Lobster2.woff2') format('woff2');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
+/* @font-face declarations are registered via the wp_theme_json_data_theme
+ * filter in inc/core/assets.php. WordPress core emits <style> tags via
+ * wp_print_font_faces() on wp_head (frontend) and inside the editor iframe
+ * asset bundle (wp-admin, Blocks Everywhere, Studio). Single source of truth. */
 
 h1, h2, h3, h4, h5, h6 {
 	color: var(--text-color);

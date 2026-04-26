@@ -16,29 +16,13 @@
  * @package ExtraChill
  */
 
-/* ==========================================================================
-   0. Font Faces
-   Duplicated from style.css so the editor iframe can resolve them.
-   Paths are relative to this file; Gutenberg rewrites via baseURL.
-   ========================================================================== */
-
-@font-face {
-    font-family: 'Loft Sans';
-    src: url('../fonts/WilcoLoftSans-Treble.woff2') format('woff2');
-    font-style: normal;
-    font-weight: 100 900;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Lobster';
-    src: url('../fonts/Lobster2.woff2') format('woff2');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Root variables are loaded separately via functions.php */
+/* @font-face declarations are registered via the wp_theme_json_data_theme
+ * filter in inc/core/assets.php so WordPress core emits <style> tags via
+ * wp_print_font_faces() in every editor iframe (wp-admin, BE, Studio) AND
+ * on wp_head for the frontend. Single source of truth.
+ *
+ * Root design tokens (--font-family-heading etc) are loaded separately
+ * via add_editor_style('assets/css/root.css') in functions.php. */
 
 
 /* ==========================================================================
