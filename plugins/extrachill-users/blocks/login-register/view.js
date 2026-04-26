@@ -198,7 +198,7 @@ function RegisterPanel( { config, notice, setNotice } ) {
 
 		const submitButton = form.querySelector( 'input[type="submit"], button[type="submit"]' );
 		const restore = utils?.setSubmitting ? utils.setSubmitting( submitButton, 'Creating account…' ) : () => {};
-		const fromJoin = new URL( window.location.href ).searchParams.get( 'from_join' ) === 'true';
+		const fromJoin = Boolean( config.fromJoin );
 
 		try {
 			const url = new URL( 'extrachill/v1/auth/register', utils.getRestRoot() );
@@ -274,24 +274,104 @@ function RegisterPanel( { config, notice, setNotice } ) {
 	);
 }
 
+function isGoogleIdentityReady() {
+	return Boolean( window.google && window.google.accounts && window.google.accounts.id );
+}
+
+/**
+ * Wait for Google Identity Services library to load.
+ *
+ * The gsi/client script is enqueued in the footer alongside our view.js, and on
+ * cold loads it may still be in-flight when LoginRegisterApp mounts. Without
+ * waiting, ECGoogleSignIn.init() bails early and the user sees an empty button
+ * slot until they hard-refresh. Resolves immediately when ready, listens for the
+ * script's load event when possible, and falls back to short polling.
+ *
+ * @param {number} timeoutMs Maximum wait time before giving up.
+ * @return {Promise<boolean>} Resolves true if ready, false on timeout.
+ */
+function waitForGoogleIdentity( timeoutMs = 5000 ) {
+	return new Promise( ( resolve ) => {
+		if ( isGoogleIdentityReady() ) {
+			resolve( true );
+			return;
+		}
+
+		let settled = false;
+		const finish = ( ok ) => {
+			if ( settled ) {
+				return;
+			}
+			settled = true;
+			resolve( ok );
+		};
+
+		const scriptEl = document.querySelector( 'script[src*="accounts.google.com/gsi/client"]' );
+		if ( scriptEl ) {
+			scriptEl.addEventListener( 'load', () => finish( isGoogleIdentityReady() ), { once: true } );
+			scriptEl.addEventListener( 'error', () => finish( false ), { once: true } );
+		}
+
+		const pollMs = 100;
+		let elapsed = 0;
+		const interval = window.setInterval( () => {
+			if ( isGoogleIdentityReady() ) {
+				window.clearInterval( interval );
+				finish( true );
+				return;
+			}
+			elapsed += pollMs;
+			if ( elapsed >= timeoutMs ) {
+				window.clearInterval( interval );
+				finish( false );
+			}
+		}, pollMs );
+	} );
+}
+
 function LoginRegisterApp( { config } ) {
 	const [ activeTab, setActiveTab ] = useState( 'login' );
 	const [ loginNotice, setLoginNotice ] = useState( null );
 	const [ registerNotice, setRegisterNotice ] = useState(
 		config.initialNotice ? { type: config.initialNotice.type, message: config.initialNotice.message } : null
 	);
+	const [ googleReady, setGoogleReady ] = useState( () => isGoogleIdentityReady() );
 
 	useEffect( () => {
-		if ( window.ECGoogleSignIn && window.ecGoogleConfig ) {
-			window.ECGoogleSignIn.init( window.ecGoogleConfig );
+		if ( ! config.googleOAuthEnabled ) {
+			return;
 		}
-	}, [] );
+
+		let cancelled = false;
+		const initWhenReady = async () => {
+			const ready = await waitForGoogleIdentity();
+			if ( cancelled ) {
+				return;
+			}
+			if ( ! ready ) {
+				return;
+			}
+			setGoogleReady( true );
+			if ( window.ECGoogleSignIn && window.ecGoogleConfig ) {
+				window.ECGoogleSignIn.init( window.ecGoogleConfig );
+			}
+		};
+
+		initWhenReady();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ config.googleOAuthEnabled ] );
 
 	useEffect( () => {
+		if ( ! googleReady ) {
+			return;
+		}
 		if ( window.ECGoogleSignIn && typeof window.ECGoogleSignIn.renderAllButtons === 'function' ) {
 			window.ECGoogleSignIn.renderAllButtons();
 		}
-	}, [ activeTab ] );
+	}, [ activeTab, googleReady ] );
 
 	const tabs = useMemo(
 		() => [

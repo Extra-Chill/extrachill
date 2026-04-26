@@ -31,12 +31,17 @@ if ( $google_oauth_enabled ) {
 			true
 		);
 
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only flag from URL used for analytics/UX hint, not for state changes.
+		$google_from_join = isset( $_GET['from_join'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['from_join'] ) );
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
 		wp_localize_script(
 			'extrachill-google-signin',
 			'ecGoogleConfig',
 			array(
 				'clientId' => get_site_option( 'extrachill_google_client_id', '' ),
 				'restUrl'  => rest_url( 'extrachill/v1/' ),
+				'fromJoin' => $google_from_join,
 			)
 		);
 	}
@@ -91,6 +96,10 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 }
 
+// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only flag from URL used for analytics/UX hint, not for state changes.
+$from_join = isset( $_GET['from_join'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['from_join'] ) );
+// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
 $config = array(
 	'loggedIn'            => is_user_logged_in(),
 	'googleOAuthEnabled'  => $google_oauth_enabled,
@@ -101,6 +110,7 @@ $config = array(
 	'inviteToken'         => $invite_token,
 	'inviteArtistId'      => $invite_artist_id,
 	'invitedEmail'        => $invited_email,
+	'fromJoin'            => $from_join,
 	'turnstileHtml'       => wp_kses_post( ec_render_turnstile_widget() ),
 	'initialNotice'       => $initial_notice ? array(
 		'message' => $initial_notice['text'] ?? '',

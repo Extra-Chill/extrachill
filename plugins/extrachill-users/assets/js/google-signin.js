@@ -122,7 +122,11 @@
             return;
         }
 
-        var fromJoin = isFromJoinFlow();
+        // Single source of truth: from_join is captured server-side at render time
+        // and passed via wp_localize_script. The standard register form reads the
+        // same value from config.fromJoin in view.js, so the two flows can never
+        // drift even if the URL is mutated client-side after render.
+        var fromJoin = Boolean(config && config.fromJoin) || isFromJoinFlow();
         var successRedirectUrl = getSuccessRedirectUrl();
 
         setGlobalLoading(true);
