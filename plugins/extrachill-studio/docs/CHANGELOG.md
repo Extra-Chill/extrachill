@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.0] - 2026-04-26
+
+### Added
+- add MediaPicker for main-site media library access in Socials publish pane
+
 ## [0.7.2] - 2026-04-26
 
 ### Added
