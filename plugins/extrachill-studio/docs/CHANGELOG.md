@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.1] - 2026-04-26
+
+### Added
+- pin Instagram to top of socials sidebar via datamachine_socials_platform_priority filter
+
 ## [0.7.0] - 2026-04-26
 
 ### Added
