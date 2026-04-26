@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.0] - 2026-04-26
+
+### Added
+- add NetworkMediaResource for /extrachill/v1/network-media list and upload
+
 ## [0.3.1] - 2026-04-03
 
 ### Changed
