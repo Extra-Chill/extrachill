@@ -54,12 +54,19 @@ Authenticate users with Google OAuth using ID tokens and return access + refresh
 
 **Error Responses**:
 - `400` - Missing/invalid ID token, invalid device_id format, or validation errors
+- `401` - Google ID token signature/issuer/audience invalid, or `email_verified` not true
+- `403` - User exists but is not a member of the community blog
 - `500` - Google OAuth service unavailable or dependency missing
 
 **Implementation Details**:
 - Validates device_id as UUID v4 format
 - Calls `ec_google_login_with_tokens()` from extrachill-users plugin
-- Handles user creation via Google if account doesn't exist
+- Verifies the ID token via Google's JWKS and rejects tokens without `email_verified=true`
+- Account linking strategy:
+  1. Match by `google_user_id` user meta and log the user in.
+  2. Otherwise match by verified email and auto-link the Google account to the existing user.
+  3. Otherwise create a new account and link Google to it.
+- Auto-linking can be disabled per-site via the `ec_google_auto_link_verified_email` filter
 - Supports device tracking for session management
 - Optionally sets WordPress authentication cookie
 
