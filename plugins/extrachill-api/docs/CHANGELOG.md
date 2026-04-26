@@ -2,6 +2,15 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.15.0] - 2026-04-26
+
+### Added
+- add /extrachill/v1/network-media route as thin wrapper over network-media abilities
+
+### Changed
+- Remove stream status REST route
+- Remove flow_id from event submission REST endpoint
+
 ## [0.14.6] - 2026-04-09
 
 ### Changed
