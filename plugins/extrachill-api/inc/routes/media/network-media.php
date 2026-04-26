@@ -79,7 +79,13 @@ function extrachill_api_network_media_permission( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_missing', 'Network media ability not registered.', array( 'status' => 500 ) );
 	}
 
-	return $ability->has_permission( $request->get_params() );
+	$check = $ability->check_permissions( $request->get_params() );
+
+	if ( is_wp_error( $check ) ) {
+		return $check;
+	}
+
+	return (bool) $check;
 }
 
 /**
