@@ -1,18 +1,18 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, useEffect, useState } from '@wordpress/element';
+import { createElement, useState } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
-import { ActionRow, FieldGroup, InlineStatus, MediaField, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 
 import apiFetch from '@wordpress/api-fetch';
-import type { SocialPlatformConfig, SocialPublishResponse, SocialPublishResult } from '@extrachill/api-client';
-import { studioClient, uploadStudioFile } from '../../../app/client';
+import type { NetworkMediaItem, SocialPlatformConfig, SocialPublishResponse, SocialPublishResult } from '@extrachill/api-client';
+import { studioClient } from '../../../app/client';
+import MediaPicker from '../media-picker';
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
 const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
 const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
-const MediaFieldView = MediaField as unknown as ( props: any ) => ReactElement;
 
 export interface PlatformPublishPaneProps {
 	slug: string;
@@ -36,9 +36,6 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 	const [ caption, setCaption ] = useState( '' );
 	const [ imageUrlInput, setImageUrlInput ] = useState( '' );
 	const [ imageUrls, setImageUrls ] = useState< string[] >( [] );
-	const [ selectedFile, setSelectedFile ] = useState< File | null >( null );
-	const [ selectedFilePreviewUrl, setSelectedFilePreviewUrl ] = useState( '' );
-	const [ isUploading, setIsUploading ] = useState( false );
 	const [ isPublishing, setIsPublishing ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
@@ -47,20 +44,6 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 	const platformLabel = label || slug;
 	const charLimit = config.charLimit || 0;
 	const supportsImages = ( config.maxImages || 0 ) > 0 || config.supportsCarousel;
-
-	useEffect( () => {
-		if ( ! selectedFile ) {
-			setSelectedFilePreviewUrl( '' );
-			return;
-		}
-
-		const previewUrl = URL.createObjectURL( selectedFile );
-		setSelectedFilePreviewUrl( previewUrl );
-
-		return () => {
-			URL.revokeObjectURL( previewUrl );
-		};
-	}, [ selectedFile ] );
 
 	const addImageUrl = (): void => {
 		const nextUrl = imageUrlInput.trim();
@@ -80,36 +63,19 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		setImageUrls( ( current ) => [ ...current, nextUrl ] );
 		setImageUrlInput( '' );
 		setError( '' );
-		setStatus( __( 'Image URL added to publish queue.', 'extrachill-studio' ) );
+		setStatus( __( 'External image URL added to publish queue.', 'extrachill-studio' ) );
 	};
 
-	const handleUpload = async (): Promise< void > => {
-		if ( ! selectedFile ) {
-			setError( __( 'Choose an image file to upload first.', 'extrachill-studio' ) );
-			return;
-		}
-
-		setIsUploading( true );
+	const handleMediaSelect = ( url: string, item: NetworkMediaItem ): void => {
+		setImageUrls( ( current ) => [ ...current, url ] );
 		setError( '' );
-		setStatus( __( 'Uploading image…', 'extrachill-studio' ) );
-
-		try {
-			const response = await uploadStudioFile( selectedFile );
-
-			if ( ! response?.url ) {
-				throw new Error( __( 'Upload did not return an image URL.', 'extrachill-studio' ) );
-			}
-
-			setImageUrls( ( current ) => [ ...current, response.url ] );
-			setSelectedFile( null );
-			setSelectedFilePreviewUrl( '' );
-			setStatus( __( 'Image uploaded and added to publish queue.', 'extrachill-studio' ) );
-		} catch ( uploadError ) {
-			setError( ( uploadError as Error )?.message || __( 'Image upload failed.', 'extrachill-studio' ) );
-			setStatus( '' );
-		} finally {
-			setIsUploading( false );
-		}
+		setStatus(
+			sprintf(
+				/* translators: %s: media item title or filename */
+				__( '%s added to publish queue.', 'extrachill-studio' ),
+				item.title || item.sourceId
+			)
+		);
 	};
 
 	const removeImageUrl = ( index: number ): void => {
@@ -247,9 +213,19 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 					} )
 				),
 				supportsImages
+					? h( MediaPicker, {
+						onSelect: handleMediaSelect,
+						className: 'ec-studio-pane__media-picker',
+					} )
+					: null,
+				supportsImages
 					? h(
 						FieldGroupView,
-						{ label: __( 'Image URL', 'extrachill-studio' ), htmlFor: `ec-studio-${ slug }-image-url` },
+						{
+							label: __( 'Or paste an external URL', 'extrachill-studio' ),
+							htmlFor: `ec-studio-${ slug }-image-url`,
+							help: __( 'Public image URLs (e.g. Dropbox, Drive) — for files not yet in the media library, prefer the Upload tile above.', 'extrachill-studio' ),
+						},
 						createElement( 'input', {
 							id: `ec-studio-${ slug }-image-url`,
 							type: 'url',
@@ -264,45 +240,17 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 					? h(
 						ActionRowView,
 						{ className: 'ec-studio-composer__actions' },
-						createElement( 'button', { type: 'button', className: 'button-1 button-medium', onClick: addImageUrl }, __( 'Add Image URL', 'extrachill-studio' ) ),
-						createElement( 'span', { className: 'ec-studio-composer__hint' }, __( 'Use a public image URL or upload a file below.', 'extrachill-studio' ) )
+						createElement(
+							'button',
+							{
+								type: 'button',
+								className: 'button-1 button-medium',
+								onClick: addImageUrl,
+								disabled: ! imageUrlInput.trim(),
+							},
+							__( 'Add External URL', 'extrachill-studio' )
+						)
 					)
-					: null,
-				supportsImages
-					? h( MediaFieldView, {
-						label: __( 'Upload image', 'extrachill-studio' ),
-						htmlFor: `ec-studio-${ slug }-upload`,
-						previewUrl: selectedFilePreviewUrl || null,
-						previewAlt: selectedFile?.name || __( 'Selected upload preview', 'extrachill-studio' ),
-						empty: __( 'No local image selected yet.', 'extrachill-studio' ),
-						actions: h(
-							ActionRowView,
-							null,
-							createElement( 'input', {
-								id: `ec-studio-${ slug }-upload`,
-								type: 'file',
-								accept: 'image/*',
-								onChange: ( event: ChangeEvent< HTMLInputElement > ) => {
-									setSelectedFile( event.target.files?.[ 0 ] || null );
-									setError( '' );
-									setStatus( '' );
-								},
-							} ),
-							createElement(
-								'button',
-								{
-									type: 'button',
-									className: 'button-1 button-medium',
-									onClick: handleUpload,
-									disabled: isUploading || ! selectedFile,
-								},
-								isUploading ? __( 'Uploading…', 'extrachill-studio' ) : __( 'Upload Image', 'extrachill-studio' )
-							),
-							selectedFile
-								? createElement( 'span', { className: 'ec-studio-composer__hint' }, selectedFile.name )
-								: null
-						),
-					} )
 					: null,
 				error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
 				! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null,
