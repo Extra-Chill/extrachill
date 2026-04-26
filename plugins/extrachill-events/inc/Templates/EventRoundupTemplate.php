@@ -19,6 +19,7 @@
  *   - Title block (first slide only) with accent underline
  *   - Day group sections: day header in day-palette color + event rows
  *   - Each event row: title + venue/time meta line
+ *   - Footer CTA pointing viewers to the full events site
  *
  * Required data fields:
  *   - day_groups (array) — date_key => { date_obj, events[] }, where each
@@ -26,11 +27,13 @@
  *
  * Optional data fields:
  *   - title (string) — appears only on first slide
+ *   - cta_text (string) — footer CTA; defaults to current site host
  *
  * Optional brand token extensions consumed by this template:
  *   - colors['event_roundup_bg']    — slide background (falls back to background_dark)
  *   - colors['event_roundup_text']  — primary text (falls back to text_inverse)
  *   - colors['event_roundup_muted'] — venue/time meta (falls back to text_muted)
+ *   - colors['event_roundup_cta']   — footer CTA (falls back to accent)
  *   - day_palette['sunday'..'saturday'] — hex per weekday (falls back to neutral palette)
  *
  * @package ExtraChillEvents\Templates
@@ -56,6 +59,9 @@ class EventRoundupTemplate implements TemplateInterface {
 	private const DAY_HEADER_SIZE        = 28;
 	private const EVENT_TITLE_SIZE       = 22;
 	private const EVENT_META_SIZE        = 18;
+	private const CTA_SIZE               = 18;
+	private const CTA_LINE_WIDTH         = 180;
+	private const CTA_LINE_GAP           = 18;
 	private const LINE_HEIGHT_MULTIPLIER = 1.4;
 
 	/**
@@ -99,6 +105,11 @@ class EventRoundupTemplate implements TemplateInterface {
 				'type'     => 'string',
 				'required' => false,
 			),
+			'cta_text'   => array(
+				'label'    => 'CTA Text',
+				'type'     => 'string',
+				'required' => false,
+			),
 		);
 	}
 
@@ -113,6 +124,7 @@ class EventRoundupTemplate implements TemplateInterface {
 
 		$day_groups = (array) ( $data['day_groups'] ?? array() );
 		$title      = (string) ( $data['title'] ?? '' );
+		$cta_text   = $this->resolve_cta_text( $data );
 
 		if ( empty( $day_groups ) ) {
 			return array();
@@ -132,6 +144,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		$text_hex  = (string) ( $tokens['colors']['event_roundup_text'] ?? $tokens['colors']['text_inverse'] ?? '#e5e5e5' );
 		$muted_hex = (string) ( $tokens['colors']['event_roundup_muted'] ?? $tokens['colors']['text_muted'] ?? '#b0b0b0' );
 		$accent_hex = (string) ( $tokens['colors']['accent'] ?? '#53940b' );
+		$cta_hex    = (string) ( $tokens['colors']['event_roundup_cta'] ?? $accent_hex );
 
 		$day_palette = isset( $tokens['day_palette'] ) && is_array( $tokens['day_palette'] )
 			? array_merge( self::FALLBACK_DAY_PALETTE, $tokens['day_palette'] )
@@ -162,6 +175,8 @@ class EventRoundupTemplate implements TemplateInterface {
 				$text_hex,
 				$muted_hex,
 				$accent_hex,
+				$cta_hex,
+				$cta_text,
 				$day_palette
 			);
 
@@ -171,6 +186,20 @@ class EventRoundupTemplate implements TemplateInterface {
 		}
 
 		return $image_paths;
+	}
+
+	/**
+	 * Resolve footer CTA text shown on every slide.
+	 */
+	private function resolve_cta_text( array $data ): string {
+		$cta_text = isset( $data['cta_text'] ) ? trim( (string) $data['cta_text'] ) : '';
+
+		if ( '' === $cta_text ) {
+			$host = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+			$cta_text = $host ? sprintf( 'More shows at %s', $host ) : '';
+		}
+
+		return strtoupper( $cta_text );
 	}
 
 	/**
@@ -285,6 +314,8 @@ class EventRoundupTemplate implements TemplateInterface {
 		string $text_hex,
 		string $muted_hex,
 		string $accent_hex,
+		string $cta_hex,
+		string $cta_text,
 		array $day_palette
 	): ?string {
 		$renderer = new GDRenderer();
@@ -302,6 +333,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		$text_color  = $renderer->color_hex( 'text', $text_hex );
 		$muted_color = $renderer->color_hex( 'muted', $muted_hex );
 		$accent      = $renderer->color_hex( 'accent', $accent_hex );
+		$cta_color   = $renderer->color_hex( 'cta', $cta_hex );
 
 		$renderer->fill( $bg_color );
 
@@ -314,6 +346,8 @@ class EventRoundupTemplate implements TemplateInterface {
 		foreach ( $slide_days as $day_group ) {
 			$y = $this->render_day_group( $renderer, $day_group, $y, $text_color, $muted_color, $day_palette );
 		}
+
+		$this->render_cta( $renderer, $cta_text, $cta_color );
 
 		$filename = sprintf( 'roundup-slide-%d.%s', $slide_number, 'jpeg' === $format ? 'jpg' : 'png' );
 
@@ -355,6 +389,29 @@ class EventRoundupTemplate implements TemplateInterface {
 		$y += self::TITLE_UNDERLINE_HEIGHT + 30;
 
 		return $y;
+	}
+
+	/**
+	 * Render a small footer CTA to send viewers back to the full calendar.
+	 */
+	private function render_cta( GDRenderer $renderer, string $cta_text, int $cta_color ): void {
+		if ( '' === $cta_text ) {
+			return;
+		}
+
+		$baseline = $renderer->get_height() - self::PADDING;
+		$line_y   = $baseline - self::CTA_SIZE - self::CTA_LINE_GAP;
+		$line_x   = (int) ( ( $renderer->get_width() - self::CTA_LINE_WIDTH ) / 2 );
+
+		$renderer->filled_rect(
+			$line_x,
+			$line_y,
+			$line_x + self::CTA_LINE_WIDTH,
+			$line_y + self::TITLE_UNDERLINE_HEIGHT,
+			$cta_color
+		);
+
+		$renderer->draw_text_centered( $cta_text, self::CTA_SIZE, $baseline, $cta_color, 'body' );
 	}
 
 	/**

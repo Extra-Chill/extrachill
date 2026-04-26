@@ -20,6 +20,8 @@
 
 namespace ExtraChillEvents\Abilities;
 
+use DataMachineEvents\Blocks\Calendar\Query\ScopeResolver;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -71,6 +73,11 @@ class EventRoundupAbilities {
 							'type'        => 'string',
 							'description' => __( 'Weekday-name shortcut: resolves to next occurrence after week_start_day (e.g. "sunday").', 'extrachill-events' ),
 						),
+						'scope'            => array(
+							'type'        => 'string',
+							'enum'        => array( 'today', 'tonight', 'this-weekend', 'this-week' ),
+							'description' => __( 'Named date scope shared with the calendar API. Ignored when date_start or week_start_day is provided.', 'extrachill-events' ),
+						),
 						'location'         => array(
 							'type'        => 'string',
 							'description' => __( 'Location taxonomy term slug or numeric term ID. Optional.', 'extrachill-events' ),
@@ -89,8 +96,8 @@ class EventRoundupAbilities {
 						'location_name' => array( 'type' => 'string' ),
 						'total_events'  => array( 'type' => 'integer' ),
 						'day_groups'    => array(
-							'type'  => 'array',
-							'items' => array( 'type' => 'object' ),
+							'type'                 => 'object',
+							'additionalProperties' => array( 'type' => 'object' ),
 						),
 						'event_summary' => array( 'type' => 'string' ),
 					),
@@ -115,13 +122,17 @@ class EventRoundupAbilities {
 					'type'       => 'object',
 					'properties' => array(
 						'day_groups'      => array(
-							'type'        => 'array',
-							'description' => __( 'Day-grouped events from event-roundup-query.', 'extrachill-events' ),
-							'items'       => array( 'type' => 'object' ),
+							'type'                 => 'object',
+							'description'          => __( 'Date-keyed day groups from event-roundup-query.', 'extrachill-events' ),
+							'additionalProperties' => array( 'type' => 'object' ),
 						),
 						'title'           => array(
 							'type'        => 'string',
 							'description' => __( 'Optional title for first slide.', 'extrachill-events' ),
+						),
+						'cta_text'        => array(
+							'type'        => 'string',
+							'description' => __( 'Optional footer CTA. Defaults to the current site host.', 'extrachill-events' ),
 						),
 						'storage_context' => array(
 							'type'        => 'object',
@@ -169,6 +180,11 @@ class EventRoundupAbilities {
 							'type'        => 'string',
 							'description' => __( 'End date (Y-m-d). Defaults to date_start (single-day roundup).', 'extrachill-events' ),
 						),
+						'scope'      => array(
+							'type'        => 'string',
+							'enum'        => array( 'today', 'tonight', 'this-weekend', 'this-week' ),
+							'description' => __( 'Named date scope shared with the calendar API. Ignored when date_start is provided.', 'extrachill-events' ),
+						),
 						'location'   => array(
 							'type'        => 'string',
 							'description' => __( 'Location taxonomy term slug or numeric term ID. Optional.', 'extrachill-events' ),
@@ -176,6 +192,10 @@ class EventRoundupAbilities {
 						'title'      => array(
 							'type'        => 'string',
 							'description' => __( 'Optional title for the first slide.', 'extrachill-events' ),
+						),
+						'cta_text'   => array(
+							'type'        => 'string',
+							'description' => __( 'Optional footer CTA. Defaults to the current site host.', 'extrachill-events' ),
 						),
 					),
 				),
@@ -213,7 +233,13 @@ class EventRoundupAbilities {
 
 		$location_term_id = $this->resolveLocationTermId( $input );
 
-		$day_groups = $this->queryEvents( $date_range['date_start'], $date_range['date_end'], $location_term_id );
+		$day_groups = $this->queryEvents(
+			$date_range['date_start'],
+			$date_range['date_end'],
+			$location_term_id,
+			(string) ( $date_range['time_start'] ?? '' ),
+			(string) ( $date_range['time_end'] ?? '' )
+		);
 
 		if ( empty( $day_groups ) ) {
 			return array(
@@ -239,6 +265,7 @@ class EventRoundupAbilities {
 	public function executeRender( array $input ): array|\WP_Error {
 		$day_groups      = $input['day_groups'] ?? array();
 		$title           = (string) ( $input['title'] ?? '' );
+		$cta_text        = (string) ( $input['cta_text'] ?? '' );
 		$storage_context = (array) ( $input['storage_context'] ?? array() );
 
 		if ( empty( $day_groups ) ) {
@@ -260,6 +287,7 @@ class EventRoundupAbilities {
 				'data'        => array(
 					'day_groups' => $day_groups,
 					'title'      => $title,
+					'cta_text'   => $cta_text,
 				),
 				'preset'      => 'instagram_feed_portrait',
 				'format'      => 'png',
@@ -290,9 +318,9 @@ class EventRoundupAbilities {
 	}
 
 	public function executeBuild( array $input ): array|\WP_Error {
-		// Default date_start to today if neither dates nor weekday names provided.
+		// Default to the shared calendar API's today scope when no date input is provided.
 		if ( empty( $input['date_start'] ) && empty( $input['week_start_day'] ) ) {
-			$input['date_start'] = ( new \DateTime( 'now', \wp_timezone() ) )->format( 'Y-m-d' );
+			$input['scope'] = (string) ( $input['scope'] ?? 'today' );
 		}
 
 		$query_result = $this->executeQuery( $input );
@@ -317,6 +345,7 @@ class EventRoundupAbilities {
 		$render_result = $this->executeRender( array(
 			'day_groups' => $query_result['day_groups'],
 			'title'      => (string) ( $input['title'] ?? '' ),
+			'cta_text'   => (string) ( $input['cta_text'] ?? '' ),
 		) );
 		if ( \is_wp_error( $render_result ) ) {
 			return $render_result;
@@ -338,10 +367,10 @@ class EventRoundupAbilities {
 	/**
 	 * Resolve date_start / date_end from inputs.
 	 *
-	 * Precedence: explicit Y-m-d dates > weekday-name shortcuts > error.
+	 * Precedence: explicit Y-m-d dates > weekday-name shortcuts > named scope > error.
 	 * date_end defaults to date_start (single-day roundup).
 	 *
-	 * @return array{date_start: string, date_end: string}|\WP_Error
+	 * @return array{date_start: string, date_end: string, time_start?: string, time_end?: string}|\WP_Error
 	 */
 	private function resolveDateRange( array $input ): array|\WP_Error {
 		$date_start = isset( $input['date_start'] ) ? trim( (string) $input['date_start'] ) : '';
@@ -391,9 +420,25 @@ class EventRoundupAbilities {
 			return $this->resolveNextWeekdayRange( $week_start_day, $week_end_day );
 		}
 
+		$scope = isset( $input['scope'] ) ? sanitize_key( (string) $input['scope'] ) : '';
+		if ( '' !== $scope && class_exists( ScopeResolver::class ) ) {
+			$scope_range = ScopeResolver::resolve( $scope );
+			if ( $scope_range ) {
+				return array_filter(
+					array(
+						'date_start' => $scope_range['date_start'],
+						'date_end'   => $scope_range['date_end'],
+						'time_start' => $scope_range['time_start'] ?? '',
+						'time_end'   => $scope_range['time_end'] ?? '',
+					),
+					static fn( $value ) => '' !== $value
+				);
+			}
+		}
+
 		return new \WP_Error(
 			'missing_date_inputs',
-			__( 'Provide date_start (Y-m-d) or both week_start_day and week_end_day.', 'extrachill-events' ),
+			__( 'Provide date_start (Y-m-d), both week_start_day and week_end_day, or a valid scope.', 'extrachill-events' ),
 			array( 'status' => 400 )
 		);
 	}
@@ -447,13 +492,20 @@ class EventRoundupAbilities {
 		return (int) ( $input['location_term_id'] ?? 0 );
 	}
 
-	private function queryEvents( string $date_start, string $date_end, int $location_term_id ): array {
+	private function queryEvents( string $date_start, string $date_end, int $location_term_id, string $time_start = '', string $time_end = '' ): array {
 		$query_input = array(
 			'date_start' => $date_start,
 			'date_end'   => $date_end,
 			'per_page'   => -1,
 			'order'      => 'ASC',
 		);
+
+		if ( '' !== $time_start ) {
+			$query_input['time_start'] = $time_start;
+		}
+		if ( '' !== $time_end ) {
+			$query_input['time_end'] = $time_end;
+		}
 
 		if ( $location_term_id > 0 ) {
 			$query_input['tax_filters'] = array(
