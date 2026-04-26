@@ -429,7 +429,7 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		try {
 			const path = activePostId ? `/wp/v2/posts/${ activePostId }` : '/wp/v2/posts';
 
-			const post = await apiFetch< WpPost >( {
+			await apiFetch< WpPost >( {
 				path,
 				method: 'POST',
 				data: {
