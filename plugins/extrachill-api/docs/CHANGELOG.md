@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.15.1] - 2026-04-26
+
+### Fixed
+- use WP_Ability::check_permissions() not has_permission() in network-media route
+
 ## [0.15.0] - 2026-04-26
 
 ### Added
