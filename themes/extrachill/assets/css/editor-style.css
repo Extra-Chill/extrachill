@@ -1,6 +1,15 @@
-/* 
- * Editor Styles
- * Content styles for the WordPress block editor (wp-admin post editor).
+/*
+ * Editor Styles — Universal
+ * Typography, colors, lists, blockquotes, code, tables — content styling
+ * that should look the same in any block editor canvas:
+ *   - wp-admin post editor
+ *   - Blocks Everywhere iframes (bbPress topics/replies, homepage modal)
+ *   - Studio editor surface
+ *
+ * Layout rules that assume the wp-admin post shape (centered content
+ * column, post title wrapper, outer canvas padding) live in
+ * editor-style-admin.css and are filtered out for non-admin contexts.
+ *
  * Delivered via add_editor_style() — lives inside the editor iframe only.
  * Selectors are auto-scoped to .editor-styles-wrapper by Gutenberg.
  *
@@ -31,76 +40,17 @@
 
 /* Root variables are loaded separately via functions.php */
 
-/* Ensure proper text contrast in the editor */
-.edit-post-visual-editor,
-.block-editor-writing-flow,
-.wp-block-post-content {
-    background-color: var(--background-color) !important;
-    color: var(--text-color) !important;
-}
 
-/* Fix title styling in editor - comprehensive targeting */
-.edit-post-visual-editor .wp-block-post-title,
-.edit-post-visual-editor .editor-post-title__input,
-.editor-post-title__input,
-.wp-block-post-title,
-.wp-block[data-type="core/post-title"],
-.wp-block[data-type="core/post-title"] .wp-block-post-title,
-.block-editor-block-list__layout .wp-block[data-type="core/post-title"] {
-    font-family: var(--font-family-heading) !important;
-    font-size: var(--font-size-3xl) !important;
-    line-height: 1.4 !important;
-    color: var(--text-color) !important;
-    background: transparent !important;
-    font-weight: 700 !important;
-    margin: var(--spacing-lg) 0 !important;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    box-sizing: border-box !important;
-}
+/* ==========================================================================
+   1. Heading Sizes
+   Match the theme's frontend type scale inside the editor.
+   ========================================================================== */
 
-/* Title wrapper: constrain like content blocks */
-.editor-styles-wrapper .editor-visual-editor__post-title-wrapper,
-.editor-styles-wrapper .edit-post-visual-editor__post-title-wrapper {
-    max-width: var(--content-width) !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    padding-left: var(--spacing-lg) !important;
-    padding-right: var(--spacing-lg) !important;
-}
-
-/* Force the title input to not be positioned absolutely or fixed */
-.editor-post-title__input,
-.edit-post-visual-editor .editor-post-title__input {
-    text-align: left !important;
-    position: static !important;
-    left: auto !important;
-    right: auto !important;
-    transform: none !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    width: 100% !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-}
-
-
-
-/* Fix heading sizes in editor to match theme */
 .edit-post-visual-editor .wp-block h1,
 .wp-block h1 { font-size: var(--font-size-3xl) !important; line-height: 1.4 !important; }
 
 .edit-post-visual-editor .wp-block h2,
 .wp-block h2 { font-size: var(--font-size-2xl) !important; line-height: 1.4 !important; }
-
-
 
 .edit-post-visual-editor .wp-block h3,
 .wp-block h3 { font-size: var(--font-size-xl) !important; line-height: 1.4 !important; }
@@ -133,45 +83,11 @@
     margin: var(--spacing-lg) 0 !important;
 }
 
-/* Ensure proper background and text contrast for the main editor */
-.block-editor-writing-flow,
-.edit-post-visual-editor__content-area,
-.block-editor-block-list__layout,
-.wp-block-post-content {
-    background-color: var(--background-color) !important;
-    color: var(--text-color) !important;
-}
 
-/* Fix any potential dark mode issues */
-@media (prefers-color-scheme: dark) {
-    .edit-post-visual-editor,
-    .block-editor-writing-flow,
-    .wp-block-post-content {
-        background-color: var(--background-color) !important;
-        color: var(--text-color) !important;
-    }
+/* ==========================================================================
+   2. Paragraph & Inline Content
+   ========================================================================== */
 
-    .edit-post-visual-editor .wp-block-post-title,
-    .edit-post-visual-editor .editor-post-title__input,
-    .editor-post-title__input,
-    .wp-block-post-title {
-        color: var(--text-color) !important;
-        background: transparent !important;
-    }
-
-
-    .block-editor-writing-flow,
-    .edit-post-visual-editor__content-area,
-    .block-editor-block-list__layout,
-    .wp-block-post-content {
-        background-color: var(--background-color) !important;
-        color: var(--text-color) !important;
-    }
-}
-
-
-
-/* General paragraph and content styling */
 .edit-post-visual-editor .wp-block-paragraph,
 .wp-block-paragraph {
     font-size: var(--font-size-body) !important;
@@ -198,69 +114,12 @@
     background: transparent !important;
 }
 
-/* Fix any input field styling issues in the editor */
-.edit-post-visual-editor .form-field input,
-.edit-post-visual-editor .form-field textarea,
-.edit-post-visual-editor input,
-.edit-post-visual-editor textarea {
-    background-color: var(--background-color) !important;
-    color: var(--text-color) !important;
-    border: 1px solid var(--border-color) !important;
-    padding: var(--spacing-sm) !important;
-    border-radius: var(--border-radius-sm) !important;
-}
 
-/* Additional specificity for dark mode form fields */
-@media (prefers-color-scheme: dark) {
-    .edit-post-visual-editor .form-field input,
-    .edit-post-visual-editor .form-field textarea,
-    .edit-post-visual-editor input,
-    .edit-post-visual-editor textarea {
-        background-color: var(--background-color) !important;
-        color: var(--text-color) !important;
-        border: 1px solid var(--border-color) !important;
-    }
-}
+/* ==========================================================================
+   3. Lists
+   Restore bullets/numbers removed by global reset in style.css.
+   ========================================================================== */
 
-
-
-/* Fill editor background and defer width to inner layout */
-.editor-styles-wrapper {
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    padding: var(--spacing-xl) 0 var(--spacing-lg) 0;
-    background-color: var(--background-color);
-    box-sizing: border-box;
-}
-
-/* Content width constraint - apply to individual blocks like WordPress 6.3+ iframed editor */
-.editor-styles-wrapper .is-root-container > .wp-block {
-    max-width: var(--content-width) !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    padding-left: var(--spacing-lg) !important;
-    padding-right: var(--spacing-lg) !important;
-    box-sizing: border-box !important;
-}
-
-
-
-/* Additional aggressive targeting for the title input */
-body .editor-post-title__input,
-body .wp-block-post-title,
-body .edit-post-visual-editor .editor-post-title__input {
-    position: static !important;
-    left: auto !important;
-    right: auto !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    transform: none !important;
-    width: 100% !important;
-} 
-
-/* === List Styles (restore bullets/numbers removed by global reset in style.css) === */
-/* Target WordPress list blocks directly with padding-inline-start for proper marker alignment */
 .editor-styles-wrapper .wp-block-list {
     list-style-position: outside !important;
     padding-inline-start: var(--spacing-xl) !important;
@@ -308,9 +167,10 @@ body .edit-post-visual-editor .editor-post-title__input {
     color: var(--text-color);
 }
 
+
 /* ==========================================================================
-   8. Content Formatting
-   Blockquotes, code, strong/em, etc. — mirroring style.css for the editor.
+   4. Content Formatting
+   Blockquotes, code, strong/em, hr, tables — mirroring style.css for the editor.
    ========================================================================== */
 
 .wp-block-quote {

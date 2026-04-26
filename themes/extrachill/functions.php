@@ -27,6 +27,7 @@ if ( ! function_exists( 'extrachill_setup' ) ) :
 		add_theme_support( 'editor-styles' );
 		add_editor_style( 'assets/css/root.css' );
 		add_editor_style( 'assets/css/editor-style.css' );
+		add_editor_style( 'assets/css/editor-style-admin.css' );
 		add_editor_style( 'assets/css/single-post.css' );
 		add_editor_style( 'assets/css/block-editor.css' );
 
