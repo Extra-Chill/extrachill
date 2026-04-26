@@ -603,6 +603,9 @@ class LocationCommand {
 	 * [--date-end=<date>]
 	 * : End date (Y-m-d). Defaults to date-start (single-day roundup).
 	 *
+	 * [--scope=<scope>]
+	 * : Named date scope: today, tonight, this-weekend, or this-week. Ignored when date-start is provided.
+	 *
 	 * [--week-start-day=<day>]
 	 * : Weekday-name shortcut (e.g. "thursday"). Resolves to the next occurrence.
 	 * Mutually exclusive with date-start.
@@ -685,6 +688,7 @@ class LocationCommand {
 			array(
 				'week-start-day' => 'week_start_day',
 				'week-end-day'   => 'week_end_day',
+				'scope'          => 'scope',
 				'location'       => 'location',
 				'title'          => 'title',
 			) as $cli_key => $ability_key
