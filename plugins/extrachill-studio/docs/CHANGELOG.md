@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0] - 2026-04-26
+
+### Added
+- enable fullscreen mode in compose editor via IBE More Menu, add CSS to hide out-of-skeleton chrome (title, toolbar, actions, sidebar) when fullscreen is active
+
+### Fixed
+- register Studio ability category
+
 ## [0.8.0] - 2026-04-26
 
 ### Added
