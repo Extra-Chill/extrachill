@@ -4,9 +4,8 @@ import type { ReactElement, ChangeEvent } from 'react';
 import { ActionRow, FieldGroup, InlineStatus, MediaField, Panel, PanelHeader } from '@extrachill/components';
 
 import apiFetch from '@wordpress/api-fetch';
-import type { SocialPublishResponse, SocialPublishResult } from '@extrachill/api-client';
+import type { SocialPlatformConfig, SocialPublishResponse, SocialPublishResult } from '@extrachill/api-client';
 import { studioClient, uploadStudioFile } from '../../../app/client';
-import type { SocialPlatformConfig } from '../../../types/externals';
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;

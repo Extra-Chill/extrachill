@@ -27,20 +27,9 @@ declare module '@extrachill/components/components/Tabs' {
 	export default Tabs;
 }
 
-export interface SocialPlatformConfig {
-	label: string;
-	maxImages?: number;
-	aspectRatios?: string[];
-	defaultAspectRatio?: string;
-	charLimit?: number;
-	supportsCarousel?: boolean;
-	type?: string;
-	scopes?: string;
-	authenticated?: boolean;
-	username?: string | null;
-	/** Platform capabilities declared by the handler. Each entry has a slug and display label. */
-	capabilities?: Array< { slug: string; label: string } >;
-}
+// SocialPlatformConfig is exported from @extrachill/api-client — import from
+// there directly. The previous local re-declaration drifted out of sync with
+// the api-client contract; removed in the platforms-array-contract refactor.
 
 declare module '@extrachill/components' {
 	export interface TabItem {

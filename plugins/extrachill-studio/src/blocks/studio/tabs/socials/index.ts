@@ -2,13 +2,12 @@ import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useMemo, useState } from '@wordpress/element';
 import type { ComponentType, ReactElement } from 'react';
 import { InlineStatus, Panel, PanelHeader } from '@extrachill/components';
-import type { SocialPlatformsResponse } from '@extrachill/api-client';
+import type { SocialPlatformConfig } from '@extrachill/api-client';
 
 import { studioClient } from '../../app/client';
 import type { StudioPaneProps } from '../../types/studio';
-import type { SocialPlatformConfig } from '../../types/externals';
 import SocialsSidebar from './sidebar';
-import type { SidebarPlatform, CapabilityEntry } from './sidebar';
+import type { SidebarPlatform } from './sidebar';
 import PlatformPublishPane from './publish';
 import CommentsView from './comments';
 import GiveawayView from '../giveaway';
@@ -32,49 +31,9 @@ const VIEW_REGISTRY: Record< string, ComponentType< any > > = {
 	giveaway: GiveawayView,
 };
 
-/** Fallback when the handler doesn't declare capabilities. */
-const DEFAULT_CAPABILITIES: CapabilityEntry[] = [
-	{ slug: 'publish', label: 'Publish' },
-];
-
-interface PlatformEntry {
-	slug: string;
-	label: string;
-	authenticated: boolean;
-	username: string | null;
-	type: string;
-	capabilities: CapabilityEntry[];
-	config: SocialPlatformConfig;
-}
-
-/**
- * Normalize capabilities from the server response.
- *
- * Handles both the structured format ({ slug, label }[]) and a bare
- * string[] fallback for backwards compatibility with older handler versions.
- */
-const normalizeCapabilities = ( raw: unknown ): CapabilityEntry[] => {
-	if ( ! Array.isArray( raw ) || raw.length === 0 ) {
-		return DEFAULT_CAPABILITIES;
-	}
-
-	return raw.map( ( entry ) => {
-		if ( typeof entry === 'string' ) {
-			// Bare string fallback — capitalize for display.
-			return { slug: entry, label: entry.charAt( 0 ).toUpperCase() + entry.slice( 1 ) };
-		}
-
-		if ( entry && typeof entry === 'object' && typeof entry.slug === 'string' ) {
-			return { slug: entry.slug, label: entry.label || entry.slug };
-		}
-
-		return { slug: String( entry ), label: String( entry ) };
-	} );
-};
-
 const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	const allowedSlugs = context.socialPlatforms;
-	const [ platforms, setPlatforms ] = useState< SocialPlatformsResponse >( {} );
+	const [ platforms, setPlatforms ] = useState< SocialPlatformConfig[] >( [] );
 	const [ error, setError ] = useState( '' );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ activePlatform, setActivePlatform ] = useState< string | null >( null );
@@ -86,10 +45,10 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 			setError( '' );
 
 			try {
-				const data = await studioClient.socials.getPlatforms();
-				setPlatforms( data && typeof data === 'object' ? data : {} );
+				const response = await studioClient.socials.getPlatforms();
+				setPlatforms( Array.isArray( response?.platforms ) ? response.platforms : [] );
 			} catch ( fetchError ) {
-				setPlatforms( {} );
+				setPlatforms( [] );
 				setError( ( fetchError as Error )?.message || __( 'Unable to load social platforms.', 'extrachill-studio' ) );
 			} finally {
 				setIsLoading( false );
@@ -99,27 +58,18 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		loadPlatforms();
 	}, [] );
 
-	/** Filter to authenticated, non-fetch platforms within the allowlist. */
-	const availablePlatforms: PlatformEntry[] = useMemo( () => {
-		const entries = Object.entries( platforms ).map( ( [ slug, config ] ) => {
-			const cfg = config as SocialPlatformConfig | undefined;
-
-			return {
-				slug,
-				label: cfg?.label || slug,
-				authenticated: cfg?.authenticated || false,
-				username: cfg?.username || null,
-				type: cfg?.type || 'publish',
-				capabilities: normalizeCapabilities( cfg?.capabilities ),
-				config: cfg || { label: slug },
-			};
-		} );
-
-		return entries.filter( ( item ) => {
-			if ( ! item.authenticated || item.type === 'fetch' ) {
+	/**
+	 * Filter to authenticated platforms within the optional allowlist.
+	 *
+	 * Server controls sort order (authenticated-first then alphabetical) and
+	 * pre-filters fetch handlers, so the client just renders in array order.
+	 */
+	const availablePlatforms: SocialPlatformConfig[] = useMemo( () => {
+		return platforms.filter( ( platform ) => {
+			if ( ! platform.authenticated ) {
 				return false;
 			}
-			if ( allowedSlugs.length > 0 && ! allowedSlugs.includes( item.slug ) ) {
+			if ( allowedSlugs.length > 0 && ! allowedSlugs.includes( platform.slug ) ) {
 				return false;
 			}
 			return true;
@@ -233,7 +183,7 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 			slug: selectedPlatform.slug,
 			label: selectedPlatform.label,
 			username: selectedPlatform.username,
-			config: selectedPlatform.config,
+			config: selectedPlatform,
 		} );
 	};
 
