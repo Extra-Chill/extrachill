@@ -528,6 +528,30 @@
 	}
 }
 
+/* ── Compose tab — fullscreen mode ──
+ * IBE's fullscreen toggle (More Menu → "Fullscreen mode") sets
+ * html.is-fullscreen-mode and pins .interface-interface-skeleton fixed
+ * to the viewport. Anything outside .iso-editor (Studio chrome: title
+ * input, toolbar, save actions, detached sidebar slot) becomes visually
+ * irrelevant in that state and would either bleed through or just sit
+ * uselessly underneath. Hide them so fullscreen reads as a clean
+ * content-only writing mode. Users exit via the same More Menu or the
+ * Ctrl/Cmd+Shift+Alt+F shortcut to regain access to title and submit.
+ */
+html.is-fullscreen-mode .ec-studio-compose-toolbar,
+html.is-fullscreen-mode .ec-studio-compose-title,
+html.is-fullscreen-mode .ec-studio-composer__actions,
+html.is-fullscreen-mode .ec-studio-panel--compose-sidebar {
+	display: none;
+}
+
+/* The compose editor panel needs to release its border + grid position
+ * so the fullscreen skeleton can take over the viewport cleanly. */
+html.is-fullscreen-mode .ec-studio-compose-editor {
+	border: 0;
+	min-height: 0;
+}
+
 /* ── Socials tab — sidebar + content layout ── */
 .ec-studio-socials-layout {
 	display: grid;
