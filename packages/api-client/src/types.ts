@@ -523,6 +523,38 @@ export interface MediaUploadResponse {
   mime_type: string;
 }
 
+// ─── Network Media ───────────────────────────────────────────────────────────
+
+/**
+ * Canonical attachment shape returned by `/extrachill/v1/network-media`.
+ *
+ * `sourceId` is `"<blog_id>:<attachment_id>"` so future cross-site phases
+ * can disambiguate IDs that collide across sites. Today blog_id is always 1.
+ */
+export interface NetworkMediaItem {
+  id: number;
+  blog_id: number;
+  sourceId: string;
+  url: string;
+  previewUrl: string;
+  title: string;
+  alt: string;
+  caption: string;
+  mime_type: string;
+  media_type: string;
+  date: string;
+  width: number;
+  height: number;
+}
+
+export interface NetworkMediaListResponse {
+  items: NetworkMediaItem[];
+  total: number;
+  total_pages: number;
+  page: number;
+  per_page: number;
+}
+
 // ─── Shop ────────────────────────────────────────────────────────────────────
 
 export interface ShopProduct {

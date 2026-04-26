@@ -48,6 +48,7 @@ export { CommunityResource } from './resources/community';
 export { EventsResource } from './resources/events';
 export { AnalyticsResource } from './resources/analytics';
 export { MediaResource } from './resources/media';
+export { NetworkMediaResource } from './resources/network-media';
 export { ShopResource } from './resources/shop';
 export { UsersResource } from './resources/users';
 export { AdminResource } from './resources/admin';
@@ -57,3 +58,4 @@ export { SocialsResource } from './resources/socials';
 // Resource param types
 export type { CalendarParams } from './resources/events';
 export type { AnalyticsEventsParams } from './resources/analytics';
+export type { NetworkMediaListParams } from './resources/network-media';

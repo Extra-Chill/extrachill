@@ -28,6 +28,7 @@ import { CommunityResource } from './resources/community';
 import { EventsResource } from './resources/events';
 import { AnalyticsResource } from './resources/analytics';
 import { MediaResource } from './resources/media';
+import { NetworkMediaResource } from './resources/network-media';
 import { ShopResource } from './resources/shop';
 import { UsersResource } from './resources/users';
 import { AdminResource } from './resources/admin';
@@ -44,6 +45,7 @@ export class ExtraChillClient {
   readonly events: EventsResource;
   readonly analytics: AnalyticsResource;
   readonly media: MediaResource;
+  readonly networkMedia: NetworkMediaResource;
   readonly shop: ShopResource;
   readonly users: UsersResource;
   readonly admin: AdminResource;
@@ -60,6 +62,7 @@ export class ExtraChillClient {
     this.events = new EventsResource(transport);
     this.analytics = new AnalyticsResource(transport);
     this.media = new MediaResource(transport);
+    this.networkMedia = new NetworkMediaResource(transport);
     this.shop = new ShopResource(transport);
     this.users = new UsersResource(transport);
     this.admin = new AdminResource(transport);
