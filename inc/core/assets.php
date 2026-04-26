@@ -248,6 +248,62 @@ function extrachill_enqueue_blocks_everywhere_iframe_assets() {
 }
 add_action( 'blocks_everywhere_enqueue_iframe_assets', 'extrachill_enqueue_blocks_everywhere_iframe_assets' );
 
+/**
+ * Strip wp-admin-only editor stylesheets from non-admin block editor contexts.
+ *
+ * editor-style-admin.css and single-post.css both assume the wp-admin post
+ * editor shape — single centered content column at --content-width with outer
+ * canvas padding and a post title wrapper. They look wrong inside the compact
+ * iframe editors used by Blocks Everywhere (bbPress) and Studio.
+ *
+ * Theme registers them via add_editor_style() so they always end up in
+ * settings['styles'] from get_block_editor_theme_styles(). This filter walks
+ * the array on the way out and drops the admin-only entries when the request
+ * is not wp-admin.
+ *
+ * editor-style.css (typography, lists, blockquotes) and root.css and
+ * block-editor.css (EC inserter branding) all stay — they're universal.
+ *
+ * @param array $settings Block editor settings.
+ * @return array
+ */
+function extrachill_filter_admin_only_editor_styles( $settings ) {
+	if ( is_admin() ) {
+		return $settings;
+	}
+
+	if ( ! isset( $settings['styles'] ) || ! is_array( $settings['styles'] ) ) {
+		return $settings;
+	}
+
+	$admin_only_files = array(
+		'/assets/css/editor-style-admin.css',
+		'/assets/css/single-post.css',
+	);
+
+	$settings['styles'] = array_values(
+		array_filter(
+			$settings['styles'],
+			static function ( $style ) use ( $admin_only_files ) {
+				if ( empty( $style['baseURL'] ) ) {
+					return true;
+				}
+
+				foreach ( $admin_only_files as $needle ) {
+					if ( false !== strpos( $style['baseURL'], $needle ) ) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+		)
+	);
+
+	return $settings;
+}
+add_filter( 'block_editor_settings_all', 'extrachill_filter_admin_only_editor_styles', 20 );
+
 function extrachill_enqueue_single_post_styles() {
 	$single_post_types = apply_filters( 'extrachill_single_post_style_post_types', array( 'post' ) );
 	if ( is_singular( $single_post_types ) || is_page() ) {

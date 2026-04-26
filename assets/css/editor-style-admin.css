@@ -1,0 +1,188 @@
+/*
+ * Editor Styles — wp-admin Only
+ * Layout rules that assume the wp-admin post editor shape:
+ *   - Single centered content column with max-width = --content-width
+ *   - .edit-post-visual-editor__post-title-wrapper exists
+ *   - .editor-styles-wrapper itself should have outer padding
+ *
+ * These selectors break or look wrong in the compact iframe editors used by
+ * Blocks Everywhere (bbPress topics/replies, the homepage New Topic modal)
+ * and in Studio's editor surface, where there is no post title wrapper and
+ * the canvas is already constrained by its container.
+ *
+ * Filtered out via block_editor_settings_all when ! is_admin() (see
+ * inc/core/assets.php).
+ *
+ * @package ExtraChill
+ */
+
+/* ==========================================================================
+   1. Post Title Block
+   ========================================================================== */
+
+.edit-post-visual-editor .wp-block-post-title,
+.edit-post-visual-editor .editor-post-title__input,
+.editor-post-title__input,
+.wp-block-post-title,
+.wp-block[data-type="core/post-title"],
+.wp-block[data-type="core/post-title"] .wp-block-post-title,
+.block-editor-block-list__layout .wp-block[data-type="core/post-title"] {
+    font-family: var(--font-family-heading) !important;
+    font-size: var(--font-size-3xl) !important;
+    line-height: 1.4 !important;
+    color: var(--text-color) !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+    margin: var(--spacing-lg) 0 !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Title wrapper: constrain like content blocks */
+.editor-styles-wrapper .editor-visual-editor__post-title-wrapper,
+.editor-styles-wrapper .edit-post-visual-editor__post-title-wrapper {
+    max-width: var(--content-width) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: var(--spacing-lg) !important;
+    padding-right: var(--spacing-lg) !important;
+}
+
+/* Force the title input to not be positioned absolutely or fixed */
+.editor-post-title__input,
+.edit-post-visual-editor .editor-post-title__input {
+    text-align: left !important;
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Additional aggressive targeting for the title input */
+body .editor-post-title__input,
+body .wp-block-post-title,
+body .edit-post-visual-editor .editor-post-title__input {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    transform: none !important;
+    width: 100% !important;
+}
+
+
+/* ==========================================================================
+   2. Editor Canvas Wrapper
+   The wp-admin editor needs outer padding around the canvas to give the
+   centered post content room to breathe. Compact iframe editors (BE,
+   Studio) provide their own surrounding chrome and do NOT want this.
+   ========================================================================== */
+
+.editor-styles-wrapper {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: var(--spacing-xl) 0 var(--spacing-lg) 0;
+    background-color: var(--background-color);
+    box-sizing: border-box;
+}
+
+/* Content width constraint — apply to individual blocks like WordPress 6.3+
+ * iframed editor. Centers the post body at --content-width. Out of place
+ * inside compact reply iframes that are already narrow. */
+.editor-styles-wrapper .is-root-container > .wp-block {
+    max-width: var(--content-width) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: var(--spacing-lg) !important;
+    padding-right: var(--spacing-lg) !important;
+    box-sizing: border-box !important;
+}
+
+
+/* ==========================================================================
+   3. wp-admin Background Overrides
+   These target the wp-admin editor chrome specifically.
+   ========================================================================== */
+
+.edit-post-visual-editor,
+.block-editor-writing-flow,
+.wp-block-post-content {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+}
+
+.block-editor-writing-flow,
+.edit-post-visual-editor__content-area,
+.block-editor-block-list__layout,
+.wp-block-post-content {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .edit-post-visual-editor,
+    .block-editor-writing-flow,
+    .wp-block-post-content {
+        background-color: var(--background-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    .edit-post-visual-editor .wp-block-post-title,
+    .edit-post-visual-editor .editor-post-title__input,
+    .editor-post-title__input,
+    .wp-block-post-title {
+        color: var(--text-color) !important;
+        background: transparent !important;
+    }
+
+    .block-editor-writing-flow,
+    .edit-post-visual-editor__content-area,
+    .block-editor-block-list__layout,
+    .wp-block-post-content {
+        background-color: var(--background-color) !important;
+        color: var(--text-color) !important;
+    }
+}
+
+
+/* ==========================================================================
+   4. wp-admin Form Field Overrides
+   Editor sidebar form inputs.
+   ========================================================================== */
+
+.edit-post-visual-editor .form-field input,
+.edit-post-visual-editor .form-field textarea,
+.edit-post-visual-editor input,
+.edit-post-visual-editor textarea {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--border-color) !important;
+    padding: var(--spacing-sm) !important;
+    border-radius: var(--border-radius-sm) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .edit-post-visual-editor .form-field input,
+    .edit-post-visual-editor .form-field textarea,
+    .edit-post-visual-editor input,
+    .edit-post-visual-editor textarea {
+        background-color: var(--background-color) !important;
+        color: var(--text-color) !important;
+        border: 1px solid var(--border-color) !important;
+    }
+}
