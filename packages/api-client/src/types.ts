@@ -607,8 +607,21 @@ export interface SocialPlatformAuthStatus {
   username: string | null;
 }
 
-export interface SocialPlatformConfig {
+export interface SocialPlatformCapability {
+  slug: string;
   label: string;
+}
+
+export interface SocialPlatformConfig {
+  /** Stable identifier (e.g. "instagram", "twitter"). Always present. */
+  slug: string;
+  label: string;
+  /** Handler type — currently always "publish" for entries returned by /platforms. */
+  type: string;
+  authenticated: boolean;
+  username: string | null;
+  /** Canonical capability list. At minimum `[{slug:'publish',label:'Publish'}]`. */
+  capabilities: SocialPlatformCapability[];
   maxImages?: number;
   aspectRatios?: string[];
   defaultAspectRatio?: string;
@@ -616,13 +629,18 @@ export interface SocialPlatformConfig {
   supportsCarousel?: boolean;
   supportsVideo?: boolean;
   supportedMediaKinds?: string[];
-  type?: string;
   scopes?: string;
-  authenticated: boolean;
-  username: string | null;
 }
 
-export type SocialPlatformsResponse = Record<string, SocialPlatformConfig>;
+/**
+ * Response shape for `GET /datamachine/v1/socials/platforms`.
+ *
+ * Server returns publish handlers only, sorted authenticated-first then
+ * alphabetically by label. Render in array order.
+ */
+export interface SocialPlatformsResponse {
+  platforms: SocialPlatformConfig[];
+}
 
 export interface SocialImageInput {
   url: string;
