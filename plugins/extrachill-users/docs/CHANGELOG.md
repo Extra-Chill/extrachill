@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.20] - 2026-04-26
+
+### Fixed
+- harden Google sign-in render race and consolidate from_join source
+
 ## [0.7.19] - 2026-04-26
 
 ### Fixed
