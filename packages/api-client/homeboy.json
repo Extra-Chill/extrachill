@@ -2,7 +2,7 @@
   "auto_cleanup": false,
   "changelog_target": "CHANGELOG.md",
   "extensions": {
-    "npm": {}
+    "nodejs": {}
   },
   "id": "extrachill-api-client",
   "remote_path": "",
