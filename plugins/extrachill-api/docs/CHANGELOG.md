@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.15.2] - 2026-04-26
+
+### Fixed
+- omit empty optional params from network-media ability input to satisfy schema
+
 ## [0.15.1] - 2026-04-26
 
 ### Fixed
