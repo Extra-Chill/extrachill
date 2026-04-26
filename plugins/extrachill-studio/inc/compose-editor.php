@@ -189,6 +189,18 @@ function configure_compose_editor( array $settings ): array {
 		'mediaEndpoint' => rest_url( 'extrachill/v1/media' ),
 	);
 
+	// Expose IBE's More Menu so writers can toggle fullscreen mode and
+	// keyboard shortcuts. Default to non-fullscreen on boot — users opt in
+	// via the menu (or Ctrl/Cmd+Shift+Alt+F). Fullscreen-state CSS lives
+	// in style.css under html.is-fullscreen-mode and hides Studio chrome
+	// that sits outside the editor skeleton (title input, toolbar, save
+	// actions, detached sidebar). See Phase 1 scoping in MEMORY.md.
+	$settings['iso']['moreMenu']                                = true;
+	$settings['iso']['defaultPreferences']                      = isset( $settings['iso']['defaultPreferences'] ) && is_array( $settings['iso']['defaultPreferences'] )
+		? $settings['iso']['defaultPreferences']
+		: array();
+	$settings['iso']['defaultPreferences']['fullscreenMode']    = false;
+
 	return $settings;
 }
 add_filter( 'blocks_everywhere_editor_settings', __NAMESPACE__ . '\\configure_compose_editor', 30 );
