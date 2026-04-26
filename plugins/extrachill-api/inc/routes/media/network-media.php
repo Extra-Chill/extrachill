@@ -90,6 +90,10 @@ function extrachill_api_network_media_permission( WP_REST_Request $request ) {
 
 /**
  * GET handler — list main-site media.
+ *
+ * Builds the ability input by including only params that were actually
+ * provided on the request. Empty strings for optional enum fields
+ * (e.g. `media_type`) would fail schema validation, so we omit them.
  */
 function extrachill_api_network_media_list( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/network-media-list' );
@@ -97,14 +101,22 @@ function extrachill_api_network_media_list( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_missing', 'Network media list ability not registered.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute(
-		array(
-			'media_type' => (string) $request->get_param( 'media_type' ),
-			'search'     => (string) $request->get_param( 'search' ),
-			'per_page'   => (int) $request->get_param( 'per_page' ),
-			'page'       => (int) $request->get_param( 'page' ),
-		)
+	$input = array(
+		'per_page' => (int) $request->get_param( 'per_page' ),
+		'page'     => (int) $request->get_param( 'page' ),
 	);
+
+	$media_type = $request->get_param( 'media_type' );
+	if ( ! empty( $media_type ) ) {
+		$input['media_type'] = (string) $media_type;
+	}
+
+	$search = $request->get_param( 'search' );
+	if ( ! empty( $search ) ) {
+		$input['search'] = (string) $search;
+	}
+
+	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
@@ -138,16 +150,24 @@ function extrachill_api_network_media_upload( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_missing', 'Network media upload ability not registered.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute(
-		array(
-			'tmp_name' => (string) $file['tmp_name'],
-			'name'     => (string) $file['name'],
-			'type'     => (string) $file['type'],
-			'size'     => (int) $file['size'],
-			'title'    => (string) $request->get_param( 'title' ),
-			'alt'      => (string) $request->get_param( 'alt' ),
-		)
+	$input = array(
+		'tmp_name' => (string) $file['tmp_name'],
+		'name'     => (string) $file['name'],
+		'type'     => (string) $file['type'],
+		'size'     => (int) $file['size'],
 	);
+
+	$title = $request->get_param( 'title' );
+	if ( ! empty( $title ) ) {
+		$input['title'] = (string) $title;
+	}
+
+	$alt = $request->get_param( 'alt' );
+	if ( ! empty( $alt ) ) {
+		$input['alt'] = (string) $alt;
+	}
+
+	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
