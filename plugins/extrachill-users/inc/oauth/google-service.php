@@ -66,11 +66,20 @@ function ec_verify_google_token( $id_token ) {
 
 /**
  * Find or create user from Google OAuth.
- * Auto-links if email matches existing account.
+ *
+ * Linking strategy:
+ * 1. If a user is already linked by Google sub (google_user_id meta), return them.
+ * 2. If a user exists with the same email AND Google asserted email_verified=true
+ *    (already enforced upstream by ec_verify_google_token), auto-link the Google
+ *    account to that user. This is the standard pattern used by NextAuth, Clerk,
+ *    Auth0 et al., and is safe because Google has cryptographically attested
+ *    that the bearer controls the verified email address.
+ * 3. Otherwise create a new account and link it.
  *
  * @param array $google_user {email, name, google_id, picture}
  * @param bool  $from_join   Whether user came from /join flow.
- * @return array|WP_Error {user_id: int, is_new: bool, user: WP_User}
+ * @param array $registration_data Optional registration metadata for new users.
+ * @return array|WP_Error {user_id: int, is_new: bool, user: WP_User, linked_existing?: bool}
  */
 function ec_oauth_google_user( $google_user, $from_join = false, $registration_data = array() ) {
 	$google_id = isset( $google_user['google_id'] ) ? sanitize_text_field( $google_user['google_id'] ) : '';
@@ -91,14 +100,40 @@ function ec_oauth_google_user( $google_user, $from_join = false, $registration_d
 		);
 	}
 
-	// Check if user exists with this email - require password login to link.
+	/**
+	 * Allow disabling auto-linking on verified email match.
+	 *
+	 * Defaults to true. Sites that require explicit user consent before linking
+	 * can return false here and implement their own linking UI.
+	 *
+	 * @param bool   $enabled   Whether to auto-link Google to existing email accounts.
+	 * @param string $email     Verified email address from Google.
+	 * @param string $google_id Google sub claim.
+	 */
+	$auto_link_enabled = (bool) apply_filters( 'ec_google_auto_link_verified_email', true, $email, $google_id );
+
+	// Check if user exists with this email. Email is already verified upstream
+	// (ec_verify_google_token rejects tokens without email_verified=true), so
+	// auto-linking by email is safe.
 	$existing_by_email = get_user_by( 'email', $email );
 	if ( $existing_by_email ) {
-		// Don't auto-link - require user to authenticate with password first.
-		return new WP_Error(
-			'account_exists_unlinked',
-			'An account with this email already exists. Please log in with your password to link your Google account.',
-			array( 'status' => 409 )
+		if ( ! $auto_link_enabled ) {
+			return new WP_Error(
+				'account_exists_unlinked',
+				'An account with this email already exists. Please log in with your password to link your Google account.',
+				array( 'status' => 409 )
+			);
+		}
+
+		ec_link_google_account( (int) $existing_by_email->ID, $google_id );
+
+		do_action( 'ec_google_account_linked', (int) $existing_by_email->ID, $google_id, $email );
+
+		return array(
+			'user_id'         => (int) $existing_by_email->ID,
+			'is_new'          => false,
+			'user'            => $existing_by_email,
+			'linked_existing' => true,
 		);
 	}
 
