@@ -195,7 +195,9 @@ function configure_compose_editor( array $settings ): array {
 	// in style.css under html.is-fullscreen-mode and hides Studio chrome
 	// that sits outside the editor skeleton (title input, toolbar, save
 	// actions, detached sidebar). See Phase 1 scoping in MEMORY.md.
-	$settings['iso']['moreMenu']                                = true;
+	$settings['iso']['moreMenu']                                = array(
+		'fullscreen' => true,
+	);
 	$settings['iso']['defaultPreferences']                      = isset( $settings['iso']['defaultPreferences'] ) && is_array( $settings['iso']['defaultPreferences'] )
 		? $settings['iso']['defaultPreferences']
 		: array();
