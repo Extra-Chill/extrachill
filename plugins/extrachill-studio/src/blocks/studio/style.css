@@ -644,6 +644,31 @@ html.is-fullscreen-mode .ec-studio-compose-editor {
 	min-height: 0;
 }
 
+html.is-fullscreen-mode .ec-studio-compose-editor .iso-editor {
+	position: fixed;
+	inset: 0;
+	z-index: 99999;
+	min-height: 100vh;
+	width: 100vw;
+	background: var(--background-color);
+}
+
+html.is-fullscreen-mode .ec-studio-compose-editor .edit-post-layout.interface-interface-skeleton {
+	position: fixed;
+	inset: 0;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+}
+
+html.is-fullscreen-mode .ec-studio-compose-editor .interface-interface-skeleton__body,
+html.is-fullscreen-mode .ec-studio-compose-editor .interface-interface-skeleton__editor,
+html.is-fullscreen-mode .ec-studio-compose-editor .interface-interface-skeleton__content {
+	min-height: 0;
+	height: 100%;
+}
+
 /* ── Socials tab — sidebar + content layout ── */
 .ec-studio-socials-layout {
 	display: grid;
