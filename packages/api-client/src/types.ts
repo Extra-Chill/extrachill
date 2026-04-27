@@ -694,10 +694,86 @@ export interface SocialPublishResult {
   error?: string;
 }
 
-export interface SocialPublishResponse {
+/**
+ * Response from `POST /datamachine/v1/socials/post`.
+ *
+ * The endpoint schedules an async job — it does NOT publish synchronously.
+ * Use `getJobStatus(job_id)` to poll for completion and final results.
+ */
+export interface SocialPublishJobResponse {
   success: boolean;
-  results: SocialPublishResult[];
-  errors?: string[] | null;
+  job_id: number;
+  status: 'pending';
+}
+
+/**
+ * @deprecated Use `SocialPublishJobResponse` instead.
+ * `crossPost()` schedules an async job and returns `{ success, job_id, status }`,
+ * not a synchronous result set. This alias is kept for backward compatibility
+ * but will be removed in a future major version.
+ */
+export type SocialPublishResponse = SocialPublishJobResponse;
+
+/**
+ * Possible statuses for a Data Machine job.
+ */
+export type SocialJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+/**
+ * Per-platform result from a completed social cross-post job.
+ * Found in `engine_data.results` after the job finishes.
+ */
+export interface SocialJobPlatformResult {
+  platform: string;
+  success: boolean;
+  platform_post_id?: string;
+  platform_url?: string;
+  error?: string;
+}
+
+/**
+ * Engine data stored on a completed social cross-post job.
+ */
+export interface SocialJobEngineData {
+  task_type?: string;
+  post_id?: number | null;
+  platforms?: string[];
+  results?: SocialJobPlatformResult[];
+  log?: Array<{
+    platform: string;
+    success: boolean;
+    post_id?: string;
+    url?: string;
+    error?: string;
+    timestamp?: string;
+  }>;
+  success_count?: number;
+  failure_count?: number;
+  error?: string;
+}
+
+/**
+ * Single job record returned by `GET /datamachine/v1/socials/jobs/{job_id}`.
+ */
+export interface SocialJobRecord {
+  job_id: number;
+  user_id: number;
+  status: SocialJobStatus;
+  label?: string | null;
+  engine_data?: SocialJobEngineData | null;
+  created_at: string;
+  completed_at?: string | null;
+  created_at_display?: string;
+  completed_at_display?: string;
+}
+
+/**
+ * Response from `GET /datamachine/v1/socials/jobs/{job_id}`.
+ */
+export interface SocialJobStatusResponse {
+  success: boolean;
+  jobs: SocialJobRecord[];
+  total: number;
 }
 
 export interface SocialMediaUploadResponse {
