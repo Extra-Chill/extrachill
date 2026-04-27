@@ -717,7 +717,7 @@ export type SocialPublishResponse = SocialPublishJobResponse;
 /**
  * Possible statuses for a Data Machine job.
  */
-export type SocialJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type SocialJobStatus = 'pending' | 'processing' | 'completed' | 'failed' | (string & {});
 
 /**
  * Per-platform result from a completed social cross-post job.
@@ -774,6 +774,20 @@ export interface SocialJobStatusResponse {
   success: boolean;
   jobs: SocialJobRecord[];
   total: number;
+}
+
+/**
+ * Options for waiting on a social cross-post job from browser, mobile, or Node.
+ */
+export interface SocialJobWaitOptions {
+  /** Delay between status checks. Defaults to 3000 ms. */
+  intervalMs?: number;
+  /** Maximum time to wait before rejecting. Defaults to 120000 ms. */
+  timeoutMs?: number;
+  /** Abort signal for cancelling an in-flight wait. */
+  signal?: AbortSignal;
+  /** Called after each successful status response. */
+  onStatus?: (job: SocialJobRecord) => void;
 }
 
 export interface SocialMediaUploadResponse {
