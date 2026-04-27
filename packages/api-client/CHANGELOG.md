@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.0] - 2026-04-27
+
+### Added
+- add social job wait helper
+- normalize async publish contract and add job status types
+
 ## [0.5.0] - 2026-04-26
 
 ### Added
