@@ -1,10 +1,10 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, useState, useRef, useCallback } from '@wordpress/element';
+import { createElement, useState, useRef } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 
 import apiFetch from '@wordpress/api-fetch';
-import type { NetworkMediaItem, SocialPlatformConfig } from '@extrachill/api-client';
+import type { NetworkMediaItem, SocialJobPlatformResult, SocialPlatformConfig } from '@extrachill/api-client';
 import { studioClient } from '../../../app/client';
 import MediaPicker from '../media-picker';
 
@@ -25,54 +25,6 @@ interface WpPost {
 	id: number;
 }
 
-// ─── Async job types ─────────────────────────────────────────────────────────
-// These mirror the shapes from @extrachill/api-client's workspace source.
-// Once api-client ships with async job types, these can be removed in favour
-// of the canonical exports.
-
-interface JobPlatformResult {
-	platform: string;
-	success: boolean;
-	platform_post_id?: string;
-	platform_url?: string;
-	error?: string;
-}
-
-interface JobEngineData {
-	results?: JobPlatformResult[];
-	error?: string;
-}
-
-interface JobRecord {
-	job_id: number;
-	status: string;
-	engine_data?: JobEngineData | null;
-}
-
-interface JobStatusResponse {
-	success: boolean;
-	jobs?: JobRecord[];
-}
-
-/**
- * Response from `POST /datamachine/v1/socials/post`.
- * The endpoint is fully async — it schedules a job and returns a reference.
- */
-interface CrossPostJobResponse {
-	success: boolean;
-	job_id?: number;
-	status?: string;
-	error?: string;
-}
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-/** Job polling constants. */
-const POLL_INTERVAL_MS = 3000;
-const POLL_MAX_ATTEMPTS = 40; // ~2 minutes at 3 s intervals.
-
-// ─── Component ───────────────────────────────────────────────────────────────
-
 /**
  * Generic social platform publishing pane.
  *
@@ -87,7 +39,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 	const [ isPublishing, setIsPublishing ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
-	const [ jobResult, setJobResult ] = useState< JobPlatformResult | null >( null );
+	const [ jobResult, setJobResult ] = useState< SocialJobPlatformResult | null >( null );
 
 	/** Ref to allow cancellation of in-flight polling when a new publish starts. */
 	const pollAbortRef = useRef< AbortController | null >( null );
@@ -135,90 +87,6 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		setError( '' );
 	};
 
-	/**
-	 * Poll the job status endpoint until the job reaches a terminal state.
-	 *
-	 * Resolves with the per-platform result for the current slug, or null
-	 * if the job completed but no matching platform result was found.
-	 * Rejects on failure, timeout, or abort.
-	 */
-	const pollJobStatus = useCallback(
-		( jobId: number, signal: AbortSignal ): Promise< JobPlatformResult | null > => {
-			return new Promise( ( resolve, reject ) => {
-				let attempts = 0;
-
-				const tick = async (): Promise< void > => {
-					if ( signal.aborted ) {
-						reject( new DOMException( 'Polling aborted', 'AbortError' ) );
-						return;
-					}
-
-					attempts++;
-
-					try {
-						const jobResponse = await apiFetch< JobStatusResponse >( {
-							path: `/datamachine/v1/socials/jobs/${ jobId }`,
-						} );
-
-						const job = jobResponse?.jobs?.[ 0 ] ?? null;
-						const jobStatus = job?.status ?? 'pending';
-
-						if ( jobStatus === 'completed' ) {
-							const results = job?.engine_data?.results ?? [];
-							const match = results.find( ( r: JobPlatformResult ) => r.platform === slug ) ?? null;
-
-							if ( match && ! match.success ) {
-								reject(
-									new Error(
-										match.error ||
-											sprintf( __( '%s publish failed on the platform.', 'extrachill-studio' ), platformLabel )
-									)
-								);
-								return;
-							}
-
-							resolve( match );
-							return;
-						}
-
-						if ( typeof jobStatus === 'string' && jobStatus.startsWith( 'failed' ) ) {
-							const reason = job?.engine_data?.error || jobStatus.replace( /^failed:?\s*/, '' ) || __( 'Job failed', 'extrachill-studio' );
-							reject( new Error( reason ) );
-							return;
-						}
-
-						// Still pending or processing — keep polling.
-						if ( attempts >= POLL_MAX_ATTEMPTS ) {
-							reject( new Error( __( 'Publish timed out — the job may still complete in the background. Check your social account.', 'extrachill-studio' ) ) );
-							return;
-						}
-
-						setStatus(
-							sprintf(
-								/* translators: %s: platform label */
-								__( 'Publishing to %s… (checking status)', 'extrachill-studio' ),
-								platformLabel
-							)
-						);
-
-						setTimeout( tick, POLL_INTERVAL_MS );
-					} catch ( pollError ) {
-						// Network blip — retry up to the max.
-						if ( attempts >= POLL_MAX_ATTEMPTS ) {
-							reject( pollError );
-							return;
-						}
-						setTimeout( tick, POLL_INTERVAL_MS );
-					}
-				};
-
-				// Start the first tick after a short delay — give the job time to start.
-				setTimeout( tick, POLL_INTERVAL_MS );
-			} );
-		},
-		[ slug, platformLabel ]
-	);
-
 	const publishPost = async (): Promise< void > => {
 		if ( ! caption.trim() ) {
 			setError( __( 'Add a caption before publishing.', 'extrachill-studio' ) );
@@ -240,18 +108,19 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		setJobResult( null );
 		setStatus( sprintf( __( 'Scheduling %s publish…', 'extrachill-studio' ), platformLabel ) );
 
+		let abortController: AbortController | null = null;
+
 		try {
-			const response: CrossPostJobResponse = await studioClient.socials.crossPost( {
+			const response = await studioClient.socials.crossPost( {
 				platforms: [ slug ],
 				images: imageUrls.map( ( url ) => ( { url } ) ),
 				caption: caption.trim(),
-			} ) as unknown as CrossPostJobResponse;
+			} );
 
 			if ( ! response?.success || ! response?.job_id ) {
 				setStatus( '' );
 				setError(
-					response?.error ||
-						sprintf( __( '%s publish could not be scheduled.', 'extrachill-studio' ), platformLabel )
+					sprintf( __( '%s publish could not be scheduled.', 'extrachill-studio' ), platformLabel )
 				);
 				setIsPublishing( false );
 				return;
@@ -266,10 +135,28 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 				)
 			);
 
-			const abortController = new AbortController();
+			abortController = new AbortController();
 			pollAbortRef.current = abortController;
 
-			const platformResult = await pollJobStatus( response.job_id, abortController.signal );
+			const job = await studioClient.socials.waitForCrossPostJob( response.job_id, {
+				signal: abortController.signal,
+				onStatus: () => {
+					setStatus(
+						sprintf(
+							/* translators: %s: platform label */
+							__( 'Publishing to %s… (checking status)', 'extrachill-studio' ),
+							platformLabel
+						)
+					);
+				},
+			} );
+			const platformResult = job.engine_data?.results?.find( ( result ) => result.platform === slug ) ?? null;
+
+			if ( platformResult && ! platformResult.success ) {
+				throw new Error(
+					platformResult.error || sprintf( __( '%s publish failed on the platform.', 'extrachill-studio' ), platformLabel )
+				);
+			}
 
 			// Success — clear form inputs.
 			setJobResult( platformResult );
@@ -277,7 +164,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			setCaption( '' );
 			setImageUrls( [] );
 		} catch ( publishError ) {
-			if ( ( publishError as DOMException )?.name === 'AbortError' ) {
+			if ( abortController?.signal.aborted ) {
 				// Silently swallow — a new publish was started.
 				return;
 			}
