@@ -441,4 +441,96 @@ class NewsletterCommand {
 
 		WP_CLI::line( sprintf( '%s: %s', $result['email'], $result['status'] ) );
 	}
+
+	/**
+	 * Get total active subscribers across all Sendy lists.
+	 *
+	 * Returns the network-wide count plus a per-list breakdown.
+	 * Cached for 1 hour; pass --refresh to bypass.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--refresh]
+	 * : Bypass the cache and query fresh.
+	 *
+	 * [--source=<source>]
+	 * : Where to read counts from.
+	 * ---
+	 * default: auto
+	 * options:
+	 *   - auto
+	 *   - db
+	 *   - api
+	 * ---
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - count
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill newsletter subscribers
+	 *     wp extrachill newsletter subscribers --refresh
+	 *     wp extrachill newsletter subscribers --format=count
+	 *     wp extrachill newsletter subscribers --source=api --format=json
+	 *
+	 * @when after_wp_load
+	 */
+	public function subscribers( $args, $assoc_args ) {
+		if ( ! function_exists( 'extrachill_newsletter_ability_subscriber_stats' ) ) {
+			WP_CLI::error( 'extrachill/newsletter-subscriber-stats ability not available. Ensure extrachill-newsletter plugin is activated.' );
+		}
+
+		$result = extrachill_newsletter_ability_subscriber_stats(
+			array(
+				'force_refresh' => ! empty( $assoc_args['refresh'] ),
+				'source'        => $assoc_args['source'] ?? 'auto',
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( 'count' === $format ) {
+			WP_CLI::line( (string) $result['total_active'] );
+			return;
+		}
+
+		if ( 'json' === $format ) {
+			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		WP_CLI::line(
+			sprintf(
+				'Total active subscribers: %d (across %d list%s, source: %s%s)',
+				$result['total_active'],
+				$result['list_count'],
+				1 === $result['list_count'] ? '' : 's',
+				$result['source'],
+				! empty( $result['cached'] ) ? ', cached' : ''
+			)
+		);
+		WP_CLI::line( '' );
+
+		$rows = array();
+		foreach ( $result['lists'] as $list ) {
+			$rows[] = array(
+				'List ID' => $list['id'],
+				'Name'    => $list['name'],
+				'Active'  => $list['active'],
+			);
+		}
+
+		\WP_CLI\Utils\format_items( 'table', $rows, array( 'List ID', 'Name', 'Active' ) );
+	}
 }
