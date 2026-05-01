@@ -97,6 +97,27 @@ function extrachill_analytics_ability_track_event( $input ) {
 	$event_data = isset( $input['event_data'] ) ? $input['event_data'] : array();
 	$source_url = isset( $input['source_url'] ) ? $input['source_url'] : '';
 
+	// Defense-in-depth: if a 'search' event arrives with a payload-shaped term,
+	// reclassify it as 'search_attack' so real search metrics stay clean while
+	// the attack stays visible. This catches any caller (current or future)
+	// that forgets to pre-classify, including community/forum/artist search.
+	if ( $event_type === 'search' && is_array( $event_data ) && ! empty( $event_data['search_term'] ) ) {
+		$classification = extrachill_analytics_classify_search_payload( (string) $event_data['search_term'] );
+		if ( null !== $classification ) {
+			$event_type = 'search_attack';
+			$event_data = array_merge(
+				$event_data,
+				array(
+					'classification'  => $classification['pattern_name'],
+					'pattern_family'  => $classification['pattern_family'],
+					'matched_token'   => $classification['matched_token'],
+					'ip'              => extrachill_analytics_get_client_ip(),
+					'user_agent'      => extrachill_analytics_get_user_agent(),
+				)
+			);
+		}
+	}
+
 	/**
 	 * Filter whether to track an analytics event.
 	 *
