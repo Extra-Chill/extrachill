@@ -2,8 +2,9 @@
 /**
  * 404 Error Analysis CLI Commands
  *
- * Provides tools for analyzing, categorizing, and managing 404 errors
- * tracked by the extrachill-analytics plugin.
+ * Thin CLI wrappers around the extrachill-analytics 404 abilities.
+ * All query logic lives in the ability callbacks; this class handles
+ * argument parsing, formatting, and presentation only.
  *
  * @package ExtraChill\CLI\Commands\Analytics
  */
@@ -62,38 +63,33 @@ class FourOhFourCommand {
 	 * @subcommand list
 	 */
 	public function list_errors( $args, $assoc_args ) {
-		$this->ensure_analytics();
+		$ability = $this->get_ability( 'extrachill/list-404-events' );
 
 		$blog_id = $this->get_site_filter( $assoc_args );
 		$days    = (int) ( $assoc_args['days'] ?? 7 );
 		$limit   = (int) ( $assoc_args['limit'] ?? 50 );
 		$format  = $assoc_args['format'] ?? 'table';
 
-		$query_args = array(
-			'event_type' => '404_error',
-			'date_from'  => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ),
-			'limit'      => $limit,
-		);
+		$result = $ability->execute( array(
+			'days'    => $days,
+			'blog_id' => $blog_id,
+			'limit'   => $limit,
+		) );
 
-		if ( $blog_id > 0 ) {
-			$query_args['blog_id'] = $blog_id;
-		}
+		$this->handle_error( $result );
 
-		$events = extrachill_get_analytics_events( $query_args );
-
-		if ( empty( $events ) ) {
+		if ( empty( $result ) ) {
 			WP_CLI::success( 'No 404 errors in the last ' . $days . ' days.' );
 			return;
 		}
 
 		$rows = array();
-		foreach ( $events as $event ) {
-			$data   = $event->event_data;
+		foreach ( $result as $event ) {
 			$rows[] = array(
-				'url'        => $data['requested_url'] ?? '',
-				'referer'    => $this->truncate( $data['referer'] ?? '', 40 ),
-				'user_agent' => $this->truncate( $this->simplify_ua( $data['user_agent'] ?? '' ), 30 ),
-				'date'       => $event->created_at,
+				'url'        => $event['url'],
+				'referer'    => $this->truncate( $event['referer'], 40 ),
+				'user_agent' => $this->truncate( $this->simplify_ua( $event['user_agent'] ), 30 ),
+				'date'       => $event['date'],
 			);
 		}
 
@@ -145,65 +141,43 @@ class FourOhFourCommand {
 	 * @subcommand top
 	 */
 	public function top( $args, $assoc_args ) {
-		$this->ensure_analytics();
+		$ability = $this->get_ability( 'extrachill/get-404-top-urls' );
 
-		global $wpdb;
-
-		$this->get_site_filter( $assoc_args );
+		$blog_id  = $this->get_site_filter( $assoc_args );
 		$days     = (int) ( $assoc_args['days'] ?? 7 );
 		$limit    = (int) ( $assoc_args['limit'] ?? 30 );
 		$min_hits = (int) ( $assoc_args['min-hits'] ?? 2 );
 		$format   = $assoc_args['format'] ?? 'table';
 
-		$table      = extrachill_analytics_events_table();
-		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-		$site_where = $this->get_site_where_clause();
+		$result = $ability->execute( array(
+			'days'     => $days,
+			'blog_id'  => $blog_id,
+			'limit'    => $limit,
+			'min_hits' => $min_hits,
+		) );
 
-		$sql    = "SELECT 
-					JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
-					COUNT(*) AS hits,
-					MAX(created_at) AS last_seen
-				FROM {$table}
-				WHERE event_type = '404_error'
-				AND created_at >= %s
-				{$site_where['sql']}
-				GROUP BY url
-				HAVING hits >= %d
-				ORDER BY hits DESC
-				LIMIT %d";
-		$values = array_merge( array( $date_from ), $site_where['values'], array( $min_hits, $limit ) );
+		$this->handle_error( $result );
 
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
-
-		if ( empty( $results ) ) {
+		if ( empty( $result ) ) {
 			WP_CLI::success( 'No 404 URLs with ' . $min_hits . '+ hits in the last ' . $days . ' days.' );
 			return;
 		}
 
-		$rows = array();
-		foreach ( $results as $row ) {
-			$rows[] = array(
-				'url'       => $row->url,
-				'hits'      => (int) $row->hits,
-				'last_seen' => $row->last_seen,
-				'category'  => $this->categorize_url( $row->url ),
-			);
+		Utils\format_items( $format, $result, array( 'url', 'hits', 'last_seen', 'category' ) );
+
+		if ( 'table' === $format ) {
+			$total = array_sum( array_column( $result, 'hits' ) );
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( 'Total: %d hits across %d unique URLs', $total, count( $result ) ) );
 		}
-
-		Utils\format_items( $format, $rows, array( 'url', 'hits', 'last_seen', 'category' ) );
-
-		$total = array_sum( array_column( $rows, 'hits' ) );
-		WP_CLI::log( '' );
-		WP_CLI::log( sprintf( 'Total: %d hits across %d unique URLs', $total, count( $rows ) ) );
 	}
 
 	/**
 	 * Show 404 errors grouped by pattern category.
 	 *
-	 * Categories: legacy-html, missing-upload, bot-probe, ad-txt, content,
-	 * community-thread, events, author-enum, old-sitemap, and more.
+	 * Categories include: legacy-html, missing-upload, bot-probe, ad-txt,
+	 * sql-injection, ad-sponsor-probe, content, community-thread, events,
+	 * author-enum, old-sitemap, and more.
 	 *
 	 * ## OPTIONS
 	 *
@@ -235,72 +209,44 @@ class FourOhFourCommand {
 	 * @subcommand patterns
 	 */
 	public function patterns( $args, $assoc_args ) {
-		$this->ensure_analytics();
+		$ability = $this->get_ability( 'extrachill/get-404-patterns' );
 
-		global $wpdb;
+		$blog_id = $this->get_site_filter( $assoc_args );
+		$days    = (int) ( $assoc_args['days'] ?? 7 );
+		$format  = $assoc_args['format'] ?? 'table';
 
-		$this->get_site_filter( $assoc_args );
-		$days   = (int) ( $assoc_args['days'] ?? 7 );
-		$format = $assoc_args['format'] ?? 'table';
+		$result = $ability->execute( array(
+			'days'    => $days,
+			'blog_id' => $blog_id,
+		) );
 
-		$table      = extrachill_analytics_events_table();
-		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-		$site_where = $this->get_site_where_clause();
+		$this->handle_error( $result );
 
-		$sql    = "SELECT 
-					JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
-					COUNT(*) AS hits
-				FROM {$table}
-				WHERE event_type = '404_error'
-				AND created_at >= %s
-				{$site_where['sql']}
-				GROUP BY url";
-		$values = array_merge( array( $date_from ), $site_where['values'] );
-
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
-
-		if ( empty( $results ) ) {
+		if ( empty( $result ) ) {
 			WP_CLI::success( 'No 404 errors in the last ' . $days . ' days.' );
 			return;
 		}
 
-		// Aggregate by category.
-		$categories = array();
-		$total      = 0;
-
-		foreach ( $results as $row ) {
-			$category = $this->categorize_url( $row->url );
-			if ( ! isset( $categories[ $category ] ) ) {
-				$categories[ $category ] = array(
-					'hits'        => 0,
-					'unique_urls' => 0,
-				);
-			}
-			$categories[ $category ]['hits']        += (int) $row->hits;
-			$categories[ $category ]['unique_urls'] += 1;
-			$total                                  += (int) $row->hits;
-		}
-
-		// Sort by hits descending.
-		arsort( $categories );
-
+		// Convert actionable boolean to yes/no string for table display.
 		$rows = array();
-		foreach ( $categories as $name => $data ) {
+		foreach ( $result as $row ) {
 			$rows[] = array(
-				'category'    => $name,
-				'hits'        => $data['hits'],
-				'unique_urls' => $data['unique_urls'],
-				'pct'         => $total > 0 ? round( $data['hits'] / $total * 100, 1 ) . '%' : '0%',
-				'actionable'  => $this->is_actionable( $name ) ? 'yes' : 'no',
+				'category'    => $row['category'],
+				'hits'        => $row['hits'],
+				'unique_urls' => $row['unique_urls'],
+				'pct'         => $row['pct'],
+				'actionable'  => $row['actionable'] ? 'yes' : 'no',
 			);
 		}
 
 		Utils\format_items( $format, $rows, array( 'category', 'hits', 'unique_urls', 'pct', 'actionable' ) );
 
-		WP_CLI::log( '' );
-		WP_CLI::log( sprintf( 'Total: %d hits across %d unique URLs in %d categories', $total, count( $results ), count( $categories ) ) );
+		if ( 'table' === $format ) {
+			$total_hits = array_sum( array_column( $rows, 'hits' ) );
+			$total_urls = array_sum( array_column( $rows, 'unique_urls' ) );
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( 'Total: %d hits across %d unique URLs in %d categories', $total_hits, $total_urls, count( $rows ) ) );
+		}
 	}
 
 	/**
@@ -317,6 +263,8 @@ class FourOhFourCommand {
 	 *   - content
 	 *   - bot-probe
 	 *   - ad-txt
+	 *   - ad-sponsor-probe
+	 *   - sql-injection
 	 *   - author-enum
 	 *   - community-thread
 	 *   - events
@@ -364,81 +312,41 @@ class FourOhFourCommand {
 	 * @subcommand drill
 	 */
 	public function drill( $args, $assoc_args ) {
-		$this->ensure_analytics();
+		$ability = $this->get_ability( 'extrachill/drill-404-category' );
 
-		global $wpdb;
-
-		$this->get_site_filter( $assoc_args );
+		$blog_id  = $this->get_site_filter( $assoc_args );
 		$category = $args[0];
 		$days     = (int) ( $assoc_args['days'] ?? 7 );
 		$limit    = (int) ( $assoc_args['limit'] ?? 20 );
 		$format   = $assoc_args['format'] ?? 'table';
 
-		$table      = extrachill_analytics_events_table();
-		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-		$site_where = $this->get_site_where_clause();
+		$result = $ability->execute( array(
+			'category' => $category,
+			'days'     => $days,
+			'blog_id'  => $blog_id,
+			'limit'    => $limit,
+		) );
 
-		$sql    = "SELECT 
-					JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
-					COUNT(*) AS hits,
-					MAX(created_at) AS last_seen
-				FROM {$table}
-				WHERE event_type = '404_error'
-				AND created_at >= %s
-				{$site_where['sql']}
-				GROUP BY url
-				ORDER BY hits DESC";
-		$values = array_merge( array( $date_from ), $site_where['values'] );
+		$this->handle_error( $result );
 
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
-
-		// Filter to matching category.
-		$filtered = array();
-		foreach ( $results as $row ) {
-			if ( $this->categorize_url( $row->url ) === $category ) {
-				$filtered[] = $row;
-			}
-		}
-
-		if ( empty( $filtered ) ) {
+		if ( empty( $result ) ) {
 			WP_CLI::success( "No '{$category}' 404s in the last {$days} days." );
 			return;
 		}
 
-		$filtered = array_slice( $filtered, 0, $limit );
+		// Determine fields based on whether the result includes redirect info.
+		$has_slug = ! empty( $result[0]['slug'] );
+		$fields   = $has_slug
+			? array( 'url', 'hits', 'slug', 'post_id', 'fixable', 'last_seen' )
+			: array( 'url', 'hits', 'last_seen' );
 
-		$rows = array();
-		foreach ( $filtered as $row ) {
-			$extra = array(
-				'url'       => $row->url,
-				'hits'      => (int) $row->hits,
-				'last_seen' => $row->last_seen,
-			);
+		Utils\format_items( $format, $result, $fields );
 
-			// For legacy-html and content, check if a matching post exists.
-			if ( in_array( $category, array( 'legacy-html', 'content', 'date-prefix' ), true ) ) {
-				$slug             = $this->extract_slug( $row->url );
-				$post_id          = $this->find_post_by_slug( $slug );
-				$extra['slug']    = $slug;
-				$extra['post_id'] = $post_id ? $post_id : '—';
-				$extra['fixable'] = $post_id ? 'redirect' : 'no match';
-			}
-
-			$rows[] = $extra;
+		if ( 'table' === $format ) {
+			$total_hits = array_sum( array_column( $result, 'hits' ) );
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( '%d URLs, %d total hits', count( $result ), $total_hits ) );
 		}
-
-		$fields = array( 'url', 'hits', 'last_seen' );
-		if ( in_array( $category, array( 'legacy-html', 'content', 'date-prefix' ), true ) ) {
-			$fields = array( 'url', 'hits', 'slug', 'post_id', 'fixable', 'last_seen' );
-		}
-
-		Utils\format_items( $format, $rows, $fields );
-
-		$total_hits = array_sum( array_column( $rows, 'hits' ) );
-		WP_CLI::log( '' );
-		WP_CLI::log( sprintf( '%d URLs, %d total hits', count( $rows ), $total_hits ) );
 	}
 
 	/**
@@ -465,68 +373,34 @@ class FourOhFourCommand {
 	 * @subcommand summary
 	 */
 	public function summary( $args, $assoc_args ) {
-		$this->ensure_analytics();
+		$ability = $this->get_ability( 'extrachill/get-404-summary' );
 
-		global $wpdb;
+		$blog_id = $this->get_site_filter( $assoc_args );
+		$days    = (int) ( $assoc_args['days'] ?? 7 );
 
-		$this->get_site_filter( $assoc_args );
-		$days = (int) ( $assoc_args['days'] ?? 7 );
+		$result = $ability->execute( array(
+			'days'    => $days,
+			'blog_id' => $blog_id,
+		) );
 
-		$table      = extrachill_analytics_events_table();
-		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-		$site_where = $this->get_site_where_clause();
-
-		// Total count.
-		$sql    = "SELECT COUNT(*) FROM {$table} WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}";
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-		$values = array_merge( array( $date_from ), $site_where['values'] );
-		$total  = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
-
-		// Unique URLs.
-		$sql    = "SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url'))) 
-				FROM {$table} WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}";
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-		$values = array_merge( array( $date_from ), $site_where['values'] );
-		$unique = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
-
-		// Per day average.
-		$per_day = $days > 0 ? round( $total / $days, 1 ) : $total;
-
-		// Unique IPs.
-		$sql        = "SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.ip_hash'))) 
-				FROM {$table} WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}";
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-		$values     = array_merge( array( $date_from ), $site_where['values'] );
-		$unique_ips = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
-
-		// By day breakdown.
-		$sql    = "SELECT DATE(created_at) as date, COUNT(*) as hits
-				FROM {$table} 
-				WHERE event_type = '404_error' AND created_at >= %s{$site_where['sql']}
-				GROUP BY DATE(created_at)
-				ORDER BY date DESC";
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-		$values = array_merge( array( $date_from ), $site_where['values'] );
-		$by_day = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
+		$this->handle_error( $result );
 
 		$site_label = $this->format_site_label();
 		WP_CLI::log( sprintf( '404 Error Summary — Last %d days (%s)', $days, $site_label ) );
 		WP_CLI::log( str_repeat( '─', 40 ) );
-		WP_CLI::log( sprintf( 'Total hits:     %s', number_format( $total ) ) );
-		WP_CLI::log( sprintf( 'Unique URLs:    %s', number_format( $unique ) ) );
-		WP_CLI::log( sprintf( 'Unique visitors: %s', number_format( $unique_ips ) ) );
-		WP_CLI::log( sprintf( 'Per day avg:    %s', $per_day ) );
+		WP_CLI::log( sprintf( 'Total hits:     %s', number_format( $result['total'] ) ) );
+		WP_CLI::log( sprintf( 'Unique URLs:    %s', number_format( $result['unique_urls'] ) ) );
+		WP_CLI::log( sprintf( 'Unique visitors: %s', number_format( $result['unique_ips'] ) ) );
+		WP_CLI::log( sprintf( 'Per day avg:    %s', $result['per_day_avg'] ) );
 		WP_CLI::log( '' );
 
-		if ( ! empty( $by_day ) ) {
+		if ( ! empty( $result['daily'] ) ) {
 			WP_CLI::log( 'Daily breakdown:' );
-			foreach ( $by_day as $day ) {
-				$bar = str_repeat( '█', min( (int) ( $day->hits / max( $total / $days / 2, 1 ) ), 40 ) );
-				WP_CLI::log( sprintf( '  %s  %5d  %s', $day->date, $day->hits, $bar ) );
+			$max_hits = max( array_column( $result['daily'], 'hits' ) );
+			foreach ( $result['daily'] as $day ) {
+				$bar_width = $max_hits > 0 ? (int) ( $day['hits'] / $max_hits * 40 ) : 0;
+				$bar       = str_repeat( '█', max( $bar_width, 0 ) );
+				WP_CLI::log( sprintf( '  %s  %5d  %s', $day['date'], $day['hits'], $bar ) );
 			}
 		}
 	}
@@ -557,182 +431,185 @@ class FourOhFourCommand {
 	 * @subcommand purge
 	 */
 	public function purge( $args, $assoc_args ) {
-		$this->ensure_analytics();
+		$ability = $this->get_ability( 'extrachill/purge-404-events' );
 
-		global $wpdb;
-
-		$this->get_site_filter( $assoc_args );
+		$blog_id = $this->get_site_filter( $assoc_args );
 		$days    = (int) ( $assoc_args['days'] ?? 30 );
 		$dry_run = Utils\get_flag_value( $assoc_args, 'dry-run', false );
 
-		$table      = extrachill_analytics_events_table();
-		$date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-		$site_where = $this->get_site_where_clause();
 		$site_label = $this->format_site_label();
 
-		$sql    = "SELECT COUNT(*) FROM {$table} WHERE event_type = '404_error' AND created_at < %s{$site_where['sql']}";
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-		$values = array_merge( array( $date_from ), $site_where['values'] );
-		$count  = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
-
 		if ( $dry_run ) {
-			WP_CLI::log( sprintf( 'Would delete %s 404 events older than %d days on %s.', number_format( $count ), $days, $site_label ) );
+			$result = $ability->execute( array(
+				'days'    => $days,
+				'blog_id' => $blog_id,
+				'dry_run' => true,
+			) );
+
+			$this->handle_error( $result );
+
+			WP_CLI::log( sprintf(
+				'Would delete %s 404 events older than %d days on %s.',
+				number_format( $result['count'] ),
+				$days,
+				$site_label
+			) );
 			return;
 		}
 
-		if ( (int) 0 === $count ) {
+		// Get count first to confirm.
+		$preview = $ability->execute( array(
+			'days'    => $days,
+			'blog_id' => $blog_id,
+			'dry_run' => true,
+		) );
+
+		$this->handle_error( $preview );
+
+		if ( 0 === (int) $preview['count'] ) {
 			WP_CLI::success( sprintf( 'No 404 events older than %d days on %s.', $days, $site_label ) );
 			return;
 		}
 
-		WP_CLI::confirm( sprintf( 'Delete %s 404 events older than %d days on %s?', number_format( $count ), $days, $site_label ) );
+		WP_CLI::confirm( sprintf(
+			'Delete %s 404 events older than %d days on %s?',
+			number_format( $preview['count'] ),
+			$days,
+			$site_label
+		) );
 
-		$sql     = "DELETE FROM {$table} WHERE event_type = '404_error' AND created_at < %s{$site_where['sql']}";
-		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-		$values  = array_merge( array( $date_from ), $site_where['values'] );
-		$deleted = $wpdb->query( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
+		$result = $ability->execute( array(
+			'days'    => $days,
+			'blog_id' => $blog_id,
+			'dry_run' => false,
+		) );
 
-		WP_CLI::success( sprintf( 'Purged %s 404 events on %s.', number_format( $deleted ), $site_label ) );
-	}
+		$this->handle_error( $result );
 
-	// ─── Helpers ───────────────────────────────────────────────────────────
-
-	/**
-	 * Categorize a 404 URL into a pattern bucket.
-	 *
-	 * @param string $url The requested URL.
-	 * @return string Category name.
-	 */
-	private function categorize_url( $url ) {
-		// Order matters — more specific patterns first.
-		if ( preg_match( '#\.html#i', $url ) ) {
-			return 'legacy-html';
-		}
-		if ( preg_match( '#^/wp-content/uploads/#', $url ) ) {
-			return 'missing-upload';
-		}
-		if ( preg_match( '#^/wp-content/plugins/#', $url ) ) {
-			return 'plugin-probe';
-		}
-		if ( preg_match( '#^/wp-includes/#', $url ) ) {
-			return 'wp-includes-probe';
-		}
-		if ( preg_match( '#\.(php|PhP)\d?#i', $url ) ) {
-			return 'php-probe';
-		}
-		if ( preg_match( '#^/(ads\.txt|app-ads\.txt|sellers\.json|security\.txt)$#', $url ) ) {
-			return 'ad-txt';
-		}
-		if ( preg_match( '#^/(login|admin|cgi-bin|getcmd|ip|xmlrpc)/?$#i', $url ) ) {
-			return 'bot-probe';
-		}
-		if ( preg_match( '#^\?author=#', $url ) || preg_match( '#^/\?author=#', $url ) ) {
-			return 'author-enum';
-		}
-		if ( preg_match( '#^/sitemap#', $url ) ) {
-			return 'old-sitemap';
-		}
-		if ( preg_match( '#^/t/#', $url ) ) {
-			return 'community-thread';
-		}
-		if ( preg_match( '#^/events/#', $url ) ) {
-			return 'events';
-		}
-		if ( preg_match( '#^/festival#', $url ) ) {
-			return 'festival';
-		}
-		if ( preg_match( '#^/\d{4}/\d{2}/#', $url ) ) {
-			return 'date-prefix';
-		}
-		if ( preg_match( '#^/join/?$#', $url ) ) {
-			return 'join-page';
-		}
-
-		return 'content';
+		WP_CLI::success( sprintf( 'Purged %s 404 events on %s.', number_format( $result['count'] ), $site_label ) );
 	}
 
 	/**
-	 * Check if a category is actionable (fixable).
+	 * Show top IP addresses generating 404 errors.
 	 *
-	 * @param string $category Category name.
-	 * @return bool Whether the category has actionable fixes.
+	 * Identifies concentrated attack sources by ranking hashed IPs
+	 * by hit count with metadata about their behavior.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--days=<days>]
+	 * : Number of days to look back.
+	 * ---
+	 * default: 7
+	 * ---
+	 *
+	 * [--limit=<limit>]
+	 * : Number of top IPs to show.
+	 * ---
+	 * default: 15
+	 * ---
+	 *
+	 * [--site=<site>]
+	 * : Filter by site. Use a blog ID, 'all' for network-wide, or omit for current site.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill analytics 404 top-ips
+	 *     wp extrachill analytics 404 top-ips --days=30
+	 *     wp extrachill analytics 404 top-ips --limit=5
+	 *     wp extrachill analytics 404 top-ips --site=7
+	 *
+	 * @subcommand top-ips
 	 */
-	private function is_actionable( $category ) {
-		$actionable = array(
-			'legacy-html',
-			'content',
-			'date-prefix',
-			'missing-upload',
-			'ad-txt',
-			'community-thread',
-			'events',
-			'festival',
-			'old-sitemap',
-			'join-page',
-		);
-		return in_array( $category, $actionable, true );
+	public function top_ips( $args, $assoc_args ) {
+		$ability = $this->get_ability( 'extrachill/get-404-top-ips' );
+
+		$blog_id = $this->get_site_filter( $assoc_args );
+		$days    = (int) ( $assoc_args['days'] ?? 7 );
+		$limit   = (int) ( $assoc_args['limit'] ?? 15 );
+		$format  = $assoc_args['format'] ?? 'table';
+
+		$result = $ability->execute( array(
+			'days'    => $days,
+			'blog_id' => $blog_id,
+			'limit'   => $limit,
+		) );
+
+		$this->handle_error( $result );
+
+		if ( empty( $result ) ) {
+			WP_CLI::success( 'No 404 errors in the last ' . $days . ' days.' );
+			return;
+		}
+
+		// Simplify for table display.
+		$rows = array();
+		foreach ( $result as $row ) {
+			$rows[] = array(
+				'ip_hash'     => substr( $row['ip_hash'], 0, 12 ) . '…',
+				'hits'        => $row['hits'],
+				'unique_urls' => $row['unique_urls'],
+				'first_seen'  => $row['first_seen'],
+				'last_seen'   => $row['last_seen'],
+				'top_ua'      => $this->truncate( $this->simplify_ua( $row['top_ua'] ), 20 ),
+			);
+		}
+
+		$site_label = $this->format_site_label();
+		if ( 'table' === $format ) {
+			WP_CLI::log( sprintf( 'Top 404 IPs — Last %d days (%s)', $days, $site_label ) );
+			WP_CLI::log( str_repeat( '─', 80 ) );
+		}
+
+		Utils\format_items( $format, $rows, array( 'ip_hash', 'hits', 'unique_urls', 'first_seen', 'last_seen', 'top_ua' ) );
+
+		if ( 'table' === $format ) {
+			$total_hits = array_sum( array_column( $rows, 'hits' ) );
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( 'Top %d IPs account for %s hits', count( $rows ), number_format( $total_hits ) ) );
+		}
+	}
+
+	// --- Helpers (presentation only — no query logic) ---
+
+	/**
+	 * Get an ability or die with a helpful error.
+	 *
+	 * @param string $ability_name The ability identifier.
+	 * @return \WP_Ability The ability instance.
+	 */
+	private function get_ability( $ability_name ) {
+		$ability = wp_get_ability( $ability_name );
+
+		if ( ! $ability ) {
+			WP_CLI::error( sprintf(
+				'%s ability not found. Is extrachill-analytics active?',
+				$ability_name
+			) );
+		}
+
+		return $ability;
 	}
 
 	/**
-	 * Extract a post slug from a URL.
+	 * Handle WP_Error results from ability execution.
 	 *
-	 * Handles:
-	 *   /YYYY/MM/slug.html      → slug
-	 *   /YYYY/MM/slug.html/     → slug
-	 *   /YYYY/MM/slug           → slug
-	 *   /slug                   → slug
-	 *   /slug/                  → slug
-	 *
-	 * @param string $url The requested URL.
-	 * @return string Extracted slug.
+	 * @param mixed $result Ability result.
 	 */
-	private function extract_slug( $url ) {
-		// Remove query string and fragment.
-		$url = strtok( $url, '?' );
-		$url = strtok( $url, '#' );
-
-		// Remove .html extension.
-		$url = preg_replace( '#\.html/?$#', '', $url );
-
-		// Remove date prefix.
-		$url = preg_replace( '#^/\d{4}/\d{2}/#', '/', $url );
-
-		// Remove leading/trailing slashes.
-		$slug = trim( $url, '/' );
-
-		// Take only the last segment if there are slashes.
-		if ( strpos( $slug, '/' ) !== false ) {
-			$parts = explode( '/', $slug );
-			$slug  = end( $parts );
+	private function handle_error( $result ) {
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
 		}
-
-		return sanitize_title( $slug );
-	}
-
-	/**
-	 * Find a published post by slug.
-	 *
-	 * @param string $slug Post slug.
-	 * @return int|false Post ID or false.
-	 */
-	private function find_post_by_slug( $slug ) {
-		if ( empty( $slug ) ) {
-			return false;
-		}
-
-		$posts = get_posts(
-			array(
-				'name'           => $slug,
-				'post_type'      => array( 'post', 'page' ),
-				'post_status'    => 'publish',
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-			)
-		);
-
-		return ! empty( $posts ) ? $posts[0] : false;
 	}
 
 	/**
@@ -745,38 +622,26 @@ class FourOhFourCommand {
 		if ( empty( $ua ) ) {
 			return '(empty)';
 		}
-		if ( stripos( $ua, 'facebookexternalhit' ) !== false ) {
-			return 'Facebook';
-		}
-		if ( stripos( $ua, 'Googlebot' ) !== false ) {
-			return 'Googlebot';
-		}
-		if ( stripos( $ua, 'bingbot' ) !== false ) {
-			return 'Bingbot';
-		}
-		if ( stripos( $ua, 'Verity' ) !== false || stripos( $ua, 'gumgum' ) !== false ) {
-			return 'GumGum/Verity';
-		}
-		if ( stripos( $ua, 'Grammarly' ) !== false ) {
-			return 'Grammarly';
-		}
-		if ( stripos( $ua, 'axios' ) !== false ) {
-			return 'Axios bot';
-		}
-		if ( stripos( $ua, 'Mediavine' ) !== false ) {
-			return 'Mediavine';
-		}
-		if ( stripos( $ua, 'Chrome' ) !== false ) {
-			return 'Chrome';
-		}
-		if ( stripos( $ua, 'Firefox' ) !== false ) {
-			return 'Firefox';
-		}
-		if ( stripos( $ua, 'Safari' ) !== false ) {
-			return 'Safari';
-		}
-		if ( stripos( $ua, 'curl' ) !== false ) {
-			return 'curl';
+
+		$patterns = array(
+			'facebookexternalhit' => 'Facebook',
+			'Googlebot'          => 'Googlebot',
+			'bingbot'            => 'Bingbot',
+			'Verity'             => 'GumGum/Verity',
+			'gumgum'             => 'GumGum/Verity',
+			'Grammarly'          => 'Grammarly',
+			'axios'              => 'Axios bot',
+			'Mediavine'          => 'Mediavine',
+			'Chrome'             => 'Chrome',
+			'Firefox'            => 'Firefox',
+			'Safari'             => 'Safari',
+			'curl'               => 'curl',
+		);
+
+		foreach ( $patterns as $needle => $label ) {
+			if ( false !== stripos( $ua, $needle ) ) {
+				return $label;
+			}
 		}
 
 		return $this->truncate( $ua, 30 );
@@ -794,17 +659,5 @@ class FourOhFourCommand {
 			return $str;
 		}
 		return substr( $str, 0, $length - 1 ) . '…';
-	}
-
-	/**
-	 * Ensure the analytics plugin is available.
-	 */
-	private function ensure_analytics() {
-		if ( ! function_exists( 'extrachill_get_analytics_events' ) ) {
-			WP_CLI::error( 'extrachill-analytics plugin is not active. Activate it first.' );
-		}
-		if ( ! function_exists( 'extrachill_analytics_events_table' ) ) {
-			WP_CLI::error( 'extrachill-analytics database functions not available.' );
-		}
 	}
 }
