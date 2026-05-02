@@ -39,6 +39,9 @@ require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/agent/register-agent.php'
 // Runtime tool declaration + executor for the progress_story tool.
 require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/tools/progress-story-tool.php';
 
+// Conversation runner that dispatches turns through agents-api + wp-ai-client.
+require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/runtime/conversation-runner.php';
+
 /**
  * Register the AI adventure blocks.
  *
@@ -144,7 +147,7 @@ function extrachill_ai_adventure_handle_introduction( $params ) {
 	$context = extrachill_ai_adventure_build_context( $params, 'introduction' );
 	$message = 'What happens now?';
 
-	$response = extrachill_ai_adventure_send_to_dm( $message, $context, $params['session_id'] );
+	$response = extrachill_ai_adventure_run_conversation( $message, $context, $params['session_id'] );
 
 	if ( is_wp_error( $response ) ) {
 		return $response;
@@ -169,7 +172,7 @@ function extrachill_ai_adventure_handle_introduction( $params ) {
 function extrachill_ai_adventure_handle_conversation( $params ) {
 	$context  = extrachill_ai_adventure_build_context( $params, 'conversation' );
 	$message  = 'Player says/does: ' . $params['player_input'];
-	$response = extrachill_ai_adventure_send_to_dm( $message, $context, $params['session_id'] );
+	$response = extrachill_ai_adventure_run_conversation( $message, $context, $params['session_id'] );
 
 	if ( is_wp_error( $response ) ) {
 		return $response;
@@ -259,137 +262,6 @@ function extrachill_ai_adventure_build_context( $params, $turn_type ) {
 	}
 
 	return $context;
-}
-
-/**
- * Send a message to Data Machine's ChatOrchestrator.
- *
- * Resolves the game-master agent, then delegates to DM for AI processing.
- *
- * @param string $message    The user message.
- * @param array  $context    Game context for client_context.
- * @param string $session_id DM chat session ID (empty for new session).
- * @return array|WP_Error Array with 'narrative' and 'session_id', or WP_Error.
- */
-function extrachill_ai_adventure_send_to_dm( $message, $context, $session_id ) {
-	// Resolve the game-master agent.
-	if ( ! class_exists( '\DataMachine\Core\Database\Agents\Agents' ) ) {
-		return new WP_Error(
-			'data_machine_required',
-			__( 'Data Machine plugin is required for AI adventure.', 'extrachill-ai-adventure' ),
-			array( 'status' => 500 )
-		);
-	}
-
-	$agents_repo = new \DataMachine\Core\Database\Agents\Agents();
-	$agent       = $agents_repo->get_by_slug( EXTRACHILL_AI_ADVENTURE_AGENT_SLUG );
-
-	if ( ! $agent ) {
-		return new WP_Error(
-			'agent_not_found',
-			__( 'Game Master agent not configured. Create an agent with slug "game-master" in Data Machine.', 'extrachill-ai-adventure' ),
-			array( 'status' => 500 )
-		);
-	}
-
-	$agent_id = (int) $agent['agent_id'];
-
-	// Resolve provider/model from agent config.
-	if ( ! class_exists( '\DataMachine\Core\Settings\PluginSettings' ) ) {
-		return new WP_Error(
-			'settings_unavailable',
-			__( 'Data Machine settings unavailable.', 'extrachill-ai-adventure' ),
-			array( 'status' => 500 )
-		);
-	}
-
-	$model_config = \DataMachine\Core\Settings\PluginSettings::resolveModelForAgentContext( $agent_id, 'chat' );
-	$provider     = $model_config['provider'] ?? '';
-	$model        = $model_config['model'] ?? '';
-
-	if ( empty( $provider ) || empty( $model ) ) {
-		return new WP_Error(
-			'model_not_configured',
-			__( 'No AI model configured for the Game Master agent.', 'extrachill-ai-adventure' ),
-			array( 'status' => 500 )
-		);
-	}
-
-	// Use current user, or fall back to agent owner for anonymous visitors.
-	$user_id = get_current_user_id();
-	if ( 0 === $user_id ) {
-		$user_id = (int) $agent['owner_id'];
-	}
-
-	// Call ChatOrchestrator.
-	if ( ! class_exists( '\DataMachine\Api\Chat\ChatOrchestrator' ) ) {
-		return new WP_Error(
-			'orchestrator_unavailable',
-			__( 'Data Machine chat orchestrator unavailable.', 'extrachill-ai-adventure' ),
-			array( 'status' => 500 )
-		);
-	}
-
-	$options = array(
-		'agent_id'       => $agent_id,
-		'max_turns'      => 1,
-		'client_context' => $context,
-	);
-
-	if ( ! empty( $session_id ) ) {
-		$options['session_id'] = $session_id;
-	}
-
-	$result = \DataMachine\Api\Chat\ChatOrchestrator::processChat(
-		$message,
-		$provider,
-		$model,
-		$user_id,
-		$options
-	);
-
-	if ( is_wp_error( $result ) ) {
-		return $result;
-	}
-
-	// Extract the AI's response and any tool call results from the conversation.
-	$narrative     = '';
-	$next_step_id  = null;
-	$dm_session    = $result['session_id'] ?? '';
-
-	if ( ! empty( $result['conversation'] ) && is_array( $result['conversation'] ) ) {
-		// Walk conversation in reverse to find the last assistant message
-		// and any progress_story tool results.
-		$messages = array_reverse( $result['conversation'] );
-
-		foreach ( $messages as $msg ) {
-			$role = $msg['role'] ?? '';
-
-			// Extract narrative from the last assistant text message.
-			if ( 'assistant' === $role && empty( $narrative ) && ! empty( $msg['content'] ) ) {
-				$narrative = $msg['content'];
-			}
-
-			// Check for progress_story tool results.
-			if ( 'tool' === $role && ( 'progress_story' === ( $msg['name'] ?? '' ) ) ) {
-				$tool_result = is_string( $msg['content'] ?? '' )
-					? json_decode( $msg['content'], true )
-					: ( $msg['content'] ?? array() );
-
-				if ( ! empty( $tool_result['data']['progressed'] ) && ! empty( $tool_result['data']['next_step_id'] ) ) {
-					$next_step_id = $tool_result['data']['next_step_id'];
-				}
-			}
-		}
-	} elseif ( ! empty( $result['response'] ) ) {
-		$narrative = $result['response'];
-	}
-
-	return array(
-		'narrative'    => $narrative,
-		'next_step_id' => $next_step_id,
-		'session_id'   => $dm_session,
-	);
 }
 
 /**
