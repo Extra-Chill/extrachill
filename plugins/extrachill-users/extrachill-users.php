@@ -140,6 +140,12 @@ function extrachill_users_init() {
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/buttons.php';
+
+	// wp-native-auth bridge: layer EC policy (membership, blocking, Turnstile)
+	// onto the generic wp-native-auth filter surface when both plugins are active.
+	if ( defined( 'WP_NATIVE_AUTH_VERSION' ) ) {
+		require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/wp-native-bridge.php';
+	}
 }
 
 add_filter( 'newsletter_form_integrations', 'extrachill_users_newsletter_integration' );
