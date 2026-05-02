@@ -91,7 +91,7 @@ function extrachill_ai_adventure_run_conversation( string $message, array $conte
 	$tool_declaration = extrachill_ai_adventure_progress_story_declaration();
 	$tool_executor    = new ExtraChill_AI_Adventure_Progress_Story_Executor();
 
-	$system_prompt = extrachill_ai_adventure_build_system_prompt( $context );
+	$system_prompt    = extrachill_ai_adventure_build_system_prompt( $context );
 	$initial_messages = array(
 		array(
 			'role'    => 'user',
@@ -139,7 +139,7 @@ function extrachill_ai_adventure_run_conversation( string $message, array $conte
 
 		$role    = $envelope['role'] ?? '';
 		$content = $envelope['content'] ?? '';
-		if ( '' === $narrative && 'assistant' === $role && is_string( $content ) && '' !== $content ) {
+		if ( 'assistant' === $role && is_string( $content ) && '' !== $content ) {
 			$narrative = $content;
 			break;
 		}
@@ -264,6 +264,7 @@ function extrachill_ai_adventure_run_turn(
 
 	$registry = AiClient::defaultRegistry();
 	if ( ! $registry->hasProvider( $provider ) ) {
+		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are not rendered output.
 		throw new \InvalidArgumentException( sprintf( 'Provider "%s" is not registered with wp-ai-client.', $provider ) );
 	}
 
@@ -293,6 +294,7 @@ function extrachill_ai_adventure_run_turn(
 	try {
 		$ai_result = $builder->generate_text_result();
 	} catch ( \Throwable $e ) {
+		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are not rendered output.
 		throw new \RuntimeException( 'wp-ai-client request failed: ' . $e->getMessage(), 0, $e );
 	}
 
@@ -308,12 +310,12 @@ function extrachill_ai_adventure_run_turn(
 
 	$tool_execution_results = array();
 	foreach ( $tool_calls as $tool_call ) {
-		$function_name = (string) ( $tool_call['name'] ?? '' );
+		$function_name = (string) $tool_call['name'];
 		if ( EXTRACHILL_AI_ADVENTURE_TOOL_FUNCTION_NAME !== $function_name ) {
 			continue;
 		}
 
-		$parameters = is_array( $tool_call['parameters'] ?? null ) ? $tool_call['parameters'] : array();
+		$parameters = $tool_call['parameters'];
 
 		$messages[] = array(
 			'role'     => 'assistant',
@@ -334,10 +336,10 @@ function extrachill_ai_adventure_run_turn(
 
 		$execution = $tool_executor->executeToolCall( $normalized_call, $tool_declaration, $game_context );
 
-		$success      = (bool) ( $execution['success'] ?? false );
-		$result_data  = is_array( $execution['result'] ?? null ) ? $execution['result'] : array();
-		$error_text   = isset( $execution['error'] ) ? (string) $execution['error'] : '';
-		$result_text  = $success
+		$success     = (bool) ( $execution['success'] ?? false );
+		$result_data = is_array( $execution['result'] ?? null ) ? $execution['result'] : array();
+		$error_text  = isset( $execution['error'] ) ? (string) $execution['error'] : '';
+		$result_text = $success
 			? wp_json_encode( $result_data )
 			: ( '' !== $error_text ? $error_text : 'Tool execution failed.' );
 

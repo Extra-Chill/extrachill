@@ -78,9 +78,9 @@ add_action( 'rest_api_init', 'extrachill_ai_adventure_register_routes' );
  * @return true|WP_Error
  */
 function extrachill_ai_adventure_permission_check() {
-	$ip         = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
-	$cache_key  = 'ec_ai_adv_rate_' . md5( $ip );
-	$requests   = (int) get_transient( $cache_key );
+	$ip          = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+	$cache_key   = 'ec_ai_adv_rate_' . md5( $ip );
+	$requests    = (int) get_transient( $cache_key );
 	$max_per_min = 30;
 
 	if ( $requests >= $max_per_min ) {
@@ -197,13 +197,13 @@ function extrachill_ai_adventure_handle_conversation( $params ) {
  */
 function extrachill_ai_adventure_build_context( $params, $turn_type ) {
 	$context = array(
-		'game_turn_type'    => $turn_type,
-		'adventure_title'   => $params['adventure_title'],
-		'adventure_prompt'  => $params['adventure_prompt'],
-		'path_prompt'       => $params['path_prompt'],
-		'step_prompt'       => $params['step_prompt'],
-		'character_name'    => $params['character_name'],
-		'persona'           => $params['persona'],
+		'game_turn_type'   => $turn_type,
+		'adventure_title'  => $params['adventure_title'],
+		'adventure_prompt' => $params['adventure_prompt'],
+		'path_prompt'      => $params['path_prompt'],
+		'step_prompt'      => $params['step_prompt'],
+		'character_name'   => $params['character_name'],
+		'persona'          => $params['persona'],
 	);
 
 	// Build progression history summary.
@@ -230,7 +230,7 @@ function extrachill_ai_adventure_build_context( $params, $turn_type ) {
 	// Triggers — both human-readable descriptions for the AI and structured
 	// data for the progress_story tool to validate against.
 	if ( ! empty( $params['triggers'] ) ) {
-		$trigger_descriptions = array_map(
+		$trigger_descriptions         = array_map(
 			function ( $t ) {
 				return ( $t['action'] ?? '' );
 			},

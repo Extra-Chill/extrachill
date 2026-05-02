@@ -33,13 +33,14 @@ function extrachill_ai_adventure_soul_path(): string {
  * @return string
  */
 function extrachill_ai_adventure_get_soul(): string {
+	global $wp_filesystem;
 	static $soul = null;
 	if ( null !== $soul ) {
 		return $soul;
 	}
 
 	$path = extrachill_ai_adventure_soul_path();
-	$soul = is_readable( $path ) ? (string) file_get_contents( $path ) : '';
+	$soul = is_readable( $path ) ? (string) $wp_filesystem->get_contents( $path ) : '';
 
 	return $soul;
 }
@@ -60,9 +61,9 @@ function extrachill_ai_adventure_register_agent(): void {
 	wp_register_agent(
 		EXTRACHILL_AI_ADVENTURE_AGENT_SLUG,
 		array(
-			'label'        => __( 'Game Master', 'extrachill-ai-adventure' ),
-			'description'  => __( 'Narrator and companion-character game master for AI Adventure interactive fiction blocks.', 'extrachill-ai-adventure' ),
-			'memory_seeds' => array(
+			'label'          => __( 'Game Master', 'extrachill-ai-adventure' ),
+			'description'    => __( 'Narrator and companion-character game master for AI Adventure interactive fiction blocks.', 'extrachill-ai-adventure' ),
+			'memory_seeds'   => array(
 				'SOUL.md' => extrachill_ai_adventure_soul_path(),
 			),
 			'default_config' => array(
@@ -73,7 +74,7 @@ function extrachill_ai_adventure_register_agent(): void {
 					'tools' => array( 'progress_story' ),
 				),
 			),
-			'meta'         => array(
+			'meta'           => array(
 				'source_plugin'  => 'extrachill-ai-adventure/extrachill-ai-adventure.php',
 				'source_type'    => 'bundled-agent',
 				'source_package' => 'extrachill-ai-adventure',

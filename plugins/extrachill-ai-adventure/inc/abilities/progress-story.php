@@ -43,11 +43,11 @@ function extrachill_ai_adventure_register_progress_story_ability() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'trigger_id'  => array(
+					'trigger_id' => array(
 						'type'        => 'string',
 						'description' => 'The ID of the triggered story branch.',
 					),
-					'triggers'    => array(
+					'triggers'   => array(
 						'type'        => 'array',
 						'description' => 'Available triggers with id and destination.',
 						'items'       => array(
@@ -64,9 +64,9 @@ function extrachill_ai_adventure_register_progress_story_ability() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'progressed'    => array( 'type' => 'boolean' ),
-					'next_step_id'  => array( 'type' => 'string' ),
-					'trigger_id'    => array( 'type' => 'string' ),
+					'progressed'   => array( 'type' => 'boolean' ),
+					'next_step_id' => array( 'type' => 'string' ),
+					'trigger_id'   => array( 'type' => 'string' ),
 				),
 			),
 			'meta'                => array(
