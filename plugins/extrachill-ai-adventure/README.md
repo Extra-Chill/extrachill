@@ -1,6 +1,6 @@
 # Extra Chill AI Adventure
 
-AI-powered interactive text adventure block for WordPress. Create branching narratives with an AI game master, powered by [Data Machine](https://github.com/Extra-Chill/data-machine).
+AI-powered interactive text adventure block for WordPress. Create branching narratives with a game master agent built on the [Agents API](https://github.com/Automattic/agents-api) substrate and WordPress core's AI Client.
 
 ```
 ┌────────────────────────────────────────────────┐
@@ -40,7 +40,7 @@ extrachill/ai-adventure           ← container with title, prompt, persona
             ]
 ```
 
-The **Game Master agent** (Data Machine) drives the conversation. It narrates scenes, embodies a companion character, and decides when the player's choices match a story trigger. When it does, it calls the `progress_story` tool to advance the narrative.
+The **game-master agent** (declared by this plugin) drives the conversation. It narrates scenes, embodies a companion character, and decides when the player's choices match a story trigger. When it does, it calls the `progress_story` tool to advance the narrative.
 
 ## Architecture
 
@@ -51,78 +51,81 @@ Player types action
 view.js → POST /extrachill/v1/ai-adventure
     │
     ▼
-Plugin builds client_context (game state, triggers, history)
+Plugin builds game context (state, triggers, history) per request
     │
     ▼
-Data Machine ChatOrchestrator
-    ├── game-master agent (ID 10)
-    │     ├── SOUL.md — persona, [SCENE]/[DIALOGUE] format rules
-    │     └── tool_policy: allow [progress_story]
+AgentsAPI\AI\AgentConversationLoop::run( $messages, $turn_runner, [ max_turns => 1 ] )
     │
-    ├── DM session — full conversation memory
-    │
-    └── AI responds:
-          ├── Normal turn → [SCENE] + [DIALOGUE] narrative
-          └── Player decided → calls progress_story tool
-                ├── tool → extrachill/progress-story ability
+    ▼
+Turn runner closure
+    ├── Reads agent/SOUL.md from plugin source
+    ├── Prepends SOUL.md to a "Current Game Context" block as the system prompt
+    ├── Builds wp-ai-client message history from rolling conversationHistory
+    ├── Declares progress_story as a wp-ai-client function declaration
+    └── Dispatches one turn through wp_ai_client_prompt() (WP 7.0 core)
+          │
+          ▼
+    Provider responds
+          ├── Normal turn → [SCENE] + [DIALOGUE] narrative text
+          └── Player decided → function_call progress_story
+                │
+                ▼
+          ToolExecutorInterface adapter → extrachill/progress-story ability
                 ├── validates trigger_id against step triggers
                 └── returns next_step_id
 ```
 
-**One turn, one DM call.** The AI handles both narration and progression detection in a single conversation turn. No separate analysis pass.
+**One turn, one provider call.** The AI handles both narration and progression detection in a single conversation turn. No separate analysis pass.
 
-## The Abilities API Pattern
+## The Agents API Pattern
 
-Story progression is a WordPress Abilities API primitive:
+The game-master is a declarative agent registered on `wp_agents_api_init`:
 
 ```php
-// The ability — pure game logic, no AI
-wp_register_ability( 'extrachill/progress-story', [
-    'execute_callback' => 'extrachill_ai_adventure_execute_progress_story',
-    'category'         => 'extrachill-ai-adventure',
-]);
-
-// The tool — chat interface for the game-master agent
-class ExtraChill_AI_Adventure_ProgressStory extends BaseTool {
-    // AI calls this when it believes the player made a choice
-    // Tool calls the ability, ability validates the trigger
-}
+wp_register_agent( 'game-master', [
+    'label'          => 'Game Master',
+    'memory_seeds'   => [ 'SOUL.md' => __DIR__ . '/agent/SOUL.md' ],
+    'default_config' => [
+        'default_provider' => 'openai',
+        'default_model'    => 'gpt-4o-mini',
+        'tool_policy'      => [ 'mode' => 'allow', 'tools' => [ 'progress_story' ] ],
+    ],
+] );
 ```
 
-The ability is the reusable primitive. CLI can call it. REST can call it. The tool is just the agent-facing wrapper. Same pattern as every other tool in the Extra Chill ecosystem.
+Identity (SOUL.md, defaults) ships in the plugin source. There is no DB row for the agent and nothing to configure in an admin UI.
 
-## Tool Scoping
+The `progress_story` tool is declared as an Agents API runtime tool:
 
-The `progress_story` tool is scoped to the game-master agent via Data Machine's per-agent tool policy:
+```php
+RuntimeToolDeclaration::normalize( [
+    'name'        => 'extrachill/progress-story',
+    'description' => '...',
+    'parameters'  => [ /* JSON Schema */ ],
+    'executor'    => RuntimeToolDeclaration::EXECUTOR_CLIENT,
+    'scope'       => RuntimeToolDeclaration::SCOPE_RUN,
+] );
+```
 
-| Agent | Policy | Effect |
-|-------|--------|--------|
-| game-master | `allow: [progress_story]` | Only sees game tools |
-| roadie | `deny: [progress_story]` | Never sees game tools |
-| others | no policy | Game tool doesn't appear |
+The tool executor is a `ToolExecutorInterface` adapter that delegates to the `extrachill/progress-story` ability. The ability owns the actual game logic and is callable from CLI, REST, or any other Abilities API consumer.
 
-The game master's entire existence is the game. It has no other tools, no other purpose.
+## State Management
 
-## Design
+The plugin is **stateless on the server**. There is no transcript table and no chat session.
 
-Oregon Trail meets modern terminal aesthetic:
-
-- **Background:** `#000` black
-- **Terminal text:** `#00ff00` classic green phosphor
-- **Player input:** `#00aaff` blue with `> ` prefix
-- **[SCENE] narration:** `#FFC300` amber, italic
-- **[DIALOGUE] speech:** `#00ff00` green with `> ` prefix
-- **Opening screen:** `#39ff14` neon green glow, `#111` card, box-shadow glow
-- **Font:** Courier New (gameplay), IBM Plex Mono (opening screen)
-- **Input:** green border, green glow on focus, invert on hover
-
-The editor uses CSS counters to auto-number paths and steps with the same green-on-black card structure.
+- `agent/SOUL.md` is read directly from the plugin source on every turn.
+- The frontend roundtrips full `conversationHistory`, `progression_history`, and `transition_context` on every request, and the plugin renders all of it into the per-turn system prompt.
+- `AgentConversationLoop` runs with `max_turns = 1` and a `NullAgentConversationTranscriptPersister` is the implicit default.
+- The `sessionId` parameter is accepted from the client and echoed back unchanged for backward-compatible response shape, but it is not persisted or read.
 
 ## Requirements
 
-- WordPress 6.4+
-- [Data Machine](https://github.com/Extra-Chill/data-machine) plugin (provides ChatOrchestrator, agent system, Abilities API integration)
-- A configured `game-master` agent in Data Machine with an AI provider
+- WordPress 7.0+ (provides core's AI Client: `wp_ai_client_prompt()`, `\WordPress\AiClient\*`).
+- [Agents API](https://github.com/Automattic/agents-api) plugin, network-active (provides `wp_register_agent()`, `AgentConversationLoop`, `RuntimeToolDeclaration`, `ToolExecutorInterface`).
+- A registered AI provider (e.g. OpenAI) compatible with `wp_ai_client_prompt()`.
+- The `extrachill/progress-story` ability is registered by this plugin via the Abilities API.
+
+The `data-machine` plugin is **not** required.
 
 ## Development
 
@@ -142,12 +145,18 @@ Blocks are built with `@wordpress/scripts`. Source in `src/blocks/`, output to `
 ## File Structure
 
 ```
-extrachill-ai-adventure.php     ← plugin entry, REST route, DM integration
+extrachill-ai-adventure.php     ← plugin entry, REST route, request → runner
+agent/
+  SOUL.md                       ← Game Master identity, prepended to system prompt
 inc/
   abilities/
     progress-story.php          ← Abilities API: trigger validation
+  agent/
+    register-agent.php          ← wp_register_agent('game-master', ...)
   tools/
-    class-progress-story.php    ← BaseTool: agent-facing wrapper
+    progress-story-tool.php     ← RuntimeToolDeclaration + ToolExecutorInterface adapter
+  runtime/
+    conversation-runner.php     ← AgentConversationLoop + wp_ai_client_prompt() turn runner
 src/blocks/
   ai-adventure/
     index.js                    ← editor block (InnerBlocks container)
