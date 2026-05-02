@@ -36,17 +36,8 @@ require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/abilities/progress-story.
 // Register the game-master agent declaratively (hooks into wp_agents_api_init).
 require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/agent/register-agent.php';
 
-// Load tool registration (hooks into datamachine_tools via BaseTool).
-add_action(
-	'plugins_loaded',
-	function () {
-		if ( ! class_exists( '\DataMachine\Engine\AI\Tools\BaseTool' ) ) {
-			return;
-		}
-		require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/tools/class-progress-story.php';
-		new ExtraChill_AI_Adventure_ProgressStory();
-	}
-);
+// Runtime tool declaration + executor for the progress_story tool.
+require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/tools/progress-story-tool.php';
 
 /**
  * Register the AI adventure blocks.
