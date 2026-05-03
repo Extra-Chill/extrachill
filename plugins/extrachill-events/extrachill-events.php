@@ -150,6 +150,9 @@ class ExtraChillEvents {
 			return;
 		}
 
+		// Events-domain abilities (procedural, per issue #68).
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/abilities/register.php';
+
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/EventRoundupAbilities.php';
 		new \ExtraChillEvents\Abilities\EventRoundupAbilities();
 
