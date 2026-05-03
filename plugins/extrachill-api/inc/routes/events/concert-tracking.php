@@ -188,16 +188,10 @@ function extrachill_api_handle_concert_tracking_toggle( WP_REST_Request $request
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$input = array(
+	$result = $ability->execute( array(
 		'event_id' => (int) $request->get_param( 'event_id' ),
-	);
-
-	$blog_id = (int) $request->get_param( 'blog_id' );
-	if ( $blog_id ) {
-		$input['blog_id'] = $blog_id;
-	}
-
-	$result = $ability->execute( $input );
+		'blog_id'  => (int) $request->get_param( 'blog_id' ),
+	) );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
@@ -219,16 +213,11 @@ function extrachill_api_handle_concert_tracking_event( WP_REST_Request $request 
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$input = array(
-		'event_id' => (int) $request->get_param( 'event_id' ),
-	);
-
-	if ( $request->get_param( 'include_attendees' ) ) {
-		$input['include_attendees'] = true;
-		$input['limit']             = (int) $request->get_param( 'limit' );
-	}
-
-	$result = $ability->execute( $input );
+	$result = $ability->execute( array(
+		'event_id'          => (int) $request->get_param( 'event_id' ),
+		'include_attendees' => (bool) $request->get_param( 'include_attendees' ),
+		'limit'             => (int) $request->get_param( 'limit' ),
+	) );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
