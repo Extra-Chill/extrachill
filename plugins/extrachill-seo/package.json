@@ -10,7 +10,7 @@
     "@wordpress/scripts": "^30.0.0"
   },
   "dependencies": {
-    "@extrachill/api-client": "^0.2.0",
-    "@extrachill/components": "^0.4.33"
+    "@extrachill/components": "^0.4.33",
+    "wp-native-client": "^0.0.1"
   }
 }
