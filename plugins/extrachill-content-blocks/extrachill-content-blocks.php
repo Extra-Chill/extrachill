@@ -26,6 +26,28 @@ define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
+ * Load ability registrations.
+ *
+ * Each file hooks into wp_abilities_api_init and calls wp_register_ability().
+ */
+function extrachill_content_blocks_load_abilities() {
+	$abilities_dir = __DIR__ . '/inc/abilities';
+	$ability_files = array(
+		'/generate-band-name.php',
+		'/generate-rapper-name.php',
+		'/image-voting-list.php',
+		'/image-voting-vote.php',
+	);
+
+	foreach ( $ability_files as $file ) {
+		if ( file_exists( $abilities_dir . $file ) ) {
+			require_once $abilities_dir . $file;
+		}
+	}
+}
+extrachill_content_blocks_load_abilities();
+
+/**
  * Load block business logic (PHP functions called by REST API routes).
  *
  * These index.php files contain the server-side logic for interactive blocks
