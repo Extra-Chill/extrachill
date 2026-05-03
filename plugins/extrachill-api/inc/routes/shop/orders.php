@@ -189,188 +189,78 @@ function extrachill_api_shop_orders_item_permission_check( WP_REST_Request $requ
 
 /**
  * Handle GET /shop/orders - List orders for artist.
+ *
+ * Wraps the extrachill/shop-list-orders ability from extrachill-shop.
  */
 function extrachill_api_shop_orders_list_handler( WP_REST_Request $request ) {
-	$artist_id = absint( $request->get_param( 'artist_id' ) );
-	$status    = $request->get_param( 'status' );
-	$page      = max( 1, absint( $request->get_param( 'page' ) ) );
-	$per_page  = min( 100, max( 1, absint( $request->get_param( 'per_page' ) ) ) );
-
-	if ( ! function_exists( 'wc_get_orders' ) ) {
-		return new WP_Error(
-			'woocommerce_missing',
-			'WooCommerce is not available.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/shop-list-orders' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$wc_statuses = array( 'wc-processing', 'wc-completed', 'wc-refunded', 'wc-on-hold' );
-
-	$orders = wc_get_orders( array(
-		'limit'      => -1,
-		'status'     => $wc_statuses,
-		'orderby'    => 'date',
-		'order'      => 'DESC',
-		'meta_query' => array(
-			array(
-				'key'     => '_artist_payouts',
-				'compare' => 'EXISTS',
-			),
-		),
-	) );
-
-	$filtered_orders          = array();
-	$needs_fulfillment_count  = 0;
-
-	foreach ( $orders as $order ) {
-		$payouts = $order->get_meta( '_artist_payouts' ) ?: array();
-		if ( ! isset( $payouts[ $artist_id ] ) ) {
-			continue;
-		}
-
-		$order_status = $order->get_status();
-
-		if ( 'processing' === $order_status || 'on-hold' === $order_status ) {
-			$needs_fulfillment_count++;
-		}
-
-		if ( 'needs_fulfillment' === $status && ! in_array( $order_status, array( 'processing', 'on-hold' ), true ) ) {
-			continue;
-		}
-
-		if ( 'completed' === $status && 'completed' !== $order_status && 'refunded' !== $order_status ) {
-			continue;
-		}
-
-		$filtered_orders[] = $order;
+	$result = $ability->execute(
+		array(
+			'artist_id' => absint( $request->get_param( 'artist_id' ) ),
+			'status'    => $request->get_param( 'status' ),
+			'page'      => absint( $request->get_param( 'page' ) ),
+			'per_page'  => absint( $request->get_param( 'per_page' ) ),
+		)
+	);
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	$total        = count( $filtered_orders );
-	$total_pages  = ceil( $total / $per_page );
-	$offset       = ( $page - 1 ) * $per_page;
-	$paged_orders = array_slice( $filtered_orders, $offset, $per_page );
-
-	$response_orders = array();
-	foreach ( $paged_orders as $order ) {
-		$response_orders[] = extrachill_api_shop_orders_build_response( $order, $artist_id );
-	}
-
-	return rest_ensure_response( array(
-		'orders'                  => $response_orders,
-		'total'                   => $total,
-		'total_pages'             => $total_pages,
-		'page'                    => $page,
-		'per_page'                => $per_page,
-		'needs_fulfillment_count' => $needs_fulfillment_count,
-	) );
+	return rest_ensure_response( $result );
 }
 
 /**
  * Handle PUT /shop/orders/{id}/status - Update order status.
+ *
+ * Wraps the extrachill/shop-update-order-status ability from extrachill-shop.
  */
 function extrachill_api_shop_orders_status_handler( WP_REST_Request $request ) {
-	$order_id        = absint( $request->get_param( 'id' ) );
-	$artist_id       = absint( $request->get_param( 'artist_id' ) );
-	$new_status      = $request->get_param( 'status' );
-	$tracking_number = $request->get_param( 'tracking_number' );
-
-	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
-		return new WP_Error(
-			'order_not_found',
-			'Order not found.',
-			array( 'status' => 404 )
-		);
+	$ability = wp_get_ability( 'extrachill/shop-update-order-status' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	if ( $tracking_number ) {
-		$order->update_meta_data( '_artist_tracking_' . $artist_id, $tracking_number );
+	$result = $ability->execute(
+		array(
+			'id'              => absint( $request->get_param( 'id' ) ),
+			'artist_id'       => absint( $request->get_param( 'artist_id' ) ),
+			'status'          => $request->get_param( 'status' ),
+			'tracking_number' => $request->get_param( 'tracking_number' ),
+		)
+	);
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	if ( 'completed' === $new_status ) {
-		$order->set_status( 'completed', 'Order marked as shipped by artist.' );
-	}
-
-	$order->save();
-
-	return rest_ensure_response( extrachill_api_shop_orders_build_response( $order, $artist_id ) );
+	return rest_ensure_response( $result );
 }
 
 /**
  * Handle POST /shop/orders/{id}/refund - Issue full refund.
+ *
+ * Wraps the extrachill/shop-refund-order ability from extrachill-shop.
  */
 function extrachill_api_shop_orders_refund_handler( WP_REST_Request $request ) {
-	$order_id  = absint( $request->get_param( 'id' ) );
-	$artist_id = absint( $request->get_param( 'artist_id' ) );
-
-	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
-		return new WP_Error(
-			'order_not_found',
-			'Order not found.',
-			array( 'status' => 404 )
-		);
+	$ability = wp_get_ability( 'extrachill/shop-refund-order' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$payouts = $order->get_meta( '_artist_payouts' ) ?: array();
-	if ( ! isset( $payouts[ $artist_id ] ) ) {
-		return new WP_Error(
-			'invalid_artist',
-			'This order does not contain products from your artist.',
-			array( 'status' => 400 )
-		);
+	$result = $ability->execute(
+		array(
+			'id'        => absint( $request->get_param( 'id' ) ),
+			'artist_id' => absint( $request->get_param( 'artist_id' ) ),
+		)
+	);
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	$artist_payout = $payouts[ $artist_id ];
-	$refund_amount = floatval( $artist_payout['total'] ?? 0 );
-
-	if ( $refund_amount <= 0 ) {
-		return new WP_Error(
-			'invalid_refund_amount',
-			'No refundable amount found for this artist.',
-			array( 'status' => 400 )
-		);
-	}
-
-	$charges = $order->get_meta( '_stripe_charges' ) ?: array();
-	$payment_intent_id = $charges[ $artist_id ]['payment_intent_id'] ?? '';
-
-	if ( ! $payment_intent_id ) {
-		return new WP_Error(
-			'no_payment_intent',
-			'No payment intent found for this artist order.',
-			array( 'status' => 400 )
-		);
-	}
-
-	if ( ! function_exists( 'extrachill_shop_stripe_init' ) || ! extrachill_shop_stripe_init() ) {
-		return new WP_Error(
-			'stripe_not_configured',
-			'Stripe is not configured.',
-			array( 'status' => 500 )
-		);
-	}
-
-	try {
-		\Stripe\Refund::create( array(
-			'payment_intent' => $payment_intent_id,
-		) );
-	} catch ( \Exception $e ) {
-		return new WP_Error(
-			'refund_failed',
-			'Refund failed: ' . $e->getMessage(),
-			array( 'status' => 500 )
-		);
-	}
-
-	$order->set_status( 'refunded', 'Full refund issued by artist.' );
-	$order->save();
-
-	return rest_ensure_response( array(
-		'success'       => true,
-		'order_id'      => $order_id,
-		'refund_amount' => $refund_amount,
-	) );
+	return rest_ensure_response( $result );
 }
 
 /**

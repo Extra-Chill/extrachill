@@ -117,133 +117,26 @@ function extrachill_api_shop_product_images_set_ordered_ids( $product_id, $order
 
 /**
  * Handle POST /shop/products/{id}/images.
+ *
+ * Wraps the extrachill/shop-upload-product-image ability from extrachill-shop.
  */
 function extrachill_api_shop_product_images_upload_handler( WP_REST_Request $request ) {
-	$product_id = absint( $request->get_param( 'id' ) );
-
-	$files = $request->get_file_params();
-	if ( empty( $files['files'] ) && isset( $_FILES['files'] ) ) {
-		$files['files'] = $_FILES['files'];
+	$ability = wp_get_ability( 'extrachill/shop-upload-product-image' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	if ( empty( $files['files'] ) || empty( $files['files']['name'] ) ) {
-		return new WP_Error(
-			'no_files',
-			'No files uploaded.',
-			array( 'status' => 400 )
-		);
+	$result = $ability->execute(
+		array(
+			'id'      => absint( $request->get_param( 'id' ) ),
+			'request' => $request,
+		)
+	);
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	$allowed_types = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
-	$max_size      = 5 * 1024 * 1024;
-
-	$product_post = get_post( $product_id );
-	if ( ! $product_post || 'product' !== $product_post->post_type ) {
-		return new WP_Error(
-			'product_not_found',
-			'Product not found.',
-			array( 'status' => 404 )
-		);
-	}
-
-	$current_ids = extrachill_api_shop_product_images_get_ordered_ids( $product_id );
-	if ( count( $current_ids ) >= 5 ) {
-		return new WP_Error(
-			'image_limit_reached',
-			'you already have five images. please delete one before uploading another',
-			array( 'status' => 400 )
-		);
-	}
-
-	$file_count = is_array( $files['files']['name'] ) ? count( $files['files']['name'] ) : 1;
-	$incoming   = array();
-
-	for ( $i = 0; $i < $file_count; $i++ ) {
-		if ( count( $incoming ) + count( $current_ids ) >= 5 ) {
-			break;
-		}
-
-		$uploaded_file = array(
-			'name'     => is_array( $files['files']['name'] ) ? $files['files']['name'][ $i ] : $files['files']['name'],
-			'type'     => is_array( $files['files']['type'] ) ? $files['files']['type'][ $i ] : $files['files']['type'],
-			'tmp_name' => is_array( $files['files']['tmp_name'] ) ? $files['files']['tmp_name'][ $i ] : $files['files']['tmp_name'],
-			'error'    => is_array( $files['files']['error'] ) ? $files['files']['error'][ $i ] : $files['files']['error'],
-			'size'     => is_array( $files['files']['size'] ) ? $files['files']['size'][ $i ] : $files['files']['size'],
-		);
-
-		if ( empty( $uploaded_file['name'] ) ) {
-			continue;
-		}
-
-		$file_type = wp_check_filetype_and_ext( $uploaded_file['tmp_name'], $uploaded_file['name'] );
-		if ( ! in_array( $file_type['type'], $allowed_types, true ) ) {
-			return new WP_Error(
-				'invalid_file_type',
-				'Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.',
-				array( 'status' => 400 )
-			);
-		}
-
-		if ( $uploaded_file['size'] > $max_size ) {
-			return new WP_Error(
-				'file_too_large',
-				'File size exceeds the 5MB limit.',
-				array( 'status' => 400 )
-			);
-		}
-
-		if ( ! function_exists( 'wp_handle_upload' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-
-		$upload_result = wp_handle_upload( $uploaded_file, array( 'test_form' => false ) );
-		if ( ! $upload_result || isset( $upload_result['error'] ) ) {
-			return new WP_Error(
-				'upload_failed',
-				isset( $upload_result['error'] ) ? $upload_result['error'] : 'Upload failed.',
-				array( 'status' => 500 )
-			);
-		}
-
-		$attachment = array(
-			'guid'           => $upload_result['url'],
-			'post_mime_type' => $upload_result['type'],
-			'post_title'     => preg_replace( '/\.[^.]+$/', '', basename( $upload_result['file'] ) ),
-			'post_content'   => '',
-			'post_status'    => 'inherit',
-		);
-
-		$attachment_id = wp_insert_attachment( $attachment, $upload_result['file'], $product_id );
-		if ( is_wp_error( $attachment_id ) ) {
-			return $attachment_id;
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-		$attach_data = wp_generate_attachment_metadata( $attachment_id, $upload_result['file'] );
-		wp_update_attachment_metadata( $attachment_id, $attach_data );
-
-		$incoming[] = (int) $attachment_id;
-	}
-
-	if ( empty( $incoming ) ) {
-		return new WP_Error(
-			'no_files',
-			'No files uploaded.',
-			array( 'status' => 400 )
-		);
-	}
-
-	$new_order = array_merge( $current_ids, $incoming );
-	$set_order = extrachill_api_shop_product_images_set_ordered_ids( $product_id, $new_order );
-	if ( is_wp_error( $set_order ) ) {
-		return $set_order;
-	}
-
-	$response = function_exists( 'extrachill_api_shop_products_build_response' )
-		? extrachill_api_shop_products_build_response( $product_id )
-		: array( 'product_id' => $product_id );
-
-	return rest_ensure_response( $response );
+	return rest_ensure_response( $result );
 }
 
 /**

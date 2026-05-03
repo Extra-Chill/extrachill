@@ -110,42 +110,26 @@ function extrachill_api_shipping_labels_permission_check( WP_REST_Request $reque
 
 /**
  * Handle GET /shop/shipping-labels/{order_id} - Get existing label for order.
+ *
+ * Wraps the extrachill/shop-get-shipping-label ability from extrachill-shop.
  */
 function extrachill_api_shipping_labels_get_handler( WP_REST_Request $request ) {
-	$order_id  = absint( $request->get_param( 'order_id' ) );
-	$artist_id = absint( $request->get_param( 'artist_id' ) );
-
-	if ( ! function_exists( 'wc_get_order' ) ) {
-		return new WP_Error(
-			'woocommerce_missing',
-			'WooCommerce is not available.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/shop-get-shipping-label' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
-		return new WP_Error(
-			'order_not_found',
-			'Order not found.',
-			array( 'status' => 404 )
-		);
+	$result = $ability->execute(
+		array(
+			'order_id'  => absint( $request->get_param( 'order_id' ) ),
+			'artist_id' => absint( $request->get_param( 'artist_id' ) ),
+		)
+	);
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	$label_url       = $order->get_meta( '_artist_label_' . $artist_id ) ?: '';
-	$tracking_number = $order->get_meta( '_artist_tracking_' . $artist_id ) ?: '';
-	$label_data      = $order->get_meta( '_artist_label_data_' . $artist_id ) ?: array();
-
-	return rest_ensure_response( array(
-		'order_id'        => $order_id,
-		'artist_id'       => $artist_id,
-		'has_label'       => ! empty( $label_url ),
-		'label_url'       => $label_url,
-		'tracking_number' => $tracking_number,
-		'carrier'         => $label_data['carrier'] ?? '',
-		'service'         => $label_data['service'] ?? '',
-		'cost'            => $label_data['cost'] ?? 0,
-	) );
+	return rest_ensure_response( $result );
 }
 
 /**

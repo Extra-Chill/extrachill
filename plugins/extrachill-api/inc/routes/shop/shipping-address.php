@@ -133,50 +133,51 @@ function extrachill_api_shipping_address_permission_check( WP_REST_Request $requ
 
 /**
  * Handle GET /shop/shipping-address - Get artist shipping address.
+ *
+ * Wraps the extrachill/shop-get-shipping-address ability from extrachill-shop.
  */
 function extrachill_api_shipping_address_get_handler( WP_REST_Request $request ) {
-	$artist_id = absint( $request->get_param( 'artist_id' ) );
+	$ability = wp_get_ability( 'extrachill/shop-get-shipping-address' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
+	}
 
-	$address = extrachill_api_get_artist_shipping_address( $artist_id );
+	$result = $ability->execute( array( 'artist_id' => absint( $request->get_param( 'artist_id' ) ) ) );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
 
-	return rest_ensure_response( array(
-		'artist_id' => $artist_id,
-		'address'   => $address,
-		'is_set'    => ! empty( $address['name'] ) && ! empty( $address['street1'] ),
-	) );
+	return rest_ensure_response( $result );
 }
 
 /**
  * Handle PUT /shop/shipping-address - Update artist shipping address.
+ *
+ * Wraps the extrachill/shop-update-shipping-address ability from extrachill-shop.
  */
 function extrachill_api_shipping_address_update_handler( WP_REST_Request $request ) {
-	$artist_id = absint( $request->get_param( 'artist_id' ) );
-
-	$address = array(
-		'name'    => $request->get_param( 'name' ),
-		'street1' => $request->get_param( 'street1' ),
-		'street2' => $request->get_param( 'street2' ) ?: '',
-		'city'    => $request->get_param( 'city' ),
-		'state'   => strtoupper( $request->get_param( 'state' ) ),
-		'zip'     => $request->get_param( 'zip' ),
-		'country' => 'US',
-	);
-
-	$saved = extrachill_api_save_artist_shipping_address( $artist_id, $address );
-
-	if ( ! $saved ) {
-		return new WP_Error(
-			'save_failed',
-			'Failed to save shipping address.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/shop-update-shipping-address' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	return rest_ensure_response( array(
-		'success'   => true,
-		'artist_id' => $artist_id,
-		'address'   => $address,
-	) );
+	$result = $ability->execute(
+		array(
+			'artist_id' => absint( $request->get_param( 'artist_id' ) ),
+			'name'      => $request->get_param( 'name' ),
+			'street1'   => $request->get_param( 'street1' ),
+			'street2'   => $request->get_param( 'street2' ),
+			'city'      => $request->get_param( 'city' ),
+			'state'     => $request->get_param( 'state' ),
+			'zip'       => $request->get_param( 'zip' ),
+			'country'   => $request->get_param( 'country' ),
+		)
+	);
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
 
 /**

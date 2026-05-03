@@ -448,45 +448,21 @@ function extrachill_api_shop_products_item_permission_check( WP_REST_Request $re
 
 /**
  * Handle GET /shop/products - List products.
+ *
+ * Wraps the extrachill/shop-list-products ability from extrachill-shop.
  */
 function extrachill_api_shop_products_list_handler( WP_REST_Request $request ) {
-	$artist_ids = extrachill_api_shop_get_user_artist_ids();
-
-	$query_args = array(
-		'post_type'      => 'product',
-		'post_status'    => array( 'publish', 'pending', 'draft' ),
-		'posts_per_page' => -1,
-	);
-
-	if ( ! current_user_can( 'manage_options' ) ) {
-		if ( empty( $artist_ids ) ) {
-			return rest_ensure_response( array() );
-		}
-
-		$artist_ids = array_map( 'absint', $artist_ids );
-		$query_args['meta_query'] = array(
-			array(
-				'key'     => '_artist_profile_id',
-				'value'   => $artist_ids,
-				'compare' => 'IN',
-				'type'    => 'NUMERIC',
-			),
-		);
+	$ability = wp_get_ability( 'extrachill/shop-list-products' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$query    = new WP_Query( $query_args );
-	$products = $query->posts;
-	$response = array();
-
-	foreach ( $products as $product_post ) {
-		$product_response = extrachill_api_shop_products_build_response( $product_post->ID );
-		if ( is_wp_error( $product_response ) ) {
-			return $product_response;
-		}
-		$response[] = $product_response;
+	$result = $ability->execute( array() );
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	return rest_ensure_response( $response );
+	return rest_ensure_response( $result );
 }
 
 /**
@@ -578,12 +554,21 @@ function extrachill_api_shop_products_create_handler( WP_REST_Request $request )
 
 /**
  * Handle GET /shop/products/{id} - Get single product.
+ *
+ * Wraps the extrachill/shop-get-product ability from extrachill-shop.
  */
 function extrachill_api_shop_products_get_handler( WP_REST_Request $request ) {
-	$product_id = $request->get_param( 'id' );
+	$ability = wp_get_ability( 'extrachill/shop-get-product' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
+	}
 
-	$response = extrachill_api_shop_products_build_response( $product_id );
-	return is_wp_error( $response ) ? $response : rest_ensure_response( $response );
+	$result = $ability->execute( array( 'id' => absint( $request->get_param( 'id' ) ) ) );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
 
 /**
