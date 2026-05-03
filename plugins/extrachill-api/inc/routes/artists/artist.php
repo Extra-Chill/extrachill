@@ -158,7 +158,7 @@ function extrachill_api_artist_permission_check( WP_REST_Request $request ) {
 function extrachill_api_artist_get_handler( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/get-artist-data' );
 	if ( ! $ability ) {
-		return new WP_Error( 'ability_missing', 'Artist data ability not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute( array( 'artist_id' => $request->get_param( 'id' ) ) );
@@ -177,7 +177,7 @@ function extrachill_api_artist_get_handler( WP_REST_Request $request ) {
 function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/create-artist' );
 	if ( ! $ability ) {
-		return new WP_Error( 'ability_missing', 'Create artist ability not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$input = array( 'name' => $request->get_param( 'name' ) );
@@ -206,7 +206,7 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/update-artist' );
 	if ( ! $ability ) {
-		return new WP_Error( 'ability_missing', 'Update artist ability not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$body = $request->get_json_params();

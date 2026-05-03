@@ -118,7 +118,7 @@ function extrachill_api_artist_socials_put_handler( WP_REST_Request $request ) {
 
 	$ability = wp_get_ability( 'extrachill/save-social-links' );
 	if ( ! $ability ) {
-		return new WP_Error( 'ability_missing', 'Save social links ability not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute(

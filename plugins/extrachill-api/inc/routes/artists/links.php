@@ -95,7 +95,7 @@ function extrachill_api_artist_links_permission_check( WP_REST_Request $request 
 function extrachill_api_artist_links_get_handler( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/get-link-page-data' );
 	if ( ! $ability ) {
-		return new WP_Error( 'ability_missing', 'Link page data ability not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute( array( 'artist_id' => $request->get_param( 'id' ) ) );
@@ -142,7 +142,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 
 		$ability = wp_get_ability( 'extrachill/save-link-page-links' );
 		if ( ! $ability ) {
-			return new WP_Error( 'ability_missing', 'Save links ability not available.', array( 'status' => 500 ) );
+			return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 		}
 
 		$result = $ability->execute(
@@ -165,7 +165,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 
 		$ability = wp_get_ability( 'extrachill/save-link-page-styles' );
 		if ( ! $ability ) {
-			return new WP_Error( 'ability_missing', 'Save styles ability not available.', array( 'status' => 500 ) );
+			return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 		}
 
 		$result = $ability->execute(
@@ -189,7 +189,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 
 		$ability = wp_get_ability( 'extrachill/save-link-page-settings' );
 		if ( ! $ability ) {
-			return new WP_Error( 'ability_missing', 'Save settings ability not available.', array( 'status' => 500 ) );
+			return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 		}
 
 		$settings_input = array( 'artist_id' => $artist_id );
@@ -218,7 +218,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 
 		$ability = wp_get_ability( 'extrachill/save-social-links' );
 		if ( ! $ability ) {
-			return new WP_Error( 'ability_missing', 'Save socials ability not available.', array( 'status' => 500 ) );
+			return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 		}
 
 		$result = $ability->execute(
@@ -236,7 +236,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 	// Return fresh data via read ability.
 	$read_ability = wp_get_ability( 'extrachill/get-link-page-data' );
 	if ( ! $read_ability ) {
-		return new WP_Error( 'ability_missing', 'Link page data ability not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$fresh_data = $read_ability->execute( array( 'artist_id' => $artist_id ) );
