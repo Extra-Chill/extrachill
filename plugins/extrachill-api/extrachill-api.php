@@ -62,7 +62,6 @@ final class ExtraChill_API_Plugin {
      * Placeholder bootstrap for future setup.
      */
     public function boot() {
-        require_once EXTRACHILL_API_PATH . 'inc/ability-route.php';
         require_once EXTRACHILL_API_PATH . 'inc/auth/extrachill-link-auth.php';
         require_once EXTRACHILL_API_PATH . 'inc/utils/id-generator.php';
         require_once EXTRACHILL_API_PATH . 'inc/utils/bbpress-drafts.php';
