@@ -45,11 +45,14 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function get( $args, $assoc_args ) {
-
-
 		$artist_id = absint( $args[0] );
-		$ability   = $this->get_ability( 'extrachill/get-artist-data' );
-		$result    = $ability->execute( array( 'artist_id' => $artist_id ) );
+
+		$ability = wp_get_ability( 'extrachill/get-artist-data' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/get-artist-data ability not available.' );
+		}
+
+		$result = $ability->execute( array( 'artist_id' => $artist_id ) );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -108,8 +111,6 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function create( $args, $assoc_args ) {
-
-
 		$input = array( 'name' => $args[0] );
 
 		if ( isset( $assoc_args['bio'] ) ) {
@@ -125,8 +126,12 @@ class ArtistCommand {
 			$input['user_id'] = absint( $assoc_args['user-id'] );
 		}
 
-		$ability = $this->get_ability( 'extrachill/create-artist' );
-		$result  = $ability->execute( $input );
+		$ability = wp_get_ability( 'extrachill/create-artist' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/create-artist ability not available.' );
+		}
+
+		$result = $ability->execute( $input );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -184,8 +189,6 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function update( $args, $assoc_args ) {
-
-
 		$input = array( 'artist_id' => absint( $args[0] ) );
 
 		$field_map = array(
@@ -207,8 +210,12 @@ class ArtistCommand {
 			WP_CLI::error( 'At least one field to update is required.' );
 		}
 
-		$ability = $this->get_ability( 'extrachill/update-artist' );
-		$result  = $ability->execute( $input );
+		$ability = wp_get_ability( 'extrachill/update-artist' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/update-artist ability not available.' );
+		}
+
+		$result = $ability->execute( $input );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -248,11 +255,14 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function link_page( $args, $assoc_args ) {
-
-
 		$artist_id = absint( $args[0] );
-		$ability   = $this->get_ability( 'extrachill/get-link-page-data' );
-		$result    = $ability->execute( array( 'artist_id' => $artist_id ) );
+
+		$ability = wp_get_ability( 'extrachill/get-link-page-data' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
+		}
+
+		$result = $ability->execute( array( 'artist_id' => $artist_id ) );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -295,8 +305,6 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_socials( $args, $assoc_args ) {
-
-
 		$artist_id    = absint( $args[0] );
 		$social_links = json_decode( $args[1], true );
 
@@ -304,8 +312,12 @@ class ArtistCommand {
 			WP_CLI::error( 'Second argument must be a valid JSON array of social link objects.' );
 		}
 
-		$ability = $this->get_ability( 'extrachill/save-social-links' );
-		$result  = $ability->execute(
+		$ability = wp_get_ability( 'extrachill/save-social-links' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/save-social-links ability not available.' );
+		}
+
+		$result = $ability->execute(
 			array(
 				'artist_id'    => $artist_id,
 				'social_links' => $social_links,
@@ -344,8 +356,6 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_links( $args, $assoc_args ) {
-
-
 		$artist_id = absint( $args[0] );
 		$links     = json_decode( $args[1], true );
 
@@ -353,8 +363,12 @@ class ArtistCommand {
 			WP_CLI::error( 'Second argument must be a valid JSON array of link sections.' );
 		}
 
-		$ability = $this->get_ability( 'extrachill/save-link-page-links' );
-		$result  = $ability->execute(
+		$ability = wp_get_ability( 'extrachill/save-link-page-links' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/save-link-page-links ability not available.' );
+		}
+
+		$result = $ability->execute(
 			array(
 				'artist_id' => $artist_id,
 				'links'     => $links,
@@ -406,15 +420,16 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function add_link( $args, $assoc_args ) {
-
-
 		$artist_id = absint( $args[0] );
 		$url       = $args[1];
 		$text      = $args[2];
 		$section   = absint( $assoc_args['section'] ?? 0 );
 
 		// Read current links.
-		$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+		$read_ability = wp_get_ability( 'extrachill/get-link-page-data' );
+		if ( ! $read_ability ) {
+			WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
+		}
 		$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 		if ( is_wp_error( $current ) ) {
@@ -446,8 +461,12 @@ class ArtistCommand {
 		);
 
 		// Save.
-		$save_ability = $this->get_ability( 'extrachill/save-link-page-links' );
-		$result       = $save_ability->execute(
+		$save_ability = wp_get_ability( 'extrachill/save-link-page-links' );
+		if ( ! $save_ability ) {
+			WP_CLI::error( 'extrachill/save-link-page-links ability not available.' );
+		}
+
+		$result = $save_ability->execute(
 			array(
 				'artist_id' => $artist_id,
 				'links'     => $links,
@@ -486,13 +505,14 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function remove_link( $args, $assoc_args ) {
-
-
 		$artist_id  = absint( $args[0] );
 		$identifier = $args[1];
 
 		// Read current links.
-		$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+		$read_ability = wp_get_ability( 'extrachill/get-link-page-data' );
+		if ( ! $read_ability ) {
+			WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
+		}
 		$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 		if ( is_wp_error( $current ) ) {
@@ -521,8 +541,12 @@ class ArtistCommand {
 		}
 
 		// Save.
-		$save_ability = $this->get_ability( 'extrachill/save-link-page-links' );
-		$result       = $save_ability->execute(
+		$save_ability = wp_get_ability( 'extrachill/save-link-page-links' );
+		if ( ! $save_ability ) {
+			WP_CLI::error( 'extrachill/save-link-page-links ability not available.' );
+		}
+
+		$result = $save_ability->execute(
 			array(
 				'artist_id' => $artist_id,
 				'links'     => $links,
@@ -565,13 +589,14 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function move_link( $args, $assoc_args ) {
-
-
 		$artist_id  = absint( $args[0] );
 		$identifier = $args[1];
 
 		// Read current links.
-		$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+		$read_ability = wp_get_ability( 'extrachill/get-link-page-data' );
+		if ( ! $read_ability ) {
+			WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
+		}
 		$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 		if ( is_wp_error( $current ) ) {
@@ -624,8 +649,12 @@ class ArtistCommand {
 		}
 
 		// Save.
-		$save_ability = $this->get_ability( 'extrachill/save-link-page-links' );
-		$result       = $save_ability->execute(
+		$save_ability = wp_get_ability( 'extrachill/save-link-page-links' );
+		if ( ! $save_ability ) {
+			WP_CLI::error( 'extrachill/save-link-page-links ability not available.' );
+		}
+
+		$result = $save_ability->execute(
 			array(
 				'artist_id' => $artist_id,
 				'links'     => $links,
@@ -694,13 +723,14 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_styles( $args, $assoc_args ) {
-
-
 		$artist_id = absint( $args[0] );
 
 		// --list mode: show current CSS vars.
 		if ( isset( $assoc_args['list'] ) ) {
-			$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+			$read_ability = wp_get_ability( 'extrachill/get-link-page-data' );
+			if ( ! $read_ability ) {
+				WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
+			}
 			$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 			if ( is_wp_error( $current ) ) {
@@ -752,8 +782,12 @@ class ArtistCommand {
 			WP_CLI::error( 'No style changes specified. Use --list to see current values, or pass flags like --button-bg="#0044cc".' );
 		}
 
-		$ability = $this->get_ability( 'extrachill/save-link-page-styles' );
-		$result  = $ability->execute(
+		$ability = wp_get_ability( 'extrachill/save-link-page-styles' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/save-link-page-styles ability not available.' );
+		}
+
+		$result = $ability->execute(
 			array(
 				'artist_id' => $artist_id,
 				'css_vars'  => $css_vars,
@@ -793,13 +827,14 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_settings( $args, $assoc_args ) {
-
-
 		$artist_id = absint( $args[0] );
 
 		// --list mode.
 		if ( isset( $assoc_args['list'] ) ) {
-			$read_ability = $this->get_ability( 'extrachill/get-link-page-data' );
+			$read_ability = wp_get_ability( 'extrachill/get-link-page-data' );
+			if ( ! $read_ability ) {
+				WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
+			}
 			$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 			if ( is_wp_error( $current ) ) {
@@ -831,8 +866,12 @@ class ArtistCommand {
 			WP_CLI::error( 'No settings specified. Use --list to see current values.' );
 		}
 
-		$ability = $this->get_ability( 'extrachill/save-link-page-settings' );
-		$result  = $ability->execute(
+		$ability = wp_get_ability( 'extrachill/save-link-page-settings' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/save-link-page-settings ability not available.' );
+		}
+
+		$result = $ability->execute(
 			array(
 				'artist_id' => $artist_id,
 				'settings'  => $settings,
@@ -849,17 +888,4 @@ class ArtistCommand {
 		WP_CLI::success( sprintf( 'Updated %d setting(s) for artist %d.', count( $settings ), $artist_id ) );
 	}
 
-	/**
-	 * Get an ability or exit with error.
-	 *
-	 * @param string $slug Ability slug.
-	 * @return \WP_Ability
-	 */
-	private function get_ability( $slug ) {
-		$ability = wp_get_ability( $slug );
-		if ( ! $ability ) {
-			WP_CLI::error( sprintf( 'Ability %s is not registered. Ensure extrachill-artist-platform is active.', $slug ) );
-		}
-		return $ability;
-	}
 }
