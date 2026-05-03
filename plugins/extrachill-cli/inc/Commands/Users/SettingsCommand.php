@@ -133,6 +133,111 @@ class SettingsCommand {
 		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 	}
 
+	/**
+	 * Initiate an email change for a user.
+	 *
+	 * Sends a verification email to the new address. The email is not
+	 * changed until the user clicks the confirmation link.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <user>
+	 * : User ID, login, or email.
+	 *
+	 * <new-email>
+	 * : New email address.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill users settings change-email chubes chris@example.com
+	 *     wp extrachill users settings change-email 1 newemail@extrachill.com
+	 *
+	 * @subcommand change-email
+	 * @when after_wp_load
+	 */
+	public function change_email( $args, $assoc_args ) {
+		$user = $this->resolve_user( $args[0] ?? '' );
+		if ( ! $user ) {
+			WP_CLI::error( 'User not found.' );
+		}
+
+		$new_email = $args[1] ?? '';
+		if ( empty( $new_email ) ) {
+			WP_CLI::error( 'New email address is required.' );
+		}
+
+		$ability = wp_get_ability( 'extrachill/change-user-email' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/change-user-email ability not available.' );
+		}
+
+		$result = $ability->execute(
+			array(
+				'user_id'   => (int) $user->ID,
+				'new_email' => (string) $new_email,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::success( $result['message'] ?? sprintf( 'Verification email sent for user %d (%s).', (int) $user->ID, $user->user_login ) );
+	}
+
+	/**
+	 * Change a user's password.
+	 *
+	 * Requires the current password for verification.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <user>
+	 * : User ID, login, or email.
+	 *
+	 * --current-password=<current-password>
+	 * : Current password.
+	 *
+	 * --new-password=<new-password>
+	 * : New password.
+	 *
+	 * --confirm-password=<confirm-password>
+	 * : Confirm new password.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill users settings change-password chubes --current-password=old123 --new-password=new456 --confirm-password=new456
+	 *
+	 * @subcommand change-password
+	 * @when after_wp_load
+	 */
+	public function change_password( $args, $assoc_args ) {
+		$user = $this->resolve_user( $args[0] ?? '' );
+		if ( ! $user ) {
+			WP_CLI::error( 'User not found.' );
+		}
+
+		$ability = wp_get_ability( 'extrachill/change-user-password' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/change-user-password ability not available.' );
+		}
+
+		$result = $ability->execute(
+			array(
+				'user_id'          => (int) $user->ID,
+				'current_password' => (string) ( $assoc_args['current-password'] ?? '' ),
+				'new_password'     => (string) ( $assoc_args['new-password'] ?? '' ),
+				'confirm_password' => (string) ( $assoc_args['confirm-password'] ?? '' ),
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		WP_CLI::success( $result['message'] ?? sprintf( 'Password changed for user %d (%s).', (int) $user->ID, $user->user_login ) );
+	}
+
 	private function resolve_user( $identifier ) {
 		if ( is_numeric( $identifier ) ) {
 			return get_user_by( 'id', (int) $identifier );

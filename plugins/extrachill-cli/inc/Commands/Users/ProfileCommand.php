@@ -135,6 +135,65 @@ class ProfileCommand {
 		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 	}
 
+	/**
+	 * Update user profile links.
+	 *
+	 * Replaces all existing profile links with the provided set.
+	 * Each link requires a type key and URL. Pass links as a JSON array.
+	 *
+	 * Valid type keys: website, facebook, instagram, twitter, youtube,
+	 * tiktok, spotify, soundcloud, bandcamp, github, other.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <user>
+	 * : User ID, login, or email.
+	 *
+	 * <links-json>
+	 * : JSON array of link objects. Each object: {"type_key":"...", "url":"...", "custom_label":"..."}.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill users profile update-links chubes '[{"type_key":"website","url":"https://extrachill.com"},{"type_key":"instagram","url":"https://instagram.com/extrachill"}]'
+	 *     wp extrachill users profile update-links 1 '[]'
+	 *
+	 * @subcommand update-links
+	 * @when after_wp_load
+	 */
+	public function update_links( $args, $assoc_args ) {
+		$user = $this->resolve_user( $args[0] ?? '' );
+		if ( ! $user ) {
+			WP_CLI::error( 'User not found.' );
+		}
+
+		$links_raw = $args[1] ?? '';
+		$links     = json_decode( $links_raw, true );
+
+		if ( ! is_array( $links ) ) {
+			WP_CLI::error( 'Links must be a valid JSON array.' );
+		}
+
+		$ability = wp_get_ability( 'extrachill/update-user-links' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/update-user-links ability not available.' );
+		}
+
+		$result = $ability->execute(
+			array(
+				'user_id' => (int) $user->ID,
+				'links'   => $links,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$count = isset( $result['links'] ) ? count( $result['links'] ) : 0;
+		WP_CLI::success( sprintf( 'Updated %d link(s) for user %d (%s).', $count, (int) $user->ID, $user->user_login ) );
+		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
 	private function resolve_user( $identifier ) {
 		if ( is_numeric( $identifier ) ) {
 			return get_user_by( 'id', (int) $identifier );
