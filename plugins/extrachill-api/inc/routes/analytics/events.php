@@ -142,23 +142,28 @@ function extrachill_api_analytics_events_handler( WP_REST_Request $request ) {
 /**
  * Handle events summary request.
  *
+ * Wraps the extrachill/get-analytics-summary ability from extrachill-analytics.
+ *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_analytics_events_summary_handler( WP_REST_Request $request ) {
-	if ( ! function_exists( 'extrachill_get_analytics_event_stats' ) ) {
-		return new WP_Error(
-			'function_missing',
-			'Analytics stats function not available.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/get-analytics-summary' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-analytics plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$event_type = $request->get_param( 'event_type' );
-	$days       = $request->get_param( 'days' );
-	$blog_id    = $request->get_param( 'blog_id' );
+	$result = $ability->execute(
+		array(
+			'event_type' => $request->get_param( 'event_type' ),
+			'days'       => $request->get_param( 'days' ),
+			'blog_id'    => $request->get_param( 'blog_id' ),
+		)
+	);
 
-	$stats = extrachill_get_analytics_event_stats( $event_type, $days, $blog_id );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
 
-	return rest_ensure_response( $stats );
+	return rest_ensure_response( $result );
 }
