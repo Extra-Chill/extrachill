@@ -30,13 +30,9 @@ function extrachill_api_register_event_submission_route() {
 }
 
 function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'extrachill/submit-event' );
+	$ability = wp_get_ability( 'extrachill/events-submit' );
 	if ( ! $ability ) {
-		return new WP_Error(
-			'ability_unavailable',
-			__( 'Event submission is not available.', 'extrachill-api' ),
-			array( 'status' => 500 )
-		);
+		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$input = array(
@@ -61,7 +57,6 @@ function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
 	}
 
 	$result = $ability->execute( $input );
-
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}

@@ -2,8 +2,8 @@
 /**
  * REST routes: Concert tracking (attendance toggle, event info, user shows, user stats).
  *
- * Thin wrappers around extrachill-users concert tracking abilities.
- * All business logic lives in extrachill-users/inc/concert-tracking/service.php.
+ * Thin REST wrappers that invoke extrachill-users concert tracking abilities.
+ * All business logic lives in extrachill-users via the Abilities API.
  *
  * Endpoints:
  *   POST /extrachill/v1/concert-tracking/toggle
@@ -177,140 +177,118 @@ function extrachill_api_register_concert_tracking_routes() {
 /**
  * Handle POST /concert-tracking/toggle.
  *
+ * Invokes the extrachill/toggle-event-mark ability (registered in extrachill-users).
+ *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_handle_concert_tracking_toggle( WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_users_toggle_event' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Concert tracking requires the Extra Chill Users plugin.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/toggle-event-mark' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$user_id  = get_current_user_id();
-	$event_id = (int) $request->get_param( 'event_id' );
-	$blog_id  = (int) $request->get_param( 'blog_id' );
-
-	if ( ! $blog_id ) {
-		$blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id();
-	}
-
-	$result = ec_users_toggle_event( $user_id, $event_id, $blog_id );
-	$count  = ec_users_get_event_mark_count( $event_id, $blog_id );
-	$timing = ec_users_get_event_timing( $event_id );
-
-	return rest_ensure_response(
-		array(
-			'marked'      => $result['marked'],
-			'count'       => $count,
-			'count_label' => ec_users_format_count_label( $count, $timing ),
-			'timing'      => $timing,
-		)
+	$input = array(
+		'event_id' => (int) $request->get_param( 'event_id' ),
 	);
+
+	$blog_id = (int) $request->get_param( 'blog_id' );
+	if ( $blog_id ) {
+		$input['blog_id'] = $blog_id;
+	}
+
+	$result = $ability->execute( $input );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
 
 /**
  * Handle GET /concert-tracking/event/{id}.
  *
+ * Invokes the extrachill/get-event-attendance ability (registered in extrachill-users).
+ *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_handle_concert_tracking_event( WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_users_get_event_mark_count' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Concert tracking requires the Extra Chill Users plugin.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/get-event-attendance' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$event_id = (int) $request->get_param( 'event_id' );
-	$blog_id  = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id();
-
-	$count  = ec_users_get_event_mark_count( $event_id, $blog_id );
-	$timing = ec_users_get_event_timing( $event_id );
-
-	$data = array(
-		'count'       => $count,
-		'count_label' => ec_users_format_count_label( $count, $timing ),
-		'timing'      => $timing,
-		'user_marked' => false,
-		'attendees'   => array(),
+	$input = array(
+		'event_id' => (int) $request->get_param( 'event_id' ),
 	);
 
-	if ( is_user_logged_in() ) {
-		$data['user_marked'] = ec_users_is_event_marked( get_current_user_id(), $event_id, $blog_id );
-	}
-
 	if ( $request->get_param( 'include_attendees' ) ) {
-		$limit             = (int) $request->get_param( 'limit' );
-		$data['attendees'] = ec_users_get_event_attendees( $event_id, $blog_id, $limit );
+		$input['include_attendees'] = true;
+		$input['limit']             = (int) $request->get_param( 'limit' );
 	}
 
-	return rest_ensure_response( $data );
+	$result = $ability->execute( $input );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
 
 /**
  * Handle GET /concert-tracking/user/{id}/shows.
  *
+ * Invokes the extrachill/get-user-shows ability (registered in extrachill-users).
+ *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_handle_concert_tracking_user_shows( WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_users_get_user_events' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Concert tracking requires the Extra Chill Users plugin.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/get-user-shows' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$user_id = (int) $request->get_param( 'user_id' );
-
-	if ( ! get_user_by( 'id', $user_id ) ) {
-		return new WP_Error( 'user_not_found', 'User not found.', array( 'status' => 404 ) );
-	}
-
-	$args = array(
+	$result = $ability->execute( array(
+		'user_id'   => (int) $request->get_param( 'user_id' ),
 		'period'    => $request->get_param( 'period' ),
 		'year'      => (int) $request->get_param( 'year' ),
 		'date_from' => $request->get_param( 'date_from' ),
 		'date_to'   => $request->get_param( 'date_to' ),
 		'page'      => (int) $request->get_param( 'page' ),
 		'per_page'  => (int) $request->get_param( 'per_page' ),
-	);
+	) );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
 
-	return rest_ensure_response( ec_users_get_user_events( $user_id, $args ) );
+	return rest_ensure_response( $result );
 }
 
 /**
  * Handle GET /concert-tracking/user/{id}/stats.
  *
+ * Invokes the extrachill/get-user-concert-stats ability (registered in extrachill-users).
+ *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_handle_concert_tracking_user_stats( WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_users_get_user_concert_stats' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Concert tracking requires the Extra Chill Users plugin.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/get-user-concert-stats' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$user_id = (int) $request->get_param( 'user_id' );
-
-	if ( ! get_user_by( 'id', $user_id ) ) {
-		return new WP_Error( 'user_not_found', 'User not found.', array( 'status' => 404 ) );
-	}
-
-	$args = array(
+	$result = $ability->execute( array(
+		'user_id'   => (int) $request->get_param( 'user_id' ),
 		'year'      => (int) $request->get_param( 'year' ),
 		'date_from' => $request->get_param( 'date_from' ),
 		'date_to'   => $request->get_param( 'date_to' ),
-	);
+	) );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
 
-	return rest_ensure_response( ec_users_get_user_concert_stats( $user_id, $args ) );
+	return rest_ensure_response( $result );
 }

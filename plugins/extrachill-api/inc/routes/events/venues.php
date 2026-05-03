@@ -124,196 +124,89 @@ function extrachill_api_register_events_venues_routes() {
 /**
  * Handle venue list request.
  *
+ * Invokes the extrachill/events-list-venues ability (registered in extrachill-events).
  * Route affinity middleware ensures this runs on the events site.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
  */
 function extrachill_api_events_venues_list_handler( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'data-machine-events/list-venues' );
+	$ability = wp_get_ability( 'extrachill/events-list-venues' );
 	if ( ! $ability ) {
-		return new WP_Error(
-			'ability_unavailable',
-			__( 'List venues ability is not registered.', 'extrachill-api' ),
-			array( 'status' => 500 )
-		);
+		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$input = array();
 
-	// Geo proximity params.
-	$lat = $request->get_param( 'lat' );
-	$lng = $request->get_param( 'lng' );
-	if ( null !== $lat && null !== $lng ) {
-		$input['lat']    = (float) $lat;
-		$input['lng']    = (float) $lng;
-		$input['radius'] = $request->get_param( 'radius' ) ?: 25;
-	}
-
-	// Viewport bounds.
-	$sw_lat = $request->get_param( 'sw_lat' );
-	$sw_lng = $request->get_param( 'sw_lng' );
-	$ne_lat = $request->get_param( 'ne_lat' );
-	$ne_lng = $request->get_param( 'ne_lng' );
-	if ( null !== $sw_lat && null !== $sw_lng && null !== $ne_lat && null !== $ne_lng ) {
-		$input['bounds'] = implode( ',', array(
-			(float) $sw_lat,
-			(float) $sw_lng,
-			(float) $ne_lat,
-			(float) $ne_lng,
-		) );
-	}
-
-	// Location taxonomy filter.
-	$location = $request->get_param( 'location' );
-	if ( $location ) {
-		$term = get_term_by( 'slug', $location, 'location' );
-		if ( $term && ! is_wp_error( $term ) ) {
-			$input['taxonomy'] = 'location';
-			$input['term_id']  = $term->term_id;
+	$params = array( 'location', 'sw_lat', 'sw_lng', 'ne_lat', 'ne_lng', 'lat', 'lng', 'radius' );
+	foreach ( $params as $key ) {
+		$value = $request->get_param( $key );
+		if ( null !== $value ) {
+			$input[ $key ] = $value;
 		}
 	}
 
 	$result = $ability->execute( $input );
-
 	if ( is_wp_error( $result ) ) {
-		return new WP_Error(
-			'venues_error',
-			$result->get_error_message(),
-			array( 'status' => 500 )
-		);
+		return $result;
 	}
 
-	$venues = array_map( 'extrachill_api_transform_venue', $result['venues'] ?? array() );
-	return rest_ensure_response( $venues );
+	return rest_ensure_response( $result );
 }
 
 /**
  * Handle single venue request.
  *
- * Reads venue term data directly — bypasses the admin-gated get-venue ability
- * since public venue detail is read-only taxonomy data.
+ * Invokes the extrachill/events-get-venue ability (registered in extrachill-events).
  * Route affinity middleware ensures this runs on the events site.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
  */
 function extrachill_api_events_venue_get_handler( WP_REST_Request $request ) {
-	$term_id = (int) $request->get_param( 'id' );
-	$term    = get_term( $term_id, 'venue' );
-
-	if ( ! $term || is_wp_error( $term ) ) {
-		return new WP_Error(
-			'venue_not_found',
-			__( 'Venue not found.', 'extrachill-api' ),
-			array( 'status' => 404 )
-		);
+	$ability = wp_get_ability( 'extrachill/events-get-venue' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
 	}
 
-	// Build venue detail from term meta.
-	$venue_data = array(
-		'term_id' => $term->term_id,
-		'name'    => $term->name,
-		'slug'    => $term->slug,
-	);
-
-	// Read venue meta fields if Venue_Taxonomy helper is available.
-	if ( class_exists( '\\DataMachineEvents\\Core\\Venue_Taxonomy' ) ) {
-		$raw = \DataMachineEvents\Core\Venue_Taxonomy::get_venue_data( $term->term_id );
-		$venue_data['address']     = $raw['address'] ?? '';
-		$venue_data['city']        = $raw['city'] ?? '';
-		$venue_data['state']       = $raw['state'] ?? '';
-		$venue_data['country']     = $raw['country'] ?? '';
-		$venue_data['timezone']    = $raw['timezone'] ?? '';
-		$venue_data['website']     = $raw['website'] ?? '';
-		$venue_data['coordinates'] = get_term_meta( $term->term_id, '_venue_coordinates', true ) ?: '';
+	$result = $ability->execute( array(
+		'id' => (int) $request->get_param( 'id' ),
+	) );
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	return rest_ensure_response( extrachill_api_transform_venue_detail( $venue_data ) );
+	return rest_ensure_response( $result );
 }
 
 /**
  * Handle check duplicate venue request.
  *
- * Reads venue terms directly — bypasses the admin-gated ability
- * since this is a read-only name search.
+ * Invokes the extrachill/events-check-venue-duplicate ability (registered in extrachill-events).
  * Route affinity middleware ensures this runs on the events site.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
  */
 function extrachill_api_events_venue_check_duplicate_handler( WP_REST_Request $request ) {
-	$name = $request->get_param( 'name' );
-
-	// Search for venues matching the name.
-	$terms = get_terms( array(
-		'taxonomy'   => 'venue',
-		'hide_empty' => false,
-		'name__like' => $name,
-		'number'     => 10,
-	) );
-
-	if ( is_wp_error( $terms ) || empty( $terms ) ) {
-		return rest_ensure_response( array() );
+	$ability = wp_get_ability( 'extrachill/events-check-venue-duplicate' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$matches = array();
-	foreach ( $terms as $term ) {
-		$matches[] = extrachill_api_transform_venue_detail( array(
-			'term_id' => $term->term_id,
-			'name'    => $term->name,
-			'slug'    => $term->slug,
-		) );
-	}
-
-	return rest_ensure_response( $matches );
-}
-
-/**
- * Transform a venue from list-venues ability output into the Venue shape.
- *
- * @param array $venue Venue data from list-venues ability.
- * @return array Transformed venue.
- */
-function extrachill_api_transform_venue( array $venue ): array {
-	return array(
-		'id'          => (int) ( $venue['term_id'] ?? 0 ),
-		'name'        => $venue['name'] ?? '',
-		'slug'        => $venue['slug'] ?? '',
-		'address'     => $venue['address'] ?? null,
-		'latitude'    => isset( $venue['lat'] ) ? (float) $venue['lat'] : null,
-		'longitude'   => isset( $venue['lon'] ) ? (float) $venue['lon'] : null,
-		'event_count' => (int) ( $venue['event_count'] ?? 0 ),
+	$input = array(
+		'name' => $request->get_param( 'name' ),
 	);
-}
 
-/**
- * Transform a venue from get-venue ability output into the Venue shape.
- *
- * @param array $venue Venue data from get-venue ability.
- * @return array Transformed venue.
- */
-function extrachill_api_transform_venue_detail( array $venue ): array {
-	$lat = null;
-	$lon = null;
-
-	if ( ! empty( $venue['coordinates'] ) && strpos( $venue['coordinates'], ',' ) !== false ) {
-		$parts = explode( ',', $venue['coordinates'] );
-		$lat   = (float) trim( $parts[0] );
-		$lon   = (float) trim( $parts[1] );
+	$city = $request->get_param( 'city' );
+	if ( ! empty( $city ) ) {
+		$input['city'] = $city;
 	}
 
-	return array(
-		'id'        => (int) ( $venue['term_id'] ?? 0 ),
-		'name'      => $venue['name'] ?? '',
-		'slug'      => $venue['slug'] ?? '',
-		'address'   => $venue['address'] ?? null,
-		'city'      => $venue['city'] ?? null,
-		'state'     => $venue['state'] ?? null,
-		'country'   => $venue['country'] ?? null,
-		'latitude'  => $lat,
-		'longitude' => $lon,
-		'timezone'  => $venue['timezone'] ?? null,
-		'website'   => $venue['website'] ?? null,
-	);
+	$result = $ability->execute( $input );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }

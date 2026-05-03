@@ -41,39 +41,24 @@ function extrachill_api_register_events_geocode_route() {
 /**
  * Handle geocode search request.
  *
+ * Invokes the extrachill/events-geocode ability (registered in extrachill-events).
  * Route affinity middleware ensures this runs on the events site.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
  */
 function extrachill_api_events_geocode_handler( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'data-machine-events/geocode-search' );
+	$ability = wp_get_ability( 'extrachill/events-geocode' );
 	if ( ! $ability ) {
-		return new WP_Error(
-			'ability_unavailable',
-			__( 'Geocode search ability is not registered.', 'extrachill-api' ),
-			array( 'status' => 500 )
-		);
+		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute( array(
-		'query'        => $request->get_param( 'q' ),
-		'countrycodes' => 'us',
+		'q' => $request->get_param( 'q' ),
 	) );
-
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
 
-	// Transform Nominatim results to GeoSearchResult shape.
-	$results = array();
-	foreach ( $result['results'] ?? array() as $item ) {
-		$results[] = array(
-			'lat'          => (float) ( $item['lat'] ?? 0 ),
-			'lon'          => (float) ( $item['lon'] ?? 0 ),
-			'display_name' => $item['display_name'] ?? '',
-		);
-	}
-
-	return rest_ensure_response( $results );
+	return rest_ensure_response( $result );
 }
