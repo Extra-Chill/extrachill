@@ -81,7 +81,7 @@ class GiveawayCommand {
 	public function run( $args, $assoc_args ) {
 		$ability = wp_get_ability( 'extrachill/run-giveaway' );
 		if ( ! $ability ) {
-			WP_CLI::error( 'extrachill/run-giveaway ability not available. Ensure extrachill-studio is active.' );
+			WP_CLI::error( 'extrachill/run-giveaway ability not available.' );
 		}
 
 		$require_tag = Utils\get_flag_value( $assoc_args, 'require-tag', true );
