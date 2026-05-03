@@ -5,6 +5,14 @@
  *
  * Hooks delegate to existing extrachill-users functions. No duplicated logic.
  *
+ * Filters / actions consumed:
+ *  - wp_native_auth_pre_login         (filter) — community membership + block check
+ *  - wp_native_auth_user_payload      (filter) — decorate user with profile_url
+ *  - wp_native_auth_pre_authenticate  (filter) — Turnstile gate (structured no-op v0.1)
+ *  - wp_native_auth_after_login       (action) — fire EC after-login hooks
+ *  - wp_native_auth_pre_register      (filter) — EC username override
+ *  - wp_native_auth_after_register    (action) — community provisioning, newsletter, metadata
+ *
  * @package ExtraChill\Users
  */
 
@@ -159,3 +167,101 @@ function extrachill_users_wp_native_after_login( int $user_id, string $device_id
 	do_action( 'extrachill_users_after_native_login', $user_id, $device_id, $token_pair );
 }
 add_action( 'wp_native_auth_after_login', 'extrachill_users_wp_native_after_login', 10, 3 );
+
+/**
+ * Pre-register gate: override username generation for EC conventions.
+ *
+ * Delegates to ec_generate_username_from_email() — the same function used by
+ * the existing extrachill_users_register_with_tokens() service in
+ * inc/auth-tokens/service.php. The framework's default deterministic hash-based
+ * username is replaced with EC's human-readable convention.
+ *
+ * Out-of-scope concerns (deferred to follow-up issues):
+ *  - Turnstile verification: wp-native-auth's input schema doesn't accept a
+ *    turnstile_response field. Turnstile enforcement remains web-only via the
+ *    existing /extrachill/v1/auth/register REST route (same constraint as the
+ *    pre_authenticate handler above).
+ *  - Invite-token redemption: wp-native-auth's input schema doesn't accept
+ *    invite_token / invite_artist_id. Invite-flow registrations stay on the
+ *    existing REST route.
+ *
+ * @param null|WP_Error $result            Pass-through from earlier filters, or null.
+ * @param array         $registration_data Registration data: [email, password, username]. Passed by reference by the caller.
+ * @param array         $context           Contextual data from wp-native-auth (device_id, etc.).
+ * @return null|WP_Error Null to continue, WP_Error to abort registration.
+ */
+function extrachill_users_wp_native_pre_register( null|WP_Error $result, array &$registration_data, array $context ): null|WP_Error {
+	if ( $result instanceof WP_Error ) {
+		return $result; // Earlier filter already blocked.
+	}
+
+	// Override username with EC convention if the helper exists.
+	if ( function_exists( 'ec_generate_username_from_email' ) && ! empty( $registration_data['email'] ) ) {
+		$registration_data['username'] = ec_generate_username_from_email( $registration_data['email'] );
+	}
+
+	return $result;
+}
+add_filter( 'wp_native_auth_pre_register', 'extrachill_users_wp_native_pre_register', 10, 3 );
+
+/**
+ * After-register action: provisions community membership, newsletter subscription,
+ * registration metadata, and fires the EC after-register hook.
+ *
+ * Delegates to existing extrachill-users / EC functions — no new business logic.
+ * Mirrors the post-creation steps in extrachill_users_register_with_tokens()
+ * (inc/auth-tokens/service.php).
+ *
+ * @param int    $user_id    The newly created user's ID.
+ * @param string $device_id  The device UUID that registered.
+ * @param array  $token_pair The token pair issued (access + refresh).
+ */
+function extrachill_users_wp_native_after_register( int $user_id, string $device_id, array $token_pair ): void {
+	// Community-blog membership: delegate to the same filter the existing
+	// registration service uses for cross-blog provisioning.
+	$user = get_user_by( 'id', $user_id );
+	if ( $user ) {
+		$registration_data = array(
+			'username' => $user->user_login,
+			'password' => '', // Already created — not needed for provisioning.
+			'email'    => $user->user_email,
+		);
+
+		/**
+		 * Provision community-blog membership for the new user.
+		 *
+		 * This is the same filter used by extrachill_users_register_with_tokens()
+		 * to add the user to the community blog. Consumer code (EC multisite)
+		 * listens on this filter to call add_user_to_blog().
+		 */
+		apply_filters( 'extrachill_create_community_user', $user_id, $registration_data );
+	}
+
+	// Newsletter subscription: same call as service.php.
+	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
+		$email = $user ? $user->user_email : '';
+		if ( $email ) {
+			$sync_result = extrachill_multisite_subscribe( $email, 'registration' );
+			if ( isset( $sync_result['success'] ) && ! $sync_result['success'] ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for newsletter sync failures.
+				error_log( 'wp-native-bridge: registration newsletter subscription failed for user ' . $user_id . ': ' . ( isset( $sync_result['message'] ) ? $sync_result['message'] : '' ) );
+			}
+		}
+	}
+
+	// Registration metadata: mirrors service.php post-creation meta.
+	update_user_meta( $user_id, 'registration_timestamp', current_time( 'mysql' ) );
+
+	/**
+	 * Fires after a successful registration through wp-native-auth.
+	 *
+	 * Allows EC subsystems (analytics, notifications, onboarding, etc.) to react
+	 * to native-auth registrations identically to REST-route registrations.
+	 *
+	 * @param int    $user_id    The newly created user's ID.
+	 * @param string $device_id  The device UUID.
+	 * @param array  $token_pair The issued token pair.
+	 */
+	do_action( 'extrachill_users_after_native_register', $user_id, $device_id, $token_pair );
+}
+add_action( 'wp_native_auth_after_register', 'extrachill_users_wp_native_after_register', 10, 3 );
