@@ -47,18 +47,28 @@ class ConcertTrackingCommand {
 	 * @when after_wp_load
 	 */
 	public function mark( $args, $assoc_args ) {
-		$this->ensure_tracking();
-
 		$event_id = (int) $args[0];
 		$user     = $this->resolve_user( $assoc_args );
-		$blog_id  = $this->get_events_blog_id();
 
 		$this->validate_event( $event_id );
 
-		$result = ec_users_mark_event( $user->ID, $event_id, $blog_id );
+		$ability = wp_get_ability( 'extrachill/toggle-event-mark' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/toggle-event-mark ability not available. Is extrachill-users active?' );
+		}
 
-		if ( $result ) {
-			$timing = ec_users_get_event_timing( $event_id );
+		$result = $ability->execute( array(
+			'user_id'  => (int) $user->ID,
+			'event_id' => $event_id,
+			'action'   => 'mark',
+		) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		if ( ! empty( $result['changed'] ) ) {
+			$timing = $result['timing'] ?? '';
 			WP_CLI::success( sprintf(
 				'Marked event %d for %s. (%s)',
 				$event_id,
@@ -88,15 +98,25 @@ class ConcertTrackingCommand {
 	 * @when after_wp_load
 	 */
 	public function unmark( $args, $assoc_args ) {
-		$this->ensure_tracking();
-
 		$event_id = (int) $args[0];
 		$user     = $this->resolve_user( $assoc_args );
-		$blog_id  = $this->get_events_blog_id();
 
-		$result = ec_users_unmark_event( $user->ID, $event_id, $blog_id );
+		$ability = wp_get_ability( 'extrachill/toggle-event-mark' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/toggle-event-mark ability not available. Is extrachill-users active?' );
+		}
 
-		if ( $result ) {
+		$result = $ability->execute( array(
+			'user_id'  => (int) $user->ID,
+			'event_id' => $event_id,
+			'action'   => 'unmark',
+		) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		if ( ! empty( $result['changed'] ) ) {
 			WP_CLI::success( sprintf( 'Unmarked event %d for %s.', $event_id, $user->user_login ) );
 		} else {
 			WP_CLI::warning( sprintf( 'Event %d was not marked for %s.', $event_id, $user->user_login ) );
@@ -131,24 +151,31 @@ class ConcertTrackingCommand {
 	 * @when after_wp_load
 	 */
 	public function check( $args, $assoc_args ) {
-		$this->ensure_tracking();
-
 		$event_id = (int) $args[0];
 		$user     = $this->resolve_user( $assoc_args );
-		$blog_id  = $this->get_events_blog_id();
 		$format   = $assoc_args['format'] ?? 'table';
 
-		$is_marked = ec_users_is_event_marked( $user->ID, $event_id, $blog_id );
-		$timing    = ec_users_get_event_timing( $event_id );
-		$count     = ec_users_get_event_mark_count( $event_id, $blog_id );
+		$ability = wp_get_ability( 'extrachill/get-event-attendance' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/get-event-attendance ability not available. Is extrachill-users active?' );
+		}
+
+		$result = $ability->execute( array(
+			'event_id' => $event_id,
+			'user_id'  => (int) $user->ID,
+		) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
 
 		$data = array(
 			'event_id' => $event_id,
 			'user'     => $user->user_login,
-			'marked'   => $is_marked,
-			'timing'   => $timing,
-			'label'    => $this->timing_label( $timing ),
-			'count'    => $count,
+			'marked'   => $result['marked'] ?? false,
+			'timing'   => $result['timing'] ?? '',
+			'label'    => $this->timing_label( $result['timing'] ?? '' ),
+			'count'    => $result['count'] ?? 0,
 		);
 
 		if ( 'json' === $format ) {
@@ -219,19 +246,27 @@ class ConcertTrackingCommand {
 	 * @subcommand list
 	 */
 	public function list_( $args, $assoc_args ) {
-		$this->ensure_tracking();
-
 		$user   = $this->resolve_user_from_args( $args, $assoc_args );
 		$format = $assoc_args['format'] ?? 'table';
 
-		$query_args = array(
+		$ability = wp_get_ability( 'extrachill/get-user-shows' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/get-user-shows ability not available. Is extrachill-users active?' );
+		}
+
+		$input = array(
+			'user_id'  => (int) $user->ID,
 			'period'   => $assoc_args['period'] ?? 'all',
 			'year'     => isset( $assoc_args['year'] ) ? (int) $assoc_args['year'] : 0,
 			'page'     => isset( $assoc_args['page'] ) ? (int) $assoc_args['page'] : 1,
 			'per_page' => isset( $assoc_args['per-page'] ) ? (int) $assoc_args['per-page'] : 20,
 		);
 
-		$result = ec_users_get_user_events( $user->ID, $query_args );
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
 
 		if ( 'json' === $format ) {
 			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
@@ -292,18 +327,25 @@ class ConcertTrackingCommand {
 	 * @when after_wp_load
 	 */
 	public function stats( $args, $assoc_args ) {
-		$this->ensure_tracking();
-
 		$user   = $this->resolve_user_from_args( $args, $assoc_args );
 		$format = $assoc_args['format'] ?? 'table';
 		$year   = isset( $assoc_args['year'] ) ? (int) $assoc_args['year'] : 0;
 
-		$stats_args = array();
-		if ( $year ) {
-			$stats_args['year'] = $year;
+		$ability = wp_get_ability( 'extrachill/get-user-concert-stats' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/get-user-concert-stats ability not available. Is extrachill-users active?' );
 		}
 
-		$stats = ec_users_get_user_concert_stats( $user->ID, $stats_args );
+		$input = array( 'user_id' => (int) $user->ID );
+		if ( $year ) {
+			$input['year'] = $year;
+		}
+
+		$stats = $ability->execute( $input );
+
+		if ( is_wp_error( $stats ) ) {
+			WP_CLI::error( $stats->get_error_message() );
+		}
 
 		if ( 'json' === $format ) {
 			WP_CLI::log( wp_json_encode( $stats, JSON_PRETTY_PRINT ) );
@@ -391,31 +433,40 @@ class ConcertTrackingCommand {
 	 * @when after_wp_load
 	 */
 	public function event( $args, $assoc_args ) {
-		$this->ensure_tracking();
-
 		$event_id = (int) $args[0];
 		$format   = $assoc_args['format'] ?? 'table';
-		$blog_id  = $this->get_events_blog_id();
 
 		$this->validate_event( $event_id );
 
-		$count  = ec_users_get_event_mark_count( $event_id, $blog_id );
-		$timing = ec_users_get_event_timing( $event_id );
-		$post   = get_post( $event_id );
-		$title  = $post ? $post->post_title : '(unknown)';
+		$ability = wp_get_ability( 'extrachill/get-event-attendance' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/get-event-attendance ability not available. Is extrachill-users active?' );
+		}
 
-		$data = array(
-			'event_id' => $event_id,
-			'title'    => $title,
-			'timing'   => $timing,
-			'label'    => $this->timing_label( $timing ),
-			'count'    => $count,
-		);
+		$input = array( 'event_id' => $event_id );
 
 		$include_attendees = isset( $assoc_args['attendees'] );
 		if ( $include_attendees ) {
-			$limit               = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 20;
-			$data['attendees'] = ec_users_get_event_attendees( $event_id, $blog_id, $limit );
+			$input['include_attendees'] = true;
+			$input['attendee_limit']    = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 20;
+		}
+
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$data = array(
+			'event_id' => $event_id,
+			'title'    => $result['title'] ?? '(unknown)',
+			'timing'   => $result['timing'] ?? '',
+			'label'    => $this->timing_label( $result['timing'] ?? '' ),
+			'count'    => $result['count'] ?? 0,
+		);
+
+		if ( $include_attendees && ! empty( $result['attendees'] ) ) {
+			$data['attendees'] = $result['attendees'];
 		}
 
 		if ( 'json' === $format ) {
@@ -423,10 +474,12 @@ class ConcertTrackingCommand {
 			return;
 		}
 
+		$count_label = $result['count_label'] ?? (string) ( $result['count'] ?? 0 );
+
 		$rows = array(
-			array( 'Field' => 'Event', 'Value' => $title ),
-			array( 'Field' => 'Timing', 'Value' => $timing . ' (' . $this->timing_label( $timing ) . ')' ),
-			array( 'Field' => 'Attendance', 'Value' => ec_users_format_count_label( $count, $timing ) ),
+			array( 'Field' => 'Event', 'Value' => $data['title'] ),
+			array( 'Field' => 'Timing', 'Value' => $data['timing'] . ' (' . $data['label'] . ')' ),
+			array( 'Field' => 'Attendance', 'Value' => $count_label ),
 		);
 
 		WP_CLI\Utils\format_items( 'table', $rows, array( 'Field', 'Value' ) );
@@ -440,6 +493,10 @@ class ConcertTrackingCommand {
 
 	/**
 	 * Bulk import event marks for a user (backfill concert history).
+	 *
+	 * Composite CLI-only utility — no single ability covers the full
+	 * import loop (validation, dedup, dry-run). Each mark invokes the
+	 * extrachill/toggle-event-mark ability individually.
 	 *
 	 * ## OPTIONS
 	 *
@@ -460,12 +517,14 @@ class ConcertTrackingCommand {
 	 * @when after_wp_load
 	 */
 	public function import( $args, $assoc_args ) {
-		$this->ensure_tracking();
+		$ability = wp_get_ability( 'extrachill/toggle-event-mark' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/toggle-event-mark ability not available. Is extrachill-users active?' );
+		}
 
 		$user      = $this->resolve_user_by_identifier( $args[0] ?? '' );
 		$event_ids = array_map( 'intval', array_filter( explode( ',', $args[1] ?? '' ) ) );
 		$dry_run   = isset( $assoc_args['dry-run'] );
-		$blog_id   = $this->get_events_blog_id();
 
 		if ( empty( $event_ids ) ) {
 			WP_CLI::error( 'No event IDs provided.' );
@@ -483,20 +542,51 @@ class ConcertTrackingCommand {
 				continue;
 			}
 
-			if ( ec_users_is_event_marked( $user->ID, $event_id, $blog_id ) ) {
-				WP_CLI::log( sprintf( 'Event %d: already marked. Skipping.', $event_id ) );
-				++$skipped;
-				continue;
-			}
-
 			if ( $dry_run ) {
-				$timing = ec_users_get_event_timing( $event_id );
+				// Dry-run: use the ability with action=check to see current state.
+				$check = $ability->execute( array(
+					'user_id'  => (int) $user->ID,
+					'event_id' => $event_id,
+					'action'   => 'check',
+				) );
+
+				if ( is_wp_error( $check ) ) {
+					WP_CLI::warning( sprintf( 'Event %d: %s', $event_id, $check->get_error_message() ) );
+					++$invalid;
+					continue;
+				}
+
+				if ( ! empty( $check['marked'] ) ) {
+					WP_CLI::log( sprintf( 'Event %d: already marked. Skipping.', $event_id ) );
+					++$skipped;
+					continue;
+				}
+
+				$timing = $check['timing'] ?? '';
 				WP_CLI::log( sprintf( 'Event %d: would mark (%s — %s)', $event_id, $post->post_title, $timing ) );
+				++$marked;
 			} else {
-				ec_users_mark_event( $user->ID, $event_id, $blog_id );
+				$result = $ability->execute( array(
+					'user_id'  => (int) $user->ID,
+					'event_id' => $event_id,
+					'action'   => 'mark',
+				) );
+
+				if ( is_wp_error( $result ) ) {
+					WP_CLI::warning( sprintf( 'Event %d: %s', $event_id, $result->get_error_message() ) );
+					++$invalid;
+					continue;
+				}
+
+				if ( empty( $result['changed'] ) ) {
+					WP_CLI::log( sprintf( 'Event %d: already marked. Skipping.', $event_id ) );
+					++$skipped;
+					continue;
+				}
+
 				WP_CLI::log( sprintf( 'Event %d: marked (%s)', $event_id, $post->post_title ) );
+				++$marked;
 			}
-			++$marked;
 		}
 
 		$verb = $dry_run ? 'Would mark' : 'Marked';
@@ -504,12 +594,6 @@ class ConcertTrackingCommand {
 	}
 
 	// ─── Helpers ──────────────────────────────────────────────────────────────
-
-	private function ensure_tracking() {
-		if ( ! function_exists( 'ec_users_mark_event' ) ) {
-			WP_CLI::error( 'Concert tracking not available. Is extrachill-users active with concert tracking support?' );
-		}
-	}
 
 	private function get_events_blog_id() {
 		return function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
