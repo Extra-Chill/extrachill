@@ -57,7 +57,7 @@ function extrachill_api_user_artist_access_request( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/request-artist-access' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'Artist access request service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute(

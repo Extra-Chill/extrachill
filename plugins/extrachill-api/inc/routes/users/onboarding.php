@@ -74,11 +74,7 @@ function extrachill_api_onboarding_get_handler( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/get-onboarding-status' );
 
 	if ( ! $ability ) {
-		return new WP_Error(
-			'service_unavailable',
-			__( 'Onboarding service not available.', 'extrachill-api' ),
-			array( 'status' => 503 )
-		);
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute( array( 'user_id' => get_current_user_id() ) );
@@ -97,11 +93,7 @@ function extrachill_api_onboarding_post_handler( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/complete-onboarding' );
 
 	if ( ! $ability ) {
-		return new WP_Error(
-			'service_unavailable',
-			__( 'Onboarding service not available.', 'extrachill-api' ),
-			array( 'status' => 503 )
-		);
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute(

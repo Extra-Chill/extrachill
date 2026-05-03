@@ -116,7 +116,7 @@ function extrachill_api_user_settings_get( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/get-user-settings' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'User settings service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute( array( 'user_id' => get_current_user_id() ) );
@@ -135,7 +135,7 @@ function extrachill_api_user_settings_update( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/update-user-settings' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'User settings service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$input = array( 'user_id' => get_current_user_id() );
@@ -166,7 +166,7 @@ function extrachill_api_user_email_change( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/change-user-email' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'Email change service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute(
@@ -190,7 +190,7 @@ function extrachill_api_user_password_change( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/change-user-password' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'Password change service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute(

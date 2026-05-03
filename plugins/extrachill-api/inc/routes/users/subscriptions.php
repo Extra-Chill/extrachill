@@ -63,7 +63,7 @@ function extrachill_api_user_subscriptions_get( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/get-subscriptions' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'Subscriptions service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute( array( 'user_id' => get_current_user_id() ) );
@@ -82,7 +82,7 @@ function extrachill_api_user_subscriptions_update( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/update-subscriptions' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'Subscriptions service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute(

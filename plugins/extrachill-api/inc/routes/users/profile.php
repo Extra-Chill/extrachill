@@ -96,7 +96,7 @@ function extrachill_api_user_profile_get( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/get-user-profile' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'User profile service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute( array( 'user_id' => get_current_user_id() ) );
@@ -115,7 +115,7 @@ function extrachill_api_user_profile_update( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/update-user-profile' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'User profile service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$input = array( 'user_id' => get_current_user_id() );
@@ -146,7 +146,7 @@ function extrachill_api_user_links_update( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/update-user-links' );
 
 	if ( ! $ability ) {
-		return new WP_Error( 'service_unavailable', 'User links service not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$result = $ability->execute(
