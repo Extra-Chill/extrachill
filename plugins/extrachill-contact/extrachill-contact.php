@@ -25,6 +25,7 @@ define( 'EXTRACHILL_CONTACT_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'EXTRACHILL_CONTACT_INCLUDES_DIR', EXTRACHILL_CONTACT_PLUGIN_DIR . 'includes/' );
 
 require_once EXTRACHILL_CONTACT_INCLUDES_DIR . 'email-functions.php';
+require_once EXTRACHILL_CONTACT_PLUGIN_DIR . 'inc/abilities/register.php';
 
 add_action( 'init', 'extrachill_contact_register_block' );
 
