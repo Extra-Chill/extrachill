@@ -38,32 +38,23 @@ function extrachill_api_register_community_upvote_route() {
 	));
 }
 
-function extrachill_api_community_upvote_handler($request) {
-	$post_id = $request->get_param('post_id');
-	$type = $request->get_param('type');
-	$user_id = get_current_user_id();
-
-	if (!function_exists('extrachill_process_upvote')) {
-		return new WP_Error(
-			'function_missing',
-			'Upvote function not available. Please ensure extrachill-community plugin is activated.',
-			array('status' => 500)
-		);
+function extrachill_api_community_upvote_handler( $request ) {
+	$ability = wp_get_ability( 'extrachill/community-upvote' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_missing', 'community-upvote ability not available.', array( 'status' => 503 ) );
 	}
 
-	$result = extrachill_process_upvote($post_id, $type, $user_id);
+	$result = $ability->execute(
+		array(
+			'post_id' => (int) $request->get_param( 'post_id' ),
+			'type'    => (string) $request->get_param( 'type' ),
+			'user_id' => get_current_user_id(),
+		)
+	);
 
-	if ( $result['success'] ) {
-		return rest_ensure_response( array(
-			'message'   => $result['message'],
-			'new_count' => $result['new_count'],
-			'upvoted'   => $result['upvoted'],
-		) );
-	} else {
-		return new WP_Error(
-			'upvote_failed',
-			$result['message'],
-			array('status' => 400)
-		);
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
+
+	return rest_ensure_response( $result );
 }
