@@ -149,102 +149,53 @@ function extrachill_api_get_lifetime_memberships( $request ) {
 /**
  * Grants a lifetime membership to a user.
  *
+ * Wraps the extrachill/grant-lifetime-membership ability.
+ *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Response with grant confirmation or error.
  */
 function extrachill_api_grant_lifetime_membership( $request ) {
-	$identifier = $request->get_param( 'user_identifier' );
-
-	if ( empty( $identifier ) ) {
-		return new WP_Error(
-			'missing_identifier',
-			'User identifier is required.',
-			array( 'status' => 400 )
-		);
+	$ability = wp_get_ability( 'extrachill/grant-lifetime-membership' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'Lifetime membership ability is not available.', array( 'status' => 500 ) );
 	}
 
-	$user = get_user_by( 'login', $identifier );
-	if ( ! $user ) {
-		$user = get_user_by( 'email', $identifier );
-	}
-
-	if ( ! $user ) {
-		return new WP_Error(
-			'user_not_found',
-			'User not found.',
-			array( 'status' => 404 )
-		);
-	}
-
-	$existing = get_user_meta( $user->ID, 'extrachill_lifetime_membership', true );
-	if ( $existing ) {
-		return new WP_Error(
-			'membership_exists',
-			'User already has a lifetime membership.',
-			array( 'status' => 409 )
-		);
-	}
-
-	$membership_data = array(
-		'purchased' => current_time( 'mysql' ),
-		'order_id'  => null,
-		'username'  => $user->user_login,
-	);
-
-	update_user_meta( $user->ID, 'extrachill_lifetime_membership', $membership_data );
-
-	return rest_ensure_response(
+	$result = $ability->execute(
 		array(
-			'message'  => "Lifetime membership granted to {$user->user_login}",
-			'user_id'  => $user->ID,
-			'username' => $user->user_login,
-			'email'    => $user->user_email,
+			'user_identifier' => $request->get_param( 'user_identifier' ),
 		)
 	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
 
 /**
  * Revokes a lifetime membership from a user.
  *
+ * Wraps the extrachill/revoke-lifetime-membership ability.
+ *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Response with revoke confirmation or error.
  */
 function extrachill_api_revoke_lifetime_membership( $request ) {
-	$user_id = $request->get_param( 'user_id' );
-
-	if ( ! $user_id ) {
-		return new WP_Error(
-			'missing_user_id',
-			'User ID is required.',
-			array( 'status' => 400 )
-		);
+	$ability = wp_get_ability( 'extrachill/revoke-lifetime-membership' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'Lifetime membership ability is not available.', array( 'status' => 500 ) );
 	}
 
-	$user = get_userdata( $user_id );
-	if ( ! $user ) {
-		return new WP_Error(
-			'user_not_found',
-			'User not found.',
-			array( 'status' => 404 )
-		);
-	}
-
-	$existing = get_user_meta( $user_id, 'extrachill_lifetime_membership', true );
-	if ( ! $existing ) {
-		return new WP_Error(
-			'no_membership',
-			'User does not have a lifetime membership.',
-			array( 'status' => 404 )
-		);
-	}
-
-	delete_user_meta( $user_id, 'extrachill_lifetime_membership' );
-
-	return rest_ensure_response(
+	$result = $ability->execute(
 		array(
-			'message'  => "Lifetime membership revoked for {$user->user_login}",
-			'user_id'  => $user_id,
-			'username' => $user->user_login,
+			'user_id' => absint( $request->get_param( 'user_id' ) ),
 		)
 	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
