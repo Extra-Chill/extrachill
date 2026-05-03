@@ -42,3 +42,8 @@ require_once __DIR__ . '/shop-stripe-dashboard-link.php';
 require_once __DIR__ . '/shop-stripe-onboarding-link.php';
 require_once __DIR__ . '/shop-stripe-status.php';
 require_once __DIR__ . '/shop-taxonomy-counts.php';
+require_once __DIR__ . '/shop-create-product.php';
+require_once __DIR__ . '/shop-update-product.php';
+require_once __DIR__ . '/shop-delete-product.php';
+require_once __DIR__ . '/shop-delete-product-image.php';
+require_once __DIR__ . '/shop-create-shipping-label.php';
