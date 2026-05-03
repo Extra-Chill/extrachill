@@ -17,42 +17,8 @@ add_action( 'wp_abilities_api_init', 'extrachill_community_register_upvote_abili
  */
 function extrachill_community_register_upvote_abilities() {
 
-	wp_register_ability(
-		'extrachill/community-upvote',
-		array(
-			'label'               => __( 'Community Upvote', 'extrachill-community' ),
-			'description'         => __( 'Toggle an upvote on a topic or reply for a user.', 'extrachill-community' ),
-			'category'            => 'extrachill-community',
-			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
-					'post_id' => array( 'type' => 'integer', 'description' => 'bbPress topic or reply post ID' ),
-					'type'    => array( 'type' => 'string', 'enum' => array( 'topic', 'reply' ), 'description' => 'Post type' ),
-					'user_id' => array( 'type' => 'integer', 'description' => 'User performing the upvote (defaults to current user)' ),
-				),
-				'required'   => array( 'post_id', 'type' ),
-			),
-			'output_schema'       => array(
-				'type'       => 'object',
-				'properties' => array(
-					'success'   => array( 'type' => 'boolean' ),
-					'message'   => array( 'type' => 'string' ),
-					'new_count' => array( 'type' => 'integer' ),
-					'upvoted'   => array( 'type' => 'boolean' ),
-				),
-			),
-			'execute_callback'    => 'extrachill_community_ability_upvote',
-			'permission_callback' => '__return_true',
-			'meta'                => array(
-				'show_in_rest' => false,
-				'annotations'  => array(
-					'readonly'    => false,
-					'idempotent'  => false,
-					'destructive' => false,
-				),
-			),
-		)
-	);
+	// Note: extrachill/community-upvote moved to inc/abilities/community-upvote.php
+	// with show_in_rest: true (see issue #24).
 
 	wp_register_ability(
 		'extrachill/community-get-upvotes',
