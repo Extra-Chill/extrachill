@@ -9,7 +9,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Register artist platform ability category.
+ * Register artist platform ability categories.
  */
 function extrachill_artist_platform_register_category() {
 	wp_register_ability_category(
@@ -17,6 +17,14 @@ function extrachill_artist_platform_register_category() {
 		array(
 			'label'       => __( 'Artist Platform', 'extrachill-artist-platform' ),
 			'description' => __( 'Artist profile and link page management for Extra Chill.', 'extrachill-artist-platform' ),
+		)
+	);
+
+	wp_register_ability_category(
+		'extrachill-artists',
+		array(
+			'label'       => __( 'Artists', 'extrachill-artist-platform' ),
+			'description' => __( 'Artist-domain abilities: profiles, links, socials, subscribers, analytics.', 'extrachill-artist-platform' ),
 		)
 	);
 }

@@ -352,4 +352,514 @@ function extrachill_artist_platform_register_abilities() {
 			),
 		)
 	);
+
+	// ──────────────────────────────────────────────────────────────────────
+	// Artist-domain abilities (extrachill-artists category) — issue #27
+	// ──────────────────────────────────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/artists-list',
+		array(
+			'label'               => __( 'List artists', 'extrachill-artist-platform' ),
+			'description'         => __( 'Returns paginated list of published artist profiles.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array(),
+				'properties'           => array(
+					'page'     => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Page number.', 'extrachill-artist-platform' ) ),
+					'per_page' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'description' => __( 'Results per page.', 'extrachill-artist-platform' ) ),
+					'search'   => array( 'type' => 'string', 'description' => __( 'Search by artist name.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'artists'  => array( 'type' => 'array' ),
+					'total'    => array( 'type' => 'integer' ),
+					'page'     => array( 'type' => 'integer' ),
+					'per_page' => array( 'type' => 'integer' ),
+					'pages'    => array( 'type' => 'integer' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artists_list',
+			'permission_callback' => '__return_true',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-get',
+		array(
+			'label'               => __( 'Get artist by ID', 'extrachill-artist-platform' ),
+			'description'         => __( 'Returns a single artist payload.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array(
+					'id' => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'id'                => array( 'type' => 'integer' ),
+					'name'              => array( 'type' => 'string' ),
+					'slug'              => array( 'type' => 'string' ),
+					'bio'               => array( 'type' => 'string' ),
+					'local_city'        => array( 'type' => array( 'string', 'null' ) ),
+					'genre'             => array( 'type' => array( 'string', 'null' ) ),
+					'profile_image_id'  => array( 'type' => array( 'integer', 'null' ) ),
+					'profile_image_url' => array( 'type' => array( 'string', 'null' ) ),
+					'header_image_id'   => array( 'type' => array( 'integer', 'null' ) ),
+					'header_image_url'  => array( 'type' => array( 'string', 'null' ) ),
+					'link_page_id'      => array( 'type' => array( 'integer', 'null' ) ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_get',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-get-links',
+		array(
+			'label'               => __( 'Get artist link page', 'extrachill-artist-platform' ),
+			'description'         => __( 'Retrieves complete link page data for an artist.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array(
+					'id' => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'        => 'object',
+				'description' => __( 'Complete link page data.', 'extrachill-artist-platform' ),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_get_links',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-update-links',
+		array(
+			'label'               => __( 'Update artist link page', 'extrachill-artist-platform' ),
+			'description'         => __( 'Updates link page data (links, styles, settings, socials).', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array(
+					'id'                 => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+					'links'              => array( 'type' => 'array', 'description' => __( 'Link sections with nested links.', 'extrachill-artist-platform' ) ),
+					'css_vars'           => array( 'type' => 'object', 'description' => __( 'CSS variables to save.', 'extrachill-artist-platform' ) ),
+					'settings'           => array( 'type' => 'object', 'description' => __( 'Advanced settings.', 'extrachill-artist-platform' ) ),
+					'socials'            => array( 'type' => 'array', 'description' => __( 'Social link objects.', 'extrachill-artist-platform' ) ),
+					'background_image_id' => array( 'type' => 'integer', 'description' => __( 'Background image attachment ID.', 'extrachill-artist-platform' ) ),
+					'profile_image_id'   => array( 'type' => 'integer', 'description' => __( 'Profile image attachment ID.', 'extrachill-artist-platform' ) ),
+					'bio'                => array( 'type' => 'string', 'description' => __( 'Short bio for the link page.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'        => 'object',
+				'description' => __( 'Fresh link page data after update.', 'extrachill-artist-platform' ),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_update_links',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-get-permissions',
+		array(
+			'label'               => __( 'Get artist permissions', 'extrachill-artist-platform' ),
+			'description'         => __( 'Checks current user permissions for an artist profile.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array(
+					'id' => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'can_edit'   => array( 'type' => 'boolean' ),
+					'manage_url' => array( 'type' => 'string' ),
+					'user_id'    => array( 'type' => 'integer' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_get_permissions',
+			'permission_callback' => '__return_true',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-get-roster',
+		array(
+			'label'               => __( 'Get artist roster', 'extrachill-artist-platform' ),
+			'description'         => __( 'Lists linked members and pending invites for an artist.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array(
+					'id' => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'members' => array( 'type' => 'array' ),
+					'invites' => array( 'type' => 'array' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_get_roster',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-list-socials',
+		array(
+			'label'               => __( 'List artist socials', 'extrachill-artist-platform' ),
+			'description'         => __( 'Lists social links for an artist profile.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array(
+					'id' => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'social_links' => array( 'type' => 'array' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_list_socials',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-create-social',
+		array(
+			'label'               => __( 'Create artist social', 'extrachill-artist-platform' ),
+			'description'         => __( 'Adds a social link to an artist profile.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id', 'type', 'url' ),
+				'properties'           => array(
+					'id'   => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+					'type' => array( 'type' => 'string', 'description' => __( 'Social platform type.', 'extrachill-artist-platform' ) ),
+					'url'  => array( 'type' => 'string', 'format' => 'uri', 'description' => __( 'Social link URL.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'social_links' => array( 'type' => 'array' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_create_social',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => false,
+					'idempotent'  => false,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-update-social',
+		array(
+			'label'               => __( 'Update artist social', 'extrachill-artist-platform' ),
+			'description'         => __( 'Updates a single social link on an artist profile.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id', 'social_id' ),
+				'properties'           => array(
+					'id'        => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+					'social_id' => array( 'type' => 'string', 'description' => __( 'Social link ID to update.', 'extrachill-artist-platform' ) ),
+					'type'      => array( 'type' => 'string', 'description' => __( 'Social platform type.', 'extrachill-artist-platform' ) ),
+					'url'       => array( 'type' => 'string', 'format' => 'uri', 'description' => __( 'Social link URL.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'social_links' => array( 'type' => 'array' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_update_social',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-delete-social',
+		array(
+			'label'               => __( 'Delete artist social', 'extrachill-artist-platform' ),
+			'description'         => __( 'Removes a social link from an artist profile.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id', 'social_id' ),
+				'properties'           => array(
+					'id'        => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+					'social_id' => array( 'type' => 'string', 'description' => __( 'Social link ID to delete.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'deleted'      => array( 'type' => 'boolean' ),
+					'social_id'    => array( 'type' => 'string' ),
+					'social_links' => array( 'type' => 'array' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_delete_social',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => true,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-subscribe',
+		array(
+			'label'               => __( 'Subscribe to artist', 'extrachill-artist-platform' ),
+			'description'         => __( 'Subscribes an email address to an artist for updates.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id', 'email' ),
+				'properties'           => array(
+					'id'    => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+					'email' => array( 'type' => 'string', 'format' => 'email', 'description' => __( 'Subscriber email address.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'message' => array( 'type' => 'string' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_subscribe',
+			'permission_callback' => '__return_true',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => false,
+					'idempotent'  => false,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-list-subscribers',
+		array(
+			'label'               => __( 'List artist subscribers', 'extrachill-artist-platform' ),
+			'description'         => __( 'Returns paginated subscriber list for an artist.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array(
+					'id'       => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+					'page'     => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Page number.', 'extrachill-artist-platform' ) ),
+					'per_page' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'description' => __( 'Results per page.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'subscribers' => array( 'type' => 'array' ),
+					'total'       => array( 'type' => 'integer' ),
+					'per_page'    => array( 'type' => 'integer' ),
+					'page'        => array( 'type' => 'integer' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_list_subscribers',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-export-subscribers',
+		array(
+			'label'               => __( 'Export artist subscribers', 'extrachill-artist-platform' ),
+			'description'         => __( 'Returns all subscribers for client-side CSV generation.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array(
+					'id'               => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+					'include_exported' => array( 'type' => 'boolean', 'description' => __( 'Include already exported subscribers.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'subscribers'  => array( 'type' => 'array' ),
+					'artist_name'  => array( 'type' => 'string' ),
+					'export_date'  => array( 'type' => 'string' ),
+					'total'        => array( 'type' => 'integer' ),
+					'marked_count' => array( 'type' => 'integer' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_export_subscribers',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => false,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-get-analytics',
+		array(
+			'label'               => __( 'Get artist analytics', 'extrachill-artist-platform' ),
+			'description'         => __( 'Returns link page analytics for an artist.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array(
+					'id'         => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+					'date_range' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 90, 'description' => __( 'Number of days to query.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'summary'    => array( 'type' => 'object' ),
+					'chart_data' => array( 'type' => 'object' ),
+					'top_links'  => array( 'type' => 'array' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_get_analytics',
+			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
 }
