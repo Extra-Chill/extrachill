@@ -6,6 +6,14 @@
  * POST   /artists/{id}/roster                      - Invite member by email
  * DELETE /artists/{id}/roster/{user_id}            - Remove roster member
  * DELETE /artists/{id}/roster/invites/{invite_id}  - Cancel pending invite
+ *
+ * Delegates to abilities:
+ * - extrachill/artist-get-roster (GET list)
+ *
+ * Handlers without matching abilities (server-side gap):
+ * - POST   invite member
+ * - DELETE remove member
+ * - DELETE cancel invite
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -139,72 +147,24 @@ function extrachill_api_artist_roster_invite_handler( WP_REST_Request $request )
 }
 
 /**
- * Lists linked members and pending invites for an artist.
+ * Lists linked members and pending invites for an artist via ability.
  *
  * @param WP_REST_Request $request The request object.
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_artist_roster_list_handler( WP_REST_Request $request ) {
-	$artist_id = $request->get_param( 'id' );
-
-	if ( get_post_type( $artist_id ) !== 'artist_profile' ) {
-		return new WP_Error(
-			'invalid_artist',
-			__( 'Invalid artist specified.', 'extrachill-api' ),
-			array( 'status' => 400 )
-		);
+	$ability = wp_get_ability( 'extrachill/artist-get-roster' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 	}
 
-	if ( ! function_exists( 'ec_can_manage_artist' ) || ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
-		return new WP_Error(
-			'permission_denied',
-			__( 'You do not have permission to view the roster for this artist.', 'extrachill-api' ),
-			array( 'status' => 403 )
-		);
+	$result = $ability->execute( array( 'id' => $request->get_param( 'id' ) ) );
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	$members = array();
-	if ( function_exists( 'ec_get_linked_members' ) ) {
-		$linked_members = ec_get_linked_members( $artist_id );
-		if ( is_array( $linked_members ) ) {
-			foreach ( $linked_members as $member ) {
-				$user_info = get_userdata( $member->ID );
-				if ( $user_info ) {
-					$members[] = array(
-						'id'           => (int) $user_info->ID,
-						'display_name' => $user_info->display_name,
-						'username'     => $user_info->user_login,
-						'email'        => $user_info->user_email,
-						'avatar_url'   => get_avatar_url( $user_info->ID, array( 'size' => 60 ) ),
-						'profile_url'  => function_exists( 'extrachill_get_user_profile_url' ) ? extrachill_get_user_profile_url( $user_info->ID, $user_info->user_email ) : '',
-					);
-				}
-			}
-		}
-	}
-
-	$invites = array();
-	if ( function_exists( 'ec_get_pending_invitations' ) ) {
-		$pending = ec_get_pending_invitations( $artist_id );
-		if ( is_array( $pending ) ) {
-			foreach ( $pending as $invite ) {
-				$invited_on = isset( $invite['invited_on'] ) ? (int) $invite['invited_on'] : 0;
-				$invites[]  = array(
-					'id'                   => isset( $invite['id'] ) ? $invite['id'] : '',
-					'email'                => isset( $invite['email'] ) ? $invite['email'] : '',
-					'of_existing_user'     => email_exists( isset( $invite['email'] ) ? $invite['email'] : '' ) ? true : false,
-					'status'               => isset( $invite['status'] ) ? $invite['status'] : '',
-					'invited_on'           => $invited_on,
-					'invited_on_formatted' => $invited_on ? date_i18n( get_option( 'date_format' ), $invited_on ) : '',
-				);
-			}
-		}
-	}
-
-	return rest_ensure_response( array(
-		'members' => $members,
-		'invites' => $invites,
-	) );
+	return rest_ensure_response( $result );
 }
 
 /**

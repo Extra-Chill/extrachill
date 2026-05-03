@@ -3,7 +3,9 @@
  * REST route: POST /wp-json/extrachill/v1/artists/{id}/subscribe
  *
  * Public endpoint for subscribing to artist updates.
- * Validates input and fires action hook for subscription handling.
+ *
+ * Delegates to ability:
+ * - extrachill/artist-subscribe
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -33,48 +35,27 @@ function extrachill_api_register_artist_subscribe_route() {
 }
 
 /**
- * Handles artist subscription requests
+ * Handles artist subscription requests via ability.
  *
  * @param WP_REST_Request $request The request object.
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_artist_subscribe_handler( $request ) {
-	$artist_id = $request->get_param( 'id' );
-	$email     = $request->get_param( 'email' );
-
-	// Validate email format
-	if ( ! is_email( $email ) ) {
-		return new WP_Error(
-			'invalid_email',
-			__( 'Please enter a valid email address.', 'extrachill-api' ),
-			array( 'status' => 400 )
-		);
+	$ability = wp_get_ability( 'extrachill/artist-subscribe' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 	}
 
-	// Validate artist exists and is correct post type
-	if ( get_post_type( $artist_id ) !== 'artist_profile' ) {
-		return new WP_Error(
-			'invalid_artist',
-			__( 'Invalid artist specified.', 'extrachill-api' ),
-			array( 'status' => 400 )
-		);
-	}
-
-	/**
-	 * Fires when a subscription request is received.
-	 *
-	 * Handlers should return WP_Error on failure, or true/null on success.
-	 *
-	 * @param int    $artist_id The artist profile post ID.
-	 * @param string $email     The subscriber's email address.
-	 */
-	$result = apply_filters( 'extrachill_artist_subscribe', null, $artist_id, $email );
+	$result = $ability->execute(
+		array(
+			'id'    => $request->get_param( 'id' ),
+			'email' => $request->get_param( 'email' ),
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
 
-	return rest_ensure_response( array(
-		'message' => __( 'Thank you for subscribing!', 'extrachill-api' ),
-	) );
+	return rest_ensure_response( $result );
 }

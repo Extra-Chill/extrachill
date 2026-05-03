@@ -4,8 +4,8 @@
  *
  * GET /wp-json/extrachill/v1/artists/{id}/analytics - Retrieve link page analytics
  *
- * Replaces legacy /analytics/link-page endpoint with artist-centric routing.
- * Automatically resolves link page from artist ID.
+ * Delegates to ability:
+ * - extrachill/artist-get-analytics
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -77,49 +77,25 @@ function extrachill_api_artist_analytics_permission_check( WP_REST_Request $requ
 }
 
 /**
- * GET handler - retrieve artist link page analytics
+ * GET handler - retrieve artist link page analytics via ability.
  */
 function extrachill_api_artist_analytics_handler( WP_REST_Request $request ) {
-	$artist_id  = $request->get_param( 'id' );
+	$ability = wp_get_ability( 'extrachill/artist-get-analytics' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
+	}
+
+	$input = array( 'id' => $request->get_param( 'id' ) );
+
 	$date_range = $request->get_param( 'date_range' );
-
-	if ( ! function_exists( 'ec_get_link_page_for_artist' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Artist platform not active.',
-			array( 'status' => 500 )
-		);
+	if ( $date_range !== null ) {
+		$input['date_range'] = $date_range;
 	}
 
-	$link_page_id = ec_get_link_page_for_artist( $artist_id );
-
-	if ( ! $link_page_id ) {
-		return new WP_Error(
-			'no_link_page',
-			'No link page exists for this artist.',
-			array( 'status' => 404 )
-		);
-	}
-
-	/**
-	 * Retrieve link page analytics via filter hook.
-	 *
-	 * @param mixed $result       Previous filter result (null if no handler).
-	 * @param int   $link_page_id The link page post ID.
-	 * @param int   $date_range   Number of days to query.
-	 */
-	$result = apply_filters( 'extrachill_get_link_page_analytics', null, $link_page_id, $date_range );
+	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
-	}
-
-	if ( ! is_array( $result ) ) {
-		return new WP_Error(
-			'analytics_unavailable',
-			'Analytics data could not be retrieved.',
-			array( 'status' => 500 )
-		);
 	}
 
 	return rest_ensure_response( $result );

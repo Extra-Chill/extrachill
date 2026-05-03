@@ -5,6 +5,9 @@
  * Registers the /extrachill/v1/artists/{id}/permissions endpoint to check if the current user
  * has permission to edit a specific artist profile. Used by extrachill.link for the
  * client-side edit button.
+ *
+ * Delegates to ability:
+ * - extrachill/artist-get-permissions
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -33,10 +36,13 @@ function extrachill_api_register_artist_permissions_route() {
 }
 
 /**
- * Check artist permissions
+ * Check artist permissions via ability.
+ *
+ * CORS headers for extrachill.link remain a transport-specific concern
+ * owned by this route handler.
  *
  * @param WP_REST_Request $request The request object.
- * @return WP_REST_Response The response object.
+ * @return WP_REST_Response|WP_Error The response object.
  */
 function ec_api_check_artist_permissions( WP_REST_Request $request ) {
 	// Handle CORS for extrachill.link
@@ -47,21 +53,16 @@ function ec_api_check_artist_permissions( WP_REST_Request $request ) {
 		header( 'Vary: Origin' );
 	}
 
-	$artist_id       = $request->get_param( 'id' );
-	$current_user_id = get_current_user_id();
-	$can_edit        = false;
-	$manage_url      = '';
-
-	if ( $artist_id && $current_user_id && function_exists( 'ec_can_manage_artist' ) && ec_can_manage_artist( $current_user_id, $artist_id ) ) {
-		$can_edit   = true;
-		$manage_url = home_url( '/manage-link-page/' );
+	$ability = wp_get_ability( 'extrachill/artist-get-permissions' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 	}
 
-	return rest_ensure_response(
-		array(
-			'can_edit'   => $can_edit,
-			'manage_url' => $manage_url,
-			'user_id'    => $current_user_id,
-		)
-	);
+	$result = $ability->execute( array( 'id' => $request->get_param( 'id' ) ) );
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
