@@ -64,51 +64,50 @@ function extrachill_api_seo_config_permission_check() {
 /**
  * Gets current SEO config.
  *
- * @return WP_REST_Response Config data.
+ * Wraps the extrachill/get-seo-config ability from extrachill-seo.
+ *
+ * @return WP_REST_Response|WP_Error Config data or error.
  */
 function extrachill_api_get_seo_config() {
-	$default_og_image_id = function_exists( 'ExtraChill\SEO\Core\ec_seo_get_default_og_image_id' )
-		? \ExtraChill\SEO\Core\ec_seo_get_default_og_image_id()
-		: 0;
+	$ability = wp_get_ability( 'extrachill/get-seo-config' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-seo plugin is required.', array( 'status' => 500 ) );
+	}
 
-	$indexnow_key = function_exists( 'ExtraChill\SEO\Core\ec_seo_get_indexnow_key' )
-		? \ExtraChill\SEO\Core\ec_seo_get_indexnow_key()
-		: '';
+	$result = $ability->execute( array() );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
 
-	$default_og_image_url = $default_og_image_id
-		? wp_get_attachment_image_url( $default_og_image_id, 'medium' )
-		: '';
-
-	return rest_ensure_response(
-		array(
-			'default_og_image_id'  => $default_og_image_id,
-			'default_og_image_url' => $default_og_image_url,
-			'indexnow_key'         => $indexnow_key,
-		)
-	);
+	return rest_ensure_response( $result );
 }
 
 /**
  * Updates SEO config.
  *
+ * Wraps the extrachill/update-seo-config ability from extrachill-seo.
+ *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Updated config or error.
  */
 function extrachill_api_update_seo_config( $request ) {
-	$default_og_image_id = $request->get_param( 'default_og_image_id' );
-	$indexnow_key        = $request->get_param( 'indexnow_key' );
-
-	if ( null !== $default_og_image_id ) {
-		if ( function_exists( 'ExtraChill\SEO\Core\ec_seo_set_default_og_image_id' ) ) {
-			\ExtraChill\SEO\Core\ec_seo_set_default_og_image_id( $default_og_image_id );
-		}
+	$ability = wp_get_ability( 'extrachill/update-seo-config' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-seo plugin is required.', array( 'status' => 500 ) );
 	}
 
-	if ( null !== $indexnow_key ) {
-		if ( function_exists( 'ExtraChill\SEO\Core\ec_seo_set_indexnow_key' ) ) {
-			\ExtraChill\SEO\Core\ec_seo_set_indexnow_key( $indexnow_key );
-		}
+	$params = array();
+	if ( null !== $request->get_param( 'default_og_image_id' ) ) {
+		$params['default_og_image_id'] = $request->get_param( 'default_og_image_id' );
+	}
+	if ( null !== $request->get_param( 'indexnow_key' ) ) {
+		$params['indexnow_key'] = $request->get_param( 'indexnow_key' );
 	}
 
-	return extrachill_api_get_seo_config();
+	$result = $ability->execute( $params );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }

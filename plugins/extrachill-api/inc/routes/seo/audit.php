@@ -57,25 +57,21 @@ function extrachill_api_seo_audit_permission_check() {
 /**
  * Runs a new SEO audit.
  *
+ * Wraps the extrachill/run-seo-audit ability from extrachill-seo.
+ *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Response with audit results or error.
  */
 function extrachill_api_run_seo_audit( $request ) {
-	if ( ! function_exists( 'ec_seo_run_full_audit' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Extra Chill SEO plugin audit functions not available.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/run-seo-audit' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-seo plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$mode = $request->get_param( 'mode' );
-
-	if ( 'full' === $mode ) {
-		$results = ec_seo_run_full_audit();
-		return rest_ensure_response( $results );
+	$result = $ability->execute( array( 'mode' => $request->get_param( 'mode' ) ) );
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	$results = ec_seo_start_batch_audit();
-	return rest_ensure_response( $results );
+	return rest_ensure_response( $result );
 }

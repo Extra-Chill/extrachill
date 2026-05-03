@@ -31,16 +31,20 @@ function extrachill_api_register_seo_audit_status_route() {
 /**
  * Gets current SEO audit status and results.
  *
+ * Wraps the extrachill/get-seo-results ability from extrachill-seo.
+ *
  * @return WP_REST_Response|WP_Error Response with audit status or error.
  */
 function extrachill_api_get_seo_audit_status() {
-	if ( ! function_exists( 'ec_seo_get_audit_results' ) ) {
-		return new WP_Error(
-			'dependency_missing',
-			'Extra Chill SEO plugin not available.',
-			array( 'status' => 500 )
-		);
+	$ability = wp_get_ability( 'extrachill/get-seo-results' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-seo plugin is required.', array( 'status' => 500 ) );
 	}
 
-	return rest_ensure_response( ec_seo_get_audit_results() );
+	$result = $ability->execute( array() );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
