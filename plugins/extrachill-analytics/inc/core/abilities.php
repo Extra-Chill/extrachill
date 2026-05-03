@@ -20,6 +20,8 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_drill_404_ca
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_list_404_events_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_purge_404_events_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_top_ips_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_page_view_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_get_link_page_analytics_ability' );
 
 /**
  * Register analytics ability category.
