@@ -92,6 +92,9 @@ class ExtraChillShop {
 
 	// Templates
 	require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/cart-icon.php';
+
+		// Abilities
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/abilities/register.php';
 	}
 
 	public function load_textdomain() {
