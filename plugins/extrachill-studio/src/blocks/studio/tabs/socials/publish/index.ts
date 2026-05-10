@@ -359,30 +359,16 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			h(
 				'div',
 				{ className: 'ec-studio-composer' },
-				h(
-					FieldGroupView,
-					{
-						label: __( 'Caption', 'extrachill-studio' ),
-						htmlFor: `ec-studio-${ slug }-caption`,
-						help: charLimit > 0
-							? sprintf( __( '%d / %d characters', 'extrachill-studio' ), caption.length, charLimit )
-							: null,
-					},
-					createElement( 'textarea', {
-						id: `ec-studio-${ slug }-caption`,
-						rows: 6,
-						value: caption,
-						onChange: ( event: ChangeEvent< HTMLTextAreaElement > ) => setCaption( event.target.value ),
-						placeholder: sprintf( __( 'Write your %s caption here…', 'extrachill-studio' ), platformLabel ),
-						maxLength: charLimit > 0 ? charLimit : undefined,
-					} )
-				),
+				// 1. Media picker — primary affordance for adding images.
 				supportsImages
 					? h( MediaPicker, {
 						onSelect: handleMediaSelect,
 						className: 'ec-studio-pane__media-picker',
 					} )
 					: null,
+				// 2. Selected images thumbnail row (renders nothing when queue is empty).
+				supportsImages ? renderImageThumbnails() : null,
+				// 3. External URL fallback — paste + Add button.
 				supportsImages
 					? h(
 						FieldGroupView,
@@ -417,9 +403,29 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 						)
 					)
 					: null,
-				supportsImages ? renderImageThumbnails() : null,
+				// 4. Caption textarea.
+				h(
+					FieldGroupView,
+					{
+						label: __( 'Caption', 'extrachill-studio' ),
+						htmlFor: `ec-studio-${ slug }-caption`,
+						help: charLimit > 0
+							? sprintf( __( '%d / %d characters', 'extrachill-studio' ), caption.length, charLimit )
+							: null,
+					},
+					createElement( 'textarea', {
+						id: `ec-studio-${ slug }-caption`,
+						rows: 6,
+						value: caption,
+						onChange: ( event: ChangeEvent< HTMLTextAreaElement > ) => setCaption( event.target.value ),
+						placeholder: sprintf( __( 'Write your %s caption here…', 'extrachill-studio' ), platformLabel ),
+						maxLength: charLimit > 0 ? charLimit : undefined,
+					} )
+				),
+				// 5. Status / error inline messages.
 				error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
 				! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null,
+				// 6. Action row — Submit for Review / Publish Now.
 				h(
 					ActionRowView,
 					{ className: 'ec-studio-composer__actions' },
