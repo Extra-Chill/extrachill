@@ -2,6 +2,30 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.16.0] - 2026-05-10
+
+### Added
+- add extrachill_api_ability_route() helper (#26)
+- add GET /newsletter/subscribers public REST endpoint
+
+### Changed
+- refactor(routes/artists): invoke abilities (round 2, #26)
+- refactor(routes/users): invoke abilities (round 2, #26)
+- refactor(routes/community): invoke abilities (round 2, #26)
+- refactor(routes/admin): invoke abilities (round 2, #26)
+- refactor(routes/seo): invoke abilities (round 2, #26)
+- refactor(routes/events): invoke abilities (round 2, #26)
+- refactor(routes/analytics): invoke abilities (round 2, #26)
+- refactor(routes/users): invoke abilities (#26)
+- refactor(routes/events): invoke abilities (#26)
+- refactor(routes/artists): invoke abilities (#26)
+- refactor(routes/shop): invoke abilities (#26)
+- refactor(routes/community): invoke abilities (#26)
+- Revert "feat(api): add extrachill_api_ability_route() helper (#26) (#27)"
+
+### Fixed
+- fix(markdown-export): consume data-machine-events public integration API
+
 ## [0.15.2] - 2026-04-26
 
 ### Fixed
