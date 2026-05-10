@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.12.0] - 2026-05-10
+
+### Added
+- react Transcribe tab using direct headless sweatpants pipeline
+
 ## [0.11.1] - 2026-05-10
 
 ### Changed
