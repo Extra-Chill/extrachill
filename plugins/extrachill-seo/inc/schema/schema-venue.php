@@ -21,12 +21,14 @@ add_filter(
 			return $graph;
 		}
 
-		if ( ! class_exists( '\DataMachineEvents\Core\Venue_Taxonomy' ) ) {
+		// Uses data-machine-events public integration API. See data-machine-events
+		// docs/integration-api.md.
+		if ( ! function_exists( 'data_machine_events_get_venue_data' ) ) {
 			return $graph;
 		}
 
 		$term       = get_queried_object();
-		$venue_data = \DataMachineEvents\Core\Venue_Taxonomy::get_venue_data( $term->term_id );
+		$venue_data = data_machine_events_get_venue_data( (int) $term->term_id );
 
 		if ( empty( $venue_data ) ) {
 			return $graph;

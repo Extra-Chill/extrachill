@@ -22,12 +22,14 @@ add_filter(
 			return $graph;
 		}
 
-		if ( ! class_exists( '\DataMachineEvents\Core\Promoter_Taxonomy' ) ) {
+		// Uses data-machine-events public integration API. See data-machine-events
+		// docs/integration-api.md.
+		if ( ! function_exists( 'data_machine_events_get_promoter_data' ) ) {
 			return $graph;
 		}
 
 		$term          = get_queried_object();
-		$promoter_data = \DataMachineEvents\Core\Promoter_Taxonomy::get_promoter_data( $term->term_id );
+		$promoter_data = data_machine_events_get_promoter_data( (int) $term->term_id );
 
 		if ( empty( $promoter_data ) ) {
 			return $graph;
