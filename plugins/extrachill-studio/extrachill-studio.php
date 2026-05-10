@@ -42,6 +42,7 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/rest.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/gc.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/transcribe-recording.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/transcription-job-status.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/sweatpants-token.php';
 
 /*
  * Defer loading of GiveawayTask until after Data Machine has registered its
