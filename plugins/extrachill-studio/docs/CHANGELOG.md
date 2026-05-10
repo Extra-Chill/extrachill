@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.0] - 2026-05-10
+
+### Added
+- extrachill/sweatpants-token ability mints HMAC-signed bearer tokens
+
 ## [0.10.3] - 2026-05-10
 
 ### Fixed
