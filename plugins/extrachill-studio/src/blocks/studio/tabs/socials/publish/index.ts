@@ -25,6 +25,12 @@ interface WpPost {
 	id: number;
 }
 
+interface SelectedImage {
+	url: string;
+	alt?: string;
+	title?: string;
+}
+
 /**
  * Generic social platform publishing pane.
  *
@@ -35,7 +41,7 @@ interface WpPost {
 const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublishPaneProps ): ReactElement => {
 	const [ caption, setCaption ] = useState( '' );
 	const [ imageUrlInput, setImageUrlInput ] = useState( '' );
-	const [ imageUrls, setImageUrls ] = useState< string[] >( [] );
+	const [ images, setImages ] = useState< SelectedImage[] >( [] );
 	const [ isPublishing, setIsPublishing ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
@@ -63,14 +69,21 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			return;
 		}
 
-		setImageUrls( ( current ) => [ ...current, nextUrl ] );
+		setImages( ( current ) => [ ...current, { url: nextUrl } ] );
 		setImageUrlInput( '' );
 		setError( '' );
 		setStatus( __( 'External image URL added to publish queue.', 'extrachill-studio' ) );
 	};
 
 	const handleMediaSelect = ( url: string, item: NetworkMediaItem ): void => {
-		setImageUrls( ( current ) => [ ...current, url ] );
+		setImages( ( current ) => [
+			...current,
+			{
+				url,
+				alt: item.alt || undefined,
+				title: item.title || undefined,
+			},
+		] );
 		setError( '' );
 		setStatus(
 			sprintf(
@@ -81,10 +94,115 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		);
 	};
 
-	const removeImageUrl = ( index: number ): void => {
-		setImageUrls( ( current ) => current.filter( ( _item, itemIndex ) => itemIndex !== index ) );
+	const removeImageAt = ( index: number ): void => {
+		setImages( ( current ) => current.filter( ( _item, itemIndex ) => itemIndex !== index ) );
 		setStatus( __( 'Image removed from publish queue.', 'extrachill-studio' ) );
 		setError( '' );
+	};
+
+	const moveImage = ( index: number, direction: -1 | 1 ): void => {
+		setImages( ( current ) => {
+			const target = index + direction;
+			if ( target < 0 || target >= current.length ) {
+				return current;
+			}
+			const next = [ ...current ];
+			const [ moved ] = next.splice( index, 1 );
+			next.splice( target, 0, moved );
+			return next;
+		} );
+	};
+
+	/**
+	 * Render the selected-images thumbnail row.
+	 *
+	 * Horizontal flex row of ~80px tiles. Each tile shows the image, a
+	 * remove (×) button overlay, and (for carousel-capable platforms) left/right
+	 * arrow buttons to reorder the image within the array. Returns null when
+	 * the queue is empty so the row collapses entirely.
+	 */
+	const renderImageThumbnails = (): ReactElement | null => {
+		if ( images.length === 0 ) {
+			return null;
+		}
+
+		const supportsReordering = !! config.supportsCarousel && images.length > 1;
+		const lastIndex = images.length - 1;
+
+		return createElement(
+			'ul',
+			{ className: 'ec-studio-image-thumbs', 'aria-label': __( 'Selected images', 'extrachill-studio' ) },
+			...images.map( ( image, index ) => {
+				const label = image.title || image.alt || image.url;
+				return createElement(
+					'li',
+					{
+						key: `${ image.url }-${ index }`,
+						className: 'ec-studio-image-thumbs__tile',
+					},
+					createElement( 'img', {
+						className: 'ec-studio-image-thumbs__image',
+						src: image.url,
+						alt: image.alt || '',
+						title: image.title || image.alt || image.url,
+						loading: 'lazy',
+					} ),
+					createElement(
+						'button',
+						{
+							type: 'button',
+							className: 'ec-studio-image-thumbs__remove',
+							onClick: () => removeImageAt( index ),
+							'aria-label': sprintf(
+								/* translators: %s: image title or filename */
+								__( 'Remove image: %s', 'extrachill-studio' ),
+								label
+							),
+							title: __( 'Remove image', 'extrachill-studio' ),
+						},
+						'×'
+					),
+					supportsReordering
+						? createElement(
+							'div',
+							{ className: 'ec-studio-image-thumbs__reorder' },
+							createElement(
+								'button',
+								{
+									type: 'button',
+									className: 'ec-studio-image-thumbs__move ec-studio-image-thumbs__move--left',
+									onClick: () => moveImage( index, -1 ),
+									disabled: index === 0,
+									'aria-label': sprintf(
+										/* translators: %s: image title or filename */
+										__( 'Move image left: %s', 'extrachill-studio' ),
+										label
+									),
+									title: __( 'Move left', 'extrachill-studio' ),
+								},
+								'‹'
+							),
+							createElement(
+								'button',
+								{
+									type: 'button',
+									className: 'ec-studio-image-thumbs__move ec-studio-image-thumbs__move--right',
+									onClick: () => moveImage( index, 1 ),
+									disabled: index === lastIndex,
+									'aria-label': sprintf(
+										/* translators: %s: image title or filename */
+										__( 'Move image right: %s', 'extrachill-studio' ),
+										label
+									),
+									title: __( 'Move right', 'extrachill-studio' ),
+								},
+								'›'
+							)
+						)
+						: null
+				);
+			} )
+		);
 	};
 
 	const publishPost = async (): Promise< void > => {
@@ -94,7 +212,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			return;
 		}
 
-		if ( supportsImages && imageUrls.length === 0 ) {
+		if ( supportsImages && images.length === 0 ) {
 			setError( __( 'Add at least one image before publishing.', 'extrachill-studio' ) );
 			setStatus( '' );
 			return;
@@ -113,7 +231,11 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		try {
 			const response = await studioClient.socials.crossPost( {
 				platforms: [ slug ],
-				images: imageUrls.map( ( url ) => ( { url } ) ),
+				// SocialImageInput in @extrachill/api-client only declares `url`; DM-Socials
+				// accepts `alt` server-side for platforms that support it (Bluesky, Twitter,
+				// Threads). Cast bypasses the narrower client-side type until
+				// Extra-Chill/extrachill-api-client#11 lands.
+				images: images.map( ( { url, alt } ) => ( { url, alt } ) ) as { url: string }[],
 				caption: caption.trim(),
 			} );
 
@@ -162,7 +284,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			setJobResult( platformResult );
 			setStatus( sprintf( __( '%s publish completed.', 'extrachill-studio' ), platformLabel ) );
 			setCaption( '' );
-			setImageUrls( [] );
+			setImages( [] );
 		} catch ( publishError ) {
 			if ( abortController?.signal.aborted ) {
 				// Silently swallow — a new publish was started.
@@ -182,7 +304,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			return;
 		}
 
-		if ( supportsImages && imageUrls.length === 0 ) {
+		if ( supportsImages && images.length === 0 ) {
 			setError( __( 'Add at least one image before submitting.', 'extrachill-studio' ) );
 			setStatus( '' );
 			return;
@@ -203,8 +325,8 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 					meta: {
 						_studio_social_platforms: [ slug ],
 						_studio_social_caption: caption.trim(),
-						_studio_social_images: imageUrls.map( ( url ) => ( { url } ) ),
-						_studio_social_media_kind: imageUrls.length > 1 ? 'carousel' : 'image',
+						_studio_social_images: images.map( ( { url, alt, title } ) => ( { url, alt, title } ) ),
+						_studio_social_media_kind: images.length > 1 ? 'carousel' : 'image',
 					},
 				},
 			} );
@@ -213,7 +335,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 				sprintf( __( 'Draft #%d submitted for review. An admin will approve it before it goes live.', 'extrachill-studio' ), post.id )
 			);
 			setCaption( '' );
-			setImageUrls( [] );
+			setImages( [] );
 		} catch ( submitError ) {
 			setStatus( '' );
 			setError( ( submitError as Error )?.message || __( 'Failed to submit draft.', 'extrachill-studio' ) );
@@ -238,30 +360,16 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			h(
 				'div',
 				{ className: 'ec-studio-composer' },
-				h(
-					FieldGroupView,
-					{
-						label: __( 'Caption', 'extrachill-studio' ),
-						htmlFor: `ec-studio-${ slug }-caption`,
-						help: charLimit > 0
-							? sprintf( __( '%d / %d characters', 'extrachill-studio' ), caption.length, charLimit )
-							: null,
-					},
-					createElement( 'textarea', {
-						id: `ec-studio-${ slug }-caption`,
-						rows: 6,
-						value: caption,
-						onChange: ( event: ChangeEvent< HTMLTextAreaElement > ) => setCaption( event.target.value ),
-						placeholder: sprintf( __( 'Write your %s caption here…', 'extrachill-studio' ), platformLabel ),
-						maxLength: charLimit > 0 ? charLimit : undefined,
-					} )
-				),
+				// 1. Media picker — primary affordance for adding images.
 				supportsImages
 					? h( MediaPicker, {
 						onSelect: handleMediaSelect,
 						className: 'ec-studio-pane__media-picker',
 					} )
 					: null,
+				// 2. Selected images thumbnail row (renders nothing when queue is empty).
+				supportsImages ? renderImageThumbnails() : null,
+				// 3. External URL fallback — paste + Add button.
 				supportsImages
 					? h(
 						FieldGroupView,
@@ -296,8 +404,29 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 						)
 					)
 					: null,
+				// 4. Caption textarea.
+				h(
+					FieldGroupView,
+					{
+						label: __( 'Caption', 'extrachill-studio' ),
+						htmlFor: `ec-studio-${ slug }-caption`,
+						help: charLimit > 0
+							? sprintf( __( '%d / %d characters', 'extrachill-studio' ), caption.length, charLimit )
+							: null,
+					},
+					createElement( 'textarea', {
+						id: `ec-studio-${ slug }-caption`,
+						rows: 6,
+						value: caption,
+						onChange: ( event: ChangeEvent< HTMLTextAreaElement > ) => setCaption( event.target.value ),
+						placeholder: sprintf( __( 'Write your %s caption here…', 'extrachill-studio' ), platformLabel ),
+						maxLength: charLimit > 0 ? charLimit : undefined,
+					} )
+				),
+				// 5. Status / error inline messages.
 				error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
 				! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null,
+				// 6. Action row — Submit for Review / Publish Now.
 				h(
 					ActionRowView,
 					{ className: 'ec-studio-composer__actions' },
@@ -325,22 +454,6 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 				)
 			)
 		),
-		supportsImages && imageUrls.length > 0
-			? h(
-				PanelView,
-				{ className: 'ec-studio-panel', compact: true },
-				createElement(
-					'ul',
-					{ className: 'ec-studio-image-list' },
-					...imageUrls.map( ( url, index ) => createElement(
-						'li',
-						{ key: `${ url }-${ index }`, className: 'ec-studio-image-list__item' },
-						createElement( 'span', { className: 'ec-studio-image-list__url' }, url ),
-						createElement( 'button', { type: 'button', className: 'ec-studio-image-list__remove', onClick: () => removeImageUrl( index ) }, __( 'Remove', 'extrachill-studio' ) )
-					) )
-				)
-			)
-			: null,
 		jobResult
 			? h(
 				PanelView,
