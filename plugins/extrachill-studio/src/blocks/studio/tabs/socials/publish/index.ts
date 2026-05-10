@@ -25,6 +25,12 @@ interface WpPost {
 	id: number;
 }
 
+interface SelectedImage {
+	url: string;
+	alt?: string;
+	title?: string;
+}
+
 /**
  * Generic social platform publishing pane.
  *
@@ -35,7 +41,7 @@ interface WpPost {
 const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublishPaneProps ): ReactElement => {
 	const [ caption, setCaption ] = useState( '' );
 	const [ imageUrlInput, setImageUrlInput ] = useState( '' );
-	const [ imageUrls, setImageUrls ] = useState< string[] >( [] );
+	const [ images, setImages ] = useState< SelectedImage[] >( [] );
 	const [ isPublishing, setIsPublishing ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
@@ -63,14 +69,21 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			return;
 		}
 
-		setImageUrls( ( current ) => [ ...current, nextUrl ] );
+		setImages( ( current ) => [ ...current, { url: nextUrl } ] );
 		setImageUrlInput( '' );
 		setError( '' );
 		setStatus( __( 'External image URL added to publish queue.', 'extrachill-studio' ) );
 	};
 
 	const handleMediaSelect = ( url: string, item: NetworkMediaItem ): void => {
-		setImageUrls( ( current ) => [ ...current, url ] );
+		setImages( ( current ) => [
+			...current,
+			{
+				url,
+				alt: item.alt || undefined,
+				title: item.title || undefined,
+			},
+		] );
 		setError( '' );
 		setStatus(
 			sprintf(
@@ -81,8 +94,8 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		);
 	};
 
-	const removeImageUrl = ( index: number ): void => {
-		setImageUrls( ( current ) => current.filter( ( _item, itemIndex ) => itemIndex !== index ) );
+	const removeImageAt = ( index: number ): void => {
+		setImages( ( current ) => current.filter( ( _item, itemIndex ) => itemIndex !== index ) );
 		setStatus( __( 'Image removed from publish queue.', 'extrachill-studio' ) );
 		setError( '' );
 	};
@@ -94,7 +107,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			return;
 		}
 
-		if ( supportsImages && imageUrls.length === 0 ) {
+		if ( supportsImages && images.length === 0 ) {
 			setError( __( 'Add at least one image before publishing.', 'extrachill-studio' ) );
 			setStatus( '' );
 			return;
@@ -113,7 +126,10 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		try {
 			const response = await studioClient.socials.crossPost( {
 				platforms: [ slug ],
-				images: imageUrls.map( ( url ) => ( { url } ) ),
+				// SocialImageInput in @extrachill/api-client only declares `url`; DM-Socials accepts
+				// `alt` server-side for platforms that support it (Bluesky, Twitter, Threads).
+				// Cast to bypass the narrower client-side type until the api-client is updated.
+				images: images.map( ( { url, alt } ) => ( { url, alt } ) ) as { url: string }[],
 				caption: caption.trim(),
 			} );
 
@@ -162,7 +178,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			setJobResult( platformResult );
 			setStatus( sprintf( __( '%s publish completed.', 'extrachill-studio' ), platformLabel ) );
 			setCaption( '' );
-			setImageUrls( [] );
+			setImages( [] );
 		} catch ( publishError ) {
 			if ( abortController?.signal.aborted ) {
 				// Silently swallow — a new publish was started.
@@ -182,7 +198,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			return;
 		}
 
-		if ( supportsImages && imageUrls.length === 0 ) {
+		if ( supportsImages && images.length === 0 ) {
 			setError( __( 'Add at least one image before submitting.', 'extrachill-studio' ) );
 			setStatus( '' );
 			return;
@@ -203,8 +219,8 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 					meta: {
 						_studio_social_platforms: [ slug ],
 						_studio_social_caption: caption.trim(),
-						_studio_social_images: imageUrls.map( ( url ) => ( { url } ) ),
-						_studio_social_media_kind: imageUrls.length > 1 ? 'carousel' : 'image',
+						_studio_social_images: images.map( ( { url, alt, title } ) => ( { url, alt, title } ) ),
+						_studio_social_media_kind: images.length > 1 ? 'carousel' : 'image',
 					},
 				},
 			} );
@@ -213,7 +229,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 				sprintf( __( 'Draft #%d submitted for review. An admin will approve it before it goes live.', 'extrachill-studio' ), post.id )
 			);
 			setCaption( '' );
-			setImageUrls( [] );
+			setImages( [] );
 		} catch ( submitError ) {
 			setStatus( '' );
 			setError( ( submitError as Error )?.message || __( 'Failed to submit draft.', 'extrachill-studio' ) );
@@ -325,18 +341,18 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 				)
 			)
 		),
-		supportsImages && imageUrls.length > 0
+		supportsImages && images.length > 0
 			? h(
 				PanelView,
 				{ className: 'ec-studio-panel', compact: true },
 				createElement(
 					'ul',
 					{ className: 'ec-studio-image-list' },
-					...imageUrls.map( ( url, index ) => createElement(
+					...images.map( ( image, index ) => createElement(
 						'li',
-						{ key: `${ url }-${ index }`, className: 'ec-studio-image-list__item' },
-						createElement( 'span', { className: 'ec-studio-image-list__url' }, url ),
-						createElement( 'button', { type: 'button', className: 'ec-studio-image-list__remove', onClick: () => removeImageUrl( index ) }, __( 'Remove', 'extrachill-studio' ) )
+						{ key: `${ image.url }-${ index }`, className: 'ec-studio-image-list__item' },
+						createElement( 'span', { className: 'ec-studio-image-list__url' }, image.url ),
+						createElement( 'button', { type: 'button', className: 'ec-studio-image-list__remove', onClick: () => removeImageAt( index ) }, __( 'Remove', 'extrachill-studio' ) )
 					) )
 				)
 			)
