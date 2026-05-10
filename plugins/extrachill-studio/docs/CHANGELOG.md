@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.1] - 2026-05-10
+
+### Changed
+- bump @extrachill/api-client to 0.7.0 and drop SocialImageInput cast
+
+### Fixed
+- create transcription drafts on the current site, not main extrachill.com
+
 ## [0.10.0] - 2026-05-10
 
 ### Added
