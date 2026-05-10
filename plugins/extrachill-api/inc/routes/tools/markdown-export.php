@@ -270,14 +270,20 @@ function extrachill_api_build_topic_replies_markdown( WP_Post $topic ) {
 /**
  * Gets event metadata lines for markdown header.
  *
+ * Uses the data-machine-events public integration API
+ * (`data_machine_events_parse_event_data()`, `datamachine_get_event_dates()`)
+ * to extract event metadata, falling back to the event_dates table + the
+ * venue taxonomy when block-attribute data is missing. See data-machine-events
+ * `docs/integration-api.md` for the contract.
+ *
  * @param WP_Post $post Post object.
  * @return array
  */
 function extrachill_api_get_event_markdown_meta_lines( WP_Post $post ) {
 	$meta_lines = array();
 
-	if ( class_exists( '\\DataMachineEvents\\Blocks\\Calendar\\Calendar_Query' ) ) {
-		$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
+	if ( function_exists( 'data_machine_events_parse_event_data' ) ) {
+		$event_data = data_machine_events_parse_event_data( $post );
 		if ( is_array( $event_data ) ) {
 			if ( ! empty( $event_data['startDate'] ) ) {
 				$date = sanitize_text_field( $event_data['startDate'] );
@@ -296,11 +302,10 @@ function extrachill_api_get_event_markdown_meta_lines( WP_Post $post ) {
 	}
 
 	if ( empty( $meta_lines ) ) {
-		if ( class_exists( '\DataMachineEvents\Core\EventDatesTable' ) ) {
-			$dates = \DataMachineEvents\Core\EventDatesTable::get( $post->ID );
-			$event_datetime = $dates ? $dates->start_datetime : '';
-		} else {
-			$event_datetime = '';
+		$event_datetime = '';
+		if ( function_exists( 'datamachine_get_event_dates' ) ) {
+			$dates = datamachine_get_event_dates( $post->ID );
+			$event_datetime = $dates && ! empty( $dates->start_datetime ) ? $dates->start_datetime : '';
 		}
 		if ( $event_datetime ) {
 			$dt           = new DateTime( $event_datetime, wp_timezone() );
