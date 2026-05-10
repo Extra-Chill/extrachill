@@ -15,6 +15,12 @@ export const getStudioTabs = (): StudioTab[] => [
 		preview: __( 'Publish and manage posts across social platforms.', 'extrachill-studio' ),
 	},
 	{
+		id: 'transcribe',
+		pane: 'transcribe',
+		label: __( 'Transcribe', 'extrachill-studio' ),
+		preview: __( 'Transcribe audio with Whisper.', 'extrachill-studio' ),
+	},
+	{
 		id: 'qr-codes',
 		pane: 'qr-codes',
 		label: __( 'QR Codes', 'extrachill-studio' ),
