@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.0] - 2026-05-10
+
+### Added
+- broaden SocialImageInput with alt and title metadata
+
 ## [0.6.0] - 2026-04-27
 
 ### Added
