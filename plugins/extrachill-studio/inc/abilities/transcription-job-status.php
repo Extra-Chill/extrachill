@@ -53,9 +53,12 @@ function ec_studio_register_transcription_job_status_ability(): void {
 					'properties' => array(
 						'job_id'         => array( 'type' => 'string' ),
 						'status'         => array( 'type' => 'string' ),
-						'draft_post_id'  => array( 'type' => 'integer' ),
-						'draft_post_url' => array( 'type' => 'string' ),
-						'error'          => array( 'type' => 'string' ),
+						// Nullable until the job reaches 'completed' and the
+						// draft post is created on main extrachill.com.
+						'draft_post_id'  => array( 'type' => array( 'integer', 'null' ) ),
+						'draft_post_url' => array( 'type' => array( 'string', 'null' ) ),
+						// Nullable in non-failure states; populated only when status='failed'.
+						'error'          => array( 'type' => array( 'string', 'null' ) ),
 					),
 				),
 				'execute_callback'    => 'ec_studio_execute_transcription_job_status',
