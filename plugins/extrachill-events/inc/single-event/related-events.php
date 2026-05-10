@@ -101,7 +101,9 @@ add_filter( 'extrachill_override_related_posts_display', 'ec_events_override_rel
  * @param int    $post_id  Current post ID
  */
 function ec_events_render_related_posts( $taxonomy, $post_id ) {
-	if ( ! class_exists( '\DataMachineEvents\Blocks\Calendar\Template_Loader' ) || ! class_exists( '\DataMachineEvents\Blocks\Calendar\Calendar_Query' ) ) {
+	// Gate on data-machine-events public integration API instead of internal
+	// class names. See data-machine-events docs/integration-api.md.
+	if ( ! function_exists( 'data_machine_events_query_events' ) ) {
 		return;
 	}
 
@@ -129,8 +131,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 		}
 	}
 
-	$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
-	$result  = $ability->executeQueryEvents( array(
+	$result = data_machine_events_query_events( array(
 		'scope'       => 'upcoming',
 		'tax_filters' => $ability_tax_filters,
 		'exclude'     => array( $post_id ),
@@ -138,7 +139,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 		'order'       => 'ASC',
 	) );
 
-	$related_posts_array = $result['posts'];
+	$related_posts_array = $result['posts'] ?? array();
 
 	// Filter out events at excluded venues (for location-based related events).
 	if ( ! empty( $exclude_venue_ids ) && ! empty( $related_posts_array ) ) {
@@ -165,7 +166,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 					setup_postdata( $GLOBALS['post'] = $related_post );
 					$post = $related_post;
 
-					$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
+					$event_data = data_machine_events_parse_event_data( $post ) ?? array();
 					$image_url  = get_the_post_thumbnail_url( $post, 'medium_large' );
 
 					// Format date and time
@@ -188,11 +189,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 							</div>
 						<?php endif; ?>
 						
-						<?php
-						if ( class_exists( '\DataMachineEvents\Blocks\Calendar\Taxonomy\Badges' ) ) {
-							echo \DataMachineEvents\Blocks\Calendar\Taxonomy\Badges::render_taxonomy_badges( $post->ID );
-						}
-						?>
+						<?php echo data_machine_events_render_taxonomy_badges( $post->ID ); ?>
 						<h4 class="related-tax-title">
 							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
 						</h4>

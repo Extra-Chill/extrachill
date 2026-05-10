@@ -178,10 +178,9 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 			continue;
 		}
 
-		$address = '';
-		if ( class_exists( 'DataMachineEvents\Core\Venue_Taxonomy' ) ) {
-			$address = \DataMachineEvents\Core\Venue_Taxonomy::get_formatted_address( $row->term_id );
-		}
+		$address = function_exists( 'data_machine_events_get_venue_address' )
+			? data_machine_events_get_venue_address( (int) $row->term_id )
+			: '';
 
 		$matched[] = array(
 			'term_id'     => (int) $row->term_id,

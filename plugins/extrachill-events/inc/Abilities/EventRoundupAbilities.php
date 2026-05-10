@@ -513,17 +513,19 @@ class EventRoundupAbilities {
 			);
 		}
 
-		$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
-		$result  = $ability->executeQueryEvents( $query_input );
-
-		if ( ! class_exists( '\DataMachineEvents\Blocks\Calendar\Data\EventHydrator' )
-			|| ! class_exists( '\DataMachineEvents\Blocks\Calendar\Grouping\DateGrouper' ) ) {
+		// Uses data-machine-events public integration API. See data-machine-events
+		// docs/integration-api.md.
+		if ( ! function_exists( 'data_machine_events_query_events' )
+			|| ! function_exists( 'data_machine_events_parse_event_data' )
+			|| ! function_exists( 'data_machine_events_group_by_date' ) ) {
 			return array();
 		}
 
+		$result = data_machine_events_query_events( $query_input );
+
 		$paged_events = array();
-		foreach ( $result['posts'] as $post ) {
-			$event_data = \DataMachineEvents\Blocks\Calendar\Data\EventHydrator::parse_event_data( $post );
+		foreach ( $result['posts'] ?? array() as $post ) {
+			$event_data = data_machine_events_parse_event_data( $post );
 			if ( ! $event_data ) {
 				continue;
 			}
@@ -533,7 +535,7 @@ class EventRoundupAbilities {
 			);
 		}
 
-		// Pass date_start + date_end to DateGrouper so it filters out
+		// Pass date_start + date_end to the date grouper so it filters out
 		// bleed-in from late-night events that span midnight. Without this,
 		// a show that starts Friday 9pm and ends Saturday 12am would land
 		// in the Friday day_group even when the caller asked for Saturday
@@ -541,7 +543,7 @@ class EventRoundupAbilities {
 		// semantics — start_datetime >= range_start OR end_datetime >= range_start —
 		// for calendar-style "in-progress" callers. Roundups want strict
 		// per-day grouping.)
-		return \DataMachineEvents\Blocks\Calendar\Grouping\DateGrouper::group_events_by_date(
+		return data_machine_events_group_by_date(
 			$paged_events,
 			false,
 			$date_start,

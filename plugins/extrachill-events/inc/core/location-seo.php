@@ -162,12 +162,15 @@ function extrachill_events_build_location_description( string $city_name, int $t
  * @return int Number of upcoming events.
  */
 function extrachill_events_get_upcoming_event_count( int $term_id ): int {
-	$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
-	$result  = $ability->executeQueryEvents( array(
+	if ( ! function_exists( 'data_machine_events_query_events' ) ) {
+		return 0;
+	}
+
+	$result = data_machine_events_query_events( array(
 		'scope'       => 'upcoming',
 		'tax_filters' => array( 'location' => array( $term_id ) ),
 		'fields'      => 'count',
 	) );
 
-	return $result['total'];
+	return (int) ( $result['total'] ?? 0 );
 }

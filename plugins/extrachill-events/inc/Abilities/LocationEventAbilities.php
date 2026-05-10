@@ -162,8 +162,13 @@ class LocationEventAbilities {
 	}
 
 	private function queryEventsByLocation( int $term_id, string $date_start, string $date_end, int $limit ): array {
-		$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
-		$result  = $ability->executeQueryEvents( array(
+		// Uses data-machine-events public integration API. See data-machine-events
+		// docs/integration-api.md for the contract.
+		if ( ! function_exists( 'data_machine_events_query_events' ) ) {
+			return array();
+		}
+
+		$result = data_machine_events_query_events( array(
 			'date_start'  => $date_start,
 			'date_end'    => $date_end,
 			'tax_filters' => array( 'location' => array( $term_id ) ),
@@ -171,25 +176,9 @@ class LocationEventAbilities {
 			'order'       => 'ASC',
 		) );
 
-		if ( ! class_exists( 'DataMachineEvents\Blocks\Calendar\Calendar_Query' ) ) {
-			// Fallback: return basic data without parsed event_data.
-			$events = array();
-			foreach ( $result['posts'] as $post ) {
-				$events[] = array(
-					'id'         => $post->ID,
-					'title'      => $post->post_title,
-					'date'       => '',
-					'start_time' => '',
-					'venue'      => '',
-					'permalink'  => get_permalink( $post->ID ),
-				);
-			}
-			return $events;
-		}
-
 		$events = array();
-		foreach ( $result['posts'] as $post ) {
-			$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
+		foreach ( $result['posts'] ?? array() as $post ) {
+			$event_data = data_machine_events_parse_event_data( $post ) ?? array();
 
 			$start_time     = $event_data['startTime'] ?? '';
 			$formatted_time = '';

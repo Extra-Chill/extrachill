@@ -20,8 +20,8 @@ extrachill_breadcrumbs();
 	<?php
 	if ( is_tax( 'venue' ) ) :
 		$term              = get_queried_object();
-		$venue_data        = \DataMachineEvents\Core\Venue_Taxonomy::get_venue_data( $term->term_id );
-		$formatted_address = \DataMachineEvents\Core\Venue_Taxonomy::get_formatted_address( $term->term_id );
+		$venue_data        = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( (int) $term->term_id ) : null;
+		$formatted_address = function_exists( 'data_machine_events_get_venue_address' ) ? data_machine_events_get_venue_address( (int) $term->term_id, $venue_data ) : '';
 		?>
 		<header class="taxonomy-archive-header venue-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
@@ -47,7 +47,7 @@ extrachill_breadcrumbs();
 		<?php
 	elseif ( is_tax( 'promoter' ) ) :
 		$term          = get_queried_object();
-		$promoter_data = \DataMachineEvents\Core\Promoter_Taxonomy::get_promoter_data( $term->term_id );
+		$promoter_data = function_exists( 'data_machine_events_get_promoter_data' ) ? data_machine_events_get_promoter_data( (int) $term->term_id ) : null;
 		?>
 		<header class="taxonomy-archive-header promoter-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>

@@ -194,9 +194,13 @@ class ExtraChillEvents {
 	 * Initialize event plugin integrations
 	 *
 	 * Conditionally initializes data-machine-events integration if plugin is active.
+	 *
+	 * Detection uses the DATA_MACHINE_EVENTS_POST_TYPE constant from
+	 * data-machine-events' public integration API (inc/public-api.php) so the
+	 * check survives internal namespace changes in DM-events.
 	 */
 	private function init_integrations() {
-		if ( class_exists( 'DataMachineEvents\Core\Event_Post_Type' ) ) {
+		if ( defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 			extrachill_events_init_data_machine_integration();
 		}
 	}

@@ -283,17 +283,24 @@ For all filters and actions to work, the data-machine-events plugin must:
 4. **Provide action hook:**
    - `data_machine_events_action_buttons`
 
-5. **Provide classes for detection:**
-   - `DataMachineEvents\Blocks\Calendar\Taxonomy\Badges` - Badge rendering class
-   - `DataMachineEvents\Core\Breadcrumbs` - Breadcrumb rendering class
+5. **Provide a public integration loaded action:**
+   - `data_machine_events_loaded` (fires once at `init` priority 30; see
+     data-machine-events `docs/integration-api.md` for the full contract).
 
 ## Conditional Loading
 
-The plugin only hooks into badge and breadcrumb filters if the corresponding classes exist:
+This plugin gates filter registrations on data-machine-events' public
+integration API rather than internal class names. That contract is defined in
+data-machine-events `docs/integration-api.md` — gate on the
+`data_machine_events_loaded` action (or check `data_machine_events_is_loaded()` /
+`defined( 'DATA_MACHINE_EVENTS_POST_TYPE' )`) instead of `class_exists()`
+against an internal class name. Internal class names may be renamed at any
+time without warning, and a stale `class_exists()` guard early-returns
+silently — no fatal, no admin notice — so missing styling is hard to detect.
 
 ### Badge Integration
 ```php
-if (class_exists('DataMachineEvents\Blocks\Calendar\Taxonomy\Badges')) {
+if (defined('DATA_MACHINE_EVENTS_POST_TYPE')) {
     add_filter('data_machine_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
     add_filter('data_machine_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
     add_filter('data_machine_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
@@ -301,10 +308,15 @@ if (class_exists('DataMachineEvents\Blocks\Calendar\Taxonomy\Badges')) {
 ```
 
 ### Breadcrumb Integration
+
+The breadcrumb integration in data-machine-events does not yet expose a
+public function or constant. Until it does, this remains a `class_exists()`
+guard — but mark it as known-fragile when reviewing.
+
 ```php
 if (class_exists('DataMachineEvents\Core\Breadcrumbs')) {
     add_filter('data_machine_events_breadcrumbs', array($this, 'override_breadcrumbs'), 10, 2);
 }
 ```
 
-This prevents errors if data-machine-events is deactivated or missing these classes.
+This prevents errors if data-machine-events is deactivated or missing.

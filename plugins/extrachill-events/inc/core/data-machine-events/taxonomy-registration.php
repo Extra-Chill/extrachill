@@ -4,6 +4,9 @@
  *
  * Register extrachill taxonomies (location, artist, festival) for the data_machine_events post type.
  *
+ * Uses data-machine-events' public integration API (DATA_MACHINE_EVENTS_POST_TYPE
+ * constant) so this code survives internal class refactors in DM-events.
+ *
  * @package ExtraChillEvents
  * @since 0.4.0
  */
@@ -11,8 +14,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
-use DataMachineEvents\Core\Event_Post_Type;
 
 /**
  * Initialize taxonomy registration hooks
@@ -40,11 +41,11 @@ function extrachill_events_get_event_taxonomies() {
  * @param WP_Post_Type $post_type_object Post type object.
  */
 function extrachill_events_on_registered_post_type( $post_type, $post_type_object ) {
-	if ( ! class_exists( 'DataMachineEvents\\Core\\Event_Post_Type' ) ) {
+	if ( ! defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 		return;
 	}
 
-	if ( $post_type !== Event_Post_Type::POST_TYPE ) {
+	if ( $post_type !== DATA_MACHINE_EVENTS_POST_TYPE ) {
 		return;
 	}
 
@@ -59,7 +60,7 @@ function extrachill_events_on_registered_post_type( $post_type, $post_type_objec
  * @param array        $args        Taxonomy arguments.
  */
 function extrachill_events_on_registered_taxonomy( $taxonomy, $object_type, $args ) {
-	if ( ! class_exists( 'DataMachineEvents\\Core\\Event_Post_Type' ) ) {
+	if ( ! defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 		return;
 	}
 
@@ -74,11 +75,11 @@ function extrachill_events_on_registered_taxonomy( $taxonomy, $object_type, $arg
  * Register extrachill taxonomies for event post type
  */
 function extrachill_events_register_taxonomies() {
-	if ( ! class_exists( 'DataMachineEvents\\Core\\Event_Post_Type' ) ) {
+	if ( ! defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 		return;
 	}
 
-	$post_type = Event_Post_Type::POST_TYPE;
+	$post_type = DATA_MACHINE_EVENTS_POST_TYPE;
 	if ( ! post_type_exists( $post_type ) ) {
 		return;
 	}

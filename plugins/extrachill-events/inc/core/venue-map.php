@@ -20,7 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array|null Array with 'lat' and 'lon' floats, or null if not set.
  */
 function extrachill_events_get_venue_coordinates( int $term_id ): ?array {
-	$venue_data = \DataMachineEvents\Core\Venue_Taxonomy::get_venue_data( $term_id );
+	if ( ! function_exists( 'data_machine_events_get_venue_data' ) ) {
+		return null;
+	}
+
+	$venue_data = data_machine_events_get_venue_data( $term_id );
 	$coordinates = $venue_data['coordinates'] ?? '';
 
 	if ( empty( $coordinates ) || strpos( $coordinates, ',' ) === false ) {
@@ -48,14 +52,17 @@ function extrachill_events_get_venue_coordinates( int $term_id ): ?array {
  * @return int Number of upcoming events.
  */
 function extrachill_events_get_upcoming_venue_event_count( int $term_id ): int {
-	$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
-	$result  = $ability->executeQueryEvents( array(
+	if ( ! function_exists( 'data_machine_events_query_events' ) ) {
+		return 0;
+	}
+
+	$result = data_machine_events_query_events( array(
 		'scope'       => 'upcoming',
 		'tax_filters' => array( 'venue' => array( $term_id ) ),
 		'fields'      => 'count',
 	) );
 
-	return $result['total'];
+	return (int) ( $result['total'] ?? 0 );
 }
 
 /**

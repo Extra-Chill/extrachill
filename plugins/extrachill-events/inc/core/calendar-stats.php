@@ -27,19 +27,25 @@ function extrachill_events_get_calendar_stats(): array {
 	}
 
 	// Requires data-machine-events to be active.
-	if ( ! class_exists( '\DataMachineEvents\Abilities\EventDateQueryAbilities' ) ) {
+	// Uses the public integration API. See data-machine-events docs/integration-api.md.
+	if ( ! function_exists( 'data_machine_events_query_events' ) ) {
 		return array( 'events' => 0, 'venues' => 0, 'locations' => 0 );
 	}
 
-	// Count upcoming events via query-events ability.
-	$event_query = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
-	$result      = $event_query->executeQueryEvents( array(
+	// Count upcoming events via query-events public function.
+	$result = data_machine_events_query_events( array(
 		'scope'  => 'upcoming',
 		'fields' => 'count',
 	) );
-	$events = (int) $result['total'];
+	$events = (int) ( $result['total'] ?? 0 );
 
-	// Count upcoming venues and locations via get-upcoming-counts ability.
+	// Count upcoming venues and locations via get-upcoming-counts ability. The
+	// counts ability has no public wrapper yet; falling back to direct
+	// instantiation guarded by class_exists() is acceptable for this internal
+	// stat panel until a public function is added.
+	if ( ! class_exists( '\DataMachineEvents\Abilities\UpcomingCountAbilities' ) ) {
+		return array( 'events' => $events, 'venues' => 0, 'locations' => 0 );
+	}
 	$counts_ability = new \DataMachineEvents\Abilities\UpcomingCountAbilities();
 
 	$venue_result = $counts_ability->executeGetUpcomingCounts( array(

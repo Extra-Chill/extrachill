@@ -83,12 +83,13 @@ class EventRoundupSettings extends SettingsHandler {
 			return $options;
 		}
 
-		if ( ! class_exists( '\\DataMachineEvents\\Abilities\\EventDateQueryAbilities' ) ) {
+		// Uses data-machine-events public integration API. See data-machine-events
+		// docs/integration-api.md.
+		if ( ! function_exists( 'data_machine_events_query_events' ) ) {
 			return $options;
 		}
 
-		$ability = new \DataMachineEvents\Abilities\EventDateQueryAbilities();
-		$result  = $ability->executeQueryEvents( array(
+		$result = data_machine_events_query_events( array(
 			'scope'  => 'upcoming',
 			'fields' => 'ids',
 		) );

@@ -140,10 +140,14 @@ $plugin = ExtraChillEvents::get_instance();
 
 **Detection Logic:**
 ```php
-if (class_exists('DataMachineEvents\Core\Event_Post_Type')) {
+if (defined('DATA_MACHINE_EVENTS_POST_TYPE')) {
     $this->integrations['data_machine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
 }
 ```
+
+Detection uses data-machine-events' public integration API constant rather
+than `class_exists()` against an internal class name. See data-machine-events
+`docs/integration-api.md`.
 
 **Extensible:** Additional event plugin integrations can be added here
 
@@ -524,7 +528,7 @@ $plugin = ExtraChillEvents::get_instance();
 ### DataMachineEventsIntegration
 ```php
 // Instantiated by ExtraChillEvents::init_integrations()
-if (class_exists('DataMachineEvents\Core\Event_Post_Type')) {
+if (defined('DATA_MACHINE_EVENTS_POST_TYPE')) {
     $this->integrations['data_machine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
 }
 ```

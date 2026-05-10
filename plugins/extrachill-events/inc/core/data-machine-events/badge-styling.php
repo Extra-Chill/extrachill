@@ -4,6 +4,10 @@
  *
  * Map data-machine-events badges to theme badge classes for festival/location/venue styling.
  *
+ * Uses data-machine-events' public integration API (DATA_MACHINE_EVENTS_POST_TYPE
+ * constant + documented filters) so this code survives internal class refactors
+ * in DM-events.
+ *
  * @package ExtraChillEvents
  * @since 0.4.0
  */
@@ -12,13 +16,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use DataMachineEvents\Core\Event_Post_Type;
-
 /**
  * Initialize badge styling hooks
  */
 function extrachill_events_init_badge_styling() {
-	if ( ! class_exists( 'DataMachineEvents\\Blocks\\Calendar\\Taxonomy\\Badges' ) ) {
+	if ( ! defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 		return;
 	}
 
@@ -90,11 +92,11 @@ function extrachill_events_exclude_taxonomies( $excluded, $context = '' ) {
 		return array_values( array_unique( $excluded ) );
 	}
 
-	if ( ! class_exists( 'DataMachineEvents\\Core\\Event_Post_Type' ) ) {
+	if ( ! defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 		return array_values( array_unique( $excluded ) );
 	}
 
-	$taxonomies = get_object_taxonomies( Event_Post_Type::POST_TYPE, 'names' );
+	$taxonomies = get_object_taxonomies( DATA_MACHINE_EVENTS_POST_TYPE, 'names' );
 	if ( empty( $taxonomies ) || is_wp_error( $taxonomies ) ) {
 		return array_values( array_unique( $excluded ) );
 	}

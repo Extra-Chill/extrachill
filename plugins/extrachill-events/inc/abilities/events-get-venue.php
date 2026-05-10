@@ -99,9 +99,12 @@ function extrachill_events_ability_get_venue( array $input ): array|\WP_Error {
 		'slug'    => $term->slug,
 	);
 
-	// Read venue meta fields if Venue_Taxonomy helper is available.
-	if ( class_exists( '\\DataMachineEvents\\Core\\Venue_Taxonomy' ) ) {
-		$raw = \DataMachineEvents\Core\Venue_Taxonomy::get_venue_data( $term->term_id );
+	// Read venue meta fields via data-machine-events public integration API.
+	$raw = function_exists( 'data_machine_events_get_venue_data' )
+		? data_machine_events_get_venue_data( (int) $term->term_id )
+		: null;
+
+	if ( is_array( $raw ) ) {
 		$venue_data['address']     = $raw['address'] ?? '';
 		$venue_data['city']        = $raw['city'] ?? '';
 		$venue_data['state']       = $raw['state'] ?? '';
