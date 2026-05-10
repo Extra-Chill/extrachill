@@ -35,13 +35,6 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/social-drafts.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose-editor.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/resolve-instagram-media.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/run-giveaway.php';
-require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/sweatpants-client.php';
-require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/job-store.php';
-require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/draft-post-creator.php';
-require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/rest.php';
-require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/gc.php';
-require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/transcribe-recording.php';
-require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/transcription-job-status.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/sweatpants-token.php';
 
 /*
@@ -123,7 +116,6 @@ function extrachill_studio_activate() {
  * @return void
  */
 function extrachill_studio_deactivate() {
-	wp_clear_scheduled_hook( 'ec_studio_transcription_daily_gc' );
 	flush_rewrite_rules();
 }
 
