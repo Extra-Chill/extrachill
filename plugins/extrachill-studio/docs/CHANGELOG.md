@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.10.0] - 2026-05-10
+
+### Added
+- Transcribe tab backend foundation (Phase B1)
+- thumbnail row replaces URL list for selected social images
+
+### Changed
+- reference upstream issue for SocialImageInput cast
+- reorder socials publish pane so media picker is on top
+- change selected-images state shape to carry alt/title metadata
+- use api client social job helper
+
+### Fixed
+- handle async job polling for Socials Publish Now
+
 ## [0.9.3] - 2026-05-10
 
 ### Fixed
