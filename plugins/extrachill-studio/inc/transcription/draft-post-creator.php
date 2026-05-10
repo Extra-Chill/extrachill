@@ -2,10 +2,16 @@
 /**
  * Draft Post Creator
  *
- * Cross-blog draft post creation for completed transcriptions. Creates a draft
- * on the target blog (default blog_id=1, the main extrachill.com site) under
- * the uploading user's authorship. extrachill-users guarantees user_id parity
- * across the network so post_author is the same id everywhere.
+ * Creates a draft post on the current site (i.e. the site that submitted
+ * the transcription job — typically studio.extrachill.com) under the
+ * uploading user's authorship. The draft surfaces in the Blog tab's
+ * drafts dropdown automatically because the Blog tab queries the same
+ * `wp/v2/posts?status=draft` endpoint on the same site.
+ *
+ * Side-effect integration: Transcribe and Blog tabs share zero code, but
+ * both operate on the same `status=draft` posts on the same site, so a
+ * transcription draft is just a regular draft from the Blog tab's
+ * perspective.
  *
  * @package    ExtraChillStudio
  * @subpackage Transcription
@@ -15,7 +21,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Create a draft post on the target blog with the transcription content.
+ * Create a draft post on the current site with the transcription content.
  *
  * @since 0.10.0
  *
@@ -24,22 +30,13 @@ defined( 'ABSPATH' ) || exit;
  * @return int|\WP_Error Draft post ID on success, WP_Error on failure.
  */
 function ec_studio_transcription_create_draft( array $job, string $transcript_content ): int|\WP_Error {
-	$user_id        = (int) ( $job['user_id'] ?? 0 );
-	$target_blog_id = (int) ( $job['target_blog_id'] ?? 1 );
+	$user_id = (int) ( $job['user_id'] ?? 0 );
 
 	if ( $user_id <= 0 ) {
 		return new \WP_Error(
 			'invalid_user',
 			__( 'Job is missing a valid user_id.', 'extrachill-studio' ),
 			array( 'status' => 400 )
-		);
-	}
-
-	if ( ! function_exists( 'ec_has_main_site_account' ) || ! \ec_has_main_site_account( $user_id ) ) {
-		return new \WP_Error(
-			'no_main_site_account',
-			__( 'User does not have an account on the main site and cannot author drafts there.', 'extrachill-studio' ),
-			array( 'status' => 403 )
 		);
 	}
 
@@ -51,17 +48,13 @@ function ec_studio_transcription_create_draft( array $job, string $transcript_co
 		);
 	}
 
-	$attachment_url   = (string) ( $job['attachment_url'] ?? '' );
-	$attachment_id    = (int) ( $job['attachment_id'] ?? 0 );
-	$created_at       = (string) ( $job['created_at'] ?? '' );
-	$created_ts       = $created_at ? strtotime( $created_at ) : false;
-	$created_ts       = $created_ts ?: time();
+	$attachment_url = (string) ( $job['attachment_url'] ?? '' );
+	$attachment_id  = (int) ( $job['attachment_id'] ?? 0 );
 
 	$title = sprintf(
-		/* translators: 1: source recording filename, 2: human-readable date */
-		__( 'Transcription: %1$s — %2$s', 'extrachill-studio' ),
-		wp_basename( $attachment_url ),
-		wp_date( 'M j, Y', $created_ts )
+		/* translators: %s: source recording filename */
+		__( 'Transcription: %s', 'extrachill-studio' ),
+		wp_basename( $attachment_url )
 	);
 
 	$postarr = array(
@@ -79,13 +72,7 @@ function ec_studio_transcription_create_draft( array $job, string $transcript_co
 		),
 	);
 
-	switch_to_blog( $target_blog_id );
-
-	try {
-		$result = wp_insert_post( $postarr, true );
-	} finally {
-		restore_current_blog();
-	}
+	$result = wp_insert_post( $postarr, true );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

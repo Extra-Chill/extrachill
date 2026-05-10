@@ -177,12 +177,8 @@ function ec_studio_execute_transcription_job_status( array $input ): array|\WP_E
 			return $job;
 		}
 
-		$post_id        = (int) $draft_result;
-		$target_blog_id = (int) ( $job['target_blog_id'] ?? 1 );
-
-		switch_to_blog( $target_blog_id );
+		$post_id  = (int) $draft_result;
 		$edit_url = (string) get_edit_post_link( $post_id, 'raw' );
-		restore_current_blog();
 
 		$job['draft_post_id']  = $post_id;
 		$job['draft_post_url'] = $edit_url;

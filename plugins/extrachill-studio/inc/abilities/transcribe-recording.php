@@ -117,14 +117,6 @@ function ec_studio_execute_transcribe_recording( array $input ): array|\WP_Error
 		return new \WP_Error( 'not_logged_in', __( 'You must be logged in to transcribe recordings.', 'extrachill-studio' ), array( 'status' => 401 ) );
 	}
 
-	if ( ! function_exists( 'ec_has_main_site_account' ) || ! \ec_has_main_site_account( $user_id ) ) {
-		return new \WP_Error(
-			'no_main_site_account',
-			__( 'You must have an account on the main extrachill.com site to author transcription drafts.', 'extrachill-studio' ),
-			array( 'status' => 403 )
-		);
-	}
-
 	$attachment_url = wp_get_attachment_url( $attachment_id );
 	if ( ! $attachment_url ) {
 		return new \WP_Error( 'attachment_url_missing', __( 'Could not resolve a URL for the attachment.', 'extrachill-studio' ), array( 'status' => 500 ) );
@@ -163,7 +155,7 @@ function ec_studio_execute_transcribe_recording( array $input ): array|\WP_Error
 			'model'          => $model,
 			'diarize'        => $diarize,
 			'remove_fillers' => $remove_fillers,
-			'target_blog_id' => 1,
+			'target_blog_id' => get_current_blog_id(),
 			'status'         => $status,
 			'created_at'     => current_time( 'c', true ),
 			'completed_at'   => null,
