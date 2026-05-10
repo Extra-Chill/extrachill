@@ -1,10 +1,10 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, useState } from '@wordpress/element';
+import { createElement, useState, useRef } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 
 import apiFetch from '@wordpress/api-fetch';
-import type { NetworkMediaItem, SocialPlatformConfig, SocialPublishResponse, SocialPublishResult } from '@extrachill/api-client';
+import type { NetworkMediaItem, SocialJobPlatformResult, SocialPlatformConfig } from '@extrachill/api-client';
 import { studioClient } from '../../../app/client';
 import MediaPicker from '../media-picker';
 
@@ -39,7 +39,10 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 	const [ isPublishing, setIsPublishing ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
-	const [ publishResult, setPublishResult ] = useState< SocialPublishResponse | null >( null );
+	const [ jobResult, setJobResult ] = useState< SocialJobPlatformResult | null >( null );
+
+	/** Ref to allow cancellation of in-flight polling when a new publish starts. */
+	const pollAbortRef = useRef< AbortController | null >( null );
 
 	const platformLabel = label || slug;
 	const charLimit = config.charLimit || 0;
@@ -97,10 +100,15 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			return;
 		}
 
+		// Cancel any in-flight poll from a previous attempt.
+		pollAbortRef.current?.abort();
+
 		setIsPublishing( true );
 		setError( '' );
-		setPublishResult( null );
-		setStatus( sprintf( __( 'Publishing to %s…', 'extrachill-studio' ), platformLabel ) );
+		setJobResult( null );
+		setStatus( sprintf( __( 'Scheduling %s publish…', 'extrachill-studio' ), platformLabel ) );
+
+		let abortController: AbortController | null = null;
 
 		try {
 			const response = await studioClient.socials.crossPost( {
@@ -109,17 +117,57 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 				caption: caption.trim(),
 			} );
 
-			setPublishResult( response );
-
-			if ( response?.success ) {
-				setStatus( sprintf( __( '%s publish completed.', 'extrachill-studio' ), platformLabel ) );
-				setCaption( '' );
-				setImageUrls( [] );
-			} else {
+			if ( ! response?.success || ! response?.job_id ) {
 				setStatus( '' );
-				setError( response?.errors?.join( ' ' ) || sprintf( __( '%s publish failed.', 'extrachill-studio' ), platformLabel ) );
+				setError(
+					sprintf( __( '%s publish could not be scheduled.', 'extrachill-studio' ), platformLabel )
+				);
+				setIsPublishing( false );
+				return;
 			}
+
+			// Job queued — start polling.
+			setStatus(
+				sprintf(
+					/* translators: %s: platform label */
+					__( 'Publishing to %s… (queued)', 'extrachill-studio' ),
+					platformLabel
+				)
+			);
+
+			abortController = new AbortController();
+			pollAbortRef.current = abortController;
+
+			const job = await studioClient.socials.waitForCrossPostJob( response.job_id, {
+				signal: abortController.signal,
+				onStatus: () => {
+					setStatus(
+						sprintf(
+							/* translators: %s: platform label */
+							__( 'Publishing to %s… (checking status)', 'extrachill-studio' ),
+							platformLabel
+						)
+					);
+				},
+			} );
+			const platformResult = job.engine_data?.results?.find( ( result ) => result.platform === slug ) ?? null;
+
+			if ( platformResult && ! platformResult.success ) {
+				throw new Error(
+					platformResult.error || sprintf( __( '%s publish failed on the platform.', 'extrachill-studio' ), platformLabel )
+				);
+			}
+
+			// Success — clear form inputs.
+			setJobResult( platformResult );
+			setStatus( sprintf( __( '%s publish completed.', 'extrachill-studio' ), platformLabel ) );
+			setCaption( '' );
+			setImageUrls( [] );
 		} catch ( publishError ) {
+			if ( abortController?.signal.aborted ) {
+				// Silently swallow — a new publish was started.
+				return;
+			}
 			setStatus( '' );
 			setError( ( publishError as Error )?.message || sprintf( __( '%s publish failed.', 'extrachill-studio' ), platformLabel ) );
 		} finally {
@@ -173,10 +221,6 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			setIsPublishing( false );
 		}
 	};
-
-	const platformResult: SocialPublishResult | null = Array.isArray( publishResult?.results )
-		? publishResult!.results.find( ( result ) => result.platform === slug ) || null
-		: null;
 
 	return h(
 		'div',
@@ -294,18 +338,24 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 						createElement( 'span', { className: 'ec-studio-image-list__url' }, url ),
 						createElement( 'button', { type: 'button', className: 'ec-studio-image-list__remove', onClick: () => removeImageUrl( index ) }, __( 'Remove', 'extrachill-studio' ) )
 					) )
-				),
-				platformResult
-					? h(
-						'div',
-						{ className: 'ec-studio-publish-result' },
-						createElement( 'h4', null, __( 'Latest publish result', 'extrachill-studio' ) ),
-						platformResult.permalink
-							? createElement( 'p', null, createElement( 'a', { href: platformResult.permalink, target: '_blank', rel: 'noreferrer' }, sprintf( __( 'View %s post', 'extrachill-studio' ), platformLabel ) ) )
-							: null,
-						platformResult.media_id ? createElement( 'p', null, sprintf( __( 'Media ID: %s', 'extrachill-studio' ), platformResult.media_id ) ) : null
-					)
-					: null
+				)
+			)
+			: null,
+		jobResult
+			? h(
+				PanelView,
+				{ className: 'ec-studio-panel', compact: true },
+				h(
+					'div',
+					{ className: 'ec-studio-publish-result' },
+					createElement( 'h4', null, __( 'Latest publish result', 'extrachill-studio' ) ),
+					jobResult.platform_url
+						? createElement( 'p', null, createElement( 'a', { href: jobResult.platform_url, target: '_blank', rel: 'noreferrer' }, sprintf( __( 'View %s post', 'extrachill-studio' ), platformLabel ) ) )
+						: null,
+					jobResult.platform_post_id
+						? createElement( 'p', null, sprintf( __( 'Media ID: %s', 'extrachill-studio' ), jobResult.platform_post_id ) )
+						: null
+				)
 			)
 			: null
 	);
