@@ -9,6 +9,7 @@ import type { StudioContext, StudioPaneProps } from './types/studio';
 import ComposePane from './tabs/compose';
 import QrCodesPane from './tabs/qr-codes';
 import SocialsPane from './tabs/socials';
+import TranscribePane from './tabs/transcribe';
 
 const ROOT_SELECTOR = '[data-ec-studio-root]';
 
@@ -16,6 +17,7 @@ const STUDIO_PANES: Record< string, ComponentType< StudioPaneProps > > = {
 	compose: ComposePane,
 	'qr-codes': QrCodesPane,
 	socials: SocialsPane,
+	transcribe: TranscribePane,
 };
 
 const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
