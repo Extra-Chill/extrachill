@@ -35,7 +35,18 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/social-drafts.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose-editor.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/resolve-instagram-media.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/run-giveaway.php';
-require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/tasks/giveaway-task.php';
+
+/*
+ * Defer loading of GiveawayTask until after Data Machine has registered its
+ * PSR-4 autoloader. The class extends DataMachine\Engine\AI\System\Tasks\SystemTask,
+ * and PHP resolves the parent class at class-declaration time. Loading at the
+ * top of this file races DM's bootstrap and produces a fatal when DM's
+ * autoloader has not yet been registered (see issue #36). plugins_loaded
+ * priority 20 guarantees DM's main plugin file (priority 10) has run.
+ */
+add_action( 'plugins_loaded', static function () {
+	require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/tasks/giveaway-task.php';
+}, 20 );
 
 /**
  * Register Studio's ability category before abilities are registered.
