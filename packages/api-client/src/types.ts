@@ -676,6 +676,17 @@ export interface SocialPlatformsResponse {
 
 export interface SocialImageInput {
   url: string;
+  /**
+   * Alt text for accessibility and platforms that surface it (Bluesky,
+   * Twitter, Threads). Optional — external URLs pasted into composers may
+   * not have associated metadata.
+   */
+  alt?: string;
+  /**
+   * Human-readable title or filename. Optional — used by clients for
+   * tooltips and aria-labels; servers may ignore it.
+   */
+  title?: string;
 }
 
 export interface SocialPublishRequest {
