@@ -100,6 +100,111 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		setError( '' );
 	};
 
+	const moveImage = ( index: number, direction: -1 | 1 ): void => {
+		setImages( ( current ) => {
+			const target = index + direction;
+			if ( target < 0 || target >= current.length ) {
+				return current;
+			}
+			const next = [ ...current ];
+			const [ moved ] = next.splice( index, 1 );
+			next.splice( target, 0, moved );
+			return next;
+		} );
+	};
+
+	/**
+	 * Render the selected-images thumbnail row.
+	 *
+	 * Horizontal flex row of ~80px tiles. Each tile shows the image, a
+	 * remove (×) button overlay, and (for carousel-capable platforms) left/right
+	 * arrow buttons to reorder the image within the array. Returns null when
+	 * the queue is empty so the row collapses entirely.
+	 */
+	const renderImageThumbnails = (): ReactElement | null => {
+		if ( images.length === 0 ) {
+			return null;
+		}
+
+		const supportsReordering = !! config.supportsCarousel && images.length > 1;
+		const lastIndex = images.length - 1;
+
+		return createElement(
+			'ul',
+			{ className: 'ec-studio-image-thumbs', 'aria-label': __( 'Selected images', 'extrachill-studio' ) },
+			...images.map( ( image, index ) => {
+				const label = image.title || image.alt || image.url;
+				return createElement(
+					'li',
+					{
+						key: `${ image.url }-${ index }`,
+						className: 'ec-studio-image-thumbs__tile',
+					},
+					createElement( 'img', {
+						className: 'ec-studio-image-thumbs__image',
+						src: image.url,
+						alt: image.alt || '',
+						title: image.title || image.alt || image.url,
+						loading: 'lazy',
+					} ),
+					createElement(
+						'button',
+						{
+							type: 'button',
+							className: 'ec-studio-image-thumbs__remove',
+							onClick: () => removeImageAt( index ),
+							'aria-label': sprintf(
+								/* translators: %s: image title or filename */
+								__( 'Remove image: %s', 'extrachill-studio' ),
+								label
+							),
+							title: __( 'Remove image', 'extrachill-studio' ),
+						},
+						'×'
+					),
+					supportsReordering
+						? createElement(
+							'div',
+							{ className: 'ec-studio-image-thumbs__reorder' },
+							createElement(
+								'button',
+								{
+									type: 'button',
+									className: 'ec-studio-image-thumbs__move ec-studio-image-thumbs__move--left',
+									onClick: () => moveImage( index, -1 ),
+									disabled: index === 0,
+									'aria-label': sprintf(
+										/* translators: %s: image title or filename */
+										__( 'Move image left: %s', 'extrachill-studio' ),
+										label
+									),
+									title: __( 'Move left', 'extrachill-studio' ),
+								},
+								'‹'
+							),
+							createElement(
+								'button',
+								{
+									type: 'button',
+									className: 'ec-studio-image-thumbs__move ec-studio-image-thumbs__move--right',
+									onClick: () => moveImage( index, 1 ),
+									disabled: index === lastIndex,
+									'aria-label': sprintf(
+										/* translators: %s: image title or filename */
+										__( 'Move image right: %s', 'extrachill-studio' ),
+										label
+									),
+									title: __( 'Move right', 'extrachill-studio' ),
+								},
+								'›'
+							)
+						)
+						: null
+				);
+			} )
+		);
+	};
+
 	const publishPost = async (): Promise< void > => {
 		if ( ! caption.trim() ) {
 			setError( __( 'Add a caption before publishing.', 'extrachill-studio' ) );
@@ -312,6 +417,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 						)
 					)
 					: null,
+				supportsImages ? renderImageThumbnails() : null,
 				error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
 				! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null,
 				h(
@@ -341,22 +447,6 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 				)
 			)
 		),
-		supportsImages && images.length > 0
-			? h(
-				PanelView,
-				{ className: 'ec-studio-panel', compact: true },
-				createElement(
-					'ul',
-					{ className: 'ec-studio-image-list' },
-					...images.map( ( image, index ) => createElement(
-						'li',
-						{ key: `${ image.url }-${ index }`, className: 'ec-studio-image-list__item' },
-						createElement( 'span', { className: 'ec-studio-image-list__url' }, image.url ),
-						createElement( 'button', { type: 'button', className: 'ec-studio-image-list__remove', onClick: () => removeImageAt( index ) }, __( 'Remove', 'extrachill-studio' ) )
-					) )
-				)
-			)
-			: null,
 		jobResult
 			? h(
 				PanelView,
