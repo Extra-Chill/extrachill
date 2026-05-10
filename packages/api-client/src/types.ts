@@ -644,6 +644,24 @@ export interface SocialPlatformCapability {
   label: string;
 }
 
+/**
+ * Preview shape declared by each social platform handler.
+ *
+ * Tells clients how to render a post preview for the platform without any
+ * per-platform branching — the client renders whatever shape the server
+ * declares. The server always populates this field; handlers that don't
+ * declare it get a generic feed-shaped default applied server-side
+ * (`aspectRatio: 'native'`, `captionPosition: 'above'`, `previewSurface: 'feed'`).
+ */
+export interface SocialPlatformPreview {
+  /** How images are framed in the preview. */
+  aspectRatio: '1:1' | '4:5' | '16:9' | 'native';
+  /** Where the caption renders relative to media. */
+  captionPosition: 'above' | 'below' | 'overlay';
+  /** Visual chrome around the preview. */
+  previewSurface: 'card' | 'feed' | 'square';
+}
+
 export interface SocialPlatformConfig {
   /** Stable identifier (e.g. "instagram", "twitter"). Always present. */
   slug: string;
@@ -662,6 +680,14 @@ export interface SocialPlatformConfig {
   supportsVideo?: boolean;
   supportedMediaKinds?: string[];
   scopes?: string;
+  /**
+   * Preview-shape hints for client-side post preview rendering.
+   *
+   * Optional on the type for backwards compat with older DM-Socials installs
+   * that pre-date this field. Modern DM-Socials (>= 0.x with #140 merged)
+   * always emits it.
+   */
+  preview?: SocialPlatformPreview;
 }
 
 /**
