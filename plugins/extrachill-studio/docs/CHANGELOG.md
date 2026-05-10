@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.3] - 2026-05-10
+
+### Fixed
+- declare draft_post_id/url and error as nullable in job-status output schema
+
 ## [0.10.2] - 2026-05-10
 
 ### Fixed
