@@ -18,7 +18,7 @@ use DataMachineEvents\Core\Event_Post_Type;
  * Initialize badge styling hooks
  */
 function extrachill_events_init_badge_styling() {
-	if ( ! class_exists( 'DataMachineEvents\\Blocks\\Calendar\\Taxonomy_Badges' ) ) {
+	if ( ! class_exists( 'DataMachineEvents\\Blocks\\Calendar\\Taxonomy\\Badges' ) ) {
 		return;
 	}
 

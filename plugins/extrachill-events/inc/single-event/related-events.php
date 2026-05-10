@@ -189,8 +189,8 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 						<?php endif; ?>
 						
 						<?php
-						if ( class_exists( '\DataMachineEvents\Blocks\Calendar\Taxonomy_Badges' ) ) {
-							echo \DataMachineEvents\Blocks\Calendar\Taxonomy_Badges::render_taxonomy_badges( $post->ID );
+						if ( class_exists( '\DataMachineEvents\Blocks\Calendar\Taxonomy\Badges' ) ) {
+							echo \DataMachineEvents\Blocks\Calendar\Taxonomy\Badges::render_taxonomy_badges( $post->ID );
 						}
 						?>
 						<h4 class="related-tax-title">

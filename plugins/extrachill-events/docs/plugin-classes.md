@@ -214,7 +214,7 @@ if (isset($integrations['data_machine_events'])) {
 **Purpose:** Register all WordPress filters and actions
 
 **Conditional Filters (require class existence):**
-- Badge filters (require `DataMachineEvents\Core\Taxonomy_Badges`)
+- Badge filters (require `DataMachineEvents\Blocks\Calendar\Taxonomy\Badges`)
 - Breadcrumb filter (require `DataMachineEvents\Core\Breadcrumbs`)
 
 **Always Registered:**

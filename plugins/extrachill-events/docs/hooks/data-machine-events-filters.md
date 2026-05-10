@@ -284,7 +284,7 @@ For all filters and actions to work, the data-machine-events plugin must:
    - `data_machine_events_action_buttons`
 
 5. **Provide classes for detection:**
-   - `DataMachineEvents\Core\Taxonomy_Badges` - Badge rendering class
+   - `DataMachineEvents\Blocks\Calendar\Taxonomy\Badges` - Badge rendering class
    - `DataMachineEvents\Core\Breadcrumbs` - Breadcrumb rendering class
 
 ## Conditional Loading
@@ -293,7 +293,7 @@ The plugin only hooks into badge and breadcrumb filters if the corresponding cla
 
 ### Badge Integration
 ```php
-if (class_exists('DataMachineEvents\Core\Taxonomy_Badges')) {
+if (class_exists('DataMachineEvents\Blocks\Calendar\Taxonomy\Badges')) {
     add_filter('data_machine_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
     add_filter('data_machine_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
     add_filter('data_machine_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
