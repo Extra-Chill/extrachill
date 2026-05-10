@@ -16,25 +16,33 @@ function extrachill_users_get_user_content_objects( int $user_id ): array {
 		'archived' => 0,
 	) );
 
+	global $wpdb;
+
 	foreach ( $sites as $site ) {
 		switch_to_blog( (int) $site->blog_id );
 		try {
-			$post_ids = get_posts(
-				array(
-					'author'         => $user_id,
-					'post_type'      => 'any',
-					'post_status'    => 'any',
-					'posts_per_page' => -1,
-					'fields'         => 'ids',
+			// Query the posts table directly. Avoids `post_type => 'any'` which
+			// only expands to post types registered in the current request
+			// context. switch_to_blog() does not load per-site plugins, so
+			// types like bbPress `topic` / `reply` and per-site CPTs are NOT
+			// registered when this runs from another site's request — and
+			// would be silently skipped, leaving banned users' content live.
+			$post_ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT ID FROM {$wpdb->posts}
+					 WHERE post_author = %d
+					   AND post_type NOT IN ( 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request', 'wp_block', 'wp_template', 'wp_template_part', 'wp_global_styles', 'wp_navigation', 'wp_font_family', 'wp_font_face' )",
+					$user_id
 				)
 			);
 
 			foreach ( $post_ids as $post_id ) {
+				$post_id = (int) $post_id;
 				$objects[] = array(
 					'type'      => 'post',
 					'blog_id'   => (int) $site->blog_id,
-					'object_id' => (int) $post_id,
-					'post_type' => get_post_type( $post_id ),
+					'object_id' => $post_id,
+					'post_type' => get_post_field( 'post_type', $post_id ),
 				);
 			}
 
