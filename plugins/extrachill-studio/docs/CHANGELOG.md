@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.2] - 2026-05-10
+
+### Fixed
+- route transcription drafts to main extrachill.com via universal cross-site primitive
+
 ## [0.10.1] - 2026-05-10
 
 ### Changed
