@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.0] - 2026-05-10
+
+### Added
+- register user-domain abilities (#21)
+- feat(wp-native-bridge): hook pre_register and after_register
+- feat(wp-native-bridge): consume wp-native-auth filters
+
+### Fixed
+- hide content by default for abuse and fraud bans
+
 ## [0.7.20] - 2026-04-26
 
 ### Fixed
