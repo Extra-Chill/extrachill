@@ -177,8 +177,21 @@ function ec_studio_execute_transcription_job_status( array $input ): array|\WP_E
 			return $job;
 		}
 
-		$post_id  = (int) $draft_result;
-		$edit_url = (string) get_edit_post_link( $post_id, 'raw' );
+		$post_id = (int) $draft_result;
+
+		// Resolve the edit URL on the main site (where the draft was created).
+		// switch_to_blog is the only OS-level cross-site call in this ability;
+		// computing get_edit_post_link from another site returns the wrong host.
+		$edit_url     = '';
+		$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+		if ( $main_blog_id > 0 ) {
+			switch_to_blog( $main_blog_id );
+			try {
+				$edit_url = (string) get_edit_post_link( $post_id, 'raw' );
+			} finally {
+				restore_current_blog();
+			}
+		}
 
 		$job['draft_post_id']  = $post_id;
 		$job['draft_post_url'] = $edit_url;
