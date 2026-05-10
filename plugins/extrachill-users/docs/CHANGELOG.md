@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.1] - 2026-05-10
+
+### Fixed
+- content sweep silently misses bbPress and per-site CPTs
+
 ## [0.8.0] - 2026-05-10
 
 ### Added
