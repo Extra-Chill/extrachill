@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.1] - 2026-05-10
+
+### Changed
+- drop attachment_id transcription flow in favor of headless sweatpants pipeline
+
 ## [0.11.0] - 2026-05-10
 
 ### Added
