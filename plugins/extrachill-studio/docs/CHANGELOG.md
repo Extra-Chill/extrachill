@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.3] - 2026-05-10
+
+### Fixed
+- lazy-load GiveawayTask to avoid load-order race with DM autoloader
+
 ## [0.9.2] - 2026-04-26
 
 ### Fixed
