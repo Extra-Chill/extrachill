@@ -231,9 +231,10 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		try {
 			const response = await studioClient.socials.crossPost( {
 				platforms: [ slug ],
-				// SocialImageInput in @extrachill/api-client only declares `url`; DM-Socials accepts
-				// `alt` server-side for platforms that support it (Bluesky, Twitter, Threads).
-				// Cast to bypass the narrower client-side type until the api-client is updated.
+				// SocialImageInput in @extrachill/api-client only declares `url`; DM-Socials
+				// accepts `alt` server-side for platforms that support it (Bluesky, Twitter,
+				// Threads). Cast bypasses the narrower client-side type until
+				// Extra-Chill/extrachill-api-client#11 lands.
 				images: images.map( ( { url, alt } ) => ( { url, alt } ) ) as { url: string }[],
 				caption: caption.trim(),
 			} );
