@@ -47,6 +47,7 @@ class EC_Redirect_Handler {
 	 *
 	 * @param string $message    Error message to display
 	 * @param array  $query_args Additional query args to preserve (e.g., ['key' => $key, 'login' => $login])
+	 * @phpstan-return never
 	 */
 	public function error( string $message, array $query_args = array() ): void {
 		$this->set_message( $message, 'error' );
@@ -62,6 +63,7 @@ class EC_Redirect_Handler {
 	 *
 	 * @param string $message      Success message to display
 	 * @param string $redirect_url Optional custom redirect URL (defaults to source_url)
+	 * @phpstan-return never
 	 */
 	public function success( string $message, string $redirect_url = '' ): void {
 		$this->set_message( $message, 'success' );
@@ -73,6 +75,7 @@ class EC_Redirect_Handler {
 	 * Redirect to custom URL without setting a message.
 	 *
 	 * @param string $url URL to redirect to
+	 * @phpstan-return never
 	 */
 	public function redirect_to( string $url ): void {
 		$this->redirect( $url, false );
@@ -138,6 +141,7 @@ class EC_Redirect_Handler {
 	 *
 	 * @param string $url              URL to redirect to
 	 * @param bool   $include_fragment Whether to append fragment to URL
+	 * @phpstan-return never
 	 */
 	private function redirect( string $url, bool $include_fragment ): void {
 		if ( $include_fragment && ! empty( $this->fragment ) ) {
