@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.12.1] - 2026-05-11
+
+### Fixed
+- token-mint ability call uses correct Abilities API REST path (#54)
+
 ## [0.12.0] - 2026-05-10
 
 ### Added
