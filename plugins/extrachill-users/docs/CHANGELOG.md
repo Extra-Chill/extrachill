@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.2] - 2026-05-11
+
+### Fixed
+- accept username or email in password reset form
+
 ## [0.8.1] - 2026-05-10
 
 ### Fixed
