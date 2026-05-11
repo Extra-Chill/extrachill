@@ -292,7 +292,19 @@ function ec_studio_transcription_callback_create_draft(
  * Resolves the edit URL on main extrachill.com (the post lives there) so the
  * link drops the user directly into the WP editor for their new draft.
  *
+ * The entire body composition AND the wp_mail() call run inside
+ * `switch_to_blog( ec_get_blog_id('main') )`. This is required because
+ * Easy WP SMTP stores its config + encrypted credentials per-site —
+ * configuring it on main extrachill.com doesn't make the studio subsite
+ * see those credentials, so a wp_mail() call from studio's context
+ * either falls back to PHP mail() (no sendmail binary, fails) or hits
+ * SMTP with garbage decrypted credentials (auth failure). Sending from
+ * main's context is also semantically right: the email is FROM the
+ * editorial site where the draft lives, so the "From" address matches
+ * the link the recipient clicks.
+ *
  * @since 0.13.0
+ * @since 0.14.1 Wrap the wp_mail call in switch_to_blog so SMTP is configured.
  *
  * @param \WP_User $user        Recipient.
  * @param int      $post_id     Draft post id on main.
@@ -309,14 +321,9 @@ function ec_studio_transcription_callback_send_email(
 	array $stats
 ): bool {
 	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
-	$edit_url     = '';
-	if ( $main_blog_id > 0 ) {
-		switch_to_blog( $main_blog_id );
-		try {
-			$edit_url = (string) get_edit_post_link( $post_id, 'raw' );
-		} finally {
-			restore_current_blog();
-		}
+
+	if ( $main_blog_id <= 0 ) {
+		return false;
 	}
 
 	$duration_sec = isset( $stats['duration'] ) ? (float) $stats['duration'] : 0;
@@ -339,21 +346,30 @@ function ec_studio_transcription_callback_send_email(
 		$filename
 	);
 
-	$body = ec_studio_transcription_render_completion_email(
-		array(
-			'recipient_name' => $user->display_name ?: $user->user_login,
-			'filename'       => $filename,
-			'duration_sec'   => $duration_sec,
-			'segments'       => $segments,
-			'has_speakers'   => $has_speakers,
-			'preview'        => $preview,
-			'edit_url'       => $edit_url,
-		)
-	);
+	switch_to_blog( $main_blog_id );
+	try {
+		$edit_url = (string) get_edit_post_link( $post_id, 'raw' );
 
-	$headers = array(
-		'Content-Type: text/html; charset=UTF-8',
-	);
+		$body = ec_studio_transcription_render_completion_email(
+			array(
+				'recipient_name' => $user->display_name ?: $user->user_login,
+				'filename'       => $filename,
+				'duration_sec'   => $duration_sec,
+				'segments'       => $segments,
+				'has_speakers'   => $has_speakers,
+				'preview'        => $preview,
+				'edit_url'       => $edit_url,
+			)
+		);
 
-	return (bool) wp_mail( $user->user_email, $subject, $body, $headers );
+		$headers = array(
+			'Content-Type: text/html; charset=UTF-8',
+		);
+
+		$sent = (bool) wp_mail( $user->user_email, $subject, $body, $headers );
+	} finally {
+		restore_current_blog();
+	}
+
+	return $sent;
 }
