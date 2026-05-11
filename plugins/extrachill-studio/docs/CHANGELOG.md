@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.0] - 2026-05-11
+
+### Added
+- split Transcribe options into independent model + diarize + filler-removal controls (#67)
+
 ## [0.14.2] - 2026-05-11
 
 ### Changed
