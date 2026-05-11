@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.14.1] - 2026-05-11
+
+### Fixed
+- send completion email from main-site context so SMTP works
+
 ## [0.14.0] - 2026-05-11
 
 ### Added
