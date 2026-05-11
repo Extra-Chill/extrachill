@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.12.2] - 2026-05-11
+
+### Fixed
+- wrap token-mint POST body under 'input' key (#57)
+
 ## [0.12.1] - 2026-05-11
 
 ### Fixed
