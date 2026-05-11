@@ -200,7 +200,7 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
 		switch_to_blog( $artist_blog_id );
 		try {
 			$post = get_post( $artist_id );
-			if ( $post && (int) $post->post_author === (int) $user_id ) {
+			if ( $post instanceof WP_Post && (int) $post->post_author === (int) $user_id ) {
 				return true;
 			}
 		} finally {

@@ -80,7 +80,7 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 				$invited_email          = isset( $invite['email'] ) ? sanitize_email( $invite['email'] ) : '';
 				$artist_post_for_invite = get_post( $invite_artist_id );
 
-				if ( $artist_post_for_invite ) {
+				if ( $artist_post_for_invite instanceof WP_Post ) {
 					$artist_name_for_invite_message = $artist_post_for_invite->post_title;
 					$initial_notice                 = array(
 						/* translators: %s: artist name */

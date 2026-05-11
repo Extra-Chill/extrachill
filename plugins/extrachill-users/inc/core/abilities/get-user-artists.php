@@ -104,7 +104,7 @@ function extrachill_users_ability_get_user_artists( array $input ): array|WP_Err
 		try {
 			foreach ( $artist_ids as $artist_id ) {
 				$artist = get_post( $artist_id );
-				if ( ! $artist ) {
+				if ( ! $artist instanceof WP_Post ) {
 					continue;
 				}
 
