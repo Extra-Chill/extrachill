@@ -37,6 +37,16 @@ const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactEleme
 /** Polling interval while jobs are pending or running (ms). */
 const POLL_INTERVAL_MS = 5000;
 
+/**
+ * After this many ms of being on the page with an in-flight job, stop the
+ * polling loop. The user is told up-front that they can close the tab and
+ * we'll email them — at that point the polling adds no value (it just
+ * burns network on a job that may take hours). Short jobs (`base` model
+ * on ~30s audio) finish well before this threshold so polling still
+ * delivers instant feedback for users who DO stay on the page.
+ */
+const POLLING_HANDOFF_MS = 90 * 1000;
+
 /** Time to flash "Copied" inline feedback after a successful clipboard write. */
 const COPY_FEEDBACK_MS = 2000;
 
@@ -76,8 +86,6 @@ const PRESET_CONFIG: Record< TranscribePreset, PresetConfig > = {
 		description: __( 'large model · ~3 hr · best quality, speaker labels, fillers removed', 'extrachill-studio' ),
 	},
 };
-
-const SUPPORTED_EXTENSIONS = [ '.mp3', '.m4a', '.wav', '.flac', '.ogg', '.mp4' ];
 
 const TERMINAL_STATUSES: ReadonlyArray< SweatpantsJobStatus > = [ 'completed', 'failed', 'stopped' ];
 
@@ -281,6 +289,20 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
+		// After the handoff window, stop polling. The completion email is the
+		// canonical notification path; in-tab polling forever is wasted work.
+		const elapsedMs = Date.now() - current.startedAt;
+		if ( elapsedMs > POLLING_HANDOFF_MS ) {
+			stopPolling();
+			setStageMessage(
+				__(
+					'Job is still running on the worker. We\'ll email you when it\'s done — you can close this tab.',
+					'extrachill-studio'
+				)
+			);
+			return;
+		}
+
 		try {
 			const fresh = await getJob( current.jobId );
 			const updated: ActiveJob = { ...current, status: fresh.status, error: fresh.error || undefined };
@@ -294,7 +316,7 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			// Network blip — keep polling, but surface the latest error.
 			setError( ( pollErr as Error )?.message || __( 'Polling failed.', 'extrachill-studio' ) );
 		}
-	}, [ finalizeJob ] );
+	}, [ finalizeJob, stopPolling ] );
 
 	const startPolling = useCallback( (): void => {
 		stopPolling();
@@ -362,7 +384,12 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 				fileInputRef.current.value = '';
 			}
 
-			setStageMessage( __( 'Job running…', 'extrachill-studio' ) );
+			setStageMessage(
+				__(
+					'Submitted. We\'ll email you when it\'s done — usually 5–60 minutes depending on length. You can close this tab.',
+					'extrachill-studio'
+				)
+			);
 			startPolling();
 
 			// Kick an immediate poll so short jobs flip to "completed" without a 5s wait.
@@ -424,8 +451,14 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		},
 		createElement( 'input', {
 			ref: fileInputRef,
+			// audio/* + video/* covers everything ffmpeg can decode on the
+			// worker side — phone recordings (m4a, aac, opus, amr), browser
+			// MediaRecorder output (webm), screen-recorded video (mp4, mov,
+			// mkv), etc. The audio-transcription module on sweatpants
+			// auto-converts to wav via ffmpeg before passing to Whisper, so
+			// the frontend only needs to accept what ffmpeg accepts.
 			type: 'file',
-			accept: 'audio/*,video/mp4',
+			accept: 'audio/*,video/*',
 			onChange: onFilePickerChange,
 			style: { display: 'none' },
 		} ),
@@ -443,10 +476,9 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 					__( 'Drag audio here or click to upload', 'extrachill-studio' )
 				),
 				createElement( 'div', { className: 'ec-studio-transcribe__dropzone-meta' },
-					sprintf(
-						/* translators: %s: list of supported file extensions */
-						__( 'Supported: %s · Max 500 MB', 'extrachill-studio' ),
-						SUPPORTED_EXTENSIONS.join( ', ' )
+					__(
+						'Any audio or video file · Max 500 MB · auto-converted via ffmpeg',
+						'extrachill-studio'
 					)
 				)
 			)

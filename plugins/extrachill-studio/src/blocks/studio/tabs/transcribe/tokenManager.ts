@@ -19,7 +19,10 @@ import type { SweatpantsToken } from './types';
 // /wp/v2/abilities, and the action verb is /run, not /execute. Verified
 // against the live `/wp-json/` discovery on studio.extrachill.com.
 const TOKEN_ABILITY_PATH = '/wp-abilities/v1/abilities/extrachill/sweatpants-token/run';
-const DEFAULT_SCOPE = 'uploads:write jobs:write jobs:read';
+// `callback:write` lets sweatpants sign and POST a completion callback
+// back to our REST endpoint when the job finishes — this is how the user
+// gets an email + draft post without keeping the browser tab open.
+const DEFAULT_SCOPE = 'uploads:write jobs:write jobs:read callback:write';
 const DEFAULT_TTL_SECONDS = 900;
 const EXPIRY_BUFFER_SECONDS = 60;
 

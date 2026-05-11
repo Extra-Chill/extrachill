@@ -107,22 +107,52 @@ interface CreateJobInput {
  *
  * The `output_dir` uses a UUID-ish unique-id so multiple concurrent jobs
  * never collide on the sweatpants host.
+ *
+ * If the cached token carries the `callback:write` scope (it does by
+ * default — see tokenManager.DEFAULT_SCOPE), the callback handoff fields
+ * from the token-mint response are passed through to sweatpants. The
+ * worker will then sign + POST a completion callback to our REST endpoint
+ * when the job finishes, which creates a draft on main extrachill.com and
+ * emails the uploader. This is what enables "close the tab, get an email"
+ * — the React polling loop is a fallback for users who stay on the page.
  */
 export const createJob = async ( input: CreateJobInput ): Promise< SweatpantsJob > => {
 	const uniqueId = ( typeof globalThis.crypto !== 'undefined' && 'randomUUID' in globalThis.crypto )
 		? globalThis.crypto.randomUUID()
 		: `job-${ Date.now() }-${ Math.random().toString( 36 ).slice( 2, 10 ) }`;
 
+	const token = await getToken();
+
+	const inputs: Record< string, unknown > = {
+		audio_path: input.uploadPath,
+		output_dir: `/var/lib/sweatpants/output/${ uniqueId }`,
+		model: input.model,
+		diarize: input.diarize,
+		remove_fillers: input.removeFillers,
+		language: input.language || 'en',
+	};
+
+	// Wire the completion callback when the token carries the necessary
+	// material. All four fields must be present together — sweatpants
+	// requires `callback_url`, and the receiver verification requires
+	// `callback_secret` + `callback_user_id`.
+	if (
+		token.callback_url &&
+		token.callback_secret &&
+		token.callback_user_id !== null
+	) {
+		inputs.callback_url = token.callback_url;
+		inputs.callback_secret = token.callback_secret;
+		inputs.callback_issuer = token.callback_issuer || 'extrachill-studio';
+		inputs.callback_user_id = token.callback_user_id;
+		// `callback_cleanup_on_success` defaults to true on the module side;
+		// leaving it unset preserves the headless-pipeline default of
+		// "receiver acks → worker deletes audio + outputs".
+	}
+
 	const payload = {
 		module_id: TRANSCRIPTION_MODULE_ID,
-		inputs: {
-			audio_path: input.uploadPath,
-			output_dir: `/var/lib/sweatpants/output/${ uniqueId }`,
-			model: input.model,
-			diarize: input.diarize,
-			remove_fillers: input.removeFillers,
-			language: input.language || 'en',
-		},
+		inputs,
 	};
 
 	return request< SweatpantsJob >( '/jobs', {

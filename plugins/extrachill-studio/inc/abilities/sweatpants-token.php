@@ -125,9 +125,28 @@ function ec_studio_register_sweatpants_token_ability(): void {
 				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						'token'      => array( 'type' => 'string' ),
-						'expires_at' => array( 'type' => 'integer' ),
-						'scope'      => array( 'type' => 'string' ),
+						'token'           => array( 'type' => 'string' ),
+						'expires_at'      => array( 'type' => 'integer' ),
+						'scope'           => array( 'type' => 'string' ),
+						// Callback handoff fields — populated only when the
+						// requested scope includes `callback:write`. The React
+						// tab passes these straight through to sweatpants in
+						// the job inputs so the worker can sign + POST a
+						// completion callback to our REST endpoint.
+						//
+						// `callback_secret` is the same value as the network
+						// option `sweatpants_signed_token_secret`. Returning
+						// it to the browser is acceptable because (a) the
+						// requester is already gated to team members, (b) the
+						// secret is only used to sign callbacks the receiver
+						// (this site) verifies — no privilege escalation path
+						// for a stolen browser-side copy beyond what the team
+						// member could already do, (c) it's per-deployment
+						// rotatable.
+						'callback_url'    => array( 'type' => array( 'string', 'null' ) ),
+						'callback_secret' => array( 'type' => array( 'string', 'null' ) ),
+						'callback_issuer' => array( 'type' => array( 'string', 'null' ) ),
+						'callback_user_id' => array( 'type' => array( 'integer', 'null' ) ),
 					),
 				),
 				'execute_callback'    => 'ec_studio_execute_sweatpants_token',
@@ -235,9 +254,30 @@ function ec_studio_execute_sweatpants_token( array $input ): array|\WP_Error {
 		);
 	}
 
-	return array(
+	$response = array(
 		'token'      => $token,
 		'expires_at' => $expires_at,
 		'scope'      => $payload['scope'],
 	);
+
+	// When the caller asked for `callback:write`, surface the handoff fields
+	// so the React tab can wire sweatpants to POST a completion callback
+	// back to /wp-json/extrachill/v1/transcribe/callback when the job
+	// finishes. See inc/transcription/callback.php for the receiver.
+	if ( in_array( 'callback:write', $requested_scopes, true ) ) {
+		$callback_url = function_exists( 'rest_url' )
+			? rest_url( 'extrachill/v1/transcribe/callback' )
+			: '';
+		$response['callback_url']     = $callback_url ?: null;
+		$response['callback_secret']  = $secret;
+		$response['callback_issuer']  = EC_STUDIO_SWEATPANTS_TOKEN_ISSUER;
+		$response['callback_user_id'] = $user_id;
+	} else {
+		$response['callback_url']     = null;
+		$response['callback_secret']  = null;
+		$response['callback_issuer']  = null;
+		$response['callback_user_id'] = null;
+	}
+
+	return $response;
 }

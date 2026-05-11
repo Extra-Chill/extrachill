@@ -17,6 +17,22 @@ export interface SweatpantsToken {
 	token: string;
 	expires_at: number;
 	scope: string;
+	/**
+	 * Callback handoff fields — populated by the WP token-mint ability when
+	 * the requested scope includes `callback:write`. The Transcribe tab
+	 * passes these through to sweatpants in the job inputs so the worker
+	 * can sign + POST a completion callback to our REST endpoint when the
+	 * job finishes. See `inc/transcription/callback.php` for the receiver.
+	 *
+	 * Returning `callback_secret` to the browser is acceptable because the
+	 * requester is already gated to team members; the secret only signs
+	 * callbacks the receiver verifies, so a stolen browser-side copy
+	 * doesn't escalate beyond what the team member can already do.
+	 */
+	callback_url: string | null;
+	callback_secret: string | null;
+	callback_issuer: string | null;
+	callback_user_id: number | null;
 }
 
 /** Result of POST /uploads on sweatpants. */
