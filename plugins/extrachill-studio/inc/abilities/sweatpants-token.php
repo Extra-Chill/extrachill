@@ -52,6 +52,10 @@ const EC_STUDIO_SWEATPANTS_TOKEN_ALLOWED_SCOPES = array(
 	'jobs:write',
 	'uploads:read',
 	'uploads:write',
+	// `callback:write` lets the React tab embed a signed token in the
+	// job inputs that sweatpants then echoes back to our callback
+	// receiver. The same scope name is enforced in callback.php.
+	'callback:write',
 );
 
 /**

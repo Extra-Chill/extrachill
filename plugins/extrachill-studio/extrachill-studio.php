@@ -36,6 +36,8 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose-editor.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/resolve-instagram-media.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/run-giveaway.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/sweatpants-token.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/email-template.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/callback.php';
 
 /*
  * Defer loading of GiveawayTask until after Data Machine has registered its
