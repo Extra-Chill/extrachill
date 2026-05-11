@@ -1,5 +1,8 @@
 parameters:
 	level: 5
+	# Production runs PHP 8.4. Allow PHPStan to recognise native PHP 8.0+
+	# union types (e.g. `null|WP_Error`) and matching narrowing semantics.
+	phpVersion: 80000
 	paths:
 		- extrachill-users.php
 		- inc
