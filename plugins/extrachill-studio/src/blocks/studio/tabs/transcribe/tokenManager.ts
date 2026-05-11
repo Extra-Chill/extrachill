@@ -48,12 +48,20 @@ const tokenIsFresh = ( token: SweatpantsToken | null ): token is SweatpantsToken
  * @throws Error if the ability call fails or returns a malformed payload.
  */
 const mintToken = async (): Promise< SweatpantsToken > => {
+	// The Abilities API /run controller expects the ability inputs nested
+	// under an `input` key in the POST body — see
+	// class-wp-rest-abilities-v1-run-controller.php::get_input_from_request().
+	// Sending the inputs at the top level makes `$json_params['input']`
+	// return null and the ability framework rejects with "input is not of
+	// type object."
 	const response = await apiFetch< SweatpantsToken >( {
 		path: TOKEN_ABILITY_PATH,
 		method: 'POST',
 		data: {
-			scope: DEFAULT_SCOPE,
-			ttl: DEFAULT_TTL_SECONDS,
+			input: {
+				scope: DEFAULT_SCOPE,
+				ttl: DEFAULT_TTL_SECONDS,
+			},
 		},
 	} );
 
