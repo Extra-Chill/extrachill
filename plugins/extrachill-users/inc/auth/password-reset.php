@@ -31,16 +31,20 @@ function ec_handle_password_reset_request() {
 	$redirect->verify_nonce( 'ec_password_reset_nonce', 'ec_password_reset_request' );
 
 	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above through EC_Redirect_Handler.
-	$user_login = isset( $_POST['user_login'] ) ? sanitize_text_field( wp_unslash( $_POST['user_login'] ) ) : '';
+	$user_login = isset( $_POST['user_login'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['user_login'] ) ) ) : '';
 
 	if ( empty( $user_login ) ) {
-		$redirect->error( __( 'Please enter your email address.', 'extrachill-users' ) );
+		$redirect->error( __( 'Please enter your email or username.', 'extrachill-users' ) );
 	}
 
-	$user = get_user_by( 'email', $user_login );
+	if ( strpos( $user_login, '@' ) !== false ) {
+		$user = get_user_by( 'email', $user_login );
+	} else {
+		$user = get_user_by( 'login', $user_login );
+	}
 
 	if ( ! $user ) {
-		$redirect->success( __( 'If an account exists with that email, you will receive a password reset link.', 'extrachill-users' ) );
+		$redirect->success( __( 'If an account exists with that email or username, you will receive a password reset link.', 'extrachill-users' ) );
 	}
 
 	$reset_key = get_password_reset_key( $user );

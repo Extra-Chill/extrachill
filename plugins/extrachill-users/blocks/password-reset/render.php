@@ -58,15 +58,15 @@ if ( 'reset' === $password_reset_action && ! empty( $key ) && ! empty( $login ) 
 	?>
 	<div class="password-reset-form">
 		<h2><?php esc_html_e( 'Reset Your Password', 'extrachill-users' ); ?></h2>
-		<p><?php esc_html_e( 'Enter your email address and we\'ll send you a link to reset your password.', 'extrachill-users' ); ?></p>
+		<p><?php esc_html_e( 'Enter your email or username and we\'ll send you a link to reset your password.', 'extrachill-users' ); ?></p>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="ec_password_reset_request">
 			<?php EC_Redirect_Handler::render_hidden_fields(); ?>
 			<?php wp_nonce_field( 'ec_password_reset_request', 'ec_password_reset_nonce' ); ?>
 
-			<label for="user_login"><?php esc_html_e( 'Email Address', 'extrachill-users' ); ?></label>
-			<input type="email" name="user_login" id="user_login" required>
+			<label for="user_login"><?php esc_html_e( 'Email or Username', 'extrachill-users' ); ?></label>
+			<input type="text" name="user_login" id="user_login" required>
 
 			<input type="submit" class="button-1 button-medium" value="<?php esc_attr_e( 'Send Reset Link', 'extrachill-users' ); ?>">
 		</form>
