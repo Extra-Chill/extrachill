@@ -784,8 +784,36 @@ html.is-fullscreen-mode .ec-studio-compose-editor .interface-interface-skeleton_
 	color: var(--muted-text);
 }
 
-.ec-studio-transcribe__preset {
+.ec-studio-transcribe__model {
 	width: 100%;
+}
+
+.ec-studio-transcribe__options {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	margin-top: var(--spacing-sm);
+}
+
+.ec-studio-transcribe__checkbox-label {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	column-gap: var(--spacing-sm);
+	align-items: baseline;
+	cursor: pointer;
+	padding: var(--spacing-xs) 0;
+}
+
+.ec-studio-transcribe__checkbox-label input[type="checkbox"] {
+	margin: 0;
+	grid-row: 1 / span 2;
+	align-self: center;
+}
+
+.ec-studio-transcribe__checkbox-hint {
+	grid-column: 2;
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
 }
 
 .ec-studio-transcribe__active {
