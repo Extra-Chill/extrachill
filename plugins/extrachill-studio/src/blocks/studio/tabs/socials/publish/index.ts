@@ -40,7 +40,6 @@ interface SelectedImage {
  */
 const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublishPaneProps ): ReactElement => {
 	const [ caption, setCaption ] = useState( '' );
-	const [ imageUrlInput, setImageUrlInput ] = useState( '' );
 	const [ images, setImages ] = useState< SelectedImage[] >( [] );
 	const [ isPublishing, setIsPublishing ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
@@ -53,27 +52,6 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 	const platformLabel = label || slug;
 	const charLimit = config.charLimit || 0;
 	const supportsImages = ( config.maxImages || 0 ) > 0 || config.supportsCarousel;
-
-	const addImageUrl = (): void => {
-		const nextUrl = imageUrlInput.trim();
-
-		if ( ! nextUrl ) {
-			setError( __( 'Enter an image URL first.', 'extrachill-studio' ) );
-			return;
-		}
-
-		try {
-			new URL( nextUrl );
-		} catch {
-			setError( __( 'Please enter a valid image URL.', 'extrachill-studio' ) );
-			return;
-		}
-
-		setImages( ( current ) => [ ...current, { url: nextUrl } ] );
-		setImageUrlInput( '' );
-		setError( '' );
-		setStatus( __( 'External image URL added to publish queue.', 'extrachill-studio' ) );
-	};
 
 	const handleMediaSelect = ( url: string, item: NetworkMediaItem ): void => {
 		setImages( ( current ) => [
@@ -365,42 +343,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 					: null,
 				// 2. Selected images thumbnail row (renders nothing when queue is empty).
 				supportsImages ? renderImageThumbnails() : null,
-				// 3. External URL fallback — paste + Add button.
-				supportsImages
-					? h(
-						FieldGroupView,
-						{
-							label: __( 'Or paste an external URL', 'extrachill-studio' ),
-							htmlFor: `ec-studio-${ slug }-image-url`,
-							help: __( 'Public image URLs (e.g. Dropbox, Drive) — for files not yet in the media library, prefer the Upload tile above.', 'extrachill-studio' ),
-						},
-						createElement( 'input', {
-							id: `ec-studio-${ slug }-image-url`,
-							type: 'url',
-							value: imageUrlInput,
-							onChange: ( event: ChangeEvent< HTMLInputElement > ) => setImageUrlInput( event.target.value ),
-							placeholder: 'https://example.com/image.jpg',
-							autoComplete: 'url',
-						} )
-					)
-					: null,
-				supportsImages
-					? h(
-						ActionRowView,
-						{ className: 'ec-studio-composer__actions' },
-						createElement(
-							'button',
-							{
-								type: 'button',
-								className: 'button-1 button-medium',
-								onClick: addImageUrl,
-								disabled: ! imageUrlInput.trim(),
-							},
-							__( 'Add External URL', 'extrachill-studio' )
-						)
-					)
-					: null,
-				// 4. Caption textarea.
+				// 3. Caption textarea.
 				h(
 					FieldGroupView,
 					{
@@ -419,10 +362,10 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 						maxLength: charLimit > 0 ? charLimit : undefined,
 					} )
 				),
-				// 5. Status / error inline messages.
+				// 4. Status / error inline messages.
 				error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
 				! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null,
-				// 6. Action row — Submit for Review / Publish Now.
+				// 5. Action row — Submit for Review / Publish Now.
 				h(
 					ActionRowView,
 					{ className: 'ec-studio-composer__actions' },
