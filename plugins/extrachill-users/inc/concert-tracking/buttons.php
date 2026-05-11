@@ -99,7 +99,7 @@ function ec_users_enqueue_concert_tracking_assets() {
 			'extrachill-users-concert-tracking',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/concert-tracking.css',
 			array(),
-			filemtime( $css_path ),
+			(string) filemtime( $css_path ),
 			'all'
 		);
 	}
@@ -110,7 +110,7 @@ function ec_users_enqueue_concert_tracking_assets() {
 			'extrachill-users-concert-tracking',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/concert-tracking.js',
 			array( 'wp-api-fetch' ),
-			filemtime( $js_path ),
+			(string) filemtime( $js_path ),
 			true
 		);
 

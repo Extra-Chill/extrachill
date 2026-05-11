@@ -27,7 +27,7 @@ if ( $google_oauth_enabled ) {
 			'extrachill-google-signin',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/google-signin.js',
 			array( 'google-gsi', 'extrachill-auth-utils' ),
-			filemtime( $google_signin_path ),
+			(string) filemtime( $google_signin_path ),
 			true
 		);
 
