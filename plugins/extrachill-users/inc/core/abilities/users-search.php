@@ -54,16 +54,10 @@ function extrachill_users_register_search_ability(): void {
 					),
 				),
 			),
-			'permission_callback' => static function (): bool {
-				$context = 'mentions'; // Default — callers pass context in input.
-				if ( $context === 'mentions' || $context === 'artist-capable' ) {
-					return is_user_logged_in();
-				}
-				if ( $context === 'admin' ) {
-					return current_user_can( 'manage_options' );
-				}
-				return is_user_logged_in();
-			},
+			// Gate at logged-in users; execute_callback enforces context-specific
+			// permissions (admin requires manage_options, artist-capable requires
+			// ec_can_create_artist_profiles) once it can read the input.
+			'permission_callback' => 'is_user_logged_in',
 			'execute_callback'    => 'extrachill_users_ability_search',
 			'meta'                => array(
 				'show_in_rest' => true,
