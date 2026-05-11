@@ -15,7 +15,10 @@
 import apiFetch from '@wordpress/api-fetch';
 import type { SweatpantsToken } from './types';
 
-const TOKEN_ABILITY_PATH = '/wp/v2/abilities/extrachill/sweatpants-token/execute';
+// The Abilities API exposes its REST surface under /wp-abilities/v1, NOT
+// /wp/v2/abilities, and the action verb is /run, not /execute. Verified
+// against the live `/wp-json/` discovery on studio.extrachill.com.
+const TOKEN_ABILITY_PATH = '/wp-abilities/v1/abilities/extrachill/sweatpants-token/run';
 const DEFAULT_SCOPE = 'uploads:write jobs:write jobs:read';
 const DEFAULT_TTL_SECONDS = 900;
 const EXPIRY_BUFFER_SECONDS = 60;
