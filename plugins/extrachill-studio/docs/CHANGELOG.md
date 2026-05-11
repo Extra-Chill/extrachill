@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.14.2] - 2026-05-11
+
+### Changed
+- remove standalone external image URL input from publish pane
+
 ## [0.14.1] - 2026-05-11
 
 ### Fixed
