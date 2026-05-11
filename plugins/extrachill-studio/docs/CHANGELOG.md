@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.13.0] - 2026-05-11
+
+### Added
+- transcription completion callback + email + draft creation (#60)
+
 ## [0.12.2] - 2026-05-11
 
 ### Fixed
