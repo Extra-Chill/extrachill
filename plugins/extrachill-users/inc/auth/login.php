@@ -182,8 +182,7 @@ function extrachill_intercept_auth_error( $user, $username, $password ) {
 
 	$redirect = new EC_Redirect_Handler( $source_url, $fragment, 'ec_login' );
 	$redirect->error( __( 'Invalid username or password. Please try again.', 'extrachill-users' ) );
-
-	return $user;
+	// Unreachable: error() always exits via wp_safe_redirect()/exit.
 }
 add_filter( 'authenticate', 'extrachill_intercept_auth_error', 99, 3 );
 

@@ -93,9 +93,9 @@ function extrachill_users_register_leaderboard_ability(): void {
  * Get leaderboard-ranked users by extrachill_total_points.
  *
  * @param array $input Input with optional 'page' and 'per_page'.
- * @return array|WP_Error Leaderboard data or error.
+ * @return array Leaderboard data.
  */
-function extrachill_users_ability_leaderboard( array $input ): array|WP_Error {
+function extrachill_users_ability_leaderboard( array $input ): array {
 	$page     = max( 1, (int) ( $input['page'] ?? 1 ) );
 	$per_page = max( 1, min( 100, (int) ( $input['per_page'] ?? 25 ) ) );
 	$offset   = ( $page - 1 ) * $per_page;
@@ -121,7 +121,8 @@ function extrachill_users_ability_leaderboard( array $input ): array|WP_Error {
 	);
 
 	$total       = (int) $total_query->get_total();
-	$total_pages = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
+	// $per_page is clamped to 1..100 above, so the divisor is always > 0.
+	$total_pages = (int) ceil( $total / $per_page );
 
 	$items = array();
 	$index = 0;

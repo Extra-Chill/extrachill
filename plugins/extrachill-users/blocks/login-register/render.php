@@ -138,7 +138,7 @@ $wrapper_attributes = get_block_wrapper_attributes(
 <div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML. ?>>
 	<div
 		data-ec-login-register-root
-		data-ec-login-register-config="<?php echo esc_attr( wp_json_encode( $config ) ); ?>"
+		data-ec-login-register-config="<?php echo esc_attr( (string) wp_json_encode( $config ) ); ?>"
 	></div>
 </div>
 

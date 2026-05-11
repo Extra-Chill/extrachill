@@ -30,7 +30,7 @@ add_action( 'init', 'extrachill_hide_admin_bar_for_non_admins', 5 );
  * Prevent login redirect to admin for non-administrators
  */
 function extrachill_prevent_admin_auth_redirect( $redirect_to, $requested_redirect_to, $user ) {
-	if ( isset( $user->ID ) && ( user_can( $user, 'manage_options' ) || ec_is_team_member( $user->ID ) ) ) {
+	if ( $user instanceof WP_User && ( user_can( $user, 'manage_options' ) || ec_is_team_member( $user->ID ) ) ) {
 		if ( ! empty( $requested_redirect_to ) && strpos( $requested_redirect_to, '/wp-admin' ) !== false ) {
 			return $requested_redirect_to;
 		}
