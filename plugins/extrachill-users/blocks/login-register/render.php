@@ -27,7 +27,7 @@ if ( $google_oauth_enabled ) {
 			'extrachill-google-signin',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/google-signin.js',
 			array( 'google-gsi', 'extrachill-auth-utils' ),
-			filemtime( $google_signin_path ),
+			(string) filemtime( $google_signin_path ),
 			true
 		);
 
@@ -80,7 +80,7 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 				$invited_email          = isset( $invite['email'] ) ? sanitize_email( $invite['email'] ) : '';
 				$artist_post_for_invite = get_post( $invite_artist_id );
 
-				if ( $artist_post_for_invite ) {
+				if ( $artist_post_for_invite instanceof WP_Post ) {
 					$artist_name_for_invite_message = $artist_post_for_invite->post_title;
 					$initial_notice                 = array(
 						/* translators: %s: artist name */
@@ -138,7 +138,7 @@ $wrapper_attributes = get_block_wrapper_attributes(
 <div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML. ?>>
 	<div
 		data-ec-login-register-root
-		data-ec-login-register-config="<?php echo esc_attr( wp_json_encode( $config ) ); ?>"
+		data-ec-login-register-config="<?php echo esc_attr( (string) wp_json_encode( $config ) ); ?>"
 	></div>
 </div>
 

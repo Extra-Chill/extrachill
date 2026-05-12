@@ -155,7 +155,7 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 
 	if ( $processed_invite_artist_id ) {
 		$artist_post = get_post( $processed_invite_artist_id );
-		if ( $artist_post && 'artist_profile' === $artist_post->post_type ) {
+		if ( $artist_post instanceof WP_Post && 'artist_profile' === $artist_post->post_type ) {
 			$final_redirect_url = get_permalink( $artist_post );
 		}
 	}

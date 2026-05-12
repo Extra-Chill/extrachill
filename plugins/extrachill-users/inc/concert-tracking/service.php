@@ -382,7 +382,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 			$event_id = (int) $row['event_id'];
 			$post     = get_post( $event_id );
 
-			if ( ! $post ) {
+			if ( ! $post instanceof WP_Post ) {
 				continue;
 			}
 
@@ -707,7 +707,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 
 	if ( $first_show_row ) {
 		$post = get_post( (int) $first_show_row['event_id'] );
-		if ( $post ) {
+		if ( $post instanceof WP_Post ) {
 			$first_show = array(
 				'event_id' => $post->ID,
 				'title'    => $post->post_title,
@@ -718,7 +718,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 
 	if ( $latest_show_row ) {
 		$post = get_post( (int) $latest_show_row['event_id'] );
-		if ( $post ) {
+		if ( $post instanceof WP_Post ) {
 			$latest_show = array(
 				'event_id' => $post->ID,
 				'title'    => $post->post_title,

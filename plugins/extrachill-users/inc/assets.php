@@ -21,7 +21,7 @@ function extrachill_users_enqueue_avatar_menu_assets() {
 			'extrachill-users-avatar-menu',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/avatar-menu.css',
 			array(),
-			filemtime( $css_path ),
+			(string) filemtime( $css_path ),
 			'all'
 		);
 	}
@@ -32,7 +32,7 @@ function extrachill_users_enqueue_avatar_menu_assets() {
 			'extrachill-users-avatar-menu',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/avatar-menu.js',
 			array(),
-			filemtime( $js_path ),
+			(string) filemtime( $js_path ),
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,
@@ -46,7 +46,7 @@ function extrachill_users_enqueue_avatar_menu_assets() {
 			'extrachill-users-online-users',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/online-users.css',
 			array(),
-			filemtime( $online_users_css_path ),
+			(string) filemtime( $online_users_css_path ),
 			'all'
 		);
 	}
@@ -57,7 +57,7 @@ function extrachill_users_enqueue_avatar_menu_assets() {
 			'extrachill-users-badges',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/user-badges.css',
 			array( 'extrachill-root' ),
-			filemtime( $user_badges_css_path ),
+			(string) filemtime( $user_badges_css_path ),
 			'all'
 		);
 	}
@@ -74,7 +74,7 @@ function extrachill_users_register_auth_utils_script() {
 			'extrachill-auth-utils',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/auth-utils.js',
 			array(),
-			filemtime( $js_path ),
+			(string) filemtime( $js_path ),
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,

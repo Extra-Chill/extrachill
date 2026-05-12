@@ -55,11 +55,19 @@ function extrachill_users_get_user_content_objects( int $user_id ): array {
 				)
 			);
 
+			// `'fields' => 'ids'` makes get_comments() return int[], but its
+			// declared return type is array<int|WP_Comment>|int. Guard so the
+			// foreach is safe on the WP_Comment branch and on the int branch
+			// (which our params won't actually trigger).
+			if ( ! is_array( $comments ) ) {
+				continue;
+			}
+
 			foreach ( $comments as $comment_id ) {
 				$objects[] = array(
 					'type'      => 'comment',
 					'blog_id'   => (int) $site->blog_id,
-					'object_id' => (int) $comment_id,
+					'object_id' => $comment_id instanceof WP_Comment ? (int) $comment_id->comment_ID : (int) $comment_id,
 				);
 			}
 		} finally {

@@ -145,7 +145,7 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 			if ( ! empty( $link_pages ) ) {
 				$link_page_id      = (int) $link_pages[0];
 				$post_modified_gmt = get_post_field( 'post_modified_gmt', $link_page_id, 'raw' );
-				if ( $post_modified_gmt ) {
+				if ( is_string( $post_modified_gmt ) && $post_modified_gmt ) {
 					$current_timestamp = strtotime( $post_modified_gmt );
 					if ( $current_timestamp > $latest_modified_timestamp ) {
 						$latest_modified_timestamp = $current_timestamp;
@@ -200,7 +200,7 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
 		switch_to_blog( $artist_blog_id );
 		try {
 			$post = get_post( $artist_id );
-			if ( $post && (int) $post->post_author === (int) $user_id ) {
+			if ( $post instanceof WP_Post && (int) $post->post_author === (int) $user_id ) {
 				return true;
 			}
 		} finally {

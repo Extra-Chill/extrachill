@@ -48,8 +48,11 @@ function extrachill_users_generate_access_token( int $user_id, string $device_id
 		'exp'       => $expires,
 	);
 
-	$header_b64  = extrachill_users_base64url_encode( wp_json_encode( $header ) );
-	$payload_b64 = extrachill_users_base64url_encode( wp_json_encode( $payload ) );
+	// wp_json_encode() returns string|false. Both inputs are simple
+	// associative arrays of scalars so encoding cannot realistically fail,
+	// but PHPStan can't see that and base64url_encode() requires string.
+	$header_b64  = extrachill_users_base64url_encode( (string) wp_json_encode( $header ) );
+	$payload_b64 = extrachill_users_base64url_encode( (string) wp_json_encode( $payload ) );
 
 	$signature_raw = hash_hmac( 'sha256', "{$header_b64}.{$payload_b64}", wp_salt( 'auth' ), true );
 	$signature_b64 = extrachill_users_base64url_encode( $signature_raw );

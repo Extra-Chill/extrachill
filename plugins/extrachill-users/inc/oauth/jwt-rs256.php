@@ -138,8 +138,13 @@ function ec_fetch_jwks( $jwks_url ) {
 	}
 
 	// Parse cache TTL from Cache-Control header.
+	// wp_remote_retrieve_header() may return array<string> when a header
+	// appears multiple times. Coerce to a single string (first value or empty).
 	$cache_control = wp_remote_retrieve_header( $response, 'cache-control' );
-	$ttl           = ec_parse_cache_control_max_age( $cache_control );
+	if ( is_array( $cache_control ) ) {
+		$cache_control = $cache_control[0] ?? '';
+	}
+	$ttl = ec_parse_cache_control_max_age( $cache_control );
 
 	// Default to 1 hour if no max-age found, minimum 5 minutes.
 	$ttl = max( 300, $ttl ? $ttl : 3600 );
