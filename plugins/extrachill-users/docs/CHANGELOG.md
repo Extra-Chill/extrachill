@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.3] - 2026-05-12
+
+### Changed
+- clean up PHPCS warnings to restore release gate
+
+### Fixed
+- clean up ESLint errors to restore release gate
+- resolve remaining PHPStan type errors
+- drop dead permission_callback branches in users-search ability
+- cast wp_json_encode() output to string before base64url encoding
+- cast filemtime() to string for wp_enqueue_*() $ver argument
+- narrow array|WP_Post union with instanceof checks before property access
+- guard WP_User|false from get_userdata() in admin notification email
+- annotate EC_Redirect_Handler terminating methods with @phpstan-return never
+
 ## [0.8.2] - 2026-05-11
 
 ### Fixed
