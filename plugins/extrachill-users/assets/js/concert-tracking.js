@@ -7,16 +7,14 @@
  *   - button-3 (neutral) when unmarked
  *   - button-2 (green accent) when marked
  *
- * @package ExtraChill\Users
+ * @package
  * @since 0.8.0
  */
 
 ( function () {
 	'use strict';
 
-	/**
-	 * Toggle button between marked (button-2) and unmarked (button-3) states.
-	 */
+	// Toggle button between marked (button-2) and unmarked (button-3) states.
 	function setButtonState( button, container, marked, labelEl, labelDefault, labelActive ) {
 		if ( marked ) {
 			container.classList.add( 'ec-attendance--marked' );
@@ -27,7 +25,7 @@
 			}
 			// Add check mark if not present.
 			if ( ! button.querySelector( '.ec-attendance__check' ) ) {
-				var check = document.createElement( 'span' );
+				const check = document.createElement( 'span' );
 				check.className = 'ec-attendance__check';
 				check.setAttribute( 'aria-hidden', 'true' );
 				check.textContent = '\u2713';
@@ -41,7 +39,7 @@
 				labelEl.textContent = labelDefault;
 			}
 			// Remove check mark.
-			var checkEl = button.querySelector( '.ec-attendance__check' );
+			const checkEl = button.querySelector( '.ec-attendance__check' );
 			if ( checkEl ) {
 				checkEl.remove();
 			}
@@ -49,19 +47,19 @@
 	}
 
 	document.addEventListener( 'click', function ( e ) {
-		var button = e.target.closest( '.ec-attendance__button' );
+		const button = e.target.closest( '.ec-attendance__button' );
 		if ( ! button ) {
 			return;
 		}
 
-		var action = button.getAttribute( 'data-action' );
+		const action = button.getAttribute( 'data-action' );
 		if ( ! action ) {
 			return;
 		}
 
 		// Redirect to login for non-authenticated users.
 		if ( action === 'login' ) {
-			var loginUrl = ( window.ecConcertTracking && window.ecConcertTracking.loginUrl ) || '/login/';
+			const loginUrl = ( window.ecConcertTracking && window.ecConcertTracking.loginUrl ) || '/login/';
 			window.location.href = loginUrl + '?redirect_to=' + encodeURIComponent( window.location.href );
 			return;
 		}
@@ -70,7 +68,7 @@
 			return;
 		}
 
-		var container = button.closest( '.ec-attendance' );
+		const container = button.closest( '.ec-attendance' );
 		if ( ! container ) {
 			return;
 		}
@@ -81,14 +79,14 @@
 		}
 		button.disabled = true;
 
-		var eventId = parseInt( container.getAttribute( 'data-event-id' ), 10 );
-		var blogId = parseInt( container.getAttribute( 'data-blog-id' ), 10 );
-		var labelDefault = container.getAttribute( 'data-label-default' );
-		var labelActive = container.getAttribute( 'data-label-active' );
-		var labelEl = button.querySelector( '.ec-attendance__label' );
+		const eventId = parseInt( container.getAttribute( 'data-event-id' ), 10 );
+		const blogId = parseInt( container.getAttribute( 'data-blog-id' ), 10 );
+		const labelDefault = container.getAttribute( 'data-label-default' );
+		const labelActive = container.getAttribute( 'data-label-active' );
+		const labelEl = button.querySelector( '.ec-attendance__label' );
 
 		// Optimistic UI update.
-		var isCurrentlyMarked = container.classList.contains( 'ec-attendance--marked' );
+		const isCurrentlyMarked = container.classList.contains( 'ec-attendance--marked' );
 		setButtonState( button, container, ! isCurrentlyMarked, labelEl, labelDefault, labelActive );
 
 		// API call.
@@ -101,12 +99,12 @@
 			},
 		} ).then( function ( response ) {
 			// Update count label.
-			var countEl = container.querySelector( '.ec-attendance__count' );
+			const countEl = container.querySelector( '.ec-attendance__count' );
 			if ( response.count > 0 ) {
 				if ( countEl ) {
 					countEl.textContent = response.count_label;
 				} else {
-					var newCount = document.createElement( 'span' );
+					const newCount = document.createElement( 'span' );
 					newCount.className = 'ec-attendance__count';
 					newCount.textContent = response.count_label;
 					container.appendChild( newCount );

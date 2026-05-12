@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    var utils = window.ECAuthUtils;
+    const utils = window.ECAuthUtils;
 
     function init() {
         if (!utils) {
@@ -9,33 +9,33 @@
             return;
         }
 
-        var container = document.getElementById('extrachill-onboarding-form');
+        const container = document.getElementById('extrachill-onboarding-form');
         if (!container) {
             return;
         }
 
-        var form = document.getElementById('onboarding-form');
+        const form = document.getElementById('onboarding-form');
         if (!form) {
             return;
         }
 
-        var restUrl = container.dataset.restUrl || '';
-        var nonce = container.dataset.nonce || '';
-        var redirectUrl = container.dataset.redirectUrl || '/';
-        var fromJoin = container.dataset.fromJoin === 'true';
+        const restUrl = container.dataset.restUrl || '';
+        const nonce = container.dataset.nonce || '';
+        const redirectUrl = container.dataset.redirectUrl || '/';
+        const fromJoin = container.dataset.fromJoin === 'true';
 
-        var usernameInput = document.getElementById('onboarding-username');
-        var artistCheckbox = document.getElementById('user_is_artist');
-        var professionalCheckbox = document.getElementById('user_is_professional');
-        var submitButton = document.getElementById('onboarding-submit');
+        const usernameInput = document.getElementById('onboarding-username');
+        const artistCheckbox = document.getElementById('user_is_artist');
+        const professionalCheckbox = document.getElementById('user_is_professional');
+        const submitButton = document.getElementById('onboarding-submit');
 
         form.addEventListener('submit', function (event) {
             event.preventDefault();
             utils.clearNotice(container);
 
-            var username = usernameInput ? usernameInput.value.trim() : '';
-            var isArtist = artistCheckbox ? artistCheckbox.checked : false;
-            var isProfessional = professionalCheckbox ? professionalCheckbox.checked : false;
+            const username = usernameInput ? usernameInput.value.trim() : '';
+            const isArtist = artistCheckbox ? artistCheckbox.checked : false;
+            const isProfessional = professionalCheckbox ? professionalCheckbox.checked : false;
 
             if (!username) {
                 utils.renderNotice(container, 'error', 'Please enter a username.');
@@ -62,9 +62,9 @@
                 return;
             }
 
-            var restore = utils.setSubmitting(submitButton, 'Saving\u2026');
+            const restore = utils.setSubmitting(submitButton, 'Saving\u2026');
 
-            var url = restUrl + 'users/onboarding';
+            const url = restUrl + 'users/onboarding';
 
             fetch(url, {
                 method: 'POST',
@@ -74,7 +74,7 @@
                     'X-WP-Nonce': nonce
                 },
                 body: JSON.stringify({
-                    username: username,
+                    username,
                     user_is_artist: isArtist,
                     user_is_professional: isProfessional
                 })
@@ -82,18 +82,18 @@
                 .then(function (response) {
                     return response.json().then(function (data) {
                         if (!response.ok) {
-                            var message = data && data.message ? data.message : 'Something went wrong. Please try again.';
+                            const message = data && data.message ? data.message : 'Something went wrong. Please try again.';
                             throw new Error(message);
                         }
                         return data;
                     });
                 })
                 .then(function (data) {
-                    var finalRedirect = data && data.redirect_url ? data.redirect_url : redirectUrl;
+                    const finalRedirect = data && data.redirect_url ? data.redirect_url : redirectUrl;
                     window.location.assign(finalRedirect);
                 })
                 .catch(function (err) {
-                    var message = err && err.message ? err.message : 'Something went wrong. Please try again.';
+                    const message = err && err.message ? err.message : 'Something went wrong. Please try again.';
                     utils.renderNotice(container, 'error', message);
                     restore();
                 });

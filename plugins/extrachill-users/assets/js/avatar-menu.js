@@ -4,7 +4,7 @@
  * Handles user avatar dropdown menu toggling and click-outside behavior.
  * Provides keyboard accessibility with Escape key support.
  *
- * @package ExtraChillMultisite
+ * @package
  */
 document.addEventListener('DOMContentLoaded', function() {
     const avatarToggle = document.querySelector('.user-avatar-toggle');

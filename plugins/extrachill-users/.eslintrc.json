@@ -1,0 +1,12 @@
+{
+	"settings": {
+		"import/core-modules": [
+			"@wordpress/blocks",
+			"@wordpress/block-editor",
+			"@wordpress/components",
+			"@wordpress/element",
+			"@wordpress/i18n",
+			"@wordpress/data"
+		]
+	}
+}

@@ -13,7 +13,7 @@
         }
 
         try {
-            var url = new URL(root, window.location.origin);
+            const url = new URL(root, window.location.origin);
             if (!url.pathname.endsWith('/')) {
                 url.pathname += '/';
             }
@@ -25,15 +25,15 @@
 
     function getRestRoot() {
         if (window.wpApiSettings && window.wpApiSettings.root) {
-            var normalized = normalizeRestRoot(window.wpApiSettings.root);
+            const normalized = normalizeRestRoot(window.wpApiSettings.root);
             if (normalized) {
                 return normalized;
             }
         }
 
-        var link = document.querySelector('link[rel="https://api.w.org/"]');
+        const link = document.querySelector('link[rel="https://api.w.org/"]');
         if (link && link.href) {
-            var linkRoot = normalizeRestRoot(link.href);
+            const linkRoot = normalizeRestRoot(link.href);
             if (linkRoot) {
                 return linkRoot;
             }
@@ -47,13 +47,16 @@
             return '';
         }
 
-        var bytes = new Uint8Array(16);
+        const bytes = new Uint8Array(16);
         window.crypto.getRandomValues(bytes);
 
+        // Set RFC 4122 version (4) and variant (10xx) bits — bitwise required by spec.
+        // eslint-disable-next-line no-bitwise
         bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        // eslint-disable-next-line no-bitwise
         bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
-        var hex = Array.from(bytes, function (b) {
+        const hex = Array.from(bytes, function (b) {
             return b.toString(16).padStart(2, '0');
         });
 
@@ -72,13 +75,13 @@
 
     function getDeviceId() {
         try {
-            var key = 'extrachill_device_id';
-            var existing = window.localStorage.getItem(key);
+            const key = 'extrachill_device_id';
+            const existing = window.localStorage.getItem(key);
             if (existing) {
                 return existing;
             }
 
-            var generated = uuidv4();
+            const generated = uuidv4();
             if (!generated) {
                 return '';
             }
@@ -95,7 +98,7 @@
             return;
         }
 
-		var notice = container.querySelector('[data-ec-auth-notice="1"]');
+		let notice = container.querySelector('[data-ec-auth-notice="1"]');
 		if (!notice) {
 			notice = document.createElement('div');
 			notice.dataset.ecAuthNotice = '1';
@@ -106,7 +109,7 @@
 		notice.className = 'ec-auth-notice ec-auth-notice--' + type;
 		notice.innerHTML = '';
 
-        var p = document.createElement('p');
+        const p = document.createElement('p');
         if (allowHtml) {
             p.innerHTML = message;
         } else {
@@ -120,7 +123,7 @@
             return;
         }
 
-        var notice = container.querySelector('[data-ec-auth-notice="1"]');
+        const notice = container.querySelector('[data-ec-auth-notice="1"]');
         if (notice) {
             notice.remove();
         }
@@ -131,7 +134,7 @@
             return function () {};
         }
 
-        var original = button.value !== undefined ? button.value : button.textContent;
+        const original = button.value !== undefined ? button.value : button.textContent;
         button.disabled = true;
 
         if (button.value !== undefined) {
@@ -151,12 +154,12 @@
     }
 
     function getFormValue(form, selector) {
-        var el = form.querySelector(selector);
+        const el = form.querySelector(selector);
         return el ? el.value || '' : '';
     }
 
     function getFormChecked(form, selector) {
-        var el = form.querySelector(selector);
+        const el = form.querySelector(selector);
         return el ? !!el.checked : false;
     }
 
@@ -165,13 +168,13 @@
     }
 
     window.ECAuthUtils = {
-        getRestRoot: getRestRoot,
-        getDeviceId: getDeviceId,
-        renderNotice: renderNotice,
-        clearNotice: clearNotice,
-        setSubmitting: setSubmitting,
-        getFormValue: getFormValue,
-        getFormChecked: getFormChecked,
-        getCommunityUrl: getCommunityUrl
+        getRestRoot,
+        getDeviceId,
+        renderNotice,
+        clearNotice,
+        setSubmitting,
+        getFormValue,
+        getFormChecked,
+        getCommunityUrl
     };
 })();

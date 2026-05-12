@@ -4,18 +4,19 @@
  * Integrates Google Identity Services (GIS) library for authentication.
  * Uses ECAuthUtils for shared functionality.
  */
+/* global google */
 (function () {
     'use strict';
 
-    var utils = window.ECAuthUtils;
-    var initialized = false;
+    const utils = window.ECAuthUtils;
+    let initialized = false;
 
     /**
      * Initialize Google Sign-In for all button containers on the page.
      *
-     * @param {Object} config Configuration object.
+     * @param {Object} config          Configuration object.
      * @param {string} config.clientId Google OAuth client ID.
-     * @param {string} config.restUrl REST API base URL.
+     * @param {string} config.restUrl  REST API base URL.
      */
     function init(config) {
         if (!config || !config.clientId) {
@@ -41,7 +42,7 @@
 
         google.accounts.id.initialize({
             client_id: config.clientId,
-            callback: function (response) {
+            callback (response) {
                 handleCredentialResponse(response, config);
             },
             auto_select: false,
@@ -85,7 +86,7 @@
             return;
         }
 
-        var containers = document.querySelectorAll('.google-signin-button');
+        const containers = document.querySelectorAll('.google-signin-button');
         containers.forEach(function (container) {
             renderButton(container);
         });
@@ -97,7 +98,7 @@
      * @return {string} Redirect URL or current page URL.
      */
     function getSuccessRedirectUrl() {
-        var input = document.querySelector('input[name="success_redirect_url"]');
+        const input = document.querySelector('input[name="success_redirect_url"]');
         if (input && input.value) {
             return input.value;
         }
@@ -108,7 +109,7 @@
      * Handle credential response from Google.
      *
      * @param {Object} response Google credential response.
-     * @param {Object} config Configuration object.
+     * @param {Object} config   Configuration object.
      */
     function handleCredentialResponse(response, config) {
         if (!response || !response.credential) {
@@ -116,7 +117,7 @@
             return;
         }
 
-        var deviceId = utils.getDeviceId();
+        const deviceId = utils.getDeviceId();
         if (!deviceId) {
             showError('Unable to generate device ID.');
             return;
@@ -126,12 +127,12 @@
         // and passed via wp_localize_script. The standard register form reads the
         // same value from config.fromJoin in view.js, so the two flows can never
         // drift even if the URL is mutated client-side after render.
-        var fromJoin = Boolean(config && config.fromJoin) || isFromJoinFlow();
-        var successRedirectUrl = getSuccessRedirectUrl();
+        const fromJoin = Boolean(config && config.fromJoin) || isFromJoinFlow();
+        const successRedirectUrl = getSuccessRedirectUrl();
 
         setGlobalLoading(true);
 
-        var url = new URL('auth/google', config.restUrl || utils.getRestRoot());
+        const url = new URL('auth/google', config.restUrl || utils.getRestRoot());
 
         fetch(url.toString(), {
             method: 'POST',
@@ -155,14 +156,14 @@
             .then(function (res) {
                 return res.json().then(function (data) {
                     if (!res.ok) {
-                        var message = data && data.message ? data.message : 'Google Sign-In failed.';
+                        const message = data && data.message ? data.message : 'Google Sign-In failed.';
                         throw new Error(message);
                     }
                     return data;
                 });
             })
             .then(function (data) {
-                var redirectUrl = data && data.redirect_url ? data.redirect_url : window.location.href;
+                const redirectUrl = data && data.redirect_url ? data.redirect_url : window.location.href;
                 window.location.assign(redirectUrl);
             })
             .catch(function (err) {
@@ -174,11 +175,11 @@
     /**
      * Check if current page is from /join flow.
      *
-     * @return {boolean}
+     * @return {boolean} True when the current URL carries from_join=true.
      */
     function isFromJoinFlow() {
         try {
-            var params = new URL(window.location.href).searchParams;
+            const params = new URL(window.location.href).searchParams;
             return params.get('from_join') === 'true';
         } catch (e) {
             return false;
@@ -191,7 +192,7 @@
      * @param {string} message Error message.
      */
     function showError(message) {
-        var container = document.querySelector('.login-register-form');
+        const container = document.querySelector('.login-register-form');
         if (container && utils) {
             utils.renderNotice(container, 'error', message);
         } else {
@@ -205,7 +206,7 @@
      * @param {boolean} loading Whether loading.
      */
     function setGlobalLoading(loading) {
-        var containers = document.querySelectorAll('.google-signin-button');
+        const containers = document.querySelectorAll('.google-signin-button');
         containers.forEach(function (container) {
             container.style.opacity = loading ? '0.5' : '1';
             container.style.pointerEvents = loading ? 'none' : 'auto';
@@ -213,7 +214,7 @@
     }
 
     window.ECGoogleSignIn = {
-        init: init,
-        renderAllButtons: renderAllButtons
+        init,
+        renderAllButtons
     };
 })();

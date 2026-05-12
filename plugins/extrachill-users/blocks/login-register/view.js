@@ -1,3 +1,6 @@
+/**
+ * External dependencies
+ */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BlockShell, BlockShellHeader, BlockShellInner, Panel, ResponsiveTabs } from '@extrachill/components';
@@ -64,8 +67,6 @@ function LoginPanel( { config, notice, setNotice } ) {
 		const formData = new window.FormData( form );
 		const identifier = String( formData.get( 'log' ) || '' ).trim();
 		const password = String( formData.get( 'pwd' ) || '' );
-		const remember = formData.get( 'rememberme' ) === 'forever';
-		const redirectTo = String( formData.get( 'redirect_to' ) || window.location.href );
 
 		if ( ! identifier || ! password ) {
 			setNotice( { type: 'error', message: 'Username and password are required.' } );
@@ -79,6 +80,8 @@ function LoginPanel( { config, notice, setNotice } ) {
 			return;
 		}
 
+		const remember = formData.get( 'rememberme' ) === 'forever';
+		const redirectTo = String( formData.get( 'redirect_to' ) || window.location.href );
 		const submitButton = form.querySelector( 'input[type="submit"], button[type="submit"]' );
 		const restore = utils?.setSubmitting ? utils.setSubmitting( submitButton, 'Logging in…' ) : () => {};
 
@@ -139,8 +142,8 @@ function LoginPanel( { config, notice, setNotice } ) {
 					<label htmlFor="user_pass">Password</label>
 					<input type="password" name="pwd" id="user_pass" className="input" placeholder="Your password" required />
 					<div className="login-remember-me">
-						<label>
-							<input type="checkbox" name="rememberme" value="forever" />
+						<label htmlFor="rememberme">
+							<input type="checkbox" id="rememberme" name="rememberme" value="forever" />
 							Remember me
 						</label>
 					</div>
@@ -151,7 +154,7 @@ function LoginPanel( { config, notice, setNotice } ) {
 				</form>
 				{ config.googleOAuthEnabled && <GoogleButtons /> }
 				<p className="login-register-prompt">
-					Don't have an account? <a href="#tab-register">Register here</a>
+					Don&apos;t have an account? <a href="#tab-register">Register here</a>
 				</p>
 			</div>
 		</Panel>
@@ -174,15 +177,13 @@ function RegisterPanel( { config, notice, setNotice } ) {
 		const email = String( formData.get( 'extrachill_email' ) || '' ).trim();
 		const password = String( formData.get( 'extrachill_password' ) || '' );
 		const passwordConfirm = String( formData.get( 'extrachill_password_confirm' ) || '' );
-		const turnstileResponse = String( formData.get( 'cf-turnstile-response' ) || '' );
-		const inviteToken = String( formData.get( 'invite_token' ) || '' );
-		const inviteArtistId = Number( formData.get( 'invite_artist_id' ) || 0 );
 
 		if ( ! email || ! password || ! passwordConfirm ) {
 			setNotice( { type: 'error', message: 'All fields are required.' } );
 			return;
 		}
 
+		const turnstileResponse = String( formData.get( 'cf-turnstile-response' ) || '' );
 		const turnstileWidget = form.querySelector( '.cf-turnstile' );
 		if ( turnstileWidget && ! turnstileResponse ) {
 			setNotice( { type: 'error', message: 'Captcha verification required. Please complete the challenge and try again.' } );
@@ -196,6 +197,8 @@ function RegisterPanel( { config, notice, setNotice } ) {
 			return;
 		}
 
+		const inviteToken = String( formData.get( 'invite_token' ) || '' );
+		const inviteArtistId = Number( formData.get( 'invite_artist_id' ) || 0 );
 		const submitButton = form.querySelector( 'input[type="submit"], button[type="submit"]' );
 		const restore = utils?.setSubmitting ? utils.setSubmitting( submitButton, 'Creating account…' ) : () => {};
 		const fromJoin = Boolean( config.fromJoin );
@@ -238,7 +241,6 @@ function RegisterPanel( { config, notice, setNotice } ) {
 			} );
 			restore();
 
-			const turnstileWidget = form.querySelector( '.cf-turnstile' );
 			if ( turnstileWidget && window.turnstile ) {
 				window.turnstile.reset( turnstileWidget );
 			}
