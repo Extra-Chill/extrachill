@@ -337,7 +337,7 @@ function extrachill_users_ability_get_event_attendance( array $input ) {
 	}
 
 	if ( ! empty( $input['include_attendees'] ) ) {
-		$limit              = ! empty( $input['limit'] ) ? (int) $input['limit'] : 10;
+		$limit               = ! empty( $input['limit'] ) ? (int) $input['limit'] : 10;
 		$result['attendees'] = ec_users_get_event_attendees( $event_id, $blog_id, $limit );
 	}
 

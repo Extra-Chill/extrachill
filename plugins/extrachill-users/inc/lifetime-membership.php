@@ -98,7 +98,7 @@ add_action( 'wp_head', 'extrachill_users_output_mediavine_blocklist', 1 );
  *
  * @since 0.1.0
  * @param string $username Community username
- * @param array $order_data Order details array with 'order_id' and optional 'timestamp'
+ * @param array  $order_data Order details array with 'order_id' and optional 'timestamp'
  * @return bool|WP_Error True on success, WP_Error on failure
  */
 function ec_create_lifetime_membership( $username, $order_data = array() ) {

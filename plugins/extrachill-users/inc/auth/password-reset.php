@@ -134,8 +134,8 @@ function ec_send_password_reset_email( $user, $reset_key ) {
 		ec_get_site_url( 'community' ) . '/reset-password/'
 	);
 
-	$subject  = __( 'Password Reset Request - Extra Chill', 'extrachill-users' );
-	$message  = '<html><body>';
+	$subject = __( 'Password Reset Request - Extra Chill', 'extrachill-users' );
+	$message = '<html><body>';
 	/* translators: %s: user display name. */
 	$message .= '<p>' . sprintf( __( 'Hello <strong>%s</strong>,', 'extrachill-users' ), esc_html( $user->display_name ) ) . '</p>';
 	$message .= '<p>' . __( 'Someone requested a password reset for your Extra Chill account.', 'extrachill-users' ) . '</p>';

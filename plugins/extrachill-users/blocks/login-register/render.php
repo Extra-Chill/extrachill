@@ -101,30 +101,30 @@ $from_join = isset( $_GET['from_join'] ) && 'true' === sanitize_text_field( wp_u
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 $config = array(
-	'loggedIn'            => is_user_logged_in(),
-	'googleOAuthEnabled'  => $google_oauth_enabled,
-	'currentUrl'          => $current_url,
-	'loginRedirectUrl'    => $login_redirect_url,
-	'successRedirectUrl'  => $success_redirect,
-	'resetPasswordUrl'    => ec_get_site_url( 'community' ) . '/reset-password/',
-	'inviteToken'         => $invite_token,
-	'inviteArtistId'      => $invite_artist_id,
-	'invitedEmail'        => $invited_email,
-	'fromJoin'            => $from_join,
-	'turnstileHtml'       => wp_kses_post( ec_render_turnstile_widget() ),
-	'initialNotice'       => $initial_notice ? array(
+	'loggedIn'           => is_user_logged_in(),
+	'googleOAuthEnabled' => $google_oauth_enabled,
+	'currentUrl'         => $current_url,
+	'loginRedirectUrl'   => $login_redirect_url,
+	'successRedirectUrl' => $success_redirect,
+	'resetPasswordUrl'   => ec_get_site_url( 'community' ) . '/reset-password/',
+	'inviteToken'        => $invite_token,
+	'inviteArtistId'     => $invite_artist_id,
+	'invitedEmail'       => $invited_email,
+	'fromJoin'           => $from_join,
+	'turnstileHtml'      => wp_kses_post( ec_render_turnstile_widget() ),
+	'initialNotice'      => $initial_notice ? array(
 		'message' => $initial_notice['text'] ?? '',
 		'type'    => $initial_notice['type'] ?? 'info',
 	) : null,
 );
 
 if ( is_user_logged_in() ) {
-	$logged_in_user         = wp_get_current_user();
-	$config['displayName']  = $logged_in_user->display_name;
-	$config['profileUrl']   = ec_get_site_url( 'community' ) . '/u/' . $logged_in_user->user_nicename . '/';
-	$config['homeUrl']      = home_url();
-	$config['logoutUrl']    = wp_logout_url( home_url() );
-	$config['avatarHtml']   = get_avatar( $logged_in_user->ID, 80 );
+	$logged_in_user        = wp_get_current_user();
+	$config['displayName'] = $logged_in_user->display_name;
+	$config['profileUrl']  = ec_get_site_url( 'community' ) . '/u/' . $logged_in_user->user_nicename . '/';
+	$config['homeUrl']     = home_url();
+	$config['logoutUrl']   = wp_logout_url( home_url() );
+	$config['avatarHtml']  = get_avatar( $logged_in_user->ID, 80 );
 }
 
 $wrapper_attributes = get_block_wrapper_attributes(

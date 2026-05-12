@@ -19,9 +19,11 @@ if ( is_user_logged_in() ) {
 	return;
 }
 
+// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reset link query params; auth via check_password_reset_key() below using the key itself as the credential.
 $password_reset_action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : 'request';
 $key                   = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
 $login                 = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
+// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 if ( 'reset' === $password_reset_action && ! empty( $key ) && ! empty( $login ) ) {
 	$user = check_password_reset_key( $key, $login );

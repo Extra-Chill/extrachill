@@ -64,11 +64,11 @@ function ec_users_render_attendance_button( int $event_id ) {
 
 	?>
 	<div class="ec-attendance<?php echo esc_attr( $marked_class ); ?>"
-		 data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
-		 data-blog-id="<?php echo esc_attr( (string) $blog_id ); ?>"
-		 data-timing="<?php echo esc_attr( $timing ); ?>"
-		 data-label-default="<?php echo esc_attr( $label_set['default'] ); ?>"
-		 data-label-active="<?php echo esc_attr( $label_set['active'] ); ?>">
+		data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
+		data-blog-id="<?php echo esc_attr( (string) $blog_id ); ?>"
+		data-timing="<?php echo esc_attr( $timing ); ?>"
+		data-label-default="<?php echo esc_attr( $label_set['default'] ); ?>"
+		data-label-active="<?php echo esc_attr( $label_set['active'] ); ?>">
 		<button class="ec-attendance__button <?php echo esc_attr( $button_class ); ?> button-medium"
 				data-action="<?php echo esc_attr( $action ); ?>"
 				type="button">

@@ -152,7 +152,7 @@ function extrachill_users_ability_get_settings( $input ) {
 	}
 
 	// Build display name options (same logic as the old PHP template).
-	$display_name_options = array();
+	$display_name_options             = array();
 	$display_name_options['nickname'] = $user->nickname;
 	$display_name_options['username'] = $user->user_login;
 
@@ -289,7 +289,7 @@ function extrachill_users_ability_change_email( $input ) {
 
 	// Store pending email and send verification.
 	// WordPress native: generate hash, store in meta, send confirmation email.
-	$hash = md5( $new_email . time() . wp_rand() );
+	$hash           = md5( $new_email . time() . wp_rand() );
 	$new_user_email = array(
 		'hash'     => $hash,
 		'newemail' => $new_email,

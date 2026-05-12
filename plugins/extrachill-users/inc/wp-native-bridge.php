@@ -30,7 +30,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param null|WP_Error $result  Pass-through from earlier filters, or null.
  * @param WP_User       $user    The authenticated WordPress user.
- * @param array          $context Contextual data from wp-native-auth (device_id, etc.).
+ * @param array         $context Contextual data from wp-native-auth (device_id, etc.).
  * @return null|WP_Error Null to continue, WP_Error to block login.
  */
 function extrachill_users_wp_native_pre_login_check( null|WP_Error $result, WP_User $user, array $context ): null|WP_Error {
@@ -149,7 +149,7 @@ add_filter( 'wp_native_auth_pre_authenticate', 'extrachill_users_wp_native_pre_a
  * This is a passthrough to allow other extrachill-users subsystems to react
  * to logins that occur through wp-native-auth (e.g. analytics, logging).
  *
- * @param int   $user_id    The logged-in user's ID.
+ * @param int    $user_id    The logged-in user's ID.
  * @param string $device_id  The device UUID that authenticated.
  * @param array  $token_pair The token pair issued (access + refresh).
  */

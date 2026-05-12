@@ -55,8 +55,8 @@ function extrachill_users_register_subscription_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'            => array( 'type' => 'integer' ),
-					'consented_artists'  => array(
+					'user_id'           => array( 'type' => 'integer' ),
+					'consented_artists' => array(
 						'type'  => 'array',
 						'items' => array( 'type' => 'integer' ),
 					),
@@ -219,10 +219,10 @@ function extrachill_users_ability_update_subscriptions( $input ) {
 				$wpdb->insert(
 					$table_name,
 					array(
-						'user_id'            => $user_id,
-						'artist_profile_id'  => $artist_id,
-						'source'             => 'platform_follow_consent',
-						'subscribed_at'      => current_time( 'mysql' ),
+						'user_id'           => $user_id,
+						'artist_profile_id' => $artist_id,
+						'source'            => 'platform_follow_consent',
+						'subscribed_at'     => current_time( 'mysql' ),
 					),
 					array( '%d', '%d', '%s', '%s' )
 				);

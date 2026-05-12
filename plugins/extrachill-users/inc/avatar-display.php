@@ -118,7 +118,7 @@ function extrachill_get_avatar_attachment_id( $user_id ) {
  */
 function extrachill_get_avatar_url_cached( $attachment_id, $wp_size ) {
 	static $url_cache = array();
-	$cache_key = $attachment_id . ':' . $wp_size;
+	$cache_key        = $attachment_id . ':' . $wp_size;
 
 	if ( isset( $url_cache[ $cache_key ] ) ) {
 		return $url_cache[ $cache_key ];
@@ -132,7 +132,7 @@ function extrachill_get_avatar_url_cached( $attachment_id, $wp_size ) {
 	switch_to_blog( $community_blog_id );
 
 	try {
-		$url = wp_get_attachment_image_url( $attachment_id, $wp_size );
+		$url                     = wp_get_attachment_image_url( $attachment_id, $wp_size );
 		$url_cache[ $cache_key ] = $url ? $url : false;
 	} finally {
 		restore_current_blog();
@@ -196,7 +196,7 @@ function extrachill_custom_avatar( $avatar, $id_or_email, $args ) {
 	}
 
 	// Respect loading preference from args (WP passes 'lazy' by default).
-	$loading  = isset( $args['loading'] ) && in_array( $args['loading'], array( 'lazy', 'eager' ), true )
+	$loading = isset( $args['loading'] ) && in_array( $args['loading'], array( 'lazy', 'eager' ), true )
 		? $args['loading']
 		: 'lazy';
 

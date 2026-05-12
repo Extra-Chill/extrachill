@@ -196,10 +196,10 @@ function extrachill_users_ability_approve_artist_access( $input ) {
 
 	if ( $has_artist || $has_professional ) {
 		return array(
-			'success'  => true,
-			'message'  => 'User already has artist/professional access.',
-			'user_id'  => $user_id,
-			'skipped'  => true,
+			'success' => true,
+			'message' => 'User already has artist/professional access.',
+			'user_id' => $user_id,
+			'skipped' => true,
 		);
 	}
 
@@ -377,8 +377,8 @@ function extrachill_users_send_artist_access_approval_email( $user, $type ) {
 	$create_url = 'https://artist.extrachill.com/create-artist/';
 	$type_label = 'artist' === $type ? 'artist' : 'music industry professional';
 
-	$subject = 'Your Extra Chill Artist Platform Access Has Been Approved';
-	$message = "Hey {$user->display_name},\n\n";
+	$subject  = 'Your Extra Chill Artist Platform Access Has Been Approved';
+	$message  = "Hey {$user->display_name},\n\n";
 	$message .= "Your request for {$type_label} access on Extra Chill has been approved!\n\n";
 	$message .= "You can now create your artist profile and link page:\n";
 	$message .= "{$create_url}\n\n";

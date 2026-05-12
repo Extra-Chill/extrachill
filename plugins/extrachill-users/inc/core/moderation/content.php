@@ -9,12 +9,14 @@ defined( 'ABSPATH' ) || exit;
 
 function extrachill_users_get_user_content_objects( int $user_id ): array {
 	$objects = array();
-	$sites   = get_sites( array(
-		'number'   => 0,
-		'spam'     => 0,
-		'deleted'  => 0,
-		'archived' => 0,
-	) );
+	$sites   = get_sites(
+		array(
+			'number'   => 0,
+			'spam'     => 0,
+			'deleted'  => 0,
+			'archived' => 0,
+		)
+	);
 
 	global $wpdb;
 
@@ -37,7 +39,7 @@ function extrachill_users_get_user_content_objects( int $user_id ): array {
 			);
 
 			foreach ( $post_ids as $post_id ) {
-				$post_id = (int) $post_id;
+				$post_id   = (int) $post_id;
 				$objects[] = array(
 					'type'      => 'post',
 					'blog_id'   => (int) $site->blog_id,

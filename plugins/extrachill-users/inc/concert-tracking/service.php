@@ -287,8 +287,8 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 		$args['order'] = 'DESC';
 	}
 
-	$table          = extrachill_users_concert_tracking_table_name();
-	$blog_id        = $args['blog_id'] ? $args['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7 );
+	$table         = extrachill_users_concert_tracking_table_name();
+	$blog_id       = $args['blog_id'] ? $args['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7 );
 	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
 
 	// Build WHERE clauses.
@@ -327,7 +327,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	$order_sql = $args['order'];
 
 	// Count total matching records.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from trusted helpers, where_sql built from prepare placeholders.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- table names from trusted helpers, placeholders live inside $where_sql fragments which are interpolated.
 	$count_sql = $wpdb->prepare(
 		"SELECT COUNT(*)
 		FROM {$table} ct
@@ -335,7 +335,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 		WHERE {$where_sql}",
 		...$prepare
 	);
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	$total = (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
 	$pages = $args['per_page'] > 0 ? (int) ceil( $total / $args['per_page'] ) : 1;
@@ -344,7 +344,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	$offset = ( $page - 1 ) * $args['per_page'];
 
 	// Fetch event IDs with date ordering.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from trusted helpers, where_sql/order_sql validated.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table names from trusted helpers, $where_sql carries additional placeholders matched by $prepare; $order_sql validated to ASC/DESC above.
 	$query = $wpdb->prepare(
 		"SELECT ct.event_id, ct.created_at AS marked_at, DATE(ed.start_datetime) AS event_date
 		FROM {$table} ct
@@ -354,7 +354,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 		LIMIT %d OFFSET %d",
 		...array_merge( $prepare, array( $args['per_page'], $offset ) )
 	);
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 	$rows = $wpdb->get_results( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
 
@@ -368,9 +368,9 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	}
 
 	// Enrich with event details (switch to events blog for taxonomy queries).
-	$shows          = array();
-	$switched       = false;
-	$current_blog   = get_current_blog_id();
+	$shows        = array();
+	$switched     = false;
+	$current_blog = get_current_blog_id();
 
 	if ( $current_blog !== $blog_id ) {
 		switch_to_blog( $blog_id );
@@ -415,7 +415,7 @@ function ec_users_build_show_data( WP_Post $post, array $row ): array {
 	$event_id = $post->ID;
 
 	// Venue (first term).
-	$venue      = null;
+	$venue       = null;
 	$venue_terms = wp_get_post_terms( $event_id, 'venue', array( 'number' => 1 ) );
 	if ( ! is_wp_error( $venue_terms ) && ! empty( $venue_terms ) ) {
 		$venue = array(
@@ -429,15 +429,15 @@ function ec_users_build_show_data( WP_Post $post, array $row ): array {
 	$location_terms = wp_get_post_terms( $event_id, 'location' );
 	if ( ! is_wp_error( $location_terms ) && ! empty( $location_terms ) ) {
 		// Use the deepest (most specific) location term.
-		$deepest = null;
+		$deepest   = null;
 		$max_depth = -1;
 		foreach ( $location_terms as $term ) {
-			$depth = 0;
+			$depth  = 0;
 			$parent = $term->parent;
 			while ( $parent ) {
 				++$depth;
 				$parent_term = get_term( $parent, 'location' );
-				$parent = $parent_term && ! is_wp_error( $parent_term ) ? $parent_term->parent : 0;
+				$parent      = $parent_term && ! is_wp_error( $parent_term ) ? $parent_term->parent : 0;
 			}
 			if ( $depth > $max_depth ) {
 				$max_depth = $depth;
@@ -524,7 +524,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	$where_sql = implode( ' AND ', $where );
 
 	// Total shows.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from trusted helpers, where_sql built from prepare placeholders.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- table names from trusted helpers, placeholders live inside $where_sql fragments which are interpolated.
 	$total_shows = (int) $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT COUNT(*)
@@ -534,7 +534,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 			...$prepare
 		)
 	);
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	if ( 0 === $total_shows ) {
 		return array(
@@ -552,7 +552,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	}
 
 	// Get all matching event IDs for taxonomy queries.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from trusted helpers, where_sql built from prepare placeholders.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- table names from trusted helpers, placeholders live inside $where_sql fragments which are interpolated.
 	$event_ids = $wpdb->get_col(
 		$wpdb->prepare(
 			"SELECT ct.event_id
@@ -562,7 +562,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 			...$prepare
 		)
 	);
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	$event_ids     = array_map( 'intval', $event_ids );
 	$event_ids_csv = implode( ',', $event_ids );
@@ -653,7 +653,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	}
 
 	// Shows by year.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from trusted helpers, where_sql built from prepare placeholders.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- table names from trusted helpers, placeholders live inside $where_sql fragments which are interpolated.
 	$shows_by_year_raw = $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT YEAR(ed.start_datetime) AS yr, COUNT(*) AS count
@@ -666,7 +666,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 		),
 		ARRAY_A
 	);
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	$shows_by_year = array();
 	foreach ( $shows_by_year_raw as $row ) {
@@ -674,7 +674,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	}
 
 	// First and latest show.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from trusted helpers, where_sql built from prepare placeholders.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- table names from trusted helpers, placeholders live inside $where_sql fragments which are interpolated.
 	$first_show_row = $wpdb->get_row(
 		$wpdb->prepare(
 			"SELECT ct.event_id, DATE(ed.start_datetime) AS event_date
@@ -700,7 +700,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 		),
 		ARRAY_A
 	);
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	$first_show  = null;
 	$latest_show = null;
@@ -728,9 +728,9 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	}
 
 	// Cast counts to int in top arrays.
-	$cast_counts = function( $items ) {
+	$cast_counts = function ( $items ) {
 		return array_map(
-			function( $item ) {
+			function ( $item ) {
 				$item['count'] = (int) $item['count'];
 				return $item;
 			},

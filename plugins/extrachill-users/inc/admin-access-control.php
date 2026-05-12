@@ -8,7 +8,6 @@
  * @package ExtraChill\Users
  * @since 0.1.0
  */
-
 function extrachill_redirect_admin() {
 	global $pagenow;
 

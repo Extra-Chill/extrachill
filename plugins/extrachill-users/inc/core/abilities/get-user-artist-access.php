@@ -33,8 +33,8 @@ function extrachill_users_register_get_user_artist_access_ability(): void {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id' => array( 'type' => 'integer' ),
-					'status'  => array(
+					'user_id'      => array( 'type' => 'integer' ),
+					'status'       => array(
 						'type' => 'string',
 						'enum' => array( 'none', 'pending', 'approved' ),
 					),
