@@ -374,6 +374,56 @@ input[type="checkbox"]:disabled {
 	cursor: not-allowed;
 }
 
+/*
+ * Checkbox row primitive — canonical pattern for "checkbox + label" UI.
+ *
+ * The global input[type="checkbox"] rule above sets margin-right on the
+ * input itself, which works for inline-flow text (`<label><input> Text</label>`)
+ * but is collapsed by flexbox / grid containers, leaving the label butted
+ * against the checkbox in any layout-aware consumer (React panes, admin
+ * forms, etc).
+ *
+ * .ec-checkbox-row gives consumers a single class to apply on a wrapping
+ * <label> that:
+ *   - Establishes a flex container with a consistent gap (spacing-sm = 8px)
+ *   - Resets the input's margin so the gap is purely controlled by the row
+ *   - Aligns the checkbox to the first line of the label content
+ *   - Allows multi-line label text + an optional inline hint
+ *
+ * Expected usage:
+ *
+ *     <label class="ec-checkbox-row">
+ *       <input type="checkbox" />
+ *       <span>Identify speakers</span>
+ *       <span class="ec-checkbox-row__hint">adds ~15 min</span>
+ *     </label>
+ *
+ * The hint span is optional — drop it for label-only rows.
+ */
+.ec-checkbox-row {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--spacing-sm);
+	cursor: pointer;
+	padding: var(--spacing-xs) 0;
+	flex-wrap: wrap;
+}
+
+.ec-checkbox-row input[type="checkbox"] {
+	/* Reset the inline-flow margin-right so spacing is purely owned by `gap`. */
+	margin: 0;
+	flex-shrink: 0;
+	/* Nudge the checkbox down to align with the first line of label text. */
+	margin-top: 0.15rem;
+}
+
+.ec-checkbox-row__hint {
+	flex-basis: 100%;
+	margin-left: calc(18px + var(--spacing-sm));  /* checkbox width + gap */
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
 /* Radio Button Styles */
 input[type="radio"] {
 	appearance: none;
