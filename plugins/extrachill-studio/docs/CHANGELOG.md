@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.1] - 2026-05-12
+
+### Fixed
+- use theme's .ec-checkbox-row primitive for option checkboxes
+
 ## [0.15.0] - 2026-05-11
 
 ### Added
