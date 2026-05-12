@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.4.0] - 2026-05-12
+
+### Added
+- add .ec-checkbox-row primitive for checkbox+label composition
+
 ## [2.3.8] - 2026-04-26
 
 ### Fixed
