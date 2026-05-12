@@ -1,498 +1,129 @@
-# Extra Chill Theme - Architecture & Development Guide
+# Extra Chill Theme — Architecture & Conventions
 
-WordPress theme serving the Extra Chill Platform multisite network across 10 active sites (Blog IDs 1-4, 7-12). This document provides architectural guidance for theme development and integration with the platform ecosystem.
+WordPress theme serving the Extra Chill Platform multisite network. This
+document is **load-bearing convention** only — hook names, primitive
+classes, integration surface. Generic CSS / WordPress / security
+tutorials are intentionally absent; assume the reader knows the
+underlying tech and grep when needed.
 
-## Theme Architecture & Organization
+## Multisite Map
 
-### File Structure Overview
+| Blog ID | Domain | Role |
+|---|---|---|
+| 1 | `extrachill.com` | Main editorial site (drafts, articles) |
+| 2 | `community.extrachill.com` | Community forums (bbPress) |
+| 3 | `shop.extrachill.com` | E-commerce (WooCommerce) |
+| 4 | `artist.extrachill.com` | Artist platform |
+| 7 | `events.extrachill.com` | Events calendar hub |
+| 8 | `stream.extrachill.com` | Live streaming |
+| 9 | `newsletter.extrachill.com` | Newsletter subscription / send |
+| 10 | `docs.extrachill.com` | Documentation |
+| 11 | `wire.extrachill.com` | News wire |
+| 12 | `studio.extrachill.com` | Studio (internal team workspace) |
 
-The theme uses a modular architecture with direct `require_once` includes for all PHP functionality:
+Use `ec_get_blog_id('<key>')` from `extrachill-multisite` to resolve
+domain → blog_id at runtime. Cross-site queries go through
+`ec_cross_site_rest_request()` (see plugin docs); the theme should not
+hard-code switch_to_blog calls outside its own template helpers.
+
+## File Layout
 
 ```
 extrachill/
-├── functions.php                # Theme bootstrap and initialization
-├── header.php                   # HTML head, navigation, header content
-├── footer.php                   # Footer navigation, scripts, HTML close
-├── sidebar.php                  # Sidebar template with hook extensibility
-├── index.php                    # Emergency fallback template only
-├── style.css                    # Main theme stylesheet
+├── functions.php             # Bootstrap, direct require_once includes only
+├── header.php / footer.php / sidebar.php / index.php
+├── style.css                 # Main stylesheet, always loaded
 ├── assets/
-│   ├── css/                     # 12 modular CSS files
-│   │   ├── root.css             # CSS variables and design tokens
-│   │   ├── archive.css          # Archive page styles
-│   │   ├── filter-bar.css       # Universal filter bar component styles
-│   │   ├── single-post.css      # Single post styles
-│   │   ├── search.css           # Search results styles
-│   │   ├── editor-style.css     # Block editor styles
-│   │   ├── share.css            # Share button styles
-│   │   ├── shared-tabs.css      # Tab/accordion interface styles
-│   │   ├── sidebar.css          # Sidebar widget styles
-│   │   └── taxonomy-badges.css  # Taxonomy badge styles
-│   ├── js/                      # JavaScript files
-│   │   ├── nav-menu.js          # Navigation menu functionality
-│   │   ├── shared-tabs.js       # Shared tabs/accordion behavior
-│   │   ├── mini-dropdown.js     # Lightweight dropdown UI helper
-│   │   └── share.js             # Share button interactions
-│   └── fonts/                   # Local web fonts
-└── inc/                         # Modular functionality
-    ├── components/              # Reusable UI components
-    │   ├── filter-bar.php       # Universal filter bar component
-    │   └── filter-bar-defaults.php # Filter bar default configurations
-    ├── core/                    # Core WordPress features
-    │   ├── actions.php          # WordPress action hooks
-    │   ├── assets.php           # Asset enqueuing and versioning
-    │   ├── custom-taxonomies.php
-    │   ├── icons.php            # SVG icon sprite system
-    │   ├── notices.php          # Unified notice system
-    │   ├── rewrite.php          # Category base rewriting
-    │   ├── template-router.php  # Universal template routing
-    │   ├── templates/           # Reusable template components
-    │   │   ├── 404.php
-    │   │   ├── breadcrumbs.php
-    │   │   ├── community-activity.php  # Shared activity helper
-    │   │   ├── no-results.php
-    │   │   ├── pagination.php
-    │   │   ├── post-meta.php
-    │   │   ├── searchform.php
-    │   │   ├── share.php
-    │   │   ├── social-links.php
-    │   │   ├── taxonomy-badges.php
-    │   │   └── network-dropdown.php
-│   └── editor/              # Custom embed handlers
-│       ├── bandcamp-embeds.php
-│       └── instagram-embeds.php
-├── archives/                # Archive page functionality
-│   ├── archive.php
-│   ├── archive-custom-sorting.php
-│   ├── archive-header.php
-│   └── post-card.php
-    ├── footer/                  # Footer functionality
-    │   ├── back-to-home-link.php
-    │   ├── footer-main-menu.php
-    │   └── online-users-stats.php
-    ├── header/                  # Header functionality
-    │   ├── header-search.php
-    │   └── secondary-header.php
-    ├── home/                    # Homepage components
-    │   └── templates/
-    │       └── front-page.php
-    ├── sidebar/                 # Sidebar widgets
-    │   ├── community-activity.php
-    │   └── recent-posts.php
-    └── single/                  # Single post/page features
-        ├── comments.php
-        ├── related-posts.php
-        ├── single-page.php
-        └── single-post.php
+│   ├── css/
+│   │   ├── root.css          # GENERATED from @extrachill/tokens (`npm run build`)
+│   │   ├── archive.css
+│   │   ├── single-post.css
+│   │   ├── search.css
+│   │   ├── editor-style.css
+│   │   ├── block-editor.css
+│   │   ├── filter-bar.css
+│   │   ├── shared-tabs.css
+│   │   ├── sidebar.css
+│   │   ├── taxonomy-badges.css
+│   │   ├── network-dropdown.css
+│   │   └── embed.css
+│   ├── js/
+│   │   ├── nav-menu.js
+│   │   ├── shared-tabs.js
+│   │   ├── mini-dropdown.js
+│   │   └── share.js
+│   └── fonts/
+└── inc/
+    ├── components/           # Reusable UI components (filter-bar)
+    ├── core/                 # WordPress feature wiring
+    │   ├── actions.php
+    │   ├── assets.php
+    │   ├── template-router.php
+    │   ├── icons.php
+    │   ├── notices.php
+    │   └── templates/        # breadcrumbs, pagination, share, etc.
+    ├── footer/ / header/ / home/ / sidebar/ / single/
 ```
 
-### Loading Pattern
-
-All PHP functionality loads via direct `require_once` includes in `functions.php`:
-
-```php
-// Define constants
-define('EXTRACHILL_PARENT_DIR', get_template_directory());
-define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
-
-// Load core functionality (28 direct includes)
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/actions.php');
-// ... additional includes ...
-```
-
-**Advantages**: Direct includes make dependency tree immediately visible, support WordPress conventions, eliminate autoloader complexity.
-
-## Template System
-
-### WordPress Native Template Hierarchy
-
-The theme implements complete WordPress template hierarchy via `/inc/core/template-router.php`:
-
-- **header.php** - Site header, navigation, opening HTML tags
-- **footer.php** - Site footer, closing HTML tags
-- **sidebar.php** - Sidebar content with hook extensibility
-- **index.php** - Emergency fallback only (minimal markup)
-
-### Template Routing & Plugin Overrides
-
-The `template_include` filter in `template-router.php` supports override filters for most page types:
-
-```php
-// Plugins can override non-homepage templates via filters
-add_filter('extrachill_template_single_post', function($template) {
-    return plugin_dir_path(__FILE__) . 'my-single.php';
-});
-
-// Available template override filters:
-// - extrachill_template_single_post
-// - extrachill_template_page (only when no custom template)
-// - extrachill_template_archive
-// - extrachill_template_search
-// - extrachill_template_404
-// - extrachill_template_fallback
-```
-
-**Key Points**:
-- All templates have access to global WordPress variables (`$post`, `$wp_query`, etc.)
-- Plugin templates override theme templates via filters (except homepage)
-- Template routing respects WordPress conditional tags (`is_home()`, `is_singular()`, etc.)
-- Maintains compatibility with bbPress, WooCommerce, and specialized plugins
-
-**Search Template Integration**:
-The `extrachill_template_search` filter defaults to `archive.php` but is overridden by the `extrachill-search` plugin to provide multisite search functionality. The search plugin's template (`templates/search.php`) fires `extrachill_search_header` action which renders `archive-header.php` (contains `is_search()` case for "Search Results for:" title). The filter bar renders via `extrachill_archive_above_posts` hook with search-specific items (sort dropdown + search input only).
-
-### Homepage Template Architecture
-
-Homepage uses action hook pattern - plugins inject content rather than replacing the template (`inc/home/templates/front-page.php`):
-
-```php
-// Primary homepage content (plugins hook here)
-do_action('extrachill_homepage_content');
-
-// Footer/CTA slot (plugins hook here)
-do_action('extrachill_after_homepage_content');
-```
-
-Plugins use these hooks to add homepage content blocks. Unlike other page types, the homepage template cannot be replaced via filter - content is injected via action hooks.
-
-## root.css CSS Variable System
-
-### Design Tokens
-
-**root.css** is the single source of truth for all CSS variables:
-
-#### Color Variables
-```css
-/* Semantic colors */
---background-color: #fff;           /* Page background */
---text-color: #000;                 /* Primary text */
---link-color: #0b5394;              /* Links */
---border-color: #ddd;               /* Borders and dividers */
---accent: #53940b;                  /* Primary accent (green) */
---accent-2: #36454F;                /* Secondary accent (slate) */
---accent-3: #00c8e3;                /* Tertiary accent (cyan) */
---error-color: #dc3232;             /* Error/danger states */
---success-color: #28a745;           /* Success states */
---muted-text: #6b7280;              /* Secondary text */
---card-background: #f1f5f9;         /* Card backgrounds */
-```
-
-#### Typography Variables
-```css
-/* Font families */
---font-family-heading: "Loft Sans", sans-serif;     /* Headings */
---font-family-body: 'Helvetica', 'Open Sans', serif; /* Body text */
---font-family-brand: "Lobster", sans-serif;         /* Branding */
---font-family-mono: 'Helvetica', Arial, sans-serif; /* Code */
-
-/* Font sizes (rem scale) */
---font-size-xs: 0.625rem;           /* Extra small (10px) */
---font-size-sm: 0.8125rem;          /* Small (13px) */
---font-size-base: 1rem;             /* Base (16px) */
---font-size-body: 1.125rem;         /* Body (18px) */
---font-size-lg: 1.25rem;            /* Large (20px) */
---font-size-xl: 1.5rem;             /* Extra large (24px) */
---font-size-2xl: 1.75rem;           /* 2x large (28px) */
---font-size-3xl: 2rem;              /* 3x large (32px) */
---font-size-brand: 2.25rem;         /* Brand (36px) */
-```
-
-#### Layout Variables
-```css
-/* Container widths */
---container-width: 1200px;          /* Standard content width */
---content-width: 800px;             /* Single column content */
---container-wide: 1600px;           /* Wide layouts */
---sidebar-width: 380px;             /* Sidebar width */
---form-width: 500px;                /* Form width */
-
-/* Spacing scale (rem) */
---spacing-xs: 0.25rem;              /* 4px */
---spacing-sm: 0.5rem;               /* 8px */
---spacing-md: 1rem;                 /* 16px */
---spacing-lg: 1.5rem;               /* 24px */
---spacing-xl: 2rem;                 /* 32px */
-```
-
-#### Border & Focus Variables
-```css
-/* Border radius */
---border-radius-sm: 5px;            /* Small corners */
---border-radius-md: 8px;            /* Medium corners */
---border-radius-lg: 10px;           /* Large corners */
---border-radius-xl: 14px;           /* Extra large corners */
---border-radius-pill: 50px;         /* Pill shape */
---border-radius-circle: 50%;        /* Circle */
-
-/* Focus states */
---focus-border-color: #53940b;      /* Focus border */
---focus-box-shadow: 0 0 0 3px rgba(83, 148, 11, 0.2); /* Focus glow */
-```
-
-### Dark Mode Support
-
-All variables redefined in `@media (prefers-color-scheme: dark)`:
-
-```css
-@media (prefers-color-scheme: dark) {
-    :root {
-        --background-color: #1a1a1a;
-        --text-color: #e5e5e5;
-        /* ... all other variables for dark mode ... */
-    }
-}
-```
-
-### Using CSS Variables
-
-Modular stylesheets consume root variables:
-
-```css
-/* archive.css */
-.archive-header {
-    background: var(--background-color);
-    color: var(--text-color);
-    padding: var(--spacing-lg);
-}
-
-.archive-title {
-    font-family: var(--font-family-heading);
-    font-size: var(--font-size-2xl);
-    color: var(--accent);
-}
-```
-
-**No !important**: Use CSS specificity and proper inheritance instead of !important.
-
-## Asset Loading Strategy
-
-### Enqueuing Pattern
-
-All assets load conditionally in `/inc/core/assets.php`:
-
-```php
-function extrachill_enqueue_styles() {
-    // Root variables always load
-    wp_enqueue_style(
-        'extrachill-root',
-        get_template_directory_uri() . '/assets/css/root.css',
-        [],
-        filemtime(get_template_directory() . '/assets/css/root.css')
-    );
-    
-    // Archive styles load only on archive pages
-    if (is_archive()) {
-        wp_enqueue_style(
-            'extrachill-archive',
-            get_template_directory_uri() . '/assets/css/archive.css',
-            ['extrachill-root'],
-            filemtime(get_template_directory() . '/assets/css/archive.css')
-        );
-    }
-    
-    // Single post styles load only on single posts
-    if (is_singular('post')) {
-        wp_enqueue_style(
-            'extrachill-single-post',
-            get_template_directory_uri() . '/assets/css/single-post.css',
-            ['extrachill-root'],
-            filemtime(get_template_directory() . '/assets/css/single-post.css')
-        );
-    }
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_styles');
-```
-
-### Dependency Management
-
-All stylesheets depend on root handle:
-
-```php
-// All CSS files depend on root.css for variables
-wp_enqueue_style('archive-css', $url, ['extrachill-root'], $version);
-```
-
-### Versioning with filemtime()
-
-Cache busting uses file modification time:
-
-```php
-// Automatically invalidate cache when file changes
-wp_enqueue_style('theme-css', $url, [], filemtime($file_path));
-```
-
-### Asset Context Examples
-
-```php
-// Load only on front page
-if (is_front_page()) {
-    wp_enqueue_script('homepage-script', $url, [], $version);
-}
-
-// Load only on search results
-if (is_search()) {
-    wp_enqueue_style('search-css', $url, [], $version);
-}
-
-// Load only when sidebar has content
-if (is_active_sidebar('primary')) {
-    wp_enqueue_style('sidebar-css', $url, [], $version);
-}
-
-// Load only on single posts/pages
-if (is_singular()) {
-    wp_enqueue_script('single-script', $url, [], $version);
-}
-```
-
-## Multisite Integration
-
-### Blog Context Awareness
-
-The theme operates across 10 sites with aware context switching:
-
-```php
-// Get current blog ID
-$current_blog = get_current_blog_id();
-
-// Switch to community site for queries
-try {
-    switch_to_blog(2); // community.extrachill.com
-    $topics = get_posts(['post_type' => 'topic']);
-} finally {
-    restore_current_blog();
-}
-```
-
-### Cross-Site Styling
-
-Same CSS/layout system works across all sites:
-
-- extrachill.com (Blog 1): Main site
-- community.extrachill.com (Blog 2): Community forums
-- shop.extrachill.com (Blog 3): E-commerce
-- artist.extrachill.com (Blog 4): Artist platform
-- events.extrachill.com (Blog 7): Event calendar hub (calendar engine: external Data Machine + datamachine-events plugins)
-- stream.extrachill.com (Blog 8): Live streaming
-- newsletter.extrachill.com (Blog 9): Newsletter
-- docs.extrachill.com (Blog 10): Documentation
-- wire.extrachill.com (Blog 11): News wire
-- studio.extrachill.com (Blog 12): Studio
-
-### Site-Specific Template Variations
-
-Filter hooks allow per-site customization:
-
-```php
-add_filter('extrachill_archive_styles', function($styles) {
-    if (get_current_blog_id() === 3) {
-        // Add WooCommerce-specific styles for shop
-        $styles .= 'woocommerce-specific.css';
-    }
-    return $styles;
-});
-```
-
-### Network Plugin Integration
-
-The theme integrates with network plugins:
-
-- **extrachill-multisite**: Cross-domain authentication
-- **extrachill-users**: User profile URLs, avatar menu
-- **extrachill-search**: Multisite search results
-- **extrachill-newsletter**: Newsletter subscription forms
-
-All use graceful degradation with `function_exists()` checks.
-
-## Layout Components & Patterns
-
-### Reusable Components
-
-#### Notice System
-
-Three-tier notice system defined in root.css:
-
-```php
-// Success notice (green accent border)
-echo '<div class="notice notice-success">
-    <strong>Success!</strong> Action completed.
-</div>';
-
-// Info notice (secondary accent border)
-echo '<div class="notice notice-info">
-    <strong>Note:</strong> Some information.
-</div>';
-
-// Error notice (red error border)
-echo '<div class="notice notice-error">
-    <strong>Error:</strong> Something went wrong.
-</div>';
-```
-
-All notices render via `extrachill_notices` action hook.
-
-#### Pagination Component
-
-Native WordPress pagination in `inc/core/templates/pagination.php`:
-
-```php
-// Works with WP_Query and custom queries
-extrachill_pagination([
-    'total' => $wp_query->max_num_pages,
-    'current' => get_query_var('paged') ?: 1,
-    'label' => 'Posts'
-]);
-```
-
-#### Share Buttons
-
-Social sharing in `inc/core/templates/share.php`:
-
-```php
-extrachill_share_button([
-    'share_url' => get_permalink(),
-    'share_title' => get_the_title()
-]);
-```
-
-Supports clipboard copy, Twitter, Facebook, email.
-
-#### Breadcrumbs
-
-Navigation breadcrumbs in `inc/core/templates/breadcrumbs.php`:
-
-```php
-extrachill_breadcrumbs([
-    'home' => 'Home',
-    'separator' => '/'
-]);
-```
-
-#### Shared Tabs/Accordion
-
-Tab interface for content organization:
-
-```php
-// assets/css/shared-tabs.css
-// assets/js/shared-tabs.js
-
-// Enqueue shared tabs
-extrachill_enqueue_shared_tabs();
-
-// HTML structure uses data-tab attributes
-<div class="shared-tabs">
-    <button class="tab-button" data-tab="tab-1">Tab 1</button>
-    <div id="tab-1" class="tab-panel">Content 1</div>
-</div>
-```
-
-#### Checkbox Row
-
-Canonical "checkbox + label" primitive. Defined in `style.css` (no extra
-asset to enqueue). Use this any time you're composing a checkbox with a
-visible label — especially inside flex/grid containers where the global
-`input[type="checkbox"]` `margin-right` collapses.
+`root.css` is a build artifact. **Never edit `root.css` directly** — change
+the source in `@extrachill/tokens` and run `npm run build` here.
+
+## Template Routing
+
+`inc/core/template-router.php` hooks `template_include` and exposes these
+override filters so plugins can replace the theme's templates:
+
+| Filter | When |
+|---|---|
+| `extrachill_template_single_post` | `is_singular('post')` |
+| `extrachill_template_page` | `is_page()` (only when no theme template) |
+| `extrachill_template_archive` | `is_archive()` |
+| `extrachill_template_search` | `is_search()` — overridden by `extrachill-search` for multisite results |
+| `extrachill_template_404` | `is_404()` |
+| `extrachill_template_fallback` | Last resort |
+
+The homepage is the exception: it uses **action hooks** instead of a
+filterable template so multiple plugins can inject content blocks.
+
+## Hooks Surface
+
+### Action hooks (plugins inject content here)
+
+| Hook | Location |
+|---|---|
+| `extrachill_homepage_content` | Primary homepage body — plugins hook here |
+| `extrachill_after_homepage_content` | Footer/CTA slot on homepage |
+| `extrachill_before_body_content` | Top of every page, after `<body>` opens |
+| `extrachill_after_body_content` | Bottom of every page, before footer |
+| `extrachill_notices` | All notices render through this |
+| `extrachill_sidebar_top` / `_middle` / `_bottom` | Sidebar slots |
+| `extrachill_before_footer` / `extrachill_footer_content` / `extrachill_after_footer` | Footer slots |
+| `extrachill_search_header` | Above search results — `extrachill-search` fires `archive-header.php` here |
+| `extrachill_archive_above_posts` | Where the filter bar renders |
+| `extrachill_avatar_menu` | Header avatar / login menu |
+| `extrachill_archive_title` | Archive page H1 slot |
+
+### Filter hooks (plugins modify behavior)
+
+| Filter | Default behavior | Use to |
+|---|---|---|
+| `extrachill_sidebar_content` | Render `sidebar.php` | Replace sidebar markup wholesale |
+| `extrachill_enable_sticky_header` | true | `__return_false` to disable sticky header |
+| `extrachill_community_activity_items` | bbPress recent activity | Customize community sidebar widget |
+| `extrachill_navigation_main_menu` | WP nav menu | Customize header nav |
+| `extrachill_show_page_title` | true | Hide H1 on specific pages |
+| `extrachill_archive_styles` | base archive.css | Add per-site archive CSS |
+
+## Reusable Primitives
+
+These classes live in `style.css` and are network-wide conventions —
+use them in new React surfaces and admin pages instead of reinventing.
+
+### `.ec-checkbox-row`
+
+Canonical "checkbox + label" wrapper. Survives flex/grid layout
+because the global `input[type="checkbox"]` `margin-right` is reset
+inside the row and spacing is owned by `gap: var(--spacing-sm)`.
 
 ```html
 <label class="ec-checkbox-row">
@@ -502,543 +133,150 @@ visible label — especially inside flex/grid containers where the global
 </label>
 ```
 
-The hint span is optional. The row is a flex container with `gap: var(--spacing-sm)`,
-so the checkbox is correctly spaced from the label in any layout. The
-input's `margin-right` is reset to `0` inside the row, so spacing is
-owned by `gap` alone.
+Hint span is optional. The row is a flex container; the input is
+`flex-shrink: 0` and aligned to the first line of the label content.
 
-Use this primitive instead of building a bespoke wrapper per surface.
+### `.notice notice-*`
 
-#### Universal Filter Bar Component
-
-Reusable filter bar for archives and lists:
-
-**Location**: `inc/components/filter-bar.php`, `inc/components/filter-bar-defaults.php`
-
-**Styles**: `assets/css/filter-bar.css`
-
-**Purpose**: Provides consistent filtering UI across archives, forums, and other list views
-
-**Usage**:
-```php
-// Render filter bar (items registered via filters)
-extrachill_filter_bar();
-```
-
-**Integration Points**:
-- Rendered on archives via `extrachill_archive_above_posts`
-- Extended by extrachill-community plugin for forum filtering via `inc/core/filter-bar.php`
-- Customizable via filters for plugin-specific options
-
-**Search Results Behavior**:
-- Filter bar shows on search results with sort dropdown + search input only (no category/artist filters)
-- Form action uses `home_url('/')` on search pages for global search behavior (vs archive path on category pages)
-- Search input pre-fills with current search query via `get_search_query()`
-
-### Grid & Layout Systems
-
-#### Container Widths
-
-Use CSS variables for responsive layout:
-
-```css
-.content-container {
-    max-width: var(--container-width);
-    margin: 0 auto;
-    padding: 0 var(--spacing-md);
-}
-
-.single-column {
-    max-width: var(--content-width);
-    margin: 0 auto;
-}
-
-.wide-layout {
-    max-width: var(--container-wide);
-}
-```
-
-#### Responsive Design
-
-Mobile-first breakpoints using CSS media queries:
-
-```css
-/* Mobile first (base styles) */
-.element {
-    width: 100%;
-}
-
-/* Tablet and up */
-@media (min-width: 768px) {
-    .element {
-        width: 50%;
-    }
-}
-
-/* Desktop and up */
-@media (min-width: 1024px) {
-    .element {
-        width: 33.333%;
-    }
-}
-```
-
-### Blocks Everywhere Integration
-
-The theme supports the "Gutenberg-anywhere" architecture via the `blocks-everywhere` plugin.
-
-**Iframe Asset Enqueuing**:
-- **Hook**: `blocks_everywhere_enqueue_iframe_assets` (in `inc/core/assets.php`)
-- **Purpose**: Enqueues essential theme styles (`root.css` and `style.css`) into the Gutenberg editor iframe used by Blocks Everywhere. This ensures that the editor accurately reflects the theme's design tokens and global styles.
-- **Implementation**: Registers and enqueues `extrachill-root` and `extrachill-style` specifically for the editor iframe context.
-
-## Hooks System for Plugins
-
-### Action Hooks (One-Way Functionality)
-
-Plugins can hook into theme execution points:
+Three-tier notice system:
 
 ```php
-// Homepage content
-add_action('extrachill_homepage_content', 'my_homepage_block');
-add_action('extrachill_after_homepage_content', 'my_cta');
-
-// Notices system
-add_action('extrachill_notices', 'my_custom_notice');
-
-// Sidebar areas
-add_action('extrachill_sidebar_top', 'my_sidebar_widget');
-add_action('extrachill_sidebar_middle', 'my_sidebar_ad');
-add_action('extrachill_sidebar_bottom', 'my_sidebar_footer');
-
-// Footer areas
-add_action('extrachill_before_footer', 'my_before_footer');
-add_action('extrachill_footer_content', 'my_footer_block');
-add_action('extrachill_after_footer', 'my_after_footer');
-
-// Search header
-add_action('extrachill_search_header', 'my_search_custom');
-
-// Before/after body content
-add_action('extrachill_before_body_content', 'my_header_banner');
-add_action('extrachill_after_body_content', 'my_footer_banner');
+echo '<div class="notice notice-success">Success!</div>';
+echo '<div class="notice notice-info">Note</div>';
+echo '<div class="notice notice-error">Error</div>';
 ```
 
-### Filter Hooks (Data Transformation)
+Render via the `extrachill_notices` action hook.
 
-Plugins modify theme behavior via filters:
+### Pagination, breadcrumbs, share, no-results
+
+Helpers in `inc/core/templates/`:
 
 ```php
-// Template overrides (homepage uses action hook instead - see extrachill_homepage_content)
-add_filter('extrachill_template_single_post', 'my_custom_single');
-add_filter('extrachill_template_page', 'my_custom_page');
-add_filter('extrachill_template_archive', 'my_custom_archive');
-add_filter('extrachill_template_search', 'my_custom_search');
-add_filter('extrachill_template_404', 'my_custom_404');
-
-// Sidebar replacement
-add_filter('extrachill_sidebar_content', 'my_custom_sidebar');
-
-// Enable/disable features
-add_filter('extrachill_enable_sticky_header', '__return_false');
-
-// Modify community activity
-add_filter('extrachill_community_activity_items', 'my_custom_activity');
-
-// Customize navigation
-add_filter('extrachill_navigation_main_menu', 'my_custom_menu');
+extrachill_pagination(['total' => $wp_query->max_num_pages, 'current' => get_query_var('paged') ?: 1]);
+extrachill_breadcrumbs(['home' => 'Home', 'separator' => '/']);
+extrachill_share_button(['share_url' => get_permalink(), 'share_title' => get_the_title()]);
 ```
 
-### Hook Execution Map
+### Shared tabs
 
+```php
+extrachill_enqueue_shared_tabs();
+?>
+<div class="shared-tabs">
+    <button class="tab-button" data-tab="tab-1">Tab 1</button>
+    <div id="tab-1" class="tab-panel">Content 1</div>
+</div>
 ```
-HTTP Request
-  ↓
-header.php
-  ├─ do_action('extrachill_before_body_content')
-  └─ Template hooks (based on page type)
-      ├─ Homepage: do_action('extrachill_homepage_content')
-      ├─ Single: do_action('extrachill_single_content')
-      ├─ Archive: do_action('extrachill_archive_content')
-      └─ Search: do_action('extrachill_search_content')
-  ├─ do_action('extrachill_after_body_content')
-footer.php
-  ├─ do_action('extrachill_before_footer')
-  ├─ do_action('extrachill_footer_content')
-  └─ do_action('extrachill_after_footer')
+
+Uses `assets/css/shared-tabs.css` and `assets/js/shared-tabs.js`.
+
+### Filter bar
+
+`extrachill_filter_bar()` renders the universal archive/forum filter UI.
+Items register via the `extrachill_filter_bar_items_*` filter family
+(see `inc/components/filter-bar-defaults.php`). Plugins like
+`extrachill-community` extend it with forum-specific filters.
+
+## Design Tokens
+
+`root.css` is generated from `@extrachill/tokens` — these are the
+canonical CSS variables every consumer should reach for:
+
+**Colors:** `--background-color`, `--text-color`, `--link-color`,
+`--border-color`, `--accent` (green), `--accent-2` (slate), `--accent-3`
+(cyan), `--error-color`, `--success-color`, `--muted-text`,
+`--card-background`.
+
+**Typography:** `--font-family-heading` (Loft Sans), `--font-family-body`
+(Helvetica), `--font-family-brand` (Lobster), `--font-family-mono`. Sizes
+`--font-size-xs / sm / base / body / lg / xl / 2xl / 3xl / brand`.
+
+**Layout:** `--container-width` (1200px), `--content-width` (800px),
+`--container-wide` (1600px), `--sidebar-width` (380px), `--form-width`
+(500px). Spacing `--spacing-xs / sm / md / lg / xl` (4 / 8 / 16 / 24 / 32 px).
+
+**Borders + focus:** `--border-radius-sm / md / lg / xl / pill / circle`,
+`--focus-border-color`, `--focus-box-shadow`.
+
+Dark mode is provided via `@media (prefers-color-scheme: dark)` overrides
+in `root.css` itself. Consumer CSS should reference the variables, not
+hard-coded colors.
+
+**Never use `!important`** — fight specificity properly or hoist into
+`root.css` as a token if it's actually a system concern.
+
+## Asset Loading
+
+Conditional enqueue in `inc/core/assets.php`. Every stylesheet declares
+`['extrachill-root']` as a dependency so the variables resolve. Cache
+busting uses `filemtime()`:
+
+```php
+wp_enqueue_style('extrachill-archive', $url, ['extrachill-root'], filemtime($path));
 ```
+
+Load only when needed: `is_archive()`, `is_singular('post')`,
+`is_search()`, `is_active_sidebar('primary')`, etc. Don't enqueue
+everything on every page.
+
+### Blocks Everywhere editor iframe
+
+`blocks_everywhere_enqueue_iframe_assets` hook (in `inc/core/assets.php`)
+loads `root.css` + `style.css` + `block-editor.css` into the BE/IBE
+iframe so the editor visually matches the rendered front-end.
 
 ## Integration with Network Plugins
 
-### extrachill-multisite Integration
+Always check `function_exists()` before calling sibling-plugin helpers.
 
-Network plugin provides cross-site functionality:
+### `extrachill-multisite`
 
-```php
-// Theme uses multisite-aware functions
-if (function_exists('ec_get_blog_id')) {
-    $community_blog = ec_get_blog_id('community');
-}
+| Function | Purpose |
+|---|---|
+| `ec_get_blog_id($key)` | Resolve site key → blog_id |
+| `ec_get_site_url($key)` | Resolve site key → URL |
+| `ec_cross_site_rest_request($key, $method, $path, $args)` | Universal cross-site REST. Accepts `/wp/v2/*` paths since v1.12.3 |
 
-// Cross-site content access
-try {
-    switch_to_blog($community_blog);
-    $community_data = get_posts([...]);
-} finally {
-    restore_current_blog();
-}
-```
+### `extrachill-users`
 
-### extrachill-users Integration
+| Function | Purpose |
+|---|---|
+| `ec_get_user_profile_url($user_id)` | Community-first profile URL |
+| `ec_get_user_author_archive_url($user_id)` | Article-byline-context URL |
+| `ec_is_team_member($user_id)` | Studio access gate |
+| `ec_has_main_site_account($user_id)` | Can the user author on blog_id=1? |
 
-User management and profiles:
+### `extrachill-search`
 
-```php
-// Get user profile URL (general-purpose, community-first)
-if (function_exists('ec_get_user_profile_url')) {
-    $profile_url = ec_get_user_profile_url($user_id);
-}
+Overrides `extrachill_template_search` to render multisite results.
+Theme's `archive-header.php` handles the `is_search()` case for the H1.
 
-// Get author archive URL (article/byline contexts)
-if (function_exists('ec_get_user_author_archive_url')) {
-    $author_archive_url = ec_get_user_author_archive_url($user_id);
-}
+### `extrachill-newsletter`
 
-// Avatar menu integration
-do_action('extrachill_avatar_menu');
+Subscribe form available via the homepage action hook or direct
+`extrachill_newsletter_subscribe_form()`.
 
-// Online users stats
-if (function_exists('ec_get_online_users_count')) {
-    $online = ec_get_online_users_count();
-}
-```
-
-### extrachill-search Integration
-
-Multisite search functionality:
-
-```php
-// Search results already filtered by search plugin
-if (is_search()) {
-    // Loop through multisite results
-    while (have_posts()) {
-        the_post();
-        // Display result with site badge
-    }
-}
-
-// Search header customization
-add_action('extrachill_search_header', 'custom_search_info');
-```
-
-### extrachill-newsletter Integration
-
-Newsletter subscriptions:
-
-```php
-// Subscribe forms available via action hooks
-add_action('extrachill_homepage_content', 'my_newsletter_subscribe');
-
-// Subscription form markup
-echo '<form class="newsletter-form" method="post">';
-echo extrachill_newsletter_subscribe_form();
-echo '</form>';
-```
-
-## Security & Best Practices
-
-### Output Escaping
-
-Always escape output based on context:
-
-```php
-// HTML context
-echo esc_html($user_input);
-
-// Attribute context
-echo '<div class="' . esc_attr($user_class) . '">';
-
-// URL context
-echo '<a href="' . esc_url($user_url) . '">';
-
-// Allow specific HTML tags
-echo wp_kses_post($user_html);
-```
-
-### Input Sanitization
-
-Sanitize user input with wp_unslash() first:
-
-```php
-$title = sanitize_text_field(wp_unslash($_POST['title']));
-$content = wp_kses_post(wp_unslash($_POST['content']));
-$email = sanitize_email(wp_unslash($_POST['email']));
-$url = esc_url_raw(wp_unslash($_POST['url']));
-```
-
-### CSRF Protection
-
-Protect AJAX requests with nonces:
-
-```php
-// PHP: Generate nonce
-$nonce = wp_create_nonce('my_action');
-
-// JavaScript: Include nonce in request
-fetch('/wp-json/my-plugin/endpoint', {
-    method: 'POST',
-    body: JSON.stringify({
-        nonce: document.querySelector('[name="nonce"]').value,
-        data: myData
-    })
-});
-
-// PHP: Verify nonce
-if (!wp_verify_nonce($_POST['nonce'], 'my_action')) {
-    wp_die('Security check failed');
-}
-```
-
-### Data Validation
-
-Validate all input against expected types:
-
-```php
-// Check for required fields
-if (empty($title) || empty($content)) {
-    wp_die('Missing required fields');
-}
-
-// Type check
-if (!is_numeric($post_id)) {
-    wp_die('Invalid post ID');
-}
-
-// Permission check
-if (!current_user_can('edit_posts')) {
-    wp_die('Insufficient permissions');
-}
-```
-
-### Conditional Plugin Checks
-
-Always check for plugin functions before use:
-
-```php
-// WooCommerce integration
-if (function_exists('wc_get_products')) {
-    $products = wc_get_products([...]);
-}
-
-// bbPress integration
-if (function_exists('bbp_get_forum')) {
-    $forum = bbp_get_forum($forum_id);
-}
-
-// Network plugin functions
-if (function_exists('ec_get_user_profile_url')) {
-    $profile = ec_get_user_profile_url($user_id);
-}
-```
-
-## Customization Examples
-
-### Override Styles Properly
-
-Extend styles without using !important:
-
-```css
-/* DON'T DO THIS */
-.my-element {
-    color: red !important; /* Bad practice */
-}
-
-/* DO THIS - Use proper CSS specificity */
-body .my-element {
-    color: red; /* Better specificity */
-}
-
-/* OR - Use CSS variables */
-.my-element {
-    color: var(--accent);
-}
-```
-
-### Add Custom Styles
-
-Create new stylesheet in `/assets/css/`:
-
-```php
-// custom-feature.css
-.custom-feature {
-    max-width: var(--container-width);
-    padding: var(--spacing-lg);
-    background: var(--card-background);
-    border-radius: var(--border-radius-lg);
-}
-
-// Enqueue in functions.php
-wp_enqueue_style(
-    'custom-feature',
-    get_template_directory_uri() . '/assets/css/custom-feature.css',
-    ['extrachill-root'],
-    filemtime(get_template_directory() . '/assets/css/custom-feature.css')
-);
-```
-
-### Create Custom Templates
-
-Override theme templates via plugin:
-
-```php
-// In plugin file
-add_filter('extrachill_template_archive', function($template) {
-    return plugin_dir_path(__FILE__) . 'templates/my-archive.php';
-});
-
-// my-archive.php has full access to WordPress variables
-<?php
-if (have_posts()) {
-    while (have_posts()) {
-        the_post();
-        // Custom markup
-    }
-}
-?>
-```
-
-### Hook Into Theme Actions
-
-Add content via action hooks:
-
-```php
-// In plugin or child theme
-add_action('extrachill_homepage_content', 'add_homepage_hero', 5);
-
-function add_homepage_hero() {
-    ?>
-    <div class="homepage-hero">
-        <h1><?php echo esc_html(bloginfo('name')); ?></h1>
-        <p><?php echo esc_html(bloginfo('description')); ?></p>
-    </div>
-    <?php
-}
-```
-
-### Customize Sidebar Content
-
-Replace or enhance sidebar:
-
-```php
-// Full sidebar replacement
-add_filter('extrachill_sidebar_content', function($sidebar) {
-    ob_start();
-    ?>
-    <aside class="sidebar">
-        <div class="sidebar-widget">
-            <!-- Custom widget -->
-        </div>
-    </aside>
-    <?php
-    return ob_get_clean();
-});
-
-// Add widget to sidebar
-add_action('extrachill_sidebar_top', function() {
-    echo '<div class="custom-widget">';
-    echo 'Custom content';
-    echo '</div>';
-});
-```
-
-### Common Customization Scenarios
-
-**Sticky Header Toggle**:
-```php
-// Disable sticky header
-add_filter('extrachill_enable_sticky_header', '__return_false');
-```
-
-**Change Footer Links**:
-```php
-// Customize footer via filter
-add_filter('extrachill_footer_content', function($content) {
-    return 'Custom footer content';
-});
-```
-
-**Modify Archive Title**:
-```php
-// Hook into archive header
-add_action('extrachill_archive_title', function() {
-    echo 'Custom archive title';
-});
-```
-
-**Add Custom Logo**:
-```php
-// Theme supports custom logo via WordPress
-// Appearance > Customize > Site Identity > Logo
-```
-
-## Build System & Style Processing
-
-### Style.css Processing
-
-Main `style.css` loads first for core styles:
-
-```php
-// functions.php enqueues main stylesheet
-wp_enqueue_style('extrachill-style', get_stylesheet_uri(), [], filemtime($css_file));
-```
-
-### CSS Organization
-
-CSS files load conditionally based on page context:
-
-1. **root.css** - Always loads (CSS variables, design system)
-2. **style.css** - Always loads (core styles)
-3. **archive.css** - Loads on archive pages
-4. **single-post.css** - Loads on single posts
-5. **search.css** - Loads on search results
-6. **sidebar.css** - Loads when sidebar active
-7. **editor-style.css** - Loads in block editor
-8. Other context-specific CSS loads conditionally
-
-### Production Build Process
-
-Create deployable ZIP file:
+## Build + Deploy
 
 ```bash
-# Run build script
-./build.sh
-
-# Output: build/extrachill.zip (only)
-# Process:
-# 1. Removes development files
-# 2. Installs production dependencies
-# 3. Creates optimized ZIP
-# 4. Restores development dependencies
+# Edit source files in inc/, assets/css/, assets/js/
+npm run build                # Regenerates assets/css/root.css from @extrachill/tokens
+homeboy release extrachill   # Conventional commits → auto-bump
+homeboy deploy extrachill    # Build + ship to production
 ```
 
-### Development Workflow
+**Never edit `root.css` directly** — it's a build artifact.
 
-Work directly with source files:
+**Never bump version strings manually** — homeboy owns version_targets in
+`homeboy.json` and bumps from conventional commits.
 
-```bash
-# Edit PHP files in /inc/
-# Edit CSS in /assets/css/
-# Edit JavaScript in /assets/js/
-
-# Check syntax
-php -l functions.php
-
-# Enable debugging in wp-config.php
-define('WP_DEBUG', true);
-define('WP_DEBUG_LOG', true);
-define('SCRIPT_DEBUG', true);
-```
+**Plugin overrides land via filters**, not by editing theme templates.
+If you need to change a template, file an issue or add a hook to the
+theme so plugins can attach.
 
 ---
 
-**Cross-Reference**: For platform-wide architectural patterns, see the root `/AGENTS.md`. For plugin-specific integration patterns, see individual plugin `AGENTS.md` files in `/extrachill-plugins/`.
+**Cross-reference**: For platform-wide patterns see the root `/AGENTS.md`
+(auto-generated — don't edit). For plugin-specific integration patterns
+see each plugin's own `AGENTS.md`.
