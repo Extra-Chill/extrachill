@@ -529,7 +529,7 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 
 	const diarizeCheckbox = createElement(
 		'label',
-		{ className: 'ec-studio-transcribe__checkbox-label', htmlFor: 'ec-studio-transcribe-diarize' },
+		{ className: 'ec-checkbox-row', htmlFor: 'ec-studio-transcribe-diarize' },
 		createElement( 'input', {
 			id: 'ec-studio-transcribe-diarize',
 			type: 'checkbox',
@@ -544,14 +544,14 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		),
 		createElement(
 			'span',
-			{ className: 'ec-studio-transcribe__checkbox-hint' },
+			{ className: 'ec-checkbox-row__hint' },
 			__( 'adds ~15 min · best for multi-speaker interviews', 'extrachill-studio' )
 		)
 	);
 
 	const fillersCheckbox = createElement(
 		'label',
-		{ className: 'ec-studio-transcribe__checkbox-label', htmlFor: 'ec-studio-transcribe-fillers' },
+		{ className: 'ec-checkbox-row', htmlFor: 'ec-studio-transcribe-fillers' },
 		createElement( 'input', {
 			id: 'ec-studio-transcribe-fillers',
 			type: 'checkbox',
@@ -566,7 +566,7 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		),
 		createElement(
 			'span',
-			{ className: 'ec-studio-transcribe__checkbox-hint' },
+			{ className: 'ec-checkbox-row__hint' },
 			__( 'um, uh, like, you know — recommended for editorial polish', 'extrachill-studio' )
 		)
 	);
