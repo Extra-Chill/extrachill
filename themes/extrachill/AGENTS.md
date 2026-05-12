@@ -487,6 +487,28 @@ extrachill_enqueue_shared_tabs();
 </div>
 ```
 
+#### Checkbox Row
+
+Canonical "checkbox + label" primitive. Defined in `style.css` (no extra
+asset to enqueue). Use this any time you're composing a checkbox with a
+visible label — especially inside flex/grid containers where the global
+`input[type="checkbox"]` `margin-right` collapses.
+
+```html
+<label class="ec-checkbox-row">
+    <input type="checkbox" />
+    <span>Identify speakers</span>
+    <span class="ec-checkbox-row__hint">adds ~15 min</span>
+</label>
+```
+
+The hint span is optional. The row is a flex container with `gap: var(--spacing-sm)`,
+so the checkbox is correctly spaced from the label in any layout. The
+input's `margin-right` is reset to `0` inside the row, so spacing is
+owned by `gap` alone.
+
+Use this primitive instead of building a bespoke wrapper per surface.
+
 #### Universal Filter Bar Component
 
 Reusable filter bar for archives and lists:
