@@ -37,8 +37,8 @@ function extrachill_events_register_upcoming_counts_ability(): void {
 						'enum'        => array( 'venue', 'location', 'artist', 'festival' ),
 					),
 					'slug'     => array(
-						'type'        => 'string',
-						'description' => 'Specific term slug for single-term lookup. Omit for bulk query.',
+						'type'        => array( 'string', 'null' ),
+						'description' => 'Specific term slug for single-term lookup. Omit or pass null/empty for bulk query.',
 					),
 					'limit'    => array(
 						'type'        => 'integer',
