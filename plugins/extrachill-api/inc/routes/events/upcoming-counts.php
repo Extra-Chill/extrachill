@@ -70,11 +70,17 @@ function extrachill_api_events_upcoming_counts_handler( WP_REST_Request $request
 		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array(
+	$input = array(
 		'taxonomy' => $request->get_param( 'taxonomy' ),
-		'slug'     => $request->get_param( 'slug' ),
 		'limit'    => (int) $request->get_param( 'limit' ),
-	) );
+	);
+
+	$slug = $request->get_param( 'slug' );
+	if ( is_string( $slug ) && '' !== $slug ) {
+		$input['slug'] = $slug;
+	}
+
+	$result = $ability->execute( $input );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
