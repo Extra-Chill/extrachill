@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.16.1] - 2026-05-13
+
+### Fixed
+- only pass slug to events upcoming-counts ability when set
+
 ## [0.16.0] - 2026-05-10
 
 ### Added
