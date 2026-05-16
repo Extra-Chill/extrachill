@@ -110,6 +110,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-artist.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-link-page.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-venue.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-event.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-festival.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-promoter.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-product.php';
