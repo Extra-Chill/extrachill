@@ -33,6 +33,29 @@ define( 'EXTRACHILL_EVENTS_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCommand.php' ) ) {
 	require_once __DIR__ . '/inc/Cli/AddCityCommand.php';
 	\WP_CLI::add_command( 'extrachill-events add-city', \ExtraChillEvents\Cli\AddCityCommand::class );
+
+	// Qualify v2 — verdict-log subcommands hung off the existing
+	// `wp extrachill venues` parent (registered by extrachill-cli).
+	// Core classes need to load before the CLI commands instantiate them.
+	require_once __DIR__ . '/inc/Core/QualifyVerdict.php';
+	require_once __DIR__ . '/inc/Core/QualifyVerdictsTable.php';
+	require_once __DIR__ . '/inc/Core/QualifyVerdictResolver.php';
+	require_once __DIR__ . '/inc/Core/PlatformDetector.php';
+	require_once __DIR__ . '/inc/Core/QualifyFingerprinter.php';
+
+	require_once __DIR__ . '/inc/Cli/QualifyStatsCommand.php';
+	\WP_CLI::add_command( 'extrachill venues qualify-stats', \ExtraChillEvents\Cli\QualifyStatsCommand::class );
+
+	require_once __DIR__ . '/inc/Cli/RequalifyPendingCommand.php';
+	\WP_CLI::add_command( 'extrachill venues requalify-pending', \ExtraChillEvents\Cli\RequalifyPendingCommand::class );
+
+	require_once __DIR__ . '/inc/Cli/FlowHelpers.php';
+
+	require_once __DIR__ . '/inc/Cli/RequalifyFlowCommand.php';
+	\WP_CLI::add_command( 'extrachill venues requalify-flow', \ExtraChillEvents\Cli\RequalifyFlowCommand::class );
+
+	require_once __DIR__ . '/inc/Cli/UnqualifiableFlowsCommand.php';
+	\WP_CLI::add_command( 'extrachill venues unqualifiable-flows', \ExtraChillEvents\Cli\UnqualifiableFlowsCommand::class );
 }
 
 /**
@@ -71,6 +94,7 @@ class ExtraChillEvents {
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 		add_action( 'init', array( $this, 'init_data_machine_handlers' ), 20 );
 		add_action( 'init', array( $this, 'init_abilities' ), 25 );
+		add_action( 'plugins_loaded', array( $this, 'maybe_install_schema' ), 20 );
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 	}
@@ -94,6 +118,12 @@ class ExtraChillEvents {
 		if ( file_exists( $autoload_file ) ) {
 			require_once $autoload_file;
 		}
+
+		// Qualify v2 — verdict taxonomy + persistent verdict log + resolver.
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdict.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdictsTable.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdictResolver.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/PlatformDetector.php';
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/data-machine-events/init.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/nav.php';
@@ -206,11 +236,27 @@ class ExtraChillEvents {
 	}
 
 	public function activate() {
+		// Create/upgrade the qualify verdicts table at activation. Safe to
+		// call repeatedly — dbDelta handles idempotency.
+		\ExtraChillEvents\Core\QualifyVerdictsTable::create_table();
 		flush_rewrite_rules();
 	}
 
 	public function deactivate() {
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * Idempotent schema installer for the qualify verdicts table.
+	 *
+	 * Runs on plugins_loaded so the table is available even when the plugin
+	 * was already active when the new schema shipped (i.e. without a fresh
+	 * activation). Cheap when up to date — short-circuits on a stored option.
+	 */
+	public function maybe_install_schema() {
+		if ( class_exists( '\\ExtraChillEvents\\Core\\QualifyVerdictsTable' ) ) {
+			\ExtraChillEvents\Core\QualifyVerdictsTable::maybe_install();
+		}
 	}
 
 	public function get_integrations() {

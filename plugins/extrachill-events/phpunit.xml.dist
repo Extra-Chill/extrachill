@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	colors="true"
+	beStrictAboutOutputDuringTests="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnRisky="true"
+	failOnWarning="true">
+	<testsuites>
+		<!--
+			qualify-v2-unit: pure-PHP unit tests that do NOT require the WP
+			test framework. These cover the QualifyVerdict canonicalizer, the
+			verdict-resolution decision tree, and the platform detector.
+
+			The legacy default suite (EventSubmissionAbilitiesTest) extends
+			WP_UnitTestCase and is intentionally left out of this dist config
+			until the upstream DM-core bootstrap issue is resolved.
+		-->
+		<testsuite name="qualify-v2-unit">
+			<directory>tests/Unit/Core</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>
