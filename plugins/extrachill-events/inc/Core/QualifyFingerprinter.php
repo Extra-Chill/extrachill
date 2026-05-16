@@ -325,6 +325,222 @@ class QualifyFingerprinter {
 	}
 
 	/**
+	 * URL path prefixes considered event-listing roots. Used by the shape
+	 * detector to flag listing-shaped URLs. Kept in sync with the
+	 * VenueQualificationAbilities::EVENT_PATHS list, minus the leading slash
+	 * — but reproduced here so QualifyFingerprinter has no cross-class
+	 * dependency on the abilities layer.
+	 *
+	 * @var array<int,string>
+	 */
+	private const LISTING_PATH_SEGMENTS = array(
+		'events',
+		'calendar',
+		'shows',
+		'schedule',
+		'upcoming',
+		'live-music',
+		'whats-on',
+		'listings',
+		'concerts',
+		'music',
+		'lineup',
+		'happenings',
+		'event',
+		'gigs',
+	);
+
+	/**
+	 * URL path PREFIXES that, when followed by a slug-shaped segment, signal
+	 * a single-event detail page (e.g. `/schedule/<slug>`, `/events/<slug>`).
+	 * Used by the shape detector's URL regex.
+	 *
+	 * @var array<int,string>
+	 */
+	private const DETAIL_PATH_PREFIXES = array(
+		'event',
+		'events',
+		'show',
+		'shows',
+		'schedule',
+		'gig',
+		'gigs',
+		'calendar',
+	);
+
+	/**
+	 * Detect the shape of an event page (detail vs listing vs unknown).
+	 *
+	 * Decision logic — conservative on declaring "detail" because the
+	 * detail-page threshold relaxation (1 event qualifies) creates risk of
+	 * false positives on noisy listing pages. Resolution order matters:
+	 *
+	 *  1. Multiple Events in JSON-LD              → LISTING (unambiguous)
+	 *  2. ItemList / CollectionPage / listing
+	 *     container markers in HTML body
+	 *     (.event-list, .event-listing, repeated
+	 *     data-event-id, etc.)                    → LISTING
+	 *  3. URL path is a known listing root
+	 *     (`/`, `/events`, `/calendar`, ...)      → LISTING
+	 *  4. URL matches detail pattern
+	 *     (`/<prefix>/<slug-with-dash>`) AND
+	 *     exactly 1 Event present                 → DETAIL
+	 *  5. Exactly 1 Event present, no listing
+	 *     markers (covered above), and URL path
+	 *     is not a listing root                   → DETAIL
+	 *  6. Otherwise                                → UNKNOWN
+	 *
+	 * The two DETAIL branches mirror the issue's "ANY of" heuristic spec:
+	 *  (4) is the URL-driven heuristic, (5) is the JSON-LD count + body
+	 *  shape heuristic. Listing-marker / multi-Event checks (1-2) and the
+	 *  listing-root check (3) all short-circuit before either can fire, so
+	 *  detail is never declared when any explicit listing signal is present.
+	 *
+	 * Resolver maps UNKNOWN to the listing threshold (≥2 events) so the
+	 * default is conservative.
+	 *
+	 * @param string $url             Final URL (after redirects) being qualified.
+	 * @param array  $structured_data Output of PlatformDetector::detect_structured_data().
+	 * @param string $html            Homepage HTML body (may be empty).
+	 * @return string One of QualifyVerdict::EVENT_PAGE_SHAPE_* constants.
+	 *
+	 * @since 0.20.1
+	 */
+	public static function detect_event_page_shape( string $url, array $structured_data, string $html ): string {
+		$jsonld_events    = (int) ( $structured_data['jsonld_events'] ?? 0 );
+		$microdata_events = (int) ( $structured_data['microdata_events'] ?? 0 );
+		$total_events     = $jsonld_events + $microdata_events;
+
+		// 1. Multiple events anywhere → unambiguous listing.
+		if ( $total_events >= 2 ) {
+			return QualifyVerdict::EVENT_PAGE_SHAPE_LISTING;
+		}
+
+		// 2. ItemList / CollectionPage / listing-container markers → listing.
+		if ( '' !== $html && self::has_listing_markers( $html ) ) {
+			return QualifyVerdict::EVENT_PAGE_SHAPE_LISTING;
+		}
+
+		// 3. URL-based listing detection: trailing path segment matches a
+		// known listing root, or the URL has no path at all (bare domain).
+		$path = self::url_path( $url );
+		if ( self::path_is_listing_root( $path ) ) {
+			return QualifyVerdict::EVENT_PAGE_SHAPE_LISTING;
+		}
+
+		// 4. URL-driven detail heuristic: /<listing-prefix>/<slug>.
+		if ( self::path_matches_detail_pattern( $path ) && 1 === $total_events ) {
+			return QualifyVerdict::EVENT_PAGE_SHAPE_DETAIL;
+		}
+
+		// 5. JSON-LD-count detail heuristic: exactly 1 Event, no listing
+		// markers (handled above), path is not a listing root (handled
+		// above). Catches detail pages whose URLs don't match the slug regex
+		// (e.g. CMSes that serve `/p/event-name` or query-string-driven).
+		if ( 1 === $total_events && '' !== $path ) {
+			return QualifyVerdict::EVENT_PAGE_SHAPE_DETAIL;
+		}
+
+		return QualifyVerdict::EVENT_PAGE_SHAPE_UNKNOWN;
+	}
+
+	/**
+	 * Whether the HTML body contains markers indicating a listing/calendar
+	 * page (multiple event tiles, ItemList schema, etc.).
+	 *
+	 * Conservative: any single marker is enough to force a listing verdict
+	 * and prevent the detail-page threshold from applying.
+	 */
+	private static function has_listing_markers( string $html ): bool {
+		// ItemList / CollectionPage JSON-LD or microdata. We check both
+		// schema.org-flavored URLs and bare type tokens.
+		if ( preg_match(
+			'#"@type"\s*:\s*"(?:ItemList|CollectionPage|EventSeries)"#i',
+			$html
+		) ) {
+			return true;
+		}
+		if ( preg_match(
+			'#itemtype\s*=\s*["\']https?://schema\.org/(?:ItemList|CollectionPage|EventSeries)["\']#i',
+			$html
+		) ) {
+			return true;
+		}
+
+		// Common listing-container class / data-attribute markers.
+		if ( preg_match(
+			'#class\s*=\s*["\'][^"\']*\b(?:event-list|event-listing|events-list|events-listing|event-grid|events-grid|show-list|shows-list|schedule-list)\b#i',
+			$html
+		) ) {
+			return true;
+		}
+
+		// Repeated data-event-id attributes (>= 2) → listing of events.
+		if ( preg_match_all( '#data-event-id\s*=#i', $html, $m ) && count( $m[0] ) >= 2 ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Extract the lowercase path component of a URL, with trailing slash
+	 * stripped (except for bare "/"). Returns '' when the URL is unparseable.
+	 */
+	private static function url_path( string $url ): string {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) ) {
+			return '';
+		}
+		$path = isset( $parts['path'] ) ? strtolower( (string) $parts['path'] ) : '';
+		if ( '' === $path ) {
+			return '';
+		}
+		if ( '/' === $path ) {
+			return '/';
+		}
+		return rtrim( $path, '/' );
+	}
+
+	/**
+	 * Whether a URL path is a listing root (bare host, or trailing segment
+	 * matches a known listing slug like /events, /calendar).
+	 */
+	private static function path_is_listing_root( string $path ): bool {
+		if ( '' === $path || '/' === $path ) {
+			return true;
+		}
+		// Last segment is one of the known listing slugs?
+		$segments = array_values( array_filter( explode( '/', $path ) ) );
+		if ( empty( $segments ) ) {
+			return true;
+		}
+		$last = end( $segments );
+		return in_array( $last, self::LISTING_PATH_SEGMENTS, true );
+	}
+
+	/**
+	 * Whether a URL path matches the single-event detail pattern:
+	 * `/<listing-prefix>/<slug>` where the slug contains at least one dash
+	 * AND at least one alphabetic character. The dash + alpha guard prevents
+	 * matching numeric ids (`/events/12345`) and short tokens.
+	 */
+	private static function path_matches_detail_pattern( string $path ): bool {
+		if ( '' === $path || '/' === $path ) {
+			return false;
+		}
+		$prefixes = implode( '|', array_map( 'preg_quote', self::DETAIL_PATH_PREFIXES ) );
+		$pattern  = '#^/(?:' . $prefixes . ')/([a-z0-9][a-z0-9-]*[a-z0-9])(?:/|$)#i';
+		if ( ! preg_match( $pattern, $path, $m ) ) {
+			return false;
+		}
+		$slug = $m[1];
+		// Slug must contain at least one dash AND at least one letter — keeps
+		// us from matching numeric ids or short tokens.
+		return ( false !== strpos( $slug, '-' ) ) && preg_match( '#[a-z]#i', $slug );
+	}
+
+	/**
 	 * Heuristic: derive the extractor class name from extraction metadata
 	 * the test-event-scraper ability returns. Falls back to a generic label
 	 * when nothing useful is available.

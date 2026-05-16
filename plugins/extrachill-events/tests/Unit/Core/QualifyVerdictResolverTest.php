@@ -114,7 +114,8 @@ class QualifyVerdictResolverTest extends TestCase {
 
 	public function test_single_event_does_not_qualify_structured(): void {
 		// MIN_EVENTS_FOR_STRUCTURED_QUALIFICATION is 2 — a single event is
-		// not enough to qualify, even from a structured extractor.
+		// not enough to qualify on a non-detail page, even from a structured
+		// extractor. Shape defaults to UNKNOWN here → listing threshold applies.
 		$fingerprint = array(
 			'http_status'        => 200,
 			'extractor_attempts' => array(
@@ -128,6 +129,114 @@ class QualifyVerdictResolverTest extends TestCase {
 		$this->assertNotSame( QualifyVerdict::QUALIFIED_STRUCTURED, $verdict['verdict'] );
 		// Should fall into EXTRACTION_GAP because structured data is present.
 		$this->assertSame( QualifyVerdict::EXTRACTION_GAP, $verdict['verdict'] );
+	}
+
+	public function test_single_event_detail_page_qualifies_with_one_event(): void {
+		// Issue #77: a single-event detail page (Royal American shape) emits
+		// exactly 1 Event by design. Once the fingerprinter classifies it as
+		// `event_page_shape=detail`, the resolver MUST issue
+		// QUALIFIED_STRUCTURED instead of the old EXTRACTION_GAP misverdict.
+		$fingerprint = array(
+			'http_status'        => 200,
+			'final_url'          => 'https://www.theroyalamerican.com/schedule/emma-grace-burton-5-15-26',
+			'structured_data'    => array(
+				'jsonld_events'              => 1,
+				'jsonld_event_graph_present' => true,
+				'event_page_shape'           => QualifyVerdict::EVENT_PAGE_SHAPE_DETAIL,
+			),
+			'extractor_attempts' => array(
+				array(
+					'name'       => 'JsonLdExtractor',
+					'exists'     => true,
+					'matched'    => true,
+					'ran'        => true,
+					'events'     => 1,
+					'events_url' => 'https://www.theroyalamerican.com/schedule/emma-grace-burton-5-15-26',
+				),
+			),
+		);
+
+		$verdict = QualifyVerdictResolver::resolve( $fingerprint );
+
+		$this->assertSame( QualifyVerdict::QUALIFIED_STRUCTURED, $verdict['verdict'] );
+		$this->assertSame( QualifyVerdict::GUIDANCE_QUALIFIED_STRUCTURED, $verdict['agent_guidance'] );
+		$this->assertSame( 1, $verdict['event_count'] );
+		$this->assertSame(
+			'https://www.theroyalamerican.com/schedule/emma-grace-burton-5-15-26',
+			$verdict['events_url']
+		);
+	}
+
+	public function test_listing_page_still_requires_two_events(): void {
+		// Listing pages keep the ≥2 threshold — a single-event match on a
+		// shape=listing fingerprint must NOT qualify, otherwise the original
+		// stray-snippet false-positive guard would be defeated.
+		$fingerprint = array(
+			'http_status'        => 200,
+			'final_url'          => 'https://example.com/calendar',
+			'structured_data'    => array(
+				'jsonld_events'              => 1,
+				'jsonld_event_graph_present' => true,
+				'event_page_shape'           => QualifyVerdict::EVENT_PAGE_SHAPE_LISTING,
+			),
+			'extractor_attempts' => array(
+				array( 'name' => 'JsonLdExtractor', 'exists' => true, 'matched' => true, 'ran' => true, 'events' => 1 ),
+			),
+		);
+
+		$verdict = QualifyVerdictResolver::resolve( $fingerprint );
+
+		$this->assertNotSame( QualifyVerdict::QUALIFIED_STRUCTURED, $verdict['verdict'] );
+		$this->assertSame( QualifyVerdict::EXTRACTION_GAP, $verdict['verdict'] );
+	}
+
+	public function test_unknown_shape_still_requires_two_events(): void {
+		// Conservative default: shape=unknown uses the listing threshold.
+		// 1 event + unknown shape → still EXTRACTION_GAP, not QUALIFIED.
+		$fingerprint = array(
+			'http_status'        => 200,
+			'structured_data'    => array(
+				'jsonld_events'              => 1,
+				'jsonld_event_graph_present' => true,
+				'event_page_shape'           => QualifyVerdict::EVENT_PAGE_SHAPE_UNKNOWN,
+			),
+			'extractor_attempts' => array(
+				array( 'name' => 'JsonLdExtractor', 'exists' => true, 'matched' => true, 'ran' => true, 'events' => 1 ),
+			),
+		);
+
+		$verdict = QualifyVerdictResolver::resolve( $fingerprint );
+
+		$this->assertNotSame( QualifyVerdict::QUALIFIED_STRUCTURED, $verdict['verdict'] );
+		$this->assertSame( QualifyVerdict::EXTRACTION_GAP, $verdict['verdict'] );
+	}
+
+	public function test_detail_shape_with_two_events_still_qualifies(): void {
+		// Detail threshold (1) is a floor, not a ceiling — a page classified
+		// as detail that happens to have 2+ events should still qualify.
+		$fingerprint = array(
+			'http_status'        => 200,
+			'final_url'          => 'https://example.com/events/some-show-3-21-26',
+			'structured_data'    => array(
+				'jsonld_events'    => 2,
+				'event_page_shape' => QualifyVerdict::EVENT_PAGE_SHAPE_DETAIL,
+			),
+			'extractor_attempts' => array(
+				array(
+					'name'       => 'JsonLdExtractor',
+					'exists'     => true,
+					'matched'    => true,
+					'ran'        => true,
+					'events'     => 2,
+					'events_url' => 'https://example.com/events/some-show-3-21-26',
+				),
+			),
+		);
+
+		$verdict = QualifyVerdictResolver::resolve( $fingerprint );
+
+		$this->assertSame( QualifyVerdict::QUALIFIED_STRUCTURED, $verdict['verdict'] );
+		$this->assertSame( 2, $verdict['event_count'] );
 	}
 
 	public function test_vision_only_resolves_qualified_for_flyer(): void {
@@ -270,5 +379,19 @@ class QualifyVerdictResolverTest extends TestCase {
 		$this->assertFalse( QualifyVerdict::is_requalifiable( QualifyVerdict::COVERED_ELSEWHERE ) );
 		$this->assertFalse( QualifyVerdict::is_requalifiable( QualifyVerdict::RESERVATION_ONLY ) );
 		$this->assertFalse( QualifyVerdict::is_requalifiable( QualifyVerdict::QUALIFIED_STRUCTURED ) );
+	}
+
+	public function test_min_events_thresholds_are_distinct(): void {
+		// Listing-page threshold MUST stay at 2 — the existing guard against
+		// stray-snippet false positives. Detail-page threshold relaxes to 1
+		// because legitimate /schedule/<slug> pages emit exactly 1 Event.
+		$this->assertSame( 2, QualifyVerdict::MIN_EVENTS_FOR_STRUCTURED_QUALIFICATION );
+		$this->assertSame( 1, QualifyVerdict::MIN_EVENTS_FOR_DETAIL_PAGE );
+	}
+
+	public function test_event_page_shape_enum_values(): void {
+		$this->assertSame( 'detail', QualifyVerdict::EVENT_PAGE_SHAPE_DETAIL );
+		$this->assertSame( 'listing', QualifyVerdict::EVENT_PAGE_SHAPE_LISTING );
+		$this->assertSame( 'unknown', QualifyVerdict::EVENT_PAGE_SHAPE_UNKNOWN );
 	}
 }

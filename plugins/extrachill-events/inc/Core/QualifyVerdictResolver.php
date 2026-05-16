@@ -120,7 +120,15 @@ class QualifyVerdictResolver {
 			: array();
 
 		// ---- 5. Structured qualification — non-vision extractor returned enough events. ----
-		$best_structured = self::best_structured_attempt( $attempts );
+		// Pick the per-shape threshold: detail pages legitimately serve 1
+		// Event by design; listing pages need ≥2 to guard against
+		// stray-snippet false positives (issue #77).
+		$shape       = (string) ( $fingerprint['structured_data']['event_page_shape'] ?? QualifyVerdict::EVENT_PAGE_SHAPE_UNKNOWN );
+		$min_events  = ( QualifyVerdict::EVENT_PAGE_SHAPE_DETAIL === $shape )
+			? QualifyVerdict::MIN_EVENTS_FOR_DETAIL_PAGE
+			: QualifyVerdict::MIN_EVENTS_FOR_STRUCTURED_QUALIFICATION;
+
+		$best_structured = self::best_structured_attempt( $attempts, $min_events );
 		if ( null !== $best_structured ) {
 			$events = (int) ( $best_structured['events'] ?? 0 );
 			$url    = (string) ( $best_structured['events_url'] ?? ( $fingerprint['final_url'] ?? '' ) );
@@ -229,10 +237,15 @@ class QualifyVerdictResolver {
 	 * Find the extractor attempt with the highest event count that meets the
 	 * structured-qualification threshold (non-vision pathway).
 	 *
-	 * @param array $attempts Extractor attempts from the fingerprint.
+	 * @param array $attempts   Extractor attempts from the fingerprint.
+	 * @param int   $min_events Minimum event count required to qualify.
+	 *                          Defaults to the listing-page threshold for
+	 *                          back-compat; callers select
+	 *                          MIN_EVENTS_FOR_DETAIL_PAGE when the
+	 *                          fingerprint indicates a detail-shaped page.
 	 * @return array|null Best attempt, or null if none qualify.
 	 */
-	private static function best_structured_attempt( array $attempts ): ?array {
+	private static function best_structured_attempt( array $attempts, int $min_events = QualifyVerdict::MIN_EVENTS_FOR_STRUCTURED_QUALIFICATION ): ?array {
 		$best = null;
 		foreach ( $attempts as $attempt ) {
 			if ( ! is_array( $attempt ) ) {
@@ -242,7 +255,7 @@ class QualifyVerdictResolver {
 				continue;
 			}
 			$events = (int) ( $attempt['events'] ?? 0 );
-			if ( $events < QualifyVerdict::MIN_EVENTS_FOR_STRUCTURED_QUALIFICATION ) {
+			if ( $events < $min_events ) {
 				continue;
 			}
 			if ( null === $best || $events > (int) ( $best['events'] ?? 0 ) ) {

@@ -67,3 +67,4 @@ if ( ! function_exists( 'mb_substr' ) && function_exists( 'substr' ) ) {
 require_once dirname( __DIR__ ) . '/inc/Core/QualifyVerdict.php';
 require_once dirname( __DIR__ ) . '/inc/Core/QualifyVerdictResolver.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PlatformDetector.php';
+require_once dirname( __DIR__ ) . '/inc/Core/QualifyFingerprinter.php';

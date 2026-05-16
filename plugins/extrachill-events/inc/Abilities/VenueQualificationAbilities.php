@@ -216,6 +216,16 @@ class VenueQualificationAbilities {
 			$fingerprint['platforms_detected'] = QualifyFingerprinter::build_platforms_list( $html, $origin );
 		}
 
+		// Event-page shape classification — drives per-shape thresholds in
+		// QualifyVerdictResolver. Always populated (even on fetch failure)
+		// so downstream code can rely on the key. See QualifyFingerprinter
+		// for the decision logic.
+		$fingerprint['structured_data']['event_page_shape'] = QualifyFingerprinter::detect_event_page_shape(
+			$fingerprint['final_url'],
+			is_array( $fingerprint['structured_data'] ) ? $fingerprint['structured_data'] : array(),
+			$html
+		);
+
 		// ---- Stop early if we already have enough signal for a verdict. ----
 		//
 		// For unreachable / bot-blocked / 5xx, the test-event-scraper round

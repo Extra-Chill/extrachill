@@ -55,10 +55,36 @@ final class QualifyVerdict {
 
 	/**
 	 * Minimum number of events a non-vision extractor must return before
-	 * qualify v2 will issue a QUALIFIED_STRUCTURED verdict. Single-event pages
-	 * sneak through other tighter checks too easily.
+	 * qualify v2 will issue a QUALIFIED_STRUCTURED verdict for a LISTING
+	 * page (or a page whose shape is unknown). Single-event pages sneak
+	 * through other tighter checks too easily on listing-shaped URLs.
 	 */
 	public const MIN_EVENTS_FOR_STRUCTURED_QUALIFICATION = 2;
+
+	/**
+	 * Minimum events threshold for a single-event DETAIL page. Detail-page
+	 * URLs (e.g. `/schedule/<slug>`) emit exactly one Event by design, so
+	 * the listing-page threshold misclassifies them as extraction_gap.
+	 * Resolver picks this constant when `event_page_shape === "detail"`.
+	 *
+	 * @since 0.20.1
+	 */
+	public const MIN_EVENTS_FOR_DETAIL_PAGE = 1;
+
+	// ---- Event page shape enum ----
+	//
+	// Populated by QualifyFingerprinter::detect_event_page_shape() and stored
+	// on the fingerprint at `structured_data.event_page_shape`. The verdict
+	// resolver reads this to decide which MIN_EVENTS_* threshold to apply.
+
+	/** Single-event detail page (e.g. /schedule/<event-slug>). 1-event pages are legitimate here. */
+	public const EVENT_PAGE_SHAPE_DETAIL = 'detail';
+
+	/** Listing / calendar page. Single events are not enough; ≥2 required. */
+	public const EVENT_PAGE_SHAPE_LISTING = 'listing';
+
+	/** Shape detector did not find sufficient signal. Conservative default — treated as listing. */
+	public const EVENT_PAGE_SHAPE_UNKNOWN = 'unknown';
 
 	/**
 	 * The full enum of valid verdict values. Useful for input validation in
