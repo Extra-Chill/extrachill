@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.16.2] - 2026-05-17
+
+### Fixed
+- require Turnstile on public newsletter subscribe route
+
 ## [0.16.1] - 2026-05-13
 
 ### Fixed
