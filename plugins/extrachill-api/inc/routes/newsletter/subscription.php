@@ -16,38 +16,72 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_newsletter_subscription_route' );
 
 function extrachill_api_register_newsletter_subscription_route() {
+	// Admin-mode submissions (list_id present + manage_options/super-admin user) skip
+	// the Turnstile check; only public/anonymous context-based submissions need it.
+	// The closure handles that distinction without forking the route.
+	$permission_callback = function ( WP_REST_Request $request ) {
+		$list_id       = (string) $request->get_param( 'list_id' );
+		$is_admin_mode = '' !== $list_id;
+
+		if ( $is_admin_mode ) {
+			if ( ! is_super_admin() && ! current_user_can( 'manage_options' ) ) {
+				return new WP_Error(
+					'unauthorized',
+					'Admin capability required for direct list subscription',
+					array( 'status' => 403 )
+				);
+			}
+			return true;
+		}
+
+		if ( ! function_exists( 'ec_turnstile_check_request' ) ) {
+			return new WP_Error(
+				'turnstile_missing',
+				__( 'Security verification unavailable.', 'extrachill-api' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return ec_turnstile_check_request( $request );
+	};
+
 	register_rest_route(
 		'extrachill/v1',
 		'/newsletter/subscribe',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => 'extrachill_api_newsletter_subscribe_handler',
-			'permission_callback' => '__return_true',
+			'permission_callback' => $permission_callback,
 			'args'                => array(
-				'emails'     => array(
+				'emails'             => array(
 					'required'          => true,
 					'type'              => 'array',
 					'validate_callback' => 'extrachill_api_validate_emails_array',
 				),
-				'context'    => array(
+				'context'            => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'list_id'    => array(
+				'list_id'            => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'source'     => array(
+				'source'             => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'source_url' => array(
+				'source_url'         => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'esc_url_raw',
+				),
+				'turnstile_response' => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
 				),
 			),
 		)
@@ -81,27 +115,17 @@ function extrachill_api_newsletter_subscribe_handler( $request ) {
 	$source     = $request->get_param( 'source' ) ?: '';
 	$source_url = $request->get_param( 'source_url' ) ?: '';
 
-	// Determine subscription mode: direct list_id (admin) or context lookup (public)
+	// Determine subscription mode: direct list_id (admin) or context lookup (public).
+	// Admin-mode capability and public-mode Turnstile checks are enforced in the
+	// permission_callback; this handler only needs to validate input shape.
 	$is_admin_mode = ! empty( $list_id );
 
-	if ( $is_admin_mode ) {
-		// Admin mode: requires super admin (multisite) or manage_options (single site)
-		if ( ! is_super_admin() && ! current_user_can( 'manage_options' ) ) {
-			return new WP_Error(
-				'unauthorized',
-				'Admin capability required for direct list subscription',
-				array( 'status' => 403 )
-			);
-		}
-	} else {
-		// Public mode: requires context
-		if ( empty( $context ) ) {
-			return new WP_Error(
-				'missing_context',
-				'Either list_id (admin) or context (public) is required',
-				array( 'status' => 400 )
-			);
-		}
+	if ( ! $is_admin_mode && empty( $context ) ) {
+		return new WP_Error(
+			'missing_context',
+			'Either list_id (admin) or context (public) is required',
+			array( 'status' => 400 )
+		);
 	}
 
 	// Use ability.
