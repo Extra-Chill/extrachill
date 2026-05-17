@@ -20,6 +20,8 @@
 
 namespace ExtraChillEvents\Cli;
 
+use ExtraChillEvents\Core\QualifyVerdict;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -185,50 +187,20 @@ trait FlowHelpers {
 	 * Idempotent — re-pausing an already-paused flow is a no-op except for
 	 * refreshing paused_reason.
 	 *
-	 * @param int    $flow_id Flow ID.
-	 * @param string $verdict Verdict that triggered the pause.
+	 * When the network option `dme_qualify_recheck_enabled` is true (default)
+	 * AND the verdict has a non-null recheck interval, an Action Scheduler
+	 * job is queued for the next recheck. The action ID is stashed inside
+	 * scheduling_config as `recheck_action_id` so a future pause/unpause/
+	 * delete can find and cancel the scheduled job.
+	 *
+	 * @param int    $flow_id    Flow ID.
+	 * @param string $verdict    Verdict that triggered the pause.
+	 * @param string $source_url Optional source URL — required when
+	 *                           recheck scheduling is enabled so the
+	 *                           rechecker can re-qualify the URL.
 	 * @return bool True on success.
 	 */
-	protected function pause_flow_by_verdict( int $flow_id, string $verdict ): bool {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT scheduling_config FROM {$table} WHERE flow_id = %d", $flow_id ),
-			ARRAY_A
-		);
-		if ( ! $row ) {
-			return false;
-		}
-
-		$scheduling = json_decode( (string) ( $row['scheduling_config'] ?? '' ), true );
-		if ( ! is_array( $scheduling ) ) {
-			$scheduling = array();
-		}
-
-		$prior_interval = (string) ( $scheduling['interval'] ?? '' );
-		if ( 'manual' !== $prior_interval ) {
-			$scheduling['prior_interval'] = $prior_interval;
-		}
-		$scheduling['interval']      = 'manual';
-		$scheduling['paused_reason'] = $verdict;
-		$scheduling['paused_at']     = current_time( 'mysql' );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$ok = $wpdb->update(
-			$table,
-			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
-			array( 'flow_id' => $flow_id ),
-			array( '%s' ),
-			array( '%d' )
-		);
-
-		// Unschedule Action Scheduler hooks so paused flows do not fire.
-		if ( $ok && function_exists( 'as_unschedule_all_actions' ) ) {
-			as_unschedule_all_actions( 'datamachine_run_flow_now', array( $flow_id ), 'data-machine' );
-		}
-
-		return false !== $ok;
+	protected function pause_flow_by_verdict( int $flow_id, string $verdict, string $source_url = '' ): bool {
+		return FlowOps::pause_flow_by_verdict( $flow_id, $verdict, $source_url );
 	}
 }

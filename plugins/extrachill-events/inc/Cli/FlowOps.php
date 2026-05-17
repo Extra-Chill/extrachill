@@ -1,0 +1,333 @@
+<?php
+/**
+ * Qualify v2 — static flow operations.
+ *
+ * Called by both CLI commands (via the FlowHelpers trait) and the recheck
+ * handler (which has no `$this` context). Keeping the read/write logic in
+ * one place keeps idempotency promises predictable: any caller that
+ * touches scheduling_config goes through the same code path.
+ *
+ * @package ExtraChillEvents\Cli
+ */
+
+namespace ExtraChillEvents\Cli;
+
+use ExtraChillEvents\Core\QualifyVerdict;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Static flow operations called by both CLI commands (via the FlowHelpers
+ * trait) and the recheck handler (which has no `$this` context).
+ *
+ * Keeping the read/write logic in one place keeps idempotency promises
+ * predictable: any caller that touches scheduling_config goes through the
+ * same code path.
+ *
+ * @internal
+ */
+class FlowOps {
+
+	/**
+	 * Read a flow row.
+	 *
+	 * @param int $flow_id Flow ID.
+	 * @return array|null Associative row with decoded scheduling_config.
+	 */
+	public static function fetch_flow_row( int $flow_id ): ?array {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_flows';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$row = $wpdb->get_row(
+			$wpdb->prepare( "SELECT flow_id, flow_name, scheduling_config FROM {$table} WHERE flow_id = %d", $flow_id ),
+			ARRAY_A
+		);
+		if ( ! $row ) {
+			return null;
+		}
+
+		$scheduling = json_decode( (string) ( $row['scheduling_config'] ?? '' ), true );
+		$row['scheduling_config'] = is_array( $scheduling ) ? $scheduling : array();
+		return $row;
+	}
+
+	/**
+	 * Pause a flow by setting scheduling_config.interval = "manual",
+	 * stashing the verdict in paused_reason, and (optionally) queuing the
+	 * next recheck Action Scheduler job.
+	 *
+	 * @param int    $flow_id    Flow ID.
+	 * @param string $verdict    Verdict that triggered the pause.
+	 * @param string $source_url Source URL — required for recheck scheduling.
+	 * @return bool True on success.
+	 */
+	public static function pause_flow_by_verdict( int $flow_id, string $verdict, string $source_url = '' ): bool {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_flows';
+
+		$row = self::fetch_flow_row( $flow_id );
+		if ( ! $row ) {
+			return false;
+		}
+
+		$scheduling = is_array( $row['scheduling_config'] ?? null ) ? $row['scheduling_config'] : array();
+
+		$prior_interval = (string) ( $scheduling['interval'] ?? '' );
+		if ( 'manual' !== $prior_interval ) {
+			$scheduling['prior_interval'] = $prior_interval;
+		}
+		$scheduling['interval']      = 'manual';
+		$scheduling['paused_reason'] = $verdict;
+		$scheduling['paused_at']     = current_time( 'mysql' );
+
+		// Cancel any in-flight recheck before scheduling a new one so a
+		// repeat pause never leaves a stale action behind.
+		$prior_action_id = (int) ( $scheduling['recheck_action_id'] ?? 0 );
+		if ( $prior_action_id > 0 && function_exists( 'as_unschedule_action' ) ) {
+			as_unschedule_action( 'dme/qualify_recheck', null, 'dme_qualify' );
+		}
+		unset( $scheduling['recheck_action_id'] );
+		unset( $scheduling['recheck_scheduled_for'] );
+		unset( $scheduling['stale_flag'] );
+
+		// Schedule the next recheck when enabled and the verdict has a
+		// non-null cadence. Source URL is required — without it the
+		// rechecker has nothing to qualify against.
+		$recheck_enabled = (bool) get_site_option( 'dme_qualify_recheck_enabled', true );
+		$interval        = QualifyVerdict::recheck_interval_for( $verdict );
+		if ( $recheck_enabled && null !== $interval && '' !== $source_url && function_exists( 'as_schedule_single_action' ) ) {
+			$ts        = time() + (int) $interval;
+			$action_id = as_schedule_single_action(
+				$ts,
+				'dme/qualify_recheck',
+				array(
+					array(
+						'flow_id'              => $flow_id,
+						'url'                  => $source_url,
+						'verdict'              => $verdict,
+						'consecutive_failures' => 0,
+					),
+				),
+				'dme_qualify'
+			);
+			if ( $action_id ) {
+				$scheduling['recheck_action_id']     = (int) $action_id;
+				$scheduling['recheck_scheduled_for'] = gmdate( 'Y-m-d H:i:s', $ts );
+			}
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$ok = $wpdb->update(
+			$table,
+			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
+			array( 'flow_id' => $flow_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		// Unschedule Action Scheduler hooks so paused flows do not fire.
+		if ( $ok && function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( 'datamachine_run_flow_now', array( $flow_id ), 'data-machine' );
+		}
+
+		return false !== $ok;
+	}
+
+	/**
+	 * Update only the paused_reason (used when a recheck returns a
+	 * different non-qualifying verdict — e.g. unreachable → bot_blocked).
+	 *
+	 * @param int    $flow_id Flow ID.
+	 * @param string $verdict New verdict.
+	 * @return bool True on success.
+	 */
+	public static function update_paused_reason( int $flow_id, string $verdict ): bool {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_flows';
+
+		$row = self::fetch_flow_row( $flow_id );
+		if ( ! $row ) {
+			return false;
+		}
+		$scheduling                  = is_array( $row['scheduling_config'] ?? null ) ? $row['scheduling_config'] : array();
+		$scheduling['paused_reason'] = $verdict;
+		$scheduling['paused_at']     = current_time( 'mysql' );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$ok = $wpdb->update(
+			$table,
+			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
+			array( 'flow_id' => $flow_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		return false !== $ok;
+	}
+
+	/**
+	 * Set the recheck-rescheduled metadata on a paused flow.
+	 *
+	 * Called by the handler after queuing the next recheck so the digest
+	 * can show when the next attempt will fire.
+	 *
+	 * @param int    $flow_id     Flow ID.
+	 * @param int    $action_id   Action Scheduler action ID.
+	 * @param int    $next_run_ts Unix timestamp.
+	 * @return bool True on success.
+	 */
+	public static function set_recheck_metadata( int $flow_id, int $action_id, int $next_run_ts ): bool {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_flows';
+
+		$row = self::fetch_flow_row( $flow_id );
+		if ( ! $row ) {
+			return false;
+		}
+		$scheduling                          = is_array( $row['scheduling_config'] ?? null ) ? $row['scheduling_config'] : array();
+		$scheduling['recheck_action_id']     = $action_id;
+		$scheduling['recheck_scheduled_for'] = gmdate( 'Y-m-d H:i:s', $next_run_ts );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$ok = $wpdb->update(
+			$table,
+			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
+			array( 'flow_id' => $flow_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		return false !== $ok;
+	}
+
+	/**
+	 * Flag a paused flow as stale after N consecutive failed rechecks.
+	 *
+	 * The digest reads `stale_flag` from scheduling_config and surfaces
+	 * these flows under a "manual review recommended" section.
+	 *
+	 * @param int    $flow_id              Flow ID.
+	 * @param string $verdict              The verdict of the most recent failed recheck.
+	 * @param int    $consecutive_failures How many rechecks failed in a row.
+	 * @return bool True on success.
+	 */
+	public static function flag_stale_paused( int $flow_id, string $verdict, int $consecutive_failures ): bool {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_flows';
+
+		$row = self::fetch_flow_row( $flow_id );
+		if ( ! $row ) {
+			return false;
+		}
+		$scheduling = is_array( $row['scheduling_config'] ?? null ) ? $row['scheduling_config'] : array();
+
+		$scheduling['paused_reason'] = $verdict;
+		$scheduling['stale_flag']    = array(
+			'flagged_at'           => current_time( 'mysql' ),
+			'consecutive_failures' => $consecutive_failures,
+			'last_verdict'         => $verdict,
+		);
+		// Cancel any further recheck — operator review required.
+		unset( $scheduling['recheck_action_id'] );
+		unset( $scheduling['recheck_scheduled_for'] );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$ok = $wpdb->update(
+			$table,
+			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
+			array( 'flow_id' => $flow_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		do_action(
+			'datamachine_log',
+			'warning',
+			sprintf( 'QualifyRecheck: flow %d flagged stale after %d consecutive failures (verdict=%s)', $flow_id, $consecutive_failures, $verdict ),
+			array(
+				'flow_id'              => $flow_id,
+				'verdict'              => $verdict,
+				'consecutive_failures' => $consecutive_failures,
+			)
+		);
+
+		return false !== $ok;
+	}
+
+	/**
+	 * Resume a paused flow because qualify returned QUALIFIED_STRUCTURED.
+	 *
+	 * Steps:
+	 *  - Restore scheduling_config.interval to its pre-pause value
+	 *    (from scheduling_config.prior_interval; defaults to 'daily').
+	 *  - Clear paused_reason / paused_at / prior_interval / recheck_*
+	 *    fields and any stale_flag.
+	 *  - Queue an immediate run via datamachine_run_flow_now so the
+	 *    operator sees a real run on the next tick.
+	 *
+	 * Safe by design: only callers with a positive qualify result should
+	 * invoke this. There is intentionally no force-resume path here.
+	 *
+	 * @param int   $flow_id Flow ID.
+	 * @param array $result  Qualify result for logging context.
+	 * @return bool True on success.
+	 */
+	public static function resume_flow_from_qualified( int $flow_id, array $result ): bool {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_flows';
+
+		$row = self::fetch_flow_row( $flow_id );
+		if ( ! $row ) {
+			return false;
+		}
+		$scheduling = is_array( $row['scheduling_config'] ?? null ) ? $row['scheduling_config'] : array();
+
+		$prior_interval = (string) ( $scheduling['prior_interval'] ?? '' );
+		if ( '' === $prior_interval || 'manual' === $prior_interval ) {
+			$prior_interval = 'daily';
+		}
+
+		$scheduling['interval'] = $prior_interval;
+		unset(
+			$scheduling['prior_interval'],
+			$scheduling['paused_reason'],
+			$scheduling['paused_at'],
+			$scheduling['recheck_action_id'],
+			$scheduling['recheck_scheduled_for'],
+			$scheduling['stale_flag']
+		);
+		$scheduling['resumed_at']       = current_time( 'mysql' );
+		$scheduling['resumed_by_qualify'] = true;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$ok = $wpdb->update(
+			$table,
+			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
+			array( 'flow_id' => $flow_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		// Queue an immediate run so the operator sees a real result on the
+		// next tick rather than waiting for the next scheduled fire.
+		if ( $ok && function_exists( 'as_enqueue_async_action' ) ) {
+			as_enqueue_async_action( 'datamachine_run_flow_now', array( $flow_id ), 'data-machine' );
+		}
+
+		do_action(
+			'datamachine_log',
+			'info',
+			sprintf( 'QualifyRecheck: auto-resumed flow %d (verdict=qualified_structured, restored interval=%s)', $flow_id, $prior_interval ),
+			array(
+				'flow_id'     => $flow_id,
+				'interval'    => $prior_interval,
+				'event_count' => (int) ( $result['event_count'] ?? 0 ),
+			)
+		);
+
+		return false !== $ok;
+	}
+}

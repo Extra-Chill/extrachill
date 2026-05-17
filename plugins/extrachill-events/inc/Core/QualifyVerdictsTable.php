@@ -204,4 +204,95 @@ class QualifyVerdictsTable {
 
 		return is_array( $row ) ? $row : null;
 	}
+
+	/**
+	 * Fetch the N most recent verdict rows for a URL hash, newest first.
+	 *
+	 * Used by meets_pause_confirmation() to inspect verdict history when
+	 * deciding whether a candidate pause has enough corroborating evidence.
+	 *
+	 * @param string $url_hash 40-char sha1 hash.
+	 * @param int    $limit    Maximum rows to return. Capped at 50 defensively.
+	 * @return array<int, array<string, mixed>> Rows ordered by qualified_at DESC, id DESC.
+	 */
+	public function latest_verdicts_for_url( string $url_hash, int $limit = 10 ): array {
+		global $wpdb;
+		if ( '' === $url_hash ) {
+			return array();
+		}
+		$limit = max( 1, min( 50, $limit ) );
+		$table = self::table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT verdict, qualified_at, id FROM {$table} WHERE url_hash = %s ORDER BY qualified_at DESC, id DESC LIMIT %d",
+				$url_hash,
+				$limit
+			),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Check whether a verdict has enough corroborating evidence to justify
+	 * auto-pausing a flow.
+	 *
+	 * Looks up CONFIRMATION_RULES for the candidate verdict and walks the
+	 * URL's recent verdict log. Returns true only when:
+	 *
+	 *  - the verdict has a rule (qualified verdicts return false — never paused),
+	 *  - the last N rows all carry the same verdict, AND
+	 *  - the oldest of those N rows is at least H hours old.
+	 *
+	 * Single-row rules (RESERVATION_ONLY / COVERED_ELSEWHERE) effectively
+	 * pause on the latest verdict alone since N=1 and H=0.
+	 *
+	 * @param string $url_hash 40-char sha1 hash.
+	 * @param string $verdict  The candidate verdict.
+	 * @return bool True when the verdict meets its confirmation rule.
+	 */
+	public function meets_pause_confirmation( string $url_hash, string $verdict ): bool {
+		$rule = QualifyVerdict::confirmation_for( $verdict );
+		if ( null === $rule ) {
+			return false;
+		}
+
+		$needed_verdicts = (int) ( $rule['verdicts'] ?? 0 );
+		$needed_hours    = (int) ( $rule['hours'] ?? 0 );
+
+		if ( $needed_verdicts < 1 ) {
+			return false;
+		}
+
+		$rows = $this->latest_verdicts_for_url( $url_hash, $needed_verdicts );
+		if ( count( $rows ) < $needed_verdicts ) {
+			return false;
+		}
+
+		// Every one of the last N rows must match the candidate verdict.
+		foreach ( $rows as $row ) {
+			if ( (string) ( $row['verdict'] ?? '' ) !== $verdict ) {
+				return false;
+			}
+		}
+
+		// Hours window: the oldest of those N rows must be at least
+		// $needed_hours old. A zero-hour rule short-circuits the check.
+		if ( $needed_hours <= 0 ) {
+			return true;
+		}
+
+		$oldest = end( $rows );
+		$oldest_ts = isset( $oldest['qualified_at'] ) ? strtotime( (string) $oldest['qualified_at'] . ' UTC' ) : false;
+		if ( false === $oldest_ts ) {
+			return false;
+		}
+
+		$cutoff = time() - ( $needed_hours * HOUR_IN_SECONDS );
+
+		return $oldest_ts <= $cutoff;
+	}
 }

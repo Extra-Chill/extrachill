@@ -189,6 +189,119 @@ final class QualifyVerdict {
 		);
 	}
 
+	// ---- Pause confirmation rules ----
+	//
+	// Per-verdict rules that govern when `unqualifiable-flows --auto-pause`
+	// will actually pause a flow. The platform is designed to run unattended
+	// for weeks at a time, so a 30-second transient outage during an audit
+	// window must not pause a healthy venue.
+	//
+	// Shape: ['verdicts' => N, 'hours' => H] — the last N verdicts for the
+	//   URL must all match the candidate verdict AND the oldest of those N
+	//   rows must be at least H hours old. `null` means the verdict is never
+	//   auto-paused (qualified states).
+	//
+	// QUALIFIED_STRUCTURED / QUALIFIED_FOR_FLYER: never auto-paused.
+	// EXTRACTION_GAP: 2 verdicts over ≥48h — extractor gaps don't fix
+	//   themselves between consecutive audit runs.
+	// BOT_BLOCKED / UNREACHABLE: 3 verdicts over ≥7 days — Cloudflare rules
+	//   flip; DNS/timeout/5xx is often transient.
+	// RESERVATION_ONLY / COVERED_ELSEWHERE: single verdict — these are
+	//   permanent disqualifications by design.
+
+	/**
+	 * Per-verdict pause-confirmation rules.
+	 *
+	 * @var array<string, ?array{verdicts:int,hours:int}>
+	 */
+	public const CONFIRMATION_RULES = array(
+		self::QUALIFIED_STRUCTURED => null,
+		self::QUALIFIED_FOR_FLYER  => null,
+		self::EXTRACTION_GAP       => array(
+			'verdicts' => 2,
+			'hours'    => 48,
+		),
+		self::BOT_BLOCKED          => array(
+			'verdicts' => 3,
+			'hours'    => 168,
+		),
+		self::UNREACHABLE          => array(
+			'verdicts' => 3,
+			'hours'    => 168,
+		),
+		self::RESERVATION_ONLY     => array(
+			'verdicts' => 1,
+			'hours'    => 0,
+		),
+		self::COVERED_ELSEWHERE    => array(
+			'verdicts' => 1,
+			'hours'    => 0,
+		),
+	);
+
+	/**
+	 * Pause-confirmation rule for a verdict.
+	 *
+	 * Returns the tuple ['verdicts' => N, 'hours' => H] from
+	 * CONFIRMATION_RULES, or null when the verdict is never auto-paused.
+	 *
+	 * @param string $verdict One of the verdict constants.
+	 * @return array{verdicts:int,hours:int}|null
+	 */
+	public static function confirmation_for( string $verdict ): ?array {
+		return self::CONFIRMATION_RULES[ $verdict ] ?? null;
+	}
+
+	// ---- Recheck intervals ----
+	//
+	// Per-verdict cadence for re-running qualify against a paused flow's
+	// source_url. When a recheck job fires, the handler calls qualify; if
+	// the new verdict is QUALIFIED_STRUCTURED the flow is auto-resumed,
+	// otherwise the recheck is rescheduled at the next interval (or escalated
+	// to the digest after 6 consecutive failures).
+	//
+	// EXTRACTION_GAP: 14d — extractor coverage usually ships in batches.
+	// BOT_BLOCKED:    7d  — Cloudflare rules can flip.
+	// UNREACHABLE:    3d  — DNS/timeout/5xx is often short-lived.
+	// QUALIFIED_FOR_FLYER: 21d — operator-review state; long cadence.
+	// RESERVATION_ONLY / COVERED_ELSEWHERE: null — permanent, no recheck.
+
+	/**
+	 * Per-verdict recheck cadence in seconds.
+	 *
+	 * @var array<string, ?int>
+	 */
+	public const RECHECK_INTERVALS = array(
+		self::EXTRACTION_GAP      => 14 * DAY_IN_SECONDS,
+		self::BOT_BLOCKED         => 7 * DAY_IN_SECONDS,
+		self::UNREACHABLE         => 3 * DAY_IN_SECONDS,
+		self::QUALIFIED_FOR_FLYER => 21 * DAY_IN_SECONDS,
+		self::RESERVATION_ONLY    => null,
+		self::COVERED_ELSEWHERE   => null,
+	);
+
+	/**
+	 * Recheck interval for a verdict, in seconds.
+	 *
+	 * Returns null when the verdict is permanently disqualifying (no
+	 * recheck is ever scheduled). Filterable via
+	 * `dme_qualify_recheck_interval` so operators can tune cadence
+	 * without a code change.
+	 *
+	 * @param string $verdict One of the verdict constants.
+	 * @return int|null Interval in seconds, or null for "never recheck".
+	 */
+	public static function recheck_interval_for( string $verdict ): ?int {
+		$default = self::RECHECK_INTERVALS[ $verdict ] ?? null;
+		/**
+		 * Filter the per-verdict recheck cadence.
+		 *
+		 * @param int|null $interval Default interval in seconds (null = never).
+		 * @param string   $verdict  The verdict the interval applies to.
+		 */
+		return apply_filters( 'dme_qualify_recheck_interval', $default, $verdict );
+	}
+
 	/**
 	 * Canonicalize a URL for verdict lookup / dedup.
 	 *

@@ -14,6 +14,7 @@
 namespace ExtraChillEvents\Cli;
 
 use ExtraChillEvents\Core\QualifyVerdict;
+use ExtraChillEvents\Core\QualifyVerdictsTable;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -47,7 +48,15 @@ class UnqualifiableFlowsCommand {
 	 *
 	 * [--auto-pause]
 	 * : Pause flows whose new verdict is anything other than
-	 * QUALIFIED_STRUCTURED.
+	 * QUALIFIED_STRUCTURED — subject to the per-verdict confirmation rules
+	 * in QualifyVerdict::CONFIRMATION_RULES. Flows that haven't built up
+	 * enough corroborating verdict history are left active; the verdict row
+	 * persists so a future audit can hit confirmation.
+	 *
+	 * [--force]
+	 * : Bypass confirmation entirely and pause on the first failing verdict.
+	 * Use this for operator-driven manual pauses where you already know the
+	 * venue is dead. Requires --auto-pause.
 	 *
 	 * [--dry-run]
 	 * : List candidate flows but do not run qualify or pause anything.
@@ -85,9 +94,14 @@ class UnqualifiableFlowsCommand {
 		$min_runs        = max( 1, (int) ( $assoc_args['min-runs'] ?? 14 ) );
 		$zero_yield_only = ! empty( $assoc_args['zero-yield-only'] );
 		$auto            = ! empty( $assoc_args['auto-pause'] );
+		$force           = ! empty( $assoc_args['force'] );
 		$dry_run         = ! empty( $assoc_args['dry-run'] );
 		$limit           = max( 1, (int) ( $assoc_args['limit'] ?? 200 ) );
 		$format          = $assoc_args['format'] ?? 'table';
+
+		// Network option lets operators disable confirmation globally
+		// (restores pre-v0.21 "pause on first failing verdict" behavior).
+		$confirmation_enabled = (bool) get_site_option( 'dme_qualify_pause_confirmation', true );
 
 		$flows = $this->load_all_web_scraper_flows();
 		if ( empty( $flows ) ) {
@@ -163,8 +177,9 @@ class UnqualifiableFlowsCommand {
 			return;
 		}
 
-		$results = array();
-		$progress = \WP_CLI\Utils\make_progress_bar( 'Auditing', count( $candidates ) );
+		$verdicts_table = new QualifyVerdictsTable();
+		$results        = array();
+		$progress       = \WP_CLI\Utils\make_progress_bar( 'Auditing', count( $candidates ) );
 		foreach ( $candidates as $c ) {
 			$result = $ability->execute( array( 'url' => $c['source_url'] ) );
 			$progress->tick();
@@ -191,7 +206,18 @@ class UnqualifiableFlowsCommand {
 			if ( QualifyVerdict::QUALIFIED_STRUCTURED === $row['new_verdict'] ) {
 				$row['action'] = 'unexpected_pass';
 			} elseif ( $auto ) {
-				$ok            = $this->pause_flow_by_verdict( $c['flow_id'], $row['new_verdict'] );
+				// Confirmation gate — unless --force or the network option
+				// has disabled it, the candidate verdict must clear the
+				// per-verdict CONFIRMATION_RULES threshold before we pause.
+				if ( ! $force && $confirmation_enabled ) {
+					$url_hash = QualifyVerdict::url_hash( $c['source_url'] );
+					if ( '' === $url_hash || ! $verdicts_table->meets_pause_confirmation( $url_hash, $row['new_verdict'] ) ) {
+						$row['action'] = 'awaiting_confirmation';
+						$results[]     = $row;
+						continue;
+					}
+				}
+				$ok            = $this->pause_flow_by_verdict( $c['flow_id'], $row['new_verdict'], $c['source_url'] );
 				$row['action'] = $ok ? 'paused' : 'pause_failed';
 			} else {
 				$row['action'] = 'recommend_pause';
@@ -212,12 +238,20 @@ class UnqualifiableFlowsCommand {
 			array( 'flow_id', 'flow_name', 'new_verdict', 'event_count', 'action' )
 		);
 
-		$paused        = array_filter( $results, fn( $r ) => 'paused' === $r['action'] );
-		$recommended   = array_filter( $results, fn( $r ) => 'recommend_pause' === $r['action'] );
-		$unexpected    = array_filter( $results, fn( $r ) => 'unexpected_pass' === $r['action'] );
+		$paused      = array_filter( $results, fn( $r ) => 'paused' === $r['action'] );
+		$awaiting    = array_filter( $results, fn( $r ) => 'awaiting_confirmation' === $r['action'] );
+		$recommended = array_filter( $results, fn( $r ) => 'recommend_pause' === $r['action'] );
+		$unexpected  = array_filter( $results, fn( $r ) => 'unexpected_pass' === $r['action'] );
 
 		if ( ! empty( $paused ) ) {
 			\WP_CLI::success( sprintf( 'Paused %d flow(s).', count( $paused ) ) );
+		}
+		if ( ! empty( $awaiting ) ) {
+			\WP_CLI::log( '' );
+			\WP_CLI::log( sprintf(
+				'%d flow(s) awaiting confirmation — verdict recorded but pause threshold not yet met. Re-run later, or pass --force to bypass.',
+				count( $awaiting )
+			) );
 		}
 		if ( ! empty( $recommended ) ) {
 			\WP_CLI::log( '' );
