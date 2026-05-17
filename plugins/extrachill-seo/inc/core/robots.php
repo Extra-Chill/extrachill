@@ -55,17 +55,6 @@ add_filter(
 			}
 		}
 
-		// Noindex past events on events.extrachill.com.
-		// Past events have no user value (can't buy tickets, can't attend) and inflate the index.
-		if ( is_singular( 'data_machine_events' ) && function_exists( 'datamachine_get_event_timing' ) ) {
-			if ( 'past' === datamachine_get_event_timing( get_queried_object_id() ) ) {
-				$robots['noindex'] = true;
-				$robots['follow']  = true;
-				unset( $robots['max-image-preview'] );
-				return $robots;
-			}
-		}
-
 		// Noindex bbPress user subpages (replies, topics, engagements, favorites, subscriptions, edit).
 		// Main user profile remains indexed. Subpages are low-value and should not appear in sitelinks.
 		if ( function_exists( 'is_bbpress' ) && is_bbpress() ) {
