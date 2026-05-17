@@ -71,6 +71,21 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 			placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
 			aria-label="<?php esc_attr_e( 'Email address', 'extrachill-newsletter' ); ?>"
 		>
+
+		<?php
+		// Render Cloudflare Turnstile widget for bot mitigation.
+		// In appearance="interaction-only" mode, the widget is invisible until a
+		// challenge is required, and resolves silently for most legitimate users.
+		// Bots that skip the JS-side Turnstile execution will be rejected by the
+		// REST permission_callback in extrachill-api.
+		if ( function_exists( 'ec_render_turnstile_widget' ) ) {
+			echo ec_render_turnstile_widget( array( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- widget output is built from escaped attrs internally.
+				'data-callback' => 'extrachillNewsletterTurnstileCallback',
+				'data-size'     => 'invisible',
+			) );
+		}
+		?>
+
 		<button type="submit" class="button-2 button-medium"><?php echo esc_html( $args['button_text'] ); ?></button>
 
 		<p data-newsletter-feedback class="notice" style="display:none;" aria-live="polite"></p>

@@ -54,6 +54,14 @@ function newsletter_enqueue_frontend_assets() {
 		}
 	}
 
+	// Cloudflare Turnstile script - bot mitigation for newsletter form submissions.
+	// Enqueued unconditionally on the frontend so any page rendering a newsletter
+	// form (sidebar, archive, content blocks, etc.) has the widget runtime
+	// available without needing per-render coordination.
+	if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
+		ec_enqueue_turnstile_script();
+	}
+
 	// Main JavaScript - registered for on-demand loading when newsletter UI renders
 	$newsletter_js_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/js/newsletter.js';
 	if ( file_exists( $newsletter_js_path ) ) {
