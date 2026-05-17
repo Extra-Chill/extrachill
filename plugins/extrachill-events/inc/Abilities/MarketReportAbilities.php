@@ -406,7 +406,13 @@ class MarketReportAbilities {
 
 			if ( is_array( $config ) ) {
 				foreach ( $config as $step ) {
+					// Normalize handler slugs across schema variants.
+					// event_import / publish steps use 'handler_slug' (singular string) + 'handler_config'.
+					// upsert steps use 'handler_slugs' (plural array) + 'handler_configs'.
 					$slugs = $step['handler_slugs'] ?? array();
+					if ( ! empty( $step['handler_slug'] ) ) {
+						$slugs[] = (string) $step['handler_slug'];
+					}
 
 					// Determine handler type.
 					if ( in_array( 'universal_web_scraper', $slugs, true ) ) {
