@@ -3,8 +3,12 @@
  * Event Submission Abilities
  *
  * Handles event submissions from the public form — validates input,
- * verifies Turnstile, stores flyers, and executes via Data Machine
- * ephemeral workflow.
+ * stores flyers, and executes via Data Machine ephemeral workflow.
+ *
+ * Captcha / human-verification (Cloudflare Turnstile) is enforced at
+ * the REST route's permission_callback (see extrachill-api), not here.
+ * This keeps the ability callable from non-REST contexts (CLI, admin
+ * forms, scheduled re-runs) without fabricating a Turnstile token.
  *
  * @package ExtraChillEvents\Abilities
  */
@@ -32,7 +36,7 @@ class EventSubmissionAbilities {
 				'extrachill/submit-event',
 				array(
 					'label'               => __( 'Submit Event', 'extrachill-events' ),
-					'description'         => __( 'Process an event submission from the public form. Validates input, verifies Turnstile, stores flyers, and executes an ephemeral Data Machine workflow.', 'extrachill-events' ),
+					'description'         => __( 'Process an event submission from the public form. Validates input, stores flyers, and executes an ephemeral Data Machine workflow.', 'extrachill-events' ),
 					'category'            => 'extrachill-events',
 					'input_schema'        => array(
 						'type'       => 'object',
@@ -78,10 +82,6 @@ class EventSubmissionAbilities {
 								'type'        => 'string',
 								'description' => 'Submitter email. Required for anonymous submissions.',
 							),
-							'turnstile_response' => array(
-								'type'        => 'string',
-								'description' => 'Cloudflare Turnstile verification token.',
-							),
 							'system_prompt'      => array(
 								'type'        => 'string',
 								'description' => 'Custom system prompt for AI processing step. Optional.',
@@ -107,7 +107,7 @@ class EventSubmissionAbilities {
 							'readonly'     => false,
 							'idempotent'   => false,
 							'destructive'  => false,
-							'instructions' => __( 'Public-facing ability. Turnstile verification is enforced unless bypassed. Creates pending events for review.', 'extrachill-events' ),
+							'instructions' => __( 'Public-facing ability. Creates pending events for review. Captcha verification is enforced upstream at the REST route.', 'extrachill-events' ),
 						),
 					),
 				)
@@ -124,24 +124,22 @@ class EventSubmissionAbilities {
 	/**
 	 * Execute event submission.
 	 *
+	 * Captcha verification is the caller's responsibility (the REST route
+	 * enforces Turnstile in its permission_callback). This method only
+	 * validates event fields and runs the workflow.
+	 *
 	 * @param array $input Submission data.
 	 * @return array Result with message and job_id, or error.
 	 */
 	public function executeSubmitEvent( array $input ): array|\WP_Error {
 
-		// 1. Verify Turnstile.
-		$turnstile_result = $this->verifyTurnstile( $input['turnstile_response'] ?? '' );
-		if ( is_wp_error( $turnstile_result ) ) {
-			return $turnstile_result;
-		}
-
-		// 2. Resolve contact info (logged-in user or form fields).
+		// 1. Resolve contact info (logged-in user or form fields).
 		$contact = $this->resolveContact( $input );
 		if ( is_wp_error( $contact ) ) {
 			return $contact;
 		}
 
-		// 3. Validate required event fields.
+		// 2. Validate required event fields.
 		$event_title = sanitize_text_field( $input['event_title'] ?? '' );
 		$event_date  = sanitize_text_field( $input['event_date'] ?? '' );
 
@@ -149,7 +147,7 @@ class EventSubmissionAbilities {
 			return new \WP_Error( 'missing_fields', __( 'Event title and date are required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
-		// 4. Build sanitized submission.
+		// 3. Build sanitized submission.
 		$submission = array(
 			'user_id'       => $contact['user_id'],
 			'contact_name'  => $contact['contact_name'],
@@ -164,36 +162,11 @@ class EventSubmissionAbilities {
 			'notes'         => sanitize_textarea_field( $input['notes'] ?? '' ),
 		);
 
-		// 5. Store flyer if provided.
+		// 4. Store flyer if provided.
 		$flyer = $input['flyer'] ?? null;
 
-		// 6. Execute ephemeral workflow.
+		// 5. Execute ephemeral workflow.
 		return $this->executeDirect( $submission, $flyer, sanitize_textarea_field( $input['system_prompt'] ?? '' ) );
-	}
-
-	/**
-	 * Verify Cloudflare Turnstile response.
-	 *
-	 * @param string $token Turnstile token from frontend.
-	 * @return true|\WP_Error True on success, WP_Error on failure.
-	 */
-	private function verifyTurnstile( string $token ) {
-		$is_local   = defined( 'WP_ENVIRONMENT_TYPE' ) && 'local' === WP_ENVIRONMENT_TYPE;
-		$is_bypass  = $is_local || (bool) apply_filters( 'extrachill_bypass_turnstile_verification', false );
-
-		if ( $is_bypass ) {
-			return true;
-		}
-
-		if ( ! function_exists( 'ec_verify_turnstile_response' ) ) {
-			return new \WP_Error( 'turnstile_unavailable', __( 'Security verification unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
-		}
-
-		if ( empty( $token ) || ! ec_verify_turnstile_response( $token ) ) {
-			return new \WP_Error( 'turnstile_failed', __( 'Security verification failed. Please try again.', 'extrachill-events' ), array( 'status' => 403 ) );
-		}
-
-		return true;
 	}
 
 	/**

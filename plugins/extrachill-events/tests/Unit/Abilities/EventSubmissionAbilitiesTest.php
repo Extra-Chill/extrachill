@@ -4,13 +4,15 @@
  *
  * Integration tests for the event submission ability covering:
  * - Ability registration
- * - Turnstile verification (bypass + enforcement)
  * - Contact resolution (logged-in vs anonymous)
  * - Field validation
  * - Ephemeral workflow execution
  * - Workflow step structure
  * - Notification emails
  * - Action hooks
+ *
+ * Turnstile verification is now enforced at the REST route's
+ * permission_callback, so it is intentionally not covered here.
  *
  * @package ExtraChillEvents\Tests\Unit\Abilities
  */
@@ -35,17 +37,16 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	 * Minimal valid input for an anonymous submission.
 	 */
 	private array $valid_input = array(
-		'event_title'        => 'Flight Lessons A Folk Opera',
-		'event_date'         => '2026-04-17',
-		'event_time'         => '19:00',
-		'venue_name'         => 'Rhythmix Cultural Works',
-		'event_city'         => 'Oakland',
-		'event_lineup'       => 'Kwame Copeland, Deborah Crooks',
-		'event_link'         => 'https://www.rhythmix.org/events/flight-lessons-2026/',
-		'notes'              => 'Doors 6pm. $32 General.',
-		'contact_name'       => 'Deborah',
-		'contact_email'      => 'deborahrcrooks@gmail.com',
-		'turnstile_response' => 'test-token',
+		'event_title'   => 'Flight Lessons A Folk Opera',
+		'event_date'    => '2026-04-17',
+		'event_time'    => '19:00',
+		'venue_name'    => 'Rhythmix Cultural Works',
+		'event_city'    => 'Oakland',
+		'event_lineup'  => 'Kwame Copeland, Deborah Crooks',
+		'event_link'    => 'https://www.rhythmix.org/events/flight-lessons-2026/',
+		'notes'         => 'Doors 6pm. $32 General.',
+		'contact_name'  => 'Deborah',
+		'contact_email' => 'deborahrcrooks@gmail.com',
 	);
 
 	public function set_up(): void {
@@ -56,13 +57,9 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 		wp_set_current_user( $this->admin_user_id );
 
 		$this->abilities = new EventSubmissionAbilities();
-
-		// Bypass Turnstile in test environment.
-		add_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 	}
 
 	public function tear_down(): void {
-		remove_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 		parent::tear_down();
 	}
 
@@ -177,33 +174,6 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'job_id', $result );
 	}
 
-	// ─── Turnstile ─────────────────────────────────────────────────────
-
-	public function test_turnstile_rejection_when_not_bypassed(): void {
-		remove_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
-
-		$input = $this->valid_input;
-		$input['turnstile_response'] = '';
-
-		$result = $this->abilities->executeSubmitEvent( $input );
-
-		$this->assertWPError( $result );
-		// ec_verify_turnstile_response doesn't exist in test env,
-		// so we get turnstile_unavailable, not turnstile_failed.
-		$this->assertSame( 'turnstile_unavailable', $result->get_error_code() );
-	}
-
-	public function test_turnstile_bypass_allows_submission(): void {
-		// Bypass is already active in set_up().
-		$input = $this->valid_input;
-		$input['turnstile_response'] = '';
-
-		$result = $this->abilities->executeSubmitEvent( $input );
-
-		$this->assertIsArray( $result );
-		$this->assertArrayHasKey( 'job_id', $result );
-	}
-
 	// ─── Ephemeral Workflow Execution ──────────────────────────────────
 
 	public function test_submission_creates_job(): void {
@@ -266,11 +236,10 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 
 	public function test_minimal_submission_with_only_required_fields(): void {
 		$input = array(
-			'event_title'        => 'Test Show',
-			'event_date'         => '2026-05-01',
-			'contact_name'       => 'Test User',
-			'contact_email'      => 'test@example.com',
-			'turnstile_response' => 'bypass',
+			'event_title'   => 'Test Show',
+			'event_date'    => '2026-05-01',
+			'contact_name'  => 'Test User',
+			'contact_email' => 'test@example.com',
 		);
 
 		$result = $this->abilities->executeSubmitEvent( $input );
@@ -282,11 +251,10 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 
 	public function test_submission_without_optional_fields_still_works(): void {
 		$input = array(
-			'event_title'        => 'Solo Gig',
-			'event_date'         => '2026-06-15',
-			'contact_name'       => 'Musician',
-			'contact_email'      => 'musician@example.com',
-			'turnstile_response' => 'bypass',
+			'event_title'   => 'Solo Gig',
+			'event_date'    => '2026-06-15',
+			'contact_name'  => 'Musician',
+			'contact_email' => 'musician@example.com',
 		);
 
 		$hook_data = array();
@@ -377,9 +345,8 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 		} );
 
 		$input = array(
-			'event_title'        => 'Member Show',
-			'event_date'         => '2026-07-01',
-			'turnstile_response' => 'bypass',
+			'event_title' => 'Member Show',
+			'event_date'  => '2026-07-01',
 		);
 
 		$this->abilities->executeSubmitEvent( $input );
