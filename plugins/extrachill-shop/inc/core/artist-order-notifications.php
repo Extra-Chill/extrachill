@@ -5,6 +5,17 @@
  * Sends email notifications to artists when orders containing their products
  * are placed. All roster members for each artist receive the notification.
  *
+ * Mail dispatch is delegated to `ec_send_email()` (extrachill-multisite),
+ * which wraps the `datamachine/send-email` ability and auto-routes the send
+ * through the SMTP-configured site via `mail_site_id`. This file therefore
+ * does NOT call `wp_mail()` and does NOT wrap the send in `switch_to_blog()`
+ * — the wrapper handles SMTP context internally.
+ *
+ * NOTE on `switch_to_blog()` usage in this file: the only legitimate switch
+ * is to the ARTIST blog to look up roster members + artist post title. That
+ * switch is scoped tightly around the lookup, and is explicitly NOT used
+ * to influence mail routing. See inline comments at each switch site.
+ *
  * @package ExtraChillShop
  * @since 0.4.0
  */
@@ -41,106 +52,142 @@ function extrachill_shop_notify_artists_of_order( $order_id ) {
 /**
  * Send order notification email to an artist's roster members.
  *
+ * Resolution flow (note the explicit separation between data-context
+ * `switch_to_blog()` and mail-context routing):
+ *
+ *   1. Switch to the artist blog ONCE to fetch artist-blog data
+ *      (roster member emails + artist post title), then immediately
+ *      restore. This switch exists purely for READ access to artist
+ *      blog data — it has nothing to do with which site sends mail.
+ *   2. Build the email body using order data on the current (shop)
+ *      blog — orders live here, so no switch is needed.
+ *   3. Dispatch via `ec_send_email()`. The wrapper auto-supplies
+ *      `mail_site_id = ec_mail_site_id()` which switches to the
+ *      SMTP-configured site INSIDE the ability — callers must NOT
+ *      wrap the send in their own `switch_to_blog()`.
+ *
  * @param WC_Order $order       WooCommerce order object.
  * @param int      $artist_id   Artist profile ID.
  * @param array    $payout_data Artist payout data from _artist_payouts meta.
  */
 function extrachill_shop_send_artist_order_notification( $order, $artist_id, $payout_data ) {
-	$recipients = extrachill_shop_get_artist_notification_recipients( $artist_id );
+	// Step 1: artist-blog DATA lookup (NOT mail routing).
+	$artist_data = extrachill_shop_get_artist_notification_data( $artist_id );
+	$recipients  = $artist_data['recipients'];
+	$artist_name = $artist_data['name'];
+
 	if ( empty( $recipients ) ) {
 		return;
 	}
 
-	$artist_name  = extrachill_shop_get_artist_name( $artist_id );
 	$order_number = $order->get_order_number();
 
 	$subject = sprintf( 'New Order #%s - %s', $order_number, $artist_name );
 
-	$message = extrachill_shop_build_order_notification_email(
+	// Step 2: build email body using order data (current shop-blog context is fine).
+	$body_html = extrachill_shop_build_order_notification_body(
 		$order,
-		$artist_id,
 		$artist_name,
 		$payout_data
 	);
 
-	$headers = array(
-		'Content-Type: text/html; charset=UTF-8',
-		'From: Extra Chill Shop <shop@extrachill.com>',
+	$preheader = sprintf(
+		'New order #%s for %s — view details in Shop Manager.',
+		$order_number,
+		$artist_name
 	);
 
+	// Step 3: dispatch. `ec_send_email()` injects `mail_site_id` itself —
+	// do NOT wrap this call in `switch_to_blog()`.
 	foreach ( $recipients as $email ) {
-		wp_mail( $email, $subject, $message, $headers );
+		ec_send_email(
+			array(
+				'to'       => $email,
+				'subject'  => $subject,
+				'template' => 'extrachill/branded',
+				'context'  => array(
+					'subject_html'   => esc_html( $subject ),
+					'preheader'      => $preheader,
+					'recipient_name' => $artist_name,
+					'body_html'      => $body_html,
+					'cta_url'        => extrachill_shop_get_shop_manager_url(),
+					'cta_label'      => 'View Order in Shop Manager',
+				),
+			)
+		);
 	}
 }
 
 /**
- * Get email addresses for all roster members of an artist.
+ * Look up artist-blog data needed for the notification.
+ *
+ * Performs a single `switch_to_blog()` to the artist blog to read:
+ *   - Roster member emails via `ec_get_linked_members()`
+ *   - Artist post title via `get_post()`
+ *
+ * Both reads live on the artist blog, so they're batched into one
+ * switch/restore pair. This switch is purely for DATA access — it
+ * does NOT affect mail routing (the `ec_send_email()` call happens
+ * outside this scope and resolves its own mail site).
  *
  * @param int $artist_id Artist profile ID.
- * @return array Array of email addresses.
+ * @return array{recipients: string[], name: string}
  */
-function extrachill_shop_get_artist_notification_recipients( $artist_id ) {
-	$emails = array();
-
-	if ( ! function_exists( 'ec_get_linked_members' ) ) {
-		return $emails;
-	}
+function extrachill_shop_get_artist_notification_data( $artist_id ) {
+	$result = array(
+		'recipients' => array(),
+		'name'       => 'Artist',
+	);
 
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
 	if ( ! $artist_blog_id ) {
-		return $emails;
+		return $result;
 	}
 
+	// DATA-CONTEXT switch: read roster + post title from the artist blog.
+	// NOT a mail-routing switch — `ec_send_email()` handles SMTP routing.
 	switch_to_blog( $artist_blog_id );
 	try {
-		$members = ec_get_linked_members( $artist_id );
-		foreach ( $members as $user ) {
-			if ( ! empty( $user->user_email ) ) {
-				$emails[] = $user->user_email;
+		if ( function_exists( 'ec_get_linked_members' ) ) {
+			$members = ec_get_linked_members( $artist_id );
+			$emails  = array();
+			foreach ( $members as $user ) {
+				if ( ! empty( $user->user_email ) ) {
+					$emails[] = $user->user_email;
+				}
 			}
+			$result['recipients'] = array_values( array_unique( $emails ) );
+		}
+
+		$artist_post = get_post( $artist_id );
+		if ( $artist_post && '' !== (string) $artist_post->post_title ) {
+			$result['name'] = $artist_post->post_title;
 		}
 	} finally {
 		restore_current_blog();
 	}
 
-	return array_unique( $emails );
+	return $result;
 }
 
 /**
- * Get artist name from artist profile.
+ * Build HTML body for the order notification email.
  *
- * @param int $artist_id Artist profile ID.
- * @return string Artist name or 'Artist'.
- */
-function extrachill_shop_get_artist_name( $artist_id ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	if ( ! $artist_blog_id ) {
-		return 'Artist';
-	}
-
-	switch_to_blog( $artist_blog_id );
-	try {
-		$artist_post = get_post( $artist_id );
-		return $artist_post ? $artist_post->post_title : 'Artist';
-	} finally {
-		restore_current_blog();
-	}
-}
-
-/**
- * Build HTML email content for order notification.
+ * Returns the inner body HTML only — the surrounding `<html><body>` chrome,
+ * header, footer, greeting, and CTA button are supplied by the
+ * `extrachill/branded` template. This function emits the order-specific
+ * content (items table + ship-to block + payout line) that goes into
+ * `context.body_html`.
  *
  * @param WC_Order $order       WooCommerce order object.
- * @param int      $artist_id   Artist profile ID.
  * @param string   $artist_name Artist display name.
  * @param array    $payout_data Artist payout data.
- * @return string HTML email content.
+ * @return string HTML body fragment.
  */
-function extrachill_shop_build_order_notification_email( $order, $artist_id, $artist_name, $payout_data ) {
-	$order_number     = $order->get_order_number();
-	$customer_name    = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
-	$artist_payout    = number_format( floatval( $payout_data['artist_payout'] ?? 0 ), 2 );
-	$shop_manager_url = extrachill_shop_get_shop_manager_url();
+function extrachill_shop_build_order_notification_body( $order, $artist_name, $payout_data ) {
+	$order_number  = $order->get_order_number();
+	$customer_name = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
+	$artist_payout = number_format( floatval( $payout_data['artist_payout'] ?? 0 ), 2 );
 
 	$shipping = $order->get_address( 'shipping' );
 	$billing  = $order->get_address( 'billing' );
@@ -174,16 +221,10 @@ function extrachill_shop_build_order_notification_email( $order, $artist_id, $ar
 	);
 	$address_html  = implode( '<br>', array_map( 'esc_html', $address_lines ) );
 
-	$html = '<html><body style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">';
-
-	$html .= sprintf(
-		'<h2 style="color: #000; margin-bottom: 20px;">New Order #%s</h2>',
+	$html = sprintf(
+		'<p>You have a new order for <strong>%s</strong> (Order <strong>#%s</strong>).</p>',
+		esc_html( $artist_name ),
 		esc_html( $order_number )
-	);
-
-	$html .= sprintf(
-		'<p>Hey! You have a new order for <strong>%s</strong>.</p>',
-		esc_html( $artist_name )
 	);
 
 	$html .= '<h3 style="margin-top: 30px; margin-bottom: 10px;">Items</h3>';
@@ -204,20 +245,15 @@ function extrachill_shop_build_order_notification_email( $order, $artist_id, $ar
 		$address_html
 	);
 
-	$html .= sprintf(
-		'<p style="margin-top: 30px;"><a href="%s" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 4px;">View Order in Shop Manager</a></p>',
-		esc_url( $shop_manager_url )
-	);
-
-	$html .= '<p style="margin-top: 40px; color: #666;">Much love,<br>Extra Chill Shop</p>';
-
-	$html .= '</body></html>';
-
 	return $html;
 }
 
 /**
  * Get Shop Manager URL on artist site.
+ *
+ * Reads the artist subsite URL via `ec_get_site_url()` — no
+ * `switch_to_blog()` needed because the helper resolves cross-site
+ * URLs without changing the current blog context.
  *
  * @return string Shop Manager URL.
  */
