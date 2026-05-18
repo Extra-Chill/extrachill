@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.23.3] - 2026-05-18
+
+### Fixed
+- sync block.json files to v0.23.2 after race with concurrent release
+- sync block.json versions on release so style/script changes bust caches
+
 ## [0.23.2] - 2026-05-18
 
 ### Fixed
