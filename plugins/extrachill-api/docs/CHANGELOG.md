@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.16.4] - 2026-05-18
+
+### Fixed
+- require Turnstile on /auth/login REST route
+
 ## [0.16.3] - 2026-05-18
 
 ### Changed
