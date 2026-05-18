@@ -59,6 +59,12 @@ function LoggedInCard( { config } ) {
 }
 
 function LoginPanel( { config, notice, setNotice } ) {
+	const panelRef = useRef( null );
+
+	useEffect( () => {
+		renderTurnstile( panelRef.current );
+	} );
+
 	const handleSubmit = async ( event ) => {
 		event.preventDefault();
 		setNotice( null );
@@ -70,6 +76,13 @@ function LoginPanel( { config, notice, setNotice } ) {
 
 		if ( ! identifier || ! password ) {
 			setNotice( { type: 'error', message: 'Username and password are required.' } );
+			return;
+		}
+
+		const turnstileResponse = String( formData.get( 'cf-turnstile-response' ) || '' );
+		const turnstileWidget = form.querySelector( '.cf-turnstile' );
+		if ( turnstileWidget && ! turnstileResponse ) {
+			setNotice( { type: 'error', message: 'Captcha verification required. Please complete the challenge and try again.' } );
 			return;
 		}
 
@@ -94,6 +107,7 @@ function LoginPanel( { config, notice, setNotice } ) {
 				body: JSON.stringify( {
 					identifier,
 					password,
+					turnstile_response: turnstileResponse,
 					device_id: deviceId,
 					remember,
 					set_cookie: true,
@@ -122,12 +136,16 @@ function LoginPanel( { config, notice, setNotice } ) {
 				html: ` ${ message } <a href="${ config.resetPasswordUrl }">Forgot your password?</a>`,
 			} );
 			restore();
+
+			if ( turnstileWidget && window.turnstile ) {
+				window.turnstile.reset( turnstileWidget );
+			}
 		}
 	};
 
 	return (
 		<Panel>
-			<div className="login-register-form">
+			<div className="login-register-form" ref={ panelRef }>
 				{ notice && (
 					<div className={ `ec-auth-notice ec-auth-notice--${ notice.type }` }>
 						<p dangerouslySetInnerHTML={ notice.html ? { __html: notice.html } : undefined }>
@@ -148,6 +166,7 @@ function LoginPanel( { config, notice, setNotice } ) {
 						</label>
 					</div>
 					<input type="submit" className="button-2 button-medium" value="Log In" />
+					<div className="login-register-turnstile" dangerouslySetInnerHTML={ { __html: config.turnstileHtml } } />
 					<div className="login-forgot-password">
 						<a href={ config.resetPasswordUrl }>Forgot your password?</a>
 					</div>
