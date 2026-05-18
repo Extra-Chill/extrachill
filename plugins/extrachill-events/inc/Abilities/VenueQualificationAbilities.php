@@ -50,18 +50,42 @@ class VenueQualificationAbilities {
 	);
 
 	/**
-	 * Patterns indicating Ticketmaster / Live Nation venue.
+	 * Hostnames that indicate a Ticketmaster / Live Nation OWNED page.
 	 *
-	 * If ANY of these are found in the homepage HTML (or a redirect lands on
-	 * one of these domains), the venue is disqualified because it is already
-	 * covered by the dedicated Ticketmaster pipeline flow.
+	 * A page is "TM/LN-owned" when its (final, post-redirect) URL host is
+	 * one of these or a subdomain thereof. Substring-matching the page body
+	 * for these hostnames is NOT sufficient — promoter aggregator sites
+	 * (Bowery Presents, AEG Presents, etc.) legitimately link out to TM as
+	 * a ticket vendor on a per-show basis without being TM properties.
+	 *
+	 * Compare host with `str_contains(strtolower($host), $pattern)` so
+	 * subdomains (`concerts.livenation.com`, `m.livenation.com`,
+	 * `www1.ticketmaster.com`, country variants like `livenation.de`) all
+	 * match the base brand string.
 	 *
 	 * NOTE: AEG/AXS venues are NOT disqualified — we have a dedicated
 	 * AegAxsExtractor that scrapes their structured JSON feeds.
+	 *
+	 * @var array<int,string>
 	 */
-	private const TICKETMASTER_PATTERNS = array(
+	public const TICKETMASTER_HOSTS = array(
 		'ticketmaster.com',
+		'ticketmaster.ca',
+		'ticketmaster.co.uk',
+		'ticketmaster.de',
+		'ticketmaster.fr',
+		'ticketmaster.es',
+		'ticketmaster.it',
+		'ticketmaster.com.au',
+		'ticketmaster.com.mx',
 		'livenation.com',
+		'livenation.ca',
+		'livenation.co.uk',
+		'livenation.de',
+		'livenation.fr',
+		'livenation.com.au',
+		'livenation.it',
+		'livenation.es',
 	);
 
 	/**
@@ -404,101 +428,293 @@ class VenueQualificationAbilities {
 	/**
 	 * Check whether a venue URL belongs to Ticketmaster or Live Nation.
 	 *
-	 * Fetches the homepage and inspects both the final URL (after redirects)
-	 * and the HTML body for known TM/LN patterns. If any pattern matches,
-	 * the venue is disqualified because it is already covered by the dedicated
-	 * Ticketmaster pipeline flow.
+	 * Fetches the page (following redirects) and delegates classification to
+	 * {@see self::analyzeForTicketmasterMarkers()}, which inspects the FINAL
+	 * (post-redirect) URL host and STRUCTURAL ownership markers in the HTML
+	 * — never substring-matching outbound buy-ticket links.
+	 *
+	 * Rationale: promoter aggregator sites (Bowery Presents, AEG Presents,
+	 * etc.) legitimately link to ticketmaster.com per-event as a ticket
+	 * vendor. Those outbound links are pricing data, not ownership signals,
+	 * and must not disqualify the site. See extrachill-events#90.
 	 *
 	 * @param string $url Venue homepage URL.
-	 * @return array { disqualified: bool, reason: string, matched: string }
+	 * @return array{disqualified:bool,reason:string,matched:string}
 	 */
 	private function checkTicketmasterVenue( string $url ): array {
 		$not_tm = array( 'disqualified' => false, 'reason' => '', 'matched' => '' );
 
-		// Quick domain-level check before even fetching.
-		$host = strtolower( wp_parse_url( $url, PHP_URL_HOST ) ?? '' );
-		foreach ( self::TICKETMASTER_PATTERNS as $pattern ) {
-			if ( str_contains( $host, $pattern ) ) {
-				return array(
-					'disqualified' => true,
-					'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
-					'matched'      => $pattern . ' (in URL host)',
-				);
-			}
+		// Quick host check on the INPUT URL before fetching. Catches the
+		// trivial case where someone hands us a ticketmaster.com URL outright.
+		$pre_fetch = self::analyzeForTicketmasterMarkers( $url, '' );
+		if ( $pre_fetch['disqualified'] ) {
+			return array(
+				'disqualified' => true,
+				'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
+				'matched'      => $pre_fetch['matched'],
+			);
 		}
 
-		// Fetch the page, following redirects, so we can inspect the final URL
-		// and the HTML body.
-		$response = wp_remote_get( $url, array(
-			'timeout'     => 10,
-			'redirection' => 5,
-			'user-agent'  => 'Mozilla/5.0 (compatible; ExtraChillBot/1.0; +https://extrachill.com)',
-			'headers'     => array( 'Accept' => 'text/html' ),
-		) );
+		// Fetch the page, following redirects, so we can inspect the final
+		// URL and the HTML body.
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout'     => 10,
+				'redirection' => 5,
+				'user-agent'  => 'Mozilla/5.0 (compatible; ExtraChillBot/1.0; +https://extrachill.com)',
+				'headers'     => array( 'Accept' => 'text/html' ),
+			)
+		);
 
 		if ( is_wp_error( $response ) ) {
 			return $not_tm;
 		}
 
-		// Check if redirect landed on a TM/LN domain.
-		$final_url  = wp_remote_retrieve_header( $response, 'x-redirect-by' );
-		$response_url = $response['http_response']->get_response_object()->url ?? '';
-		$urls_to_check = array_filter( array( $final_url, $response_url ) );
+		// Resolve the final URL after the redirect chain. WP exposes it on
+		// the Requests response object hung off the wp_remote_get result.
+		$final_url = $url;
+		if ( isset( $response['http_response'] ) && is_object( $response['http_response'] )
+			&& method_exists( $response['http_response'], 'get_response_object' ) ) {
+			$resp_obj = $response['http_response']->get_response_object();
+			if ( isset( $resp_obj->url ) && is_string( $resp_obj->url ) && '' !== $resp_obj->url ) {
+				$final_url = $resp_obj->url;
+			}
+		}
 
-		foreach ( $urls_to_check as $check_url ) {
-			$check_host = strtolower( wp_parse_url( $check_url, PHP_URL_HOST ) ?? '' );
-			foreach ( self::TICKETMASTER_PATTERNS as $pattern ) {
-				if ( str_contains( $check_host, $pattern ) ) {
+		$html = (string) wp_remote_retrieve_body( $response );
+
+		$analysis = self::analyzeForTicketmasterMarkers( $final_url, $html );
+		if ( $analysis['disqualified'] ) {
+			return array(
+				'disqualified' => true,
+				'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
+				'matched'      => $analysis['matched'],
+			);
+		}
+
+		return $not_tm;
+	}
+
+	/**
+	 * Pure classifier: does this (final URL, HTML body) pair indicate a
+	 * Ticketmaster/Live Nation-OWNED page?
+	 *
+	 * Distinguishes LN-owned venue pages (which the dedicated TM pipeline
+	 * flow already covers) from promoter aggregator pages that merely LINK
+	 * to TM as a ticket vendor (which should continue through extraction).
+	 *
+	 * Signals checked, in order of decisiveness:
+	 *   1. Final URL host is on {@see self::TICKETMASTER_HOSTS}.
+	 *   2. `<link rel="canonical" href="…">` points to a TM/LN host.
+	 *   3. `<meta property="og:site_name" content="Ticketmaster">` (or
+	 *       "Live Nation"), or `<meta name="application-name" …>` with the
+	 *       same brand value. Must be the SITE_NAME, not arbitrary content.
+	 *   4. JSON-LD `Organization` block whose `@id`/`url`/`sameAs` field
+	 *       targets a TM/LN host.
+	 *   5. Live Nation SDK / tag-manager bootstrap in `<head>` —
+	 *       `window.TMP = …` or `window.LN = …` initialisers. These only
+	 *       ship on LN-controlled pages.
+	 *
+	 * Outbound `<a href="https://www.ticketmaster.com/event/…">` buy links
+	 * are deliberately NOT a disqualifier — they are normal commerce data.
+	 *
+	 * @param string $final_url Final URL after redirects (or the input URL
+	 *                          when called pre-fetch with an empty body).
+	 * @param string $html      Page HTML. May be empty for host-only checks.
+	 * @return array{disqualified:bool,matched:string}
+	 */
+	public static function analyzeForTicketmasterMarkers( string $final_url, string $html ): array {
+		$not_tm = array( 'disqualified' => false, 'matched' => '' );
+
+		// ---- 1. Final URL host check. ----
+		$host = strtolower( (string) ( wp_parse_url( $final_url, PHP_URL_HOST ) ?? '' ) );
+		if ( '' !== $host ) {
+			$matched_host = self::hostMatchesTicketmaster( $host );
+			if ( '' !== $matched_host ) {
+				return array(
+					'disqualified' => true,
+					'matched'      => 'final URL host: ' . $matched_host,
+				);
+			}
+		}
+
+		if ( '' === $html ) {
+			return $not_tm;
+		}
+
+		// ---- 2. <link rel="canonical" href="…"> pointing to TM/LN. ----
+		// Accept either attribute order (rel-first or href-first) by running
+		// both patterns through a single matcher.
+		$canonical_patterns = array(
+			'#<link\s[^>]*rel=["\']canonical["\'][^>]*href=["\']([^"\']+)["\']#i',
+			'#<link\s[^>]*href=["\']([^"\']+)["\'][^>]*rel=["\']canonical["\']#i',
+		);
+		foreach ( $canonical_patterns as $pattern ) {
+			if ( ! preg_match( $pattern, $html, $m ) ) {
+				continue;
+			}
+			$canonical_host  = strtolower( (string) ( wp_parse_url( $m[1], PHP_URL_HOST ) ?? '' ) );
+			$matched_pattern = self::hostMatchesTicketmaster( $canonical_host );
+			if ( '' !== $matched_pattern ) {
+				return array(
+					'disqualified' => true,
+					'matched'      => 'canonical link to ' . $matched_pattern,
+				);
+			}
+		}
+
+		// ---- 3. <meta property="og:site_name" / name="application-name"> ----
+		// with a literal TM/LN brand value. The CONTENT must be the brand,
+		// not just a page title mentioning the brand. Accept either attribute
+		// order (rel/name-first or content-first).
+		$brand_re   = '(?:Ticketmaster|Live\s*Nation)';
+		$brand_attr = '(?:property|name)=["\'](?:og:site_name|application-name)["\']';
+		$meta_patterns = array(
+			'#<meta\s[^>]*' . $brand_attr . '[^>]*content=["\']\s*' . $brand_re . '\s*["\']#i',
+			'#<meta\s[^>]*content=["\']\s*' . $brand_re . '\s*["\'][^>]*' . $brand_attr . '#i',
+		);
+		foreach ( $meta_patterns as $pattern ) {
+			if ( preg_match( $pattern, $html ) ) {
+				return array(
+					'disqualified' => true,
+					'matched'      => 'meta site_name brand tag',
+				);
+			}
+		}
+
+		// ---- 4. JSON-LD Organization with @id/url/sameAs on TM/LN host. ----
+		if ( preg_match_all(
+			'#<script\s[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is',
+			$html,
+			$blocks
+		) ) {
+			foreach ( $blocks[1] as $block ) {
+				$decoded = json_decode( trim( $block ), true );
+				if ( null === $decoded ) {
+					continue;
+				}
+				$marker = self::scanJsonLdForLnOrganization( $decoded );
+				if ( '' !== $marker ) {
 					return array(
 						'disqualified' => true,
-						'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
-						'matched'      => $pattern . ' (redirect destination)',
+						'matched'      => 'JSON-LD Organization on ' . $marker,
 					);
 				}
 			}
 		}
 
-		// Inspect the HTML body.
-		$html = strtolower( wp_remote_retrieve_body( $response ) );
-		if ( empty( $html ) ) {
-			return $not_tm;
+		// ---- 5. Inline LN SDK bootstrap in <head>. ----
+		// Scope to head to avoid false positives from third-party content
+		// (analytics scripts referenced via src=, comments, etc.).
+		$head = '';
+		if ( preg_match( '#<head\b[^>]*>(.*?)</head>#is', $html, $m ) ) {
+			$head = $m[1];
 		}
-
-		foreach ( self::TICKETMASTER_PATTERNS as $pattern ) {
-			if ( str_contains( $html, strtolower( $pattern ) ) ) {
+		if ( '' !== $head ) {
+			if ( preg_match( '#window\.TMP\s*=#', $head )
+				|| preg_match( '#window\.LN\s*=#', $head )
+				|| preg_match( '#window\.LiveNation\s*=#i', $head ) ) {
 				return array(
 					'disqualified' => true,
-					'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
-					'matched'      => $pattern . ' (in page HTML)',
+					'matched'      => 'LN SDK bootstrap in <head>',
 				);
 			}
-		}
-
-		// Extra checks: TM iframes and event/venue links.
-		$tm_link_patterns = array(
-			'ticketmaster.com/event/',
-			'ticketmaster.com/venue/',
-		);
-		foreach ( $tm_link_patterns as $link_pattern ) {
-			if ( str_contains( $html, $link_pattern ) ) {
-				return array(
-					'disqualified' => true,
-					'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
-					'matched'      => $link_pattern . ' (link in HTML)',
-				);
-			}
-		}
-
-		// Check for TM embedded widgets (iframes with ticketmaster.com in src).
-		if ( preg_match( '/<iframe[^>]+src=["\'][^"\']*ticketmaster\.com[^"\']*["\'][^>]*>/i', wp_remote_retrieve_body( $response ) ) ) {
-			return array(
-				'disqualified' => true,
-				'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
-				'matched'      => 'ticketmaster.com iframe widget',
-			);
 		}
 
 		return $not_tm;
+	}
+
+	/**
+	 * Return the matching TM/LN host pattern for a hostname, or '' if none.
+	 *
+	 * Matches when the host equals the pattern or ends with `.$pattern` so
+	 * subdomains (`concerts.livenation.com`, `www.ticketmaster.com`) all
+	 * resolve to their brand base.
+	 *
+	 * @param string $host Lowercase hostname.
+	 * @return string Matching pattern or empty string.
+	 */
+	private static function hostMatchesTicketmaster( string $host ): string {
+		if ( '' === $host ) {
+			return '';
+		}
+		foreach ( self::TICKETMASTER_HOSTS as $pattern ) {
+			if ( $host === $pattern || str_ends_with( $host, '.' . $pattern ) ) {
+				return $pattern;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Walk a decoded JSON-LD structure looking for an Organization node
+	 * whose `@id`/`url`/`sameAs` field points to a TM/LN host. Returns the
+	 * matching host pattern, or '' if none.
+	 *
+	 * Handles top-level objects, `@graph` arrays, and arrays of nodes.
+	 *
+	 * @param mixed $node Decoded JSON-LD fragment.
+	 * @return string
+	 */
+	private static function scanJsonLdForLnOrganization( $node ): string {
+		if ( is_array( $node ) ) {
+			// Sequential array of nodes — recurse into each.
+			if ( array_keys( $node ) === range( 0, count( $node ) - 1 ) ) {
+				foreach ( $node as $child ) {
+					$hit = self::scanJsonLdForLnOrganization( $child );
+					if ( '' !== $hit ) {
+						return $hit;
+					}
+				}
+				return '';
+			}
+
+			// Associative — could be a node OR a wrapper with @graph.
+			if ( isset( $node['@graph'] ) ) {
+				$hit = self::scanJsonLdForLnOrganization( $node['@graph'] );
+				if ( '' !== $hit ) {
+					return $hit;
+				}
+			}
+
+			$type = $node['@type'] ?? '';
+			$types = is_array( $type ) ? $type : array( $type );
+			$is_org = false;
+			foreach ( $types as $t ) {
+				if ( is_string( $t ) && 'organization' === strtolower( $t ) ) {
+					$is_org = true;
+					break;
+				}
+			}
+
+			if ( $is_org ) {
+				$candidates = array();
+				foreach ( array( '@id', 'url' ) as $key ) {
+					if ( isset( $node[ $key ] ) && is_string( $node[ $key ] ) ) {
+						$candidates[] = $node[ $key ];
+					}
+				}
+				if ( isset( $node['sameAs'] ) ) {
+					$same_as = is_array( $node['sameAs'] ) ? $node['sameAs'] : array( $node['sameAs'] );
+					foreach ( $same_as as $s ) {
+						if ( is_string( $s ) ) {
+							$candidates[] = $s;
+						}
+					}
+				}
+
+				foreach ( $candidates as $candidate ) {
+					$cand_host = strtolower( (string) ( wp_parse_url( $candidate, PHP_URL_HOST ) ?? '' ) );
+					$matched   = self::hostMatchesTicketmaster( $cand_host );
+					if ( '' !== $matched ) {
+						return $matched;
+					}
+				}
+			}
+		}
+
+		return '';
 	}
 
 	/**
