@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-05-18
+
+### Added
+- replace ChatOrchestrator with AgentConversationLoop and wp-ai-client turn runner
+- register game-master agent declaratively via agents-api
+
+### Changed
+- replace BaseTool with RuntimeToolDeclaration for progress_story
+
+### Fixed
+- sync block.json versions on release so style/script changes bust caches
+
 ## [1.2.0] - 2026-03-28
 
 ### Added
