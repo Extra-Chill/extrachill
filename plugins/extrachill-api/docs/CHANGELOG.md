@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.16.6] - 2026-05-18
+
+### Changed
+- collapse shipping-labels POST handler to ability call (closes #51)
+
 ## [0.16.5] - 2026-05-18
 
 ### Fixed
