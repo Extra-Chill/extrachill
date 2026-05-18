@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.0] - 2026-05-18
+
+### Added
+- wire Cloudflare Turnstile into login panel
+
 ## [0.9.0] - 2026-05-18
 
 ### Added
