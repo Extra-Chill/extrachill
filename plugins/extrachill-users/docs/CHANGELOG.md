@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.1] - 2026-05-18
+
+### Changed
+- migrate user emails to datamachine/send-email (closes #40)
+
 ## [0.10.0] - 2026-05-18
 
 ### Added
