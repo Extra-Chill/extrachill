@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-05-18
+
+### Added
+- register content-block abilities
+
+### Fixed
+- sync block.json versions on release so style/script changes bust caches
+
 ## [1.2.2] - 2026-04-02
 
 ### Changed
