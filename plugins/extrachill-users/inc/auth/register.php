@@ -28,18 +28,12 @@ function extrachill_handle_registration() {
 	$password         = isset( $_POST['extrachill_password'] ) ? wp_unslash( $_POST['extrachill_password'] ) : '';
 	$password_confirm = isset( $_POST['extrachill_password_confirm'] ) ? wp_unslash( $_POST['extrachill_password_confirm'] ) : '';
 
-	$is_local_environment = defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local';
-	$turnstile_bypass     = $is_local_environment || (bool) apply_filters( 'extrachill_bypass_turnstile_verification', false );
-	$turnstile_response   = isset( $_POST['cf-turnstile-response'] ) ? wp_unslash( $_POST['cf-turnstile-response'] ) : '';
-
-	if ( ! $turnstile_bypass ) {
-		if ( empty( $turnstile_response ) ) {
-			$redirect->error( __( 'Captcha verification required. Please complete the challenge and try again.', 'extrachill-users' ) );
-		}
-
-		if ( ! ec_verify_turnstile_response( $turnstile_response ) ) {
-			$redirect->error( __( 'Captcha verification failed. Please try again.', 'extrachill-users' ) );
-		}
+	$turnstile_token = isset( $_POST['cf-turnstile-response'] )
+		? wp_unslash( $_POST['cf-turnstile-response'] )
+		: '';
+	$check = ec_turnstile_check_request( $turnstile_token );
+	if ( is_wp_error( $check ) ) {
+		$redirect->error( $check->get_error_message() );
 	}
 
 	if ( $password !== $password_confirm ) {

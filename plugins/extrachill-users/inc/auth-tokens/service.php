@@ -456,32 +456,10 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	$is_app_client = isset( $_SERVER['HTTP_EXTRACHILL_CLIENT'] )
 		&& 'app' === sanitize_text_field( wp_unslash( $_SERVER['HTTP_EXTRACHILL_CLIENT'] ) );
 
-	$is_local_environment = defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local';
-	$turnstile_bypass     = $is_local_environment || (bool) apply_filters( 'extrachill_bypass_turnstile_verification', false );
-
-	if ( ! $is_app_client && ! $turnstile_bypass ) {
-		if ( empty( $turnstile_token ) ) {
-			return new WP_Error(
-				'turnstile_required',
-				'Captcha verification required. Please complete the challenge and try again.',
-				array( 'status' => 400 )
-			);
-		}
-
-		if ( ! function_exists( 'ec_verify_turnstile_response' ) ) {
-			return new WP_Error(
-				'extrachill_dependency_missing',
-				'Cloudflare Turnstile verification is required for registration.',
-				array( 'status' => 500 )
-			);
-		}
-
-		if ( ! ec_verify_turnstile_response( $turnstile_token ) ) {
-			return new WP_Error(
-				'turnstile_failed',
-				'Captcha verification failed. Please try again.',
-				array( 'status' => 400 )
-			);
+	if ( ! $is_app_client ) {
+		$check = ec_turnstile_check_request( $turnstile_token );
+		if ( is_wp_error( $check ) ) {
+			return $check;
 		}
 	}
 
