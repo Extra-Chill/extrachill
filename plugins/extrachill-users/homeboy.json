@@ -14,6 +14,18 @@
     {
       "file": "extrachill-users.php",
       "pattern": "EXTRACHILL_USERS_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "blocks/login-register/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "blocks/onboarding/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "blocks/password-reset/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
 }
