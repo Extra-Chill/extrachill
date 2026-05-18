@@ -14,6 +14,10 @@
     {
       "file": "extrachill-contact.php",
       "pattern": "EXTRACHILL_CONTACT_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "blocks/contact-form/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
 }
