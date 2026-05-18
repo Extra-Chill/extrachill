@@ -40,6 +40,10 @@ function extrachill_events_register_upcoming_counts_ability(): void {
 						'type'        => array( 'string', 'null' ),
 						'description' => 'Specific term slug for single-term lookup. Omit or pass null/empty for bulk query.',
 					),
+					'location_slug' => array(
+						'type'        => array( 'string', 'null' ),
+						'description' => 'Optional location term slug to scope bulk venue counts to a single city. Only applied when taxonomy is "venue".',
+					),
 					'limit'    => array(
 						'type'        => 'integer',
 						'description' => 'Maximum number of results (0 = unlimited).',
@@ -81,9 +85,10 @@ function extrachill_events_register_upcoming_counts_ability(): void {
  * @return array|WP_Error Array of term counts or error.
  */
 function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Error {
-	$taxonomy = sanitize_text_field( $input['taxonomy'] ?? '' );
-	$slug     = sanitize_title( $input['slug'] ?? '' );
-	$limit    = (int) ( $input['limit'] ?? 0 );
+	$taxonomy      = sanitize_text_field( $input['taxonomy'] ?? '' );
+	$slug          = sanitize_title( $input['slug'] ?? '' );
+	$location_slug = sanitize_title( $input['location_slug'] ?? '' );
+	$limit         = (int) ( $input['limit'] ?? 0 );
 
 	$allowed = array( 'venue', 'location', 'artist', 'festival' );
 	if ( empty( $taxonomy ) || ! in_array( $taxonomy, $allowed, true ) ) {
@@ -92,6 +97,11 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
 			__( 'taxonomy must be one of: venue, location, artist, festival.', 'extrachill-events' ),
 			array( 'status' => 400 )
 		);
+	}
+
+	// location_slug filter only applies to venue bulk queries.
+	if ( '' !== $location_slug && 'venue' !== $taxonomy ) {
+		$location_slug = '';
 	}
 
 	// Single term query.
@@ -104,7 +114,9 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
 	}
 
 	// Bulk query — check transient, run SQL on cold cache.
-	$cache_key = 'ec_upcoming_counts_' . $taxonomy;
+	$cache_key = '' !== $location_slug
+		? 'ec_upcoming_counts_' . $taxonomy . '_loc_' . $location_slug
+		: 'ec_upcoming_counts_' . $taxonomy;
 	$cached    = get_transient( $cache_key );
 
 	if ( false !== $cached ) {
@@ -116,7 +128,7 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
 	}
 
 	// Cold cache — run the query.
-	$terms = extrachill_events_query_upcoming_counts( $taxonomy );
+	$terms = extrachill_events_query_upcoming_counts( $taxonomy, $location_slug );
 
 	set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
 
@@ -130,10 +142,16 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
 /**
  * Query upcoming event counts for all terms in a taxonomy.
  *
- * @param string $taxonomy Taxonomy slug.
+ * Optionally scopes results to events tagged with a specific location term.
+ * Only honored when $taxonomy is 'venue' (see caller for enforcement).
+ *
+ * @param string $taxonomy      Taxonomy slug.
+ * @param string $location_slug Optional location term slug to scope event counts to.
+ *                              When non-empty, only events that also have this location
+ *                              term assigned are counted. Empty string disables scoping.
  * @return array Array of term count data.
  */
-function extrachill_events_query_upcoming_counts( string $taxonomy ): array {
+function extrachill_events_query_upcoming_counts( string $taxonomy, string $location_slug = '' ): array {
 	if ( ! taxonomy_exists( $taxonomy ) ) {
 		return array();
 	}
@@ -144,26 +162,46 @@ function extrachill_events_query_upcoming_counts( string $taxonomy ): array {
 	$exclude_roots = is_taxonomy_hierarchical( $taxonomy );
 	$parent_clause = $exclude_roots ? 'AND tt.parent != 0' : '';
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-	$rows = $wpdb->get_results(
-		$wpdb->prepare(
-			"SELECT t.term_id, t.name, t.slug, COUNT(DISTINCT p.ID) AS event_count
-			FROM {$wpdb->term_relationships} tr
-			INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-			INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
-			INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
-			INNER JOIN {$wpdb->prefix}datamachine_event_dates ed ON p.ID = ed.post_id
-			WHERE tt.taxonomy = %s
-			AND p.post_type = 'data_machine_events'
-			AND p.post_status = 'publish'
-			AND ed.start_datetime >= %s
-			{$parent_clause}
-			GROUP BY t.term_id
-			ORDER BY event_count DESC",
-			$taxonomy,
-			$today
-		)
-	);
+	// Optional location scope. Adds a second join through term_relationships
+	// onto the same post (p.ID) so only events tagged with the given location
+	// term are counted. Resolved up-front to avoid placeholder gymnastics.
+	$location_join   = '';
+	$location_where  = '';
+	$location_params = array();
+
+	if ( '' !== $location_slug ) {
+		$location_term = get_term_by( 'slug', $location_slug, 'location' );
+		if ( ! $location_term || is_wp_error( $location_term ) ) {
+			// Unknown location — return empty rather than unscoped results.
+			return array();
+		}
+
+		$location_join  = "INNER JOIN {$wpdb->term_relationships} tr_loc ON tr_loc.object_id = p.ID
+			INNER JOIN {$wpdb->term_taxonomy} tt_loc ON tr_loc.term_taxonomy_id = tt_loc.term_taxonomy_id";
+		$location_where = ' AND tt_loc.taxonomy = %s AND tt_loc.term_id = %d ';
+		$location_params = array( 'location', (int) $location_term->term_id );
+	}
+
+	$sql = "SELECT t.term_id, t.name, t.slug, COUNT(DISTINCT p.ID) AS event_count
+		FROM {$wpdb->term_relationships} tr
+		INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+		INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+		INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
+		INNER JOIN {$wpdb->prefix}datamachine_event_dates ed ON p.ID = ed.post_id
+		{$location_join}
+		WHERE tt.taxonomy = %s
+		AND p.post_type = 'data_machine_events'
+		AND p.post_status = 'publish'
+		AND ed.start_datetime >= %s
+		{$location_where}
+		{$parent_clause}
+		GROUP BY t.term_id
+		ORDER BY event_count DESC";
+
+	$params = array_merge( array( $taxonomy, $today ), $location_params );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
 
 	if ( empty( $rows ) ) {
 		return array();
