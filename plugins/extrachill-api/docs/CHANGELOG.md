@@ -2,6 +2,12 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.16.3] - 2026-05-18
+
+### Changed
+- enforce Turnstile on /event-submissions via permission_callback
+- use ec_turnstile_permission_callback() in contact/submit route
+
 ## [0.16.2] - 2026-05-17
 
 ### Fixed
