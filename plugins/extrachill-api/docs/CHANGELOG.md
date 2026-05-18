@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.16.5] - 2026-05-18
+
+### Fixed
+- pass location_slug param to events-upcoming-counts ability
+
 ## [0.16.4] - 2026-05-18
 
 ### Fixed
