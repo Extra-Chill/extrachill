@@ -12,10 +12,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_event_submission_route' );
 
 function extrachill_api_register_event_submission_route() {
+	// Captcha (Cloudflare Turnstile) is enforced here, at the human-facing
+	// boundary. The underlying extrachill/submit-event ability is captcha-
+	// free so it can be called from CLI, admin forms, or scheduled reruns
+	// without fabricating a token.
+	$turnstile_callback = function_exists( 'ec_turnstile_permission_callback' )
+		? ec_turnstile_permission_callback()
+		: '__return_true';
+
 	register_rest_route( 'extrachill/v1', '/event-submissions', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'extrachill_api_handle_event_submission',
-		'permission_callback' => '__return_true',
+		'permission_callback' => $turnstile_callback,
 		'args'                => array(
 			'turnstile_response' => array(
 				'required' => false,
@@ -46,7 +54,6 @@ function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
 		'notes'              => sanitize_textarea_field( $request->get_param( 'notes' ) ),
 		'contact_name'       => sanitize_text_field( $request->get_param( 'contact_name' ) ),
 		'contact_email'      => sanitize_email( $request->get_param( 'contact_email' ) ),
-		'turnstile_response' => sanitize_text_field( $request->get_param( 'turnstile_response' ) ),
 		'system_prompt'      => sanitize_textarea_field( $request->get_param( 'system_prompt' ) ),
 	);
 
