@@ -17,45 +17,73 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_auth_logi
  * Registers the auth login route.
  */
 function extrachill_api_register_auth_login_route() {
+	// Web clients must pass a Turnstile challenge; native app clients opt out
+	// by sending the HTTP_EXTRACHILL_CLIENT: app header (same policy as the
+	// registration route). Captcha runs BEFORE password validation and 2FA,
+	// so no 2FA-specific code change is needed.
+	$permission_callback = function ( WP_REST_Request $request ) {
+		$is_app_client = isset( $_SERVER['HTTP_EXTRACHILL_CLIENT'] )
+			&& 'app' === sanitize_text_field( wp_unslash( $_SERVER['HTTP_EXTRACHILL_CLIENT'] ) );
+
+		if ( $is_app_client ) {
+			return true;
+		}
+
+		if ( ! function_exists( 'ec_turnstile_check_request' ) ) {
+			return new WP_Error(
+				'turnstile_missing',
+				__( 'Security verification unavailable.', 'extrachill-api' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return ec_turnstile_check_request( $request );
+	};
+
 	register_rest_route(
 		'extrachill/v1',
 		'/auth/login',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => 'extrachill_api_auth_login_handler',
-			'permission_callback' => '__return_true',
+			'permission_callback' => $permission_callback,
 			'args'                => array(
-				'identifier'  => array(
+				'identifier'         => array(
 					'required'          => true,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'password'    => array(
+				'password'           => array(
 					'required' => true,
 					'type'     => 'string',
 				),
-				'device_id'   => array(
+				'device_id'          => array(
 					'required'          => true,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'device_name' => array(
+				'device_name'        => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'remember'    => array(
+				'remember'           => array(
 					'required' => false,
 					'type'     => 'boolean',
 				),
-				'set_cookie'  => array(
+				'set_cookie'         => array(
 					'required' => false,
 					'type'     => 'boolean',
 				),
-				'redirect_to' => array(
+				'redirect_to'        => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'esc_url_raw',
+				),
+				'turnstile_response' => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
 				),
 			),
 		)
