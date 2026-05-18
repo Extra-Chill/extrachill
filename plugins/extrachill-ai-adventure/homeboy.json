@@ -18,6 +18,18 @@
     {
       "file": "package.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/ai-adventure/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/ai-adventure-step/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/ai-adventure-path/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
 }
