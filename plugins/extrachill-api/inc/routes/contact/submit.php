@@ -16,7 +16,7 @@ function extrachill_api_register_contact_submit_route() {
 	register_rest_route( 'extrachill/v1', '/contact/submit', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'extrachill_api_handle_contact_submit',
-		'permission_callback' => '__return_true',
+		'permission_callback' => ec_turnstile_permission_callback(),
 		'args'                => array(
 			'name' => array(
 				'required'          => true,
@@ -48,26 +48,6 @@ function extrachill_api_register_contact_submit_route() {
 }
 
 function extrachill_api_handle_contact_submit( WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_verify_turnstile_response' ) ) {
-		return new WP_Error(
-			'turnstile_missing',
-			__( 'Security verification unavailable.', 'extrachill-api' ),
-			array( 'status' => 500 )
-		);
-	}
-
-	$is_local_environment = defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local';
-	$turnstile_bypass     = $is_local_environment || (bool) apply_filters( 'extrachill_bypass_turnstile_verification', false );
-
-	$turnstile_response = $request->get_param( 'turnstile_response' );
-	if ( ! $turnstile_bypass && ( empty( $turnstile_response ) || ! ec_verify_turnstile_response( $turnstile_response ) ) ) {
-		return new WP_Error(
-			'turnstile_failed',
-			__( 'Security verification failed. Please try again.', 'extrachill-api' ),
-			array( 'status' => 403 )
-		);
-	}
-
 	$name    = $request->get_param( 'name' );
 	$email   = $request->get_param( 'email' );
 	$subject = $request->get_param( 'subject' );
