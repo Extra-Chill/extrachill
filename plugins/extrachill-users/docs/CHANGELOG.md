@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.2] - 2026-05-18
+
+### Fixed
+- sync block.json versions on release so style/script changes bust caches
+
 ## [0.10.1] - 2026-05-18
 
 ### Changed
