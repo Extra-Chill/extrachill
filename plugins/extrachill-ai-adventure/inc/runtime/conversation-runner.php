@@ -14,7 +14,7 @@
  *      function declaration.
  *   4. Dispatches one provider turn through wp_ai_client_prompt().
  *   5. Extracts the assistant's narrative text and (optionally) executes a
- *      progress_story tool call through the agents-api ToolExecutorInterface
+ *      progress_story tool call through the agents-api WP_Agent_Tool_Executor
  *      adapter declared in inc/tools/progress-story-tool.php.
  *   6. Returns the narrative + next_step_id to the REST handler.
  *
@@ -237,16 +237,16 @@ function extrachill_ai_adventure_build_system_prompt( array $context ): string {
  *
  * Returns an AgentConversationResult-shaped array consumed by
  * AgentConversationLoop. Tool calls are executed inline via the supplied
- * ToolExecutorInterface adapter so the loop sees both the assistant message
+ * WP_Agent_Tool_Executor adapter so the loop sees both the assistant message
  * and any tool execution results in a single turn.
  *
- * @param array                                     $messages         Normalized envelopes from the loop.
- * @param array                                     $turn_context     Loop turn context.
- * @param string                                    $provider         wp-ai-client provider id.
- * @param string                                    $model            wp-ai-client model id.
- * @param string                                    $system_prompt    System prompt text.
- * @param array                                     $tool_declaration Normalized RuntimeToolDeclaration.
- * @param \AgentsAPI\AI\Tools\ToolExecutorInterface $tool_executor    Tool executor adapter.
+ * @param array                                   $messages         Normalized envelopes from the loop.
+ * @param array                                   $turn_context     Loop turn context.
+ * @param string                                  $provider         wp-ai-client provider id.
+ * @param string                                  $model            wp-ai-client model id.
+ * @param string                                  $system_prompt    System prompt text.
+ * @param array                                   $tool_declaration Normalized WP_Agent_Tool_Declaration.
+ * @param \AgentsAPI\AI\Tools\WP_Agent_Tool_Executor $tool_executor  Tool executor adapter.
  * @param array                                     $game_context     Game context for tool execution.
  * @return array AgentConversationResult-compatible array.
  */
@@ -257,7 +257,7 @@ function extrachill_ai_adventure_run_turn(
 	string $model,
 	string $system_prompt,
 	array $tool_declaration,
-	\AgentsAPI\AI\Tools\ToolExecutorInterface $tool_executor,
+	\AgentsAPI\AI\Tools\WP_Agent_Tool_Executor $tool_executor,
 	array $game_context
 ): array {
 	$turn = isset( $turn_context['turn'] ) ? (int) $turn_context['turn'] : 1;
@@ -334,7 +334,7 @@ function extrachill_ai_adventure_run_turn(
 			'metadata'   => array( 'source' => 'extrachill' ),
 		);
 
-		$execution = $tool_executor->executeToolCall( $normalized_call, $tool_declaration, $game_context );
+		$execution = $tool_executor->executeWP_Agent_Tool_Call( $normalized_call, $tool_declaration, $game_context );
 
 		$success     = (bool) ( $execution['success'] ?? false );
 		$result_data = is_array( $execution['result'] ?? null ) ? $execution['result'] : array();
@@ -421,13 +421,13 @@ function extrachill_ai_adventure_messages_to_history( array $messages ): array {
 }
 
 /**
- * Convert a normalized RuntimeToolDeclaration into a JSON Schema for wp-ai-client.
+ * Convert a normalized WP_Agent_Tool_Declaration into a JSON Schema for wp-ai-client.
  *
  * The agents-api declaration accepts both compact (`required` list) and
  * legacy (`required => true` per property) shapes. wp-ai-client expects the
  * compact JSON Schema object form.
  *
- * @param array $declaration Normalized RuntimeToolDeclaration.
+ * @param array $declaration Normalized WP_Agent_Tool_Declaration.
  * @return array<string, mixed>|null
  */
 function extrachill_ai_adventure_function_schema( array $declaration ): ?array {

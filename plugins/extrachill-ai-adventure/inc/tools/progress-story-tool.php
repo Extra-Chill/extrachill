@@ -3,9 +3,10 @@
  * progress_story runtime tool wiring.
  *
  * Declares the `extrachill/progress-story` runtime tool via agents-api's
- * RuntimeToolDeclaration and provides a ToolExecutorInterface implementation
- * that delegates to the `extrachill/progress-story` ability. This is the
- * direct replacement for the legacy DataMachine BaseTool registration.
+ * WP_Agent_Tool_Declaration and provides a WP_Agent_Tool_Executor
+ * implementation that delegates to the `extrachill/progress-story` ability.
+ * This is the direct replacement for the legacy DataMachine BaseTool
+ * registration.
  *
  * The provider-facing function name is `progress_story` (no slash) because
  * OpenAI/Anthropic function names disallow `/`. The agents-api runtime tool
@@ -17,9 +18,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-use AgentsAPI\AI\Tools\RuntimeToolDeclaration;
-use AgentsAPI\AI\Tools\ToolExecutionResult;
-use AgentsAPI\AI\Tools\ToolExecutorInterface;
+use AgentsAPI\AI\Tools\WP_Agent_Tool_Declaration;
+use AgentsAPI\AI\Tools\WP_Agent_Tool_Result;
+use AgentsAPI\AI\Tools\WP_Agent_Tool_Executor;
 
 /**
  * Provider-facing function name used by wp-ai-client function declarations.
@@ -27,19 +28,19 @@ use AgentsAPI\AI\Tools\ToolExecutorInterface;
 define( 'EXTRACHILL_AI_ADVENTURE_TOOL_FUNCTION_NAME', 'progress_story' );
 
 /**
- * agents-api runtime tool name (namespaced; required by RuntimeToolDeclaration).
+ * agents-api runtime tool name (namespaced; required by WP_Agent_Tool_Declaration).
  */
 define( 'EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME', 'extrachill/progress-story' );
 
 /**
- * Build the normalized agents-api RuntimeToolDeclaration for progress_story.
+ * Build the normalized agents-api WP_Agent_Tool_Declaration for progress_story.
  *
- * Returned shape conforms to {@see RuntimeToolDeclaration::normalize()}.
+ * Returned shape conforms to {@see WP_Agent_Tool_Declaration::normalize()}.
  *
  * @return array Normalized runtime tool declaration.
  */
 function extrachill_ai_adventure_progress_story_declaration(): array {
-	return RuntimeToolDeclaration::normalize(
+	return WP_Agent_Tool_Declaration::normalize(
 		array(
 			'name'        => EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME,
 			'description' => 'Progress the story to the next step when the player has made a clear decision. '
@@ -56,31 +57,31 @@ function extrachill_ai_adventure_progress_story_declaration(): array {
 				),
 				'required'   => array( 'trigger_id' ),
 			),
-			'executor'    => RuntimeToolDeclaration::EXECUTOR_CLIENT,
-			'scope'       => RuntimeToolDeclaration::SCOPE_RUN,
+			'executor'    => WP_Agent_Tool_Declaration::EXECUTOR_CLIENT,
+			'scope'       => WP_Agent_Tool_Declaration::SCOPE_RUN,
 		)
 	);
 }
 
 /**
- * agents-api ToolExecutorInterface implementation for progress_story.
+ * agents-api WP_Agent_Tool_Executor implementation for progress_story.
  *
  * Bridges agents-api tool dispatch into the `extrachill/progress-story`
  * ability. The conversation runner passes the structured triggers list
  * through `$context['triggers']`; the AI only supplies `trigger_id`.
  */
-class ExtraChill_AI_Adventure_Progress_Story_Executor implements ToolExecutorInterface {
+class ExtraChill_AI_Adventure_Progress_Story_Executor implements WP_Agent_Tool_Executor {
 
 	/**
 	 * @inheritDoc
 	 */
-	public function executeToolCall( array $tool_call, array $tool_definition, array $context = array() ): array {
+	public function executeWP_Agent_Tool_Call( array $tool_call, array $tool_definition, array $context = array() ): array {
 		$tool_name  = (string) ( $tool_call['tool_name'] ?? EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME );
 		$parameters = is_array( $tool_call['parameters'] ?? null ) ? $tool_call['parameters'] : array();
 		$trigger_id = isset( $parameters['trigger_id'] ) ? (string) $parameters['trigger_id'] : '';
 
 		if ( '' === $trigger_id ) {
-			return ToolExecutionResult::error(
+			return WP_Agent_Tool_Result::error(
 				$tool_name,
 				'trigger_id is required. Check the available triggers in the game context.'
 			);
@@ -88,7 +89,7 @@ class ExtraChill_AI_Adventure_Progress_Story_Executor implements ToolExecutorInt
 
 		$triggers = isset( $context['triggers'] ) && is_array( $context['triggers'] ) ? $context['triggers'] : array();
 		if ( empty( $triggers ) ) {
-			return ToolExecutionResult::error(
+			return WP_Agent_Tool_Result::error(
 				$tool_name,
 				'No story triggers are available for the current step. Continue the conversation instead.'
 			);
@@ -96,7 +97,7 @@ class ExtraChill_AI_Adventure_Progress_Story_Executor implements ToolExecutorInt
 
 		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/progress-story' ) : null;
 		if ( ! $ability ) {
-			return ToolExecutionResult::error(
+			return WP_Agent_Tool_Result::error(
 				$tool_name,
 				'Progress story ability is not available.'
 			);
@@ -110,11 +111,11 @@ class ExtraChill_AI_Adventure_Progress_Story_Executor implements ToolExecutorInt
 		);
 
 		if ( is_wp_error( $ability_result ) ) {
-			return ToolExecutionResult::error( $tool_name, $ability_result->get_error_message() );
+			return WP_Agent_Tool_Result::error( $tool_name, $ability_result->get_error_message() );
 		}
 
 		if ( ! empty( $ability_result['progressed'] ) ) {
-			return ToolExecutionResult::success(
+			return WP_Agent_Tool_Result::success(
 				$tool_name,
 				array(
 					'progressed'   => true,
@@ -124,7 +125,7 @@ class ExtraChill_AI_Adventure_Progress_Story_Executor implements ToolExecutorInt
 			);
 		}
 
-		return ToolExecutionResult::success(
+		return WP_Agent_Tool_Result::success(
 			$tool_name,
 			array(
 				'progressed' => false,
