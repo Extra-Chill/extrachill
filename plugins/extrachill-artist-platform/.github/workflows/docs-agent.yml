@@ -1,0 +1,93 @@
+# Docs Agent CI for extrachill-artist-platform
+#
+# Runs Automattic/docs-agent against this repository to generate or
+# maintain user-facing documentation under docs/user/. Output is opened
+# as a pull request for human review.
+#
+# This workflow is a thin wrapper around homeboy-extensions's reusable
+# datamachine-agent-ci.yml. It adds two Extra-Chill-specific pieces:
+#
+#   1. Lists Extra-Chill/extrachill-docs as a validation dependency so
+#      that plugin loads in the ephemeral WordPress runtime. Loading it
+#      registers the `docs` agent execution mode and supplies its
+#      editorial voice rules via the datamachine_agent_mode_docs filter.
+#      See https://github.com/Extra-Chill/extrachill-docs (PR #35).
+#
+#   2. Passes pipeline_step_patches to set agent_modes: ['docs'] on the
+#      docs-agent bundle's AI step at runtime. This activates the docs
+#      mode without forking or modifying the upstream bundle.
+#
+# When triggered, the agent reads this repo's source code (PHP, JS,
+# templates, UI strings, existing docs), produces markdown files in
+# docs/user/, and opens one pull request. The strict end-user voice
+# rules from extrachill-docs#6 are enforced through the docs mode's
+# system context injection — the agent never names plugins, hooks,
+# slugs, or any developer-visible surface.
+#
+# Triggering:
+#   - workflow_dispatch (manual) for ad-hoc runs during pilot phase
+#   - Scheduled runs can be added after the bootstrap PR is reviewed
+#     and merged, by uncommenting the `schedule:` block below.
+
+name: Docs Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      flow_kind:
+        description: Which docs flow to run.
+        type: choice
+        options:
+          - user-docs-bootstrap-flow
+          - user-docs-maintenance-flow
+          - user-docs-flow
+        default: user-docs-bootstrap-flow
+      openai_model:
+        description: OpenAI model to use.
+        required: false
+        default: gpt-5.5
+
+  # schedule:
+  #   # Weekly maintenance pass, Sundays at 14:00 UTC. Uncomment after
+  #   # bootstrap PR is merged.
+  #   - cron: '0 14 * * 0'
+
+jobs:
+  run-docs-agent:
+    uses: Extra-Chill/homeboy-extensions/.github/workflows/datamachine-agent-ci.yml@main
+    with:
+      bundle_repo: https://github.com/Automattic/docs-agent.git
+      bundle_ref: main
+      bundle_path_in_repo: bundles/docs-agent
+      bundle_path: bundles/docs-agent
+      agent_slug: docs-agent
+      pipeline_slug: user-docs-pipeline
+      flow_slug: ${{ inputs.flow_kind || 'user-docs-maintenance-flow' }}
+      target_repo: ${{ github.repository }}
+      prompt: >-
+        ${{
+          contains(inputs.flow_kind, 'bootstrap') &&
+          'Run the user docs bootstrap flow. Build the broadest complete initial user-facing documentation surface possible from source code, UI strings, existing docs, issues, and pull requests. Open one documentation PR unless the repo already has complete user docs.' ||
+          'Run the user docs maintenance flow. Update non-technical user-facing living documentation only where source code, UI strings, recent issues, recent pull requests, or existing docs show stale, missing, fragmented, or misleading coverage. Open a documentation PR only if needed.'
+        }}
+      model: ${{ inputs.openai_model || 'gpt-5.5' }}
+      validation_dependencies: >-
+        Automattic/agents-api@main,Extra-Chill/data-machine@main,Extra-Chill/data-machine-code@main,Extra-Chill/extrachill-docs@main,WordPress/ai-provider-for-openai@trunk
+      runner_workspace: |
+        {
+          "enabled": true,
+          "repo": "${{ github.repository }}",
+          "clone_url": "https://github.com/${{ github.repository }}.git",
+          "branch_prefix": "docs/agent-run",
+          "from": "origin/main",
+          "bootstrap": false
+        }
+      pipeline_step_patches: |
+        [{"step_type": "ai", "set": {"agent_modes": ["docs"]}}]
+      success_requires_pr: false
+      extra_required_abilities: |
+        ["datamachine/workspace-worktree-add"]
+      app_token_repos: ${{ github.repository }}
+      engine_data_outputs: '{"docs_pr_url":"metadata.engine_data.docs_agent.pr_url"}'
+      transcript_artifact_name: docs-agent-transcript-${{ github.run_id }}
+    secrets: inherit
