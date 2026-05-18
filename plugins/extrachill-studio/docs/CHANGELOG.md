@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.2] - 2026-05-18
+
+### Changed
+- migrate transcription email, retire switch_to_blog (closes #71)
+
 ## [0.15.1] - 2026-05-12
 
 ### Fixed
