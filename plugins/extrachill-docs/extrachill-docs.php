@@ -48,6 +48,11 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/sidebar.php';
 // Custom rewrite rules for /{platform}/{doc}/ URL structure.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/rewrite-rules.php';
 
+// Docs agent execution mode — registers the `docs` mode with Data Machine
+// and provides its editorial guidance (writing rules) for any AI step
+// configured with agent_modes: ['docs']. See runner-configs/README.md.
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/docs-agent/docs-mode.php';
+
 register_activation_hook( __FILE__, 'extrachill_docs_activate' );
 
 /**

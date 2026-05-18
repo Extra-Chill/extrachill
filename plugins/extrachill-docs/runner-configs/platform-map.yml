@@ -1,0 +1,86 @@
+# Platform map for docs-agent runs across Extra-Chill plugin repositories.
+#
+# This file maps each plugin repo that powers a user-facing platform to its
+# identity on docs.extrachill.com. The reusable workflow
+# (.github/workflows/docs-agent-for-plugin.yml) refuses to run against a
+# target_repo that has no entry here.
+#
+# Keys are GitHub repo identifiers in OWNER/REPO form.
+#
+# Per-entry fields:
+#   platform_name   : Human-readable name as it appears in headings on
+#                     docs.extrachill.com. Used in the prompt to orient the
+#                     agent toward the right user persona.
+#   parent_slug     : The slug of the parent page on docs.extrachill.com
+#                     under which this repo's docs will be synced. The sync
+#                     bundle (issue #32) uses the same slug.
+#   audience        : One-line description of who reads these docs. Injected
+#                     into the prompt so the agent calibrates its voice for
+#                     the right reader.
+#   docs_subpath    : The path inside the target repo where user docs live.
+#                     Defaults to docs/user. Override only when a repo has
+#                     a non-standard layout.
+#
+# To add a new plugin repo to the docs-agent rotation:
+#   1. Add an entry below.
+#   2. In the plugin repo, add .github/workflows/docs-agent.yml that calls
+#      Extra-Chill/extrachill-docs/.github/workflows/docs-agent-for-plugin.yml.
+#   3. Trigger user-docs-bootstrap-flow once via workflow_dispatch and review
+#      the resulting PR.
+#
+# See extrachill-docs issues #31 (architecture), #33 (this file), and #34
+# (per-repo wiring tracker).
+
+repos:
+
+  Extra-Chill/extrachill-artist-platform:
+    platform_name: "Artist Platform"
+    parent_slug: "artist-platform"
+    audience: "musicians, artist managers, and small label staff who run artist pages, link pages, merch stores, and roster management on extrachill.com"
+    docs_subpath: "docs/user"
+
+  Extra-Chill/extrachill-community:
+    platform_name: "Community"
+    parent_slug: "community"
+    audience: "forum members, music fans, and contributors who use the discussion boards, profiles, ranks, upvoting, and notifications"
+    docs_subpath: "docs/user"
+
+  Extra-Chill/extrachill-events:
+    platform_name: "Events Calendar"
+    parent_slug: "events-calendar"
+    audience: "music fans browsing shows and festivals, and event organizers submitting their own events to the calendar"
+    docs_subpath: "docs/user"
+
+  Extra-Chill/extrachill-newsletter:
+    platform_name: "Newsletter"
+    parent_slug: "newsletter"
+    audience: "newsletter subscribers managing their preferences, and artists or organizers sending their own newsletters through Extra Chill"
+    docs_subpath: "docs/user"
+
+  Extra-Chill/extrachill-shop:
+    platform_name: "Shop"
+    parent_slug: "shop"
+    audience: "customers ordering merchandise and music from the Extra Chill shop, including artists fulfilling orders through their own merch stores"
+    docs_subpath: "docs/user"
+
+  Extra-Chill/extrachill-blog:
+    platform_name: "Editorial"
+    parent_slug: "blog"
+    audience: "readers of the Extra Chill blog and contributors pitching stories or commenting on articles"
+    docs_subpath: "docs/user"
+
+  Extra-Chill/extrachill-roadie:
+    platform_name: "Roadie"
+    parent_slug: "chat"
+    audience: "anyone chatting with the Extra Chill AI assistant, on the website or bridged through their personal messaging app"
+    docs_subpath: "docs/user"
+
+  # The account/auth platform is cross-cutting and does not yet have a
+  # dedicated repo. Candidate owners: extrachill-users or extrachill-multisite.
+  # Decide during the wiring tracker (#34) and add the entry then.
+  #
+  # Extra-Chill/extrachill-users:
+  #   platform_name: "Account"
+  #   parent_slug: "account"
+  #   audience: "everyone with an Extra Chill account managing their login, profile, privacy, two-factor authentication, and account deletion"
+  #   docs_subpath: "docs/user"
