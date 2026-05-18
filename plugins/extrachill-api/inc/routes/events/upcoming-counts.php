@@ -29,20 +29,26 @@ function extrachill_api_register_events_upcoming_counts_route() {
 			'callback'            => 'extrachill_api_events_upcoming_counts_handler',
 			'permission_callback' => '__return_true',
 			'args'                => array(
-				'taxonomy' => array(
+				'taxonomy'      => array(
 					'required'          => true,
 					'type'              => 'string',
 					'enum'              => array( 'venue', 'location', 'artist', 'festival' ),
 					'description'       => 'Taxonomy to query: venue, location, artist, or festival',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'slug'     => array(
+				'slug'          => array(
 					'required'          => false,
 					'type'              => 'string',
 					'description'       => 'Specific term slug. If provided, returns single term data.',
 					'sanitize_callback' => 'sanitize_title',
 				),
-				'limit'    => array(
+				'location_slug' => array(
+					'required'          => false,
+					'type'              => 'string',
+					'description'       => 'Optional location term slug to scope bulk venue counts to a single city. Only applied when taxonomy is "venue".',
+					'sanitize_callback' => 'sanitize_title',
+				),
+				'limit'         => array(
 					'required'          => false,
 					'type'              => 'integer',
 					'default'           => 0,
@@ -78,6 +84,11 @@ function extrachill_api_events_upcoming_counts_handler( WP_REST_Request $request
 	$slug = $request->get_param( 'slug' );
 	if ( is_string( $slug ) && '' !== $slug ) {
 		$input['slug'] = $slug;
+	}
+
+	$location_slug = $request->get_param( 'location_slug' );
+	if ( is_string( $location_slug ) && '' !== $location_slug ) {
+		$input['location_slug'] = $location_slug;
 	}
 
 	$result = $ability->execute( $input );
