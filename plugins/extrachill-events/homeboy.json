@@ -14,6 +14,14 @@
     {
       "file": "extrachill-events.php",
       "pattern": "EXTRACHILL_EVENTS_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "blocks/concert-stats/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "blocks/event-submission/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
 }
