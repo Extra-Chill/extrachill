@@ -98,7 +98,7 @@ function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
 	}
 
 	// --- Scope check --------------------------------------------------
-	$scope = isset( $payload['scope'] ) ? (string) $payload['scope'] : '';
+	$scope  = isset( $payload['scope'] ) ? (string) $payload['scope'] : '';
 	$scopes = array_filter( preg_split( '/\s+/', $scope ) );
 	if ( ! in_array( 'callback:write', $scopes, true ) ) {
 		return new \WP_Error( 'forbidden_scope', __( 'Token lacks callback:write scope.', 'extrachill-studio' ), array( 'status' => 403 ) );
@@ -223,9 +223,7 @@ function ec_studio_transcription_callback_create_draft(
 	string $filename,
 	string $transcript,
 	string $job_id,
-	array $stats,
-	array $full_body
-) {
+	array $stats) {
 	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
 		return new \WP_Error(
 			'multisite_helper_missing',
@@ -271,6 +269,11 @@ function ec_studio_transcription_callback_create_draft(
 	// Attach Studio-specific meta on the main site.
 	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
 	if ( $main_blog_id > 0 ) {
+		// Switch is for post-context resolution, NOT for SMTP: the draft
+		// lives on main extrachill.com, so update_post_meta() must run in
+		// main's blog context to hit the correct postmeta table. SMTP
+		// routing for outgoing mail is handled separately by ec_send_email()
+		// via the mail_site_id input.
 		switch_to_blog( $main_blog_id );
 		try {
 			update_post_meta( $post_id, '_studio_source_filename', $filename );
@@ -289,29 +292,28 @@ function ec_studio_transcription_callback_create_draft(
 /**
  * Send the "your transcription is ready" email to the uploader.
  *
- * Resolves the edit URL on main extrachill.com (the post lives there) so the
- * link drops the user directly into the WP editor for their new draft.
- *
- * The entire body composition AND the wp_mail() call run inside
- * `switch_to_blog( ec_get_blog_id('main') )`. This is required because
- * Easy WP SMTP stores its config + encrypted credentials per-site —
- * configuring it on main extrachill.com doesn't make the studio subsite
- * see those credentials, so a wp_mail() call from studio's context
- * either falls back to PHP mail() (no sendmail binary, fails) or hits
- * SMTP with garbage decrypted credentials (auth failure). Sending from
- * main's context is also semantically right: the email is FROM the
- * editorial site where the draft lives, so the "From" address matches
- * the link the recipient clicks.
+ * Delegates mail dispatch to `ec_send_email()` (extrachill-multisite),
+ * which wraps the `datamachine/send-email` ability. The branded shell
+ * (`extrachill/branded`) owns the document chrome, greeting, CTA
+ * button, and footer; this function only assembles the transcription-
+ * specific inner body and context.
  *
  * @since 0.13.0
- * @since 0.14.1 Wrap the wp_mail call in switch_to_blog so SMTP is configured.
+ * @since X.Y.Z Mail dispatch delegated to ec_send_email(); SMTP context
+ *              is auto-resolved by the ability via mail_site_id
+ *              (`ec_mail_site_id()`), retiring the manual
+ *              `switch_to_blog( ec_get_blog_id('main') )` workaround
+ *              previously needed because Easy WP SMTP stores its config
+ *              per-site. The only remaining switch in this function is
+ *              for resolving the post's edit URL in main's context — the
+ *              draft lives there — which is unrelated to SMTP.
  *
  * @param \WP_User $user        Recipient.
  * @param int      $post_id     Draft post id on main.
  * @param string   $filename    Original recording filename.
  * @param string   $transcript  Plain-text transcript content.
  * @param array    $stats       Stats array from the callback body.
- * @return bool True if `wp_mail` accepted the message.
+ * @return bool True if the ability reports a successful send.
  */
 function ec_studio_transcription_callback_send_email(
 	\WP_User $user,
@@ -320,9 +322,7 @@ function ec_studio_transcription_callback_send_email(
 	string $transcript,
 	array $stats
 ): bool {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
-
-	if ( $main_blog_id <= 0 ) {
+	if ( ! function_exists( 'ec_send_email' ) ) {
 		return false;
 	}
 
@@ -346,30 +346,47 @@ function ec_studio_transcription_callback_send_email(
 		$filename
 	);
 
-	switch_to_blog( $main_blog_id );
-	try {
-		$edit_url = (string) get_edit_post_link( $post_id, 'raw' );
-
-		$body = ec_studio_transcription_render_completion_email(
-			array(
-				'recipient_name' => $user->display_name ?: $user->user_login,
-				'filename'       => $filename,
-				'duration_sec'   => $duration_sec,
-				'segments'       => $segments,
-				'has_speakers'   => $has_speakers,
-				'preview'        => $preview,
-				'edit_url'       => $edit_url,
-			)
-		);
-
-		$headers = array(
-			'Content-Type: text/html; charset=UTF-8',
-		);
-
-		$sent = (bool) wp_mail( $user->user_email, $subject, $body, $headers );
-	} finally {
-		restore_current_blog();
+	// Resolve the draft's edit URL in the context of the site that owns
+	// the post (main extrachill.com). This switch is NOT for SMTP —
+	// SMTP routing is now handled inside ec_send_email() via the
+	// mail_site_id input. get_edit_post_link() needs main's blog
+	// context to read the post and build a correct admin URL because
+	// the draft was created on main via ec_cross_site_rest_request().
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$edit_url     = '';
+	if ( $main_blog_id > 0 ) {
+		switch_to_blog( $main_blog_id );
+		try {
+			$edit_url = (string) get_edit_post_link( $post_id, 'raw' );
+		} finally {
+			restore_current_blog();
+		}
 	}
 
-	return $sent;
+	$body_html = ec_studio_transcription_render_completion_email(
+		array(
+			'filename'     => $filename,
+			'duration_sec' => $duration_sec,
+			'segments'     => $segments,
+			'has_speakers' => $has_speakers,
+			'preview'      => $preview,
+		)
+	);
+
+	$result = ec_send_email(
+		array(
+			'to'       => $user->user_email,
+			'subject'  => $subject,
+			'template' => 'extrachill/branded',
+			'context'  => array(
+				'recipient_name' => $user->display_name ? $user->display_name : $user->user_login,
+				'preheader'      => __( 'Your transcription is ready', 'extrachill-studio' ),
+				'body_html'      => $body_html,
+				'cta_url'        => $edit_url,
+				'cta_label'      => __( 'Review draft', 'extrachill-studio' ),
+			),
+		)
+	);
+
+	return is_array( $result ) && ! empty( $result['success'] );
 }
