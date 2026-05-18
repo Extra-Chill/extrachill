@@ -59,6 +59,11 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/upsert-doc-page.php';
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/sync/synced-page-guard.php';
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/sync/sync-orchestrator.php';
 
+// One-shot ec_doc → page migration. Registers the WP-CLI command
+// `wp extrachill docs migrate-ec-docs`. Runs once before #39 removes
+// the ec_doc CPT. See inc/migration/.
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/migration/ec-doc-to-page-migration.php';
+
 register_activation_hook( __FILE__, 'extrachill_docs_activate' );
 register_deactivation_hook( __FILE__, 'extrachill_docs_deactivate' );
 
