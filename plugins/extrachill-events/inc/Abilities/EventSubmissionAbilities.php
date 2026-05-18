@@ -42,51 +42,51 @@ class EventSubmissionAbilities {
 						'type'       => 'object',
 						'required'   => array( 'event_title', 'event_date' ),
 						'properties' => array(
-							'event_title'        => array(
+							'event_title'   => array(
 								'type'        => 'string',
 								'description' => 'Event title.',
 							),
-							'event_date'         => array(
+							'event_date'    => array(
 								'type'        => 'string',
 								'description' => 'Event date (YYYY-MM-DD).',
 							),
-							'event_time'         => array(
+							'event_time'    => array(
 								'type'        => 'string',
 								'description' => 'Event start time (HH:MM). Optional.',
 							),
-							'venue_name'         => array(
+							'venue_name'    => array(
 								'type'        => 'string',
 								'description' => 'Venue name. Optional.',
 							),
-							'event_city'         => array(
+							'event_city'    => array(
 								'type'        => 'string',
 								'description' => 'City or region. Optional.',
 							),
-							'event_lineup'       => array(
+							'event_lineup'  => array(
 								'type'        => 'string',
 								'description' => 'Lineup or headliners. Optional.',
 							),
-							'event_link'         => array(
+							'event_link'    => array(
 								'type'        => 'string',
 								'description' => 'Ticket or info URL. Optional.',
 							),
-							'notes'              => array(
+							'notes'         => array(
 								'type'        => 'string',
 								'description' => 'Additional details. Optional.',
 							),
-							'contact_name'       => array(
+							'contact_name'  => array(
 								'type'        => 'string',
 								'description' => 'Submitter name. Required for anonymous submissions.',
 							),
-							'contact_email'      => array(
+							'contact_email' => array(
 								'type'        => 'string',
 								'description' => 'Submitter email. Required for anonymous submissions.',
 							),
-							'system_prompt'      => array(
+							'system_prompt' => array(
 								'type'        => 'string',
 								'description' => 'Custom system prompt for AI processing step. Optional.',
 							),
-							'flyer'              => array(
+							'flyer'         => array(
 								'type'        => 'object',
 								'description' => 'Uploaded flyer file data from $_FILES. Optional.',
 							),
@@ -301,7 +301,7 @@ class EventSubmissionAbilities {
 		return array(
 			'filename'    => sanitize_file_name( $flyer['name'] ),
 			'stored_path' => $stored,
-			'mime_type'   => $file_info['type'] ?: 'application/octet-stream',
+			'mime_type'   => $file_info['type'] ? $file_info['type'] : 'application/octet-stream',
 		);
 	}
 
@@ -367,7 +367,7 @@ class EventSubmissionAbilities {
 			'type'          => 'ai',
 			'provider'      => $provider,
 			'model'         => $model,
-			'system_prompt' => $system_prompt ?: $default_prompt,
+			'system_prompt' => $system_prompt ? $system_prompt : $default_prompt,
 			'user_message'  => $user_message,
 			'enabled_tools' => array( 'upsert_event' ),
 		);
@@ -387,6 +387,12 @@ class EventSubmissionAbilities {
 	/**
 	 * Send confirmation email to the person who submitted the event.
 	 *
+	 * Routes through `ec_send_email()` (the extrachill-multisite helper that
+	 * wraps `datamachine/send-email`) when available, with a graceful
+	 * fallback to `wp_get_ability('datamachine/send-email')` for load-order
+	 * edge cases. Uses the `extrachill/branded` template — submitters get
+	 * the full EC visual identity.
+	 *
 	 * @param array $submission Submission data.
 	 */
 	private function notifySubmitter( array $submission ): void {
@@ -395,57 +401,189 @@ class EventSubmissionAbilities {
 			return;
 		}
 
+		$site_name     = get_bloginfo( 'name' );
+		$event_title   = (string) $submission['event_title'];
+		$event_date    = (string) $submission['event_date'];
+		$venue_display = '' !== ( $submission['venue_name'] ?? '' )
+			? (string) $submission['venue_name']
+			: __( 'Not specified', 'extrachill-events' );
+
 		$subject = sprintf(
-			'[%s] Event Submission Received: %s',
-			get_bloginfo( 'name' ),
-			$submission['event_title']
+			/* translators: 1: site name, 2: event title. */
+			__( '[%1$s] Event Submission Received: %2$s', 'extrachill-events' ),
+			$site_name,
+			$event_title
 		);
 
-		$message = sprintf(
-			"Thanks for submitting your event!\n\n"
-			. "Event: %s\n"
-			. "Date: %s\n"
-			. "Venue: %s\n\n"
-			. "We're processing your submission now. You'll receive another email once it's been reviewed.",
-			$submission['event_title'],
-			$submission['event_date'],
-			$submission['venue_name'] ?: 'Not specified'
+		$preheader = sprintf(
+			/* translators: %s: event title. */
+			__( 'We received your submission for %s. It is in the review queue now.', 'extrachill-events' ),
+			$event_title
 		);
 
-		wp_mail( $to, $subject, $message );
+		$body_html  = '<p>' . esc_html__( 'Thanks for submitting your event!', 'extrachill-events' ) . '</p>';
+		$body_html .= '<p>' . sprintf(
+			/* translators: 1: event title, 2: event date, 3: venue name. */
+			esc_html__( 'Event: %1$s', 'extrachill-events' ),
+			'<strong>' . esc_html( $event_title ) . '</strong>'
+		) . '<br>';
+		$body_html .= sprintf(
+			/* translators: %s: event date. */
+			esc_html__( 'Date: %s', 'extrachill-events' ),
+			esc_html( $event_date )
+		) . '<br>';
+		$body_html .= sprintf(
+			/* translators: %s: venue name or "Not specified". */
+			esc_html__( 'Venue: %s', 'extrachill-events' ),
+			esc_html( $venue_display )
+		) . '</p>';
+		$body_html .= '<p>' . esc_html__( "We're processing your submission now. You'll receive another email once it's been reviewed.", 'extrachill-events' ) . '</p>';
+
+		$context = array(
+			'subject_html'   => esc_html( $subject ),
+			'preheader'      => $preheader,
+			'recipient_name' => (string) ( $submission['contact_name'] ?? '' ),
+			'body_html'      => $body_html,
+		);
+
+		$this->dispatchEmail(
+			array(
+				'to'       => $to,
+				'subject'  => $subject,
+				'template' => 'extrachill/branded',
+				'context'  => $context,
+			),
+			'submitter'
+		);
 	}
 
 	/**
 	 * Send notification email to site admin about new event submission.
+	 *
+	 * Uses the `extrachill/minimal` template — internal ops alert, no
+	 * marketing chrome.
 	 *
 	 * @param array $submission Submission data.
 	 * @param int   $job_id     Data Machine job ID.
 	 */
 	private function notifyAdmin( array $submission, int $job_id ): void {
 		$to = get_option( 'admin_email' );
+		if ( empty( $to ) || ! is_email( $to ) ) {
+			return;
+		}
+
+		$site_name     = get_bloginfo( 'name' );
+		$event_title   = (string) $submission['event_title'];
+		$event_date    = (string) $submission['event_date'];
+		$venue_display = '' !== ( $submission['venue_name'] ?? '' )
+			? (string) $submission['venue_name']
+			: __( 'Not specified', 'extrachill-events' );
 
 		$subject = sprintf(
-			'[%s] New Event Submission: %s',
-			get_bloginfo( 'name' ),
-			$submission['event_title']
+			/* translators: 1: site name, 2: event title. */
+			__( '[%1$s] New Event Submission: %2$s', 'extrachill-events' ),
+			$site_name,
+			$event_title
 		);
 
-		$message = sprintf(
-			"A new event submission has been received:\n\n"
-			. "Event: %s\n"
-			. "Date: %s\n"
-			. "Venue: %s\n"
-			. "Submitted by: %s (%s)\n\n"
-			. "Data Machine Job ID: %d\n\n"
-			. "The submission is being processed now. Check pending posts in a few minutes.",
-			$submission['event_title'],
-			$submission['event_date'],
-			$submission['venue_name'] ?: 'Not specified',
-			$submission['contact_name'],
-			$submission['contact_email'],
-			$job_id
+		$preheader = sprintf(
+			/* translators: 1: event title, 2: submitter name. */
+			__( 'New pending submission: %1$s (by %2$s).', 'extrachill-events' ),
+			$event_title,
+			(string) $submission['contact_name']
 		);
 
-		wp_mail( $to, $subject, $message );
+		$body_html  = '<p>' . esc_html__( 'A new event submission has been received:', 'extrachill-events' ) . '</p>';
+		$body_html .= '<ul>';
+		$body_html .= '<li>' . sprintf(
+			/* translators: %s: event title. */
+			esc_html__( 'Event: %s', 'extrachill-events' ),
+			'<strong>' . esc_html( $event_title ) . '</strong>'
+		) . '</li>';
+		$body_html .= '<li>' . sprintf(
+			/* translators: %s: event date. */
+			esc_html__( 'Date: %s', 'extrachill-events' ),
+			esc_html( $event_date )
+		) . '</li>';
+		$body_html .= '<li>' . sprintf(
+			/* translators: %s: venue name or "Not specified". */
+			esc_html__( 'Venue: %s', 'extrachill-events' ),
+			esc_html( $venue_display )
+		) . '</li>';
+		$body_html .= '<li>' . sprintf(
+			/* translators: 1: submitter name, 2: submitter email. */
+			esc_html__( 'Submitted by: %1$s (%2$s)', 'extrachill-events' ),
+			esc_html( (string) $submission['contact_name'] ),
+			esc_html( (string) $submission['contact_email'] )
+		) . '</li>';
+		$body_html .= '<li>' . sprintf(
+			/* translators: %d: Data Machine job ID. */
+			esc_html__( 'Data Machine Job ID: %d', 'extrachill-events' ),
+			(int) $job_id
+		) . '</li>';
+		$body_html .= '</ul>';
+		$body_html .= '<p>' . esc_html__( 'The submission is being processed now. Check pending posts in a few minutes.', 'extrachill-events' ) . '</p>';
+
+		$context = array(
+			'subject_html' => esc_html( $subject ),
+			'preheader'    => $preheader,
+			'body_html'    => $body_html,
+		);
+
+		$pending_url = admin_url( 'edit.php?post_status=pending&post_type=post' );
+
+		$this->dispatchEmail(
+			array(
+				'to'       => $to,
+				'subject'  => $subject,
+				'template' => 'extrachill/minimal',
+				'context'  => array_merge(
+					$context,
+					array(
+						'cta_url'   => $pending_url,
+						'cta_label' => __( 'Review pending submissions', 'extrachill-events' ),
+					)
+				),
+			),
+			'admin'
+		);
+	}
+
+	/**
+	 * Dispatch an outgoing notification through `ec_send_email()` when the
+	 * extrachill-multisite helper is loaded, otherwise fall back to the raw
+	 * `datamachine/send-email` ability. Failures are logged (never thrown)
+	 * so a transient send error does not break the submission flow.
+	 *
+	 * @param array  $args  Arguments forwarded to the ability.
+	 * @param string $audience Tag used in log context ("submitter" | "admin").
+	 */
+	private function dispatchEmail( array $args, string $audience ): void {
+		$result = null;
+
+		if ( function_exists( 'ec_send_email' ) ) {
+			$result = ec_send_email( $args );
+		} elseif ( function_exists( 'wp_get_ability' ) ) {
+			$send_ability = wp_get_ability( 'datamachine/send-email' );
+			if ( $send_ability ) {
+				$result = $send_ability->execute( $args );
+			}
+		}
+
+		$sent = is_array( $result ) ? (bool) ( $result['success'] ?? false ) : false;
+
+		if ( ! $sent ) {
+			do_action(
+				'datamachine_log',
+				'warning',
+				sprintf( 'EventSubmission: %s notification failed to send', $audience ),
+				array(
+					'audience' => $audience,
+					'to'       => $args['to'] ?? '',
+					'subject'  => $args['subject'] ?? '',
+					'result'   => is_array( $result ) ? $result : array( 'result' => $result ),
+				)
+			);
+		}
 	}
 }
