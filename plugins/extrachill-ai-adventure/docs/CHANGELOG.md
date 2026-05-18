@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-05-18
+
+### Fixed
+- align with agents-api WP_Agent_Tool_* renamed identifiers (closes #4)
+
 ## [1.3.0] - 2026-05-18
 
 ### Added
