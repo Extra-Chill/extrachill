@@ -18,6 +18,22 @@
     {
       "file": "package.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/trivia/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/image-voting/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/rapper-name-generator/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/band-name-generator/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
 }
