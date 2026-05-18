@@ -63,10 +63,46 @@ $venue_counts = array_filter(
 if ( empty( $venue_counts ) ) {
 	return;
 }
+
+// Re-key as a list after filtering for predictable iteration.
+$venue_counts = array_values( $venue_counts );
+
+// Honor the priority-venue system: bubble priority venues to the front of
+// the badge graph while preserving count-descending order within each tier.
+// Priority venues are an editorial signal — venues we want surfaced regardless
+// of raw upcoming-event volume. The calendar applies the same priority signal
+// to event ordering via ec_events_reorder_by_priority(); badges should match.
+$priority_venue_ids = function_exists( 'ec_get_priority_venue_ids' )
+	? ec_get_priority_venue_ids()
+	: array();
+
+if ( ! empty( $priority_venue_ids ) ) {
+	usort(
+		$venue_counts,
+		function ( $a, $b ) use ( $priority_venue_ids ) {
+			$a_priority = in_array( (int) ( $a['term_id'] ?? 0 ), $priority_venue_ids, true );
+			$b_priority = in_array( (int) ( $b['term_id'] ?? 0 ), $priority_venue_ids, true );
+
+			if ( $a_priority !== $b_priority ) {
+				return $a_priority ? -1 : 1;
+			}
+
+			// Same tier — preserve count-descending order from the ability.
+			$a_count = (int) ( $a['count'] ?? 0 );
+			$b_count = (int) ( $b['count'] ?? 0 );
+
+			return $b_count <=> $a_count;
+		}
+	);
+}
 ?>
 	<div class="taxonomy-badges ec-edge-gutter location-archive-venue-badges">
-	<?php foreach ( $venue_counts as $venue ) : ?>
-		<a href="<?php echo esc_url( $venue['url'] ); ?>" class="taxonomy-badge venue-badge venue-<?php echo esc_attr( $venue['slug'] ); ?>">
+	<?php
+	foreach ( $venue_counts as $venue ) :
+		$is_priority    = ! empty( $priority_venue_ids ) && in_array( (int) ( $venue['term_id'] ?? 0 ), $priority_venue_ids, true );
+		$priority_class = $is_priority ? ' venue-badge-priority' : '';
+		?>
+		<a href="<?php echo esc_url( $venue['url'] ); ?>" class="taxonomy-badge venue-badge venue-<?php echo esc_attr( $venue['slug'] ); ?><?php echo esc_attr( $priority_class ); ?>">
 			<?php echo esc_html( $venue['name'] ); ?> (<?php echo esc_html( $venue['count'] ); ?>)
 		</a>
 	<?php endforeach; ?>
