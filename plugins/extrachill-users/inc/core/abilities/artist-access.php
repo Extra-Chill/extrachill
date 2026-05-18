@@ -132,7 +132,7 @@ function extrachill_users_register_artist_access_abilities() {
  * @param array $input Unused.
  * @return array Array with 'requests' key containing pending request data.
  */
-function extrachill_users_ability_list_artist_access_requests( $input ) {
+function extrachill_users_ability_list_artist_access_requests() {
 	$user_query = new WP_User_Query(
 		array(
 			'blog_id'  => 0,
@@ -351,20 +351,36 @@ function extrachill_users_send_artist_access_request_email( $user_id, $user, $ac
 		$user->display_name
 	);
 
-	$message = sprintf(
-		"%s (%s) has requested artist platform access.\n\nRequest type: %s\n\n",
-		$user->display_name,
-		$user->user_email,
-		$type_label
-	);
+	$body_html = '<p>' . sprintf(
+		/* translators: 1: user display name, 2: user email, 3: request type label */
+		esc_html__( '%1$s (%2$s) has requested artist platform access.', 'extrachill-users' ),
+		esc_html( $user->display_name ),
+		esc_html( $user->user_email )
+	) . '</p>';
+	$body_html .= '<p><strong>' . esc_html__( 'Request type:', 'extrachill-users' ) . '</strong> ' . esc_html( $type_label ) . '</p>';
 
 	if ( $approve_url ) {
-		$message .= sprintf( "Approve this request:\n%s\n\n", $approve_url );
+		$body_html .= '<p><a href="' . esc_url( $approve_url ) . '">' . esc_html__( 'Approve this request', 'extrachill-users' ) . '</a></p>';
 	}
 
-	$message .= sprintf( "Manage all requests:\n%s", $admin_tools_url );
+	$body_html .= '<p><a href="' . esc_url( $admin_tools_url ) . '">' . esc_html__( 'Manage all requests', 'extrachill-users' ) . '</a></p>';
 
-	wp_mail( $admin_email, $subject, $message );
+	ec_send_email(
+		array(
+			'to'       => $admin_email,
+			'subject'  => $subject,
+			'template' => 'extrachill/minimal',
+			'context'  => array(
+				'subject_html' => esc_html( $subject ),
+				'body_html'    => $body_html,
+				'preheader'    => sprintf(
+					/* translators: %s: user display name */
+					__( 'Artist access request from %s', 'extrachill-users' ),
+					$user->display_name
+				),
+			),
+		)
+	);
 }
 
 /**
@@ -377,17 +393,31 @@ function extrachill_users_send_artist_access_approval_email( $user, $type ) {
 	$create_url = 'https://artist.extrachill.com/create-artist/';
 	$type_label = 'artist' === $type ? 'artist' : 'music industry professional';
 
-	$subject  = 'Your Extra Chill Artist Platform Access Has Been Approved';
-	$message  = "Hey {$user->display_name},\n\n";
-	$message .= "Your request for {$type_label} access on Extra Chill has been approved!\n\n";
-	$message .= "You can now create your artist profile and link page:\n";
-	$message .= "{$create_url}\n\n";
-	$message .= "Your link page will be available at extrachill.link/your-artist-name once you set it up.\n\n";
-	$message .= "Welcome to the platform.\n\n";
-	$message .= "— Extra Chill\n";
-	$message .= 'https://extrachill.com';
+	$subject = 'Your Extra Chill Artist Platform Access Has Been Approved';
 
-	$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+	$body_html = '<p>' . sprintf(
+		/* translators: %s: access type label */
+		esc_html__( 'Your request for %s access on Extra Chill has been approved!', 'extrachill-users' ),
+		esc_html( $type_label )
+	) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'You can now create your artist profile and link page.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'Your link page will be available at extrachill.link/your-artist-name once you set it up.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'Welcome to the platform.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>— Extra Chill</p>';
 
-	wp_mail( $user->user_email, $subject, $message, $headers );
+	ec_send_email(
+		array(
+			'to'       => $user->user_email,
+			'subject'  => $subject,
+			'template' => 'extrachill/branded',
+			'context'  => array(
+				'subject_html'   => esc_html( $subject ),
+				'body_html'      => $body_html,
+				'recipient_name' => $user->display_name,
+				'cta_url'        => $create_url,
+				'cta_label'      => __( 'Create Your Artist Profile', 'extrachill-users' ),
+				'preheader'      => __( 'Your artist platform access is approved.', 'extrachill-users' ),
+			),
+		)
+	);
 }

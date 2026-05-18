@@ -23,10 +23,24 @@ function extrachill_users_send_moderation_email( WP_User $user, array $status ) 
 		$message = __( 'Your account has been banned. Please contact support if you believe this is a mistake.', 'extrachill-users' );
 	}
 
+	$body_html = '<p>' . esc_html( $message ) . '</p>';
+
 	if ( $reason ) {
-		/* translators: %s: moderation reason text. */
-		$message .= "\n\n" . sprintf( __( 'Reason: %s', 'extrachill-users' ), $reason );
+		$body_html .= '<p><strong>' . esc_html__( 'Reason:', 'extrachill-users' ) . '</strong> ' . esc_html( $reason ) . '</p>';
 	}
 
-	return wp_mail( $user->user_email, $subject, $message );
+	$result = ec_send_email(
+		array(
+			'to'       => $user->user_email,
+			'subject'  => $subject,
+			'template' => 'extrachill/minimal',
+			'context'  => array(
+				'subject_html'   => esc_html( $subject ),
+				'body_html'      => $body_html,
+				'recipient_name' => $user->display_name,
+			),
+		)
+	);
+
+	return ! empty( $result['success'] );
 }

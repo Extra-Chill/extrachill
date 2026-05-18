@@ -225,16 +225,12 @@ function ec_send_password_reset_email( $user, $reset_key ) {
 	);
 
 	$subject = __( 'Password Reset Request - Extra Chill', 'extrachill-users' );
-	$message = '<html><body>';
-	/* translators: %s: user display name. */
-	$message .= '<p>' . sprintf( __( 'Hello <strong>%s</strong>,', 'extrachill-users' ), esc_html( $user->display_name ) ) . '</p>';
-	$message .= '<p>' . __( 'Someone requested a password reset for your Extra Chill account.', 'extrachill-users' ) . '</p>';
-	$message .= '<p>' . __( 'If this was you, click the link below to reset your password:', 'extrachill-users' ) . '</p>';
-	$message .= '<p><a href="' . esc_url( $reset_url ) . '">' . __( 'Reset Your Password', 'extrachill-users' ) . '</a></p>';
-	$message .= '<p>' . __( 'This link will expire in 24 hours.', 'extrachill-users' ) . '</p>';
-	$message .= '<p>' . __( 'If you didn\'t request this, you can safely ignore this email.', 'extrachill-users' ) . '</p>';
-	$message .= '<p>' . __( 'Much love,', 'extrachill-users' ) . '<br>' . __( 'Extra Chill', 'extrachill-users' ) . '</p>';
-	$message .= '</body></html>';
+
+	$body_html  = '<p>' . esc_html__( 'Someone requested a password reset for your Extra Chill account.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'If this was you, click the button below to reset your password:', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'This link will expire in 24 hours.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'If you didn\'t request this, you can safely ignore this email.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'Much love,', 'extrachill-users' ) . '<br>' . esc_html__( 'Extra Chill', 'extrachill-users' ) . '</p>';
 
 	/**
 	 * Filters the password reset email subject.
@@ -250,24 +246,37 @@ function ec_send_password_reset_email( $user, $reset_key ) {
 	$subject = apply_filters( 'retrieve_password_title', $subject, $user->user_login, $user );
 
 	/**
-	 * Filters the password reset email message.
+	 * Filters the password reset email message body (HTML inner content).
 	 *
-	 * Mirrors WordPress core's retrieve_password_message filter. Note: core
-	 * passes (string $message, string $key, string $user_login, WP_User $user_data);
-	 * we match that signature. Our message is HTML; filters that expect plain
-	 * text should check $headers and act accordingly.
+	 * Mirrors WordPress core's retrieve_password_message filter signature.
+	 * Note: the body is the inner HTML content passed to the EC email
+	 * template — it does NOT include `<html>`/`<body>` wrappers. The
+	 * `extrachill/minimal` template owns greeting + CTA + footer.
 	 *
-	 * @param string  $message    Default email body (HTML).
+	 * @param string  $body_html  Default email body inner HTML.
 	 * @param string  $reset_key  Password reset key.
 	 * @param string  $user_login User login of the recipient.
 	 * @param WP_User $user       User object of the recipient.
 	 */
-	$message = apply_filters( 'retrieve_password_message', $message, $reset_key, $user->user_login, $user );
+	$body_html = apply_filters( 'retrieve_password_message', $body_html, $reset_key, $user->user_login, $user );
 
-	$headers = array(
-		'Content-Type: text/html; charset=UTF-8',
-		'From: Extra Chill <' . get_option( 'admin_email' ) . '>',
+	$result = ec_send_email(
+		array(
+			'to'         => $user->user_email,
+			'subject'    => $subject,
+			'template'   => 'extrachill/minimal',
+			'from_name'  => 'Extra Chill',
+			'from_email' => get_option( 'admin_email' ),
+			'context'    => array(
+				'subject_html'   => esc_html( $subject ),
+				'body_html'      => $body_html,
+				'recipient_name' => $user->display_name,
+				'cta_url'        => $reset_url,
+				'cta_label'      => __( 'Reset Your Password', 'extrachill-users' ),
+				'preheader'      => __( 'Reset your Extra Chill password — link expires in 24 hours.', 'extrachill-users' ),
+			),
+		)
 	);
 
-	return wp_mail( $user->user_email, $subject, $message, $headers );
+	return ! empty( $result['success'] );
 }

@@ -303,41 +303,40 @@ function extrachill_users_ability_change_email( $input ) {
 		)
 	);
 
-	// Send confirmation email.
-	/* translators: Do not translate USERNAME, ADMIN_URL, EMAIL, SITENAME, SITEURL: those are placeholders. */
-	$email_text = __(
-		'Howdy ###USERNAME###,
-
-Someone requested a change to the email address on your account.
-
-Please click the following link to confirm this change:
-###ADMIN_URL###
-
-If you did not request this, you can safely ignore and delete this email.
-
-This email was sent to ###EMAIL###
-
-Regards,
-###SITENAME###
-###SITEURL###',
-		'extrachill-users'
+	$subject = sprintf(
+		/* translators: %s: site name */
+		__( '[%s] Email Change Request', 'extrachill-users' ),
+		wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
 	);
 
-	$email_text = str_replace( '###USERNAME###', $user->user_login, $email_text );
-	$email_text = str_replace( '###ADMIN_URL###', $confirm_url, $email_text );
-	$email_text = str_replace( '###EMAIL###', $new_email, $email_text );
-	$email_text = str_replace( '###SITENAME###', wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ), $email_text );
-	$email_text = str_replace( '###SITEURL###', home_url(), $email_text );
+	// Build HTML body from the plain-text template. The template owns greeting + signature,
+	// so we strip those lines and convert the action paragraph to a CTA.
+	$body_html  = '<p>' . esc_html__( 'Someone requested a change to the email address on your account.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'Please click the button below to confirm this change:', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . sprintf(
+		/* translators: %s: email address */
+		esc_html__( 'This email was sent to %s.', 'extrachill-users' ),
+		'<strong>' . esc_html( $new_email ) . '</strong>'
+	) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'If you did not request this, you can safely ignore and delete this email.', 'extrachill-users' ) . '</p>';
 
-	$sent = wp_mail(
-		$new_email,
-		sprintf(
-			/* translators: %s: site name */
-			__( '[%s] Email Change Request', 'extrachill-users' ),
-			wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
-		),
-		$email_text
+	$result = ec_send_email(
+		array(
+			'to'       => $new_email,
+			'subject'  => $subject,
+			'template' => 'extrachill/minimal',
+			'context'  => array(
+				'subject_html'   => esc_html( $subject ),
+				'body_html'      => $body_html,
+				'recipient_name' => $user->user_login,
+				'cta_url'        => $confirm_url,
+				'cta_label'      => __( 'Confirm Email Change', 'extrachill-users' ),
+				'preheader'      => __( 'Confirm your new email address on Extra Chill.', 'extrachill-users' ),
+			),
+		)
 	);
+
+	$sent = ! empty( $result['success'] );
 
 	if ( ! $sent ) {
 		delete_user_meta( $user_id, '_new_email' );

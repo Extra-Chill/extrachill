@@ -22,25 +22,38 @@ function extrachill_notify_admin_new_user( $user_id, $registration_page, $regist
 	if ( ! $user_data instanceof WP_User ) {
 		return;
 	}
-	$username  = $user_data->user_login;
-	$email     = $user_data->user_email;
+	$username = $user_data->user_login;
+	$email    = $user_data->user_email;
 
 	$admin_email = get_option( 'admin_email' );
 	$subject     = 'New User Registration Notification';
 
-	$message      = "A new user has registered on the Extra Chill platform.\n\n";
-	$message     .= 'Username: ' . $username . " (auto-generated)\n";
-	$message     .= 'Email: ' . $email . "\n";
-	$message     .= 'User ID: ' . $user_id . "\n";
 	$source_label = $registration_source ? sanitize_text_field( (string) $registration_source ) : 'Unknown';
 	$method_label = $registration_method ? sanitize_text_field( (string) $registration_method ) : 'Unknown';
+	$page_display = $registration_page ? esc_url( $registration_page ) : 'Unknown';
+	$edit_url     = admin_url( "user-edit.php?user_id={$user_id}" );
 
-	$message .= "Registration Source: {$source_label} ({$method_label})\n";
-	$message .= 'Registration Page: ' . ( $registration_page ? esc_url( $registration_page ) : 'Unknown' ) . "\n";
-	$message .= "\nAdmin Edit: " . admin_url( "user-edit.php?user_id={$user_id}" );
-	$message .= "\nNote: User has not yet completed onboarding — profile URL not available until username is chosen.";
+	$body_html  = '<p>A new user has registered on the Extra Chill platform.</p>';
+	$body_html .= '<p><strong>Username:</strong> ' . esc_html( $username ) . ' (auto-generated)<br>';
+	$body_html .= '<strong>Email:</strong> ' . esc_html( $email ) . '<br>';
+	$body_html .= '<strong>User ID:</strong> ' . (int) $user_id . '<br>';
+	$body_html .= '<strong>Registration Source:</strong> ' . esc_html( $source_label ) . ' (' . esc_html( $method_label ) . ')<br>';
+	$body_html .= '<strong>Registration Page:</strong> ' . esc_html( $page_display ) . '</p>';
+	$body_html .= '<p><a href="' . esc_url( $edit_url ) . '">Edit user in admin</a></p>';
+	$body_html .= '<p><em>Note: User has not yet completed onboarding — profile URL not available until username is chosen.</em></p>';
 
-	wp_mail( $admin_email, $subject, $message );
+	ec_send_email(
+		array(
+			'to'       => $admin_email,
+			'subject'  => $subject,
+			'template' => 'extrachill/minimal',
+			'context'  => array(
+				'subject_html' => esc_html( $subject ),
+				'body_html'    => $body_html,
+				'preheader'    => 'New user registered: ' . $username,
+			),
+		)
+	);
 }
 
 add_action( 'extrachill_new_user_registered', 'extrachill_notify_admin_new_user', 10, 4 );
@@ -57,38 +70,35 @@ function extrachill_send_welcome_email_complete( $user_data ) {
 	$username        = $user_data->user_login;
 	$email           = $user_data->user_email;
 	$reset_pass_link = ec_get_site_url( 'community' ) . '/reset-password/';
+	$community_url   = ec_get_site_url( 'community' );
 
-	$subject       = 'Welcome to the Extra Chill Community!';
-	$message       = '<html><body>';
-	$message      .= '<p>Hello <strong>' . esc_html( $username ) . '</strong>,</p>';
-	$message      .= "<p>Welcome to <strong>Extra Chill</strong>! Now that you're here, this place is a lot more chill!</p>";
-	$message      .= '<p>With your account, you can now participate in community discussions, comment on posts, and follow your favorite artists.</p>';
-	$message      .= "<p>Get started by <a href='" . esc_url( ec_get_site_url( 'community' ) . '/t/introductions-thread' ) . "'>introducing yourself in The Back Bar</a>!</p>";
-	$message      .= '<p><strong>Account Details:</strong><br>';
-	$message      .= 'Username: <strong>' . esc_html( $username ) . '</strong><br>';
-	$message      .= "If you forget your password, you can reset it <a href='" . esc_url( $reset_pass_link ) . "'>here</a>.</p>";
-	$main_site_url = ec_get_site_url( 'main' );
-	$community_url = ec_get_site_url( 'community' );
-	$message      .= '<p><strong>Explore the Platform:</strong><br>';
-	$message      .= "<a href='" . esc_url( $main_site_url . '/blog' ) . "'>Blog</a><br>";
-	$message      .= "<a href='" . esc_url( $community_url ) . "'>Community</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'events' ) ) . "'>Events Calendar</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'artist' ) ) . "'>Artist Platform</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'newsletter' ) ) . "'>Newsletter</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'shop' ) ) . "'>Shop</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'docs' ) ) . "'>Documentation</a></p>";
-	$message      .= '<p><strong>Need Help?</strong><br>';
-	$message      .= "<a href='" . esc_url( $main_site_url . '/contact/' ) . "'>Contact Us</a><br>";
-	$message      .= "<a href='" . esc_url( $community_url . '/r/tech-support' ) . "'>Tech Support</a></p>";
-	$message      .= '<p>See you around!</p>';
-	$message      .= '<p>Much love,<br>';
-	$message      .= 'Extra Chill</p>';
-	$message      .= '</body></html>';
+	$subject = 'Welcome to the Extra Chill Community!';
 
-	$from_email = get_option( 'admin_email' );
-	$headers    = array( 'Content-Type: text/html; charset=UTF-8', 'From: Extra Chill <' . $from_email . '>' );
+	$body_html  = "<p>Welcome to <strong>Extra Chill</strong>! Now that you're here, this place is a lot more chill!</p>";
+	$body_html .= '<p>With your account, you can now participate in community discussions, comment on posts, and follow your favorite artists.</p>';
+	$body_html .= '<p><strong>Account Details:</strong><br>';
+	$body_html .= 'Username: <strong>' . esc_html( $username ) . '</strong><br>';
+	$body_html .= 'If you forget your password, you can reset it <a href="' . esc_url( $reset_pass_link ) . '">here</a>.</p>';
+	$body_html .= '<p>See you around!</p>';
+	$body_html .= '<p>Much love,<br>Extra Chill</p>';
 
-	return wp_mail( $email, $subject, $message, $headers );
+	$result = ec_send_email(
+		array(
+			'to'       => $email,
+			'subject'  => $subject,
+			'template' => 'extrachill/branded',
+			'context'  => array(
+				'subject_html'   => esc_html( $subject ),
+				'body_html'      => $body_html,
+				'recipient_name' => $username,
+				'cta_url'        => $community_url . '/t/introductions-thread',
+				'cta_label'      => 'Introduce Yourself',
+				'preheader'      => 'Welcome to Extra Chill — your account is ready.',
+			),
+		)
+	);
+
+	return ! empty( $result['success'] );
 }
 
 /**
@@ -104,35 +114,31 @@ function extrachill_send_welcome_email_incomplete( $user_data ) {
 	$reset_pass_link = ec_get_site_url( 'community' ) . '/reset-password/';
 	$onboarding_url  = ec_get_site_url( 'community' ) . '/onboarding/';
 
-	$subject       = 'Complete Your Extra Chill Account Setup!';
-	$message       = '<html><body>';
-	$message      .= '<p>Hello!</p>';
-	$message      .= "<p>Welcome to <strong>Extra Chill</strong>! You're almost ready to join the community.</p>";
-	$message      .= "<p><strong><a href='" . esc_url( $onboarding_url ) . "'>Complete your account setup</a></strong> to choose your username and get started.</p>";
-	$message      .= '<p>Once set up, you can participate in community discussions, comment on posts, and follow your favorite artists.</p>';
-	$message      .= '<p><strong>Account Details:</strong><br>';
-	$message      .= 'Email: <strong>' . esc_html( $email ) . '</strong><br>';
-	$message      .= "If you forget your password, you can reset it <a href='" . esc_url( $reset_pass_link ) . "'>here</a>.</p>";
-	$main_site_url = ec_get_site_url( 'main' );
-	$community_url = ec_get_site_url( 'community' );
-	$message      .= '<p><strong>Explore the Platform:</strong><br>';
-	$message      .= "<a href='" . esc_url( $main_site_url . '/blog' ) . "'>Blog</a><br>";
-	$message      .= "<a href='" . esc_url( $community_url ) . "'>Community</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'events' ) ) . "'>Events Calendar</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'artist' ) ) . "'>Artist Platform</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'newsletter' ) ) . "'>Newsletter</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'shop' ) ) . "'>Shop</a><br>";
-	$message      .= "<a href='" . esc_url( ec_get_site_url( 'docs' ) ) . "'>Documentation</a></p>";
-	$message      .= '<p><strong>Need Help?</strong><br>';
-	$message      .= "<a href='" . esc_url( $main_site_url . '/contact/' ) . "'>Contact Us</a><br>";
-	$message      .= "<a href='" . esc_url( $community_url . '/r/tech-support' ) . "'>Tech Support</a></p>";
-	$message      .= '<p>See you around!</p>';
-	$message      .= '<p>Much love,<br>';
-	$message      .= 'Extra Chill</p>';
-	$message      .= '</body></html>';
+	$subject = 'Complete Your Extra Chill Account Setup!';
 
-	$from_email = get_option( 'admin_email' );
-	$headers    = array( 'Content-Type: text/html; charset=UTF-8', 'From: Extra Chill <' . $from_email . '>' );
+	$body_html  = "<p>Welcome to <strong>Extra Chill</strong>! You're almost ready to join the community.</p>";
+	$body_html .= '<p><strong><a href="' . esc_url( $onboarding_url ) . '">Complete your account setup</a></strong> to choose your username and get started.</p>';
+	$body_html .= '<p>Once set up, you can participate in community discussions, comment on posts, and follow your favorite artists.</p>';
+	$body_html .= '<p><strong>Account Details:</strong><br>';
+	$body_html .= 'Email: <strong>' . esc_html( $email ) . '</strong><br>';
+	$body_html .= 'If you forget your password, you can reset it <a href="' . esc_url( $reset_pass_link ) . '">here</a>.</p>';
+	$body_html .= '<p>See you around!</p>';
+	$body_html .= '<p>Much love,<br>Extra Chill</p>';
 
-	return wp_mail( $email, $subject, $message, $headers );
+	$result = ec_send_email(
+		array(
+			'to'       => $email,
+			'subject'  => $subject,
+			'template' => 'extrachill/branded',
+			'context'  => array(
+				'subject_html' => esc_html( $subject ),
+				'body_html'    => $body_html,
+				'cta_url'      => $onboarding_url,
+				'cta_label'    => 'Complete Your Account Setup',
+				'preheader'    => 'Finish setting up your Extra Chill account.',
+			),
+		)
+	);
+
+	return ! empty( $result['success'] );
 }
