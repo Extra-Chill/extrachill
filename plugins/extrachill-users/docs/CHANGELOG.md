@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0] - 2026-05-18
+
+### Added
+- harden password reset with hooks, logging, and rate limiting
+
+### Changed
+- migrate both registration paths to ec_turnstile_check_request() helper
+
 ## [0.8.3] - 2026-05-12
 
 ### Changed
