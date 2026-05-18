@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-05-18
+
+### Added
+- register contact-submit ability
+
+### Changed
+- migrate contact form to ec_send_email + EC templates
+- Migrate documentation to CLAUDE.md pattern
+- Update contact form and clean build artifacts
+- Update contact form core functionality
+- added readme
+- Initial commit: ExtraChill Contact Plugin
+
 ## v2.0.2
 - **UI Refinement**: Replaced custom feedback styling with standard WordPress notice patterns for consistent user experience
 - **Backend Consolidation**: Removed local REST API implementation in favor of centralized platform API
