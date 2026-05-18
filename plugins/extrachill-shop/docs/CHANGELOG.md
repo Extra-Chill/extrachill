@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-05-18
+
+### Added
+- register remaining shop abilities
+- register shop-domain abilities (#4)
+- add homeboy.json with wordpress extension
+- add under-construction notice and 'Artist Profile' badge label
+
+### Changed
+- route shipping-label email through ec_send_email + branded template
+- migrate artist order emails to datamachine/send-email (closes #7)
+
+### Fixed
+- include vendor/ in production builds
+- correct function name mismatch in manage shop button
+- revert 'Artist Profile' on shop badges, add cross-site links to shop archives
+- use WooCommerce placeholder image instead of CSS-generated gradient
+
 ## [0.6.1] - 2026-03-01
 
 ### Fixed
