@@ -120,12 +120,34 @@ function ec_events_breadcrumb_trail_archives( $custom_trail ) {
 add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_archives' );
 
 /**
+ * Get the primary venue term for an event post
+ *
+ * Returns the first venue term attached to an event, or null when no venue
+ * is assigned. Events are tagged with a single venue in practice, but this
+ * defensively picks the first term when multiple exist.
+ *
+ * @param int $post_id Event post ID
+ * @return \WP_Term|null Primary venue term, or null when none assigned
+ * @since 0.3.0
+ */
+function ec_events_get_primary_venue_term( $post_id ) {
+	$terms = get_the_terms( $post_id, 'venue' );
+	if ( empty( $terms ) || is_wp_error( $terms ) ) {
+		return null;
+	}
+	return $terms[0];
+}
+
+/**
  * Override breadcrumb trail for single event posts
  *
- * Produces event title trail. Root function provides "Extra Chill → Events" prefix.
+ * Produces event title trail with venue link when a venue is assigned. Root
+ * function provides "Extra Chill → Events" prefix.
  * Only applies on blog ID 7 (events.extrachill.com).
  *
- * Output pattern: "Extra Chill → Events → [Event Title]"
+ * Output patterns:
+ * - With venue: "Extra Chill → Events Calendar → [Venue] → [Event Title]"
+ * - Without venue: "Extra Chill → Events Calendar → [Event Title]"
  *
  * @hook extrachill_breadcrumbs_override_trail
  * @param string|false $custom_trail Custom breadcrumb trail from other filters
@@ -137,7 +159,18 @@ function ec_events_breadcrumb_trail_single( $custom_trail ) {
 		return $custom_trail;
 	}
 	if ( is_singular( 'data_machine_events' ) ) {
-		return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
+		$trail = '';
+
+		$venue = ec_events_get_primary_venue_term( get_the_ID() );
+		if ( $venue ) {
+			$venue_link = get_term_link( $venue );
+			if ( ! is_wp_error( $venue_link ) ) {
+				$trail .= '<a href="' . esc_url( $venue_link ) . '">' . esc_html( $venue->name ) . '</a> › ';
+			}
+		}
+
+		$trail .= '<span class="breadcrumb-title">' . get_the_title() . '</span>';
+		return $trail;
 	}
 
 	return $custom_trail;
@@ -177,7 +210,8 @@ add_filter( 'extrachill_back_to_home_label', 'ec_events_back_to_home_label', 10,
  *
  * Output patterns:
  * - Homepage: [Extra Chill, Events Calendar]
- * - Single event: [Extra Chill, Events Calendar, Event Title]
+ * - Single event (with venue): [Extra Chill, Events Calendar, Venue, Event Title]
+ * - Single event (no venue): [Extra Chill, Events Calendar, Event Title]
  * - Taxonomy archive: [Extra Chill, Events Calendar, Term Name]
  * - Post type archive: [Extra Chill, Events Calendar]
  *
@@ -206,9 +240,9 @@ function ec_events_schema_breadcrumb_items( $items ) {
 		);
 	}
 
-	// Single event: Extra Chill → Events Calendar → Event Title
+	// Single event: Extra Chill → Events Calendar → [Venue →] Event Title
 	if ( is_singular( 'data_machine_events' ) ) {
-		return array(
+		$items = array(
 			array(
 				'name' => 'Extra Chill',
 				'url'  => $main_site_url,
@@ -217,11 +251,23 @@ function ec_events_schema_breadcrumb_items( $items ) {
 				'name' => 'Events Calendar',
 				'url'  => home_url( '/' ),
 			),
-			array(
-				'name' => get_the_title(),
-				'url'  => '',
-			),
 		);
+
+		$venue = ec_events_get_primary_venue_term( get_the_ID() );
+		if ( $venue ) {
+			$venue_link = get_term_link( $venue );
+			$items[]    = array(
+				'name' => $venue->name,
+				'url'  => is_wp_error( $venue_link ) ? '' : $venue_link,
+			);
+		}
+
+		$items[] = array(
+			'name' => get_the_title(),
+			'url'  => '',
+		);
+
+		return $items;
 	}
 
 	// Taxonomy archive: Extra Chill → Events Calendar → Term Name
