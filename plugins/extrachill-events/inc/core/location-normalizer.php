@@ -147,6 +147,7 @@ function extrachill_events_get_city_market_map() {
 		),
 		'arnoldsville'    => 'athens',
 		'bensalem'        => 'philadelphia',
+		'berkeley'        => 'oakland',
 		'berwyn'          => 'chicago',
 		'bethesda'        => 'washington-d-c',
 		'bethlehem'       => 'philadelphia',
@@ -177,6 +178,7 @@ function extrachill_events_get_city_market_map() {
 		'georgetown'      => array(
 			'texas' => 'austin',
 		),
+		'germantown'      => 'memphis',
 		'glendale'        => 'phoenix',
 		'glenside'        => 'philadelphia',
 		'hamtramck'       => 'detroit',
@@ -193,6 +195,10 @@ function extrachill_events_get_city_market_map() {
 		'metairie'        => 'new-orleans',
 		'miami beach'     => 'miami',
 		'manhattan'       => 'new-york-city',
+		'midlothian'      => array(
+			'virginia' => 'richmond',
+			'va'       => 'richmond',
+		),
 		'murfreesboro'    => 'nashville',
 		'new york'        => 'new-york-city',
 		'new york city'   => 'new-york-city',
@@ -204,7 +210,9 @@ function extrachill_events_get_city_market_map() {
 		'reading'         => 'philadelphia',
 		'ridgewood'       => 'queens',
 		'round rock'      => 'austin',
+		'san leandro'     => 'oakland',
 		'san marcos'      => 'austin',
+		'scottsdale'      => 'phoenix',
 		'simpsonville'    => 'greenville',
 		'solana beach'    => 'san-diego',
 		'spartanburg'     => 'greenville',
@@ -220,9 +228,11 @@ function extrachill_events_get_city_market_map() {
 			'district of columbia'   => 'washington-d-c',
 		),
 		'washington, d.c.' => 'washington-d-c',
+		'wake forest'     => 'raleigh',
 		'watkinsville'    => 'athens',
 		'west hollywood'  => 'los-angeles',
 		'wilmington'      => 'philadelphia',
+		'winter park'     => 'orlando',
 		'worcester'       => 'boston',
 	);
 }
