@@ -26,6 +26,31 @@ define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
+ * Register the extrachill-content ability category.
+ *
+ * Must run during wp_abilities_api_categories_init — WordPress core enforces
+ * this via doing_action() check inside wp_register_ability_category().
+ * Without this, abilities tagged with the category trigger _doingItWrong
+ * notices in WP 6.9+.
+ *
+ * @since 1.3.1
+ */
+function extrachill_content_blocks_register_ability_category() {
+	if ( ! function_exists( 'wp_register_ability_category' ) ) {
+		return;
+	}
+
+	wp_register_ability_category(
+		'extrachill-content',
+		array(
+			'label'       => __( 'Extra Chill Content', 'extrachill-content-blocks' ),
+			'description' => __( 'Interactive content blocks: name generators, image voting, and related primitives.', 'extrachill-content-blocks' ),
+		)
+	);
+}
+add_action( 'wp_abilities_api_categories_init', 'extrachill_content_blocks_register_ability_category' );
+
+/**
  * Load ability registrations.
  *
  * Each file hooks into wp_abilities_api_init and calls wp_register_ability().
