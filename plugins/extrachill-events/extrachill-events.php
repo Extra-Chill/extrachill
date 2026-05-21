@@ -63,6 +63,19 @@ if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCo
 	// events-domain operator tooling rather than the venues surface.
 	require_once __DIR__ . '/inc/Cli/AuditPipelinesCommand.php';
 	\WP_CLI::add_command( 'extrachill events flows audit-pipelines', \ExtraChillEvents\Cli\AuditPipelinesCommand::class );
+
+	// Location / flow_config hygiene (extrachill-events#98).
+	// Issue #98 — Both commands operate against the events subsite (blog 7).
+	// Always invoke with `--url=events.extrachill.com` so $wpdb->prefix is c8c_7_.
+	require_once __DIR__ . '/inc/Core/FlowLocationGuard.php';
+	require_once __DIR__ . '/inc/Cli/RepairFlowLocationsCommand.php';
+	\WP_CLI::add_command( 'extrachill events flows repair-locations', \ExtraChillEvents\Cli\RepairFlowLocationsCommand::class );
+
+	require_once __DIR__ . '/inc/Cli/PruneOrphanLocationsCommand.php';
+	\WP_CLI::add_command( 'extrachill events locations prune-orphans', \ExtraChillEvents\Cli\PruneOrphanLocationsCommand::class );
+
+	require_once __DIR__ . '/inc/Cli/BackfillVenueMetaCommand.php';
+	\WP_CLI::add_command( 'extrachill events venues backfill-meta', \ExtraChillEvents\Cli\BackfillVenueMetaCommand::class );
 }
 
 // Recheck handler must be loaded outside the WP_CLI guard so the Action

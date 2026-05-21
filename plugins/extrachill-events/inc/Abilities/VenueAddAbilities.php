@@ -11,6 +11,8 @@
 
 namespace ExtraChillEvents\Abilities;
 
+use ExtraChillEvents\Core\FlowLocationGuard;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -380,6 +382,29 @@ class VenueAddAbilities {
 			}
 		}
 		unset( $step );
+
+		// Defensive guard against extrachill-events#98 — never let an
+		// upsert_event step ship with ai_decides / empty / skip for
+		// taxonomy_location_selection. The block above writes
+		// $location_term directly, so this is belt-and-braces against
+		// future refactors that might forget to set it.
+		$guard = FlowLocationGuard::coerceUpsertEventLocation( $config, $location_term );
+		if ( ! empty( $guard['coerced'] ) ) {
+			$config = $guard['config'];
+			foreach ( $guard['coerced'] as $row ) {
+				do_action(
+					'datamachine_log',
+					'warning',
+					'Coerced taxonomy_location_selection in VenueAdd flow (extrachill-events#98 guard)',
+					array(
+						'flow_id' => $flow_id,
+						'step_id' => $row['step_id'],
+						'old'     => $row['old'],
+						'new'     => $row['new'],
+					)
+				);
+			}
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$wpdb->update(
