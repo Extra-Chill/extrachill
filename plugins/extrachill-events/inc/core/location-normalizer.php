@@ -198,6 +198,8 @@ function extrachill_events_get_city_market_map() {
 		'midlothian'      => array(
 			'virginia' => 'richmond',
 			'va'       => 'richmond',
+			'texas'    => 'dallas',
+			'tx'       => 'dallas',
 		),
 		'murfreesboro'    => 'nashville',
 		'new york'        => 'new-york-city',
