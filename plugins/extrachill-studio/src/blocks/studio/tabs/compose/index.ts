@@ -62,7 +62,9 @@ function extractPlainText( html: string ): string {
  * (replaceContent) to hot-swap content when switching between drafts —
  * no editor remounting needed.
  *
- * Auto-loads the most recent draft on mount. Autosaves every 2s.
+ * Auto-loads the most recent draft on mount. Autosaves every 2s — creates
+ * a new draft on first activity when none is active (title or content must
+ * be non-empty), then updates the same draft on subsequent autosaves.
  */
 const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 	const textareaRef = useRef< HTMLTextAreaElement >( null );
@@ -171,7 +173,8 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 	/**
 	 * Flush any unsaved changes for the current draft before switching away.
-	 * Returns immediately if nothing to save or no active draft.
+	 * Creates a new draft on first save if no active post ID exists.
+	 * Returns immediately if nothing to save.
 	 */
 	const flushCurrentDraft = useCallback( async (): Promise< void > => {
 		if ( autosaveTimerRef.current ) {
@@ -179,14 +182,15 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 			autosaveTimerRef.current = null;
 		}
 
-		const postId = activePostIdRef.current;
-		if ( ! postId || isAutosavingRef.current ) {
+		if ( isAutosavingRef.current ) {
 			return;
 		}
 
+		const postId = activePostIdRef.current;
 		const currentTitle = titleRef.current.trim();
 		const currentContent = getContent().trim();
 
+		// Preserve empty-content guard: never create empty drafts.
 		if ( ! currentTitle && ! currentContent ) {
 			return;
 		}
@@ -199,11 +203,17 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		isAutosavingRef.current = true;
 
 		try {
-			await apiFetch< WpPost >( {
-				path: `/wp/v2/posts/${ postId }`,
+			const path = postId ? `/wp/v2/posts/${ postId }` : '/wp/v2/posts';
+			const post = await apiFetch< WpPost >( {
+				path,
 				method: 'POST',
 				data: { title: currentTitle, content: currentContent, status: 'draft' },
 			} );
+			// Capture new ID on first-create so subsequent saves target the same draft.
+			if ( ! postId && post?.id ) {
+				activePostIdRef.current = post.id;
+				setActivePostId( post.id );
+			}
 			lastSavedPayloadRef.current = payload;
 		} catch {
 			// Best-effort — don't block the switch.
@@ -252,17 +262,23 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		await switchToDraft( null );
 	}, [ switchToDraft ] );
 
-	/** Autosave the current draft silently. */
+	/**
+	 * Autosave the current draft silently. Creates a new draft on first
+	 * activity when no active post ID exists, then captures the ID so
+	 * subsequent autosaves update the same draft.
+	 */
 	const performAutosave = useCallback( async (): Promise< void > => {
-		const postId = activePostIdRef.current;
-		if ( ! postId || isAutosavingRef.current ) {
+		if ( isAutosavingRef.current ) {
 			return;
 		}
 
+		const postId = activePostIdRef.current;
 		const currentTitle = titleRef.current.trim();
 		const currentContent = getContent().trim();
 		contentSnapshotRef.current = currentContent;
 
+		// Preserve empty-content guard: never create empty drafts.
+		// Opening Compose alone must not bootstrap a post.
 		if ( ! currentTitle && ! currentContent ) {
 			return;
 		}
@@ -275,11 +291,18 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		isAutosavingRef.current = true;
 
 		try {
-			await apiFetch< WpPost >( {
-				path: `/wp/v2/posts/${ postId }`,
+			const path = postId ? `/wp/v2/posts/${ postId }` : '/wp/v2/posts';
+			const post = await apiFetch< WpPost >( {
+				path,
 				method: 'POST',
 				data: { title: currentTitle, content: currentContent, status: 'draft' },
 			} );
+			// Capture new ID on first-create so subsequent autosaves
+			// update the same draft instead of creating duplicates.
+			if ( ! postId && post?.id ) {
+				activePostIdRef.current = post.id;
+				setActivePostId( post.id );
+			}
 			lastSavedPayloadRef.current = payload;
 			setHasUnsavedChanges( false );
 		} catch {
