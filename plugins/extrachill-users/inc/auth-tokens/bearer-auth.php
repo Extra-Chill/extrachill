@@ -38,21 +38,35 @@ function extrachill_users_authenticate_bearer_token( $user_id ) {
 /**
  * Extracts Bearer token from Authorization header.
  *
+ * Sanitization: we deliberately do NOT use sanitize_text_field() on
+ * the Authorization header. sanitize_text_field() HTML-encodes
+ * characters like `<`, `>`, `&`, `"`, and `'`, which is destructive
+ * for opaque bearer tokens that may contain any of those characters
+ * (see chubes4/wp-native#44 for a sibling bug where this caused ~45%
+ * of opaque tokens to silently fail authentication).
+ *
+ * Extra Chill's own JWT tokens are base64url-encoded by construction
+ * and never contain HTML-special characters, so the previous code
+ * happened to work — but the same anti-pattern is a latent risk for
+ * any future bearer token format we accept here. The fix is to use
+ * a narrow header sanitizer that strips only CR/LF (HTTP header
+ * injection protection) and null bytes, then trims outer whitespace.
+ *
  * @return string|null Token string or null if not present.
  */
 function extrachill_users_get_bearer_token(): ?string {
 	$auth_header = null;
 
 	if ( isset( $_SERVER['HTTP_AUTHORIZATION'] ) ) {
-		$auth_header = sanitize_text_field( wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] ) );
+		$auth_header = extrachill_users_sanitize_authorization_header( wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] ) );
 	} elseif ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ) {
-		$auth_header = sanitize_text_field( wp_unslash( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) );
+		$auth_header = extrachill_users_sanitize_authorization_header( wp_unslash( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) );
 	} elseif ( function_exists( 'getallheaders' ) ) {
 		$headers = getallheaders();
 		if ( isset( $headers['Authorization'] ) ) {
-			$auth_header = sanitize_text_field( $headers['Authorization'] );
+			$auth_header = extrachill_users_sanitize_authorization_header( $headers['Authorization'] );
 		} elseif ( isset( $headers['authorization'] ) ) {
-			$auth_header = sanitize_text_field( $headers['authorization'] );
+			$auth_header = extrachill_users_sanitize_authorization_header( $headers['authorization'] );
 		}
 	}
 
@@ -61,6 +75,25 @@ function extrachill_users_get_bearer_token(): ?string {
 	}
 
 	return substr( $auth_header, 7 );
+}
+
+/**
+ * Narrow sanitizer for the Authorization header.
+ *
+ * Strips CR/LF (HTTP header-injection protection) and null bytes,
+ * then trims outer whitespace. Does NOT call sanitize_text_field()
+ * — see the extraction docblock above for why that's destructive
+ * for opaque bearer tokens.
+ *
+ * @param mixed $value Raw Authorization header value.
+ * @return string Sanitized header string.
+ */
+function extrachill_users_sanitize_authorization_header( $value ): string {
+	if ( ! is_string( $value ) ) {
+		return '';
+	}
+
+	return trim( str_replace( array( "\r", "\n", "\0" ), '', $value ) );
 }
 
 /**
