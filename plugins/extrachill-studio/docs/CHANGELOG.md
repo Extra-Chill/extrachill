@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.3] - 2026-05-23
+
+### Fixed
+- autosave creates draft on first activity in Compose (#74)
+
 ## [0.15.2] - 2026-05-18
 
 ### Changed
