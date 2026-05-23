@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.12.0] - 2026-05-23
+
+### Added
+- single-origin Google sign-in via canonical community redirect (closes #26)
+
 ## [0.11.1] - 2026-05-23
 
 ### Changed
