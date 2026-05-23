@@ -1,6 +1,6 @@
 # Team Member Management
 
-Manage team member status synchronization across the multisite network. Control automatic sync and manual overrides for team member assignment.
+Manage team membership across the multisite network. Team membership is stored as the `extra_chill_team` WordPress role, registered on every site and assigned/removed directly via this API.
 
 ## Endpoints
 
@@ -8,9 +8,9 @@ Manage team member status synchronization across the multisite network. Control 
 
 **Endpoint**: `GET /wp-json/extrachill/v1/admin/team-members`
 
-**Purpose**: Retrieve a paginated list of team members with search capabilities.
+**Purpose**: Retrieve a paginated list of network users with their team membership status.
 
-**Permission**: Requires `manage_options` capability (network administrators only)
+**Permission**: Requires `manage_network_options` capability (network administrators only)
 
 **Parameters**:
 - `search` (string, optional) - Search term for username, email, or display name
@@ -24,14 +24,16 @@ Manage team member status synchronization across the multisite network. Control 
       "ID": 123,
       "user_login": "username",
       "user_email": "user@example.com",
-      "is_team_member": true,
-      "source": "Auto"
+      "is_team_member": true
     }
   ],
   "total": 45,
   "total_pages": 3
 }
 ```
+
+**Implementation Details**:
+- `is_team_member` is true iff the user holds the `extra_chill_team` role on the main blog (extrachill.com). The role is synced network-wide, so the main-blog check is the canonical answer.
 
 **File**: `inc/routes/admin/team-members.php`
 
@@ -41,37 +43,22 @@ Manage team member status synchronization across the multisite network. Control 
 
 **Endpoint**: `POST /wp-json/extrachill/v1/admin/team-members/sync`
 
-**Purpose**: Synchronize team member status for all network users based on main site account presence.
+**Purpose**: Re-grant the team role on every subsite for every user who already has it on the main blog. Useful after adding a new subsite to the network, or after manual role changes that should be propagated.
 
-**Permission**: Requires `manage_options` capability (network administrators only)
+**Permission**: Requires `manage_network_options` capability
 
 **Parameters**: None
 
 **Response** (HTTP 200):
 ```json
 {
-  "total_users": 45,
-  "users_updated": 12,
-  "users_skipped_override": 3,
-  "users_with_main_site_account": 15
+  "total_team_users": 47,
+  "sites_processed": 9
 }
 ```
 
-**Response Fields**:
-- `total_users` - Total number of network users processed
-- `users_updated` - Number of users whose status changed during this sync
-- `users_skipped_override` - Users with manual overrides who were skipped
-- `users_with_main_site_account` - Total users with accounts on the main site
-
-**Error Responses**:
-- `403` - Permission denied (not a network administrator)
-- `500` - Required function `ec_has_main_site_account()` not available
-
 **Implementation Details**:
-- Automatically detects users with main site accounts via `ec_has_main_site_account()`
-- Respects manual override status - won't override user-set preferences
-- Updates `extrachill_team` meta to 1 (team member) or 0 (not team member)
-- Skips users with manual `extrachill_team_manual_override` meta set
+- Wraps the `extrachill/sync-team-members` ability registered by `extrachill-admin-tools`. Backed by `ec_users_grant_team_role()` from `extrachill-users`.
 
 **File**: `inc/routes/admin/team-members.php`
 
@@ -81,13 +68,13 @@ Manage team member status synchronization across the multisite network. Control 
 
 **Endpoint**: `PUT /wp-json/extrachill/v1/admin/team-members/{user_id}`
 
-**Purpose**: Manually manage team member status for a specific user.
+**Purpose**: Grant or revoke the team role for a specific user, network-wide.
 
-**Permission**: Requires `manage_options` capability (network administrators only)
+**Permission**: Requires `manage_network_options` capability
 
 **Parameters**:
 - `user_id` (integer, required) - The user ID to manage
-- `action` (string, required) - One of: `force_add`, `force_remove`, `reset_auto`
+- `action` (string, required) - One of: `force_add`, `force_remove`
 
 **Request Example**:
 ```json
@@ -99,55 +86,51 @@ Manage team member status synchronization across the multisite network. Control 
 **Response** (HTTP 200):
 ```json
 {
-  "message": "User forced to team member.",
+  "message": "Team role granted on 9 site(s).",
   "user_id": 123,
-  "is_team_member": true,
-  "source": "Manual: Add"
+  "is_team_member": true
 }
 ```
 
 **Action Options**:
 
-| Action | Effect | Source |
-|--------|--------|--------|
-| `force_add` | User set as team member with manual override | Manual: Add |
-| `force_remove` | User set as non-team member with manual override | Manual: Remove |
-| `reset_auto` | User status determined by automatic sync logic | Auto |
+| Action | Effect |
+|--------|--------|
+| `force_add` | Grants the `extra_chill_team` role on every site in the network |
+| `force_remove` | Removes the `extra_chill_team` role from every site in the network |
 
 **Error Responses**:
 - `400` - Missing user_id or invalid action
 - `404` - User not found
-- `403` - Permission denied (not a network administrator)
+- `403` - Permission denied
 
 **Implementation Details**:
-- `force_add`: Sets both `extrachill_team_manual_override` and `extrachill_team` to 1
-- `force_remove`: Sets override to 'remove' and team status to 0
-- `reset_auto`: Clears manual override and re-runs automatic detection
-- Manual overrides prevent changes during sync operations
+- Wraps the `extrachill/manage-team-member` ability registered by `extrachill-admin-tools`. Backed by `ec_users_grant_team_role()` / `ec_users_revoke_team_role()` from `extrachill-users`.
+- The previous `reset_auto` action is gone — there is no auto-derivation step anymore. The role IS the state.
 
 **File**: `inc/routes/admin/team-members.php`
 
 ---
 
-## Usage Notes
+## Architecture Notes
 
-**Team Member Status**:
-- Team members are typically site editors and contributors with main site accounts
-- Status affects access to admin features and dashboard panels
-- Stored as WordPress user meta under `extrachill_team` (0 or 1)
+**Source of truth**: The `extra_chill_team` WordPress role on every site in the network. Role assignments are written directly by the management endpoints above. There is no auxiliary `user_meta` layer.
 
-**Manual Overrides**:
-- Set via `extrachill_team_manual_override` user meta
-- Values: 'add' (force team member), 'remove' (force non-team member), or empty (auto)
-- Prevents automatic sync from changing user status
+**Capabilities granted by the role**:
+- Standard WP: `read`, `upload_files`, `edit_posts`, `edit_published_posts`, `edit_others_posts`, `delete_posts`
+- Custom EC: `access_studio`, `access_roadie`, `access_transcribe`, `access_events_admin`, `access_admin_bar`, `submit_for_review`
 
-**Integration Pattern**:
+**Integration pattern**:
 ```php
-// Check if user is team member
-$is_team_member = (bool) get_user_meta( $user_id, 'extrachill_team', true );
+// Check if user is a team member (via shim — recommended for forward-compat)
+$is_team = function_exists( 'ec_is_team_member' ) && ec_is_team_member( $user_id );
 
-// Check if override is set
-$override = get_user_meta( $user_id, 'extrachill_team_manual_override', true );
+// Or check directly via capability
+$is_team = user_can( $user_id, 'access_studio' );
+
+// Or check role membership directly
+$user    = new WP_User( $user_id );
+$is_team = in_array( 'extra_chill_team', (array) $user->roles, true );
 ```
 
 **Related Endpoints**:

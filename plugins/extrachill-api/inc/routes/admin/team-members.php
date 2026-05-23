@@ -120,22 +120,23 @@ function extrachill_api_get_team_members( $request ) {
 	$users      = $user_query->get_results();
 	$total      = $user_query->get_total();
 
+	// Team membership is sourced from the extra_chill_team WP role.
+	// We check role membership on the main blog (extrachill.com) as the
+	// canonical site — the role is synced network-wide so any subsite
+	// would give the same answer, but main is the deterministic choice.
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 1;
+
 	$formatted_users = array();
 	foreach ( $users as $user ) {
-		$user_id         = $user->ID;
-		$manual_override = get_user_meta( $user_id, 'extrachill_team_manual_override', true );
-		$is_team_member  = false;
-		$source          = 'Auto';
+		$user_id = $user->ID;
 
-		if ( 'add' === $manual_override ) {
-			$is_team_member = true;
-			$source         = 'Manual: Add';
-		} elseif ( 'remove' === $manual_override ) {
-			$is_team_member = false;
-			$source         = 'Manual: Remove';
-		} else {
-			$is_team_member = get_user_meta( $user_id, 'extrachill_team', true ) == 1;
-			$source         = 'Auto';
+		try {
+			switch_to_blog( $main_blog_id );
+			$user_on_main   = new WP_User( $user_id );
+			$is_team_member = $user_on_main->exists()
+				&& in_array( 'extra_chill_team', (array) $user_on_main->roles, true );
+		} finally {
+			restore_current_blog();
 		}
 
 		$formatted_users[] = array(
@@ -143,7 +144,6 @@ function extrachill_api_get_team_members( $request ) {
 			'user_login'     => $user->user_login,
 			'user_email'     => $user->user_email,
 			'is_team_member' => $is_team_member,
-			'source'         => $source,
 		);
 	}
 
