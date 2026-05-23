@@ -343,18 +343,31 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 		? ec_is_onboarding_complete( $user_id )
 		: true;
 
+	// Open-redirect guard: only honor the client-supplied success_redirect_url
+	// if it points at an allowlisted *.extrachill.com host. Anything else is
+	// silently dropped in favor of the default post-auth destination. Without
+	// this check, an attacker could craft a sign-in link with
+	// success_redirect_url=https://phishing.example.com/fake-login/ and the
+	// browser would 302 there immediately after a successful Google auth.
+	$safe_success_redirect_url = '';
+	if ( '' !== (string) $success_redirect_url
+		&& function_exists( 'ec_users_is_valid_return_to_url' )
+		&& ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
+		$safe_success_redirect_url = (string) $success_redirect_url;
+	}
+
 	if ( $is_new || ! $onboarding_completed ) {
 		// Store where user should return after onboarding.
-		if ( ! empty( $success_redirect_url ) ) {
-			update_user_meta( $user_id, 'onboarding_redirect_url', $success_redirect_url );
+		if ( '' !== $safe_success_redirect_url ) {
+			update_user_meta( $user_id, 'onboarding_redirect_url', $safe_success_redirect_url );
 		}
 
 		$redirect_url = function_exists( 'ec_get_site_url' )
 			? ec_get_site_url( 'community' ) . '/onboarding/'
 			: home_url( '/onboarding/' );
 		// Existing user with completed onboarding - redirect to success URL or community home.
-	} elseif ( ! empty( $success_redirect_url ) ) {
-		$redirect_url = $success_redirect_url;
+	} elseif ( '' !== $safe_success_redirect_url ) {
+		$redirect_url = $safe_success_redirect_url;
 	} else {
 		$redirect_url = function_exists( 'ec_get_site_url' )
 			? ec_get_site_url( 'community' )
