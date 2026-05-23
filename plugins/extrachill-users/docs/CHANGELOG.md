@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.1] - 2026-05-23
+
+### Changed
+- unit tests for password reset rate-limiter trio
+
+### Fixed
+- fix(bearer-auth): use narrow Authorization header sanitizer instead of sanitize_text_field
+
 ## [0.11.0] - 2026-05-23
 
 ### Added
