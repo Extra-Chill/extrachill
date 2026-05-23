@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0] - 2026-05-23
+
+### Added
+- feat(team-role): make extra_chill_team WP role the source of truth, retire user_meta (#45)
+
+### Fixed
+- route wp-core password reset emails to /reset-password/ (closes #46)
+
 ## [0.10.2] - 2026-05-18
 
 ### Fixed
