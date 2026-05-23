@@ -188,6 +188,13 @@ add_filter( 'authenticate', 'extrachill_intercept_auth_error', 99, 3 );
 
 /**
  * Redirect direct wp-login.php access to custom login page.
+ *
+ * Password reset links from WordPress core emails point at
+ * wp-login.php?action=rp&key=...&login=... — without special handling
+ * the generic redirect strips the query string and dumps users on
+ * /login/ with no way to set a new password. We catch action=rp /
+ * action=resetpass explicitly and redirect to the community
+ * /reset-password/ page so the key + login survive the hop.
  */
 function extrachill_redirect_wp_login_access() {
 	if ( false === strpos( strtolower( $_SERVER['REQUEST_URI'] ), '/wp-login.php' ) ) {
@@ -202,11 +209,32 @@ function extrachill_redirect_wp_login_access() {
 		return;
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reading reset key from query string for redirect routing; no state change here.
+	$action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : '';
+
 	// Allow two-factor authentication challenge pages through.
-	$action = isset( $_GET['action'] ) ? $_GET['action'] : '';
 	if ( in_array( $action, array( 'validate_2fa', 'revalidate_2fa' ), true ) ) {
 		return;
 	}
+
+	// Route password reset links to the community /reset-password/ handler.
+	if ( in_array( $action, array( 'rp', 'resetpass' ), true ) ) {
+		$key   = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
+		$login = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
+
+		$reset_url = add_query_arg(
+			array(
+				'action' => 'reset',
+				'key'    => rawurlencode( $key ),
+				'login'  => rawurlencode( $login ),
+			),
+			ec_get_site_url( 'community' ) . '/reset-password/'
+		);
+
+		wp_safe_redirect( $reset_url );
+		exit;
+	}
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 	wp_safe_redirect( home_url( '/login/' ) );
 	exit;

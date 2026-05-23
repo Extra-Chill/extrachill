@@ -23,6 +23,94 @@ function ec_custom_lostpassword_url( $lostpassword_url, $redirect ) {
 add_filter( 'lostpassword_url', 'ec_custom_lostpassword_url', 10, 2 );
 
 /**
+ * Rewrite WordPress core password reset email to point at /reset-password/.
+ *
+ * WordPress core's retrieve_password() generates a reset URL of the form
+ *   {network_site_url}/wp-login.php?action=rp&key=...&login=...
+ * On Extra Chill, /wp-login.php is redirected to /login/ by
+ * extrachill_redirect_wp_login_access() — but the redirect strips the
+ * key/login (or, with the wp-login.php redirect fix, sends users to
+ * community.extrachill.com/reset-password/ via 302). Either way we want
+ * the link in the email body itself to point at the right destination
+ * from the start, so admin-triggered resets (wp user reset-password,
+ * wp-admin → Users → "Send password reset") deliver a clickable link
+ * the user can land on without a redirect dance.
+ *
+ * Same handler the /reset-password/ render template processes via
+ * ec_handle_reset_password().
+ *
+ * @param array   $email      Default email content (subject, message, headers, to).
+ * @param string  $key        Password reset key.
+ * @param string  $user_login User login of the recipient.
+ * @param WP_User $user_data  User object of the recipient.
+ * @return array Modified email content with the reset URL pointing at /reset-password/.
+ */
+function ec_filter_password_reset_email( $email, $key, $user_login, $user_data ) {
+	$reset_url = add_query_arg(
+		array(
+			'action' => 'reset',
+			'key'    => rawurlencode( $key ),
+			'login'  => rawurlencode( $user_login ),
+		),
+		ec_get_site_url( 'community' ) . '/reset-password/'
+	);
+
+	// Replace the wp-login.php link in the body with the canonical reset URL.
+	if ( isset( $email['message'] ) && is_string( $email['message'] ) ) {
+		$email['message'] = preg_replace(
+			'#https?://\S*wp-login\.php\?action=rp\S*#i',
+			$reset_url,
+			$email['message']
+		);
+	}
+
+	return $email;
+}
+add_filter( 'retrieve_password_notification_email', 'ec_filter_password_reset_email', 10, 4 );
+
+/**
+ * Rewrite the new-user notification email reset link.
+ *
+ * When admins create users via wp-admin → Users → Add New (with notification)
+ * or `wp user create --send-email`, WordPress sends a welcome email
+ * containing the same wp-login.php?action=rp reset link. Filter that too.
+ *
+ * @param array   $email      Default email content.
+ * @param WP_User $user       Newly created user.
+ * @param string  $blogname   Site name.
+ * @return array Modified email content.
+ */
+function ec_filter_new_user_notification_email( $email, $user, $blogname ) {
+	if ( ! isset( $email['message'] ) || ! is_string( $email['message'] ) ) {
+		return $email;
+	}
+
+	// Extract the reset key from the existing wp-login.php URL so we don't
+	// need to regenerate one (the email already embeds the key WP minted).
+	if ( ! preg_match( '#wp-login\.php\?action=rp&key=([^&\s]+)&login=([^&\s]+)#i', $email['message'], $matches ) ) {
+		return $email;
+	}
+
+	$reset_url = add_query_arg(
+		array(
+			'action' => 'reset',
+			'key'    => $matches[1],
+			'login'  => $matches[2],
+		),
+		ec_get_site_url( 'community' ) . '/reset-password/'
+	);
+
+	$email['message'] = preg_replace(
+		'#https?://\S*wp-login\.php\?action=rp\S*#i',
+		$reset_url,
+		$email['message']
+	);
+
+	return $email;
+}
+add_filter( 'wp_new_user_notification_email', 'ec_filter_new_user_notification_email', 10, 3 );
+
+/**
  * Get the transient key for password reset attempts.
  *
  * Keyed on requester IP only (not on submitted user_login) so attackers
