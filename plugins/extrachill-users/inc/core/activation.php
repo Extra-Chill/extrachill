@@ -34,6 +34,15 @@ function extrachill_users_run_activation() {
 
 	extrachill_users_create_login_pages_network();
 
+	// Register extra_chill_team role on every site in the network and
+	// run the one-time meta-to-role migration (#45 Phase 1). Setting
+	// the migration version flag prevents the admin_init safety net
+	// from re-running the migration on the next admin request.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/team-members/role.php';
+	ec_users_register_team_role_network_wide();
+	ec_users_migrate_team_meta_to_role();
+	update_site_option( 'extrachill_users_team_migration_version', EXTRACHILL_USERS_VERSION );
+
 	if ( ! wp_next_scheduled( 'extrachill_welcome_email_fallback' ) ) {
 		wp_schedule_event( time(), 'hourly', 'extrachill_welcome_email_fallback' );
 	}

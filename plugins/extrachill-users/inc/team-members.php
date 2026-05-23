@@ -10,8 +10,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/team-members/role.php';
+
 /**
- * Check team member status with manual override support.
+ * Check team member status.
+ *
+ * The extra_chill_team WP role is the source of truth. A user is a
+ * team member iff they hold the `access_studio` capability — granted
+ * by the role on every site in the network. Super-admins always count
+ * as team members regardless of role assignment.
+ *
+ * No fallback. No meta read. If the cap check fails, the user is not
+ * a team member — full stop. The previous meta-based system was
+ * retired by the one-time migration in inc/team-members/role.php.
  *
  * @param int $user_id User ID (0 = current user).
  * @return bool
@@ -25,17 +36,14 @@ function ec_is_team_member( $user_id = 0 ) {
 		return false;
 	}
 
-	$manual_override = get_user_meta( $user_id, 'extrachill_team_manual_override', true );
-
-	if ( 'add' === $manual_override ) {
+	if ( function_exists( 'is_super_admin' ) && is_super_admin( $user_id ) ) {
 		return true;
 	}
 
-	if ( 'remove' === $manual_override ) {
-		return false;
-	}
-
-	return '1' === (string) get_user_meta( $user_id, 'extrachill_team', true );
+	// access_studio is granted by the extra_chill_team role registered
+	// in inc/team-members/role.php.
+	// phpcs:ignore WordPress.WP.Capabilities.Unknown -- Custom cap registered by ec_users_register_team_role().
+	return user_can( $user_id, 'access_studio' );
 }
 
 /**
