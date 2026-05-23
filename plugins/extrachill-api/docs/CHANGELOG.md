@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.16.7] - 2026-05-23
+
+### Changed
+- refactor(team-members): read role state instead of legacy user_meta
+
 ## [0.16.6] - 2026-05-18
 
 ### Changed
