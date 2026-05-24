@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.4.1] - 2026-05-24
+
+### Fixed
+- opt Gutenberg block-preview iframes out of responsive max-width
+
 ## [2.4.0] - 2026-05-12
 
 ### Added
