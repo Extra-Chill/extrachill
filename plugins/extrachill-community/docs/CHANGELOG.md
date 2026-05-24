@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.1] - 2026-05-24
+
+### Fixed
+- port @mentions completer from blocks-everywhere
+
 ## [1.6.0] - 2026-05-24
 
 ### Added
