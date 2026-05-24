@@ -38,7 +38,7 @@ function extrachill_community_register_draft_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_community_ability_get_bbpress_draft',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_community_ability_bbpress_draft_permission',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
@@ -72,7 +72,7 @@ function extrachill_community_register_draft_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_community_ability_save_bbpress_draft',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_community_ability_bbpress_draft_permission',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
@@ -104,7 +104,7 @@ function extrachill_community_register_draft_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'boolean' ),
 			'execute_callback'    => 'extrachill_community_ability_delete_bbpress_draft',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_community_ability_bbpress_draft_permission',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
@@ -115,6 +115,41 @@ function extrachill_community_register_draft_abilities() {
 			),
 		)
 	);
+}
+
+/**
+ * Permission callback for the bbPress draft abilities.
+ *
+ * Enforces identity at the ability boundary so the ability is self-defending
+ * regardless of which caller (REST, CLI, chat tool, MCP, another plugin)
+ * invokes it. Rules:
+ *
+ *  - Caller must be logged in.
+ *  - If $input['user_id'] is supplied and does not match the current user,
+ *    the caller must hold `edit_others_posts` (the same capability bbPress
+ *    uses to gate cross-author content edits).
+ *  - Otherwise (no user_id supplied, or it matches the current user), pass.
+ *
+ * @param array $input Ability input payload.
+ * @return bool True if the caller may execute the ability.
+ */
+function extrachill_community_ability_bbpress_draft_permission( $input = array() ) {
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+
+	if ( ! is_array( $input ) || ! isset( $input['user_id'] ) ) {
+		return true;
+	}
+
+	$requested_user_id = (int) $input['user_id'];
+	$current_user_id   = (int) get_current_user_id();
+
+	if ( $requested_user_id <= 0 || $requested_user_id === $current_user_id ) {
+		return true;
+	}
+
+	return current_user_can( 'edit_others_posts' );
 }
 
 function extrachill_community_build_draft_context_from_input( $input ) {
