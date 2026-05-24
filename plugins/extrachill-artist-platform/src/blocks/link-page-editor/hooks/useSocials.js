@@ -2,10 +2,16 @@
  * useSocials Hook
  *
  * Manages social links data.
+ *
+ * Accepts an optional `restoredBuffer` (resolved by EditorProvider from
+ * sessionStorage). When the buffer has a `socials` section for the current
+ * artist, initial state is hydrated from the buffer and the server fetch
+ * is skipped — the user's unsaved edits win over a fresh server snapshot.
  */
 
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { getSocials, updateSocials, getConfig } from '../../shared/api/client';
+import { writeDirty } from '../utils/dirtyStorage';
 
 const normalizeSocials = ( socialLinks ) =>
 	( socialLinks || [] )
@@ -17,13 +23,29 @@ const normalizeSocials = ( socialLinks ) =>
 			icon_class: social.icon_class,
 		} ) );
 
-export default function useSocials( artistId ) {
-	const [ socials, setSocials ] = useState( [] );
-	const [ isLoading, setIsLoading ] = useState( true );
+const bufferSocials = ( restoredBuffer ) =>
+	restoredBuffer && Array.isArray( restoredBuffer.socials )
+		? restoredBuffer.socials
+		: null;
+
+export default function useSocials( artistId, restoredBuffer = null ) {
+	const initialBuffer = bufferSocials( restoredBuffer );
+
+	const [ socials, setSocials ] = useState( () =>
+		initialBuffer ? normalizeSocials( initialBuffer ) : []
+	);
+	const [ isLoading, setIsLoading ] = useState( ! initialBuffer );
 	const [ error, setError ] = useState( null );
 
 	const fetchSocials = useCallback( async () => {
 		if ( ! artistId ) {
+			setIsLoading( false );
+			return;
+		}
+
+		const buffered = bufferSocials( restoredBuffer );
+		if ( buffered ) {
+			setSocials( normalizeSocials( buffered ) );
 			setIsLoading( false );
 			return;
 		}
@@ -46,7 +68,7 @@ export default function useSocials( artistId ) {
 		} finally {
 			setIsLoading( false );
 		}
-	}, [ artistId ] );
+	}, [ artistId, restoredBuffer ] );
 
 	useEffect( () => {
 		fetchSocials();
@@ -78,9 +100,17 @@ export default function useSocials( artistId ) {
 		[ artistId ]
 	);
 
-	const updateLocalSocials = useCallback( ( newSocials ) => {
-		setSocials( normalizeSocials( newSocials ) );
-	}, [] );
+	const updateLocalSocials = useCallback(
+		( newSocials ) => {
+			const normalized = normalizeSocials( newSocials );
+			setSocials( normalized );
+			writeDirty( artistId, {
+				section: 'socials',
+				socials: normalized,
+			} );
+		},
+		[ artistId ]
+	);
 
 	return {
 		socials,

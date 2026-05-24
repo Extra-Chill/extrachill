@@ -35,6 +35,7 @@ export default function Editor() {
 		isSaving,
 		error,
 		saveError,
+		hasUnsavedChanges,
 		userArtists,
 		artist,
 		saveAll,
@@ -162,11 +163,13 @@ export default function Editor() {
 								type="button"
 								className="button-1 button-small"
 								onClick={ handleSave }
-								disabled={ isSaving }
+								disabled={ isSaving || ! hasUnsavedChanges }
 							>
 								{ isSaving
 									? __( 'Saving...', 'extrachill-artist-platform' )
-									: __( 'Save All', 'extrachill-artist-platform' ) }
+									: hasUnsavedChanges
+										? __( 'Save changes', 'extrachill-artist-platform' )
+										: __( 'Saved', 'extrachill-artist-platform' ) }
 							</button>
 						</ActionRow>
 					}

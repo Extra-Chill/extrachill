@@ -23,6 +23,29 @@ import {
 	DEFAULT_TITLE_FONT,
 	DEFAULT_BODY_FONT,
 } from '../utils/fonts';
+import { readDirty, clearDirty } from '../utils/dirtyStorage';
+
+/**
+ * Resolve the sessionStorage dirty buffer for an artist on initial load /
+ * artist switch. Prompts the user exactly once when a buffer exists so we
+ * never silently restore stale work or silently discard real edits.
+ *
+ * Returns the buffer when kept, or null when missing / discarded / declined.
+ */
+const resolveRestoredBuffer = ( artistId ) => {
+	const stored = readDirty( artistId );
+	if ( ! stored ) {
+		return null;
+	}
+	const keep = window.confirm(
+		'You have unsaved changes from a previous session for this artist. Keep them? (Cancel to discard.)'
+	);
+	if ( keep ) {
+		return stored;
+	}
+	clearDirty( artistId );
+	return null;
+};
 
 const EditorContext = createContext( null );
 
@@ -64,12 +87,29 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 	const [ activeTab, setActiveTab ] = useState( 'info' );
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ saveError, setSaveError ] = useState( null );
-	const [ hasUnsavedChanges, setHasUnsavedChanges ] = useState( false );
-	const [ dirtySections, setDirtySections ] = useState( new Set() );
 
-	const artistData = useArtist( artistId );
-	const linksData = useLinks( artistId );
-	const socialsData = useSocials( artistId );
+	// Resolve the dirty buffer for the initial artist exactly once at mount.
+	// `useState` lazy initializer guarantees synchronous resolution and a
+	// single prompt before any child hook runs.
+	const [ restoredBuffer, setRestoredBuffer ] = useState( () =>
+		resolveRestoredBuffer( initialArtistId )
+	);
+
+	const [ hasUnsavedChanges, setHasUnsavedChanges ] = useState(
+		() => !! restoredBuffer
+	);
+	const [ dirtySections, setDirtySections ] = useState(
+		() =>
+			new Set(
+				restoredBuffer && Array.isArray( restoredBuffer.dirtySections )
+					? restoredBuffer.dirtySections
+					: []
+			)
+	);
+
+	const artistData = useArtist( artistId, restoredBuffer );
+	const linksData = useLinks( artistId, restoredBuffer );
+	const socialsData = useSocials( artistId, restoredBuffer );
 	const mediaUpload = useMediaUpload();
 
 	const isLoading =
@@ -93,38 +133,72 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 		setSaveError( null );
 
 		try {
-			const promises = [];
+			const tasks = [];
 
 			if ( dirtySections.has( 'artist' ) ) {
-				promises.push(
-					artistData.update( {
+				tasks.push( {
+					section: 'artist',
+					promise: artistData.update( {
 						name: artistData.artist?.name,
 						profile_image_id: artistData.artist?.profile_image_id,
-					} )
-				);
+					} ),
+				} );
 			}
 
 			if ( dirtySections.has( 'links' ) ) {
-				promises.push(
-					linksData.update( {
+				tasks.push( {
+					section: 'links',
+					promise: linksData.update( {
 						links: linksData.links,
 						settings: { ...linksData.settings, bio: linksData.bio },
 						css_vars: linksData.cssVars,
 						background_image_id: linksData.backgroundImageId,
-					} )
-				);
+					} ),
+				} );
 			}
 
 			if ( dirtySections.has( 'socials' ) ) {
-				promises.push( socialsData.update( socialsData.socials ) );
+				tasks.push( {
+					section: 'socials',
+					promise: socialsData.update( socialsData.socials ),
+				} );
 			}
 
-			if ( promises.length > 0 ) {
-				await Promise.all( promises );
+			if ( tasks.length === 0 ) {
+				setHasUnsavedChanges( false );
+				setDirtySections( new Set() );
+				clearDirty( artistId );
+				setRestoredBuffer( null );
+				return true;
+			}
+
+			const results = await Promise.allSettled(
+				tasks.map( ( task ) => task.promise )
+			);
+
+			const failedSections = new Set();
+			const failedMessages = [];
+			results.forEach( ( result, idx ) => {
+				if ( result.status === 'rejected' ) {
+					const section = tasks[ idx ].section;
+					failedSections.add( section );
+					failedMessages.push(
+						`${ section }: ${ result.reason?.message || 'unknown error' }`
+					);
+				}
+			} );
+
+			if ( failedSections.size > 0 ) {
+				setSaveError( failedMessages.join( '; ' ) );
+				setDirtySections( failedSections );
+				setHasUnsavedChanges( true );
+				return false;
 			}
 
 			setHasUnsavedChanges( false );
 			setDirtySections( new Set() );
+			clearDirty( artistId );
+			setRestoredBuffer( null );
 			return true;
 		} catch ( err ) {
 			setSaveError( err.message || 'Failed to save changes' );
@@ -133,6 +207,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			setIsSaving( false );
 		}
 	}, [
+		artistId,
 		artistData,
 		linksData,
 		socialsData,
@@ -148,11 +223,26 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 				if ( ! confirmed ) {
 					return;
 				}
+				// User confirmed discard of in-flight edits for the current artist.
+				clearDirty( artistId );
 			}
+
+			// Resolve buffer for the artist we're switching to. If a buffer
+			// exists, prompt the user once; on keep, hydrate state from it.
+			const nextBuffer = resolveRestoredBuffer( newArtistId );
+			setRestoredBuffer( nextBuffer );
 			setArtistId( newArtistId );
-			setHasUnsavedChanges( false );
+			setHasUnsavedChanges( !! nextBuffer );
+			setDirtySections(
+				new Set(
+					nextBuffer && Array.isArray( nextBuffer.dirtySections )
+						? nextBuffer.dirtySections
+						: []
+				)
+			);
+			setSaveError( null );
 		},
-		[ hasUnsavedChanges ]
+		[ hasUnsavedChanges, artistId ]
 	);
 
 	/**
