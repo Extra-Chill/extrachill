@@ -204,10 +204,16 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 		try {
 			const path = postId ? `/wp/v2/posts/${ postId }` : '/wp/v2/posts';
+			// Only set status on initial create — on update, omit it so out-of-band
+			// transitions to pending/publish are not silently demoted back to draft.
+			const data: Record< string, unknown > = { title: currentTitle, content: currentContent };
+			if ( ! postId ) {
+				data.status = 'draft';
+			}
 			const post = await apiFetch< WpPost >( {
 				path,
 				method: 'POST',
-				data: { title: currentTitle, content: currentContent, status: 'draft' },
+				data,
 			} );
 			// Capture new ID on first-create so subsequent saves target the same draft.
 			if ( ! postId && post?.id ) {
@@ -292,10 +298,16 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 
 		try {
 			const path = postId ? `/wp/v2/posts/${ postId }` : '/wp/v2/posts';
+			// Only set status on initial create — on update, omit it so out-of-band
+			// transitions to pending/publish are not silently demoted back to draft.
+			const data: Record< string, unknown > = { title: currentTitle, content: currentContent };
+			if ( ! postId ) {
+				data.status = 'draft';
+			}
 			const post = await apiFetch< WpPost >( {
 				path,
 				method: 'POST',
-				data: { title: currentTitle, content: currentContent, status: 'draft' },
+				data,
 			} );
 			// Capture new ID on first-create so subsequent autosaves
 			// update the same draft instead of creating duplicates.
