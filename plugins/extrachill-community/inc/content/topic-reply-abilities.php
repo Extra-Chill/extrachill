@@ -105,14 +105,19 @@ function extrachill_community_register_topic_reply_abilities() {
 		'extrachill/community-create-topic',
 		array(
 			'label'               => __( 'Create Topic', 'extrachill-community' ),
-			'description'         => __( 'Create a new forum topic. Fires bbp_new_topic for notifications and cache.', 'extrachill-community' ),
+			'description'         => __( 'Create a new forum topic. Accepts HTML (default) or markdown via the format parameter. Fires bbp_new_topic for notifications and cache.', 'extrachill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'forum_id' => array( 'type' => 'integer', 'description' => 'Forum to post in' ),
 					'title'    => array( 'type' => 'string', 'description' => 'Topic title' ),
-					'content'  => array( 'type' => 'string', 'description' => 'Topic content (HTML allowed)' ),
+					'content'  => array( 'type' => 'string', 'description' => 'Topic content (HTML or markdown depending on format)' ),
+					'format'   => array(
+						'type'        => 'string',
+						'enum'        => array( 'html', 'markdown' ),
+						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
+					),
 					'user_id'  => array( 'type' => 'integer', 'description' => 'Author user ID (defaults to current user)' ),
 				),
 				'required'   => array( 'forum_id', 'title', 'content' ),
@@ -146,13 +151,18 @@ function extrachill_community_register_topic_reply_abilities() {
 		'extrachill/community-create-reply',
 		array(
 			'label'               => __( 'Create Reply', 'extrachill-community' ),
-			'description'         => __( 'Post a reply to a topic. Fires bbp_new_reply for notifications and cache.', 'extrachill-community' ),
+			'description'         => __( 'Post a reply to a topic. Accepts HTML (default) or markdown via the format parameter. Fires bbp_new_reply for notifications and cache.', 'extrachill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'topic_id' => array( 'type' => 'integer', 'description' => 'Topic to reply to' ),
-					'content'  => array( 'type' => 'string', 'description' => 'Reply content (HTML allowed)' ),
+					'content'  => array( 'type' => 'string', 'description' => 'Reply content (HTML or markdown depending on format)' ),
+					'format'   => array(
+						'type'        => 'string',
+						'enum'        => array( 'html', 'markdown' ),
+						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
+					),
 					'reply_to' => array( 'type' => 'integer', 'description' => 'Parent reply ID for threaded replies (optional)' ),
 					'user_id'  => array( 'type' => 'integer', 'description' => 'Author user ID (defaults to current user)' ),
 				),
@@ -341,10 +351,12 @@ function extrachill_community_ability_create_topic( $input ) {
 		return new WP_Error( 'bbpress_unavailable', 'bbPress is not active.' );
 	}
 
-	$forum_id = isset( $input['forum_id'] ) ? (int) $input['forum_id'] : 0;
-	$title    = isset( $input['title'] ) ? sanitize_text_field( $input['title'] ) : '';
-	$content  = isset( $input['content'] ) ? wp_kses_post( $input['content'] ) : '';
-	$user_id  = extrachill_community_resolve_user_id( $input );
+	$forum_id    = isset( $input['forum_id'] ) ? (int) $input['forum_id'] : 0;
+	$title       = isset( $input['title'] ) ? sanitize_text_field( $input['title'] ) : '';
+	$raw_content = isset( $input['content'] ) ? (string) $input['content'] : '';
+	$format      = isset( $input['format'] ) ? (string) $input['format'] : 'html';
+	$content     = wp_kses_post( extrachill_community_maybe_convert_markdown( $raw_content, $format ) );
+	$user_id     = extrachill_community_resolve_user_id( $input );
 
 	if ( ! $forum_id ) {
 		return new WP_Error( 'missing_forum_id', 'A forum_id is required.' );
@@ -407,10 +419,12 @@ function extrachill_community_ability_create_reply( $input ) {
 		return new WP_Error( 'bbpress_unavailable', 'bbPress is not active.' );
 	}
 
-	$topic_id = isset( $input['topic_id'] ) ? (int) $input['topic_id'] : 0;
-	$content  = isset( $input['content'] ) ? wp_kses_post( $input['content'] ) : '';
-	$reply_to = isset( $input['reply_to'] ) ? (int) $input['reply_to'] : 0;
-	$user_id  = extrachill_community_resolve_user_id( $input );
+	$topic_id    = isset( $input['topic_id'] ) ? (int) $input['topic_id'] : 0;
+	$raw_content = isset( $input['content'] ) ? (string) $input['content'] : '';
+	$format      = isset( $input['format'] ) ? (string) $input['format'] : 'html';
+	$content     = wp_kses_post( extrachill_community_maybe_convert_markdown( $raw_content, $format ) );
+	$reply_to    = isset( $input['reply_to'] ) ? (int) $input['reply_to'] : 0;
+	$user_id     = extrachill_community_resolve_user_id( $input );
 
 	if ( ! $topic_id ) {
 		return new WP_Error( 'missing_topic_id', 'A topic_id is required.' );
@@ -505,6 +519,43 @@ function extrachill_community_ability_list_replies( $input ) {
 		'page'     => $page,
 		'per_page' => $per_page,
 	);
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Convert markdown content to Gutenberg block markup when format === 'markdown'.
+ *
+ * Relies on Block Format Bridge's public helper bfb_convert(), which is bundled
+ * with Data Machine (network-activated). When BFB is unavailable, or when format
+ * is anything other than 'markdown', the original content is returned untouched
+ * so the caller's existing HTML path continues to work.
+ *
+ * On conversion failure (BFB returns an empty string), the original markdown is
+ * returned so the write isn't blocked — wp_kses_post() downstream will still
+ * sanitise it as raw HTML.
+ *
+ * @param string $content Raw content from the caller.
+ * @param string $format  Either 'html' or 'markdown'.
+ * @return string Possibly converted content, ready for wp_kses_post().
+ */
+function extrachill_community_maybe_convert_markdown( $content, $format ) {
+	if ( 'markdown' !== $format ) {
+		return $content;
+	}
+
+	if ( ! function_exists( 'bfb_convert' ) ) {
+		error_log( '[Extrachill Community] Markdown format requested but bfb_convert() is unavailable — falling back to raw HTML handling.' );
+		return $content;
+	}
+
+	$converted = bfb_convert( $content, 'markdown', 'blocks' );
+	if ( '' === $converted ) {
+		error_log( '[Extrachill Community] bfb_convert() returned an empty string for markdown input — falling back to raw content.' );
+		return $content;
+	}
+
+	return $converted;
 }
 
 // ─── Formatters ────────────────────────────────────────────────────────────────
