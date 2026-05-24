@@ -141,27 +141,28 @@ Manage bbPress topic and reply drafts with context-aware storage and retrieval.
 }
 ```
 
-**Draft Helpers Unavailable** (HTTP 500):
+**Draft Ability Unavailable** (HTTP 500):
 ```json
 {
-  "code": "missing_helpers",
-  "message": "Draft utilities not loaded.",
+  "code": "missing_ability",
+  "message": "Draft ability not available.",
   "data": { "status": 500 }
 }
 ```
 
 ## Implementation Details
 
-- Uses `extrachill_api_bbpress_draft_get()` for retrieval
-- Uses `extrachill_api_bbpress_draft_upsert()` for save/update
-- Uses `extrachill_api_bbpress_draft_delete()` for deletion
+- Delegates to abilities registered by `extrachill-community`:
+  - `extrachill/get-bbpress-draft` for retrieval
+  - `extrachill/save-bbpress-draft` for save/update
+  - `extrachill/delete-bbpress-draft` for deletion
 - Content handled via `wp_unslash()` to preserve user input
 - Draft `blog_id` is always the current blog ID (no cross-blog draft storage)
 - Fallback logic for unassigned forum topics when `prefer_unassigned` flag set
 
 ## Dependencies
 
-- **extrachill-api**: Draft management utilities (`inc/utils/bbpress-drafts.php`)
+- **extrachill-community**: Draft abilities (`inc/content/editor/draft-abilities.php`) — owns `ec_bbpress_drafts` user meta storage
 - **bbPress**: Forum post type and taxonomy
 
 ## Integration
