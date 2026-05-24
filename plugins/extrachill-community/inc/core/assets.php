@@ -79,6 +79,20 @@ function extrachill_community_enqueue_blocks_everywhere_iframe_assets() {
     }
 
     wp_enqueue_style( 'extrachill-bbpress' );
+
+    // The @mentions completer registers itself via the standard Gutenberg
+    // `editor.Autocomplete.completers` filter and must run inside the BE
+    // iframe document where `wp.hooks` / `wp.apiFetch` / `wp.element` live.
+    $mentions_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/bbpress-blocks-mentions.js';
+    if ( file_exists( $mentions_path ) ) {
+        wp_enqueue_script(
+            'extrachill-community-bbpress-mentions',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/bbpress-blocks-mentions.js',
+            array( 'wp-hooks', 'wp-api-fetch', 'wp-element' ),
+            filemtime( $mentions_path ),
+            true
+        );
+    }
 }
 add_action( 'blocks_everywhere_enqueue_iframe_assets', 'extrachill_community_enqueue_blocks_everywhere_iframe_assets' );
 
@@ -257,7 +271,6 @@ function extrachill_community_configure_blocks_everywhere_bbpress_endpoints( $se
 
 	$settings['bbpress']['draftEndpoint'] = rest_url( 'extrachill/v1/community/drafts' );
 	$settings['bbpress']['mediaEndpoint'] = rest_url( 'extrachill/v1/media' );
-	$settings['bbpress']['mentionsEndpoint'] = rest_url( 'extrachill/v1/users/search' );
 
 	return $settings;
 }
