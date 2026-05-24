@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.4] - 2026-05-24
+
+### Fixed
+- Compose autosave reliability (items 1, 3, 4, 5, 7, 8 of #77)
+- scope loadDrafts query to current user to prevent cross-author draft leakage
+- omit status on autosave updates to preserve pending/publish transitions
+
 ## [0.15.3] - 2026-05-23
 
 ### Fixed
