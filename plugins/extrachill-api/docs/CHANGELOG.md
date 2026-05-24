@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.16.8] - 2026-05-24
+
+### Changed
+- thin /users/search REST handler to extrachill/users-search ability
+
 ## [0.16.7] - 2026-05-23
 
 ### Changed
