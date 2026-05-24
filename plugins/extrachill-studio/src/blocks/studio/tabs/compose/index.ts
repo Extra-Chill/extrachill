@@ -2,6 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { createElement, useEffect, useRef, useState, useCallback } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
 import apiFetch from '@wordpress/api-fetch';
+import { select } from '@wordpress/data';
 import {
 	getOrCreateClientContextRegistry,
 	registerClientContextProvider,
@@ -159,12 +160,27 @@ const ComposePane = ( _props: StudioPaneProps ): ReactElement => {
 		}
 	};
 
-	/** Fetch user's drafts from the REST API. */
+	/**
+	 * Fetch the current user's drafts from the REST API.
+	 *
+	 * Scoped to the current user via the author filter so users with
+	 * edit_others_posts (editors, admins) do not see and hot-swap into
+	 * other authors' drafts via the Compose draft picker.
+	 */
 	const loadDrafts = useCallback( async (): Promise< WpPost[] > => {
 		try {
-			const result = await apiFetch< WpPost[] >( {
-				path: '/wp/v2/posts?status=draft&per_page=20&orderby=modified&order=desc&context=edit',
-			} );
+			const currentUser = ( select( 'core' ) as { getCurrentUser?: () => { id?: number } | undefined } )
+				.getCurrentUser?.();
+			const userId = currentUser?.id;
+			let path = '/wp/v2/posts?status=draft&per_page=20&orderby=modified&order=desc&context=edit';
+			if ( userId ) {
+				path += `&author=${ userId }`;
+			}
+			// If userId is genuinely unavailable client-side, fall through without
+			// the author filter rather than ship a half-broken query. In practice
+			// @wordpress/data core selector should always resolve for logged-in
+			// users on Studio (gated by team-member capability check server-side).
+			const result = await apiFetch< WpPost[] >( { path } );
 			return Array.isArray( result ) ? result : [];
 		} catch {
 			return [];
