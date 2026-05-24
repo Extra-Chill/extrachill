@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.0] - 2026-05-24
+
+### Added
+- add markdown format support to community-create-reply/topic
+
 ## [1.5.0] - 2026-05-24
 
 ### Added
