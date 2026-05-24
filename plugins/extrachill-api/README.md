@@ -235,7 +235,6 @@ extrachill-api/
     ├── controllers/
     │   └── class-docs-sync-controller.php
     ├── utils/
-    │   ├── bbpress-drafts.php
     │   └── id-generator.php
     └── routes/
         ├── admin/
