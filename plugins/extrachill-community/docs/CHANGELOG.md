@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0] - 2026-05-24
+
+### Added
+- register community-domain abilities (#24)
+
+### Fixed
+- enforce user identity at the bbPress draft ability boundary
+
 ## [1.4.0] - 2026-04-02
 
 ### Added
