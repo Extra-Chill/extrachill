@@ -692,7 +692,16 @@ class CommunityCommand {
 	 * : Topic title.
 	 *
 	 * <content>
-	 * : Topic content.
+	 * : Topic content. Interpreted as HTML by default, or as markdown when --format=markdown.
+	 *
+	 * [--format=<format>]
+	 * : Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.
+	 * ---
+	 * default: html
+	 * options:
+	 *   - html
+	 *   - markdown
+	 * ---
 	 *
 	 * [--user=<user>]
 	 * : Author user ID, login, or email (defaults to current user).
@@ -701,6 +710,8 @@ class CommunityCommand {
 	 *
 	 *     wp extrachill community create-topic 123 "My Topic Title" "Topic content here" --url=community.extrachill.com
 	 *     wp extrachill community create-topic 123 "Topic" "Content" --user=saraichinwag --url=community.extrachill.com
+	 *     wp extrachill community create-topic 123 "Markdown topic" "**bold** and a list:\n- one\n- two" \
+	 *         --format=markdown --user=extrachill --url=community.extrachill.com
 	 *
 	 * @subcommand create-topic
 	 * @when after_wp_load
@@ -709,6 +720,7 @@ class CommunityCommand {
 		$forum_id = isset( $args[0] ) ? (int) $args[0] : 0;
 		$title    = isset( $args[1] ) ? (string) $args[1] : '';
 		$content  = isset( $args[2] ) ? (string) $args[2] : '';
+		$format   = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'html';
 
 		if ( ! $forum_id ) {
 			WP_CLI::error( 'A forum_id is required.' );
@@ -718,6 +730,9 @@ class CommunityCommand {
 		}
 		if ( empty( $content ) ) {
 			WP_CLI::error( 'Content is required.' );
+		}
+		if ( ! in_array( $format, array( 'html', 'markdown' ), true ) ) {
+			WP_CLI::error( 'Format must be "html" or "markdown".' );
 		}
 
 		$ability = wp_get_ability( 'extrachill/community-create-topic' );
@@ -729,6 +744,7 @@ class CommunityCommand {
 			'forum_id' => $forum_id,
 			'title'    => $title,
 			'content'  => $content,
+			'format'   => $format,
 		);
 
 		if ( isset( $assoc_args['user'] ) ) {
@@ -758,7 +774,16 @@ class CommunityCommand {
 	 * : Topic to reply to.
 	 *
 	 * <content>
-	 * : Reply content.
+	 * : Reply content. Interpreted as HTML by default, or as markdown when --format=markdown.
+	 *
+	 * [--format=<format>]
+	 * : Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.
+	 * ---
+	 * default: html
+	 * options:
+	 *   - html
+	 *   - markdown
+	 * ---
 	 *
 	 * [--reply-to=<reply_id>]
 	 * : Parent reply ID for threaded replies.
@@ -770,6 +795,8 @@ class CommunityCommand {
 	 *
 	 *     wp extrachill community create-reply 456 "Great topic!" --url=community.extrachill.com
 	 *     wp extrachill community create-reply 456 "Reply content" --user=saraichinwag --url=community.extrachill.com
+	 *     wp extrachill community create-reply 456 "**Hello** @user" \
+	 *         --format=markdown --user=extrachill --url=community.extrachill.com
 	 *
 	 * @subcommand create-reply
 	 * @when after_wp_load
@@ -777,12 +804,16 @@ class CommunityCommand {
 	public function create_reply( $args, $assoc_args ) {
 		$topic_id = isset( $args[0] ) ? (int) $args[0] : 0;
 		$content  = isset( $args[1] ) ? (string) $args[1] : '';
+		$format   = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'html';
 
 		if ( ! $topic_id ) {
 			WP_CLI::error( 'A topic_id is required.' );
 		}
 		if ( empty( $content ) ) {
 			WP_CLI::error( 'Content is required.' );
+		}
+		if ( ! in_array( $format, array( 'html', 'markdown' ), true ) ) {
+			WP_CLI::error( 'Format must be "html" or "markdown".' );
 		}
 
 		$ability = wp_get_ability( 'extrachill/community-create-reply' );
@@ -793,6 +824,7 @@ class CommunityCommand {
 		$input = array(
 			'topic_id' => $topic_id,
 			'content'  => $content,
+			'format'   => $format,
 			'reply_to' => isset( $assoc_args['reply-to'] ) ? (int) $assoc_args['reply-to'] : 0,
 		);
 
