@@ -55,7 +55,23 @@ function enqueue_bbpress_global_styles() {
 }
 add_action('wp_enqueue_scripts', 'enqueue_bbpress_global_styles');
 
-function extrachill_community_enqueue_blocks_everywhere_iframe_assets() {
+/**
+ * Enqueue bbPress styles + @mentions completer into the block-editor iframe.
+ *
+ * Uses the canonical Gutenberg `enqueue_block_assets` action, which fires for
+ * BOTH the host page and the editor iframe in any Gutenberg-driven editor
+ * context (Blocks Everywhere included). This replaces the previous
+ * BE-specific `blocks_everywhere_enqueue_iframe_assets` handler so the plugin
+ * aligns with the canonical iframe-styles API introduced in Gutenberg 22.8+,
+ * silencing the "added to the iframe incorrectly" warning.
+ *
+ * Guard is tight: only runs when the bbPress front-end editor is active,
+ * which means a bbPress topic/reply/edit page (or the homepage's New Topic
+ * modal) is being rendered. wp-admin post-editing requests fail this guard
+ * (no `is_bbpress()`, no `is_front_page()`), so `extrachill-bbpress-css` does
+ * not leak into wp-admin chrome.
+ */
+function extrachill_community_enqueue_block_editor_iframe_assets() {
     if ( ! function_exists( 'extrachill_community_bbpress_editor_is_active' ) ) {
         return;
     }
@@ -94,7 +110,7 @@ function extrachill_community_enqueue_blocks_everywhere_iframe_assets() {
         );
     }
 }
-add_action( 'blocks_everywhere_enqueue_iframe_assets', 'extrachill_community_enqueue_blocks_everywhere_iframe_assets' );
+add_action( 'enqueue_block_assets', 'extrachill_community_enqueue_block_editor_iframe_assets' );
 
 function modular_bbpress_styles() {
     if (bbp_is_forum_archive() || is_front_page() || is_home() || bbp_is_single_forum()) {
