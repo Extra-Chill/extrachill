@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.4.4] - 2026-05-25
+
+### Fixed
+- restore structural borders for block editor shell after IBE migration
+
 ## [2.4.3] - 2026-05-25
 
 ### Fixed
