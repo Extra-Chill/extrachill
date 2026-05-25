@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.4.2] - 2026-05-25
+
+### Changed
+- migrate block-editor iframe styles to canonical enqueue_block_assets
+
 ## [2.4.1] - 2026-05-24
 
 ### Fixed
