@@ -16,32 +16,108 @@
  *   - WordPress: enqueue on host page via wp_enqueue_scripts AND
  *     inject into iframe via blocks_everywhere_enqueue_iframe_assets
  *   - Mobile: import alongside tokens-all.css for native editor branding
+ *
+ * Dark mode chain:
+ *   - CSS variables are defined at :root in root.css
+ *   - @media (prefers-color-scheme: dark) in root.css flips those variables
+ *   - Selectors in this file reference variables, so dark mode applies
+ *     automatically without any dark-mode rules here.
  */
 
 
 /* ==========================================================================
-   1. Inserter Buttons — Host Page
-   The toolbar (+) button and empty-block inserter use EC's accent-3 (cyan)
-   instead of the default WP inserter color.
+   1. Block Toolbar — Host React Tree
+   The block toolbar lives in BE's .blocks-everywhere-editor__toolbar wrapper
+   and renders Gutenberg's <BlockToolbar /> as .block-editor-block-toolbar
+   containing .components-toolbar(-group) segments. Default Gutenberg paints
+   these surfaces white via --wp-components-color-background. Override with
+   EC theme tokens so the toolbar respects dark mode.
    ========================================================================== */
 
-/* Toolbar inserter (+) — mirrors EC .button-2 */
-.gutenberg-support .iso-editor .interface-interface-skeleton__header .editor-document-tools__inserter-toggle.is-primary {
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-group {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+/* Toolbar buttons — base color */
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button {
+    color: var(--text-color);
+}
+
+/* Toolbar buttons — hover / focus */
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button:hover:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button:focus-visible:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button:hover:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button:focus-visible:not(:disabled, [aria-disabled="true"]) {
+    color: var(--accent);
+    background-color: transparent;
+}
+
+/* Toolbar buttons — pressed / active */
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button.is-pressed,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button[aria-pressed="true"],
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button.is-pressed,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button[aria-pressed="true"] {
+    color: var(--button-text-color);
+    background-color: var(--accent);
+}
+
+/* Toolbar SVG icons inherit button color */
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar svg,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar svg * {
+    fill: currentColor;
+}
+
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar svg [stroke]:not([stroke="none"]) {
+    stroke: currentColor;
+}
+
+
+/* ==========================================================================
+   2. Toolbar Inserter (+) — Host React Tree
+   BE renders <Inserter /> inside .blocks-everywhere-editor__toolbar, which
+   produces .block-editor-inserter > .block-editor-inserter__toggle.components-button.
+   Style it as EC's primary accent button (matches the previous IBE-era
+   .editor-document-tools__inserter-toggle.is-primary rule).
+   ========================================================================== */
+
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button {
     background-color: var(--accent);
     border-color: var(--accent);
     color: var(--button-text-color);
     transition: background-color 0.3s ease;
 }
 
-.gutenberg-support .iso-editor .interface-interface-skeleton__header .editor-document-tools__inserter-toggle.is-primary:hover,
-.gutenberg-support .iso-editor .interface-interface-skeleton__header .editor-document-tools__inserter-toggle.is-primary:focus,
-.gutenberg-support .iso-editor .interface-interface-skeleton__header .editor-document-tools__inserter-toggle.is-primary:focus-visible {
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:hover,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:focus,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:focus-visible,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:hover,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:focus,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:focus-visible {
     background-color: var(--accent-hover);
     border-color: var(--accent-hover);
     color: var(--button-text-color);
 }
 
-/* Empty block inserter (host page, when block is selected) */
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button svg,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button svg,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button svg *,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button svg * {
+    fill: currentColor;
+}
+
+
+/* ==========================================================================
+   3. Empty Block Inserter — Host Page
+   When a block is selected and the empty-block inserter renders at the host
+   level (outside the iframe), style it with EC's accent-3 (cyan).
+   ========================================================================== */
+
 .gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon {
     background-color: var(--accent-3);
     border: none;
@@ -68,7 +144,7 @@
 
 
 /* ==========================================================================
-   2. Inserter Buttons — Editor Iframe
+   4. Inserter Buttons — Editor Iframe
    Same accent-3 branding for inserter buttons inside the editor canvas.
    ========================================================================== */
 
@@ -123,7 +199,7 @@
 
 
 /* ==========================================================================
-   3. Placeholder Branding — Editor Iframe
+   5. Placeholder Branding — Editor Iframe
    Embed/image/gallery placeholder blocks use EC card styling.
    ========================================================================== */
 
@@ -190,20 +266,4 @@
 
 .editor-styles-wrapper .components-placeholder svg [stroke]:not([stroke="none"]) {
     stroke: currentColor;
-}
-
-
-/* ==========================================================================
-   4. Footer Branding
-   EC-specific footer styling for the editor status bar.
-   ========================================================================== */
-
-.gutenberg-support .iso-editor .interface-interface-skeleton__footer {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: var(--font-size-sm);
-    line-height: 1.1;
-}
-
-.gutenberg-support .iso-editor .interface-interface-skeleton__footer .edit-post-layout__footer {
-    padding: 0;
 }
