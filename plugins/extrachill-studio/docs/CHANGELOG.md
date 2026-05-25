@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.5] - 2026-05-25
+
+### Fixed
+- rename BE settings key from iso to blocksEverywhere
+
 ## [0.15.4] - 2026-05-24
 
 ### Fixed
