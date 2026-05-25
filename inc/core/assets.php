@@ -114,14 +114,22 @@ function extrachill_enqueue_root_styles() {
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 );
 
 /*
- * Editor iframe styles (root.css, editor-style.css, single-post.css,
+ * Editor iframe styles in wp-admin (root.css, editor-style.css, single-post.css,
  * block-editor.css) are delivered via add_editor_style() in functions.php.
  * That pipeline injects CSS into the iframe via EditorStyles React component
  * without leaking onto the outer wp-admin page.
  *
- * Previously extrachill_enqueue_editor_iframe_styles() used enqueue_block_assets
- * which fires on BOTH the outer admin page and the iframe, causing style.css
- * and block-editor.css to leak onto wp-admin chrome.
+ * For front-end block editor contexts (Blocks Everywhere on bbPress, Studio,
+ * etc.), iframe styles are delivered via the canonical enqueue_block_assets
+ * action below. That hook fires for both host page AND iframe in any
+ * Gutenberg-driven editor context — which is exactly the canonical API
+ * Gutenberg-22.8+ expects for iframe-styles resolution.
+ *
+ * Historical note: enqueue_block_assets fires on EVERY admin page if
+ * unguarded, which previously caused style.css and block-editor.css to leak
+ * onto wp-admin chrome. The guard in extrachill_enqueue_block_editor_iframe_assets
+ * (! is_admin() + class_exists check) keeps the canonical hook scoped to
+ * front-end block-editor consumers only.
  */
 
 function extrachill_enqueue_embed_iframe_styles() {
@@ -164,31 +172,6 @@ function extrachill_enqueue_taxonomy_badges() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_taxonomy_badges', 10 );
 
-/**
- * Enqueue EC block editor branding on host page when Blocks Everywhere is active.
- *
- * Sources from @extrachill/tokens css/block-editor.css. Styles scoped under
- * .gutenberg-support apply to the host page (toolbar, popovers, sidebar).
- * Iframe styles from the same file are injected via
- * blocks_everywhere_enqueue_iframe_assets.
- */
-function extrachill_enqueue_block_editor_branding() {
-	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Blocks_Everywhere' ) ) {
-		return;
-	}
-
-	$block_editor_css_path = get_stylesheet_directory() . '/assets/css/block-editor.css';
-	if ( file_exists( $block_editor_css_path ) ) {
-		wp_enqueue_style(
-			'extrachill-block-editor',
-			get_stylesheet_directory_uri() . '/assets/css/block-editor.css',
-			array( 'extrachill-root' ),
-			filemtime( $block_editor_css_path )
-		);
-	}
-}
-add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_block_editor_branding', 15 );
-
 function extrachill_modify_default_style() {
 	wp_dequeue_style( 'extrachill-style' );
 	wp_deregister_style( 'extrachill-style' );
@@ -202,7 +185,43 @@ function extrachill_modify_default_style() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_modify_default_style', 20 );
 
-function extrachill_enqueue_blocks_everywhere_iframe_assets() {
+/**
+ * Enqueue theme styles into block-editor contexts via the canonical Gutenberg API.
+ *
+ * The `enqueue_block_assets` action is Gutenberg's canonical hook for delivering
+ * styles to block-editor contexts. It fires for BOTH the host page AND the
+ * iframe canvas, so a single registration reaches every consumer:
+ *
+ *   - Blocks Everywhere bbPress editors (community.extrachill.com)
+ *   - Studio embedded editors
+ *   - Any future plugin spinning up an iframed block editor
+ *
+ * Before this migration, the theme hooked the BE-specific
+ * `blocks_everywhere_enqueue_iframe_assets` action, which only fired during
+ * BE's __unstableResolvedAssets computation. Other block-editor consumers on
+ * the same page never got the theme's CSS variables (--text-color,
+ * --background-color, etc.) and Gutenberg's iframe-compat layer logged
+ * "added to the iframe incorrectly" warnings while falling back to a clone.
+ *
+ * Context guard: enqueue_block_assets fires on EVERY admin page request. The
+ * wp-admin post editor delivers iframe styles via add_editor_style() (see
+ * functions.php) and absolutely must NOT also get theme styles enqueued onto
+ * the outer admin chrome — that's the regression the historical comment above
+ * warns about. The `! is_admin()` check scopes this to front-end block-editor
+ * consumers only, and the class_exists check keeps the enqueue out of
+ * non-editor front-end pages where it isn't needed.
+ *
+ * @since 2.4.2
+ */
+function extrachill_enqueue_block_editor_iframe_assets() {
+	if ( is_admin() ) {
+		return;
+	}
+
+	if ( ! class_exists( 'Automattic\\Blocks_Everywhere\\Blocks_Everywhere' ) ) {
+		return;
+	}
+
 	$root_css_path = get_stylesheet_directory() . '/assets/css/root.css';
 	if ( file_exists( $root_css_path ) ) {
 		if ( ! wp_style_is( 'extrachill-root', 'registered' ) ) {
@@ -231,7 +250,6 @@ function extrachill_enqueue_blocks_everywhere_iframe_assets() {
 		wp_enqueue_style( 'extrachill-style' );
 	}
 
-	// EC block editor branding (from @extrachill/tokens).
 	$block_editor_css_path = get_stylesheet_directory() . '/assets/css/block-editor.css';
 	if ( file_exists( $block_editor_css_path ) ) {
 		if ( ! wp_style_is( 'extrachill-block-editor', 'registered' ) ) {
@@ -246,7 +264,7 @@ function extrachill_enqueue_blocks_everywhere_iframe_assets() {
 		wp_enqueue_style( 'extrachill-block-editor' );
 	}
 }
-add_action( 'blocks_everywhere_enqueue_iframe_assets', 'extrachill_enqueue_blocks_everywhere_iframe_assets' );
+add_action( 'enqueue_block_assets', 'extrachill_enqueue_block_editor_iframe_assets' );
 
 /**
  * Strip wp-admin-only editor stylesheets from non-admin block editor contexts.
