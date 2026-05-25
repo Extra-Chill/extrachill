@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.4.5] - 2026-05-25
+
+### Fixed
+- size toolbar inserter button like other toolbar icons
+
 ## [2.4.4] - 2026-05-25
 
 ### Fixed
