@@ -101,26 +101,26 @@
    3. Toolbar Inserter (+) — Host React Tree
    BE renders <Inserter /> inside .blocks-everywhere-editor__toolbar, which
    produces .block-editor-inserter > .block-editor-inserter__toggle.components-button.
-   Style it as EC's primary accent button (matches the previous IBE-era
-   .editor-document-tools__inserter-toggle.is-primary rule).
+   The button is colored with the EC accent (matches the previous IBE-era
+   .editor-document-tools__inserter-toggle.is-primary intent), but sized
+   like the rest of the toolbar icon buttons (undo / redo / list-view /
+   format buttons) so it doesn't dominate the row visually. Gutenberg's
+   default toolbar button is ~24x24 icon-sized; we override the colors,
+   not the dimensions.
    ========================================================================== */
 
 .gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button,
 .gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button {
     background-color: var(--accent);
-    border-color: var(--accent);
     color: var(--button-text-color);
     transition: background-color 0.3s ease;
 }
 
-.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:hover,
-.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:focus,
-.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:focus-visible,
-.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:hover,
-.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:focus,
-.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:focus-visible {
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:hover:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:focus-visible:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:hover:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:focus-visible:not(:disabled, [aria-disabled="true"]) {
     background-color: var(--accent-hover);
-    border-color: var(--accent-hover);
     color: var(--button-text-color);
 }
 
