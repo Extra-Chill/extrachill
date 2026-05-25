@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.2] - 2026-05-25
+
+### Changed
+- migrate bbPress iframe styles to canonical enqueue_block_assets
+
 ## [1.6.1] - 2026-05-24
 
 ### Fixed
