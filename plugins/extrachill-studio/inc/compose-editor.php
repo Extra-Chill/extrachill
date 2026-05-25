@@ -141,7 +141,7 @@ function configure_compose_editor( array $settings ): array {
 	$settings['editorType'] = 'studio';
 
 	// Configure allowed blocks — writing-focused.
-	$settings['iso']['blocks']['allowBlocks'] = apply_filters(
+	$settings['blocksEverywhere']['blocks']['allowBlocks'] = apply_filters(
 		'extrachill_studio_allowed_blocks',
 		array(
 			'core/paragraph',
@@ -158,8 +158,8 @@ function configure_compose_editor( array $settings ): array {
 
 	// Show the block inserter in the shared sidebar mode, but detach the
 	// rendered sidebar into Studio's dedicated compose sidebar slot.
-	$settings['iso']['sidebar']['inserter'] = true;
-	$settings['iso']['sidebar']['detached'] = array(
+	$settings['blocksEverywhere']['sidebar']['inserter'] = true;
+	$settings['blocksEverywhere']['sidebar']['detached'] = array(
 		'target'    => '.ec-studio-compose-sidebar__slot',
 		'className' => 'ec-studio-compose-sidebar__content',
 		'persistent' => true,
@@ -167,7 +167,7 @@ function configure_compose_editor( array $settings ): array {
 	);
 
 	// Allow common embed types.
-	$settings['iso']['allowEmbeds'] = array(
+	$settings['blocksEverywhere']['allowEmbeds'] = array(
 		'youtube',
 		'vimeo',
 		'spotify',
@@ -195,13 +195,13 @@ function configure_compose_editor( array $settings ): array {
 	// in style.css under html.is-fullscreen-mode and hides Studio chrome
 	// that sits outside the editor skeleton (title input, toolbar, save
 	// actions, detached sidebar). See Phase 1 scoping in MEMORY.md.
-	$settings['iso']['moreMenu']                                = array(
+	$settings['blocksEverywhere']['moreMenu']                                = array(
 		'fullscreen' => true,
 	);
-	$settings['iso']['defaultPreferences']                      = isset( $settings['iso']['defaultPreferences'] ) && is_array( $settings['iso']['defaultPreferences'] )
-		? $settings['iso']['defaultPreferences']
+	$settings['blocksEverywhere']['defaultPreferences']                      = isset( $settings['blocksEverywhere']['defaultPreferences'] ) && is_array( $settings['blocksEverywhere']['defaultPreferences'] )
+		? $settings['blocksEverywhere']['defaultPreferences']
 		: array();
-	$settings['iso']['defaultPreferences']['fullscreenMode']    = false;
+	$settings['blocksEverywhere']['defaultPreferences']['fullscreenMode']    = false;
 
 	return $settings;
 }
