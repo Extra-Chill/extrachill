@@ -26,13 +26,33 @@
 
 
 /* ==========================================================================
-   1. Block Toolbar — Host React Tree
+   1. Editor Shell — Structural Outline
+   BE's <EmbeddedBlockEditor> renders a flat sequence of divs (toolbar, body,
+   footer) inside a single .blocks-everywhere-editor wrapper. Without a
+   container border the editor has no visible bounds against the host page
+   chrome (Studio's "Submit for Review" buttons sit immediately below).
+   Pre-#26 the equivalent border came from .iso-editor's frame; restore it
+   on the modern wrapper.
+   ========================================================================== */
+
+.gutenberg-support .blocks-everywhere-editor {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md, 8px);
+}
+
+/* ==========================================================================
+   2. Block Toolbar — Host React Tree
    The block toolbar lives in BE's .blocks-everywhere-editor__toolbar wrapper
    and renders Gutenberg's <BlockToolbar /> as .block-editor-block-toolbar
    containing .components-toolbar(-group) segments. Default Gutenberg paints
    these surfaces white via --wp-components-color-background. Override with
    EC theme tokens so the toolbar respects dark mode.
    ========================================================================== */
+
+/* Toolbar wrapper carries the separator between toolbar and writing canvas. */
+.gutenberg-support .blocks-everywhere-editor__toolbar {
+    border-bottom: 1px solid var(--border-color);
+}
 
 .gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar,
 .gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar,
@@ -78,7 +98,7 @@
 
 
 /* ==========================================================================
-   2. Toolbar Inserter (+) — Host React Tree
+   3. Toolbar Inserter (+) — Host React Tree
    BE renders <Inserter /> inside .blocks-everywhere-editor__toolbar, which
    produces .block-editor-inserter > .block-editor-inserter__toggle.components-button.
    Style it as EC's primary accent button (matches the previous IBE-era
@@ -113,7 +133,7 @@
 
 
 /* ==========================================================================
-   3. Empty Block Inserter — Host Page
+   4. Empty Block Inserter — Host Page
    When a block is selected and the empty-block inserter renders at the host
    level (outside the iframe), style it with EC's accent-3 (cyan).
    ========================================================================== */
@@ -144,7 +164,7 @@
 
 
 /* ==========================================================================
-   4. Inserter Buttons — Editor Iframe
+   5. Inserter Buttons — Editor Iframe
    Same accent-3 branding for inserter buttons inside the editor canvas.
    ========================================================================== */
 
@@ -199,7 +219,7 @@
 
 
 /* ==========================================================================
-   5. Placeholder Branding — Editor Iframe
+   6. Placeholder Branding — Editor Iframe
    Embed/image/gallery placeholder blocks use EC card styling.
    ========================================================================== */
 
