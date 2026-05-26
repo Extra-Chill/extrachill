@@ -65,45 +65,27 @@ function extrachill_events_filter_map_center( $center, array $context ) {
 add_filter( 'data_machine_events_map_center', 'extrachill_events_filter_map_center', 10, 2 );
 
 /**
- * Generate summary text with event/venue counts for location maps.
+ * Suppress the map summary on location archives.
  *
- * Queries venue and event counts directly from the database instead of
- * relying on a pre-filtered venue array.
+ * As of #107, the archive header now renders a canonical upcoming-events
+ * stats line ("N upcoming events at N venues") via
+ * `extrachill_events_render_term_calendar_stats()`. Showing the same
+ * counts inside the map's summary slot duplicated the number on the
+ * page, so we return an empty string here. The map itself still
+ * renders — only its overlay summary text is dropped.
  *
  * @hook data_machine_events_map_summary
  * @param string $summary Current summary (empty by default).
  * @param array  $venues  Venue data array (empty — dynamic mode).
  * @param array  $context Map context.
- * @return string Summary text.
+ * @return string Summary text. Empty on location archives.
  */
 function extrachill_events_filter_map_summary( string $summary, array $venues, array $context ): string {
 	if ( ! $context['is_taxonomy'] || 'location' !== $context['taxonomy'] ) {
 		return $summary;
 	}
 
-	// Query venue count for this location directly.
-	$location_venues = extrachill_events_get_location_venues( $context['term_id'] );
-	$venue_count     = count( $location_venues );
-
-	if ( 0 === $venue_count ) {
-		return $summary;
-	}
-
-	$event_count = extrachill_events_get_upcoming_event_count( $context['term_id'] );
-
-	if ( $event_count > 0 ) {
-		return sprintf(
-			/* translators: 1: number of events, 2: number of venues */
-			__( '%1$d events at %2$d venues', 'extrachill-events' ),
-			$event_count,
-			$venue_count
-		);
-	}
-
-	return sprintf(
-		/* translators: %d: number of venues */
-		_n( '%d venue', '%d venues', $venue_count, 'extrachill-events' ),
-		$venue_count
-	);
+	// Counts moved to the archive-header stats line; map stands on its own.
+	return '';
 }
 add_filter( 'data_machine_events_map_summary', 'extrachill_events_filter_map_summary', 10, 3 );

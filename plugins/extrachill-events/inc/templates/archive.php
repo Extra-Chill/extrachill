@@ -29,7 +29,9 @@ extrachill_breadcrumbs();
 			<?php if ( ! empty( $term->description ) ) : ?>
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( $term->description ) ); ?></div>
 			<?php endif; ?>
-			
+
+			<?php extrachill_events_render_term_calendar_stats( 'venue', (int) $term->term_id ); ?>
+
 			<?php if ( $formatted_address || ! empty( $venue_data['website'] ) ) : ?>
 				<div class="taxonomy-meta">
 					<?php if ( $formatted_address ) : ?>
@@ -73,18 +75,22 @@ extrachill_breadcrumbs();
 			<?php if ( term_description() ) : ?>
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
 			<?php endif; ?>
+			<?php extrachill_events_render_term_calendar_stats( 'location', (int) $term->term_id ); ?>
 		</header>
 		<?php
 		if ( function_exists( 'extrachill_events_render_scope_nav' ) ) {
 			extrachill_events_render_scope_nav( $term, '' );
 		}
 		?>
-	<?php elseif ( is_tax( 'artist' ) ) : ?>
+	<?php elseif ( is_tax( 'artist' ) ) :
+		$term = get_queried_object();
+		?>
 		<header class="taxonomy-archive-header artist-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Tour Dates</h1>
 			<?php if ( term_description() ) : ?>
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
 			<?php endif; ?>
+			<?php extrachill_events_render_term_calendar_stats( 'artist', (int) $term->term_id ); ?>
 		</header>
 	<?php elseif ( is_tax() ) : ?>
 		<header class="taxonomy-archive-header">
