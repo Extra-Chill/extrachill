@@ -191,6 +191,231 @@ function extrachill_community_register_topic_reply_abilities() {
 		)
 	);
 
+	// ─── Get Topic For Editor ──────────────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/community-get-topic-for-editor',
+		array(
+			'label'               => __( 'Get Topic For Editor', 'extrachill-community' ),
+			'description'         => __( 'Load a topic for editing: returns serialized post_content (block markup as-stored), permissions envelope, and any pre-publish draft overlay for the current user.', 'extrachill-community' ),
+			'category'            => 'extrachill-community',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'topic_id' => array( 'type' => 'integer' ),
+					'blog_id'  => array( 'type' => 'integer', 'description' => 'Optional; defaults to current blog.' ),
+				),
+				'required'   => array( 'topic_id' ),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'id'         => array( 'type' => 'integer' ),
+					'type'       => array( 'type' => 'string', 'enum' => array( 'forum_topic' ) ),
+					'title'      => array( 'type' => 'string' ),
+					'content'    => array( 'type' => 'string', 'description' => 'Serialized block markup (post_content as-stored).' ),
+					'raw'        => array( 'type' => 'string', 'description' => 'Alias of content for parity with wp/v2 shape.' ),
+					'status'     => array( 'type' => 'string' ),
+					'forum_id'   => array( 'type' => 'integer' ),
+					'permalink'  => array( 'type' => 'string' ),
+					'updated_at' => array( 'type' => 'string', 'format' => 'date-time' ),
+					'context'    => array(
+						'type'       => 'object',
+						'properties' => array(
+							'blog_id'  => array( 'type' => 'integer' ),
+							'forum_id' => array( 'type' => 'integer' ),
+						),
+					),
+					'permissions' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'canSave'        => array( 'type' => 'boolean' ),
+							'canUploadMedia' => array( 'type' => 'boolean' ),
+							'canDelete'      => array( 'type' => 'boolean' ),
+						),
+					),
+					'draft' => array(
+						'description' => 'Pre-publish draft overlay if one exists for this user+target. Null when none.',
+						'anyOf'       => array(
+							array( 'type' => 'object' ),
+							array( 'type' => 'null' ),
+						),
+					),
+				),
+			),
+			'execute_callback'    => 'extrachill_community_ability_get_topic_for_editor',
+			'permission_callback' => 'extrachill_community_ability_get_topic_for_editor_permission',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array(
+					'readonly'    => true,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+
+	// ─── Get Reply For Editor ──────────────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/community-get-reply-for-editor',
+		array(
+			'label'               => __( 'Get Reply For Editor', 'extrachill-community' ),
+			'description'         => __( 'Load a reply for editing: returns serialized post_content, permissions envelope, parent topic context.', 'extrachill-community' ),
+			'category'            => 'extrachill-community',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'reply_id' => array( 'type' => 'integer' ),
+					'blog_id'  => array( 'type' => 'integer', 'description' => 'Optional; defaults to current blog.' ),
+				),
+				'required'   => array( 'reply_id' ),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'id'         => array( 'type' => 'integer' ),
+					'type'       => array( 'type' => 'string', 'enum' => array( 'forum_reply' ) ),
+					'content'    => array( 'type' => 'string' ),
+					'raw'        => array( 'type' => 'string' ),
+					'status'     => array( 'type' => 'string' ),
+					'topic_id'   => array( 'type' => 'integer' ),
+					'forum_id'   => array( 'type' => 'integer' ),
+					'reply_to'   => array( 'type' => 'integer' ),
+					'permalink'  => array( 'type' => 'string' ),
+					'updated_at' => array( 'type' => 'string', 'format' => 'date-time' ),
+					'context'    => array(
+						'type'       => 'object',
+						'properties' => array(
+							'blog_id'  => array( 'type' => 'integer' ),
+							'topic_id' => array( 'type' => 'integer' ),
+							'forum_id' => array( 'type' => 'integer' ),
+						),
+					),
+					'permissions' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'canSave'        => array( 'type' => 'boolean' ),
+							'canUploadMedia' => array( 'type' => 'boolean' ),
+							'canDelete'      => array( 'type' => 'boolean' ),
+						),
+					),
+					'draft' => array(
+						'anyOf' => array(
+							array( 'type' => 'object' ),
+							array( 'type' => 'null' ),
+						),
+					),
+				),
+			),
+			'execute_callback'    => 'extrachill_community_ability_get_reply_for_editor',
+			'permission_callback' => 'extrachill_community_ability_get_reply_for_editor_permission',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array(
+					'readonly'    => true,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+
+	// ─── Update Topic ──────────────────────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/community-update-topic',
+		array(
+			'label'               => __( 'Update Topic', 'extrachill-community' ),
+			'description'         => __( 'Update an existing topic\'s title and/or content. Accepts HTML (default, serialized blocks) or markdown via the format parameter. Enforces bbp_past_edit_lock and fires bbp_edit_topic for cache invalidation.', 'extrachill-community' ),
+			'category'            => 'extrachill-community',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'topic_id' => array( 'type' => 'integer' ),
+					'title'    => array( 'type' => 'string' ),
+					'content'  => array( 'type' => 'string', 'description' => 'Serialized block markup.' ),
+					'format'   => array(
+						'type'        => 'string',
+						'enum'        => array( 'html', 'markdown' ),
+						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
+					),
+					'blog_id'  => array( 'type' => 'integer' ),
+					'user_id'  => array( 'type' => 'integer', 'description' => 'Author override; requires edit_others_topics.' ),
+				),
+				'required'   => array( 'topic_id', 'content' ),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'id'         => array( 'type' => 'integer' ),
+					'status'     => array( 'type' => 'string' ),
+					'title'      => array( 'type' => 'string' ),
+					'content'    => array( 'type' => 'string' ),
+					'permalink'  => array( 'type' => 'string' ),
+					'updated_at' => array( 'type' => 'string', 'format' => 'date-time' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_community_ability_update_topic',
+			'permission_callback' => 'extrachill_community_ability_update_topic_permission',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array(
+					'readonly'    => false,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+
+	// ─── Update Reply ──────────────────────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/community-update-reply',
+		array(
+			'label'               => __( 'Update Reply', 'extrachill-community' ),
+			'description'         => __( 'Update an existing reply\'s content. Accepts HTML (default, serialized blocks) or markdown via the format parameter. Enforces bbp_past_edit_lock and fires bbp_edit_reply for cache invalidation.', 'extrachill-community' ),
+			'category'            => 'extrachill-community',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'reply_id' => array( 'type' => 'integer' ),
+					'content'  => array( 'type' => 'string', 'description' => 'Serialized block markup.' ),
+					'format'   => array(
+						'type'        => 'string',
+						'enum'        => array( 'html', 'markdown' ),
+						'description' => 'Content format.',
+					),
+					'blog_id'  => array( 'type' => 'integer' ),
+					'user_id'  => array( 'type' => 'integer', 'description' => 'Author override; requires edit_others_replies.' ),
+				),
+				'required'   => array( 'reply_id', 'content' ),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'id'         => array( 'type' => 'integer' ),
+					'status'     => array( 'type' => 'string' ),
+					'content'    => array( 'type' => 'string' ),
+					'permalink'  => array( 'type' => 'string' ),
+					'updated_at' => array( 'type' => 'string', 'format' => 'date-time' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_community_ability_update_reply',
+			'permission_callback' => 'extrachill_community_ability_update_reply_permission',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array(
+					'readonly'    => false,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+
 	// ─── List Replies ──────────────────────────────────────────────────────────
 
 	wp_register_ability(
@@ -518,6 +743,439 @@ function extrachill_community_ability_list_replies( $input ) {
 		'pages'    => (int) $query->max_num_pages,
 		'page'     => $page,
 		'per_page' => $per_page,
+	);
+}
+
+// ─── Editor: permission callbacks ──────────────────────────────────────────────
+
+/**
+ * Permission: can the current caller load this topic for editing?
+ *
+ * @param array $input Ability input.
+ * @return bool|WP_Error
+ */
+function extrachill_community_ability_get_topic_for_editor_permission( $input = array() ) {
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+	$topic_id = isset( $input['topic_id'] ) ? (int) $input['topic_id'] : 0;
+	if ( $topic_id <= 0 ) {
+		return false;
+	}
+	return current_user_can( 'read_topic', $topic_id );
+}
+
+/**
+ * Permission: can the current caller load this reply for editing?
+ *
+ * @param array $input Ability input.
+ * @return bool|WP_Error
+ */
+function extrachill_community_ability_get_reply_for_editor_permission( $input = array() ) {
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+	$reply_id = isset( $input['reply_id'] ) ? (int) $input['reply_id'] : 0;
+	if ( $reply_id <= 0 ) {
+		return false;
+	}
+	return current_user_can( 'read_reply', $reply_id );
+}
+
+/**
+ * Permission: can the current caller update this topic?
+ *
+ * Enforces edit_topic cap + bbp_past_edit_lock window (matches existing UI guard
+ * in loop-single-reply-card.php).
+ *
+ * @param array $input Ability input.
+ * @return bool|WP_Error
+ */
+function extrachill_community_ability_update_topic_permission( $input = array() ) {
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+	$topic_id = isset( $input['topic_id'] ) ? (int) $input['topic_id'] : 0;
+	if ( $topic_id <= 0 ) {
+		return false;
+	}
+	if ( ! current_user_can( 'edit_topic', $topic_id ) ) {
+		return false;
+	}
+	if ( function_exists( 'bbp_past_edit_lock' ) ) {
+		$post = get_post( $topic_id );
+		if ( $post && bbp_past_edit_lock( $post->post_date_gmt ) ) {
+			return new WP_Error(
+				'edit_lock_expired',
+				__( 'The edit window for this topic has expired.', 'extrachill-community' ),
+				array( 'status' => 403 )
+			);
+		}
+	}
+	return true;
+}
+
+/**
+ * Permission: can the current caller update this reply?
+ *
+ * @param array $input Ability input.
+ * @return bool|WP_Error
+ */
+function extrachill_community_ability_update_reply_permission( $input = array() ) {
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+	$reply_id = isset( $input['reply_id'] ) ? (int) $input['reply_id'] : 0;
+	if ( $reply_id <= 0 ) {
+		return false;
+	}
+	if ( ! current_user_can( 'edit_reply', $reply_id ) ) {
+		return false;
+	}
+	if ( function_exists( 'bbp_past_edit_lock' ) ) {
+		$post = get_post( $reply_id );
+		if ( $post && bbp_past_edit_lock( $post->post_date_gmt ) ) {
+			return new WP_Error(
+				'edit_lock_expired',
+				__( 'The edit window for this reply has expired.', 'extrachill-community' ),
+				array( 'status' => 403 )
+			);
+		}
+	}
+	return true;
+}
+
+// ─── Editor: execute callbacks ─────────────────────────────────────────────────
+
+/**
+ * Build the permissions envelope for a topic/reply load response.
+ *
+ * Computed from the current user's caps so the native client can disable
+ * buttons pre-submit. Matches the contract documented in extrachill-multisite#33.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $type    Either 'topic' or 'reply'.
+ * @return array{canSave: bool, canUploadMedia: bool, canDelete: bool}
+ */
+function extrachill_community_build_editor_permissions( $post_id, $type ) {
+	$edit_cap   = ( 'topic' === $type ) ? 'edit_topic' : 'edit_reply';
+	$delete_cap = ( 'topic' === $type ) ? 'delete_topic' : 'delete_reply';
+
+	$can_save = current_user_can( $edit_cap, $post_id );
+	if ( $can_save && function_exists( 'bbp_past_edit_lock' ) ) {
+		$post = get_post( $post_id );
+		if ( $post && bbp_past_edit_lock( $post->post_date_gmt ) ) {
+			$can_save = false;
+		}
+	}
+
+	return array(
+		'canSave'        => (bool) $can_save,
+		'canUploadMedia' => (bool) ( is_user_logged_in() && current_user_can( 'upload_files' ) ),
+		'canDelete'      => (bool) current_user_can( $delete_cap, $post_id ),
+	);
+}
+
+/**
+ * Look up the pre-publish draft overlay for a given target, if one exists.
+ *
+ * Uses the existing draft ability helpers so the load envelope and the
+ * dedicated draft ability stay in sync. Returns null if no draft is stored.
+ *
+ * @param int    $user_id User ID.
+ * @param string $type    'topic' or 'reply'.
+ * @param array  $context Keys: blog_id, forum_id, topic_id, reply_to.
+ * @return array|null
+ */
+function extrachill_community_get_draft_overlay( $user_id, $type, array $context ) {
+	if ( ! function_exists( 'extrachill_community_bbpress_drafts_get_all' ) ) {
+		return null;
+	}
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return null;
+	}
+	$context['type'] = $type;
+	$context['blog_id'] = isset( $context['blog_id'] ) ? (int) $context['blog_id'] : (int) get_current_blog_id();
+
+	$drafts = extrachill_community_bbpress_drafts_get_all( $user_id );
+	$key    = extrachill_community_bbpress_draft_key( $context );
+
+	return isset( $drafts[ $key ] ) && is_array( $drafts[ $key ] ) ? $drafts[ $key ] : null;
+}
+
+/**
+ * Load a topic for the editor.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error
+ */
+function extrachill_community_ability_get_topic_for_editor( $input ) {
+	if ( ! function_exists( 'bbp_get_topic_post_type' ) ) {
+		return new WP_Error( 'bbpress_unavailable', 'bbPress is not active.' );
+	}
+
+	$topic_id = isset( $input['topic_id'] ) ? (int) $input['topic_id'] : 0;
+	if ( ! $topic_id ) {
+		return new WP_Error( 'missing_topic_id', 'A topic_id is required.' );
+	}
+
+	$post = get_post( $topic_id );
+	if ( ! $post || $post->post_type !== bbp_get_topic_post_type() ) {
+		return new WP_Error( 'not_a_topic', 'Post ID is not a valid topic.' );
+	}
+
+	$forum_id = function_exists( 'bbp_get_topic_forum_id' )
+		? (int) bbp_get_topic_forum_id( $topic_id )
+		: (int) $post->post_parent;
+
+	$blog_id = (int) get_current_blog_id();
+
+	$draft = extrachill_community_get_draft_overlay(
+		get_current_user_id(),
+		'topic',
+		array(
+			'blog_id'  => $blog_id,
+			'forum_id' => $forum_id,
+		)
+	);
+
+	return array(
+		'id'         => (int) $post->ID,
+		'type'       => 'forum_topic',
+		'title'      => $post->post_title,
+		'content'    => $post->post_content,
+		'raw'        => $post->post_content,
+		'status'     => $post->post_status,
+		'forum_id'   => $forum_id,
+		'permalink'  => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $post->ID ) : get_permalink( $post->ID ),
+		'updated_at' => mysql_to_rfc3339( $post->post_modified_gmt ),
+		'context'    => array(
+			'blog_id'  => $blog_id,
+			'forum_id' => $forum_id,
+		),
+		'permissions' => extrachill_community_build_editor_permissions( $post->ID, 'topic' ),
+		'draft'       => $draft,
+	);
+}
+
+/**
+ * Load a reply for the editor.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error
+ */
+function extrachill_community_ability_get_reply_for_editor( $input ) {
+	if ( ! function_exists( 'bbp_get_reply_post_type' ) ) {
+		return new WP_Error( 'bbpress_unavailable', 'bbPress is not active.' );
+	}
+
+	$reply_id = isset( $input['reply_id'] ) ? (int) $input['reply_id'] : 0;
+	if ( ! $reply_id ) {
+		return new WP_Error( 'missing_reply_id', 'A reply_id is required.' );
+	}
+
+	$post = get_post( $reply_id );
+	if ( ! $post || $post->post_type !== bbp_get_reply_post_type() ) {
+		return new WP_Error( 'not_a_reply', 'Post ID is not a valid reply.' );
+	}
+
+	$topic_id = function_exists( 'bbp_get_reply_topic_id' )
+		? (int) bbp_get_reply_topic_id( $reply_id )
+		: (int) $post->post_parent;
+	$forum_id = function_exists( 'bbp_get_reply_forum_id' )
+		? (int) bbp_get_reply_forum_id( $reply_id )
+		: 0;
+	$reply_to = function_exists( 'bbp_get_reply_to' ) ? (int) bbp_get_reply_to( $reply_id ) : 0;
+	$blog_id  = (int) get_current_blog_id();
+
+	$draft = extrachill_community_get_draft_overlay(
+		get_current_user_id(),
+		'reply',
+		array(
+			'blog_id'  => $blog_id,
+			'topic_id' => $topic_id,
+			'reply_to' => $reply_to,
+		)
+	);
+
+	return array(
+		'id'         => (int) $post->ID,
+		'type'       => 'forum_reply',
+		'content'    => $post->post_content,
+		'raw'        => $post->post_content,
+		'status'     => $post->post_status,
+		'topic_id'   => $topic_id,
+		'forum_id'   => $forum_id,
+		'reply_to'   => $reply_to,
+		'permalink'  => function_exists( 'bbp_get_reply_url' ) ? bbp_get_reply_url( $post->ID ) : get_permalink( $post->ID ),
+		'updated_at' => mysql_to_rfc3339( $post->post_modified_gmt ),
+		'context'    => array(
+			'blog_id'  => $blog_id,
+			'topic_id' => $topic_id,
+			'forum_id' => $forum_id,
+		),
+		'permissions' => extrachill_community_build_editor_permissions( $post->ID, 'reply' ),
+		'draft'       => $draft,
+	);
+}
+
+/**
+ * Update an existing topic.
+ *
+ * Uses wp_update_post() for content + title; fires bbp_edit_topic so community
+ * cache-invalidation hooks trigger. Reuses extrachill_community_maybe_convert_markdown()
+ * and wp_kses_post() from the create path so sanitization stays symmetrical.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error
+ */
+function extrachill_community_ability_update_topic( $input ) {
+	if ( ! function_exists( 'bbp_get_topic_post_type' ) ) {
+		return new WP_Error( 'bbpress_unavailable', 'bbPress is not active.' );
+	}
+
+	$topic_id = isset( $input['topic_id'] ) ? (int) $input['topic_id'] : 0;
+	if ( ! $topic_id ) {
+		return new WP_Error( 'missing_topic_id', 'A topic_id is required.' );
+	}
+
+	$post = get_post( $topic_id );
+	if ( ! $post || $post->post_type !== bbp_get_topic_post_type() ) {
+		return new WP_Error( 'not_a_topic', 'Post ID is not a valid topic.' );
+	}
+
+	$raw_content = isset( $input['content'] ) ? (string) $input['content'] : '';
+	$format      = isset( $input['format'] ) ? (string) $input['format'] : 'html';
+	$content     = wp_kses_post( extrachill_community_maybe_convert_markdown( $raw_content, $format ) );
+
+	if ( '' === $content ) {
+		return new WP_Error( 'missing_content', 'Content is required.' );
+	}
+
+	$update = array(
+		'ID'           => $topic_id,
+		'post_content' => $content,
+	);
+
+	if ( isset( $input['title'] ) ) {
+		$title = sanitize_text_field( (string) $input['title'] );
+		if ( '' === $title ) {
+			return new WP_Error( 'missing_title', 'Title cannot be empty.' );
+		}
+		$update['post_title'] = $title;
+	}
+
+	// Optional author override — permission_callback already enforced edit caps,
+	// but edit_others_topics is required to actually swap the author.
+	if ( isset( $input['user_id'] ) ) {
+		$requested_user_id = (int) $input['user_id'];
+		if ( $requested_user_id > 0 && $requested_user_id !== (int) $post->post_author ) {
+			if ( ! current_user_can( 'edit_others_topics' ) ) {
+				return new WP_Error( 'cannot_change_author', 'You cannot change the topic author.' );
+			}
+			$update['post_author'] = $requested_user_id;
+		}
+	}
+
+	$forum_id = function_exists( 'bbp_get_topic_forum_id' )
+		? (int) bbp_get_topic_forum_id( $topic_id )
+		: (int) $post->post_parent;
+
+	$result = wp_update_post( $update, true );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	// Fire bbp_edit_topic so community cache invalidation, notifications, points
+	// recalculation, etc. all trigger. Mirrors the create path's bbp_new_topic.
+	$author_id = isset( $update['post_author'] ) ? (int) $update['post_author'] : (int) $post->post_author;
+	$anonymous_data = array();
+	$is_edit        = true;
+	do_action( 'bbp_edit_topic', $topic_id, $forum_id, $anonymous_data, $author_id, $is_edit );
+
+	$fresh = get_post( $topic_id );
+
+	return array(
+		'id'         => (int) $topic_id,
+		'status'     => $fresh ? $fresh->post_status : $post->post_status,
+		'title'      => $fresh ? $fresh->post_title : $post->post_title,
+		'content'    => $fresh ? $fresh->post_content : $content,
+		'permalink'  => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $topic_id ) : get_permalink( $topic_id ),
+		'updated_at' => $fresh ? mysql_to_rfc3339( $fresh->post_modified_gmt ) : mysql_to_rfc3339( gmdate( 'Y-m-d H:i:s' ) ),
+	);
+}
+
+/**
+ * Update an existing reply.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error
+ */
+function extrachill_community_ability_update_reply( $input ) {
+	if ( ! function_exists( 'bbp_get_reply_post_type' ) ) {
+		return new WP_Error( 'bbpress_unavailable', 'bbPress is not active.' );
+	}
+
+	$reply_id = isset( $input['reply_id'] ) ? (int) $input['reply_id'] : 0;
+	if ( ! $reply_id ) {
+		return new WP_Error( 'missing_reply_id', 'A reply_id is required.' );
+	}
+
+	$post = get_post( $reply_id );
+	if ( ! $post || $post->post_type !== bbp_get_reply_post_type() ) {
+		return new WP_Error( 'not_a_reply', 'Post ID is not a valid reply.' );
+	}
+
+	$raw_content = isset( $input['content'] ) ? (string) $input['content'] : '';
+	$format      = isset( $input['format'] ) ? (string) $input['format'] : 'html';
+	$content     = wp_kses_post( extrachill_community_maybe_convert_markdown( $raw_content, $format ) );
+
+	if ( '' === $content ) {
+		return new WP_Error( 'missing_content', 'Content is required.' );
+	}
+
+	$update = array(
+		'ID'           => $reply_id,
+		'post_content' => $content,
+	);
+
+	if ( isset( $input['user_id'] ) ) {
+		$requested_user_id = (int) $input['user_id'];
+		if ( $requested_user_id > 0 && $requested_user_id !== (int) $post->post_author ) {
+			if ( ! current_user_can( 'edit_others_replies' ) ) {
+				return new WP_Error( 'cannot_change_author', 'You cannot change the reply author.' );
+			}
+			$update['post_author'] = $requested_user_id;
+		}
+	}
+
+	$topic_id = function_exists( 'bbp_get_reply_topic_id' )
+		? (int) bbp_get_reply_topic_id( $reply_id )
+		: (int) $post->post_parent;
+	$forum_id = function_exists( 'bbp_get_reply_forum_id' )
+		? (int) bbp_get_reply_forum_id( $reply_id )
+		: 0;
+
+	$result = wp_update_post( $update, true );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	$author_id      = isset( $update['post_author'] ) ? (int) $update['post_author'] : (int) $post->post_author;
+	$anonymous_data = array();
+	$is_edit        = true;
+	$reply_to       = function_exists( 'bbp_get_reply_to' ) ? (int) bbp_get_reply_to( $reply_id ) : 0;
+	do_action( 'bbp_edit_reply', $reply_id, $topic_id, $forum_id, $anonymous_data, $author_id, $is_edit, $reply_to );
+
+	$fresh = get_post( $reply_id );
+
+	return array(
+		'id'         => (int) $reply_id,
+		'status'     => $fresh ? $fresh->post_status : $post->post_status,
+		'content'    => $fresh ? $fresh->post_content : $content,
+		'permalink'  => function_exists( 'bbp_get_reply_url' ) ? bbp_get_reply_url( $reply_id ) : get_permalink( $reply_id ),
+		'updated_at' => $fresh ? mysql_to_rfc3339( $fresh->post_modified_gmt ) : mysql_to_rfc3339( gmdate( 'Y-m-d H:i:s' ) ),
 	);
 }
 
