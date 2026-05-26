@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.4.6] - 2026-05-26
+
+### Fixed
+- constrain BE toolbar inserter to icon-button dimensions
+
 ## [2.4.5] - 2026-05-25
 
 ### Fixed
