@@ -114,6 +114,17 @@
     background-color: var(--accent);
     color: var(--button-text-color);
     transition: background-color 0.3s ease;
+    /* Constrain to icon-button dimensions so the EC accent fill doesn't
+       make the inserter dwarf the adjacent undo/redo/list-view buttons
+       (which render at Gutenberg's default ~32x32 toolbar icon size).
+       Match the dimensions used by Gutenberg's own contextual toolbar
+       buttons (`.components-toolbar .components-button.has-icon` at
+       min-width:48px / height:48px would be the upstream 48px contract,
+       but BE's toolbar children are bare <Button> sized at ~32x32 by
+       default — match THAT so the inserter doesn't dominate.) */
+    min-width: 32px;
+    height: 32px;
+    padding: 4px;
 }
 
 .gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:hover:not(:disabled, [aria-disabled="true"]),
