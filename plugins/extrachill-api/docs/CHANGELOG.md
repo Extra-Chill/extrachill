@@ -2,6 +2,16 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.17.0] - 2026-05-27
+
+### Added
+- feat(concert-import): REST routes for concert-import framework (Extra-Chill/extrachill-events#112)
+- feat(concert-tracking): add REST route for searching past events for marking
+- REST handlers for editor abilities (community-multisite#33)
+
+### Changed
+- route /event-submissions directly to extrachill/submit-event
+
 ## [0.16.8] - 2026-05-24
 
 ### Changed
