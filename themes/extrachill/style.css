@@ -738,18 +738,23 @@ body {
 	max-width: var(--container-width);
 	width: 100%;
 	box-sizing: border-box;
-	display: grid;
-	grid-template-columns: 1fr var(--sidebar-width);
-	gap: var(--spacing-lg);
+	display: block;
 }
 
 .content-column {
 	min-width: 0;
 }
 
-/* Single column layout when no sidebar */
-.extrachill-content:not(:has(.sidebar)) {
-	display: block;
+/*
+ * Two-column grid only when a sidebar actually renders. Uses :has()
+ * for opt-in (Safari 15.4+, Chrome 105+, Firefox 121+). Browsers
+ * without :has() get single-column treatment, which is the safer
+ * default — never an empty 380px column reserving space.
+ */
+.extrachill-content:has(.sidebar) {
+	display: grid;
+	grid-template-columns: 1fr var(--sidebar-width);
+	gap: var(--spacing-lg);
 }
 
 /*
@@ -1260,7 +1265,7 @@ p.site-title {
 	.mobile-only {
 		display: block;
 	}
-	.extrachill-content {
+	.extrachill-content:has(.sidebar) {
 		grid-template-columns: 1fr; /* single column on mobile */
 	}
 	.extrachill-content .full-width-breakout {
