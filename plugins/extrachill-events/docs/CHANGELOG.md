@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.27.0] - 2026-05-27
+
+### Added
+- feat(my-shows): map view tab showing tracked venues with chronological polyline (closes #111)
+- feat(my-shows): calendar view tab embedding data-machine-events/calendar (closes #110)
+- feat(event-submission): URL field for artist tour import (closes #320 EC-events side)
+- feat(concert-stats): Import tab with setlist.fm + phish.net cards (closes #112)
+- feat(my-shows): search-and-add past shows tab (closes #109)
+- per-archive upcoming-events stats line
+
+### Changed
+- refactor(concert-stats): migrate to @extrachill/components canonical primitives (closes #120)
+- remove events-submit pass-through wrapper
+
 ## [0.26.1] - 2026-05-21
 
 ### Fixed
