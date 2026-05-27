@@ -107,29 +107,28 @@ function extrachill_events_filter_venue_map_center( $center, array $context ) {
 add_filter( 'data_machine_events_map_center', 'extrachill_events_filter_venue_map_center', 10, 2 );
 
 /**
- * Generate summary text for venue maps.
+ * Suppress the map summary on venue archives.
+ *
+ * As of #107, the archive header renders a canonical upcoming-events
+ * stats line ("N upcoming events") via
+ * `extrachill_events_render_term_calendar_stats()`. Showing the same
+ * count inside the map's summary slot duplicated the number on the
+ * page, so we return an empty string here. The map itself still
+ * renders — only its overlay summary text is dropped. Mirrors the
+ * location-archive treatment in `location-map.php`.
  *
  * @hook data_machine_events_map_summary
  * @param string $summary Current summary.
  * @param array  $venues  Venue data array.
  * @param array  $context Map context.
- * @return string Summary text.
+ * @return string Summary text. Empty on venue archives.
  */
 function extrachill_events_filter_venue_map_summary( string $summary, array $venues, array $context ): string {
 	if ( ! $context['is_taxonomy'] || 'venue' !== $context['taxonomy'] ) {
 		return $summary;
 	}
 
-	$event_count = extrachill_events_get_upcoming_venue_event_count( $context['term_id'] );
-
-	if ( $event_count > 0 ) {
-		return sprintf(
-			/* translators: %d: number of upcoming events */
-			_n( '%d upcoming event', '%d upcoming events', $event_count, 'extrachill-events' ),
-			$event_count
-		);
-	}
-
-	return __( 'Venue location', 'extrachill-events' );
+	// Counts moved to the archive-header stats line; map stands on its own.
+	return '';
 }
 add_filter( 'data_machine_events_map_summary', 'extrachill_events_filter_venue_map_summary', 10, 3 );
