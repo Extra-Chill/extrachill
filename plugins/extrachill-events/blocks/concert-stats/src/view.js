@@ -13,6 +13,7 @@ import StatsBar from './components/StatsBar';
 import ShowList from './components/ShowList';
 import Leaderboard from './components/Leaderboard';
 import YearFilter from './components/YearFilter';
+import AddPastShows from './components/AddPastShows';
 import useStats from './hooks/useStats';
 
 /**
@@ -35,6 +36,18 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn } ) {
 			id: 'past',
 			label: 'Past',
 		},
+		// Only show "Add Past Shows" to the profile owner — anyone else viewing
+		// the profile shouldn't see a tool that would mark events on the owner's
+		// behalf (the toggle endpoint marks for the current user, but the tab is
+		// owner-only by intent per issue #109).
+		...( isOwn
+			? [
+					{
+						id: 'add-past',
+						label: 'Add Past Shows',
+					},
+			  ]
+			: [] ),
 		{
 			id: 'stats',
 			label: 'Stats',
@@ -98,6 +111,10 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn } ) {
 
 					{ activeTab === 'past' && (
 						<ShowList userId={ userId } period="past" year={ year } />
+					) }
+
+					{ activeTab === 'add-past' && isOwn && (
+						<AddPastShows />
 					) }
 
 					{ activeTab === 'stats' && stats && (

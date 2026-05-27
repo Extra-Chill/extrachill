@@ -273,6 +273,186 @@
 	100% { background-position: -200% 0; }
 }
 
+/* ─── Add Past Shows Tab ─────────────────────────────────────────────────── */
+
+.ec-concert-stats__add-past {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md, 1rem);
+}
+
+.ec-concert-stats__search {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.ec-concert-stats__search-input {
+	width: 100%;
+	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+	padding-right: 2.25rem; /* room for clear button */
+	border: 1px solid var(--border-color, #d1d5db);
+	border-radius: var(--border-radius-sm, 5px);
+	background: var(--background-color, #fff);
+	color: var(--text-color, #1f2937);
+	font-size: var(--font-size-body, 1rem);
+	line-height: 1.4;
+}
+
+.ec-concert-stats__search-input:focus {
+	outline: none;
+	border-color: var(--accent, #53940b);
+	box-shadow: 0 0 0 2px rgba(83, 148, 11, 0.15);
+}
+
+.ec-concert-stats__search-clear {
+	position: absolute;
+	right: var(--spacing-xs, 0.25rem);
+	top: 50%;
+	transform: translateY(-50%);
+	background: transparent;
+	border: none;
+	color: var(--muted-text, #6b7280);
+	font-size: 1.25rem;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0.25rem 0.5rem;
+	border-radius: var(--border-radius-sm, 5px);
+}
+
+.ec-concert-stats__search-clear:hover {
+	background: var(--card-background, #f3f4f6);
+	color: var(--text-color, #1f2937);
+}
+
+.ec-concert-stats__search-hint {
+	margin: 0;
+	color: var(--muted-text, #6b7280);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ec-concert-stats__search-results {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.ec-concert-stats__search-results-label {
+	margin: 0 0 var(--spacing-xs, 0.25rem);
+	font-size: var(--font-size-xs, 0.625rem);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__search-result {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-sm, 0.5rem) var(--spacing-xs, 0.25rem);
+	border-radius: var(--border-radius-sm, 5px);
+	transition: background-color 0.1s ease;
+}
+
+.ec-concert-stats__search-result:hover {
+	background-color: var(--card-background, #f9fafb);
+}
+
+.ec-concert-stats__search-result-link {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	align-items: flex-start;
+	gap: var(--spacing-md, 1rem);
+	text-decoration: none;
+	color: inherit;
+}
+
+.ec-concert-stats__search-result-date {
+	flex-shrink: 0;
+	width: 95px;
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 600;
+	color: var(--muted-text, #6b7280);
+	white-space: nowrap;
+}
+
+.ec-concert-stats__search-result-details {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	flex: 1;
+}
+
+.ec-concert-stats__search-result-artist {
+	font-weight: 500;
+	font-size: var(--font-size-body, 1rem);
+	color: var(--text-color, #1f2937);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ec-concert-stats__search-result-venue {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ec-concert-stats__search-result-action {
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 2px;
+}
+
+.ec-concert-stats__mark-btn {
+	display: inline-block;
+	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+	border-radius: var(--border-radius-sm, 5px);
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 500;
+	line-height: 1.2;
+	white-space: nowrap;
+}
+
+.ec-concert-stats__mark-btn--add {
+	background: var(--accent, #53940b);
+	color: #fff;
+	border: 1px solid var(--accent, #53940b);
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.ec-concert-stats__mark-btn--add:hover:not(:disabled) {
+	background: var(--accent-dark, #3d6b08);
+	border-color: var(--accent-dark, #3d6b08);
+}
+
+.ec-concert-stats__mark-btn--add:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.ec-concert-stats__mark-btn--tracked {
+	background: transparent;
+	color: var(--muted-text, #6b7280);
+	border: 1px solid var(--border-color, #d1d5db);
+	cursor: default;
+}
+
+.ec-concert-stats__search-result-error {
+	font-size: var(--font-size-xs, 0.625rem);
+	color: var(--error-color, #dc2626);
+	max-width: 160px;
+	text-align: right;
+}
+
 /* ─── Mobile ────────────────────────────────────────────────────────────── */
 
 @media (max-width: 480px) {
@@ -290,5 +470,20 @@
 
 	.ec-concert-stats__leaderboards {
 		grid-template-columns: 1fr;
+	}
+
+	.ec-concert-stats__search-result {
+		flex-wrap: wrap;
+	}
+
+	.ec-concert-stats__search-result-date {
+		width: 80px;
+		font-size: var(--font-size-xs, 0.625rem);
+	}
+
+	.ec-concert-stats__search-result-action {
+		width: 100%;
+		align-items: flex-start;
+		padding-left: calc(80px + var(--spacing-md, 1rem));
 	}
 }
