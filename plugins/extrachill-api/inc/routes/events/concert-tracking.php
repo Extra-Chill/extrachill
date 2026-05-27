@@ -10,6 +10,7 @@
  *   GET  /extrachill/v1/concert-tracking/event/(?P<event_id>\d+)
  *   GET  /extrachill/v1/concert-tracking/user/(?P<user_id>\d+)/shows
  *   GET  /extrachill/v1/concert-tracking/user/(?P<user_id>\d+)/stats
+ *   GET  /extrachill/v1/concert-tracking/search
  *
  * @package ExtraChillAPI
  * @since 0.13.0
@@ -135,6 +136,38 @@ function extrachill_api_register_concert_tracking_routes() {
 		)
 	);
 
+	// GET /concert-tracking/search — search past events for marking (logged-in users).
+	register_rest_route(
+		'extrachill/v1',
+		'/concert-tracking/search',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_handle_concert_tracking_search',
+			'permission_callback' => 'is_user_logged_in',
+			'args'                => array(
+				'query'    => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+					'default'           => '',
+					'description'       => 'Search query (matches event title, artist names, venue name). Empty returns recent past events.',
+				),
+				'page'     => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+					'default'           => 1,
+				),
+				'per_page' => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+					'default'           => 20,
+				),
+			),
+		)
+	);
+
 	// GET /concert-tracking/user/{id}/stats — aggregate stats.
 	register_rest_route(
 		'extrachill/v1',
@@ -247,6 +280,32 @@ function extrachill_api_handle_concert_tracking_user_shows( WP_REST_Request $req
 		'date_to'   => $request->get_param( 'date_to' ),
 		'page'      => (int) $request->get_param( 'page' ),
 		'per_page'  => (int) $request->get_param( 'per_page' ),
+	) );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
+}
+
+/**
+ * Handle GET /concert-tracking/search.
+ *
+ * Invokes the extrachill/search-events-for-marking ability (registered in extrachill-users).
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
+ */
+function extrachill_api_handle_concert_tracking_search( WP_REST_Request $request ) {
+	$ability = wp_get_ability( 'extrachill/search-events-for-marking' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
+	}
+
+	$result = $ability->execute( array(
+		'query'    => (string) $request->get_param( 'query' ),
+		'page'     => (int) $request->get_param( 'page' ),
+		'per_page' => (int) $request->get_param( 'per_page' ),
 	) );
 	if ( is_wp_error( $result ) ) {
 		return $result;
