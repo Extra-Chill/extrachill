@@ -704,3 +704,19 @@
 .ec-concert-stats__import-run-note--error {
 	color: #991b1b;
 }
+
+/* ─── Embedded Calendar (#110, My Shows Calendar tab) ───────────────────── */
+
+/*
+ * Wrapper for the server-rendered data-machine-events/calendar block
+ * emitted as a sibling to the React root in render.php. Visual weight
+ * comes from the calendar block's own styles — we intentionally don't
+ * override them here. This rule just provides a small top spacer so
+ * the calendar isn't flush against the tab strip when revealed.
+ *
+ * `hidden` is honored natively by the browser; this margin only
+ * applies when the tab is active.
+ */
+.ec-concert-stats__embedded-calendar {
+	margin-top: var(--spacing-md, 1rem);
+}
