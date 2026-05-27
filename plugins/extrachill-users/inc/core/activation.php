@@ -32,6 +32,13 @@ function extrachill_users_run_activation() {
 
 	update_site_option( 'extrachill_users_concert_tracking_table_created', 1 );
 
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import-db.php';
+	if ( function_exists( 'extrachill_users_install_concert_import_runs_table' ) ) {
+		extrachill_users_install_concert_import_runs_table();
+	}
+
+	update_site_option( 'extrachill_users_concert_import_runs_table_created', 1 );
+
 	extrachill_users_create_login_pages_network();
 
 	// Register extra_chill_team role on every site in the network and
@@ -230,6 +237,24 @@ function extrachill_users_maybe_create_concert_tracking_table() {
 	update_site_option( 'extrachill_users_concert_tracking_table_created', 1 );
 }
 add_action( 'admin_init', 'extrachill_users_maybe_create_concert_tracking_table' );
+
+/**
+ * Ensure concert import runs table exists.
+ * Fallback for existing installations where the table was added after activation.
+ */
+function extrachill_users_maybe_create_concert_import_runs_table() {
+	if ( get_site_option( 'extrachill_users_concert_import_runs_table_created' ) ) {
+		return;
+	}
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import-db.php';
+	if ( function_exists( 'extrachill_users_install_concert_import_runs_table' ) ) {
+		extrachill_users_install_concert_import_runs_table();
+	}
+
+	update_site_option( 'extrachill_users_concert_import_runs_table_created', 1 );
+}
+add_action( 'admin_init', 'extrachill_users_maybe_create_concert_import_runs_table' );
 
 /**
  * Create onboarding page on community site only.

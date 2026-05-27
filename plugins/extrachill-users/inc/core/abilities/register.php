@@ -36,6 +36,7 @@ require_once __DIR__ . '/user-settings.php';
 require_once __DIR__ . '/user-profile.php';
 require_once __DIR__ . '/subscriptions.php';
 require_once __DIR__ . '/concert-tracking.php';
+require_once __DIR__ . '/concert-import.php';
 require_once __DIR__ . '/users-leaderboard.php';
 require_once __DIR__ . '/users-search.php';
 require_once __DIR__ . '/get-user-by-id.php';

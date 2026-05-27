@@ -141,6 +141,8 @@ function extrachill_users_init() {
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/buttons.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import-db.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import/bootstrap.php';
 
 	// wp-native-auth bridge: layer EC policy (membership, blocking, Turnstile)
 	// onto the generic wp-native-auth filter surface when both plugins are active.
