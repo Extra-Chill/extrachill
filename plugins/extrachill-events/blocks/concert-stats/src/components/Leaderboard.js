@@ -1,8 +1,13 @@
 /**
  * Leaderboard — Top artists/venues/cities.
  *
+ * Wrapped in a compact `<Panel>` for chrome consistency with the rest
+ * of the platform. The inner list markup remains local.
+ *
  * @package ExtraChillEvents
  */
+
+import { Panel } from '@extrachill/components';
 
 const Leaderboard = ( { title, items, maxItems = 5 } ) => {
 	if ( ! items || items.length === 0 ) {
@@ -10,7 +15,7 @@ const Leaderboard = ( { title, items, maxItems = 5 } ) => {
 	}
 
 	return (
-		<div className="ec-concert-stats__leaderboard">
+		<Panel compact className="ec-concert-stats__leaderboard">
 			<h3 className="ec-concert-stats__leaderboard-title">{ title }</h3>
 			<ol className="ec-concert-stats__leaderboard-list">
 				{ items.slice( 0, maxItems ).map( ( item ) => (
@@ -24,7 +29,7 @@ const Leaderboard = ( { title, items, maxItems = 5 } ) => {
 					</li>
 				) ) }
 			</ol>
-		</div>
+		</Panel>
 	);
 };
 

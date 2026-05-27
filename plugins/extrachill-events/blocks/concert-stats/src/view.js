@@ -8,7 +8,7 @@
  */
 
 import { createRoot, useState, useEffect, useRef } from '@wordpress/element';
-import { BlockShell, BlockShellInner, BlockShellHeader, Tabs, Panel } from '@extrachill/components';
+import { BlockShell, BlockShellInner, BlockShellHeader, InlineStatus, Tabs, Panel } from '@extrachill/components';
 import StatsBar from './components/StatsBar';
 import ShowList from './components/ShowList';
 import Leaderboard from './components/Leaderboard';
@@ -221,9 +221,9 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, containerRef 
 					   sync) untouched.
 					 */ }
 					{ activeTab === 'calendar' && ! hasCalendar && (
-						<div className="ec-concert-stats__empty-tab">
+						<InlineStatus tone="info">
 							Calendar view is unavailable here.
-						</div>
+						</InlineStatus>
 					) }
 
 					{ activeTab === 'add-past' && isOwn && (
@@ -248,9 +248,7 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, containerRef 
 					) }
 
 					{ activeTab === 'stats' && statsLoading && (
-						<div className="ec-concert-stats__loading-more">
-							Loading stats...
-						</div>
+						<InlineStatus tone="info">Loading stats…</InlineStatus>
 					) }
 
 					{ activeTab === 'import' && isOwn && (

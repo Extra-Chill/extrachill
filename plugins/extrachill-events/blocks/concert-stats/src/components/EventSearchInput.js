@@ -1,34 +1,25 @@
 /**
- * EventSearchInput — Controlled search input with a clear button.
+ * EventSearchInput — Canonical search input wrapper.
  *
- * The debounce lives in the consuming hook (`useEventSearch`), so this
- * component just controls the input value and emits onChange immediately.
+ * Thin adapter over the canonical `SearchBox` primitive from
+ * `@extrachill/components`. The parent owns the committed query value;
+ * `onChange(value)` is invoked when the user hits Enter, clicks the
+ * Search button, or clears the input. Debouncing (if any) lives in the
+ * consuming hook (`useEventSearch`).
  *
  * @package ExtraChillEvents
  */
 
+import { SearchBox } from '@extrachill/components';
+
 const EventSearchInput = ( { value, onChange, placeholder } ) => {
 	return (
-		<div className="ec-concert-stats__search">
-			<input
-				type="search"
-				className="ec-concert-stats__search-input"
-				value={ value }
-				onChange={ ( e ) => onChange( e.target.value ) }
-				placeholder={ placeholder || 'Search past shows by artist, venue, or title…' }
-				aria-label="Search past events"
-			/>
-			{ value && (
-				<button
-					type="button"
-					className="ec-concert-stats__search-clear"
-					onClick={ () => onChange( '' ) }
-					aria-label="Clear search"
-				>
-					×
-				</button>
-			) }
-		</div>
+		<SearchBox
+			value={ value }
+			onSearch={ ( next ) => onChange( next ) }
+			onClear={ () => onChange( '' ) }
+			placeholder={ placeholder || 'Search past shows by artist, venue, or title…' }
+		/>
 	);
 };
 

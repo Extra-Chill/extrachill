@@ -1,8 +1,16 @@
 /**
  * ImportRunProgress — Live progress indicator for a single import run.
  *
+ * The progress bar itself stays bespoke: there's no canonical
+ * `ProgressBar` primitive in `@extrachill/components` yet. If/when one
+ * lands, the inner `.ec-concert-stats__import-run-bar*` markup should
+ * be swapped out. Wrapped in `<Section>` for chrome consistency with
+ * the rest of the platform. Success/error notes use `<InlineStatus>`.
+ *
  * @package ExtraChillEvents
  */
+
+import { InlineStatus, Section } from '@extrachill/components';
 
 const STATUS_LABEL = {
 	pending: 'Queued',
@@ -28,7 +36,7 @@ const ImportRunProgress = ( { run } ) => {
 	const pct = formatPercent( run );
 
 	return (
-		<div className="ec-concert-stats__import-run">
+		<Section className="ec-concert-stats__import-run">
 			<div className="ec-concert-stats__import-run-header">
 				<span className="ec-concert-stats__import-run-status">
 					{ STATUS_LABEL[ run.status ] || run.status }
@@ -40,6 +48,10 @@ const ImportRunProgress = ( { run } ) => {
 				) }
 			</div>
 
+			{ /*
+			   Bespoke progress bar — no canonical ProgressBar primitive
+			   in @extrachill/components yet. Future swap candidate.
+			 */ }
 			{ pct !== null && (
 				<div className="ec-concert-stats__import-run-bar">
 					<div
@@ -68,21 +80,21 @@ const ImportRunProgress = ( { run } ) => {
 			) }
 
 			{ isDone && (
-				<div className="ec-concert-stats__import-run-note ec-concert-stats__import-run-note--success">
+				<InlineStatus tone="success">
 					{ run.total_events_matched } show
 					{ run.total_events_matched === 1 ? '' : 's' } added to your history.
 					{ run.total_events_unmatched > 0 && (
 						<> { run.total_events_unmatched } not found in our database (skipped).</>
 					) }
-				</div>
+				</InlineStatus>
 			) }
 
 			{ isFailed && run.error_message && (
-				<div className="ec-concert-stats__import-run-note ec-concert-stats__import-run-note--error">
+				<InlineStatus tone="error">
 					{ run.error_message }
-				</div>
+				</InlineStatus>
 			) }
-		</div>
+		</Section>
 	);
 };
 

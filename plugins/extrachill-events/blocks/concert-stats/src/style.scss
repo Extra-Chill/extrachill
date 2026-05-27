@@ -1,17 +1,40 @@
 /**
  * Concert Stats Block — Styles
  *
- * Uses @extrachill/components for layout primitives (BlockShell, Panel, Tabs).
- * Component-specific styles use ec-concert-stats BEM namespace.
- * Token consumption via CSS custom properties with fallbacks.
+ * Uses @extrachill/components for layout primitives (BlockShell, Panel,
+ * PanelHeader, Section, ActionRow, FieldGroup, InlineStatus, SearchBox,
+ * Tabs). Component-specific styles use ec-concert-stats BEM namespace
+ * and are limited to what the canonical primitives do NOT cover:
+ *   - bespoke stat tiles (no canonical stat-tile primitive yet)
+ *   - bespoke import-run progress bar (no canonical ProgressBar yet)
+ *   - inline content layouts inside the canonical containers
  *
  * @package ExtraChillEvents
  */
 
 @import '@extrachill/components/styles/components.scss';
 
-/* ─── Stats Bar ─────────────────────────────────────────────────────────── */
+/* ─── ActionRow center alignment ───────────────────────────────────────── */
 
+/*
+ * Local extension of the canonical `<ActionRow align="center">` variant.
+ * The shared package ships `--between` and `--end` modifiers only; the
+ * concert-stats block uses `align="center"` for load-more rows below
+ * lists. If/when `@extrachill/components` ships a `--center` modifier,
+ * this rule can be deleted.
+ */
+.ec-action-row--center {
+	justify-content: center;
+}
+
+/* ─── Stats Bar (bespoke tiles inside Section) ──────────────────────────── */
+
+/*
+ * The outer `<Section>` chrome comes from @extrachill/components; the
+ * stat tiles themselves stay bespoke because there's no canonical
+ * stat-tile primitive yet. Override Section's default block layout to
+ * a flex row for this specific use.
+ */
 .ec-concert-stats__stats-bar {
 	display: flex;
 	gap: var(--spacing-lg, 1.5rem);
@@ -95,12 +118,7 @@
 	color: var(--muted-text, #6b7280);
 }
 
-/* ─── Load More ─────────────────────────────────────────────────────────── */
-
-.ec-concert-stats__load-more {
-	text-align: center;
-	padding: var(--spacing-md, 1rem) 0;
-}
+/* ─── Load More Button (inside ActionRow) ───────────────────────────────── */
 
 .ec-concert-stats__load-more-btn {
 	display: inline-block;
@@ -118,7 +136,7 @@
 	background-color: var(--card-background, #f3f4f6);
 }
 
-/* ─── Leaderboards ──────────────────────────────────────────────────────── */
+/* ─── Leaderboards (inside Panel) ───────────────────────────────────────── */
 
 .ec-concert-stats__leaderboards {
 	display: grid;
@@ -168,7 +186,7 @@
 	font-weight: 500;
 }
 
-/* ─── Year Filter ───────────────────────────────────────────────────────── */
+/* ─── Year Filter (select inside FieldGroup) ────────────────────────────── */
 
 .ec-concert-stats__year-filter {
 	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
@@ -180,7 +198,7 @@
 	cursor: pointer;
 }
 
-/* ─── Empty State ───────────────────────────────────────────────────────── */
+/* ─── Empty State (no-shows landing) ────────────────────────────────────── */
 
 .ec-concert-stats__empty {
 	text-align: center;
@@ -211,24 +229,6 @@
 
 .ec-concert-stats__empty-cta:hover {
 	background: var(--accent-dark, #3d6b08);
-}
-
-.ec-concert-stats__empty-tab {
-	text-align: center;
-	padding: var(--spacing-lg, 1.5rem);
-	color: var(--muted-text, #6b7280);
-}
-
-.ec-concert-stats__error {
-	text-align: center;
-	padding: var(--spacing-md, 1rem);
-	color: var(--error-color, #dc2626);
-}
-
-.ec-concert-stats__loading-more {
-	text-align: center;
-	padding: var(--spacing-md, 1rem);
-	color: var(--muted-text, #6b7280);
 }
 
 /* ─── Loading Skeleton ──────────────────────────────────────────────────── */
@@ -273,68 +273,12 @@
 	100% { background-position: -200% 0; }
 }
 
-/* ─── Add Past Shows Tab ─────────────────────────────────────────────────── */
-
-.ec-concert-stats__add-past {
-	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-md, 1rem);
-}
-
-.ec-concert-stats__search {
-	position: relative;
-	display: flex;
-	align-items: center;
-}
-
-.ec-concert-stats__search-input {
-	width: 100%;
-	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
-	padding-right: 2.25rem; /* room for clear button */
-	border: 1px solid var(--border-color, #d1d5db);
-	border-radius: var(--border-radius-sm, 5px);
-	background: var(--background-color, #fff);
-	color: var(--text-color, #1f2937);
-	font-size: var(--font-size-body, 1rem);
-	line-height: 1.4;
-}
-
-.ec-concert-stats__search-input:focus {
-	outline: none;
-	border-color: var(--accent, #53940b);
-	box-shadow: 0 0 0 2px rgba(83, 148, 11, 0.15);
-}
-
-.ec-concert-stats__search-clear {
-	position: absolute;
-	right: var(--spacing-xs, 0.25rem);
-	top: 50%;
-	transform: translateY(-50%);
-	background: transparent;
-	border: none;
-	color: var(--muted-text, #6b7280);
-	font-size: 1.25rem;
-	line-height: 1;
-	cursor: pointer;
-	padding: 0.25rem 0.5rem;
-	border-radius: var(--border-radius-sm, 5px);
-}
-
-.ec-concert-stats__search-clear:hover {
-	background: var(--card-background, #f3f4f6);
-	color: var(--text-color, #1f2937);
-}
+/* ─── Add Past Shows Tab — inner content ────────────────────────────────── */
 
 .ec-concert-stats__search-hint {
 	margin: 0;
 	color: var(--muted-text, #6b7280);
 	font-size: var(--font-size-sm, 0.875rem);
-}
-
-.ec-concert-stats__search-results {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
 }
 
 .ec-concert-stats__search-results-label {
@@ -346,18 +290,7 @@
 	color: var(--muted-text, #6b7280);
 }
 
-.ec-concert-stats__search-result {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-md, 1rem);
-	padding: var(--spacing-sm, 0.5rem) var(--spacing-xs, 0.25rem);
-	border-radius: var(--border-radius-sm, 5px);
-	transition: background-color 0.1s ease;
-}
-
-.ec-concert-stats__search-result:hover {
-	background-color: var(--card-background, #f9fafb);
-}
+/* ─── Search Result inner layout (inside ActionRow) ─────────────────────── */
 
 .ec-concert-stats__search-result-link {
 	display: flex;
@@ -472,29 +405,13 @@
 		grid-template-columns: 1fr;
 	}
 
-	.ec-concert-stats__search-result {
-		flex-wrap: wrap;
-	}
-
 	.ec-concert-stats__search-result-date {
 		width: 80px;
 		font-size: var(--font-size-xs, 0.625rem);
 	}
-
-	.ec-concert-stats__search-result-action {
-		width: 100%;
-		align-items: flex-start;
-		padding-left: calc(80px + var(--spacing-md, 1rem));
-	}
 }
 
-/* ─── Import Tab ────────────────────────────────────────────────────────── */
-
-.ec-concert-stats__import-tab {
-	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-md, 1rem);
-}
+/* ─── Import Tab — inner content ────────────────────────────────────────── */
 
 .ec-concert-stats__import-intro {
 	margin: 0 0 var(--spacing-sm, 0.5rem) 0;
@@ -508,59 +425,11 @@
 	gap: var(--spacing-md, 1rem);
 }
 
-.ec-concert-stats__import-card {
-	border: 1px solid var(--border-color, #e5e7eb);
-	border-radius: var(--border-radius, 8px);
-	padding: var(--spacing-md, 1rem);
-	background: var(--card-background, #fff);
-	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-sm, 0.5rem);
-}
-
-.ec-concert-stats__import-card-header {
-	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: var(--spacing-sm, 0.5rem);
-}
-
-.ec-concert-stats__import-card-title {
-	margin: 0;
-	font-size: var(--font-size-lg, 1.125rem);
-	font-weight: 700;
-	color: var(--text-color, #1f2937);
-}
-
-.ec-concert-stats__import-card-meta {
-	font-size: var(--font-size-xs, 0.75rem);
-	color: var(--muted-text, #6b7280);
-}
-
-.ec-concert-stats__import-card-disabled {
-	margin: 0;
-	padding: var(--spacing-sm, 0.5rem);
-	font-size: var(--font-size-sm, 0.875rem);
-	background: var(--muted-bg, #f3f4f6);
-	color: var(--muted-text, #6b7280);
-	border-radius: var(--border-radius-sm, 5px);
-}
-
+/* Form layout inside the import Panel */
 .ec-concert-stats__import-card-form {
 	display: flex;
 	flex-direction: column;
 	gap: var(--spacing-xs, 0.25rem);
-}
-
-.ec-concert-stats__import-card-label {
-	font-size: var(--font-size-sm, 0.875rem);
-	color: var(--muted-text, #6b7280);
-}
-
-.ec-concert-stats__import-card-row {
-	display: flex;
-	gap: var(--spacing-sm, 0.5rem);
-	align-items: center;
 }
 
 .ec-concert-stats__import-card-input {
@@ -614,14 +483,6 @@
 	margin: 0;
 }
 
-.ec-concert-stats__import-card-error {
-	padding: var(--spacing-sm, 0.5rem);
-	background: #fee2e2;
-	color: #991b1b;
-	border-radius: var(--border-radius-sm, 5px);
-	font-size: var(--font-size-sm, 0.875rem);
-}
-
 .ec-concert-stats__import-card-history {
 	margin-top: var(--spacing-sm, 0.5rem);
 	border-top: 1px solid var(--border-color, #e5e7eb);
@@ -639,17 +500,14 @@
 	letter-spacing: 0.05em;
 }
 
-/* ─── Import Run Progress ────────────────────────────────────────────── */
+/* ─── Import Run Progress (bespoke bar + counts inside Section) ─────────── */
 
-.ec-concert-stats__import-run {
-	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-xs, 0.25rem);
-	padding: var(--spacing-sm, 0.5rem);
-	background: var(--muted-bg, #f9fafb);
-	border-radius: var(--border-radius-sm, 5px);
-}
-
+/*
+ * Inner layout for ImportRunProgress. The outer chrome comes from
+ * `<Section>`. The progress bar itself (`__import-run-bar*`) stays
+ * bespoke until `@extrachill/components` ships a canonical
+ * `ProgressBar` primitive.
+ */
 .ec-concert-stats__import-run-header {
 	display: flex;
 	justify-content: space-between;
@@ -695,14 +553,6 @@
 .ec-concert-stats__import-run-note {
 	font-size: var(--font-size-xs, 0.75rem);
 	color: var(--muted-text, #6b7280);
-}
-
-.ec-concert-stats__import-run-note--success {
-	color: #166534;
-}
-
-.ec-concert-stats__import-run-note--error {
-	color: #991b1b;
 }
 
 /* ─── Embedded Calendar (#110, My Shows Calendar tab) ───────────────────── */

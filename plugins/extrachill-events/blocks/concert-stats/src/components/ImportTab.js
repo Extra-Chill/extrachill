@@ -7,6 +7,7 @@
  * @package ExtraChillEvents
  */
 
+import { InlineStatus, Section } from '@extrachill/components';
 import ImportSourceCard from './ImportSourceCard';
 import useImportRuns from '../hooks/useImportRuns';
 
@@ -14,25 +15,23 @@ const ImportTab = () => {
 	const { sources, runs, loading, error, preview, start } = useImportRuns();
 
 	if ( loading ) {
-		return (
-			<div className="ec-concert-stats__loading-more">Loading import sources…</div>
-		);
+		return <InlineStatus tone="info">Loading import sources…</InlineStatus>;
 	}
 
 	if ( error ) {
-		return <div className="ec-concert-stats__error">{ error }</div>;
+		return <InlineStatus tone="error">{ error }</InlineStatus>;
 	}
 
 	if ( ! sources.length ) {
 		return (
-			<div className="ec-concert-stats__empty-tab">
+			<InlineStatus tone="info">
 				No import sources are available yet.
-			</div>
+			</InlineStatus>
 		);
 	}
 
 	return (
-		<div className="ec-concert-stats__import-tab">
+		<Section className="ec-concert-stats__import-tab">
 			<p className="ec-concert-stats__import-intro">
 				Already tracking your shows on another site? Pull your history into Extra Chill.
 				We&rsquo;ll match each show to events in our database and mark you as attended.
@@ -50,7 +49,7 @@ const ImportTab = () => {
 					/>
 				) ) }
 			</div>
-		</div>
+		</Section>
 	);
 };
 

@@ -1,8 +1,15 @@
 /**
  * StatsBar — Four-stat summary row.
  *
+ * Wrapped in `<Section depth={1}>` for chrome consistency with the rest
+ * of the platform. The individual stat tiles remain bespoke local
+ * markup — `@extrachill/components` doesn't have a stat-tile primitive
+ * yet. If/when one lands, swap the `.ec-concert-stats__stat` items.
+ *
  * @package ExtraChillEvents
  */
+
+import { Section } from '@extrachill/components';
 
 const StatsBar = ( { stats } ) => {
 	if ( ! stats ) {
@@ -17,14 +24,14 @@ const StatsBar = ( { stats } ) => {
 	];
 
 	return (
-		<div className="ec-concert-stats__stats-bar">
+		<Section depth={ 1 } className="ec-concert-stats__stats-bar">
 			{ items.map( ( item ) => (
 				<div key={ item.label } className="ec-concert-stats__stat">
 					<span className="ec-concert-stats__stat-value">{ item.value }</span>
 					<span className="ec-concert-stats__stat-label">{ item.label }</span>
 				</div>
 			) ) }
-		</div>
+		</Section>
 	);
 };
 

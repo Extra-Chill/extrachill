@@ -11,6 +11,7 @@
 
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { ActionRow } from '@extrachill/components';
 
 const MONTHS = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
 
@@ -80,7 +81,7 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 	};
 
 	return (
-		<div className="ec-concert-stats__search-result">
+		<ActionRow align="between" className="ec-concert-stats__search-result">
 			<a
 				href={ event.permalink || '#' }
 				className="ec-concert-stats__search-result-link"
@@ -126,7 +127,7 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 					</span>
 				) }
 			</div>
-		</div>
+		</ActionRow>
 	);
 };
 

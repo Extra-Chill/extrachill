@@ -10,6 +10,13 @@
  */
 
 import { useState, useMemo } from '@wordpress/element';
+import {
+	ActionRow,
+	FieldGroup,
+	InlineStatus,
+	Panel,
+	PanelHeader,
+} from '@extrachill/components';
 import ImportRunProgress from './ImportRunProgress';
 
 const ACTIVE_STATUSES = [ 'pending', 'running', 'paused' ];
@@ -61,21 +68,22 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 		setPreviewState( null );
 	};
 
+	const rateLimitMeta =
+		source.rate_limit && source.rate_limit.requests_per_day > 0
+			? `${ source.rate_limit.requests_per_day } reqs/day`
+			: null;
+
 	return (
-		<div className="ec-concert-stats__import-card">
-			<div className="ec-concert-stats__import-card-header">
-				<h3 className="ec-concert-stats__import-card-title">{ source.label }</h3>
-				{ source.rate_limit && source.rate_limit.requests_per_day > 0 && (
-					<span className="ec-concert-stats__import-card-meta">
-						{ source.rate_limit.requests_per_day } reqs/day
-					</span>
-				) }
-			</div>
+		<Panel className="ec-concert-stats__import-card">
+			<PanelHeader
+				title={ source.label }
+				description={ rateLimitMeta }
+			/>
 
 			{ ! source.configured && (
-				<p className="ec-concert-stats__import-card-disabled">
+				<InlineStatus tone="warning">
 					Not yet available — { source.label } API key has not been configured on this platform.
-				</p>
+				</InlineStatus>
 			) }
 
 			{ source.configured && activeRun && (
@@ -84,10 +92,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 
 			{ source.configured && ! activeRun && ! previewState && (
 				<form className="ec-concert-stats__import-card-form" onSubmit={ handlePreview }>
-					<label className="ec-concert-stats__import-card-label">
-						Your { source.label } username
-					</label>
-					<div className="ec-concert-stats__import-card-row">
+					<FieldGroup label={ `Your ${ source.label } username` }>
 						<input
 							type="text"
 							className="ec-concert-stats__import-card-input"
@@ -97,6 +102,8 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 							disabled={ previewing }
 							required
 						/>
+					</FieldGroup>
+					<ActionRow align="end">
 						<button
 							type="submit"
 							className="ec-concert-stats__import-card-btn"
@@ -104,7 +111,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 						>
 							{ previewing ? 'Checking…' : 'Connect' }
 						</button>
-					</div>
+					</ActionRow>
 				</form>
 			) }
 
@@ -119,7 +126,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 						We&rsquo;ll match each show to events in our database. Shows we can&rsquo;t find will be skipped.
 						Large imports may take several days to complete due to { source.label } rate limits — we&rsquo;ll resume automatically.
 					</p>
-					<div className="ec-concert-stats__import-card-row">
+					<ActionRow align="end">
 						<button
 							type="button"
 							className="ec-concert-stats__import-card-btn ec-concert-stats__import-card-btn--primary"
@@ -136,12 +143,12 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 						>
 							Cancel
 						</button>
-					</div>
+					</ActionRow>
 				</div>
 			) }
 
 			{ error && (
-				<div className="ec-concert-stats__import-card-error">{ error }</div>
+				<InlineStatus tone="error">{ error }</InlineStatus>
 			) }
 
 			{ recentRuns.length > 0 && (
@@ -152,7 +159,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 					) ) }
 				</div>
 			) }
-		</div>
+		</Panel>
 	);
 };
 

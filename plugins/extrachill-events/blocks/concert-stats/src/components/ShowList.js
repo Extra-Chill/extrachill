@@ -5,6 +5,7 @@
  */
 
 import { useState } from '@wordpress/element';
+import { ActionRow, InlineStatus } from '@extrachill/components';
 import ShowCard from './ShowCard';
 import useShows from '../hooks/useShows';
 
@@ -19,20 +20,16 @@ const ShowList = ( { userId, period, year } ) => {
 	} );
 
 	if ( error ) {
-		return (
-			<div className="ec-concert-stats__error">
-				{ error }
-			</div>
-		);
+		return <InlineStatus tone="error">{ error }</InlineStatus>;
 	}
 
 	if ( ! loading && shows.length === 0 ) {
 		return (
-			<div className="ec-concert-stats__empty-tab">
+			<InlineStatus tone="info">
 				{ period === 'upcoming'
 					? 'No upcoming shows marked yet. Browse events and mark shows as "Going"!'
 					: 'No past shows tracked yet.' }
-			</div>
+			</InlineStatus>
 		);
 	}
 
@@ -43,11 +40,11 @@ const ShowList = ( { userId, period, year } ) => {
 			) ) }
 
 			{ loading && (
-				<div className="ec-concert-stats__loading-more">Loading...</div>
+				<InlineStatus tone="info">Loading...</InlineStatus>
 			) }
 
 			{ ! loading && page < pages && (
-				<div className="ec-concert-stats__load-more">
+				<ActionRow align="center">
 					<button
 						className="ec-concert-stats__load-more-btn"
 						onClick={ () => setPage( ( p ) => p + 1 ) }
@@ -55,7 +52,7 @@ const ShowList = ( { userId, period, year } ) => {
 					>
 						Load More ({ total - shows.length } remaining)
 					</button>
-				</div>
+				</ActionRow>
 			) }
 		</div>
 	);

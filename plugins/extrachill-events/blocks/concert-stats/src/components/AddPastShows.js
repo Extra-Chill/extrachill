@@ -4,7 +4,7 @@
  * Lets a logged-in user retroactively mark past events they attended.
  *
  * Behavior:
- *   - Search input (debounced in the hook).
+ *   - Search input (committed on Enter / Search button via SearchBox).
  *   - Empty query: backend returns the ~most-recent past events as suggestions.
  *   - Results list with "+ Mark Attended" per row, optimistic state flip.
  *   - "Load more" pagination, 20 per page (handled in useEventSearch).
@@ -13,6 +13,7 @@
  */
 
 import { useState } from '@wordpress/element';
+import { ActionRow, InlineStatus, Section } from '@extrachill/components';
 import EventSearchInput from './EventSearchInput';
 import EventSearchResult from './EventSearchResult';
 import useEventSearch from '../hooks/useEventSearch';
@@ -26,7 +27,7 @@ const AddPastShows = () => {
 	const isEmptyQuery = query.trim() === '';
 
 	return (
-		<div className="ec-concert-stats__add-past">
+		<Section className="ec-concert-stats__add-past">
 			<EventSearchInput value={ query } onChange={ setQuery } />
 
 			{ isEmptyQuery && (
@@ -36,17 +37,17 @@ const AddPastShows = () => {
 			) }
 
 			{ error && (
-				<div className="ec-concert-stats__error">{ error }</div>
+				<InlineStatus tone="error">{ error }</InlineStatus>
 			) }
 
 			{ ! loading && ! error && events.length === 0 && ! isEmptyQuery && (
-				<div className="ec-concert-stats__empty-tab">
+				<InlineStatus tone="info">
 					No past shows match &ldquo;{ query }&rdquo;. Try a different artist or venue name.
-				</div>
+				</InlineStatus>
 			) }
 
 			{ events.length > 0 && (
-				<div className="ec-concert-stats__search-results">
+				<Section className="ec-concert-stats__search-results">
 					{ isEmptyQuery && (
 						<p className="ec-concert-stats__search-results-label">
 							Recent past shows
@@ -59,15 +60,15 @@ const AddPastShows = () => {
 							onMarkedChange={ setMarked }
 						/>
 					) ) }
-				</div>
+				</Section>
 			) }
 
 			{ loading && (
-				<div className="ec-concert-stats__loading-more">Searching…</div>
+				<InlineStatus tone="info">Searching…</InlineStatus>
 			) }
 
 			{ ! loading && page < pages && (
-				<div className="ec-concert-stats__load-more">
+				<ActionRow align="center">
 					<button
 						type="button"
 						className="ec-concert-stats__load-more-btn"
@@ -75,9 +76,9 @@ const AddPastShows = () => {
 					>
 						Load more ({ total - events.length } remaining)
 					</button>
-				</div>
+				</ActionRow>
 			) }
-		</div>
+		</Section>
 	);
 };
 
