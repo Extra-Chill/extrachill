@@ -42,7 +42,7 @@ function extrachill_notify_admin_new_user( $user_id, $registration_page, $regist
 	$body_html .= '<p><a href="' . esc_url( $edit_url ) . '">Edit user in admin</a></p>';
 	$body_html .= '<p><em>Note: User has not yet completed onboarding — profile URL not available until username is chosen.</em></p>';
 
-	ec_send_email(
+	$result = ec_send_email(
 		array(
 			'to'       => $admin_email,
 			'subject'  => $subject,
@@ -54,6 +54,59 @@ function extrachill_notify_admin_new_user( $user_id, $registration_page, $regist
 			),
 		)
 	);
+
+	if ( ! is_array( $result ) || empty( $result['success'] ) ) {
+		extrachill_log_email_failure( 'admin_new_user_notification', $user_id, $admin_email, $subject, $result );
+
+		// Fallback to plain wp_mail() so operators get *something* even when the
+		// DM ability layer is broken (see Extra-Chill/extrachill-users#56).
+		$plain_body  = "A new user has registered on the Extra Chill platform.\n\n";
+		$plain_body .= "Username: {$username} (auto-generated)\n";
+		$plain_body .= "Email: {$email}\n";
+		$plain_body .= "User ID: {$user_id}\n";
+		$plain_body .= "Registration Source: {$source_label} ({$method_label})\n";
+		$plain_body .= "Registration Page: {$page_display}\n\n";
+		$plain_body .= "Edit user in admin: {$edit_url}\n\n";
+		$plain_body .= "Note: this is the wp_mail() fallback — the EC branded email layer failed. See debug.log.\n";
+
+		wp_mail( $admin_email, $subject . ' (fallback)', $plain_body );
+	}
+}
+
+/**
+ * Log a registration-email failure with enough detail to debug.
+ *
+ * Centralizes the failure-log format so all three call sites in this file write
+ * consistent entries. Uses error_log() — the canonical extrachill-users
+ * operational-logging surface (see inc/auth-tokens/service.php, inc/auth/register.php).
+ *
+ * @param string $context   Short identifier of the call site (e.g. 'admin_new_user_notification').
+ * @param int    $user_id   User the email was for.
+ * @param string $recipient Email recipient address.
+ * @param string $subject   Email subject.
+ * @param mixed  $result    The ec_send_email() result envelope (or whatever non-array value came back).
+ */
+function extrachill_log_email_failure( $context, $user_id, $recipient, $subject, $result ) {
+	$error = 'unknown error (ec_send_email returned non-array)';
+	if ( is_array( $result ) ) {
+		if ( ! empty( $result['error'] ) ) {
+			$error = (string) $result['error'];
+		} elseif ( ! empty( $result['message'] ) ) {
+			$error = (string) $result['message'];
+		}
+	}
+
+	$message = sprintf(
+		'extrachill-users registration-email failure [%s]: user_id=%d recipient=%s subject="%s" error=%s',
+		$context,
+		(int) $user_id,
+		$recipient,
+		$subject,
+		$error
+	);
+
+	// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for registration-email failures (#56).
+	error_log( $message );
 }
 
 add_action( 'extrachill_new_user_registered', 'extrachill_notify_admin_new_user', 10, 4 );
@@ -98,7 +151,15 @@ function extrachill_send_welcome_email_complete( $user_data ) {
 		)
 	);
 
-	return ! empty( $result['success'] );
+	$success = is_array( $result ) && ! empty( $result['success'] );
+	if ( ! $success ) {
+		extrachill_log_email_failure( 'welcome_email_complete', $user_data->ID, $email, $subject, $result );
+		// Returning false here means the orchestrator (extrachill/send-welcome-email
+		// ability) will NOT set welcome_email_sent=1, so the hourly cron fallback
+		// (extrachill_welcome_email_fallback_callback) can retry on the next run.
+	}
+
+	return $success;
 }
 
 /**
@@ -140,5 +201,13 @@ function extrachill_send_welcome_email_incomplete( $user_data ) {
 		)
 	);
 
-	return ! empty( $result['success'] );
+	$success = is_array( $result ) && ! empty( $result['success'] );
+	if ( ! $success ) {
+		extrachill_log_email_failure( 'welcome_email_incomplete', $user_data->ID, $email, $subject, $result );
+		// Returning false here means the orchestrator (extrachill/send-welcome-email
+		// ability) will NOT set welcome_email_sent=1, so the hourly cron fallback
+		// (extrachill_welcome_email_fallback_callback) can retry on the next run.
+	}
+
+	return $success;
 }
