@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.4.7] - 2026-05-27
+
+### Fixed
+- invert :has() grid so default is single-column
+
 ## [2.4.6] - 2026-05-26
 
 ### Fixed
