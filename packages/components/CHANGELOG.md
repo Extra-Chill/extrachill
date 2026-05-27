@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.0] - 2026-05-27
+
+### Added
+- add Toolbar component for horizontal view switcher + actions layout
+
+### Fixed
+- emit canonical button-1 / button-2 classes on internal buttons
+- scroll mobile accordion trigger into view on tab switch
+- restore block-shell negative margins for mobile gutter breakout
+
 ## [0.4.38] - 2026-03-26
 
 ### Fixed
