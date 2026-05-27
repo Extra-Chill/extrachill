@@ -142,3 +142,84 @@
 .ec-event-submission-editor__field--half {
 	grid-column: auto;
 }
+
+/* Artist URL import (extrachill-events#320) */
+.ec-event-submission__url-import {
+	margin-bottom: 24px;
+	padding: 16px;
+	border: 1px dashed var(--border-color);
+	border-radius: 8px;
+	background: var(--background-color);
+}
+
+.ec-event-submission__url-import-hint {
+	margin: 4px 0 12px;
+	font-size: var(--font-size-sm);
+	color: var(--text-muted, var(--text-color));
+}
+
+.ec-event-submission__url-import-row {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.ec-event-submission__url-import-input {
+	flex: 1 1 240px;
+	padding: 8px 10px;
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	background: var(--card-background);
+	color: var(--text-color);
+	font: inherit;
+}
+
+.ec-event-submission__url-import-try {
+	flex: 0 0 auto;
+}
+
+.ec-event-submission__url-import-status {
+	margin-top: 8px;
+	min-height: 1.2em;
+	font-size: var(--font-size-sm);
+}
+
+.ec-event-submission__url-import-status.is-error {
+	color: var(--color-danger, #b32d2e);
+}
+
+.ec-event-submission__url-import[data-state="loading"] .ec-event-submission__url-import-try {
+	opacity: 0.6;
+	cursor: progress;
+}
+
+.ec-event-submission__url-import-confirm {
+	margin-top: 14px;
+	padding: 14px;
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	background: var(--card-background);
+}
+
+.ec-event-submission__url-import-summary {
+	margin: 0 0 10px;
+	font-weight: 600;
+}
+
+.ec-event-submission__url-import-events {
+	margin: 0 0 12px;
+	padding-left: 18px;
+	font-size: var(--font-size-sm);
+}
+
+.ec-event-submission__url-import-events li {
+	margin-bottom: 4px;
+}
+
+.ec-event-submission__url-import-actions {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	flex-wrap: wrap;
+}

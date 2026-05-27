@@ -24,6 +24,9 @@ $success_message = $attributes['successMessage'] ?? '';
 $button_label    = $attributes['buttonLabel'] ? $attributes['buttonLabel'] : __( 'Send Submission', 'data-machine-events' );
 $system_prompt   = $attributes['systemPrompt'] ?? '';
 $endpoint        = esc_url( rest_url( 'extrachill/v1/event-submissions' ) );
+$preview_endpoint = esc_url( rest_url( 'datamachine/v1/artist-url/preview' ) );
+$submit_endpoint  = esc_url( rest_url( 'datamachine/v1/artist-url/submit' ) );
+$rest_nonce       = wp_create_nonce( 'wp_rest' );
 $form_id         = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-event-form-' ) : 'ec-event-form-' . uniqid();
 
 if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
@@ -36,6 +39,9 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 <div
 	class="ec-event-submission"
 	data-endpoint="<?php echo esc_url( $endpoint ); ?>"
+	data-artist-url-preview="<?php echo esc_url( $preview_endpoint ); ?>"
+	data-artist-url-submit="<?php echo esc_url( $submit_endpoint ); ?>"
+	data-rest-nonce="<?php echo esc_attr( $rest_nonce ); ?>"
 	data-success-message="<?php echo $success_attr; ?>"
 	data-system-prompt="<?php echo esc_attr( $system_prompt ); ?>"
 >
@@ -48,6 +54,44 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 			<div class="ec-event-submission__description"><?php echo wp_kses_post( wpautop( $description ) ); ?></div>
 		<?php endif; ?>
 
+		<?php if ( is_user_logged_in() ) : ?>
+		<div class="ec-event-submission__url-import" data-state="idle">
+			<div class="ec-event-submission__url-import-intro">
+				<label for="<?php echo esc_attr( $form_id ); ?>-artist-url">
+					<strong><?php esc_html_e( 'Have an artist tour page?', 'data-machine-events' ); ?></strong>
+				</label>
+				<p class="ec-event-submission__url-import-hint">
+					<?php esc_html_e( "Paste the URL and we'll import all their events automatically. Leave blank to submit a single event manually below.", 'data-machine-events' ); ?>
+				</p>
+				<div class="ec-event-submission__url-import-row">
+					<input
+						type="url"
+						id="<?php echo esc_attr( $form_id ); ?>-artist-url"
+						class="ec-event-submission__url-import-input"
+						placeholder="https://"
+						autocomplete="off"
+					/>
+					<button type="button" class="button button-secondary ec-event-submission__url-import-try">
+						<?php esc_html_e( 'Try URL', 'data-machine-events' ); ?>
+					</button>
+				</div>
+				<div class="ec-event-submission__url-import-status" aria-live="polite"></div>
+			</div>
+
+			<div class="ec-event-submission__url-import-confirm" hidden>
+				<p class="ec-event-submission__url-import-summary"></p>
+				<ul class="ec-event-submission__url-import-events"></ul>
+				<div class="ec-event-submission__url-import-actions">
+					<button type="button" class="button-1 ec-event-submission__url-import-submit">
+						<?php esc_html_e( 'Submit for review', 'data-machine-events' ); ?>
+					</button>
+					<button type="button" class="button button-link ec-event-submission__url-import-cancel">
+						<?php esc_html_e( 'Cancel and use manual form', 'data-machine-events' ); ?>
+					</button>
+				</div>
+			</div>
+		</div>
+		<?php endif; ?>
 
 		<form
 			id="<?php echo esc_attr( $form_id ); ?>"
