@@ -16,6 +16,7 @@ import YearFilter from './components/YearFilter';
 import AddPastShows from './components/AddPastShows';
 import ImportTab from './components/ImportTab';
 import useStats from './hooks/useStats';
+import useImportRuns from './hooks/useImportRuns';
 
 /**
  * Whitelist of tab IDs that may appear in `?tab=` URL state. Anything
@@ -48,6 +49,19 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 	const [ activeTab, setActiveTab ] = useState( readInitialTab );
 
 	const { stats, loading: statsLoading } = useStats( userId, { year } );
+
+	// Pull the configured source list at the parent level so the Import tab
+	// only renders when at least one source is actually available to this
+	// user. Mirrors the hasMap / hasCalendar gating pattern — the difference
+	// is that source availability is driven by server-side ability filtering
+	// (admins provision API keys via Data Machine auth), so we read it
+	// dynamically rather than from a server-emitted dataset attribute.
+	//
+	// We hoist the hook to the parent and pass the full bag down to ImportTab
+	// so we don't double-fetch from two `useImportRuns()` sites on the same
+	// page. ImportTab consumes the props directly.
+	const importRunsBag = useImportRuns();
+	const hasImports = isOwn && importRunsBag.sources && importRunsBag.sources.length > 0;
 
 	// Sync `?tab=` to URL whenever the active tab changes. Use
 	// replaceState to keep the back button useful — switching tabs
@@ -179,7 +193,7 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 			id: 'stats',
 			label: 'Stats',
 		},
-		...( isOwn
+		...( hasImports
 			? [
 					{
 						id: 'import',
@@ -210,9 +224,9 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 							) }
 						</div>
 					</Panel>
-					{ isOwn && (
+					{ hasImports && (
 						<Panel compact>
-							<ImportTab />
+							<ImportTab bag={ importRunsBag } />
 						</Panel>
 					) }
 				</BlockShellInner>
@@ -307,8 +321,8 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 						<InlineStatus tone="info">Loading stats…</InlineStatus>
 					) }
 
-					{ activeTab === 'import' && isOwn && (
-						<ImportTab />
+					{ activeTab === 'import' && hasImports && (
+						<ImportTab bag={ importRunsBag } />
 					) }
 				</Panel>
 			</BlockShellInner>

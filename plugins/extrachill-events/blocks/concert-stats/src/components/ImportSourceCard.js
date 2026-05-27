@@ -80,17 +80,17 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 				description={ rateLimitMeta }
 			/>
 
-			{ ! source.configured && (
-				<InlineStatus tone="warning">
-					Not yet available — { source.label } API key has not been configured on this platform.
-				</InlineStatus>
-			) }
-
-			{ source.configured && activeRun && (
+			{ /*
+			   The server-side ability filters unconfigured sources out for end
+			   users (#54), so any source that reaches this component is
+			   actionable. No `source.configured === false` branch — that path
+			   should never be exposed to end users.
+			 */ }
+			{ activeRun && (
 				<ImportRunProgress run={ activeRun } />
 			) }
 
-			{ source.configured && ! activeRun && ! previewState && (
+			{ ! activeRun && ! previewState && (
 				<form className="ec-concert-stats__import-card-form" onSubmit={ handlePreview }>
 					<FieldGroup label={ `Your ${ source.label } username` }>
 						<input
@@ -115,7 +115,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 				</form>
 			) }
 
-			{ source.configured && previewState && (
+			{ previewState && (
 				<div className="ec-concert-stats__import-card-confirm">
 					<p>
 						Import <strong>~{ previewState.total }</strong> show
@@ -123,7 +123,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 						<strong>{ previewState.username }</strong>?
 					</p>
 					<p className="ec-concert-stats__import-card-hint">
-						We&rsquo;ll match each show to events in our database. Shows we can&rsquo;t find will be skipped.
+						We&rsquo;ll match each show to events in our database. Shows we don&rsquo;t already have we&rsquo;ll add for you.
 						Large imports may take several days to complete due to { source.label } rate limits — we&rsquo;ll resume automatically.
 					</p>
 					<ActionRow align="end">

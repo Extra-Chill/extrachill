@@ -1,18 +1,26 @@
 /**
  * ImportTab — Container for the Import tab in the concert-stats block.
  *
- * Lists every registered import source as a card and shows the current
- * user's run history below.
+ * Lists every CONFIGURED import source as a card and shows the current
+ * user's run history below. End users never see "not yet configured"
+ * plumbing — the underlying ability filters unconfigured sources out
+ * server-side. By the time the source list reaches this component, every
+ * entry is actionable.
  *
  * @package ExtraChillEvents
  */
 
 import { InlineStatus, Section } from '@extrachill/components';
 import ImportSourceCard from './ImportSourceCard';
-import useImportRuns from '../hooks/useImportRuns';
 
-const ImportTab = () => {
-	const { sources, runs, loading, error, preview, start } = useImportRuns();
+/**
+ * The parent (`view.js`) hoists the `useImportRuns` hook and passes the bag
+ * down so the Import tab visibility check (`hasImports`) shares the same
+ * fetch as the tab body. This component is a pure renderer — it does not
+ * fetch on its own. `bag` is the return value of `useImportRuns()`.
+ */
+const ImportTab = ( { bag } ) => {
+	const { sources, runs, loading, error, preview, start } = bag;
 
 	if ( loading ) {
 		return <InlineStatus tone="info">Loading import sources…</InlineStatus>;
@@ -22,12 +30,12 @@ const ImportTab = () => {
 		return <InlineStatus tone="error">{ error }</InlineStatus>;
 	}
 
+	// The parent view gates rendering on `sources.length > 0`, so reaching
+	// this component with an empty list means the source list mutated after
+	// initial mount (provider deconfigured mid-session). Leave a quiet
+	// fallback rather than rendering the heading.
 	if ( ! sources.length ) {
-		return (
-			<InlineStatus tone="info">
-				No import sources are available yet.
-			</InlineStatus>
-		);
+		return null;
 	}
 
 	return (
@@ -35,7 +43,7 @@ const ImportTab = () => {
 			<p className="ec-concert-stats__import-intro">
 				Already tracking your shows on another site? Pull your history into Extra Chill.
 				We&rsquo;ll match each show to events in our database and mark you as attended.
-				Shows we can&rsquo;t find will be skipped.
+				Shows we don&rsquo;t already have we&rsquo;ll add for you so your full history comes in.
 			</p>
 
 			<div className="ec-concert-stats__import-cards">

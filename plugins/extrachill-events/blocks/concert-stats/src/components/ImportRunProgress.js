@@ -66,7 +66,7 @@ const ImportRunProgress = ( { run } ) => {
 					<strong>{ run.total_events_matched }</strong> matched
 				</span>
 				<span>
-					<strong>{ run.total_events_unmatched }</strong> unmatched
+					<strong>{ run.total_events_created || 0 }</strong> created
 				</span>
 				<span>
 					<strong>{ run.total_events_seen }</strong> seen
@@ -81,11 +81,23 @@ const ImportRunProgress = ( { run } ) => {
 
 			{ isDone && (
 				<InlineStatus tone="success">
-					{ run.total_events_matched } show
-					{ run.total_events_matched === 1 ? '' : 's' } added to your history.
-					{ run.total_events_unmatched > 0 && (
-						<> { run.total_events_unmatched } not found in our database (skipped).</>
-					) }
+					{ ( () => {
+						const matched = run.total_events_matched || 0;
+						const created = run.total_events_created || 0;
+						const total = matched + created;
+						const parts = [];
+						parts.push(
+							`${ total } show${ total === 1 ? '' : 's' } added to your history`
+						);
+						if ( created > 0 && matched > 0 ) {
+							parts.push(
+								` (${ matched } matched existing event${ matched === 1 ? '' : 's' }, ${ created } newly created)`
+							);
+						} else if ( created > 0 ) {
+							parts.push( ` (${ created } newly created)` );
+						}
+						return parts.join( '' ) + '.';
+					} )() }
 				</InlineStatus>
 			) }
 
