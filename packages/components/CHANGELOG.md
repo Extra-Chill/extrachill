@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.1] - 2026-05-27
+
+### Changed
+- Internal improvements
+
 ## [0.5.0] - 2026-05-27
 
 ### Added
