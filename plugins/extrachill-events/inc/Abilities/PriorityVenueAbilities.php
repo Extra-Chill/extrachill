@@ -25,18 +25,7 @@ class PriorityVenueAbilities {
 	}
 
 	private function registerAbilities(): void {
-		add_action( 'wp_abilities_api_categories_init', array( $this, 'registerCategory' ) );
 		add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
-	}
-
-	public function registerCategory(): void {
-		wp_register_ability_category(
-			'extrachill-events',
-			array(
-				'label'       => __( 'Extra Chill Events', 'extrachill-events' ),
-				'description' => __( 'Event management capabilities', 'extrachill-events' ),
-			)
-		);
 	}
 
 	public function register(): void {
