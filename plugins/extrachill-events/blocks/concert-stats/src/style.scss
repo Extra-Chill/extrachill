@@ -487,3 +487,220 @@
 		padding-left: calc(80px + var(--spacing-md, 1rem));
 	}
 }
+
+/* ─── Import Tab ────────────────────────────────────────────────────────── */
+
+.ec-concert-stats__import-tab {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md, 1rem);
+}
+
+.ec-concert-stats__import-intro {
+	margin: 0 0 var(--spacing-sm, 0.5rem) 0;
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__import-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: var(--spacing-md, 1rem);
+}
+
+.ec-concert-stats__import-card {
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: var(--border-radius, 8px);
+	padding: var(--spacing-md, 1rem);
+	background: var(--card-background, #fff);
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats__import-card-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats__import-card-title {
+	margin: 0;
+	font-size: var(--font-size-lg, 1.125rem);
+	font-weight: 700;
+	color: var(--text-color, #1f2937);
+}
+
+.ec-concert-stats__import-card-meta {
+	font-size: var(--font-size-xs, 0.75rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__import-card-disabled {
+	margin: 0;
+	padding: var(--spacing-sm, 0.5rem);
+	font-size: var(--font-size-sm, 0.875rem);
+	background: var(--muted-bg, #f3f4f6);
+	color: var(--muted-text, #6b7280);
+	border-radius: var(--border-radius-sm, 5px);
+}
+
+.ec-concert-stats__import-card-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-concert-stats__import-card-label {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__import-card-row {
+	display: flex;
+	gap: var(--spacing-sm, 0.5rem);
+	align-items: center;
+}
+
+.ec-concert-stats__import-card-input {
+	flex: 1;
+	padding: var(--spacing-sm, 0.5rem);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: var(--border-radius-sm, 5px);
+	font-size: var(--font-size-md, 1rem);
+}
+
+.ec-concert-stats__import-card-btn {
+	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+	border: 1px solid var(--primary-color, #1f2937);
+	background: var(--card-background, #fff);
+	color: var(--primary-color, #1f2937);
+	border-radius: var(--border-radius-sm, 5px);
+	cursor: pointer;
+	font-weight: 600;
+	font-size: var(--font-size-sm, 0.875rem);
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+}
+
+.ec-concert-stats__import-card-btn--primary {
+	background: var(--primary-color, #1f2937);
+	color: #fff;
+}
+
+.ec-concert-stats__import-card-btn-link {
+	background: transparent;
+	border: none;
+	color: var(--muted-text, #6b7280);
+	cursor: pointer;
+	font-size: var(--font-size-sm, 0.875rem);
+	padding: var(--spacing-sm, 0.5rem);
+	text-decoration: underline;
+}
+
+.ec-concert-stats__import-card-confirm {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats__import-card-hint {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+	margin: 0;
+}
+
+.ec-concert-stats__import-card-error {
+	padding: var(--spacing-sm, 0.5rem);
+	background: #fee2e2;
+	color: #991b1b;
+	border-radius: var(--border-radius-sm, 5px);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ec-concert-stats__import-card-history {
+	margin-top: var(--spacing-sm, 0.5rem);
+	border-top: 1px solid var(--border-color, #e5e7eb);
+	padding-top: var(--spacing-sm, 0.5rem);
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats__import-card-history-title {
+	margin: 0;
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+/* ─── Import Run Progress ────────────────────────────────────────────── */
+
+.ec-concert-stats__import-run {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs, 0.25rem);
+	padding: var(--spacing-sm, 0.5rem);
+	background: var(--muted-bg, #f9fafb);
+	border-radius: var(--border-radius-sm, 5px);
+}
+
+.ec-concert-stats__import-run-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 600;
+}
+
+.ec-concert-stats__import-run-status {
+	color: var(--text-color, #1f2937);
+}
+
+.ec-concert-stats__import-run-pct {
+	color: var(--muted-text, #6b7280);
+	font-variant-numeric: tabular-nums;
+}
+
+.ec-concert-stats__import-run-bar {
+	height: 6px;
+	background: var(--border-color, #e5e7eb);
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.ec-concert-stats__import-run-bar-fill {
+	height: 100%;
+	background: var(--primary-color, #1f2937);
+	transition: width 0.3s ease;
+}
+
+.ec-concert-stats__import-run-counts {
+	display: flex;
+	gap: var(--spacing-md, 1rem);
+	font-size: var(--font-size-xs, 0.75rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__import-run-counts strong {
+	color: var(--text-color, #1f2937);
+	font-weight: 700;
+}
+
+.ec-concert-stats__import-run-note {
+	font-size: var(--font-size-xs, 0.75rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__import-run-note--success {
+	color: #166534;
+}
+
+.ec-concert-stats__import-run-note--error {
+	color: #991b1b;
+}

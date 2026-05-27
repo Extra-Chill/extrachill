@@ -14,6 +14,7 @@ import ShowList from './components/ShowList';
 import Leaderboard from './components/Leaderboard';
 import YearFilter from './components/YearFilter';
 import AddPastShows from './components/AddPastShows';
+import ImportTab from './components/ImportTab';
 import useStats from './hooks/useStats';
 
 /**
@@ -27,6 +28,9 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn } ) {
 
 	const upcomingCount = stats ? ( stats.total_shows - Object.values( stats.shows_by_year || {} ).reduce( ( a, b ) => a + b, 0 ) + stats.total_shows ) : 0;
 
+	// Tab order: Upcoming → Past → Add Past Shows (owner, #109) → Stats →
+	// Import (owner, #112). Owner-only tabs let the user grow their history;
+	// non-owners only see the read-only Upcoming/Past/Stats axes.
 	const tabs = [
 		{
 			id: 'upcoming',
@@ -36,10 +40,6 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn } ) {
 			id: 'past',
 			label: 'Past',
 		},
-		// Only show "Add Past Shows" to the profile owner — anyone else viewing
-		// the profile shouldn't see a tool that would mark events on the owner's
-		// behalf (the toggle endpoint marks for the current user, but the tab is
-		// owner-only by intent per issue #109).
 		...( isOwn
 			? [
 					{
@@ -52,9 +52,17 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn } ) {
 			id: 'stats',
 			label: 'Stats',
 		},
+		...( isOwn
+			? [
+					{
+						id: 'import',
+						label: 'Import',
+					},
+			  ]
+			: [] ),
 	];
 
-	// Empty state — no shows at all.
+	// Empty state — no shows at all. Owners see Import alongside the empty CTA.
 	if ( ! statsLoading && stats && stats.total_shows === 0 && ! year ) {
 		return (
 			<BlockShell>
@@ -75,6 +83,11 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn } ) {
 							) }
 						</div>
 					</Panel>
+					{ isOwn && (
+						<Panel compact>
+							<ImportTab />
+						</Panel>
+					) }
 				</BlockShellInner>
 			</BlockShell>
 		);
@@ -138,6 +151,10 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn } ) {
 						<div className="ec-concert-stats__loading-more">
 							Loading stats...
 						</div>
+					) }
+
+					{ activeTab === 'import' && isOwn && (
+						<ImportTab />
 					) }
 				</Panel>
 			</BlockShellInner>
