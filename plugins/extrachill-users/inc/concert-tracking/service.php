@@ -807,7 +807,11 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, int $lim
  *   - artist taxonomy term names
  *   - venue taxonomy term names
  *
- * Empty query returns the most recent past events as suggestions.
+ * Empty query returns no results. The frontend should render a prompt
+ * encouraging the user to type a query. See extrachill-events#130 — the
+ * previous default of "most recent past events" pretended to be relevant
+ * suggestions but was just the global event firehose with zero relation
+ * to the user.
  *
  * Each returned event includes `is_marked` for the given user so the UI can
  * render a "+ Mark Attended" / "✓ Tracked" state immediately.
@@ -815,7 +819,7 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, int $lim
  * @param int   $user_id User ID (for is_marked computation).
  * @param array $args {
  *     Search arguments.
- *     @type string $query     Search query. Empty returns recent past events.
+ *     @type string $query     Search query. Empty returns no results.
  *     @type int    $page      1-indexed page number. Default 1.
  *     @type int    $per_page  Results per page. Default 20.
  *     @type int    $blog_id   Blog ID. Defaults to events blog.
@@ -834,8 +838,22 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 
 	$args = wp_parse_args( $args, $defaults );
 
-	$query    = trim( (string) $args['query'] );
-	$page     = max( 1, (int) $args['page'] );
+	$query = trim( (string) $args['query'] );
+	$page  = max( 1, (int) $args['page'] );
+
+	// When the query is empty, return no results. The 'most recent past events'
+	// the old default returned had zero relation to the user — it pretended to be
+	// 'suggestions' but was just the global event firehose. The frontend renders
+	// an InlineStatus prompt instead. See extrachill-events#130.
+	if ( '' === $query ) {
+		return array(
+			'events' => array(),
+			'total'  => 0,
+			'pages'  => 0,
+			'page'   => $page,
+		);
+	}
+
 	$per_page = max( 1, min( 100, (int) $args['per_page'] ) );
 	$blog_id  = $args['blog_id'] ? (int) $args['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7 );
 

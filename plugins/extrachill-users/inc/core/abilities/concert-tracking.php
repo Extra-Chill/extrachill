@@ -206,7 +206,7 @@ function extrachill_users_register_concert_tracking_abilities() {
 				'properties' => array(
 					'query'    => array(
 						'type'        => 'string',
-						'description' => 'Search query. Empty returns most recent past events as suggestions.',
+						'description' => 'Search query. Empty returns no results; the frontend renders a prompt instead.',
 						'default'     => '',
 					),
 					'page'     => array(
