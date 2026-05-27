@@ -9,7 +9,7 @@ import { ActionRow, InlineStatus } from '@extrachill/components';
 import ShowCard from './ShowCard';
 import useShows from '../hooks/useShows';
 
-const ShowList = ( { userId, period, year } ) => {
+const ShowList = ( { userId, period, year, eventsUrl } ) => {
 	const [ page, setPage ] = useState( 1 );
 
 	const { shows, total, pages, loading, error } = useShows( userId, {
@@ -24,11 +24,22 @@ const ShowList = ( { userId, period, year } ) => {
 	}
 
 	if ( ! loading && shows.length === 0 ) {
+		if ( period === 'upcoming' ) {
+			return (
+				<InlineStatus tone="info">
+					No upcoming shows you&rsquo;ve marked yet. Find a show on the{ ' ' }
+					{ eventsUrl ? (
+						<a href={ eventsUrl }>events calendar</a>
+					) : (
+						'events calendar'
+					) }{ ' ' }
+					and mark it &lsquo;Going&rsquo;.
+				</InlineStatus>
+			);
+		}
 		return (
 			<InlineStatus tone="info">
-				{ period === 'upcoming'
-					? 'No upcoming shows marked yet. Browse events and mark shows as "Going"!'
-					: 'No past shows tracked yet.' }
+				No past shows tracked yet. Use Add Past Shows to find shows you&rsquo;ve attended, or Import from setlist.fm/phish.net.
 			</InlineStatus>
 		);
 	}

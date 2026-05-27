@@ -198,39 +198,6 @@
 	cursor: pointer;
 }
 
-/* ─── Empty State (no-shows landing) ────────────────────────────────────── */
-
-.ec-concert-stats__empty {
-	text-align: center;
-	padding: var(--spacing-xl, 2rem) var(--spacing-md, 1rem);
-}
-
-.ec-concert-stats__empty-heading {
-	font-size: var(--font-size-lg, 1.25rem);
-	font-weight: 600;
-	margin-bottom: var(--spacing-xs, 0.25rem);
-}
-
-.ec-concert-stats__empty-text {
-	color: var(--muted-text, #6b7280);
-	margin-bottom: var(--spacing-md, 1rem);
-}
-
-.ec-concert-stats__empty-cta {
-	display: inline-block;
-	padding: var(--spacing-xs, 0.25rem) var(--spacing-md, 1rem);
-	background: var(--accent, #53940b);
-	color: #fff;
-	text-decoration: none;
-	border-radius: var(--border-radius-sm, 5px);
-	font-weight: 500;
-	transition: background-color 0.15s ease;
-}
-
-.ec-concert-stats__empty-cta:hover {
-	background: var(--accent-dark, #3d6b08);
-}
-
 /* ─── Loading Skeleton ──────────────────────────────────────────────────── */
 
 .ec-concert-stats__skeleton {

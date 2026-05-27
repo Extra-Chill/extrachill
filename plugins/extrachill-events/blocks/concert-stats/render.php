@@ -34,9 +34,72 @@
 
 $user_id = ! empty( $attributes['userId'] ) ? (int) $attributes['userId'] : get_current_user_id();
 
-// Don't render for logged-out users when no explicit userId is set.
+// #126: when there's no explicit `userId` attribute (the usual case
+// on /my-shows/) and the visitor is logged out, render a public
+// marketing surface instead of nothing. The old behavior — return
+// empty + force-redirect at template_redirect — left anonymous
+// visitors with zero context. The marketing markup is intentionally
+// server-rendered (no React) so search engines and link previews see
+// a real page. Canonical @extrachill/components class names are
+// emitted by hand so the same SCSS that styles the React-side
+// primitives (imported at the top of style.scss) styles this surface
+// for free.
 if ( ! $user_id ) {
 	if ( ! is_user_logged_in() ) {
+		// Signup lives on the community site (canonical registration
+		// surface for the platform). Login lives on the events site
+		// itself when the My Shows page is being viewed; keep the
+		// same `redirect_to=/my-shows/` pattern the deleted
+		// auth-gate used so post-login the user lands back here.
+		$signup_url = function_exists( 'ec_get_site_url' )
+			? trailingslashit( ec_get_site_url( 'community' ) ) . 'register/'
+			: wp_registration_url();
+		$login_url  = function_exists( 'ec_get_site_url' )
+			? trailingslashit( ec_get_site_url( 'events' ) ) . 'login/?redirect_to=' . rawurlencode( home_url( '/my-shows/' ) )
+			: wp_login_url( home_url( '/my-shows/' ) );
+
+		$wrapper_attributes = get_block_wrapper_attributes(
+			array(
+				'class' => 'ec-concert-stats-shell ec-concert-stats-shell--marketing',
+			)
+		);
+		?>
+		<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped via get_block_wrapper_attributes. ?>>
+			<div class="ec-block-shell ec-block-shell--depth-0 ec-mobile-full-width-panel">
+				<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
+					<div class="ec-block-shell-header">
+						<div class="ec-block-shell-header__main">
+							<div class="ec-block-shell-header__title">
+								<?php esc_html_e( 'Your concert history, in one place', 'extrachill-events' ); ?>
+							</div>
+							<div class="ec-block-shell-header__description">
+								<?php esc_html_e( 'My Shows lets you track every concert you\'ve been to and every one you\'re going to.', 'extrachill-events' ); ?>
+							</div>
+						</div>
+					</div>
+					<div class="ec-panel ec-panel--depth-1">
+						<div class="ec-section ec-section--depth-2">
+							<h3><?php esc_html_e( 'What you can do', 'extrachill-events' ); ?></h3>
+							<ul>
+								<li><?php esc_html_e( 'Mark events as \'Going\' or \'I Was There\' — across decades of past shows', 'extrachill-events' ); ?></li>
+								<li><?php esc_html_e( 'See your concert history on a calendar and a map, with chronological tour routes for the artists you\'ve followed', 'extrachill-events' ); ?></li>
+								<li><?php esc_html_e( 'Import your full history from setlist.fm or phish.net', 'extrachill-events' ); ?></li>
+								<li><?php esc_html_e( 'Stats: shows, venues, artists, cities', 'extrachill-events' ); ?></li>
+							</ul>
+						</div>
+						<div class="ec-action-row ec-action-row--center">
+							<a href="<?php echo esc_url( $signup_url ); ?>" class="button-1 button-large">
+								<?php esc_html_e( 'Sign Up', 'extrachill-events' ); ?>
+							</a>
+							<a href="<?php echo esc_url( $login_url ); ?>" class="button-2 button-large">
+								<?php esc_html_e( 'Log In', 'extrachill-events' ); ?>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<?php
 		return;
 	}
 	$user_id = get_current_user_id();

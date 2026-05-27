@@ -30,6 +30,18 @@ const VALID_TAB_IDS = [ 'upcoming', 'past', 'calendar', 'add-past', 'map', 'stat
  * Read the initial active tab from `?tab=` on first render. SSR-safe
  * (no-op when `window` is absent). Falls back to `'upcoming'`.
  *
+ * #126: when `?tab=` is absent we default to `'upcoming'`. A
+ * post-fetch effect inside the app swaps the default to `'add-past'`
+ * for owners whose `stats.total_shows === 0` — that's the empty-state
+ * UX where the search-for-past-shows surface is the most useful
+ * landing tab. Implementation note: we picked JS-side post-fetch over
+ * a server-rendered `data-has-any-shows` attribute for simplicity
+ * (the latter would require either a duplicate DB query in render.php
+ * or threading `total_shows` from the concert-tracking abilities at
+ * server-render time, and the brief upcoming→add-past flip is
+ * acceptable since the loading skeleton covers the very first paint
+ * anyway).
+ *
  * @return {string} Tab ID.
  */
 function readInitialTab() {
@@ -42,11 +54,33 @@ function readInitialTab() {
 }
 
 /**
+ * Whether the current page load arrived with an explicit `?tab=` in
+ * the URL. Used to gate the empty-state default-tab swap so we never
+ * override an intentional deep link.
+ *
+ * @return {boolean}
+ */
+function hasExplicitTabParam() {
+	if ( typeof window === 'undefined' ) {
+		return false;
+	}
+	const params = new URLSearchParams( window.location.search );
+	const requested = params.get( 'tab' );
+	return VALID_TAB_IDS.includes( requested );
+}
+
+/**
  * Main Concert Stats App component.
  */
 function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, containerRef } ) {
 	const [ year, setYear ] = useState( 0 );
 	const [ activeTab, setActiveTab ] = useState( readInitialTab );
+	// #126: tracks whether the user (or a deep link) has chosen a tab.
+	// Until then, the post-stats-fetch effect below is allowed to swap
+	// the default from 'upcoming' → 'add-past' when the owner has zero
+	// tracked shows. Once the user explicitly picks a tab via the tab
+	// strip, this flips to true and the auto-swap stops fighting them.
+	const [ userPickedTab, setUserPickedTab ] = useState( hasExplicitTabParam );
 
 	const { stats, loading: statsLoading } = useStats( userId, { year } );
 
@@ -62,6 +96,31 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 	// page. ImportTab consumes the props directly.
 	const importRunsBag = useImportRuns();
 	const hasImports = isOwn && importRunsBag.sources && importRunsBag.sources.length > 0;
+
+	// #126: empty-state default tab. When the owner has zero tracked
+	// shows and hasn't explicitly picked a tab (no `?tab=` in URL,
+	// hasn't clicked the strip yet), land them on Add Past Shows. The
+	// search-for-past-shows surface is the most useful starting point
+	// for users in this state; the old takeover hid the entire tab
+	// strip behind a Browse-Shows CTA that pointed at the wrong place.
+	useEffect( () => {
+		if ( userPickedTab ) {
+			return;
+		}
+		if ( statsLoading || ! stats ) {
+			return;
+		}
+		if ( stats.total_shows === 0 && isOwn ) {
+			setActiveTab( 'add-past' );
+		}
+	}, [ stats, statsLoading, isOwn, userPickedTab ] );
+
+	const handleTabChange = ( tabId ) => {
+		setUserPickedTab( true );
+		setActiveTab( tabId );
+	};
+
+	const hasAnyShows = !! stats && stats.total_shows > 0;
 
 	// Sync `?tab=` to URL whenever the active tab changes. Use
 	// replaceState to keep the back button useful — switching tabs
@@ -203,36 +262,28 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 			: [] ),
 	];
 
-	// Empty state — no shows at all. Owners see Import alongside the empty CTA.
-	if ( ! statsLoading && stats && stats.total_shows === 0 && ! year ) {
-		return (
-			<BlockShell>
-				<BlockShellInner maxWidth="narrow">
-					<BlockShellHeader title={ isOwn ? 'My Shows' : 'Concert History' } />
-					<Panel>
-						<div className="ec-concert-stats__empty">
-							<p className="ec-concert-stats__empty-heading">
-								Start Tracking Your Shows!
-							</p>
-							<p className="ec-concert-stats__empty-text">
-								Mark events as &ldquo;Going&rdquo; to build your personal concert history.
-							</p>
-							{ eventsUrl && (
-								<a href={ eventsUrl } className="ec-concert-stats__empty-cta">
-									Browse Shows
-								</a>
-							) }
-						</div>
-					</Panel>
-					{ hasImports && (
-						<Panel compact>
-							<ImportTab bag={ importRunsBag } />
-						</Panel>
-					) }
-				</BlockShellInner>
-			</BlockShell>
-		);
-	}
+	// #126: per-tab empty-state messages used when the user has zero
+	// tracked shows overall. Rendered as a plain `<InlineStatus>` so
+	// the surrounding Panel chrome still provides visual continuity
+	// with the rest of the tab strip. ShowList owns its own empty
+	// state for the Upcoming / Past tabs (it already returns
+	// InlineStatus when the period-scoped fetch returns zero rows),
+	// so Upcoming / Past don't need a duplicate empty branch here.
+	const statsEmptyMessage = (
+		<InlineStatus tone="info">
+			Stats will appear here once you&rsquo;ve tracked at least one show.
+		</InlineStatus>
+	);
+	const calendarEmptyMessage = (
+		<InlineStatus tone="info">
+			Your concert calendar will appear here once you&rsquo;ve tracked shows.
+		</InlineStatus>
+	);
+	const mapEmptyMessage = (
+		<InlineStatus tone="info">
+			Your concert map will appear here once you&rsquo;ve tracked shows at venues with coordinates.
+		</InlineStatus>
+	);
 
 	return (
 		<BlockShell>
@@ -240,7 +291,7 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 				<BlockShellHeader
 					title={ isOwn ? 'My Shows' : 'Concert History' }
 					actions={
-						stats && stats.shows_by_year ? (
+						stats && stats.shows_by_year && hasAnyShows ? (
 							<YearFilter
 								showsByYear={ stats.shows_by_year }
 								activeYear={ year }
@@ -255,12 +306,17 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 				<Tabs
 					tabs={ tabs }
 					active={ activeTab }
-					onChange={ setActiveTab }
+					onChange={ handleTabChange }
 				/>
 
 				<Panel compact>
 					{ activeTab === 'upcoming' && (
-						<ShowList userId={ userId } period="upcoming" year={ year } />
+						<ShowList
+							userId={ userId }
+							period="upcoming"
+							year={ year }
+							eventsUrl={ eventsUrl }
+						/>
 					) }
 
 					{ activeTab === 'past' && (
@@ -270,16 +326,22 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 					{ /*
 					   Calendar tab content lives in a sibling DOM node
 					   emitted by render.php (sibling to this React
-					   root). We render nothing in the Panel here; the
-					   useEffect above toggles the sibling's `hidden`
-					   attribute. Keeps the server-rendered calendar
-					   block's own JS (prev/next/today nav, month URL
-					   sync) untouched.
+					   root). We render nothing in the Panel here when
+					   the sibling exists; the useEffect above toggles
+					   its `hidden` attribute. When the user has no
+					   tracked shows yet, the sibling wrapper is still
+					   emitted (render.php only checks owner+is_page),
+					   but the underlying calendar query returns zero
+					   events. Show the per-tab InlineStatus message
+					   instead of an empty grid in that case.
 					 */ }
 					{ activeTab === 'calendar' && ! hasCalendar && (
 						<InlineStatus tone="info">
 							Calendar view is unavailable here.
 						</InlineStatus>
+					) }
+					{ activeTab === 'calendar' && hasCalendar && ! hasAnyShows && ! statsLoading && (
+						calendarEmptyMessage
 					) }
 
 					{ /*
@@ -295,12 +357,23 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 							Map view is unavailable here.
 						</InlineStatus>
 					) }
+					{ activeTab === 'map' && hasMap && ! hasAnyShows && ! statsLoading && (
+						mapEmptyMessage
+					) }
 
 					{ activeTab === 'add-past' && isOwn && (
 						<AddPastShows />
 					) }
 
-					{ activeTab === 'stats' && stats && (
+					{ activeTab === 'stats' && statsLoading && (
+						<InlineStatus tone="info">Loading stats…</InlineStatus>
+					) }
+
+					{ activeTab === 'stats' && ! statsLoading && stats && ! hasAnyShows && (
+						statsEmptyMessage
+					) }
+
+					{ activeTab === 'stats' && ! statsLoading && stats && hasAnyShows && (
 						<div className="ec-concert-stats__leaderboards">
 							<Leaderboard
 								title="Top Artists"
