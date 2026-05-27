@@ -516,11 +516,11 @@
 }
 
 .ec-inline-status--warning {
-	color: #856404;
+	color: var(--warning-color, #856404);
 }
 
 .ec-inline-status--info {
-	color: #004085;
+	color: var(--info-color, #004085);
 }
 
 // Mobile edge-to-edge panel principle
@@ -673,15 +673,15 @@
 }
 
 .ec-badge--info.ec-badge--subtle {
-	background: #cce5ff;
-	color: #004085;
-	border-color: #b8daff;
+	background: var(--info-bg, #cce5ff);
+	color: var(--info-color, #004085);
+	border-color: var(--info-color, #b8daff);
 }
 
 .ec-badge--warning.ec-badge--subtle {
-	background: #fff3cd;
-	color: #856404;
-	border-color: #ffeeba;
+	background: var(--warning-bg, #fff3cd);
+	color: var(--warning-color, #856404);
+	border-color: var(--warning-color, #ffeeba);
 }
 
 .ec-badge--default.ec-badge--outline,
@@ -714,13 +714,13 @@
 }
 
 .ec-badge--warning.ec-badge--outline {
-	color: #856404;
-	border-color: #ffeeba;
+	color: var(--warning-color, #856404);
+	border-color: var(--warning-color, #ffeeba);
 }
 
 .ec-badge--info.ec-badge--outline {
-	color: #004085;
-	border-color: #b8daff;
+	color: var(--info-color, #004085);
+	border-color: var(--info-color, #b8daff);
 }
 
 .ec-badge--default.ec-badge--solid {
@@ -744,12 +744,18 @@
 }
 
 .ec-badge--warning.ec-badge--solid {
-	background: #f0ad4e;
+	// Solid variants reference the canonical token so dark mode picks up
+	// the brighter dark variant. Light-mode token (#d97706) and dark-mode
+	// token (#fbbf24) both work as a solid background with appropriate text.
+	background: var(--warning-color, #f0ad4e);
 	color: #000;
 }
 
 .ec-badge--info.ec-badge--solid {
-	background: #0d6efd;
+	// Solid variants reference the canonical token so dark mode picks up
+	// the brighter dark variant. Light-mode token (#0b5394) and dark-mode
+	// token (#93c5fd) both work as a solid background.
+	background: var(--info-color, #0d6efd);
 	color: #fff;
 }
 
