@@ -2,6 +2,10 @@
 /**
  * Event submission endpoint — thin REST wrapper for extrachill/submit-event ability.
  *
+ * Calls the underlying extrachill/submit-event ability directly. The legacy
+ * extrachill/events-submit wrapper was a pure pass-through and has been
+ * removed (see Extra-Chill/extrachill-events#104).
+ *
  * @package ExtraChillAPI
  */
 
@@ -38,7 +42,7 @@ function extrachill_api_register_event_submission_route() {
 }
 
 function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'extrachill/events-submit' );
+	$ability = wp_get_ability( 'extrachill/submit-event' );
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
 	}
