@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.13.0] - 2026-05-27
+
+### Added
+- feat(concert-import): import framework + setlist.fm + phish.net adapters (Extra-Chill/extrachill-events#112)
+- feat(concert-tracking): add search-events-for-marking ability
+
 ## [0.12.0] - 2026-05-23
 
 ### Added
