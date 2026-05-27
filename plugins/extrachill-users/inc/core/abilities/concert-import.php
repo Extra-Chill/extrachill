@@ -33,7 +33,13 @@ function extrachill_users_register_concert_import_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
-				'properties' => new stdClass(),
+				'properties' => array(
+					'include_unconfigured' => array(
+						'type'        => 'boolean',
+						'description' => 'When true, include sources whose API key has not been provisioned. Admins only. Defaults to false so end users never see "API key not configured" plumbing.',
+						'default'     => false,
+					),
+				),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
@@ -208,6 +214,7 @@ function extrachill_users_shape_concert_import_run( array $run ): array {
 		'requests_today_date'    => $run['requests_today_date'] ?: null,
 		'total_events_seen'      => (int) ( $run['total_events_seen'] ?? 0 ),
 		'total_events_matched'   => (int) ( $run['total_events_matched'] ?? 0 ),
+		'total_events_created'   => (int) ( $run['total_events_created'] ?? 0 ),
 		'total_events_unmatched' => (int) ( $run['total_events_unmatched'] ?? 0 ),
 		'total_events_skipped'   => (int) ( $run['total_events_skipped'] ?? 0 ),
 		'started_at'             => $run['started_at'] ?: null,
@@ -227,9 +234,17 @@ function extrachill_users_ability_list_concert_import_sources( array $input ) {
 		return new WP_Error( 'not_logged_in', 'You must be logged in.', array( 'status' => 401 ) );
 	}
 
+	// Admins can ask to see unconfigured sources for setup / debugging. End
+	// users never see "not yet available" plumbing — they only see sources
+	// they can actually use.
+	$include_unconfigured = ! empty( $input['include_unconfigured'] ) && current_user_can( 'manage_options' );
+
 	$sources = ImportOrchestrator::sources();
 	$out     = array();
 	foreach ( $sources as $source ) {
+		if ( ! $include_unconfigured && ! $source->is_configured() ) {
+			continue;
+		}
 		$out[] = extrachill_users_shape_concert_import_source( $source, $user_id );
 	}
 

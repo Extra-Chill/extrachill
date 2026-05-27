@@ -15,9 +15,13 @@
  * Because the response is not paginated, our orchestrator only makes one
  * request per run. The framework still drives this through page=1 / total_pages=1.
  *
- * Platform-wide API key from network option
- * `ec_concert_import_phishnet_api_key`. Constant
- * `EC_CONCERT_IMPORT_PHISHNET_API_KEY` overrides in non-prod.
+ * Platform-wide API key is held in Data Machine's encrypted auth envelope
+ * under the `ec_concert_import_phish_net` provider slug. Manage it via:
+ *
+ *   wp datamachine auth config ec_concert_import_phish_net --api_key=...
+ *
+ * Credentials are encrypted at rest (AES-256-GCM) and discoverable through
+ * `wp datamachine auth status`.
  *
  * @package ExtraChill\Users\Concert_Import
  * @since 0.13.0
@@ -32,10 +36,8 @@ defined( 'ABSPATH' ) || exit;
 
 final class PhishNetImportSource implements ImportSource {
 
-	public const SLUG             = 'phish-net';
-	public const API_BASE         = 'https://api.phish.net/v5';
-	public const OPTION_API_KEY   = 'ec_concert_import_phishnet_api_key';
-	public const CONSTANT_API_KEY = 'EC_CONCERT_IMPORT_PHISHNET_API_KEY';
+	public const SLUG     = 'phish-net';
+	public const API_BASE = 'https://api.phish.net/v5';
 
 	public function slug(): string {
 		return self::SLUG;
@@ -189,14 +191,12 @@ final class PhishNetImportSource implements ImportSource {
 		);
 	}
 
+	/**
+	 * Read the platform-wide phish.net API key from the Data Machine auth
+	 * provider. Returns empty string when no credential has been provisioned.
+	 */
 	private function get_api_key(): string {
-		if ( defined( self::CONSTANT_API_KEY ) ) {
-			$constant_value = constant( self::CONSTANT_API_KEY );
-			if ( is_string( $constant_value ) && '' !== $constant_value ) {
-				return $constant_value;
-			}
-		}
-		$value = get_site_option( self::OPTION_API_KEY, '' );
-		return is_string( $value ) ? trim( $value ) : '';
+		$provider = new PhishNetAuthProvider();
+		return $provider->get_api_key();
 	}
 }

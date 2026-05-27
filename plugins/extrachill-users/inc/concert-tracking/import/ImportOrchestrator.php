@@ -196,41 +196,82 @@ final class ImportOrchestrator {
 		$total_pages  = isset( $result['total_pages'] ) ? max( 1, (int) $result['total_pages'] ) : $page;
 		$matcher      = new EventMatcher();
 		$events_blog  = $matcher->blog_id();
+		$source_slug  = (string) $run['source_slug'];
 
 		$seen      = 0;
 		$matched   = 0;
+		$created   = 0;
 		$unmatched = 0;
 		$skipped   = 0;
 
-		foreach ( $events as $external ) {
-			if ( ! $external instanceof ExternalEvent ) {
-				++$skipped;
-				continue;
-			}
-			++$seen;
+		// All event resolution + creation happens in the events-blog context.
+		// Switching once per page keeps the work atomic and avoids paying the
+		// switch_to_blog cost per-event. The EventMatcher will detect that we
+		// are already in the events blog and skip its own switch.
+		$switched     = false;
+		$current_blog = get_current_blog_id();
+		if ( $current_blog !== $events_blog ) {
+			switch_to_blog( $events_blog );
+			$switched = true;
+		}
 
-			if ( ! $external->is_matchable() ) {
-				++$skipped;
-				continue;
-			}
+		try {
+			foreach ( $events as $external ) {
+				if ( ! $external instanceof ExternalEvent ) {
+					++$skipped;
+					continue;
+				}
+				++$seen;
 
-			$matched_id = $matcher->match( $external );
-			if ( null === $matched_id ) {
-				++$unmatched;
-				continue;
-			}
+				if ( ! $external->is_matchable() ) {
+					++$skipped;
+					continue;
+				}
 
-			$newly_marked = ec_users_mark_event( (int) $run['user_id'], $matched_id, $events_blog );
-			if ( $newly_marked ) {
-				++$matched;
-			} else {
-				// Already marked — still counts toward "matched" totals so the
-				// user-facing summary reports an honest match count.
-				++$matched;
+				// 1. external_id idempotency check. The source's stable
+				//    identifier is more authoritative than name similarity, so
+				//    we look here BEFORE running the similarity matcher.
+				//    Re-imports for previously-created events become a no-op.
+				$resolved_id = EventCreator::find_by_external_id( $source_slug, $external->source_id );
+
+				// 2. Similarity match against existing events on the same date.
+				if ( null === $resolved_id ) {
+					$resolved_id = $matcher->match( $external );
+				}
+
+				$was_created = false;
+
+				// 3. Fall through to create. Skipping is data loss — every
+				//    other event-import path on the platform creates events,
+				//    and we already have the user's confirmation to bring this
+				//    history in.
+				if ( null === $resolved_id ) {
+					$resolved_id = EventCreator::create( $external, $source_slug );
+					if ( null === $resolved_id ) {
+						// Truly couldn't create (malformed payload, insert
+						// failure). Count as unmatched so it shows up in the
+						// run summary instead of being lost in skipped.
+						++$unmatched;
+						continue;
+					}
+					$was_created = true;
+				}
+
+				ec_users_mark_event( (int) $run['user_id'], $resolved_id, $events_blog );
+
+				if ( $was_created ) {
+					++$created;
+				} else {
+					++$matched;
+				}
+			}
+		} finally {
+			if ( $switched ) {
+				restore_current_blog();
 			}
 		}
 
-		self::increment_counters( $run_id, $seen, $matched, $unmatched, $skipped );
+		self::increment_counters( $run_id, $seen, $matched, $created, $unmatched, $skipped );
 		self::update_run(
 			$run_id,
 			array(
@@ -365,7 +406,7 @@ final class ImportOrchestrator {
 		$wpdb->update( $table, $changes, array( 'id' => $run_id ) );
 	}
 
-	private static function increment_counters( int $run_id, int $seen, int $matched, int $unmatched, int $skipped ): void {
+	private static function increment_counters( int $run_id, int $seen, int $matched, int $created, int $unmatched, int $skipped ): void {
 		global $wpdb;
 		$table = extrachill_users_concert_import_runs_table_name();
 		$now   = current_time( 'mysql', true );
@@ -375,12 +416,14 @@ final class ImportOrchestrator {
 				"UPDATE {$table}
 				SET total_events_seen      = total_events_seen      + %d,
 				    total_events_matched   = total_events_matched   + %d,
+				    total_events_created   = total_events_created   + %d,
 				    total_events_unmatched = total_events_unmatched + %d,
 				    total_events_skipped   = total_events_skipped   + %d,
 				    updated_at             = %s
 				WHERE id = %d",
 				$seen,
 				$matched,
+				$created,
 				$unmatched,
 				$skipped,
 				$now,

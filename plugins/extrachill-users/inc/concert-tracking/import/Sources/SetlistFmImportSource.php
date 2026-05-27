@@ -9,10 +9,13 @@
  *  - Rate limits: 2 req/sec, 1440 req/day (free tier).
  *  - Accept: application/json.
  *
- * Platform-wide API key is read from the network option
- * `ec_concert_import_setlistfm_api_key` (admin UI to manage this is tracked
- * in a follow-up issue; the constant `EC_CONCERT_IMPORT_SETLISTFM_API_KEY`
- * is honored as an override for staging environments).
+ * Platform-wide API key is held in Data Machine's encrypted auth envelope
+ * under the `ec_concert_import_setlist_fm` provider slug. Manage it via:
+ *
+ *   wp datamachine auth config ec_concert_import_setlist_fm --api_key=...
+ *
+ * Credentials are encrypted at rest (AES-256-GCM) and discoverable through
+ * `wp datamachine auth status`.
  *
  * @package ExtraChill\Users\Concert_Import
  * @since 0.13.0
@@ -27,10 +30,8 @@ defined( 'ABSPATH' ) || exit;
 
 final class SetlistFmImportSource implements ImportSource {
 
-	public const SLUG               = 'setlist-fm';
-	public const API_BASE           = 'https://api.setlist.fm/rest/1.0';
-	public const OPTION_API_KEY     = 'ec_concert_import_setlistfm_api_key';
-	public const CONSTANT_API_KEY   = 'EC_CONCERT_IMPORT_SETLISTFM_API_KEY';
+	public const SLUG     = 'setlist-fm';
+	public const API_BASE = 'https://api.setlist.fm/rest/1.0';
 
 	public function slug(): string {
 		return self::SLUG;
@@ -203,14 +204,12 @@ final class SetlistFmImportSource implements ImportSource {
 		return '';
 	}
 
+	/**
+	 * Read the platform-wide setlist.fm API key from the Data Machine auth
+	 * provider. Returns empty string when no credential has been provisioned.
+	 */
 	private function get_api_key(): string {
-		if ( defined( self::CONSTANT_API_KEY ) ) {
-			$constant_value = constant( self::CONSTANT_API_KEY );
-			if ( is_string( $constant_value ) && '' !== $constant_value ) {
-				return $constant_value;
-			}
-		}
-		$value = get_site_option( self::OPTION_API_KEY, '' );
-		return is_string( $value ) ? trim( $value ) : '';
+		$provider = new SetlistFmAuthProvider();
+		return $provider->get_api_key();
 	}
 }

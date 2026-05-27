@@ -14,6 +14,18 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Schema version. Bump whenever the table's column set changes so the
+ * `admin_init` fallback in activation.php re-runs dbDelta to apply the
+ * new columns on existing installs.
+ *
+ *  1 — initial schema (0.13.0)
+ *  2 — adds `total_events_created` column (0.14.0, fixes #54)
+ */
+if ( ! defined( 'EXTRACHILL_USERS_CONCERT_IMPORT_RUNS_SCHEMA_VERSION' ) ) {
+	define( 'EXTRACHILL_USERS_CONCERT_IMPORT_RUNS_SCHEMA_VERSION', '2' );
+}
+
+/**
  * Get the concert import runs table name.
  *
  * Network-scoped (lives under $wpdb->base_prefix) so a single user can have
@@ -58,6 +70,7 @@ function extrachill_users_install_concert_import_runs_table() {
 		requests_today_date date DEFAULT NULL,
 		total_events_seen int unsigned NOT NULL DEFAULT 0,
 		total_events_matched int unsigned NOT NULL DEFAULT 0,
+		total_events_created int unsigned NOT NULL DEFAULT 0,
 		total_events_unmatched int unsigned NOT NULL DEFAULT 0,
 		total_events_skipped int unsigned NOT NULL DEFAULT 0,
 		total_pages int unsigned DEFAULT NULL,
