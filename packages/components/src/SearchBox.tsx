@@ -43,11 +43,19 @@ export function SearchBox({
 				placeholder={placeholder}
 				onKeyDown={handleKeyDown}
 			/>
-			<button type="button" onClick={handleSearch}>
+			<button
+				type="button"
+				className="button-1 button-medium"
+				onClick={handleSearch}
+			>
 				Search
 			</button>
 			{inputValue && (
-				<button type="button" onClick={handleClear}>
+				<button
+					type="button"
+					className="button-2 button-medium"
+					onClick={handleClear}
+				>
 					Clear
 				</button>
 			)}
