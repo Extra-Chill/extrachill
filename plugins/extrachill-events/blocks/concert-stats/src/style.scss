@@ -570,3 +570,15 @@
 .ec-concert-stats__embedded-calendar {
 	margin-top: var(--spacing-md, 1rem);
 }
+
+/* ─── Embedded Map (#111) ─────────────────────────────────────────────── */
+
+/*
+ * Map tab sibling, mirroring .ec-concert-stats__embedded-calendar above.
+ * Visual styling lives entirely in the data-machine-events events-map
+ * block itself; we only add a small top margin so the map isn't flush
+ * against the tab strip on reveal.
+ */
+.ec-concert-stats__embedded-map {
+	margin-top: var(--spacing-md, 1rem);
+}

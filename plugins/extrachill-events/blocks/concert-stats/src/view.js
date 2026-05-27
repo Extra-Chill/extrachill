@@ -23,7 +23,7 @@ import useStats from './hooks/useStats';
  * still gated by `isOwn` inside the render — the whitelist just guards
  * against arbitrary strings becoming React state.
  */
-const VALID_TAB_IDS = [ 'upcoming', 'past', 'calendar', 'add-past', 'stats', 'import' ];
+const VALID_TAB_IDS = [ 'upcoming', 'past', 'calendar', 'add-past', 'map', 'stats', 'import' ];
 
 /**
  * Read the initial active tab from `?tab=` on first render. SSR-safe
@@ -43,7 +43,7 @@ function readInitialTab() {
 /**
  * Main Concert Stats App component.
  */
-function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, containerRef } ) {
+function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, containerRef } ) {
 	const [ year, setYear ] = useState( 0 );
 	const [ activeTab, setActiveTab ] = useState( readInitialTab );
 
@@ -100,14 +100,48 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, containerRef 
 		}
 	}, [ activeTab, hasCalendar, containerRef ] );
 
+	// Map tab (#111): identical sibling-toggle pattern to the calendar
+	// tab. The embedded events-map block (chronologicalRouteMode) lives
+	// inside .ec-concert-stats__embedded-map as a sibling of the React
+	// root. Toggle rather than re-mount so Leaflet's internal map state
+	// (zoom, fitted bounds, polyline, marker cluster) survives tab
+	// switches. Leaflet needs a resize event when its container
+	// transitions from hidden to visible so the tile layer paints
+	// completely instead of leaving a partial render.
+	useEffect( () => {
+		if ( ! hasMap || ! containerRef.current ) {
+			return;
+		}
+		const shell = containerRef.current.closest( '.ec-concert-stats-shell' )
+			|| containerRef.current.parentElement;
+		if ( ! shell ) {
+			return;
+		}
+		const map = shell.querySelector( '.ec-concert-stats__embedded-map' );
+		if ( ! map ) {
+			return;
+		}
+		const wasHidden = map.hidden;
+		map.hidden = activeTab !== 'map';
+		if ( wasHidden && ! map.hidden && typeof window !== 'undefined' ) {
+			// Leaflet listens for window resize via invalidateSize hooks.
+			// Defer to next frame so the layout has settled before the
+			// map recalculates its container size.
+			window.requestAnimationFrame( () => {
+				window.dispatchEvent( new Event( 'resize' ) );
+			} );
+		}
+	}, [ activeTab, hasMap, containerRef ] );
+
 	const upcomingCount = stats ? ( stats.total_shows - Object.values( stats.shows_by_year || {} ).reduce( ( a, b ) => a + b, 0 ) + stats.total_shows ) : 0;
 
 	// Tab order: Upcoming → Past → Calendar (owner, #110) → Add Past
-	// Shows (owner, #109) → Stats → Import (owner, #112). Calendar
-	// sits between the read-only history axes (Upcoming/Past) and the
-	// owner-only growth tabs (Add Past Shows, Import) because it's a
-	// read-only view of the same history but visualized differently.
-	// Owner-only because the underlying tracking table is per-user.
+	// Shows (owner, #109) → Map (owner, #111) → Stats → Import
+	// (owner, #112). Visualization tabs (Calendar, Map) sit alongside
+	// the history axes (Upcoming, Past) and the growth tabs (Add Past
+	// Shows, Import); Stats stays second-to-last as the summary
+	// surface. Owner-only because the underlying tracking table is
+	// per-user.
 	const tabs = [
 		{
 			id: 'upcoming',
@@ -130,6 +164,14 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, containerRef 
 					{
 						id: 'add-past',
 						label: 'Add Past Shows',
+					},
+			  ]
+			: [] ),
+		...( isOwn && hasMap
+			? [
+					{
+						id: 'map',
+						label: 'Map',
 					},
 			  ]
 			: [] ),
@@ -226,6 +268,20 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, containerRef 
 						</InlineStatus>
 					) }
 
+					{ /*
+					   Map tab content lives in a sibling DOM node
+					   emitted by render.php (sibling to this React
+					   root). Same pattern as Calendar — the useEffect
+					   above toggles the sibling's `hidden` attribute,
+					   preserving Leaflet's internal state (zoom,
+					   polyline, marker cluster) across tab switches.
+					 */ }
+					{ activeTab === 'map' && ! hasMap && (
+						<InlineStatus tone="info">
+							Map view is unavailable here.
+						</InlineStatus>
+					) }
+
 					{ activeTab === 'add-past' && isOwn && (
 						<AddPastShows />
 					) }
@@ -284,13 +340,16 @@ function ConcertStatsAppWithRef( props ) {
  *     <div class="ec-concert-stats__embedded-calendar" hidden>
  *       (server-rendered data-machine-events/calendar block)
  *     </div>
+ *     <div class="ec-concert-stats__embedded-map" hidden>
+ *       (server-rendered data-machine-events/events-map block)
+ *     </div>
  *   </div>
  *
  * React mounts on `.ec-concert-stats` (unchanged from before #110) and
  * replaces its loading-skeleton child during initial render. The
- * embedded calendar sibling is outside the React root and survives
- * hydration; the Calendar tab's useEffect toggles its `hidden`
- * attribute on tab change.
+ * embedded calendar / map siblings are outside the React root and
+ * survive hydration; the respective tab useEffects toggle their
+ * `hidden` attributes on tab change.
  */
 function init() {
 	document.querySelectorAll( '.ec-concert-stats' ).forEach( ( container ) => {
@@ -298,6 +357,7 @@ function init() {
 		const eventsUrl   = container.dataset.eventsUrl || '';
 		const isOwn       = container.dataset.isOwn === '1';
 		const hasCalendar = container.dataset.hasCalendar === '1';
+		const hasMap      = container.dataset.hasMap === '1';
 
 		const root = createRoot( container );
 		root.render(
@@ -306,6 +366,7 @@ function init() {
 				eventsUrl={ eventsUrl }
 				isOwn={ isOwn }
 				hasCalendar={ hasCalendar }
+				hasMap={ hasMap }
 				mountNode={ container }
 			/>
 		);

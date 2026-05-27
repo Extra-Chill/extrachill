@@ -15,9 +15,17 @@
  * `inc/core/my-shows-calendar-filter.php` scopes the underlying
  * WP_Query to events the user has marked attended.
  *
- * The embedded calendar is rendered as a *sibling* (not a child) of
- * the React root so React's hydration / unmount cycles don't wipe it.
- * Both nodes live inside a `<div class="ec-concert-stats-shell">`
+ * #111: Same pattern for the Map tab. Emits a data-machine-events
+ * events-map block in `chronologicalRouteMode`. The filter callbacks
+ * in `inc/core/my-shows-map-filter.php` scope the venue set to the
+ * user's tracked venues (`data_machine_events_map_query_args`) and
+ * attach per-venue tracked-event payloads in chronological order
+ * (`data_machine_events_map_venues`), so the polyline + multi-date
+ * popups render against the user's attendance timeline.
+ *
+ * Embedded blocks are rendered as *siblings* (not children) of the
+ * React root so React's hydration / unmount cycles don't wipe them.
+ * All nodes live inside a `<div class="ec-concert-stats-shell">`
  * outer container that the block wrapper attributes attach to.
  *
  * @package ExtraChillEvents
@@ -41,14 +49,19 @@ $is_own     = is_user_logged_in() && get_current_user_id() === $user_id;
 // #110: Calendar tab is owner-only, and the server-side filter callback
 // only activates on /my-shows/. Match both conditions before emitting
 // the embedded calendar block so we don't ship dead markup elsewhere.
-$render_embedded_calendar = $is_own
-	&& function_exists( 'is_page' )
-	&& is_page( 'my-shows' );
+$on_my_shows             = function_exists( 'is_page' ) && is_page( 'my-shows' );
+$render_embedded_calendar = $is_own && $on_my_shows;
+
+// #111: Same gate for the Map tab. The events-map block in
+// chronologicalRouteMode depends on the my-shows-map-filter callbacks,
+// which are themselves gated on is_page('my-shows') + logged-in owner.
+$render_embedded_map = $is_own && $on_my_shows;
 
 $wrapper_attributes = get_block_wrapper_attributes(
 	array(
 		'class'             => 'ec-concert-stats-shell',
 		'data-has-calendar' => esc_attr( $render_embedded_calendar ? '1' : '0' ),
+		'data-has-map'      => esc_attr( $render_embedded_map ? '1' : '0' ),
 	)
 );
 ?>
@@ -60,6 +73,7 @@ $wrapper_attributes = get_block_wrapper_attributes(
 		data-events-url="<?php echo esc_attr( $events_url ); ?>"
 		data-is-own="<?php echo esc_attr( $is_own ? '1' : '0' ); ?>"
 		data-has-calendar="<?php echo esc_attr( $render_embedded_calendar ? '1' : '0' ); ?>"
+		data-has-map="<?php echo esc_attr( $render_embedded_map ? '1' : '0' ); ?>"
 	>
 		<div class="ec-concert-stats__loading">
 			<div class="ec-concert-stats__skeleton ec-concert-stats__skeleton--header"></div>
@@ -89,7 +103,24 @@ $wrapper_attributes = get_block_wrapper_attributes(
 			// (year filter in the header, tabs); a second filter bar
 			// would be redundant. The calendar block's own
 			// prev/next/today nav still renders.
-			echo do_blocks( '<!-- wp:data-machine-events/calendar {"displayMode":"month-grid","showFilters":false,"showSearch":false,"showDateFilter":false} /-->' );
+			echo do_blocks( '<!-- wp:data-machine-events/calendar {"displayMode":"month-grid","showFilters":false,"showSearch":false,"showDateFilter":false} /-->' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- block render output is trusted.
+			?>
+		</div>
+	<?php endif; ?>
+
+	<?php if ( $render_embedded_map ) : ?>
+		<div class="ec-concert-stats__embedded-map" data-tab="map" hidden>
+			<?php
+			// Same auto-gating pattern as the calendar wrapper above.
+			// The my-shows-map-filter callbacks scope the venue set +
+			// per-venue events to the user's tracked shows; the events-map
+			// block stays generic and unaware of the concert-tracking
+			// table. chronologicalRouteMode = true: polyline + first/last
+			// marker styling + multi-date popups against the user's
+			// attendance timeline. height=500 matches the calendar
+			// block's vertical footprint so tab swapping doesn't shift
+			// page layout.
+			echo do_blocks( '<!-- wp:data-machine-events/events-map {"chronologicalRouteMode":true,"height":500} /-->' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- block render output is trusted.
 			?>
 		</div>
 	<?php endif; ?>
