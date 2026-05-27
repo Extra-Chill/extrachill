@@ -11,7 +11,7 @@
 
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { ActionRow } from '@extrachill/components';
+import { ActionRow, InlineStatus } from '@extrachill/components';
 
 const MONTHS = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
 
@@ -105,16 +105,18 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 
 			<div className="ec-concert-stats__search-result-action">
 				{ isMarked ? (
-					<span
-						className="ec-concert-stats__mark-btn ec-concert-stats__mark-btn--tracked"
+					<button
+						type="button"
+						className="button-2 button-medium"
+						disabled
 						aria-label="Already tracked"
 					>
 						✓ Tracked
-					</span>
+					</button>
 				) : (
 					<button
 						type="button"
-						className="ec-concert-stats__mark-btn ec-concert-stats__mark-btn--add"
+						className="button-1 button-medium"
 						onClick={ handleMark }
 						disabled={ submitting }
 					>
@@ -122,9 +124,7 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 					</button>
 				) }
 				{ error && (
-					<span className="ec-concert-stats__search-result-error" role="alert">
-						{ error }
-					</span>
+					<InlineStatus tone="error">{ error }</InlineStatus>
 				) }
 			</div>
 		</ActionRow>

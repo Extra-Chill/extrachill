@@ -5,7 +5,8 @@
  *
  * Behavior:
  *   - Search input (committed on Enter / Search button via SearchBox).
- *   - Empty query: backend returns the ~most-recent past events as suggestions.
+ *   - Empty query: renders an InlineStatus prompt asking the user to search.
+ *     Backend short-circuits and returns no results. See extrachill-events#130.
  *   - Results list with "+ Mark Attended" per row, optimistic state flip.
  *   - "Load more" pagination, 20 per page (handled in useEventSearch).
  *
@@ -31,9 +32,9 @@ const AddPastShows = () => {
 			<EventSearchInput value={ query } onChange={ setQuery } />
 
 			{ isEmptyQuery && (
-				<p className="ec-concert-stats__search-hint">
-					Search for shows you&rsquo;ve attended to add them to your history.
-				</p>
+				<InlineStatus tone="info">
+					Start typing the name of an artist, venue, or show you&rsquo;ve attended.
+				</InlineStatus>
 			) }
 
 			{ error && (
@@ -42,17 +43,12 @@ const AddPastShows = () => {
 
 			{ ! loading && ! error && events.length === 0 && ! isEmptyQuery && (
 				<InlineStatus tone="info">
-					No past shows match &ldquo;{ query }&rdquo;. Try a different artist or venue name.
+					No matches for &ldquo;{ query }&rdquo;. Try a different artist, venue, or city.
 				</InlineStatus>
 			) }
 
 			{ events.length > 0 && (
 				<Section className="ec-concert-stats__search-results">
-					{ isEmptyQuery && (
-						<p className="ec-concert-stats__search-results-label">
-							Recent past shows
-						</p>
-					) }
 					{ events.map( ( ev ) => (
 						<EventSearchResult
 							key={ ev.post_id }

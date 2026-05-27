@@ -240,23 +240,6 @@
 	100% { background-position: -200% 0; }
 }
 
-/* ─── Add Past Shows Tab — inner content ────────────────────────────────── */
-
-.ec-concert-stats__search-hint {
-	margin: 0;
-	color: var(--muted-text, #6b7280);
-	font-size: var(--font-size-sm, 0.875rem);
-}
-
-.ec-concert-stats__search-results-label {
-	margin: 0 0 var(--spacing-xs, 0.25rem);
-	font-size: var(--font-size-xs, 0.625rem);
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	color: var(--muted-text, #6b7280);
-}
-
 /* ─── Search Result inner layout (inside ActionRow) ─────────────────────── */
 
 .ec-concert-stats__search-result-link {
@@ -303,54 +286,18 @@
 	white-space: nowrap;
 }
 
+/*
+ * Action area inside the search-result row. The canonical button-1 /
+ * button-2 classes own the button visuals; InlineStatus owns the error
+ * pill. This rule only provides the column-stack layout (button on top,
+ * error below, right-aligned) the ActionRow's right side needs.
+ */
 .ec-concert-stats__search-result-action {
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
 	align-items: flex-end;
 	gap: 2px;
-}
-
-.ec-concert-stats__mark-btn {
-	display: inline-block;
-	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
-	border-radius: var(--border-radius-sm, 5px);
-	font-size: var(--font-size-sm, 0.875rem);
-	font-weight: 500;
-	line-height: 1.2;
-	white-space: nowrap;
-}
-
-.ec-concert-stats__mark-btn--add {
-	background: var(--accent, #53940b);
-	color: #fff;
-	border: 1px solid var(--accent, #53940b);
-	cursor: pointer;
-	transition: background-color 0.15s ease;
-}
-
-.ec-concert-stats__mark-btn--add:hover:not(:disabled) {
-	background: var(--accent-dark, #3d6b08);
-	border-color: var(--accent-dark, #3d6b08);
-}
-
-.ec-concert-stats__mark-btn--add:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-}
-
-.ec-concert-stats__mark-btn--tracked {
-	background: transparent;
-	color: var(--muted-text, #6b7280);
-	border: 1px solid var(--border-color, #d1d5db);
-	cursor: default;
-}
-
-.ec-concert-stats__search-result-error {
-	font-size: var(--font-size-xs, 0.625rem);
-	color: var(--error-color, #dc2626);
-	max-width: 160px;
-	text-align: right;
 }
 
 /* ─── Mobile ────────────────────────────────────────────────────────────── */
