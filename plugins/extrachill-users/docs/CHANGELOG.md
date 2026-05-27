@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.13.1] - 2026-05-27
+
+### Fixed
+- surface and log ec_send_email failures (closes #56)
+- fix(concert-import): scope sources to configured-only, create missing events, migrate to Data Machine auth
+
 ## [0.13.0] - 2026-05-27
 
 ### Added
