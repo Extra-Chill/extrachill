@@ -796,3 +796,168 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, int $lim
 
 	return $attendees;
 }
+
+// ─── Search Past Events for Marking ──────────────────────────────────────────
+
+/**
+ * Search past events for the "Add Past Shows" My Shows feature.
+ *
+ * Returns past events (start_datetime < NOW()) matching the query against:
+ *   - event post title
+ *   - artist taxonomy term names
+ *   - venue taxonomy term names
+ *
+ * Empty query returns the most recent past events as suggestions.
+ *
+ * Each returned event includes `is_marked` for the given user so the UI can
+ * render a "+ Mark Attended" / "✓ Tracked" state immediately.
+ *
+ * @param int   $user_id User ID (for is_marked computation).
+ * @param array $args {
+ *     Search arguments.
+ *     @type string $query     Search query. Empty returns recent past events.
+ *     @type int    $page      1-indexed page number. Default 1.
+ *     @type int    $per_page  Results per page. Default 20.
+ *     @type int    $blog_id   Blog ID. Defaults to events blog.
+ * }
+ * @return array{ events: array, total: int, pages: int, page: int }
+ */
+function ec_users_search_events_for_marking( int $user_id, array $args = array() ): array {
+	global $wpdb;
+
+	$defaults = array(
+		'query'    => '',
+		'page'     => 1,
+		'per_page' => 20,
+		'blog_id'  => 0,
+	);
+
+	$args = wp_parse_args( $args, $defaults );
+
+	$query    = trim( (string) $args['query'] );
+	$page     = max( 1, (int) $args['page'] );
+	$per_page = max( 1, min( 100, (int) $args['per_page'] ) );
+	$blog_id  = $args['blog_id'] ? (int) $args['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7 );
+
+	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
+	$posts_table   = $events_prefix . 'posts';
+	$dates_table   = $events_prefix . 'datamachine_event_dates';
+	$tr_table      = $events_prefix . 'term_relationships';
+	$tt_table      = $events_prefix . 'term_taxonomy';
+	$terms_table   = $events_prefix . 'terms';
+
+	$now_mysql = current_time( 'mysql' );
+
+	$where   = array(
+		"p.post_type = 'data_machine_events'",
+		"p.post_status = 'publish'",
+		'ed.start_datetime < %s',
+	);
+	$prepare = array( $now_mysql );
+
+	// Build search clause if query provided.
+	if ( '' !== $query ) {
+		$like = '%' . $wpdb->esc_like( $query ) . '%';
+
+		// Subquery: term-ids whose names match the query, restricted to artist/venue.
+		// We use IN (...) against tr.term_taxonomy_id via a join in OR clause.
+		$where[]   = '(p.post_title LIKE %s OR EXISTS (
+			SELECT 1
+			FROM ' . $tr_table . ' tr2
+			INNER JOIN ' . $tt_table . ' tt2 ON tr2.term_taxonomy_id = tt2.term_taxonomy_id
+			INNER JOIN ' . $terms_table . ' t2 ON tt2.term_id = t2.term_id
+			WHERE tr2.object_id = p.ID
+			  AND tt2.taxonomy IN (\'artist\', \'venue\')
+			  AND t2.name LIKE %s
+		))';
+		$prepare[] = $like;
+		$prepare[] = $like;
+	}
+
+	$where_sql = implode( ' AND ', $where );
+
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- table names from trusted prefix; placeholders inside $where_sql matched in $prepare.
+	$count_sql = $wpdb->prepare(
+		"SELECT COUNT(DISTINCT p.ID)
+		FROM {$posts_table} p
+		INNER JOIN {$dates_table} ed ON p.ID = ed.post_id
+		WHERE {$where_sql}",
+		...$prepare
+	);
+	$total = (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
+	// phpcs:enable
+
+	$pages  = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
+	$page   = $pages > 0 ? min( $page, $pages ) : 1;
+	$offset = ( $page - 1 ) * $per_page;
+
+	if ( 0 === $total ) {
+		return array(
+			'events' => array(),
+			'total'  => 0,
+			'pages'  => 0,
+			'page'   => $page,
+		);
+	}
+
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table names from trusted prefix; placeholders inside $where_sql matched in $prepare.
+	$rows_sql = $wpdb->prepare(
+		"SELECT p.ID AS post_id, p.post_title, DATE(ed.start_datetime) AS event_date
+		FROM {$posts_table} p
+		INNER JOIN {$dates_table} ed ON p.ID = ed.post_id
+		WHERE {$where_sql}
+		GROUP BY p.ID
+		ORDER BY ed.start_datetime DESC
+		LIMIT %d OFFSET %d",
+		...array_merge( $prepare, array( $per_page, $offset ) )
+	);
+	$rows = $wpdb->get_results( $rows_sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
+	// phpcs:enable
+
+	if ( empty( $rows ) ) {
+		return array(
+			'events' => array(),
+			'total'  => $total,
+			'pages'  => $pages,
+			'page'   => $page,
+		);
+	}
+
+	// Switch to events blog for taxonomy queries and is_marked checks (blog_id scoped).
+	$switched     = false;
+	$current_blog = get_current_blog_id();
+	if ( $current_blog !== $blog_id ) {
+		switch_to_blog( $blog_id );
+		$switched = true;
+	}
+
+	$events = array();
+	try {
+		foreach ( $rows as $row ) {
+			$post_id = (int) $row['post_id'];
+			$post    = get_post( $post_id );
+			if ( ! $post instanceof WP_Post ) {
+				continue;
+			}
+
+			$enriched              = ec_users_build_show_data( $post, $row );
+			$enriched['post_id']   = $post_id;
+			$enriched['is_marked'] = $user_id > 0
+				? ec_users_is_event_marked( $user_id, $post_id, $blog_id )
+				: false;
+
+			$events[] = $enriched;
+		}
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+
+	return array(
+		'events' => $events,
+		'total'  => $total,
+		'pages'  => $pages,
+		'page'   => $page,
+	);
+}

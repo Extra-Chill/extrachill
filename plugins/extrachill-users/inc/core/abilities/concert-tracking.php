@@ -193,6 +193,56 @@ function extrachill_users_register_concert_tracking_abilities() {
 		)
 	);
 
+	// ─── Search Events for Marking ───────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/search-events-for-marking',
+		array(
+			'label'               => __( 'Search Past Events for Marking', 'extrachill-users' ),
+			'description'         => __( 'Search past events (start_datetime < NOW) by title, artist, or venue. Returns is_marked per event for the current user. Powers the My Shows "Add Past Shows" tab.', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'query'    => array(
+						'type'        => 'string',
+						'description' => 'Search query. Empty returns most recent past events as suggestions.',
+						'default'     => '',
+					),
+					'page'     => array(
+						'type'        => 'integer',
+						'description' => '1-indexed page number.',
+						'default'     => 1,
+					),
+					'per_page' => array(
+						'type'        => 'integer',
+						'description' => 'Results per page.',
+						'default'     => 20,
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'events' => array( 'type' => 'array' ),
+					'total'  => array( 'type' => 'integer' ),
+					'pages'  => array( 'type' => 'integer' ),
+					'page'   => array( 'type' => 'integer' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_users_ability_search_events_for_marking',
+			'permission_callback' => 'is_user_logged_in',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+
 	// ─── Get Event Attendance ────────────────────────────────────────────────
 
 	wp_register_ability(
@@ -309,6 +359,29 @@ function extrachill_users_ability_get_user_concert_stats( array $input ) {
 	}
 
 	return ec_users_get_user_concert_stats( $user_id, $input );
+}
+
+/**
+ * Search past events for marking ability callback.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error
+ */
+function extrachill_users_ability_search_events_for_marking( array $input ) {
+	$user_id = get_current_user_id();
+
+	if ( ! $user_id ) {
+		return new WP_Error( 'not_logged_in', 'You must be logged in to search events.', array( 'status' => 401 ) );
+	}
+
+	return ec_users_search_events_for_marking(
+		$user_id,
+		array(
+			'query'    => isset( $input['query'] ) ? (string) $input['query'] : '',
+			'page'     => isset( $input['page'] ) ? (int) $input['page'] : 1,
+			'per_page' => isset( $input['per_page'] ) ? (int) $input['per_page'] : 20,
+		)
+	);
 }
 
 /**
