@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.6] - 2026-05-29
+
+### Fixed
+- remove dead hasUploadPermissions setting injection
+
 ## [0.15.5] - 2026-05-25
 
 ### Fixed
