@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0] - 2026-05-29
+
+### Added
+- add forum topic/reply editor abilities (community-multisite#33)
+
+### Fixed
+- replace user_meta blob with custom table to eliminate lost-update race
+
 ## [1.6.2] - 2026-05-25
 
 ### Changed
