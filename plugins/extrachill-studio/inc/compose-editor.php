@@ -176,9 +176,6 @@ function configure_compose_editor( array $settings ): array {
 		'instagram',
 	);
 
-	// Upload permissions for logged-in team members.
-	$settings['editor']['hasUploadPermissions'] = current_user_can( 'upload_files' );
-
 	// Provide MIME types so the Media tab in the inserter can show
 	// existing uploads filtered by type (images, video, audio).
 	$settings['editor']['allowedMimeTypes'] = get_allowed_mime_types();
