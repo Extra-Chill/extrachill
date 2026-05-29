@@ -167,48 +167,17 @@ function extrachill_community_resolve_draft_user_id( $input ) {
 	return $user_id > 0 ? $user_id : 0;
 }
 
-function extrachill_community_bbpress_drafts_meta_key() {
-	return 'ec_bbpress_drafts';
-}
-
-function extrachill_community_bbpress_draft_key( array $context ) {
-	$type    = isset( $context['type'] ) ? (string) $context['type'] : '';
-	$blog_id = isset( $context['blog_id'] ) ? (int) $context['blog_id'] : (int) get_current_blog_id();
-
-	if ( 'topic' === $type ) {
-		$forum_id = isset( $context['forum_id'] ) ? (int) $context['forum_id'] : 0;
-		return sprintf( 'topic:%d:%d', $blog_id, $forum_id );
-	}
-
-	if ( 'reply' === $type ) {
-		$topic_id = isset( $context['topic_id'] ) ? (int) $context['topic_id'] : 0;
-		$reply_to = isset( $context['reply_to'] ) ? (int) $context['reply_to'] : 0;
-		return sprintf( 'reply:%d:%d:%d', $blog_id, $topic_id, $reply_to );
-	}
-
-	return sprintf( 'unknown:%d', $blog_id );
-}
-
-function extrachill_community_bbpress_drafts_get_all( $user_id ) {
-	$user_id = (int) $user_id;
-	if ( $user_id <= 0 ) {
-		return array();
-	}
-
-	$drafts = get_user_meta( $user_id, extrachill_community_bbpress_drafts_meta_key(), true );
-
-	return is_array( $drafts ) ? $drafts : array();
-}
-
-function extrachill_community_bbpress_drafts_set_all( $user_id, array $drafts ) {
-	$user_id = (int) $user_id;
-	if ( $user_id <= 0 ) {
-		return false;
-	}
-
-	return (bool) update_user_meta( $user_id, extrachill_community_bbpress_drafts_meta_key(), $drafts );
-}
-
+/**
+ * Get-ability execute callback.
+ *
+ * Reads a single draft row from the storage repository. Falls back to the
+ * unassigned-forum draft (forum_id=0) when `prefer_unassigned` is set and the
+ * specific-forum lookup returned no row — preserves the "I started typing
+ * before picking a forum" UX.
+ *
+ * @param array $input Ability input.
+ * @return array|null
+ */
 function extrachill_community_ability_get_bbpress_draft( $input ) {
 	$user_id = extrachill_community_resolve_draft_user_id( $input );
 	if ( $user_id <= 0 ) {
@@ -216,19 +185,26 @@ function extrachill_community_ability_get_bbpress_draft( $input ) {
 	}
 
 	$context = extrachill_community_build_draft_context_from_input( $input );
-	$drafts  = extrachill_community_bbpress_drafts_get_all( $user_id );
-	$key     = extrachill_community_bbpress_draft_key( $context );
-	$draft   = isset( $drafts[ $key ] ) && is_array( $drafts[ $key ] ) ? $drafts[ $key ] : null;
+	$draft   = extrachill_community_bbpress_drafts_fetch( $user_id, $context );
 
 	if ( null === $draft && 'topic' === $context['type'] && ! empty( $input['prefer_unassigned'] ) && $context['forum_id'] > 0 ) {
 		$context['forum_id'] = 0;
-		$key   = extrachill_community_bbpress_draft_key( $context );
-		$draft = isset( $drafts[ $key ] ) && is_array( $drafts[ $key ] ) ? $drafts[ $key ] : null;
+		$draft               = extrachill_community_bbpress_drafts_fetch( $user_id, $context );
 	}
 
 	return $draft;
 }
 
+/**
+ * Save-ability execute callback.
+ *
+ * Upserts a single draft row. The storage layer's UNIQUE KEY guarantees
+ * atomic, race-free updates even when two browser tabs save the same draft
+ * context simultaneously.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error Stored draft row, or WP_Error on invalid input.
+ */
 function extrachill_community_ability_save_bbpress_draft( $input ) {
 	$user_id = extrachill_community_resolve_draft_user_id( $input );
 	if ( $user_id <= 0 ) {
@@ -239,30 +215,29 @@ function extrachill_community_ability_save_bbpress_draft( $input ) {
 	$draft   = array_merge(
 		$context,
 		array(
-			'title'   => isset( $input['title'] ) ? (string) $input['title'] : '',
-			'content' => isset( $input['content'] ) ? (string) $input['content'] : '',
+			'title'      => isset( $input['title'] ) ? (string) $input['title'] : '',
+			'content'    => isset( $input['content'] ) ? (string) $input['content'] : '',
+			'updated_at' => time(),
 		)
 	);
 
-	$drafts = extrachill_community_bbpress_drafts_get_all( $user_id );
-	$key    = extrachill_community_bbpress_draft_key( $draft );
+	$stored = extrachill_community_bbpress_drafts_upsert( $user_id, $draft );
 
-	$drafts[ $key ] = array(
-		'type'       => $draft['type'],
-		'blog_id'    => $draft['blog_id'],
-		'forum_id'   => isset( $draft['forum_id'] ) ? (int) $draft['forum_id'] : 0,
-		'topic_id'   => isset( $draft['topic_id'] ) ? (int) $draft['topic_id'] : 0,
-		'reply_to'   => isset( $draft['reply_to'] ) ? (int) $draft['reply_to'] : 0,
-		'title'      => isset( $draft['title'] ) ? (string) $draft['title'] : '',
-		'content'    => isset( $draft['content'] ) ? (string) $draft['content'] : '',
-		'updated_at' => time(),
-	);
+	if ( false === $stored ) {
+		return new WP_Error( 'draft_save_failed', 'Failed to save draft.' );
+	}
 
-	extrachill_community_bbpress_drafts_set_all( $user_id, $drafts );
-
-	return $drafts[ $key ];
+	return $stored;
 }
 
+/**
+ * Delete-ability execute callback.
+ *
+ * Deletes a single draft row. Returns true on no-op (row didn't exist).
+ *
+ * @param array $input Ability input.
+ * @return bool
+ */
 function extrachill_community_ability_delete_bbpress_draft( $input ) {
 	$user_id = extrachill_community_resolve_draft_user_id( $input );
 	if ( $user_id <= 0 ) {
@@ -270,14 +245,6 @@ function extrachill_community_ability_delete_bbpress_draft( $input ) {
 	}
 
 	$context = extrachill_community_build_draft_context_from_input( $input );
-	$drafts  = extrachill_community_bbpress_drafts_get_all( $user_id );
-	$key     = extrachill_community_bbpress_draft_key( $context );
 
-	if ( ! isset( $drafts[ $key ] ) ) {
-		return true;
-	}
-
-	unset( $drafts[ $key ] );
-
-	return extrachill_community_bbpress_drafts_set_all( $user_id, $drafts );
+	return extrachill_community_bbpress_drafts_delete( $user_id, $context );
 }

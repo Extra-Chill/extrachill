@@ -47,6 +47,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/tinymce-image-uploads.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/blocks-everywhere.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-abilities-category.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-storage.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/drafts.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/ability-helpers.php';

@@ -888,20 +888,17 @@ function extrachill_community_build_editor_permissions( $post_id, $type ) {
  * @return array|null
  */
 function extrachill_community_get_draft_overlay( $user_id, $type, array $context ) {
-	if ( ! function_exists( 'extrachill_community_bbpress_drafts_get_all' ) ) {
+	if ( ! function_exists( 'extrachill_community_bbpress_drafts_fetch' ) ) {
 		return null;
 	}
 	$user_id = (int) $user_id;
 	if ( $user_id <= 0 ) {
 		return null;
 	}
-	$context['type'] = $type;
+	$context['type']    = $type;
 	$context['blog_id'] = isset( $context['blog_id'] ) ? (int) $context['blog_id'] : (int) get_current_blog_id();
 
-	$drafts = extrachill_community_bbpress_drafts_get_all( $user_id );
-	$key    = extrachill_community_bbpress_draft_key( $context );
-
-	return isset( $drafts[ $key ] ) && is_array( $drafts[ $key ] ) ? $drafts[ $key ] : null;
+	return extrachill_community_bbpress_drafts_fetch( $user_id, $context );
 }
 
 /**
