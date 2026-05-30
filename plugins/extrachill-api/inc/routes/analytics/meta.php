@@ -33,37 +33,21 @@ function extrachill_api_register_analytics_meta_routes() {
 /**
  * Handle analytics meta request.
  *
+ * Wraps the extrachill/get-analytics-meta ability from extrachill-analytics.
+ *
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_analytics_meta_handler() {
-	global $wpdb;
-
-	$table_name = extrachill_analytics_events_table();
-
-	// Get distinct event types.
-	$event_types = $wpdb->get_col(
-		"SELECT DISTINCT event_type FROM {$table_name} ORDER BY event_type ASC"
-	);
-
-	// Get blogs that have events.
-	$blog_ids = $wpdb->get_col(
-		"SELECT DISTINCT blog_id FROM {$table_name} ORDER BY blog_id ASC"
-	);
-
-	$blogs = array();
-	foreach ( $blog_ids as $blog_id ) {
-		$blog_id   = absint( $blog_id );
-		$blog_name = get_blog_option( $blog_id, 'blogname' );
-		$blogs[]   = array(
-			'id'   => $blog_id,
-			'name' => $blog_name ? $blog_name : "Blog {$blog_id}",
-		);
+	$ability = wp_get_ability( 'extrachill/get-analytics-meta' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-analytics plugin is required.', array( 'status' => 500 ) );
 	}
 
-	return rest_ensure_response(
-		array(
-			'event_types' => $event_types,
-			'blogs'       => $blogs,
-		)
-	);
+	$result = $ability->execute( array() );
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
