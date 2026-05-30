@@ -1,6 +1,6 @@
 # ExtraChill Search
 
-Network-activated WordPress plugin providing centralized multisite search functionality for the ExtraChill Platform. Searches across all 11 active sites (Blog IDs 1–5, 7–12) in the WordPress multisite network and displays unified results. docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com at Blog ID 12.
+Network-activated WordPress plugin providing centralized multisite search for the ExtraChill Platform. Searches across the network's nine active sites and displays unified results. Front-end searches are **scoped to the current site by default**, with an opt-in "Entire network" toggle (see Search Scope below).
 
 ## Plugin Information
 
@@ -26,22 +26,31 @@ Network-activated WordPress plugin providing centralized multisite search functi
 
 #### Multisite Search System
 **Universal Network Search** (`inc/core/search-functions.php`):
-- **`extrachill_multisite_search()`**: Core search function querying all network sites or specified sites
-- **Dynamic Site Discovery**: Uses `get_sites()` to enumerate network sites with automatic WordPress blog-id-cache for performance
-- **Flexible Post Type Support**: Automatically searches all public post types across sites
-- **Meta Query Support**: Full support for `meta_query` parameter for advanced filtering (bbPress support)
-- **Pagination and Sorting**: Supports limit, offset, orderby, order parameters with cross-site date sorting
-- **Relevance Scoring**: Weighted algorithm prioritizing exact matches, phrase matches, and word-level matching
-- **Contextual Excerpts**: `ec_get_contextual_excerpt_multisite()` generates search term centered excerpts
-- **Network Site Discovery**: `extrachill_get_network_sites()` with static caching for performance
-- **Site URL Resolution**: `extrachill_resolve_site_urls()` converts domain strings to blog IDs
-- **Fallback Excerpt Function**: Provides `ec_get_contextual_excerpt()` for themes without native implementation
+- **`extrachill_multisite_search( $term, $site_urls = array(), $args = array() )`**: Core search primitive. An empty `$site_urls` searches every network site; a non-empty list restricts to those sites.
+- **Canonical Site Map**: `extrachill_get_network_site_map()` builds the searchable site list from `ec_get_domain_map()` (extrachill-multisite), filtered via `extrachill_search_site_map`. No `get_sites()` discovery.
+- **Per-Site Post Types**: `extrachill_get_site_post_types()` maps each blog ID to its searchable post types (filterable via `extrachill_search_site_post_types_map`).
+- **Pagination and Sorting**: Supports limit, offset, orderby, order with cross-site date + relevance sorting.
+- **Relevance Scoring**: Weighted algorithm prioritizing exact matches, phrase matches, and word-level matching (FULLTEXT MATCH AGAINST where indexed, with a word-level fallback).
+- **Network Site Discovery**: `extrachill_get_network_sites()` with static caching for performance.
+- **Site URL Resolution**: `extrachill_resolve_site_urls()` converts domain/host strings (or numeric blog IDs) to blog IDs.
+
+#### Search Scope (`inc/core/search-scope.php`)
+Front-end searches default to the **current site only** so visitors are not surprised by network-wide results. A `search_scope` query var carries the choice:
+- `site` (default) → restricts to the current blog's host via `extrachill_search_scope_site_urls()`.
+- `network` → empty `$site_urls`, i.e. the whole network.
+
+Key functions:
+- **`extrachill_resolve_search_scope()`**: reads + validates `$_GET['search_scope']`, falling back to the default scope.
+- **`extrachill_search_scope_site_urls( $scope = null )`**: resolves a scope into the `$site_urls` argument for the search primitive.
+- **`extrachill_search_default_scope()`**: the default (`site`), filterable.
+
+The underlying `extrachill_multisite_search()` primitive is unchanged — empty `$site_urls` still means "whole network". Only the front-end default policy is scoped. The theme's `searchform.php` renders the "This site / Entire network" toggle. Filters: `extrachill_search_default_scope`, `extrachill_search_scope`, `extrachill_search_scope_site_urls`.
 
 #### Pagination Fix Architecture
 **404 Override System** (`extrachill-search.php`):
 - **`fix_search_404()` method**: Intercepts 404 errors on paginated search queries
 - **`template_redirect` hook**: Executes at priority 1 before template loading
-- **Network-Wide Fix**: Resolves pagination 404s across all 11 active network sites (previously only worked on extrachill.com)
+- **Network-Wide Fix**: Resolves pagination 404s across network sites; respects the active search scope (previously only worked on extrachill.com)
 - **Intelligent Detection**: Checks for 404 status with search query parameter (`s`), not relying on `is_search()`
 - **Result Verification**: Runs `extrachill_multisite_search()` to verify multisite results exist for current page
 - **Query Override**: Sets `$wp_query->is_404 = false` and `$wp_query->is_search = true` when results found
@@ -89,24 +98,27 @@ WordPress native search only checks the current site for results. When paginatin
 ## WordPress Multisite Integration
 
 ### Network Sites Covered
-The plugin searches across all 10 active sites in the Extra Chill Platform network (Blog IDs 1–4, 7–12). docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com at Blog ID 12:
+Sites are resolved at runtime from `ec_get_domain_map()` in `extrachill-multisite` (not hardcoded here, and not via `get_sites()`). The nine active sites:
 1. **extrachill.com** - Main music journalism site (Blog ID 1)
 2. **community.extrachill.com** - Community forums (bbPress) (Blog ID 2)
 3. **shop.extrachill.com** - E-commerce (WooCommerce) (Blog ID 3)
 4. **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
 5. **events.extrachill.com** - Event calendar hub (Blog ID 7; calendar engine comes from external Data Machine + datamachine-events plugins)
-6. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
-7. **newsletter.extrachill.com** - Newsletter management hub (Blog ID 9)
-8. **docs.extrachill.com** - Documentation hub (Blog ID 10)
-9. **wire.extrachill.com** - News feeds (Blog ID 11)
-10. **horoscope.extrachill.com** - Daily horoscopes (Blog ID 12)
+6. **newsletter.extrachill.com** - Newsletter management hub (Blog ID 9)
+7. **docs.extrachill.com** - Documentation hub (Blog ID 10)
+8. **wire.extrachill.com** - News wire (Blog ID 11)
+9. **studio.extrachill.com** - Studio / internal team workspace (Blog ID 12)
+
+Blog ID 8 (`stream.extrachill.com`) was decommissioned (April 2026); Blog IDs 5–6 are unused historical artifacts.
 
 ### Native WordPress Functions Used
 - **`switch_to_blog()`**: Cross-site database access
 - **`restore_current_blog()`**: Restore original site context
-- **`get_sites()`**: Dynamic network site discovery
 - **`is_multisite()`**: Multisite installation detection
 - **`get_blog_details()`**: Site metadata retrieval
+- **FULLTEXT `MATCH ... AGAINST`**: Sub-second relevance search where a FULLTEXT index exists, with a WP `LIKE`/word-level fallback otherwise
+
+Site enumeration comes from `ec_get_domain_map()` (extrachill-multisite), **not** `get_sites()`.
 
 ### Performance Optimizations
 - **Static Caching**: Network sites cached in memory via `extrachill_get_network_sites()`
@@ -120,17 +132,16 @@ The plugin searches across all 10 active sites in the Extra Chill Platform netwo
  extrachill-search/
  ├── extrachill-search.php           # Main plugin file with singleton initialization
  ├── inc/
- │   ├── core/
- │   │   ├── search-functions.php    # Core multisite search functionality
- │   │   ├── search-algorithm.php    # Search execution and relevance scoring
- │   │   ├── taxonomy-functions.php  # Placeholder for future taxonomy archives
- │   │   └── abilities.php         # WordPress 6.9+ Abilities API integration
- │   └── templates/
- │       ├── template-functions.php  # Template helper functions for search results
- │       └── site-badge.php          # Site badge component for multisite results
+ │   └── core/
+ │       ├── search-functions.php    # Site map, post-type map, term normalization
+ │       ├── search-scope.php        # Scope resolution (site vs network) for front-end searches
+ │       ├── search-algorithm.php    # Search execution, FULLTEXT, relevance scoring
+ │       ├── taxonomy-functions.php  # Placeholder for future taxonomy archives
+ │       └── abilities.php           # WordPress 6.9+ Abilities API integration
  ├── templates/
- │   └── search.php                  # Search results template
- ├── .buildignore                    # Production build exclusions
+ │   ├── search.php                  # Search results template
+ │   ├── template-functions.php      # Template helper functions for search results
+ │   └── site-badge.php              # Site badge component for multisite results
  ├── CLAUDE.md                       # This documentation file
  └── README.md                       # GitHub standard format documentation
  ```

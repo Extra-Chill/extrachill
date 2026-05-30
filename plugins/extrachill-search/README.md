@@ -4,8 +4,9 @@ Network-activated WordPress plugin providing universal multisite search function
 
 ## Features
 
-- **Universal Multisite Search** - Search all network sites or specific sites with single function call
-- **Dynamic Site Discovery** - Uses `get_sites()` to enumerate network sites with automatic WordPress blog-id-cache for performance
+- **Universal Multisite Search** - Search all network sites or specific sites with a single function call
+- **Per-Site Scope (default)** - Front-end searches default to the current site; a "This site / Entire network" toggle lets users opt into network-wide results
+- **Canonical Site Map** - Sites resolved from `ec_get_domain_map()` (extrachill-multisite), not `get_sites()` discovery
 - **Flexible Post Type Support** - Searches all public post types (posts, pages, custom post types, bbPress topics/replies)
 - **Advanced Filtering** - Full `WP_Query` parameter support including meta queries
 - **Relevance Scoring** - Weighted algorithm prioritizing exact matches, phrase matches, and word-level matching
@@ -97,11 +98,12 @@ The plugin searches across all sites in your WordPress multisite network. In the
 3. shop.extrachill.com - E-commerce (Blog ID 3)
 4. artist.extrachill.com - Artist platform (Blog ID 4)
 5. events.extrachill.com - Events calendar (Blog ID 7)
-6. stream.extrachill.com - Live streaming (Blog ID 8)
-7. newsletter.extrachill.com - Newsletter (Blog ID 9)
-8. docs.extrachill.com - Documentation (Blog ID 10)
-9. wire.extrachill.com - News wire (Blog ID 11)
-10. horoscope.extrachill.com - Horoscopes (Blog ID 12)
+6. newsletter.extrachill.com - Newsletter (Blog ID 9)
+7. docs.extrachill.com - Documentation (Blog ID 10)
+8. wire.extrachill.com - News wire (Blog ID 11)
+9. studio.extrachill.com - Studio / team workspace (Blog ID 12)
+
+(Blog ID 8 / stream.extrachill.com was decommissioned in April 2026.)
 
 ### Search Result Structure
 ```php

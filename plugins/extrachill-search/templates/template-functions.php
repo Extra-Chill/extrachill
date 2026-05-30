@@ -14,9 +14,13 @@ function extrachill_get_search_results() {
     $offset = ( $current_page - 1 ) * $posts_per_page;
 
     if ( ! empty( $search_term ) && function_exists( 'extrachill_multisite_search' ) ) {
+        $site_urls = function_exists( 'extrachill_search_scope_site_urls' )
+            ? extrachill_search_scope_site_urls()
+            : array();
+
         $search_data = extrachill_multisite_search(
             $search_term,
-            array(),
+            $site_urls,
             array(
                 'limit'        => $posts_per_page,
                 'offset'       => $offset,

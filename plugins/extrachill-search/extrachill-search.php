@@ -75,9 +75,10 @@ class ExtraChill_Search_Plugin {
         $includes_dir = plugin_dir_path( __FILE__ ) . 'inc/';
         $templates_dir = plugin_dir_path( __FILE__ ) . 'templates/';
 
-        require_once $includes_dir . 'core/search-functions.php';
-        require_once $includes_dir . 'core/search-algorithm.php';
-        require_once $includes_dir . 'core/taxonomy-functions.php';
+		require_once $includes_dir . 'core/search-functions.php';
+		require_once $includes_dir . 'core/search-scope.php';
+		require_once $includes_dir . 'core/search-algorithm.php';
+		require_once $includes_dir . 'core/taxonomy-functions.php';
 
         if ( version_compare( get_bloginfo( 'version' ), '6.9', '>=' ) ) {
             require_once $includes_dir . 'core/abilities.php';
@@ -124,15 +125,19 @@ class ExtraChill_Search_Plugin {
         $posts_per_page = (int) get_option( 'posts_per_page', 10 );
         $offset = ( $paged - 1 ) * $posts_per_page;
 
-        $search_data = extrachill_multisite_search(
-            $search_term,
-            array(),
-            array(
-                'limit'        => $posts_per_page,
-                'offset'       => $offset,
-                'return_count' => true,
-            )
-        );
+		$site_urls = function_exists( 'extrachill_search_scope_site_urls' )
+			? extrachill_search_scope_site_urls()
+			: array();
+
+		$search_data = extrachill_multisite_search(
+			$search_term,
+			$site_urls,
+			array(
+				'limit'        => $posts_per_page,
+				'offset'       => $offset,
+				'return_count' => true,
+			)
+		);
 
         if ( ! empty( $search_data['results'] ) ) {
             global $wp_query;
