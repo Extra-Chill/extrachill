@@ -87,6 +87,67 @@ defined( 'ABSPATH' ) || exit;
 			<b>Rank:</b> <?php echo esc_html(extrachill_display_user_rank(bbp_get_displayed_user_id())); ?>
 			| <b>Points:</b> <?php echo esc_html(extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
 		</p>
+		<?php
+		// Rank-progress bar. Depends on ec_get_rank_progress() from extrachill-users
+		// (Network: true). Guard so the profile renders cleanly if it is absent
+		// (e.g. before that plugin's rank-registry change is deployed).
+		if ( function_exists( 'ec_get_rank_progress' ) ) {
+			$rank_progress = ec_get_rank_progress( (float) extrachill_display_user_points( bbp_get_displayed_user_id() ) );
+
+			$rp_percent = isset( $rank_progress['percent'] ) ? (float) $rank_progress['percent'] : 0.0;
+			$rp_percent = max( 0.0, min( 100.0, $rp_percent ) );
+
+			$rp_current_label = isset( $rank_progress['current']['label'] ) ? (string) $rank_progress['current']['label'] : '';
+			$rp_is_max        = ! empty( $rank_progress['is_max'] );
+			?>
+			<div class="rank-progress" role="img" aria-label="<?php
+				echo esc_attr(
+					$rp_is_max
+						? sprintf(
+							/* translators: %s: current rank label */
+							__( 'Rank progress: %s, maximum rank reached', 'extra-chill-community' ),
+							$rp_current_label
+						)
+						: sprintf(
+							/* translators: 1: current rank label, 2: rounded percent toward next rank */
+							__( 'Rank progress: %1$s, %2$d%% toward next rank', 'extra-chill-community' ),
+							$rp_current_label,
+							(int) round( $rp_percent )
+						)
+				);
+			?>">
+				<div class="rank-progress-meta">
+					<span class="rank-progress-current"><?php echo esc_html( sprintf(
+						/* translators: %s: current rank label */
+						__( 'Current: %s', 'extra-chill-community' ),
+						$rp_current_label
+					) ); ?></span>
+					<span class="rank-progress-percent"><?php echo esc_html( (int) round( $rp_percent ) ); ?>%</span>
+					<?php if ( ! $rp_is_max && ! empty( $rank_progress['next']['label'] ) ) : ?>
+						<span class="rank-progress-next"><?php echo esc_html( sprintf(
+							/* translators: %s: next rank label */
+							__( 'Next: %s', 'extra-chill-community' ),
+							(string) $rank_progress['next']['label']
+						) ); ?></span>
+					<?php elseif ( $rp_is_max ) : ?>
+						<span class="rank-progress-next"><?php esc_html_e( 'Max rank reached', 'extra-chill-community' ); ?></span>
+					<?php endif; ?>
+				</div>
+				<div class="rank-progress-track">
+					<div class="rank-progress-fill<?php echo $rp_is_max ? ' is-max' : ''; ?>" style="width:<?php echo esc_attr( $rp_percent ); ?>%"></div>
+				</div>
+				<?php if ( ! $rp_is_max && ! empty( $rank_progress['next']['label'] ) && null !== $rank_progress['points_to_next'] ) : ?>
+					<div class="rank-progress-hint"><?php echo esc_html( sprintf(
+						/* translators: 1: points remaining, 2: next rank label */
+						__( '%1$s points to %2$s', 'extra-chill-community' ),
+						(int) ceil( (float) $rank_progress['points_to_next'] ),
+						(string) $rank_progress['next']['label']
+					) ); ?></div>
+				<?php endif; ?>
+			</div>
+			<?php
+		}
+		?>
 		<div class="bbp-user-actions-area">
 				<?php if ( bbp_get_displayed_user_id() === get_current_user_id() ) : ?>
 					<a href="/settings" class="button-1 button-small"><?php esc_html_e('Settings', 'extra-chill-community'); ?></a>

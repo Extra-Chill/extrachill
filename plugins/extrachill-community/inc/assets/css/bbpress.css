@@ -464,6 +464,79 @@ blockquote {
     font-size: var(--font-size-sm);
 }
 
+/* Rank progress bar — subtle, frosty, on-brand */
+.rank-progress {
+    margin: var(--spacing-xs, 0.5rem) 0 var(--spacing-sm, 0.75rem);
+    max-width: 420px;
+}
+
+.rank-progress-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 10px;
+    margin-bottom: 5px;
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--muted-text);
+}
+
+.rank-progress-percent {
+    font-weight: 600;
+    color: var(--brand-blue, #003466);
+}
+
+.rank-progress-track {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(var(--brand-blue-rgb, 0, 52, 102), 0.12);
+    overflow: hidden;
+}
+
+.rank-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(
+        90deg,
+        var(--brand-blue, #003466),
+        var(--accent-3, #00c8e3)
+    );
+    min-width: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .rank-progress-fill {
+        transition: width 0.6s ease;
+    }
+}
+
+.rank-progress-fill.is-max {
+    background: linear-gradient(
+        90deg,
+        var(--accent-3, #00c8e3),
+        var(--brand-blue, #003466)
+    );
+}
+
+.rank-progress-hint {
+    margin-top: 5px;
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--muted-text);
+}
+
+@media (max-width: 480px) {
+    .rank-progress {
+        max-width: 100%;
+    }
+
+    .rank-progress-meta {
+        flex-direction: column;
+        gap: 2px;
+    }
+}
+
 /* ==================================================
    Buttons - Use .button-1, .button-2, .button-3 classes in HTML
 ================================================== */
