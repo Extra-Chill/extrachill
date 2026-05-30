@@ -301,3 +301,37 @@ function extrachill_get_analytics_event_stats( $event_type, $days = 30, $blog_id
 		'by_context' => $by_context,
 	);
 }
+
+/**
+ * Get the distinct event types present in the events table.
+ *
+ * @return string[] Event type identifiers ordered ascending.
+ */
+function extrachill_get_analytics_event_types() {
+	global $wpdb;
+
+	$table_name = extrachill_analytics_events_table();
+
+	$event_types = $wpdb->get_col(
+		"SELECT DISTINCT event_type FROM {$table_name} ORDER BY event_type ASC"
+	);
+
+	return array_map( 'strval', (array) $event_types );
+}
+
+/**
+ * Get the distinct blog IDs that have recorded events.
+ *
+ * @return int[] Blog IDs ordered ascending.
+ */
+function extrachill_get_analytics_blog_ids() {
+	global $wpdb;
+
+	$table_name = extrachill_analytics_events_table();
+
+	$blog_ids = $wpdb->get_col(
+		"SELECT DISTINCT blog_id FROM {$table_name} ORDER BY blog_id ASC"
+	);
+
+	return array_map( 'absint', (array) $blog_ids );
+}

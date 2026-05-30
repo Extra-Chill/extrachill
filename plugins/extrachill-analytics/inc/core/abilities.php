@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'wp_abilities_api_categories_init', 'extrachill_analytics_register_category' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_abilities' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_summary_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_meta_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_summary_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_top_urls_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_patterns_ability' );
