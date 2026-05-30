@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.2] - 2026-05-30
+
+### Changed
+- apply phpcbf auto-fixes for WordPress Coding Standards
+
 ## [1.7.1] - 2026-05-30
 
 ### Fixed
