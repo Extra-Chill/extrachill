@@ -98,25 +98,17 @@ function extrachill_shop_register_create_product_ability(): void {
 				if ( ! is_user_logged_in() ) {
 					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
 				}
-				if ( function_exists( 'extrachill_api_shop_user_has_artists' ) ) {
-					if ( ! extrachill_api_shop_user_has_artists() ) {
-						return new WP_Error( 'rest_forbidden', 'You must be an artist to manage products.', array( 'status' => 403 ) );
-					}
+				if ( ! extrachill_shop_user_has_artists() ) {
+					return new WP_Error( 'rest_forbidden', 'You must be an artist to manage products.', array( 'status' => 403 ) );
 				}
 				$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
 				if ( ! $artist_id ) {
 					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
 				}
-				if ( function_exists( 'extrachill_api_shop_user_can_manage_artist' ) ) {
-					if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
-						return new WP_Error( 'rest_forbidden', 'You do not have permission to create products for this artist.', array( 'status' => 403 ) );
-					}
-					return true;
+				if ( ! extrachill_shop_user_can_manage_artist( $artist_id ) ) {
+					return new WP_Error( 'rest_forbidden', 'You do not have permission to create products for this artist.', array( 'status' => 403 ) );
 				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					return ec_can_manage_artist( get_current_user_id(), $artist_id );
-				}
-				return current_user_can( 'manage_options' );
+				return true;
 			},
 			'meta' => array(
 				'show_in_rest' => true,
@@ -192,22 +184,16 @@ function extrachill_shop_ability_create_product( array $input ): array|WP_Error 
 		delete_post_meta( $product_id, '_product_image_gallery' );
 	}
 
-	if ( ! empty( $sizes ) && function_exists( 'extrachill_api_shop_setup_product_variations' ) ) {
-		$variation_result = extrachill_api_shop_setup_product_variations( $product_id, $sizes, $price, $sale_price );
+	if ( ! empty( $sizes ) ) {
+		$variation_result = extrachill_shop_setup_product_variations( $product_id, $sizes, $price, $sale_price );
 		if ( is_wp_error( $variation_result ) ) {
 			return $variation_result;
 		}
 	}
 
-	if ( function_exists( 'extrachill_api_shop_sync_artist_taxonomy' ) ) {
-		extrachill_api_shop_sync_artist_taxonomy( $product_id, $artist_id );
-	}
+	extrachill_shop_sync_product_artist_taxonomy( $product_id, $artist_id );
 
 	update_post_meta( $product_id, '_ships_free', $ships_free ? '1' : '0' );
 
-	if ( function_exists( 'extrachill_shop_ability_build_product_response' ) ) {
-		return extrachill_shop_ability_build_product_response( $product_id );
-	}
-
-	return array( 'id' => $product_id, 'name' => $name, 'status' => 'draft' );
+	return extrachill_shop_ability_build_product_response( $product_id );
 }

@@ -124,16 +124,10 @@ function extrachill_shop_register_update_product_ability(): void {
 				if ( ! $artist_id ) {
 					return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
 				}
-				if ( function_exists( 'extrachill_api_shop_user_can_manage_artist' ) ) {
-					if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
-						return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
-					}
-					return true;
+				if ( ! extrachill_shop_user_can_manage_artist( $artist_id ) ) {
+					return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
 				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					return ec_can_manage_artist( get_current_user_id(), $artist_id );
-				}
-				return false;
+				return true;
 			},
 			'meta' => array(
 				'show_in_rest' => true,
@@ -190,8 +184,8 @@ function extrachill_shop_ability_update_product( array $input ): array|WP_Error 
 
 	// Image reorder (image_ids).
 	$image_ids = $input['image_ids'] ?? null;
-	if ( $image_ids !== null && function_exists( 'extrachill_api_shop_products_set_image_order' ) ) {
-		$reorder_result = extrachill_api_shop_products_set_image_order( $product_id, array_map( 'absint', (array) $image_ids ) );
+	if ( $image_ids !== null ) {
+		$reorder_result = extrachill_shop_product_set_image_order( $product_id, array_map( 'absint', (array) $image_ids ) );
 		if ( is_wp_error( $reorder_result ) ) {
 			return $reorder_result;
 		}
@@ -251,23 +245,18 @@ function extrachill_shop_ability_update_product( array $input ): array|WP_Error 
 	$artist_id = $input['artist_id'] ?? null;
 	if ( $artist_id !== null ) {
 		$artist_id = (int) $artist_id;
-		$can_manage = function_exists( 'extrachill_api_shop_user_can_manage_artist' )
-			? extrachill_api_shop_user_can_manage_artist( $artist_id )
-			: current_user_can( 'manage_options' );
-		if ( $can_manage ) {
+		if ( extrachill_shop_user_can_manage_artist( $artist_id ) ) {
 			update_post_meta( $product_id, '_artist_profile_id', $artist_id );
-			if ( function_exists( 'extrachill_api_shop_sync_artist_taxonomy' ) ) {
-				extrachill_api_shop_sync_artist_taxonomy( $product_id, $artist_id );
-			}
+			extrachill_shop_sync_product_artist_taxonomy( $product_id, $artist_id );
 		}
 	}
 
 	// Sizes / variations.
 	$sizes = $input['sizes'] ?? null;
-	if ( $sizes !== null && function_exists( 'extrachill_api_shop_setup_product_variations' ) ) {
+	if ( $sizes !== null ) {
 		$current_price      = get_post_meta( $product_id, '_regular_price', true );
 		$current_sale_price = get_post_meta( $product_id, '_sale_price', true );
-		$variation_result   = extrachill_api_shop_setup_product_variations( $product_id, (array) $sizes, $current_price, $current_sale_price );
+		$variation_result   = extrachill_shop_setup_product_variations( $product_id, (array) $sizes, $current_price, $current_sale_price );
 		if ( is_wp_error( $variation_result ) ) {
 			return $variation_result;
 		}
@@ -275,8 +264,8 @@ function extrachill_shop_ability_update_product( array $input ): array|WP_Error 
 
 	// Status.
 	$status = $input['status'] ?? null;
-	if ( $status !== null && function_exists( 'extrachill_api_shop_products_set_status' ) ) {
-		$status_result = extrachill_api_shop_products_set_status( $product_id, (string) $status );
+	if ( $status !== null ) {
+		$status_result = extrachill_shop_product_set_status( $product_id, (string) $status );
 		if ( is_wp_error( $status_result ) ) {
 			return $status_result;
 		}
@@ -288,9 +277,5 @@ function extrachill_shop_ability_update_product( array $input ): array|WP_Error 
 		update_post_meta( $product_id, '_ships_free', $ships_free ? '1' : '0' );
 	}
 
-	if ( function_exists( 'extrachill_shop_ability_build_product_response' ) ) {
-		return extrachill_shop_ability_build_product_response( $product_id );
-	}
-
-	return array( 'id' => $product_id );
+	return extrachill_shop_ability_build_product_response( $product_id );
 }

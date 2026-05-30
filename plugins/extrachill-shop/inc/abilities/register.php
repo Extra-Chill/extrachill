@@ -27,6 +27,11 @@ function extrachill_shop_register_ability_category(): void {
 	);
 }
 
+// Shared product write helpers (variation setup, attribute taxonomy, status
+// validation, image ordering, ownership checks). Loaded before the product
+// abilities that call into them.
+require_once __DIR__ . '/product-write-helpers.php';
+
 // Load ability files — each self-registers on wp_abilities_api_init.
 require_once __DIR__ . '/shop-list-orders.php';
 require_once __DIR__ . '/shop-refund-order.php';

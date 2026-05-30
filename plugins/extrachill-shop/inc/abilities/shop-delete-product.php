@@ -60,16 +60,10 @@ function extrachill_shop_register_delete_product_ability(): void {
 				if ( ! $artist_id ) {
 					return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
 				}
-				if ( function_exists( 'extrachill_api_shop_user_can_manage_artist' ) ) {
-					if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
-						return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
-					}
-					return true;
+				if ( ! extrachill_shop_user_can_manage_artist( $artist_id ) ) {
+					return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
 				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					return ec_can_manage_artist( get_current_user_id(), $artist_id );
-				}
-				return false;
+				return true;
 			},
 			'meta' => array(
 				'show_in_rest' => true,
