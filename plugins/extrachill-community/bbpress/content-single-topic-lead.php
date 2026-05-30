@@ -36,6 +36,15 @@ do_action( 'bbp_template_before_lead_topic' ); ?>
 
 				<a href="<?php bbp_topic_permalink(); ?>" class="bbp-topic-permalink">#<?php bbp_topic_id(); ?></a>
 
+				<?php
+				// Render canonical taxonomy badges (location, etc.) via the
+				// theme's single-source-of-truth engine. Guarded so the lead
+				// still works if the theme helper is unavailable.
+				if ( function_exists( 'extrachill_display_taxonomy_badges' ) ) {
+					extrachill_display_taxonomy_badges( bbp_get_topic_id() );
+				}
+				?>
+
 				<?php do_action( 'bbp_theme_before_topic_admin_links' ); ?>
 
 				<?php bbp_topic_admin_links(); ?>

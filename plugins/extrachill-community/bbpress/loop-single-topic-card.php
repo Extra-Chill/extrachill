@@ -52,7 +52,12 @@ if ( ! $topic_id ) {
 				</div><!-- .bbp-meta-upvote -->
 				<a class="bbp-topic-title" href="<?php echo esc_url( bbp_get_topic_permalink( $topic_id ) ); ?>"><?php echo esc_html( bbp_get_topic_title( $topic_id ) ); ?></a>
 				<?php
-				// Forum name display REMOVED from here
+				// Render canonical taxonomy badges (location, etc.) via the
+				// theme's single-source-of-truth engine. Guarded so the card
+				// still works if the theme helper is unavailable.
+				if ( function_exists( 'extrachill_display_taxonomy_badges' ) ) {
+					extrachill_display_taxonomy_badges( $topic_id );
+				}
 				?>
 			</div><!-- bbp-topic-header-inner -->
 		</div><!-- topic-card-header-area -->

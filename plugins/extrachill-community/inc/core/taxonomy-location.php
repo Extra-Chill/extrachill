@@ -14,16 +14,67 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Register location taxonomy for forums
+ * Register location taxonomy for forums and topics
  *
  * Hooks at priority 20 to run after theme registers the taxonomy.
+ *
+ * Forums already act as location hubs. Topics gain the network-registered
+ * hierarchical `location` taxonomy so they can carry a location term and
+ * render the canonical location badge via extrachill_display_taxonomy_badges(),
+ * exactly like posts on every other site in the network.
  */
 function extrachill_community_register_location_for_forums() {
 	if ( taxonomy_exists( 'location' ) ) {
 		register_taxonomy_for_object_type( 'location', 'forum' );
+		register_taxonomy_for_object_type( 'location', 'topic' );
 	}
 }
 add_action( 'init', 'extrachill_community_register_location_for_forums', 20 );
+
+/**
+ * Persist a topic's location term on create/edit.
+ *
+ * Reads the optional `bbp_topic_location` field from the submitted topic form
+ * and assigns the matching EXISTING hierarchical location term. Pick-from-
+ * existing only — no freeform term creation, so the network's curated location
+ * tree never drifts. An empty/zero value clears the topic's location.
+ *
+ * bbPress verifies its own form nonce in bbp_new_topic_handler() /
+ * bbp_edit_topic_handler() before firing these actions, so the POST payload is
+ * already authenticated when we read it here.
+ *
+ * @param int $topic_id The topic ID.
+ */
+function extrachill_community_save_topic_location( $topic_id ) {
+	if ( ! taxonomy_exists( 'location' ) ) {
+		return;
+	}
+
+	// Field is optional and absent on programmatic (ability/REST) topic creation.
+	// Nonce is verified upstream by bbp_new_topic_handler() / bbp_edit_topic_handler()
+	// before these actions fire, so re-checking here would be redundant.
+	if ( ! isset( $_POST['bbp_topic_location'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- bbPress verifies its form nonce before firing bbp_new_topic/bbp_edit_topic.
+		return;
+	}
+
+	$term_id = absint( wp_unslash( $_POST['bbp_topic_location'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- bbPress verifies its form nonce before firing bbp_new_topic/bbp_edit_topic.
+
+	// Empty selection clears the location.
+	if ( 0 === $term_id ) {
+		wp_set_object_terms( $topic_id, array(), 'location' );
+		return;
+	}
+
+	// Pick-from-existing only: the submitted ID must be a real location term.
+	$term = get_term( $term_id, 'location' );
+	if ( ! $term || is_wp_error( $term ) ) {
+		return;
+	}
+
+	wp_set_object_terms( $topic_id, array( $term->term_id ), 'location' );
+}
+add_action( 'bbp_new_topic', 'extrachill_community_save_topic_location', 20 );
+add_action( 'bbp_edit_topic', 'extrachill_community_save_topic_location', 20 );
 
 /**
  * Redirect location archives to the corresponding forum
