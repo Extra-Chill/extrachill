@@ -76,11 +76,11 @@ function ec_get_default_rank_tiers() {
 			'class_name' => 'rank-first-frost',
 		),
 		array(
-			'key'        => 'snowflake',
-			'label'      => 'Snowflake',
+			'key'        => 'powder',
+			'label'      => 'Powder',
 			'min_points' => 130,
 			'icon'       => 'snowflake',
-			'class_name' => 'rank-snowflake',
+			'class_name' => 'rank-powder',
 		),
 		array(
 			'key'        => 'overnight_freeze',

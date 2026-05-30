@@ -34,7 +34,7 @@ class Test_Rank_Tiers extends WP_UnitTestCase {
 			array( 35, 'Puddle' ),
 			array( 69, 'Crisp Air' ),
 			array( 103, 'First Frost' ),
-			array( 130, 'Snowflake' ),
+			array( 130, 'Powder' ),
 			array( 155, 'Overnight Freeze' ),
 			array( 190, 'Icicle' ),
 			array( 232, 'Ice Cube' ),
@@ -155,15 +155,17 @@ class Test_Rank_Tiers extends WP_UnitTestCase {
 	}
 
 	public function test_filter_can_add_a_tier(): void {
+		// Insert a clearly-fictional tier at a threshold that does not collide
+		// with any real tier (between Full Ice Tray 349 and Bag of Ice 523).
 		add_filter(
 			'ec_rank_tiers',
 			static function ( $tiers ) {
 				$tiers[] = array(
-					'key'        => 'snowflake',
-					'label'      => 'Snowflake',
-					'min_points' => 130,
+					'key'        => 'test_tier',
+					'label'      => 'Test Tier',
+					'min_points' => 400,
 					'icon'       => 'snowflake',
-					'class_name' => 'rank-snowflake',
+					'class_name' => 'rank-test-tier',
 				);
 				return $tiers;
 			}
@@ -173,11 +175,11 @@ class Test_Rank_Tiers extends WP_UnitTestCase {
 		ec_flush_rank_tiers_cache();
 
 		$labels = wp_list_pluck( ec_get_rank_tiers(), 'label' );
-		$this->assertContains( 'Snowflake', $labels );
+		$this->assertContains( 'Test Tier', $labels );
 
 		// Inserted tier must slot in by min_points and resolve correctly.
-		$this->assertSame( 'Snowflake', ec_get_rank_for_points( 140 ) );
-		$this->assertSame( 'First Frost', ec_get_rank_for_points( 120 ) );
+		$this->assertSame( 'Test Tier', ec_get_rank_for_points( 450 ) );
+		$this->assertSame( 'Full Ice Tray', ec_get_rank_for_points( 360 ) );
 	}
 
 	public function test_default_ladder_has_29_tiers(): void {
