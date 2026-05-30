@@ -65,29 +65,29 @@ class MarketReportAbilities {
 							'items' => array(
 								'type'       => 'object',
 								'properties' => array(
-									'name'             => array( 'type' => 'string' ),
-									'slug'             => array( 'type' => 'string' ),
-									'term_id'          => array( 'type' => 'integer' ),
-									'events'           => array( 'type' => 'integer' ),
-									'upcoming_events'  => array( 'type' => 'integer' ),
-									'venues'           => array( 'type' => 'integer' ),
-									'flows'            => array(
+									'name'              => array( 'type' => 'string' ),
+									'slug'              => array( 'type' => 'string' ),
+									'term_id'           => array( 'type' => 'integer' ),
+									'events'            => array( 'type' => 'integer' ),
+									'upcoming_events'   => array( 'type' => 'integer' ),
+									'venues'            => array( 'type' => 'integer' ),
+									'flows'             => array(
 										'type'       => 'object',
 										'properties' => array(
 											'venue_scrapers' => array( 'type' => 'integer' ),
-											'ticketmaster'   => array( 'type' => 'integer' ),
-											'dice'           => array( 'type' => 'integer' ),
-											'total'          => array( 'type' => 'integer' ),
+											'ticketmaster' => array( 'type' => 'integer' ),
+											'dice'         => array( 'type' => 'integer' ),
+											'total'        => array( 'type' => 'integer' ),
 										),
 									),
-									'ga'               => array(
+									'ga'                => array(
 										'type'       => 'object',
 										'properties' => array(
 											'sessions'  => array( 'type' => 'integer' ),
 											'pageviews' => array( 'type' => 'integer' ),
 										),
 									),
-									'gsc'              => array(
+									'gsc'               => array(
 										'type'       => 'object',
 										'properties' => array(
 											'clicks'      => array( 'type' => 'integer' ),
@@ -165,10 +165,10 @@ class MarketReportAbilities {
 		$gsc_data = $this->getGSCDataForLocations( $days );
 
 		// 7. Build results.
-		$results       = array();
-		$total_events  = 0;
-		$total_venues  = 0;
-		$total_flows   = 0;
+		$results      = array();
+		$total_events = 0;
+		$total_venues = 0;
+		$total_flows  = 0;
 
 		foreach ( $locations as $term ) {
 			$name     = $term->name;
@@ -199,15 +199,15 @@ class MarketReportAbilities {
 			$opportunity = $this->calculateOpportunityScore( $events, $venues, $flows, $ga, $gsc );
 
 			$results[] = array(
-				'name'             => $name,
-				'slug'             => $slug,
-				'term_id'          => (int) $term->term_id,
-				'events'           => $events,
-				'upcoming_events'  => $upcoming,
-				'venues'           => $venues,
-				'flows'            => $flows,
-				'ga'               => $ga,
-				'gsc'              => $gsc,
+				'name'              => $name,
+				'slug'              => $slug,
+				'term_id'           => (int) $term->term_id,
+				'events'            => $events,
+				'upcoming_events'   => $upcoming,
+				'venues'            => $venues,
+				'flows'             => $flows,
+				'ga'                => $ga,
+				'gsc'               => $gsc,
 				'opportunity_score' => round( $opportunity, 1 ),
 			);
 
@@ -237,9 +237,9 @@ class MarketReportAbilities {
 			'locations' => $results,
 			'summary'   => array(
 				'total_locations' => count( $locations ),
-				'total_events'   => $total_events,
-				'total_venues'   => $total_venues,
-				'total_flows'    => $total_flows,
+				'total_events'    => $total_events,
+				'total_venues'    => $total_venues,
+				'total_flows'     => $total_flows,
 			),
 		);
 	}
@@ -280,7 +280,7 @@ class MarketReportAbilities {
 	private function getVenueCountsByLocation( array $locations ): array {
 		global $wpdb;
 
-		$counts = array();
+		$counts   = array();
 		$term_ids = wp_list_pluck( $locations, 'term_id' );
 
 		if ( empty( $term_ids ) ) {
@@ -382,11 +382,13 @@ class MarketReportAbilities {
 		);
 
 		// Build a name-to-term-id lookup for fallback matching.
-		$all_locations = get_terms( array(
-			'taxonomy'   => 'location',
-			'hide_empty' => false,
-		) );
-		$name_to_id = array();
+		$all_locations = get_terms(
+			array(
+				'taxonomy'   => 'location',
+				'hide_empty' => false,
+			)
+		);
+		$name_to_id    = array();
 		foreach ( $all_locations as $term ) {
 			$name_to_id[ $term->name ] = $term->term_id;
 		}
@@ -464,9 +466,9 @@ class MarketReportAbilities {
 			}
 
 			if ( isset( $city_data[ $key ][ $handler ] ) ) {
-				$city_data[ $key ][ $handler ]++;
+				++$city_data[ $key ][ $handler ];
 			}
-			$city_data[ $key ]['total']++;
+			++$city_data[ $key ]['total'];
 		}
 
 		return $city_data;
@@ -488,14 +490,16 @@ class MarketReportAbilities {
 		$end   = gmdate( 'Y-m-d' );
 		$start = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
 
-		$result = $ga->execute( array(
-			'action'      => 'page_stats',
-			'start_date'  => $start,
-			'end_date'    => $end,
-			'hostname'    => 'events.extrachill.com',
-			'page_filter' => '/location/',
-			'limit'       => 200,
-		) );
+		$result = $ga->execute(
+			array(
+				'action'      => 'page_stats',
+				'start_date'  => $start,
+				'end_date'    => $end,
+				'hostname'    => 'events.extrachill.com',
+				'page_filter' => '/location/',
+				'limit'       => 200,
+			)
+		);
 
 		$data = array();
 
@@ -535,13 +539,15 @@ class MarketReportAbilities {
 		$end   = gmdate( 'Y-m-d' );
 		$start = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
 
-		$result = $gsc->execute( array(
-			'action'     => 'page_stats',
-			'start_date' => $start,
-			'end_date'   => $end,
-			'url_filter' => 'events.extrachill.com/location/',
-			'limit'      => 200,
-		) );
+		$result = $gsc->execute(
+			array(
+				'action'     => 'page_stats',
+				'start_date' => $start,
+				'end_date'   => $end,
+				'url_filter' => 'events.extrachill.com/location/',
+				'limit'      => 200,
+			)
+		);
 
 		$data = array();
 

@@ -285,7 +285,7 @@ class QualifyVerdictsTable {
 			return true;
 		}
 
-		$oldest = end( $rows );
+		$oldest    = end( $rows );
 		$oldest_ts = isset( $oldest['qualified_at'] ) ? strtotime( (string) $oldest['qualified_at'] . ' UTC' ) : false;
 		if ( false === $oldest_ts ) {
 			return false;

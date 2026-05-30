@@ -28,11 +28,19 @@ if ( ! class_exists( __NAMESPACE__ . '\\SystemTask' ) ) {
 		}
 
 		protected function completeJob( int $jobId, array $data ): void {
-			$GLOBALS['ec_test_systemtask_calls'][] = array( 'method' => 'completeJob', 'job_id' => $jobId, 'data' => $data );
+			$GLOBALS['ec_test_systemtask_calls'][] = array(
+				'method' => 'completeJob',
+				'job_id' => $jobId,
+				'data'   => $data,
+			);
 		}
 
 		protected function failJob( int $jobId, string $message ): void {
-			$GLOBALS['ec_test_systemtask_calls'][] = array( 'method' => 'failJob', 'job_id' => $jobId, 'message' => $message );
+			$GLOBALS['ec_test_systemtask_calls'][] = array(
+				'method'  => 'failJob',
+				'job_id'  => $jobId,
+				'message' => $message,
+			);
 		}
 	}
 }

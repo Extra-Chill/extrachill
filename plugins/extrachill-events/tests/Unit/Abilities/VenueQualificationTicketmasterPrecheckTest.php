@@ -50,7 +50,7 @@ class VenueQualificationTicketmasterPrecheckTest extends TestCase {
 	public function test_disqualifies_when_canonical_points_to_tm(): void {
 		// Final URL is on a third-party host BUT the canonical link tag
 		// declares the page is really a TM property.
-		$html = <<<HTML
+		$html   = <<<'HTML'
 <html>
 <head>
   <title>Some Venue</title>
@@ -68,7 +68,7 @@ HTML;
 	}
 
 	public function test_disqualifies_when_jsonld_organization_is_ln(): void {
-		$html = <<<HTML
+		$html   = <<<'HTML'
 <html><head>
 <script type="application/ld+json">
 {
@@ -128,7 +128,7 @@ HTML;
 		// Baseline: a similar-shape aggregator with no TM/LN signals at all
 		// must always pass through. Confirms the analyzer does not over-fire
 		// on incidental schedule-page markup.
-		$html = <<<HTML
+		$html   = <<<'HTML'
 <html>
 <head>
   <title>AEG Presents — Shows</title>
@@ -163,7 +163,7 @@ HTML;
 	}
 
 	public function test_disqualifies_when_meta_site_name_is_ticketmaster(): void {
-		$html = '<html><head><meta property="og:site_name" content="Ticketmaster"/></head><body></body></html>';
+		$html   = '<html><head><meta property="og:site_name" content="Ticketmaster"/></head><body></body></html>';
 		$result = VenueQualificationAbilities::analyzeForTicketmasterMarkers(
 			'https://example.com/foo',
 			$html

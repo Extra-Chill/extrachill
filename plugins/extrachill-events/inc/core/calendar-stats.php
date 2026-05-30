@@ -29,14 +29,20 @@ function extrachill_events_get_calendar_stats(): array {
 	// Requires data-machine-events to be active.
 	// Uses the public integration API. See data-machine-events docs/integration-api.md.
 	if ( ! function_exists( 'data_machine_events_query_events' ) ) {
-		return array( 'events' => 0, 'venues' => 0, 'locations' => 0 );
+		return array(
+			'events'    => 0,
+			'venues'    => 0,
+			'locations' => 0,
+		);
 	}
 
 	// Count upcoming events via query-events public function.
-	$result = data_machine_events_query_events( array(
-		'scope'  => 'upcoming',
-		'fields' => 'count',
-	) );
+	$result = data_machine_events_query_events(
+		array(
+			'scope'  => 'upcoming',
+			'fields' => 'count',
+		)
+	);
 	$events = (int) ( $result['total'] ?? 0 );
 
 	// Count upcoming venues and locations via get-upcoming-counts ability. The
@@ -44,21 +50,29 @@ function extrachill_events_get_calendar_stats(): array {
 	// instantiation guarded by class_exists() is acceptable for this internal
 	// stat panel until a public function is added.
 	if ( ! class_exists( '\DataMachineEvents\Abilities\UpcomingCountAbilities' ) ) {
-		return array( 'events' => $events, 'venues' => 0, 'locations' => 0 );
+		return array(
+			'events'    => $events,
+			'venues'    => 0,
+			'locations' => 0,
+		);
 	}
 	$counts_ability = new \DataMachineEvents\Abilities\UpcomingCountAbilities();
 
-	$venue_result = $counts_ability->executeGetUpcomingCounts( array(
-		'taxonomy'      => 'venue',
-		'exclude_roots' => false,
-	) );
-	$venues = count( $venue_result['terms'] ?? array() );
+	$venue_result = $counts_ability->executeGetUpcomingCounts(
+		array(
+			'taxonomy'      => 'venue',
+			'exclude_roots' => false,
+		)
+	);
+	$venues       = count( $venue_result['terms'] ?? array() );
 
-	$location_result = $counts_ability->executeGetUpcomingCounts( array(
-		'taxonomy'      => 'location',
-		'exclude_roots' => false,
-	) );
-	$locations = count( $location_result['terms'] ?? array() );
+	$location_result = $counts_ability->executeGetUpcomingCounts(
+		array(
+			'taxonomy'      => 'location',
+			'exclude_roots' => false,
+		)
+	);
+	$locations       = count( $location_result['terms'] ?? array() );
 
 	$stats = array(
 		'events'    => $events,
@@ -126,7 +140,11 @@ function extrachill_events_render_calendar_stats(): void {
  *   - venue: events populated, venues = 0, locations = 0
  */
 function extrachill_events_get_term_calendar_stats( string $taxonomy, int $term_id ): array {
-	$zero = array( 'events' => 0, 'venues' => 0, 'locations' => 0 );
+	$zero = array(
+		'events'    => 0,
+		'venues'    => 0,
+		'locations' => 0,
+	);
 
 	if ( ! in_array( $taxonomy, array( 'artist', 'location', 'venue' ), true ) ) {
 		return $zero;
@@ -146,12 +164,14 @@ function extrachill_events_get_term_calendar_stats( string $taxonomy, int $term_
 	}
 
 	// Events count: events tagged with this term that are upcoming.
-	$events_result = data_machine_events_query_events( array(
-		'scope'       => 'upcoming',
-		'fields'      => 'count',
-		'tax_filters' => array( $taxonomy => array( $term_id ) ),
-	) );
-	$events = (int) ( $events_result['total'] ?? 0 );
+	$events_result = data_machine_events_query_events(
+		array(
+			'scope'       => 'upcoming',
+			'fields'      => 'count',
+			'tax_filters' => array( $taxonomy => array( $term_id ) ),
+		)
+	);
+	$events        = (int) ( $events_result['total'] ?? 0 );
 
 	$venues    = 0;
 	$locations = 0;
@@ -163,20 +183,24 @@ function extrachill_events_get_term_calendar_stats( string $taxonomy, int $term_
 
 		// Venues count for artist + location archives.
 		if ( 'artist' === $taxonomy || 'location' === $taxonomy ) {
-			$venue_result = $counts_ability->executeGetUpcomingCounts( array(
-				'taxonomy'        => 'venue',
-				'exclude_roots'   => false,
-				'filter_taxonomy' => $taxonomy,
-				'filter_term_id'  => $term_id,
-			) );
+			$venue_result = $counts_ability->executeGetUpcomingCounts(
+				array(
+					'taxonomy'        => 'venue',
+					'exclude_roots'   => false,
+					'filter_taxonomy' => $taxonomy,
+					'filter_term_id'  => $term_id,
+				)
+			);
 
 			if ( is_wp_error( $venue_result ) ) {
-				error_log( sprintf(
-					'[extrachill-events] term calendar stats: venue count failed for %s=%d: %s',
-					$taxonomy,
-					$term_id,
-					$venue_result->get_error_message()
-				) );
+				error_log(
+					sprintf(
+						'[extrachill-events] term calendar stats: venue count failed for %s=%d: %s',
+						$taxonomy,
+						$term_id,
+						$venue_result->get_error_message()
+					)
+				);
 			} else {
 				$venues = count( $venue_result['terms'] ?? array() );
 			}
@@ -184,20 +208,24 @@ function extrachill_events_get_term_calendar_stats( string $taxonomy, int $term_
 
 		// Locations count for artist archives only.
 		if ( 'artist' === $taxonomy ) {
-			$location_result = $counts_ability->executeGetUpcomingCounts( array(
-				'taxonomy'        => 'location',
-				'exclude_roots'   => false,
-				'filter_taxonomy' => $taxonomy,
-				'filter_term_id'  => $term_id,
-			) );
+			$location_result = $counts_ability->executeGetUpcomingCounts(
+				array(
+					'taxonomy'        => 'location',
+					'exclude_roots'   => false,
+					'filter_taxonomy' => $taxonomy,
+					'filter_term_id'  => $term_id,
+				)
+			);
 
 			if ( is_wp_error( $location_result ) ) {
-				error_log( sprintf(
-					'[extrachill-events] term calendar stats: location count failed for %s=%d: %s',
-					$taxonomy,
-					$term_id,
-					$location_result->get_error_message()
-				) );
+				error_log(
+					sprintf(
+						'[extrachill-events] term calendar stats: location count failed for %s=%d: %s',
+						$taxonomy,
+						$term_id,
+						$location_result->get_error_message()
+					)
+				);
 			} else {
 				$locations = count( $location_result['terms'] ?? array() );
 			}

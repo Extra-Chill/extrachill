@@ -34,7 +34,7 @@ class RoundupPublishHandler extends PublishHandler {
 			false,
 			null,
 			RoundupPublishSettings::class,
-			function($tools, $handler_slug, $handler_config) {
+			function ( $tools, $handler_slug, $handler_config ) {
 				if ( 'roundup_publish' === $handler_slug ) {
 					$tools['roundup_publish'] = array(
 						'class'       => self::class,
@@ -114,9 +114,12 @@ class RoundupPublishHandler extends PublishHandler {
 			);
 		}
 
-		$upload_result = \wp_invoke_ability( 'extrachill/upload-images', array(
-			'images' => $images_input,
-		) );
+		$upload_result = \wp_invoke_ability(
+			'extrachill/upload-images',
+			array(
+				'images' => $images_input,
+			)
+		);
 
 		if ( ! $upload_result['success'] || empty( $upload_result['attachments'] ) ) {
 			return $this->errorResponse(
@@ -129,11 +132,14 @@ class RoundupPublishHandler extends PublishHandler {
 
 		$post_content = $this->build_post_content_blocks( $upload_result['attachments'], $engine_data, $instagram_caption );
 
-		$post_result = \wp_invoke_ability( 'extrachill/post-create', array(
-			'title'   => $title,
-			'content' => $post_content,
-			'status'  => $handler_config['post_status'] ?? 'draft',
-		) );
+		$post_result = \wp_invoke_ability(
+			'extrachill/post-create',
+			array(
+				'title'   => $title,
+				'content' => $post_content,
+				'status'  => $handler_config['post_status'] ?? 'draft',
+			)
+		);
 
 		if ( ! $post_result['success'] ) {
 			return $this->errorResponse(

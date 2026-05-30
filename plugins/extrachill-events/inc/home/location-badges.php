@@ -32,9 +32,12 @@ if ( empty( $location_counts ) || ! is_array( $location_counts ) ) {
 }
 
 $min_events      = apply_filters( 'extrachill_events_badge_min_count', 20 );
-$location_counts = array_filter( $location_counts, function ( $location ) use ( $min_events ) {
-	return $location['count'] >= $min_events;
-} );
+$location_counts = array_filter(
+	$location_counts,
+	function ( $location ) use ( $min_events ) {
+		return $location['count'] >= $min_events;
+	}
+);
 
 if ( empty( $location_counts ) ) {
 	return;

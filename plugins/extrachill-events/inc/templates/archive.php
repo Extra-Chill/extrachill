@@ -82,7 +82,8 @@ extrachill_breadcrumbs();
 			extrachill_events_render_scope_nav( $term, '' );
 		}
 		?>
-	<?php elseif ( is_tax( 'artist' ) ) :
+		<?php
+	elseif ( is_tax( 'artist' ) ) :
 		$term = get_queried_object();
 		?>
 		<header class="taxonomy-archive-header artist-archive-header">

@@ -18,16 +18,16 @@ $defaults   = array(
 );
 $attributes = wp_parse_args( $attributes, $defaults );
 
-$headline        = $attributes['headline'] ?? '';
-$description     = $attributes['description'] ?? '';
-$success_message = $attributes['successMessage'] ?? '';
-$button_label    = $attributes['buttonLabel'] ? $attributes['buttonLabel'] : __( 'Send Submission', 'data-machine-events' );
-$system_prompt   = $attributes['systemPrompt'] ?? '';
-$endpoint        = esc_url( rest_url( 'extrachill/v1/event-submissions' ) );
+$headline         = $attributes['headline'] ?? '';
+$description      = $attributes['description'] ?? '';
+$success_message  = $attributes['successMessage'] ?? '';
+$button_label     = $attributes['buttonLabel'] ? $attributes['buttonLabel'] : __( 'Send Submission', 'data-machine-events' );
+$system_prompt    = $attributes['systemPrompt'] ?? '';
+$endpoint         = esc_url( rest_url( 'extrachill/v1/event-submissions' ) );
 $preview_endpoint = esc_url( rest_url( 'datamachine/v1/artist-url/preview' ) );
 $submit_endpoint  = esc_url( rest_url( 'datamachine/v1/artist-url/submit' ) );
 $rest_nonce       = wp_create_nonce( 'wp_rest' );
-$form_id         = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-event-form-' ) : 'ec-event-form-' . uniqid();
+$form_id          = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-event-form-' ) : 'ec-event-form-' . uniqid();
 
 if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 	ec_enqueue_turnstile_script();

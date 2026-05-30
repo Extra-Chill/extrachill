@@ -24,7 +24,7 @@ function extrachill_events_get_venue_coordinates( int $term_id ): ?array {
 		return null;
 	}
 
-	$venue_data = data_machine_events_get_venue_data( $term_id );
+	$venue_data  = data_machine_events_get_venue_data( $term_id );
 	$coordinates = $venue_data['coordinates'] ?? '';
 
 	if ( empty( $coordinates ) || strpos( $coordinates, ',' ) === false ) {
@@ -56,11 +56,13 @@ function extrachill_events_get_upcoming_venue_event_count( int $term_id ): int {
 		return 0;
 	}
 
-	$result = data_machine_events_query_events( array(
-		'scope'       => 'upcoming',
-		'tax_filters' => array( 'venue' => array( $term_id ) ),
-		'fields'      => 'count',
-	) );
+	$result = data_machine_events_query_events(
+		array(
+			'scope'       => 'upcoming',
+			'tax_filters' => array( 'venue' => array( $term_id ) ),
+			'fields'      => 'count',
+		)
+	);
 
 	return (int) ( $result['total'] ?? 0 );
 }

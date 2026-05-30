@@ -50,9 +50,14 @@ class QualifyVerdictsTablePauseConfirmationTest extends TestCase {
 
 	public function test_returns_false_for_qualified_structured_verdict(): void {
 		$table = new QualifyVerdictsTable();
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::QUALIFIED_STRUCTURED, 'hours_ago' => 0 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::QUALIFIED_STRUCTURED,
+					'hours_ago' => 0,
+				),
+			)
+		);
 		$this->assertFalse(
 			$table->meets_pause_confirmation( str_repeat( 'a', 40 ), QualifyVerdict::QUALIFIED_STRUCTURED )
 		);
@@ -63,23 +68,44 @@ class QualifyVerdictsTablePauseConfirmationTest extends TestCase {
 		$hash  = str_repeat( 'b', 40 );
 
 		// Only one row — not enough.
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::EXTRACTION_GAP, 'hours_ago' => 60 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::EXTRACTION_GAP,
+					'hours_ago' => 60,
+				),
+			)
+		);
 		$this->assertFalse( $table->meets_pause_confirmation( $hash, QualifyVerdict::EXTRACTION_GAP ) );
 
 		// Two rows but oldest is only 12h old — window not satisfied.
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::EXTRACTION_GAP, 'hours_ago' => 0 ),
-			array( 'verdict' => QualifyVerdict::EXTRACTION_GAP, 'hours_ago' => 12 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::EXTRACTION_GAP,
+					'hours_ago' => 0,
+				),
+				array(
+					'verdict'   => QualifyVerdict::EXTRACTION_GAP,
+					'hours_ago' => 12,
+				),
+			)
+		);
 		$this->assertFalse( $table->meets_pause_confirmation( $hash, QualifyVerdict::EXTRACTION_GAP ) );
 
 		// Two rows and oldest is 60h old — confirmed.
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::EXTRACTION_GAP, 'hours_ago' => 1 ),
-			array( 'verdict' => QualifyVerdict::EXTRACTION_GAP, 'hours_ago' => 60 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::EXTRACTION_GAP,
+					'hours_ago' => 1,
+				),
+				array(
+					'verdict'   => QualifyVerdict::EXTRACTION_GAP,
+					'hours_ago' => 60,
+				),
+			)
+		);
 		$this->assertTrue( $table->meets_pause_confirmation( $hash, QualifyVerdict::EXTRACTION_GAP ) );
 	}
 
@@ -87,10 +113,18 @@ class QualifyVerdictsTablePauseConfirmationTest extends TestCase {
 		$table = new QualifyVerdictsTable();
 		$hash  = str_repeat( 'c', 40 );
 
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::EXTRACTION_GAP, 'hours_ago' => 1 ),
-			array( 'verdict' => QualifyVerdict::QUALIFIED_STRUCTURED, 'hours_ago' => 50 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::EXTRACTION_GAP,
+					'hours_ago' => 1,
+				),
+				array(
+					'verdict'   => QualifyVerdict::QUALIFIED_STRUCTURED,
+					'hours_ago' => 50,
+				),
+			)
+		);
 
 		$this->assertFalse( $table->meets_pause_confirmation( $hash, QualifyVerdict::EXTRACTION_GAP ) );
 	}
@@ -100,44 +134,84 @@ class QualifyVerdictsTablePauseConfirmationTest extends TestCase {
 		$hash  = str_repeat( 'd', 40 );
 
 		// Only two rows — short of N=3.
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::BOT_BLOCKED, 'hours_ago' => 1 ),
-			array( 'verdict' => QualifyVerdict::BOT_BLOCKED, 'hours_ago' => 200 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::BOT_BLOCKED,
+					'hours_ago' => 1,
+				),
+				array(
+					'verdict'   => QualifyVerdict::BOT_BLOCKED,
+					'hours_ago' => 200,
+				),
+			)
+		);
 		$this->assertFalse( $table->meets_pause_confirmation( $hash, QualifyVerdict::BOT_BLOCKED ) );
 
 		// Three rows but window only 100h — short of 168h.
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::BOT_BLOCKED, 'hours_ago' => 1 ),
-			array( 'verdict' => QualifyVerdict::BOT_BLOCKED, 'hours_ago' => 50 ),
-			array( 'verdict' => QualifyVerdict::BOT_BLOCKED, 'hours_ago' => 100 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::BOT_BLOCKED,
+					'hours_ago' => 1,
+				),
+				array(
+					'verdict'   => QualifyVerdict::BOT_BLOCKED,
+					'hours_ago' => 50,
+				),
+				array(
+					'verdict'   => QualifyVerdict::BOT_BLOCKED,
+					'hours_ago' => 100,
+				),
+			)
+		);
 		$this->assertFalse( $table->meets_pause_confirmation( $hash, QualifyVerdict::BOT_BLOCKED ) );
 
 		// Three matching rows and oldest beyond 168h — confirmed.
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::BOT_BLOCKED, 'hours_ago' => 1 ),
-			array( 'verdict' => QualifyVerdict::BOT_BLOCKED, 'hours_ago' => 80 ),
-			array( 'verdict' => QualifyVerdict::BOT_BLOCKED, 'hours_ago' => 200 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::BOT_BLOCKED,
+					'hours_ago' => 1,
+				),
+				array(
+					'verdict'   => QualifyVerdict::BOT_BLOCKED,
+					'hours_ago' => 80,
+				),
+				array(
+					'verdict'   => QualifyVerdict::BOT_BLOCKED,
+					'hours_ago' => 200,
+				),
+			)
+		);
 		$this->assertTrue( $table->meets_pause_confirmation( $hash, QualifyVerdict::BOT_BLOCKED ) );
 	}
 
 	public function test_reservation_only_pauses_on_single_verdict(): void {
 		$table = new QualifyVerdictsTable();
 		$hash  = str_repeat( 'e', 40 );
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::RESERVATION_ONLY, 'hours_ago' => 0 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::RESERVATION_ONLY,
+					'hours_ago' => 0,
+				),
+			)
+		);
 		$this->assertTrue( $table->meets_pause_confirmation( $hash, QualifyVerdict::RESERVATION_ONLY ) );
 	}
 
 	public function test_covered_elsewhere_pauses_on_single_verdict(): void {
 		$table = new QualifyVerdictsTable();
 		$hash  = str_repeat( 'f', 40 );
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::COVERED_ELSEWHERE, 'hours_ago' => 0 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::COVERED_ELSEWHERE,
+					'hours_ago' => 0,
+				),
+			)
+		);
 		$this->assertTrue( $table->meets_pause_confirmation( $hash, QualifyVerdict::COVERED_ELSEWHERE ) );
 	}
 
@@ -148,10 +222,18 @@ class QualifyVerdictsTablePauseConfirmationTest extends TestCase {
 
 	public function test_latest_verdicts_for_url_returns_rows(): void {
 		$table = new QualifyVerdictsTable();
-		$this->seed( array(
-			array( 'verdict' => QualifyVerdict::EXTRACTION_GAP, 'hours_ago' => 1 ),
-			array( 'verdict' => QualifyVerdict::EXTRACTION_GAP, 'hours_ago' => 50 ),
-		) );
+		$this->seed(
+			array(
+				array(
+					'verdict'   => QualifyVerdict::EXTRACTION_GAP,
+					'hours_ago' => 1,
+				),
+				array(
+					'verdict'   => QualifyVerdict::EXTRACTION_GAP,
+					'hours_ago' => 50,
+				),
+			)
+		);
 
 		$rows = $table->latest_verdicts_for_url( str_repeat( 'g', 40 ), 5 );
 		$this->assertCount( 2, $rows );

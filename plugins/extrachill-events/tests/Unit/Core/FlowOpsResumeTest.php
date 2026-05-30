@@ -42,9 +42,9 @@ class FlowOpsResumeTest extends TestCase {
 		require_once __DIR__ . '/Stubs/flowops-resume-stubs.php';
 		require_once dirname( __DIR__, 3 ) . '/inc/Cli/FlowOps.php';
 
-		$GLOBALS['wpdb']                       = new FlowOpsFakeWpdb();
-		$GLOBALS['ec_test_log_entries']        = array();
-		$GLOBALS['ec_test_async_actions']      = array();
+		$GLOBALS['wpdb']                  = new FlowOpsFakeWpdb();
+		$GLOBALS['ec_test_log_entries']   = array();
+		$GLOBALS['ec_test_async_actions'] = array();
 	}
 
 	protected function tearDown(): void {
@@ -116,20 +116,25 @@ class FlowOpsResumeTest extends TestCase {
 	}
 
 	private function find_log_entries( string $action ): array {
-		return array_values( array_filter(
-			$GLOBALS['ec_test_log_entries'],
-			fn( $entry ) => ( $entry['context']['action'] ?? null ) === $action
-		) );
+		return array_values(
+			array_filter(
+				$GLOBALS['ec_test_log_entries'],
+				fn( $entry ) => ( $entry['context']['action'] ?? null ) === $action
+			)
+		);
 	}
 
 	public function test_resume_propagates_events_url_when_changed_within_host(): void {
 		$this->seed_paused_flow( 100, 'https://venue.com/calendar' );
 
-		FlowOps::resume_flow_from_qualified( 100, array(
-			'verdict'     => 'qualified_structured',
-			'events_url'  => 'https://venue.com/events',
-			'event_count' => 5,
-		) );
+		FlowOps::resume_flow_from_qualified(
+			100,
+			array(
+				'verdict'     => 'qualified_structured',
+				'events_url'  => 'https://venue.com/events',
+				'event_count' => 5,
+			)
+		);
 
 		$patched = $this->captured_flow_config( 100 );
 		$this->assertNotNull( $patched, 'flow_config must be included in the update' );
@@ -149,10 +154,13 @@ class FlowOpsResumeTest extends TestCase {
 	public function test_resume_skips_propagation_when_events_url_matches(): void {
 		$this->seed_paused_flow( 101, 'https://venue.com/events' );
 
-		FlowOps::resume_flow_from_qualified( 101, array(
-			'verdict'    => 'qualified_structured',
-			'events_url' => 'https://venue.com/events',
-		) );
+		FlowOps::resume_flow_from_qualified(
+			101,
+			array(
+				'verdict'    => 'qualified_structured',
+				'events_url' => 'https://venue.com/events',
+			)
+		);
 
 		$update = $this->last_update( 101 );
 		$this->assertArrayNotHasKey(
@@ -167,10 +175,13 @@ class FlowOpsResumeTest extends TestCase {
 	public function test_resume_skips_propagation_when_events_url_empty(): void {
 		$this->seed_paused_flow( 102, 'https://venue.com/calendar' );
 
-		FlowOps::resume_flow_from_qualified( 102, array(
-			'verdict' => 'qualified_structured',
+		FlowOps::resume_flow_from_qualified(
+			102,
+			array(
+				'verdict' => 'qualified_structured',
 			// no events_url key at all
-		) );
+			)
+		);
 
 		$update = $this->last_update( 102 );
 		$this->assertArrayNotHasKey( 'flow_config', $update['data'] );
@@ -180,10 +191,13 @@ class FlowOpsResumeTest extends TestCase {
 	public function test_resume_skips_propagation_when_cross_host(): void {
 		$this->seed_paused_flow( 103, 'https://venue.com/calendar' );
 
-		FlowOps::resume_flow_from_qualified( 103, array(
-			'verdict'    => 'qualified_structured',
-			'events_url' => 'https://different-host.com/events',
-		) );
+		FlowOps::resume_flow_from_qualified(
+			103,
+			array(
+				'verdict'    => 'qualified_structured',
+				'events_url' => 'https://different-host.com/events',
+			)
+		);
 
 		$update = $this->last_update( 103 );
 		$this->assertArrayNotHasKey(
@@ -216,10 +230,13 @@ class FlowOpsResumeTest extends TestCase {
 			)
 		);
 
-		FlowOps::resume_flow_from_qualified( 104, array(
-			'verdict'    => 'qualified_structured',
-			'events_url' => 'https://venue.com/events',
-		) );
+		FlowOps::resume_flow_from_qualified(
+			104,
+			array(
+				'verdict'    => 'qualified_structured',
+				'events_url' => 'https://venue.com/events',
+			)
+		);
 
 		$patched = $this->captured_flow_config( 104 );
 		$this->assertNotNull( $patched );
@@ -238,10 +255,13 @@ class FlowOpsResumeTest extends TestCase {
 	public function test_resume_logs_source_url_change(): void {
 		$this->seed_paused_flow( 105, 'https://venue.com/calendar' );
 
-		FlowOps::resume_flow_from_qualified( 105, array(
-			'verdict'    => 'qualified_structured',
-			'events_url' => 'https://venue.com/events',
-		) );
+		FlowOps::resume_flow_from_qualified(
+			105,
+			array(
+				'verdict'    => 'qualified_structured',
+				'events_url' => 'https://venue.com/events',
+			)
+		);
 
 		$entries = $this->find_log_entries( 'flow_source_url_updated_by_qualify' );
 		$this->assertCount( 1, $entries );
@@ -272,16 +292,22 @@ class FlowOpsResumeTest extends TestCase {
 			'prior_interval' => 'daily',
 			'paused_reason'  => 'unreachable',
 		);
-		$GLOBALS['wpdb']->seed_row( 106, array(
-			'flow_id'           => 106,
-			'flow_config'       => json_encode( $flow_config ),
-			'scheduling_config' => json_encode( $scheduling ),
-		) );
+		$GLOBALS['wpdb']->seed_row(
+			106,
+			array(
+				'flow_id'           => 106,
+				'flow_config'       => json_encode( $flow_config ),
+				'scheduling_config' => json_encode( $scheduling ),
+			)
+		);
 
-		FlowOps::resume_flow_from_qualified( 106, array(
-			'verdict'    => 'qualified_structured',
-			'events_url' => 'https://venue.com/events',
-		) );
+		FlowOps::resume_flow_from_qualified(
+			106,
+			array(
+				'verdict'    => 'qualified_structured',
+				'events_url' => 'https://venue.com/events',
+			)
+		);
 
 		$patched = $this->captured_flow_config( 106 );
 		$this->assertNotNull( $patched );

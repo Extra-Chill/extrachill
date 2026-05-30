@@ -88,7 +88,7 @@ class RepairFlowLocationsCommand {
 		// intentionally do NOT pre-filter on "ai_decides" — a stale
 		// string value (e.g. a pipeline name that no longer matches a
 		// real term) is also broken and we want the report to catch it.
-		$where  = "f.flow_config LIKE %s";
+		$where  = 'f.flow_config LIKE %s';
 		$params = array( '%upsert_event%' );
 
 		if ( $flow_id > 0 ) {
@@ -116,18 +116,18 @@ class RepairFlowLocationsCommand {
 
 		$db_flows = new Flows();
 
-		$report      = array();
-		$totals      = array(
-			'scanned'           => 0,
-			'needs_repair'      => 0,
-			'repaired'          => 0,
-			'skipped_clean'     => 0,
-			'skipped_unresolved'=> 0,
-			'failed'            => 0,
+		$report = array();
+		$totals = array(
+			'scanned'            => 0,
+			'needs_repair'       => 0,
+			'repaired'           => 0,
+			'skipped_clean'      => 0,
+			'skipped_unresolved' => 0,
+			'failed'             => 0,
 		);
 
 		foreach ( $rows as $row ) {
-			$totals['scanned']++;
+			++$totals['scanned'];
 
 			$fid           = (int) $row['flow_id'];
 			$flow_name     = (string) $row['flow_name'];
@@ -184,14 +184,14 @@ class RepairFlowLocationsCommand {
 			}
 
 			if ( ! $needs_repair ) {
-				$totals['skipped_clean']++;
+				++$totals['skipped_clean'];
 				continue;
 			}
 
-			$totals['needs_repair']++;
+			++$totals['needs_repair'];
 
 			if ( '' === $proposed ) {
-				$totals['skipped_unresolved']++;
+				++$totals['skipped_unresolved'];
 				$report[] = array(
 					'flow_id'       => $fid,
 					'flow_name'     => $flow_name,
@@ -223,7 +223,7 @@ class RepairFlowLocationsCommand {
 			$coerce = FlowLocationGuard::coerceUpsertEventLocation( $flow_record['flow_config'], $proposed );
 
 			if ( empty( $coerce['coerced'] ) ) {
-				$totals['skipped_clean']++;
+				++$totals['skipped_clean'];
 				$report[] = array(
 					'flow_id'       => $fid,
 					'flow_name'     => $flow_name,
@@ -240,7 +240,7 @@ class RepairFlowLocationsCommand {
 			$ok = $db_flows->update_flow( $fid, array( 'flow_config' => $coerce['config'] ) );
 
 			if ( $ok ) {
-				$totals['repaired']++;
+				++$totals['repaired'];
 				$report[] = array(
 					'flow_id'       => $fid,
 					'flow_name'     => $flow_name,
@@ -252,7 +252,7 @@ class RepairFlowLocationsCommand {
 					'reason'        => 'flow_config_written',
 				);
 			} else {
-				$totals['failed']++;
+				++$totals['failed'];
 				$report[] = array(
 					'flow_id'       => $fid,
 					'flow_name'     => $flow_name,
@@ -290,15 +290,17 @@ class RepairFlowLocationsCommand {
 		);
 
 		\WP_CLI::log( '' );
-		\WP_CLI::log( sprintf(
-			'Summary: scanned=%d needs_repair=%d repaired=%d skipped_clean=%d skipped_unresolved=%d failed=%d',
-			$totals['scanned'],
-			$totals['needs_repair'],
-			$totals['repaired'],
-			$totals['skipped_clean'],
-			$totals['skipped_unresolved'],
-			$totals['failed']
-		) );
+		\WP_CLI::log(
+			sprintf(
+				'Summary: scanned=%d needs_repair=%d repaired=%d skipped_clean=%d skipped_unresolved=%d failed=%d',
+				$totals['scanned'],
+				$totals['needs_repair'],
+				$totals['repaired'],
+				$totals['skipped_clean'],
+				$totals['skipped_unresolved'],
+				$totals['failed']
+			)
+		);
 
 		if ( ! $commit ) {
 			\WP_CLI::log( '' );

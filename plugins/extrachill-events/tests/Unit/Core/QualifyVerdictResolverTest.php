@@ -19,14 +19,19 @@ class QualifyVerdictResolverTest extends TestCase {
 
 	public function test_ticketmaster_precheck_wins_first(): void {
 		$fingerprint = array(
-			'http_status'          => 200,
+			'http_status'           => 200,
 			'ticketmaster_precheck' => array(
 				'disqualified' => true,
 				'matched'      => 'ticketmaster.com (in page HTML)',
 			),
 			// Even with a structured extraction, TM precheck still wins.
-			'extractor_attempts'   => array(
-				array( 'name' => 'JsonLdExtractor', 'exists' => true, 'ran' => true, 'events' => 5 ),
+			'extractor_attempts'    => array(
+				array(
+					'name'   => 'JsonLdExtractor',
+					'exists' => true,
+					'ran'    => true,
+					'events' => 5,
+				),
 			),
 		);
 
@@ -99,8 +104,21 @@ class QualifyVerdictResolverTest extends TestCase {
 			'http_status'        => 200,
 			'final_url'          => 'https://example.com/calendar',
 			'extractor_attempts' => array(
-				array( 'name' => 'BandzoogleExtractor', 'exists' => true, 'matched' => true, 'ran' => true, 'events' => 12, 'events_url' => 'https://example.com/calendar' ),
-				array( 'name' => 'JsonLdExtractor', 'exists' => true, 'matched' => false, 'ran' => true, 'events' => 0 ),
+				array(
+					'name'       => 'BandzoogleExtractor',
+					'exists'     => true,
+					'matched'    => true,
+					'ran'        => true,
+					'events'     => 12,
+					'events_url' => 'https://example.com/calendar',
+				),
+				array(
+					'name'    => 'JsonLdExtractor',
+					'exists'  => true,
+					'matched' => false,
+					'ran'     => true,
+					'events'  => 0,
+				),
 			),
 		);
 
@@ -119,9 +137,17 @@ class QualifyVerdictResolverTest extends TestCase {
 		$fingerprint = array(
 			'http_status'        => 200,
 			'extractor_attempts' => array(
-				array( 'name' => 'JsonLdExtractor', 'exists' => true, 'ran' => true, 'events' => 1 ),
+				array(
+					'name'   => 'JsonLdExtractor',
+					'exists' => true,
+					'ran'    => true,
+					'events' => 1,
+				),
 			),
-			'structured_data'    => array( 'jsonld_events' => 1, 'jsonld_event_graph_present' => true ),
+			'structured_data'    => array(
+				'jsonld_events'              => 1,
+				'jsonld_event_graph_present' => true,
+			),
 		);
 
 		$verdict = QualifyVerdictResolver::resolve( $fingerprint );
@@ -180,7 +206,13 @@ class QualifyVerdictResolverTest extends TestCase {
 				'event_page_shape'           => QualifyVerdict::EVENT_PAGE_SHAPE_LISTING,
 			),
 			'extractor_attempts' => array(
-				array( 'name' => 'JsonLdExtractor', 'exists' => true, 'matched' => true, 'ran' => true, 'events' => 1 ),
+				array(
+					'name'    => 'JsonLdExtractor',
+					'exists'  => true,
+					'matched' => true,
+					'ran'     => true,
+					'events'  => 1,
+				),
 			),
 		);
 
@@ -201,7 +233,13 @@ class QualifyVerdictResolverTest extends TestCase {
 				'event_page_shape'           => QualifyVerdict::EVENT_PAGE_SHAPE_UNKNOWN,
 			),
 			'extractor_attempts' => array(
-				array( 'name' => 'JsonLdExtractor', 'exists' => true, 'matched' => true, 'ran' => true, 'events' => 1 ),
+				array(
+					'name'    => 'JsonLdExtractor',
+					'exists'  => true,
+					'matched' => true,
+					'ran'     => true,
+					'events'  => 1,
+				),
 			),
 		);
 
@@ -244,8 +282,20 @@ class QualifyVerdictResolverTest extends TestCase {
 			'http_status'        => 200,
 			'final_url'          => 'https://example.com/',
 			'extractor_attempts' => array(
-				array( 'name' => 'JsonLdExtractor', 'exists' => true, 'ran' => true, 'events' => 0 ),
-				array( 'name' => 'VisionExtractor', 'exists' => true, 'ran' => true, 'events' => 1, 'source_type' => 'vision_flyer', 'events_url' => 'https://example.com/' ),
+				array(
+					'name'   => 'JsonLdExtractor',
+					'exists' => true,
+					'ran'    => true,
+					'events' => 0,
+				),
+				array(
+					'name'        => 'VisionExtractor',
+					'exists'      => true,
+					'ran'         => true,
+					'events'      => 1,
+					'source_type' => 'vision_flyer',
+					'events_url'  => 'https://example.com/',
+				),
 			),
 		);
 
@@ -260,7 +310,12 @@ class QualifyVerdictResolverTest extends TestCase {
 		$fingerprint = array(
 			'http_status'        => 200,
 			'extractor_attempts' => array(
-				array( 'name' => 'JsonLdExtractor', 'exists' => true, 'ran' => true, 'events' => 0 ),
+				array(
+					'name'   => 'JsonLdExtractor',
+					'exists' => true,
+					'ran'    => true,
+					'events' => 0,
+				),
 			),
 			'structured_data'    => array(
 				'jsonld_events'              => 0,
@@ -282,7 +337,13 @@ class QualifyVerdictResolverTest extends TestCase {
 			'platforms_detected' => array( 'bandzoogle' ),
 			'structured_data'    => array(),
 			'extractor_attempts' => array(
-				array( 'name' => 'BandzoogleExtractor', 'exists' => false, 'matched' => false, 'ran' => false, 'events' => 0 ),
+				array(
+					'name'    => 'BandzoogleExtractor',
+					'exists'  => false,
+					'matched' => false,
+					'ran'     => false,
+					'events'  => 0,
+				),
 			),
 		);
 
@@ -316,7 +377,13 @@ class QualifyVerdictResolverTest extends TestCase {
 			'structured_data'    => array(),
 			'extractor_attempts' => array(
 				// SquarespaceExtractor exists and matched but found nothing.
-				array( 'name' => 'SquarespaceExtractor', 'exists' => true, 'matched' => true, 'ran' => true, 'events' => 0 ),
+				array(
+					'name'    => 'SquarespaceExtractor',
+					'exists'  => true,
+					'matched' => true,
+					'ran'     => true,
+					'events'  => 0,
+				),
 			),
 		);
 

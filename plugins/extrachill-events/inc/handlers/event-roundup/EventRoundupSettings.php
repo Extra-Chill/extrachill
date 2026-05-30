@@ -89,10 +89,12 @@ class EventRoundupSettings extends SettingsHandler {
 			return $options;
 		}
 
-		$result = data_machine_events_query_events( array(
-			'scope'  => 'upcoming',
-			'fields' => 'ids',
-		) );
+		$result = data_machine_events_query_events(
+			array(
+				'scope'  => 'upcoming',
+				'fields' => 'ids',
+			)
+		);
 
 		if ( empty( $result['posts'] ) ) {
 			return $options;

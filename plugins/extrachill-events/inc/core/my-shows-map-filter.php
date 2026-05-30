@@ -77,7 +77,7 @@ function ec_events_my_shows_filter_map_query( array $query_args, array $input = 
 	// Honor stacked filters (defensive — DME may have already populated
 	// include_ids from geo / taxonomy filters earlier in the resolver).
 	if ( isset( $query_args['include_ids'] ) && is_array( $query_args['include_ids'] ) ) {
-		$narrowed = array_values( array_intersect( $query_args['include_ids'], $venue_term_ids ) );
+		$narrowed                  = array_values( array_intersect( $query_args['include_ids'], $venue_term_ids ) );
 		$query_args['include_ids'] = empty( $narrowed ) ? array( 0 ) : $narrowed;
 	} else {
 		$query_args['include_ids'] = $venue_term_ids;
@@ -122,10 +122,14 @@ function ec_events_my_shows_attach_tracked_events( array $venues, array $input =
 		return $venues;
 	}
 
-	$venue_ids = array_values( array_filter( array_map(
-		static fn( $v ) => (int) ( $v['term_id'] ?? 0 ),
-		$venues
-	) ) );
+	$venue_ids = array_values(
+		array_filter(
+			array_map(
+				static fn( $v ) => (int) ( $v['term_id'] ?? 0 ),
+				$venues
+			)
+		)
+	);
 	if ( empty( $venue_ids ) ) {
 		return $venues;
 	}
@@ -134,9 +138,9 @@ function ec_events_my_shows_attach_tracked_events( array $venues, array $input =
 
 	$enriched = array();
 	foreach ( $venues as $venue ) {
-		$term_id = (int) ( $venue['term_id'] ?? 0 );
+		$term_id                           = (int) ( $venue['term_id'] ?? 0 );
 		$venue['upcoming_events_at_venue'] = $events_by_venue[ $term_id ] ?? array();
-		$enriched[] = $venue;
+		$enriched[]                        = $venue;
 	}
 
 	// Re-order by earliest tracked-show date so chronologicalRouteMode
@@ -150,8 +154,8 @@ function ec_events_my_shows_attach_tracked_events( array $venues, array $input =
 				. ' ' . ( $a['upcoming_events_at_venue'][0]['start_time'] ?? '' );
 			$b_first = ( $b['upcoming_events_at_venue'][0]['start_date'] ?? '' )
 				. ' ' . ( $b['upcoming_events_at_venue'][0]['start_time'] ?? '' );
-			$a_key = trim( $a_first );
-			$b_key = trim( $b_first );
+			$a_key   = trim( $a_first );
+			$b_key   = trim( $b_first );
 			if ( '' === $a_key && '' === $b_key ) {
 				return 0;
 			}

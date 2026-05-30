@@ -86,9 +86,9 @@ class BackfillVenueMetaCommand {
 			return;
 		}
 
-		$commit    = ! empty( $assoc_args['commit'] );
-		$venue_id  = isset( $assoc_args['venue-id'] ) ? (int) $assoc_args['venue-id'] : 0;
-		$format    = (string) ( $assoc_args['format'] ?? 'table' );
+		$commit   = ! empty( $assoc_args['commit'] );
+		$venue_id = isset( $assoc_args['venue-id'] ) ? (int) $assoc_args['venue-id'] : 0;
+		$format   = (string) ( $assoc_args['format'] ?? 'table' );
 
 		global $wpdb;
 		$flows_table = $wpdb->prefix . 'datamachine_flows';
@@ -119,14 +119,14 @@ class BackfillVenueMetaCommand {
 
 		$report = array();
 		$totals = array(
-			'flows_scanned'   => 0,
-			'flows_no_venue'  => 0,
-			'flows_no_addr'   => 0,
-			'terms_seen'      => 0,
+			'flows_scanned'      => 0,
+			'flows_no_venue'     => 0,
+			'flows_no_addr'      => 0,
+			'terms_seen'         => 0,
 			'fields_would_write' => 0,
-			'fields_written'  => 0,
-			'fields_skipped'  => 0, // already populated
-			'fields_failed'   => 0,
+			'fields_written'     => 0,
+			'fields_skipped'     => 0, // already populated
+			'fields_failed'      => 0,
 		);
 
 		// De-dupe at the term level — multiple flows can target the
@@ -135,7 +135,7 @@ class BackfillVenueMetaCommand {
 		$seen_terms = array();
 
 		foreach ( $rows as $row ) {
-			$totals['flows_scanned']++;
+			++$totals['flows_scanned'];
 
 			$flow_id   = (int) $row['flow_id'];
 			$flow_name = (string) $row['flow_name'];
@@ -153,7 +153,7 @@ class BackfillVenueMetaCommand {
 
 			$term_id = isset( $uws['venue'] ) ? (int) $uws['venue'] : 0;
 			if ( $term_id <= 0 ) {
-				$totals['flows_no_venue']++;
+				++$totals['flows_no_venue'];
 				continue;
 			}
 
@@ -188,13 +188,13 @@ class BackfillVenueMetaCommand {
 				}
 			}
 			if ( ! $has_addr ) {
-				$totals['flows_no_addr']++;
+				++$totals['flows_no_addr'];
 				continue;
 			}
 
 			if ( ! isset( $seen_terms[ $term_id ] ) ) {
 				$seen_terms[ $term_id ] = true;
-				$totals['terms_seen']++;
+				++$totals['terms_seen'];
 			}
 
 			foreach ( $field_map as $flow_field => $meta_key ) {
@@ -205,7 +205,7 @@ class BackfillVenueMetaCommand {
 
 				$existing = (string) get_term_meta( $term_id, $meta_key, true );
 				if ( '' !== trim( $existing ) ) {
-					$totals['fields_skipped']++;
+					++$totals['fields_skipped'];
 					$report[] = array(
 						'flow_id'   => $flow_id,
 						'flow_name' => $flow_name,
@@ -220,7 +220,7 @@ class BackfillVenueMetaCommand {
 				}
 
 				if ( ! $commit ) {
-					$totals['fields_would_write']++;
+					++$totals['fields_would_write'];
 					$report[] = array(
 						'flow_id'   => $flow_id,
 						'flow_name' => $flow_name,
@@ -236,7 +236,7 @@ class BackfillVenueMetaCommand {
 
 				$ok = update_term_meta( $term_id, $meta_key, $incoming );
 				if ( false === $ok ) {
-					$totals['fields_failed']++;
+					++$totals['fields_failed'];
 					$report[] = array(
 						'flow_id'   => $flow_id,
 						'flow_name' => $flow_name,
@@ -248,7 +248,7 @@ class BackfillVenueMetaCommand {
 						'reason'    => 'update_term_meta_returned_false',
 					);
 				} else {
-					$totals['fields_written']++;
+					++$totals['fields_written'];
 					$report[] = array(
 						'flow_id'   => $flow_id,
 						'flow_name' => $flow_name,
@@ -286,17 +286,19 @@ class BackfillVenueMetaCommand {
 		}
 
 		\WP_CLI::log( '' );
-		\WP_CLI::log( sprintf(
-			'Summary: flows_scanned=%d flows_no_venue=%d flows_no_addr=%d terms_seen=%d would_write=%d written=%d already_set=%d failed=%d',
-			$totals['flows_scanned'],
-			$totals['flows_no_venue'],
-			$totals['flows_no_addr'],
-			$totals['terms_seen'],
-			$totals['fields_would_write'],
-			$totals['fields_written'],
-			$totals['fields_skipped'],
-			$totals['fields_failed']
-		) );
+		\WP_CLI::log(
+			sprintf(
+				'Summary: flows_scanned=%d flows_no_venue=%d flows_no_addr=%d terms_seen=%d would_write=%d written=%d already_set=%d failed=%d',
+				$totals['flows_scanned'],
+				$totals['flows_no_venue'],
+				$totals['flows_no_addr'],
+				$totals['terms_seen'],
+				$totals['fields_would_write'],
+				$totals['fields_written'],
+				$totals['fields_skipped'],
+				$totals['fields_failed']
+			)
+		);
 
 		if ( ! $commit ) {
 			\WP_CLI::log( '' );

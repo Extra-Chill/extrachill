@@ -343,7 +343,7 @@ class AuditPipelinesCommand {
 	 * config (e.g. roundup flows that mention universal_web_scraper in an
 	 * unrelated field).
 	 *
-	 * @param array<string,mixed>                                                                                                          $flow_row Flow DB row.
+	 * @param array<string,mixed>                                                                                                               $flow_row Flow DB row.
 	 * @param array{by_slug: array<string,int>, by_id: array<int,array{name:string,slug:string,config:array,steps_by_key:array<string,array>}>} $pipeline_index Pipeline index.
 	 * @return array<string,mixed>|null
 	 */
@@ -385,18 +385,18 @@ class AuditPipelinesCommand {
 		$state_match = $this->venue_state_matches_pipeline( $venue['state'], $target_pipeline['slug'] );
 
 		return array(
-			'status'              => $state_match ? 'mismatch' : 'name_collision',
-			'flow_id'             => (int) $flow_row['flow_id'],
-			'flow_name'           => (string) $flow_row['flow_name'],
-			'venue_city'          => $venue['city'],
-			'venue_state'         => $venue['state'],
-			'venue_zip'           => $venue['zip'],
-			'current_pipeline_id' => $current_pipeline_id,
-			'current_pipeline'    => $current_pipeline['name'],
+			'status'               => $state_match ? 'mismatch' : 'name_collision',
+			'flow_id'              => (int) $flow_row['flow_id'],
+			'flow_name'            => (string) $flow_row['flow_name'],
+			'venue_city'           => $venue['city'],
+			'venue_state'          => $venue['state'],
+			'venue_zip'            => $venue['zip'],
+			'current_pipeline_id'  => $current_pipeline_id,
+			'current_pipeline'     => $current_pipeline['name'],
 			'expected_pipeline_id' => $target_pipeline_id,
-			'expected_pipeline'   => $target_pipeline['name'],
-			'_flow_config'        => $flow_config,
-			'_target_pipeline'    => $target_pipeline,
+			'expected_pipeline'    => $target_pipeline['name'],
+			'_flow_config'         => $flow_config,
+			'_target_pipeline'     => $target_pipeline,
 		);
 	}
 
@@ -534,23 +534,57 @@ class AuditPipelinesCommand {
 	 */
 	private static function state_abbreviation_map(): array {
 		return array(
-			'AL' => 'Alabama',        'AK' => 'Alaska',          'AZ' => 'Arizona',
-			'AR' => 'Arkansas',        'CA' => 'California',      'CO' => 'Colorado',
-			'CT' => 'Connecticut',     'DE' => 'Delaware',        'DC' => 'District of Columbia',
-			'FL' => 'Florida',         'GA' => 'Georgia',         'HI' => 'Hawaii',
-			'ID' => 'Idaho',           'IL' => 'Illinois',        'IN' => 'Indiana',
-			'IA' => 'Iowa',            'KS' => 'Kansas',          'KY' => 'Kentucky',
-			'LA' => 'Louisiana',       'ME' => 'Maine',           'MD' => 'Maryland',
-			'MA' => 'Massachusetts',   'MI' => 'Michigan',        'MN' => 'Minnesota',
-			'MS' => 'Mississippi',     'MO' => 'Missouri',        'MT' => 'Montana',
-			'NE' => 'Nebraska',        'NV' => 'Nevada',          'NH' => 'New Hampshire',
-			'NJ' => 'New Jersey',      'NM' => 'New Mexico',      'NY' => 'New York',
-			'NC' => 'North Carolina',  'ND' => 'North Dakota',    'OH' => 'Ohio',
-			'OK' => 'Oklahoma',        'OR' => 'Oregon',          'PA' => 'Pennsylvania',
-			'RI' => 'Rhode Island',    'SC' => 'South Carolina',  'SD' => 'South Dakota',
-			'TN' => 'Tennessee',       'TX' => 'Texas',           'UT' => 'Utah',
-			'VT' => 'Vermont',         'VA' => 'Virginia',        'WA' => 'Washington',
-			'WV' => 'West Virginia',   'WI' => 'Wisconsin',       'WY' => 'Wyoming',
+			'AL' => 'Alabama',
+			'AK' => 'Alaska',
+			'AZ' => 'Arizona',
+			'AR' => 'Arkansas',
+			'CA' => 'California',
+			'CO' => 'Colorado',
+			'CT' => 'Connecticut',
+			'DE' => 'Delaware',
+			'DC' => 'District of Columbia',
+			'FL' => 'Florida',
+			'GA' => 'Georgia',
+			'HI' => 'Hawaii',
+			'ID' => 'Idaho',
+			'IL' => 'Illinois',
+			'IN' => 'Indiana',
+			'IA' => 'Iowa',
+			'KS' => 'Kansas',
+			'KY' => 'Kentucky',
+			'LA' => 'Louisiana',
+			'ME' => 'Maine',
+			'MD' => 'Maryland',
+			'MA' => 'Massachusetts',
+			'MI' => 'Michigan',
+			'MN' => 'Minnesota',
+			'MS' => 'Mississippi',
+			'MO' => 'Missouri',
+			'MT' => 'Montana',
+			'NE' => 'Nebraska',
+			'NV' => 'Nevada',
+			'NH' => 'New Hampshire',
+			'NJ' => 'New Jersey',
+			'NM' => 'New Mexico',
+			'NY' => 'New York',
+			'NC' => 'North Carolina',
+			'ND' => 'North Dakota',
+			'OH' => 'Ohio',
+			'OK' => 'Oklahoma',
+			'OR' => 'Oregon',
+			'PA' => 'Pennsylvania',
+			'RI' => 'Rhode Island',
+			'SC' => 'South Carolina',
+			'SD' => 'South Dakota',
+			'TN' => 'Tennessee',
+			'TX' => 'Texas',
+			'UT' => 'Utah',
+			'VT' => 'Vermont',
+			'VA' => 'Virginia',
+			'WA' => 'Washington',
+			'WV' => 'West Virginia',
+			'WI' => 'Wisconsin',
+			'WY' => 'Wyoming',
 		);
 	}
 
@@ -595,8 +629,8 @@ class AuditPipelinesCommand {
 					),
 				);
 			}
-			$new_pipeline_step_id = $target_steps_index[ $key ]['pipeline_step_id'];
-			$new_flow_step_id     = $new_pipeline_step_id . '_' . $flow_id;
+			$new_pipeline_step_id               = $target_steps_index[ $key ]['pipeline_step_id'];
+			$new_flow_step_id                   = $new_pipeline_step_id . '_' . $flow_id;
 			$rewrite_plan[ $old_flow_step_key ] = array(
 				'new_flow_step_id'     => $new_flow_step_id,
 				'new_pipeline_step_id' => $new_pipeline_step_id,
@@ -606,11 +640,11 @@ class AuditPipelinesCommand {
 		// Apply the rewrite into a fresh array so we preserve outer ordering.
 		$new_flow_config = array();
 		foreach ( $flow_config as $old_flow_step_key => $step ) {
-			$plan                          = $rewrite_plan[ $old_flow_step_key ];
-			$step['flow_step_id']          = $plan['new_flow_step_id'];
-			$step['pipeline_step_id']      = $plan['new_pipeline_step_id'];
-			$step['pipeline_id']           = $new_pipeline_id;
-			$step['flow_id']               = $flow_id;
+			$plan                     = $rewrite_plan[ $old_flow_step_key ];
+			$step['flow_step_id']     = $plan['new_flow_step_id'];
+			$step['pipeline_step_id'] = $plan['new_pipeline_step_id'];
+			$step['pipeline_id']      = $new_pipeline_id;
+			$step['flow_id']          = $flow_id;
 			$new_flow_config[ $plan['new_flow_step_id'] ] = $step;
 		}
 

@@ -106,10 +106,10 @@ class RequalifyPendingCommand {
 			$rows = array();
 			foreach ( $candidates as $c ) {
 				$rows[] = array(
-					'url'           => $c['url'],
-					'last_verdict'  => $c['verdict'],
-					'platforms'     => implode( ',', $c['platforms'] ),
-					'qualified_at'  => $c['qualified_at'],
+					'url'          => $c['url'],
+					'last_verdict' => $c['verdict'],
+					'platforms'    => implode( ',', $c['platforms'] ),
+					'qualified_at' => $c['qualified_at'],
 				);
 			}
 			\WP_CLI\Utils\format_items( $format, $rows, array( 'url', 'last_verdict', 'platforms', 'qualified_at' ) );
@@ -124,7 +124,7 @@ class RequalifyPendingCommand {
 			return;
 		}
 
-		$results = array();
+		$results  = array();
 		$progress = \WP_CLI\Utils\make_progress_bar( 'Requalifying', count( $candidates ) );
 		foreach ( $candidates as $c ) {
 			$result = $ability->execute( array( 'url' => $c['url'] ) );

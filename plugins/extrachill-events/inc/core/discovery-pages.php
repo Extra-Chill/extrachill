@@ -32,12 +32,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @var array<string, string>
  */
-define( 'EXTRACHILL_EVENTS_DISCOVERY_SCOPES', array(
-	'today'        => 'Today',
-	'tonight'      => 'Tonight',
-	'this-weekend' => 'This Weekend',
-	'this-week'    => 'This Week',
-) );
+define(
+	'EXTRACHILL_EVENTS_DISCOVERY_SCOPES',
+	array(
+		'today'        => 'Today',
+		'tonight'      => 'Tonight',
+		'this-weekend' => 'This Weekend',
+		'this-week'    => 'This Week',
+	)
+);
 
 // --- Rewrite Rules ---
 
@@ -268,11 +271,13 @@ function extrachill_events_discovery_sitemap_urls( array $urls ): array {
 	}
 
 	// Get all location terms that are cities (leaf nodes with events).
-	$locations = get_terms( array(
-		'taxonomy'   => 'location',
-		'hide_empty' => true,
-		'childless'  => true,
-	) );
+	$locations = get_terms(
+		array(
+			'taxonomy'   => 'location',
+			'hide_empty' => true,
+			'childless'  => true,
+		)
+	);
 
 	if ( is_wp_error( $locations ) || empty( $locations ) ) {
 		return $urls;

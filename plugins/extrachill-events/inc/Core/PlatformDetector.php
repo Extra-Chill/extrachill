@@ -200,7 +200,7 @@ class PlatformDetector {
 				if ( null === $decoded ) {
 					continue;
 				}
-				$count = self::count_event_entries( $decoded );
+				$count                             = self::count_event_entries( $decoded );
 				$out['jsonld_events']             += $count;
 				$out['jsonld_event_graph_present'] = $out['jsonld_event_graph_present'] || $count > 0 || self::has_event_type_anywhere( $decoded );
 			}

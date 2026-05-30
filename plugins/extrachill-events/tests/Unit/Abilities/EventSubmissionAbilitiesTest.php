@@ -102,7 +102,7 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	public function test_empty_event_title_returns_error(): void {
-		$input = $this->valid_input;
+		$input                = $this->valid_input;
 		$input['event_title'] = '';
 
 		$result = $this->abilities->executeSubmitEvent( $input );
@@ -112,7 +112,7 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	public function test_empty_event_date_returns_error(): void {
-		$input = $this->valid_input;
+		$input               = $this->valid_input;
 		$input['event_date'] = '';
 
 		$result = $this->abilities->executeSubmitEvent( $input );
@@ -196,10 +196,18 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 		$hook_fired = false;
 		$hook_args  = array();
 
-		add_action( 'extrachill_event_submission', function ( $submission, $meta ) use ( &$hook_fired, &$hook_args ) {
-			$hook_fired = true;
-			$hook_args  = array( 'submission' => $submission, 'meta' => $meta );
-		}, 10, 2 );
+		add_action(
+			'extrachill_event_submission',
+			function ( $submission, $meta ) use ( &$hook_fired, &$hook_args ) {
+				$hook_fired = true;
+				$hook_args  = array(
+					'submission' => $submission,
+					'meta'       => $meta,
+				);
+			},
+			10,
+			2
+		);
 
 		$this->abilities->executeSubmitEvent( $this->valid_input );
 
@@ -213,9 +221,14 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 		// We're logged in as admin, so contact info comes from the session.
 		$captured = array();
 
-		add_action( 'extrachill_event_submission', function ( $submission ) use ( &$captured ) {
-			$captured = $submission;
-		}, 10, 1 );
+		add_action(
+			'extrachill_event_submission',
+			function ( $submission ) use ( &$captured ) {
+				$captured = $submission;
+			},
+			10,
+			1
+		);
 
 		$this->abilities->executeSubmitEvent( $this->valid_input );
 
@@ -258,9 +271,14 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 		);
 
 		$hook_data = array();
-		add_action( 'extrachill_event_submission', function ( $submission ) use ( &$hook_data ) {
-			$hook_data = $submission;
-		}, 10, 1 );
+		add_action(
+			'extrachill_event_submission',
+			function ( $submission ) use ( &$hook_data ) {
+				$hook_data = $submission;
+			},
+			10,
+			1
+		);
 
 		$result = $this->abilities->executeSubmitEvent( $input );
 
@@ -276,7 +294,7 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	// ─── Custom System Prompt ──────────────────────────────────────────
 
 	public function test_custom_system_prompt_does_not_break_submission(): void {
-		$input = $this->valid_input;
+		$input                  = $this->valid_input;
 		$input['system_prompt'] = 'Custom prompt: treat every event as a music festival.';
 
 		$result = $this->abilities->executeSubmitEvent( $input );
@@ -290,10 +308,13 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 
 	public function test_submission_sends_two_emails(): void {
 		$sent_emails = array();
-		add_filter( 'wp_mail', function ( $args ) use ( &$sent_emails ) {
-			$sent_emails[] = $args;
-			return $args;
-		} );
+		add_filter(
+			'wp_mail',
+			function ( $args ) use ( &$sent_emails ) {
+				$sent_emails[] = $args;
+				return $args;
+			}
+		);
 
 		$this->abilities->executeSubmitEvent( $this->valid_input );
 
@@ -302,15 +323,29 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 
 		$subjects = wp_list_pluck( $sent_emails, 'subject' );
 		$this->assertTrue(
-			in_array( true, array_map( function ( $s ) {
-				return str_contains( $s, 'Event Submission Received' );
-			}, $subjects ), true ),
+			in_array(
+				true,
+				array_map(
+					function ( $s ) {
+						return str_contains( $s, 'Event Submission Received' );
+					},
+					$subjects
+				),
+				true
+			),
 			'Submitter confirmation email not sent.'
 		);
 		$this->assertTrue(
-			in_array( true, array_map( function ( $s ) {
-				return str_contains( $s, 'New Event Submission' );
-			}, $subjects ), true ),
+			in_array(
+				true,
+				array_map(
+					function ( $s ) {
+						return str_contains( $s, 'New Event Submission' );
+					},
+					$subjects
+				),
+				true
+			),
 			'Admin notification email not sent.'
 		);
 	}
@@ -320,10 +355,13 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 		$admin_user = get_user_by( 'id', $this->admin_user_id );
 
 		$sent_emails = array();
-		add_filter( 'wp_mail', function ( $args ) use ( &$sent_emails ) {
-			$sent_emails[] = $args;
-			return $args;
-		} );
+		add_filter(
+			'wp_mail',
+			function ( $args ) use ( &$sent_emails ) {
+				$sent_emails[] = $args;
+				return $args;
+			}
+		);
 
 		$this->abilities->executeSubmitEvent( $this->valid_input );
 
@@ -332,17 +370,22 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	public function test_logged_in_user_receives_confirmation_email(): void {
-		$user_id = self::factory()->user->create( array(
-			'role'       => 'administrator',
-			'user_email' => 'fan@extrachill.com',
-		) );
+		$user_id = self::factory()->user->create(
+			array(
+				'role'       => 'administrator',
+				'user_email' => 'fan@extrachill.com',
+			)
+		);
 		wp_set_current_user( $user_id );
 
 		$sent_emails = array();
-		add_filter( 'wp_mail', function ( $args ) use ( &$sent_emails ) {
-			$sent_emails[] = $args;
-			return $args;
-		} );
+		add_filter(
+			'wp_mail',
+			function ( $args ) use ( &$sent_emails ) {
+				$sent_emails[] = $args;
+				return $args;
+			}
+		);
 
 		$input = array(
 			'event_title' => 'Member Show',

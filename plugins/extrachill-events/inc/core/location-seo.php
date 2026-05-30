@@ -166,11 +166,13 @@ function extrachill_events_get_upcoming_event_count( int $term_id ): int {
 		return 0;
 	}
 
-	$result = data_machine_events_query_events( array(
-		'scope'       => 'upcoming',
-		'tax_filters' => array( 'location' => array( $term_id ) ),
-		'fields'      => 'count',
-	) );
+	$result = data_machine_events_query_events(
+		array(
+			'scope'       => 'upcoming',
+			'tax_filters' => array( 'location' => array( $term_id ) ),
+			'fields'      => 'count',
+		)
+	);
 
 	return (int) ( $result['total'] ?? 0 );
 }

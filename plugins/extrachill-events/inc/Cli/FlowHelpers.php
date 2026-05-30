@@ -105,8 +105,8 @@ trait FlowHelpers {
 			}
 
 			// Two shapes exist in the wild:
-			//   1. handler_slug + handler_config  (newer)
-			//   2. handler_slugs[] + handler_configs{slug: config}  (older)
+			// 1. handler_slug + handler_config  (newer)
+			// 2. handler_slugs[] + handler_configs{slug: config}  (older)
 			if ( isset( $step['handler_slug'] )
 				&& 'universal_web_scraper' === $step['handler_slug']
 				&& isset( $step['handler_config']['source_url'] ) ) {

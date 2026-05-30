@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @hook data_machine_events_breadcrumbs
  * @param string|null $breadcrumbs Plugin's default breadcrumb HTML
- * @param int $post_id Event post ID
+ * @param int         $post_id Event post ID
  * @return string Theme breadcrumb HTML
  * @since 0.1.0
  */

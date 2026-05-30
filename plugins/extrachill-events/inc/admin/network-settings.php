@@ -75,9 +75,30 @@ class NetworkSettings {
 	 * Register settings (used on single-site activations for UI parity).
 	 */
 	public static function register_settings(): void {
-		register_setting( 'extrachill_qualify_v2', self::OPTION_PAUSE_CONFIRMATION, array( 'type' => 'boolean', 'default' => true ) );
-		register_setting( 'extrachill_qualify_v2', self::OPTION_RECHECK_ENABLED, array( 'type' => 'boolean', 'default' => true ) );
-		register_setting( 'extrachill_qualify_v2', self::OPTION_DIGEST_ENABLED, array( 'type' => 'boolean', 'default' => true ) );
+		register_setting(
+			'extrachill_qualify_v2',
+			self::OPTION_PAUSE_CONFIRMATION,
+			array(
+				'type'    => 'boolean',
+				'default' => true,
+			)
+		);
+		register_setting(
+			'extrachill_qualify_v2',
+			self::OPTION_RECHECK_ENABLED,
+			array(
+				'type'    => 'boolean',
+				'default' => true,
+			)
+		);
+		register_setting(
+			'extrachill_qualify_v2',
+			self::OPTION_DIGEST_ENABLED,
+			array(
+				'type'    => 'boolean',
+				'default' => true,
+			)
+		);
 		register_setting(
 			'extrachill_qualify_v2',
 			self::OPTION_DIGEST_RECIPIENT,

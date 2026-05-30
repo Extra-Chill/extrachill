@@ -86,10 +86,12 @@ function extrachill_events_ability_geocode( array $input ): array|\WP_Error {
 		);
 	}
 
-	$result = $ability->execute( array(
-		'query'        => $query,
-		'countrycodes' => 'us',
-	) );
+	$result = $ability->execute(
+		array(
+			'query'        => $query,
+			'countrycodes' => 'us',
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

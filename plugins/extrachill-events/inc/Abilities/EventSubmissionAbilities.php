@@ -237,10 +237,12 @@ class EventSubmissionAbilities {
 			$initial_data['image_file_path'] = $stored_flyer['stored_path'];
 		}
 
-		$result = $execute->execute( array(
-			'workflow'     => $workflow,
-			'initial_data' => $initial_data,
-		) );
+		$result = $execute->execute(
+			array(
+				'workflow'     => $workflow,
+				'initial_data' => $initial_data,
+			)
+		);
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -251,11 +253,15 @@ class EventSubmissionAbilities {
 		$this->notifySubmitter( $submission );
 		$this->notifyAdmin( $submission, $job_id );
 
-		do_action( 'extrachill_event_submission', $submission, array(
-			'flow_id' => 'direct',
-			'job_id'  => $job_id,
-			'mode'    => 'ephemeral',
-		) );
+		do_action(
+			'extrachill_event_submission',
+			$submission,
+			array(
+				'flow_id' => 'direct',
+				'job_id'  => $job_id,
+				'mode'    => 'ephemeral',
+			)
+		);
 
 		return array(
 			'message' => __( 'Thanks! We queued your submission for review.', 'extrachill-events' ),
@@ -266,9 +272,9 @@ class EventSubmissionAbilities {
 	/**
 	 * Store uploaded flyer to Data Machine file storage.
 	 *
-	 * @param array|null     $flyer       File data from $_FILES.
-	 * @param int|string     $flow_id     Flow ID or 'direct'.
-	 * @param int|string     $pipeline_id Pipeline ID or 'direct'.
+	 * @param array|null $flyer       File data from $_FILES.
+	 * @param int|string $flow_id     Flow ID or 'direct'.
+	 * @param int|string $pipeline_id Pipeline ID or 'direct'.
 	 * @return array|\WP_Error|null Stored file data, null if no flyer, or WP_Error.
 	 */
 	private function storeFlyer( ?array $flyer, $flow_id, $pipeline_id ) {
@@ -283,10 +289,14 @@ class EventSubmissionAbilities {
 		}
 
 		$storage = new \DataMachine\Core\FilesRepository\FileStorage();
-		$stored  = $storage->store_file( $upload['file'], $flyer['name'], array(
-			'pipeline_id' => $pipeline_id,
-			'flow_id'     => $flow_id,
-		) );
+		$stored  = $storage->store_file(
+			$upload['file'],
+			$flyer['name'],
+			array(
+				'pipeline_id' => $pipeline_id,
+				'flow_id'     => $flow_id,
+			)
+		);
 
 		if ( file_exists( $upload['file'] ) ) {
 			wp_delete_file( $upload['file'] );

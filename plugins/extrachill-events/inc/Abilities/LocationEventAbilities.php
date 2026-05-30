@@ -88,7 +88,7 @@ class LocationEventAbilities {
 					),
 				),
 				'execute_callback'    => array( $this, 'executeGetLocationEvents' ),
-				'permission_callback' => function() {
+				'permission_callback' => function () {
 					return current_user_can( 'read' );
 				},
 				'meta'                => array( 'show_in_rest' => true ),
@@ -168,13 +168,15 @@ class LocationEventAbilities {
 			return array();
 		}
 
-		$result = data_machine_events_query_events( array(
-			'date_start'  => $date_start,
-			'date_end'    => $date_end,
-			'tax_filters' => array( 'location' => array( $term_id ) ),
-			'per_page'    => $limit,
-			'order'       => 'ASC',
-		) );
+		$result = data_machine_events_query_events(
+			array(
+				'date_start'  => $date_start,
+				'date_end'    => $date_end,
+				'tax_filters' => array( 'location' => array( $term_id ) ),
+				'per_page'    => $limit,
+				'order'       => 'ASC',
+			)
+		);
 
 		$events = array();
 		foreach ( $result['posts'] ?? array() as $post ) {

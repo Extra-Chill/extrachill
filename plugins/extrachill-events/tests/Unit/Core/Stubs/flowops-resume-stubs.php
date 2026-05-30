@@ -19,73 +19,72 @@
 
 namespace ExtraChillEvents\Tests\Unit\Core {
 
-if ( ! class_exists( __NAMESPACE__ . '\\FlowOpsFakeWpdb' ) ) {
-	class FlowOpsFakeWpdb {
+	if ( ! class_exists( __NAMESPACE__ . '\\FlowOpsFakeWpdb' ) ) {
+		class FlowOpsFakeWpdb {
 
-		public string $prefix = 'c8c_';
+			public string $prefix = 'c8c_';
 
-		/**
-		 * Rows seeded for SELECT-by-flow-id, keyed by flow_id.
-		 *
-		 * @var array<int, array<string, mixed>>
-		 */
-		private array $rows = array();
+			/**
+			 * Rows seeded for SELECT-by-flow-id, keyed by flow_id.
+			 *
+			 * @var array<int, array<string, mixed>>
+			 */
+			private array $rows = array();
 
-		/**
-		 * Last flow_id parsed out of a prepare() call, used by get_row()
-		 * to return the right seeded row.
-		 */
-		private ?int $last_prepared_flow_id = null;
+			/**
+			 * Last flow_id parsed out of a prepare() call, used by get_row()
+			 * to return the right seeded row.
+			 */
+			private ?int $last_prepared_flow_id = null;
 
-		/**
-		 * Captured update() invocations.
-		 *
-		 * @var array<int, array{data:array,where:array,format:array,where_format:array}>
-		 */
-		public array $updates = array();
+			/**
+			 * Captured update() invocations.
+			 *
+			 * @var array<int, array{data:array,where:array,format:array,where_format:array}>
+			 */
+			public array $updates = array();
 
-		public function seed_row( int $flow_id, array $row ): void {
-			$this->rows[ $flow_id ] = $row;
-		}
-
-		public function prepare( string $sql, ...$args ): string {
-			// The only %d we care about is the flow_id used by the
-			// resume SELECT. Capture it for the next get_row().
-			foreach ( $args as $arg ) {
-				if ( is_int( $arg ) ) {
-					$this->last_prepared_flow_id = $arg;
-					break;
-				}
-				if ( is_numeric( $arg ) ) {
-					$this->last_prepared_flow_id = (int) $arg;
-					break;
-				}
+			public function seed_row( int $flow_id, array $row ): void {
+				$this->rows[ $flow_id ] = $row;
 			}
-			return $sql;
-		}
 
-		public function get_row( string $sql, $output = ARRAY_A ): ?array {
-			if ( null === $this->last_prepared_flow_id ) {
-				return null;
+			public function prepare( string $sql, ...$args ): string {
+				// The only %d we care about is the flow_id used by the
+				// resume SELECT. Capture it for the next get_row().
+				foreach ( $args as $arg ) {
+					if ( is_int( $arg ) ) {
+						$this->last_prepared_flow_id = $arg;
+						break;
+					}
+					if ( is_numeric( $arg ) ) {
+						$this->last_prepared_flow_id = (int) $arg;
+						break;
+					}
+				}
+				return $sql;
 			}
-			$row = $this->rows[ $this->last_prepared_flow_id ] ?? null;
-			$this->last_prepared_flow_id = null;
-			return $row;
-		}
 
-		public function update( string $table, array $data, array $where, $format = null, $where_format = null ) {
-			$this->updates[] = array(
-				'table'        => $table,
-				'data'         => $data,
-				'where'        => $where,
-				'format'       => is_array( $format ) ? $format : array(),
-				'where_format' => is_array( $where_format ) ? $where_format : array(),
-			);
-			return 1;
+			public function get_row( string $sql, $output = ARRAY_A ): ?array {
+				if ( null === $this->last_prepared_flow_id ) {
+					return null;
+				}
+				$row                         = $this->rows[ $this->last_prepared_flow_id ] ?? null;
+				$this->last_prepared_flow_id = null;
+				return $row;
+			}
+
+			public function update( string $table, array $data, array $where, $format = null, $where_format = null ) {
+				$this->updates[] = array(
+					'table'        => $table,
+					'data'         => $data,
+					'where'        => $where,
+					'format'       => is_array( $format ) ? $format : array(),
+					'where_format' => is_array( $where_format ) ? $where_format : array(),
+				);
+				return 1;
+			}
 		}
 	}
-}
-
 }
 
 namespace {

@@ -209,7 +209,10 @@ class VenueQualificationAbilities {
 			'platforms_detected'    => array(),
 			'structured_data'       => array(),
 			'extractor_attempts'    => array(),
-			'ticketmaster_precheck' => array( 'disqualified' => false, 'matched' => '' ),
+			'ticketmaster_precheck' => array(
+				'disqualified' => false,
+				'matched'      => '',
+			),
 			'urls_tested'           => array(),
 			'elapsed_ms'            => 0,
 		);
@@ -221,12 +224,12 @@ class VenueQualificationAbilities {
 				'disqualified' => true,
 				'matched'      => (string) ( $tm_check['matched'] ?? '' ),
 			);
-			$fingerprint['elapsed_ms'] = (int) round( ( microtime( true ) - $started_at ) * 1000 );
+			$fingerprint['elapsed_ms']            = (int) round( ( microtime( true ) - $started_at ) * 1000 );
 			return $this->finalize_and_persist( $url, $name, 'ticketmaster_precheck', $fingerprint );
 		}
 
 		// ---- Fetch the homepage once and capture status/redirects/HTML. ----
-		$home = QualifyFingerprinter::fetch_homepage( $url );
+		$home                                = QualifyFingerprinter::fetch_homepage( $url );
 		$fingerprint['http_status']          = $home['http_status'];
 		$fingerprint['final_url']            = $home['final_url'];
 		$fingerprint['redirects']            = $home['redirects'];
@@ -297,8 +300,8 @@ class VenueQualificationAbilities {
 		}
 
 		// ---- Synthesize platform-existence attempts so the resolver can flag
-		//      missing-extractor verdicts via the same code path that handles
-		//      real extractor attempts.
+		// missing-extractor verdicts via the same code path that handles
+		// real extractor attempts.
 		$fingerprint['extractor_attempts'] = QualifyFingerprinter::add_platform_existence_attempts(
 			$fingerprint['platforms_detected'],
 			$fingerprint['extractor_attempts']
@@ -324,7 +327,10 @@ class VenueQualificationAbilities {
 	 */
 	private function buildCandidateUrls( string $url, string $origin, string $html ): array {
 		$candidates = array(
-			array( 'url' => $url, 'method' => 'direct' ),
+			array(
+				'url'    => $url,
+				'method' => 'direct',
+			),
 		);
 
 		if ( '' !== $html ) {
@@ -339,10 +345,16 @@ class VenueQualificationAbilities {
 		}
 
 		foreach ( self::EVENT_PATHS as $path ) {
-			$candidates[] = array( 'url' => $origin . $path, 'method' => 'path_probe' );
+			$candidates[] = array(
+				'url'    => $origin . $path,
+				'method' => 'path_probe',
+			);
 		}
 
-		$candidates[] = array( 'url' => $origin . '/wp-json/tribe/events/v1/events', 'method' => 'tribe_api' );
+		$candidates[] = array(
+			'url'    => $origin . '/wp-json/tribe/events/v1/events',
+			'method' => 'tribe_api',
+		);
 
 		return $candidates;
 	}
@@ -442,7 +454,11 @@ class VenueQualificationAbilities {
 	 * @return array{disqualified:bool,reason:string,matched:string}
 	 */
 	private function checkTicketmasterVenue( string $url ): array {
-		$not_tm = array( 'disqualified' => false, 'reason' => '', 'matched' => '' );
+		$not_tm = array(
+			'disqualified' => false,
+			'reason'       => '',
+			'matched'      => '',
+		);
 
 		// Quick host check on the INPUT URL before fetching. Catches the
 		// trivial case where someone hands us a ticketmaster.com URL outright.
@@ -525,7 +541,10 @@ class VenueQualificationAbilities {
 	 * @return array{disqualified:bool,matched:string}
 	 */
 	public static function analyzeForTicketmasterMarkers( string $final_url, string $html ): array {
-		$not_tm = array( 'disqualified' => false, 'matched' => '' );
+		$not_tm = array(
+			'disqualified' => false,
+			'matched'      => '',
+		);
 
 		// ---- 1. Final URL host check. ----
 		$host = strtolower( (string) ( wp_parse_url( $final_url, PHP_URL_HOST ) ?? '' ) );
@@ -568,8 +587,8 @@ class VenueQualificationAbilities {
 		// with a literal TM/LN brand value. The CONTENT must be the brand,
 		// not just a page title mentioning the brand. Accept either attribute
 		// order (rel/name-first or content-first).
-		$brand_re   = '(?:Ticketmaster|Live\s*Nation)';
-		$brand_attr = '(?:property|name)=["\'](?:og:site_name|application-name)["\']';
+		$brand_re      = '(?:Ticketmaster|Live\s*Nation)';
+		$brand_attr    = '(?:property|name)=["\'](?:og:site_name|application-name)["\']';
 		$meta_patterns = array(
 			'#<meta\s[^>]*' . $brand_attr . '[^>]*content=["\']\s*' . $brand_re . '\s*["\']#i',
 			'#<meta\s[^>]*content=["\']\s*' . $brand_re . '\s*["\'][^>]*' . $brand_attr . '#i',
@@ -678,8 +697,8 @@ class VenueQualificationAbilities {
 				}
 			}
 
-			$type = $node['@type'] ?? '';
-			$types = is_array( $type ) ? $type : array( $type );
+			$type   = $node['@type'] ?? '';
+			$types  = is_array( $type ) ? $type : array( $type );
 			$is_org = false;
 			foreach ( $types as $t ) {
 				if ( is_string( $t ) && 'organization' === strtolower( $t ) ) {

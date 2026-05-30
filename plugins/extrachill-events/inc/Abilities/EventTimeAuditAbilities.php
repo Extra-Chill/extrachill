@@ -122,12 +122,12 @@ class EventTimeAuditAbilities {
 						),
 					),
 				),
-				'output_schema'        => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						'checked_count'  => array( 'type' => 'integer' ),
-						'flagged_count'  => array( 'type' => 'integer' ),
-						'results'        => array(
+						'checked_count' => array( 'type' => 'integer' ),
+						'flagged_count' => array( 'type' => 'integer' ),
+						'results'       => array(
 							'type'  => 'array',
 							'items' => array( 'type' => 'object' ),
 						),
@@ -182,7 +182,7 @@ class EventTimeAuditAbilities {
 						),
 					),
 				),
-				'output_schema'        => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'checked_count' => array( 'type' => 'integer' ),
@@ -503,8 +503,14 @@ class EventTimeAuditAbilities {
 		$changes = array();
 
 		$time_fields = array(
-			array( 'date' => 'startDate', 'time' => 'startTime' ),
-			array( 'date' => 'endDate', 'time' => 'endTime' ),
+			array(
+				'date' => 'startDate',
+				'time' => 'startTime',
+			),
+			array(
+				'date' => 'endDate',
+				'time' => 'endTime',
+			),
 		);
 
 		foreach ( $time_fields as $pair ) {

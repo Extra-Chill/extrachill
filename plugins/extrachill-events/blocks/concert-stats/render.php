@@ -112,7 +112,7 @@ $is_own     = is_user_logged_in() && get_current_user_id() === $user_id;
 // #110: Calendar tab is owner-only, and the server-side filter callback
 // only activates on /my-shows/. Match both conditions before emitting
 // the embedded calendar block so we don't ship dead markup elsewhere.
-$on_my_shows             = function_exists( 'is_page' ) && is_page( 'my-shows' );
+$on_my_shows              = function_exists( 'is_page' ) && is_page( 'my-shows' );
 $render_embedded_calendar = $is_own && $on_my_shows;
 
 // #111: Same gate for the Map tab. The events-map block in

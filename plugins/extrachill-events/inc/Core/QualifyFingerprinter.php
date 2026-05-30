@@ -157,11 +157,11 @@ class QualifyFingerprinter {
 			}
 		}
 
-		$body            = (string) wp_remote_retrieve_body( $response );
-		$result['html']  = $body;
-		$server          = (string) wp_remote_retrieve_header( $response, 'server' );
-		$cf_ray          = (string) wp_remote_retrieve_header( $response, 'cf-ray' );
-		$lc_body         = strtolower( $body );
+		$body           = (string) wp_remote_retrieve_body( $response );
+		$result['html'] = $body;
+		$server         = (string) wp_remote_retrieve_header( $response, 'server' );
+		$cf_ray         = (string) wp_remote_retrieve_header( $response, 'cf-ray' );
+		$lc_body        = strtolower( $body );
 
 		// Cloudflare challenge detection. Multiple signals — any one is
 		// enough to mark bot_blocked downstream.
@@ -200,7 +200,7 @@ class QualifyFingerprinter {
 			|| false !== stripos( $html, 'wp-content/' );
 
 		if ( $looks_like_wp && PlatformDetector::probe_tribe_api( $origin ) ) {
-			$platforms = array_values(
+			$platforms   = array_values(
 				array_filter(
 					$platforms,
 					static function ( $p ) {
@@ -224,13 +224,13 @@ class QualifyFingerprinter {
 	 */
 	public static function run_extractor_attempt( string $url ): array {
 		$attempt = array(
-			'url'        => $url,
-			'events_url' => $url,
-			'events'     => 0,
-			'ran'        => false,
-			'name'       => '',
-			'exists'     => true,
-			'matched'    => false,
+			'url'         => $url,
+			'events_url'  => $url,
+			'events'      => 0,
+			'ran'         => false,
+			'name'        => '',
+			'exists'      => true,
+			'matched'     => false,
 			'source_type' => '',
 		);
 
@@ -252,10 +252,10 @@ class QualifyFingerprinter {
 			return $attempt;
 		}
 
-		$extraction       = is_array( $result['extraction_info'] ?? null ) ? $result['extraction_info'] : array();
+		$extraction        = is_array( $result['extraction_info'] ?? null ) ? $result['extraction_info'] : array();
 		$extraction_method = (string) ( $extraction['extraction_method'] ?? '' );
-		$source_type      = (string) ( $extraction['source_type'] ?? '' );
-		$payload_type     = (string) ( $extraction['payload_type'] ?? '' );
+		$source_type       = (string) ( $extraction['source_type'] ?? '' );
+		$payload_type      = (string) ( $extraction['payload_type'] ?? '' );
 
 		$attempt['ran']         = true;
 		$attempt['matched']     = ! empty( $result['success'] );
@@ -264,7 +264,7 @@ class QualifyFingerprinter {
 
 		// Count events for the extractor_attempts entry.
 		if ( ! empty( $result['success'] ) ) {
-			$event_data       = is_array( $result['event_data'] ?? null ) ? $result['event_data'] : array();
+			$event_data        = is_array( $result['event_data'] ?? null ) ? $result['event_data'] : array();
 			$attempt['events'] = self::count_events( $event_data, $payload_type );
 		}
 

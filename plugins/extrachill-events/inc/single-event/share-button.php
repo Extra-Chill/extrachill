@@ -19,18 +19,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Only applies on blog ID 7 (events.extrachill.com).
  *
  * @hook data_machine_events_action_buttons
- * @param int $post_id Event post ID
+ * @param int    $post_id Event post ID
  * @param string $ticket_url Ticket URL (may be empty)
  * @return void
  * @since 0.1.0
  */
 function ec_events_render_share_button( $post_id, $ticket_url ) {
 	if ( function_exists( 'extrachill_share_button' ) ) {
-		extrachill_share_button( array(
-			'share_url'   => get_permalink( $post_id ),
-			'share_title' => get_the_title( $post_id ),
-			'button_size' => 'button-medium',
-		) );
+		extrachill_share_button(
+			array(
+				'share_url'   => get_permalink( $post_id ),
+				'share_title' => get_the_title( $post_id ),
+				'button_size' => 'button-medium',
+			)
+		);
 	}
 }
 add_action( 'data_machine_events_action_buttons', 'ec_events_render_share_button', 10, 2 );

@@ -110,12 +110,12 @@ class RequalifyFlowCommand {
 		$results = array();
 		foreach ( $flows as $flow ) {
 			$row = array(
-				'flow_id'       => $flow['flow_id'],
-				'flow_name'     => $flow['flow_name'],
-				'source_url'    => $flow['source_url'],
-				'new_verdict'   => '',
-				'event_count'   => 0,
-				'action'        => 'none',
+				'flow_id'        => $flow['flow_id'],
+				'flow_name'      => $flow['flow_name'],
+				'source_url'     => $flow['source_url'],
+				'new_verdict'    => '',
+				'event_count'    => 0,
+				'action'         => 'none',
 				'agent_guidance' => '',
 			);
 
@@ -146,7 +146,7 @@ class RequalifyFlowCommand {
 			} else {
 				// Not qualified anymore — recommend pause, and pause if --auto-pause.
 				if ( $auto ) {
-					$ok = $this->pause_flow_by_verdict( $flow['flow_id'], $row['new_verdict'] );
+					$ok            = $this->pause_flow_by_verdict( $flow['flow_id'], $row['new_verdict'] );
 					$row['action'] = $ok ? 'paused' : 'pause_failed';
 				} else {
 					$row['action'] = 'recommend_pause';

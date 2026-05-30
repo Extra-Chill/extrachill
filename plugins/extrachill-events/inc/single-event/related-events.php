@@ -131,25 +131,30 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 		}
 	}
 
-	$result = data_machine_events_query_events( array(
-		'scope'       => 'upcoming',
-		'tax_filters' => $ability_tax_filters,
-		'exclude'     => array( $post_id ),
-		'per_page'    => ! empty( $exclude_venue_ids ) ? 20 : 3,
-		'order'       => 'ASC',
-	) );
+	$result = data_machine_events_query_events(
+		array(
+			'scope'       => 'upcoming',
+			'tax_filters' => $ability_tax_filters,
+			'exclude'     => array( $post_id ),
+			'per_page'    => ! empty( $exclude_venue_ids ) ? 20 : 3,
+			'order'       => 'ASC',
+		)
+	);
 
 	$related_posts_array = $result['posts'] ?? array();
 
 	// Filter out events at excluded venues (for location-based related events).
 	if ( ! empty( $exclude_venue_ids ) && ! empty( $related_posts_array ) ) {
-		$related_posts_array = array_filter( $related_posts_array, function ( $rp ) use ( $exclude_venue_ids ) {
-			$rp_venues = wp_get_post_terms( $rp->ID, 'venue', array( 'fields' => 'ids' ) );
-			if ( is_wp_error( $rp_venues ) ) {
-				return true;
+		$related_posts_array = array_filter(
+			$related_posts_array,
+			function ( $rp ) use ( $exclude_venue_ids ) {
+				$rp_venues = wp_get_post_terms( $rp->ID, 'venue', array( 'fields' => 'ids' ) );
+				if ( is_wp_error( $rp_venues ) ) {
+					return true;
+				}
+				return empty( array_intersect( $rp_venues, $exclude_venue_ids ) );
 			}
-			return empty( array_intersect( $rp_venues, $exclude_venue_ids ) );
-		} );
+		);
 		$related_posts_array = array_slice( array_values( $related_posts_array ), 0, 3 );
 	}
 
@@ -197,14 +202,14 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 						<div class="related-tax-meta">
 							<?php if ( $date_str ) : ?>
 								<div class="ec-related-meta-item">
-									<?php echo ec_icon('calendar'); ?>
+									<?php echo ec_icon( 'calendar' ); ?>
 									<span><?php echo esc_html( $date_str ); ?></span>
 								</div>
 							<?php endif; ?>
 							
 							<?php if ( $time_str ) : ?>
 								<div class="ec-related-meta-item">
-									<?php echo ec_icon('clock'); ?>
+									<?php echo ec_icon( 'clock' ); ?>
 									<span><?php echo esc_html( $time_str ); ?></span>
 								</div>
 							<?php endif; ?>

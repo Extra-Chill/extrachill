@@ -197,17 +197,17 @@ final class QualifyVerdict {
 	// window must not pause a healthy venue.
 	//
 	// Shape: ['verdicts' => N, 'hours' => H] — the last N verdicts for the
-	//   URL must all match the candidate verdict AND the oldest of those N
-	//   rows must be at least H hours old. `null` means the verdict is never
-	//   auto-paused (qualified states).
+	// URL must all match the candidate verdict AND the oldest of those N
+	// rows must be at least H hours old. `null` means the verdict is never
+	// auto-paused (qualified states).
 	//
 	// QUALIFIED_STRUCTURED / QUALIFIED_FOR_FLYER: never auto-paused.
 	// EXTRACTION_GAP: 2 verdicts over ≥48h — extractor gaps don't fix
-	//   themselves between consecutive audit runs.
+	// themselves between consecutive audit runs.
 	// BOT_BLOCKED / UNREACHABLE: 3 verdicts over ≥7 days — Cloudflare rules
-	//   flip; DNS/timeout/5xx is often transient.
+	// flip; DNS/timeout/5xx is often transient.
 	// RESERVATION_ONLY / COVERED_ELSEWHERE: single verdict — these are
-	//   permanent disqualifications by design.
+	// permanent disqualifications by design.
 
 	/**
 	 * Per-verdict pause-confirmation rules.

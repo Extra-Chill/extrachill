@@ -226,7 +226,10 @@ class CityAbilities {
 			return new \WP_Error(
 				'city_exists',
 				sprintf( 'City "%s" already exists (pipeline ID: %d). Pass force=true to recreate.', $city_label, $existing_pipeline ),
-				array( 'status' => 409, 'pipeline_id' => $existing_pipeline )
+				array(
+					'status'      => 409,
+					'pipeline_id' => $existing_pipeline,
+				)
 			);
 		}
 
@@ -290,7 +293,10 @@ class CityAbilities {
 			return new \WP_Error(
 				'flow_creation_failed',
 				'Pipeline created (ID: ' . $pipeline_id . ') but Ticketmaster flow failed: ' . $tm_result->get_error_message(),
-				array( 'status' => 500, 'pipeline_id' => $pipeline_id )
+				array(
+					'status'      => 500,
+					'pipeline_id' => $pipeline_id,
+				)
 			);
 		}
 		$flows_created[] = $tm_result;

@@ -33,15 +33,24 @@ class QualifyDigestAbilityTest extends TestCase {
 				QualifyVerdict::BOT_BLOCKED    => 1,
 			),
 			'standing_inventory' => array(
-				'active:daily'                              => 147,
-				'paused:' . QualifyVerdict::EXTRACTION_GAP  => 22,
-				'paused:' . QualifyVerdict::BOT_BLOCKED     => 4,
+				'active:daily'                             => 147,
+				'paused:' . QualifyVerdict::EXTRACTION_GAP => 22,
+				'paused:' . QualifyVerdict::BOT_BLOCKED    => 4,
 				'paused:' . QualifyVerdict::COVERED_ELSEWHERE => 2,
 			),
 			'top_extraction_gap' => array(
-				array( 'hint' => 'squarespace — no upcoming array', 'count' => 8 ),
-				array( 'hint' => 'wordpress_generic — no Tribe plugin', 'count' => 5 ),
-				array( 'hint' => 'wix — no events block', 'count' => 3 ),
+				array(
+					'hint'  => 'squarespace — no upcoming array',
+					'count' => 8,
+				),
+				array(
+					'hint'  => 'wordpress_generic — no Tribe plugin',
+					'count' => 5,
+				),
+				array(
+					'hint'  => 'wix — no events block',
+					'count' => 3,
+				),
 			),
 			'stale_flows'        => array(
 				array(

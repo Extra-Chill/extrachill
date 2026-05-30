@@ -42,7 +42,7 @@ class PlatformDetectorTest extends TestCase {
 	}
 
 	public function test_detects_wordpress_generic_without_tribe_marker(): void {
-		$html = '<link rel="stylesheet" href="/wp-content/themes/twentytwentythree/style.css">';
+		$html      = '<link rel="stylesheet" href="/wp-content/themes/twentytwentythree/style.css">';
 		$platforms = PlatformDetector::detect_platforms( $html );
 		$this->assertContains( 'wordpress_generic', $platforms );
 	}
@@ -93,7 +93,7 @@ class PlatformDetectorTest extends TestCase {
 	}
 
 	public function test_multiple_platforms_co_detect(): void {
-		$html = '<script>Static.SQUARESPACE_CONTEXT={};</script>'
+		$html      = '<script>Static.SQUARESPACE_CONTEXT={};</script>'
 			. '<script src="//cdn.opentable.com/w.js"></script>';
 		$platforms = PlatformDetector::detect_platforms( $html );
 		$this->assertContains( 'squarespace', $platforms );
@@ -119,9 +119,18 @@ class PlatformDetectorTest extends TestCase {
 			array(
 				'@context' => 'https://schema.org',
 				'@graph'   => array(
-					array( '@type' => 'MusicEvent', 'name' => 'Show A' ),
-					array( '@type' => 'Event', 'name' => 'Show B' ),
-					array( '@type' => 'Organization', 'name' => 'The Venue' ),
+					array(
+						'@type' => 'MusicEvent',
+						'name'  => 'Show A',
+					),
+					array(
+						'@type' => 'Event',
+						'name'  => 'Show B',
+					),
+					array(
+						'@type' => 'Organization',
+						'name'  => 'The Venue',
+					),
 				),
 			)
 		);

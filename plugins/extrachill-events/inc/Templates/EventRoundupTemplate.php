@@ -140,9 +140,9 @@ class EventRoundupTemplate implements TemplateInterface {
 		// Color and palette resolution. Roundup slides are dark-themed by
 		// default, so we map onto background_dark + text_inverse rather
 		// than the OG card's light-mode background/text_primary defaults.
-		$bg_hex    = (string) ( $tokens['colors']['event_roundup_bg'] ?? $tokens['colors']['background_dark'] ?? '#1a1a1a' );
-		$text_hex  = (string) ( $tokens['colors']['event_roundup_text'] ?? $tokens['colors']['text_inverse'] ?? '#e5e5e5' );
-		$muted_hex = (string) ( $tokens['colors']['event_roundup_muted'] ?? $tokens['colors']['text_muted'] ?? '#b0b0b0' );
+		$bg_hex     = (string) ( $tokens['colors']['event_roundup_bg'] ?? $tokens['colors']['background_dark'] ?? '#1a1a1a' );
+		$text_hex   = (string) ( $tokens['colors']['event_roundup_text'] ?? $tokens['colors']['text_inverse'] ?? '#e5e5e5' );
+		$muted_hex  = (string) ( $tokens['colors']['event_roundup_muted'] ?? $tokens['colors']['text_muted'] ?? '#b0b0b0' );
 		$accent_hex = (string) ( $tokens['colors']['accent'] ?? '#53940b' );
 		$cta_hex    = (string) ( $tokens['colors']['event_roundup_cta'] ?? $accent_hex );
 
@@ -195,7 +195,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		$cta_text = isset( $data['cta_text'] ) ? trim( (string) $data['cta_text'] ) : '';
 
 		if ( '' === $cta_text ) {
-			$host = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+			$host     = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
 			$cta_text = $host ? sprintf( 'More shows at %s', $host ) : '';
 		}
 

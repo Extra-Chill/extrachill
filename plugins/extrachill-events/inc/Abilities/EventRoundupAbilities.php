@@ -342,11 +342,13 @@ class EventRoundupAbilities {
 			);
 		}
 
-		$render_result = $this->executeRender( array(
-			'day_groups' => $query_result['day_groups'],
-			'title'      => (string) ( $input['title'] ?? '' ),
-			'cta_text'   => (string) ( $input['cta_text'] ?? '' ),
-		) );
+		$render_result = $this->executeRender(
+			array(
+				'day_groups' => $query_result['day_groups'],
+				'title'      => (string) ( $input['title'] ?? '' ),
+				'cta_text'   => (string) ( $input['cta_text'] ?? '' ),
+			)
+		);
 		if ( \is_wp_error( $render_result ) ) {
 			return $render_result;
 		}

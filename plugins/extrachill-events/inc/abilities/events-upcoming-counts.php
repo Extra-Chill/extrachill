@@ -31,12 +31,12 @@ function extrachill_events_register_upcoming_counts_ability(): void {
 				'type'       => 'object',
 				'required'   => array( 'taxonomy' ),
 				'properties' => array(
-					'taxonomy' => array(
+					'taxonomy'      => array(
 						'type'        => 'string',
 						'description' => 'Taxonomy to query.',
 						'enum'        => array( 'venue', 'location', 'artist', 'festival' ),
 					),
-					'slug'     => array(
+					'slug'          => array(
 						'type'        => array( 'string', 'null' ),
 						'description' => 'Specific term slug for single-term lookup. Omit or pass null/empty for bulk query.',
 					),
@@ -44,7 +44,7 @@ function extrachill_events_register_upcoming_counts_ability(): void {
 						'type'        => array( 'string', 'null' ),
 						'description' => 'Optional location term slug to scope bulk venue counts to a single city. Only applied when taxonomy is "venue".',
 					),
-					'limit'    => array(
+					'limit'         => array(
 						'type'        => 'integer',
 						'description' => 'Maximum number of results (0 = unlimited).',
 						'default'     => 0,
@@ -53,7 +53,7 @@ function extrachill_events_register_upcoming_counts_ability(): void {
 				),
 			),
 			'output_schema'       => array(
-				'type' => 'array',
+				'type'  => 'array',
 				'items' => array(
 					'type'       => 'object',
 					'properties' => array(
@@ -176,9 +176,9 @@ function extrachill_events_query_upcoming_counts( string $taxonomy, string $loca
 			return array();
 		}
 
-		$location_join  = "INNER JOIN {$wpdb->term_relationships} tr_loc ON tr_loc.object_id = p.ID
+		$location_join   = "INNER JOIN {$wpdb->term_relationships} tr_loc ON tr_loc.object_id = p.ID
 			INNER JOIN {$wpdb->term_taxonomy} tt_loc ON tr_loc.term_taxonomy_id = tt_loc.term_taxonomy_id";
-		$location_where = ' AND tt_loc.taxonomy = %s AND tt_loc.term_id = %d ';
+		$location_where  = ' AND tt_loc.taxonomy = %s AND tt_loc.term_id = %d ';
 		$location_params = array( 'location', (int) $location_term->term_id );
 	}
 

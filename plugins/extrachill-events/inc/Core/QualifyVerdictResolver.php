@@ -123,8 +123,8 @@ class QualifyVerdictResolver {
 		// Pick the per-shape threshold: detail pages legitimately serve 1
 		// Event by design; listing pages need ≥2 to guard against
 		// stray-snippet false positives (issue #77).
-		$shape       = (string) ( $fingerprint['structured_data']['event_page_shape'] ?? QualifyVerdict::EVENT_PAGE_SHAPE_UNKNOWN );
-		$min_events  = ( QualifyVerdict::EVENT_PAGE_SHAPE_DETAIL === $shape )
+		$shape      = (string) ( $fingerprint['structured_data']['event_page_shape'] ?? QualifyVerdict::EVENT_PAGE_SHAPE_UNKNOWN );
+		$min_events = ( QualifyVerdict::EVENT_PAGE_SHAPE_DETAIL === $shape )
 			? QualifyVerdict::MIN_EVENTS_FOR_DETAIL_PAGE
 			: QualifyVerdict::MIN_EVENTS_FOR_STRUCTURED_QUALIFICATION;
 
@@ -146,7 +146,7 @@ class QualifyVerdictResolver {
 		}
 
 		// ---- 6. Vision fallback only — operator review required. ----
-		$vision = self::vision_attempt( $attempts );
+		$vision                  = self::vision_attempt( $attempts );
 		$structured_attempts_ran = self::structured_attempts_ran( $attempts );
 		if ( null !== $vision && 0 === self::sum_structured_events( $attempts ) ) {
 			$url = (string) ( $vision['events_url'] ?? ( $fingerprint['final_url'] ?? '' ) );
@@ -192,7 +192,7 @@ class QualifyVerdictResolver {
 		}
 
 		// ---- 9. Reservation-only platforms and nothing else. ----
-		$non_reservation = array_values(
+		$non_reservation          = array_values(
 			array_filter(
 				$platforms,
 				static function ( $p ) {

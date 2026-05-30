@@ -25,7 +25,11 @@ class QualifyFingerprinterTest extends TestCase {
 		// Royal American shape: /schedule/<artist>-<date> with one Event.
 		$shape = QualifyFingerprinter::detect_event_page_shape(
 			'https://www.theroyalamerican.com/schedule/emma-grace-burton-5-15-26',
-			array( 'jsonld_events' => 1, 'jsonld_event_graph_present' => true, 'microdata_events' => 0 ),
+			array(
+				'jsonld_events'              => 1,
+				'jsonld_event_graph_present' => true,
+				'microdata_events'           => 0,
+			),
 			''
 		);
 		$this->assertSame( QualifyVerdict::EVENT_PAGE_SHAPE_DETAIL, $shape );

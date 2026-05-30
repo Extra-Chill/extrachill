@@ -177,7 +177,10 @@ class VenueAddAbilities {
 			return new \WP_Error(
 				'venue_exists',
 				sprintf( 'Venue "%s" already has a flow in pipeline %d (flow ID: %d).', $name, $pipeline_id, $existing_flow ),
-				array( 'status' => 409, 'flow_id' => $existing_flow )
+				array(
+					'status'  => 409,
+					'flow_id' => $existing_flow,
+				)
 			);
 		}
 
@@ -328,9 +331,9 @@ class VenueAddAbilities {
 
 			if ( 'event_import' === $step_type ) {
 				$handler_config = array(
-					'source_url'    => $source_url,
-					'venue'         => $venue_term_id,
-					'venue_name'    => $venue_name,
+					'source_url' => $source_url,
+					'venue'      => $venue_term_id,
+					'venue_name' => $venue_name,
 				);
 
 				// Add address fields if provided.
@@ -370,8 +373,8 @@ class VenueAddAbilities {
 						'taxonomy_promoter_selection' => 'skip',
 					),
 				);
-				$step['user_message'] = "IMPORTANT SYSTEM-WIDE RULE: Do not assign WordPress Categories or Tags for events.";
-				$step['enabled']      = true;
+				$step['user_message']    = 'IMPORTANT SYSTEM-WIDE RULE: Do not assign WordPress Categories or Tags for events.';
+				$step['enabled']         = true;
 			}
 
 			if ( 'ai' === $step_type ) {

@@ -91,12 +91,14 @@ function extrachill_events_ability_check_venue_duplicate( array $input ): array|
 	}
 
 	// Search for venues matching the name.
-	$terms = get_terms( array(
-		'taxonomy'   => 'venue',
-		'hide_empty' => false,
-		'name__like' => $name,
-		'number'     => 10,
-	) );
+	$terms = get_terms(
+		array(
+			'taxonomy'   => 'venue',
+			'hide_empty' => false,
+			'name__like' => $name,
+			'number'     => 10,
+		)
+	);
 
 	if ( is_wp_error( $terms ) || empty( $terms ) ) {
 		return array();
@@ -104,11 +106,13 @@ function extrachill_events_ability_check_venue_duplicate( array $input ): array|
 
 	$matches = array();
 	foreach ( $terms as $term ) {
-		$matches[] = extrachill_events_transform_venue_detail( array(
-			'term_id' => $term->term_id,
-			'name'    => $term->name,
-			'slug'    => $term->slug,
-		) );
+		$matches[] = extrachill_events_transform_venue_detail(
+			array(
+				'term_id' => $term->term_id,
+				'name'    => $term->name,
+				'slug'    => $term->slug,
+			)
+		);
 	}
 
 	return $matches;

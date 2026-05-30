@@ -122,12 +122,15 @@ function extrachill_events_ability_list_venues( array $input ): array|\WP_Error 
 
 	// Viewport bounds.
 	if ( isset( $input['sw_lat'], $input['sw_lng'], $input['ne_lat'], $input['ne_lng'] ) ) {
-		$delegate_input['bounds'] = implode( ',', array(
-			(float) $input['sw_lat'],
-			(float) $input['sw_lng'],
-			(float) $input['ne_lat'],
-			(float) $input['ne_lng'],
-		) );
+		$delegate_input['bounds'] = implode(
+			',',
+			array(
+				(float) $input['sw_lat'],
+				(float) $input['sw_lng'],
+				(float) $input['ne_lat'],
+				(float) $input['ne_lng'],
+			)
+		);
 	}
 
 	// Location taxonomy filter.

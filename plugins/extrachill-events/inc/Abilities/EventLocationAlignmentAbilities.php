@@ -97,16 +97,16 @@ class EventLocationAlignmentAbilities {
 							'items' => array(
 								'type'       => 'object',
 								'properties' => array(
-									'post_id'                 => array( 'type' => 'integer' ),
-									'title'                   => array( 'type' => 'string' ),
-									'venue'                   => array( 'type' => 'string' ),
-									'venue_city'              => array( 'type' => 'string' ),
-									'assigned_location'       => array( 'type' => 'string' ),
-									'expected_location'       => array( 'type' => 'string' ),
-									'flow_id'                 => array( 'type' => 'integer' ),
-									'flow_config_location'    => array( 'type' => 'string' ),
-									'status'                  => array( 'type' => 'string' ),
-									'reason'                  => array( 'type' => 'string' ),
+									'post_id'              => array( 'type' => 'integer' ),
+									'title'                => array( 'type' => 'string' ),
+									'venue'                => array( 'type' => 'string' ),
+									'venue_city'           => array( 'type' => 'string' ),
+									'assigned_location'    => array( 'type' => 'string' ),
+									'expected_location'    => array( 'type' => 'string' ),
+									'flow_id'              => array( 'type' => 'integer' ),
+									'flow_config_location' => array( 'type' => 'string' ),
+									'status'               => array( 'type' => 'string' ),
+									'reason'               => array( 'type' => 'string' ),
 								),
 							),
 						),
@@ -165,16 +165,16 @@ class EventLocationAlignmentAbilities {
 		$results          = array();
 
 		foreach ( $event_ids as $post_id ) {
-			$checked_count++;
+			++$checked_count;
 			$event_result = $this->inspectEventLocation( $post_id, $db_flows, $apply );
 
 			if ( 'mismatch' === $event_result['status'] ) {
-				$mismatch_count++;
+				++$mismatch_count;
 			} elseif ( 'fixed' === $event_result['status'] ) {
-				$mismatch_count++;
-				$fixed_count++;
+				++$mismatch_count;
+				++$fixed_count;
 			} elseif ( 'unresolved' === $event_result['status'] ) {
-				$unresolved_count++;
+				++$unresolved_count;
 			}
 
 			if ( $include_matches || 'match' !== $event_result['status'] ) {
@@ -254,11 +254,11 @@ class EventLocationAlignmentAbilities {
 			);
 		}
 
-		$venue_terms        = wp_get_object_terms( $post_id, 'venue' );
-		$current_locations  = wp_get_object_terms( $post_id, 'location' );
-		$flow_id            = absint( get_post_meta( $post_id, '_datamachine_post_flow_id', true ) );
-		$flow_location      = $this->getFlowLocationTerm( $flow_id, $db_flows );
-		$current_location_ids = array();
+		$venue_terms            = wp_get_object_terms( $post_id, 'venue' );
+		$current_locations      = wp_get_object_terms( $post_id, 'location' );
+		$flow_id                = absint( get_post_meta( $post_id, '_datamachine_post_flow_id', true ) );
+		$flow_location          = $this->getFlowLocationTerm( $flow_id, $db_flows );
+		$current_location_ids   = array();
 		$current_location_names = array();
 
 		if ( ! is_wp_error( $current_locations ) ) {
@@ -487,23 +487,57 @@ class EventLocationAlignmentAbilities {
 	 */
 	private static function getStateAbbreviationMap(): array {
 		return array(
-			'AL' => 'Alabama',        'AK' => 'Alaska',          'AZ' => 'Arizona',
-			'AR' => 'Arkansas',        'CA' => 'California',      'CO' => 'Colorado',
-			'CT' => 'Connecticut',     'DE' => 'Delaware',        'DC' => 'District of Columbia',
-			'FL' => 'Florida',         'GA' => 'Georgia',         'HI' => 'Hawaii',
-			'ID' => 'Idaho',           'IL' => 'Illinois',        'IN' => 'Indiana',
-			'IA' => 'Iowa',            'KS' => 'Kansas',          'KY' => 'Kentucky',
-			'LA' => 'Louisiana',       'ME' => 'Maine',           'MD' => 'Maryland',
-			'MA' => 'Massachusetts',   'MI' => 'Michigan',        'MN' => 'Minnesota',
-			'MS' => 'Mississippi',     'MO' => 'Missouri',        'MT' => 'Montana',
-			'NE' => 'Nebraska',        'NV' => 'Nevada',          'NH' => 'New Hampshire',
-			'NJ' => 'New Jersey',      'NM' => 'New Mexico',      'NY' => 'New York',
-			'NC' => 'North Carolina',  'ND' => 'North Dakota',    'OH' => 'Ohio',
-			'OK' => 'Oklahoma',        'OR' => 'Oregon',          'PA' => 'Pennsylvania',
-			'RI' => 'Rhode Island',    'SC' => 'South Carolina',  'SD' => 'South Dakota',
-			'TN' => 'Tennessee',       'TX' => 'Texas',           'UT' => 'Utah',
-			'VT' => 'Vermont',         'VA' => 'Virginia',        'WA' => 'Washington',
-			'WV' => 'West Virginia',   'WI' => 'Wisconsin',       'WY' => 'Wyoming',
+			'AL' => 'Alabama',
+			'AK' => 'Alaska',
+			'AZ' => 'Arizona',
+			'AR' => 'Arkansas',
+			'CA' => 'California',
+			'CO' => 'Colorado',
+			'CT' => 'Connecticut',
+			'DE' => 'Delaware',
+			'DC' => 'District of Columbia',
+			'FL' => 'Florida',
+			'GA' => 'Georgia',
+			'HI' => 'Hawaii',
+			'ID' => 'Idaho',
+			'IL' => 'Illinois',
+			'IN' => 'Indiana',
+			'IA' => 'Iowa',
+			'KS' => 'Kansas',
+			'KY' => 'Kentucky',
+			'LA' => 'Louisiana',
+			'ME' => 'Maine',
+			'MD' => 'Maryland',
+			'MA' => 'Massachusetts',
+			'MI' => 'Michigan',
+			'MN' => 'Minnesota',
+			'MS' => 'Mississippi',
+			'MO' => 'Missouri',
+			'MT' => 'Montana',
+			'NE' => 'Nebraska',
+			'NV' => 'Nevada',
+			'NH' => 'New Hampshire',
+			'NJ' => 'New Jersey',
+			'NM' => 'New Mexico',
+			'NY' => 'New York',
+			'NC' => 'North Carolina',
+			'ND' => 'North Dakota',
+			'OH' => 'Ohio',
+			'OK' => 'Oklahoma',
+			'OR' => 'Oregon',
+			'PA' => 'Pennsylvania',
+			'RI' => 'Rhode Island',
+			'SC' => 'South Carolina',
+			'SD' => 'South Dakota',
+			'TN' => 'Tennessee',
+			'TX' => 'Texas',
+			'UT' => 'Utah',
+			'VT' => 'Vermont',
+			'VA' => 'Virginia',
+			'WA' => 'Washington',
+			'WV' => 'West Virginia',
+			'WI' => 'Wisconsin',
+			'WY' => 'Wyoming',
 		);
 	}
 

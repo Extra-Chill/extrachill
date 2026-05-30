@@ -99,22 +99,22 @@ class PruneOrphanLocationsCommand {
 
 		$report = array();
 		$totals = array(
-			'scanned'        => 0,
-			'deletable'      => 0,
-			'deleted'        => 0,
-			'has_posts'      => 0,
-			'failed'         => 0,
+			'scanned'   => 0,
+			'deletable' => 0,
+			'deleted'   => 0,
+			'has_posts' => 0,
+			'failed'    => 0,
 		);
 
 		foreach ( $candidates as $row ) {
-			$totals['scanned']++;
+			++$totals['scanned'];
 			$term_id = (int) $row['term_id'];
 			$count   = (int) $row['count'];
 			$name    = (string) $row['name'];
 			$slug    = (string) $row['slug'];
 
 			if ( $count > 0 ) {
-				$totals['has_posts']++;
+				++$totals['has_posts'];
 				$report[] = array(
 					'term_id' => $term_id,
 					'name'    => $name,
@@ -126,7 +126,7 @@ class PruneOrphanLocationsCommand {
 				continue;
 			}
 
-			$totals['deletable']++;
+			++$totals['deletable'];
 
 			if ( ! $commit ) {
 				$report[] = array(
@@ -142,7 +142,7 @@ class PruneOrphanLocationsCommand {
 
 			$result = wp_delete_term( $term_id, 'location' );
 			if ( true === $result ) {
-				$totals['deleted']++;
+				++$totals['deleted'];
 				$report[] = array(
 					'term_id' => $term_id,
 					'name'    => $name,
@@ -152,8 +152,8 @@ class PruneOrphanLocationsCommand {
 					'reason'  => 'wp_delete_term_ok',
 				);
 			} else {
-				$totals['failed']++;
-				$reason = is_wp_error( $result ) ? $result->get_error_code() : 'wp_delete_term_returned_' . var_export( $result, true );
+				++$totals['failed'];
+				$reason   = is_wp_error( $result ) ? $result->get_error_code() : 'wp_delete_term_returned_' . var_export( $result, true );
 				$report[] = array(
 					'term_id' => $term_id,
 					'name'    => $name,
@@ -172,14 +172,16 @@ class PruneOrphanLocationsCommand {
 		);
 
 		\WP_CLI::log( '' );
-		\WP_CLI::log( sprintf(
-			'Summary: scanned=%d deletable=%d deleted=%d has_posts=%d failed=%d',
-			$totals['scanned'],
-			$totals['deletable'],
-			$totals['deleted'],
-			$totals['has_posts'],
-			$totals['failed']
-		) );
+		\WP_CLI::log(
+			sprintf(
+				'Summary: scanned=%d deletable=%d deleted=%d has_posts=%d failed=%d',
+				$totals['scanned'],
+				$totals['deletable'],
+				$totals['deleted'],
+				$totals['has_posts'],
+				$totals['failed']
+			)
+		);
 
 		if ( ! $commit ) {
 			\WP_CLI::log( '' );
@@ -188,10 +190,12 @@ class PruneOrphanLocationsCommand {
 
 		if ( $totals['has_posts'] > 0 ) {
 			\WP_CLI::log( '' );
-			\WP_CLI::warning( sprintf(
-				'%d orphan term(s) still have posts attached. Run `wp extrachill events fix-locations --yes --url=events.extrachill.com` to reassign them, then re-run prune-orphans.',
-				$totals['has_posts']
-			) );
+			\WP_CLI::warning(
+				sprintf(
+					'%d orphan term(s) still have posts attached. Run `wp extrachill events fix-locations --yes --url=events.extrachill.com` to reassign them, then re-run prune-orphans.',
+					$totals['has_posts']
+				)
+			);
 		}
 	}
 }

@@ -141,11 +141,11 @@ class UnqualifiableFlowsCommand {
 			}
 
 			$candidates[] = array(
-				'flow_id'       => $flow['flow_id'],
-				'flow_name'     => $flow['flow_name'],
-				'source_url'    => $flow['source_url'],
-				'recent_runs'   => $counts['recent'],
-				'zero_yield'    => $counts['zero_yield'],
+				'flow_id'     => $flow['flow_id'],
+				'flow_name'   => $flow['flow_name'],
+				'source_url'  => $flow['source_url'],
+				'recent_runs' => $counts['recent'],
+				'zero_yield'  => $counts['zero_yield'],
 			);
 
 			if ( count( $candidates ) >= $limit ) {
@@ -248,10 +248,12 @@ class UnqualifiableFlowsCommand {
 		}
 		if ( ! empty( $awaiting ) ) {
 			\WP_CLI::log( '' );
-			\WP_CLI::log( sprintf(
-				'%d flow(s) awaiting confirmation — verdict recorded but pause threshold not yet met. Re-run later, or pass --force to bypass.',
-				count( $awaiting )
-			) );
+			\WP_CLI::log(
+				sprintf(
+					'%d flow(s) awaiting confirmation — verdict recorded but pause threshold not yet met. Re-run later, or pass --force to bypass.',
+					count( $awaiting )
+				)
+			);
 		}
 		if ( ! empty( $recommended ) ) {
 			\WP_CLI::log( '' );

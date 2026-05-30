@@ -138,13 +138,15 @@ class QualifyDigestAbilities {
 					gmdate( 'M j', $window_start_ts ),
 					gmdate( 'M j', $window_end_ts )
 				);
-				$result = $send_ability->execute( array(
-					'to'           => $recipient,
-					'subject'      => $subject,
-					'body'         => $body,
-					'content_type' => 'text' === $format ? 'text/plain' : 'text/html',
-				) );
-				$sent   = is_array( $result ) ? (bool) ( $result['success'] ?? false ) : false;
+				$result  = $send_ability->execute(
+					array(
+						'to'           => $recipient,
+						'subject'      => $subject,
+						'body'         => $body,
+						'content_type' => 'text' === $format ? 'text/plain' : 'text/html',
+					)
+				);
+				$sent    = is_array( $result ) ? (bool) ( $result['success'] ?? false ) : false;
 
 				do_action(
 					'datamachine_log',
@@ -216,7 +218,7 @@ class QualifyDigestAbilities {
 			$paused_at_str = (string) ( $cfg['paused_at'] ?? '' );
 			$paused_at_ts  = '' !== $paused_at_str ? strtotime( $paused_at_str . ' UTC' ) : false;
 			if ( $paused_at_ts && $paused_at_ts >= $start_ts && $paused_at_ts <= $end_ts ) {
-				$verdict = (string) ( $cfg['paused_reason'] ?? 'unknown' );
+				$verdict                       = (string) ( $cfg['paused_reason'] ?? 'unknown' );
 				$paused_by_verdict[ $verdict ] = ( $paused_by_verdict[ $verdict ] ?? 0 ) + 1;
 			}
 
@@ -326,7 +328,7 @@ class QualifyDigestAbilities {
 	public function render_html( array $data, int $start_ts, int $end_ts ): string {
 		$range = sprintf( '%s – %s UTC', gmdate( 'M j', $start_ts ), gmdate( 'M j, Y', $end_ts ) );
 
-		$h = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Qualify Digest</title>';
+		$h  = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Qualify Digest</title>';
 		$h .= '<style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#222;max-width:680px;margin:24px auto;padding:0 16px}h1{font-size:20px;margin-bottom:4px}h2{font-size:15px;border-bottom:1px solid #eee;padding-bottom:4px;margin-top:24px}.muted{color:#666;font-size:13px}table{border-collapse:collapse;width:100%;margin:8px 0}td,th{text-align:left;padding:6px 8px;border-bottom:1px solid #eee;font-size:14px}.count{font-variant-numeric:tabular-nums;text-align:right}.empty{color:#999;font-style:italic;font-size:13px}</style>';
 		$h .= '</head><body>';
 		$h .= '<h1>Event Calendar Qualify Digest</h1>';
@@ -405,8 +407,8 @@ class QualifyDigestAbilities {
 	 * @return string
 	 */
 	public function render_text( array $data, int $start_ts, int $end_ts ): string {
-		$range = sprintf( '%s – %s UTC', gmdate( 'M j', $start_ts ), gmdate( 'M j, Y', $end_ts ) );
-		$lines = array();
+		$range   = sprintf( '%s – %s UTC', gmdate( 'M j', $start_ts ), gmdate( 'M j, Y', $end_ts ) );
+		$lines   = array();
 		$lines[] = 'EVENT CALENDAR QUALIFY DIGEST';
 		$lines[] = 'Week of ' . $range;
 		$lines[] = '';
@@ -435,7 +437,7 @@ class QualifyDigestAbilities {
 
 		if ( ! empty( $data['top_extraction_gap'] ) ) {
 			$lines[] = 'Top 3 extraction_gap fingerprints:';
-			$i = 1;
+			$i       = 1;
 			foreach ( $data['top_extraction_gap'] as $row ) {
 				$hint    = '' === $row['hint'] ? '(no hint)' : $row['hint'];
 				$lines[] = sprintf( '  %d. %s — %d', $i++, $hint, (int) $row['count'] );

@@ -127,12 +127,16 @@ function extrachill_events_near_me_scripts() {
 
 	$geo = extrachill_events_get_geo_params();
 
-	wp_localize_script( 'extrachill-events-near-me', 'ecNearMe', array(
-		'hasLocation' => null !== $geo['lat'] && null !== $geo['lng'],
-		'lat'         => $geo['lat'],
-		'lng'         => $geo['lng'],
-		'pageUrl'     => get_permalink(),
-	) );
+	wp_localize_script(
+		'extrachill-events-near-me',
+		'ecNearMe',
+		array(
+			'hasLocation' => null !== $geo['lat'] && null !== $geo['lng'],
+			'lat'         => $geo['lat'],
+			'lng'         => $geo['lng'],
+			'pageUrl'     => get_permalink(),
+		)
+	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_events_near_me_scripts' );
 
@@ -243,19 +247,21 @@ function extrachill_events_near_me_content( string $content ): string {
 	$html .= '</div>';
 
 	// City grid fallback (hidden by default, JS reveals if geo denied).
-	$locations = get_terms( array(
-		'taxonomy'   => 'location',
-		'hide_empty' => true,
-		'orderby'    => 'count',
-		'order'      => 'DESC',
-		'number'     => 20,
-		'meta_query' => array(
-			array(
-				'key'     => '_location_coordinates',
-				'compare' => 'EXISTS',
+	$locations = get_terms(
+		array(
+			'taxonomy'   => 'location',
+			'hide_empty' => true,
+			'orderby'    => 'count',
+			'order'      => 'DESC',
+			'number'     => 20,
+			'meta_query' => array(
+				array(
+					'key'     => '_location_coordinates',
+					'compare' => 'EXISTS',
+				),
 			),
-		),
-	) );
+		)
+	);
 
 	if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
 		$html .= '<div class="near-me-cities" style="display:none;">';

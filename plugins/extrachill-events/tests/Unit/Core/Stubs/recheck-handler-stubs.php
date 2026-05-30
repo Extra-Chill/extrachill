@@ -11,55 +11,54 @@
 
 namespace ExtraChillEvents\Cli {
 
-if ( ! class_exists( __NAMESPACE__ . '\\FlowOps' ) ) {
-	class FlowOps {
+	if ( ! class_exists( __NAMESPACE__ . '\\FlowOps' ) ) {
+		class FlowOps {
 
-		public static function fetch_flow_row( int $flow_id ): ?array {
-			return $GLOBALS['ec_test_flow_rows'][ $flow_id ] ?? null;
-		}
+			public static function fetch_flow_row( int $flow_id ): ?array {
+				return $GLOBALS['ec_test_flow_rows'][ $flow_id ] ?? null;
+			}
 
-		public static function resume_flow_from_qualified( int $flow_id, array $result ): bool {
-			$GLOBALS['ec_test_flowops_calls'][] = array(
-				'method' => 'resume_flow_from_qualified',
-				'args'   => array( $flow_id, $result ),
-			);
-			return true;
-		}
+			public static function resume_flow_from_qualified( int $flow_id, array $result ): bool {
+				$GLOBALS['ec_test_flowops_calls'][] = array(
+					'method' => 'resume_flow_from_qualified',
+					'args'   => array( $flow_id, $result ),
+				);
+				return true;
+			}
 
-		public static function update_paused_reason( int $flow_id, string $verdict ): bool {
-			$GLOBALS['ec_test_flowops_calls'][] = array(
-				'method' => 'update_paused_reason',
-				'args'   => array( $flow_id, $verdict ),
-			);
-			return true;
-		}
+			public static function update_paused_reason( int $flow_id, string $verdict ): bool {
+				$GLOBALS['ec_test_flowops_calls'][] = array(
+					'method' => 'update_paused_reason',
+					'args'   => array( $flow_id, $verdict ),
+				);
+				return true;
+			}
 
-		public static function flag_stale_paused( int $flow_id, string $verdict, int $consecutive_failures ): bool {
-			$GLOBALS['ec_test_flowops_calls'][] = array(
-				'method' => 'flag_stale_paused',
-				'args'   => array( $flow_id, $verdict, $consecutive_failures ),
-			);
-			return true;
-		}
+			public static function flag_stale_paused( int $flow_id, string $verdict, int $consecutive_failures ): bool {
+				$GLOBALS['ec_test_flowops_calls'][] = array(
+					'method' => 'flag_stale_paused',
+					'args'   => array( $flow_id, $verdict, $consecutive_failures ),
+				);
+				return true;
+			}
 
-		public static function set_recheck_metadata( int $flow_id, int $action_id, int $next_run_ts ): bool {
-			$GLOBALS['ec_test_flowops_calls'][] = array(
-				'method' => 'set_recheck_metadata',
-				'args'   => array( $flow_id, $action_id, $next_run_ts ),
-			);
-			return true;
-		}
+			public static function set_recheck_metadata( int $flow_id, int $action_id, int $next_run_ts ): bool {
+				$GLOBALS['ec_test_flowops_calls'][] = array(
+					'method' => 'set_recheck_metadata',
+					'args'   => array( $flow_id, $action_id, $next_run_ts ),
+				);
+				return true;
+			}
 
-		public static function pause_flow_by_verdict( int $flow_id, string $verdict, string $source_url = '' ): bool {
-			$GLOBALS['ec_test_flowops_calls'][] = array(
-				'method' => 'pause_flow_by_verdict',
-				'args'   => array( $flow_id, $verdict, $source_url ),
-			);
-			return true;
+			public static function pause_flow_by_verdict( int $flow_id, string $verdict, string $source_url = '' ): bool {
+				$GLOBALS['ec_test_flowops_calls'][] = array(
+					'method' => 'pause_flow_by_verdict',
+					'args'   => array( $flow_id, $verdict, $source_url ),
+				);
+				return true;
+			}
 		}
 	}
-}
-
 }
 
 namespace {

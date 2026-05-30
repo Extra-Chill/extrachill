@@ -20,21 +20,29 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @hook init
  */
 function extrachill_events_register_location_meta() {
-	register_term_meta( 'location', '_location_coordinates', array(
-		'type'              => 'string',
-		'description'       => 'Latitude,longitude center point for the location.',
-		'single'            => true,
-		'show_in_rest'      => true,
-		'sanitize_callback' => 'sanitize_text_field',
-	) );
+	register_term_meta(
+		'location',
+		'_location_coordinates',
+		array(
+			'type'              => 'string',
+			'description'       => 'Latitude,longitude center point for the location.',
+			'single'            => true,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'sanitize_text_field',
+		)
+	);
 
-	register_term_meta( 'location', '_location_city_aliases', array(
-		'type'              => 'string',
-		'description'       => 'Comma-separated city name aliases for venue matching.',
-		'single'            => true,
-		'show_in_rest'      => true,
-		'sanitize_callback' => 'sanitize_text_field',
-	) );
+	register_term_meta(
+		'location',
+		'_location_city_aliases',
+		array(
+			'type'              => 'string',
+			'description'       => 'Comma-separated city name aliases for venue matching.',
+			'single'            => true,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'sanitize_text_field',
+		)
+	);
 }
 add_action( 'init', 'extrachill_events_register_location_meta' );
 
@@ -79,12 +87,14 @@ function extrachill_events_get_location_city_names( WP_Term $location ): array {
 	$names = array( strtolower( $location->name ) );
 
 	// Add child location term names (e.g. Brooklyn under New York City).
-	$children = get_terms( array(
-		'taxonomy'   => 'location',
-		'parent'     => $location->term_id,
-		'hide_empty' => false,
-		'fields'     => 'names',
-	) );
+	$children = get_terms(
+		array(
+			'taxonomy'   => 'location',
+			'parent'     => $location->term_id,
+			'hide_empty' => false,
+			'fields'     => 'names',
+		)
+	);
 
 	if ( ! is_wp_error( $children ) ) {
 		foreach ( $children as $child_name ) {
@@ -196,16 +206,19 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 
 	// Sort by priority first, then by event count descending.
 	$priority_ids = function_exists( 'ec_get_priority_venue_ids' ) ? ec_get_priority_venue_ids() : array();
-	usort( $matched, function ( $a, $b ) use ( $priority_ids ) {
-		$a_priority = in_array( $a['term_id'], $priority_ids, true ) ? 1 : 0;
-		$b_priority = in_array( $b['term_id'], $priority_ids, true ) ? 1 : 0;
+	usort(
+		$matched,
+		function ( $a, $b ) use ( $priority_ids ) {
+			$a_priority = in_array( $a['term_id'], $priority_ids, true ) ? 1 : 0;
+			$b_priority = in_array( $b['term_id'], $priority_ids, true ) ? 1 : 0;
 
-		if ( $a_priority !== $b_priority ) {
-			return $b_priority - $a_priority;
+			if ( $a_priority !== $b_priority ) {
+				return $b_priority - $a_priority;
+			}
+
+			return $b['event_count'] - $a['event_count'];
 		}
-
-		return $b['event_count'] - $a['event_count'];
-	} );
+	);
 
 	$request_cache[ $term_id ] = $matched;
 	set_transient( $cache_key, $matched, HOUR_IN_SECONDS );

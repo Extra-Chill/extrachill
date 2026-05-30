@@ -65,12 +65,14 @@ class QualifyRecheckHandlerTest extends TestCase {
 			'event_count' => 8,
 		);
 
-		QualifyRecheckHandler::handle( array(
-			'flow_id'              => 42,
-			'url'                  => 'https://example.com/events',
-			'verdict'              => QualifyVerdict::EXTRACTION_GAP,
-			'consecutive_failures' => 0,
-		) );
+		QualifyRecheckHandler::handle(
+			array(
+				'flow_id'              => 42,
+				'url'                  => 'https://example.com/events',
+				'verdict'              => QualifyVerdict::EXTRACTION_GAP,
+				'consecutive_failures' => 0,
+			)
+		);
 
 		$resume_calls = array_filter(
 			$GLOBALS['ec_test_flowops_calls'],
@@ -86,12 +88,14 @@ class QualifyRecheckHandlerTest extends TestCase {
 			'verdict' => QualifyVerdict::EXTRACTION_GAP,
 		);
 
-		QualifyRecheckHandler::handle( array(
-			'flow_id'              => 43,
-			'url'                  => 'https://example.com/events',
-			'verdict'              => QualifyVerdict::EXTRACTION_GAP,
-			'consecutive_failures' => 2,
-		) );
+		QualifyRecheckHandler::handle(
+			array(
+				'flow_id'              => 43,
+				'url'                  => 'https://example.com/events',
+				'verdict'              => QualifyVerdict::EXTRACTION_GAP,
+				'consecutive_failures' => 2,
+			)
+		);
 
 		$this->assertCount( 1, $GLOBALS['ec_test_action_scheduler'] );
 		$scheduled = $GLOBALS['ec_test_action_scheduler'][0];
@@ -106,12 +110,14 @@ class QualifyRecheckHandlerTest extends TestCase {
 			'verdict' => QualifyVerdict::RESERVATION_ONLY,
 		);
 
-		QualifyRecheckHandler::handle( array(
-			'flow_id'              => 44,
-			'url'                  => 'https://example.com/events',
-			'verdict'              => QualifyVerdict::UNREACHABLE,
-			'consecutive_failures' => 0,
-		) );
+		QualifyRecheckHandler::handle(
+			array(
+				'flow_id'              => 44,
+				'url'                  => 'https://example.com/events',
+				'verdict'              => QualifyVerdict::UNREACHABLE,
+				'consecutive_failures' => 0,
+			)
+		);
 
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'] );
 		$update_calls = array_filter(
@@ -129,12 +135,14 @@ class QualifyRecheckHandlerTest extends TestCase {
 			'scheduling_config' => array( 'interval' => 'daily' ),
 		);
 
-		QualifyRecheckHandler::handle( array(
-			'flow_id'              => 45,
-			'url'                  => 'https://example.com/events',
-			'verdict'              => QualifyVerdict::EXTRACTION_GAP,
-			'consecutive_failures' => 0,
-		) );
+		QualifyRecheckHandler::handle(
+			array(
+				'flow_id'              => 45,
+				'url'                  => 'https://example.com/events',
+				'verdict'              => QualifyVerdict::EXTRACTION_GAP,
+				'consecutive_failures' => 0,
+			)
+		);
 
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'] );
 		$this->assertEmpty( $GLOBALS['ec_test_flowops_calls'] );
@@ -147,12 +155,14 @@ class QualifyRecheckHandlerTest extends TestCase {
 		);
 
 		// consecutive_failures=5 + this run = 6 → at threshold.
-		QualifyRecheckHandler::handle( array(
-			'flow_id'              => 46,
-			'url'                  => 'https://example.com/events',
-			'verdict'              => QualifyVerdict::EXTRACTION_GAP,
-			'consecutive_failures' => 5,
-		) );
+		QualifyRecheckHandler::handle(
+			array(
+				'flow_id'              => 46,
+				'url'                  => 'https://example.com/events',
+				'verdict'              => QualifyVerdict::EXTRACTION_GAP,
+				'consecutive_failures' => 5,
+			)
+		);
 
 		$flag_calls = array_filter(
 			$GLOBALS['ec_test_flowops_calls'],
@@ -164,12 +174,14 @@ class QualifyRecheckHandlerTest extends TestCase {
 
 	public function test_missing_flow_is_noop(): void {
 		// No flow seeded — handler should bail without errors.
-		QualifyRecheckHandler::handle( array(
-			'flow_id'              => 999,
-			'url'                  => 'https://example.com/events',
-			'verdict'              => QualifyVerdict::EXTRACTION_GAP,
-			'consecutive_failures' => 0,
-		) );
+		QualifyRecheckHandler::handle(
+			array(
+				'flow_id'              => 999,
+				'url'                  => 'https://example.com/events',
+				'verdict'              => QualifyVerdict::EXTRACTION_GAP,
+				'consecutive_failures' => 0,
+			)
+		);
 
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'] );
 		$this->assertEmpty( $GLOBALS['ec_test_flowops_calls'] );
