@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.0] - 2026-05-30
+
+### Added
+- add rank-progress bar to bbPress profile
+
+### Changed
+- retire duplicate community-get-leaderboard ability
+
+### Fixed
+- define --brand-blue-rgb token for rank-progress track
+
 ## [1.7.3] - 2026-05-30
 
 ### Changed
