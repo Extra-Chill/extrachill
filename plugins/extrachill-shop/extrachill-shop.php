@@ -52,6 +52,7 @@ class ExtraChillShop {
 
 	private function load_includes() {
 		// Product customizations
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/product-provisioning.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/lifetime-membership-product.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/lifetime-membership.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/priority-boost-product.php';
