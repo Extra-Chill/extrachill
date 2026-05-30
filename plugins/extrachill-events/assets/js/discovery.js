@@ -203,6 +203,23 @@
 					// Swap events content.
 					content.innerHTML = data.html;
 
+					// A prior Load More hydration (data-machine-events
+					// issue #314) may have converted the numbered
+					// `.data-machine-events-pagination` nav into a
+					// `.data-machine-events-load-more-nav`. Remove that
+					// stale button before re-injecting fresh pagination
+					// so the calendar's own `initLoadMore` can
+					// re-hydrate it on the `content-updated` event we
+					// dispatch below. Without this, a scope-tab switch
+					// stacks a Load More button above re-injected
+					// numbered pagination on location archive pages.
+					var loadMoreNav = calendar.querySelector(
+						'.data-machine-events-load-more-nav'
+					);
+					if ( loadMoreNav ) {
+						loadMoreNav.remove();
+					}
+
 					// Update pagination.
 					var paginationEl = calendar.querySelector(
 						'.data-machine-events-pagination'
