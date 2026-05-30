@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.1] - 2026-05-30
+
+### Fixed
+- remove paragraph tag from community latest post markup
+
 ## [1.7.0] - 2026-05-29
 
 ### Added
