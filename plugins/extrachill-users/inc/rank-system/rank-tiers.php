@@ -76,11 +76,25 @@ function ec_get_default_rank_tiers() {
 			'class_name' => 'rank-first-frost',
 		),
 		array(
+			'key'        => 'snowflake',
+			'label'      => 'Snowflake',
+			'min_points' => 130,
+			'icon'       => 'snowflake',
+			'class_name' => 'rank-snowflake',
+		),
+		array(
 			'key'        => 'overnight_freeze',
 			'label'      => 'Overnight Freeze',
 			'min_points' => 155,
 			'icon'       => 'snowflake',
 			'class_name' => 'rank-overnight-freeze',
+		),
+		array(
+			'key'        => 'icicle',
+			'label'      => 'Icicle',
+			'min_points' => 190,
+			'icon'       => 'snowflake',
+			'class_name' => 'rank-icicle',
 		),
 		array(
 			'key'        => 'ice_cube',
@@ -193,6 +207,13 @@ function ec_get_default_rank_tiers() {
 			'min_points' => 101974,
 			'icon'       => 'snowflake',
 			'class_name' => 'rank-glacier',
+		),
+		array(
+			'key'        => 'iceberg',
+			'label'      => 'Iceberg',
+			'min_points' => 125000,
+			'icon'       => 'snowflake',
+			'class_name' => 'rank-iceberg',
 		),
 		array(
 			'key'        => 'antarctica',

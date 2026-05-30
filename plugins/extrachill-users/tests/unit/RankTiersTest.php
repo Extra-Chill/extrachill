@@ -34,7 +34,9 @@ class Test_Rank_Tiers extends WP_UnitTestCase {
 			array( 35, 'Puddle' ),
 			array( 69, 'Crisp Air' ),
 			array( 103, 'First Frost' ),
+			array( 130, 'Snowflake' ),
 			array( 155, 'Overnight Freeze' ),
+			array( 190, 'Icicle' ),
 			array( 232, 'Ice Cube' ),
 			array( 349, 'Full Ice Tray' ),
 			array( 523, 'Bag of Ice' ),
@@ -51,6 +53,7 @@ class Test_Rank_Tiers extends WP_UnitTestCase {
 			array( 45322, 'Ski Resort' ),
 			array( 67983, 'Blizzard' ),
 			array( 101974, 'Glacier' ),
+			array( 125000, 'Iceberg' ),
 			array( 152961, 'Antarctica' ),
 			array( 229442, 'Ice Age' ),
 			array( 344164, 'Upper Atmosphere' ),
@@ -177,7 +180,7 @@ class Test_Rank_Tiers extends WP_UnitTestCase {
 		$this->assertSame( 'First Frost', ec_get_rank_for_points( 120 ) );
 	}
 
-	public function test_default_ladder_has_26_tiers(): void {
-		$this->assertCount( 26, ec_get_default_rank_tiers() );
+	public function test_default_ladder_has_29_tiers(): void {
+		$this->assertCount( 29, ec_get_default_rank_tiers() );
 	}
 }
