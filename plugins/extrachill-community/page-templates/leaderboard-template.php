@@ -44,9 +44,9 @@ echo '<tbody>';
 foreach ( $users as $user ) {
 	$user_profile_url = bbp_get_user_profile_url($user->ID);
 	// phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Display in site-local time, preserving existing rendered output.
-	$join_date        = date('Y-m-d', strtotime($user->user_registered));
-	$points           = extrachill_display_user_points($user->ID);
-	$rank             = extrachill_display_user_rank($user->ID);
+	$join_date = date('Y-m-d', strtotime($user->user_registered));
+	$points    = extrachill_display_user_points($user->ID);
+	$rank      = extrachill_display_user_rank($user->ID);
 
 	echo '<tr>';
 	echo '<td><a href="' . esc_url($user_profile_url) . '">' . esc_html($user->display_name) . '</a></td>';

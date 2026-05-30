@@ -64,7 +64,7 @@ if ( 'upvotes' === $current_sort ) {
 	$loop_args['order']    = 'DESC';
 } elseif ( 'popular' === $current_sort ) {
 	global $wpdb;
-	$popular_ids           = $wpdb->get_col($wpdb->prepare(
+	$popular_ids = $wpdb->get_col($wpdb->prepare(
 		"SELECT p.post_parent FROM {$wpdb->posts} p
          INNER JOIN {$wpdb->posts} t ON p.post_parent = t.ID
          WHERE p.post_type = %s AND t.post_type = %s AND p.post_date >= %s
