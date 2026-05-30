@@ -49,11 +49,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 				}
 
 				if ( $category ) {
-					echo '<a href="' . get_category_link( $category->term_id ) . '">' . $category->name . '</a>';
+					echo '<a href="' . esc_url( get_category_link( $category->term_id ) ) . '">' . esc_html( $category->name ) . '</a>';
 				}
 
 				if ( $top_tag ) {
-					echo ' › <a href="' . get_tag_link( $top_tag->term_id ) . '">' . $top_tag->name . '</a>';
+					echo ' › <a href="' . esc_url( get_tag_link( $top_tag->term_id ) ) . '">' . esc_html( $top_tag->name ) . '</a>';
 				}
 			} elseif ( is_singular() && ! is_singular( array( 'post', 'page', 'product' ) ) ) {
 				$post_type     = get_post_type();
@@ -61,38 +61,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 				$archive_link  = get_post_type_archive_link( $post_type );
 
 				if ( $archive_link && $post_type_obj ) {
-					echo '<a href="' . $archive_link . '">' . $post_type_obj->labels->name . '</a>';
+					echo '<a href="' . esc_url( $archive_link ) . '">' . esc_html( $post_type_obj->labels->name ) . '</a>';
 				}
 			} elseif ( is_page() ) {
 				$parent_id = wp_get_post_parent_id( get_the_ID() );
 				if ( $parent_id ) {
 					$parent_title = get_the_title( $parent_id );
 					$parent_url   = get_permalink( $parent_id );
-					echo '<a href="' . $parent_url . '">' . $parent_title . '</a> › ';
+					echo '<a href="' . esc_url( $parent_url ) . '">' . esc_html( $parent_title ) . '</a> › ';
 				}
-				echo '<span class="breadcrumb-title">' . get_the_title() . '</span>';
+				echo '<span class="breadcrumb-title">' . esc_html( get_the_title() ) . '</span>';
 			}
 
 			if ( is_page() ) {
 				// Pages fully handled above, skip this chain
 			} elseif ( is_singular() && ! is_front_page() ) {
-				echo '<span class="breadcrumb-title"> › ' . get_the_title() . '</span>';
+				echo '<span class="breadcrumb-title"> › ' . esc_html( get_the_title() ) . '</span>';
 			} elseif ( is_post_type_archive() ) {
 				$post_type     = get_post_type();
 				$post_type_obj = get_post_type_object( $post_type );
 
 				if ( $post_type_obj ) {
-					echo '<span>' . $post_type_obj->labels->name . '</span>';
+					echo '<span>' . esc_html( $post_type_obj->labels->name ) . '</span>';
 				}
 			} elseif ( is_category() ) {
 				$category = get_queried_object();
 				if ( $category->parent ) {
 					$parent_category = get_category( $category->parent );
-					echo '<a href="' . get_category_link( $parent_category->term_id ) . '">' . $parent_category->name . '</a> › ';
+					echo '<a href="' . esc_url( get_category_link( $parent_category->term_id ) ) . '">' . esc_html( $parent_category->name ) . '</a> › ';
 				}
-				echo '<span>' . single_cat_title( '', false ) . '</span>';
+				echo '<span>' . esc_html( single_cat_title( '', false ) ) . '</span>';
 			} elseif ( is_tag() ) {
-				echo '<span>' . single_tag_title( '', false ) . '</span>';
+				echo '<span>' . esc_html( single_tag_title( '', false ) ) . '</span>';
 			} elseif ( is_tax() ) {
 				$term     = get_queried_object();
 				$taxonomy = get_taxonomy( $term->taxonomy );
@@ -108,7 +108,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							$parents = array_reverse( $parents );
 							foreach ( $parents as $parent_id ) {
 								$parent_term = get_term( $parent_id, $term->taxonomy );
-								echo '<a href="' . get_term_link( $parent_term ) . '">' . esc_html( $parent_term->name ) . '</a> › ';
+								echo '<a href="' . esc_url( get_term_link( $parent_term ) ) . '">' . esc_html( $parent_term->name ) . '</a> › ';
 							}
 						}
 					}
