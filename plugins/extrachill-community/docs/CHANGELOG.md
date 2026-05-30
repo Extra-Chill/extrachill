@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.7.3] - 2026-05-30
+
+### Changed
+- drop duplicated rank ladder, delegate to extrachill-users (closes #40)
+
+### Fixed
+- Fix output escaping in community templates (issue #39)
+- add missing text domain to user verification i18n calls
+
 ## [1.7.2] - 2026-05-30
 
 ### Changed
