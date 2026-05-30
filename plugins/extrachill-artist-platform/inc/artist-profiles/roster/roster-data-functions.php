@@ -6,6 +6,52 @@
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Roster invite-status contract.
+ *
+ * These named constants are the single source of truth for the invite-status
+ * enum produced by ec_add_pending_invitation() and consumed by the roster UI,
+ * invitation emails, and the cross-network registration/acceptance flows in
+ * extrachill-users.
+ *
+ * IMPORTANT: The string VALUES are a stable cross-plugin contract. They are
+ * persisted in post meta (`_pending_invitations`) and matched by string
+ * equality in extrachill-users. Do NOT change the values without a coordinated
+ * data migration and updates to every consumer.
+ *
+ * Pending-invitation array shape (stored in `_pending_invitations` post meta):
+ *   array(
+ *     'id'           => string,  // 'inv_' . 12 random chars — stable removal key
+ *     'display_name' => string,  // sanitized display name
+ *     'email'        => string,  // sanitized email
+ *     'token'        => string,  // 32-char acceptance token
+ *     'status'       => string,  // one of EC_INVITE_STATUS_* below
+ *     'invited_on'   => int,     // GMT Unix timestamp
+ *   )
+ *
+ * @see ec_add_pending_invitation()
+ */
+
+/**
+ * Invite status: the email belongs to an existing user account.
+ *
+ * Acceptance is handled in-place (the existing user clicks the link while
+ * logged in); acceptance verifies/adds the artist membership meta.
+ */
+if ( ! defined( 'EC_INVITE_STATUS_EXISTING_ARTIST' ) ) {
+	define( 'EC_INVITE_STATUS_EXISTING_ARTIST', 'invited_existing_artist' );
+}
+
+/**
+ * Invite status: the email has no account yet.
+ *
+ * Acceptance routes through the registration flow in extrachill-users, which
+ * creates the account and then links the artist membership.
+ */
+if ( ! defined( 'EC_INVITE_STATUS_NEW_USER' ) ) {
+	define( 'EC_INVITE_STATUS_NEW_USER', 'invited_new_user' );
+}
+
 // --- Pending Invitation Functions ---
 
 /**
@@ -58,10 +104,10 @@ function ec_add_pending_invitation( $artist_id, $display_name, $email ) { // Rem
     if ( $existing_user_id ) {
         // User exists. We will invite them. 
         // The acceptance process will handle adding 'user_is_artist' meta if needed.
-        $final_status = 'invited_existing_artist'; // Use this status; acceptance will verify/add meta.
+        $final_status = EC_INVITE_STATUS_EXISTING_ARTIST; // Use this status; acceptance will verify/add meta.
     } else {
         // New user
-        $final_status = 'invited_new_user';
+        $final_status = EC_INVITE_STATUS_NEW_USER;
     }
 
     $new_invite_entry = array(
@@ -70,7 +116,7 @@ function ec_add_pending_invitation( $artist_id, $display_name, $email ) { // Rem
         'email'         => sanitize_email( $email ),
         'token'         => $token,
         'status'        => sanitize_key( $final_status ), 
-        'invited_on'    => current_time( 'timestamp', true ) // GMT timestamp
+        'invited_on'    => time() // GMT Unix timestamp (replaces deprecated current_time( 'timestamp', true ))
     );
 
     $invitations[] = $new_invite_entry;

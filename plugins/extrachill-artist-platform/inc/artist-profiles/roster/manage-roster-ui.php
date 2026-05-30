@@ -73,10 +73,10 @@ function ec_display_manage_members_section( $artist_id, $current_user_id ) {
                     $invited_on_formatted = date_i18n( get_option( 'date_format' ), $invite['invited_on'] );
                     $status_text = '';
                     switch ( $invite['status'] ) {
-                        case 'invited_existing_artist':
+                        case EC_INVITE_STATUS_EXISTING_ARTIST:
                             $status_text = __( 'Invited (Existing User)', 'extrachill-artist-platform' );
                             break;
-                        case 'invited_new_user':
+                        case EC_INVITE_STATUS_NEW_USER:
                             $status_text = __( 'Invited (New User)', 'extrachill-artist-platform' );
                             break;
                         default:

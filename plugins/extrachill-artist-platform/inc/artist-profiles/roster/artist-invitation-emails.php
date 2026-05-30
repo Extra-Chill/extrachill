@@ -16,7 +16,7 @@ require_once __DIR__ . '/roster-data-functions.php'; // For ec_get_pending_invit
  * @param string $member_display_name The display name for the member (as initially entered).
  * @param string $invitation_token The unique token for the invitation.
  * @param int    $artist_id The ID of the artist.
- * @param string $invitation_status Status of the invitation (e.g., 'invited_new_user', 'invited_existing_artist').
+ * @param string $invitation_status Status of the invitation; one of EC_INVITE_STATUS_NEW_USER or EC_INVITE_STATUS_EXISTING_ARTIST.
  * @return bool True if the email was sent successfully, false otherwise.
  */
 function ec_send_artist_invitation_email( $recipient_email, $artist_name, $member_display_name, $invitation_token, $artist_id, $invitation_status ) {
@@ -32,7 +32,7 @@ function ec_send_artist_invitation_email( $recipient_email, $artist_name, $membe
 
 	// Construct the invitation link
 	$invitation_base_url = home_url( '/' );
-	if ( 'invited_new_user' === $invitation_status ) {
+	if ( EC_INVITE_STATUS_NEW_USER === $invitation_status ) {
 		$invitation_link = add_query_arg( array(
 			'action'    => 'ec_accept_invite',
 			'token'     => $invitation_token,
@@ -63,7 +63,7 @@ function ec_send_artist_invitation_email( $recipient_email, $artist_name, $membe
 	}
 
 	// CTA copy varies based on whether the invitee already has an account.
-	if ( 'invited_new_user' === $invitation_status ) {
+	if ( EC_INVITE_STATUS_NEW_USER === $invitation_status ) {
 		$cta_label = __( 'Accept invitation & create account', 'extrachill-artist-platform' );
 	} else {
 		$cta_label = __( 'Accept invitation', 'extrachill-artist-platform' );
@@ -152,8 +152,8 @@ function ec_handle_invitation_acceptance() {
 		if ( ! empty( $pending_invitations ) ) {
 			foreach ( $pending_invitations as $key => $invite ) {
 				if ( isset( $invite['token'] ) && $invite['token'] === $token ) {
-					// Check invite status - only 'invited_existing_artist' is relevant here for now
-					if ( isset( $invite['status'] ) && 'invited_existing_artist' === $invite['status'] ) {
+					// Check invite status - only EC_INVITE_STATUS_EXISTING_ARTIST is relevant here for now
+					if ( isset( $invite['status'] ) && EC_INVITE_STATUS_EXISTING_ARTIST === $invite['status'] ) {
 						// Check email match
 						if ( isset( $invite['email'] ) && strtolower( $invite['email'] ) === strtolower( $current_user->user_email ) ) {
 							$valid_invite         = $invite;
