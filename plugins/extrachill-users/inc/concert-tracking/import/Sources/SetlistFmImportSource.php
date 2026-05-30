@@ -120,7 +120,10 @@ final class SetlistFmImportSource implements ImportSource {
 			return new \WP_Error(
 				'http_error',
 				sprintf( 'setlist.fm API returned HTTP %d.', $code ),
-				array( 'status' => $code, 'body' => $body )
+				array(
+					'status' => $code,
+					'body'   => $body,
+				)
 			);
 		}
 

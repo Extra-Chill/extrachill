@@ -128,7 +128,10 @@ final class PhishNetImportSource implements ImportSource {
 			return new \WP_Error(
 				'http_error',
 				sprintf( 'phish.net API returned HTTP %d.', $code ),
-				array( 'status' => $code, 'body' => $body )
+				array(
+					'status' => $code,
+					'body'   => $body,
+				)
 			);
 		}
 

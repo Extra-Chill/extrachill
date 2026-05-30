@@ -8,20 +8,11 @@
  * @since 0.6.0
  */
 
-/* Badge Color Variables */
-:root {
-    --artist-badge-color: #E21FC5;
-    --team-badge-color: #1fc5e2;
-    --professional-badge-color: #9D1FE2;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --artist-badge-color: #E21FC5;
-        --team-badge-color: #1fc5e2;
-        --professional-badge-color: #9D1FE2;
-    }
-}
+/*
+ * Badge colors (--artist-badge-color, --team-badge-color,
+ * --professional-badge-color) are defined by the theme in root.css.
+ * This file consumes them rather than redefining them.
+ */
 
 /* Base Badge Styling */
 .user-is-artist,

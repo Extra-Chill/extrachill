@@ -86,11 +86,11 @@ function extrachill_users_ability_search( array $input ): array|WP_Error {
 	}
 
 	// Context-specific permission checks inside execute_callback.
-	if ( $context === 'admin' && ! current_user_can( 'manage_options' ) ) {
+	if ( 'admin' === $context && ! current_user_can( 'manage_options' ) ) {
 		return new WP_Error( 'rest_forbidden', 'Admin access required.', array( 'status' => 403 ) );
 	}
 
-	if ( $context === 'artist-capable' ) {
+	if ( 'artist-capable' === $context ) {
 		if ( ! is_user_logged_in() ) {
 			return new WP_Error( 'rest_forbidden', 'Must be logged in.', array( 'status' => 401 ) );
 		}
@@ -105,14 +105,14 @@ function extrachill_users_ability_search( array $input ): array|WP_Error {
 	}
 
 	// Handle artist-capable context separately.
-	if ( $context === 'artist-capable' ) {
+	if ( 'artist-capable' === $context ) {
 		return extrachill_users_ability_search_artist_capable( $input );
 	}
 
 	$search_columns = array( 'user_login', 'user_nicename' );
 	$number         = 10;
 
-	if ( $context === 'admin' ) {
+	if ( 'admin' === $context ) {
 		$search_columns = array( 'user_login', 'user_email', 'display_name' );
 		$number         = 20;
 	}
@@ -130,7 +130,7 @@ function extrachill_users_ability_search( array $input ): array|WP_Error {
 	$users_data = array();
 
 	foreach ( $users_query->get_results() as $user ) {
-		if ( $context === 'admin' ) {
+		if ( 'admin' === $context ) {
 			$users_data[] = array(
 				'id'           => $user->ID,
 				'display_name' => $user->display_name,

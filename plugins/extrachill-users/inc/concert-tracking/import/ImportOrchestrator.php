@@ -169,7 +169,7 @@ final class ImportOrchestrator {
 			return;
 		}
 
-		$page   = (int) ( $run['next_page'] ?: 1 );
+		$page   = ! empty( $run['next_page'] ) ? (int) $run['next_page'] : 1;
 		$result = $source->fetch_page( (string) $run['external_username'], $page );
 
 		// Always count the request attempt against today's quota.
@@ -363,15 +363,14 @@ final class ImportOrchestrator {
 	public static function get_active_run( int $user_id, string $slug ): ?array {
 		global $wpdb;
 		$table = extrachill_users_concert_import_runs_table_name();
-		$row   = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM {$table}
+		// Table name is an internal constant from extrachill_users_concert_import_runs_table_name(); not user input.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$sql = "SELECT * FROM {$table}
 				WHERE user_id = %d AND source_slug = %s
 				AND status IN ( 'pending', 'running', 'paused' )
-				ORDER BY id DESC LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$user_id,
-				$slug
-			),
+				ORDER BY id DESC LIMIT 1";
+		$row = $wpdb->get_row(
+			$wpdb->prepare( $sql, $user_id, $slug ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			ARRAY_A
 		);
 		return $row ? $row : null;
@@ -385,15 +384,14 @@ final class ImportOrchestrator {
 	public static function get_user_runs( int $user_id, int $limit = 20 ): array {
 		global $wpdb;
 		$table = extrachill_users_concert_import_runs_table_name();
-		$rows  = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT * FROM {$table}
+		// Table name is an internal constant from extrachill_users_concert_import_runs_table_name(); not user input.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$sql  = "SELECT * FROM {$table}
 				WHERE user_id = %d
 				ORDER BY id DESC
-				LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$user_id,
-				$limit
-			),
+				LIMIT %d";
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( $sql, $user_id, $limit ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			ARRAY_A
 		);
 		return $rows ? $rows : array();
