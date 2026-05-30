@@ -2,6 +2,21 @@
 /**
  * Artist-User Relationships REST API Endpoints
  *
+ * Thin REST wrappers that delegate to the admin artist-relationships abilities
+ * registered by extrachill-artist-platform (eap#29). The REST callbacks build an
+ * input array from the request and invoke the ability via wp_get_ability()->execute().
+ *
+ * Architecture note (no recursion):
+ * The artist-platform abilities are implemented as wrappers around the
+ * extrachill_api_* implementation functions in THIS file. To keep the REST
+ * callbacks thin while avoiding an infinite loop, the route callbacks are
+ * dedicated shims (extrachill_api_artist_relationships_*_handler) that call the
+ * abilities, while the extrachill_api_* functions remain the shared
+ * implementation the abilities delegate to. Request flow:
+ *
+ *   HTTP request -> thin route shim -> ability->execute() -> implementation fn
+ *   CLI / agent  -> ability->execute() -> implementation fn (same path, no HTTP)
+ *
  * @package ExtraChillAPI
  */
 
@@ -9,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action( 'rest_api_init', 'extrachill_api_register_artist_relationships_routes' );
+add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_relationships_routes' );
 
 /**
  * Register artist relationships REST routes.
@@ -20,7 +35,7 @@ function extrachill_api_register_artist_relationships_routes() {
 		'/admin/artist-relationships',
 		array(
 			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => 'extrachill_api_get_artist_relationships',
+			'callback'            => 'extrachill_api_artist_relationships_list_handler',
 			'permission_callback' => 'extrachill_api_artist_relationships_permission_check',
 			'args'                => array(
 				'view'   => array(
@@ -41,7 +56,7 @@ function extrachill_api_register_artist_relationships_routes() {
 		'/admin/artist-relationships/link',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_link_user_to_artist',
+			'callback'            => 'extrachill_api_artist_relationships_link_handler',
 			'permission_callback' => 'extrachill_api_artist_relationships_permission_check',
 			'args'                => array(
 				'user_id'   => array(
@@ -61,7 +76,7 @@ function extrachill_api_register_artist_relationships_routes() {
 		'/admin/artist-relationships/unlink',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_unlink_user_from_artist',
+			'callback'            => 'extrachill_api_artist_relationships_unlink_handler',
 			'permission_callback' => 'extrachill_api_artist_relationships_permission_check',
 			'args'                => array(
 				'user_id'   => array(
@@ -81,7 +96,7 @@ function extrachill_api_register_artist_relationships_routes() {
 		'/admin/artist-relationships/orphans',
 		array(
 			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => 'extrachill_api_get_orphaned_relationships',
+			'callback'            => 'extrachill_api_artist_relationships_orphans_handler',
 			'permission_callback' => 'extrachill_api_artist_relationships_permission_check',
 		)
 	);
@@ -91,7 +106,7 @@ function extrachill_api_register_artist_relationships_routes() {
 		'/admin/artist-relationships/cleanup',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_cleanup_orphan',
+			'callback'            => 'extrachill_api_artist_relationships_cleanup_handler',
 			'permission_callback' => 'extrachill_api_artist_relationships_permission_check',
 			'args'                => array(
 				'user_id'   => array(
@@ -124,10 +139,160 @@ function extrachill_api_artist_relationships_permission_check() {
 }
 
 /**
+ * Thin REST handler: list artist-user relationships.
+ *
+ * Delegates to the extrachill/admin-list-artist-relationships ability.
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
+ */
+function extrachill_api_artist_relationships_list_handler( $request ) {
+	$ability = wp_get_ability( 'extrachill/admin-list-artist-relationships' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
+	}
+
+	$result = $ability->execute(
+		array(
+			'view'   => $request->get_param( 'view' ),
+			'search' => $request->get_param( 'search' ),
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
+}
+
+/**
+ * Thin REST handler: link a user to an artist profile.
+ *
+ * Delegates to the extrachill/admin-link-artist-relationship ability.
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
+ */
+function extrachill_api_artist_relationships_link_handler( $request ) {
+	$ability = wp_get_ability( 'extrachill/admin-link-artist-relationship' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
+	}
+
+	$result = $ability->execute(
+		array(
+			'user_id'   => absint( $request->get_param( 'user_id' ) ),
+			'artist_id' => absint( $request->get_param( 'artist_id' ) ),
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
+}
+
+/**
+ * Thin REST handler: unlink a user from an artist profile.
+ *
+ * Delegates to the extrachill/admin-unlink-artist-relationship ability.
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
+ */
+function extrachill_api_artist_relationships_unlink_handler( $request ) {
+	$ability = wp_get_ability( 'extrachill/admin-unlink-artist-relationship' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
+	}
+
+	$result = $ability->execute(
+		array(
+			'user_id'   => absint( $request->get_param( 'user_id' ) ),
+			'artist_id' => absint( $request->get_param( 'artist_id' ) ),
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
+}
+
+/**
+ * Thin REST handler: list orphaned relationships.
+ *
+ * Delegates to the extrachill/admin-list-orphan-artist-relationships ability.
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
+ */
+function extrachill_api_artist_relationships_orphans_handler( $request ) {
+	$ability = wp_get_ability( 'extrachill/admin-list-orphan-artist-relationships' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
+	}
+
+	$result = $ability->execute( array() );
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
+}
+
+/**
+ * Thin REST handler: clean up an orphaned relationship.
+ *
+ * Delegates to the extrachill/admin-cleanup-artist-relationships ability, which
+ * routes through the canonical ec_remove_artist_membership remover so both
+ * sides of the relationship stay in sync (api#66 fix preserved).
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
+ */
+function extrachill_api_artist_relationships_cleanup_handler( $request ) {
+	$ability = wp_get_ability( 'extrachill/admin-cleanup-artist-relationships' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
+	}
+
+	$result = $ability->execute(
+		array(
+			'user_id'   => absint( $request->get_param( 'user_id' ) ),
+			'artist_id' => absint( $request->get_param( 'artist_id' ) ),
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Implementation functions
+ * ---------------------------------------------------------------------------
+ *
+ * The functions below are the shared implementation the admin
+ * artist-relationships abilities (extrachill-artist-platform, eap#29) delegate
+ * to by name. They are intentionally NOT wired as REST route callbacks — the
+ * thin handlers above invoke the abilities, and the abilities invoke these.
+ * Keeping the names stable preserves the ability contract; do not rename
+ * without coordinating with the artist-platform ability handlers.
+ */
+
+/**
  * Get artist relationships (artists view or users view).
  *
  * @param WP_REST_Request $request Request object.
- * @return WP_REST_Response
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_get_artist_relationships( $request ) {
 	$view   = $request->get_param( 'view' );
@@ -306,7 +471,7 @@ function extrachill_api_unlink_user_from_artist( $request ) {
 /**
  * Get orphaned relationships.
  *
- * @return WP_REST_Response
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_get_orphaned_relationships() {
 	// Switch to artist site.
