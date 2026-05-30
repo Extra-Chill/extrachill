@@ -35,7 +35,7 @@ $user_artist_ids    = isset( $user_artist_ids ) ? $user_artist_ids : array();
             <a href="<?php echo esc_url( home_url( '/login/#tab-register' ) ); ?>" class="button-2 button-medium">
                 <?php esc_html_e( 'Sign Up', 'extrachill-artist-platform' ); ?>
             </a>
-            <a href="https://docs.extrachill.com/artist-platform/" class="button-3 button-medium">
+            <a href="<?php echo esc_url( ec_get_site_url( 'docs' ) . '/artist-platform/' ); ?>" class="button-3 button-medium">
                 <?php esc_html_e( 'Learn More', 'extrachill-artist-platform' ); ?>
             </a>
         </div>
@@ -50,7 +50,7 @@ $user_artist_ids    = isset( $user_artist_ids ) ? $user_artist_ids : array();
             <a href="<?php echo esc_url( home_url( '/create-artist/' ) ); ?>" class="button-1 button-medium">
                 <?php esc_html_e( 'Create Artist Profile', 'extrachill-artist-platform' ); ?>
             </a>
-            <a href="https://docs.extrachill.com/artist-platform/" class="button-3 button-medium">
+            <a href="<?php echo esc_url( ec_get_site_url( 'docs' ) . '/artist-platform/' ); ?>" class="button-3 button-medium">
                 <?php esc_html_e( 'Learn More', 'extrachill-artist-platform' ); ?>
             </a>
         </div>
@@ -65,7 +65,7 @@ $user_artist_ids    = isset( $user_artist_ids ) ? $user_artist_ids : array();
             <a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/settings/#tab-artist-platform' ); ?>" class="button-1 button-medium">
                 <?php esc_html_e( 'Request Artist Access', 'extrachill-artist-platform' ); ?>
             </a>
-            <a href="https://docs.extrachill.com/artist-platform/" class="button-3 button-medium">
+            <a href="<?php echo esc_url( ec_get_site_url( 'docs' ) . '/artist-platform/' ); ?>" class="button-3 button-medium">
                 <?php esc_html_e( 'Learn More', 'extrachill-artist-platform' ); ?>
             </a>
         </div>
