@@ -50,6 +50,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-storage.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/drafts.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/edit-autosave.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/ability-helpers.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/infrastructure-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-abilities.php';
