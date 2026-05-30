@@ -55,10 +55,10 @@ defined( 'ABSPATH' ) || exit;
 								<?php echo number_format(ec_get_post_views($topic_id)); ?> views
 								</div>
 							<div class="bbp-forum-topic-count">
-								<?php echo bbp_get_topic_voice_count($topic_id); ?> Voices
+								<?php echo (int) bbp_get_topic_voice_count($topic_id); ?> Voices
 							</div>
 							<div class="bbp-forum-reply-count">
-								<?php echo bbp_get_topic_reply_count($topic_id); ?> Replies
+								<?php echo (int) bbp_get_topic_reply_count($topic_id); ?> Replies
 							</div>
 						</div>
 						<?php bbp_topic_freshness_link($topic_id); ?>
@@ -70,8 +70,8 @@ defined( 'ABSPATH' ) || exit;
 						) );
 						?>
 						<br>
-						in <a href="<?php echo bbp_get_forum_permalink( bbp_get_topic_forum_id($topic_id) ); ?>">
-							<?php echo bbp_get_forum_title( bbp_get_topic_forum_id($topic_id) ); ?>
+						in <a href="<?php echo esc_url( bbp_get_forum_permalink( bbp_get_topic_forum_id($topic_id) ) ); ?>">
+							<?php echo esc_html( bbp_get_forum_title( bbp_get_topic_forum_id($topic_id) ) ); ?>
 						</a>
 					</li>
 					<?php

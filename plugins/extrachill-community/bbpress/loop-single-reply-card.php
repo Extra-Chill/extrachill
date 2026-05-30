@@ -58,7 +58,7 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( $current_post_
 								data-post-id="<?php echo esc_attr($reply_id); ?>"
 								data-type="reply"
 								data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>">
-							<?php echo ec_icon($icon_id); ?>
+							<?php echo ec_icon($icon_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id ?>
 						</span>
 						<span class="upvote-count"><?php echo esc_html($display_upvote_count); ?></span>
 					</div>
@@ -101,7 +101,7 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( $current_post_
 					<div class="author-details-header">
 						<div class="bbp-author-avatar">
 							<a href="<?php echo esc_url( $author_url ); ?>" title="View profile">
-								<?php echo $author_avatar; ?>
+								<?php echo wp_kses_post( $author_avatar ); ?>
 							</a>
 						</div>
 
@@ -179,12 +179,12 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( $current_post_
 
 					if ( $content_length > $truncate_length ) {
 						$reply_id = bbp_get_reply_id();
-						echo '<div class="reply-content-truncated" id="content-' . $reply_id . '">';
+						echo '<div class="reply-content-truncated" id="content-' . (int) $reply_id . '">';
 
 						$truncated_content = extrachill_truncate_html_content( $content, $truncate_length );
-						echo '<div class="content-preview">' . $truncated_content . '</div>';
+						echo '<div class="content-preview">' . wp_kses_post( $truncated_content ) . '</div>';
 
-						echo '<div class="content-full collapsed">' . $content . '</div>';
+						echo '<div class="content-full collapsed">' . wp_kses_post( $content ) . '</div>';
 						echo '<button class="read-more-toggle" data-reply-id="' . esc_attr($reply_id) . '">';
 						echo '<span class="read-more-text">Show More</span>';
 						echo '<span class="read-less-text">Show Less</span>';

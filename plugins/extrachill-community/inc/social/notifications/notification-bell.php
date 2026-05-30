@@ -57,9 +57,9 @@ function extrachill_display_notification_bell() {
 	?>
 	<div class="notification-bell-icon header-right-icon">
 		<a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/notifications' ); ?>" title="Notifications">
-			<?php echo ec_icon('bell', 'notification-bell-svg'); ?>
+			<?php echo ec_icon('bell', 'notification-bell-svg'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id ?>
 			<?php if ( $unread_count > 0 ) : ?>
-				<span class="notification-count"><?php echo $unread_count; ?></span>
+				<span class="notification-count"><?php echo (int) $unread_count; ?></span>
 			<?php endif; ?>
 		</a>
 	</div>

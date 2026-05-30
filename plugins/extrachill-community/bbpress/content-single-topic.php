@@ -30,10 +30,10 @@ defined( 'ABSPATH' ) || exit;
 				if ( $reply_count > 2 ) {
 					// Get the latest reply ID for the current topic
 					$latest_reply_id  = bbp_get_topic_last_reply_id( bbp_get_topic_id() );
-					$latest_reply_url = esc_url( bbp_get_reply_url( $latest_reply_id ) );
+					$latest_reply_url = bbp_get_reply_url( $latest_reply_id );
 
 					// Display the "Jump to Latest" button
-					echo '<button id="jump-to-latest" class="jump-to-latest button-3 button-small" data-latest-reply-url="' . $latest_reply_url . '">Jump to Latest</button>';
+					echo '<button id="jump-to-latest" class="jump-to-latest button-3 button-small" data-latest-reply-url="' . esc_url( $latest_reply_url ) . '">Jump to Latest</button>';
 				}
 				?>
 			</div>

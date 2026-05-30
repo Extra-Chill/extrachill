@@ -31,10 +31,12 @@ if ( bbp_is_forum_edit() ) : ?>
 
 					<?php
 					if ( bbp_is_forum_edit() ) :
-						printf( esc_html__( 'Now Editing &ldquo;%s&rdquo;', 'extra-chill-community' ), bbp_get_forum_title() );
+						/* translators: %s: forum title */
+						printf( esc_html__( 'Now Editing &ldquo;%s&rdquo;', 'extra-chill-community' ), esc_html( bbp_get_forum_title() ) );
 						else :
 							bbp_is_single_forum()
-								? printf( esc_html__( 'Create New Forum in &ldquo;%s&rdquo;', 'extra-chill-community' ), bbp_get_forum_title() )
+								/* translators: %s: forum title */
+								? printf( esc_html__( 'Create New Forum in &ldquo;%s&rdquo;', 'extra-chill-community' ), esc_html( bbp_get_forum_title() ) )
 								: esc_html_e( 'Create New Forum', 'extra-chill-community' );
 						endif;
 						?>
@@ -68,7 +70,8 @@ if ( bbp_is_forum_edit() ) : ?>
 					<?php do_action( 'bbp_theme_before_forum_form_title' ); ?>
 
 					<p>
-						<label for="bbp_forum_title"><?php printf( esc_html__( 'Forum Name (Maximum Length: %d):', 'extra-chill-community' ), bbp_get_title_max_length() ); ?></label>
+						<?php /* translators: %d: maximum title length */ ?>
+						<label for="bbp_forum_title"><?php printf( esc_html__( 'Forum Name (Maximum Length: %d):', 'extra-chill-community' ), (int) bbp_get_title_max_length() ); ?></label>
 						<input type="text" id="bbp_forum_title" value="<?php bbp_form_forum_title(); ?>" size="40" name="bbp_forum_title" maxlength="<?php bbp_title_max_length(); ?>" />
 					</p>
 
@@ -165,7 +168,8 @@ if ( bbp_is_forum_edit() ) : ?>
 	<div id="no-forum-<?php bbp_forum_id(); ?>" class="bbp-no-forum">
 		<div class="notice notice-info">
 			<ul>
-				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new content.', 'extra-chill-community' ), bbp_get_forum_title() ); ?></li>
+				<?php /* translators: %s: forum title */ ?>
+				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new content.', 'extra-chill-community' ), esc_html( bbp_get_forum_title() ) ); ?></li>
 			</ul>
 		</div>
 	</div>

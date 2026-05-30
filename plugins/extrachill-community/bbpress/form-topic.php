@@ -37,10 +37,12 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 					<?php
 					if ( bbp_is_topic_edit() ) :
-						printf( esc_html__( 'Now Editing &ldquo;%s&rdquo;', 'extra-chill-community' ), bbp_get_topic_title() );
+						/* translators: %s: topic title */
+						printf( esc_html__( 'Now Editing &ldquo;%s&rdquo;', 'extra-chill-community' ), esc_html( bbp_get_topic_title() ) );
 						else :
 							( bbp_is_single_forum() && bbp_get_forum_title() )
-								? printf( esc_html__( 'Create New Topic in &ldquo;%s&rdquo;', 'extra-chill-community' ), bbp_get_forum_title() )
+								/* translators: %s: forum title */
+								? printf( esc_html__( 'Create New Topic in &ldquo;%s&rdquo;', 'extra-chill-community' ), esc_html( bbp_get_forum_title() ) )
 								: esc_html_e( 'Create New Topic', 'extra-chill-community' );
 						endif;
 						?>
@@ -66,7 +68,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 					<?php do_action( 'bbp_theme_before_topic_form_title' ); ?>
 
 					<p>
-						<label for="bbp_topic_title" class="screen-reader-text"><?php printf( esc_html__( 'Title', 'extra-chill-community' ), bbp_get_title_max_length() ); ?></label>
+						<label for="bbp_topic_title" class="screen-reader-text"><?php esc_html_e( 'Title', 'extra-chill-community' ); ?></label>
 						<input type="text" id="bbp_topic_title" value="<?php bbp_form_topic_title(); ?>" placeholder="<?php esc_attr_e( 'Title', 'extra-chill-community' ); ?>" size="40" name="bbp_topic_title" maxlength="<?php bbp_title_max_length(); ?>" />
 					</p>
 
@@ -168,7 +170,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 							</legend>
 
 							<div>
-								<label for="bbp_topic_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'extra-chill-community' ), bbp_get_current_user_name() ); ?></label>
+								<label for="bbp_topic_edit_reason"><?php esc_html_e( 'Optional reason for editing:', 'extra-chill-community' ); ?></label>
 								<input type="text" value="<?php bbp_form_topic_edit_reason(); ?>" size="40" name="bbp_topic_edit_reason" id="bbp_topic_edit_reason" />
 							</div>
 						</fieldset>
@@ -203,7 +205,8 @@ if ( ! bbp_is_single_forum() ) : ?>
 	<div id="forum-closed-<?php bbp_forum_id(); ?>" class="bbp-forum-closed">
 		<div class="notice notice-info">
 			<ul>
-				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'extra-chill-community' ), bbp_get_forum_title() ); ?></li>
+				<?php /* translators: %s: forum title */ ?>
+				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'extra-chill-community' ), esc_html( bbp_get_forum_title() ) ); ?></li>
 			</ul>
 		</div>
 	</div>
@@ -225,7 +228,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 		<?php if ( ! is_user_logged_in() ) : ?>
 
-			<?php echo do_blocks('<!-- wp:extrachill/login-register /-->'); ?>
+			<?php echo wp_kses_post( do_blocks( '<!-- wp:extrachill/login-register /-->' ) ); ?>
 
 		<?php endif; ?>
 

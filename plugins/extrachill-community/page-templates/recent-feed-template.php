@@ -15,7 +15,7 @@ $isUserProfile = bbp_is_single_user();
 
 if ( $isUserProfile ) {
 	$title = '@' . bbp_get_displayed_user_field('user_nicename');
-	echo '<div class="community-section-header"><h1 class="profile-title-inline">' . $title . '</h1></div>';
+	echo '<div class="community-section-header"><h1 class="profile-title-inline">' . esc_html( $title ) . '</h1></div>';
 } else {
 	echo '<div class="community-section-header"><h1>Recent Activity</h1></div>';
 }

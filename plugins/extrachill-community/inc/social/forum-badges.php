@@ -23,7 +23,7 @@ function extrachill_render_badge( $icon_id, $class_name, $title ) {
 		'<span class="%s" data-title="%s">%s</span>',
 		esc_attr( $class_name ),
 		esc_attr( $title ),
-		ec_icon( $icon_id )
+		ec_icon( $icon_id ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id
 	);
 }
 

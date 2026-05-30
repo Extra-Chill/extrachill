@@ -38,10 +38,12 @@ if ( bbp_is_reply_edit() ) : ?>
 						if ( $username ) {
 							printf( esc_html__( 'Reply to @%s', 'extra-chill-community' ), esc_html( $username ) );
 						} else {
-							printf( esc_html__( 'Reply To: %s', 'extra-chill-community' ), bbp_get_topic_title() );
+							/* translators: %s: topic title */
+							printf( esc_html__( 'Reply To: %s', 'extra-chill-community' ), esc_html( bbp_get_topic_title() ) );
 						}
 					} else {
-						printf( esc_html__( 'Reply To: %s', 'extra-chill-community' ), bbp_get_topic_title() );
+						/* translators: %s: topic title */
+						printf( esc_html__( 'Reply To: %s', 'extra-chill-community' ), esc_html( bbp_get_topic_title() ) );
 					}
 					?>
 				</legend>
@@ -171,7 +173,7 @@ if ( bbp_is_reply_edit() ) : ?>
 								</legend>
 
 								<div>
-									<label for="bbp_reply_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'extra-chill-community' ), bbp_get_current_user_name() ); ?></label>
+									<label for="bbp_reply_edit_reason"><?php esc_html_e( 'Optional reason for editing:', 'extra-chill-community' ); ?></label>
 									<input type="text" value="<?php bbp_form_reply_edit_reason(); ?>" size="40" name="bbp_reply_edit_reason" id="bbp_reply_edit_reason" />
 								</div>
 							</fieldset>
@@ -210,7 +212,8 @@ if ( bbp_is_reply_edit() ) : ?>
 	<div id="no-reply-<?php bbp_topic_id(); ?>" class="bbp-no-reply">
 		<div class="notice notice-info">
 			<ul>
-				<li><?php printf( esc_html__( 'The topic &#8216;%s&#8217; is closed to new replies.', 'extra-chill-community' ), bbp_get_topic_title() ); ?></li>
+				<?php /* translators: %s: topic title */ ?>
+				<li><?php printf( esc_html__( 'The topic &#8216;%s&#8217; is closed to new replies.', 'extra-chill-community' ), esc_html( bbp_get_topic_title() ) ); ?></li>
 			</ul>
 		</div>
 	</div>
@@ -220,7 +223,8 @@ if ( bbp_is_reply_edit() ) : ?>
 	<div id="no-reply-<?php bbp_topic_id(); ?>" class="bbp-no-reply">
 		<div class="notice notice-info">
 			<ul>
-				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'extra-chill-community' ), bbp_get_forum_title( bbp_get_topic_forum_id() ) ); ?></li>
+				<?php /* translators: %s: forum title */ ?>
+				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'extra-chill-community' ), esc_html( bbp_get_forum_title( bbp_get_topic_forum_id() ) ) ); ?></li>
 			</ul>
 		</div>
 	</div>
@@ -242,7 +246,7 @@ if ( bbp_is_reply_edit() ) : ?>
 
 		<?php if ( ! is_user_logged_in() ) : ?>
 
-			<?php echo do_blocks('<!-- wp:extrachill/login-register /-->'); ?>
+			<?php echo wp_kses_post( do_blocks( '<!-- wp:extrachill/login-register /-->' ) ); ?>
 
 		<?php endif; ?>
 

@@ -22,7 +22,8 @@ defined( 'ABSPATH' ) || exit;
 
 				<fieldset class="bbp-form">
 
-					<legend><?php printf( esc_html__( 'Split topic "%s"', 'extra-chill-community' ), bbp_get_topic_title() ); ?></legend>
+					<?php /* translators: %s: topic title */ ?>
+					<legend><?php printf( esc_html__( 'Split topic "%s"', 'extra-chill-community' ), esc_html( bbp_get_topic_title() ) ); ?></legend>
 
 					<div>
 
@@ -43,8 +44,9 @@ defined( 'ABSPATH' ) || exit;
 
 							<div>
 								<input name="bbp_topic_split_option" id="bbp_topic_split_option_reply" type="radio" checked="checked" value="reply" />
-								<label for="bbp_topic_split_option_reply"><?php printf( esc_html__( 'New topic in %s titled:', 'extra-chill-community' ), bbp_get_forum_title( bbp_get_topic_forum_id( bbp_get_topic_id() ) ) ); ?></label>
-								<input type="text" id="bbp_topic_split_destination_title" value="<?php printf( esc_html__( 'Split: %s', 'extra-chill-community' ), bbp_get_topic_title() ); ?>" size="35" name="bbp_topic_split_destination_title" />
+								<?php /* translators: %s: forum title */ ?>
+								<label for="bbp_topic_split_option_reply"><?php printf( esc_html__( 'New topic in %s titled:', 'extra-chill-community' ), esc_html( bbp_get_forum_title( bbp_get_topic_forum_id( bbp_get_topic_id() ) ) ) ); ?></label>
+								<input type="text" id="bbp_topic_split_destination_title" value="<?php /* translators: %s: topic title */ printf( esc_attr__( 'Split: %s', 'extra-chill-community' ), esc_attr( bbp_get_topic_title() ) ); ?>" size="35" name="bbp_topic_split_destination_title" />
 							</div>
 
 							<?php

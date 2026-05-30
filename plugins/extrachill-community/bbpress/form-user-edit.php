@@ -14,5 +14,5 @@ defined( 'ABSPATH' ) || exit;
 ?>
 
 <div class="bbp-user-profile-edit-container">
-	<?php echo render_block( array( 'blockName' => 'extrachill/edit-profile' ) ); ?>
+	<?php echo wp_kses_post( render_block( array( 'blockName' => 'extrachill/edit-profile' ) ) ); ?>
 </div>

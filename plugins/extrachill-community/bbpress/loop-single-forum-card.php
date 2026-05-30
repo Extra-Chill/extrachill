@@ -31,7 +31,7 @@ if ( ! empty( $forum_location_terms ) && ! is_wp_error( $forum_location_terms ) 
 		<?php do_action( 'bbp_theme_before_forum_description' ); ?>
 		<?php $forum_content = bbp_get_forum_content(); ?>
 		<?php if ( '' !== trim( wp_strip_all_tags( $forum_content ) ) ) : ?>
-			<div class="bbp-forum-content"><?php echo $forum_content; ?></div>
+			<div class="bbp-forum-content"><?php echo wp_kses_post( $forum_content ); ?></div>
 		<?php endif; ?>
 		<?php do_action( 'bbp_theme_after_forum_description' ); ?>
 
@@ -71,11 +71,11 @@ if ( ! empty( $forum_location_terms ) && ! is_wp_error( $forum_location_terms ) 
 		<p class="bbp-topic-meta">
 			<?php
 			if ( $active_id ) {
-				echo bbp_get_author_link(array(
+				echo wp_kses_post( bbp_get_author_link( array(
 					'post_id' => $active_id,
 					'type'    => 'both',
 					'size'    => 14,
-				));
+				) ) );
 			}
 			?>
 		</p>

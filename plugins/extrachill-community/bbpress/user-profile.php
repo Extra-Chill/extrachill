@@ -26,7 +26,7 @@ do_action('bbp_template_before_user_profile');
 <div class="bbp-user-profile-card">
 					<?php if ( bbp_get_displayed_user_field('description') ) : ?>
 						<h3><?php esc_html_e('About', 'extra-chill-community'); ?></h3>
-				<p class="bbp-user-description"><?php echo bbp_rel_nofollow(bbp_get_displayed_user_field('description')); ?></p>
+				<p class="bbp-user-description"><?php echo wp_kses_post(bbp_rel_nofollow(bbp_get_displayed_user_field('description'))); ?></p>
 						<?php
 			endif;
 
@@ -47,15 +47,15 @@ do_action('bbp_template_before_user_profile');
 		<div class="user-profile-activity">
 	<h3><?php esc_html_e('Community Activity', 'extra-chill-community'); ?></h3>
 	<?php if ( bbp_get_user_last_posted() ) : ?>
-		<p class="bbp-user-last-activity"><b>Last Post:</b> <?php printf(esc_html__('%s', 'extra-chill-community'), bbp_get_time_since(bbp_get_user_last_posted(), false, true)); ?></p>
+		<p class="bbp-user-last-activity"><b>Last Post:</b> <?php echo esc_html(bbp_get_time_since(bbp_get_user_last_posted(), false, true)); ?></p>
 	<?php endif; ?>
 	<?php $join_date = bbp_get_displayed_user_field('user_registered'); ?>
 	<?php if ( ! empty($join_date) ) : ?>
-		<p class="bbp-user-join-date"><b>Joined:</b> <?php echo date_i18n(get_option('date_format'), strtotime($join_date)); ?></p>
+		<p class="bbp-user-join-date"><b>Joined:</b> <?php echo esc_html(date_i18n(get_option('date_format'), strtotime($join_date))); ?></p>
 	<?php endif; ?>
 
-	<p class="bbp-user-topic-count"><b>Threads Started:</b> <?php printf(esc_html__('%s', 'extra-chill-community'), bbp_get_user_topic_count_raw( bbp_get_displayed_user_id() )); ?> <a href="<?php bbp_user_topics_created_url(); ?>"><?php printf(esc_html__("(%s's Threads)", 'extra-chill-community'), bbp_get_displayed_user_field('display_name')); ?></a></p>
-	<p class="bbp-user-reply-count"><b>Total Replies:</b> <?php printf(esc_html__('%s', 'extra-chill-community'), bbp_get_user_reply_count_raw( bbp_get_displayed_user_id() )); ?> <a href="<?php bbp_user_replies_created_url(); ?>"><?php printf(esc_html__("(%s's Replies Created)", 'extra-chill-community'), bbp_get_displayed_user_field('display_name')); ?></a></p>
+	<p class="bbp-user-topic-count"><b>Threads Started:</b> <?php echo (int) bbp_get_user_topic_count_raw( bbp_get_displayed_user_id() ); ?> <a href="<?php bbp_user_topics_created_url(); ?>"><?php /* translators: %s: user display name */ printf(esc_html__("(%s's Threads)", 'extra-chill-community'), esc_html(bbp_get_displayed_user_field('display_name'))); ?></a></p>
+	<p class="bbp-user-reply-count"><b>Total Replies:</b> <?php echo (int) bbp_get_user_reply_count_raw( bbp_get_displayed_user_id() ); ?> <a href="<?php bbp_user_replies_created_url(); ?>"><?php /* translators: %s: user display name */ printf(esc_html__("(%s's Replies Created)", 'extra-chill-community'), esc_html(bbp_get_displayed_user_field('display_name'))); ?></a></p>
 
 	<!-- Display Main Site Blog Post Count -->
 	<?php
@@ -70,9 +70,9 @@ do_action('bbp_template_before_user_profile');
 
 	if ( $comment_count > 0 ) {
 		$comments_url = ec_get_site_url( 'community' ) . "/blog-comments?user_id={$user_id}";
-		echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . $comment_count . ' <a href="' . esc_url($comments_url) . '">(View All)</a></p>';
+		echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . (int) $comment_count . ' <a href="' . esc_url($comments_url) . '">(View All)</a></p>';
 	} else {
-		echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . $comment_count . '</p>';
+		echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . (int) $comment_count . '</p>';
 	}
 	?>
 	</div>
@@ -137,10 +137,10 @@ if ( $is_artist || $is_professional ) :
 
 			if ( $artist_count > 0 ) :
 				$artist_label = 1 === $artist_count
-					? esc_html__( 'Manage Artist', 'extra-chill-community' )
-					: esc_html__( 'Manage Artists', 'extra-chill-community' );
+					? __( 'Manage Artist', 'extra-chill-community' )
+					: __( 'Manage Artists', 'extra-chill-community' );
 				?>
-				<a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button-1 button-small"><?php echo $artist_label; ?></a>
+				<a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button-1 button-small"><?php echo esc_html( $artist_label ); ?></a>
 			<?php else : // No artist profiles, but user can create ?>
 				<a href="<?php echo esc_url( ec_get_site_url( 'artist' ) . '/create-artist/' ); ?>" class="button-1 button-small"><?php esc_html_e( 'Create Artist Profile', 'extra-chill-community' ); ?></a>
 				<?php

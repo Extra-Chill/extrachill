@@ -22,7 +22,8 @@ defined( 'ABSPATH' ) || exit;
 
 				<fieldset class="bbp-form">
 
-					<legend><?php printf( esc_html__( 'Move reply "%s"', 'extra-chill-community' ), bbp_get_reply_title() ); ?></legend>
+					<?php /* translators: %s: reply title */ ?>
+					<legend><?php printf( esc_html__( 'Move reply "%s"', 'extra-chill-community' ), esc_html( bbp_get_reply_title() ) ); ?></legend>
 
 					<div>
 
@@ -43,8 +44,9 @@ defined( 'ABSPATH' ) || exit;
 
 							<div>
 								<input name="bbp_reply_move_option" id="bbp_reply_move_option_reply" type="radio" checked="checked" value="topic" />
-								<label for="bbp_reply_move_option_reply"><?php printf( esc_html__( 'New topic in %s titled:', 'extra-chill-community' ), bbp_get_forum_title( bbp_get_reply_forum_id( bbp_get_reply_id() ) ) ); ?></label>
-								<input type="text" id="bbp_reply_move_destination_title" value="<?php printf( esc_html__( 'Moved: %s', 'extra-chill-community' ), bbp_get_reply_title() ); ?>" size="35" name="bbp_reply_move_destination_title" />
+								<?php /* translators: %s: forum title */ ?>
+								<label for="bbp_reply_move_option_reply"><?php printf( esc_html__( 'New topic in %s titled:', 'extra-chill-community' ), esc_html( bbp_get_forum_title( bbp_get_reply_forum_id( bbp_get_reply_id() ) ) ) ); ?></label>
+								<input type="text" id="bbp_reply_move_destination_title" value="<?php /* translators: %s: reply title */ printf( esc_attr__( 'Moved: %s', 'extra-chill-community' ), esc_attr( bbp_get_reply_title() ) ); ?>" size="35" name="bbp_reply_move_destination_title" />
 							</div>
 
 							<?php

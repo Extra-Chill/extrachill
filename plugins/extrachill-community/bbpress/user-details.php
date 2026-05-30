@@ -52,7 +52,7 @@ defined( 'ABSPATH' ) || exit;
 			}
 
 
-			echo "<p>{$message}</p>";
+			echo '<p>' . wp_kses_post($message) . '</p>';
 		}
 	} else {
 		// User hasn't posted yet
@@ -83,9 +83,9 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 		</h1>
 		<p class="bbp-user-title-rank">
-			<b>Title:</b> <?php printf(esc_html__('%s', 'extra-chill-community'), bbp_get_user_display_role()); ?> | 
-			<b>Rank:</b> <?php printf(esc_html__('%s', 'extra-chill-community'), extrachill_display_user_rank(bbp_get_displayed_user_id())); ?>
-			| <b>Points:</b> <?php printf(esc_html__('%s', 'extra-chill-community'), extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
+			<b>Title:</b> <?php echo esc_html(bbp_get_user_display_role()); ?> | 
+			<b>Rank:</b> <?php echo esc_html(extrachill_display_user_rank(bbp_get_displayed_user_id())); ?>
+			| <b>Points:</b> <?php echo esc_html(extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
 		</p>
 		<div class="bbp-user-actions-area">
 				<?php if ( bbp_get_displayed_user_id() === get_current_user_id() ) : ?>
@@ -132,14 +132,14 @@ defined( 'ABSPATH' ) || exit;
 				continue;
 			}
 
-			$title_attr = $custom_label ? esc_attr($custom_label) : ucfirst($type_key);
+			$title_attr = $custom_label ? $custom_label : ucfirst($type_key);
 			?>
 			<a href="<?php echo esc_url($url); ?>"
 				class="social-link <?php echo esc_attr($type_key); ?>"
 				target="_blank"
 				rel="noopener"
-				title="<?php echo $title_attr; ?>">
-				<?php echo ec_icon($icon_id); ?>
+				title="<?php echo esc_attr($title_attr); ?>">
+				<?php echo ec_icon($icon_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id ?>
 			</a>
 		<?php endforeach; ?>
 	</div><!-- .bbp-user-links-inline -->

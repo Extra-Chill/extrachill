@@ -159,5 +159,5 @@ function fetch_latest_post_info_for_homepage() {
  * Outputs the latest forum activity HTML
  */
 function extrachill_display_latest_post() {
-	echo fetch_latest_post_info_for_homepage();
+	echo wp_kses_post( fetch_latest_post_info_for_homepage() );
 }

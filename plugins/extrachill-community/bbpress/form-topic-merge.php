@@ -22,7 +22,8 @@ defined( 'ABSPATH' ) || exit;
 
 				<fieldset class="bbp-form">
 
-					<legend><?php printf( esc_html__( 'Merge topic "%s"', 'extra-chill-community' ), bbp_get_topic_title() ); ?></legend>
+					<?php /* translators: %s: topic title */ ?>
+					<legend><?php printf( esc_html__( 'Merge topic "%s"', 'extra-chill-community' ), esc_html( bbp_get_topic_title() ) ); ?></legend>
 
 					<div>
 

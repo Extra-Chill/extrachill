@@ -36,7 +36,7 @@ function display_main_site_post_count_on_profile() {
 			return;
 		}
 
-		echo "<p><b>Extra Chill Articles:</b> $post_count <a href='" . esc_url( $author_url ) . "'>(View All)</a></p>";
+		echo '<p><b>Extra Chill Articles:</b> ' . (int) $post_count . ' <a href="' . esc_url( $author_url ) . '">(View All)</a></p>';
 	}
 }
 

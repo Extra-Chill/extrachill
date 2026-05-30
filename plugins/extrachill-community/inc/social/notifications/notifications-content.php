@@ -61,7 +61,7 @@ function extrachill_display_notifications() {
 		if ( ! empty($new_notifications) ) {
 			echo '<h2>New Notifications</h2><div class="extrachill-notifications">';
 			foreach ( $new_notifications as $notification ) {
-				echo extrachill_render_notification_card($notification);
+				echo wp_kses_post( extrachill_render_notification_card($notification) );
 			}
 			echo '</div>';
 		}
@@ -76,7 +76,7 @@ function extrachill_display_notifications() {
 		if ( ! empty($old_notifications) ) {
 			echo '<h2>Previously Viewed</h2><div class="extrachill-notifications">';
 			foreach ( $old_notifications as $notification ) {
-				echo extrachill_render_notification_card($notification);
+				echo wp_kses_post( extrachill_render_notification_card($notification) );
 			}
 			echo '</div>';
 		}

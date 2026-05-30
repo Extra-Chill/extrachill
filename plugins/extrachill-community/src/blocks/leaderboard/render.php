@@ -21,6 +21,6 @@ $class = 'wp-block-extrachill-leaderboard extrachill-leaderboard';
 printf(
 	'<div class="%1$s" data-per-page="%2$d" data-sprite-url="%3$s"></div>',
 	esc_attr( $class ),
-	$per_page,
+	(int) $per_page,
 	esc_url( $sprite_url )
 );

@@ -44,7 +44,7 @@ if ( ! $topic_id ) {
 									data-post-id="<?php echo esc_attr($topic_id); ?>" 
 									data-type="topic"
 									data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>">
-								<?php echo ec_icon($icon_id); ?>
+								<?php echo ec_icon($icon_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id ?>
 							</span>
 							<span class="upvote-count"><?php echo esc_html($display_upvote_count); ?></span>
 						</div> 
