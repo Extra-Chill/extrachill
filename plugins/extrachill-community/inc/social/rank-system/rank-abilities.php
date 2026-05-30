@@ -90,44 +90,6 @@ function extrachill_community_register_rank_abilities() {
 		)
 	);
 
-	wp_register_ability(
-		'extrachill/community-get-leaderboard',
-		array(
-			'label'               => __( 'Get Leaderboard', 'extra-chill-community' ),
-			'description'         => __( 'Get community leaderboard with pagination.', 'extra-chill-community' ),
-			'category'            => 'extrachill-community',
-			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
-					'limit'  => array(
-						'type'        => 'integer',
-						'description' => 'Number of users to return (default 25)',
-					),
-					'offset' => array(
-						'type'        => 'integer',
-						'description' => 'Pagination offset (default 0)',
-					),
-				),
-			),
-			'output_schema'       => array(
-				'type'       => 'object',
-				'properties' => array(
-					'total' => array( 'type' => 'integer' ),
-					'users' => array( 'type' => 'array' ),
-				),
-			),
-			'execute_callback'    => 'extrachill_community_ability_get_leaderboard',
-			'permission_callback' => '__return_true',
-			'meta'                => array(
-				'show_in_rest' => false,
-				'annotations'  => array(
-					'readonly'    => true,
-					'idempotent'  => true,
-					'destructive' => false,
-				),
-			),
-		)
-	);
 }
 
 // ─── Execute callbacks ─────────────────────────────────────────────────────────
@@ -216,45 +178,4 @@ function extrachill_community_ability_recalculate_points( $input ) {
 	}
 
 	return array( 'recalculated' => $count );
-}
-
-/**
- * Get leaderboard with pagination.
- *
- * @param array $input Ability input.
- * @return array|WP_Error
- */
-function extrachill_community_ability_get_leaderboard( $input ) {
-	$limit  = isset( $input['limit'] ) ? (int) $input['limit'] : 25;
-	$offset = isset( $input['offset'] ) ? (int) $input['offset'] : 0;
-
-	if ( ! function_exists( 'extrachill_get_leaderboard_users' ) ) {
-		return new WP_Error( 'leaderboard_unavailable', 'Leaderboard system is not loaded.' );
-	}
-
-	$users = extrachill_get_leaderboard_users( $limit, $offset );
-	$total = extrachill_get_leaderboard_total_users();
-
-	$result = array();
-	$rank   = $offset + 1;
-
-	foreach ( $users as $user ) {
-		$points   = (float) get_user_meta( $user->ID, 'extrachill_total_points', true );
-		$result[] = array(
-			'rank'         => $rank,
-			'user_id'      => (int) $user->ID,
-			'user_login'   => $user->user_login,
-			'display_name' => $user->display_name,
-			'total_points' => $points,
-			'rank_name'    => function_exists( 'extrachill_determine_rank_by_points' )
-				? extrachill_determine_rank_by_points( $points )
-				: 'Unknown',
-		);
-		++$rank;
-	}
-
-	return array(
-		'total' => $total,
-		'users' => $result,
-	);
 }
