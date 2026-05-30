@@ -16,6 +16,16 @@ if ( ! is_user_logged_in() ) {
     return;
 }
 
+// Gate on shop management permission. Currently admin-only until the shop
+// system is ready for public use (see extrachill-users/inc/shop-permissions.php).
+// Keeps the page render consistent with the nav link and create-shop CTA gates.
+if ( ! function_exists( 'ec_can_manage_shop' ) || ! ec_can_manage_shop() ) {
+    echo '<div class="notice notice-info">';
+    echo '<p>' . esc_html__( 'Shop management is not available for your account.', 'extrachill-artist-platform' ) . '</p>';
+    echo '</div>';
+    return;
+}
+
 $current_user_id = get_current_user_id();
 
 if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
