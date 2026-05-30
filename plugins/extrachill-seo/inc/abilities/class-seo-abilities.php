@@ -57,10 +57,10 @@ class SEO_Abilities {
 		wp_register_ability(
 			'extrachill/run-seo-audit',
 			array(
-				'label'        => __( 'Run SEO Audit', 'extrachill-seo' ),
-				'description'  => __( 'Run SEO audit across the multisite network with configurable check types.', 'extrachill-seo' ),
-				'category'     => 'extrachill-seo',
-				'input_schema' => array(
+				'label'               => __( 'Run SEO Audit', 'extrachill-seo' ),
+				'description'         => __( 'Run SEO audit across the multisite network with configurable check types.', 'extrachill-seo' ),
+				'category'            => 'extrachill-seo',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
 						'blog_id' => array(
@@ -98,7 +98,7 @@ class SEO_Abilities {
 						),
 					),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'success' => array( 'type' => 'boolean' ),
@@ -116,7 +116,7 @@ class SEO_Abilities {
 				'permission_callback' => function() {
 					return current_user_can( 'manage_network_options' );
 				},
-				'meta' => array(
+				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
 						'readonly'    => false,
@@ -132,10 +132,10 @@ class SEO_Abilities {
 		wp_register_ability(
 			'extrachill/get-seo-results',
 			array(
-				'label'        => __( 'Get SEO Results', 'extrachill-seo' ),
-				'description'  => __( 'Retrieve stored audit results from the most recent SEO audit.', 'extrachill-seo' ),
-				'category'     => 'extrachill-seo',
-				'input_schema' => array(
+				'label'               => __( 'Get SEO Results', 'extrachill-seo' ),
+				'description'         => __( 'Retrieve stored audit results from the most recent SEO audit.', 'extrachill-seo' ),
+				'category'            => 'extrachill-seo',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
 						'blog_id' => array(
@@ -148,12 +148,15 @@ class SEO_Abilities {
 						),
 					),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'status'    => array( 'type' => 'string' ),
 						'timestamp' => array( 'type' => 'integer' ),
-						'last_run'  => array( 'type' => 'string', 'format' => 'date-time' ),
+						'last_run'  => array(
+							'type'   => 'string',
+							'format' => 'date-time',
+						),
 						'results'   => array( 'type' => 'object' ),
 						'summary'   => array(
 							'type'       => 'object',
@@ -168,7 +171,7 @@ class SEO_Abilities {
 				'permission_callback' => function() {
 					return current_user_can( 'manage_network_options' );
 				},
-				'meta' => array(
+				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
 						'readonly'   => true,
@@ -183,10 +186,10 @@ class SEO_Abilities {
 		wp_register_ability(
 			'extrachill/analyze-url',
 			array(
-				'label'        => __( 'Analyze URL', 'extrachill-seo' ),
-				'description'  => __( 'Analyze a single URL for SEO issues including redirect detection.', 'extrachill-seo' ),
-				'category'     => 'extrachill-seo',
-				'input_schema' => array(
+				'label'               => __( 'Analyze URL', 'extrachill-seo' ),
+				'description'         => __( 'Analyze a single URL for SEO issues including redirect detection.', 'extrachill-seo' ),
+				'category'            => 'extrachill-seo',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
 						'url'    => array(
@@ -204,15 +207,19 @@ class SEO_Abilities {
 							'description' => __( 'Analysis types to perform.', 'extrachill-seo' ),
 						),
 					),
-					'required' => array( 'url' ),
+					'required'   => array( 'url' ),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'url'             => array( 'type' => 'string' ),
 						'final_url'       => array( 'type' => 'string' ),
 						'analysis'        => array( 'type' => 'object' ),
-						'score'           => array( 'type' => 'integer', 'minimum' => 0, 'maximum' => 100 ),
+						'score'           => array(
+							'type'    => 'integer',
+							'minimum' => 0,
+							'maximum' => 100,
+						),
 						'recommendations' => array( 'type' => 'array' ),
 					),
 				),
@@ -220,7 +227,7 @@ class SEO_Abilities {
 				'permission_callback' => function() {
 					return current_user_can( 'manage_options' );
 				},
-				'meta' => array(
+				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
 						'readonly'   => true,
@@ -235,14 +242,14 @@ class SEO_Abilities {
 		wp_register_ability(
 			'extrachill/get-seo-config',
 			array(
-				'label'        => __( 'Get SEO Config', 'extrachill-seo' ),
-				'description'  => __( 'Get current SEO configuration settings.', 'extrachill-seo' ),
-				'category'     => 'extrachill-seo',
-				'input_schema' => array(
+				'label'               => __( 'Get SEO Config', 'extrachill-seo' ),
+				'description'         => __( 'Get current SEO configuration settings.', 'extrachill-seo' ),
+				'category'            => 'extrachill-seo',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'default_og_image_id'  => array( 'type' => 'integer' ),
@@ -255,7 +262,7 @@ class SEO_Abilities {
 				'permission_callback' => function() {
 					return current_user_can( 'manage_network_options' );
 				},
-				'meta' => array(
+				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
 						'readonly'   => true,
@@ -270,10 +277,10 @@ class SEO_Abilities {
 		wp_register_ability(
 			'extrachill/update-seo-config',
 			array(
-				'label'        => __( 'Update SEO Config', 'extrachill-seo' ),
-				'description'  => __( 'Update SEO configuration settings.', 'extrachill-seo' ),
-				'category'     => 'extrachill-seo',
-				'input_schema' => array(
+				'label'               => __( 'Update SEO Config', 'extrachill-seo' ),
+				'description'         => __( 'Update SEO configuration settings.', 'extrachill-seo' ),
+				'category'            => 'extrachill-seo',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
 						'default_og_image_id' => array(
@@ -286,7 +293,7 @@ class SEO_Abilities {
 						),
 					),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'success' => array( 'type' => 'boolean' ),
@@ -298,7 +305,7 @@ class SEO_Abilities {
 				'permission_callback' => function() {
 					return current_user_can( 'manage_network_options' );
 				},
-				'meta' => array(
+				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
 						'readonly'    => false,
@@ -314,15 +321,18 @@ class SEO_Abilities {
 		wp_register_ability(
 			'extrachill/ping-indexnow',
 			array(
-				'label'        => __( 'Ping IndexNow', 'extrachill-seo' ),
-				'description'  => __( 'Manually trigger IndexNow notification for URLs.', 'extrachill-seo' ),
-				'category'     => 'extrachill-seo',
-				'input_schema' => array(
+				'label'               => __( 'Ping IndexNow', 'extrachill-seo' ),
+				'description'         => __( 'Manually trigger IndexNow notification for URLs.', 'extrachill-seo' ),
+				'category'            => 'extrachill-seo',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
 						'urls'     => array(
 							'type'        => 'array',
-							'items'       => array( 'type' => 'string', 'format' => 'uri' ),
+							'items'       => array(
+								'type'   => 'string',
+								'format' => 'uri',
+							),
 							'description' => __( 'URLs to submit to IndexNow.', 'extrachill-seo' ),
 							'maxItems'    => 10000,
 						),
@@ -333,7 +343,7 @@ class SEO_Abilities {
 						),
 					),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'success'       => array( 'type' => 'boolean' ),
@@ -347,7 +357,7 @@ class SEO_Abilities {
 				'permission_callback' => function() {
 					return current_user_can( 'publish_posts' );
 				},
-				'meta' => array(
+				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
 						'readonly'    => false,
@@ -363,10 +373,10 @@ class SEO_Abilities {
 		wp_register_ability(
 			'extrachill/check-sitemap-health',
 			array(
-				'label'        => __( 'Check Sitemap Health', 'extrachill-seo' ),
-				'description'  => __( 'Verify that WordPress core sitemap sub-files (per post type and taxonomy) return HTTP 200 as a crawler would see them. Catches edge/nginx rules that silently block the wp-sitemap namespace.', 'extrachill-seo' ),
-				'category'     => 'extrachill-seo',
-				'input_schema' => array(
+				'label'               => __( 'Check Sitemap Health', 'extrachill-seo' ),
+				'description'         => __( 'Verify that WordPress core sitemap sub-files (per post type and taxonomy) return HTTP 200 as a crawler would see them. Catches edge/nginx rules that silently block the wp-sitemap namespace.', 'extrachill-seo' ),
+				'category'            => 'extrachill-seo',
+				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
 						'blog_id' => array(
@@ -380,14 +390,17 @@ class SEO_Abilities {
 						),
 					),
 				),
-				'output_schema' => array(
+				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
 						'healthy'   => array( 'type' => 'boolean' ),
 						'checked'   => array( 'type' => 'integer' ),
 						'failures'  => array( 'type' => 'array' ),
 						'by_site'   => array( 'type' => 'object' ),
-						'timestamp' => array( 'type' => 'string', 'format' => 'date-time' ),
+						'timestamp' => array(
+							'type'   => 'string',
+							'format' => 'date-time',
+						),
 						'message'   => array( 'type' => 'string' ),
 					),
 				),
@@ -395,7 +408,7 @@ class SEO_Abilities {
 				'permission_callback' => function() {
 					return current_user_can( 'manage_network_options' );
 				},
-				'meta' => array(
+				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
 						'readonly'   => true,
