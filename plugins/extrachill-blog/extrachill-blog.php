@@ -34,6 +34,7 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/homepage-hooks.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/blog-archive-routing.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/breadcrumbs.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/share-card.php';
+require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/network-bridge.php';
 
 /**
  * Register plugin styles
@@ -44,6 +45,13 @@ function extrachill_blog_register_styles() {
 		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/share-card.css',
 		array(),
 		filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/css/share-card.css' )
+	);
+
+	wp_register_style(
+		'extrachill-blog-network-bridge',
+		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/network-bridge.css',
+		array( 'extrachill-root' ),
+		filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/css/network-bridge.css' )
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_blog_register_styles', 5 );
