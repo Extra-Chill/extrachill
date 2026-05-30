@@ -157,7 +157,7 @@ function extrachill_users_ability_list_artist_access_requests() {
 			'user_login'   => $user->user_login,
 			'user_email'   => $user->user_email,
 			'type'         => isset( $request_data['type'] ) ? $request_data['type'] : 'artist',
-			'requested_at' => isset( $request_data['timestamp'] ) ? $request_data['timestamp'] : 0,
+			'requested_at' => isset( $request_data['requested_at'] ) ? $request_data['requested_at'] : 0,
 		);
 	}
 
