@@ -46,7 +46,7 @@ $author_role = $user_info ? bbp_get_user_display_role( $author_id ) : '';
 
 				<div class="upvote-date">
 					<span class="bbp-reply-post-date">
-						<?php echo esc_html( date( 'F j, Y, g:i a', strtotime( $comment_date ) ) ); ?>
+						<?php echo esc_html( date( 'F j, Y, g:i a', strtotime( $comment_date ) ) ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Display in site-local time, preserving existing rendered output. ?>
 					</span>
 				</div>
 

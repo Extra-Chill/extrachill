@@ -256,7 +256,7 @@ function extrachill_community_ability_toggle_forum_homepage( $input ) {
 	}
 
 	$post = get_post( $forum_id );
-	if ( ! $post || $post->post_type !== bbp_get_forum_post_type() ) {
+	if ( ! $post || bbp_get_forum_post_type() !== $post->post_type ) {
 		return new WP_Error( 'not_a_forum', 'Post ID is not a valid forum.' );
 	}
 

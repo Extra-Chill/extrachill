@@ -80,14 +80,14 @@ function extrachill_construct_activity_output($current_post_id) {
 	$author_profile_url = bbp_get_user_profile_url($author_id);
 
 	$post_type   = get_post_type($current_post_id);
-	$topic_id    = $post_type === bbp_get_reply_post_type() ? bbp_get_reply_topic_id($current_post_id) : $current_post_id;
+	$topic_id    = bbp_get_reply_post_type() === $post_type ? bbp_get_reply_topic_id($current_post_id) : $current_post_id;
 	$forum_id    = bbp_get_topic_forum_id($topic_id);
 	$forum_title = get_the_title($forum_id);
 	// Use human_time_diff for verbose output
 	$time_diff = human_time_diff( get_post_time('U', true, $current_post_id), time() ) . ' ago';
 
-	$reply_url  = $post_type === bbp_get_reply_post_type() ? bbp_get_reply_url($current_post_id) : get_permalink($topic_id);
-	$type_label = $post_type === bbp_get_reply_post_type() ? 'replied to' : 'posted';
+	$reply_url  = bbp_get_reply_post_type() === $post_type ? bbp_get_reply_url($current_post_id) : get_permalink($topic_id);
+	$type_label = bbp_get_reply_post_type() === $post_type ? 'replied to' : 'posted';
 	$title      = get_the_title($topic_id);
 
 	// Construct output

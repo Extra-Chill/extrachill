@@ -625,11 +625,11 @@ function extrachill_community_ability_get_topic( $input ) {
 	}
 
 	$post = get_post( $topic_id );
-	if ( ! $post || $post->post_type !== bbp_get_topic_post_type() ) {
+	if ( ! $post || bbp_get_topic_post_type() !== $post->post_type ) {
 		return new WP_Error( 'not_a_topic', 'Post ID is not a valid topic.' );
 	}
 
-	if ( $post->post_status !== bbp_get_public_status_id() ) {
+	if ( bbp_get_public_status_id() !== $post->post_status ) {
 		return new WP_Error( 'topic_not_published', 'Topic is not published.' );
 	}
 
@@ -700,7 +700,7 @@ function extrachill_community_ability_create_topic( $input ) {
 
 	// Validate forum exists.
 	$forum = get_post( $forum_id );
-	if ( ! $forum || $forum->post_type !== bbp_get_forum_post_type() ) {
+	if ( ! $forum || bbp_get_forum_post_type() !== $forum->post_type ) {
 		return new WP_Error( 'invalid_forum', 'Forum ID does not point to a valid forum.' );
 	}
 
@@ -765,7 +765,7 @@ function extrachill_community_ability_create_reply( $input ) {
 
 	// Validate topic exists.
 	$topic = get_post( $topic_id );
-	if ( ! $topic || $topic->post_type !== bbp_get_topic_post_type() ) {
+	if ( ! $topic || bbp_get_topic_post_type() !== $topic->post_type ) {
 		return new WP_Error( 'invalid_topic', 'Topic ID does not point to a valid topic.' );
 	}
 
@@ -1020,7 +1020,7 @@ function extrachill_community_ability_get_topic_for_editor( $input ) {
 	}
 
 	$post = get_post( $topic_id );
-	if ( ! $post || $post->post_type !== bbp_get_topic_post_type() ) {
+	if ( ! $post || bbp_get_topic_post_type() !== $post->post_type ) {
 		return new WP_Error( 'not_a_topic', 'Post ID is not a valid topic.' );
 	}
 
@@ -1075,7 +1075,7 @@ function extrachill_community_ability_get_reply_for_editor( $input ) {
 	}
 
 	$post = get_post( $reply_id );
-	if ( ! $post || $post->post_type !== bbp_get_reply_post_type() ) {
+	if ( ! $post || bbp_get_reply_post_type() !== $post->post_type ) {
 		return new WP_Error( 'not_a_reply', 'Post ID is not a valid reply.' );
 	}
 
@@ -1140,7 +1140,7 @@ function extrachill_community_ability_update_topic( $input ) {
 	}
 
 	$post = get_post( $topic_id );
-	if ( ! $post || $post->post_type !== bbp_get_topic_post_type() ) {
+	if ( ! $post || bbp_get_topic_post_type() !== $post->post_type ) {
 		return new WP_Error( 'not_a_topic', 'Post ID is not a valid topic.' );
 	}
 
@@ -1222,7 +1222,7 @@ function extrachill_community_ability_update_reply( $input ) {
 	}
 
 	$post = get_post( $reply_id );
-	if ( ! $post || $post->post_type !== bbp_get_reply_post_type() ) {
+	if ( ! $post || bbp_get_reply_post_type() !== $post->post_type ) {
 		return new WP_Error( 'not_a_reply', 'Post ID is not a valid reply.' );
 	}
 

@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 	// Check for user's bbPress posts (topics or replies)
 	$user_id          = bbp_get_displayed_user_id();
-	$current_user     = wp_get_current_user();
+	$display_user     = wp_get_current_user();
 	$args             = array(
 		'author'         => $user_id,
 		'post_type'      => array( 'reply', 'topic' ), // Prioritize replies in the query
@@ -31,9 +31,9 @@ defined( 'ABSPATH' ) || exit;
 	if ( $user_posts_query->have_posts() ) {
 		while ( $user_posts_query->have_posts() ) {
 			$user_posts_query->the_post();
-			$post_type = get_post_type();
+			$last_post_type = get_post_type();
 
-			if ( 'reply' === $post_type ) {
+			if ( 'reply' === $last_post_type ) {
 				// For replies, link to the parent topic with an anchor to the reply
 				$topic_id      = bbp_get_reply_topic_id(get_the_ID());
 				$topic_title   = get_the_title($topic_id);
@@ -41,14 +41,14 @@ defined( 'ABSPATH' ) || exit;
 				$last_post_url = get_permalink($topic_id) . $reply_anchor;
 				$post_date     = get_the_date(); // Get the date of the post
 				$post_time     = get_the_time(); // Get the time of the post
-				$message       = 'Welcome back, <b>' . esc_html($current_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($topic_title) . '</a> on ' . esc_html($post_date) . ' at ' . esc_html($post_time) . '.';
+				$message       = 'Welcome back, <b>' . esc_html($display_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($topic_title) . '</a> on ' . esc_html($post_date) . ' at ' . esc_html($post_time) . '.';
 			} else {
 				// For topics, just link to the topic itself
 				$last_post_title = get_the_title();
 				$last_post_url   = get_the_permalink();
 				$post_date       = get_the_date(); // Get the date of the post
 				$post_time       = get_the_time(); // Get the time of the post
-				$message         = 'Welcome back, <b>' . esc_html($current_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($last_post_title) . '</a> on ' . esc_html($post_date) . ' at ' . esc_html($post_time) . '.';
+				$message         = 'Welcome back, <b>' . esc_html($display_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($last_post_title) . '</a> on ' . esc_html($post_date) . ' at ' . esc_html($post_time) . '.';
 			}
 
 
@@ -56,7 +56,7 @@ defined( 'ABSPATH' ) || exit;
 		}
 	} else {
 		// User hasn't posted yet
-		echo '<p>Welcome, <b>' . esc_html($current_user->display_name) . "</b>! You haven't posted yet. Start by introducing yourself in <a href='/t/introductions-thread'>The Back Bar!</a></p>";
+		echo '<p>Welcome, <b>' . esc_html($display_user->display_name) . "</b>! You haven't posted yet. Start by introducing yourself in <a href='/t/introductions-thread'>The Back Bar!</a></p>";
 	}
 	wp_reset_postdata(); // Reset the global post object
 
@@ -99,36 +99,41 @@ defined( 'ABSPATH' ) || exit;
 
 			$rp_current_label = isset( $rank_progress['current']['label'] ) ? (string) $rank_progress['current']['label'] : '';
 			$rp_is_max        = ! empty( $rank_progress['is_max'] );
-			?>
-			<div class="rank-progress" role="img" aria-label="<?php
-				echo esc_attr(
-					$rp_is_max
-						? sprintf(
-							/* translators: %s: current rank label */
-							__( 'Rank progress: %s, maximum rank reached', 'extra-chill-community' ),
-							$rp_current_label
-						)
-						: sprintf(
-							/* translators: 1: current rank label, 2: rounded percent toward next rank */
-							__( 'Rank progress: %1$s, %2$d%% toward next rank', 'extra-chill-community' ),
-							$rp_current_label,
-							(int) round( $rp_percent )
-						)
+
+			if ( $rp_is_max ) {
+				$rp_aria_label = sprintf(
+					/* translators: %s: current rank label */
+					__( 'Rank progress: %s, maximum rank reached', 'extra-chill-community' ),
+					$rp_current_label
 				);
-			?>">
+			} else {
+				$rp_aria_label = sprintf(
+					/* translators: 1: current rank label, 2: rounded percent toward next rank */
+					__( 'Rank progress: %1$s, %2$d%% toward next rank', 'extra-chill-community' ),
+					$rp_current_label,
+					(int) round( $rp_percent )
+				);
+			}
+
+			$rp_current_text = sprintf(
+				/* translators: %s: current rank label */
+				__( 'Current: %s', 'extra-chill-community' ),
+				$rp_current_label
+			);
+			?>
+			<div class="rank-progress" role="img" aria-label="<?php echo esc_attr( $rp_aria_label ); ?>">
 				<div class="rank-progress-meta">
-					<span class="rank-progress-current"><?php echo esc_html( sprintf(
-						/* translators: %s: current rank label */
-						__( 'Current: %s', 'extra-chill-community' ),
-						$rp_current_label
-					) ); ?></span>
+					<span class="rank-progress-current"><?php echo esc_html( $rp_current_text ); ?></span>
 					<span class="rank-progress-percent"><?php echo esc_html( (int) round( $rp_percent ) ); ?>%</span>
-					<?php if ( ! $rp_is_max && ! empty( $rank_progress['next']['label'] ) ) : ?>
-						<span class="rank-progress-next"><?php echo esc_html( sprintf(
+					<?php
+					if ( ! $rp_is_max && ! empty( $rank_progress['next']['label'] ) ) :
+						$rp_next_text = sprintf(
 							/* translators: %s: next rank label */
 							__( 'Next: %s', 'extra-chill-community' ),
 							(string) $rank_progress['next']['label']
-						) ); ?></span>
+						);
+						?>
+						<span class="rank-progress-next"><?php echo esc_html( $rp_next_text ); ?></span>
 					<?php elseif ( $rp_is_max ) : ?>
 						<span class="rank-progress-next"><?php esc_html_e( 'Max rank reached', 'extra-chill-community' ); ?></span>
 					<?php endif; ?>
@@ -136,13 +141,16 @@ defined( 'ABSPATH' ) || exit;
 				<div class="rank-progress-track">
 					<div class="rank-progress-fill<?php echo $rp_is_max ? ' is-max' : ''; ?>" style="width:<?php echo esc_attr( $rp_percent ); ?>%"></div>
 				</div>
-				<?php if ( ! $rp_is_max && ! empty( $rank_progress['next']['label'] ) && null !== $rank_progress['points_to_next'] ) : ?>
-					<div class="rank-progress-hint"><?php echo esc_html( sprintf(
+				<?php
+				if ( ! $rp_is_max && ! empty( $rank_progress['next']['label'] ) && null !== $rank_progress['points_to_next'] ) :
+					$rp_hint_text = sprintf(
 						/* translators: 1: points remaining, 2: next rank label */
 						__( '%1$s points to %2$s', 'extra-chill-community' ),
 						(int) ceil( (float) $rank_progress['points_to_next'] ),
 						(string) $rank_progress['next']['label']
-					) ); ?></div>
+					);
+					?>
+					<div class="rank-progress-hint"><?php echo esc_html( $rp_hint_text ); ?></div>
 				<?php endif; ?>
 			</div>
 			<?php
@@ -182,11 +190,11 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php if ( ! empty($dynamic_links) ) : ?>
 	<div class="bbp-user-links-inline">
-		<?php foreach ( $dynamic_links as $link ) : ?>
+		<?php foreach ( $dynamic_links as $dynamic_link ) : ?>
 			<?php
-			$type_key     = isset($link['type_key']) ? $link['type_key'] : 'other';
-			$url          = isset($link['url']) ? $link['url'] : '';
-			$custom_label = isset($link['custom_label']) ? $link['custom_label'] : '';
+			$type_key     = isset($dynamic_link['type_key']) ? $dynamic_link['type_key'] : 'other';
+			$url          = isset($dynamic_link['url']) ? $dynamic_link['url'] : '';
+			$custom_label = isset($dynamic_link['custom_label']) ? $dynamic_link['custom_label'] : '';
 			$icon_id      = isset($platform_icons[ $type_key ]) ? $platform_icons[ $type_key ] : 'link';
 
 			if ( empty($url) ) {

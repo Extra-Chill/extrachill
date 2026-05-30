@@ -428,10 +428,10 @@ span.bbp-topic-post-date {
 
 span.bbp-admin-links {
     float: right;
-    color: #ddd;
+    color: var(--muted-text);
 }
 span.bbp-admin-links a {
-    color: #707070;
+    color: var(--muted-text);
     font-weight: 400;
     font-size: var(--font-size-xs);
     text-transform: uppercase;
@@ -441,7 +441,7 @@ span.bbp-author-ip {
     font-size: var(--font-size-xs);
     font-weight: 700;
     word-wrap: break-word;
-    color: #747474;
+    color: var(--muted-text);
 }
 
 /* Revision Log (Edit History Footer) */

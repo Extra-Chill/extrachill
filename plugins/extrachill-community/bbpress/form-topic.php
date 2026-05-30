@@ -82,7 +82,12 @@ if ( ! bbp_is_single_forum() ) : ?>
 					<?php if ( ! ( bbp_use_wp_editor() || current_user_can( 'unfiltered_html' ) ) ) : ?>
 
 						<p class="form-allowed-tags">
-							<label><?php printf( esc_html__( 'You may use these %s tags and attributes:', 'extra-chill-community' ), '<abbr title="HyperText Markup Language">HTML</abbr>' ); ?></label>
+							<label>
+								<?php
+								/* translators: %s: HTML abbreviation markup */
+								printf( esc_html__( 'You may use these %s tags and attributes:', 'extra-chill-community' ), '<abbr title="HyperText Markup Language">HTML</abbr>' );
+								?>
+							</label>
 							<code><?php bbp_allowed_tags(); ?></code>
 						</p>
 

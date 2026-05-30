@@ -40,6 +40,7 @@ function extrachill_render_notification_card($notification) {
 	$time               = $notification['time'] ?? '';
 
 	// Format timestamp
+	// phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Display in site-local time, preserving existing rendered output.
 	$time_formatted = $time ? esc_html(date('n/j/y \\a\\t g:ia', strtotime($time))) : '';
 
 	// Get actor avatar

@@ -69,6 +69,7 @@ if ( ! class_exists('ExtraChill_Community_Feed_Query') ) {
  * @param int $size Avatar size
  * @return string Avatar URL
  */
+// phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- Feed query functions and their lightweight WP_Query-shaped helper class are a single cohesive unit; splitting would fragment includes without behavior benefit.
 function extrachill_get_avatar_url_with_custom_support($user_id, $size = 80) {
 	$avatar_html = get_avatar($user_id, $size);
 	if ( preg_match('/src=["\']([^"\']+)["\']/', $avatar_html, $matches) ) {

@@ -17,8 +17,8 @@ get_header();
 $isUserProfile = bbp_is_single_user();
 
 if ( $isUserProfile ) {
-	$title = '@' . bbp_get_displayed_user_field('user_nicename');
-	echo '<div class="community-section-header"><h1 class="profile-title-inline">' . esc_html( $title ) . '</h1></div>';
+	$feed_title = '@' . bbp_get_displayed_user_field('user_nicename');
+	echo '<div class="community-section-header"><h1 class="profile-title-inline">' . esc_html( $feed_title ) . '</h1></div>';
 
 } else {
 	// Display the title for non-profile pages

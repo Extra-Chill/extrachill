@@ -1,11 +1,11 @@
 /* Notification Card Styles */
 .notification-card {
-    background-color: #f9fafb;
-    border: 1px solid #e0e0e0;
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     padding: 20px;
     margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--card-shadow);
     box-sizing: border-box;
     width: 100%;
 }
@@ -16,16 +16,16 @@
     align-items: center;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .notification-type-icon {
-	color: #003466;
+	color: var(--link-color);
 }
 
 .notification-timestamp {
     font-size: var(--font-size-sm);
-    color: #777;
+    color: var(--muted-text);
 }
 
 .notification-card-body {
@@ -49,7 +49,7 @@
 .notification-card-footer {
     margin-top: 15px;
     padding-top: 10px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: flex-end;
 }
@@ -67,31 +67,8 @@
     }
 }
 
-/* Dark Mode Styles */
-@media (prefers-color-scheme: dark) {
-    .notification-card {
-        background-color: #2e2e2e; /* dark background */
-        border-color: #444; /* darker border */
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    }
-
-    .notification-card-header {
-        border-bottom-color: #555;
-    }
-
-    .notification-type-icon {
-        color: #66b2ff; /* lighter blue for contrast */
-    }
-
-    .notification-timestamp {
-        color: #aaa;
-    }
-
-    .notification-message {
-        color: #ddd;
-    }
-
-    .notification-card-footer {
-        border-top-color: #555;
-    }
-}
+/*
+ * Dark mode is handled automatically by the theme's design tokens
+ * (--card-background, --border-color, --muted-text, --link-color, --card-shadow),
+ * which carry their own prefers-color-scheme: dark overrides in root.css.
+ */

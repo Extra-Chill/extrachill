@@ -193,7 +193,7 @@
 }
 
 .social-link:hover {
-    color: #083b6c;
+    color: var(--link-color-hover);
 }
 
 .social-link.website:hover {

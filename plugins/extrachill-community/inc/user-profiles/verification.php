@@ -53,6 +53,11 @@ function extrachill_save_user_meta($user_id) {
 		return false;
 	}
 
+	// Verify the core user-edit nonce (WordPress also enforces this before firing these hooks).
+	if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_POST['_wpnonce'] ) ), 'update-user_' . $user_id ) ) {
+		return false;
+	}
+
 	// Direct save for Artist status
 	update_user_meta($user_id, 'user_is_artist', isset($_POST['user_is_artist']) ? '1' : '0');
 

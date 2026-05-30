@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Ability: extrachill/community-upvote
  *
@@ -9,6 +8,8 @@ declare(strict_types=1);
  *
  * @package ExtraChillCommunity
  */
+
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 

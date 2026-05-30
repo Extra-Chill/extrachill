@@ -89,7 +89,6 @@ function extrachill_community_register_rank_abilities() {
 			),
 		)
 	);
-
 }
 
 // ─── Execute callbacks ─────────────────────────────────────────────────────────

@@ -21,7 +21,7 @@ $reply_id_check = bbp_get_reply_id();
 $topic_id_check = ! empty( $bbp_instance->current_topic_id ) ? $bbp_instance->current_topic_id : bbp_get_topic_id();
 
 $current_post_type = get_post_type( $reply_id_check );
-$is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( $current_post_type === bbp_get_topic_post_type() );
+$is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_post_type() === $current_post_type );
 ?>
 
 <div id="post-<?php bbp_reply_id(); ?>" 
@@ -139,7 +139,7 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( $current_post_
 					$prefetch_forum_title = get_query_var('prefetch_forum_title');
 					?>
 					<span class="bbp-header">
-						<?php if ( $is_lead_topic || $current_post_type === bbp_get_topic_post_type() ) : ?>
+						<?php if ( $is_lead_topic || bbp_get_topic_post_type() === $current_post_type ) : ?>
 							<?php esc_html_e( 'in forum: ', 'extra-chill-community' ); ?>
 							<?php if ( $prefetch_forum_url && $prefetch_forum_title ) : ?>
 								<a class="bbp-forum-permalink" href="<?php echo esc_url( $prefetch_forum_url ); ?>">

@@ -26,7 +26,7 @@ if ( ! defined('ABSPATH') ) {
  */
 function extrachill_capture_reply_notifications($reply_id, $topic_id, $forum_id, $anonymous_data, $reply_author) {
 	// Prevent self-notification (author replying to own topic)
-	if ( $reply_author === get_post_field('post_author', $topic_id) ) {
+	if ( get_post_field('post_author', $topic_id) === $reply_author ) {
 		return;
 	}
 

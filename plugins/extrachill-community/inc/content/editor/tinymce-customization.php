@@ -23,6 +23,14 @@ function bbp_enable_visual_editor($args = array()) {
 add_filter('bbp_after_get_the_content_parse_args', 'bbp_enable_visual_editor', 999);
 
 function bbp_add_tinymce_stylesheet($mce_css) {
+	// Inject the theme's canonical design tokens (root.css) into the editor iframe so
+	// tinymce-editor.css can consume theme tokens instead of redefining a parallel palette.
+	$theme_root_path = get_template_directory() . '/assets/css/root.css';
+	if ( file_exists( $theme_root_path ) ) {
+		$theme_root_version = filemtime( $theme_root_path );
+		$mce_css           .= ', ' . get_template_directory_uri() . '/assets/css/root.css?ver=' . $theme_root_version;
+	}
+
 	$version  = filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/tinymce-editor.css');
 	$mce_css .= ', ' . EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/tinymce-editor.css?ver=' . $version;
 	return $mce_css;

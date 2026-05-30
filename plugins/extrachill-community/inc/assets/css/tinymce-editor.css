@@ -1,83 +1,8 @@
-/* --- Color Variables & Dark Mode Overrides --- */
-:root {
-    /* Base Colors (Light Mode) */
-    --background-color: #fff;
-    --text-color: #000;
-    
-    /* Main brand/link color: "blue version" of #53940b */
-    --link-color: #0b5394;
-    
-    /* Slightly lighter gray for borders so they're less prominent */
-    --border-color: #ddd;
-    
-
-
-    /* Component-Specific Variables */
-    --header-bg: #000;
-    --header-text: #fff;
-    
-    /* Accent & Secondary Accent */
-    /* Keep a green accent for special highlights, or unify if you want everything consistent */
-    --accent: #53940b;
-    --accent-2: #36454F;
-    
-    /* Notices */
-    --notice-bg: #f8f9fa;
-    --notice-border: #0b5394; /* Same as link-color for consistency */
-    
-    /* Card & Form Backgrounds */
-    --card-background: #f8fafc;
-    --muted-text: #6b7280;
-    
-    /* Shadows */
-    --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    --card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    
-    /* Focus/Outline States */
-    --focus-border-color: #53940b;
-    --focus-box-shadow: 0 0 0 3px rgba(83, 148, 11, 0.2);
-}
-
-/* --- Dark Mode Overrides --- */
-@media (prefers-color-scheme: dark) {
-    :root {
-        /* Base Colors (Dark Mode) */
-        --background-color: #1a1a1a;
-        --text-color: #e5e5e5;
-        
-        /* Green Link Color in Dark Mode for contrast */
-        --link-color: #53940b;
-        
-        /* Darker border for separation */
-        --border-color: #555;
-        
-
-
-        /* Component-Specific Variables */
-        --header-bg: #000;
-        --header-text: #fff;
-        
-        /* Accent & Secondary Accent */
-        --accent: #53940b; /* Keep the green accent in dark mode */
-        --accent-2: #a8c0d0; /* Softer bluish accent */
-        
-        /* Notices */
-        --notice-bg: #1e1e1e;
-        --notice-border: #444;
-        
-        /* Card & Form Backgrounds */
-        --card-background: #2a2a2a;
-        --muted-text: #b0b0b0;
-        
-        /* Softer Shadows for Dark Mode */
-        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-        --card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        
-        /* Focus/Outline States */
-        --focus-border-color: #8aa6bf;
-        --focus-box-shadow: 0 0 0 3px rgba(138, 166, 191, 0.2);
-    }
-}
+/*
+ * Design tokens come from the theme's root.css, which is injected into this
+ * TinyMCE iframe via the mce_css filter (see inc/content/editor/tinymce-customization.php).
+ * Do not redefine theme tokens here — consume them.
+ */
 
 /* General content styling */
 body.mce-content-body {
@@ -94,7 +19,7 @@ body.mce-content-body h4,
 body.mce-content-body h5,
 body.mce-content-body h6 {
     font-family: "WilcoLoftSans", sans-serif;
-    color: var(--header-text);
+    color: var(--header-text-color);
     margin-bottom: 10px;
 }
 
@@ -143,8 +68,8 @@ body.mce-content-body button,
 body.mce-content-body input[type="button"],
 body.mce-content-body input[type="submit"],
 body.mce-content-body input[type="reset"] {
-    background-color: #0b5394;
-    color: #fff;
+    background-color: var(--link-color);
+    color: var(--button-text-color);
     padding: 10px 20px;
 	border: none;
 	border-radius: 4px;
@@ -155,7 +80,7 @@ body.mce-content-body button:hover,
 body.mce-content-body input[type="button"]:hover,
 body.mce-content-body input[type="submit"]:hover,
 body.mce-content-body input[type="reset"]:hover {
-    background-color: #083b6c;
+    background-color: var(--link-color-hover);
 }
 
 /* Style the formatselect dropdown menu */
@@ -179,7 +104,7 @@ body.mce-content-body input[type="reset"]:hover {
 .mce-listbox .mce-listbox-item.mce-active,
 .mce-listbox .mce-listbox-item:hover {
     background-color: var(--accent-2);
-    color: var(--header-text);
+    color: var(--header-text-color);
 }
 
 /* ==================================================
@@ -314,7 +239,7 @@ select {
 .mentions-item:hover,
 .mentions-item.selected {
     background-color: var(--accent-2);
-    color: var(--header-text);
+    color: var(--header-text-color);
 }
 
 .mentions-item.mentions-no-results,
@@ -376,7 +301,7 @@ select {
 
 .mentions-item:hover .mentions-username,
 .mentions-item.selected .mentions-username {
-    color: var(--header-text);
+    color: var(--header-text-color);
 }
 
 .mentions-item:hover .mentions-login,

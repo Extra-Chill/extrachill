@@ -14,7 +14,7 @@
    Notification Bell
 ================================================== */
 .notification-bell-svg {
-	color: #fff;
+	color: var(--button-text-color);
 	font-size: var(--font-size-lg);
 }
 
@@ -47,7 +47,7 @@
 	top: -5px;
 	right: -5px;
 	background-color: var(--error-color);
-	color: #fff;
+	color: var(--button-text-color);
 	border-radius: 50%;
 	padding: 0 5px;
 	font-size: var(--font-size-xs);

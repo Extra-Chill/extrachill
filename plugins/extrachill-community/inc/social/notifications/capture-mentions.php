@@ -56,7 +56,7 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
 
 			// Priority deduplication: If mentioned user is topic author, remove reply notification
 			// Mention notifications are more specific than reply notifications
-			if ( $user->ID === get_post_field('post_author', $actual_topic_id_for_context) ) {
+			if ( get_post_field('post_author', $actual_topic_id_for_context) === $user->ID ) {
 				// Switch to community site for deduplication
 				$current_blog_id = get_current_blog_id();
 				$switched        = false;

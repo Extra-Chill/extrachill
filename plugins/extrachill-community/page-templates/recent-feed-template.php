@@ -14,8 +14,8 @@ get_header();
 $isUserProfile = bbp_is_single_user();
 
 if ( $isUserProfile ) {
-	$title = '@' . bbp_get_displayed_user_field('user_nicename');
-	echo '<div class="community-section-header"><h1 class="profile-title-inline">' . esc_html( $title ) . '</h1></div>';
+	$feed_title = '@' . bbp_get_displayed_user_field('user_nicename');
+	echo '<div class="community-section-header"><h1 class="profile-title-inline">' . esc_html( $feed_title ) . '</h1></div>';
 } else {
 	echo '<div class="community-section-header"><h1>Recent Activity</h1></div>';
 }
@@ -43,7 +43,9 @@ if ( $recent_feed && ! empty($recent_feed['items']) ) {
 		<ul class="forums bbp-replies">
 			<li class="bbp-body">
 				<?php
+				global $post;
 				foreach ( $feed_items as $feed_item ) {
+					// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentionally sets the global $post for setup_postdata() and the bbPress template part below.
 					$post = $feed_item['post'];
 
 					if ( ! $post || ! is_object($post) ) {
@@ -67,7 +69,7 @@ if ( $recent_feed && ! empty($recent_feed['items']) ) {
 
 					$bbp->current_reply_id = $post->ID;
 
-					if ( $post->post_type === bbp_get_topic_post_type() ) {
+					if ( bbp_get_topic_post_type() === $post->post_type ) {
 						$topic_id = $post->ID;
 					} else {
 						$topic_id = (int) get_post_field( 'post_parent', $post->ID );

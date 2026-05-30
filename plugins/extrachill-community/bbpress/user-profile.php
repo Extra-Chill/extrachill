@@ -91,6 +91,7 @@ if ( $is_artist || $is_professional ) :
 			$display_name = bbp_get_displayed_user_field('display_name');
 			// Adjust title based on whether they have bands or not
 			if ( ! empty($user_artist_ids) ) {
+				/* translators: %s: user display name */
 				printf( esc_html__( "%s's Artists", 'extra-chill-community' ), esc_html($display_name) );
 			} elseif ( bbp_get_displayed_user_id() === get_current_user_id() ) {
 				// Title for own profile with no bands

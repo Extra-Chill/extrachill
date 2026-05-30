@@ -50,12 +50,12 @@ function extrachill_handle_forum_cache_invalidation($post_id) {
 
 	$post_type = get_post_type($post_id);
 
-	if ( $post_type !== bbp_get_topic_post_type() && $post_type !== bbp_get_reply_post_type() ) {
+	if ( bbp_get_topic_post_type() !== $post_type && bbp_get_reply_post_type() !== $post_type ) {
 		return;
 	}
 
-	$topic_id = ( $post_type === bbp_get_topic_post_type() ) ? $post_id : bbp_get_reply_topic_id($post_id);
-	$reply_id = ( $post_type === bbp_get_reply_post_type() ) ? $post_id : 0;
+	$topic_id = ( bbp_get_topic_post_type() === $post_type ) ? $post_id : bbp_get_reply_topic_id($post_id);
+	$reply_id = ( bbp_get_reply_post_type() === $post_type ) ? $post_id : 0;
 	$forum_id = $topic_id ? bbp_get_topic_forum_id($topic_id) : 0;
 
 	extrachill_delete_leaderboard_cache();

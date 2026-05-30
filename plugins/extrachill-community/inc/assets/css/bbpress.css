@@ -438,7 +438,7 @@ blockquote {
 }
 
 .upvote-icon .ec-icon:hover {
-    color: #083b6c;
+    color: var(--link-color-hover);
 }
 
 /* ==================================================

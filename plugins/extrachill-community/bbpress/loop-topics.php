@@ -69,6 +69,7 @@ if ( 'upvotes' === $current_sort ) {
          INNER JOIN {$wpdb->posts} t ON p.post_parent = t.ID
          WHERE p.post_type = %s AND t.post_type = %s AND p.post_date >= %s
          GROUP BY p.post_parent ORDER BY COUNT(p.ID) DESC LIMIT 100",
+		// phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Compared against post_date (site-local), not post_date_gmt.
 		bbp_get_reply_post_type(), bbp_get_topic_post_type(), date('Y-m-d H:i:s', strtotime('-45 days'))
 	));
 	$loop_args['post__in'] = ! empty($popular_ids) ? $popular_ids : array( 0 );

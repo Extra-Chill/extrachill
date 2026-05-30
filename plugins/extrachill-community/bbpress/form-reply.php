@@ -36,6 +36,7 @@ if ( bbp_is_reply_edit() ) : ?>
 						$reply_author    = get_userdata( $reply_author_id );
 						$username        = $reply_author ? $reply_author->user_nicename : '';
 						if ( $username ) {
+							/* translators: %s: username being replied to */
 							printf( esc_html__( 'Reply to @%s', 'extra-chill-community' ), esc_html( $username ) );
 						} else {
 							/* translators: %s: topic title */

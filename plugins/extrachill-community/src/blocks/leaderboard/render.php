@@ -7,8 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$per_page = isset( $attributes['perPage'] ) ? (int) $attributes['perPage'] : 25;
-$per_page = max( 1, min( 100, $per_page ) );
+$leaderboard_per_page = isset( $attributes['perPage'] ) ? (int) $attributes['perPage'] : 25;
+$leaderboard_per_page = max( 1, min( 100, $leaderboard_per_page ) );
 
 $sprite_url = get_template_directory_uri() . '/assets/fonts/extrachill.svg';
 
@@ -21,6 +21,6 @@ $class = 'wp-block-extrachill-leaderboard extrachill-leaderboard';
 printf(
 	'<div class="%1$s" data-per-page="%2$d" data-sprite-url="%3$s"></div>',
 	esc_attr( $class ),
-	(int) $per_page,
+	(int) $leaderboard_per_page,
 	esc_url( $sprite_url )
 );

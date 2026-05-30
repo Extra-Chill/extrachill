@@ -182,7 +182,7 @@ function extrachill_community_bbpress_drafts_fetch( $user_id, array $context ) {
 
 	$table = extrachill_community_bbpress_drafts_table_name();
 	// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-	$row   = $wpdb->get_row(
+	$row = $wpdb->get_row(
 		$wpdb->prepare(
 			"SELECT * FROM {$table}
 	// phpcs:enable WordPress.DB.PreparedSQL

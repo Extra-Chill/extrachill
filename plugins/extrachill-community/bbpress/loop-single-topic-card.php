@@ -103,6 +103,7 @@ if ( ! $topic_id ) {
 				<span class="bbp-topic-started-in">
 				<?php
 					printf(
+					/* translators: %1$s: forum link */
 					esc_html__( 'in %1$s', 'extra-chill-community' ),
 					'<a href="' . esc_url( bbp_get_forum_permalink( $forum_id_for_topic ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id_for_topic ) ) . '</a>'
 				);

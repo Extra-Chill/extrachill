@@ -132,7 +132,8 @@ function extrachill_truncate_html_content($content, $length = 500, $ellipsis = '
 }
 
 function ec_display_forum_description() {
-	if ( $description = bbp_get_forum_content() ) {
+	$description = bbp_get_forum_content();
+	if ( $description ) {
 		echo '<div class="bbp-forum-description">' . wp_kses_post( $description ) . '</div>';
 	}
 }
