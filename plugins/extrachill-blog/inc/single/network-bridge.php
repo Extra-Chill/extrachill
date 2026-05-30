@@ -106,7 +106,7 @@ function extrachill_blog_network_bridge_get_cards( $post_id ) {
 	}
 
 	$term_signature = md5(
-		wp_json_encode(
+		(string) wp_json_encode(
 			array(
 				'artist'   => wp_list_pluck( $artist_terms, 'term_id' ),
 				'festival' => wp_list_pluck( $festival_terms, 'term_id' ),
@@ -206,7 +206,7 @@ function extrachill_blog_network_bridge_build_cards( $artist_terms, $festival_te
 		$cards['community'] = $by_site['community'];
 	} else {
 		$primary_term = ! empty( $artist_terms ) ? reset( $artist_terms ) : reset( $festival_terms );
-		$community    = extrachill_blog_network_bridge_community_card( $primary_term );
+		$community    = $primary_term instanceof WP_Term ? extrachill_blog_network_bridge_community_card( $primary_term ) : null;
 		if ( $community ) {
 			$cards['community'] = $community;
 		}
@@ -233,6 +233,10 @@ function extrachill_blog_network_bridge_build_cards( $artist_terms, $festival_te
  * @param string  $taxonomy Taxonomy slug.
  */
 function extrachill_blog_network_bridge_collect( &$by_site, $term, $taxonomy ) {
+	if ( ! function_exists( 'extrachill_get_cross_site_term_links' ) ) {
+		return;
+	}
+
 	$links = extrachill_get_cross_site_term_links( $term, $taxonomy );
 	if ( empty( $links ) ) {
 		return;
