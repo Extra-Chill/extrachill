@@ -11,138 +11,138 @@ defined( 'ABSPATH' ) || exit;
 
 ?>
 
-<?php if ( bbp_get_displayed_user_id() == get_current_user_id() ) : ?>
+<?php if ( bbp_get_displayed_user_id() === get_current_user_id() ) : ?>
 
 
-<?php
+	<?php
 
-// Check for user's bbPress posts (topics or replies)
-$user_id = bbp_get_displayed_user_id();
-$current_user = wp_get_current_user();
-$args = array(
-    'author' => $user_id,
-    'post_type' => array('reply', 'topic'), // Prioritize replies in the query
-    'posts_per_page' => 1,
-    'orderby' => 'date',
-    'order' => 'DESC',
-);
-$user_posts_query = new WP_Query($args);
+	// Check for user's bbPress posts (topics or replies)
+	$user_id          = bbp_get_displayed_user_id();
+	$current_user     = wp_get_current_user();
+	$args             = array(
+		'author'         => $user_id,
+		'post_type'      => array( 'reply', 'topic' ), // Prioritize replies in the query
+		'posts_per_page' => 1,
+		'orderby'        => 'date',
+		'order'          => 'DESC',
+	);
+	$user_posts_query = new WP_Query($args);
 
-if ($user_posts_query->have_posts()) {
-    while ($user_posts_query->have_posts()) {
-        $user_posts_query->the_post();
-        $post_type = get_post_type();
+	if ( $user_posts_query->have_posts() ) {
+		while ( $user_posts_query->have_posts() ) {
+			$user_posts_query->the_post();
+			$post_type = get_post_type();
 
-        if ($post_type == 'reply') {
-            // For replies, link to the parent topic with an anchor to the reply
-            $topic_id = bbp_get_reply_topic_id(get_the_ID());
-            $topic_title = get_the_title($topic_id);
-            $reply_anchor = '#post-' . get_the_ID(); // The anchor ID used by bbPress for replies
-            $last_post_url = get_permalink($topic_id) . $reply_anchor;
-            $post_date = get_the_date(); // Get the date of the post
-            $post_time = get_the_time(); // Get the time of the post
-            $message = "Welcome back, <b>" . esc_html($current_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($topic_title) . "</a> on " . esc_html($post_date) . " at " . esc_html($post_time) . ".";
-        } else {
-            // For topics, just link to the topic itself
-            $last_post_title = get_the_title();
-            $last_post_url = get_the_permalink();
-            $post_date = get_the_date(); // Get the date of the post
-            $post_time = get_the_time(); // Get the time of the post
-            $message = "Welcome back, <b>" . esc_html($current_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($last_post_title) . "</a> on " . esc_html($post_date) . " at " . esc_html($post_time) . ".";
-        }
+			if ( 'reply' === $post_type ) {
+				// For replies, link to the parent topic with an anchor to the reply
+				$topic_id      = bbp_get_reply_topic_id(get_the_ID());
+				$topic_title   = get_the_title($topic_id);
+				$reply_anchor  = '#post-' . get_the_ID(); // The anchor ID used by bbPress for replies
+				$last_post_url = get_permalink($topic_id) . $reply_anchor;
+				$post_date     = get_the_date(); // Get the date of the post
+				$post_time     = get_the_time(); // Get the time of the post
+				$message       = 'Welcome back, <b>' . esc_html($current_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($topic_title) . '</a> on ' . esc_html($post_date) . ' at ' . esc_html($post_time) . '.';
+			} else {
+				// For topics, just link to the topic itself
+				$last_post_title = get_the_title();
+				$last_post_url   = get_the_permalink();
+				$post_date       = get_the_date(); // Get the date of the post
+				$post_time       = get_the_time(); // Get the time of the post
+				$message         = 'Welcome back, <b>' . esc_html($current_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($last_post_title) . '</a> on ' . esc_html($post_date) . ' at ' . esc_html($post_time) . '.';
+			}
 
 
-        echo "<p>{$message}</p>";
-    }
-} else {
-    // User hasn't posted yet
-    echo "<p>Welcome, <b>" . esc_html($current_user->display_name) . "</b>! You haven't posted yet. Start by introducing yourself in <a href='/t/introductions-thread'>The Back Bar!</a></p>";
-}
-wp_reset_postdata(); // Reset the global post object
+			echo "<p>{$message}</p>";
+		}
+	} else {
+		// User hasn't posted yet
+		echo '<p>Welcome, <b>' . esc_html($current_user->display_name) . "</b>! You haven't posted yet. Start by introducing yourself in <a href='/t/introductions-thread'>The Back Bar!</a></p>";
+	}
+	wp_reset_postdata(); // Reset the global post object
 
-?>
+	?>
 <?php endif; ?>
 
 
 <div class="bbp-user-header-card">
-    <div class="bbp-user-avatar-area">
-        <span class='vcard'>
-            <a class="url fn n" href="<?php bbp_user_profile_url(); ?>" title="<?php bbp_displayed_user_field('display_name'); ?>" rel="me">
-                <?php
-                // Use filtered get_avatar() for consistent avatar handling across all locations
-                echo get_avatar(bbp_get_displayed_user_field('ID'), apply_filters('bbp_single_user_details_avatar_size', 150));
-                ?>
-            </a>
-        </span>
-    </div>
-    <div class="bbp-user-header-text-area">
-        <h1 class="bbp-user-display-name">
-            <?php bbp_displayed_user_field('display_name'); ?>
-            <div class="forum-badges">
-                <?php do_action( 'bbp_theme_after_user_name', bbp_get_displayed_user_id() ); ?>
-            </div>
-        </h1>
-        <p class="bbp-user-title-rank">
-            <b>Title:</b> <?php printf(esc_html__('%s', 'bbpress'), bbp_get_user_display_role()); ?> | 
-            <b>Rank:</b> <?php printf(esc_html__('%s', 'bbpress'), extrachill_display_user_rank(bbp_get_displayed_user_id())); ?>
-            | <b>Points:</b> <?php printf(esc_html__('%s', 'bbpress'), extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
-        </p>
-        <div class="bbp-user-actions-area">
-                <?php if ( bbp_get_displayed_user_id() == get_current_user_id() ) : ?>
-                    <a href="/settings" class="button-1 button-small"><?php esc_html_e('Settings', 'bbpress'); ?></a>
-                <a href="<?php echo esc_url( bbp_get_user_profile_edit_url( bbp_get_displayed_user_id() ) ); ?>" class="button-1 button-small"><?php esc_html_e('Edit Profile', 'extra-chill-community'); ?></a>
-            <?php endif; ?>
-        </div>
+	<div class="bbp-user-avatar-area">
+		<span class='vcard'>
+			<a class="url fn n" href="<?php bbp_user_profile_url(); ?>" title="<?php bbp_displayed_user_field('display_name'); ?>" rel="me">
+				<?php
+				// Use filtered get_avatar() for consistent avatar handling across all locations
+				echo get_avatar(bbp_get_displayed_user_field('ID'), apply_filters('bbp_single_user_details_avatar_size', 150));
+				?>
+			</a>
+		</span>
+	</div>
+	<div class="bbp-user-header-text-area">
+		<h1 class="bbp-user-display-name">
+			<?php bbp_displayed_user_field('display_name'); ?>
+			<div class="forum-badges">
+				<?php do_action( 'bbp_theme_after_user_name', bbp_get_displayed_user_id() ); ?>
+			</div>
+		</h1>
+		<p class="bbp-user-title-rank">
+			<b>Title:</b> <?php printf(esc_html__('%s', 'extra-chill-community'), bbp_get_user_display_role()); ?> | 
+			<b>Rank:</b> <?php printf(esc_html__('%s', 'extra-chill-community'), extrachill_display_user_rank(bbp_get_displayed_user_id())); ?>
+			| <b>Points:</b> <?php printf(esc_html__('%s', 'extra-chill-community'), extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
+		</p>
+		<div class="bbp-user-actions-area">
+				<?php if ( bbp_get_displayed_user_id() === get_current_user_id() ) : ?>
+					<a href="/settings" class="button-1 button-small"><?php esc_html_e('Settings', 'extra-chill-community'); ?></a>
+				<a href="<?php echo esc_url( bbp_get_user_profile_edit_url( bbp_get_displayed_user_id() ) ); ?>" class="button-1 button-small"><?php esc_html_e('Edit Profile', 'extra-chill-community'); ?></a>
+			<?php endif; ?>
+		</div>
 
-    </div>
-    
-    <?php
-    $user_id = bbp_get_displayed_user_id();
-    $dynamic_links = get_user_meta($user_id, '_user_profile_dynamic_links', true);
+	</div>
+	
+	<?php
+	$user_id       = bbp_get_displayed_user_id();
+	$dynamic_links = get_user_meta($user_id, '_user_profile_dynamic_links', true);
 
-    if (!is_array($dynamic_links)) {
-        $dynamic_links = array();
-    }
+	if ( ! is_array($dynamic_links) ) {
+		$dynamic_links = array();
+	}
 
-    $platform_icons = array(
-        'website' => 'globe',
-        'facebook' => 'facebook',
-        'instagram' => 'instagram',
-        'twitter' => 'x-twitter',
-        'youtube' => 'youtube',
-        'tiktok' => 'tiktok',
-        'spotify' => 'spotify',
-        'soundcloud' => 'soundcloud',
-        'bandcamp' => 'bandcamp',
-        'github' => 'github',
-        'other' => 'link'
-    );
-    ?>
+	$platform_icons = array(
+		'website'    => 'globe',
+		'facebook'   => 'facebook',
+		'instagram'  => 'instagram',
+		'twitter'    => 'x-twitter',
+		'youtube'    => 'youtube',
+		'tiktok'     => 'tiktok',
+		'spotify'    => 'spotify',
+		'soundcloud' => 'soundcloud',
+		'bandcamp'   => 'bandcamp',
+		'github'     => 'github',
+		'other'      => 'link',
+	);
+	?>
 
-    <?php if (!empty($dynamic_links)) : ?>
-    <div class="bbp-user-links-inline">
-        <?php foreach ($dynamic_links as $link) : ?>
-            <?php
-            $type_key = isset($link['type_key']) ? $link['type_key'] : 'other';
-            $url = isset($link['url']) ? $link['url'] : '';
-            $custom_label = isset($link['custom_label']) ? $link['custom_label'] : '';
-            $icon_id = isset($platform_icons[$type_key]) ? $platform_icons[$type_key] : 'link';
+	<?php if ( ! empty($dynamic_links) ) : ?>
+	<div class="bbp-user-links-inline">
+		<?php foreach ( $dynamic_links as $link ) : ?>
+			<?php
+			$type_key     = isset($link['type_key']) ? $link['type_key'] : 'other';
+			$url          = isset($link['url']) ? $link['url'] : '';
+			$custom_label = isset($link['custom_label']) ? $link['custom_label'] : '';
+			$icon_id      = isset($platform_icons[ $type_key ]) ? $platform_icons[ $type_key ] : 'link';
 
-            if (empty($url)) {
-                continue;
-            }
+			if ( empty($url) ) {
+				continue;
+			}
 
-            $title_attr = $custom_label ? esc_attr($custom_label) : ucfirst($type_key);
-            ?>
-            <a href="<?php echo esc_url($url); ?>"
-               class="social-link <?php echo esc_attr($type_key); ?>"
-               target="_blank"
-               rel="noopener"
-               title="<?php echo $title_attr; ?>">
-                <?php echo ec_icon($icon_id); ?>
-            </a>
-        <?php endforeach; ?>
-    </div><!-- .bbp-user-links-inline -->
+			$title_attr = $custom_label ? esc_attr($custom_label) : ucfirst($type_key);
+			?>
+			<a href="<?php echo esc_url($url); ?>"
+				class="social-link <?php echo esc_attr($type_key); ?>"
+				target="_blank"
+				rel="noopener"
+				title="<?php echo $title_attr; ?>">
+				<?php echo ec_icon($icon_id); ?>
+			</a>
+		<?php endforeach; ?>
+	</div><!-- .bbp-user-links-inline -->
 <?php endif; ?>
 
 </div><!-- .bbp-user-header-card -->

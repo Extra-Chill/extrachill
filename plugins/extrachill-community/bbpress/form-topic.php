@@ -36,14 +36,14 @@ if ( ! bbp_is_single_forum() ) : ?>
 				<legend>
 
 					<?php
-						if ( bbp_is_topic_edit() ) :
-							printf( esc_html__( 'Now Editing &ldquo;%s&rdquo;', 'bbpress' ), bbp_get_topic_title() );
+					if ( bbp_is_topic_edit() ) :
+						printf( esc_html__( 'Now Editing &ldquo;%s&rdquo;', 'extra-chill-community' ), bbp_get_topic_title() );
 						else :
 							( bbp_is_single_forum() && bbp_get_forum_title() )
-								? printf( esc_html__( 'Create New Topic in &ldquo;%s&rdquo;', 'bbpress' ), bbp_get_forum_title() )
-								: esc_html_e( 'Create New Topic', 'bbpress' );
+								? printf( esc_html__( 'Create New Topic in &ldquo;%s&rdquo;', 'extra-chill-community' ), bbp_get_forum_title() )
+								: esc_html_e( 'Create New Topic', 'extra-chill-community' );
 						endif;
-					?>
+						?>
 
 				</legend>
 
@@ -53,7 +53,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 					<div class="notice notice-info">
 						<ul>
-							<li><?php esc_html_e( 'This forum is marked as closed to new topics, however your posting capabilities still allow you to create a topic.', 'bbpress' ); ?></li>
+							<li><?php esc_html_e( 'This forum is marked as closed to new topics, however your posting capabilities still allow you to create a topic.', 'extra-chill-community' ); ?></li>
 						</ul>
 					</div>
 
@@ -66,8 +66,8 @@ if ( ! bbp_is_single_forum() ) : ?>
 					<?php do_action( 'bbp_theme_before_topic_form_title' ); ?>
 
 					<p>
-						<label for="bbp_topic_title" class="screen-reader-text"><?php printf( esc_html__( 'Title', 'bbpress' ), bbp_get_title_max_length() ); ?></label>
-						<input type="text" id="bbp_topic_title" value="<?php bbp_form_topic_title(); ?>" placeholder="<?php esc_attr_e( 'Title', 'bbpress' ); ?>" size="40" name="bbp_topic_title" maxlength="<?php bbp_title_max_length(); ?>" />
+						<label for="bbp_topic_title" class="screen-reader-text"><?php printf( esc_html__( 'Title', 'extra-chill-community' ), bbp_get_title_max_length() ); ?></label>
+						<input type="text" id="bbp_topic_title" value="<?php bbp_form_topic_title(); ?>" placeholder="<?php esc_attr_e( 'Title', 'extra-chill-community' ); ?>" size="40" name="bbp_topic_title" maxlength="<?php bbp_title_max_length(); ?>" />
 					</p>
 
 					<?php do_action( 'bbp_theme_after_topic_form_title' ); ?>
@@ -80,23 +80,25 @@ if ( ! bbp_is_single_forum() ) : ?>
 					<?php if ( ! ( bbp_use_wp_editor() || current_user_can( 'unfiltered_html' ) ) ) : ?>
 
 						<p class="form-allowed-tags">
-							<label><?php printf( esc_html__( 'You may use these %s tags and attributes:', 'bbpress' ), '<abbr title="HyperText Markup Language">HTML</abbr>' ); ?></label>
+							<label><?php printf( esc_html__( 'You may use these %s tags and attributes:', 'extra-chill-community' ), '<abbr title="HyperText Markup Language">HTML</abbr>' ); ?></label>
 							<code><?php bbp_allowed_tags(); ?></code>
 						</p>
 
 					<?php endif; ?>
 
-					<?php // Only show forum dropdown if NOT on a single forum AND NOT on a single artist profile page
-                    if ( ! bbp_is_single_forum() && ! is_singular('artist_profile') ) : ?>
+					<?php
+					// Only show forum dropdown if NOT on a single forum AND NOT on a single artist profile page
+					if ( ! bbp_is_single_forum() && ! is_singular('artist_profile') ) :
+						?>
 
 						<?php do_action( 'bbp_theme_before_topic_form_forum' ); ?>
 
 						<p>
-							<label for="bbp_forum_id"><?php esc_html_e( 'Forum:', 'bbpress' ); ?></label>
+							<label for="bbp_forum_id"><?php esc_html_e( 'Forum:', 'extra-chill-community' ); ?></label>
 							<?php
 								bbp_dropdown( array(
-									'show_none' => esc_html__( '&mdash; No forum &mdash;', 'bbpress' ),
-									'selected'  => bbp_get_form_topic_forum()
+									'show_none' => esc_html__( '&mdash; No forum &mdash;', 'extra-chill-community' ),
+									'selected'  => bbp_get_form_topic_forum(),
 								) );
 							?>
 						</p>
@@ -111,7 +113,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 						<p>
 
-							<label for="bbp_stick_topic"><?php esc_html_e( 'Topic Type:', 'bbpress' ); ?></label>
+							<label for="bbp_stick_topic"><?php esc_html_e( 'Topic Type:', 'extra-chill-community' ); ?></label>
 
 							<?php bbp_form_topic_type_dropdown(); ?>
 
@@ -123,7 +125,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 						<p>
 
-							<label for="bbp_topic_status"><?php esc_html_e( 'Topic Status:', 'bbpress' ); ?></label>
+							<label for="bbp_topic_status"><?php esc_html_e( 'Topic Status:', 'extra-chill-community' ); ?></label>
 
 							<?php bbp_form_topic_status_dropdown(); ?>
 
@@ -142,11 +144,11 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 							<?php if ( bbp_is_topic_edit() && ( bbp_get_topic_author_id() !== bbp_get_current_user_id() ) ) : ?>
 
-								<label for="bbp_topic_subscription"><?php esc_html_e( 'Notify the author of follow-up replies via email', 'bbpress' ); ?></label>
+								<label for="bbp_topic_subscription"><?php esc_html_e( 'Notify the author of follow-up replies via email', 'extra-chill-community' ); ?></label>
 
 							<?php else : ?>
 
-								<label for="bbp_topic_subscription"><?php esc_html_e( 'Notify me of follow-up replies via email', 'bbpress' ); ?></label>
+								<label for="bbp_topic_subscription"><?php esc_html_e( 'Notify me of follow-up replies via email', 'extra-chill-community' ); ?></label>
 
 							<?php endif; ?>
 						</p>
@@ -162,11 +164,11 @@ if ( ! bbp_is_single_forum() ) : ?>
 						<fieldset class="bbp-form">
 							<legend>
 								<input name="bbp_log_topic_edit" id="bbp_log_topic_edit" type="checkbox" value="1" <?php bbp_form_topic_log_edit(); ?> />
-								<label for="bbp_log_topic_edit"><?php esc_html_e( 'Keep a log of this edit:', 'bbpress' ); ?></label>
+								<label for="bbp_log_topic_edit"><?php esc_html_e( 'Keep a log of this edit:', 'extra-chill-community' ); ?></label>
 							</legend>
 
 							<div>
-								<label for="bbp_topic_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'bbpress' ), bbp_get_current_user_name() ); ?></label>
+								<label for="bbp_topic_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'extra-chill-community' ), bbp_get_current_user_name() ); ?></label>
 								<input type="text" value="<?php bbp_form_topic_edit_reason(); ?>" size="40" name="bbp_topic_edit_reason" id="bbp_topic_edit_reason" />
 							</div>
 						</fieldset>
@@ -179,7 +181,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 					<?php do_action( 'bbp_theme_before_topic_form_submit_button' ); ?>
 
-					<button type="submit" id="bbp_topic_submit" name="bbp_topic_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
+					<button type="submit" id="bbp_topic_submit" name="bbp_topic_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'extra-chill-community' ); ?></button>
 
 					<?php do_action( 'bbp_theme_after_topic_form_submit_button' ); ?>
 
@@ -201,7 +203,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 	<div id="forum-closed-<?php bbp_forum_id(); ?>" class="bbp-forum-closed">
 		<div class="notice notice-info">
 			<ul>
-				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'bbpress' ), bbp_get_forum_title() ); ?></li>
+				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'extra-chill-community' ), bbp_get_forum_title() ); ?></li>
 			</ul>
 		</div>
 	</div>
@@ -211,10 +213,13 @@ if ( ! bbp_is_single_forum() ) : ?>
 	<div id="no-topic-<?php bbp_forum_id(); ?>" class="bbp-no-topic">
 		<div class="notice notice-info">
 			<ul>
-				<li><?php is_user_logged_in()
-					? esc_html_e( 'You cannot create new topics.',               'bbpress' )
-					: esc_html_e( 'You must be logged in to create new topics.', 'bbpress' );
-				?></li>
+				<li>
+				<?php
+				is_user_logged_in()
+					? esc_html_e( 'You cannot create new topics.', 'extra-chill-community' )
+					: esc_html_e( 'You must be logged in to create new topics.', 'extra-chill-community' );
+				?>
+				</li>
 			</ul>
 		</div>
 

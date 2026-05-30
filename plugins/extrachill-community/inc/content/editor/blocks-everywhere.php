@@ -5,7 +5,7 @@
  * Enables Gutenberg block editor for bbPress forums via the Blocks Everywhere plugin.
  */
 
-include_once ABSPATH . 'wp-admin/includes/plugin.php';
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 add_filter( 'blocks_everywhere_bbpress', 'extrachill_enable_blocks_everywhere_bbpress' );
 function extrachill_enable_blocks_everywhere_bbpress( $enabled ) {
@@ -42,4 +42,3 @@ function extrachill_blocks_everywhere_allowed_blocks( array $allowed_blocks, $ed
 
 	return array_values( array_unique( $allowed_blocks ) );
 }
-

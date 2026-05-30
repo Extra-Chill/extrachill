@@ -9,54 +9,54 @@
  */
 
 // Prevent direct access
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined('ABSPATH') ) {
+	exit;
 }
 
-if (!class_exists('ExtraChill_Community_Feed_Query')) {
-    /**
-     * Lightweight pagination helper mimicking WP_Query shape for template compatibility.
-     */
-    class ExtraChill_Community_Feed_Query {
-        /** @var int */
-        public $found_posts = 0;
+if ( ! class_exists('ExtraChill_Community_Feed_Query') ) {
+	/**
+	 * Lightweight pagination helper mimicking WP_Query shape for template compatibility.
+	 */
+	class ExtraChill_Community_Feed_Query {
+		/** @var int */
+		public $found_posts = 0;
 
-        /** @var int */
-        public $max_num_pages = 0;
+		/** @var int */
+		public $max_num_pages = 0;
 
-        /** @var array */
-        public $query_vars = array();
+		/** @var array */
+		public $query_vars = array();
 
-        /**
-         * @param int $total_posts
-         * @param int $per_page
-         * @param int $paged
-         */
-        public function __construct($total_posts, $per_page, $paged) {
-            $this->found_posts   = (int) $total_posts;
-            $this->max_num_pages = $per_page > 0 ? (int) ceil($this->found_posts / $per_page) : 0;
-            $this->query_vars    = array(
-                'posts_per_page' => (int) $per_page,
-                'paged'          => (int) $paged,
-            );
-        }
+		/**
+		 * @param int $total_posts
+		 * @param int $per_page
+		 * @param int $paged
+		 */
+		public function __construct($total_posts, $per_page, $paged) {
+			$this->found_posts   = (int) $total_posts;
+			$this->max_num_pages = $per_page > 0 ? (int) ceil($this->found_posts / $per_page) : 0;
+			$this->query_vars    = array(
+				'posts_per_page' => (int) $per_page,
+				'paged'          => (int) $paged,
+			);
+		}
 
-        /**
-         * Mirror WP_Query::get() behaviour for pagination helper compatibility.
-         *
-         * @param string $key
-         * @param mixed  $default
-         *
-         * @return mixed
-         */
-        public function get($key, $default = null) {
-            if (isset($this->query_vars[$key])) {
-                return $this->query_vars[$key];
-            }
+		/**
+		 * Mirror WP_Query::get() behaviour for pagination helper compatibility.
+		 *
+		 * @param string $key
+		 * @param mixed  $default
+		 *
+		 * @return mixed
+		 */
+		public function get($key, $default_value = null) {
+			if ( isset($this->query_vars[ $key ]) ) {
+				return $this->query_vars[ $key ];
+			}
 
-            return $default;
-        }
-    }
+			return $default_value;
+		}
+	}
 }
 
 /**
@@ -70,85 +70,85 @@ if (!class_exists('ExtraChill_Community_Feed_Query')) {
  * @return string Avatar URL
  */
 function extrachill_get_avatar_url_with_custom_support($user_id, $size = 80) {
-    $avatar_html = get_avatar($user_id, $size);
-    if (preg_match('/src=["\']([^"\']+)["\']/', $avatar_html, $matches)) {
-        return $matches[1];
-    }
-    return get_avatar_url($user_id, array('size' => $size));
+	$avatar_html = get_avatar($user_id, $size);
+	if ( preg_match('/src=["\']([^"\']+)["\']/', $avatar_html, $matches) ) {
+		return $matches[1];
+	}
+	return get_avatar_url($user_id, array( 'size' => $size ));
 }
 
 function extrachill_get_recent_replies_args($per_page = 15, $paged = 1) {
-    return array(
-        'post_type'      => array('topic', 'reply'),
-        'posts_per_page' => $per_page,
-        'paged'          => $paged,
-        'orderby'        => 'date',
-        'order'          => 'DESC',
-        'post_status'    => array('publish', 'closed', 'acf-disabled', 'private', 'hidden')
-    );
+	return array(
+		'post_type'      => array( 'topic', 'reply' ),
+		'posts_per_page' => $per_page,
+		'paged'          => $paged,
+		'orderby'        => 'date',
+		'order'          => 'DESC',
+		'post_status'    => array( 'publish', 'closed', 'acf-disabled', 'private', 'hidden' ),
+	);
 }
 
 function extrachill_get_recent_feed_query($per_page = 15, $paged = null) {
-    if (!function_exists('bbp_get_reply_post_type')) {
-        return false;
-    }
+	if ( ! function_exists('bbp_get_reply_post_type') ) {
+		return false;
+	}
 
-    $per_page  = max(1, (int) $per_page);
-    $bbp_paged = function_exists('bbp_get_paged') ? bbp_get_paged() : max(1, (int) get_query_var('paged', 1));
-    $paged     = null === $paged ? $bbp_paged : max(1, (int) $paged);
+	$per_page  = max(1, (int) $per_page);
+	$bbp_paged = function_exists('bbp_get_paged') ? bbp_get_paged() : max(1, (int) get_query_var('paged', 1));
+	$paged     = null === $paged ? $bbp_paged : max(1, (int) $paged);
 
-    $args = extrachill_get_recent_replies_args($per_page, $paged);
-    $args['no_found_rows'] = false;
+	$args                  = extrachill_get_recent_replies_args($per_page, $paged);
+	$args['no_found_rows'] = false;
 
-    $query = new WP_Query($args);
+	$query = new WP_Query($args);
 
-    if (!$query->have_posts()) {
-        return false;
-    }
+	if ( ! $query->have_posts() ) {
+		return false;
+	}
 
-    $items = array();
+	$items = array();
 
-    while ($query->have_posts()) {
-        $query->the_post();
-        $author_id = get_the_author_meta('ID');
-        $post_id   = get_the_ID();
-        $post_type = get_post_type();
+	while ( $query->have_posts() ) {
+		$query->the_post();
+		$author_id = get_the_author_meta('ID');
+		$post_id   = get_the_ID();
+		$post_type = get_post_type();
 
-        $topic_id = ($post_type === 'topic') ? $post_id : get_post_meta($post_id, '_bbp_topic_id', true);
-        if (!$topic_id) {
-            $topic_id = wp_get_post_parent_id($post_id);
-        }
-        $forum_id = get_post_meta($topic_id ? $topic_id : $post_id, '_bbp_forum_id', true);
+		$topic_id = ( 'topic' === $post_type ) ? $post_id : get_post_meta($post_id, '_bbp_topic_id', true);
+		if ( ! $topic_id ) {
+			$topic_id = wp_get_post_parent_id($post_id);
+		}
+		$forum_id = get_post_meta($topic_id ? $topic_id : $post_id, '_bbp_forum_id', true);
 
-        $items[] = array(
-            'post'              => get_post(),
-            'author_id'         => $author_id,
-            'author_name'       => get_the_author(),
-            'author_avatar_url' => extrachill_get_avatar_url_with_custom_support($author_id, 80),
-            'topic_id'          => $topic_id,
-            'topic_url'         => $topic_id ? get_permalink($topic_id) : '',
-            'topic_title'       => $topic_id ? get_the_title($topic_id) : '',
-            'forum_id'          => $forum_id,
-            'forum_url'         => $forum_id ? get_permalink($forum_id) : '',
-            'forum_title'       => $forum_id ? get_the_title($forum_id) : '',
-        );
-    }
-    wp_reset_postdata();
+		$items[] = array(
+			'post'              => get_post(),
+			'author_id'         => $author_id,
+			'author_name'       => get_the_author(),
+			'author_avatar_url' => extrachill_get_avatar_url_with_custom_support($author_id, 80),
+			'topic_id'          => $topic_id,
+			'topic_url'         => $topic_id ? get_permalink($topic_id) : '',
+			'topic_title'       => $topic_id ? get_the_title($topic_id) : '',
+			'forum_id'          => $forum_id,
+			'forum_url'         => $forum_id ? get_permalink($forum_id) : '',
+			'forum_title'       => $forum_id ? get_the_title($forum_id) : '',
+		);
+	}
+	wp_reset_postdata();
 
-    $pagination = new ExtraChill_Community_Feed_Query($query->found_posts, $per_page, $paged);
+	$pagination = new ExtraChill_Community_Feed_Query($query->found_posts, $per_page, $paged);
 
-    return array(
-        'items'      => $items,
-        'pagination' => $pagination,
-    );
+	return array(
+		'items'      => $items,
+		'pagination' => $pagination,
+	);
 }
 
 function extrachill_get_recent_activity_query($per_page = 15, $paged = 1) {
-    $args = extrachill_get_recent_replies_args($per_page, $paged);
+	$args = extrachill_get_recent_replies_args($per_page, $paged);
 
-    if (empty($args)) {
-        return new WP_Query(array('post__in' => array(0)));
-    }
+	if ( empty($args) ) {
+		return new WP_Query(array( 'post__in' => array( 0 ) ));
+	}
 
-    return new WP_Query($args);
+	return new WP_Query($args);
 }

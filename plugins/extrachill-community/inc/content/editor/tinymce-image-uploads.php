@@ -10,8 +10,8 @@
  * @package ExtraChillCommunity
  */
 
-include_once ABSPATH . 'wp-admin/includes/plugin.php';
-if (is_plugin_active('blocks-everywhere/blocks-everywhere.php')) {
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
+if ( is_plugin_active('blocks-everywhere/blocks-everywhere.php') ) {
 	return;
 }
 
@@ -23,7 +23,7 @@ add_filter(
 	'intermediate_image_sizes_advanced',
 	function( $sizes ) use ( $thumb_names ) {
 		foreach ( $thumb_names as $thumb_name ) {
-			unset( $sizes[$thumb_name] );
+			unset( $sizes[ $thumb_name ] );
 		}
 		return $sizes;
 	}
@@ -32,14 +32,14 @@ add_filter(
 add_action(
 	'init',
 	function() use ( $thumb_names ) {
-		foreach( $thumb_names as $thumb_name ) {
+		foreach ( $thumb_names as $thumb_name ) {
 			remove_image_size( $thumb_name );
 		}
 	}
 );
 
 function register_custom_tinymce_plugin($plugin_array) {
-	$version = filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/tinymce-image-upload.js');
+	$version                             = filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/tinymce-image-upload.js');
 	$plugin_array['local_upload_plugin'] = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/tinymce-image-upload.js?ver=' . $version;
 	return $plugin_array;
 }

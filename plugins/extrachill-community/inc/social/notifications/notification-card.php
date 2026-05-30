@@ -8,8 +8,8 @@
  * @package ExtraChillCommunity
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined('ABSPATH') ) {
+	exit;
 }
 
 /**
@@ -19,72 +19,72 @@ if (!defined('ABSPATH')) {
  * @return string Formatted HTML for notification card
  */
 function extrachill_render_notification_card($notification) {
-    // Allow plugins to provide custom rendering
-    $custom_render = apply_filters('extrachill_notification_card_render', '', $notification);
-    if (!empty($custom_render)) {
-        return $custom_render;
-    }
+	// Allow plugins to provide custom rendering
+	$custom_render = apply_filters('extrachill_notification_card_render', '', $notification);
+	if ( ! empty($custom_render) ) {
+		return $custom_render;
+	}
 
-    // Input validation
-    if (!is_array($notification) || empty($notification['type'])) {
-        return '';
-    }
+	// Input validation
+	if ( ! is_array($notification) || empty($notification['type']) ) {
+		return '';
+	}
 
-    // Extract core data
-    $type = $notification['type'];
-    $actor_id = $notification['actor_id'] ?? null;
-    $actor_display_name = $notification['actor_display_name'] ?? 'Someone';
-    $actor_profile_link = $notification['actor_profile_link'] ?? '#';
-    $topic_title = $notification['topic_title'] ?? '';
-    $link = $notification['link'] ?? '#';
-    $time = $notification['time'] ?? '';
+	// Extract core data
+	$type               = $notification['type'];
+	$actor_id           = $notification['actor_id'] ?? null;
+	$actor_display_name = $notification['actor_display_name'] ?? 'Someone';
+	$actor_profile_link = $notification['actor_profile_link'] ?? '#';
+	$topic_title        = $notification['topic_title'] ?? '';
+	$link               = $notification['link'] ?? '#';
+	$time               = $notification['time'] ?? '';
 
-    // Format timestamp
-    $time_formatted = $time ? esc_html(date('n/j/y \\a\\t g:ia', strtotime($time))) : '';
+	// Format timestamp
+	$time_formatted = $time ? esc_html(date('n/j/y \\a\\t g:ia', strtotime($time))) : '';
 
-    // Get actor avatar
-    $avatar = $actor_id ? get_avatar($actor_id, 40) : '';
+	// Get actor avatar
+	$avatar = $actor_id ? get_avatar($actor_id, 40) : '';
 
-    // Determine icon and message based on type
-    switch ($type) {
-        case 'reply':
-            $icon_id = 'reply';
-            $message = sprintf(
-                '<a href="%s">%s</a> replied to your topic "<a href="%s">%s</a>"',
-                esc_url($actor_profile_link),
-                esc_html($actor_display_name),
-                esc_url($link),
-                esc_html($topic_title)
-            );
-            break;
+	// Determine icon and message based on type
+	switch ( $type ) {
+		case 'reply':
+			$icon_id = 'reply';
+			$message = sprintf(
+				'<a href="%s">%s</a> replied to your topic "<a href="%s">%s</a>"',
+				esc_url($actor_profile_link),
+				esc_html($actor_display_name),
+				esc_url($link),
+				esc_html($topic_title)
+			);
+			break;
 
-        case 'mention':
-            $icon_id = 'at';
-            $message = sprintf(
-                '<a href="%s">%s</a> mentioned you in "<a href="%s">%s</a>"',
-                esc_url($actor_profile_link),
-                esc_html($actor_display_name),
-                esc_url($link),
-                esc_html($topic_title)
-            );
-            break;
+		case 'mention':
+			$icon_id = 'at';
+			$message = sprintf(
+				'<a href="%s">%s</a> mentioned you in "<a href="%s">%s</a>"',
+				esc_url($actor_profile_link),
+				esc_html($actor_display_name),
+				esc_url($link),
+				esc_html($topic_title)
+			);
+			break;
 
-        default:
-            // Generic notification card for unknown types
-            $icon_id = 'bell';
-            $message = sprintf(
-                '<a href="%s">%s</a> sent you a notification about "<a href="%s">%s</a>"',
-                esc_url($actor_profile_link),
-                esc_html($actor_display_name),
-                esc_url($link),
-                esc_html($topic_title ?: 'this content')
-            );
-            break;
-    }
+		default:
+			// Generic notification card for unknown types
+			$icon_id = 'bell';
+			$message = sprintf(
+				'<a href="%s">%s</a> sent you a notification about "<a href="%s">%s</a>"',
+				esc_url($actor_profile_link),
+				esc_html($actor_display_name),
+				esc_url($link),
+				esc_html($topic_title ? $topic_title : 'this content')
+			);
+			break;
+	}
 
-    // Render notification card HTML
-    return sprintf(
-        '<div class="notification-card">
+	// Render notification card HTML
+	return sprintf(
+		'<div class="notification-card">
             <div class="notification-card-header">
                 <span class="notification-type-icon">%s</span>
                 <span class="notification-timestamp">%s</span>
@@ -94,9 +94,9 @@ function extrachill_render_notification_card($notification) {
                 <div class="notification-message">%s</div>
             </div>
         </div>',
-        ec_icon($icon_id),
-        $time_formatted,
-        $avatar,
-        $message
-    );
+		ec_icon($icon_id),
+		$time_formatted,
+		$avatar,
+		$message
+	);
 }

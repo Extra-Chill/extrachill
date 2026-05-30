@@ -15,23 +15,26 @@ do_action( 'bbp_template_before_replies_loop' );
 
 <ul id="topic-<?php bbp_topic_id(); ?>-replies" class="forums bbp-replies"> 
 
-    <li class="bbp-body">
+	<li class="bbp-body">
 
-        <?php if ( bbp_thread_replies() ) : ?>
-            
-            <?php bbp_list_replies(); ?>
+		<?php if ( bbp_thread_replies() ) : ?>
+			
+			<?php bbp_list_replies(); ?>
 
-        <?php else : ?>
+		<?php else : ?>
 
-            <?php while ( bbp_replies() ) : bbp_the_reply(); ?>
-                
-                <?php bbp_get_template_part( 'loop', 'single-reply-card' ); ?>
+			<?php
+			while ( bbp_replies() ) :
+				bbp_the_reply();
+				?>
+				
+				<?php bbp_get_template_part( 'loop', 'single-reply-card' ); ?>
 
-            <?php endwhile; ?>
+			<?php endwhile; ?>
 
-        <?php endif; ?>
+		<?php endif; ?>
 
-    </li><!-- .bbp-body -->
+	</li><!-- .bbp-body -->
 </ul><!-- #topic-<?php bbp_topic_id(); ?>-replies -->
 
 <?php do_action( 'bbp_template_after_replies_loop' ); ?>

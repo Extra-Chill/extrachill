@@ -17,28 +17,37 @@
  * @return array Response array with success status, message, new_count, and upvoted flag
  */
 function extrachill_process_upvote($post_id, $type, $user_id) {
-	if (!$post_id) {
-		return array('success' => false, 'message' => 'No post ID provided');
+	if ( ! $post_id ) {
+		return array(
+			'success' => false,
+			'message' => 'No post ID provided',
+		);
 	}
 
-	if (!$user_id) {
-		return array('success' => false, 'message' => 'User not logged in');
+	if ( ! $user_id ) {
+		return array(
+			'success' => false,
+			'message' => 'User not logged in',
+		);
 	}
 
-	if (!in_array($type, array('topic', 'reply'))) {
-		return array('success' => false, 'message' => 'Invalid post type');
+	if ( ! in_array($type, array( 'topic', 'reply' ), true) ) {
+		return array(
+			'success' => false,
+			'message' => 'Invalid post type',
+		);
 	}
 
 	$upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
-	if (!is_array($upvoted_posts)) {
+	if ( ! is_array($upvoted_posts) ) {
 		$upvoted_posts = array();
 	}
 
 	$post_author_id = get_post_field('post_author', $post_id);
 
-	if (in_array($post_id, $upvoted_posts)) {
+	if ( in_array($post_id, $upvoted_posts, true) ) {
 		// Remove upvote
-		$upvoted_posts = array_diff($upvoted_posts, array($post_id));
+		$upvoted_posts = array_diff($upvoted_posts, array( $post_id ));
 		update_user_meta($user_id, 'upvoted_posts', $upvoted_posts);
 
 		$upvote_count = max(get_post_meta($post_id, 'upvote_count', true) - 1, 0);
@@ -48,10 +57,10 @@ function extrachill_process_upvote($post_id, $type, $user_id) {
 		do_action('custom_upvote_action', $post_id, $post_author_id, $upvoted);
 
 		return array(
-			'success' => true,
-			'message' => 'Upvote removed',
+			'success'   => true,
+			'message'   => 'Upvote removed',
 			'new_count' => $upvote_count,
-			'upvoted' => false
+			'upvoted'   => false,
 		);
 	} else {
 		// Add upvote
@@ -66,10 +75,10 @@ function extrachill_process_upvote($post_id, $type, $user_id) {
 		do_action('custom_upvote_action', $post_id, $post_author_id, $upvoted);
 
 		return array(
-			'success' => true,
-			'message' => 'Upvote recorded',
+			'success'   => true,
+			'message'   => 'Upvote recorded',
 			'new_count' => $upvote_count,
-			'upvoted' => true
+			'upvoted'   => true,
 		);
 	}
 }
@@ -81,19 +90,19 @@ function get_upvote_count($post_id) {
 
 function extrachill_get_upvoted_posts($post_type, $user_id = null) {
 	$current_user_id = get_current_user_id();
-	$upvoted = $user_id ? array($user_id) : get_user_meta($current_user_id, 'upvoted_posts', true);
+	$upvoted         = $user_id ? array( $user_id ) : get_user_meta($current_user_id, 'upvoted_posts', true);
 
-	if (empty($upvoted) || !is_array($upvoted)) {
+	if ( empty($upvoted) || ! is_array($upvoted) ) {
 		return new WP_Query();
 	}
 	$paged = max( 1, get_query_var('paged'), get_query_var('page') );
 
 	$args = array(
-		'post_type' => $post_type,
-		'post_status' => 'publish',
-		'post__in' => $upvoted,
+		'post_type'      => $post_type,
+		'post_status'    => 'publish',
+		'post__in'       => $upvoted,
 		'posts_per_page' => get_option('posts_per_page'),
-		'paged' => $paged,
+		'paged'          => $paged,
 	);
 
 	$posts_query = new WP_Query($args);
@@ -104,18 +113,18 @@ function extrachill_get_upvoted_posts($post_type, $user_id = null) {
 function extrachill_get_user_total_upvotes($user_id) {
 	$args = array(
 		'author'         => $user_id,
-		'post_type'      => array('post', 'reply', 'topic'),
+		'post_type'      => array( 'post', 'reply', 'topic' ),
 		'posts_per_page' => -1,
-		'fields'         => 'ids'
+		'fields'         => 'ids',
 	);
 
 	$user_posts_query = new WP_Query( $args );
-	$user_posts_ids = $user_posts_query->posts;
+	$user_posts_ids   = $user_posts_query->posts;
 
 	$total_upvotes = 0;
-	if ( is_array( $user_posts_ids ) && !empty( $user_posts_ids ) ) {
+	if ( is_array( $user_posts_ids ) && ! empty( $user_posts_ids ) ) {
 		foreach ( $user_posts_ids as $post_id ) {
-			$upvote = get_post_meta( $post_id, 'upvote_count', true );
+			$upvote         = get_post_meta( $post_id, 'upvote_count', true );
 			$total_upvotes += intval( $upvote );
 		}
 	}

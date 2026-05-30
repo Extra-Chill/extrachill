@@ -16,11 +16,11 @@ do_action( 'bbp_template_before_lead_topic' ); ?>
 
 	<li class="bbp-header">
 
-		<div class="bbp-topic-author"><?php esc_html_e( 'Creator',  'bbpress' ); ?></div><!-- .bbp-topic-author -->
+		<div class="bbp-topic-author"><?php esc_html_e( 'Creator', 'extra-chill-community' ); ?></div><!-- .bbp-topic-author -->
 
 		<div class="bbp-topic-content">
 
-			<?php esc_html_e( 'Topic', 'bbpress' ); ?>
+			<?php esc_html_e( 'Topic', 'extra-chill-community' ); ?>
 
 		</div><!-- .bbp-topic-content -->
 
@@ -84,11 +84,11 @@ do_action( 'bbp_template_before_lead_topic' ); ?>
 
 	<li class="bbp-footer">
 
-		<div class="bbp-topic-author"><?php esc_html_e( 'Creator',  'bbpress' ); ?></div>
+		<div class="bbp-topic-author"><?php esc_html_e( 'Creator', 'extra-chill-community' ); ?></div>
 
 		<div class="bbp-topic-content">
 
-			<?php esc_html_e( 'Topic', 'bbpress' ); ?>
+			<?php esc_html_e( 'Topic', 'extra-chill-community' ); ?>
 
 		</div><!-- .bbp-topic-content -->
 
@@ -96,4 +96,5 @@ do_action( 'bbp_template_before_lead_topic' ); ?>
 
 </ul><!-- #bbp-topic-<?php bbp_topic_id(); ?>-lead -->
 
-<?php do_action( 'bbp_template_after_lead_topic' );
+<?php
+do_action( 'bbp_template_after_lead_topic' );

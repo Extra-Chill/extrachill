@@ -17,12 +17,12 @@
  * @package ExtraChillCommunity
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined('ABSPATH') ) {
+	exit;
 }
 
 function extrachill_community_get_bbpress_template_path() {
-    return EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'bbpress';
+	return EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'bbpress';
 }
 
 /**
@@ -31,7 +31,7 @@ function extrachill_community_get_bbpress_template_path() {
  * Allows bbPress to discover and use custom templates in /bbpress/ directory.
  */
 function extrachill_community_register_bbpress_templates() {
-    bbp_register_template_stack('extrachill_community_get_bbpress_template_path', 1);
+	bbp_register_template_stack('extrachill_community_get_bbpress_template_path', 1);
 }
 add_action('bbp_register_theme_packages', 'extrachill_community_register_bbpress_templates');
 
@@ -41,12 +41,12 @@ add_action('bbp_register_theme_packages', 'extrachill_community_register_bbpress
  * Hooked via extrachill_homepage_content action.
  */
 function extrachill_community_render_homepage() {
-    $community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
-    if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
-        return;
-    }
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
+		return;
+	}
 
-    include EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/home/forum-homepage.php';
+	include EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/home/forum-homepage.php';
 }
 add_action('extrachill_homepage_content', 'extrachill_community_render_homepage', 10);
 

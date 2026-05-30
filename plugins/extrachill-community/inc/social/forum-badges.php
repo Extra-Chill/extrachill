@@ -18,10 +18,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param string $class   CSS class for the badge.
  * @param string $title   Tooltip title.
  */
-function extrachill_render_badge( $icon_id, $class, $title ) {
+function extrachill_render_badge( $icon_id, $class_name, $title ) {
 	printf(
 		'<span class="%s" data-title="%s">%s</span>',
-		esc_attr( $class ),
+		esc_attr( $class_name ),
 		esc_attr( $title ),
 		ec_icon( $icon_id )
 	);
@@ -73,5 +73,3 @@ function ec_add_after_user_details_menu_items() {
 	extrachill_render_user_badges( bbp_get_displayed_user_id() );
 }
 add_action( 'bbp_template_after_user_details_menu_items', 'ec_add_after_user_details_menu_items' );
-
-

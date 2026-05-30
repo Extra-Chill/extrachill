@@ -33,15 +33,15 @@ if ( bbp_is_reply_edit() ) : ?>
 					$reply_to = bbp_get_form_reply_to();
 					if ( $reply_to ) {
 						$reply_author_id = bbp_get_reply_author_id( $reply_to );
-						$reply_author = get_userdata( $reply_author_id );
-						$username = $reply_author ? $reply_author->user_nicename : '';
+						$reply_author    = get_userdata( $reply_author_id );
+						$username        = $reply_author ? $reply_author->user_nicename : '';
 						if ( $username ) {
-							printf( esc_html__( 'Reply to @%s', 'bbpress' ), esc_html( $username ) );
+							printf( esc_html__( 'Reply to @%s', 'extra-chill-community' ), esc_html( $username ) );
 						} else {
-							printf( esc_html__( 'Reply To: %s', 'bbpress' ), bbp_get_topic_title() );
+							printf( esc_html__( 'Reply To: %s', 'extra-chill-community' ), bbp_get_topic_title() );
 						}
 					} else {
-						printf( esc_html__( 'Reply To: %s', 'bbpress' ), bbp_get_topic_title() );
+						printf( esc_html__( 'Reply To: %s', 'extra-chill-community' ), bbp_get_topic_title() );
 					}
 					?>
 				</legend>
@@ -52,7 +52,7 @@ if ( bbp_is_reply_edit() ) : ?>
 
 					<div class="notice notice-info">
 						<ul>
-							<li><?php esc_html_e( 'This topic is marked as closed to new replies, however your posting capabilities still allow you to reply.', 'bbpress' ); ?></li>
+							<li><?php esc_html_e( 'This topic is marked as closed to new replies, however your posting capabilities still allow you to reply.', 'extra-chill-community' ); ?></li>
 						</ul>
 					</div>
 
@@ -62,14 +62,15 @@ if ( bbp_is_reply_edit() ) : ?>
 
 					<div class="notice notice-info">
 						<ul>
-							<li><?php esc_html_e( 'This forum is closed to new content, however your posting capabilities still allow you to post.', 'bbpress' ); ?></li>
+							<li><?php esc_html_e( 'This forum is closed to new content, however your posting capabilities still allow you to post.', 'extra-chill-community' ); ?></li>
 						</ul>
 					</div>
 
 				<?php endif; ?>
 
 				<?php // Carefully comment out only the unfiltered_html notice block ?>
-				<?php /* if ( current_user_can( 'unfiltered_html' ) ) : ?>
+				<?php
+				/* if ( current_user_can( 'unfiltered_html' ) ) : ?>
 
 					<div class="notice notice-info">
 						<ul>
@@ -77,7 +78,8 @@ if ( bbp_is_reply_edit() ) : ?>
 						</ul>
 					</div>
 
-				<?php endif; */ ?>
+				<?php endif; */
+				?>
 
 					<div>
 
@@ -91,7 +93,7 @@ if ( bbp_is_reply_edit() ) : ?>
 					<?php if ( ! ( bbp_use_wp_editor() || current_user_can( 'unfiltered_html' ) ) ) : ?>
 
 						<p class="form-allowed-tags">
-							<label><?php esc_html_e( 'You may use these <abbr title="HyperText Markup Language">HTML</abbr> tags and attributes:','bbpress' ); ?></label>
+							<label><?php esc_html_e( 'You may use these <abbr title="HyperText Markup Language">HTML</abbr> tags and attributes:', 'extra-chill-community' ); ?></label>
 							<code><?php bbp_allowed_tags(); ?></code>
 						</p>
 
@@ -102,7 +104,7 @@ if ( bbp_is_reply_edit() ) : ?>
 						<?php do_action( 'bbp_theme_before_reply_form_tags' ); ?>
 
 						<p>
-							<label for="bbp_topic_tags"><?php esc_html_e( 'Tags:', 'bbpress' ); ?></label>
+							<label for="bbp_topic_tags"><?php esc_html_e( 'Tags:', 'extra-chill-community' ); ?></label>
 							<input type="text" value="<?php bbp_form_topic_tags(); ?>" size="40" name="bbp_topic_tags" id="bbp_topic_tags" <?php disabled( bbp_is_topic_spam() ); ?> />
 						</p>
 
@@ -120,11 +122,11 @@ if ( bbp_is_reply_edit() ) : ?>
 
 							<?php if ( bbp_is_reply_edit() && ( bbp_get_reply_author_id() !== bbp_get_current_user_id() ) ) : ?>
 
-								<label for="bbp_topic_subscription"><?php esc_html_e( 'Notify the author of follow-up replies via email', 'bbpress' ); ?></label>
+								<label for="bbp_topic_subscription"><?php esc_html_e( 'Notify the author of follow-up replies via email', 'extra-chill-community' ); ?></label>
 
 							<?php else : ?>
 
-								<label for="bbp_topic_subscription"><?php esc_html_e( 'Notify me of follow-up replies via email', 'bbpress' ); ?></label>
+								<label for="bbp_topic_subscription"><?php esc_html_e( 'Notify me of follow-up replies via email', 'extra-chill-community' ); ?></label>
 
 							<?php endif; ?>
 
@@ -141,7 +143,7 @@ if ( bbp_is_reply_edit() ) : ?>
 							<?php do_action( 'bbp_theme_before_reply_form_reply_to' ); ?>
 
 							<p class="form-reply-to">
-								<label for="bbp_reply_to"><?php esc_html_e( 'Reply To:', 'bbpress' ); ?></label>
+								<label for="bbp_reply_to"><?php esc_html_e( 'Reply To:', 'extra-chill-community' ); ?></label>
 								<?php bbp_reply_to_dropdown(); ?>
 							</p>
 
@@ -150,7 +152,7 @@ if ( bbp_is_reply_edit() ) : ?>
 							<?php do_action( 'bbp_theme_before_reply_form_status' ); ?>
 
 							<p>
-								<label for="bbp_reply_status"><?php esc_html_e( 'Reply Status:', 'bbpress' ); ?></label>
+								<label for="bbp_reply_status"><?php esc_html_e( 'Reply Status:', 'extra-chill-community' ); ?></label>
 								<?php bbp_form_reply_status_dropdown(); ?>
 							</p>
 
@@ -165,11 +167,11 @@ if ( bbp_is_reply_edit() ) : ?>
 							<fieldset class="bbp-form">
 								<legend>
 									<input name="bbp_log_reply_edit" id="bbp_log_reply_edit" type="checkbox" value="1" <?php bbp_form_reply_log_edit(); ?> />
-									<label for="bbp_log_reply_edit"><?php esc_html_e( 'Keep a log of this edit:', 'bbpress' ); ?></label>
+									<label for="bbp_log_reply_edit"><?php esc_html_e( 'Keep a log of this edit:', 'extra-chill-community' ); ?></label>
 								</legend>
 
 								<div>
-									<label for="bbp_reply_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'bbpress' ), bbp_get_current_user_name() ); ?></label>
+									<label for="bbp_reply_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'extra-chill-community' ), bbp_get_current_user_name() ); ?></label>
 									<input type="text" value="<?php bbp_form_reply_edit_reason(); ?>" size="40" name="bbp_reply_edit_reason" id="bbp_reply_edit_reason" />
 								</div>
 							</fieldset>
@@ -185,7 +187,7 @@ if ( bbp_is_reply_edit() ) : ?>
 				<div class="ec-reply-actions">
 					<?php do_action( 'bbp_theme_before_reply_form_submit_button' ); ?>
 
-					<button type="submit" id="bbp_reply_submit" name="bbp_reply_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
+					<button type="submit" id="bbp_reply_submit" name="bbp_reply_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'extra-chill-community' ); ?></button>
 
 					<?php do_action( 'bbp_theme_after_reply_form_submit_button' ); ?>
 				</div>
@@ -208,7 +210,7 @@ if ( bbp_is_reply_edit() ) : ?>
 	<div id="no-reply-<?php bbp_topic_id(); ?>" class="bbp-no-reply">
 		<div class="notice notice-info">
 			<ul>
-				<li><?php printf( esc_html__( 'The topic &#8216;%s&#8217; is closed to new replies.', 'bbpress' ), bbp_get_topic_title() ); ?></li>
+				<li><?php printf( esc_html__( 'The topic &#8216;%s&#8217; is closed to new replies.', 'extra-chill-community' ), bbp_get_topic_title() ); ?></li>
 			</ul>
 		</div>
 	</div>
@@ -218,7 +220,7 @@ if ( bbp_is_reply_edit() ) : ?>
 	<div id="no-reply-<?php bbp_topic_id(); ?>" class="bbp-no-reply">
 		<div class="notice notice-info">
 			<ul>
-				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'bbpress' ), bbp_get_forum_title( bbp_get_topic_forum_id() ) ); ?></li>
+				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'extra-chill-community' ), bbp_get_forum_title( bbp_get_topic_forum_id() ) ); ?></li>
 			</ul>
 		</div>
 	</div>
@@ -228,10 +230,13 @@ if ( bbp_is_reply_edit() ) : ?>
 	<div id="no-reply-<?php bbp_topic_id(); ?>" class="bbp-no-reply">
 		<div class="notice notice-info">
 			<ul>
-				<li><?php is_user_logged_in()
-					? esc_html_e( 'You cannot reply to this topic.',               'bbpress' )
-					: esc_html_e( 'You must be logged in to reply to this topic.', 'bbpress' );
-				?></li>
+				<li>
+				<?php
+				is_user_logged_in()
+					? esc_html_e( 'You cannot reply to this topic.', 'extra-chill-community' )
+					: esc_html_e( 'You must be logged in to reply to this topic.', 'extra-chill-community' );
+				?>
+				</li>
 			</ul>
 		</div>
 
@@ -249,4 +254,5 @@ if ( bbp_is_reply_edit() ) : ?>
 
 </div>
 
-<?php endif;
+	<?php
+endif;

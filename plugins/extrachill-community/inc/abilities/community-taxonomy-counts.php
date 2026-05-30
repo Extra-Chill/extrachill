@@ -23,10 +23,10 @@ function extrachill_community_register_community_taxonomy_counts_ability(): void
 	wp_register_ability(
 		'extrachill/community-taxonomy-counts',
 		array(
-			'label'       => __( 'Community Taxonomy Counts', 'extrachill-community' ),
-			'description' => __( 'Return forum URL and topic count for a taxonomy term (cross-site linking).', 'extrachill-community' ),
-			'category'    => 'extrachill-community',
-			'input_schema' => array(
+			'label'               => __( 'Community Taxonomy Counts', 'extra-chill-community' ),
+			'description'         => __( 'Return forum URL and topic count for a taxonomy term (cross-site linking).', 'extra-chill-community' ),
+			'category'            => 'extrachill-community',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'taxonomy' => array(
@@ -40,7 +40,7 @@ function extrachill_community_register_community_taxonomy_counts_ability(): void
 				),
 				'required'   => array( 'taxonomy', 'slug' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'anyOf' => array(
 					array(
 						'type'       => 'object',
@@ -56,7 +56,7 @@ function extrachill_community_register_community_taxonomy_counts_ability(): void
 			),
 			'execute_callback'    => 'extrachill_community_ability_community_taxonomy_counts',
 			'permission_callback' => '__return_true',
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,

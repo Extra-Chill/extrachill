@@ -21,15 +21,24 @@ function extrachill_community_register_notification_abilities() {
 	wp_register_ability(
 		'extrachill/community-get-notifications',
 		array(
-			'label'               => __( 'Get Notifications', 'extrachill-community' ),
-			'description'         => __( 'List notifications for a user with optional filtering.', 'extrachill-community' ),
+			'label'               => __( 'Get Notifications', 'extra-chill-community' ),
+			'description'         => __( 'List notifications for a user with optional filtering.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id' => array( 'type' => 'integer', 'description' => 'User ID (defaults to current user)' ),
-					'unread'  => array( 'type' => 'boolean', 'description' => 'Only return unread notifications' ),
-					'limit'   => array( 'type' => 'integer', 'description' => 'Max notifications to return (default 50)' ),
+					'user_id' => array(
+						'type'        => 'integer',
+						'description' => 'User ID (defaults to current user)',
+					),
+					'unread'  => array(
+						'type'        => 'boolean',
+						'description' => 'Only return unread notifications',
+					),
+					'limit'   => array(
+						'type'        => 'integer',
+						'description' => 'Max notifications to return (default 50)',
+					),
 				),
 			),
 			'output_schema'       => array(
@@ -57,13 +66,16 @@ function extrachill_community_register_notification_abilities() {
 	wp_register_ability(
 		'extrachill/community-mark-notifications-read',
 		array(
-			'label'               => __( 'Mark Notifications Read', 'extrachill-community' ),
-			'description'         => __( 'Mark all notifications as read for a user.', 'extrachill-community' ),
+			'label'               => __( 'Mark Notifications Read', 'extra-chill-community' ),
+			'description'         => __( 'Mark all notifications as read for a user.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id' => array( 'type' => 'integer', 'description' => 'User ID (defaults to current user)' ),
+					'user_id' => array(
+						'type'        => 'integer',
+						'description' => 'User ID (defaults to current user)',
+					),
 				),
 			),
 			'output_schema'       => array(
@@ -89,14 +101,20 @@ function extrachill_community_register_notification_abilities() {
 	wp_register_ability(
 		'extrachill/community-clear-notifications',
 		array(
-			'label'               => __( 'Clear Notifications', 'extrachill-community' ),
-			'description'         => __( 'Delete read notifications older than one week for a user, or all notifications.', 'extrachill-community' ),
+			'label'               => __( 'Clear Notifications', 'extra-chill-community' ),
+			'description'         => __( 'Delete read notifications older than one week for a user, or all notifications.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id' => array( 'type' => 'integer', 'description' => 'User ID (defaults to current user)' ),
-					'all'     => array( 'type' => 'boolean', 'description' => 'Delete ALL notifications (not just old read ones)' ),
+					'user_id' => array(
+						'type'        => 'integer',
+						'description' => 'User ID (defaults to current user)',
+					),
+					'all'     => array(
+						'type'        => 'boolean',
+						'description' => 'Delete ALL notifications (not just old read ones)',
+					),
 				),
 			),
 			'output_schema'       => array(

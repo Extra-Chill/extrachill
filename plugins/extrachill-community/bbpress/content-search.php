@@ -29,7 +29,7 @@ defined( 'ABSPATH' ) || exit;
 		}
 		?>
 
-		<?php bbp_get_template_part( 'loop',       'search' ); ?>
+		<?php bbp_get_template_part( 'loop', 'search' ); ?>
 
 		<?php
 		global $bbp_search_query;
@@ -40,7 +40,7 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php else : ?>
 
-		<?php bbp_get_template_part( 'feedback',   'no-search' ); ?>
+		<?php bbp_get_template_part( 'feedback', 'no-search' ); ?>
 
 	<?php endif; ?>
 

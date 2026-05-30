@@ -16,59 +16,60 @@
  */
 
 function display_main_site_post_count_on_profile() {
-    $user_id = bbp_get_displayed_user_id();
+	$user_id = bbp_get_displayed_user_id();
 
-    $main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
-    if ( ! $main_blog_id ) {
-        return;
-    }
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	if ( ! $main_blog_id ) {
+		return;
+	}
 
-    switch_to_blog( $main_blog_id );
-    try {
-        $post_count = count_user_posts( $user_id, 'post', true );
-    } finally {
-        restore_current_blog();
-    }
+	switch_to_blog( $main_blog_id );
+	try {
+		$post_count = count_user_posts( $user_id, 'post', true );
+	} finally {
+		restore_current_blog();
+	}
 
-    if ( $post_count > 0 && function_exists( 'ec_get_user_author_archive_url' ) ) {
-        $author_url = ec_get_user_author_archive_url( $user_id );
-        if ( ! $author_url ) {
-            return;
-        }
+	if ( $post_count > 0 && function_exists( 'ec_get_user_author_archive_url' ) ) {
+		$author_url = ec_get_user_author_archive_url( $user_id );
+		if ( ! $author_url ) {
+			return;
+		}
 
-        echo "<p><b>Extra Chill Articles:</b> $post_count <a href='" . esc_url( $author_url ) . "'>(View All)</a></p>";
-    }
+		echo "<p><b>Extra Chill Articles:</b> $post_count <a href='" . esc_url( $author_url ) . "'>(View All)</a></p>";
+	}
 }
 
 // Function to display music fan details
 function display_music_fan_details() {
-    // Music Fan Section variables
-    $favorite_artists = get_user_meta(bbp_get_displayed_user_id(), 'favorite_artists', true);
-    $top_concerts = get_user_meta(bbp_get_displayed_user_id(), 'top_concerts', true);
-    $top_venues = get_user_meta(bbp_get_displayed_user_id(), 'top_venues', true);
+	// Music Fan Section variables
+	$favorite_artists = get_user_meta(bbp_get_displayed_user_id(), 'favorite_artists', true);
+	$top_concerts     = get_user_meta(bbp_get_displayed_user_id(), 'top_concerts', true);
+	$top_venues       = get_user_meta(bbp_get_displayed_user_id(), 'top_venues', true);
 
-    // Wrap the existing conditional block in a card
-    if ($favorite_artists || $top_concerts || $top_venues ) :
-        ?>
-        <div class="card">
-            <div class="card-header">
-                <h3><?php esc_html_e('Music Fan Details', 'extra-chill-community'); ?></h3>
-            </div>
-            <div class="card-body">
-                <?php if ($favorite_artists) : ?>
-                    <p><strong><?php esc_html_e('Favorite Artists:', 'extra-chill-community'); ?></strong> <?php echo nl2br(esc_html($favorite_artists)); ?></p>
-                <?php endif; ?>
+	// Wrap the existing conditional block in a card
+	if ( $favorite_artists || $top_concerts || $top_venues ) :
+		?>
+		<div class="card">
+			<div class="card-header">
+				<h3><?php esc_html_e('Music Fan Details', 'extra-chill-community'); ?></h3>
+			</div>
+			<div class="card-body">
+				<?php if ( $favorite_artists ) : ?>
+					<p><strong><?php esc_html_e('Favorite Artists:', 'extra-chill-community'); ?></strong> <?php echo nl2br(esc_html($favorite_artists)); ?></p>
+				<?php endif; ?>
 
-                <?php if ($top_concerts) : ?>
-                    <p><strong><?php esc_html_e('Top Concerts:', 'extra-chill-community'); ?></strong> <?php echo nl2br(esc_html($top_concerts)); ?></p>
-                <?php endif; ?>
+				<?php if ( $top_concerts ) : ?>
+					<p><strong><?php esc_html_e('Top Concerts:', 'extra-chill-community'); ?></strong> <?php echo nl2br(esc_html($top_concerts)); ?></p>
+				<?php endif; ?>
 
-                <?php if ($top_venues) : ?>
-                    <p><strong><?php esc_html_e('Top Venues:', 'extra-chill-community'); ?></strong> <?php echo nl2br(esc_html($top_venues)); ?></p>
-                <?php endif; ?>
-            </div>
-        </div>
-    <?php endif;
+				<?php if ( $top_venues ) : ?>
+					<p><strong><?php esc_html_e('Top Venues:', 'extra-chill-community'); ?></strong> <?php echo nl2br(esc_html($top_venues)); ?></p>
+				<?php endif; ?>
+			</div>
+		</div>
+		<?php
+	endif;
 }
 
 // Hook the display functions to run after bbPress is loaded
@@ -78,11 +79,11 @@ add_action('bbp_init', 'display_music_fan_details');
 add_action( 'after_setup_theme', 'override_bbp_user_role_after_bbp_load' );
 
 function override_bbp_user_role_after_bbp_load() {
-    // Hook into bbPress filter after it's available
-    add_filter( 'bbp_get_user_display_role', 'override_bbp_user_forum_role', 10, 2 );
+	// Hook into bbPress filter after it's available
+	add_filter( 'bbp_get_user_display_role', 'override_bbp_user_forum_role', 10, 2 );
 }
 
 function override_bbp_user_forum_role( $role, $user_id ) {
-    $custom_title = get_user_meta( $user_id, 'ec_custom_title', true );
-    return ! empty( $custom_title ) ? $custom_title : 'Extra Chillian';
+	$custom_title = get_user_meta( $user_id, 'ec_custom_title', true );
+	return ! empty( $custom_title ) ? $custom_title : 'Extra Chillian';
 }

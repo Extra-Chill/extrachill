@@ -8,8 +8,8 @@
  * @package ExtraChillCommunity
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined('ABSPATH') ) {
+	exit;
 }
 
 extrachill_breadcrumbs();

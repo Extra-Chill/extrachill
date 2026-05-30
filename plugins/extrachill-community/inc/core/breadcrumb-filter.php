@@ -58,9 +58,9 @@ function extrachill_community_breadcrumb_trail_homepage( $custom_trail ) {
 	}
 
 	// Only on front page (homepage)
- 	if ( is_front_page() ) {
- 		return '<span class="network-dropdown-target">Community</span>';
- 	}
+	if ( is_front_page() ) {
+		return '<span class="network-dropdown-target">Community</span>';
+	}
 
 	return $custom_trail;
 }
@@ -124,7 +124,7 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 	if ( function_exists( 'bbp_is_single_topic' ) && bbp_is_single_topic() ) {
 		$topic_id = bbp_get_topic_id();
 		$forum_id = bbp_get_topic_forum_id( $topic_id );
-		$trail = '';
+		$trail    = '';
 
 		if ( $forum_id ) {
 			// Get parent forums (returns array from immediate parent to root)
@@ -176,7 +176,7 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 	// Single forum: Community › Parent Forum › Forum Name
 	if ( function_exists( 'bbp_is_single_forum' ) && bbp_is_single_forum() ) {
 		$forum_id = bbp_get_forum_id();
-		$trail = '';
+		$trail    = '';
 
 		// Get parent forums (returns array from immediate parent to root)
 		$ancestors = bbp_get_forum_ancestors( $forum_id );
@@ -216,12 +216,11 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_bread
  * @since 1.0.0
  */
 function extrachill_community_back_to_home_label( $label, $url ) {
+	unset( $url );
 	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
 	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $label;
 	}
-
-
 
 	// Don't override on homepage (homepage should say "Back to Extra Chill")
 	if ( is_front_page() ) {

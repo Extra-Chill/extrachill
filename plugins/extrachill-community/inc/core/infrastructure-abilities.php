@@ -20,8 +20,8 @@ function extrachill_community_register_infrastructure_abilities() {
 	wp_register_ability(
 		'extrachill/community-get-stats',
 		array(
-			'label'               => __( 'Get Community Stats', 'extrachill-community' ),
-			'description'         => __( 'Get overall community statistics: forums, topics, replies, users, upvotes.', 'extrachill-community' ),
+			'label'               => __( 'Get Community Stats', 'extra-chill-community' ),
+			'description'         => __( 'Get overall community statistics: forums, topics, replies, users, upvotes.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -53,13 +53,16 @@ function extrachill_community_register_infrastructure_abilities() {
 	wp_register_ability(
 		'extrachill/community-list-forums',
 		array(
-			'label'               => __( 'List Forums', 'extrachill-community' ),
-			'description'         => __( 'List all forums with topic/reply counts and homepage visibility status.', 'extrachill-community' ),
+			'label'               => __( 'List Forums', 'extra-chill-community' ),
+			'description'         => __( 'List all forums with topic/reply counts and homepage visibility status.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'homepage_only' => array( 'type' => 'boolean', 'description' => 'Only return forums shown on homepage' ),
+					'homepage_only' => array(
+						'type'        => 'boolean',
+						'description' => 'Only return forums shown on homepage',
+					),
 				),
 			),
 			'output_schema'       => array(
@@ -84,13 +87,16 @@ function extrachill_community_register_infrastructure_abilities() {
 	wp_register_ability(
 		'extrachill/community-toggle-forum-homepage',
 		array(
-			'label'               => __( 'Toggle Forum Homepage', 'extrachill-community' ),
-			'description'         => __( 'Toggle whether a forum is shown on the community homepage.', 'extrachill-community' ),
+			'label'               => __( 'Toggle Forum Homepage', 'extra-chill-community' ),
+			'description'         => __( 'Toggle whether a forum is shown on the community homepage.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'forum_id' => array( 'type' => 'integer', 'description' => 'Forum post ID' ),
+					'forum_id' => array(
+						'type'        => 'integer',
+						'description' => 'Forum post ID',
+					),
 				),
 				'required'   => array( 'forum_id' ),
 			),
@@ -118,8 +124,8 @@ function extrachill_community_register_infrastructure_abilities() {
 	wp_register_ability(
 		'extrachill/community-flush-cache',
 		array(
-			'label'               => __( 'Flush Community Cache', 'extrachill-community' ),
-			'description'         => __( 'Flush all community transients, leaderboard cache, and edge caches.', 'extrachill-community' ),
+			'label'               => __( 'Flush Community Cache', 'extra-chill-community' ),
+			'description'         => __( 'Flush all community transients, leaderboard cache, and edge caches.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -153,7 +159,7 @@ function extrachill_community_register_infrastructure_abilities() {
  * @param array $input Ability input.
  * @return array
  */
-function extrachill_community_ability_get_stats( $input ) {
+function extrachill_community_ability_get_stats() {
 	global $wpdb;
 
 	$forum_count = function_exists( 'bbp_get_forum_post_type' )
@@ -277,7 +283,7 @@ function extrachill_community_ability_toggle_forum_homepage( $input ) {
  * @param array $input Ability input.
  * @return array
  */
-function extrachill_community_ability_flush_cache( $input ) {
+function extrachill_community_ability_flush_cache() {
 	if ( function_exists( 'extrachill_delete_leaderboard_cache' ) ) {
 		extrachill_delete_leaderboard_cache();
 	}

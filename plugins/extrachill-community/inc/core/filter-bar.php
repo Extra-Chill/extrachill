@@ -33,9 +33,9 @@ function extrachill_community_filter_bar_items( $items ) {
 		'id'      => 'filter-bar-sort',
 		'name'    => 'sort',
 		'options' => array(
-			'default' => __( 'Sort by Recent', 'extrachill-community' ),
-			'upvotes' => __( 'Sort by Upvotes', 'extrachill-community' ),
-			'popular' => __( 'Sort by Popular', 'extrachill-community' ),
+			'default' => __( 'Sort by Recent', 'extra-chill-community' ),
+			'upvotes' => __( 'Sort by Upvotes', 'extra-chill-community' ),
+			'popular' => __( 'Sort by Popular', 'extra-chill-community' ),
 		),
 		'current' => $current_sort,
 	);
@@ -45,7 +45,7 @@ function extrachill_community_filter_bar_items( $items ) {
 		'type'        => 'search',
 		'id'          => 'filter-bar-search',
 		'name'        => 'bbp_search',
-		'placeholder' => __( 'Search topics...', 'extrachill-community' ),
+		'placeholder' => __( 'Search topics...', 'extra-chill-community' ),
 		'current'     => $current_search,
 	);
 

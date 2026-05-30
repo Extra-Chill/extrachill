@@ -8,7 +8,7 @@
  * @package ExtraChillCommunity
  */
 
-if (!defined('ABSPATH')) {
+if ( ! defined('ABSPATH') ) {
 	exit;
 }
 
@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 function extrachill_community_activate() {
 	add_option('extrachill_community_do_activation_setup', 1);
 
-	if (!function_exists('bbp_insert_forum')) {
+	if ( ! function_exists('bbp_insert_forum') ) {
 		deactivate_plugins(plugin_basename(EXTRACHILL_COMMUNITY_PLUGIN_FILE));
 		wp_die(esc_html__('Extra Chill Community requires bbPress to be activated.', 'extra-chill-community'));
 	}
@@ -31,7 +31,7 @@ function extrachill_community_activate() {
 
 function extrachill_community_run_activation_setup() {
 	delete_option('extrachill_community_do_activation_setup');
-	
+
 	extrachill_create_community_pages();
 	extrachill_create_community_forums();
 }
@@ -39,11 +39,11 @@ function extrachill_community_run_activation_setup() {
 add_action(
 	'plugins_loaded',
 	function() {
-		if (!get_option('extrachill_community_do_activation_setup')) {
+		if ( ! get_option('extrachill_community_do_activation_setup') ) {
 			return;
 		}
 
-		if (!function_exists('bbp_insert_forum')) {
+		if ( ! function_exists('bbp_insert_forum') ) {
 			return;
 		}
 
@@ -96,10 +96,10 @@ function extrachill_create_community_pages() {
 
 	$created_page_ids = array();
 
-	foreach ($pages as $page_data) {
+	foreach ( $pages as $page_data ) {
 		$existing_page = get_page_by_path( $page_data['slug'], OBJECT, 'page' );
 		if ( $existing_page ) {
-			if ( $page_data['slug'] !== 'leaderboard' ) {
+			if ( 'leaderboard' !== $page_data['slug'] ) {
 				continue;
 			}
 
@@ -124,11 +124,11 @@ function extrachill_create_community_pages() {
 			)
 		);
 
-		if (!is_wp_error($page_id)) {
+		if ( ! is_wp_error($page_id) ) {
 			$created_page_ids[] = $page_id;
 
 			// Assign template if not default
-			if ($page_data['template'] !== 'default') {
+			if ( 'default' !== $page_data['template'] ) {
 				update_post_meta($page_id, '_wp_page_template', $page_data['template']);
 			}
 		}
@@ -161,8 +161,8 @@ function extrachill_create_community_forums() {
 
 	$created_forum_ids = array();
 
-	foreach ($forums as $forum_data) {
-		if (extrachill_forum_exists_by_slug($forum_data['slug'])) {
+	foreach ( $forums as $forum_data ) {
+		if ( extrachill_forum_exists_by_slug($forum_data['slug']) ) {
 			continue;
 		}
 
@@ -174,7 +174,7 @@ function extrachill_create_community_forums() {
 			)
 		);
 
-		if (!is_wp_error($forum_id)) {
+		if ( ! is_wp_error($forum_id) ) {
 			$created_forum_ids[] = $forum_id;
 		}
 	}
@@ -190,7 +190,7 @@ function extrachill_create_community_forums() {
  */
 function extrachill_page_exists_by_slug($slug) {
 	$page = get_page_by_path($slug, OBJECT_K, 'page');
-	return !empty($page);
+	return ! empty($page);
 }
 
 /**
@@ -201,5 +201,5 @@ function extrachill_page_exists_by_slug($slug) {
  */
 function extrachill_forum_exists_by_slug($slug) {
 	$forum = get_page_by_path($slug, OBJECT_K, bbp_get_forum_post_type());
-	return !empty($forum);
+	return ! empty($forum);
 }

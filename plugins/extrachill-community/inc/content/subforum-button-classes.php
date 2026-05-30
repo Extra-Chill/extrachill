@@ -22,6 +22,7 @@
  */
 add_filter( 'bbp_list_forums', 'extrachill_community_subforum_taxonomy_badges', 10, 3 );
 function extrachill_community_subforum_taxonomy_badges( $output, $r, $args ) {
+	unset( $args );
 	$forum_id   = ! empty( $r['forum_id'] ) ? $r['forum_id'] : 0;
 	$sub_forums = ! empty( $forum_id )
 		? bbp_forum_get_subforums( $forum_id )
@@ -87,6 +88,7 @@ function extrachill_community_subforum_taxonomy_badges( $output, $r, $args ) {
  */
 add_filter( 'bbp_list_forums_subforum_classes', 'extrachill_subforum_button_classes', 10, 2 );
 function extrachill_subforum_button_classes( $classes, $forum_id ) {
+	unset( $forum_id );
 	$classes[] = 'button-3';
 	$classes[] = 'button-small';
 	return $classes;
@@ -108,7 +110,7 @@ function extrachill_order_subforums_by_activity( $r ) {
  */
 add_filter( 'bbp_after_has_forums_parse_args', 'extrachill_order_has_forums_by_activity' );
 function extrachill_order_has_forums_by_activity( $r ) {
-	if ( isset( $r['post_parent'] ) && $r['post_parent'] !== 0 ) {
+	if ( isset( $r['post_parent'] ) && 0 !== $r['post_parent'] ) {
 		$r['orderby']  = 'meta_value';
 		$r['meta_key'] = '_bbp_last_active_time';
 		$r['order']    = 'DESC';

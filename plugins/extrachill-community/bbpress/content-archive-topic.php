@@ -27,7 +27,12 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php if ( bbp_is_topic_tag() ) : ?>
 
-		<?php bbp_topic_tag_description( array( 'before' => '<div class="notice notice-info"><ul><li>', 'after' => '</li></ul></div>' ) ); ?>
+		<?php
+		bbp_topic_tag_description( array(
+			'before' => '<div class="notice notice-info"><ul><li>',
+			'after'  => '</li></ul></div>',
+		) );
+		?>
 
 	<?php endif; ?>
 
@@ -44,11 +49,11 @@ defined( 'ABSPATH' ) || exit;
 		}
 		?>
 
-		<?php bbp_get_template_part( 'loop',       'topics'    ); ?>
+		<?php bbp_get_template_part( 'loop', 'topics'    ); ?>
 
 	<?php else : ?>
 
-		<?php bbp_get_template_part( 'feedback',   'no-topics' ); ?>
+		<?php bbp_get_template_part( 'feedback', 'no-topics' ); ?>
 
 	<?php endif; ?>
 

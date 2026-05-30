@@ -12,17 +12,17 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! function_exists( 'bbp_get_topic_post_type' ) || ! function_exists( 'bbpress' ) ) {
-    return;
+	return;
 }
 
 $query_args = array(
-    'post_type'      => bbp_get_topic_post_type(),
-    'posts_per_page' => 3,
-    'post_status'    => 'publish',
-    'orderby'        => 'meta_value',
-    'meta_key'       => '_bbp_last_active_time',
-    'meta_type'      => 'DATETIME',
-    'order'          => 'DESC',
+	'post_type'      => bbp_get_topic_post_type(),
+	'posts_per_page' => 3,
+	'post_status'    => 'publish',
+	'orderby'        => 'meta_value',
+	'meta_key'       => '_bbp_last_active_time',
+	'meta_type'      => 'DATETIME',
+	'order'          => 'DESC',
 );
 
 $query = new WP_Query( $query_args );
@@ -34,26 +34,26 @@ $query = new WP_Query( $query_args );
 	</div>
 	<div class="bbp-topics-grid recently-active-topic-row ec-mobile-full-width-panel">
 		<div class="bbp-body">
-            <?php
-            if ( $query->have_posts() ) :
-                while ( $query->have_posts() ) :
-                    $query->the_post();
-                    $topic_id = get_the_ID();
-                    ?>
+			<?php
+			if ( $query->have_posts() ) :
+				while ( $query->have_posts() ) :
+					$query->the_post();
+					$topic_id = get_the_ID();
+					?>
 					<?php require EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'bbpress/loop-single-topic-card.php'; ?>
-                    <?php
-                endwhile;
+					<?php
+				endwhile;
 
-                wp_reset_postdata();
-            else :
-                echo '<p>No recently active topics found.</p>';
-            endif;
-            ?>
-        </div>
-    </div>
+				wp_reset_postdata();
+			else :
+				echo '<p>No recently active topics found.</p>';
+			endif;
+			?>
+		</div>
+	</div>
 	<div class="community-section-header">
 		<div class="view-all-users-link">
 			<a href="<?php echo esc_url( home_url( '/recent' ) ); ?>" class="button-3 button-medium">View Recently Active</a>
 		</div>
-    </div>
+	</div>
 </div>

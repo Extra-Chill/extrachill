@@ -23,14 +23,20 @@ function extrachill_community_register_upvote_abilities() {
 	wp_register_ability(
 		'extrachill/community-get-upvotes',
 		array(
-			'label'               => __( 'Get Upvote Info', 'extrachill-community' ),
-			'description'         => __( 'Get upvote count for a post and whether a user has upvoted it.', 'extrachill-community' ),
+			'label'               => __( 'Get Upvote Info', 'extra-chill-community' ),
+			'description'         => __( 'Get upvote count for a post and whether a user has upvoted it.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'post_id' => array( 'type' => 'integer', 'description' => 'bbPress topic or reply post ID' ),
-					'user_id' => array( 'type' => 'integer', 'description' => 'User to check vote status for (defaults to current user)' ),
+					'post_id' => array(
+						'type'        => 'integer',
+						'description' => 'bbPress topic or reply post ID',
+					),
+					'user_id' => array(
+						'type'        => 'integer',
+						'description' => 'User to check vote status for (defaults to current user)',
+					),
 				),
 				'required'   => array( 'post_id' ),
 			),

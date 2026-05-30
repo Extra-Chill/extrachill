@@ -132,8 +132,10 @@ function extrachill_community_bbpress_drafts_upsert( $user_id, array $draft ) {
 
 	// Manual INSERT ... ON DUPLICATE KEY UPDATE — $wpdb->replace would delete
 	// the row first (losing draft_id continuity), so we do this explicitly.
+	// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 	$sql = $wpdb->prepare(
 		"INSERT INTO {$table}
+	// phpcs:enable WordPress.DB.PreparedSQL
 			(user_id, blog_id, type, forum_id, topic_id, reply_to, title, content, updated_at)
 		VALUES (%d, %d, %s, %d, %d, %d, %s, %s, %d)
 		ON DUPLICATE KEY UPDATE
@@ -151,7 +153,9 @@ function extrachill_community_bbpress_drafts_upsert( $user_id, array $draft ) {
 		$row['updated_at']
 	);
 
+	// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 	$result = $wpdb->query( $sql );
+	// phpcs:enable WordPress.DB.PreparedSQL
 	if ( false === $result ) {
 		return false;
 	}
@@ -177,9 +181,11 @@ function extrachill_community_bbpress_drafts_fetch( $user_id, array $context ) {
 	extrachill_community_bbpress_drafts_migrate_user_meta_if_needed( $user_id );
 
 	$table = extrachill_community_bbpress_drafts_table_name();
+	// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 	$row   = $wpdb->get_row(
 		$wpdb->prepare(
 			"SELECT * FROM {$table}
+	// phpcs:enable WordPress.DB.PreparedSQL
 			WHERE user_id = %d
 				AND blog_id = %d
 				AND type = %s

@@ -25,27 +25,42 @@ function extrachill_community_register_topic_reply_abilities() {
 	wp_register_ability(
 		'extrachill/community-list-topics',
 		array(
-			'label'               => __( 'List Topics', 'extrachill-community' ),
-			'description'         => __( 'List topics for a forum or across all forums, with pagination.', 'extrachill-community' ),
+			'label'               => __( 'List Topics', 'extra-chill-community' ),
+			'description'         => __( 'List topics for a forum or across all forums, with pagination.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'forum_id' => array( 'type' => 'integer', 'description' => 'Filter by forum ID (omit for all forums)' ),
-					'per_page' => array( 'type' => 'integer', 'description' => 'Topics per page (default 20, max 100)' ),
-					'page'     => array( 'type' => 'integer', 'description' => 'Page number (default 1)' ),
-					'orderby'  => array( 'type' => 'string', 'description' => 'Order by: date, modified, title (default date)' ),
-					'order'    => array( 'type' => 'string', 'description' => 'Sort order: ASC or DESC (default DESC)' ),
+					'forum_id' => array(
+						'type'        => 'integer',
+						'description' => 'Filter by forum ID (omit for all forums)',
+					),
+					'per_page' => array(
+						'type'        => 'integer',
+						'description' => 'Topics per page (default 20, max 100)',
+					),
+					'page'     => array(
+						'type'        => 'integer',
+						'description' => 'Page number (default 1)',
+					),
+					'orderby'  => array(
+						'type'        => 'string',
+						'description' => 'Order by: date, modified, title (default date)',
+					),
+					'order'    => array(
+						'type'        => 'string',
+						'description' => 'Sort order: ASC or DESC (default DESC)',
+					),
 				),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'topics'    => array( 'type' => 'array' ),
-					'total'     => array( 'type' => 'integer' ),
-					'pages'     => array( 'type' => 'integer' ),
-					'page'      => array( 'type' => 'integer' ),
-					'per_page'  => array( 'type' => 'integer' ),
+					'topics'   => array( 'type' => 'array' ),
+					'total'    => array( 'type' => 'integer' ),
+					'pages'    => array( 'type' => 'integer' ),
+					'page'     => array( 'type' => 'integer' ),
+					'per_page' => array( 'type' => 'integer' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_community_ability_list_topics',
@@ -66,16 +81,28 @@ function extrachill_community_register_topic_reply_abilities() {
 	wp_register_ability(
 		'extrachill/community-get-topic',
 		array(
-			'label'               => __( 'Get Topic', 'extrachill-community' ),
-			'description'         => __( 'Get a single topic with its content, metadata, and replies.', 'extrachill-community' ),
+			'label'               => __( 'Get Topic', 'extra-chill-community' ),
+			'description'         => __( 'Get a single topic with its content, metadata, and replies.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'topic_id'       => array( 'type' => 'integer', 'description' => 'Topic post ID' ),
-					'include_replies' => array( 'type' => 'boolean', 'description' => 'Include replies (default true)' ),
-					'replies_per_page' => array( 'type' => 'integer', 'description' => 'Replies per page (default 30, max 100)' ),
-					'replies_page'   => array( 'type' => 'integer', 'description' => 'Replies page number (default 1)' ),
+					'topic_id'         => array(
+						'type'        => 'integer',
+						'description' => 'Topic post ID',
+					),
+					'include_replies'  => array(
+						'type'        => 'boolean',
+						'description' => 'Include replies (default true)',
+					),
+					'replies_per_page' => array(
+						'type'        => 'integer',
+						'description' => 'Replies per page (default 30, max 100)',
+					),
+					'replies_page'     => array(
+						'type'        => 'integer',
+						'description' => 'Replies page number (default 1)',
+					),
 				),
 				'required'   => array( 'topic_id' ),
 			),
@@ -104,21 +131,33 @@ function extrachill_community_register_topic_reply_abilities() {
 	wp_register_ability(
 		'extrachill/community-create-topic',
 		array(
-			'label'               => __( 'Create Topic', 'extrachill-community' ),
-			'description'         => __( 'Create a new forum topic. Accepts HTML (default) or markdown via the format parameter. Fires bbp_new_topic for notifications and cache.', 'extrachill-community' ),
+			'label'               => __( 'Create Topic', 'extra-chill-community' ),
+			'description'         => __( 'Create a new forum topic. Accepts HTML (default) or markdown via the format parameter. Fires bbp_new_topic for notifications and cache.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'forum_id' => array( 'type' => 'integer', 'description' => 'Forum to post in' ),
-					'title'    => array( 'type' => 'string', 'description' => 'Topic title' ),
-					'content'  => array( 'type' => 'string', 'description' => 'Topic content (HTML or markdown depending on format)' ),
+					'forum_id' => array(
+						'type'        => 'integer',
+						'description' => 'Forum to post in',
+					),
+					'title'    => array(
+						'type'        => 'string',
+						'description' => 'Topic title',
+					),
+					'content'  => array(
+						'type'        => 'string',
+						'description' => 'Topic content (HTML or markdown depending on format)',
+					),
 					'format'   => array(
 						'type'        => 'string',
 						'enum'        => array( 'html', 'markdown' ),
 						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
 					),
-					'user_id'  => array( 'type' => 'integer', 'description' => 'Author user ID (defaults to current user)' ),
+					'user_id'  => array(
+						'type'        => 'integer',
+						'description' => 'Author user ID (defaults to current user)',
+					),
 				),
 				'required'   => array( 'forum_id', 'title', 'content' ),
 			),
@@ -150,21 +189,33 @@ function extrachill_community_register_topic_reply_abilities() {
 	wp_register_ability(
 		'extrachill/community-create-reply',
 		array(
-			'label'               => __( 'Create Reply', 'extrachill-community' ),
-			'description'         => __( 'Post a reply to a topic. Accepts HTML (default) or markdown via the format parameter. Fires bbp_new_reply for notifications and cache.', 'extrachill-community' ),
+			'label'               => __( 'Create Reply', 'extra-chill-community' ),
+			'description'         => __( 'Post a reply to a topic. Accepts HTML (default) or markdown via the format parameter. Fires bbp_new_reply for notifications and cache.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'topic_id' => array( 'type' => 'integer', 'description' => 'Topic to reply to' ),
-					'content'  => array( 'type' => 'string', 'description' => 'Reply content (HTML or markdown depending on format)' ),
+					'topic_id' => array(
+						'type'        => 'integer',
+						'description' => 'Topic to reply to',
+					),
+					'content'  => array(
+						'type'        => 'string',
+						'description' => 'Reply content (HTML or markdown depending on format)',
+					),
 					'format'   => array(
 						'type'        => 'string',
 						'enum'        => array( 'html', 'markdown' ),
 						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
 					),
-					'reply_to' => array( 'type' => 'integer', 'description' => 'Parent reply ID for threaded replies (optional)' ),
-					'user_id'  => array( 'type' => 'integer', 'description' => 'Author user ID (defaults to current user)' ),
+					'reply_to' => array(
+						'type'        => 'integer',
+						'description' => 'Parent reply ID for threaded replies (optional)',
+					),
+					'user_id'  => array(
+						'type'        => 'integer',
+						'description' => 'Author user ID (defaults to current user)',
+					),
 				),
 				'required'   => array( 'topic_id', 'content' ),
 			),
@@ -196,30 +247,45 @@ function extrachill_community_register_topic_reply_abilities() {
 	wp_register_ability(
 		'extrachill/community-get-topic-for-editor',
 		array(
-			'label'               => __( 'Get Topic For Editor', 'extrachill-community' ),
-			'description'         => __( 'Load a topic for editing: returns serialized post_content (block markup as-stored), permissions envelope, and any pre-publish draft overlay for the current user.', 'extrachill-community' ),
+			'label'               => __( 'Get Topic For Editor', 'extra-chill-community' ),
+			'description'         => __( 'Load a topic for editing: returns serialized post_content (block markup as-stored), permissions envelope, and any pre-publish draft overlay for the current user.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'topic_id' => array( 'type' => 'integer' ),
-					'blog_id'  => array( 'type' => 'integer', 'description' => 'Optional; defaults to current blog.' ),
+					'blog_id'  => array(
+						'type'        => 'integer',
+						'description' => 'Optional; defaults to current blog.',
+					),
 				),
 				'required'   => array( 'topic_id' ),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'id'         => array( 'type' => 'integer' ),
-					'type'       => array( 'type' => 'string', 'enum' => array( 'forum_topic' ) ),
-					'title'      => array( 'type' => 'string' ),
-					'content'    => array( 'type' => 'string', 'description' => 'Serialized block markup (post_content as-stored).' ),
-					'raw'        => array( 'type' => 'string', 'description' => 'Alias of content for parity with wp/v2 shape.' ),
-					'status'     => array( 'type' => 'string' ),
-					'forum_id'   => array( 'type' => 'integer' ),
-					'permalink'  => array( 'type' => 'string' ),
-					'updated_at' => array( 'type' => 'string', 'format' => 'date-time' ),
-					'context'    => array(
+					'id'          => array( 'type' => 'integer' ),
+					'type'        => array(
+						'type' => 'string',
+						'enum' => array( 'forum_topic' ),
+					),
+					'title'       => array( 'type' => 'string' ),
+					'content'     => array(
+						'type'        => 'string',
+						'description' => 'Serialized block markup (post_content as-stored).',
+					),
+					'raw'         => array(
+						'type'        => 'string',
+						'description' => 'Alias of content for parity with wp/v2 shape.',
+					),
+					'status'      => array( 'type' => 'string' ),
+					'forum_id'    => array( 'type' => 'integer' ),
+					'permalink'   => array( 'type' => 'string' ),
+					'updated_at'  => array(
+						'type'   => 'string',
+						'format' => 'date-time',
+					),
+					'context'     => array(
 						'type'       => 'object',
 						'properties' => array(
 							'blog_id'  => array( 'type' => 'integer' ),
@@ -234,7 +300,7 @@ function extrachill_community_register_topic_reply_abilities() {
 							'canDelete'      => array( 'type' => 'boolean' ),
 						),
 					),
-					'draft' => array(
+					'draft'       => array(
 						'description' => 'Pre-publish draft overlay if one exists for this user+target. Null when none.',
 						'anyOf'       => array(
 							array( 'type' => 'object' ),
@@ -261,31 +327,40 @@ function extrachill_community_register_topic_reply_abilities() {
 	wp_register_ability(
 		'extrachill/community-get-reply-for-editor',
 		array(
-			'label'               => __( 'Get Reply For Editor', 'extrachill-community' ),
-			'description'         => __( 'Load a reply for editing: returns serialized post_content, permissions envelope, parent topic context.', 'extrachill-community' ),
+			'label'               => __( 'Get Reply For Editor', 'extra-chill-community' ),
+			'description'         => __( 'Load a reply for editing: returns serialized post_content, permissions envelope, parent topic context.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'reply_id' => array( 'type' => 'integer' ),
-					'blog_id'  => array( 'type' => 'integer', 'description' => 'Optional; defaults to current blog.' ),
+					'blog_id'  => array(
+						'type'        => 'integer',
+						'description' => 'Optional; defaults to current blog.',
+					),
 				),
 				'required'   => array( 'reply_id' ),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'id'         => array( 'type' => 'integer' ),
-					'type'       => array( 'type' => 'string', 'enum' => array( 'forum_reply' ) ),
-					'content'    => array( 'type' => 'string' ),
-					'raw'        => array( 'type' => 'string' ),
-					'status'     => array( 'type' => 'string' ),
-					'topic_id'   => array( 'type' => 'integer' ),
-					'forum_id'   => array( 'type' => 'integer' ),
-					'reply_to'   => array( 'type' => 'integer' ),
-					'permalink'  => array( 'type' => 'string' ),
-					'updated_at' => array( 'type' => 'string', 'format' => 'date-time' ),
-					'context'    => array(
+					'id'          => array( 'type' => 'integer' ),
+					'type'        => array(
+						'type' => 'string',
+						'enum' => array( 'forum_reply' ),
+					),
+					'content'     => array( 'type' => 'string' ),
+					'raw'         => array( 'type' => 'string' ),
+					'status'      => array( 'type' => 'string' ),
+					'topic_id'    => array( 'type' => 'integer' ),
+					'forum_id'    => array( 'type' => 'integer' ),
+					'reply_to'    => array( 'type' => 'integer' ),
+					'permalink'   => array( 'type' => 'string' ),
+					'updated_at'  => array(
+						'type'   => 'string',
+						'format' => 'date-time',
+					),
+					'context'     => array(
 						'type'       => 'object',
 						'properties' => array(
 							'blog_id'  => array( 'type' => 'integer' ),
@@ -301,7 +376,7 @@ function extrachill_community_register_topic_reply_abilities() {
 							'canDelete'      => array( 'type' => 'boolean' ),
 						),
 					),
-					'draft' => array(
+					'draft'       => array(
 						'anyOf' => array(
 							array( 'type' => 'object' ),
 							array( 'type' => 'null' ),
@@ -327,22 +402,28 @@ function extrachill_community_register_topic_reply_abilities() {
 	wp_register_ability(
 		'extrachill/community-update-topic',
 		array(
-			'label'               => __( 'Update Topic', 'extrachill-community' ),
-			'description'         => __( 'Update an existing topic\'s title and/or content. Accepts HTML (default, serialized blocks) or markdown via the format parameter. Enforces bbp_past_edit_lock and fires bbp_edit_topic for cache invalidation.', 'extrachill-community' ),
+			'label'               => __( 'Update Topic', 'extra-chill-community' ),
+			'description'         => __( 'Update an existing topic\'s title and/or content. Accepts HTML (default, serialized blocks) or markdown via the format parameter. Enforces bbp_past_edit_lock and fires bbp_edit_topic for cache invalidation.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'topic_id' => array( 'type' => 'integer' ),
 					'title'    => array( 'type' => 'string' ),
-					'content'  => array( 'type' => 'string', 'description' => 'Serialized block markup.' ),
+					'content'  => array(
+						'type'        => 'string',
+						'description' => 'Serialized block markup.',
+					),
 					'format'   => array(
 						'type'        => 'string',
 						'enum'        => array( 'html', 'markdown' ),
 						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
 					),
 					'blog_id'  => array( 'type' => 'integer' ),
-					'user_id'  => array( 'type' => 'integer', 'description' => 'Author override; requires edit_others_topics.' ),
+					'user_id'  => array(
+						'type'        => 'integer',
+						'description' => 'Author override; requires edit_others_topics.',
+					),
 				),
 				'required'   => array( 'topic_id', 'content' ),
 			),
@@ -354,7 +435,10 @@ function extrachill_community_register_topic_reply_abilities() {
 					'title'      => array( 'type' => 'string' ),
 					'content'    => array( 'type' => 'string' ),
 					'permalink'  => array( 'type' => 'string' ),
-					'updated_at' => array( 'type' => 'string', 'format' => 'date-time' ),
+					'updated_at' => array(
+						'type'   => 'string',
+						'format' => 'date-time',
+					),
 				),
 			),
 			'execute_callback'    => 'extrachill_community_ability_update_topic',
@@ -375,21 +459,27 @@ function extrachill_community_register_topic_reply_abilities() {
 	wp_register_ability(
 		'extrachill/community-update-reply',
 		array(
-			'label'               => __( 'Update Reply', 'extrachill-community' ),
-			'description'         => __( 'Update an existing reply\'s content. Accepts HTML (default, serialized blocks) or markdown via the format parameter. Enforces bbp_past_edit_lock and fires bbp_edit_reply for cache invalidation.', 'extrachill-community' ),
+			'label'               => __( 'Update Reply', 'extra-chill-community' ),
+			'description'         => __( 'Update an existing reply\'s content. Accepts HTML (default, serialized blocks) or markdown via the format parameter. Enforces bbp_past_edit_lock and fires bbp_edit_reply for cache invalidation.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'reply_id' => array( 'type' => 'integer' ),
-					'content'  => array( 'type' => 'string', 'description' => 'Serialized block markup.' ),
+					'content'  => array(
+						'type'        => 'string',
+						'description' => 'Serialized block markup.',
+					),
 					'format'   => array(
 						'type'        => 'string',
 						'enum'        => array( 'html', 'markdown' ),
 						'description' => 'Content format.',
 					),
 					'blog_id'  => array( 'type' => 'integer' ),
-					'user_id'  => array( 'type' => 'integer', 'description' => 'Author override; requires edit_others_replies.' ),
+					'user_id'  => array(
+						'type'        => 'integer',
+						'description' => 'Author override; requires edit_others_replies.',
+					),
 				),
 				'required'   => array( 'reply_id', 'content' ),
 			),
@@ -400,7 +490,10 @@ function extrachill_community_register_topic_reply_abilities() {
 					'status'     => array( 'type' => 'string' ),
 					'content'    => array( 'type' => 'string' ),
 					'permalink'  => array( 'type' => 'string' ),
-					'updated_at' => array( 'type' => 'string', 'format' => 'date-time' ),
+					'updated_at' => array(
+						'type'   => 'string',
+						'format' => 'date-time',
+					),
 				),
 			),
 			'execute_callback'    => 'extrachill_community_ability_update_reply',
@@ -421,15 +514,24 @@ function extrachill_community_register_topic_reply_abilities() {
 	wp_register_ability(
 		'extrachill/community-list-replies',
 		array(
-			'label'               => __( 'List Replies', 'extrachill-community' ),
-			'description'         => __( 'List replies for a topic with pagination.', 'extrachill-community' ),
+			'label'               => __( 'List Replies', 'extra-chill-community' ),
+			'description'         => __( 'List replies for a topic with pagination.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'topic_id' => array( 'type' => 'integer', 'description' => 'Topic post ID' ),
-					'per_page' => array( 'type' => 'integer', 'description' => 'Replies per page (default 30, max 100)' ),
-					'page'     => array( 'type' => 'integer', 'description' => 'Page number (default 1)' ),
+					'topic_id' => array(
+						'type'        => 'integer',
+						'description' => 'Topic post ID',
+					),
+					'per_page' => array(
+						'type'        => 'integer',
+						'description' => 'Replies per page (default 30, max 100)',
+					),
+					'page'     => array(
+						'type'        => 'integer',
+						'description' => 'Page number (default 1)',
+					),
 				),
 				'required'   => array( 'topic_id' ),
 			),
@@ -531,7 +633,7 @@ function extrachill_community_ability_get_topic( $input ) {
 		return new WP_Error( 'topic_not_published', 'Topic is not published.' );
 	}
 
-	$topic = extrachill_community_format_topic( $post, true );
+	$topic  = extrachill_community_format_topic( $post, true );
 	$result = array( 'topic' => $topic );
 
 	$include_replies = isset( $input['include_replies'] ) ? (bool) $input['include_replies'] : true;
@@ -557,7 +659,7 @@ function extrachill_community_ability_get_topic( $input ) {
 			$replies[] = extrachill_community_format_reply( $reply_post );
 		}
 
-		$result['replies'] = $replies;
+		$result['replies']       = $replies;
 		$result['replies_total'] = (int) $reply_query->found_posts;
 		$result['replies_pages'] = (int) $reply_query->max_num_pages;
 	}
@@ -807,7 +909,7 @@ function extrachill_community_ability_update_topic_permission( $input = array() 
 		if ( $post && bbp_past_edit_lock( $post->post_date_gmt ) ) {
 			return new WP_Error(
 				'edit_lock_expired',
-				__( 'The edit window for this topic has expired.', 'extrachill-community' ),
+				__( 'The edit window for this topic has expired.', 'extra-chill-community' ),
 				array( 'status' => 403 )
 			);
 		}
@@ -837,7 +939,7 @@ function extrachill_community_ability_update_reply_permission( $input = array() 
 		if ( $post && bbp_past_edit_lock( $post->post_date_gmt ) ) {
 			return new WP_Error(
 				'edit_lock_expired',
-				__( 'The edit window for this reply has expired.', 'extrachill-community' ),
+				__( 'The edit window for this reply has expired.', 'extra-chill-community' ),
 				array( 'status' => 403 )
 			);
 		}
@@ -938,16 +1040,16 @@ function extrachill_community_ability_get_topic_for_editor( $input ) {
 	);
 
 	return array(
-		'id'         => (int) $post->ID,
-		'type'       => 'forum_topic',
-		'title'      => $post->post_title,
-		'content'    => $post->post_content,
-		'raw'        => $post->post_content,
-		'status'     => $post->post_status,
-		'forum_id'   => $forum_id,
-		'permalink'  => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $post->ID ) : get_permalink( $post->ID ),
-		'updated_at' => mysql_to_rfc3339( $post->post_modified_gmt ),
-		'context'    => array(
+		'id'          => (int) $post->ID,
+		'type'        => 'forum_topic',
+		'title'       => $post->post_title,
+		'content'     => $post->post_content,
+		'raw'         => $post->post_content,
+		'status'      => $post->post_status,
+		'forum_id'    => $forum_id,
+		'permalink'   => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $post->ID ) : get_permalink( $post->ID ),
+		'updated_at'  => mysql_to_rfc3339( $post->post_modified_gmt ),
+		'context'     => array(
 			'blog_id'  => $blog_id,
 			'forum_id' => $forum_id,
 		),
@@ -997,17 +1099,17 @@ function extrachill_community_ability_get_reply_for_editor( $input ) {
 	);
 
 	return array(
-		'id'         => (int) $post->ID,
-		'type'       => 'forum_reply',
-		'content'    => $post->post_content,
-		'raw'        => $post->post_content,
-		'status'     => $post->post_status,
-		'topic_id'   => $topic_id,
-		'forum_id'   => $forum_id,
-		'reply_to'   => $reply_to,
-		'permalink'  => function_exists( 'bbp_get_reply_url' ) ? bbp_get_reply_url( $post->ID ) : get_permalink( $post->ID ),
-		'updated_at' => mysql_to_rfc3339( $post->post_modified_gmt ),
-		'context'    => array(
+		'id'          => (int) $post->ID,
+		'type'        => 'forum_reply',
+		'content'     => $post->post_content,
+		'raw'         => $post->post_content,
+		'status'      => $post->post_status,
+		'topic_id'    => $topic_id,
+		'forum_id'    => $forum_id,
+		'reply_to'    => $reply_to,
+		'permalink'   => function_exists( 'bbp_get_reply_url' ) ? bbp_get_reply_url( $post->ID ) : get_permalink( $post->ID ),
+		'updated_at'  => mysql_to_rfc3339( $post->post_modified_gmt ),
+		'context'     => array(
 			'blog_id'  => $blog_id,
 			'topic_id' => $topic_id,
 			'forum_id' => $forum_id,
@@ -1086,7 +1188,7 @@ function extrachill_community_ability_update_topic( $input ) {
 
 	// Fire bbp_edit_topic so community cache invalidation, notifications, points
 	// recalculation, etc. all trigger. Mirrors the create path's bbp_new_topic.
-	$author_id = isset( $update['post_author'] ) ? (int) $update['post_author'] : (int) $post->post_author;
+	$author_id      = isset( $update['post_author'] ) ? (int) $update['post_author'] : (int) $post->post_author;
 	$anonymous_data = array();
 	$is_edit        = true;
 	do_action( 'bbp_edit_topic', $topic_id, $forum_id, $anonymous_data, $author_id, $is_edit );
@@ -1226,16 +1328,16 @@ function extrachill_community_format_topic( $post, $include_content = false ) {
 	$author = get_userdata( $post->post_author );
 
 	$topic = array(
-		'topic_id'     => (int) $post->ID,
-		'title'        => $post->post_title,
-		'forum_id'     => (int) $post->post_parent,
-		'author_id'    => (int) $post->post_author,
-		'author_name'  => $author ? $author->display_name : '',
-		'date'         => $post->post_date_gmt,
-		'modified'     => $post->post_modified_gmt,
-		'reply_count'  => function_exists( 'bbp_get_topic_reply_count' ) ? (int) bbp_get_topic_reply_count( $post->ID ) : 0,
-		'voice_count'  => function_exists( 'bbp_get_topic_voice_count' ) ? (int) bbp_get_topic_voice_count( $post->ID ) : 0,
-		'url'          => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $post->ID ) : get_permalink( $post->ID ),
+		'topic_id'    => (int) $post->ID,
+		'title'       => $post->post_title,
+		'forum_id'    => (int) $post->post_parent,
+		'author_id'   => (int) $post->post_author,
+		'author_name' => $author ? $author->display_name : '',
+		'date'        => $post->post_date_gmt,
+		'modified'    => $post->post_modified_gmt,
+		'reply_count' => function_exists( 'bbp_get_topic_reply_count' ) ? (int) bbp_get_topic_reply_count( $post->ID ) : 0,
+		'voice_count' => function_exists( 'bbp_get_topic_voice_count' ) ? (int) bbp_get_topic_voice_count( $post->ID ) : 0,
+		'url'         => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $post->ID ) : get_permalink( $post->ID ),
 	);
 
 	if ( $include_content ) {

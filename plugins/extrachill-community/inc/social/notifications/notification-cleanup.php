@@ -8,8 +8,8 @@
  * @package ExtraChillCommunity
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined('ABSPATH') ) {
+	exit;
 }
 
 /**
@@ -19,53 +19,53 @@ if (!defined('ABSPATH')) {
  * Writes to community.extrachill.com for network-wide notification management.
  */
 function extrachill_mark_notifications_as_read() {
-    // Security check: ensure user is logged in
-    if ( ! is_user_logged_in() ) {
-        return;
-    }
+	// Security check: ensure user is logged in
+	if ( ! is_user_logged_in() ) {
+		return;
+	}
 
-    $current_user_id = get_current_user_id();
+	$current_user_id = get_current_user_id();
 
-    // Switch to community site to update notifications
-    $current_blog_id = get_current_blog_id();
-    $switched = false;
+	// Switch to community site to update notifications
+	$current_blog_id = get_current_blog_id();
+	$switched        = false;
 
-    $community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
-    if ( ! $community_blog_id ) {
-        return;
-    }
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( ! $community_blog_id ) {
+		return;
+	}
 
-    if ( $current_blog_id !== $community_blog_id ) {
-        switch_to_blog( $community_blog_id );
-        $switched = true;
-    }
+	if ( $current_blog_id !== $community_blog_id ) {
+		switch_to_blog( $community_blog_id );
+		$switched = true;
+	}
 
-    try {
-        $notifications = get_user_meta($current_user_id, 'extrachill_notifications', true) ?: [];
+	try {
+		$notifications = get_user_meta($current_user_id, 'extrachill_notifications', true) ? get_user_meta($current_user_id, 'extrachill_notifications', true) : array();
 
-        // Additional safety check
-        if ( ! is_array( $notifications ) ) {
-            return;
-        }
+		// Additional safety check
+		if ( ! is_array( $notifications ) ) {
+			return;
+		}
 
-        foreach ($notifications as &$notification) {
-            if (!$notification['read']) {
-                $notification['read'] = true;
-                $notification['viewed_time'] = current_time('mysql');
-            }
-        }
+		foreach ( $notifications as &$notification ) {
+			if ( ! $notification['read'] ) {
+				$notification['read']        = true;
+				$notification['viewed_time'] = current_time('mysql');
+			}
+		}
 
-        // Update the notifications after marking them as read
-        update_user_meta($current_user_id, 'extrachill_notifications', $notifications);
+		// Update the notifications after marking them as read
+		update_user_meta($current_user_id, 'extrachill_notifications', $notifications);
 
-        // After marking as read, proceed to clean up old notifications
-        extrachill_cleanup_old_notifications_for_user($current_user_id);
+		// After marking as read, proceed to clean up old notifications
+		extrachill_cleanup_old_notifications_for_user($current_user_id);
 
-    } finally {
-        if ( $switched ) {
-            restore_current_blog();
-        }
-    }
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
 }
 
 /**
@@ -78,36 +78,36 @@ function extrachill_mark_notifications_as_read() {
  * @param int $user_id User ID to clean up notifications for
  */
 function extrachill_cleanup_old_notifications_for_user($user_id) {
-    // Security check: validate user ID
-    $user_id = (int) $user_id;
-    if ( $user_id <= 0 || ! get_userdata( $user_id ) ) {
-        return;
-    }
+	// Security check: validate user ID
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 || ! get_userdata( $user_id ) ) {
+		return;
+	}
 
-    // Note: This function assumes we're already on the community site
-    // It's called from extrachill_mark_notifications_as_read() which handles blog switching
+	// Note: This function assumes we're already on the community site
+	// It's called from extrachill_mark_notifications_as_read() which handles blog switching
 
-    $notifications = get_user_meta($user_id, 'extrachill_notifications', true) ?: [];
+	$notifications = get_user_meta($user_id, 'extrachill_notifications', true) ? get_user_meta($user_id, 'extrachill_notifications', true) : array();
 
-    // Safety check
-    if ( ! is_array( $notifications ) ) {
-        return;
-    }
+	// Safety check
+	if ( ! is_array( $notifications ) ) {
+		return;
+	}
 
-    $currentTime = current_time('timestamp');
-    $oneWeekAgo = strtotime('-1 week', $currentTime);
+	$currentTime = current_time('timestamp');
+	$oneWeekAgo  = strtotime('-1 week', $currentTime);
 
-    $notifications = array_filter($notifications, function($notification) use ($oneWeekAgo) {
-        if (!empty($notification['read'])) {
-            if (!empty($notification['viewed_time'])) {
-                $viewedTime = strtotime($notification['viewed_time']);
-                return $viewedTime > $oneWeekAgo;
-            }
-            return false; // If read but no viewed_time, consider it for removal
-        }
-        return true; // Keep all unread notifications
-    });
+	$notifications = array_filter($notifications, function($notification) use ($oneWeekAgo) {
+		if ( ! empty($notification['read']) ) {
+			if ( ! empty($notification['viewed_time']) ) {
+				$viewedTime = strtotime($notification['viewed_time']);
+				return $viewedTime > $oneWeekAgo;
+			}
+			return false; // If read but no viewed_time, consider it for removal
+		}
+		return true; // Keep all unread notifications
+	});
 
-    // Update the notifications after cleaning up old ones
-    update_user_meta($user_id, 'extrachill_notifications', $notifications);
+	// Update the notifications after cleaning up old ones
+	update_user_meta($user_id, 'extrachill_notifications', $notifications);
 }

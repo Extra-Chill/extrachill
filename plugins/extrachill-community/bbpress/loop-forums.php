@@ -18,25 +18,29 @@ defined( 'ABSPATH' ) || exit;
 </div>
 <?php
 $args = array(
-    'post_parent' => 0,
-    'meta_query' => array(
-        array(
-            'key' => '_show_on_homepage',
-            'value' => '1',
-            'compare' => '='
-        ),
-    ),
-    'orderby' => 'meta_value',
-    'meta_key' => '_bbp_last_active_time',
-    'order' => 'DESC',
-    'posts_per_page' => -1,
+	'post_parent'    => 0,
+	'meta_query'     => array(
+		array(
+			'key'     => '_show_on_homepage',
+			'value'   => '1',
+			'compare' => '=',
+		),
+	),
+	'orderby'        => 'meta_value',
+	'meta_key'       => '_bbp_last_active_time',
+	'order'          => 'DESC',
+	'posts_per_page' => -1,
 );
-if ( bbp_has_forums( $args ) ) : ?>
+if ( bbp_has_forums( $args ) ) :
+	?>
 	<div id="forums-list-homepage" class="bbp-forums-grid ec-mobile-full-width-panel">
-        <?php while ( bbp_forums() ) : bbp_the_forum(); ?>
-            <?php bbp_get_template_part( 'loop', 'single-forum-card' ); ?>
-        <?php endwhile; ?>
-    </div>
+		<?php
+		while ( bbp_forums() ) :
+			bbp_the_forum();
+			?>
+			<?php bbp_get_template_part( 'loop', 'single-forum-card' ); ?>
+		<?php endwhile; ?>
+	</div>
 <?php else : ?>
-    <p>No forums are currently set to display on the homepage.</p>
+	<p>No forums are currently set to display on the homepage.</p>
 <?php endif; ?>

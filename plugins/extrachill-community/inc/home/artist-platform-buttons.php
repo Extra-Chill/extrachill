@@ -7,21 +7,21 @@
  * @package ExtraChillCommunity
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined('ABSPATH') ) {
+	exit;
 }
 
 /**
  * Add Artist Platform button to the community homepage after forums loop
  */
 function ec_community_add_artist_platform_buttons() {
-    ?>
-    <div class="artist-platform-homepage-actions">
-        <a href="<?php echo esc_url( ec_get_site_url( 'artist' ) ); ?>" class="button-2 button-medium">
-            <?php esc_html_e('Artist Platform', 'extra-chill-community'); ?>
-        </a>
-    </div>
-    <?php
+	?>
+	<div class="artist-platform-homepage-actions">
+		<a href="<?php echo esc_url( ec_get_site_url( 'artist' ) ); ?>" class="button-2 button-medium">
+			<?php esc_html_e('Artist Platform', 'extra-chill-community'); ?>
+		</a>
+	</div>
+	<?php
 }
 
 add_action('extrachill_community_home_after_forums', 'ec_community_add_artist_platform_buttons');

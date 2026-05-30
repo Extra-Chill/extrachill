@@ -15,14 +15,17 @@ function extrachill_community_register_draft_abilities() {
 	wp_register_ability(
 		'extrachill/get-bbpress-draft',
 		array(
-			'label'               => __( 'Get bbPress Draft', 'extrachill-community' ),
-			'description'         => __( 'Retrieve a stored bbPress topic or reply draft for the current user.', 'extrachill-community' ),
+			'label'               => __( 'Get bbPress Draft', 'extra-chill-community' ),
+			'description'         => __( 'Retrieve a stored bbPress topic or reply draft for the current user.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'user_id'           => array( 'type' => 'integer' ),
-					'type'              => array( 'type' => 'string', 'enum' => array( 'topic', 'reply' ) ),
+					'type'              => array(
+						'type' => 'string',
+						'enum' => array( 'topic', 'reply' ),
+					),
 					'blog_id'           => array( 'type' => 'integer' ),
 					'forum_id'          => array( 'type' => 'integer' ),
 					'topic_id'          => array( 'type' => 'integer' ),
@@ -53,20 +56,23 @@ function extrachill_community_register_draft_abilities() {
 	wp_register_ability(
 		'extrachill/save-bbpress-draft',
 		array(
-			'label'               => __( 'Save bbPress Draft', 'extrachill-community' ),
-			'description'         => __( 'Create or update a stored bbPress topic or reply draft for the current user.', 'extrachill-community' ),
+			'label'               => __( 'Save bbPress Draft', 'extra-chill-community' ),
+			'description'         => __( 'Create or update a stored bbPress topic or reply draft for the current user.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'   => array( 'type' => 'integer' ),
-					'type'      => array( 'type' => 'string', 'enum' => array( 'topic', 'reply' ) ),
-					'blog_id'   => array( 'type' => 'integer' ),
-					'forum_id'  => array( 'type' => 'integer' ),
-					'topic_id'  => array( 'type' => 'integer' ),
-					'reply_to'  => array( 'type' => 'integer' ),
-					'title'     => array( 'type' => 'string' ),
-					'content'   => array( 'type' => 'string' ),
+					'user_id'  => array( 'type' => 'integer' ),
+					'type'     => array(
+						'type' => 'string',
+						'enum' => array( 'topic', 'reply' ),
+					),
+					'blog_id'  => array( 'type' => 'integer' ),
+					'forum_id' => array( 'type' => 'integer' ),
+					'topic_id' => array( 'type' => 'integer' ),
+					'reply_to' => array( 'type' => 'integer' ),
+					'title'    => array( 'type' => 'string' ),
+					'content'  => array( 'type' => 'string' ),
 				),
 				'required'   => array( 'type' ),
 			),
@@ -87,14 +93,17 @@ function extrachill_community_register_draft_abilities() {
 	wp_register_ability(
 		'extrachill/delete-bbpress-draft',
 		array(
-			'label'               => __( 'Delete bbPress Draft', 'extrachill-community' ),
-			'description'         => __( 'Delete a stored bbPress topic or reply draft for the current user.', 'extrachill-community' ),
+			'label'               => __( 'Delete bbPress Draft', 'extra-chill-community' ),
+			'description'         => __( 'Delete a stored bbPress topic or reply draft for the current user.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'user_id'  => array( 'type' => 'integer' ),
-					'type'     => array( 'type' => 'string', 'enum' => array( 'topic', 'reply' ) ),
+					'type'     => array(
+						'type' => 'string',
+						'enum' => array( 'topic', 'reply' ),
+					),
 					'blog_id'  => array( 'type' => 'integer' ),
 					'forum_id' => array( 'type' => 'integer' ),
 					'topic_id' => array( 'type' => 'integer' ),

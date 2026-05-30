@@ -20,13 +20,16 @@ function extrachill_community_register_rank_abilities() {
 	wp_register_ability(
 		'extrachill/community-get-user-points',
 		array(
-			'label'               => __( 'Get User Points', 'extrachill-community' ),
-			'description'         => __( 'Get points, rank, and display name for a user.', 'extrachill-community' ),
+			'label'               => __( 'Get User Points', 'extra-chill-community' ),
+			'description'         => __( 'Get points, rank, and display name for a user.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id' => array( 'type' => 'integer', 'description' => 'User ID (required)' ),
+					'user_id' => array(
+						'type'        => 'integer',
+						'description' => 'User ID (required)',
+					),
 				),
 				'required'   => array( 'user_id' ),
 			),
@@ -56,13 +59,16 @@ function extrachill_community_register_rank_abilities() {
 	wp_register_ability(
 		'extrachill/community-recalculate-points',
 		array(
-			'label'               => __( 'Recalculate Points', 'extrachill-community' ),
-			'description'         => __( 'Recalculate points for a specific user or all users with cached points.', 'extrachill-community' ),
+			'label'               => __( 'Recalculate Points', 'extra-chill-community' ),
+			'description'         => __( 'Recalculate points for a specific user or all users with cached points.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id' => array( 'type' => 'integer', 'description' => 'Specific user ID (omit for all users)' ),
+					'user_id' => array(
+						'type'        => 'integer',
+						'description' => 'Specific user ID (omit for all users)',
+					),
 				),
 			),
 			'output_schema'       => array(
@@ -87,14 +93,20 @@ function extrachill_community_register_rank_abilities() {
 	wp_register_ability(
 		'extrachill/community-get-leaderboard',
 		array(
-			'label'               => __( 'Get Leaderboard', 'extrachill-community' ),
-			'description'         => __( 'Get community leaderboard with pagination.', 'extrachill-community' ),
+			'label'               => __( 'Get Leaderboard', 'extra-chill-community' ),
+			'description'         => __( 'Get community leaderboard with pagination.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'limit'  => array( 'type' => 'integer', 'description' => 'Number of users to return (default 25)' ),
-					'offset' => array( 'type' => 'integer', 'description' => 'Pagination offset (default 0)' ),
+					'limit'  => array(
+						'type'        => 'integer',
+						'description' => 'Number of users to return (default 25)',
+					),
+					'offset' => array(
+						'type'        => 'integer',
+						'description' => 'Pagination offset (default 0)',
+					),
 				),
 			),
 			'output_schema'       => array(

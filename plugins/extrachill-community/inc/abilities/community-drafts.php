@@ -22,10 +22,10 @@ function extrachill_community_register_community_drafts_ability(): void {
 	wp_register_ability(
 		'extrachill/community-drafts',
 		array(
-			'label'       => __( 'Get Community Drafts', 'extrachill-community' ),
-			'description' => __( 'Retrieve a stored bbPress topic or reply draft for the current user.', 'extrachill-community' ),
-			'category'    => 'extrachill-community',
-			'input_schema' => array(
+			'label'               => __( 'Get Community Drafts', 'extra-chill-community' ),
+			'description'         => __( 'Retrieve a stored bbPress topic or reply draft for the current user.', 'extra-chill-community' ),
+			'category'            => 'extrachill-community',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'type'              => array(
@@ -52,7 +52,7 @@ function extrachill_community_register_community_drafts_ability(): void {
 				),
 				'required'   => array( 'type' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'draft' => array(
@@ -67,7 +67,7 @@ function extrachill_community_register_community_drafts_ability(): void {
 			'permission_callback' => static function (): bool {
 				return is_user_logged_in();
 			},
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,

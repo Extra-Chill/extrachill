@@ -22,10 +22,10 @@ function extrachill_community_register_community_upvote_ability(): void {
 	wp_register_ability(
 		'extrachill/community-upvote',
 		array(
-			'label'       => __( 'Community Upvote', 'extrachill-community' ),
-			'description' => __( 'Toggle an upvote on a bbPress topic or reply for the current user.', 'extrachill-community' ),
-			'category'    => 'extrachill-community',
-			'input_schema' => array(
+			'label'               => __( 'Community Upvote', 'extra-chill-community' ),
+			'description'         => __( 'Toggle an upvote on a bbPress topic or reply for the current user.', 'extra-chill-community' ),
+			'category'            => 'extrachill-community',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'post_id' => array(
@@ -40,7 +40,7 @@ function extrachill_community_register_community_upvote_ability(): void {
 				),
 				'required'   => array( 'post_id', 'type' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'message'   => array( 'type' => 'string' ),
@@ -52,7 +52,7 @@ function extrachill_community_register_community_upvote_ability(): void {
 			'permission_callback' => static function (): bool {
 				return is_user_logged_in();
 			},
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => false,
