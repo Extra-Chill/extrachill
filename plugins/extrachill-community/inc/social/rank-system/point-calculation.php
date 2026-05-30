@@ -170,11 +170,10 @@ function extrachill_get_leaderboard_total_users() {
 	return (int) $total;
 }
 
-// Schedule hourly points recalculation processing
-if ( ! wp_next_scheduled('extrachill_hourly_points_recalculation') ) {
-	wp_schedule_event(time(), 'hourly', 'extrachill_hourly_points_recalculation');
-}
-
+// The 'extrachill_hourly_points_recalculation' cron event is scheduled on plugin
+// activation and cleared on deactivation (see inc/core/activation.php). Scheduling
+// no longer happens at include time, which previously left an orphaned recurring
+// cron firing against a missing callback after the plugin was deactivated.
 add_action('extrachill_hourly_points_recalculation', 'extrachill_process_points_recalculation_queue');
 
 /**

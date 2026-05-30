@@ -34,6 +34,36 @@ function extrachill_community_run_activation_setup() {
 
 	extrachill_create_community_pages();
 	extrachill_create_community_forums();
+	extrachill_community_schedule_points_recalculation();
+}
+
+/**
+ * Schedule the hourly points recalculation cron event.
+ *
+ * Runs on activation (and as a self-healing safety net during deferred
+ * activation setup) instead of at file-include time, so the event is only
+ * scheduled for active installs and can be reliably cleared on deactivation.
+ *
+ * The recurrence interval is filterable via
+ * `extrachill_points_recalculation_interval` (defaults to 'hourly').
+ */
+function extrachill_community_schedule_points_recalculation() {
+	if ( wp_next_scheduled('extrachill_hourly_points_recalculation') ) {
+		return;
+	}
+
+	$interval = apply_filters('extrachill_points_recalculation_interval', 'hourly');
+	wp_schedule_event(time(), $interval, 'extrachill_hourly_points_recalculation');
+}
+
+/**
+ * Deactivation handler.
+ *
+ * Clears scheduled cron events so deactivating the plugin does not leave an
+ * orphaned recurring event firing against a missing callback.
+ */
+function extrachill_community_deactivate() {
+	wp_clear_scheduled_hook('extrachill_hourly_points_recalculation');
 }
 
 add_action(

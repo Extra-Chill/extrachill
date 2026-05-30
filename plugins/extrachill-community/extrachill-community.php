@@ -99,3 +99,4 @@ function extrachill_community_register_blocks() {
 }
 
 register_activation_hook( __FILE__, 'extrachill_community_activate' );
+register_deactivation_hook( __FILE__, 'extrachill_community_deactivate' );
