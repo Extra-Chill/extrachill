@@ -14,9 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_filter(
-	'extrachill_seo_schema_graph',
-	function ( $graph ) {
+/**
+ * Add Product schema to graph for single WooCommerce products.
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with the Product entity appended when applicable.
+ */
+function ec_seo_emit_product_schema( $graph ) {
 		// Only run on shop site.
 		$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : 3;
 		if ( (int) get_current_blog_id() !== (int) $shop_blog_id ) {
@@ -106,5 +110,5 @@ add_filter(
 		$graph[] = $schema;
 
 		return $graph;
-	}
-);
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_product_schema' );

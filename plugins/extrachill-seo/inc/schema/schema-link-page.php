@@ -16,10 +16,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Add ProfilePage schema to graph for link pages
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with the ProfilePage entity appended when applicable.
  */
-add_filter(
-	'extrachill_seo_schema_graph',
-	function ( $graph ) {
+function ec_seo_emit_link_page_schema( $graph ) {
 		if ( ! is_singular( 'artist_link_page' ) ) {
 			return $graph;
 		}
@@ -58,5 +59,5 @@ add_filter(
 		$graph[] = $profile_page;
 
 		return $graph;
-	}
-);
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_link_page_schema' );

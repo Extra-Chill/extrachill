@@ -17,10 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Add WebPage schema to graph
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with the WebPage entity appended.
  */
-add_filter(
-	'extrachill_seo_schema_graph',
-	function ( $graph ) {
+function ec_seo_emit_webpage_schema( $graph ) {
 		$site_base_url = ec_seo_get_schema_site_base_url();
 		$current_url   = ec_seo_get_current_url();
 		$page_url      = $current_url; // Preserve current page URL for breadcrumb reference.
@@ -97,5 +98,5 @@ add_filter(
 		$graph[] = $webpage;
 
 		return $graph;
-	}
-);
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_webpage_schema' );

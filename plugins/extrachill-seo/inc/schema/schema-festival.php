@@ -74,69 +74,72 @@ function ec_seo_get_festival_single_location_term( $festival_term ) {
 	return array_values( $unique )[0];
 }
 
-add_filter(
-	'extrachill_seo_schema_graph',
-	function ( $graph ) {
-		if ( ! is_tax( 'festival' ) ) {
-			return $graph;
-		}
-
-		if ( ! function_exists( 'ec_news_wire_get_festival_metadata' ) ) {
-			return $graph;
-		}
-
-		if ( ! taxonomy_exists( 'festival' ) ) {
-			return $graph;
-		}
-
-		$term = get_queried_object();
-		if ( ! ( $term instanceof \WP_Term ) ) {
-			return $graph;
-		}
-
-		$festival_meta = ec_news_wire_get_festival_metadata( $term->slug );
-		if ( ! $festival_meta ) {
-			return $graph;
-		}
-
-		$festival_url = get_term_link( $term );
-		if ( is_wp_error( $festival_url ) ) {
-			return $graph;
-		}
-
-		$schema = array(
-			'@type' => 'Event',
-			'@id'   => $festival_url . '#festival',
-			'name'  => $festival_meta['name'],
-			'url'   => $festival_url,
-		);
-
-		if ( '' !== $festival_meta['description'] ) {
-			$schema['description'] = wp_strip_all_tags( $festival_meta['description'] );
-		}
-
-		if ( '' !== $festival_meta['start_date'] ) {
-			$schema['startDate'] = $festival_meta['start_date'];
-		}
-
-		if ( '' !== $festival_meta['end_date'] ) {
-			$schema['endDate'] = $festival_meta['end_date'];
-		}
-
-		$location_term = ec_seo_get_festival_single_location_term( $term );
-		if ( $location_term ) {
-			$location_url = get_term_link( $location_term );
-			if ( ! is_wp_error( $location_url ) ) {
-				$schema['location'] = array(
-					'@type' => 'Place',
-					'name'  => $location_term->name,
-					'url'   => $location_url,
-				);
-			}
-		}
-
-		$graph[] = $schema;
-
-		return $graph;
+/**
+ * Build the Event schema entity for a festival taxonomy term.
+ *
+ * @param \WP_Term $term Festival term.
+ * @return array|null Event entity, or null when festival metadata is unavailable.
+ */
+function ec_seo_build_festival_schema( \WP_Term $term ): ?array {
+	if ( ! function_exists( 'ec_news_wire_get_festival_metadata' ) ) {
+		return null;
 	}
-);
+
+	if ( ! taxonomy_exists( 'festival' ) ) {
+		return null;
+	}
+
+	$festival_meta = ec_news_wire_get_festival_metadata( $term->slug );
+	if ( ! $festival_meta ) {
+		return null;
+	}
+
+	$festival_url = get_term_link( $term );
+	if ( is_wp_error( $festival_url ) ) {
+		return null;
+	}
+
+	$schema = array(
+		'@type' => 'Event',
+		'@id'   => $festival_url . '#festival',
+		'name'  => $festival_meta['name'],
+		'url'   => $festival_url,
+	);
+
+	if ( '' !== $festival_meta['description'] ) {
+		$schema['description'] = wp_strip_all_tags( $festival_meta['description'] );
+	}
+
+	if ( '' !== $festival_meta['start_date'] ) {
+		$schema['startDate'] = $festival_meta['start_date'];
+	}
+
+	if ( '' !== $festival_meta['end_date'] ) {
+		$schema['endDate'] = $festival_meta['end_date'];
+	}
+
+	$location_term = ec_seo_get_festival_single_location_term( $term );
+	if ( $location_term ) {
+		$location_url = get_term_link( $location_term );
+		if ( ! is_wp_error( $location_url ) ) {
+			$schema['location'] = array(
+				'@type' => 'Place',
+				'name'  => $location_term->name,
+				'url'   => $location_url,
+			);
+		}
+	}
+
+	return $schema;
+}
+
+/**
+ * Append festival Event schema to the graph on festival taxonomy archives.
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with festival entity appended when applicable.
+ */
+function ec_seo_emit_festival_schema( $graph ) {
+	return ec_seo_register_taxonomy_schema( $graph, 'festival', __NAMESPACE__ . '\\ec_seo_build_festival_schema' );
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_festival_schema' );

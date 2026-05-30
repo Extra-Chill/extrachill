@@ -110,6 +110,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/open-graph.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/twitter-cards.php';
 		// sitemap.php loaded at plugin load time (class definition + wp_loaded registration).
+		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-helpers.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-output.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-website.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/schema/schema-organization.php';

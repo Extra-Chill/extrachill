@@ -17,10 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Add Article schema to graph for singular posts
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with the Article entity appended when applicable.
  */
-add_filter(
-	'extrachill_seo_schema_graph',
-	function ( $graph ) {
+function ec_seo_emit_article_schema( $graph ) {
 		$post_types = array( 'post', 'festival_wire', 'ec_doc' );
 		$post_types = apply_filters( 'extrachill_seo_article_post_types', $post_types );
 
@@ -106,8 +107,8 @@ add_filter(
 		$graph[] = $article;
 
 		return $graph;
-	}
-);
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_article_schema' );
 
 /**
  * Get author data for article schema

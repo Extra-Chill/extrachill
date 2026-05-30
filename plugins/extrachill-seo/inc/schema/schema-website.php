@@ -17,10 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Add WebSite schema to graph
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with the WebSite entity appended.
  */
-add_filter(
-	'extrachill_seo_schema_graph',
-	function ( $graph ) {
+function ec_seo_emit_website_schema( $graph ) {
 		$site_base_url = ec_seo_get_schema_site_base_url();
 		$org_base_url  = ec_seo_get_schema_organization_base_url();
 		$org_data      = ec_seo_get_organization_data();
@@ -48,5 +49,5 @@ add_filter(
 		$graph[] = $website;
 
 		return $graph;
-	}
-);
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_website_schema' );

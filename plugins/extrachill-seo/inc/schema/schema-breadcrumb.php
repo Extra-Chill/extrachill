@@ -17,10 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Add BreadcrumbList schema to graph
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with the BreadcrumbList entity appended when applicable.
  */
-add_filter(
-	'extrachill_seo_schema_graph',
-	function ( $graph ) {
+function ec_seo_emit_breadcrumb_schema( $graph ) {
 		// No breadcrumbs on homepage
 		if ( is_front_page() ) {
 			return $graph;
@@ -63,8 +64,8 @@ add_filter(
 		$graph[] = $breadcrumb;
 
 		return $graph;
-	}
-);
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_breadcrumb_schema' );
 
 /**
  * Generate breadcrumb items based on current page context

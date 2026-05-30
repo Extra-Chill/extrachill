@@ -277,28 +277,18 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 			$street = (string) $attrs['address'];
 		}
 
-		$address = array();
-		if ( '' !== $street ) {
-			$address['streetAddress'] = $street;
-		}
-		if ( is_array( $venue_data ) ) {
-			if ( ! empty( $venue_data['city'] ) ) {
-				$address['addressLocality'] = (string) $venue_data['city'];
-			}
-			if ( ! empty( $venue_data['state'] ) ) {
-				$address['addressRegion'] = (string) $venue_data['state'];
-			}
-			if ( ! empty( $venue_data['zip'] ) ) {
-				$address['postalCode'] = (string) $venue_data['zip'];
-			}
-			if ( ! empty( $venue_data['country'] ) ) {
-				$address['addressCountry'] = (string) $venue_data['country'];
-			}
-		}
+		$address = ec_seo_build_postal_address(
+			array(
+				'street'  => $street,
+				'city'    => is_array( $venue_data ) ? ( $venue_data['city'] ?? '' ) : '',
+				'state'   => is_array( $venue_data ) ? ( $venue_data['state'] ?? '' ) : '',
+				'zip'     => is_array( $venue_data ) ? ( $venue_data['zip'] ?? '' ) : '',
+				'country' => is_array( $venue_data ) ? ( $venue_data['country'] ?? '' ) : '',
+			)
+		);
 
 		if ( ! empty( $address ) ) {
-			$address['@type']   = 'PostalAddress';
-			$place['address']   = $address;
+			$place['address'] = $address;
 		}
 
 		$schema['location'] = $place;
@@ -373,30 +363,33 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 	return $schema;
 }
 
-add_filter(
-	'extrachill_seo_schema_graph',
-	function ( $graph ) {
-		if ( ! is_singular( 'data_machine_events' ) ) {
-			return $graph;
-		}
-
-		$post = get_queried_object();
-		if ( ! ( $post instanceof \WP_Post ) ) {
-			return $graph;
-		}
-
-		$attrs = ec_seo_extract_event_details_block( $post->post_content );
-		if ( empty( $attrs ) || empty( $attrs['startDate'] ) ) {
-			return $graph;
-		}
-
-		$event = ec_seo_build_event_schema( $post, $attrs );
-		if ( null === $event ) {
-			return $graph;
-		}
-
-		$graph[] = $event;
+/**
+ * Append MusicEvent schema to the graph on single event posts.
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with event entity appended when applicable.
+ */
+function ec_seo_emit_event_schema( $graph ) {
+	if ( ! is_singular( 'data_machine_events' ) ) {
 		return $graph;
-	},
-	10
-);
+	}
+
+	$post = get_queried_object();
+	if ( ! ( $post instanceof \WP_Post ) ) {
+		return $graph;
+	}
+
+	$attrs = ec_seo_extract_event_details_block( $post->post_content );
+	if ( empty( $attrs ) || empty( $attrs['startDate'] ) ) {
+		return $graph;
+	}
+
+	$event = ec_seo_build_event_schema( $post, $attrs );
+	if ( null === $event ) {
+		return $graph;
+	}
+
+	$graph[] = $event;
+	return $graph;
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_event_schema', 10 );
