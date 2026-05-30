@@ -68,40 +68,16 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     $user_id = $user->ID;
     $cap     = $args[0];
     $object_id = isset( $args[2] ) ? $args[2] : null;
-    
-    if ( $cap === 'create_artist_profiles' ) {
-        if ( ec_can_create_artist_profiles( $user_id ) ) {
-            $allcaps[$cap] = true;
-        }
-        return $allcaps;
-    }
-    
-    if ( $cap === 'manage_artist_members' && $object_id ) {
-        if ( ec_can_manage_artist( $user_id, $object_id ) ) {
-            $allcaps[$cap] = true;
-        }
-        return $allcaps;
-    }
-    
-    if ( $cap === 'view_artist_link_page_analytics' && $object_id ) {
-        if ( get_post_type( $object_id ) === 'artist_link_page' ) {
-            $artist_id = apply_filters('ec_get_artist_id', $object_id);
-            if ( $artist_id && ec_can_manage_artist( $user_id, $artist_id ) ) {
-                $allcaps[$cap] = true;
-            }
-        }
-        return $allcaps;
-    }
-    
+
     if ( $object_id && get_post_type( $object_id ) === 'artist_profile' ) {
         if ( ec_can_manage_artist( $user_id, $object_id ) ) {
-            $post_caps = array( 'edit_post', 'delete_post', 'read_post', 'publish_post', 'manage_artist_members' );
+            $post_caps = array( 'edit_post', 'delete_post', 'read_post', 'publish_post' );
             if ( in_array( $cap, $post_caps ) ) {
                 $allcaps[$cap] = true;
             }
         }
     }
-    
+
     return $allcaps;
 }
 
