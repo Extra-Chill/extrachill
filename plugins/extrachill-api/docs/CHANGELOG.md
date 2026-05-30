@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.17.1] - 2026-05-30
+
+### Changed
+- point leaderboard route at canonical users-leaderboard ability (closes #63)
+
 ## [0.17.0] - 2026-05-27
 
 ### Added
