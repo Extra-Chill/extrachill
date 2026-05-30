@@ -862,4 +862,175 @@ function extrachill_artist_platform_register_abilities() {
 			),
 		)
 	);
+
+	// ──────────────────────────────────────────────────────────────────────
+	// Admin artist-relationships abilities (network admin only)
+	// ──────────────────────────────────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/admin-list-artist-relationships',
+		array(
+			'label'               => __( 'List artist relationships', 'extrachill-artist-platform' ),
+			'description'         => __( 'Lists artist-user relationships by artists or users view.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-admin-artist-relationships',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array(),
+				'properties'           => array(
+					'view'   => array( 'type' => 'string', 'enum' => array( 'artists', 'users' ), 'description' => __( 'View mode.', 'extrachill-artist-platform' ) ),
+					'search' => array( 'type' => 'string', 'description' => __( 'Search term.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'items' => array( 'type' => 'array' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_admin_list_artist_relationships',
+			'permission_callback' => 'extrachill_artist_platform_ability_admin_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/admin-link-artist-relationship',
+		array(
+			'label'               => __( 'Link artist relationship', 'extrachill-artist-platform' ),
+			'description'         => __( 'Links a user to an artist profile.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-admin-artist-relationships',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'user_id', 'artist_id' ),
+				'properties'           => array(
+					'user_id'   => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'WordPress user ID.', 'extrachill-artist-platform' ) ),
+					'artist_id' => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'success' => array( 'type' => 'boolean' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_admin_link_artist_relationship',
+			'permission_callback' => 'extrachill_artist_platform_ability_admin_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => false,
+					'idempotent'  => false,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/admin-unlink-artist-relationship',
+		array(
+			'label'               => __( 'Unlink artist relationship', 'extrachill-artist-platform' ),
+			'description'         => __( 'Unlinks a user from an artist profile.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-admin-artist-relationships',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'user_id', 'artist_id' ),
+				'properties'           => array(
+					'user_id'   => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'WordPress user ID.', 'extrachill-artist-platform' ) ),
+					'artist_id' => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'success' => array( 'type' => 'boolean' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_admin_unlink_artist_relationship',
+			'permission_callback' => 'extrachill_artist_platform_ability_admin_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => true,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/admin-list-orphan-artist-relationships',
+		array(
+			'label'               => __( 'List orphan artist relationships', 'extrachill-artist-platform' ),
+			'description'         => __( 'Lists orphaned artist-user relationships where the artist post no longer exists.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-admin-artist-relationships',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array(),
+				'properties'           => array(),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'orphans' => array( 'type' => 'array' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_admin_list_orphan_artist_relationships',
+			'permission_callback' => 'extrachill_artist_platform_ability_admin_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/admin-cleanup-artist-relationships',
+		array(
+			'label'               => __( 'Cleanup artist relationships', 'extrachill-artist-platform' ),
+			'description'         => __( 'Removes an orphaned artist-user relationship entry.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-admin-artist-relationships',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'user_id', 'artist_id' ),
+				'properties'           => array(
+					'user_id'   => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'WordPress user ID.', 'extrachill-artist-platform' ) ),
+					'artist_id' => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'success' => array( 'type' => 'boolean' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_admin_cleanup_artist_relationships',
+			'permission_callback' => 'extrachill_artist_platform_ability_admin_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => true,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
 }

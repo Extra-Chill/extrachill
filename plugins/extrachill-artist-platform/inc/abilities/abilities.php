@@ -37,3 +37,10 @@ require_once __DIR__ . '/handlers/artist-subscribe.php';
 require_once __DIR__ . '/handlers/artist-list-subscribers.php';
 require_once __DIR__ . '/handlers/artist-export-subscribers.php';
 require_once __DIR__ . '/handlers/artist-get-analytics.php';
+
+// Admin artist-relationships ability handlers.
+require_once __DIR__ . '/handlers/admin-list-artist-relationships.php';
+require_once __DIR__ . '/handlers/admin-link-artist-relationship.php';
+require_once __DIR__ . '/handlers/admin-unlink-artist-relationship.php';
+require_once __DIR__ . '/handlers/admin-list-orphan-artist-relationships.php';
+require_once __DIR__ . '/handlers/admin-cleanup-artist-relationships.php';

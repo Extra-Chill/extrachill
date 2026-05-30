@@ -27,4 +27,12 @@ function extrachill_artist_platform_register_category() {
 			'description' => __( 'Artist-domain abilities: profiles, links, socials, subscribers, analytics.', 'extrachill-artist-platform' ),
 		)
 	);
+
+	wp_register_ability_category(
+		'extrachill-admin-artist-relationships',
+		array(
+			'label'       => __( 'Admin: Artist Relationships', 'extrachill-artist-platform' ),
+			'description' => __( 'Network-admin abilities for managing artist-user relationships.', 'extrachill-artist-platform' ),
+		)
+	);
 }
