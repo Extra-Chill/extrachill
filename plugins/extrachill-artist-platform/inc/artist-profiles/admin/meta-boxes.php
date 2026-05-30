@@ -53,13 +53,38 @@ function ec_render_artist_settings_meta_box( $post ) {
 }
 
 /**
- * Saves the meta box data for artist settings.
+ * Persist the forum settings meta from the submitted request payload.
+ *
+ * Shared writer for both the wp-admin metabox path and the centralized
+ * front-end save path. Authorization (nonce verification and/or capability
+ * checks) is the responsibility of each caller — by the time this runs the
+ * request has already been authorized.
+ *
+ * @param int $post_id The ID of the artist profile being saved.
+ */
+function ec_write_artist_settings_meta( $post_id ) {
+    // Checkbox: present in $_POST means checked, absent means unchecked.
+    $new_value = isset( $_POST['ec_allow_public_topic_creation'] ) ? '1' : '0';
+
+    update_post_meta( $post_id, '_allow_public_topic_creation', $new_value );
+}
+
+/**
+ * Saves the meta box data for artist settings (wp-admin metabox path).
+ *
+ * This path carries its own nonce (rendered by ec_render_artist_settings_meta_box)
+ * and is authorized by verifying that nonce plus the edit_post capability.
  *
  * @param int $post_id The ID of the post being saved.
  */
 function ec_save_artist_settings_meta( $post_id ) {
     // Check if nonce is set and valid.
     if ( ! isset( $_POST['ec_artist_settings_nonce'] ) || ! wp_verify_nonce( $_POST['ec_artist_settings_nonce'], 'ec_save_artist_settings_meta' ) ) {
+        return;
+    }
+
+    // Only act on artist profiles.
+    if ( get_post_type( $post_id ) !== 'artist_profile' ) {
         return;
     }
 
@@ -79,14 +104,18 @@ function ec_save_artist_settings_meta( $post_id ) {
         return;
     }
 
-    // Check if the checkbox was checked
-    $new_value = isset( $_POST['ec_allow_public_topic_creation'] ) ? '1' : '0';
-
-    // Update the post meta
-    update_post_meta( $post_id, '_allow_public_topic_creation', $new_value );
+    ec_write_artist_settings_meta( $post_id );
 }
+// Wire the metabox handler to the classic wp-admin save_post flow.
+add_action( 'save_post_artist_profile', 'ec_save_artist_settings_meta', 10, 1 );
+
 /**
- * Centralized wrapper for artist settings meta when using the centralized save system.
+ * Centralized save handler for artist settings meta.
+ *
+ * Runs on the front-end centralized save flow (ec_artist_profile_save). That
+ * flow has already authorized the request, so there is no metabox nonce here;
+ * instead we enforce the manage-artist capability before writing. The value is
+ * read directly from the submitted payload (same field name the metabox uses).
  *
  * @param int $artist_id The ID of the artist profile being saved.
  */
@@ -95,14 +124,18 @@ function ec_save_artist_settings_meta_centralized( $artist_id ) {
         return;
     }
 
-    $artist_post = get_post( $artist_id );
-    if ( ! $artist_post ) {
+    // Enforce capability — the centralized save already validated its own nonce,
+    // but the writer itself must still confirm the current user can manage this artist.
+    $can_manage = function_exists( 'ec_can_manage_artist' )
+        ? ec_can_manage_artist( get_current_user_id(), $artist_id )
+        : current_user_can( 'edit_post', $artist_id );
+
+    if ( ! $can_manage ) {
         return;
     }
 
-    // Call the existing meta save function with the post object and update flag
-    ec_save_artist_settings_meta( $artist_id, $artist_post, true );
+    ec_write_artist_settings_meta( $artist_id );
 }
 
-// Hook into centralized save system only - no legacy save_post hook needed
+// Hook into the centralized front-end save system.
 add_action( 'ec_artist_profile_save', 'ec_save_artist_settings_meta_centralized', 10, 1 );
