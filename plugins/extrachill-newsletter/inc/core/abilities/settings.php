@@ -113,14 +113,7 @@ function extrachill_newsletter_register_settings_abilities() {
  * @return array Settings array with defaults applied.
  */
 function extrachill_newsletter_get_raw_settings() {
-	$defaults = array(
-		'sendy_api_key' => '',
-		'sendy_url'     => 'https://mail.extrachill.com/sendy',
-		'from_name'     => 'Extra Chill',
-		'from_email'    => 'newsletter@extrachill.com',
-		'reply_to'      => 'chubes@extrachill.com',
-		'brand_id'      => '1',
-	);
+	$defaults = extrachill_newsletter_default_settings();
 
 	// Add defaults for registered integrations (list IDs only).
 	$integrations = get_newsletter_integrations();

@@ -374,8 +374,17 @@ function extrachill_newsletter_ability_subscriber_status( $input ) {
 /**
  * Get a wpdb instance connected to the Sendy database.
  *
- * Sendy runs on the same server with its own database.
- * Returns a wpdb instance or WP_Error if config is missing.
+ * Sendy runs on the same server with its own database. Credentials are read
+ * from explicit configuration rather than scraped from Sendy's source:
+ *
+ *   1. The `extrachill_newsletter_sendy_db` filter (preferred — wire it from
+ *      wp-config.php constants or a secrets manager so credentials never live
+ *      in the options table). The filtered value must be an array of
+ *      {host, user, pass, name, port}.
+ *   2. The `sendy_db` sub-array of the network `extrachill_newsletter_settings`
+ *      option, populated via the Newsletter Settings screen.
+ *
+ * Returns a wpdb instance or WP_Error if no credentials are configured.
  *
  * @return wpdb|WP_Error
  */
@@ -386,38 +395,75 @@ function extrachill_newsletter_get_sendy_db() {
 		return $sendy_db;
 	}
 
-	// Read Sendy config.
-	$config_path = '/var/www/sendy/sendy/includes/config.php';
-	if ( ! file_exists( $config_path ) ) {
-		return new WP_Error( 'sendy_config_missing', 'Sendy config file not found.' );
-	}
-
-	// Extract DB credentials from Sendy config.
-	$config_content = file_get_contents( $config_path );
-
-	preg_match( "/\\\$dbHost\s*=\s*'([^']+)'/", $config_content, $host_match );
-	preg_match( "/\\\$dbUser\s*=\s*'([^']+)'/", $config_content, $user_match );
-	preg_match( "/\\\$dbPass\s*=\s*'([^']+)'/", $config_content, $pass_match );
-	preg_match( "/\\\$dbName\s*=\s*'([^']+)'/", $config_content, $name_match );
-	preg_match( "/\\\$dbPort\s*=\s*(\d+)/", $config_content, $port_match );
-
-	if ( empty( $host_match[1] ) || empty( $user_match[1] ) || empty( $name_match[1] ) ) {
-		return new WP_Error( 'sendy_config_invalid', 'Could not parse Sendy DB credentials.' );
+	$creds = extrachill_newsletter_get_sendy_db_credentials();
+	if ( is_wp_error( $creds ) ) {
+		return $creds;
 	}
 
 	$sendy_db = new wpdb(
-		$user_match[1],
-		isset( $pass_match[1] ) ? $pass_match[1] : '',
-		$name_match[1],
-		$host_match[1]
+		$creds['user'],
+		$creds['pass'],
+		$creds['name'],
+		$creds['host']
 	);
 
-	if ( ! empty( $port_match[1] ) ) {
+	if ( ! empty( $creds['port'] ) ) {
 		$sendy_db->db_connect( false );
 		mysqli_query( $sendy_db->dbh, "SET SESSION sql_mode = ''" );
 	}
 
 	return $sendy_db;
+}
+
+/**
+ * Resolve Sendy DB connection credentials from explicit configuration.
+ *
+ * Credentials are NEVER hardcoded or scraped from Sendy's config.php. They are
+ * supplied deliberately via (in priority order):
+ *
+ *   1. The `extrachill_newsletter_sendy_db` filter — the recommended path.
+ *      Return an array with host/user/pass/name (and optional port). Wire this
+ *      from wp-config.php constants or a secrets manager so secrets stay out of
+ *      the database.
+ *   2. The `sendy_db` key of the `extrachill_newsletter_settings` network
+ *      option, entered through the Newsletter Settings admin screen.
+ *
+ * @return array|WP_Error {host, user, pass, name, port} or WP_Error if unset.
+ */
+function extrachill_newsletter_get_sendy_db_credentials() {
+	$defaults = array(
+		'host' => '',
+		'user' => '',
+		'pass' => '',
+		'name' => '',
+		'port' => '',
+	);
+
+	/**
+	 * Filter the Sendy database connection credentials.
+	 *
+	 * Preferred way to supply Sendy DB credentials without storing them in the
+	 * options table. Return an array of {host, user, pass, name, port}.
+	 *
+	 * @param array $creds Credential array (empty by default).
+	 */
+	$creds = apply_filters( 'extrachill_newsletter_sendy_db', array() );
+
+	if ( empty( $creds ) || ! is_array( $creds ) ) {
+		$settings = get_site_option( 'extrachill_newsletter_settings', array() );
+		$creds    = isset( $settings['sendy_db'] ) && is_array( $settings['sendy_db'] ) ? $settings['sendy_db'] : array();
+	}
+
+	$creds = wp_parse_args( $creds, $defaults );
+
+	if ( empty( $creds['host'] ) || empty( $creds['user'] ) || empty( $creds['name'] ) ) {
+		return new WP_Error(
+			'sendy_db_not_configured',
+			__( 'Sendy database credentials are not configured. Set them via the extrachill_newsletter_sendy_db filter or the Newsletter Settings screen.', 'extrachill-newsletter' )
+		);
+	}
+
+	return $creds;
 }
 
 /**
