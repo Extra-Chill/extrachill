@@ -2,8 +2,12 @@
 /**
  * Newsletter Email Template
  *
- * Converts WordPress post content to Sendy-compatible HTML email
- * with responsive styling, image optimization, and template structure.
+ * Canonical email-shell builder for newsletter campaigns. Converts WordPress
+ * post content to Sendy-compatible HTML email with responsive styling, image
+ * optimization, and a shared template structure (logo, footer nav, unsubscribe).
+ *
+ * This is the single source of truth for the email shell. Both the campaign
+ * push ability and any future render path consume these functions.
  *
  * @package ExtraChillNewsletter
  * @since 0.1.0
@@ -14,9 +18,68 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Convert WordPress post to Sendy-compatible HTML email.
+ * Resolve the newsletter logo image URL.
  *
- * Responsive styling, image optimization, YouTube thumbnail conversion.
+ * Derives the URL from the newsletter site's upload base instead of hardcoding
+ * the domain and multisite blog-ID path. The newsletter blog (resolved by
+ * logical key, not a literal ID) owns the asset, so the URL is computed from
+ * that site's wp_upload_dir() baseurl. The relative upload path is filterable
+ * so the asset can be re-uploaded without a code change.
+ *
+ * @since 0.4.1
+ * @return string Logo image URL.
+ */
+function extrachill_newsletter_get_email_logo_url() {
+	/**
+	 * Filter the newsletter email logo relative upload path.
+	 *
+	 * Relative to the newsletter site's uploads base URL.
+	 *
+	 * @since 0.4.1
+	 * @param string $relative_path Upload-relative path to the logo asset.
+	 */
+	$relative_path = apply_filters(
+		'extrachill_newsletter_email_logo_path',
+		'/2026/01/Extra-Chill-Main-Logo-2026.png'
+	);
+
+	$newsletter_base = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'newsletter' ) : null;
+
+	if ( ! $newsletter_base ) {
+		$upload_dir      = wp_upload_dir();
+		$newsletter_base = isset( $upload_dir['baseurl'] ) ? preg_replace( '#/wp-content/uploads(/sites/\d+)?$#', '', $upload_dir['baseurl'] ) : home_url();
+	}
+
+	// Multisite stores per-site uploads under /wp-content/uploads/sites/{blog_id}/.
+	$uploads_path = '/wp-content/uploads';
+	if ( is_multisite() ) {
+		$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+		// Main site (blog 1) has no /sites/{id} segment.
+		if ( $newsletter_blog_id && (int) $newsletter_blog_id > 1 ) {
+			$uploads_path .= '/sites/' . (int) $newsletter_blog_id;
+		}
+	}
+
+	$logo_url = untrailingslashit( $newsletter_base ) . $uploads_path . $relative_path;
+
+	/**
+	 * Filter the fully-derived newsletter email logo URL.
+	 *
+	 * @since 0.4.1
+	 * @param string $logo_url Derived logo URL.
+	 */
+	return apply_filters( 'extrachill_newsletter_email_logo_url', $logo_url );
+}
+
+/**
+ * Convert WordPress post to Sendy-compatible HTML email content.
+ *
+ * Responsive styling, image optimization, YouTube thumbnail conversion, plus the
+ * shared shell (logo, footer nav, unsubscribe) via generate_email_html_template().
+ *
+ * @since 0.1.0
+ * @param WP_Post $post Newsletter post object.
+ * @return array {subject, html_template, plain_text}.
  */
 function prepare_newsletter_email_content( $post ) {
 	$content = apply_filters( 'the_content', $post->post_content );
@@ -44,37 +107,58 @@ function prepare_newsletter_email_content( $post ) {
 	$content = preg_replace( '/<(ol|ul)([^>]*)>/i', '<$1$2 style="font-size: 16px; line-height: 1.75em; padding-left: 20px;">', $content );
 	$content = preg_replace( '/<li([^>]*)>/i', '<li$1 style="margin: 10px 0;">', $content );
 
-	$main_site_url = ec_get_site_url( 'main' );
-	$subject = $post->post_title;
-	$read_on_web_url = get_permalink( $post->ID );
-	$newsletter_site_url = ec_get_site_url( 'newsletter' );
+	$main_site_url       = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : home_url();
+	$subject             = $post->post_title;
+	$read_on_web_url     = get_permalink( $post->ID );
+	$newsletter_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'newsletter' ) : home_url();
 
 	$navbar_links = array(
-		__( 'Main', 'extrachill-newsletter' ) => $main_site_url,
-		__( 'Community', 'extrachill-newsletter' ) => ec_get_site_url( 'community' ),
-		__( 'Events', 'extrachill-newsletter' ) => ec_get_site_url( 'events' ),
-		__( 'Shop', 'extrachill-newsletter' ) => ec_get_site_url( 'shop' ),
-		__( 'Artist Platform', 'extrachill-newsletter' ) => ec_get_site_url( 'artist' ),
-		__( 'Documentation', 'extrachill-newsletter' ) => ec_get_site_url( 'docs' ),
-		__( 'Newsletters', 'extrachill-newsletter' ) => $newsletter_site_url,
+		__( 'Main', 'extrachill-newsletter' )            => $main_site_url,
+		__( 'Community', 'extrachill-newsletter' )       => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : '',
+		__( 'Events', 'extrachill-newsletter' )          => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'events' ) : '',
+		__( 'Shop', 'extrachill-newsletter' )            => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'shop' ) : '',
+		__( 'Artist Platform', 'extrachill-newsletter' ) => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : '',
+		__( 'Documentation', 'extrachill-newsletter' )   => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'docs' ) : '',
+		__( 'Newsletters', 'extrachill-newsletter' )     => $newsletter_site_url,
 	);
 
+	/**
+	 * Filter the newsletter email footer navigation links.
+	 *
+	 * @since 0.1.0
+	 * @param array   $navbar_links Footer links keyed by label.
+	 * @param WP_Post $post         Newsletter post object.
+	 */
 	$navbar_links = apply_filters( 'extrachill_newsletter_email_footer_links', $navbar_links, $post );
 
-	$logo = '<a href="' . esc_url( $main_site_url ) . '" style="text-align: center; display: block; margin: 20px auto; border-bottom: 2px solid #53940b;"><img src="https://newsletter.extrachill.com/wp-content/uploads/sites/9/2026/01/Extra-Chill-Main-Logo-2026.png" alt="Extra Chill" width="60" style="padding-bottom: 10px; max-width: 60px; height: auto; display: block; margin: 0 auto; border: 0;"></a>';
-	$content = $logo . $content;
+	$logo_url = extrachill_newsletter_get_email_logo_url();
+	$logo     = '<a href="' . esc_url( $main_site_url ) . '" style="text-align: center; display: block; margin: 20px auto; border-bottom: 2px solid #53940b;"><img src="' . esc_url( $logo_url ) . '" alt="Extra Chill" width="60" style="padding-bottom: 10px; max-width: 60px; height: auto; display: block; margin: 0 auto; border: 0;"></a>';
+	$content  = $logo . $content;
 
 	$unsubscribe_link = '<p style="text-align: center; margin: 18px 0 0; font-size: 14px; line-height: 1.5em;"><unsubscribe style="color: #6b7280; text-decoration: none;">Unsubscribe</unsubscribe></p>';
 
 	$html_template = generate_email_html_template( $subject, $content, $unsubscribe_link, $read_on_web_url, $navbar_links );
 
 	return array(
-		'subject' => $subject,
+		'subject'       => $subject,
 		'html_template' => $html_template,
-		'plain_text' => wp_strip_all_tags( $content ),
+		'plain_text'    => wp_strip_all_tags( $content ),
 	);
 }
 
+/**
+ * Generate the full HTML email shell.
+ *
+ * Canonical email-shell builder consumed by all email content preparation paths.
+ *
+ * @since 0.1.0
+ * @param string $subject          Email subject.
+ * @param string $content          Email body HTML (already includes the logo).
+ * @param string $unsubscribe_link Unsubscribe HTML.
+ * @param string $read_on_web_url  URL to read the newsletter on the web.
+ * @param array  $navbar_links     Footer navigation links.
+ * @return string Complete HTML email.
+ */
 function generate_email_html_template( $subject, $content, $unsubscribe_link, $read_on_web_url, $navbar_links ) {
 	$preheader_text = wp_strip_all_tags( $subject );
 
