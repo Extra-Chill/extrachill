@@ -104,6 +104,10 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	const pendingRerunRef = useRef( false );
 	const consecutiveFailuresRef = useRef( 0 );
 	const autosaveErrorActiveRef = useRef( false );
+	// Monotonic edit counter. Incremented on every title/content edit. Captured
+	// at the start of an autosave so we can detect edits that land during the
+	// in-flight window and avoid marking those keystrokes as "saved".
+	const editSeqRef = useRef( 0 );
 	const hasUnsavedChangesRef = useRef( false );
 	const activePostIdRef = useRef< number | null >( null );
 	const titleRef = useRef( '' );
@@ -382,6 +386,12 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
+		// Capture the edit sequence for this snapshot. If the user types during
+		// the in-flight await, editSeqRef advances past this value and we must
+		// NOT mark the draft clean — the trailing keystrokes aren't on the
+		// server yet.
+		const savedSeq = editSeqRef.current;
+
 		isAutosavingRef.current = true;
 
 		// Expose the in-flight operation as a promise so flushCurrentDraft (and
@@ -413,8 +423,17 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 						setActivePostId( post.id );
 					}
 				}
-				lastSavedPayloadRef.current = payload;
-				setHasUnsavedChanges( false );
+				// Only record this payload as the saved baseline and clear the
+				// unsaved flag if no edit landed during the in-flight window.
+				// If editSeqRef advanced, the user typed while we were saving —
+				// those keystrokes are unsaved, so keep hasUnsavedChanges true
+				// and schedule a re-run to flush them.
+				if ( editSeqRef.current === savedSeq ) {
+					lastSavedPayloadRef.current = payload;
+					setHasUnsavedChanges( false );
+				} else {
+					pendingRerunRef.current = true;
+				}
 				// Successful save — reset failure counter and clear any prior
 				// autosave error message (but not manual save errors).
 				consecutiveFailuresRef.current = 0;
@@ -546,6 +565,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		}
 
 		const onContentChange = (): void => {
+			editSeqRef.current += 1;
 			contentSnapshotRef.current = getContent();
 			const payload = JSON.stringify( { title: titleRef.current.trim(), content: contentSnapshotRef.current.trim() } );
 			setHasUnsavedChanges( payload !== lastSavedPayloadRef.current );
@@ -744,6 +764,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	};
 
 	const onTitleChange = ( e: ChangeEvent< HTMLInputElement > ): void => {
+		editSeqRef.current += 1;
 		titleRef.current = e.target.value;
 		setTitle( e.target.value );
 		setError( '' );
