@@ -1007,6 +1007,54 @@ body.sticky-header #masthead {
     fill: var(--button-text-color);
 }
 
+/* Search scope toggle (This site / Entire network) */
+.search-scope {
+    display: flex;
+    margin: var(--spacing-md) 0 0;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-pill);
+    overflow: hidden;
+    background-color: var(--background-color);
+}
+
+.search-scope__option {
+    flex: 1;
+    margin: 0;
+    cursor: pointer;
+}
+
+.search-scope__option input[type="radio"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.search-scope__label {
+    display: block;
+    text-align: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.search-scope__option input[type="radio"]:checked + .search-scope__label {
+    background-color: var(--accent);
+    color: var(--button-text-color);
+}
+
+.search-scope__option input[type="radio"]:focus-visible + .search-scope__label {
+    outline: 2px solid var(--focus-border-color);
+    outline-offset: -2px;
+}
+
 body.search-overlay-open {
     overflow: hidden;
 }
