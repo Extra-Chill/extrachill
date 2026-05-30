@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.14.0] - 2026-05-30
+
+### Added
+- add Snowflake, Icicle, and Iceberg rank tiers
+- data-driven, filterable rank tier registry with progress helpers
+- capability gate + live-staging feature rollout primitives
+
+### Changed
+- rename Snowflake rank tier to Powder
+
+### Fixed
+- read requested_at key in artist access request list (closes #61)
+
 ## [0.13.2] - 2026-05-27
 
 ### Fixed
