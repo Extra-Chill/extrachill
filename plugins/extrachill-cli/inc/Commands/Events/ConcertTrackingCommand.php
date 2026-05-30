@@ -184,7 +184,10 @@ class ConcertTrackingCommand {
 			$rows = array();
 			foreach ( $data as $key => $value ) {
 				$display = is_bool( $value ) ? ( $value ? 'yes' : 'no' ) : $value;
-				$rows[]  = array( 'Field' => $key, 'Value' => $display );
+				$rows[]  = array(
+					'Field' => $key,
+					'Value' => $display,
+				);
 			}
 			WP_CLI\Utils\format_items( 'table', $rows, array( 'Field', 'Value' ) );
 		}
@@ -288,7 +291,7 @@ class ConcertTrackingCommand {
 			$rows[]  = array(
 				'event_id' => $show['event_id'],
 				'date'     => $show['event_date'] ?? '',
-				'artist'   => mb_substr( $artists ?: $show['title'], 0, 40 ),
+				'artist'   => mb_substr( $artists ? $artists : $show['title'], 0, 40 ),
 				'venue'    => $show['venue']['name'] ?? '',
 				'city'     => $show['city']['name'] ?? '',
 				'timing'   => $show['timing'] ?? '',
@@ -357,17 +360,35 @@ class ConcertTrackingCommand {
 		WP_CLI::log( str_repeat( '─', strlen( $label ) ) );
 
 		$rows = array(
-			array( 'Metric' => 'Total Shows', 'Value' => $stats['total_shows'] ),
-			array( 'Metric' => 'Unique Venues', 'Value' => $stats['unique_venues'] ),
-			array( 'Metric' => 'Unique Artists', 'Value' => $stats['unique_artists'] ),
-			array( 'Metric' => 'Unique Cities', 'Value' => $stats['unique_cities'] ),
+			array(
+				'Metric' => 'Total Shows',
+				'Value'  => $stats['total_shows'],
+			),
+			array(
+				'Metric' => 'Unique Venues',
+				'Value'  => $stats['unique_venues'],
+			),
+			array(
+				'Metric' => 'Unique Artists',
+				'Value'  => $stats['unique_artists'],
+			),
+			array(
+				'Metric' => 'Unique Cities',
+				'Value'  => $stats['unique_cities'],
+			),
 		);
 
 		if ( $stats['first_show'] ) {
-			$rows[] = array( 'Metric' => 'First Show', 'Value' => $stats['first_show']['date'] . ' — ' . $stats['first_show']['title'] );
+			$rows[] = array(
+				'Metric' => 'First Show',
+				'Value'  => $stats['first_show']['date'] . ' — ' . $stats['first_show']['title'],
+			);
 		}
 		if ( $stats['latest_show'] ) {
-			$rows[] = array( 'Metric' => 'Latest Show', 'Value' => $stats['latest_show']['date'] . ' — ' . $stats['latest_show']['title'] );
+			$rows[] = array(
+				'Metric' => 'Latest Show',
+				'Value'  => $stats['latest_show']['date'] . ' — ' . $stats['latest_show']['title'],
+			);
 		}
 
 		WP_CLI\Utils\format_items( 'table', $rows, array( 'Metric', 'Value' ) );
@@ -392,7 +413,10 @@ class ConcertTrackingCommand {
 			WP_CLI::log( 'Shows by Year:' );
 			$year_rows = array();
 			foreach ( $stats['shows_by_year'] as $yr => $count ) {
-				$year_rows[] = array( 'Year' => $yr, 'Shows' => $count );
+				$year_rows[] = array(
+					'Year'  => $yr,
+					'Shows' => $count,
+				);
 			}
 			WP_CLI\Utils\format_items( 'table', $year_rows, array( 'Year', 'Shows' ) );
 		}
@@ -477,9 +501,18 @@ class ConcertTrackingCommand {
 		$count_label = $result['count_label'] ?? (string) ( $result['count'] ?? 0 );
 
 		$rows = array(
-			array( 'Field' => 'Event', 'Value' => $data['title'] ),
-			array( 'Field' => 'Timing', 'Value' => $data['timing'] . ' (' . $data['label'] . ')' ),
-			array( 'Field' => 'Attendance', 'Value' => $count_label ),
+			array(
+				'Field' => 'Event',
+				'Value' => $data['title'],
+			),
+			array(
+				'Field' => 'Timing',
+				'Value' => $data['timing'] . ' (' . $data['label'] . ')',
+			),
+			array(
+				'Field' => 'Attendance',
+				'Value' => $count_label,
+			),
 		);
 
 		WP_CLI\Utils\format_items( 'table', $rows, array( 'Field', 'Value' ) );

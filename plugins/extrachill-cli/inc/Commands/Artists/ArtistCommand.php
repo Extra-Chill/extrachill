@@ -60,7 +60,7 @@ class ArtistCommand {
 
 		$format = $assoc_args['format'] ?? 'table';
 
-		if ( $format === 'json' ) {
+		if ( 'json' === $format ) {
 			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		} else {
 			$display = array();
@@ -140,7 +140,7 @@ class ArtistCommand {
 		WP_CLI::success( sprintf( 'Artist created: %s (ID: %d)', $result['name'], $result['id'] ) );
 
 		$format = $assoc_args['format'] ?? 'table';
-		if ( $format === 'json' ) {
+		if ( 'json' === $format ) {
 			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
@@ -224,7 +224,7 @@ class ArtistCommand {
 		WP_CLI::success( sprintf( 'Artist updated: %s (ID: %d)', $result['name'], $result['id'] ) );
 
 		$format = $assoc_args['format'] ?? 'table';
-		if ( $format === 'json' ) {
+		if ( 'json' === $format ) {
 			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
@@ -270,9 +270,9 @@ class ArtistCommand {
 
 		$format = $assoc_args['format'] ?? 'json';
 
-		if ( $format === 'json' ) {
+		if ( 'json' === $format ) {
 			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
-		} elseif ( $format === 'yaml' ) {
+		} elseif ( 'yaml' === $format ) {
 			WP_CLI::log( \Spyc::YAMLDump( $result, false, false, true ) );
 		}
 	}
@@ -332,7 +332,7 @@ class ArtistCommand {
 		WP_CLI::success( sprintf( 'Saved %d social link(s) for artist %d.', $count, $artist_id ) );
 
 		$format = $assoc_args['format'] ?? 'json';
-		if ( $format === 'json' ) {
+		if ( 'json' === $format ) {
 			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
@@ -439,11 +439,13 @@ class ArtistCommand {
 		$links = $current['links'] ?? array();
 
 		// Ensure the target section exists.
-		while ( count( $links ) <= $section ) {
-			$links[] = array(
+		$link_count = count( $links );
+		while ( $link_count <= $section ) {
+			$links[]    = array(
 				'section_title' => $assoc_args['section-title'] ?? '',
 				'links'         => array(),
 			);
+			$link_count = count( $links );
 		}
 
 		// Check for duplicate URL in the target section.
@@ -631,11 +633,13 @@ class ArtistCommand {
 		$to_section = isset( $assoc_args['to-section'] ) ? absint( $assoc_args['to-section'] ) : $from_si;
 
 		// Ensure target section exists.
-		while ( count( $links ) <= $to_section ) {
-			$links[] = array(
+		$target_count = count( $links );
+		while ( $target_count <= $to_section ) {
+			$links[]      = array(
 				'section_title' => '',
 				'links'         => array(),
 			);
+			$target_count = count( $links );
 		}
 
 		$target_links = &$links[ $to_section ]['links'];
@@ -739,7 +743,10 @@ class ArtistCommand {
 
 			$display = array();
 			foreach ( $current['css_vars'] ?? array() as $key => $value ) {
-				$display[] = array( 'Variable' => $key, 'Value' => $value );
+				$display[] = array(
+					'Variable' => $key,
+					'Value'    => $value,
+				);
 			}
 			Utils\format_items( 'table', $display, array( 'Variable', 'Value' ) );
 			return;
@@ -770,7 +777,7 @@ class ArtistCommand {
 			$raw_vars = is_array( $assoc_args['css-var'] ) ? $assoc_args['css-var'] : array( $assoc_args['css-var'] );
 			foreach ( $raw_vars as $pair ) {
 				$eq_pos = strpos( $pair, '=' );
-				if ( $eq_pos !== false ) {
+				if ( false !== $eq_pos ) {
 					$key            = substr( $pair, 0, $eq_pos );
 					$value          = substr( $pair, $eq_pos + 1 );
 					$css_vars[ $key ] = $value;
@@ -887,5 +894,4 @@ class ArtistCommand {
 		}
 		WP_CLI::success( sprintf( 'Updated %d setting(s) for artist %d.', count( $settings ), $artist_id ) );
 	}
-
 }

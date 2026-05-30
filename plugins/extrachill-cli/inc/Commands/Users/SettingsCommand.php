@@ -62,13 +62,34 @@ class SettingsCommand {
 
 		if ( 'table' === $format ) {
 			$fields = array(
-				array( 'Field' => 'user_id', 'Value' => $result['user_id'] ),
-				array( 'Field' => 'first_name', 'Value' => $result['first_name'] ),
-				array( 'Field' => 'last_name', 'Value' => $result['last_name'] ),
-				array( 'Field' => 'display_name', 'Value' => $result['display_name'] ),
-				array( 'Field' => 'email', 'Value' => $result['email'] ),
-				array( 'Field' => 'pending_email', 'Value' => $result['pending_email'] ?? '(none)' ),
-				array( 'Field' => 'display_name_options', 'Value' => implode( ', ', $result['display_name_options'] ) ),
+				array(
+					'Field' => 'user_id',
+					'Value' => $result['user_id'],
+				),
+				array(
+					'Field' => 'first_name',
+					'Value' => $result['first_name'],
+				),
+				array(
+					'Field' => 'last_name',
+					'Value' => $result['last_name'],
+				),
+				array(
+					'Field' => 'display_name',
+					'Value' => $result['display_name'],
+				),
+				array(
+					'Field' => 'email',
+					'Value' => $result['email'],
+				),
+				array(
+					'Field' => 'pending_email',
+					'Value' => $result['pending_email'] ?? '(none)',
+				),
+				array(
+					'Field' => 'display_name_options',
+					'Value' => implode( ', ', $result['display_name_options'] ),
+				),
 			);
 			WP_CLI\Utils\format_items( 'table', $fields, array( 'Field', 'Value' ) );
 		} else {

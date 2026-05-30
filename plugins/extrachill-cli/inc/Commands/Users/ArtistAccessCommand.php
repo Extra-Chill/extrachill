@@ -170,13 +170,16 @@ class ArtistAccessCommand {
 	 */
 	private function resolve_user( string $identifier ): ?\WP_User {
 		if ( is_numeric( $identifier ) ) {
-			return get_user_by( 'ID', absint( $identifier ) ) ?: null;
+			$user = get_user_by( 'ID', absint( $identifier ) );
+			return $user ? $user : null;
 		}
 
 		if ( is_email( $identifier ) ) {
-			return get_user_by( 'email', $identifier ) ?: null;
+			$user = get_user_by( 'email', $identifier );
+			return $user ? $user : null;
 		}
 
-		return get_user_by( 'login', $identifier ) ?: null;
+		$user = get_user_by( 'login', $identifier );
+		return $user ? $user : null;
 	}
 }

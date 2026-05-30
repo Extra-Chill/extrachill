@@ -723,7 +723,8 @@ class LocationCommand {
 					continue;
 				}
 
-				$ext  = pathinfo( $src, PATHINFO_EXTENSION ) ?: 'png';
+				$ext  = pathinfo( $src, PATHINFO_EXTENSION );
+				$ext  = $ext ? $ext : 'png';
 				$dest = sprintf( '%s/roundup-slide-%d.%s', $output_dir, $i + 1, $ext );
 
 				if ( ! copy( $src, $dest ) ) {

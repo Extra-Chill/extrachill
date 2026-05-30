@@ -98,7 +98,7 @@ class WarmCommand {
 			if ( $events_blog_id ) {
 				switch_to_blog( $events_blog_id );
 				$cached = get_transient( 'ec_upcoming_counts_location' );
-				WP_CLI::log( $cached !== false
+				WP_CLI::log( false !== $cached
 					? sprintf( '  blog/location-events: WARM (%d terms)', count( $cached ) )
 					: '  blog/location-events: COLD' );
 				restore_current_blog();
@@ -108,7 +108,7 @@ class WarmCommand {
 			if ( $wire_blog_id ) {
 				switch_to_blog( $wire_blog_id );
 				$cached = get_transient( 'ec_wire_counts_festival' );
-				WP_CLI::log( $cached !== false
+				WP_CLI::log( false !== $cached
 					? sprintf( '  blog/wire-festivals: WARM (%d terms)', count( $cached ) )
 					: '  blog/wire-festivals: COLD' );
 				restore_current_blog();

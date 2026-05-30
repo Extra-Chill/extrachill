@@ -63,14 +63,38 @@ class ProfileCommand {
 		if ( 'table' === $format ) {
 			$links_count = isset( $result['links'] ) ? count( $result['links'] ) : 0;
 			$fields = array(
-				array( 'Field' => 'user_id', 'Value' => $result['user_id'] ),
-				array( 'Field' => 'display_name', 'Value' => $result['display_name'] ),
-				array( 'Field' => 'username', 'Value' => $result['username'] ),
-				array( 'Field' => 'custom_title', 'Value' => $result['custom_title'] ?: '(default)' ),
-				array( 'Field' => 'bio', 'Value' => mb_substr( $result['bio'] ?? '', 0, 80 ) . ( mb_strlen( $result['bio'] ?? '' ) > 80 ? '...' : '' ) ),
-				array( 'Field' => 'local_city', 'Value' => $result['local_city'] ?: '(none)' ),
-				array( 'Field' => 'links', 'Value' => $links_count . ' link(s)' ),
-				array( 'Field' => 'artist_status', 'Value' => $result['artist_access']['status'] ?? 'none' ),
+				array(
+					'Field' => 'user_id',
+					'Value' => $result['user_id'],
+				),
+				array(
+					'Field' => 'display_name',
+					'Value' => $result['display_name'],
+				),
+				array(
+					'Field' => 'username',
+					'Value' => $result['username'],
+				),
+				array(
+					'Field' => 'custom_title',
+					'Value' => $result['custom_title'] ? $result['custom_title'] : '(default)',
+				),
+				array(
+					'Field' => 'bio',
+					'Value' => mb_substr( $result['bio'] ?? '', 0, 80 ) . ( mb_strlen( $result['bio'] ?? '' ) > 80 ? '...' : '' ),
+				),
+				array(
+					'Field' => 'local_city',
+					'Value' => $result['local_city'] ? $result['local_city'] : '(none)',
+				),
+				array(
+					'Field' => 'links',
+					'Value' => $links_count . ' link(s)',
+				),
+				array(
+					'Field' => 'artist_status',
+					'Value' => $result['artist_access']['status'] ?? 'none',
+				),
 			);
 			WP_CLI\Utils\format_items( 'table', $fields, array( 'Field', 'Value' ) );
 		} else {

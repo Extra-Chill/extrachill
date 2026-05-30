@@ -168,7 +168,7 @@ class NewsletterCommand {
 			}
 		}
 
-		if ( $result['failed'] === 0 && empty( $result['dry_run'] ) ) {
+		if ( 0 === $result['failed'] && empty( $result['dry_run'] ) ) {
 			WP_CLI::success( 'Sync complete.' );
 		}
 	}
@@ -262,7 +262,7 @@ class NewsletterCommand {
 				$int_rows[] = array(
 					'Context'    => $context,
 					'Label'     => $integration['label'],
-					'List ID'   => $integration['list_id'] ?: '(not set)',
+					'List ID'   => $integration['list_id'] ? $integration['list_id'] : '(not set)',
 					'Configured' => $integration['list_id_set'] ? 'Yes' : 'No',
 				);
 			}

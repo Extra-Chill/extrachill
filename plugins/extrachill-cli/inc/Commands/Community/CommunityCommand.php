@@ -40,11 +40,26 @@ class CommunityCommand {
 		}
 
 		$items = array(
-			array( 'Metric' => 'Forums', 'Value' => $result['forums'] ),
-			array( 'Metric' => 'Topics', 'Value' => $result['topics'] ),
-			array( 'Metric' => 'Replies', 'Value' => $result['replies'] ),
-			array( 'Metric' => 'Active Users', 'Value' => $result['active_users'] ),
-			array( 'Metric' => 'Total Upvotes', 'Value' => $result['total_upvotes'] ),
+			array(
+				'Metric' => 'Forums',
+				'Value'  => $result['forums'],
+			),
+			array(
+				'Metric' => 'Topics',
+				'Value'  => $result['topics'],
+			),
+			array(
+				'Metric' => 'Replies',
+				'Value'  => $result['replies'],
+			),
+			array(
+				'Metric' => 'Active Users',
+				'Value'  => $result['active_users'],
+			),
+			array(
+				'Metric' => 'Total Upvotes',
+				'Value'  => $result['total_upvotes'],
+			),
 		);
 
 		Utils\format_items( 'table', $items, array( 'Metric', 'Value' ) );
@@ -208,10 +223,22 @@ class CommunityCommand {
 		}
 
 		$items = array(
-			array( 'Field' => 'User', 'Value' => sprintf( '%s (%d)', $result['user_login'], $result['user_id'] ) ),
-			array( 'Field' => 'Display Name', 'Value' => $result['display_name'] ),
-			array( 'Field' => 'Points', 'Value' => $result['total_points'] ),
-			array( 'Field' => 'Rank', 'Value' => $result['rank'] ),
+			array(
+				'Field' => 'User',
+				'Value' => sprintf( '%s (%d)', $result['user_login'], $result['user_id'] ),
+			),
+			array(
+				'Field' => 'Display Name',
+				'Value' => $result['display_name'],
+			),
+			array(
+				'Field' => 'Points',
+				'Value' => $result['total_points'],
+			),
+			array(
+				'Field' => 'Rank',
+				'Value' => $result['rank'],
+			),
 		);
 
 		Utils\format_items( 'table', $items, array( 'Field', 'Value' ) );
@@ -685,14 +712,38 @@ class CommunityCommand {
 
 		$t = $result['topic'];
 		$items = array(
-			array( 'Field' => 'Topic ID', 'Value' => $t['topic_id'] ),
-			array( 'Field' => 'Title', 'Value' => $t['title'] ),
-			array( 'Field' => 'Forum ID', 'Value' => $t['forum_id'] ),
-			array( 'Field' => 'Author', 'Value' => sprintf( '%s (%d)', $t['author_name'], $t['author_id'] ) ),
-			array( 'Field' => 'Replies', 'Value' => $t['reply_count'] ),
-			array( 'Field' => 'Voices', 'Value' => $t['voice_count'] ),
-			array( 'Field' => 'Date', 'Value' => $t['date'] ),
-			array( 'Field' => 'URL', 'Value' => $t['url'] ),
+			array(
+				'Field' => 'Topic ID',
+				'Value' => $t['topic_id'],
+			),
+			array(
+				'Field' => 'Title',
+				'Value' => $t['title'],
+			),
+			array(
+				'Field' => 'Forum ID',
+				'Value' => $t['forum_id'],
+			),
+			array(
+				'Field' => 'Author',
+				'Value' => sprintf( '%s (%d)', $t['author_name'], $t['author_id'] ),
+			),
+			array(
+				'Field' => 'Replies',
+				'Value' => $t['reply_count'],
+			),
+			array(
+				'Field' => 'Voices',
+				'Value' => $t['voice_count'],
+			),
+			array(
+				'Field' => 'Date',
+				'Value' => $t['date'],
+			),
+			array(
+				'Field' => 'URL',
+				'Value' => $t['url'],
+			),
 		);
 
 		Utils\format_items( 'table', $items, array( 'Field', 'Value' ) );

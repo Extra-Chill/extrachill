@@ -108,7 +108,7 @@ class VenueDiscoveryCommand {
 			$rows[] = array(
 				'name'     => $venue['name'],
 				'address'  => mb_substr( $venue['address'], 0, 45 ),
-				'website'  => $venue['website'] ?: '(none)',
+				'website'  => $venue['website'] ? $venue['website'] : '(none)',
 				'known'    => $venue['is_known'] ? 'yes' : 'NEW',
 			);
 		}
@@ -216,7 +216,7 @@ class VenueDiscoveryCommand {
 			WP_CLI::log( '' );
 			WP_CLI::log( 'Add this venue with:' );
 			WP_CLI::log( sprintf( '  wp extrachill venues add --pipeline=<id> --name="%s" --events-url="%s"',
-				$result['name'] ?: '(venue name)',
+				$result['name'] ? $result['name'] : '(venue name)',
 				$result['events_url']
 			) );
 		} else {

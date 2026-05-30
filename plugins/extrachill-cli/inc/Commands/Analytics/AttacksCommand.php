@@ -160,7 +160,7 @@ class AttacksCommand {
 				'Total: %s attack events across %s distinct %s%s',
 				number_format( $result['total'] ),
 				number_format( $result['distinct'] ),
-				$result['group_by'] . ( $result['distinct'] === 1 ? '' : 's' ),
+				$result['group_by'] . ( 1 === $result['distinct'] ? '' : 's' ),
 				$result['truncated'] ? sprintf( ' (showing top %d)', $limit ) : ''
 			) );
 		}

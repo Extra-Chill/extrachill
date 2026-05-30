@@ -134,7 +134,14 @@ class GiveawayCommand {
 
 		Utils\format_items( $format, $rows, array( 'rank', 'username', 'comment', 'tags', 'announced' ) );
 
-		$announced_count = count( array_filter( $winners, function ( $w ) { return $w['announced']; } ) );
+		$announced_count = count(
+			array_filter(
+				$winners,
+				function ( $w ) {
+					return $w['announced'];
+				}
+			)
+		);
 		if ( $announced_count > 0 ) {
 			WP_CLI::success( sprintf( '%d winner(s) announced via comment reply.', $announced_count ) );
 		}
