@@ -59,6 +59,15 @@ require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-db.php';
 // Sitemap provider loaded early so the class is defined before wp_loaded registration.
 require_once EXTRACHILL_SEO_PATH . 'inc/core/sitemap.php';
 
+// Sitemap health guardrail: schedules the daily check and registers its cron handler.
+require_once EXTRACHILL_SEO_PATH . 'inc/core/sitemap-health.php';
+
+// Clear the scheduled sitemap health check on deactivation.
+register_deactivation_hook(
+	__FILE__,
+	'ExtraChill\\SEO\\Core\\ec_seo_unschedule_sitemap_health_check'
+);
+
 /**
  * Initialize plugin on wp_loaded
  *
@@ -145,6 +154,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/config-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/analysis-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/redirect-abilities.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/sitemap-health-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/class-seo-abilities.php';
 
 		new \ExtraChill\SEO\Abilities\SEO_Abilities();

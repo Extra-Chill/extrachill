@@ -47,6 +47,7 @@ class SEO_Abilities {
 		$this->register_get_seo_config();
 		$this->register_update_seo_config();
 		$this->register_ping_indexnow();
+		$this->register_check_sitemap_health();
 
 		// Redirect management abilities.
 		\ExtraChill\SEO\Abilities\register_redirect_abilities();
@@ -352,6 +353,53 @@ class SEO_Abilities {
 						'readonly'    => false,
 						'idempotent'  => false,
 						'destructive' => false,
+					),
+				),
+			)
+		);
+	}
+
+	private function register_check_sitemap_health(): void {
+		wp_register_ability(
+			'extrachill/check-sitemap-health',
+			array(
+				'label'        => __( 'Check Sitemap Health', 'extrachill-seo' ),
+				'description'  => __( 'Verify that WordPress core sitemap sub-files (per post type and taxonomy) return HTTP 200 as a crawler would see them. Catches edge/nginx rules that silently block the wp-sitemap namespace.', 'extrachill-seo' ),
+				'category'     => 'extrachill-seo',
+				'input_schema' => array(
+					'type'       => 'object',
+					'properties' => array(
+						'blog_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'Blog ID to check (default: all sites).', 'extrachill-seo' ),
+						),
+						'cached'  => array(
+							'type'        => 'boolean',
+							'default'     => false,
+							'description' => __( 'Return the last stored scheduled result instead of running a live check.', 'extrachill-seo' ),
+						),
+					),
+				),
+				'output_schema' => array(
+					'type'       => 'object',
+					'properties' => array(
+						'healthy'   => array( 'type' => 'boolean' ),
+						'checked'   => array( 'type' => 'integer' ),
+						'failures'  => array( 'type' => 'array' ),
+						'by_site'   => array( 'type' => 'object' ),
+						'timestamp' => array( 'type' => 'string', 'format' => 'date-time' ),
+						'message'   => array( 'type' => 'string' ),
+					),
+				),
+				'execute_callback'    => __NAMESPACE__ . '\\extrachill_seo_ability_check_sitemap_health',
+				'permission_callback' => function() {
+					return current_user_can( 'manage_network_options' );
+				},
+				'meta' => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'   => true,
+						'idempotent' => true,
 					),
 				),
 			)
