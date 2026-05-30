@@ -25,13 +25,13 @@ function extrachill_add_user_role_fields($user) {
 	<h3><?php esc_html_e('Extra User Information', 'extra-chill-community'); ?></h3>
 	<table class="form-table">
 		<tr>
-			<th><label for="user_is_artist"><?php esc_html_e('Artist Status'); ?></label></th>
+			<th><label for="user_is_artist"><?php esc_html_e('Artist Status', 'extra-chill-community'); ?></label></th>
 			<td>
 				<input type="checkbox" name="user_is_artist" id="user_is_artist" value="1" <?php checked($artist, true); ?>>
 			</td>
 		</tr>
 		<tr>
-			<th><label for="user_is_professional"><?php esc_html_e('Industry Professional Status'); ?></label></th>
+			<th><label for="user_is_professional"><?php esc_html_e('Industry Professional Status', 'extra-chill-community'); ?></label></th>
 			<td>
 				<input type="checkbox" name="user_is_professional" id="user_is_professional" value="1" <?php checked($professional, true); ?>>
 			</td>
