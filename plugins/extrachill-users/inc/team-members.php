@@ -24,6 +24,10 @@ require_once __DIR__ . '/team-members/role.php';
  * a team member — full stop. The previous meta-based system was
  * retired by the one-time migration in inc/team-members/role.php.
  *
+ * This is the source of truth for the `team` rung of the feature-rollout
+ * ladder (ec_feature_available()). Slated for review during the gate-API
+ * migration per Extra-Chill/extrachill-users#60 (pending homeboy#3075).
+ *
  * @param int $user_id User ID (0 = current user).
  * @return bool
  */

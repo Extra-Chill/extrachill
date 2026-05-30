@@ -87,6 +87,11 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 /**
  * Check if user can create artist profiles
  *
+ * @deprecated-soon Slated for migration to ec_user_can( 'create_artist_profile' )
+ *                  and deletion per Extra-Chill/extrachill-users#60 (pending the
+ *                  refactor tooling in homeboy#3075). Kept as a thin compat
+ *                  function; ec_user_can() delegates here so logic has one home.
+ *
  * @param int|null $user_id User ID (defaults to current user)
  * @return bool             True if user has permission to create artist profiles
  */
@@ -169,6 +174,11 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
  * - An administrator (manage_options capability)
  * - The post author of the artist profile
  * - Listed in the user's _artist_profile_ids meta (roster member)
+ *
+ * @deprecated-soon Slated for migration to ec_user_can( 'manage_artist', [ 'artist_id' => $id ] )
+ *                  and deletion per Extra-Chill/extrachill-users#60 (pending the
+ *                  refactor tooling in homeboy#3075). Kept as a thin compat
+ *                  function; ec_user_can() delegates here so logic has one home.
  *
  * @param int|null $user_id   User ID (defaults to current user)
  * @param int|null $artist_id Artist profile post ID
