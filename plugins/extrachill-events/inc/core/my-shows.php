@@ -68,7 +68,8 @@ function ec_events_hide_my_shows_page_title( $show, $post_id ) {
 		return $show;
 	}
 
-	if ( is_page( 'my-shows' ) ) {
+	$page = get_page_by_path( 'my-shows' );
+	if ( $page && (int) $post_id === (int) $page->ID ) {
 		return false;
 	}
 
