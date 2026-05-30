@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.2] - 2026-05-30
+
+### Fixed
+- center BlockShellInner narrow/wide variants with margin-inline:auto
+- fix(InlineStatus, Badge): use --info-color / --warning-color tokens for dark-mode parity
+
 ## [0.5.1] - 2026-05-27
 
 ### Changed
