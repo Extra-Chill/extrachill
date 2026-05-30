@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.1] - 2026-05-30
+
+### Changed
+- drop ad-hoc --brand-blue token, use theme --link-color
+- derive artist URL from ec_get_site_url instead of hardcoded domain (refs #36)
+
 ## [1.8.0] - 2026-05-30
 
 ### Added
