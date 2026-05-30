@@ -227,6 +227,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/priority-events.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/breadcrumbs.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/related-events.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/network-bridge.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/actions.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/concert-tracking-integration.php';
