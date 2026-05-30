@@ -1,6 +1,11 @@
 <?php
 /**
  * Trivia block render template.
+ *
+ * Emits an empty mount root plus a minimal JSON-island config. The React view
+ * (view.tsx) collects every trivia block on the page into a single quiz,
+ * renders the questions and the shared score display, and owns all interaction
+ * state. No server-rendered markup is hydrated by reading data-* attributes.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,36 +33,26 @@ if ( empty( $question ) || empty( array_filter( $options ) ) ) {
 	return;
 }
 
+$config = array(
+	'question'            => $question,
+	'options'            => array_values( (array) $options ),
+	'correctAnswer'      => $correct_answer,
+	'answerJustification' => $answer_justification,
+	'blockId'            => $block_id,
+	'resultMessages'     => $result_messages,
+	'scoreRanges'        => $score_ranges,
+	'anchor'             => isset( $attributes['anchor'] ) ? $attributes['anchor'] : '',
+	'className'          => isset( $attributes['className'] ) ? $attributes['className'] : '',
+);
+
 $wrapper_attributes = get_block_wrapper_attributes(
 	array(
-		'class'                     => 'trivia-block',
-		'data-block-id'             => esc_attr( $block_id ),
-		'data-correct-answer'       => esc_attr( $correct_answer ),
-		'data-answer-justification' => esc_attr( $answer_justification ),
-		'data-result-messages'      => esc_attr( wp_json_encode( $result_messages ) ),
-		'data-score-ranges'         => esc_attr( wp_json_encode( $score_ranges ) ),
+		'class' => 'extrachill-blocks-trivia-mount',
 	)
 );
 ?>
 <div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
-	<div class="trivia-block__question">
-		<h3><?php echo wp_kses_post( $question ); ?></h3>
-	</div>
-	<div class="trivia-block__options">
-		<?php foreach ( $options as $index => $option ) : ?>
-			<?php if ( ! empty( $option ) ) : ?>
-				<button class="trivia-block__option" data-option-index="<?php echo esc_attr( $index ); ?>" type="button">
-					<?php echo esc_html( $option ); ?>
-				</button>
-			<?php endif; ?>
-		<?php endforeach; ?>
-	</div>
-	<div class="trivia-block__feedback" style="display: none;"></div>
-	<?php if ( ! empty( $answer_justification ) ) : ?>
-		<div class="trivia-block__justification" style="display: none;">
-			<div class="trivia-block__justification-content">
-				<?php echo wp_kses_post( $answer_justification ); ?>
-			</div>
-		</div>
-	<?php endif; ?>
+	<script type="application/json" class="extrachill-blocks-trivia-config">
+		<?php echo wp_json_encode( $config ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+	</script>
 </div>
