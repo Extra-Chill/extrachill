@@ -5,6 +5,9 @@
  * Generates and validates one-time tokens used to bootstrap a WordPress
  * cookie session in a real browser after app authentication.
  *
+ * The plaintext token is returned to the client, but the site transient is
+ * keyed by sha256(token) so a cache/Redis dump never exposes live tokens.
+ *
  * @package ExtraChill\Users
  */
 
@@ -19,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  */
 function extrachill_users_create_browser_handoff_token( int $user_id, string $redirect_url ): string {
 	$token = wp_generate_password( 64, false, false );
-	$key   = 'ec_browser_handoff_' . $token;
+	$key   = 'ec_browser_handoff_' . hash( 'sha256', $token );
 
 	set_site_transient(
 		$key,
@@ -46,7 +49,7 @@ function extrachill_users_consume_browser_handoff_token( string $token ) {
 		return new WP_Error( 'invalid_handoff_token', 'Invalid handoff token.', array( 'status' => 400 ) );
 	}
 
-	$key     = 'ec_browser_handoff_' . $token;
+	$key     = 'ec_browser_handoff_' . hash( 'sha256', $token );
 	$payload = get_site_transient( $key );
 	delete_site_transient( $key );
 
