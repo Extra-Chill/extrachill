@@ -353,18 +353,15 @@ function extrachill_api_get_orphaned_relationships() {
  * @return WP_REST_Response
  */
 function extrachill_api_cleanup_orphan( $request ) {
-	$user_id   = $request->get_param( 'user_id' );
-	$artist_id = $request->get_param( 'artist_id' );
+	$user_id   = (int) $request->get_param( 'user_id' );
+	$artist_id = (int) $request->get_param( 'artist_id' );
 
-	$artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-	if ( is_array( $artist_ids ) ) {
-		$artist_ids = array_filter(
-			$artist_ids,
-			function ( $id ) use ( $artist_id ) {
-				return (int) $id !== (int) $artist_id;
-			}
-		);
-		update_user_meta( $user_id, '_artist_profile_ids', array_values( $artist_ids ) );
+	// Route through the canonical two-sided remover so both sides of the
+	// relationship stay in sync: _artist_profile_ids (user meta) AND
+	// _artist_member_ids (artist post meta). Editing only the user side
+	// here would leave a stale link on the artist roster — a new orphan.
+	if ( function_exists( 'ec_remove_artist_membership' ) ) {
+		ec_remove_artist_membership( $user_id, $artist_id );
 	}
 
 	return rest_ensure_response( array( 'success' => true ) );
