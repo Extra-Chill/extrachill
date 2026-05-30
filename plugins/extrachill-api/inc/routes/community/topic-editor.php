@@ -42,7 +42,7 @@ function extrachill_api_register_community_topic_editor_routes() {
 				'callback'            => 'extrachill_api_community_topic_editor_update_handler',
 				'permission_callback' => 'extrachill_api_community_topic_editor_write_permission',
 				'args'                => array(
-					'title' => array(
+					'title'   => array(
 						'required'          => false,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
@@ -51,7 +51,7 @@ function extrachill_api_register_community_topic_editor_routes() {
 						'required' => true,
 						'type'     => 'string',
 					),
-					'format' => array(
+					'format'  => array(
 						'required' => false,
 						'type'     => 'string',
 						'enum'     => array( 'html', 'markdown' ),

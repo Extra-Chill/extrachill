@@ -44,7 +44,7 @@ function extrachill_api_register_community_reply_editor_routes() {
 						'required' => true,
 						'type'     => 'string',
 					),
-					'format' => array(
+					'format'  => array(
 						'required' => false,
 						'type'     => 'string',
 						'enum'     => array( 'html', 'markdown' ),

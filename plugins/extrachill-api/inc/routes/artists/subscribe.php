@@ -15,23 +15,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_subscribe_route' );
 
 function extrachill_api_register_artist_subscribe_route() {
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/subscribe', array(
-		'methods'             => WP_REST_Server::CREATABLE,
-		'callback'            => 'extrachill_api_artist_subscribe_handler',
-		'permission_callback' => '__return_true',
-		'args'                => array(
-			'id'    => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/subscribe',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'extrachill_api_artist_subscribe_handler',
+			'permission_callback' => '__return_true',
+			'args'                => array(
+				'id'    => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'email' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_email',
+				),
 			),
-			'email' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_email',
-			),
-		),
-	) );
+		)
+	);
 }
 
 /**

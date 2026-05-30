@@ -98,8 +98,8 @@ function extrachill_api_lifetime_membership_admin_permission_check() {
  * @return WP_REST_Response|WP_Error Response with member list or error.
  */
 function extrachill_api_get_lifetime_memberships( $request ) {
-	$search = $request->get_param( 'search' );
-	$page   = $request->get_param( 'page' );
+	$search   = $request->get_param( 'search' );
+	$page     = $request->get_param( 'page' );
 	$per_page = 20;
 
 	$args = array(
@@ -129,11 +129,11 @@ function extrachill_api_get_lifetime_memberships( $request ) {
 		}
 
 		$formatted_members[] = array(
-			'ID'             => $user->ID,
-			'user_login'     => $user->user_login,
-			'user_email'     => $user->user_email,
-			'purchased'      => isset( $membership_data['purchased'] ) ? $membership_data['purchased'] : 'N/A',
-			'order_id'       => isset( $membership_data['order_id'] ) && $membership_data['order_id'] ? $membership_data['order_id'] : 'Manual',
+			'ID'         => $user->ID,
+			'user_login' => $user->user_login,
+			'user_email' => $user->user_email,
+			'purchased'  => isset( $membership_data['purchased'] ) ? $membership_data['purchased'] : 'N/A',
+			'order_id'   => isset( $membership_data['order_id'] ) && $membership_data['order_id'] ? $membership_data['order_id'] : 'Manual',
 		);
 	}
 

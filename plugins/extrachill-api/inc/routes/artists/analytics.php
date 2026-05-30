@@ -15,24 +15,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_analytics_route' );
 
 function extrachill_api_register_artist_analytics_route() {
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/analytics', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_artist_analytics_handler',
-		'permission_callback' => 'extrachill_api_artist_analytics_permission_check',
-		'args'                => array(
-			'id' => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/analytics',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_artist_analytics_handler',
+			'permission_callback' => 'extrachill_api_artist_analytics_permission_check',
+			'args'                => array(
+				'id'         => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'date_range' => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'default'           => 30,
+					'sanitize_callback' => 'absint',
+				),
 			),
-			'date_range' => array(
-				'required'          => false,
-				'type'              => 'integer',
-				'default'           => 30,
-				'sanitize_callback' => 'absint',
-			),
-		),
-	) );
+		)
+	);
 }
 
 /**

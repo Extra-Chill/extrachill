@@ -181,9 +181,14 @@ function extrachill_api_shop_product_images_delete_handler( WP_REST_Request $req
 		);
 	}
 
-	$remaining = array_values( array_filter( $ordered_ids, function( $id ) use ( $attachment_id ) {
-		return (int) $id !== (int) $attachment_id;
-	} ) );
+	$remaining = array_values(
+		array_filter(
+			$ordered_ids,
+			function ( $id ) use ( $attachment_id ) {
+				return (int) $id !== (int) $attachment_id;
+			}
+		)
+	);
 
 	$set_order = extrachill_api_shop_product_images_set_ordered_ids( $product_id, $remaining );
 	if ( is_wp_error( $set_order ) ) {

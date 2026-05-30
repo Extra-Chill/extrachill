@@ -169,9 +169,11 @@ function extrachill_api_events_venue_get_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array(
-		'id' => (int) $request->get_param( 'id' ),
-	) );
+	$result = $ability->execute(
+		array(
+			'id' => (int) $request->get_param( 'id' ),
+		)
+	);
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}

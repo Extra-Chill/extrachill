@@ -16,169 +16,199 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_newslette
 function extrachill_api_register_newsletter_campaign_management_routes() {
 
 	// GET /newsletter/campaigns — List campaigns.
-	register_rest_route( 'extrachill/v1', '/newsletter/campaigns', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_newsletter_list_campaigns_handler',
-		'permission_callback' => function() {
-			return current_user_can( 'manage_options' );
-		},
-		'args'                => array(
-			'per_page' => array(
-				'required'          => false,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
-				'default'           => 20,
+	register_rest_route(
+		'extrachill/v1',
+		'/newsletter/campaigns',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_newsletter_list_campaigns_handler',
+			'permission_callback' => function () {
+				return current_user_can( 'manage_options' );
+			},
+			'args'                => array(
+				'per_page' => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+					'default'           => 20,
+				),
+				'offset'   => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+					'default'           => 0,
+				),
+				'status'   => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
-			'offset'   => array(
-				'required'          => false,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
-				'default'           => 0,
-			),
-			'status'   => array(
-				'required'          => false,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-		),
-	) );
+		)
+	);
 
 	// GET /newsletter/campaigns/<id> — Get campaign.
-	register_rest_route( 'extrachill/v1', '/newsletter/campaigns/(?P<id>\d+)', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_newsletter_get_campaign_handler',
-		'permission_callback' => function() {
-			return current_user_can( 'manage_options' );
-		},
-		'args'                => array(
-			'id' => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/newsletter/campaigns/(?P<id>\d+)',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_newsletter_get_campaign_handler',
+			'permission_callback' => function () {
+				return current_user_can( 'manage_options' );
+			},
+			'args'                => array(
+				'id' => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
 			),
-		),
-	) );
+		)
+	);
 
 	// DELETE /newsletter/campaigns/<id> — Delete campaign.
-	register_rest_route( 'extrachill/v1', '/newsletter/campaigns/(?P<id>\d+)', array(
-		'methods'             => WP_REST_Server::DELETABLE,
-		'callback'            => 'extrachill_api_newsletter_delete_campaign_handler',
-		'permission_callback' => function() {
-			return current_user_can( 'manage_options' );
-		},
-		'args'                => array(
-			'id' => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/newsletter/campaigns/(?P<id>\d+)',
+		array(
+			'methods'             => WP_REST_Server::DELETABLE,
+			'callback'            => 'extrachill_api_newsletter_delete_campaign_handler',
+			'permission_callback' => function () {
+				return current_user_can( 'manage_options' );
+			},
+			'args'                => array(
+				'id' => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
 			),
-		),
-	) );
+		)
+	);
 
 	// GET /newsletter/settings — Get settings.
-	register_rest_route( 'extrachill/v1', '/newsletter/settings', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_newsletter_get_settings_handler',
-		'permission_callback' => function() {
-			return current_user_can( 'manage_options' );
-		},
-	) );
+	register_rest_route(
+		'extrachill/v1',
+		'/newsletter/settings',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_newsletter_get_settings_handler',
+			'permission_callback' => function () {
+				return current_user_can( 'manage_options' );
+			},
+		)
+	);
 
 	// POST /newsletter/settings — Update settings.
-	register_rest_route( 'extrachill/v1', '/newsletter/settings', array(
-		'methods'             => WP_REST_Server::CREATABLE,
-		'callback'            => 'extrachill_api_newsletter_update_settings_handler',
-		'permission_callback' => function() {
-			return current_user_can( 'manage_options' );
-		},
-		'args'                => array(
-			'sendy_api_key' => array(
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
+	register_rest_route(
+		'extrachill/v1',
+		'/newsletter/settings',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'extrachill_api_newsletter_update_settings_handler',
+			'permission_callback' => function () {
+				return current_user_can( 'manage_options' );
+			},
+			'args'                => array(
+				'sendy_api_key' => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'sendy_url'     => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'esc_url_raw',
+				),
+				'from_name'     => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'from_email'    => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_email',
+				),
+				'reply_to'      => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_email',
+				),
+				'brand_id'      => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'list_ids'      => array(
+					'type' => 'object',
+				),
 			),
-			'sendy_url'     => array(
-				'type'              => 'string',
-				'sanitize_callback' => 'esc_url_raw',
-			),
-			'from_name'     => array(
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-			'from_email'    => array(
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_email',
-			),
-			'reply_to'      => array(
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_email',
-			),
-			'brand_id'      => array(
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-			'list_ids'      => array(
-				'type'              => 'object',
-			),
-		),
-	) );
+		)
+	);
 
 	// GET /newsletter/subscriber-status — Check subscriber.
-	register_rest_route( 'extrachill/v1', '/newsletter/subscriber-status', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_newsletter_subscriber_status_handler',
-		'permission_callback' => function() {
-			return current_user_can( 'manage_options' );
-		},
-		'args'                => array(
-			'email'   => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_email',
+	register_rest_route(
+		'extrachill/v1',
+		'/newsletter/subscriber-status',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_newsletter_subscriber_status_handler',
+			'permission_callback' => function () {
+				return current_user_can( 'manage_options' );
+			},
+			'args'                => array(
+				'email'   => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_email',
+				),
+				'list_id' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
-			'list_id' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-		),
-	) );
+		)
+	);
 
 	// POST /newsletter/sync — Bulk sync.
-	register_rest_route( 'extrachill/v1', '/newsletter/sync', array(
-		'methods'             => WP_REST_Server::CREATABLE,
-		'callback'            => 'extrachill_api_newsletter_sync_handler',
-		'permission_callback' => function() {
-			return current_user_can( 'manage_options' );
-		},
-		'args'                => array(
-			'integration' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
+	register_rest_route(
+		'extrachill/v1',
+		'/newsletter/sync',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'extrachill_api_newsletter_sync_handler',
+			'permission_callback' => function () {
+				return current_user_can( 'manage_options' );
+			},
+			'args'                => array(
+				'integration' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'emails'      => array(
+					'type' => 'array',
+				),
+				'since'       => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'dry_run'     => array(
+					'type'    => 'boolean',
+					'default' => false,
+				),
 			),
-			'emails'      => array(
-				'type'              => 'array',
-			),
-			'since'       => array(
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-			'dry_run'     => array(
-				'type'              => 'boolean',
-				'default'           => false,
-			),
-		),
-	) );
+		)
+	);
 }
 
 // ─── Handlers ────────────────────────────────────────────────────────────────
 
 function extrachill_api_newsletter_list_campaigns_handler( $request ) {
-	$result = extrachill_newsletter_ability_list_campaigns( array(
-		'per_page' => $request->get_param( 'per_page' ),
-		'offset'   => $request->get_param( 'offset' ),
-		'status'   => $request->get_param( 'status' ),
-	) );
+	$result = extrachill_newsletter_ability_list_campaigns(
+		array(
+			'per_page' => $request->get_param( 'per_page' ),
+			'offset'   => $request->get_param( 'offset' ),
+			'status'   => $request->get_param( 'status' ),
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
@@ -188,9 +218,11 @@ function extrachill_api_newsletter_list_campaigns_handler( $request ) {
 }
 
 function extrachill_api_newsletter_get_campaign_handler( $request ) {
-	$result = extrachill_newsletter_ability_get_campaign( array(
-		'campaign_id' => $request->get_param( 'id' ),
-	) );
+	$result = extrachill_newsletter_ability_get_campaign(
+		array(
+			'campaign_id' => $request->get_param( 'id' ),
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
@@ -200,9 +232,11 @@ function extrachill_api_newsletter_get_campaign_handler( $request ) {
 }
 
 function extrachill_api_newsletter_delete_campaign_handler( $request ) {
-	$result = extrachill_newsletter_ability_delete_campaign( array(
-		'campaign_id' => $request->get_param( 'id' ),
-	) );
+	$result = extrachill_newsletter_ability_delete_campaign(
+		array(
+			'campaign_id' => $request->get_param( 'id' ),
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
@@ -253,10 +287,12 @@ function extrachill_api_newsletter_update_settings_handler( $request ) {
 }
 
 function extrachill_api_newsletter_subscriber_status_handler( $request ) {
-	$result = extrachill_newsletter_ability_subscriber_status( array(
-		'email'   => $request->get_param( 'email' ),
-		'list_id' => $request->get_param( 'list_id' ),
-	) );
+	$result = extrachill_newsletter_ability_subscriber_status(
+		array(
+			'email'   => $request->get_param( 'email' ),
+			'list_id' => $request->get_param( 'list_id' ),
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

@@ -24,72 +24,88 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_ro
 
 function extrachill_api_register_artist_roster_routes() {
 	// Roster endpoints under the artist resource
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/roster', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_artist_roster_list_handler',
-		'permission_callback' => 'is_user_logged_in',
-		'args'                => array(
-			'id' => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/roster',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_artist_roster_list_handler',
+			'permission_callback' => 'is_user_logged_in',
+			'args'                => array(
+				'id' => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
 			),
-		),
-	) );
+		)
+	);
 
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/roster', array(
-		'methods'             => WP_REST_Server::CREATABLE,
-		'callback'            => 'extrachill_api_artist_roster_invite_handler',
-		'permission_callback' => 'is_user_logged_in',
-		'args'                => array(
-			'id'    => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/roster',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'extrachill_api_artist_roster_invite_handler',
+			'permission_callback' => 'is_user_logged_in',
+			'args'                => array(
+				'id'    => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'email' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_email',
+				),
 			),
-			'email' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_email',
-			),
-		),
-	) );
+		)
+	);
 
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/roster/(?P<user_id>\d+)', array(
-		'methods'             => WP_REST_Server::DELETABLE,
-		'callback'            => 'extrachill_api_artist_roster_remove_member_handler',
-		'permission_callback' => 'is_user_logged_in',
-		'args'                => array(
-			'id'      => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/roster/(?P<user_id>\d+)',
+		array(
+			'methods'             => WP_REST_Server::DELETABLE,
+			'callback'            => 'extrachill_api_artist_roster_remove_member_handler',
+			'permission_callback' => 'is_user_logged_in',
+			'args'                => array(
+				'id'      => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'user_id' => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
 			),
-			'user_id' => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
-			),
-		),
-	) );
+		)
+	);
 
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/roster/invites/(?P<invite_id>[A-Za-z0-9_-]+)', array(
-		'methods'             => WP_REST_Server::DELETABLE,
-		'callback'            => 'extrachill_api_artist_roster_cancel_invite_handler',
-		'permission_callback' => 'is_user_logged_in',
-		'args'                => array(
-			'id'        => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/roster/invites/(?P<invite_id>[A-Za-z0-9_-]+)',
+		array(
+			'methods'             => WP_REST_Server::DELETABLE,
+			'callback'            => 'extrachill_api_artist_roster_cancel_invite_handler',
+			'permission_callback' => 'is_user_logged_in',
+			'args'                => array(
+				'id'        => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'invite_id' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
-			'invite_id' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-		),
-	) );
+		)
+	);
 }
 
 /**
@@ -140,10 +156,12 @@ function extrachill_api_artist_roster_invite_handler( WP_REST_Request $request )
 		);
 	}
 
-	return rest_ensure_response( array(
-		'message'    => __( 'Invitation successfully sent.', 'extrachill-api' ),
-		'invitation' => $result,
-	) );
+	return rest_ensure_response(
+		array(
+			'message'    => __( 'Invitation successfully sent.', 'extrachill-api' ),
+			'invitation' => $result,
+		)
+	);
 }
 
 /**
@@ -211,11 +229,13 @@ function extrachill_api_artist_roster_remove_member_handler( WP_REST_Request $re
 		);
 	}
 
-	return rest_ensure_response( array(
-		'removed'  => true,
-		'user_id'  => (int) $user_id,
-		'artist_id'=> (int) $artist_id,
-	) );
+	return rest_ensure_response(
+		array(
+			'removed'   => true,
+			'user_id'   => (int) $user_id,
+			'artist_id' => (int) $artist_id,
+		)
+	);
 }
 
 /**
@@ -225,8 +245,8 @@ function extrachill_api_artist_roster_remove_member_handler( WP_REST_Request $re
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_artist_roster_cancel_invite_handler( WP_REST_Request $request ) {
-	$artist_id  = $request->get_param( 'id' );
-	$invite_id  = $request->get_param( 'invite_id' );
+	$artist_id = $request->get_param( 'id' );
+	$invite_id = $request->get_param( 'invite_id' );
 
 	if ( get_post_type( $artist_id ) !== 'artist_profile' ) {
 		return new WP_Error(
@@ -262,9 +282,11 @@ function extrachill_api_artist_roster_cancel_invite_handler( WP_REST_Request $re
 		);
 	}
 
-	return rest_ensure_response( array(
-		'cancelled' => true,
-		'invite_id' => $invite_id,
-		'artist_id' => (int) $artist_id,
-	) );
+	return rest_ensure_response(
+		array(
+			'cancelled' => true,
+			'invite_id' => $invite_id,
+			'artist_id' => (int) $artist_id,
+		)
+	);
 }

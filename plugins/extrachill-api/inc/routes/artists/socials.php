@@ -16,32 +16,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_socials_routes' );
 
 function extrachill_api_register_artist_socials_routes() {
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/socials', array(
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/socials',
 		array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => 'extrachill_api_artist_socials_get_handler',
-			'permission_callback' => 'extrachill_api_artist_socials_permission_check',
-			'args'                => array(
-				'id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => 'extrachill_api_artist_socials_get_handler',
+				'permission_callback' => 'extrachill_api_artist_socials_permission_check',
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-		array(
-			'methods'             => WP_REST_Server::EDITABLE,
-			'callback'            => 'extrachill_api_artist_socials_put_handler',
-			'permission_callback' => 'extrachill_api_artist_socials_permission_check',
-			'args'                => array(
-				'id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => 'extrachill_api_artist_socials_put_handler',
+				'permission_callback' => 'extrachill_api_artist_socials_permission_check',
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-	) );
+		)
+	);
 }
 
 /**

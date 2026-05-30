@@ -15,22 +15,49 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_user_arti
 
 function extrachill_api_register_user_artists_routes() {
 	// GET and POST for user artists list
-	register_rest_route( 'extrachill/v1', '/users/(?P<id>\d+)/artists', array(
+	register_rest_route(
+		'extrachill/v1',
+		'/users/(?P<id>\d+)/artists',
 		array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => 'extrachill_api_user_artists_get_handler',
-			'permission_callback' => 'extrachill_api_user_artists_read_permission_check',
-			'args'                => array(
-				'id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => 'extrachill_api_user_artists_get_handler',
+				'permission_callback' => 'extrachill_api_user_artists_read_permission_check',
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => 'extrachill_api_user_artists_post_handler',
+				'permission_callback' => 'extrachill_api_user_artists_admin_permission_check',
+				'args'                => array(
+					'id'        => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'artist_id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+				),
+			),
+		)
+	);
+
+	// DELETE for specific artist relationship
+	register_rest_route(
+		'extrachill/v1',
+		'/users/(?P<id>\d+)/artists/(?P<artist_id>\d+)',
 		array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_user_artists_post_handler',
+			'methods'             => WP_REST_Server::DELETABLE,
+			'callback'            => 'extrachill_api_user_artists_delete_handler',
 			'permission_callback' => 'extrachill_api_user_artists_admin_permission_check',
 			'args'                => array(
 				'id'        => array(
@@ -44,27 +71,8 @@ function extrachill_api_register_user_artists_routes() {
 					'sanitize_callback' => 'absint',
 				),
 			),
-		),
-	) );
-
-	// DELETE for specific artist relationship
-	register_rest_route( 'extrachill/v1', '/users/(?P<id>\d+)/artists/(?P<artist_id>\d+)', array(
-		'methods'             => WP_REST_Server::DELETABLE,
-		'callback'            => 'extrachill_api_user_artists_delete_handler',
-		'permission_callback' => 'extrachill_api_user_artists_admin_permission_check',
-		'args'                => array(
-			'id'        => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
-			),
-			'artist_id' => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
-			),
-		),
-	) );
+		)
+	);
 }
 
 /**
@@ -228,12 +236,14 @@ function extrachill_api_user_artists_post_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	return rest_ensure_response( array(
-		'success'   => true,
-		'message'   => 'Artist relationship added.',
-		'user_id'   => $user_id,
-		'artist_id' => $artist_id,
-	) );
+	return rest_ensure_response(
+		array(
+			'success'   => true,
+			'message'   => 'Artist relationship added.',
+			'user_id'   => $user_id,
+			'artist_id' => $artist_id,
+		)
+	);
 }
 
 /**
@@ -261,10 +271,12 @@ function extrachill_api_user_artists_delete_handler( WP_REST_Request $request ) 
 		);
 	}
 
-	return rest_ensure_response( array(
-		'success'   => true,
-		'message'   => 'Artist relationship removed.',
-		'user_id'   => $user_id,
-		'artist_id' => $artist_id,
-	) );
+	return rest_ensure_response(
+		array(
+			'success'   => true,
+			'message'   => 'Artist relationship removed.',
+			'user_id'   => $user_id,
+			'artist_id' => $artist_id,
+		)
+	);
 }

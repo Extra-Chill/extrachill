@@ -147,14 +147,16 @@ function extrachill_api_giveaway_run_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_missing', 'Giveaway ability not available.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array(
-		'media_input'  => $request->get_param( 'media_input' ),
-		'require_tag'  => $request->get_param( 'require_tag' ),
-		'min_tags'     => $request->get_param( 'min_tags' ),
-		'winner_count' => $request->get_param( 'winner_count' ),
-		'announce'     => $request->get_param( 'announce' ),
-		'message'      => $request->get_param( 'message' ),
-	) );
+	$result = $ability->execute(
+		array(
+			'media_input'  => $request->get_param( 'media_input' ),
+			'require_tag'  => $request->get_param( 'require_tag' ),
+			'min_tags'     => $request->get_param( 'min_tags' ),
+			'winner_count' => $request->get_param( 'winner_count' ),
+			'announce'     => $request->get_param( 'announce' ),
+			'message'      => $request->get_param( 'message' ),
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
@@ -174,7 +176,7 @@ function extrachill_api_giveaway_schedule_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'task_system_missing', 'Data Machine Task System not available.', array( 'status' => 500 ) );
 	}
 
-	$run_at = $request->get_param( 'run_at' );
+	$run_at    = $request->get_param( 'run_at' );
 	$timestamp = strtotime( $run_at );
 	if ( ! $timestamp || $timestamp <= time() ) {
 		return new WP_Error( 'invalid_run_at', 'run_at must be a valid future UTC datetime.', array( 'status' => 400 ) );
@@ -203,12 +205,14 @@ function extrachill_api_giveaway_schedule_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'schedule_failed', 'Failed to schedule giveaway task.', array( 'status' => 500 ) );
 	}
 
-	return rest_ensure_response( array(
-		'job_id'       => $job_id,
-		'task_type'    => 'giveaway',
-		'scheduled_at' => $run_at,
-		'params'       => $params,
-	) );
+	return rest_ensure_response(
+		array(
+			'job_id'       => $job_id,
+			'task_type'    => 'giveaway',
+			'scheduled_at' => $run_at,
+			'params'       => $params,
+		)
+	);
 }
 
 /**

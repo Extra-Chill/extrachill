@@ -142,7 +142,14 @@ function extrachill_api_network_media_upload( WP_REST_Request $request ) {
 	$file = $files['file'];
 
 	if ( ! empty( $file['error'] ) && UPLOAD_ERR_OK !== $file['error'] ) {
-		return new WP_Error( 'upload_error', 'PHP reported an upload error.', array( 'status' => 400, 'php_error' => $file['error'] ) );
+		return new WP_Error(
+			'upload_error',
+			'PHP reported an upload error.',
+			array(
+				'status'    => 400,
+				'php_error' => $file['error'],
+			)
+		);
 	}
 
 	$ability = wp_get_ability( 'extrachill/network-media-upload' );

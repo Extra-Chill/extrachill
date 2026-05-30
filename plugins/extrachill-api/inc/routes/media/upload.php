@@ -22,59 +22,63 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_media_routes' );
 
 function extrachill_api_register_media_routes() {
-	register_rest_route( 'extrachill/v1', '/media', array(
+	register_rest_route(
+		'extrachill/v1',
+		'/media',
 		array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_media_upload_handler',
-			'permission_callback' => 'extrachill_api_media_permission_check',
-			'args'                => array(
-				'context'   => array(
-					'required'          => true,
-					'type'              => 'string',
-					'enum'              => array(
-						'user_avatar',
-						'artist_profile',
-						'artist_header',
-						'link_page_profile',
-						'link_page_background',
-						'content_embed',
-						'product_image',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => 'extrachill_api_media_upload_handler',
+				'permission_callback' => 'extrachill_api_media_permission_check',
+				'args'                => array(
+					'context'   => array(
+						'required'          => true,
+						'type'              => 'string',
+						'enum'              => array(
+							'user_avatar',
+							'artist_profile',
+							'artist_header',
+							'link_page_profile',
+							'link_page_background',
+							'content_embed',
+							'product_image',
+						),
+						'validate_callback' => 'rest_validate_request_arg',
 					),
-					'validate_callback' => 'rest_validate_request_arg',
-				),
-				'target_id' => array(
-					'required'          => false,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+					'target_id' => array(
+						'required'          => false,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-		array(
-			'methods'             => WP_REST_Server::DELETABLE,
-			'callback'            => 'extrachill_api_media_delete_handler',
-			'permission_callback' => 'extrachill_api_media_permission_check',
-			'args'                => array(
-				'context'   => array(
-					'required'          => true,
-					'type'              => 'string',
-					'enum'              => array(
-						'user_avatar',
-						'artist_profile',
-						'artist_header',
-						'link_page_profile',
-						'link_page_background',
-						'product_image',
+			array(
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => 'extrachill_api_media_delete_handler',
+				'permission_callback' => 'extrachill_api_media_permission_check',
+				'args'                => array(
+					'context'   => array(
+						'required'          => true,
+						'type'              => 'string',
+						'enum'              => array(
+							'user_avatar',
+							'artist_profile',
+							'artist_header',
+							'link_page_profile',
+							'link_page_background',
+							'product_image',
+						),
+						'validate_callback' => 'rest_validate_request_arg',
 					),
-					'validate_callback' => 'rest_validate_request_arg',
-				),
-				'target_id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+					'target_id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-	) );
+		)
+	);
 }
 
 /**
@@ -287,13 +291,15 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 		wp_delete_attachment( $old_attachment_id, true );
 	}
 
-	return rest_ensure_response( array(
-		'attachment_id' => $attachment_id,
-		'url'           => wp_get_attachment_url( $attachment_id ),
-		'context'       => $context,
-		'target_id'     => $target_id,
-		'attachment'    => wp_prepare_attachment_for_js( $attachment_id ),
-	) );
+	return rest_ensure_response(
+		array(
+			'attachment_id' => $attachment_id,
+			'url'           => wp_get_attachment_url( $attachment_id ),
+			'context'       => $context,
+			'target_id'     => $target_id,
+			'attachment'    => wp_prepare_attachment_for_js( $attachment_id ),
+		)
+	);
 }
 
 /**
@@ -353,12 +359,14 @@ function extrachill_api_media_upload_product_image( $uploaded_file, $product_id 
 		restore_current_blog();
 	}
 
-	return rest_ensure_response( array(
-		'attachment_id' => $attachment_id,
-		'url'           => $url,
-		'context'       => 'product_image',
-		'target_id'     => $product_id,
-	) );
+	return rest_ensure_response(
+		array(
+			'attachment_id' => $attachment_id,
+			'url'           => $url,
+			'context'       => 'product_image',
+			'target_id'     => $product_id,
+		)
+	);
 }
 
 /**
@@ -451,11 +459,13 @@ function extrachill_api_media_delete_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	return rest_ensure_response( array(
-		'deleted'   => true,
-		'context'   => $context,
-		'target_id' => $target_id,
-	) );
+	return rest_ensure_response(
+		array(
+			'deleted'   => true,
+			'context'   => $context,
+			'target_id' => $target_id,
+		)
+	);
 }
 
 /**
@@ -492,11 +502,13 @@ function extrachill_api_media_delete_product_image( $product_id ) {
 		restore_current_blog();
 	}
 
-	return rest_ensure_response( array(
-		'deleted'   => true,
-		'context'   => 'product_image',
-		'target_id' => $product_id,
-	) );
+	return rest_ensure_response(
+		array(
+			'deleted'   => true,
+			'context'   => 'product_image',
+			'target_id' => $product_id,
+		)
+	);
 }
 
 /**

@@ -48,7 +48,7 @@ function extrachill_api_get_next_id( $link_page_id, $type ) {
 
 	$meta_key   = $map[ $type ];
 	$next_index = (int) get_post_meta( $link_page_id, $meta_key, true );
-	$next_index++;
+	++$next_index;
 	update_post_meta( $link_page_id, $meta_key, $next_index );
 
 	return sprintf( '%d-%s-%d', $link_page_id, $type, $next_index );

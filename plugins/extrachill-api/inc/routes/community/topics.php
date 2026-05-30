@@ -37,18 +37,18 @@ function extrachill_api_register_community_topics_routes() {
 						'type'     => 'integer',
 						'default'  => 20,
 					),
-					'page' => array(
+					'page'     => array(
 						'required' => false,
 						'type'     => 'integer',
 						'default'  => 1,
 					),
-					'orderby' => array(
+					'orderby'  => array(
 						'required' => false,
 						'type'     => 'string',
 						'default'  => 'date',
 						'enum'     => array( 'date', 'modified', 'title' ),
 					),
-					'order' => array(
+					'order'    => array(
 						'required' => false,
 						'type'     => 'string',
 						'default'  => 'DESC',
@@ -66,12 +66,12 @@ function extrachill_api_register_community_topics_routes() {
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
 					),
-					'title' => array(
+					'title'    => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'content' => array(
+					'content'  => array(
 						'required' => true,
 						'type'     => 'string',
 					),
@@ -89,7 +89,7 @@ function extrachill_api_register_community_topics_routes() {
 			'callback'            => 'extrachill_api_community_topics_get_handler',
 			'permission_callback' => '__return_true',
 			'args'                => array(
-				'include_replies' => array(
+				'include_replies'  => array(
 					'required' => false,
 					'type'     => 'boolean',
 					'default'  => true,
@@ -99,7 +99,7 @@ function extrachill_api_register_community_topics_routes() {
 					'type'     => 'integer',
 					'default'  => 30,
 				),
-				'replies_page' => array(
+				'replies_page'     => array(
 					'required' => false,
 					'type'     => 'integer',
 					'default'  => 1,
@@ -147,10 +147,10 @@ function extrachill_api_community_topics_get_handler( WP_REST_Request $request )
 
 	$result = $ability->execute(
 		array(
-			'topic_id'        => (int) $request->get_param( 'id' ),
-			'include_replies' => (bool) $request->get_param( 'include_replies' ),
+			'topic_id'         => (int) $request->get_param( 'id' ),
+			'include_replies'  => (bool) $request->get_param( 'include_replies' ),
 			'replies_per_page' => (int) $request->get_param( 'replies_per_page' ),
-			'replies_page'    => (int) $request->get_param( 'replies_page' ),
+			'replies_page'     => (int) $request->get_param( 'replies_page' ),
 		)
 	);
 

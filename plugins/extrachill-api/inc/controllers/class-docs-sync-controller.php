@@ -18,7 +18,7 @@ class ExtraChill_Docs_Sync_Controller {
 			return new WP_Error(
 				'invalid_site',
 				'Documentation sync is only allowed on the docs site.',
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -26,7 +26,7 @@ class ExtraChill_Docs_Sync_Controller {
 			return new WP_Error(
 				'missing_post_type',
 				'The ec_doc post type is not registered on this site.',
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
@@ -61,11 +61,13 @@ class ExtraChill_Docs_Sync_Controller {
 			// Check if update is needed.
 			$stored_hash = get_post_meta( $existing_post->ID, '_sync_hash', true );
 			if ( ! $force && $stored_hash === $hash ) {
-				return new WP_REST_Response( [
-					'success' => true,
-					'action'  => 'skipped',
-					'id'      => $existing_post->ID,
-				] );
+				return new WP_REST_Response(
+					array(
+						'success' => true,
+						'action'  => 'skipped',
+						'id'      => $existing_post->ID,
+					)
+				);
 			}
 			$post_id = $existing_post->ID;
 			$action  = 'updated';
@@ -81,20 +83,20 @@ class ExtraChill_Docs_Sync_Controller {
 		}
 
 		// Insert/Update Post.
-		$post_data = [
+		$post_data = array(
 			'ID'           => $post_id,
 			'post_title'   => $title,
 			'post_content' => $html_content,
 			'post_name'    => $slug,
 			'post_status'  => 'publish',
 			'post_type'    => 'ec_doc',
-			'meta_input'   => [
+			'meta_input'   => array(
 				'_source_file'    => $source_file,
 				'_sync_hash'      => $hash,
 				'_sync_timestamp' => $timestamp,
 				'_sync_filesize'  => $filesize,
-			],
-		];
+			),
+		);
 
 		$id = wp_insert_post( $post_data, true );
 
@@ -103,30 +105,32 @@ class ExtraChill_Docs_Sync_Controller {
 		}
 
 		// 6. Set Terms.
-		wp_set_object_terms( $id, [ $term_id ], 'ec_doc_platform' );
+		wp_set_object_terms( $id, array( $term_id ), 'ec_doc_platform' );
 
-		return new WP_REST_Response( [
-			'success' => true,
-			'action'  => $action,
-			'id'      => $id,
-		] );
+		return new WP_REST_Response(
+			array(
+				'success' => true,
+				'action'  => $action,
+				'id'      => $id,
+			)
+		);
 	}
 
 	/**
 	 * Helper to find post by source file meta.
 	 */
 	private static function get_post_by_source_file( $source_file ) {
-		$args = [
-			'post_type'   => 'ec_doc',
-			'post_status' => 'any',
-			'meta_query'  => [
-				[
+		$args  = array(
+			'post_type'      => 'ec_doc',
+			'post_status'    => 'any',
+			'meta_query'     => array(
+				array(
 					'key'   => '_source_file',
 					'value' => $source_file,
-				],
-			],
+				),
+			),
 			'posts_per_page' => 1,
-		];
+		);
 		$query = new WP_Query( $args );
 		return $query->have_posts() ? $query->posts[0] : null;
 	}
@@ -138,11 +142,11 @@ class ExtraChill_Docs_Sync_Controller {
 	 * @return string HTML with IDs added to headers.
 	 */
 	private static function add_header_ids( $html ) {
-		$used_ids = [];
+		$used_ids = array();
 
 		return preg_replace_callback(
 			'/<(h2)([^>]*)>(.*?)<\/h2>/i',
-			function( $matches ) use ( &$used_ids ) {
+			function ( $matches ) use ( &$used_ids ) {
 				$attrs = $matches[2];
 				$text  = $matches[3];
 
@@ -212,8 +216,8 @@ class ExtraChill_Docs_Sync_Controller {
 		}
 
 		// Create if not exists.
-		$name = ucwords( str_replace( '-', ' ', $slug ) );
-		$result = wp_insert_term( $name, 'ec_doc_platform', [ 'slug' => $slug ] );
+		$name   = ucwords( str_replace( '-', ' ', $slug ) );
+		$result = wp_insert_term( $name, 'ec_doc_platform', array( 'slug' => $slug ) );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;

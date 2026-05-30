@@ -304,7 +304,7 @@ function extrachill_api_get_event_markdown_meta_lines( WP_Post $post ) {
 	if ( empty( $meta_lines ) ) {
 		$event_datetime = '';
 		if ( function_exists( 'datamachine_get_event_dates' ) ) {
-			$dates = datamachine_get_event_dates( $post->ID );
+			$dates          = datamachine_get_event_dates( $post->ID );
 			$event_datetime = $dates && ! empty( $dates->start_datetime ) ? $dates->start_datetime : '';
 		}
 		if ( $event_datetime ) {

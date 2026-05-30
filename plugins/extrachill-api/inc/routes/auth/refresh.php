@@ -25,16 +25,16 @@ function extrachill_api_register_auth_refresh_route() {
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'device_id'      => array(
+				'device_id'     => array(
 					'required'          => true,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'remember'       => array(
+				'remember'      => array(
 					'required' => false,
 					'type'     => 'boolean',
 				),
-				'set_cookie'     => array(
+				'set_cookie'    => array(
 					'required' => false,
 					'type'     => 'boolean',
 				),

@@ -6,36 +6,40 @@
  * Delegates to business logic in extrachill-community plugin.
  */
 
-if (!defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action('extrachill_api_register_routes', 'extrachill_api_register_community_upvote_route');
+add_action( 'extrachill_api_register_routes', 'extrachill_api_register_community_upvote_route' );
 
 function extrachill_api_register_community_upvote_route() {
-	register_rest_route('extrachill/v1', '/community/upvote', array(
-		'methods'             => WP_REST_Server::CREATABLE,
-		'callback'            => 'extrachill_api_community_upvote_handler',
-		'permission_callback' => function() {
-			return is_user_logged_in();
-		},
-		'args'                => array(
-			'post_id' => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'validate_callback' => function($param) {
-					return is_numeric($param) && $param > 0;
-				},
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/community/upvote',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'extrachill_api_community_upvote_handler',
+			'permission_callback' => function () {
+				return is_user_logged_in();
+			},
+			'args'                => array(
+				'post_id' => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'validate_callback' => function ( $param ) {
+						return is_numeric( $param ) && $param > 0;
+					},
+					'sanitize_callback' => 'absint',
+				),
+				'type'    => array(
+					'required'          => true,
+					'type'              => 'string',
+					'enum'              => array( 'topic', 'reply' ),
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
-			'type' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'enum'              => array('topic', 'reply'),
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-		),
-	));
+		)
+	);
 }
 
 function extrachill_api_community_upvote_handler( $request ) {

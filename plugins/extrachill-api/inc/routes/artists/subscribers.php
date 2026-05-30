@@ -18,49 +18,57 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_su
 
 function extrachill_api_register_artist_subscribers_routes() {
 	// Fetch paginated subscribers
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/subscribers', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_get_artist_subscribers_handler',
-		'permission_callback' => 'is_user_logged_in',
-		'args'                => array(
-			'id'       => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/subscribers',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_get_artist_subscribers_handler',
+			'permission_callback' => 'is_user_logged_in',
+			'args'                => array(
+				'id'       => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'page'     => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'default'           => 1,
+					'sanitize_callback' => 'absint',
+				),
+				'per_page' => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'default'           => 20,
+					'sanitize_callback' => 'absint',
+				),
 			),
-			'page'     => array(
-				'required'          => false,
-				'type'              => 'integer',
-				'default'           => 1,
-				'sanitize_callback' => 'absint',
-			),
-			'per_page' => array(
-				'required'          => false,
-				'type'              => 'integer',
-				'default'           => 20,
-				'sanitize_callback' => 'absint',
-			),
-		),
-	) );
+		)
+	);
 
 	// Export all subscribers for CSV
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/subscribers/export', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_export_artist_subscribers_handler',
-		'permission_callback' => 'is_user_logged_in',
-		'args'                => array(
-			'id'               => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/subscribers/export',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_export_artist_subscribers_handler',
+			'permission_callback' => 'is_user_logged_in',
+			'args'                => array(
+				'id'               => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'include_exported' => array(
+					'required' => false,
+					'type'     => 'boolean',
+					'default'  => false,
+				),
 			),
-			'include_exported' => array(
-				'required'          => false,
-				'type'              => 'boolean',
-				'default'           => false,
-			),
-		),
-	) );
+		)
+	);
 }
 
 /**

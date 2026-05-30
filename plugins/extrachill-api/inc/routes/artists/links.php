@@ -20,32 +20,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_links_routes' );
 
 function extrachill_api_register_artist_links_routes() {
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/links', array(
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)/links',
 		array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => 'extrachill_api_artist_links_get_handler',
-			'permission_callback' => 'extrachill_api_artist_links_permission_check',
-			'args'                => array(
-				'id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => 'extrachill_api_artist_links_get_handler',
+				'permission_callback' => 'extrachill_api_artist_links_permission_check',
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-		array(
-			'methods'             => WP_REST_Server::EDITABLE,
-			'callback'            => 'extrachill_api_artist_links_put_handler',
-			'permission_callback' => 'extrachill_api_artist_links_permission_check',
-			'args'                => array(
-				'id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => 'extrachill_api_artist_links_put_handler',
+				'permission_callback' => 'extrachill_api_artist_links_permission_check',
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-	) );
+		)
+	);
 }
 
 /**
@@ -129,8 +133,8 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 	// The JS client wraps the full payload as {links: {links, settings, css_vars, ...}}.
 	// Unwrap nested compound object to top-level keys for backward compatibility.
 	if ( isset( $body['links'] ) && is_array( $body['links'] ) && isset( $body['links']['links'] ) ) {
-		$nested = $body['links'];
-		$body   = array_merge( $body, $nested );
+		$nested        = $body['links'];
+		$body          = array_merge( $body, $nested );
 		$body['links'] = $nested['links'];
 	}
 

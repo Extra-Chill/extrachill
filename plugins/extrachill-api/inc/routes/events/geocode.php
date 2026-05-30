@@ -53,9 +53,11 @@ function extrachill_api_events_geocode_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array(
-		'q' => $request->get_param( 'q' ),
-	) );
+	$result = $ability->execute(
+		array(
+			'q' => $request->get_param( 'q' ),
+		)
+	);
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}

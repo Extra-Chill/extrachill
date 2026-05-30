@@ -11,107 +11,107 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 // Load Composer autoloader for dependencies (Endroid QR Code)
 if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
-    require_once __DIR__ . '/vendor/autoload.php';
+	require_once __DIR__ . '/vendor/autoload.php';
 }
 
 if ( ! defined( 'EXTRACHILL_API_PATH' ) ) {
-    define( 'EXTRACHILL_API_PATH', plugin_dir_path( __FILE__ ) );
+	define( 'EXTRACHILL_API_PATH', plugin_dir_path( __FILE__ ) );
 }
 
 if ( ! defined( 'EXTRACHILL_API_URL' ) ) {
-    define( 'EXTRACHILL_API_URL', plugin_dir_url( __FILE__ ) );
+	define( 'EXTRACHILL_API_URL', plugin_dir_url( __FILE__ ) );
 }
 
 final class ExtraChill_API_Plugin {
-    /**
-     * Singleton instance storage.
-     *
-     * @var ExtraChill_API_Plugin|null
-     */
-    private static $instance = null;
+	/**
+	 * Singleton instance storage.
+	 *
+	 * @var ExtraChill_API_Plugin|null
+	 */
+	private static $instance = null;
 
-    /**
-     * Bootstraps plugin hooks.
-     */
-    private function __construct() {
-        $this->load_route_files();
-        $this->load_middleware();
-        add_action( 'plugins_loaded', array( $this, 'boot' ) );
-        add_action( 'rest_api_init', array( $this, 'register_routes' ) );
-    }
+	/**
+	 * Bootstraps plugin hooks.
+	 */
+	private function __construct() {
+		$this->load_route_files();
+		$this->load_middleware();
+		add_action( 'plugins_loaded', array( $this, 'boot' ) );
+		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+	}
 
-    /**
-     * Returns shared instance.
-     *
-     * @return ExtraChill_API_Plugin
-     */
-    public static function get_instance() {
-        if ( null === self::$instance ) {
-            self::$instance = new self();
-        }
+	/**
+	 * Returns shared instance.
+	 *
+	 * @return ExtraChill_API_Plugin
+	 */
+	public static function get_instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
 
-        return self::$instance;
-    }
+		return self::$instance;
+	}
 
-    /**
-     * Placeholder bootstrap for future setup.
-     */
-    public function boot() {
-        require_once EXTRACHILL_API_PATH . 'inc/auth/extrachill-link-auth.php';
-        require_once EXTRACHILL_API_PATH . 'inc/utils/id-generator.php';
+	/**
+	 * Placeholder bootstrap for future setup.
+	 */
+	public function boot() {
+		require_once EXTRACHILL_API_PATH . 'inc/auth/extrachill-link-auth.php';
+		require_once EXTRACHILL_API_PATH . 'inc/utils/id-generator.php';
 
-        do_action( 'extrachill_api_bootstrap' );
-    }
+		do_action( 'extrachill_api_bootstrap' );
+	}
 
-    /**
-     * Loads all route files so each endpoint can self-register.
-     */
-    private function load_route_files() {
-        $routes_dir = EXTRACHILL_API_PATH . 'inc/routes/';
+	/**
+	 * Loads all route files so each endpoint can self-register.
+	 */
+	private function load_route_files() {
+		$routes_dir = EXTRACHILL_API_PATH . 'inc/routes/';
 
-        if ( ! is_dir( $routes_dir ) ) {
-            return;
-        }
+		if ( ! is_dir( $routes_dir ) ) {
+			return;
+		}
 
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator( $routes_dir, RecursiveDirectoryIterator::SKIP_DOTS )
-        );
+		$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $routes_dir, RecursiveDirectoryIterator::SKIP_DOTS )
+		);
 
-        foreach ( $iterator as $file ) {
-            if ( 'php' !== $file->getExtension() ) {
-                continue;
-            }
+		foreach ( $iterator as $file ) {
+			if ( 'php' !== $file->getExtension() ) {
+				continue;
+			}
 
-            require_once $file->getRealPath();
-        }
-    }
+			require_once $file->getRealPath();
+		}
+	}
 
-    /**
-     * Loads middleware files for request interception.
-     */
-    private function load_middleware() {
-        $middleware_dir = EXTRACHILL_API_PATH . 'inc/middleware/';
+	/**
+	 * Loads middleware files for request interception.
+	 */
+	private function load_middleware() {
+		$middleware_dir = EXTRACHILL_API_PATH . 'inc/middleware/';
 
-        if ( ! is_dir( $middleware_dir ) ) {
-            return;
-        }
+		if ( ! is_dir( $middleware_dir ) ) {
+			return;
+		}
 
-        foreach ( glob( $middleware_dir . '*.php' ) as $file ) {
-            require_once $file;
-        }
-    }
+		foreach ( glob( $middleware_dir . '*.php' ) as $file ) {
+			require_once $file;
+		}
+	}
 
-    /**
-     * Registers REST routes. Will be populated as endpoints migrate into this plugin.
-     */
-    public function register_routes() {
-        do_action( 'extrachill_api_register_routes' );
-    }
+	/**
+	 * Registers REST routes. Will be populated as endpoints migrate into this plugin.
+	 */
+	public function register_routes() {
+		do_action( 'extrachill_api_register_routes' );
+	}
 }
 
 ExtraChill_API_Plugin::get_instance();

@@ -66,7 +66,7 @@ function extrachill_api_register_team_member_routes() {
 					'required'          => true,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
-					'validate_callback' => function( $value ) {
+					'validate_callback' => function ( $value ) {
 						return in_array( $value, array( 'force_add', 'force_remove', 'reset_auto' ), true );
 					},
 				),
@@ -98,8 +98,8 @@ function extrachill_api_team_member_admin_permission_check() {
  * @return WP_REST_Response|WP_Error Response with user list or error.
  */
 function extrachill_api_get_team_members( $request ) {
-	$search = $request->get_param( 'search' );
-	$page   = $request->get_param( 'page' );
+	$search   = $request->get_param( 'search' );
+	$page     = $request->get_param( 'page' );
 	$per_page = 20;
 
 	$args = array(

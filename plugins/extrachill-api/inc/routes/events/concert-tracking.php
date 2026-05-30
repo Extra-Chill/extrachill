@@ -66,10 +66,10 @@ function extrachill_api_register_concert_tracking_routes() {
 					'sanitize_callback' => 'absint',
 				),
 				'include_attendees' => array(
-					'required'          => false,
-					'type'              => 'boolean',
-					'default'           => false,
-					'description'       => 'Include attendee list.',
+					'required'    => false,
+					'type'        => 'boolean',
+					'default'     => false,
+					'description' => 'Include attendee list.',
 				),
 				'limit'             => array(
 					'required'          => false,
@@ -221,10 +221,12 @@ function extrachill_api_handle_concert_tracking_toggle( WP_REST_Request $request
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array(
-		'event_id' => (int) $request->get_param( 'event_id' ),
-		'blog_id'  => (int) $request->get_param( 'blog_id' ),
-	) );
+	$result = $ability->execute(
+		array(
+			'event_id' => (int) $request->get_param( 'event_id' ),
+			'blog_id'  => (int) $request->get_param( 'blog_id' ),
+		)
+	);
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
@@ -246,11 +248,13 @@ function extrachill_api_handle_concert_tracking_event( WP_REST_Request $request 
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array(
-		'event_id'          => (int) $request->get_param( 'event_id' ),
-		'include_attendees' => (bool) $request->get_param( 'include_attendees' ),
-		'limit'             => (int) $request->get_param( 'limit' ),
-	) );
+	$result = $ability->execute(
+		array(
+			'event_id'          => (int) $request->get_param( 'event_id' ),
+			'include_attendees' => (bool) $request->get_param( 'include_attendees' ),
+			'limit'             => (int) $request->get_param( 'limit' ),
+		)
+	);
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
@@ -272,15 +276,17 @@ function extrachill_api_handle_concert_tracking_user_shows( WP_REST_Request $req
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array(
-		'user_id'   => (int) $request->get_param( 'user_id' ),
-		'period'    => $request->get_param( 'period' ),
-		'year'      => (int) $request->get_param( 'year' ),
-		'date_from' => $request->get_param( 'date_from' ),
-		'date_to'   => $request->get_param( 'date_to' ),
-		'page'      => (int) $request->get_param( 'page' ),
-		'per_page'  => (int) $request->get_param( 'per_page' ),
-	) );
+	$result = $ability->execute(
+		array(
+			'user_id'   => (int) $request->get_param( 'user_id' ),
+			'period'    => $request->get_param( 'period' ),
+			'year'      => (int) $request->get_param( 'year' ),
+			'date_from' => $request->get_param( 'date_from' ),
+			'date_to'   => $request->get_param( 'date_to' ),
+			'page'      => (int) $request->get_param( 'page' ),
+			'per_page'  => (int) $request->get_param( 'per_page' ),
+		)
+	);
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
@@ -302,11 +308,13 @@ function extrachill_api_handle_concert_tracking_search( WP_REST_Request $request
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array(
-		'query'    => (string) $request->get_param( 'query' ),
-		'page'     => (int) $request->get_param( 'page' ),
-		'per_page' => (int) $request->get_param( 'per_page' ),
-	) );
+	$result = $ability->execute(
+		array(
+			'query'    => (string) $request->get_param( 'query' ),
+			'page'     => (int) $request->get_param( 'page' ),
+			'per_page' => (int) $request->get_param( 'per_page' ),
+		)
+	);
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
@@ -328,12 +336,14 @@ function extrachill_api_handle_concert_tracking_user_stats( WP_REST_Request $req
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array(
-		'user_id'   => (int) $request->get_param( 'user_id' ),
-		'year'      => (int) $request->get_param( 'year' ),
-		'date_from' => $request->get_param( 'date_from' ),
-		'date_to'   => $request->get_param( 'date_to' ),
-	) );
+	$result = $ability->execute(
+		array(
+			'user_id'   => (int) $request->get_param( 'user_id' ),
+			'year'      => (int) $request->get_param( 'year' ),
+			'date_from' => $request->get_param( 'date_from' ),
+			'date_to'   => $request->get_param( 'date_to' ),
+		)
+	);
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}

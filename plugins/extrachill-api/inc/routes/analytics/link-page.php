@@ -13,27 +13,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_link_page_analytics_route' );
 
 function extrachill_api_register_link_page_analytics_route() {
-	register_rest_route( 'extrachill/v1', '/analytics/link-page', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_link_page_analytics_handler',
-		'permission_callback' => 'is_user_logged_in',
-		'args'                => array(
-			'link_page_id' => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'validate_callback' => function ( $param ) {
-					return is_numeric( $param ) && $param > 0;
-				},
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/analytics/link-page',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_link_page_analytics_handler',
+			'permission_callback' => 'is_user_logged_in',
+			'args'                => array(
+				'link_page_id' => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'validate_callback' => function ( $param ) {
+						return is_numeric( $param ) && $param > 0;
+					},
+					'sanitize_callback' => 'absint',
+				),
+				'date_range'   => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'default'           => 30,
+					'sanitize_callback' => 'absint',
+				),
 			),
-			'date_range'   => array(
-				'required'          => false,
-				'type'              => 'integer',
-				'default'           => 30,
-				'sanitize_callback' => 'absint',
-			),
-		),
-	) );
+		)
+	);
 }
 
 /**

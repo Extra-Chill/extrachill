@@ -13,38 +13,42 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_contact_submit_route' );
 
 function extrachill_api_register_contact_submit_route() {
-	register_rest_route( 'extrachill/v1', '/contact/submit', array(
-		'methods'             => WP_REST_Server::CREATABLE,
-		'callback'            => 'extrachill_api_handle_contact_submit',
-		'permission_callback' => ec_turnstile_permission_callback(),
-		'args'                => array(
-			'name' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
+	register_rest_route(
+		'extrachill/v1',
+		'/contact/submit',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'extrachill_api_handle_contact_submit',
+			'permission_callback' => ec_turnstile_permission_callback(),
+			'args'                => array(
+				'name'               => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'email'              => array(
+					'required'          => true,
+					'type'              => 'string',
+					'validate_callback' => 'is_email',
+					'sanitize_callback' => 'sanitize_email',
+				),
+				'subject'            => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'message'            => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_textarea_field',
+				),
+				'turnstile_response' => array(
+					'required' => true,
+					'type'     => 'string',
+				),
 			),
-			'email' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'validate_callback' => 'is_email',
-				'sanitize_callback' => 'sanitize_email',
-			),
-			'subject' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-			'message' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_textarea_field',
-			),
-			'turnstile_response' => array(
-				'required' => true,
-				'type'     => 'string',
-			),
-		),
-	) );
+		)
+	);
 }
 
 function extrachill_api_handle_contact_submit( WP_REST_Request $request ) {
@@ -65,8 +69,10 @@ function extrachill_api_handle_contact_submit( WP_REST_Request $request ) {
 	ec_contact_send_user_confirmation( $name, $email, $subject, $message );
 	ec_contact_sync_to_sendy( $email );
 
-	return rest_ensure_response( array(
-		'success' => true,
-		'message' => __( 'Your message has been sent successfully. We\'ll get back to you soon.', 'extrachill-api' ),
-	) );
+	return rest_ensure_response(
+		array(
+			'success' => true,
+			'message' => __( 'Your message has been sent successfully. We\'ll get back to you soon.', 'extrachill-api' ),
+		)
+	);
 }

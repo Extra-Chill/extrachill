@@ -19,62 +19,70 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_routes' );
 
 function extrachill_api_register_artist_routes() {
-	register_rest_route( 'extrachill/v1', '/artists', array(
+	register_rest_route(
+		'extrachill/v1',
+		'/artists',
 		array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_artist_post_handler',
-			'permission_callback' => 'extrachill_api_artist_create_permission_check',
-			'args'                => array(
-				'name' => array(
-					'required'          => true,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-				'bio' => array(
-					'required'          => false,
-					'type'              => 'string',
-					'sanitize_callback' => 'wp_kses_post',
-				),
-				'local_city' => array(
-					'required'          => false,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-				'genre' => array(
-					'required'          => false,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => 'extrachill_api_artist_post_handler',
+				'permission_callback' => 'extrachill_api_artist_create_permission_check',
+				'args'                => array(
+					'name'       => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'bio'        => array(
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'wp_kses_post',
+					),
+					'local_city' => array(
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'genre'      => array(
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
 				),
 			),
-		),
-	) );
+		)
+	);
 
-	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)', array(
+	register_rest_route(
+		'extrachill/v1',
+		'/artists/(?P<id>\d+)',
 		array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => 'extrachill_api_artist_get_handler',
-			'permission_callback' => 'extrachill_api_artist_permission_check',
-			'args'                => array(
-				'id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => 'extrachill_api_artist_get_handler',
+				'permission_callback' => 'extrachill_api_artist_permission_check',
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-		array(
-			'methods'             => WP_REST_Server::EDITABLE,
-			'callback'            => 'extrachill_api_artist_put_handler',
-			'permission_callback' => 'extrachill_api_artist_permission_check',
-			'args'                => array(
-				'id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => 'extrachill_api_artist_put_handler',
+				'permission_callback' => 'extrachill_api_artist_permission_check',
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-	) );
+		)
+	);
 }
 
 /**

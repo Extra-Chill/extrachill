@@ -61,14 +61,14 @@ function extrachill_api_register_events_calendar_route() {
 					'description'       => 'Time scope filter',
 				),
 				'lat'      => array(
-					'required'          => false,
-					'type'              => 'number',
-					'description'       => 'Latitude for geo filtering',
+					'required'    => false,
+					'type'        => 'number',
+					'description' => 'Latitude for geo filtering',
 				),
 				'lng'      => array(
-					'required'          => false,
-					'type'              => 'number',
-					'description'       => 'Longitude for geo filtering',
+					'required'    => false,
+					'type'        => 'number',
+					'description' => 'Longitude for geo filtering',
 				),
 				'radius'   => array(
 					'required'          => false,
@@ -84,10 +84,10 @@ function extrachill_api_register_events_calendar_route() {
 					'description'       => 'Search query',
 				),
 				'past'     => array(
-					'required'          => false,
-					'type'              => 'boolean',
-					'default'           => false,
-					'description'       => 'Show past events',
+					'required'    => false,
+					'type'        => 'boolean',
+					'default'     => false,
+					'description' => 'Show past events',
 				),
 			),
 		)

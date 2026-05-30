@@ -36,7 +36,7 @@ function extrachill_api_register_community_replies_routes() {
 						'type'     => 'integer',
 						'default'  => 30,
 					),
-					'page' => array(
+					'page'     => array(
 						'required' => false,
 						'type'     => 'integer',
 						'default'  => 1,
@@ -53,7 +53,7 @@ function extrachill_api_register_community_replies_routes() {
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
 					),
-					'content' => array(
+					'content'  => array(
 						'required' => true,
 						'type'     => 'string',
 					),

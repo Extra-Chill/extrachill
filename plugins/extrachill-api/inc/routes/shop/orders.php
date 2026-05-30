@@ -26,92 +26,104 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_shop_orde
  */
 function extrachill_api_register_shop_orders_routes() {
 	// List orders
-	register_rest_route( 'extrachill/v1', '/shop/orders', array(
+	register_rest_route(
+		'extrachill/v1',
+		'/shop/orders',
 		array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => 'extrachill_api_shop_orders_list_handler',
-			'permission_callback' => 'extrachill_api_shop_orders_permission_check',
-			'args'                => array(
-				'artist_id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
-				),
-				'status' => array(
-					'required'          => false,
-					'type'              => 'string',
-					'default'           => 'all',
-					'enum'              => array( 'all', 'needs_fulfillment', 'completed' ),
-					'sanitize_callback' => 'sanitize_key',
-				),
-				'page' => array(
-					'required'          => false,
-					'type'              => 'integer',
-					'default'           => 1,
-					'sanitize_callback' => 'absint',
-				),
-				'per_page' => array(
-					'required'          => false,
-					'type'              => 'integer',
-					'default'           => 20,
-					'sanitize_callback' => 'absint',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => 'extrachill_api_shop_orders_list_handler',
+				'permission_callback' => 'extrachill_api_shop_orders_permission_check',
+				'args'                => array(
+					'artist_id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'status'    => array(
+						'required'          => false,
+						'type'              => 'string',
+						'default'           => 'all',
+						'enum'              => array( 'all', 'needs_fulfillment', 'completed' ),
+						'sanitize_callback' => 'sanitize_key',
+					),
+					'page'      => array(
+						'required'          => false,
+						'type'              => 'integer',
+						'default'           => 1,
+						'sanitize_callback' => 'absint',
+					),
+					'per_page'  => array(
+						'required'          => false,
+						'type'              => 'integer',
+						'default'           => 20,
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-	) );
+		)
+	);
 
 	// Update order status
-	register_rest_route( 'extrachill/v1', '/shop/orders/(?P<id>\d+)/status', array(
+	register_rest_route(
+		'extrachill/v1',
+		'/shop/orders/(?P<id>\d+)/status',
 		array(
-			'methods'             => WP_REST_Server::EDITABLE,
-			'callback'            => 'extrachill_api_shop_orders_status_handler',
-			'permission_callback' => 'extrachill_api_shop_orders_item_permission_check',
-			'args'                => array(
-				'id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
-				),
-				'artist_id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
-				),
-				'status' => array(
-					'required'          => true,
-					'type'              => 'string',
-					'enum'              => array( 'completed' ),
-					'sanitize_callback' => 'sanitize_key',
-				),
-				'tracking_number' => array(
-					'required'          => false,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => 'extrachill_api_shop_orders_status_handler',
+				'permission_callback' => 'extrachill_api_shop_orders_item_permission_check',
+				'args'                => array(
+					'id'              => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'artist_id'       => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'status'          => array(
+						'required'          => true,
+						'type'              => 'string',
+						'enum'              => array( 'completed' ),
+						'sanitize_callback' => 'sanitize_key',
+					),
+					'tracking_number' => array(
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
 				),
 			),
-		),
-	) );
+		)
+	);
 
 	// Refund order
-	register_rest_route( 'extrachill/v1', '/shop/orders/(?P<id>\d+)/refund', array(
+	register_rest_route(
+		'extrachill/v1',
+		'/shop/orders/(?P<id>\d+)/refund',
 		array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_shop_orders_refund_handler',
-			'permission_callback' => 'extrachill_api_shop_orders_item_permission_check',
-			'args'                => array(
-				'id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
-				),
-				'artist_id' => array(
-					'required'          => true,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => 'extrachill_api_shop_orders_refund_handler',
+				'permission_callback' => 'extrachill_api_shop_orders_item_permission_check',
+				'args'                => array(
+					'id'        => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'artist_id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
 				),
 			),
-		),
-	) );
+		)
+	);
 }
 
 /**

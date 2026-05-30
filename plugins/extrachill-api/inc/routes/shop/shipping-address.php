@@ -48,38 +48,38 @@ function extrachill_api_register_shipping_address_routes() {
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
 					),
-					'name'    => array(
+					'name'      => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'street1' => array(
+					'street1'   => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'street2' => array(
+					'street2'   => array(
 						'required'          => false,
 						'type'              => 'string',
 						'default'           => '',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'city'    => array(
+					'city'      => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'state'   => array(
+					'state'     => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'zip'     => array(
+					'zip'       => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'country' => array(
+					'country'   => array(
 						'required'          => false,
 						'type'              => 'string',
 						'default'           => 'US',

@@ -12,23 +12,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_content_blocks_image_voting_route' );
 
 function extrachill_api_register_content_blocks_image_voting_route() {
-	register_rest_route( 'extrachill/v1', '/content-blocks/image-voting/vote-count/(?P<post_id>\d+)/(?P<instance_id>[a-zA-Z0-9\-]+)', array(
-		'methods'             => WP_REST_Server::READABLE,
-		'callback'            => 'extrachill_api_content_blocks_image_voting_handler',
-		'permission_callback' => '__return_true',
-		'args'                => array(
-			'post_id'     => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
+	register_rest_route(
+		'extrachill/v1',
+		'/content-blocks/image-voting/vote-count/(?P<post_id>\d+)/(?P<instance_id>[a-zA-Z0-9\-]+)',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_content_blocks_image_voting_handler',
+			'permission_callback' => '__return_true',
+			'args'                => array(
+				'post_id'     => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'instance_id' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
-			'instance_id' => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-		),
-	) );
+		)
+	);
 }
 
 function extrachill_api_content_blocks_image_voting_handler( $request ) {
@@ -57,7 +61,9 @@ function extrachill_api_content_blocks_image_voting_handler( $request ) {
 		}
 	}
 
-	return rest_ensure_response( array(
-		'vote_count' => $vote_count,
-	) );
+	return rest_ensure_response(
+		array(
+			'vote_count' => $vote_count,
+		)
+	);
 }
