@@ -45,3 +45,33 @@ function ec_events_my_shows_nav_item( $items ) {
 	return $items;
 }
 add_filter( 'extrachill_secondary_header_items', 'ec_events_my_shows_nav_item' );
+
+/**
+ * Suppress the theme page H1 on /my-shows/.
+ *
+ * The page embeds the extrachill/concert-stats block, which renders its own
+ * contextual header (`isOwn ? 'My Shows' : 'Concert History'`) via
+ * BlockShellHeader. The static theme H1 "My Shows" duplicates that chrome, so
+ * we opt out of the theme title via the sanctioned `extrachill_show_page_title`
+ * filter — mirroring extrachill-studio and extrachill-artist-platform.
+ *
+ * `is_page( 'my-shows' )` covers all three render states (logged-in owner,
+ * other-user view, logged-out marketing surface) since the page is always
+ * titled "My Shows".
+ *
+ * @param bool $show    Whether to show the page title.
+ * @param int  $post_id The current page ID.
+ * @return bool
+ */
+function ec_events_hide_my_shows_page_title( $show, $post_id ) {
+	if ( ! ec_is_events_site() ) {
+		return $show;
+	}
+
+	if ( is_page( 'my-shows' ) ) {
+		return false;
+	}
+
+	return $show;
+}
+add_filter( 'extrachill_show_page_title', 'ec_events_hide_my_shows_page_title', 10, 2 );
