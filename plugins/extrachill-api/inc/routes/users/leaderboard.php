@@ -36,9 +36,9 @@ function extrachill_api_register_users_leaderboard_routes() {
 }
 
 function extrachill_api_users_leaderboard_get_handler( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'extrachill/community-get-leaderboard' );
+	$ability = wp_get_ability( 'extrachill/users-leaderboard' );
 	if ( ! $ability ) {
-		return new WP_Error( 'ability_not_found', 'extrachill-community plugin is required.', array( 'status' => 500 ) );
+		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
 	$page     = max( 1, (int) $request->get_param( 'page' ) );
@@ -46,8 +46,8 @@ function extrachill_api_users_leaderboard_get_handler( WP_REST_Request $request 
 	$per_page = max( 1, min( 100, $per_page ) );
 
 	$result = $ability->execute( array(
-		'limit'  => $per_page,
-		'offset' => ( $page - 1 ) * $per_page,
+		'page'     => $page,
+		'per_page' => $per_page,
 	) );
 	if ( is_wp_error( $result ) ) {
 		return $result;
