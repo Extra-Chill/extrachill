@@ -88,7 +88,15 @@ function ec_display_manage_members_section( $artist_id, $current_user_id ) {
                         <span class="member-email"><?php echo esc_html( $invite['email'] ); ?></span>
                         <span class="member-status-label">(<?php echo esc_html( $status_text ); ?>: <?php echo esc_html( $invited_on_formatted ); ?>)</span>
                         <span class="member-actions">
-                            <?php /* Future: Add Cancel Invite action */ ?>
+                            <?php
+                            /*
+                             * Cancel Invite is handled by the React `artist-manager` block,
+                             * which calls DELETE /extrachill/v1/artists/{id}/roster/invites/{invite_id}
+                             * (extrachill-api) -> ec_remove_pending_invitation(). No AJAX; capability
+                             * enforced via ec_can_manage_artist() in the REST handler. This legacy
+                             * server-rendered roster UI is not the active surface.
+                             */
+                            ?>
                         </span>
                     </li>
             <?php 
