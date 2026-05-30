@@ -139,15 +139,21 @@ function extrachill_resolve_site_urls( $site_urls ) {
  * @return array<int, array<int, string>>
  */
 function extrachill_get_site_post_types() {
+	// Derive blog-ID keys from canonical slug map so a blog-ID shift tracks
+	// automatically instead of silently mis-routing via literal integers.
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return apply_filters( 'extrachill_search_site_post_types_map', array() );
+	}
+
 	$site_post_types = array(
-		1  => array( 'post', 'page' ),                         // extrachill.com (main blog)
-		2  => array( 'topic', 'reply', 'forum' ),              // community.extrachill.com (bbPress)
-		3  => array( 'product', 'page' ),                      // shop.extrachill.com (WooCommerce)
-		4  => array( 'artist_profile', 'topic', 'reply' ),     // artist.extrachill.com
-		7  => array( 'data_machine_events', 'page' ),          // events.extrachill.com (Data Machine)
-		9  => array( 'newsletter' ),                           // newsletter.extrachill.com
-		10 => array( 'ec_doc', 'page' ),                       // docs.extrachill.com
-		11 => array( 'festival_wire', 'page' ),                // wire.extrachill.com
+		ec_get_blog_id( 'main' )       => array( 'post', 'page' ),                     // extrachill.com (main blog)
+		ec_get_blog_id( 'community' )  => array( 'topic', 'reply', 'forum' ),          // community.extrachill.com (bbPress)
+		ec_get_blog_id( 'shop' )       => array( 'product', 'page' ),                  // shop.extrachill.com (WooCommerce)
+		ec_get_blog_id( 'artist' )     => array( 'artist_profile', 'topic', 'reply' ), // artist.extrachill.com
+		ec_get_blog_id( 'events' )     => array( 'data_machine_events', 'page' ),       // events.extrachill.com (Data Machine)
+		ec_get_blog_id( 'newsletter' ) => array( 'newsletter' ),                       // newsletter.extrachill.com
+		ec_get_blog_id( 'docs' )       => array( 'ec_doc', 'page' ),                    // docs.extrachill.com
+		ec_get_blog_id( 'wire' )       => array( 'festival_wire', 'page' ),             // wire.extrachill.com
 	);
 
 	return apply_filters( 'extrachill_search_site_post_types_map', $site_post_types );
