@@ -103,7 +103,30 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 		$args['user_id'] = $current_user_id;
 	}
 
+	// Force HTTP loopback for affinity forwarding.
+	//
+	// A route only has site affinity because its handler depends on the
+	// target site's plugin stack — e.g. /events/* handlers call abilities
+	// registered by extrachill-events, which is active ONLY on the events
+	// site. The default in-process cross-site path (switch_to_blog() +
+	// rest_do_request()) swaps DB/options context but does NOT bootstrap the
+	// target site's per-site plugins, so those abilities are never registered
+	// in the source process. The forwarded request then runs the handler with
+	// the ability missing → WP_Abilities_Registry logs a "not found" notice on
+	// every call and the route returns a 500.
+	//
+	// HTTP loopback spins up a fresh PHP-FPM worker that bootstraps the target
+	// site's full plugin stack, so the per-site ability is registered and the
+	// handler resolves correctly. This is precisely the documented use case for
+	// the loopback path. See Extra-Chill/extrachill-events#141.
+	$force_http_loopback = static function () {
+		return true;
+	};
+	add_filter( 'ec_cross_site_use_http_loopback', $force_http_loopback, 10, 0 );
+
 	$response = ec_cross_site_rest_request( $target_site, $method, $path, $args );
+
+	remove_filter( 'ec_cross_site_use_http_loopback', $force_http_loopback, 10 );
 
 	if ( is_wp_error( $response ) ) {
 		$status = $response->get_error_data()['status'] ?? 500;
