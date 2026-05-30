@@ -18,9 +18,7 @@ if ( ! is_user_logged_in() ) {
 
 $class = 'wp-block-extrachill-edit-profile';
 
-$artist_site_url = function_exists( 'ec_get_site_url' )
-	? ec_get_site_url( 'artist' )
-	: 'https://artist.extrachill.com';
+$artist_site_url = ec_get_site_url( 'artist' );
 
 $current_user_id = get_current_user_id();
 
