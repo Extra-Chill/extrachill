@@ -64,6 +64,32 @@ function extrachill_users_generate_access_token( int $user_id, string $device_id
 }
 
 /**
+ * Generate an opaque refresh token.
+ *
+ * 256 random bits, base64url-encoded (no padding) = 43 chars from the
+ * `[A-Za-z0-9_-]` alphabet (RFC 7235 bearer token alphabet). It survives
+ * HTTP headers, URL params, JSON bodies, command-line args, and shell
+ * escaping without any character class needing escaping.
+ *
+ * Deliberately NOT `wp_generate_password( 64, true, true )`: its
+ * "extra special chars" alphabet adds `<`, `>`, `&`, `"`, `'`, and a
+ * literal space — all hostile to HTTP transport. `sanitize_text_field()`
+ * HTML-encodes the first five (mangling the token in transit), and a
+ * literal space gets corrupted by `trim()` on the receiving side. This
+ * caused ~45% silent auth failures in extrachill.com production before
+ * the sibling wp-native-auth plugin switched to this generator. We match
+ * wp-native-auth/inc/tokens.php exactly to avoid a second divergence.
+ *
+ * Entropy: 32 bytes of CSPRNG (`random_bytes`) = 256 bits, well above
+ * the 128-bit threshold for opaque token unguessability.
+ *
+ * @return string Base64url-encoded random token (43 chars).
+ */
+function extrachill_users_generate_refresh_token(): string {
+	return rtrim( strtr( base64_encode( random_bytes( 32 ) ), '+/', '-_' ), '=' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions -- Required for HTTP-safe API auth tokens, not obfuscation.
+}
+
+/**
  * Hash refresh token for storage.
  */
 function extrachill_users_hash_refresh_token( string $refresh_token ): string {

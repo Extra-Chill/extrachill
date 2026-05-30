@@ -38,7 +38,7 @@ function extrachill_users_issue_refresh_token( int $user_id, string $device_id, 
 	$expires_ts = $now_ts + EXTRACHILL_USERS_REFRESH_TOKEN_TTL;
 	$expires_at = extrachill_users_mysql_gmt_from_ts( $expires_ts );
 
-	$refresh_token = wp_generate_password( 64, true, true );
+	$refresh_token = extrachill_users_generate_refresh_token();
 	$token_hash    = extrachill_users_hash_refresh_token( $refresh_token );
 
 	$existing_id = $wpdb->get_var(
@@ -180,7 +180,7 @@ function extrachill_users_refresh_tokens( string $refresh_token, string $device_
 		);
 	}
 
-	$new_refresh_token = wp_generate_password( 64, true, true );
+	$new_refresh_token = extrachill_users_generate_refresh_token();
 	$new_token_hash    = extrachill_users_hash_refresh_token( $new_refresh_token );
 	$new_expires_ts    = $now_ts + EXTRACHILL_USERS_REFRESH_TOKEN_TTL;
 	$new_expires_at    = extrachill_users_mysql_gmt_from_ts( $new_expires_ts );
