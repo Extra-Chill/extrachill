@@ -125,7 +125,7 @@ function extrachill_shop_enqueue_raffle_admin_assets( $hook ) {
 		wp_enqueue_script(
 			'extrachill-shop-raffle-admin',
 			EXTRACHILL_SHOP_PLUGIN_URL . 'assets/js/raffle-admin.js',
-			array( 'jquery' ),
+			array(),
 			filemtime( $js_file ),
 			true
 		);

@@ -6,11 +6,18 @@
  * @package ExtraChillShop
  */
 .raffle-max-tickets-field {
-    display: none;
+    display: block;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 300ms ease, max-height 300ms ease, visibility 300ms ease;
 }
 
 .raffle-max-tickets-field.visible {
-    display: block;
+    max-height: 500px;
+    opacity: 1;
+    visibility: visible;
 }
 
 .raffle-max-tickets-field label {

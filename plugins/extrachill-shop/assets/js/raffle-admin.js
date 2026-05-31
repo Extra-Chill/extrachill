@@ -7,13 +7,13 @@
  * @package ExtraChillShop
  */
 
-(function($) {
+(function() {
     'use strict';
 
     function hasRaffleTag() {
-        const tagInputs = $('.tagchecklist span a');
+        const tagInputs = document.querySelectorAll('.tagchecklist span a');
         for (let i = 0; i < tagInputs.length; i++) {
-            const tagText = $(tagInputs[i]).text().toLowerCase().replace(/[^a-z0-9]/g, '');
+            const tagText = tagInputs[i].textContent.toLowerCase().replace(/[^a-z0-9]/g, '');
             if (tagText === 'raffle') {
                 return true;
             }
@@ -22,22 +22,21 @@
     }
 
     function toggleRaffleField() {
-        const $raffleField = $('.raffle-max-tickets-field');
+        const raffleFields = document.querySelectorAll('.raffle-max-tickets-field');
+        const visible = hasRaffleTag();
 
-        if (hasRaffleTag()) {
-            $raffleField.addClass('visible').fadeIn(300);
-        } else {
-            $raffleField.removeClass('visible').fadeOut(300);
+        for (let i = 0; i < raffleFields.length; i++) {
+            raffleFields[i].classList.toggle('visible', visible);
         }
     }
 
-    $(document).ready(function() {
+    document.addEventListener('DOMContentLoaded', function() {
         toggleRaffleField();
 
         const tagListContainer = document.querySelector('.tagchecklist');
 
         if (tagListContainer) {
-            const observer = new MutationObserver(function(mutations) {
+            const observer = new MutationObserver(function() {
                 toggleRaffleField();
             });
 
@@ -50,4 +49,4 @@
         setInterval(toggleRaffleField, 500);
     });
 
-})(jQuery);
+})();
