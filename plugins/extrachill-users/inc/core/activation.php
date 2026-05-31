@@ -37,6 +37,16 @@ function extrachill_users_run_activation() {
 
 	update_site_option( 'extrachill_users_concert_import_runs_table_created', 1 );
 
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/db.php';
+	if ( function_exists( 'extrachill_users_install_notifications_table' ) ) {
+		extrachill_users_install_notifications_table();
+	}
+
+	update_site_option(
+		'extrachill_users_notifications_schema_version',
+		defined( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION' ) ? (string) EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION : '1'
+	);
+
 	extrachill_users_create_login_pages_network();
 
 	// Register extra_chill_team role on every site in the network and
