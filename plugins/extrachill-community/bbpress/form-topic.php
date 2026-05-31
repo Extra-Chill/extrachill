@@ -94,43 +94,19 @@ if ( ! bbp_is_single_forum() ) : ?>
 					<?php endif; ?>
 
 					<?php
-					// Minimal location picker: assign an EXISTING hierarchical
-					// location term so the topic renders the canonical location
-					// badge. Pick-from-existing only (no freeform creation) to
-					// keep the network's curated location tree from drifting.
-					// The full composer term-picker UX is issue #59.
-					if ( taxonomy_exists( 'location' ) ) :
-						$selected_location = 0;
-						if ( bbp_is_topic_edit() ) {
-							$location_terms = get_the_terms( bbp_get_topic_id(), 'location' );
-							if ( ! empty( $location_terms ) && ! is_wp_error( $location_terms ) ) {
-								$selected_location = (int) $location_terms[0]->term_id;
-							}
-						}
-						?>
+					// Composer term-picker (issue #59): curated, pick-from-
+					// existing taxonomy tagging. The React picker mounts via the
+					// bbp_theme_before_topic_form_location action
+					// (extrachill_community_render_term_picker_mounts) and submits
+					// the chosen EXISTING term IDs as bbp_topic_location[]. No
+					// freeform creation, so the network's curated taxonomy tree
+					// never drifts. Hooks preserved so plugins can still target
+					// this slot; the minimal #57 <select> it supersedes is gone.
+					?>
 
-						<?php do_action( 'bbp_theme_before_topic_form_location' ); ?>
+					<?php do_action( 'bbp_theme_before_topic_form_location' ); ?>
 
-						<p>
-							<label for="bbp_topic_location"><?php esc_html_e( 'Location:', 'extra-chill-community' ); ?></label>
-							<?php
-							wp_dropdown_categories( array(
-								'taxonomy'          => 'location',
-								'name'              => 'bbp_topic_location',
-								'id'                => 'bbp_topic_location',
-								'selected'          => $selected_location,
-								'hierarchical'      => true,
-								'orderby'           => 'name',
-								'hide_empty'        => false,
-								'show_option_none'  => esc_html__( '&mdash; No location &mdash;', 'extra-chill-community' ),
-								'option_none_value' => 0,
-							) );
-							?>
-						</p>
-
-						<?php do_action( 'bbp_theme_after_topic_form_location' ); ?>
-
-					<?php endif; ?>
+					<?php do_action( 'bbp_theme_after_topic_form_location' ); ?>
 
 					<?php
 					// Only show forum dropdown if NOT on a single forum AND NOT on a single artist profile page

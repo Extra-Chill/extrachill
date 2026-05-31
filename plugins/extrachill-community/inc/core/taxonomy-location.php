@@ -32,12 +32,18 @@ function extrachill_community_register_location_for_forums() {
 add_action( 'init', 'extrachill_community_register_location_for_forums', 20 );
 
 /**
- * Persist a topic's location term on create/edit.
+ * Persist a topic's location term(s) on create/edit.
  *
- * Reads the optional `bbp_topic_location` field from the submitted topic form
- * and assigns the matching EXISTING hierarchical location term. Pick-from-
- * existing only — no freeform term creation, so the network's curated location
- * tree never drifts. An empty/zero value clears the topic's location.
+ * Reads the composer term-picker's `bbp_topic_location[]` array from the
+ * submitted topic form and assigns the matching EXISTING hierarchical location
+ * terms. Pick-from-existing only — every submitted ID is validated against a
+ * real location term, so no freeform creation and the network's curated
+ * location tree never drifts. Selecting nothing clears the topic's location.
+ *
+ * The picker submits a `bbp_topic_location_submitted` marker so we can tell a
+ * "no terms chosen, clear it" submit apart from a programmatic (ability/REST)
+ * topic creation where the field is absent entirely. A legacy scalar
+ * `bbp_topic_location` value is still honored for backward compatibility.
  *
  * bbPress verifies its own form nonce in bbp_new_topic_handler() /
  * bbp_edit_topic_handler() before firing these actions, so the POST payload is
@@ -50,28 +56,35 @@ function extrachill_community_save_topic_location( $topic_id ) {
 		return;
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- bbPress verifies its form nonce before firing bbp_new_topic/bbp_edit_topic.
+
+	$has_picker = isset( $_POST['bbp_topic_location_submitted'] );
+	$has_legacy = isset( $_POST['bbp_topic_location'] );
+
 	// Field is optional and absent on programmatic (ability/REST) topic creation.
-	// Nonce is verified upstream by bbp_new_topic_handler() / bbp_edit_topic_handler()
-	// before these actions fire, so re-checking here would be redundant.
-	if ( ! isset( $_POST['bbp_topic_location'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- bbPress verifies its form nonce before firing bbp_new_topic/bbp_edit_topic.
+	if ( ! $has_picker && ! $has_legacy ) {
 		return;
 	}
 
-	$term_id = absint( wp_unslash( $_POST['bbp_topic_location'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- bbPress verifies its form nonce before firing bbp_new_topic/bbp_edit_topic.
-
-	// Empty selection clears the location.
-	if ( 0 === $term_id ) {
-		wp_set_object_terms( $topic_id, array(), 'location' );
-		return;
+	$submitted = array();
+	if ( isset( $_POST['bbp_topic_location'] ) ) {
+		$raw       = wp_unslash( $_POST['bbp_topic_location'] );
+		$submitted = is_array( $raw ) ? array_map( 'absint', $raw ) : array( absint( $raw ) );
 	}
 
-	// Pick-from-existing only: the submitted ID must be a real location term.
-	$term = get_term( $term_id, 'location' );
-	if ( ! $term || is_wp_error( $term ) ) {
-		return;
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+	// Pick-from-existing only: keep only IDs that resolve to real location terms.
+	$term_ids = array();
+	foreach ( array_unique( array_filter( $submitted ) ) as $term_id ) {
+		$term = get_term( $term_id, 'location' );
+		if ( $term && ! is_wp_error( $term ) ) {
+			$term_ids[] = (int) $term->term_id;
+		}
 	}
 
-	wp_set_object_terms( $topic_id, array( $term->term_id ), 'location' );
+	// Empty (or all-invalid) selection clears the location.
+	wp_set_object_terms( $topic_id, $term_ids, 'location' );
 }
 add_action( 'bbp_new_topic', 'extrachill_community_save_topic_location', 20 );
 add_action( 'bbp_edit_topic', 'extrachill_community_save_topic_location', 20 );

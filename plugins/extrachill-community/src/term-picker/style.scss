@@ -1,0 +1,99 @@
+/**
+ * Composer term-picker styles.
+ *
+ * Uses the Extra Chill theme design tokens (CSS custom properties from the
+ * theme's generated root.css) — no hard-coded colors, no !important.
+ */
+
+.ec-term-picker {
+	margin-bottom: var( --spacing-md, 16px );
+
+	&__label {
+		display: block;
+		margin-bottom: var( --spacing-xs, 4px );
+		font-weight: 600;
+	}
+
+	&__chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var( --spacing-xs, 4px );
+		margin: 0 0 var( --spacing-sm, 8px );
+		padding: 0;
+		list-style: none;
+	}
+
+	&__chip {
+		display: inline-flex;
+		align-items: center;
+		gap: var( --spacing-xs, 4px );
+		padding: 2px var( --spacing-sm, 8px );
+		background: var( --card-background, #f2f2f2 );
+		border: 1px solid var( --border-color, #ccc );
+		border-radius: var( --border-radius-pill, 999px );
+		font-size: var( --font-size-sm, 0.85rem );
+		line-height: 1.5;
+	}
+
+	&__chip-remove {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.25em;
+		height: 1.25em;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: var( --muted-text, #666 );
+		font-size: 1.1em;
+		line-height: 1;
+		cursor: pointer;
+
+		&:hover,
+		&:focus {
+			color: var( --error-color, #c00 );
+		}
+	}
+
+	&__control {
+		position: relative;
+	}
+
+	&__input {
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	&__suggestions {
+		position: absolute;
+		z-index: 20;
+		top: 100%;
+		left: 0;
+		right: 0;
+		margin: 2px 0 0;
+		padding: 0;
+		max-height: 240px;
+		overflow-y: auto;
+		list-style: none;
+		background: var( --background-color, #fff );
+		border: 1px solid var( --border-color, #ccc );
+		border-radius: var( --border-radius-sm, 4px );
+		box-shadow: 0 4px 12px rgba( 0, 0, 0, 0.12 );
+	}
+
+	&__suggestion {
+		padding: var( --spacing-xs, 4px ) var( --spacing-sm, 8px );
+		cursor: pointer;
+		line-height: 1.4;
+
+		&.is-active {
+			background: var( --card-background, #eee );
+		}
+
+		&--status {
+			color: var( --muted-text, #666 );
+			cursor: default;
+			font-style: italic;
+		}
+	}
+}
