@@ -11,8 +11,8 @@
  * - Priority: Custom templates override bbPress defaults when present
  *
  * Homepage Override:
- * - Blog ID 2 restriction prevents conflicts on other multisite installations
- * - Routes to inc/home/forum-homepage.php which outputs [bbp-forum-index] shortcode
+ * - Community blog restriction prevents conflicts on other multisite installations
+ * - Routes to inc/home/forum-homepage.php, the feed-first homepage
  *
  * @package ExtraChillCommunity
  */
@@ -38,7 +38,12 @@ add_action('bbp_register_theme_packages', 'extrachill_community_register_bbpress
 /**
  * Render homepage content for community site
  *
- * Hooked via extrachill_homepage_content action.
+ * Routes to the feed-first homepage (inc/home/forum-homepage.php): the
+ * "What's Happening" activity feed leads, with a demoted "Browse rooms"
+ * chip row in place of the legacy [bbp-forum-index] directory table.
+ *
+ * Hooked via extrachill_homepage_content action. Restricted to the community
+ * blog so it never renders on other multisite installs.
  */
 function extrachill_community_render_homepage() {
 	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;

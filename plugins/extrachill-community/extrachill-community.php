@@ -83,7 +83,8 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/verification.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/settings/settings-content.php';
 
-	require_once plugin_dir_path( __FILE__ ) . 'inc/home/latest-post.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/home/activity-feed.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/home/browse-rooms.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/home/actions.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/home/homepage-forum-display.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/home/artist-platform-buttons.php';

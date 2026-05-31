@@ -14,25 +14,83 @@
     margin: 0 0 var(--spacing-md);
 }
 
-/* --- Latest Post Component --- */
-.community-latest-post {
-    background-color: var(--notice-bg);
-    width: 100%;
-    border: 2px solid var(--notice-border);
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-sm);
-    margin-bottom: var(--spacing-md);
-    box-sizing: border-box;
+/* =========================================
+   Feed-first homepage (#65)
+   "What's Happening" activity feed is the hero;
+   "Browse rooms" chips are demoted nav.
+   ========================================= */
+
+/* --- Activity feed (hero) --- */
+.community-activity-feed {
+    margin: 0 0 var(--spacing-lg);
 }
 
+.community-activity-feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+}
 
-.community-latest-post a {
+.community-activity-feed-list .bbp-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.community-activity-feed-empty {
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.community-activity-feed-footer {
+    margin-top: var(--spacing-md);
+}
+
+/* --- Browse rooms (demoted chip nav) --- */
+.community-browse-rooms {
+    margin: var(--spacing-lg) 0;
+}
+
+.community-room-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    list-style: none;
+    margin: var(--spacing-md) 0 0;
+    padding: 0;
+}
+
+.community-room-chip {
+    margin: 0;
+}
+
+.community-room-chip-link {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-pill, 999px);
+    background: var(--card-background);
+    color: var(--text-color);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
     text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.community-room-chip-link:hover,
+.community-room-chip-link:focus {
+    border-color: var(--accent);
     color: var(--link-color);
 }
 
-/* Link hover handled by theme */
+@media (max-width: 480px) {
+    .community-room-chips {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+}
 
 /* --- Forums Grid Container --- */
 #forums-list-homepage.bbp-forums-grid {
@@ -95,19 +153,6 @@
         border-right: none;
         box-shadow: none;
     }
-
-    .recently-active-topic-row {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-md);
-    }
-}
-
-/* =========================================
-   1) Container: Display horizontally
-   ========================================= */
-.recently-active-topic-row {
-    margin: var(--spacing-lg) 0;
 }
 
 .forum-badges {
