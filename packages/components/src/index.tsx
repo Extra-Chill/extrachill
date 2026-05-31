@@ -28,3 +28,6 @@ export { BlockShellInner, type BlockShellInnerProps } from './BlockShellInner.ts
 export { BlockIntro, type BlockIntroProps } from './BlockIntro.tsx';
 export { BlockShellHeader, type BlockShellHeaderProps } from './BlockShellHeader.tsx';
 export { Toolbar, type ToolbarProps } from './Toolbar.tsx';
+export { StatTile, type StatTileProps } from './StatTile.tsx';
+export { StatGroup, type StatGroupProps } from './StatGroup.tsx';
+export { ProgressBar, type ProgressBarProps } from './ProgressBar.tsx';

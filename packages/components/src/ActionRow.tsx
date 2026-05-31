@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export interface ActionRowProps {
 	children: ReactNode;
-	align?: 'start' | 'between' | 'end';
+	align?: 'start' | 'between' | 'end' | 'center';
 	className?: string;
 	classPrefix?: string;
 }
