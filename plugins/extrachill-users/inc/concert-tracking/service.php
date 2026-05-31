@@ -62,7 +62,24 @@ function ec_users_mark_event( int $user_id, int $event_id, int $blog_id = 0 ): b
 		array( '%d', '%d', '%d', '%s' )
 	);
 
-	return (bool) $wpdb->insert_id;
+	$inserted = (bool) $wpdb->insert_id;
+
+	if ( $inserted ) {
+		/**
+		 * Fires when a user newly marks an event (not on no-op re-marks).
+		 *
+		 * Consumed by the concert engagement layer to schedule show reminders
+		 * and fire milestone notifications. Idempotent: only fires on the
+		 * transition from unmarked → marked.
+		 *
+		 * @param int $user_id  User ID.
+		 * @param int $event_id Event post ID.
+		 * @param int $blog_id  Blog ID the event lives on.
+		 */
+		do_action( 'ec_users_event_marked', $user_id, $event_id, $blog_id );
+	}
+
+	return $inserted;
 }
 
 /**
@@ -91,7 +108,23 @@ function ec_users_unmark_event( int $user_id, int $event_id, int $blog_id = 0 ):
 		array( '%d', '%d', '%d' )
 	);
 
-	return false !== $deleted && $deleted > 0;
+	$removed = false !== $deleted && $deleted > 0;
+
+	if ( $removed ) {
+		/**
+		 * Fires when a user unmarks an event they had previously marked.
+		 *
+		 * Consumed by the concert engagement layer to cancel any pending
+		 * show-reminder scheduled action for this user+event.
+		 *
+		 * @param int $user_id  User ID.
+		 * @param int $event_id Event post ID.
+		 * @param int $blog_id  Blog ID the event lives on.
+		 */
+		do_action( 'ec_users_event_unmarked', $user_id, $event_id, $blog_id );
+	}
+
+	return $removed;
 }
 
 /**

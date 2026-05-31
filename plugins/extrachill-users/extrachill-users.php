@@ -148,6 +148,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/buttons.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import-db.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import/bootstrap.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/notifications.php';
 
 	// Network notification substrate: entry point + read/CRUD + back-compat shim.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/service.php';
