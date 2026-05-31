@@ -46,9 +46,20 @@ function ec_display_manage_members_section( $artist_id, $current_user_id ) {
                         $linked_user_ids[] = $user_info->ID;
                         $processed_emails[] = strtolower($user_info->user_email);
             ?>
+                        <?php
+                        $community_profile_url = function_exists( 'extrachill_get_user_community_profile_url' )
+                            ? extrachill_get_user_community_profile_url( $user_info->ID )
+                            : '';
+                        ?>
                         <li data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" class="ec-member-linked">
                             <?php echo get_avatar( $user_info->ID, 32 ); ?>
-                            <span class="member-name"><?php echo esc_html( $user_info->display_name ); ?> (<?php echo esc_html( $user_info->user_login ); ?>)</span>
+                            <span class="member-name"><?php
+                                if ( ! empty( $community_profile_url ) ) :
+                                    ?><a href="<?php echo esc_url( $community_profile_url ); ?>"><?php echo esc_html( $user_info->display_name ); ?></a><?php
+                                else :
+                                    echo esc_html( $user_info->display_name );
+                                endif;
+                            ?> (<?php echo esc_html( $user_info->user_login ); ?>)</span>
                             <span class="member-status-label">(Linked Account)</span>
                             <?php if ( $user_info->ID !== $current_user_id ) : ?>
                                 <button type="button" class="button-2 button-small ec-remove-member-button" data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" title="<?php esc_attr_e( 'Remove this member from artist', 'extrachill-artist-platform' ); ?>">&times; <?php esc_html_e('Remove', 'extrachill-artist-platform'); ?></button>
