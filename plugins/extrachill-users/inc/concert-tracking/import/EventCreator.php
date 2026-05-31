@@ -11,6 +11,33 @@
  * other event-import path on the platform (Ticketmaster, Dice.fm,
  * UniversalWebScraper) creates events. Concert-import does the same.
  *
+ * Canonical creation path (extrachill-users#81):
+ *
+ * Creation routes through the platform's canonical content primitive,
+ * `datamachine/upsert-post`, instead of a raw `wp_insert_post()`. This is the
+ * same primitive the canonical `upsert_event` handler delegates to, so import
+ * events stop being second-class citizens:
+ *
+ * - The post carries a real `data-machine-events/event-details` block, so the
+ *   `event-dates-sync` listener (on `save_post`) writes the
+ *   `datamachine_event_dates` row from the block's `startDate` — no manual
+ *   EventDatesTable::upsert.
+ * - `datamachine/upsert-post` gives content-hash idempotency + provenance for
+ *   free, on top of our own (source, external_id) idempotency stamp.
+ * - Imported created-events publish directly to the calendar. My Shows is
+ *   intentionally both historical and forward-looking, and the public
+ *   calendar/archive default to upcoming-only views (UpcomingFilter), so
+ *   historical imports add timeline depth without flooding default surfaces.
+ *   Per-event IndexNow pings are suppressed for the import batch by the
+ *   orchestrator (datamachine_indexnow_skip_auto_submit), avoiding thousands
+ *   of synchronous outbound pings; the sitemap still advertises events on the
+ *   normal crawl cadence.
+ * - After taxonomy assignment we fire `datamachine_event_taxonomy_processed`,
+ *   so extrachill-events' location-normalizer resolves the `location` (city)
+ *   term from the venue's `_venue_city` meta. Without this, imported events
+ *   carried no location term and contributed zero to My Shows "top cities" /
+ *   "unique cities" stats (the bug #81 fixes).
+ *
  * The creator runs from the orchestrator after EventMatcher returns null AND
  * after an external_id idempotency lookup against `_dm_import_external_id`
  * post_meta also returns null. It always operates inside a
@@ -126,72 +153,162 @@ final class EventCreator {
 			return null;
 		}
 
-		$post_id = wp_insert_post(
-			array(
-				'post_type'   => 'data_machine_events',
-				'post_status' => 'publish',
-				'post_title'  => $title,
-			),
-			true
-		);
-
-		if ( is_wp_error( $post_id ) || ! $post_id ) {
+		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'datamachine/upsert-post' ) : null;
+		if ( ! $ability ) {
 			do_action(
 				'datamachine_log',
 				'error',
-				'Concert import: failed to create event post',
+				'Concert import: datamachine/upsert-post ability unavailable',
 				array(
 					'source_slug' => $source_slug,
 					'event'       => $event->label(),
-					'error'       => is_wp_error( $post_id ) ? $post_id->get_error_message() : 'unknown',
 				)
 			);
 			return null;
 		}
 
-		$post_id = (int) $post_id;
-
-		// Stamp audit + idempotency meta FIRST so even a partial creation
-		// (no venue/artist) is still discoverable by external_id and won't be
-		// re-created on the next pass.
-		update_post_meta( $post_id, self::META_IMPORT_SOURCE, sanitize_text_field( $source_slug ) );
-		if ( '' !== $event->source_id ) {
-			update_post_meta( $post_id, self::META_IMPORT_EXTERNAL_ID, sanitize_text_field( $event->source_id ) );
-		}
-
-		// Insert the event-dates row. The source only carries a calendar
-		// date — we anchor at midnight UTC on that date. Downstream date
-		// rendering treats this as an all-day show.
-		$start_datetime = $event->date . ' 00:00:00';
-		if ( class_exists( '\\DataMachineEvents\\Core\\EventDatesTable' ) ) {
-			\DataMachineEvents\Core\EventDatesTable::upsert( $post_id, $start_datetime, null, 'publish' );
-		}
-
-		// Find-or-create the venue.
-		$venue_term_id = self::ensure_venue_term( $event );
-		if ( $venue_term_id ) {
-			wp_set_object_terms( $post_id, array( (int) $venue_term_id ), 'venue', false );
-		}
-
-		// Find-or-create the artist.
+		// Find-or-create the venue + artist terms up front. The venue helper
+		// (Venue_Taxonomy::find_or_create_venue) does robust 4-layer dedup and
+		// stamps `_venue_city` / `_venue_state` meta on the term — which the
+		// location-normalizer later reads to resolve the city term.
+		$venue_term_id  = self::ensure_venue_term( $event );
 		$artist_term_id = self::ensure_artist_term( $event );
-		if ( $artist_term_id ) {
-			wp_set_object_terms( $post_id, array( (int) $artist_term_id ), 'artist', false );
+
+		$taxonomies = array();
+		if ( $venue_term_id ) {
+			$taxonomies['venue'] = array( (int) $venue_term_id );
 		}
+		if ( $artist_term_id ) {
+			$taxonomies['artist'] = array( (int) $artist_term_id );
+		}
+
+		// Build the canonical event-details block as post content. The
+		// `event-dates-sync` listener (save_post) parses this block's
+		// `startDate` and writes the `datamachine_event_dates` row — the same
+		// path the canonical upsert_event handler relies on. The source only
+		// carries a calendar date, so we leave startTime empty (all-day).
+		$content = self::build_event_block_content( $event );
+
+		$result = $ability->execute(
+			array(
+				'post_type'      => 'data_machine_events',
+				'title'          => $title,
+				'content'        => $content,
+				'content_format' => 'blocks',
+				// Imported created-events publish directly to the calendar.
+				// My Shows is intentionally both historical and forward-looking,
+				// and the public calendar/archive default to upcoming-only views
+				// (UpcomingFilter), so historical imports add timeline depth
+				// without flooding the default surfaces. Per-event IndexNow pings
+				// are suppressed during the import batch by the orchestrator.
+				'post_status'    => 'publish',
+				'taxonomies'     => $taxonomies,
+				// Stamp audit + idempotency meta. Our own (source, external_id)
+				// pair is the authoritative re-import guard (checked by the
+				// orchestrator before this runs), on top of upsert-post's own
+				// content-hash idempotency.
+				'meta_input'     => self::import_meta( $event, $source_slug ),
+			)
+		);
+
+		if ( ! is_array( $result ) || empty( $result['success'] ) || empty( $result['post_id'] ) ) {
+			do_action(
+				'datamachine_log',
+				'error',
+				'Concert import: datamachine/upsert-post failed to create event',
+				array(
+					'source_slug' => $source_slug,
+					'event'       => $event->label(),
+					'error'       => is_array( $result ) ? ( $result['error'] ?? $result['message'] ?? 'unknown' ) : 'non-array result',
+				)
+			);
+			return null;
+		}
+
+		$post_id = (int) $result['post_id'];
+
+		// Fire the canonical post-taxonomy hook so extrachill-events'
+		// location-normalizer runs and resolves the `location` (city) term
+		// from the venue's `_venue_city` meta. This is what makes imported
+		// events count toward My Shows "top cities" / "unique cities".
+		do_action( 'datamachine_event_taxonomy_processed', $post_id );
 
 		do_action(
 			'datamachine_log',
 			'info',
-			'Concert import: created event from external payload',
+			'Concert import: created event via canonical upsert-post',
 			array(
 				'post_id'     => $post_id,
 				'source_slug' => $source_slug,
 				'external_id' => $event->source_id,
 				'title'       => $title,
+				'action'      => $result['action'] ?? '',
 			)
 		);
 
 		return $post_id;
+	}
+
+	/**
+	 * Build the audit + idempotency meta for an imported event.
+	 *
+	 * @param ExternalEvent $event       Normalized source payload.
+	 * @param string        $source_slug Source slug (e.g. 'setlist-fm').
+	 * @return array<string, string> Meta input for datamachine/upsert-post.
+	 */
+	private static function import_meta( ExternalEvent $event, string $source_slug ): array {
+		$meta = array(
+			self::META_IMPORT_SOURCE => sanitize_text_field( $source_slug ),
+		);
+
+		if ( '' !== $event->source_id ) {
+			$meta[ self::META_IMPORT_EXTERNAL_ID ] = sanitize_text_field( $event->source_id );
+		}
+
+		return $meta;
+	}
+
+	/**
+	 * Build the `data-machine-events/event-details` block markup for an
+	 * imported event.
+	 *
+	 * Mirrors the block shape produced by the canonical upsert_event handler
+	 * (EventUpsert::generate_event_block_content): a single event-details block
+	 * carrying the date/venue/performer attributes that downstream sync hooks
+	 * read. The source carries only a calendar date, so `startTime` is omitted
+	 * (treated as all-day).
+	 *
+	 * @param ExternalEvent $event Normalized source payload.
+	 * @return string Serialized block markup.
+	 */
+	private static function build_event_block_content( ExternalEvent $event ): string {
+		$attrs = array(
+			'startDate'      => $event->date,
+			'venue'          => $event->venue_name,
+			'performer'      => $event->headliner,
+			'performerType'  => 'PerformingGroup',
+			'showVenue'      => true,
+			'showPrice'      => false,
+			'showTicketLink' => false,
+		);
+
+		$attrs = array_filter(
+			$attrs,
+			static function ( $value ) {
+				return '' !== $value && null !== $value;
+			}
+		);
+
+		// Re-assert the boolean display flags stripped by array_filter.
+		$attrs['showVenue']      = true;
+		$attrs['showPrice']      = false;
+		$attrs['showTicketLink'] = false;
+
+		$block_json = wp_json_encode( $attrs, JSON_UNESCAPED_UNICODE );
+
+		return '<!-- wp:data-machine-events/event-details ' . $block_json . ' -->' . "\n" .
+			'<div class="wp-block-data-machine-events-event-details"></div>' . "\n" .
+			'<!-- /wp:data-machine-events/event-details -->';
 	}
 
 	/**
@@ -284,35 +401,35 @@ final class EventCreator {
 	/**
 	 * Find or create the artist term for this event.
 	 *
-	 * The artist taxonomy doesn't ship a public find-or-create helper, so we
-	 * implement the same smart-lookup pattern locally (exact name, then with /
-	 * without "The " prefix).
+	 * Delegates to the canonical Data Machine term resolver
+	 * (`datamachine/resolve-term`) with fuzzy matching enabled, so artist
+	 * names dedup on normalized comparison (case/punctuation/article/accent
+	 * insensitive) — e.g. "Tyler, the Creator" resolves to an existing
+	 * "Tyler the Creator" term instead of creating a duplicate. The resolver
+	 * is taxonomy-agnostic core, so no artist-awareness leaks into the generic
+	 * events layer (extrachill-events#144).
 	 */
 	private static function ensure_artist_term( ExternalEvent $event ): ?int {
 		if ( '' === $event->headliner ) {
 			return null;
 		}
 
-		$name = $event->headliner;
-
-		$existing = get_term_by( 'name', $name, 'artist' );
-
-		if ( ! $existing ) {
-			$alt = ( stripos( $name, 'The ' ) === 0 ) ? substr( $name, 4 ) : 'The ' . $name;
-			if ( $alt ) {
-				$existing = get_term_by( 'name', $alt, 'artist' );
-			}
-		}
-
-		if ( $existing && ! is_wp_error( $existing ) ) {
-			return (int) $existing->term_id;
-		}
-
-		$inserted = wp_insert_term( $name, 'artist' );
-		if ( is_wp_error( $inserted ) ) {
+		if ( ! class_exists( '\\DataMachine\\Abilities\\Taxonomy\\ResolveTermAbility' ) ) {
 			return null;
 		}
 
-		return isset( $inserted['term_id'] ) ? (int) $inserted['term_id'] : null;
+		$result = \DataMachine\Abilities\Taxonomy\ResolveTermAbility::resolve(
+			$event->headliner,
+			'artist',
+			true,  // create if not found
+			array(),
+			true   // fuzzy: normalized-name dedup
+		);
+
+		if ( empty( $result['success'] ) || empty( $result['term_id'] ) ) {
+			return null;
+		}
+
+		return (int) $result['term_id'];
 	}
 }

@@ -204,6 +204,17 @@ final class ImportOrchestrator {
 		$unmatched = 0;
 		$skipped   = 0;
 
+		// Suppress per-event IndexNow pings for the duration of this import
+		// batch. Each created event would otherwise trigger a synchronous
+		// outbound IndexNow POST (twice — Data Machine + extrachill-seo both
+		// honor this canonical filter), asking search engines to crawl
+		// potentially thousands of historical pages mid-import. The sitemap
+		// still advertises them on the normal crawl cadence.
+		$suppress_indexnow = static function (): bool {
+			return true;
+		};
+		add_filter( 'datamachine_indexnow_skip_auto_submit', $suppress_indexnow );
+
 		// All event resolution + creation happens in the events-blog context.
 		// Switching once per page keeps the work atomic and avoids paying the
 		// switch_to_blog cost per-event. The EventMatcher will detect that we
@@ -269,6 +280,7 @@ final class ImportOrchestrator {
 			if ( $switched ) {
 				restore_current_blog();
 			}
+			remove_filter( 'datamachine_indexnow_skip_auto_submit', $suppress_indexnow );
 		}
 
 		self::increment_counters( $run_id, $seen, $matched, $created, $unmatched, $skipped );
