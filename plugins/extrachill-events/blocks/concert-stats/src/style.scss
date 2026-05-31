@@ -27,13 +27,16 @@
 	justify-content: center;
 }
 
-/* ─── Stats Bar (bespoke tiles inside Section) ──────────────────────────── */
+/* ─── Stats Bar (canonical StatGroup / StatTile primitives) ─────────────── */
 
 /*
- * The outer `<Section>` chrome comes from @extrachill/components; the
- * stat tiles themselves stay bespoke because there's no canonical
- * stat-tile primitive yet. Override Section's default block layout to
- * a flex row for this specific use.
+ * The stat tiles now consume the canonical `StatGroup` / `StatTile`
+ * primitives from @extrachill/components (which ship their own base
+ * `.ec-stat-group` / `.ec-stat-tile` chrome). These local
+ * `.ec-concert-stats__stats-bar` / `__stat` selectors are passed in as
+ * `className` overrides for the concert-stats summary row: a tight
+ * flex row of equally-weighted tiles with a divider beneath, plus the
+ * interactive (link) tile affordance so the row doubles as navigation.
  */
 .ec-concert-stats__stats-bar {
 	display: flex;
@@ -44,25 +47,52 @@
 	flex-wrap: wrap;
 }
 
+/*
+ * Override the primitive's tile chrome for the summary-row context:
+ * centered column, compact min-width. When the tile is a link
+ * (`.ec-stat-tile--link`, set by StatTile when an `href` is present)
+ * give it a clear interactive affordance — pointer cursor, a subtle
+ * hover lift, and a visible focus ring for keyboard users — so the
+ * "stat → tab" navigation reads as clickable.
+ */
 .ec-concert-stats__stat {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	min-width: 60px;
+	text-decoration: none;
+	border-radius: var(--border-radius-sm, 4px);
+	transition: background-color 0.15s ease, transform 0.15s ease;
+
+	.ec-stat-tile__value {
+		font-size: var(--font-size-2xl, 1.5rem);
+		font-weight: 700;
+		line-height: 1.2;
+		color: var(--text-color, #1f2937);
+	}
+
+	.ec-stat-tile__label {
+		font-size: var(--font-size-xs, 0.625rem);
+		color: var(--muted-text, #6b7280);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
 }
 
-.ec-concert-stats__stat-value {
-	font-size: var(--font-size-2xl, 1.5rem);
-	font-weight: 700;
-	line-height: 1.2;
-	color: var(--text-color, #1f2937);
-}
+a.ec-concert-stats__stat {
+	cursor: pointer;
+	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+	margin: calc(-1 * var(--spacing-xs, 0.25rem)) calc(-1 * var(--spacing-sm, 0.5rem));
 
-.ec-concert-stats__stat-label {
-	font-size: var(--font-size-xs, 0.625rem);
-	color: var(--muted-text, #6b7280);
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	&:hover {
+		background-color: var(--surface-hover, rgba(0, 0, 0, 0.04));
+		transform: translateY(-1px);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--accent-color, #2563eb);
+		outline-offset: 2px;
+	}
 }
 
 /* ─── Show Cards ────────────────────────────────────────────────────────── */
