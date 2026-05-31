@@ -28,3 +28,43 @@
 	color: var(--muted-text, #6b7280);
 	white-space: nowrap;
 }
+
+/* ─── Attendee strip ("who's going / who was there") ───────────────────── */
+
+.ec-attendance-list {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.ec-attendance-list__label {
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-attendance-list__avatars {
+	display: flex;
+	align-items: center;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.ec-attendance-list__item {
+	margin: 0 0 0 -0.5rem;
+}
+
+.ec-attendance-list__item:first-child {
+	margin-left: 0;
+}
+
+.ec-attendance-list__avatar {
+	display: block;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	border: 2px solid var(--card-background, #fff);
+	object-fit: cover;
+}

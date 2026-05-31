@@ -745,11 +745,96 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 		'unique_cities'  => $unique_cities,
 		'first_show'     => $first_show,
 		'latest_show'    => $latest_show,
-		'top_artists'    => $cast_counts( $top_artists ),
-		'top_venues'     => $cast_counts( $top_venues ),
-		'top_cities'     => $cast_counts( $top_cities ),
+		'top_artists'    => ec_users_link_top_terms( $cast_counts( $top_artists ), 'artist', $blog_id ),
+		'top_venues'     => ec_users_link_top_terms( $cast_counts( $top_venues ), 'venue', $blog_id ),
+		'top_cities'     => ec_users_link_top_terms( $cast_counts( $top_cities ), 'location', $blog_id ),
 		'shows_by_year'  => $shows_by_year,
 	);
+}
+
+/**
+ * Enrich top-term stat items with a `url` for cross-site navigation.
+ *
+ * Turns the My Shows leaderboards (top artists / venues / cities) from a
+ * dead-end list into a launchpad into the network — the platform's
+ * network-density / interconnectedness goal. Each item gains a `url`:
+ *
+ * - artist → the artist's profile on the artist site (canonical entity link
+ *   via extrachill_get_artist_profile_by_slug), falling back to the events
+ *   artist archive.
+ * - venue  → the events-site venue archive.
+ * - location (city) → the events-site location archive.
+ *
+ * Uses the network's canonical linker primitives (extrachill-multisite) rather
+ * than hand-building URLs, so caching + content-awareness are inherited. Items
+ * with no resolvable target keep `url => ''` (the UI renders plain text).
+ *
+ * @param array  $items    Top-term items, each { name, slug, count }.
+ * @param string $taxonomy 'artist' | 'venue' | 'location'.
+ * @param int    $blog_id  Events blog ID (for venue/location archive URLs).
+ * @return array Items with an added `url` key.
+ */
+function ec_users_link_top_terms( array $items, string $taxonomy, int $blog_id ): array {
+	if ( empty( $items ) ) {
+		return $items;
+	}
+
+	foreach ( $items as &$item ) {
+		$slug        = isset( $item['slug'] ) ? (string) $item['slug'] : '';
+		$item['url'] = '';
+
+		if ( '' === $slug ) {
+			continue;
+		}
+
+		if ( 'artist' === $taxonomy && function_exists( 'extrachill_get_artist_profile_by_slug' ) ) {
+			$profile = extrachill_get_artist_profile_by_slug( $slug );
+			if ( is_array( $profile ) && ! empty( $profile['permalink'] ) ) {
+				$item['url'] = (string) $profile['permalink'];
+				continue;
+			}
+		}
+
+		// Venue / location (and artist fallback): the events-site term archive.
+		$item['url'] = ec_users_events_term_archive_url( $slug, $taxonomy, $blog_id );
+	}
+	unset( $item );
+
+	return $items;
+}
+
+/**
+ * Build the events-site archive URL for a taxonomy term slug.
+ *
+ * @param string $slug     Term slug.
+ * @param string $taxonomy Taxonomy slug.
+ * @param int    $blog_id  Events blog ID.
+ * @return string Archive URL, or '' when unresolvable.
+ */
+function ec_users_events_term_archive_url( string $slug, string $taxonomy, int $blog_id ): string {
+	if ( '' === $slug || ! $blog_id ) {
+		return '';
+	}
+
+	$switched     = false;
+	$current_blog = get_current_blog_id();
+	if ( $current_blog !== $blog_id ) {
+		switch_to_blog( $blog_id );
+		$switched = true;
+	}
+
+	try {
+		$term = get_term_by( 'slug', $slug, $taxonomy );
+		if ( ! $term instanceof WP_Term ) {
+			return '';
+		}
+		$link = get_term_link( $term, $taxonomy );
+		return is_wp_error( $link ) ? '' : (string) $link;
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
 }
 
 // ─── Event Attendees ─────────────────────────────────────────────────────────
@@ -787,10 +872,15 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, int $lim
 			continue;
 		}
 
+		$profile_url = function_exists( 'extrachill_get_user_community_profile_url' )
+			? (string) extrachill_get_user_community_profile_url( (int) $user->ID )
+			: '';
+
 		$attendees[] = array(
 			'user_id'      => (int) $user->ID,
 			'display_name' => $user->display_name,
 			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 48 ) ),
+			'profile_url'  => $profile_url,
 		);
 	}
 

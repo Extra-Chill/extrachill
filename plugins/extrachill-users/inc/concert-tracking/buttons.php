@@ -82,6 +82,64 @@ function ec_users_render_attendance_button( int $event_id ) {
 		<?php endif; ?>
 	</div>
 	<?php
+	ec_users_render_event_attendees( $event_id, $blog_id );
+}
+
+/**
+ * Render the "who's going / who was there" attendee strip for an event.
+ *
+ * Server-rendered (SEO-friendly, no JS dependency) avatar row linking each
+ * attendee to their community profile — turning the events page into a feeder
+ * for the community "living room" and surfacing the attendee social graph that
+ * the get-event-attendance ability already computes. Skips silently when there
+ * are no attendees.
+ *
+ * @param int $event_id Event post ID.
+ * @param int $blog_id  Blog ID.
+ */
+function ec_users_render_event_attendees( int $event_id, int $blog_id ) {
+	if ( ! function_exists( 'ec_users_get_event_attendees' ) ) {
+		return;
+	}
+
+	$attendees = ec_users_get_event_attendees( $event_id, $blog_id, 12 );
+	if ( empty( $attendees ) ) {
+		return;
+	}
+
+	?>
+	<div class="ec-attendance-list">
+		<span class="ec-attendance-list__label">
+			<?php echo esc_html( _n( 'Going', 'Going', count( $attendees ), 'extrachill-users' ) ); ?>
+		</span>
+		<ul class="ec-attendance-list__avatars">
+			<?php foreach ( $attendees as $attendee ) : ?>
+				<?php
+				$name   = isset( $attendee['display_name'] ) ? (string) $attendee['display_name'] : '';
+				$avatar = isset( $attendee['avatar_url'] ) ? (string) $attendee['avatar_url'] : '';
+				$url    = isset( $attendee['profile_url'] ) ? (string) $attendee['profile_url'] : '';
+				if ( '' === $avatar ) {
+					continue;
+				}
+				$img = sprintf(
+					'<img class="ec-attendance-list__avatar" src="%s" alt="%s" width="32" height="32" loading="lazy" />',
+					esc_url( $avatar ),
+					esc_attr( $name )
+				);
+				?>
+				<li class="ec-attendance-list__item">
+					<?php if ( '' !== $url ) : ?>
+						<a href="<?php echo esc_url( $url ); ?>" title="<?php echo esc_attr( $name ); ?>">
+							<?php echo $img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_url/esc_attr above. ?>
+						</a>
+					<?php else : ?>
+						<?php echo $img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_url/esc_attr above. ?>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</div>
+	<?php
 }
 
 /**
