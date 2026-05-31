@@ -197,7 +197,7 @@ function extrachill_create_community_forums() {
 		array(
 			'title'       => 'The Lab',
 			'slug'        => 'the-lab',
-			'description' => 'The open web, WordPress, AI × music, and build-in-public. Site-building help for artists, dev logs, and tinkering with how independent music lives online.',
+			'description' => 'The differentiator room: the open web, WordPress, AI × music, and build-in-public. Dev logs, roadmap, feature requests, and practical site-building help for artists — how independent music should live online, owning your corner of the web instead of renting it. Music always leads; this is the evidence we walk the walk.',
 		),
 	);
 
