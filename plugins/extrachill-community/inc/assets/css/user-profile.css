@@ -370,3 +370,61 @@
     max-width: 100px;
     max-height: 100px;
 }
+
+/* ==================================================
+   Concert History card (My Shows bridge)
+================================================== */
+
+.ec-concert-history-card .ec-concert-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin: 0 0 1rem;
+	padding: 0;
+	list-style: none;
+}
+
+.ec-concert-history-card .ec-concert-stats li {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 70px;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm);
+	background: var(--card-background);
+}
+
+.ec-concert-history-card .ec-concert-stat-value {
+	font-size: 1.5rem;
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.ec-concert-history-card .ec-concert-stat-label {
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	opacity: 0.75;
+}
+
+.ec-concert-history-card .ec-concert-history-cta {
+	margin-top: 0.75rem;
+	font-weight: 600;
+}
+
+.ec-concert-history-empty .ec-concert-history-cta,
+.ec-concert-history-empty p {
+	margin-bottom: 0.75rem;
+}
+
+/* Legacy free-text music-fan notes: demoted, lighter weight. */
+.ec-music-fan-details-card .ec-music-fan-nudge {
+	margin-top: 0.75rem;
+	font-size: 0.9rem;
+	opacity: 0.85;
+}
+
+.ec-music-fan-details-card .ec-music-fan-nudge em {
+	opacity: 0.7;
+}
