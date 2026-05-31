@@ -248,7 +248,7 @@ function extrachill_community_register_topic_reply_abilities() {
 		'extrachill/community-get-topic-for-editor',
 		array(
 			'label'               => __( 'Get Topic For Editor', 'extra-chill-community' ),
-			'description'         => __( 'Load a topic for editing: returns serialized post_content (block markup as-stored), permissions envelope, and any pre-publish draft overlay for the current user.', 'extra-chill-community' ),
+			'description'         => __( 'Load a topic for editing: returns serialized post_content (block markup as-stored) and the permissions envelope. Edit autosaves are owned by WP core /autosaves (see edit-autosave.php).', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -298,13 +298,6 @@ function extrachill_community_register_topic_reply_abilities() {
 							'canSave'        => array( 'type' => 'boolean' ),
 							'canUploadMedia' => array( 'type' => 'boolean' ),
 							'canDelete'      => array( 'type' => 'boolean' ),
-						),
-					),
-					'draft'       => array(
-						'description' => 'Pre-publish draft overlay if one exists for this user+target. Null when none.',
-						'anyOf'       => array(
-							array( 'type' => 'object' ),
-							array( 'type' => 'null' ),
 						),
 					),
 				),
@@ -374,12 +367,6 @@ function extrachill_community_register_topic_reply_abilities() {
 							'canSave'        => array( 'type' => 'boolean' ),
 							'canUploadMedia' => array( 'type' => 'boolean' ),
 							'canDelete'      => array( 'type' => 'boolean' ),
-						),
-					),
-					'draft'       => array(
-						'anyOf' => array(
-							array( 'type' => 'object' ),
-							array( 'type' => 'null' ),
 						),
 					),
 				),
@@ -979,31 +966,6 @@ function extrachill_community_build_editor_permissions( $post_id, $type ) {
 }
 
 /**
- * Look up the pre-publish draft overlay for a given target, if one exists.
- *
- * Uses the existing draft ability helpers so the load envelope and the
- * dedicated draft ability stay in sync. Returns null if no draft is stored.
- *
- * @param int    $user_id User ID.
- * @param string $type    'topic' or 'reply'.
- * @param array  $context Keys: blog_id, forum_id, topic_id, reply_to.
- * @return array|null
- */
-function extrachill_community_get_draft_overlay( $user_id, $type, array $context ) {
-	if ( ! function_exists( 'extrachill_community_bbpress_drafts_fetch' ) ) {
-		return null;
-	}
-	$user_id = (int) $user_id;
-	if ( $user_id <= 0 ) {
-		return null;
-	}
-	$context['type']    = $type;
-	$context['blog_id'] = isset( $context['blog_id'] ) ? (int) $context['blog_id'] : (int) get_current_blog_id();
-
-	return extrachill_community_bbpress_drafts_fetch( $user_id, $context );
-}
-
-/**
  * Load a topic for the editor.
  *
  * @param array $input Ability input.
@@ -1030,15 +992,6 @@ function extrachill_community_ability_get_topic_for_editor( $input ) {
 
 	$blog_id = (int) get_current_blog_id();
 
-	$draft = extrachill_community_get_draft_overlay(
-		get_current_user_id(),
-		'topic',
-		array(
-			'blog_id'  => $blog_id,
-			'forum_id' => $forum_id,
-		)
-	);
-
 	return array(
 		'id'          => (int) $post->ID,
 		'type'        => 'forum_topic',
@@ -1054,7 +1007,6 @@ function extrachill_community_ability_get_topic_for_editor( $input ) {
 			'forum_id' => $forum_id,
 		),
 		'permissions' => extrachill_community_build_editor_permissions( $post->ID, 'topic' ),
-		'draft'       => $draft,
 	);
 }
 
@@ -1088,16 +1040,6 @@ function extrachill_community_ability_get_reply_for_editor( $input ) {
 	$reply_to = function_exists( 'bbp_get_reply_to' ) ? (int) bbp_get_reply_to( $reply_id ) : 0;
 	$blog_id  = (int) get_current_blog_id();
 
-	$draft = extrachill_community_get_draft_overlay(
-		get_current_user_id(),
-		'reply',
-		array(
-			'blog_id'  => $blog_id,
-			'topic_id' => $topic_id,
-			'reply_to' => $reply_to,
-		)
-	);
-
 	return array(
 		'id'          => (int) $post->ID,
 		'type'        => 'forum_reply',
@@ -1115,7 +1057,6 @@ function extrachill_community_ability_get_reply_for_editor( $input ) {
 			'forum_id' => $forum_id,
 		),
 		'permissions' => extrachill_community_build_editor_permissions( $post->ID, 'reply' ),
-		'draft'       => $draft,
 	);
 }
 

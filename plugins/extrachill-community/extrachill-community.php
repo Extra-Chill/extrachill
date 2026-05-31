@@ -58,7 +58,6 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/main-site-comments.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/subforum-button-classes.php';
 
-	require_once plugin_dir_path( __FILE__ ) . 'inc/abilities/community-drafts.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/abilities/community-upvote.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/abilities/community-taxonomy-counts.php';
 
