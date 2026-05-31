@@ -2,19 +2,26 @@
 /**
  * Location Normalizer
  *
- * Corrects the location taxonomy term on imported events based on the
- * venue's market. Handles cities where geographic radius-based imports
- * (Ticketmaster, etc.) cause events to be tagged with the wrong market or
- * wrong sub-location.
+ * Resolves and corrects the `location` taxonomy term on events based on the
+ * venue's city/state/zip. Handles both radius-based mis-tagging (Ticketmaster,
+ * etc.) and create-time assignment for any path that leaves location unset.
  *
- * Currently handles:
- * - New York City boroughs (Brooklyn, Queens, Manhattan, Bronx, Staten Island)
- * - Extra Chill municipality-to-market rollups (for example North Charleston → Charleston)
+ * Resolution order (extrachill-events#145):
+ * 1. Market mapping — NYC boroughs by zip + municipality → market rollups
+ *    (e.g. North Charleston → Charleston, folly beach → charleston).
+ * 2. Exact city-name match — venue city directly matches an existing location
+ *    term (e.g. "Austin" → the Austin location term), with state-based
+ *    disambiguation when multiple terms share a city name.
+ *
+ * The resolver (`extrachill_events_resolve_location_term_for_venue_city`) is a
+ * shared function used by BOTH this create-time normalizer and the
+ * `extrachill/reconcile-event-locations` audit ability, so there is one source
+ * of truth for "what location does this venue city belong to."
  *
  * Fires on the `datamachine_event_taxonomy_processed` action, which runs after
  * TaxonomyHandler has set all taxonomy terms (including location). This ensures
- * the normalizer can read and correct the location term that was assigned by the
- * import flow.
+ * the normalizer can read and correct the location term that was assigned (or
+ * left empty) by the import flow.
  *
  * @package ExtraChillEvents
  * @since 0.8.4
@@ -27,12 +34,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'datamachine_event_taxonomy_processed', 'extrachill_events_normalize_location' );
 
 /**
- * Normalize event location based on venue market.
+ * Normalize event location based on venue city/state/zip.
  *
  * Fires after TaxonomyHandler has set all taxonomy terms on an event.
- * Looks up the venue city/state/zip from term meta and corrects the
- * location taxonomy if it maps to a different term than what was assigned
- * by the import pipeline.
+ * Looks up the venue city/state/zip from term meta and assigns/corrects the
+ * location taxonomy via the shared resolver. Unlike the previous
+ * market-map-only behavior, this now also matches direct city names against
+ * existing location terms, so events whose venue city is a real city (not a
+ * mapped suburb) still get their location term.
  *
  * @param int $post_id Post ID.
  */
@@ -46,33 +55,225 @@ function extrachill_events_normalize_location( $post_id ) {
 		return;
 	}
 
-	$venue                 = $venues[0];
-	$venue_city            = (string) get_term_meta( $venue->term_id, '_venue_city', true );
-	$venue_state           = (string) get_term_meta( $venue->term_id, '_venue_state', true );
-	$zip                   = (string) get_term_meta( $venue->term_id, '_venue_zip', true );
-	$correct_location_slug = extrachill_events_get_market_slug_for_venue( $venue_city, $venue_state, $zip );
-	if ( ! $correct_location_slug ) {
+	$venue       = $venues[0];
+	$venue_city  = (string) get_term_meta( $venue->term_id, '_venue_city', true );
+	$venue_state = (string) get_term_meta( $venue->term_id, '_venue_state', true );
+	$zip         = (string) get_term_meta( $venue->term_id, '_venue_zip', true );
+
+	$correct_term = extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state, $zip );
+	if ( ! $correct_term ) {
 		return;
 	}
 
-	// Check if the event already has the correct location term.
+	// Don't clobber an already-correct assignment.
 	$current_locations = get_the_terms( $post_id, 'location' );
 	if ( $current_locations && ! is_wp_error( $current_locations ) ) {
 		foreach ( $current_locations as $loc ) {
-			if ( $loc->slug === $correct_location_slug ) {
+			if ( (int) $loc->term_id === (int) $correct_term->term_id ) {
 				return; // Already correct.
 			}
 		}
 	}
 
-	// Look up the correct location term.
-	$correct_term = get_term_by( 'slug', $correct_location_slug, 'location' );
-	if ( ! $correct_term || is_wp_error( $correct_term ) ) {
-		return;
+	// Replace all location terms with the resolved one.
+	wp_set_object_terms( $post_id, array( (int) $correct_term->term_id ), 'location' );
+}
+
+/**
+ * Resolve the canonical `location` term for a venue's city/state/zip.
+ *
+ * Single source of truth for venue-city → location-term resolution, shared by
+ * the create-time normalizer and the reconcile-event-locations ability
+ * (extrachill-events#145). Resolution order:
+ *
+ * 1. Market mapping — venue maps to a canonical market (NYC borough by zip, or
+ *    municipality → market rollup). See extrachill_events_get_market_slug_for_venue.
+ * 2. Exact city-name match — venue city directly matches an existing location
+ *    term name. When multiple terms share the name, disambiguate by venue state
+ *    against the term's parent (state-level) term.
+ *
+ * Returns null when the city is empty, no mapping/term matches, or an
+ * ambiguous city name can't be disambiguated by state.
+ *
+ * @param string $venue_city  Venue city.
+ * @param string $venue_state Venue state (abbreviation like "SC" or full name).
+ * @param string $venue_zip   Venue zip.
+ * @return \WP_Term|null Resolved location term, or null when unresolved.
+ */
+function extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state = '', $venue_zip = '' ): ?\WP_Term {
+	$venue_city = trim( (string) $venue_city );
+	if ( '' === $venue_city ) {
+		return null;
 	}
 
-	// Replace all location terms with the correct one.
-	wp_set_object_terms( $post_id, array( $correct_term->term_id ), 'location' );
+	// 1. Market mapping.
+	$market_slug = extrachill_events_get_market_slug_for_venue( $venue_city, $venue_state, $venue_zip );
+	if ( $market_slug ) {
+		$market_term = get_term_by( 'slug', $market_slug, 'location' );
+		if ( $market_term instanceof \WP_Term ) {
+			return $market_term;
+		}
+	}
+
+	// 2. Exact city-name match against existing location terms.
+	$city_key = strtolower( $venue_city );
+	$matches  = extrachill_events_get_location_terms_by_name()[ $city_key ] ?? array();
+
+	if ( 1 === count( $matches ) ) {
+		return reset( $matches );
+	}
+
+	if ( count( $matches ) > 1 ) {
+		return extrachill_events_disambiguate_location_by_state( $matches, (string) $venue_state );
+	}
+
+	return null;
+}
+
+/**
+ * Disambiguate multiple same-named location terms using venue state.
+ *
+ * Location terms are hierarchical (Country > State > City). Compares the
+ * venue's state (abbreviation or full name) against each candidate's parent
+ * (state-level) term name.
+ *
+ * @param array<int, \WP_Term> $matches     Location terms sharing a city name.
+ * @param string               $venue_state Venue state ("SC" or "South Carolina").
+ * @return \WP_Term|null Matched term, or null if state doesn't resolve it.
+ */
+function extrachill_events_disambiguate_location_by_state( array $matches, string $venue_state ): ?\WP_Term {
+	$venue_state = trim( $venue_state );
+	if ( '' === $venue_state ) {
+		return null;
+	}
+
+	$state_lower = strtolower( $venue_state );
+	$abbrev_map  = extrachill_events_get_state_abbreviation_map();
+	$full_name   = $abbrev_map[ strtoupper( $venue_state ) ] ?? null;
+
+	foreach ( $matches as $match ) {
+		if ( $match->parent <= 0 ) {
+			continue;
+		}
+
+		$parent = get_term( $match->parent, 'location' );
+		if ( ! $parent instanceof \WP_Term ) {
+			continue;
+		}
+
+		$parent_lower = strtolower( $parent->name );
+
+		if ( $parent_lower === $state_lower ) {
+			return $match;
+		}
+
+		if ( $full_name && strtolower( $full_name ) === $parent_lower ) {
+			return $match;
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Get all location terms grouped by lowercase name.
+ *
+ * Cached per-request via a static to avoid re-querying when resolving many
+ * events in one pass (e.g. a concert-import batch).
+ *
+ * @return array<string, array<int, \WP_Term>>
+ */
+function extrachill_events_get_location_terms_by_name(): array {
+	static $by_name = null;
+
+	if ( null !== $by_name ) {
+		return $by_name;
+	}
+
+	$by_name = array();
+
+	$terms = get_terms(
+		array(
+			'taxonomy'   => 'location',
+			'hide_empty' => false,
+			'number'     => 0,
+		)
+	);
+
+	if ( is_wp_error( $terms ) ) {
+		return $by_name;
+	}
+
+	foreach ( $terms as $term ) {
+		$key = strtolower( $term->name );
+		if ( ! isset( $by_name[ $key ] ) ) {
+			$by_name[ $key ] = array();
+		}
+		$by_name[ $key ][] = $term;
+	}
+
+	return $by_name;
+}
+
+/**
+ * US state abbreviation → full name map.
+ *
+ * @return array<string, string>
+ */
+function extrachill_events_get_state_abbreviation_map(): array {
+	return array(
+		'AL' => 'Alabama',
+		'AK' => 'Alaska',
+		'AZ' => 'Arizona',
+		'AR' => 'Arkansas',
+		'CA' => 'California',
+		'CO' => 'Colorado',
+		'CT' => 'Connecticut',
+		'DE' => 'Delaware',
+		'DC' => 'District of Columbia',
+		'FL' => 'Florida',
+		'GA' => 'Georgia',
+		'HI' => 'Hawaii',
+		'ID' => 'Idaho',
+		'IL' => 'Illinois',
+		'IN' => 'Indiana',
+		'IA' => 'Iowa',
+		'KS' => 'Kansas',
+		'KY' => 'Kentucky',
+		'LA' => 'Louisiana',
+		'ME' => 'Maine',
+		'MD' => 'Maryland',
+		'MA' => 'Massachusetts',
+		'MI' => 'Michigan',
+		'MN' => 'Minnesota',
+		'MS' => 'Mississippi',
+		'MO' => 'Missouri',
+		'MT' => 'Montana',
+		'NE' => 'Nebraska',
+		'NV' => 'Nevada',
+		'NH' => 'New Hampshire',
+		'NJ' => 'New Jersey',
+		'NM' => 'New Mexico',
+		'NY' => 'New York',
+		'NC' => 'North Carolina',
+		'ND' => 'North Dakota',
+		'OH' => 'Ohio',
+		'OK' => 'Oklahoma',
+		'OR' => 'Oregon',
+		'PA' => 'Pennsylvania',
+		'RI' => 'Rhode Island',
+		'SC' => 'South Carolina',
+		'SD' => 'South Dakota',
+		'TN' => 'Tennessee',
+		'TX' => 'Texas',
+		'UT' => 'Utah',
+		'VT' => 'Vermont',
+		'VA' => 'Virginia',
+		'WA' => 'Washington',
+		'WV' => 'West Virginia',
+		'WI' => 'Wisconsin',
+		'WY' => 'Wyoming',
+	);
 }
 
 /**
