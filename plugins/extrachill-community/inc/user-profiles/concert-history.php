@@ -104,8 +104,13 @@ function ec_community_my_shows_url( int $user_id ): string {
 /**
  * Render a top-list (artists / venues / cities) as a comma-separated line.
  *
- * @param array  $items Each item: array{ name:string, slug:string, count:int }.
- * @param int    $limit Max items to render.
+ * Items carrying a `url` (artist profile / venue / city archive, supplied by
+ * the concert-stats ability via the canonical cross-site linker) render as
+ * links, turning the community profile's concert history into a launchpad into
+ * the rest of the network. Items without a url render as plain text.
+ *
+ * @param array $items Each item: array{ name:string, slug:string, count:int, url?:string }.
+ * @param int   $limit Max items to render.
  * @return string Escaped HTML, or '' if the list is empty.
  */
 function ec_community_render_top_list( array $items, int $limit = 5 ): string {
@@ -113,15 +118,21 @@ function ec_community_render_top_list( array $items, int $limit = 5 ): string {
 		return '';
 	}
 
-	$names = array();
+	$rendered = array();
 	foreach ( array_slice( $items, 0, $limit ) as $item ) {
 		if ( empty( $item['name'] ) ) {
 			continue;
 		}
-		$names[] = esc_html( $item['name'] );
+
+		$name = esc_html( $item['name'] );
+		$url  = isset( $item['url'] ) ? (string) $item['url'] : '';
+
+		$rendered[] = ( '' !== $url )
+			? '<a href="' . esc_url( $url ) . '">' . $name . '</a>'
+			: $name;
 	}
 
-	return implode( ', ', $names );
+	return implode( ', ', $rendered );
 }
 
 /**
