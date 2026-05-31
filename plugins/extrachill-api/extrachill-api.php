@@ -63,7 +63,6 @@ final class ExtraChill_API_Plugin {
 	 */
 	public function boot() {
 		require_once EXTRACHILL_API_PATH . 'inc/auth/extrachill-link-auth.php';
-		require_once EXTRACHILL_API_PATH . 'inc/utils/id-generator.php';
 
 		do_action( 'extrachill_api_bootstrap' );
 	}
