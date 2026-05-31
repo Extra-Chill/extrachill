@@ -18,12 +18,10 @@ function extrachill_users_run_activation() {
 		wp_die( 'Extra Chill Users plugin requires a WordPress multisite installation.' );
 	}
 
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/db.php';
-	if ( function_exists( 'extrachill_users_install_refresh_token_table' ) ) {
-		extrachill_users_install_refresh_token_table();
-	}
-
-	update_site_option( 'extrachill_users_refresh_token_table_created', 1 );
+	// The refresh-token table is owned by wp-native-auth as of the eu#76
+	// consolidation (it installs {base_prefix}wp_native_auth_refresh_tokens via
+	// its own activation hook). The legacy {base_prefix}extrachill_refresh_tokens
+	// table is no longer created or used by this plugin.
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/db.php';
 	if ( function_exists( 'extrachill_users_install_concert_tracking_table' ) ) {
@@ -201,24 +199,6 @@ function extrachill_users_maybe_create_login_page() {
 	update_option( 'extrachill_users_login_page_created', 1 );
 }
 add_action( 'admin_init', 'extrachill_users_maybe_create_login_page' );
-
-/**
- * Ensure refresh token table exists.
- * Fallback for existing installations where table was added after activation.
- */
-function extrachill_users_maybe_create_refresh_token_table() {
-	if ( get_site_option( 'extrachill_users_refresh_token_table_created' ) ) {
-		return;
-	}
-
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/db.php';
-	if ( function_exists( 'extrachill_users_install_refresh_token_table' ) ) {
-		extrachill_users_install_refresh_token_table();
-	}
-
-	update_site_option( 'extrachill_users_refresh_token_table_created', 1 );
-}
-add_action( 'admin_init', 'extrachill_users_maybe_create_refresh_token_table' );
 
 /**
  * Ensure concert tracking table exists.

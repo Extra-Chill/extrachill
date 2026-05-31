@@ -117,9 +117,12 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/browser-handoff-handler.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/class-redirect-handler.php';
 
+	// Token PRIMITIVES (access/refresh generation, hashing, bearer filter, table)
+	// are owned solely by wp-native-auth as of the eu#76 consolidation. This
+	// plugin keeps only the EC service + policy layer (service.php), the UUID
+	// helper (tokens.php), and the EC-specific browser-handoff semantics.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/tokens.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/service.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/bearer-auth.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/browser-handoff-token.php';
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/google-canonical-origin.php';

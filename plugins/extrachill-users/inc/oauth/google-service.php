@@ -334,9 +334,9 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 		do_action( 'wp_login', $user->user_login, $user );
 	}
 
-	// Generate tokens.
-	$access  = extrachill_users_generate_access_token( $user_id, $device_id );
-	$refresh = extrachill_users_issue_refresh_token( $user_id, $device_id, $device_name );
+	// Generate tokens via the single wp-native-auth token stack (eu#76).
+	$access  = wp_native_auth_generate_access_token( (int) $user_id, $device_id );
+	$refresh = wp_native_auth_issue_refresh_token( (int) $user_id, $device_id, $device_name );
 
 	// Determine redirect URL.
 	$onboarding_completed = function_exists( 'ec_is_onboarding_complete' )

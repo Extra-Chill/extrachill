@@ -1,152 +1,99 @@
 <?php
 /**
- * Auth token service functions.
+ * Auth token service functions (Extra Chill policy layer).
+ *
+ * As of the eu#76 auth-stack consolidation, the duplicated token PRIMITIVES
+ * (signed-JWT access tokens, opaque refresh generation/hashing, the
+ * {base_prefix}extrachill_refresh_tokens table, and the duplicate
+ * determine_current_user bearer filter) have been DELETED. wp-native-auth now
+ * owns the single token stack:
+ *   - wp_native_auth_generate_access_token() / wp_native_auth_validate_access_token()
+ *   - wp_native_auth_issue_refresh_token() / wp_native_auth_refresh_tokens()
+ *   - wp_native_auth_revoke_refresh_token()
+ *   - the {base_prefix}wp_native_auth_refresh_tokens table
+ *   - the single determine_current_user @20 bearer filter
+ *
+ * This file keeps the Extra Chill SERVICE + POLICY layer that wp-native-auth
+ * deliberately does not implement (2FA redirect, community-blog membership,
+ * user blocking, invite redemption, onboarding response fields, cookie
+ * issuance). Client-facing response shapes are UNCHANGED — every function
+ * below returns exactly the same array shape it returned before the cutover.
  *
  * @package ExtraChill\Users
  */
 
 defined( 'ABSPATH' ) || exit;
 
-require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/db.php';
 require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/tokens.php';
 
 /**
- * Converts a UNIX timestamp to a GMT MySQL datetime string.
+ * Issue an access + refresh token pair via the wp-native-auth primitives.
  *
- * @param int $timestamp UNIX timestamp.
- * @return string
- */
-function extrachill_users_mysql_gmt_from_ts( int $timestamp ): string {
-	return gmdate( 'Y-m-d H:i:s', $timestamp );
-}
-
-/**
- * Issues a refresh token for a user/device.
+ * Internal helper that centralizes the delegation so the login/register/google
+ * flows all mint tokens the same way. Returns the raw token pair the EC
+ * response shapes wrap.
  *
- * @param int    $user_id User ID.
- * @param string $device_id Device ID (UUIDv4).
- * @param string $device_name Device name.
- * @return array{token:string,expires_at:int}
+ * @param int    $user_id     User ID.
+ * @param string $device_id   Device ID (UUID v4).
+ * @param string $device_name Optional device name.
+ * @return array{access:array{token:string,expires_at:int}, refresh:array{token:string,expires_at:int}}
  */
-function extrachill_users_issue_refresh_token( int $user_id, string $device_id, string $device_name = '' ): array {
-	global $wpdb;
-
-	$table_name = extrachill_users_refresh_token_table_name();
-
-	$now_ts     = time();
-	$now        = extrachill_users_mysql_gmt_from_ts( $now_ts );
-	$expires_ts = $now_ts + EXTRACHILL_USERS_REFRESH_TOKEN_TTL;
-	$expires_at = extrachill_users_mysql_gmt_from_ts( $expires_ts );
-
-	$refresh_token = extrachill_users_generate_refresh_token();
-	$token_hash    = extrachill_users_hash_refresh_token( $refresh_token );
-
-	$existing_id = $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT id FROM {$table_name} WHERE user_id = %d AND device_id = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name is a trusted internal constant from extrachill_users_refresh_token_table_name().
-			$user_id,
-			$device_id
-		)
-	);
-
-	$data = array(
-		'user_id'            => $user_id,
-		'device_id'          => $device_id,
-		'device_name'        => $device_name ? $device_name : null,
-		'refresh_token_hash' => $token_hash,
-		'last_used_at'       => $now,
-		'expires_at'         => $expires_at,
-		'revoked_at'         => null,
-	);
-
-	if ( $existing_id ) {
-		$wpdb->update(
-			$table_name,
-			$data,
-			array( 'id' => (int) $existing_id ),
-			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s' ),
-			array( '%d' )
-		);
-	} else {
-		$data['created_at'] = $now;
-		$wpdb->insert(
-			$table_name,
-			$data,
-			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
-		);
-	}
+function extrachill_users_mint_token_pair( int $user_id, string $device_id, string $device_name = '' ): array {
+	$access  = wp_native_auth_generate_access_token( $user_id, $device_id );
+	$refresh = wp_native_auth_issue_refresh_token( $user_id, $device_id, $device_name );
 
 	return array(
-		'token'      => $refresh_token,
-		'expires_at' => $expires_ts,
+		'access'  => $access,
+		'refresh' => $refresh,
 	);
 }
 
 /**
- * Refresh service: rotates refresh token, extends expiry, and returns a new access token.
+ * Build the Extra Chill user payload shape for auth responses.
+ *
+ * This is the EC client contract — id, username, display_name, avatar_url,
+ * profile_url — and it must NOT change. (wp-native-auth's own payload adds
+ * email/roles/registered_at, which is a different shape; we do not use it for
+ * these EC routes.)
+ *
+ * @param WP_User $user User.
+ * @return array<string,mixed>
+ */
+function extrachill_users_token_user_payload( WP_User $user ): array {
+	return array(
+		'id'           => (int) $user->ID,
+		'username'     => $user->user_login,
+		'display_name' => $user->display_name,
+		'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
+		'profile_url'  => function_exists( 'extrachill_get_user_profile_url' )
+			? extrachill_get_user_profile_url( $user->ID, $user->user_email )
+			: '',
+	);
+}
+
+/**
+ * Refresh service: rotate refresh token, extend expiry, return a new access token.
+ *
+ * Delegates the rotation + validation + rate-limit to the single wp-native-auth
+ * token stack (wp_native_auth_refresh_tokens), which owns the refresh table.
+ * The wp-native flow runs the wp_native_auth_pre_login filter, on which the EC
+ * bridge enforces community-blog membership and user blocking — so EC policy is
+ * preserved. We then RE-SHAPE the response to the EC client contract and apply
+ * EC-only behavior (optional cookie issuance), so the client-facing shape is
+ * identical to the pre-cutover response.
  *
  * @param string $refresh_token Refresh token.
- * @param string $device_id Device ID (UUIDv4).
- * @param array  $options Optional. { 'remember' => bool, 'set_cookie' => bool }.
+ * @param string $device_id     Device ID (UUIDv4).
+ * @param array  $options       Optional. { 'remember' => bool, 'set_cookie' => bool }.
  * @return array|WP_Error
  */
 function extrachill_users_refresh_tokens( string $refresh_token, string $device_id, array $options = array() ) {
-	global $wpdb;
-
-	// Rate limit token refresh to prevent abuse.
-	$rate_key     = 'ec_token_refresh_' . md5( $device_id );
-	$last_refresh = get_transient( $rate_key );
-	if ( $last_refresh && ( time() - $last_refresh ) < 5 ) {
-		return new WP_Error(
-			'rate_limited',
-			'Please wait before refreshing tokens.',
-			array( 'status' => 429 )
-		);
-	}
-	set_transient( $rate_key, time(), MINUTE_IN_SECONDS );
-
-	$table_name = extrachill_users_refresh_token_table_name();
-	$token_hash = extrachill_users_hash_refresh_token( $refresh_token );
-
-	$session = $wpdb->get_row(
-		$wpdb->prepare(
-			"SELECT * FROM {$table_name} WHERE device_id = %s AND refresh_token_hash = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name is a trusted internal constant from extrachill_users_refresh_token_table_name().
-			$device_id,
-			$token_hash
-		),
-		ARRAY_A
-	);
-
-	if ( empty( $session ) ) {
-		return new WP_Error(
-			'invalid_refresh_token',
-			'Invalid refresh token.',
-			array( 'status' => 401 )
-		);
+	$result = wp_native_auth_refresh_tokens( $refresh_token, $device_id );
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	if ( ! empty( $session['revoked_at'] ) ) {
-		return new WP_Error(
-			'invalid_refresh_token',
-			'Refresh token has been revoked.',
-			array( 'status' => 401 )
-		);
-	}
-
-	$now_ts = time();
-	$now    = extrachill_users_mysql_gmt_from_ts( $now_ts );
-
-	$expires_at_ts = strtotime( (string) $session['expires_at'] );
-	if ( $expires_at_ts && $expires_at_ts < $now_ts ) {
-		return new WP_Error(
-			'refresh_token_expired',
-			'Refresh token has expired.',
-			array( 'status' => 401 )
-		);
-	}
-
-	$user_id = (int) $session['user_id'];
-	$user    = get_user_by( 'id', $user_id );
+	$user = get_user_by( 'id', (int) ( $result['user']['id'] ?? 0 ) );
 	if ( ! $user ) {
 		return new WP_Error(
 			'invalid_user',
@@ -155,108 +102,33 @@ function extrachill_users_refresh_tokens( string $refresh_token, string $device_
 		);
 	}
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new WP_Error(
-			'extrachill_dependency_missing',
-			'ec_get_blog_id() is required for token authentication.',
-			array( 'status' => 500 )
-		);
-	}
-
-	$community_blog_id = ec_get_blog_id( 'community' );
-	if ( empty( $community_blog_id ) ) {
-		return new WP_Error(
-			'extrachill_dependency_missing',
-			'Community blog ID is not available.',
-			array( 'status' => 500 )
-		);
-	}
-
-	if ( ! is_user_member_of_blog( $user_id, $community_blog_id ) ) {
-		return new WP_Error(
-			'extrachill_not_a_member',
-			'User is not a member of the community site.',
-			array( 'status' => 403 )
-		);
-	}
-
-	$new_refresh_token = extrachill_users_generate_refresh_token();
-	$new_token_hash    = extrachill_users_hash_refresh_token( $new_refresh_token );
-	$new_expires_ts    = $now_ts + EXTRACHILL_USERS_REFRESH_TOKEN_TTL;
-	$new_expires_at    = extrachill_users_mysql_gmt_from_ts( $new_expires_ts );
-
-	$updated = $wpdb->update(
-		$table_name,
-		array(
-			'refresh_token_hash' => $new_token_hash,
-			'last_used_at'       => $now,
-			'expires_at'         => $new_expires_at,
-			'revoked_at'         => null,
-		),
-		array( 'id' => (int) $session['id'] ),
-		array( '%s', '%s', '%s', '%s' ),
-		array( '%d' )
-	);
-
-	if ( false === $updated ) {
-		return new WP_Error(
-			'refresh_update_failed',
-			'Failed to rotate refresh token.',
-			array( 'status' => 500 )
-		);
-	}
-
 	$remember   = ! empty( $options['remember'] );
 	$set_cookie = ! empty( $options['set_cookie'] );
 	if ( $set_cookie ) {
-		wp_set_current_user( $user_id, $user->user_login );
-		wp_set_auth_cookie( $user_id, $remember );
+		wp_set_current_user( (int) $user->ID, $user->user_login );
+		wp_set_auth_cookie( (int) $user->ID, $remember );
 	}
 
-	$access = extrachill_users_generate_access_token( $user_id, $device_id );
-
 	return array(
-		'access_token'       => $access['token'],
-		'access_expires_at'  => gmdate( 'c', (int) $access['expires_at'] ),
-		'refresh_token'      => $new_refresh_token,
-		'refresh_expires_at' => gmdate( 'c', (int) $new_expires_ts ),
-		'user'               => array(
-			'id'           => (int) $user->ID,
-			'username'     => $user->user_login,
-			'display_name' => $user->display_name,
-			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
-			'profile_url'  => function_exists( 'extrachill_get_user_profile_url' )
-				? extrachill_get_user_profile_url( $user->ID, $user->user_email )
-				: '',
-		),
+		'access_token'       => $result['access_token'],
+		'access_expires_at'  => $result['access_expires_at'],
+		'refresh_token'      => $result['refresh_token'],
+		'refresh_expires_at' => $result['refresh_expires_at'],
+		'user'               => extrachill_users_token_user_payload( $user ),
 	);
 }
 
 /**
- * Revokes a refresh token for a user/device.
+ * Revoke a refresh token for a user/device.
  *
- * @param int    $user_id User ID.
+ * Delegates to the single wp-native-auth token stack.
+ *
+ * @param int    $user_id   User ID.
  * @param string $device_id Device ID (UUIDv4).
  * @return bool True if revoked, false if not found.
  */
 function extrachill_users_revoke_refresh_token( int $user_id, string $device_id ): bool {
-	global $wpdb;
-
-	$table_name = extrachill_users_refresh_token_table_name();
-	$now        = extrachill_users_mysql_gmt_from_ts( time() );
-
-	$updated = $wpdb->update(
-		$table_name,
-		array( 'revoked_at' => $now ),
-		array(
-			'user_id'   => $user_id,
-			'device_id' => $device_id,
-		),
-		array( '%s' ),
-		array( '%d', '%s' )
-	);
-
-	return false !== $updated && $updated > 0;
+	return wp_native_auth_revoke_refresh_token( $user_id, $device_id );
 }
 
 /**
@@ -265,6 +137,9 @@ function extrachill_users_revoke_refresh_token( int $user_id, string $device_id 
  * Resolves the user by identifier, validates their password, and if they have
  * 2FA enabled, creates a Two Factor login nonce and returns a response that
  * instructs the frontend to redirect to the wp-login.php validate_2fa page.
+ *
+ * wp-native-auth has no 2FA path, so this EC-specific behavior is preserved
+ * here and runs BEFORE token minting in the login flow below.
  *
  * @param string $identifier Username or email.
  * @param string $password   Password.
@@ -329,6 +204,10 @@ function extrachill_users_maybe_handle_two_factor( string $identifier, string $p
 
 /**
  * Login service: authenticates, optionally sets cookies, and returns tokens.
+ *
+ * EC policy (2FA, community membership, user blocking) is enforced here; token
+ * minting is delegated to the wp-native-auth primitives. Response shape is
+ * unchanged.
  *
  * @param string $identifier Username or email.
  * @param string $password Password.
@@ -406,23 +285,14 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 		do_action( 'wp_login', $user->user_login, $user );
 	}
 
-	$access  = extrachill_users_generate_access_token( $user->ID, $device_id );
-	$refresh = extrachill_users_issue_refresh_token( $user->ID, $device_id, $device_name );
+	$tokens = extrachill_users_mint_token_pair( (int) $user->ID, $device_id, $device_name );
 
 	return array(
-		'access_token'       => $access['token'],
-		'access_expires_at'  => gmdate( 'c', (int) $access['expires_at'] ),
-		'refresh_token'      => $refresh['token'],
-		'refresh_expires_at' => gmdate( 'c', (int) $refresh['expires_at'] ),
-		'user'               => array(
-			'id'           => (int) $user->ID,
-			'username'     => $user->user_login,
-			'display_name' => $user->display_name,
-			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
-			'profile_url'  => function_exists( 'extrachill_get_user_profile_url' )
-				? extrachill_get_user_profile_url( $user->ID, $user->user_email )
-				: '',
-		),
+		'access_token'       => $tokens['access']['token'],
+		'access_expires_at'  => gmdate( 'c', (int) $tokens['access']['expires_at'] ),
+		'refresh_token'      => $tokens['refresh']['token'],
+		'refresh_expires_at' => gmdate( 'c', (int) $tokens['refresh']['expires_at'] ),
+		'user'               => extrachill_users_token_user_payload( $user ),
 	);
 }
 
@@ -431,6 +301,10 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
  *
  * User is created with auto-generated username and must complete onboarding
  * to set final username and artist/professional flags.
+ *
+ * EC policy (Turnstile, invite redemption, onboarding redirect fields,
+ * community provisioning) is enforced here; token minting is delegated to the
+ * wp-native-auth primitives. Response shape is unchanged.
  *
  * @param array $payload Registration payload from REST route.
  * @return array|WP_Error
@@ -635,27 +509,20 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		do_action( 'wp_login', $user->user_login, $user );
 	}
 
-	$access  = extrachill_users_generate_access_token( (int) $user_id, $device_id );
-	$refresh = extrachill_users_issue_refresh_token( (int) $user_id, $device_id, $device_name );
+	$tokens = extrachill_users_mint_token_pair( (int) $user_id, $device_id, $device_name );
 
 	$onboarding_url = function_exists( 'ec_get_site_url' )
 		? ec_get_site_url( 'community' ) . '/onboarding/'
 		: home_url( '/onboarding/' );
 
 	$response = array(
-		'access_token'         => $access['token'],
-		'access_expires_at'    => gmdate( 'c', (int) $access['expires_at'] ),
-		'refresh_token'        => $refresh['token'],
-		'refresh_expires_at'   => gmdate( 'c', (int) $refresh['expires_at'] ),
+		'access_token'         => $tokens['access']['token'],
+		'access_expires_at'    => gmdate( 'c', (int) $tokens['access']['expires_at'] ),
+		'refresh_token'        => $tokens['refresh']['token'],
+		'refresh_expires_at'   => gmdate( 'c', (int) $tokens['refresh']['expires_at'] ),
 		'onboarding_completed' => false,
 		'redirect_url'         => $onboarding_url,
-		'user'                 => array(
-			'id'           => (int) $user->ID,
-			'username'     => $user->user_login,
-			'display_name' => $user->display_name,
-			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
-			'profile_url'  => function_exists( 'extrachill_get_user_profile_url' ) ? extrachill_get_user_profile_url( $user->ID, $user->user_email ) : '',
-		),
+		'user'                 => extrachill_users_token_user_payload( $user ),
 	);
 
 	if ( $processed_invite_artist_id ) {
