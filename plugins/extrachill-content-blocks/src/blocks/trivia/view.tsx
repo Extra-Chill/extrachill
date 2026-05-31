@@ -1,16 +1,24 @@
 /**
  * Trivia Block - Frontend View (headless React + TypeScript).
  *
- * Every trivia block on the page is collected into a single quiz rendered by
- * one React root. The component owns all interaction state: answer selection,
- * per-question feedback/justification, a shared running score, and the final
- * results message. This replaces the vanilla-JS view that attached listeners
- * and read back data-* attributes.
+ * Every trivia block renders in place (its own .trivia-block wrapper, wherever
+ * the editor placed it — paragraphs and other content may sit between blocks).
+ * A single module-level store shares the running score across all blocks on
+ * the page: each block subscribes to it, writes its answer to it, and the
+ * score display reads from it. This reproduces the original shared-score
+ * behavior without moving any DOM and without the banned data-* hydration /
+ * manual DOM-mutation patterns.
  *
- * No network requests are made; trivia is fully client-side (no AJAX).
+ * Trivia is fully client-side: no network requests, no AJAX.
  */
 
-import { createRoot, useState, useMemo } from '@wordpress/element';
+import {
+	createRoot,
+	useSyncExternalStore,
+	useMemo,
+	useState,
+	useEffect,
+} from '@wordpress/element';
 
 interface ResultMessages {
 	excellent: string;
@@ -31,13 +39,6 @@ interface TriviaQuestion {
 	correctAnswer: number;
 	answerJustification: string;
 	blockId: string;
-	anchor: string;
-	className: string;
-}
-
-interface QuizConfig {
-	resultMessages: ResultMessages;
-	scoreRanges: ScoreRanges;
 }
 
 const DEFAULT_RESULT_MESSAGES: ResultMessages = {
@@ -53,35 +54,124 @@ const DEFAULT_SCORE_RANGES: ScoreRanges = {
 	okay: 50,
 };
 
-interface QuestionBlockProps {
-	question: TriviaQuestion;
-	answered: boolean;
-	selectedIndex: number | null;
-	onSelect: ( index: number ) => void;
+// ─── Shared store ────────────────────────────────────────────────────────────
+//
+// One store instance per page. Holds the registered questions and the answers
+// keyed by blockId. Blocks and the score displays subscribe via
+// useSyncExternalStore, so answering one block updates every subscriber
+// regardless of where it sits in the DOM.
+
+interface StoreState {
+	questions: TriviaQuestion[];
+	answers: Record< string, number >;
 }
 
-function QuestionBlock( {
-	question,
-	answered,
-	selectedIndex,
-	onSelect,
-}: QuestionBlockProps ) {
+function createTriviaStore() {
+	let state: StoreState = { questions: [], answers: {} };
+	const listeners = new Set< () => void >();
+
+	const emit = () => {
+		listeners.forEach( ( listener ) => listener() );
+	};
+
+	return {
+		subscribe( listener: () => void ): () => void {
+			listeners.add( listener );
+			return () => {
+				listeners.delete( listener );
+			};
+		},
+		getSnapshot(): StoreState {
+			return state;
+		},
+		registerQuestion( question: TriviaQuestion ): void {
+			if (
+				state.questions.some( ( q ) => q.blockId === question.blockId )
+			) {
+				return;
+			}
+			state = { ...state, questions: [ ...state.questions, question ] };
+			emit();
+		},
+		answer( blockId: string, optionIndex: number ): void {
+			if ( blockId in state.answers ) {
+				return;
+			}
+			state = {
+				...state,
+				answers: { ...state.answers, [ blockId ]: optionIndex },
+			};
+			emit();
+		},
+	};
+}
+
+type TriviaStore = ReturnType< typeof createTriviaStore >;
+
+function useStoreState( store: TriviaStore ): StoreState {
+	return useSyncExternalStore( store.subscribe, store.getSnapshot );
+}
+
+function useScore( store: TriviaStore ) {
+	const { questions, answers } = useStoreState( store );
+
+	return useMemo( () => {
+		const totalQuestions = questions.length;
+		const answeredCount = Object.keys( answers ).length;
+		const correctAnswers = questions.reduce( ( count, question ) => {
+			const selected = answers[ question.blockId ];
+			return selected !== undefined && selected === question.correctAnswer
+				? count + 1
+				: count;
+		}, 0 );
+		const allAnswered =
+			totalQuestions > 0 && answeredCount === totalQuestions;
+		const percentage = totalQuestions
+			? Math.round( ( correctAnswers / totalQuestions ) * 100 )
+			: 0;
+		return { totalQuestions, correctAnswers, allAnswered, percentage };
+	}, [ questions, answers ] );
+}
+
+// ─── Question block ──────────────────────────────────────────────────────────
+
+interface QuestionBlockProps {
+	store: TriviaStore;
+	question: TriviaQuestion;
+}
+
+function QuestionBlock( { store, question }: QuestionBlockProps ) {
+	const { answers } = useStoreState( store );
 	const { options, correctAnswer, answerJustification } = question;
+
+	const answered = question.blockId in answers;
+	const selectedIndex = answered ? answers[ question.blockId ] : null;
 	const isCorrect = answered && selectedIndex === correctAnswer;
 	const hasJustification = Boolean(
 		answerJustification && answerJustification.trim() !== ''
 	);
 
-	const blockClass = [ 'trivia-block', question.className ]
-		.filter( Boolean )
-		.join( ' ' );
+	// Gate the justification's `is-visible` class so it is applied one tick
+	// after the element mounts. The element starts at opacity:0 / translateY,
+	// and the CSS transition only plays if `is-visible` is added after paint —
+	// matching the original's deferred reveal (which set display first, then
+	// added is-visible on a timer). Applying both at once would skip the fade.
+	const [ justificationVisible, setJustificationVisible ] = useState( false );
+	useEffect( () => {
+		if ( ! ( answered && hasJustification ) ) {
+			setJustificationVisible( false );
+			return;
+		}
+		const timer = setTimeout( () => setJustificationVisible( true ), 300 );
+		return () => clearTimeout( timer );
+	}, [ answered, hasJustification ] );
 
 	const validOptions = options
 		.map( ( option, index ) => ( { option, index } ) )
 		.filter( ( entry ) => entry.option !== '' );
 
 	return (
-		<div className={ blockClass } id={ question.anchor || undefined }>
+		<>
 			<div className="trivia-block__question">
 				<h3 dangerouslySetInnerHTML={ { __html: question.question } } />
 			</div>
@@ -108,7 +198,9 @@ function QuestionBlock( {
 							data-option-index={ index }
 							type="button"
 							disabled={ answered }
-							onClick={ () => onSelect( index ) }
+							onClick={ () =>
+								store.answer( question.blockId, index )
+							}
 						>
 							{ option }
 						</button>
@@ -129,7 +221,9 @@ function QuestionBlock( {
 			) }
 			{ hasJustification && answered && (
 				<div
-					className="trivia-block__justification is-visible"
+					className={ `trivia-block__justification${
+						justificationVisible ? ' is-visible' : ''
+					}` }
 					style={ { display: 'block' } }
 				>
 					<div
@@ -140,119 +234,83 @@ function QuestionBlock( {
 					/>
 				</div>
 			) }
-		</div>
+		</>
 	);
 }
 
-interface TriviaQuizProps {
-	questions: TriviaQuestion[];
-	config: QuizConfig;
+// ─── Score display ───────────────────────────────────────────────────────────
+
+interface ScoreDisplayProps {
+	store: TriviaStore;
+	variant: 'top' | 'bottom';
+	resultMessages: ResultMessages;
+	scoreRanges: ScoreRanges;
 }
 
-function TriviaQuiz( { questions, config }: TriviaQuizProps ) {
-	const totalQuestions = questions.length;
-	const [ answers, setAnswers ] = useState< Record< string, number > >( {} );
-
-	const handleSelect = ( blockId: string, index: number ) => {
-		setAnswers( ( prev ) => {
-			if ( blockId in prev ) {
-				return prev;
-			}
-			return { ...prev, [ blockId ]: index };
-		} );
-	};
-
-	const correctAnswers = useMemo( () => {
-		return questions.reduce( ( count, question ) => {
-			const selected = answers[ question.blockId ];
-			return selected !== undefined && selected === question.correctAnswer
-				? count + 1
-				: count;
-		}, 0 );
-	}, [ answers, questions ] );
-
-	const answeredCount = Object.keys( answers ).length;
-	const allAnswered = answeredCount === totalQuestions && totalQuestions > 0;
-
-	const percentage = totalQuestions
-		? Math.round( ( correctAnswers / totalQuestions ) * 100 )
-		: 0;
-
-	const { resultMessage, resultClass } = useMemo( () => {
-		const { resultMessages, scoreRanges } = config;
-		if ( percentage >= scoreRanges.excellent ) {
-			return {
-				resultMessage: resultMessages.excellent,
-				resultClass: 'result-excellent',
-			};
-		}
-		if ( percentage >= scoreRanges.good ) {
-			return {
-				resultMessage: resultMessages.good,
-				resultClass: 'result-good',
-			};
-		}
-		if ( percentage >= scoreRanges.okay ) {
-			return {
-				resultMessage: resultMessages.okay,
-				resultClass: 'result-okay',
-			};
-		}
+function resolveResult(
+	percentage: number,
+	resultMessages: ResultMessages,
+	scoreRanges: ScoreRanges
+): { resultMessage: string; resultClass: string } {
+	if ( percentage >= scoreRanges.excellent ) {
 		return {
-			resultMessage: resultMessages.poor,
-			resultClass: 'result-poor',
+			resultMessage: resultMessages.excellent,
+			resultClass: 'result-excellent',
 		};
-	}, [ config, percentage ] );
+	}
+	if ( percentage >= scoreRanges.good ) {
+		return {
+			resultMessage: resultMessages.good,
+			resultClass: 'result-good',
+		};
+	}
+	if ( percentage >= scoreRanges.okay ) {
+		return {
+			resultMessage: resultMessages.okay,
+			resultClass: 'result-okay',
+		};
+	}
+	return { resultMessage: resultMessages.poor, resultClass: 'result-poor' };
+}
+
+function ScoreDisplay( {
+	store,
+	variant,
+	resultMessages,
+	scoreRanges,
+}: ScoreDisplayProps ) {
+	const { totalQuestions, correctAnswers, allAnswered, percentage } =
+		useScore( store );
+
+	const { resultMessage, resultClass } = useMemo(
+		() => resolveResult( percentage, resultMessages, scoreRanges ),
+		[ percentage, resultMessages, scoreRanges ]
+	);
+
+	// The bottom score stays hidden until every question has been answered,
+	// matching the original reveal behavior.
+	if ( variant === 'bottom' && ! allAnswered ) {
+		return (
+			<div
+				className="trivia-score trivia-score--bottom"
+				style={ { display: 'none' } }
+			/>
+		);
+	}
+
+	const className =
+		variant === 'top'
+			? 'trivia-score trivia-score--top'
+			: 'trivia-score trivia-score--bottom';
 
 	return (
-		<div className="trivia-quiz">
-			<div className="trivia-score trivia-score--top">
-				<div className="trivia-score__current">
-					{ correctAnswers }/{ totalQuestions }
-				</div>
-				<div className="trivia-score__label">
-					{ allAnswered ? (
-						<>
-							<div
-								className={ `trivia-score__result ${ resultClass }` }
-							>
-								{ resultMessage }
-							</div>
-							<div className="trivia-score__percentage">
-								{ percentage }% Correct
-							</div>
-						</>
-					) : (
-						'Questions Correct'
-					) }
-				</div>
+		<div className={ className } style={ { display: 'block' } }>
+			<div className="trivia-score__current">
+				{ correctAnswers }/{ totalQuestions }
 			</div>
-
-			{ questions.map( ( question ) => (
-				<QuestionBlock
-					key={ question.blockId }
-					question={ question }
-					answered={ question.blockId in answers }
-					selectedIndex={
-						question.blockId in answers
-							? answers[ question.blockId ]
-							: null
-					}
-					onSelect={ ( index ) =>
-						handleSelect( question.blockId, index )
-					}
-				/>
-			) ) }
-
-			{ allAnswered && (
-				<div
-					className="trivia-score trivia-score--bottom"
-					style={ { display: 'block' } }
-				>
-					<div className="trivia-score__current">
-						{ correctAnswers }/{ totalQuestions }
-					</div>
-					<div className="trivia-score__label">
+			<div className="trivia-score__label">
+				{ allAnswered ? (
+					<>
 						<div
 							className={ `trivia-score__result ${ resultClass }` }
 						>
@@ -261,16 +319,21 @@ function TriviaQuiz( { questions, config }: TriviaQuizProps ) {
 						<div className="trivia-score__percentage">
 							{ percentage }% Correct
 						</div>
-					</div>
-				</div>
-			) }
+					</>
+				) : (
+					'Questions Correct'
+				) }
+			</div>
 		</div>
 	);
 }
 
-function parseQuestion( mount: HTMLElement ): {
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+
+function parseConfig( mount: HTMLElement ): {
 	question: TriviaQuestion;
-	config: QuizConfig;
+	resultMessages: ResultMessages;
+	scoreRanges: ScoreRanges;
 } | null {
 	const configEl = mount.querySelector( '.extrachill-blocks-trivia-config' );
 	if ( ! configEl?.textContent ) {
@@ -279,16 +342,14 @@ function parseQuestion( mount: HTMLElement ): {
 
 	try {
 		const parsed = JSON.parse( configEl.textContent );
-		const question: TriviaQuestion = {
-			question: parsed.question ?? '',
-			options: Array.isArray( parsed.options ) ? parsed.options : [],
-			correctAnswer: Number( parsed.correctAnswer ?? 0 ),
-			answerJustification: parsed.answerJustification ?? '',
-			blockId: parsed.blockId ?? '',
-			anchor: parsed.anchor ?? '',
-			className: parsed.className ?? '',
-		};
-		const config: QuizConfig = {
+		return {
+			question: {
+				question: parsed.question ?? '',
+				options: Array.isArray( parsed.options ) ? parsed.options : [],
+				correctAnswer: Number( parsed.correctAnswer ?? 0 ),
+				answerJustification: parsed.answerJustification ?? '',
+				blockId: parsed.blockId ?? '',
+			},
 			resultMessages: {
 				...DEFAULT_RESULT_MESSAGES,
 				...( parsed.resultMessages || {} ),
@@ -298,60 +359,83 @@ function parseQuestion( mount: HTMLElement ): {
 				...( parsed.scoreRanges || {} ),
 			},
 		};
-		return { question, config };
 	} catch {
 		return null;
 	}
 }
 
 function init(): void {
-	const mounts = Array.from(
-		document.querySelectorAll< HTMLElement >(
-			'.extrachill-blocks-trivia-mount'
-		)
-	);
+	const blocks = Array.from(
+		document.querySelectorAll< HTMLElement >( '.trivia-block' )
+	).filter( ( block ) => block.dataset.initialized !== '1' );
 
-	if ( mounts.length === 0 ) {
+	if ( blocks.length === 0 ) {
 		return;
 	}
 
-	const questions: TriviaQuestion[] = [];
-	let quizConfig: QuizConfig = {
-		resultMessages: DEFAULT_RESULT_MESSAGES,
-		scoreRanges: DEFAULT_SCORE_RANGES,
-	};
+	const store = createTriviaStore();
 
-	mounts.forEach( ( mount, index ) => {
-		const parsed = parseQuestion( mount );
+	// The first block supplies the shared result messages / score ranges,
+	// matching the original behavior of reading them off the first block.
+	let resultMessages = DEFAULT_RESULT_MESSAGES;
+	let scoreRanges = DEFAULT_SCORE_RANGES;
+	let parsedFirst = false;
+
+	const firstBlock = blocks[ 0 ];
+	const lastBlock = blocks[ blocks.length - 1 ];
+
+	blocks.forEach( ( block ) => {
+		const parsed = parseConfig( block );
 		if ( ! parsed ) {
 			return;
 		}
-		// The first block supplies the shared result messages / score ranges,
-		// matching the original behavior of reading them off the first block.
-		if ( index === 0 ) {
-			quizConfig = parsed.config;
+
+		if ( ! parsedFirst ) {
+			resultMessages = parsed.resultMessages;
+			scoreRanges = parsed.scoreRanges;
+			parsedFirst = true;
 		}
-		questions.push( parsed.question );
+
+		block.dataset.initialized = '1';
+		store.registerQuestion( parsed.question );
+
+		// Render the question UI into the block's own wrapper, in place.
+		const root = createRoot( block );
+		root.render(
+			<QuestionBlock store={ store } question={ parsed.question } />
+		);
 	} );
 
-	if ( questions.length === 0 ) {
+	if ( ! parsedFirst ) {
 		return;
 	}
 
-	// Render the whole quiz into the first mount and remove the rest, so the
-	// shared score display sits above the questions and the score is unified.
-	const host = mounts[ 0 ];
-	if ( host.dataset.initialized === '1' ) {
-		return;
-	}
-	host.dataset.initialized = '1';
+	// Inject the two score hosts at the original positions: before the first
+	// block and after the last block. Only these two nodes are created; every
+	// question stays exactly where the editor placed it.
+	const topHost = document.createElement( 'div' );
+	topHost.className = 'trivia-score-host trivia-score-host--top';
+	firstBlock.parentNode?.insertBefore( topHost, firstBlock );
+	createRoot( topHost ).render(
+		<ScoreDisplay
+			store={ store }
+			variant="top"
+			resultMessages={ resultMessages }
+			scoreRanges={ scoreRanges }
+		/>
+	);
 
-	for ( let i = 1; i < mounts.length; i++ ) {
-		mounts[ i ].remove();
-	}
-
-	const root = createRoot( host );
-	root.render( <TriviaQuiz questions={ questions } config={ quizConfig } /> );
+	const bottomHost = document.createElement( 'div' );
+	bottomHost.className = 'trivia-score-host trivia-score-host--bottom';
+	lastBlock.parentNode?.insertBefore( bottomHost, lastBlock.nextSibling );
+	createRoot( bottomHost ).render(
+		<ScoreDisplay
+			store={ store }
+			variant="bottom"
+			resultMessages={ resultMessages }
+			scoreRanges={ scoreRanges }
+		/>
+	);
 }
 
 if ( document.readyState === 'loading' ) {
