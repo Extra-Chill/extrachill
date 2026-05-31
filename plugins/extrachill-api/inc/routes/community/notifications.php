@@ -31,10 +31,16 @@ function extrachill_api_register_community_notifications_routes() {
 					'type'     => 'boolean',
 					'default'  => false,
 				),
+				// Backward-compatible: existing clients send "limit"; mapped to per_page below.
 				'limit'  => array(
 					'required' => false,
 					'type'     => 'integer',
 					'default'  => 50,
+				),
+				'page'   => array(
+					'required' => false,
+					'type'     => 'integer',
+					'default'  => 1,
 				),
 			),
 		)
@@ -60,9 +66,9 @@ function extrachill_api_community_notifications_permission() {
 }
 
 function extrachill_api_community_notifications_list_handler( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'extrachill/community-get-notifications' );
+	$ability = wp_get_ability( 'extrachill/get-notifications' );
 	if ( ! $ability ) {
-		return new WP_Error( 'ability_missing', 'community-get-notifications ability not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_missing', 'get-notifications ability not available.', array( 'status' => 503 ) );
 	}
 
 	$input = array(
@@ -73,9 +79,15 @@ function extrachill_api_community_notifications_list_handler( WP_REST_Request $r
 		$input['unread'] = true;
 	}
 
+	// Map the legacy "limit" route arg to the substrate ability's "per_page".
 	$limit = (int) $request->get_param( 'limit' );
 	if ( $limit > 0 ) {
-		$input['limit'] = $limit;
+		$input['per_page'] = $limit;
+	}
+
+	$page = (int) $request->get_param( 'page' );
+	if ( $page > 0 ) {
+		$input['page'] = $page;
 	}
 
 	$result = $ability->execute( $input );
@@ -87,12 +99,13 @@ function extrachill_api_community_notifications_list_handler( WP_REST_Request $r
 	return rest_ensure_response( $result );
 }
 
-function extrachill_api_community_notifications_mark_read_handler( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'extrachill/community-mark-notifications-read' );
+function extrachill_api_community_notifications_mark_read_handler() {
+	$ability = wp_get_ability( 'extrachill/mark-notifications-read' );
 	if ( ! $ability ) {
-		return new WP_Error( 'ability_missing', 'community-mark-notifications-read ability not available.', array( 'status' => 503 ) );
+		return new WP_Error( 'ability_missing', 'mark-notifications-read ability not available.', array( 'status' => 503 ) );
 	}
 
+	// No notification_id => marks ALL unread, preserving the original mark-all behavior.
 	$result = $ability->execute(
 		array(
 			'user_id' => get_current_user_id(),
