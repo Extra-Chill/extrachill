@@ -154,6 +154,7 @@ function extrachill_users_init() {
 	// Network notification substrate: entry point + read/CRUD + back-compat shim.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/email.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/unsubscribe.php';
 
 	// wp-native-auth bridge: layer EC policy (membership, blocking, Turnstile)
 	// onto the generic wp-native-auth filter surface when both plugins are active.

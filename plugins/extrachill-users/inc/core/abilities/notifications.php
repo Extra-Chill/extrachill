@@ -205,6 +205,78 @@ function extrachill_users_register_notification_abilities() {
 			),
 		)
 	);
+
+	// ─── Get Notification Preferences ─────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/get-notification-preferences',
+		array(
+			'label'               => __( 'Get Notification Preferences', 'extrachill-users' ),
+			'description'         => __( 'Return a user\'s notification delivery preferences (e.g. whether unread-notification digest emails are enabled). Self-only.', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'user_id'        => array( 'type' => 'integer' ),
+					'emails_enabled' => array(
+						'type'        => 'boolean',
+						'description' => 'True when the user receives unread-notification digest emails.',
+					),
+				),
+			),
+			'execute_callback'    => 'extrachill_users_ability_get_notification_preferences',
+			// Self-only: returns the authenticated user's own preferences.
+			'permission_callback' => 'is_user_logged_in',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'   => true,
+					'idempotent' => true,
+				),
+			),
+		)
+	);
+
+	// ─── Update Notification Preferences ──────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/update-notification-preferences',
+		array(
+			'label'               => __( 'Update Notification Preferences', 'extrachill-users' ),
+			'description'         => __( 'Update a user\'s notification delivery preferences. Currently exposes the unread-notification digest-email opt-in toggle. Self-only.', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'emails_enabled' => array(
+						'type'        => 'boolean',
+						'description' => 'Set true to receive unread-notification digest emails, false to opt out.',
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'user_id'        => array( 'type' => 'integer' ),
+					'emails_enabled' => array( 'type' => 'boolean' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_users_ability_update_notification_preferences',
+			// Self-only: updates the authenticated user's own preferences.
+			'permission_callback' => 'is_user_logged_in',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'   => false,
+					'idempotent' => true,
+				),
+			),
+		)
+	);
 }
 
 // ─── Execute Callbacks ─────────────────────────────────────────────────────────
@@ -308,5 +380,53 @@ function extrachill_users_ability_clear_notifications( array $input ) {
 	return array(
 		'user_id' => $user_id,
 		'removed' => ec_users_clear_notifications( $user_id, ! empty( $input['all'] ) ),
+	);
+}
+
+/**
+ * Get notification preferences ability callback.
+ *
+ * Self-only: always operates on the authenticated user, ignoring any
+ * client-supplied user_id (avoids IDOR over the Abilities /run endpoint).
+ *
+ * @return array|WP_Error
+ */
+function extrachill_users_ability_get_notification_preferences() {
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
+	}
+
+	return array(
+		'user_id'        => $user_id,
+		'emails_enabled' => ec_users_notification_emails_enabled( $user_id ),
+	);
+}
+
+/**
+ * Update notification preferences ability callback.
+ *
+ * Self-only. Persists the digest-email opt-in toggle through the canonical
+ * setter ec_users_set_notification_emails_disabled() — the SAME setter the
+ * one-click unsubscribe endpoint uses. The user-facing `emails_enabled` is
+ * inverted into the internal DISABLED flag here.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error
+ */
+function extrachill_users_ability_update_notification_preferences( array $input ) {
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
+	}
+
+	if ( array_key_exists( 'emails_enabled', $input ) ) {
+		$emails_enabled = filter_var( $input['emails_enabled'], FILTER_VALIDATE_BOOLEAN );
+		ec_users_set_notification_emails_disabled( $user_id, ! $emails_enabled );
+	}
+
+	return array(
+		'user_id'        => $user_id,
+		'emails_enabled' => ec_users_notification_emails_enabled( $user_id ),
 	);
 }

@@ -20,7 +20,10 @@
  *     switch_to_blog() internally; callers must NOT wrap it). Queuing keeps cron
  *     non-blocking and isolates a single failed send from the rest of the batch.
  *   - Per-user opt-out via the ec_notification_emails_disabled user_meta flag
- *     (default OFF == opted-in). A settings-UI toggle is a follow-up.
+ *     (default OFF == opted-in). Written ONLY through the canonical setter
+ *     ec_users_set_notification_emails_disabled(), which both the settings-UI
+ *     toggle (update-notification-preferences ability) and the one-click
+ *     unsubscribe endpoint (inc/notifications/unsubscribe.php) call.
  *
  * Reads the substrate via ec_users_get_notifications() / a local distinct-user
  * query; never modifies db.php / service.php / abilities.
@@ -35,6 +38,7 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/service.php';
+require_once __DIR__ . '/unsubscribe.php';
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 
@@ -296,6 +300,50 @@ function ec_notifications_email_user_opted_out( $user_id ) {
 }
 
 /**
+ * Canonical setter for the digest-email opt-out flag.
+ *
+ * THE single source of truth for writing ec_notification_emails_disabled. Both
+ * the settings save path (the update-notification-preferences ability) and the
+ * one-click unsubscribe endpoint call through here so the persistence logic
+ * lives in exactly one place.
+ *
+ * Enabling removes the flag entirely (so the default "opted-in" state is the
+ * absence of the meta), keeping ec_notifications_email_user_opted_out() simple.
+ *
+ * @param int  $user_id  User ID.
+ * @param bool $disabled True to DISABLE digest emails, false to enable.
+ * @return bool True on success, false on an invalid user.
+ */
+function ec_users_set_notification_emails_disabled( $user_id, $disabled ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	if ( $disabled ) {
+		update_user_meta( $user_id, EC_NOTIFICATIONS_EMAILS_DISABLED_META, 1 );
+		return true;
+	}
+
+	// Enabling = remove the flag so the opted-out check is false (default ON).
+	delete_user_meta( $user_id, EC_NOTIFICATIONS_EMAILS_DISABLED_META );
+	return true;
+}
+
+/**
+ * Whether unread-notification digest emails are ENABLED for a user.
+ *
+ * User-facing sense: true == the user receives digest emails. Derived from the
+ * inverted internal DISABLED flag. The settings UI binds its toggle to this.
+ *
+ * @param int $user_id User ID.
+ * @return bool
+ */
+function ec_users_notification_emails_enabled( $user_id ) {
+	return ! ec_notifications_email_user_opted_out( $user_id );
+}
+
+/**
  * Is the user inside the anti-spam cooldown window?
  *
  * @param int $user_id User ID.
@@ -370,6 +418,14 @@ function ec_notifications_email_send_digest( $user_id ) {
 
 	$digest = ec_notifications_email_build_digest( $user, $unread_count, $preview );
 
+	// Append a tokenized one-click unsubscribe footer line. Built here (not in
+	// the pure build_digest assembler) because it mints a per-user signed URL.
+	$body_html        = $digest['body_html'];
+	$unsubscribe_html = ec_notifications_email_unsubscribe_footer_html( $user_id );
+	if ( '' !== $unsubscribe_html ) {
+		$body_html .= $unsubscribe_html;
+	}
+
 	// Enqueue one async send per recipient. ec_send_email_queued() delegates to
 	// the datamachine/send-email-queued ability, which returns
 	// [ 'success' => bool, 'action_id' => int, ... ].
@@ -381,7 +437,7 @@ function ec_notifications_email_send_digest( $user_id ) {
 			'context'  => array(
 				'subject_html'   => esc_html( $digest['subject'] ),
 				'recipient_name' => $user->display_name,
-				'body_html'      => $digest['body_html'],
+				'body_html'      => $body_html,
 				'cta_url'        => $digest['cta_url'],
 				'cta_label'      => __( 'View Notifications', 'extrachill-users' ),
 				'preheader'      => $digest['preheader'],
@@ -473,6 +529,33 @@ function ec_notifications_email_build_digest( WP_User $user, $unread_count, arra
 		'body_html' => $body_html,
 		'cta_url'   => $notifications_url,
 	);
+}
+
+/**
+ * Build the one-click unsubscribe footer HTML for a digest email.
+ *
+ * Mints a per-user signed unsubscribe URL (inc/notifications/unsubscribe.php)
+ * and wraps it in a small footer paragraph. Returns '' if the URL can't be
+ * built (e.g. invalid user), so the caller simply omits the line.
+ *
+ * @param int $user_id Recipient user ID.
+ * @return string Footer HTML, or '' on failure.
+ */
+function ec_notifications_email_unsubscribe_footer_html( $user_id ) {
+	if ( ! function_exists( 'ec_notifications_unsubscribe_url' ) ) {
+		return '';
+	}
+
+	$url = ec_notifications_unsubscribe_url( (int) $user_id );
+	if ( '' === $url ) {
+		return '';
+	}
+
+	return '<p style="font-size:12px;color:#888;margin-top:24px;">'
+		. esc_html__( 'Don\'t want these emails?', 'extrachill-users' ) . ' '
+		. '<a href="' . esc_url( $url ) . '" style="color:#888;">'
+		. esc_html__( 'Unsubscribe from notification emails', 'extrachill-users' )
+		. '</a>.</p>';
 }
 
 /**
