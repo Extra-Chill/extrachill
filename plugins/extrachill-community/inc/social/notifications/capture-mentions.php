@@ -54,60 +54,59 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
 				'item_id'     => $actual_item_id_for_context,
 			));
 
-			// Priority deduplication: If mentioned user is topic author, remove reply notification
-			// Mention notifications are more specific than reply notifications
+			// Priority deduplication: if the mentioned user is the topic author,
+			// remove the (more generic) reply notification the reply-capture
+			// handler just fired for the same actor/topic. Mention notifications
+			// are more specific. This now targets the network substrate table.
 			if ( get_post_field('post_author', $actual_topic_id_for_context) === $user->ID ) {
-				// Switch to community site for deduplication
-				$current_blog_id = get_current_blog_id();
-				$switched        = false;
-
-				$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
-				if ( ! $community_blog_id ) {
-					return;
-				}
-
-				if ( $current_blog_id !== $community_blog_id ) {
-					switch_to_blog( $community_blog_id );
-					$switched = true;
-				}
-
-				try {
-					$user_notifications = get_user_meta($user->ID, 'extrachill_notifications', true) ? get_user_meta($user->ID, 'extrachill_notifications', true) : array();
-
-					if ( is_array($user_notifications) ) {
-						$current_time = current_time('timestamp');
-
-						// Remove reply notification from same actor/topic within last 5 seconds
-						$filtered_notifications = array_filter($user_notifications, function($notif) use ($action_author_id, $actual_topic_id_for_context, $current_time) {
-							// Keep notification if it's not a recent reply from this actor on this topic
-							if ( 'reply' !== $notif['type'] ) {
-								return true;
-							}
-							if ( ! isset($notif['actor_id']) || $notif['actor_id'] !== $action_author_id ) {
-								return true;
-							}
-							if ( ! isset($notif['post_id']) || $notif['post_id'] !== $actual_topic_id_for_context ) {
-								return true;
-							}
-							if ( ! isset($notif['time']) || abs(strtotime($notif['time']) - $current_time) > 5 ) {
-								return true;
-							}
-
-							// Remove this reply notification (mention takes precedence)
-							return false;
-						});
-
-						// Re-index array and update
-						update_user_meta($user->ID, 'extrachill_notifications', array_values($filtered_notifications));
-					}
-				} finally {
-					if ( $switched ) {
-						restore_current_blog();
-					}
-				}
+				extrachill_community_dedupe_reply_notification(
+					(int) $user->ID,
+					(int) $action_author_id,
+					(int) $actual_topic_id_for_context
+				);
 			}
 		}
 	}
+}
+
+/**
+ * Remove a just-fired reply notification superseded by a mention.
+ *
+ * When a user is both the topic author and is mentioned in a reply, the
+ * reply-capture handler (priority 10) already enqueued a 'reply' notification
+ * for the same actor/topic moments before this 'mention' notification. Mentions
+ * are more specific, so delete the recent matching reply row from the network
+ * substrate table. The table is keyed by base_prefix, so no switch_to_blog is
+ * needed.
+ *
+ * @param int $user_id   Recipient (topic author / mentioned user).
+ * @param int $actor_id  User who fired both notifications.
+ * @param int $topic_id  Topic the reply notification referenced (item_id).
+ * @return void
+ */
+function extrachill_community_dedupe_reply_notification( $user_id, $actor_id, $topic_id ) {
+	global $wpdb;
+
+	if ( ! function_exists( 'extrachill_users_notifications_table_name' ) ) {
+		return;
+	}
+
+	$table = extrachill_users_notifications_table_name();
+
+	// Match the reply row from this actor on this topic created within the last
+	// few seconds (both notifications fire within the same request).
+	$threshold = gmdate( 'Y-m-d H:i:s', time() - 5 );
+
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$table} WHERE user_id = %d AND actor_id = %d AND type = %s AND item_id = %d AND created_at >= %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted substrate helper.
+			$user_id,
+			$actor_id,
+			'reply',
+			$topic_id,
+			$threshold
+		)
+	);
 }
 
 // Hook into bbPress actions (priority 12 - after reply notifications at priority 10)

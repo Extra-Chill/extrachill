@@ -30,18 +30,24 @@ function extrachill_render_notification_card($notification) {
 		return '';
 	}
 
-	// Extract core data
+	// Extract core data. The network substrate enriches rows with `title`;
+	// the legacy blob used `topic_title`. Support both so cards render
+	// identically regardless of source.
 	$type               = $notification['type'];
 	$actor_id           = $notification['actor_id'] ?? null;
 	$actor_display_name = $notification['actor_display_name'] ?? 'Someone';
 	$actor_profile_link = $notification['actor_profile_link'] ?? '#';
-	$topic_title        = $notification['topic_title'] ?? '';
+	$topic_title        = $notification['title'] ?? ( $notification['topic_title'] ?? '' );
 	$link               = $notification['link'] ?? '#';
 	$time               = $notification['time'] ?? '';
 
-	// Format timestamp
-	// phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Display in site-local time, preserving existing rendered output.
-	$time_formatted = $time ? esc_html(date('n/j/y \\a\\t g:ia', strtotime($time))) : '';
+	// Format timestamp. The network substrate stores created_at in UTC, so
+	// convert to the site's local timezone for display.
+	$time_formatted = '';
+	if ( $time ) {
+		$local_time     = get_date_from_gmt( $time, 'n/j/y \\a\\t g:ia' );
+		$time_formatted = esc_html( $local_time );
+	}
 
 	// Get actor avatar
 	$avatar = $actor_id ? get_avatar($actor_id, 40) : '';

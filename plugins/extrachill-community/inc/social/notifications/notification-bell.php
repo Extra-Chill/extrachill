@@ -5,6 +5,14 @@
  * Renders notification bell icon with unread count badge in header.
  * Displays for logged-in users only.
  *
+ * Reads the unread count from the network notification substrate in the
+ * extrachill-users plugin (extrachill/get-notification-unread-count) rather
+ * than the legacy per-user `extrachill_notifications` user_meta blob. The
+ * substrate table is keyed by base_prefix, so it is the same physical table
+ * on every site — no switch_to_blog is required here.
+ *
+ * Parent epic: Extra-Chill/extrachill-community#82.
+ *
  * @package ExtraChillCommunity
  */
 
@@ -13,47 +21,17 @@ if ( ! defined('ABSPATH') ) {
 }
 
 /**
- * Display notification bell with unread count
+ * Display notification bell with unread count.
  *
- * Reads notifications from community.extrachill.com for network-wide notification access.
- * Always links to community site notifications page.
+ * Reads the unread count from the network notification substrate. Always links
+ * to the community site notifications page.
  */
 function extrachill_display_notification_bell() {
 	if ( ! is_user_logged_in() ) {
 		return;
 	}
 
-	global $extrachill_notifications_cache;
-	$current_user_id = get_current_user_id();
-
-	// Switch to community site to read notifications
-	$current_blog_id   = get_current_blog_id();
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
-	$switched          = false;
-
-	if ( $community_blog_id && $current_blog_id !== $community_blog_id ) {
-		switch_to_blog( $community_blog_id );
-		$switched = true;
-	}
-
-	try {
-		// Check if notifications are cached
-		if ( null === $extrachill_notifications_cache ) {
-			// Fetch notifications and store in cache
-			$extrachill_notifications_cache = get_user_meta($current_user_id, 'extrachill_notifications', true) ? get_user_meta($current_user_id, 'extrachill_notifications', true) : array();
-		}
-		$notifications = $extrachill_notifications_cache;
-
-		// Filter unread notifications for the count
-		$unread_count = count(array_filter($notifications, function ($notification) {
-			return ! $notification['read'];
-		}));
-
-	} finally {
-		if ( $switched ) {
-			restore_current_blog();
-		}
-	}
+	$unread_count = extrachill_community_get_unread_notification_count();
 	?>
 	<div class="notification-bell-icon header-right-icon">
 		<a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/notifications' ); ?>" title="Notifications">
@@ -64,6 +42,33 @@ function extrachill_display_notification_bell() {
 		</a>
 	</div>
 	<?php
+}
+
+/**
+ * Get the current user's unread notification count from the substrate.
+ *
+ * Thin wrapper over the extrachill/get-notification-unread-count ability
+ * (registered by extrachill-users). Falls back to 0 if the ability is
+ * unavailable (e.g. the users plugin is not loaded).
+ *
+ * @return int Unread notification count.
+ */
+function extrachill_community_get_unread_notification_count() {
+	if ( ! function_exists( 'wp_get_ability' ) ) {
+		return 0;
+	}
+
+	$ability = wp_get_ability( 'extrachill/get-notification-unread-count' );
+	if ( ! $ability ) {
+		return 0;
+	}
+
+	$result = $ability->execute( array( 'user_id' => get_current_user_id() ) );
+	if ( is_wp_error( $result ) || ! is_array( $result ) ) {
+		return 0;
+	}
+
+	return isset( $result['unread_count'] ) ? (int) $result['unread_count'] : 0;
 }
 
 // Hook notification bell into theme header (priority 20: after navigation, before avatar menu)
