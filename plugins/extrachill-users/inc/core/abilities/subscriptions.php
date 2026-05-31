@@ -94,58 +94,41 @@ function extrachill_users_ability_get_subscriptions() {
 		return new WP_Error( 'user_not_found', 'User not found.' );
 	}
 
-	// Get followed artists.
-	// Note: bp_get_user_followed_bands() is provided by the community plugin's
-	// BuddyPress-style follow system. Guarded with function_exists() — returns
-	// empty if the follow system is not active.
+	// Resolve followed artists directly from the artist_subscribers consent rows.
+	// The artist_subscribers table lives on the artist site (blog 4), so we
+	// switch_to_blog to get the correct table prefix. Each consent row is an
+	// artist the user has subscribed to with email consent granted.
 	$followed_artists = array();
-	if ( function_exists( 'bp_get_user_followed_bands' ) ) {
-		$followed_posts = bp_get_user_followed_bands( $user_id, array( 'posts_per_page' => -1 ) );
-		if ( ! empty( $followed_posts ) ) {
-			foreach ( $followed_posts as $artist_post ) {
-				$followed_artists[] = array(
-					'artist_id' => $artist_post->ID,
-					'name'      => get_the_title( $artist_post->ID ),
-					'url'       => get_permalink( $artist_post->ID ),
+	$artist_blog_id   = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+
+	if ( $artist_blog_id ) {
+		switch_to_blog( $artist_blog_id );
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'artist_subscribers';
+
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT artist_profile_id FROM {$table_name} WHERE user_id = %d AND source = 'platform_follow_consent'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted prefix.
+				$user_id
+			),
+			ARRAY_A
+		);
+
+		if ( ! empty( $results ) ) {
+			foreach ( $results as $row ) {
+				$artist_id            = (int) $row['artist_profile_id'];
+				$followed_artists[]   = array(
+					'artist_id'     => $artist_id,
+					'name'          => get_the_title( $artist_id ),
+					'url'           => get_permalink( $artist_id ),
+					'email_consent' => true,
 				);
 			}
 		}
+
+		restore_current_blog();
 	}
-
-	// Get consented artist IDs.
-	// The artist_subscribers table lives on the artist site (blog 4),
-	// so we need to switch_to_blog to get the correct table prefix.
-	$consented_ids = array();
-	if ( ! empty( $followed_artists ) ) {
-		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-
-		if ( $artist_blog_id ) {
-			switch_to_blog( $artist_blog_id );
-
-			global $wpdb;
-			$table_name = $wpdb->prefix . 'artist_subscribers';
-
-			$results = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT artist_profile_id FROM {$table_name} WHERE user_id = %d AND source = 'platform_follow_consent'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted prefix.
-					$user_id
-				),
-				ARRAY_A
-			);
-
-			if ( ! empty( $results ) ) {
-				$consented_ids = array_map( 'intval', wp_list_pluck( $results, 'artist_profile_id' ) );
-			}
-
-			restore_current_blog();
-		}
-	}
-
-	// Merge consent status into followed artists.
-	foreach ( $followed_artists as &$artist ) {
-		$artist['email_consent'] = in_array( $artist['artist_id'], $consented_ids, true );
-	}
-	unset( $artist );
 
 	return array(
 		'user_id'          => $user_id,
@@ -173,23 +156,6 @@ function extrachill_users_ability_update_subscriptions( $input ) {
 		return new WP_Error( 'user_not_found', 'User not found.' );
 	}
 
-	// Get all followed artists to determine scope.
-	$followed_artist_ids = array();
-	if ( function_exists( 'bp_get_user_followed_bands' ) ) {
-		$followed_posts = bp_get_user_followed_bands( $user_id, array( 'posts_per_page' => -1 ) );
-		if ( ! empty( $followed_posts ) ) {
-			$followed_artist_ids = wp_list_pluck( $followed_posts, 'ID' );
-		}
-	}
-
-	if ( empty( $followed_artist_ids ) ) {
-		return array(
-			'success' => true,
-			'message' => 'No followed artists to update.',
-			'user_id' => $user_id,
-		);
-	}
-
 	// The artist_subscribers table lives on the artist site (blog 4).
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
 
@@ -202,43 +168,51 @@ function extrachill_users_ability_update_subscriptions( $input ) {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'artist_subscribers';
 
-	foreach ( $followed_artist_ids as $artist_id ) {
+	// Existing consent rows for this user define the current scope. We add
+	// consent for any newly-supplied artist and remove consent rows the user
+	// no longer includes in the consented set.
+	$existing_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT artist_profile_id FROM {$table_name} WHERE user_id = %d AND source = 'platform_follow_consent'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted prefix.
+			$user_id
+		)
+	);
+	$existing_ids = array_map( 'intval', (array) $existing_ids );
+
+	// Add consent for newly-supplied artists.
+	foreach ( $consented_artists as $artist_id ) {
 		$artist_id = (int) $artist_id;
-
-		if ( in_array( $artist_id, $consented_artists, true ) ) {
-			// Add consent if not exists.
-			$exists = $wpdb->get_var(
-				$wpdb->prepare(
-					"SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND artist_profile_id = %d AND source = 'platform_follow_consent'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted prefix.
-					$user_id,
-					$artist_id
-				)
-			);
-
-			if ( ! $exists ) {
-				$wpdb->insert(
-					$table_name,
-					array(
-						'user_id'           => $user_id,
-						'artist_profile_id' => $artist_id,
-						'source'            => 'platform_follow_consent',
-						'subscribed_at'     => current_time( 'mysql' ),
-					),
-					array( '%d', '%d', '%s', '%s' )
-				);
-			}
-		} else {
-			// Remove consent.
-			$wpdb->delete(
-				$table_name,
-				array(
-					'user_id'           => $user_id,
-					'artist_profile_id' => $artist_id,
-					'source'            => 'platform_follow_consent',
-				),
-				array( '%d', '%d', '%s' )
-			);
+		if ( in_array( $artist_id, $existing_ids, true ) ) {
+			continue;
 		}
+
+		$wpdb->insert(
+			$table_name,
+			array(
+				'user_id'           => $user_id,
+				'artist_profile_id' => $artist_id,
+				'source'            => 'platform_follow_consent',
+				'subscribed_at'     => current_time( 'mysql' ),
+			),
+			array( '%d', '%d', '%s', '%s' )
+		);
+	}
+
+	// Remove consent rows no longer in the consented set.
+	foreach ( $existing_ids as $artist_id ) {
+		if ( in_array( $artist_id, $consented_artists, true ) ) {
+			continue;
+		}
+
+		$wpdb->delete(
+			$table_name,
+			array(
+				'user_id'           => $user_id,
+				'artist_profile_id' => $artist_id,
+				'source'            => 'platform_follow_consent',
+			),
+			array( '%d', '%d', '%s' )
+		);
 	}
 
 	restore_current_blog();
