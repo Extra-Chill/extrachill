@@ -77,12 +77,43 @@ add_action( 'bbp_new_topic', 'extrachill_community_save_topic_location', 20 );
 add_action( 'bbp_edit_topic', 'extrachill_community_save_topic_location', 20 );
 
 /**
- * Redirect location archives to the corresponding forum
+ * Include topics in location taxonomy archives.
  *
- * When viewing /location/charleston/ on community site, redirect
- * to the Charleston subforum (the location hub).
+ * After Phase 1B consolidation (#58) the geographic forums are gone; place
+ * lives as a `location` term on topics inside "Live Shows & Scenes". The
+ * `/location/<term>/` archive becomes the canonical location-filtered VIEW —
+ * e.g. /location/charleston/ is the Charleston view of the Scenes room.
+ *
+ * The location taxonomy is registered to `post` (theme) and `forum`/`topic`
+ * (this plugin). On the main location-archive query, add `topic` so the
+ * archive renders the location-tagged topics. Forums no longer carry place
+ * terms post-migration, so they naturally drop out.
+ *
+ * @param WP_Query $query The query being prepared.
  */
-function extrachill_community_redirect_location_to_forum() {
+function extrachill_community_location_archive_include_topics( $query ) {
+	if ( is_admin() || ! $query->is_main_query() ) {
+		return;
+	}
+	if ( ! $query->is_tax( 'location' ) ) {
+		return;
+	}
+
+	$query->set( 'post_type', array( 'topic' ) );
+	// bbPress topics are publish or closed; include both so closed threads show.
+	$query->set( 'post_status', array( 'publish', 'closed' ) );
+}
+add_action( 'pre_get_posts', 'extrachill_community_location_archive_include_topics' );
+
+/**
+ * Frame the location archive as a filtered view of Live Shows & Scenes.
+ *
+ * Adds a short "← Live Shows & Scenes" backlink + framing line above the
+ * location-archive posts so visitors understand /location/charleston/ is the
+ * Charleston view of the Scenes room, not a standalone forum. Reuses the
+ * theme's `extrachill_archive_below_description` hook.
+ */
+function extrachill_community_location_archive_framing() {
 	if ( ! is_tax( 'location' ) ) {
 		return;
 	}
@@ -92,27 +123,25 @@ function extrachill_community_redirect_location_to_forum() {
 		return;
 	}
 
-	$forums = get_posts(
-		array(
-			'post_type'      => 'forum',
-			'post_status'    => 'publish',
-			'posts_per_page' => 1,
-			'tax_query'      => array(
-				array(
-					'taxonomy' => 'location',
-					'field'    => 'term_id',
-					'terms'    => $term->term_id,
-				),
-			),
+	$scenes = get_page_by_path( 'live-shows-scenes', OBJECT, 'forum' );
+	if ( ! $scenes ) {
+		return;
+	}
+
+	printf(
+		'<p class="ec-location-scenes-context"><a href="%1$s">%2$s</a> &middot; %3$s</p>',
+		esc_url( get_permalink( $scenes ) ),
+		esc_html__( '← Live Shows & Scenes', 'extra-chill-community' ),
+		esc_html(
+			sprintf(
+				/* translators: %s: location name */
+				__( 'Showing %s', 'extra-chill-community' ),
+				$term->name
+			)
 		)
 	);
-
-	if ( ! empty( $forums ) ) {
-		wp_safe_redirect( get_permalink( $forums[0] ), 301 );
-		exit;
-	}
 }
-add_action( 'template_redirect', 'extrachill_community_redirect_location_to_forum' );
+add_action( 'extrachill_archive_below_description', 'extrachill_community_location_archive_framing' );
 
 /**
  * Append cross-site links to forum description

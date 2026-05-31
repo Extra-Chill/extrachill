@@ -170,7 +170,9 @@ function extrachill_create_community_pages() {
 /**
  * Create required community forums
  *
- * Creates 2 forums: Local Scenes, Music Discussion.
+ * Seeds the non-geographic room set (Phase 1B, #58): Music Discussion,
+ * Live Shows & Scenes, Artist Corner, The Lab. Place is a `location` term on
+ * topics inside Live Shows & Scenes, never a separate geographic forum.
  * Skips creation if forum with slug already exists.
  *
  * @return array Array of created forum IDs
@@ -178,14 +180,24 @@ function extrachill_create_community_pages() {
 function extrachill_create_community_forums() {
 	$forums = array(
 		array(
-			'title'       => 'Local Scenes',
-			'slug'        => 'local-scenes',
-			'description' => 'Discuss local music scenes and discover what\'s happening near you',
-		),
-		array(
 			'title'       => 'Music Discussion',
 			'slug'        => 'music-discussion',
 			'description' => 'General music discussion, recommendations, and talk about what you\'re listening to',
+		),
+		array(
+			'title'       => 'Live Shows & Scenes',
+			'slug'        => 'live-shows-scenes',
+			'description' => 'Live music, local scenes, and shows from every city. Where you are is a tag, not a wall — filter by location to find your scene.',
+		),
+		array(
+			'title'       => 'Artist Corner',
+			'slug'        => 'artist-corner',
+			'description' => 'For artists: introduce yourself, share new releases, and talk shop — DIY tools, link pages, promotion, and the business of being independent.',
+		),
+		array(
+			'title'       => 'The Lab',
+			'slug'        => 'the-lab',
+			'description' => 'The open web, WordPress, AI × music, and build-in-public. Site-building help for artists, dev logs, and tinkering with how independent music lives online.',
 		),
 	);
 

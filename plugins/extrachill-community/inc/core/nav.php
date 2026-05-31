@@ -28,8 +28,8 @@ function extrachill_community_secondary_header_items( $items ) {
 		'priority' => 5,
 	);
 	$items[] = array(
-		'url'      => ec_get_site_url( 'community' ) . '/r/local-scenes',
-		'label'    => __( 'Local Scenes', 'extra-chill-community' ),
+		'url'      => ec_get_site_url( 'community' ) . '/r/live-shows-scenes',
+		'label'    => __( 'Live Shows & Scenes', 'extra-chill-community' ),
 		'priority' => 10,
 	);
 	$items[] = array(
