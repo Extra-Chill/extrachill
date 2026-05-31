@@ -28,16 +28,14 @@ function extrachill_users_register_settings_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
-				'properties' => array(
-					'user_id' => array( 'type' => 'integer' ),
-				),
-				'required'   => array( 'user_id' ),
+				'properties' => array(),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_get_settings',
-			'permission_callback' => '__return_true',
+			// Self-only: returns the authenticated user's account settings (incl. email).
+			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'   => true,
 					'idempotent' => true,
@@ -56,18 +54,17 @@ function extrachill_users_register_settings_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'      => array( 'type' => 'integer' ),
 					'first_name'   => array( 'type' => 'string' ),
 					'last_name'    => array( 'type' => 'string' ),
 					'display_name' => array( 'type' => 'string' ),
 				),
-				'required'   => array( 'user_id' ),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_update_settings',
-			'permission_callback' => '__return_true',
+			// Self-only: updates the authenticated user's account details.
+			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'   => false,
 					'idempotent' => true,
@@ -86,16 +83,16 @@ function extrachill_users_register_settings_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'   => array( 'type' => 'integer' ),
 					'new_email' => array( 'type' => 'string' ),
 				),
-				'required'   => array( 'user_id', 'new_email' ),
+				'required'   => array( 'new_email' ),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_change_email',
-			'permission_callback' => '__return_true',
+			// Self-only: changes the authenticated user's email.
+			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly' => false,
 				),
@@ -113,18 +110,18 @@ function extrachill_users_register_settings_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'          => array( 'type' => 'integer' ),
 					'current_password' => array( 'type' => 'string' ),
 					'new_password'     => array( 'type' => 'string' ),
 					'confirm_password' => array( 'type' => 'string' ),
 				),
-				'required'   => array( 'user_id', 'current_password', 'new_password', 'confirm_password' ),
+				'required'   => array( 'current_password', 'new_password', 'confirm_password' ),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_change_password',
-			'permission_callback' => '__return_true',
+			// Self-only: changes the authenticated user's password (requires current password).
+			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly' => false,
 				),
@@ -136,14 +133,15 @@ function extrachill_users_register_settings_abilities() {
 /**
  * Get user settings (account details).
  *
- * @param array $input Input with 'user_id'.
+ * Self-only: resolves the authenticated user; takes no input.
+ *
  * @return array|WP_Error Settings data or error.
  */
-function extrachill_users_ability_get_settings( $input ) {
-	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
-
-	if ( ! $user_id ) {
-		return new WP_Error( 'missing_user_id', 'user_id is required.' );
+function extrachill_users_ability_get_settings() {
+	// Self-only: always operate on the authenticated user, ignoring any client-supplied user_id.
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
 	}
 
 	$user = get_user_by( 'ID', $user_id );
@@ -195,10 +193,10 @@ function extrachill_users_ability_get_settings( $input ) {
  * @return array|WP_Error Updated settings or error.
  */
 function extrachill_users_ability_update_settings( $input ) {
-	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
-
-	if ( ! $user_id ) {
-		return new WP_Error( 'missing_user_id', 'user_id is required.' );
+	// Self-only: always operate on the authenticated user, ignoring any client-supplied user_id.
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
 	}
 
 	$user = get_user_by( 'ID', $user_id );
@@ -247,8 +245,8 @@ function extrachill_users_ability_update_settings( $input ) {
 		return $result;
 	}
 
-	// Return fresh settings data.
-	return extrachill_users_ability_get_settings( array( 'user_id' => $user_id ) );
+	// Return fresh settings data (resolves the same authenticated user).
+	return extrachill_users_ability_get_settings();
 }
 
 /**
@@ -261,12 +259,13 @@ function extrachill_users_ability_update_settings( $input ) {
  * @return array|WP_Error Result or error.
  */
 function extrachill_users_ability_change_email( $input ) {
-	$user_id   = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
-	$new_email = isset( $input['new_email'] ) ? sanitize_email( $input['new_email'] ) : '';
-
-	if ( ! $user_id ) {
-		return new WP_Error( 'missing_user_id', 'user_id is required.' );
+	// Self-only: always operate on the authenticated user, ignoring any client-supplied user_id.
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
 	}
+
+	$new_email = isset( $input['new_email'] ) ? sanitize_email( $input['new_email'] ) : '';
 
 	if ( empty( $new_email ) || ! is_email( $new_email ) ) {
 		return new WP_Error( 'invalid_email', 'Please provide a valid email address.' );
@@ -359,14 +358,15 @@ function extrachill_users_ability_change_email( $input ) {
  * @return array|WP_Error Result or error.
  */
 function extrachill_users_ability_change_password( $input ) {
-	$user_id          = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
+	// Self-only: always operate on the authenticated user, ignoring any client-supplied user_id.
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
+	}
+
 	$current_password = isset( $input['current_password'] ) ? $input['current_password'] : '';
 	$new_password     = isset( $input['new_password'] ) ? $input['new_password'] : '';
 	$confirm_password = isset( $input['confirm_password'] ) ? $input['confirm_password'] : '';
-
-	if ( ! $user_id ) {
-		return new WP_Error( 'missing_user_id', 'user_id is required.' );
-	}
 
 	$user = get_user_by( 'ID', $user_id );
 	if ( ! $user ) {

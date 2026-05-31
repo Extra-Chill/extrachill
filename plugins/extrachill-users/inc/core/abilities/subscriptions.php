@@ -27,16 +27,14 @@ function extrachill_users_register_subscription_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
-				'properties' => array(
-					'user_id' => array( 'type' => 'integer' ),
-				),
-				'required'   => array( 'user_id' ),
+				'properties' => array(),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_get_subscriptions',
-			'permission_callback' => '__return_true',
+			// Self-only: returns the authenticated user's followed artists / consent.
+			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'   => true,
 					'idempotent' => true,
@@ -55,19 +53,19 @@ function extrachill_users_register_subscription_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'           => array( 'type' => 'integer' ),
 					'consented_artists' => array(
 						'type'  => 'array',
 						'items' => array( 'type' => 'integer' ),
 					),
 				),
-				'required'   => array( 'user_id', 'consented_artists' ),
+				'required'   => array( 'consented_artists' ),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_update_subscriptions',
-			'permission_callback' => '__return_true',
+			// Self-only: updates the authenticated user's consent preferences.
+			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'   => false,
 					'idempotent' => true,
@@ -80,14 +78,15 @@ function extrachill_users_register_subscription_abilities() {
 /**
  * Get followed artists and email consent status.
  *
- * @param array $input Input with 'user_id'.
+ * Self-only: resolves the authenticated user; takes no input.
+ *
  * @return array|WP_Error Subscriptions data or error.
  */
-function extrachill_users_ability_get_subscriptions( $input ) {
-	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
-
-	if ( ! $user_id ) {
-		return new WP_Error( 'missing_user_id', 'user_id is required.' );
+function extrachill_users_ability_get_subscriptions() {
+	// Self-only: always operate on the authenticated user, ignoring any client-supplied user_id.
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
 	}
 
 	$user = get_user_by( 'ID', $user_id );
@@ -161,12 +160,13 @@ function extrachill_users_ability_get_subscriptions( $input ) {
  * @return array|WP_Error Result or error.
  */
 function extrachill_users_ability_update_subscriptions( $input ) {
-	$user_id           = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
-	$consented_artists = isset( $input['consented_artists'] ) ? array_map( 'intval', (array) $input['consented_artists'] ) : array();
-
-	if ( ! $user_id ) {
-		return new WP_Error( 'missing_user_id', 'user_id is required.' );
+	// Self-only: always operate on the authenticated user, ignoring any client-supplied user_id.
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
 	}
+
+	$consented_artists = isset( $input['consented_artists'] ) ? array_map( 'intval', (array) $input['consented_artists'] ) : array();
 
 	$user = get_user_by( 'ID', $user_id );
 	if ( ! $user ) {

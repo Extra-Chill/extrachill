@@ -79,19 +79,19 @@ function extrachill_users_register_artist_access_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id' => array( 'type' => 'integer' ),
-					'type'    => array(
+					'type' => array(
 						'type' => 'string',
 						'enum' => array( 'artist', 'professional' ),
 					),
 				),
-				'required'   => array( 'user_id', 'type' ),
+				'required'   => array( 'type' ),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_request_artist_access',
-			'permission_callback' => '__return_true',
+			// Self-only: the authenticated user requests access for themselves.
+			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly' => false,
 				),
@@ -266,12 +266,13 @@ function extrachill_users_ability_reject_artist_access( $input ) {
  * @return array|WP_Error Result or error.
  */
 function extrachill_users_ability_request_artist_access( $input ) {
-	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
-	$type    = isset( $input['type'] ) ? sanitize_text_field( $input['type'] ) : '';
-
-	if ( ! $user_id ) {
-		return new WP_Error( 'missing_user_id', 'user_id is required.' );
+	// Self-only: always operate on the authenticated user, ignoring any client-supplied user_id.
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
 	}
+
+	$type = isset( $input['type'] ) ? sanitize_text_field( $input['type'] ) : '';
 
 	if ( ! in_array( $type, array( 'artist', 'professional' ), true ) ) {
 		return new WP_Error( 'invalid_type', 'type must be "artist" or "professional".' );

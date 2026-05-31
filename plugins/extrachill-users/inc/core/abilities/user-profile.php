@@ -35,9 +35,11 @@ function extrachill_users_register_profile_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_get_profile',
+			// Public read: returns only public profile fields (no email). Used to view
+			// other users' profiles, so a client-supplied user_id is intentional.
 			'permission_callback' => '__return_true',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'   => true,
 					'idempotent' => true,
@@ -56,18 +58,17 @@ function extrachill_users_register_profile_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'      => array( 'type' => 'integer' ),
 					'custom_title' => array( 'type' => 'string' ),
 					'bio'          => array( 'type' => 'string' ),
 					'local_city'   => array( 'type' => 'string' ),
 				),
-				'required'   => array( 'user_id' ),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_update_profile',
-			'permission_callback' => '__return_true',
+			// Self-only: operates on the authenticated user; user_id is server-resolved.
+			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'   => false,
 					'idempotent' => true,
@@ -86,8 +87,7 @@ function extrachill_users_register_profile_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id' => array( 'type' => 'integer' ),
-					'links'   => array(
+					'links' => array(
 						'type'  => 'array',
 						'items' => array(
 							'type'       => 'object',
@@ -100,13 +100,14 @@ function extrachill_users_register_profile_abilities() {
 						),
 					),
 				),
-				'required'   => array( 'user_id', 'links' ),
+				'required'   => array( 'links' ),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_update_links',
-			'permission_callback' => '__return_true',
+			// Self-only: operates on the authenticated user; user_id is server-resolved.
+			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'   => false,
 					'idempotent' => true,
@@ -222,10 +223,10 @@ function extrachill_users_ability_get_profile( $input ) {
  * @return array|WP_Error Updated profile or error.
  */
 function extrachill_users_ability_update_profile( $input ) {
-	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
-
-	if ( ! $user_id ) {
-		return new WP_Error( 'missing_user_id', 'user_id is required.' );
+	// Self-only: always operate on the authenticated user, ignoring any client-supplied user_id.
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
 	}
 
 	$user = get_user_by( 'ID', $user_id );
@@ -283,12 +284,13 @@ function extrachill_users_ability_update_profile( $input ) {
  * @return array|WP_Error Updated links or error.
  */
 function extrachill_users_ability_update_links( $input ) {
-	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
-	$links   = isset( $input['links'] ) ? $input['links'] : array();
-
-	if ( ! $user_id ) {
-		return new WP_Error( 'missing_user_id', 'user_id is required.' );
+	// Self-only: always operate on the authenticated user, ignoring any client-supplied user_id.
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
 	}
+
+	$links = isset( $input['links'] ) ? $input['links'] : array();
 
 	$user = get_user_by( 'ID', $user_id );
 	if ( ! $user ) {

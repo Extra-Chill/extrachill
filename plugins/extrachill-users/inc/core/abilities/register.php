@@ -14,6 +14,32 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'wp_abilities_api_categories_init', 'extrachill_users_register_category' );
 
 /**
+ * Resolve the authenticated user for self-only abilities.
+ *
+ * Self-only abilities (profile/settings/subscriptions writes, etc.) operate on the
+ * current user only. When invoked over the Abilities REST `/run` endpoint a client
+ * could otherwise supply an arbitrary `user_id` (IDOR). This helper returns the
+ * authenticated user id so execute callbacks can force `$input['user_id']` to it,
+ * ignoring any client-supplied value. PHP-path callers (extrachill-api routes) pass
+ * `get_current_user_id()` already, so they are unaffected.
+ *
+ * @return int|WP_Error Current user id, or WP_Error if not logged in.
+ */
+function extrachill_users_resolve_self_user_id() {
+	$user_id = get_current_user_id();
+
+	if ( ! $user_id ) {
+		return new WP_Error(
+			'not_authenticated',
+			__( 'You must be logged in.', 'extrachill-users' ),
+			array( 'status' => 401 )
+		);
+	}
+
+	return $user_id;
+}
+
+/**
  * Register users ability category.
  */
 function extrachill_users_register_category() {
