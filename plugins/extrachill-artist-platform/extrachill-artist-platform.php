@@ -237,3 +237,84 @@ function extrachill_artist_platform_maybe_create_pages() {
     }
 }
 add_action( 'admin_init', 'extrachill_artist_platform_maybe_create_pages' );
+
+/**
+ * Self-heal posts whose post_modified_gmt is the MySQL zero date.
+ *
+ * WordPress core's get_feed_build_date() (wp-includes/feed.php) collects
+ * post_modified_gmt values from the feed query, discards the zero date, then
+ * calls max() on the result. When a feed query returns ONLY posts with
+ * post_modified_gmt = '0000-00-00 00:00:00' the array is empty and max([])
+ * throws a ValueError on PHP 8, fataling the entire feed. Bots crawling
+ * CPT-scoped feeds on this site (e.g. /feed/?post_type=forum) triggered this
+ * thousands of times per day on artist.extrachill.com.
+ *
+ * The historical bad rows came from a retired per-artist forum auto-creation
+ * path that bypassed wp_insert_post()'s modified-date defaults. That path has
+ * been removed, but this idempotent, run-once-per-version sweep guarantees no
+ * post can keep a zero post_modified_gmt regardless of how it was inserted.
+ *
+ * DOCUMENTED GOTCHA: the naive backfill
+ *   SET post_modified_gmt = post_date_gmt WHERE post_modified_gmt = '0000-00-00 00:00:00'
+ * SILENTLY FAILS for imported rows whose post_date_gmt is ALSO the zero date.
+ * We therefore derive GMT from the always-valid LOCAL post_date via CONVERT_TZ
+ * using THIS blog's own UTC offset (resolved from wp_timezone(), which is
+ * correct per-site: e.g. UTC on artist.extrachill.com, America/New_York on the
+ * main site). A zero post_date_gmt is repaired in the same pass so future
+ * writes have a coherent GMT baseline.
+ *
+ * @return void
+ */
+function extrachill_artist_platform_heal_zero_modified_dates() {
+    global $wpdb;
+
+    $healed_version = '1.0.0';
+    $stored = get_option( 'extrachill_artist_platform_feed_date_heal', '0' );
+    if ( version_compare( $stored, $healed_version, '>=' ) ) {
+        return;
+    }
+
+    $zero = '0000-00-00 00:00:00';
+
+    // Resolve this blog's UTC offset as a MySQL CONVERT_TZ offset string.
+    // wp_timezone() is per-site and DST-aware; it yields '+00:00' on a site
+    // configured for UTC and e.g. '-04:00' on America/New_York during EDT.
+    $tz      = wp_timezone();
+    $seconds = $tz->getOffset( new DateTime( 'now', new DateTimeZone( 'UTC' ) ) );
+    $sign    = $seconds < 0 ? '-' : '+';
+    $abs     = abs( (int) $seconds );
+    $offset  = sprintf( '%s%02d:%02d', $sign, intdiv( $abs, HOUR_IN_SECONDS ), intdiv( $abs % HOUR_IN_SECONDS, MINUTE_IN_SECONDS ) );
+
+    // Repair a zero post_date_gmt first, derived from the valid local post_date.
+    $wpdb->query(
+        $wpdb->prepare(
+            "UPDATE {$wpdb->posts}
+             SET post_date_gmt = CONVERT_TZ( post_date, %s, '+00:00' )
+             WHERE post_date_gmt = %s
+               AND post_date <> %s",
+            $offset,
+            $zero,
+            $zero
+        )
+    );
+
+    // Backfill modified dates. post_modified mirrors the local post_date;
+    // post_modified_gmt is derived from the LOCAL post_date (never trusted from
+    // post_date_gmt). Heals all statuses so a future status flip to publish
+    // cannot resurface the feed crash.
+    $wpdb->query(
+        $wpdb->prepare(
+            "UPDATE {$wpdb->posts}
+             SET post_modified     = post_date,
+                 post_modified_gmt = CONVERT_TZ( post_date, %s, '+00:00' )
+             WHERE post_modified_gmt = %s
+               AND post_date <> %s",
+            $offset,
+            $zero,
+            $zero
+        )
+    );
+
+    update_option( 'extrachill_artist_platform_feed_date_heal', $healed_version );
+}
+add_action( 'admin_init', 'extrachill_artist_platform_heal_zero_modified_dates' );
