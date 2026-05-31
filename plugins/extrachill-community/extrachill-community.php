@@ -52,6 +52,11 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/composer-term-picker.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/ability-helpers.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/infrastructure-abilities.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-formatters.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-read.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-write.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-editor-permissions.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-editor.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/content-filters.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/recent-feed.php';
