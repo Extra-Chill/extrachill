@@ -80,6 +80,22 @@ function ec_seo_indexnow_on_post_updated( $post_id, $post_after, $post_before ) 
 }
 
 function ec_seo_indexnow_submit_urls( $urls ) {
+	/**
+	 * Filters whether to skip an automatic IndexNow submission.
+	 *
+	 * Lets bulk/background operations (e.g. large historical imports)
+	 * suppress the outbound IndexNow POST, which would otherwise fire one
+	 * synchronous HTTP request per published post and ask search engines to
+	 * crawl thousands of pages at once. Shares the canonical filter name with
+	 * Data Machine's IndexNow integration so a single filter suppresses both.
+	 * Callers should restore the filter after the bulk operation completes.
+	 *
+	 * @param bool $skip Whether to skip the submission. Default false.
+	 */
+	if ( apply_filters( 'datamachine_indexnow_skip_auto_submit', false ) ) {
+		return;
+	}
+
 	$indexnow_key = ec_seo_get_indexnow_key();
 	if ( empty( $indexnow_key ) ) {
 		return;
