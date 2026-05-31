@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.9.0] - 2026-05-31
+
+### Added
+- attach artist taxonomy to community topic post type
+- pluggable point sources via ec_rank_extra_points filter
+- link concert-history top terms to cross-site profiles
+- realize The Lab as the platform differentiator room (#69)
+- bridge My Shows concert history onto community profile
+- feed-first community homepage — promote activity feed, demote forum index to room chips
+- composer term-picker for curated network taxonomy tagging (#59)
+- consolidate geographic forums into Live Shows & Scenes (#58)
+- wire community topics into canonical location-badge architecture
+
+### Changed
+- phpcbf autofix sweep for WordPress coding standards (#39)
+- split topic-reply-abilities.php god-file by concern
+- drop blob migration, start fresh on network substrate
+- migrate community notifications onto network substrate
+- prune draft-system overlap with core /autosaves (#76)
+- Phase 4 follow-up: retire Shakedown Street marketplace forum + salvage origin story + re-add 14090
+- remove dead TinyMCE editor stack
+- decouple global /recent feed from profile activity feed (#67)
+- clear phpcs lint debt (release preflight)
+- consume theme tokens + clear phpcs lint debt
+
+### Fixed
+- route topic/reply edit autosaves through WP core /autosaves (#37)
+- schedule points-recalc cron in activation, unschedule in deactivation (closes #49)
+
 ## [1.8.1] - 2026-05-30
 
 ### Changed
