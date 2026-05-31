@@ -9,6 +9,7 @@
  * - Replies: 2 points (bbp_get_user_reply_count)
  * - Upvotes received: 0.5 points per upvote
  * - Main site posts: 10 points each (from main site blog ID)
+ * - External sources: additive points via the `ec_rank_extra_points` filter
  *
  * Performance:
  * - 1-hour transient caching per user
@@ -75,8 +76,38 @@ function extrachill_get_user_total_points($user_id) {
 	}
 	$main_site_post_points = $main_site_post_count * 10;
 
+	/**
+	 * Filter additional rank points contributed by external point sources.
+	 *
+	 * The community rank/points system computes points from a fixed set of
+	 * built-in sources (bbPress activity, upvotes, main-site posts). This filter
+	 * is the extensibility seam that lets any other plugin contribute additional
+	 * points toward a user's total rank without the community plugin needing to
+	 * know about that feature.
+	 *
+	 * Contributions are ADDITIVE: a consumer receives the running extra-points
+	 * value plus the user ID, and returns the running value with its own points
+	 * added. Always return a float.
+	 *
+	 * Example:
+	 *
+	 *     add_filter( 'ec_rank_extra_points', function ( $points, $user_id ) {
+	 *         return $points + ( my_feature_count( $user_id ) * 3 );
+	 *     }, 10, 2 );
+	 *
+	 * Caching note: the TOTAL points value (including this filter's contribution)
+	 * is cached in the `user_points_{id}` transient for one hour. If an external
+	 * source changes its contribution mid-cache, the new value is not reflected
+	 * until the transient expires or is invalidated. This delay is acceptable for
+	 * rank display; sources needing immediacy should bust the transient.
+	 *
+	 * @param float $extra_points Running total of externally contributed points. Default 0.0.
+	 * @param int   $user_id      WordPress user ID the points are being calculated for.
+	 */
+	$extra_points = (float) apply_filters( 'ec_rank_extra_points', 0.0, $user_id );
+
 	// Calculate total points
-	$total_points = $bbpress_points + $upvote_points + $follower_points + $main_site_post_points;
+	$total_points = $bbpress_points + $upvote_points + $follower_points + $main_site_post_points + $extra_points;
 
 	// Cache the total points in a transient for 1 hour
 	set_transient('user_points_' . $user_id, $total_points, HOUR_IN_SECONDS);
