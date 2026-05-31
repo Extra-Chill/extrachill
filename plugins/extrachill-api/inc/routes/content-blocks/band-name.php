@@ -2,8 +2,11 @@
 /**
  * REST route: POST /wp-json/extrachill/v1/content-blocks/band-name
  *
- * Band name generator endpoint.
- * Delegates to business logic in extrachill-content-blocks plugin.
+ * Thin REST wrapper for the extrachill/generate-band-name ability.
+ *
+ * Canonical band-name generation logic lives in the
+ * extrachill/generate-band-name ability (extrachill-content-blocks plugin).
+ * This route validates input at the HTTP boundary and delegates.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,66 +16,55 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_content_blocks_band_name_route' );
 
 function extrachill_api_register_content_blocks_band_name_route() {
-	register_rest_route(
-		'extrachill/v1',
-		'/content-blocks/band-name',
-		array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_content_blocks_band_name_handler',
-			'permission_callback' => '__return_true',
-			'args'                => array(
-				'input'           => array(
-					'required'          => true,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-				'genre'           => array(
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-				'number_of_words' => array(
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
-				),
-				'first_the'       => array(
-					'type' => 'boolean',
-				),
-				'and_the'         => array(
-					'type' => 'boolean',
-				),
+	register_rest_route( 'extrachill/v1', '/content-blocks/band-name', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'callback'            => 'extrachill_api_content_blocks_band_name_handler',
+		'permission_callback' => '__return_true',
+		'args'                => array(
+			'input'           => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
 			),
-		)
-	);
+			'genre'           => array(
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'number_of_words' => array(
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+			'first_the'       => array(
+				'type' => 'boolean',
+			),
+			'and_the'         => array(
+				'type' => 'boolean',
+			),
+		),
+	) );
 }
 
 function extrachill_api_content_blocks_band_name_handler( $request ) {
-	$input           = $request->get_param( 'input' );
-	$genre           = $request->get_param( 'genre' );
-	$number_of_words = $request->get_param( 'number_of_words' );
-	$first_the       = $request->get_param( 'first_the' );
-	$and_the         = $request->get_param( 'and_the' );
-
-	if ( empty( $input ) ) {
+	$ability = wp_get_ability( 'extrachill/generate-band-name' );
+	if ( ! $ability ) {
 		return new WP_Error(
-			'invalid_input',
-			'Please enter your name or word',
-			array( 'status' => 400 )
-		);
-	}
-
-	if ( ! function_exists( 'extrachill_content_blocks_generate_band_name' ) ) {
-		return new WP_Error(
-			'function_missing',
-			'Band name generator function not available. Please ensure extrachill-content-blocks plugin is activated.',
+			'ability_not_found',
+			'Band name generator unavailable. Please ensure extrachill-content-blocks plugin is activated.',
 			array( 'status' => 500 )
 		);
 	}
 
-	$generated_name = extrachill_content_blocks_generate_band_name( $input, $genre, $number_of_words, $first_the, $and_the );
+	$result = $ability->execute( array(
+		'input'           => $request->get_param( 'input' ),
+		'genre'           => $request->get_param( 'genre' ),
+		'number_of_words' => $request->get_param( 'number_of_words' ),
+		'first_the'       => $request->get_param( 'first_the' ),
+		'and_the'         => $request->get_param( 'and_the' ),
+	) );
 
-	return rest_ensure_response(
-		array(
-			'name' => $generated_name,
-		)
-	);
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }

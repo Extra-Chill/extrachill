@@ -2,8 +2,11 @@
 /**
  * REST route: POST /wp-json/extrachill/v1/content-blocks/rapper-name
  *
- * Rapper name generator endpoint.
- * Delegates to business logic in extrachill-content-blocks plugin.
+ * Thin REST wrapper for the extrachill/generate-rapper-name ability.
+ *
+ * Canonical rapper-name generation logic lives in the
+ * extrachill/generate-rapper-name ability (extrachill-content-blocks plugin).
+ * This route validates input at the HTTP boundary and delegates.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,63 +16,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_content_blocks_rapper_name_route' );
 
 function extrachill_api_register_content_blocks_rapper_name_route() {
-	register_rest_route(
-		'extrachill/v1',
-		'/content-blocks/rapper-name',
-		array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_content_blocks_rapper_name_handler',
-			'permission_callback' => '__return_true',
-			'args'                => array(
-				'input'           => array(
-					'required'          => true,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-				'gender'          => array(
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-				'style'           => array(
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-				'number_of_words' => array(
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
-				),
+	register_rest_route( 'extrachill/v1', '/content-blocks/rapper-name', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'callback'            => 'extrachill_api_content_blocks_rapper_name_handler',
+		'permission_callback' => '__return_true',
+		'args'                => array(
+			'input'           => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
 			),
-		)
-	);
+			'gender'          => array(
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'style'           => array(
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'number_of_words' => array(
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+		),
+	) );
 }
 
 function extrachill_api_content_blocks_rapper_name_handler( $request ) {
-	$input           = $request->get_param( 'input' );
-	$gender          = $request->get_param( 'gender' );
-	$style           = $request->get_param( 'style' );
-	$number_of_words = $request->get_param( 'number_of_words' );
-
-	if ( empty( $input ) ) {
+	$ability = wp_get_ability( 'extrachill/generate-rapper-name' );
+	if ( ! $ability ) {
 		return new WP_Error(
-			'invalid_input',
-			'Please enter your name',
-			array( 'status' => 400 )
-		);
-	}
-
-	if ( ! function_exists( 'extrachill_content_blocks_generate_rapper_name' ) ) {
-		return new WP_Error(
-			'function_missing',
-			'Rapper name generator function not available. Please ensure extrachill-content-blocks plugin is activated.',
+			'ability_not_found',
+			'Rapper name generator unavailable. Please ensure extrachill-content-blocks plugin is activated.',
 			array( 'status' => 500 )
 		);
 	}
 
-	$generated_name = extrachill_content_blocks_generate_rapper_name( $input, $style, $gender, $number_of_words );
+	$result = $ability->execute( array(
+		'input'           => $request->get_param( 'input' ),
+		'style'           => $request->get_param( 'style' ),
+		'gender'          => $request->get_param( 'gender' ),
+		'number_of_words' => $request->get_param( 'number_of_words' ),
+	) );
 
-	return rest_ensure_response(
-		array(
-			'name' => $generated_name,
-		)
-	);
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
