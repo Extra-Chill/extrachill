@@ -67,7 +67,7 @@ const AddPastShows = () => {
 				<ActionRow align="center">
 					<button
 						type="button"
-						className="ec-concert-stats__load-more-btn"
+						className="button-2 button-medium"
 						onClick={ loadMore }
 					>
 						Load more ({ total - events.length } remaining)

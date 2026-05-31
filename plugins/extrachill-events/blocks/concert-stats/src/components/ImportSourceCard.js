@@ -106,7 +106,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 					<ActionRow align="end">
 						<button
 							type="submit"
-							className="ec-concert-stats__import-card-btn"
+							className="button-1 button-medium"
 							disabled={ previewing || ! username.trim() }
 						>
 							{ previewing ? 'Checking…' : 'Connect' }
@@ -129,7 +129,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 					<ActionRow align="end">
 						<button
 							type="button"
-							className="ec-concert-stats__import-card-btn ec-concert-stats__import-card-btn--primary"
+							className="button-1 button-medium"
 							onClick={ handleStart }
 							disabled={ starting }
 						>
@@ -137,7 +137,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 						</button>
 						<button
 							type="button"
-							className="ec-concert-stats__import-card-btn-link"
+							className="button-2 button-medium"
 							onClick={ handleCancelPreview }
 							disabled={ starting }
 						>

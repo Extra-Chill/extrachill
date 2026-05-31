@@ -118,24 +118,6 @@
 	color: var(--muted-text, #6b7280);
 }
 
-/* ─── Load More Button (inside ActionRow) ───────────────────────────────── */
-
-.ec-concert-stats__load-more-btn {
-	display: inline-block;
-	padding: var(--spacing-xs, 0.25rem) var(--spacing-md, 1rem);
-	border: 1px solid var(--border-color, #d1d5db);
-	border-radius: var(--border-radius-sm, 5px);
-	background: transparent;
-	color: var(--text-color, #1f2937);
-	font-size: var(--font-size-sm, 0.875rem);
-	cursor: pointer;
-	transition: background-color 0.15s ease;
-}
-
-.ec-concert-stats__load-more-btn:hover {
-	background-color: var(--card-background, #f3f4f6);
-}
-
 /* ─── Leaderboards (inside Panel) ───────────────────────────────────────── */
 
 .ec-concert-stats__leaderboards {
@@ -363,37 +345,6 @@
 	border: 1px solid var(--border-color, #e5e7eb);
 	border-radius: var(--border-radius-sm, 5px);
 	font-size: var(--font-size-md, 1rem);
-}
-
-.ec-concert-stats__import-card-btn {
-	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
-	border: 1px solid var(--primary-color, #1f2937);
-	background: var(--card-background, #fff);
-	color: var(--primary-color, #1f2937);
-	border-radius: var(--border-radius-sm, 5px);
-	cursor: pointer;
-	font-weight: 600;
-	font-size: var(--font-size-sm, 0.875rem);
-
-	&:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-}
-
-.ec-concert-stats__import-card-btn--primary {
-	background: var(--primary-color, #1f2937);
-	color: #fff;
-}
-
-.ec-concert-stats__import-card-btn-link {
-	background: transparent;
-	border: none;
-	color: var(--muted-text, #6b7280);
-	cursor: pointer;
-	font-size: var(--font-size-sm, 0.875rem);
-	padding: var(--spacing-sm, 0.5rem);
-	text-decoration: underline;
 }
 
 .ec-concert-stats__import-card-confirm {

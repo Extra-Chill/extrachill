@@ -57,7 +57,7 @@ const ShowList = ( { userId, period, year, eventsUrl } ) => {
 			{ ! loading && page < pages && (
 				<ActionRow align="center">
 					<button
-						className="ec-concert-stats__load-more-btn"
+						className="button-2 button-medium"
 						onClick={ () => setPage( ( p ) => p + 1 ) }
 						type="button"
 					>
