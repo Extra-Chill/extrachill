@@ -78,8 +78,6 @@
 	align-items: flex-start;
 	gap: var(--spacing-md, 1rem);
 	padding: var(--spacing-sm, 0.5rem) var(--spacing-xs, 0.25rem);
-	text-decoration: none;
-	color: inherit;
 	border-radius: var(--border-radius-sm, 5px);
 	transition: background-color 0.1s ease;
 }
@@ -95,6 +93,12 @@
 	font-weight: 600;
 	color: var(--muted-text, #6b7280);
 	white-space: nowrap;
+	text-decoration: none;
+
+	&:hover,
+	&:focus {
+		color: var(--link-hover-color, var(--accent-color, #53940b));
+	}
 }
 
 .ec-concert-stats__show-details {
@@ -113,8 +117,35 @@
 	white-space: nowrap;
 }
 
+.ec-concert-stats__show-artist-link {
+	color: var(--text-color, #1f2937);
+	text-decoration: none;
+
+	&:hover,
+	&:focus {
+		text-decoration: underline;
+		color: var(--link-hover-color, var(--accent-color, #53940b));
+	}
+}
+
 .ec-concert-stats__show-venue {
 	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__show-venue-link,
+.ec-concert-stats__show-city-link {
+	color: var(--muted-text, #6b7280);
+	text-decoration: none;
+
+	&:hover,
+	&:focus {
+		text-decoration: underline;
+		color: var(--link-hover-color, var(--accent-color, #53940b));
+	}
+}
+
+.ec-concert-stats__show-sep {
 	color: var(--muted-text, #6b7280);
 }
 

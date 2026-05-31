@@ -4,10 +4,10 @@
  * Wrapped in a compact `<Panel>` for chrome consistency with the rest
  * of the platform. The inner list markup remains local.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
-import { Panel } from '@extrachill/components';
+import { Badge, Panel } from '@extrachill/components';
 
 const Leaderboard = ( { title, items, maxItems = 5 } ) => {
 	if ( ! items || items.length === 0 ) {
@@ -19,7 +19,10 @@ const Leaderboard = ( { title, items, maxItems = 5 } ) => {
 			<h3 className="ec-concert-stats__leaderboard-title">{ title }</h3>
 			<ol className="ec-concert-stats__leaderboard-list">
 				{ items.slice( 0, maxItems ).map( ( item ) => (
-					<li key={ item.slug } className="ec-concert-stats__leaderboard-item">
+					<li
+						key={ item.slug }
+						className="ec-concert-stats__leaderboard-item"
+					>
 						{ item.url ? (
 							<a
 								className="ec-concert-stats__leaderboard-name ec-concert-stats__leaderboard-link"
@@ -32,9 +35,14 @@ const Leaderboard = ( { title, items, maxItems = 5 } ) => {
 								{ item.name }
 							</span>
 						) }
-						<span className="ec-concert-stats__leaderboard-count">
+						<Badge
+							tone="muted"
+							variant="subtle"
+							size="sm"
+							className="ec-concert-stats__leaderboard-count"
+						>
 							{ item.count }
-						</span>
+						</Badge>
 					</li>
 				) ) }
 			</ol>
