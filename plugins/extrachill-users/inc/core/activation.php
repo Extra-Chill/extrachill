@@ -72,6 +72,13 @@ function extrachill_users_run_deactivation() {
 	if ( $timestamp ) {
 		wp_unschedule_event( $timestamp, 'extrachill_welcome_email_fallback' );
 	}
+
+	// Unread-notification email digest channel (inc/notifications/email.php).
+	if ( defined( 'EC_NOTIFICATIONS_EMAIL_CRON_HOOK' ) ) {
+		wp_clear_scheduled_hook( EC_NOTIFICATIONS_EMAIL_CRON_HOOK );
+	} else {
+		wp_clear_scheduled_hook( 'ec_notifications_email_digest' );
+	}
 }
 
 /**
