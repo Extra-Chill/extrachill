@@ -294,10 +294,16 @@ class CommunityCommand {
 	 * [--clear-all]
 	 * : Clear ALL notifications.
 	 *
-	 * [--limit=<limit>]
-	 * : Max notifications to show.
+	 * [--per-page=<per-page>]
+	 * : Max notifications to show per page.
 	 * ---
 	 * default: 50
+	 * ---
+	 *
+	 * [--page=<page>]
+	 * : Page of notifications to show.
+	 * ---
+	 * default: 1
 	 * ---
 	 *
 	 * [--format=<format>]
@@ -329,9 +335,9 @@ class CommunityCommand {
 
 		// Handle --mark-read.
 		if ( Utils\get_flag_value( $assoc_args, 'mark-read', false ) ) {
-			$ability = wp_get_ability( 'extrachill/community-mark-notifications-read' );
+			$ability = wp_get_ability( 'extrachill/mark-notifications-read' );
 			if ( ! $ability ) {
-				WP_CLI::error( 'extrachill/community-mark-notifications-read ability not available.' );
+				WP_CLI::error( 'extrachill/mark-notifications-read ability not available.' );
 			}
 
 			$result = $ability->execute( array( 'user_id' => $user_id ) );
@@ -345,9 +351,9 @@ class CommunityCommand {
 
 		// Handle --clear / --clear-all.
 		if ( Utils\get_flag_value( $assoc_args, 'clear', false ) || Utils\get_flag_value( $assoc_args, 'clear-all', false ) ) {
-			$ability = wp_get_ability( 'extrachill/community-clear-notifications' );
+			$ability = wp_get_ability( 'extrachill/clear-notifications' );
 			if ( ! $ability ) {
-				WP_CLI::error( 'extrachill/community-clear-notifications ability not available.' );
+				WP_CLI::error( 'extrachill/clear-notifications ability not available.' );
 			}
 
 			$clear_all = Utils\get_flag_value( $assoc_args, 'clear-all', false );
@@ -367,20 +373,22 @@ class CommunityCommand {
 		}
 
 		// Default: list notifications.
-		$ability = wp_get_ability( 'extrachill/community-get-notifications' );
+		$ability = wp_get_ability( 'extrachill/get-notifications' );
 		if ( ! $ability ) {
-			WP_CLI::error( 'extrachill/community-get-notifications ability not available.' );
+			WP_CLI::error( 'extrachill/get-notifications ability not available.' );
 		}
 
-		$unread = Utils\get_flag_value( $assoc_args, 'unread', false );
-		$limit  = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 50;
-		$format = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
+		$unread   = Utils\get_flag_value( $assoc_args, 'unread', false );
+		$per_page = isset( $assoc_args['per-page'] ) ? (int) $assoc_args['per-page'] : 50;
+		$page     = isset( $assoc_args['page'] ) ? (int) $assoc_args['page'] : 1;
+		$format   = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
 
 		$result = $ability->execute(
 			array(
-				'user_id' => $user_id,
-				'unread'  => $unread,
-				'limit'   => $limit,
+				'user_id'  => $user_id,
+				'unread'   => $unread,
+				'page'     => $page,
+				'per_page' => $per_page,
 			)
 		);
 
@@ -410,11 +418,11 @@ class CommunityCommand {
 		$rows = array();
 		foreach ( $result['notifications'] as $n ) {
 			$rows[] = array(
-				'type'        => isset( $n['type'] ) ? $n['type'] : '',
-				'from'        => isset( $n['actor_display_name'] ) ? $n['actor_display_name'] : '',
-				'subject'     => isset( $n['topic_title'] ) ? mb_substr( $n['topic_title'], 0, 50 ) : '',
-				'time'        => isset( $n['time'] ) ? $n['time'] : '',
-				'read'        => empty( $n['read'] ) ? 'no' : 'yes',
+				'type'    => isset( $n['type'] ) ? $n['type'] : '',
+				'from'    => isset( $n['actor_display_name'] ) ? $n['actor_display_name'] : '',
+				'subject' => isset( $n['title'] ) ? mb_substr( $n['title'], 0, 50 ) : '',
+				'time'    => isset( $n['time'] ) ? $n['time'] : '',
+				'read'    => empty( $n['read'] ) ? 'no' : 'yes',
 			);
 		}
 
