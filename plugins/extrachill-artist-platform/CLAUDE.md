@@ -680,8 +680,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - **Join Flow Templates**: `inc/join/templates/` - Join flow modal and account selection
 
 #### Admin Interface
-**Files**: `inc/artist-profiles/admin/meta-boxes.php`, `inc/artist-profiles/admin/user-linking.php`
-- Custom meta boxes for artist profile management
+**Files**: `inc/artist-profiles/admin/user-linking.php`
 - User account linking and validation
 - Administrative assets: `inc/artist-profiles/assets/js/`
 
