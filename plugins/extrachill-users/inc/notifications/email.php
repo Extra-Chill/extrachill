@@ -8,13 +8,17 @@
  * Extra Chill") to pull them back — a retention loop.
  *
  * Design:
- *   - A recurring cron (hourly) finds users whose OLDEST unread notification is
+ *   - A recurring sweep (hourly) finds users whose OLDEST unread notification is
  *     older than EC_NOTIFICATIONS_EMAIL_DELAY (so we never email instantly) and
  *     who have not been emailed within EC_NOTIFICATIONS_EMAIL_COOLDOWN (anti-spam:
- *     at most one digest per user per cooldown window).
- *   - For each such user, ONE branded HTML digest is sent via the platform mail
- *     path (ec_send_email() — it resolves the SMTP-configured site and handles
- *     switch_to_blog() internally; callers must NOT wrap it).
+ *     at most one digest per user per cooldown window). The sweep is scheduled
+ *     through Data Machine's RecurringScheduler (Action Scheduler-backed), with
+ *     a wp_schedule_event() fallback when Data Machine is unavailable.
+ *   - For each such user, ONE branded HTML digest is ENQUEUED via the platform
+ *     queued mail path (ec_send_email_queued() — one Action-Scheduler-backed job
+ *     per recipient; it resolves the SMTP-configured site and handles
+ *     switch_to_blog() internally; callers must NOT wrap it). Queuing keeps cron
+ *     non-blocking and isolates a single failed send from the rest of the batch.
  *   - Per-user opt-out via the ec_notification_emails_disabled user_meta flag
  *     (default OFF == opted-in). A settings-UI toggle is a follow-up.
  *
@@ -84,10 +88,25 @@ const EC_NOTIFICATIONS_EMAILS_DISABLED_META = 'ec_notification_emails_disabled';
  */
 const EC_NOTIFICATIONS_EMAIL_CRON_HOOK = 'ec_notifications_email_digest';
 
+/**
+ * Recurrence interval for the digest sweep (passed to RecurringScheduler).
+ */
+const EC_NOTIFICATIONS_EMAIL_INTERVAL = 'hourly';
+
 // ─── Schedule ──────────────────────────────────────────────────────────────
 
 /**
- * Ensure the recurring digest cron is scheduled (idempotent).
+ * Fully qualified Data Machine RecurringScheduler class name.
+ *
+ * The digest sweep is scheduled through Data Machine's shared recurring
+ * scheduling primitive (Action Scheduler-backed) rather than a hand-rolled
+ * wp_schedule_event(). Data Machine stays generic — extrachill-users consumes
+ * the primitive; no notification-specific code lives in Data Machine.
+ */
+const EC_NOTIFICATIONS_RECURRING_SCHEDULER = '\\DataMachine\\Engine\\Tasks\\RecurringScheduler';
+
+/**
+ * Ensure the recurring digest sweep is scheduled (idempotent).
  *
  * Self-heals on every site that loads this Network:true plugin, mirroring the
  * welcome-email fallback pattern in inc/core/activation.php. Because the
@@ -95,22 +114,67 @@ const EC_NOTIFICATIONS_EMAIL_CRON_HOOK = 'ec_notifications_email_digest';
  * site needs to run the digest — we pin it to the SMTP-configured mail site so
  * exactly one scheduler owns it and sends always originate from a
  * mail-capable context.
+ *
+ * Scheduling goes through Data Machine's RecurringScheduler::ensureSchedule()
+ * (Action Scheduler-backed, idempotent, persistence-verified). When Data
+ * Machine is unavailable, falls back to WP-Cron via wp_schedule_event() so the
+ * digest keeps working in isolation.
+ *
+ * On upgrade from the pre-queue WP-Cron implementation, any lingering
+ * wp_schedule_event() registration of the same hook is cleared first so the
+ * sweep cannot double-fire (once via WP-Cron and once via Action Scheduler).
  */
 function ec_notifications_email_maybe_schedule() {
+	$scheduler = EC_NOTIFICATIONS_RECURRING_SCHEDULER;
+
 	if ( ! ec_notifications_email_is_owner_site() ) {
-		// Not the owner site — make sure no stray schedule lingers here.
-		$existing = wp_next_scheduled( EC_NOTIFICATIONS_EMAIL_CRON_HOOK );
-		if ( $existing ) {
-			wp_unschedule_event( $existing, EC_NOTIFICATIONS_EMAIL_CRON_HOOK );
+		// Not the owner site — make sure no stray schedule lingers here, in
+		// either the legacy WP-Cron slot or the Action Scheduler slot.
+		ec_notifications_email_clear_legacy_wp_cron();
+
+		if ( class_exists( $scheduler ) ) {
+			$scheduler::unschedule( EC_NOTIFICATIONS_EMAIL_CRON_HOOK, array() );
 		}
 		return;
 	}
 
+	// Always clear any legacy wp_schedule_event() registration. When DM is
+	// available this prevents the old WP-Cron event from double-firing
+	// alongside the Action Scheduler recurrence (upgrade path).
+	if ( class_exists( $scheduler ) ) {
+		ec_notifications_email_clear_legacy_wp_cron();
+
+		$scheduler::ensureSchedule(
+			EC_NOTIFICATIONS_EMAIL_CRON_HOOK,
+			array(),
+			EC_NOTIFICATIONS_EMAIL_INTERVAL
+		);
+		return;
+	}
+
+	// Fallback: Data Machine not loaded — keep the WP-Cron schedule.
 	if ( ! wp_next_scheduled( EC_NOTIFICATIONS_EMAIL_CRON_HOOK ) ) {
 		wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', EC_NOTIFICATIONS_EMAIL_CRON_HOOK );
 	}
 }
 add_action( 'init', 'ec_notifications_email_maybe_schedule' );
+
+/**
+ * Clear any legacy WP-Cron registration of the digest hook.
+ *
+ * The pre-queue implementation scheduled the sweep with wp_schedule_event().
+ * Once the sweep is owned by Data Machine's RecurringScheduler (Action
+ * Scheduler) we must remove the WP-Cron event so the digest does not fire
+ * twice. Safe to call unconditionally — a no-op when no WP-Cron event exists.
+ *
+ * @return void
+ */
+function ec_notifications_email_clear_legacy_wp_cron() {
+	$existing = wp_next_scheduled( EC_NOTIFICATIONS_EMAIL_CRON_HOOK );
+	if ( $existing ) {
+		wp_clear_scheduled_hook( EC_NOTIFICATIONS_EMAIL_CRON_HOOK );
+	}
+}
 
 /**
  * Is the current site the one that should run the digest cron?
@@ -141,7 +205,12 @@ function ec_notifications_email_is_owner_site() {
 // ─── Digest Run ──────────────────────────────────────────────────────────────
 
 /**
- * Cron callback: find eligible users and send each one digest email.
+ * Recurring callback: find eligible users and enqueue each one a digest email.
+ *
+ * Fired by the scheduled recurrence (Data Machine RecurringScheduler, or the
+ * WP-Cron fallback). Per recipient, ec_notifications_email_send_digest()
+ * enqueues an async send rather than calling wp_mail() inline, so the sweep
+ * itself stays cheap and non-blocking.
  */
 function ec_notifications_email_run() {
 	$user_ids = ec_notifications_email_find_eligible_users( EC_NOTIFICATIONS_EMAIL_BATCH_SIZE );
@@ -243,15 +312,24 @@ function ec_notifications_email_in_cooldown( $user_id, $now ) {
 }
 
 /**
- * Assemble + send one digest email to a user.
+ * Assemble + enqueue one digest email to a user.
  *
- * Re-checks unread state at send time (state can change between the candidate
- * scan and the send). On a successful send, records the last-emailed timestamp
- * so the cooldown applies. Mail goes through ec_send_email(), which resolves the
+ * Re-checks unread state at dispatch time (state can change between the
+ * candidate scan and dispatch), builds the branded digest, then ENQUEUES the
+ * send via ec_send_email_queued() — one Action-Scheduler-backed job per
+ * recipient. This avoids a blocking synchronous wp_mail() loop across the whole
+ * batch: cron no longer waits on SMTP per user, sends are spread across AS
+ * dispatch ticks, and a single failed send is isolated to its own job (the
+ * queued worker retries with backoff and never stalls the rest of the batch).
+ *
+ * The queued send is fire-and-forget from the digest's perspective, so the
+ * cooldown is stamped at ENQUEUE time (on a confirmed enqueue) rather than
+ * after delivery — eligibility and the unread count have already been verified
+ * here, and the worker re-builds nothing. ec_send_email_queued() resolves the
  * SMTP-configured site and handles switch_to_blog() internally — do NOT wrap.
  *
  * @param int $user_id Recipient user ID.
- * @return bool True when an email was dispatched.
+ * @return bool True when a digest send was enqueued.
  */
 function ec_notifications_email_send_digest( $user_id ) {
 	$user_id = (int) $user_id;
@@ -264,7 +342,7 @@ function ec_notifications_email_send_digest( $user_id ) {
 		return false;
 	}
 
-	// Re-check opt-out + cooldown at send time (defensive against races).
+	// Re-check opt-out + cooldown at dispatch time (defensive against races).
 	if ( ec_notifications_email_user_opted_out( $user_id ) ) {
 		return false;
 	}
@@ -292,7 +370,10 @@ function ec_notifications_email_send_digest( $user_id ) {
 
 	$digest = ec_notifications_email_build_digest( $user, $unread_count, $preview );
 
-	$envelope = ec_send_email(
+	// Enqueue one async send per recipient. ec_send_email_queued() delegates to
+	// the datamachine/send-email-queued ability, which returns
+	// [ 'success' => bool, 'action_id' => int, ... ].
+	$envelope = ec_send_email_queued(
 		array(
 			'to'       => $user->user_email,
 			'subject'  => $digest['subject'],
@@ -308,15 +389,17 @@ function ec_notifications_email_send_digest( $user_id ) {
 		)
 	);
 
-	$sent = ! empty( $envelope['success'] );
+	$queued = ! empty( $envelope['success'] );
 
-	if ( ! $sent ) {
+	if ( ! $queued ) {
 		$error = isset( $envelope['error'] ) ? (string) $envelope['error'] : 'unknown error';
-		error_log( sprintf( 'ec_notifications_email: digest send failed for user %d: %s', $user_id, $error ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- canonical operational logging surface.
+		error_log( sprintf( 'ec_notifications_email: digest enqueue failed for user %d: %s', $user_id, $error ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- canonical operational logging surface.
 		return false;
 	}
 
-	// Stamp the cooldown only after a confirmed send.
+	// Stamp the cooldown on a confirmed enqueue. The actual send happens
+	// asynchronously via Action Scheduler (with its own retry/backoff), so we
+	// cannot wait for delivery to record the cooldown.
 	update_user_meta( $user_id, EC_NOTIFICATIONS_LAST_EMAILED_META, time() );
 
 	return true;
