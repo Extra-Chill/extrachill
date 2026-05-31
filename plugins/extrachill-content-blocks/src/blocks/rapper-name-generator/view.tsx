@@ -52,11 +52,18 @@ function RapperNameGenerator( { title, buttonText }: GeneratorConfig ) {
 	const [ message, setMessage ] = useState< MessageState | null >( null );
 
 	const hideTimer = useRef< ReturnType< typeof setTimeout > | null >( null );
+	const removeTimer = useRef< ReturnType< typeof setTimeout > | null >(
+		null
+	);
+	const isGeneratingRef = useRef( false );
 
 	useEffect( () => {
 		return () => {
 			if ( hideTimer.current ) {
 				clearTimeout( hideTimer.current );
+			}
+			if ( removeTimer.current ) {
+				clearTimeout( removeTimer.current );
 			}
 		};
 	}, [] );
@@ -65,11 +72,20 @@ function RapperNameGenerator( { title, buttonText }: GeneratorConfig ) {
 		if ( hideTimer.current ) {
 			clearTimeout( hideTimer.current );
 		}
+		if ( removeTimer.current ) {
+			clearTimeout( removeTimer.current );
+		}
 		setMessage( { text, type, visible: true } );
+		// After the visible window, play the fade-out, then unmount the message
+		// entirely (matching the original display:none) so it does not snap back
+		// to full opacity when the fadeOut animation ends.
 		hideTimer.current = setTimeout( () => {
 			setMessage( ( prev ) =>
 				prev ? { ...prev, visible: false } : prev
 			);
+			removeTimer.current = setTimeout( () => {
+				setMessage( null );
+			}, 400 );
 		}, 3500 );
 	};
 
@@ -82,6 +98,13 @@ function RapperNameGenerator( { title, buttonText }: GeneratorConfig ) {
 			return;
 		}
 
+		// Synchronous re-entry guard so a rapid second submit (Enter plus
+		// click) cannot fire a duplicate request before the disabled state
+		// applies, matching the original's synchronous button.disabled.
+		if ( isGeneratingRef.current ) {
+			return;
+		}
+		isGeneratingRef.current = true;
 		setIsGenerating( true );
 
 		try {
@@ -107,6 +130,7 @@ function RapperNameGenerator( { title, buttonText }: GeneratorConfig ) {
 					  'An error occurred';
 			showMessage( messageText, 'error' );
 		} finally {
+			isGeneratingRef.current = false;
 			setIsGenerating( false );
 		}
 	};
