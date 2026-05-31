@@ -24,7 +24,7 @@ This plugin provides comprehensive community features organized by functionality
 - [Homepage Features](home.md) - Forum display controls, latest activity, artist platform integration
 
 ### Content Features
-- [Content Editor](content-editor.md) - TinyMCE customization, image uploads, content filtering
+- [Content Editor](content-editor.md) - Blocks Everywhere (Gutenberg) editor, image uploads, content filtering
 - [Comment System](comment-system.md) - Cross-site aggregation, auto-approval, and author routing
 
 ### User Profile Features
@@ -36,7 +36,7 @@ This plugin provides comprehensive community features organized by functionality
 ## Quick Reference
 
 ### User Actions
-- **Content Creation**: Rich text editing with TinyMCE, image uploads, and autosave
+- **Content Creation**: Rich text editing with the Blocks Everywhere (Gutenberg) editor, image uploads, and autosave
 - **Social Interaction**: Upvote content, mention users with @autocomplete, view notifications
 - **Profile Management**: Customize social links, view cross-site activity, manage verification status
 

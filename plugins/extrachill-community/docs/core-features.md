@@ -16,7 +16,7 @@ Enhanced bbPress template loading with plugin-provided templates.
 - **Core Templates**: `bbpress.php`, `content-single-forum.php`, `content-single-topic.php`
 - **Loop Templates**: `loop-forums.php`, `loop-topics.php`, `loop-replies.php`
 - **Card Templates**: Individual forum/topic/reply display components
-- **Form Templates**: `form-topic.php`, `form-reply.php` with TinyMCE integration
+- **Form Templates**: `form-topic.php`, `form-reply.php` with Blocks Everywhere (Gutenberg) integration
 - **Pagination**: Custom pagination for topics, replies, and search
 - **User Templates**: Enhanced profile and details templates
 - **Additional Templates**: Archive views, search results, topic tags, forum management
@@ -61,8 +61,7 @@ Modular script loading with conditional enqueuing.
 **Script Categories:**
 - **upvote.js**: Content voting system
 - **bbpress-ui.js**: Forum UI interactions, including inline reply handling
-- **bbpress-tinymce.js**: TinyMCE integration for bbPress contexts
-- **tinymce-image-upload.js**: TinyMCE image upload helper
+- **bbpress-blocks-mentions.js**: @mention autocomplete for the Blocks Everywhere editor
 - **content-expand.js**: Dynamic content expansion
 - **manage-user-profile-links.js**: Profile link management
 - **avatar-upload.js**: Avatar upload via REST API

@@ -1,22 +1,17 @@
 # Content Editor Features
 
-Enhanced content creation tools for bbPress forums including dual editor support (Gutenberg blocks + TinyMCE), image uploads, and content filtering.
+Enhanced content creation tools for bbPress forums including the Blocks Everywhere (Gutenberg) editor, image uploads, and content filtering.
 
 ## Editor Architecture
 
 ### Gutenberg-Anywhere Standard
-The community platform standardizes on a "Gutenberg-anywhere" architecture, utilizing the Blocks Everywhere integration as the primary content creation tool. This replaces the legacy TinyMCE editor for all modern forum interactions.
+The community platform standardizes on a "Gutenberg-anywhere" architecture, utilizing the Blocks Everywhere integration as the sole content creation tool. The legacy rich-text editor has been removed.
 
-**Primary Editor**: Blocks Everywhere (Gutenberg)
-- **Status**: Required platform standard.
+**Editor**: Blocks Everywhere (Gutenberg)
+- **Status**: Required platform standard and sole editor.
 - **Integration**: Enabled via `inc/content/editor/blocks-everywhere.php`.
 - **Visual Accuracy**: Theme and plugin styles are enqueued into the editor iframe via the `blocks_everywhere_enqueue_iframe_assets` hook, providing a true WYSIWYG experience.
 - **Contexts**: Active for bbPress topics, replies, and the inline reply system.
-
-**Fallback Editor**: TinyMCE
-- **Status**: Legacy fallback only.
-- **Guard**: Automatically disabled when Blocks Everywhere is active.
-- **Purpose**: Maintained strictly for environments where the modern block editor cannot load.
 
 ## Blocks Everywhere Integration (Gutenberg)
 
@@ -53,24 +48,8 @@ Modern Gutenberg block editor integration for bbPress forums with enhanced conte
 bbp_get_topic_content() → autoembed() → do_blocks() → wp_kses_post() → output
 ```
 
-## TinyMCE Editor Customization (Fallback)
-
-### Visual Editor Integration
-Traditional TinyMCE rich text editor integration for bbPress topic and reply forms with custom styling and functionality.
-
-**Editor Features**:
-- **Visual Editing**: WYSIWYG editor with formatting toolbar
-- **Custom Styling**: Integrated CSS from `tinymce-editor.css` for consistent appearance
-- **Paste Cleanup**: Automatic cleanup of pasted content with style removal
-- **Image Support**: Native TinyMCE image insertion and upload support
-
-**Toolbar Configuration:**
-- **Available Buttons**: Bold, italic, image, blockquote, link/unlink, undo/redo, format select
-- **Context Aware**: Enhanced toolbar only active on bbPress forms and artist profile pages
-- **Simplified Interface**: Streamlined button set focused on essential formatting
-
 ### Autosave Functionality
-Automatic draft saving with server-backed storage available for both editor types.
+Automatic draft saving with server-backed storage.
 
 **Autosave Behavior**:
 - **Trigger Delay**: 1.5 seconds after typing stops
@@ -82,10 +61,10 @@ Automatic draft saving with server-backed storage available for both editor type
 - Custom autosave plugin integrated with bbPress draft system
 - Debounced saving to prevent excessive storage operations
 - Error handling for failed save operations
-- Works with both Gutenberg and TinyMCE content types
+- Works with the Gutenberg block editor
 
 ### Image Upload Integration
-Universal image upload functionality compatible with both editor systems.
+Image upload functionality integrated with the block editor.
 
 **Upload Features**:
 - **Drag & Drop**: Direct image drag-and-drop into editor
@@ -95,7 +74,7 @@ Universal image upload functionality compatible with both editor systems.
 - **REST API**: Uses unified `/wp-json/extrachill/v1/media` endpoint
 
 **Implementation Details**:
-- Universal upload handling works with Gutenberg and TinyMCE
+- Upload handling integrated with the Gutenberg block editor
 - File validation and security checks
 - Integration with WordPress media handling functions
 - Responsive image processing and optimization
@@ -123,7 +102,7 @@ Display of main site content within community profiles and feeds.
 ## Usage Context
 
 Content editor features enhance the forum posting experience by:
-- Providing modern block-based editing through Blocks Everywhere (Gutenberg) with TinyMCE fallback
+- Providing modern block-based editing through Blocks Everywhere (Gutenberg)
 - Ensuring content security through comprehensive filtering and block type restrictions
 - Supporting multimedia content with universal image upload system
 - Maintaining content integrity with server-backed autosave functionality

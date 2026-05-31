@@ -5,7 +5,7 @@
 ## Creating Mentions
 
 ### Autocomplete Search
-Type `@` followed by username characters in TinyMCE editor to trigger autocomplete dropdown.
+Type `@` followed by username characters in the Blocks Everywhere (Gutenberg) editor to trigger autocomplete dropdown.
 
 ### User Selection
 Select user from dropdown to insert mention into content. Mention appears as `@username`.
@@ -62,7 +62,7 @@ Search limited to existing WordPress users only.
 
 Reply buttons in forum threads automatically insert @mentions when clicked, scrolling to the reply form and pre-filling the mention for easy responses.
 
-**Implementation**: Reply button handler runs independently of TinyMCE availability, ensuring functionality even when the rich text editor is not loaded.
+**Implementation**: Reply button handler runs independently of editor availability, ensuring functionality even when the rich text editor is not loaded.
 
 ## Usage Patterns
 

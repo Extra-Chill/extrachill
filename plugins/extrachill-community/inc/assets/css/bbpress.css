@@ -7,7 +7,6 @@
    - replies-loop.css (reply cards, sidebar)
    - user-profile.css (profile pages)
    - home.css (homepage integration)
-   - tinymce-editor.css (editor, mentions, forms)
 
    Note: This file uses CSS variables defined in the theme's root.css
    Additional bbPress-specific variables are defined below.

@@ -86,11 +86,11 @@ The plugin integrates deeply with bbPress for forum functionality, with optional
 
 **Explicit Loading Pattern** - All functionality loaded in `extrachill_community_init()`:
 ```php
-// Main plugin file uses 36 direct require_once statements (NO master loader file)
-// Load order: core (8) → content (6) → social (11) → user-profiles (7) → home (4)
+// Main plugin file uses 34 direct require_once statements (NO master loader file)
+// Load order: core (8) → content (4) → social (11) → user-profiles (7) → home (4)
 
 // Core features (8 files): assets, bbPress templates, breadcrumb filter, page templates, spam adjustments, sidebar, nav, cache invalidation
-// Content features (6 files): TinyMCE editor (2), content filters, recent feed, main site comments, subforum button classes
+// Content features (4 files): content filters, recent feed, main site comments, subforum button classes
 // Social features (11 files): upvoting, badges, rank system (2), notifications (7)
 // User profile features (7 files): profiles, verification, settings (2), edit (3)
 // Home features (4 files): latest post, actions, forum display, artist platform buttons
@@ -159,19 +159,18 @@ function modular_bbpress_styles() {
 }
 
 // All CSS files: bbpress.css, blog-comments-feed.css, global.css, home.css, leaderboard.css,
-// notifications.css, replies-loop.css, tinymce-editor.css, topics-loop.css, user-profile.css
+// notifications.css, replies-loop.css, topics-loop.css, user-profile.css
 ```
 
-**JavaScript Architecture** (6 files in inc/assets/js/):
+**JavaScript Architecture** (inc/assets/js/):
 ```php
-// Loaded via assets.php (3 files):
+// Loaded via assets.php:
 // - upvote.js (bbPress and recent page)
 // - bbpress-ui.js (bbPress only)
-// - bbpress-tinymce.js (bbPress editor contexts only)
-// - tinymce-image-upload.js (TinyMCE image upload helper)
+// - bbpress-blocks-mentions.js (@mention autocomplete for Blocks Everywhere editor, bbPress only)
 // - content-expand.js (recent page, blog comments feed)
 
-// Loaded independently by feature modules (2 files):
+// Loaded independently by feature modules:
 // - manage-user-profile-links.js (by inc/user-profiles/edit/user-links.php)
 // - avatar-upload.js (by inc/user-profiles/edit/avatar-upload.php)
 
@@ -220,7 +219,7 @@ get_user_meta($user_id, 'user_is_professional'); // Professional account flag
 // - loop-forums.php, loop-topics.php, loop-replies.php (containers)
 // - loop-single-forum-card.php, loop-single-topic-card.php, loop-single-reply-card.php (cards)
 // - loop-subforums.php (subforum display)
-// - form-topic.php, form-reply.php (custom forms with TinyMCE)
+// - form-topic.php, form-reply.php (custom forms, Blocks Everywhere editor)
 // - pagination-topics.php, pagination-replies.php, pagination-search.php
 // - user-profile.php, user-details.php (enhanced profiles)
 ```
@@ -271,10 +270,10 @@ function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
 ### Plugin Setup
 
 ```php
-// Main plugin file: extrachill_community_init() with 36 explicit require_once statements
+// Main plugin file: extrachill_community_init() with 34 explicit require_once statements
 function extrachill_community_init() {
     // Core (8): assets, bbpress-templates, breadcrumb-filter, page-templates, bbpress-spam-adjustments, sidebar, nav, cache-invalidation
-    // Content (6): tinymce (2), content-filters, recent-feed, main-site-comments, subforum-button-classes
+    // Content (4): content-filters, recent-feed, main-site-comments, subforum-button-classes
     // Social (11): upvote, badges, rank-system (2), notifications (7)
     // User Profiles (7): profile, verification, settings (2), edit (3)
     // Home (4): latest-post, actions, homepage-forum-display, artist-platform-buttons

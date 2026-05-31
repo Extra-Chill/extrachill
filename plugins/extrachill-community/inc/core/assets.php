@@ -190,23 +190,13 @@ function extrachill_enqueue_scripts() {
 	}
 
 	if ( is_bbpress() ) {
-		// Always load shared bbPress UI (works with both Blocks Everywhere and TinyMCE)
+		// Always load shared bbPress UI
 		$bbpress_ui_version = filemtime( $stylesheet_dir . '/inc/assets/js/bbpress-ui.js' );
 		wp_enqueue_script('extrachill-bbpress-ui', $stylesheet_dir_uri . '/inc/assets/js/bbpress-ui.js', array(), $bbpress_ui_version, true);
 		wp_localize_script('extrachill-bbpress-ui', 'extrachillCommunityEditor', array(
 			'restNonce' => wp_create_nonce('wp_rest'),
 			'restUrl'   => rest_url(),
 		));
-
-		// Only load TinyMCE-specific assets when Blocks Everywhere is inactive
-		include_once ABSPATH . 'wp-admin/includes/plugin.php';
-		if ( ! is_plugin_active( 'blocks-everywhere/blocks-everywhere.php' ) ) {
-			$tinymce_js_version = filemtime( $stylesheet_dir . '/inc/assets/js/bbpress-tinymce.js' );
-			wp_enqueue_script('extrachill-bbpress-tinymce', $stylesheet_dir_uri . '/inc/assets/js/bbpress-tinymce.js', array(), $tinymce_js_version, true);
-
-			$tinymce_css_version = filemtime( EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/tinymce-page.css' );
-			wp_enqueue_style('extrachill-bbpress-tinymce-page', EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/tinymce-page.css', array(), $tinymce_css_version);
-		}
 	}
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts', 20);

@@ -84,13 +84,12 @@ The `main` branch contains stable, production-ready code. All production builds 
 
 ### Blocks Everywhere Integration
 
-**PRODUCTION-READY**: The Blocks Everywhere integration is fully implemented and active on community.extrachill.com. It is the platform standard for forum content creation, replacing TinyMCE as the primary editor.
+**PRODUCTION-READY**: The Blocks Everywhere integration is fully implemented and active on community.extrachill.com. It is the sole editor for forum content creation; the legacy rich-text editor has been removed.
 
 **Integration Details**:
 - File: `inc/content/editor/blocks-everywhere.php` - Primary integration module that enables Gutenberg for bbPress.
 - Enables Gutenberg block editor for both frontend users and admin editing of bbPress content.
 - Uses `blocks_everywhere_bbpress` and `blocks_everywhere_bbpress_admin` filters to enable the editor.
-- Automatically disables TinyMCE when Blocks Everywhere is active (see `inc/content/editor/tinymce-customization.php`).
 - **Iframe Asset Enqueuing**: Uses the `blocks_everywhere_enqueue_iframe_assets` hook in `inc/core/assets.php` to enqueue bbPress-specific styles (`bbpress.css`) into the Gutenberg editor iframe, ensuring visual consistency between the editor and the frontend.
 
 **Allowed Block Types**:
@@ -117,11 +116,6 @@ The `main` branch contains stable, production-ready code. All production builds 
 **Files**:
 - `inc/content/editor/blocks-everywhere.php` - Editor enablement.
 - JavaScript handling in `bbpress-ui.js` assets.
-
-**TinyMCE Fallback**:
-- TinyMCE is maintained strictly as a fallback system for environments where Blocks Everywhere is inactive.
-- Configuration resides in `inc/content/editor/tinymce-customization.php` and `inc/content/editor/tinymce-image-uploads.php`.
-- Both files contain active guards that `return` immediately if Blocks Everywhere is active.
 
 ## Architecture Principles
 
@@ -155,8 +149,7 @@ The `main` branch contains stable, production-ready code. All production builds 
 **Core (9 files)**:
 - `inc/core/assets.php`, `bbpress-templates.php`, `breadcrumb-filter.php`, `page-templates.php`, `bbpress-spam-adjustments.php`, `sidebar.php`, `nav.php`, `cache-invalidation.php`, `filter-bar.php`
 
-**Content (6 files)**:
-- `inc/content/editor/tinymce-customization.php`, `editor/tinymce-image-uploads.php`
+**Content (4 files)**:
 - `inc/content/content-filters.php`, `recent-feed.php`, `main-site-comments.php`, `subforum-button-classes.php`
 
 **Social (11 files)**:
@@ -209,27 +202,24 @@ The `main` branch contains stable, production-ready code. All production builds 
 - `inc/user-profiles/settings/settings-content.php` - Settings page content rendering via hook
 - `inc/user-profiles/settings/settings-form-handler.php` - Form processing and validation
 
-### JavaScript Architecture (8 files in inc/assets/js/)
+### JavaScript Architecture (inc/assets/js/)
 
-**Loaded via assets.php (4 files)**:
+**Loaded via assets.php**:
 - `upvote.js` - Content upvoting system (bbPress and recent page)
-- `bbpress-ui.js` - Forum UI interactions (bbPress only)
-- `bbpress-tinymce.js` - TinyMCE integration for bbPress editor contexts
-- `tinymce-image-upload.js` - TinyMCE image upload helper
-- `bbpress-ui.js` - Forum UI interactions: jump-to-latest, sort auto-submit, TinyMCE autosave (bbPress only)
+- `bbpress-ui.js` - Forum UI interactions: jump-to-latest, sort auto-submit (bbPress only)
+- `bbpress-blocks-mentions.js` - @mention autocomplete for the Blocks Everywhere editor (bbPress only)
 - `content-expand.js` - Content expansion functionality (recent page, blog comments feed)
 
-**Loaded independently by feature modules (4 files)**:
+**Loaded independently by feature modules**:
 - `manage-user-profile-links.js` - Profile links editor (loaded by `inc/user-profiles/edit/user-links.php`)
 - `avatar-upload.js` - Avatar upload via REST API (loaded by `inc/user-profiles/edit/avatar-upload.php`)
-- `tinymce-image-upload.js` - TinyMCE image upload plugin (loaded via `mce_external_plugins` filter in `inc/content/editor/tinymce-image-uploads.php`)
-- `new-topic-modal.js` - New topic modal trigger and close handlers (loaded by `inc/core/assets.php` on front page)
+- `new-topic-modal.js` - New topic modal trigger and close handlers (loaded by `inc/core/assets.php` on front page, lives in `inc/home/assets/js/`)
 
 **Removed files**: utilities.js (deleted)
 
-### CSS Files (11 files in inc/assets/css/)
+### CSS Files (9 files in inc/assets/css/)
 - bbpress.css, blog-comments-feed.css, global.css, home.css, leaderboard.css
-- notifications.css, replies-loop.css, tinymce-editor.css
+- notifications.css, replies-loop.css
 - topics-loop.css, user-profile.css
 
 ### bbPress Template Overrides
@@ -244,7 +234,7 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 - `loop-single-topic-card.php` - Individual topic card rendering
 - `loop-single-reply-card.php` - Individual reply card rendering
 - `loop-subforums.php` - Subforum display component
-- `form-topic.php`, `form-reply.php` - Custom form templates with TinyMCE
+- `form-topic.php`, `form-reply.php` - Custom form templates (Blocks Everywhere editor)
 - `pagination-topics.php`, `pagination-replies.php`, `pagination-search.php` - Custom pagination
 - `user-profile.php`, `user-details.php` - Enhanced user profile templates
 
@@ -260,7 +250,7 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 7. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
-1. **Organized Structure** - Features grouped by functionality: core (8), content (6), social (11), user-profiles (7), home (4)
+1. **Organized Structure** - Features grouped by functionality: core (8), content (4), social (11), user-profiles (7), home (4)
 2. **Conditional Loading** - Context-aware CSS/JS loading for performance
 3. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing, breadcrumb customization via `bbp_breadcrumbs` filter
 4. **Hook-Based Components** - Homepage and settings use action hooks for extensibility
@@ -273,9 +263,8 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 - **Cross-Domain Functionality** - Multisite authentication and data sharing capabilities
 
 ### JavaScript Architecture Principles
-- **Modular Design** - 6 JS files in `inc/assets/js/` with specialized functionality domains
-- **Mixed Loading** - 3 files via assets.php centrally, 2 loaded independently by feature modules
-- **Separation of Concerns** - Reply button handler separated from TinyMCE plugin guard for better reliability
+- **Modular Design** - JS files in `inc/assets/js/` with specialized functionality domains
+- **Mixed Loading** - some files via assets.php centrally, others loaded independently by feature modules
 - **jQuery Dependencies** - Proper dependency management across all custom scripts
 - **Context-Aware Loading** - Conditional script enqueuing based on page template/context
 - **Cache Busting** - Automatic versioning for asset updates
@@ -358,8 +347,8 @@ The plugin provides comprehensive bbPress enhancements through multiple integrat
 - `bbp_breadcrumbs` - Customizes forum breadcrumb navigation (file: `inc/core/breadcrumb-filter.php`)
 
 **Form and Content Integration**:
-- Custom form templates with TinyMCE rich text editor
-- Image upload support via custom plugin
+- Custom form templates with the Blocks Everywhere (Gutenberg) rich text editor
+- Image upload support via the unified REST media endpoint
 - Point calculation using `bbp_get_user_topic_count()` and `bbp_get_user_reply_count()`
 
 ### extrachill-artist-platform Integration

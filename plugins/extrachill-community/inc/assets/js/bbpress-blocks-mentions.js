@@ -9,9 +9,6 @@
  * loads the editor scripts into the iframe document) and on non-iframe BE
  * renders. Vanilla ES5-compatible — no build step.
  *
- * The legacy TinyMCE @mentions plugin in bbpress-tinymce.js still handles
- * the fallback path when Blocks Everywhere is inactive.
- *
  * @package ExtraChillCommunity
  */
 

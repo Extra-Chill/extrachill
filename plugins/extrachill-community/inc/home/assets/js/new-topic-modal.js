@@ -1,7 +1,7 @@
 /**
  * New Topic Modal
  *
- * Handles modal open/close, TinyMCE reinitialization, and accessibility.
+ * Handles modal open/close, editor reinitialization, and accessibility.
  */
 ( function () {
 	'use strict';
@@ -24,8 +24,6 @@
 	const modalDescription = document.getElementById(
 		'new-topic-modal-description'
 	);
-
-	const { wp, tinymce } = window;
 
 	let editorInitialized = false;
 	let activeTrigger = null;
@@ -147,7 +145,7 @@
 		overlay.classList.add( 'is-open' );
 		document.body.classList.add( 'new-topic-modal-open' );
 
-		if ( ! editorInitialized && wp?.editor ) {
+		if ( ! editorInitialized ) {
 			initializeEditor();
 		}
 
@@ -177,40 +175,9 @@
 	}
 
 	function initializeEditor() {
-		const editorId = 'bbp_topic_content';
-		const editorElement = document.getElementById( editorId );
-
-		if ( ! editorElement ) {
-			editorInitialized = true;
-			return;
-		}
-
-		if ( editorElement.closest( '.blocks-everywhere' ) ) {
-			editorInitialized = true;
-			return;
-		}
-
-		if ( tinymce?.get( editorId ) ) {
-			editorInitialized = true;
-			return;
-		}
-
-		if ( wp?.editor?.initialize ) {
-			wp.editor.initialize( editorId, {
-				tinymce: {
-					wpautop: true,
-					plugins:
-						'charmap,colorpicker,hr,lists,paste,tabfocus,textcolor,wordpress,wpautoresize,wpeditimage,wpemoji,wpgallery,wplink,wptextpattern',
-					toolbar1:
-						'formatselect,bold,italic,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,wp_more,spellchecker,fullscreen,wp_adv',
-					toolbar2:
-						'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo,wp_help',
-				},
-				quicktags: true,
-				mediaButtons: false,
-			} );
-		}
-
+		// The topic content editor is provided by Blocks Everywhere (Gutenberg),
+		// which initializes itself on the textarea. Nothing else to do here; this
+		// guard simply records that the editor has been accounted for.
 		editorInitialized = true;
 	}
 
