@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0] - 2026-05-31
+
+### Added
+- add StatTile, StatGroup, ProgressBar primitives and ActionRow center align
+
+### Changed
+- explicit React 19 support in toolchain and peer range
+
 ## [0.5.2] - 2026-05-30
 
 ### Fixed
