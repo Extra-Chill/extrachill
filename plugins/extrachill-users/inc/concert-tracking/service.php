@@ -413,6 +413,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
  */
 function ec_users_build_show_data( WP_Post $post, array $row ): array {
 	$event_id = $post->ID;
+	$blog_id  = get_current_blog_id();
 
 	// Venue (first term).
 	$venue       = null;
@@ -421,6 +422,7 @@ function ec_users_build_show_data( WP_Post $post, array $row ): array {
 		$venue = array(
 			'name' => $venue_terms[0]->name,
 			'slug' => $venue_terms[0]->slug,
+			'url'  => ec_users_events_term_archive_url( $venue_terms[0]->slug, 'venue', $blog_id ),
 		);
 	}
 
@@ -449,11 +451,15 @@ function ec_users_build_show_data( WP_Post $post, array $row ): array {
 			$city = array(
 				'name' => $deepest->name,
 				'slug' => $deepest->slug,
+				'url'  => ec_users_events_term_archive_url( $deepest->slug, 'location', $blog_id ),
 			);
 		}
 	}
 
-	// Artists.
+	// Artists. Enrich each with a cross-site `url` (canonical artist profile
+	// on the artist site, falling back to the events artist archive) via the
+	// same linker primitive that powers the leaderboard, so a show card
+	// becomes multiple on-ramps into the network rather than a single link.
 	$artists      = array();
 	$artist_terms = wp_get_post_terms( $event_id, 'artist' );
 	if ( ! is_wp_error( $artist_terms ) ) {
@@ -463,6 +469,7 @@ function ec_users_build_show_data( WP_Post $post, array $row ): array {
 				'slug' => $term->slug,
 			);
 		}
+		$artists = ec_users_link_top_terms( $artists, 'artist', $blog_id );
 	}
 
 	return array(
