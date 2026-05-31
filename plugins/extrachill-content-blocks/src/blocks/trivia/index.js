@@ -4,19 +4,30 @@ import './editor.scss';
 import { registerBlockType } from '@wordpress/blocks';
 import { useBlockProps, RichText, InspectorControls } from '@wordpress/block-editor';
 import { PanelBody, TextControl, TextareaControl, Button } from '@wordpress/components';
+import { useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 registerBlockType(
 	'extrachill/trivia',
 	{
-		edit: ({ attributes, setAttributes }) => {
+		edit: ({ attributes, setAttributes, clientId }) => {
 			const { question, options, correctAnswer, answerJustification, blockId, resultMessages, scoreRanges } = attributes;
 			const blockProps = useBlockProps();
 
-			// Generate unique block ID if not set
-			if ( ! blockId) {
-				setAttributes( { blockId: `trivia - ${Date.now()}` } );
-			}
+			// Derive blockId from the block's clientId, which Gutenberg
+			// guarantees is unique per instance and — critically — is
+			// regenerated when a block is duplicated. The previous Date.now()
+			// approach collided on copy/paste (the duplicate inherited the
+			// saved blockId) and on same-millisecond inserts, which broke
+			// the shared-score bookkeeping for multi-question quizzes. Keeping
+			// blockId synced to clientId self-heals duplicates and existing
+			// saved blocks on first edit. Run as an effect (not during render)
+			// to avoid setState-in-render.
+			useEffect( () => {
+				if ( blockId !== clientId ) {
+					setAttributes( { blockId: clientId } );
+				}
+			}, [ blockId, clientId, setAttributes ] );
 
 			const addOption = () => {
 				setAttributes( { options: [...options, ''] } );
