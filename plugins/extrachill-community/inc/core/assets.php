@@ -122,7 +122,7 @@ function modular_bbpress_styles() {
 		);
 	}
 
-	if ( bbp_is_topic_archive() || bbp_is_single_forum() || is_page('recent') || is_page('following') || bbp_is_single_user() || bbp_is_search_results() || is_search() ) {
+	if ( bbp_is_topic_archive() || bbp_is_single_forum() || is_page('recent') || bbp_is_single_user() || bbp_is_search_results() || is_search() ) {
 		wp_enqueue_style(
 			'topics-loop',
 			EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/topics-loop.css',

@@ -63,8 +63,6 @@ function extrachill_get_user_total_points($user_id) {
 	$total_upvotes = extrachill_get_user_total_upvotes($user_id) ?? 0;
 	$upvote_points = floatval($total_upvotes) * 0.5;
 
-	$follower_points = 0;
-
 	// Get main site post count for points calculation
 	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
 	if ( $main_blog_id ) {
@@ -107,7 +105,7 @@ function extrachill_get_user_total_points($user_id) {
 	$extra_points = (float) apply_filters( 'ec_rank_extra_points', 0.0, $user_id );
 
 	// Calculate total points
-	$total_points = $bbpress_points + $upvote_points + $follower_points + $main_site_post_points + $extra_points;
+	$total_points = $bbpress_points + $upvote_points + $main_site_post_points + $extra_points;
 
 	// Cache the total points in a transient for 1 hour
 	set_transient('user_points_' . $user_id, $total_points, HOUR_IN_SECONDS);
