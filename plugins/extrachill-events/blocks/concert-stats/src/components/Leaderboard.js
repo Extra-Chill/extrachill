@@ -20,9 +20,18 @@ const Leaderboard = ( { title, items, maxItems = 5 } ) => {
 			<ol className="ec-concert-stats__leaderboard-list">
 				{ items.slice( 0, maxItems ).map( ( item ) => (
 					<li key={ item.slug } className="ec-concert-stats__leaderboard-item">
-						<span className="ec-concert-stats__leaderboard-name">
-							{ item.name }
-						</span>
+						{ item.url ? (
+							<a
+								className="ec-concert-stats__leaderboard-name ec-concert-stats__leaderboard-link"
+								href={ item.url }
+							>
+								{ item.name }
+							</a>
+						) : (
+							<span className="ec-concert-stats__leaderboard-name">
+								{ item.name }
+							</span>
+						) }
 						<span className="ec-concert-stats__leaderboard-count">
 							{ item.count }
 						</span>

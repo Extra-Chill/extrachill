@@ -181,6 +181,17 @@
 	color: var(--text-color, #1f2937);
 }
 
+.ec-concert-stats__leaderboard-link {
+	text-decoration: none;
+	color: var(--link-color, var(--text-color, #1f2937));
+
+	&:hover,
+	&:focus {
+		text-decoration: underline;
+		color: var(--link-hover-color, var(--accent-color, #53940b));
+	}
+}
+
 .ec-concert-stats__leaderboard-count {
 	color: var(--muted-text, #6b7280);
 	font-weight: 500;
