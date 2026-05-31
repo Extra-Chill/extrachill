@@ -6,8 +6,7 @@
  * Displays for logged-in users only.
  *
  * Reads the unread count from the network notification substrate in the
- * extrachill-users plugin (extrachill/get-notification-unread-count) rather
- * than the legacy per-user `extrachill_notifications` user_meta blob. The
+ * extrachill-users plugin (extrachill/get-notification-unread-count). The
  * substrate table is keyed by base_prefix, so it is the same physical table
  * on every site — no switch_to_blog is required here.
  *

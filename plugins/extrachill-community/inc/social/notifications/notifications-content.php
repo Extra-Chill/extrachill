@@ -6,8 +6,7 @@
  * via extrachill_after_page_content when slug is "notifications".
  *
  * Reads from the network notification substrate in the extrachill-users plugin
- * (extrachill/get-notifications + extrachill/mark-notifications-read) rather
- * than the legacy per-user `extrachill_notifications` user_meta blob. The
+ * (extrachill/get-notifications + extrachill/mark-notifications-read). The
  * substrate table is keyed by base_prefix, so no switch_to_blog is required.
  *
  * Parent epic: Extra-Chill/extrachill-community#82.

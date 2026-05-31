@@ -69,7 +69,6 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/rank-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-bell.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-card.php';
-	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-migrate.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-replies.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-mentions.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notifications-content.php';

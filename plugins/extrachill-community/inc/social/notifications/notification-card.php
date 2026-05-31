@@ -30,14 +30,12 @@ function extrachill_render_notification_card($notification) {
 		return '';
 	}
 
-	// Extract core data. The network substrate enriches rows with `title`;
-	// the legacy blob used `topic_title`. Support both so cards render
-	// identically regardless of source.
+	// Extract core data. The network substrate enriches each row with `title`.
 	$type               = $notification['type'];
 	$actor_id           = $notification['actor_id'] ?? null;
 	$actor_display_name = $notification['actor_display_name'] ?? 'Someone';
 	$actor_profile_link = $notification['actor_profile_link'] ?? '#';
-	$topic_title        = $notification['title'] ?? ( $notification['topic_title'] ?? '' );
+	$topic_title        = $notification['title'] ?? '';
 	$link               = $notification['link'] ?? '#';
 	$time               = $notification['time'] ?? '';
 
