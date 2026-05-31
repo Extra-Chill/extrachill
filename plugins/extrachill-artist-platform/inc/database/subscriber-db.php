@@ -21,7 +21,7 @@ function extrachill_artist_create_subscribers_table() {
         artist_profile_id BIGINT(20) UNSIGNED NOT NULL,
         subscriber_email VARCHAR(255) NOT NULL,
         username VARCHAR(60) NULL DEFAULT NULL,
-        source VARCHAR(50) NOT NULL DEFAULT 'platform_follow_consent',
+        source VARCHAR(50) NOT NULL DEFAULT 'artist_subscribe_form',
         subscribed_at DATETIME NOT NULL,
         exported TINYINT(1) NOT NULL DEFAULT 0,
         PRIMARY KEY (subscriber_id),
