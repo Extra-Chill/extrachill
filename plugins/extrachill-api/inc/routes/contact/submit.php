@@ -2,8 +2,18 @@
 /**
  * REST route: POST /wp-json/extrachill/v1/contact/submit
  *
- * Contact form submission endpoint with Turnstile verification,
- * email notifications, and Sendy newsletter integration.
+ * Thin REST wrapper for the extrachill/contact-submit ability.
+ *
+ * The underlying extrachill/contact-submit ability (registered in the
+ * extrachill-contact plugin) owns all of the contact-submission logic:
+ * Cloudflare Turnstile verification, input sanitisation, admin + user
+ * email dispatch, and Sendy newsletter sync.
+ *
+ * Because the ability performs Turnstile verification itself, this route
+ * does NOT verify Turnstile at the HTTP boundary — Turnstile tokens are
+ * single-use, so verifying here and again in the ability would always fail
+ * the second check. The token is declared as a request arg and passed
+ * through to the ability, which is the single place that verifies it.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,7 +29,10 @@ function extrachill_api_register_contact_submit_route() {
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => 'extrachill_api_handle_contact_submit',
-			'permission_callback' => ec_turnstile_permission_callback(),
+			// Turnstile is verified inside the extrachill/contact-submit
+			// ability, not here. Tokens are single-use, so the route must
+			// not also verify or the ability's check would always fail.
+			'permission_callback' => '__return_true',
 			'args'                => array(
 				'name'               => array(
 					'required'          => true,
@@ -52,27 +65,28 @@ function extrachill_api_register_contact_submit_route() {
 }
 
 function extrachill_api_handle_contact_submit( WP_REST_Request $request ) {
-	$name    = $request->get_param( 'name' );
-	$email   = $request->get_param( 'email' );
-	$subject = $request->get_param( 'subject' );
-	$message = $request->get_param( 'message' );
-
-	if ( ! function_exists( 'ec_contact_send_admin_email' ) ) {
+	$ability = wp_get_ability( 'extrachill/contact-submit' );
+	if ( ! $ability ) {
 		return new WP_Error(
-			'contact_unavailable',
+			'ability_not_found',
 			__( 'Contact form processing unavailable.', 'extrachill-api' ),
 			array( 'status' => 500 )
 		);
 	}
 
-	ec_contact_send_admin_email( $name, $email, $subject, $message );
-	ec_contact_send_user_confirmation( $name, $email, $subject, $message );
-	ec_contact_sync_to_sendy( $email );
-
-	return rest_ensure_response(
+	$result = $ability->execute(
 		array(
-			'success' => true,
-			'message' => __( 'Your message has been sent successfully. We\'ll get back to you soon.', 'extrachill-api' ),
+			'name'               => $request->get_param( 'name' ),
+			'email'              => $request->get_param( 'email' ),
+			'subject'            => $request->get_param( 'subject' ),
+			'message'            => $request->get_param( 'message' ),
+			'turnstile_response' => $request->get_param( 'turnstile_response' ),
 		)
 	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
 }
