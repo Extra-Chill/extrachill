@@ -6,25 +6,14 @@
  *
  * Marking is optimistic: the row flips immediately and reverts on REST error.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ActionRow, InlineStatus } from '@extrachill/components';
 
-const MONTHS = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
-
-function formatDate( dateString ) {
-	if ( ! dateString ) {
-		return '';
-	}
-	const d = new Date( dateString + 'T00:00:00' );
-	if ( Number.isNaN( d.getTime() ) ) {
-		return '';
-	}
-	return `${ MONTHS[ d.getMonth() ] } ${ d.getDate() }, ${ d.getFullYear() }`;
-}
+import { formatLongDate } from '../utils/formatDate';
 
 const EventSearchResult = ( { event, onMarkedChange } ) => {
 	const [ submitting, setSubmitting ] = useState( false );
@@ -89,7 +78,7 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 				rel="noopener noreferrer"
 			>
 				<span className="ec-concert-stats__search-result-date">
-					{ formatDate( event.event_date ) }
+					{ formatLongDate( event.event_date ) }
 				</span>
 				<span className="ec-concert-stats__search-result-details">
 					<span className="ec-concert-stats__search-result-artist">
@@ -123,9 +112,7 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 						+ Mark Attended
 					</button>
 				) }
-				{ error && (
-					<InlineStatus tone="error">{ error }</InlineStatus>
-				) }
+				{ error && <InlineStatus tone="error">{ error }</InlineStatus> }
 			</div>
 		</ActionRow>
 	);

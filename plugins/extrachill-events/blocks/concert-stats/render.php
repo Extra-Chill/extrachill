@@ -105,7 +105,6 @@ if ( ! $user_id ) {
 	$user_id = get_current_user_id();
 }
 
-$blog_id    = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id();
 $events_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'events' ) : home_url();
 $is_own     = is_user_logged_in() && get_current_user_id() === $user_id;
 
@@ -132,7 +131,6 @@ $wrapper_attributes = get_block_wrapper_attributes(
 	<div
 		class="ec-concert-stats"
 		data-user-id="<?php echo esc_attr( $user_id ); ?>"
-		data-blog-id="<?php echo esc_attr( $blog_id ); ?>"
 		data-events-url="<?php echo esc_attr( $events_url ); ?>"
 		data-is-own="<?php echo esc_attr( $is_own ? '1' : '0' ); ?>"
 		data-has-calendar="<?php echo esc_attr( $render_embedded_calendar ? '1' : '0' ); ?>"

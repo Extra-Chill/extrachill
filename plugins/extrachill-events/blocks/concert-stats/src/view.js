@@ -206,8 +206,6 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 		}
 	}, [ activeTab, hasMap, containerRef ] );
 
-	const upcomingCount = stats ? ( stats.total_shows - Object.values( stats.shows_by_year || {} ).reduce( ( a, b ) => a + b, 0 ) + stats.total_shows ) : 0;
-
 	// Tab order: Upcoming → Past → Calendar (owner, #110) → Add Past
 	// Shows (owner, #109) → Map (owner, #111) → Stats → Import
 	// (owner, #112). Visualization tabs (Calendar, Map) sit alongside
@@ -388,10 +386,6 @@ function ConcertStatsApp( { userId, eventsUrl, isOwn, hasCalendar, hasMap, conta
 								items={ stats.top_cities }
 							/>
 						</div>
-					) }
-
-					{ activeTab === 'stats' && statsLoading && (
-						<InlineStatus tone="info">Loading stats…</InlineStatus>
 					) }
 
 					{ activeTab === 'import' && hasImports && (
