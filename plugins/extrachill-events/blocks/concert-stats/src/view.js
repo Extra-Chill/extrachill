@@ -419,10 +419,12 @@ function ConcertStatsApp( {
 							<Leaderboard
 								title="Top Venues"
 								items={ stats.top_venues }
+								taxonomy="venue"
 							/>
 							<Leaderboard
 								title="Top Cities"
 								items={ stats.top_cities }
+								taxonomy="location"
 							/>
 						</div>
 					);

@@ -179,6 +179,23 @@ a.ec-concert-stats__stat {
 	color: var(--muted-text, #6b7280);
 }
 
+/*
+ * Taxonomy-badge glue for the show-card venue / city row.
+ *
+ * Venue + city render as platform taxonomy badges (`.taxonomy-badge` +
+ * `venue-badge`/`location-badge` + per-term slug class) from the theme's
+ * taxonomy-badges.css. We do NOT redefine badge colors here. The row is
+ * laid out as an inline-flex cluster so the pills, with the `·` separator
+ * between them, align vertically and wrap cleanly with a small gap instead
+ * of butting against the baseline text spacing.
+ */
+.ec-concert-stats__show-venue {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
 /* ─── Leaderboards (inside Panel) ───────────────────────────────────────── */
 
 .ec-concert-stats__leaderboards {
@@ -238,6 +255,21 @@ a.ec-concert-stats__stat {
 .ec-concert-stats__leaderboard-count {
 	color: var(--muted-text, #6b7280);
 	font-weight: 500;
+}
+
+/*
+ * Taxonomy-badge glue for venue / city leaderboard rows.
+ *
+ * Venue + city names render as platform taxonomy badges (`.taxonomy-badge`
+ * + `venue-badge`/`location-badge` + per-term slug class) defined in the
+ * theme's taxonomy-badges.css. We do NOT redefine badge colors here — this
+ * rule only undoes the `flex: 1` stretch that `__leaderboard-name` applies
+ * (which would balloon the pill to fill the row) so the badge keeps its
+ * intrinsic pill width and stays left-aligned beside the count.
+ */
+.ec-concert-stats__leaderboard-name.ec-concert-stats__leaderboard-badge {
+	flex: 0 1 auto;
+	margin-right: auto;
 }
 
 /* ─── Year Filter (select inside FieldGroup) ────────────────────────────── */
