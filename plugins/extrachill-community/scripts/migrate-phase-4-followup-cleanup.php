@@ -227,7 +227,7 @@ if ( ! $shakedown || 'forum' !== $shakedown->post_type ) {
 			'fields'         => 'ids',
 		)
 	);
-	$subforums = get_posts(
+	$subforums        = get_posts(
 		array(
 			'post_type'      => 'forum',
 			'post_parent'    => $shakedown_id,

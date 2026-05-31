@@ -82,9 +82,9 @@ if ( $dry_run ) {
  * ------------------------------------------------------------------------- */
 
 $the_lab_forum_id    = 13548; // The Lab.
-$back_bar_forum_id    = 81;   // The Back Bar (off-topic / catch-all).
-$artist_corner_id     = 14120; // Artist Corner.
-$independent_artists  = 5432; // Dead predecessor to Artist Corner.
+$back_bar_forum_id   = 81;   // The Back Bar (off-topic / catch-all).
+$artist_corner_id    = 14120; // Artist Corner.
+$independent_artists = 5432; // Dead predecessor to Artist Corner.
 
 // The Lab's refreshed description — the differentiator identity, made visible.
 $the_lab_description = 'The differentiator room: the open web, WordPress, AI × music, and build-in-public. '
@@ -288,7 +288,7 @@ if ( ! $ia || 'forum' !== $ia->post_type ) {
 			'fields'         => 'ids',
 		)
 	);
-	$subforums = get_posts(
+	$subforums        = get_posts(
 		array(
 			'post_type'      => 'forum',
 			'post_parent'    => $independent_artists,
