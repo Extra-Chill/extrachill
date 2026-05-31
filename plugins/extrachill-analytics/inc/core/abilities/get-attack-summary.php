@@ -5,6 +5,15 @@
  * Read-side ability that summarizes search_attack events. Supports grouping by
  * pattern family, calendar day, source IP, or source URL.
  *
+ * SCOPE: this counter measures injection probes submitted through the ON-SITE
+ * SEARCH form (event_type='search_attack', written by the search-term
+ * classifier in security-classifier.php). It does NOT measure the URL/path
+ * scanner storm — those requests 404 without ever touching the search box and
+ * are counted by the companion get-scanner-404-summary ability. Two distinct
+ * attack surfaces, two distinct counters. A low/flat search_attack number means
+ * on-site search injection is quiet, NOT that scanning has stopped — check
+ * get-scanner-404-summary for the path-scanner volume.
+ *
  * @package ExtraChill\Analytics
  * @since 0.7.0
  */

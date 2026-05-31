@@ -28,6 +28,33 @@ function extrachill_analytics_categorize_404_url( $url ) {
 		return 'sql-injection';
 	}
 
+	// Secret / credential / VCS file probes — scanners hunting for leaked
+	// secrets and source control metadata. These are unambiguously hostile;
+	// no legitimate visitor requests an .env, .git internals, or cloud creds.
+	// Matched before the generic content catch-all so the scanner storm is
+	// counted instead of being buried in 'content'.
+	if ( preg_match(
+		'#(?:^|/)(?:\.env|\.env\.|\.git/|\.gitignore$|\.svn/|\.hg/|\.bzr/|\.aws/|\.ssh/|\.npmrc$|\.htpasswd$|\.htaccess$|\.vscode/|\.idea/|\.well-known/[^/]*\.bak)#i',
+		$url
+	) ) {
+		return 'secret-probe';
+	}
+
+	// Config / backup / dump file probes — looking for credentials.json,
+	// config.json, wp-config backups, database dumps, archive backups, log
+	// files, and PHP info/debug endpoints.
+	if ( preg_match(
+		'#(?:^|/)(?:wp-config\.php\.[a-z0-9]+|credentials\.[a-z]+|config\.(?:json|php\.bak|yml|yaml)|secrets?\.[a-z]+|backup\.(?:zip|sql|tar|tar\.gz|tgz)|db\.sql|database\.sql|dump\.sql|.*\.sql\.gz|robots\.txt\.bak|sftp\.json|laravel\.log|telescope/|actuator/|phpinfo\.php|info\.php|server\.php)#i',
+		$url
+	) ) {
+		return 'config-probe';
+	}
+
+	// REST API user enumeration — /wp-json/wp/v2/users harvesting.
+	if ( preg_match( '#/wp-json/wp/v2/users#i', $url ) ) {
+		return 'wpjson-user-enum';
+	}
+
 	// Ad/sponsor/media-kit probe — multilingual about/contact/advertising pages.
 	$ad_sponsor_paths = array(
 		'/mediakit',
@@ -182,6 +209,48 @@ function extrachill_analytics_is_actionable_404_category( $category ) {
 	);
 
 	return in_array( $category, $actionable, true );
+}
+
+/**
+ * Check if a 404 category represents scanner / attack traffic.
+ *
+ * These categories indicate automated probing for vulnerabilities, leaked
+ * secrets, admin endpoints, or injection points — never legitimate visitor
+ * navigation. Used by the scanner-404 counter to partition the attack-shaped
+ * slice of the 404 storm away from benign content 404s, giving a trustworthy
+ * attack-volume signal for scoping a WAF rule.
+ *
+ * This is the complement of the on-site search_attack classifier: that one
+ * measures injection attempts submitted through the SITE SEARCH form, while
+ * this one measures the URL/PATH scanner storm that 404s without ever touching
+ * the search box. Two distinct attack surfaces, two distinct counters.
+ *
+ * @param string $category The category name from extrachill_analytics_categorize_404_url().
+ * @return bool True if the category is scanner/attack traffic.
+ */
+function extrachill_analytics_is_scanner_404_category( $category ) {
+	$scanner = array(
+		'sql-injection',
+		'secret-probe',
+		'config-probe',
+		'wpjson-user-enum',
+		'php-probe',
+		'plugin-probe',
+		'wp-includes-probe',
+		'bot-probe',
+		'author-enum',
+		'ad-sponsor-probe',
+	);
+
+	/**
+	 * Filter the set of 404 categories treated as scanner / attack traffic.
+	 *
+	 * @param string[] $scanner  Category names considered scanner traffic.
+	 * @param string   $category The category being checked.
+	 */
+	$scanner = apply_filters( 'extrachill_analytics_scanner_404_categories', $scanner, $category );
+
+	return in_array( $category, $scanner, true );
 }
 
 /**
