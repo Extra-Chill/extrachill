@@ -78,8 +78,20 @@ function extrachill_get_avatar_url_with_custom_support($user_id, $size = 80) {
 	return get_avatar_url($user_id, array( 'size' => $size ));
 }
 
-function extrachill_get_recent_replies_args($per_page = 15, $paged = 1) {
-	return array(
+/**
+ * Build base WP_Query args for a topic+reply activity feed.
+ *
+ * Pass an author ID to scope the feed to a single user (profile activity feed);
+ * omit it (0) for the unscoped global feed.
+ *
+ * @param int $per_page Items per page.
+ * @param int $paged    Page number.
+ * @param int $author   Optional author ID to scope the feed. 0 = unscoped/global.
+ *
+ * @return array WP_Query args.
+ */
+function extrachill_get_recent_replies_args($per_page = 15, $paged = 1, $author = 0) {
+	$args = array(
 		'post_type'      => array( 'topic', 'reply' ),
 		'posts_per_page' => $per_page,
 		'paged'          => $paged,
@@ -87,9 +99,28 @@ function extrachill_get_recent_replies_args($per_page = 15, $paged = 1) {
 		'order'          => 'DESC',
 		'post_status'    => array( 'publish', 'closed', 'acf-disabled', 'private', 'hidden' ),
 	);
+
+	$author = (int) $author;
+	if ( $author > 0 ) {
+		$args['author'] = $author;
+	}
+
+	return $args;
 }
 
-function extrachill_get_recent_feed_query($per_page = 15, $paged = null) {
+/**
+ * Run an activity-feed query and shape the results for the feed renderer.
+ *
+ * Shared implementation behind both the global recent feed and the user-scoped
+ * profile activity feed. Pass an author ID to scope to a single user.
+ *
+ * @param int      $per_page Items per page.
+ * @param int|null $paged    Page number; null resolves from the current request.
+ * @param int      $author   Optional author ID to scope the feed. 0 = unscoped/global.
+ *
+ * @return array|false { items: array, pagination: ExtraChill_Community_Feed_Query } or false when empty.
+ */
+function extrachill_build_activity_feed($per_page = 15, $paged = null, $author = 0) {
 	if ( ! function_exists('bbp_get_reply_post_type') ) {
 		return false;
 	}
@@ -98,7 +129,7 @@ function extrachill_get_recent_feed_query($per_page = 15, $paged = null) {
 	$bbp_paged = function_exists('bbp_get_paged') ? bbp_get_paged() : max(1, (int) get_query_var('paged', 1));
 	$paged     = null === $paged ? $bbp_paged : max(1, (int) $paged);
 
-	$args                  = extrachill_get_recent_replies_args($per_page, $paged);
+	$args                  = extrachill_get_recent_replies_args($per_page, $paged, $author);
 	$args['no_found_rows'] = false;
 
 	$query = new WP_Query($args);
@@ -144,12 +175,154 @@ function extrachill_get_recent_feed_query($per_page = 15, $paged = null) {
 	);
 }
 
-function extrachill_get_recent_activity_query($per_page = 15, $paged = 1) {
-	$args = extrachill_get_recent_replies_args($per_page, $paged);
+/**
+ * Global recent activity feed (unscoped).
+ *
+ * Owns the /recent page's data. Intentionally forum-scoped (topics + replies
+ * across all forums) — NOT cross-network. See epic #53 Phase 3.
+ *
+ * @param int      $per_page Items per page.
+ * @param int|null $paged    Page number; null resolves from the current request.
+ *
+ * @return array|false Feed payload or false when empty.
+ */
+function extrachill_get_recent_feed_query($per_page = 15, $paged = null) {
+	return extrachill_build_activity_feed($per_page, $paged, 0);
+}
 
-	if ( empty($args) ) {
-		return new WP_Query(array( 'post__in' => array( 0 ) ));
+/**
+ * User-scoped profile activity feed.
+ *
+ * Owns a single user's profile activity feed: the same topic+reply stream as
+ * the global feed, filtered to the displayed user. Replaces the former
+ * near-duplicate extrachill_get_recent_activity_query() helper.
+ *
+ * @param int      $user_id  User to scope the feed to.
+ * @param int      $per_page Items per page.
+ * @param int|null $paged    Page number; null resolves from the current request.
+ *
+ * @return array|false Feed payload or false when empty / invalid user.
+ */
+function extrachill_get_user_activity_query($user_id, $per_page = 15, $paged = null) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return false;
 	}
 
-	return new WP_Query($args);
+	return extrachill_build_activity_feed($per_page, $paged, $user_id);
+}
+
+/**
+ * Render an activity feed payload as bbPress reply cards.
+ *
+ * Shared renderer for both the global /recent feed and the user-scoped profile
+ * activity feed, so both surfaces produce identical card markup. Echoes the
+ * markup directly (returns nothing).
+ *
+ * @param array|false $feed         Feed payload from a feed query function.
+ * @param string      $empty_notice Message shown when the feed is empty.
+ *
+ * @return void
+ */
+/**
+ * Whether the current reply card is being rendered inside an activity feed.
+ *
+ * Set by extrachill_render_recent_feed() while it loops over feed items, so the
+ * shared loop-single-reply-card.php template can render its feed-specific chrome
+ * (the "in forum / in reply to" header and content truncation) regardless of
+ * which surface — global /recent or a user profile — is rendering the feed.
+ *
+ * @param bool|null $set Internal: pass true/false to toggle the flag. Reads when null.
+ *
+ * @return bool
+ */
+function extrachill_is_activity_feed_card($set = null) {
+	static $active = false;
+
+	if ( null !== $set ) {
+		$active = (bool) $set;
+	}
+
+	return $active;
+}
+
+function extrachill_render_recent_feed($feed, $empty_notice = '') {
+	if ( ! $feed || empty($feed['items']) ) {
+		if ( '' === $empty_notice ) {
+			$empty_notice = __('No recent activity found.', 'extra-chill-community');
+		}
+		echo '<div class="notice notice-info"><p>' . esc_html($empty_notice) . '</p></div>';
+		return;
+	}
+
+	$feed_items        = $feed['items'];
+	$pagination        = $feed['pagination'];
+	$bbp               = bbpress();
+	$previous_reply_id = isset($bbp->current_reply_id) ? $bbp->current_reply_id : 0;
+	$previous_topic_id = isset($bbp->current_topic_id) ? $bbp->current_topic_id : 0;
+	$previous_forum_id = isset($bbp->current_forum_id) ? $bbp->current_forum_id : 0;
+	?>
+	<div id="bbpress-forums" class="bbpress-wrapper">
+		<ul class="forums bbp-replies">
+			<li class="bbp-body">
+				<?php
+				global $post;
+				extrachill_is_activity_feed_card(true);
+				foreach ( $feed_items as $feed_item ) {
+					// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentionally sets the global $post for setup_postdata() and the bbPress template part below.
+					$post = $feed_item['post'];
+
+					if ( ! $post || ! is_object($post) ) {
+						continue;
+					}
+
+					setup_postdata($post);
+
+					// Set pre-fetched author data for template use
+					set_query_var('prefetch_author_id', $feed_item['author_id']);
+					set_query_var('prefetch_author_name', $feed_item['author_name']);
+					set_query_var('prefetch_author_avatar_url', $feed_item['author_avatar_url']);
+
+					// Set pre-fetched topic/forum data for template use
+					set_query_var('prefetch_topic_id', $feed_item['topic_id']);
+					set_query_var('prefetch_topic_url', $feed_item['topic_url']);
+					set_query_var('prefetch_topic_title', $feed_item['topic_title']);
+					set_query_var('prefetch_forum_id', $feed_item['forum_id']);
+					set_query_var('prefetch_forum_url', $feed_item['forum_url']);
+					set_query_var('prefetch_forum_title', $feed_item['forum_title']);
+
+					$bbp->current_reply_id = $post->ID;
+
+					if ( bbp_get_topic_post_type() === $post->post_type ) {
+						$topic_id = $post->ID;
+					} else {
+						$topic_id = (int) get_post_field( 'post_parent', $post->ID );
+						if ( empty( $topic_id ) ) {
+							$topic_id = (int) get_post_meta( $post->ID, '_bbp_topic_id', true );
+						}
+					}
+
+					$bbp->current_topic_id = $topic_id;
+					$bbp->current_forum_id = $topic_id ? bbp_get_topic_forum_id($topic_id) : 0;
+
+					bbp_get_template_part('loop', 'single-reply-card');
+
+					$bbp->current_reply_id = 0;
+					$bbp->current_topic_id = 0;
+					$bbp->current_forum_id = 0;
+
+					wp_reset_postdata();
+				}
+
+				extrachill_is_activity_feed_card(false);
+				wp_reset_postdata();
+				?>
+			</li>
+		</ul>
+		<?php extrachill_pagination($pagination, 'bbpress'); ?>
+	</div>
+	<?php
+	$bbp->current_reply_id = $previous_reply_id;
+	$bbp->current_topic_id = $previous_topic_id;
+	$bbp->current_forum_id = $previous_forum_id;
 }

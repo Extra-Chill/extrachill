@@ -212,7 +212,7 @@ function extrachill_enqueue_scripts() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts', 20);
 
 function enqueue_content_expand_script() {
-	if ( is_page('recent') || is_page_template('page-templates/main-blog-comments-feed.php') ) {
+	if ( is_page('recent') || is_page_template('page-templates/main-blog-comments-feed.php') || ( function_exists('bbp_is_single_user_profile') && bbp_is_single_user_profile() ) ) {
 		$script_path      = '/inc/assets/js/content-expand.js';
 		$script_full_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . $script_path;
 		$version          = filemtime($script_full_path);

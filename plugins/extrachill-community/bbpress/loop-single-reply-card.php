@@ -131,7 +131,7 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 				</div><!-- .author-header-column -->
 
 				<?php
-				if ( bbp_is_single_user_replies() || is_page_template('page-templates/recent-feed-template.php') ) :
+				if ( bbp_is_single_user_replies() || is_page_template('page-templates/recent-feed-template.php') || ( function_exists('extrachill_is_activity_feed_card') && extrachill_is_activity_feed_card() ) ) :
 					// Check for pre-fetched topic/forum data (multisite context)
 					$prefetch_topic_url   = get_query_var('prefetch_topic_url');
 					$prefetch_topic_title = get_query_var('prefetch_topic_title');
@@ -172,7 +172,7 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 			<div class="bbp-reply-content" data-reply-id="<?php bbp_reply_id(); ?>">
 				<?php do_action( 'bbp_theme_before_reply_content' ); ?>
 				<?php
-				if ( is_page_template('page-templates/recent-feed-template.php') ) {
+				if ( is_page_template('page-templates/recent-feed-template.php') || ( function_exists('extrachill_is_activity_feed_card') && extrachill_is_activity_feed_card() ) ) {
 					$content         = bbp_get_reply_content();
 					$content_length  = strlen( wp_strip_all_tags( $content ) );
 					$truncate_length = 500;

@@ -2,6 +2,12 @@
 /*
  * Template Name: Recent Activity Feed
  * Description: A page template to show the most recent replies across all forums in a Twitter-like stream.
+ *
+ * This template owns ONLY the global /recent activity page. It is intentionally
+ * forum-scoped (topics + replies across all forums) and NOT cross-network — see
+ * epic #53 Phase 3. The user-scoped profile activity feed lives in its own path
+ * (inc/user-profiles/profile-activity-feed.php), so this page can be changed or
+ * retired without touching profiles.
  */
 
 get_header();
@@ -9,16 +15,7 @@ get_header();
 <?php extrachill_breadcrumbs(); ?>
 
 <?php
-
-// Check if we are on a user profile page
-$isUserProfile = bbp_is_single_user();
-
-if ( $isUserProfile ) {
-	$feed_title = '@' . bbp_get_displayed_user_field('user_nicename');
-	echo '<div class="community-section-header"><h1 class="profile-title-inline">' . esc_html( $feed_title ) . '</h1></div>';
-} else {
-	echo '<div class="community-section-header"><h1>Recent Activity</h1></div>';
-}
+echo '<div class="community-section-header"><h1>' . esc_html__( 'Recent Activity', 'extra-chill-community' ) . '</h1></div>';
 
 // Output the standard WordPress content within the div
 if ( have_posts() ) :
@@ -28,83 +25,8 @@ if ( have_posts() ) :
 	endwhile;
 endif;
 
-// Set up the query to fetch the most recent replies
-$recent_feed = extrachill_get_recent_feed_query(15);
+// Global recent activity feed (unscoped, forum-wide).
+$recent_feed = extrachill_get_recent_feed_query( 15 );
+extrachill_render_recent_feed( $recent_feed );
 
-if ( $recent_feed && ! empty($recent_feed['items']) ) {
-	$feed_items        = $recent_feed['items'];
-	$pagination        = $recent_feed['pagination'];
-	$bbp               = bbpress();
-	$previous_reply_id = isset($bbp->current_reply_id) ? $bbp->current_reply_id : 0;
-	$previous_topic_id = isset($bbp->current_topic_id) ? $bbp->current_topic_id : 0;
-	$previous_forum_id = isset($bbp->current_forum_id) ? $bbp->current_forum_id : 0;
-	?>
-	<div id="bbpress-forums" class="bbpress-wrapper">
-		<ul class="forums bbp-replies">
-			<li class="bbp-body">
-				<?php
-				global $post;
-				foreach ( $feed_items as $feed_item ) {
-					// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentionally sets the global $post for setup_postdata() and the bbPress template part below.
-					$post = $feed_item['post'];
-
-					if ( ! $post || ! is_object($post) ) {
-						continue;
-					}
-
-					setup_postdata($post);
-
-					// Set pre-fetched author data for template use
-					set_query_var('prefetch_author_id', $feed_item['author_id']);
-					set_query_var('prefetch_author_name', $feed_item['author_name']);
-					set_query_var('prefetch_author_avatar_url', $feed_item['author_avatar_url']);
-
-					// Set pre-fetched topic/forum data for template use
-					set_query_var('prefetch_topic_id', $feed_item['topic_id']);
-					set_query_var('prefetch_topic_url', $feed_item['topic_url']);
-					set_query_var('prefetch_topic_title', $feed_item['topic_title']);
-					set_query_var('prefetch_forum_id', $feed_item['forum_id']);
-					set_query_var('prefetch_forum_url', $feed_item['forum_url']);
-					set_query_var('prefetch_forum_title', $feed_item['forum_title']);
-
-					$bbp->current_reply_id = $post->ID;
-
-					if ( bbp_get_topic_post_type() === $post->post_type ) {
-						$topic_id = $post->ID;
-					} else {
-						$topic_id = (int) get_post_field( 'post_parent', $post->ID );
-						if ( empty( $topic_id ) ) {
-							$topic_id = (int) get_post_meta( $post->ID, '_bbp_topic_id', true );
-						}
-					}
-
-					$bbp->current_topic_id = $topic_id;
-					$bbp->current_forum_id = $topic_id ? bbp_get_topic_forum_id($topic_id) : 0;
-
-					bbp_get_template_part('loop', 'single-reply-card');
-
-					$bbp->current_reply_id = 0;
-					$bbp->current_topic_id = 0;
-					$bbp->current_forum_id = 0;
-
-					wp_reset_postdata();
-				}
-
-				wp_reset_postdata();
-				?>
-			</li>
-		</ul>
-		<?php extrachill_pagination($pagination, 'bbpress'); ?>
-	</div>
-	<?php
-	$bbp->current_reply_id = $previous_reply_id;
-	$bbp->current_topic_id = $previous_topic_id;
-	$bbp->current_forum_id = $previous_forum_id;
-} else {
-	echo '<div class="notice notice-info"><p>No recent activity found.</p></div>';
-}
-
-?>
-<?php
 get_footer();
-?>

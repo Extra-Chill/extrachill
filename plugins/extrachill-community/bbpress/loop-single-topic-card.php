@@ -98,7 +98,8 @@ if ( ! $topic_id ) {
 		if ( is_page_template('page-templates/recent-feed-template.php') ||
 			is_front_page() ||
 			is_search() ||
-			bbp_is_search() ) {
+			bbp_is_search() ||
+			( function_exists('extrachill_is_activity_feed_card') && extrachill_is_activity_feed_card() ) ) {
 			$show_forum_name_on_card = true;
 		}
 

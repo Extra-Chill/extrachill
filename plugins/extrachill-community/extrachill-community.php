@@ -81,6 +81,7 @@ function extrachill_community_init() {
 
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/concert-history.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/custom-user-profile.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/profile-activity-feed.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/verification.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/settings/settings-content.php';
 
