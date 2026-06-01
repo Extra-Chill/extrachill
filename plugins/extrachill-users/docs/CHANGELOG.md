@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.15.0] - 2026-06-01
+
+### Added
+- render notification bell network-wide (refs #104)
+- digest email opt-out toggle + one-click unsubscribe
+- feat(concert-tracking): award rank points for shows attended
+- unread-notification email digest channel
+- feat(concert-tracking): show reminders + milestone notifications
+- network notification table + entry point + abilities
+- feat(concert-tracking): enrich shows payload with cross-site term urls
+- cross-site stat links + attendee 'who's going' surface
+- feat(concert-import): route event creation through canonical upsert-post (fixes #81)
+- add Feature Rollout network-admin page (closes #66)
+
+### Changed
+- remove dead bp_ follow-system from subscription abilities
+- queue digest sends + schedule via DM RecurringScheduler
+- delete duplicated token primitives, consolidate onto wp-native-auth (refs #76)
+- consume theme tokens + clear phpcs lint debt
+
+### Fixed
+- expose user-facing abilities over Abilities REST /run with per-ability auth
+- hash browser-handoff token cache key (closes #73)
+- generate refresh tokens with random_bytes base64url (closes #72)
+
 ## [0.14.0] - 2026-05-30
 
 ### Added
