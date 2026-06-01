@@ -135,7 +135,6 @@ function extrachill_community_bbpress_drafts_upsert( $user_id, array $draft ) {
 	// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
 	$sql = $wpdb->prepare(
 		"INSERT INTO {$table}
-	// phpcs:enable WordPress.DB.PreparedSQL
 			(user_id, blog_id, type, forum_id, topic_id, reply_to, title, content, updated_at)
 		VALUES (%d, %d, %s, %d, %d, %d, %s, %s, %d)
 		ON DUPLICATE KEY UPDATE
@@ -152,10 +151,9 @@ function extrachill_community_bbpress_drafts_upsert( $user_id, array $draft ) {
 		$row['content'],
 		$row['updated_at']
 	);
-
-	// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-	$result = $wpdb->query( $sql );
 	// phpcs:enable WordPress.DB.PreparedSQL
+
+	$result = $wpdb->query( $sql );
 	if ( false === $result ) {
 		return false;
 	}
@@ -185,7 +183,6 @@ function extrachill_community_bbpress_drafts_fetch( $user_id, array $context ) {
 	$row = $wpdb->get_row(
 		$wpdb->prepare(
 			"SELECT * FROM {$table}
-	// phpcs:enable WordPress.DB.PreparedSQL
 			WHERE user_id = %d
 				AND blog_id = %d
 				AND type = %s
@@ -202,6 +199,7 @@ function extrachill_community_bbpress_drafts_fetch( $user_id, array $context ) {
 		),
 		ARRAY_A
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	return $row ? extrachill_community_bbpress_drafts_normalize_row( $row ) : null;
 }
