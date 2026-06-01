@@ -1,13 +1,14 @@
 <?php
 /**
- * From Around the Extra Chill Network — Single Post Bridge (v1)
+ * From Around the Extra Chill Network — Single Post Bridge
  *
  * Routes attention from high-traffic evergreen blog posts (the residual
  * song-meaning / music-history catalog) into the live platform surfaces
- * that breathe daily: the events calendar, the festival news wire, and the
- * community. The vast majority of network search traffic lands on these
- * single posts and dead-ends there; this section gives the reader a
- * contextual path one click deeper into the network.
+ * that breathe daily: the artist's profile hub, the events calendar, the
+ * festival news wire, the shop, and the community. The vast majority of
+ * network search traffic lands on these single posts and dead-ends there;
+ * this section gives the reader a contextual path one click deeper into the
+ * network.
  *
  * Relevance is driven entirely by the post's own taxonomy terms. Blog posts,
  * events, and wire posts share the network-wide `artist` and `festival`
@@ -80,11 +81,13 @@ add_action( 'extrachill_after_post_content', 'extrachill_blog_network_bridge', 6
 /**
  * Build the (cached) set of cross-site cards for a single post.
  *
- * Resolves up to three contextual destinations from the post's artist and
+ * Resolves up to five contextual destinations from the post's artist and
  * festival terms:
- *   1. A relevant upcoming event (events.extrachill.com)
- *   2. A relevant wire story (wire.extrachill.com)
- *   3. A community entry point (community.extrachill.com)
+ *   1. The artist's profile hub (artist.extrachill.com)
+ *   2. A relevant upcoming event (events.extrachill.com)
+ *   3. A relevant wire story (wire.extrachill.com)
+ *   4. Relevant merch (shop.extrachill.com)
+ *   5. A community entry point (community.extrachill.com)
  *
  * Mirrors the 1-hour transient pattern used by the theme's related-posts
  * helper, keyed by post ID plus a signature of the post's matching terms so
@@ -159,11 +162,15 @@ function extrachill_blog_network_bridge_terms( $post_id, $taxonomy ) {
 }
 
 /**
- * Assemble up to three contextual cards from the post's terms.
+ * Assemble up to five contextual cards from the post's terms.
  *
- * Order of preference for the three slots:
+ * Order of preference for the slots:
+ *   - Profile:   the artist's profile hub on the artist platform (the live
+ *                destination the #62 term↔profile binding hardens). Resolved by
+ *                the engine via the artist term, surfaced here for the first time.
  *   - Event:     first artist term with upcoming events, else first festival term.
  *   - Wire:      first festival term with wire coverage, else first artist term.
+ *   - Shop:      relevant merch for the artist term, when the shop has products.
  *   - Community: contextual entry point (artist-first, festival fallback). Always
  *                present as a guaranteed path into the community.
  *
@@ -173,7 +180,7 @@ function extrachill_blog_network_bridge_terms( $post_id, $taxonomy ) {
  *
  * @param WP_Term[] $artist_terms   Artist terms on the post.
  * @param WP_Term[] $festival_terms Festival terms on the post.
- * @return array Up to three link arrays.
+ * @return array Up to five link arrays.
  */
 function extrachill_blog_network_bridge_build_cards( $artist_terms, $festival_terms ) {
 	// Gather candidate cross-site links from every matchable term, keyed by
@@ -189,17 +196,29 @@ function extrachill_blog_network_bridge_build_cards( $artist_terms, $festival_te
 
 	$cards = array();
 
-	// Slot 1 — a relevant upcoming event.
+	// Slot 1 — the artist's profile hub. The engine resolves this from the
+	// artist term (the #62 term↔profile binding); it is the highest-value
+	// destination because the profile is the artist's live home on the network.
+	if ( isset( $by_site['artist'] ) ) {
+		$cards['artist'] = $by_site['artist'];
+	}
+
+	// Slot 2 — a relevant upcoming event.
 	if ( isset( $by_site['events'] ) ) {
 		$cards['events'] = $by_site['events'];
 	}
 
-	// Slot 2 — a relevant wire story.
+	// Slot 3 — a relevant wire story.
 	if ( isset( $by_site['wire'] ) ) {
 		$cards['wire'] = $by_site['wire'];
 	}
 
-	// Slot 3 — a guaranteed community entry point. Prefer a real
+	// Slot 4 — relevant merch, when the shop has products for the artist term.
+	if ( isset( $by_site['shop'] ) ) {
+		$cards['shop'] = $by_site['shop'];
+	}
+
+	// Slot 5 — a guaranteed community entry point. Prefer a real
 	// community match from the engine; otherwise synthesize a contextual link
 	// into the community keyed on the post's primary artist/festival term.
 	if ( isset( $by_site['community'] ) ) {
@@ -243,11 +262,11 @@ function extrachill_blog_network_bridge_collect( &$by_site, $term, $taxonomy ) {
 	}
 
 	foreach ( $links as $link ) {
-		// Only surface the live platform surfaces in v1. The main blog itself
-		// is the current page's site and is never a "from around the network"
-		// destination; artist/shop are out of scope for the v1 three-card set.
+		// Surface the live platform surfaces plus the artist's own profile hub
+		// and shop. The main blog itself is the current page's site and is never
+		// a "from around the network" destination, so it stays filtered out.
 		$site_key = isset( $link['site_key'] ) ? $link['site_key'] : '';
-		if ( ! in_array( $site_key, array( 'events', 'wire', 'community' ), true ) ) {
+		if ( ! in_array( $site_key, array( 'artist', 'events', 'wire', 'shop', 'community' ), true ) ) {
 			continue;
 		}
 
