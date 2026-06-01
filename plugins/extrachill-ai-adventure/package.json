@@ -7,6 +7,7 @@
     "start": "wp-scripts start --webpack-copy-php"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^30.0.0"
+    "@wordpress/scripts": "^30.0.0",
+    "ajv": "^8.20.0"
   }
 }
