@@ -46,31 +46,40 @@ function ec_users_render_attendance_button( int $event_id ) {
 		),
 	);
 
-	$label_set   = $labels[ $timing ] ?? $labels['past'];
-	$is_marked   = false;
-	$action      = 'login';
-	$count_label = ec_users_format_count_label( $count, $timing );
+	$label_set    = $labels[ $timing ] ?? $labels['past'];
+	$is_logged_in = is_user_logged_in();
+	$is_marked    = false;
+	$count_label  = ec_users_format_count_label( $count, $timing );
 
-	if ( is_user_logged_in() ) {
+	if ( $is_logged_in ) {
 		$is_marked = ec_users_is_event_marked( get_current_user_id(), $event_id, $blog_id );
-		$action    = 'toggle';
 	}
 
 	$button_label = $is_marked ? $label_set['active'] : $label_set['default'];
 
-	// Theme button classes: button-2 (green accent) when active, button-3 (neutral) when not.
+	// Theme button classes: button-2 (green accent) when marked, button-3 (neutral) when not.
 	$button_class = $is_marked ? 'button-2' : 'button-3';
 	$marked_class = $is_marked ? ' ec-attendance--marked' : '';
 
+	// Server-render the first-paint markup so the button is visible (and
+	// SEO/no-JS friendly) before the React mount hydrates. The mount root
+	// carries the initial state as data attributes; the React component
+	// (blocks/concert-attendance) owns all interaction after hydration —
+	// there is no imperative data-action control surface anymore.
 	?>
-	<div class="ec-attendance<?php echo esc_attr( $marked_class ); ?>"
+	<div id="ec-attendance-root"
+		class="ec-attendance<?php echo esc_attr( $marked_class ); ?>"
 		data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
 		data-blog-id="<?php echo esc_attr( (string) $blog_id ); ?>"
 		data-timing="<?php echo esc_attr( $timing ); ?>"
+		data-marked="<?php echo $is_marked ? '1' : '0'; ?>"
+		data-count="<?php echo esc_attr( (string) $count ); ?>"
+		data-count-label="<?php echo esc_attr( $count > 0 ? $count_label : '' ); ?>"
+		data-is-logged-in="<?php echo $is_logged_in ? '1' : '0'; ?>"
+		data-login-url="<?php echo esc_attr( wp_login_url() ); ?>"
 		data-label-default="<?php echo esc_attr( $label_set['default'] ); ?>"
 		data-label-active="<?php echo esc_attr( $label_set['active'] ); ?>">
 		<button class="ec-attendance__button <?php echo esc_attr( $button_class ); ?> button-medium"
-				data-action="<?php echo esc_attr( $action ); ?>"
 				type="button">
 			<?php if ( $is_marked ) : ?>
 				<span class="ec-attendance__check" aria-hidden="true">&#10003;</span>
@@ -162,23 +171,28 @@ function ec_users_enqueue_concert_tracking_assets() {
 		);
 	}
 
-	$js_path = EXTRACHILL_USERS_PLUGIN_DIR . 'assets/js/concert-tracking.js';
-	if ( file_exists( $js_path ) ) {
+	// Headless React mount for the attendance button. Built via @wordpress/scripts
+	// (blocks/concert-attendance/src/index.js → build/concert-attendance). The
+	// generated .asset.php supplies dependency handles (wp-element, wp-api-fetch,
+	// wp-dom-ready, …) and a content-hash version, so no manual dependency list
+	// or window global is needed. Replaces the legacy data-* IIFE.
+	$script_path  = EXTRACHILL_USERS_PLUGIN_DIR . 'build/concert-attendance/index.js';
+	$asset_path   = EXTRACHILL_USERS_PLUGIN_DIR . 'build/concert-attendance/index.asset.php';
+
+	if ( file_exists( $script_path ) && file_exists( $asset_path ) ) {
+		$asset = require $asset_path;
+
 		wp_enqueue_script(
-			'extrachill-users-concert-tracking',
-			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/concert-tracking.js',
-			array( 'wp-api-fetch' ),
-			(string) filemtime( $js_path ),
+			'extrachill-users-concert-attendance',
+			EXTRACHILL_USERS_PLUGIN_URL . 'build/concert-attendance/index.js',
+			$asset['dependencies'],
+			$asset['version'],
 			true
 		);
 
-		wp_localize_script(
-			'extrachill-users-concert-tracking',
-			'ecConcertTracking',
-			array(
-				'loginUrl'   => wp_login_url(),
-				'isLoggedIn' => is_user_logged_in(),
-			)
+		wp_set_script_translations(
+			'extrachill-users-concert-attendance',
+			'extrachill-users'
 		);
 	}
 }
