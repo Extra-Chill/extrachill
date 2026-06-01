@@ -232,6 +232,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/actions.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/concert-tracking-integration.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-scope-token.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-calendar-filter.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-map-filter.php';
 	}

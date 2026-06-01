@@ -15,13 +15,25 @@
  *     attachment path requires `taxonomy + term_id`, which is not
  *     applicable on a Page route like `/my-shows/`.
  *
- * Both callbacks are guarded on `is_page('my-shows')` + logged-in user
- * so they no-op everywhere else, including in REST requests originating
- * from other contexts.
+ * Scope-token model (#160). Both callbacks USED to gate on
+ * `is_page('my-shows')` + logged-in user. The events-map block fetches
+ * venues over the public REST endpoint on mount (and on every pan/zoom),
+ * where `is_page('my-shows')` is FALSE — so the scoping silently dropped
+ * and the map leaked the entire network-wide venue set (the same class of
+ * bug as the calendar in #160).
+ *
+ * The fix mirrors the calendar: owner identity travels as a DATA token.
+ * We mint a non-spoofable HMAC token for the owner at server-render time
+ * via the generic `data_machine_events_map_scope_token` seam; DME emits
+ * it on the map root as `data-scope-token`, the map frontend re-sends it
+ * as `scope_token` on every venue fetch, and DME threads it into these
+ * filters' `$input['scope_token']`. The callbacks validate the token →
+ * owner user id and scope accordingly, regardless of page context.
  *
  * Reuses `ec_events_my_shows_get_tracked_post_ids()` from
  * `my-shows-calendar-filter.php` (#110) for the underlying
- * tracked-event lookup against `{$wpdb->base_prefix}ec_concert_tracking`.
+ * tracked-event lookup against `{$wpdb->base_prefix}ec_concert_tracking`,
+ * and the mint/verify helpers from `my-shows-scope-token.php`.
  *
  * Layer purity: data-machine-events stays generic (no knowledge of
  * `c8c_ec_concert_tracking`). Extrachill-events provides the
@@ -36,31 +48,57 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Restrict events-map venue lookup to venues of the user's tracked shows.
+ * Mint the owner scope token for the embedded My Shows map.
  *
- * Active only when:
- *   - request is rendering the `/my-shows/` page
- *   - a logged-in user is present
+ * Runs at server-render time via the generic
+ * `data_machine_events_map_scope_token` seam. Page context IS reliable
+ * here (fires during the `/my-shows/` PHP render, never over REST), so
+ * `is_page()` is the correct gate for EMISSION.
+ *
+ * @param string $scope_token Incoming token (empty unless another consumer set one).
+ * @param array  $context     Map render context from DME.
+ * @return string Minted token, or the incoming value unchanged when not applicable.
+ */
+function ec_events_my_shows_emit_map_scope_token( $scope_token, $context = array() ) {
+	unset( $context );
+
+	if ( ! function_exists( 'is_page' ) || ! is_page( 'my-shows' ) ) {
+		return $scope_token;
+	}
+
+	$user_id = get_current_user_id();
+	if ( $user_id < 1 ) {
+		return $scope_token;
+	}
+
+	return ec_events_my_shows_mint_scope_token( $user_id );
+}
+add_filter( 'data_machine_events_map_scope_token', 'ec_events_my_shows_emit_map_scope_token', 10, 2 );
+
+/**
+ * Restrict events-map venue lookup to venues of the token owner's
+ * tracked shows.
+ *
+ * Active only when `$input['scope_token']` is a VALID owner token. No
+ * valid token → no scoping (the public map default). Driven by the
+ * verified data token rather than `is_page()` so it survives the map's
+ * mount + pan/zoom REST round-trips (the #160 fix).
  *
  * The DME venue-map query path computes a candidate venue ID set from
  * any geo / taxonomy filters and exposes the merged result via
  * `$query_args['include_ids']`. We narrow that set further to the
- * venue terms attached to the user's tracked events. Empty tracked set
+ * venue terms attached to the owner's tracked events. Empty tracked set
  * → sentinel `[0]` so the venue lookup short-circuits to "no results"
  * cleanly.
  *
  * @param array $query_args Resolved query args from VenueMapAbilities.
- * @param array $input      Raw ability input (unused; signature compat).
+ * @param array $input      Raw ability input; `scope_token` carries the owner token.
  * @return array Modified $query_args.
  */
 function ec_events_my_shows_filter_map_query( array $query_args, array $input = array() ): array {
-	unset( $input );
+	$token   = $input['scope_token'] ?? '';
+	$user_id = ec_events_my_shows_verify_scope_token( $token );
 
-	if ( ! function_exists( 'is_page' ) || ! is_page( 'my-shows' ) ) {
-		return $query_args;
-	}
-
-	$user_id = get_current_user_id();
 	if ( $user_id < 1 ) {
 		return $query_args;
 	}
@@ -107,17 +145,13 @@ add_filter( 'data_machine_events_map_query_args', 'ec_events_my_shows_filter_map
  * tour-route mode that uses earliest-event-at-venue ordering.
  *
  * @param array $venues Final venue array from VenueMapAbilities (already sorted + capped).
- * @param array $input  Raw ability input (unused; signature compat).
+ * @param array $input  Raw ability input; `scope_token` carries the owner token.
  * @return array Venues with tracked events attached and re-ordered chronologically.
  */
 function ec_events_my_shows_attach_tracked_events( array $venues, array $input = array() ): array {
-	unset( $input );
+	$token   = $input['scope_token'] ?? '';
+	$user_id = ec_events_my_shows_verify_scope_token( $token );
 
-	if ( ! function_exists( 'is_page' ) || ! is_page( 'my-shows' ) ) {
-		return $venues;
-	}
-
-	$user_id = get_current_user_id();
 	if ( $user_id < 1 || empty( $venues ) ) {
 		return $venues;
 	}
