@@ -58,8 +58,9 @@ function extrachill_get_user_total_points($user_id) {
 
 	$bbpress_points = ( $topic_count + $reply_count ) * 2;
 
-	// Get total upvotes (assuming extrachill_get_user_total_upvotes handles its own caching or is fast)
-	// If extrachill_get_user_total_upvotes is slow, it should also be cached similarly.
+	// Total upvotes received is read from an incrementally-maintained counter
+	// (extrachill_upvotes_received user meta), so this is O(1) after the
+	// one-time lazy backfill. See extrachill_get_user_total_upvotes().
 	$total_upvotes = extrachill_get_user_total_upvotes($user_id) ?? 0;
 	$upvote_points = floatval($total_upvotes) * 0.5;
 
@@ -67,8 +68,13 @@ function extrachill_get_user_total_points($user_id) {
 	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
 	if ( $main_blog_id ) {
 		switch_to_blog( $main_blog_id );
-		$main_site_post_count = count_user_posts($user_id, 'post', true);
-		restore_current_blog();
+		try {
+			$main_site_post_count = count_user_posts($user_id, 'post', true);
+		} finally {
+			// Always restore blog context, even if count_user_posts() throws,
+			// to avoid leaking the switched context into the rest of the request.
+			restore_current_blog();
+		}
 	} else {
 		$main_site_post_count = 0;
 	}

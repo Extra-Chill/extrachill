@@ -96,7 +96,18 @@ function extrachill_delete_leaderboard_cache() {
 }
 
 /**
- * Clear user-related point transients and cached totals.
+ * Clear user-related point transients and queue a deferred recalculation.
+ *
+ * Busts the per-user count/points transients so the next read recomputes a
+ * fresh total, and enqueues the affected users for the hourly cron recompute
+ * (extrachill_process_points_recalculation_queue). It deliberately does NOT
+ * recompute inline: the full recompute walks O(author lifetime post count)
+ * rows and previously ran synchronously inside the request that posted/edited
+ * a topic or reply, making the cost of a write grow with the author's history.
+ *
+ * Display falls back to a lazy recompute-on-cache-miss (see
+ * extrachill_display_user_points()), and upvote totals are now maintained
+ * incrementally, so the eager inline recompute is redundant.
  *
  * @param array $user_ids List of user IDs.
  */
@@ -111,22 +122,31 @@ function extrachill_clear_user_points_cache($user_ids) {
 		delete_transient('user_points_' . $user_id);
 	}
 
-	extrachill_recalculate_user_points($user_ids);
+	extrachill_queue_user_points_recalculation($user_ids);
 }
 
 /**
- * Recalculate total points immediately after cache purge.
+ * Queue affected users for the hourly deferred points recalculation.
+ *
+ * Mirrors extrachill_queue_points_recalculation() (which queues by post ID)
+ * but accepts already-resolved user IDs from the cache-invalidation path.
+ * The queue is drained by extrachill_process_points_recalculation_queue() on
+ * the hourly cron event.
  *
  * @param array $user_ids List of user IDs.
  */
-function extrachill_recalculate_user_points($user_ids) {
-	if ( empty($user_ids) || ! function_exists('extrachill_get_user_total_points') ) {
+function extrachill_queue_user_points_recalculation($user_ids) {
+	if ( empty($user_ids) ) {
 		return;
 	}
 
+	$queue = get_option('extrachill_points_recalculation_queue', array());
+
 	foreach ( $user_ids as $user_id ) {
-		extrachill_get_user_total_points($user_id);
+		$queue[ (int) $user_id ] = true;
 	}
+
+	update_option('extrachill_points_recalculation_queue', $queue);
 }
 
 /**
