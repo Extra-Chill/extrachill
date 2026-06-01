@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.2] - 2026-06-01
+
+### Changed
+- clear WPCS yoda false positive in room chip status filter
+
+### Fixed
+- remove O(author lifetime posts) points recompute from forum write path
+- remove phpcs:enable comment embedded in $wpdb->prepare() SQL strings
+- render browse-rooms chips with canonical taxonomy-badge pill (#106)
+
 ## [1.9.1] - 2026-06-01
 
 ### Changed
