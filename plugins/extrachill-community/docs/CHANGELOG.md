@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.1] - 2026-06-01
+
+### Changed
+- remove bell render (moved to extrachill-users) (refs Extra-Chill/extrachill-users#104)
+- remove dead bp_ follow-system remnants
+
+### Fixed
+- exclude hidden/private forums from homepage room chips (#104)
+
 ## [1.9.0] - 2026-05-31
 
 ### Added
