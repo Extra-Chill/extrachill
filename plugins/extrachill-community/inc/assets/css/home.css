@@ -15,20 +15,51 @@
 }
 
 /* =========================================
-   Feed-first homepage (#65)
+   Feed-first homepage (#65, layout finished #107)
    "What's Happening" activity feed is the hero;
    "Browse rooms" chips are demoted nav.
+
+   Layout model: the homepage body lives inside the theme's
+   .extrachill-content wrapper (max-width: var(--container-width), 1200px).
+   A bare flex-column feed inside that wide container left the topic cards
+   pinned hard-left with a large empty void on the right. Each homepage
+   section is therefore centered and constrained to var(--content-width)
+   (800px) — the platform's canonical single-column reading width — so the
+   page reads as an intentional, finished landing column rather than a thin
+   left strip. Mobile collapses to a full-bleed single column.
+
+   Cross-network content (events / wire / artist digests) and a "who's
+   around / regulars" side rail are intentionally NOT built here — deferred
+   to Phase 3 (#73) and the presence work (#111). Stubbing an empty rail now
+   would recreate the same dead right-side void this pass removes.
    ========================================= */
+
+/* --- Shared homepage column constraint --- */
+/*
+ * Center each homepage section at the reading width and let it expand to
+ * the full container on narrower viewports. One rule keeps the CTA, feed,
+ * and browse-rooms nav vertically aligned as a single cohesive column.
+ */
+.community-activity-feed,
+.community-browse-rooms,
+.community-home-topic-actions {
+    width: 100%;
+    max-width: var(--content-width);
+    margin-left: auto;
+    margin-right: auto;
+}
 
 /* --- Activity feed (hero) --- */
 .community-activity-feed {
-    margin: 0 0 var(--spacing-lg);
+    margin: 0 auto var(--spacing-lg);
 }
 
+/*
+ * Single-column feed: topic cards stack at the full constrained width.
+ * The cards are nested inside .bbp-body, so the column treatment is applied
+ * there (not on the outer list wrapper).
+ */
 .community-activity-feed-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
     margin: var(--spacing-md) 0;
 }
 
@@ -36,6 +67,14 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    width: 100%;
+}
+
+/* Override the generic .bbp-topic-card 33%-grid width: in the feed each card
+   spans the full column. */
+.community-activity-feed-list .bbp-topic-card {
+    width: 100%;
+    margin: 0;
 }
 
 .community-activity-feed-empty {
@@ -57,7 +96,7 @@
  * parallel pill definition.
  */
 .community-browse-rooms {
-    margin: var(--spacing-lg) 0;
+    margin: var(--spacing-lg) auto;
 }
 
 .community-room-chips {
@@ -71,8 +110,32 @@
     }
 }
 
-/* --- Forums Grid Container --- */
-#forums-list-homepage.bbp-forums-grid {
+@media (max-width: 480px) {
+    .community-home-topic-actions {
+        justify-content: center;
+    }
+
+    /* Full-bleed cards on phones (handled via ec-mobile-full-width-panel
+       breakout); drop the side borders/radius so they read edge-to-edge. */
+    .bbp-topic-card {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+    }
+}
+
+/* =========================================
+   Forum archive grid (/forums/)
+   Responsive 1-col-mobile / 2-col-desktop grid for the forum-index cards
+   rendered by bbpress/loop-forums.php on the forum archive. Keyed on the
+   .bbp-forums-grid CLASS — the old #forums-list-homepage id was a stale
+   leftover from when this loop was the homepage (Phase 2 / #66 moved the
+   feed-first homepage off it; the loop now serves only the forum archive).
+   home.css loads on the forum archive (see modular_bbpress_styles), so this
+   layout belongs here.
+   ========================================= */
+.bbp-forums-grid {
     display: flex;
     flex-wrap: wrap;
     gap: var(--spacing-lg);
@@ -81,52 +144,29 @@
     margin: var(--spacing-lg) 0;
 }
 
-/* --- Forum Card Styles --- */
-#forums-list-homepage.bbp-forums-grid .bbp-forum-card {
+.bbp-forums-grid .bbp-forum-card {
     box-sizing: border-box;
     flex: 1 1 calc(50% - (var(--spacing-lg) / 2));
     min-width: 0;
 }
 
-/* Desktop styles (2 columns) */
-@media (min-width: 768px) {
-    #forums-list-homepage.bbp-forums-grid .bbp-forum-card {
-        flex: 1 1 calc(50% - (var(--spacing-lg) / 2));
-    }
-}
-
-/* Mobile styles (1 column) */
+/* Mobile (1 column) */
 @media (max-width: 768px) {
-    #forums-list-homepage.bbp-forums-grid {
+    .bbp-forums-grid {
         flex-direction: column;
         gap: var(--spacing-md);
     }
-    
-    #forums-list-homepage.bbp-forums-grid .bbp-forum-card {
+
+    .bbp-forums-grid .bbp-forum-card {
         flex: 1 1 100%;
     }
 }
 
 @media (max-width: 480px) {
-    .community-home-topic-actions {
-        justify-content: center;
-    }
-
-    #forums-list-homepage.bbp-forums-grid {
-        gap: var(--spacing-md);
-    }
-
-    #forums-list-homepage.bbp-forums-grid .bbp-forum-card {
+    .bbp-forums-grid .bbp-forum-card {
         width: 100%;
         max-width: 100%;
         margin: 0;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        box-shadow: none;
-    }
-
-    .bbp-topic-card {
         border-radius: 0;
         border-left: none;
         border-right: none;

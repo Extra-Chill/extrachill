@@ -76,7 +76,7 @@ if ( ! function_exists( 'extrachill_community_render_activity_feed' ) ) {
 			<div class="community-section-header">
 				<h2 id="community-activity-feed-heading"><?php esc_html_e( "What's Happening", 'extra-chill-community' ); ?></h2>
 			</div>
-			<div class="bbp-topics-grid community-activity-feed-list ec-mobile-full-width-panel">
+			<div class="community-activity-feed-list ec-mobile-full-width-panel">
 				<div class="bbp-body">
 					<?php
 					if ( $query->have_posts() ) :

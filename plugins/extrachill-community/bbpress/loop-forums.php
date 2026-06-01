@@ -32,7 +32,7 @@ $args = array(
 );
 if ( bbp_has_forums( $args ) ) :
 	?>
-	<div id="forums-list-homepage" class="bbp-forums-grid ec-mobile-full-width-panel">
+	<div id="forums-list-archive" class="bbp-forums-grid ec-mobile-full-width-panel">
 		<?php
 		while ( bbp_forums() ) :
 			bbp_the_forum();
