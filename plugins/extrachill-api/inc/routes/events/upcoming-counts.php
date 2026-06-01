@@ -64,18 +64,19 @@ function extrachill_api_register_events_upcoming_counts_route() {
 /**
  * Handle upcoming counts request.
  *
- * Invokes the extrachill/events-upcoming-counts ability (registered in extrachill-events).
- * Route affinity middleware ensures this runs on the events site.
+ * Invokes the extrachill/events-upcoming-counts ability (registered in extrachill-events,
+ * which is active only on the events site). Because this REST route is network-wide, it can
+ * be called from any site in the network. To reach the events-registered ability — and the
+ * events-site taxonomy/post tables it reads — we switch to the events blog before resolving
+ * and executing the ability, then always restore the original context.
+ *
+ * Switching before wp_get_ability() also prevents the WP core "ability not found" notice that
+ * would otherwise be emitted on every cross-site call (see issue #86).
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
  */
 function extrachill_api_events_upcoming_counts_handler( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'extrachill/events-upcoming-counts' );
-	if ( ! $ability ) {
-		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
-	}
-
 	$input = array(
 		'taxonomy' => $request->get_param( 'taxonomy' ),
 		'limit'    => (int) $request->get_param( 'limit' ),
@@ -91,10 +92,32 @@ function extrachill_api_events_upcoming_counts_handler( WP_REST_Request $request
 		$input['location_slug'] = $location_slug;
 	}
 
-	$result = $ability->execute( $input );
-	if ( is_wp_error( $result ) ) {
-		return $result;
+	// Resolve the events blog. The ability and its data live on the events site.
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$current_blog   = get_current_blog_id();
+	$did_switch     = false;
+
+	// Only switch when we can resolve the events blog and we're not already on it.
+	if ( $events_blog_id > 0 && $events_blog_id !== $current_blog ) {
+		switch_to_blog( $events_blog_id );
+		$did_switch = true;
 	}
 
-	return rest_ensure_response( $result );
+	try {
+		$ability = wp_get_ability( 'extrachill/events-upcoming-counts' );
+		if ( ! $ability ) {
+			return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
+		}
+
+		$result = $ability->execute( $input );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( $result );
+	} finally {
+		if ( $did_switch ) {
+			restore_current_blog();
+		}
+	}
 }
