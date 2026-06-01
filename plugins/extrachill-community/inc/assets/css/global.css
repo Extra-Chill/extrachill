@@ -2,53 +2,12 @@
  * Global Community Styles
  *
  * Styles that need to be loaded on ALL community pages, not just bbPress pages.
- * Includes notification bell styles.
  *
  * Note: Avatar menu styles located in extrachill-users plugin (assets/css/avatar-menu.css)
  * Note: Online users stats styles located in extrachill-users plugin (assets/css/online-users.css)
+ * Note: Notification bell styles moved to extrachill-users plugin
+ *       (assets/css/notification-bell.css) when the bell render moved network-wide.
+ *       See Extra-Chill/extrachill-users#104.
  *
  * @package ExtraChillCommunity
  */
-
-/* ==================================================
-   Notification Bell
-================================================== */
-.notification-bell-svg {
-	color: var(--button-text-color);
-	font-size: var(--font-size-lg);
-}
-
-.notification-bell-icon a:hover .notification-bell-svg {
-    color: var(--link-color);
-}
-
-.notification-bell-icon {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.notification-bell-avatar-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-}
-
-.notification-bell-avatar-wrapper .avatar {
-    height: 35px;
-    border-radius: 50%;
-    border: 1px solid var(--accent-2);
-    margin-right: 10px;
-}
-
-.notification-count {
-	position: absolute;
-	top: -5px;
-	right: -5px;
-	background-color: var(--error-color);
-	color: var(--button-text-color);
-	border-radius: 50%;
-	padding: 0 5px;
-	font-size: var(--font-size-xs);
-}
