@@ -64,3 +64,14 @@ add_action('extrachill_homepage_content', 'extrachill_community_render_homepage'
  * @return string Empty string
  */
 add_filter( 'bbp_get_single_forum_description', '__return_empty_string' );
+
+/**
+ * Suppress bbPress breadcrumbs network-wide
+ *
+ * The theme's extrachill_breadcrumbs() already renders the breadcrumb trail
+ * (see inc/core/breadcrumb-filter.php). Returning true short-circuits
+ * bbp_breadcrumb() everywhere (bbpress/includes/common/template.php), so
+ * individual template overrides no longer need to drop bbp_breadcrumb()
+ * line-by-line.
+ */
+add_filter( 'bbp_no_breadcrumb', '__return_true' );
