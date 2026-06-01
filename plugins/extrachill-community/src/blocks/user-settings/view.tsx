@@ -1,21 +1,22 @@
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { ExtraChillClient } from '@extrachill/api-client';
-import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
+import { WPNativeClient } from 'wp-native-client';
+import { WpApiFetchTransport } from 'wp-native-client/wordpress';
 import { BlockShell, BlockShellInner, ResponsiveTabs, Panel, PanelHeader, ActionRow, FieldGroup, BlockShellHeader, BlockIntro } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors } from '@extrachill/tokens';
 import type {
 	UserSettings,
+	UserProfile,
 	ChangeEmailResponse,
 	ChangePasswordResponse,
 	UserSubscriptions,
 	FollowedArtist,
 	RequestArtistAccessResponse,
-} from '@extrachill/api-client';
+} from '../../types/users';
 
-const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
+const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), { validateAbilityNames: false } );
 
 const styles = {
 	button: {
@@ -51,7 +52,7 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 		setSaving( true );
 		setNotice( null );
 		try {
-			const result = await client.users.updateSettings( { first_name: firstName, last_name: lastName, display_name: displayName } );
+			const result = await client.execute< UserSettings & { message?: string } >( 'extrachill/update-user-settings', { first_name: firstName, last_name: lastName, display_name: displayName } );
 			onUpdate( result );
 			setNotice( { type: 'success', message: result.message || 'Account details updated.' } );
 		} catch ( err ) {
@@ -94,7 +95,7 @@ function SecurityTab( { settings, onSettingsChange }: { settings: UserSettings; 
 		setEmailSaving( true );
 		setNotice( null );
 		try {
-			const result: ChangeEmailResponse = await client.users.changeEmail( { new_email: newEmail } );
+			const result = await client.execute< ChangeEmailResponse >( 'extrachill/change-user-email', { new_email: newEmail } );
 			setNotice( { type: 'success', message: result.message } );
 			setNewEmail( '' );
 			onSettingsChange( { ...settings, pending_email: result.pending_email } );
@@ -108,7 +109,7 @@ function SecurityTab( { settings, onSettingsChange }: { settings: UserSettings; 
 		setPasswordSaving( true );
 		setNotice( null );
 		try {
-			const result: ChangePasswordResponse = await client.users.changePassword( { current_password: currentPassword, new_password: newPassword, confirm_password: confirmPassword } );
+			const result = await client.execute< ChangePasswordResponse >( 'extrachill/change-user-password', { current_password: currentPassword, new_password: newPassword, confirm_password: confirmPassword } );
 			setNotice( { type: 'success', message: result.message } );
 			setCurrentPassword( '' );
 			setNewPassword( '' );
@@ -153,7 +154,7 @@ function SubscriptionsTab() {
 	const [ consented, setConsented ] = useState< Set<number> >( new Set() );
 
 	useEffect( () => {
-		client.users.getSubscriptions().then( ( result ) => {
+		client.execute< UserSubscriptions >( 'extrachill/get-subscriptions' ).then( ( result ) => {
 			setData( result );
 			const ids = new Set<number>();
 			result.followed_artists.forEach( ( a: FollowedArtist ) => { if ( a.email_consent ) ids.add( a.artist_id ); } );
@@ -174,7 +175,7 @@ function SubscriptionsTab() {
 		setSaving( true );
 		setNotice( null );
 		try {
-			await client.users.updateSubscriptions( { consented_artists: Array.from( consented ) } );
+			await client.execute( 'extrachill/update-subscriptions', { consented_artists: Array.from( consented ) } );
 			setNotice( { type: 'success', message: 'Subscription preferences updated.' } );
 		} catch ( err ) {
 			setNotice( { type: 'error', message: err instanceof Error ? err.message : 'Update failed.' } );
@@ -209,7 +210,7 @@ function ArtistPlatformTab( { artistAccess, artistSiteUrl, hasArtists, canCreate
 		setSubmitting( true );
 		setNotice( null );
 		try {
-			const result: RequestArtistAccessResponse = await client.users.requestArtistAccess( { type: accessType } );
+			const result = await client.execute< RequestArtistAccessResponse >( 'extrachill/request-artist-access', { type: accessType } );
 			setNotice( { type: 'success', message: result.message } );
 			setCurrentStatus( 'pending' );
 		} catch ( err ) {
@@ -230,7 +231,7 @@ function ArtistPlatformTab( { artistAccess, artistSiteUrl, hasArtists, canCreate
 
 type TabId = 'account-details' | 'security' | 'subscriptions' | 'artist-platform';
 
-function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { artistSiteUrl: string; hasArtists: boolean; canCreateArtists: boolean } ) {
+function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists, userId }: { artistSiteUrl: string; hasArtists: boolean; canCreateArtists: boolean; userId: number } ) {
 	const [ activeTab, setActiveTab ] = useState<TabId>( 'account-details' );
 	const [ settings, setSettings ] = useState<UserSettings | null>( null );
 	const [ loading, setLoading ] = useState( true );
@@ -238,7 +239,10 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists }: { art
 	const [ artistAccess, setArtistAccess ] = useState<{ status: string; type: string; request_type?: string; requested_at?: number }>( { status: 'none', type: '' } );
 
 	useEffect( () => {
-		Promise.all( [ client.users.getSettings(), client.users.getProfile() ] ).then( ( [ settingsData, profileData ] ) => {
+		Promise.all( [
+			client.execute< UserSettings >( 'extrachill/get-user-settings' ),
+			client.execute< UserProfile >( 'extrachill/get-user-profile', { user_id: userId } ),
+		] ).then( ( [ settingsData, profileData ] ) => {
 			setSettings( settingsData );
 			setArtistAccess( profileData.artist_access );
 			setLoading( false );
@@ -298,8 +302,9 @@ function init(): void {
 		const artistSiteUrl = container.dataset.artistSiteUrl || 'https://artist.extrachill.com';
 		const hasArtists = container.dataset.hasArtists === '1';
 		const canCreateArtists = container.dataset.canCreateArtists === '1';
+		const userId = Number( container.dataset.userId || '0' );
 		const root = createRoot( container );
-		root.render( <UserSettingsApp artistSiteUrl={ artistSiteUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } /> );
+		root.render( <UserSettingsApp artistSiteUrl={ artistSiteUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } userId={ userId } /> );
 	} );
 }
 

@@ -39,7 +39,6 @@
     "ajv": "^8.20.0"
   },
   "dependencies": {
-    "@extrachill/api-client": "^0.3.0",
     "@extrachill/components": "^0.5.2",
     "@extrachill/tokens": "^0.3.1",
     "@wordpress/api-fetch": "^7.0.0",
@@ -49,7 +48,8 @@
     "@wordpress/data": "^10.36.0",
     "@wordpress/element": "^6.0.0",
     "@wordpress/i18n": "^5.0.0",
-    "@wordpress/icons": "^10.0.0"
+    "@wordpress/icons": "^10.0.0",
+    "wp-native-client": "^0.0.1"
   },
   "private": true
 }

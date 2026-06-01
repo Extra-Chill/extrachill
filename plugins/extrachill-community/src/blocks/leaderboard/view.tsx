@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { ExtraChillClient } from '@extrachill/api-client';
-import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
+import { WPNativeClient } from 'wp-native-client';
+import { WpApiFetchTransport } from 'wp-native-client/wordpress';
 import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, Panel, BlockIntro } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, colors, fontSize } from '@extrachill/tokens';
-import type { LeaderboardResponse, LeaderboardEntry } from '@extrachill/api-client';
+import type { LeaderboardResponse, LeaderboardEntry } from '../../types/users';
 
-const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
+const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), { validateAbilityNames: false } );
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -102,8 +102,8 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 	const load = useCallback( ( targetPage: number ) => {
 		setLoading( true );
 		setError( null );
-		client.users
-			.leaderboard( targetPage, perPage )
+		client
+			.execute< LeaderboardResponse >( 'extrachill/users-leaderboard', { page: targetPage, per_page: perPage } )
 			.then( ( response ) => {
 				setData( response );
 				setLoading( false );

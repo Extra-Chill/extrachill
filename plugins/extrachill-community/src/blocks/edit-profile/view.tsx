@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { ExtraChillClient } from '@extrachill/api-client';
-import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
+import { WPNativeClient } from 'wp-native-client';
+import { WpApiFetchTransport } from 'wp-native-client/wordpress';
 import {
 	ActionRow,
 	BlockShell,
@@ -16,9 +16,9 @@ import {
 } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors } from '@extrachill/tokens';
-import type { UserProfile, UserLink } from '@extrachill/api-client';
+import type { UserProfile, UserLink } from '../../types/users';
 
-const client = new ExtraChillClient( new WpApiFetchTransport( apiFetch ) );
+const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), { validateAbilityNames: false } );
 
 const styles = {
 	avatarContainer: {
@@ -85,8 +85,22 @@ function AvatarUpload( {
 		setUploading( true );
 
 		try {
-			const formData = client.media.buildUploadForm( 'user_avatar', userId, file );
-			const result = await client.media.upload( formData );
+			// B1 exception: avatar upload is a multipart POST with no backing
+			// ability (the Abilities API run endpoint is JSON-only). It stays on
+			// the existing extrachill/v1/media REST route, called directly via
+			// apiFetch — mirroring the former api-client media.upload() wire.
+			const formData = new FormData();
+			formData.append( 'context', 'user_avatar' );
+			if ( userId ) {
+				formData.append( 'target_id', String( userId ) );
+			}
+			formData.append( 'file', file );
+
+			const result = await apiFetch< { url?: string } >( {
+				path: 'extrachill/v1/media',
+				method: 'POST',
+				body: formData,
+			} );
 			if ( result.url ) {
 				onAvatarChange( result.url );
 			}
@@ -214,7 +228,7 @@ function EditProfileApp( {
 	const [ avatarUrl, setAvatarUrl ] = useState( '' );
 
 	useEffect( () => {
-		client.users.getProfile().then( ( data ) => {
+		client.execute< UserProfile >( 'extrachill/get-user-profile', { user_id: userId } ).then( ( data ) => {
 			setProfile( data );
 			setCustomTitle( data.custom_title || '' );
 			setBio( data.bio || '' );
@@ -226,7 +240,7 @@ function EditProfileApp( {
 			setError( err instanceof Error ? err.message : 'Failed to load profile.' );
 			setLoading( false );
 		} );
-	}, [] );
+	}, [ userId ] );
 
 	useEffect( () => {
 		const hash = window.location.hash.replace( '#tab-', '' );
@@ -245,12 +259,12 @@ function EditProfileApp( {
 
 		try {
 			const [ profileResult ] = await Promise.all( [
-				client.users.updateProfile( {
+				client.execute< UserProfile >( 'extrachill/update-user-profile', {
 					custom_title: customTitle,
 					bio,
 					local_city: localCity,
 				} ),
-				client.users.updateLinks( { links } ),
+				client.execute( 'extrachill/update-user-links', { links } ),
 			] );
 
 			setProfile( profileResult );
