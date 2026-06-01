@@ -82,7 +82,6 @@ function extrachill_handle_forum_cache_invalidation($post_id) {
 	$user_ids = array_unique(array_filter($user_ids));
 
 	extrachill_clear_user_points_cache($user_ids);
-	extrachill_clear_forum_related_transients($topic_id, $forum_id);
 	extrachill_purge_forum_edge_cache($topic_id, $forum_id);
 	extrachill_update_parent_forum_last_active_times($forum_id);
 }
@@ -147,37 +146,6 @@ function extrachill_queue_user_points_recalculation($user_ids) {
 	}
 
 	update_option('extrachill_points_recalculation_queue', $queue);
-}
-
-/**
- * Clear forum/topic transients and recent feed caches.
- *
- * @param int $topic_id Topic ID.
- * @param int $forum_id Forum ID.
- */
-function extrachill_clear_forum_related_transients($topic_id, $forum_id) {
-	$keys = array(
-		'extrachill_recent_feed',
-		'extrachill_recent_feed_pagination',
-		'extrachill_recent_topics',
-		'extrachill_homepage_forums',
-		'extrachill_forum_stats',
-	);
-
-	if ( $forum_id ) {
-		$keys[] = 'extrachill_forum_stats_' . $forum_id;
-		$keys[] = 'extrachill_forum_topics_' . $forum_id;
-	}
-
-	if ( $topic_id ) {
-		$keys[] = 'extrachill_topic_reply_ids_' . $topic_id;
-		$keys[] = 'extrachill_topic_stats_' . $topic_id;
-	}
-
-	foreach ( $keys as $key ) {
-		delete_transient($key);
-		wp_cache_delete($key, 'extrachill_community');
-	}
 }
 
 /**

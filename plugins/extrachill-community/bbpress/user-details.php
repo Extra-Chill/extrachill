@@ -19,14 +19,7 @@ defined( 'ABSPATH' ) || exit;
 	// Check for user's bbPress posts (topics or replies)
 	$user_id          = bbp_get_displayed_user_id();
 	$display_user     = wp_get_current_user();
-	$args             = array(
-		'author'         => $user_id,
-		'post_type'      => array( 'reply', 'topic' ), // Prioritize replies in the query
-		'posts_per_page' => 1,
-		'orderby'        => 'date',
-		'order'          => 'DESC',
-	);
-	$user_posts_query = new WP_Query($args);
+	$user_posts_query = ec_get_user_last_post( $user_id );
 
 	if ( $user_posts_query->have_posts() ) {
 		while ( $user_posts_query->have_posts() ) {

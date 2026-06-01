@@ -51,7 +51,7 @@ function extrachill_community_subforum_taxonomy_badges( $output, $r, $args ) {
 	foreach ( $sub_forums as $sub_forum ) {
 		$permalink   = bbp_get_forum_permalink( $sub_forum->ID );
 		$title       = bbp_get_forum_title( $sub_forum->ID );
-		$topic_count = (int) get_post_meta( $sub_forum->ID, '_bbp_topic_count', true );
+		$topic_count = (int) bbp_get_forum_topic_count( $sub_forum->ID );
 		$terms       = wp_get_object_terms( $sub_forum->ID, 'location', array( 'fields' => 'all' ) );
 
 		// Build CSS classes — taxonomy badge pattern: taxonomy-badge location-badge location-{slug}.

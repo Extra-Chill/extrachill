@@ -111,7 +111,7 @@ function extrachill_community_ability_get_upvotes( $input ) {
 
 	if ( $user_id ) {
 		$upvoted_posts = get_user_meta( $user_id, 'upvoted_posts', true );
-		$user_upvoted  = is_array( $upvoted_posts ) && in_array( $post_id, $upvoted_posts, false );
+		$user_upvoted  = is_array( $upvoted_posts ) && in_array( $post_id, $upvoted_posts, true );
 	}
 
 	return array(

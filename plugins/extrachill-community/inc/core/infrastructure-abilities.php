@@ -288,19 +288,6 @@ function extrachill_community_ability_flush_cache() {
 		extrachill_delete_leaderboard_cache();
 	}
 
-	$transients = array(
-		'extrachill_recent_feed',
-		'extrachill_recent_feed_pagination',
-		'extrachill_recent_topics',
-		'extrachill_homepage_forums',
-		'extrachill_forum_stats',
-	);
-
-	foreach ( $transients as $key ) {
-		delete_transient( $key );
-		wp_cache_delete( $key, 'extrachill_community' );
-	}
-
 	if ( function_exists( 'breeze_purge_cache' ) ) {
 		breeze_purge_cache();
 	}

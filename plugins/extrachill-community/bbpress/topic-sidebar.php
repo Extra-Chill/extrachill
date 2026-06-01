@@ -18,15 +18,7 @@ defined( 'ABSPATH' ) || exit;
 		<h2>Recently Active</h2>
 		<ul>
 			<?php
-			$recent_topics_query = new WP_Query( array(
-				'post_type'      => 'topic',
-				'posts_per_page' => 6,
-				'orderby'        => 'meta_value',
-				'meta_key'       => '_bbp_last_active_time',
-				'meta_type'      => 'DATETIME',
-				'order'          => 'DESC',
-				'post__not_in'   => array( get_the_ID() ),
-			) );
+			$recent_topics_query = ec_get_recently_active_topics( 6, get_the_ID() );
 
 			if ( $recent_topics_query->have_posts() ) { // Use curly braces
 				$displayed_count = 0;

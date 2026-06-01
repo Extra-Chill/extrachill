@@ -146,11 +146,11 @@ function extrachill_build_activity_feed($per_page = 15, $paged = null, $author =
 		$post_id   = get_the_ID();
 		$post_type = get_post_type();
 
-		$topic_id = ( 'topic' === $post_type ) ? $post_id : get_post_meta($post_id, '_bbp_topic_id', true);
+		$topic_id = ( 'topic' === $post_type ) ? $post_id : bbp_get_reply_topic_id($post_id);
 		if ( ! $topic_id ) {
 			$topic_id = wp_get_post_parent_id($post_id);
 		}
-		$forum_id = get_post_meta($topic_id ? $topic_id : $post_id, '_bbp_forum_id', true);
+		$forum_id = ( 'topic' === $post_type ) ? bbp_get_topic_forum_id($post_id) : bbp_get_reply_forum_id($post_id);
 
 		$items[] = array(
 			'post'              => get_post(),
@@ -298,7 +298,7 @@ function extrachill_render_recent_feed($feed, $empty_notice = '') {
 					} else {
 						$topic_id = (int) get_post_field( 'post_parent', $post->ID );
 						if ( empty( $topic_id ) ) {
-							$topic_id = (int) get_post_meta( $post->ID, '_bbp_topic_id', true );
+							$topic_id = (int) bbp_get_reply_topic_id( $post->ID );
 						}
 					}
 

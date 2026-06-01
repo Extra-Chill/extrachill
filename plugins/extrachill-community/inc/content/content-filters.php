@@ -140,93 +140,14 @@ function ec_display_forum_description() {
 add_action( 'bbp_template_before_single_forum', 'ec_display_forum_description' );
 
 /**
- * Gets raw Unix timestamp for a forum's last activity.
- * Checks _bbp_last_active_time meta, falls back to last reply/topic post_date.
- */
-function ec_get_raw_forum_timestamp($forum_id) {
-	$last_active = get_post_meta($forum_id, '_bbp_last_active_time', true);
-
-	if ( empty($last_active) ) {
-		$reply_id = bbp_get_forum_last_reply_id($forum_id);
-		if ( ! empty($reply_id) ) {
-			$last_active = get_post_field('post_date', $reply_id);
-		} else {
-			$topic_id = bbp_get_forum_last_topic_id($forum_id);
-			if ( ! empty($topic_id) ) {
-				$last_active = get_post_meta($topic_id, '_bbp_last_active_time', true);
-				if ( empty($last_active) ) {
-					$last_active = get_post_field('post_date', $topic_id);
-				}
-			}
-		}
-	}
-
-	return ! empty($last_active) ? strtotime($last_active) : 0;
-}
-
-/**
- * Recursively finds the latest timestamp across a forum and all its subforums.
- */
-function ec_get_forum_freshness_timestamp_recursive($forum_id) {
-	$latest_timestamp = ec_get_raw_forum_timestamp($forum_id);
-
-	$subforums = bbp_forum_get_subforums($forum_id);
-	foreach ( $subforums as $subforum ) {
-		$subforum_timestamp = ec_get_forum_freshness_timestamp_recursive($subforum->ID);
-		if ( $subforum_timestamp > $latest_timestamp ) {
-			$latest_timestamp = $subforum_timestamp;
-		}
-	}
-
-	return $latest_timestamp;
-}
-
-function ec_get_forum_freshness_with_subforums($forum_id) {
-	$latest_timestamp = ec_get_forum_freshness_timestamp_recursive($forum_id);
-
-	if ( $latest_timestamp > 0 ) {
-		return bbp_get_time_since(bbp_convert_date(gmdate('Y-m-d H:i:s', $latest_timestamp)));
-	}
-	return '';
-}
-
-function ec_get_forum_last_active_id_with_subforums($forum_id) {
-	remove_filter('bbp_get_forum_last_active_id', 'ec_get_forum_last_active_id_with_subforums_filter', 10);
-	$forum_last_active_id = bbp_get_forum_last_active_id($forum_id);
-	add_filter('bbp_get_forum_last_active_id', 'ec_get_forum_last_active_id_with_subforums_filter', 10, 2);
-
-	$latest_timestamp = $forum_last_active_id ? strtotime(get_post_field('post_date', $forum_last_active_id)) : 0;
-
-	$subforums = bbp_forum_get_subforums($forum_id);
-	foreach ( $subforums as $subforum ) {
-		$subforum_last_active_id = ec_get_forum_last_active_id_with_subforums($subforum->ID);
-		if ( $subforum_last_active_id ) {
-			$subforum_time = strtotime(get_post_field('post_date', $subforum_last_active_id));
-			if ( $subforum_time > $latest_timestamp ) {
-				$latest_timestamp     = $subforum_time;
-				$forum_last_active_id = $subforum_last_active_id;
-			}
-		}
-	}
-
-	return $forum_last_active_id;
-}
-
-add_filter('bbp_get_forum_last_active_time', 'ec_get_forum_last_active_time_with_subforums', 10, 2);
-function ec_get_forum_last_active_time_with_subforums($time, $forum_id) {
-	return ec_get_forum_freshness_with_subforums($forum_id);
-}
-
-add_filter('bbp_get_forum_last_active_id', 'ec_get_forum_last_active_id_with_subforums_filter', 10, 2);
-function ec_get_forum_last_active_id_with_subforums_filter($id, $forum_id) {
-	return ec_get_forum_last_active_id_with_subforums($forum_id);
-}
-
-/**
- * Filter topic revisions to only show explicitly logged edits.
+ * Restrict the revision log to edits the author explicitly chose to log.
  *
- * Fixes bbPress bug where all WordPress revisions display in the revision log,
- * regardless of whether user chose to log each individual edit.
+ * This is an Extra Chill editorial policy, not a bbPress bug fix. bbPress core
+ * (bbp_get_topic_revision_log(), includes/topics/template.php) hides the log
+ * entirely when no edit is logged, but once at least one edit is logged it
+ * lists every WordPress revision — rendering un-opted-in ones with a generic
+ * "modified by X" line and no reason. We want only opted-in edits visible, so
+ * we intersect the revision list against the _bbp_revision_log opt-in map.
  */
 add_filter('bbp_get_topic_revisions', 'extrachill_filter_logged_revisions', 10, 2);
 function extrachill_filter_logged_revisions($revisions, $topic_id) {
