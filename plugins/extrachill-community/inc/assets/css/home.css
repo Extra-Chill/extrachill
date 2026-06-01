@@ -49,40 +49,19 @@
 }
 
 /* --- Browse rooms (demoted chip nav) --- */
+/*
+ * Room chips use the canonical .taxonomy-badge pill (theme taxonomy-badges
+ * system), matching how subforum-button-classes.php renders forum links as
+ * badges. The .taxonomy-badges wrapper already supplies the flex-wrap row
+ * layout + gap, so only homepage-specific spacing overrides live here — no
+ * parallel pill definition.
+ */
 .community-browse-rooms {
     margin: var(--spacing-lg) 0;
 }
 
 .community-room-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-sm);
-    list-style: none;
     margin: var(--spacing-md) 0 0;
-    padding: 0;
-}
-
-.community-room-chip {
-    margin: 0;
-}
-
-.community-room-chip-link {
-    display: inline-block;
-    padding: var(--spacing-xs) var(--spacing-md);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-pill, 999px);
-    background: var(--card-background);
-    color: var(--text-color);
-    font-size: var(--font-size-sm);
-    line-height: 1.4;
-    text-decoration: none;
-    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
-}
-
-.community-room-chip-link:hover,
-.community-room-chip-link:focus {
-    border-color: var(--accent);
-    color: var(--link-color);
 }
 
 @media (max-width: 480px) {

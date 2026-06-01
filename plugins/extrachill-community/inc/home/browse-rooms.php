@@ -128,15 +128,13 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 			<div class="community-section-header">
 				<h2 id="community-browse-rooms-heading"><?php esc_html_e( 'Browse rooms', 'extra-chill-community' ); ?></h2>
 			</div>
-			<ul class="community-room-chips ec-mobile-full-width-panel">
+			<div class="taxonomy-badges community-room-chips ec-mobile-full-width-panel">
 				<?php foreach ( $rooms as $room ) : ?>
-					<li class="community-room-chip">
-						<a href="<?php echo esc_url( get_permalink( $room ) ); ?>" class="community-room-chip-link">
-							<?php echo esc_html( get_the_title( $room ) ); ?>
-						</a>
-					</li>
+					<a href="<?php echo esc_url( get_permalink( $room ) ); ?>" class="taxonomy-badge">
+						<?php echo esc_html( get_the_title( $room ) ); ?>
+					</a>
 				<?php endforeach; ?>
-			</ul>
+			</div>
 		</nav>
 		<?php
 	}
