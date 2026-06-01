@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.3] - 2026-06-01
+
+### Fixed
+- finish community homepage layout — center feed, fix stale forum-archive grid (#107)
+
 ## [1.9.2] - 2026-06-01
 
 ### Changed
