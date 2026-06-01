@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.28.0] - 2026-06-01
+
+### Added
+- feat(artist-map): render chronological tour-route map on artist archives
+- feat(concert-stats): render venue/city as platform taxonomy badges
+- feat(concert-stats): responsive tabs + tab badges + interactive stat tiles + softer zero-state
+- feat(concert-stats): link show-card terms and badge leaderboard counts
+- feat(concert-stats): link leaderboard terms to cross-site profiles/archives
+- shared venue-city to location-term resolver for create-time normalizer
+- add reverse network bridge on single event pages
+
+### Changed
+- refactor(concert-stats): extract attendance toggle into shared useMarkAttendance hook
+- refactor(concert-stats): unify buttons on theme classes
+- refactor(my-shows): remove dead code and de-duplicate date formatting
+- clear phpcs lint debt (release preflight)
+
+### Fixed
+- scope My Shows calendar + map by signed token so owner scoping survives REST
+
 ## [0.27.5] - 2026-05-30
 
 ### Fixed
