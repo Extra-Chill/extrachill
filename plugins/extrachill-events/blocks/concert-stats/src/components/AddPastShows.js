@@ -1,7 +1,10 @@
 /**
- * AddPastShows — "Add Past Shows" tab content for the concert-stats block.
+ * AddPastShows — owner-only "add a past show" affordance.
  *
  * Lets a logged-in user retroactively mark past events they attended.
+ * As of #159 this is no longer a standalone tab — it renders inline at
+ * the top of the "Past" tab (see PastTab.js), above the read-only
+ * tracked-shows list.
  *
  * Behavior:
  *   - Search input (committed on Enter / Search button via SearchBox).
@@ -9,21 +12,38 @@
  *     Backend short-circuits and returns no results. See extrachill-events#130.
  *   - Results list with "+ Mark Attended" per row, optimistic state flip.
  *   - "Load more" pagination, 20 per page (handled in useEventSearch).
+ *   - `onMarked` (optional): invoked after a successful mark so the
+ *     parent (PastTab) can refetch the Past list and surface the newly
+ *     added show without a full page reload (#159).
  *
- * @package ExtraChillEvents
+ * @package
  */
 
-import { useState } from '@wordpress/element';
+import { useState, useCallback } from '@wordpress/element';
 import { ActionRow, InlineStatus, Section } from '@extrachill/components';
 import EventSearchInput from './EventSearchInput';
 import EventSearchResult from './EventSearchResult';
 import useEventSearch from '../hooks/useEventSearch';
 
-const AddPastShows = () => {
+const AddPastShows = ( { onMarked } ) => {
 	const [ query, setQuery ] = useState( '' );
 
 	const { events, total, pages, page, loading, error, loadMore, setMarked } =
 		useEventSearch( query );
+
+	// Wrap the search-result optimistic flip so a successful mark also
+	// bubbles up to the parent Past list. The local `setMarked` keeps the
+	// search row in its "✓ Tracked" state; `onMarked` lets PastTab refetch
+	// the tracked-shows list so the new show appears below (#159).
+	const handleMarked = useCallback(
+		( postId, marked ) => {
+			setMarked( postId, marked );
+			if ( marked && typeof onMarked === 'function' ) {
+				onMarked( postId );
+			}
+		},
+		[ setMarked, onMarked ]
+	);
 
 	const isEmptyQuery = query.trim() === '';
 
@@ -33,17 +53,17 @@ const AddPastShows = () => {
 
 			{ isEmptyQuery && (
 				<InlineStatus tone="info">
-					Start typing the name of an artist, venue, or show you&rsquo;ve attended.
+					Start typing the name of an artist, venue, or show
+					you&rsquo;ve attended.
 				</InlineStatus>
 			) }
 
-			{ error && (
-				<InlineStatus tone="error">{ error }</InlineStatus>
-			) }
+			{ error && <InlineStatus tone="error">{ error }</InlineStatus> }
 
 			{ ! loading && ! error && events.length === 0 && ! isEmptyQuery && (
 				<InlineStatus tone="info">
-					No matches for &ldquo;{ query }&rdquo;. Try a different artist, venue, or city.
+					No matches for &ldquo;{ query }&rdquo;. Try a different
+					artist, venue, or city.
 				</InlineStatus>
 			) }
 
@@ -53,15 +73,13 @@ const AddPastShows = () => {
 						<EventSearchResult
 							key={ ev.post_id }
 							event={ ev }
-							onMarkedChange={ setMarked }
+							onMarkedChange={ handleMarked }
 						/>
 					) ) }
 				</Section>
 			) }
 
-			{ loading && (
-				<InlineStatus tone="info">Searching…</InlineStatus>
-			) }
+			{ loading && <InlineStatus tone="info">Searching…</InlineStatus> }
 
 			{ ! loading && page < pages && (
 				<ActionRow align="center">

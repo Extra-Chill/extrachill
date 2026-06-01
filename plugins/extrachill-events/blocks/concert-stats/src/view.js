@@ -17,9 +17,9 @@ import {
 } from '@extrachill/components';
 import StatsBar from './components/StatsBar';
 import ShowList from './components/ShowList';
+import PastTab from './components/PastTab';
 import Leaderboard from './components/Leaderboard';
 import YearFilter from './components/YearFilter';
-import AddPastShows from './components/AddPastShows';
 import ImportTab from './components/ImportTab';
 import useStats from './hooks/useStats';
 import useShows from './hooks/useShows';
@@ -35,27 +35,61 @@ const VALID_TAB_IDS = [
 	'upcoming',
 	'past',
 	'calendar',
-	'add-past',
 	'map',
 	'stats',
 	'import',
 ];
 
 /**
+ * Back-compat alias map for retired tab IDs.
+ *
+ * #159: the standalone `add-past` tab was folded into the `past` tab.
+ * Any shared link or bookmark that still carries `?tab=add-past` should
+ * resolve to `past` instead of silently falling back to the default
+ * `upcoming` tab. `resolveTabId()` maps a raw `?tab=` value through this
+ * table before whitelist validation.
+ */
+const TAB_ALIASES = {
+	'add-past': 'past',
+};
+
+/**
+ * Resolve a raw `?tab=` value to a valid, current tab ID.
+ *
+ * Applies the {@link TAB_ALIASES} back-compat mapping first (so retired
+ * IDs like `add-past` resolve to their replacement), then validates
+ * against {@link VALID_TAB_IDS}. Returns `null` when the value isn't a
+ * recognized (or aliased) tab so callers can apply their own default.
+ *
+ * @param {?string} requested Raw `tab` query param value.
+ * @return {?string} A valid tab ID, or null when unrecognized.
+ */
+function resolveTabId( requested ) {
+	if ( ! requested ) {
+		return null;
+	}
+	const aliased = TAB_ALIASES[ requested ] || requested;
+	return VALID_TAB_IDS.includes( aliased ) ? aliased : null;
+}
+
+/**
  * Read the initial active tab from `?tab=` on first render. SSR-safe
  * (no-op when `window` is absent). Falls back to `'upcoming'`.
  *
  * #126: when `?tab=` is absent we default to `'upcoming'`. A
- * post-fetch effect inside the app swaps the default to `'add-past'`
+ * post-fetch effect inside the app swaps the default to `'past'`
  * for owners whose `stats.total_shows === 0` — that's the empty-state
- * UX where the search-for-past-shows surface is the most useful
- * landing tab. Implementation note: we picked JS-side post-fetch over
- * a server-rendered `data-has-any-shows` attribute for simplicity
- * (the latter would require either a duplicate DB query in render.php
- * or threading `total_shows` from the concert-tracking abilities at
- * server-render time, and the brief upcoming→add-past flip is
- * acceptable since the loading skeleton covers the very first paint
- * anyway).
+ * UX where the search-for-past-shows affordance (folded into the Past
+ * tab as of #159) is the most useful landing tab. Implementation note:
+ * we picked JS-side post-fetch over a server-rendered
+ * `data-has-any-shows` attribute for simplicity (the latter would
+ * require either a duplicate DB query in render.php or threading
+ * `total_shows` from the concert-tracking abilities at server-render
+ * time, and the brief upcoming→past flip is acceptable since the
+ * loading skeleton covers the very first paint anyway).
+ *
+ * #159: a legacy `?tab=add-past` deep link resolves to `'past'` via
+ * resolveTabId()'s alias table.
  *
  * @return {string} Tab ID.
  */
@@ -64,14 +98,15 @@ function readInitialTab() {
 		return 'upcoming';
 	}
 	const params = new URLSearchParams( window.location.search );
-	const requested = params.get( 'tab' );
-	return VALID_TAB_IDS.includes( requested ) ? requested : 'upcoming';
+	return resolveTabId( params.get( 'tab' ) ) || 'upcoming';
 }
 
 /**
- * Whether the current page load arrived with an explicit `?tab=` in
- * the URL. Used to gate the empty-state default-tab swap so we never
- * override an intentional deep link.
+ * Whether the current page load arrived with an explicit (recognized
+ * or aliased) `?tab=` in the URL. Used to gate the empty-state
+ * default-tab swap so we never override an intentional deep link —
+ * including a legacy `?tab=add-past` link, which resolveTabId() maps to
+ * `past` (#159).
  *
  * @return {boolean}
  */
@@ -80,8 +115,7 @@ function hasExplicitTabParam() {
 		return false;
 	}
 	const params = new URLSearchParams( window.location.search );
-	const requested = params.get( 'tab' );
-	return VALID_TAB_IDS.includes( requested );
+	return resolveTabId( params.get( 'tab' ) ) !== null;
 }
 
 /**
@@ -99,7 +133,7 @@ function ConcertStatsApp( {
 	const [ activeTab, setActiveTab ] = useState( readInitialTab );
 	// #126: tracks whether the user (or a deep link) has chosen a tab.
 	// Until then, the post-stats-fetch effect below is allowed to swap
-	// the default from 'upcoming' → 'add-past' when the owner has zero
+	// the default from 'upcoming' → 'past' when the owner has zero
 	// tracked shows. Once the user explicitly picks a tab via the tab
 	// strip, this flips to true and the auto-swap stops fighting them.
 	const [ userPickedTab, setUserPickedTab ] = useState( hasExplicitTabParam );
@@ -139,12 +173,15 @@ function ConcertStatsApp( {
 	const hasImports =
 		isOwn && importRunsBag.sources && importRunsBag.sources.length > 0;
 
-	// #126: empty-state default tab. When the owner has zero tracked
-	// shows and hasn't explicitly picked a tab (no `?tab=` in URL,
-	// hasn't clicked the strip yet), land them on Add Past Shows. The
-	// search-for-past-shows surface is the most useful starting point
-	// for users in this state; the old takeover hid the entire tab
-	// strip behind a Browse-Shows CTA that pointed at the wrong place.
+	// #126/#159: empty-state default tab. When the owner has zero
+	// tracked shows and hasn't explicitly picked a tab (no `?tab=` in
+	// URL, hasn't clicked the strip yet), land them on the Past tab —
+	// which now hosts the search-for-past-shows affordance inline above
+	// the (empty) tracked-shows list (#159 folded the old standalone
+	// "Add Past Shows" tab into Past). That search surface is the most
+	// useful starting point for users in this state; the old takeover
+	// hid the entire tab strip behind a Browse-Shows CTA that pointed
+	// at the wrong place.
 	useEffect( () => {
 		if ( userPickedTab ) {
 			return;
@@ -153,7 +190,7 @@ function ConcertStatsApp( {
 			return;
 		}
 		if ( stats.total_shows === 0 && isOwn ) {
-			setActiveTab( 'add-past' );
+			setActiveTab( 'past' );
 		}
 	}, [ stats, statsLoading, isOwn, userPickedTab ] );
 
@@ -250,13 +287,15 @@ function ConcertStatsApp( {
 		}
 	}, [ activeTab, hasMap, containerRef ] );
 
-	// Tab order: Upcoming → Past → Calendar (owner, #110) → Add Past
-	// Shows (owner, #109) → Map (owner, #111) → Stats → Import
-	// (owner, #112). Visualization tabs (Calendar, Map) sit alongside
-	// the history axes (Upcoming, Past) and the growth tabs (Add Past
-	// Shows, Import); Stats stays second-to-last as the summary
-	// surface. Owner-only because the underlying tracking table is
-	// per-user.
+	// Tab order: Upcoming → Past → Calendar (owner, #110) → Map
+	// (owner, #111) → Stats → Import (owner, #112). The Past tab now
+	// also hosts the owner-only "add a past show" search affordance
+	// (#159 folded the old standalone "Add Past Shows" tab into Past),
+	// so there's no separate growth tab in the strip anymore.
+	// Visualization tabs (Calendar, Map) sit alongside the history axes
+	// (Upcoming, Past); Stats stays second-to-last as the summary
+	// surface; Import is the remaining growth tab. Owner-only tabs exist
+	// because the underlying tracking table is per-user.
 	const tabs = [
 		{
 			id: 'upcoming',
@@ -273,14 +312,6 @@ function ConcertStatsApp( {
 					{
 						id: 'calendar',
 						label: 'Calendar',
-					},
-			  ]
-			: [] ),
-		...( isOwn
-			? [
-					{
-						id: 'add-past',
-						label: 'Add Past Shows',
 					},
 			  ]
 			: [] ),
@@ -351,8 +382,14 @@ function ConcertStatsApp( {
 				);
 
 			case 'past':
+				// #159: the Past tab hosts both the read-only tracked
+				// past-shows list and (for the owner) the inline
+				// search-and-mark affordance that used to live in the
+				// removed standalone "Add Past Shows" tab. PastTab
+				// composes the two and refetches the list when a show
+				// is marked so additions appear without a reload.
 				return (
-					<ShowList userId={ userId } period="past" year={ year } />
+					<PastTab userId={ userId } year={ year } isOwn={ isOwn } />
 				);
 
 			case 'calendar':
@@ -396,9 +433,6 @@ function ConcertStatsApp( {
 					return mapEmptyMessage;
 				}
 				return null;
-
-			case 'add-past':
-				return isOwn ? <AddPastShows /> : null;
 
 			case 'stats':
 				if ( statsLoading ) {

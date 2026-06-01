@@ -1,7 +1,7 @@
 /**
  * ShowList — Paginated list of show cards with load-more.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
 import { useState } from '@wordpress/element';
@@ -27,7 +27,8 @@ const ShowList = ( { userId, period, year, eventsUrl } ) => {
 		if ( period === 'upcoming' ) {
 			return (
 				<InlineStatus tone="info">
-					No upcoming shows you&rsquo;ve marked yet. Find a show on the{ ' ' }
+					No upcoming shows you&rsquo;ve marked yet. Find a show on
+					the{ ' ' }
 					{ eventsUrl ? (
 						<a href={ eventsUrl }>events calendar</a>
 					) : (
@@ -39,7 +40,8 @@ const ShowList = ( { userId, period, year, eventsUrl } ) => {
 		}
 		return (
 			<InlineStatus tone="info">
-				No past shows tracked yet. Use Add Past Shows to find shows you&rsquo;ve attended, or Import from setlist.fm/phish.net.
+				No past shows tracked yet. Use the search above to find shows
+				you&rsquo;ve attended, or Import from setlist.fm/phish.net.
 			</InlineStatus>
 		);
 	}
@@ -50,9 +52,7 @@ const ShowList = ( { userId, period, year, eventsUrl } ) => {
 				<ShowCard key={ show.event_id } show={ show } />
 			) ) }
 
-			{ loading && (
-				<InlineStatus tone="info">Loading...</InlineStatus>
-			) }
+			{ loading && <InlineStatus tone="info">Loading...</InlineStatus> }
 
 			{ ! loading && page < pages && (
 				<ActionRow align="center">

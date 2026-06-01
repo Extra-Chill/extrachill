@@ -1,7 +1,8 @@
 /**
  * useEventSearch — Debounced REST search of past events for marking.
  *
- * Drives the "Add Past Shows" tab in the concert-stats block.
+ * Drives the owner-only "add a past show" affordance folded into the
+ * "Past" tab of the concert-stats block (#159).
  *
  * Behavior:
  *   - Debounces query changes by 300ms before firing a request.
@@ -10,7 +11,7 @@
  *   - Resets accumulated results whenever the query changes.
  *   - Empty query is allowed — backend returns recent past events as suggestions.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
@@ -56,7 +57,9 @@ export default function useEventSearch( query ) {
 					return;
 				}
 				const incoming = response.events || [];
-				setEvents( ( prev ) => ( p === 1 ? incoming : [ ...prev, ...incoming ] ) );
+				setEvents( ( prev ) =>
+					p === 1 ? incoming : [ ...prev, ...incoming ]
+				);
 				setTotal( response.total || 0 );
 				setPages( response.pages || 0 );
 				setLoading( false );
@@ -65,7 +68,9 @@ export default function useEventSearch( query ) {
 				if ( err && err.name === 'AbortError' ) {
 					return;
 				}
-				setError( ( err && err.message ) || 'Failed to search events.' );
+				setError(
+					( err && err.message ) || 'Failed to search events.'
+				);
 				setLoading( false );
 			} );
 	}, [] );
@@ -103,8 +108,8 @@ export default function useEventSearch( query ) {
 	 * Mark a single event as locally-tracked without a refetch.
 	 * Used for optimistic UI updates.
 	 *
-	 * @param {number} postId   Event post ID.
-	 * @param {boolean} marked  New is_marked state.
+	 * @param {number}  postId Event post ID.
+	 * @param {boolean} marked New is_marked state.
 	 */
 	const setMarked = useCallback( ( postId, marked ) => {
 		setEvents( ( prev ) =>

@@ -326,6 +326,33 @@ a.ec-concert-stats__stat {
 	100% { background-position: -200% 0; }
 }
 
+/* ─── Past Tab — combined add-affordance + tracked list (#159) ──────────── */
+
+/*
+ * #159 folded the standalone "Add Past Shows" tab into the "Past" tab.
+ * PastTab stacks the owner-only AddPastShows search affordance above the
+ * read-only ShowList of tracked past shows. The gap keeps the search
+ * surface visually distinct from the list below; the divider under the
+ * add block reinforces "search up here / your history down there" so the
+ * two surfaces don't read as one undifferentiated stream.
+ */
+.ec-concert-stats__past-tab {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md, 1rem);
+}
+
+/*
+ * When the AddPastShows block is present (owner view) give it a bottom
+ * divider so it separates cleanly from the tracked-shows list. Non-owner
+ * views omit AddPastShows entirely, so the list sits flush — no empty
+ * divider is rendered.
+ */
+.ec-concert-stats__past-tab .ec-concert-stats__add-past {
+	padding-bottom: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
 /* ─── Search Result inner layout (inside ActionRow) ─────────────────────── */
 
 .ec-concert-stats__search-result-link {

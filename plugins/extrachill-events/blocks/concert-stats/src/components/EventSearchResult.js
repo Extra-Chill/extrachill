@@ -1,5 +1,6 @@
 /**
- * EventSearchResult — Single past-event row in the Add Past Shows tab.
+ * EventSearchResult — Single past-event row in the Past tab's add-a-show
+ * search results (#159; formerly the standalone "Add Past Shows" tab).
  *
  * Renders date / venue / primary artist / city and a "+ Mark Attended" button
  * (or a disabled "✓ Tracked" label for events already in the user's history).
