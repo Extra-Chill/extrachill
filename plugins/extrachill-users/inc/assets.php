@@ -61,6 +61,20 @@ function extrachill_users_enqueue_avatar_menu_assets() {
 			'all'
 		);
 	}
+
+	// Notification bell styles — only needed when the bell renders, i.e. for
+	// logged-in users. The bell itself is hooked into the theme header by
+	// inc/notifications/bell.php and appears network-wide.
+	$notification_bell_css_path = EXTRACHILL_USERS_PLUGIN_DIR . 'assets/css/notification-bell.css';
+	if ( is_user_logged_in() && file_exists( $notification_bell_css_path ) ) {
+		wp_enqueue_style(
+			'extrachill-users-notification-bell',
+			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/notification-bell.css',
+			array( 'extrachill-root' ),
+			(string) filemtime( $notification_bell_css_path ),
+			'all'
+		);
+	}
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_users_enqueue_avatar_menu_assets' );
 

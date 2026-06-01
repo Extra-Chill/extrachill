@@ -155,6 +155,8 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/email.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/unsubscribe.php';
+	// Header notification bell — renders network-wide via the theme header hook.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/bell.php';
 
 	// wp-native-auth bridge: layer EC policy (membership, blocking, Turnstile)
 	// onto the generic wp-native-auth filter surface when both plugins are active.

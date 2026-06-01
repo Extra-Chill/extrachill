@@ -1,0 +1,39 @@
+/**
+ * Notification Bell Styles
+ *
+ * Minimal styling for the header notification bell rendered by
+ * inc/notifications/bell.php. Enqueued network-wide for logged-in users so the
+ * bell looks correct on every site (the theme owns .header-right-icon layout;
+ * these rules style the bell glyph and the unread-count badge).
+ *
+ * Moved here from extrachill-community per Extra-Chill/extrachill-users#104.
+ *
+ * @package ExtraChill\Users
+ */
+
+.notification-bell-svg {
+	color: var(--button-text-color);
+	font-size: var(--font-size-lg);
+}
+
+.notification-bell-icon a:hover .notification-bell-svg {
+	color: var(--link-color);
+}
+
+.notification-bell-icon {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.notification-count {
+	position: absolute;
+	top: -5px;
+	right: -5px;
+	background-color: var(--error-color);
+	color: var(--button-text-color);
+	border-radius: 50%;
+	padding: 0 5px;
+	font-size: var(--font-size-xs);
+}
