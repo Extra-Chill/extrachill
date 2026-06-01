@@ -9,15 +9,13 @@
  * @package
  */
 
-import { useState } from '@wordpress/element';
-import apiFetch from '@wordpress/api-fetch';
 import { ActionRow, InlineStatus } from '@extrachill/components';
 
 import { formatLongDate } from '../utils/formatDate';
+import useMarkAttendance from '../hooks/useMarkAttendance';
 
 const EventSearchResult = ( { event, onMarkedChange } ) => {
-	const [ submitting, setSubmitting ] = useState( false );
-	const [ error, setError ] = useState( null );
+	const { mark, isMarking, error } = useMarkAttendance();
 
 	const isMarked = !! event.is_marked;
 
@@ -38,34 +36,24 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 	}
 
 	const handleMark = () => {
-		if ( isMarked || submitting ) {
+		if ( isMarked || isMarking ) {
 			return;
 		}
-
-		setSubmitting( true );
-		setError( null );
 
 		// Optimistic flip.
 		onMarkedChange( event.post_id, true );
 
-		apiFetch( {
-			path: '/extrachill/v1/concert-tracking/toggle',
-			method: 'POST',
-			data: { event_id: event.post_id },
-		} )
+		mark( { eventId: event.post_id } )
 			.then( ( response ) => {
-				setSubmitting( false );
 				// If somehow the server reports unmarked (e.g. server-side toggle
 				// of a previously-marked event), reconcile state.
 				if ( response && response.marked === false ) {
 					onMarkedChange( event.post_id, false );
-					setError( 'Could not mark event.' );
 				}
 			} )
-			.catch( ( err ) => {
-				setSubmitting( false );
+			.catch( () => {
+				// Revert optimistic flip; the hook surfaces the error message.
 				onMarkedChange( event.post_id, false );
-				setError( ( err && err.message ) || 'Failed to mark event.' );
 			} );
 	};
 
@@ -107,7 +95,7 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 						type="button"
 						className="button-1 button-medium"
 						onClick={ handleMark }
-						disabled={ submitting }
+						disabled={ isMarking }
 					>
 						+ Mark Attended
 					</button>
