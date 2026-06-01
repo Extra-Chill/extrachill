@@ -95,7 +95,8 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 		$rooms = array_filter(
 			$found,
 			static function ( $room ) use ( $public_status ) {
-				return $public_status === get_post_status( $room );
+				$room_status = get_post_status( $room );
+				return $public_status === $room_status;
 			}
 		);
 		$rooms = array_values( $rooms );
