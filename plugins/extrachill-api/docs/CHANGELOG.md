@@ -2,6 +2,24 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.17.2] - 2026-06-02
+
+### Changed
+- repoint community routes to network substrate abilities
+- remove deprecated id-generator pass-through wrappers
+- delegate content-blocks routes to their abilities
+- delegate contact route to extrachill/contact-submit ability
+- thin shop/products REST handler to ability calls (closes #67)
+- clear phpcs lint debt (release preflight)
+- thin admin artist-relationships REST handlers to ability calls (closes #68)
+- remove raw SQL from analytics/meta REST handler (refs #69)
+
+### Fixed
+- guard events-upcoming-counts ability resolution with wp_has_ability()
+- resolve upcoming-counts ability in events-blog context to stop cross-site log spam
+- force HTTP loopback for cross-site affinity forwarding so per-site abilities resolve
+- route orphan cleanup through ec_remove_artist_membership to keep both sides in sync (closes #65)
+
 ## [0.17.1] - 2026-05-30
 
 ### Changed
