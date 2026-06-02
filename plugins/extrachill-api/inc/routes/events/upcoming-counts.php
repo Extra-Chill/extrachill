@@ -70,8 +70,12 @@ function extrachill_api_register_events_upcoming_counts_route() {
  * events-site taxonomy/post tables it reads — we switch to the events blog before resolving
  * and executing the ability, then always restore the original context.
  *
- * Switching before wp_get_ability() also prevents the WP core "ability not found" notice that
- * would otherwise be emitted on every cross-site call (see issue #86).
+ * switch_to_blog() changes only the DB context — it does not load the
+ * extrachill-events plugin code, so the ability is registered only when this
+ * request actually runs on a site where extrachill-events is active. We
+ * therefore guard with wp_has_ability() (a notice-free registry check) before
+ * calling wp_get_ability(), which otherwise emits a core "ability not found"
+ * notice on every cross-site / internal dispatch (see issues #86, #171).
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response data or error.
@@ -104,6 +108,18 @@ function extrachill_api_events_upcoming_counts_handler( WP_REST_Request $request
 	}
 
 	try {
+		// Guard with wp_has_ability() before resolving. switch_to_blog() only
+		// changes the DB context — it does NOT load extrachill-events' code, so
+		// the ability is registered only when this request runs on a site where
+		// extrachill-events is active. wp_get_ability() emits a core
+		// "_doing_it_wrong" notice whenever the ability is absent; wp_has_ability()
+		// performs the same registry check without the notice. This keeps stray
+		// cross-site / internal dispatches (e.g. rest_do_request from the cache
+		// warmer) from polluting the log and tripping headers-already-sent.
+		if ( ! function_exists( 'wp_has_ability' ) || ! wp_has_ability( 'extrachill/events-upcoming-counts' ) ) {
+			return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
+		}
+
 		$ability = wp_get_ability( 'extrachill/events-upcoming-counts' );
 		if ( ! $ability ) {
 			return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
