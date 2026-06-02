@@ -127,10 +127,21 @@ function extrachill_events_render_calendar_stats(): void {
  * zeros for the missing axes. The render function will then drop the
  * affected clause from the sentence.
  *
- * Cached for 6h in a per-term transient
+ * Cached for 1h in a per-term transient
  * (`extrachill_calendar_stats_{taxonomy}_{term_id}`). Lazy on first
  * request — NOT pre-warmed (the cross-product of artist+location+venue
  * terms is too large for blanket warming).
+ *
+ * Cache-bloat guard (extrachill-events#168): the events site has ~51k
+ * artist terms walkable via core sitemaps. Computing + caching stats on
+ * every long-tail archive pageview warmed up to one
+ * `extrachill_calendar_stats_artist_N` transient per term, a major
+ * contributor to the Redis keyspace bloat behind the 2026-06-02 login
+ * outage. The render-side gate in
+ * `extrachill_events_render_term_calendar_stats()` now skips terms with
+ * no published events, and this helper's TTL was cut from 6h to 1h so
+ * any keys that do get created for sparse terms expire 6x faster instead
+ * of lingering in the keyspace.
  *
  * @param string $taxonomy 'artist'|'location'|'venue'.
  * @param int    $term_id  Term ID.
@@ -238,7 +249,7 @@ function extrachill_events_get_term_calendar_stats( string $taxonomy, int $term_
 		'locations' => $locations,
 	);
 
-	set_transient( $cache_key, $stats, 6 * HOUR_IN_SECONDS );
+	set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
 
 	return $stats;
 }
@@ -256,11 +267,31 @@ function extrachill_events_get_term_calendar_stats( string $taxonomy, int $term_
  * provides useful information rather than reading "N events at 0
  * venues."
  *
+ * Cache-bloat guard (extrachill-events#168): bail BEFORE computing or
+ * caching anything when the queried term has no published events. Terms
+ * with `count === 0` have no upcoming events either, so the stats line
+ * would be hidden anyway after a full count query — but skipping here
+ * avoids warming a per-term `extrachill_calendar_stats_*` transient for
+ * the long tail of empty terms (~51k artist terms are walkable via core
+ * sitemaps). This is the same sparseness threshold Extra Chill SEO uses
+ * to noindex term archives with fewer than 2 posts.
+ *
  * @param string $taxonomy 'artist'|'location'|'venue'.
  * @param int    $term_id  Term ID.
  */
 function extrachill_events_render_term_calendar_stats( string $taxonomy, int $term_id ): void {
 	if ( ! in_array( $taxonomy, array( 'artist', 'location', 'venue' ), true ) ) {
+		return;
+	}
+
+	// Skip empty terms before touching the cache. A term with zero
+	// published events cannot have upcoming events, so the stats line
+	// renders nothing — but computing that would still warm (and persist)
+	// a transient key. With tens of thousands of long-tail terms behind
+	// core sitemaps, that cache warming is the dominant keyspace-bloat
+	// source this guard exists to stop.
+	$term = get_term( $term_id, $taxonomy );
+	if ( ! $term instanceof WP_Term || (int) $term->count < 1 ) {
 		return;
 	}
 
