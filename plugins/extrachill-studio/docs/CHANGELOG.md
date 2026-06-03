@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.9] - 2026-06-03
+
+### Fixed
+- sync package-lock.json so npm ci resolves on Node 25
+
 ## [0.15.8] - 2026-06-03
 
 ### Changed
