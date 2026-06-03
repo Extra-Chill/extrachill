@@ -23,6 +23,7 @@
 		"@wordpress/element": "^6.36.0",
 		"@wordpress/i18n": "^6.9.0",
 		"@wordpress/scripts": "^31.1.0",
+		"ajv": "^8.20.0",
 		"typescript": "^5.7.0"
 	}
 }
