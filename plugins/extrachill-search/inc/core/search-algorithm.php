@@ -67,11 +67,30 @@ function extrachill_build_fulltext_clause( $search_term ) {
 	}
 
 	// Build boolean search: +word1 +word2 (all required).
+	//
+	// Strip MySQL FULLTEXT BOOLEAN MODE operators ( + - ( ) < > ~ * " @ ) from
+	// each word before wrapping it as `+word*`. These characters are syntax in
+	// boolean mode, so passing raw user input through (e.g. "(various" from a
+	// term like "Blind Tiger (various artists)") produces an unbalanced
+	// expression — `+(various* +artists)*` — that MariaDB rejects with
+	// "syntax error ... FTS_TERM", failing the query network-wide. _real_escape()
+	// guards against SQL injection but does not neutralize these operators.
 	$boolean_terms = array();
 	foreach ( $words as $word ) {
-		$escaped = $wpdb->_real_escape( $word );
+		$cleaned = preg_replace( '/[+\-()<>~*"@]/', '', $word );
+		if ( '' === $cleaned ) {
+			continue;
+		}
+		$escaped         = $wpdb->_real_escape( $cleaned );
 		$boolean_terms[] = '+' . $escaped . '*';
 	}
+
+	// All words were pure operators / stripped away — no usable query. Returning
+	// false lets the caller fall back instead of running a malformed clause.
+	if ( empty( $boolean_terms ) ) {
+		return false;
+	}
+
 	$boolean_string = implode( ' ', $boolean_terms );
 
 	return sprintf(
