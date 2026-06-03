@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-06-03
+
+### Added
+- artist profile hub foundation — term binding + section registry
+- link roster members to their community profiles
+- register artist-relationships admin abilities
+
+### Changed
+- remove dead legacy subscriber export/subscribe code (closes #68)
+- drop dead bp_ follow-system default for subscriber source
+- remove dead per-artist-forum admin UI
+- extract roster invite-status constants (refs #47)
+- derive docs URL from ec_get_site_url instead of hardcoded domain (refs #36)
+
+### Fixed
+- self-heal zero post_modified_gmt to prevent RSS feed fatals
+
 ## [1.9.2] - 2026-05-30
 
 ### Changed
