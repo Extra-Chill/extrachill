@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.8] - 2026-06-03
+
+### Changed
+- pin ajv ^8 to fix wp-scripts webpack build on Node 25
+
+### Fixed
+- don't mark draft clean when edits land mid-autosave
+
 ## [0.15.7] - 2026-05-30
 
 ### Changed
