@@ -3,7 +3,7 @@
  * Plugin Name: ExtraChill Search
  * Plugin URI: https://extrachill.com
  * Description: Network-wide search across all nine sites using domain-based resolution
- * Version: 0.2.10
+ * Version: 0.3.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
