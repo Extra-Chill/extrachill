@@ -54,19 +54,25 @@ const EC_USERS_TEAM_ROLE = 'extra_chill_team';
  *      tokens, Events admin, the wp-admin admin bar).
  *
  * Explicitly NOT granted: manage_options, delete_others_posts,
- * edit_users, plugin/theme management. The team role is for music
- * journalists, not site administrators.
+ * edit_others_posts, edit_users, plugin/theme management. The team role
+ * is for music journalists, not site administrators. Team members work
+ * on their OWN content only — they can draft and edit their own posts
+ * (published or not) but cannot edit other authors' posts. Editing
+ * others' work is an editor/administrator concern.
  *
  * @return array<string,bool> Capability map suitable for add_role().
  */
 function ec_users_get_team_role_caps() {
 	return array(
 		// --- Standard WP caps ---
+		// Scoped to the member's OWN posts: edit_posts (own drafts) and
+		// edit_published_posts (own published work). edit_others_posts is
+		// deliberately NOT granted so team members cannot edit other
+		// authors' content.
 		'read'                 => true,
 		'upload_files'         => true,
 		'edit_posts'           => true,
 		'edit_published_posts' => true,
-		'edit_others_posts'    => true,
 		'delete_posts'         => true,
 
 		// --- Custom EC team-only caps ---
