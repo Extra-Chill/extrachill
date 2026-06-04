@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.15.1] - 2026-06-04
+
+### Changed
+- pin ajv ^8 to fix wp-scripts webpack build on Node 25
+- refactor(concert-tracking): converge single-event toggle on shared React hook
+
+### Fixed
+- scope team role to own posts only, drop edit_others_posts
+
 ## [0.15.0] - 2026-06-01
 
 ### Added
