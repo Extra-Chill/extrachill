@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-06-04
+
+### Changed
+- dedupe Sendy logic + replace cred-scrape with options (closes #13, closes #14)
+- consolidate newsletter email-shell builder, derive logo URL (closes #10)
+- derive main URL from ec_get_site_url instead of hardcoded domain (refs #36)
+
+### Fixed
+- remove dangling Turnstile data-callback that broke implicit auto-render of sibling widgets
+
 ## [0.4.0] - 2026-05-17
 
 ### Added
