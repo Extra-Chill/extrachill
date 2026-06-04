@@ -10,6 +10,58 @@
  */
 
 /**
+ * Send a transactional EC email from a system-initiated registration context.
+ *
+ * Registration, onboarding, and the hourly welcome-email cron fallback all need
+ * to send branded transactional email, but they run in an *unprivileged* request
+ * context: an anonymous visitor (registration POST) or a brand-new subscriber
+ * (onboarding) who has none of the `datamachine_manage_*` capabilities. The
+ * underlying `datamachine/send-email` ability gates on
+ * {@see \DataMachine\Abilities\PermissionHelper::can_manage()}, so calling
+ * `ec_send_email()` directly from these contexts makes `WP_Ability::execute()`
+ * short-circuit and return a `WP_Error` (code `ability_invalid_permissions`) —
+ * NOT the documented `[ 'success' => ... ]` array envelope. That is the root
+ * cause of the "ec_send_email returned non-array" failures (#110).
+ *
+ * The authorization decision for these sends is made at THIS layer: the EC
+ * registration flow has already decided the email should go out. We therefore
+ * execute the inner ability inside
+ * {@see \DataMachine\Abilities\PermissionHelper::run_as_authenticated()}, the
+ * canonical seam for callers that have authorized an operation at their own
+ * layer and want to run an ability through the standard path.
+ *
+ * Falls back to a direct `ec_send_email()` call when the Data Machine
+ * PermissionHelper is unavailable (e.g. Data Machine deactivated) so behavior
+ * degrades gracefully rather than fataling — `ec_send_email()` already returns
+ * a well-formed error envelope in that case.
+ *
+ * @param array $args Arguments forwarded to {@see ec_send_email()}.
+ * @return mixed The `ec_send_email()` result envelope (array), or a WP_Error
+ *               if the abilities layer is genuinely unreachable.
+ */
+function extrachill_send_registration_email( array $args ) {
+	if ( ! function_exists( 'ec_send_email' ) ) {
+		return array(
+			'success' => false,
+			'error'   => 'ec_send_email() is unavailable — extrachill-multisite mail layer not loaded.',
+		);
+	}
+
+	$helper = '\DataMachine\Abilities\PermissionHelper';
+	if ( class_exists( $helper ) && method_exists( $helper, 'run_as_authenticated' ) ) {
+		return $helper::run_as_authenticated(
+			static function () use ( $args ) {
+				return ec_send_email( $args );
+			}
+		);
+	}
+
+	// Data Machine PermissionHelper unavailable — call directly. ec_send_email()
+	// still returns a structured envelope (bootstrap-failure error array).
+	return ec_send_email( $args );
+}
+
+/**
  * Send admin notification on new user registration.
  *
  * @param int    $user_id              User ID
@@ -42,7 +94,7 @@ function extrachill_notify_admin_new_user( $user_id, $registration_page, $regist
 	$body_html .= '<p><a href="' . esc_url( $edit_url ) . '">Edit user in admin</a></p>';
 	$body_html .= '<p><em>Note: User has not yet completed onboarding — profile URL not available until username is chosen.</em></p>';
 
-	$result = ec_send_email(
+	$result = extrachill_send_registration_email(
 		array(
 			'to'       => $admin_email,
 			'subject'  => $subject,
@@ -94,6 +146,15 @@ function extrachill_log_email_failure( $context, $user_id, $recipient, $subject,
 		} elseif ( ! empty( $result['message'] ) ) {
 			$error = (string) $result['message'];
 		}
+	} elseif ( is_wp_error( $result ) ) {
+		// The send-email ability returns a WP_Error (not the array envelope) when
+		// the inner permission/validation check fails. Surface the REAL code +
+		// message instead of the misleading "non-array" default (#110).
+		$error = sprintf( '%s: %s', $result->get_error_code(), $result->get_error_message() );
+	} elseif ( null === $result ) {
+		$error = 'ec_send_email returned null';
+	} else {
+		$error = sprintf( 'ec_send_email returned unexpected %s', gettype( $result ) );
 	}
 
 	$message = sprintf(
@@ -135,7 +196,7 @@ function extrachill_send_welcome_email_complete( $user_data ) {
 	$body_html .= '<p>See you around!</p>';
 	$body_html .= '<p>Much love,<br>Extra Chill</p>';
 
-	$result = ec_send_email(
+	$result = extrachill_send_registration_email(
 		array(
 			'to'       => $email,
 			'subject'  => $subject,
@@ -186,7 +247,7 @@ function extrachill_send_welcome_email_incomplete( $user_data ) {
 	$body_html .= '<p>See you around!</p>';
 	$body_html .= '<p>Much love,<br>Extra Chill</p>';
 
-	$result = ec_send_email(
+	$result = extrachill_send_registration_email(
 		array(
 			'to'       => $email,
 			'subject'  => $subject,
