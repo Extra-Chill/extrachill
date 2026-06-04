@@ -80,7 +80,6 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 		// REST permission_callback in extrachill-api.
 		if ( function_exists( 'ec_render_turnstile_widget' ) ) {
 			echo ec_render_turnstile_widget( array( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- widget output is built from escaped attrs internally.
-				'data-callback' => 'extrachillNewsletterTurnstileCallback',
 				'data-size'     => 'invisible',
 			) );
 		}
