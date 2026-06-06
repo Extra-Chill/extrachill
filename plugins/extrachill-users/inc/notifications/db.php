@@ -118,9 +118,9 @@ function extrachill_users_install_notifications_table() {
 function extrachill_users_backfill_notifications_emailed_at() {
 	global $wpdb;
 
-	$table     = extrachill_users_notifications_table_name();
-	$meta_key  = 'ec_notifications_last_emailed';
-	$usermeta  = $wpdb->usermeta;
+	$table    = extrachill_users_notifications_table_name();
+	$meta_key = 'ec_notifications_last_emailed';
+	$usermeta = $wpdb->usermeta;
 
 	// Pull every user with a recorded last-emailed timestamp. User_meta is
 	// network-wide, so this is correct from the (single) owner-site install run.
