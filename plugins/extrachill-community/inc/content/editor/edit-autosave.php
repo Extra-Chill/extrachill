@@ -64,15 +64,81 @@ function extrachill_community_is_autosaves_rest_request( $cpt ) {
 }
 
 /**
+ * Detect whether the current request URI is a bbPress front-end edit page for a
+ * given post type, by inspecting the raw request URI.
+ *
+ * The `show_in_rest` filters below fire while CPTs are registered on `init`
+ * (priority 0 via `bbp_register`), which runs *before* the main query is parsed.
+ * bbPress's `bbp_is_topic_edit()` / `bbp_is_reply_edit()` read
+ * `$wp_query->bbp_is_*_edit`, which is only populated during `parse_query` —
+ * i.e. AFTER `init`. So those helpers return false at registration time and
+ * cannot be relied on to flip `show_in_rest`. We inspect the raw request URI
+ * instead, exactly like the autosaves REST detector above.
+ *
+ * bbPress front-end edit URLs use the `edit` rewrite endpoint and resolve to
+ * `/<rewrite-slug>/<id-or-slug>/edit` (pretty: `/reply/<id>/edit`,
+ * `/t/<slug>/edit`). The non-pretty fallback carries `?<post_type>=…&edit=1`.
+ * Either signal, scoped to the post type's rewrite slug, means an edit page is
+ * being rendered for that post type.
+ *
+ * @param string $post_type    The bbPress CPT slug (topic/reply post type name).
+ * @param string $rewrite_slug The CPT's front-end rewrite slug (e.g. `reply`, `t`).
+ * @return bool
+ */
+function extrachill_community_uri_is_frontend_edit_for( $post_type, $rewrite_slug ) {
+	if ( empty( $post_type ) || empty( $rewrite_slug ) || ! isset( $_SERVER['REQUEST_URI'] ) ) {
+		return false;
+	}
+
+	$uri       = rawurldecode( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+	$path      = (string) wp_parse_url( $uri, PHP_URL_PATH );
+	$edit_slug = function_exists( 'bbp_get_edit_slug' ) ? bbp_get_edit_slug() : 'edit';
+
+	// Pretty permalink: `/<rewrite-slug>/…/<edit-slug>` (optionally trailingslashed).
+	$pattern = '#/' . preg_quote( $rewrite_slug, '#' ) . '/[^/]+/' . preg_quote( $edit_slug, '#' ) . '/?$#';
+	if ( preg_match( $pattern, $path ) ) {
+		return true;
+	}
+
+	// Non-pretty fallback: `?<post_type>=…&<edit-slug>=1`.
+	$query = (string) wp_parse_url( $uri, PHP_URL_QUERY );
+	if ( '' !== $query ) {
+		parse_str( $query, $params );
+		if ( ! empty( $params[ $edit_slug ] ) && isset( $params[ $post_type ] ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
  * Detect whether the current front-end request is a logged-in user editing an
  * existing topic.
+ *
+ * Combines the query-aware bbPress helper (correct once the query is parsed)
+ * with a URI fallback (needed at `init`-time CPT registration, before the query
+ * is parsed — see extrachill_community_uri_is_frontend_edit_for()).
  *
  * @return bool
  */
 function extrachill_community_is_frontend_topic_edit() {
-	return is_user_logged_in()
-		&& function_exists( 'bbp_is_topic_edit' )
-		&& bbp_is_topic_edit();
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+
+	if ( function_exists( 'bbp_is_topic_edit' ) && bbp_is_topic_edit() ) {
+		return true;
+	}
+
+	if ( ! function_exists( 'bbp_get_topic_post_type' ) || ! function_exists( 'bbp_get_topic_slug' ) ) {
+		return false;
+	}
+
+	return extrachill_community_uri_is_frontend_edit_for(
+		bbp_get_topic_post_type(),
+		bbp_get_topic_slug()
+	);
 }
 
 /**
@@ -82,9 +148,22 @@ function extrachill_community_is_frontend_topic_edit() {
  * @return bool
  */
 function extrachill_community_is_frontend_reply_edit() {
-	return is_user_logged_in()
-		&& function_exists( 'bbp_is_reply_edit' )
-		&& bbp_is_reply_edit();
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+
+	if ( function_exists( 'bbp_is_reply_edit' ) && bbp_is_reply_edit() ) {
+		return true;
+	}
+
+	if ( ! function_exists( 'bbp_get_reply_post_type' ) || ! function_exists( 'bbp_get_reply_slug' ) ) {
+		return false;
+	}
+
+	return extrachill_community_uri_is_frontend_edit_for(
+		bbp_get_reply_post_type(),
+		bbp_get_reply_slug()
+	);
 }
 
 /**
