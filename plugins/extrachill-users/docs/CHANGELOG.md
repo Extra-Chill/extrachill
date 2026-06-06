@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0] - 2026-06-06
+
+### Added
+- group digest notification preview lines by target
+
+### Changed
+- cache per-user unread notification count in object cache
+
 ## [0.16.0] - 2026-06-06
 
 ### Added
