@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * upgrade path).
  */
 if ( ! defined( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION' ) ) {
-	define( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION', '1' );
+	define( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION', '2' );
 }
 
 /**
@@ -58,10 +58,15 @@ function extrachill_users_notifications_table_name() {
  *   - item_id    optional related object ID (post/topic/reply/event)
  *   - is_read    0 unread, 1 read
  *   - created_at when the notification was generated (UTC)
+ *   - emailed_at when this notification was first included in a digest email
+ *                (NULL == never emailed). Drives "nudge once per notification":
+ *                a notification is eligible for the digest exactly once, then
+ *                its emailed_at is stamped so it never re-triggers an email.
  *
  * Indexes:
  *   - idx_user_unread  (user_id, is_read, created_at) — bell badge + unread list
  *   - idx_user_created (user_id, created_at)          — full paginated list
+ *   - idx_email_sweep  (is_read, emailed_at, created_at) — digest eligibility scan
  */
 function extrachill_users_install_notifications_table() {
 	global $wpdb;
@@ -81,10 +86,67 @@ function extrachill_users_install_notifications_table() {
 		item_id bigint(20) unsigned DEFAULT NULL,
 		is_read tinyint(1) NOT NULL DEFAULT 0,
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		emailed_at datetime DEFAULT NULL,
 		PRIMARY KEY  (id),
 		KEY idx_user_unread (user_id, is_read, created_at),
-		KEY idx_user_created (user_id, created_at)
+		KEY idx_user_created (user_id, created_at),
+		KEY idx_email_sweep (is_read, emailed_at, created_at)
 	) {$charset_collate};";
 
 	dbDelta( $sql );
+
+	extrachill_users_backfill_notifications_emailed_at();
+}
+
+/**
+ * Backfill emailed_at for notifications that predate the column (schema v1 → v2).
+ *
+ * Without this, adding the column leaves every pre-existing unread notification
+ * with emailed_at = NULL, so the once-per-notification sweep would treat them as
+ * never-emailed and send one more digest for notifications users were already
+ * nudged about. We approximate "already emailed" from the legacy per-user
+ * ec_notifications_last_emailed timestamp: any unread notification created at or
+ * before a user's last-emailed time was included in that prior digest, so we
+ * stamp it as emailed (using the user's last-emailed time as the stamp).
+ *
+ * Idempotent: only touches rows where emailed_at IS NULL, so re-running (or
+ * running after new notifications arrive) never re-stamps already-handled rows.
+ * Runs once per install via the version-gated maybe-install guard.
+ *
+ * @return void
+ */
+function extrachill_users_backfill_notifications_emailed_at() {
+	global $wpdb;
+
+	$table     = extrachill_users_notifications_table_name();
+	$meta_key  = 'ec_notifications_last_emailed';
+	$usermeta  = $wpdb->usermeta;
+
+	// Pull every user with a recorded last-emailed timestamp. User_meta is
+	// network-wide, so this is correct from the (single) owner-site install run.
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT user_id, meta_value FROM {$usermeta} WHERE meta_key = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb.
+			$meta_key
+		)
+	);
+
+	foreach ( (array) $rows as $row ) {
+		$user_id = (int) $row->user_id;
+		$last    = (int) $row->meta_value;
+		if ( $user_id <= 0 || $last <= 0 ) {
+			continue;
+		}
+
+		$stamp = gmdate( 'Y-m-d H:i:s', $last );
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET emailed_at = %s WHERE user_id = %d AND emailed_at IS NULL AND created_at <= %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				$stamp,
+				$user_id,
+				$stamp
+			)
+		);
+	}
 }

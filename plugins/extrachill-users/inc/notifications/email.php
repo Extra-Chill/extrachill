@@ -228,9 +228,15 @@ add_action( EC_NOTIFICATIONS_EMAIL_CRON_HOOK, 'ec_notifications_email_run' );
 /**
  * Find users eligible for a digest email.
  *
- * Eligible == has at least one unread notification whose created_at is older
- * than EC_NOTIFICATIONS_EMAIL_DELAY. Uses the idx_user_unread index
- * (user_id, is_read, created_at) — one grouped scan, no per-row loading.
+ * Eligible == has at least one unread, NEVER-EMAILED notification whose
+ * created_at is older than EC_NOTIFICATIONS_EMAIL_DELAY. The emailed_at IS NULL
+ * predicate is what makes the digest "nudge once per notification": once a
+ * notification has been included in a digest its emailed_at is stamped, so it
+ * can never make the user eligible again. Without it the sweep re-nudged the
+ * same stale unread notification every cooldown window, forever, until read.
+ *
+ * Uses the idx_email_sweep index (is_read, emailed_at, created_at) — one
+ * grouped scan, no per-row loading.
  *
  * Cooldown + opt-out are filtered in PHP after the cheap DB pass so the SQL
  * stays index-friendly and decoupled from user_meta storage.
@@ -252,9 +258,13 @@ function ec_notifications_email_find_eligible_users( $limit = 50 ) {
 	// the longest-waiting users are nudged first.
 	$candidate_limit = $limit * 4;
 
+	// Only users with an unread notification that has NEVER been emailed
+	// (emailed_at IS NULL) are candidates — this is the once-per-notification
+	// guard. A user whose every unread notification has already been emailed is
+	// not eligible no matter how long it stays unread.
 	$rows = $wpdb->get_col(
 		$wpdb->prepare(
-			"SELECT user_id FROM {$table} WHERE is_read = 0 AND created_at <= %s GROUP BY user_id ORDER BY MIN(created_at) ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			"SELECT user_id FROM {$table} WHERE is_read = 0 AND emailed_at IS NULL AND created_at <= %s GROUP BY user_id ORDER BY MIN(created_at) ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 			$cutoff,
 			$candidate_limit
 		)
@@ -376,6 +386,11 @@ function ec_notifications_email_in_cooldown( $user_id, $now ) {
  * here, and the worker re-builds nothing. ec_send_email_queued() resolves the
  * SMTP-configured site and handles switch_to_blog() internally — do NOT wrap.
  *
+ * On a confirmed enqueue, every unread notification that had not yet been
+ * emailed is stamped with emailed_at = now so it can never trigger another
+ * digest (the once-per-notification guard). A user only receives a fresh digest
+ * when NEW (never-emailed) notifications arrive.
+ *
  * @param int $user_id Recipient user ID.
  * @return bool True when a digest send was enqueued.
  */
@@ -395,6 +410,14 @@ function ec_notifications_email_send_digest( $user_id ) {
 		return false;
 	}
 	if ( ec_notifications_email_in_cooldown( $user_id, time() ) ) {
+		return false;
+	}
+
+	// There must be at least one unread notification we have NOT already
+	// emailed about — otherwise this is a stale candidate (all unread items were
+	// nudged in a prior digest) and re-sending would be the exact daily-repeat
+	// bug this guard exists to prevent.
+	if ( ec_notifications_email_count_unmailed_unread( $user_id ) <= 0 ) {
 		return false;
 	}
 
@@ -453,12 +476,76 @@ function ec_notifications_email_send_digest( $user_id ) {
 		return false;
 	}
 
+	// Mark every currently-unread, not-yet-emailed notification as emailed so it
+	// can never re-trigger a digest (the once-per-notification guard). Done on a
+	// confirmed enqueue: the send is async, but eligibility is already verified
+	// and the worker re-builds nothing, so stamping here is correct.
+	ec_notifications_email_mark_unread_as_emailed( $user_id );
+
 	// Stamp the cooldown on a confirmed enqueue. The actual send happens
 	// asynchronously via Action Scheduler (with its own retry/backoff), so we
 	// cannot wait for delivery to record the cooldown.
 	update_user_meta( $user_id, EC_NOTIFICATIONS_LAST_EMAILED_META, time() );
 
 	return true;
+}
+
+/**
+ * Count a user's unread notifications that have NOT yet been emailed.
+ *
+ * The once-per-notification eligibility signal: only notifications with
+ * emailed_at IS NULL can justify a digest. Uses the idx_email_sweep index.
+ *
+ * @param int $user_id User ID.
+ * @return int Number of unread, never-emailed notifications.
+ */
+function ec_notifications_email_count_unmailed_unread( $user_id ) {
+	global $wpdb;
+
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return 0;
+	}
+
+	$table = extrachill_users_notifications_table_name();
+
+	return (int) $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0 AND emailed_at IS NULL", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			$user_id
+		)
+	);
+}
+
+/**
+ * Stamp emailed_at = now on a user's unread, not-yet-emailed notifications.
+ *
+ * After a digest is enqueued, every unread notification that was eligible to be
+ * nudged is marked so it never triggers another email. Only unread + NULL
+ * rows are touched: already-read rows are irrelevant and already-emailed rows
+ * keep their original (earlier) stamp.
+ *
+ * @param int $user_id User ID.
+ * @return int Number of rows stamped.
+ */
+function ec_notifications_email_mark_unread_as_emailed( $user_id ) {
+	global $wpdb;
+
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return 0;
+	}
+
+	$table = extrachill_users_notifications_table_name();
+	$now   = gmdate( 'Y-m-d H:i:s' );
+
+	return (int) $wpdb->query(
+		$wpdb->prepare(
+			"UPDATE {$table} SET emailed_at = %s WHERE user_id = %d AND is_read = 0 AND emailed_at IS NULL", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			$now,
+			$user_id
+		)
+	);
 }
 
 /**
