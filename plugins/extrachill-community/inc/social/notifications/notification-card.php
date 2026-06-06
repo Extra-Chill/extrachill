@@ -32,12 +32,25 @@ function extrachill_render_notification_card($notification) {
 
 	// Extract core data. The network substrate enriches each row with `title`.
 	$type               = $notification['type'];
+	$notification_id    = isset( $notification['id'] ) ? (int) $notification['id'] : 0;
+	$is_unread          = empty( $notification['read'] );
 	$actor_id           = $notification['actor_id'] ?? null;
 	$actor_display_name = $notification['actor_display_name'] ?? 'Someone';
 	$actor_profile_link = $notification['actor_profile_link'] ?? '#';
 	$topic_title        = $notification['title'] ?? '';
 	$link               = $notification['link'] ?? '#';
 	$time               = $notification['time'] ?? '';
+
+	// Route UNREAD notifications through the click-to-read redirect so opening
+	// one marks just that notification read (and decrements the bell badge),
+	// instead of the old behavior where merely viewing the list marked every
+	// notification read at once. Read notifications keep their direct link.
+	// The builder lives in extrachill-users (the substrate owner); guard so a
+	// missing helper degrades to the plain target link.
+	if ( $is_unread && $notification_id > 0 && '#' !== $link
+		&& function_exists( 'ec_notifications_read_redirect_url' ) ) {
+		$link = ec_notifications_read_redirect_url( $notification_id, $link );
+	}
 
 	// Format timestamp. The network substrate stores created_at in UTC, so
 	// convert to the site's local timezone for display.

@@ -45,15 +45,35 @@ function extrachill_display_notifications() {
 	);
 
 	if ( ! empty( $new_notifications ) ) {
-		echo '<h2>New Notifications</h2><div class="extrachill-notifications">';
+		echo '<div class="extrachill-notifications-header">';
+		echo '<h2>New Notifications</h2>';
+
+		// Explicit "Mark all as read" control (no AJAX): a GET link into the
+		// read-all redirect route in extrachill-users, returning to this page.
+		if ( function_exists( 'ec_notifications_mark_all_read_url' ) ) {
+			$here             = get_permalink();
+			$mark_all_url     = ec_notifications_mark_all_read_url( $here ? $here : '' );
+			printf(
+				'<a class="extrachill-notifications-mark-all-read" href="%s">%s</a>',
+				esc_url( $mark_all_url ),
+				esc_html__( 'Mark all as read', 'extrachill-community' )
+			);
+		}
+
+		echo '</div>';
+
+		echo '<div class="extrachill-notifications">';
 		foreach ( $new_notifications as $notification ) {
 			echo wp_kses_post( extrachill_render_notification_card( $notification ) );
 		}
 		echo '</div>';
 	}
 
-	// Mark all unread notifications as read in the substrate.
-	extrachill_community_mark_notifications_read( $current_user_id );
+	// NOTE: notifications are NOT bulk-marked read on page view. Each unread
+	// card links through the click-to-read redirect (extrachill-users), so a
+	// notification is marked read only when the user actually opens it. This
+	// keeps the bell badge honest instead of zeroing it the instant the page
+	// loads. An explicit "Mark all as read" control is offered below.
 
 	$old_notifications = array_filter(
 		$notifications,
@@ -106,31 +126,6 @@ function extrachill_community_fetch_notifications( $user_id ) {
 	}
 
 	return $result;
-}
-
-/**
- * Mark all unread notifications as read for a user via the substrate.
- *
- * @param int $user_id User ID.
- * @return void
- */
-function extrachill_community_mark_notifications_read( $user_id ) {
-	if ( ! function_exists( 'wp_get_ability' ) ) {
-		return;
-	}
-
-	$ability = wp_get_ability( 'extrachill/mark-notifications-read' );
-	if ( ! $ability ) {
-		return;
-	}
-
-	// notification_id 0 marks ALL unread for the user.
-	$ability->execute(
-		array(
-			'user_id'         => (int) $user_id,
-			'notification_id' => 0,
-		)
-	);
 }
 
 /**

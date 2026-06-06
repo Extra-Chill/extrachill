@@ -1,3 +1,27 @@
+/* Notifications page header: section title + "Mark all as read" control. */
+.extrachill-notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.extrachill-notifications-header h2 {
+    margin: 0;
+}
+
+.extrachill-notifications-mark-all-read {
+    font-size: 0.85em;
+    color: var(--muted-text);
+    text-decoration: underline;
+    white-space: nowrap;
+}
+
+.extrachill-notifications-mark-all-read:hover {
+    color: var(--link-color);
+}
+
 /* Notification Card Styles */
 .notification-card {
     background-color: var(--card-background);
