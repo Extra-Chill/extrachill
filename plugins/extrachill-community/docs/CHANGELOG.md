@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.10.0] - 2026-06-06
+
+### Added
+- click-to-read on the notifications page
+
 ## [1.9.4] - 2026-06-06
 
 ### Changed
