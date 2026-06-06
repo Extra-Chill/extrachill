@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.15.2] - 2026-06-06
+
+### Changed
+- align assignment operators in emailed_at backfill
+
+### Fixed
+- nudge digest email once per notification, not daily forever
+- send registration emails in authenticated context
+
 ## [0.15.1] - 2026-06-04
 
 ### Changed
