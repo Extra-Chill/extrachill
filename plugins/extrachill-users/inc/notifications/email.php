@@ -575,24 +575,67 @@ function ec_notifications_email_build_digest( WP_User $user, $unread_count, arra
 		$unread_count
 	) . '</p>';
 
-	$preview_items = array();
+	// Group preview notifications by their target (item_id + type) so a busy
+	// thread collapses to one counted line ("3 new replies on your topic X")
+	// instead of N separate lines. Notifications without a title are skipped.
+	// Grouping preserves first-seen order and tracks how many actual
+	// notifications each group represents so the "…and N more" footer stays
+	// accurate against the total unread count.
+	$groups = array();
 	foreach ( $preview as $note ) {
 		$title = isset( $note['title'] ) ? (string) $note['title'] : '';
 		if ( '' === $title ) {
 			continue;
 		}
-		$link = isset( $note['link'] ) ? (string) $note['link'] : '';
-		if ( '' !== $link ) {
-			$preview_items[] = '<li><a href="' . esc_url( $link ) . '">' . esc_html( $title ) . '</a></li>';
-		} else {
-			$preview_items[] = '<li>' . esc_html( $title ) . '</li>';
+
+		$type    = isset( $note['type'] ) ? (string) $note['type'] : '';
+		$item_id = isset( $note['item_id'] ) ? (int) $note['item_id'] : 0;
+		$link    = isset( $note['link'] ) ? (string) $note['link'] : '';
+
+		// Only collapse when there is a concrete target to group on; an
+		// item_id of 0 means there is nothing shared to merge against, so each
+		// such notification stays a singleton line (keyed uniquely).
+		$key = ( $item_id > 0 )
+			? $type . '|' . $item_id
+			: 'single|' . count( $groups );
+
+		if ( ! isset( $groups[ $key ] ) ) {
+			$groups[ $key ] = array(
+				'title' => $title,
+				'link'  => $link,
+				'type'  => $type,
+				'count' => 0,
+			);
 		}
+
+		++$groups[ $key ]['count'];
 	}
 
-	if ( ! empty( $preview_items ) ) {
+	if ( ! empty( $groups ) ) {
+		$preview_items   = array();
+		$previewed_total = 0;
+		foreach ( $groups as $group ) {
+			$previewed_total += (int) $group['count'];
+
+			if ( (int) $group['count'] > 1 ) {
+				$label = ec_notifications_email_group_label( $group['type'], (int) $group['count'], (string) $group['title'] );
+			} else {
+				$label = esc_html( (string) $group['title'] );
+			}
+
+			if ( '' !== $group['link'] ) {
+				$preview_items[] = '<li><a href="' . esc_url( $group['link'] ) . '">' . $label . '</a></li>';
+			} else {
+				$preview_items[] = '<li>' . $label . '</li>';
+			}
+		}
+
 		$body_html .= '<ul>' . implode( '', $preview_items ) . '</ul>';
 
-		$remaining = $unread_count - count( $preview_items );
+		// Remaining counts the unread notifications NOT represented in the
+		// preview, not the number of rendered lines — grouping must never
+		// inflate the "…and N more" footer.
+		$remaining = $unread_count - $previewed_total;
 		if ( $remaining > 0 ) {
 			$body_html .= '<p>' . sprintf(
 				/* translators: %d: number of additional unread notifications not shown. */
@@ -616,6 +659,52 @@ function ec_notifications_email_build_digest( WP_User $user, $unread_count, arra
 		'body_html' => $body_html,
 		'cta_url'   => $notifications_url,
 	);
+}
+
+/**
+ * Build the escaped HTML label for a grouped preview line.
+ *
+ * When more than one unread notification shares the same target (item_id +
+ * type), the digest collapses them into a single counted line instead of N
+ * lines. The phrasing is type-aware ("3 new replies on your topic X",
+ * "2 new mentions in X") with a generic fallback for any other type, and the
+ * count drives _n() pluralization. The title is interpolated escaped; the
+ * whole label is safe to embed directly in the <li>.
+ *
+ * @param string $type  Notification type (reply, mention, …).
+ * @param int    $count Number of notifications in the group (always > 1).
+ * @param string $title Shared target title.
+ * @return string Escaped HTML label.
+ */
+function ec_notifications_email_group_label( $type, $count, $title ) {
+	$count      = (int) $count;
+	$title_html = esc_html( $title );
+
+	switch ( $type ) {
+		case 'reply':
+			return sprintf(
+				/* translators: 1: number of new replies, 2: topic title (already escaped). */
+				esc_html( _n( '%1$d new reply on your topic %2$s', '%1$d new replies on your topic %2$s', $count, 'extrachill-users' ) ),
+				$count,
+				$title_html
+			);
+
+		case 'mention':
+			return sprintf(
+				/* translators: 1: number of new mentions, 2: title (already escaped). */
+				esc_html( _n( '%1$d new mention in %2$s', '%1$d new mentions in %2$s', $count, 'extrachill-users' ) ),
+				$count,
+				$title_html
+			);
+
+		default:
+			return sprintf(
+				/* translators: 1: number of new notifications, 2: title (already escaped). */
+				esc_html( _n( '%1$d new notification on %2$s', '%1$d new notifications on %2$s', $count, 'extrachill-users' ) ),
+				$count,
+				$title_html
+			);
+	}
 }
 
 /**
