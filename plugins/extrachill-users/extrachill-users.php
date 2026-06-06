@@ -155,6 +155,8 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/email.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/unsubscribe.php';
+	// Click-to-read redirect: marks a single notification read on click.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/read-redirect.php';
 	// Header notification bell — renders network-wide via the theme header hook.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/bell.php';
 
