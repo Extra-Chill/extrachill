@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.4] - 2026-06-06
+
+### Changed
+- remove dead artist-cards-on-homepage CSS from home.css
+- migrate community blocks to wp-native-client
+
+### Fixed
+- expose bbPress reply/topic CPT to REST on front-end edit pages
+
 ## [1.9.3] - 2026-06-01
 
 ### Fixed
