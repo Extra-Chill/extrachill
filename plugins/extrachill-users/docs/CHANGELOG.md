@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.16.0] - 2026-06-06
+
+### Added
+- click-to-read redirect + mark-all-read control
+
 ## [0.15.2] - 2026-06-06
 
 ### Changed
