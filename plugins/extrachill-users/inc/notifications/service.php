@@ -21,6 +21,52 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/db.php';
 
+/**
+ * Object-cache group + TTL for the per-user unread notification count.
+ *
+ * The bell renders on EVERY page load for EVERY logged-in user, so the unread
+ * COUNT(*) was running network-wide on every request. Redis object cache is
+ * active on this site, so we cache the count per user under a stable key and
+ * bust it on every write (insert / mark-read / clear). TTL is a backstop only —
+ * writes keep the badge correct; the TTL just bounds drift if a key is ever
+ * missed.
+ */
+const EC_USERS_NOTIFICATIONS_CACHE_GROUP = 'ec_notifications';
+const EC_USERS_UNREAD_COUNT_CACHE_TTL    = 5 * MINUTE_IN_SECONDS;
+
+/**
+ * Build the per-user unread-count object-cache key.
+ *
+ * @param int $user_id Recipient user ID.
+ * @return string Cache key (e.g. 'unread_42').
+ */
+function ec_users_unread_count_cache_key( int $user_id ): string {
+	return 'unread_' . $user_id;
+}
+
+/**
+ * Invalidate the cached unread count for one or more users.
+ *
+ * Called by every writer (insert / mark-read / clear) so the bell badge is
+ * never stale. Accepts an array because ec_users_notify() can target multiple
+ * recipients in a single call — each recipient's key must be busted.
+ *
+ * @param int|int[] $user_ids Single user ID or array of user IDs.
+ */
+function ec_users_flush_unread_count_cache( $user_ids ): void {
+	if ( ! is_array( $user_ids ) ) {
+		$user_ids = array( $user_ids );
+	}
+
+	foreach ( $user_ids as $user_id ) {
+		$user_id = (int) $user_id;
+		if ( $user_id <= 0 ) {
+			continue;
+		}
+		wp_cache_delete( ec_users_unread_count_cache_key( $user_id ), EC_USERS_NOTIFICATIONS_CACHE_GROUP );
+	}
+}
+
 // ─── Self-Healing Install ───────────────────────────────────────────────────────
 
 /**
@@ -106,9 +152,10 @@ function ec_users_notify( $user_ids, array $data ): int {
 		$item_id = (int) $data['post_id'];
 	}
 
-	$table      = extrachill_users_notifications_table_name();
-	$created_at = current_time( 'mysql', true );
-	$inserted   = 0;
+	$table        = extrachill_users_notifications_table_name();
+	$created_at   = current_time( 'mysql', true );
+	$inserted     = 0;
+	$notified_ids = array();
 
 	foreach ( $user_ids as $user_id ) {
 		$user_id = (int) $user_id;
@@ -134,7 +181,13 @@ function ec_users_notify( $user_ids, array $data ): int {
 
 		if ( $result ) {
 			++$inserted;
+			$notified_ids[] = $user_id;
 		}
+	}
+
+	// Bust each recipient's cached unread count so the badge reflects the new row.
+	if ( $notified_ids ) {
+		ec_users_flush_unread_count_cache( $notified_ids );
 	}
 
 	return $inserted;
@@ -303,14 +356,24 @@ function ec_users_get_unread_count( int $user_id ): int {
 		return 0;
 	}
 
+	$cache_key = ec_users_unread_count_cache_key( $user_id );
+	$cached    = wp_cache_get( $cache_key, EC_USERS_NOTIFICATIONS_CACHE_GROUP );
+	if ( false !== $cached ) {
+		return (int) $cached;
+	}
+
 	$table = extrachill_users_notifications_table_name();
 
-	return (int) $wpdb->get_var(
+	$count = (int) $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 			$user_id
 		)
 	);
+
+	wp_cache_set( $cache_key, $count, EC_USERS_NOTIFICATIONS_CACHE_GROUP, EC_USERS_UNREAD_COUNT_CACHE_TTL );
+
+	return $count;
 }
 
 /**
@@ -348,6 +411,10 @@ function ec_users_mark_notifications_read( int $user_id, int $notification_id = 
 				$user_id
 			)
 		);
+	}
+
+	if ( false !== $updated && (int) $updated > 0 ) {
+		ec_users_flush_unread_count_cache( $user_id );
 	}
 
 	return false === $updated ? 0 : (int) $updated;
@@ -390,6 +457,10 @@ function ec_users_clear_notifications( int $user_id, bool $all = false ): int {
 		);
 	}
 
+	if ( false !== $removed && (int) $removed > 0 ) {
+		ec_users_flush_unread_count_cache( $user_id );
+	}
+
 	return false === $removed ? 0 : (int) $removed;
 }
 
@@ -400,9 +471,9 @@ function ec_users_clear_notifications( int $user_id, bool $all = false ): int {
  *
  * Registered network-wide so the existing community producers (forum replies +
  * mentions) keep working AND now write into the table from every site. The
- * community plugin still registers its own do_action handler on the community
- * site; a follow-up should remove that handler to avoid double-writes (the
- * substrate handler here is the canonical one). DO NOT remove it from this PR.
+ * community plugin only FIRES do_action( 'extrachill_notify' ) — it does not
+ * register a competing handler — so this substrate handler is the sole consumer
+ * of the action and there is no double-write.
  *
  * @param int|int[] $user_ids Recipient ID(s).
  * @param mixed     $data     Notification payload (legacy shape supported).
