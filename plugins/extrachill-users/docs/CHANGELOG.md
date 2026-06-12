@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.17.1] - 2026-06-12
+
+### Fixed
+- guard WP_Error before array access in password reset email path
+
 ## [0.17.0] - 2026-06-06
 
 ### Added
