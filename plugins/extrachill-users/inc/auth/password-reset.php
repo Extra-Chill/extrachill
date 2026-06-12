@@ -298,6 +298,19 @@ add_action( 'admin_post_ec_reset_password', 'ec_handle_reset_password' );
 /**
  * Send password reset email.
  *
+ * Password reset requests run in an unprivileged context (anonymous
+ * `admin_post_nopriv` POST), so this routes through
+ * {@see extrachill_send_registration_email()} which executes the underlying
+ * `datamachine/send-email` ability inside
+ * `PermissionHelper::run_as_authenticated()`. Calling `ec_send_email()`
+ * directly from this context makes `WP_Ability::execute()` short-circuit on
+ * its permission callback and return a `WP_Error` instead of the documented
+ * array envelope — array-indexing that WP_Error was a hard fatal on the
+ * user-facing reset flow (and the email never sent). Same root cause as #110.
+ *
+ * The authorization decision is made at THIS layer: the request is
+ * nonce-verified and rate-limited before we get here.
+ *
  * @param WP_User $user      User object
  * @param string  $reset_key Reset key
  * @return bool Whether email was sent successfully
@@ -348,7 +361,7 @@ function ec_send_password_reset_email( $user, $reset_key ) {
 	 */
 	$body_html = apply_filters( 'retrieve_password_message', $body_html, $reset_key, $user->user_login, $user );
 
-	$result = ec_send_email(
+	$result = extrachill_send_registration_email(
 		array(
 			'to'         => $user->user_email,
 			'subject'    => $subject,
@@ -366,5 +379,13 @@ function ec_send_password_reset_email( $user, $reset_key ) {
 		)
 	);
 
-	return ! empty( $result['success'] );
+	// Defensive: the envelope is documented as an array, but WP_Ability::execute()
+	// returns WP_Error on permission/validation failure (the production fatal:
+	// "Cannot use object of type WP_Error as array"). Never index blindly.
+	if ( ! is_array( $result ) || empty( $result['success'] ) ) {
+		extrachill_log_email_failure( 'password_reset', $user->ID, $user->user_email, $subject, $result );
+		return false;
+	}
+
+	return true;
 }
