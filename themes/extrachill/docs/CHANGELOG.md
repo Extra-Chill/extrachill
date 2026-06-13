@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.5.0] - 2026-06-13
+
+### Added
+- add search scope toggle to search form
+
+### Fixed
+- escape breadcrumb term names and URLs to prevent stored XSS (closes #32)
+
 ## [2.4.8] - 2026-05-27
 
 ### Changed
