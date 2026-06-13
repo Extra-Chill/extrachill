@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-06-13
+
+### Added
+- own product write business logic in shop abilities (refs #67)
+
+### Changed
+- drop jQuery dependency from raffle admin script (#16)
+- derive events host from ec_get_site_url instead of hardcoded domain (refs #36)
+- parameterize product provisioning (closes #12)
+
 ## [0.7.0] - 2026-05-18
 
 ### Added
