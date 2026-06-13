@@ -34,30 +34,17 @@ add_action( 'plugins_loaded', function () {
 		return;
 	}
 
+	// This section can be composed in non-CLI (web/cron) contexts where the
+	// WP_CLI guard below has not registered the autoloader. Register it here
+	// so the generator can reflect over the real command classes (and any
+	// traits they use) regardless of context.
+	require_once EXTRACHILL_CLI_PATH . 'inc/Autoloader.php';
+	\ExtraChill\CLI\Autoloader::register( EXTRACHILL_CLI_PATH );
+
 	$wp = 'wp --allow-root --path=' . ABSPATH;
 
 	\DataMachine\Engine\AI\SectionRegistry::register( 'AGENTS.md', 'extrachill-cli', 50, function () use ( $wp ) {
-		return <<<MD
-### Extra Chill CLI
-
-Platform-specific tooling wrapping common operations into unified commands.
-Discover everything: `{$wp} extrachill --help`
-
-- `{$wp} extrachill artists` — artist profile management and search
-- `{$wp} extrachill events` — events calendar operations
-- `{$wp} extrachill seo` — SEO audit, meta tags, and structured data
-- `{$wp} extrachill analytics` — analytics and traffic reports
-- `{$wp} extrachill newsletter` — newsletter campaigns and Sendy integration
-- `{$wp} extrachill community` — community forum operations
-- `{$wp} extrachill users` — user management and team membership
-- `{$wp} extrachill venues` — venue lookups
-- `{$wp} extrachill shows` — show/concert operations
-- `{$wp} extrachill cache` — object cache and page cache management
-- `{$wp} extrachill tools` — miscellaneous platform tools
-- `{$wp} extrachill giveaway` — giveaway management
-
-All commands support `--help` for subcommand discovery.
-MD;
+		return \ExtraChill\CLI\AgentsMdSection::render( $wp );
 	}, array(
 		'label'       => 'Extra Chill CLI',
 		'description' => 'Platform-specific WP-CLI commands for Extra Chill.',
@@ -70,23 +57,8 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 }
 
 // PSR-4 autoloader for ExtraChill\CLI namespace.
-spl_autoload_register(
-	function ( $class_name ) {
-		$prefix = 'ExtraChill\\CLI\\';
-		$len    = strlen( $prefix );
-
-		if ( strncmp( $prefix, $class_name, $len ) !== 0 ) {
-			return;
-		}
-
-		$relative = substr( $class_name, $len );
-		$file     = EXTRACHILL_CLI_PATH . 'inc/' . str_replace( '\\', '/', $relative ) . '.php';
-
-		if ( file_exists( $file ) ) {
-			require_once $file;
-		}
-	}
-);
+require_once EXTRACHILL_CLI_PATH . 'inc/Autoloader.php';
+\ExtraChill\CLI\Autoloader::register( EXTRACHILL_CLI_PATH );
 
 // Register commands.
 require_once EXTRACHILL_CLI_PATH . 'inc/bootstrap.php';
