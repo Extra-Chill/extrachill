@@ -1,5 +1,7 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.5.0] - 2026-06-13
+
 ### Changed
 - Platform taxonomy terms now derived from `ec_get_blog_ids()` (canonical multisite source of truth) instead of hardcoded list
 - Renamed `ec_docs/artist-platform/` → `ec_docs/artist/` and `ec_docs/events-calendar/` → `ec_docs/events/` to match canonical slugs
@@ -163,6 +165,13 @@
 
 ### Changed
 - Version bump to 0.1.1 following initial 0.1.0 release
+- modernize repo: remove legacy build, add homeboy config, version bump 0.4.0
+- Remove stream from docs platform taxonomy seed
+- remove chat platform docs (chat.extrachill.com deprecated)
+- Remove vendor directory from git tracking
+- update
+- added .gitignore
+- Initial release: extrachill-docs v0.1.0
 
 # 0.1.0 - Dec 7, 2024
 
@@ -174,3 +183,9 @@
 - Clean URL structure (/platform-slug/doc-slug/)
 - Conditional asset loading with cache busting
 - Plugin activation hook with rewrite rule flushing
+- one-shot CLI migration of 16 ec_doc posts to hierarchical pages
+- upsert-doc-page ability + scheduled cron + edit lockdown
+- feat(docs-agent): register 'docs' execution mode with editorial voice rules
+
+### Fixed
+- derive platform terms from canonical multisite site map
