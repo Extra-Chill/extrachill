@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2026-06-13
+
+### Changed
+- port content-block frontends to headless React/TS (closes #6)
+
+### Fixed
+- mount blocks in place with shared score store (follow-up to #7)
+- dismiss generator/voting messages instead of leaving them lingering
+- derive blockId from clientId to prevent collisions
+
 ## [1.3.1] - 2026-05-21
 
 ### Fixed
