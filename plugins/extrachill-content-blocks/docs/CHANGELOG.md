@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.3] - 2026-06-15
+
+### Changed
+- store image-voting votes as native comments instead of post_content
+
+### Fixed
+- guard ability category registration against double-fire _doing_it_wrong notice
+
 ## [1.3.2] - 2026-06-13
 
 ### Changed
