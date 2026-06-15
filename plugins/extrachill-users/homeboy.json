@@ -17,14 +17,17 @@
     },
     {
       "file": "blocks/login-register/block.json",
+      "artifact_path": "build/login-register/block.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\""
     },
     {
       "file": "blocks/onboarding/block.json",
+      "artifact_path": "build/onboarding/block.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\""
     },
     {
       "file": "blocks/password-reset/block.json",
+      "artifact_path": "build/password-reset/block.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
