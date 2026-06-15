@@ -40,6 +40,12 @@ function extrachill_content_blocks_register_ability_category() {
 		return;
 	}
 
+	// wp_abilities_api_categories_init can fire more than once per request on
+	// multisite; guard against re-registration to avoid a _doing_it_wrong notice.
+	if ( function_exists( 'wp_has_ability_category' ) && wp_has_ability_category( 'extrachill-content' ) ) {
+		return;
+	}
+
 	wp_register_ability_category(
 		'extrachill-content',
 		array(
