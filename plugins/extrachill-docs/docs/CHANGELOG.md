@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.5.1] - 2026-06-15
+
+### Fixed
+- register upsert-doc-page ability on wp_abilities_api_init
+
 ## [0.5.0] - 2026-06-13
 
 ### Changed
