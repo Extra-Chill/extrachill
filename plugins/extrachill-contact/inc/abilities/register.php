@@ -18,6 +18,14 @@ add_action( 'wp_abilities_api_categories_init', 'extrachill_contact_register_abi
  * Register contact ability category.
  */
 function extrachill_contact_register_ability_category(): void {
+	if ( ! function_exists( 'wp_register_ability_category' ) ) {
+		return;
+	}
+
+	if ( function_exists( 'wp_has_ability_category' ) && wp_has_ability_category( 'extrachill-contact' ) ) {
+		return;
+	}
+
 	wp_register_ability_category(
 		'extrachill-contact',
 		array(
