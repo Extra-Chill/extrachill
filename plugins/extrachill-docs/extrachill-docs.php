@@ -55,6 +55,9 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/docs-agent/docs-mode.php';
 
 // Sync infrastructure — upsert-doc-page ability, scheduled cron, WP-CLI
 // command, edit lockdown on synced pages. See inc/sync/*.
+// The ability category must be registered before any ability assigns
+// itself to it, so load it first.
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/category.php';
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/upsert-doc-page.php';
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/sync/synced-page-guard.php';
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/sync/sync-orchestrator.php';
