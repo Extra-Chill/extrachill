@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.17.3] - 2026-06-15
+
+### Fixed
+- guard ability category registration against double-fire _doing_it_wrong notice
+- verify block.json version targets against shipped build/ path on deploy
+
 ## [0.17.2] - 2026-06-15
 
 ### Fixed
