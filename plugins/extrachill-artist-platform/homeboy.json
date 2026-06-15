@@ -16,28 +16,29 @@
       "pattern": "EXTRACHILL_ARTIST_PLATFORM_VERSION',\\s*'([0-9.]+)'"
     },
     {
-      "file": "package.json",
-      "pattern": "\"version\":\\s*\"([0-9.]+)\""
-    },
-    {
       "file": "src/blocks/artist-manager/block.json",
-      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/artist-manager/block.json"
     },
     {
       "file": "src/blocks/artist-shop-manager/block.json",
-      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/artist-shop-manager/block.json"
     },
     {
       "file": "src/blocks/artist-creator/block.json",
-      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/artist-creator/block.json"
     },
     {
       "file": "src/blocks/artist-analytics/block.json",
-      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/artist-analytics/block.json"
     },
     {
       "file": "src/blocks/link-page-editor/block.json",
-      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/link-page-editor/block.json"
     }
   ]
 }
