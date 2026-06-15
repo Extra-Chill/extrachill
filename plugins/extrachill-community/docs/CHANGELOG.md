@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1] - 2026-06-15
+
+### Fixed
+- add .npmrc legacy-peer-deps to unblock release build npm install
+- guard ability category registration against double-fire _doing_it_wrong notice
+- point no-JS new-topic button fallback at a working topic form
+
 ## [1.10.0] - 2026-06-06
 
 ### Added
