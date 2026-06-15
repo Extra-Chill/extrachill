@@ -43,15 +43,16 @@ add_filter(
 		// Block AI training crawlers that scrape content for model training.
 		// These crawlers do not drive traffic — they only extract content.
 		$ai_crawlers = array(
-			'GPTBot'           => 'OpenAI training crawler',
-			'ChatGPT-User'     => 'ChatGPT browsing feature',
-			'CCBot'            => 'Common Crawl (used for AI training)',
-			'Google-Extended'  => 'Google AI training (Gemini/Bard)',
-			'anthropic-ai'     => 'Anthropic training crawler',
-			'ClaudeBot'        => 'Anthropic Claude crawler',
-			'Bytespider'       => 'ByteDance/TikTok crawler',
-			'FacebookBot'      => 'Meta AI training crawler',
-			'Applebot-Extended' => 'Apple AI training crawler',
+			'GPTBot'             => 'OpenAI training crawler',
+			'ChatGPT-User'       => 'ChatGPT browsing feature',
+			'CCBot'              => 'Common Crawl (used for AI training)',
+			'Google-Extended'    => 'Google AI training (Gemini/Bard)',
+			'anthropic-ai'       => 'Anthropic training crawler',
+			'ClaudeBot'          => 'Anthropic Claude crawler',
+			'Bytespider'         => 'ByteDance/TikTok crawler',
+			'FacebookBot'        => 'Meta AI training crawler',
+			'meta-externalagent' => 'Meta content crawler (newer agent, distinct from FacebookBot)',
+			'Applebot-Extended'  => 'Apple AI training crawler',
 		);
 
 		$extra_rules .= "\n# Block AI training crawlers\n";

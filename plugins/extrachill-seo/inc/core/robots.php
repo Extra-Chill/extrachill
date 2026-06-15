@@ -78,3 +78,24 @@ add_filter(
 		return $robots;
 	}
 );
+
+/**
+ * Emit an X-Robots-Tag HTTP header on search-result responses.
+ *
+ * The wp_robots filter only adds an HTML <meta> tag, which non-compliant
+ * crawlers (e.g. meta-externalagent, spoofed-UA scrapers) routinely ignore.
+ * The HTTP header is read earlier and by a different set of agents, so it is a
+ * cheap belt-and-suspenders signal that search-result pages are noindex.
+ *
+ * Search pages (`/?s=`) are unbounded and each request triggers a full-text
+ * query; they must never be indexed. The header is sent before output so it is
+ * present even on cached or partial responses.
+ */
+add_action(
+	'template_redirect',
+	function () {
+		if ( is_search() && ! headers_sent() ) {
+			header( 'X-Robots-Tag: noindex, follow', true );
+		}
+	}
+);
