@@ -20,6 +20,17 @@ add_action( 'wp_abilities_api_categories_init', 'extrachill_events_register_abil
  * Register the events-domain ability category.
  */
 function extrachill_events_register_abilities_category(): void {
+	if ( ! function_exists( 'wp_register_ability_category' ) ) {
+		return;
+	}
+
+	// The wp_abilities_api_categories_init action can fire more than once per
+	// request on multisite; guard against re-registering an already-registered
+	// category to avoid a _doing_it_wrong notice.
+	if ( function_exists( 'wp_has_ability_category' ) && wp_has_ability_category( 'extrachill-events' ) ) {
+		return;
+	}
+
 	wp_register_ability_category(
 		'extrachill-events',
 		array(
