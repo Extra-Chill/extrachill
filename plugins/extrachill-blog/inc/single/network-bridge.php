@@ -218,17 +218,16 @@ function extrachill_blog_network_bridge_build_cards( $artist_terms, $festival_te
 		$cards['shop'] = $by_site['shop'];
 	}
 
-	// Slot 5 — a guaranteed community entry point. Prefer a real
-	// community match from the engine; otherwise synthesize a contextual link
-	// into the community keyed on the post's primary artist/festival term.
+	// Slot 5 — a community entry point, but ONLY when the cross-site engine
+	// resolves a real community destination. We deliberately do NOT synthesize a
+	// live community search URL (`/?s=<term>`) as a fallback: those URLs are
+	// crawlable, unbounded, and each one triggers an expensive full-text search.
+	// Emitting them across the whole song-meaning catalog turned the community
+	// search endpoint into a crawl/DB-load sink (see extrachill-blog#13 /
+	// extrachill-events#172). No community card is better than a fake
+	// search-result destination.
 	if ( isset( $by_site['community'] ) ) {
 		$cards['community'] = $by_site['community'];
-	} else {
-		$primary_term = ! empty( $artist_terms ) ? reset( $artist_terms ) : reset( $festival_terms );
-		$community    = $primary_term instanceof WP_Term ? extrachill_blog_network_bridge_community_card( $primary_term ) : null;
-		if ( $community ) {
-			$cards['community'] = $community;
-		}
 	}
 
 	// UTM-tag every outbound link so cross-site clicks are measurable.
@@ -287,41 +286,6 @@ function extrachill_blog_network_bridge_collect( &$by_site, $term, $taxonomy ) {
 			);
 		}
 	}
-}
-
-/**
- * Build a contextual community entry-point card for a term.
- *
- * Used when the cross-site engine returns no direct community match. Links the
- * reader into the community's network-wide search scoped to the term name, so
- * there is always a path into the community from a song-meaning post.
- *
- * @param WP_Term|null $term Primary term (artist or festival).
- * @return array|null Link array, or null if community is unavailable.
- */
-function extrachill_blog_network_bridge_community_card( $term ) {
-	if ( ! $term || ! function_exists( 'ec_get_site_url' ) ) {
-		return null;
-	}
-
-	$community_url = ec_get_site_url( 'community' );
-	if ( empty( $community_url ) ) {
-		return null;
-	}
-
-	$search_url = add_query_arg(
-		's',
-		rawurlencode( $term->name ),
-		trailingslashit( $community_url )
-	);
-
-	return array(
-		'site_key'  => 'community',
-		'url'       => $search_url,
-		'label'     => __( 'in the Community', 'extrachill-blog' ),
-		'term_name' => $term->name,
-		'count'     => 0,
-	);
 }
 
 /**
