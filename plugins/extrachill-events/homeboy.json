@@ -17,11 +17,13 @@
     },
     {
       "file": "blocks/concert-stats/block.json",
-      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/concert-stats/block.json"
     },
     {
       "file": "blocks/event-submission/block.json",
-      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/event-submission/block.json"
     }
   ]
 }
