@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.5.2] - 2026-06-15
+
+### Fixed
+- register extrachill-docs ability category to stop _doing_it_wrong notice
+
 ## [0.5.1] - 2026-06-15
 
 ### Fixed
