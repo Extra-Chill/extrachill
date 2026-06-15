@@ -212,6 +212,13 @@ final class SetlistFmImportSource implements ImportSource {
 	 * provider. Returns empty string when no credential has been provisioned.
 	 */
 	private function get_api_key(): string {
+		// SetlistFmAuthProvider extends Data Machine's BaseAuthProvider, which is
+		// only loaded (by bootstrap.php) once Data Machine's autoloader has
+		// declared the parent. Guard so a DM-absent fetch cannot fatal — it
+		// simply yields no credential, which the caller treats as "unprovisioned".
+		if ( ! class_exists( SetlistFmAuthProvider::class ) ) {
+			return '';
+		}
 		$provider = new SetlistFmAuthProvider();
 		return $provider->get_api_key();
 	}
