@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
+## [0.13.2] - 2026-06-15
+
+### Changed
+- sync package-lock.json with @wordpress/scripts@30 deps for npm ci
+- pin ajv ^8 to fix wp-scripts webpack build on Node 25
+
+### Fixed
+- guard ability category registration against double-fire _doing_it_wrong notice
+
 ## [0.13.1] - 2026-06-15
 
 ### Fixed
