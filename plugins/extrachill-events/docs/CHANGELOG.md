@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.29.3] - 2026-06-15
+
+### Fixed
+- guard ability category registration against double-fire _doing_it_wrong notice
+- add artifact_path to block version targets (#4614)
+
 ## [0.29.2] - 2026-06-15
 
 ### Fixed
