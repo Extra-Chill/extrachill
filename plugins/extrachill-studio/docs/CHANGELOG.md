@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.10] - 2026-06-15
+
+### Fixed
+- guard ability category registration against double-fire _doing_it_wrong notice
+
 ## [0.15.9] - 2026-06-03
 
 ### Fixed
