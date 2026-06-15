@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'init', 'extrachill_docs_register_upsert_doc_page_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_docs_register_upsert_doc_page_ability' );
 
 /**
  * Register the upsert-doc-page ability with the WordPress Abilities API.
