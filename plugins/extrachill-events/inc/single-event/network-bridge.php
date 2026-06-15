@@ -242,18 +242,15 @@ function ec_events_network_bridge_build_cards( $artist_terms, $festival_terms ) 
 		$cards['wire'] = $by_site['wire'];
 	}
 
-	// Slot 3 — a guaranteed community entry point. The artist/festival taxonomy
-	// site map does not include community, so the engine never returns a direct
-	// community match; synthesize a contextual link into the community keyed on
-	// the event's primary artist/festival term.
+	// Slot 3 — a community entry point, but ONLY when the cross-site engine
+	// resolves a real community destination. We deliberately do NOT synthesize a
+	// live community search URL (`/?s=<term>`) as a fallback: those URLs are
+	// crawlable, unbounded, and each one triggers an expensive full-text search.
+	// Emitting them across tens of thousands of event pages turned the community
+	// search endpoint into a crawl/DB-load sink (see extrachill-events#172). No
+	// community card is better than a fake search-result destination.
 	if ( isset( $by_site['community'] ) ) {
 		$cards['community'] = $by_site['community'];
-	} else {
-		$primary_term = ! empty( $artist_terms ) ? reset( $artist_terms ) : reset( $festival_terms );
-		$community    = $primary_term instanceof WP_Term ? ec_events_network_bridge_community_card( $primary_term ) : null;
-		if ( $community ) {
-			$cards['community'] = $community;
-		}
 	}
 
 	// UTM-tag every outbound link so cross-site clicks are measurable.
@@ -313,42 +310,6 @@ function ec_events_network_bridge_collect( &$by_site, $term, $taxonomy ) {
 			);
 		}
 	}
-}
-
-/**
- * Build a contextual community entry-point card for a term.
- *
- * The artist/festival taxonomy site map does not include the community, so the
- * cross-site engine never returns a direct community match. This links the
- * reader into the community's network-wide search scoped to the term name, so
- * there is always a path from a single event into the community discussion.
- *
- * @param WP_Term|null $term Primary term (artist or festival).
- * @return array|null Link array, or null if community is unavailable.
- */
-function ec_events_network_bridge_community_card( $term ) {
-	if ( ! $term || ! function_exists( 'ec_get_site_url' ) ) {
-		return null;
-	}
-
-	$community_url = ec_get_site_url( 'community' );
-	if ( empty( $community_url ) ) {
-		return null;
-	}
-
-	$search_url = add_query_arg(
-		's',
-		rawurlencode( $term->name ),
-		trailingslashit( $community_url )
-	);
-
-	return array(
-		'site_key'  => 'community',
-		'url'       => $search_url,
-		'label'     => __( 'in the Community', 'extrachill-events' ),
-		'term_name' => $term->name,
-		'count'     => 0,
-	);
 }
 
 /**
