@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2026-06-15
+
+### Changed
+- regenerate package-lock.json for ajv ^8 pin
+- pin ajv ^8 to fix wp-scripts webpack build on Node 25
+
+### Fixed
+- guard ability category registration against double-fire _doing_it_wrong notice
+
 ## [1.3.1] - 2026-05-18
 
 ### Fixed
