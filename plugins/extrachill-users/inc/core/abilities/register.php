@@ -43,6 +43,17 @@ function extrachill_users_resolve_self_user_id() {
  * Register users ability category.
  */
 function extrachill_users_register_category() {
+	if ( ! function_exists( 'wp_register_ability_category' ) ) {
+		return;
+	}
+
+	// Core's wp_abilities_api_categories_init action can fire more than once per
+	// request on multisite; guard against re-registration to avoid a
+	// _doing_it_wrong notice ("category already registered").
+	if ( function_exists( 'wp_has_ability_category' ) && wp_has_ability_category( 'extrachill-users' ) ) {
+		return;
+	}
+
 	wp_register_ability_category(
 		'extrachill-users',
 		array(
