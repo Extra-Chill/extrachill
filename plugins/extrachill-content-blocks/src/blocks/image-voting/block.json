@@ -22,7 +22,8 @@
     },
     "voteCount": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "DEPRECATED (issue #13): votes are now stored as image_vote comments. Kept only so the one-time backfill (wp extrachill-content-blocks backfill-image-votes) can read historical counts. Remove from block.json after backfill + post_content cleanup are confirmed in production."
     },
     "uniqueBlockId": {
       "type": "string",
@@ -30,7 +31,8 @@
     },
     "voters": {
       "type": "array",
-      "default": []
+      "default": [],
+      "description": "DEPRECATED (issue #13): voter emails are now stored in wp_comments (image_vote type) and never rendered. Kept only for the one-time backfill to read historical voter emails. Remove from block.json after backfill + post_content cleanup are confirmed in production."
     }
   },
   "viewScript": "file:./view.js",

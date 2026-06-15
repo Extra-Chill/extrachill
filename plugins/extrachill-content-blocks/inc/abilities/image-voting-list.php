@@ -96,18 +96,17 @@ function extrachill_content_blocks_image_voting_list_ability_execute( array $inp
 		);
 	}
 
-	$blocks     = parse_blocks( $post->post_content );
-	$vote_count = 0;
-
-	foreach ( $blocks as $block ) {
-		if ( 'extrachill/image-voting' === $block['blockName'] ) {
-			$block_id = $block['attrs']['uniqueBlockId'] ?? '';
-			if ( $block_id === $instance_id ) {
-				$vote_count = (int) ( $block['attrs']['voteCount'] ?? 0 );
-				break;
-			}
-		}
+	// Votes are stored as image_vote comments (see
+	// src/blocks/image-voting/index.php). The count is read from those
+	// comments for this (post, instance_id), not from block attributes.
+	if ( ! function_exists( 'extrachill_content_blocks_image_vote_count' ) ) {
+		return new \WP_Error(
+			'function_missing',
+			__( 'Image voting function not available.', 'extrachill-content-blocks' )
+		);
 	}
+
+	$vote_count = extrachill_content_blocks_image_vote_count( $post_id, $instance_id );
 
 	return array(
 		'vote_count' => $vote_count,

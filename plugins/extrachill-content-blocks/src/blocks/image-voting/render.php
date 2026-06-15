@@ -6,16 +6,22 @@
  * (view.tsx) renders the image, vote badges, and voting form and owns all
  * interaction state. No server-rendered markup is hydrated by reading data-*
  * attributes.
+ *
+ * Votes are stored as image_vote comments (see index.php). The displayed
+ * count is read from those comments, not from the legacy voteCount attribute.
+ * Voter emails are NOT emitted into the DOM — the previous `voters` array in
+ * this config was a public PII leak and has been removed. Duplicate-vote
+ * suppression is now authoritative server-side (the vote handler rejects with
+ * the `already_voted` code) plus a localStorage hint for instant UX.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$title      = isset( $attributes['blockTitle'] ) ? $attributes['blockTitle'] : 'Vote for this image';
-$vote_count = isset( $attributes['voteCount'] ) ? (int) $attributes['voteCount'] : 0;
-$media_id   = isset( $attributes['mediaID'] ) ? (int) $attributes['mediaID'] : 0;
-$media_url  = isset( $attributes['mediaURL'] ) ? $attributes['mediaURL'] : '';
+$title     = isset( $attributes['blockTitle'] ) ? $attributes['blockTitle'] : 'Vote for this image';
+$media_id  = isset( $attributes['mediaID'] ) ? (int) $attributes['mediaID'] : 0;
+$media_url = isset( $attributes['mediaURL'] ) ? $attributes['mediaURL'] : '';
 
 if ( $media_id && empty( $media_url ) ) {
 	$media_url = wp_get_attachment_url( $media_id );
@@ -28,7 +34,15 @@ if ( ! $post_id && is_admin() ) {
 }
 
 $block_instance_id = isset( $attributes['uniqueBlockId'] ) ? $attributes['uniqueBlockId'] : '';
-$voters            = isset( $attributes['voters'] ) ? $attributes['voters'] : array();
+
+// Authoritative count comes from image_vote comments. Fall back to the legacy
+// voteCount attribute only if the count helper is unavailable (e.g. block
+// rendered before business logic loaded) or pre-backfill on a fresh instance.
+if ( function_exists( 'extrachill_content_blocks_image_vote_count' ) && $post_id && '' !== $block_instance_id ) {
+	$vote_count = extrachill_content_blocks_image_vote_count( $post_id, $block_instance_id );
+} else {
+	$vote_count = isset( $attributes['voteCount'] ) ? (int) $attributes['voteCount'] : 0;
+}
 
 $config = array(
 	'title'         => $title,
@@ -36,7 +50,6 @@ $config = array(
 	'mediaUrl'      => $media_url,
 	'postId'        => (int) $post_id,
 	'blockInstance' => $block_instance_id,
-	'voters'        => array_values( (array) $voters ),
 	'isAdmin'       => is_admin(),
 );
 

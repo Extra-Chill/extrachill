@@ -6,6 +6,11 @@
  * via @wordpress/api-fetch against the content-blocks image-voting ability
  * route. The voter email is remembered in localStorage to suppress re-voting.
  *
+ * Other voters' emails are never shipped to the client. Duplicate-vote
+ * suppression relies on the saved localStorage email for instant UX plus the
+ * server's authoritative `already_voted` rejection (votes are stored as
+ * image_vote comments server-side; see index.php / issue #13).
+ *
  * Sibling voting blocks are reordered by current vote count before mounting,
  * preserving the original "highest votes first" behavior.
  */
@@ -21,7 +26,6 @@ interface ImageVotingConfig {
 	mediaUrl: string;
 	postId: number;
 	blockInstance: string;
-	voters: string[];
 	isAdmin: boolean;
 }
 
@@ -59,12 +63,13 @@ function isValidEmail( email: string ): boolean {
 
 function ImageVoting( config: ImageVotingConfig ) {
 	const savedEmail = getSavedEmail();
-	const initiallyVoted = Boolean(
-		savedEmail && config.voters.includes( savedEmail )
-	);
 
+	// Per-instance vote state is not known client-side (we no longer ship the
+	// voter list). Start un-voted; the server authoritatively rejects a repeat
+	// vote for this (post, instance, email) with the `already_voted` code,
+	// which flips hasVoted in submitVote().
 	const [ voteCount, setVoteCount ] = useState( config.voteCount );
-	const [ hasVoted, setHasVoted ] = useState( initiallyVoted );
+	const [ hasVoted, setHasVoted ] = useState( false );
 	const [ showForm, setShowForm ] = useState( false );
 	const [ email, setEmail ] = useState( savedEmail );
 	const [ isVoting, setIsVoting ] = useState( false );
@@ -294,7 +299,6 @@ function parseConfig( container: HTMLElement ): ImageVotingConfig | null {
 			mediaUrl: parsed.mediaUrl ?? '',
 			postId: Number( parsed.postId ?? 0 ),
 			blockInstance: parsed.blockInstance ?? '',
-			voters: Array.isArray( parsed.voters ) ? parsed.voters : [],
 			isAdmin: Boolean( parsed.isAdmin ),
 		};
 	} catch {

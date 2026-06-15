@@ -98,6 +98,27 @@ function extrachill_content_blocks_load_business_logic() {
 extrachill_content_blocks_load_business_logic();
 
 /**
+ * Register WP-CLI commands.
+ *
+ * Currently provides the one-time image-votes backfill migration
+ * (see inc/cli/class-image-votes-backfill-command.php). Loaded only when
+ * WP-CLI is running.
+ */
+function extrachill_content_blocks_register_cli_commands() {
+	if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+		return;
+	}
+
+	require_once __DIR__ . '/inc/cli/class-image-votes-backfill-command.php';
+
+	WP_CLI::add_command(
+		'extrachill-content-blocks backfill-image-votes',
+		'Extrachill_Content_Blocks_Image_Votes_Backfill_Command'
+	);
+}
+extrachill_content_blocks_register_cli_commands();
+
+/**
  * Register the shared content blocks.
  *
  * In development: registers from src/blocks/
