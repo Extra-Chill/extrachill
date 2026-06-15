@@ -1,9 +1,15 @@
 <?php
 /**
- * Forum Homepage Display Management
+ * Forum Archive Display Management
  *
- * Admin functionality for controlling which forums display on the community homepage.
- * Adds checkbox to forum edit pages for homepage display control.
+ * Admin functionality for controlling which forums display in the forum
+ * archive (/forums/) list. Adds a checkbox to forum edit pages.
+ *
+ * Naming note: the underlying meta key is `_show_on_homepage` and the
+ * function/metabox names still say "homepage" — a leftover from before the
+ * feed-first homepage (#66) moved the forum list off the homepage and onto
+ * the forum archive. The stored key + ability field rename (with migration)
+ * is tracked separately; this file keeps the user-facing copy honest.
  *
  * @package ExtraChillCommunity
  * @version 1.0.0
@@ -18,7 +24,7 @@ if ( ! defined('ABSPATH') ) {
 function extrachill_add_homepage_display_meta_box() {
 	add_meta_box(
 		'extrachill_homepage_display',
-		'Homepage Display',
+		__( 'Forum Archive Display', 'extra-chill-community' ),
 		'extrachill_homepage_display_meta_box_callback',
 		'forum',
 		'side',
@@ -37,16 +43,16 @@ function extrachill_homepage_display_meta_box_callback($post) {
 	<p>
 		<label for="show_on_homepage">
 			<input type="checkbox" name="_show_on_homepage" id="show_on_homepage" value="1" <?php checked($show_on_homepage, '1'); ?> />
-			<?php esc_html_e('Show on Homepage', 'extra-chill-community'); ?>
+			<?php esc_html_e('Show in forum archive', 'extra-chill-community'); ?>
 		</label>
 		<br />
-		<span class="description"><?php esc_html_e('Display this forum in the homepage forum list.', 'extra-chill-community'); ?></span>
+		<span class="description"><?php esc_html_e('Display this forum in the forum archive (/forums/) list.', 'extra-chill-community'); ?></span>
 	</p>
 	<?php
 }
 
 
-// Function to save the homepage display setting
+// Function to save the forum-archive display setting.
 function save_forum_homepage_display($post_id) {
 	// Check if this is an autosave
 	if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) {

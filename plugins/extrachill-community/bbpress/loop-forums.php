@@ -16,6 +16,10 @@ defined( 'ABSPATH' ) || exit;
 	<h2>Community Forums</h2>
 </div>
 <?php
+// Forums opted into the archive list via the "Forum Archive Display"
+// metabox. The meta key is still `_show_on_homepage` (legacy name from
+// before the feed-first homepage moved this list onto the forum archive,
+// #66); a keyed rename + migration is tracked separately.
 $args = array(
 	'post_parent'    => 0,
 	'meta_query'     => array(
@@ -41,5 +45,5 @@ if ( bbp_has_forums( $args ) ) :
 		<?php endwhile; ?>
 	</div>
 <?php else : ?>
-	<p>No forums are currently set to display on the homepage.</p>
+	<p><?php esc_html_e( 'No forums are currently set to display in the forum archive.', 'extra-chill-community' ); ?></p>
 <?php endif; ?>
