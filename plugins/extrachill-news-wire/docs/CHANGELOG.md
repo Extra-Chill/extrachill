@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0] - 2026-06-16
+
+### Added
+- add festival-driven network bridge on single posts
+
+### Changed
+- eliminate ec-edge-shell from news wire
+- align news wire templates to theme edge contract
+- Theme flexibility audit: festival wire taxonomy and theme integration
+- Update news wire templates and remove build artifacts
+- Festival Wire improvements and updates
+- switched from session tokens to native wordpress multisite user recognition. should now be much more performant and overall native to wordpress
+- added ticker to plugin included via action hook on homepage
+- Initial commit: ExtraChill News Wire Plugin
+
 ## [0.3.10] - 2026-01-19
 
 ### Added
