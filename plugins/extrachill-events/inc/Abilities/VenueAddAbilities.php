@@ -373,15 +373,16 @@ class VenueAddAbilities {
 						'taxonomy_promoter_selection' => 'skip',
 					),
 				);
-				$step['user_message']    = 'IMPORTANT SYSTEM-WIDE RULE: Do not assign WordPress Categories or Tags for events.';
 				$step['enabled']         = true;
 			}
 
 			if ( 'ai' === $step_type ) {
-				$step['user_message'] = sprintf(
-					'Process this event from %s for the events calendar.',
-					$venue_name
-				);
+				// Prompt-layer purity: venue flows start with an empty AI prompt.
+				// The venue identity is carried structurally (flow name + location
+				// taxonomy + scraper handler config); universal processing policy
+				// lives in the agent SOUL. A human only adds a prompt here when the
+				// venue has a genuine quirk worth a per-flow delta.
+				$step['user_message'] = '';
 			}
 		}
 		unset( $step );

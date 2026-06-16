@@ -631,9 +631,7 @@ class CityAbilities {
 					self::DEFAULT_AI_PROVIDER => array( 'model' => self::DEFAULT_AI_MODEL ),
 				);
 				$step['system_prompt'] = sprintf(
-					'You run the Extra Chill events feed for %s. Process the event and prepare it for update to the calendar, assigning the appropriate details to the event based on the available information.
-
-The festival taxonomy should only be used if the event in question is a festival; otherwise ignore it.',
+					'You run the Extra Chill events feed for %s.',
 					$city_label
 				);
 				$step['enabled_tools'] = array();
@@ -691,13 +689,9 @@ The festival taxonomy should only be used if the event in question is a festival
 							'taxonomy_artist_selection'   => 'ai_decides',
 							'taxonomy_promoter_selection' => 'skip',
 						),
-						'user_message'   => "IMPORTANT SYSTEM-WIDE RULE: Do not assign WordPress Categories or Tags for events. Always set:\n- taxonomy_category_selection = \"skip\"\n- taxonomy_post_tag_selection = \"skip\"\nIf any source includes categories/tags, ignore them.",
 					),
 					'ai'           => array(
-						'user_message' => sprintf(
-							'Process this Ticketmaster music event for the %s events calendar',
-							$city_full
-						),
+						'user_message' => '',
 					),
 				),
 			)
@@ -725,7 +719,7 @@ The festival taxonomy should only be used if the event in question is a festival
 					'exclude_keywords'    => '',
 				),
 				$location_term,
-				sprintf( 'Process this Ticketmaster music event for the %s events calendar', $city_full )
+				''
 			);
 		}
 
@@ -783,7 +777,7 @@ The festival taxonomy should only be used if the event in question is a festival
 					'exclude_keywords' => '',
 				),
 				$location_term,
-				sprintf( 'Process this Dice.fm event for the %s events calendar.', $city_full )
+				''
 			);
 		}
 
@@ -806,7 +800,10 @@ The festival taxonomy should only be used if the event in question is a festival
 	 * @param string $import_handler Handler slug for the event_import step.
 	 * @param array  $import_config  Handler config for the event_import step.
 	 * @param string $location_term  Location taxonomy term for the update step.
-	 * @param string $ai_message     User message for the AI step.
+	 * @param string $ai_message     Source-delta prompt for the AI step. Empty for
+	 *                               bulk sources whose identity is carried structurally
+	 *                               (flow name + location taxonomy + handler config);
+	 *                               universal processing policy lives in the agent SOUL.
 	 */
 	private function patchFlowSteps( int $flow_id, string $import_handler, array $import_config, string $location_term, string $ai_message ): void {
 		global $wpdb;
@@ -851,7 +848,6 @@ The festival taxonomy should only be used if the event in question is a festival
 						'taxonomy_promoter_selection' => 'skip',
 					),
 				);
-				$step['user_message']    = "IMPORTANT SYSTEM-WIDE RULE: Do not assign WordPress Categories or Tags for events. Always set:\n- taxonomy_category_selection = \"skip\"\n- taxonomy_post_tag_selection = \"skip\"\nIf any source includes categories/tags, ignore them.";
 				$step['enabled']         = true;
 			}
 
