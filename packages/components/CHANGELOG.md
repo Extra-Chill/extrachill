@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.0] - 2026-06-16
+
+### Added
+- broadcast active tab by default; blocks opt out, consumers opt in
+
 ## [0.7.0] - 2026-06-16
 
 ### Added
