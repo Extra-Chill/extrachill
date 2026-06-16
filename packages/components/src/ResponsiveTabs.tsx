@@ -20,13 +20,21 @@ export interface ResponsiveTabsProps {
 	syncWithHash?: boolean;
 	hashPrefix?: string;
 	/**
-	 * A stable surface id (e.g. `studio`, `community-settings`). When set, the
-	 * tabs broadcast the active tab into the shared client-context registry so
-	 * agent consumers (e.g. Roadie's chat) know which tab is open. Opt-in:
-	 * omit it and nothing is broadcast. Silent no-op when no consumer is on the
-	 * page. See {@link useTabClientContext}.
+	 * Optional human-readable surface name (e.g. `studio`,
+	 * `community-settings`) attached to the broadcast active-tab context. Purely
+	 * a label for agent consumers; broadcasting happens regardless of whether
+	 * it's set. See {@link useTabClientContext}.
 	 */
 	contextSurface?: string;
+	/**
+	 * Opt OUT of broadcasting the active tab to the shared client-context
+	 * registry. Broadcasting is ON by default — every tabbed surface tells
+	 * agent consumers (e.g. Roadie's chat) which tab is open, with no
+	 * per-block setup. Set `false` only for a surface that must not publish
+	 * its active tab. (Whether anyone *consumes* the broadcast is the
+	 * consumer's decision, opted in per agent/integration — not ours.)
+	 */
+	broadcastTabContext?: boolean;
 }
 
 export function ResponsiveTabs( {
@@ -46,14 +54,16 @@ export function ResponsiveTabs( {
 	syncWithHash = false,
 	hashPrefix = 'tab-',
 	contextSurface,
+	broadcastTabContext = true,
 }: ResponsiveTabsProps ) {
-	// Broadcast the active tab to the shared client-context registry when a
-	// surface id is provided. An empty surface disables it (the hook is always
-	// called, per the rules of hooks, and no-ops internally on empty surface).
+	// Broadcast the active tab to the shared client-context registry by
+	// default — every tabbed surface participates with no per-block setup.
+	// Pass broadcastTabContext={false} to opt out.
 	useTabClientContext( {
-		surface: contextSurface ?? '',
 		active,
 		tabs,
+		surface: contextSurface,
+		enabled: broadcastTabContext,
 	} );
 
 	const [ isMobile, setIsMobile ] = useState( () => {

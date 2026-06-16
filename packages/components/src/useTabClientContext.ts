@@ -1,16 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import type { TabItem } from './Tabs.tsx';
 
 /**
  * Generic active-tab context broadcast for tabbed surfaces.
  *
- * Any tabbed block on the platform can tell agent consumers (e.g. Roadie's
- * frontend chat) which tab the user is looking at — without coupling the tabs
- * to the chat layer in either direction. The transport is the shared,
- * browser-only client-context registry published on
- * `window.ecClientContextRegistry` by `@extrachill/chat`. We duck-type that
- * registry here rather than importing `@extrachill/chat`, so this package
- * stays dependency-free of the chat layer.
+ * Every tabbed surface on the platform broadcasts which tab the user is
+ * viewing — by default, with no per-block configuration — so agent consumers
+ * (e.g. Roadie's frontend chat) can see it. The decision to *consume* that
+ * context lives entirely with the consumer (the chat widget opts in per
+ * agent/integration via its own `clientContext` flag); producers never decide
+ * who listens. A block can opt OUT in the rare case it shouldn't broadcast,
+ * but that is the exception, not the norm.
+ *
+ * The transport is the shared, browser-only client-context registry published
+ * on `window.ecClientContextRegistry` by `@extrachill/chat`. We duck-type that
+ * registry here rather than importing `@extrachill/chat`, so this package stays
+ * dependency-free of the chat layer.
  *
  * Contract:
  *   - Producer (this hook): registers a provider describing the active tab.
@@ -47,47 +52,54 @@ declare global {
 }
 
 export interface UseTabClientContextOptions {
-	/**
-	 * A stable identifier for the tabbed surface, e.g. `studio`,
-	 * `community-settings`, `seo`. Namespaces the provider id so multiple
-	 * tabbed surfaces on one page don't collide, and gives the consumer a
-	 * human-readable surface name.
-	 */
-	surface: string;
 	/** The currently active tab id. */
 	active: string;
 	/** The full tab list, used to resolve the active tab's label. */
 	tabs: TabItem[];
 	/**
+	 * Optional human-readable surface name (e.g. `studio`,
+	 * `community-settings`). Purely a label for the consumer — when omitted the
+	 * broadcast still happens; the surface is reported as `null`. Provider ids
+	 * are always made unique per mounted instance regardless, so multiple
+	 * tabbed surfaces on one page never collide.
+	 */
+	surface?: string;
+	/**
+	 * Opt OUT of broadcasting. Defaults to `true` (broadcast on). Set `false`
+	 * only for a surface that must not publish its active tab.
+	 */
+	enabled?: boolean;
+	/**
 	 * Provider priority. Higher wins when several providers publish context.
-	 * Defaults to 10 so a surface-specific provider (e.g. Compose's draft
+	 * Defaults to 10 so a surface-specific provider (e.g. an editor's draft
 	 * details, priority 100) can layer richer context on top.
 	 */
 	priority?: number;
 }
 
 /**
- * Register an active-tab client-context provider for the lifetime of the
- * calling component. Re-registers whenever the active tab (or surface) changes
- * so the published context always reflects the current tab.
+ * Broadcast the active tab into the shared client-context registry for the
+ * lifetime of the calling component. Re-registers whenever the active tab (or
+ * surface) changes so the published context always reflects the current tab.
  *
- * @param options Surface id, active tab, tab list, and optional priority.
+ * On by default — pass `enabled: false` to suppress.
+ *
+ * @param options Active tab, tab list, optional surface label / priority, and
+ *                the `enabled` opt-out.
  */
 export function useTabClientContext( {
-	surface,
 	active,
 	tabs,
+	surface,
+	enabled = true,
 	priority = 10,
 }: UseTabClientContextOptions ): void {
-	useEffect( () => {
-		if ( typeof window === 'undefined' ) {
-			return undefined;
-		}
+	// Stable, unique-per-instance id so several tabbed surfaces on one page
+	// register distinct providers instead of clobbering each other.
+	const instanceId = useId();
 
-		// An empty surface means broadcasting is disabled (the caller opted
-		// out). Bail here rather than at the call site so the hook is always
-		// invoked unconditionally, per the rules of hooks.
-		if ( ! surface ) {
+	useEffect( () => {
+		if ( typeof window === 'undefined' || ! enabled ) {
 			return undefined;
 		}
 
@@ -100,11 +112,11 @@ export function useTabClientContext( {
 		const activeTab = tabs.find( ( tab ) => tab.id === active ) ?? null;
 
 		const unregister = registry.registerProvider( {
-			id: `tabs.${ surface }`,
+			id: `tabs.${ instanceId }`,
 			priority,
 			getContext: () => ( {
 				kind: 'tabs',
-				surface,
+				surface: surface ?? null,
 				activeTab: active,
 				activeTabLabel: activeTab?.label ?? null,
 				availableTabs: tabs.map( ( tab ) => ( {
@@ -120,5 +132,5 @@ export function useTabClientContext( {
 		return () => {
 			unregister();
 		};
-	}, [ surface, active, tabs, priority ] );
+	}, [ instanceId, surface, active, tabs, enabled, priority ] );
 }
