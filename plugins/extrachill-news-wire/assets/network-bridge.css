@@ -1,0 +1,32 @@
+/**
+ * From Around the Extra Chill Network — Single Festival Wire Bridge
+ *
+ * Styles the contextual cross-site section rendered after single festival_wire
+ * posts, mirroring the blog and events network bridges. Reuses the cross-site
+ * link button styling (button-3 button-small) from the shared cross-site link
+ * renderer and the theme's related-tax section classes; this file only lays out
+ * the section and its link row.
+ *
+ * @package ExtraChillNewsWire
+ */
+
+.network-bridge-section {
+	margin: var(--spacing-xl) auto var(--spacing-lg) auto;
+	max-width: var(--container-width);
+}
+
+.network-bridge-header {
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-xl);
+	font-weight: 800;
+	margin: 0 0 var(--spacing-md) 0;
+	letter-spacing: 0.01em;
+	text-align: left;
+}
+
+.network-bridge-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-sm);
+	align-items: center;
+}
