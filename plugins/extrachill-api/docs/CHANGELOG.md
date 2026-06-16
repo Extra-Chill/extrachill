@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.18.0] - 2026-06-16
+
+### Added
+- add bridge click_type + impression route for network bridge
+
 ## [0.17.2] - 2026-06-02
 
 ### Changed
