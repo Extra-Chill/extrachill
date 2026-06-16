@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.16.1] - 2026-06-16
+
+### Changed
+- Internal improvements
+
 ## [0.16.0] - 2026-06-16
 
 ### Added
