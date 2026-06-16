@@ -27,6 +27,7 @@ require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/breadcrumbs.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/post-meta.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/festival-term-meta.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/festival-hub-header.php';
+require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/network-bridge.php';
 
 function enqueue_festival_wire_assets() {
 	global $wp_query;
