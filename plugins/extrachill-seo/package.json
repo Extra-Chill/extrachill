@@ -11,7 +11,7 @@
     "ajv": "^8.20.0"
   },
   "dependencies": {
-    "@extrachill/components": "^0.5.2",
+    "@extrachill/components": "^0.8.0",
     "wp-native-client": "^0.0.1"
   }
 }
