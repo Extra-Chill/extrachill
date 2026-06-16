@@ -48,6 +48,13 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 							onChange: setActiveTab,
 							renderPanel,
 							showDesktopTabs: true,
+							// Broadcast the active Studio tab into the shared
+							// client-context registry so Roadie's chat knows
+							// which tab the team member is on. Generic — handled
+							// entirely by ResponsiveTabs; Studio just names the
+							// surface. The Compose pane layers its richer
+							// draft-specific context on top at higher priority.
+							contextSurface: 'studio',
 						} ),
 					],
 				}
