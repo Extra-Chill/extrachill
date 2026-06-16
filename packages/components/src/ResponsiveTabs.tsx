@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Tabs, type TabItem } from './Tabs.tsx';
+import { useTabClientContext } from './useTabClientContext.ts';
 
 export interface ResponsiveTabsProps {
 	tabs: TabItem[];
@@ -18,6 +19,14 @@ export interface ResponsiveTabsProps {
 	showDesktopTabs?: boolean;
 	syncWithHash?: boolean;
 	hashPrefix?: string;
+	/**
+	 * A stable surface id (e.g. `studio`, `community-settings`). When set, the
+	 * tabs broadcast the active tab into the shared client-context registry so
+	 * agent consumers (e.g. Roadie's chat) know which tab is open. Opt-in:
+	 * omit it and nothing is broadcast. Silent no-op when no consumer is on the
+	 * page. See {@link useTabClientContext}.
+	 */
+	contextSurface?: string;
 }
 
 export function ResponsiveTabs( {
@@ -36,7 +45,17 @@ export function ResponsiveTabs( {
 	showDesktopTabs = true,
 	syncWithHash = false,
 	hashPrefix = 'tab-',
+	contextSurface,
 }: ResponsiveTabsProps ) {
+	// Broadcast the active tab to the shared client-context registry when a
+	// surface id is provided. An empty surface disables it (the hook is always
+	// called, per the rules of hooks, and no-ops internally on empty surface).
+	useTabClientContext( {
+		surface: contextSurface ?? '',
+		active,
+		tabs,
+	} );
+
 	const [ isMobile, setIsMobile ] = useState( () => {
 		if ( typeof window === 'undefined' ) {
 			return false;
