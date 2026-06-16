@@ -9,6 +9,15 @@ import {
 } from '@extrachill/chat';
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { StudioPaneProps } from '../../types/studio';
+import { installComposeCrossSiteMiddleware } from './cross-site-middleware';
+
+// Install the cross-site apiFetch middleware as soon as the compose module
+// loads, before any draft fetch or editor media upload fires. The middleware
+// rewrites the compose pane's /wp/v2/posts* and /wp/v2/media calls onto
+// Studio-local proxy routes that forward to main extrachill.com (blog 1), so
+// posts are born on main and inserted images upload to main's media library.
+// Idempotent — safe even though this module is imported from multiple places.
+installComposeCrossSiteMiddleware();
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
@@ -626,7 +635,12 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					content: contentSnapshotRef.current.trim(),
 				} );
 				const blob = new Blob( [ body ], { type: 'application/json' } );
-				const url = `/wp-json/wp/v2/posts/${ postId }/autosaves?_wpnonce=${ encodeURIComponent( restNonce ) }`;
+				// The draft lives on main (blog 1), so this unload beacon must
+				// target the Studio cross-site proxy route — not the bare
+				// /wp/v2 endpoint, which would write to Studio (blog 12). The
+				// apiFetch middleware can't help here: sendBeacon bypasses
+				// apiFetch entirely, so the proxy path is hardcoded.
+				const url = `/wp-json/extrachill/v1/studio/compose/posts/${ postId }/autosaves?_wpnonce=${ encodeURIComponent( restNonce ) }`;
 				navigator.sendBeacon( url, blob );
 			} catch {
 				// Best-effort — nothing else we can do during unload.

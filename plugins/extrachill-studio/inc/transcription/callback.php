@@ -148,7 +148,7 @@ function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
 	$filename = ec_studio_transcription_callback_pick_filename( $body );
 
 	// --- Create draft on main extrachill.com --------------------------
-	$post_id = ec_studio_transcription_callback_create_draft( $user_id, $filename, $transcript, $job_id, $stats, $body );
+	$post_id = ec_studio_transcription_callback_create_draft( $user_id, $filename, $transcript, $job_id, $stats );
 	if ( is_wp_error( $post_id ) ) {
 		return $post_id;
 	}
@@ -215,7 +215,6 @@ function ec_studio_transcription_callback_pick_filename( array $body ): string {
  * @param string $transcript  Plain-text transcript content.
  * @param string $job_id      Sweatpants job UUID.
  * @param array  $stats       Stats array from the callback body.
- * @param array  $full_body   Whole callback body, retained for any meta we want.
  * @return int|\WP_Error Post id on success, WP_Error otherwise.
  */
 function ec_studio_transcription_callback_create_draft(
@@ -223,7 +222,8 @@ function ec_studio_transcription_callback_create_draft(
 	string $filename,
 	string $transcript,
 	string $job_id,
-	array $stats) {
+	array $stats
+) {
 	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
 		return new \WP_Error(
 			'multisite_helper_missing',

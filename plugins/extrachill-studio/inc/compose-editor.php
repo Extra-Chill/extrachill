@@ -17,6 +17,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Resolve main extrachill.com's maximum upload size in bytes.
+ *
+ * Compose images are written to MAIN (blog 1), so the editor's client-side
+ * size check must validate against main's allowance — not Studio's. Resolved
+ * inside main's blog context so PHP ini + WP filters for the destination site
+ * apply. Falls back to the local limit if multisite helpers are unavailable.
+ *
+ * @since 0.16.0
+ *
+ * @return int Max upload size in bytes.
+ */
+function extrachill_studio_compose_main_max_upload_size(): int {
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return (int) wp_max_upload_size();
+	}
+
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
+	if ( $main_blog_id <= 0 ) {
+		return (int) wp_max_upload_size();
+	}
+
+	switch_to_blog( $main_blog_id );
+	$max = (int) wp_max_upload_size();
+	restore_current_blog();
+
+	return $max;
+}
+
+/**
  * Register the Studio compose editor as a Blocks Everywhere context.
  *
  * @param array $contexts Registered contexts.
@@ -180,11 +209,34 @@ function configure_compose_editor( array $settings ): array {
 	// existing uploads filtered by type (images, video, audio).
 	$settings['editor']['allowedMimeTypes'] = get_allowed_mime_types();
 
-	// Provide Studio-specific REST endpoints.
-	$settings['studio'] = array(
-		'postsEndpoint' => rest_url( 'wp/v2/posts' ),
-		'mediaEndpoint' => rest_url( 'extrachill/v1/media' ),
-	);
+	// Enable the editor's image upload affordances (upload button, drag-and-
+	// drop onto the canvas, the Media Library tab's upload). Blocks Everywhere
+	// gates ALL of this — including whether it runs wp_enqueue_media() — on
+	// editor.hasUploadPermissions, and defaults it to unset (falsy). Without
+	// this flag the writer gets no working way to add an image at all, which
+	// is the confusing part of the experience.
+	//
+	// Gate on the WP core capability. Team members have `upload_files` on both
+	// Studio and main (the destination), so the editor enables uploads and the
+	// cross-site media proxy's write to main succeeds under the same user's
+	// caps. The proxy route enforces the capability again server-side, so this
+	// flag only governs UI affordances, never trust.
+	$settings['editor']['hasUploadPermissions'] = current_user_can( 'upload_files' );
+
+	// Set the client-side upload size limit so the editor rejects oversized
+	// images instantly — before any upload starts — with a clear message,
+	// rather than letting them fail opaquely at the server.
+	//
+	// Two reasons this is set explicitly here:
+	//   1. In this Blocks Everywhere frontend context, core resolves
+	//      maxUploadFileSize to 0, which DISABLES client-side size validation
+	//      entirely (the guard is `if ( maxUploadFileSize && ... )`). Setting a
+	//      real value re-enables it.
+	//   2. Compose images are written to MAIN (blog 1), so the limit that
+	//      matters is main's wp_max_upload_size(), not Studio's. We resolve it
+	//      in main's context so the client-side check matches the server-side
+	//      enforcement in the compose media proxy route.
+	$settings['maxUploadFileSize'] = (int) extrachill_studio_compose_main_max_upload_size();
 
 	// Expose IBE's More Menu so writers can toggle fullscreen mode and
 	// keyboard shortcuts. Default to non-fullscreen on boot — users opt in
