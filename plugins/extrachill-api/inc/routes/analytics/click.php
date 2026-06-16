@@ -5,6 +5,12 @@
  * Unified click tracking endpoint. Routes to appropriate storage based on click_type:
  * - 'share': Tracks via extrachill/track-analytics-event ability to ec_events table
  * - 'link_page_link': Fires action hook for artist link page daily tables
+ * - 'bridge': Tracks a cross-site network-bridge click via the analytics ability.
+ *             Fired client-side (sendBeacon) so it counts human intent only —
+ *             prefetch/prerender can fake a UTM arrival but not a real click in a
+ *             JS-executing browser. Pairs with the bridge_impression event
+ *             (see /analytics/impression) so CTR = clicks / impressions is
+ *             computable and bot-filtered. See extrachill-multisite#58.
  *
  * Future click types (internal_link, taxonomy_badge, cta, etc.) will route through abilities.
  */
@@ -29,7 +35,7 @@ function extrachill_api_register_click_route() {
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_key',
 					'validate_callback' => function ( $param ) {
-						$allowed = array( 'share', 'link_page_link' );
+						$allowed = array( 'share', 'link_page_link', 'bridge' );
 						return in_array( $param, $allowed, true );
 					},
 				),
@@ -57,6 +63,18 @@ function extrachill_api_register_click_route() {
 				'link_page_id'      => array(
 					'required'          => false,
 					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'dest_site'         => array(
+					'required'          => false,
+					'type'              => 'string',
+					'default'           => '',
+					'sanitize_callback' => 'sanitize_key',
+				),
+				'source_post'       => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'default'           => 0,
 					'sanitize_callback' => 'absint',
 				),
 			),
@@ -121,6 +139,8 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 	$element_text      = $request->get_param( 'element_text' );
 	$share_destination = $request->get_param( 'share_destination' );
 	$link_page_id      = $request->get_param( 'link_page_id' );
+	$dest_site         = $request->get_param( 'dest_site' );
+	$source_post       = (int) $request->get_param( 'source_post' );
 
 	$normalized_destination = extrachill_api_normalize_tracked_url( $destination_url );
 
@@ -192,6 +212,40 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 			 * @param string $element_text         The link text at time of click.
 			 */
 			do_action( 'extrachill_link_click_recorded', $link_page_id, $normalized_destination, $element_text );
+			break;
+
+		case 'bridge':
+			$ability = wp_get_ability( 'extrachill/track-analytics-event' );
+			if ( ! $ability ) {
+				return new WP_Error(
+					'ability_missing',
+					'Analytics tracking ability not available.',
+					array( 'status' => 500 )
+				);
+			}
+
+			$event_id = $ability->execute(
+				array(
+					'event_type' => 'bridge_click',
+					'event_data' => array(
+						'dest_site'   => $dest_site,
+						'source_post' => $source_post,
+					),
+					'source_url' => $source_url,
+				)
+			);
+
+			if ( is_wp_error( $event_id ) ) {
+				return $event_id;
+			}
+
+			if ( empty( $event_id ) ) {
+				return new WP_Error(
+					'tracking_failed',
+					'Failed to record bridge click event.',
+					array( 'status' => 500 )
+				);
+			}
 			break;
 	}
 
