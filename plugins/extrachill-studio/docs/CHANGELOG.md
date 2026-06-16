@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.16.0] - 2026-06-16
+
+### Added
+- broadcast active tab to Roadie via the generic tabs context
+- make Studio blog drafts born on main extrachill.com
+
+### Fixed
+- bump @extrachill/chat to ^0.14.0 to align client-context registry with widget
+- scope cross-site rewriting to the Compose pane's lifetime
+
 ## [0.15.10] - 2026-06-15
 
 ### Fixed
