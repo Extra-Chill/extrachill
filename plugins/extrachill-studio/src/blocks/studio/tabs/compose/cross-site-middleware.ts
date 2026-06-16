@@ -20,10 +20,16 @@
  * land in main's media library — not Studio's — avoiding the cross-site
  * attachment migration problem.
  *
- * The middleware is registered exactly once and only rewrites the specific
- * compose-related routes; all other apiFetch traffic (e.g. core editor
- * bootstrap preloads, taxonomies, user lookups) passes through untouched so
- * the editor still boots against the local Studio site.
+ * Scope — this matters: apiFetch is a single global, shared by every Studio
+ * tab. The rewrite must apply ONLY while the Compose pane is active, because
+ * other tabs legitimately hit the same core routes against the LOCAL Studio
+ * site (e.g. the Socials tab POSTs `/wp/v2/posts` to create a Studio-local
+ * social draft). So the middleware is registered once but stays INERT until
+ * the Compose pane activates it on mount, and deactivates it on unmount. When
+ * inactive it passes every request through untouched. Even when active it only
+ * rewrites the specific compose routes below; all other traffic (core editor
+ * bootstrap preloads, taxonomies, user lookups) passes through so the editor
+ * still boots against the local Studio site.
  */
 
 import apiFetch from '@wordpress/api-fetch';
@@ -32,7 +38,14 @@ import type { APIFetchMiddleware, APIFetchOptions } from '@wordpress/api-fetch';
 /** Studio-local proxy route prefix that forwards to main. */
 const PROXY_PREFIX = '/extrachill/v1/studio/compose';
 
-let installed = false;
+/** Whether the middleware has been registered with apiFetch (once per page). */
+let registered = false;
+
+/**
+ * Whether rewriting is currently active. Gated to the Compose pane's lifetime
+ * so other Studio tabs' core-route calls reach the local Studio site.
+ */
+let active = false;
 
 /**
  * Split an apiFetch path into its route and query-string parts.
@@ -101,20 +114,24 @@ function rewritePath( path: string ): string | null {
 }
 
 /**
- * Install the cross-site compose apiFetch middleware (idempotent).
+ * Register the cross-site compose apiFetch middleware (idempotent).
  *
- * Safe to call multiple times — the middleware is registered with apiFetch
- * only on the first invocation. Call this once when the compose pane mounts.
+ * Registers the rewrite middleware with apiFetch exactly once per page. The
+ * middleware is INERT until {@link setComposeCrossSiteActive} turns it on, so
+ * registering it has no effect on other tabs' requests.
  */
-export function installComposeCrossSiteMiddleware(): void {
-	if ( installed ) {
+function registerMiddlewareOnce(): void {
+	if ( registered ) {
 		return;
 	}
-	installed = true;
+	registered = true;
 
 	const middleware: APIFetchMiddleware = ( options: APIFetchOptions, next ) => {
-		const path = typeof options.path === 'string' ? options.path : '';
+		if ( ! active ) {
+			return next( options );
+		}
 
+		const path = typeof options.path === 'string' ? options.path : '';
 		if ( path ) {
 			const rewritten = rewritePath( path );
 			if ( rewritten ) {
@@ -126,4 +143,19 @@ export function installComposeCrossSiteMiddleware(): void {
 	};
 
 	apiFetch.use( middleware );
+}
+
+/**
+ * Turn cross-site rewriting on or off.
+ *
+ * The Compose pane calls this with `true` on mount and `false` on unmount so
+ * the rewrite only applies while the writer is in the Blog tab. Registering
+ * the middleware lazily here keeps the whole mechanism dormant until Compose
+ * is actually used.
+ *
+ * @param next Whether rewriting should be active.
+ */
+export function setComposeCrossSiteActive( next: boolean ): void {
+	registerMiddlewareOnce();
+	active = next;
 }

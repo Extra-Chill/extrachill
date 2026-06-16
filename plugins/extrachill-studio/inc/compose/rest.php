@@ -37,6 +37,16 @@
  * images land in main's library — not Studio's — avoiding the very migration
  * problem #75 set out to remove.
  *
+ * Two dispatch strategies, by necessity:
+ *   - JSON routes (posts, autosaves, single-media GET) forward via
+ *     `ec_cross_site_rest_request( 'main', ... )` and guard on that helper
+ *     being available (`ec_studio_compose_require_cross_site()`).
+ *   - File/header-sensitive routes (media upload, media browse) do their own
+ *     `switch_to_blog( main )`: a multipart `$_FILES` upload can't ride the
+ *     in-process rest_do_request cleanly, and the browse grid needs the
+ *     core controller's X-WP-Total pagination headers, which the cross-site
+ *     helper strips. These guard on `ec_get_blog_id()` instead.
+ *
  * @package    ExtraChillStudio
  * @subpackage Compose
  * @since      0.16.0
@@ -292,7 +302,7 @@ function ec_studio_compose_create_post( \WP_REST_Request $request ) {
 	}
 
 	$user_id = (int) get_current_user_id();
-	$params  = ec_studio_compose_sanitize_post_params( $request->get_json_params() );
+	$params  = ec_studio_compose_whitelist_post_params( $request->get_json_params() );
 
 	// Always attribute the post to the requesting user on main.
 	$params['author'] = $user_id;
@@ -330,7 +340,7 @@ function ec_studio_compose_update_post( \WP_REST_Request $request ) {
 
 	$user_id = (int) get_current_user_id();
 	$post_id = (int) $request['id'];
-	$params  = ec_studio_compose_sanitize_post_params( $request->get_json_params() );
+	$params  = ec_studio_compose_whitelist_post_params( $request->get_json_params() );
 
 	$response = ec_cross_site_rest_request(
 		'main',
@@ -451,7 +461,7 @@ function ec_studio_compose_create_autosave( \WP_REST_Request $request ) {
  * @param mixed $raw Raw JSON params.
  * @return array Whitelisted post params.
  */
-function ec_studio_compose_sanitize_post_params( $raw ): array {
+function ec_studio_compose_whitelist_post_params( $raw ): array {
 	$params = array();
 
 	if ( ! is_array( $raw ) ) {

@@ -9,15 +9,7 @@ import {
 } from '@extrachill/chat';
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { StudioPaneProps } from '../../types/studio';
-import { installComposeCrossSiteMiddleware } from './cross-site-middleware';
-
-// Install the cross-site apiFetch middleware as soon as the compose module
-// loads, before any draft fetch or editor media upload fires. The middleware
-// rewrites the compose pane's /wp/v2/posts* and /wp/v2/media calls onto
-// Studio-local proxy routes that forward to main extrachill.com (blog 1), so
-// posts are born on main and inserted images upload to main's media library.
-// Idempotent — safe even though this module is imported from multiple places.
-installComposeCrossSiteMiddleware();
+import { setComposeCrossSiteActive } from './cross-site-middleware';
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
@@ -488,6 +480,17 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			performAutosave();
 		}, AUTOSAVE_DELAY );
 	}, [ performAutosave ] );
+
+	// Activate cross-site apiFetch rewriting for the lifetime of this pane only.
+	// Declared before the draft-load/editor-mount effect so rewriting is on
+	// before the first /wp/v2/posts fetch fires. Deactivated on unmount so other
+	// Studio tabs (e.g. Socials) keep hitting the local Studio site.
+	useEffect( () => {
+		setComposeCrossSiteActive( true );
+		return () => {
+			setComposeCrossSiteActive( false );
+		};
+	}, [] );
 
 	useEffect( () => {
 		unregisterClientContextRef.current = registerClientContextProvider( {
