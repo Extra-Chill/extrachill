@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.0] - 2026-06-16
+
+### Added
+- broadcast active tab to the client-context registry
+
 ## [0.6.0] - 2026-05-31
 
 ### Added
