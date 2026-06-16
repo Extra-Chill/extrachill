@@ -35,6 +35,7 @@ class CommandRegistry {
 			'extrachill analytics summary' => Commands\Analytics\SummaryCommand::class,
 			'extrachill analytics 404'     => Commands\Analytics\FourOhFourCommand::class,
 			'extrachill analytics attacks' => Commands\Analytics\AttacksCommand::class,
+			'extrachill analytics errors'  => Commands\Analytics\ErrorsCommand::class,
 
 			// Events commands.
 			'extrachill events' => Commands\Events\LocationCommand::class,
