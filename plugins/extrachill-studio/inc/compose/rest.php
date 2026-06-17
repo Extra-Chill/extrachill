@@ -410,7 +410,7 @@ function ec_studio_compose_emit_lifecycle_event( $response, string $status, int 
 
 	if ( 'pending' === $status ) {
 		ec_studio_emit_team_experience_event(
-			'studio_submitted_for_review',
+			EC_ANALYTICS_EVENT_STUDIO_SUBMITTED,
 			$user_id,
 			array( 'post_id' => $post_id )
 		);
@@ -419,7 +419,7 @@ function ec_studio_compose_emit_lifecycle_event( $response, string $status, int 
 
 	if ( $is_create && 'draft' === $status ) {
 		ec_studio_emit_team_experience_event(
-			'studio_draft_created',
+			EC_ANALYTICS_EVENT_STUDIO_DRAFT_CREATED,
 			$user_id,
 			array( 'post_id' => $post_id )
 		);

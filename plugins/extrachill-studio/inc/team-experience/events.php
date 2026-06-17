@@ -34,6 +34,20 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/*
+ * Event-name contract (Extra-Chill/extrachill-users#129).
+ * -------------------------------------------------------
+ * The canonical Studio event_type names are defined ONCE in
+ * extrachill-analytics (inc/core/event-types.php) as the
+ * `EC_ANALYTICS_EVENT_STUDIO_*` constants. extrachill-analytics owns the
+ * analytics substrate and the `extrachill/track-analytics-event` ability
+ * this helper already calls at runtime, and is network-active, so those
+ * constants are guaranteed present wherever Studio emits — referencing
+ * them adds no new coupling. Studio's emit sites reference the analytics
+ * constants directly (no local copies of the literal strings), so a
+ * rename happens in exactly one place across the whole network.
+ */
+
 /**
  * Emit a Studio team-experience analytics event via the canonical ability.
  *

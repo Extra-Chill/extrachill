@@ -158,7 +158,7 @@ function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
 	// HMAC callback), so the uploader's id is passed in the payload.
 	if ( function_exists( 'ec_studio_emit_team_experience_event' ) ) {
 		ec_studio_emit_team_experience_event(
-			'studio_transcription_run',
+			EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN,
 			$user_id,
 			array(
 				'post_id'  => (int) $post_id,
