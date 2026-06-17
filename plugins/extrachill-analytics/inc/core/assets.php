@@ -62,13 +62,24 @@ function extrachill_analytics_is_valid_visitor_id( $value ) {
  * an empty string and set no cookie.
  *
  * Must be called before output starts (headers not yet sent) so setcookie()
- * works — the deferred beacon cannot reliably set a cookie itself.
+ * works — the deferred beacon cannot reliably set a cookie itself. The result
+ * is memoized per-request so callers after output has started (e.g. the
+ * footer enqueue) read the already-resolved id without re-minting.
  *
  * @return string The visitor UUID, or empty string if opted out / cannot mint.
  */
 function extrachill_analytics_get_or_mint_visitor_id() {
+	static $resolved = null;
+
+	// Memoized: a prior early-hook call already resolved (and, if needed,
+	// minted + set the cookie for) this request. Never re-mint.
+	if ( null !== $resolved ) {
+		return $resolved;
+	}
+
 	if ( extrachill_analytics_visitor_opted_out() ) {
-		return '';
+		$resolved = '';
+		return $resolved;
 	}
 
 	$cookie_name = EXTRACHILL_ANALYTICS_VISITOR_COOKIE;
@@ -76,7 +87,8 @@ function extrachill_analytics_get_or_mint_visitor_id() {
 	if ( isset( $_COOKIE[ $cookie_name ] ) ) {
 		$existing = sanitize_text_field( wp_unslash( $_COOKIE[ $cookie_name ] ) );
 		if ( extrachill_analytics_is_valid_visitor_id( $existing ) ) {
-			return $existing;
+			$resolved = $existing;
+			return $resolved;
 		}
 	}
 
@@ -84,6 +96,8 @@ function extrachill_analytics_get_or_mint_visitor_id() {
 
 	// Set the cookie for ~1 year. Secure + HttpOnly + SameSite=Lax: first-party
 	// analytics only, not readable by JS, not sent on cross-site sub-requests.
+	// Guarded against headers_sent() as defense-in-depth; the early
+	// template_redirect hook below is what actually makes this succeed.
 	if ( ! headers_sent() ) {
 		setcookie(
 			$cookie_name,
@@ -101,8 +115,32 @@ function extrachill_analytics_get_or_mint_visitor_id() {
 		$_COOKIE[ $cookie_name ] = $visitor_id;
 	}
 
-	return $visitor_id;
+	$resolved = $visitor_id;
+	return $resolved;
 }
+
+/**
+ * Mint/read the visitor cookie early, before any template output starts.
+ *
+ * `template_redirect` fires after the main query is resolved but before
+ * `get_header()` (and therefore before the theme sends any body output), so
+ * `headers_sent()` is still false here and `setcookie()` succeeds. The later
+ * footer enqueue on `wp_enqueue_scripts` (which runs after output has begun)
+ * then reads the memoized result instead of trying — and failing — to set the
+ * cookie itself.
+ *
+ * Gated on the same conditions as the enqueue: singular, non-preview, and not
+ * opted out via GPC/DNT.
+ */
+function extrachill_analytics_prime_visitor_cookie() {
+	if ( ! is_singular() || is_preview() ) {
+		return;
+	}
+
+	// Resolves + (when applicable) sets the cookie, memoizing for this request.
+	extrachill_analytics_get_or_mint_visitor_id();
+}
+add_action( 'template_redirect', 'extrachill_analytics_prime_visitor_cookie' );
 
 /**
  * Enqueue view tracking script on singular pages.
@@ -117,8 +155,9 @@ function extrachill_analytics_enqueue_view_tracking() {
 		return;
 	}
 
-	// Mint/read the first-party visitor id server-side so the deferred beacon
-	// can echo it back. Empty string when the visitor opted out (GPC/DNT).
+	// Read the visitor id already resolved on template_redirect (before output
+	// started, so its cookie was actually set). Empty string when the visitor
+	// opted out (GPC/DNT). Memoization guarantees no re-mint here.
 	$visitor_id = extrachill_analytics_get_or_mint_visitor_id();
 
 	wp_enqueue_script(
