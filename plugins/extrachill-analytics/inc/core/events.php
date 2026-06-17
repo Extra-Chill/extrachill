@@ -16,9 +16,12 @@ defined( 'ABSPATH' ) || exit;
  * @param string $event_type Event type identifier (e.g., 'newsletter_signup', 'user_registration').
  * @param array  $event_data Flexible payload data stored as JSON.
  * @param string $source_url URL of the page where the event occurred.
+ * @param string $visitor_id Optional anonymous first-party visitor UUID (v4). Stored only
+ *                           when it is a well-formed UUID v4 and the visitor has not opted
+ *                           out via GPC/DNT (callers pass '' in that case). Never PII.
  * @return int|false Event ID on success, false on failure.
  */
-function extrachill_track_analytics_event( $event_type, $event_data = array(), $source_url = '' ) {
+function extrachill_track_analytics_event( $event_type, $event_data = array(), $source_url = '', $visitor_id = '' ) {
 	global $wpdb;
 
 	if ( empty( $event_type ) ) {
@@ -26,6 +29,12 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 	}
 
 	$table_name = extrachill_analytics_events_table();
+
+	// Only persist a valid UUID v4; anything else (including empty / opted-out) is NULL.
+	$stored_visitor_id = ( function_exists( 'extrachill_analytics_is_valid_visitor_id' )
+		&& extrachill_analytics_is_valid_visitor_id( $visitor_id ) )
+		? $visitor_id
+		: null;
 
 	$result = $wpdb->insert(
 		$table_name,
@@ -35,9 +44,10 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 			'source_url' => esc_url_raw( $source_url ),
 			'blog_id'    => get_current_blog_id(),
 			'user_id'    => get_current_user_id() ?: null,
+			'visitor_id' => $stored_visitor_id,
 			'created_at' => current_time( 'mysql', true ),
 		),
-		array( '%s', '%s', '%s', '%d', '%d', '%s' )
+		array( '%s', '%s', '%s', '%d', '%d', '%s', '%s' )
 	);
 
 	if ( false === $result ) {

@@ -24,6 +24,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_top_ips_
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_page_view_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_get_link_page_analytics_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_bridge_ctr_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_retention_stats_ability' );
 
 /**
  * Register analytics ability category.
@@ -53,10 +54,10 @@ function extrachill_analytics_register_abilities() {
 	wp_register_ability(
 		'extrachill/track-analytics-event',
 		array(
-			'label'       => __( 'Track Analytics Event', 'extrachill-analytics' ),
-			'description' => __( 'Record an analytics event to the network-wide events table.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Track Analytics Event', 'extrachill-analytics' ),
+			'description'         => __( 'Record an analytics event to the network-wide events table.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'event_type' => array(
@@ -73,10 +74,15 @@ function extrachill_analytics_register_abilities() {
 						'description' => __( 'URL of the page where the event occurred.', 'extrachill-analytics' ),
 						'default'     => '',
 					),
+					'visitor_id' => array(
+						'type'        => 'string',
+						'description' => __( 'Optional anonymous first-party visitor UUID v4. Stored only if well-formed; never PII. Empty when the visitor opted out (GPC/DNT).', 'extrachill-analytics' ),
+						'default'     => '',
+					),
 				),
-				'required' => array( 'event_type' ),
+				'required'   => array( 'event_type' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'integer',
 				'description' => __( 'Event ID on success, 0 on failure.', 'extrachill-analytics' ),
 			),
@@ -108,6 +114,7 @@ function extrachill_analytics_ability_track_event( $input ) {
 	$event_type = $input['event_type'];
 	$event_data = isset( $input['event_data'] ) ? $input['event_data'] : array();
 	$source_url = isset( $input['source_url'] ) ? $input['source_url'] : '';
+	$visitor_id = isset( $input['visitor_id'] ) ? (string) $input['visitor_id'] : '';
 
 	// Defense-in-depth: if a 'search' event arrives with a payload-shaped term,
 	// reclassify it as 'search_attack' so real search metrics stay clean while
@@ -120,11 +127,11 @@ function extrachill_analytics_ability_track_event( $input ) {
 			$event_data = array_merge(
 				$event_data,
 				array(
-					'classification'  => $classification['pattern_name'],
-					'pattern_family'  => $classification['pattern_family'],
-					'matched_token'   => $classification['matched_token'],
-					'ip'              => extrachill_analytics_get_client_ip(),
-					'user_agent'      => extrachill_analytics_get_user_agent(),
+					'classification' => $classification['pattern_name'],
+					'pattern_family' => $classification['pattern_family'],
+					'matched_token'  => $classification['matched_token'],
+					'ip'             => extrachill_analytics_get_client_ip(),
+					'user_agent'     => extrachill_analytics_get_user_agent(),
 				)
 			);
 		}
@@ -150,7 +157,8 @@ function extrachill_analytics_ability_track_event( $input ) {
 	$result = extrachill_track_analytics_event(
 		$event_type,
 		$event_data,
-		$source_url
+		$source_url,
+		$visitor_id
 	);
 
 	return $result ? $result : 0;

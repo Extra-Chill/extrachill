@@ -32,6 +32,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Pageview event — one row per real (non-bot) front-end singular view, carrying
+ * the anonymous first-party visitor_id when present. This is the deterministic
+ * per-visitor history the retention rollups read.
+ */
+const EC_ANALYTICS_EVENT_PAGEVIEW = 'pageview';
+
 /** Team-experience events (team membership + Studio + Roadie usage). */
 const EC_ANALYTICS_EVENT_TEAM_MEMBER_ADDED        = 'team_member_added';
 const EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED      = 'team_member_removed';

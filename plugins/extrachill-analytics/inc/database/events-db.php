@@ -10,7 +10,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION', '1.1' );
+define( 'EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION', '1.2' );
 define( 'EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION', 'extrachill_analytics_events_db_version' );
 
 /**
@@ -38,13 +38,15 @@ function extrachill_analytics_events_create_table() {
 		source_url varchar(2083) DEFAULT '',
 		blog_id int(11) NOT NULL DEFAULT 1,
 		user_id bigint(20) unsigned DEFAULT NULL,
+		visitor_id char(36) DEFAULT NULL,
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY  (id),
 		KEY event_type_idx (event_type),
 		KEY blog_id_idx (blog_id),
 		KEY user_id_idx (user_id),
 		KEY created_at_idx (created_at),
-		KEY event_type_created (event_type, created_at)
+		KEY event_type_created (event_type, created_at),
+		KEY visitor_created (visitor_id, created_at)
 	) {$charset_collate};";
 
 	dbDelta( $sql );

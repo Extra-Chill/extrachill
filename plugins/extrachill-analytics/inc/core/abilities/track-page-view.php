@@ -19,20 +19,25 @@ function extrachill_analytics_register_track_page_view_ability(): void {
 	wp_register_ability(
 		'extrachill/track-page-view',
 		array(
-			'label'       => __( 'Track Page View', 'extrachill-analytics' ),
-			'description' => __( 'Increment the view counter for a post. High-frequency endpoint called async after page load.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Track Page View', 'extrachill-analytics' ),
+			'description'         => __( 'Increment the view counter for a post. High-frequency endpoint called async after page load.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'post_id' => array(
+					'post_id'    => array(
 						'type'        => 'integer',
 						'description' => __( 'The post ID to record a view for.', 'extrachill-analytics' ),
 					),
+					'visitor_id' => array(
+						'type'        => 'string',
+						'description' => __( 'Optional anonymous first-party visitor UUID v4. Stored on the pageview event only if well-formed; never PII. Empty when the visitor opted out (GPC/DNT).', 'extrachill-analytics' ),
+						'default'     => '',
+					),
 				),
-				'required' => array( 'post_id' ),
+				'required'   => array( 'post_id' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'object',
 				'description' => __( 'Confirmation object with recorded flag.', 'extrachill-analytics' ),
 			),
@@ -54,13 +59,17 @@ function extrachill_analytics_register_track_page_view_ability(): void {
  * Execute callback for track-page-view ability.
  *
  * Mirrors the existing REST handler: quick post-meta increment,
- * plus link-page daily-table action when applicable.
+ * plus link-page daily-table action when applicable. Additionally writes a
+ * `pageview` event row to the network-wide events table (carrying the
+ * anonymous visitor_id when present) so per-visitor retention history exists.
+ * The post-meta bump is retained for back-compat with the theme view counter.
  *
  * @param array $input Input parameters.
  * @return array{recorded: bool}|WP_Error Confirmation or error.
  */
 function extrachill_analytics_ability_track_page_view( array $input ) {
-	$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+	$post_id    = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+	$visitor_id = isset( $input['visitor_id'] ) ? (string) $input['visitor_id'] : '';
 
 	if ( $post_id <= 0 ) {
 		return new \WP_Error(
@@ -78,8 +87,32 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 		);
 	}
 
-	// All-time view increment (post meta).
+	// All-time view increment (post meta) — retained for theme back-compat.
 	ec_track_post_views( $post_id );
+
+	// Write a deterministic pageview event row so per-visitor retention can be
+	// queried. visitor_id is persisted only when it is a valid UUID v4; an empty
+	// or opted-out value still records the pageview anonymously (NULL visitor_id),
+	// keeping aggregate volume accurate. Bots are excluded by user-agent so the
+	// retention table stays bot-resistant by construction, matching the existing
+	// 404 capture path.
+	$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
+		? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
+		: '';
+
+	$is_bot = function_exists( 'extrachill_analytics_is_bot' )
+		? extrachill_analytics_is_bot( $user_agent )
+		: false;
+
+	if ( ! $is_bot && function_exists( 'extrachill_track_analytics_event' ) ) {
+		$permalink = get_permalink( $post_id );
+		extrachill_track_analytics_event(
+			defined( 'EC_ANALYTICS_EVENT_PAGEVIEW' ) ? EC_ANALYTICS_EVENT_PAGEVIEW : 'pageview',
+			array( 'post_id' => $post_id ),
+			is_string( $permalink ) ? $permalink : '',
+			$visitor_id
+		);
+	}
 
 	// Link pages also fire the 90-day daily-table action.
 	if ( get_post_type( $post_id ) === 'artist_link_page' ) {
