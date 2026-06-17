@@ -214,6 +214,17 @@ function extrachill_users_ability_approve_artist_access( $input ) {
 	update_user_meta( $user_id, $meta_key, '1' );
 	delete_user_meta( $user_id, 'artist_access_request' );
 
+	// Emit artist_access_approved (artist-funnel contract — extrachill-users#127,
+	// coordinates with extrachill-artist-platform#72). Owned here because the
+	// approval lifecycle lives in extrachill-users.
+	if ( function_exists( 'ec_users_emit_team_experience_event' ) ) {
+		ec_users_emit_team_experience_event(
+			'artist_access_approved',
+			$user_id,
+			array( 'type' => $type )
+		);
+	}
+
 	// Send approval notification email.
 	extrachill_users_send_artist_access_approval_email( $user, $type );
 
@@ -304,6 +315,17 @@ function extrachill_users_ability_request_artist_access( $input ) {
 		'user_email'   => $user->user_email,
 	);
 	update_user_meta( $user_id, 'artist_access_request', $request_data );
+
+	// Emit artist_access_requested (artist-funnel contract — extrachill-users#127,
+	// coordinates with extrachill-artist-platform#72). Owned here because the
+	// request lifecycle lives in extrachill-users.
+	if ( function_exists( 'ec_users_emit_team_experience_event' ) ) {
+		ec_users_emit_team_experience_event(
+			'artist_access_requested',
+			$user_id,
+			array( 'type' => $type )
+		);
+	}
 
 	// Send admin notification email.
 	extrachill_users_send_artist_access_request_email( $user_id, $user, $type );

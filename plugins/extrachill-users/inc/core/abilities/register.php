@@ -80,3 +80,5 @@ require_once __DIR__ . '/users-search.php';
 require_once __DIR__ . '/get-user-by-id.php';
 require_once __DIR__ . '/get-user-artists.php';
 require_once __DIR__ . '/get-user-artist-access.php';
+require_once __DIR__ . '/team-experience-stats.php';
+require_once __DIR__ . '/artist-access-stats.php';

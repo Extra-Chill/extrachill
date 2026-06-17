@@ -217,6 +217,17 @@ function ec_users_grant_team_role( $user_id ) {
 		}
 	}
 
+	// Emit team_member_added once per grant (not once per site) when the
+	// role was newly added on at least one site. Timestamps the adoption
+	// the legacy add_role() path never recorded (extrachill-users#127).
+	if ( ! empty( $added ) && function_exists( 'ec_users_emit_team_experience_event' ) ) {
+		ec_users_emit_team_experience_event(
+			'team_member_added',
+			$user_id,
+			array( 'blog_ids' => $added )
+		);
+	}
+
 	return $added;
 }
 
@@ -253,6 +264,16 @@ function ec_users_revoke_team_role( $user_id ) {
 		} finally {
 			restore_current_blog();
 		}
+	}
+
+	// Emit team_member_removed once per revoke (not once per site) when the
+	// role was actually removed from at least one site (extrachill-users#127).
+	if ( ! empty( $removed ) && function_exists( 'ec_users_emit_team_experience_event' ) ) {
+		ec_users_emit_team_experience_event(
+			'team_member_removed',
+			$user_id,
+			array( 'blog_ids' => $removed )
+		);
 	}
 
 	return $removed;
