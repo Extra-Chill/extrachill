@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.19.0] - 2026-06-17
+
+### Added
+- preserve term and source_site in bridge click/impression routes
+
 ## [0.18.0] - 2026-06-16
 
 ### Added
