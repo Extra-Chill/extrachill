@@ -230,17 +230,21 @@ function ec_seo_get_default_description() {
 	if ( is_singular() ) {
 		$post = get_queried_object();
 
-		// Use excerpt if available
-		if ( ! empty( $post->post_excerpt ) ) {
-			return ec_seo_truncate_description( $post->post_excerpt );
+		// is_singular() can be true on virtual/plugin-driven singular contexts
+		// where get_queried_object() returns null. Guard the null deref.
+		if ( $post instanceof WP_Post ) {
+			// Use excerpt if available
+			if ( ! empty( $post->post_excerpt ) ) {
+				return ec_seo_truncate_description( $post->post_excerpt );
+			}
+
+			// Generate from content
+			$content = wp_strip_all_tags( $post->post_content );
+			$content = str_replace( array( "\n", "\r", "\t" ), ' ', $content );
+			$content = preg_replace( '/\s+/', ' ', $content );
+
+			return ec_seo_truncate_description( $content );
 		}
-
-		// Generate from content
-		$content = wp_strip_all_tags( $post->post_content );
-		$content = str_replace( array( "\n", "\r", "\t" ), ' ', $content );
-		$content = preg_replace( '/\s+/', ' ', $content );
-
-		return ec_seo_truncate_description( $content );
 	}
 
 	if ( is_front_page() || is_home() ) {
