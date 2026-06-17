@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0] - 2026-06-17
+
+### Added
+- instrument Studio usage as team-experience analytics events
+
+### Changed
+- reference canonical analytics event-name constants (users#129)
+
 ## [0.16.1] - 2026-06-16
 
 ### Changed
