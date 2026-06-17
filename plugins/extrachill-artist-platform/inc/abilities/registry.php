@@ -397,6 +397,45 @@ function extrachill_artist_platform_register_abilities() {
 	);
 
 	wp_register_ability(
+		'extrachill/get-artist-platform-stats',
+		array(
+			'label'               => __( 'Get artist platform stats', 'extrachill-artist-platform' ),
+			'description'         => __( 'Point-in-time platform aggregates: total published artist profiles, total published link pages, profiles created in last N days, and link pages with at least one view/click in last N days. Funnel conversion-over-time is read separately via extrachill/get-analytics-summary.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array(),
+				'properties'           => array(
+					'days' => array( 'type' => 'integer', 'minimum' => 0, 'description' => __( 'Window in days for the recent aggregates. 0 disables the recent metrics window. Default 28.', 'extrachill-artist-platform' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'total_artist_profiles'    => array( 'type' => 'integer' ),
+					'total_link_pages'         => array( 'type' => 'integer' ),
+					'profiles_created_recent'  => array( 'type' => 'integer' ),
+					'active_link_pages_recent' => array( 'type' => 'integer' ),
+					'days'                     => array( 'type' => 'integer' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_get_artist_platform_stats',
+			'permission_callback' => function () {
+				return current_user_can( 'manage_options' ) || ( defined( 'WP_CLI' ) && WP_CLI );
+			},
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
 		'extrachill/artist-get',
 		array(
 			'label'               => __( 'Get artist by ID', 'extrachill-artist-platform' ),
