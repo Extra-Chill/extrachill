@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.0] - 2026-06-17
+
+### Added
+- instrument team + artist-funnel events and add cohort read abilities
+
+### Changed
+- reference canonical analytics event-name constants (users#129)
+
 ## [0.17.3] - 2026-06-15
 
 ### Fixed
