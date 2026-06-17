@@ -38,36 +38,37 @@ class CommandRegistry {
 			'extrachill analytics errors'  => Commands\Analytics\ErrorsCommand::class,
 
 			// Events commands.
-			'extrachill events' => Commands\Events\LocationCommand::class,
-			'extrachill venues' => Commands\Events\VenueDiscoveryCommand::class,
-			'extrachill shows'  => Commands\Events\ConcertTrackingCommand::class,
+			'extrachill events'            => Commands\Events\LocationCommand::class,
+			'extrachill venues'            => Commands\Events\VenueDiscoveryCommand::class,
+			'extrachill shows'             => Commands\Events\ConcertTrackingCommand::class,
 
 			// SEO commands.
-			'extrachill seo redirects' => Commands\SEO\RedirectsCommand::class,
+			'extrachill seo redirects'     => Commands\SEO\RedirectsCommand::class,
 
 			// Tools commands.
-			'extrachill tools qr' => Commands\Tools\QRCodeCommand::class,
+			'extrachill tools qr'          => Commands\Tools\QRCodeCommand::class,
 
 			// Artists commands.
-			'extrachill artists' => Commands\Artists\ArtistCommand::class,
+			'extrachill artists'           => Commands\Artists\ArtistCommand::class,
 
 			// Users commands.
-			'extrachill users'          => Commands\Users\BanCommand::class,
-			'extrachill users access'   => Commands\Users\ArtistAccessCommand::class,
-			'extrachill users settings' => Commands\Users\SettingsCommand::class,
-			'extrachill users profile'  => Commands\Users\ProfileCommand::class,
+			'extrachill users'             => Commands\Users\BanCommand::class,
+			'extrachill users access'      => Commands\Users\ArtistAccessCommand::class,
+			'extrachill users team'        => Commands\Users\TeamCommand::class,
+			'extrachill users settings'    => Commands\Users\SettingsCommand::class,
+			'extrachill users profile'     => Commands\Users\ProfileCommand::class,
 
 			// Community commands.
-			'extrachill community' => Commands\Community\CommunityCommand::class,
+			'extrachill community'         => Commands\Community\CommunityCommand::class,
 
 			// Cache commands.
-			'extrachill cache' => Commands\Cache\WarmCommand::class,
+			'extrachill cache'             => Commands\Cache\WarmCommand::class,
 
 			// Giveaway commands.
-			'extrachill giveaway' => Commands\Giveaway\GiveawayCommand::class,
+			'extrachill giveaway'          => Commands\Giveaway\GiveawayCommand::class,
 
 			// Newsletter commands.
-			'extrachill newsletter' => Commands\Newsletter\NewsletterCommand::class,
+			'extrachill newsletter'        => Commands\Newsletter\NewsletterCommand::class,
 		);
 	}
 }

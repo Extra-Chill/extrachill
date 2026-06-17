@@ -69,6 +69,89 @@ class ArtistAccessCommand {
 	}
 
 	/**
+	 * Show artist access funnel stats.
+	 *
+	 * Thin wrapper over the extrachill/get-artist-access-stats ability:
+	 * windowed access-REQUEST count plus the current count of granted
+	 * artist/professional users. All logic lives in the ability.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--days=<days>]
+	 * : Window in days for the request count. 0 for all time.
+	 * ---
+	 * default: 28
+	 * ---
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill users access stats
+	 *     wp extrachill users access stats --days=90
+	 *     wp extrachill users access stats --format=json
+	 *
+	 * @when after_wp_load
+	 * @subcommand stats
+	 */
+	public function stats( $args, $assoc_args ) {
+		$ability = wp_get_ability( 'extrachill/get-artist-access-stats' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill-users plugin is required (ability not found).' );
+		}
+
+		$days   = isset( $assoc_args['days'] ) ? (int) $assoc_args['days'] : 28;
+		$result = $ability->execute( array( 'days' => $days ) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( 'json' === $format ) {
+			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		$rows = array(
+			array(
+				'Metric' => 'Period',
+				'Value'  => (string) ( $result['period'] ?? '' ),
+			),
+			array(
+				'Metric' => 'Requests in window',
+				'Value'  => (string) ( $result['requests_in_window'] ?? 0 ),
+			),
+			array(
+				'Metric' => 'Pending requests',
+				'Value'  => (string) ( $result['pending_requests'] ?? 0 ),
+			),
+			array(
+				'Metric' => 'Granted (artist)',
+				'Value'  => (string) ( $result['granted_artist'] ?? 0 ),
+			),
+			array(
+				'Metric' => 'Granted (professional)',
+				'Value'  => (string) ( $result['granted_professional'] ?? 0 ),
+			),
+			array(
+				'Metric' => 'Granted (total)',
+				'Value'  => (string) ( $result['granted_total'] ?? 0 ),
+			),
+		);
+
+		WP_CLI\Utils\format_items( 'table', $rows, array( 'Metric', 'Value' ) );
+	}
+
+	/**
 	 * Approve a pending artist access request.
 	 *
 	 * ## OPTIONS

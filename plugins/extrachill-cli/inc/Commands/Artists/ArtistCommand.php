@@ -19,6 +19,61 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ArtistCommand {
 
 	/**
+	 * Count published artist profiles.
+	 *
+	 * Thin wrapper over the extrachill/artists-list ability, which already
+	 * returns the published-profile total. No business logic lives here.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: count
+	 * options:
+	 *   - count
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill artists count
+	 *     wp extrachill artists count --format=json
+	 *
+	 * @subcommand count
+	 * @when after_wp_load
+	 */
+	public function count( $args, $assoc_args ) {
+		$ability = wp_get_ability( 'extrachill/artists-list' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/artists-list ability not available.' );
+		}
+
+		// Ask for a single row — we only need the `total`, not the page body.
+		$result = $ability->execute(
+			array(
+				'page'     => 1,
+				'per_page' => 1,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$total = isset( $result['total'] ) ? (int) $result['total'] : 0;
+
+		$format = $assoc_args['format'] ?? 'count';
+
+		if ( 'json' === $format ) {
+			WP_CLI::log( wp_json_encode( array( 'total' => $total ), JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		WP_CLI::log( (string) $total );
+	}
+
+	/**
 	 * Get artist profile data.
 	 *
 	 * ## OPTIONS
