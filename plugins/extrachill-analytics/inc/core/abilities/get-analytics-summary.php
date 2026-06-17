@@ -78,9 +78,20 @@ function extrachill_analytics_ability_get_summary( $input ) {
 	$where  = array( '1=1' );
 	$values = array();
 
+	// Capture the exact UTC instant this summary is computed at, and the rolling
+	// lower bound derived from it, so the reported counts are reproducible to the
+	// second. created_at is stored in UTC via current_time( 'mysql', true ), so the
+	// bound must be computed in UTC too. Both values are returned to the caller so a
+	// raw COUNT(*) can be reproduced exactly against the same window — the summary
+	// applies no dedup, DISTINCT, or normalization; it is a plain COUNT(*) over this
+	// half-open-on-now, closed-on-since window.
+	$now_utc = gmdate( 'Y-m-d H:i:s' );
+	$since   = '';
+
 	if ( $days > 0 ) {
+		$since    = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 		$where[]  = 'created_at >= %s';
-		$values[] = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$values[] = $since;
 	}
 
 	if ( ! empty( $event_type ) ) {
@@ -126,5 +137,10 @@ function extrachill_analytics_ability_get_summary( $input ) {
 		'period'      => $days > 0
 			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
+		// Exact UTC window the counts were computed over. 'since' is the inclusive
+		// lower bound (empty for all-time); 'as_of' is the instant the summary ran.
+		// Counts are reproducible via a raw COUNT(*) using created_at >= since.
+		'since'       => $since,
+		'as_of'       => $now_utc,
 	);
 }
