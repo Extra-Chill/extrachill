@@ -894,4 +894,76 @@ class ArtistCommand {
 		}
 		WP_CLI::success( sprintf( 'Updated %d setting(s) for artist %d.', count( $settings ), $artist_id ) );
 	}
+
+	/**
+	 * Show point-in-time artist platform stats.
+	 *
+	 * Thin wrapper over the extrachill/get-artist-platform-stats ability:
+	 * total published artist profiles, total published link pages, profiles
+	 * created in the last N days, and link pages with at least one view or
+	 * click in the last N days.
+	 *
+	 * Funnel conversion-over-time (created / requested / approved counts) is
+	 * read separately via `wp extrachill analytics summary --days=N`, which
+	 * aggregates the analytics events emitted at the funnel's lifecycle points.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--days=<days>]
+	 * : Window in days for the recent aggregates. 0 disables the recent window.
+	 * ---
+	 * default: 28
+	 * ---
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - yaml
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill artists stats
+	 *     wp extrachill artists stats --days=90 --format=json
+	 *
+	 * @subcommand stats
+	 * @when after_wp_load
+	 */
+	public function stats( $args, $assoc_args ) {
+		$days = isset( $assoc_args['days'] ) ? max( 0, (int) $assoc_args['days'] ) : 28;
+
+		$ability = wp_get_ability( 'extrachill/get-artist-platform-stats' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/get-artist-platform-stats ability not available.' );
+		}
+
+		$result = $ability->execute( array( 'days' => $days ) );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( 'json' === $format || 'yaml' === $format ) {
+			Utils\format_items(
+				$format,
+				array( $result ),
+				array_keys( $result )
+			);
+			return;
+		}
+
+		$display = array(
+			array( 'Metric' => 'Total published artist profiles', 'Value' => (string) $result['total_artist_profiles'] ),
+			array( 'Metric' => 'Total published link pages', 'Value' => (string) $result['total_link_pages'] ),
+			array( 'Metric' => sprintf( 'Profiles created (last %d days)', $result['days'] ), 'Value' => (string) $result['profiles_created_recent'] ),
+			array( 'Metric' => sprintf( 'Active link pages (last %d days)', $result['days'] ), 'Value' => (string) $result['active_link_pages_recent'] ),
+		);
+		Utils\format_items( 'table', $display, array( 'Metric', 'Value' ) );
+	}
 }
