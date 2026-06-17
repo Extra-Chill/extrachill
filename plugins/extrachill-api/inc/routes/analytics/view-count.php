@@ -21,7 +21,7 @@ function extrachill_api_register_view_count_route() {
 			'callback'            => 'extrachill_api_view_count_handler',
 			'permission_callback' => '__return_true',
 			'args'                => array(
-				'post_id' => array(
+				'post_id'    => array(
 					'required'          => true,
 					'type'              => 'integer',
 					'validate_callback' => function ( $param ) {
@@ -29,29 +29,51 @@ function extrachill_api_register_view_count_route() {
 					},
 					'sanitize_callback' => 'absint',
 				),
+				'visitor_id' => array(
+					'required'          => false,
+					'type'              => 'string',
+					'default'           => '',
+					// Anonymous first-party UUID v4 echoed by the beacon. Accept only a
+					// well-formed UUID v4; anything else (including empty / opted-out)
+					// is coerced to '' so the ability records the pageview anonymously.
+					'validate_callback' => function ( $param ) {
+						return '' === $param || 1 === preg_match(
+							'/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
+							(string) $param
+						);
+					},
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
 		)
 	);
 }
 
 function extrachill_api_view_count_handler( $request ) {
-	$post_id = $request->get_param( 'post_id' );
+	$post_id    = (int) $request->get_param( 'post_id' );
+	$visitor_id = (string) $request->get_param( 'visitor_id' );
 
-	if ( ! function_exists( 'ec_track_post_views' ) ) {
+	// Thin wrapper: all write logic (post-meta bump, pageview event row carrying
+	// visitor_id, link-page daily-table action) lives in the analytics ability.
+	$ability = wp_get_ability( 'extrachill/track-page-view' );
+	if ( ! $ability ) {
 		return new WP_Error(
-			'function_missing',
-			'View tracking function not available.',
+			'ability_not_found',
+			'extrachill-analytics plugin is required.',
 			array( 'status' => 500 )
 		);
 	}
 
-	// Track all-time views (theme system)
-	ec_track_post_views( $post_id );
+	$result = $ability->execute(
+		array(
+			'post_id'    => $post_id,
+			'visitor_id' => $visitor_id,
+		)
+	);
 
-	// For link pages, also fire action for 90-day daily table tracking
-	if ( get_post_type( $post_id ) === 'artist_link_page' ) {
-		do_action( 'extrachill_link_page_view_recorded', $post_id );
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	return rest_ensure_response( array( 'recorded' => true ) );
+	return rest_ensure_response( $result );
 }
