@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.20.0] - 2026-06-17
+
+### Added
+- thread visitor_id through view ingest + add retention read route
+
 ## [0.19.0] - 2026-06-17
 
 ### Added
