@@ -71,7 +71,7 @@ function extrachill_users_ability_get_artist_access_stats( $input ) {
 	// Windowed request count from the artist_access_requested event stream
 	// (single source). Falls back to the pending-request meta tally only
 	// when the analytics reader is unavailable.
-	$requests_in_window = extrachill_users_count_window_events( 'artist_access_requested', $days );
+	$requests_in_window = extrachill_users_count_window_events( EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED, $days );
 
 	$granted = extrachill_users_count_granted_access();
 

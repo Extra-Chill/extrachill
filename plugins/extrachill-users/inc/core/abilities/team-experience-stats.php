@@ -68,15 +68,11 @@ function extrachill_users_register_team_experience_stats_ability() {
 function extrachill_users_ability_get_team_experience_stats( $input ) {
 	$days = isset( $input['days'] ) ? (int) $input['days'] : 28;
 
-	$team_event_types = array(
-		'team_member_added',
-		'team_member_removed',
-		'studio_draft_created',
-		'studio_submitted_for_review',
-		'studio_transcription_run',
-		'roadie_session_started',
-		'roadie_tool_invoked',
-	);
+	// Single-source event contract (extrachill-users#129): iterate the
+	// canonical group constant owned by extrachill-analytics instead of
+	// re-listing string literals, so this reader can never desync from the
+	// emit sites (which reference the same EC_ANALYTICS_EVENT_* constants).
+	$team_event_types = EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS;
 
 	$events = array();
 	foreach ( $team_event_types as $event_type ) {
@@ -89,8 +85,8 @@ function extrachill_users_ability_get_team_experience_stats( $input ) {
 			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
 		'team_member_count'    => extrachill_users_count_team_members(),
-		'team_members_added'   => $events['team_member_added'],
-		'team_members_removed' => $events['team_member_removed'],
+		'team_members_added'   => $events[ EC_ANALYTICS_EVENT_TEAM_MEMBER_ADDED ],
+		'team_members_removed' => $events[ EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED ],
 		'events'               => $events,
 	);
 }

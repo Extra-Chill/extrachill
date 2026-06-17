@@ -222,7 +222,7 @@ function ec_users_grant_team_role( $user_id ) {
 	// the legacy add_role() path never recorded (extrachill-users#127).
 	if ( ! empty( $added ) && function_exists( 'ec_users_emit_team_experience_event' ) ) {
 		ec_users_emit_team_experience_event(
-			'team_member_added',
+			EC_ANALYTICS_EVENT_TEAM_MEMBER_ADDED,
 			$user_id,
 			array( 'blog_ids' => $added )
 		);
@@ -270,7 +270,7 @@ function ec_users_revoke_team_role( $user_id ) {
 	// role was actually removed from at least one site (extrachill-users#127).
 	if ( ! empty( $removed ) && function_exists( 'ec_users_emit_team_experience_event' ) ) {
 		ec_users_emit_team_experience_event(
-			'team_member_removed',
+			EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED,
 			$user_id,
 			array( 'blog_ids' => $removed )
 		);

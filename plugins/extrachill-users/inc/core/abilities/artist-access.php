@@ -219,7 +219,7 @@ function extrachill_users_ability_approve_artist_access( $input ) {
 	// approval lifecycle lives in extrachill-users.
 	if ( function_exists( 'ec_users_emit_team_experience_event' ) ) {
 		ec_users_emit_team_experience_event(
-			'artist_access_approved',
+			EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED,
 			$user_id,
 			array( 'type' => $type )
 		);
@@ -321,7 +321,7 @@ function extrachill_users_ability_request_artist_access( $input ) {
 	// request lifecycle lives in extrachill-users.
 	if ( function_exists( 'ec_users_emit_team_experience_event' ) ) {
 		ec_users_emit_team_experience_event(
-			'artist_access_requested',
+			EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED,
 			$user_id,
 			array( 'type' => $type )
 		);

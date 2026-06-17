@@ -9,11 +9,12 @@
  * The team-experience instrumentation spans three plugins
  * (extrachill-users, extrachill-studio, extrachill-roadie) plus the
  * artist-funnel work (extrachill-artist-platform#72). The event NAMES
- * and payload shape are a shared contract: defined once here, reused
- * verbatim at every emit site. Each plugin owns its own emit helper but
- * uses the SAME event_type strings and the SAME `user_id`-in-payload
- * convention so the cohort rollups can join on the `extra_chill_team`
- * role.
+ * and payload shape are a shared contract. Each plugin owns its own
+ * emit helper and now defines its own event-name CONSTANTS (the names
+ * it emits/reads) so a rename is mechanical within the plugin rather
+ * than a scattered string edit (extrachill-users#129). Plugins use the
+ * SAME event_type strings and the SAME `user_id`-in-payload convention
+ * so the cohort rollups can join on the `extra_chill_team` role.
  *
  * Event types emitted by extrachill-users:
  *   - team_member_added        (ec_users_grant_team_role)
@@ -44,6 +45,22 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+/*
+ * Event-name contract (Extra-Chill/extrachill-users#129).
+ * -------------------------------------------------------
+ * The canonical event_type names are defined ONCE in extrachill-analytics
+ * (inc/core/event-types.php) as the `EC_ANALYTICS_EVENT_*` constants plus
+ * the `EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS` / `EC_ANALYTICS_ARTIST_FUNNEL_EVENTS`
+ * group constants. extrachill-analytics owns the analytics substrate and
+ * the `extrachill/track-analytics-event` ability this helper already calls
+ * at runtime, and is network-active, so those constants are guaranteed
+ * present wherever this code runs — referencing them adds no new coupling.
+ *
+ * Every emit site and every reader in this plugin references the analytics
+ * constants directly (no local copies of the literal strings), so a rename
+ * happens in exactly one place across the whole network.
+ */
 
 /**
  * Emit a team-experience analytics event via the canonical ability.
