@@ -11,7 +11,9 @@
  * bridge_click event. See extrachill-multisite#58.
  *
  * Thin wrapper: records via the extrachill/track-analytics-event ability —
- * all write logic lives in the ability, not here.
+ * all write logic lives in the ability, not here. Records `source_site` (and
+ * `term` when present) in event_data so the impression denominator carries the
+ * same dimensions as the bridge_click numerator. See extrachill-multisite#62.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -49,6 +51,18 @@ function extrachill_api_register_impression_route() {
 					'default'           => 0,
 					'sanitize_callback' => 'absint',
 				),
+				'source_site'     => array(
+					'required'          => false,
+					'type'              => 'string',
+					'default'           => '',
+					'sanitize_callback' => 'sanitize_key',
+				),
+				'term'            => array(
+					'required'          => false,
+					'type'              => 'string',
+					'default'           => '',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
 		)
 	);
@@ -64,6 +78,8 @@ function extrachill_api_impression_handler( WP_REST_Request $request ) {
 	$impression_type = $request->get_param( 'impression_type' );
 	$source_url      = $request->get_param( 'source_url' );
 	$source_post     = (int) $request->get_param( 'source_post' );
+	$source_site     = $request->get_param( 'source_site' );
+	$term            = $request->get_param( 'term' );
 
 	if ( 'bridge' !== $impression_type ) {
 		return new WP_Error(
@@ -87,6 +103,8 @@ function extrachill_api_impression_handler( WP_REST_Request $request ) {
 			'event_type' => 'bridge_impression',
 			'event_data' => array(
 				'source_post' => $source_post,
+				'source_site' => $source_site,
+				'term'        => $term,
 			),
 			'source_url' => $source_url,
 		)

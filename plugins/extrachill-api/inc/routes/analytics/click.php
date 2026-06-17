@@ -10,7 +10,10 @@
  *             prefetch/prerender can fake a UTM arrival but not a real click in a
  *             JS-executing browser. Pairs with the bridge_impression event
  *             (see /analytics/impression) so CTR = clicks / impressions is
- *             computable and bot-filtered. See extrachill-multisite#58.
+ *             computable and bot-filtered. Records `term` (the clicked link text —
+ *             which bridge link converted) and `source_site` in event_data — the
+ *             most analytically valuable bridge dimensions. See
+ *             extrachill-multisite#58 and #62.
  *
  * Future click types (internal_link, taxonomy_badge, cta, etc.) will route through abilities.
  */
@@ -77,6 +80,18 @@ function extrachill_api_register_click_route() {
 					'default'           => 0,
 					'sanitize_callback' => 'absint',
 				),
+				'source_site'       => array(
+					'required'          => false,
+					'type'              => 'string',
+					'default'           => '',
+					'sanitize_callback' => 'sanitize_key',
+				),
+				'term'              => array(
+					'required'          => false,
+					'type'              => 'string',
+					'default'           => '',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
 		)
 	);
@@ -141,6 +156,8 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 	$link_page_id      = $request->get_param( 'link_page_id' );
 	$dest_site         = $request->get_param( 'dest_site' );
 	$source_post       = (int) $request->get_param( 'source_post' );
+	$source_site       = $request->get_param( 'source_site' );
+	$term              = $request->get_param( 'term' );
 
 	$normalized_destination = extrachill_api_normalize_tracked_url( $destination_url );
 
@@ -230,6 +247,8 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 					'event_data' => array(
 						'dest_site'   => $dest_site,
 						'source_post' => $source_post,
+						'source_site' => $source_site,
+						'term'        => $term,
 					),
 					'source_url' => $source_url,
 				)
