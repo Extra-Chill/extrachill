@@ -24,6 +24,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/events-db.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/php-error-log-db.php';
 
 // Core functionality (network-wide).
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/event-types.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/events.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/security-classifier.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/view-counts.php';
