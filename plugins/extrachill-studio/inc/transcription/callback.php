@@ -153,6 +153,21 @@ function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
 		return $post_id;
 	}
 
+	// Emit studio_transcription_run (extrachill-users#127 shared contract).
+	// The acting user the analytics table records is 0 here (unauthenticated
+	// HMAC callback), so the uploader's id is passed in the payload.
+	if ( function_exists( 'ec_studio_emit_team_experience_event' ) ) {
+		ec_studio_emit_team_experience_event(
+			'studio_transcription_run',
+			$user_id,
+			array(
+				'post_id'  => (int) $post_id,
+				'job_id'   => $job_id,
+				'segments' => isset( $stats['segments'] ) ? (int) $stats['segments'] : 0,
+			)
+		);
+	}
+
 	// --- Email the user -----------------------------------------------
 	$email_sent = ec_studio_transcription_callback_send_email( $user, $post_id, $filename, $transcript, $stats );
 

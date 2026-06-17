@@ -317,6 +317,16 @@ function ec_studio_compose_create_post( \WP_REST_Request $request ) {
 		)
 	);
 
+	// On a successful create, emit a draft-created or submitted-for-review
+	// event (extrachill-users#127 shared contract). A brand-new compose post
+	// defaults to draft when status is omitted.
+	ec_studio_compose_emit_lifecycle_event(
+		$response,
+		isset( $params['status'] ) ? (string) $params['status'] : 'draft',
+		$user_id,
+		true
+	);
+
 	return ec_studio_compose_relay_response( $response );
 }
 
@@ -352,7 +362,68 @@ function ec_studio_compose_update_post( \WP_REST_Request $request ) {
 		)
 	);
 
+	// On a successful update, emit submitted-for-review when the writer
+	// transitions the post to pending (extrachill-users#127 shared contract).
+	// Plain draft updates are intentionally NOT counted as draft-created —
+	// that event fires once, at create.
+	ec_studio_compose_emit_lifecycle_event(
+		$response,
+		isset( $params['status'] ) ? (string) $params['status'] : '',
+		$user_id,
+		false
+	);
+
 	return ec_studio_compose_relay_response( $response );
+}
+
+/**
+ * Emit a Studio compose lifecycle analytics event for a successful write.
+ *
+ * Maps the resolved post status to the shared-contract event type:
+ *   - status 'pending' → studio_submitted_for_review (create or update)
+ *   - status 'draft'   → studio_draft_created (create only)
+ *
+ * No-op when the cross-site write errored or returned no post id, so we
+ * never count a failed save.
+ *
+ * @since 0.17.0
+ *
+ * @param array|\WP_Error $response  Cross-site write result.
+ * @param string          $status    Resolved post status that was written.
+ * @param int             $user_id   Acting/subject user id.
+ * @param bool            $is_create Whether this was a create (vs update).
+ * @return void
+ */
+function ec_studio_compose_emit_lifecycle_event( $response, string $status, int $user_id, bool $is_create ): void {
+	if ( ! function_exists( 'ec_studio_emit_team_experience_event' ) ) {
+		return;
+	}
+
+	if ( is_wp_error( $response ) ) {
+		return;
+	}
+
+	$post_id = is_array( $response ) && isset( $response['id'] ) ? (int) $response['id'] : 0;
+	if ( $post_id <= 0 ) {
+		return;
+	}
+
+	if ( 'pending' === $status ) {
+		ec_studio_emit_team_experience_event(
+			'studio_submitted_for_review',
+			$user_id,
+			array( 'post_id' => $post_id )
+		);
+		return;
+	}
+
+	if ( $is_create && 'draft' === $status ) {
+		ec_studio_emit_team_experience_event(
+			'studio_draft_created',
+			$user_id,
+			array( 'post_id' => $post_id )
+		);
+	}
 }
 
 /**
