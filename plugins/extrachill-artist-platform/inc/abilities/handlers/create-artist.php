@@ -8,6 +8,19 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/*
+ * Event-name contract (Extra-Chill/extrachill-users#129).
+ * -------------------------------------------------------
+ * The canonical artist-funnel event_type name is defined ONCE in
+ * extrachill-analytics (inc/core/event-types.php) as
+ * `EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED`. extrachill-analytics owns
+ * the analytics substrate and the `extrachill/track-analytics-event`
+ * ability this handler already calls at runtime, and is network-active,
+ * so the constant is guaranteed present here — referencing it adds no new
+ * coupling. The emit site below references the analytics constant directly
+ * (no local copy of the literal), so a rename happens in exactly one place.
+ */
+
 /**
  * Create a new artist profile.
  *
@@ -64,7 +77,7 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 	if ( $analytics_ability ) {
 		$analytics_ability->execute(
 			array(
-				'event_type' => 'artist_profile_created',
+				'event_type' => EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED,
 				'event_data' => array(
 					'user_id'   => $user_id,
 					'artist_id' => (int) $artist_id,
