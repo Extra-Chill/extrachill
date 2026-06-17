@@ -118,6 +118,14 @@ class SummaryCommand {
 			$period_label = $days > 0 ? "Last {$days} days" : 'All time';
 			$site_label   = $this->format_site_label();
 			WP_CLI::log( sprintf( 'Analytics Summary — %s (%s) — %s', $period_label, $result['period'], $site_label ) );
+			// Surface the exact UTC window the counts were computed over. The window is
+			// rolling (computed at query time), so reporting only the day granularity
+			// hides why a re-run minutes later returns a slightly different count. With
+			// the precise 'since' bound, any count here is reproducible via a raw
+			// COUNT(*) using created_at >= '<since>' — no normalization is applied.
+			if ( ! empty( $result['since'] ) ) {
+				WP_CLI::log( sprintf( 'Window (UTC): created_at >= %s  (as of %s)', $result['since'], $result['as_of'] ?? '' ) );
+			}
 			WP_CLI::log( str_repeat( '─', 55 ) );
 		}
 
