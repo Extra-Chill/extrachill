@@ -40,7 +40,7 @@ function extrachill_users_register_moderation_abilities() {
 		'extrachill/moderate-user',
 		array(
 			'label'               => __( 'Moderate User', 'extrachill-users' ),
-			'description'         => __( 'Apply a moderation action such as ban or suspension to a user account.', 'extrachill-users' ),
+			'description'         => __( 'Apply a moderation action such as ban or suspension to a user account. The reason_key is also the suspend-vs-hide-content switch: spam, abuse and fraud additionally hide the user\'s content (posts to draft, bbPress topics/replies and comments to spam; spam also flags content as spam), while impersonation and other suspend login only and leave all content live.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
