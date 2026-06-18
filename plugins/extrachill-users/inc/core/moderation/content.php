@@ -202,3 +202,127 @@ function extrachill_users_apply_spam_visibility_to_user_content( int $user_id ) 
 
 	return $results;
 }
+
+/**
+ * Hard-delete (purge) all of a user's content network-wide.
+ *
+ * DESTRUCTIVE AND IRREVERSIBLE. This is an explicit, opt-in operation and is
+ * NEVER the default moderation behavior — hiding (draft/spam) remains the
+ * default for every reason. Purge is only invoked when an operator explicitly
+ * requests it (e.g. the `purge_content` ability input / `--purge` CLI flag).
+ *
+ * Reuses the same network-wide post/comment collection and artist-platform
+ * collection that the hide path uses, so it catches the identical scope —
+ * including bbPress `topic`/`reply` CPTs and artist link pages. Unlike the
+ * hide path (which skips attachments), purge ALSO removes the user's owned
+ * attachments and any attachments parented to the deleted posts, so orphaned
+ * link-page logo attachments are caught.
+ *
+ * @param int $user_id User whose content should be permanently deleted.
+ * @return array{posts:int,comments:int,attachments:int} Counts of removed objects.
+ */
+function extrachill_users_purge_user_content( int $user_id ) {
+	$objects = array_merge(
+		extrachill_users_get_user_content_objects( $user_id ),
+		extrachill_users_get_owned_artist_platform_objects( $user_id )
+	);
+
+	$objects = array_values(
+		array_reduce(
+			$objects,
+			function ( $carry, $object_value ) {
+				$key           = $object_value['type'] . ':' . $object_value['blog_id'] . ':' . $object_value['object_id'];
+				$carry[ $key ] = $object_value;
+				return $carry;
+			},
+			array()
+		)
+	);
+
+	$results = array(
+		'posts'       => 0,
+		'comments'    => 0,
+		'attachments' => 0,
+	);
+
+	// Defer attachment deletion so we delete child attachments alongside their
+	// parent post in the same loop iteration, and standalone author-owned
+	// attachments after, avoiding double-deleting a child we already removed.
+	$deleted_attachments = array();
+
+	foreach ( $objects as $object ) {
+		switch_to_blog( (int) $object['blog_id'] );
+		try {
+			if ( 'comment' === $object['type'] ) {
+				if ( wp_delete_comment( (int) $object['object_id'], true ) ) {
+					++$results['comments'];
+				}
+				continue;
+			}
+
+			$post_id   = (int) $object['object_id'];
+			$post_type = isset( $object['post_type'] ) ? (string) $object['post_type'] : '';
+
+			if ( 'attachment' === $post_type ) {
+				$key = (int) $object['blog_id'] . ':' . $post_id;
+				if ( empty( $deleted_attachments[ $key ] ) ) {
+					if ( wp_delete_attachment( $post_id, true ) ) {
+						++$results['attachments'];
+						$deleted_attachments[ $key ] = true;
+					}
+				}
+				continue;
+			}
+
+			// Remove attachments parented to this post (e.g. link-page logos)
+			// before deleting the post, so they don't linger as orphans.
+			$child_attachments = get_children(
+				array(
+					'post_parent'    => $post_id,
+					'post_type'      => 'attachment',
+					'post_status'    => 'any',
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+				)
+			);
+
+			if ( is_array( $child_attachments ) ) {
+				foreach ( $child_attachments as $attachment_id ) {
+					$attachment_id = (int) $attachment_id;
+					$key           = (int) $object['blog_id'] . ':' . $attachment_id;
+					if ( ! empty( $deleted_attachments[ $key ] ) ) {
+						continue;
+					}
+					if ( wp_delete_attachment( $attachment_id, true ) ) {
+						++$results['attachments'];
+						$deleted_attachments[ $key ] = true;
+					}
+				}
+			}
+
+			// Featured image (thumbnail) may not be a post_parent child.
+			$thumbnail_id = (int) get_post_thumbnail_id( $post_id );
+			if ( $thumbnail_id > 0 ) {
+				$key = (int) $object['blog_id'] . ':' . $thumbnail_id;
+				if ( empty( $deleted_attachments[ $key ] ) ) {
+					if ( wp_delete_attachment( $thumbnail_id, true ) ) {
+						++$results['attachments'];
+						$deleted_attachments[ $key ] = true;
+					}
+				}
+			}
+
+			// bbPress topics/replies and all other posts are force-deleted the
+			// same way — wp_delete_post( $id, true ) bypasses the trash and
+			// removes meta/terms. For topics this also unhooks replies via
+			// bbPress' own delete callbacks where registered.
+			if ( wp_delete_post( $post_id, true ) ) {
+				++$results['posts'];
+			}
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	return $results;
+}

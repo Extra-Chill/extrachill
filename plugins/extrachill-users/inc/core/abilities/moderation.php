@@ -40,18 +40,23 @@ function extrachill_users_register_moderation_abilities() {
 		'extrachill/moderate-user',
 		array(
 			'label'               => __( 'Moderate User', 'extrachill-users' ),
-			'description'         => __( 'Apply a moderation action such as ban or suspension to a user account. The reason_key is also the suspend-vs-hide-content switch: spam, abuse and fraud additionally hide the user\'s content (posts to draft, bbPress topics/replies and comments to spam; spam also flags content as spam), while impersonation and other suspend login only and leave all content live.', 'extrachill-users' ),
+			'description'         => __( 'Apply a moderation action such as ban or suspension to a user account. The reason_key is also the suspend-vs-hide-content switch: spam, abuse and fraud additionally hide the user\'s content (posts to draft, bbPress topics/replies and comments to spam; spam also flags content as spam), while impersonation and other suspend login only and leave all content live. Set purge_content to true to instead PERMANENTLY hard-delete the user\'s content network-wide (posts, bbPress topics/replies, comments and owned/orphaned attachments) — this is destructive, irreversible, opt-in only, and supersedes the hide behavior.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'    => array( 'type' => 'integer' ),
-					'state'      => array( 'type' => 'string' ),
-					'reason_key' => array( 'type' => 'string' ),
-					'reason'     => array( 'type' => 'string' ),
-					'note'       => array( 'type' => 'string' ),
-					'source'     => array( 'type' => 'string' ),
-					'acted_by'   => array( 'type' => 'integer' ),
+					'user_id'       => array( 'type' => 'integer' ),
+					'state'         => array( 'type' => 'string' ),
+					'reason_key'    => array( 'type' => 'string' ),
+					'reason'        => array( 'type' => 'string' ),
+					'note'          => array( 'type' => 'string' ),
+					'source'        => array( 'type' => 'string' ),
+					'acted_by'      => array( 'type' => 'integer' ),
+					'purge_content' => array(
+						'type'        => 'boolean',
+						'description' => __( 'When true, PERMANENTLY hard-delete the user\'s content network-wide instead of hiding it. Destructive and irreversible. Defaults to false.', 'extrachill-users' ),
+						'default'     => false,
+					),
 				),
 				'required'   => array( 'user_id', 'state', 'reason_key' ),
 			),
@@ -108,12 +113,13 @@ function extrachill_users_ability_moderate_user( $input ) {
 	return extrachill_users_apply_moderation_action(
 		$user_id,
 		array(
-			'state'      => isset( $input['state'] ) ? (string) $input['state'] : 'banned',
-			'reason_key' => isset( $input['reason_key'] ) ? (string) $input['reason_key'] : 'other',
-			'reason'     => isset( $input['reason'] ) ? (string) $input['reason'] : '',
-			'note'       => isset( $input['note'] ) ? (string) $input['note'] : '',
-			'source'     => isset( $input['source'] ) ? (string) $input['source'] : '',
-			'acted_by'   => isset( $input['acted_by'] ) ? absint( $input['acted_by'] ) : get_current_user_id(),
+			'state'         => isset( $input['state'] ) ? (string) $input['state'] : 'banned',
+			'reason_key'    => isset( $input['reason_key'] ) ? (string) $input['reason_key'] : 'other',
+			'reason'        => isset( $input['reason'] ) ? (string) $input['reason'] : '',
+			'note'          => isset( $input['note'] ) ? (string) $input['note'] : '',
+			'source'        => isset( $input['source'] ) ? (string) $input['source'] : '',
+			'acted_by'      => isset( $input['acted_by'] ) ? absint( $input['acted_by'] ) : get_current_user_id(),
+			'purge_content' => ! empty( $input['purge_content'] ),
 		)
 	);
 }

@@ -41,8 +41,16 @@ function extrachill_users_apply_moderation_action( int $user_id, array $args = a
 		$manager->destroy_all();
 	}
 
+	// Explicit, opt-in hard delete. DESTRUCTIVE AND IRREVERSIBLE — only fires
+	// when the operator explicitly requests it; it is never derived from the
+	// reason_key policy effects. When set, purge supersedes the hide path so we
+	// don't draft/spam content we're about to permanently delete.
+	$purge_content = ! empty( $args['purge_content'] );
+
 	$results = array();
-	if ( ! empty( $policy['effects']['mark_content_spam'] ) || ! empty( $policy['effects']['hide_content'] ) ) {
+	if ( $purge_content ) {
+		$results['purged'] = extrachill_users_purge_user_content( $user_id );
+	} elseif ( ! empty( $policy['effects']['mark_content_spam'] ) || ! empty( $policy['effects']['hide_content'] ) ) {
 		$results['content'] = extrachill_users_apply_spam_visibility_to_user_content( $user_id );
 	}
 
