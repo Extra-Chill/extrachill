@@ -19,6 +19,73 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ArtistCommand {
 
 	/**
+	 * Switch into the artist platform site and ensure its abilities are loaded.
+	 *
+	 * The artist platform abilities (extrachill/artists-list,
+	 * extrachill/get-artist-platform-stats, etc.) are registered by the
+	 * extrachill-artist-platform plugin, which is only active on the artist
+	 * platform subsite. `wp extrachill artists ...` defaults to the network
+	 * main site where that plugin's code never loads, so the abilities are
+	 * absent from the registry and every subcommand fails with
+	 * "ability not available".
+	 *
+	 * switch_to_blog() alone does NOT fix this: it changes the active blog but
+	 * does not load an inactive plugin's PHP. This helper therefore switches to
+	 * the artist platform blog AND requires the plugin's abilities bootstrap,
+	 * then fires its (idempotent-guarded) category + ability registration so
+	 * the abilities resolve in this process.
+	 *
+	 * Each subcommand is a short-lived WP-CLI process, so the switch is left in
+	 * place for the remainder of the command (every subsequent ability execute()
+	 * must also run in the artist site context to read/write its data).
+	 *
+	 * @return void
+	 */
+	private function ensure_artist_site_context() {
+		if ( ! function_exists( 'ec_get_blog_id' ) ) {
+			WP_CLI::error( 'ec_get_blog_id() unavailable — extrachill-multisite must be active to resolve the artist platform site.' );
+		}
+
+		$blog_id = ec_get_blog_id( 'artist' );
+		if ( ! $blog_id ) {
+			WP_CLI::error( 'Could not resolve the artist platform site ID.' );
+		}
+
+		if ( get_current_blog_id() !== (int) $blog_id ) {
+			switch_to_blog( $blog_id );
+		}
+
+		// The artist platform plugin only loads on its own subsite, so its
+		// ability registration functions may not be defined here. Load the
+		// abilities bootstrap from the (now active) artist platform site.
+		if ( ! function_exists( 'extrachill_artist_platform_register_abilities' ) ) {
+			if ( ! defined( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR' ) ) {
+				define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', WP_PLUGIN_DIR . '/extrachill-artist-platform/' );
+			}
+
+			$abilities_bootstrap = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/abilities/abilities.php';
+			if ( ! is_readable( $abilities_bootstrap ) ) {
+				WP_CLI::error( 'Artist platform abilities bootstrap not found — is extrachill-artist-platform installed?' );
+			}
+
+			require_once $abilities_bootstrap;
+		}
+
+		// Fire registration directly (idempotent-guarded) rather than re-running
+		// the global wp_abilities_api_* actions, which would re-register every
+		// other plugin's abilities and trigger _doing_it_wrong notices.
+		if ( function_exists( 'extrachill_artist_platform_register_category' ) ) {
+			extrachill_artist_platform_register_category();
+		}
+		if ( function_exists( 'extrachill_artist_platform_register_abilities' )
+			&& function_exists( 'wp_has_ability' )
+			&& ! wp_has_ability( 'extrachill/get-artist-platform-stats' )
+		) {
+			extrachill_artist_platform_register_abilities();
+		}
+	}
+
+	/**
 	 * Count published artist profiles.
 	 *
 	 * Thin wrapper over the extrachill/artists-list ability, which already
@@ -44,6 +111,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function count( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$ability = wp_get_ability( 'extrachill/artists-list' );
 		if ( ! $ability ) {
 			WP_CLI::error( 'extrachill/artists-list ability not available.' );
@@ -100,6 +169,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function get( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$artist_id = absint( $args[0] );
 
 		$ability = wp_get_ability( 'extrachill/get-artist-data' );
@@ -166,6 +237,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function create( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$input = array( 'name' => $args[0] );
 
 		if ( isset( $assoc_args['bio'] ) ) {
@@ -244,6 +317,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function update( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$input = array( 'artist_id' => absint( $args[0] ) );
 
 		$field_map = array(
@@ -310,6 +385,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function link_page( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$artist_id = absint( $args[0] );
 
 		$ability = wp_get_ability( 'extrachill/get-link-page-data' );
@@ -360,6 +437,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_socials( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$artist_id    = absint( $args[0] );
 		$social_links = json_decode( $args[1], true );
 
@@ -411,6 +490,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_links( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$artist_id = absint( $args[0] );
 		$links     = json_decode( $args[1], true );
 
@@ -475,6 +556,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function add_link( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$artist_id = absint( $args[0] );
 		$url       = $args[1];
 		$text      = $args[2];
@@ -562,6 +645,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function remove_link( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$artist_id  = absint( $args[0] );
 		$identifier = $args[1];
 
@@ -646,6 +731,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function move_link( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$artist_id  = absint( $args[0] );
 		$identifier = $args[1];
 
@@ -782,6 +869,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_styles( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$artist_id = absint( $args[0] );
 
 		// --list mode: show current CSS vars.
@@ -889,6 +978,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function save_settings( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$artist_id = absint( $args[0] );
 
 		// --list mode.
@@ -989,6 +1080,8 @@ class ArtistCommand {
 	 * @when after_wp_load
 	 */
 	public function stats( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+
 		$days = isset( $assoc_args['days'] ) ? max( 0, (int) $assoc_args['days'] ) : 28;
 
 		$ability = wp_get_ability( 'extrachill/get-artist-platform-stats' );
