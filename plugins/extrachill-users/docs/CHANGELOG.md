@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.19.0] - 2026-06-18
+
+### Added
+- gate shared brand socials behind admin-only brand_socials feature
+
 ## [0.18.0] - 2026-06-17
 
 ### Added
