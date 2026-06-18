@@ -10,6 +10,7 @@ import {
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { StudioPaneProps } from '../../types/studio';
 import { setComposeCrossSiteActive } from './cross-site-middleware';
+import { installChatRefreshAdapter } from './refresh-adapter';
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
@@ -19,7 +20,10 @@ const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactEleme
 
 declare global {
 	interface Window {
-		blocksEverywhereCreateEditor?: ( textarea: HTMLTextAreaElement ) => void;
+		blocksEverywhereCreateEditor?: (
+			textarea: HTMLTextAreaElement,
+			options?: { settings?: Record< string, unknown > }
+		) => void;
 		blocksEverywhereGetContentApi?: ( textarea: HTMLTextAreaElement ) => BlocksEverywhereContentApi | null;
 	}
 }
@@ -105,6 +109,18 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	const pendingRerunRef = useRef( false );
 	const consecutiveFailuresRef = useRef( 0 );
 	const autosaveErrorActiveRef = useRef( false );
+	// Set while an external-edit refresh is applying (Roadie accept → BE
+	// receiver). Blocks autosave from issuing a stale-content write that could
+	// land after the refresh resets the baseline and re-clobber the accepted
+	// edit. See refreshConfigRef below.
+	const isRefreshingRef = useRef( false );
+	// Watchdog that force-clears isRefreshingRef if a refresh starts but never
+	// settles (e.g. BE's receiver bails before onRefreshed because the content
+	// API was transiently unavailable). Prevents a stuck guard from disabling
+	// autosave permanently.
+	const refreshWatchdogRef = useRef< ReturnType< typeof setTimeout > | null >(
+		null
+	);
 	// Monotonic edit counter. Incremented on every title/content edit. Captured
 	// at the start of an autosave so we can detect edits that land during the
 	// in-flight window and avoid marking those keystrokes as "saved".
@@ -181,6 +197,112 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			api.replaceContent( html );
 		}
 	};
+
+	/**
+	 * Refetch the current content of a post from main via the compose
+	 * cross-site proxy (active while the Blog tab is mounted). Returns the
+	 * post's raw block markup, or an empty string on any failure.
+	 */
+	const fetchPostContent = useCallback(
+		async ( postId: number ): Promise< string > => {
+			try {
+				const post = await apiFetch< WpPost >( {
+					path: `/wp/v2/posts/${ postId }?context=edit`,
+				} );
+				return post?.content?.raw || post?.content?.rendered || '';
+			} catch {
+				return '';
+			}
+		},
+		[]
+	);
+
+	/**
+	 * Blocks Everywhere external-edit refresh wiring.
+	 *
+	 * When Roadie writes the active draft (via the chat accept path → the
+	 * refresh adapter → BE's receiver), the open editor refetches and replaces
+	 * its content. Studio owns post identity, the fetch, and the autosave
+	 * baseline, so it supplies all four hooks; BE owns the replace + post-id
+	 * matching. Held in a ref so the object identity is stable across renders
+	 * (BE reads it once at mount) while the getters read live values.
+	 */
+	const refreshConfigRef = useRef( {
+		// Getter — the active draft changes via the draft picker over the
+		// editor's lifetime, so BE must read the current id per event.
+		watchPostId: (): number | null => activePostIdRef.current,
+		fetchContent: async (): Promise< string > => {
+			const postId = activePostIdRef.current;
+			if ( ! postId ) {
+				return '';
+			}
+			return fetchPostContent( postId );
+		},
+		beforeRefresh: async (): Promise< void > => {
+			// Mark the refresh in progress BEFORE awaiting anything. This makes
+			// performAutosave (and the in-flight save's finally re-run) bail, so
+			// no stale-content write can be issued while we refetch + replace.
+			// The flag is cleared in onRefreshed after the baseline is reset.
+			isRefreshingRef.current = true;
+
+			// Arm a watchdog: if onRefreshed never fires (BE bailed before the
+			// replace), force-clear the guard so autosave isn't disabled forever.
+			if ( refreshWatchdogRef.current ) {
+				clearTimeout( refreshWatchdogRef.current );
+			}
+			refreshWatchdogRef.current = setTimeout( () => {
+				refreshWatchdogRef.current = null;
+				isRefreshingRef.current = false;
+			}, 15000 );
+
+			// Cancel a pending debounced autosave.
+			if ( autosaveTimerRef.current ) {
+				clearTimeout( autosaveTimerRef.current );
+				autosaveTimerRef.current = null;
+			}
+
+			// Drain any in-flight save to quiescence. A save that completes here
+			// could, in its finally, synchronously start one more (pendingRerun)
+			// BEFORE the guard above takes effect for that closure; loop until no
+			// save is in flight so the wire is clear before we replace content.
+			// Bounded so a pathological save loop cannot hang the refresh.
+			for ( let i = 0; i < 5; i++ ) {
+				const inFlight = inFlightPromiseRef.current;
+				if ( ! inFlight ) {
+					break;
+				}
+				try {
+					await inFlight;
+				} catch {
+					// In-flight save handled its own errors; proceed.
+				}
+			}
+		},
+		onRefreshed: ( html: string ): void => {
+			// Reset the autosave baseline to the freshly-applied content so the
+			// NEXT autosave carries the external edit forward instead of
+			// re-clobbering it with the stale in-memory snapshot.
+			contentSnapshotRef.current = html;
+			lastSavedPayloadRef.current = JSON.stringify( {
+				title: titleRef.current.trim(),
+				content: html.trim(),
+			} );
+			// Advance the edit sequence so any autosave snapshot captured before
+			// the refresh is treated as superseded and won't mark the draft clean
+			// against stale content if it somehow completes late.
+			editSeqRef.current += 1;
+			setHasUnsavedChanges( false );
+			scheduleClientContextUpdate();
+
+			// Release the autosave guard now the baseline reflects the applied
+			// content. Subsequent edits autosave normally from the new baseline.
+			if ( refreshWatchdogRef.current ) {
+				clearTimeout( refreshWatchdogRef.current );
+				refreshWatchdogRef.current = null;
+			}
+			isRefreshingRef.current = false;
+		},
+	} );
 
 	/**
 	 * Fetch the current user's drafts from the REST API.
@@ -364,6 +486,15 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	 * subsequent autosaves update the same draft.
 	 */
 	const performAutosave = useCallback( async (): Promise< void > => {
+		// An external-edit refresh is applying the accepted content. Suppress
+		// this save entirely — issuing a stale-content write now would race the
+		// refresh's baseline reset and could re-clobber the accepted edit. Do
+		// NOT set pendingRerunRef: the refresh's onRefreshed makes the editor
+		// the new baseline, so there is nothing stale left to flush afterward.
+		if ( isRefreshingRef.current ) {
+			return;
+		}
+
 		// If a save is already in flight, mark a rerun and bail; the in-flight
 		// save's finally block will pick up the latest content when it completes.
 		if ( isAutosavingRef.current ) {
@@ -460,9 +591,17 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				inFlightPromiseRef.current = null;
 				// Re-run if input arrived while we were saving so the latest
 				// content reaches the server instead of being silently dropped.
+				// Suppress the re-run while an external-edit refresh is applying:
+				// re-running here would issue a stale-content write that races the
+				// refresh and re-clobbers the accepted edit. performAutosave's own
+				// guard also bails, but clearing the flag here keeps the pending
+				// state clean so a post-refresh edit is not treated as already
+				// queued.
 				if ( pendingRerunRef.current ) {
 					pendingRerunRef.current = false;
-					performAutosave();
+					if ( ! isRefreshingRef.current ) {
+						performAutosave();
+					}
 				}
 			}
 		} )();
@@ -489,6 +628,21 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		setComposeCrossSiteActive( true );
 		return () => {
 			setComposeCrossSiteActive( false );
+		};
+	}, [] );
+
+	// Bridge the chat's action-resolved event to BE's refresh-content event for
+	// the lifetime of this pane. The adapter is the only place both event names
+	// co-exist; BE's receiver (configured via refreshConfigRef below) matches
+	// the post id and ignores events for any other draft.
+	useEffect( () => {
+		const cleanupAdapter = installChatRefreshAdapter();
+		return () => {
+			cleanupAdapter();
+			if ( refreshWatchdogRef.current ) {
+				clearTimeout( refreshWatchdogRef.current );
+				refreshWatchdogRef.current = null;
+			}
 		};
 	}, [] );
 
@@ -546,10 +700,18 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				contentSnapshotRef.current = '';
 			}
 
-			// Mount the editor — it reads textarea.value via onLoad.
+			// Mount the editor — it reads textarea.value via onLoad. Pass the
+			// external-edit refresh wiring so an accepted Roadie edit refreshes
+			// the open editor instead of being clobbered by the next autosave.
 			if ( ! editorMountedRef.current && textareaRef.current ) {
 				if ( typeof window.blocksEverywhereCreateEditor === 'function' ) {
-					window.blocksEverywhereCreateEditor( textareaRef.current );
+					window.blocksEverywhereCreateEditor( textareaRef.current, {
+						settings: {
+							blocksEverywhere: {
+								refresh: refreshConfigRef.current,
+							},
+						},
+					} );
 					editorMountedRef.current = true;
 					setEditorReady( true );
 				} else {
