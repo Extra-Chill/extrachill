@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.18.0] - 2026-06-18
+
+### Added
+- hide socials tab for users without brand_socials access
+
 ## [0.17.0] - 2026-06-17
 
 ### Added
