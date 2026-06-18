@@ -49,7 +49,10 @@ function ec_feature_tier_ladder() {
 function ec_feature_ceilings() {
 	$ceilings = array(
 		// Shop manager: admin-only until the system is ready for the team.
-		'shop' => 'admin',
+		'shop'          => 'admin',
+		// Shared brand social accounts: admin-only until a review workflow
+		// exists for the team (the official accounts post immediately live).
+		'brand_socials' => 'admin',
 	);
 
 	/**
