@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.19.0] - 2026-06-18
+
+### Added
+- bridge chat action-resolved to blocks-everywhere refresh
+
 ## [0.18.0] - 2026-06-18
 
 ### Added
