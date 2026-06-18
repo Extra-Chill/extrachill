@@ -31,6 +31,9 @@ class CommandRegistry {
 	 */
 	public static function map() {
 		return array(
+			// Platform commands.
+			'extrachill platform'            => Commands\Platform\HealthCommand::class,
+
 			// Analytics commands.
 			'extrachill analytics summary'     => Commands\Analytics\SummaryCommand::class,
 			'extrachill analytics 404'         => Commands\Analytics\FourOhFourCommand::class,
