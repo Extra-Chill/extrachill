@@ -5,11 +5,17 @@
  * Admin functionality for controlling which forums display in the forum
  * archive (/forums/) list. Adds a checkbox to forum edit pages.
  *
- * Naming note: the underlying meta key is `_show_on_homepage` and the
- * function/metabox names still say "homepage" — a leftover from before the
- * feed-first homepage (#66) moved the forum list off the homepage and onto
- * the forum archive. The stored key + ability field rename (with migration)
- * is tracked separately; this file keeps the user-facing copy honest.
+ * This is an ARCHIVE-visibility control, NOT a homepage control. The
+ * community homepage moved to the feed-first layout + Browse Rooms chip row
+ * (#65/#66), which selects forums by post_status — it does NOT read this
+ * meta. The one live consumer of this flag is bbpress/loop-forums.php, which
+ * renders the forum archive list.
+ *
+ * Naming note: the stored meta key is still `_show_on_homepage` — a leftover
+ * from before the forum list moved off the homepage onto the forum archive.
+ * The stored-key rename (with data migration) is tracked separately (#137);
+ * this file keeps the user-facing copy, function names, and ability surface
+ * honest about the archive meaning in the meantime.
  *
  * @package ExtraChillCommunity
  * @version 1.0.0
@@ -21,28 +27,29 @@ if ( ! defined('ABSPATH') ) {
 }
 
 // WordPress meta box registration (working pattern)
-function extrachill_add_homepage_display_meta_box() {
+function extrachill_add_forum_archive_display_meta_box() {
 	add_meta_box(
-		'extrachill_homepage_display',
+		'extrachill_forum_archive_display',
 		__( 'Forum Archive Display', 'extra-chill-community' ),
-		'extrachill_homepage_display_meta_box_callback',
+		'extrachill_forum_archive_display_meta_box_callback',
 		'forum',
 		'side',
 		'high'
 	);
 }
-add_action('add_meta_boxes', 'extrachill_add_homepage_display_meta_box');
+add_action('add_meta_boxes', 'extrachill_add_forum_archive_display_meta_box');
 
 // Meta box callback function
-function extrachill_homepage_display_meta_box_callback($post) {
-	$show_on_homepage = get_post_meta($post->ID, '_show_on_homepage', true);
+function extrachill_forum_archive_display_meta_box_callback($post) {
+	// Stored key is still `_show_on_homepage` (legacy name; rename tracked in #137).
+	$show_in_archive = get_post_meta($post->ID, '_show_on_homepage', true);
 
 	// Add nonce field for security
-	wp_nonce_field('homepage_display_metabox', 'homepage_display_nonce');
+	wp_nonce_field('forum_archive_display_metabox', 'forum_archive_display_nonce');
 	?>
 	<p>
-		<label for="show_on_homepage">
-			<input type="checkbox" name="_show_on_homepage" id="show_on_homepage" value="1" <?php checked($show_on_homepage, '1'); ?> />
+		<label for="show_in_forum_archive">
+			<input type="checkbox" name="_show_in_forum_archive" id="show_in_forum_archive" value="1" <?php checked($show_in_archive, '1'); ?> />
 			<?php esc_html_e('Show in forum archive', 'extra-chill-community'); ?>
 		</label>
 		<br />
@@ -53,14 +60,14 @@ function extrachill_homepage_display_meta_box_callback($post) {
 
 
 // Function to save the forum-archive display setting.
-function save_forum_homepage_display($post_id) {
+function save_forum_archive_display($post_id) {
 	// Check if this is an autosave
 	if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) {
 		return;
 	}
 
 	// Verify nonce for security
-	if ( ! isset($_POST['homepage_display_nonce']) || ! wp_verify_nonce($_POST['homepage_display_nonce'], 'homepage_display_metabox') ) {
+	if ( ! isset($_POST['forum_archive_display_nonce']) || ! wp_verify_nonce($_POST['forum_archive_display_nonce'], 'forum_archive_display_metabox') ) {
 		return;
 	}
 
@@ -74,11 +81,11 @@ function save_forum_homepage_display($post_id) {
 		return;
 	}
 
-	if ( isset($_POST['_show_on_homepage']) ) {
+	// Stored key is still `_show_on_homepage` (legacy name; rename tracked in #137).
+	if ( isset($_POST['_show_in_forum_archive']) ) {
 		update_post_meta($post_id, '_show_on_homepage', '1');
 	} else {
 		delete_post_meta($post_id, '_show_on_homepage');
 	}
 }
-add_action('save_post', 'save_forum_homepage_display');
-
+add_action('save_post', 'save_forum_archive_display');

@@ -17,9 +17,12 @@ defined( 'ABSPATH' ) || exit;
 </div>
 <?php
 // Forums opted into the archive list via the "Forum Archive Display"
-// metabox. The meta key is still `_show_on_homepage` (legacy name from
-// before the feed-first homepage moved this list onto the forum archive,
-// #66); a keyed rename + migration is tracked separately.
+// metabox. This is the ONE live consumer of the flag — it curates the
+// forum archive (/forums/) list, NOT the homepage (the homepage moved to
+// the feed-first layout + Browse Rooms chips, #65/#66, which select by
+// post_status and ignore this meta). The meta key is still
+// `_show_on_homepage` (legacy name); a keyed rename + migration is tracked
+// separately in #137.
 $args = array(
 	'post_parent'    => 0,
 	'meta_query'     => array(

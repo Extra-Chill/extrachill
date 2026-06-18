@@ -183,7 +183,7 @@ function modular_bbpress_styles() {
 **Meta Fields**:
 ```php
 // Theme meta fields
-get_post_meta($forum_id, '_show_on_homepage'); // Boolean for homepage display
+get_post_meta($forum_id, '_show_on_homepage'); // Boolean: show in forum archive (/forums/) list (legacy key name; see #137)
 get_user_meta($user_id, '_user_profile_dynamic_links'); // User social links
 get_user_meta($user_id, 'ec_custom_title'); // Custom user titles
 get_user_meta($user_id, 'extrachill_notifications'); // User notification data

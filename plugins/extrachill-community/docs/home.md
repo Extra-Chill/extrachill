@@ -2,25 +2,31 @@
 
 Community homepage enhancements providing forum activity display, artist platform integration, and administrative controls for forum visibility.
 
-## Homepage Forum Display
+## Forum Archive Display
 
 ### Forum Visibility Control
-Administrators can control which forums appear on the community homepage through a checkbox in the forum edit interface.
+Administrators can control which forums appear in the forum archive (`/forums/`)
+list through a checkbox in the forum edit interface. This is an archive-curation
+control, NOT a homepage control — the community homepage moved to the feed-first
+layout + Browse Rooms chip row (#65/#66), which selects forums by `post_status`
+and ignores this meta. The single live consumer is `bbpress/loop-forums.php`.
 
 **Admin Interface:**
-- Located in forum edit pages under "Homepage Display" meta box
-- Checkbox: "Show on Homepage"
-- Description: "Display this forum in the homepage forum list"
+- Located in forum edit pages under "Forum Archive Display" meta box
+- Checkbox: "Show in forum archive"
+- Description: "Display this forum in the forum archive (/forums/) list"
 
 **Data Storage:**
-- Meta field: `_show_on_homepage` (boolean stored as '1' or '0')
+- Meta field: `_show_on_homepage` (boolean stored as '1' or '0'). The stored key
+  still carries the legacy "homepage" name; a keyed rename + data migration is
+  tracked separately in #137.
 - Applied to bbPress forum post types only
 
 ### Latest Activity Display
-Displays the most recent forum activity from homepage-enabled forums and artist forums.
+Displays the most recent forum activity from archive-enabled forums and artist forums.
 
 **Activity Sources:**
-- Forums marked with `_show_on_homepage` meta field
+- Forums marked with the `_show_on_homepage` meta field (legacy key name; see above)
 - Artist profile forums (linked via `_artist_forum_id` meta field)
 
 **Display Format:**

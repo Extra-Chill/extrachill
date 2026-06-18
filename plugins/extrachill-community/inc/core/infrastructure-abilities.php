@@ -54,14 +54,14 @@ function extrachill_community_register_infrastructure_abilities() {
 		'extrachill/community-list-forums',
 		array(
 			'label'               => __( 'List Forums', 'extra-chill-community' ),
-			'description'         => __( 'List all forums with topic/reply counts and homepage visibility status.', 'extra-chill-community' ),
+			'description'         => __( 'List all forums with topic/reply counts and forum-archive visibility status.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'homepage_only' => array(
+					'archive_only' => array(
 						'type'        => 'boolean',
-						'description' => 'Only return forums shown on homepage',
+						'description' => 'Only return forums shown in the forum archive (/forums/) list',
 					),
 				),
 			),
@@ -85,10 +85,10 @@ function extrachill_community_register_infrastructure_abilities() {
 	);
 
 	wp_register_ability(
-		'extrachill/community-toggle-forum-homepage',
+		'extrachill/community-toggle-forum-archive',
 		array(
-			'label'               => __( 'Toggle Forum Homepage', 'extra-chill-community' ),
-			'description'         => __( 'Toggle whether a forum is shown on the community homepage.', 'extra-chill-community' ),
+			'label'               => __( 'Toggle Forum Archive Display', 'extra-chill-community' ),
+			'description'         => __( 'Toggle whether a forum is shown in the forum archive (/forums/) list.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -103,12 +103,12 @@ function extrachill_community_register_infrastructure_abilities() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'forum_id'         => array( 'type' => 'integer' ),
-					'title'            => array( 'type' => 'string' ),
-					'show_on_homepage' => array( 'type' => 'boolean' ),
+					'forum_id'        => array( 'type' => 'integer' ),
+					'title'           => array( 'type' => 'string' ),
+					'show_in_archive' => array( 'type' => 'boolean' ),
 				),
 			),
-			'execute_callback'    => 'extrachill_community_ability_toggle_forum_homepage',
+			'execute_callback'    => 'extrachill_community_ability_toggle_forum_archive',
 			'permission_callback' => '__return_true',
 			'meta'                => array(
 				'show_in_rest' => false,
@@ -202,7 +202,7 @@ function extrachill_community_ability_list_forums( $input ) {
 		return new WP_Error( 'bbpress_unavailable', 'bbPress is not active.' );
 	}
 
-	$homepage_only = ! empty( $input['homepage_only'] );
+	$archive_only = ! empty( $input['archive_only'] );
 
 	$args = array(
 		'post_type'      => bbp_get_forum_post_type(),
@@ -212,7 +212,8 @@ function extrachill_community_ability_list_forums( $input ) {
 		'order'          => 'ASC',
 	);
 
-	if ( $homepage_only ) {
+	if ( $archive_only ) {
+		// Stored key is still `_show_on_homepage` (legacy name; rename tracked in #137).
 		$args['meta_query'] = array(
 			array(
 				'key'   => '_show_on_homepage',
@@ -231,7 +232,7 @@ function extrachill_community_ability_list_forums( $input ) {
 			'parent_id'        => (int) $forum->post_parent,
 			'topic_count'      => function_exists( 'bbp_get_forum_topic_count' ) ? (int) bbp_get_forum_topic_count( $forum->ID ) : 0,
 			'reply_count'      => function_exists( 'bbp_get_forum_reply_count' ) ? (int) bbp_get_forum_reply_count( $forum->ID ) : 0,
-			'show_on_homepage' => (bool) get_post_meta( $forum->ID, '_show_on_homepage', true ),
+			'show_in_archive'  => (bool) get_post_meta( $forum->ID, '_show_on_homepage', true ),
 			'url'              => function_exists( 'bbp_get_forum_permalink' ) ? bbp_get_forum_permalink( $forum->ID ) : get_permalink( $forum->ID ),
 		);
 	}
@@ -240,12 +241,16 @@ function extrachill_community_ability_list_forums( $input ) {
 }
 
 /**
- * Toggle homepage visibility for a forum.
+ * Toggle forum-archive visibility for a forum.
+ *
+ * Controls whether the forum appears in the forum archive (/forums/) list,
+ * rendered by bbpress/loop-forums.php. The stored meta key is still
+ * `_show_on_homepage` (legacy name; rename tracked in #137).
  *
  * @param array $input Ability input.
  * @return array|WP_Error
  */
-function extrachill_community_ability_toggle_forum_homepage( $input ) {
+function extrachill_community_ability_toggle_forum_archive( $input ) {
 	$forum_id = isset( $input['forum_id'] ) ? (int) $input['forum_id'] : 0;
 	if ( ! $forum_id ) {
 		return new WP_Error( 'missing_forum_id', 'A forum_id is required.' );
@@ -271,9 +276,9 @@ function extrachill_community_ability_toggle_forum_homepage( $input ) {
 	}
 
 	return array(
-		'forum_id'         => $forum_id,
-		'title'            => $post->post_title,
-		'show_on_homepage' => $new_state,
+		'forum_id'        => $forum_id,
+		'title'           => $post->post_title,
+		'show_in_archive' => $new_state,
 	);
 }
 

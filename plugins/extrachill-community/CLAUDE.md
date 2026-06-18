@@ -285,7 +285,7 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 ## Database Tables
 
 ### Key Meta Fields
-- `_show_on_homepage` - Boolean meta field controlling forum display on homepage
+- `_show_on_homepage` - Boolean meta field controlling forum display in the forum archive (/forums/) list (legacy key name; consumed by bbpress/loop-forums.php; rename tracked in #137)
 - `_user_profile_dynamic_links` - User profile social links
 - `ec_custom_title` - User custom titles (default: 'Extra Chillian')
 - `extrachill_notifications` - User notification data cache
