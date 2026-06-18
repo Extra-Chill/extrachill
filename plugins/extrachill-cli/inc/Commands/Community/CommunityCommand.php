@@ -66,6 +66,159 @@ class CommunityCommand {
 	}
 
 	/**
+	 * Show a single community-engagement snapshot (the retention engine in one read).
+	 *
+	 * Composes the existing community abilities into one scorecard so the
+	 * forums — the densest human surface on the network — stop being reported
+	 * blind. This command is an AGGREGATION / PRESENTATION layer ONLY: it runs
+	 * no direct database queries and implements no business logic. Every number
+	 * is produced by an ability that already owns it:
+	 *
+	 *   - Headline totals (active users, topics, replies, upvotes)
+	 *       extrachill/community-get-stats
+	 *   - Per-forum activity concentration (topic / reply counts)
+	 *       extrachill/community-list-forums
+	 *
+	 * Forum HOMEPAGE VISIBILITY is intentionally NOT reported. The legacy
+	 * `_show_on_homepage` meta no longer drives the rebuilt community homepage
+	 * (it is selected by post_status via the Browse Rooms chip row), so this
+	 * snapshot reports forum ACTIVITY only and ignores that flag entirely.
+	 *
+	 * Concert-attendance (`wp extrachill shows`) is a parallel retention signal,
+	 * but it is exposed per-user / per-event only — there is no platform-wide
+	 * aggregate ability to compose — so it is surfaced here as a pointer rather
+	 * than a faked total. Run `wp extrachill shows stats <user>` for a member's
+	 * concert history.
+	 *
+	 * Run against the community site so the community abilities are loaded.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--forums=<forums>]
+	 * : Number of top forums (by activity) to list.
+	 * ---
+	 * default: 10
+	 * ---
+	 *
+	 * [--format=<format>]
+	 * : Output format. "table" prints a skimmable block; "json" / "csv" emit
+	 *   structured records for piping.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill community engagement --url=community.extrachill.com
+	 *     wp extrachill community engagement --forums=5 --url=community.extrachill.com
+	 *     wp extrachill community engagement --format=json --url=community.extrachill.com
+	 *
+	 * @when after_wp_load
+	 */
+	public function engagement( $args, $assoc_args ) {
+		$stats_ability = wp_get_ability( 'extrachill/community-get-stats' );
+		if ( ! $stats_ability ) {
+			WP_CLI::error( 'extrachill/community-get-stats ability not available. Run this against the community site, e.g. --url=community.extrachill.com.' );
+		}
+
+		$forums_ability = wp_get_ability( 'extrachill/community-list-forums' );
+		if ( ! $forums_ability ) {
+			WP_CLI::error( 'extrachill/community-list-forums ability not available. Run this against the community site, e.g. --url=community.extrachill.com.' );
+		}
+
+		$format      = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
+		$forum_limit = max( 1, isset( $assoc_args['forums'] ) ? (int) $assoc_args['forums'] : 10 );
+
+		// Compose headline totals.
+		$stats = $stats_ability->execute( array() );
+		if ( is_wp_error( $stats ) ) {
+			WP_CLI::error( $stats->get_error_message() );
+		}
+
+		// Compose per-forum activity. The legacy homepage-visibility flag is
+		// ignored on purpose — we report activity, not homepage placement.
+		$forums_result = $forums_ability->execute( array() );
+		if ( is_wp_error( $forums_result ) ) {
+			WP_CLI::error( $forums_result->get_error_message() );
+		}
+
+		$forums = isset( $forums_result['forums'] ) && is_array( $forums_result['forums'] ) ? $forums_result['forums'] : array();
+
+		// Rank forums by total activity (topics + replies). Presentation-only
+		// arithmetic over ability output — no querying, no business logic.
+		usort(
+			$forums,
+			static function ( $a, $b ) {
+				$a_activity = (int) ( $a['topic_count'] ?? 0 ) + (int) ( $a['reply_count'] ?? 0 );
+				$b_activity = (int) ( $b['topic_count'] ?? 0 ) + (int) ( $b['reply_count'] ?? 0 );
+				return $b_activity <=> $a_activity;
+			}
+		);
+
+		$top_forums = array();
+		foreach ( array_slice( $forums, 0, $forum_limit ) as $forum ) {
+			$top_forums[] = array(
+				'forum_id'    => $forum['forum_id'] ?? '',
+				'title'       => $forum['title'] ?? '',
+				'topic_count' => (int) ( $forum['topic_count'] ?? 0 ),
+				'reply_count' => (int) ( $forum['reply_count'] ?? 0 ),
+				'activity'    => (int) ( $forum['topic_count'] ?? 0 ) + (int) ( $forum['reply_count'] ?? 0 ),
+			);
+		}
+
+		$headline = array(
+			'forums'        => (int) ( $stats['forums'] ?? 0 ),
+			'topics'        => (int) ( $stats['topics'] ?? 0 ),
+			'replies'       => (int) ( $stats['replies'] ?? 0 ),
+			'active_users'  => (int) ( $stats['active_users'] ?? 0 ),
+			'total_upvotes' => (int) ( $stats['total_upvotes'] ?? 0 ),
+		);
+
+		if ( 'table' !== $format ) {
+			Utils\format_items(
+				$format,
+				array(
+					array_merge(
+						$headline,
+						array( 'top_forums' => wp_json_encode( $top_forums ) )
+					),
+				),
+				array( 'active_users', 'forums', 'topics', 'replies', 'total_upvotes', 'top_forums' )
+			);
+			return;
+		}
+
+		WP_CLI::log( 'Community Engagement Snapshot — ' . gmdate( 'Y-m-d H:i' ) . ' UTC' );
+		WP_CLI::log( str_repeat( '═', 56 ) );
+		WP_CLI::log( 'Headline (composed from extrachill/community-get-stats)' );
+		WP_CLI::log( sprintf( '    Active users:  %s', number_format( $headline['active_users'] ) ) );
+		WP_CLI::log( sprintf( '    Forums:        %s', number_format( $headline['forums'] ) ) );
+		WP_CLI::log( sprintf( '    Topics:        %s', number_format( $headline['topics'] ) ) );
+		WP_CLI::log( sprintf( '    Replies:       %s', number_format( $headline['replies'] ) ) );
+		WP_CLI::log( sprintf( '    Total upvotes: %s', number_format( $headline['total_upvotes'] ) ) );
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Where the community is alive (composed from extrachill/community-list-forums)' );
+		WP_CLI::log( str_repeat( '─', 56 ) );
+
+		if ( empty( $top_forums ) ) {
+			WP_CLI::log( 'No forum activity found.' );
+		} else {
+			Utils\format_items( 'table', $top_forums, array( 'forum_id', 'title', 'topic_count', 'reply_count', 'activity' ) );
+		}
+
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Concert attendance (parallel retention signal)' );
+		WP_CLI::log( str_repeat( '─', 56 ) );
+		WP_CLI::log( '    Concert marks (Going / Check In / I Was There) are a per-member' );
+		WP_CLI::log( '    retention behavior with no platform-wide aggregate ability to' );
+		WP_CLI::log( '    compose. Inspect a member: wp extrachill shows stats <user>' );
+	}
+
+	/**
 	 * Show community leaderboard.
 	 *
 	 * ## OPTIONS
