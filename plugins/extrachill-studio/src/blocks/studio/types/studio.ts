@@ -12,6 +12,8 @@ export interface StudioContext {
 	description: string;
 	/** Allowed social platform slugs. Empty array = show all. */
 	socialPlatforms: string[];
+	/** Whether the user may access the shared brand social accounts. */
+	canBrandSocials: boolean;
 }
 
 export interface StudioTab {

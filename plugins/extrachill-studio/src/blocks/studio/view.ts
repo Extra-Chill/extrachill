@@ -21,7 +21,7 @@ const STUDIO_PANES: Record< string, ComponentType< StudioPaneProps > > = {
 };
 
 const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
-	const tabs = getStudioTabs();
+	const tabs = getStudioTabs( { canBrandSocials: context.canBrandSocials } );
 	const [ activeTab, setActiveTab ] = useState( tabs[ 0 ]?.id || 'compose' );
 	const renderPanel = ( id: string ): ReactElement => {
 		const ActivePane = STUDIO_PANES[ id ] || ComposePane;
@@ -86,6 +86,7 @@ const initRoot = ( root: HTMLElement ): void => {
 		headline: root.dataset.headline || '',
 		description: root.dataset.description || '',
 		socialPlatforms,
+		canBrandSocials: root.dataset.canBrandSocials === 'true',
 	};
 
 	const appMount = root.querySelector< HTMLElement >( '[data-ec-studio-app]' );
