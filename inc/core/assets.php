@@ -323,25 +323,40 @@ function extrachill_filter_admin_only_editor_styles( $settings ) {
 add_filter( 'block_editor_settings_all', 'extrachill_filter_admin_only_editor_styles', 20 );
 
 /**
- * Register EC theme fonts via the theme.json data filter.
+ * Attach @font-face src to the EC custom-font slugs declared in theme.json.
  *
- * This is the WordPress-canonical mechanism for getting @font-face declarations
- * into the block editor iframe. Core calls wp_print_font_faces() inside
- * _wp_get_iframed_editor_assets() and on wp_head — both pull from
- * WP_Font_Face_Resolver::get_fonts_from_theme_json() which reads this filter's
- * output. Result: proper @font-face <style> tags with absolute URLs land in
- * every editor iframe (wp-admin post editor, Blocks Everywhere bbPress,
- * Studio) AND on the frontend without any per-context wiring.
+ * The generated root theme.json (from @extrachill/tokens) owns the full set of
+ * font-family slugs/values the editor and frontend use:
+ *   - font-family-heading  ("Loft Sans, sans-serif")
+ *   - font-family-body
+ *   - font-family-brand    ("Lobster, sans-serif")
+ *   - font-family-mono
+ * …but it declares NO fontFace (no src), because the tokens package has no
+ * knowledge of theme-relative woff2 paths. The woff2 files live in the THEME
+ * (assets/fonts/), so the theme is the only place that can supply the src.
  *
- * Replaces the previous approach of putting @font-face declarations inside
- * editor-style.css with relative ../fonts/ URLs — those failed to resolve
- * because postcss-urlrebase doesn't reliably rewrite paths inside @font-face
- * src lists when CSS is inlined as a <style> tag. Computed font-family on
- * headings fell back to the browser default (Times) in wp-admin.
+ * This filter is the WordPress-canonical mechanism for getting font-face
+ * declarations into the block editor iframe. Core calls wp_print_font_faces()
+ * inside _wp_get_iframed_editor_assets() and on wp_head — both pull from
+ * WP_Font_Face_Resolver::get_fonts_from_theme_json(), which only emits a
+ * font-face for a family that carries a fontFace entry. So this filter
+ * supplies fontFace src on the SAME slugs theme.json already declares
+ * (font-family-heading -> Loft Sans, font-family-brand -> Lobster), rather than
+ * registering a parallel set of families under different slugs.
  *
- * Uses update_with() to merge into the existing theme.json data rather than
- * replacing it, so font-family slugs added by other filters (or a future
- * theme.json file) are preserved.
+ * Why declare the complete fontFamilies list (not just the two custom fonts):
+ * WP_Theme_JSON::merge() replaces the whole fontFamilies preset list when an
+ * incoming layer provides one (it does not merge per-slug). Re-declaring all
+ * four families — sourced from the same slugs/values theme.json uses — keeps
+ * font-family-body/font-family-mono intact while adding fontFace only to the
+ * two custom fonts. The result is ONE coherent set of font families: the
+ * picker entry and its @font-face share a slug, with no duplicate
+ * same-font-different-slug registrations.
+ *
+ * (Previous approach put @font-face inside editor-style.css with relative
+ * ../fonts/ URLs — those failed to resolve because postcss-urlrebase doesn't
+ * reliably rewrite paths inside @font-face src lists when CSS is inlined as a
+ * <style> tag, so headings fell back to the browser default in wp-admin.)
  *
  * @param WP_Theme_JSON_Data $theme_json Theme JSON data wrapper.
  * @return WP_Theme_JSON_Data
@@ -349,41 +364,75 @@ add_filter( 'block_editor_settings_all', 'extrachill_filter_admin_only_editor_st
 function extrachill_register_theme_fonts( $theme_json ) {
 	$fonts_uri = get_template_directory_uri() . '/assets/fonts';
 
+	// Read the font-family slugs/values already declared by the shipped
+	// theme.json so this filter stays in sync with the tokens-generated source
+	// and only ADDS fontFace src to the custom fonts.
+	$data           = $theme_json->get_data();
+	$theme_families = array();
+	if ( isset( $data['settings']['typography']['fontFamilies'] ) && is_array( $data['settings']['typography']['fontFamilies'] ) ) {
+		$theme_families = $data['settings']['typography']['fontFamilies'];
+	}
+
+	// Map of theme.json slug => @font-face definition to attach. Only the two
+	// custom fonts (woff2 shipped in the theme) get a fontFace.
+	$font_faces = array(
+		'font-family-heading' => array(
+			array(
+				'fontFamily'  => 'Loft Sans',
+				'fontStyle'   => 'normal',
+				'fontWeight'  => '100 900',
+				'fontDisplay' => 'swap',
+				'src'         => array( $fonts_uri . '/WilcoLoftSans-Treble.woff2' ),
+			),
+		),
+		'font-family-brand'   => array(
+			array(
+				'fontFamily'  => 'Lobster',
+				'fontStyle'   => 'normal',
+				'fontWeight'  => '400',
+				'fontDisplay' => 'swap',
+				'src'         => array( $fonts_uri . '/Lobster2.woff2' ),
+			),
+		),
+	);
+
+	// Rebuild the full families list, attaching fontFace to the matching slugs.
+	// Re-declaring the complete list is required because the theme.json merge
+	// replaces (not per-slug merges) the fontFamilies preset.
+	$families = array();
+	foreach ( $theme_families as $family ) {
+		if ( isset( $family['slug'] ) && isset( $font_faces[ $family['slug'] ] ) ) {
+			$family['fontFace'] = $font_faces[ $family['slug'] ];
+		}
+		$families[] = $family;
+	}
+
+	// Defensive fallback: if the shipped theme.json is somehow unavailable (no
+	// families read), declare the two custom fonts directly so @font-face still
+	// loads sitewide. Uses the same slugs theme.json would use.
+	if ( empty( $families ) ) {
+		$families = array(
+			array(
+				'name'       => 'Headings',
+				'slug'       => 'font-family-heading',
+				'fontFamily' => '"Loft Sans", sans-serif',
+				'fontFace'   => $font_faces['font-family-heading'],
+			),
+			array(
+				'name'       => 'Brand / logo text',
+				'slug'       => 'font-family-brand',
+				'fontFamily' => '"Lobster", sans-serif',
+				'fontFace'   => $font_faces['font-family-brand'],
+			),
+		);
+	}
+
 	$theme_json->update_with(
 		array(
 			'version'  => 2,
 			'settings' => array(
 				'typography' => array(
-					'fontFamilies' => array(
-						array(
-							'name'       => 'Loft Sans',
-							'slug'       => 'loft-sans',
-							'fontFamily' => '"Loft Sans", sans-serif',
-							'fontFace'   => array(
-								array(
-									'fontFamily'  => 'Loft Sans',
-									'fontStyle'   => 'normal',
-									'fontWeight'  => '100 900',
-									'fontDisplay' => 'swap',
-									'src'         => array( $fonts_uri . '/WilcoLoftSans-Treble.woff2' ),
-								),
-							),
-						),
-						array(
-							'name'       => 'Lobster',
-							'slug'       => 'lobster',
-							'fontFamily' => 'Lobster, cursive',
-							'fontFace'   => array(
-								array(
-									'fontFamily'  => 'Lobster',
-									'fontStyle'   => 'normal',
-									'fontWeight'  => '400',
-									'fontDisplay' => 'swap',
-									'src'         => array( $fonts_uri . '/Lobster2.woff2' ),
-								),
-							),
-						),
-					),
+					'fontFamilies' => $families,
 				),
 			),
 		)
