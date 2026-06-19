@@ -1,6 +1,7 @@
 # Ignore build artifacts
 build/
 assets/css/root.css
+theme.json
 
 # Node modules (if ever added)
 node_modules/
