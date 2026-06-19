@@ -2,8 +2,12 @@
 /**
  * Online Users Stats Widget
  *
- * Displays network-wide online users count in footer.
- * Data provided by ec_get_online_users_count() function.
+ * Displays the network-wide "online now" count plus total members in the footer.
+ *
+ * The online count is read directly from the NetworkStats `online_users` metric
+ * provider (extrachill-multisite) via ec_get_network_stats() — the single source
+ * and single cache for that number. Total members is counted from the community
+ * blog and cached locally for a day.
  *
  * @package ExtraChill\Users
  */
@@ -16,17 +20,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Display online users stats widget.
  */
 function extrachill_users_display_online_stats() {
-	if ( ! function_exists( 'ec_get_online_users_count' ) ) {
-		return;
-	}
-
-	$online_users_count = ec_get_online_users_count();
-
 	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
 	if ( ! $community_blog_id ) {
 		return;
 	}
 
+	// Online-now count: read straight from the NetworkStats primitive (single
+	// source, single cache). When the primitive is unavailable (e.g. multisite
+	// a version behind during deploy) fall back to 0.
+	$online_users_count = 0;
+	if ( function_exists( 'ec_get_network_stats' ) ) {
+		$stats              = ec_get_network_stats( array( 'online_users' ) );
+		$online_users_count = (int) ( $stats['online_users']['value'] ?? 0 );
+	}
+
+	$total_members = 0;
 	if ( function_exists( 'switch_to_blog' ) ) {
 		global $current_user;
 
@@ -39,11 +47,7 @@ function extrachill_users_display_online_stats() {
 				set_transient( 'total_members_count', $total_members, DAY_IN_SECONDS );
 			}
 			restore_current_blog();
-		} else {
-			$total_members = 0;
 		}
-	} else {
-		$total_members = 0;
 	}
 	?>
 	<div class="online-stats-card">
