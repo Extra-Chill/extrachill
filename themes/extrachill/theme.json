@@ -1,0 +1,263 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/theme.json",
+	"version": 3,
+	"settings": {
+		"color": {
+			"custom": true,
+			"customGradient": true,
+			"palette": [
+				{
+					"slug": "background-color",
+					"color": "#fff",
+					"name": "Page background"
+				},
+				{
+					"slug": "text-color",
+					"color": "#000",
+					"name": "Primary text"
+				},
+				{
+					"slug": "link-color",
+					"color": "#0b5394",
+					"name": "Link color"
+				},
+				{
+					"slug": "link-color-hover",
+					"color": "#083b6c",
+					"name": "Link hover color"
+				},
+				{
+					"slug": "link-hover-color",
+					"color": "#000",
+					"name": "Link hover color (alias for text color)"
+				},
+				{
+					"slug": "border-color",
+					"color": "#ddd",
+					"name": "Borders and dividers"
+				},
+				{
+					"slug": "accent",
+					"color": "#53940b",
+					"name": "Primary accent (green)"
+				},
+				{
+					"slug": "accent-hover",
+					"color": "#3d6b08",
+					"name": "Primary accent hover"
+				},
+				{
+					"slug": "accent-2",
+					"color": "#36454F",
+					"name": "Secondary accent (slate / light blue)"
+				},
+				{
+					"slug": "accent-3",
+					"color": "#00c8e3",
+					"name": "Tertiary accent (cyan / blue)"
+				},
+				{
+					"slug": "error-color",
+					"color": "#dc3232",
+					"name": "Error / danger state"
+				},
+				{
+					"slug": "success-color",
+					"color": "#28a745",
+					"name": "Success state"
+				},
+				{
+					"slug": "button-text-color",
+					"color": "#fff",
+					"name": "Button text on accent backgrounds"
+				},
+				{
+					"slug": "header-background",
+					"color": "#000",
+					"name": "Site header background"
+				},
+				{
+					"slug": "header-text-color",
+					"color": "#fff",
+					"name": "Site header text"
+				},
+				{
+					"slug": "notice-bg",
+					"color": "#f8f9fa",
+					"name": "Notice background"
+				},
+				{
+					"slug": "notice-border",
+					"color": "#0b5394",
+					"name": "Notice border"
+				},
+				{
+					"slug": "card-background",
+					"color": "#f1f5f9",
+					"name": "Card / surface background"
+				},
+				{
+					"slug": "muted-text",
+					"color": "#6b7280",
+					"name": "Secondary / muted text"
+				},
+				{
+					"slug": "focus-border-color",
+					"color": "#53940b",
+					"name": "Focus ring border"
+				},
+				{
+					"slug": "post-title-link-color",
+					"color": "#000",
+					"name": "Post title link color"
+				},
+				{
+					"slug": "post-title-link-hover-color",
+					"color": "#000",
+					"name": "Post title link hover color"
+				},
+				{
+					"slug": "warning-color",
+					"color": "#d97706",
+					"name": "Warning state"
+				},
+				{
+					"slug": "warning-bg",
+					"color": "rgba(217, 119, 6, 0.1)",
+					"name": "Warning state background"
+				},
+				{
+					"slug": "info-color",
+					"color": "#0b5394",
+					"name": "Informational state"
+				},
+				{
+					"slug": "info-bg",
+					"color": "rgba(11, 83, 148, 0.08)",
+					"name": "Informational state background"
+				},
+				{
+					"slug": "interactive-hover-bg",
+					"color": "rgba(11, 83, 148, 0.06)",
+					"name": "Hover background for clickable surfaces"
+				},
+				{
+					"slug": "interactive-active-bg",
+					"color": "rgba(11, 83, 148, 0.12)",
+					"name": "Selected/active background for clickable surfaces"
+				},
+				{
+					"slug": "interactive-active-border",
+					"color": "#0b5394",
+					"name": "Selected/active border for clickable surfaces"
+				}
+			]
+		},
+		"spacing": {
+			"custom": true,
+			"spacingSizes": [
+				{
+					"slug": "spacing-xs",
+					"size": "0.25rem",
+					"name": "Extra small"
+				},
+				{
+					"slug": "spacing-sm",
+					"size": "0.5rem",
+					"name": "Small"
+				},
+				{
+					"slug": "spacing-md",
+					"size": "1rem",
+					"name": "Medium"
+				},
+				{
+					"slug": "spacing-lg",
+					"size": "1.5rem",
+					"name": "Large"
+				},
+				{
+					"slug": "spacing-xl",
+					"size": "2rem",
+					"name": "Extra large"
+				}
+			]
+		},
+		"typography": {
+			"customFontSize": true,
+			"fontSizes": [
+				{
+					"slug": "font-size-xs",
+					"size": "0.625rem",
+					"name": "Extra small"
+				},
+				{
+					"slug": "font-size-sm",
+					"size": "0.8125rem",
+					"name": "Small"
+				},
+				{
+					"slug": "font-size-base",
+					"size": "1rem",
+					"name": "Base"
+				},
+				{
+					"slug": "font-size-body",
+					"size": "1.125rem",
+					"name": "Body text"
+				},
+				{
+					"slug": "font-size-lg",
+					"size": "1.25rem",
+					"name": "Large"
+				},
+				{
+					"slug": "font-size-xl",
+					"size": "1.5rem",
+					"name": "Extra large"
+				},
+				{
+					"slug": "font-size-2xl",
+					"size": "1.75rem",
+					"name": "2x large"
+				},
+				{
+					"slug": "font-size-3xl",
+					"size": "2rem",
+					"name": "3x large"
+				},
+				{
+					"slug": "font-size-brand",
+					"size": "2.25rem",
+					"name": "Brand size"
+				}
+			],
+			"fontFamilies": [
+				{
+					"slug": "font-family-heading",
+					"fontFamily": "\"Loft Sans\", sans-serif",
+					"name": "Headings"
+				},
+				{
+					"slug": "font-family-body",
+					"fontFamily": "'Helvetica', 'Open Sans', serif",
+					"name": "Body text"
+				},
+				{
+					"slug": "font-family-brand",
+					"fontFamily": "\"Lobster\", sans-serif",
+					"name": "Brand / logo text"
+				},
+				{
+					"slug": "font-family-mono",
+					"fontFamily": "'Helvetica', Arial, sans-serif",
+					"name": "Monospace / code"
+				}
+			]
+		},
+		"layout": {
+			"contentSize": "800px",
+			"wideSize": "1600px"
+		}
+	}
+}
