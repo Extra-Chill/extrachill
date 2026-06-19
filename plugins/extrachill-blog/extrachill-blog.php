@@ -31,6 +31,8 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/co-authors.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/admin-customizations.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/ads-filter.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/homepage-hooks.php';
+require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/power/network-map-block.php';
+require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/power/power-page.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/blog-archive-routing.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/breadcrumbs.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/share-card.php';
@@ -55,3 +57,16 @@ function extrachill_blog_register_styles() {
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_blog_register_styles', 5 );
+
+/**
+ * Provision the /power manifesto page on activation.
+ *
+ * The version-gated admin_init check in inc/power/power-page.php handles
+ * upgrades; this guarantees the page exists immediately on fresh activation.
+ */
+function extrachill_blog_activate() {
+	if ( function_exists( 'extrachill_blog_create_power_page' ) ) {
+		extrachill_blog_create_power_page();
+	}
+}
+register_activation_hook( __FILE__, 'extrachill_blog_activate' );

@@ -1,0 +1,75 @@
+/**
+ * Styles for the /power manifesto page.
+ *
+ * Scoped to the network-map dynamic block only. The manifesto pillars and hero
+ * are composed from core blocks + the theme's `extrachill/pillar` pattern, so
+ * they inherit the EC brand from theme.json with no CSS here. This file only
+ * lays out the surface-card grid the dynamic block emits, using theme tokens
+ * (no hardcoded values, no !important).
+ */
+
+.power-network-map {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--spacing-md);
+	margin: var(--spacing-lg) 0;
+}
+
+@media (min-width: 600px) {
+	.power-network-map {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 900px) {
+	.power-network-map {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+.power-network-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-lg);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+	text-decoration: none;
+	color: var(--text-color);
+	transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.power-network-card:hover,
+.power-network-card:focus {
+	border-color: var(--accent);
+	transform: translateY(-2px);
+}
+
+.power-network-card__title {
+	margin: 0;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-lg);
+	color: var(--text-color);
+}
+
+.power-network-card__proof {
+	margin: 0;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-xl);
+	color: var(--accent);
+	line-height: 1.1;
+}
+
+.power-network-card__desc {
+	margin: 0;
+	font-size: var(--font-size-base);
+	color: var(--muted-text);
+	flex: 1 1 auto;
+}
+
+.power-network-card__cta {
+	font-size: var(--font-size-sm);
+	font-weight: 600;
+	color: var(--link-color);
+}
