@@ -43,6 +43,48 @@ function GoogleButtons( { redirectUrl } ) {
 	);
 }
 
+/**
+ * Capture last-touch source attribution from the browser at registration time.
+ *
+ * Reads the external referrer (document.referrer, only available client-side)
+ * and any utm_* query parameters from the current URL. The referrer is omitted
+ * when it points back to the same host (internal navigation) so we only attribute
+ * genuine external sources. Returns an object that is safe to spread into the
+ * registration request body — both fields are optional downstream.
+ *
+ * @return {{referrer: string, utm: Object}} Attribution payload (referrer may be
+ *   empty; utm may be an empty object).
+ */
+function captureAttribution() {
+	let referrer = '';
+	try {
+		const raw = document.referrer || '';
+		if ( raw ) {
+			const referrerHost = new URL( raw ).host;
+			if ( referrerHost && referrerHost !== window.location.host ) {
+				referrer = raw;
+			}
+		}
+	} catch ( e ) {
+		referrer = '';
+	}
+
+	const utm = {};
+	try {
+		const params = new URLSearchParams( window.location.search );
+		[ 'source', 'medium', 'campaign', 'term', 'content' ].forEach( ( key ) => {
+			const value = params.get( `utm_${ key }` );
+			if ( value ) {
+				utm[ key ] = value;
+			}
+		} );
+	} catch ( e ) {
+		// Leave utm empty on any parsing failure.
+	}
+
+	return { referrer, utm };
+}
+
 function renderTurnstile( container ) {
 	if ( ! container || ! window.turnstile ) {
 		return;
@@ -245,6 +287,7 @@ function RegisterPanel( { config, notice, setNotice } ) {
 		const submitButton = form.querySelector( 'input[type="submit"], button[type="submit"]' );
 		const restore = utils?.setSubmitting ? utils.setSubmitting( submitButton, 'Creating account…' ) : () => {};
 		const fromJoin = Boolean( config.fromJoin );
+		const { referrer, utm } = captureAttribution();
 
 		try {
 			const url = new URL( 'extrachill/v1/auth/register', utils.getRestRoot() );
@@ -268,6 +311,8 @@ function RegisterPanel( { config, notice, setNotice } ) {
 					invite_token: inviteToken,
 					invite_artist_id: inviteArtistId,
 					from_join: fromJoin,
+					referrer,
+					utm,
 				} ),
 			} );
 

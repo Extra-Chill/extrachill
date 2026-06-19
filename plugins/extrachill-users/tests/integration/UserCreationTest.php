@@ -141,6 +141,88 @@ class Test_User_Creation extends WP_UnitTestCase {
 		$this->assertSame( 1, did_action( 'extrachill_new_user_registered' ) );
 	}
 
+	public function test_create_user_persists_referrer_and_utm(): void {
+		$user_id = $this->create_user(
+			array(
+				'username' => 'attruser',
+				'email'    => 'attr@example.com',
+				'referrer' => 'https://www.reddit.com/r/Charleston/',
+				'utm'      => array(
+					'source'   => 'reddit',
+					'medium'   => 'social',
+					'campaign' => 'festival-wire',
+				),
+			)
+		);
+
+		$this->assertIsInt( $user_id );
+		$this->assertSame( 'https://www.reddit.com/r/Charleston/', get_user_meta( $user_id, 'registration_referrer', true ) );
+
+		$stored_utm = get_user_meta( $user_id, 'registration_utm', true );
+		$this->assertSame(
+			array(
+				'source'   => 'reddit',
+				'medium'   => 'social',
+				'campaign' => 'festival-wire',
+			),
+			$stored_utm
+		);
+	}
+
+	public function test_create_user_without_attribution_stores_nothing(): void {
+		$user_id = $this->create_user(
+			array(
+				'username' => 'noattruser',
+				'email'    => 'noattr@example.com',
+			)
+		);
+
+		$this->assertSame( '', get_user_meta( $user_id, 'registration_referrer', true ) );
+		$this->assertSame( '', get_user_meta( $user_id, 'registration_utm', true ) );
+	}
+
+	public function test_sanitize_utm_filters_to_canonical_keys(): void {
+		$clean = extrachill_users_sanitize_utm(
+			array(
+				'source'    => 'reddit',
+				'medium'    => '',
+				'gclid'     => 'should-be-dropped',
+				'campaign'  => 'spring',
+			)
+		);
+
+		// Empty medium is dropped; unknown gclid is dropped.
+		$this->assertSame(
+			array(
+				'source'   => 'reddit',
+				'campaign' => 'spring',
+			),
+			$clean
+		);
+	}
+
+	public function test_sanitize_utm_accepts_full_utm_prefixed_keys(): void {
+		$clean = extrachill_users_sanitize_utm(
+			array(
+				'utm_source'   => 'newsletter',
+				'utm_campaign' => 'sunday-chill',
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'source'   => 'newsletter',
+				'campaign' => 'sunday-chill',
+			),
+			$clean
+		);
+	}
+
+	public function test_sanitize_utm_non_array_yields_empty(): void {
+		$this->assertSame( array(), extrachill_users_sanitize_utm( 'not-an-array' ) );
+		$this->assertSame( array(), extrachill_users_sanitize_utm( null ) );
+	}
+
 	public function test_create_user_via_filter(): void {
 		$user_id = apply_filters(
 			'extrachill_create_community_user',

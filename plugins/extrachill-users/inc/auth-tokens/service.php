@@ -326,6 +326,10 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	$registration_source  = isset( $payload['registration_source'] ) ? sanitize_text_field( (string) $payload['registration_source'] ) : '';
 	$registration_method  = isset( $payload['registration_method'] ) ? sanitize_text_field( (string) $payload['registration_method'] ) : '';
 	$success_redirect_url = isset( $payload['success_redirect_url'] ) ? esc_url_raw( (string) $payload['success_redirect_url'] ) : '';
+	$referrer             = isset( $payload['referrer'] ) ? esc_url_raw( (string) $payload['referrer'] ) : '';
+	$utm                  = ( isset( $payload['utm'] ) && function_exists( 'extrachill_users_sanitize_utm' ) )
+		? extrachill_users_sanitize_utm( $payload['utm'] )
+		: array();
 
 	$is_app_client = isset( $_SERVER['HTTP_EXTRACHILL_CLIENT'] )
 		&& 'app' === sanitize_text_field( wp_unslash( $_SERVER['HTTP_EXTRACHILL_CLIENT'] ) );
@@ -418,6 +422,17 @@ function extrachill_users_register_with_tokens( array $payload ) {
 
 	if ( ! empty( $registration_page ) ) {
 		$registration_data['registration_page'] = $registration_page;
+	}
+
+	// Source attribution (last-touch): forward the external referrer and any
+	// UTM parameters to the create-user ability, which persists them and folds
+	// them into the user_registration analytics event.
+	if ( ! empty( $referrer ) ) {
+		$registration_data['referrer'] = $referrer;
+	}
+
+	if ( ! empty( $utm ) ) {
+		$registration_data['utm'] = $utm;
 	}
 
 	if ( $is_app_client ) {
