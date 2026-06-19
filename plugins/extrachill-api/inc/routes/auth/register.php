@@ -99,6 +99,15 @@ function extrachill_api_register_auth_register_route() {
 					'type'     => 'boolean',
 					'default'  => false,
 				),
+				'referrer'             => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'esc_url_raw',
+				),
+				'utm'                  => array(
+					'required' => false,
+					'type'     => 'object',
+				),
 			),
 		)
 	);
@@ -152,6 +161,10 @@ function extrachill_api_auth_register_handler( WP_REST_Request $request ) {
 		'registration_source'  => (string) $request->get_param( 'registration_source' ),
 		'registration_method'  => (string) $request->get_param( 'registration_method' ),
 		'success_redirect_url' => (string) $request->get_param( 'success_redirect_url' ),
+		// Source attribution (last-touch). Sanitization of utm happens in the
+		// extrachill-users service via extrachill_users_sanitize_utm().
+		'referrer'             => (string) $request->get_param( 'referrer' ),
+		'utm'                  => (array) $request->get_param( 'utm' ),
 	);
 
 	$result = extrachill_users_register_with_tokens( $payload );
