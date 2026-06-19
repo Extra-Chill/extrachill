@@ -10,7 +10,7 @@
 	"dependencies": {
 		"@extrachill/chat": "^0.14.0",
 		"@extrachill/components": "^0.8.0",
-		"@extrachill/tokens": "^0.4.2"
+		"@extrachill/tokens": "^0.8.1"
 	},
 	"devDependencies": {
 		"@extrachill/api-client": "^0.7.0",
