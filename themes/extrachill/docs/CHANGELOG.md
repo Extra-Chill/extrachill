@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.6.1] - 2026-06-19
+
+### Changed
+- commit package-lock.json so the isolated release build resolves @extrachill/tokens v0.8.1 deterministically (fixes missing theme.json in the deploy artifact)
+- attach @font-face to theme.json font slugs, drop parallel font-family registration
+
+### Fixed
+- commit generated theme.json so it ships on deploy
+
 ## [2.6.0] - 2026-06-19
 
 ### Added
