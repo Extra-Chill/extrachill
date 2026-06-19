@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.6.0] - 2026-06-19
+
+### Added
+- register pillar values-section and network-map block patterns
+- bump @extrachill/tokens to v0.8.1 and emit theme.json at theme root
+
+### Changed
+- drop static network-map pattern; live stats belong in a binding
+
 ## [2.5.0] - 2026-06-13
 
 ### Added
