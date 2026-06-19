@@ -1,0 +1,83 @@
+/**
+ * Archive Map Collapse + Scope Nav Grouping
+ *
+ * Two related presentation fixes for Gardner's calendar feedback
+ * (data-machine-events#373):
+ *
+ *   1. The events-map on location / venue / artist archives is now a
+ *      collapsible, height-reduced panel (defaults collapsed) so the event
+ *      list is the dominant element, not the map.
+ *
+ *   2. The Tonight / This Weekend / This Week scope nav now sits directly with
+ *      the calendar block's search + date-range + filter controls as one
+ *      visual cluster, instead of being stranded above the map.
+ *
+ * Uses theme CSS custom properties — no hard-coded colors, no !important.
+ *
+ * @package ExtraChillEvents
+ * @since 0.30.0
+ */
+
+/* --- Collapsible Archive Map --- */
+
+.extrachill-events-archive-map {
+	margin-bottom: var(--spacing-lg);
+}
+
+.extrachill-events-archive-map__toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-xs) var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background: var(--card-background);
+	color: var(--text-color);
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+	cursor: pointer;
+	transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.extrachill-events-archive-map__toggle:hover,
+.extrachill-events-archive-map__toggle:focus-visible {
+	border-color: var(--text-color);
+}
+
+.extrachill-events-archive-map__toggle-icon {
+	font-size: var(--font-size-md, 1rem);
+	line-height: 1;
+}
+
+/* Panel spacing once revealed. The map block manages its own height via the
+   block's `height` attribute (reduced to 280px on archives). */
+.extrachill-events-archive-map.is-expanded .extrachill-events-archive-map__panel {
+	margin-top: var(--spacing-sm);
+}
+
+/* --- Scope Nav grouped with the calendar filter bar --- */
+
+/*
+ * The scope nav now renders immediately before the calendar block. Pull it
+ * visually flush with the block's filter bar so the chips + search + date +
+ * filter read as a single control cluster. The calendar block owns the
+ * .data-machine-events-filter-bar DOM; we only join to it from here.
+ */
+.discovery-scope-nav.is-calendar-grouped {
+	margin-bottom: var(--spacing-sm);
+}
+
+/* Tighten the gap between the grouped scope nav and the block's own filter
+   bar so they read as one unit. The calendar block's filter bar has its own
+   top margin via .data-machine-events-calendar { margin: 2rem 0 }, so pull it
+   up when it directly follows our grouped nav. */
+.discovery-scope-nav.is-calendar-grouped + .data-machine-events-calendar {
+	margin-top: 0;
+}
+
+@media (max-width: 480px) {
+	.extrachill-events-archive-map__toggle {
+		width: 100%;
+		justify-content: center;
+	}
+}

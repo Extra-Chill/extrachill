@@ -401,10 +401,13 @@ add_action( 'wp_enqueue_scripts', 'extrachill_events_discovery_scripts' );
  * Highlights the current scope. Links to sibling scopes and the
  * base location archive.
  *
- * @param \WP_Term $term    Location term object.
- * @param string   $current Current scope slug.
+ * @param \WP_Term $term        Location term object.
+ * @param string   $current     Current scope slug.
+ * @param string   $extra_class Optional extra class(es) for the <nav> wrapper.
+ *                              Used to visually group the nav with the
+ *                              calendar block's filter bar on archives.
  */
-function extrachill_events_render_scope_nav( \WP_Term $term, string $current ) {
+function extrachill_events_render_scope_nav( \WP_Term $term, string $current, string $extra_class = '' ) {
 	$term_link = get_term_link( $term );
 	if ( is_wp_error( $term_link ) ) {
 		return;
@@ -417,8 +420,14 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current ) {
 		''             => 'All Shows',
 	);
 
+	$nav_class = 'discovery-scope-nav';
+	if ( '' !== trim( $extra_class ) ) {
+		$nav_class .= ' ' . trim( $extra_class );
+	}
+
 	printf(
-		'<nav class="discovery-scope-nav" aria-label="Time scope navigation" data-term-id="%d" data-term-name="%s" data-term-link="%s">',
+		'<nav class="%s" aria-label="Time scope navigation" data-term-id="%d" data-term-name="%s" data-term-link="%s">',
+		esc_attr( $nav_class ),
 		$term->term_id,
 		esc_attr( $term->name ),
 		esc_url( $term_link )

@@ -42,8 +42,12 @@ function extrachill_events_render_location_map() {
 		return;
 	}
 
-	// Render the block — filters below provide center and summary.
-	echo do_blocks( '<!-- wp:data-machine-events/events-map /-->' );
+	// Render the block — filters below provide center and summary. The map is
+	// wrapped in a collapsible, height-reduced container so it no longer
+	// dominates the archive (data-machine-events#373).
+	$height    = extrachill_events_archive_map_height();
+	$map_block = sprintf( '<!-- wp:data-machine-events/events-map {"height":%d} /-->', $height );
+	echo extrachill_events_render_collapsible_map( do_blocks( $map_block ), 'location' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Wrapper escapes its own chrome; inner markup is trusted block output.
 }
 add_action( 'extrachill_archive_below_description', 'extrachill_events_render_location_map' );
 

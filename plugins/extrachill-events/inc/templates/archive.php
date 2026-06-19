@@ -78,11 +78,6 @@ extrachill_breadcrumbs();
 			<?php extrachill_events_render_term_calendar_stats( 'location', (int) $term->term_id ); ?>
 		</header>
 		<?php
-		if ( function_exists( 'extrachill_events_render_scope_nav' ) ) {
-			extrachill_events_render_scope_nav( $term, '' );
-		}
-		?>
-		<?php
 	elseif ( is_tax( 'artist' ) ) :
 		$term = get_queried_object();
 		?>
@@ -106,7 +101,21 @@ extrachill_breadcrumbs();
 	</div>
 
 	<div class="page-content">
-		<?php echo do_blocks( '<!-- wp:data-machine-events/calendar /-->' ); ?>
+		<?php
+		// Render the location scope nav (Tonight / This Weekend / This Week /
+		// All Shows) directly with the calendar block's filter bar so the
+		// scope chips and the search/date controls read as one cluster
+		// (data-machine-events#373). The nav keeps its crawlable SEO
+		// /location/<city>/tonight/ links and discovery.js swap behaviour —
+		// only WHERE it renders changed (it used to sit above the map).
+		if ( is_tax( 'location' ) && function_exists( 'extrachill_events_render_scope_nav' ) ) {
+			$scope_term = get_queried_object();
+			if ( $scope_term instanceof \WP_Term ) {
+				extrachill_events_render_scope_nav( $scope_term, '', 'is-calendar-grouped' );
+			}
+		}
+		echo do_blocks( '<!-- wp:data-machine-events/calendar /-->' );
+		?>
 	</div>
 </div>
 
