@@ -25,6 +25,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_page_v
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_get_link_page_analytics_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_bridge_ctr_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_retention_stats_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_growth_ability' );
 
 /**
  * Register analytics ability category.
