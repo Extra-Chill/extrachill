@@ -160,6 +160,54 @@ if ( hasTaxonomyBadgesCss ) {
 	warn( 'css/taxonomy-badges.css not found — skipping class rule validation' );
 }
 
+// ─── Validate: theme.json palette covers brand colors ───────────────────────
+
+console.log( '\n--- theme.json palette (brand colors) ---' );
+const themeJsonPath = join( PROJECT, 'css', 'theme.json' );
+if ( existsSync( themeJsonPath ) ) {
+	let themeJson;
+	try {
+		themeJson = JSON.parse( readFileSync( themeJsonPath, 'utf-8' ) );
+	} catch ( e ) {
+		error( `css/theme.json is not valid JSON: ${ e.message }` );
+		themeJson = null;
+	}
+
+	if ( themeJson ) {
+		const paletteSlugs = new Set(
+			( themeJson?.settings?.color?.palette || [] ).map( ( p ) => p.slug )
+		);
+		// Core brand colors that must always be exposed to the block palette.
+		const brandColors = [ 'accent', 'link-color', 'text-color', 'background-color' ];
+		let brandFound = 0;
+		for ( const slug of brandColors ) {
+			if ( paletteSlugs.has( slug ) ) {
+				brandFound++;
+			} else {
+				error( `Brand color "${ slug }" missing from theme.json palette` );
+			}
+		}
+
+		// Spot-check: a palette color value must match the token's light value
+		// (catches drift between root.css and theme.json).
+		const accentEntry = ( themeJson?.settings?.color?.palette || [] ).find(
+			( p ) => p.slug === 'accent'
+		);
+		const accentToken = tokensJson.categories.color.accent;
+		if ( accentEntry && accentToken && accentEntry.color !== accentToken.light ) {
+			error(
+				`theme.json palette "accent" (${ accentEntry.color }) drifted from tokens.json light value (${ accentToken.light })`
+			);
+		}
+
+		if ( brandFound === brandColors.length ) {
+			ok( `All ${ brandColors.length } brand colors present in theme.json palette` );
+		}
+	}
+} else {
+	warn( 'css/theme.json not found — skipping palette validation' );
+}
+
 // ─── Token count summary ─────────────────────────────────────────────────────
 
 console.log( '\n--- Summary ---' );
