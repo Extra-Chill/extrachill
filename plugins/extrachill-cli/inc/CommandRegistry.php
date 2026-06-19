@@ -41,6 +41,7 @@ class CommandRegistry {
 			'extrachill analytics search-gaps' => Commands\Analytics\SearchGapsCommand::class,
 			'extrachill analytics errors'      => Commands\Analytics\ErrorsCommand::class,
 			'extrachill analytics retention'   => Commands\Analytics\RetentionCommand::class,
+			'extrachill analytics growth'      => Commands\Analytics\GrowthCommand::class,
 
 			// Events commands.
 			'extrachill events'                => Commands\Events\LocationCommand::class,
