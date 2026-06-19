@@ -17,7 +17,6 @@ vendor/
 *.swp
 
 # Additional build and development files
-package-lock.json
 .claude/
 CLAUDE.md
 .buildignore
