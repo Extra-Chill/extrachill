@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.1] - 2026-06-19
+
+### Fixed
+- generate tokens.css and tokens-dark.css from tokens.json
+
 ## [0.8.0] - 2026-06-19
 
 ### Added
