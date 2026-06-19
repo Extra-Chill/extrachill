@@ -108,13 +108,25 @@ extrachill_breadcrumbs();
 		// (data-machine-events#373). The nav keeps its crawlable SEO
 		// /location/<city>/tonight/ links and discovery.js swap behaviour —
 		// only WHERE it renders changed (it used to sit above the map).
-		if ( is_tax( 'location' ) && function_exists( 'extrachill_events_render_scope_nav' ) ) {
+		$is_location_archive = is_tax( 'location' );
+		if ( $is_location_archive && function_exists( 'extrachill_events_render_scope_nav' ) ) {
 			$scope_term = get_queried_object();
 			if ( $scope_term instanceof \WP_Term ) {
 				extrachill_events_render_scope_nav( $scope_term, '', 'is-calendar-grouped' );
 			}
 		}
-		echo do_blocks( '<!-- wp:data-machine-events/calendar /-->' );
+
+		// Enable the in-block scope-preset chips (data-machine-events#374)
+		// everywhere EXCEPT location archives. Location archives already render
+		// the crawlable SEO scope-nav above (Tonight / This Weekend / ...), so
+		// adding the in-block chips there would duplicate the control and bury
+		// the SEO /location/<city>/tonight/ links. On every other archive type
+		// (venue, promoter, artist, generic taxonomy) the chips are the only
+		// scope control, so we turn them on.
+		$calendar_block = $is_location_archive
+			? '<!-- wp:data-machine-events/calendar /-->'
+			: '<!-- wp:data-machine-events/calendar {"showScopePresets":true} /-->';
+		echo do_blocks( $calendar_block );
 		?>
 	</div>
 </div>
