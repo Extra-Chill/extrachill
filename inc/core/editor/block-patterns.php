@@ -84,67 +84,15 @@ function extrachill_register_block_patterns() {
 	);
 
 	/*
-	 * Network map.
+	 * Network map is intentionally NOT a static pattern.
 	 *
-	 * A responsive row of surface cards, each deep-linking to an Extra Chill
-	 * subsite with a one-line proof point. Reusable wherever the network needs to
-	 * be introduced (homepage, about, /power).
+	 * The network surfaces (Events / Community / Wire / Artist Platform) are only
+	 * worth showing with LIVE proof numbers (active members, artist count, etc.).
+	 * Hardcoded/placeholder numbers on a credibility-driven manifesto page are
+	 * worse than none. The network map is delivered separately as core Block
+	 * Bindings (WP 6.5+): an `extrachill/network-stat` binding source feeds live,
+	 * cross-site, cached stats into otherwise-static core blocks. Tracked as its
+	 * own issue so the pillar pattern can ship now without fake data.
 	 */
-	register_block_pattern(
-		'extrachill/network-map',
-		array(
-			'title'       => __( 'Network Map', 'extrachill' ),
-			'description' => __( 'A row of surface cards linking to the Extra Chill network — Events, Community, Wire, and the Artist Platform — each with a short proof point.', 'extrachill' ),
-			'categories'  => array( 'extrachill' ),
-			'keywords'    => array( 'network', 'sites', 'map', 'surfaces', 'links' ),
-			'content'     => '<!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|spacing-lg","padding":{"top":"var:preset|spacing|spacing-xl","bottom":"var:preset|spacing|spacing-xl"}}},"layout":{"type":"constrained"}} -->
-<div class="wp-block-group" style="padding-top:var(--wp--preset--spacing--spacing-xl);padding-bottom:var(--wp--preset--spacing--spacing-xl)"><!-- wp:heading {"textAlign":"center","level":2,"fontSize":"font-size-2xl"} -->
-<h2 class="wp-block-heading has-text-align-center has-font-size-2xl-font-size">The Extra Chill Network</h2>
-<!-- /wp:heading -->
-
-<!-- wp:columns -->
-<div class="wp-block-columns"><!-- wp:column {"style":{"spacing":{"padding":{"top":"var:preset|spacing|spacing-lg","bottom":"var:preset|spacing|spacing-lg","left":"var:preset|spacing|spacing-md","right":"var:preset|spacing|spacing-md"},"blockGap":"var:preset|spacing|spacing-sm"}},"backgroundColor":"card-background"} -->
-<div class="wp-block-column has-card-background-background-color has-background" style="padding-top:var(--wp--preset--spacing--spacing-lg);padding-right:var(--wp--preset--spacing--spacing-md);padding-bottom:var(--wp--preset--spacing--spacing-lg);padding-left:var(--wp--preset--spacing--spacing-md)"><!-- wp:heading {"level":3,"fontSize":"font-size-lg"} -->
-<h3 class="wp-block-heading has-font-size-lg-font-size"><a href="https://events.extrachill.com">Events</a></h3>
-<!-- /wp:heading -->
-
-<!-- wp:paragraph {"fontSize":"font-size-sm"} -->
-<p class="has-font-size-sm-font-size">Live music listings across every city we cover.</p>
-<!-- /wp:paragraph --></div>
-<!-- /wp:column -->
-
-<!-- wp:column {"style":{"spacing":{"padding":{"top":"var:preset|spacing|spacing-lg","bottom":"var:preset|spacing|spacing-lg","left":"var:preset|spacing|spacing-md","right":"var:preset|spacing|spacing-md"},"blockGap":"var:preset|spacing|spacing-sm"}},"backgroundColor":"card-background"} -->
-<div class="wp-block-column has-card-background-background-color has-background" style="padding-top:var(--wp--preset--spacing--spacing-lg);padding-right:var(--wp--preset--spacing--spacing-md);padding-bottom:var(--wp--preset--spacing--spacing-lg);padding-left:var(--wp--preset--spacing--spacing-md)"><!-- wp:heading {"level":3,"fontSize":"font-size-lg"} -->
-<h3 class="wp-block-heading has-font-size-lg-font-size"><a href="https://community.extrachill.com">Community</a></h3>
-<!-- /wp:heading -->
-
-<!-- wp:paragraph {"fontSize":"font-size-sm"} -->
-<p class="has-font-size-sm-font-size">Forums where fans, artists, and pros actually talk.</p>
-<!-- /wp:paragraph --></div>
-<!-- /wp:column -->
-
-<!-- wp:column {"style":{"spacing":{"padding":{"top":"var:preset|spacing|spacing-lg","bottom":"var:preset|spacing|spacing-lg","left":"var:preset|spacing|spacing-md","right":"var:preset|spacing|spacing-md"},"blockGap":"var:preset|spacing|spacing-sm"}},"backgroundColor":"card-background"} -->
-<div class="wp-block-column has-card-background-background-color has-background" style="padding-top:var(--wp--preset--spacing--spacing-lg);padding-right:var(--wp--preset--spacing--spacing-md);padding-bottom:var(--wp--preset--spacing--spacing-lg);padding-left:var(--wp--preset--spacing--spacing-md)"><!-- wp:heading {"level":3,"fontSize":"font-size-lg"} -->
-<h3 class="wp-block-heading has-font-size-lg-font-size"><a href="https://wire.extrachill.com">Wire</a></h3>
-<!-- /wp:heading -->
-
-<!-- wp:paragraph {"fontSize":"font-size-sm"} -->
-<p class="has-font-size-sm-font-size">News-reactive coverage from the festival circuit and beyond.</p>
-<!-- /wp:paragraph --></div>
-<!-- /wp:column -->
-
-<!-- wp:column {"style":{"spacing":{"padding":{"top":"var:preset|spacing|spacing-lg","bottom":"var:preset|spacing|spacing-lg","left":"var:preset|spacing|spacing-md","right":"var:preset|spacing|spacing-md"},"blockGap":"var:preset|spacing|spacing-sm"}},"backgroundColor":"card-background"} -->
-<div class="wp-block-column has-card-background-background-color has-background" style="padding-top:var(--wp--preset--spacing--spacing-lg);padding-right:var(--wp--preset--spacing--spacing-md);padding-bottom:var(--wp--preset--spacing--spacing-lg);padding-left:var(--wp--preset--spacing--spacing-md)"><!-- wp:heading {"level":3,"fontSize":"font-size-lg"} -->
-<h3 class="wp-block-heading has-font-size-lg-font-size"><a href="https://artist.extrachill.com">Artist Platform</a></h3>
-<!-- /wp:heading -->
-
-<!-- wp:paragraph {"fontSize":"font-size-sm"} -->
-<p class="has-font-size-sm-font-size">Free tools for artists to manage their career and reach fans.</p>
-<!-- /wp:paragraph --></div>
-<!-- /wp:column --></div>
-<!-- /wp:columns --></div>
-<!-- /wp:group -->',
-		)
-	);
 }
 add_action( 'init', 'extrachill_register_block_patterns' );
