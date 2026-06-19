@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.20.0] - 2026-06-19
+
+### Added
+- per-reason customizable ban-notice email copy (#134)
+- add per-person brand-socials access grant
+- add opt-in hard-delete (purge) path for moderation
+
+### Changed
+- read online-users count from NetworkStats primitive, delete duplicate function
+
 ## [0.19.0] - 2026-06-18
 
 ### Added
