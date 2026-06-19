@@ -88,6 +88,14 @@ class ErrorsCommand {
 	 *     # Force a snapshot of the current log tail, then report.
 	 *     wp extrachill analytics errors --snapshot
 	 *
+	 * ## NOTES
+	 *
+	 * This is a network/site read and takes NO acting-user context. Do not pass
+	 * the global `--user` flag — it is unused here and on installs where a
+	 * user_login collides with a numeric user ID (e.g. a login of "1" alongside
+	 * user ID 1) WP-CLI emits a harmless but noisy "Ambiguous user match
+	 * detected" warning before the output. Omit `--user` entirely.
+	 *
 	 * @subcommand __default
 	 * @when after_wp_load
 	 */

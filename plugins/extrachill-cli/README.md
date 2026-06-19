@@ -90,6 +90,24 @@ The 404 analyzer categorizes URLs into 15 buckets:
 | `wp-includes-probe` | `/wp-includes/` probes | No — attack noise |
 | `author-enum` | `/?author=N` enumeration | No — attack noise |
 
+### Analytics — Reads (no acting user)
+
+The aggregate analytics reads are network/site queries that take **no acting-user
+context**:
+
+```bash
+wp extrachill analytics summary
+wp extrachill analytics search-gaps
+wp extrachill analytics retention
+wp extrachill analytics errors
+```
+
+Do **not** pass the global `--user` flag to these commands — it is unused. On
+installs where a `user_login` collides with a numeric user ID (e.g. a login of
+`"1"` alongside user ID `1`), passing `--user=1` makes WP-CLI print a harmless
+but noisy `Ambiguous user match detected` warning before the output, which
+clutters scripted captures. Omit `--user` entirely.
+
 ### Output Formats
 
 All list/query commands support `--format=table|json|csv`:
