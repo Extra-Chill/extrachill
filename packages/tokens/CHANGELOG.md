@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.0] - 2026-06-19
+
+### Added
+- generate theme.json from tokens.json for core block brand inheritance
+
 ## [0.7.2] - 2026-04-07
 
 ### Changed
