@@ -166,14 +166,14 @@ function extrachill_analytics_ability_get_surface_growth( $input ) {
 	$days  = $weeks * 7;
 
 	$now_utc      = gmdate( 'Y-m-d H:i:s' );
-	$window_start = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+	$window_start = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 	// Prior equal-length window, used for both the supply % (prior_total is
 	// everything before the window) and the demand slope (previous period).
-	$prior_start = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days", strtotime( $window_start ) ) );
+	$prior_start = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days", (int) strtotime( $window_start ) ) );
 
 	// Resolve the GA ability once. Its absence is a demand coverage gap, not a
 	// fatal: every surface's demand figure degrades to not_instrumented.
-	$ga_ability = ( function_exists( 'wp_get_ability' ) )
+	$ga_ability   = ( function_exists( 'wp_get_ability' ) )
 		? wp_get_ability( 'datamachine/google-analytics' )
 		: null;
 	$ga_available = ( $ga_ability instanceof WP_Ability );
@@ -185,12 +185,12 @@ function extrachill_analytics_ability_get_surface_growth( $input ) {
 		$demand = extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_available, $days );
 
 		$surfaces[ $key ] = array(
-			'surface'      => $key,
-			'label'        => $surface['label'],
-			'blog_id'      => $surface['blog_id'],
-			'host'         => $surface['host'],
-			'supply'       => $supply,
-			'demand'       => $demand,
+			'surface'             => $key,
+			'label'               => $surface['label'],
+			'blog_id'             => $surface['blog_id'],
+			'host'                => $surface['host'],
+			'supply'              => $supply,
+			'demand'              => $demand,
 			// Single normalized, unit-free comparison figure per surface. We use
 			// the supply percent-per-week growth as the cross-surface axis
 			// because every live surface can produce it deterministically, while
@@ -201,23 +201,23 @@ function extrachill_analytics_ability_get_surface_growth( $input ) {
 	}
 
 	return array(
-		'surfaces'          => array_values( $surfaces ),
-		'supply_ranking'    => extrachill_analytics_rank_surfaces( $surfaces, 'supply' ),
-		'demand_ranking'    => extrachill_analytics_rank_surfaces( $surfaces, 'demand' ),
-		'fastest_growing'   => extrachill_analytics_fastest_growing( $surfaces ),
-		'weeks'             => $weeks,
-		'days'              => $days,
-		'window'            => array(
+		'surfaces'        => array_values( $surfaces ),
+		'supply_ranking'  => extrachill_analytics_rank_surfaces( $surfaces, 'supply' ),
+		'demand_ranking'  => extrachill_analytics_rank_surfaces( $surfaces, 'demand' ),
+		'fastest_growing' => extrachill_analytics_fastest_growing( $surfaces ),
+		'weeks'           => $weeks,
+		'days'            => $days,
+		'window'          => array(
 			'start' => $window_start,
 			'end'   => $now_utc,
 		),
-		'prior_window'      => array(
+		'prior_window'    => array(
 			'start' => $prior_start,
 			'end'   => $window_start,
 		),
-		'ga_available'      => $ga_available,
-		'as_of'             => $now_utc,
-		'note'              => 'SUPPLY = inventory growth (new published items per week + % over prior total), deterministic COUNT(*) per surface post type. DEMAND = organic-sessions slope per host (current window vs previous equal window) from datamachine/google-analytics. The two are distinct: growing inventory != growing audience. Unmeasurable dimensions return a not_instrumented marker (coverage gap), never a zero. The cross-surface axis (growth_pct_per_week / fastest_growing) is supply-based because every live surface can produce it; demand is ranked separately and degrades gracefully when GA is unavailable.',
+		'ga_available'    => $ga_available,
+		'as_of'           => $now_utc,
+		'note'            => 'SUPPLY = inventory growth (new published items per week + % over prior total), deterministic COUNT(*) per surface post type. DEMAND = organic-sessions slope per host (current window vs previous equal window) from datamachine/google-analytics. The two are distinct: growing inventory != growing audience. Unmeasurable dimensions return a not_instrumented marker (coverage gap), never a zero. The cross-surface axis (growth_pct_per_week / fastest_growing) is supply-based because every live surface can produce it; demand is ranked separately and degrades gracefully when GA is unavailable.',
 	);
 }
 
@@ -254,6 +254,7 @@ function extrachill_analytics_surface_supply_growth( $surface, $window_start, $d
 
 	// Guard: the posts table must exist (a decommissioned/absent blog is a
 	// coverage gap, not a zero).
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 	if ( $exists !== $table ) {
 		return extrachill_analytics_not_instrumented( 'Posts table for this surface is not available.' );
@@ -262,10 +263,15 @@ function extrachill_analytics_surface_supply_growth( $surface, $window_start, $d
 	// Express the UTC window bound in the blog's local time for post_date
 	// comparison. get_post_time/Date helpers need blog context, so resolve the
 	// offset from the blog's gmt_offset option directly to avoid a switch.
-	$gmt_offset    = (float) get_blog_option( $blog_id, 'gmt_offset', 0 );
-	$offset_secs   = (int) round( $gmt_offset * HOUR_IN_SECONDS );
-	$window_local  = gmdate( 'Y-m-d H:i:s', strtotime( $window_start ) + $offset_secs );
+	$gmt_offset   = (float) get_blog_option( $blog_id, 'gmt_offset', 0 );
+	$offset_secs  = (int) round( $gmt_offset * HOUR_IN_SECONDS );
+	$window_local = gmdate( 'Y-m-d H:i:s', strtotime( $window_start ) + $offset_secs );
 
+	// $table is an internal, trusted blog-prefix table name from
+	// $wpdb->get_blog_prefix() — never user input — and cannot be passed as a
+	// prepare() placeholder. Values are placeholdered. Direct aggregate reads
+	// are intentional (no cache layer for these cross-surface counts).
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	// New items inside the window.
 	$new_count = (int) $wpdb->get_var(
 		$wpdb->prepare(
@@ -284,9 +290,10 @@ function extrachill_analytics_surface_supply_growth( $surface, $window_start, $d
 			$window_local
 		)
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-	$weeks        = $days / 7;
-	$per_week     = $weeks > 0 ? round( $new_count / $weeks, 2 ) : (float) $new_count;
+	$weeks    = $days / 7;
+	$per_week = $weeks > 0 ? round( $new_count / $weeks, 2 ) : (float) $new_count;
 	// Unit-free axis: percent of the prior catalog added per week. When the
 	// surface had no prior catalog (brand-new surface) the percent is undefined
 	// rather than infinite — we report the raw per-week rate and flag the basis.
@@ -296,13 +303,13 @@ function extrachill_analytics_surface_supply_growth( $surface, $window_start, $d
 	}
 
 	return array(
-		'measured'     => true,
+		'measured'      => true,
 		'new_in_window' => $new_count,
-		'prior_total'  => $prior_total,
-		'per_week'     => $per_week,
-		'pct_per_week' => $pct_per_week,
-		'unit'         => $surface['supply_unit'],
-		'definition'   => 'New published ' . $surface['supply_unit'] . ' in the window; pct_per_week = (new / prior_total) / weeks * 100. Null pct_per_week means no prior catalog to grow against (raw per_week still given).',
+		'prior_total'   => $prior_total,
+		'per_week'      => $per_week,
+		'pct_per_week'  => $pct_per_week,
+		'unit'          => $surface['supply_unit'],
+		'definition'    => 'New published ' . $surface['supply_unit'] . ' in the window; pct_per_week = (new / prior_total) / weeks * 100. Null pct_per_week means no prior catalog to grow against (raw per_week still given).',
 	);
 }
 
@@ -333,15 +340,15 @@ function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_
 	// Window boundaries as GA-style YYYY-MM-DD dates. GA date_stats excludes
 	// "today" (defaults to yesterday) so we mirror that: the current window ends
 	// yesterday; the previous window is the equal-length span before it.
-	$cur_end     = gmdate( 'Y-m-d', strtotime( '-1 day' ) );
-	$cur_start   = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
-	$prev_end    = gmdate( 'Y-m-d', strtotime( "-" . ( $days + 1 ) . ' days' ) );
-	$prev_start  = gmdate( 'Y-m-d', strtotime( "-" . ( $days * 2 ) . ' days' ) );
+	$cur_end    = gmdate( 'Y-m-d', (int) strtotime( '-1 day' ) );
+	$cur_start  = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
+	$prev_end   = gmdate( 'Y-m-d', (int) strtotime( '-' . ( $days + 1 ) . ' days' ) );
+	$prev_start = gmdate( 'Y-m-d', (int) strtotime( '-' . ( $days * 2 ) . ' days' ) );
 
 	// The window is $days long; date_stats returns one row per day, so the
 	// expected series length is $days. Pass it through so the helper can both
 	// request a high-enough row limit AND detect a silently-truncated series.
-	$cur_total  = extrachill_analytics_ga_sessions_for_window( $ga_ability, $host, $cur_start, $cur_end, $days );
+	$cur_total = extrachill_analytics_ga_sessions_for_window( $ga_ability, $host, $cur_start, $cur_end, $days );
 	if ( is_wp_error( $cur_total ) ) {
 		return extrachill_analytics_not_instrumented( 'GA date_stats failed for current window: ' . $cur_total->get_error_message() );
 	}
@@ -374,21 +381,21 @@ function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_
 		$slope_pct = null;
 	}
 
-	$weeks       = $days / 7;
+	$weeks        = $days / 7;
 	$per_week_pct = ( null !== $slope_pct && $weeks > 0 ) ? round( $slope_pct / $weeks, 3 ) : null;
 
 	return array(
-		'measured'            => true,
-		'basis'               => $organic_basis,
-		'organic_share'       => round( (float) $organic_share, 4 ),
-		'current_sessions'    => $cur_total,
-		'previous_sessions'   => $prev_total,
-		'current_organic'     => $cur_organic,
-		'previous_organic'    => $prev_organic,
-		'slope_pct'           => $slope_pct,
-		'pct_per_week'        => $per_week_pct,
-		'is_new_traffic'      => ( null === $slope_pct && $cur_organic > 0 ),
-		'definition'          => 'Percent change in organic sessions (current window vs previous equal-length window) for the host, organic share derived from traffic_sources. basis=all_sessions means organic share was unavailable and totals were used. slope_pct null with is_new_traffic=true means traffic appeared this window with no prior base.',
+		'measured'          => true,
+		'basis'             => $organic_basis,
+		'organic_share'     => round( (float) $organic_share, 4 ),
+		'current_sessions'  => $cur_total,
+		'previous_sessions' => $prev_total,
+		'current_organic'   => $cur_organic,
+		'previous_organic'  => $prev_organic,
+		'slope_pct'         => $slope_pct,
+		'pct_per_week'      => $per_week_pct,
+		'is_new_traffic'    => ( null === $slope_pct && $cur_organic > 0 ),
+		'definition'        => 'Percent change in organic sessions (current window vs previous equal-length window) for the host, organic share derived from traffic_sources. basis=all_sessions means organic share was unavailable and totals were used. slope_pct null with is_new_traffic=true means traffic appeared this window with no prior base.',
 	);
 }
 
@@ -557,7 +564,7 @@ function extrachill_analytics_rank_surfaces( $surfaces, $dimension ) {
 
 	foreach ( $surfaces as $key => $surface ) {
 		$dim = $surface[ $dimension ];
-		if ( empty( $dim['measured'] ) || ! isset( $dim['pct_per_week'] ) || null === $dim['pct_per_week'] ) {
+		if ( empty( $dim['measured'] ) || ! isset( $dim['pct_per_week'] ) ) {
 			$unranked[] = array(
 				'surface' => $key,
 				'reason'  => ! empty( $dim['reason'] ) ? $dim['reason'] : 'No comparable per-week growth figure for this surface.',

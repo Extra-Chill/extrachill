@@ -125,7 +125,7 @@ function extrachill_analytics_grant_fatal_alarm_dispatch_permission( $allowed, $
 	}
 
 	$source = '';
-	if ( is_array( $input ) && isset( $input['metadata']['source'] ) ) {
+	if ( isset( $input['metadata']['source'] ) ) {
 		$source = (string) $input['metadata']['source'];
 	}
 
@@ -133,7 +133,7 @@ function extrachill_analytics_grant_fatal_alarm_dispatch_permission( $allowed, $
 		return $allowed;
 	}
 
-	$trusted_context = ( defined( 'DOING_CRON' ) && DOING_CRON ) || ( defined( 'WP_CLI' ) && WP_CLI );
+	$trusted_context = wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI );
 
 	return $trusted_context ? true : $allowed;
 }
