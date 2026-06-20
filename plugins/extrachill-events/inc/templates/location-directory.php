@@ -46,8 +46,8 @@ $rollup_request->set_query_params(
 		'rollup'   => true,
 	)
 );
-$rollup_response = $rollup_request->is_error() ? null : rest_do_request( $rollup_request );
-$rollup_terms    = ( $rollup_response && ! $rollup_response->is_error() ) ? (array) $rollup_response->get_data() : array();
+$rollup_response = rest_do_request( $rollup_request );
+$rollup_terms    = $rollup_response->is_error() ? array() : (array) $rollup_response->get_data();
 
 $rollup_by_id = array();
 foreach ( $rollup_terms as $r ) {
