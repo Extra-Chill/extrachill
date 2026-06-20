@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.0] - 2026-06-20
+
+### Added
+- capture external referrer and UTM on registration for source attribution
+
+### Fixed
+- authorize notification click-to-read via HMAC token instead of REST cookie auth
+
 ## [0.20.0] - 2026-06-19
 
 ### Added

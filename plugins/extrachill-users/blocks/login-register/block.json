@@ -17,7 +17,7 @@
 		"multiple": true
 	},
 	"textdomain": "extrachill-users",
-	"version": "0.20.0",
+	"version": "0.21.0",
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css",
 	"render": "file:./render.php",
