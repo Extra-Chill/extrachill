@@ -159,7 +159,7 @@ function extrachill_blog_power_network_map() {
 	$cards = array(
 		array(
 			'title' => __( 'Live Music Calendar', 'extrachill-blog' ),
-			'desc'  => __( 'Independent shows and festivals, city by city — built from venue listings, not ad buys.', 'extrachill-blog' ),
+			'desc'  => __( 'Shows and festivals across the country, city by city — free to browse, no login wall.', 'extrachill-blog' ),
 			'url'   => extrachill_blog_power_site_url( 'events', 'https://events.extrachill.com' ),
 			'cta'   => __( 'Browse the calendar', 'extrachill-blog' ),
 			'proof' => extrachill_blog_power_proof_line(
@@ -281,7 +281,7 @@ function extrachill_blog_power_manifesto_html() {
 	$pillars = array(
 		extrachill_blog_power_pillar(
 			__( 'The Power of Independent Music', 'extrachill-blog' ),
-			__( 'Our live music calendar tracks independent shows and festivals across the country — pulled from real venue listings, city by city. No major-label gatekeeping, no pay-to-play placement. Just a straight answer to "who\'s playing near me?"', 'extrachill-blog' ),
+			__( 'Our live music calendar pulls together shows and festivals from across the country — ticketing platforms and venue listings alike, city by city. Free to browse, no login wall, no algorithm deciding what you see. Just a straight answer to "who\'s playing near me?"', 'extrachill-blog' ),
 			__( 'Browse the calendar', 'extrachill-blog' ),
 			$events_url
 		),
