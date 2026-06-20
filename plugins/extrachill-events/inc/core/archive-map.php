@@ -1,27 +1,28 @@
 <?php
 /**
- * Archive Map Collapsible Wrapper
+ * Archive Map Renderer
  *
- * Shared presentation layer for the events-map block when it appears on
- * taxonomy archive pages (location / venue / artist). Gardner's calendar
- * feedback (data-machine-events#373) was that the 400px map dominated the
- * Charleston location archive and pushed the actual event list far down the
- * page. This helper wraps the block markup in a collapsible, height-reduced
- * container so the map is available but no longer the dominant element.
+ * Single shared entry point for rendering the data-machine-events/events-map
+ * block on taxonomy archive pages (location / venue / artist). Each archive
+ * differs only in the distinctive attributes it passes (zoom, route mode); the
+ * common attributes — collapse capability and reduced height — live here so
+ * there is exactly one place that builds the block string and calls do_blocks().
  *
- * The wrapper:
- *   - Renders a real <button aria-expanded> toggle ("Show map" / "Hide map").
- *   - Defaults COLLAPSED — the list is the priority, the map is opt-in.
- *   - Collapses with max-height + overflow (NOT display:none) so Leaflet keeps
- *     a layout box and never boots zero-sized. On first expand a synthetic
- *     window `resize` event is dispatched so Leaflet's built-in resize handler
- *     calls invalidateSize() and the tiles paint correctly.
- *   - Passes a reduced height (280px) to the events-map block so even when
- *     expanded the map reads as a secondary element, not the page hero.
+ * Collapse behaviour:
+ *   Gardner's calendar feedback (data-machine-events#373) was that the 400px
+ *   map dominated the archive and pushed the event list far down the page. The
+ *   events-map block now ships its own block-native, accessible collapse
+ *   capability (data-machine-events#377: the `collapsible` / `defaultCollapsed`
+ *   attributes render a real <button aria-expanded> toggle and correctly handle
+ *   Leaflet's invalidateSize on expand). We adopt that here by passing
+ *   `collapsible: true`, and deliberately leave the map OPEN by default
+ *   (`defaultCollapsed` defaults false) — the map is visible but the reader can
+ *   collapse it. Combined with the reduced height below, the map reads as a
+ *   secondary element rather than the page hero.
  *
- * EC-side only: the events-map block itself is unchanged — we only pass its
- * existing `height` attribute and wrap its output. No data-machine-events or
- * theme changes are required.
+ *   This replaces the previous EC-side collapse workaround (a custom wrapper +
+ *   assets/css/archive-map.css + assets/js/archive-map.js) that existed only
+ *   because the block could not collapse itself. The block now owns that job.
  *
  * @package ExtraChillEvents
  * @since 0.30.0
@@ -35,7 +36,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Reduced map height (px) used for archive maps.
  *
  * The events-map block defaults to 400px. Archives pass this smaller value so
- * the map is non-dominant even when expanded.
+ * the map is non-dominant even when expanded. This is independent of the
+ * block's collapse capability — a smaller-but-visible map.
  *
  * @return int Height in pixels.
  */
@@ -49,78 +51,45 @@ function extrachill_events_archive_map_height(): int {
 }
 
 /**
- * Wrap events-map block markup in a collapsible, height-reduced container.
+ * Render the events-map block for a taxonomy archive.
  *
- * Callers pass the rendered block HTML (already produced via do_blocks()).
- * This keeps each archive map renderer in control of WHICH block attributes
- * it sets (zoom, chronologicalRouteMode, etc.) while sharing the collapse UI.
+ * Builds the events-map block markup once, merging the caller's distinctive
+ * attributes with the common archive attributes (block-native `collapsible`
+ * and the reduced `height`). Callers (location / venue / artist) only supply
+ * what makes their map different — e.g. `zoom` for venue, or
+ * `chronologicalRouteMode` for artist.
  *
- * @param string $map_html  Rendered events-map block markup.
- * @param string $archive   Archive context slug (location|venue|artist) for styling hooks.
- * @return string Wrapped markup, or empty string if no map HTML was provided.
+ * Common attributes applied here:
+ *   - collapsible: true  — adopt the block's own collapse toggle (#377).
+ *   - height: reduced     — see extrachill_events_archive_map_height().
+ *
+ * The map is left OPEN by default (no `defaultCollapsed`), so the toggle lets
+ * the reader collapse it rather than starting collapsed.
+ *
+ * @param array  $attrs   Caller-specific events-map block attributes. Merged
+ *                        over the common archive defaults (caller wins on
+ *                        conflict, except this is not expected for the common
+ *                        keys).
+ * @param string $context Archive context slug (location|venue|artist). Reserved
+ *                        for future per-archive tweaks; currently unused by the
+ *                        block but kept for caller clarity and forward use.
+ * @return string Rendered events-map block markup.
  */
-function extrachill_events_render_collapsible_map( string $map_html, string $archive = '' ): string {
-	$map_html = trim( $map_html );
-	if ( '' === $map_html ) {
-		return '';
-	}
+function extrachill_events_render_archive_map( array $attrs = array(), string $context = '' ): string {
+	unset( $context );
 
-	$panel_id    = 'extrachill-events-archive-map-' . ( $archive ? sanitize_html_class( $archive ) : 'panel' );
-	$context_cls = $archive ? ' is-' . sanitize_html_class( $archive ) : '';
-
-	ob_start();
-	?>
-	<div class="extrachill-events-archive-map<?php echo esc_attr( $context_cls ); ?>" data-collapsible-map>
-		<button type="button"
-				class="extrachill-events-archive-map__toggle"
-				aria-expanded="false"
-				aria-controls="<?php echo esc_attr( $panel_id ); ?>">
-			<span class="extrachill-events-archive-map__toggle-label"><?php esc_html_e( 'Show map', 'extrachill-events' ); ?></span>
-			<span class="extrachill-events-archive-map__toggle-icon dashicons dashicons-location-alt" aria-hidden="true"></span>
-		</button>
-		<div id="<?php echo esc_attr( $panel_id ); ?>" class="extrachill-events-archive-map__panel" hidden>
-			<?php echo $map_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted block markup from do_blocks(). ?>
-		</div>
-	</div>
-	<?php
-	return (string) ob_get_clean();
-}
-
-/**
- * Enqueue the archive-map collapse assets.
- *
- * Loads on any taxonomy archive where one of the map renderers may output a
- * map (location / venue / artist). The toggle script + styles are tiny and
- * self-contained; they no-op when no collapsible map is present on the page.
- *
- * @hook wp_enqueue_scripts
- */
-function extrachill_events_archive_map_assets() {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
-	if ( (int) get_current_blog_id() !== $events_blog_id ) {
-		return;
-	}
-
-	if ( ! is_tax( 'location' ) && ! is_tax( 'venue' ) && ! is_tax( 'artist' ) ) {
-		return;
-	}
-
-	$css_path = EXTRACHILL_EVENTS_PLUGIN_DIR . 'assets/css/archive-map.css';
-	$js_path  = EXTRACHILL_EVENTS_PLUGIN_DIR . 'assets/js/archive-map.js';
-
-	wp_enqueue_style(
-		'extrachill-events-archive-map',
-		EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/css/archive-map.css',
-		array(),
-		file_exists( $css_path ) ? (string) filemtime( $css_path ) : EXTRACHILL_EVENTS_VERSION
+	$defaults = array(
+		'collapsible' => true,
+		'height'      => extrachill_events_archive_map_height(),
 	);
 
-	wp_enqueue_script(
-		'extrachill-events-archive-map',
-		EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/js/archive-map.js',
-		array(),
-		file_exists( $js_path ) ? (string) filemtime( $js_path ) : EXTRACHILL_EVENTS_VERSION,
-		true
+	// Caller attrs win on conflict; common archive defaults fill the rest.
+	$merged = array_merge( $defaults, $attrs );
+
+	$block = sprintf(
+		'<!-- wp:data-machine-events/events-map %s /-->',
+		wp_json_encode( $merged )
 	);
+
+	return do_blocks( $block );
 }
-add_action( 'wp_enqueue_scripts', 'extrachill_events_archive_map_assets' );

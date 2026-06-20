@@ -42,12 +42,11 @@ function extrachill_events_render_location_map() {
 		return;
 	}
 
-	// Render the block — filters below provide center and summary. The map is
-	// wrapped in a collapsible, height-reduced container so it no longer
-	// dominates the archive (data-machine-events#373).
-	$height    = extrachill_events_archive_map_height();
-	$map_block = sprintf( '<!-- wp:data-machine-events/events-map {"height":%d} /-->', $height );
-	echo extrachill_events_render_collapsible_map( do_blocks( $map_block ), 'location' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Wrapper escapes its own chrome; inner markup is trusted block output.
+	// Render via the shared archive-map helper — filters below provide center
+	// and summary. The helper applies the block-native collapse toggle (#377,
+	// open by default) and the reduced height so the map no longer dominates
+	// the archive (data-machine-events#373).
+	echo extrachill_events_render_archive_map( array(), 'location' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted block markup from do_blocks().
 }
 add_action( 'extrachill_archive_below_description', 'extrachill_events_render_location_map' );
 

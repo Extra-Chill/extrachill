@@ -64,3 +64,24 @@
         font-size: var(--font-size-xs, 0.75rem);
     }
 }
+
+/*
+ * Scope Nav grouped with the calendar filter bar
+ *
+ * On location archives the scope nav renders immediately before the calendar
+ * block (data-machine-events#373). Pull it visually flush with the block's
+ * filter bar so the chips + search + date + filter read as a single control
+ * cluster. The calendar block owns the .data-machine-events-filter-bar DOM; we
+ * only join to it from here.
+ */
+.discovery-scope-nav.is-calendar-grouped {
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Tighten the gap between the grouped scope nav and the block's own filter
+   bar so they read as one unit. The calendar block's filter bar has its own
+   top margin via .data-machine-events-calendar { margin: 2rem 0 }, so pull it
+   up when it directly follows our grouped nav. */
+.discovery-scope-nav.is-calendar-grouped + .data-machine-events-calendar {
+    margin-top: 0;
+}

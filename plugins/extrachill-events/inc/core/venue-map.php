@@ -87,11 +87,11 @@ function extrachill_events_render_venue_map() {
 		return;
 	}
 
-	// Collapsible, height-reduced map so it stays secondary to the event list
-	// (data-machine-events#373). Mirrors the location archive treatment.
-	$height    = extrachill_events_archive_map_height();
-	$map_block = sprintf( '<!-- wp:data-machine-events/events-map {"zoom":14,"height":%d} /-->', $height );
-	echo extrachill_events_render_collapsible_map( do_blocks( $map_block ), 'venue' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Wrapper escapes its own chrome; inner markup is trusted block output.
+	// Render via the shared archive-map helper, passing the venue-specific zoom.
+	// The helper applies the block-native collapse toggle (#377, open by
+	// default) and the reduced height so the map stays secondary to the event
+	// list (data-machine-events#373). Mirrors the location archive treatment.
+	echo extrachill_events_render_archive_map( array( 'zoom' => 14 ), 'venue' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted block markup from do_blocks().
 }
 add_action( 'extrachill_archive_below_description', 'extrachill_events_render_venue_map' );
 

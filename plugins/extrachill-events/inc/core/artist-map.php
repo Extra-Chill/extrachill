@@ -68,15 +68,14 @@ function extrachill_events_render_artist_map() {
 		}
 	}
 
-	// Render the block in chronological-route mode. The block reads
-	// taxonomy/term_id from its own render context (is_tax + queried
-	// object) and auto-fits to the route's bounding box. Wrapped in the
-	// shared collapsible, height-reduced container so the route map stays
-	// secondary to the tour-date list (data-machine-events#373) and is
-	// consistent with the location/venue archives.
-	$height    = extrachill_events_archive_map_height();
-	$map_block = sprintf( '<!-- wp:data-machine-events/events-map {"chronologicalRouteMode":true,"height":%d} /-->', $height );
-	echo extrachill_events_render_collapsible_map( do_blocks( $map_block ), 'artist' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Wrapper escapes its own chrome; inner markup is trusted block output.
+	// Render the block in chronological-route mode via the shared archive-map
+	// helper. The block reads taxonomy/term_id from its own render context
+	// (is_tax + queried object) and auto-fits to the route's bounding box. The
+	// helper applies the block-native collapse toggle (#377, open by default)
+	// and the reduced height so the route map stays secondary to the tour-date
+	// list (data-machine-events#373), consistent with the location/venue
+	// archives.
+	echo extrachill_events_render_archive_map( array( 'chronologicalRouteMode' => true ), 'artist' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted block markup from do_blocks().
 }
 add_action( 'extrachill_archive_below_description', 'extrachill_events_render_artist_map' );
 
