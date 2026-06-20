@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.6.3] - 2026-06-20
+
+### Fixed
+- scope archive/search img height to post-card thumbnails
+
 ## [2.6.2] - 2026-06-20
 
 ### Fixed
