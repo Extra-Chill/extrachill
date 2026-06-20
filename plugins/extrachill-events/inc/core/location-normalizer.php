@@ -273,6 +273,23 @@ function extrachill_events_get_state_abbreviation_map(): array {
 		'WV' => 'West Virginia',
 		'WI' => 'Wisconsin',
 		'WY' => 'Wyoming',
+		// Canadian provinces — venue _venue_state stores the province
+		// abbreviation (e.g. "BC", "ON"); used to disambiguate same-named
+		// cities (e.g. Richmond, BC vs Richmond, VA) against the term's
+		// parent province term. See data-machine-events#379.
+		'AB' => 'Alberta',
+		'BC' => 'British Columbia',
+		'MB' => 'Manitoba',
+		'NB' => 'New Brunswick',
+		'NL' => 'Newfoundland and Labrador',
+		'NS' => 'Nova Scotia',
+		'NT' => 'Northwest Territories',
+		'NU' => 'Nunavut',
+		'ON' => 'Ontario',
+		'PE' => 'Prince Edward Island',
+		'QC' => 'Quebec',
+		'SK' => 'Saskatchewan',
+		'YT' => 'Yukon',
 	);
 }
 
@@ -334,6 +351,10 @@ function extrachill_events_get_market_slug_for_venue( $city, $state = '', $zip =
  */
 function extrachill_events_get_city_market_map() {
 	return array(
+		'abbotsford'          => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'alexandria'          => 'washington-d-c',
 		'allentown'           => 'philadelphia',
 		'alpharetta'          => 'atlanta',
@@ -369,6 +390,10 @@ function extrachill_events_get_city_market_map() {
 		'bristow'             => 'washington-d-c',
 		'bronx'               => 'new-york-city',
 		'buda'                => 'austin',
+		'burnaby'             => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'cambridge'           => 'boston',
 		'carrollton'          => array(
 			'texas' => 'dallas',
@@ -387,6 +412,10 @@ function extrachill_events_get_city_market_map() {
 			'md'       => 'baltimore',
 		),
 		'conroe'              => 'houston',
+		'coquitlam'           => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'costa mesa'          => 'los-angeles',
 		'council bluffs'      => 'omaha',
 		'covington'           => array(
@@ -399,6 +428,10 @@ function extrachill_events_get_city_market_map() {
 		'danielsville'        => 'athens',
 		'decatur'             => 'atlanta',
 		'del mar'             => 'san-diego',
+		'delta'               => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'duluth'              => 'atlanta',
 		'durham'              => 'raleigh',
 		'easley'              => 'greenville',
@@ -461,6 +494,10 @@ function extrachill_events_get_city_market_map() {
 		'laguna beach'        => 'los-angeles',
 		'lake jackson'        => 'houston',
 		'lakewood'            => 'cleveland',
+		'langley'             => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'leesburg'            => 'washington-d-c',
 		'lewiston'            => array(
 			'new york' => 'buffalo',
@@ -484,6 +521,10 @@ function extrachill_events_get_city_market_map() {
 		),
 		'midvale'             => 'salt-lake-city',
 		'millvale'            => 'pittsburgh',
+		'mission'             => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'morrison'            => array(
 			'colorado' => 'denver',
 			'co'       => 'denver',
@@ -491,6 +532,10 @@ function extrachill_events_get_city_market_map() {
 		'mountain view'       => 'san-jose',
 		'murfreesboro'        => 'nashville',
 		'napa'                => 'sacramento',
+		'new westminster'     => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'new york'            => 'new-york-city',
 		'new york city'       => 'new-york-city',
 		'newport'             => array(
@@ -502,6 +547,10 @@ function extrachill_events_get_city_market_map() {
 		'north charleston'    => 'charleston',
 		'north little rock'   => 'little-rock',
 		'north myrtle beach'  => 'myrtle-beach',
+		'north vancouver'     => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'northfield'          => array(
 			'ohio' => 'akron',
 			'oh'   => 'akron',
@@ -531,6 +580,10 @@ function extrachill_events_get_city_market_map() {
 		'queens'              => 'queens',
 		'rancho cucamonga'    => 'los-angeles',
 		'reading'             => 'philadelphia',
+		'richmond'            => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'ridgewood'           => 'queens',
 		'riverside'           => array(
 			'california' => 'los-angeles',
@@ -576,6 +629,10 @@ function extrachill_events_get_city_market_map() {
 		'sterling heights'    => 'detroit',
 		'sugar land'          => 'houston',
 		'summerville'         => 'charleston',
+		'surrey'              => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'tempe'               => 'phoenix',
 		'texas city'          => 'houston',
 		'the woodlands'       => 'houston',
@@ -601,6 +658,10 @@ function extrachill_events_get_city_market_map() {
 		'west des moines'     => 'des-moines',
 		'west hollywood'      => 'los-angeles',
 		'west valley city'    => 'salt-lake-city',
+		'west vancouver'      => array(
+			'british columbia' => 'vancouver-bc',
+			'bc'               => 'vancouver-bc',
+		),
 		'westland'            => 'detroit',
 		'wilmington'          => 'philadelphia',
 		'wilton manors'       => 'fort-lauderdale',

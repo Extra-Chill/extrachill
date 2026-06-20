@@ -104,6 +104,15 @@ $cases = array(
 	array( 'Dallas suburb Irving', 'TX', '75061', null ), // sanity: unmapped phrase stays null
 	array( 'Irving', 'TX', '75061', 'dallas' ),
 
+	// Canada: Vancouver-metro suburbs roll up to the Vancouver, BC term
+	// (slug vancouver-bc). Richmond is BC-keyed so it never hijacks Richmond, VA.
+	array( 'Surrey', 'BC', '', 'vancouver-bc' ),
+	array( 'Coquitlam', 'BC', '', 'vancouver-bc' ),
+	array( 'Abbotsford', 'BC', '', 'vancouver-bc' ),
+	array( 'Richmond', 'BC', '', 'vancouver-bc' ),
+	array( 'Richmond', 'VA', '', null ), // US Richmond stays null -> exact-name match resolves it
+	array( 'Burnaby', 'BC', '', 'vancouver-bc' ),
+
 	// Existing mappings must keep working.
 	array( 'Cambridge', 'MA', '02139', 'boston' ),
 	array( 'North Charleston', 'SC', '29405', 'charleston' ),
