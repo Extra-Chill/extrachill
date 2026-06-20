@@ -26,6 +26,18 @@ function extrachill_events_location_badges() {
 add_action( 'extrachill_events_home_before_calendar', 'extrachill_events_location_badges', 10 );
 
 /**
+ * Render the homepage feature cards (My Shows + Submit) below the badges.
+ *
+ * @hook extrachill_events_home_before_calendar
+ * @return void
+ * @since 0.25.0
+ */
+function extrachill_events_home_feature_cards() {
+	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/feature-cards.php';
+}
+add_action( 'extrachill_events_home_before_calendar', 'extrachill_events_home_feature_cards', 20 );
+
+/**
  * Render venue badges on a location taxonomy archive
  *
  * Lists every venue with upcoming events in the current city, mirroring the

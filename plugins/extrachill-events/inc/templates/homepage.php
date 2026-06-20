@@ -20,6 +20,9 @@ extrachill_breadcrumbs();
 	<div class="page-content">
 		<header>
 			<h1 class="page-title"><?php esc_html_e( 'Live Music Calendar', 'extrachill-events' ); ?></h1>
+			<p class="events-home-intro">
+				<?php esc_html_e( 'Find live music near you. Pick a city below, track your shows, or see every event.', 'extrachill-events' ); ?>
+			</p>
 			<?php extrachill_events_render_calendar_stats(); ?>
 		</header>
 	</div>

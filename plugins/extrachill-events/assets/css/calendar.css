@@ -114,3 +114,68 @@
     font-weight: normal;
     font-size: 0.8em;
 }
+
+/* Homepage intro line under the H1. */
+.events-home-intro {
+    color: var(--muted-text);
+    font-size: var(--font-size-body);
+    margin-bottom: var(--spacing-sm);
+}
+
+/* "See every event" link below the city badges. */
+.events-browse-all-cities {
+    margin: var(--spacing-md) 0 0;
+    text-align: center;
+    font-size: var(--font-size-body);
+}
+
+/* Homepage feature cards (My Shows + Submit). */
+.events-feature-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    margin: var(--spacing-xl) 0;
+}
+
+.events-feature-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-lg);
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius, 8px);
+    box-shadow: var(--card-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.events-feature-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.events-feature-card__title {
+    margin: 0;
+}
+
+.events-feature-card__body {
+    margin: 0;
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-relaxed);
+}
+
+.events-feature-card__cta {
+    margin-top: auto;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+@media (max-width: 600px) {
+    .events-feature-cards {
+        grid-template-columns: 1fr;
+    }
+}

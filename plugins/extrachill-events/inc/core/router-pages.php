@@ -34,14 +34,18 @@ function extrachill_events_router_rewrite_rules() {
 	}
 
 	add_rewrite_tag( '%ec_events_router%', '(all)' );
-	add_rewrite_tag( '%ec_events_location_index%', '(1)' );
-
 	add_rewrite_rule( '^all/?$', 'index.php?ec_events_router=all', 'top' );
 
-	// The bare location taxonomy base (no term) renders the directory. The
-	// catch-all location/(.+?) rule requires a term, so /location/ would 404
-	// without this. 'top' priority matches before that catch-all.
-	add_rewrite_rule( '^location/?$', 'index.php?ec_events_location_index=1', 'top' );
+	// The /location directory is built but held off for now. When enabled, the
+	// bare location taxonomy base (no term) renders the region-grouped
+	// directory; the catch-all location/(.+?) rule requires a term, so
+	// /location/ would 404 without this rule. 'top' priority matches before
+	// that catch-all. Flip extrachill_events_enable_location_directory to true
+	// (and flush rewrites) to turn it on.
+	if ( extrachill_events_location_directory_enabled() ) {
+		add_rewrite_tag( '%ec_events_location_index%', '(1)' );
+		add_rewrite_rule( '^location/?$', 'index.php?ec_events_location_index=1', 'top' );
+	}
 }
 add_action( 'init', 'extrachill_events_router_rewrite_rules' );
 
@@ -55,12 +59,26 @@ function extrachill_events_is_all_events_page(): bool {
 }
 
 /**
+ * Whether the /location directory page is enabled.
+ *
+ * Held off by default. Filter to true (and flush rewrites) to expose it.
+ *
+ * @return bool
+ * @since 0.25.0
+ */
+function extrachill_events_location_directory_enabled(): bool {
+	return (bool) apply_filters( 'extrachill_events_enable_location_directory', false );
+}
+
+/**
  * Whether the current request is the /location/ directory page.
  *
  * @return bool
  */
 function extrachill_events_is_location_index(): bool {
-	return ec_is_events_site() && '1' === (string) get_query_var( 'ec_events_location_index', '' );
+	return ec_is_events_site()
+		&& extrachill_events_location_directory_enabled()
+		&& '1' === (string) get_query_var( 'ec_events_location_index', '' );
 }
 
 /**
