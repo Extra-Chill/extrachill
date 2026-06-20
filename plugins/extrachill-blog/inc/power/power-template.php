@@ -298,7 +298,7 @@ function extrachill_blog_power_manifesto_html() {
 			$artist_register_url
 		),
 		extrachill_blog_power_pillar(
-			__( 'The Power of Staying Independent', 'extrachill-blog' ),
+			__( 'The Power of Staying True', 'extrachill-blog' ),
 			__( 'Since 2011, out of a Charleston dorm room. We stand by our core philosophies and never give in to corporate pressure or aggressive monetization. Sustainable, memorable, and built on the spirit of the music.', 'extrachill-blog' ),
 			__( 'Read our long-term vision', 'extrachill-blog' ),
 			home_url( '/long-term-vision/' )
@@ -323,7 +323,7 @@ function extrachill_blog_power_manifesto_html() {
 		</header>
 
 		<section class="power-section">
-			<h2 class="power-section__heading"><?php esc_html_e( 'The power of staying independent', 'extrachill-blog' ); ?></h2>
+			<h2 class="power-section__heading"><?php esc_html_e( 'What we stand for', 'extrachill-blog' ); ?></h2>
 			<div class="power-pillars">
 				<?php
 				foreach ( $pillars as $pillar ) {
