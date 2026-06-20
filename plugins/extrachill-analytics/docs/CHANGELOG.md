@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-06-20
+
+### Added
+- near-real-time PHP fatal-rate alarm with Discord beacon
+
+### Fixed
+- resolve phpcs/phpstan lint findings in growth + fatal-alarm
+- stop demand slope truncation from date_stats 25-row cap
+
 ## [0.14.1] - 2026-06-20
 
 ### Fixed
