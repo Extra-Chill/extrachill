@@ -93,16 +93,22 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 	// Write a deterministic pageview event row so per-visitor retention can be
 	// queried. visitor_id is persisted only when it is a valid UUID v4; an empty
 	// or opted-out value still records the pageview anonymously (NULL visitor_id),
-	// keeping aggregate volume accurate. Bots are excluded by user-agent so the
-	// retention table stays bot-resistant by construction, matching the existing
-	// 404 capture path.
+	// keeping aggregate volume accurate. Bots are excluded via the canonical
+	// classifier's UA-class signal so the retention table stays bot-resistant by
+	// construction, using the one shared bot-UA pattern list.
+	//
+	// The pageview gate intentionally keys on the UA signal ONLY (not the full
+	// strict verdict): this beacon is a browser-initiated fetch, and a
+	// privacy-opted-out human (GPC/DNT, hence no ec_vid cookie) is still a real
+	// pageview we want counted anonymously. Requiring the cookie here would drop
+	// those legitimate humans. Per-visitor retention metrics already exclude
+	// NULL-visitor_id rows downstream, so anonymous pageviews never distort them.
 	$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
 		? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
 		: '';
 
-	$is_bot = function_exists( 'extrachill_analytics_is_bot' )
-		? extrachill_analytics_is_bot( $user_agent )
-		: false;
+	$is_bot = function_exists( 'extrachill_analytics_classify_user_agent' )
+		&& 'browser' !== extrachill_analytics_classify_user_agent( $user_agent );
 
 	if ( ! $is_bot && function_exists( 'extrachill_track_analytics_event' ) ) {
 		$permalink = get_permalink( $post_id );

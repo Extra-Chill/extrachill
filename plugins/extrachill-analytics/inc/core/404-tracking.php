@@ -37,8 +37,9 @@ function extrachill_analytics_track_404() {
 
 	$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
 
-	// Skip known bots to reduce noise.
-	if ( extrachill_analytics_is_bot( $user_agent ) ) {
+	// Skip non-human requests to reduce noise. Uses the canonical classifier so
+	// the human/bot verdict matches every other analytics instrument.
+	if ( extrachill_analytics_request_is_bot( array( 'user_agent' => $user_agent ) ) ) {
 		return;
 	}
 
@@ -55,44 +56,4 @@ function extrachill_analytics_track_404() {
 		),
 		home_url( $url )
 	);
-}
-
-/**
- * Check if a user agent is a known bot/crawler.
- *
- * @param string $user_agent The user agent string.
- * @return bool True if the user agent is a known bot.
- */
-function extrachill_analytics_is_bot( $user_agent ) {
-	if ( empty( $user_agent ) ) {
-		return true;
-	}
-
-	$bot_patterns = array(
-		'bot',
-		'crawl',
-		'spider',
-		'slurp',
-		'mediapartners',
-		'lighthouse',
-		'pagespeed',
-		'pingdom',
-		'uptimerobot',
-		'headlesschrome',
-		'python-requests',
-		'curl/',
-		'wget/',
-		'go-http-client',
-		'apache-httpclient',
-	);
-
-	$ua_lower = strtolower( $user_agent );
-
-	foreach ( $bot_patterns as $pattern ) {
-		if ( false !== strpos( $ua_lower, $pattern ) ) {
-			return true;
-		}
-	}
-
-	return false;
 }

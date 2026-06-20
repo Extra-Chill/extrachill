@@ -18,7 +18,15 @@
  *      separate event_type='search_attack' (see security-classifier.php). This
  *      ability queries event_type='search' only, so anything already classified
  *      is excluded for free.
- *   2. Read-time filtering catches residual junk that slipped through before
+ *   2. The canonical visitor classifier stamps an `is_bot` flag on every event
+ *      at write time (issue #57); this ability excludes rows flagged bot.
+ *   3. An OPTIONAL visitor_id gate (filter
+ *      `extrachill_analytics_search_gaps_require_visitor_id`, default OFF)
+ *      excludes legacy programmatic searches that the OLD, now-removed search
+ *      rule wrongly stamped human (the #51 root cause). It defaults off because
+ *      on this install search events rarely carry a stitched visitor_id even
+ *      for humans; see the inline note for the measured tradeoff.
+ *   4. Read-time filtering catches residual junk that slipped through before
  *      the classifier existed (or that the classifier doesn't fire on):
  *        - terms longer than the human-plausible ceiling (default 60 chars),
  *        - terms that the shared security classifier flags as a payload
@@ -157,14 +165,38 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	$where[]  = "CHAR_LENGTH({$term_expr}) <= %d";
 	$values[] = $max_len;
 
-	// Exclude endpoint-automation searches flagged at insert time by the
-	// `is_bot` gate in extrachill_analytics_ability_track_event(). The flag is
-	// a JSON boolean, so JSON_EXTRACT returns the literal `true` for bot rows.
-	// Older rows predating the flag have no key (JSON_EXTRACT → NULL) and are
-	// intentionally kept — this filter only drops rows EXPLICITLY marked bot,
-	// so the demand list excludes automation without silently dropping legacy
-	// human searches.
+	// Exclude non-human searches flagged at insert time by the canonical
+	// classifier (now stamped on EVERY event in extrachill_track_analytics_event;
+	// see issue #57). The flag is a JSON boolean, so JSON_EXTRACT returns the
+	// literal `true` for bot rows. Rows written before the flag existed have no
+	// key (JSON_EXTRACT → NULL) and COALESCE keeps them as non-bot here.
 	$where[] = "COALESCE(JSON_EXTRACT(event_data, '$.is_bot'), false) = false";
+
+	// Defense-in-depth for legacy-contaminated rows. The OLD search rule
+	// (is_bot = ua_bot || (no-cookie && empty-UA)) — the #51 root cause — wrote
+	// is_bot=FALSE for cookieless programmatic searches that carried a normal
+	// UA (events pipeline, community lookups spraying real band names). Those
+	// rows are already in the DB stamped human, so the is_bot filter above
+	// cannot catch them. The strongest human signal that retention also relies
+	// on is a present visitor_id: a genuine human reaches the search box only
+	// after loading a page that mints the ec_vid cookie.
+	//
+	// IMPORTANT TRADEOFF (measured against live data, 2026-06-20): on this
+	// install search events almost never carry a stitched visitor_id (1 of
+	// ~234k over 28 days) even though pageviews do (~91%), because the search
+	// volume is overwhelmingly programmatic. A hard visitor_id gate therefore
+	// empties the report. That is "correct" in the strict sense (almost none of
+	// that traffic is a cookied human) but operationally useless, so the gate is
+	// FILTERABLE and defaults OFF. The canonical is_bot stamp (now written on
+	// every event) is the primary go-forward fix; flip this filter on once
+	// enough cookie-stitched human searches exist to make the gate meaningful.
+	//
+	// Filter: extrachill_analytics_search_gaps_require_visitor_id (bool, default
+	// false) — when true, also require a non-empty visitor_id.
+	$require_visitor_id = (bool) apply_filters( 'extrachill_analytics_search_gaps_require_visitor_id', false );
+	if ( $require_visitor_id ) {
+		$where[] = "visitor_id IS NOT NULL AND visitor_id != ''";
+	}
 
 	$where_clause = implode( ' AND ', $where );
 	$where_values = $values;

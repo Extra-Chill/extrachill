@@ -55,6 +55,25 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 		? $visitor_id
 		: null;
 
+	// Stamp the canonical human/bot verdict on EVERY event at write time so all
+	// downstream readers filter on one trustworthy, consistent flag instead of
+	// each re-litigating the question (issue #57). This is the single source of
+	// truth — the verdict already factors UA, visitor cookie, and request origin
+	// (cli/cron/rest), which is what kills the #51 programmatic-search
+	// contamination at the source. The flag is only stamped when the caller
+	// hasn't already supplied one, so an explicit upstream classification (none
+	// today) would still win. We pass the resolved cookie state so the verdict
+	// uses the same visitor_id the row is stored under.
+	if ( is_array( $event_data )
+		&& ! array_key_exists( 'is_bot', $event_data )
+		&& function_exists( 'extrachill_analytics_classify_request' )
+	) {
+		$verdict              = extrachill_analytics_classify_request(
+			array( 'has_visitor_cookie' => null !== $stored_visitor_id )
+		);
+		$event_data['is_bot'] = (bool) $verdict['is_bot'];
+	}
+
 	$result = $wpdb->insert(
 		$table_name,
 		array(
