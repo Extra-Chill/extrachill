@@ -247,6 +247,13 @@ function extrachill_blog_power_network_map() {
 				)
 			),
 		),
+		array(
+			'title' => __( 'The Open-Source Platform', 'extrachill-blog' ),
+			'desc'  => __( 'The whole network is open source — and increasingly built and operated by AI agents we direct in plain language, live on the server. Peek under the hood.', 'extrachill-blog' ),
+			'url'   => 'https://github.com/Extra-Chill',
+			'cta'   => __( 'See the code on GitHub', 'extrachill-blog' ),
+			'proof' => '',
+		),
 	);
 
 	ob_start();
@@ -300,8 +307,8 @@ function extrachill_blog_power_manifesto_html() {
 		extrachill_blog_power_pillar(
 			__( 'The Power of Staying True', 'extrachill-blog' ),
 			__( 'Since 2011, out of a Charleston dorm room. We stand by our core philosophies and never give in to corporate pressure or aggressive monetization. Sustainable, memorable, and built on the spirit of the music.', 'extrachill-blog' ),
-			__( 'Read our long-term vision', 'extrachill-blog' ),
-			home_url( '/long-term-vision/' )
+			__( 'Read our story', 'extrachill-blog' ),
+			home_url( '/about/' )
 		),
 	);
 
