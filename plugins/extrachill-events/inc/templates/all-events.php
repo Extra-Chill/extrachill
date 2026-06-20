@@ -27,7 +27,10 @@ extrachill_breadcrumbs();
 	</div>
 
 	<div class="page-content">
-		<?php echo do_blocks( '<!-- wp:data-machine-events/calendar {"showScopePresets":true} /-->' ); ?>
+		<?php
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- do_blocks() returns trusted, fully-rendered block HTML.
+		echo do_blocks( '<!-- wp:data-machine-events/calendar {"showScopePresets":true} /-->' );
+		?>
 	</div>
 </div>
 

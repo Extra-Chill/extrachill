@@ -47,7 +47,7 @@ $rollup_request->set_query_params(
 	)
 );
 $rollup_response = $rollup_request->is_error() ? null : rest_do_request( $rollup_request );
-$rollup_terms   = ( $rollup_response && ! $rollup_response->is_error() ) ? (array) $rollup_response->get_data() : array();
+$rollup_terms    = ( $rollup_response && ! $rollup_response->is_error() ) ? (array) $rollup_response->get_data() : array();
 
 $rollup_by_id = array();
 foreach ( $rollup_terms as $r ) {
@@ -108,8 +108,8 @@ uksort(
 	<div class="page-content cities-directory">
 		<?php foreach ( $regions as $root_id => $region_cities ) : ?>
 			<?php
-			$region      = $region_meta[ $root_id ];
-			$region_link = get_term_link( $region );
+			$region       = $region_meta[ $root_id ];
+			$region_link  = get_term_link( $region );
 			$region_total = $rollup_by_id[ $root_id ] ?? 0;
 			?>
 			<section class="cities-region">
