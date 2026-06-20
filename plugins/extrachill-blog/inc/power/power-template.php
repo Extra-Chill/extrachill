@@ -281,8 +281,8 @@ function extrachill_blog_power_manifesto_html() {
 	$pillars = array(
 		extrachill_blog_power_pillar(
 			__( 'The Power of Independent Music', 'extrachill-blog' ),
-			__( 'Independent artists make the music that actually moves the scene forward. We cover it, calendar it, and point fans straight at it — no major-label gatekeeping, no pay-to-play. The music comes first, every time.', 'extrachill-blog' ),
-			__( 'See what\'s playing', 'extrachill-blog' ),
+			__( 'Our live music calendar tracks independent shows and festivals across the country — pulled from real venue listings, city by city. No major-label gatekeeping, no pay-to-play placement. Just a straight answer to "who\'s playing near me?"', 'extrachill-blog' ),
+			__( 'Browse the calendar', 'extrachill-blog' ),
 			$events_url
 		),
 		extrachill_blog_power_pillar(
@@ -299,7 +299,7 @@ function extrachill_blog_power_manifesto_html() {
 		),
 		extrachill_blog_power_pillar(
 			__( 'The Power of Staying Independent', 'extrachill-blog' ),
-			__( 'Since 2011, out of a Charleston dorm room. We stand by our core philosophies and never give in to corporate pressure or aggressive monetization. Sustainable, memorable, and built on the spirit of the music — not on getting rich.', 'extrachill-blog' ),
+			__( 'Since 2011, out of a Charleston dorm room. We stand by our core philosophies and never give in to corporate pressure or aggressive monetization. Sustainable, memorable, and built on the spirit of the music.', 'extrachill-blog' ),
 			__( 'Read our long-term vision', 'extrachill-blog' ),
 			home_url( '/long-term-vision/' )
 		),

@@ -49,7 +49,13 @@
 }
 
 .power-section__heading {
-	margin: 0 0 var(--spacing-sm);
+	/*
+	 * single-post.css gives `.entry-content h2` `width: fit-content`, which
+	 * shrinks the underlined box to the text width and pins it left. Center the
+	 * shrunk box so the accent underline hugs the text AND sits centered.
+	 */
+	margin: 0 auto var(--spacing-sm);
+	width: fit-content;
 	text-align: center;
 	font-family: var(--font-family-heading);
 	font-size: var(--font-size-2xl);
