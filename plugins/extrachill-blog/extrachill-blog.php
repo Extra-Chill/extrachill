@@ -31,7 +31,6 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/co-authors.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/admin-customizations.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/ads-filter.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/homepage-hooks.php';
-require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/power/network-map-block.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/power/power-page.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/blog-archive-routing.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/breadcrumbs.php';

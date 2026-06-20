@@ -1,18 +1,118 @@
 /**
  * Styles for the /power manifesto page.
  *
- * Scoped to the network-map dynamic block only. The manifesto pillars and hero
- * are composed from core blocks + the theme's `extrachill/pillar` pattern, so
- * they inherit the EC brand from theme.json with no CSS here. This file only
- * lays out the surface-card grid the dynamic block emits, using theme tokens
- * (no hardcoded values, no !important).
+ * Built entirely on the live Extra Chill design tokens (the `--*` CSS custom
+ * properties from the theme's root.css). Because EC dark mode flips those
+ * variables via `@media (prefers-color-scheme: dark)` in root.css, this page
+ * gets correct light AND dark rendering for free — no theme.json preset classes
+ * (which bake static light hex values and do NOT flip), no hardcoded colors,
+ * no !important.
  */
+
+.power-page {
+	max-width: var(--content-width);
+	margin: 0 auto;
+	padding: var(--spacing-lg) 0;
+	color: var(--text-color);
+}
+
+/* ---- Hero ---- */
+
+.power-hero {
+	text-align: center;
+	padding: var(--spacing-xl) var(--spacing-md);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--spacing-md);
+}
+
+.power-hero__title {
+	margin: 0;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-3xl);
+	line-height: 1.1;
+	color: var(--text-color);
+}
+
+.power-hero__lede {
+	margin: 0;
+	max-width: 42rem;
+	font-size: var(--font-size-lg);
+	color: var(--text-color);
+}
+
+/* ---- Sections ---- */
+
+.power-section {
+	padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.power-section__heading {
+	margin: 0 0 var(--spacing-sm);
+	text-align: center;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-2xl);
+	color: var(--text-color);
+}
+
+.power-section__lede {
+	margin: 0 auto var(--spacing-lg);
+	max-width: 40rem;
+	text-align: center;
+	font-size: var(--font-size-body);
+	color: var(--muted-text);
+}
+
+/* ---- Pillars ---- */
+
+.power-pillars {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--spacing-md);
+}
+
+@media (min-width: 700px) {
+	.power-pillars {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.power-pillar {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--spacing-md);
+	padding: var(--spacing-lg);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-xl);
+}
+
+.power-pillar__title {
+	margin: 0;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-xl);
+	color: var(--text-color);
+}
+
+.power-pillar__statement {
+	margin: 0;
+	font-size: var(--font-size-body);
+	color: var(--text-color);
+	flex: 1 1 auto;
+}
+
+.power-pillar__cta {
+	margin-top: auto;
+}
+
+/* ---- Network map ---- */
 
 .power-network-map {
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: var(--spacing-md);
-	margin: var(--spacing-lg) 0;
 }
 
 @media (min-width: 600px) {
@@ -70,6 +170,68 @@
 
 .power-network-card__cta {
 	font-size: var(--font-size-sm);
-	font-weight: 600;
+	font-weight: var(--font-weight-semibold);
 	color: var(--link-color);
+}
+
+/* ---- Artist conversion section ---- */
+
+.power-artists {
+	padding: var(--spacing-xl) var(--spacing-lg);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-xl);
+	margin: var(--spacing-xl) var(--spacing-md);
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--spacing-md);
+}
+
+.power-artists__title {
+	margin: 0;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-2xl);
+	color: var(--text-color);
+}
+
+.power-artists__intro {
+	margin: 0;
+	font-size: var(--font-size-body);
+	color: var(--text-color);
+}
+
+.power-artists__list {
+	margin: 0;
+	padding-left: var(--spacing-lg);
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	font-size: var(--font-size-body);
+	color: var(--text-color);
+}
+
+/* ---- Closing ---- */
+
+.power-closing {
+	text-align: center;
+	padding: var(--spacing-xl) var(--spacing-md);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--spacing-md);
+}
+
+.power-closing__title {
+	margin: 0;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-2xl);
+	color: var(--text-color);
+}
+
+.power-closing__text {
+	margin: 0;
+	max-width: 36rem;
+	font-size: var(--font-size-body);
+	color: var(--text-color);
 }
