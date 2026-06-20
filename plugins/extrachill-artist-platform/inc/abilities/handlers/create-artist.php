@@ -72,19 +72,17 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 	// event row is stamped with the artist site's blog_id. The existing
 	// extrachill/get-analytics-summary reader aggregates this with no new
 	// read surface. user_id is carried in the payload (and stamped on the
-	// row when the request runs as the creating user) for cohort joins.
-	$analytics_ability = wp_get_ability( 'extrachill/track-analytics-event' );
-	if ( $analytics_ability ) {
-		$analytics_ability->execute(
-			array(
-				'event_type' => EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED,
-				'event_data' => array(
-					'user_id'   => $user_id,
-					'artist_id' => (int) $artist_id,
-				),
-			)
-		);
-	}
+	// row when the request runs as the creating user) for cohort joins, and
+	// the anonymous first-party visitor_id is passed so this completion step
+	// stitches to the upstream artist_signup_started / user_registration rows
+	// for the same member (Extra-Chill/extrachill-users#145 stitching).
+	ec_artist_platform_emit_funnel_event(
+		EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED,
+		array(
+			'user_id'   => $user_id,
+			'artist_id' => (int) $artist_id,
+		)
+	);
 
 	restore_current_blog();
 

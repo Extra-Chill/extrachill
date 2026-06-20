@@ -114,6 +114,8 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/nav.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/platform-artist-provisioning.php';
 
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/analytics/activation-funnel.php';
+
         ExtraChillArtistPlatform_PageTemplates::instance();
         ExtraChillArtistPlatform_Assets::instance();
         ExtraChillArtistPlatform_SocialLinks::instance();
