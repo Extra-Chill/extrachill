@@ -81,13 +81,19 @@ $body_bg_style .= 'min-height:100vh;';
     ?>
 </head>
 <?php
-$api_base = ec_get_site_url( 'artist' ) . '/wp-json/extrachill/v1';
+$artist_site_url = ec_get_site_url( 'artist' );
+$api_base = $artist_site_url . '/wp-json/extrachill/v1';
 $permissions_api_url = $api_base . '/artists/' . $artist_id . '/permissions';
 $subscribe_api_url = $api_base . '/artists/' . $artist_id . '/subscribe';
 $tracking_click_url = $api_base . '/analytics/click';
 $tracking_view_url = $api_base . '/analytics/view';
+// Bearer-token mint handoff on the artist site, where the .extrachill.com auth
+// cookie is first-party. The edit-button JS redirects here once to obtain a
+// short-lived token, which comes back in the URL fragment (see
+// extrachill-api/inc/auth/extrachill-link-token-handoff.php).
+$token_handoff_url = $artist_site_url . '/wp-admin/admin-post.php?action=ec_link_token_handoff';
 ?>
-<body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?> data-extrch-artist-id="<?php echo esc_attr( (string) absint( $artist_id ) ); ?>" data-extrch-link-page-id="<?php echo esc_attr( (string) absint( $link_page_id ) ); ?>" data-extrch-permissions-api-url="<?php echo esc_url( $permissions_api_url ); ?>" data-extrch-subscribe-api-url="<?php echo esc_url( $subscribe_api_url ); ?>" data-extrch-tracking-click-url="<?php echo esc_url( $tracking_click_url ); ?>" data-extrch-tracking-view-url="<?php echo esc_url( $tracking_view_url ); ?>">
+<body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?> data-extrch-artist-id="<?php echo esc_attr( (string) absint( $artist_id ) ); ?>" data-extrch-link-page-id="<?php echo esc_attr( (string) absint( $link_page_id ) ); ?>" data-extrch-permissions-api-url="<?php echo esc_url( $permissions_api_url ); ?>" data-extrch-token-handoff-url="<?php echo esc_url( $token_handoff_url ); ?>" data-extrch-subscribe-api-url="<?php echo esc_url( $subscribe_api_url ); ?>" data-extrch-tracking-click-url="<?php echo esc_url( $tracking_click_url ); ?>" data-extrch-tracking-view-url="<?php echo esc_url( $tracking_view_url ); ?>">
 <?php
 // Google Tag Manager (noscript)
 ?>
@@ -95,13 +101,18 @@ $tracking_view_url = $api_base . '/analytics/view';
             height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php
 /**
- * Edit button security model: Client-side only rendering with zero server-side HTML.
- * JavaScript performs a credentialed CORS permission check (extrachill.link → artist.extrachill.com)
- * and renders the button only if authorized.
+ * Edit button security model: client-side only rendering with zero server-side HTML.
+ * extrachill.link is a different registrable domain than *.extrachill.com, so the
+ * WordPress auth cookie can never reach it. The JS bootstraps a short-lived
+ * wp-native bearer token via a one-time redirect to the artist site (where the
+ * cookie is first-party), caches it, and performs the permission check with an
+ * Authorization: Bearer header — immune to SameSite / third-party-cookie blocking.
+ * The button renders only if the server authorizes the token-resolved user.
  *
  * Related:
  * - JS: inc/link-pages/live/assets/js/link-page-edit-button.js
- * - REST endpoint: extrachill-api/inc/routes/artist/permissions.php
+ * - Permissions endpoint: extrachill-api/inc/routes/artists/permissions.php
+ * - Token mint handoff: extrachill-api/inc/auth/extrachill-link-token-handoff.php
  */
 
     // Pass $data explicitly to the template so overlay and all settings are available
