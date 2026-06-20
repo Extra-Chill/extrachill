@@ -324,8 +324,8 @@ function extrachill_blog_power_manifesto_html() {
 	<div class="power-page">
 
 		<header class="power-hero">
-			<h1 class="power-hero__title"><?php esc_html_e( 'Extra Chill is the online music scene.', 'extrachill-blog' ); ?></h1>
-			<p class="power-hero__lede"><?php esc_html_e( 'Not just a blog — an independent, open-source music network. A live calendar, a community of musicians and fans, a festival news wire, and free tools for artists to run their own corner. All grassroots, all independent, no astro-turf.', 'extrachill-blog' ); ?></p>
+			<h1 class="power-hero__title"><?php esc_html_e( 'Extra Chill is not a blog. It\'s a whole network.', 'extrachill-blog' ); ?></h1>
+			<p class="power-hero__lede"><?php esc_html_e( 'Most people find us through one article and never realize what\'s underneath: an independent, open-source music network. A live concert calendar, a community of musicians and fans, a festival news wire, and free tools for artists to run their own corner. All grassroots, all independent, no astro-turf.', 'extrachill-blog' ); ?></p>
 			<a class="button-1 button-large power-hero__cta" href="<?php echo esc_url( $community_url ); ?>"><?php esc_html_e( 'Join the community', 'extrachill-blog' ); ?></a>
 		</header>
 
