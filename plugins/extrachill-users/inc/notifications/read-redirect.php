@@ -12,16 +12,26 @@
  * Flow:
  *   - Notification cards link to extrachill/v1/notifications/read?id=<id>&to=<url>
  *     instead of linking straight at the target.
- *   - Hitting the route (GET) verifies the notification belongs to the CURRENT
- *     logged-in user, marks that single row read via the canonical substrate
+ *   - Hitting the route (GET) verifies an HMAC token bound to that user +
+ *     notification, marks that single row read via the canonical substrate
  *     ability (extrachill/mark-notifications-read), then 302-redirects to the
  *     target URL. The bell badge naturally decrements per click.
  *
- * Security:
- *   - Login required (permission_callback checks is_user_logged_in()). The
- *     authority is the session, not a token — a user can only mark their OWN
- *     notifications read because mark-notifications-read is scoped to user_id =
- *     get_current_user_id() and the substrate UPDATE is keyed by user_id.
+ * Security (single source of truth — same model as the one-click unsubscribe
+ * handler in inc/notifications/unsubscribe.php):
+ *   - The authority is an HMAC signature in the URL, NOT REST cookie auth.
+ *     WordPress REST cookie auth requires a `_wpnonce`, which a plain
+ *     browser-navigation link from a notification card does not carry — so an
+ *     `is_user_logged_in()` permission_callback rejects every click with
+ *     `rest_forbidden` (401). That was the regression. Instead the link is
+ *     signed with an HMAC keyed by wp_salt('auth') binding the recipient
+ *     user_id and the notification id, so the route authorizes the single,
+ *     scoped "mark this user's notification read" action without depending on
+ *     session/nonce state at all.
+ *   - The signature binds user_id + notification_id (+ a fixed action context),
+ *     so a token minted for one notification can't be replayed against another,
+ *     and a user can only ever mark their OWN notifications read (the substrate
+ *     UPDATE is keyed by the user_id carried in the verified token).
  *   - The `to` target is validated against wp_validate_redirect() with the
  *     network's own hosts allow-listed, so the redirect can't be turned into an
  *     open-redirect to an arbitrary external site. An invalid/again-empty target
@@ -42,28 +52,77 @@ defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/service.php';
 
 /**
+ * Action context strings mixed into the HMAC so a signature minted for one
+ * notification flow can't be replayed against the other (or any other
+ * wp_hash-style use).
+ */
+const EC_NOTIFICATIONS_READ_ACTION     = 'ec_notifications_read';
+const EC_NOTIFICATIONS_READ_ALL_ACTION = 'ec_notifications_read_all';
+
+/**
+ * Compute the HMAC signature for a click-to-read link.
+ *
+ * Keyed by wp_salt('auth') (per-install secret). Binds the recipient user id,
+ * the single notification id, and a fixed action context so the signature is
+ * non-transferable across users, notifications, and flows.
+ *
+ * @param int $user_id         Recipient user ID.
+ * @param int $notification_id Notification row ID.
+ * @return string Hex HMAC signature.
+ */
+function ec_notifications_read_signature( $user_id, $notification_id ) {
+	$message = EC_NOTIFICATIONS_READ_ACTION . '|' . (int) $user_id . '|' . (int) $notification_id;
+	return hash_hmac( 'sha256', $message, wp_salt( 'auth' ) );
+}
+
+/**
+ * Compute the HMAC signature for a mark-all-read link.
+ *
+ * Keyed by wp_salt('auth'). Binds the recipient user id and a fixed action
+ * context (no per-notification id, since this flow clears all unread).
+ *
+ * @param int $user_id Recipient user ID.
+ * @return string Hex HMAC signature.
+ */
+function ec_notifications_read_all_signature( $user_id ) {
+	$message = EC_NOTIFICATIONS_READ_ALL_ACTION . '|' . (int) $user_id;
+	return hash_hmac( 'sha256', $message, wp_salt( 'auth' ) );
+}
+
+/**
  * Build the click-to-read redirect URL for a single notification.
  *
  * Wraps a notification's real target URL so that visiting it first marks that
- * one notification read, then forwards to the target. Returns the raw target
- * unchanged when inputs are unusable so callers never emit a broken link.
+ * one notification read, then forwards to the target. The link carries the
+ * recipient user id + an HMAC signature so the route can authorize the scoped
+ * write without REST cookie/nonce auth. Returns the raw target unchanged when
+ * inputs are unusable so callers never emit a broken link.
  *
  * @param int    $notification_id Notification row ID.
  * @param string $target_url      The notification's real destination URL.
+ * @param int    $user_id         Optional. Recipient user ID. Defaults to the
+ *                                current user (the only context cards render in).
  * @return string Read-redirect URL, or the target unchanged on invalid input.
  */
-function ec_notifications_read_redirect_url( $notification_id, $target_url ) {
+function ec_notifications_read_redirect_url( $notification_id, $target_url, $user_id = 0 ) {
 	$notification_id = (int) $notification_id;
 	$target_url      = (string) $target_url;
+	$user_id         = (int) $user_id;
 
-	if ( $notification_id <= 0 || '' === $target_url ) {
+	if ( $user_id <= 0 ) {
+		$user_id = get_current_user_id();
+	}
+
+	if ( $notification_id <= 0 || '' === $target_url || $user_id <= 0 ) {
 		return $target_url;
 	}
 
 	return add_query_arg(
 		array(
-			'id' => $notification_id,
-			'to' => rawurlencode( $target_url ),
+			'id'  => $notification_id,
+			'uid' => $user_id,
+			'sig' => ec_notifications_read_signature( $user_id, $notification_id ),
+			'to'  => rawurlencode( $target_url ),
 		),
 		rest_url( 'extrachill/v1/notifications/read' )
 	);
@@ -74,15 +133,29 @@ function ec_notifications_read_redirect_url( $notification_id, $target_url ) {
  *
  * A GET link (no AJAX) into the read-all route that marks every unread
  * notification read, then redirects back to the supplied target (the
- * notifications page). The session is the authority — no per-user token needed.
+ * notifications page). The link carries the recipient user id + an HMAC
+ * signature; the token is the authority — no per-request nonce needed.
  *
  * @param string $target_url Where to return after marking all read.
- * @return string Mark-all-read URL.
+ * @param int    $user_id    Optional. Recipient user ID. Defaults to current user.
+ * @return string Mark-all-read URL, or the target unchanged on invalid input.
  */
-function ec_notifications_mark_all_read_url( $target_url ) {
+function ec_notifications_mark_all_read_url( $target_url, $user_id = 0 ) {
 	$target_url = (string) $target_url;
+	$user_id    = (int) $user_id;
 
-	$args = array();
+	if ( $user_id <= 0 ) {
+		$user_id = get_current_user_id();
+	}
+
+	if ( $user_id <= 0 ) {
+		return $target_url;
+	}
+
+	$args = array(
+		'uid' => $user_id,
+		'sig' => ec_notifications_read_all_signature( $user_id ),
+	);
 	if ( '' !== $target_url ) {
 		$args['to'] = rawurlencode( $target_url );
 	}
@@ -95,8 +168,10 @@ add_action( 'rest_api_init', 'ec_notifications_register_read_redirect_route' );
 /**
  * Register the click-to-read + mark-all-read redirect REST routes.
  *
- * Both GET + login-required: they mark notifications read for the CURRENT user
- * then redirect. The session is the authority.
+ * Both GET + public (permission_callback __return_true): the HMAC token in the
+ * URL authorizes the scoped per-user write. The token is the authority, so the
+ * routes do not depend on REST cookie/nonce auth (which a plain notification
+ * card link cannot satisfy).
  *
  * @return void
  */
@@ -107,14 +182,24 @@ function ec_notifications_register_read_redirect_route() {
 		array(
 			'methods'             => 'GET',
 			'callback'            => 'ec_notifications_handle_read_redirect',
-			'permission_callback' => 'is_user_logged_in',
+			'permission_callback' => '__return_true',
 			'args'                => array(
-				'id' => array(
+				'id'  => array(
 					'required'          => true,
 					'type'              => 'integer',
 					'sanitize_callback' => 'absint',
 				),
-				'to' => array(
+				'uid' => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'sig' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'to'  => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'esc_url_raw',
@@ -129,9 +214,19 @@ function ec_notifications_register_read_redirect_route() {
 		array(
 			'methods'             => 'GET',
 			'callback'            => 'ec_notifications_handle_read_all',
-			'permission_callback' => 'is_user_logged_in',
+			'permission_callback' => '__return_true',
 			'args'                => array(
-				'to' => array(
+				'uid' => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'sig' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'to'  => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'esc_url_raw',
@@ -142,26 +237,30 @@ function ec_notifications_register_read_redirect_route() {
 }
 
 /**
- * Handle "mark all as read": clear the current user's unread, then redirect.
+ * Handle "mark all as read": clear the verified user's unread, then redirect.
+ *
+ * The user id is taken from the HMAC-verified token, not the session, so the
+ * link works regardless of REST cookie/nonce state. A bad signature is a no-op
+ * (still redirects to a safe target) rather than a JSON error, since this is a
+ * browser-navigation handoff.
  *
  * @param WP_REST_Request $request Request.
  * @return void Always redirects and exits.
  */
 function ec_notifications_handle_read_all( WP_REST_Request $request ) {
-	$user_id = get_current_user_id();
+	$user_id = (int) $request->get_param( 'uid' );
+	$sig     = (string) $request->get_param( 'sig' );
 	$target  = (string) $request->get_param( 'to' );
 
-	if ( $user_id > 0 && function_exists( 'wp_get_ability' ) ) {
-		$ability = wp_get_ability( 'extrachill/mark-notifications-read' );
-		if ( $ability ) {
-			// notification_id 0 marks ALL unread for this user (substrate semantics).
-			$ability->execute(
-				array(
-					'user_id'         => $user_id,
-					'notification_id' => 0,
-				)
-			);
-		}
+	$expected = ec_notifications_read_all_signature( $user_id );
+
+	if ( $user_id > 0 && '' !== $sig && hash_equals( $expected, $sig ) && get_userdata( $user_id ) ) {
+		// The HMAC proves the caller is this user. Establish them as the current
+		// user for this request so the substrate ability's session-based checks
+		// (is_user_logged_in + own-notifications-only) pass legitimately — a
+		// cookie-only REST request carries no nonce, so WordPress would not
+		// otherwise set the current user here.
+		ec_notifications_mark_read_for_user( $user_id, 0 );
 	}
 
 	wp_safe_redirect( ec_notifications_read_redirect_safe_target( $target ) );
@@ -171,38 +270,82 @@ function ec_notifications_handle_read_all( WP_REST_Request $request ) {
 /**
  * Handle the click-to-read redirect: mark one notification read, then redirect.
  *
- * Marks the single notification (scoped to the current user via the substrate
- * ability — a foreign notification id is a no-op), validates the target against
- * the network's allowed hosts, and 302-redirects. Always redirects; never
- * returns a JSON body.
+ * The recipient user id + notification id are authorized by the HMAC token in
+ * the URL (not the session), so the link works from a plain browser navigation
+ * with no REST nonce. The substrate UPDATE is keyed by the verified user_id and
+ * the single notification id, so a foreign or tampered token marks zero rows.
+ * Always redirects; never returns a JSON body.
  *
  * @param WP_REST_Request $request Request.
  * @return void Always redirects and exits.
  */
 function ec_notifications_handle_read_redirect( WP_REST_Request $request ) {
-	$user_id         = get_current_user_id();
 	$notification_id = (int) $request->get_param( 'id' );
+	$user_id         = (int) $request->get_param( 'uid' );
+	$sig             = (string) $request->get_param( 'sig' );
 	$target          = (string) $request->get_param( 'to' );
 
-	if ( $user_id > 0 && $notification_id > 0 && function_exists( 'wp_get_ability' ) ) {
-		$ability = wp_get_ability( 'extrachill/mark-notifications-read' );
-		if ( $ability ) {
-			// Scoped to this user + this single id. A notification that does not
-			// belong to the user updates zero rows (the substrate UPDATE is keyed
-			// by user_id), so this can't be abused to read other users' state.
-			$ability->execute(
-				array(
-					'user_id'         => $user_id,
-					'notification_id' => $notification_id,
-				)
-			);
-		}
+	$expected = ec_notifications_read_signature( $user_id, $notification_id );
+
+	if ( $user_id > 0 && $notification_id > 0 && '' !== $sig
+		&& hash_equals( $expected, $sig ) && get_userdata( $user_id ) ) {
+		// Scoped to this user + this single id. The HMAC proves the caller is
+		// this user; the substrate UPDATE is keyed by user_id so even a valid
+		// token can only touch its own row.
+		ec_notifications_mark_read_for_user( $user_id, $notification_id );
 	}
 
 	$destination = ec_notifications_read_redirect_safe_target( $target );
 
 	wp_safe_redirect( $destination );
 	exit;
+}
+
+/**
+ * Mark notifications read for an HMAC-verified recipient.
+ *
+ * Both GET handlers reach here only AFTER verifying the URL's HMAC signature, so
+ * the caller is proven to be $user_id. A cookie-only REST request carries no
+ * nonce, so WordPress does not establish the current user for it — meaning the
+ * canonical substrate ability (whose permission_callback is is_user_logged_in
+ * and whose resolver requires the input user_id to equal the current user)
+ * would otherwise reject the write. We bridge that by setting the verified user
+ * as the current user for the duration of the call, then restoring the prior
+ * state, so the write still flows through the single canonical ability rather
+ * than a parallel code path.
+ *
+ * @param int $user_id         Verified recipient user ID.
+ * @param int $notification_id Single notification ID, or 0 for all unread.
+ * @return void
+ */
+function ec_notifications_mark_read_for_user( $user_id, $notification_id ) {
+	$user_id         = (int) $user_id;
+	$notification_id = (int) $notification_id;
+
+	if ( $user_id <= 0 || ! function_exists( 'wp_get_ability' ) ) {
+		return;
+	}
+
+	$ability = wp_get_ability( 'extrachill/mark-notifications-read' );
+	if ( ! $ability ) {
+		return;
+	}
+
+	$previous_user = get_current_user_id();
+	if ( $previous_user !== $user_id ) {
+		wp_set_current_user( $user_id );
+	}
+
+	$ability->execute(
+		array(
+			'user_id'         => $user_id,
+			'notification_id' => $notification_id,
+		)
+	);
+
+	if ( $previous_user !== $user_id ) {
+		wp_set_current_user( $previous_user );
+	}
 }
 
 /**
