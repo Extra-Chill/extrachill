@@ -117,6 +117,13 @@ $cases = array(
 	array( 'Niagara Falls', 'ON', '', null ),
 	array( 'Burnaby', 'BC', '', 'vancouver-bc' ),
 
+	// Mexico: Rosarito (Baja California) must NOT roll into a US market via the
+	// map — it has its own Mexico-tree term (slug rosarito-bcn) and resolves via
+	// exact-name match. The map must return null so it never lands in San Diego.
+	// "BC" here is Baja California (MX), distinct from British Columbia (CA);
+	// because Rosarito is a unique city name it resolves without state collision.
+	array( 'Rosarito', 'BC', '', null ),
+
 	// Existing mappings must keep working.
 	array( 'Cambridge', 'MA', '02139', 'boston' ),
 	array( 'North Charleston', 'SC', '29405', 'charleston' ),
