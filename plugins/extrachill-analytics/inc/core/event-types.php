@@ -48,10 +48,32 @@ const EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN = 'studio_transcription_run';
 const EC_ANALYTICS_EVENT_ROADIE_SESSION_STARTED   = 'roadie_session_started';
 const EC_ANALYTICS_EVENT_ROADIE_TOOL_INVOKED      = 'roadie_tool_invoked';
 
-/** Artist-funnel events (access requests/approvals + profile creation). */
-const EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED = 'artist_access_requested';
-const EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED  = 'artist_access_approved';
-const EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED  = 'artist_profile_created';
+/**
+ * Artist-funnel events.
+ *
+ * The activation funnel a new member walks while trying to build/claim an
+ * artist page, ordered start -> finish:
+ *
+ *   user_registration        (emitted by extrachill-users on account create)
+ *     -> artist_signup_started        entered the create-artist flow
+ *       -> artist_profile_created     profile row inserted
+ *         -> artist_profile_first_publish   link page created/published
+ *
+ * Every emit site carries the anonymous first-party `visitor_id` (as the
+ * top-level ability arg) AND the `user_id` (in event_data) so a single
+ * member's pre/post-login path stitches into one queryable sequence and the
+ * step-to-step drop-off (and the specific abandon step) is computable. This
+ * is the same visitor_id<->user_id stitching the registration referrer/UTM
+ * work keys on (Extra-Chill/extrachill-users#145) — built once, shared.
+ *
+ * The access-gate events (`artist_access_requested` / `_approved`) sit
+ * upstream of this funnel for users who must request access first.
+ */
+const EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED     = 'artist_access_requested';
+const EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED      = 'artist_access_approved';
+const EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED       = 'artist_signup_started';
+const EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED      = 'artist_profile_created';
+const EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH = 'artist_profile_first_publish';
 
 /**
  * The team-experience event set surfaced by the cohort rollup
@@ -79,5 +101,21 @@ const EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS = array(
 const EC_ANALYTICS_ARTIST_FUNNEL_EVENTS = array(
 	EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED,
 	EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED,
+	EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED,
 	EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED,
+	EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH,
+);
+
+/**
+ * The activation sub-funnel — the ordered start->finish steps a new member
+ * walks when building an artist page, EXCLUDING the upstream access-gate
+ * events. Readers iterate this to compute step-to-step conversion and locate
+ * the abandon step. Order is significant (funnel sequence).
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_ARTIST_ACTIVATION_STEPS = array(
+	EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED,
+	EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED,
+	EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH,
 );
