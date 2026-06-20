@@ -16,6 +16,20 @@
 	color: var(--text-color);
 }
 
+/*
+ * The article content style `.entry-content h2 { border-bottom: 2px solid
+ * var(--accent) }` (single-post.css) is meant for long-form posts, not this
+ * manifesto. Remove that accent underline from the page's headings — the
+ * higher specificity (.entry-content .power-page) wins without !important.
+ */
+.entry-content .power-page h1,
+.entry-content .power-page h2,
+.entry-content .power-page h3 {
+	border-bottom: none;
+	padding-bottom: 0;
+	width: auto;
+}
+
 /* ---- Hero ---- */
 
 .power-hero {
