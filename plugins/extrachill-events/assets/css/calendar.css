@@ -87,3 +87,30 @@
         padding-right: var(--spacing-md);
     }
 }
+
+/* Homepage router: "Browse all cities" link below the top-N badges. */
+.events-browse-all-cities {
+    margin: var(--spacing-md) 0 0;
+    text-align: center;
+    font-size: var(--font-size-body);
+}
+
+/* Cities directory (/cities): region-grouped badge sections. */
+.cities-directory-intro {
+    color: var(--muted-text);
+    margin-bottom: 0;
+}
+
+.cities-directory .cities-region {
+    margin-bottom: var(--spacing-xl);
+}
+
+.cities-region-title {
+    margin-bottom: var(--spacing-md);
+}
+
+.cities-region-count {
+    color: var(--muted-text);
+    font-weight: normal;
+    font-size: 0.8em;
+}

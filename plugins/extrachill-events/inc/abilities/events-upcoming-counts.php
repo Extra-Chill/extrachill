@@ -50,6 +50,11 @@ function extrachill_events_register_upcoming_counts_ability(): void {
 						'default'     => 0,
 						'minimum'     => 0,
 					),
+					'rollup'        => array(
+						'type'        => 'boolean',
+						'description' => 'Roll counts up the hierarchy: each non-leaf term reports the distinct upcoming events across its whole subtree. Only meaningful for hierarchical taxonomies (location). Default false.',
+						'default'     => false,
+					),
 				),
 			),
 			'output_schema'       => array(
@@ -89,6 +94,7 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
 	$slug          = sanitize_title( $input['slug'] ?? '' );
 	$location_slug = sanitize_title( $input['location_slug'] ?? '' );
 	$limit         = (int) ( $input['limit'] ?? 0 );
+	$rollup        = ! empty( $input['rollup'] );
 
 	$allowed = array( 'venue', 'location', 'artist', 'festival' );
 	if ( empty( $taxonomy ) || ! in_array( $taxonomy, $allowed, true ) ) {
@@ -113,11 +119,17 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
 		return array( $single );
 	}
 
-	// Bulk query — check transient, run SQL on cold cache.
-	$cache_key = '' !== $location_slug
-		? 'ec_upcoming_counts_' . $taxonomy . '_loc_' . $location_slug
-		: 'ec_upcoming_counts_' . $taxonomy;
-	$cached    = get_transient( $cache_key );
+	// Bulk query — check transient, delegate to the data-machine-events
+	// ability on cold cache. Cache key varies by every parameter that
+	// changes the result set.
+	$cache_key = 'ec_upcoming_counts_' . $taxonomy;
+	if ( '' !== $location_slug ) {
+		$cache_key .= '_loc_' . $location_slug;
+	}
+	if ( $rollup ) {
+		$cache_key .= '_rollup';
+	}
+	$cached = get_transient( $cache_key );
 
 	if ( false !== $cached ) {
 		$results = $cached;
@@ -127,8 +139,11 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
 		return $results;
 	}
 
-	// Cold cache — run the query.
-	$terms = extrachill_events_query_upcoming_counts( $taxonomy, $location_slug );
+	// Cold cache — delegate to the owning ability.
+	$terms = extrachill_events_query_upcoming_counts( $taxonomy, $location_slug, $rollup );
+	if ( is_wp_error( $terms ) ) {
+		return $terms;
+	}
 
 	set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
 
@@ -142,92 +157,65 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
 /**
  * Query upcoming event counts for all terms in a taxonomy.
  *
- * Optionally scopes results to events tagged with a specific location term.
- * Only honored when $taxonomy is 'venue' (see caller for enforcement).
+ * Thin wrapper over the data-machine-events/get-upcoming-counts ability — the
+ * single source of truth for the count query. This function owns only the
+ * EC-specific concerns the generic layer should not: mapping a venue
+ * `location_slug` scope onto the ability's co-occurrence filter, and passing
+ * through the optional hierarchy `rollup` mode. Caching + limit slicing are
+ * handled by the caller.
  *
  * @param string $taxonomy      Taxonomy slug.
- * @param string $location_slug Optional location term slug to scope event counts to.
- *                              When non-empty, only events that also have this location
- *                              term assigned are counted. Empty string disables scoping.
- * @return array Array of term count data.
+ * @param string $location_slug Optional location term slug to scope venue counts to.
+ *                              When non-empty (and taxonomy is venue), only events also
+ *                              tagged with this location term are counted.
+ * @param bool   $rollup        Roll counts up the hierarchy (ancestor subtree totals).
+ * @return array|\WP_Error Array of term count data, or WP_Error on failure.
  */
-function extrachill_events_query_upcoming_counts( string $taxonomy, string $location_slug = '' ): array {
+function extrachill_events_query_upcoming_counts( string $taxonomy, string $location_slug = '', bool $rollup = false ): array|\WP_Error {
 	if ( ! taxonomy_exists( $taxonomy ) ) {
 		return array();
 	}
 
-	global $wpdb;
+	$ability = wp_get_ability( 'data-machine-events/get-upcoming-counts' );
+	if ( ! $ability ) {
+		return new \WP_Error(
+			'ability_unavailable',
+			__( 'data-machine-events/get-upcoming-counts ability is not available.', 'extrachill-events' ),
+			array( 'status' => 500 )
+		);
+	}
 
-	$today         = gmdate( 'Y-m-d 00:00:00' );
-	$exclude_roots = is_taxonomy_hierarchical( $taxonomy );
-	$parent_clause = $exclude_roots ? 'AND tt.parent != 0' : '';
+	$args = array( 'taxonomy' => $taxonomy );
+	if ( $rollup ) {
+		$args['rollup'] = true;
+	}
 
-	// Optional location scope. Adds a second join through term_relationships
-	// onto the same post (p.ID) so only events tagged with the given location
-	// term are counted. Resolved up-front to avoid placeholder gymnastics.
-	$location_join   = '';
-	$location_where  = '';
-	$location_params = array();
-
+	// Map the venue location scope onto the ability's co-occurrence filter:
+	// count distinct venues of upcoming events also tagged with this location.
 	if ( '' !== $location_slug ) {
 		$location_term = get_term_by( 'slug', $location_slug, 'location' );
 		if ( ! $location_term || is_wp_error( $location_term ) ) {
 			// Unknown location — return empty rather than unscoped results.
 			return array();
 		}
-
-		$location_join   = "INNER JOIN {$wpdb->term_relationships} tr_loc ON tr_loc.object_id = p.ID
-			INNER JOIN {$wpdb->term_taxonomy} tt_loc ON tr_loc.term_taxonomy_id = tt_loc.term_taxonomy_id";
-		$location_where  = ' AND tt_loc.taxonomy = %s AND tt_loc.term_id = %d ';
-		$location_params = array( 'location', (int) $location_term->term_id );
+		$args['filter_taxonomy'] = 'location';
+		$args['filter_term_id']  = (int) $location_term->term_id;
 	}
 
-	$sql = "SELECT t.term_id, t.name, t.slug, COUNT(DISTINCT p.ID) AS event_count
-		FROM {$wpdb->term_relationships} tr
-		INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-		INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
-		INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
-		INNER JOIN {$wpdb->prefix}datamachine_event_dates ed ON p.ID = ed.post_id
-		{$location_join}
-		WHERE tt.taxonomy = %s
-		AND p.post_type = 'data_machine_events'
-		AND p.post_status = 'publish'
-		AND ed.start_datetime >= %s
-		{$location_where}
-		{$parent_clause}
-		GROUP BY t.term_id
-		ORDER BY event_count DESC";
-
-	$params = array_merge( array( $taxonomy, $today ), $location_params );
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
-	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
-
-	if ( empty( $rows ) ) {
-		return array();
+	$result = $ability->execute( $args );
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
-	$terms = array();
-	foreach ( $rows as $row ) {
-		$url = get_term_link( (int) $row->term_id, $taxonomy );
-		if ( is_wp_error( $url ) ) {
-			continue;
-		}
-
-		$terms[] = array(
-			'term_id' => (int) $row->term_id,
-			'name'    => $row->name,
-			'slug'    => $row->slug,
-			'count'   => (int) $row->event_count,
-			'url'     => $url,
-		);
-	}
-
-	return $terms;
+	return $result['terms'] ?? array();
 }
 
 /**
  * Get upcoming count for a single taxonomy term by slug.
+ *
+ * Delegates to the data-machine-events/get-upcoming-counts ability (bulk
+ * query for the taxonomy, then pick the requested term) so all counting goes
+ * through the single owning primitive.
  *
  * @param string $slug     Term slug.
  * @param string $taxonomy Taxonomy slug.
@@ -243,42 +231,16 @@ function extrachill_events_single_upcoming_count( string $slug, string $taxonomy
 		return null;
 	}
 
-	global $wpdb;
-	$today = gmdate( 'Y-m-d 00:00:00' );
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-	$count = (int) $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT COUNT(DISTINCT p.ID)
-			FROM {$wpdb->posts} p
-			INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
-			INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-			INNER JOIN {$wpdb->prefix}datamachine_event_dates ed ON p.ID = ed.post_id
-			WHERE tt.term_id = %d
-			AND tt.taxonomy = %s
-			AND p.post_type = 'data_machine_events'
-			AND p.post_status = 'publish'
-			AND ed.start_datetime >= %s",
-			$term->term_id,
-			$taxonomy,
-			$today
-		)
-	);
-
-	if ( $count < 1 ) {
+	$terms = extrachill_events_query_upcoming_counts( $taxonomy );
+	if ( is_wp_error( $terms ) ) {
 		return null;
 	}
 
-	$url = get_term_link( $term );
-	if ( is_wp_error( $url ) ) {
-		return null;
+	foreach ( $terms as $row ) {
+		if ( (int) $row['term_id'] === (int) $term->term_id ) {
+			return $row;
+		}
 	}
 
-	return array(
-		'term_id' => $term->term_id,
-		'name'    => $term->name,
-		'slug'    => $term->slug,
-		'count'   => $count,
-		'url'     => $url,
-	);
+	return null;
 }

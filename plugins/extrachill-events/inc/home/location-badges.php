@@ -2,7 +2,9 @@
 /**
  * Events Homepage Location Badges
  *
- * Displays location badges with upcoming event counts for easy city filtering.
+ * Homepage router: shows the top N cities by upcoming-event count as badges,
+ * with a "Browse all cities" link to the full /cities directory. Keeps the
+ * homepage glanceable instead of rendering every qualifying city (147+).
  *
  * @package ExtraChillEvents
  * @since 0.3.2
@@ -12,10 +14,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Number of city badges to surface on the homepage router.
+ *
+ * @since 0.24.0
+ */
+$top_n = (int) apply_filters( 'extrachill_events_home_badge_limit', 25 );
+
 $request = new WP_REST_Request( 'GET', '/extrachill/v1/events/upcoming-counts' );
 $request->set_query_params(
 	array(
 		'taxonomy' => 'location',
+		'limit'    => $top_n,
 	)
 );
 
@@ -30,18 +40,6 @@ $location_counts = $response->get_data();
 if ( empty( $location_counts ) || ! is_array( $location_counts ) ) {
 	return;
 }
-
-$min_events      = apply_filters( 'extrachill_events_badge_min_count', 20 );
-$location_counts = array_filter(
-	$location_counts,
-	function ( $location ) use ( $min_events ) {
-		return $location['count'] >= $min_events;
-	}
-);
-
-if ( empty( $location_counts ) ) {
-	return;
-}
 ?>
 	<div class="taxonomy-badges ec-edge-gutter">
 	<?php foreach ( $location_counts as $location ) : ?>
@@ -50,3 +48,9 @@ if ( empty( $location_counts ) ) {
 		</a>
 	<?php endforeach; ?>
 	</div>
+
+	<p class="events-browse-all-cities">
+		<a href="<?php echo esc_url( home_url( '/cities/' ) ); ?>">
+			<?php esc_html_e( 'Browse all cities &rarr;', 'extrachill-events' ); ?>
+		</a>
+	</p>
