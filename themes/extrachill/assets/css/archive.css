@@ -201,7 +201,15 @@ a.card-link-target:hover,
 }
 
 /* Archive and Search Styles (moved from style.css) */
-.archive img, .search img {
+
+/* Post-card featured thumbnails on archive + search loops. Scoped to the
+   .featured-image wrapper (rendered by inc/archives/post-card.php, which
+   extrachill-search also reuses) so the fixed card-image height never bleeds
+   onto other images that happen to sit on an archive/search page — e.g. the
+   events-map block's Leaflet emoji markers, which were being stretched to
+   260px by the previous `.archive img, .search img` selector. */
+.archive .featured-image img,
+.search .featured-image img {
 	height: 260px;
 	object-fit: cover;
 }

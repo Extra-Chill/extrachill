@@ -99,6 +99,18 @@ h2.recent-title {
 	box-shadow: 0 1px 4px rgba(0,0,0,0.07);
 }
 
+/* Sidebar mini-card thumbnails own their own fixed height. Previously these
+   were sized by the over-broad `.archive img { height: 260px }` rule in
+   archive.css (the sidebar renders on archive pages via index.php). That
+   selector now only targets post-card `.featured-image img`, so the height is
+   declared here where it belongs. Matches the previous rule exactly
+   (height + object-fit only — width stays governed by the global
+   `img { max-width: 100% }`) so the minis are pixel-identical. */
+.my-recent-posts .mini-card .post-thumbnail img {
+	height: 260px;
+	object-fit: cover;
+}
+
 /* Sidebar Widget Title Contrast */
 .my-recent-posts .widget-title.sidebar-recent-title-margin {
 	background: var(--card-background);
