@@ -56,6 +56,9 @@ register_activation_hook(
 // Redirect rules database table (runs migration check on admin_init + wp_loaded for CLI).
 require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-db.php';
 
+// Global-scope public API for cross-plugin redirect lookups (e.g. analytics 404 reports).
+require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-public-api.php';
+
 // Sitemap provider loaded early so the class is defined before wp_loaded registration.
 require_once EXTRACHILL_SEO_PATH . 'inc/core/sitemap.php';
 
