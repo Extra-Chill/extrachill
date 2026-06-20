@@ -353,6 +353,20 @@ add_filter( 'block_editor_settings_all', 'extrachill_filter_admin_only_editor_st
  * picker entry and its @font-face share a slug, with no duplicate
  * same-font-different-slug registrations.
  *
+ * Why the four families are declared INLINE here (not read from $theme_json):
+ * at the wp_theme_json_data_theme stage $theme_json->get_data() does not yet
+ * reliably contain the file-based theme.json fontFamilies — reading it returned
+ * a partial (1-family) list, and rebuilding from that partial list produced a
+ * malformed, slug-less merge. So this filter contributes all four families as
+ * fully-formed entries (each ALWAYS carrying a slug), sourced from the same
+ * slugs/values theme.json declares. It never depends on reading $data.
+ *
+ * Why version 3 (not 2): the shipped theme.json is version 3. update_with()
+ * with version 2 mixed v2/v3 fontFamily shapes during the merge, which dropped
+ * the slug key on the resulting preset entries — the direct source of the
+ * "Undefined array key 'slug'" warning in class-wp-theme-json. Matching the
+ * shipped theme.json version keeps a single coherent shape through the merge.
+ *
  * (Previous approach put @font-face inside editor-style.css with relative
  * ../fonts/ URLs — those failed to resolve because postcss-urlrebase doesn't
  * reliably rewrite paths inside @font-face src lists when CSS is inlined as a
@@ -364,72 +378,64 @@ add_filter( 'block_editor_settings_all', 'extrachill_filter_admin_only_editor_st
 function extrachill_register_theme_fonts( $theme_json ) {
 	$fonts_uri = get_template_directory_uri() . '/assets/fonts';
 
-	// Read the font-family slugs/values already declared by the shipped
-	// theme.json so this filter stays in sync with the tokens-generated source
-	// and only ADDS fontFace src to the custom fonts.
-	$data           = $theme_json->get_data();
-	$theme_families = array();
-	if ( isset( $data['settings']['typography']['fontFamilies'] ) && is_array( $data['settings']['typography']['fontFamilies'] ) ) {
-		$theme_families = $data['settings']['typography']['fontFamilies'];
-	}
-
-	// Map of theme.json slug => @font-face definition to attach. Only the two
-	// custom fonts (woff2 shipped in the theme) get a fontFace.
-	$font_faces = array(
-		'font-family-heading' => array(
-			array(
-				'fontFamily'  => 'Loft Sans',
-				'fontStyle'   => 'normal',
-				'fontWeight'  => '100 900',
-				'fontDisplay' => 'swap',
-				'src'         => array( $fonts_uri . '/WilcoLoftSans-Treble.woff2' ),
-			),
-		),
-		'font-family-brand'   => array(
-			array(
-				'fontFamily'  => 'Lobster',
-				'fontStyle'   => 'normal',
-				'fontWeight'  => '400',
-				'fontDisplay' => 'swap',
-				'src'         => array( $fonts_uri . '/Lobster2.woff2' ),
-			),
+	// @font-face definitions for the two custom fonts whose woff2 ship in the
+	// theme (assets/fonts/). Body + mono use system stacks and need no src.
+	$heading_font_face = array(
+		array(
+			'fontFamily'  => 'Loft Sans',
+			'fontStyle'   => 'normal',
+			'fontWeight'  => '100 900',
+			'fontDisplay' => 'swap',
+			'src'         => array( $fonts_uri . '/WilcoLoftSans-Treble.woff2' ),
 		),
 	);
 
-	// Rebuild the full families list, attaching fontFace to the matching slugs.
-	// Re-declaring the complete list is required because the theme.json merge
-	// replaces (not per-slug merges) the fontFamilies preset.
-	$families = array();
-	foreach ( $theme_families as $family ) {
-		if ( isset( $family['slug'] ) && isset( $font_faces[ $family['slug'] ] ) ) {
-			$family['fontFace'] = $font_faces[ $family['slug'] ];
-		}
-		$families[] = $family;
-	}
+	$brand_font_face = array(
+		array(
+			'fontFamily'  => 'Lobster',
+			'fontStyle'   => 'normal',
+			'fontWeight'  => '400',
+			'fontDisplay' => 'swap',
+			'src'         => array( $fonts_uri . '/Lobster2.woff2' ),
+		),
+	);
 
-	// Defensive fallback: if the shipped theme.json is somehow unavailable (no
-	// families read), declare the two custom fonts directly so @font-face still
-	// loads sitewide. Uses the same slugs theme.json would use.
-	if ( empty( $families ) ) {
-		$families = array(
-			array(
-				'name'       => 'Headings',
-				'slug'       => 'font-family-heading',
-				'fontFamily' => '"Loft Sans", sans-serif',
-				'fontFace'   => $font_faces['font-family-heading'],
-			),
-			array(
-				'name'       => 'Brand / logo text',
-				'slug'       => 'font-family-brand',
-				'fontFamily' => '"Lobster", sans-serif',
-				'fontFace'   => $font_faces['font-family-brand'],
-			),
-		);
-	}
+	// Declare ALL FOUR font families fully-formed, each WITH a slug, sourced
+	// from the slugs/values the shipped theme.json (version 3) declares. The
+	// theme.json merge replaces (does not per-slug merge) the fontFamilies
+	// preset, so the complete list must be re-declared here. Every entry
+	// carries a slug, so no slug-less preset is ever produced — which is what
+	// triggered the "Undefined array key 'slug'" warning.
+	$families = array(
+		array(
+			'slug'       => 'font-family-heading',
+			'name'       => 'Headings',
+			'fontFamily' => '"Loft Sans", sans-serif',
+			'fontFace'   => $heading_font_face,
+		),
+		array(
+			'slug'       => 'font-family-body',
+			'name'       => 'Body text',
+			'fontFamily' => "'Helvetica', 'Open Sans', serif",
+		),
+		array(
+			'slug'       => 'font-family-brand',
+			'name'       => 'Brand / logo text',
+			'fontFamily' => '"Lobster", sans-serif',
+			'fontFace'   => $brand_font_face,
+		),
+		array(
+			'slug'       => 'font-family-mono',
+			'name'       => 'Monospace / code',
+			'fontFamily' => "'Helvetica', Arial, sans-serif",
+		),
+	);
 
+	// Match the shipped theme.json version (3) so the merge keeps a single
+	// coherent fontFamily shape and never drops the slug key.
 	$theme_json->update_with(
 		array(
-			'version'  => 2,
+			'version'  => 3,
 			'settings' => array(
 				'typography' => array(
 					'fontFamilies' => $families,
