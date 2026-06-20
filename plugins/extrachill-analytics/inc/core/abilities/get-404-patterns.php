@@ -100,6 +100,10 @@ function extrachill_analytics_ability_get_404_patterns( $input ) {
 	}
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
+	// Drop URLs that already have an active redirect rule so solved 404s
+	// don't inflate the pattern-category counts.
+	$rows = extrachill_analytics_exclude_redirected_404_rows( $rows );
+
 	// Aggregate by category.
 	$categories  = array();
 	$total_hits  = 0;
