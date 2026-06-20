@@ -140,7 +140,7 @@ function extrachill_blog_power_pillar( $heading, $statement, $cta_label, $cta_ur
 	ob_start();
 	?>
 	<div class="power-pillar">
-		<h2 class="power-pillar__title"><?php echo esc_html( $heading ); ?></h2>
+		<h3 class="power-pillar__title"><?php echo esc_html( $heading ); ?></h3>
 		<p class="power-pillar__statement"><?php echo esc_html( $statement ); ?></p>
 		<a class="button-1 button-medium power-pillar__cta" href="<?php echo esc_url( $cta_url ); ?>"><?php echo esc_html( $cta_label ); ?></a>
 	</div>
