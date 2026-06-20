@@ -139,6 +139,36 @@ function extrachill_analytics_ability_track_event( $input ) {
 		}
 	}
 
+	// Endpoint-automation gate for search demand signals. Community search is
+	// hammered by automation firing legitimate-looking artist names from the
+	// bare homepage (~7,800 searches in 2 days, all with no visitor cookie),
+	// which inflates the zero-result "demand" list. The existing payload
+	// classifier above only catches scanner/injection *terms*, not a bot
+	// spraying real names. Stamp a deterministic `is_bot` flag on `search`
+	// events so demand readers can exclude automation while volume stays
+	// visible — the same "keep it, don't hide it" posture as search_attack.
+	//
+	// Signal: a known-bot user agent. A real human searches only after loading
+	// a page (which mints the ec_vid cookie), so we additionally treat a
+	// cookieless search as bot-suspect. visitor_id resolution runs in the
+	// tracker; here we read the cookie presence directly to avoid re-minting.
+	if ( 'search' === $event_type && is_array( $event_data ) ) {
+		$user_agent = extrachill_analytics_get_user_agent();
+
+		$ua_is_bot = function_exists( 'extrachill_analytics_is_bot' )
+			&& extrachill_analytics_is_bot( $user_agent );
+
+		$has_visitor_cookie = function_exists( 'extrachill_analytics_read_visitor_id' )
+			&& '' !== extrachill_analytics_read_visitor_id();
+
+		// Bot when the UA matches a known crawler, or when the search is
+		// cookieless AND the UA is empty (headless/scripted clients routinely
+		// send no User-Agent). A human who reached the search box has a cookie.
+		$is_bot = $ua_is_bot || ( ! $has_visitor_cookie && '' === $user_agent );
+
+		$event_data['is_bot'] = $is_bot;
+	}
+
 	/**
 	 * Filter whether to track an analytics event.
 	 *

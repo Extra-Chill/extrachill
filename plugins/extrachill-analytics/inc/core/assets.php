@@ -51,6 +51,37 @@ function extrachill_analytics_is_valid_visitor_id( $value ) {
 }
 
 /**
+ * Read the existing first-party visitor id from the cookie WITHOUT minting.
+ *
+ * This is the read-only resolver used by server-side, non-pageview event
+ * writes (search, 404, registration, email, etc.). Minting a cookie is the
+ * pageview path's job — it owns the early `template_redirect` hook where
+ * `headers_sent()` is still false. A search or 404 write happens deep in the
+ * request (often after output has begun), so it must NOT try to mint; it just
+ * stitches to the visitor's already-established `ec_vid` cookie when one
+ * exists. Honors GPC/DNT opt-out by returning an empty string.
+ *
+ * @return string The existing visitor UUID, or empty string when none is set
+ *                 or the visitor has opted out.
+ */
+function extrachill_analytics_read_visitor_id() {
+	if ( extrachill_analytics_visitor_opted_out() ) {
+		return '';
+	}
+
+	$cookie_name = EXTRACHILL_ANALYTICS_VISITOR_COOKIE;
+
+	if ( isset( $_COOKIE[ $cookie_name ] ) ) {
+		$existing = sanitize_text_field( wp_unslash( $_COOKIE[ $cookie_name ] ) );
+		if ( extrachill_analytics_is_valid_visitor_id( $existing ) ) {
+			return $existing;
+		}
+	}
+
+	return '';
+}
+
+/**
  * Read the existing first-party visitor id, or mint a new one server-side.
  *
  * The cookie value is a random UUID v4 only — never an IP, email, or
@@ -82,14 +113,11 @@ function extrachill_analytics_get_or_mint_visitor_id() {
 		return $resolved;
 	}
 
-	$cookie_name = EXTRACHILL_ANALYTICS_VISITOR_COOKIE;
-
-	if ( isset( $_COOKIE[ $cookie_name ] ) ) {
-		$existing = sanitize_text_field( wp_unslash( $_COOKIE[ $cookie_name ] ) );
-		if ( extrachill_analytics_is_valid_visitor_id( $existing ) ) {
-			$resolved = $existing;
-			return $resolved;
-		}
+	// Read-only resolve first; if the cookie already exists we reuse it.
+	$existing = extrachill_analytics_read_visitor_id();
+	if ( '' !== $existing ) {
+		$resolved = $existing;
+		return $resolved;
 	}
 
 	$visitor_id = wp_generate_uuid4();

@@ -157,6 +157,15 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	$where[]  = "CHAR_LENGTH({$term_expr}) <= %d";
 	$values[] = $max_len;
 
+	// Exclude endpoint-automation searches flagged at insert time by the
+	// `is_bot` gate in extrachill_analytics_ability_track_event(). The flag is
+	// a JSON boolean, so JSON_EXTRACT returns the literal `true` for bot rows.
+	// Older rows predating the flag have no key (JSON_EXTRACT → NULL) and are
+	// intentionally kept — this filter only drops rows EXPLICITLY marked bot,
+	// so the demand list excludes automation without silently dropping legacy
+	// human searches.
+	$where[] = "COALESCE(JSON_EXTRACT(event_data, '$.is_bot'), false) = false";
+
 	$where_clause = implode( ' AND ', $where );
 	$where_values = $values;
 
@@ -167,9 +176,12 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	// this is an on-demand admin/CLI report, not a hot path.
 	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-	// Total human-plausible searches in window (after length filter; the
-	// classifier-based exclusion is applied per-term below for the buckets, and
-	// reflected via excluded_bot).
+	// Total human-plausible searches in window (after the length filter AND the
+	// endpoint-automation `is_bot` exclusion in $where; the term-classifier
+	// exclusion is applied per-term below for the buckets, and reflected via
+	// excluded_bot). Because the is_bot filter lives in the shared $where, it
+	// trims the denominator and the buckets identically, keeping
+	// zero_result_rate honest.
 	$total_sql      = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
 	$total_searches = empty( $where_values )
 		? (int) $wpdb->get_var( $total_sql )

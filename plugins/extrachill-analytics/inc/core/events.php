@@ -19,6 +19,10 @@ defined( 'ABSPATH' ) || exit;
  * @param string $visitor_id Optional anonymous first-party visitor UUID (v4). Stored only
  *                           when it is a well-formed UUID v4 and the visitor has not opted
  *                           out via GPC/DNT (callers pass '' in that case). Never PII.
+ *                           When omitted/empty, this falls back to the existing `ec_vid`
+ *                           cookie (read-only, no minting) so server-side, non-pageview
+ *                           events (search, 404, registration, email) stitch to the same
+ *                           visitor as pageviews do.
  * @return int|false Event ID on success, false on failure.
  */
 function extrachill_track_analytics_event( $event_type, $event_data = array(), $source_url = '', $visitor_id = '' ) {
@@ -29,6 +33,21 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 	}
 
 	$table_name = extrachill_analytics_events_table();
+
+	// Server-side stitching: when the caller didn't supply a valid visitor id
+	// (the pageview JS beacon is the only caller that does), fall back to the
+	// existing `ec_vid` cookie via the READ-ONLY resolver. This attaches a
+	// visitor_id to non-pageview events (search, 404, registration, email)
+	// without minting a new cookie here — minting stays the pageview path's
+	// job on the early template_redirect hook. GPC/DNT opt-out is honored by
+	// the resolver (returns '' → stored as NULL). Never PII.
+	if (
+		( ! function_exists( 'extrachill_analytics_is_valid_visitor_id' )
+			|| ! extrachill_analytics_is_valid_visitor_id( $visitor_id ) )
+		&& function_exists( 'extrachill_analytics_read_visitor_id' )
+	) {
+		$visitor_id = extrachill_analytics_read_visitor_id();
+	}
 
 	// Only persist a valid UUID v4; anything else (including empty / opted-out) is NULL.
 	$stored_visitor_id = ( function_exists( 'extrachill_analytics_is_valid_visitor_id' )
