@@ -120,7 +120,8 @@ function extrachill_analytics_get_or_mint_visitor_id() {
 		return $resolved;
 	}
 
-	$visitor_id = wp_generate_uuid4();
+	$cookie_name = EXTRACHILL_ANALYTICS_VISITOR_COOKIE;
+	$visitor_id  = wp_generate_uuid4();
 
 	// Set the cookie for ~1 year. Secure + HttpOnly + SameSite=Lax: first-party
 	// analytics only, not readable by JS, not sent on cross-site sub-requests.
