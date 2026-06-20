@@ -338,12 +338,15 @@ function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_
 	$prev_end    = gmdate( 'Y-m-d', strtotime( "-" . ( $days + 1 ) . ' days' ) );
 	$prev_start  = gmdate( 'Y-m-d', strtotime( "-" . ( $days * 2 ) . ' days' ) );
 
-	$cur_total  = extrachill_analytics_ga_sessions_for_window( $ga_ability, $host, $cur_start, $cur_end );
+	// The window is $days long; date_stats returns one row per day, so the
+	// expected series length is $days. Pass it through so the helper can both
+	// request a high-enough row limit AND detect a silently-truncated series.
+	$cur_total  = extrachill_analytics_ga_sessions_for_window( $ga_ability, $host, $cur_start, $cur_end, $days );
 	if ( is_wp_error( $cur_total ) ) {
 		return extrachill_analytics_not_instrumented( 'GA date_stats failed for current window: ' . $cur_total->get_error_message() );
 	}
 
-	$prev_total = extrachill_analytics_ga_sessions_for_window( $ga_ability, $host, $prev_start, $prev_end );
+	$prev_total = extrachill_analytics_ga_sessions_for_window( $ga_ability, $host, $prev_start, $prev_end, $days );
 	if ( is_wp_error( $prev_total ) ) {
 		return extrachill_analytics_not_instrumented( 'GA date_stats failed for previous window: ' . $prev_total->get_error_message() );
 	}
@@ -392,19 +395,42 @@ function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_
 /**
  * Sum sessions for a host over a GA date window via action=date_stats.
  *
- * @param WP_Ability $ga_ability GA ability instance.
- * @param string     $host       Hostname filter.
- * @param string     $start      Start date (YYYY-MM-DD).
- * @param string     $end        End date (YYYY-MM-DD).
- * @return int|WP_Error Total sessions, or error.
+ * The date_stats action returns one row per DAY, so a window of N days is an
+ * N-row series. The datamachine/google-analytics ability applies a DEFAULT_LIMIT
+ * of 25 rows when no explicit limit is given (returning oldest-first and dropping
+ * the NEWEST days past the cap). Summing that truncated series silently
+ * understates the current window and manufactures a downward demand slope
+ * (analytics#50).
+ *
+ * To avoid that we (1) request an explicit limit large enough to cover the whole
+ * window, and (2) treat a series that still comes back shorter than the expected
+ * day-count as a coverage gap (WP_Error) rather than trusting a partial sum — a
+ * known-truncated series must never produce a confident slope. The caller maps
+ * the WP_Error to a not_instrumented marker, so the figure degrades honestly.
+ *
+ * @param WP_Ability $ga_ability    GA ability instance.
+ * @param string     $host          Hostname filter.
+ * @param string     $start         Start date (YYYY-MM-DD).
+ * @param string     $end           End date (YYYY-MM-DD).
+ * @param int        $expected_days Expected number of daily rows for the window.
+ * @return int|WP_Error Total sessions, or error (incl. truncated-series guard).
  */
-function extrachill_analytics_ga_sessions_for_window( $ga_ability, $host, $start, $end ) {
+function extrachill_analytics_ga_sessions_for_window( $ga_ability, $host, $start, $end, $expected_days = 0 ) {
+	$expected_days = max( 0, (int) $expected_days );
+
+	// Request enough rows to cover the whole window plus a small buffer. A
+	// one-row-per-day series can never exceed the window length, so this stays
+	// well under the ability's MAX_LIMIT (10000). Keep a sane floor for callers
+	// that don't pass an expected day-count.
+	$limit = max( $expected_days + 5, 60 );
+
 	$result = $ga_ability->execute(
 		array(
 			'action'     => 'date_stats',
 			'hostname'   => $host,
 			'start_date' => $start,
 			'end_date'   => $end,
+			'limit'      => $limit,
 		)
 	);
 
@@ -417,8 +443,28 @@ function extrachill_analytics_ga_sessions_for_window( $ga_ability, $host, $start
 		return new WP_Error( 'ga_demand_failed', $msg );
 	}
 
+	$rows      = (array) ( $result['results'] ?? array() );
+	$row_count = count( $rows );
+
+	// Truncation guard: if the daily series came back shorter than the window it
+	// is supposed to cover, we are summing partial data — which biases the slope.
+	// Degrade to a coverage gap rather than report a wrong, confident figure.
+	if ( $expected_days > 0 && $row_count < $expected_days ) {
+		return new WP_Error(
+			'ga_demand_truncated',
+			sprintf(
+				/* translators: 1: rows returned, 2: expected day count, 3: window start, 4: window end. */
+				'date_stats returned a truncated daily series (%1$d of %2$d expected days) for %3$s..%4$s; refusing to report a slope from partial data.',
+				$row_count,
+				$expected_days,
+				$start,
+				$end
+			)
+		);
+	}
+
 	$total = 0;
-	foreach ( (array) ( $result['results'] ?? array() ) as $row ) {
+	foreach ( $rows as $row ) {
 		$total += (int) ( $row['sessions'] ?? 0 );
 	}
 
