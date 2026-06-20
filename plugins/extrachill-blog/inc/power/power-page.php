@@ -153,7 +153,7 @@ HTML;
 
 	$pillar_platform = extrachill_blog_power_pillar(
 		'The Power of the Platform',
-		'Every independent artist gets a free home base: a link page at extrachill.link, their own forum, merch tools, and analytics. You own your corner — we just hand you the keys and get out of the way.',
+		'Every independent artist gets a free home base: a link page at extrachill.link, your own subscribers, and analytics. You own your corner — we just hand you the keys and get out of the way.',
 		'Build your home base',
 		$artist_register_url
 	);
@@ -183,11 +183,7 @@ HTML;
 <!-- /wp:list-item -->
 
 <!-- wp:list-item -->
-<li>Your own forum to talk directly with fans.</li>
-<!-- /wp:list-item -->
-
-<!-- wp:list-item -->
-<li>Tools to sell merch on your terms.</li>
+<li>Build a subscriber list so you can reach fans directly.</li>
 <!-- /wp:list-item -->
 
 <!-- wp:list-item -->

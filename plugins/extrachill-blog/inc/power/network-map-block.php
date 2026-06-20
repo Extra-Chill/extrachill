@@ -231,7 +231,7 @@ function extrachill_blog_render_network_map_block() {
 		),
 		array(
 			'title' => __( 'Artist Platform', 'extrachill-blog' ),
-			'desc'  => __( 'Free link pages, forums, and merch tools for independent artists to run their own corner.', 'extrachill-blog' ),
+			'desc'  => __( 'Free link pages, subscribers, and analytics for independent artists to run their own corner.', 'extrachill-blog' ),
 			'url'   => $site_url( 'artist', 'https://artist.extrachill.com' ),
 			'cta'   => __( 'Explore the platform', 'extrachill-blog' ),
 			'proof' => extrachill_blog_network_proof_line(
