@@ -336,6 +336,8 @@ class RedirectsCommand {
 		$skipped_no_match      = 0;
 		$skipped_exists        = 0;
 		$skipped_category      = 0;
+		$skipped_taxonomy      = 0;
+		$skipped_resolves      = 0;
 		$rows                  = array();
 
 		foreach ( $results as $row ) {
@@ -350,6 +352,22 @@ class RedirectsCommand {
 
 			if ( ! in_array( $url_cat, $importable_categories, true ) ) {
 				++$skipped_category;
+				continue;
+			}
+
+			// Guard 1: skip taxonomy/archive path prefixes. These are not single
+			// posts — fuzzy-matching their last path segment to a post produces
+			// archive-breaking redirects (e.g. /artist/grateful-dead → a post).
+			if ( $this->is_skipped_prefix( $url ) ) {
+				++$skipped_taxonomy;
+				continue;
+			}
+
+			// Guard 2: skip URLs that already resolve to something live. If the
+			// source is not actually a 404 anymore, redirecting it would break a
+			// working page/archive.
+			if ( $this->url_already_resolves( $url ) ) {
+				++$skipped_resolves;
 				continue;
 			}
 
@@ -429,6 +447,8 @@ class RedirectsCommand {
 		WP_CLI::log( sprintf( 'Skipped (no matching post): %d', $skipped_no_match ) );
 		WP_CLI::log( sprintf( 'Skipped (rule exists): %d', $skipped_exists ) );
 		WP_CLI::log( sprintf( 'Skipped (wrong category): %d', $skipped_category ) );
+		WP_CLI::log( sprintf( 'Skipped (taxonomy/archive path): %d', $skipped_taxonomy ) );
+		WP_CLI::log( sprintf( 'Skipped (source already resolves): %d', $skipped_resolves ) );
 
 		if ( $dry_run && $created > 0 ) {
 			WP_CLI::log( '' );
@@ -684,6 +704,108 @@ class RedirectsCommand {
 			}
 		}
 		return false;
+	}
+
+	// ─── Import Guards ───────────────────────────────────────────────────────
+
+	/**
+	 * Default path prefixes that point at taxonomy term archives or paginated
+	 * archive views rather than single posts. URLs under these must never be
+	 * fuzzy-matched to a single post, since that creates archive-breaking
+	 * redirects (e.g. /artist/grateful-dead → /grateful-dead-trivia/).
+	 *
+	 * @var string[]
+	 */
+	private static $default_skip_prefixes = array(
+		'/artist/',
+		'/tag/',
+		'/category/',
+		'/r/',
+		'/archive/',
+		'/author/',
+		'/page/',
+	);
+
+	/**
+	 * Determine whether a URL sits under a taxonomy/archive skip prefix.
+	 *
+	 * The skip-prefix list is filterable via `extrachill_seo_import_skip_prefixes`
+	 * so it can be tuned without a code change.
+	 *
+	 * @param string $url The raw 404 URL.
+	 * @return bool True if the URL should be skipped as a taxonomy/archive path.
+	 */
+	private function is_skipped_prefix( $url ) {
+		/**
+		 * Filter the list of path prefixes that the 404 → redirect importer
+		 * treats as taxonomy/archive paths and refuses to fuzzy-match.
+		 *
+		 * @param string[] $prefixes Leading-slash, trailing-slash prefixes.
+		 */
+		$prefixes = apply_filters( 'extrachill_seo_import_skip_prefixes', self::$default_skip_prefixes );
+
+		// Normalize to a leading slash, strip query/fragment for matching.
+		$path = strtok( $url, '?' );
+		$path = strtok( $path, '#' );
+		$path = '/' . ltrim( (string) $path, '/' );
+
+		foreach ( (array) $prefixes as $prefix ) {
+			if ( '' === $prefix ) {
+				continue;
+			}
+			if ( 0 === stripos( $path, $prefix ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Determine whether a source URL already resolves to something live.
+	 *
+	 * A URL that already resolves is not a real 404 to fix — redirecting it
+	 * would break a working page or archive. Two-layer check:
+	 *   1. `url_to_postid()` catches posts/pages (cheap, no HTTP).
+	 *   2. `wp_remote_head()` catches everything else, including taxonomy term
+	 *      archives that `url_to_postid()` cannot resolve. We follow no redirects
+	 *      and skip on any 200 or 3xx response.
+	 *
+	 * @param string $url The raw 404 URL.
+	 * @return bool True if the URL already resolves and should be skipped.
+	 */
+	private function url_already_resolves( $url ) {
+		$path = strtok( $url, '?' );
+		$path = strtok( $path, '#' );
+		$path = '/' . ltrim( (string) $path, '/' );
+
+		// Layer 1: posts/pages — fast, no network.
+		if ( url_to_postid( home_url( $path ) ) > 0 ) {
+			return true;
+		}
+
+		// Layer 2: lightweight HEAD for taxonomy archives and anything else that
+		// url_to_postid() can't see. Follow no redirects so our own redirect
+		// rules don't mask a genuine 404.
+		$response = wp_remote_head(
+			home_url( $path ),
+			array(
+				'timeout'     => 5,
+				'redirection' => 0,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			// Network/timeout failure — don't assume it resolves; fall through to
+			// the matching tiers (guard 1 already covers taxonomy prefixes).
+			return false;
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+
+		// 200 = live; 3xx = already redirected elsewhere. Either way it's not a
+		// 404 we should create a new rule for.
+		return ( 200 === $code ) || ( $code >= 300 && $code < 400 );
 	}
 
 	// ─── Helpers ───────────────────────────────────────────────────────────
