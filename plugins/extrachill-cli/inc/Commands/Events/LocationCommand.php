@@ -582,6 +582,12 @@ class LocationCommand {
 			WP_CLI::log( sprintf( 'Mismatches: %d', (int) $result['mismatch_count'] ) );
 			WP_CLI::log( sprintf( 'Fixed: %d', (int) $result['fixed_count'] ) );
 			WP_CLI::log( sprintf( 'Unresolved: %d', (int) $result['unresolved_count'] ) );
+			// flow_fallback = events sitting on the pipeline-center term because
+			// the venue city has no market mapping. Not a mismatch (can't be
+			// re-tagged), but a signal to add the city to the market map.
+			if ( isset( $result['flow_fallback_count'] ) ) {
+				WP_CLI::log( sprintf( 'Flow-fallback (needs market-map entry): %d', (int) $result['flow_fallback_count'] ) );
+			}
 		}
 	}
 
