@@ -62,7 +62,6 @@ final class ExtraChill_API_Plugin {
 	 * Placeholder bootstrap for future setup.
 	 */
 	public function boot() {
-		require_once EXTRACHILL_API_PATH . 'inc/auth/extrachill-link-auth.php';
 		require_once EXTRACHILL_API_PATH . 'inc/auth/extrachill-link-token-handoff.php';
 
 		do_action( 'extrachill_api_bootstrap' );

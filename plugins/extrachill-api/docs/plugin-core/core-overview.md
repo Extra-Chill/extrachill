@@ -11,9 +11,9 @@
 - Composer autoloader is loaded if `vendor/autoload.php` exists to expose third-party libraries (Endroid QR Code).
 - Constants `EXTRACHILL_API_PATH` and `EXTRACHILL_API_URL` allow other modules to resolve assets relative to the plugin location.
 
-## Cross-Domain Auth Helper
-- `inc/auth/extrachill-link-auth.php` appends `SameSite=None; Secure` to WordPress auth cookies so `extrachill.link` can make authenticated REST calls.
-- Uses `header_register_callback()` to intercept outgoing `Set-Cookie` headers and patch WordPress auth cookies without changing core auth logic.
+## Cross-Domain Auth (extrachill.link)
+- `inc/auth/extrachill-link-token-handoff.php` mints a short-lived wp-native bearer token for a logged-in visitor on the artist site (where the `.extrachill.com` cookie is first-party) and hands it back to `extrachill.link` in a URL fragment, so the link page can make authenticated REST calls without cross-site cookies.
+- This replaced the former `SameSite=None; Secure` cookie helper, which modern browser privacy (Safari ITP, Chrome third-party-cookie phase-out) increasingly blocked.
 
 ## Shop Operations
 Centralized endpoints for the artist marketplace on `shop.extrachill.com`.
