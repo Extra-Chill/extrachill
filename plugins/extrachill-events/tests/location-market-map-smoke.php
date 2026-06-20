@@ -111,6 +111,10 @@ $cases = array(
 	array( 'Abbotsford', 'BC', '', 'vancouver-bc' ),
 	array( 'Richmond', 'BC', '', 'vancouver-bc' ),
 	array( 'Richmond', 'VA', '', null ), // US Richmond stays null -> exact-name match resolves it
+	// Niagara Falls is cross-border: NY rolls to Buffalo; the Ontario side has
+	// its own Canada-tree term and must stay null (resolves via exact-name match).
+	array( 'Niagara Falls', 'NY', '', 'buffalo' ),
+	array( 'Niagara Falls', 'ON', '', null ),
 	array( 'Burnaby', 'BC', '', 'vancouver-bc' ),
 
 	// Existing mappings must keep working.

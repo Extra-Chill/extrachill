@@ -542,7 +542,13 @@ function extrachill_events_get_city_market_map() {
 			'kentucky' => 'cincinnati',
 			'ky'       => 'cincinnati',
 		),
-		'niagara falls'       => 'buffalo',
+		'niagara falls'       => array(
+			// US Niagara Falls (NY) rolls into the Buffalo market; the Ontario
+			// side has its own Canada-tree term and must NOT roll to Buffalo, so
+			// it is intentionally absent here and resolves via exact-name match.
+			'new york' => 'buffalo',
+			'ny'       => 'buffalo',
+		),
 		'noblesville'         => 'indianapolis',
 		'north charleston'    => 'charleston',
 		'north little rock'   => 'little-rock',
