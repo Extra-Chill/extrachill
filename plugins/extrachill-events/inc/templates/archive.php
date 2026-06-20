@@ -102,31 +102,21 @@ extrachill_breadcrumbs();
 
 	<div class="page-content">
 		<?php
-		// Render the location scope nav (Tonight / This Weekend / This Week /
-		// All Shows) directly with the calendar block's filter bar so the
-		// scope chips and the search/date controls read as one cluster
-		// (data-machine-events#373). The nav keeps its crawlable SEO
-		// /location/<city>/tonight/ links and discovery.js swap behaviour —
-		// only WHERE it renders changed (it used to sit above the map).
-		$is_location_archive = is_tax( 'location' );
-		if ( $is_location_archive && function_exists( 'extrachill_events_render_scope_nav' ) ) {
-			$scope_term = get_queried_object();
-			if ( $scope_term instanceof \WP_Term ) {
-				extrachill_events_render_scope_nav( $scope_term, '', 'is-calendar-grouped' );
-			}
-		}
-
-		// Enable the in-block scope-preset chips (data-machine-events#374)
-		// everywhere EXCEPT location archives. Location archives already render
-		// the crawlable SEO scope-nav above (Tonight / This Weekend / ...), so
-		// adding the in-block chips there would duplicate the control and bury
-		// the SEO /location/<city>/tonight/ links. On every other archive type
-		// (venue, promoter, artist, generic taxonomy) the chips are the only
-		// scope control, so we turn them on.
-		$calendar_block = $is_location_archive
-			? '<!-- wp:data-machine-events/calendar /-->'
-			: '<!-- wp:data-machine-events/calendar {"showScopePresets":true} /-->';
-		echo do_blocks( $calendar_block );
+		// Render the in-block scope-preset chips (data-machine-events#374) in
+		// the calendar's filter-bar toolbar on EVERY archive type — venue,
+		// promoter, artist, location, and generic taxonomy. Keeping the scope
+		// control in the same DM toolbar everywhere is what makes the UI
+		// consistent (data-machine-events#373).
+		//
+		// Location archives previously rendered a separate
+		// discovery-scope-nav element (crawlable /location/<city>/tonight/
+		// links) above the calendar, which placed the control differently from
+		// every other archive type and looked inconsistent. That nav is
+		// dropped here in favour of the toolbar chips; the crawlable SEO scope
+		// URLs still live on the dedicated discovery landing pages rendered by
+		// discovery.php (extrachill_events_render_scope_nav with real links),
+		// which is their canonical home.
+		echo do_blocks( '<!-- wp:data-machine-events/calendar {"showScopePresets":true} /-->' );
 		?>
 	</div>
 </div>
