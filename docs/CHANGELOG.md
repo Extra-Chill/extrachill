@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.6.2] - 2026-06-20
+
+### Fixed
+- emit fully-formed font families with slugs in theme.json filter
+
 ## [2.6.1] - 2026-06-19
 
 ### Changed
