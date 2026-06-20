@@ -280,6 +280,60 @@ function extrachill_analytics_extract_404_slug( $url ) {
 }
 
 /**
+ * Exclude 404 rows whose URL already has an active redirect rule.
+ *
+ * The 404 read-side reports aggregate raw 404 event rows in a rolling window
+ * with no awareness of the redirects table. A URL fixed with a 301 keeps
+ * showing as a top offender until its pre-fix rows age out. This helper drops
+ * those already-solved URLs by asking extrachill-seo (the redirects owner)
+ * which of the candidate URLs currently match an active rule.
+ *
+ * Dependency direction: analytics asks seo, never the reverse. The call is
+ * guarded by function_exists() so analytics never hard-depends on seo — if the
+ * helper is absent (seo inactive/older), the rows are returned unchanged,
+ * preserving the previous behavior. A single bulk call is used rather than
+ * N+1 per-URL lookups.
+ *
+ * @param array $rows Array of row objects each exposing a ->url property.
+ * @return array The input rows minus any whose URL has an active redirect.
+ */
+function extrachill_analytics_exclude_redirected_404_rows( $rows ) {
+	if ( empty( $rows ) || ! function_exists( 'extrachill_seo_filter_redirected_urls' ) ) {
+		return $rows;
+	}
+
+	// Collect candidate URLs (skip null/empty), preserving them for the lookup.
+	$urls = array();
+	foreach ( $rows as $row ) {
+		if ( isset( $row->url ) && '' !== $row->url ) {
+			$urls[] = $row->url;
+		}
+	}
+
+	if ( empty( $urls ) ) {
+		return $rows;
+	}
+
+	$redirected = extrachill_seo_filter_redirected_urls( $urls );
+
+	if ( empty( $redirected ) ) {
+		return $rows;
+	}
+
+	$redirected_lookup = array_fill_keys( $redirected, true );
+
+	$filtered = array();
+	foreach ( $rows as $row ) {
+		if ( isset( $row->url ) && isset( $redirected_lookup[ $row->url ] ) ) {
+			continue;
+		}
+		$filtered[] = $row;
+	}
+
+	return $filtered;
+}
+
+/**
  * Find a published post by slug.
  *
  * @param string $slug The post slug to search for.

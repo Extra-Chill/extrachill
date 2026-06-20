@@ -97,8 +97,10 @@ function extrachill_analytics_ability_get_404_top_urls( $input ) {
 	$where_clause = implode( ' AND ', $where );
 
 	$values[] = $min_hits;
-	$values[] = $limit;
 
+	// Note: LIMIT is applied in PHP after excluding redirected URLs, so that
+	// dropping solved 404s doesn't shrink the result set below the requested
+	// limit when redirected rows would otherwise occupy top slots.
 	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	$sql = "SELECT
 		JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
@@ -108,11 +110,14 @@ function extrachill_analytics_ability_get_404_top_urls( $input ) {
 		WHERE {$where_clause}
 		GROUP BY url
 		HAVING hits >= %d
-		ORDER BY hits DESC
-		LIMIT %d";
+		ORDER BY hits DESC";
 
 	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+	// Drop URLs that already have an active redirect rule so solved 404s
+	// don't keep ranking as top offenders until their pre-fix rows age out.
+	$rows = extrachill_analytics_exclude_redirected_404_rows( $rows );
 
 	$results = array();
 	foreach ( $rows as $row ) {
@@ -122,6 +127,10 @@ function extrachill_analytics_ability_get_404_top_urls( $input ) {
 			'last_seen' => $row->last_seen,
 			'category'  => extrachill_analytics_categorize_404_url( $row->url ),
 		);
+
+		if ( count( $results ) >= $limit ) {
+			break;
+		}
 	}
 
 	return $results;

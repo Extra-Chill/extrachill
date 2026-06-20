@@ -117,6 +117,10 @@ function extrachill_analytics_ability_drill_404_category( $input ) {
 	}
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
+	// Drop URLs that already have an active redirect rule so solved 404s
+	// don't keep resurfacing in the drill until their pre-fix rows age out.
+	$rows = extrachill_analytics_exclude_redirected_404_rows( $rows );
+
 	// Categories that are candidates for redirect suggestions.
 	$redirect_categories = array( 'legacy-html', 'content', 'date-prefix' );
 	$is_redirect_candidate = in_array( $category, $redirect_categories, true );
