@@ -3,7 +3,7 @@
  * Events Homepage Location Badges
  *
  * Homepage router: shows the top N cities by upcoming-event count as badges,
- * with a "Browse all cities" link to the full /cities directory. Keeps the
+ * with a "Browse all cities" link to the full /location/ directory. Keeps the
  * homepage glanceable instead of rendering every qualifying city (147+).
  *
  * @package ExtraChillEvents
@@ -50,7 +50,7 @@ if ( empty( $location_counts ) || ! is_array( $location_counts ) ) {
 	</div>
 
 	<p class="events-browse-all-cities">
-		<a href="<?php echo esc_url( home_url( '/cities/' ) ); ?>">
+		<a href="<?php echo esc_url( home_url( '/location/' ) ); ?>">
 			<?php esc_html_e( 'Browse all cities &rarr;', 'extrachill-events' ); ?>
 		</a>
 	</p>

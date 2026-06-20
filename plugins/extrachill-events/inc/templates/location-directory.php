@@ -1,12 +1,16 @@
 <?php
 /**
- * Cities Directory Template (/cities)
+ * Location Directory Template (/location/ — taxonomy root)
  *
  * Full directory of every city with upcoming events, grouped by region. The
  * region grouping is driven entirely by the location taxonomy hierarchy
  * (region root -> state -> city); a region section only renders when it has
  * cities with upcoming events. Region headers show the rolled-up total via
  * the data-machine-events ancestor rollup primitive.
+ *
+ * Rendered at the location taxonomy's own base slug (/location/) rather than
+ * an invented route, so "the index of all locations" lives at the natural URL
+ * the taxonomy already implies.
  *
  * No region names are hard-coded here — buckets come from the taxonomy tree.
  *
@@ -94,7 +98,7 @@ uksort(
 <div class="events-calendar-container ec-mobile-full-width-panel">
 	<div class="page-content">
 		<header class="taxonomy-archive-header">
-			<h1 class="page-title"><?php esc_html_e( 'Browse Events by City', 'extrachill-events' ); ?></h1>
+			<h1 class="page-title"><?php esc_html_e( 'Live Music by Location', 'extrachill-events' ); ?></h1>
 			<p class="cities-directory-intro">
 				<?php esc_html_e( 'Every city with upcoming live music. Pick a city to see its calendar.', 'extrachill-events' ); ?>
 			</p>
