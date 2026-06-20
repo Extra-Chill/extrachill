@@ -81,11 +81,12 @@ class EventLocationAlignmentAbilities {
 				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						'checked_count'    => array( 'type' => 'integer' ),
-						'mismatch_count'   => array( 'type' => 'integer' ),
-						'fixed_count'      => array( 'type' => 'integer' ),
-						'unresolved_count' => array( 'type' => 'integer' ),
-						'results'          => array(
+						'checked_count'       => array( 'type' => 'integer' ),
+						'mismatch_count'      => array( 'type' => 'integer' ),
+						'fixed_count'         => array( 'type' => 'integer' ),
+						'unresolved_count'    => array( 'type' => 'integer' ),
+						'flow_fallback_count' => array( 'type' => 'integer' ),
+						'results'             => array(
 							'type'  => 'array',
 							'items' => array(
 								'type'       => 'object',
@@ -103,7 +104,7 @@ class EventLocationAlignmentAbilities {
 								),
 							),
 						),
-						'message'          => array( 'type' => 'string' ),
+						'message'             => array( 'type' => 'string' ),
 					),
 				),
 				'execute_callback'    => array( $this, 'executeReconcileEventLocations' ),
@@ -151,11 +152,12 @@ class EventLocationAlignmentAbilities {
 		$event_ids = $this->getEventIdsToScan( $post_ids, $limit, $offset );
 		$db_flows  = new Flows();
 
-		$checked_count    = 0;
-		$mismatch_count   = 0;
-		$fixed_count      = 0;
-		$unresolved_count = 0;
-		$results          = array();
+		$checked_count       = 0;
+		$mismatch_count      = 0;
+		$fixed_count         = 0;
+		$unresolved_count    = 0;
+		$flow_fallback_count = 0;
+		$results             = array();
 
 		foreach ( $event_ids as $post_id ) {
 			++$checked_count;
@@ -168,6 +170,8 @@ class EventLocationAlignmentAbilities {
 				++$fixed_count;
 			} elseif ( 'unresolved' === $event_result['status'] ) {
 				++$unresolved_count;
+			} elseif ( 'flow_fallback' === $event_result['status'] ) {
+				++$flow_fallback_count;
 			}
 
 			if ( $include_matches || 'match' !== $event_result['status'] ) {
@@ -178,19 +182,21 @@ class EventLocationAlignmentAbilities {
 		$mode = $apply ? __( 'fix', 'extrachill-events' ) : __( 'audit', 'extrachill-events' );
 
 		return array(
-			'checked_count'    => $checked_count,
-			'mismatch_count'   => $mismatch_count,
-			'fixed_count'      => $fixed_count,
-			'unresolved_count' => $unresolved_count,
-			'results'          => $results,
-			'message'          => sprintf(
-				/* translators: 1: mode, 2: checked count, 3: mismatch count, 4: fixed count, 5: unresolved count */
-				__( 'Event location %1$s complete. Checked %2$d events, found %3$d mismatches, fixed %4$d, unresolved %5$d.', 'extrachill-events' ),
+			'checked_count'       => $checked_count,
+			'mismatch_count'      => $mismatch_count,
+			'fixed_count'         => $fixed_count,
+			'unresolved_count'    => $unresolved_count,
+			'flow_fallback_count' => $flow_fallback_count,
+			'results'             => $results,
+			'message'             => sprintf(
+				/* translators: 1: mode, 2: checked count, 3: mismatch count, 4: fixed count, 5: unresolved count, 6: flow-fallback count */
+				__( 'Event location %1$s complete. Checked %2$d events, found %3$d mismatches, fixed %4$d, unresolved %5$d, flow-fallback %6$d.', 'extrachill-events' ),
 				$mode,
 				$checked_count,
 				$mismatch_count,
 				$fixed_count,
-				$unresolved_count
+				$unresolved_count,
+				$flow_fallback_count
 			),
 		);
 	}
@@ -295,6 +301,20 @@ class EventLocationAlignmentAbilities {
 			);
 		}
 
+		// Whether the "expected" term came from a flow-config fallback rather
+		// than from the venue city itself. A fallback means we could NOT resolve
+		// the market from the venue's own city/state/zip — the term only happens
+		// to equal the pipeline-center term. Reporting that as a clean "match"
+		// masks genuine mis-tags for unmapped suburbs (the whole #379 failure
+		// mode: a Sugar Land venue under a Galveston flow looked "already
+		// aligned"). Surface it as a distinct status so audits flag it for a
+		// market-map addition instead of hiding it. See data-machine-events#379.
+		$is_flow_fallback = in_array(
+			$expected['reason'],
+			array( 'fallback_flow_location', 'fallback_flow_location_no_venue_city' ),
+			true
+		);
+
 		$expected_term = $expected['term'];
 		if ( in_array( $expected_term->term_id, $current_location_ids, true ) ) {
 			return array(
@@ -306,8 +326,8 @@ class EventLocationAlignmentAbilities {
 				'expected_location'    => $expected_term->name,
 				'flow_id'              => $flow_id,
 				'flow_config_location' => $flow_location['name'],
-				'status'               => 'match',
-				'reason'               => 'already_aligned',
+				'status'               => $is_flow_fallback ? 'flow_fallback' : 'match',
+				'reason'               => $is_flow_fallback ? $expected['reason'] : 'already_aligned',
 			);
 		}
 
