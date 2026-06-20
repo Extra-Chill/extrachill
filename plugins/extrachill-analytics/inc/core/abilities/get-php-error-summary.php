@@ -86,6 +86,10 @@ function extrachill_analytics_register_php_error_summary_ability() {
  *   [
  *     'rows'                => [ [ signature, severity, file, count, per_day, sample, first_seen, last_seen ], ... ],
  *     'total'               => int,
+ *     'active_total'        => int,    // Hits from signatures still firing within the active window.
+ *     'active_per_day'      => float,  // active_total / days_covered — the CURRENT error rate.
+ *     'active_window_hours' => int,    // The activity threshold used to decide still-firing vs resolved.
+ *     'active_signatures'   => int,    // Distinct signatures whose last_seen is within the active window.
  *     'distinct_signatures' => int,
  *     'window_days'         => int,
  *     'days_covered'        => int,
@@ -94,6 +98,13 @@ function extrachill_analytics_register_php_error_summary_ability() {
  *     'truncated'           => bool,
  *     'log_path'            => string,
  *   ]
+ *
+ * The `active_*` keys are the "currently firing" lens: a signature whose
+ * last_seen is older than the active window is treated as RESOLVED and excluded
+ * from `active_total` / `active_per_day`, so a spike that was fixed hours ago
+ * stops inflating the current error rate. The full-window `total` is preserved
+ * unchanged for trend continuity. The activity window defaults to 24 hours and
+ * is filterable via `extrachill_analytics_error_active_window_hours`.
  */
 function extrachill_analytics_ability_get_php_error_summary( $input ) {
 	global $wpdb;
@@ -233,12 +244,33 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 		}
 	);
 
-	$grand_total = 0;
+	// Active-window threshold: a signature whose last_seen is older than this many
+	// hours is considered RESOLVED and excluded from the "currently firing" lens.
+	// The live tail is the arbiter — if a signature has stopped appearing, it no
+	// longer counts toward the current error rate even if it still sits in the
+	// persisted window total.
+	$active_window_hours = (int) apply_filters( 'extrachill_analytics_error_active_window_hours', 24 );
+	$active_window_hours = max( 1, $active_window_hours );
+	$active_cutoff       = time() - ( $active_window_hours * HOUR_IN_SECONDS );
+
+	$grand_total       = 0;
+	$active_total      = 0;
+	$active_signatures = 0;
 	foreach ( $rows as &$row ) {
 		$grand_total   += $row['count'];
 		$row['per_day'] = round( $row['count'] / $denominator, 1 );
+
+		// Mark each row active/resolved and accumulate the active-only totals.
+		$last_seen_ts  = ! empty( $row['last_seen'] ) ? strtotime( (string) $row['last_seen'] . ' UTC' ) : false;
+		$row['active'] = ( false !== $last_seen_ts && $last_seen_ts >= $active_cutoff );
+		if ( $row['active'] ) {
+			$active_total += $row['count'];
+			++$active_signatures;
+		}
 	}
 	unset( $row );
+
+	$active_per_day = round( $active_total / $denominator, 1 );
 
 	$distinct  = count( $rows );
 	$truncated = false;
@@ -257,6 +289,10 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 	return array(
 		'rows'                => $rows,
 		'total'               => $grand_total,
+		'active_total'        => $active_total,
+		'active_per_day'      => $active_per_day,
+		'active_window_hours' => $active_window_hours,
+		'active_signatures'   => $active_signatures,
 		'distinct_signatures' => $distinct,
 		'window_days'         => $days,
 		'days_covered'        => $days_covered,
