@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-06-21
+
+### Added
+- content-category revenue + RPM lens
+- platform-surface stickiness instrument
+- first-party cross-surface conversion map
+
+### Changed
+- consolidate bot/human determination into one canonical classifier
+
+### Fixed
+- exclude already-redirected URLs from 404 reports
+- add active-window lens to php-error-summary so health rate reflects current errors
+
 ## [0.15.0] - 2026-06-20
 
 ### Added
