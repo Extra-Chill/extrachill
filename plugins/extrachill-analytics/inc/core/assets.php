@@ -211,3 +211,76 @@ function extrachill_analytics_enqueue_view_tracking() {
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_analytics_enqueue_view_tracking' );
+
+/**
+ * Enqueue outbound-click tracking on every front-end view.
+ *
+ * Unlike pageview tracking (singular only), an outbound exit can happen from
+ * any front-end surface — archives, the homepage, taxonomy listings — so this
+ * runs network-wide on all non-admin views. The handler is a single delegated
+ * click listener (see assets/js/outbound-tracking.js) that fires a sendBeacon
+ * `outbound_click` event when a reader clicks an anchor to an off-network host.
+ *
+ * Because the beacon fires only from a real, JS-executing browser, the data is
+ * bot-filtered by construction — the same guarantee the bridge_click /
+ * pageview beacons rely on. The visitor_id echoed here is the already-resolved
+ * `ec_vid` (present on singular pages where it was minted; empty on other
+ * surfaces or under GPC/DNT opt-out — in which case the click is still recorded
+ * anonymously with a NULL visitor_id, exactly like the rest of the system).
+ *
+ * The network-host list is the canonical multisite map so an INTERNAL hop
+ * (extrachill.com → community.extrachill.com, already covered by the conversion
+ * map) is never miscounted as an outbound exit.
+ */
+function extrachill_analytics_enqueue_outbound_tracking() {
+	if ( is_admin() || is_preview() ) {
+		return;
+	}
+
+	$js_path = EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'assets/js/outbound-tracking.js';
+	if ( ! file_exists( $js_path ) ) {
+		return;
+	}
+
+	// Read-only: never mint here (this runs on non-singular pages too, after
+	// output may have started). Empty when no cookie / opted out — the click is
+	// then recorded anonymously, consistent with the rest of the system.
+	$visitor_id = function_exists( 'extrachill_analytics_read_visitor_id' )
+		? extrachill_analytics_read_visitor_id()
+		: '';
+
+	// Canonical Extra Chill network hosts — a click to any of these is an
+	// internal hop, not an outbound exit. Falls back to the current site host
+	// alone if the multisite helper is unavailable.
+	$network_hosts = function_exists( 'ec_get_allowed_redirect_hosts' )
+		? array_values( ec_get_allowed_redirect_hosts() )
+		: array();
+
+	$home_host = wp_parse_url( home_url(), PHP_URL_HOST );
+	if ( is_string( $home_host ) && '' !== $home_host ) {
+		$network_hosts[] = $home_host;
+	}
+	$network_hosts = array_values( array_unique( array_filter( $network_hosts ) ) );
+
+	wp_enqueue_script(
+		'extrachill-outbound-tracking',
+		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'assets/js/outbound-tracking.js',
+		array(),
+		filemtime( $js_path ),
+		array(
+			'strategy'  => 'defer',
+			'in_footer' => true,
+		)
+	);
+
+	wp_localize_script(
+		'extrachill-outbound-tracking',
+		'ecOutboundTracking',
+		array(
+			'endpoint'     => rest_url( 'extrachill/v1/analytics/click' ),
+			'visitorId'    => $visitor_id,
+			'networkHosts' => $network_hosts,
+		)
+	);
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_analytics_enqueue_outbound_tracking' );
