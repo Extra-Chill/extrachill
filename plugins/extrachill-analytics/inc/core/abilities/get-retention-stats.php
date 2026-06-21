@@ -44,8 +44,13 @@ function extrachill_analytics_register_retention_stats_ability() {
 				'properties' => array(
 					'days'         => array(
 						'type'        => 'integer',
-						'description' => __( 'Number of days to look back for the window. Default 28.', 'extrachill-analytics' ),
+						'description' => __( 'Number of days the window spans. Default 28.', 'extrachill-analytics' ),
 						'default'     => 28,
+					),
+					'end_days_ago' => array(
+						'type'        => 'integer',
+						'description' => __( 'How many days ago the window ENDS. 0 (default) means the window ends now. A positive value shifts the whole window into the past, enabling an exact prior-period read (e.g. days=28, end_days_ago=28 reads the 28-day window immediately before the most recent 28 days). Applies to return rate, cross-site return, and session depth; the cohort curve always anchors at now.', 'extrachill-analytics' ),
+						'default'     => 0,
 					),
 					'blog_id'      => array(
 						'type'        => 'integer',
@@ -89,19 +94,31 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 	global $wpdb;
 
 	$days         = isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28;
+	$end_days_ago = isset( $input['end_days_ago'] ) ? max( 0, (int) $input['end_days_ago'] ) : 0;
 	$blog_id      = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
 	$cohort_weeks = isset( $input['cohort_weeks'] ) ? max( 1, (int) $input['cohort_weeks'] ) : 8;
 
 	$table      = extrachill_analytics_events_table();
 	$event_type = defined( 'EC_ANALYTICS_EVENT_PAGEVIEW' ) ? EC_ANALYTICS_EVENT_PAGEVIEW : 'pageview';
 
-	$now_utc = gmdate( 'Y-m-d H:i:s' );
-	$since   = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+	// The window ENDS at $end_days_ago days before now (0 = now) and SPANS
+	// $days. Shifting the end into the past yields an exact prior-period read
+	// without any end-date-less proxying.
+	$now_utc    = gmdate( 'Y-m-d H:i:s' );
+	$window_end = gmdate( 'Y-m-d H:i:s', strtotime( "-{$end_days_ago} days" ) );
+	$since      = gmdate( 'Y-m-d H:i:s', strtotime( '-' . ( $days + $end_days_ago ) . ' days' ) );
 
 	// Common WHERE: pageviews, in window, with a non-NULL visitor_id (opted-out
-	// rows are excluded from per-visitor metrics), optional blog filter.
+	// rows are excluded from per-visitor metrics), optional blog filter. An
+	// upper bound is added only when the window ends in the past so the default
+	// (end_days_ago=0) query and its index usage are unchanged.
 	$base_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s' );
 	$base_values = array( $event_type, $since );
+
+	if ( $end_days_ago > 0 ) {
+		$base_where[]  = 'created_at < %s';
+		$base_values[] = $window_end;
+	}
 
 	if ( $blog_id > 0 ) {
 		$base_where[]  = 'blog_id = %d';
@@ -183,8 +200,12 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 	// different UTC days. Only meaningful network-wide, so this ignores the
 	// blog_id filter by design (the question is inherently cross-site).
 	// ---------------------------------------------------------------------
-	$xsite_where        = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s' );
-	$xsite_values       = array( $event_type, $since );
+	$xsite_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s' );
+	$xsite_values = array( $event_type, $since );
+	if ( $end_days_ago > 0 ) {
+		$xsite_where[]  = 'created_at < %s';
+		$xsite_values[] = $window_end;
+	}
 	$xsite_where_clause = implode( ' AND ', $xsite_where );
 
 	$xsite_sql = "SELECT
@@ -248,9 +269,11 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 			'definition'                    => 'Average (and max) pageview events per visitor per active UTC day.',
 		),
 		'days'              => $days,
+		'end_days_ago'      => $end_days_ago,
 		'blog_id'           => $blog_id,
-		'period'            => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' ),
+		'period'            => gmdate( 'Y-m-d', strtotime( $since ) ) . ' to ' . gmdate( 'Y-m-d', strtotime( $window_end ) ),
 		'since'             => $since,
+		'until'             => $window_end,
 		'as_of'             => $now_utc,
 		'note'              => 'Deterministic + bot-filtered: pageview rows are written server-side only for non-bot, JS-executing browsers; visitor_id is an anonymous first-party UUID v4 (no PII). Opted-out (GPC/DNT) rows have NULL visitor_id and are excluded from per-visitor metrics.',
 	);
