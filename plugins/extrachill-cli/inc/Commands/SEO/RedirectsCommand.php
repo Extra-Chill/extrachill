@@ -378,6 +378,192 @@ class RedirectsCommand {
 	}
 
 	/**
+	 * Find redirect coverage opportunities — high-traffic "live music in {city}"
+	 * search demand whose events location archive now exists (verified HTTP 200)
+	 * but has no redirect, ranked by traffic.
+	 *
+	 * This is the data-first, templated generalization of the one hand-built
+	 * Charleston rule (#250: /live-music-in-charleston-sc-this-week →
+	 * events.extrachill.com/location/usa/south-carolina/charleston/this-week).
+	 *
+	 * Pulls "live music in ..." query demand from Google Search Console, parses
+	 * each into {city} + {scope}, resolves the matching events location archive,
+	 * VERIFIES it returns 200 before proposing it, skips any URL that already has
+	 * a redirect rule, and ranks the rest by real search traffic.
+	 *
+	 * With --apply, creates the proposed redirect rules. Without it, this is a
+	 * read-only report.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--days=<days>]
+	 * : Days of Google Search Console query data to analyze.
+	 * ---
+	 * default: 90
+	 * ---
+	 *
+	 * [--min-impressions=<min>]
+	 * : Minimum GSC impressions for a city/scope to be considered.
+	 * ---
+	 * default: 1
+	 * ---
+	 *
+	 * [--limit=<limit>]
+	 * : Maximum number of ranked opportunities to return.
+	 * ---
+	 * default: 100
+	 * ---
+	 *
+	 * [--no-verify]
+	 * : Skip the live HTTP 200 verification (faster preview; never use with --apply).
+	 *
+	 * [--apply]
+	 * : Create the proposed redirect rules. Default is a read-only report.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill seo redirects opportunities
+	 *     wp extrachill seo redirects opportunities --days=180 --min-impressions=3
+	 *     wp extrachill seo redirects opportunities --format=json
+	 *     wp extrachill seo redirects opportunities --apply
+	 *
+	 * @subcommand opportunities
+	 */
+	public function opportunities( $args, $assoc_args ) {
+		$this->ensure_seo();
+
+		if ( ! function_exists( 'wp_get_ability' ) ) {
+			WP_CLI::error( 'Abilities API unavailable (requires WordPress 6.9+).' );
+		}
+
+		$ability = wp_get_ability( 'extrachill-seo/redirect-opportunities' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill-seo/redirect-opportunities ability not registered. Is extrachill-seo active?' );
+		}
+
+		$verify = ! Utils\get_flag_value( $assoc_args, 'no-verify', false );
+		$apply  = Utils\get_flag_value( $assoc_args, 'apply', false );
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( $apply && ! $verify ) {
+			WP_CLI::error( '--apply requires verification. Drop --no-verify so destinations are confirmed 200 before rules are created.' );
+		}
+
+		$result = $ability->execute(
+			array(
+				'days'            => (int) ( $assoc_args['days'] ?? 90 ),
+				'min_impressions' => (int) ( $assoc_args['min-impressions'] ?? 1 ),
+				'limit'           => (int) ( $assoc_args['limit'] ?? 100 ),
+				'verify'          => $verify,
+			)
+		);
+
+		if ( empty( $result['success'] ) ) {
+			WP_CLI::warning( $result['message'] ?? 'No opportunities found.' );
+			return;
+		}
+
+		$opportunities = $result['opportunities'] ?? array();
+
+		if ( empty( $opportunities ) ) {
+			WP_CLI::log( $result['message'] ?? 'No opportunities found.' );
+			$this->log_opportunity_skips( $result['skipped'] ?? array() );
+			return;
+		}
+
+		$rows = array();
+		foreach ( $opportunities as $opp ) {
+			$rows[] = array(
+				'from'        => $opp['legacy_url'],
+				'to'          => $opp['destination'],
+				'scope'       => '' === $opp['scope'] ? '—' : $opp['scope'],
+				'impressions' => $opp['impressions'],
+				'clicks'      => $opp['clicks'],
+				'verified'    => ! empty( $opp['verified'] ) ? 'yes' : 'no',
+			);
+		}
+
+		Utils\format_items( $format, $rows, array( 'from', 'to', 'scope', 'impressions', 'clicks', 'verified' ) );
+
+		if ( 'table' === $format ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( 'Analyzed %d queries → %d ranked opportunities.', $result['analyzed'] ?? 0, count( $opportunities ) ) );
+			$this->log_opportunity_skips( $result['skipped'] ?? array() );
+		}
+
+		if ( ! $apply ) {
+			if ( 'table' === $format ) {
+				WP_CLI::log( '' );
+				WP_CLI::log( 'Read-only report. Re-run with --apply to create these redirect rules.' );
+			}
+			return;
+		}
+
+		// --apply: create the proposed redirect rules.
+		$created = 0;
+		$failed  = 0;
+		foreach ( $opportunities as $opp ) {
+			$note = sprintf(
+				'Coverage auditor: %d GSC impressions%s (templated live-music-in-city → events archive)',
+				$opp['impressions'],
+				'' === $opp['scope'] ? '' : ', scope ' . $opp['scope']
+			);
+
+			$id = \ExtraChill\SEO\Core\extrachill_seo_add_redirect(
+				$opp['legacy_url'],
+				$opp['destination'],
+				301,
+				$note,
+				'cli-opportunities'
+			);
+
+			if ( $id ) {
+				++$created;
+			} else {
+				++$failed;
+			}
+		}
+
+		WP_CLI::log( '' );
+		WP_CLI::success( sprintf( 'Created %d redirect rules (%d failed/skipped).', $created, $failed ) );
+	}
+
+	/**
+	 * Log the opportunity-auditor skip diagnostics.
+	 *
+	 * @param array $skipped Skip counters from the ability output.
+	 */
+	private function log_opportunity_skips( $skipped ) {
+		if ( empty( $skipped ) ) {
+			return;
+		}
+
+		$labels = array(
+			'below_min_impressions' => 'below min impressions',
+			'no_city_parsed'        => 'no city parsed',
+			'no_location_term'      => 'no matching events location term',
+			'destination_not_200'   => 'destination not 200',
+			'rule_exists'           => 'redirect rule already exists',
+		);
+
+		foreach ( $labels as $key => $label ) {
+			if ( ! empty( $skipped[ $key ] ) ) {
+				WP_CLI::log( sprintf( 'Skipped (%s): %d', $label, (int) $skipped[ $key ] ) );
+			}
+		}
+	}
+
+	/**
 	 * Import redirects from 404 analysis.
 	 *
 	 * Scans the top 404 URLs in the analytics table, matches them against
