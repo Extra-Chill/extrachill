@@ -22,12 +22,15 @@ define( 'EXTRACHILL_ANALYTICS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 // Database table management.
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/events-db.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/php-error-log-db.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/mediavine-revenue-db.php';
 
 // Core functionality (network-wide).
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/event-types.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/events.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/security-classifier.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/visitor-classifier.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/content-format-classifier.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/mediavine-csv-import.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/view-counts.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/assets.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/gtm.php';
@@ -51,6 +54,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-surface-g
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-conversion-map.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-surface-stickiness.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-activation-funnel.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-content-revenue.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-php-error-summary.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/check-fatal-alarm.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/404-categorizer.php';

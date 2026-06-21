@@ -29,6 +29,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_grow
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_conversion_map_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_stickiness_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_activation_funnel_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_content_revenue_ability' );
 
 /**
  * Register analytics ability category.
