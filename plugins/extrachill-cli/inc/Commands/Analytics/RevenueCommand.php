@@ -32,6 +32,240 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RevenueCommand {
 
 	/**
+	 * Fetch per-period Mediavine revenue over HTTP and load it into the store.
+	 *
+	 * The no-manual-CSV path. Wraps the datamachine/mediavine-reports DMB ability
+	 * (direct GraphQL login + per-page CSV report — no browser, no manual export)
+	 * and feeds the returned rows straight into the SAME revenue importer the
+	 * `import` subcommand uses, so slug→post resolution, period stamping, and the
+	 * arc all behave identically. Pass a single window (--start/--end + --period)
+	 * for one bucket, or --periods for a multi-month backfill in one shot.
+	 *
+	 * Credentials live server-side in the datamachine_mediavine_config option —
+	 * never on the command line. Set them once:
+	 *   wp option update datamachine_mediavine_config '{"email":"...","password":"..."}' --format=json
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--start=<date>]
+	 * : Window start (Y-m-d). Used with --end for a single-period fetch.
+	 *
+	 * [--end=<date>]
+	 * : Window end (Y-m-d). Used with --start for a single-period fetch.
+	 *
+	 * [--period=<period>]
+	 * : Period label (e.g. 2026-05) to stamp the fetched rows with — what the arc groups by.
+	 *
+	 * [--periods=<json>]
+	 * : JSON array for a backfill: [{"period":"2026-05","start_date":"2026-05-01","end_date":"2026-05-31"}, ...].
+	 *   When supplied, --start/--end/--period are ignored and each entry is imported as its own batch.
+	 *
+	 * [--site-id=<id>]
+	 * : Mediavine site id. Defaults to the configured/Extra Chill default.
+	 *
+	 * [--hostname=<host>]
+	 * : Hostname for slug→post resolution.
+	 * ---
+	 * default: extrachill.com
+	 * ---
+	 *
+	 * [--dry-run]
+	 * : Fetch and resolve but do not write to the store.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # One month, fetched live and loaded:
+	 *     wp extrachill analytics revenue fetch --start=2026-05-01 --end=2026-05-31 --period=2026-05
+	 *
+	 *     # Multi-month backfill in one command:
+	 *     wp extrachill analytics revenue fetch --periods='[{"period":"2026-04","start_date":"2026-04-01","end_date":"2026-04-30"},{"period":"2026-05","start_date":"2026-05-01","end_date":"2026-05-31"}]'
+	 *
+	 *     wp extrachill analytics revenue fetch --start=2026-05-01 --end=2026-05-31 --period=2026-05 --dry-run
+	 *
+	 * @subcommand fetch
+	 * @when after_wp_load
+	 */
+	public function fetch( $args, $assoc_args ) {
+		$ability = wp_get_ability( 'datamachine/mediavine-reports' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'datamachine/mediavine-reports ability not found. Is Data Machine Business active and up to date (PR #48)?' );
+		}
+		if ( ! function_exists( 'extrachill_analytics_revenue_import_csv' ) ) {
+			WP_CLI::error( 'extrachill-analytics revenue importer not available. Is Extra Chill Analytics active and up to date?' );
+		}
+
+		$hostname = $assoc_args['hostname'] ?? 'extrachill.com';
+		$dry_run  = isset( $assoc_args['dry-run'] );
+
+		// Build the period list: an explicit --periods backfill, or one window.
+		$periods = array();
+		if ( ! empty( $assoc_args['periods'] ) ) {
+			$decoded = json_decode( (string) $assoc_args['periods'], true );
+			if ( ! is_array( $decoded ) || empty( $decoded ) ) {
+				WP_CLI::error( '--periods must be a non-empty JSON array of {period, start_date, end_date} objects.' );
+			}
+			$periods = $decoded;
+		} else {
+			$periods[] = array(
+				'period'     => $assoc_args['period'] ?? '',
+				'start_date' => $assoc_args['start'] ?? '',
+				'end_date'   => $assoc_args['end'] ?? '',
+			);
+		}
+
+		$ability_input = array(
+			'action'  => 'backfill',
+			'periods' => $periods,
+		);
+		if ( ! empty( $assoc_args['site-id'] ) ) {
+			$ability_input['site_id'] = $assoc_args['site-id'];
+		}
+
+		WP_CLI::log( sprintf( 'Fetching %d period(s) from Mediavine…', count( $periods ) ) );
+
+		$result = $ability->execute( $ability_input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		if ( empty( $result['success'] ) ) {
+			WP_CLI::error( $result['error'] ?? 'Mediavine fetch failed.' );
+		}
+
+		$rows = (array) ( $result['results'] ?? array() );
+
+		// Surface any per-period fetch errors the ability reported.
+		foreach ( (array) ( $result['periods'] ?? array() ) as $summary ) {
+			if ( ! empty( $summary['error'] ) ) {
+				WP_CLI::warning( sprintf( 'Period %s failed: %s', ( '' !== ( $summary['period'] ?? '' ) ? $summary['period'] : '(window)' ), $summary['error'] ) );
+			}
+		}
+
+		if ( empty( $rows ) ) {
+			WP_CLI::error( 'Mediavine returned no rows for the requested period(s).' );
+		}
+
+		// Group rows by their stamped period so each lands in its own batch —
+		// identical to importing one monthly CSV per period.
+		$by_period = array();
+		foreach ( $rows as $row ) {
+			$period                 = (string) ( $row['period'] ?? '' );
+			$by_period[ $period ][] = $row;
+		}
+
+		$total_parsed     = 0;
+		$total_resolved   = 0;
+		$total_unresolved = 0;
+		$total_imported   = 0;
+
+		foreach ( $by_period as $period => $period_rows ) {
+			$csv_path = self::write_rows_csv( $period_rows );
+			if ( is_wp_error( $csv_path ) ) {
+				WP_CLI::warning( sprintf( 'Period %s: %s', ( '' !== $period ? $period : 'all-time' ), $csv_path->get_error_message() ) );
+				continue;
+			}
+
+			$import = extrachill_analytics_revenue_import_csv(
+				$csv_path,
+				array(
+					'period'   => $period,
+					'hostname' => $hostname,
+					'dry_run'  => $dry_run,
+				)
+			);
+
+			wp_delete_file( $csv_path );
+
+			if ( empty( $import['success'] ) ) {
+				WP_CLI::warning( sprintf( 'Period %s import failed: %s', ( '' !== $period ? $period : 'all-time' ), $import['error'] ?? 'unknown' ) );
+				continue;
+			}
+
+			$total_parsed     += (int) $import['rows'];
+			$total_resolved   += (int) $import['resolved'];
+			$total_unresolved += (int) $import['unresolved'];
+			$total_imported   += (int) $import['imported'];
+
+			WP_CLI::log(
+				sprintf(
+					'  %s — batch %s · parsed %d · resolved %d · unresolved %d · imported %d',
+					( '' !== $period ? $period : 'all-time' ),
+					$import['batch'],
+					(int) $import['rows'],
+					(int) $import['resolved'],
+					(int) $import['unresolved'],
+					(int) $import['imported']
+				)
+			);
+		}
+
+		WP_CLI::log( '' );
+		WP_CLI::log(
+			sprintf(
+				'Totals across %d period(s): parsed %d · resolved %d · unresolved %d · imported %d%s',
+				count( $by_period ),
+				$total_parsed,
+				$total_resolved,
+				$total_unresolved,
+				$total_imported,
+				$dry_run ? ' (DRY RUN — nothing written)' : ''
+			)
+		);
+
+		if ( ! $dry_run ) {
+			WP_CLI::success( 'Mediavine fetch complete. See the arc with: wp extrachill analytics revenue arc' );
+		}
+	}
+
+	/**
+	 * Write ability rows to a temp CSV in the importer's expected header format.
+	 *
+	 * The mediavine-reports ability already returns rows keyed by the same tokens
+	 * the importer matches (slug, views, revenue, rpm, cpm, viewability, fillRate,
+	 * impressionsPerPageview), so we just serialize them to a CSV the existing
+	 * importer can stream — reusing all of its slug→post resolution and store
+	 * logic rather than duplicating it.
+	 *
+	 * @param array $rows Ability rows.
+	 * @return string|\WP_Error Temp CSV path or error.
+	 */
+	private static function write_rows_csv( array $rows ) {
+		$headers = array( 'slug', 'views', 'revenue', 'rpm', 'cpm', 'viewability', 'fillRate', 'impressionsPerPageview' );
+
+		$tmp = wp_tempnam( 'mediavine-revenue' );
+		if ( ! $tmp ) {
+			return new \WP_Error( 'mediavine_tmp_failed', 'Could not create a temp file for the fetched rows.' );
+		}
+
+		$handle = fopen( $tmp, 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fopen -- streaming CSV write to a temp file; WP_Filesystem has no streaming writer.
+		if ( false === $handle ) {
+			return new \WP_Error( 'mediavine_tmp_open', 'Could not open the temp CSV for writing.' );
+		}
+
+		fputcsv( $handle, $headers );
+
+		foreach ( $rows as $row ) {
+			fputcsv(
+				$handle,
+				array(
+					$row['slug'] ?? '',
+					$row['views'] ?? 0,
+					$row['revenue'] ?? 0,
+					$row['rpm'] ?? 0,
+					$row['cpm'] ?? 0,
+					$row['viewability'] ?? 0,
+					$row['fillRate'] ?? 0,
+					$row['impressionsPerPageview'] ?? 0,
+				)
+			);
+		}
+
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fclose -- paired with the streaming fopen above.
+
+		return $tmp;
+	}
+
+	/**
 	 * Import a Mediavine Pages CSV into the revenue store.
 	 *
 	 * Mediavine has NO per-page revenue API (its Control Panel plugin only fetches
