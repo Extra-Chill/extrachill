@@ -57,6 +57,9 @@ class SEO_Abilities {
 
 		// Redirect management abilities.
 		\ExtraChill\SEO\Abilities\register_redirect_abilities();
+
+		// Redirect conversion-outcome reporting.
+		\ExtraChill\SEO\Abilities\register_redirect_conversion_abilities();
 	}
 
 	private function register_run_seo_audit(): void {

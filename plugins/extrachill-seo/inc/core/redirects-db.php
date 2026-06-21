@@ -273,3 +273,86 @@ function extrachill_seo_record_redirect_hit( $id ) {
 		)
 	);
 }
+
+/**
+ * Capture a redirect-fire conversion event.
+ *
+ * Writes a `redirect_fire` row into the network-wide analytics events table
+ * (`c8c_extrachill_analytics_events`) carrying the rule id, normalized
+ * destination path and host, and — crucially — the visitor's existing
+ * first-party `ec_vid` UUID (read-only, never minted here). That visitor_id is
+ * what later stitches this fire to the visitor's subsequent `pageview` events
+ * so the conversion-outcome reader (engaged / onward) can be computed entirely
+ * from first-party, bot-filtered signal.
+ *
+ * Why reuse the analytics events table rather than a new store: the events
+ * table is already the canonical first-party visitor history (it owns the
+ * `ec_vid` resolver, the GPC/DNT opt-out, and the bot filter), and the reader
+ * MUST join against `pageview` rows in that same table to know what the user
+ * did after landing. A separate store could never answer "did they engage on
+ * the destination?" without duplicating the pageview stream.
+ *
+ * Bot-resistant by construction: skipped for known bot user-agents (mirroring
+ * the pageview/404 capture paths). Opted-out visitors (GPC/DNT) still record an
+ * anonymous fire (NULL visitor_id) so hit volume stays honest, but they are
+ * excluded from per-visitor conversion metrics by the reader.
+ *
+ * No-ops cleanly when extrachill-analytics is absent (function_exists guard) —
+ * extrachill-seo never hard-depends on it.
+ *
+ * @param object $rule The matched redirect rule row (needs ->id, ->to_url).
+ */
+function extrachill_seo_record_redirect_fire( $rule ) {
+	if ( ! is_object( $rule ) || empty( $rule->id ) ) {
+		return;
+	}
+
+	// The analytics substrate owns the events table + visitor resolver. If it
+	// is not present, there is nothing to capture against — silently no-op.
+	if ( ! function_exists( 'extrachill_track_analytics_event' ) ) {
+		return;
+	}
+
+	// Bot filter: mirror the pageview/404 capture paths so the conversion table
+	// stays human-only by construction.
+	$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
+		? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
+		: '';
+
+	if ( function_exists( 'extrachill_analytics_is_bot' ) && extrachill_analytics_is_bot( $user_agent ) ) {
+		return;
+	}
+
+	$to_url = isset( $rule->to_url ) ? (string) $rule->to_url : '';
+
+	// Resolve the destination host (so the reader can tell an "onward to another
+	// platform surface" hop — e.g. blog → events.extrachill.com — from a
+	// same-site landing). Relative targets resolve against the current host.
+	$dest_host = '';
+	$dest_path = $to_url;
+	if ( '' !== $to_url ) {
+		$parsed = wp_parse_url( strpos( $to_url, 'http' ) === 0 ? $to_url : home_url( $to_url ) );
+		if ( is_array( $parsed ) ) {
+			$dest_host = isset( $parsed['host'] ) ? $parsed['host'] : '';
+			$dest_path = isset( $parsed['path'] ) ? $parsed['path'] : '';
+		}
+	}
+
+	$source_path = isset( $rule->from_url ) ? (string) $rule->from_url : '';
+
+	// visitor_id is left empty so extrachill_track_analytics_event() applies its
+	// read-only `ec_vid` resolver (no minting here — the redirect fires deep in
+	// the request, after the early mint hook). GPC/DNT opt-out is honored by the
+	// resolver, which yields a NULL visitor_id.
+	extrachill_track_analytics_event(
+		'redirect_fire',
+		array(
+			'rule_id'   => (int) $rule->id,
+			'from_url'  => $source_path,
+			'to_url'    => $to_url,
+			'dest_host' => $dest_host,
+			'dest_path' => $dest_path,
+		),
+		$source_path
+	);
+}

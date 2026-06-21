@@ -86,6 +86,10 @@ add_action(
 			if ( $rule ) {
 				extrachill_seo_record_redirect_hit( $rule->id );
 
+				// Capture a first-party conversion-fire event (bot-filtered,
+				// ec_vid-stitched) for the destination-outcome reader.
+				extrachill_seo_record_redirect_fire( $rule );
+
 				$to_url     = $rule->to_url;
 				$status_code = in_array( (int) $rule->status_code, array( 301, 302, 307, 308 ), true )
 					? (int) $rule->status_code
