@@ -17,6 +17,12 @@
  * (the first-party pageview table has no duration event), so results carry GA's
  * sampling caveats and are not bot-filtered the way the first-party reads are.
  *
+ * Two confidence guards are surfaced in the output: a per-post `confidence`
+ * column (low/moderate/good from engaged_sessions — low-sample dwell is noisy,
+ * so don't finely rank low-confidence rows) and a query-intent caveat in the
+ * footer (a flagged post may be a healthy quick-answer, not a defect — dwell
+ * can't see the query's cultural/topical weight).
+ *
  * @package ExtraChill\CLI\Commands\Analytics
  */
 
@@ -127,7 +133,7 @@ class ContentFlagsCommand {
 			Utils\format_items(
 				$format,
 				$rows,
-				array( 'slug', 'flag', 'structural_notes', 'engaged_sessions', 'avg_duration', 'category_median', 'word_count' )
+				array( 'slug', 'flag', 'confidence', 'structural_notes', 'engaged_sessions', 'avg_duration', 'category_median', 'word_count' )
 			);
 			return;
 		}
@@ -172,7 +178,7 @@ class ContentFlagsCommand {
 			Utils\format_items(
 				'table',
 				$rows,
-				array( 'slug', 'flag', 'structural_notes', 'engaged_sessions', 'avg_duration', 'category_median', 'word_count' )
+				array( 'slug', 'flag', 'confidence', 'structural_notes', 'engaged_sessions', 'avg_duration', 'category_median', 'word_count' )
 			);
 		}
 
@@ -180,6 +186,13 @@ class ContentFlagsCommand {
 		WP_CLI::log( 'Triage screen, not a quality score. demand_failing_content is the only confident flag (it measures outcome);' );
 		WP_CLI::log( 'structural_notes are POSSIBLE explanations, never verdicts — structure predicts quality near chance.' );
 		WP_CLI::log( 'Flags/dwell are valid only WITHIN this category — never compare a post against one in another category.' );
+		WP_CLI::log( 'Confidence (low/moderate/good) is from engaged_sessions — at low sample size avg dwell is noisy, so the FACT of a' );
+		WP_CLI::log( 'flag holds but the worst-holding-first ORDERING among low-confidence rows is soft; do not finely rank them.' );
+
+		$query_intent_caveat = $result['query_intent_caveat'] ?? 'A flagged post may be a quick-answer query where low dwell is APPROPRIATE — the reader got what they came for and left satisfied. Dwell vs. category median cannot distinguish weak content from a shallow-but-satisfied query (the cultural/topical weight of the underlying topic is invisible to this tool). Confirm content weakness with human judgment before treating a flag as a fix; some flagged posts are healthy quick-answers, not defects.';
+		WP_CLI::log( '' );
+		WP_CLI::warning( 'Query intent: ' . $query_intent_caveat );
+
 		WP_CLI::log( 'Note: per-page dwell is GA4-only and carries GA sampling caveats; it is not bot-filtered like the first-party reads.' );
 	}
 
@@ -195,6 +208,7 @@ class ContentFlagsCommand {
 		return array(
 			'slug'             => $p['slug'] ?? '',
 			'flag'             => $p['flag'] ?? '',
+			'confidence'       => $p['confidence'] ?? '',
 			'structural_notes' => empty( $notes ) ? '—' : implode( ',', $notes ),
 			'engaged_sessions' => (int) ( $p['engaged_sessions'] ?? 0 ),
 			'avg_duration'     => $this->num( $p['avg_duration'] ?? 0 ) . 's',
