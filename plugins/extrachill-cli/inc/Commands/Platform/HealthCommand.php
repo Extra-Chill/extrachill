@@ -282,8 +282,15 @@ class HealthCommand {
 			return 0;
 		}
 
-		// Be liberal about the shape the sibling ability returns: prefer an
-		// explicit total, fall back to counting a rows/gaps list.
+		// Be liberal about the shape the sibling ability returns: prefer the
+		// ability's explicit zero-result total, then other explicit totals,
+		// and finally fall back to counting a rows/gaps list.
+		if ( isset( $result['zero_result_total'] ) ) {
+			return (int) $result['zero_result_total'];
+		}
+		if ( isset( $result['zero_result'] ) ) {
+			return (int) $result['zero_result'];
+		}
 		if ( isset( $result['total'] ) ) {
 			return (int) $result['total'];
 		}
