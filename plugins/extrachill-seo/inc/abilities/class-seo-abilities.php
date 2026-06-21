@@ -60,6 +60,9 @@ class SEO_Abilities {
 
 		// Redirect conversion-outcome reporting.
 		\ExtraChill\SEO\Abilities\register_redirect_conversion_abilities();
+
+		// Redirect coverage / opportunity auditor.
+		\ExtraChill\SEO\Abilities\register_redirect_opportunity_ability();
 	}
 
 	private function register_run_seo_audit(): void {

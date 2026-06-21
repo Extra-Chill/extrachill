@@ -159,6 +159,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/analysis-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/redirect-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/redirect-conversion-abilities.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/redirect-opportunities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/sitemap-health-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/class-seo-abilities.php';
 
