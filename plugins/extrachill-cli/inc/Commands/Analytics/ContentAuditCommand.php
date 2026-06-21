@@ -155,14 +155,25 @@ class ContentAuditCommand {
 				$window['end'] ?? ''
 			)
 		);
+		$published = (int) ( $result['published_total'] ?? 0 );
+		$traffic   = (int) ( $result['with_traffic'] ?? 0 );
 		WP_CLI::log(
 			sprintf(
 				'%d published · %d with traffic · %d comparable (>=%d sessions) · median dwell %ss',
-				(int) ( $result['published_total'] ?? 0 ),
-				(int) ( $result['with_traffic'] ?? 0 ),
+				$published,
+				$traffic,
 				(int) ( $result['comparable'] ?? 0 ),
 				$min_sessions,
 				$this->num( $result['median_duration'] ?? 0 )
+			)
+		);
+		$coverage = $published > 0 ? round( ( $traffic / $published ) * 100, 1 ) : 0.0;
+		WP_CLI::log(
+			sprintf(
+				'Coverage: %s%% (%d/%d) — a LOW ratio signals a DISCOVERY gap (fix: crosslink traffic IN), distinct from a content-quality gap.',
+				$this->num( $coverage ),
+				$traffic,
+				$published
 			)
 		);
 		WP_CLI::log( str_repeat( '─', 72 ) );
