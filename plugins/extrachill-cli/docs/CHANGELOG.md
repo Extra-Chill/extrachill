@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-06-21
+
+### Added
+- wp extrachill seo redirects opportunities
+- wp extrachill analytics revenue CLI
+- platform-surface stickiness instrument
+- add redirects stats conversion subcommand
+- surface content-flags confidence + query-intent caveat
+- add conversion CLI wrapping get-conversion-map
+
 ## [0.20.0] - 2026-06-21
 
 ### Added
