@@ -126,6 +126,149 @@ class RedirectsCommand {
 	}
 
 	/**
+	 * Show per-redirect conversion outcomes (landed / engaged / onward).
+	 *
+	 * Answers what happens AFTER a 301 fires — do redirected (residual-SEO)
+	 * visitors engage with the destination platform surface, or bounce? Computed
+	 * from first-party, bot-filtered `redirect_fire` + `pageview` events stitched
+	 * by the anonymous `ec_vid` visitor cookie, so the numbers are deterministic
+	 * (not GA-sampled) and human-only by construction.
+	 *
+	 * Rules are ranked by CONVERSION (engaged rate), not raw hits: a rule with
+	 * 132 hits and 5% engagement is a different signal than 132 hits and 60%.
+	 *
+	 * Columns:
+	 *   hits     : authoritative all-time counter from the rule table.
+	 *   measured : fires in-window that carried a usable visitor_id.
+	 *   landed   : measured visitors with >= 1 pageview after the fire.
+	 *   engaged% : landed visitors who went deeper (>= 2 pageviews or a hit on
+	 *              another platform surface).
+	 *   onward%  : visitors who reached another platform surface (different site).
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--days=<days>]
+	 * : Look-back window in days for fire events.
+	 * ---
+	 * default: 90
+	 * ---
+	 *
+	 * [--rule=<rule_id>]
+	 * : Restrict to a single redirect rule ID.
+	 *
+	 * [--min-fires=<min>]
+	 * : Only include rules with at least this many measured fires.
+	 * ---
+	 * default: 1
+	 * ---
+	 *
+	 * [--window=<minutes>]
+	 * : Post-fire session window in minutes for attributing pageviews.
+	 * ---
+	 * default: 30
+	 * ---
+	 *
+	 * [--limit=<limit>]
+	 * : Max rules to show (ranked by engaged rate).
+	 * ---
+	 * default: 50
+	 * ---
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill seo redirects stats
+	 *     wp extrachill seo redirects stats --days=30 --min-fires=5
+	 *     wp extrachill seo redirects stats --rule=250
+	 *     wp extrachill seo redirects stats --format=json
+	 *
+	 * @subcommand stats
+	 */
+	public function stats( $args, $assoc_args ) {
+		$this->ensure_seo();
+		$this->ensure_analytics();
+
+		if ( ! function_exists( 'wp_get_ability' ) ) {
+			WP_CLI::error( 'Abilities API not available (requires WordPress 6.9+).' );
+		}
+
+		$ability = wp_get_ability( 'extrachill-seo/get-redirect-conversion-stats' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'Conversion-stats ability not registered. Is extrachill-seo up to date and active?' );
+		}
+
+		$input = array(
+			'days'           => (int) ( $assoc_args['days'] ?? 90 ),
+			'rule_id'        => (int) ( $assoc_args['rule'] ?? 0 ),
+			'min_fires'      => (int) ( $assoc_args['min-fires'] ?? 1 ),
+			'window_minutes' => (int) ( $assoc_args['window'] ?? 30 ),
+			'limit'          => (int) ( $assoc_args['limit'] ?? 50 ),
+		);
+
+		$result = $ability->execute( $input );
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		if ( ! empty( $result['error'] ) ) {
+			WP_CLI::error( $result['error'] );
+		}
+
+		$rules  = isset( $result['rules'] ) ? $result['rules'] : array();
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( empty( $rules ) ) {
+			WP_CLI::log( 'No measured redirect conversions in window. (Fires are captured going forward — no data yet for older 301s.)' );
+			return;
+		}
+
+		$rows = array();
+		foreach ( $rules as $rule ) {
+			$rows[] = array(
+				'id'       => $rule['rule_id'],
+				'from'     => $rule['from_url'],
+				'to'       => $rule['to_url'],
+				'hits'     => number_format( $rule['hits'] ),
+				'measured' => $rule['measured'],
+				'landed'   => $rule['landed'],
+				'engaged%' => round( $rule['engaged_rate'] * 100, 1 ),
+				'onward%'  => round( $rule['onward_rate'] * 100, 1 ),
+			);
+		}
+
+		Utils\format_items( $format, $rows, array( 'id', 'from', 'to', 'hits', 'measured', 'landed', 'engaged%', 'onward%' ) );
+
+		if ( 'table' === $format && ! empty( $result['totals'] ) ) {
+			$t = $result['totals'];
+			WP_CLI::log( '' );
+			WP_CLI::log(
+				sprintf(
+					'Totals — rules: %d · measured: %d · landed: %d (%.1f%%) · engaged: %d (%.1f%%) · onward: %d (%.1f%%)',
+					(int) $t['rules_measured'],
+					(int) $t['measured'],
+					(int) $t['landed'],
+					(float) $t['landed_rate'] * 100,
+					(int) $t['engaged'],
+					(float) $t['engaged_rate'] * 100,
+					(int) $t['onward'],
+					(float) $t['onward_rate'] * 100
+				)
+			);
+			WP_CLI::log( sprintf( 'Window: %s (last %d days, %d-min session window). Ranked by engaged rate.', $result['period'], (int) $result['days'], (int) $result['window_minutes'] ) );
+		}
+	}
+
+	/**
 	 * Add a redirect rule.
 	 *
 	 * ## OPTIONS
@@ -187,7 +330,7 @@ class RedirectsCommand {
 	 *
 	 * @subcommand remove
 	 */
-	public function remove( $args) {
+	public function remove( $args ) {
 		$this->ensure_seo();
 
 		$id      = (int) $args[0];
