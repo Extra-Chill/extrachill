@@ -26,6 +26,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_get_link_pag
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_bridge_ctr_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_retention_stats_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_growth_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_conversion_map_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_activation_funnel_ability' );
 
 /**

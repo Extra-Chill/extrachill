@@ -48,6 +48,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-link-page
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-bridge-ctr.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-retention-stats.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-surface-growth.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-conversion-map.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-activation-funnel.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-php-error-summary.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/check-fatal-alarm.php';
