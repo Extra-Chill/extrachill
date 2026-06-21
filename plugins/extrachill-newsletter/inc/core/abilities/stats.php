@@ -120,14 +120,29 @@ function extrachill_newsletter_ability_subscriber_stats( $input = array() ) {
 		}
 	}
 
-	$result = null;
-
-	if ( 'api' === $source_pref ) {
-		$result = extrachill_newsletter_stats_via_api();
+	// Delegate the Sendy read mechanics (DB aggregate + API fallback) to the
+	// generic data-machine-business Sendy primitive when available. EC owns the
+	// policy: the 1-hour caching and the output shape. The mechanism lives one
+	// layer down. The legacy in-plugin DB/API helpers remain as a fallback.
+	$dmb = extrachill_newsletter_get_sendy_ability( 'datamachine/sendy-metrics' );
+	if ( $dmb ) {
+		$result = $dmb->execute(
+			array(
+				'config' => extrachill_newsletter_sendy_dmb_config(),
+				'metric' => 'subscribers',
+				'source' => $source_pref,
+			)
+		);
 	} else {
-		$result = extrachill_newsletter_stats_via_db();
-		if ( is_wp_error( $result ) && 'auto' === $source_pref ) {
+		$result = null;
+
+		if ( 'api' === $source_pref ) {
 			$result = extrachill_newsletter_stats_via_api();
+		} else {
+			$result = extrachill_newsletter_stats_via_db();
+			if ( is_wp_error( $result ) && 'auto' === $source_pref ) {
+				$result = extrachill_newsletter_stats_via_api();
+			}
 		}
 	}
 

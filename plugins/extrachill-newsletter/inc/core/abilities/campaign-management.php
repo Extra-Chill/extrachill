@@ -176,9 +176,29 @@ function extrachill_newsletter_register_campaign_management_abilities() {
 }
 
 /**
+ * Get a generic DMB SendyClient bound to this plugin's Sendy config.
+ *
+ * The campaign read/delete mechanics (Sendy DB queries) live in the generic
+ * data-machine-business Sendy primitive. When DMB is active this returns a
+ * configured SendyClient so this plugin can delegate the mechanics down a
+ * layer; when DMB is absent it returns null and callers fall back to their
+ * legacy in-plugin DB queries.
+ *
+ * @return \DataMachineBusiness\Sendy\SendyClient|null
+ */
+function extrachill_newsletter_dmb_sendy_client() {
+	if ( ! class_exists( '\\DataMachineBusiness\\Sendy\\SendyClient' ) ) {
+		return null;
+	}
+
+	return new \DataMachineBusiness\Sendy\SendyClient( extrachill_newsletter_sendy_dmb_config() );
+}
+
+/**
  * List Sendy campaigns.
  *
- * Queries the Sendy campaigns table directly (same MySQL server).
+ * Delegates the campaigns-table query to the generic DMB Sendy primitive when
+ * available; falls back to the legacy in-plugin DB query otherwise.
  *
  * @param array $input {per_page, offset, status}.
  * @return array|WP_Error Campaign list with totals.
@@ -187,6 +207,17 @@ function extrachill_newsletter_ability_list_campaigns( $input ) {
 	$per_page = isset( $input['per_page'] ) ? absint( $input['per_page'] ) : 20;
 	$offset   = isset( $input['offset'] ) ? absint( $input['offset'] ) : 0;
 	$status   = isset( $input['status'] ) ? sanitize_text_field( $input['status'] ) : '';
+
+	$client = extrachill_newsletter_dmb_sendy_client();
+	if ( $client ) {
+		return $client->list_campaigns(
+			array(
+				'per_page' => $per_page,
+				'offset'   => $offset,
+				'status'   => $status,
+			)
+		);
+	}
 
 	$sendy_db = extrachill_newsletter_get_sendy_db();
 	if ( is_wp_error( $sendy_db ) ) {
@@ -249,6 +280,11 @@ function extrachill_newsletter_ability_get_campaign( $input ) {
 		return new WP_Error( 'missing_campaign_id', 'campaign_id is required.' );
 	}
 
+	$client = extrachill_newsletter_dmb_sendy_client();
+	if ( $client ) {
+		return $client->get_campaign( $campaign_id );
+	}
+
 	$sendy_db = extrachill_newsletter_get_sendy_db();
 	if ( is_wp_error( $sendy_db ) ) {
 		return $sendy_db;
@@ -295,6 +331,11 @@ function extrachill_newsletter_ability_delete_campaign( $input ) {
 		return new WP_Error( 'missing_campaign_id', 'campaign_id is required.' );
 	}
 
+	$client = extrachill_newsletter_dmb_sendy_client();
+	if ( $client ) {
+		return $client->delete_campaign( $campaign_id );
+	}
+
 	$sendy_db = extrachill_newsletter_get_sendy_db();
 	if ( is_wp_error( $sendy_db ) ) {
 		return $sendy_db;
@@ -339,6 +380,20 @@ function extrachill_newsletter_ability_subscriber_status( $input ) {
 
 	if ( empty( $email ) || empty( $list_id ) ) {
 		return new WP_Error( 'missing_params', 'email and list_id are required.' );
+	}
+
+	// Delegate the Sendy API status check to the generic DMB primitive when
+	// available; fall back to the direct API call otherwise.
+	$client = extrachill_newsletter_dmb_sendy_client();
+	if ( $client ) {
+		$status = $client->subscriber_status( $list_id, $email );
+		if ( is_wp_error( $status ) ) {
+			return new WP_Error( 'status_check_failed', 'Failed to check subscriber status: ' . $status->get_error_message() );
+		}
+		return array(
+			'email'  => $email,
+			'status' => $status,
+		);
 	}
 
 	$config   = get_sendy_config();

@@ -41,19 +41,80 @@ function extrachill_newsletter_default_settings() {
 	);
 }
 
+/**
+ * Get the Sendy API configuration from the newsletter settings.
+ *
+ * @return array {api_key, sendy_url, from_name, from_email, reply_to, brand_id}.
+ */
 function get_sendy_config() {
 	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
 
 	$settings = wp_parse_args( $settings, extrachill_newsletter_default_settings() );
 
 	return array(
-		'api_key' => $settings['sendy_api_key'],
-		'sendy_url' => $settings['sendy_url'],
-		'from_name' => $settings['from_name'],
+		'api_key'    => $settings['sendy_api_key'],
+		'sendy_url'  => $settings['sendy_url'],
+		'from_name'  => $settings['from_name'],
 		'from_email' => $settings['from_email'],
-		'reply_to' => $settings['reply_to'],
-		'brand_id' => $settings['brand_id'],
+		'reply_to'   => $settings['reply_to'],
+		'brand_id'   => $settings['brand_id'],
 	);
+}
+
+/**
+ * Build the generic Sendy connection config for the Data Machine Business
+ * Sendy primitive.
+ *
+ * The Sendy MECHANICS (API calls + read-only DB queries) live in the generic
+ * `datamachine/sendy-*` abilities provided by data-machine-business. This
+ * plugin owns the POLICY (which credentials, list IDs, brand) and passes the
+ * connection config down to that primitive. This helper assembles that config:
+ * API key + URL from the newsletter settings, and the read-only DB credentials
+ * resolved via the `extrachill_newsletter_sendy_db` filter or settings option.
+ *
+ * @return array {api_key, sendy_url, db:{host,user,pass,name,port}}.
+ */
+function extrachill_newsletter_sendy_dmb_config() {
+	$config = get_sendy_config();
+
+	$dmb_config = array(
+		'api_key'   => $config['api_key'],
+		'sendy_url' => $config['sendy_url'],
+	);
+
+	$creds = function_exists( 'extrachill_newsletter_get_sendy_db_credentials' )
+		? extrachill_newsletter_get_sendy_db_credentials()
+		: new WP_Error( 'sendy_db_helper_missing', 'Sendy DB credential helper not loaded.' );
+	if ( ! is_wp_error( $creds ) ) {
+		$dmb_config['db'] = array(
+			'host' => $creds['host'],
+			'user' => $creds['user'],
+			'pass' => $creds['pass'],
+			'name' => $creds['name'],
+			'port' => $creds['port'],
+		);
+	}
+
+	return $dmb_config;
+}
+
+/**
+ * Resolve the generic DMB Sendy ability, if available.
+ *
+ * Returns the WP_Ability instance for the given generic Sendy ability, or null
+ * when data-machine-business is not active. Callers fall back to their own
+ * legacy path when null so newsletter behavior never breaks.
+ *
+ * @param string $ability Generic ability slug (e.g. datamachine/sendy-subscribe).
+ * @return \WP_Ability|null
+ */
+function extrachill_newsletter_get_sendy_ability( $ability ) {
+	if ( ! function_exists( 'wp_get_ability' ) ) {
+		return null;
+	}
+
+	$instance = wp_get_ability( $ability );
+	return $instance ? $instance : null;
 }
 
 /**
@@ -78,12 +139,14 @@ function extrachill_multisite_subscribe( $email, $context, $source_url = '', $na
 		);
 	}
 
-	$result = $ability->execute( array(
-		'email'      => $email,
-		'context'    => $context,
-		'source_url' => $source_url,
-		'name'       => $name,
-	) );
+	$result = $ability->execute(
+		array(
+			'email'      => $email,
+			'context'    => $context,
+			'source_url' => $source_url,
+			'name'       => $name,
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return array(
@@ -120,13 +183,15 @@ function extrachill_subscribe_to_list( $list_id, $email, $name = '', $source = '
 		);
 	}
 
-	$result = $ability->execute( array(
-		'email'      => $email,
-		'list_id'    => $list_id,
-		'name'       => $name,
-		'context'    => $source,
-		'source_url' => $source_url,
-	) );
+	$result = $ability->execute(
+		array(
+			'email'      => $email,
+			'list_id'    => $list_id,
+			'name'       => $name,
+			'context'    => $source,
+			'source_url' => $source_url,
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return array(
@@ -152,7 +217,7 @@ function extrachill_subscribe_to_list( $list_id, $email, $name = '', $source = '
  * @param array $email_data Deprecated, unused. Kept for signature compatibility.
  * @return true|WP_Error True on success, WP_Error on failure.
  */
-function send_newsletter_campaign_to_sendy($post_id, $email_data = array()) {
+function send_newsletter_campaign_to_sendy( $post_id, $email_data = array() ) {
 	$ability = wp_get_ability( 'extrachill/push-campaign' );
 
 	if ( ! $ability ) {

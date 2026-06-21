@@ -130,33 +130,15 @@ function extrachill_newsletter_ability_subscribe( $input ) {
 		);
 	}
 
-	// Send subscription to Sendy.
-	$config = get_sendy_config();
+	$source = ! empty( $context ) ? $context : 'direct';
 
-	$subscription_data = array(
-		'email'   => $email,
-		'list'    => $list_id,
-		'boolean' => 'true',
-		'api_key' => $config['api_key'],
-	);
+	// Delegate the Sendy API mechanics to the generic data-machine-business
+	// Sendy primitive. This plugin owns the policy (list resolution, validation,
+	// hooks, analytics); the mechanism (the raw API call) lives one layer down.
+	$result = extrachill_newsletter_sendy_subscribe( $list_id, $email, $name );
 
-	if ( ! empty( $name ) ) {
-		$subscription_data['name'] = sanitize_text_field( $name );
-	}
-
-	$response = wp_remote_post(
-		$config['sendy_url'] . '/subscribe',
-		array(
-			'headers' => array(
-				'Content-Type' => 'application/x-www-form-urlencoded',
-			),
-			'body'    => $subscription_data,
-			'timeout' => 30,
-		)
-	);
-
-	if ( is_wp_error( $response ) ) {
-		error_log( 'Newsletter subscription failed: ' . $response->get_error_message() );
+	if ( is_wp_error( $result ) ) {
+		error_log( 'Newsletter subscription failed: ' . $result->get_error_message() );
 		return array(
 			'success' => false,
 			'message' => __( 'Subscription service unavailable', 'extrachill-newsletter' ),
@@ -164,10 +146,9 @@ function extrachill_newsletter_ability_subscribe( $input ) {
 		);
 	}
 
-	$response_body = wp_remote_retrieve_body( $response );
-	$source        = ! empty( $context ) ? $context : 'direct';
+	$status = isset( $result['status'] ) ? $result['status'] : 'failed';
 
-	if ( '1' === $response_body || strpos( $response_body, 'Success' ) !== false ) {
+	if ( ! empty( $result['success'] ) || 'subscribed' === $status ) {
 		/** This action is documented in inc/core/sendy-api.php */
 		do_action( 'extrachill_newsletter_subscribed', $source, $list_id, $source_url );
 
@@ -195,9 +176,9 @@ function extrachill_newsletter_ability_subscribe( $input ) {
 		);
 	}
 
-	error_log( sprintf( 'Newsletter subscription failed for %s via %s: %s', $email, $source, $response_body ) );
+	error_log( sprintf( 'Newsletter subscription failed for %s via %s: %s', $email, $source, isset( $result['raw'] ) ? $result['raw'] : $status ) );
 
-	if ( strpos( $response_body, 'Already subscribed' ) !== false ) {
+	if ( 'already_subscribed' === $status ) {
 		return array(
 			'success' => false,
 			'message' => __( 'Email already subscribed', 'extrachill-newsletter' ),
@@ -205,7 +186,7 @@ function extrachill_newsletter_ability_subscribe( $input ) {
 		);
 	}
 
-	if ( strpos( $response_body, 'Invalid' ) !== false ) {
+	if ( 'invalid' === $status ) {
 		return array(
 			'success' => false,
 			'message' => __( 'Invalid email address', 'extrachill-newsletter' ),
@@ -217,5 +198,93 @@ function extrachill_newsletter_ability_subscribe( $input ) {
 		'success' => false,
 		'message' => __( 'Subscription failed, please try again', 'extrachill-newsletter' ),
 		'status'  => 'failed',
+	);
+}
+
+/**
+ * Subscribe an email to a Sendy list via the generic DMB Sendy primitive.
+ *
+ * Delegates the raw Sendy API call to `datamachine/sendy-subscribe` when
+ * data-machine-business is active. Falls back to a direct API call (the legacy
+ * mechanics) when the primitive is unavailable so subscriptions keep working
+ * regardless of DMB activation state.
+ *
+ * @param string $list_id Sendy list ID.
+ * @param string $email   Email address.
+ * @param string $name    Optional subscriber name.
+ * @return array|WP_Error Normalised result {success, status, message, raw}.
+ */
+function extrachill_newsletter_sendy_subscribe( $list_id, $email, $name = '' ) {
+	$ability = extrachill_newsletter_get_sendy_ability( 'datamachine/sendy-subscribe' );
+
+	if ( $ability ) {
+		return $ability->execute(
+			array(
+				'config'  => extrachill_newsletter_sendy_dmb_config(),
+				'list_id' => $list_id,
+				'email'   => $email,
+				'name'    => $name,
+			)
+		);
+	}
+
+	// Legacy fallback: direct Sendy API call.
+	$config            = get_sendy_config();
+	$subscription_data = array(
+		'email'   => $email,
+		'list'    => $list_id,
+		'boolean' => 'true',
+		'api_key' => $config['api_key'],
+	);
+
+	if ( ! empty( $name ) ) {
+		$subscription_data['name'] = sanitize_text_field( $name );
+	}
+
+	$response = wp_remote_post(
+		$config['sendy_url'] . '/subscribe',
+		array(
+			'headers' => array( 'Content-Type' => 'application/x-www-form-urlencoded' ),
+			'body'    => $subscription_data,
+			'timeout' => 30,
+		)
+	);
+
+	if ( is_wp_error( $response ) ) {
+		return $response;
+	}
+
+	$raw = wp_remote_retrieve_body( $response );
+
+	if ( '1' === $raw || false !== strpos( $raw, 'Success' ) ) {
+		return array(
+			'success' => true,
+			'status'  => 'subscribed',
+			'message' => '',
+			'raw'     => $raw,
+		);
+	}
+	if ( false !== strpos( $raw, 'Already subscribed' ) ) {
+		return array(
+			'success' => false,
+			'status'  => 'already_subscribed',
+			'message' => '',
+			'raw'     => $raw,
+		);
+	}
+	if ( false !== strpos( $raw, 'Invalid' ) ) {
+		return array(
+			'success' => false,
+			'status'  => 'invalid',
+			'message' => '',
+			'raw'     => $raw,
+		);
+	}
+
+	return array(
+		'success' => false,
+		'status'  => 'failed',
+		'message' => '',
+		'raw'     => $raw,
 	);
 }
