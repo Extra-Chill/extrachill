@@ -2,17 +2,20 @@
 /**
  * Analytics Content Flags CLI Command
  *
- * Thin wrapper around the datamachine/content-flags ability — a deterministic
- * TRIAGE SCREEN (not a quality score) over a category's published posts. Reuses
- * the content-performance category->GA4-engagement join and runs structural
- * red-flag signatures over each comparable post (thin, padded_stub, the
- * load-bearing demand_failing_content, and an advisory format_mismatch),
- * surfacing the posts a human should look at — the human judges, the screen
- * does not.
+ * Thin wrapper around the datamachine/content-flags ability — a deterministic,
+ * OUTCOME-first TRIAGE SCREEN (not a quality score) over a category's published
+ * posts. Reuses the content-performance category->GA4-engagement join, flags
+ * posts by the single confident outcome rule (demand_failing_content), and
+ * annotates each flagged post with advisory structural notes (thin, padded_stub)
+ * as a possible explanation — never a standalone verdict. Also surfaces the
+ * category coverage ratio (with_traffic/published): a low ratio is a discovery
+ * gap, not a content gap.
  *
- * Per-page dwell is GA4-only (the first-party pageview table has no duration
- * event), so results carry GA's sampling caveats and are not bot-filtered the
- * way the first-party reads are.
+ * Flags and dwell are valid only WITHIN a category — dwell is contaminated by
+ * traffic-source and demand differences between categories, so a post must never
+ * be compared against a post in another category. Per-page dwell is GA4-only
+ * (the first-party pageview table has no duration event), so results carry GA's
+ * sampling caveats and are not bot-filtered the way the first-party reads are.
  *
  * @package ExtraChill\CLI\Commands\Analytics
  */
@@ -29,14 +32,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ContentFlagsCommand {
 
 	/**
-	 * Screen a category's posts for deterministic structural red flags.
+	 * Screen a category's posts for demand-failing content (outcome-first).
 	 *
-	 * Reuses the content-performance category->GA4-engagement join, then runs
-	 * deterministic flag signatures: thin (word_count < 600), padded_stub
-	 * (>15 headings/1k words AND <1000 words), and the load-bearing
-	 * demand_failing_content (>=10 engaged sessions AND avg dwell < 0.4x the
-	 * category median). demand_failing_content posts sort first. This is a
-	 * TRIAGE SCREEN, not a quality score — it tells you which posts to inspect.
+	 * Reuses the content-performance category->GA4-engagement join, then flags
+	 * posts by the ONE confident outcome rule: demand_failing_content
+	 * (engaged_sessions >= 10 AND avg dwell < 0.4x the category median). Each
+	 * flagged post carries advisory structural notes (thin: < 500 words;
+	 * padded_stub: > 15 headings/1k words AND < 1000 words) as a POSSIBLE
+	 * explanation — structure never flags a post on its own (it predicts quality
+	 * at barely-above-chance precision). Also reports the category coverage ratio
+	 * (with_traffic/published); a low ratio signals a discovery gap, not a
+	 * content gap. This is a TRIAGE SCREEN, not a quality score, and it is valid
+	 * only WITHIN this category.
 	 *
 	 * ## OPTIONS
 	 *
@@ -54,10 +61,6 @@ class ContentFlagsCommand {
 	 * ---
 	 * default: extrachill.com
 	 * ---
-	 *
-	 * [--include-advisory]
-	 * : Include the category-relative advisory format_mismatch flag (listicle
-	 * titles in an explainer category). Off by default.
 	 *
 	 * [--limit=<n>]
 	 * : Max flagged rows to display.
@@ -78,7 +81,7 @@ class ContentFlagsCommand {
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill analytics content-flags --category=music-history
-	 *     wp extrachill analytics content-flags --category=song-meanings --include-advisory
+	 *     wp extrachill analytics content-flags --category=song-meanings
 	 *     wp extrachill analytics content-flags --category=music-history --format=json
 	 *
 	 * @subcommand __default
@@ -96,18 +99,16 @@ class ContentFlagsCommand {
 			WP_CLI::error( 'A --category=<slug> is required.' );
 		}
 
-		$days             = max( 1, (int) ( $assoc_args['days'] ?? 28 ) );
-		$hostname         = $assoc_args['hostname'] ?? 'extrachill.com';
-		$include_advisory = isset( $assoc_args['include-advisory'] );
-		$limit            = max( 1, (int) ( $assoc_args['limit'] ?? 30 ) );
-		$format           = $assoc_args['format'] ?? 'table';
+		$days     = max( 1, (int) ( $assoc_args['days'] ?? 28 ) );
+		$hostname = $assoc_args['hostname'] ?? 'extrachill.com';
+		$limit    = max( 1, (int) ( $assoc_args['limit'] ?? 30 ) );
+		$format   = $assoc_args['format'] ?? 'table';
 
 		$result = $ability->execute(
 			array(
-				'category'         => $category,
-				'days'             => $days,
-				'hostname'         => $hostname,
-				'include_advisory' => $include_advisory,
+				'category' => $category,
+				'days'     => $days,
+				'hostname' => $hostname,
 			)
 		);
 
@@ -126,7 +127,7 @@ class ContentFlagsCommand {
 			Utils\format_items(
 				$format,
 				$rows,
-				array( 'slug', 'flags', 'word_count', 'headings_per_1k', 'engaged_sessions', 'avg_duration', 'category_median' )
+				array( 'slug', 'flag', 'structural_notes', 'engaged_sessions', 'avg_duration', 'category_median', 'word_count' )
 			);
 			return;
 		}
@@ -142,7 +143,17 @@ class ContentFlagsCommand {
 			)
 		);
 
-		$counts = (array) ( $result['flag_counts'] ?? array() );
+		$published = (int) ( $result['published_total'] ?? 0 );
+		$traffic   = (int) ( $result['with_traffic'] ?? 0 );
+		$coverage  = (float) ( $result['coverage'] ?? 0 );
+		WP_CLI::log(
+			sprintf(
+				'Coverage: %s%% (%d/%d with traffic) — a LOW ratio is a DISCOVERY gap (crosslink traffic IN), not a content gap.',
+				$this->num( $coverage * 100 ),
+				$traffic,
+				$published
+			)
+		);
 		WP_CLI::log(
 			sprintf(
 				'%d comparable · %d flagged · median dwell %ss',
@@ -151,29 +162,24 @@ class ContentFlagsCommand {
 				$this->num( $result['median_duration'] ?? 0 )
 			)
 		);
-		if ( ! empty( $counts ) ) {
-			$parts = array();
-			foreach ( $counts as $flag => $n ) {
-				$parts[] = "{$flag}: {$n}";
-			}
-			WP_CLI::log( 'Flag counts — ' . implode( ' · ', $parts ) );
-		}
 		WP_CLI::log( str_repeat( '─', 72 ) );
 
 		if ( empty( $rows ) ) {
-			WP_CLI::log( 'No posts tripped a flag in this window. Widen --days or check a different category.' );
+			WP_CLI::log( 'No posts tripped demand_failing_content in this window. Widen --days or check coverage above.' );
 		} else {
-			WP_CLI::log( 'Highest-severity first (demand_failing_content > padded_stub > thin):' );
+			WP_CLI::log( 'demand_failing_content — real demand, dwell far below the category median (worst-holding first):' );
 			WP_CLI::log( '' );
 			Utils\format_items(
 				'table',
 				$rows,
-				array( 'slug', 'flags', 'word_count', 'headings_per_1k', 'engaged_sessions', 'avg_duration', 'category_median' )
+				array( 'slug', 'flag', 'structural_notes', 'engaged_sessions', 'avg_duration', 'category_median', 'word_count' )
 			);
 		}
 
 		WP_CLI::log( '' );
-		WP_CLI::log( 'Triage screen, not a quality score — the flags tell you which posts to inspect; you judge.' );
+		WP_CLI::log( 'Triage screen, not a quality score. demand_failing_content is the only confident flag (it measures outcome);' );
+		WP_CLI::log( 'structural_notes are POSSIBLE explanations, never verdicts — structure predicts quality near chance.' );
+		WP_CLI::log( 'Flags/dwell are valid only WITHIN this category — never compare a post against one in another category.' );
 		WP_CLI::log( 'Note: per-page dwell is GA4-only and carries GA sampling caveats; it is not bot-filtered like the first-party reads.' );
 	}
 
@@ -184,14 +190,16 @@ class ContentFlagsCommand {
 	 * @return array<string, mixed>
 	 */
 	private function row( array $p ) {
+		$notes = (array) ( $p['structural_notes'] ?? array() );
+
 		return array(
 			'slug'             => $p['slug'] ?? '',
-			'flags'            => implode( ',', (array) ( $p['flags'] ?? array() ) ),
-			'word_count'       => (int) ( $p['word_count'] ?? 0 ),
-			'headings_per_1k'  => $this->num( $p['headings_per_1k'] ?? 0 ),
+			'flag'             => $p['flag'] ?? '',
+			'structural_notes' => empty( $notes ) ? '—' : implode( ',', $notes ),
 			'engaged_sessions' => (int) ( $p['engaged_sessions'] ?? 0 ),
 			'avg_duration'     => $this->num( $p['avg_duration'] ?? 0 ) . 's',
 			'category_median'  => $this->num( $p['category_median'] ?? 0 ) . 's',
+			'word_count'       => (int) ( $p['word_count'] ?? 0 ),
 		);
 	}
 
