@@ -2,6 +2,18 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.21.0] - 2026-06-21
+
+### Added
+- route outbound clicks through /analytics/click
+- forward referrer and utm params to registration source attribution
+
+### Changed
+- retire SameSite=None cross-site cookie hack
+
+### Fixed
+- authenticate extrachill.link edit button via wp-native bearer token
+
 ## [0.20.0] - 2026-06-17
 
 ### Added
