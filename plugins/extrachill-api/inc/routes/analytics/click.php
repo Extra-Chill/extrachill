@@ -14,6 +14,16 @@
  *             which bridge link converted) and `source_site` in event_data — the
  *             most analytically valuable bridge dimensions. See
  *             extrachill-multisite#58 and #62.
+ * - 'outbound': Tracks an OUTBOUND (off-network) click — a reader exiting to an
+ *             external domain (Spotify, a ticket link, an artist site, merch,
+ *             social). Fired client-side (sendBeacon) so it counts human intent
+ *             only and is bot-filtered by construction, exactly like 'bridge'.
+ *             Records `dest_host` + the normalized `destination_url` plus the
+ *             server-classified destination `category` in event_data, and
+ *             carries the anonymous first-party `visitor_id` (NULL under
+ *             GPC/DNT). This is the cross-DOMAIN counterpart to the cross-SITE
+ *             conversion map — the missing half of "where do readers go." See
+ *             extrachill-analytics#66.
  *
  * Future click types (internal_link, taxonomy_badge, cta, etc.) will route through abilities.
  */
@@ -38,7 +48,7 @@ function extrachill_api_register_click_route() {
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_key',
 					'validate_callback' => function ( $param ) {
-						$allowed = array( 'share', 'link_page_link', 'bridge' );
+						$allowed = array( 'share', 'link_page_link', 'bridge', 'outbound' );
 						return in_array( $param, $allowed, true );
 					},
 				),
@@ -90,6 +100,28 @@ function extrachill_api_register_click_route() {
 					'required'          => false,
 					'type'              => 'string',
 					'default'           => '',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'dest_host'         => array(
+					'required'          => false,
+					'type'              => 'string',
+					'default'           => '',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'visitor_id'        => array(
+					'required'          => false,
+					'type'              => 'string',
+					'default'           => '',
+					// Anonymous first-party UUID v4 echoed by the outbound beacon.
+					// Accept only a well-formed UUID v4; anything else (including
+					// empty / opted-out) is coerced to '' so the click records
+					// anonymously.
+					'validate_callback' => function ( $param ) {
+						return '' === $param || 1 === preg_match(
+							'/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
+							(string) $param
+						);
+					},
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 			),
@@ -158,6 +190,8 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 	$source_post       = (int) $request->get_param( 'source_post' );
 	$source_site       = $request->get_param( 'source_site' );
 	$term              = $request->get_param( 'term' );
+	$dest_host         = $request->get_param( 'dest_host' );
+	$visitor_id        = (string) $request->get_param( 'visitor_id' );
 
 	$normalized_destination = extrachill_api_normalize_tracked_url( $destination_url );
 
@@ -262,6 +296,64 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 				return new WP_Error(
 					'tracking_failed',
 					'Failed to record bridge click event.',
+					array( 'status' => 500 )
+				);
+			}
+			break;
+
+		case 'outbound':
+			if ( empty( $dest_host ) && empty( $normalized_destination ) ) {
+				return new WP_Error(
+					'missing_destination',
+					'dest_host or destination_url is required for outbound click type.',
+					array( 'status' => 400 )
+				);
+			}
+
+			// Derive the host from the destination URL when the client didn't
+			// send one explicitly (defensive — the JS always sends dest_host).
+			if ( empty( $dest_host ) ) {
+				$parsed_host = wp_parse_url( $normalized_destination, PHP_URL_HOST );
+				$dest_host   = is_string( $parsed_host ) ? $parsed_host : '';
+			}
+
+			$ability = wp_get_ability( 'extrachill/track-analytics-event' );
+			if ( ! $ability ) {
+				return new WP_Error(
+					'ability_missing',
+					'Analytics tracking ability not available.',
+					array( 'status' => 500 )
+				);
+			}
+
+			// Classify the destination once at write time so each stored row
+			// carries its category; the read ability honours the stamp and only
+			// re-classifies older/unstamped rows.
+			$category = function_exists( 'extrachill_analytics_classify_outbound_host' )
+				? extrachill_analytics_classify_outbound_host( $dest_host )
+				: 'other';
+
+			$event_id = $ability->execute(
+				array(
+					'event_type' => 'outbound_click',
+					'event_data' => array(
+						'dest_host' => $dest_host,
+						'dest_url'  => $normalized_destination,
+						'category'  => $category,
+					),
+					'source_url' => $source_url,
+					'visitor_id' => $visitor_id,
+				)
+			);
+
+			if ( is_wp_error( $event_id ) ) {
+				return $event_id;
+			}
+
+			if ( empty( $event_id ) ) {
+				return new WP_Error(
+					'tracking_failed',
+					'Failed to record outbound click event.',
 					array( 'status' => 500 )
 				);
 			}
