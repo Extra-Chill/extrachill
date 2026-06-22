@@ -38,6 +38,42 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		return new WP_Error( 'invalid_artist_name', 'Artist name is required.' );
 	}
 
+	// Duplicate guard: reject when this same user already owns an
+	// artist_profile with an identical case-insensitive, trimmed title.
+	// Enforced server-side regardless of client (Extra-Chill/extrachill-artist-platform#80).
+	// Mirrors the established one-per-artist link-page guard at
+	// inc/core/filters/create.php:128 (return WP_Error 'already_exists').
+	// ec_get_artists_for_user() (extrachill-users) is the single source of
+	// truth for a user's published profiles and handles its own blog switch,
+	// so call it before switching context here.
+	if ( $user_id && function_exists( 'ec_get_artists_for_user' ) ) {
+		$existing_artist_ids = ec_get_artists_for_user( $user_id );
+		if ( ! empty( $existing_artist_ids ) ) {
+			$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+			if ( $artist_blog_id ) {
+				switch_to_blog( $artist_blog_id );
+				$normalized_new = function_exists( 'mb_strtolower' ) ? mb_strtolower( $name ) : strtolower( $name );
+				foreach ( $existing_artist_ids as $existing_id ) {
+					$existing_title      = trim( (string) get_the_title( (int) $existing_id ) );
+					$normalized_existing = function_exists( 'mb_strtolower' ) ? mb_strtolower( $existing_title ) : strtolower( $existing_title );
+					if ( $normalized_existing === $normalized_new ) {
+						restore_current_blog();
+						return new WP_Error(
+							'duplicate_artist_name',
+							sprintf(
+								/* translators: %s: the duplicate artist profile name. */
+								__( 'You already have an artist profile named "%s". Open the existing profile instead of creating a duplicate.', 'extrachill-artist-platform' ),
+								$name
+							),
+							array( 'existing_artist_id' => (int) $existing_id )
+						);
+					}
+				}
+				restore_current_blog();
+			}
+		}
+	}
+
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
@@ -95,5 +131,8 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		return $get_ability->execute( array( 'artist_id' => $artist_id ) );
 	}
 
-	return array( 'id' => (int) $artist_id, 'name' => $name );
+	return array(
+		'id'   => (int) $artist_id,
+		'name' => $name,
+	);
 }
