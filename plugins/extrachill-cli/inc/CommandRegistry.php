@@ -42,6 +42,7 @@ class CommandRegistry {
 			'extrachill analytics errors'            => Commands\Analytics\ErrorsCommand::class,
 			'extrachill analytics retention'         => Commands\Analytics\RetentionCommand::class,
 			'extrachill analytics growth'            => Commands\Analytics\GrowthCommand::class,
+			'extrachill analytics demand-drill'      => Commands\Analytics\DemandDrillCommand::class,
 			'extrachill analytics conversion'        => Commands\Analytics\ConversionCommand::class,
 			'extrachill analytics outbound'          => Commands\Analytics\OutboundCommand::class,
 			'extrachill analytics stickiness'        => Commands\Analytics\StickinessCommand::class,
