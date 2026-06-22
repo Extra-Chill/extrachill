@@ -145,7 +145,7 @@ class CrosslinkTargetsCommand {
 			return;
 		}
 
-		$period_label = $days > 0 ? "Last {$days} days" : 'All time';
+		$period_label = "Last {$days} days";
 		WP_CLI::log( sprintf( 'Crosslink Targets — %s (%s)', $period_label, $result['period'] ?? '' ) );
 
 		$graph = (array) ( $result['link_graph'] ?? array() );

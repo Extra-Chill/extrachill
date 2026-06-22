@@ -173,7 +173,7 @@ class HealthCommand {
 	/**
 	 * Compose bot-aware traffic totals from the GA traffic_sources action.
 	 *
-	 * @param object|null $ability  GA ability (or null if absent).
+	 * @param \WP_Ability|null $ability  GA ability (or null if absent).
 	 * @param string      $hostname Site hostname for the hostName filter.
 	 * @param int         $days     Look-back window in days.
 	 * @return array{sessions:mixed, organic_pct:mixed, direct_pct:mixed}
@@ -231,7 +231,7 @@ class HealthCommand {
 	/**
 	 * Compose the return-rate signal from extrachill/get-retention-stats.
 	 *
-	 * @param object|null $ability Retention ability (or null if absent).
+	 * @param \WP_Ability|null $ability Retention ability (or null if absent).
 	 * @param int         $blog_id Blog ID.
 	 * @param int         $days    Look-back window in days.
 	 * @return mixed Percentage float, or the GAP sentinel.
@@ -261,7 +261,7 @@ class HealthCommand {
 	 * This ability ships in a sibling PR (#39) and may not be present on the
 	 * install. When absent the cell is an explicit gap, never a hard failure.
 	 *
-	 * @param object|null $ability Search-gaps ability (or null if absent).
+	 * @param \WP_Ability|null $ability Search-gaps ability (or null if absent).
 	 * @param int         $blog_id Blog ID.
 	 * @param int         $days    Look-back window in days.
 	 * @return mixed Integer gap count, or the GAP sentinel.
@@ -312,7 +312,7 @@ class HealthCommand {
 	 * The error log is a single host-wide file, so this is a network-global
 	 * signal (computed once, not per-site).
 	 *
-	 * @param object|null $ability Error-summary ability (or null if absent).
+	 * @param \WP_Ability|null $ability Error-summary ability (or null if absent).
 	 * @param int         $days    Look-back window in days.
 	 * @return mixed Per-day error rate float, or the GAP sentinel.
 	 */
@@ -360,7 +360,7 @@ class HealthCommand {
 	 * prefix), so this is a network-global signal — independent of blog
 	 * context and computed once for the whole platform.
 	 *
-	 * @param object|null $ability Jobs-summary ability (or null if absent).
+	 * @param \WP_Ability|null $ability Jobs-summary ability (or null if absent).
 	 * @param string      $metric  Either 'failed' or 'stuck'.
 	 * @return mixed Integer count, or the GAP sentinel.
 	 */
