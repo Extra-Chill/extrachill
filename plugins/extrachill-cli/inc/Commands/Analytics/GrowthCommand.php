@@ -37,6 +37,11 @@ class GrowthCommand {
 	 * produce) is highlighted. Unmeasurable dimensions show as "not instrumented"
 	 * coverage gaps, never as zeros.
 	 *
+	 * DEMAND BASIS: the demand slope here is GA4 organic SESSIONS (weekly-trend
+	 * regression). For per-page/per-query GSC CLICK attribution — a different lens
+	 * that can legitimately disagree in sign — see `wp extrachill analytics
+	 * demand-drill`. A sign mismatch between the two is not a regression.
+	 *
 	 * ## OPTIONS
 	 *
 	 * [--weeks=<weeks>]
@@ -134,6 +139,10 @@ class GrowthCommand {
 				WP_CLI::log( sprintf( '  %s [%s]: %s', $gap['surface'], $gap['dimension'], $gap['reason'] ) );
 			}
 		}
+
+		WP_CLI::log( '' );
+		WP_CLI::log( 'demand_slope_pct = GA4 organic-SESSIONS weekly slope. For per-page/per-query GSC CLICK attribution' );
+		WP_CLI::log( '(a different lens that can legitimately disagree in sign), run `wp extrachill analytics demand-drill`.' );
 	}
 
 	/**

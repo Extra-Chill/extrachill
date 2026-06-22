@@ -42,6 +42,12 @@ class DemandDrillCommand {
 	 * its current and prior average position so a rank-loss is obvious. Turns a
 	 * declining surface slope from a number into a page-level action list.
 	 *
+	 * BASIS: GSC CLICKS (~2-3 day lagged), net of two equal windows. This is a
+	 * different lens from `wp extrachill analytics growth`, whose demand figure is
+	 * a GA4 organic-SESSIONS weekly slope — the two can legitimately disagree in
+	 * sign without either being wrong. A sign mismatch is not a regression. For
+	 * the GA organic-sessions slope, run `wp extrachill analytics growth`.
+	 *
 	 * ## OPTIONS
 	 *
 	 * [--surface=<surface>]
@@ -247,6 +253,9 @@ class DemandDrillCommand {
 		WP_CLI::log( '' );
 		WP_CLI::log( 'position_change > 0 means the average position WORSENED (dropped lower on the SERP). A decliner that' );
 		WP_CLI::log( 'lost rank → rank-recovery / gsc-opportunities lever; one that held rank but lost clicks → content/crosslink lever.' );
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Basis here is GSC CLICKS (~2-3 day lagged), net of two windows. The `wp extrachill analytics growth` demand' );
+		WP_CLI::log( 'figure is a GA4 organic-SESSIONS weekly slope — a different lens; a sign mismatch between the two is not a regression.' );
 	}
 
 	/**
