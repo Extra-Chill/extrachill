@@ -27,6 +27,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_bridge_ctr_a
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_outbound_clicks_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_retention_stats_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_growth_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_demand_drill_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_conversion_map_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_stickiness_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_activation_funnel_ability' );
