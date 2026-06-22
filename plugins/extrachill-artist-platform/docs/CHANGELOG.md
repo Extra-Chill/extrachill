@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-06-22
+
+### Added
+- nudge returning users to login at join registration
+
+### Fixed
+- stop prefilling artist name with user display_name
+- hard-stop artist creator when user already owns a profile (#82)
+- block duplicate same-user artist profiles in create-artist ability
+- bootstrap extrachill.link edit button with wp-native bearer token
+
 ## [1.12.0] - 2026-06-20
 
 ### Added
