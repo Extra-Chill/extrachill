@@ -240,7 +240,7 @@ class GrowthCommand {
 		$float = (float) $value;
 
 		// Render whole numbers without a trailing ".0"; otherwise round to 2dp.
-		if ( $float === floor( $float ) ) {
+		if ( floor( $float ) === $float ) {
 			return (string) (int) $float;
 		}
 
