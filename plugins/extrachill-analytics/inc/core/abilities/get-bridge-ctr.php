@@ -106,7 +106,7 @@ function extrachill_analytics_ability_get_bridge_ctr( $input ) {
 	);
 
 	if ( $days > 0 ) {
-		$query_args['date_from'] = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
+		$query_args['date_from'] = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
 	}
 
 	if ( $blog_id > 0 ) {
@@ -188,7 +188,7 @@ function extrachill_analytics_ability_get_bridge_ctr( $input ) {
 		'days'         => $days,
 		'blog_id'      => $blog_id,
 		'period'       => $days > 0
-			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+			? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
 		'note'         => 'Both events fire client-side (sendBeacon) and are humans-with-JS by construction; this CTR is bot-filtered by design, unlike the raw GA4 network_bridge channel. Clicks and impressions now share the per-destination grain (one impression per rendered card carries dest_site as of extrachill-analytics#75), so by_dest_site pairs each destination\'s clicks to its own impressions. dest_site "(unknown)" rows are legacy page-level impressions emitted before the per-card change (or untagged cards); they shrink as new per-card data accumulates.',
 	);
