@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-06-22
+
+### Added
+- crosslink-targets ability — join conversion-map per-article ranking with the data-machine orphan link-graph
+- demand-drill ability — attribute a surface demand slope to per-page/per-query click changes
+
+### Fixed
+- clear phpstan/phpcs lint findings in crosslink-targets ability
+
 ## [0.17.0] - 2026-06-21
 
 ### Added
