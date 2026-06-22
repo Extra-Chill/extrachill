@@ -5,11 +5,13 @@
  * Handles join flow operations:
  * - Modal rendering via template action hook
  * - Redirect logic for login/registration via from_join parameter
+ * - Returning-user nudge: existing email at registration → login tab
  *
  * Flow:
  * - New users registering via join flow → /create-artist/
  * - Existing users with no artists → /create-artist/
  * - Existing users with artists → /manage-link-page/
+ * - Registering with an email that already has an account → /login/ (login tab)
  *
  * @package ExtraChillArtistPlatform
  */
@@ -124,6 +126,78 @@ function ec_join_flow_login_redirect( $redirect_to, $requested_redirect_to, $use
 	return $dest['url'];
 }
 add_filter( 'login_redirect', 'ec_join_flow_login_redirect', 10, 3 );
+
+/**
+ * Nudge returning users toward login before a duplicate account is created.
+ *
+ * The join flow drops confused returning users straight onto the registration
+ * tab. A real incident (2026-06-22) had a user who couldn't tell his first
+ * registration had succeeded create a SECOND, empty account rather than logging
+ * back in — the path of least resistance with nothing stopping it.
+ *
+ * This runs on the registration submission BEFORE the user-creation handler
+ * (extrachill-users hooks the same action at the default priority 10; this fires
+ * at priority 5). For join-flow submissions only, if the submitted email already
+ * belongs to an account, we send the user back to the login tab with an explicit
+ * "you already have an account — log in" nudge instead of letting the generic
+ * anti-enumeration error fire and silently inviting a clean-slate duplicate.
+ *
+ * Scope is deliberately narrow: it only acts on verified join-flow registration
+ * submissions, so it cannot be used as an email-enumeration oracle outside a
+ * legitimate, nonce-verified registration attempt (which already reveals the same
+ * "exists" signal today via the duplicate-email error path).
+ */
+function ec_join_flow_existing_account_nudge() {
+	// Only intervene on join-flow registration submissions. ec_is_join_flow_request()
+	// inspects $_REQUEST['from_join'] / redirect_to, matching how the rest of this
+	// flow detects its own requests.
+	if ( ! ec_is_join_flow_request() ) {
+		return;
+	}
+
+	if ( ! class_exists( 'EC_Redirect_Handler' ) || ! function_exists( 'email_exists' ) ) {
+		return;
+	}
+
+	// Verify the registration nonce before reading the email, mirroring the
+	// canonical handler in extrachill-users. This guarantees we only act on a
+	// genuine form submission, not an arbitrary crafted request.
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified immediately below.
+	if (
+		! isset( $_POST['extrachill_register_nonce'] )
+		|| ! wp_verify_nonce(
+			sanitize_text_field( wp_unslash( $_POST['extrachill_register_nonce'] ) ),
+			'extrachill_register_nonce_field'
+		)
+	) {
+		return;
+	}
+
+	$email = isset( $_POST['extrachill_email'] )
+		? sanitize_email( wp_unslash( $_POST['extrachill_email'] ) )
+		: '';
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+	if ( empty( $email ) || ! email_exists( $email ) ) {
+		// Brand-new email (or no email): let the normal registration handler run.
+		return;
+	}
+
+	// Existing account detected. Route the user to the login tab with a nudge,
+	// preserving the join-flow context so the experience stays coherent.
+	$redirect = EC_Redirect_Handler::from_post( 'ec_registration' );
+
+	$login_url = add_query_arg( 'from_join', 'true', home_url( '/login/' ) ) . '#tab-login';
+
+	extrachill_set_notice(
+		__( 'Looks like you already have an Extra Chill account with that email. Log in below to continue — no need to create a new one.', 'extrachill-artist-platform' ),
+		'info'
+	);
+
+	$redirect->redirect_to( $login_url );
+}
+add_action( 'admin_post_nopriv_extrachill_register_user', 'ec_join_flow_existing_account_nudge', 5 );
+add_action( 'admin_post_extrachill_register_user', 'ec_join_flow_existing_account_nudge', 5 );
 
 /**
  * Handle post-registration redirect for join flow users
