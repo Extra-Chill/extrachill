@@ -69,11 +69,34 @@ const EC_ANALYTICS_EVENT_ROADIE_TOOL_INVOKED      = 'roadie_tool_invoked';
  * The access-gate events (`artist_access_requested` / `_approved`) sit
  * upstream of this funnel for users who must request access first.
  */
-const EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED     = 'artist_access_requested';
-const EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED      = 'artist_access_approved';
-const EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED       = 'artist_signup_started';
-const EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED      = 'artist_profile_created';
+const EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED      = 'artist_access_requested';
+const EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED       = 'artist_access_approved';
+const EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED        = 'artist_signup_started';
+const EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED       = 'artist_profile_created';
 const EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH = 'artist_profile_first_publish';
+
+/**
+ * Artist-funnel FRICTION events — the failure/thrash modes that sit alongside
+ * the ordered happy-path steps above but are NOT themselves steps.
+ *
+ * These make onboarding funnel leaks visible: instead of a person silently
+ * vanishing between two happy-path steps, an anomaly emit records WHY the
+ * funnel thrashed. They carry the same `visitor_id` (top-level ability arg)
+ * AND `user_id` (event_data) stitching as the steps, so a friction event
+ * attributes to the same person the funnel reader already counts.
+ *
+ *   artist_profile_duplicate_created — a member who already has an artist
+ *     profile created ANOTHER one (a dead-end thrash: the second profile is
+ *     not the activation the funnel is measuring, it is wasted motion).
+ *   user_reregistration_attempt — an already-known person tried to register a
+ *     fresh account (a duplicate-account / re-registration signal: the top of
+ *     the funnel is leaking returning users into new identities).
+ *
+ * The emit CALLS live in extrachill-artist-platform / extrachill-users
+ * (separate PRs); this contract gives those emits a canonical name to write.
+ */
+const EC_ANALYTICS_EVENT_ARTIST_PROFILE_DUPLICATE_CREATED = 'artist_profile_duplicate_created';
+const EC_ANALYTICS_EVENT_USER_REREGISTRATION_ATTEMPT      = 'user_reregistration_attempt';
 
 /**
  * The team-experience event set surfaced by the cohort rollup
@@ -118,4 +141,18 @@ const EC_ANALYTICS_ARTIST_ACTIVATION_STEPS = array(
 	EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED,
 	EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED,
 	EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH,
+);
+
+/**
+ * The activation FRICTION event set — failure/thrash signals that run
+ * alongside the ordered activation steps but are not steps themselves. The
+ * funnel reader counts each of these by DISTINCT person to surface a
+ * measurable thrash/abandon signal next to the happy-path conversion. Order
+ * is NOT significant (these are independent anomalies, not a sequence).
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS = array(
+	EC_ANALYTICS_EVENT_ARTIST_PROFILE_DUPLICATE_CREATED,
+	EC_ANALYTICS_EVENT_USER_REREGISTRATION_ATTEMPT,
 );

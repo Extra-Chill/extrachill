@@ -24,6 +24,15 @@
  * DISTINCT person, then computes step-to-step and overall conversion plus the
  * single biggest abandon step.
  *
+ * Friction / anomaly signals
+ * --------------------------
+ * Alongside the happy-path steps it also surfaces an `anomalies` section that
+ * counts the activation FRICTION events (`EC_ANALYTICS_ARTIST_ACTIVATION_
+ * FRICTION_EVENTS` — duplicate profile creation and re-registration attempts)
+ * by DISTINCT person over the SAME window and dedup key. These make funnel
+ * leaks visible: instead of a person silently vanishing between two steps, the
+ * anomaly count records the thrash that explains the drop-off.
+ *
  * Identity / dedup key
  * --------------------
  * Every funnel step is a logged-in action, so the dedicated `user_id` column
@@ -72,7 +81,7 @@ function extrachill_analytics_register_activation_funnel_ability() {
 			),
 			'output_schema'       => array(
 				'type'        => 'object',
-				'description' => __( 'Object with an ordered steps array (event_type, label, people, conversion_from_prev, conversion_from_top), the biggest_abandon_step, and the exact UTC window.', 'extrachill-analytics' ),
+				'description' => __( 'Object with an ordered steps array (event_type, people, conversion_from_prev, conversion_from_top), the biggest_abandon_step, an anomalies array of friction signals (duplicate profile creation, re-registration attempts) each with DISTINCT people and raw event counts, and the exact UTC window.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_activation_funnel',
 			'permission_callback' => function () {
@@ -207,10 +216,47 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 	$last_count         = ! empty( $step_rows ) ? end( $step_rows )['people'] : 0;
 	$overall_conversion = $top_count > 0 ? round( $last_count / $top_count, 4 ) : 0.0;
 
+	// Friction / anomaly signals — failure modes that run ALONGSIDE the ordered
+	// happy-path steps but are not steps themselves (a member creating a second
+	// artist profile, or a known person re-registering a fresh account). These
+	// make funnel leaks visible: instead of a person silently vanishing between
+	// two steps, an anomaly count records the thrash. Counted by DISTINCT person
+	// over the SAME window and dedup key as the steps so they reconcile exactly.
+	$friction_events = defined( 'EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS' )
+		? EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS
+		: array( 'artist_profile_duplicate_created', 'user_reregistration_attempt' );
+
+	$anomalies = array();
+
+	foreach ( $friction_events as $event_type ) {
+		$where  = array( 'event_type = %s', "{$person_key} IS NOT NULL AND {$person_key} != ''" );
+		$values = array( sanitize_key( $event_type ) );
+
+		if ( ! empty( $window_where ) ) {
+			$where  = array_merge( $where, $window_where );
+			$values = array_merge( $values, $window_values );
+		}
+
+		$where_clause = implode( ' AND ', $where );
+
+		// Count DISTINCT people who hit this friction signal (people, not rows:
+		// a member who created three duplicate profiles is one thrashing person)
+		// AND the raw row volume (how much thrash that cohort generated).
+		$people_sql = "SELECT COUNT(DISTINCT {$person_key}) FROM {$table} WHERE {$where_clause}";
+		$events_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
+
+		$anomalies[] = array(
+			'event_type' => $event_type,
+			'people'     => (int) $wpdb->get_var( $wpdb->prepare( $people_sql, $values ) ),
+			'events'     => (int) $wpdb->get_var( $wpdb->prepare( $events_sql, $values ) ),
+		);
+	}
+
 	return array(
 		'steps'                => $steps_out,
 		'overall_conversion'   => $overall_conversion,
 		'biggest_abandon_step' => $biggest_abandon,
+		'anomalies'            => $anomalies,
 		'days'                 => $days,
 		'blog_id'              => $blog_id,
 		'period'               => $days > 0
@@ -220,6 +266,6 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 		// same created_at >= since bound used by get-analytics-summary.
 		'since'                => $since,
 		'as_of'                => $now_utc,
-		'note'                 => 'Per-person funnel: each step is COUNT(DISTINCT COALESCE(NULLIF(user_id,0), visitor_id)), so multiple emits per person (e.g. re-views of the create form emitting artist_signup_started) collapse to one. Rows with neither identity are excluded. Counts here are intentionally NOT comparable to get-analytics-summary COUNT(*) raw volume.',
+		'note'                 => 'Per-person funnel: each step is COUNT(DISTINCT COALESCE(NULLIF(user_id,0), visitor_id)), so multiple emits per person (e.g. re-views of the create form emitting artist_signup_started) collapse to one. Rows with neither identity are excluded. Counts here are intentionally NOT comparable to get-analytics-summary COUNT(*) raw volume. The anomalies array reports activation friction signals (duplicate profile creation, re-registration attempts) over the same window: people is DISTINCT persons hitting that signal, events is raw row volume.',
 	);
 }
