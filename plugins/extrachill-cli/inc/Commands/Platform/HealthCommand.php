@@ -332,6 +332,21 @@ class HealthCommand {
 			return 0.0;
 		}
 
+		// Prefer the active-window lens: it counts only signatures still
+		// firing inside the recent window, so resolved-but-persisted
+		// signatures (frozen fatals/warnings) no longer inflate the rate.
+		if ( isset( $result['active_per_day'] ) ) {
+			return round( (float) $result['active_per_day'], 1 );
+		}
+		if ( isset( $result['active_total'] ) ) {
+			$active_total       = (int) $result['active_total'];
+			$active_window_days = max( 1.0, (float) ( $result['active_window_hours'] ?? 24 ) / 24 );
+
+			return round( $active_total / $active_window_days, 1 );
+		}
+
+		// Fallback (older ability builds without the active-window lens):
+		// the blended persisted+live total over the look-back window.
 		$total        = (int) ( $result['total'] ?? 0 );
 		$days_covered = max( 1, (int) ( $result['days_covered'] ?? $days ) );
 
