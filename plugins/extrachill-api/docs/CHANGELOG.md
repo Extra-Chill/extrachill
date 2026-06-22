@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.21.1] - 2026-06-22
+
+### Fixed
+- accept and store dest_site on bridge impressions
+
 ## [0.21.0] - 2026-06-21
 
 ### Added
