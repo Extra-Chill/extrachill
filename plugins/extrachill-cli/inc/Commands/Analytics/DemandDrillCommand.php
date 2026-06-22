@@ -250,7 +250,14 @@ class DemandDrillCommand {
 	}
 
 	/**
-	 * Print a set of contributor rows as a table, or an empty marker.
+	 * Print a set of contributor rows as an aligned table, or an empty marker.
+	 *
+	 * Rendered through WP_CLI::log() rather than Utils\format_items() so the rows
+	 * share the logger's output stream with the section headers. Utils\format_items()
+	 * echoes the table directly to STDOUT, which flushes out of order relative to
+	 * the WP_CLI::log() header lines — dumping every table at the end of the
+	 * command, detached from its "Top decliners/risers" header and leaving the
+	 * headers looking blank (#69).
 	 *
 	 * @param array $rows Contributor rows from the ability.
 	 * @return void
@@ -261,11 +268,54 @@ class DemandDrillCommand {
 			return;
 		}
 
-		Utils\format_items(
-			'table',
-			array_map( array( $this, 'display_row' ), $rows ),
-			array( 'target', 'net_click_change', 'clicks_prior', 'clicks_current', 'position_prior', 'position_current', 'position_change' )
-		);
+		$columns = array( 'target', 'net_click_change', 'clicks_prior', 'clicks_current', 'position_prior', 'position_current', 'position_change' );
+		$display = array_map( array( $this, 'display_row' ), $rows );
+
+		$header = array_combine( $columns, $columns );
+
+		$widths = array();
+		foreach ( $columns as $column ) {
+			$widths[ $column ] = $this->cell_width( $column );
+		}
+		foreach ( $display as $row ) {
+			foreach ( $columns as $column ) {
+				$widths[ $column ] = max( $widths[ $column ], $this->cell_width( (string) $row[ $column ] ) );
+			}
+		}
+
+		WP_CLI::log( '    ' . $this->table_line( $header, $columns, $widths ) );
+		foreach ( $display as $row ) {
+			WP_CLI::log( '    ' . $this->table_line( $row, $columns, $widths ) );
+		}
+	}
+
+	/**
+	 * Build one space-padded, column-aligned table line.
+	 *
+	 * @param array<string,mixed> $row     Row keyed by column.
+	 * @param array<int,string>   $columns Ordered column keys.
+	 * @param array<string,int>   $widths  Column display-width map.
+	 * @return string
+	 */
+	private function table_line( array $row, array $columns, array $widths ) {
+		$cells = array();
+		foreach ( $columns as $column ) {
+			$value   = (string) $row[ $column ];
+			$padding = max( 0, $widths[ $column ] - $this->cell_width( $value ) );
+			$cells[] = $value . str_repeat( ' ', $padding );
+		}
+
+		return rtrim( implode( '  ', $cells ) );
+	}
+
+	/**
+	 * Display width of a cell value, counting multibyte glyphs (e.g. em-dash) as one.
+	 *
+	 * @param string $value Cell value.
+	 * @return int
+	 */
+	private function cell_width( $value ) {
+		return function_exists( 'mb_strwidth' ) ? mb_strwidth( $value, 'UTF-8' ) : strlen( $value );
 	}
 
 	/**
