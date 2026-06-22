@@ -63,7 +63,7 @@ function extrachill_analytics_register_surface_growth_ability() {
 		'extrachill/get-surface-growth',
 		array(
 			'label'               => __( 'Get Surface Growth', 'extrachill-analytics' ),
-			'description'         => __( 'Returns a normalized, cross-surface growth-rate read (supply: inventory growth per week; demand: organic-sessions slope) for each live Extra Chill surface, plus a ranked fastest-growing surface. Supply and demand are reported separately. Unmeasurable dimensions return a not_instrumented coverage marker, never a zero.', 'extrachill-analytics' ),
+			'description'         => __( 'Returns a normalized, cross-surface growth-rate read (supply: inventory growth per week; demand: organic-sessions slope) for each live Extra Chill surface, plus a ranked fastest-growing surface. Supply and demand are reported separately. DEMAND BASIS: GA4 organic SESSIONS, expressed as a weekly-trend slope (current window vs the immediately-preceding equal-length window). This is a DIFFERENT lens from the get-demand-drill ability, which attributes demand using GSC CLICKS (~2-3 day lagged) netted across two 4-week windows — so the two can legitimately disagree in sign without either being wrong (GA sessions vs GSC clicks, slope vs net-delta, different windows). For per-page/per-query GSC click attribution, see extrachill/get-demand-drill. Unmeasurable dimensions return a not_instrumented coverage marker, never a zero.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -217,7 +217,7 @@ function extrachill_analytics_ability_get_surface_growth( $input ) {
 		),
 		'ga_available'    => $ga_available,
 		'as_of'           => $now_utc,
-		'note'            => 'SUPPLY = inventory growth (new published items per week + % over prior total), deterministic COUNT(*) per surface post type. DEMAND = organic-sessions slope per host (current window vs previous equal window) from datamachine/google-analytics. The two are distinct: growing inventory != growing audience. Unmeasurable dimensions return a not_instrumented marker (coverage gap), never a zero. The cross-surface axis (growth_pct_per_week / fastest_growing) is supply-based because every live surface can produce it; demand is ranked separately and degrades gracefully when GA is unavailable.',
+		'note'            => 'SUPPLY = inventory growth (new published items per week + % over prior total), deterministic COUNT(*) per surface post type. DEMAND = GA4 organic-SESSIONS slope per host (current window vs previous equal window) from datamachine/google-analytics. The two are distinct: growing inventory != growing audience. Unmeasurable dimensions return a not_instrumented marker (coverage gap), never a zero. The cross-surface axis (growth_pct_per_week / fastest_growing) is supply-based because every live surface can produce it; demand is ranked separately and degrades gracefully when GA is unavailable. NOTE ON "DEMAND" vs the demand-drill instrument: this demand figure is a GA4 organic-SESSIONS weekly slope; the extrachill/get-demand-drill ability measures demand from GSC CLICKS (~2-3 day lagged) netted across two windows. They are different lenses (sessions vs clicks, slope vs net-delta, possibly different windows) and can disagree in sign without either being wrong — do not read a sign mismatch between them as a regression. For per-page/per-query GSC click attribution, see extrachill/get-demand-drill.',
 	);
 }
 
