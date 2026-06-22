@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-06-22
+
+### Added
+- wp extrachill analytics crosslink-targets CLI
+- wp extrachill analytics demand-drill CLI
+
+### Fixed
+- type ability params as WP_Ability and drop dead all-time branch to clear phpstan findings
+- prefer active-window error rate so platform health Errors/day reflects current firing
+- read zero_result_total in compose_search_gaps so platform health reports real search-gap counts
+
 ## [0.22.0] - 2026-06-21
 
 ### Added
