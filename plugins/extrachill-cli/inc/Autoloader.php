@@ -49,6 +49,19 @@ class Autoloader {
 					return;
 				}
 
+				// Bail if the class is already declared. `require_once` only
+				// dedupes by resolved file path, so when a second copy of this
+				// plugin is loaded from a different directory (e.g. a Data
+				// Machine Code worktree under the workspace alongside the live
+				// plugin), each copy registers its own autoload closure rooted
+				// at its own `inc/`. Without this guard the second closure
+				// requires its copy of an already-declared class and triggers a
+				// fatal "Cannot redeclare class" error. The class check keys on
+				// the class name, not the path, so the first declaration wins.
+				if ( class_exists( $class_name, false ) || interface_exists( $class_name, false ) || trait_exists( $class_name, false ) ) {
+					return;
+				}
+
 				$relative = substr( $class_name, $len );
 				$file     = $inc . str_replace( '\\', '/', $relative ) . '.php';
 
