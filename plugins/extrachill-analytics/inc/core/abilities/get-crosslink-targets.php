@@ -327,10 +327,7 @@ function extrachill_analytics_crosslink_conversion_read( $days, $session_gap_min
 	}
 
 	if ( function_exists( 'extrachill_analytics_ability_get_conversion_map' ) ) {
-		$result = extrachill_analytics_ability_get_conversion_map( $args );
-		if ( is_array( $result ) ) {
-			return $result;
-		}
+		return extrachill_analytics_ability_get_conversion_map( $args );
 	}
 
 	return new WP_Error(
@@ -366,8 +363,7 @@ function extrachill_analytics_crosslink_link_graph( $force_audit ) {
 		'note'          => 'link graph UNAVAILABLE — DataMachine\\Abilities\\InternalLinkingAbilities not loaded; orphan status could not be established, so no targets could be confirmed',
 	);
 
-	if ( ! class_exists( '\\DataMachine\\Abilities\\InternalLinkingAbilities' )
-		|| ! method_exists( '\\DataMachine\\Abilities\\InternalLinkingAbilities', 'auditInternalLinks' ) ) {
+	if ( ! class_exists( '\\DataMachine\\Abilities\\InternalLinkingAbilities' ) ) {
 		return $unavailable;
 	}
 
@@ -378,9 +374,9 @@ function extrachill_analytics_crosslink_link_graph( $force_audit ) {
 		)
 	);
 
-	if ( ! is_array( $graph ) || isset( $graph['error'] ) ) {
+	if ( isset( $graph['error'] ) ) {
 		$unavailable['note'] = 'link graph audit FAILED ('
-			. ( is_array( $graph ) ? (string) ( $graph['error'] ?? 'unknown error' ) : 'non-array response' )
+			. (string) $graph['error']
 			. ') — orphan status could not be established';
 		return $unavailable;
 	}
@@ -455,7 +451,7 @@ function extrachill_analytics_crosslink_primary_category( $article ) {
 	// categories on the entry blog with correct blog-switching.
 	if ( function_exists( 'extrachill_analytics_conversion_post_categories' ) ) {
 		$cats = extrachill_analytics_conversion_post_categories( $post_id );
-		if ( is_array( $cats ) && ! empty( $cats ) ) {
+		if ( ! empty( $cats ) ) {
 			// First category name (the map is term_id => name).
 			$names = array_values( $cats );
 			return (string) $names[0];

@@ -128,7 +128,7 @@ function extrachill_analytics_ability_track_event( $input ) {
 	// reclassify it as 'search_attack' so real search metrics stay clean while
 	// the attack stays visible. This catches any caller (current or future)
 	// that forgets to pre-classify, including community/forum/artist search.
-	if ( $event_type === 'search' && is_array( $event_data ) && ! empty( $event_data['search_term'] ) ) {
+	if ( 'search' === $event_type && is_array( $event_data ) && ! empty( $event_data['search_term'] ) ) {
 		$classification = extrachill_analytics_classify_search_payload( (string) $event_data['search_term'] );
 		if ( null !== $classification ) {
 			$event_type = 'search_attack';
