@@ -86,11 +86,15 @@ if ( function_exists( 'ec_artist_platform_emit_funnel_event' )
 	);
 }
 
-// Prefill data from user profile
+// Prefill data from user profile.
+// Intentionally do NOT prefill artist_name from the user's display_name: an
+// artist/act name is rarely the same as the person's name, and a confused user
+// who submits without changing it creates a profile literally named after
+// themselves. The field renders empty with a placeholder so the user must
+// consciously type the act's name.
 $prefill = array();
 $current_user = wp_get_current_user();
 if ( $current_user && $current_user->ID ) {
-    $prefill['artist_name'] = $current_user->display_name;
     $prefill['avatar_id']   = get_user_meta( $current_user->ID, 'custom_avatar_id', true );
     if ( $prefill['avatar_id'] ) {
         $prefill['avatar_thumb'] = wp_get_attachment_image_url( $prefill['avatar_id'], 'thumbnail' );
