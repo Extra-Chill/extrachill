@@ -47,7 +47,60 @@ class ExtraChill_Search_Plugin {
         add_filter( 'extrachill_template_search', array( $this, 'override_search_template' ), 10 );
         add_action( 'template_redirect', array( $this, 'fix_search_404' ), 1 );
         add_action( 'wp_footer', array( $this, 'inject_search_source_tracking' ) );
+		add_action( 'extrachill_search_performed', array( $this, 'track_search_analytics' ), 10, 3 );
     }
+
+	/**
+	 * Write a `search` analytics event for genuine frontend human searches only.
+	 *
+	 * Listens to the `extrachill_search_performed` action fired by the core
+	 * retrieval function `extrachill_multisite_search()`. That primitive is
+	 * also called by programmatic callers (the `extrachill/multisite-search`
+	 * ability, the events pipeline's artist-matching lookups, and any
+	 * REST/CLI/agent search), so the analytics write must NOT live inside it.
+	 *
+	 * This listener gates on real-request context — not admin, not cron, not
+	 * a REST request, not WP-CLI — so only a human search on the frontend
+	 * results page produces an analytics event.
+	 *
+	 * @param string $search_term       The search query.
+	 * @param int    $total_results     Total number of results found.
+	 * @param string $search_source_url The page the user was on before searching.
+	 * @return void
+	 */
+	public function track_search_analytics( $search_term, $total_results, $search_source_url ) {
+		if ( is_admin() || wp_doing_cron() ) {
+			return;
+		}
+
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			return;
+		}
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			return;
+		}
+
+		if ( '' === trim( (string) $search_term ) ) {
+			return;
+		}
+
+		$ability = wp_get_ability( 'extrachill/track-analytics-event' );
+		if ( ! $ability ) {
+			return;
+		}
+
+		$ability->execute(
+			array(
+				'event_type' => 'search',
+				'event_data' => array(
+					'search_term'  => $search_term,
+					'result_count' => (int) $total_results,
+				),
+				'source_url' => $search_source_url ? $search_source_url : '',
+			)
+		);
+	}
 
     /**
      * Inject inline JS that adds source_page hidden field to all search forms.

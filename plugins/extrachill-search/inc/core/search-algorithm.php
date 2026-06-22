@@ -510,28 +510,20 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	/**
 	 * Fires after a search is performed.
 	 *
+	 * Analytics tracking is intentionally NOT done here. This retrieval
+	 * primitive is called by programmatic callers (the multisite-search
+	 * ability, the events pipeline's artist-matching lookups, REST/CLI/agent
+	 * searches) as well as the genuine frontend search-results render. Writing
+	 * a `search` analytics event from inside this function logs a phantom
+	 * human-search for every programmatic caller. The frontend-only listener
+	 * that hooks this action (see extrachill-search.php) is responsible for
+	 * writing the analytics event, gated on real-request context.
+	 *
 	 * @param string $search_term      The search query.
 	 * @param int    $total_results    Total number of results found.
 	 * @param string $search_source_url The page user was on before searching.
 	 */
 	do_action( 'extrachill_search_performed', $search_term, $total_results, $search_source_url );
-
-	// Track analytics.
-	if ( ! empty( trim( $search_term ) ) ) {
-		$analytics_data = array(
-			'event_type' => 'search',
-			'event_data' => array(
-				'search_term'  => $search_term,
-				'result_count' => (int) $total_results,
-			),
-			'source_url' => $search_source_url ?: '',
-		);
-
-		$ability = wp_get_ability( 'extrachill/track-analytics-event' );
-		if ( $ability ) {
-			$ability->execute( $analytics_data );
-		}
-	}
 
 	if ( $args['return_count'] ) {
 		return array(
