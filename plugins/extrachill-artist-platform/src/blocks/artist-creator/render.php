@@ -38,25 +38,30 @@ if ( ! $can_create ) {
 	return;
 }
 
-// Check if user already has artist profiles
+// Hard stop: if the user already owns at least one artist profile, render ONLY
+// the notice + management actions and do NOT mount the React creation form.
+// Falling through here previously left the blank creation form fully usable
+// below the notice, allowing the same user to create duplicate profiles (#82).
 $existing_artists = array();
 if ( function_exists( 'ec_get_artists_for_user' ) ) {
 	$existing_artists = ec_get_artists_for_user( $current_user_id );
-	if ( ! empty( $existing_artists ) ) {
-		$artist_count = count( $existing_artists );
-		echo '<div class="notice notice-info">';
-		if ( $artist_count === 1 ) {
-			echo '<p>' . esc_html__( 'You already have an artist profile.', 'extrachill-artist-platform' ) . '</p>';
-		} else {
-			echo '<p>' . sprintf(
-				/* translators: %d: number of artist profiles */
-				esc_html__( 'You already have %d artist profiles.', 'extrachill-artist-platform' ),
-				$artist_count
-			) . '</p>';
-		}
-		echo '<a href="' . esc_url( home_url( '/manage-artist/' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Manage Artist', 'extrachill-artist-platform' ) . '</a>';
-		echo '</div>';
+}
+
+if ( ! empty( $existing_artists ) ) {
+	$artist_count = count( $existing_artists );
+	echo '<div class="notice notice-info">';
+	if ( $artist_count === 1 ) {
+		echo '<p>' . esc_html__( 'You already have an artist profile.', 'extrachill-artist-platform' ) . '</p>';
+	} else {
+		echo '<p>' . sprintf(
+			/* translators: %d: number of artist profiles */
+			esc_html__( 'You already have %d artist profiles.', 'extrachill-artist-platform' ),
+			$artist_count
+		) . '</p>';
 	}
+	echo '<a href="' . esc_url( home_url( '/manage-artist/' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Manage Artist', 'extrachill-artist-platform' ) . '</a>';
+	echo '</div>';
+	return;
 }
 
 // Emit the artist_signup_started funnel event: an eligible logged-in user is
@@ -70,9 +75,10 @@ if ( function_exists( 'ec_get_artists_for_user' ) ) {
 // member re-viewing the form collapses to one person and does not distort the
 // funnel. Do NOT read this funnel with the generic get-analytics-summary
 // COUNT(*), which counts rows and would over-count signup-flow entries.
-// Skipped for users who already have a profile (the notice above) since they
-// are past this step.
-if ( empty( $existing_artists ) && function_exists( 'ec_artist_platform_emit_funnel_event' )
+// Users who already have a profile never reach this point — the hard stop
+// above returns before the form (and this emit) renders, so they are correctly
+// excluded from the signup_started step.
+if ( function_exists( 'ec_artist_platform_emit_funnel_event' )
 	&& defined( 'EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED' ) ) {
 	ec_artist_platform_emit_funnel_event(
 		EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED,

@@ -86,7 +86,24 @@ const App = () => {
 			}
 
 			if ( created?.id ) {
+				// Route to an unambiguous landing instead of leaving the user
+				// on the SPA with a re-submittable blank form (#82). The PHP
+				// hard stop in render.php already prevents the blank form from
+				// re-mounting on reload; this redirect closes the in-session
+				// gap where a successful create left the user staring at the
+				// SPA with no clear "it worked" signal. We redirect to a
+				// known-good URL from the localized config (manage-link-page is
+				// the natural next onboarding step) rather than guessing fields
+				// on the API response. The success panel below renders as the
+				// brief confirmation before navigation completes.
 				setCreatedArtist( created );
+
+				const landingUrl =
+					config.createLinkPageUrl || config.manageArtistUrl;
+
+				if ( landingUrl ) {
+					window.location.assign( landingUrl );
+				}
 			}
 		} catch ( err ) {
 			setError( err?.message || 'Failed to create artist profile.' );
