@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.21.2] - 2026-06-27
+
+### Fixed
+- compute event timing cross-site instead of silently returning 'past'
+
 ## [0.21.1] - 2026-06-27
 
 ### Changed
