@@ -3,8 +3,7 @@
  * Game Master conversation runner.
  *
  * Direct consumer of agents-api's AgentConversationLoop and WordPress core's
- * wp-ai-client. Replaces the legacy DataMachine ChatOrchestrator dispatch path
- * with a self-contained one-turn loop that:
+ * wp-ai-client. Runs a self-contained one-turn loop that:
  *
  *   1. Builds the system prompt by prepending SOUL.md to a per-turn game
  *      context block built from the request payload.

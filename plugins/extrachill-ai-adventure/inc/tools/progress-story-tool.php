@@ -5,8 +5,6 @@
  * Declares the `extrachill/progress-story` runtime tool via agents-api's
  * WP_Agent_Tool_Declaration and provides a WP_Agent_Tool_Executor
  * implementation that delegates to the `extrachill/progress-story` ability.
- * This is the direct replacement for the legacy DataMachine BaseTool
- * registration.
  *
  * The provider-facing function name is `progress_story` (no slash) because
  * OpenAI/Anthropic function names disallow `/`. The agents-api runtime tool
