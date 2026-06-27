@@ -34,6 +34,11 @@ function extrachill_analytics_register_track_page_view_ability(): void {
 						'description' => __( 'Optional anonymous first-party visitor UUID v4. Stored on the pageview event only if well-formed; never PII. Empty when the visitor opted out (GPC/DNT).', 'extrachill-analytics' ),
 						'default'     => '',
 					),
+					'referrer'   => array(
+						'type'        => 'string',
+						'description' => __( 'Optional raw client-side referrer (document.referrer). Normalized server-side to a host-only `referrer_host` (no query strings, no PII) on the pageview event. Empty for direct traffic.', 'extrachill-analytics' ),
+						'default'     => '',
+					),
 				),
 				'required'   => array( 'post_id' ),
 			),
@@ -61,7 +66,9 @@ function extrachill_analytics_register_track_page_view_ability(): void {
  * Mirrors the existing REST handler: quick post-meta increment,
  * plus link-page daily-table action when applicable. Additionally writes a
  * `pageview` event row to the network-wide events table (carrying the
- * anonymous visitor_id when present) so per-visitor retention history exists.
+ * anonymous visitor_id when present, plus a normalized `referrer_host` when the
+ * reader arrived from a different surface) so per-visitor retention history and
+ * cross-surface / AI-citation landing attribution exist.
  * The post-meta bump is retained for back-compat with the theme view counter.
  *
  * @param array $input Input parameters.
@@ -70,6 +77,7 @@ function extrachill_analytics_register_track_page_view_ability(): void {
 function extrachill_analytics_ability_track_page_view( array $input ) {
 	$post_id    = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
 	$visitor_id = isset( $input['visitor_id'] ) ? (string) $input['visitor_id'] : '';
+	$referrer   = isset( $input['referrer'] ) ? (string) $input['referrer'] : '';
 
 	if ( $post_id <= 0 ) {
 		return new \WP_Error(
@@ -111,10 +119,30 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 		&& 'browser' !== extrachill_analytics_classify_user_agent( $user_agent );
 
 	if ( ! $is_bot && function_exists( 'extrachill_track_analytics_event' ) ) {
-		$permalink = get_permalink( $post_id );
+		$permalink  = get_permalink( $post_id );
+		$event_data = array( 'post_id' => $post_id );
+
+		// Stamp a NORMALIZED, host-only referrer provenance on the pageview so
+		// AI-citation (chatgpt.com / perplexity.ai / gemini.google.com), social,
+		// search-engine, and cross-surface landing attribution is no longer
+		// blind. The raw referrer MUST come from the client (document.referrer):
+		// this beacon fires after page load, so the request's own HTTP Referer
+		// is the article page itself, not the page the reader came from. We
+		// reduce it to a host only — no query strings, no PII — and drop direct
+		// + same-host referrers so the field means "a different surface sent
+		// this reader here". Additive + backward-compatible: old rows simply
+		// lack the field. Mirrors the #86 search-source stamping shape (capture
+		// provenance at event time) and the 404 tracker's referer capture.
+		if ( function_exists( 'extrachill_analytics_normalize_referrer_host' ) ) {
+			$referrer_host = extrachill_analytics_normalize_referrer_host( $referrer );
+			if ( '' !== $referrer_host ) {
+				$event_data['referrer_host'] = $referrer_host;
+			}
+		}
+
 		extrachill_track_analytics_event(
 			defined( 'EC_ANALYTICS_EVENT_PAGEVIEW' ) ? EC_ANALYTICS_EVENT_PAGEVIEW : 'pageview',
-			array( 'post_id' => $post_id ),
+			$event_data,
 			is_string( $permalink ) ? $permalink : '',
 			$visitor_id
 		);

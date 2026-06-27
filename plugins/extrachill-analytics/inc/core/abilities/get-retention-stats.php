@@ -37,7 +37,7 @@ function extrachill_analytics_register_retention_stats_ability() {
 		'extrachill/get-retention-stats',
 		array(
 			'label'               => __( 'Get Retention Stats', 'extrachill-analytics' ),
-			'description'         => __( 'Returns deterministic, bot-filtered visitor-retention metrics (return rate, cohort retention, cross-site return, session depth) from first-party pageview events.', 'extrachill-analytics' ),
+			'description'         => __( 'Returns deterministic, bot-filtered visitor-retention metrics (return rate, cohort retention, cross-site return, session depth) plus a cross-surface referrer-host breakdown from first-party pageview events.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -245,6 +245,47 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 	$avg_depth = $depth_row && null !== $depth_row->avg_depth ? round( (float) $depth_row->avg_depth, 2 ) : 0.0;
 	$max_depth = $depth_row ? (int) $depth_row->max_depth : 0;
 
+	// ---------------------------------------------------------------------
+	// (e) Referrer-host breakdown: top cross-surface origins that SENT readers
+	// to a pageview in the window (AI-citation / social / search / cross-
+	// subdomain landing attribution). Stamped onto new pageview rows as the
+	// normalized, host-only `referrer_host` (issue #90). Unlike the per-visitor
+	// metrics above this counts ALL pageviews (including anonymous/opted-out)
+	// since referrer provenance is meaningful regardless of visitor_id, and only
+	// rows that actually carry a referrer_host participate (direct + same-host
+	// traffic omit the field). Old rows predating the field simply don't appear.
+	// ---------------------------------------------------------------------
+	$ref_where  = array( 'event_type = %s', 'created_at >= %s', "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.referrer_host')) IS NOT NULL" );
+	$ref_values = array( $event_type, $since );
+	if ( $end_days_ago > 0 ) {
+		$ref_where[]  = 'created_at < %s';
+		$ref_values[] = $window_end;
+	}
+	if ( $blog_id > 0 ) {
+		$ref_where[]  = 'blog_id = %d';
+		$ref_values[] = $blog_id;
+	}
+	$ref_where_clause = implode( ' AND ', $ref_where );
+
+	$ref_sql = "SELECT
+			JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.referrer_host')) AS referrer_host,
+			COUNT(*) AS landings
+		FROM {$table}
+		WHERE {$ref_where_clause}
+		GROUP BY referrer_host
+		ORDER BY landings DESC
+		LIMIT 25";
+
+	$ref_rows = $wpdb->get_results( $wpdb->prepare( $ref_sql, $ref_values ) );
+
+	$by_referrer_host = array();
+	foreach ( (array) $ref_rows as $row ) {
+		$by_referrer_host[] = array(
+			'referrer_host' => (string) $row->referrer_host,
+			'landings'      => (int) $row->landings,
+		);
+	}
+
 	return array(
 		'return_rate'       => array(
 			'total_visitors'     => $total_visitors,
@@ -267,6 +308,10 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 			'avg_pageviews_per_visitor_day' => $avg_depth,
 			'max_pageviews_per_visitor_day' => $max_depth,
 			'definition'                    => 'Average (and max) pageview events per visitor per active UTC day.',
+		),
+		'by_referrer_host'  => array(
+			'hosts'      => $by_referrer_host,
+			'definition' => 'Top cross-surface referrer hosts (host-only, no query strings/PII) that sent readers to a pageview in the window — AI-citation (chatgpt.com / perplexity.ai), social, search engines, and cross-subdomain landings. Counts ALL pageviews carrying a referrer_host (not just identified visitors); direct + same-host traffic omit the field, and rows predating issue #90 do not appear.',
 		),
 		'days'              => $days,
 		'end_days_ago'      => $end_days_ago,
