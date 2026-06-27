@@ -5,7 +5,8 @@
  * Technical Implementation:
  * - Multisite author links: Uses ec_should_use_multisite_comment_links() and ec_get_comment_author_link_multisite()
  * - Native WordPress multisite authentication: Checks is_user_logged_in() for cross-site auth state
- * - Login/Register block: Renders extrachill/login-register block inline for unauthenticated users
+ * - Logged-out commenters: Shows a minimal "log in to comment" note. The login/register CTA block
+ *   is rendered by the extrachill-blog plugin via the extrachill_before_comments_template action.
  *
  * @package ExtraChill
  * @since 1.0
@@ -139,8 +140,7 @@ endif;
 			)
 		);
 	} else {
-		echo '<h3>' . __( 'Login or Register to Comment', 'extrachill' ) . '</h3>';
-		echo do_blocks( '<!-- wp:extrachill/login-register /-->' );
+		echo '<p class="comments-login-note">' . esc_html__( 'Log in to leave a comment.', 'extrachill' ) . '</p>';
 	}
 	?>
 </div><!-- #comments -->
