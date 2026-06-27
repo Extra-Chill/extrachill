@@ -225,6 +225,63 @@ function extrachill_analytics_prime_visitor_cookie() {
 add_action( 'template_redirect', 'extrachill_analytics_prime_visitor_cookie' );
 
 /**
+ * Script handle for the shared, network-activated Chart.js v4 asset.
+ *
+ * extrachill-analytics is network-activated, so registering Chart.js once here
+ * makes a single guaranteed-present copy available to every consumer on the
+ * network — instead of each plugin re-bundling its own. Consumers (artist-
+ * platform link-page analytics, the Mediavine revenue ARC, the Studio Network
+ * tab) declare this handle as a script dependency and webpack-externalize their
+ * `chart.js` import to the exposed global. See extrachill-analytics#93.
+ */
+const EXTRACHILL_ANALYTICS_CHART_HANDLE = 'extrachill-analytics-chart';
+
+/**
+ * Register (do NOT enqueue) the shared Chart.js v4 script handle.
+ *
+ * Registering — rather than unconditionally enqueuing — means the asset loads
+ * only where a consumer actually declares it as a dependency, on both the front
+ * end and in the admin. The built bundle (`build/chart.js`, entry `src/chart.js`)
+ * exposes the full Chart.js v4 module namespace on `window.ExtraChillChart`; its
+ * `default` / `.Chart` members are the auto-registered Chart constructor.
+ *
+ * Downstream webpack consumers map their `chart.js` (and `chart.js/auto`) import
+ * to the `ExtraChillChart` external and add `extrachill-analytics-chart` to
+ * their script dependencies, e.g.:
+ *
+ *   externals: { 'chart.js': 'ExtraChillChart', 'chart.js/auto': 'ExtraChillChart' }
+ *
+ * @return bool True when the handle was registered, false when the build asset
+ *               is missing (e.g. plugin shipped without a build).
+ */
+function extrachill_analytics_register_chart_asset() {
+	if ( wp_script_is( EXTRACHILL_ANALYTICS_CHART_HANDLE, 'registered' ) ) {
+		return true;
+	}
+
+	$asset_file = EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'build/chart.asset.php';
+	if ( ! file_exists( $asset_file ) ) {
+		return false;
+	}
+
+	$asset = require $asset_file;
+
+	wp_register_script(
+		EXTRACHILL_ANALYTICS_CHART_HANDLE,
+		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'build/chart.js',
+		isset( $asset['dependencies'] ) ? $asset['dependencies'] : array(),
+		isset( $asset['version'] ) ? $asset['version'] : EXTRACHILL_ANALYTICS_VERSION,
+		true
+	);
+
+	return true;
+}
+// Register early (priority 5) so the handle exists before consumers' default-
+// priority enqueues resolve their dependency tree.
+add_action( 'wp_enqueue_scripts', 'extrachill_analytics_register_chart_asset', 5 );
+add_action( 'admin_enqueue_scripts', 'extrachill_analytics_register_chart_asset', 5 );
+
+/**
  * Enqueue view tracking script on singular pages.
  */
 function extrachill_analytics_enqueue_view_tracking() {

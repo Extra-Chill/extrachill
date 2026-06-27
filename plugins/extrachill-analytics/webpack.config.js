@@ -10,6 +10,10 @@ module.exports = {
 	...defaultConfig,
 	entry: {
 		analytics: './src/index.js',
+		// Shared Chart.js v4 asset — registered network-wide as the
+		// `extrachill-analytics-chart` handle and externalized by consumers.
+		// See extrachill-analytics#93 and src/chart.js.
+		chart: './src/chart.js',
 	},
 	output: {
 		...defaultConfig.output,
