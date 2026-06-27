@@ -41,6 +41,15 @@ export const getStudioTabs = ( options: StudioTabOptions = {} ): StudioTab[] => 
 			label: __( 'QR Codes', 'extrachill-studio' ),
 			preview: __( 'Generate downloadable QR codes for any URL.', 'extrachill-studio' ),
 		},
+		{
+			// Visible to ALL team members — no extra feature gate. The server
+			// only emits Studio markup to team/admins, so the tab (and the
+			// team-readable analytics behind it) is inherently private.
+			id: 'network',
+			pane: 'network',
+			label: __( 'Network', 'extrachill-studio' ),
+			preview: __( 'Platform health — traffic, growth, retention, and conversion.', 'extrachill-studio' ),
+		},
 	];
 
 	return tabs.filter( ( tab ) => tab.id !== 'socials' || canBrandSocials );
