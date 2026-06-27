@@ -114,6 +114,8 @@ function extrachill_analytics_register_search_gaps_ability() {
  *     'zero_result'      => [ ['term' => ..., 'count' => N], ... ],
  *     'low_result'       => [ ['term' => ..., 'count' => N], ... ],  // only when max_results > 0
  *     'total_searches'   => int,   // all human search events in window
+ *     'classified_human' => int,   // subset stamped is_bot:false by the classifier
+ *     'unclassified'     => int,   // subset with NULL/no-flag is_bot (legacy, kept as human)
  *     'zero_result_total'=> int,   // distinct-agnostic count of zero-result human searches
  *     'zero_result_rate' => float, // percentage 0..100
  *     'excluded_bot'     => int,   // search events filtered out as bot/payload
@@ -168,9 +170,25 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	// Exclude non-human searches flagged at insert time by the canonical
 	// classifier (now stamped on EVERY event in extrachill_track_analytics_event;
 	// see issue #57). The flag is a JSON boolean, so JSON_EXTRACT returns the
-	// literal `true` for bot rows. Rows written before the flag existed have no
-	// key (JSON_EXTRACT → NULL) and COALESCE keeps them as non-bot here.
-	$where[] = "COALESCE(JSON_EXTRACT(event_data, '$.is_bot'), false) = false";
+	// JSON literal `true` for bot rows and `null` (SQL NULL) for legacy rows
+	// written before the flag existed.
+	//
+	// MariaDB CORRECTNESS (issue #85): the previous form,
+	// `COALESCE(JSON_EXTRACT(event_data, '$.is_bot'), false) = false`, was a
+	// NO-OP — it passed confirmed `is_bot:true` rows straight through, inflating
+	// the demand headline ~23x. JSON_EXTRACT returns a *JSON* value, and on this
+	// MariaDB server comparing that JSON value to the SQL boolean `false` via
+	// COALESCE never matched the bot rows. The correct, ternary-aware form is
+	// `IS NOT TRUE`: it excludes rows whose JSON value is `true` while keeping
+	// both explicit `false` AND NULL/no-flag legacy rows (which `IS NOT TRUE`
+	// treats as not-true) as human — exactly the intended behavior.
+	//
+	// Verified live against c8c_extrachill_analytics_events (28d, event_type
+	// 'search', created_at >= 2026-05-30): old predicate 271,548 rows vs new
+	// 241,666 — the 29,883 explicitly-true bots are now dropped, and all 227,175
+	// NULL/no-flag legacy rows are retained. (`CAST('true' AS JSON)` errored on
+	// this server, so it is intentionally avoided.)
+	$where[] = "JSON_EXTRACT(event_data, '$.is_bot') IS NOT TRUE";
 
 	// Defense-in-depth for legacy-contaminated rows. The OLD search rule
 	// (is_bot = ua_bot || (no-cookie && empty-UA)) — the #51 root cause — wrote
@@ -218,6 +236,23 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	$total_searches = empty( $where_values )
 		? (int) $wpdb->get_var( $total_sql )
 		: (int) $wpdb->get_var( $wpdb->prepare( $total_sql, $where_values ) );
+
+	// Of those human-counted searches, how many are pre-classifier NULL/no-flag
+	// rows kept as human by design vs. explicitly stamped is_bot:false by the
+	// canonical classifier (issue #85). On this install the overwhelming
+	// majority of search traffic is programmatic and predates the classifier, so
+	// most of total_searches is unclassified legacy. Surfacing the split lets a
+	// caller judge how much of the "human" demand read is actually confirmed
+	// human vs. legacy NULL that the old pipeline never stamped — without
+	// changing the (default-off) visitor_id gate.
+	$unclassified_where     = $where;
+	$unclassified_where[]   = "JSON_EXTRACT(event_data, '$.is_bot') IS NULL";
+	$unclassified_clause    = implode( ' AND ', $unclassified_where );
+	$unclassified_sql       = "SELECT COUNT(*) FROM {$table} WHERE {$unclassified_clause}";
+	$unclassified_searches  = empty( $where_values )
+		? (int) $wpdb->get_var( $unclassified_sql )
+		: (int) $wpdb->get_var( $wpdb->prepare( $unclassified_sql, $where_values ) );
+	$classified_human       = max( 0, $total_searches - $unclassified_searches );
 
 	// Grouped gap terms. Each term is bucketed by its BEST result (MIN): a term
 	// is "zero-result" if it ever returned nothing, "low-result" otherwise. The
@@ -307,6 +342,8 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 		'zero_result'          => $zero_result,
 		'zero_result_distinct' => $zero_result_distinct,
 		'total_searches'       => $total_searches,
+		'classified_human'     => $classified_human,
+		'unclassified'         => $unclassified_searches,
 		'zero_result_total'    => $zero_total,
 		'zero_result_rate'     => $zero_result_rate,
 		'excluded_bot'         => $excluded_bot,
