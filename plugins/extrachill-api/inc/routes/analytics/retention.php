@@ -28,9 +28,7 @@ function extrachill_api_register_analytics_retention_route() {
 		array(
 			'methods'             => WP_REST_Server::READABLE,
 			'callback'            => 'extrachill_api_analytics_retention_handler',
-			'permission_callback' => function () {
-				return current_user_can( 'manage_network_options' );
-			},
+			'permission_callback' => 'extrachill_api_analytics_reports_permission_check',
 			'args'                => array(
 				'days'         => array(
 					'required' => false,
