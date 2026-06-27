@@ -240,13 +240,51 @@ function ec_users_get_user_event_count( int $user_id, int $blog_id = 0 ): int {
 /**
  * Determine the timing state of an event.
  *
+ * extrachill-users is network-activated and runs on every site, but the
+ * data-machine-events plugin that owns datamachine_get_event_timing() is
+ * Network: false and only active on the events site. Delegating to that
+ * function therefore fails (or silently returns 'past') on every other site.
+ *
+ * Instead we read the per-site datamachine_event_dates table directly using
+ * the events-blog prefix — mirroring ec_users_get_user_events() — so timing is
+ * computed correctly from any site in the network. The timing rules match the
+ * datamachine_get_event_timing() primitive:
+ *   upcoming = start >= now
+ *   ongoing  = start < now AND end >= now
+ *   past     = start < now AND (end < now OR end IS NULL), or no start date.
+ *
  * @param int $event_id Event post ID.
  * @return string 'upcoming' | 'ongoing' | 'past'
  */
 function ec_users_get_event_timing( int $event_id ): string {
-	// Delegate to the core primitive in data-machine-events.
-	if ( function_exists( 'datamachine_get_event_timing' ) ) {
-		return datamachine_get_event_timing( $event_id );
+	global $wpdb;
+
+	$blog_id       = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
+	$dates_table   = $events_prefix . 'datamachine_event_dates';
+
+	$dates = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT start_datetime, end_datetime FROM {$dates_table} WHERE post_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name built from trusted blog prefix.
+			$event_id
+		)
+	);
+
+	if ( ! $dates || empty( $dates->start_datetime ) ) {
+		return 'past';
+	}
+
+	// Event datetimes are stored in site-local time; compare against the same.
+	$now         = current_time( 'mysql' );
+	$event_start = $dates->start_datetime;
+	$event_end   = $dates->end_datetime ?? null;
+
+	if ( $event_start >= $now ) {
+		return 'upcoming';
+	}
+
+	if ( $event_end && $event_end >= $now ) {
+		return 'ongoing';
 	}
 
 	return 'past';
