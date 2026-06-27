@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-06-27
+
+### Added
+- own link-page analytics store, write path, prune, and provider
+- own shared Chart.js v4 asset as network-activated script handle
+- relax reporting-ability gates to team-readable tier
+
+### Fixed
+- guard visitor-cookie setcookie() against empty name
+- ignore non-production fatals in the fatal-rate alarm
+
 ## [0.22.0] - 2026-06-27
 
 ### Added
