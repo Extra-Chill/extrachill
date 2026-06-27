@@ -38,6 +38,15 @@ defined( 'ABSPATH' ) || exit;
 const EC_USERS_SHOW_REMINDER_ACTION = 'ec_users_send_show_reminder';
 
 /**
+ * Notification `type` value for a show reminder.
+ *
+ * Canonical home for the time-sensitive reminder type. Other consumers (e.g.
+ * the email digest channel) reference this constant rather than re-declaring
+ * the literal, so the staleness logic and the producer can never drift.
+ */
+const EC_USERS_SHOW_REMINDER_TYPE = 'show_reminder';
+
+/**
  * Action Scheduler group for concert reminders (eases bulk inspection/cancel).
  */
 const EC_USERS_SHOW_REMINDER_GROUP = 'ec-users-show-reminders';
@@ -56,11 +65,39 @@ const EC_USERS_SHOW_REMINDER_LEAD = 2 * DAY_IN_SECONDS;
  */
 const EC_USERS_SHOW_REMINDER_MIN_LEAD = HOUR_IN_SECONDS;
 
+/**
+ * Recurring hook that resolves stale (past-event) unread show reminders.
+ *
+ * A `show_reminder` notification is created while a show is upcoming. Once the
+ * show passes it is meaningless — its title ("X is tomorrow") is no longer true.
+ * If the user never read it, the unread row would otherwise linger forever in
+ * the bell/count and could be picked up by the unread-notification email
+ * digest. This sweep marks such rows read so a passed show's reminder becomes a
+ * true no-op everywhere (bell, in-app list, count, and email).
+ */
+const EC_USERS_STALE_REMINDER_SWEEP_HOOK = 'ec_users_resolve_stale_show_reminders';
+
+/**
+ * Recurrence interval for the stale-reminder sweep (RecurringScheduler).
+ */
+const EC_USERS_STALE_REMINDER_SWEEP_INTERVAL = 'hourly';
+
+/**
+ * Fully qualified Data Machine RecurringScheduler class name.
+ *
+ * The sweep is scheduled through Data Machine's shared recurring-scheduling
+ * primitive (Action Scheduler-backed) rather than a hand-rolled
+ * wp_schedule_event(). Mirrors the digest sweep in inc/notifications/email.php.
+ */
+const EC_USERS_STALE_REMINDER_RECURRING_SCHEDULER = '\\DataMachine\\Engine\\Tasks\\RecurringScheduler';
+
 // ─── Hook Wiring ───────────────────────────────────────────────────────────────
 
 add_action( 'ec_users_event_marked', 'ec_users_on_event_marked', 10, 3 );
 add_action( 'ec_users_event_unmarked', 'ec_users_on_event_unmarked', 10, 3 );
 add_action( EC_USERS_SHOW_REMINDER_ACTION, 'ec_users_deliver_show_reminder', 10, 3 );
+add_action( 'init', 'ec_users_stale_reminder_sweep_maybe_schedule' );
+add_action( EC_USERS_STALE_REMINDER_SWEEP_HOOK, 'ec_users_resolve_stale_show_reminders' );
 
 /**
  * React to a newly-marked event: schedule a reminder + check milestones.
@@ -231,7 +268,7 @@ function ec_users_deliver_show_reminder( $user_id, $event_id, $blog_id ) {
 		$user_id,
 		array(
 			'actor_id' => $user_id, // System reminder: attribute to the recipient (substrate requires a valid actor).
-			'type'     => 'show_reminder',
+			'type'     => EC_USERS_SHOW_REMINDER_TYPE,
 			'title'    => $title,
 			'link'     => $details['permalink'],
 			'item_id'  => $event_id,
@@ -391,6 +428,141 @@ function ec_users_ordinal( int $number ): string {
 	return $number . $suffix;
 }
 
+// ─── Stale Reminder Sweep ─────────────────────────────────────────────────────
+
+/**
+ * Ensure the recurring stale-reminder sweep is scheduled (idempotent).
+ *
+ * The notification substrate is one base_prefix table shared by the whole
+ * network, so only ONE site needs to run the sweep. We pin it to the
+ * SMTP-configured mail site (reusing the digest's owner-site resolver) so
+ * exactly one scheduler owns it. Non-owner sites clear any stray schedule.
+ *
+ * Scheduling goes through Data Machine's RecurringScheduler when available
+ * (Action Scheduler-backed, idempotent), falling back to WP-Cron otherwise so
+ * the sweep keeps working in isolation. Mirrors
+ * ec_notifications_email_maybe_schedule().
+ */
+function ec_users_stale_reminder_sweep_maybe_schedule() {
+	$scheduler  = EC_USERS_STALE_REMINDER_RECURRING_SCHEDULER;
+	$is_owner   = function_exists( 'ec_notifications_email_is_owner_site' )
+		? ec_notifications_email_is_owner_site()
+		: ( function_exists( 'is_main_site' ) && is_main_site() );
+
+	if ( ! $is_owner ) {
+		// Not the owner site — make sure no stray schedule lingers here.
+		if ( wp_next_scheduled( EC_USERS_STALE_REMINDER_SWEEP_HOOK ) ) {
+			wp_clear_scheduled_hook( EC_USERS_STALE_REMINDER_SWEEP_HOOK );
+		}
+		if ( class_exists( $scheduler ) ) {
+			$scheduler::unschedule( EC_USERS_STALE_REMINDER_SWEEP_HOOK, array() );
+		}
+		return;
+	}
+
+	if ( class_exists( $scheduler ) ) {
+		// Clear any legacy WP-Cron registration so the sweep cannot double-fire
+		// (once via WP-Cron and once via Action Scheduler) on the upgrade path.
+		if ( wp_next_scheduled( EC_USERS_STALE_REMINDER_SWEEP_HOOK ) ) {
+			wp_clear_scheduled_hook( EC_USERS_STALE_REMINDER_SWEEP_HOOK );
+		}
+
+		$scheduler::ensureSchedule(
+			EC_USERS_STALE_REMINDER_SWEEP_HOOK,
+			array(),
+			EC_USERS_STALE_REMINDER_SWEEP_INTERVAL
+		);
+		return;
+	}
+
+	// Fallback: Data Machine not loaded — keep a WP-Cron schedule.
+	if ( ! wp_next_scheduled( EC_USERS_STALE_REMINDER_SWEEP_HOOK ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', EC_USERS_STALE_REMINDER_SWEEP_HOOK );
+	}
+}
+
+/**
+ * Mark every unread show reminder whose event has passed as read.
+ *
+ * The recurring sweep callback. Loads all unread `show_reminder` rows, resolves
+ * each distinct event's timing ONCE (many users can track the same show), then
+ * marks the rows for past/ongoing events read in a single bulk UPDATE per stale
+ * event and flushes the affected users' unread-count caches so the bell badge
+ * updates immediately. Upcoming shows are left untouched.
+ *
+ * Network-wide: the table is keyed by base_prefix, so this single owner-site run
+ * covers reminders created from any site. Timing is resolved in the events-blog
+ * context via ec_users_reminder_event_timing().
+ *
+ * @return int Number of notification rows marked read.
+ */
+function ec_users_resolve_stale_show_reminders() {
+	global $wpdb;
+
+	$table = extrachill_users_notifications_table_name();
+
+	// All distinct events with at least one unread reminder. One timing lookup
+	// per event rather than per row.
+	$event_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT item_id FROM {$table} WHERE is_read = 0 AND type = %s AND item_id IS NOT NULL AND item_id > 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			EC_USERS_SHOW_REMINDER_TYPE
+		)
+	);
+
+	if ( empty( $event_ids ) ) {
+		return 0;
+	}
+
+	$events_blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	if ( $events_blog <= 0 ) {
+		// Cannot resolve timing without the events blog — do nothing rather than
+		// risk marking upcoming reminders read.
+		return 0;
+	}
+
+	$total_read = 0;
+
+	foreach ( $event_ids as $event_id ) {
+		$event_id = (int) $event_id;
+		if ( $event_id <= 0 ) {
+			continue;
+		}
+
+		// Only past/ongoing events are stale; an upcoming reminder is still live.
+		if ( 'upcoming' === ec_users_reminder_event_timing( $event_id, $events_blog ) ) {
+			continue;
+		}
+
+		// Capture the affected users BEFORE the update so their bell caches can
+		// be flushed (the substrate's mark-read helper flushes per-user, but we
+		// update in bulk here for efficiency).
+		$user_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT user_id FROM {$table} WHERE is_read = 0 AND type = %s AND item_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				EC_USERS_SHOW_REMINDER_TYPE,
+				$event_id
+			)
+		);
+
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET is_read = 1 WHERE is_read = 0 AND type = %s AND item_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				EC_USERS_SHOW_REMINDER_TYPE,
+				$event_id
+			)
+		);
+
+		if ( $updated && function_exists( 'ec_users_flush_unread_count_cache' ) ) {
+			ec_users_flush_unread_count_cache( array_map( 'intval', (array) $user_ids ) );
+		}
+
+		$total_read += (int) $updated;
+	}
+
+	return $total_read;
+}
+
 // ─── Event Lookup Helpers ──────────────────────────────────────────────────────
 
 /**
@@ -401,10 +573,6 @@ function ec_users_ordinal( int $number ): string {
  * @return string 'upcoming' | 'ongoing' | 'past'
  */
 function ec_users_reminder_event_timing( int $event_id, int $blog_id ): string {
-	if ( ! function_exists( 'ec_users_get_event_timing' ) ) {
-		return 'past';
-	}
-
 	$switched     = false;
 	$current_blog = get_current_blog_id();
 	if ( $blog_id && $current_blog !== $blog_id ) {
@@ -413,12 +581,76 @@ function ec_users_reminder_event_timing( int $event_id, int $blog_id ): string {
 	}
 
 	try {
-		return ec_users_get_event_timing( $event_id );
+		// Prefer the events plugin's primitive when it is actually loaded in
+		// this context. It is NOT network-activated, so on the cron/owner site
+		// (main/community) the function is undefined even after switch_to_blog()
+		// — switching tables/timezone does not load another site's plugins. In
+		// that case fall back to a direct dates-table read (equivalent logic),
+		// rather than the ec_users_get_event_timing() 'past' fallback which
+		// would wrongly mark every upcoming reminder stale.
+		if ( function_exists( 'datamachine_get_event_timing' ) ) {
+			return datamachine_get_event_timing( $event_id );
+		}
+
+		return ec_users_reminder_event_timing_direct( $event_id );
 	} finally {
 		if ( $switched ) {
 			restore_current_blog();
 		}
 	}
+}
+
+/**
+ * Compute event timing directly from the event_dates table (no plugin dep).
+ *
+ * Mirrors datamachine_get_event_timing() exactly for use in contexts where the
+ * data-machine-events plugin is not loaded (e.g. the digest/sweep crons running
+ * on the mail/owner site). MUST be called with the events blog already current
+ * (the caller switch_to_blog()s) so both the table prefix and current_time()
+ * resolve in the event's own timezone — start_datetime is stored in that local
+ * timezone and compared against the local "now".
+ *
+ *   upcoming = start >= now
+ *   ongoing  = start < now AND end >= now
+ *   past     = start < now AND (end < now OR end IS NULL)
+ *
+ * Returns 'upcoming' when the row is missing/unparseable so an unknown event is
+ * never wrongly treated as stale (fail-safe: never suppress a live reminder).
+ *
+ * @param int $event_id Event post ID.
+ * @return string 'upcoming' | 'ongoing' | 'past'
+ */
+function ec_users_reminder_event_timing_direct( int $event_id ): string {
+	global $wpdb;
+
+	$dates_table = $wpdb->prefix . 'datamachine_event_dates';
+
+	$row = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT start_datetime, end_datetime FROM {$dates_table} WHERE post_id = %d LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
+			$event_id
+		)
+	);
+
+	if ( ! $row || empty( $row->start_datetime ) || '0000-00-00 00:00:00' === $row->start_datetime ) {
+		// Unknown timing — fail safe toward 'upcoming' so a live reminder is
+		// never suppressed by a missing/bad dates row.
+		return 'upcoming';
+	}
+
+	$now   = current_time( 'mysql' );
+	$start = (string) $row->start_datetime;
+	$end   = ! empty( $row->end_datetime ) ? (string) $row->end_datetime : null;
+
+	if ( $start >= $now ) {
+		return 'upcoming';
+	}
+
+	if ( $end && $end >= $now ) {
+		return 'ongoing';
+	}
+
+	return 'past';
 }
 
 /**

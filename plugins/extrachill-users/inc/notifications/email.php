@@ -437,7 +437,41 @@ function ec_notifications_email_send_digest( $user_id ) {
 		return false;
 	}
 
-	$preview = $result['notifications'];
+	// Discount stale show reminders. A `show_reminder` notification is created
+	// while a show is upcoming, but if the user never reads it the row lingers
+	// after the show has passed. The generic digest sweep would otherwise email
+	// "X is tomorrow" for a long-past show. Exclude any unread show reminder
+	// whose event is no longer upcoming from BOTH the trigger count and the
+	// preview, so a stale reminder neither sends a digest nor appears in one.
+	$stale_reminders = ec_notifications_email_count_stale_unread_reminders( $user_id );
+	$unread_count   -= $stale_reminders;
+	if ( $unread_count <= 0 ) {
+		// Every unread item was a stale show reminder — nothing worth nudging.
+		// Stamp them emailed so they never re-trigger a sweep, but send nothing
+		// and don't burn the cooldown on a real digest.
+		ec_notifications_email_mark_unread_as_emailed( $user_id );
+		return false;
+	}
+
+	$preview = ec_notifications_email_filter_stale_reminders( $result['notifications'] );
+	if ( empty( $preview ) ) {
+		// The previewed page was entirely stale reminders even though
+		// non-stale unread items exist deeper in the list. Pull a wider page so
+		// the digest body is never empty while the count is positive.
+		$wide = ec_users_get_notifications(
+			$user_id,
+			array(
+				'unread'   => true,
+				'page'     => 1,
+				'per_page' => 100,
+			)
+		);
+		$preview = array_slice(
+			ec_notifications_email_filter_stale_reminders( $wide['notifications'] ),
+			0,
+			EC_NOTIFICATIONS_EMAIL_PREVIEW_COUNT
+		);
+	}
 
 	$digest = ec_notifications_email_build_digest( $user, $unread_count, $preview );
 
@@ -515,6 +549,108 @@ function ec_notifications_email_count_unmailed_unread( $user_id ) {
 			$user_id
 		)
 	);
+}
+
+/**
+ * Count a user's unread `show_reminder` notifications whose event has passed.
+ *
+ * Loads only the unread reminder rows (a small set — one per tracked upcoming
+ * show) and resolves each event's timing in the events-site context. Any
+ * reminder whose event is no longer `upcoming` is counted as stale so the
+ * digest can discount it from the unread total that justifies sending.
+ *
+ * Returns 0 when the event-timing primitive is unavailable rather than guessing,
+ * so a missing dependency can never over-suppress a digest.
+ *
+ * @param int $user_id User ID.
+ * @return int Number of unread, stale show reminders.
+ */
+function ec_notifications_email_count_stale_unread_reminders( $user_id ) {
+	global $wpdb;
+
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return 0;
+	}
+
+	$table = extrachill_users_notifications_table_name();
+
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT item_id FROM {$table} WHERE user_id = %d AND is_read = 0 AND type = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			$user_id,
+			EC_USERS_SHOW_REMINDER_TYPE
+		),
+		ARRAY_A
+	);
+
+	$stale = 0;
+	foreach ( (array) $rows as $row ) {
+		$event_id = isset( $row['item_id'] ) ? (int) $row['item_id'] : 0;
+		if ( $event_id <= 0 ) {
+			continue;
+		}
+		if ( ec_notifications_email_reminder_is_stale( $event_id ) ) {
+			++$stale;
+		}
+	}
+
+	return $stale;
+}
+
+/**
+ * Drop stale `show_reminder` items from an enriched notification list.
+ *
+ * Used to clean the digest preview so a past show never appears in the email
+ * body. Non-reminder notifications always pass through untouched.
+ *
+ * @param array $notifications Enriched notifications (from ec_users_get_notifications()).
+ * @return array Filtered notifications, original order preserved.
+ */
+function ec_notifications_email_filter_stale_reminders( array $notifications ) {
+	$kept = array();
+
+	foreach ( $notifications as $note ) {
+		$type = isset( $note['type'] ) ? (string) $note['type'] : '';
+		if ( EC_USERS_SHOW_REMINDER_TYPE === $type ) {
+			$event_id = isset( $note['item_id'] ) ? (int) $note['item_id'] : 0;
+			if ( $event_id > 0 && ec_notifications_email_reminder_is_stale( $event_id ) ) {
+				continue;
+			}
+		}
+		$kept[] = $note;
+	}
+
+	return $kept;
+}
+
+/**
+ * Whether an event-bound reminder is stale (its event is no longer upcoming).
+ *
+ * Resolves event timing in the events-site context (show reminders are created
+ * for events on the events blog). Returns false — i.e. NOT stale — when the
+ * timing primitive or the events blog cannot be resolved, so an inability to
+ * verify never suppresses a notification.
+ *
+ * @param int $event_id Event post ID (the notification's item_id).
+ * @return bool True when the event has passed / is no longer upcoming.
+ */
+function ec_notifications_email_reminder_is_stale( $event_id ) {
+	$event_id = (int) $event_id;
+	if ( $event_id <= 0 ) {
+		return false;
+	}
+
+	if ( ! function_exists( 'ec_users_reminder_event_timing' ) ) {
+		return false;
+	}
+
+	$events_blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	if ( $events_blog <= 0 ) {
+		return false;
+	}
+
+	return 'upcoming' !== ec_users_reminder_event_timing( $event_id, $events_blog );
 }
 
 /**
