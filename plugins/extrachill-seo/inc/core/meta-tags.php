@@ -213,7 +213,15 @@ function ec_seo_get_meta_description() {
 /**
  * Compute default meta description from WordPress context.
  *
- * Priority: Auth pages > Post excerpt > Auto-generated from content > Site tagline (homepage)
+ * Priority for singular content:
+ *   1. Manual per-post description meta (`_ec_seo_meta_description`) — lets
+ *      crafted landing pages (e.g. /power) carry an intentional snippet.
+ *   2. Post excerpt.
+ *   3. Raw post_content (classic posts — the #39 path).
+ *   4. Rendered content via the_content (block / template / the_content-filter
+ *      pages whose raw post_content is empty — e.g. /power, /contact).
+ *
+ * Non-singular priority: Auth pages > term/author description > site tagline (homepage).
  *
  * @return string Meta description (max 160 chars).
  */
@@ -233,17 +241,36 @@ function ec_seo_get_default_description() {
 		// is_singular() can be true on virtual/plugin-driven singular contexts
 		// where get_queried_object() returns null. Guard the null deref.
 		if ( $post instanceof \WP_Post ) {
-			// Use excerpt if available
+			// 1. Manual per-post description (crafted landing pages like /power).
+			$manual = ec_seo_get_manual_post_description( $post );
+			if ( ! empty( $manual ) ) {
+				return ec_seo_truncate_description( $manual );
+			}
+
+			// 2. Use excerpt if available.
 			if ( ! empty( $post->post_excerpt ) ) {
 				return ec_seo_truncate_description( $post->post_excerpt );
 			}
 
-			// Generate from content
+			// 3. Generate from raw post_content (classic posts — the #39 path).
 			$content = wp_strip_all_tags( $post->post_content );
 			$content = str_replace( array( "\n", "\r", "\t" ), ' ', $content );
 			$content = preg_replace( '/\s+/', ' ', $content );
+			$content = trim( $content );
 
-			return ec_seo_truncate_description( $content );
+			if ( '' !== $content ) {
+				return ec_seo_truncate_description( $content );
+			}
+
+			// 4. Raw post_content was empty — derive from RENDERED content.
+			// Block-themed pages and the_content-filter pages (e.g. /power,
+			// /contact) store almost nothing in post_content; the text lives in
+			// blocks / templates / the_content filters. Render it (cheaply,
+			// cached per request) so those pages still get a snippet.
+			$rendered = ec_seo_get_rendered_description( $post );
+			if ( ! empty( $rendered ) ) {
+				return ec_seo_truncate_description( $rendered );
+			}
 		}
 	}
 
@@ -267,6 +294,124 @@ function ec_seo_get_default_description() {
 	}
 
 	return '';
+}
+
+/**
+ * Meta key for a manual, per-post SEO description.
+ *
+ * Stored as post meta so crafted landing pages (e.g. /power) can carry an
+ * intentional, conversion-oriented snippet instead of an auto-derived one.
+ * Registered with show_in_rest so it can be set via the REST API / WP-CLI.
+ */
+const EC_SEO_DESCRIPTION_META_KEY = '_ec_seo_meta_description';
+
+/**
+ * Register the manual SEO description post meta.
+ *
+ * Registered for every public post type so any singular content can opt into a
+ * hand-written description. Exposed in REST (auth required to write) so editors
+ * and tooling can set it without a bespoke meta box.
+ */
+add_action(
+	'init',
+	function () {
+		foreach ( get_post_types( array( 'public' => true ) ) as $post_type ) {
+			register_post_meta(
+				$post_type,
+				EC_SEO_DESCRIPTION_META_KEY,
+				array(
+					'type'              => 'string',
+					'single'            => true,
+					'show_in_rest'      => true,
+					'sanitize_callback' => 'sanitize_text_field',
+					'auth_callback'     => function () {
+						return current_user_can( 'edit_posts' );
+					},
+				)
+			);
+		}
+	},
+	20
+);
+
+/**
+ * Resolve a manual (hand-written) description for a post.
+ *
+ * Reads the `_ec_seo_meta_description` post meta, then exposes a filter so
+ * plugins can supply a programmatic per-post description (e.g. the blog plugin
+ * for its server-rendered /power manifesto) without needing the meta field set.
+ *
+ * @param \WP_Post $post The queried post.
+ * @return string Manual description, or empty string when none is set.
+ */
+function ec_seo_get_manual_post_description( $post ) {
+	$manual = get_post_meta( $post->ID, EC_SEO_DESCRIPTION_META_KEY, true );
+
+	if ( ! is_string( $manual ) ) {
+		$manual = '';
+	}
+
+	/**
+	 * Filter the manual per-post meta description.
+	 *
+	 * Lets plugins supply an intentional description for pages whose content is
+	 * rendered server-side (block templates, the_content filters) rather than
+	 * stored in post_content. Return a non-empty string to use it.
+	 *
+	 * @param string   $manual Description from post meta (may be empty).
+	 * @param \WP_Post $post   The queried post object.
+	 */
+	$manual = apply_filters( 'extrachill_seo_post_meta_description', $manual, $post );
+
+	return is_string( $manual ) ? trim( $manual ) : '';
+}
+
+/**
+ * Derive a description from a post's RENDERED content.
+ *
+ * Block-themed pages and pages that inject their body through a `the_content`
+ * filter (e.g. the /power manifesto) store almost nothing in raw post_content,
+ * so the post_content fallback produces nothing. Running the content through
+ * `the_content` captures block output (do_blocks) AND the_content-filter
+ * injections, giving those pages a real snippet.
+ *
+ * Cost guard: this only runs when post_content has no usable raw text (so
+ * classic posts never pay for it), runs at most once per post per request
+ * (static cache), and is re-entrancy guarded so a the_content filter that
+ * itself calls into SEO can't recurse.
+ *
+ * @param \WP_Post $post The queried post.
+ * @return string Rendered description text, or empty string.
+ */
+function ec_seo_get_rendered_description( $post ) {
+	static $cache    = array();
+	static $rendering = false;
+
+	if ( isset( $cache[ $post->ID ] ) ) {
+		return $cache[ $post->ID ];
+	}
+
+	// Re-entrancy guard: never render the_content while already rendering it.
+	if ( $rendering ) {
+		return '';
+	}
+
+	$rendering = true;
+
+	// Run the same pipeline core uses for the_content so block output and
+	// the_content-filter injections are both captured.
+	$rendered = apply_filters( 'the_content', $post->post_content );
+
+	$rendering = false;
+
+	$rendered = wp_strip_all_tags( $rendered );
+	$rendered = str_replace( array( "\n", "\r", "\t" ), ' ', $rendered );
+	$rendered = preg_replace( '/\s+/', ' ', $rendered );
+	$rendered = trim( (string) $rendered );
+
+	$cache[ $post->ID ] = $rendered;
+
+	return $rendered;
 }
 
 /**
