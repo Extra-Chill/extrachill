@@ -340,6 +340,17 @@ function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false ) {
 		if ( null === $entry['ts'] || $entry['ts'] < $since_ts ) {
 			continue;
 		}
+		// Ignore fatals raised outside the live install — a coding-agent
+		// worktree copy under /var/lib/datamachine/workspace, a `wp eval`
+		// phar, /tmp scratch, etc. Those are dev/agent artifacts (e.g. a
+		// "Cannot redeclare" thrown when a worktree re-includes an
+		// already-loaded production plugin), not live-site faults, and must
+		// never page the alarm. The classifier fails open, so an
+		// unresolvable origin still alarms. The alarm only ever reads freshly
+		// parsed live-tail entries, so from_production is always present.
+		if ( ! $entry['from_production'] ) {
+			continue;
+		}
 
 		$sig = $entry['signature'];
 		if ( ! isset( $agg[ $sig ] ) ) {

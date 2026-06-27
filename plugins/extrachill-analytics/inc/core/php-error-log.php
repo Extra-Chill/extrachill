@@ -91,7 +91,7 @@ function extrachill_analytics_php_error_log_siblings( $log_path ) {
  * @param int|null $since_ts Unix timestamp lower bound (inclusive). Null = no bound.
  * @param int      $max_bytes Maximum bytes to read from the tail of the file. 0 = whole file.
  * @return array{
- *     entries: array<int, array{ts:int|null, severity:string, message:string, file:string, line:int, signature:string, sample:string}>,
+ *     entries: array<int, array{ts:int|null, severity:string, message:string, file:string, line:int, signature:string, sample:string, origin_path:string, from_production:bool}>,
  *     min_ts: int|null,
  *     max_ts: int|null
  * }
@@ -205,7 +205,7 @@ function extrachill_analytics_parse_log_timestamp( $line ) {
  *   grep -oE "PHP (Fatal error|Warning|Notice|Deprecated):..." | sed 's/[0-9]\+//g' | sort | uniq -c
  *
  * @param string $raw Raw (possibly multi-line) log entry.
- * @return array{severity:string, message:string, file:string, line:int, signature:string, sample:string}|null
+ * @return array{severity:string, message:string, file:string, line:int, signature:string, sample:string, origin_path:string, from_production:bool}|null
  *     Normalized fields, or null when the entry is not a recognizable PHP error.
  */
 function extrachill_analytics_normalize_php_error( $raw ) {
@@ -253,6 +253,16 @@ function extrachill_analytics_normalize_php_error( $raw ) {
 		? $file_basename . ( $line > 0 ? ':' . $line : '' )
 		: '(unknown)';
 
+	// Classify the origin path as production vs. non-production BEFORE the full
+	// path is discarded (the signature/display use only the basename). A fatal
+	// whose origin lives outside the live install — a coding-agent worktree
+	// under /var/lib/datamachine/workspace, a `wp eval` phar, /tmp, etc. — is a
+	// dev/agent artifact, not a live-site fault. Carrying this flag lets the
+	// near-real-time alarm ignore that noise so it never pages on, e.g., a
+	// "Cannot redeclare" raised by a worktree copy of an already-loaded plugin.
+	// An empty/unresolvable origin classifies as production (fail open).
+	$from_production = extrachill_analytics_is_production_error_path( $file );
+
 	// Build the normalized message used for the signature: strip the trailing
 	// "in <path> on line N", drop request-specific numerics, addresses, and IDs.
 	$norm = preg_replace( '/ in .+? on line \d+.*$/', '', $message );
@@ -272,13 +282,77 @@ function extrachill_analytics_normalize_php_error( $raw ) {
 	}
 
 	return array(
-		'severity'  => $severity,
-		'message'   => $norm,
-		'file'      => $location,
-		'line'      => $line,
-		'signature' => $signature,
-		'sample'    => $sample_message,
+		'severity'        => $severity,
+		'message'         => $norm,
+		'file'            => $location,
+		'line'            => $line,
+		'signature'       => $signature,
+		'sample'          => $sample_message,
+		'origin_path'     => $file,
+		'from_production' => $from_production,
 	);
+}
+
+/**
+ * Decide whether a fatal's origin file path belongs to the live install.
+ *
+ * Production = under the running WordPress install (WP_CONTENT_DIR or ABSPATH).
+ * Everything else is non-production: coding-agent worktrees under the workspace
+ * root, WP-CLI `eval`/`eval-file` phars, /tmp scratch, etc. Such errors are
+ * dev/agent artifacts and must not page the near-real-time fatal alarm.
+ *
+ * Fails OPEN: an unresolvable or unexpected path is treated as production so a
+ * genuine fatal is never silently suppressed by a path-matching gap.
+ *
+ * @param string $file Absolute origin file path from the log entry.
+ * @return bool True when the path is part of the live install.
+ */
+function extrachill_analytics_is_production_error_path( $file ) {
+	$file = (string) $file;
+
+	if ( '' === $file ) {
+		return true;
+	}
+
+	// Roots that constitute the live install. Normalize trailing slashes.
+	$production_roots = array();
+	if ( defined( 'WP_CONTENT_DIR' ) && WP_CONTENT_DIR ) {
+		$production_roots[] = rtrim( WP_CONTENT_DIR, '/' );
+	}
+	if ( defined( 'ABSPATH' ) && ABSPATH ) {
+		$production_roots[] = rtrim( ABSPATH, '/' );
+	}
+
+	/**
+	 * Filter the absolute path roots that count as the live install for fatal
+	 * classification. A fatal whose origin is under one of these roots is
+	 * "production"; anything else is treated as dev/agent noise.
+	 *
+	 * @param array  $production_roots Absolute directory roots (no trailing slash).
+	 * @param string $file             The origin path being classified.
+	 */
+	$production_roots = (array) apply_filters(
+		'extrachill_analytics_production_error_roots',
+		$production_roots,
+		$file
+	);
+
+	// No roots resolved (unexpected): fail open.
+	if ( empty( $production_roots ) ) {
+		return true;
+	}
+
+	foreach ( $production_roots as $root ) {
+		$root = rtrim( (string) $root, '/' );
+		if ( '' === $root ) {
+			continue;
+		}
+		if ( 0 === strpos( $file, $root . '/' ) || $file === $root ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**
