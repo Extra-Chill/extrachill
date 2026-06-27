@@ -47,13 +47,6 @@ function extrachill_blog_register_styles() {
 		array(),
 		filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/css/share-card.css' )
 	);
-
-	wp_register_style(
-		'extrachill-blog-network-bridge',
-		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/network-bridge.css',
-		array( 'extrachill-root' ),
-		filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/css/network-bridge.css' )
-	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_blog_register_styles', 5 );
 
