@@ -15,6 +15,56 @@ defined( 'ABSPATH' ) || exit;
 define( 'EXTRACHILL_ANALYTICS_VISITOR_COOKIE', 'ec_vid' );
 
 /**
+ * Resolve the cookie domain the visitor cookie must be scoped to.
+ *
+ * On this subdomain multisite, an empty/host-scoped cookie domain mints a NEW
+ * visitor id on every subdomain (extrachill.com vs events.extrachill.com vs
+ * community.extrachill.com), making cross-site retention structurally
+ * unmeasurable. Scoping the cookie to the NETWORK ROOT with a leading dot
+ * (`.extrachill.com`) lets ONE id span every subdomain.
+ *
+ * Resolution order (first that fits wins):
+ *   1. The WP `COOKIE_DOMAIN` constant — on this install it is already defined
+ *      as the network root with a leading dot, which is exactly what we want.
+ *   2. A multisite-derived value: a leading dot prefixed to the network's
+ *      primary domain (`.` . get_network()->domain). The leading dot is what
+ *      makes the cookie span subdomains.
+ *
+ * The whole thing is filterable so the value is never a bare hardcoded literal
+ * buried in setcookie() and so single-site / non-standard installs can override.
+ *
+ * @return string The cookie domain (e.g. `.extrachill.com`), or '' when no
+ *                 network-root domain can be derived (host-scoped fallback).
+ */
+function extrachill_analytics_visitor_cookie_domain() {
+	$domain = '';
+
+	// 1. Prefer WP's COOKIE_DOMAIN when defined and non-empty. On this network
+	// it is the leading-dot network root already.
+	if ( defined( 'COOKIE_DOMAIN' ) && is_string( COOKIE_DOMAIN ) && '' !== COOKIE_DOMAIN ) {
+		$domain = COOKIE_DOMAIN;
+	} elseif ( function_exists( 'get_network' ) ) {
+		// 2. Multisite-derived: leading dot + network primary domain so the
+		// cookie spans every subdomain.
+		$network = get_network();
+		if ( $network && ! empty( $network->domain ) ) {
+			$network_domain = ltrim( $network->domain, '.' );
+			if ( '' !== $network_domain ) {
+				$domain = '.' . $network_domain;
+			}
+		}
+	}
+
+	/**
+	 * Filter the visitor cookie domain.
+	 *
+	 * @param string $domain Resolved cookie domain (leading-dot network root, or
+	 *                       '' for host-scoped fallback).
+	 */
+	return (string) apply_filters( 'extrachill_analytics_visitor_cookie_domain', $domain );
+}
+
+/**
  * Detect whether the current request signals an opt-out of tracking.
  *
  * Honors Global Privacy Control (`Sec-GPC: 1`) and the legacy Do Not Track
@@ -125,6 +175,9 @@ function extrachill_analytics_get_or_mint_visitor_id() {
 
 	// Set the cookie for ~1 year. Secure + HttpOnly + SameSite=Lax: first-party
 	// analytics only, not readable by JS, not sent on cross-site sub-requests.
+	// Scoped to the network root (leading-dot domain) so ONE visitor id spans
+	// every subdomain on this multisite — without it each subdomain mints its
+	// own id and cross-site retention is unmeasurable.
 	// Guarded against headers_sent() as defense-in-depth; the early
 	// template_redirect hook below is what actually makes this succeed.
 	if ( ! headers_sent() ) {
@@ -134,7 +187,7 @@ function extrachill_analytics_get_or_mint_visitor_id() {
 			array(
 				'expires'  => time() + YEAR_IN_SECONDS,
 				'path'     => '/',
-				'domain'   => '',
+				'domain'   => extrachill_analytics_visitor_cookie_domain(),
 				'secure'   => true,
 				'httponly' => true,
 				'samesite' => 'Lax',
