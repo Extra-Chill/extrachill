@@ -58,8 +58,15 @@ function extrachill_analytics_register_get_link_page_analytics_ability(): void {
 /**
  * Execute callback for get-link-page-analytics ability.
  *
- * Validates the link page, checks ownership via ec_can_manage_artist(),
- * then delegates to the extrachill_get_link_page_analytics filter.
+ * Validates the link page, checks ownership via ec_can_manage_artist(), then
+ * resolves analytics through the extrachill_get_link_page_analytics filter.
+ *
+ * As of extrachill-analytics#94 that filter is PROVIDED BY ECA itself
+ * (extrachill_analytics_provide_link_page_analytics in
+ * inc/core/link-page-analytics.php) — it no longer delegates "up" to artist-
+ * platform. The filter is kept as the single read seam so this ability and the
+ * extrachill-api REST route share one provider rather than duplicating the
+ * query.
  *
  * @param array $input Input parameters.
  * @return array|WP_Error Analytics data or error.
