@@ -146,9 +146,12 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
  * Push a Sendy campaign via the generic DMB Sendy primitive.
  *
  * Delegates the campaign create/update API mechanics to
- * `datamachine/sendy-push-campaign` when data-machine-business is active. Falls
- * back to a direct API call (legacy mechanics) when the primitive is
- * unavailable so campaign pushing keeps working regardless of DMB activation.
+ * `datamachine/sendy-push-campaign`, the single canonical Sendy client
+ * (config-injected, EC-agnostic) provided by data-machine-business. This plugin
+ * owns the policy (building the email content, sender identity/brand, tracking
+ * the campaign ID in post meta); the raw API transport lives one layer down.
+ * The Data Machine suite is a hard runtime dependency, so there is no in-plugin
+ * fallback client.
  *
  * @param array $campaign Campaign content + sender identity (see push_campaign).
  * @return array|WP_Error Result {success, campaign_id, created, message, raw}.
@@ -156,87 +159,17 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
 function extrachill_newsletter_sendy_push_campaign( $campaign ) {
 	$ability = extrachill_newsletter_get_sendy_ability( 'datamachine/sendy-push-campaign' );
 
-	if ( $ability ) {
-		return $ability->execute(
-			array_merge(
-				array( 'config' => extrachill_newsletter_sendy_dmb_config() ),
-				$campaign
-			)
+	if ( ! $ability ) {
+		return new WP_Error(
+			'sendy_primitive_unavailable',
+			__( 'Pushing newsletter campaigns requires the Data Machine Business Sendy integration to be active.', 'extrachill-newsletter' )
 		);
 	}
 
-	// Legacy fallback: direct Sendy API calls.
-	$config      = get_sendy_config();
-	$campaign_id = isset( $campaign['campaign_id'] ) && '' !== (string) $campaign['campaign_id'] ? (string) $campaign['campaign_id'] : null;
-
-	$api_endpoint = '/api/campaigns/create.php';
-	if ( $campaign_id ) {
-		$check_response = wp_remote_post(
-			$config['sendy_url'] . '/api/campaigns/status.php',
-			array(
-				'headers' => array( 'Content-Type' => 'application/x-www-form-urlencoded' ),
-				'body'    => array(
-					'api_key'     => $config['api_key'],
-					'campaign_id' => $campaign_id,
-				),
-				'timeout' => 30,
-			)
-		);
-
-		if ( is_wp_error( $check_response ) ) {
-			return $check_response;
-		}
-
-		if ( 'Campaign exists' === trim( wp_remote_retrieve_body( $check_response ) ) ) {
-			$api_endpoint = '/api/campaigns/update.php';
-		} else {
-			$campaign_id = null;
-		}
-	}
-
-	$body = array(
-		'api_key'    => $config['api_key'],
-		'from_name'  => isset( $campaign['from_name'] ) ? $campaign['from_name'] : '',
-		'from_email' => isset( $campaign['from_email'] ) ? $campaign['from_email'] : '',
-		'reply_to'   => isset( $campaign['reply_to'] ) ? $campaign['reply_to'] : '',
-		'subject'    => isset( $campaign['subject'] ) ? $campaign['subject'] : '',
-		'plain_text' => isset( $campaign['plain_text'] ) ? $campaign['plain_text'] : '',
-		'html_text'  => isset( $campaign['html_text'] ) ? $campaign['html_text'] : '',
-		'brand_id'   => isset( $campaign['brand_id'] ) ? $campaign['brand_id'] : '',
-	);
-
-	if ( $campaign_id ) {
-		$body['campaign_id'] = $campaign_id;
-	}
-
-	$response = wp_remote_post(
-		$config['sendy_url'] . $api_endpoint,
-		array(
-			'headers' => array( 'Content-Type' => 'application/x-www-form-urlencoded' ),
-			'body'    => $body,
-			'timeout' => 30,
+	return $ability->execute(
+		array_merge(
+			array( 'config' => extrachill_newsletter_sendy_dmb_config() ),
+			$campaign
 		)
-	);
-
-	if ( is_wp_error( $response ) ) {
-		return $response;
-	}
-
-	$raw     = wp_remote_retrieve_body( $response );
-	$created = false;
-
-	if ( ! $campaign_id && is_numeric( trim( $raw ) ) ) {
-		$campaign_id = (string) trim( $raw );
-		$created     = true;
-	}
-
-	$success = $created || ( '/api/campaigns/update.php' === $api_endpoint && false === stripos( $raw, 'error' ) );
-
-	return array(
-		'success'     => $success,
-		'campaign_id' => $campaign_id,
-		'created'     => $created,
-		'message'     => $success ? '' : trim( $raw ),
-		'raw'         => $raw,
 	);
 }

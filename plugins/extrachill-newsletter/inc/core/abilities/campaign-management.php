@@ -197,8 +197,9 @@ function extrachill_newsletter_dmb_sendy_client() {
 /**
  * List Sendy campaigns.
  *
- * Delegates the campaigns-table query to the generic DMB Sendy primitive when
- * available; falls back to the legacy in-plugin DB query otherwise.
+ * Delegates the campaigns-table query to the single canonical DMB Sendy client.
+ * The Data Machine suite is a hard runtime dependency, so there is no in-plugin
+ * DB fallback.
  *
  * @param array $input {per_page, offset, status}.
  * @return array|WP_Error Campaign list with totals.
@@ -209,61 +210,16 @@ function extrachill_newsletter_ability_list_campaigns( $input ) {
 	$status   = isset( $input['status'] ) ? sanitize_text_field( $input['status'] ) : '';
 
 	$client = extrachill_newsletter_dmb_sendy_client();
-	if ( $client ) {
-		return $client->list_campaigns(
-			array(
-				'per_page' => $per_page,
-				'offset'   => $offset,
-				'status'   => $status,
-			)
-		);
+	if ( ! $client ) {
+		return extrachill_newsletter_sendy_client_unavailable_error();
 	}
 
-	$sendy_db = extrachill_newsletter_get_sendy_db();
-	if ( is_wp_error( $sendy_db ) ) {
-		return $sendy_db;
-	}
-
-	$where = '';
-	if ( 'sent' === $status ) {
-		$where = 'WHERE sent != "" AND sent IS NOT NULL';
-	} elseif ( 'draft' === $status ) {
-		$where = 'WHERE (sent = "" OR sent IS NULL) AND (send_date = "" OR send_date IS NULL)';
-	} elseif ( 'scheduled' === $status ) {
-		$where = 'WHERE send_date != "" AND send_date IS NOT NULL AND send_date != 0';
-	}
-
-	$total = (int) $sendy_db->get_var( "SELECT COUNT(*) FROM campaigns {$where}" );
-
-	$campaigns = $sendy_db->get_results(
-		$sendy_db->prepare(
-			"SELECT id, title, sent, to_send, recipients, send_date, lists, opens_tracking, links_tracking, campaign_stopped FROM campaigns {$where} ORDER BY id DESC LIMIT %d OFFSET %d",
-			$per_page,
-			$offset
-		),
-		ARRAY_A
-	);
-
-	$items = array();
-	foreach ( $campaigns as $c ) {
-		$items[] = array(
-			'id'             => (int) $c['id'],
-			'title'          => $c['title'],
-			'status'         => extrachill_newsletter_campaign_status( $c ),
-			'sent'           => $c['sent'] ? (int) $c['sent'] : null,
-			'sent_date'      => $c['sent'] ? gmdate( 'Y-m-d H:i:s', (int) $c['sent'] ) : null,
-			'scheduled_date' => ( ! empty( $c['send_date'] ) && '0' !== $c['send_date'] ) ? gmdate( 'Y-m-d H:i:s', (int) $c['send_date'] ) : null,
-			'to_send'        => (int) $c['to_send'],
-			'recipients'     => (int) $c['recipients'],
-			'stopped'        => (bool) $c['campaign_stopped'],
-		);
-	}
-
-	return array(
-		'total'    => $total,
-		'per_page' => $per_page,
-		'offset'   => $offset,
-		'campaigns' => $items,
+	return $client->list_campaigns(
+		array(
+			'per_page' => $per_page,
+			'offset'   => $offset,
+			'status'   => $status,
+		)
 	);
 }
 
@@ -281,41 +237,11 @@ function extrachill_newsletter_ability_get_campaign( $input ) {
 	}
 
 	$client = extrachill_newsletter_dmb_sendy_client();
-	if ( $client ) {
-		return $client->get_campaign( $campaign_id );
+	if ( ! $client ) {
+		return extrachill_newsletter_sendy_client_unavailable_error();
 	}
 
-	$sendy_db = extrachill_newsletter_get_sendy_db();
-	if ( is_wp_error( $sendy_db ) ) {
-		return $sendy_db;
-	}
-
-	$campaign = $sendy_db->get_row(
-		$sendy_db->prepare( "SELECT * FROM campaigns WHERE id = %d", $campaign_id ),
-		ARRAY_A
-	);
-
-	if ( ! $campaign ) {
-		return new WP_Error( 'campaign_not_found', 'Campaign not found.' );
-	}
-
-	return array(
-		'id'             => (int) $campaign['id'],
-		'title'          => $campaign['title'],
-		'from_name'      => $campaign['from_name'],
-		'from_email'     => $campaign['from_email'],
-		'reply_to'       => $campaign['reply_to'],
-		'status'         => extrachill_newsletter_campaign_status( $campaign ),
-		'sent'           => $campaign['sent'] ? (int) $campaign['sent'] : null,
-		'sent_date'      => $campaign['sent'] ? gmdate( 'Y-m-d H:i:s', (int) $campaign['sent'] ) : null,
-		'scheduled_date' => ( ! empty( $campaign['send_date'] ) && '0' !== $campaign['send_date'] ) ? gmdate( 'Y-m-d H:i:s', (int) $campaign['send_date'] ) : null,
-		'to_send'        => (int) $campaign['to_send'],
-		'recipients'     => (int) $campaign['recipients'],
-		'opens_tracking'  => (bool) $campaign['opens_tracking'],
-		'links_tracking'  => (bool) $campaign['links_tracking'],
-		'stopped'        => (bool) $campaign['campaign_stopped'],
-		'errors'         => $campaign['errors'],
-	);
+	return $client->get_campaign( $campaign_id );
 }
 
 /**
@@ -332,38 +258,11 @@ function extrachill_newsletter_ability_delete_campaign( $input ) {
 	}
 
 	$client = extrachill_newsletter_dmb_sendy_client();
-	if ( $client ) {
-		return $client->delete_campaign( $campaign_id );
+	if ( ! $client ) {
+		return extrachill_newsletter_sendy_client_unavailable_error();
 	}
 
-	$sendy_db = extrachill_newsletter_get_sendy_db();
-	if ( is_wp_error( $sendy_db ) ) {
-		return $sendy_db;
-	}
-
-	$campaign = $sendy_db->get_row(
-		$sendy_db->prepare( "SELECT id, sent, send_date FROM campaigns WHERE id = %d", $campaign_id ),
-		ARRAY_A
-	);
-
-	if ( ! $campaign ) {
-		return new WP_Error( 'campaign_not_found', 'Campaign not found.' );
-	}
-
-	$status = extrachill_newsletter_campaign_status( $campaign );
-	if ( 'sent' === $status ) {
-		return new WP_Error(
-			'cannot_delete_sent',
-			'Cannot delete a sent campaign. Delete it from the Sendy admin instead.'
-		);
-	}
-
-	$sendy_db->delete( 'campaigns', array( 'id' => $campaign_id ), array( '%d' ) );
-
-	return array(
-		'success' => true,
-		'message' => sprintf( 'Campaign %d (%s) deleted.', $campaign_id, $status ),
-	);
+	return $client->delete_campaign( $campaign_id );
 }
 
 /**
@@ -382,92 +281,43 @@ function extrachill_newsletter_ability_subscriber_status( $input ) {
 		return new WP_Error( 'missing_params', 'email and list_id are required.' );
 	}
 
-	// Delegate the Sendy API status check to the generic DMB primitive when
-	// available; fall back to the direct API call otherwise.
+	// Delegate the Sendy API status check to the single canonical DMB Sendy
+	// client. The Data Machine suite is a hard runtime dependency, so there is
+	// no in-plugin API fallback.
 	$client = extrachill_newsletter_dmb_sendy_client();
-	if ( $client ) {
-		$status = $client->subscriber_status( $list_id, $email );
-		if ( is_wp_error( $status ) ) {
-			return new WP_Error( 'status_check_failed', 'Failed to check subscriber status: ' . $status->get_error_message() );
-		}
-		return array(
-			'email'  => $email,
-			'status' => $status,
-		);
+	if ( ! $client ) {
+		return extrachill_newsletter_sendy_client_unavailable_error();
 	}
 
-	$config   = get_sendy_config();
-	$response = wp_remote_post(
-		$config['sendy_url'] . '/api/subscribers/subscription-status.php',
-		array(
-			'headers' => array(
-				'Content-Type' => 'application/x-www-form-urlencoded',
-			),
-			'body'    => array(
-				'api_key' => $config['api_key'],
-				'email'   => $email,
-				'list_id' => $list_id,
-			),
-			'timeout' => 15,
-		)
-	);
-
-	if ( is_wp_error( $response ) ) {
-		return new WP_Error( 'status_check_failed', 'Failed to check subscriber status: ' . $response->get_error_message() );
+	$status = $client->subscriber_status( $list_id, $email );
+	if ( is_wp_error( $status ) ) {
+		return new WP_Error( 'status_check_failed', 'Failed to check subscriber status: ' . $status->get_error_message() );
 	}
-
-	$body = trim( wp_remote_retrieve_body( $response ) );
 
 	return array(
 		'email'  => $email,
-		'status' => $body,
+		'status' => $status,
 	);
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /**
- * Get a wpdb instance connected to the Sendy database.
+ * Standard error returned when the canonical DMB Sendy client is unavailable.
  *
- * Sendy runs on the same server with its own database. Credentials are read
- * from explicit configuration rather than scraped from Sendy's source:
+ * The Sendy mechanics (API + read-only DB) live in the single config-injected
+ * client provided by data-machine-business. The Data Machine suite is a hard
+ * runtime dependency of this plugin, so when the client cannot be resolved the
+ * correct behaviour is to surface the missing dependency rather than fall back
+ * to a duplicate in-plugin implementation.
  *
- *   1. The `extrachill_newsletter_sendy_db` filter (preferred — wire it from
- *      wp-config.php constants or a secrets manager so credentials never live
- *      in the options table). The filtered value must be an array of
- *      {host, user, pass, name, port}.
- *   2. The `sendy_db` sub-array of the network `extrachill_newsletter_settings`
- *      option, populated via the Newsletter Settings screen.
- *
- * Returns a wpdb instance or WP_Error if no credentials are configured.
- *
- * @return wpdb|WP_Error
+ * @return WP_Error
  */
-function extrachill_newsletter_get_sendy_db() {
-	static $sendy_db = null;
-
-	if ( $sendy_db !== null ) {
-		return $sendy_db;
-	}
-
-	$creds = extrachill_newsletter_get_sendy_db_credentials();
-	if ( is_wp_error( $creds ) ) {
-		return $creds;
-	}
-
-	$sendy_db = new wpdb(
-		$creds['user'],
-		$creds['pass'],
-		$creds['name'],
-		$creds['host']
+function extrachill_newsletter_sendy_client_unavailable_error() {
+	return new WP_Error(
+		'sendy_primitive_unavailable',
+		__( 'Sendy campaign management requires the Data Machine Business Sendy integration to be active.', 'extrachill-newsletter' )
 	);
-
-	if ( ! empty( $creds['port'] ) ) {
-		$sendy_db->db_connect( false );
-		mysqli_query( $sendy_db->dbh, "SET SESSION sql_mode = ''" );
-	}
-
-	return $sendy_db;
 }
 
 /**
@@ -519,26 +369,4 @@ function extrachill_newsletter_get_sendy_db_credentials() {
 	}
 
 	return $creds;
-}
-
-/**
- * Determine campaign status from raw DB row.
- *
- * @param array $campaign Raw campaign row from Sendy DB.
- * @return string Status: sent, scheduled, draft, sending.
- */
-function extrachill_newsletter_campaign_status( $campaign ) {
-	if ( ! empty( $campaign['sent'] ) && '0' !== $campaign['sent'] ) {
-		// If to_send > recipients, still sending.
-		if ( (int) $campaign['to_send'] > (int) $campaign['recipients'] ) {
-			return 'sending';
-		}
-		return 'sent';
-	}
-
-	if ( ! empty( $campaign['send_date'] ) && '0' !== $campaign['send_date'] ) {
-		return 'scheduled';
-	}
-
-	return 'draft';
 }

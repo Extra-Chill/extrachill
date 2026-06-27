@@ -157,12 +157,10 @@ function extrachill_newsletter_ability_sync_subscribers( $input ) {
 		return $results;
 	}
 
-	$config = get_sendy_config();
-
 	foreach ( $emails as $email ) {
 		// Guard: check subscription status before subscribing.
 		// Skip anyone who previously unsubscribed, bounced, or complained.
-		$status = extrachill_newsletter_check_subscriber_status( $email, $list_id, $config );
+		$status = extrachill_newsletter_check_subscriber_status( $email, $list_id );
 
 		if ( is_wp_error( $status ) ) {
 			// Status check failed — skip to avoid re-subscribing blindly.
@@ -208,35 +206,24 @@ function extrachill_newsletter_ability_sync_subscribers( $input ) {
 }
 
 /**
- * Check a subscriber's status in a Sendy list via API.
+ * Check a subscriber's status in a Sendy list.
  *
  * Returns the status string from Sendy: Subscribed, Unsubscribed, Bounced,
  * Complained, Unconfirmed, Soft bounced, or "Email does not exist in list".
  *
- * @param string $email  Email address.
+ * Delegates the Sendy API status check to the single canonical DMB Sendy
+ * client. The Data Machine suite is a hard runtime dependency, so there is no
+ * in-plugin API fallback.
+ *
+ * @param string $email   Email address.
  * @param string $list_id Encrypted Sendy list ID.
- * @param array  $config  Sendy config (api_key, sendy_url).
  * @return string|WP_Error Status string or error.
  */
-function extrachill_newsletter_check_subscriber_status( $email, $list_id, $config ) {
-	$response = wp_remote_post(
-		$config['sendy_url'] . '/api/subscribers/subscription-status.php',
-		array(
-			'headers' => array(
-				'Content-Type' => 'application/x-www-form-urlencoded',
-			),
-			'body'    => array(
-				'api_key' => $config['api_key'],
-				'email'   => $email,
-				'list_id' => $list_id,
-			),
-			'timeout' => 10,
-		)
-	);
-
-	if ( is_wp_error( $response ) ) {
-		return $response;
+function extrachill_newsletter_check_subscriber_status( $email, $list_id ) {
+	$client = extrachill_newsletter_dmb_sendy_client();
+	if ( ! $client ) {
+		return extrachill_newsletter_sendy_client_unavailable_error();
 	}
 
-	return trim( wp_remote_retrieve_body( $response ) );
+	return $client->subscriber_status( $list_id, $email );
 }
