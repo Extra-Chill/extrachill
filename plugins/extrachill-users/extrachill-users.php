@@ -141,6 +141,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/lifetime-membership.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/shop-permissions.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/brand-socials-permissions.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/datamachine-permissions.php';
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-auto-approval.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/footer/online-users-stats.php';
