@@ -458,7 +458,7 @@ function ec_notifications_email_send_digest( $user_id ) {
 		// The previewed page was entirely stale reminders even though
 		// non-stale unread items exist deeper in the list. Pull a wider page so
 		// the digest body is never empty while the count is positive.
-		$wide = ec_users_get_notifications(
+		$wide    = ec_users_get_notifications(
 			$user_id,
 			array(
 				'unread'   => true,

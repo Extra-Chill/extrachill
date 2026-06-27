@@ -444,8 +444,8 @@ function ec_users_ordinal( int $number ): string {
  * ec_notifications_email_maybe_schedule().
  */
 function ec_users_stale_reminder_sweep_maybe_schedule() {
-	$scheduler  = EC_USERS_STALE_REMINDER_RECURRING_SCHEDULER;
-	$is_owner   = function_exists( 'ec_notifications_email_is_owner_site' )
+	$scheduler = EC_USERS_STALE_REMINDER_RECURRING_SCHEDULER;
+	$is_owner  = function_exists( 'ec_notifications_email_is_owner_site' )
 		? ec_notifications_email_is_owner_site()
 		: ( function_exists( 'is_main_site' ) && is_main_site() );
 
