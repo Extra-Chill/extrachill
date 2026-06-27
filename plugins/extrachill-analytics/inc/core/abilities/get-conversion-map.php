@@ -104,9 +104,7 @@ function extrachill_analytics_register_conversion_map_ability() {
 				'description' => __( 'Object with overall conversion, per-article ranking, per-category ranking, and the exact UTC window.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_conversion_map',
-			'permission_callback' => function () {
-				return current_user_can( 'manage_options' ) || ( defined( 'WP_CLI' ) && WP_CLI );
-			},
+			'permission_callback' => 'extrachill_analytics_can_read_reports',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(

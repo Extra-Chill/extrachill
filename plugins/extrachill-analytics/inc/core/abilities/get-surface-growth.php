@@ -80,9 +80,7 @@ function extrachill_analytics_register_surface_growth_ability() {
 				'description' => __( 'Object with per-surface supply + demand growth, a normalized comparable figure per surface, and a ranked fastest-growing surface, plus the exact UTC window.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_surface_growth',
-			'permission_callback' => function () {
-				return current_user_can( 'manage_options' ) || ( defined( 'WP_CLI' ) && WP_CLI );
-			},
+			'permission_callback' => 'extrachill_analytics_can_read_reports',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(

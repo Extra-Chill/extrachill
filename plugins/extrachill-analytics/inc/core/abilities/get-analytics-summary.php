@@ -46,9 +46,7 @@ function extrachill_analytics_register_summary_ability() {
 				'description' => __( 'Summary with event_types array and total count.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_summary',
-			'permission_callback' => function () {
-				return current_user_can( 'manage_options' ) || ( defined( 'WP_CLI' ) && WP_CLI );
-			},
+			'permission_callback' => 'extrachill_analytics_can_read_reports',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(

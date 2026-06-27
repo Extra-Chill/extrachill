@@ -30,9 +30,7 @@ function extrachill_analytics_register_meta_ability() {
 				'description' => __( 'Object with event_types (string array) and blogs (array of {id, name}).', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_meta',
-			'permission_callback' => function () {
-				return current_user_can( 'manage_network_options' ) || ( defined( 'WP_CLI' ) && WP_CLI );
-			},
+			'permission_callback' => 'extrachill_analytics_can_read_reports',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(

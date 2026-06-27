@@ -69,9 +69,7 @@ function extrachill_analytics_register_retention_stats_ability() {
 				'description' => __( 'Object with return_rate, cohort_retention, cross_site_return, session_depth, and the exact UTC window.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_retention_stats',
-			'permission_callback' => function () {
-				return current_user_can( 'manage_options' ) || ( defined( 'WP_CLI' ) && WP_CLI );
-			},
+			'permission_callback' => 'extrachill_analytics_can_read_reports',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
