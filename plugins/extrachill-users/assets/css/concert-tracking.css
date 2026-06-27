@@ -44,7 +44,13 @@
 	color: var(--muted-text, #6b7280);
 }
 
-.ec-attendance-list__avatars {
+/* Selectors below are intentionally scoped under `.ec-attendance-list` to
+ * raise specificity above the theme's content-context rules. This strip
+ * renders inside `.entry-content` (it's part of the EventDetails block
+ * content), so bare `.ec-attendance-list__item` (0,1,0) loses to
+ * `.entry-content li` (0,1,1) and the avatar overlap / row layout break.
+ * The descendant-scoped form (0,2,0) wins without resorting to !important. */
+.ec-attendance-list .ec-attendance-list__avatars {
 	display: flex;
 	align-items: center;
 	list-style: none;
@@ -52,15 +58,24 @@
 	padding: 0;
 }
 
-.ec-attendance-list__item {
+.ec-attendance-list .ec-attendance-list__item {
 	margin: 0 0 0 -0.5rem;
 }
 
-.ec-attendance-list__item:first-child {
+.ec-attendance-list .ec-attendance-list__item:first-child {
 	margin-left: 0;
 }
 
-.ec-attendance-list__avatar {
+/* Neutralize inherited `.entry-content a` link styling on the avatar anchor. */
+.ec-attendance-list .ec-attendance-list__item a {
+	display: block;
+	line-height: 0;
+	text-decoration: none;
+	color: inherit;
+	border: 0;
+}
+
+.ec-attendance-list .ec-attendance-list__avatar {
 	display: block;
 	width: 32px;
 	height: 32px;
