@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.0] - 2026-06-27
+
+### Added
+- grant datamachine_view_analytics to extra_chill_team
+
+### Fixed
+- harden attendee strip CSS against .entry-content style leak
+
 ## [0.21.2] - 2026-06-27
 
 ### Fixed
