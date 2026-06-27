@@ -36,6 +36,7 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/blog-archive-routing.php'
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/breadcrumbs.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/share-card.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/network-bridge.php';
+require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/login-register-cta.php';
 
 /**
  * Register plugin styles
