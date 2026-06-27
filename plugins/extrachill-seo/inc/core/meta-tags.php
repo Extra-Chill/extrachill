@@ -232,7 +232,7 @@ function ec_seo_get_default_description() {
 
 		// is_singular() can be true on virtual/plugin-driven singular contexts
 		// where get_queried_object() returns null. Guard the null deref.
-		if ( $post instanceof WP_Post ) {
+		if ( $post instanceof \WP_Post ) {
 			// Use excerpt if available
 			if ( ! empty( $post->post_excerpt ) ) {
 				return ec_seo_truncate_description( $post->post_excerpt );

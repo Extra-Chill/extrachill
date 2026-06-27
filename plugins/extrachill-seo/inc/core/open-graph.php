@@ -80,7 +80,7 @@ function ec_seo_get_open_graph_data() {
 	// Only proceed when the queried object is a real post. is_singular() can be
 	// true on virtual/plugin-driven singular contexts where get_queried_object()
 	// returns null, which would trigger null-property warnings below.
-	if ( isset( $post ) && $post instanceof WP_Post ) {
+	if ( isset( $post ) && $post instanceof \WP_Post ) {
 		// Article type for posts
 		if ( 'post' === $post->post_type ) {
 			$data['og:type']                = 'article';
