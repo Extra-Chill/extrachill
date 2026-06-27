@@ -86,7 +86,11 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/subscribe-data-functions.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/create-link-page.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/analytics.php';
+        // Link-page analytics (write path, read provider, prune, and tables) is
+        // owned by extrachill-analytics (ECA) as of extrachill-artist-platform#89
+        // / extrachill-analytics#94. AP consumes it via the
+        // extrachill_get_link_page_analytics filter (see the artist-get-analytics
+        // ability) and renders it through the artist-analytics block.
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/minimal-head-assets.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-head.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-seo.php';
@@ -97,7 +101,6 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/roster/roster-filter-handlers.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/database/subscriber-db.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/database/link-page-analytics-db.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/save.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/sync.php';
@@ -127,8 +130,8 @@ class ExtraChillArtistPlatform {
     }
 
     public static function activate() {
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/database/link-page-analytics-db.php';
-        extrachill_artist_create_or_update_analytics_table();
+        // Link-page analytics tables are owned and created by extrachill-analytics
+        // (ECA) as of extrachill-artist-platform#89 / extrachill-analytics#94.
         flush_rewrite_rules();
         update_option( 'extrachill_artist_platform_activated', true );
 
@@ -143,10 +146,10 @@ class ExtraChillArtistPlatform {
         flush_rewrite_rules();
         delete_option( 'extrachill_artist_platform_activated' );
 
-        // Unschedule analytics pruning cron
-        if (function_exists('extrachill_artist_unschedule_analytics_pruning_cron')) {
-            extrachill_artist_unschedule_analytics_pruning_cron();
-        }
+        // Link-page analytics pruning cron is owned by extrachill-analytics (ECA)
+        // as of extrachill-artist-platform#89 / extrachill-analytics#94. ECA also
+        // unschedules AP's legacy 'extrachill_artist_daily_analytics_prune_event'
+        // in its coexistence shim, so nothing to unschedule here.
     }
 
 }

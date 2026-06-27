@@ -34,4 +34,15 @@ module.exports = {
 		...defaultConfig.output,
 		path: path.resolve( __dirname, 'build' ),
 	},
+	externals: {
+		...defaultConfig.externals,
+		// Consume extrachill-analytics' (ECA) shared Chart.js v4 handle
+		// ('extrachill-analytics-chart', exposing window.ExtraChillChart)
+		// instead of bundling our own copy. See extrachill-artist-platform#89
+		// and extrachill-analytics#93. ECA is network-activated so the global
+		// is guaranteed present; the block declares the handle as a script
+		// dependency so it loads first.
+		'chart.js': 'ExtraChillChart',
+		'chart.js/auto': 'ExtraChillChart',
+	},
 };

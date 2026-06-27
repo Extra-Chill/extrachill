@@ -25,7 +25,17 @@ export default function Analytics() {
 		}
 
 		const initChart = async () => {
-			const Chart = ( await import( 'chart.js/auto' ) ).default;
+			// `chart.js/auto` is a webpack external mapped to ECA's shared
+			// global (window.ExtraChillChart) — not a bundled dependency. That
+			// global is the Chart.js v4 module namespace whose `.default` /
+			// `.Chart` is the auto-registered Chart constructor (controllers,
+			// scales, and elements already registered). Resolve defensively
+			// across those shapes. The external mapping is why the
+			// extraneous-dependency lint rule is suppressed here.
+			// eslint-disable-next-line import/no-extraneous-dependencies
+			const ChartModule = await import( 'chart.js/auto' );
+			const Chart =
+				ChartModule?.default || ChartModule?.Chart || ChartModule;
 
 			if ( chartInstance.current ) {
 				chartInstance.current.destroy();

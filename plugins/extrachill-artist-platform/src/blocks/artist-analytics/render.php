@@ -120,10 +120,21 @@ $config = array(
 // Enqueue the frontend script with localized data
 $asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/artist-analytics/view.asset.php';
 
+// Chart.js is consumed from extrachill-analytics' (ECA) shared, network-
+// activated handle ('extrachill-analytics-chart' → window.ExtraChillChart)
+// rather than bundled locally (extrachill-artist-platform#89,
+// extrachill-analytics#93). Declare it as an explicit dependency so the global
+// is present before this view script runs. wp-scripts won't add it to
+// view.asset.php because it's resolved as a webpack external, so append it here.
+$analytics_deps = $asset_file['dependencies'];
+if ( ! in_array( 'extrachill-analytics-chart', $analytics_deps, true ) ) {
+	$analytics_deps[] = 'extrachill-analytics-chart';
+}
+
 wp_enqueue_script(
 	'ec-artist-analytics-frontend',
 	EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'build/blocks/artist-analytics/view.js',
-	$asset_file['dependencies'],
+	$analytics_deps,
 	$asset_file['version'],
 	true
 );
