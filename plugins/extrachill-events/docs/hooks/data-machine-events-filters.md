@@ -196,6 +196,35 @@ data-machine-events single event template when rendering ticket button
 <a href="[ticket-url]" class="datamachine-ticket-button button-1 button-large">Buy Tickets</a>
 ```
 
+---
+
+### data_machine_events_add_to_calendar_button_classes
+
+**Purpose:** Route the single-event "Add to Calendar" toggle through theme button classes
+
+**Parameters:**
+- `$classes` (array): Default style classes from data-machine-events (`['ticket-button']`)
+- `$post_id` (int): Event post ID
+
+**Return Value:**
+Enhanced style classes with theme styling
+
+**Usage:**
+```php
+add_filter('data_machine_events_add_to_calendar_button_classes', array($this, 'add_calendar_toggle_button_classes'), 10, 1);
+
+public function add_calendar_toggle_button_classes($classes) {
+    $classes[] = 'button-1';
+    $classes[] = 'button-medium';
+    return $classes;
+}
+```
+
+**When Fired:**
+data-machine-events single event template when rendering the Add-to-Calendar toggle
+
+**Note:** The toggle's base classes (`dm-events-action-btn dm-events-add-to-calendar-toggle`) are always present and handle layout; the filter only augments the style classes.
+
 ## Breadcrumb Filter
 
 ### data_machine_events_breadcrumbs
@@ -276,6 +305,7 @@ For all filters and actions to work, the data-machine-events plugin must:
 2. **Provide button filters:**
    - `data_machine_events_modal_button_classes`
    - `data_machine_events_ticket_button_classes`
+   - `data_machine_events_add_to_calendar_button_classes`
 
 3. **Provide breadcrumb filter:**
    - `data_machine_events_breadcrumbs`

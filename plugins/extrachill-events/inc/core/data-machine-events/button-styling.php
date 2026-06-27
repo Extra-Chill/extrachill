@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function extrachill_events_init_button_styling() {
 	add_filter( 'data_machine_events_modal_button_classes', 'extrachill_events_add_modal_button_classes', 10, 2 );
 	add_filter( 'data_machine_events_ticket_button_classes', 'extrachill_events_add_ticket_button_classes', 10, 1 );
+	add_filter( 'data_machine_events_add_to_calendar_button_classes', 'extrachill_events_add_calendar_toggle_button_classes', 10, 1 );
 	add_filter( 'data_machine_events_more_info_button_classes', 'extrachill_events_add_more_info_button_classes', 10, 1 );
 }
 
@@ -56,6 +57,26 @@ function extrachill_events_add_modal_button_classes( $classes, $button_type ) {
  * @return array Enhanced button classes with theme styling.
  */
 function extrachill_events_add_ticket_button_classes( $classes ) {
+	$classes[] = 'button-1';
+	$classes[] = 'button-medium';
+	return $classes;
+}
+
+/**
+ * Add theme button classes to the Add-to-Calendar toggle
+ *
+ * Routes the data-machine-events Add-to-Calendar toggle through the same
+ * theme button styling as the ticket button (button-1 + button-medium), so
+ * the single-event action-button row (Ticket / Attendance / Add to Calendar /
+ * Share) is visually consistent in the Extra Chill design system rather than
+ * falling back to the plugin's default ad-hoc styling. The toggle's own base
+ * classes handle layout (icon alignment, dropdown positioning); this only
+ * replaces the default `ticket-button` style class.
+ *
+ * @param array $classes Default style classes from data-machine-events.
+ * @return array Enhanced button classes with theme styling.
+ */
+function extrachill_events_add_calendar_toggle_button_classes( $classes ) {
 	$classes[] = 'button-1';
 	$classes[] = 'button-medium';
 	return $classes;

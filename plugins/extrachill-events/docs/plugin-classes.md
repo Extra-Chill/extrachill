@@ -374,6 +374,20 @@ if (isset($integrations['data_machine_events'])) {
 
 ---
 
+#### add_calendar_toggle_button_classes()
+**Visibility:** public
+
+**Hook:** `data_machine_events_add_to_calendar_button_classes`
+
+**Parameters:**
+- `$classes` (array)
+
+**Return Value:** array
+
+**Purpose:** Route the Add-to-Calendar toggle through theme button classes (action-row parity)
+
+---
+
 #### override_breadcrumbs()
 **Visibility:** public
 

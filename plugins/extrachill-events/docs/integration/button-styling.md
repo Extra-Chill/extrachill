@@ -102,6 +102,38 @@ public function add_ticket_button_classes($classes) {
 add_filter('data_machine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
 ```
 
+## Add to Calendar Toggle Styling
+
+### data_machine_events_add_to_calendar_button_classes Filter
+
+Routes the single-event "Add to Calendar" toggle through the same theme button
+styling as the ticket button, so the action-button row (Ticket / Attendance /
+Add to Calendar / Share) stays visually consistent in the Extra Chill design
+system instead of falling back to the plugin's default `ticket-button` styling.
+
+**Filter Parameters:**
+- `$classes` (array): Default style classes from data-machine-events (`['ticket-button']`)
+
+**Class Mapping:**
+```php
+$classes[] = 'button-1';       // Theme's primary blue accent button
+$classes[] = 'button-medium';  // Medium button size
+```
+
+### Filter Implementation
+```php
+public function add_calendar_toggle_button_classes($classes) {
+    $classes[] = 'button-1';
+    $classes[] = 'button-medium';
+    return $classes;
+}
+add_filter('data_machine_events_add_to_calendar_button_classes', array($this, 'add_calendar_toggle_button_classes'), 10, 1);
+```
+
+The toggle's own base classes (`dm-events-action-btn dm-events-add-to-calendar-toggle`)
+are always present and handle layout (icon alignment, dropdown positioning); the
+filter only augments the style classes.
+
 ## Theme Button Classes
 
 ### button-1 (Primary)
