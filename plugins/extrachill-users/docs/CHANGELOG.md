@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.21.1] - 2026-06-27
+
+### Changed
+- align assignment operators to satisfy phpcs MultipleStatementAlignment
+- Stop emailing stale show reminders + auto-mark them read after the event passes
+
 ## [0.21.0] - 2026-06-20
 
 ### Added
