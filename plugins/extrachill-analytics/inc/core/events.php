@@ -74,6 +74,24 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 		$event_data['is_bot'] = (bool) $verdict['is_bot'];
 	}
 
+	// Stamp the originating search SURFACE on every `search` event at write
+	// time so downstream readers can tell a nav/header search from an
+	// archive/results-page refinement from the bbPress in-forum search (issue
+	// #86). Like the is_bot stamp above, this is derived server-side from the
+	// request context the search write already has — the source_url on the
+	// payload plus the live request URI/query vars — so EVERY new search row
+	// carries a `source` without any cross-plugin capture change. Only stamped
+	// for `search` events, only when the caller hasn't already supplied an
+	// explicit source (a future upstream caller threading its own surface
+	// still wins), and only when the classifier is loaded.
+	if ( 'search' === $event_type
+		&& is_array( $event_data )
+		&& ! array_key_exists( 'source', $event_data )
+		&& function_exists( 'extrachill_analytics_classify_search_source' )
+	) {
+		$event_data['source'] = extrachill_analytics_classify_search_source( $source_url );
+	}
+
 	$result = $wpdb->insert(
 		$table_name,
 		array(

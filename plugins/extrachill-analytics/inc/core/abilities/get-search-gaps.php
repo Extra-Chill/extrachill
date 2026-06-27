@@ -118,6 +118,7 @@ function extrachill_analytics_register_search_gaps_ability() {
  *     'unclassified'     => int,   // subset with NULL/no-flag is_bot (legacy, kept as human)
  *     'zero_result_total'=> int,   // distinct-agnostic count of zero-result human searches
  *     'zero_result_rate' => float, // percentage 0..100
+ *     'by_source'        => [ ['source' => 'nav', 'count' => N, 'zero_result_count' => M], ... ], // per-surface split (issue #86)
  *     'excluded_bot'     => int,   // search events filtered out as bot/payload
  *     'max_results'      => int,
  *     'days'             => int,
@@ -156,6 +157,11 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	// Extract result_count and search_term once; reuse across queries.
 	$result_count_expr = "CAST(JSON_EXTRACT(event_data, '$.result_count') AS SIGNED)";
 	$term_expr         = "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.search_term'))";
+	// Originating search surface (issue #86), stamped on new rows at write time
+	// (see search-source-classifier.php). Rows written before the field existed
+	// have no key (JSON_EXTRACT → NULL) and surface as 'unknown' in the
+	// breakdown below.
+	$source_expr = "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.source'))";
 
 	// First-pass SQL bot filter: cheap, deterministic exclusions that don't need
 	// the full regex catalog. Drops absurdly long terms and obvious payload
@@ -280,7 +286,31 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 		? $wpdb->get_results( $gap_sql )
 		: $wpdb->get_results( $wpdb->prepare( $gap_sql, $gap_values ) );
 
+	// Per-source breakdown (issue #86): how the in-window search volume splits
+	// across surfaces (nav / archive / bbpress_forum / unknown), and how many
+	// of each surface's searches returned zero results. Reuses the same $where
+	// (window + blog + length + is_bot) so the breakdown is consistent with the
+	// totals. Rows predating the `source` field bucket as 'unknown'.
+	$zero_for_source = "SUM(CASE WHEN {$result_count_expr} = 0 THEN 1 ELSE 0 END)";
+	$by_source_sql   = "SELECT COALESCE({$source_expr}, 'unknown') AS source, "
+		. "COUNT(*) AS cnt, {$zero_for_source} AS zero_cnt "
+		. "FROM {$table} WHERE {$where_clause} "
+		. 'GROUP BY source ORDER BY cnt DESC';
+
+	$by_source_rows = empty( $where_values )
+		? $wpdb->get_results( $by_source_sql )
+		: $wpdb->get_results( $wpdb->prepare( $by_source_sql, $where_values ) );
+
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+	$by_source = array();
+	foreach ( (array) $by_source_rows as $row ) {
+		$by_source[] = array(
+			'source'            => (string) $row->source,
+			'count'             => (int) $row->cnt,
+			'zero_result_count' => (int) $row->zero_cnt,
+		);
+	}
 
 	$zero_result  = array();
 	$low_result   = array();
@@ -346,6 +376,7 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 		'unclassified'         => $unclassified_searches,
 		'zero_result_total'    => $zero_total,
 		'zero_result_rate'     => $zero_result_rate,
+		'by_source'            => $by_source,
 		'excluded_bot'         => $excluded_bot,
 		'max_results'          => $max_results,
 		'days'                 => $days,
