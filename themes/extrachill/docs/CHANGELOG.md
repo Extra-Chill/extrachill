@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.6.4] - 2026-06-27
+
+### Changed
+- remove hardcoded login-register block from comments template
+
 ## [2.6.3] - 2026-06-20
 
 ### Fixed
