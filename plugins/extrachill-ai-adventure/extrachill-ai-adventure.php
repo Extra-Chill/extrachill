@@ -189,11 +189,11 @@ function extrachill_ai_adventure_handle_conversation( $params ) {
 }
 
 /**
- * Build game context for Data Machine client_context.
+ * Build the per-turn game context passed to the conversation runner.
  *
  * @param array  $params    Game parameters.
  * @param string $turn_type One of: introduction, conversation, progression.
- * @return array Context data for DM.
+ * @return array Context data for the game-master turn.
  */
 function extrachill_ai_adventure_build_context( $params, $turn_type ) {
 	$context = array(

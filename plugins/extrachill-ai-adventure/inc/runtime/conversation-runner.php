@@ -2,40 +2,39 @@
 /**
  * Game Master conversation runner.
  *
- * Direct consumer of agents-api's AgentConversationLoop and WordPress core's
- * wp-ai-client. Runs a self-contained one-turn loop that:
+ * Thin consumer of agents-api's WP_Agent_Conversation_Loop::run_conversation()
+ * facade. The facade builds the shipped WP_Agent_Default_Provider_Turn_Adapter
+ * (the canonical "run one provider turn through wp-ai-client" primitive) and
+ * drives the MEDIATED tool path: the loop owns provider dispatch, assistant-text
+ * + tool-call extraction, tool execution via the supplied
+ * WP_Agent_Tool_Executor, and transcript assembly.
  *
- *   1. Builds the system prompt by prepending SOUL.md to a per-turn game
- *      context block built from the request payload.
- *   2. Builds a wp-ai-client message history from the rolling
- *      conversationHistory the frontend roundtrips on every request.
- *   3. Declares the progress_story tool to the provider as a wp-ai-client
- *      function declaration.
- *   4. Dispatches one provider turn through wp_ai_client_prompt().
- *   5. Extracts the assistant's narrative text and (optionally) executes a
- *      progress_story tool call through the agents-api WP_Agent_Tool_Executor
- *      adapter declared in inc/tools/progress-story-tool.php.
- *   6. Returns the narrative + next_step_id to the REST handler.
+ * The only consumer-specific glue that lives here is:
  *
- * Transcript persistence is intentionally a no-op
- * ({@see NullAgentConversationTranscriptPersister}). The frontend already
+ *   1. System-prompt assembly (SOUL.md prepended to a per-turn game context
+ *      block built from the request payload).
+ *   2. The single progress_story tool declaration + executor
+ *      (inc/tools/progress-story-tool.php).
+ *   3. Mapping the loop result back to the {narrative, next_step_id, session_id}
+ *      shape the REST handlers and block frontend consume.
+ *
+ * Because AI Adventure's prompt is static (system instruction + the current
+ * user turn; the frontend roundtrips full conversationHistory in the context
+ * block), it does NOT inject a prompt-input provider — the default identity
+ * seam is sufficient and the system prompt is passed through options.
+ *
+ * Transcript persistence is intentionally a no-op: the frontend already
  * roundtrips full conversationHistory / progression_history /
- * transition_context on every request, so server-side session storage is
- * dead weight here. The session_id parameter is accepted and echoed back
- * for backward-compatible response shape but is not persisted or read.
+ * transition_context on every request, so server-side session storage is dead
+ * weight here. The session_id parameter is accepted and echoed back for a
+ * backward-compatible response shape but is not persisted or read.
  *
  * @package ExtraChillAIAdventure
  */
 
 defined( 'ABSPATH' ) || exit;
 
-use AgentsAPI\AI\AgentConversationLoop;
-use WordPress\AiClient\AiClient;
-use WordPress\AiClient\Messages\DTO\Message;
-use WordPress\AiClient\Messages\DTO\MessagePart;
-use WordPress\AiClient\Messages\DTO\ModelMessage;
-use WordPress\AiClient\Messages\DTO\UserMessage;
-use WordPress\AiClient\Tools\DTO\FunctionDeclaration;
+use AgentsAPI\AI\WP_Agent_Conversation_Loop;
 
 /**
  * Run a single game-master turn.
@@ -62,6 +61,14 @@ function extrachill_ai_adventure_run_conversation( string $message, array $conte
 		return new WP_Error(
 			'wp_ai_client_unavailable',
 			__( 'WordPress AI Client is required for AI Adventure but is not available.', 'extrachill-ai-adventure' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	if ( ! class_exists( WP_Agent_Conversation_Loop::class ) ) {
+		return new WP_Error(
+			'agents_api_unavailable',
+			__( 'agents-api conversation loop is required for AI Adventure but is not available.', 'extrachill-ai-adventure' ),
 			array( 'status' => 500 )
 		);
 	}
@@ -98,26 +105,20 @@ function extrachill_ai_adventure_run_conversation( string $message, array $conte
 		),
 	);
 
-	$turn_runner = static function ( array $messages, array $turn_context ) use ( $provider, $model, $system_prompt, $tool_declaration, $tool_executor, $context ) {
-		return extrachill_ai_adventure_run_turn(
-			$messages,
-			$turn_context,
+	try {
+		$result = WP_Agent_Conversation_Loop::run_conversation(
+			$initial_messages,
+			array( EXTRACHILL_AI_ADVENTURE_TOOL_FUNCTION_NAME => $tool_declaration ),
 			$provider,
 			$model,
-			$system_prompt,
-			$tool_declaration,
-			$tool_executor,
-			$context
-		);
-	};
-
-	try {
-		$result = AgentConversationLoop::run(
-			$initial_messages,
-			$turn_runner,
 			array(
-				'max_turns' => 1,
-				'context'   => $context,
+				'system_prompt' => $system_prompt,
+				'tool_executor' => $tool_executor,
+				'max_turns'     => 1,
+				// The progress_story executor reads the structured triggers list
+				// from context; the model only supplies trigger_id. The system
+				// prompt is also surfaced through context by the facade.
+				'context'       => $context,
 			)
 		);
 	} catch ( \Throwable $e ) {
@@ -128,23 +129,61 @@ function extrachill_ai_adventure_run_conversation( string $message, array $conte
 		);
 	}
 
-	$narrative    = '';
-	$next_step_id = null;
+	return array(
+		'narrative'    => extrachill_ai_adventure_extract_narrative( $result ),
+		'next_step_id' => extrachill_ai_adventure_extract_next_step_id( $result ),
+		'session_id'   => $session_id,
+	);
+}
 
-	foreach ( array_reverse( $result['messages'] ) as $envelope ) {
+/**
+ * Extract the assistant narrative from a conversation-loop result.
+ *
+ * The loop appends the provider turn's assistant text as a canonical text
+ * envelope. Walk the transcript from the end and return the most recent
+ * non-empty assistant text.
+ *
+ * @param array $result Normalized WP_Agent_Conversation_Loop result.
+ * @return string Assistant narrative text, or empty string when none was returned.
+ */
+function extrachill_ai_adventure_extract_narrative( array $result ): string {
+	$messages = isset( $result['messages'] ) && is_array( $result['messages'] ) ? $result['messages'] : array();
+
+	foreach ( array_reverse( $messages ) as $envelope ) {
 		if ( ! is_array( $envelope ) ) {
 			continue;
 		}
 
-		$role    = $envelope['role'] ?? '';
+		$type    = (string) ( $envelope['type'] ?? 'text' );
+		$role    = (string) ( $envelope['role'] ?? '' );
 		$content = $envelope['content'] ?? '';
-		if ( 'assistant' === $role && is_string( $content ) && '' !== $content ) {
-			$narrative = $content;
-			break;
+
+		if ( 'text' === $type && 'assistant' === $role && is_string( $content ) && '' !== $content ) {
+			return $content;
 		}
 	}
 
-	foreach ( $result['tool_execution_results'] as $tool_result ) {
+	return '';
+}
+
+/**
+ * Extract the progressed next_step_id from a conversation-loop result.
+ *
+ * The loop's mediated path records each executed tool in
+ * `tool_execution_results`, where the executor's normalized
+ * WP_Agent_Tool_Result lives under `result` and its success payload under
+ * `result.result`. Return the destination step only when progress_story
+ * reported `progressed`.
+ *
+ * @param array $result Normalized WP_Agent_Conversation_Loop result.
+ * @return string|null Destination step id, or null when the story did not progress.
+ */
+function extrachill_ai_adventure_extract_next_step_id( array $result ): ?string {
+	$tool_results = isset( $result['tool_execution_results'] ) && is_array( $result['tool_execution_results'] )
+		? $result['tool_execution_results']
+		: array();
+
+	foreach ( $tool_results as $tool_result ) {
 		if ( ! is_array( $tool_result ) ) {
 			continue;
 		}
@@ -153,17 +192,15 @@ function extrachill_ai_adventure_run_conversation( string $message, array $conte
 			continue;
 		}
 
-		$payload = is_array( $tool_result['result'] ?? null ) ? $tool_result['result'] : array();
+		$envelope = is_array( $tool_result['result'] ?? null ) ? $tool_result['result'] : array();
+		$payload  = is_array( $envelope['result'] ?? null ) ? $envelope['result'] : array();
+
 		if ( ! empty( $payload['progressed'] ) && ! empty( $payload['next_step_id'] ) ) {
-			$next_step_id = (string) $payload['next_step_id'];
+			return (string) $payload['next_step_id'];
 		}
 	}
 
-	return array(
-		'narrative'    => $narrative,
-		'next_step_id' => $next_step_id,
-		'session_id'   => $session_id,
-	);
+	return null;
 }
 
 /**
@@ -229,293 +266,4 @@ function extrachill_ai_adventure_build_system_prompt( array $context ): string {
 	}
 
 	return rtrim( implode( "\n", $lines ) );
-}
-
-/**
- * Execute one conversation turn through wp-ai-client.
- *
- * Returns an AgentConversationResult-shaped array consumed by
- * AgentConversationLoop. Tool calls are executed inline via the supplied
- * WP_Agent_Tool_Executor adapter so the loop sees both the assistant message
- * and any tool execution results in a single turn.
- *
- * @param array                                   $messages         Normalized envelopes from the loop.
- * @param array                                   $turn_context     Loop turn context.
- * @param string                                  $provider         wp-ai-client provider id.
- * @param string                                  $model            wp-ai-client model id.
- * @param string                                  $system_prompt    System prompt text.
- * @param array                                   $tool_declaration Normalized WP_Agent_Tool_Declaration.
- * @param \AgentsAPI\AI\Tools\WP_Agent_Tool_Executor $tool_executor  Tool executor adapter.
- * @param array                                     $game_context     Game context for tool execution.
- * @return array AgentConversationResult-compatible array.
- */
-function extrachill_ai_adventure_run_turn(
-	array $messages,
-	array $turn_context,
-	string $provider,
-	string $model,
-	string $system_prompt,
-	array $tool_declaration,
-	\AgentsAPI\AI\Tools\WP_Agent_Tool_Executor $tool_executor,
-	array $game_context
-): array {
-	$turn = isset( $turn_context['turn'] ) ? (int) $turn_context['turn'] : 1;
-
-	$registry = AiClient::defaultRegistry();
-	if ( ! $registry->hasProvider( $provider ) ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are not rendered output.
-		throw new \InvalidArgumentException( sprintf( 'Provider "%s" is not registered with wp-ai-client.', $provider ) );
-	}
-
-	$provider_id    = $registry->getProviderId( $provider );
-	$model_instance = $registry->getProviderModel( $provider_id, $model, null );
-
-	$builder = wp_ai_client_prompt()
-		->using_provider( $provider_id )
-		->using_model( $model_instance );
-
-	if ( '' !== $system_prompt ) {
-		$builder = $builder->using_system_instruction( $system_prompt );
-	}
-
-	$history = extrachill_ai_adventure_messages_to_history( $messages );
-	if ( ! empty( $history ) ) {
-		$builder = $builder->with_history( ...$history );
-	}
-
-	$function_declaration = new FunctionDeclaration(
-		EXTRACHILL_AI_ADVENTURE_TOOL_FUNCTION_NAME,
-		(string) ( $tool_declaration['description'] ?? '' ),
-		extrachill_ai_adventure_function_schema( $tool_declaration )
-	);
-	$builder              = $builder->using_function_declarations( $function_declaration );
-
-	try {
-		$ai_result = $builder->generate_text_result();
-	} catch ( \Throwable $e ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are not rendered output.
-		throw new \RuntimeException( 'wp-ai-client request failed: ' . $e->getMessage(), 0, $e );
-	}
-
-	$assistant_text = extrachill_ai_adventure_result_text( $ai_result );
-	$tool_calls     = extrachill_ai_adventure_extract_tool_calls( $ai_result );
-
-	if ( '' !== $assistant_text ) {
-		$messages[] = array(
-			'role'    => 'assistant',
-			'content' => $assistant_text,
-		);
-	}
-
-	$tool_execution_results = array();
-	foreach ( $tool_calls as $tool_call ) {
-		$function_name = (string) $tool_call['name'];
-		if ( EXTRACHILL_AI_ADVENTURE_TOOL_FUNCTION_NAME !== $function_name ) {
-			continue;
-		}
-
-		$parameters = $tool_call['parameters'];
-
-		$messages[] = array(
-			'role'     => 'assistant',
-			'content'  => sprintf( 'Calling tool: %s', EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME ),
-			'metadata' => array(
-				'type'       => \AgentsAPI\AI\AgentMessageEnvelope::TYPE_TOOL_CALL,
-				'tool_name'  => EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME,
-				'parameters' => $parameters,
-				'turn'       => $turn,
-			),
-		);
-
-		$normalized_call = array(
-			'tool_name'  => EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME,
-			'parameters' => $parameters,
-			'metadata'   => array( 'source' => 'extrachill' ),
-		);
-
-		$execution = $tool_executor->executeWP_Agent_Tool_Call( $normalized_call, $tool_declaration, $game_context );
-
-		$success     = (bool) ( $execution['success'] ?? false );
-		$result_data = is_array( $execution['result'] ?? null ) ? $execution['result'] : array();
-		$error_text  = isset( $execution['error'] ) ? (string) $execution['error'] : '';
-		$result_text = $success
-			? wp_json_encode( $result_data )
-			: ( '' !== $error_text ? $error_text : 'Tool execution failed.' );
-
-		$messages[] = array(
-			'role'     => 'tool',
-			'content'  => is_string( $result_text ) ? $result_text : '',
-			'metadata' => array(
-				'type'      => \AgentsAPI\AI\AgentMessageEnvelope::TYPE_TOOL_RESULT,
-				'tool_name' => EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME,
-				'success'   => $success,
-				'turn'      => $turn,
-				'tool_data' => $result_data,
-				'error'     => '' !== $error_text ? $error_text : null,
-			),
-		);
-
-		$tool_execution_results[] = array(
-			'tool_name'  => EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME,
-			'result'     => $success
-				? array_merge( array( 'success' => true ), $result_data )
-				: array(
-					'success' => false,
-					'error'   => $error_text,
-				),
-			'parameters' => $parameters,
-			'turn_count' => $turn,
-		);
-	}
-
-	return array(
-		'messages'               => $messages,
-		'tool_execution_results' => $tool_execution_results,
-	);
-}
-
-/**
- * Convert AgentMessageEnvelope-normalized messages to wp-ai-client history DTOs.
- *
- * Tool-call / tool-result envelopes are skipped: providers receive the live
- * tool dispatch via function_declarations + the next-turn message, not via
- * replayed historical tool envelopes.
- *
- * @param array $messages Normalized envelopes.
- * @return array<int, Message>
- */
-function extrachill_ai_adventure_messages_to_history( array $messages ): array {
-	$history = array();
-
-	foreach ( $messages as $envelope ) {
-		if ( ! is_array( $envelope ) ) {
-			continue;
-		}
-
-		$type    = (string) ( $envelope['type'] ?? \AgentsAPI\AI\AgentMessageEnvelope::TYPE_TEXT );
-		$role    = (string) ( $envelope['role'] ?? '' );
-		$content = $envelope['content'] ?? '';
-
-		if ( \AgentsAPI\AI\AgentMessageEnvelope::TYPE_TEXT !== $type ) {
-			continue;
-		}
-
-		if ( ! is_string( $content ) || '' === $content ) {
-			continue;
-		}
-
-		$parts = array( new MessagePart( $content ) );
-
-		if ( 'assistant' === $role || 'model' === $role ) {
-			$history[] = new ModelMessage( $parts );
-			continue;
-		}
-
-		if ( 'user' === $role ) {
-			$history[] = new UserMessage( $parts );
-		}
-	}
-
-	return $history;
-}
-
-/**
- * Convert a normalized WP_Agent_Tool_Declaration into a JSON Schema for wp-ai-client.
- *
- * The agents-api declaration accepts both compact (`required` list) and
- * legacy (`required => true` per property) shapes. wp-ai-client expects the
- * compact JSON Schema object form.
- *
- * @param array $declaration Normalized WP_Agent_Tool_Declaration.
- * @return array<string, mixed>|null
- */
-function extrachill_ai_adventure_function_schema( array $declaration ): ?array {
-	$parameters = $declaration['parameters'] ?? array();
-	if ( ! is_array( $parameters ) || empty( $parameters ) ) {
-		return null;
-	}
-
-	if ( ! isset( $parameters['type'] ) && ! isset( $parameters['properties'] ) ) {
-		$parameters = array(
-			'type'       => 'object',
-			'properties' => $parameters,
-		);
-	}
-
-	if ( empty( $parameters['type'] ) ) {
-		$parameters['type'] = 'object';
-	}
-
-	return $parameters;
-}
-
-/**
- * Extract assistant text content from a wp-ai-client GenerativeAiResult.
- *
- * @param \WordPress\AiClient\Results\DTO\GenerativeAiResult $result wp-ai-client result.
- * @return string Assistant narrative text, or empty string when none was returned.
- */
-function extrachill_ai_adventure_result_text( $result ): string {
-	try {
-		return (string) $result->toText();
-	} catch ( \Throwable $e ) {
-		if ( str_contains( $e->getMessage(), 'No text content found' ) ) {
-			return '';
-		}
-		throw $e;
-	}
-}
-
-/**
- * Extract function calls from a wp-ai-client GenerativeAiResult.
- *
- * @param \WordPress\AiClient\Results\DTO\GenerativeAiResult $result wp-ai-client result.
- * @return array<int, array{name:string,parameters:array,id:mixed}>
- */
-function extrachill_ai_adventure_extract_tool_calls( $result ): array {
-	$tool_calls = array();
-	$candidates = $result->getCandidates();
-	if ( empty( $candidates ) ) {
-		return $tool_calls;
-	}
-
-	foreach ( $candidates[0]->getMessage()->getParts() as $part ) {
-		$function_call = $part->getFunctionCall();
-		if ( null === $function_call ) {
-			continue;
-		}
-
-		$tool_calls[] = array(
-			'name'       => (string) $function_call->getName(),
-			'parameters' => extrachill_ai_adventure_normalize_function_args( $function_call->getArgs() ),
-			'id'         => $function_call->getId(),
-		);
-	}
-
-	return $tool_calls;
-}
-
-/**
- * Coerce wp-ai-client function-call args into a plain array.
- *
- * @param mixed $args Args returned by FunctionCall::getArgs().
- * @return array
- */
-function extrachill_ai_adventure_normalize_function_args( $args ): array {
-	if ( is_array( $args ) ) {
-		return $args;
-	}
-
-	if ( is_string( $args ) && '' !== $args ) {
-		$decoded = json_decode( $args, true );
-		if ( is_array( $decoded ) ) {
-			return $decoded;
-		}
-	}
-
-	if ( is_object( $args ) ) {
-		return (array) $args;
-	}
-
-	return array();
 }

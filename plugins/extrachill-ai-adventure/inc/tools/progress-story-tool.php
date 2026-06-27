@@ -2,14 +2,16 @@
 /**
  * progress_story runtime tool wiring.
  *
- * Declares the `extrachill/progress-story` runtime tool via agents-api's
+ * Declares the `progress_story` runtime tool via agents-api's
  * WP_Agent_Tool_Declaration and provides a WP_Agent_Tool_Executor
  * implementation that delegates to the `extrachill/progress-story` ability.
  *
- * The provider-facing function name is `progress_story` (no slash) because
- * OpenAI/Anthropic function names disallow `/`. The agents-api runtime tool
- * name is the namespaced `extrachill/progress-story`. The two are bridged by
- * the conversation runner.
+ * The tool name (`progress_story`) is deliberately slash-free: the shipped
+ * WP_Agent_Default_Provider_Turn_Adapter passes the declaration name straight
+ * through to the provider's function declaration, and OpenAI/Anthropic reject
+ * `/` in function names. The underlying WordPress ability keeps its namespaced
+ * `extrachill/progress-story` identifier — the tool name and the ability name
+ * are distinct concepts, bridged by the executor.
  *
  * @package ExtraChillAIAdventure
  */
@@ -21,14 +23,31 @@ use AgentsAPI\AI\Tools\WP_Agent_Tool_Result;
 use AgentsAPI\AI\Tools\WP_Agent_Tool_Executor;
 
 /**
- * Provider-facing function name used by wp-ai-client function declarations.
+ * Canonical agents-api tool name for the progress_story tool.
+ *
+ * Deliberately slash-free so the shipped WP_Agent_Default_Provider_Turn_Adapter
+ * — which passes the declaration name straight through to the provider via
+ * wp-ai-client FunctionDeclaration — emits a name OpenAI/Anthropic accept (both
+ * reject `/` in function names). The conversation loop keys the transcript and
+ * tool-execution results by this canonical name. The underlying WordPress
+ * ability is still the namespaced `extrachill/progress-story`
+ * ({@see EXTRACHILL_AI_ADVENTURE_PROGRESS_STORY_ABILITY}); the tool name and the
+ * ability name are distinct concepts.
  */
-define( 'EXTRACHILL_AI_ADVENTURE_TOOL_FUNCTION_NAME', 'progress_story' );
+define( 'EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME', 'progress_story' );
 
 /**
- * agents-api runtime tool name (namespaced; required by WP_Agent_Tool_Declaration).
+ * Provider-facing function name. Identical to the canonical tool name — a single
+ * slash-free identifier now serves both the provider function declaration and
+ * the agents-api runtime tool name. Retained as a named alias for call sites
+ * that read it as "the function name the model sees."
  */
-define( 'EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME', 'extrachill/progress-story' );
+define( 'EXTRACHILL_AI_ADVENTURE_TOOL_FUNCTION_NAME', EXTRACHILL_AI_ADVENTURE_TOOL_RUNTIME_NAME );
+
+/**
+ * WordPress ability backing the progress_story tool (namespaced, slash-form).
+ */
+define( 'EXTRACHILL_AI_ADVENTURE_PROGRESS_STORY_ABILITY', 'extrachill/progress-story' );
 
 /**
  * Build the normalized agents-api WP_Agent_Tool_Declaration for progress_story.
@@ -93,7 +112,7 @@ class ExtraChill_AI_Adventure_Progress_Story_Executor implements WP_Agent_Tool_E
 			);
 		}
 
-		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/progress-story' ) : null;
+		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( EXTRACHILL_AI_ADVENTURE_PROGRESS_STORY_ABILITY ) : null;
 		if ( ! $ability ) {
 			return WP_Agent_Tool_Result::error(
 				$tool_name,
