@@ -101,10 +101,13 @@ function extrachill_design_system_force_200() {
 add_action( 'template_redirect', 'extrachill_design_system_force_200' );
 
 /**
- * Swap in the design-system template ahead of the main template router.
+ * Swap in the design-system template, overriding the main template router.
  *
- * Priority 5 runs before the theme's template-router (priority 10), so the
- * router's is_404() fallback never fires for this route.
+ * `template_include` is a filter, so the LAST callback to run wins. The theme's
+ * main router (inc/core/template-router.php) hooks at priority 10 and — because
+ * the /design-system/ main query has no post/page and is flagged
+ * is_front_page() — would otherwise return front-page.php. Registering at
+ * priority 20 (after the router) lets this filter have the final say.
  *
  * @param string $template Default template path.
  * @return string
@@ -121,7 +124,7 @@ function extrachill_design_system_template( $template ) {
 
 	return $template;
 }
-add_filter( 'template_include', 'extrachill_design_system_template', 5 );
+add_filter( 'template_include', 'extrachill_design_system_template', 20 );
 
 /**
  * Emit a noindex meta tag so the unlisted page stays out of search engines.
