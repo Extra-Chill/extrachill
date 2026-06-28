@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.7.0] - 2026-06-28
+
+### Added
+- living design system page at /design-system/
+
+### Fixed
+- satisfy lint on design-system page assets
+
 ## [2.6.4] - 2026-06-27
 
 ### Changed
