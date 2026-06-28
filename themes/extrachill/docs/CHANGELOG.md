@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.9.0] - 2026-06-28
+
+### Added
+- persist design-system edits per mode + add Export palette button
+
 ## [2.8.2] - 2026-06-28
 
 ### Fixed
