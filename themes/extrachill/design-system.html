@@ -108,9 +108,8 @@
     opacity: 0; cursor: pointer;
   }
   .swatch__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
-  .swatch__token, .font__token, .weight__token { color: var(--link-color); word-break: break-all; }
-  .swatch__desc, .font__desc, .weight__desc { font-size: var(--font-size-sm); color: var(--muted-text); }
-  .swatch__value, .font__value { font-size: var(--font-size-xs); color: var(--muted-text); }
+  .swatch__label, .font__label, .weight__label { font-size: var(--font-size-sm); }
+  .swatch__value { font-size: var(--font-size-xs); color: var(--muted-text); }
 
   .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-md); }
   .font {
@@ -120,7 +119,7 @@
     padding: var(--spacing-md);
   }
   .font__sample { display: block; font-size: var(--font-size-xl); margin-bottom: var(--spacing-sm); }
-  .font__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+  .font__label { color: var(--muted-text); }
 
   .weights { display: flex; flex-wrap: wrap; gap: var(--spacing-lg); }
   .weight { display: flex; flex-direction: column; gap: var(--spacing-xs); }
@@ -132,10 +131,10 @@
 
   <h1><span class="brandmark">Extra Chill</span> — Colors &amp; Fonts</h1>
   <p class="intro">
-    A static reference of the shipped design tokens. Generated from
-    <code>@extrachill/tokens</code> and rendered with the live <code>root.css</code>,
-    so values reflect exactly what's deployed (including dark mode — toggle your OS theme).
-    Click any color swatch to try a different value — changes are local to your browser.
+    The Extra Chill color palette and fonts. Click any color swatch to try a
+    different shade and watch the whole page update. Use Light, Dark, or Auto to
+    preview each mode, and Reset to put the original colors back. Changes stay in
+    your browser only — nothing here is saved.
   </p>
   <div class="toolbar">
     <span class="toolbar__group" role="group" aria-label="Color scheme">
@@ -144,189 +143,170 @@
       <button type="button" class="mode" data-mode="dark" aria-pressed="false">Dark</button>
     </span>
     <button type="button" id="reset">Reset colors</button>
-    <span class="toolbar__hint">Edits are local-only; the source of truth is <code>@extrachill/tokens</code>.</span>
   </div>
 
   <h2>Colors</h2>
   <div class="swatch-grid">
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--background-color);">
-            <input type="color" class="swatch__picker" data-token="--background-color" aria-label="Edit --background-color" />
+            <input type="color" class="swatch__picker" data-token="--background-color" aria-label="Edit Page background" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--background-color</code>
-            <span class="swatch__desc">Page background</span>
-            <code class="swatch__value" data-value="--background-color">…</code>
+            <span class="swatch__label">Page background</span>
+            <span class="swatch__value" data-value="--background-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--text-color);">
-            <input type="color" class="swatch__picker" data-token="--text-color" aria-label="Edit --text-color" />
+            <input type="color" class="swatch__picker" data-token="--text-color" aria-label="Edit Primary text" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--text-color</code>
-            <span class="swatch__desc">Primary text</span>
-            <code class="swatch__value" data-value="--text-color">…</code>
+            <span class="swatch__label">Primary text</span>
+            <span class="swatch__value" data-value="--text-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--link-color);">
-            <input type="color" class="swatch__picker" data-token="--link-color" aria-label="Edit --link-color" />
+            <input type="color" class="swatch__picker" data-token="--link-color" aria-label="Edit Link color" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--link-color</code>
-            <span class="swatch__desc">Link color</span>
-            <code class="swatch__value" data-value="--link-color">…</code>
+            <span class="swatch__label">Link color</span>
+            <span class="swatch__value" data-value="--link-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--link-color-hover);">
-            <input type="color" class="swatch__picker" data-token="--link-color-hover" aria-label="Edit --link-color-hover" />
+            <input type="color" class="swatch__picker" data-token="--link-color-hover" aria-label="Edit Link hover color" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--link-color-hover</code>
-            <span class="swatch__desc">Link hover color</span>
-            <code class="swatch__value" data-value="--link-color-hover">…</code>
+            <span class="swatch__label">Link hover color</span>
+            <span class="swatch__value" data-value="--link-color-hover">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--border-color);">
-            <input type="color" class="swatch__picker" data-token="--border-color" aria-label="Edit --border-color" />
+            <input type="color" class="swatch__picker" data-token="--border-color" aria-label="Edit Borders and dividers" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--border-color</code>
-            <span class="swatch__desc">Borders and dividers</span>
-            <code class="swatch__value" data-value="--border-color">…</code>
+            <span class="swatch__label">Borders and dividers</span>
+            <span class="swatch__value" data-value="--border-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--accent);">
-            <input type="color" class="swatch__picker" data-token="--accent" aria-label="Edit --accent" />
+            <input type="color" class="swatch__picker" data-token="--accent" aria-label="Edit Primary accent (green)" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--accent</code>
-            <span class="swatch__desc">Primary accent (green)</span>
-            <code class="swatch__value" data-value="--accent">…</code>
+            <span class="swatch__label">Primary accent (green)</span>
+            <span class="swatch__value" data-value="--accent">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--accent-hover);">
-            <input type="color" class="swatch__picker" data-token="--accent-hover" aria-label="Edit --accent-hover" />
+            <input type="color" class="swatch__picker" data-token="--accent-hover" aria-label="Edit Primary accent hover" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--accent-hover</code>
-            <span class="swatch__desc">Primary accent hover</span>
-            <code class="swatch__value" data-value="--accent-hover">…</code>
+            <span class="swatch__label">Primary accent hover</span>
+            <span class="swatch__value" data-value="--accent-hover">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--accent-2);">
-            <input type="color" class="swatch__picker" data-token="--accent-2" aria-label="Edit --accent-2" />
+            <input type="color" class="swatch__picker" data-token="--accent-2" aria-label="Edit Secondary accent (slate / light blue)" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--accent-2</code>
-            <span class="swatch__desc">Secondary accent (slate / light blue)</span>
-            <code class="swatch__value" data-value="--accent-2">…</code>
+            <span class="swatch__label">Secondary accent (slate / light blue)</span>
+            <span class="swatch__value" data-value="--accent-2">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--accent-3);">
-            <input type="color" class="swatch__picker" data-token="--accent-3" aria-label="Edit --accent-3" />
+            <input type="color" class="swatch__picker" data-token="--accent-3" aria-label="Edit Tertiary accent (cyan / blue)" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--accent-3</code>
-            <span class="swatch__desc">Tertiary accent (cyan / blue)</span>
-            <code class="swatch__value" data-value="--accent-3">…</code>
+            <span class="swatch__label">Tertiary accent (cyan / blue)</span>
+            <span class="swatch__value" data-value="--accent-3">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--error-color);">
-            <input type="color" class="swatch__picker" data-token="--error-color" aria-label="Edit --error-color" />
+            <input type="color" class="swatch__picker" data-token="--error-color" aria-label="Edit Error / danger state" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--error-color</code>
-            <span class="swatch__desc">Error / danger state</span>
-            <code class="swatch__value" data-value="--error-color">…</code>
+            <span class="swatch__label">Error / danger state</span>
+            <span class="swatch__value" data-value="--error-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--success-color);">
-            <input type="color" class="swatch__picker" data-token="--success-color" aria-label="Edit --success-color" />
+            <input type="color" class="swatch__picker" data-token="--success-color" aria-label="Edit Success state" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--success-color</code>
-            <span class="swatch__desc">Success state</span>
-            <code class="swatch__value" data-value="--success-color">…</code>
+            <span class="swatch__label">Success state</span>
+            <span class="swatch__value" data-value="--success-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--button-text-color);">
-            <input type="color" class="swatch__picker" data-token="--button-text-color" aria-label="Edit --button-text-color" />
+            <input type="color" class="swatch__picker" data-token="--button-text-color" aria-label="Edit Button text on accent backgrounds" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--button-text-color</code>
-            <span class="swatch__desc">Button text on accent backgrounds</span>
-            <code class="swatch__value" data-value="--button-text-color">…</code>
+            <span class="swatch__label">Button text on accent backgrounds</span>
+            <span class="swatch__value" data-value="--button-text-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--header-background);">
-            <input type="color" class="swatch__picker" data-token="--header-background" aria-label="Edit --header-background" />
+            <input type="color" class="swatch__picker" data-token="--header-background" aria-label="Edit Site header background" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--header-background</code>
-            <span class="swatch__desc">Site header background</span>
-            <code class="swatch__value" data-value="--header-background">…</code>
+            <span class="swatch__label">Site header background</span>
+            <span class="swatch__value" data-value="--header-background">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--header-text-color);">
-            <input type="color" class="swatch__picker" data-token="--header-text-color" aria-label="Edit --header-text-color" />
+            <input type="color" class="swatch__picker" data-token="--header-text-color" aria-label="Edit Site header text" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--header-text-color</code>
-            <span class="swatch__desc">Site header text</span>
-            <code class="swatch__value" data-value="--header-text-color">…</code>
+            <span class="swatch__label">Site header text</span>
+            <span class="swatch__value" data-value="--header-text-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--card-background);">
-            <input type="color" class="swatch__picker" data-token="--card-background" aria-label="Edit --card-background" />
+            <input type="color" class="swatch__picker" data-token="--card-background" aria-label="Edit Card / surface background" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--card-background</code>
-            <span class="swatch__desc">Card / surface background</span>
-            <code class="swatch__value" data-value="--card-background">…</code>
+            <span class="swatch__label">Card / surface background</span>
+            <span class="swatch__value" data-value="--card-background">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--muted-text);">
-            <input type="color" class="swatch__picker" data-token="--muted-text" aria-label="Edit --muted-text" />
+            <input type="color" class="swatch__picker" data-token="--muted-text" aria-label="Edit Secondary / muted text" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--muted-text</code>
-            <span class="swatch__desc">Secondary / muted text</span>
-            <code class="swatch__value" data-value="--muted-text">…</code>
+            <span class="swatch__label">Secondary / muted text</span>
+            <span class="swatch__value" data-value="--muted-text">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--warning-color);">
-            <input type="color" class="swatch__picker" data-token="--warning-color" aria-label="Edit --warning-color" />
+            <input type="color" class="swatch__picker" data-token="--warning-color" aria-label="Edit Warning state" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--warning-color</code>
-            <span class="swatch__desc">Warning state</span>
-            <code class="swatch__value" data-value="--warning-color">…</code>
+            <span class="swatch__label">Warning state</span>
+            <span class="swatch__value" data-value="--warning-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--info-color);">
-            <input type="color" class="swatch__picker" data-token="--info-color" aria-label="Edit --info-color" />
+            <input type="color" class="swatch__picker" data-token="--info-color" aria-label="Edit Informational state" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--info-color</code>
-            <span class="swatch__desc">Informational state</span>
-            <code class="swatch__value" data-value="--info-color">…</code>
+            <span class="swatch__label">Informational state</span>
+            <span class="swatch__value" data-value="--info-color">…</span>
           </span>
         </div>
   </div>
@@ -335,32 +315,29 @@
   <div class="swatch-grid">
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--artist-badge-color);">
-            <input type="color" class="swatch__picker" data-token="--artist-badge-color" aria-label="Edit --artist-badge-color" />
+            <input type="color" class="swatch__picker" data-token="--artist-badge-color" aria-label="Edit Artist role badge color" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--artist-badge-color</code>
-            <span class="swatch__desc">Artist role badge color</span>
-            <code class="swatch__value" data-value="--artist-badge-color">…</code>
+            <span class="swatch__label">Artist role badge color</span>
+            <span class="swatch__value" data-value="--artist-badge-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--team-badge-color);">
-            <input type="color" class="swatch__picker" data-token="--team-badge-color" aria-label="Edit --team-badge-color" />
+            <input type="color" class="swatch__picker" data-token="--team-badge-color" aria-label="Edit Team member role badge color" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--team-badge-color</code>
-            <span class="swatch__desc">Team member role badge color</span>
-            <code class="swatch__value" data-value="--team-badge-color">…</code>
+            <span class="swatch__label">Team member role badge color</span>
+            <span class="swatch__value" data-value="--team-badge-color">…</span>
           </span>
         </div>
         <div class="swatch">
           <label class="swatch__chip" style="background:var(--professional-badge-color);">
-            <input type="color" class="swatch__picker" data-token="--professional-badge-color" aria-label="Edit --professional-badge-color" />
+            <input type="color" class="swatch__picker" data-token="--professional-badge-color" aria-label="Edit Professional role badge color" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">--professional-badge-color</code>
-            <span class="swatch__desc">Professional role badge color</span>
-            <code class="swatch__value" data-value="--professional-badge-color">…</code>
+            <span class="swatch__label">Professional role badge color</span>
+            <span class="swatch__value" data-value="--professional-badge-color">…</span>
           </span>
         </div>
   </div>
@@ -370,35 +347,19 @@
   <div class="fonts">
         <div class="font" style="font-family:var(--font-family-heading);">
           <span class="font__sample">Extra Chill — the Online Music Scene</span>
-          <span class="font__meta">
-            <code class="font__token">--font-family-heading</code>
-            <span class="font__desc">Headings</span>
-            <code class="font__value" data-value="--font-family-heading">…</code>
-          </span>
+          <span class="font__label">Headings</span>
         </div>
         <div class="font" style="font-family:var(--font-family-body);">
           <span class="font__sample">Extra Chill — the Online Music Scene</span>
-          <span class="font__meta">
-            <code class="font__token">--font-family-body</code>
-            <span class="font__desc">Body text</span>
-            <code class="font__value" data-value="--font-family-body">…</code>
-          </span>
+          <span class="font__label">Body text</span>
         </div>
         <div class="font" style="font-family:var(--font-family-brand);">
           <span class="font__sample">Extra Chill</span>
-          <span class="font__meta">
-            <code class="font__token">--font-family-brand</code>
-            <span class="font__desc">Brand / logo text</span>
-            <code class="font__value" data-value="--font-family-brand">…</code>
-          </span>
+          <span class="font__label">Brand / logo text</span>
         </div>
         <div class="font" style="font-family:var(--font-family-mono);">
           <span class="font__sample">Extra Chill — the Online Music Scene</span>
-          <span class="font__meta">
-            <code class="font__token">--font-family-mono</code>
-            <span class="font__desc">Monospace / code</span>
-            <code class="font__value" data-value="--font-family-mono">…</code>
-          </span>
+          <span class="font__label">Monospace / code</span>
         </div>
   </div>
 
@@ -406,23 +367,19 @@
   <div class="weights">
         <div class="weight" style="font-weight:var(--font-weight-normal);">
           <span class="weight__sample">Extra Chill</span>
-          <code class="weight__token">--font-weight-normal</code>
-          <span class="weight__desc">Normal / body text</span>
+          <span class="weight__label">Normal / body text</span>
         </div>
         <div class="weight" style="font-weight:var(--font-weight-medium);">
           <span class="weight__sample">Extra Chill</span>
-          <code class="weight__token">--font-weight-medium</code>
-          <span class="weight__desc">Medium emphasis</span>
+          <span class="weight__label">Medium emphasis</span>
         </div>
         <div class="weight" style="font-weight:var(--font-weight-semibold);">
           <span class="weight__sample">Extra Chill</span>
-          <code class="weight__token">--font-weight-semibold</code>
-          <span class="weight__desc">Labels, tab buttons, subheadings</span>
+          <span class="weight__label">Labels, tab buttons, subheadings</span>
         </div>
         <div class="weight" style="font-weight:var(--font-weight-bold);">
           <span class="weight__sample">Extra Chill</span>
-          <code class="weight__token">--font-weight-bold</code>
-          <span class="weight__desc">Headings, strong emphasis</span>
+          <span class="weight__label">Headings, strong emphasis</span>
         </div>
   </div>
 
