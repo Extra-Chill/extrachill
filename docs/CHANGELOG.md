@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.8.0] - 2026-06-28
+
+### Added
+- inline color editing + light/dark toggle on design-system page
+
 ## [2.7.2] - 2026-06-28
 
 ### Changed
