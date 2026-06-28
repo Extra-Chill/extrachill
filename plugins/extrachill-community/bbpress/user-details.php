@@ -81,6 +81,25 @@ defined( 'ABSPATH' ) || exit;
 			| <b>Points:</b> <?php echo esc_html(extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
 		</p>
 		<?php
+		// "Last seen" status. Composes the ec_get_last_seen() primitive from
+		// extrachill-users (Network: true), which formats the centralized
+		// last_active timestamp into "Online now" / "Last seen X ago". Guarded
+		// so the profile renders cleanly if that plugin's helper is absent
+		// (e.g. before it is deployed). Shown on all profiles — last_active is
+		// a public signal.
+		if ( function_exists( 'ec_get_last_seen' ) ) {
+			$last_seen = ec_get_last_seen( bbp_get_displayed_user_id() );
+			if ( '' !== $last_seen ) {
+				$is_online = ( __( 'Online now', 'extrachill-users' ) === $last_seen );
+				printf(
+					'<p class="bbp-user-last-seen%s">%s</p>',
+					$is_online ? ' is-online' : '',
+					esc_html( $last_seen )
+				);
+			}
+		}
+		?>
+		<?php
 		// Rank-progress bar. Depends on ec_get_rank_progress() from extrachill-users
 		// (Network: true). Guard so the profile renders cleanly if it is absent
 		// (e.g. before that plugin's rank-registry change is deployed).
