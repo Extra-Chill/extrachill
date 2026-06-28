@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.23.0] - 2026-06-28
+
+### Added
+- add durable last_login primitive + expose on user abilities
+
 ## [0.22.0] - 2026-06-27
 
 ### Added
