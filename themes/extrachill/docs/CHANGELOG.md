@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.8.2] - 2026-06-28
+
+### Fixed
+- keep token names + descriptions on design-system swatches
+
 ## [2.8.1] - 2026-06-28
 
 ### Changed
