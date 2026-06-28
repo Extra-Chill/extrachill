@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.7.1] - 2026-06-28
+
+### Fixed
+- render design-system template instead of homepage (#51)
+
 ## [2.7.0] - 2026-06-28
 
 ### Added
