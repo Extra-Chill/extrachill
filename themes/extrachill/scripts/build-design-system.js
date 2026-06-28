@@ -3,17 +3,24 @@
  * Build design-system.html
  *
  * Generates a self-contained static reference page showing the Extra Chill
- * color palette and font families. The token LIST is regenerated from
- * @extrachill/tokens (the same source root.css comes from), so new tokens show
+ * color palette and font families. The token LIST is regenerated from the
+ * tokens package (the same source root.css comes from), so new tokens show
  * up automatically. The page links the theme's root.css live, so the actual
- * VALUES (including @media prefers-color-scheme: dark overrides) always reflect
+ * VALUES (including the prefers-color-scheme dark overrides) always reflect
  * what's shipped — a tiny inline script fills each swatch's computed value.
+ *
+ * Colors are editable inline: click a swatch's chip to open a color picker and
+ * the whole page updates live (overrides are local-only). A Reset link clears
+ * them back to the shipped tokens.
  *
  * Output is a plain .html served directly by the web server at
  * /wp-content/themes/extrachill/design-system.html — no WordPress routing,
  * no PHP, no theme coupling.
  */
 
+/**
+ * External dependencies
+ */
 const fs = require( 'fs' );
 const path = require( 'path' );
 
@@ -23,6 +30,11 @@ const tokens = require(
 
 const esc = ( s ) =>
 	String( s ).replace( /&/g, '&amp;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
+
+// The brand font (Lobster) is a SUBSET woff2 — for perf it only contains the
+// glyphs for the site title "Extra Chill". Any other character falls back to
+// sans-serif, so the brand specimen must only ever render this exact string.
+const BRAND_SAFE_TEXT = 'Extra Chill';
 
 // --- Colors -----------------------------------------------------------------
 // Core palette: the human-facing colors (skip rgb tuples, shadows, derived
@@ -52,6 +64,22 @@ const colorTokens = Object.entries( tokens.categories.color )
 		desc: def.description || '',
 	} ) );
 
+// Light/dark color maps baked from the token source so a visitor can FORCE a
+// mode (root.css only exposes dark via @media prefers-color-scheme, with no
+// class/attr hook). The toggle applies these via setProperty on :root, which
+// re-themes the whole page because every surface consumes the tokens. "Auto"
+// removes the overrides and falls back to root.css's media query.
+const lightMap = {};
+const darkMap = {};
+for ( const [ name, def ] of Object.entries( tokens.categories.color ) ) {
+	if ( def.light !== undefined ) {
+		lightMap[ '--' + name ] = def.light;
+	}
+	if ( def.dark !== undefined ) {
+		darkMap[ '--' + name ] = def.dark;
+	}
+}
+
 // Identity badge accent colors (artist / team / professional) live in the
 // `badge` category. Surface them as swatches too.
 const badgeColorTokens = [];
@@ -66,6 +94,8 @@ const fontTokens = Object.entries( tokens.categories.typography ).map( ( [ name,
 	token: '--' + name,
 	value: def.value,
 	desc: def.description || '',
+	// Brand font is subset-limited; render only the safe string for it.
+	isBrand: name === 'font-family-brand',
 } ) );
 
 const weightTokens = Object.entries( tokens.categories['font-weight'] ).map(
@@ -77,8 +107,12 @@ const weightTokens = Object.entries( tokens.categories['font-weight'] ).map(
 
 // --- HTML builders ----------------------------------------------------------
 function colorSwatch( { token, desc } ) {
+	// The chip holds a transparent <input type="color"> overlay so clicking it
+	// opens the native picker; editing updates the page live (see inline JS).
 	return `        <div class="swatch">
-          <span class="swatch__chip" style="background:var(${ token });"></span>
+          <label class="swatch__chip" style="background:var(${ token });">
+            <input type="color" class="swatch__picker" data-token="${ esc( token ) }" aria-label="Edit ${ esc( token ) }" />
+          </label>
           <span class="swatch__meta">
             <code class="swatch__token">${ esc( token ) }</code>
             ${ desc ? `<span class="swatch__desc">${ esc( desc ) }</span>` : '' }
@@ -87,9 +121,10 @@ function colorSwatch( { token, desc } ) {
         </div>`;
 }
 
-function fontRow( { token, desc } ) {
+function fontRow( { token, desc, isBrand } ) {
+	const sample = isBrand ? BRAND_SAFE_TEXT : 'Extra Chill — the Online Music Scene';
 	return `        <div class="font" style="font-family:var(${ token });">
-          <span class="font__sample">Extra Chill — the Online Music Scene</span>
+          <span class="font__sample">${ esc( sample ) }</span>
           <span class="font__meta">
             <code class="font__token">${ esc( token ) }</code>
             ${ desc ? `<span class="font__desc">${ esc( desc ) }</span>` : '' }
@@ -142,11 +177,38 @@ const html = `<!DOCTYPE html>
   }
   .wrap { max-width: var(--container-width); margin: 0 auto; }
   h1 {
-    font-family: var(--font-family-brand);
-    font-size: var(--font-size-brand);
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-3xl);
     margin: 0 0 var(--spacing-sm);
   }
-  .intro { color: var(--muted-text); margin: 0 0 var(--spacing-xl); max-width: var(--content-width); }
+  /* Lobster is subset to the site-title glyphs only — apply it to nothing but
+     that exact string. */
+  .brandmark { font-family: var(--font-family-brand); font-size: var(--font-size-brand); }
+  .intro { color: var(--muted-text); margin: 0 0 var(--spacing-lg); max-width: var(--content-width); }
+  .toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm);
+    margin: 0 0 var(--spacing-xl);
+  }
+  .toolbar button {
+    font: inherit;
+    color: var(--link-color);
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+    cursor: pointer;
+  }
+  .toolbar__group { display: inline-flex; }
+  .toolbar__group .mode { border-radius: 0; margin-left: -1px; }
+  .toolbar__group .mode:first-child { border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm); margin-left: 0; }
+  .toolbar__group .mode:last-child { border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0; }
+  .toolbar .mode[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--button-text-color);
+    border-color: var(--accent);
+  }
+  .toolbar__hint { margin-left: var(--spacing-sm); font-size: var(--font-size-sm); color: var(--muted-text); }
+
   h2 {
     font-family: var(--font-family-heading);
     font-size: var(--font-size-2xl);
@@ -174,8 +236,19 @@ const html = `<!DOCTYPE html>
     padding: var(--spacing-sm);
   }
   .swatch__chip {
+    position: relative;
     flex-shrink: 0; width: var(--spacing-xl); height: var(--spacing-xl);
     border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);
+    cursor: pointer;
+    overflow: hidden;
+  }
+  /* The color input fills the chip but stays invisible — the chip's background
+     shows the live token; clicking anywhere on it opens the picker. */
+  .swatch__picker {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    margin: 0; padding: 0; border: 0;
+    opacity: 0; cursor: pointer;
   }
   .swatch__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
   .swatch__token, .font__token, .weight__token { color: var(--link-color); word-break: break-all; }
@@ -200,12 +273,22 @@ const html = `<!DOCTYPE html>
 <body>
 <div class="wrap">
 
-  <h1>Extra Chill — Colors &amp; Fonts</h1>
+  <h1><span class="brandmark">${ esc( BRAND_SAFE_TEXT ) }</span> — Colors &amp; Fonts</h1>
   <p class="intro">
     A static reference of the shipped design tokens. Generated from
     <code>@extrachill/tokens</code> and rendered with the live <code>root.css</code>,
     so values reflect exactly what's deployed (including dark mode — toggle your OS theme).
+    Click any color swatch to try a different value — changes are local to your browser.
   </p>
+  <div class="toolbar">
+    <span class="toolbar__group" role="group" aria-label="Color scheme">
+      <button type="button" class="mode" data-mode="auto" aria-pressed="true">Auto</button>
+      <button type="button" class="mode" data-mode="light" aria-pressed="false">Light</button>
+      <button type="button" class="mode" data-mode="dark" aria-pressed="false">Dark</button>
+    </span>
+    <button type="button" id="reset">Reset colors</button>
+    <span class="toolbar__hint">Edits are local-only; the source of truth is <code>@extrachill/tokens</code>.</span>
+  </div>
 
   <h2>Colors</h2>
   <div class="swatch-grid">
@@ -235,12 +318,103 @@ ${ weightTokens.map( weightRow ).join( '\n' ) }
 </div>
 
 <script>
-  // Fill each swatch/font with its live computed token value.
   ( function () {
-    var cs = getComputedStyle( document.documentElement );
-    document.querySelectorAll( '[data-value]' ).forEach( function ( el ) {
-      el.textContent = cs.getPropertyValue( el.getAttribute( 'data-value' ) ).trim();
+    var root = document.documentElement;
+
+    // Light/dark token maps baked from @extrachill/tokens at build time.
+    var LIGHT = ${ JSON.stringify( lightMap ) };
+    var DARK = ${ JSON.stringify( darkMap ) };
+
+    // Resolve any CSS color to #rrggbb so <input type="color"> can seed it.
+    function toHex( value ) {
+      if ( ! value ) { return '#000000'; }
+      var v = value.trim();
+      if ( /^#[0-9a-fA-F]{6}$/.test( v ) ) { return v.toLowerCase(); }
+      if ( /^#[0-9a-fA-F]{3}$/.test( v ) ) {
+        return ( '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3] ).toLowerCase();
+      }
+      try {
+        var ctx = document.createElement( 'canvas' ).getContext( '2d' );
+        ctx.fillStyle = '#000000';
+        ctx.fillStyle = v;
+        var out = ctx.fillStyle;
+        if ( /^#[0-9a-fA-F]{6}$/.test( out ) ) { return out.toLowerCase(); }
+        var m = out.match( /rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/ );
+        if ( m ) {
+          return '#' + [ m[1], m[2], m[3] ].map( function ( n ) {
+            var h = parseInt( n, 10 ).toString( 16 );
+            return h.length === 1 ? '0' + h : h;
+          } ).join( '' );
+        }
+      } catch ( e ) {}
+      return '#000000';
+    }
+
+    function readToken( token ) {
+      return getComputedStyle( root ).getPropertyValue( token ).trim();
+    }
+
+    // Fill each value label with the live computed token value.
+    function refreshValues() {
+      document.querySelectorAll( '[data-value]' ).forEach( function ( el ) {
+        el.textContent = readToken( el.getAttribute( 'data-value' ) );
+      } );
+    }
+
+    // Seed each color picker from the live computed value.
+    function initPickers() {
+      document.querySelectorAll( '.swatch__picker' ).forEach( function ( input ) {
+        var token = input.getAttribute( 'data-token' );
+        input.value = toHex( readToken( token ) );
+        input.addEventListener( 'input', function () {
+          root.style.setProperty( token, input.value );
+          refreshValues();
+        } );
+      } );
+    }
+
+    // Force a color scheme. "auto" clears the forced map and falls back to
+    // root.css's prefers-color-scheme media query. light/dark apply the baked
+    // token maps to :root, re-theming the whole page. User color edits (set on
+    // root.style by the pickers) still win, since they're applied after.
+    var forcedMode = 'auto';
+    function applyMode( mode ) {
+      forcedMode = mode;
+      // Clear any previously forced scheme values.
+      Object.keys( DARK ).concat( Object.keys( LIGHT ) ).forEach( function ( token ) {
+        root.style.removeProperty( token );
+      } );
+      var map = mode === 'light' ? LIGHT : mode === 'dark' ? DARK : null;
+      if ( map ) {
+        Object.keys( map ).forEach( function ( token ) {
+          root.style.setProperty( token, map[ token ] );
+        } );
+      }
+      document.querySelectorAll( '.mode' ).forEach( function ( btn ) {
+        btn.setAttribute( 'aria-pressed', String( btn.getAttribute( 'data-mode' ) === mode ) );
+      } );
+      // Re-seed pickers + value labels to the now-active scheme.
+      initPickers();
+      refreshValues();
+    }
+
+    document.querySelectorAll( '.mode' ).forEach( function ( btn ) {
+      btn.addEventListener( 'click', function () {
+        applyMode( btn.getAttribute( 'data-mode' ) );
+      } );
     } );
+
+    document.getElementById( 'reset' ).addEventListener( 'click', function () {
+      // Clear user color edits, then re-apply the current forced scheme (if any).
+      document.querySelectorAll( '.swatch__picker' ).forEach( function ( input ) {
+        root.style.removeProperty( input.getAttribute( 'data-token' ) );
+      } );
+      applyMode( forcedMode );
+    } );
+
+    // Load in Auto: follow the OS via root.css's media query.
+    refreshValues();
+    initPickers();
   } )();
 </script>
 </body>
@@ -249,4 +423,5 @@ ${ weightTokens.map( weightRow ).join( '\n' ) }
 
 const outPath = path.join( __dirname, '..', 'design-system.html' );
 fs.writeFileSync( outPath, html );
+// eslint-disable-next-line no-console -- build-time progress output.
 console.log( `Built ${ outPath } (${ html.split( '\n' ).length } lines)` );
