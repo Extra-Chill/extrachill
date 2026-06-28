@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Extra Chill — Colors &amp; Fonts</title>
+
+<!-- Live theme tokens. Values (incl. dark mode) always reflect what's shipped. -->
+<link rel="stylesheet" href="assets/css/root.css" />
+
+<!-- Custom fonts shipped in the theme (root.css declares the families, not the src). -->
+<style>
+  @font-face {
+    font-family: "Loft Sans";
+    src: url("assets/fonts/WilcoLoftSans-Treble.woff2") format("woff2");
+    font-weight: 100 900;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Lobster";
+    src: url("assets/fonts/Lobster2.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+  }
+
+  body {
+    margin: 0;
+    padding: var(--spacing-xl) var(--spacing-md);
+    background: var(--background-color);
+    color: var(--text-color);
+    font-family: var(--font-family-body);
+    line-height: var(--line-height-base);
+  }
+  .wrap { max-width: var(--container-width); margin: 0 auto; }
+  h1 {
+    font-family: var(--font-family-brand);
+    font-size: var(--font-size-brand);
+    margin: 0 0 var(--spacing-sm);
+  }
+  .intro { color: var(--muted-text); margin: 0 0 var(--spacing-xl); max-width: var(--content-width); }
+  h2 {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-2xl);
+    margin: var(--spacing-xl) 0 var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: var(--spacing-sm);
+  }
+  h3 {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-lg);
+    margin: var(--spacing-lg) 0 var(--spacing-md);
+  }
+  code { font-family: var(--font-family-mono); font-size: var(--font-size-sm); }
+
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--spacing-md);
+  }
+  .swatch {
+    display: flex; align-items: center; gap: var(--spacing-md);
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm);
+  }
+  .swatch__chip {
+    flex-shrink: 0; width: var(--spacing-xl); height: var(--spacing-xl);
+    border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);
+  }
+  .swatch__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
+  .swatch__token, .font__token, .weight__token { color: var(--link-color); word-break: break-all; }
+  .swatch__desc, .font__desc, .weight__desc { font-size: var(--font-size-sm); color: var(--muted-text); }
+  .swatch__value, .font__value { font-size: var(--font-size-xs); color: var(--muted-text); }
+
+  .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-md); }
+  .font {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+  }
+  .font__sample { display: block; font-size: var(--font-size-xl); margin-bottom: var(--spacing-sm); }
+  .font__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+
+  .weights { display: flex; flex-wrap: wrap; gap: var(--spacing-lg); }
+  .weight { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+  .weight__sample { font-family: var(--font-family-heading); font-size: var(--font-size-xl); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Extra Chill — Colors &amp; Fonts</h1>
+  <p class="intro">
+    A static reference of the shipped design tokens. Generated from
+    <code>@extrachill/tokens</code> and rendered with the live <code>root.css</code>,
+    so values reflect exactly what's deployed (including dark mode — toggle your OS theme).
+  </p>
+
+  <h2>Colors</h2>
+  <div class="swatch-grid">
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--background-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--background-color</code>
+            <span class="swatch__desc">Page background</span>
+            <code class="swatch__value" data-value="--background-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--text-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--text-color</code>
+            <span class="swatch__desc">Primary text</span>
+            <code class="swatch__value" data-value="--text-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--link-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--link-color</code>
+            <span class="swatch__desc">Link color</span>
+            <code class="swatch__value" data-value="--link-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--link-color-hover);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--link-color-hover</code>
+            <span class="swatch__desc">Link hover color</span>
+            <code class="swatch__value" data-value="--link-color-hover">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--border-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--border-color</code>
+            <span class="swatch__desc">Borders and dividers</span>
+            <code class="swatch__value" data-value="--border-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--accent);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--accent</code>
+            <span class="swatch__desc">Primary accent (green)</span>
+            <code class="swatch__value" data-value="--accent">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--accent-hover);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--accent-hover</code>
+            <span class="swatch__desc">Primary accent hover</span>
+            <code class="swatch__value" data-value="--accent-hover">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--accent-2);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--accent-2</code>
+            <span class="swatch__desc">Secondary accent (slate / light blue)</span>
+            <code class="swatch__value" data-value="--accent-2">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--accent-3);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--accent-3</code>
+            <span class="swatch__desc">Tertiary accent (cyan / blue)</span>
+            <code class="swatch__value" data-value="--accent-3">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--error-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--error-color</code>
+            <span class="swatch__desc">Error / danger state</span>
+            <code class="swatch__value" data-value="--error-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--success-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--success-color</code>
+            <span class="swatch__desc">Success state</span>
+            <code class="swatch__value" data-value="--success-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--button-text-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--button-text-color</code>
+            <span class="swatch__desc">Button text on accent backgrounds</span>
+            <code class="swatch__value" data-value="--button-text-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--header-background);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--header-background</code>
+            <span class="swatch__desc">Site header background</span>
+            <code class="swatch__value" data-value="--header-background">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--header-text-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--header-text-color</code>
+            <span class="swatch__desc">Site header text</span>
+            <code class="swatch__value" data-value="--header-text-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--card-background);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--card-background</code>
+            <span class="swatch__desc">Card / surface background</span>
+            <code class="swatch__value" data-value="--card-background">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--muted-text);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--muted-text</code>
+            <span class="swatch__desc">Secondary / muted text</span>
+            <code class="swatch__value" data-value="--muted-text">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--warning-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--warning-color</code>
+            <span class="swatch__desc">Warning state</span>
+            <code class="swatch__value" data-value="--warning-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--info-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--info-color</code>
+            <span class="swatch__desc">Informational state</span>
+            <code class="swatch__value" data-value="--info-color">…</code>
+          </span>
+        </div>
+  </div>
+
+  <h3>Badge Identity Colors</h3>
+  <div class="swatch-grid">
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--artist-badge-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--artist-badge-color</code>
+            <span class="swatch__desc">Artist role badge color</span>
+            <code class="swatch__value" data-value="--artist-badge-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--team-badge-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--team-badge-color</code>
+            <span class="swatch__desc">Team member role badge color</span>
+            <code class="swatch__value" data-value="--team-badge-color">…</code>
+          </span>
+        </div>
+        <div class="swatch">
+          <span class="swatch__chip" style="background:var(--professional-badge-color);"></span>
+          <span class="swatch__meta">
+            <code class="swatch__token">--professional-badge-color</code>
+            <span class="swatch__desc">Professional role badge color</span>
+            <code class="swatch__value" data-value="--professional-badge-color">…</code>
+          </span>
+        </div>
+  </div>
+
+  <h2>Fonts</h2>
+  <h3>Families</h3>
+  <div class="fonts">
+        <div class="font" style="font-family:var(--font-family-heading);">
+          <span class="font__sample">Extra Chill — the Online Music Scene</span>
+          <span class="font__meta">
+            <code class="font__token">--font-family-heading</code>
+            <span class="font__desc">Headings</span>
+            <code class="font__value" data-value="--font-family-heading">…</code>
+          </span>
+        </div>
+        <div class="font" style="font-family:var(--font-family-body);">
+          <span class="font__sample">Extra Chill — the Online Music Scene</span>
+          <span class="font__meta">
+            <code class="font__token">--font-family-body</code>
+            <span class="font__desc">Body text</span>
+            <code class="font__value" data-value="--font-family-body">…</code>
+          </span>
+        </div>
+        <div class="font" style="font-family:var(--font-family-brand);">
+          <span class="font__sample">Extra Chill — the Online Music Scene</span>
+          <span class="font__meta">
+            <code class="font__token">--font-family-brand</code>
+            <span class="font__desc">Brand / logo text</span>
+            <code class="font__value" data-value="--font-family-brand">…</code>
+          </span>
+        </div>
+        <div class="font" style="font-family:var(--font-family-mono);">
+          <span class="font__sample">Extra Chill — the Online Music Scene</span>
+          <span class="font__meta">
+            <code class="font__token">--font-family-mono</code>
+            <span class="font__desc">Monospace / code</span>
+            <code class="font__value" data-value="--font-family-mono">…</code>
+          </span>
+        </div>
+  </div>
+
+  <h3>Weights</h3>
+  <div class="weights">
+        <div class="weight" style="font-weight:var(--font-weight-normal);">
+          <span class="weight__sample">Extra Chill</span>
+          <code class="weight__token">--font-weight-normal</code>
+          <span class="weight__desc">Normal / body text</span>
+        </div>
+        <div class="weight" style="font-weight:var(--font-weight-medium);">
+          <span class="weight__sample">Extra Chill</span>
+          <code class="weight__token">--font-weight-medium</code>
+          <span class="weight__desc">Medium emphasis</span>
+        </div>
+        <div class="weight" style="font-weight:var(--font-weight-semibold);">
+          <span class="weight__sample">Extra Chill</span>
+          <code class="weight__token">--font-weight-semibold</code>
+          <span class="weight__desc">Labels, tab buttons, subheadings</span>
+        </div>
+        <div class="weight" style="font-weight:var(--font-weight-bold);">
+          <span class="weight__sample">Extra Chill</span>
+          <code class="weight__token">--font-weight-bold</code>
+          <span class="weight__desc">Headings, strong emphasis</span>
+        </div>
+  </div>
+
+</div>
+
+<script>
+  // Fill each swatch/font with its live computed token value.
+  ( function () {
+    var cs = getComputedStyle( document.documentElement );
+    document.querySelectorAll( '[data-value]' ).forEach( function ( el ) {
+      el.textContent = cs.getPropertyValue( el.getAttribute( 'data-value' ) ).trim();
+    } );
+  } )();
+</script>
+</body>
+</html>

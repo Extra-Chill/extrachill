@@ -4,7 +4,7 @@
   "version": "2.0.12",
   "description": "Extra Chill WordPress theme",
   "scripts": {
-    "build": "cp node_modules/@extrachill/tokens/css/root.css assets/css/root.css && cp node_modules/@extrachill/tokens/css/theme.json theme.json && node scripts/build-taxonomy-badges.js"
+    "build": "cp node_modules/@extrachill/tokens/css/root.css assets/css/root.css && cp node_modules/@extrachill/tokens/css/theme.json theme.json && node scripts/build-taxonomy-badges.js && node scripts/build-design-system.js"
   },
   "dependencies": {
     "@extrachill/tokens": "github:Extra-Chill/extrachill-tokens#v0.8.1"
