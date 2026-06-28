@@ -219,6 +219,8 @@ const html = `<!DOCTYPE html>
     border-color: var(--accent);
   }
   .toolbar__hint { margin-left: var(--spacing-sm); font-size: var(--font-size-sm); color: var(--muted-text); }
+  .toolbar__status { font-size: var(--font-size-sm); color: var(--success-color); }
+  #export[aria-disabled="true"] { opacity: 0.5; }
 
   h2 {
     font-family: var(--font-family-heading);
@@ -288,8 +290,9 @@ const html = `<!DOCTYPE html>
   <p class="intro">
     The Extra Chill color palette and fonts. Click any color swatch to try a
     different shade and watch the whole page update. Use Light, Dark, or Auto to
-    preview each mode, and Reset to put the original colors back. Changes stay in
-    your browser only — nothing here is saved.
+    preview each mode — your edits are kept separately for light and dark, and
+    they survive refreshes. When you have a palette you like, hit Export to send
+    it over. Everything stays in your browser; Reset clears the current mode.
   </p>
   <div class="toolbar">
     <span class="toolbar__group" role="group" aria-label="Color scheme">
@@ -297,7 +300,9 @@ const html = `<!DOCTYPE html>
       <button type="button" class="mode" data-mode="light" aria-pressed="false">Light</button>
       <button type="button" class="mode" data-mode="dark" aria-pressed="false">Dark</button>
     </span>
+    <button type="button" id="export">Export palette</button>
     <button type="button" id="reset">Reset colors</button>
+    <span class="toolbar__status" data-status aria-live="polite"></span>
   </div>
 
   <h2>Colors</h2>
@@ -331,9 +336,55 @@ ${ weightTokens.map( weightRow ).join( '\n' ) }
   ( function () {
     var root = document.documentElement;
 
-    // Light/dark token maps baked from @extrachill/tokens at build time.
+    // Base light/dark palettes baked from the tokens at build time.
     var LIGHT = ${ JSON.stringify( lightMap ) };
     var DARK = ${ JSON.stringify( darkMap ) };
+
+    var STORAGE_KEY = 'ec-design-system-overrides';
+    var MODE_KEY = 'ec-design-system-mode';
+
+    // Persisted user edits, kept SEPARATELY per scheme: { light:{}, dark:{} }.
+    // A color tuned for light must not bleed into dark (the base palettes differ).
+    var overrides = loadOverrides();
+    // Forced scheme: 'auto' | 'light' | 'dark'. Survives refreshes.
+    var forcedMode = loadMode();
+
+    function loadOverrides() {
+      try {
+        var raw = window.localStorage.getItem( STORAGE_KEY );
+        var parsed = raw ? JSON.parse( raw ) : null;
+        return {
+          light: ( parsed && parsed.light ) || {},
+          dark: ( parsed && parsed.dark ) || {},
+        };
+      } catch ( e ) {
+        return { light: {}, dark: {} };
+      }
+    }
+    function saveOverrides() {
+      try {
+        window.localStorage.setItem( STORAGE_KEY, JSON.stringify( overrides ) );
+      } catch ( e ) {}
+    }
+    function loadMode() {
+      try {
+        var m = window.localStorage.getItem( MODE_KEY );
+        return m === 'light' || m === 'dark' || m === 'auto' ? m : 'auto';
+      } catch ( e ) {
+        return 'auto';
+      }
+    }
+    function saveMode() {
+      try { window.localStorage.setItem( MODE_KEY, forcedMode ); } catch ( e ) {}
+    }
+
+    // The scheme actually in effect right now. Auto resolves via the OS.
+    function effectiveScheme() {
+      if ( forcedMode === 'light' || forcedMode === 'dark' ) { return forcedMode; }
+      return window.matchMedia &&
+        window.matchMedia( '(prefers-color-scheme: dark)' ).matches
+        ? 'dark' : 'light';
+    }
 
     // Resolve any CSS color to #rrggbb so <input type="color"> can seed it.
     function toHex( value ) {
@@ -364,67 +415,172 @@ ${ weightTokens.map( weightRow ).join( '\n' ) }
       return getComputedStyle( root ).getPropertyValue( token ).trim();
     }
 
-    // Fill each value label with the live computed token value.
+    function shippedValue( scheme, token ) {
+      var base = scheme === 'dark' ? DARK : LIGHT;
+      return base[ token ];
+    }
+
     function refreshValues() {
       document.querySelectorAll( '[data-value]' ).forEach( function ( el ) {
         el.textContent = readToken( el.getAttribute( 'data-value' ) );
       } );
     }
 
-    // Seed each color picker from the live computed value.
+    // Paint the page for the active scheme: shipped base for the scheme, then
+    // the user's saved edits for that same scheme on top.
+    function applyScheme() {
+      var scheme = effectiveScheme();
+      // Clear every scheme-managed token first.
+      Object.keys( LIGHT ).concat( Object.keys( DARK ) ).forEach( function ( token ) {
+        root.style.removeProperty( token );
+      } );
+      // When forcing a mode, pin the shipped base values so it overrides the
+      // OS media query. In Auto we let root.css's media query supply the base.
+      if ( forcedMode === 'light' || forcedMode === 'dark' ) {
+        var base = forcedMode === 'dark' ? DARK : LIGHT;
+        Object.keys( base ).forEach( function ( token ) {
+          root.style.setProperty( token, base[ token ] );
+        } );
+      }
+      // User edits for this scheme win.
+      var edits = overrides[ scheme ] || {};
+      Object.keys( edits ).forEach( function ( token ) {
+        root.style.setProperty( token, edits[ token ] );
+      } );
+    }
+
+    function seedPickers() {
+      document.querySelectorAll( '.swatch__picker' ).forEach( function ( input ) {
+        input.value = toHex( readToken( input.getAttribute( 'data-token' ) ) );
+      } );
+    }
+
     function initPickers() {
       document.querySelectorAll( '.swatch__picker' ).forEach( function ( input ) {
         var token = input.getAttribute( 'data-token' );
-        input.value = toHex( readToken( token ) );
         input.addEventListener( 'input', function () {
+          var scheme = effectiveScheme();
+          overrides[ scheme ][ token ] = input.value;
+          saveOverrides();
           root.style.setProperty( token, input.value );
           refreshValues();
         } );
       } );
     }
 
-    // Force a color scheme. "auto" clears the forced map and falls back to
-    // root.css's prefers-color-scheme media query. light/dark apply the baked
-    // token maps to :root, re-theming the whole page. User color edits (set on
-    // root.style by the pickers) still win, since they're applied after.
-    var forcedMode = 'auto';
-    function applyMode( mode ) {
-      forcedMode = mode;
-      // Clear any previously forced scheme values.
-      Object.keys( DARK ).concat( Object.keys( LIGHT ) ).forEach( function ( token ) {
-        root.style.removeProperty( token );
-      } );
-      var map = mode === 'light' ? LIGHT : mode === 'dark' ? DARK : null;
-      if ( map ) {
-        Object.keys( map ).forEach( function ( token ) {
-          root.style.setProperty( token, map[ token ] );
-        } );
-      }
+    function syncModeButtons() {
       document.querySelectorAll( '.mode' ).forEach( function ( btn ) {
-        btn.setAttribute( 'aria-pressed', String( btn.getAttribute( 'data-mode' ) === mode ) );
+        btn.setAttribute(
+          'aria-pressed',
+          String( btn.getAttribute( 'data-mode' ) === forcedMode )
+        );
       } );
-      // Re-seed pickers + value labels to the now-active scheme.
-      initPickers();
+    }
+
+    function render() {
+      applyScheme();
+      seedPickers();
       refreshValues();
+      syncModeButtons();
+    }
+
+    var statusEl = document.querySelector( '[data-status]' );
+    var statusTimer;
+    function status( msg ) {
+      if ( ! statusEl ) { return; }
+      statusEl.textContent = msg;
+      window.clearTimeout( statusTimer );
+      statusTimer = window.setTimeout( function () { statusEl.textContent = ''; }, 4000 );
     }
 
     document.querySelectorAll( '.mode' ).forEach( function ( btn ) {
       btn.addEventListener( 'click', function () {
-        applyMode( btn.getAttribute( 'data-mode' ) );
+        forcedMode = btn.getAttribute( 'data-mode' );
+        saveMode();
+        render();
       } );
     } );
 
     document.getElementById( 'reset' ).addEventListener( 'click', function () {
-      // Clear user color edits, then re-apply the current forced scheme (if any).
-      document.querySelectorAll( '.swatch__picker' ).forEach( function ( input ) {
-        root.style.removeProperty( input.getAttribute( 'data-token' ) );
-      } );
-      applyMode( forcedMode );
+      // Reset clears the CURRENT scheme's edits only (light and dark are separate).
+      var scheme = effectiveScheme();
+      overrides[ scheme ] = {};
+      saveOverrides();
+      render();
+      status( 'Reset ' + scheme + ' colors to the defaults.' );
     } );
 
-    // Load in Auto: follow the OS via root.css's media query.
-    refreshValues();
+    // --- Export: build a readable changed-tokens summary, copy + download. ---
+    function buildExport() {
+      var lines = [ 'Extra Chill — proposed palette', '' ];
+      var any = false;
+      [ 'light', 'dark' ].forEach( function ( scheme ) {
+        var edits = overrides[ scheme ] || {};
+        var tokens = Object.keys( edits );
+        if ( ! tokens.length ) { return; }
+        any = true;
+        lines.push( scheme.toUpperCase() + ' mode' );
+        tokens.forEach( function ( token ) {
+          var was = shippedValue( scheme, token );
+          lines.push(
+            '  ' + token + ': ' + edits[ token ] +
+            ( was ? '   (was ' + was + ')' : '' )
+          );
+        } );
+        lines.push( '' );
+      } );
+      if ( ! any ) {
+        lines.push( 'No changes yet — tweak some colors first.' );
+      }
+      return lines.join( '\\n' );
+    }
+
+    function copyText( text ) {
+      if ( navigator.clipboard && navigator.clipboard.writeText ) {
+        return navigator.clipboard.writeText( text );
+      }
+      return new Promise( function ( resolve, reject ) {
+        try {
+          var ta = document.createElement( 'textarea' );
+          ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+          document.body.appendChild( ta ); ta.select();
+          document.execCommand( 'copy' ); document.body.removeChild( ta );
+          resolve();
+        } catch ( e ) { reject( e ); }
+      } );
+    }
+
+    function download( text ) {
+      var blob = new Blob( [ text ], { type: 'text/plain' } );
+      var url = URL.createObjectURL( blob );
+      var a = document.createElement( 'a' );
+      a.href = url;
+      a.download = 'extra-chill-palette.txt';
+      document.body.appendChild( a );
+      a.click();
+      document.body.removeChild( a );
+      URL.revokeObjectURL( url );
+    }
+
+    document.getElementById( 'export' ).addEventListener( 'click', function () {
+      var text = buildExport();
+      download( text );
+      copyText( text ).then(
+        function () { status( 'Palette copied to clipboard and downloaded.' ); },
+        function () { status( 'Palette downloaded.' ); }
+      );
+    } );
+
+    // Re-render if the OS scheme flips while in Auto (so the right edits show).
+    if ( window.matchMedia ) {
+      window.matchMedia( '(prefers-color-scheme: dark)' ).addEventListener(
+        'change',
+        function () { if ( forcedMode === 'auto' ) { render(); } }
+      );
+    }
+
     initPickers();
+    render();
   } )();
 </script>
 </body>
