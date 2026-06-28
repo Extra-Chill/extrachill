@@ -101,11 +101,11 @@ function extrachill_gallery_image_sizes( string $content ): string {
 	// and replace the sizes attribute on images inside gallery figures.
 	$content = preg_replace_callback(
 		'/<figure\s[^>]*class="[^"]*wp-block-image[^"]*"[^>]*>.*?<\/figure>/s',
-		function ( $match ) use ( $gallery_sizes ) {
-			return preg_replace(
+		function ( array $matches ) use ( $gallery_sizes ) {
+			return (string) preg_replace(
 				'/sizes="[^"]*"/',
 				'sizes="' . esc_attr( $gallery_sizes ) . '"',
-				$match[0]
+				$matches[0]
 			);
 		},
 		$content

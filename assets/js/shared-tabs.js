@@ -1,9 +1,12 @@
+/* global history */
 document.addEventListener('DOMContentLoaded', function() {
     const components = document.querySelectorAll('.shared-tabs-component');
 
     components.forEach(component => {
         const tabButtonsContainer = component.querySelector('.shared-tabs-buttons-container');
-        if (!tabButtonsContainer) return;
+        if (!tabButtonsContainer) {
+            return;
+        }
 
         const tabButtons = tabButtonsContainer.querySelectorAll('.shared-tab-button');
         const desktopContentArea = component.querySelector('.shared-desktop-tab-content-area');
@@ -13,8 +16,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function storeInitialPaneStructure() {
             if (originalPaneInfo.size > 0) {
-                let firstPaneId = component.querySelector('.shared-tab-pane')?.id;
-                if (firstPaneId && originalPaneInfo.has(firstPaneId)) return;
+                const firstPaneId = component.querySelector('.shared-tab-pane')?.id;
+                if (firstPaneId && originalPaneInfo.has(firstPaneId)) {
+                    return;
+                }
             }
             originalPaneInfo.clear();
             const panes = component.querySelectorAll('.shared-tab-pane');
@@ -41,7 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Modify updateTabs to accept an optional forceOpen parameter
         function updateTabs(activeButton, shouldScroll = true, forceOpen = false, isButtonClick = false, shouldUpdateHash = false) {
-            if (!activeButton) return; 
+            if (!activeButton) {
+                return;
+            }
             const targetTabId = activeButton.dataset.tab;
             const targetPane = component.querySelector('#' + targetTabId + '.shared-tab-pane');
             const isDesktop = window.innerWidth >= mobileBreakpoint;
@@ -50,8 +57,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isDesktop && !forceOpen && isButtonClick && activeButton.classList.contains('active')) {
                 activeButton.classList.remove('active');
                 const arrow = activeButton.querySelector('.shared-tab-arrow');
-                if (arrow) arrow.classList.remove('open');
-                if (targetPane) targetPane.style.display = 'none';
+                if (arrow) {
+                    arrow.classList.remove('open');
+                }
+                if (targetPane) {
+                    targetPane.style.display = 'none';
+                }
                  if (history.pushState && targetPane && window.location.hash === '#' + targetPane.id) {
                     history.pushState(null, null, window.location.pathname + window.location.search.split('#')[0]);
                 }
@@ -67,7 +78,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (btn !== activeButton) {
                     btn.classList.remove('active');
                     const arrow = btn.querySelector('.shared-tab-arrow');
-                    if (arrow) arrow.classList.remove('open');
+                    if (arrow) {
+                        arrow.classList.remove('open');
+                    }
                     // Hiding of non-active panes is handled below based on layout
                 }
             });
@@ -75,7 +88,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Activate current button
             activeButton.classList.add('active');
             const arrow = activeButton.querySelector('.shared-tab-arrow');
-            if (arrow) arrow.classList.add('open');
+            if (arrow) {
+                arrow.classList.add('open');
+            }
 
             // --- Refactored Pane Management Logic --- 
             const allPanes = component.querySelectorAll('.shared-tab-pane');
@@ -260,6 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
                      // initializeDefaultOrActiveTab(); // initializeDefaultOrActiveTab handles its own scrolling logic
                      // Instead of re-initializing the default, let's just ensure correct state based on resize
                      // If no button is active, ensure all panes are in original location and hidden, and desktop area is hidden
+                     const allPanes = component.querySelectorAll('.shared-tab-pane');
                      allPanes.forEach(pane => {
                          const info = originalPaneInfo.get(pane.id);
                          if (info && info.parent && pane.parentElement !== info.parent) {
@@ -282,6 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Listen for the custom event dispatched by join-flow-ui.js
         document.addEventListener('activateJoinFlowTab', function(event) {
+            // eslint-disable-next-line no-console -- debug log for external tab activation.
             console.log('activateJoinFlowTab event received for tab:', event.detail.targetTab);
             if (event.detail && event.detail.targetTab) {
                  // Find the component this event is intended for (assuming one shared tabs component on the page)

@@ -10,7 +10,7 @@
 function custom_instagram_embed_handler( $matches, $attr, $url, $rawattr ) {
 	if ( preg_match( '#https?://(www\.)?instagram\.com/[a-zA-Z0-9_.-]+/?$#i', $url ) ) {
 		$embed = sprintf(
-			'<blockquote class="instagram-media" data-instgrm-permalink="%s" data-instgrm-version="14" style=" background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%%; width:-webkit-calc(100%% - 2px); width:calc(100%% - 2px);"><a href="%s" target="_blank"></a></blockquote><script async src="//www.instagram.com/embed.js"></script>',
+			'<blockquote class="instagram-media" data-instgrm-permalink="%s" data-instgrm-version="14" style=" background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%%; width:-webkit-calc(100%% - 2px); width:calc(100%% - 2px);"><a href="%s" target="_blank"></a></blockquote><script async src="//www.instagram.com/embed.js"></script>', // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- Instagram oEmbed provider markup; the embed.js loader ships with the provider response and cannot be deferred to wp_enqueue_script because oEmbed output is cached and rendered later.
 			esc_url( $url ),
 			esc_url( $url )
 		);
