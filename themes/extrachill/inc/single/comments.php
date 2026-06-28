@@ -19,7 +19,6 @@ if ( post_password_required() ) {
 if ( ! function_exists( 'extrachill_comment' ) ) :
 
 	function extrachill_comment( $comment, $args, $depth ) {
-		$GLOBALS['comment'] = $comment;
 		switch ( $comment->comment_type ) :
 			case 'trackback':
 				?>
@@ -35,24 +34,24 @@ if ( ! function_exists( 'extrachill_comment' ) ) :
 						<?php
 						echo get_avatar( $comment, 74 );
 
-						if ( ec_should_use_multisite_comment_links( $comment ) ) {
-							$author_link = ec_get_comment_author_link_multisite( $comment );
+						if ( function_exists( 'ec_should_use_multisite_comment_links' ) && ec_should_use_multisite_comment_links( $comment ) ) {
+							$author_link = function_exists( 'ec_get_comment_author_link_multisite' ) ? ec_get_comment_author_link_multisite( $comment ) : get_comment_author_link();
 						} else {
 							$author_link = get_comment_author_link();
 						}
 
-						printf( '<div class="comment-author-link">%s</div>', $author_link );
+						printf( '<div class="comment-author-link">%s</div>', wp_kses_post( $author_link ) );
 
 						if ( $comment->user_id === $post->post_author ) {
-							echo '<span>' . __( 'Post author', 'extrachill' ) . '</span>';
+							echo '<span>' . esc_html__( 'Post author', 'extrachill' ) . '</span>';
 						}
 
-						printf( '<div class="comment-date-time">%1$s</div>', sprintf( __( '%1$s at %2$s', 'extrachill' ), get_comment_date(), get_comment_time() ) );
+						printf( '<div class="comment-date-time">%1$s</div>', sprintf( /* translators: 1: comment date, 2: comment time. */ esc_html__( '%1$s at %2$s', 'extrachill' ), esc_html( get_comment_date() ), esc_html( get_comment_time() ) ) );
 						edit_comment_link();
 						?>
 					</header>
 
-					<?php if ( '0' == $comment->comment_approved ) : ?>
+					<?php if ( '0' === $comment->comment_approved ) : ?>
 						<p class="comment-awaiting-moderation"><?php esc_html_e( 'Your comment is awaiting moderation.', 'extrachill' ); ?></p>
 					<?php endif; ?>
 
@@ -87,10 +86,13 @@ endif;
 	<?php if ( have_comments() ) : ?>
 		<h2 class="comments-title">
 			<?php
+				$comments_number = (int) get_comments_number();
+				/* translators: 1: number of comments, 2: post title. */
+				$comments_title = _nx( 'One comment on &ldquo;%2$s&rdquo;', '%1$s comments on <strong>%2$s</strong>', $comments_number, 'comments title', 'extrachill' ); // phpcs:ignore WordPress.WP.I18n.MissingSingularPlaceholder -- Singular form intentionally spells out "One" rather than using a numeric placeholder.
 				printf(
-					_nx( 'One comment on &ldquo;%2$s&rdquo;', '%1$s comments on <strong>%2$s</strong>', get_comments_number(), 'comments title', 'extrachill' ),
-					number_format_i18n( get_comments_number() ),
-					'<span>' . get_the_title() . '</span>'
+					wp_kses_post( $comments_title ),
+					esc_html( number_format_i18n( $comments_number ) ),
+					'<span>' . esc_html( get_the_title() ) . '</span>'
 				);
 			?>
 		</h2>
@@ -125,7 +127,7 @@ endif;
 	<?php endif; ?>
 
 	<?php
-	if ( ! comments_open() && '0' != get_comments_number() && post_type_supports( get_post_type(), 'comments' ) ) :
+	if ( ! comments_open() && (int) get_comments_number() !== 0 && post_type_supports( (string) get_post_type(), 'comments' ) ) :
 		?>
 		<p class="no-comments"><?php esc_html_e( 'Comments are closed.', 'extrachill' ); ?></p>
 	<?php endif; ?>

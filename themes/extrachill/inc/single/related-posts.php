@@ -36,7 +36,10 @@ function extrachill_display_related_posts( $taxonomy, $post_id ) {
 		$term      = $terms[0];
 		$term_id   = $term->term_id;
 		$term_link = get_term_link( $term );
-		$term_name = esc_html( $term->name );
+	if ( is_wp_error( $term_link ) ) {
+		$term_link = '';
+	}
+		$term_name = $term->name;
 
 	$cache_key          = $taxonomy . '_posts_' . $term_id . '_' . $post_id;
 	$related_posts_data = get_transient( $cache_key );
@@ -79,7 +82,7 @@ function extrachill_display_related_posts( $taxonomy, $post_id ) {
 					'lazy_load_term_meta'    => false,
 					'ignore_sticky_posts'    => false,
 				),
-				$related_posts->query_vars ?? array()
+				$related_posts->query_vars
 			);
 
 			$related_posts->current_post = -1;
@@ -89,6 +92,9 @@ function extrachill_display_related_posts( $taxonomy, $post_id ) {
 		$filtered_posts = array_filter(
 			$related_posts->posts,
 			function ( $post ) use ( &$displayed_posts ) {
+				if ( ! $post instanceof WP_Post ) {
+					return false;
+				}
 				if ( in_array( $post->ID, $displayed_posts, true ) ) {
 					return false;
 				}
@@ -103,7 +109,7 @@ function extrachill_display_related_posts( $taxonomy, $post_id ) {
 
 	if ( $related_posts->have_posts() ) : ?>
 				<div class="related-tax-section">
-						<h3 class="related-tax-header">More from <a href="<?php echo esc_url( $term_link ); ?>"><?php echo $term_name; ?></a></h3>
+						<h3 class="related-tax-header">More from <a href="<?php echo esc_url( $term_link ); ?>"><?php echo esc_html( $term_name ); ?></a></h3>
 						<div class="related-tax-grid">
 								<?php
 								while ( $related_posts->have_posts() ) :

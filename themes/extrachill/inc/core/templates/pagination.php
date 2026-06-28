@@ -51,7 +51,7 @@ function extrachill_pagination( $query_or_data = null, $context = 'default', $it
 		$total_items = $pagination_query->found_posts;
 		$per_page    = $pagination_query->query_vars['posts_per_page'];
 
-		if ( $per_page == -1 ) {
+		if ( -1 === $per_page ) {
 			$per_page = $total_items;
 		}
 	}
@@ -61,16 +61,16 @@ function extrachill_pagination( $query_or_data = null, $context = 'default', $it
 
 	// Build count text with dynamic item label
 	$item_plural = $item_label . 's';
-	if ( 1 == $total_items ) {
+	if ( 1 === $total_items ) {
 		$count_html = sprintf( 'Viewing 1 %s', $item_label );
-	} elseif ( $end == $start ) {
+	} elseif ( $end === $start ) {
 		$count_html = sprintf( 'Viewing %s %s of %s', $item_label, number_format( $start ), number_format( $total_items ) );
 	} else {
 		$count_html = sprintf( 'Viewing %s %s-%s of %s total', $item_plural, number_format( $start ), number_format( $end ), number_format( $total_items ) );
 	}
 
 	$big      = 999999999;
-	$base_url = str_replace( $big, '%#%', esc_url( get_pagenum_link( $big ) ) );
+	$base_url = str_replace( (string) $big, '%#%', esc_url( get_pagenum_link( $big ) ) );
 
 	$links_html = paginate_links(
 		array(
@@ -96,7 +96,7 @@ function extrachill_pagination( $query_or_data = null, $context = 'default', $it
 	if ( $links_html ) {
 		echo '<div class="extrachill-pagination pagination-' . esc_attr( $context ) . '">';
 		echo '<div class="pagination-count">' . esc_html( $count_html ) . '</div>';
-		echo '<div class="pagination-links">' . $links_html . '</div>';
+		echo '<div class="pagination-links">' . wp_kses_post( $links_html ) . '</div>';
 		echo '</div>';
 	}
 }

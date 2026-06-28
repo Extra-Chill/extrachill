@@ -16,7 +16,7 @@ function extrachill_enqueue_navigation_assets() {
 			'extrachill-nav-menu',
 			get_template_directory_uri() . '/assets/js/nav-menu.js',
 			array(),
-			filemtime( $nav_js_path ),
+			(string) filemtime( $nav_js_path ),
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,
@@ -107,7 +107,7 @@ function extrachill_enqueue_root_styles() {
 			'extrachill-root',
 			get_stylesheet_directory_uri() . '/assets/css/root.css',
 			array(),
-			filemtime( $css_path )
+			(string) filemtime( $css_path )
 		);
 	}
 }
@@ -140,7 +140,7 @@ function extrachill_enqueue_embed_iframe_styles() {
 				'extrachill-root',
 				get_stylesheet_directory_uri() . '/assets/css/root.css',
 				array(),
-				filemtime( $root_css_path )
+				(string) filemtime( $root_css_path )
 			);
 		}
 
@@ -153,7 +153,7 @@ function extrachill_enqueue_embed_iframe_styles() {
 			'extrachill-embed',
 			get_stylesheet_directory_uri() . '/assets/css/embed.css',
 			array( 'extrachill-root' ),
-			filemtime( $embed_css_path )
+			(string) filemtime( $embed_css_path )
 		);
 	}
 }
@@ -166,7 +166,7 @@ function extrachill_enqueue_taxonomy_badges() {
 			'extrachill-taxonomy-badges',
 			get_stylesheet_directory_uri() . '/assets/css/taxonomy-badges.css',
 			array( 'extrachill-root' ),
-			filemtime( $taxonomy_badges_path )
+			(string) filemtime( $taxonomy_badges_path )
 		);
 	}
 }
@@ -180,7 +180,7 @@ function extrachill_modify_default_style() {
 		'extrachill-style',
 		get_stylesheet_uri(),
 		array( 'extrachill-root' ),
-		filemtime( get_template_directory() . '/style.css' )
+		(string) filemtime( get_template_directory() . '/style.css' )
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_modify_default_style', 20 );
@@ -229,7 +229,7 @@ function extrachill_enqueue_block_editor_iframe_assets() {
 				'extrachill-root',
 				get_stylesheet_directory_uri() . '/assets/css/root.css',
 				array(),
-				filemtime( $root_css_path )
+				(string) filemtime( $root_css_path )
 			);
 		}
 
@@ -243,7 +243,7 @@ function extrachill_enqueue_block_editor_iframe_assets() {
 				'extrachill-style',
 				get_stylesheet_uri(),
 				array( 'extrachill-root' ),
-				filemtime( $theme_style_path )
+				(string) filemtime( $theme_style_path )
 			);
 		}
 
@@ -257,7 +257,7 @@ function extrachill_enqueue_block_editor_iframe_assets() {
 				'extrachill-block-editor',
 				get_stylesheet_directory_uri() . '/assets/css/block-editor.css',
 				array( 'extrachill-root' ),
-				filemtime( $block_editor_css_path )
+				(string) filemtime( $block_editor_css_path )
 			);
 		}
 
@@ -457,21 +457,21 @@ function extrachill_enqueue_single_post_styles() {
 				'extrachill-single-post',
 				get_stylesheet_directory_uri() . '/assets/css/single-post.css',
 				array( 'extrachill-root', 'extrachill-style' ),
-				filemtime( $css_path )
+				(string) filemtime( $css_path )
 			);
 		}
 	}
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_single_post_styles', 20 );
 
-function extrachill_hide_settings_page_title( $show, $post_id ) {
+function extrachill_hide_settings_page_title( $show ) {
 	if ( is_page( 'settings' ) ) {
 		return false;
 	}
 
 	return $show;
 }
-add_filter( 'extrachill_show_page_title', 'extrachill_hide_settings_page_title', 10, 2 );
+add_filter( 'extrachill_show_page_title', 'extrachill_hide_settings_page_title', 10, 1 );
 
 function extrachill_enqueue_archive_styles() {
 	if ( is_archive() || is_search() || get_query_var( 'extrachill_blog_archive' ) ) {
@@ -481,7 +481,7 @@ function extrachill_enqueue_archive_styles() {
 				'extrachill-archive',
 				get_stylesheet_directory_uri() . '/assets/css/archive.css',
 				array( 'extrachill-root', 'extrachill-style' ),
-				filemtime( $css_path )
+				(string) filemtime( $css_path )
 			);
 		}
 	}
@@ -496,7 +496,7 @@ function extrachill_enqueue_search_styles() {
 				'extrachill-search',
 				get_stylesheet_directory_uri() . '/assets/css/search.css',
 				array( 'extrachill-root', 'extrachill-style' ),
-				filemtime( $css_path )
+				(string) filemtime( $css_path )
 			);
 		}
 	}
@@ -515,7 +515,7 @@ function extrachill_enqueue_sidebar_styles() {
 					'extrachill-sidebar',
 					get_stylesheet_directory_uri() . '/assets/css/sidebar.css',
 					array( 'extrachill-root', 'extrachill-style' ),
-					filemtime( $css_path )
+					(string) filemtime( $css_path )
 				);
 			}
 		}
@@ -528,14 +528,14 @@ function extrachill_register_shared_tabs() {
 		'extrachill-shared-tabs',
 		get_template_directory_uri() . '/assets/css/shared-tabs.css',
 		array(),
-		filemtime( get_template_directory() . '/assets/css/shared-tabs.css' )
+		(string) filemtime( get_template_directory() . '/assets/css/shared-tabs.css' )
 	);
 
 	wp_register_script(
 		'extrachill-shared-tabs',
 		get_template_directory_uri() . '/assets/js/shared-tabs.js',
 		array(),
-		filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ),
+		(string) filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ),
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,
@@ -549,7 +549,7 @@ function extrachill_register_mini_dropdown() {
 		'extrachill-mini-dropdown',
 		get_template_directory_uri() . '/assets/js/mini-dropdown.js',
 		array(),
-		filemtime( get_template_directory() . '/assets/js/mini-dropdown.js' ),
+		(string) filemtime( get_template_directory() . '/assets/js/mini-dropdown.js' ),
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,
@@ -563,7 +563,7 @@ function extrachill_register_share_assets() {
 		'extrachill-share',
 		get_template_directory_uri() . '/assets/js/share.js',
 		array( 'extrachill-mini-dropdown' ),
-		filemtime( get_template_directory() . '/assets/js/share.js' ),
+		(string) filemtime( get_template_directory() . '/assets/js/share.js' ),
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,
@@ -584,7 +584,7 @@ function extrachill_enqueue_network_dropdown_assets() {
 			'extrachill-network-dropdown',
 			get_template_directory_uri() . '/assets/css/network-dropdown.css',
 			array( 'extrachill-root' ),
-			filemtime( $css_path )
+			(string) filemtime( $css_path )
 		);
 	}
 }
@@ -616,6 +616,6 @@ function extrachill_output_custom_css_variables() {
 		return;
 	}
 
-	echo '<style id="extrachill-custom-css-variables">:root { ' . implode( '; ', $css_rules ) . '; }</style>' . "\n";
+	echo '<style id="extrachill-custom-css-variables">:root { ' . implode( '; ', $css_rules ) . '; }</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $css_rules elements are pre-escaped with esc_attr() and output inside a <style> block.
 }
 add_action( 'wp_head', 'extrachill_output_custom_css_variables', 20 );

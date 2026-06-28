@@ -6,6 +6,9 @@
  * from @extrachill/tokens.
  */
 
+/**
+ * External dependencies
+ */
 const fs = require('fs');
 const path = require('path');
 
@@ -51,4 +54,5 @@ const output = baseStyles + '\n' + tokensCSS;
 const outPath = path.join(__dirname, '..', 'assets', 'css', 'taxonomy-badges.css');
 
 fs.writeFileSync(outPath, output);
+// eslint-disable-next-line no-console -- build-time progress output.
 console.log(`Built ${outPath} (${output.split('\n').length} lines)`);

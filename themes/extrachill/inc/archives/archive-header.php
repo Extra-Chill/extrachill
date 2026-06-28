@@ -19,7 +19,7 @@
 				$artist_slug = get_query_var( 'artist' );
 				if ( ! empty( $artist_slug ) ) {
 					$artist_term = get_term_by( 'slug', $artist_slug, 'artist' );
-					if ( $artist_term && ! is_wp_error( $artist_term ) ) {
+					if ( $artist_term ) {
 						echo esc_html( $artist_term->name ) . ' ';
 					}
 				}
@@ -40,17 +40,29 @@
 					esc_html( $archive_author_name )
 				);
 			} elseif ( is_day() ) {
-				printf( __( 'Day: %s', 'extrachill' ), get_the_date() );
+				printf(
+				/* translators: %s: Post date. */
+					esc_html__( 'Day: %s', 'extrachill' ),
+					esc_html( (string) get_the_date() )
+				);
 			} elseif ( is_month() ) {
-				printf( __( 'Month: %s', 'extrachill' ), get_the_date( 'F Y' ) );
+				printf(
+				/* translators: %s: Post date. */
+					esc_html__( 'Month: %s', 'extrachill' ),
+					esc_html( (string) get_the_date( 'F Y' ) )
+				);
 			} elseif ( is_year() ) {
-				printf( __( 'Year: %s', 'extrachill' ), get_the_date( 'Y' ) );
+				printf(
+				/* translators: %s: Post date. */
+					esc_html__( 'Year: %s', 'extrachill' ),
+					esc_html( (string) get_the_date( 'Y' ) )
+				);
 			} elseif ( get_query_var( 'extrachill_blog_archive' ) ) {
 				esc_html_e( 'The Latest', 'extrachill' );
 			} elseif ( is_search() ) {
 				printf(
-					/* translators: %s: search query */
-					__( 'Search Results for: %s', 'extrachill' ),
+				/* translators: %s: search query. */
+					esc_html__( 'Search Results for: %s', 'extrachill' ),
 					'<span class="search-query">' . esc_html( get_search_query() ) . '</span>'
 				);
 			} else {
@@ -75,7 +87,7 @@ if ( ! is_paged() ) {
 	if ( is_author() ) {
 		$author_bio = get_the_author_meta( 'description' );
 		if ( ! empty( $author_bio ) ) {
-			echo '<div class="author-bio">' . wpautop( $author_bio ) . '</div>';
+			echo '<div class="author-bio">' . wp_kses_post( wpautop( $author_bio ) ) . '</div>';
 		}
 		do_action( 'extrachill_after_author_bio', get_queried_object_id() );
 	}

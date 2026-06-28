@@ -25,7 +25,7 @@ if ( ! function_exists( 'extrachill_social_links' ) ) :
 				<?php foreach ( $social_links as $social ) : ?>
 					<li>
 						<a href="<?php echo esc_url( $social['url'] ); ?>" target="_blank" aria-label="<?php echo esc_attr( $social['label'] ); ?>">
-							<?php echo ec_icon( $social['icon'], 'social-icon-svg' ); ?>
+							<?php echo ec_icon( $social['icon'], 'social-icon-svg' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns SVG markup built from a fixed template with esc_attr()'d values. ?>
 						</a>
 					</li>
 				<?php endforeach; ?>

@@ -57,9 +57,9 @@ function extrachill_set_notice( $message, $type = 'info', $args = array() ) {
 		$notices[] = $notice;
 		setcookie(
 			'extrachill_notices',
-			wp_json_encode( $notices ),
+			(string) wp_json_encode( $notices ),
 			time() + 60,
-			COOKIEPATH,
+			defined( 'COOKIEPATH' ) ? COOKIEPATH : '/',
 			COOKIE_DOMAIN,
 			is_ssl(),
 			true
@@ -93,7 +93,7 @@ function extrachill_get_notices() {
 		if ( is_array( $stored ) && ! empty( $stored ) ) {
 			$notices = $stored;
 		}
-		setcookie( 'extrachill_notices', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN );
+		setcookie( 'extrachill_notices', '', time() - 3600, defined( 'COOKIEPATH' ) ? COOKIEPATH : '/', COOKIE_DOMAIN );
 	}
 
 	return $notices;

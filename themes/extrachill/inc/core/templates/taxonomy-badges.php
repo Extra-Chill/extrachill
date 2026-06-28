@@ -16,7 +16,7 @@
  * Maintains CSS compatibility with existing badge-colors.css styles.
  *
  * @param int|null $post_id Post ID. Defaults to current post.
- * @param array $args Configuration arguments.
+ * @param array    $args Configuration arguments.
  */
 function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) {
 	if ( ! $post_id ) {
@@ -50,7 +50,7 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
 
 	// Get ALL taxonomies for this post type (from origin site if cross-site)
 	$post_type  = get_post_type( $post_id );
-	$taxonomies = get_object_taxonomies( $post_type );
+	$taxonomies = $post_type ? get_object_taxonomies( $post_type ) : array();
 
 	// Define display order for taxonomy badges
 	$taxonomy_order = array(
@@ -81,6 +81,7 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
 	);
 
 	// Process each taxonomy dynamically
+	$cross_site_links = array();
 	foreach ( $taxonomies as $taxonomy ) {
 		if ( in_array( $taxonomy, $excluded_taxonomies, true ) ) {
 			continue;
@@ -104,7 +105,7 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
 						$rewrite_slug = $tax_obj && isset( $tax_obj->rewrite['slug'] ) ? $tax_obj->rewrite['slug'] : $taxonomy;
 
 						// Manually construct archive URL: https://site.com/taxonomy-slug/term-slug/
-						$term->cross_site_link = trailingslashit( $origin_site_url ) . trailingslashit( $rewrite_slug ) . $term_slug . '/';
+						$cross_site_links[ $term->term_id ] = trailingslashit( $origin_site_url ) . trailingslashit( $rewrite_slug ) . $term_slug . '/';
 					}
 
 					$terms[] = $term;
@@ -155,7 +156,10 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
 			}
 
 			// Use manually constructed cross-site link if available, otherwise use get_term_link()
-			$term_link = isset( $term->cross_site_link ) ? $term->cross_site_link : get_term_link( $term );
+			$term_link = isset( $cross_site_links[ $term->term_id ] ) ? $cross_site_links[ $term->term_id ] : get_term_link( $term );
+			if ( ! is_string( $term_link ) ) {
+				continue;
+			}
 
 			$badge_label = $term->name;
 
@@ -176,12 +180,15 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
 	// Output badges
 	if ( $badges_html ) {
 		if ( $args['show_wrapper'] ) {
-			$wrapper_style = $args['wrapper_style'] ? ' style="' . esc_attr( $args['wrapper_style'] ) . '"' : '';
-			echo '<div class="' . esc_attr( $args['wrapper_class'] ) . '"' . $wrapper_style . '>';
-			echo $badges_html;
+			echo '<div class="' . esc_attr( $args['wrapper_class'] ) . '"';
+			if ( $args['wrapper_style'] ) {
+				echo ' style="' . esc_attr( $args['wrapper_style'] ) . '"';
+			}
+			echo '>';
+			echo wp_kses_post( $badges_html );
 			echo '</div>';
 		} else {
-			echo $badges_html;
+			echo wp_kses_post( $badges_html );
 		}
 	}
 }

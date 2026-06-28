@@ -21,12 +21,12 @@ if ( ! function_exists( 'extrachill_sidebar_recent_posts' ) ) :
 	function extrachill_sidebar_recent_posts() {
 		$custom_content = apply_filters( 'extrachill_sidebar_recent_posts_content', false );
 		if ( false !== $custom_content ) {
-			echo $custom_content;
+			echo wp_kses_post( $custom_content );
 			return;
 		}
 
 		$post_id           = get_the_ID();
-		$current_post_type = get_post_type( $post_id );
+		$current_post_type = false !== $post_id ? get_post_type( $post_id ) : '';
 		$args              = array();
 		$title             = 'Recent Posts';
 
@@ -83,7 +83,7 @@ if ( ! function_exists( 'extrachill_sidebar_recent_posts' ) ) :
 			echo '<div class="sidebar-card ec-surface-card ec-mobile-full-width-panel">';
 			echo '<div class="widget my-recent-posts-widget">';
 			echo '<div class="my-recent-posts">';
-			echo '<h3 class="widget-title sidebar-recent-title-margin"><span>' . $title . '</span></h3>';
+			echo '<h3 class="widget-title sidebar-recent-title-margin"><span>' . wp_kses_post( $title ) . '</span></h3>';
 
 			$counter = 0;
 			while ( $query->have_posts() ) :
@@ -91,9 +91,9 @@ if ( ! function_exists( 'extrachill_sidebar_recent_posts' ) ) :
 				++$counter;
 				echo '<div class="post mini-card">';
 				if ( has_post_thumbnail() ) {
-					echo '<a id="post-thumbnail-link-' . $counter . '" href="' . get_permalink() . '" aria-label="Read more about ' . esc_attr( get_the_title() ) . ', an image is attached"><div class="post-thumbnail">' . get_the_post_thumbnail( get_the_ID(), 'medium_large' ) . '</div></a>';
+					echo '<a id="post-thumbnail-link-' . esc_attr( (string) $counter ) . '" href="' . esc_url( (string) get_permalink() ) . '" aria-label="Read more about ' . esc_attr( get_the_title() ) . ', an image is attached"><div class="post-thumbnail">' . wp_kses_post( get_the_post_thumbnail( null, 'medium_large' ) ) . '</div></a>';
 				}
-				echo '<h2 class="recent-title"><a id="post-title-link-' . $counter . '" href="' . get_permalink() . '" aria-label="Read more about ' . esc_attr( get_the_title() ) . '">' . get_the_title() . '</a></h2>';
+				echo '<h2 class="recent-title"><a id="post-title-link-' . esc_attr( (string) $counter ) . '" href="' . esc_url( (string) get_permalink() ) . '" aria-label="Read more about ' . esc_attr( get_the_title() ) . '">' . esc_html( get_the_title() ) . '</a></h2>';
 				echo '</div>';
 			endwhile;
 
