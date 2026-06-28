@@ -4,8 +4,6 @@
  * Handles clipboard copy for share button copy-link functionality.
  * Dropdown behavior provided by mini-dropdown.js.
  * Tracks share clicks via analytics endpoint.
- *
- * @package ExtraChill
  */
 (function() {
     'use strict';
@@ -13,12 +11,12 @@
     /**
      * Track share click via analytics endpoint.
      *
-     * @param {string} destination - Share destination (facebook, twitter, etc.)
-     * @param {string} shareUrl - URL being shared
+     * @param {string} destination Share destination (facebook, twitter, etc.)
+     * @param {string} shareUrl    URL being shared
      */
     function ecTrackShare(destination, shareUrl) {
-        var endpoint = '/wp-json/extrachill/v1/analytics/click';
-        var data = {
+        const endpoint = '/wp-json/extrachill/v1/analytics/click';
+        const data = {
             click_type: 'share',
             share_destination: destination,
             source_url: window.location.href,
@@ -38,7 +36,7 @@
     }
 
     function ecCopyToClipboard(text, linkEl) {
-        var originalText = linkEl.textContent;
+        const originalText = linkEl.textContent;
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
             return navigator.clipboard.writeText(text)
@@ -57,7 +55,7 @@
     }
 
     function ecFetchMarkdownExport(postId, blogId) {
-        var url = '/wp-json/extrachill/v1/tools/markdown-export?post_id=' + encodeURIComponent(postId);
+        let url = '/wp-json/extrachill/v1/tools/markdown-export?post_id=' + encodeURIComponent(postId);
         if (blogId) {
             url += '&blog_id=' + encodeURIComponent(blogId);
         }
@@ -79,18 +77,18 @@
 
     // Track social share link clicks (these open in new tabs, no preventDefault needed)
     document.addEventListener('click', function(event) {
-        var shareOption = event.target.closest('.share-dropdown .share-option a');
+        const shareOption = event.target.closest('.share-dropdown .share-option a');
         if (!shareOption) {
             return;
         }
 
-        var optionContainer = shareOption.closest('.share-option');
+        const optionContainer = shareOption.closest('.share-option');
         if (!optionContainer) {
             return;
         }
 
         // Determine destination from class name
-        var destination = null;
+        let destination = null;
         if (optionContainer.classList.contains('facebook')) {
             destination = 'facebook';
         } else if (optionContainer.classList.contains('twitter')) {
@@ -111,8 +109,8 @@
 
     // Handle copy-link and copy-markdown (these need preventDefault)
     document.addEventListener('click', function(event) {
-        var copyLink = event.target.closest('.copy-link a');
-        var copyMarkdown = event.target.closest('.copy-markdown a');
+        const copyLink = event.target.closest('.copy-link a');
+        const copyMarkdown = event.target.closest('.copy-markdown a');
 
         if (!copyLink && !copyMarkdown) {
             return;
@@ -121,7 +119,7 @@
         event.preventDefault();
 
         if (copyLink) {
-            var url = copyLink.getAttribute('data-share-url');
+            const url = copyLink.getAttribute('data-share-url');
             if (!url) {
                 return;
             }
@@ -131,17 +129,17 @@
             return;
         }
 
-        var dropdown = event.target.closest('.share-dropdown');
+        const dropdown = event.target.closest('.share-dropdown');
         if (!dropdown) {
             return;
         }
 
-        var postId = dropdown.getAttribute('data-post-id');
+        const postId = dropdown.getAttribute('data-post-id');
         if (!postId) {
             return;
         }
 
-        var blogId = dropdown.getAttribute('data-blog-id');
+        const blogId = dropdown.getAttribute('data-blog-id');
 
         copyMarkdown.textContent = 'Loading...';
         ecTrackShare('copy_markdown', window.location.href);

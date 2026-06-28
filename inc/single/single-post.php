@@ -34,7 +34,7 @@ get_header(); ?>
 		<figure class="wp-block-image size-large">
 			<?php the_post_thumbnail( 'large' ); ?>
 			<?php
-			$featured_image_caption = wp_get_attachment_caption( $featured_image_id );
+			$featured_image_caption = wp_get_attachment_caption( (int) $featured_image_id );
 			if ( ! empty( $featured_image_caption ) ) {
 				echo '<figcaption class="wp-element-caption">' . wp_kses_post( $featured_image_caption ) . '</figcaption>';
 			}
@@ -54,17 +54,19 @@ get_header(); ?>
 	<aside>
 		<?php
 		do_action( 'extrachill_before_comments_template' );
-		if ( comments_open() || '0' != get_comments_number() ) {
+		if ( comments_open() || (int) get_comments_number() !== 0 ) {
 			do_action( 'extrachill_comments_section' );
 		}
 		do_action( 'extrachill_after_comments_template' );
 		require_once get_template_directory() . '/inc/single/related-posts.php';
 
-		$post_id            = get_the_ID();
-		$related_taxonomies = apply_filters( 'extrachill_related_posts_taxonomies', array( 'artist', 'venue' ), $post_id, get_post_type() );
+		$current_post_id    = get_the_ID();
+		$related_taxonomies = apply_filters( 'extrachill_related_posts_taxonomies', array( 'artist', 'venue' ), $current_post_id, get_post_type() );
 
-		foreach ( $related_taxonomies as $taxonomy ) {
-			extrachill_display_related_posts( $taxonomy, $post_id );
+		foreach ( $related_taxonomies as $related_taxonomy ) {
+			if ( false !== $current_post_id ) {
+				extrachill_display_related_posts( $related_taxonomy, $current_post_id );
+			}
 		}
 		?>
 	</aside>

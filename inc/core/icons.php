@@ -46,11 +46,11 @@ add_action( 'wp_body_open', 'ec_inline_svg_sprite', 0 );
  * Render an SVG icon from the inlined sprite.
  *
  * @param string $icon_id The symbol ID in extrachill.svg.
- * @param string $class   Additional CSS classes (optional).
+ * @param string $css_class   Additional CSS classes (optional).
  * @return string SVG markup.
  */
-function ec_icon( $icon_id, $class = '' ) {
-	$classes = 'ec-icon' . ( $class ? ' ' . esc_attr( $class ) : '' );
+function ec_icon( $icon_id, $css_class = '' ) {
+	$classes = 'ec-icon' . ( $css_class ? ' ' . esc_attr( $css_class ) : '' );
 
 	return sprintf(
 		'<svg class="%s"><use href="#%s"></use></svg>',
