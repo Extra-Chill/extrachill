@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.8.1] - 2026-06-28
+
+### Changed
+- plainer design-system page copy, drop dev/code references
+
 ## [2.8.0] - 2026-06-28
 
 ### Added
