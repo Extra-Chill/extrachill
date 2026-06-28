@@ -15,8 +15,8 @@ function extrachill_default_below_copyright() {
 add_action( 'extrachill_below_copyright', 'extrachill_default_below_copyright', 10 );
 
 function extrachill_hook_taxonomy_badges_above_title() {
-
-	extrachill_display_taxonomy_badges( get_the_ID() );
+	$post_id = get_the_ID();
+	extrachill_display_taxonomy_badges( false !== $post_id ? $post_id : null );
 }
 add_action( 'extrachill_above_post_title', 'extrachill_hook_taxonomy_badges_above_title' );
 

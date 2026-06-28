@@ -22,7 +22,7 @@ if ( ! function_exists( 'extrachill_search_form' ) ) {
 		<form action="<?php echo esc_url( home_url( '/' ) ); ?>" class="search-form searchform" method="get">
 			<div class="search-wrap">
 				<input type="search" placeholder="<?php esc_attr_e( 'Enter search terms...', 'extrachill' ); ?>" class="s field" name="s" value="<?php echo esc_attr( get_search_query() ); ?>">
-				<button class="button-1 button-medium" type="submit" aria-label="<?php esc_attr_e( 'Search', 'extrachill' ); ?>"><?php echo ec_icon( 'search', 'search-top' ); ?></button>
+				<button class="button-1 button-medium" type="submit" aria-label="<?php esc_attr_e( 'Search', 'extrachill' ); ?>"><?php echo ec_icon( 'search', 'search-top' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns SVG markup built from a fixed template with esc_attr()'d values. ?></button>
 			</div>
 			<fieldset class="search-scope" role="radiogroup" aria-label="<?php esc_attr_e( 'Search scope', 'extrachill' ); ?>">
 				<legend class="screen-reader-text"><?php esc_html_e( 'Choose where to search', 'extrachill' ); ?></legend>

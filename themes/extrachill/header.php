@@ -20,9 +20,9 @@
 	endforeach;
 
 	$dns_prefetch_domains = apply_filters( 'extrachill_dns_prefetch_domains', array() );
-	foreach ( $dns_prefetch_domains as $domain ) :
+	foreach ( $dns_prefetch_domains as $prefetch_domain ) :
 		?>
-	<link rel="dns-prefetch" href="<?php echo esc_url( $domain ); ?>">
+	<link rel="dns-prefetch" href="<?php echo esc_url( $prefetch_domain ); ?>">
 		<?php
 	endforeach;
 	?>

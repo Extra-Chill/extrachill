@@ -15,7 +15,7 @@
 	$sidebar_content = apply_filters( 'extrachill_sidebar_content', false );
 
 	if ( false !== $sidebar_content ) {
-		echo $sidebar_content;
+		echo wp_kses_post( $sidebar_content );
 	} else {
 		do_action( 'extrachill_before_sidebar' );
 		do_action( 'extrachill_sidebar_top' );

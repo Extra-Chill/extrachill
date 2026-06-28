@@ -36,7 +36,7 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 			$author_id  = isset( $post->post_author ) ? $post->post_author : 0;
 			$author_url = function_exists( 'extrachill_get_user_profile_url' )
 				? extrachill_get_user_profile_url( $author_id )
-				: ec_get_site_url( 'community' ) . '/u/' . sanitize_title( $author );
+				: ( function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) . '/u/' . sanitize_title( $author ) : home_url( '/' ) . 'u/' . sanitize_title( $author ) );
 
 			$forum_title = isset( $post->_forum['title'] ) ? esc_html( $post->_forum['title'] ) : 'Unknown Forum';
 			$forum_link  = isset( $post->_forum['link'] ) ? esc_url( $post->_forum['link'] ) : '#';
@@ -54,7 +54,7 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 				echo '</div>';
 		} else {
 			$post_id   = get_the_ID();
-			$post_type = get_post_type( $post_id );
+			$post_type = false !== $post_id ? get_post_type( $post_id ) : '';
 
 			$parts = apply_filters( 'extrachill_post_meta_parts', array( 'published', 'author', 'updated' ), $post_id, $post_type );
 
@@ -62,13 +62,13 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 			$show_author    = in_array( 'author', $parts, true );
 			$show_updated   = in_array( 'updated', $parts, true );
 
-			$published_time    = esc_attr( get_the_date( 'c' ) );
-			$modified_time     = esc_attr( get_the_modified_date( 'c' ) );
-			$published_display = esc_html( get_the_date() );
-			$modified_display  = esc_html( get_the_modified_date() );
+			$published_time    = esc_attr( (string) get_the_date( 'c' ) );
+			$modified_time     = esc_attr( (string) get_the_modified_date( 'c' ) );
+			$published_display = esc_html( (string) get_the_date() );
+			$modified_display  = esc_html( (string) get_the_modified_date() );
 
-			$published_datetime = new DateTime( get_the_date( 'Y-m-d' ) );
-			$modified_datetime  = new DateTime( get_the_modified_date( 'Y-m-d' ) );
+			$published_datetime = new DateTime( (string) get_the_date( 'Y-m-d' ) );
+			$modified_datetime  = new DateTime( (string) get_the_modified_date( 'Y-m-d' ) );
 			$date_diff          = $published_datetime->diff( $modified_datetime );
 			$is_updated         = get_the_time( 'U' ) !== get_the_modified_time( 'U' ) && $date_diff->days >= 1;
 

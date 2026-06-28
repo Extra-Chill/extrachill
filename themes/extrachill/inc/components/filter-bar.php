@@ -31,7 +31,7 @@ function extrachill_filter_bar() {
 				'extrachill-filter-bar',
 				get_template_directory_uri() . '/assets/css/filter-bar.css',
 				array(),
-				filemtime( $css_file )
+				(string) filemtime( $css_file )
 			);
 		}
 		$css_enqueued = true;
@@ -39,7 +39,7 @@ function extrachill_filter_bar() {
 
 	$override = apply_filters( 'extrachill_filter_bar_override', '' );
 	if ( ! empty( $override ) ) {
-		echo $override;
+		echo wp_kses_post( $override );
 		return;
 	}
 
@@ -49,7 +49,7 @@ function extrachill_filter_bar() {
 		return;
 	}
 
-	$form_action = is_search() ? home_url( '/' ) : strtok( $_SERVER['REQUEST_URI'], '?' );
+	$form_action = is_search() ? home_url( '/' ) : (string) strtok( isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '/', '?' );
 
 	echo '<form method="get" action="' . esc_url( $form_action ) . '" class="extrachill-filter-bar">';
 
@@ -121,8 +121,8 @@ function extrachill_render_filter_dropdown( $item ) {
 	echo ' onchange="' . esc_attr( $onchange ) . '">';
 
 	foreach ( $options as $value => $label ) {
-		$selected = ( (string) $value === (string) $current ) ? ' selected' : '';
-		echo '<option value="' . esc_attr( $value ) . '"' . $selected . '>' . esc_html( $label ) . '</option>';
+		$is_selected = ( (string) $value === (string) $current );
+		echo '<option value="' . esc_attr( $value ) . '"' . ( $is_selected ? ' selected' : '' ) . '>' . esc_html( $label ) . '</option>';
 	}
 
 	echo '</select>';
@@ -153,9 +153,9 @@ function extrachill_render_filter_search( $item ) {
 
 	echo '<button type="submit" aria-label="' . esc_attr__( 'Search', 'extrachill' ) . '">';
 	if ( ! empty( $button_icon ) ) {
-		echo $button_icon;
+		echo wp_kses_post( $button_icon );
 	} elseif ( function_exists( 'ec_icon' ) ) {
-		echo ec_icon( 'search' );
+		echo ec_icon( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns SVG markup built from a fixed template with esc_attr()'d values.
 	} else {
 		echo esc_html__( 'Search', 'extrachill' );
 	}

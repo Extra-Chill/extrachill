@@ -42,13 +42,13 @@ function extrachill_artist_filter_dropdown() {
 	echo '<div id="artist-filters">';
 	echo '<select id="artist-filter-dropdown" onchange="window.location.href=this.value;">';
 
-	$selected = empty( $current_artist ) ? ' selected' : '';
-	echo '<option value="' . esc_url( $archive_link ) . '"' . $selected . '>All Artists</option>';
+	$is_all_selected = empty( $current_artist );
+	echo '<option value="' . esc_url( $archive_link ) . '"' . ( $is_all_selected ? ' selected' : '' ) . '>All Artists</option>';
 
 	foreach ( $artists as $artist ) {
-		$artist_url = add_query_arg( 'artist', $artist->slug, $archive_link );
-		$selected   = ( $artist->slug == $current_artist ) ? ' selected' : '';
-		echo '<option value="' . esc_url( $artist_url ) . '"' . $selected . '>' . esc_html( $artist->name ) . '</option>';
+		$artist_url         = add_query_arg( 'artist', $artist->slug, $archive_link );
+		$is_artist_selected = ( $artist->slug === $current_artist );
+		echo '<option value="' . esc_url( $artist_url ) . '"' . ( $is_artist_selected ? ' selected' : '' ) . '>' . esc_html( $artist->name ) . '</option>';
 	}
 
 	echo '</select></div>';
@@ -63,6 +63,7 @@ function extrachill_artist_filter_dropdown() {
  */
 function extrachill_sort_posts( $query ) {
 	if ( ! is_admin() && $query->is_main_query() && ( is_archive() || get_query_var( 'extrachill_blog_archive' ) ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- GET-based sort read for display ordering; no state change.
 		$sort = isset( $_GET['sort'] ) ? $_GET['sort'] : '';
 
 		switch ( $sort ) {

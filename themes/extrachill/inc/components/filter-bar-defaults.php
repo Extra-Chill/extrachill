@@ -147,8 +147,10 @@ function extrachill_build_child_terms_dropdown() {
 
 	$options = array( '' => $select_text );
 	foreach ( $child_terms as $child_term ) {
-		$term_link             = is_category() ? get_category_link( $child_term->term_id ) : get_term_link( $child_term );
-		$options[ $term_link ] = $child_term->name;
+		$term_link = is_category() ? get_category_link( $child_term->term_id ) : get_term_link( $child_term );
+		if ( is_string( $term_link ) ) {
+			$options[ $term_link ] = $child_term->name;
+		}
 	}
 
 	return array(
@@ -212,6 +214,7 @@ function extrachill_build_artist_dropdown() {
  * @return array Dropdown item.
  */
 function extrachill_build_sort_dropdown() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading a GET param for display; no state change occurs.
 	$current_sort = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : 'recent';
 
 	$options = apply_filters(

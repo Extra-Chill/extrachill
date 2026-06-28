@@ -7,7 +7,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const searchToggle = document.querySelector('.search-icon');
     const searchPanel = document.querySelector('.header-search-panel');
-    const closeSearchButton = document.querySelector('.search-close-button');
 
     if (!searchToggle || !searchPanel) {
         return;
@@ -31,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     searchToggle.addEventListener('click', openSearch);
 
+    const closeSearchButton = document.querySelector('.search-close-button');
     if (closeSearchButton) {
         closeSearchButton.addEventListener('click', function(event) {
             event.preventDefault();

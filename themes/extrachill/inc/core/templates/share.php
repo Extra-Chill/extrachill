@@ -19,25 +19,25 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
 	function extrachill_share_button( $args = array() ) {
 		wp_enqueue_script( 'extrachill-share' );
 
-		if ( isset( $args ) && is_array( $args ) ) {
-			extract( $args );
-		}
+		$share_url   = isset( $args['share_url'] ) ? $args['share_url'] : '';
+		$share_title = isset( $args['share_title'] ) ? $args['share_title'] : '';
+		$button_size = isset( $args['button_size'] ) ? $args['button_size'] : 'button-small';
 
-		if ( isset( $share_url ) && is_array( $share_url ) ) {
+		if ( is_array( $share_url ) ) {
 			$share_url = reset( $share_url );
 		}
 
-		if ( isset( $share_title ) && is_array( $share_title ) ) {
+		if ( is_array( $share_title ) ) {
 			$share_title = reset( $share_title );
 		}
 
-		$share_url   = isset( $share_url ) ? esc_url( $share_url ) : get_permalink();
-		$share_title = isset( $share_title ) ? esc_attr( $share_title ) : get_the_title();
-		$button_size = isset( $button_size ) ? esc_attr( $button_size ) : 'button-small';
+		$share_url   = $share_url ? esc_url( $share_url ) : (string) get_permalink();
+		$share_title = $share_title ? esc_attr( $share_title ) : get_the_title();
+		$button_size = esc_attr( $button_size );
 		?>
-		<div class="ec-mini-dropdown share-dropdown" aria-expanded="false" data-post-id="<?php echo esc_attr( get_the_ID() ); ?>" data-blog-id="<?php echo esc_attr( get_current_blog_id() ); ?>">
+		<div class="ec-mini-dropdown share-dropdown" aria-expanded="false" data-post-id="<?php echo esc_attr( (string) get_the_ID() ); ?>" data-blog-id="<?php echo esc_attr( (string) get_current_blog_id() ); ?>">
 			<button class="ec-mini-dropdown-toggle button-2 <?php echo esc_attr( $button_size ); ?>">
-				<?php echo ec_icon( 'share' ); ?> Share
+				<?php echo ec_icon( 'share' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns SVG markup built from a fixed template with esc_attr()'d values. ?> Share
 			</button>
 			<ul class="ec-mini-dropdown-menu" role="menu">
 				<li role="menuitem" class="share-option facebook">
