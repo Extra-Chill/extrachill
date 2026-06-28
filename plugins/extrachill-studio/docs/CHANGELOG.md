@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.20.0] - 2026-06-28
+
+### Added
+- Network tab — team-facing analytics dashboard inside Studio
+
 ## [0.19.0] - 2026-06-18
 
 ### Added
