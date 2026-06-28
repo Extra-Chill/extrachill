@@ -124,8 +124,9 @@ function colorSwatch( { token, desc } ) {
             <input type="color" class="swatch__picker" data-token="${ esc( token ) }" aria-label="Edit ${ esc( label ) }" />
           </label>
           <span class="swatch__meta">
+            <code class="swatch__token">${ esc( token ) }</code>
             <span class="swatch__label">${ esc( label ) }</span>
-            <span class="swatch__value" data-value="${ esc( token ) }">…</span>
+            <code class="swatch__value" data-value="${ esc( token ) }">…</code>
           </span>
         </div>`;
 }
@@ -135,7 +136,10 @@ function fontRow( { token, desc, isBrand } ) {
 	const label = desc || humanize( token );
 	return `        <div class="font" style="font-family:var(${ token });">
           <span class="font__sample">${ esc( sample ) }</span>
-          <span class="font__label">${ esc( label ) }</span>
+          <span class="font__meta">
+            <code class="font__token">${ esc( token ) }</code>
+            <span class="font__label">${ esc( label ) }</span>
+          </span>
         </div>`;
 }
 
@@ -143,6 +147,7 @@ function weightRow( { token, desc } ) {
 	const label = desc || humanize( token );
 	return `        <div class="weight" style="font-weight:var(${ token });">
           <span class="weight__sample">Extra Chill</span>
+          <code class="weight__token">${ esc( token ) }</code>
           <span class="weight__label">${ esc( label ) }</span>
         </div>`;
 }
@@ -257,7 +262,8 @@ const html = `<!DOCTYPE html>
     opacity: 0; cursor: pointer;
   }
   .swatch__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
-  .swatch__label, .font__label, .weight__label { font-size: var(--font-size-sm); }
+  .swatch__token, .font__token, .weight__token { color: var(--link-color); word-break: break-all; }
+  .swatch__label, .font__label, .weight__label { font-size: var(--font-size-sm); color: var(--muted-text); }
   .swatch__value { font-size: var(--font-size-xs); color: var(--muted-text); }
 
   .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-md); }
@@ -268,7 +274,7 @@ const html = `<!DOCTYPE html>
     padding: var(--spacing-md);
   }
   .font__sample { display: block; font-size: var(--font-size-xl); margin-bottom: var(--spacing-sm); }
-  .font__label { color: var(--muted-text); }
+  .font__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); }
 
   .weights { display: flex; flex-wrap: wrap; gap: var(--spacing-lg); }
   .weight { display: flex; flex-direction: column; gap: var(--spacing-xs); }
