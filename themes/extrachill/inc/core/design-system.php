@@ -156,7 +156,7 @@ function extrachill_design_system_assets() {
 			'extrachill-root',
 			get_stylesheet_directory_uri() . '/assets/css/root.css',
 			array(),
-			filemtime( $root_css_path )
+			(string) filemtime( $root_css_path )
 		);
 	}
 
@@ -168,7 +168,7 @@ function extrachill_design_system_assets() {
 			'extrachill-design-system-badges',
 			get_stylesheet_directory_uri() . '/assets/css/taxonomy-badges.css',
 			array( 'extrachill-root' ),
-			filemtime( $badges_css_path )
+			(string) filemtime( $badges_css_path )
 		);
 	}
 
@@ -179,7 +179,7 @@ function extrachill_design_system_assets() {
 			'extrachill-design-system',
 			get_stylesheet_directory_uri() . '/assets/css/design-system.css',
 			array( 'extrachill-root', 'extrachill-style' ),
-			filemtime( $guide_css_path )
+			(string) filemtime( $guide_css_path )
 		);
 	}
 
@@ -190,7 +190,7 @@ function extrachill_design_system_assets() {
 			'extrachill-design-system',
 			get_stylesheet_directory_uri() . '/assets/js/design-system.js',
 			array(),
-			filemtime( $guide_js_path ),
+			(string) filemtime( $guide_js_path ),
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,

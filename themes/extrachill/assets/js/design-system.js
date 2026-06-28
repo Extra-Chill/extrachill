@@ -15,13 +15,16 @@
  * getComputedStyle(document.documentElement) on load, so they reflect root.css
  * (including dark mode) rather than hardcoded defaults.
  *
- * @package ExtraChill
+ * @package
  */
+
+/* global getComputedStyle, history */
+
 ( function () {
 	'use strict';
 
-	var HASH_PREFIX = 'ds=';
-	var root = document.documentElement;
+	const HASH_PREFIX = 'ds=';
+	const root = document.documentElement;
 
 	/**
 	 * Read the live computed value of a token from :root.
@@ -45,7 +48,7 @@
 			return '#000000';
 		}
 
-		var v = value.trim();
+		const v = value.trim();
 		// Already a 6-digit hex.
 		if ( /^#[0-9a-fA-F]{6}$/.test( v ) ) {
 			return v.toLowerCase();
@@ -57,27 +60,27 @@
 
 		// Resolve any other color (rgb(), named, etc.) by painting to a canvas.
 		try {
-			var ctx = document.createElement( 'canvas' ).getContext( '2d' );
+			const ctx = document.createElement( 'canvas' ).getContext( '2d' );
 			ctx.fillStyle = '#000000';
 			ctx.fillStyle = v;
-			var resolved = ctx.fillStyle;
+			const resolved = ctx.fillStyle;
 			if ( /^#[0-9a-fA-F]{6}$/.test( resolved ) ) {
 				return resolved.toLowerCase();
 			}
 			// ctx may return rgb(...) — convert.
-			var m = resolved.match( /rgba?\((\d+),\s*(\d+),\s*(\d+)/ );
+			const m = resolved.match( /rgba?\((\d+),\s*(\d+),\s*(\d+)/ );
 			if ( m ) {
 				return (
 					'#' +
 					[ m[ 1 ], m[ 2 ], m[ 3 ] ]
 						.map( function ( n ) {
-							var h = parseInt( n, 10 ).toString( 16 );
+							const h = parseInt( n, 10 ).toString( 16 );
 							return h.length === 1 ? '0' + h : h;
 						} )
 						.join( '' )
 				);
 			}
-		} catch ( e ) {
+		} catch {
 			// Ignore — fall through to default.
 		}
 
@@ -101,11 +104,11 @@
 	 * @return {Object} token -> value map.
 	 */
 	function collectOverrides() {
-		var overrides = {};
-		var controls = document.querySelectorAll( '[data-ds-token]' );
+		const overrides = {};
+		const controls = document.querySelectorAll( '[data-ds-token]' );
 		controls.forEach( function ( el ) {
-			var token = el.getAttribute( 'data-ds-token' );
-			var inline = root.style.getPropertyValue( token ).trim();
+			const token = el.getAttribute( 'data-ds-token' );
+			const inline = root.style.getPropertyValue( token ).trim();
 			if ( inline ) {
 				overrides[ token ] = inline;
 			}
@@ -120,9 +123,9 @@
 	 * @param {string} [onlyToken] Limit refresh to a single token.
 	 */
 	function refreshComputedLabels( onlyToken ) {
-		var labels = document.querySelectorAll( '[data-ds-computed]' );
+		const labels = document.querySelectorAll( '[data-ds-computed]' );
 		labels.forEach( function ( el ) {
-			var token = el.getAttribute( 'data-ds-computed' );
+			const token = el.getAttribute( 'data-ds-computed' );
 			if ( onlyToken && token !== onlyToken ) {
 				return;
 			}
@@ -135,9 +138,9 @@
 	 */
 	function initControls() {
 		document.querySelectorAll( '[data-ds-control]' ).forEach( function ( input ) {
-			var token = input.getAttribute( 'data-ds-token' );
-			var type = input.getAttribute( 'data-ds-control' );
-			var current = readToken( token );
+			const token = input.getAttribute( 'data-ds-token' );
+			const type = input.getAttribute( 'data-ds-control' );
+			const current = readToken( token );
 
 			if ( type === 'color' ) {
 				input.value = toHex( current );
@@ -156,14 +159,14 @@
 	 * Serialize overrides into the URL hash (shareable as-is).
 	 */
 	function writeHash() {
-		var overrides = collectOverrides();
-		var keys = Object.keys( overrides );
+		const overrides = collectOverrides();
+		const keys = Object.keys( overrides );
 		if ( ! keys.length ) {
 			// Clear hash without adding a history entry.
 			history.replaceState( null, '', window.location.pathname + window.location.search );
 			return;
 		}
-		var encoded = encodeURIComponent( JSON.stringify( overrides ) );
+		const encoded = encodeURIComponent( JSON.stringify( overrides ) );
 		history.replaceState( null, '', '#' + HASH_PREFIX + encoded );
 	}
 
@@ -171,15 +174,15 @@
 	 * Read overrides from the URL hash and apply them on load.
 	 */
 	function applyHash() {
-		var hash = window.location.hash.replace( /^#/, '' );
+		const hash = window.location.hash.replace( /^#/, '' );
 		if ( hash.indexOf( HASH_PREFIX ) !== 0 ) {
 			return;
 		}
-		var raw = hash.slice( HASH_PREFIX.length );
-		var overrides;
+		const raw = hash.slice( HASH_PREFIX.length );
+		let overrides;
 		try {
 			overrides = JSON.parse( decodeURIComponent( raw ) );
-		} catch ( e ) {
+		} catch {
 			return;
 		}
 		if ( ! overrides || typeof overrides !== 'object' ) {
@@ -192,7 +195,7 @@
 
 		// Sync the controls to the applied overrides.
 		document.querySelectorAll( '[data-ds-control]' ).forEach( function ( input ) {
-			var token = input.getAttribute( 'data-ds-token' );
+			const token = input.getAttribute( 'data-ds-token' );
 			if ( ! ( token in overrides ) ) {
 				return;
 			}
@@ -210,12 +213,12 @@
 	 * @return {string} CSS text, or a comment when there are no overrides.
 	 */
 	function buildCssBlock() {
-		var overrides = collectOverrides();
-		var keys = Object.keys( overrides );
+		const overrides = collectOverrides();
+		const keys = Object.keys( overrides );
 		if ( ! keys.length ) {
 			return '/* No token overrides — page reflects shipped @extrachill/tokens. */';
 		}
-		var lines = keys.map( function ( token ) {
+		const lines = keys.map( function ( token ) {
 			return '  ' + token + ': ' + overrides[ token ] + ';';
 		} );
 		return ':root {\n' + lines.join( '\n' ) + '\n}';
@@ -225,7 +228,7 @@
 	 * Copy text to the clipboard with a graceful fallback.
 	 *
 	 * @param {string} text Text to copy.
-	 * @return {Promise}
+	 * @return {Promise} Resolves when the copy succeeds, rejects on failure.
 	 */
 	function copyText( text ) {
 		if ( navigator.clipboard && navigator.clipboard.writeText ) {
@@ -233,7 +236,7 @@
 		}
 		return new Promise( function ( resolve, reject ) {
 			try {
-				var ta = document.createElement( 'textarea' );
+				const ta = document.createElement( 'textarea' );
 				ta.value = text;
 				ta.setAttribute( 'readonly', '' );
 				ta.style.position = 'absolute';
@@ -255,7 +258,7 @@
 	 * @param {string} message Text to display.
 	 */
 	function feedback( message ) {
-		var el = document.querySelector( '[data-ds-feedback]' );
+		const el = document.querySelector( '[data-ds-feedback]' );
 		if ( ! el ) {
 			return;
 		}
@@ -271,7 +274,7 @@
 	 */
 	function resetOverrides() {
 		document.querySelectorAll( '[data-ds-token]' ).forEach( function ( el ) {
-			var token = el.getAttribute( 'data-ds-token' );
+			const token = el.getAttribute( 'data-ds-token' );
 			root.style.removeProperty( token );
 		} );
 		initControls(); // Re-read shipped computed values into the controls.
@@ -284,12 +287,12 @@
 	 * Toggle the tweak panel open/closed.
 	 */
 	function togglePanel() {
-		var panel = document.getElementById( 'ds-tweak-panel' );
-		var toggle = document.getElementById( 'ds-tweak-toggle' );
+		const panel = document.getElementById( 'ds-tweak-panel' );
 		if ( ! panel ) {
 			return;
 		}
-		var willShow = panel.hasAttribute( 'hidden' );
+		const toggle = document.getElementById( 'ds-tweak-toggle' );
+		const willShow = panel.hasAttribute( 'hidden' );
 		if ( willShow ) {
 			panel.removeAttribute( 'hidden' );
 			document.body.classList.add( 'ds-tweak-open' );
@@ -310,7 +313,7 @@
 	 */
 	function initActions() {
 		document.querySelectorAll( '[data-ds-action]' ).forEach( function ( btn ) {
-			var action = btn.getAttribute( 'data-ds-action' );
+			const action = btn.getAttribute( 'data-ds-action' );
 			btn.addEventListener( 'click', function () {
 				if ( action === 'copy' ) {
 					copyText( buildCssBlock() ).then(
@@ -345,8 +348,8 @@
 	 * without JS) and boot everything.
 	 */
 	function boot() {
-		var panel = document.getElementById( 'ds-tweak-panel' );
-		var toggle = document.getElementById( 'ds-tweak-toggle' );
+		const panel = document.getElementById( 'ds-tweak-panel' );
+		const toggle = document.getElementById( 'ds-tweak-toggle' );
 
 		refreshComputedLabels();
 		initControls();
@@ -375,13 +378,13 @@
 				.matchMedia( '(prefers-color-scheme: dark)' )
 				.addEventListener( 'change', function () {
 					// Only refresh controls/labels for tokens without overrides.
-					var overrides = collectOverrides();
+					const overrides = collectOverrides();
 					document.querySelectorAll( '[data-ds-control]' ).forEach( function ( input ) {
-						var token = input.getAttribute( 'data-ds-token' );
+						const token = input.getAttribute( 'data-ds-token' );
 						if ( token in overrides ) {
 							return;
 						}
-						var current = readToken( token );
+						const current = readToken( token );
 						input.value =
 							input.getAttribute( 'data-ds-control' ) === 'color'
 								? toHex( current )
