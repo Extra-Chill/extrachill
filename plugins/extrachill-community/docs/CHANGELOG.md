@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.0] - 2026-06-28
+
+### Added
+- show 'last seen' / 'online now' status on forum profiles
+
+### Changed
+- relabel the live forum-archive flag so it stops posing as a homepage lever
+
 ## [1.10.2] - 2026-06-16
 
 ### Changed
