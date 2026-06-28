@@ -36,11 +36,6 @@ defined( 'ABSPATH' ) || exit;
 const EXTRACHILL_ANALYTICS_FATAL_ALARM_HOOK = 'extrachill_analytics_fatal_alarm_check';
 
 /**
- * Custom cron interval name used by the alarm (independent of any other plugin).
- */
-const EXTRACHILL_ANALYTICS_FATAL_ALARM_SCHEDULE = 'extrachill_analytics_five_minutes';
-
-/**
  * Site-option key holding per-signature alarm state (last-alerted bookkeeping).
  */
 const EXTRACHILL_ANALYTICS_FATAL_ALARM_STATE_OPTION = 'extrachill_analytics_fatal_alarm_state';
@@ -56,48 +51,73 @@ const EXTRACHILL_ANALYTICS_FATAL_ALARM_CHANNEL_OPTION = 'extrachill_analytics_fa
 const EXTRACHILL_ANALYTICS_FATAL_ALARM_MENTION_OPTION = 'extrachill_analytics_fatal_alarm_mention';
 
 /**
- * Register the ~5-minute cron interval used by the alarm.
+ * Register the alarm as a Data Machine system task.
  *
- * The network already fires `wp cron event run --due-now` per site every 5 min
- * via the system cron heartbeat, so a recurring WP-cron event on this interval
- * is reliably drained even on low-traffic sites.
+ * The alarm runs as the agent-less `fatal_rate_alarm` SystemTask
+ * (FatalRateAlarmTask), scheduled through DM's RecurringScheduleRegistry on
+ * the built-in `every_5_minutes` interval. DM owns scheduling, idempotent
+ * reschedule, unschedule-on-disable, and per-tick Jobs-table run history —
+ * so the alarm is visible to `wp datamachine system` / `wp datamachine jobs`
+ * and no longer hand-rolls `cron_schedules` + `wp_schedule_event` (issue #98).
  *
- * @param array $schedules Existing cron schedules.
- * @return array Schedules with the alarm interval added.
+ * Registration is deferred to `plugins_loaded` priority 25 (after DM bootstraps
+ * at priority 20) and guarded on DM's `SystemTask` base class. This plugin has
+ * no PSR-4 autoloader, so the task class — which `extends SystemTask` — can only
+ * be safely included once the parent exists. When Data Machine is absent the
+ * task is simply never declared or scheduled and the rest of the plugin boots
+ * cleanly.
  */
-function extrachill_analytics_fatal_alarm_cron_schedule( $schedules ) {
-	if ( ! isset( $schedules[ EXTRACHILL_ANALYTICS_FATAL_ALARM_SCHEDULE ] ) ) {
-		$schedules[ EXTRACHILL_ANALYTICS_FATAL_ALARM_SCHEDULE ] = array(
-			// A sub-15-min interval is intentional: near-real-time fatal
-			// detection is the entire point (issue #48). The network's 5-min
-			// system-cron heartbeat drains it reliably.
-			'interval' => 5 * MINUTE_IN_SECONDS, // phpcs:ignore WordPress.WP.CronInterval.CronSchedulesInterval
-			'display'  => __( 'Every 5 Minutes (Extra Chill fatal alarm)', 'extrachill-analytics' ),
-		);
+function extrachill_analytics_register_fatal_alarm_task() {
+	if ( ! class_exists( '\\DataMachine\\Engine\\AI\\System\\Tasks\\SystemTask' ) ) {
+		return;
 	}
 
-	return $schedules;
+	require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/class-fatal-rate-alarm-task.php';
+
+	add_filter(
+		'datamachine_tasks',
+		function ( array $tasks ): array {
+			$tasks[ \ExtraChill\Analytics\FatalRateAlarmTask::TASK_TYPE ] = \ExtraChill\Analytics\FatalRateAlarmTask::class;
+			return $tasks;
+		}
+	);
+
+	// Near-real-time fatal detection is the entire point (issue #48), so the
+	// cadence is DM's built-in `every_5_minutes` (300s) interval. The network's
+	// 5-minute system-cron heartbeat drains Action Scheduler reliably even on
+	// low-traffic sites.
+	add_filter(
+		'datamachine_recurring_schedules',
+		function ( array $schedules ): array {
+			$schedules['fatal_rate_alarm'] = array(
+				'task_type'       => \ExtraChill\Analytics\FatalRateAlarmTask::TASK_TYPE,
+				'interval'        => 'every_5_minutes',
+				'enabled_setting' => \ExtraChill\Analytics\FatalRateAlarmTask::SETTING_KEY,
+				'default_enabled' => true,
+				'label'           => 'Every 5 minutes — near-real-time PHP fatal-rate detection',
+				'task_params'     => array( 'source' => 'recurring_schedule' ),
+			);
+			return $schedules;
+		}
+	);
 }
-// Sub-15-min interval is intentional (near-real-time fatal detection, #48).
-add_filter( 'cron_schedules', 'extrachill_analytics_fatal_alarm_cron_schedule' ); // phpcs:ignore WordPress.WP.CronInterval.CronSchedulesInterval
+add_action( 'plugins_loaded', 'extrachill_analytics_register_fatal_alarm_task', 25 );
 
 /**
- * Ensure the alarm cron is scheduled.
+ * Retire the legacy hand-rolled WP-cron event from pre-0.24.0 installs.
+ *
+ * Before the SystemTask migration (issue #98) the alarm self-scheduled a
+ * recurring `extrachill_analytics_fatal_alarm_check` WP-cron event. That event
+ * is now owned by DM's RecurringScheduleRegistry under a different hook, so the
+ * stale WP-cron event must be cleared or the evaluator would fire twice each
+ * tick. Idempotent: a no-op once the legacy event is gone.
  */
-function extrachill_analytics_schedule_fatal_alarm() {
-	if ( ! wp_next_scheduled( EXTRACHILL_ANALYTICS_FATAL_ALARM_HOOK ) ) {
-		wp_schedule_event( time() + MINUTE_IN_SECONDS, EXTRACHILL_ANALYTICS_FATAL_ALARM_SCHEDULE, EXTRACHILL_ANALYTICS_FATAL_ALARM_HOOK );
+function extrachill_analytics_clear_legacy_fatal_alarm_cron() {
+	if ( wp_next_scheduled( EXTRACHILL_ANALYTICS_FATAL_ALARM_HOOK ) ) {
+		wp_clear_scheduled_hook( EXTRACHILL_ANALYTICS_FATAL_ALARM_HOOK );
 	}
 }
-add_action( 'init', 'extrachill_analytics_schedule_fatal_alarm' );
-
-/**
- * Cron callback: run a live alarm evaluation and beacon any new/spiking fatals.
- */
-function extrachill_analytics_fatal_alarm_cron() {
-	extrachill_analytics_evaluate_fatal_alarm( false );
-}
-add_action( EXTRACHILL_ANALYTICS_FATAL_ALARM_HOOK, 'extrachill_analytics_fatal_alarm_cron' );
+add_action( 'init', 'extrachill_analytics_clear_legacy_fatal_alarm_cron', 99 );
 
 /**
  * Marker source stamped on this plugin's dispatch so the scoped permission
