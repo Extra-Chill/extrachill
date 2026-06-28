@@ -106,38 +106,44 @@ const weightTokens = Object.entries( tokens.categories['font-weight'] ).map(
 );
 
 // --- HTML builders ----------------------------------------------------------
+// Turn a token slug into a human label as a fallback when no description exists
+// (e.g. --font-family-heading -> "Font family heading").
+function humanize( token ) {
+	return token
+		.replace( /^--/, '' )
+		.replace( /-/g, ' ' )
+		.replace( /^\w/, ( c ) => c.toUpperCase() );
+}
+
 function colorSwatch( { token, desc } ) {
+	const label = desc || humanize( token );
 	// The chip holds a transparent <input type="color"> overlay so clicking it
 	// opens the native picker; editing updates the page live (see inline JS).
 	return `        <div class="swatch">
           <label class="swatch__chip" style="background:var(${ token });">
-            <input type="color" class="swatch__picker" data-token="${ esc( token ) }" aria-label="Edit ${ esc( token ) }" />
+            <input type="color" class="swatch__picker" data-token="${ esc( token ) }" aria-label="Edit ${ esc( label ) }" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">${ esc( token ) }</code>
-            ${ desc ? `<span class="swatch__desc">${ esc( desc ) }</span>` : '' }
-            <code class="swatch__value" data-value="${ esc( token ) }">…</code>
+            <span class="swatch__label">${ esc( label ) }</span>
+            <span class="swatch__value" data-value="${ esc( token ) }">…</span>
           </span>
         </div>`;
 }
 
 function fontRow( { token, desc, isBrand } ) {
 	const sample = isBrand ? BRAND_SAFE_TEXT : 'Extra Chill — the Online Music Scene';
+	const label = desc || humanize( token );
 	return `        <div class="font" style="font-family:var(${ token });">
           <span class="font__sample">${ esc( sample ) }</span>
-          <span class="font__meta">
-            <code class="font__token">${ esc( token ) }</code>
-            ${ desc ? `<span class="font__desc">${ esc( desc ) }</span>` : '' }
-            <code class="font__value" data-value="${ esc( token ) }">…</code>
-          </span>
+          <span class="font__label">${ esc( label ) }</span>
         </div>`;
 }
 
 function weightRow( { token, desc } ) {
+	const label = desc || humanize( token );
 	return `        <div class="weight" style="font-weight:var(${ token });">
           <span class="weight__sample">Extra Chill</span>
-          <code class="weight__token">${ esc( token ) }</code>
-          ${ desc ? `<span class="weight__desc">${ esc( desc ) }</span>` : '' }
+          <span class="weight__label">${ esc( label ) }</span>
         </div>`;
 }
 
@@ -251,9 +257,8 @@ const html = `<!DOCTYPE html>
     opacity: 0; cursor: pointer;
   }
   .swatch__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
-  .swatch__token, .font__token, .weight__token { color: var(--link-color); word-break: break-all; }
-  .swatch__desc, .font__desc, .weight__desc { font-size: var(--font-size-sm); color: var(--muted-text); }
-  .swatch__value, .font__value { font-size: var(--font-size-xs); color: var(--muted-text); }
+  .swatch__label, .font__label, .weight__label { font-size: var(--font-size-sm); }
+  .swatch__value { font-size: var(--font-size-xs); color: var(--muted-text); }
 
   .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-md); }
   .font {
@@ -263,7 +268,7 @@ const html = `<!DOCTYPE html>
     padding: var(--spacing-md);
   }
   .font__sample { display: block; font-size: var(--font-size-xl); margin-bottom: var(--spacing-sm); }
-  .font__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+  .font__label { color: var(--muted-text); }
 
   .weights { display: flex; flex-wrap: wrap; gap: var(--spacing-lg); }
   .weight { display: flex; flex-direction: column; gap: var(--spacing-xs); }
@@ -275,10 +280,10 @@ const html = `<!DOCTYPE html>
 
   <h1><span class="brandmark">${ esc( BRAND_SAFE_TEXT ) }</span> — Colors &amp; Fonts</h1>
   <p class="intro">
-    A static reference of the shipped design tokens. Generated from
-    <code>@extrachill/tokens</code> and rendered with the live <code>root.css</code>,
-    so values reflect exactly what's deployed (including dark mode — toggle your OS theme).
-    Click any color swatch to try a different value — changes are local to your browser.
+    The Extra Chill color palette and fonts. Click any color swatch to try a
+    different shade and watch the whole page update. Use Light, Dark, or Auto to
+    preview each mode, and Reset to put the original colors back. Changes stay in
+    your browser only — nothing here is saved.
   </p>
   <div class="toolbar">
     <span class="toolbar__group" role="group" aria-label="Color scheme">
@@ -287,7 +292,6 @@ const html = `<!DOCTYPE html>
       <button type="button" class="mode" data-mode="dark" aria-pressed="false">Dark</button>
     </span>
     <button type="button" id="reset">Reset colors</button>
-    <span class="toolbar__hint">Edits are local-only; the source of truth is <code>@extrachill/tokens</code>.</span>
   </div>
 
   <h2>Colors</h2>
