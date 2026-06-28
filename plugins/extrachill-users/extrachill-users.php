@@ -107,6 +107,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/moderation/bootstrap.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/abilities/register.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/online-users.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/last-login.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/user-creation.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/registration-emails.php';
 

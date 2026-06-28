@@ -35,7 +35,7 @@
 }
 
 .online-stat .ec-icon.online-indicator {
-	fill: #10b981;
+	fill: var(--success-color);
 	animation: pulse 2s ease-in-out infinite;
 }
 

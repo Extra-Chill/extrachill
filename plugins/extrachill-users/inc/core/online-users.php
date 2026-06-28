@@ -68,3 +68,70 @@ function ec_record_user_activity() {
 	}
 }
 add_action( 'wp', 'ec_record_user_activity' );
+
+/**
+ * Get a user's raw `last_active` timestamp.
+ *
+ * Reads the centralized `last_active` user meta from community.extrachill.com
+ * (where ec_record_user_activity() writes it) regardless of the active site,
+ * so callers on any site get a correct value.
+ *
+ * @param int $user_id User ID.
+ * @return int|null Unix timestamp of last page activity, or null if never active.
+ */
+function ec_get_last_active( $user_id ) {
+	$user_id = (int) $user_id;
+	if ( ! $user_id ) {
+		return null;
+	}
+
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+
+	if ( $community_blog_id && function_exists( 'switch_to_blog' ) ) {
+		switch_to_blog( $community_blog_id );
+		try {
+			$last_active = get_user_meta( $user_id, 'last_active', true );
+		} finally {
+			restore_current_blog();
+		}
+	} else {
+		$last_active = get_user_meta( $user_id, 'last_active', true );
+	}
+
+	return $last_active ? (int) $last_active : null;
+}
+
+/**
+ * Get a human-readable "last seen" string for a user.
+ *
+ * Composes the `last_active` primitive (page activity). Returns "Online now"
+ * when the user has been active within the activity throttle window
+ * (15 minutes — the same cadence ec_record_user_activity() writes at, so a
+ * user active "right now" reads as online), otherwise "Last seen X ago".
+ *
+ * This is the canonical formatter for the forum profile "last seen" element
+ * and any other consumer; surfaces compose it rather than re-deriving the
+ * threshold/format.
+ *
+ * @param int $user_id User ID.
+ * @return string Display string, or '' when the user has no recorded activity.
+ */
+function ec_get_last_seen( $user_id ) {
+	$last_active = ec_get_last_active( $user_id );
+
+	if ( ! $last_active ) {
+		return '';
+	}
+
+	// 900s == the ec_record_user_activity() throttle window. Within it, the
+	// user is "online now"; the meta simply hasn't been rewritten yet.
+	if ( ( time() - $last_active ) <= 900 ) {
+		return __( 'Online now', 'extrachill-users' );
+	}
+
+	return sprintf(
+		/* translators: %s: human-readable time difference, e.g. "2 hours" */
+		__( 'Last seen %s ago', 'extrachill-users' ),
+		human_time_diff( $last_active, time() )
+	);
+}

@@ -87,7 +87,72 @@ function extrachill_users_ability_get_team_experience_stats( $input ) {
 		'team_member_count'    => extrachill_users_count_team_members(),
 		'team_members_added'   => $events[ EC_ANALYTICS_EVENT_TEAM_MEMBER_ADDED ],
 		'team_members_removed' => $events[ EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED ],
+		'team_login_activity'  => extrachill_users_team_login_activity( $days ),
 		'events'               => $events,
+	);
+}
+
+/**
+ * Roll up team-member login activity from the durable `last_login` meta.
+ *
+ * Replaces the previous lossy approach of poking `session_tokens` (which is
+ * deleted on expiry/logout and under-counts anyone whose token aged out) with
+ * a real read of the `last_login` primitive written by ec_record_last_login()
+ * (inc/core/last-login.php). Answers "is the team actually logging in?" — a
+ * goal-4 / team-experience adoption signal.
+ *
+ * @param int $days Window in days for the "active" cutoff. 0 disables the
+ *                  windowed count (active_in_window is null).
+ * @return array {
+ *     @type int      $total            Team members counted.
+ *     @type int      $with_last_login  Members with a recorded last_login.
+ *     @type int      $never_logged_in  Members with no recorded last_login.
+ *     @type int|null $active_in_window Members whose last_login falls within
+ *                                      the window. Null when $days is 0.
+ *     @type int|null $most_recent      Newest last_login timestamp, or null.
+ * }
+ */
+function extrachill_users_team_login_activity( $days ) {
+	$role = defined( 'EC_USERS_TEAM_ROLE' ) ? EC_USERS_TEAM_ROLE : 'extra_chill_team';
+
+	$user_ids = get_users(
+		array(
+			'role'   => $role,
+			'fields' => 'ID',
+		)
+	);
+
+	$cutoff           = $days > 0 ? time() - ( $days * DAY_IN_SECONDS ) : 0;
+	$with_last_login  = 0;
+	$active_in_window = 0;
+	$most_recent      = null;
+
+	foreach ( $user_ids as $user_id ) {
+		$last_login = get_user_meta( $user_id, 'last_login', true );
+		if ( empty( $last_login ) ) {
+			continue;
+		}
+
+		$last_login = (int) $last_login;
+		++$with_last_login;
+
+		if ( null === $most_recent || $last_login > $most_recent ) {
+			$most_recent = $last_login;
+		}
+
+		if ( $cutoff && $last_login >= $cutoff ) {
+			++$active_in_window;
+		}
+	}
+
+	$total = count( $user_ids );
+
+	return array(
+		'total'            => $total,
+		'with_last_login'  => $with_last_login,
+		'never_logged_in'  => $total - $with_last_login,
+		'active_in_window' => $days > 0 ? $active_in_window : null,
+		'most_recent'      => $most_recent,
 	);
 }
 

@@ -44,6 +44,7 @@ function extrachill_users_register_get_user_by_id_ability(): void {
 					'profile_url'        => array( 'type' => 'string' ),
 					'is_team_member'     => array( 'type' => 'boolean' ),
 					'last_active'        => array( 'type' => array( 'integer', 'null' ) ),
+					'last_login'         => array( 'type' => array( 'integer', 'null' ) ),
 					'email'              => array( 'type' => 'string' ),
 					'is_lifetime_member' => array( 'type' => 'boolean' ),
 					'is_artist'          => array( 'type' => 'boolean' ),
@@ -148,6 +149,13 @@ function extrachill_users_ability_get_user_by_id( array $input ): array|WP_Error
 		$response['can_create_artists'] = $can_create_artists;
 		$response['artist_count']       = $artist_count;
 		$response['registered']         = mysql2date( 'c', $user->user_registered );
+
+		// Last login (auth event) is more sensitive than last_active (page
+		// activity), so it is own-profile/admin-only — unlike last_active,
+		// which is a public field. See inc/core/last-login.php for the
+		// last_login vs last_active distinction.
+		$last_login             = get_user_meta( $user_id, 'last_login', true );
+		$response['last_login'] = $last_login ? (int) $last_login : null;
 	}
 
 	return $response;
