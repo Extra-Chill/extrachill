@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.22.0] - 2026-06-28
+
+### Added
+- team-readable REST routes for analytics reports
+
 ## [0.21.1] - 2026-06-22
 
 ### Fixed
