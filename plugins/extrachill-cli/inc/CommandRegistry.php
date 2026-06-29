@@ -84,6 +84,9 @@ class CommandRegistry {
 
 			// Newsletter commands.
 			'extrachill newsletter'                  => Commands\Newsletter\NewsletterCommand::class,
+
+			// Roadie commands — talk to the Extra Chill platform chat agent.
+			'extrachill roadie'                      => Commands\Roadie\RoadieCommand::class,
 		);
 	}
 }
