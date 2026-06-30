@@ -10,6 +10,10 @@
     {
       "file": "style.css",
       "pattern": "(?m)^\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "package.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
 }
