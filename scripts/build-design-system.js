@@ -37,32 +37,54 @@ const esc = ( s ) =>
 const BRAND_SAFE_TEXT = 'Extra Chill';
 
 // --- Colors -----------------------------------------------------------------
-// Core palette: the human-facing colors (skip rgb tuples, shadows, derived
-// focus/interactive helpers that aren't useful as swatches).
-const colorSkip = new Set( [
-	'accent-2-rgb',
-	'card-shadow',
-	'card-hover-shadow',
-	'focus-box-shadow',
-	'warning-bg',
-	'info-bg',
-	'notice-bg',
-	'notice-border',
-	'interactive-hover-bg',
-	'interactive-active-bg',
-	'interactive-active-border',
-	'focus-border-color',
-	'post-title-link-color',
-	'post-title-link-hover-color',
-	'link-hover-color',
-] );
+// Colors are organised by PURPOSE so the page reads for a non-developer: what
+// is this color actually for? Each entry pairs a token with a plain-English
+// "what it's for" blurb. Tokens not listed here (rgb tuples, shadows, derived
+// focus/interactive helpers) are intentionally omitted as swatches.
+const colorGroups = [
+	{
+		title: 'Text',
+		blurb: 'The colors words are printed in.',
+		items: [
+			[ '--text-color', 'Main body text.' ],
+			[ '--muted-text', 'Quieter text — captions, hints, metadata.' ],
+			[ '--link-color', 'Links.' ],
+			[ '--link-color-hover', 'Links when you hover over them.' ],
+			[ '--button-text-color', 'Text sitting on a colored button.' ],
+		],
+	},
+	{
+		title: 'Surfaces',
+		blurb: 'Backgrounds and the lines between things.',
+		items: [
+			[ '--background-color', 'The page background.' ],
+			[ '--card-background', 'Cards and raised panels.' ],
+			[ '--border-color', 'Borders and divider lines.' ],
+		],
+	},
+	{
+		title: 'Brand accents',
+		blurb: 'The signature Extra Chill colors used to draw the eye.',
+		items: [
+			[ '--accent', 'Primary accent — the Extra Chill green.' ],
+			[ '--accent-hover', 'Primary accent when hovered.' ],
+			[ '--accent-2', 'Secondary accent — slate / light blue.' ],
+			[ '--accent-3', 'Tertiary accent — cyan / blue.' ],
+		],
+	},
+	{
+		title: 'Status',
+		blurb: 'Colors that signal what happened — used in notices and messages.',
+		items: [
+			[ '--success-color', 'Success — it worked.' ],
+			[ '--info-color', 'Info — a neutral heads-up.' ],
+			[ '--warning-color', 'Warning — proceed with care.' ],
+			[ '--error-color', 'Error — something went wrong.' ],
+		],
+	},
+];
 
-const colorTokens = Object.entries( tokens.categories.color )
-	.filter( ( [ name ] ) => ! colorSkip.has( name ) )
-	.map( ( [ name, def ] ) => ( {
-		token: '--' + name,
-		desc: def.description || '',
-	} ) );
+
 
 // Light/dark color maps baked from the token source so a visitor can FORCE a
 // mode (root.css only exposes dark via @media prefers-color-scheme, with no
@@ -119,16 +141,31 @@ function colorSwatch( { token, desc } ) {
 	const label = desc || humanize( token );
 	// The chip holds a transparent <input type="color"> overlay so clicking it
 	// opens the native picker; editing updates the page live (see inline JS).
+	// Lead with the plain-English label; the raw token name + value are the
+	// quieter detail underneath.
 	return `        <div class="swatch">
           <label class="swatch__chip" style="background:var(${ token });">
             <input type="color" class="swatch__picker" data-token="${ esc( token ) }" aria-label="Edit ${ esc( label ) }" />
           </label>
           <span class="swatch__meta">
-            <code class="swatch__token">${ esc( token ) }</code>
             <span class="swatch__label">${ esc( label ) }</span>
-            <code class="swatch__value" data-value="${ esc( token ) }">…</code>
+            <span class="swatch__detail"><code class="swatch__token">${ esc( token ) }</code> <code class="swatch__value" data-value="${ esc( token ) }">…</code></span>
           </span>
         </div>`;
+}
+
+// Render one purpose-grouped block of color swatches with a heading + blurb.
+function colorGroup( { title, blurb, items } ) {
+	const swatches = items
+		.map( ( [ token, desc ] ) => colorSwatch( { token, desc } ) )
+		.join( '\n' );
+	return `  <section class="group">
+    <h3 class="group__title">${ esc( title ) }</h3>
+    <p class="group__blurb">${ esc( blurb ) }</p>
+    <div class="swatch-grid">
+${ swatches }
+    </div>
+  </section>`;
 }
 
 function fontRow( { token, desc, isBrand } ) {
@@ -264,9 +301,69 @@ const html = `<!DOCTYPE html>
     opacity: 0; cursor: pointer;
   }
   .swatch__meta { display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
+  .swatch__label { font-size: var(--font-size-sm); }
+  .swatch__detail { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; }
   .swatch__token, .font__token, .weight__token { color: var(--link-color); word-break: break-all; }
-  .swatch__label, .font__label, .weight__label { font-size: var(--font-size-sm); color: var(--muted-text); }
   .swatch__value { font-size: var(--font-size-xs); color: var(--muted-text); }
+  .font__label, .weight__label { font-size: var(--font-size-sm); color: var(--muted-text); }
+
+  .section-note { color: var(--muted-text); margin: 0 0 var(--spacing-lg); max-width: var(--content-width); }
+  .group { margin-bottom: var(--spacing-xl); }
+  .group__title {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-lg);
+    margin: 0 0 var(--spacing-xs);
+  }
+  .group__blurb { color: var(--muted-text); font-size: var(--font-size-sm); margin: 0 0 var(--spacing-md); }
+
+  /* In-context examples — built entirely from live tokens. */
+  .examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-lg); }
+  .example {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+  }
+  .example__title { font-family: var(--font-family-heading); font-size: var(--font-size-base); margin: 0 0 var(--spacing-sm); }
+  .example a { color: var(--link-color); }
+  .example a:hover { color: var(--link-color-hover); }
+  .example .muted { color: var(--muted-text); }
+  .example__inline { color: var(--link-color); }
+  .example__row { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+
+  .btn {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    color: var(--button-text-color);
+    font-size: var(--font-size-sm);
+  }
+  .btn--primary { background: var(--accent); }
+  .btn--accent2 { background: var(--accent-2); }
+  .btn--accent3 { background: var(--accent-3); }
+  .btn--danger { background: var(--error-color); }
+
+  .notice {
+    border-left: 4px solid var(--border-color);
+    background: var(--background-color);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+  }
+  .notice--success { border-left-color: var(--success-color); }
+  .notice--info { border-left-color: var(--info-color); }
+  .notice--warning { border-left-color: var(--warning-color); }
+  .notice--error { border-left-color: var(--error-color); }
+
+  .card {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--card-shadow);
+    padding: var(--spacing-md);
+  }
+  .card p { margin: var(--spacing-xs) 0 var(--spacing-md); font-size: var(--font-size-sm); }
 
   .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-md); }
   .font {
@@ -288,11 +385,12 @@ const html = `<!DOCTYPE html>
 
   <h1><span class="brandmark">${ esc( BRAND_SAFE_TEXT ) }</span> — Colors &amp; Fonts</h1>
   <p class="intro">
-    The Extra Chill color palette and fonts. Click any color swatch to try a
-    different shade and watch the whole page update. Use Light, Dark, or Auto to
-    preview each mode — your edits are kept separately for light and dark, and
-    they survive refreshes. When you have a palette you like, hit Export to send
-    it over. Everything stays in your browser; Reset clears the current mode.
+    The Extra Chill colors and fonts, with a live preview of how they look in
+    real interface pieces. Click any color to try a different shade and watch the
+    whole page update. Use Light, Dark, or Auto to preview each mode — your edits
+    are kept separately for light and dark and survive refreshes. When you like
+    what you see, hit Export to download a snapshot you can open and send over.
+    Everything stays in your browser; Reset clears the current mode.
   </p>
   <div class="toolbar">
     <span class="toolbar__group" role="group" aria-label="Color scheme">
@@ -306,19 +404,60 @@ const html = `<!DOCTYPE html>
   </div>
 
   <h2>Colors</h2>
-  <div class="swatch-grid">
-${ colorTokens.map( colorSwatch ).join( '\n' ) }
-  </div>
+  <p class="section-note">Grouped by what they're for. Click a swatch to recolor it everywhere on the page.</p>
+${ colorGroups.map( colorGroup ).join( '\n' ) }
 ${
 	badgeColorTokens.length
-		? `
-  <h3>Badge Identity Colors</h3>
-  <div class="swatch-grid">
+		? `  <section class="group">
+    <h3 class="group__title">Member badges</h3>
+    <p class="group__blurb">Colors that mark a person's role across the platform.</p>
+    <div class="swatch-grid">
 ${ badgeColorTokens.map( colorSwatch ).join( '\n' ) }
-  </div>
+    </div>
+  </section>
 `
 		: ''
 }
+  <h2>In context</h2>
+  <p class="section-note">The same colors shown in real interface pieces, so you can see how a change actually lands. These update live as you edit.</p>
+
+  <div class="examples">
+    <div class="example">
+      <h3 class="example__title">Links &amp; text</h3>
+      <p>Body text in <code class="example__inline">--text-color</code>, with
+        <a href="#in-context">a link</a> and
+        <span class="muted">quieter muted text</span> alongside it.</p>
+    </div>
+
+    <div class="example">
+      <h3 class="example__title">Buttons</h3>
+      <p class="example__row">
+        <span class="btn btn--primary">Primary</span>
+        <span class="btn btn--accent2">Secondary</span>
+        <span class="btn btn--accent3">Tertiary</span>
+        <span class="btn btn--danger">Delete</span>
+      </p>
+    </div>
+
+    <div class="example">
+      <h3 class="example__title">Notices</h3>
+      <div class="notice notice--success">Success — your changes were saved.</div>
+      <div class="notice notice--info">Info — here's something to know.</div>
+      <div class="notice notice--warning">Warning — double-check this first.</div>
+      <div class="notice notice--error">Error — that didn't work.</div>
+    </div>
+
+    <div class="example">
+      <h3 class="example__title">Card</h3>
+      <div class="card">
+        <strong>A card / panel</strong>
+        <p class="muted">Sits on the card background with a border and the
+          card shadow. This is how raised surfaces look.</p>
+        <span class="btn btn--primary">Action</span>
+      </div>
+    </div>
+  </div>
+
   <h2>Fonts</h2>
   <h3>Families</h3>
   <div class="fonts">
@@ -415,11 +554,6 @@ ${ weightTokens.map( weightRow ).join( '\n' ) }
       return getComputedStyle( root ).getPropertyValue( token ).trim();
     }
 
-    function shippedValue( scheme, token ) {
-      var base = scheme === 'dark' ? DARK : LIGHT;
-      return base[ token ];
-    }
-
     function refreshValues() {
       document.querySelectorAll( '[data-value]' ).forEach( function ( el ) {
         el.textContent = readToken( el.getAttribute( 'data-value' ) );
@@ -510,52 +644,94 @@ ${ weightTokens.map( weightRow ).join( '\n' ) }
       status( 'Reset ' + scheme + ' colors to the defaults.' );
     } );
 
-    // --- Export: build a readable changed-tokens summary, copy + download. ---
-    function buildExport() {
-      var lines = [ 'Extra Chill — proposed palette', '' ];
-      var any = false;
-      [ 'light', 'dark' ].forEach( function ( scheme ) {
-        var edits = overrides[ scheme ] || {};
-        var tokens = Object.keys( edits );
-        if ( ! tokens.length ) { return; }
-        any = true;
-        lines.push( scheme.toUpperCase() + ' mode' );
-        tokens.forEach( function ( token ) {
-          var was = shippedValue( scheme, token );
-          lines.push(
-            '  ' + token + ': ' + edits[ token ] +
-            ( was ? '   (was ' + was + ')' : '' )
-          );
-        } );
-        lines.push( '' );
+    // --- Export: a self-contained HTML snapshot of the page as edited. ---
+    // We clone the current document, bake the effective scheme + the user's
+    // edits in as an inline :root{} block (so it renders identically with no
+    // toggle / OS dependency), strip the interactive chrome, and download it.
+    // Open the file and you SEE exactly the proposed design.
+    // Every CSS custom property currently in effect on :root — colors AND the
+    // spacing/font/radius tokens that come from root.css. Freezing the full set
+    // makes the downloaded file render standalone, with no root.css dependency.
+    function snapshotAllTokens() {
+      var out = {};
+      // Pull declared properties off the loaded stylesheets' :root rules.
+      try {
+        for ( var s = 0; s < document.styleSheets.length; s++ ) {
+          var rules;
+          try { rules = document.styleSheets[ s ].cssRules; } catch ( e ) { continue; }
+          if ( ! rules ) { continue; }
+          for ( var r = 0; r < rules.length; r++ ) {
+            var rule = rules[ r ];
+            if ( ! rule.style || ! rule.selectorText ) { continue; }
+            if ( rule.selectorText.indexOf( ':root' ) === -1 ) { continue; }
+            for ( var p = 0; p < rule.style.length; p++ ) {
+              var prop = rule.style[ p ];
+              if ( prop.indexOf( '--' ) === 0 ) { out[ prop ] = true; }
+            }
+          }
+        }
+      } catch ( e ) {}
+      // Always include the colors we manage (covers edits + base).
+      Object.keys( LIGHT ).concat( Object.keys( DARK ) ).forEach( function ( t ) {
+        out[ t ] = true;
       } );
-      if ( ! any ) {
-        lines.push( 'No changes yet — tweak some colors first.' );
-      }
-      return lines.join( '\\n' );
+      // Resolve each to its live computed value (this already includes the
+      // active scheme + the user's edits, since they're applied to :root).
+      var resolved = {};
+      Object.keys( out ).forEach( function ( t ) {
+        var v = readToken( t );
+        if ( v ) { resolved[ t ] = v; }
+      } );
+      return resolved;
     }
 
-    function copyText( text ) {
-      if ( navigator.clipboard && navigator.clipboard.writeText ) {
-        return navigator.clipboard.writeText( text );
-      }
-      return new Promise( function ( resolve, reject ) {
-        try {
-          var ta = document.createElement( 'textarea' );
-          ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-          document.body.appendChild( ta ); ta.select();
-          document.execCommand( 'copy' ); document.body.removeChild( ta );
-          resolve();
-        } catch ( e ) { reject( e ); }
+    function buildSnapshot() {
+      var scheme = effectiveScheme();
+      var effective = snapshotAllTokens();
+
+      var clone = document.documentElement.cloneNode( true );
+
+      // Replace the live stylesheet link with a frozen :root holding every
+      // token's current value, so the file renders identically standalone.
+      var linkEl = clone.querySelector( 'link[rel="stylesheet"]' );
+      var inlineRoot = '';
+      Object.keys( effective ).forEach( function ( t ) {
+        inlineRoot += t + ':' + effective[ t ] + ';';
       } );
+      var styleFreeze = document.createElement( 'style' );
+      styleFreeze.textContent = ':root{' + inlineRoot + '}';
+      if ( linkEl && linkEl.parentNode ) {
+        linkEl.parentNode.replaceChild( styleFreeze, linkEl );
+      } else {
+        clone.querySelector( 'head' ).appendChild( styleFreeze );
+      }
+
+      // Strip the interactive chrome so it's a clean static document.
+      var toolbar = clone.querySelector( '.toolbar' );
+      if ( toolbar ) { toolbar.parentNode.removeChild( toolbar ); }
+      clone.querySelectorAll( 'script' ).forEach( function ( s ) {
+        s.parentNode.removeChild( s );
+      } );
+      clone.querySelectorAll( '.swatch__picker' ).forEach( function ( inp ) {
+        inp.parentNode.removeChild( inp );
+      } );
+
+      var note = clone.querySelector( '.intro' );
+      if ( note ) {
+        note.textContent =
+          'Proposed Extra Chill palette (' + scheme + ' mode). A static snapshot — ' +
+          'every color is exactly as it was set when exported.';
+      }
+
+      return '<!DOCTYPE html>\\n' + clone.outerHTML;
     }
 
-    function download( text ) {
-      var blob = new Blob( [ text ], { type: 'text/plain' } );
+    function download( text, filename, type ) {
+      var blob = new Blob( [ text ], { type: type } );
       var url = URL.createObjectURL( blob );
       var a = document.createElement( 'a' );
       a.href = url;
-      a.download = 'extra-chill-palette.txt';
+      a.download = filename;
       document.body.appendChild( a );
       a.click();
       document.body.removeChild( a );
@@ -563,12 +739,13 @@ ${ weightTokens.map( weightRow ).join( '\n' ) }
     }
 
     document.getElementById( 'export' ).addEventListener( 'click', function () {
-      var text = buildExport();
-      download( text );
-      copyText( text ).then(
-        function () { status( 'Palette copied to clipboard and downloaded.' ); },
-        function () { status( 'Palette downloaded.' ); }
+      var scheme = effectiveScheme();
+      download(
+        buildSnapshot(),
+        'extra-chill-design-' + scheme + '.html',
+        'text/html'
       );
+      status( 'Exported a visual ' + scheme + '-mode snapshot you can open and share.' );
     } );
 
     // Re-render if the OS scheme flips while in Auto (so the right edits show).
