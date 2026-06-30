@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.23.0] - 2026-06-30
+
+### Added
+- add canonical community stats route delegating to ability
+
 ## [0.22.0] - 2026-06-28
 
 ### Added
