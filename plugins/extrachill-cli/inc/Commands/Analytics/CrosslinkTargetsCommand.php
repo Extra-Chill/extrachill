@@ -29,11 +29,13 @@ class CrosslinkTargetsCommand {
 	 *
 	 * JOINs the conversion-map per-article ranking with the Data Machine link
 	 * graph: blog-1 editorial articles that returning visitors re-enter AND that
-	 * are orphaned / low-inbound, each tagged with category, inbound count, and a
-	 * suggested forward surface (events/community) to route a new internal link
-	 * toward. This is a DRY-RUN list — it inserts no links; it is the targeting
-	 * pass the crosslink hook consumes. An empty or short list IS the finding
-	 * (no returning article journeys in window, or the catalog is already
+	 * are orphaned / low-inbound (orphan = zero INBOUND links, i.e. nothing links
+	 * TO the post — NOT the zero-OUTBOUND "posts_without_links" count from
+	 * `wp datamachine links diagnose`), each tagged with category, inbound count,
+	 * and a suggested forward surface (events/community) to route a new internal
+	 * link toward. This is a DRY-RUN list — it inserts no links; it is the
+	 * targeting pass the crosslink hook consumes. An empty or short list IS the
+	 * finding (no returning article journeys in window, or the catalog is already
 	 * well-linked), not a bug.
 	 *
 	 * ## OPTIONS
@@ -149,12 +151,18 @@ class CrosslinkTargetsCommand {
 		WP_CLI::log( sprintf( 'Crosslink Targets — %s (%s)', $period_label, $result['period'] ?? '' ) );
 
 		$graph = (array) ( $result['link_graph'] ?? array() );
+		// "orphaned" here = zero-INBOUND (nothing links TO the post), per the link
+		// graph. This is NOT the zero-OUTBOUND "posts_without_links" figure from
+		// `wp datamachine links diagnose` — the two count opposite edges of the
+		// link graph and are not comparable. Label it explicitly so the two
+		// numbers are never conflated as movement.
+		$inbound_orphans = (int) ( $graph['inbound_orphan_count'] ?? $graph['orphan_count'] ?? 0 );
 		WP_CLI::log(
 			sprintf(
-				'Link graph: %s — %s posts scanned, %s orphaned.',
+				'Link graph: %s — %s posts scanned, %s zero-inbound orphans (nothing links to them; NOT the zero-outbound count from `wp datamachine links diagnose`).',
 				! empty( $graph['available'] ) ? 'available' : 'UNAVAILABLE',
 				number_format( (int) ( $graph['total_scanned'] ?? 0 ) ),
-				number_format( (int) ( $graph['orphan_count'] ?? 0 ) )
+				number_format( $inbound_orphans )
 			)
 		);
 		WP_CLI::log(
