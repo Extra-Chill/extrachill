@@ -94,7 +94,7 @@
 	// Artist URL import (extrachill-events#320)
 	//
 	// Sits on top of the manual form. When the user types a URL into the
-	// import field, we probe it via `datamachine/v1/artist-url/preview`
+	// import field, we probe it via `extrachill/v1/artist-url/preview`
 	// and, on success, swap the manual form for a confirmation panel
 	// (events found + Submit for review). The manual form keeps working
 	// byte-identically when no URL is provided.

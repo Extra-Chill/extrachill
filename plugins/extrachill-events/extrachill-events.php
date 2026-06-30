@@ -181,6 +181,13 @@ class ExtraChillEvents {
 		add_action( 'init', array( $this, 'init_data_machine_handlers' ), 20 );
 		add_action( 'init', array( $this, 'init_abilities' ), 25 );
 		add_action( 'plugins_loaded', array( $this, 'maybe_install_schema' ), 20 );
+
+		// Artist URL Import moderation queue admin screen (migrated from
+		// data-machine-events in #200). Hooks DME's public post-type menu
+		// filter, so it must instantiate before that filter fires.
+		if ( is_admin() ) {
+			add_action( 'init', array( $this, 'init_artist_url_admin' ), 5 );
+		}
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 	}
@@ -210,6 +217,13 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdictsTable.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdictResolver.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/PlatformDetector.php';
+
+		// Artist URL Import subsystem (migrated from data-machine-events in #200).
+		// Moderation-queue table + REST controller/routes. The abilities load in
+		// init_abilities(); the admin screen instantiates in init_admin().
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistUrlSubmissionsTable.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/Controllers/ArtistUrlImport.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/ArtistUrlImportRoutes.php';
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/data-machine-events/init.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/cache-groups.php';
@@ -315,6 +329,10 @@ class ExtraChillEvents {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/QualifyDigestAbilities.php';
 		new \ExtraChillEvents\Abilities\QualifyDigestAbilities();
+
+		// Artist URL Import abilities (migrated from data-machine-events in #200).
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/ArtistUrlImportAbilities.php';
+		new \ExtraChillEvents\Abilities\ArtistUrlImportAbilities();
 	}
 
 	/**
@@ -336,6 +354,12 @@ class ExtraChillEvents {
 		// Create/upgrade the qualify verdicts table at activation. Safe to
 		// call repeatedly — dbDelta handles idempotency.
 		\ExtraChillEvents\Core\QualifyVerdictsTable::create_table();
+
+		// Artist URL submissions table (migrated from data-machine-events in
+		// #200). Same table name as before — ownership transfers, no data move.
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistUrlSubmissionsTable.php';
+		\ExtraChillEvents\Core\ArtistUrlSubmissionsTable::create_table();
+
 		flush_rewrite_rules();
 	}
 
@@ -354,6 +378,24 @@ class ExtraChillEvents {
 		if ( class_exists( '\\ExtraChillEvents\\Core\\QualifyVerdictsTable' ) ) {
 			\ExtraChillEvents\Core\QualifyVerdictsTable::maybe_install();
 		}
+
+		// Artist URL submissions moderation-queue table (migrated from
+		// data-machine-events in #200). Network-scoped; idempotent install.
+		if ( class_exists( '\\ExtraChillEvents\\Core\\ArtistUrlSubmissionsTable' ) ) {
+			\ExtraChillEvents\Core\ArtistUrlSubmissionsTable::maybe_install();
+		}
+	}
+
+	/**
+	 * Instantiate the Artist URL Import moderation-queue admin screen.
+	 *
+	 * Hooks DME's public `data_machine_events_post_type_menu_items` filter to
+	 * add a submenu under the Events post-type menu. Runs at init priority 5
+	 * so the filter is registered before DME builds its menu.
+	 */
+	public function init_artist_url_admin() {
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/ArtistUrlSubmissionsAdmin.php';
+		new \ExtraChillEvents\Admin\ArtistUrlSubmissionsAdmin();
 	}
 
 	public function get_integrations() {
