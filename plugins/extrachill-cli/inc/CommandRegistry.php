@@ -39,6 +39,7 @@ class CommandRegistry {
 			'extrachill analytics 404'               => Commands\Analytics\FourOhFourCommand::class,
 			'extrachill analytics attacks'           => Commands\Analytics\AttacksCommand::class,
 			'extrachill analytics search-gaps'       => Commands\Analytics\SearchGapsCommand::class,
+			'extrachill analytics bot-filter-impact' => Commands\Analytics\BotFilterImpactCommand::class,
 			'extrachill analytics errors'            => Commands\Analytics\ErrorsCommand::class,
 			'extrachill analytics retention'         => Commands\Analytics\RetentionCommand::class,
 			'extrachill analytics growth'            => Commands\Analytics\GrowthCommand::class,
