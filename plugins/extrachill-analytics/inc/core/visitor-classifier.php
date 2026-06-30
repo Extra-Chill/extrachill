@@ -30,6 +30,19 @@
  *      NON-human (suspect) by the default verdict, because a human who reached
  *      a search box or deep page has loaded a page and minted the cookie.
  *
+ * AUTHENTICATED-USER OVERRIDE (issue #103): the three signals above were
+ * designed for ANONYMOUS front-end traffic, where rest/cli/cron == "no browser
+ * ran" == not-a-human is correct. They are WRONG for an authenticated logged-in
+ * user whose action is captured server-side: a Roadie team member's real tool
+ * call fires inside a REST request (request_origin === 'rest') with no `ec_vid`
+ * cookie in that server-side context, so the anonymous-traffic policy
+ * false-flagged 100% of real logged-in team activity as bot. A logged-in WP
+ * user (`is_user_logged_in()`) is therefore a positive human signal that
+ * short-circuits the anonymous-traffic verdict: an authenticated request is
+ * human regardless of origin/cookie. The anonymous-traffic policy is left fully
+ * intact for the unauthenticated instruments (404s, pageviews, search-gaps)
+ * it was built for.
+ *
  * @package ExtraChill\Analytics
  * @since 0.12.0
  */
@@ -41,15 +54,19 @@ defined( 'ABSPATH' ) || exit;
  * return the evidence signals the verdict was derived from.
  *
  * Verdict policy (the single canonical answer every instrument consumes):
- *   is_human = TRUE only when ALL of these hold —
- *     - request_origin === 'web'            (not cli/cron/rest-internal)
- *     - ua_class === 'browser'              (not 'bot' and not 'empty')
- *     - has_visitor_cookie === true         (a real browser minted ec_vid)
+ *   is_human = TRUE when EITHER —
+ *     - is_authenticated === true           (a logged-in WP user; see #103), OR
+ *     - ALL of these hold (the anonymous-traffic policy):
+ *         - request_origin === 'web'        (not cli/cron/rest-internal)
+ *         - ua_class === 'browser'          (not 'bot' and not 'empty')
+ *         - has_visitor_cookie === true     (a real browser minted ec_vid)
  *   Otherwise is_human = FALSE (is_bot = TRUE).
  *
- * In other words: programmatic context OR a crawler/empty UA OR a cookieless
- * request all classify as non-human. Present cookie + browser UA + web origin
- * is the strongest human signal and the only combination treated as human.
+ * In other words: an authenticated user is always human. For ANONYMOUS traffic,
+ * programmatic context OR a crawler/empty UA OR a cookieless request all
+ * classify as non-human; present cookie + browser UA + web origin is the
+ * strongest anonymous human signal and the only anonymous combination treated
+ * as human.
  *
  * @param array $context {
  *     Optional. Override the request-derived signals (useful for tests and for
@@ -62,6 +79,9 @@ defined( 'ABSPATH' ) || exit;
  *                                          cookie via the read-only resolver.
  *     @type string    $request_origin      One of 'web'|'rest'|'cron'|'cli'.
  *                                          Defaults to auto-detection.
+ *     @type bool|null $is_authenticated    Whether the request is from a
+ *                                          logged-in WP user. Defaults to
+ *                                          reading is_user_logged_in().
  * }
  * @return array{
  *     is_human: bool,
@@ -69,7 +89,8 @@ defined( 'ABSPATH' ) || exit;
  *     signals: array{
  *         has_visitor_cookie: bool,
  *         ua_class: string,
- *         request_origin: string
+ *         request_origin: string,
+ *         is_authenticated: bool
  *     }
  * }
  */
@@ -91,16 +112,28 @@ function extrachill_analytics_classify_request( $context = array() ) {
 		? (string) $context['request_origin']
 		: extrachill_analytics_detect_request_origin();
 
+	if ( array_key_exists( 'is_authenticated', $context ) && null !== $context['is_authenticated'] ) {
+		$is_authenticated = (bool) $context['is_authenticated'];
+	} else {
+		$is_authenticated = function_exists( 'is_user_logged_in' ) && is_user_logged_in();
+	}
+
 	$ua_class = extrachill_analytics_classify_user_agent( $user_agent );
 
 	$signals = array(
 		'has_visitor_cookie' => $has_visitor_cookie,
 		'ua_class'           => $ua_class,
 		'request_origin'     => $request_origin,
+		'is_authenticated'   => $is_authenticated,
 	);
 
 	// --- Apply the single canonical verdict policy. ---
-	$is_human = (
+	// An authenticated logged-in user is human regardless of origin/UA/cookie
+	// (issue #103): their server-side-captured actions (e.g. a Roadie tool call
+	// inside a REST request, cookieless) must not inherit the anonymous-traffic
+	// bot verdict. For everyone else, the anonymous-traffic policy applies: web
+	// origin + browser UA + minted ec_vid cookie is the only human combination.
+	$is_human = $is_authenticated || (
 		'web' === $request_origin
 		&& 'browser' === $ua_class
 		&& $has_visitor_cookie
