@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.10.0] - 2026-06-30
+
+### Added
+- friendlier design-system page (purpose groups, in-context previews, HTML export)
+
+### Fixed
+- clear pre-existing whole-tree lint debt in theme
+
 ## [2.9.0] - 2026-06-28
 
 ### Added
