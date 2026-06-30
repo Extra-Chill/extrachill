@@ -29,6 +29,17 @@
  *      link-graph logic — if the Data Machine link primitive is unavailable we
  *      degrade and say so in the note, we never roll our own.
  *
+ * ORPHAN DEFINITION (read before comparing counts): the orphan figure this
+ * ability surfaces (`link_graph.inbound_orphan_count`) is the link graph's
+ * ZERO-INBOUND count — posts that nothing links TO. This is deliberately NOT
+ * the same metric as `wp datamachine links diagnose`, whose `posts_without_links`
+ * counts ZERO-OUTBOUND posts — posts that link to nothing. The two measure
+ * OPPOSITE edges of the link graph; both are valid, but they are not comparable
+ * counts and a difference between them is not "movement". This ability is the
+ * canonical home for the zero-inbound number; `links diagnose` is canonical for
+ * the zero-outbound number. The labels here state which is which so a reader
+ * never conflates them.
+ *
  * LAYER PURITY: this ability lives in extrachill-analytics and is allowed to
  * CONSULT the Data Machine link-graph class as a cross-plugin READ (a guarded,
  * static, side-effect-free call). It owns the JOIN and the targeting heuristic;
@@ -106,7 +117,7 @@ function extrachill_analytics_register_crosslink_targets_ability() {
 			),
 			'output_schema'       => array(
 				'type'        => 'object',
-				'description' => __( 'Object with the ranked crosslink targets, the join inputs (conversion + link-graph), and the exact window.', 'extrachill-analytics' ),
+				'description' => __( 'Object with the ranked crosslink targets, the join inputs (conversion + link-graph), and the exact window. The link_graph block reports inbound_orphan_count (zero-INBOUND orphans, orphan_definition=zero_inbound) — NOT comparable to the zero-OUTBOUND posts_without_links count from `wp datamachine links diagnose`.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_crosslink_targets',
 			'permission_callback' => function () {
@@ -261,7 +272,7 @@ function extrachill_analytics_ability_get_crosslink_targets( $input ) {
 	$targets = array_slice( $targets, 0, $limit );
 
 	$note = sprintf(
-		'Crosslink ops-pass targeting list — the JOIN of two existing instruments, not a new measurement. Source A: extrachill/get-conversion-map per-article journey ranking (%d articles scanned, %d-day window). Source B: Data Machine internal link graph (consulted read-only via InternalLinkingAbilities::auditInternalLinks — %s). A target is a blog-1 article that returning visitors re-enter (returned >= %d) AND that the link graph reports orphaned or low-inbound (inbound <= %d). score = returned * 1/(inbound+1): an orphan with returning traffic ranks highest. suggested_surface routes the new internal link toward the forward platform surface (events/community) the article is closest to / weakest on. This is a DRY-RUN list — it inserts no links; it is the targeting pass the crosslink hook consumes. An empty or short list is itself the finding (no returning article journeys in window, or the catalog is already well-linked) — not a bug.',
+		'Crosslink ops-pass targeting list — the JOIN of two existing instruments, not a new measurement. Source A: extrachill/get-conversion-map per-article journey ranking (%d articles scanned, %d-day window). Source B: Data Machine internal link graph (consulted read-only via InternalLinkingAbilities::auditInternalLinks — %s). A target is a blog-1 article that returning visitors re-enter (returned >= %d) AND that the link graph reports orphaned or low-inbound (inbound <= %d). score = returned * 1/(inbound+1): an orphan with returning traffic ranks highest. suggested_surface routes the new internal link toward the forward platform surface (events/community) the article is closest to / weakest on. ORPHAN DEFINITION: "orphan" here means zero INBOUND links (nothing links TO the post), per the link-graph primitive. This is NOT the same metric as `wp datamachine links diagnose`, whose "posts_without_links" counts zero-OUTBOUND posts (the post links to nothing). The two count opposite edges of the link graph and are not comparable — a difference between them is not movement. This is a DRY-RUN list — it inserts no links; it is the targeting pass the crosslink hook consumes. An empty or short list is itself the finding (no returning article journeys in window, or the catalog is already well-linked) — not a bug.',
 		$scanned,
 		$days,
 		$graph_note,
@@ -275,9 +286,19 @@ function extrachill_analytics_ability_get_crosslink_targets( $input ) {
 		'returned_targets' => count( $targets ),
 		'entry_blog_id'    => $entry_blog_id,
 		'link_graph'       => array(
-			'available'     => $graph_available,
-			'total_scanned' => $graph_total,
-			'orphan_count'  => $graph_orphan_cnt,
+			'available'             => $graph_available,
+			'total_scanned'         => $graph_total,
+			// Explicit, self-documenting orphan label: this is the link graph's
+			// zero-INBOUND count (a post nothing links TO). It is NOT the same as
+			// the zero-OUTBOUND "posts_without_links" figure reported by
+			// `wp datamachine links diagnose` (a post that links to nothing). The
+			// two measure opposite edges of the link graph and are not comparable.
+			'inbound_orphan_count'  => $graph_orphan_cnt,
+			'orphan_definition'     => 'zero_inbound',
+			// Deprecated alias kept for back-compat with existing readers. Prefer
+			// inbound_orphan_count — the bare name conflates with links diagnose's
+			// zero-outbound count. @deprecated since 0.14.1
+			'orphan_count'          => $graph_orphan_cnt,
 		),
 		'days'             => $days,
 		'session_gap_mins' => $session_gap_mins,
@@ -422,7 +443,7 @@ function extrachill_analytics_crosslink_link_graph( $force_audit ) {
 		'total_scanned' => $total_scanned,
 		'orphan_count'  => $orphan_count,
 		'note'          => sprintf(
-			'%d posts scanned, %d orphaned (%s graph)',
+			'%d posts scanned, %d zero-inbound orphans (%s graph). NB: "orphan" here = zero INBOUND links; this differs from `wp datamachine links diagnose`, which reports zero-OUTBOUND posts — the two are not comparable counts.',
 			$total_scanned,
 			$orphan_count,
 			$cached ? 'cached' : 'fresh'
