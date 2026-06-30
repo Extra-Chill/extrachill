@@ -1584,6 +1584,30 @@ button.button-large {
   font-size: var(--font-size-body);
 }
 
+/*
+ * Full-width / block modifier.
+ *
+ * Composable SIZE modifier — pair it with any color variant
+ * (.button-1 / .button-2 / .button-3 / .button-danger) and any size
+ * variant (.button-small / .button-medium / .button-large). It only
+ * controls width, so it stacks cleanly with the existing axes, e.g.:
+ *   <a class="button-1 button-medium button-block">Save to Calendar</a>
+ *
+ * Always-on opt-in block: consumers apply it where edge-to-edge buttons
+ * are wanted (e.g. mobile action rows). Using text-align:center keeps the
+ * label centered even though display:block stretches the box. box-sizing
+ * ensures padding doesn't overflow the container.
+ */
+.button-block,
+a.button-block,
+input.button-block,
+button.button-block {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
 
 
 /* SVG Icon System */
