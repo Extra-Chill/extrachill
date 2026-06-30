@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.11.2] - 2026-06-30
+
+### Changed
+- keep community-get-stats off the core abilities REST surface
+
 ## [1.11.1] - 2026-06-30
 
 ### Fixed
