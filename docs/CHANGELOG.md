@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.11.0] - 2026-06-30
+
+### Added
+- feat(design-system): add full-width .button-block button modifier
+
+### Changed
+- track package.json in homeboy version_targets
+
 ## [2.10.0] - 2026-06-30
 
 ### Added
