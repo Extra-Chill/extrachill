@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.11.1] - 2026-06-30
+
+### Fixed
+- expose community-get-stats over REST for cross-site NetworkStats #140
+
 ## [1.11.0] - 2026-06-28
 
 ### Added
