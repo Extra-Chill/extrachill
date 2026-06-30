@@ -389,3 +389,129 @@ function ec_send_password_reset_email( $user, $reset_key ) {
 
 	return true;
 }
+
+/**
+ * Send the "Welcome to the Extra Chill team" onboarding email.
+ *
+ * Sent when a user is granted the team role for the first time and has
+ * never logged in (extrachill-users#159). New team members get a working
+ * way into their account — a set-password link — instead of hitting the
+ * "I don't know my login" wall and registering a duplicate account.
+ *
+ * This is a dedicated welcome email rather than a bare password reset: it
+ * names the user, tells them they're on the team, states the username that
+ * holds their access (so they don't re-register under a new identity), and
+ * points them at Studio once they're in. It reuses the exact same branded
+ * send path as {@see ec_send_password_reset_email()} —
+ * `get_password_reset_key()` for the link + `extrachill_send_registration_email()`
+ * for delivery — so the CTA lands on the canonical
+ * community.extrachill.com/reset-password/ page, not raw wp-login.php.
+ *
+ * Like the reset email, this runs the send through
+ * `extrachill_send_registration_email()` so the underlying
+ * `datamachine/send-email` ability executes inside an authenticated
+ * context (the grant itself is the authorization decision; see #110).
+ *
+ * @param WP_User $user      User object being welcomed to the team.
+ * @param string  $reset_key Password reset key minted via get_password_reset_key().
+ * @return bool Whether the email was sent successfully.
+ */
+function ec_send_team_welcome_email( $user, $reset_key ) {
+	$reset_url = add_query_arg(
+		array(
+			'action' => 'reset',
+			'key'    => $reset_key,
+			'login'  => rawurlencode( $user->user_login ),
+		),
+		ec_get_site_url( 'community' ) . '/reset-password/'
+	);
+
+	$studio_url = function_exists( 'ec_get_site_url' )
+		? ec_get_site_url( 'studio' )
+		: 'https://studio.extrachill.com';
+
+	$subject = __( 'Welcome to the Extra Chill team', 'extrachill-users' );
+
+	$body_html  = '<p>' . esc_html__( "You've been added to the Extra Chill team — welcome aboard!", 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'Your team account is ready, but you need to set a password before you can log in. Click the button below to choose your password and get started.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p><strong>' . esc_html__( 'Your username:', 'extrachill-users' ) . '</strong> ' . esc_html( $user->user_login ) . '<br>';
+	$body_html .= esc_html__( 'This is the account that holds your team access — log in with this username (or your email), not a new account.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . sprintf(
+		/* translators: %s: Extra Chill Studio URL. */
+		esc_html__( 'Once you\'re in, head to %s to start working.', 'extrachill-users' ),
+		'<a href="' . esc_url( $studio_url ) . '">' . esc_html( $studio_url ) . '</a>'
+	) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'This link will expire in 24 hours. If it does, you can request a new one any time from the reset-password page.', 'extrachill-users' ) . '</p>';
+	$body_html .= '<p>' . esc_html__( 'Much love,', 'extrachill-users' ) . '<br>' . esc_html__( 'Extra Chill', 'extrachill-users' ) . '</p>';
+
+	$result = extrachill_send_registration_email(
+		array(
+			'to'         => $user->user_email,
+			'subject'    => $subject,
+			'template'   => 'extrachill/minimal',
+			'from_name'  => 'Extra Chill',
+			'from_email' => get_option( 'admin_email' ),
+			'context'    => array(
+				'subject_html'   => esc_html( $subject ),
+				'body_html'      => $body_html,
+				'recipient_name' => $user->display_name,
+				'cta_url'        => $reset_url,
+				'cta_label'      => __( 'Set Your Password', 'extrachill-users' ),
+				'preheader'      => __( "You're on the Extra Chill team — set your password to log in.", 'extrachill-users' ),
+			),
+		)
+	);
+
+	// Same defensive envelope handling as the reset email: the ability
+	// returns WP_Error on permission/validation failure, not the array
+	// envelope. Never index blindly (#110).
+	if ( ! is_array( $result ) || empty( $result['success'] ) ) {
+		extrachill_log_email_failure( 'team_welcome', $user->ID, $user->user_email, $subject, $result );
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Send the team welcome email to a user who was just granted the team role.
+ *
+ * Gates the send on "user has never logged in" — a logged-in user has a
+ * non-empty `session_tokens` user meta array, so an empty value means the
+ * account has never been used. This makes re-grants and grants to active
+ * members no-ops, satisfying the idempotency requirement in #159: existing
+ * team members are never re-emailed.
+ *
+ * Mints the set-password key here (not in the caller) so the grant path in
+ * role.php stays a thin orchestration call.
+ *
+ * @param int $user_id User ID that was just granted the team role.
+ * @return bool True if a welcome email was sent, false if skipped or failed.
+ */
+function ec_maybe_send_team_welcome_email( $user_id ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	// Never-logged-in gate: a non-empty session_tokens array means the
+	// account has an active or prior session, so the member already has a
+	// working login and must not be emailed.
+	$session_tokens = get_user_meta( $user_id, 'session_tokens', true );
+	if ( ! empty( $session_tokens ) ) {
+		return false;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user || ! $user->exists() ) {
+		return false;
+	}
+
+	$reset_key = get_password_reset_key( $user );
+	if ( is_wp_error( $reset_key ) ) {
+		extrachill_log_email_failure( 'team_welcome', $user_id, $user->user_email, __( 'Welcome to the Extra Chill team', 'extrachill-users' ), $reset_key );
+		return false;
+	}
+
+	return ec_send_team_welcome_email( $user, $reset_key );
+}

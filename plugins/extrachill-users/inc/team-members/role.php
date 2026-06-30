@@ -176,10 +176,19 @@ function ec_users_get_network_site_ids() {
  * multisite cap layer, and giving them an extra role on every
  * subsite is noise.
  *
- * @param int $user_id User ID.
+ * When the role is newly granted to a user who has never logged in, a
+ * one-time "Welcome to the Extra Chill team" email with a set-password
+ * link is sent so the member gets a working login instead of registering
+ * a duplicate account (extrachill-users#159). Pass $notify = false to
+ * suppress the email — used by the one-shot legacy-meta migration, which
+ * re-grants existing members who are not being newly onboarded.
+ *
+ * @param int  $user_id User ID.
+ * @param bool $notify  Whether to send the team welcome email when the role
+ *                      is newly granted to a never-logged-in user. Default true.
  * @return int[] Blog IDs the role was newly added to (already-present sites omitted).
  */
-function ec_users_grant_team_role( $user_id ) {
+function ec_users_grant_team_role( $user_id, $notify = true ) {
 	$user_id = (int) $user_id;
 	if ( $user_id <= 0 ) {
 		return array();
@@ -226,6 +235,16 @@ function ec_users_grant_team_role( $user_id ) {
 			$user_id,
 			array( 'blog_ids' => $added )
 		);
+	}
+
+	// Deliver a working credential to brand-new team members. Only fires
+	// when the role was newly added on at least one site (so re-grants are
+	// no-ops) and the recipient has never logged in (gated inside
+	// ec_maybe_send_team_welcome_email via session_tokens). At most one
+	// email per grant, never per blog. Suppressed during the legacy-meta
+	// migration ($notify = false). See extrachill-users#159.
+	if ( $notify && ! empty( $added ) && function_exists( 'ec_maybe_send_team_welcome_email' ) ) {
+		ec_maybe_send_team_welcome_email( $user_id );
 	}
 
 	return $added;
@@ -331,7 +350,10 @@ function ec_users_migrate_team_meta_to_role() {
 				: ( '1' === (string) $flag ) );
 
 		if ( $should_have ) {
-			$added = ec_users_grant_team_role( $user_id );
+			// Suppress the welcome email: migration re-grants existing
+			// members carried over from the legacy meta system, not new
+			// onboardings. Emailing them would be spam (#159).
+			$added = ec_users_grant_team_role( $user_id, false );
 			if ( ! empty( $added ) ) {
 				++$summary['granted'];
 			}
