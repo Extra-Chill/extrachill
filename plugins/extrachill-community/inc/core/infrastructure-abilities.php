@@ -40,12 +40,12 @@ function extrachill_community_register_infrastructure_abilities() {
 			'execute_callback'    => 'extrachill_community_ability_get_stats',
 			'permission_callback' => '__return_true',
 			'meta'                => array(
-				// Exposed over REST so the cross-site NetworkStats loopback
-				// (blog 1 → community blog) can reach the core Abilities run
-				// route. Read-only aggregate counts rendered on the public
-				// /power page — readable, not manage-gated. Mirrors the
-				// `extrachill/get-network-stats` posture in extrachill-multisite.
-				'show_in_rest' => true,
+				// Not exposed on the generic core Abilities REST surface. The
+				// cross-site NetworkStats loopback (blog 1 → community blog)
+				// reaches this ability through the canonical
+				// /extrachill/v1/community/stats thin route in extrachill-api,
+				// and the local fast path uses in-process wp_get_ability().
+				'show_in_rest' => false,
 				'annotations'  => array(
 					'readonly'    => true,
 					'idempotent'  => true,
