@@ -1,0 +1,21 @@
+{
+	"name": "extrachill/cache",
+	"description": "Lean full-page HTML cache for the Extra Chill platform. Replaces Breeze with only the page-cache + purge features the platform uses.",
+	"type": "wordpress-plugin",
+	"require": {
+		"php": ">=7.4"
+	},
+	"require-dev": {
+		"wp-coding-standards/wpcs": "^3.0",
+		"squizlabs/php_codesniffer": "^3.6"
+	},
+	"scripts": {
+		"lint:php": "phpcs --standard=WordPress .",
+		"lint:fix": "phpcbf --standard=WordPress ."
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	}
+}
