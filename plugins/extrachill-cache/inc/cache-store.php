@@ -121,7 +121,7 @@ if ( ! function_exists( 'extrachill_cache_url_identity' ) ) {
 
 		$is_https = ( ( ! empty( $_SERVER['HTTPS'] ) && 'off' !== $_SERVER['HTTPS'] )
 			|| ( ! empty( $_SERVER['SERVER_PORT'] ) && 443 === (int) $_SERVER['SERVER_PORT'] ) );
-		$scheme = $is_https ? 'https://' : 'http://';
+		$scheme   = $is_https ? 'https://' : 'http://';
 
 		$host = strtolower( (string) $_SERVER['HTTP_HOST'] );
 		$uri  = (string) $_SERVER['REQUEST_URI'];
@@ -170,6 +170,7 @@ if ( ! function_exists( 'extrachill_cache_read' ) ) {
 	function extrachill_cache_read( $key, $blog_id = 0, $ttl = 0 ) {
 		$path = extrachill_cache_file_path( $key, $blog_id );
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Reachable from the pre-WP drop-in serve gate where WP_Filesystem is unavailable; a filesystem warning must not surface. The @ guards a benign missing-file check.
 		if ( ! @is_file( $path ) ) {
 			return false;
 		}
@@ -178,17 +179,20 @@ if ( ! function_exists( 'extrachill_cache_read' ) ) {
 			$ttl = defined( 'EXTRACHILL_CACHE_TTL' ) ? EXTRACHILL_CACHE_TTL : DAY_IN_SECONDS;
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Reachable from the pre-WP drop-in serve gate; the @ guards a benign filemtime failure (handled via the false check).
 		$mtime = @filemtime( $path );
 		if ( false === $mtime || ( time() - $mtime ) > $ttl ) {
 			return false;
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local cache payload from the pre-WP drop-in serve gate where WP_Filesystem is unavailable. The @ guards a benign read failure (handled below).
 		$raw = @file_get_contents( $path );
 		if ( false === $raw || '' === $raw ) {
 			return false;
 		}
 
-		$data = @unserialize( $raw ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Trusted self-written cache payload.
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Trusted, self-written cache payload; the @ guards a benign unserialize failure (validated via is_array below).
+		$data = @unserialize( $raw );
 		if ( ! is_array( $data ) || empty( $data['body'] ) ) {
 			return false;
 		}
@@ -215,12 +219,14 @@ if ( ! function_exists( 'extrachill_cache_write' ) ) {
 				if ( ! wp_mkdir_p( $dir ) ) {
 					return false;
 				}
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Fallback dir creation when wp_mkdir_p is unavailable (pre-WP drop-in layer); the @ guards a benign race handled by the trailing is_dir check.
 			} elseif ( ! @mkdir( $dir, 0755, true ) && ! is_dir( $dir ) ) {
 				return false;
 			}
 		}
 
-		$data = serialize( // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Self-written cache payload.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Self-written cache payload stored on disk; format parity with the reader (unserialize) is intentional.
+		$data = serialize(
 			array(
 				'body'    => $body,
 				'headers' => $headers,
@@ -232,11 +238,14 @@ if ( ! function_exists( 'extrachill_cache_write' ) ) {
 		// Atomic-ish write via temp file + rename to avoid serving half-written
 		// payloads to a concurrent request.
 		$tmp = $path . '.' . getmypid() . '.tmp';
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes a local cache payload; reachable from the pre-WP layer where WP_Filesystem is unavailable. The @ guards a benign write failure (handled via the false check).
 		if ( false === @file_put_contents( $tmp, $data, LOCK_EX ) ) {
 			return false;
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename -- Atomic temp-file rename for the local cache payload; reachable pre-WP where WP_Filesystem is unavailable. The @ guards a benign rename failure (handled below).
 		if ( ! @rename( $tmp, $path ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- Cleans up the local temp file after a failed rename; reachable pre-WP where wp_delete_file is unavailable.
 			@unlink( $tmp );
 			return false;
 		}
@@ -257,6 +266,7 @@ if ( ! function_exists( 'extrachill_cache_rrmdir' ) ) {
 			return;
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Enumerates a local cache directory during purge; the @ guards a benign scandir failure (handled via the false check).
 		$items = @scandir( $dir );
 		if ( false === $items ) {
 			return;
@@ -270,10 +280,12 @@ if ( ! function_exists( 'extrachill_cache_rrmdir' ) ) {
 			if ( is_dir( $path ) ) {
 				extrachill_cache_rrmdir( $path );
 			} else {
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes a local cache file during purge; reachable pre-WP where wp_delete_file is unavailable. The @ guards a benign unlink failure.
 				@unlink( $path );
 			}
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Removes the emptied local cache directory during purge; reachable pre-WP where WP_Filesystem is unavailable. The @ guards a benign rmdir failure.
 		@rmdir( $dir );
 	}
 }

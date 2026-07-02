@@ -66,6 +66,7 @@ if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'GET' !== $_SERVER['REQUEST_METHOD
 }
 
 // wp-admin / login / cron / xmlrpc never cache.
+// @phpstan-ignore phpstanWP.wpConstant.fetch (Drop-in serve gate runs from wp-settings.php before core loads, where is_admin() does not yet exist; WP_ADMIN is the only signal available at this layer.)
 if ( defined( 'WP_ADMIN' ) && WP_ADMIN ) {
 	return;
 }
@@ -127,6 +128,7 @@ $ec_cache_store = __DIR__ . '/plugins/extrachill-cache/inc/cache-store.php';
 if ( defined( 'EXTRACHILL_CACHE_STORE_PATH' ) ) {
 	$ec_cache_store = EXTRACHILL_CACHE_STORE_PATH;
 }
+// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Drop-in serve gate runs before WordPress loads; the @ guards a benign missing-file check (handled via the return below).
 if ( ! @is_file( $ec_cache_store ) ) {
 	return;
 }
