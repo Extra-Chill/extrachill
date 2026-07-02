@@ -34,6 +34,9 @@ class CommandRegistry {
 			// Platform commands.
 			'extrachill platform'                    => Commands\Platform\HealthCommand::class,
 
+			// Network commands — thin wrappers over extrachill-multisite primitives.
+			'extrachill network'                     => Commands\Network\MigratePostCommand::class,
+
 			// Analytics commands.
 			'extrachill analytics summary'           => Commands\Analytics\SummaryCommand::class,
 			'extrachill analytics 404'               => Commands\Analytics\FourOhFourCommand::class,
