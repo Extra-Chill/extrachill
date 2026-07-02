@@ -174,6 +174,97 @@ function ec_studio_compose_register_routes(): void {
 add_action( 'rest_api_init', 'ec_studio_compose_register_routes' );
 
 /**
+ * Header the compose editor attaches to every write it originates, so the
+ * apiFetch middleware rewrites it onto the compose proxy (→ main). Its
+ * presence on a LOCAL core `/wp/v2/posts|media` write means the client-side
+ * rewrite missed — see {@link ec_studio_compose_block_stranded_local_writes}.
+ * Kept in sync with COMPOSE_MARKER_HEADER in cross-site-middleware.ts.
+ */
+const EC_STUDIO_COMPOSE_MARKER_HEADER = 'X-EC-Studio-Compose';
+
+/**
+ * Server-side backstop: never let a compose-originated write land on the
+ * Studio subsite.
+ *
+ * Born-on-main was previously enforced ONLY in the browser (a racy apiFetch
+ * middleware). When the rewrite missed, the write hit Studio-local
+ * `/wp/v2/posts|media` and silently created the post/attachment on blog 12 —
+ * exactly the stranded submission of #106, undetectable because nothing on the
+ * server objected.
+ *
+ * This guard closes that hole. The compose editor tags every write it
+ * originates with the `X-EC-Studio-Compose` header. A correctly-rewritten
+ * request reaches the compose PROXY route (`/extrachill/v1/studio/compose/*`)
+ * and is forwarded to main; it never carries this header into a core
+ * `/wp/v2/*` route. So a core `/wp/v2/posts` or `/wp/v2/media` WRITE that
+ * arrives on the Studio subsite CARRYING this marker is a proven routing miss:
+ * we reject it with a clear error the client surfaces, instead of silently
+ * committing to blog 12. A compose write is therefore provably on main or it
+ * fails loudly — it can never silently strand again.
+ *
+ * Scope is deliberately narrow so legitimate Studio-local writes are never
+ * touched:
+ *   - Only runs on the Studio subsite (never on main).
+ *   - Only WRITE methods (POST/PUT/PATCH) to the core posts/media collections
+ *     and single-item routes.
+ *   - Only when the compose marker header is present. Socials' local drafts
+ *     carry the `X-EC-Studio-Local` marker and never the compose one, so they
+ *     pass straight through.
+ *
+ * @since 0.20.1
+ *
+ * @param mixed            $result  Pre-dispatch short-circuit (null to continue).
+ * @param \WP_REST_Server  $server  REST server instance.
+ * @param \WP_REST_Request $request The request being dispatched.
+ * @return mixed Null to continue dispatch, or a WP_Error to reject.
+ */
+function ec_studio_compose_block_stranded_local_writes( $result, $server, $request ) {
+	// Already short-circuited by another handler — don't interfere.
+	if ( null !== $result ) {
+		return $result;
+	}
+
+	// Only guard the Studio subsite. On main these routes are the correct
+	// destination, so the marker (which the proxy strips anyway) is harmless.
+	if ( function_exists( 'ec_get_blog_id' ) ) {
+		$main_blog_id = (int) ec_get_blog_id( 'main' );
+		if ( $main_blog_id > 0 && (int) get_current_blog_id() === $main_blog_id ) {
+			return $result;
+		}
+	}
+
+	// Only writes can strand content; reads are harmless.
+	$method = strtoupper( (string) $request->get_method() );
+	if ( ! in_array( $method, array( 'POST', 'PUT', 'PATCH' ), true ) ) {
+		return $result;
+	}
+
+	// Only a compose-originated request should ever carry this marker.
+	if ( '' === (string) $request->get_header( EC_STUDIO_COMPOSE_MARKER_HEADER ) ) {
+		return $result;
+	}
+
+	// Only the core posts/media routes strand content on blog 12. Match the
+	// collection and single-item routes; the compose proxy routes are a
+	// different namespace and never reach here.
+	$route                  = (string) $request->get_route();
+	$is_core_posts_or_media = (bool) preg_match(
+		'#^/wp/v2/(posts|media)(/\d+)?(/autosaves)?$#',
+		$route
+	);
+	if ( ! $is_core_posts_or_media ) {
+		return $result;
+	}
+
+	return new \WP_Error(
+		'ec_studio_compose_stranded_local_write',
+		__( 'This post must be created on the main site, but the request was routed to Studio. Nothing was saved. Please reload the Compose tab and try again — if it keeps happening, contact an admin.', 'extrachill-studio' ),
+		array( 'status' => 409 )
+	);
+}
+add_filter( 'rest_pre_dispatch', 'ec_studio_compose_block_stranded_local_writes', 10, 3 );
+
+/**
  * Permission check for the compose proxy routes.
  *
  * Mirrors the team-gating used by the compose editor surface itself
@@ -317,6 +408,13 @@ function ec_studio_compose_create_post( \WP_REST_Request $request ) {
 		)
 	);
 
+	// Stamp Studio-submission provenance meta on the main-site post. This is
+	// the detectability half of the born-on-main guarantee (#106): every
+	// compose-created post carries an identifying marker on main, so a
+	// submission that SHOULD be on main but is missing it (stranded on blog 12)
+	// becomes observable instead of silent.
+	ec_studio_compose_stamp_origin_meta( $response, $user_id );
+
 	// On a successful create, emit a draft-created or submitted-for-review
 	// event (extrachill-users#127 shared contract). A brand-new compose post
 	// defaults to draft when status is omitted.
@@ -361,6 +459,12 @@ function ec_studio_compose_update_post( \WP_REST_Request $request ) {
 			'user_id' => $user_id,
 		)
 	);
+
+	// Ensure the submission-provenance meta is present on main. Idempotent:
+	// a compose post created before this marker existed, or one whose create
+	// stamp somehow did not land, is back-filled here on its next compose
+	// write (e.g. Submit-for-Review). See #106.
+	ec_studio_compose_stamp_origin_meta( $response, $user_id );
 
 	// On a successful update, emit submitted-for-review when the writer
 	// transitions the post to pending (extrachill-users#127 shared contract).
@@ -423,6 +527,91 @@ function ec_studio_compose_emit_lifecycle_event( $response, string $status, int 
 			$user_id,
 			array( 'post_id' => $post_id )
 		);
+	}
+}
+
+/**
+ * Post-meta key stamped on a main-site post created via the Studio compose
+ * proxy. Value is an array: { user_id, submitted_at (ISO-8601 UTC), source }.
+ */
+const EC_STUDIO_SUBMISSION_META = '_ec_studio_submission';
+
+/**
+ * Post-meta key recording the blog id the compose write originated from
+ * (always the Studio subsite). Aids detecting a stranded/mis-homed submission.
+ */
+const EC_STUDIO_ORIGIN_BLOG_META = '_ec_studio_origin_blog';
+
+/**
+ * Stamp Studio-submission provenance meta on the MAIN-site post.
+ *
+ * The born-on-main guarantee (#106) needs more than routing — it needs
+ * *provenance* and *detectability*. Every post the compose proxy writes gets
+ * an identifying marker on main so that:
+ *   - editors/tools can query for Studio submissions, and
+ *   - a submission that should be on main but is missing the marker (i.e.
+ *     stranded on the Studio subsite) is observable instead of silent.
+ *
+ * The marker is server-authored provenance, not user input, and is set
+ * directly under `switch_to_blog( main )` via update_post_meta — it does NOT
+ * rely on the main-site post type registering these keys for REST, so it works
+ * regardless of which plugins are active on main. Idempotent: `submitted_at`
+ * is only written once (first stamp wins) so re-stamping on a later update
+ * does not rewrite the original submission time; `source` and origin-blog are
+ * refreshed harmlessly.
+ *
+ * No-op when the cross-site write errored or returned no post id.
+ *
+ * @since 0.20.1
+ *
+ * @param array|\WP_Error $response Cross-site write result.
+ * @param int             $user_id  Acting/subject user id.
+ * @return void
+ */
+function ec_studio_compose_stamp_origin_meta( $response, int $user_id ): void {
+	if ( is_wp_error( $response ) ) {
+		return;
+	}
+
+	// After the WP_Error guard, a successful cross-site write is an array.
+	$post_id = isset( $response['id'] ) ? (int) $response['id'] : 0;
+	if ( $post_id <= 0 ) {
+		return;
+	}
+
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return;
+	}
+
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
+	if ( $main_blog_id <= 0 ) {
+		return;
+	}
+
+	$origin_blog_id = (int) get_current_blog_id();
+
+	switch_to_blog( $main_blog_id );
+	try {
+		$existing = get_post_meta( $post_id, EC_STUDIO_SUBMISSION_META, true );
+
+		// Preserve the original submitted_at on re-stamp (first stamp wins).
+		$submitted_at = is_array( $existing ) && ! empty( $existing['submitted_at'] )
+			? (string) $existing['submitted_at']
+			: gmdate( 'c' );
+
+		update_post_meta(
+			$post_id,
+			EC_STUDIO_SUBMISSION_META,
+			array(
+				'user_id'      => $user_id,
+				'submitted_at' => $submitted_at,
+				'source'       => 'studio-compose',
+			)
+		);
+
+		update_post_meta( $post_id, EC_STUDIO_ORIGIN_BLOG_META, $origin_blog_id );
+	} finally {
+		restore_current_blog();
 	}
 }
 

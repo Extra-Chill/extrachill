@@ -7,6 +7,7 @@ import apiFetch from '@wordpress/api-fetch';
 import type { NetworkMediaItem, SocialJobPlatformResult, SocialPlatformConfig } from '@extrachill/api-client';
 import { studioClient } from '../../../app/client';
 import MediaPicker from '../media-picker';
+import { markLocalRequest } from '../../compose/cross-site-middleware';
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
@@ -289,7 +290,14 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 		setStatus( __( 'Submitting for review…', 'extrachill-studio' ) );
 
 		try {
-			const post = await apiFetch< WpPost >( {
+			// This social draft must be born on the LOCAL Studio site (blog 12),
+			// NOT rewritten to main. The compose cross-site middleware is a
+			// single apiFetch-wide global, so an active Compose instance in a
+			// background tab would otherwise capture this /wp/v2/posts write.
+			// Tag it explicitly local so it always reaches blog 12, regardless
+			// of Compose's live-instance count. See
+			// Extra-Chill/extrachill-studio#106.
+			const post = await apiFetch< WpPost >( markLocalRequest( {
 				path: '/wp/v2/posts',
 				method: 'POST',
 				data: {
@@ -303,7 +311,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 						_studio_social_media_kind: images.length > 1 ? 'carousel' : 'image',
 					},
 				},
-			} );
+			} ) );
 
 			setStatus(
 				sprintf( __( 'Draft #%d submitted for review. An admin will approve it before it goes live.', 'extrachill-studio' ), post.id )

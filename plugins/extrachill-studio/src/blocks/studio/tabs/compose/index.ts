@@ -9,8 +9,19 @@ import {
 } from '@extrachill/chat';
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 import type { StudioPaneProps } from '../../types/studio';
-import { setComposeCrossSiteActive } from './cross-site-middleware';
+import { markComposeRequest, registerComposeInstance } from './cross-site-middleware';
 import { installChatRefreshAdapter } from './refresh-adapter';
+
+/**
+ * apiFetch wrapper that tags a request as Compose-pane-originated so the
+ * cross-site middleware ALWAYS rewrites it to main (blog 1), with no dependence
+ * on the live-instance count and no timing window. Every apiFetch call this
+ * pane makes goes through here so a stray call can never escape to blog 12.
+ * See cross-site-middleware.ts and Extra-Chill/extrachill-studio#106.
+ */
+const composeApiFetch = < T = unknown >(
+	options: import('@wordpress/api-fetch').APIFetchOptions< true >
+): Promise< T > => apiFetch< T >( markComposeRequest( options ) );
 
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
@@ -206,7 +217,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	const fetchPostContent = useCallback(
 		async ( postId: number ): Promise< string > => {
 			try {
-				const post = await apiFetch< WpPost >( {
+				const post = await composeApiFetch< WpPost >( {
 					path: `/wp/v2/posts/${ postId }?context=edit`,
 				} );
 				return post?.content?.raw || post?.content?.rendered || '';
@@ -324,7 +335,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			// the author filter rather than ship a half-broken query. In practice
 			// @wordpress/data core selector should always resolve for logged-in
 			// users on Studio (gated by team-member capability check server-side).
-			const result = await apiFetch< WpPost[] >( { path } );
+			const result = await composeApiFetch< WpPost[] >( { path } );
 			return Array.isArray( result ) ? result : [];
 		} catch {
 			return [];
@@ -381,13 +392,13 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				// The /autosaves endpoint returns a revision object (id = revision ID, parent = post ID).
 				// Do NOT overwrite activePostIdRef with the revision ID.
 				if ( postId ) {
-					await apiFetch( {
+					await composeApiFetch( {
 						path: `/wp/v2/posts/${ postId }/autosaves`,
 						method: 'POST',
 						data: { title: currentTitle, content: currentContent },
 					} );
 				} else {
-					const post = await apiFetch< WpPost >( {
+					const post = await composeApiFetch< WpPost >( {
 						path: '/wp/v2/posts',
 						method: 'POST',
 						data: { title: currentTitle, content: currentContent, status: 'draft' },
@@ -435,7 +446,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					.getCurrentUser?.();
 				const currentUserId = currentUser?.id;
 				if ( currentUserId ) {
-					const autosaves = await apiFetch< WpAutosave[] >( {
+					const autosaves = await composeApiFetch< WpAutosave[] >( {
 						path: `/wp/v2/posts/${ post.id }/autosaves?context=edit`,
 					} );
 					const userAutosave = Array.isArray( autosaves )
@@ -537,13 +548,13 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				// The /autosaves endpoint returns a revision object (id = revision ID, parent = post ID).
 				// Do NOT overwrite activePostIdRef with the revision ID — the parent ID is stable.
 				if ( postId ) {
-					await apiFetch( {
+					await composeApiFetch( {
 						path: `/wp/v2/posts/${ postId }/autosaves`,
 						method: 'POST',
 						data: { title: currentTitle, content: currentContent },
 					} );
 				} else {
-					const post = await apiFetch< WpPost >( {
+					const post = await composeApiFetch< WpPost >( {
 						path: '/wp/v2/posts',
 						method: 'POST',
 						data: { title: currentTitle, content: currentContent, status: 'draft' },
@@ -620,15 +631,17 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		}, AUTOSAVE_DELAY );
 	}, [ performAutosave ] );
 
-	// Activate cross-site apiFetch rewriting for the lifetime of this pane only.
-	// Declared before the draft-load/editor-mount effect so rewriting is on
-	// before the first /wp/v2/posts fetch fires. Deactivated on unmount so other
-	// Studio tabs (e.g. Socials) keep hitting the local Studio site.
+	// Register a live cross-site compose instance for the lifetime of this pane.
+	// Declared before the draft-load/editor-mount effect so the instance is
+	// live before the first /wp/v2/posts fetch — or the block editor's own
+	// internal autosave/upload calls — can fire. The disposer decrements the
+	// reference count on unmount. This covers the block editor's OWN internal
+	// calls (which we can't mark at their source); the pane's own calls are
+	// additionally tagged via composeApiFetch so they route to main even if the
+	// count were somehow zero. See Extra-Chill/extrachill-studio#106.
 	useEffect( () => {
-		setComposeCrossSiteActive( true );
-		return () => {
-			setComposeCrossSiteActive( false );
-		};
+		const dispose = registerComposeInstance();
+		return dispose;
 	}, [] );
 
 	// Bridge the chat's action-resolved event to BE's refresh-content event for
@@ -847,7 +860,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		try {
 			const path = activePostId ? `/wp/v2/posts/${ activePostId }` : '/wp/v2/posts';
 
-			await apiFetch< WpPost >( {
+			await composeApiFetch< WpPost >( {
 				path,
 				method: 'POST',
 				data: {
@@ -894,7 +907,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 
 		try {
 			const path = activePostId ? `/wp/v2/posts/${ activePostId }` : '/wp/v2/posts';
-			const post = await apiFetch< WpPost >( {
+			const post = await composeApiFetch< WpPost >( {
 				path,
 				method: 'POST',
 				data: { title: title.trim(), content, status: 'draft' },

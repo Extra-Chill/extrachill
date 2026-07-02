@@ -20,16 +20,57 @@
  * land in main's media library — not Studio's — avoiding the cross-site
  * attachment migration problem.
  *
- * Scope — this matters: apiFetch is a single global, shared by every Studio
- * tab. The rewrite must apply ONLY while the Compose pane is active, because
- * other tabs legitimately hit the same core routes against the LOCAL Studio
- * site (e.g. the Socials tab POSTs `/wp/v2/posts` to create a Studio-local
- * social draft). So the middleware is registered once but stays INERT until
- * the Compose pane activates it on mount, and deactivates it on unmount. When
- * inactive it passes every request through untouched. Even when active it only
- * rewrites the specific compose routes below; all other traffic (core editor
- * bootstrap preloads, taxonomies, user lookups) passes through so the editor
- * still boots against the local Studio site.
+ * ## Why this is NOT gated by a lifecycle-toggled global (regression #106)
+ *
+ * The original implementation gated the rewrite on a module-level `active`
+ * boolean that the Compose pane flipped `true` on React mount and `false` on
+ * unmount. That was racy: any compose write (autosave, media upload, or the
+ * final Submit-for-Review) that dispatched while the flag was `false` — before
+ * the mount effect ran, or after the unmount cleared it — silently escaped to
+ * Studio-local `/wp/v2/posts|media` and landed on blog 12. With a real
+ * submission (69 uploads + autosaves + a submit) the odds of *something*
+ * firing outside the window were high; a stranded post + 69 attachments on
+ * blog 12 is exactly what happened (#106).
+ *
+ * The gate is now split into two race-free mechanisms, either of which forces
+ * a rewrite:
+ *
+ *   1. **Explicit per-request marker.** The Compose pane tags every request it
+ *      originates (autosave, submit, save-draft, draft load, content refetch)
+ *      with an `X-EC-Studio-Compose` header (see {@link markComposeRequest}).
+ *      A marked request is ALWAYS rewritten — the routing decision is attached
+ *      to the request itself, so there is no timing window at all.
+ *
+ *   2. **Live-instance reference count.** The block editor's OWN internal calls
+ *      (core autosave store writes, `uploadMedia()` uploads) are made by core,
+ *      not the Compose pane, so we cannot mark them at their call site. Instead
+ *      the Compose pane registers a live editor instance for its entire
+ *      lifetime ({@link registerComposeInstance}). While at least one compose
+ *      instance is live, compose-route traffic rewrites by default.
+ *
+ * The routing decision is made by apiFetch middleware at DISPATCH time, not at
+ * completion — so a request that is still in-flight when the pane unmounts was
+ * already rewritten when it was created. The only escape the old boolean had
+ * (a compose write dispatching while the flag read `false`) cannot occur here:
+ * compose writes only originate while an instance is live (refcount ≥ 1), and
+ * the marker forces a rewrite independently of the count.
+ *
+ * ## Preserving Socials' LOCAL writes
+ *
+ * apiFetch is a single global shared by every Studio tab, and the Socials tab
+ * legitimately POSTs `/wp/v2/posts` to the LOCAL Studio site to create a
+ * Studio-local social draft. Because the refcount defaults compose routes to
+ * "rewrite" while a compose instance is live, Socials must OPT OUT explicitly:
+ * it tags its local writes with `X-EC-Studio-Local` (see
+ * {@link markLocalRequest}). A locally-marked request is NEVER rewritten,
+ * regardless of the refcount — so Socials always reaches blog 12 even when the
+ * Compose pane is mounted in a background tab. This is deterministic: the two
+ * markers are mutually exclusive and each is attached at the originating call
+ * site, so no shared mutable timing state decides where a write lands.
+ *
+ * Non-compose routes (core editor bootstrap preloads, taxonomies, user
+ * lookups) are never matched by {@link rewritePath} and always pass through so
+ * the editor still boots against the local Studio site.
  */
 
 import apiFetch from '@wordpress/api-fetch';
@@ -38,14 +79,90 @@ import type { APIFetchMiddleware, APIFetchOptions } from '@wordpress/api-fetch';
 /** Studio-local proxy route prefix that forwards to main. */
 const PROXY_PREFIX = '/extrachill/v1/studio/compose';
 
+/**
+ * Request header a Compose-pane call attaches to force a rewrite to main.
+ * Set via {@link markComposeRequest} on every apiFetch the pane originates.
+ */
+export const COMPOSE_MARKER_HEADER = 'X-EC-Studio-Compose';
+
+/**
+ * Request header a caller attaches to force a LOCAL (Studio blog 12) write,
+ * opting out of the compose rewrite even while a compose instance is live.
+ * Set via {@link markLocalRequest} — used by the Socials tab.
+ */
+export const LOCAL_MARKER_HEADER = 'X-EC-Studio-Local';
+
 /** Whether the middleware has been registered with apiFetch (once per page). */
 let registered = false;
 
 /**
- * Whether rewriting is currently active. Gated to the Compose pane's lifetime
- * so other Studio tabs' core-route calls reach the local Studio site.
+ * Number of live Compose editor instances. While > 0, compose-route traffic
+ * rewrites to main by default (unless the request opts out with the local
+ * marker). A reference count — not a lifecycle boolean — so overlapping
+ * mounts/unmounts (React strict-mode double-invoke, tab churn) can never leave
+ * the gate stuck open or closed.
  */
-let active = false;
+let liveInstances = 0;
+
+/**
+ * Read a header value from apiFetch options case-insensitively.
+ *
+ * @param options apiFetch options.
+ * @param name    Header name to look up.
+ * @return The header value, or undefined when absent.
+ */
+function readHeader( options: APIFetchOptions, name: string ): string | undefined {
+	const headers = options.headers;
+	if ( ! headers || typeof headers !== 'object' ) {
+		return undefined;
+	}
+	const wanted = name.toLowerCase();
+	for ( const key of Object.keys( headers as Record< string, string > ) ) {
+		if ( key.toLowerCase() === wanted ) {
+			return ( headers as Record< string, string > )[ key ];
+		}
+	}
+	return undefined;
+}
+
+/**
+ * Attach the compose marker header to apiFetch options.
+ *
+ * Every request the Compose pane originates should be wrapped with this so it
+ * is ALWAYS rewritten to main, independent of the live-instance count.
+ *
+ * @param options apiFetch options.
+ * @return New options with the compose marker header set.
+ */
+export function markComposeRequest< T extends APIFetchOptions >( options: T ): T {
+	return {
+		...options,
+		headers: {
+			...( options.headers as Record< string, string > | undefined ),
+			[ COMPOSE_MARKER_HEADER ]: '1',
+		},
+	};
+}
+
+/**
+ * Attach the local marker header to apiFetch options.
+ *
+ * Callers that must write to the LOCAL Studio site (blog 12) even while a
+ * Compose instance is live — e.g. the Socials tab creating a social draft —
+ * wrap their options with this so the middleware never rewrites them.
+ *
+ * @param options apiFetch options.
+ * @return New options with the local marker header set.
+ */
+export function markLocalRequest< T extends APIFetchOptions >( options: T ): T {
+	return {
+		...options,
+		headers: {
+			...( options.headers as Record< string, string > | undefined ),
+			[ LOCAL_MARKER_HEADER ]: '1',
+		},
+	};
+}
 
 /**
  * Split an apiFetch path into its route and query-string parts.
@@ -114,11 +231,37 @@ function rewritePath( path: string ): string | null {
 }
 
 /**
+ * Decide whether a given apiFetch request should be rewritten to main.
+ *
+ * Rewrite when EITHER:
+ *   - the request carries the compose marker (pane-originated call), OR
+ *   - at least one Compose instance is live (covers the block editor's own
+ *     internal autosave/upload calls, which we cannot mark at their source).
+ *
+ * Never rewrite when the request carries the local marker — that is an
+ * explicit opt-out (Socials) that must reach blog 12 even while Compose is
+ * mounted. The local marker wins over the live-instance default, so the two
+ * tabs never fight over a shared boolean.
+ *
+ * @param options apiFetch options for the request.
+ * @return True when the request should be rewritten to main.
+ */
+function shouldRewrite( options: APIFetchOptions ): boolean {
+	if ( readHeader( options, LOCAL_MARKER_HEADER ) ) {
+		return false;
+	}
+	if ( readHeader( options, COMPOSE_MARKER_HEADER ) ) {
+		return true;
+	}
+	return liveInstances > 0;
+}
+
+/**
  * Register the cross-site compose apiFetch middleware (idempotent).
  *
  * Registers the rewrite middleware with apiFetch exactly once per page. The
- * middleware is INERT until {@link setComposeCrossSiteActive} turns it on, so
- * registering it has no effect on other tabs' requests.
+ * middleware only rewrites when {@link shouldRewrite} says so, so registering
+ * it has no effect on other tabs' unmarked, no-instance-live requests.
  */
 function registerMiddlewareOnce(): void {
 	if ( registered ) {
@@ -127,7 +270,7 @@ function registerMiddlewareOnce(): void {
 	registered = true;
 
 	const middleware: APIFetchMiddleware = ( options: APIFetchOptions, next ) => {
-		if ( ! active ) {
+		if ( ! shouldRewrite( options ) ) {
 			return next( options );
 		}
 
@@ -146,16 +289,30 @@ function registerMiddlewareOnce(): void {
 }
 
 /**
- * Turn cross-site rewriting on or off.
+ * Register a live Compose editor instance.
  *
- * The Compose pane calls this with `true` on mount and `false` on unmount so
- * the rewrite only applies while the writer is in the Blog tab. Registering
- * the middleware lazily here keeps the whole mechanism dormant until Compose
- * is actually used.
+ * The Compose pane calls this once, synchronously, from its first mount effect
+ * — before the block editor is created and before any compose request can
+ * dispatch — and calls the returned disposer on unmount. While the count is
+ * above zero, the block editor's own internal `/wp/v2/posts|media` calls are
+ * rewritten to main. Reference-counted so overlapping instances (or React
+ * strict-mode's double-invoke) can never leave the gate stuck.
  *
- * @param next Whether rewriting should be active.
+ * Registering the middleware lazily here keeps the whole mechanism dormant
+ * until Compose is actually used.
+ *
+ * @return A disposer that decrements the live-instance count.
  */
-export function setComposeCrossSiteActive( next: boolean ): void {
+export function registerComposeInstance(): () => void {
 	registerMiddlewareOnce();
-	active = next;
+	liveInstances += 1;
+
+	let disposed = false;
+	return () => {
+		if ( disposed ) {
+			return;
+		}
+		disposed = true;
+		liveInstances = Math.max( 0, liveInstances - 1 );
+	};
 }
