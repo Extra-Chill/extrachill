@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.21.0] - 2026-07-03
+
+### Added
+- notify writer when their Studio submission is published
+- detect silent Compose strandings on the Studio subsite
+- gate Studio compose submissions on featured image + category (#108)
+- editor-facing review queue for Studio blog submissions
+
+### Changed
+- adopt shared Grid/.ec-card-grid primitive
+
+### Fixed
+- give Network tab charts legible width in a two-column dashboard grid
+- make Studio compose born-on-main robust against silent local writes
+
 ## [0.20.0] - 2026-06-28
 
 ### Added
