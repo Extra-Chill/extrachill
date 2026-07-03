@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.11.1] - 2026-07-03
+
+### Fixed
+- make responsive card grids overflow-safe (min(100%, floor))
+
 ## [2.11.0] - 2026-06-30
 
 ### Added
