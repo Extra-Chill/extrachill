@@ -24,6 +24,7 @@ import {
 	getOrCreateClientContextRegistry,
 	registerClientContextProvider,
 } from '@extrachill/chat';
+import { Grid } from '@extrachill/components';
 
 import type { StudioPaneProps } from '../../types/studio';
 import { ConversionMapChart } from './conversion-map-chart';
@@ -75,12 +76,16 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 					'extrachill-studio'
 				) }
 			</p>
-			<div className="ec-studio-network__grid">
+			<Grid
+				minColumnWidth="480px"
+				gap="var(--spacing-lg)"
+				className="ec-studio-network__grid"
+			>
 				<SessionsChart host={ host } />
 				<SurfaceGrowthChart />
 				<RetentionChart />
 				<ConversionMapChart />
-			</div>
+			</Grid>
 		</div>
 	);
 };

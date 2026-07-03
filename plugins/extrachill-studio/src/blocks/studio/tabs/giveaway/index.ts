@@ -452,7 +452,7 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 				h( PanelHeader, { description: __( 'Entry breakdown after applying rules.', 'extrachill-studio' ) } ),
 				createElement(
 					'div',
-					{ className: 'ec-studio-giveaway-stats' },
+					{ className: 'ec-card-grid ec-studio-giveaway-stats' },
 					createElement( 'div', { className: 'ec-studio-giveaway-stats__item' },
 						createElement( 'span', { className: 'ec-studio-giveaway-stats__value' }, String( stats.totalComments ) ),
 						createElement( 'span', { className: 'ec-studio-giveaway-stats__label' }, __( 'Total Comments', 'extrachill-studio' ) )

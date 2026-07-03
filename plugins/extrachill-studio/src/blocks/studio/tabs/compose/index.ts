@@ -1117,7 +1117,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		{ className: 'ec-studio-pane ec-studio-pane--compose' },
 		h(
 			'div',
-			{ className: 'ec-studio-pane__grid ec-studio-pane__grid--compose' },
+			{ className: 'ec-card-grid ec-studio-pane__grid ec-studio-pane__grid--compose' },
 			h(
 				PanelView,
 				{ className: 'ec-studio-panel ec-studio-panel--editor', compact: true },

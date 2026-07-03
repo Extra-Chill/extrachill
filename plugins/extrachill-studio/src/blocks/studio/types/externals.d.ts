@@ -118,6 +118,16 @@ declare module '@extrachill/components' {
 		maxWidth?: 'none' | 'narrow' | 'wide';
 	}
 	export function BlockShellInner( props: BlockShellInnerProps ): ReactElement;
+
+	export interface GridProps {
+		children: ReactNode;
+		className?: string;
+		classPrefix?: string;
+		minColumnWidth?: string;
+		gap?: string;
+		maxColumns?: number;
+	}
+	export function Grid( props: GridProps ): ReactElement;
 }
 
 declare module '@extrachill/components/styles/components.scss';

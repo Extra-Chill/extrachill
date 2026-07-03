@@ -29,10 +29,10 @@
 	gap: var(--spacing-lg);
 }
 
+/* Uses the shared .ec-card-grid utility from @extrachill/components; only the
+ * column floor is customized here. See view.ts for the components.scss import. */
 .ec-studio-pane__grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-	gap: var(--spacing-md);
+	--ec-card-grid-min: 220px;
 	min-width: 0;
 }
 
@@ -159,6 +159,10 @@
 	margin-bottom: var(--spacing-md);
 }
 
+/* Intentionally NOT migrated to the shared .ec-card-grid utility: this picker
+ * relies on auto-FILL (fixed-size square tiles kept small and left-aligned),
+ * whereas .ec-card-grid uses auto-fit, which would stretch tiles to fill the
+ * row and distort the media thumbnails. Kept local to preserve picker layout. */
 .ec-studio-media-picker__grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -462,10 +466,10 @@
 	text-align: center;
 }
 
+/* Uses the shared .ec-card-grid utility from @extrachill/components; only the
+ * column floor and padding are customized here. */
 .ec-studio-giveaway-stats {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-	gap: var(--spacing-md);
+	--ec-card-grid-min: 120px;
 	padding: var(--spacing-md) 0;
 }
 
@@ -1184,17 +1188,15 @@ html.is-fullscreen-mode .ec-studio-compose-editor .interface-interface-skeleton_
 }
 
 /*
- * Two-column-max dashboard grid. The previous `minmax(320px, 1fr)` let the
- * grid pack 3–4 charts per row on wide screens, squeezing each Chart.js
- * canvas / DataTable into a cramped ~320px column that read as "a bunch of
- * tiny cards." A 480px floor guarantees at most two columns on typical
- * screens so every chart gets legible width, and it collapses to a single
- * column when two legible cards no longer fit.
+ * Two-column-max dashboard grid. A 480px floor guarantees at most two columns
+ * on typical screens so every Chart.js canvas / DataTable gets legible width,
+ * collapsing to a single column when two legible cards no longer fit. Rendered
+ * via the shared <Grid> primitive from @extrachill/components with
+ * minColumnWidth="480px" and gap="var(--spacing-lg)" (see tabs/network/index.tsx),
+ * which applies the .ec-card-grid utility. This class only carries
+ * element-specific overrides.
  */
 .ec-studio-network__grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
-	gap: var(--spacing-lg);
 	min-width: 0;
 }
 
