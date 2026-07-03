@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.0] - 2026-07-03
+
+### Added
+- add Grid / .ec-card-grid responsive card-grid primitive
+
 ## [0.8.0] - 2026-06-16
 
 ### Added
