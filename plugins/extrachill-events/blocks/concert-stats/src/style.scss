@@ -198,11 +198,13 @@ a.ec-concert-stats__stat {
 
 /* ─── Leaderboards (inside Panel) ───────────────────────────────────────── */
 
-.ec-concert-stats__leaderboards {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: var(--spacing-lg, 1.5rem);
-}
+/*
+ * Grid layout is provided by the shared `.ec-card-grid` primitive
+ * (`<Grid>` from @extrachill/components, minColumnWidth="200px",
+ * gap="var(--spacing-lg, 1.5rem)"). Only the mobile override below
+ * remains local — it forces a single column earlier than the auto-fit
+ * floor would.
+ */
 
 .ec-concert-stats__leaderboard-title {
 	font-size: var(--font-size-sm, 0.875rem);
@@ -446,11 +448,12 @@ a.ec-concert-stats__stat {
 	color: var(--muted-text, #6b7280);
 }
 
-.ec-concert-stats__import-cards {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-	gap: var(--spacing-md, 1rem);
-}
+/*
+ * `.ec-concert-stats__import-cards` grid layout is provided by the shared
+ * `.ec-card-grid` primitive (`<Grid>` from @extrachill/components,
+ * minColumnWidth="280px"). The default gap (--spacing-md, 1rem) matches the
+ * previous local declaration, so no gap override is needed.
+ */
 
 /* Form layout inside the import Panel */
 .ec-concert-stats__import-card-form {

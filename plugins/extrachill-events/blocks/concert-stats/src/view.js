@@ -12,6 +12,7 @@ import {
 	BlockShell,
 	BlockShellInner,
 	BlockShellHeader,
+	Grid,
 	InlineStatus,
 	ResponsiveTabs,
 } from '@extrachill/components';
@@ -445,7 +446,11 @@ function ConcertStatsApp( {
 				}
 				if ( stats && hasAnyShows ) {
 					return (
-						<div className="ec-concert-stats__leaderboards">
+						<Grid
+							className="ec-concert-stats__leaderboards"
+							minColumnWidth="200px"
+							gap="var(--spacing-lg, 1.5rem)"
+						>
 							<Leaderboard
 								title="Top Artists"
 								items={ stats.top_artists }
@@ -460,7 +465,7 @@ function ConcertStatsApp( {
 								items={ stats.top_cities }
 								taxonomy="location"
 							/>
-						</div>
+						</Grid>
 					);
 				}
 				return null;

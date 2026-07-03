@@ -34,9 +34,17 @@
 
 
 
+/*
+ * Mirrors the shared `.ec-card-grid` auto-fit pattern locally. This block's
+ * style.css is enqueued standalone (block.json "style": "file:./style.css")
+ * and does not load @extrachill/components CSS, so the shared class/token is
+ * not available here. The `min(100%, 220px)` floor keeps a single column from
+ * overflowing on narrow viewports — the overflow-safety the shared primitive
+ * provides, applied in-place without a cross-package dependency.
+ */
 .ec-event-submission__grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
 	gap: 16px;
 	margin-bottom: 20px;
 }
@@ -121,9 +129,11 @@
 	color: var(--muted-text);
 }
 
+/* Overflow-safe auto-fit grid, mirroring the shared `.ec-card-grid` pattern
+ * locally (see note above — this block's CSS loads standalone). */
 .ec-event-submission-editor__preview {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
 	gap: 12px;
 }
 

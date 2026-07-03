@@ -10,7 +10,7 @@
  * @package ExtraChillEvents
  */
 
-import { InlineStatus, Section } from '@extrachill/components';
+import { Grid, InlineStatus, Section } from '@extrachill/components';
 import ImportSourceCard from './ImportSourceCard';
 
 /**
@@ -46,7 +46,10 @@ const ImportTab = ( { bag } ) => {
 				Shows we don&rsquo;t already have we&rsquo;ll add for you so your full history comes in.
 			</p>
 
-			<div className="ec-concert-stats__import-cards">
+			<Grid
+				className="ec-concert-stats__import-cards"
+				minColumnWidth="280px"
+			>
 				{ sources.map( ( source ) => (
 					<ImportSourceCard
 						key={ source.slug }
@@ -56,7 +59,7 @@ const ImportTab = ( { bag } ) => {
 						onStart={ start }
 					/>
 				) ) }
-			</div>
+			</Grid>
 		</Section>
 	);
 };
