@@ -31,4 +31,5 @@ export { BlockShellHeader, type BlockShellHeaderProps } from './BlockShellHeader
 export { Toolbar, type ToolbarProps } from './Toolbar.tsx';
 export { StatTile, type StatTileProps } from './StatTile.tsx';
 export { StatGroup, type StatGroupProps } from './StatGroup.tsx';
+export { Grid, type GridProps } from './Grid.tsx';
 export { ProgressBar, type ProgressBarProps } from './ProgressBar.tsx';

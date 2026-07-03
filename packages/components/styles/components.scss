@@ -845,11 +845,28 @@
 	}
 }
 
-// Stat Group — responsive row of stat tiles
-.ec-stat-group {
+// Card Grid — responsive auto-fit grid of cards/tiles.
+// Single source of truth for the `repeat(auto-fit, minmax(<floor>, 1fr))`
+// pattern re-declared across the platform. Consumers set the column floor via
+// the `--ec-card-grid-min` custom property (inline style or a wrapping class).
+// The `min(100%, <floor>)` guard keeps a single column from overflowing on
+// narrow viewports — a bug most of the raw declarations lack.
+.ec-card-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-	gap: var(--spacing-md, 1rem);
+	grid-template-columns: repeat(
+		auto-fit,
+		minmax(min(100%, var(--ec-card-grid-min, 240px)), 1fr)
+	);
+	gap: var(--ec-card-grid-gap, var(--spacing-md, 1rem));
+}
+
+// Stat Group — responsive row of stat tiles.
+// Re-expressed in terms of the shared card-grid rule so the grid pattern lives
+// in exactly one place. Kept as a distinct class name for back-compat with
+// existing consumers; it only overrides the column floor.
+.ec-stat-group {
+	@extend .ec-card-grid;
+	--ec-card-grid-min: 120px;
 }
 
 // Stat Tile — large metric value over a label
