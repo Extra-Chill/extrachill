@@ -294,6 +294,13 @@ function ec_studio_compose_block_stranded_local_writes( $result, $server, $reque
 		return $result;
 	}
 
+	// Make the rejection observable. A single blocked request is a caught
+	// stranding (good), but a RECURRING pattern means the client-side rewrite
+	// is systematically failing — that must be visible to an operator, not
+	// silently absorbed per-request. Record it on a persistent counter (with
+	// last-seen context) and emit a gated error_log line. See #110.
+	ec_studio_compose_record_guard_rejection( $method, $route );
+
 	return new \WP_Error(
 		'ec_studio_compose_stranded_local_write',
 		__( 'This post must be created on the main site, but the request was routed to Studio. Nothing was saved. Please reload the Compose tab and try again — if it keeps happening, contact an admin.', 'extrachill-studio' ),
@@ -301,6 +308,69 @@ function ec_studio_compose_block_stranded_local_writes( $result, $server, $reque
 	);
 }
 add_filter( 'rest_pre_dispatch', 'ec_studio_compose_block_stranded_local_writes', 10, 3 );
+
+/**
+ * Option key holding an observability record of guard rejections.
+ *
+ * Shape: {
+ *   count        int     Total rejections since first seen.
+ *   first_seen   string  ISO-8601 UTC of the first rejection.
+ *   last_seen    string  ISO-8601 UTC of the most recent rejection.
+ *   last_user_id int     User whose write was most recently blocked.
+ *   last_method  string  HTTP method of the most recent blocked write.
+ *   last_route   string  Core route of the most recent blocked write.
+ * }
+ */
+const EC_STUDIO_COMPOSE_GUARD_REJECTIONS_OPTION = 'ec_studio_compose_guard_rejections';
+
+/**
+ * Record a stranded-local-write guard rejection for observability.
+ *
+ * The #107 guard rejects a compose-marked local write per-request, which stops
+ * the stranding but says nothing to an operator. A one-off is expected noise;
+ * a recurring count is a real, actionable signal that the born-on-main routing
+ * is systematically missing. This persists a small running record (autoloaded
+ * option, updated in place) and emits a gated error_log line so the failure is
+ * surfaced in logs and can be read back by the CLI report (see #110).
+ *
+ * @since 0.20.1
+ *
+ * @param string $method HTTP method of the blocked write.
+ * @param string $route  Core route the blocked write targeted.
+ * @return void
+ */
+function ec_studio_compose_record_guard_rejection( string $method, string $route ): void {
+	$now     = gmdate( 'c' );
+	$user_id = (int) get_current_user_id();
+
+	$record = get_option( EC_STUDIO_COMPOSE_GUARD_REJECTIONS_OPTION, array() );
+	if ( ! is_array( $record ) ) {
+		$record = array();
+	}
+
+	$record = array(
+		'count'        => isset( $record['count'] ) ? ( (int) $record['count'] + 1 ) : 1,
+		'first_seen'   => ! empty( $record['first_seen'] ) ? (string) $record['first_seen'] : $now,
+		'last_seen'    => $now,
+		'last_user_id' => $user_id,
+		'last_method'  => $method,
+		'last_route'   => $route,
+	);
+
+	update_option( EC_STUDIO_COMPOSE_GUARD_REJECTIONS_OPTION, $record, true );
+
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Gated observability log for a proven routing miss (#110).
+			sprintf(
+				'[extrachill-studio] Compose born-on-main guard rejected a stranded local write (count=%d): %s %s by user %d. The client-side rewrite is missing — investigate if this recurs.',
+				(int) $record['count'],
+				$method,
+				$route,
+				$user_id
+			)
+		);
+	}
+}
 
 /**
  * Permission check for the compose proxy routes.
