@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.24.0] - 2026-07-03
+
+### Added
+- notify a submitter when their submission is published
+- send team welcome + set-password email on first role grant (#159)
+
 ## [0.23.0] - 2026-06-28
 
 ### Added
