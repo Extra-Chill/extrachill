@@ -170,6 +170,44 @@ function ec_studio_compose_register_routes(): void {
 			),
 		)
 	);
+
+	/*
+	 * Editorial-taxonomy term pickers. The compose UI reads/searches (GET) and
+	 * creates (POST) terms on MAIN's category/artist/venue/location taxonomies
+	 * so a submission reaches editorial review-ready. `<taxonomy>` is a slug
+	 * from the allow-list in ec_studio_compose_resolve_term_taxonomy(); free
+	 * tags (post_tag) are intentionally NOT proxied (see #108).
+	 */
+	register_rest_route(
+		EC_STUDIO_COMPOSE_NAMESPACE,
+		'/' . EC_STUDIO_COMPOSE_ROUTE . '/terms/(?P<taxonomy>[a-z_]+)',
+		array(
+			array(
+				'methods'             => 'GET',
+				'callback'            => 'ec_studio_compose_list_terms',
+				'permission_callback' => 'ec_studio_compose_permission_check',
+				'args'                => array(
+					'taxonomy' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_key',
+					),
+				),
+			),
+			array(
+				'methods'             => 'POST',
+				'callback'            => 'ec_studio_compose_create_term',
+				'permission_callback' => 'ec_studio_compose_permission_check',
+				'args'                => array(
+					'taxonomy' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_key',
+					),
+				),
+			),
+		)
+	);
 }
 add_action( 'rest_api_init', 'ec_studio_compose_register_routes' );
 
@@ -698,10 +736,22 @@ function ec_studio_compose_create_autosave( \WP_REST_Request $request ) {
 }
 
 /**
+ * Editorial taxonomies the compose pane is allowed to set on the main post,
+ * keyed by the REST field name main's `/wp/v2/posts` controller expects (each
+ * taxonomy's `rest_base`). Each accepts an array of term IDs.
+ *
+ * Deliberately excludes `post_tag`: Extra Chill does NOT use free-form tags
+ * (see Extra-Chill/extrachill-studio#108). Only the platform taxonomies a
+ * concert recap actually lives on are forwarded.
+ */
+const EC_STUDIO_COMPOSE_TERM_FIELDS = array( 'categories', 'artist', 'venue', 'location' );
+
+/**
  * Sanitize the post params accepted from the compose pane.
  *
  * Whitelists the small set of fields the compose pane sends — title, content,
- * status — so the proxy never forwards arbitrary REST fields cross-site.
+ * status, featured image, and the editorial taxonomies — so the proxy never
+ * forwards arbitrary REST fields cross-site.
  *
  * Title and content are passed through unaltered. Main's `/wp/v2/posts`
  * controller is the single sanitization authority: it sanitizes the title via
@@ -711,10 +761,15 @@ function ec_studio_compose_create_autosave( \WP_REST_Request $request ) {
  * Pre-sanitizing or unslashing here would double-process and corrupt
  * legitimate characters (e.g. backslashes), so we don't.
  *
- * The only field the proxy actively gates is `status`: it is validated against
- * the lifecycle states the compose pane is allowed to set (draft, pending) —
- * a policy gate, not sanitization — so the tool can never push a post straight
- * to publish.
+ * `status` is policy-gated against the lifecycle states the compose pane may
+ * set (draft, pending) so the tool can never push a post straight to publish.
+ *
+ * `featured_media` and the term fields (categories/artist/venue/location) are
+ * coerced to their expected numeric shapes so a malformed client payload can't
+ * reach main's controller as garbage; main's schema still validates that the
+ * IDs resolve to real attachments/terms under the user's own auth. Because
+ * every write is forwarded to main, the featured image and terms land on the
+ * MAIN post (blog 1) — never on the Studio subsite (blog 12).
  *
  * @since 0.16.0
  *
@@ -743,7 +798,166 @@ function ec_studio_compose_whitelist_post_params( $raw ): array {
 		}
 	}
 
+	// Featured image — a single attachment id on main. 0 clears it.
+	if ( isset( $raw['featured_media'] ) ) {
+		$params['featured_media'] = absint( $raw['featured_media'] );
+	}
+
+	/*
+	 * Editorial taxonomies — arrays of term ids on main. An explicit empty
+	 * array is forwarded so the writer can clear a taxonomy.
+	 */
+	foreach ( EC_STUDIO_COMPOSE_TERM_FIELDS as $field ) {
+		if ( ! isset( $raw[ $field ] ) ) {
+			continue;
+		}
+		$ids = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'absint', (array) $raw[ $field ] )
+				)
+			)
+		);
+		$params[ $field ] = $ids;
+	}
+
 	return $params;
+}
+
+/**
+ * Map a compose term-picker taxonomy slug to main's REST base.
+ *
+ * The compose UI addresses taxonomies by their slug (category/artist/venue/
+ * location). Main's `/wp/v2/*` term routes are keyed by each taxonomy's
+ * `rest_base`, which differs for the core category taxonomy (`categories`).
+ * This allow-list is the single gate on which taxonomies the picker can touch
+ * — anything not listed (notably `post_tag`) is rejected, so the tool can
+ * never write free tags (see Extra-Chill/extrachill-studio#108).
+ *
+ * @since 0.21.0
+ *
+ * @param string $taxonomy Taxonomy slug from the route.
+ * @return string|null Main's REST base, or null when not allowed.
+ */
+function ec_studio_compose_resolve_term_taxonomy( string $taxonomy ): ?string {
+	$allowed = array(
+		'category' => 'categories',
+		'artist'   => 'artist',
+		'venue'    => 'venue',
+		'location' => 'location',
+	);
+
+	return $allowed[ $taxonomy ] ?? null;
+}
+
+/**
+ * List / search terms in one of main's editorial taxonomies.
+ *
+ * Proxies `GET /wp/v2/<rest_base>` on main so the compose term pickers read
+ * and autocomplete against MAIN's category/artist/venue/location terms — the
+ * same place the forwarded post write assigns them. Query params (search,
+ * per_page, include, orderby) are forwarded verbatim so the picker can search
+ * and hydrate selected terms by id.
+ *
+ * @since 0.21.0
+ *
+ * @param \WP_REST_Request $request REST request.
+ * @return \WP_REST_Response|\WP_Error
+ */
+function ec_studio_compose_list_terms( \WP_REST_Request $request ) {
+	$guard = ec_studio_compose_require_cross_site();
+	if ( is_wp_error( $guard ) ) {
+		return $guard;
+	}
+
+	$rest_base = ec_studio_compose_resolve_term_taxonomy( (string) $request['taxonomy'] );
+	if ( null === $rest_base ) {
+		return new \WP_Error(
+			'ec_studio_compose_bad_taxonomy',
+			__( 'That taxonomy is not available in Studio.', 'extrachill-studio' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	$user_id = (int) get_current_user_id();
+	$query   = $request->get_query_params();
+	$query   = is_array( $query ) ? $query : array();
+
+	// Sane default page size for a picker; the client may override.
+	if ( ! isset( $query['per_page'] ) ) {
+		$query['per_page'] = 20;
+	}
+
+	$response = ec_cross_site_rest_request(
+		'main',
+		'GET',
+		'/wp/v2/' . $rest_base,
+		array(
+			'query'   => $query,
+			'user_id' => $user_id,
+		)
+	);
+
+	return ec_studio_compose_relay_response( $response );
+}
+
+/**
+ * Create a term in one of main's editorial taxonomies.
+ *
+ * Proxies `POST /wp/v2/<rest_base>` on main so a writer can add a missing
+ * artist/venue/location/category from the compose picker. The term is created
+ * on MAIN (blog 1) under the user's own auth, so main's create-term capability
+ * check applies. Only `name` and (for hierarchical category) `parent` are
+ * forwarded.
+ *
+ * @since 0.21.0
+ *
+ * @param \WP_REST_Request $request REST request.
+ * @return \WP_REST_Response|\WP_Error
+ */
+function ec_studio_compose_create_term( \WP_REST_Request $request ) {
+	$guard = ec_studio_compose_require_cross_site();
+	if ( is_wp_error( $guard ) ) {
+		return $guard;
+	}
+
+	$rest_base = ec_studio_compose_resolve_term_taxonomy( (string) $request['taxonomy'] );
+	if ( null === $rest_base ) {
+		return new \WP_Error(
+			'ec_studio_compose_bad_taxonomy',
+			__( 'That taxonomy is not available in Studio.', 'extrachill-studio' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	$raw  = $request->get_json_params();
+	$name = is_array( $raw ) && isset( $raw['name'] ) ? trim( (string) $raw['name'] ) : '';
+	if ( '' === $name ) {
+		return new \WP_Error(
+			'ec_studio_compose_term_name_required',
+			__( 'Enter a name to create this term.', 'extrachill-studio' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	$body = array( 'name' => $name );
+	if ( 'categories' === $rest_base && is_array( $raw ) && isset( $raw['parent'] ) ) {
+		$body['parent'] = absint( $raw['parent'] );
+	}
+
+	$user_id = (int) get_current_user_id();
+
+	$response = ec_cross_site_rest_request(
+		'main',
+		'POST',
+		'/wp/v2/' . $rest_base,
+		array(
+			'body'    => $body,
+			'user_id' => $user_id,
+		)
+	);
+
+	return ec_studio_compose_relay_response( $response );
 }
 
 /**

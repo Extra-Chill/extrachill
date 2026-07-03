@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useRef, useState, useCallback } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
 import apiFetch from '@wordpress/api-fetch';
@@ -11,6 +11,8 @@ import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrac
 import type { StudioPaneProps } from '../../types/studio';
 import { markComposeRequest, registerComposeInstance } from './cross-site-middleware';
 import { installChatRefreshAdapter } from './refresh-adapter';
+import { COMPOSE_TAXONOMIES, FeaturedImage, TermPicker } from './review-fields';
+import type { WpTerm } from './review-fields';
 
 /**
  * apiFetch wrapper that tags a request as Compose-pane-originated so the
@@ -53,6 +55,11 @@ interface WpPost {
 	date: string;
 	modified: string;
 	modified_gmt?: string;
+	featured_media?: number;
+	categories?: number[];
+	artist?: number[];
+	venue?: number[];
+	location?: number[];
 }
 
 interface WpAutosave {
@@ -111,6 +118,17 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	const [ drafts, setDrafts ] = useState< WpPost[] >( [] );
 	const [ activePostId, setActivePostId ] = useState< number | null >( null );
 	const [ isLoadingDrafts, setIsLoadingDrafts ] = useState( true );
+
+	// Review-readiness fields (Extra-Chill/extrachill-studio#108). Featured
+	// image + editorial taxonomies, all written to the MAIN post via the
+	// compose proxy. Terms are held as {id,name} so chips render without a
+	// second lookup; only ids are sent on write.
+	const [ featuredMediaId, setFeaturedMediaId ] = useState( 0 );
+	const [ selectedTerms, setSelectedTerms ] = useState< Record< string, WpTerm[] > >( {} );
+	const featuredMediaIdRef = useRef( 0 );
+	const selectedTermsRef = useRef< Record< string, WpTerm[] > >( {} );
+	featuredMediaIdRef.current = featuredMediaId;
+	selectedTermsRef.current = selectedTerms;
 
 	// Autosave tracking refs.
 	const autosaveTimerRef = useRef< ReturnType< typeof setTimeout > | null >( null );
@@ -224,6 +242,65 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			} catch {
 				return '';
 			}
+		},
+		[]
+	);
+
+	/**
+	 * Build the review-field portion of a post write payload — featured image
+	 * and editorial taxonomies — from the current selections. Keyed by the REST
+	 * field names main's /wp/v2/posts controller expects; the compose proxy
+	 * whitelists exactly these and forwards them to the MAIN post.
+	 */
+	const buildReviewPayload = useCallback( (): Record< string, unknown > => {
+		const payload: Record< string, unknown > = {
+			featured_media: featuredMediaIdRef.current || 0,
+		};
+		for ( const tax of COMPOSE_TAXONOMIES ) {
+			payload[ tax.field ] = ( selectedTermsRef.current[ tax.slug ] || [] ).map( ( t ) => t.id );
+		}
+		return payload;
+	}, [] );
+
+	/**
+	 * Hydrate the review-field selections (featured image + term chips) for a
+	 * post being switched into. Term id arrays on the post are resolved to
+	 * {id,name} via the compose proxy so chips render with labels. Best-effort:
+	 * a failed term lookup leaves that taxonomy empty rather than blocking the
+	 * draft switch.
+	 *
+	 * @param post The post being switched into, or null to reset.
+	 */
+	const hydrateReviewFields = useCallback(
+		async ( post: WpPost | null ): Promise< void > => {
+			if ( ! post ) {
+				setFeaturedMediaId( 0 );
+				setSelectedTerms( {} );
+				return;
+			}
+
+			setFeaturedMediaId( post.featured_media ? Number( post.featured_media ) : 0 );
+
+			const next: Record< string, WpTerm[] > = {};
+			await Promise.all(
+				COMPOSE_TAXONOMIES.map( async ( tax ) => {
+					const ids = ( post[ tax.field as 'categories' | 'artist' | 'venue' | 'location' ] || [] ) as number[];
+					if ( ! Array.isArray( ids ) || ids.length === 0 ) {
+						next[ tax.slug ] = [];
+						return;
+					}
+					try {
+						const include = ids.join( ',' );
+						const terms = await composeApiFetch< WpTerm[] >( {
+							path: `/extrachill/v1/studio/compose/terms/${ tax.slug }?include=${ include }&per_page=100`,
+						} );
+						next[ tax.slug ] = Array.isArray( terms ) ? terms : [];
+					} catch {
+						next[ tax.slug ] = [];
+					}
+				} )
+			);
+			setSelectedTerms( next );
 		},
 		[]
 	);
@@ -471,6 +548,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			contentSnapshotRef.current = content;
 			replaceEditorContent( content );
 			lastSavedPayloadRef.current = JSON.stringify( { title, content } );
+			void hydrateReviewFields( post );
 		} else {
 			activePostIdRef.current = null;
 			titleRef.current = '';
@@ -479,13 +557,14 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			setTitle( '' );
 			replaceEditorContent( '' );
 			lastSavedPayloadRef.current = '';
+			void hydrateReviewFields( null );
 		}
 
 		setHasUnsavedChanges( false );
 		setError( '' );
 		setStatus( '' );
 		scheduleClientContextUpdate();
-	}, [ flushCurrentDraft, scheduleClientContextUpdate ] );
+	}, [ flushCurrentDraft, scheduleClientContextUpdate, hydrateReviewFields ] );
 
 	const startNew = useCallback( async (): Promise< void > => {
 		await switchToDraft( null );
@@ -707,6 +786,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					title: post.title.raw || post.title.rendered || '',
 					content: post.content.raw || post.content.rendered || '',
 				} );
+				void hydrateReviewFields( post );
 			} else {
 				activePostIdRef.current = null;
 				titleRef.current = '';
@@ -740,7 +820,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		return () => {
 			cancelled = true;
 		};
-	}, [ loadDrafts, scheduleClientContextUpdate ] );
+	}, [ loadDrafts, scheduleClientContextUpdate, hydrateReviewFields ] );
 
 
 
@@ -848,6 +928,20 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
+		// Review-readiness gate (Extra-Chill/extrachill-studio#108): a
+		// submission must reach an editor with at least a featured image and a
+		// category, so they aren't left dressing a bare title+body by hand.
+		if ( ! featuredMediaIdRef.current ) {
+			setError( __( 'Add a featured image before submitting for review.', 'extrachill-studio' ) );
+			setStatus( '' );
+			return;
+		}
+		if ( ! ( selectedTermsRef.current.category || [] ).length ) {
+			setError( __( 'Choose a category before submitting for review.', 'extrachill-studio' ) );
+			setStatus( '' );
+			return;
+		}
+
 		if ( autosaveTimerRef.current ) {
 			clearTimeout( autosaveTimerRef.current );
 			autosaveTimerRef.current = null;
@@ -867,6 +961,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					title: title.trim(),
 					content,
 					status: 'pending',
+					...buildReviewPayload(),
 				},
 			} );
 
@@ -910,7 +1005,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			const post = await composeApiFetch< WpPost >( {
 				path,
 				method: 'POST',
-				data: { title: title.trim(), content, status: 'draft' },
+				data: { title: title.trim(), content, status: 'draft', ...buildReviewPayload() },
 			} );
 
 			activePostIdRef.current = post.id;
@@ -955,6 +1050,16 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		}
 	};
 
+	const onFeaturedChange = useCallback( ( id: number ): void => {
+		setFeaturedMediaId( id );
+		setError( '' );
+	}, [] );
+
+	const onTermsChange = useCallback( ( slug: string, terms: WpTerm[] ): void => {
+		setSelectedTerms( ( prev ) => ( { ...prev, [ slug ]: terms } ) );
+		setError( '' );
+	}, [] );
+
 	const onTitleChange = ( e: ChangeEvent< HTMLInputElement > ): void => {
 		editSeqRef.current += 1;
 		titleRef.current = e.target.value;
@@ -991,6 +1096,21 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			)
 		)
 	);
+
+	// Review-readiness (#108): featured image + at least one category. Drives
+	// the Submit button's disabled state and an inline nudge so the gate is
+	// guided, not a surprise wall at click time.
+	const hasFeatured = featuredMediaId > 0;
+	const hasCategory = ( selectedTerms.category || [] ).length > 0;
+	const reviewReady = hasFeatured && hasCategory;
+
+	const missingReviewFields: string[] = [];
+	if ( ! hasFeatured ) {
+		missingReviewFields.push( __( 'a featured image', 'extrachill-studio' ) );
+	}
+	if ( ! hasCategory ) {
+		missingReviewFields.push( __( 'a category', 'extrachill-studio' ) );
+	}
 
 	return h(
 		'div',
@@ -1052,6 +1172,20 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				! error && status
 					? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status )
 					: null,
+				! reviewReady && missingReviewFields.length
+					? h(
+						InlineStatusView,
+						{ tone: 'info', className: 'ec-studio-message ec-studio-compose-review__hint' },
+						sprintf(
+							/* translators: %s: list of missing fields, e.g. "a featured image and a category". */
+							__( 'Add %s to submit for review.', 'extrachill-studio' ),
+							// Join with a localized conjunction. The separator is
+							// built from a trimmed word so no translatable string
+							// carries flanking whitespace.
+							missingReviewFields.join( ` ${ __( 'and', 'extrachill-studio' ) } ` )
+						)
+					)
+					: null,
 				h(
 					ActionRowView,
 					{ className: 'ec-studio-composer__actions' },
@@ -1061,7 +1195,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 						type: 'button',
 						className: 'button-1 button-medium',
 						onClick: submitForReview,
-						disabled: isSubmitting || isSwitching || ! editorReady,
+						disabled: isSubmitting || isSwitching || ! editorReady || ! reviewReady,
 					},
 					isSubmitting ? __( 'Submitting…', 'extrachill-studio' ) : __( 'Submit for Review', 'extrachill-studio' )
 				),
@@ -1085,8 +1219,33 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					PanelView,
 					{ className: 'ec-studio-panel ec-studio-panel--compose-sidebar', compact: true },
 					h( PanelHeader, {
-						description: __( 'Browse blocks and structure without crowding the writing canvas.', 'extrachill-studio' ),
+						description: __( 'Set the featured image and terms so an editor gets a review-ready post.', 'extrachill-studio' ),
 					} ),
+					createElement(
+						'div',
+						{ className: 'ec-studio-compose-review' },
+						h( FeaturedImage, {
+							composeApiFetch,
+							mediaId: featuredMediaId,
+							onChange: onFeaturedChange,
+							disabled: isSubmitting || isSwitching,
+						} ),
+						...COMPOSE_TAXONOMIES.map( ( tax ) =>
+							h( TermPicker, {
+								key: tax.slug,
+								composeApiFetch,
+								taxonomy: tax.slug,
+								label: tax.label,
+								required: tax.required,
+								// Category is single-select (one primary category);
+								// artist/venue/location can carry several.
+								multiple: ! tax.required,
+								selected: selectedTerms[ tax.slug ] || [],
+								onChange: ( terms: WpTerm[] ) => onTermsChange( tax.slug, terms ),
+								disabled: isSubmitting || isSwitching,
+							} )
+						)
+					),
 					createElement( 'div', {
 						className: 'ec-studio-compose-sidebar__slot',
 					} )
