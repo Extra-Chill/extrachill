@@ -158,6 +158,10 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/email.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/unsubscribe.php';
+	// Publish-notify producer: notify a submitter when their submission goes
+	// live. Network-active so it observes the publish on whatever site the post
+	// lives on; driven by a data-only descriptor registry (feature-agnostic).
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/publish-notify.php';
 	// Click-to-read redirect: marks a single notification read on click.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/read-redirect.php';
 	// Header notification bell — renders network-wide via the theme header hook.
