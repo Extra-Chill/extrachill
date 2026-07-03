@@ -170,7 +170,7 @@
 .woocommerce ul.products,
 .woocommerce-page ul.products {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
     gap: var(--spacing-lg);
     margin: 0;
     padding: 0;
