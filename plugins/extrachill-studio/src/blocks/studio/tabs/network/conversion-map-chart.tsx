@@ -113,6 +113,7 @@ export const ConversionMapChart = (): ReactElement => {
 				'Visitors who entered on an article and reached events, community, or artist — last 28 days.',
 				'extrachill-studio'
 			) }
+			className="ec-studio-network__card--wide"
 			state={ state }
 			errorMessage={ errorMessage }
 			emptyMessage={ __(

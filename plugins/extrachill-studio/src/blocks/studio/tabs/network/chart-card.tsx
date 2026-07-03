@@ -36,6 +36,8 @@ interface ChartCardProps {
 	emptyMessage?: string;
 	/** Optional headline figure rendered above the body in the ready state. */
 	headline?: ReactNode;
+	/** Extra class names for the card panel (e.g. a full-width span modifier). */
+	className?: string;
 	/** The chart / table — rendered only in the ready state. */
 	children?: ReactNode;
 }
@@ -48,6 +50,7 @@ export const ChartCard = ( {
 	notInstrumentedReason,
 	emptyMessage,
 	headline,
+	className,
 	children,
 }: ChartCardProps ): ReactElement => {
 	const renderBody = (): ReactNode => {
@@ -112,8 +115,16 @@ export const ChartCard = ( {
 		}
 	};
 
+	const panelClassName = [
+		'ec-studio-panel',
+		'ec-studio-network__card',
+		className,
+	]
+		.filter( Boolean )
+		.join( ' ' );
+
 	return (
-		<Panel className="ec-studio-panel ec-studio-network__card" compact>
+		<Panel className={ panelClassName } compact>
 			<PanelHeader title={ title } description={ description } />
 			<div className="ec-studio-network__card-body">{ renderBody() }</div>
 		</Panel>

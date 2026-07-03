@@ -1183,15 +1183,33 @@ html.is-fullscreen-mode .ec-studio-compose-editor .interface-interface-skeleton_
 	line-height: 1.6;
 }
 
+/*
+ * Two-column-max dashboard grid. The previous `minmax(320px, 1fr)` let the
+ * grid pack 3–4 charts per row on wide screens, squeezing each Chart.js
+ * canvas / DataTable into a cramped ~320px column that read as "a bunch of
+ * tiny cards." A 480px floor guarantees at most two columns on typical
+ * screens so every chart gets legible width, and it collapses to a single
+ * column when two legible cards no longer fit.
+ */
 .ec-studio-network__grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-	gap: var(--spacing-md);
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
+	gap: var(--spacing-lg);
 	min-width: 0;
 }
 
 .ec-studio-network__card {
 	min-width: 0;
+}
+
+/*
+ * The conversion-map card is a ranked DATA TABLE (entry article → platform
+ * reach), which reads best across the full dashboard width rather than
+ * shoulder-to-shoulder with a chart. Span it across both columns on
+ * multi-column layouts; it naturally occupies the single column otherwise.
+ */
+.ec-studio-network__card--wide {
+	grid-column: 1 / -1;
 }
 
 .ec-studio-network__card-body {
