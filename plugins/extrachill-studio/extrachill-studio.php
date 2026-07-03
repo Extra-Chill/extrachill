@@ -35,6 +35,7 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/breadcrumbs.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/social-drafts.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose-editor.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose/rest.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose/notify-on-publish.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose/strand-detector.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/review-queue.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/resolve-instagram-media.php';
