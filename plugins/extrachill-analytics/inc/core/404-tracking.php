@@ -43,7 +43,7 @@ function extrachill_analytics_track_404() {
 		return;
 	}
 
-	$referer    = wp_get_referer() ?: '';
+	$referer    = wp_get_referer() ? wp_get_referer() : '';
 	$ip_address = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 
 	extrachill_track_analytics_event(

@@ -286,19 +286,19 @@ function extrachill_analytics_ability_get_crosslink_targets( $input ) {
 		'returned_targets' => count( $targets ),
 		'entry_blog_id'    => $entry_blog_id,
 		'link_graph'       => array(
-			'available'             => $graph_available,
-			'total_scanned'         => $graph_total,
+			'available'            => $graph_available,
+			'total_scanned'        => $graph_total,
 			// Explicit, self-documenting orphan label: this is the link graph's
 			// zero-INBOUND count (a post nothing links TO). It is NOT the same as
 			// the zero-OUTBOUND "posts_without_links" figure reported by
 			// `wp datamachine links diagnose` (a post that links to nothing). The
 			// two measure opposite edges of the link graph and are not comparable.
-			'inbound_orphan_count'  => $graph_orphan_cnt,
-			'orphan_definition'     => 'zero_inbound',
+			'inbound_orphan_count' => $graph_orphan_cnt,
+			'orphan_definition'    => 'zero_inbound',
 			// Deprecated alias kept for back-compat with existing readers. Prefer
 			// inbound_orphan_count — the bare name conflates with links diagnose's
 			// zero-outbound count. @deprecated since 0.14.1
-			'orphan_count'          => $graph_orphan_cnt,
+			'orphan_count'         => $graph_orphan_cnt,
 		),
 		'days'             => $days,
 		'session_gap_mins' => $session_gap_mins,

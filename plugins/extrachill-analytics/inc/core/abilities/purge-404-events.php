@@ -18,10 +18,10 @@ function extrachill_analytics_register_purge_404_events_ability() {
 	wp_register_ability(
 		'extrachill/purge-404-events',
 		array(
-			'label'       => __( 'Purge 404 Events', 'extrachill-analytics' ),
-			'description' => __( 'Deletes old 404 error events from the analytics database. Supports dry-run mode.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Purge 404 Events', 'extrachill-analytics' ),
+			'description'         => __( 'Deletes old 404 error events from the analytics database. Supports dry-run mode.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'days'    => array(
@@ -41,7 +41,7 @@ function extrachill_analytics_register_purge_404_events_ability() {
 					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'object',
 				'description' => __( 'Object with count of affected events and whether deletion occurred.', 'extrachill-analytics' ),
 			),
@@ -91,7 +91,7 @@ function extrachill_analytics_ability_purge_404_events( $input ) {
 	$where_clause = implode( ' AND ', $where );
 
 	// Count matching events.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:disable WordPress.DB.PreparedSQL
 	$count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
 	if ( ! empty( $values ) ) {
 		$count = (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $values ) );
@@ -100,7 +100,6 @@ function extrachill_analytics_ability_purge_404_events( $input ) {
 	}
 
 	if ( $dry_run || 0 === $count ) {
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return array(
 			'count'   => $count,
 			'deleted' => false,
@@ -114,7 +113,7 @@ function extrachill_analytics_ability_purge_404_events( $input ) {
 	} else {
 		$wpdb->query( $delete_sql );
 	}
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	return array(
 		'count'   => $count,

@@ -18,10 +18,10 @@ function extrachill_analytics_register_list_404_events_ability() {
 	wp_register_ability(
 		'extrachill/list-404-events',
 		array(
-			'label'       => __( 'List 404 Events', 'extrachill-analytics' ),
-			'description' => __( 'Returns raw 404 event records with URL, referer, user agent, IP hash, and date.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'List 404 Events', 'extrachill-analytics' ),
+			'description'         => __( 'Returns raw 404 event records with URL, referer, user agent, IP hash, and date.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'days'    => array(
@@ -41,7 +41,7 @@ function extrachill_analytics_register_list_404_events_ability() {
 					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'array',
 				'description' => __( 'Array of 404 event records.', 'extrachill-analytics' ),
 			),

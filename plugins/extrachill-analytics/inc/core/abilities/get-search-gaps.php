@@ -251,14 +251,14 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	// caller judge how much of the "human" demand read is actually confirmed
 	// human vs. legacy NULL that the old pipeline never stamped — without
 	// changing the (default-off) visitor_id gate.
-	$unclassified_where     = $where;
-	$unclassified_where[]   = "JSON_EXTRACT(event_data, '$.is_bot') IS NULL";
-	$unclassified_clause    = implode( ' AND ', $unclassified_where );
-	$unclassified_sql       = "SELECT COUNT(*) FROM {$table} WHERE {$unclassified_clause}";
-	$unclassified_searches  = empty( $where_values )
+	$unclassified_where    = $where;
+	$unclassified_where[]  = "JSON_EXTRACT(event_data, '$.is_bot') IS NULL";
+	$unclassified_clause   = implode( ' AND ', $unclassified_where );
+	$unclassified_sql      = "SELECT COUNT(*) FROM {$table} WHERE {$unclassified_clause}";
+	$unclassified_searches = empty( $where_values )
 		? (int) $wpdb->get_var( $unclassified_sql )
 		: (int) $wpdb->get_var( $wpdb->prepare( $unclassified_sql, $where_values ) );
-	$classified_human       = max( 0, $total_searches - $unclassified_searches );
+	$classified_human      = max( 0, $total_searches - $unclassified_searches );
 
 	// Grouped gap terms. Each term is bucketed by its BEST result (MIN): a term
 	// is "zero-result" if it ever returned nothing, "low-result" otherwise. The

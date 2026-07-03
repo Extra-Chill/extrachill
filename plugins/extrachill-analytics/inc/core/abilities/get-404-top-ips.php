@@ -18,10 +18,10 @@ function extrachill_analytics_register_404_top_ips_ability() {
 	wp_register_ability(
 		'extrachill/get-404-top-ips',
 		array(
-			'label'       => __( 'Get 404 Top IPs', 'extrachill-analytics' ),
-			'description' => __( 'Returns the top IP addresses (hashed) generating 404 errors with hit counts and metadata.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Get 404 Top IPs', 'extrachill-analytics' ),
+			'description'         => __( 'Returns the top IP addresses (hashed) generating 404 errors with hit counts and metadata.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'days'    => array(
@@ -41,7 +41,7 @@ function extrachill_analytics_register_404_top_ips_ability() {
 					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'array',
 				'description' => __( 'Array of top IP hashes with hits, unique_urls, first_seen, last_seen, and top_ua.', 'extrachill-analytics' ),
 			),
@@ -92,7 +92,7 @@ function extrachill_analytics_ability_get_404_top_ips( $input ) {
 
 	$values[] = $limit;
 
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:disable WordPress.DB.PreparedSQL
 	$sql = "SELECT
 		JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.ip_hash')) AS ip_hash,
 		COUNT(*) AS hits,
@@ -106,7 +106,7 @@ function extrachill_analytics_ability_get_404_top_ips( $input ) {
 		LIMIT %d";
 
 	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$results = array();
 	foreach ( $rows as $row ) {
@@ -129,7 +129,7 @@ function extrachill_analytics_ability_get_404_top_ips( $input ) {
 
 		$ua_where_clause = implode( ' AND ', $ua_where );
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:disable WordPress.DB.PreparedSQL
 		$ua_sql = "SELECT
 			JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.user_agent')) AS ua,
 			COUNT(*) AS cnt
@@ -140,7 +140,7 @@ function extrachill_analytics_ability_get_404_top_ips( $input ) {
 			LIMIT 1";
 
 		$top_ua_row = $wpdb->get_row( $wpdb->prepare( $ua_sql, $ua_values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		$results[] = array(
 			'ip_hash'     => $row->ip_hash,

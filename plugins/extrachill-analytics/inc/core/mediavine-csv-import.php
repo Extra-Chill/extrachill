@@ -141,7 +141,7 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 		);
 	}
 
-	$handle = fopen( $file, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fopen -- CSV is stream-parsed line-by-line via fgetcsv; WP_Filesystem has no streaming reader.
+	$handle = fopen( $file, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV is stream-parsed line-by-line via fgetcsv; WP_Filesystem has no streaming reader.
 	if ( false === $handle ) {
 		return array(
 			'success' => false,
@@ -154,7 +154,7 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 	$headers    = fgetcsv( $handle );
 
 	if ( false === $headers ) {
-		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fclose -- paired with the streaming fopen above.
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- paired with the streaming fopen above.
 		return array(
 			'success' => false,
 			'error'   => 'CSV is empty (no header row).',
@@ -169,7 +169,7 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 	}
 
 	if ( ! isset( $columns['slug'] ) ) {
-		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fclose -- paired with the streaming fopen above.
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- paired with the streaming fopen above.
 		return array(
 			'success' => false,
 			'error'   => 'CSV has no slug/url/page column. Headers seen: ' . implode( ', ', array_map( 'sanitize_text_field', $headers ) ),
@@ -203,7 +203,7 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 		return isset( $line[ $idx ] ) ? $line[ $idx ] : '';
 	};
 
-	// phpcs:ignore WordPress.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- idiomatic fgetcsv streaming loop.
+	// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- idiomatic fgetcsv streaming loop.
 	while ( false !== ( $line = fgetcsv( $handle ) ) ) {
 		$raw_slug = trim( (string) $cell( $line, $columns, 'slug' ) );
 		if ( '' === $raw_slug ) {
@@ -264,7 +264,7 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 		}
 	}
 
-	fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fclose -- paired with the streaming fopen above.
+	fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- paired with the streaming fopen above.
 
 	if ( $switched ) {
 		restore_current_blog();

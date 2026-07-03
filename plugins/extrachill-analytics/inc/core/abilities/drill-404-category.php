@@ -18,10 +18,10 @@ function extrachill_analytics_register_drill_404_category_ability() {
 	wp_register_ability(
 		'extrachill/drill-404-category',
 		array(
-			'label'       => __( 'Drill 404 Category', 'extrachill-analytics' ),
-			'description' => __( 'Drills into a specific 404 category showing individual URLs with optional redirect suggestions.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Drill 404 Category', 'extrachill-analytics' ),
+			'description'         => __( 'Drills into a specific 404 category showing individual URLs with optional redirect suggestions.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'category' => array(
@@ -44,9 +44,9 @@ function extrachill_analytics_register_drill_404_category_ability() {
 						'default'     => 20,
 					),
 				),
-				'required' => array( 'category' ),
+				'required'   => array( 'category' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'array',
 				'description' => __( 'Array of URLs in the category with hits, last_seen, and optional slug/post_id/fixable fields.', 'extrachill-analytics' ),
 			),
@@ -100,7 +100,7 @@ function extrachill_analytics_ability_drill_404_category( $input ) {
 
 	$where_clause = implode( ' AND ', $where );
 
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:disable WordPress.DB.PreparedSQL
 	$sql = "SELECT
 		JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
 		COUNT(*) AS hits,
@@ -115,14 +115,14 @@ function extrachill_analytics_ability_drill_404_category( $input ) {
 	} else {
 		$rows = $wpdb->get_results( $sql );
 	}
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	// Drop URLs that already have an active redirect rule so solved 404s
 	// don't keep resurfacing in the drill until their pre-fix rows age out.
 	$rows = extrachill_analytics_exclude_redirected_404_rows( $rows );
 
 	// Categories that are candidates for redirect suggestions.
-	$redirect_categories = array( 'legacy-html', 'content', 'date-prefix' );
+	$redirect_categories   = array( 'legacy-html', 'content', 'date-prefix' );
 	$is_redirect_candidate = in_array( $category, $redirect_categories, true );
 
 	// Filter by category and slice to limit.

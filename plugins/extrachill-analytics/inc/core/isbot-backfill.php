@@ -240,7 +240,7 @@ function extrachill_analytics_backfill_is_bot( $args = array() ) {
 		if ( $progress ) {
 			call_user_func( $progress, $totals );
 		}
-	} while ( count( $rows ) === $batch_size );
+	} while ( count( $rows ) === $batch_size ); // phpcs:ignore Squiz.PHP.DisallowSizeFunctionsInLoops.Found -- count() must re-evaluate each iteration: $rows is a fresh paginated batch, so hoisting it would break loop termination.
 
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 

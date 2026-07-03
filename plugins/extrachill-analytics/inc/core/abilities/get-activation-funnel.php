@@ -160,9 +160,11 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 
 		// Count DISTINCT people who reached this step — not rows. This is the
 		// whole point: re-views of the form collapse to one person here.
+		// phpcs:disable WordPress.DB.PreparedSQL -- $sql interpolates only code-defined identifiers ($person_key, $table) and a placeholder where_clause bound via prepare().
 		$sql = "SELECT COUNT(DISTINCT {$person_key}) FROM {$table} WHERE {$where_clause}";
 
 		$people = (int) $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL
 
 		if ( 0 === $index ) {
 			$top_count = $people;
@@ -242,6 +244,7 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 		// Count DISTINCT people who hit this friction signal (people, not rows:
 		// a member who created three duplicate profiles is one thrashing person)
 		// AND the raw row volume (how much thrash that cohort generated).
+		// phpcs:disable WordPress.DB.PreparedSQL -- both queries interpolate only code-defined identifiers and a placeholder where_clause bound via prepare().
 		$people_sql = "SELECT COUNT(DISTINCT {$person_key}) FROM {$table} WHERE {$where_clause}";
 		$events_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
 
@@ -250,6 +253,7 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 			'people'     => (int) $wpdb->get_var( $wpdb->prepare( $people_sql, $values ) ),
 			'events'     => (int) $wpdb->get_var( $wpdb->prepare( $events_sql, $values ) ),
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL
 	}
 
 	return array(

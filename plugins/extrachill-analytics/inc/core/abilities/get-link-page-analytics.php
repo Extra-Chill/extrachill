@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Get Link Page Analytics Ability
  *
@@ -9,6 +8,7 @@ declare(strict_types=1);
  * @package ExtraChill\Analytics
  * @since 0.8.0
  */
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -19,25 +19,25 @@ function extrachill_analytics_register_get_link_page_analytics_ability(): void {
 	wp_register_ability(
 		'extrachill/get-link-page-analytics',
 		array(
-			'label'       => __( 'Get Link Page Analytics', 'extrachill-analytics' ),
-			'description' => __( 'Returns aggregated analytics data for an artist link page.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Get Link Page Analytics', 'extrachill-analytics' ),
+			'description'         => __( 'Returns aggregated analytics data for an artist link page.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'link_page_id' => array(
 						'type'        => 'integer',
 						'description' => __( 'The link page post ID.', 'extrachill-analytics' ),
 					),
-					'date_range' => array(
+					'date_range'   => array(
 						'type'        => 'integer',
 						'description' => __( 'Number of days to query. Defaults to 30.', 'extrachill-analytics' ),
 						'default'     => 30,
 					),
 				),
-				'required' => array( 'link_page_id' ),
+				'required'   => array( 'link_page_id' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'object',
 				'description' => __( 'Aggregated analytics data for the link page.', 'extrachill-analytics' ),
 			),

@@ -18,10 +18,10 @@ function extrachill_analytics_register_404_patterns_ability() {
 	wp_register_ability(
 		'extrachill/get-404-patterns',
 		array(
-			'label'       => __( 'Get 404 Patterns', 'extrachill-analytics' ),
-			'description' => __( 'Aggregates 404 URLs by pattern category with hit counts and percentages.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Get 404 Patterns', 'extrachill-analytics' ),
+			'description'         => __( 'Aggregates 404 URLs by pattern category with hit counts and percentages.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'days'    => array(
@@ -36,7 +36,7 @@ function extrachill_analytics_register_404_patterns_ability() {
 					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'array',
 				'description' => __( 'Array of pattern categories with hits, unique_urls, pct, and actionable flag.', 'extrachill-analytics' ),
 			),
@@ -84,7 +84,7 @@ function extrachill_analytics_ability_get_404_patterns( $input ) {
 
 	$where_clause = implode( ' AND ', $where );
 
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:disable WordPress.DB.PreparedSQL
 	$sql = "SELECT
 		JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
 		COUNT(*) AS hits
@@ -98,19 +98,19 @@ function extrachill_analytics_ability_get_404_patterns( $input ) {
 	} else {
 		$rows = $wpdb->get_results( $sql );
 	}
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	// Drop URLs that already have an active redirect rule so solved 404s
 	// don't inflate the pattern-category counts.
 	$rows = extrachill_analytics_exclude_redirected_404_rows( $rows );
 
 	// Aggregate by category.
-	$categories  = array();
-	$total_hits  = 0;
+	$categories = array();
+	$total_hits = 0;
 
 	foreach ( $rows as $row ) {
-		$category = extrachill_analytics_categorize_404_url( $row->url );
-		$hits     = (int) $row->hits;
+		$category    = extrachill_analytics_categorize_404_url( $row->url );
+		$hits        = (int) $row->hits;
 		$total_hits += $hits;
 
 		if ( ! isset( $categories[ $category ] ) ) {

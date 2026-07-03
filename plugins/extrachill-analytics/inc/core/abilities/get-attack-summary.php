@@ -29,10 +29,10 @@ function extrachill_analytics_register_attack_summary_ability() {
 	wp_register_ability(
 		'extrachill/get-attack-summary',
 		array(
-			'label'       => __( 'Get Attack Summary', 'extrachill-analytics' ),
-			'description' => __( 'Summarizes search_attack events by pattern, day, IP, or URL.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Get Attack Summary', 'extrachill-analytics' ),
+			'description'         => __( 'Summarizes search_attack events by pattern, day, IP, or URL.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'days'     => array(
@@ -58,7 +58,7 @@ function extrachill_analytics_register_attack_summary_ability() {
 					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'object',
 				'description' => __( 'Summary with rows array, totals, and period metadata.', 'extrachill-analytics' ),
 			),
@@ -150,9 +150,9 @@ function extrachill_analytics_ability_get_attack_summary( $input ) {
 			break;
 	}
 
-	$sql           = "SELECT {$select} FROM {$table} WHERE {$where_clause} GROUP BY {$group} ORDER BY {$order}";
-	$query_values  = $values;
-	$fetch_limit   = 0;
+	$sql          = "SELECT {$select} FROM {$table} WHERE {$where_clause} GROUP BY {$group} ORDER BY {$order}";
+	$query_values = $values;
+	$fetch_limit  = 0;
 	if ( $limit > 0 ) {
 		$sql           .= ' LIMIT %d';
 		$fetch_limit    = $limit + 1; // Fetch one extra so we know if more exist.
@@ -166,7 +166,7 @@ function extrachill_analytics_ability_get_attack_summary( $input ) {
 	$rows = array();
 	foreach ( $results as $row ) {
 		$rows[] = array(
-			'key'   => $row->grp_key !== null ? (string) $row->grp_key : '(null)',
+			'key'   => null !== $row->grp_key ? (string) $row->grp_key : '(null)',
 			'count' => (int) $row->cnt,
 		);
 	}

@@ -138,7 +138,9 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 			GROUP BY visitor_id
 		) AS per_visitor";
 
+	// phpcs:disable WordPress.DB.PreparedSQL -- $return_sql interpolates only a code-defined table name and a placeholder where_clause bound via prepare().
 	$return_row = $wpdb->get_row( $wpdb->prepare( $return_sql, $base_values ) );
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$total_visitors     = $return_row ? (int) $return_row->total_visitors : 0;
 	$returning_visitors = $return_row ? (int) $return_row->returning_visitors : 0;
@@ -178,7 +180,9 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 		GROUP BY first_week
 		ORDER BY first_week ASC";
 
+	// phpcs:disable WordPress.DB.PreparedSQL -- $cohort_sql interpolates only a code-defined table name and a placeholder where_clause bound via prepare().
 	$cohort_rows = $wpdb->get_results( $wpdb->prepare( $cohort_sql, $cohort_values ) );
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$cohort_retention = array();
 	foreach ( (array) $cohort_rows as $row ) {
@@ -219,7 +223,9 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 			GROUP BY visitor_id
 		) AS per_visitor";
 
+	// phpcs:disable WordPress.DB.PreparedSQL -- $xsite_sql interpolates only a code-defined table name and a placeholder where_clause bound via prepare().
 	$xsite_row = $wpdb->get_row( $wpdb->prepare( $xsite_sql, $xsite_values ) );
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$xsite_total     = $xsite_row ? (int) $xsite_row->total_visitors : 0;
 	$xsite_visitors  = $xsite_row ? (int) $xsite_row->cross_site_visitors : 0;
@@ -238,7 +244,9 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 			GROUP BY visitor_id, DATE(created_at)
 		) AS per_visitor_day";
 
+	// phpcs:disable WordPress.DB.PreparedSQL -- $depth_sql interpolates only a code-defined table name and a placeholder where_clause bound via prepare().
 	$depth_row = $wpdb->get_row( $wpdb->prepare( $depth_sql, $base_values ) );
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$avg_depth = $depth_row && null !== $depth_row->avg_depth ? round( (float) $depth_row->avg_depth, 2 ) : 0.0;
 	$max_depth = $depth_row ? (int) $depth_row->max_depth : 0;
@@ -274,7 +282,9 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 		ORDER BY landings DESC
 		LIMIT 25";
 
+	// phpcs:disable WordPress.DB.PreparedSQL -- $ref_sql interpolates only a code-defined table name and a placeholder where_clause bound via prepare().
 	$ref_rows = $wpdb->get_results( $wpdb->prepare( $ref_sql, $ref_values ) );
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$by_referrer_host = array();
 	foreach ( (array) $ref_rows as $row ) {

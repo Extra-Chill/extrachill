@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Track Page View Ability
  *
@@ -9,6 +8,7 @@ declare(strict_types=1);
  * @package ExtraChill\Analytics
  * @since 0.8.0
  */
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 

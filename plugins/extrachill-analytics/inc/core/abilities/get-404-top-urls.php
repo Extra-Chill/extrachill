@@ -18,10 +18,10 @@ function extrachill_analytics_register_404_top_urls_ability() {
 	wp_register_ability(
 		'extrachill/get-404-top-urls',
 		array(
-			'label'       => __( 'Get 404 Top URLs', 'extrachill-analytics' ),
-			'description' => __( 'Returns the most frequently hit 404 URLs with counts and categories.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Get 404 Top URLs', 'extrachill-analytics' ),
+			'description'         => __( 'Returns the most frequently hit 404 URLs with counts and categories.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'days'     => array(
@@ -46,7 +46,7 @@ function extrachill_analytics_register_404_top_urls_ability() {
 					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'array',
 				'description' => __( 'Array of top 404 URLs with url, hits, last_seen, and category.', 'extrachill-analytics' ),
 			),
@@ -101,7 +101,7 @@ function extrachill_analytics_ability_get_404_top_urls( $input ) {
 	// Note: LIMIT is applied in PHP after excluding redirected URLs, so that
 	// dropping solved 404s doesn't shrink the result set below the requested
 	// limit when redirected rows would otherwise occupy top slots.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:disable WordPress.DB.PreparedSQL
 	$sql = "SELECT
 		JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url')) AS url,
 		COUNT(*) AS hits,
@@ -113,7 +113,7 @@ function extrachill_analytics_ability_get_404_top_urls( $input ) {
 		ORDER BY hits DESC";
 
 	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	// Drop URLs that already have an active redirect rule so solved 404s
 	// don't keep ranking as top offenders until their pre-fix rows age out.

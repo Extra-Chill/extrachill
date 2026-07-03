@@ -18,30 +18,30 @@ function extrachill_analytics_register_summary_ability() {
 	wp_register_ability(
 		'extrachill/get-analytics-summary',
 		array(
-			'label'       => __( 'Get Analytics Summary', 'extrachill-analytics' ),
-			'description' => __( 'Returns event counts grouped by type with optional date filtering.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Get Analytics Summary', 'extrachill-analytics' ),
+			'description'         => __( 'Returns event counts grouped by type with optional date filtering.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'days' => array(
+					'days'       => array(
 						'type'        => 'integer',
 						'description' => __( 'Number of days to look back. 0 for all time.', 'extrachill-analytics' ),
 						'default'     => 28,
 					),
-				'event_type' => array(
-					'type'        => 'string',
-					'description' => __( 'Filter to a specific event type. Empty for all types.', 'extrachill-analytics' ),
-					'default'     => '',
-				),
-				'blog_id'    => array(
-					'type'        => 'integer',
-					'description' => __( 'Filter to a specific blog ID. 0 for all sites.', 'extrachill-analytics' ),
-					'default'     => 0,
-				),
+					'event_type' => array(
+						'type'        => 'string',
+						'description' => __( 'Filter to a specific event type. Empty for all types.', 'extrachill-analytics' ),
+						'default'     => '',
+					),
+					'blog_id'    => array(
+						'type'        => 'integer',
+						'description' => __( 'Filter to a specific blog ID. 0 for all sites.', 'extrachill-analytics' ),
+						'default'     => 0,
+					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'object',
 				'description' => __( 'Summary with event_types array and total count.', 'extrachill-analytics' ),
 			),
@@ -106,18 +106,20 @@ function extrachill_analytics_ability_get_summary( $input ) {
 
 	$sql = "SELECT event_type, COUNT(*) as count FROM {$table} WHERE {$where_clause} GROUP BY event_type ORDER BY count DESC";
 
+	// phpcs:disable WordPress.DB.PreparedSQL -- $sql interpolates only a code-defined table name and a where_clause of %s/%d placeholders bound via prepare().
 	if ( ! empty( $values ) ) {
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
 	} else {
 		$results = $wpdb->get_results( $sql );
 	}
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$event_types = array();
 	$total       = 0;
 
 	foreach ( $results as $row ) {
-		$count       = (int) $row->count;
-		$daily_avg   = $days > 0 ? round( $count / $days, 1 ) : $count;
+		$count     = (int) $row->count;
+		$daily_avg = $days > 0 ? round( $count / $days, 1 ) : $count;
 
 		$event_types[] = array(
 			'event_type' => $row->event_type,

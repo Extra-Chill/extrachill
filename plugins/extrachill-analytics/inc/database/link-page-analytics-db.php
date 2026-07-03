@@ -63,7 +63,7 @@ function extrachill_analytics_link_page_clicks_table() {
 function extrachill_analytics_link_page_create_table() {
 	$current_db_version = get_option( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION_OPTION );
 
-	if ( $current_db_version === EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION ) {
+	if ( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION === $current_db_version ) {
 		return;
 	}
 

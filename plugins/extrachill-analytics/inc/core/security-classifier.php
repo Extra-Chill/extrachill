@@ -31,7 +31,7 @@ defined( 'ABSPATH' ) || exit;
  *                    ]
  */
 function extrachill_analytics_classify_search_payload( $term ) {
-	if ( ! is_string( $term ) || $term === '' ) {
+	if ( ! is_string( $term ) || '' === $term ) {
 		return null;
 	}
 
@@ -86,7 +86,7 @@ function extrachill_analytics_classify_search_payload( $term ) {
 		array(
 			'pattern_name'   => 'boolean_sqli',
 			'pattern_family' => 'sqli',
-			// XOR(1*if(...)) family.
+			// XOR-wrapped conditional SQLi family.
 			'regex'          => "/\bxor\s*\(\s*\d+\s*\*\s*if\s*\(/i",
 		),
 		// XSS probes.
@@ -191,7 +191,7 @@ function extrachill_analytics_classify_search_payload( $term ) {
 			continue;
 		}
 		$haystack = ! empty( $entry['match_raw'] ) ? $raw : $normalized;
-		if ( @preg_match( $entry['regex'], $haystack, $matches ) === 1 ) {
+		if ( @preg_match( $entry['regex'], $haystack, $matches ) === 1 ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- intentional: silences PCRE backtracking/JIT warnings on adversarial payloads so a noisy term cannot spam the log.
 			return array(
 				'pattern_name'   => isset( $entry['pattern_name'] ) ? (string) $entry['pattern_name'] : 'unknown',
 				'pattern_family' => isset( $entry['pattern_family'] ) ? (string) $entry['pattern_family'] : 'unknown',
@@ -224,7 +224,7 @@ function extrachill_analytics_get_client_ip() {
 
 	foreach ( $candidates as $candidate ) {
 		$ip = trim( (string) $candidate );
-		if ( $ip !== '' && filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+		if ( '' !== $ip && filter_var( $ip, FILTER_VALIDATE_IP ) ) {
 			return $ip;
 		}
 	}

@@ -36,7 +36,7 @@ add_action( 'network_admin_edit_extrachill_analytics_tracking', 'extrachill_anal
  */
 function extrachill_analytics_handle_tracking_settings_save() {
 	if ( ! current_user_can( 'manage_network_options' ) ) {
-		wp_die( __( 'You do not have permission to access this page.', 'extrachill-analytics' ) );
+		wp_die( esc_html__( 'You do not have permission to access this page.', 'extrachill-analytics' ) );
 	}
 
 	check_admin_referer( 'extrachill_analytics_tracking_settings', 'extrachill_analytics_tracking_nonce' );
@@ -55,7 +55,7 @@ function extrachill_analytics_handle_tracking_settings_save() {
 		network_admin_url( 'admin.php' )
 	);
 
-	wp_redirect( $redirect_url );
+	wp_safe_redirect( $redirect_url );
 	exit;
 }
 
@@ -71,7 +71,7 @@ function extrachill_analytics_render_tracking_settings_page() {
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Tracking', 'extrachill-analytics' ); ?></h1>
 
-		<?php if ( isset( $_GET['updated'] ) ) : ?>
+		<?php if ( isset( $_GET['updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only check of a self-set redirect flag; no user input is acted upon. ?>
 			<div class="notice notice-success is-dismissible">
 				<p><?php esc_html_e( 'Tracking settings updated successfully.', 'extrachill-analytics' ); ?></p>
 			</div>
@@ -103,11 +103,11 @@ function extrachill_analytics_render_tracking_settings_page() {
 						</th>
 						<td>
 							<input type="text"
-								   id="extrachill_gtm_container_id"
-								   name="extrachill_gtm_container_id"
-								   value="<?php echo esc_attr( $gtm_container_id ); ?>"
-								   class="regular-text"
-								   placeholder="GTM-XXXXXXX" />
+									id="extrachill_gtm_container_id"
+									name="extrachill_gtm_container_id"
+									value="<?php echo esc_attr( $gtm_container_id ); ?>"
+									class="regular-text"
+									placeholder="GTM-XXXXXXX" />
 							<p class="description">
 								<?php esc_html_e( 'Example: GTM-ABC1234. Leave blank to disable GTM output.', 'extrachill-analytics' ); ?>
 							</p>

@@ -9,7 +9,7 @@
  * @since 0.1.0
  */
 
-if (!defined('ABSPATH')) {
+if ( ! defined('ABSPATH') ) {
 	exit;
 }
 
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
  * Track post views (called by REST API endpoint)
  */
 function ec_track_post_views($post_id) {
-	if (!$post_id || is_preview()) {
+	if ( ! $post_id || is_preview() ) {
 		return;
 	}
 
@@ -32,7 +32,7 @@ function ec_track_post_views($post_id) {
  * @return int
  */
 function ec_get_post_views($post_id = null) {
-	$post_id = $post_id ?: get_the_ID();
+	$post_id = $post_id ? $post_id : get_the_ID();
 	return (int) get_post_meta($post_id, 'ec_post_views', true);
 }
 
@@ -40,14 +40,14 @@ function ec_get_post_views($post_id = null) {
  * Display formatted view count
  *
  * @param int|null $post_id
- * @param bool $echo
+ * @param bool     $should_echo
  * @return string|void
  */
-function ec_the_post_views($post_id = null, $echo = true) {
-	$views = ec_get_post_views($post_id);
+function ec_the_post_views($post_id = null, $should_echo = true) {
+	$views  = ec_get_post_views($post_id);
 	$output = number_format($views) . ' views';
 
-	if ($echo) {
+	if ( $should_echo ) {
 		echo esc_html($output);
 	} else {
 		return $output;

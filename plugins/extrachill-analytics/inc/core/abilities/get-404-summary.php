@@ -18,10 +18,10 @@ function extrachill_analytics_register_404_summary_ability() {
 	wp_register_ability(
 		'extrachill/get-404-summary',
 		array(
-			'label'       => __( 'Get 404 Summary', 'extrachill-analytics' ),
-			'description' => __( 'Returns 404 error summary statistics with totals, unique counts, and daily breakdown.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Get 404 Summary', 'extrachill-analytics' ),
+			'description'         => __( 'Returns 404 error summary statistics with totals, unique counts, and daily breakdown.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'days'    => array(
@@ -36,7 +36,7 @@ function extrachill_analytics_register_404_summary_ability() {
 					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'object',
 				'description' => __( 'Summary with total, unique URLs/IPs, daily average, and daily breakdown.', 'extrachill-analytics' ),
 			),
@@ -85,7 +85,7 @@ function extrachill_analytics_ability_get_404_summary( $input ) {
 	$where_clause = implode( ' AND ', $where );
 
 	// Total count.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:disable WordPress.DB.PreparedSQL
 	$total_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
 	if ( ! empty( $values ) ) {
 		$total = (int) $wpdb->get_var( $wpdb->prepare( $total_sql, $values ) );
@@ -116,13 +116,13 @@ function extrachill_analytics_ability_get_404_summary( $input ) {
 	} else {
 		$daily_rows = $wpdb->get_results( $daily_sql );
 	}
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$daily = array();
 	foreach ( $daily_rows as $row ) {
 		$daily[] = array(
 			'date' => $row->date,
-			'hits'  => (int) $row->hits,
+			'hits' => (int) $row->hits,
 		);
 	}
 

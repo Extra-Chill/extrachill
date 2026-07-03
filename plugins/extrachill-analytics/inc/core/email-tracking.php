@@ -121,7 +121,7 @@ add_action( 'wp_mail_failed', 'extrachill_analytics_log_email_failed' );
  * Walks the call stack to find the originating plugin or theme.
  * Returns a human-readable context string.
  *
- * @return string Context identifier (e.g., 'extrachill-contact', 'woocommerce', 'wordpress').
+ * @return string Context identifier (e.g., 'extrachill-contact', 'woocommerce', 'WordPress').
  */
 function extrachill_analytics_detect_email_context() {
 	$trace = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 20 ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace
@@ -156,5 +156,5 @@ function extrachill_analytics_detect_email_context() {
 		}
 	}
 
-	return 'wordpress';
+	return 'WordPress';
 }

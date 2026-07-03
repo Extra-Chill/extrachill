@@ -122,7 +122,7 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 
 	$views = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT stat_date, view_count FROM {$views_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s ORDER BY stat_date ASC",
+			"SELECT stat_date, view_count FROM {$views_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s ORDER BY stat_date ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $views_table is a code-defined table name; all values bound via prepare().
 			$link_page_id,
 			$start_date,
 			$today
@@ -131,7 +131,7 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 
 	$clicks = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT stat_date, SUM(click_count) AS click_count FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY stat_date ORDER BY stat_date ASC",
+			"SELECT stat_date, SUM(click_count) AS click_count FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY stat_date ORDER BY stat_date ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $clicks_table is a code-defined table name; all values bound via prepare().
 			$link_page_id,
 			$start_date,
 			$today
@@ -140,7 +140,7 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 
 	$top_links = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT link_url, link_text, SUM(click_count) AS total_clicks FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY link_url, link_text ORDER BY total_clicks DESC LIMIT 20",
+			"SELECT link_url, link_text, SUM(click_count) AS total_clicks FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY link_url, link_text ORDER BY total_clicks DESC LIMIT 20", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $clicks_table is a code-defined table name; all values bound via prepare().
 			$link_page_id,
 			$start_date,
 			$today
@@ -216,6 +216,7 @@ function extrachill_analytics_handle_link_page_view_db_write( $link_page_id ) {
 	$today      = current_time( 'Y-m-d' );
 	$table_name = extrachill_analytics_link_page_views_table();
 
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name is a code-defined table name; all values bound via prepare().
 	$wpdb->query(
 		$wpdb->prepare(
 			"INSERT INTO {$table_name}
@@ -228,6 +229,7 @@ function extrachill_analytics_handle_link_page_view_db_write( $link_page_id ) {
 			$today
 		)
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 }
 
 /**
@@ -243,6 +245,7 @@ function extrachill_analytics_handle_link_click_db_write( $link_page_id, $link_u
 	$today      = current_time( 'Y-m-d' );
 	$table_name = extrachill_analytics_link_page_clicks_table();
 
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name is a code-defined table name; all values bound via prepare().
 	$wpdb->query(
 		$wpdb->prepare(
 			"INSERT INTO {$table_name}
@@ -257,6 +260,7 @@ function extrachill_analytics_handle_link_click_db_write( $link_page_id, $link_u
 			$link_text
 		)
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 }
 
 /**
@@ -265,30 +269,30 @@ function extrachill_analytics_handle_link_click_db_write( $link_page_id, $link_u
 function extrachill_analytics_prune_link_page_data() {
 	global $wpdb;
 
-	$ninety_days_ago = gmdate( 'Y-m-d', strtotime( '-90 days', current_time( 'timestamp' ) ) );
+	$ninety_days_ago = gmdate( 'Y-m-d', strtotime( '-90 days', time() ) );
 
 	$table_views  = extrachill_analytics_link_page_views_table();
 	$result_views = $wpdb->query(
 		$wpdb->prepare(
-			"DELETE FROM {$table_views} WHERE stat_date < %s",
+			"DELETE FROM {$table_views} WHERE stat_date < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_views is a code-defined table name; value bound via prepare().
 			$ninety_days_ago
 		)
 	);
 
 	if ( false === $result_views ) {
-		error_log( '[ECA Link Page Analytics Pruning] Error pruning daily views: ' . $wpdb->last_error );
+		error_log( '[ECA Link Page Analytics Pruning] Error pruning daily views: ' . $wpdb->last_error ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional prune-failure log surfacing $wpdb->last_error.
 	}
 
 	$table_clicks  = extrachill_analytics_link_page_clicks_table();
 	$result_clicks = $wpdb->query(
 		$wpdb->prepare(
-			"DELETE FROM {$table_clicks} WHERE stat_date < %s",
+			"DELETE FROM {$table_clicks} WHERE stat_date < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_clicks is a code-defined table name; value bound via prepare().
 			$ninety_days_ago
 		)
 	);
 
 	if ( false === $result_clicks ) {
-		error_log( '[ECA Link Page Analytics Pruning] Error pruning daily link clicks: ' . $wpdb->last_error );
+		error_log( '[ECA Link Page Analytics Pruning] Error pruning daily link clicks: ' . $wpdb->last_error ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional prune-failure log surfacing $wpdb->last_error.
 	}
 }
 add_action( 'extrachill_analytics_link_page_prune_event', 'extrachill_analytics_prune_link_page_data' );

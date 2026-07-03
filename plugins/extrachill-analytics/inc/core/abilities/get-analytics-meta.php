@@ -18,14 +18,14 @@ function extrachill_analytics_register_meta_ability() {
 	wp_register_ability(
 		'extrachill/get-analytics-meta',
 		array(
-			'label'        => __( 'Get Analytics Meta', 'extrachill-analytics' ),
-			'description'  => __( 'Returns analytics filter options: distinct event types and the blogs that have events.', 'extrachill-analytics' ),
-			'category'     => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Get Analytics Meta', 'extrachill-analytics' ),
+			'description'         => __( 'Returns analytics filter options: distinct event types and the blogs that have events.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'object',
 				'description' => __( 'Object with event_types (string array) and blogs (array of {id, name}).', 'extrachill-analytics' ),
 			),

@@ -330,7 +330,7 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 
 		// Accumulate into a target stat bucket (passed by reference).
 		$apply = function ( &$bucket ) use ( $same, $ret, $same_any, $ret_any, $any, $returned ) {
-			$bucket['entry_sessions']++;
+			++$bucket['entry_sessions'];
 			$bucket['reached_events_same']      += $same['events'] ? 1 : 0;
 			$bucket['reached_community_same']   += $same['community'] ? 1 : 0;
 			$bucket['reached_artist_same']      += $same['artist'] ? 1 : 0;

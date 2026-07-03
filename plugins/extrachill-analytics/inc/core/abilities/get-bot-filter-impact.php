@@ -66,12 +66,12 @@ function extrachill_analytics_register_bot_filter_impact_ability() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'days'    => array(
+					'days'     => array(
 						'type'        => 'integer',
 						'description' => __( 'Number of days to look back. 0 for all time.', 'extrachill-analytics' ),
 						'default'     => 28,
 					),
-					'blog_id' => array(
+					'blog_id'  => array(
 						'type'        => 'integer',
 						'description' => __( 'Filter to a specific blog ID. 0 for all sites.', 'extrachill-analytics' ),
 						'default'     => 0,

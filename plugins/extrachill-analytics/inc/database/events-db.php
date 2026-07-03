@@ -21,7 +21,7 @@ define( 'EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION', 'extrachill_analytics_e
 function extrachill_analytics_events_create_table() {
 	$current_db_version = get_site_option( EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION );
 
-	if ( $current_db_version === EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION ) {
+	if ( EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION === $current_db_version ) {
 		return;
 	}
 

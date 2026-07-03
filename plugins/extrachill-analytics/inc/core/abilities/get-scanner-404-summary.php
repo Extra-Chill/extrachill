@@ -31,10 +31,10 @@ function extrachill_analytics_register_scanner_404_summary_ability() {
 	wp_register_ability(
 		'extrachill/get-scanner-404-summary',
 		array(
-			'label'       => __( 'Get Scanner 404 Summary', 'extrachill-analytics' ),
-			'description' => __( 'Summarizes scanner/attack-shaped 404 events (secret/config probes, plugin/wp-includes probing, user enumeration, SQLi-in-URL) by category, day, IP, or URL. Companion to get-attack-summary, which covers on-site search injection.', 'extrachill-analytics' ),
-			'category'    => 'extrachill-analytics',
-			'input_schema' => array(
+			'label'               => __( 'Get Scanner 404 Summary', 'extrachill-analytics' ),
+			'description'         => __( 'Summarizes scanner/attack-shaped 404 events (secret/config probes, plugin/wp-includes probing, user enumeration, SQLi-in-URL) by category, day, IP, or URL. Companion to get-attack-summary, which covers on-site search injection.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'days'     => array(
@@ -60,7 +60,7 @@ function extrachill_analytics_register_scanner_404_summary_ability() {
 					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'        => 'object',
 				'description' => __( 'Summary with rows array, scanner total, benign total, and period metadata.', 'extrachill-analytics' ),
 			),
@@ -136,7 +136,7 @@ function extrachill_analytics_ability_get_scanner_404_summary( $input ) {
 	// group. Categorization can't be expressed in SQL (it mirrors the PHP
 	// categorizer), so we aggregate in PHP. Rows are grouped by URL first to
 	// keep the working set small even on a multi-hundred-thousand-row window.
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:disable WordPress.DB.PreparedSQL
 	$sql = "SELECT
 		JSON_UNQUOTE(JSON_EXTRACT(event_data, '\$.requested_url')) AS url,
 		JSON_UNQUOTE(JSON_EXTRACT(event_data, '\$.ip_hash')) AS ip_hash,
@@ -151,7 +151,7 @@ function extrachill_analytics_ability_get_scanner_404_summary( $input ) {
 	} else {
 		$rows = $wpdb->get_results( $sql );
 	}
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$scanner_total = 0;
 	$benign_total  = 0;

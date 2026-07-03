@@ -92,6 +92,8 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 		$event_data['source'] = extrachill_analytics_classify_search_source( $source_url );
 	}
 
+	$current_user_id = get_current_user_id();
+
 	$result = $wpdb->insert(
 		$table_name,
 		array(
@@ -99,7 +101,7 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 			'event_data' => wp_json_encode( $event_data ),
 			'source_url' => esc_url_raw( $source_url ),
 			'blog_id'    => get_current_blog_id(),
-			'user_id'    => get_current_user_id() ?: null,
+			'user_id'    => $current_user_id ? $current_user_id : null,
 			'visitor_id' => $stored_visitor_id,
 			'created_at' => current_time( 'mysql', true ),
 		),
@@ -107,7 +109,7 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 	);
 
 	if ( false === $result ) {
-		error_log( sprintf( 'extrachill_track_analytics_event failed: %s', $wpdb->last_error ) );
+		error_log( sprintf( 'extrachill_track_analytics_event failed: %s', $wpdb->last_error ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional write-failure log surfacing $wpdb->last_error; not debug scaffolding.
 		return false;
 	}
 
@@ -196,6 +198,11 @@ function extrachill_get_analytics_events( $args = array() ) {
 	$limit  = absint( $args['limit'] );
 	$offset = absint( $args['offset'] );
 
+	// $sql interpolates only a code-defined table name plus a where_clause
+	// built from %s/%d placeholders (bound via prepare() below); $orderby is
+	// whitelisted through in_array() and $order is hard-coded ASC/DESC. No
+	// request input reaches the query unprepared.
+	// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	$sql = "SELECT * FROM {$table_name} WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
 
 	$values[] = $limit;
@@ -208,6 +215,7 @@ function extrachill_get_analytics_events( $args = array() ) {
 	}
 
 	$results = $wpdb->get_results( $query );
+	// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	foreach ( $results as &$row ) {
 		$row->event_data = json_decode( $row->event_data, true );
@@ -277,6 +285,9 @@ function extrachill_count_analytics_events( $args = array() ) {
 
 	$where_clause = implode( ' AND ', $where );
 
+	// $sql interpolates a code-defined table name and a where_clause of %s/%d
+	// placeholders bound via prepare(); no request input is concatenated.
+	// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	$sql = "SELECT COUNT(*) FROM {$table_name} WHERE {$where_clause}";
 
 	if ( ! empty( $values ) ) {
@@ -284,6 +295,7 @@ function extrachill_count_analytics_events( $args = array() ) {
 	} else {
 		$count = $wpdb->get_var( $sql );
 	}
+	// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	return (int) $count;
 }
@@ -315,6 +327,10 @@ function extrachill_get_analytics_event_stats( $event_type, $days = 30, $blog_id
 
 	$where_clause = implode( ' AND ', $where );
 
+	// Every query below interpolates only a code-defined table name and the
+	// where_clause of %s/%d placeholders (bound via prepare()); no request input
+	// is concatenated.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	// Total count.
 	$total = $wpdb->get_var(
 		$wpdb->prepare(
@@ -359,6 +375,7 @@ function extrachill_get_analytics_event_stats( $event_type, $days = 30, $blog_id
 			$values
 		)
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	return array(
 		'total'      => (int) $total,
@@ -379,7 +396,7 @@ function extrachill_get_analytics_event_types() {
 	$table_name = extrachill_analytics_events_table();
 
 	$event_types = $wpdb->get_col(
-		"SELECT DISTINCT event_type FROM {$table_name} ORDER BY event_type ASC"
+		"SELECT DISTINCT event_type FROM {$table_name} ORDER BY event_type ASC" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- static query; only a code-defined table name is interpolated, no request input.
 	);
 
 	return array_map( 'strval', (array) $event_types );
@@ -396,7 +413,7 @@ function extrachill_get_analytics_blog_ids() {
 	$table_name = extrachill_analytics_events_table();
 
 	$blog_ids = $wpdb->get_col(
-		"SELECT DISTINCT blog_id FROM {$table_name} ORDER BY blog_id ASC"
+		"SELECT DISTINCT blog_id FROM {$table_name} ORDER BY blog_id ASC" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- static query; only a code-defined table name is interpolated, no request input.
 	);
 
 	return array_map( 'absint', (array) $blog_ids );
