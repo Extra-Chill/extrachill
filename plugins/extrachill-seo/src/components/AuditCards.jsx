@@ -3,6 +3,7 @@
  *
  * Displays metric cards for each audit category.
  */
+import { Grid } from '@extrachill/components';
 import { useAudit } from '../context/AuditContext';
 
 const METRICS = [
@@ -71,7 +72,11 @@ const AuditCards = () => {
 	const { results, loadDetails } = useAudit();
 
 	return (
-		<div className="extrachill-seo-cards">
+		<Grid
+			className="extrachill-seo-cards"
+			minColumnWidth="200px"
+			gap="16px"
+		>
 			{ METRICS.map( ( metric ) => (
 				<AuditCard
 					key={ metric.key }
@@ -81,7 +86,7 @@ const AuditCards = () => {
 					onViewDetails={ loadDetails }
 				/>
 			) ) }
-		</div>
+		</Grid>
 	);
 };
 

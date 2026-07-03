@@ -49,11 +49,10 @@
 	transition: width 0.3s ease;
 }
 
-// Dashboard cards grid
+// Dashboard cards grid.
+// Grid layout comes from the shared `.ec-card-grid` primitive (applied by the
+// `<Grid>` component in AuditCards.jsx); only the vertical rhythm lives here.
 .extrachill-seo-cards {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: 16px;
 	margin: 24px 0;
 }
 
