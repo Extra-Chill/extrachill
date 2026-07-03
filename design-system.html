@@ -84,7 +84,7 @@
 
   .swatch-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
     gap: var(--spacing-md);
   }
   .swatch {
@@ -126,7 +126,7 @@
   .group__blurb { color: var(--muted-text); font-size: var(--font-size-sm); margin: 0 0 var(--spacing-md); }
 
   /* In-context examples — built entirely from live tokens. */
-  .examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-lg); }
+  .examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--spacing-lg); }
   .example {
     background: var(--card-background);
     border: 1px solid var(--border-color);
@@ -174,7 +174,7 @@
   }
   .card p { margin: var(--spacing-xs) 0 var(--spacing-md); font-size: var(--font-size-sm); }
 
-  .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-md); }
+  .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--spacing-md); }
   .font {
     background: var(--card-background);
     border: 1px solid var(--border-color);

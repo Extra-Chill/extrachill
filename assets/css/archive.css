@@ -160,7 +160,7 @@ a.card-link-target:hover,
 /* Grid layout for full-width archives and search results */
 .ec-mobile-full-width-panel .article-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(325px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 325px), 1fr));
     gap: var(--spacing-lg);
     width: 100%;
     max-width: var(--container-wide);
@@ -183,7 +183,7 @@ a.card-link-target:hover,
 /* Responsive adjustments */
 @media (max-width: 768px) {
 	.ec-mobile-full-width-panel .article-container {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
         gap: var(--spacing-lg);
     }
 }
