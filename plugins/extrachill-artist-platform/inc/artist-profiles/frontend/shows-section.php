@@ -2,28 +2,27 @@
 /**
  * Artist Profile "Shows" Section (registered by AP core)
  *
- * Surfaces the events for a bound artist on the artist-profile hub, in the same
- * pattern the multisite Coverage section uses: a term-scoped section that
- * self-registers via the `ec_artist_profile_sections` filter. Because the
+ * Surfaces the events for a bound artist on the artist-profile hub. Because the
  * profile hub is a PUBLIC, SEO-critical, server-rendered surface (it must rank
- * for logged-out artist searches), this section is PHP-rendered and composes the
- * SHARED theme card primitives (`.related-tax-grid` / `.related-tax-card` /
- * `.related-tax-header`, plus `button-3 button-small`) — the same server-rendered
- * card system the events "related" module uses (see
- * ec_events_render_related_posts in extrachill-events). No ad-hoc markup, no
- * React, per the #92 shared-primitives constraint.
+ * for logged-out artist searches), this section is PHP-rendered.
  *
- * Data-copy / SEO note: cards LINK to the CANONICAL event page on
- * events.extrachill.com. NO event content is copied onto the artist site — this
- * is a discovery surface, not a data duplication. Events remain the single
- * source of truth.
+ * Cross-site data source: events live on the events blog, but that plugin's PHP
+ * is NOT loaded on the artist blog (blog 4) — only extrachill-artist-platform
+ * is active there. switch_to_blog() changes the DB context, not the loaded
+ * code, so a direct data_machine_events_query_events() call here silently
+ * renders nothing. Instead this section consumes the network-registered
+ * `data-machine-events/events-by-artist` ability (see data-machine-events#409),
+ * which routes to the events-plugin implementation regardless of which blog the
+ * caller is on. The ability returns PLAIN pre-resolved scalars (title,
+ * permalink, venue name, formatted date/time) so this surface renders its own
+ * markup with no cross-blog switching here.
  *
- * Cross-blog context: events live on the events blog with their OWN `artist`
- * taxonomy. The bound $artist_term_id passed to the section callbacks is a
- * MAIN-blog term; we resolve the matching events-blog `artist` term by slug
- * (the canonical join key the whole binding system keys off). Every
- * switch_to_blog() is paired with restore_current_blog() in a try/finally so the
- * blog context can never leak.
+ * Presentation: a clean, date-forward LIST view (rows, not cards, not the
+ * events calendar block). Two groups — "Upcoming Shows" then "Past Shows".
+ *
+ * Data-copy / SEO note: rows LINK to the CANONICAL event page on
+ * events.extrachill.com. NO event content is duplicated as indexable content —
+ * this is a discovery surface. Events remain the single source of truth.
  *
  * @package ExtraChillArtistPlatform
  */
@@ -53,85 +52,49 @@ function ec_register_artist_profile_shows_section( $sections, $artist_id, $artis
 add_filter( 'ec_artist_profile_sections', 'ec_register_artist_profile_shows_section', 10, 3 );
 
 /**
- * Resolve the events-blog `artist` term_id for a bound artist.
+ * Resolve the shared artist slug for a bound artist.
  *
- * The bound $artist_term_id is a MAIN-blog term. Events carry their own `artist`
- * taxonomy on the events blog, so we resolve the events-blog term by matching the
- * main-blog term's slug (the canonical cross-blog join key). Both hops are
- * switch_to_blog()/restore_current_blog() paired in try/finally.
+ * The bound $artist_term_id is a MAIN-blog `artist` term. Its slug is the
+ * canonical cross-blog join key: the events-by-artist ability looks the same
+ * slug up on the events blog. Resolution is done inside a switch_to_blog()/
+ * restore_current_blog() pair so blog context can never leak.
  *
  * @param int $artist_term_id Bound main-blog `artist` term_id.
- * @return array{blog_id:int,term_id:int,slug:string}|null Events blog id,
- *                                             events-blog artist term_id, and the
- *                                             shared artist slug, or null when
- *                                             unresolvable.
+ * @return string Artist slug, or '' when unresolvable.
  */
-function ec_artist_shows_resolve_events_term( $artist_term_id ) {
+function ec_artist_shows_resolve_slug( $artist_term_id ) {
 	$artist_term_id = (int) $artist_term_id;
-	if ( $artist_term_id <= 0 ) {
-		return null;
+	if ( $artist_term_id <= 0 || ! function_exists( 'ec_get_blog_id' ) ) {
+		return '';
 	}
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return null;
+	$main_blog_id = ec_get_blog_id( 'main' );
+	if ( ! $main_blog_id ) {
+		return '';
 	}
 
-	$main_blog_id   = ec_get_blog_id( 'main' );
-	$events_blog_id = ec_get_blog_id( 'events' );
-	if ( ! $main_blog_id || ! $events_blog_id ) {
-		return null;
-	}
-
-	// 1. Resolve the artist slug from the bound main-blog term.
 	$slug = '';
 	switch_to_blog( $main_blog_id );
 	try {
 		$term = get_term( $artist_term_id, 'artist' );
 		if ( $term && ! is_wp_error( $term ) ) {
-			$slug = $term->slug;
+			$slug = (string) $term->slug;
 		}
 	} finally {
 		restore_current_blog();
 	}
 
-	if ( empty( $slug ) ) {
-		return null;
-	}
-
-	// 2. Resolve the matching events-blog `artist` term by slug.
-	$events_term_id = 0;
-	switch_to_blog( $events_blog_id );
-	try {
-		if ( taxonomy_exists( 'artist' ) ) {
-			// get_term_by() returns WP_Term|array|false (never WP_Error).
-			$events_term = get_term_by( 'slug', $slug, 'artist' );
-			if ( $events_term instanceof WP_Term ) {
-				$events_term_id = (int) $events_term->term_id;
-			}
-		}
-	} finally {
-		restore_current_blog();
-	}
-
-	if ( $events_term_id <= 0 ) {
-		return null;
-	}
-
-	return array(
-		'blog_id' => (int) $events_blog_id,
-		'term_id' => $events_term_id,
-		'slug'    => (string) $slug,
-	);
+	return $slug;
 }
 
 /**
  * Build the canonical artist events-archive URL on the events site.
  *
  * Points at the events-blog `artist` taxonomy archive (events.extrachill.com/
- * artist/{slug}) — the same archive the events-blog artist term resolves to.
- * The events site base URL is resolved via ec_get_blog_id('events') +
- * get_site_url() rather than hardcoding the domain, so it stays correct across
- * environments. No-ops (returns '') when the slug or events blog is missing.
+ * artist/{slug}) — the "View all shows" doorway. The events site base URL is
+ * resolved via ec_get_blog_id('events') + get_site_url() rather than hardcoding
+ * the domain, so it stays correct across environments. No-ops (returns '')
+ * when the slug or events blog is missing.
  *
  * @param string $slug Shared artist slug (equals the events-blog term slug).
  * @return string Absolute archive URL, or '' when unresolvable.
@@ -156,130 +119,58 @@ function ec_artist_shows_archive_url( $slug ) {
 }
 
 /**
- * Gather renderable show-card data for a bound artist, scoped to the events blog.
+ * Gather the artist's shows via the cross-site events-by-artist ability.
  *
- * Runs the events query INSIDE the events-blog context and captures everything a
- * card needs (permalink, title, thumbnail, formatted date/time, taxonomy badges,
- * and — for past shows — the "I Was There" attendance affordance) while still on
- * the events blog, because permalinks, thumbnails, badge rendering, and the
- * attendance button all read the current blog. The returned arrays are plain
- * scalars/HTML safe to render after restore_current_blog().
+ * Resolves the artist slug from the bound main-blog term, then calls the
+ * network-registered `data-machine-events/events-by-artist` ability. The
+ * ability resolves everything (permalinks, venue names, formatted dates) on the
+ * events blog and hands back plain scalars this surface can render directly —
+ * which is why it works from blog 4 where the events plugin's PHP is not loaded.
  *
  * @param int $artist_term_id Bound main-blog `artist` term_id.
- * @return array{upcoming:array[],past:array[]} Card data grouped by scope.
+ * @return array{upcoming:array[],past:array[]} Event rows grouped by scope.
  */
-function ec_artist_shows_gather_cards( $artist_term_id ) {
+function ec_artist_shows_gather( $artist_term_id ) {
 	$empty = array(
 		'upcoming' => array(),
 		'past'     => array(),
 	);
 
-	if ( ! function_exists( 'data_machine_events_query_events' ) ) {
+	// Abilities API must be present. Guard for graceful degradation on any blog
+	// where it is not loaded.
+	if ( ! function_exists( 'wp_get_ability' ) ) {
 		return $empty;
 	}
 
-	$resolved = ec_artist_shows_resolve_events_term( $artist_term_id );
-	if ( null === $resolved ) {
+	$slug = ec_artist_shows_resolve_slug( $artist_term_id );
+	if ( '' === $slug ) {
 		return $empty;
 	}
 
-	$events_blog_id = $resolved['blog_id'];
-	$events_term_id = $resolved['term_id'];
-
-	$cards = $empty;
-
-	switch_to_blog( $events_blog_id );
-	try {
-		$tax_filters = array( 'artist' => array( $events_term_id ) );
-
-		// Upcoming: soonest first. Past: most recent first.
-		$scopes = array(
-			'upcoming' => 'ASC',
-			'past'     => 'DESC',
-		);
-
-		foreach ( $scopes as $scope => $order ) {
-			$result = data_machine_events_query_events(
-				array(
-					'scope'       => $scope,
-					'tax_filters' => $tax_filters,
-					'per_page'    => 12,
-					'order'       => $order,
-				)
-			);
-
-			$posts = isset( $result['posts'] ) && is_array( $result['posts'] ) ? $result['posts'] : array();
-			foreach ( $posts as $event_post ) {
-				if ( ! ( $event_post instanceof WP_Post ) ) {
-					continue;
-				}
-				$cards[ $scope ][] = ec_artist_shows_build_card( $event_post, $scope );
-			}
-		}
-	} finally {
-		restore_current_blog();
+	$ability = wp_get_ability( 'data-machine-events/events-by-artist' );
+	if ( ! $ability ) {
+		return $empty;
 	}
 
-	return $cards;
-}
+	$result = $ability->execute(
+		array(
+			'artist_slug' => $slug,
+			'scope'       => 'all',
+			'limit'       => 12,
+		)
+	);
 
-/**
- * Build the render-ready card payload for a single event post.
- *
- * MUST be called while switched to the events blog — it reads permalinks,
- * thumbnails, badge markup, and (for past shows) the attendance button, all of
- * which resolve against the current blog.
- *
- * @param WP_Post $event_post Event post (events blog).
- * @param string  $scope      'upcoming' | 'past'.
- * @return array Card payload of pre-resolved scalars/HTML.
- */
-function ec_artist_shows_build_card( $event_post, $scope ) {
-	$permalink  = get_permalink( $event_post );
-	$title      = get_the_title( $event_post );
-	$image_url  = get_the_post_thumbnail_url( $event_post, 'medium_large' );
-
-	$badges_html = function_exists( 'data_machine_events_render_taxonomy_badges' )
-		? data_machine_events_render_taxonomy_badges( $event_post->ID )
-		: '';
-
-	// Format date/time via the events public API when available.
-	$date_str = '';
-	$time_str = '';
-	if ( function_exists( 'data_machine_events_parse_event_data' ) ) {
-		$event_data = data_machine_events_parse_event_data( $event_post );
-		if ( is_array( $event_data ) && ! empty( $event_data['startDate'] ) ) {
-			$start_time = ! empty( $event_data['startTime'] ) ? $event_data['startTime'] : '00:00:00';
-			try {
-				$date_obj = new DateTime( $event_data['startDate'] . ' ' . $start_time, wp_timezone() );
-				$date_str = $date_obj->format( 'D, M j, Y' );
-				$time_str = $date_obj->format( 'g:i A' );
-			} catch ( Exception $e ) {
-				$date_str = '';
-				$time_str = '';
-			}
-		}
+	if ( is_wp_error( $result ) || ! is_array( $result ) ) {
+		return $empty;
 	}
 
-	// Past-show "I Was There" affordance. Owned by extrachill-users; guard with
-	// function_exists so this no-ops cleanly when that plugin is inactive. The
-	// button reads get_current_blog_id() internally, so it must be captured here
-	// while still switched to the events blog.
-	$attendance_html = '';
-	if ( 'past' === $scope && function_exists( 'ec_users_render_attendance_button' ) ) {
-		ob_start();
-		ec_users_render_attendance_button( (int) $event_post->ID );
-		$attendance_html = ob_get_clean();
+	if ( empty( $result['found'] ) ) {
+		return $empty;
 	}
 
 	return array(
-		'permalink'       => (string) $permalink,
-		'title'           => (string) $title,
-		'image_url'       => $image_url ? (string) $image_url : '',
-		'badges_html'     => (string) $badges_html,
-		'date_str'        => (string) $date_str,
-		'time_str'        => (string) $time_str,
-		'attendance_html' => (string) $attendance_html,
+		'upcoming' => isset( $result['upcoming'] ) && is_array( $result['upcoming'] ) ? $result['upcoming'] : array(),
+		'past'     => isset( $result['past'] ) && is_array( $result['past'] ) ? $result['past'] : array(),
 	);
 }
 
@@ -299,21 +190,20 @@ function ec_artist_profile_has_shows( $artist_id, $artist_term_id = 0 ) {
 		return false;
 	}
 
-	$cards = ec_artist_shows_gather_cards( $artist_term_id );
+	$shows = ec_artist_shows_gather( $artist_term_id );
 
-	return ! empty( $cards['upcoming'] ) || ! empty( $cards['past'] );
+	return ! empty( $shows['upcoming'] ) || ! empty( $shows['past'] );
 }
 
 /**
  * Render the Shows section for the artist profile hub.
  *
- * Upcoming shows render as one card group, past shows as a second. Every card
+ * Upcoming shows render as one list group, past shows as a second. Every row
  * LINKS to the canonical event page on events.extrachill.com (no SEO
- * duplication) and composes the shared `.related-tax-*` card primitives. Past
- * cards surface the "I Was There" attendance button when extrachill-users is
- * active. A "View all shows" link closes the section, completing the discovery
- * doorway to the full canonical artist events archive (the section caps at 12
- * upcoming + 12 past cards). Server-side render, no AJAX.
+ * duplication). Past rows surface the "I Was There" attendance affordance when
+ * extrachill-users is active. A "View all shows →" link closes the section,
+ * completing the discovery doorway to the full canonical artist events archive
+ * (the section caps at 12 upcoming + 12 past). Server-side render, no AJAX.
  *
  * @param int $artist_id      Artist profile post ID.
  * @param int $artist_term_id Bound main-blog `artist` term_id.
@@ -325,34 +215,32 @@ function ec_render_artist_profile_shows_section( $artist_id, $artist_term_id = 0
 		return;
 	}
 
-	$cards = ec_artist_shows_gather_cards( $artist_term_id );
-	if ( empty( $cards['upcoming'] ) && empty( $cards['past'] ) ) {
+	$shows = ec_artist_shows_gather( $artist_term_id );
+	if ( empty( $shows['upcoming'] ) && empty( $shows['past'] ) ) {
 		return;
 	}
 
 	echo '<div class="artist-shows-section">';
 	echo '<h2 class="section-title">' . esc_html__( 'Shows', 'extrachill-artist-platform' ) . '</h2>';
 
-	if ( ! empty( $cards['upcoming'] ) ) {
+	if ( ! empty( $shows['upcoming'] ) ) {
 		ec_render_artist_shows_group(
 			__( 'Upcoming Shows', 'extrachill-artist-platform' ),
-			$cards['upcoming']
+			$shows['upcoming']
 		);
 	}
 
-	if ( ! empty( $cards['past'] ) ) {
+	if ( ! empty( $shows['past'] ) ) {
 		ec_render_artist_shows_group(
 			__( 'Past Shows', 'extrachill-artist-platform' ),
-			$cards['past']
+			$shows['past']
 		);
 	}
 
-	// "View all shows" doorway to the full canonical artist events archive. The
-	// resolver already computed the shared slug when gathering cards; reuse it to
-	// build the events-site archive URL. Guarded so a missing slug/blog no-ops
-	// cleanly (the section itself is already visibility-gated on having shows).
-	$resolved = ec_artist_shows_resolve_events_term( $artist_term_id );
-	$slug     = ( null !== $resolved && ! empty( $resolved['slug'] ) ) ? $resolved['slug'] : '';
+	// "View all shows" doorway to the full canonical artist events archive.
+	// Reuse the shared slug the ability keyed off. Guarded so a missing
+	// slug/blog no-ops cleanly (the section is already visibility-gated).
+	$slug        = ec_artist_shows_resolve_slug( $artist_term_id );
 	$archive_url = ec_artist_shows_archive_url( $slug );
 	if ( '' !== $archive_url ) {
 		echo '<div class="artist-shows-view-all">';
@@ -368,72 +256,75 @@ function ec_render_artist_profile_shows_section( $artist_id, $artist_term_id = 0
 }
 
 /**
- * Render a single group of show cards using the shared card primitives.
+ * Render a single group of shows as a clean, date-forward LIST.
  *
- * Mirrors the structure/classes of ec_events_render_related_posts so any
- * improvement to the shared `.related-tax-*` card system lifts this surface too.
+ * Each row shows the formatted date (and time when known), the event title
+ * linked to the CANONICAL event page, and the venue name. Past rows surface the
+ * "I Was There" attendance affordance inline when extrachill-users is active
+ * (guarded with function_exists so it no-ops cleanly otherwise). Rows lean on
+ * existing theme typography/spacing tokens via the small `.artist-shows-list`
+ * styles in artist-profile.css — no card grid, no events-plugin CSS.
  *
  * @param string  $heading Group heading (e.g. "Upcoming Shows").
- * @param array[] $cards   Pre-resolved card payloads from ec_artist_shows_build_card().
+ * @param array[] $shows   Event rows from the events-by-artist ability. Each is
+ *                         a plain array: event_id, title, permalink, venue_name,
+ *                         date_iso, date_display, time_display, timing.
  * @return void
  */
-function ec_render_artist_shows_group( $heading, $cards ) {
-	if ( empty( $cards ) ) {
+function ec_render_artist_shows_group( $heading, $shows ) {
+	if ( empty( $shows ) ) {
 		return;
 	}
 	?>
-	<div class="related-tax-section artist-shows-group">
-		<h3 class="related-tax-header"><?php echo esc_html( $heading ); ?></h3>
+	<div class="artist-shows-group">
+		<h3 class="artist-shows-heading"><?php echo esc_html( $heading ); ?></h3>
 
-		<div class="related-tax-grid">
-			<?php foreach ( $cards as $card ) : ?>
-				<div class="related-tax-card">
-					<?php if ( ! empty( $card['image_url'] ) ) : ?>
-						<div class="related-tax-thumb">
-							<a href="<?php echo esc_url( $card['permalink'] ); ?>">
-								<img src="<?php echo esc_url( $card['image_url'] ); ?>" alt="<?php echo esc_attr( $card['title'] ); ?>" loading="lazy">
-							</a>
-						</div>
-					<?php endif; ?>
+		<ul class="artist-shows-list">
+			<?php foreach ( $shows as $show ) : ?>
+				<?php
+				$permalink    = isset( $show['permalink'] ) ? (string) $show['permalink'] : '';
+				$title        = isset( $show['title'] ) ? (string) $show['title'] : '';
+				$venue_name   = isset( $show['venue_name'] ) ? (string) $show['venue_name'] : '';
+				$date_display = isset( $show['date_display'] ) ? (string) $show['date_display'] : '';
+				$time_display = isset( $show['time_display'] ) ? (string) $show['time_display'] : '';
+				$date_iso     = isset( $show['date_iso'] ) ? (string) $show['date_iso'] : '';
+				$event_id     = isset( $show['event_id'] ) ? (int) $show['event_id'] : 0;
+				$is_past      = isset( $show['timing'] ) && 'past' === $show['timing'];
 
-					<?php
-					// Badge markup is pre-built by data_machine_events_render_taxonomy_badges
-					// (escaped internally); output as-is.
-					echo $card['badges_html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					?>
-					<h4 class="related-tax-title">
-						<a href="<?php echo esc_url( $card['permalink'] ); ?>"><?php echo esc_html( $card['title'] ); ?></a>
-					</h4>
-
-					<div class="related-tax-meta">
-						<?php if ( ! empty( $card['date_str'] ) ) : ?>
-							<div class="ec-related-meta-item">
-								<?php if ( function_exists( 'ec_icon' ) ) { echo ec_icon( 'calendar' ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-								<span><?php echo esc_html( $card['date_str'] ); ?></span>
-							</div>
+				if ( '' === $title || '' === $permalink ) {
+					continue;
+				}
+				?>
+				<li class="artist-show-row">
+					<div class="artist-show-when">
+						<?php if ( '' !== $date_display ) : ?>
+							<time class="artist-show-date"<?php echo '' !== $date_iso ? ' datetime="' . esc_attr( $date_iso ) . '"' : ''; ?>><?php echo esc_html( $date_display ); ?></time>
 						<?php endif; ?>
-
-						<?php if ( ! empty( $card['time_str'] ) ) : ?>
-							<div class="ec-related-meta-item">
-								<?php if ( function_exists( 'ec_icon' ) ) { echo ec_icon( 'clock' ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-								<span><?php echo esc_html( $card['time_str'] ); ?></span>
-							</div>
+						<?php if ( '' !== $time_display ) : ?>
+							<span class="artist-show-time"><?php echo esc_html( $time_display ); ?></span>
 						<?php endif; ?>
-
-						<a href="<?php echo esc_url( $card['permalink'] ); ?>" class="button-3 button-small"><?php esc_html_e( 'More Info', 'extrachill-artist-platform' ); ?></a>
 					</div>
 
-					<?php if ( ! empty( $card['attendance_html'] ) ) : ?>
-						<div class="artist-shows-attendance">
-							<?php
-							// Pre-built by ec_users_render_attendance_button (escaped internally).
-							echo $card['attendance_html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-							?>
+					<div class="artist-show-detail">
+						<a class="artist-show-title" href="<?php echo esc_url( $permalink ); ?>"><?php echo esc_html( $title ); ?></a>
+						<?php if ( '' !== $venue_name ) : ?>
+							<span class="artist-show-venue"><?php echo esc_html( $venue_name ); ?></span>
+						<?php endif; ?>
+					</div>
+
+					<?php
+					// Past-row "I Was There" affordance. Owned by extrachill-users
+					// (active network-wide); guard with function_exists so this
+					// no-ops cleanly if that plugin is ever inactive on a blog.
+					if ( $is_past && $event_id > 0 && function_exists( 'ec_users_render_attendance_button' ) ) :
+						?>
+						<div class="artist-show-attendance">
+							<?php ec_users_render_attendance_button( $event_id ); ?>
 						</div>
 					<?php endif; ?>
-				</div>
+				</li>
 			<?php endforeach; ?>
-		</div>
+		</ul>
 	</div>
 	<?php
 }
