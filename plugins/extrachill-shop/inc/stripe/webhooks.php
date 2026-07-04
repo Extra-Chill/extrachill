@@ -35,7 +35,7 @@ function extrachill_shop_handle_webhook( $request ) {
 
 	$webhook_secret = apply_filters(
 		'extrachill_stripe_webhook_secret',
-		get_site_option( 'extrachill_stripe_webhook_secret', '' )
+		extrachill_shop_resolve_stripe_webhook_secret()
 	);
 
 	if ( empty( $webhook_secret ) ) {

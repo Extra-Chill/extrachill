@@ -74,6 +74,10 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/commission-settings.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-storefront-manage-button.php';
 
+		// Commerce auth providers (Stripe + Shippo via Data Machine encrypted store)
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/auth/resolvers.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/auth/bootstrap.php';
+
 		// Stripe Connect integration
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/stripe-connect.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/checkout-handler.php';

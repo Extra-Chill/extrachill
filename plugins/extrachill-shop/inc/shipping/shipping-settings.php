@@ -10,12 +10,16 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Get the Shippo API key from network options.
+ * Get the Shippo API key.
+ *
+ * Resolved from the Data Machine encrypted auth store. The value is exposed
+ * through the `extrachill_shippo_api_key` filter so it can be overridden (used
+ * by extrachill-dev for local testing), matching the Stripe filter contract.
  *
  * @return string API key or empty string if not configured.
  */
 function extrachill_shop_get_shippo_api_key() {
-	return get_site_option( 'extrachill_shippo_api_key', '' );
+	return apply_filters( 'extrachill_shippo_api_key', extrachill_shop_resolve_shippo_api_key() );
 }
 
 /**

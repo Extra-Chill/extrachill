@@ -30,7 +30,7 @@ function extrachill_shop_stripe_init() {
 
 	$secret_key = apply_filters(
 		'extrachill_stripe_secret_key',
-		get_site_option( 'extrachill_stripe_secret_key', '' )
+		extrachill_shop_resolve_stripe_secret_key()
 	);
 
 	if ( empty( $secret_key ) ) {
@@ -60,11 +60,11 @@ function extrachill_shop_stripe_init() {
 function extrachill_shop_stripe_is_configured() {
 	$secret_key      = apply_filters(
 		'extrachill_stripe_secret_key',
-		get_site_option( 'extrachill_stripe_secret_key', '' )
+		extrachill_shop_resolve_stripe_secret_key()
 	);
 	$publishable_key = apply_filters(
 		'extrachill_stripe_publishable_key',
-		get_site_option( 'extrachill_stripe_publishable_key', '' )
+		extrachill_shop_resolve_stripe_publishable_key()
 	);
 
 	return ! empty( $secret_key ) && ! empty( $publishable_key );
@@ -78,7 +78,7 @@ function extrachill_shop_stripe_is_configured() {
 function extrachill_shop_get_stripe_publishable_key() {
 	$publishable_key = apply_filters(
 		'extrachill_stripe_publishable_key',
-		get_site_option( 'extrachill_stripe_publishable_key', '' )
+		extrachill_shop_resolve_stripe_publishable_key()
 	);
 
 	return ! empty( $publishable_key ) ? $publishable_key : false;
