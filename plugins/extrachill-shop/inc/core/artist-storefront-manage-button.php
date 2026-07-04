@@ -11,20 +11,11 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'extrachill_archive_header_actions', 'extrachill_shop_maybe_render_manage_shop_button', 15 );
 
 function extrachill_shop_maybe_render_manage_shop_button() {
-	// Admin-only during development
-	if ( ! current_user_can( 'manage_options' ) ) {
-		return;
-	}
-
 	if ( ! is_tax( 'artist' ) ) {
 		return;
 	}
 
 	if ( ! is_user_logged_in() ) {
-		return;
-	}
-
-	if ( ! function_exists( 'ec_can_manage_artist' ) ) {
 		return;
 	}
 
@@ -46,8 +37,9 @@ function extrachill_shop_maybe_render_manage_shop_button() {
 		return;
 	}
 
+	// Artist-aware: admins or users who manage this specific artist.
 	$artist_id = (int) $artist_data['id'];
-	if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
+	if ( ! extrachill_shop_user_can_manage_artist( $artist_id ) ) {
 		return;
 	}
 

@@ -198,13 +198,14 @@ function extrachill_shop_get_artists_with_products() {
 }
 
 /**
- * Admin: Add artist profile ID field to product edit screen.
+ * Add artist profile ID field to product edit screen.
  *
  * Adds a meta box for associating products with artist profiles.
- * Admin-only feature for now.
+ * Visible to admins and to users who manage at least one artist
+ * (so artists can associate their own products in wp-admin).
  */
 function extrachill_shop_add_artist_meta_box() {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( ! extrachill_shop_user_has_artists() ) {
 		return;
 	}
 
