@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.25.0] - 2026-07-04
+
+### Added
+- make attendance + import-nudge renderers timing/variant aware
+
 ## [0.24.0] - 2026-07-03
 
 ### Added
