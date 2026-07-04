@@ -43,6 +43,7 @@ domReady( () => {
 			labelDefault={ mount.dataset.labelDefault || '' }
 			labelActive={ mount.dataset.labelActive || '' }
 			loginUrl={ mount.dataset.loginUrl || '/login/' }
+			redirectTo={ mount.dataset.redirectTo || '' }
 		/>
 	);
 } );

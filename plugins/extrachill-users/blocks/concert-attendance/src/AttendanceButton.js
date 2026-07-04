@@ -28,6 +28,9 @@ import useMarkAttendance from './useMarkAttendance';
  * @param {string}  props.labelDefault  Label when unmarked.
  * @param {string}  props.labelActive   Label when marked.
  * @param {string}  props.loginUrl      Login URL for logged-out users.
+ * @param {string}  props.redirectTo    Optional explicit post-login return URL.
+ *                                       When empty, the current request URL is
+ *                                       used (prior default behavior).
  */
 const AttendanceButton = ( {
 	eventId,
@@ -38,6 +41,7 @@ const AttendanceButton = ( {
 	labelDefault,
 	labelActive,
 	loginUrl,
+	redirectTo,
 } ) => {
 	const [ marked, setMarked ] = useState( !! initialMarked );
 	const [ countLabel, setCountLabel ] = useState(
@@ -46,13 +50,14 @@ const AttendanceButton = ( {
 	const { mark, isMarking, error } = useMarkAttendance();
 
 	const handleClick = () => {
-		// Logged-out: send to login, preserving return URL.
+		// Logged-out: send to login, preserving return URL. Composition can
+		// pass an explicit redirectTo (e.g. deep-link into the archive/import
+		// flow); otherwise fall back to the current request URL.
 		if ( ! isLoggedIn ) {
 			const target = loginUrl || '/login/';
+			const returnTo = redirectTo || window.location.href;
 			window.location.href =
-				target +
-				'?redirect_to=' +
-				encodeURIComponent( window.location.href );
+				target + '?redirect_to=' + encodeURIComponent( returnTo );
 			return;
 		}
 

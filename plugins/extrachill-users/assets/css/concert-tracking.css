@@ -83,3 +83,68 @@
 	border: 2px solid var(--card-background, #fff);
 	object-fit: cover;
 }
+
+/* ─── Attendance "hero" variant (past-event archive framing) ───────────── */
+
+.ec-attendance-hero {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--spacing-sm, 0.5rem);
+	padding: var(--spacing-md, 1rem);
+	border: 1px solid var(--card-border, #e5e7eb);
+	border-radius: var(--border-radius, 0.5rem);
+	background: var(--card-background, #fff);
+}
+
+.ec-attendance-hero__heading {
+	margin: 0;
+	font-size: var(--font-size-lg, 1.125rem);
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.ec-attendance-hero__subheading {
+	margin: 0;
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
+	line-height: 1.4;
+}
+
+/* ─── Import nudge ("import your concert history") ─────────────────────── */
+
+.ec-import-nudge {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-sm, 0.5rem);
+	margin-top: var(--spacing-sm, 0.5rem);
+	padding: var(--spacing-md, 1rem);
+	border: 1px solid var(--card-border, #e5e7eb);
+	border-radius: var(--border-radius, 0.5rem);
+	background: var(--card-background, #fff);
+}
+
+.ec-import-nudge__body {
+	flex: 1 1 12rem;
+	min-width: 0;
+}
+
+.ec-import-nudge__heading {
+	margin: 0;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.ec-import-nudge__text {
+	margin: 0.25rem 0 0;
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
+	line-height: 1.4;
+}
+
+.ec-import-nudge__cta {
+	flex: 0 0 auto;
+	text-decoration: none;
+}
