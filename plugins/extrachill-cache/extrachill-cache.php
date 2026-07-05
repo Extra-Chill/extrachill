@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Cache
  * Plugin URI: https://extrachill.com
  * Description: Lean, network-activated full-page HTML cache for the Extra Chill platform. Replaces Breeze with only the two features the platform actually uses — anonymous full-page cache and content-change purge — and fixes the Breeze logged-in-cookie serve bug by design.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_CACHE_VERSION', '0.1.0' );
+define( 'EXTRACHILL_CACHE_VERSION', '0.2.0' );
 define( 'EXTRACHILL_CACHE_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_CACHE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_CACHE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
