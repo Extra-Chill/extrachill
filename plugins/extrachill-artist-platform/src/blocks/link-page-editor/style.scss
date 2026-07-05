@@ -191,8 +191,12 @@
 	height: 100%;
 }
 
+/* Align the tab-button row's horizontal inset with the content Panel below it
+   (.ec-editor__tab-content uses --spacing-lg). Previously this used --spacing-md
+   (16px) while the content inset --spacing-lg (24px), so the tab buttons sat
+   indented differently from the panel edge — reading as arbitrary indentation. */
 .ec-editor__sidebar-tabs .ec-tabs__tabs {
-	padding: var(--spacing-md) var(--spacing-md) 0;
+	padding: var(--spacing-md) var(--spacing-lg) 0;
 }
 
 /* Tab Content Area.
