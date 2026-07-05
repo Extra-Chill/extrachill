@@ -506,6 +506,43 @@ img {
 	height: auto;
 }
 
+/*
+ * Canonical emoji image sizing.
+ *
+ * WordPress core normally injects this rule via print_emoji_styles()
+ * (wp-includes/formatting.php), which sizes img.wp-smiley / img.emoji to
+ * inline text height. The extrachill-multisite plugin removes that action
+ * network-wide (inc/theme/emoji-deprecation.php) to silence a WP 6.4
+ * deprecation notice. That removal is correct and stays — but it also drops
+ * the sizing CSS, so core still converts emoji text into <img class="emoji"
+ * src="...s.w.org/.../svg"> elements that render at their natural (huge)
+ * dimensions. This rule restores canonical text-size emoji on every site.
+ *
+ * The theme is the right home for this: style.css is the always-loaded main
+ * stylesheet on all 9 network sites, and the theme already owns image
+ * display conventions (see the img rule directly above). The multisite
+ * plugin is infrastructure, not presentation, so the fix does not belong
+ * there.
+ *
+ * The !important flags are the documented exception to AGENTS.md's "Never
+ * use !important" rule: this faithfully reproduces WordPress core's own
+ * canonical emoji CSS, which itself uses !important (see core's
+ * print_emoji_styles). Do not "clean up" the !important here — doing so
+ * would diverge from stock WordPress behavior.
+ */
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 0.07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+
 /*--------------------------------------------------------------
 9.0 Media
 --------------------------------------------------------------*/
