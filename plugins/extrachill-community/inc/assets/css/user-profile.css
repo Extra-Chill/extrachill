@@ -56,58 +56,24 @@
 	box-sizing: border-box;
 }
 
-/* User Profile Header */
-.user-profile-header h1 {
-    margin-bottom: 10px;
-    margin-right: 5px;
-}
-
-.user-profile-header p,
 .forum-title-with-icon {
     margin-bottom: 10px;
     margin-top: 5px;
     font-size: var(--font-size-sm);
 }
 
-.user-profile-header {
-    margin: 15px 0 20px 0;
-}
-
 .bbp-user-profile {
     overflow-x: auto;
 }
 
-.rank-profile p, 
 .user-profile-activity p, 
-.profile-links p, 
-.bbp-user-music-fan p, 
-.bbp-user-local-scene p, 
-.bbp-user-artist-details p, 
-.bbp-user-professional-details p {
+.profile-links p {
     margin: 0;
     font-size: var(--font-size-sm);
 }
 
 .user-profile-activity, 
-.profile-links, 
-.bbp-user-music-fan, 
-.bbp-user-local-scene, 
-.bbp-user-artist-details, 
-.bbp-user-professional-details {
-    margin-bottom: 20px;
-}
-
-
-
-/* Spacing for artist/professional details */
-.bbp-user-artist-details, 
-.bbp-user-professional-details {
-    padding-top: 20px;
-}
-
-/* Local Scene Section */
-.bbp-user-local-scene {
-    padding-top: 15px;
+.profile-links {
     margin-bottom: 20px;
 }
 
@@ -158,11 +124,6 @@
 	color: var(--muted-text);
 	margin-bottom: 0.25rem;
 	width: 100%;
-}
-
-.bbp-user-profile .bbp-user-follower-count {
-	font-size: var(--font-size-base);
-	color: var(--muted-text);
 }
 
 .bbp-user-profile .bbp-user-last-seen {
@@ -397,6 +358,16 @@
 
 /* Activity feed spans the full row instead of occupying one half-width column. */
 .bbp-user-profile-card.user-profile-activity-feed {
+    width: 100%;
+}
+
+/* Concert History + legacy Music Fan cards render via the
+   bbp_template_after_user_details hook (see user-details.php), which places
+   them outside .bbp-user-profile-cards-container — directly under the header
+   card, not inside the 2-column flex grid. Keep them full-width so the desktop
+   half-width card rule above doesn't shrink them. */
+.bbp-user-profile-card.ec-concert-history-card,
+.bbp-user-profile-card.ec-music-fan-details-card {
     width: 100%;
 }
 

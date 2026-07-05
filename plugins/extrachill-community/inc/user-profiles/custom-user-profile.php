@@ -68,43 +68,39 @@ function display_music_fan_details() {
 
 	$is_own = ( (int) get_current_user_id() === (int) $user_id );
 	?>
-	<div class="card ec-music-fan-details-card">
-		<div class="card-header">
-			<h3><?php esc_html_e( 'Music Fan Details', 'extra-chill-community' ); ?></h3>
-		</div>
-		<div class="card-body">
-			<?php if ( $favorite_artists ) : ?>
-				<p><strong><?php esc_html_e( 'Favorite Artists:', 'extra-chill-community' ); ?></strong> <?php echo nl2br( esc_html( $favorite_artists ) ); ?></p>
-			<?php endif; ?>
+	<div class="bbp-user-profile-card ec-music-fan-details-card">
+		<h3><?php esc_html_e( 'Music Fan Details', 'extra-chill-community' ); ?></h3>
+		<?php if ( $favorite_artists ) : ?>
+			<p><strong><?php esc_html_e( 'Favorite Artists:', 'extra-chill-community' ); ?></strong> <?php echo nl2br( esc_html( $favorite_artists ) ); ?></p>
+		<?php endif; ?>
 
-			<?php if ( $top_concerts ) : ?>
-				<p><strong><?php esc_html_e( 'Top Concerts:', 'extra-chill-community' ); ?></strong> <?php echo nl2br( esc_html( $top_concerts ) ); ?></p>
-			<?php endif; ?>
+		<?php if ( $top_concerts ) : ?>
+			<p><strong><?php esc_html_e( 'Top Concerts:', 'extra-chill-community' ); ?></strong> <?php echo nl2br( esc_html( $top_concerts ) ); ?></p>
+		<?php endif; ?>
 
-			<?php if ( $top_venues ) : ?>
-				<p><strong><?php esc_html_e( 'Top Venues:', 'extra-chill-community' ); ?></strong> <?php echo nl2br( esc_html( $top_venues ) ); ?></p>
-			<?php endif; ?>
+		<?php if ( $top_venues ) : ?>
+			<p><strong><?php esc_html_e( 'Top Venues:', 'extra-chill-community' ); ?></strong> <?php echo nl2br( esc_html( $top_venues ) ); ?></p>
+		<?php endif; ?>
 
-			<?php
-			// These are legacy free-text notes from before My Shows existed.
-			// We deliberately do NOT promise to "convert" them: the events
-			// catalog is a forward-looking calendar with almost no historic /
-			// out-of-market shows, so searching for these past memories mostly
-			// finds nothing. Instead, invite the owner to start tracking shows
-			// going forward via My Shows — the path that actually works today.
-			if ( $is_own && function_exists( 'ec_community_my_shows_url' ) ) :
-				$my_shows_url = ec_community_my_shows_url( (int) $user_id );
-				if ( $my_shows_url ) :
-					?>
-					<p class="ec-music-fan-nudge">
-						<em><?php esc_html_e( 'These are your personal notes.', 'extra-chill-community' ); ?></em>
-						<a href="<?php echo esc_url( $my_shows_url ); ?>"><?php esc_html_e( 'Start tracking shows you attend →', 'extra-chill-community' ); ?></a>
-					</p>
-					<?php
-				endif;
+		<?php
+		// These are legacy free-text notes from before My Shows existed.
+		// We deliberately do NOT promise to "convert" them: the events
+		// catalog is a forward-looking calendar with almost no historic /
+		// out-of-market shows, so searching for these past memories mostly
+		// finds nothing. Instead, invite the owner to start tracking shows
+		// going forward via My Shows — the path that actually works today.
+		if ( $is_own && function_exists( 'ec_community_my_shows_url' ) ) :
+			$my_shows_url = ec_community_my_shows_url( (int) $user_id );
+			if ( $my_shows_url ) :
+				?>
+				<p class="ec-music-fan-nudge">
+					<em><?php esc_html_e( 'These are your personal notes.', 'extra-chill-community' ); ?></em>
+					<a href="<?php echo esc_url( $my_shows_url ); ?>"><?php esc_html_e( 'Start tracking shows you attend →', 'extra-chill-community' ); ?></a>
+				</p>
+				<?php
 			endif;
-			?>
-		</div>
+		endif;
+		?>
 	</div>
 	<?php
 }

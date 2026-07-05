@@ -165,14 +165,10 @@ function ec_community_display_concert_history() {
 			return;
 		}
 		?>
-		<div class="card ec-concert-history-card ec-concert-history-empty">
-			<div class="card-header">
-				<h3><?php esc_html_e( 'Concert History', 'extra-chill-community' ); ?></h3>
-			</div>
-			<div class="card-body">
-				<p><?php esc_html_e( 'You haven\'t tracked any shows yet. Build your concert history — every show you\'ve been to, in one place.', 'extra-chill-community' ); ?></p>
-				<p><a class="button" href="<?php echo esc_url( $my_shows_url ); ?>"><?php esc_html_e( 'Start your concert history →', 'extra-chill-community' ); ?></a></p>
-			</div>
+		<div class="bbp-user-profile-card ec-concert-history-card ec-concert-history-empty">
+			<h3><?php esc_html_e( 'Concert History', 'extra-chill-community' ); ?></h3>
+			<p><?php esc_html_e( 'You haven\'t tracked any shows yet. Build your concert history — every show you\'ve been to, in one place.', 'extra-chill-community' ); ?></p>
+			<p><a class="button-1 button-small" href="<?php echo esc_url( $my_shows_url ); ?>"><?php esc_html_e( 'Start your concert history →', 'extra-chill-community' ); ?></a></p>
 		</div>
 		<?php
 		return;
@@ -191,60 +187,56 @@ function ec_community_display_concert_history() {
 		? __( 'My Concert History', 'extra-chill-community' )
 		: __( 'Concert History', 'extra-chill-community' );
 	?>
-	<div class="card ec-concert-history-card">
-		<div class="card-header">
-			<h3><?php echo esc_html( $heading ); ?></h3>
-		</div>
-		<div class="card-body">
-			<ul class="ec-concert-stats">
+	<div class="bbp-user-profile-card ec-concert-history-card">
+		<h3><?php echo esc_html( $heading ); ?></h3>
+		<ul class="ec-concert-stats">
+			<li>
+				<span class="ec-concert-stat-value"><?php echo esc_html( number_format_i18n( $total_shows ) ); ?></span>
+				<span class="ec-concert-stat-label"><?php echo esc_html( _n( 'show', 'shows', $total_shows, 'extra-chill-community' ) ); ?></span>
+			</li>
+			<?php if ( $unique_artists > 0 ) : ?>
 				<li>
-					<span class="ec-concert-stat-value"><?php echo esc_html( number_format_i18n( $total_shows ) ); ?></span>
-					<span class="ec-concert-stat-label"><?php echo esc_html( _n( 'show', 'shows', $total_shows, 'extra-chill-community' ) ); ?></span>
+					<span class="ec-concert-stat-value"><?php echo esc_html( number_format_i18n( $unique_artists ) ); ?></span>
+					<span class="ec-concert-stat-label"><?php echo esc_html( _n( 'artist', 'artists', $unique_artists, 'extra-chill-community' ) ); ?></span>
 				</li>
-				<?php if ( $unique_artists > 0 ) : ?>
-					<li>
-						<span class="ec-concert-stat-value"><?php echo esc_html( number_format_i18n( $unique_artists ) ); ?></span>
-						<span class="ec-concert-stat-label"><?php echo esc_html( _n( 'artist', 'artists', $unique_artists, 'extra-chill-community' ) ); ?></span>
-					</li>
-				<?php endif; ?>
-				<?php if ( $unique_venues > 0 ) : ?>
-					<li>
-						<span class="ec-concert-stat-value"><?php echo esc_html( number_format_i18n( $unique_venues ) ); ?></span>
-						<span class="ec-concert-stat-label"><?php echo esc_html( _n( 'venue', 'venues', $unique_venues, 'extra-chill-community' ) ); ?></span>
-					</li>
-				<?php endif; ?>
-				<?php if ( $unique_cities > 0 ) : ?>
-					<li>
-						<span class="ec-concert-stat-value"><?php echo esc_html( number_format_i18n( $unique_cities ) ); ?></span>
-						<span class="ec-concert-stat-label"><?php echo esc_html( _n( 'city', 'cities', $unique_cities, 'extra-chill-community' ) ); ?></span>
-					</li>
-				<?php endif; ?>
-			</ul>
+			<?php endif; ?>
+			<?php if ( $unique_venues > 0 ) : ?>
+				<li>
+					<span class="ec-concert-stat-value"><?php echo esc_html( number_format_i18n( $unique_venues ) ); ?></span>
+					<span class="ec-concert-stat-label"><?php echo esc_html( _n( 'venue', 'venues', $unique_venues, 'extra-chill-community' ) ); ?></span>
+				</li>
+			<?php endif; ?>
+			<?php if ( $unique_cities > 0 ) : ?>
+				<li>
+					<span class="ec-concert-stat-value"><?php echo esc_html( number_format_i18n( $unique_cities ) ); ?></span>
+					<span class="ec-concert-stat-label"><?php echo esc_html( _n( 'city', 'cities', $unique_cities, 'extra-chill-community' ) ); ?></span>
+				</li>
+			<?php endif; ?>
+		</ul>
 
-			<?php if ( $top_artists ) : ?>
-				<p><strong><?php esc_html_e( 'Top Artists:', 'extra-chill-community' ); ?></strong> <?php echo wp_kses_post( $top_artists ); ?></p>
-			<?php endif; ?>
-			<?php if ( $top_venues ) : ?>
-				<p><strong><?php esc_html_e( 'Top Venues:', 'extra-chill-community' ); ?></strong> <?php echo wp_kses_post( $top_venues ); ?></p>
-			<?php endif; ?>
-			<?php if ( $top_cities ) : ?>
-				<p><strong><?php esc_html_e( 'Top Cities:', 'extra-chill-community' ); ?></strong> <?php echo wp_kses_post( $top_cities ); ?></p>
-			<?php endif; ?>
+		<?php if ( $top_artists ) : ?>
+			<p><strong><?php esc_html_e( 'Top Artists:', 'extra-chill-community' ); ?></strong> <?php echo wp_kses_post( $top_artists ); ?></p>
+		<?php endif; ?>
+		<?php if ( $top_venues ) : ?>
+			<p><strong><?php esc_html_e( 'Top Venues:', 'extra-chill-community' ); ?></strong> <?php echo wp_kses_post( $top_venues ); ?></p>
+		<?php endif; ?>
+		<?php if ( $top_cities ) : ?>
+			<p><strong><?php esc_html_e( 'Top Cities:', 'extra-chill-community' ); ?></strong> <?php echo wp_kses_post( $top_cities ); ?></p>
+		<?php endif; ?>
 
-			<?php if ( $my_shows_url ) : ?>
-				<p class="ec-concert-history-cta">
-					<a href="<?php echo esc_url( $my_shows_url ); ?>">
-						<?php
-						echo esc_html(
-							$is_own
-								? __( 'View your full concert history →', 'extra-chill-community' )
-								: __( 'View full concert history →', 'extra-chill-community' )
-						);
-						?>
-					</a>
-				</p>
-			<?php endif; ?>
-		</div>
+		<?php if ( $my_shows_url ) : ?>
+			<p class="ec-concert-history-cta">
+				<a href="<?php echo esc_url( $my_shows_url ); ?>">
+					<?php
+					echo esc_html(
+						$is_own
+							? __( 'View your full concert history →', 'extra-chill-community' )
+							: __( 'View full concert history →', 'extra-chill-community' )
+					);
+					?>
+				</a>
+			</p>
+		<?php endif; ?>
 	</div>
 	<?php
 }

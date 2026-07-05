@@ -154,13 +154,8 @@ if ( $is_artist || $is_professional ) :
 	</div>
 <?php endif; // End if user_is_artist or user_is_professional ?>
 
-</div>
+</div> <?php // End .bbp-user-profile-cards-container (Flex Grid) ?>
 
-</div> <?php // End Flex Grid Container ?>
-
-		</div> <?php // End Flex Grid Container ?>
-
-
-	</div><!-- #bbp-user-profile -->
+</div><!-- #bbp-user-profile -->
 
 <?php do_action('bbp_template_after_user_profile'); ?>
