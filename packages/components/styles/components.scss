@@ -148,10 +148,6 @@
 	max-width: 700px;
 }
 
-.ec-responsive-tabs--inner-wide .ec-responsive-tabs__inner {
-	max-width: 1080px;
-}
-
 .ec-responsive-tabs .ec-tabs__tabs {
 	padding-bottom: calc(var(--spacing-md, 1rem) + var(--spacing-sm, 0.5rem));
 }
@@ -322,7 +318,6 @@
 }
 
 .ec-block-shell-inner--wide {
-	max-width: 1080px;
 	margin-inline: auto;
 }
 
