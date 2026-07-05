@@ -81,6 +81,33 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		return Number.isFinite( value ) && value >= 0 ? value : 0;
 	}
 
+	/**
+	 * Focus the Blocks Everywhere reply editor.
+	 *
+	 * The Isolated Block Editor (IBE) was removed from the platform; Blocks
+	 * Everywhere now renders a flat `.blocks-everywhere-editor` tree and the
+	 * former IBE editor node no longer exists in the DOM. Do NOT reintroduce
+	 * the old IBE selector — it returns null and silently breaks autofocus.
+	 * The actual editable region inside the wrapper is a contenteditable produced
+	 * by @wordpress/block-editor (`.block-editor-writing-flow` in standard
+	 * Gutenberg), but the exact inner class can vary across BE/Gutenberg versions,
+	 * so we fall back through candidates before finally focusing the wrapper itself.
+	 */
+	function focusReplyEditor() {
+		if ( ! bottomFormWrapper ) {
+			return;
+		}
+		const wrapper = bottomFormWrapper.querySelector( '.blocks-everywhere-editor' );
+		if ( ! wrapper ) {
+			return;
+		}
+		const editable =
+			wrapper.querySelector( '.block-editor-writing-flow' ) ||
+			wrapper.querySelector( '[contenteditable="true"]' ) ||
+			wrapper;
+		editable.focus();
+	}
+
 	function restoreFormToBottom() {
 		if ( ! bottomFormWrapper || ! originalFormLocation ) {
 			return;
@@ -124,10 +151,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		// If already at this reply, just focus the editor
 		if ( activeReplyId === replyId && activeReplyCard === replyCard ) {
-			const editor = bottomFormWrapper.querySelector( '.iso-editor' );
-			if ( editor ) {
-				editor.focus();
-			}
+			focusReplyEditor();
 			return;
 		}
 
@@ -182,10 +206,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		// Focus the editor
 		setTimeout( function () {
-			const editor = bottomFormWrapper.querySelector( '.iso-editor' );
-			if ( editor ) {
-				editor.focus();
-			}
+			focusReplyEditor();
 		}, 100 );
 	}
 
@@ -200,10 +221,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 			// Focus the editor
 			setTimeout( function () {
-				const editor = bottomFormWrapper ? bottomFormWrapper.querySelector( '.iso-editor' ) : null;
-				if ( editor ) {
-					editor.focus();
-				}
+				focusReplyEditor();
 			}, 100 );
 		}
 	}
