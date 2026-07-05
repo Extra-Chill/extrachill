@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.11.3] - 2026-07-05
+
+### Fixed
+- restore bbPress reply-editor autofocus after IBE removal
+
 ## [1.11.2] - 2026-06-30
 
 ### Changed
