@@ -126,6 +126,17 @@ body {
   color: var(--link-page-text-color); /* Ensures title uses the main text color variable */
 }
 
+/* A leading emoji in the title. Emoji glyphs render at the full font-size and
+   fill the entire em-box, so at the title's large --link-page-title-font-size
+   (default 2.1em) they visually dwarf the surrounding text. Bound the emoji to
+   a fraction of the title size and keep it inline so it no longer balloons,
+   without shrinking the title text for names that have no emoji. */
+.extrch-link-page-title-emoji {
+  font-size: 0.75em;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .extrch-link-page-bio {
   color: var(--link-page-text-color); /* Ensures bio uses the main text color variable */
   font-family: var(--link-page-body-font-family); /* Directly apply body font */

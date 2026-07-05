@@ -135,6 +135,12 @@ class ExtraChillArtistPlatform {
         // Link-page analytics tables are owned and created by extrachill-analytics
         // (ECA) as of extrachill-artist-platform#89 / extrachill-analytics#94.
         flush_rewrite_rules();
+        // Persist the rewrite-rules version so the version-gated flush on init
+        // does not immediately re-run after activation. The constant is defined
+        // in inc/core/artist-platform-rewrite-rules.php, loaded during init().
+        if ( defined( 'EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION' ) ) {
+            update_option( 'ec_artist_platform_rewrite_version', EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION );
+        }
         update_option( 'extrachill_artist_platform_activated', true );
 
         // Provision platform artist profile (suspenders).

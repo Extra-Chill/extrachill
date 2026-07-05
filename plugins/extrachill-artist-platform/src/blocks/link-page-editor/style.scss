@@ -158,12 +158,18 @@
 /* Editor Body - Two Column Layout */
 .ec-editor__body {
 	display: grid;
-	grid-template-columns: 400px 1fr;
+
+	/* minmax(0, 1fr) lets the preview track shrink below its min-content width
+	   instead of blowing out the 400px sidebar / overflowing horizontally. */
+	grid-template-columns: 400px minmax(0, 1fr);
 	min-height: 550px;
 	gap: 0;
 }
 
 .ec-editor__sidebar {
+
+	/* Grid item: allow it to shrink within its 400px track. */
+	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	border-right: 1px solid var(--border-color);
@@ -197,6 +203,10 @@
 
 /* Preview Container */
 .ec-editor__preview-region {
+
+	/* Grid item of .ec-editor__body: must opt out of the default min-width: auto
+	   so wide preview content cannot inflate the 1fr track. */
+	min-width: 0;
 	display: grid;
 	gap: var(--spacing-md);
 	padding: var(--spacing-lg);

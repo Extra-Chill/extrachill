@@ -13,6 +13,21 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Rewrite-rules version for the artist platform.
+ *
+ * Bump this constant whenever the routing defined in this file changes. On the
+ * first request after a deploy where this value differs from the stored option,
+ * the rewrite rules are soft-flushed (rebuilt from the current, host-guarded
+ * code) so stale catch-all rules left over from older plugin versions cannot
+ * survive a deploy.
+ *
+ * @see extrachill_artist_platform_maybe_flush_rewrite_rules()
+ */
+if ( ! defined( 'EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION' ) ) {
+    define( 'EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION', '20260704' );
+}
+
+/**
  * Get all excluded slugs dynamically
  *
  * @return array Array of slugs to exclude from artist link page rewrite rules
@@ -129,7 +144,7 @@ function extrachill_resolve_link_domain_query() {
 
     global $wp_query;
     $request_uri  = $_SERVER['REQUEST_URI'] ?? '';
-    $request_path = trim( parse_url( $request_uri, PHP_URL_PATH ), '/' );
+    $request_path = trim( (string) parse_url( $request_uri, PHP_URL_PATH ), '/' );
 
     // Handle join redirect.
     if ( $request_path === 'join' ) {
@@ -237,6 +252,40 @@ function extrachill_init_rewrite_rules() {
 }
 
 /**
+ * Self-heal stale rewrite rules via a version-gated soft flush.
+ *
+ * flush_rewrite_rules() is expensive and must never run unconditionally on
+ * every request. Instead, compare a stored option against the current
+ * EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION constant. When they differ (i.e. the
+ * plugin was updated and the routing may have changed), rebuild the
+ * rewrite_rules option from the current, host-guarded rule set and persist the
+ * new version.
+ *
+ * This is the standard WordPress pattern for keeping rewrite rules correct
+ * across deploys without paying the flush cost on every page load. It is what
+ * prevents residue from older plugin versions (e.g. the bare
+ * `^([^/]+)/?$ -> artist_link_page` catch-all that pre-dated the host guard)
+ * from persisting after the code that registered it has been removed.
+ *
+ * Runs at priority 30, after extrachill_init_rewrite_rules() (priority 25) has
+ * registered the current rule set, so the rebuilt option reflects the latest
+ * add_rewrite_rule() calls.
+ */
+function extrachill_artist_platform_maybe_flush_rewrite_rules() {
+    $stored_version = get_option( 'ec_artist_platform_rewrite_version' );
+
+    if ( $stored_version === EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION ) {
+        return;
+    }
+
+    // Soft flush: rebuild the rewrite_rules option only. Passing false means we
+    // do NOT regenerate .htaccess / server config on every version bump — the
+    // rules we care about live in the WP option, not the static server config.
+    flush_rewrite_rules( false );
+    update_option( 'ec_artist_platform_rewrite_version', EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION );
+}
+
+/**
  * Redirect direct CPT access to extrachill.link domain
  * 
  * Redirects direct access to 'artist_link_page' CPT posts (via their WordPress permalinks)
@@ -289,6 +338,7 @@ function extrachill_redirect_artist_link_page_cpt_to_custom_domain() {
 
 // Hook into WordPress
 add_action( 'init', 'extrachill_init_rewrite_rules', 25 );
+add_action( 'init', 'extrachill_artist_platform_maybe_flush_rewrite_rules', 30 );
 add_filter( 'query_vars', 'extrachill_add_query_vars' );
 add_filter( 'redirect_canonical', 'extrachill_prevent_canonical_redirect_for_link_domain', 10, 2 );
 
