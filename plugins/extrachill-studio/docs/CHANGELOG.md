@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.21.1] - 2026-07-05
+
+### Fixed
+- unscrunch Studio compose editor and use full page width
+
 ## [0.21.0] - 2026-07-03
 
 ### Added
