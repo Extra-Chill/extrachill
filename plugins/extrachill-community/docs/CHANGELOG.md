@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.11.4] - 2026-07-05
+
+### Fixed
+- align concert/music-fan cards with profile card styling, correct template div nesting, prune dead CSS
+- correct community profile visual bugs (artist list bullets, half-width activity feed, empty about card, stray hr, overflow, h3 headings)
+
 ## [1.11.3] - 2026-07-05
 
 ### Fixed
