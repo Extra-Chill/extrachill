@@ -31,8 +31,7 @@
    footer) inside a single .blocks-everywhere-editor wrapper. Without a
    container border the editor has no visible bounds against the host page
    chrome (Studio's "Submit for Review" buttons sit immediately below).
-   Pre-#26 the equivalent border came from .iso-editor's frame; restore it
-   on the modern wrapper.
+   Restore the structural border on the .blocks-everywhere-editor wrapper.
    ========================================================================== */
 
 .gutenberg-support .blocks-everywhere-editor {
@@ -101,7 +100,7 @@
    3. Toolbar Inserter (+) — Host React Tree
    BE renders <Inserter /> inside .blocks-everywhere-editor__toolbar, which
    produces .block-editor-inserter > .block-editor-inserter__toggle.components-button.
-   The button is colored with the EC accent (matches the previous IBE-era
+   The button is colored with the EC accent (matches the earlier
    .editor-document-tools__inserter-toggle.is-primary intent), but sized
    like the rest of the toolbar icon buttons (undo / redo / list-view /
    format buttons) so it doesn't dominate the row visually. Gutenberg's
