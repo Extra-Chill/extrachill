@@ -3,8 +3,8 @@
  * Compose Editor — Blocks Everywhere integration for Studio.
  *
  * Registers a Studio context via the blocks_everywhere_contexts filter
- * so the isolated block editor loads on the Studio homepage for team
- * members. The editor mounts inside the Compose tab of the Studio React app.
+ * so Blocks Everywhere loads on the Studio homepage for team members.
+ * The editor mounts inside the Compose tab of the Studio React app.
  *
  * @package ExtraChillStudio
  * @since   0.2.0
@@ -77,7 +77,7 @@ function register_compose_context( array $contexts ): array {
 			// dark mode styles in style-index.min.css apply.
 			add_filter( 'body_class', [ $engine, 'body_class' ] );
 
-			// The IBE renders inline (shouldIframe=false), not in an iframe.
+			// BE renders inline (shouldIframe=false), not in an iframe.
 			// Theme root.css variables are available on the host page, but
 			// the editor wrapper needs explicit mapping for dark mode and
 			// proper sizing.
@@ -92,20 +92,14 @@ add_filter( 'blocks_everywhere_contexts', __NAMESPACE__ . '\\register_compose_co
 /**
  * Enqueue inline styles for the compose editor.
  *
- * The IBE renders inline (shouldIframe=false), so host-page CSS
+ * BE renders inline (shouldIframe=false), so host-page CSS
  * variables from root.css are available. We add editor-specific
  * styles for proper sizing, dark mode background, and WP component
  * variable mapping inside .editor-styles-wrapper.
  */
 function enqueue_editor_inline_styles() {
 	$css = <<<'CSS'
-/* Studio compose editor — inline editor theming.
-   The parent .ec-studio-compose-editor (style.css) provides the outer
-   border and radius. The iso-editor sits flush inside it. */
-.ec-studio-compose-editor .iso-editor {
-	min-height: 400px;
-}
-
+/* Studio compose editor — inline editor theming. */
 .ec-studio-compose-editor .editor-styles-wrapper {
 	background-color: var(--background-color);
 	color: var(--text-color);
@@ -137,22 +131,9 @@ function enqueue_editor_inline_styles() {
 	color: var(--muted-text);
 }
 
-/* Toolbar theming */
-.ec-studio-compose-editor .interface-interface-skeleton__header {
-	background-color: var(--card-background);
-	border-bottom: 1px solid var(--border-color);
-}
-
 /* Placeholder styling */
 .ec-studio-compose-editor .block-editor-default-block-appender__content {
 	color: var(--muted-text);
-}
-
-/* Footer */
-.ec-studio-compose-editor .interface-interface-skeleton__footer {
-	background-color: var(--card-background);
-	border-top: 1px solid var(--border-color);
-	font-size: var(--font-size-sm);
 }
 CSS;
 
@@ -237,20 +218,6 @@ function configure_compose_editor( array $settings ): array {
 	//      in main's context so the client-side check matches the server-side
 	//      enforcement in the compose media proxy route.
 	$settings['maxUploadFileSize'] = (int) extrachill_studio_compose_main_max_upload_size();
-
-	// Expose IBE's More Menu so writers can toggle fullscreen mode and
-	// keyboard shortcuts. Default to non-fullscreen on boot — users opt in
-	// via the menu (or Ctrl/Cmd+Shift+Alt+F). Fullscreen-state CSS lives
-	// in style.css under html.is-fullscreen-mode and hides Studio chrome
-	// that sits outside the editor skeleton (title input, toolbar, save
-	// actions, detached sidebar). See Phase 1 scoping in MEMORY.md.
-	$settings['blocksEverywhere']['moreMenu']                                = array(
-		'fullscreen' => true,
-	);
-	$settings['blocksEverywhere']['defaultPreferences']                      = isset( $settings['blocksEverywhere']['defaultPreferences'] ) && is_array( $settings['blocksEverywhere']['defaultPreferences'] )
-		? $settings['blocksEverywhere']['defaultPreferences']
-		: array();
-	$settings['blocksEverywhere']['defaultPreferences']['fullscreenMode']    = false;
 
 	return $settings;
 }
