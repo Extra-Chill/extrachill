@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.21.2] - 2026-07-05
+
+### Fixed
+- remove bespoke compose-tab full-width breakout
+
 ## [0.21.1] - 2026-07-05
 
 ### Fixed
