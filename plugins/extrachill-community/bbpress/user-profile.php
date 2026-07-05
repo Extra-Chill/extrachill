@@ -22,27 +22,28 @@ do_action('bbp_template_before_user_profile');
 	$is_professional   = get_user_meta( $displayed_user_id, 'user_is_professional', true );
 	?>
 
+<?php
+// Compute About-card content up front so the card wrapper only renders when
+// there is actually something to show (avoids an empty bordered box for users
+// with no description and no local scene).
+$about_description = bbp_get_displayed_user_field('description');
+$about_local_city  = get_user_meta( bbp_get_displayed_user_id(), 'local_city', true );
+$has_about_content = ! empty( $about_description ) || ! empty( $about_local_city );
+?>
 <div class="bbp-user-profile-cards-container"> <?php // Start Flex Grid Container ?>
+<?php if ( $has_about_content ) : ?>
 <div class="bbp-user-profile-card">
-					<?php if ( bbp_get_displayed_user_field('description') ) : ?>
-						<h3><?php esc_html_e('About', 'extra-chill-community'); ?></h3>
-				<p class="bbp-user-description"><?php echo wp_kses_post(bbp_rel_nofollow(bbp_get_displayed_user_field('description'))); ?></p>
-						<?php
-			endif;
+			<?php if ( $about_description ) : ?>
+				<h3><?php esc_html_e( 'About', 'extra-chill-community' ); ?></h3>
+		<p class="bbp-user-description"><?php echo wp_kses_post( bbp_rel_nofollow( $about_description ) ); ?></p>
+			<?php endif; ?>
 
-					// --- Add Local Scene (City) here ---
-					$local_city = get_user_meta(bbp_get_displayed_user_id(), 'local_city', true);
-					if ( $local_city ) :
-						?>
-				<p class="bbp-user-local-scene-inline"><strong><?php esc_html_e('Local Scene:', 'extra-chill-community'); ?></strong> <?php echo esc_html($local_city); ?></p>
-						<?php
-			endif; // End local_city check
-					// --- End Local Scene ---
-
-					?>
+			<?php if ( $about_local_city ) : ?>
+		<p class="bbp-user-local-scene-inline"><strong><?php esc_html_e( 'Local Scene:', 'extra-chill-community' ); ?></strong> <?php echo esc_html( $about_local_city ); ?></p>
+			<?php endif; ?>
 </div>
-			<?php do_action('bbp_template_before_user_details_menu_items'); ?>
-		<hr>
+<?php endif; // End has_about_content ?>
+			<?php do_action( 'bbp_template_before_user_details_menu_items' ); ?>
 		<div class="bbp-user-profile-card">
 		<div class="user-profile-activity">
 	<h3><?php esc_html_e('Community Activity', 'extra-chill-community'); ?></h3>

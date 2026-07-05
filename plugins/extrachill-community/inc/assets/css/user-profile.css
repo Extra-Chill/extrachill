@@ -74,7 +74,7 @@
 }
 
 .bbp-user-profile {
-    overflow: scroll;
+    overflow-x: auto;
 }
 
 .rank-profile p, 
@@ -319,10 +319,16 @@
         margin-left: 0;
         margin-right: 0;
     }
+    /* Activity feed spans the full row; reset card gutters so it cannot overflow. */
+    .bbp-user-profile-card.user-profile-activity-feed {
+        margin-left: 0;
+        margin-right: 0;
+    }
 }
 
 /* Style headings within the profile cards */
-.bbp-user-profile-card h2 {
+.bbp-user-profile-card h2,
+.bbp-user-profile-card h3 {
     margin-top: 0;
     margin-bottom: 15px;
     border-bottom: 2px solid var(--accent);
@@ -387,6 +393,25 @@
 
 .bbp-user-profile-card.user-artist-cards-fullwidth{
     width: 100%;
+}
+
+/* Activity feed spans the full row instead of occupying one half-width column. */
+.bbp-user-profile-card.user-profile-activity-feed {
+    width: 100%;
+}
+
+/* Artist list renders as pill-style buttons; suppress default list bullets. */
+.user-artist-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.user-artist-item {
+    margin: 0;
 }
 
 /* Edit-profile block gutter.
