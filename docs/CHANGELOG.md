@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.11.2] - 2026-07-05
+
+### Changed
+- Internal improvements
+
 ## [2.11.1] - 2026-07-03
 
 ### Fixed
