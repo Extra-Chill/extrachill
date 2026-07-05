@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.1] - 2026-07-05
+
+### Fixed
+- remove 1080px cap from wide block-shell + tab-inner so they match page width
+
 ## [0.9.0] - 2026-07-03
 
 ### Added
