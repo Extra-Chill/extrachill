@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.11.3] - 2026-07-05
+
+### Fixed
+- restore emoji image sizing in theme after multisite dropped core emoji CSS
+
 ## [2.11.2] - 2026-07-05
 
 ### Changed
