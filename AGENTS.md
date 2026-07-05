@@ -242,8 +242,9 @@ everything on every page.
 ### Blocks Everywhere editor iframe
 
 `blocks_everywhere_enqueue_iframe_assets` hook (in `inc/core/assets.php`)
-loads `root.css` + `style.css` + `block-editor.css` into the BE/IBE
-iframe so the editor visually matches the rendered front-end.
+loads `root.css` + `style.css` + `block-editor.css` into the Blocks
+Everywhere editor iframe so the editor visually matches the rendered
+front-end.
 
 ## Integration with Network Plugins
 
