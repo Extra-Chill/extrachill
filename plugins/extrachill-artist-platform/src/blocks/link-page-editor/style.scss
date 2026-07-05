@@ -32,10 +32,12 @@
 .ec-editor {
 	min-height: 600px;
 
-	/* Tunable phone-width preview panel. 430px = large phone
-	   (375 was tried and felt too narrow). Centralized here so the
-	   grid track and any downstream consumer read one value. */
-	--ec-editor-preview-width: 430px;
+	/* Tunable preview panel width. 500px reads best for editing (375 felt
+	   cramped, 430 was still a touch narrow). Centralized here so the grid
+	   track and any downstream consumer read one value. Future: replace this
+	   fixed track with a draggable resize handle (needs a resizable-pane
+	   primitive in @extrachill/components — see PR discussion). */
+	--ec-editor-preview-width: 500px;
 }
 
 .ec-editor__header-left {
