@@ -138,6 +138,8 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/team-members.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/badges/user-badges.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/rank-tiers.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/points-engine.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/contribution-events.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/onboarding/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/lifetime-membership.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/shop-permissions.php';
@@ -149,6 +151,7 @@ function extrachill_users_init() {
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/rank-points.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/contribution-events.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/buttons.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import-db.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import/bootstrap.php';

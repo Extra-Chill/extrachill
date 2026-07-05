@@ -3,18 +3,17 @@
  * Concert tracking → community rank points.
  *
  * Registers concert-going (My Shows) as a pluggable point source for the
- * cross-site community rank/points system. The community plugin exposes a
- * generic, feature-agnostic extensibility seam — the `ec_rank_extra_points`
- * filter (see extrachill-community/inc/social/rank-system/point-calculation.php)
- * — and this file is the concert-specific consumer of it. Community never
- * references concerts; concerts opt into rank via the filter from here. Layer
- * purity preserved.
+ * cross-site rank/points system. The points engine (extrachill-users/inc/rank-
+ * system/points-engine.php) exposes a generic, feature-agnostic extensibility
+ * seam — the `ec_rank_extra_points` filter — and this file is the
+ * concert-specific consumer of it. The engine never references concerts;
+ * concerts opt into rank via the filter from here. Layer purity preserved.
  *
- * Weight rationale: each tracked show is worth more than a forum reply
+ * Weight rationale: each tracked show is worth more than a forum contribution
  * (2 points) because attending a concert is a higher-intent, harder-to-fake
- * signal of genuine scene participation than posting a reply. 3 points per
- * show is the chosen weight; tune via the `ec_users_concert_rank_points_per_show`
- * filter below.
+ * signal of genuine scene participation than posting. 3 points per show is the
+ * chosen weight; tune via the `ec_users_concert_rank_points_per_show` filter
+ * below.
  *
  * Performance: this runs inside extrachill_get_user_total_points(), whose TOTAL
  * is transient-cached for one hour, so the show count query (a single COUNT(*)
@@ -33,10 +32,10 @@ defined( 'ABSPATH' ) || exit;
 const EC_USERS_CONCERT_RANK_POINTS_PER_SHOW = 3;
 
 /**
- * Contribute concert-attendance points to a user's community rank total.
+ * Contribute concert-attendance points to a user's rank total.
  *
- * Hooks the community plugin's generic `ec_rank_extra_points` seam and adds
- * (shows attended × per-show weight) to the running extra-points value. Returns
+ * Hooks the points engine's generic `ec_rank_extra_points` seam and adds
+ * (shows attended x per-show weight) to the running extra-points value. Returns
  * the value unchanged when the count helper is unavailable so the rank total
  * never breaks if concert tracking is disabled.
  *

@@ -235,6 +235,37 @@ function ec_users_get_user_event_count( int $user_id, int $blog_id = 0 ): int {
 	);
 }
 
+// ─── Dated Contributions ─────────────────────────────────────────────────────
+
+/**
+ * Get a user's concert check-in timestamps (raw UTC).
+ *
+ * Supplies the DATED concert-attendance data for the contribution-events seam
+ * (ec_contribution_events). Returns the raw `created_at` column (UTC); day
+ * computation + timezone normalization is handled centrally by
+ * ec_bucket_utc_events_by_local_day() in the rank-system seam, so this getter
+ * stays a thin data fetch with no timezone logic.
+ *
+ * Sibling to ec_users_get_user_event_count() (the scalar total).
+ *
+ * @param int $user_id User ID.
+ * @return string[] MySQL 'Y-m-d H:i:s' strings in UTC.
+ */
+function ec_users_get_user_dated_event_checks( int $user_id ): array {
+	global $wpdb;
+
+	$table = extrachill_users_concert_tracking_table_name();
+
+	$raw = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT created_at FROM {$table} WHERE user_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			$user_id
+		)
+	);
+
+	return is_array( $raw ) ? $raw : array();
+}
+
 // ─── Event Timing ────────────────────────────────────────────────────────────
 
 /**
