@@ -8,45 +8,6 @@
 import { useEffect, useMemo, useRef, Fragment } from '@wordpress/element';
 import { useEditor } from '../context/EditorContext';
 
-/**
- * Matches a single leading emoji (including ZWJ sequences and
- * skin-tone / variation selectors) at the start of the profile name.
- * \p{Extended_Pictographic} covers most pictographic emoji; the optional
- * ZWJ (\u200D) join handles compound emoji (family, etc.).
- */
-const LEADING_EMOJI_RE =
-	/^(\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*[\uFE0F\u{1F3FB}-\u{1F3FF}]?)/u;
-
-/**
- * Render the profile name for the preview title. If the name begins with an
- * emoji, wrap it in a bounded span (styled via .extrch-link-page-title-emoji)
- * so it cannot balloon to the full --link-page-title-font-size. Names without
- * a leading emoji render unchanged.
- *
- * @param {string} name Profile display name, optionally prefixed with an emoji.
- * @return {import('react').ReactNode} Title node.
- */
-function renderTitle( name ) {
-	if ( ! name ) {
-		return null;
-	}
-
-	const match = name.match( LEADING_EMOJI_RE );
-	if ( ! match ) {
-		return name;
-	}
-
-	const emoji = match[ 1 ];
-	const rest = name.slice( emoji.length );
-
-	return (
-		<>
-			<span className="extrch-link-page-title-emoji">{ emoji }</span>
-			{ rest }
-		</>
-	);
-}
-
 export default function Preview() {
 	const {
 		computedStyles,
@@ -380,7 +341,7 @@ export default function Preview() {
 						</div>
 						{ name && (
 							<h1 className="extrch-link-page-title">
-								{ renderTitle( name ) }
+								{ name }
 							</h1>
 						) }
 						{ bio && (

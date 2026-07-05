@@ -31,6 +31,11 @@
 /* Main Editor Layout */
 .ec-editor {
 	min-height: 600px;
+
+	/* Tunable phone-width preview panel. 430px = large phone
+	   (375 was tried and felt too narrow). Centralized here so the
+	   grid track and any downstream consumer read one value. */
+	--ec-editor-preview-width: 430px;
 }
 
 .ec-editor__header-left {
@@ -155,26 +160,27 @@
 	justify-content: center;
 }
 
-/* Editor Body - Two Column Layout */
+/* Editor Body — config fills, preview is a fixed mobile-width panel.
+   The config/tabs column (LEFT) takes all remaining space; the preview
+   (RIGHT) is a fixed phone-width track via --ec-editor-preview-width.
+   minmax(0, 1fr) lets the config track shrink instead of overflowing, and
+   a gap replaces the old border-right seam so each column reads as its own
+   region without fighting the Panel primitive's own border. */
 .ec-editor__body {
 	display: grid;
-
-	/* minmax(0, 1fr) lets the preview track shrink below its min-content width
-	   instead of blowing out the 400px sidebar / overflowing horizontally. */
-	grid-template-columns: 400px minmax(0, 1fr);
+	grid-template-columns: minmax(0, 1fr) var(--ec-editor-preview-width);
+	gap: var(--spacing-lg);
 	min-height: 550px;
-	gap: 0;
 }
 
 .ec-editor__sidebar {
 
-	/* Grid item: allow it to shrink within its 400px track. */
+	/* Grid item: allow it to shrink within its 1fr track. No background or
+	   border here — the Panel primitive (.ec-panel) inside owns the card
+	   border/radius/background, so the column itself stays structural. */
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	border-right: 1px solid var(--border-color);
-	padding: 0;
-	background: var(--card-background);
 }
 
 
@@ -186,19 +192,16 @@
 }
 
 .ec-editor__sidebar-tabs .ec-tabs__tabs {
-	padding: 16px 16px 0;
+	padding: var(--spacing-md) var(--spacing-md) 0;
 }
 
-.ec-editor__sidebar-tabs .ec-responsive-tabs__inner,
-.ec-editor__sidebar-tabs .ec-responsive-tabs__desktop-panel {
-	max-width: none;
-}
-
-/* Tab Content Area */
+/* Tab Content Area.
+   The ResponsiveTabs renderPanel wraps a <Panel compact depth={2}>. The Panel
+   primitive (.ec-panel) already provides border + radius + background + padding,
+   so this only tunes the inner padding for breathing room — it no longer nills
+   the primitive's border (the source of the "missing border" half-edges). */
 .ec-editor__tab-content {
-	padding: 24px;
-	overflow: visible;
-	border: 0;
+	padding: var(--spacing-lg);
 }
 
 /* Preview Container */
@@ -753,24 +756,24 @@
 	display: flex;
 }
 
-/* Preview Panel - Container only, actual preview uses production CSS */
+/* Preview Panel - Container only, actual preview uses production CSS.
+   Fills the fixed phone-width grid track (--ec-editor-preview-width); the
+   inner .extrch-link-page-container / content-wrapper sizing from
+   extrch-links.css keeps the rendered page at a phone aspect. */
 .ec-preview-wrapper {
 	width: 100%;
-	max-width: 450px;
+	max-width: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 }
 
-/* Responsive - Tablet */
+/* Responsive - Tablet.
+   Stack to a single column; the gap on .ec-editor__body carries the vertical
+   separation (no hand-drawn border seam needed). */
 @media (max-width: 900px) {
 	.ec-editor__body {
 		grid-template-columns: 1fr;
-	}
-
-	.ec-editor__sidebar {
-		border-right: none;
-		border-bottom: 1px solid var(--border-color);
 	}
 
 	.ec-editor__preview-region {
@@ -794,11 +797,11 @@
 
 
 	.ec-editor__sidebar-tabs .ec-tabs__tabs {
-		padding: 12px 12px 0;
+		padding: var(--spacing-md) var(--spacing-md) 0;
 	}
 
 	.ec-editor__tab-content {
-		padding: 16px;
+		padding: var(--spacing-md);
 	}
 
 	.ec-editor__preview-region {

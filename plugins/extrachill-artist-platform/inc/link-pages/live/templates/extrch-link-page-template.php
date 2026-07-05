@@ -149,10 +149,7 @@ $body_bg_style = '';
             <?php elseif (!empty($data['profile_img_url'])): ?>
                 <div class="<?php echo esc_attr($img_container_classes); ?>"><img src="<?php echo esc_url($data['profile_img_url']); ?>" alt="<?php echo esc_attr($data['display_title']); ?>"></div>
             <?php endif; ?>
-            <h1 class="extrch-link-page-title"><?php
-                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_link_page_wrap_title_emoji() returns pre-escaped HTML (emoji span + esc_html remainder).
-                echo ec_link_page_wrap_title_emoji( $data['display_title'] );
-            ?></h1>
+            <h1 class="extrch-link-page-title"><?php echo esc_html( $data['display_title'] ); ?></h1>
             <?php if (!empty($data['bio'])): ?><div class="extrch-link-page-bio"><?php echo esc_html($data['bio']); ?></div><?php endif; ?>
         </div>
 
