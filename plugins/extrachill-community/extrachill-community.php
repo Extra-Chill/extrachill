@@ -72,6 +72,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/upvote-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/forum-badges.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/point-calculation.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/points-sources.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/chill-forums-rank.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/rank-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-card.php';

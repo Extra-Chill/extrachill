@@ -1,126 +1,29 @@
 <?php
 /**
- * User Rank Point Calculation
+ * Rank Points — community-side display, queue, and leaderboard helpers.
  *
- * Calculates user ranking points from multiple sources with cross-site aggregation.
+ * The points ENGINE (the full compute + cache path) has been PROMOTED to
+ * extrachill-users (inc/rank-system/points-engine.php) as the network-wide
+ * single source of truth — see Extra-Chill/extrachill-users#165. This file now
+ * holds only the community-side concerns:
  *
- * Point Values:
- * - Topics: 2 points (bbp_get_user_topic_count)
- * - Replies: 2 points (bbp_get_user_reply_count)
- * - Upvotes received: 0.5 points per upvote
- * - Main site posts: 10 points each (from main site blog ID)
- * - External sources: additive points via the `ec_rank_extra_points` filter
+ *   - `extrachill_display_user_points()`  — read wrapper with lazy recompute
+ *     (calls the users-owned engine, guarded for graceful degradation)
+ *   - `extrachill_increment_user_points()` — real-time upvote delta on the
+ *     `extrachill_total_points` meta convention
+ *   - `extrachill_queue_points_recalculation()` / process queue — bbPress-
+ *     triggered deferred recompute
+ *   - `extrachill_get_leaderboard_users()` / total — leaderboard user queries
  *
- * Performance:
- * - 1-hour transient caching per user
- * - Cross-site queries use canonical blog ID provider for main site access
- * - Always restores blog context with restore_current_blog()
+ * Community's bbPress point SOURCES are contributed to the engine via
+ * inc/social/rank-system/points-sources.php (hooks `ec_points_sources`).
  *
- * Used by leaderboard page template and user profile display.
+ * Storage conventions (owned by the engine, unchanged):
+ *   - User meta key: `extrachill_total_points`
+ *   - Total transient: `user_points_{id}` (1-hour TTL)
  *
  * @package ExtraChillCommunity
  */
-
-/**
- * Calculate total points for user across multiple point sources with caching
- *
- * Implements 1-hour caching to optimize performance.
- *
- * @param int $user_id WordPress user ID
- * @return float Total calculated points for the user
- */
-function extrachill_get_user_total_points($user_id) {
-	// Check if total points are cached
-	$cached_total_points = get_transient('user_points_' . $user_id);
-	if ( false !== $cached_total_points ) {
-		// Update user meta just in case it was missed, but return cached value
-		update_user_meta($user_id, 'extrachill_total_points', $cached_total_points);
-		return $cached_total_points;
-	}
-
-	// --- Calculate points if not cached ---
-
-	// Get topic count (cached)
-	$topic_count = false; // Initialize
-	$topic_count = get_transient('user_topic_count_' . $user_id);
-	if ( false === $topic_count ) {
-		$topic_count = intval(bbp_get_user_topic_count($user_id) ?? 0);
-		set_transient('user_topic_count_' . $user_id, $topic_count, HOUR_IN_SECONDS); // Cache for 1 hour
-	}
-
-	// Get reply count (cached)
-	$reply_count = false; // Initialize
-	$reply_count = get_transient('user_reply_count_' . $user_id);
-	if ( false === $reply_count ) {
-		$reply_count = intval(bbp_get_user_reply_count($user_id) ?? 0);
-		set_transient('user_reply_count_' . $user_id, $reply_count, HOUR_IN_SECONDS); // Cache for 1 hour
-	}
-
-	$bbpress_points = ( $topic_count + $reply_count ) * 2;
-
-	// Total upvotes received is read from an incrementally-maintained counter
-	// (extrachill_upvotes_received user meta), so this is O(1) after the
-	// one-time lazy backfill. See extrachill_get_user_total_upvotes().
-	$total_upvotes = extrachill_get_user_total_upvotes($user_id) ?? 0;
-	$upvote_points = floatval($total_upvotes) * 0.5;
-
-	// Get main site post count for points calculation
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
-	if ( $main_blog_id ) {
-		switch_to_blog( $main_blog_id );
-		try {
-			$main_site_post_count = count_user_posts($user_id, 'post', true);
-		} finally {
-			// Always restore blog context, even if count_user_posts() throws,
-			// to avoid leaking the switched context into the rest of the request.
-			restore_current_blog();
-		}
-	} else {
-		$main_site_post_count = 0;
-	}
-	$main_site_post_points = $main_site_post_count * 10;
-
-	/**
-	 * Filter additional rank points contributed by external point sources.
-	 *
-	 * The community rank/points system computes points from a fixed set of
-	 * built-in sources (bbPress activity, upvotes, main-site posts). This filter
-	 * is the extensibility seam that lets any other plugin contribute additional
-	 * points toward a user's total rank without the community plugin needing to
-	 * know about that feature.
-	 *
-	 * Contributions are ADDITIVE: a consumer receives the running extra-points
-	 * value plus the user ID, and returns the running value with its own points
-	 * added. Always return a float.
-	 *
-	 * Example:
-	 *
-	 *     add_filter( 'ec_rank_extra_points', function ( $points, $user_id ) {
-	 *         return $points + ( my_feature_count( $user_id ) * 3 );
-	 *     }, 10, 2 );
-	 *
-	 * Caching note: the TOTAL points value (including this filter's contribution)
-	 * is cached in the `user_points_{id}` transient for one hour. If an external
-	 * source changes its contribution mid-cache, the new value is not reflected
-	 * until the transient expires or is invalidated. This delay is acceptable for
-	 * rank display; sources needing immediacy should bust the transient.
-	 *
-	 * @param float $extra_points Running total of externally contributed points. Default 0.0.
-	 * @param int   $user_id      WordPress user ID the points are being calculated for.
-	 */
-	$extra_points = (float) apply_filters( 'ec_rank_extra_points', 0.0, $user_id );
-
-	// Calculate total points
-	$total_points = $bbpress_points + $upvote_points + $main_site_post_points + $extra_points;
-
-	// Cache the total points in a transient for 1 hour
-	set_transient('user_points_' . $user_id, $total_points, HOUR_IN_SECONDS);
-	// Store the total points as user meta for leaderboard sorting / persistent storage
-	update_user_meta($user_id, 'extrachill_total_points', $total_points);
-
-	return $total_points;
-}
-
 
 /**
  * Queue user for points recalculation after bbPress activity
@@ -218,6 +121,12 @@ add_action('extrachill_hourly_points_recalculation', 'extrachill_process_points_
  * Triggered hourly by WP Cron event 'extrachill_daily_points_recalculation'.
  */
 function extrachill_process_points_recalculation_queue() {
+	// The engine (extrachill_get_user_total_points) lives in extrachill-users.
+	// Guard so the queue no-ops gracefully if that plugin is not loaded.
+	if ( ! function_exists( 'extrachill_get_user_total_points' ) ) {
+		return;
+	}
+
 	$queue = get_option('extrachill_points_recalculation_queue', array());
 
 	foreach ( array_keys($queue) as $user_id ) {
@@ -268,10 +177,17 @@ function extrachill_display_user_points($user_id) {
 	// Retrieve the total points from user meta
 	$total_points = get_user_meta($user_id, 'extrachill_total_points', true);
 
-	// If total points is not set or empty, calculate and update it
+	// If total points is not set or empty, calculate and update it via the
+	// users-owned engine. Guard so the profile renders cleanly (returns 0) if
+	// the engine is not loaded — matches the function_exists() pattern used
+	// for ec_get_last_seen() / ec_get_rank_progress() in bbpress/user-details.php.
 	if ( empty($total_points) ) {
-		$total_points = extrachill_get_user_total_points($user_id);
-		update_user_meta($user_id, 'extrachill_total_points', $total_points);
+		if ( function_exists( 'extrachill_get_user_total_points' ) ) {
+			$total_points = extrachill_get_user_total_points($user_id);
+			update_user_meta($user_id, 'extrachill_total_points', $total_points);
+		} else {
+			$total_points = 0;
+		}
 	}
 
 	return $total_points;
