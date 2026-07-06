@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.26.0] - 2026-07-06
+
+### Added
+- add ec_get_network_bot_user_id() config helper + role/unclaimed create-user inputs (#207)
+
+### Changed
+- promote points/rank engine from community + add dated-contributions seam
+
 ## [0.25.0] - 2026-07-04
 
 ### Added
