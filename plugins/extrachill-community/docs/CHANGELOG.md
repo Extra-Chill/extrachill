@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.0] - 2026-07-06
+
+### Added
+- add GitHub-style contribution heatmap to user profiles
+
+### Changed
+- convert community to points-engine consumer, contribute bbPress sources
+
 ## [1.11.4] - 2026-07-05
 
 ### Fixed
