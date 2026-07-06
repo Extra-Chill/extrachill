@@ -75,11 +75,13 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/points-sources.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/chill-forums-rank.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/rank-abilities.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/contribution-calendar-ability.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-card.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-replies.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-mentions.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notifications-content.php';
 
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/contribution-heatmap.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/concert-history.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/custom-user-profile.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/profile-activity-feed.php';

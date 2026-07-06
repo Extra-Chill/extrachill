@@ -119,6 +119,9 @@ function extrachill_clear_user_points_cache($user_ids) {
 		delete_transient('user_topic_count_' . $user_id);
 		delete_transient('user_reply_count_' . $user_id);
 		delete_transient('user_points_' . $user_id);
+		// Bust the contribution-calendar cache so the heatmap + streaks stay
+		// fresh on new forum activity (see contribution-calendar-ability.php).
+		delete_transient('ec_contrib_calendar_' . $user_id);
 	}
 
 	extrachill_queue_user_points_recalculation($user_ids);

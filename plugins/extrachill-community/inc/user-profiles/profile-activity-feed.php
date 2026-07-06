@@ -24,9 +24,12 @@ if ( ! defined('ABSPATH') ) {
 /**
  * Render the displayed user's activity feed below their profile.
  *
- * Hooked to bbp_template_after_user_profile so it only renders on the main
- * profile tab (bbp_is_single_user_profile()), not on the topics/replies/edit
- * sub-tabs which already have their own bbPress loops.
+ * Hooked to bbp_template_after_user_details (priority 3) so it renders as the
+ * natural detail view directly beneath the Contribution Activity heatmap
+ * (priority 1) — the flow is chart → recent items. The bbp_is_single_user_profile()
+ * guard keeps it on the main profile tab only, not on the topics/replies/edit
+ * sub-tabs which already have their own bbPress loops. Full-width via the
+ * existing .user-profile-activity-feed CSS rule.
  *
  * @return void
  */
@@ -65,4 +68,6 @@ function extrachill_render_profile_activity_feed() {
 
 	echo '</div>';
 }
-add_action( 'bbp_template_after_user_profile', 'extrachill_render_profile_activity_feed' );
+// Priority 3 places the feed directly under the heatmap (priority 1) and above
+// Concert History (priority 5), all outside the 2-column card grid.
+add_action( 'bbp_template_after_user_details', 'extrachill_render_profile_activity_feed', 3 );
