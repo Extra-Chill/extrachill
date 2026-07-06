@@ -54,6 +54,14 @@ function extrachill_users_register_create_user_ability() {
 						'type'        => 'string',
 						'description' => __( 'Method label (e.g. standard, google).', 'extrachill-users' ),
 					),
+					'role'                => array(
+						'type'        => 'string',
+						'description' => __( 'Role to assign on the community blog (e.g. subscriber). Defaults to the blog default_role when empty.', 'extrachill-users' ),
+					),
+					'unclaimed'           => array(
+						'type'        => 'boolean',
+						'description' => __( 'Mark the account unclaimed (ec_unclaimed=1) so it cannot be logged into until the user sets their password. Used by attribution-on-submission flows that create an account on a user\'s behalf.', 'extrachill-users' ),
+					),
 					'referrer'            => array(
 						'type'        => 'string',
 						'description' => __( 'External referrer URL captured at registration (last-touch attribution). Optional.', 'extrachill-users' ),
@@ -142,6 +150,8 @@ function extrachill_users_ability_create_user( $input ) {
 	$registration_page   = isset( $input['registration_page'] ) ? $input['registration_page'] : '';
 	$registration_source = isset( $input['registration_source'] ) ? $input['registration_source'] : '';
 	$registration_method = isset( $input['registration_method'] ) ? $input['registration_method'] : '';
+	$role                = isset( $input['role'] ) ? sanitize_text_field( (string) $input['role'] ) : '';
+	$unclaimed           = ! empty( $input['unclaimed'] );
 	$referrer            = isset( $input['referrer'] ) ? esc_url_raw( (string) $input['referrer'] ) : '';
 	$utm                 = extrachill_users_sanitize_utm( isset( $input['utm'] ) ? $input['utm'] : array() );
 
@@ -172,6 +182,24 @@ function extrachill_users_ability_create_user( $input ) {
 
 		if ( ! empty( $registration_method ) ) {
 			update_user_meta( $user_id, 'registration_method', sanitize_text_field( (string) $registration_method ) );
+		}
+
+		// Explicit role override. wp_create_user() assigns the blog default_role
+		// (subscriber on the community blog); callers that need a specific role —
+		// e.g. event-submission attribution creating a locked subscriber account —
+		// pass `role` to pin it. Runs in the switched (community) context so the
+		// role lands on the right blog's capabilities meta.
+		if ( ! empty( $role ) ) {
+			$user = new WP_User( $user_id );
+			$user->set_role( $role );
+		}
+
+		// Unclaimed flag: accounts created on a user's behalf (e.g. an anonymous
+		// event submitter) are subscriber-role and flagged ec_unclaimed=1 until
+		// the user sets their password via the claim link, so the account can't
+		// be logged into before the rightful owner claims it.
+		if ( $unclaimed ) {
+			update_user_meta( $user_id, 'ec_unclaimed', 1 );
 		}
 
 		// Source attribution (last-touch): persist the external referrer and any
