@@ -147,7 +147,11 @@ class EventSubmissionAbilities {
 			return new \WP_Error( 'missing_fields', __( 'Event title and date are required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
-		// 3. Build sanitized submission.
+		// 3. Build sanitized submission. The claim URL is kept OUT of the
+		// submission payload (which flows into the workflow engine and may be
+		// logged) and threaded to notifySubmitter() separately.
+		$account_claim = (string) ( $contact['account_claim'] ?? '' );
+
 		$submission = array(
 			'user_id'       => $contact['user_id'],
 			'contact_name'  => $contact['contact_name'],
@@ -166,11 +170,17 @@ class EventSubmissionAbilities {
 		$flyer = $input['flyer'] ?? null;
 
 		// 5. Execute ephemeral workflow.
-		return $this->executeDirect( $submission, $flyer, sanitize_textarea_field( $input['system_prompt'] ?? '' ) );
+		return $this->executeDirect( $submission, $flyer, sanitize_textarea_field( $input['system_prompt'] ?? '' ), $account_claim );
 	}
 
 	/**
 	 * Resolve contact information from logged-in user or form input.
+	 *
+	 * For logged-in users, their account is the author. For anonymous submitters,
+	 * this resolves (or creates) a real subscriber account keyed by email so the
+	 * event is attributed honestly to the submitter rather than to the bot — see
+	 * issue #207 Phase 1. Dedupe is strict on email; a brand-new account is
+	 * flagged unclaimed and emailed a claim/set-password link in notifySubmitter().
 	 *
 	 * @param array $input Raw input.
 	 * @return array|\WP_Error Contact data with user_id, contact_name, contact_email — or WP_Error.
@@ -198,11 +208,105 @@ class EventSubmissionAbilities {
 			return new \WP_Error( 'invalid_email', __( 'Enter a valid email address.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
+		// Attribute the submission to the submitter's own account. Existing users
+		// are reused (dedupe by email); new users get a locked subscriber account
+		// flagged unclaimed until they set a password via the claim link. Falls
+		// back to user_id=0 (the automation/bot default author) if the
+		// account-creation primitive is unavailable, so submission still works.
+		$resolved = $this->resolveAnonymousSubmitter( $email );
+
 		return array(
-			'user_id'       => 0,
+			'user_id'       => $resolved['user_id'],
 			'contact_name'  => $name,
 			'contact_email' => $email,
+			'account_claim' => $resolved['claim_url'],
 		);
+	}
+
+	/**
+	 * Resolve a real user account for an anonymous submitter, keyed by email.
+	 *
+	 * Dedupe: an existing user with this email is reused (no duplicate). If none
+	 * exists, one is created via the `extrachill/create-user` ability — collision-
+	 * safe username, random password, subscriber role, flagged ec_unclaimed=1,
+	 * with registration_source='event_submission' provenance.
+	 *
+	 * A one-time claim/set-password URL is generated for BOTH the new- and
+	 * existing-account cases so the email wording can be identical (no account-
+	 * enumeration leak): a new user sets their password; an existing user can
+	 * reset theirs or simply ignore the link.
+	 *
+	 * @param string $email Verified email address.
+	 * @return array{user_id:int, claim_url:string} Resolved user id (0 if the
+	 *              primitive is unavailable) and a claim URL (empty if none).
+	 */
+	private function resolveAnonymousSubmitter( string $email ): array {
+		// Dedupe by email: reuse an existing account rather than creating a dup.
+		$existing = get_user_by( 'email', $email );
+		if ( $existing instanceof \WP_User ) {
+			return array(
+				'user_id'  => (int) $existing->ID,
+				'claim_url' => $this->buildClaimUrl( $existing ),
+			);
+		}
+
+		// Create a locked subscriber account on the submitter's behalf.
+		$create = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/create-user' ) : null;
+		if ( ! $create ) {
+			return array( 'user_id' => 0, 'claim_url' => '' );
+		}
+
+		$username = function_exists( 'ec_generate_username_from_email' )
+			? ec_generate_username_from_email( $email )
+			: sanitize_title( substr( strstr( $email, '@', true ) ?: 'user', 0, 50 ) );
+
+		$result = $create->execute(
+			array(
+				'email'               => $email,
+				'password'            => wp_generate_password( 24 ),
+				'username'            => $username,
+				'role'                => 'subscriber',
+				'unclaimed'           => true,
+				'registration_source' => 'event_submission',
+				'registration_method' => 'standard',
+			)
+		);
+
+		if ( is_wp_error( $result ) || empty( $result ) ) {
+			return array( 'user_id' => 0, 'claim_url' => '' );
+		}
+
+		$user_id = (int) $result;
+		$user    = get_userdata( $user_id );
+
+		return array(
+			'user_id'   => $user_id,
+			'claim_url' => $user ? $this->buildClaimUrl( $user ) : '',
+		);
+	}
+
+	/**
+	 * Build a one-time claim/set-password URL for a user.
+	 *
+	 * Generates a fresh password-reset key (works for new and existing accounts)
+	 * and points it at the community site's login. The link is safe to send to
+	 * any account holder regardless of whether the account pre-existed.
+	 *
+	 * @param \WP_User $user User object.
+	 * @return string Claim URL, or empty string on key-generation failure.
+	 */
+	private function buildClaimUrl( \WP_User $user ): string {
+		$key = get_password_reset_key( $user );
+		if ( is_wp_error( $key ) ) {
+			return '';
+		}
+
+		$base = function_exists( 'ec_get_site_url' )
+			? ec_get_site_url( 'community' )
+			: network_site_url();
+
+		// Canonical WordPress reset-password endpoint on the community site.
+		return trailingslashit( $base ) . 'wp-login.php?action=rp&key=' . rawurlencode( $key ) . '&login=' . rawurlencode( $user->user_login );
 	}
 
 	/**
@@ -213,7 +317,7 @@ class EventSubmissionAbilities {
 	 * @param string     $system_prompt Custom system prompt. Optional.
 	 * @return array Result.
 	 */
-	private function executeDirect( array $submission, ?array $flyer, string $system_prompt = '' ): array|\WP_Error {
+	private function executeDirect( array $submission, ?array $flyer, string $system_prompt = '', string $account_claim = '' ): array|\WP_Error {
 		$execute = wp_get_ability( 'datamachine/execute-workflow' );
 		if ( ! $execute ) {
 			return new \WP_Error( 'dm_unavailable', __( 'Data Machine is unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
@@ -250,7 +354,7 @@ class EventSubmissionAbilities {
 
 		$job_id = $result['job_id'] ?? $result['data']['job_id'] ?? 0;
 
-		$this->notifySubmitter( $submission );
+		$this->notifySubmitter( $submission, $account_claim );
 		$this->notifyAdmin( $submission, $job_id );
 
 		do_action(
@@ -404,8 +508,11 @@ class EventSubmissionAbilities {
 	 * the full EC visual identity.
 	 *
 	 * @param array $submission Submission data.
+	 * @param string $account_claim Optional one-time claim/set-password URL for
+	 *              anonymous submitters whose account was resolved or created.
+	 *              Empty for logged-in submitters (no claim section rendered).
 	 */
-	private function notifySubmitter( array $submission ): void {
+	private function notifySubmitter( array $submission, string $account_claim = '' ): void {
 		$to = $submission['contact_email'] ?? '';
 		if ( empty( $to ) || ! is_email( $to ) ) {
 			return;
@@ -448,6 +555,28 @@ class EventSubmissionAbilities {
 			esc_html( $venue_display )
 		) . '</p>';
 		$body_html .= '<p>' . esc_html__( "We're processing your submission now. You'll receive another email once it's been reviewed.", 'extrachill-events' ) . '</p>';
+
+		// Claim-account section for anonymous submitters. Wording is identical
+		// whether the account was just created or already existed — a new user
+		// sets their password; an existing user can reset theirs or ignore the
+		// link — so there is NO account-enumeration leak (issue #207 Phase 1).
+		if ( ! empty( $account_claim ) ) {
+			$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : '';
+			$body_html    .= '<hr>';
+			$body_html    .= '<p>' . esc_html__( 'Your submission is credited to your Extra Chill account, so you get the credit when it goes live.', 'extrachill-events' ) . '</p>';
+			$body_html    .= '<p>' . sprintf(
+				/* translators: %s: community site URL. */
+				esc_html__( 'Set or reset your password to log in and manage your events: %s', 'extrachill-events' ),
+				'<a href="' . esc_url( $account_claim ) . '">' . esc_html__( 'Set my password', 'extrachill-events' ) . '</a>'
+			) . '</p>';
+			if ( $community_url ) {
+				$body_html .= '<p>' . sprintf(
+					/* translators: %s: community site URL. */
+					esc_html__( 'Once set up, you can join the community at %s.', 'extrachill-events' ),
+					'<a href="' . esc_url( $community_url ) . '">' . esc_html( $community_url ) . '</a>'
+				) . '</p>';
+			}
+		}
 
 		$context = array(
 			'subject_html'   => esc_html( $subject ),
@@ -560,10 +689,16 @@ class EventSubmissionAbilities {
 	}
 
 	/**
-	 * Dispatch an outgoing notification through `ec_send_email()` when the
-	 * extrachill-multisite helper is loaded, otherwise fall back to the raw
-	 * `datamachine/send-email` ability. Failures are logged (never thrown)
-	 * so a transient send error does not break the submission flow.
+	 * Dispatch an outgoing notification through the EC mail layer.
+	 *
+	 * Event submissions run in an unprivileged context (an anonymous visitor),
+	 * so a bare `ec_send_email()` call hits the `datamachine/send-email`
+	 * ability's capability gate and silently fails with a permissions error.
+	 * `extrachill_send_registration_email()` (extrachill-users) wraps the call in
+	 * PermissionHelper::run_as_authenticated() — the canonical seam for callers
+	 * that have authorized a send at their own layer. We prefer it when present;
+	 * otherwise we fall back to `ec_send_email()` / the raw ability. Failures are
+	 * logged (never thrown) so a transient send error does not break submission.
 	 *
 	 * @param array  $args  Arguments forwarded to the ability.
 	 * @param string $audience Tag used in log context ("submitter" | "admin").
@@ -571,7 +706,9 @@ class EventSubmissionAbilities {
 	private function dispatchEmail( array $args, string $audience ): void {
 		$result = null;
 
-		if ( function_exists( 'ec_send_email' ) ) {
+		if ( function_exists( 'extrachill_send_registration_email' ) ) {
+			$result = extrachill_send_registration_email( $args );
+		} elseif ( function_exists( 'ec_send_email' ) ) {
 			$result = ec_send_email( $args );
 		} elseif ( function_exists( 'wp_get_ability' ) ) {
 			$send_ability = wp_get_ability( 'datamachine/send-email' );

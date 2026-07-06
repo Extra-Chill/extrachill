@@ -76,6 +76,13 @@ if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCo
 
 	require_once __DIR__ . '/inc/Cli/BackfillVenueMetaCommand.php';
 	\WP_CLI::add_command( 'extrachill events venues backfill-meta', \ExtraChillEvents\Cli\BackfillVenueMetaCommand::class );
+
+	// Honest authorship backfill (issue #207 Phase 3). Reattributes historical
+	// automation authored under a human (uid 1) onto the network bot account.
+	// Dry-run by default; --apply (or --commit) to mutate. Operates across
+	// blogs 7 (data_machine_events) and 11 (festival_wire); never touches blog 1.
+	require_once __DIR__ . '/inc/Cli/BackfillAuthorshipCommand.php';
+	\WP_CLI::add_command( 'extrachill events backfill-authorship', \ExtraChillEvents\Cli\BackfillAuthorshipCommand::class );
 }
 
 // Recheck handler must be loaded outside the WP_CLI guard so the Action
