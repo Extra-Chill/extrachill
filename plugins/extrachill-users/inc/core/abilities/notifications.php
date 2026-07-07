@@ -221,10 +221,14 @@ function extrachill_users_register_notification_abilities() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'        => array( 'type' => 'integer' ),
-					'emails_enabled' => array(
+					'user_id'               => array( 'type' => 'integer' ),
+					'emails_enabled'        => array(
 						'type'        => 'boolean',
 						'description' => 'True when the user receives unread-notification digest emails.',
+					),
+					'auto_subscribe_replies' => array(
+						'type'        => 'boolean',
+						'description' => 'True when the user is auto-subscribed to replies on content they participate in.',
 					),
 				),
 			),
@@ -256,13 +260,18 @@ function extrachill_users_register_notification_abilities() {
 						'type'        => 'boolean',
 						'description' => 'Set true to receive unread-notification digest emails, false to opt out.',
 					),
+					'auto_subscribe_replies' => array(
+						'type'        => 'boolean',
+						'description' => 'Set true to be auto-subscribed to replies on content you participate in, false to opt out.',
+					),
 				),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'        => array( 'type' => 'integer' ),
-					'emails_enabled' => array( 'type' => 'boolean' ),
+					'user_id'                => array( 'type' => 'integer' ),
+					'emails_enabled'         => array( 'type' => 'boolean' ),
+					'auto_subscribe_replies' => array( 'type' => 'boolean' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_users_ability_update_notification_preferences',
@@ -398,8 +407,9 @@ function extrachill_users_ability_get_notification_preferences() {
 	}
 
 	return array(
-		'user_id'        => $user_id,
-		'emails_enabled' => ec_users_notification_emails_enabled( $user_id ),
+		'user_id'                => $user_id,
+		'emails_enabled'         => ec_users_notification_emails_enabled( $user_id ),
+		'auto_subscribe_replies' => ec_users_auto_subscribe_enabled( $user_id ),
 	);
 }
 
@@ -425,8 +435,14 @@ function extrachill_users_ability_update_notification_preferences( array $input 
 		ec_users_set_notification_emails_disabled( $user_id, ! $emails_enabled );
 	}
 
+	if ( array_key_exists( 'auto_subscribe_replies', $input ) ) {
+		$enabled = filter_var( $input['auto_subscribe_replies'], FILTER_VALIDATE_BOOLEAN );
+		ec_users_set_auto_subscribe_disabled( $user_id, ! $enabled );
+	}
+
 	return array(
-		'user_id'        => $user_id,
-		'emails_enabled' => ec_users_notification_emails_enabled( $user_id ),
+		'user_id'                => $user_id,
+		'emails_enabled'         => ec_users_notification_emails_enabled( $user_id ),
+		'auto_subscribe_replies' => ec_users_auto_subscribe_enabled( $user_id ),
 	);
 }

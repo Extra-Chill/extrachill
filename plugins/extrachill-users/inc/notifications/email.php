@@ -88,6 +88,15 @@ const EC_NOTIFICATIONS_LAST_EMAILED_META = 'ec_notifications_last_emailed';
 const EC_NOTIFICATIONS_EMAILS_DISABLED_META = 'ec_notification_emails_disabled';
 
 /**
+ * User_meta opt-out flag for the auto-subscribe-to-replies preference.
+ *
+ * Truthy value == this user does NOT want to be auto-subscribed to replies on
+ * content they participate in. Absent/falsy == opted-in (default ON), matching
+ * the inversion the digest toggle uses.
+ */
+const EC_AUTO_SUBSCRIBE_REPLIES_DISABLED_META = 'ec_auto_subscribe_replies_disabled';
+
+/**
  * Cron hook for the recurring digest run.
  */
 const EC_NOTIFICATIONS_EMAIL_CRON_HOOK = 'ec_notifications_email_digest';
@@ -351,6 +360,60 @@ function ec_users_set_notification_emails_disabled( $user_id, $disabled ) {
  */
 function ec_users_notification_emails_enabled( $user_id ) {
 	return ! ec_notifications_email_user_opted_out( $user_id );
+}
+
+/**
+ * Has the user opted out of being auto-subscribed to replies?
+ *
+ * Default is OFF (opted-in). Any truthy value on the opt-out meta == disabled.
+ *
+ * @param int $user_id User ID.
+ * @return bool True if the user should NOT be auto-subscribed to replies.
+ */
+function ec_auto_subscribe_replies_user_opted_out( $user_id ) {
+	return (bool) get_user_meta( (int) $user_id, EC_AUTO_SUBSCRIBE_REPLIES_DISABLED_META, true );
+}
+
+/**
+ * Canonical setter for the auto-subscribe-to-replies opt-out flag.
+ *
+ * THE single source of truth for writing ec_auto_subscribe_replies_disabled.
+ * Mirrors ec_users_set_notification_emails_disabled(): enabling removes the
+ * flag entirely (so the default "opted-in" state is the absence of the meta),
+ * keeping ec_auto_subscribe_replies_user_opted_out() simple.
+ *
+ * @param int  $user_id  User ID.
+ * @param bool $disabled True to DISABLE auto-subscribe, false to enable.
+ * @return bool True on success, false on an invalid user.
+ */
+function ec_users_set_auto_subscribe_disabled( $user_id, $disabled ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	if ( $disabled ) {
+		update_user_meta( $user_id, EC_AUTO_SUBSCRIBE_REPLIES_DISABLED_META, 1 );
+		return true;
+	}
+
+	// Enabling = remove the flag so the opted-out check is false (default ON).
+	delete_user_meta( $user_id, EC_AUTO_SUBSCRIBE_REPLIES_DISABLED_META );
+	return true;
+}
+
+/**
+ * Whether auto-subscribe-to-replies is ENABLED for a user.
+ *
+ * User-facing sense: true == the user gets auto-subscribed to replies on
+ * content they participate in. Derived from the inverted internal DISABLED
+ * flag. The settings UI binds its toggle to this.
+ *
+ * @param int $user_id User ID.
+ * @return bool
+ */
+function ec_users_auto_subscribe_enabled( $user_id ) {
+	return ! ec_auto_subscribe_replies_user_opted_out( $user_id );
 }
 
 /**
