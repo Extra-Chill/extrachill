@@ -13,6 +13,7 @@
  *   - extrachill/get-user-settings, update-user-settings,
  *     change-user-email, change-user-password
  *   - extrachill/get-subscriptions, update-subscriptions
+ *   - extrachill/get-notification-preferences, update-notification-preferences
  *   - extrachill/request-artist-access
  */
 
@@ -113,6 +114,18 @@ export interface FollowedArtist {
 export interface UserSubscriptions {
 	user_id: number;
 	followed_artists: FollowedArtist[];
+}
+
+// ─── Notification Preferences ────────────────────────────────────────────────
+//
+// Mirrors extrachill/get-notification-preferences and
+// extrachill/update-notification-preferences (extrachill-users). Both abilities
+// expose the same two boolean toggles; update accepts the same shape it returns.
+
+export interface NotificationPreferences {
+	user_id: number;
+	emails_enabled: boolean;
+	auto_subscribe_replies: boolean;
 }
 
 // ─── Artist Access Request ──────────────────────────────────────────────────

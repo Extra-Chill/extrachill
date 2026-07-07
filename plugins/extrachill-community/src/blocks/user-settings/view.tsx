@@ -14,6 +14,7 @@ import type {
 	UserSubscriptions,
 	FollowedArtist,
 	RequestArtistAccessResponse,
+	NotificationPreferences,
 } from '../../types/users';
 
 const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), { validateAbilityNames: false } );
@@ -200,6 +201,60 @@ function SubscriptionsTab() {
 	);
 }
 
+function NotificationsTab() {
+	const [ loading, setLoading ] = useState( true );
+	const [ saving, setSaving ] = useState( false );
+	const [ emailsEnabled, setEmailsEnabled ] = useState( true );
+	const [ autoSubscribe, setAutoSubscribe ] = useState( true );
+	const [ notice, setNotice ] = useState< { type: 'success' | 'error'; message: string } | null >( null );
+
+	useEffect( () => {
+		client.execute< NotificationPreferences >( 'extrachill/get-notification-preferences' ).then( ( result ) => {
+			setEmailsEnabled( result.emails_enabled );
+			setAutoSubscribe( result.auto_subscribe_replies );
+			setLoading( false );
+		} ).catch( () => setLoading( false ) );
+	}, [] );
+
+	const handleSave = useCallback( async () => {
+		setSaving( true );
+		setNotice( null );
+		try {
+			await client.execute( 'extrachill/update-notification-preferences', { emails_enabled: emailsEnabled, auto_subscribe_replies: autoSubscribe } );
+			setNotice( { type: 'success', message: 'Notification preferences updated.' } );
+		} catch ( err ) {
+			setNotice( { type: 'error', message: err instanceof Error ? err.message : 'Update failed.' } );
+		}
+		setSaving( false );
+	}, [ emailsEnabled, autoSubscribe ] );
+
+	if ( loading ) return <div className="notice notice-info"><p>Loading notification preferences...</p></div>;
+
+	return (
+		<Panel>
+			<PanelHeader description="Control how Extra Chill keeps you in the loop." />
+			{ notice && <Notice type={ notice.type } message={ notice.message } /> }
+			<ul style={ styles.checkboxList }>
+				<li style={ styles.checkboxItem }>
+					<input type="checkbox" id="ec-notif-emails" checked={ emailsEnabled } onChange={ ( e ) => setEmailsEnabled( e.target.checked ) } />
+					<label htmlFor="ec-notif-emails" style={ { fontWeight: 'normal', cursor: 'pointer' } }>
+						<strong>Email notifications</strong>
+						<div style={ styles.mutedText }>Receive email digests for your notifications.</div>
+					</label>
+				</li>
+				<li style={ styles.checkboxItem }>
+					<input type="checkbox" id="ec-notif-auto-subscribe" checked={ autoSubscribe } onChange={ ( e ) => setAutoSubscribe( e.target.checked ) } />
+					<label htmlFor="ec-notif-auto-subscribe" style={ { fontWeight: 'normal', cursor: 'pointer' } }>
+						<strong>Auto-subscribe to replies</strong>
+						<div style={ styles.mutedText }>Automatically follow topics you reply to.</div>
+					</label>
+				</li>
+			</ul>
+			<ActionRow><button className="button-1 button-small" style={ saving ? styles.button : undefined } onClick={ handleSave } disabled={ saving }>{ saving ? 'Saving...' : 'Save Preferences' }</button></ActionRow>
+		</Panel>
+	);
+}
+
 function ArtistPlatformTab( { artistAccess, artistSiteUrl, hasArtists, canCreateArtists }: { artistAccess: { status: string; type: string; request_type?: string; requested_at?: number }; artistSiteUrl: string; hasArtists: boolean; canCreateArtists: boolean } ) {
 	const [ accessType, setAccessType ] = useState<'artist' | 'professional'>( 'artist' );
 	const [ submitting, setSubmitting ] = useState( false );
@@ -229,7 +284,7 @@ function ArtistPlatformTab( { artistAccess, artistSiteUrl, hasArtists, canCreate
 	);
 }
 
-type TabId = 'account-details' | 'security' | 'subscriptions' | 'artist-platform';
+type TabId = 'account-details' | 'security' | 'subscriptions' | 'notifications' | 'artist-platform';
 
 function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists, userId }: { artistSiteUrl: string; hasArtists: boolean; canCreateArtists: boolean; userId: number } ) {
 	const [ activeTab, setActiveTab ] = useState<TabId>( 'account-details' );
@@ -260,6 +315,7 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists, userId 
 		{ id: 'account-details', label: 'Account Details' },
 		{ id: 'security', label: 'Security' },
 		{ id: 'subscriptions', label: 'Subscriptions' },
+		{ id: 'notifications', label: 'Notifications' },
 		{ id: 'artist-platform', label: 'Artist Platform' },
 	];
 
@@ -271,6 +327,8 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists, userId 
 				return <SecurityTab settings={ settings } onSettingsChange={ setSettings } />;
 			case 'subscriptions':
 				return <SubscriptionsTab />;
+			case 'notifications':
+				return <NotificationsTab />;
 			case 'artist-platform':
 				return <ArtistPlatformTab artistAccess={ artistAccess } artistSiteUrl={ artistSiteUrl } hasArtists={ hasArtists } canCreateArtists={ canCreateArtists } />;
 			default:
@@ -281,7 +339,7 @@ function UserSettingsApp( { artistSiteUrl, hasArtists, canCreateArtists, userId 
 	return (
 		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
-				<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, and artist platform access." />
+				<BlockShellHeader title="Settings" description="Manage your account, security, subscriptions, notifications, and artist platform access." />
 				<ResponsiveTabs
 					tabs={ tabs }
 					active={ activeTab }

@@ -32,6 +32,15 @@ function extrachill_display_notifications() {
 		? $result['notifications']
 		: array();
 
+	// Always-on link to the notification-preferences tab of /settings, so a
+	// user can manage digests and auto-subscribe even with an empty inbox.
+	$settings_url = home_url( '/settings/#tab-notifications' );
+	printf(
+		'<p class="extrachill-notifications-settings-link"><a href="%s">%s</a></p>',
+		esc_url( $settings_url ),
+		esc_html__( 'Manage notification settings', 'extrachill-community' )
+	);
+
 	if ( empty( $notifications ) ) {
 		echo '<p>No notifications found.</p>';
 		return;
