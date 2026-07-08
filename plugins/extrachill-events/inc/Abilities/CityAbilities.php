@@ -267,8 +267,8 @@ class CityAbilities {
 						'label'     => 'AI Agent',
 					),
 					array(
-						'step_type' => 'update',
-						'label'     => 'Update',
+						'step_type' => 'upsert',
+						'label'     => 'Upsert',
 					),
 				),
 			)
@@ -676,7 +676,7 @@ class CityAbilities {
 							'exclude_keywords'    => '',
 						),
 					),
-					'update'       => array(
+					'upsert'       => array(
 						'handler_slug'   => 'upsert_event',
 						'handler_config' => array(
 							'post_status'                 => 'publish',
@@ -704,7 +704,7 @@ class CityAbilities {
 		$flow_id = $result['flow_id'] ?? null;
 
 		// Patch flow steps directly — step_configs via create-flow may not apply
-		// the update step due to ability registration timing in CLI context.
+		// the upsert step due to ability registration timing in CLI context.
 		if ( $flow_id ) {
 			$this->patchFlowSteps(
 				$flow_id,
@@ -799,7 +799,7 @@ class CityAbilities {
 	 * @param int    $flow_id        Flow ID to patch.
 	 * @param string $import_handler Handler slug for the event_import step.
 	 * @param array  $import_config  Handler config for the event_import step.
-	 * @param string $location_term  Location taxonomy term for the update step.
+	 * @param string $location_term  Location taxonomy term for the upsert step.
 	 * @param string $ai_message     Source-delta prompt for the AI step. Empty for
 	 *                               bulk sources whose identity is carried structurally
 	 *                               (flow name + location taxonomy + handler config);
@@ -833,7 +833,7 @@ class CityAbilities {
 				$step['enabled']         = true;
 			}
 
-			if ( 'update' === $step_type ) {
+			if ( 'upsert' === $step_type ) {
 				$step['handler_slugs']   = array( 'upsert_event' );
 				$step['handler_configs'] = array(
 					'upsert_event' => array(

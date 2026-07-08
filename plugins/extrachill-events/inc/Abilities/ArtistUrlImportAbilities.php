@@ -413,6 +413,20 @@ class ArtistUrlImportAbilities {
 				)
 			);
 
+			if ( null !== $submission_id ) {
+				$this->notifyAdminSubmission(
+					array(
+						'url'                   => $normalized,
+						'contact_name'          => $contact_name,
+						'contact_email'         => $contact_email,
+						'detected_format'       => '',
+						'events_found_count'    => 0,
+						'suggested_artist_name' => '',
+						'status'                => ArtistUrlSubmissionsTable::STATUS_SCRAPING_FAILED,
+					)
+				);
+			}
+
 			return array(
 				'success'       => false,
 				'submission_id' => (int) $submission_id,
@@ -442,6 +456,26 @@ class ArtistUrlImportAbilities {
 		if ( null === $submission_id ) {
 			return new \WP_Error( 'insert_failed', __( 'Failed to record submission.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
+
+		$this->notifyAdminSubmission(
+			array(
+				'url'                   => $normalized,
+				'contact_name'          => $contact_name,
+				'contact_email'         => $contact_email,
+				'detected_format'       => $probe['detected_format'],
+				'events_found_count'    => (int) $probe['events_found'],
+				'suggested_artist_name' => $suggestion['name'],
+				'status'                => ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
+			)
+		);
+
+		$this->notifySubmitterConfirmation(
+			array(
+				'url'           => $normalized,
+				'contact_name'  => $contact_name,
+				'contact_email' => $contact_email,
+			)
+		);
 
 		return array(
 			'success'       => true,
@@ -500,7 +534,7 @@ class ArtistUrlImportAbilities {
 
 		$pipeline_name = sprintf( '%s — Tour Import', $artist_name );
 
-		// 1. Create the pipeline scaffold (event_import → ai → update).
+		// 1. Create the pipeline scaffold (event_import → ai → upsert).
 		$pipeline_ability = wp_get_ability( 'datamachine/create-pipeline' );
 		if ( ! $pipeline_ability ) {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-pipeline ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
@@ -512,7 +546,7 @@ class ArtistUrlImportAbilities {
 				'steps'         => array(
 					array( 'step_type' => 'event_import', 'label' => 'Event Import' ),
 					array( 'step_type' => 'ai',           'label' => 'AI Agent' ),
-					array( 'step_type' => 'update',       'label' => 'Update' ),
+					array( 'step_type' => 'upsert',       'label' => 'Upsert' ),
 				),
 			)
 		);
@@ -569,7 +603,7 @@ class ArtistUrlImportAbilities {
 						'handler_slug'   => self::SCRAPER_HANDLER_SLUG,
 						'handler_config' => $import_handler_config,
 					),
-					'update'       => array(
+					'upsert'       => array(
 						'handler_slug'   => 'upsert_event',
 						'handler_config' => $update_handler_config,
 					),
@@ -1216,7 +1250,7 @@ class ArtistUrlImportAbilities {
 				$step['enabled']         = true;
 			}
 
-			if ( 'update' === $step_type ) {
+			if ( 'upsert' === $step_type ) {
 				$step['handler_slugs']   = array( 'upsert_event' );
 				$step['handler_configs'] = array( 'upsert_event' => $update_handler_config );
 				$step['enabled']         = true;
@@ -1234,5 +1268,238 @@ class ArtistUrlImportAbilities {
 			array( 'flow_config' => wp_json_encode( $config ) ),
 			array( 'flow_id' => $flow_id )
 		);
+	}
+
+	// ────────────────────────────────────────────────────────────────────
+	// Submission notifications (issue #210)
+	// ────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Send an admin notification about a new artist URL submission.
+	 *
+	 * Fires for both `pending_review` and `scraping_failed` statuses so the
+	 * admin always knows a submission is waiting in the moderation queue.
+	 * Mirrors the dispatch pattern from EventSubmissionAbilities::notifyAdmin()
+	 * — uses the `extrachill/minimal` template through the EC mail layer.
+	 *
+	 * @param array $data Submission details: url, contact_name, contact_email,
+	 *                    detected_format, events_found_count,
+	 *                    suggested_artist_name, status.
+	 */
+	private function notifyAdminSubmission( array $data ): void {
+		$to = get_option( 'admin_email' );
+		if ( empty( $to ) || ! is_email( $to ) ) {
+			return;
+		}
+
+		$site_name = get_bloginfo( 'name' );
+		$url       = (string) ( $data['url'] ?? '' );
+		$status    = (string) ( $data['status'] ?? '' );
+
+		$status_label = ArtistUrlSubmissionsTable::STATUS_SCRAPING_FAILED === $status
+			? __( 'Scrape failed', 'extrachill-events' )
+			: __( 'Pending review', 'extrachill-events' );
+
+		$subject = sprintf(
+			/* translators: 1: site name, 2: status label. */
+			__( '[%1$s] New Artist URL Submission: %2$s', 'extrachill-events' ),
+			$site_name,
+			$status_label
+		);
+
+		$preheader = sprintf(
+			/* translators: %s: submitter name. */
+			__( 'Artist URL submission from %s.', 'extrachill-events' ),
+			(string) ( $data['contact_name'] ?? '' )
+		);
+
+		$body_html  = '<p>' . esc_html__( 'A new artist URL submission has been received:', 'extrachill-events' ) . '</p>';
+		$body_html .= '<ul>';
+		$body_html .= '<li>' . sprintf(
+			/* translators: %s: submitted URL. */
+			esc_html__( 'URL: %s', 'extrachill-events' ),
+			'<strong>' . esc_html( $url ) . '</strong>'
+		) . '</li>';
+		$body_html .= '<li>' . sprintf(
+			/* translators: 1: submitter name, 2: submitter email. */
+			esc_html__( 'Submitted by: %1$s (%2$s)', 'extrachill-events' ),
+			esc_html( (string) ( $data['contact_name'] ?? '' ) ),
+			esc_html( (string) ( $data['contact_email'] ?? '' ) )
+		) . '</li>';
+		$body_html .= '<li>' . sprintf(
+			/* translators: %s: detected format. */
+			esc_html__( 'Detected format: %s', 'extrachill-events' ),
+			'<code>' . esc_html( (string) ( $data['detected_format'] ?? '' ) ) . '</code>'
+		) . '</li>';
+		$body_html .= '<li>' . sprintf(
+			/* translators: %d: events found count. */
+			esc_html__( 'Events found: %d', 'extrachill-events' ),
+			(int) ( $data['events_found_count'] ?? 0 )
+		) . '</li>';
+
+		$suggested_artist = (string) ( $data['suggested_artist_name'] ?? '' );
+		if ( '' !== $suggested_artist ) {
+			$body_html .= '<li>' . sprintf(
+				/* translators: %s: suggested artist name. */
+				esc_html__( 'Suggested artist: %s', 'extrachill-events' ),
+				'<strong>' . esc_html( $suggested_artist ) . '</strong>'
+			) . '</li>';
+		}
+
+		$body_html .= '<li>' . sprintf(
+			/* translators: %s: status label. */
+			esc_html__( 'Status: %s', 'extrachill-events' ),
+			esc_html( $status_label )
+		) . '</li>';
+		$body_html .= '</ul>';
+
+		$queue_url = $this->moderationQueueUrl();
+
+		$body_html .= '<p><a href="' . esc_url( $queue_url ) . '">' . esc_html__( 'Review artist URL submissions', 'extrachill-events' ) . '</a></p>';
+
+		$context = array(
+			'subject_html' => esc_html( $subject ),
+			'preheader'    => $preheader,
+			'body_html'    => $body_html,
+		);
+
+		$this->dispatchEmail(
+			array(
+				'to'       => $to,
+				'subject'  => $subject,
+				'template' => 'extrachill/minimal',
+				'context'  => array_merge(
+					$context,
+					array(
+						'cta_url'   => $queue_url,
+						'cta_label' => __( 'Review artist URL submissions', 'extrachill-events' ),
+					)
+				),
+			),
+			'admin'
+		);
+	}
+
+	/**
+	 * Send a confirmation email to the submitter of an artist URL.
+	 *
+	 * Mirrors EventSubmissionAbilities::notifySubmitter() — uses the
+	 * `extrachill/branded` template through the EC mail layer. Only sent
+	 * for `pending_review` submissions (not for `scraping_failed`, where
+	 * the API response already carries the failure message).
+	 *
+	 * @param array $data Submission details: url, contact_name, contact_email.
+	 */
+	private function notifySubmitterConfirmation( array $data ): void {
+		$to = (string) ( $data['contact_email'] ?? '' );
+		if ( '' === $to || ! is_email( $to ) ) {
+			return;
+		}
+
+		$site_name = get_bloginfo( 'name' );
+		$url       = (string) ( $data['url'] ?? '' );
+
+		$subject = sprintf(
+			/* translators: 1: site name, 2: submitted URL. */
+			__( '[%1$s] Artist URL Submission Received: %2$s', 'extrachill-events' ),
+			$site_name,
+			$url
+		);
+
+		$preheader = sprintf(
+			/* translators: %s: submitted URL. */
+			__( 'We received your tour URL submission for %s.', 'extrachill-events' ),
+			$url
+		);
+
+		$body_html  = '<p>' . esc_html__( 'Thanks for submitting an artist tour URL!', 'extrachill-events' ) . '</p>';
+		$body_html .= '<p>' . sprintf(
+			/* translators: %s: submitted URL. */
+			esc_html__( 'We received your submission for: %s', 'extrachill-events' ),
+			'<strong>' . esc_html( $url ) . '</strong>'
+		) . '</p>';
+		$body_html .= '<p>' . esc_html__( "We'll review it and set up automatic event imports if it looks good. You'll hear from us once it's been reviewed.", 'extrachill-events' ) . '</p>';
+
+		$context = array(
+			'subject_html'   => esc_html( $subject ),
+			'preheader'      => $preheader,
+			'recipient_name' => (string) ( $data['contact_name'] ?? '' ),
+			'body_html'      => $body_html,
+		);
+
+		$this->dispatchEmail(
+			array(
+				'to'       => $to,
+				'subject'  => $subject,
+				'template' => 'extrachill/branded',
+				'context'  => $context,
+			),
+			'submitter'
+		);
+	}
+
+	/**
+	 * Dispatch an outgoing notification through the EC mail layer.
+	 *
+	 * Mirrors EventSubmissionAbilities::dispatchEmail() — prefers
+	 * `extrachill_send_registration_email()` (extrachill-users) which wraps
+	 * the send in PermissionHelper::run_as_authenticated(), then falls back
+	 * to `ec_send_email()` and the raw `datamachine/send-email` ability.
+	 * Failures are logged (never thrown) so a transient send error does not
+	 * break submission.
+	 *
+	 * @param array  $args     Arguments forwarded to the ability.
+	 * @param string $audience Tag used in log context ("submitter" | "admin").
+	 */
+	private function dispatchEmail( array $args, string $audience ): void {
+		$result = null;
+
+		if ( function_exists( 'extrachill_send_registration_email' ) ) {
+			$result = extrachill_send_registration_email( $args );
+		} elseif ( function_exists( 'ec_send_email' ) ) {
+			$result = ec_send_email( $args );
+		} elseif ( function_exists( 'wp_get_ability' ) ) {
+			$send_ability = wp_get_ability( 'datamachine/send-email' );
+			if ( $send_ability ) {
+				$result = $send_ability->execute( $args );
+			}
+		}
+
+		$sent = is_array( $result ) ? (bool) ( $result['success'] ?? false ) : false;
+
+		if ( ! $sent ) {
+			do_action(
+				'datamachine_log',
+				'warning',
+				sprintf( 'ArtistUrlImport: %s notification failed to send', $audience ),
+				array(
+					'audience' => $audience,
+					'to'       => $args['to'] ?? '',
+					'subject'  => $args['subject'] ?? '',
+					'result'   => is_array( $result ) ? $result : array( 'result' => $result ),
+				)
+			);
+		}
+	}
+
+	/**
+	 * Build the admin URL for the artist URL submissions moderation queue.
+	 *
+	 * Resolves the events post-type slug via data-machine-events' public
+	 * constant and the page slug from ArtistUrlSubmissionsAdmin when the
+	 * admin class is loaded (admin context). Falls back to the known slug
+	 * literal for non-admin contexts (REST/CLI) where the admin class may
+	 * not be loaded.
+	 *
+	 * @return string
+	 */
+	private function moderationQueueUrl(): string {
+		$post_type = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
+
+		$page_slug = class_exists( '\ExtraChillEvents\Admin\ArtistUrlSubmissionsAdmin' )
+			? \ExtraChillEvents\Admin\ArtistUrlSubmissionsAdmin::PAGE_SLUG
+			: 'extrachill-events-artist-url-submissions';
+
+		return admin_url( 'edit.php?post_type=' . $post_type . '&page=' . $page_slug );
 	}
 }

@@ -358,7 +358,7 @@ class VenueAddAbilities {
 				$step['enabled']         = true;
 			}
 
-			if ( 'update' === $step_type ) {
+			if ( 'upsert' === $step_type ) {
 				$step['handler_slugs']   = array( 'upsert_event' );
 				$step['handler_configs'] = array(
 					'upsert_event' => array(
