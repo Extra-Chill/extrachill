@@ -639,6 +639,27 @@ class ArtistUrlImportAbilities {
 			)
 		);
 
+		// 3a. Notify the submitter that the import was approved.
+		$events_found_count = isset( $submission['events_found_count'] ) ? (int) $submission['events_found_count'] : 0;
+		$approve_title      = sprintf(
+			/* translators: 1: artist name, 2: number of events found */
+			__( 'Your tour import for %1$s was approved — %2$d events added', 'extrachill-events' ),
+			$artist_name,
+			$events_found_count
+		);
+		$artist_archive_link = get_term_link( $artist_term_id, 'artist' );
+		if ( is_wp_error( $artist_archive_link ) || ! is_string( $artist_archive_link ) || '' === $artist_archive_link ) {
+			$artist_archive_link = home_url();
+		}
+
+		$this->notifySubmitter(
+			$submission,
+			'artist_import_approved',
+			$approve_title,
+			$artist_archive_link,
+			$artist_term_id
+		);
+
 		// 4. Trigger first scrape immediately.
 		$events_imported_immediately = null;
 		$run_ability                 = wp_get_ability( 'datamachine/run-flow' );
@@ -681,6 +702,26 @@ class ArtistUrlImportAbilities {
 				'reviewed_at'      => current_time( 'mysql', true ),
 				'reviewed_by'      => get_current_user_id(),
 			)
+		);
+
+		// Notify the submitter that the import was rejected.
+		$reject_title = __( 'Your tour import submission was not approved', 'extrachill-events' );
+		if ( '' !== $reason ) {
+			$reject_title = sprintf(
+				/* translators: %s: rejection reason */
+				__( 'Your tour import submission was not approved: %s', 'extrachill-events' ),
+				$reason
+			);
+		}
+
+		$submit_page_link = home_url( '/submit/' );
+
+		$this->notifySubmitter(
+			$submission,
+			'artist_import_rejected',
+			$reject_title,
+			$submit_page_link,
+			$submission_id
 		);
 
 		return array( 'success' => true );
@@ -1609,5 +1650,75 @@ class ArtistUrlImportAbilities {
 			: 'extrachill-events-artist-url-submissions';
 
 		return admin_url( 'edit.php?post_type=' . $post_type . '&page=' . $page_slug );
+	}
+
+	/**
+	 * Fire a bell notification for the submitter after approval/rejection.
+	 *
+	 * Consumes the network notification substrate from extrachill-users.
+	 * Failures are logged and never allowed to break the approval/rejection
+	 * transaction.
+	 *
+	 * @param array  $submission Submission row from ArtistUrlSubmissionsTable.
+	 * @param string $type       Notification type (sanitize_key'd by substrate).
+	 * @param string $title      Human-readable title.
+	 * @param string $link       Target URL for the notification.
+	 * @param int    $item_id    Optional related object ID.
+	 */
+	private function notifySubmitter( array $submission, string $type, string $title, string $link, int $item_id = 0 ): void {
+		if ( ! function_exists( 'ec_users_notify' ) ) {
+			return;
+		}
+
+		$submitter_id = isset( $submission['user_id'] ) ? (int) $submission['user_id'] : 0;
+		if ( $submitter_id <= 0 ) {
+			return;
+		}
+
+		$actor_id = get_current_user_id();
+		if ( $actor_id <= 0 ) {
+			return;
+		}
+
+		$data = array(
+			'actor_id' => $actor_id,
+			'type'     => $type,
+			'title'    => $title,
+			'link'     => $link,
+		);
+		if ( $item_id > 0 ) {
+			$data['item_id'] = $item_id;
+		}
+
+		$inserted = 0;
+		try {
+			$inserted = ec_users_notify( $submitter_id, $data );
+		} catch ( \Throwable $e ) {
+			do_action(
+				'datamachine_log',
+				'warning',
+				'ArtistUrlImportAbilities: submitter notification threw an exception',
+				array(
+					'type'     => $type,
+					'user_id'  => $submitter_id,
+					'actor_id' => $actor_id,
+					'error'    => $e->getMessage(),
+				)
+			);
+			return;
+		}
+
+		if ( 0 === $inserted ) {
+			do_action(
+				'datamachine_log',
+				'warning',
+				'ArtistUrlImportAbilities: submitter notification was not inserted',
+				array(
+					'type'     => $type,
+					'user_id'  => $submitter_id,
+					'actor_id' => $actor_id,
+				)
+			);
+		}
 	}
 }
