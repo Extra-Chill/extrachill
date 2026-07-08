@@ -22,11 +22,12 @@
  *
  *   3. extrachill-events/approve-artist-url-submission
  *      Admin-only. Resolves the artist taxonomy term (existing term, or
- *      a new term created via wp_insert_term), creates a pipeline + flow
- *      via `datamachine/create-pipeline` (mirroring the CityAbilities
- *      reference implementation), binds the artist to the flow's upsert
- *      step with `PRE_SELECTED` and leaves venue/location/festival on
- *      `AI_DECIDES`, then triggers a first run via `datamachine/run-flow`.
+ *      a new term created via wp_insert_term), creates a flow on the
+ *      single shared `Artist Tour Import` pipeline (find-or-create once,
+ *      reused across every artist — architecture model B1), binds the
+ *      artist to the flow's upsert step with `PRE_SELECTED` and leaves
+ *      venue/location/festival on `AI_DECIDES`, then triggers a first
+ *      run via `datamachine/run-flow`.
  *
  *   4. extrachill-events/reject-artist-url-submission
  *      Admin-only. Marks the submission row rejected with an optional
@@ -68,7 +69,20 @@ class ArtistUrlImportAbilities {
 	private const SCRAPER_HANDLER_SLUG = 'universal_web_scraper';
 
 	/**
-	 * Default schedule interval for newly approved artist pipelines.
+	 * Stable name of the single shared Artist Tour Import pipeline (B1).
+	 * One pipeline is reused across every approved artist URL; each
+	 * approval creates a NEW FLOW on it.
+	 */
+	private const SHARED_PIPELINE_NAME = 'Artist Tour Import';
+
+	/**
+	 * Site option key caching the shared pipeline_id for the fast path.
+	 * A name-based lookup is the fallback if this option is missing/stale.
+	 */
+	private const SHARED_PIPELINE_OPTION = 'extrachill_events_artist_import_pipeline_id';
+
+	/**
+	 * Default schedule interval for newly approved artist flows.
 	 */
 	private const DEFAULT_INTERVAL = 'weekly';
 
@@ -532,43 +546,24 @@ class ArtistUrlImportAbilities {
 		$artist_term = get_term( $artist_term_id, 'artist' );
 		$artist_name = ( $artist_term && ! is_wp_error( $artist_term ) ) ? (string) $artist_term->name : 'Artist ' . $artist_term_id;
 
-		$pipeline_name = sprintf( '%s — Tour Import', $artist_name );
-
-		// 1. Create the pipeline scaffold (event_import → ai → upsert).
-		$pipeline_ability = wp_get_ability( 'datamachine/create-pipeline' );
-		if ( ! $pipeline_ability ) {
-			return new \WP_Error( 'missing_ability', __( 'datamachine/create-pipeline ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
+		// 1. Resolve the single shared Artist Tour Import pipeline (B1).
+		//    One pipeline is reused across every approved artist URL; each
+		//    approval creates a NEW FLOW on it carrying the per-artist
+		//    config (source_url + PRE_SELECTED artist term). There is no
+		//    per-artist pipeline and no per-artist pipeline-level AI prompt.
+		$pipeline_id = $this->resolveSharedArtistImportPipeline();
+		if ( is_wp_error( $pipeline_id ) ) {
+			return $pipeline_id;
 		}
 
-		$pipeline_result = $pipeline_ability->execute(
-			array(
-				'pipeline_name' => $pipeline_name,
-				'steps'         => array(
-					array( 'step_type' => 'event_import', 'label' => 'Event Import' ),
-					array( 'step_type' => 'ai',           'label' => 'AI Agent' ),
-					array( 'step_type' => 'upsert',       'label' => 'Upsert' ),
-				),
-			)
-		);
-
-		if ( empty( $pipeline_result['success'] ) || empty( $pipeline_result['pipeline_id'] ) ) {
-			$err = $pipeline_result['error'] ?? 'Unknown error';
-			return new \WP_Error( 'pipeline_creation_failed', 'Failed to create pipeline: ' . $err, array( 'status' => 500 ) );
-		}
-
-		$pipeline_id = (int) $pipeline_result['pipeline_id'];
-
-		// 2. Set the AI step's system prompt to focus on this artist.
-		$this->configurePipelineAiStep( $pipeline_id, $artist_name );
-
-		// 3. Create the flow with universal_web_scraper handler and
-		//    the SelectionMode-driven taxonomy bindings.
+		// 2. Create the flow with universal_web_scraper handler and the
+		//    SelectionMode-driven taxonomy bindings on the shared pipeline.
 		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
 		if ( ! $flow_ability ) {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-flow ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
-		$update_handler_config = array(
+		$upsert_handler_config = array(
 			'post_status'                 => 'publish',
 			'include_images'              => false,
 			'post_author'                 => self::DEFAULT_POST_AUTHOR,
@@ -605,7 +600,7 @@ class ArtistUrlImportAbilities {
 					),
 					'upsert'       => array(
 						'handler_slug'   => 'upsert_event',
-						'handler_config' => $update_handler_config,
+						'handler_config' => $upsert_handler_config,
 					),
 					'ai'           => array(
 						'user_message' => $ai_message,
@@ -627,11 +622,11 @@ class ArtistUrlImportAbilities {
 		$this->patchFlowSteps(
 			$flow_id,
 			$import_handler_config,
-			$update_handler_config,
+			$upsert_handler_config,
 			$ai_message
 		);
 
-		// 4. Update the submission row: approved + linked pipeline/flow.
+		// 3. Update the submission row: approved + linked shared pipeline/flow.
 		ArtistUrlSubmissionsTable::update(
 			$submission_id,
 			array(
@@ -644,7 +639,7 @@ class ArtistUrlImportAbilities {
 			)
 		);
 
-		// 5. Trigger first scrape immediately.
+		// 4. Trigger first scrape immediately.
 		$events_imported_immediately = null;
 		$run_ability                 = wp_get_ability( 'datamachine/run-flow' );
 		if ( $run_ability ) {
@@ -1152,14 +1147,124 @@ class ArtistUrlImportAbilities {
 	}
 
 	/**
-	 * Configure the pipeline AI step with an artist-scoped system
-	 * prompt. Does not set a provider/model — those are resolved by
-	 * AIStep from agent_config and site settings at runtime.
+	 * Resolve the single shared Artist Tour Import pipeline (architecture
+	 * model B1 — one pipeline reused across all approved artist URLs).
 	 *
-	 * @param int    $pipeline_id
-	 * @param string $artist_name
+	 * Idempotent: the shared pipeline_id is cached in a site option for
+	 * the fast path, with a name-based fallback so the resolver still
+	 * recovers if the option was cleared or this is the first approval
+	 * after the B1 deploy. If neither yields a live pipeline, a new one
+	 * is created (event_import → ai → upsert), given its artist-agnostic
+	 * AI system prompt once, and its id cached.
+	 *
+	 * Per-artist identity never lives at the pipeline level — it lives on
+	 * each flow (source_url + PRE_SELECTED artist term + per-artist
+	 * user_message). That is what makes a single shared pipeline safe.
+	 *
+	 * @return int|\WP_Error Pipeline ID, or WP_Error on creation failure.
 	 */
-	private function configurePipelineAiStep( int $pipeline_id, string $artist_name ): void {
+	private function resolveSharedArtistImportPipeline() {
+		$stored_id = (int) get_option( self::SHARED_PIPELINE_OPTION, 0 );
+
+		if ( $stored_id > 0 && $this->pipelineExists( $stored_id ) ) {
+			return $stored_id;
+		}
+
+		// Fallback: locate by stable name if the option is missing/stale.
+		$found_id = $this->findExistingPipeline( self::SHARED_PIPELINE_NAME );
+		if ( $found_id > 0 ) {
+			update_option( self::SHARED_PIPELINE_OPTION, $found_id, false );
+			return $found_id;
+		}
+
+		// Create the shared pipeline scaffold (event_import → ai → upsert).
+		$pipeline_ability = wp_get_ability( 'datamachine/create-pipeline' );
+		if ( ! $pipeline_ability ) {
+			return new \WP_Error( 'missing_ability', __( 'datamachine/create-pipeline ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		$pipeline_result = $pipeline_ability->execute(
+			array(
+				'pipeline_name' => self::SHARED_PIPELINE_NAME,
+				'steps'         => array(
+					array( 'step_type' => 'event_import', 'label' => 'Event Import' ),
+					array( 'step_type' => 'ai',           'label' => 'AI Agent' ),
+					array( 'step_type' => 'upsert',       'label' => 'Upsert' ),
+				),
+			)
+		);
+
+		if ( empty( $pipeline_result['success'] ) || empty( $pipeline_result['pipeline_id'] ) ) {
+			$err = $pipeline_result['error'] ?? 'Unknown error';
+			return new \WP_Error( 'pipeline_creation_failed', 'Failed to create shared Artist Tour Import pipeline: ' . $err, array( 'status' => 500 ) );
+		}
+
+		$pipeline_id = (int) $pipeline_result['pipeline_id'];
+
+		// Set the artist-agnostic AI system prompt ONCE at creation.
+		$this->configureSharedPipelineAiStep( $pipeline_id );
+
+		update_option( self::SHARED_PIPELINE_OPTION, $pipeline_id, false );
+
+		return $pipeline_id;
+	}
+
+	/**
+	 * Lightweight existence check for a pipeline id.
+	 *
+	 * @param int $pipeline_id
+	 * @return bool
+	 */
+	private function pipelineExists( int $pipeline_id ): bool {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_pipelines';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$found = $wpdb->get_var(
+			$wpdb->prepare( "SELECT pipeline_id FROM {$table} WHERE pipeline_id = %d LIMIT 1", $pipeline_id )
+		);
+
+		return ! empty( $found );
+	}
+
+	/**
+	 * Find an existing pipeline by name.
+	 *
+	 * Mirrors CityAbilities::findExistingPipeline() — same table, same
+	 * query shape — so the shared-pipeline name lookup is consistent with
+	 * the rest of the events plugin.
+	 *
+	 * @param string $pipeline_name Pipeline name to search for.
+	 * @return int|null Pipeline ID if found, null otherwise.
+	 */
+	private function findExistingPipeline( string $pipeline_name ): ?int {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_pipelines';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$pipeline_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT pipeline_id FROM {$table} WHERE pipeline_name = %s LIMIT 1",
+				$pipeline_name
+			)
+		);
+
+		return $pipeline_id ? (int) $pipeline_id : null;
+	}
+
+	/**
+	 * Configure the shared pipeline's AI step with an artist-agnostic
+	 * system prompt. Called ONCE at shared-pipeline creation — never per
+	 * artist. Per-artist identity is carried by each flow's user_message,
+	 * so the pipeline prompt must not name any specific artist (doing so
+	 * on a shared pipeline would clobber every other artist's flow).
+	 *
+	 * Does not set a provider/model — those are resolved by AIStep from
+	 * agent_config and site settings at runtime.
+	 *
+	 * @param int $pipeline_id
+	 */
+	private function configureSharedPipelineAiStep( int $pipeline_id ): void {
 		global $wpdb;
 		$table = $wpdb->prefix . 'datamachine_pipelines';
 
@@ -1183,8 +1288,8 @@ class ArtistUrlImportAbilities {
 				// Do NOT write a provider/model into the pipeline AI step.
 				// AIStep resolves the model/provider from agent_config and
 				// site settings at runtime; baking a literal here silently
-				// overrides the operator's configured model on every
-				// approved artist pipeline.
+				// overrides the operator's configured model on the shared
+				// artist-import pipeline.
 				/**
 				 * Filter the events feed name written into the AI step prompt.
 				 *
@@ -1195,8 +1300,7 @@ class ArtistUrlImportAbilities {
 				$feed_name = (string) apply_filters( 'extrachill_events_artist_url_feed_name', get_bloginfo( 'name' ) );
 
 				$step['system_prompt'] = sprintf(
-					'You process events from %1$s\'s tour/events page for the %2$s events feed. The artist is %1$s and is already pre-selected — do not change the artist binding. Identify the venue, city/location, and festival (if any) for each event based on the available information. Skip WordPress categories and post tags entirely.',
-					$artist_name,
+					'You process events from tour/events pages for the %s events feed. The artist for each flow is already pre-selected and named in the flow\'s user message — do not change the artist binding. Identify the venue, city/location, and festival (if any) for each event based on the available information. Skip WordPress categories and post tags entirely.',
 					$feed_name
 				);
 				$step['enabled_tools'] = array();
@@ -1218,12 +1322,16 @@ class ArtistUrlImportAbilities {
 	 * CityAbilities::patchFlowSteps() to harden against the same
 	 * create-flow timing quirks that affected city pipelines.
 	 *
+	 * Patches by step_type. The shared Artist Tour Import pipeline uses
+	 * the `upsert` step type (not the retired `update`), so this matches
+	 * `upsert`.
+	 *
 	 * @param int    $flow_id
 	 * @param array  $import_handler_config
-	 * @param array  $update_handler_config
+	 * @param array  $upsert_handler_config
 	 * @param string $ai_message
 	 */
-	private function patchFlowSteps( int $flow_id, array $import_handler_config, array $update_handler_config, string $ai_message ): void {
+	private function patchFlowSteps( int $flow_id, array $import_handler_config, array $upsert_handler_config, string $ai_message ): void {
 		global $wpdb;
 		$table = $wpdb->prefix . 'datamachine_flows';
 
@@ -1252,7 +1360,7 @@ class ArtistUrlImportAbilities {
 
 			if ( 'upsert' === $step_type ) {
 				$step['handler_slugs']   = array( 'upsert_event' );
-				$step['handler_configs'] = array( 'upsert_event' => $update_handler_config );
+				$step['handler_configs'] = array( 'upsert_event' => $upsert_handler_config );
 				$step['enabled']         = true;
 			}
 
