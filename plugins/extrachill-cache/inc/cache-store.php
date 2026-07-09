@@ -182,6 +182,12 @@ if ( ! function_exists( 'extrachill_cache_read' ) ) {
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Reachable from the pre-WP drop-in serve gate; the @ guards a benign filemtime failure (handled via the false check).
 		$mtime = @filemtime( $path );
 		if ( false === $mtime || ( time() - $mtime ) > $ttl ) {
+			// The file is expired and will never be served again. Delete it now
+			// so stale reads do not leave dead weight behind. Reachable from the
+			// pre-WP drop-in serve gate, so @-guard the unlink and avoid WP
+			// filesystem helpers.
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes a stale local cache file; reachable pre-WP where wp_delete_file is unavailable. The @ guards a benign unlink failure.
+			@unlink( $path );
 			return false;
 		}
 

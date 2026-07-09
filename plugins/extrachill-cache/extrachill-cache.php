@@ -71,6 +71,12 @@ require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/page-cache.php';
 // cache. Modeled on Breeze's purge-cache.php hook set.
 require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/purge.php';
 
+// Garbage collection: scheduled batched cleanup of expired cache files.
+require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/gc.php';
+
+// WP-CLI commands for operator visibility and manual GC runs.
+require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/cli.php';
+
 // Drop-in installer: writes/removes the advanced-cache.php drop-in that owns
 // the early serve gate. Only wired to activation/deactivation hooks.
 require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/dropin-installer.php';
@@ -88,14 +94,18 @@ register_deactivation_hook( __FILE__, 'extrachill_cache_deactivate' );
  */
 function extrachill_cache_activate() {
 	extrachill_cache_install_dropin();
+	extrachill_cache_schedule_gc();
 }
 
 /**
  * Deactivation: remove our drop-in so no stale serve gate remains.
  */
 function extrachill_cache_deactivate() {
+	extrachill_cache_unschedule_gc();
 	extrachill_cache_remove_dropin();
 	// Clear all cached payloads on deactivation to avoid serving stale content
 	// from a leftover drop-in of any origin.
 	extrachill_cache_purge_all();
+	// Cursor is no longer meaningful once the tree is gone.
+	delete_option( 'extrachill_cache_gc_cursor' );
 }
