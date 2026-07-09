@@ -110,3 +110,33 @@ function ec_events_redirect_post_type_archive() {
 	}
 }
 add_action( 'template_redirect', 'ec_events_redirect_post_type_archive' );
+
+/**
+ * Contribute approved artist tour-URL submissions to the community rank engine.
+ *
+ * Hooks `ec_points_sources` (owned by extrachill-users). Each approved
+ * submission is worth 10 points — the same weight as a main-site post. The
+ * unit is the approved submission, not the imported events, so one approved
+ * URL that ingests many events still contributes exactly 10 points (avoiding
+ * a gameable reward for high-volume imports). No-ops if the table class is
+ * not loaded.
+ *
+ * @param array $sources Source-id => points map.
+ * @param int   $user_id WordPress user ID.
+ * @return array
+ */
+add_filter(
+	'ec_points_sources',
+	function ( $sources, $user_id ) {
+		if ( ! class_exists( '\\ExtraChillEvents\\Core\\ArtistUrlSubmissionsTable' ) ) {
+			return $sources;
+		}
+
+		$n = \ExtraChillEvents\Core\ArtistUrlSubmissionsTable::count_approved_by_user( (int) $user_id );
+
+		$sources['events_contributed'] = (float) $n * 10;
+		return $sources;
+	},
+	10,
+	2
+);

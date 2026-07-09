@@ -639,6 +639,10 @@ class ArtistUrlImportAbilities {
 			)
 		);
 
+		// Bust the rank-engine points cache so the submitter's leaderboard
+		// total reflects the newly approved submission (10 points per approval).
+		delete_transient( 'user_points_' . (int) $submission['user_id'] );
+
 		// 3a. Notify the submitter that the import was approved.
 		$events_found_count = isset( $submission['events_found_count'] ) ? (int) $submission['events_found_count'] : 0;
 		$approve_title      = sprintf(

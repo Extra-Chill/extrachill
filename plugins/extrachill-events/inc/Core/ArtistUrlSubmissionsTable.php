@@ -380,4 +380,20 @@ class ArtistUrlSubmissionsTable {
 		}
 		return $out;
 	}
+
+	/**
+	 * Count approved submissions for a given user.
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return int
+	 */
+	public static function count_approved_by_user( int $user_id ): int {
+		global $wpdb;
+		$table = self::table_name();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status = %s",
+			$user_id, self::STATUS_APPROVED
+		) );
+	}
 }
