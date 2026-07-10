@@ -195,6 +195,5 @@ function extrachill_dequeue_jquery_frontend() {
 	}
 
 	wp_dequeue_script( 'jquery' );
-	wp_deregister_script( 'jquery' );
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_dequeue_jquery_frontend', 100 );
