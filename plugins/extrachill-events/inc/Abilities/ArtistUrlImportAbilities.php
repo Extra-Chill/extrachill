@@ -104,6 +104,102 @@ class ArtistUrlImportAbilities {
 
 	private static bool $registered = false;
 
+	/**
+	 * Resolve the system agent context used to own pipelines/flows and to
+	 * act as a fallback notification actor for non-interactive approvals.
+	 *
+	 * Reuses datamachine_resolve_system_agent_context(), the substrate helper
+	 * that attributes system tasks to the install's default agent (events-bot
+	 * in production). Falls back to the default agent user + agent_id resolution
+	 * if the helper is unavailable.
+	 *
+	 * @return array{agent_id:int|null,user_id:int|null}
+	 */
+	private function resolveSystemAgentContext(): array {
+		static $context = null;
+		if ( null !== $context ) {
+			return $context;
+		}
+
+		$context = array(
+			'agent_id' => null,
+			'user_id'  => null,
+		);
+
+		if ( function_exists( 'datamachine_resolve_system_agent_context' ) ) {
+			$resolved = datamachine_resolve_system_agent_context();
+			if ( ! empty( $resolved['agent_id'] ) ) {
+				$context['agent_id'] = (int) $resolved['agent_id'];
+			}
+			if ( ! empty( $resolved['user_id'] ) ) {
+				$context['user_id'] = (int) $resolved['user_id'];
+			}
+		}
+
+		if (
+			( null === $context['agent_id'] || $context['agent_id'] <= 0 || $context['user_id'] <= 0 )
+			&& class_exists( '\DataMachine\Core\FilesRepository\DirectoryManager' )
+		) {
+			$default_user_id = (int) \DataMachine\Core\FilesRepository\DirectoryManager::get_default_agent_user_id();
+			if ( $default_user_id > 0 ) {
+				$context['user_id'] = $default_user_id;
+				if ( function_exists( 'datamachine_resolve_or_create_agent_id' ) ) {
+					$agent_id = datamachine_resolve_or_create_agent_id( $default_user_id );
+					if ( $agent_id > 0 ) {
+						$context['agent_id'] = $agent_id;
+					}
+				}
+			}
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Read the agent_id for a pipeline.
+	 *
+	 * @param int $pipeline_id
+	 * @return int|null Null when the pipeline does not exist.
+	 */
+	private function getPipelineAgentId( int $pipeline_id ): ?int {
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_pipelines';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$agent_id = $wpdb->get_var(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a trusted internal identifier built from $wpdb->prefix.
+				"SELECT agent_id FROM {$table} WHERE pipeline_id = %d LIMIT 1",
+				$pipeline_id
+			)
+		);
+
+		return null === $agent_id ? null : (int) $agent_id;
+	}
+
+	/**
+	 * Assign an agent to an existing pipeline via the canonical update ability.
+	 *
+	 * @param int $pipeline_id
+	 * @param int $agent_id
+	 * @return bool
+	 */
+	private function assignPipelineAgent( int $pipeline_id, int $agent_id ): bool {
+		$update_ability = wp_get_ability( 'datamachine/update-pipeline' );
+		if ( ! $update_ability ) {
+			return false;
+		}
+
+		$result = $update_ability->execute(
+			array(
+				'pipeline_id' => $pipeline_id,
+				'agent_id'    => $agent_id,
+			)
+		);
+
+		return ! empty( $result['success'] );
+	}
+
 	public function __construct() {
 		if ( ! self::$registered ) {
 			$this->registerAbilities();
@@ -591,26 +687,31 @@ class ArtistUrlImportAbilities {
 			$artist_name
 		);
 
-		$flow_result = $flow_ability->execute(
-			array(
-				'pipeline_id'       => $pipeline_id,
-				'flow_name'         => $artist_name . ' — Tour URL',
-				'scheduling_config' => array( 'interval' => $interval ),
-				'step_configs'      => array(
-					'event_import' => array(
-						'handler_slug'   => self::SCRAPER_HANDLER_SLUG,
-						'handler_config' => $import_handler_config,
-					),
-					'upsert'       => array(
-						'handler_slug'   => 'upsert_event',
-						'handler_config' => $upsert_handler_config,
-					),
-					'ai'           => array(
-						'user_message' => $ai_message,
-					),
+		$flow_input = array(
+			'pipeline_id'       => $pipeline_id,
+			'flow_name'         => $artist_name . ' — Tour URL',
+			'scheduling_config' => array( 'interval' => $interval ),
+			'step_configs'      => array(
+				'event_import' => array(
+					'handler_slug'   => self::SCRAPER_HANDLER_SLUG,
+					'handler_config' => $import_handler_config,
 				),
-			)
+				'upsert'       => array(
+					'handler_slug'   => 'upsert_event',
+					'handler_config' => $upsert_handler_config,
+				),
+				'ai'           => array(
+					'user_message' => $ai_message,
+				),
+			),
 		);
+
+		$flow_agent_id = $this->resolveSystemAgentContext()['agent_id'] ?? null;
+		if ( $flow_agent_id > 0 ) {
+			$flow_input['agent_id'] = $flow_agent_id;
+		}
+
+		$flow_result = $flow_ability->execute( $flow_input );
 
 		if ( empty( $flow_result['success'] ) || empty( $flow_result['flow_id'] ) ) {
 			$err = $flow_result['error'] ?? 'Unknown error';
@@ -668,11 +769,18 @@ class ArtistUrlImportAbilities {
 		);
 
 		// 4. Trigger first scrape immediately.
+		//    datamachine/run-flow starts the job asynchronously, so a real
+		//    immediate import count is not available. Returning null keeps the
+		//    output schema (integer|null) clean; a boolean here caused
+		//    validation failures (#221). If a future run result ever exposes a
+		//    count, use it.
 		$events_imported_immediately = null;
 		$run_ability                 = wp_get_ability( 'datamachine/run-flow' );
 		if ( $run_ability ) {
-			$run_result                  = $run_ability->execute( array( 'flow_id' => $flow_id ) );
-			$events_imported_immediately = ! empty( $run_result['success'] );
+			$run_result = $run_ability->execute( array( 'flow_id' => $flow_id ) );
+			if ( isset( $run_result['events_imported'] ) && is_numeric( $run_result['events_imported'] ) ) {
+				$events_imported_immediately = (int) $run_result['events_imported'];
+			}
 		}
 
 		return array(
@@ -1212,9 +1320,16 @@ class ArtistUrlImportAbilities {
 	 * @return int|\WP_Error Pipeline ID, or WP_Error on creation failure.
 	 */
 	private function resolveSharedArtistImportPipeline() {
+		$system_context = $this->resolveSystemAgentContext();
+		$agent_id       = $system_context['agent_id'] ?? null;
+
 		$stored_id = (int) get_option( self::SHARED_PIPELINE_OPTION, 0 );
 
 		if ( $stored_id > 0 && $this->pipelineExists( $stored_id ) ) {
+			$existing_agent_id = $this->getPipelineAgentId( $stored_id );
+			if ( ( null === $existing_agent_id || $existing_agent_id <= 0 ) && $agent_id > 0 ) {
+				$this->assignPipelineAgent( $stored_id, $agent_id );
+			}
 			return $stored_id;
 		}
 
@@ -1222,6 +1337,10 @@ class ArtistUrlImportAbilities {
 		$found_id = $this->findExistingPipeline( self::SHARED_PIPELINE_NAME );
 		if ( $found_id > 0 ) {
 			update_option( self::SHARED_PIPELINE_OPTION, $found_id, false );
+			$existing_agent_id = $this->getPipelineAgentId( $found_id );
+			if ( ( null === $existing_agent_id || $existing_agent_id <= 0 ) && $agent_id > 0 ) {
+				$this->assignPipelineAgent( $found_id, $agent_id );
+			}
 			return $found_id;
 		}
 
@@ -1231,25 +1350,36 @@ class ArtistUrlImportAbilities {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-pipeline ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
-		$pipeline_result = $pipeline_ability->execute(
-			array(
-				'pipeline_name' => self::SHARED_PIPELINE_NAME,
-				'steps'         => array(
-					array(
-						'step_type' => 'event_import',
-						'label'     => 'Event Import',
-					),
-					array(
-						'step_type' => 'ai',
-						'label'     => 'AI Agent',
-					),
-					array(
-						'step_type' => 'upsert',
-						'label'     => 'Upsert',
-					),
+		$pipeline_input = array(
+			'pipeline_name' => self::SHARED_PIPELINE_NAME,
+			'steps'         => array(
+				array(
+					'step_type' => 'event_import',
+					'label'     => 'Event Import',
 				),
-			)
+				array(
+					'step_type' => 'ai',
+					'label'     => 'AI Agent',
+				),
+				array(
+					'step_type' => 'upsert',
+					'label'     => 'Upsert',
+				),
+			),
 		);
+
+		if ( $agent_id > 0 ) {
+			$pipeline_input['agent_id'] = $agent_id;
+		} else {
+			do_action(
+				'datamachine_log',
+				'warning',
+				'ArtistUrlImportAbilities: could not resolve system agent for shared pipeline',
+				array( 'pipeline_name' => self::SHARED_PIPELINE_NAME )
+			);
+		}
+
+		$pipeline_result = $pipeline_ability->execute( $pipeline_input );
 
 		if ( empty( $pipeline_result['success'] ) || empty( $pipeline_result['pipeline_id'] ) ) {
 			$err = $pipeline_result['error'] ?? 'Unknown error';
@@ -1695,6 +1825,20 @@ class ArtistUrlImportAbilities {
 
 		$actor_id = get_current_user_id();
 		if ( $actor_id <= 0 ) {
+			$system_context = $this->resolveSystemAgentContext();
+			$actor_id       = $system_context['user_id'] ?? 0;
+		}
+
+		if ( $actor_id <= 0 || ! get_userdata( $actor_id ) ) {
+			do_action(
+				'datamachine_log',
+				'warning',
+				'ArtistUrlImportAbilities: no valid actor for submitter notification',
+				array(
+					'type'    => $type,
+					'user_id' => $submitter_id,
+				)
+			);
 			return;
 		}
 
