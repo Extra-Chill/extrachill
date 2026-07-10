@@ -42,7 +42,7 @@ trait FlowHelpers {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_id, flow_name, flow_config, scheduling_config FROM {$table} WHERE flow_id = %d", $flow_id ),
+			$wpdb->prepare( "SELECT flow_id, flow_name, flow_config, scheduling_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 			ARRAY_A
 		);
 		if ( ! $row ) {
@@ -63,12 +63,15 @@ trait FlowHelpers {
 		$table = $wpdb->prefix . 'datamachine_flows';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		// Table name is a trusted internal identifier built from $wpdb->prefix; LIKE pattern is a fixed literal with no user input.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			"SELECT flow_id, flow_name, flow_config, scheduling_config
 			FROM {$table}
 			WHERE flow_config LIKE '%universal_web_scraper%'",
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$out = array();
 		foreach ( (array) $rows as $row ) {
@@ -152,6 +155,7 @@ trait FlowHelpers {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_col(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 				"SELECT status FROM {$table} WHERE flow_id = %s ORDER BY created_at DESC LIMIT %d",
 				(string) $flow_id,
 				$lookback

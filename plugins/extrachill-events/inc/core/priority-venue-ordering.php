@@ -29,6 +29,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Reordered events if single-location, unchanged otherwise.
  */
 function ec_events_reorder_by_priority( $events, $date_key, $context ) {
+	unset( $date_key );
+	unset( $context );
 	if ( count( $events ) < 2 ) {
 		return $events;
 	}

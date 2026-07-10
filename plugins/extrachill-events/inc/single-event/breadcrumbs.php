@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.1.0
  */
 function ec_events_override_breadcrumbs( $breadcrumbs, $post_id ) {
+	unset( $post_id );
 	if ( ! ec_is_events_site() ) {
 		return $breadcrumbs;
 	}
@@ -191,6 +192,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @since 0.1.0
  */
 function ec_events_back_to_home_label( $label, $url ) {
+	unset( $url );
 	if ( ! ec_is_events_site() ) {
 		return $label;
 	}

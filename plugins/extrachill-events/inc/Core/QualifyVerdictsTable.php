@@ -89,7 +89,7 @@ class QualifyVerdictsTable {
 	 */
 	public static function maybe_install(): void {
 		$stored = (string) get_option( self::SCHEMA_VERSION_OPTION, '' );
-		if ( $stored === self::SCHEMA_VERSION && self::table_exists() ) {
+		if ( self::SCHEMA_VERSION === $stored && self::table_exists() ) {
 			return;
 		}
 		self::create_table();
@@ -154,7 +154,7 @@ class QualifyVerdictsTable {
 			'url_hash'          => sha1( $canonical ),
 			'verdict'           => mb_substr( $verdict, 0, 50 ),
 			'events_url'        => null === $events_url ? null : mb_substr( $events_url, 0, 512 ),
-			'fingerprint'       => $fingerprint ?: '{}',
+			'fingerprint'       => $fingerprint ? $fingerprint : '{}',
 			'improvement_hint'  => $improvement_hint,
 			'agent_guidance'    => $agent_guidance,
 			'event_count'       => $event_count < 0 ? 0 : $event_count,
@@ -196,6 +196,7 @@ class QualifyVerdictsTable {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->base_prefix.
 				"SELECT * FROM {$table} WHERE url_hash = %s ORDER BY qualified_at DESC, id DESC LIMIT 1",
 				$url_hash
 			),
@@ -226,6 +227,7 @@ class QualifyVerdictsTable {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->base_prefix.
 				"SELECT verdict, qualified_at, id FROM {$table} WHERE url_hash = %s ORDER BY qualified_at DESC, id DESC LIMIT %d",
 				$url_hash,
 				$limit

@@ -211,11 +211,11 @@ class ArtistUrlSubmissionsTable {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$table} WHERE url_hash = %s LIMIT 1", $url_hash ),
+			$wpdb->prepare( "SELECT * FROM {$table} WHERE url_hash = %s LIMIT 1", $url_hash ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->base_prefix.
 			ARRAY_A
 		);
 
-		return $row ?: null;
+		return $row ? $row : null;
 	}
 
 	/**
@@ -230,11 +230,11 @@ class ArtistUrlSubmissionsTable {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1", $id ),
+			$wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1", $id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->base_prefix.
 			ARRAY_A
 		);
 
-		return $row ?: null;
+		return $row ? $row : null;
 	}
 
 	/**
@@ -331,6 +331,7 @@ class ArtistUrlSubmissionsTable {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->base_prefix.
 					"SELECT * FROM {$table} ORDER BY created_at DESC LIMIT %d OFFSET %d",
 					$per_page,
 					$offset
@@ -341,6 +342,7 @@ class ArtistUrlSubmissionsTable {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->base_prefix.
 					"SELECT * FROM {$table} WHERE status = %s ORDER BY created_at DESC LIMIT %d OFFSET %d",
 					$status,
 					$per_page,
@@ -350,7 +352,7 @@ class ArtistUrlSubmissionsTable {
 			);
 		}
 
-		return $rows ?: array();
+		return $rows ? $rows : array();
 	}
 
 	/**
@@ -365,6 +367,7 @@ class ArtistUrlSubmissionsTable {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->base_prefix; query has no user-supplied values.
 			"SELECT status, COUNT(*) AS c FROM {$table} GROUP BY status",
 			ARRAY_A
 		);
@@ -392,8 +395,10 @@ class ArtistUrlSubmissionsTable {
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var( $wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a trusted internal table name returned by self::table_name(); not user input.
 			"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status = %s",
-			$user_id, self::STATUS_APPROVED
+			$user_id,
+			self::STATUS_APPROVED
 		) );
 	}
 }

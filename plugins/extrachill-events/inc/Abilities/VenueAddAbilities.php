@@ -261,7 +261,7 @@ class VenueAddAbilities {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		return $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$table} WHERE pipeline_id = %d", $pipeline_id ),
+			$wpdb->prepare( "SELECT * FROM {$table} WHERE pipeline_id = %d", $pipeline_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 			ARRAY_A
 		);
 	}
@@ -276,6 +276,7 @@ class VenueAddAbilities {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$flow_id = $wpdb->get_var(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 				"SELECT flow_id FROM {$table} WHERE pipeline_id = %d AND flow_name = %s LIMIT 1",
 				$pipeline_id,
 				$venue_name
@@ -313,7 +314,7 @@ class VenueAddAbilities {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$flow = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_config FROM {$table} WHERE flow_id = %d", $flow_id ),
+			$wpdb->prepare( "SELECT flow_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 			ARRAY_A
 		);
 

@@ -45,6 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param string $timing     Event timing state: 'past' | 'ongoing' | 'upcoming'.
  */
 function ec_events_render_attendance_button( $post_id, $ticket_url, $timing = '' ) {
+	unset( $ticket_url );
 	if ( ! ec_is_events_site() ) {
 		return;
 	}

@@ -166,6 +166,7 @@ function ec_events_my_shows_get_tracked_post_ids( $user_id ) {
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$ids = $wpdb->get_col(
 		$wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->base_prefix.
 			"SELECT event_id FROM {$table} WHERE user_id = %d AND blog_id = %d",
 			$user_id,
 			$events_blog_id

@@ -15,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$term = get_queried_object();
-if ( ! $term || ! isset( $term->slug, $term->taxonomy ) || 'location' !== $term->taxonomy ) {
+$queried_term = get_queried_object();
+if ( ! $queried_term || ! isset( $queried_term->slug, $queried_term->taxonomy ) || 'location' !== $queried_term->taxonomy ) {
 	return;
 }
 
@@ -24,7 +24,7 @@ $request = new WP_REST_Request( 'GET', '/extrachill/v1/events/upcoming-counts' )
 $request->set_query_params(
 	array(
 		'taxonomy'      => 'venue',
-		'location_slug' => $term->slug,
+		'location_slug' => $queried_term->slug,
 	)
 );
 
@@ -50,9 +50,9 @@ if ( empty( $venue_counts ) || ! is_array( $venue_counts ) ) {
  * @since 0.22.0
  *
  * @param int      $min_events Minimum upcoming event count. Default 3.
- * @param \WP_Term $term       Current location term.
+ * @param \WP_Term $queried_term       Current location term.
  */
-$min_events   = apply_filters( 'extrachill_events_venue_badge_min_count', 3, $term );
+$min_events   = apply_filters( 'extrachill_events_venue_badge_min_count', 3, $queried_term );
 $venue_counts = array_filter(
 	$venue_counts,
 	function ( $venue ) use ( $min_events ) {

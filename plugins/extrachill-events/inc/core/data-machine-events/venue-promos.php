@@ -29,6 +29,7 @@ function extrachill_events_init_venue_promos() {
  * @param string $price   Event price string.
  */
 function extrachill_events_display_farm_friends_promo( $post_id, $price ) {
+	unset( $price );
 	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
 	if ( ! $events_blog_id || get_current_blog_id() !== $events_blog_id ) {
 		return;

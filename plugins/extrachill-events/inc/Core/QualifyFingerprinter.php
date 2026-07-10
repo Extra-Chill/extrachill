@@ -170,7 +170,7 @@ class QualifyFingerprinter {
 				&& ( false !== strpos( $lc_body, 'cf-browser-verification' )
 					|| false !== strpos( $lc_body, 'attention required! | cloudflare' ) ) )
 			|| false !== strpos( $lc_body, 'cf_chl_opt' )
-			|| ( '' !== $cf_ray && $result['http_status'] === 403 )
+			|| ( '' !== $cf_ray && 403 === $result['http_status'] )
 		) {
 			$result['cloudflare_challenge'] = true;
 		}
@@ -259,7 +259,7 @@ class QualifyFingerprinter {
 
 		$attempt['ran']         = true;
 		$attempt['matched']     = ! empty( $result['success'] );
-		$attempt['source_type'] = $source_type ?: $payload_type;
+		$attempt['source_type'] = $source_type ? $source_type : $payload_type;
 		$attempt['name']        = self::extractor_class_from_method( $extraction_method, $payload_type, $source_type );
 
 		// Count events for the extractor_attempts entry.
@@ -280,8 +280,8 @@ class QualifyFingerprinter {
 	 * @param string $class Extractor class basename (no namespace).
 	 * @return bool
 	 */
-	public static function extractor_exists( string $class ): bool {
-		return in_array( $class, self::KNOWN_EXTRACTORS, true );
+	public static function extractor_exists( string $class_name ): bool {
+		return in_array( $class_name, self::KNOWN_EXTRACTORS, true );
 	}
 
 	/**
@@ -576,7 +576,7 @@ class QualifyFingerprinter {
 			if ( false !== strpos( $candidate, 'wix' ) ) {
 				return 'WixEventsExtractor';
 			}
-			if ( false !== strpos( $candidate, 'tribe' ) || false !== strpos( $candidate, 'wordpress' ) ) {
+			if ( false !== strpos( $candidate, 'tribe' ) || false !== strpos( $candidate, 'WordPress' ) ) {
 				return 'WordPressExtractor';
 			}
 			if ( false !== strpos( $candidate, 'ics' ) ) {

@@ -47,8 +47,10 @@ function extrachill_events_is_near_me_page(): bool {
  * @return array{lat: float|null, lng: float|null}
  */
 function extrachill_events_get_geo_params(): array {
-	$lat = isset( $_GET['lat'] ) ? floatval( $_GET['lat'] ) : null;
-	$lng = isset( $_GET['lng'] ) ? floatval( $_GET['lng'] ) : null;
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only geo params from a public, shareable URL (no state change); values are sanitized with floatval() and range-validated below.
+	$lat = isset( $_GET['lat'] ) ? floatval( wp_unslash( $_GET['lat'] ) ) : null;
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only geo params from a public, shareable URL (no state change); values are sanitized with floatval() and range-validated below.
+	$lng = isset( $_GET['lng'] ) ? floatval( wp_unslash( $_GET['lng'] ) ) : null;
 
 	// Validate coordinates.
 	if ( null !== $lat && ( $lat < -90 || $lat > 90 ) ) {
@@ -152,6 +154,7 @@ add_action( 'wp_enqueue_scripts', 'extrachill_events_near_me_scripts' );
  * @hook data_machine_events_map_center
  */
 function extrachill_events_near_me_map_center( $center, array $context ) {
+	unset( $context );
 	if ( ! extrachill_events_is_near_me_page() ) {
 		return $center;
 	}
@@ -177,6 +180,7 @@ add_filter( 'data_machine_events_map_center', 'extrachill_events_near_me_map_cen
  * @hook data_machine_events_map_user_location
  */
 function extrachill_events_near_me_user_location( $user_location, array $context ) {
+	unset( $context );
 	if ( ! extrachill_events_is_near_me_page() ) {
 		return $user_location;
 	}
@@ -203,6 +207,7 @@ add_filter( 'data_machine_events_map_user_location', 'extrachill_events_near_me_
  * @hook data_machine_events_map_show_location_search
  */
 function extrachill_events_near_me_location_search( bool $show, array $context ): bool {
+	unset( $context );
 	if ( extrachill_events_is_near_me_page() ) {
 		return true;
 	}

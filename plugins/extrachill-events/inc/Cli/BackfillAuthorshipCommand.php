@@ -99,9 +99,9 @@ class BackfillAuthorshipCommand {
 			return;
 		}
 
-		$apply = ! empty( $assoc_args['apply'] ) || ! empty( $assoc_args['commit'] );
-		$from  = isset( $assoc_args['from'] ) ? (int) $assoc_args['from'] : 1;
-		$blog  = isset( $assoc_args['blog'] ) ? (int) $assoc_args['blog'] : 0;
+		$apply  = ! empty( $assoc_args['apply'] ) || ! empty( $assoc_args['commit'] );
+		$from   = isset( $assoc_args['from'] ) ? (int) $assoc_args['from'] : 1;
+		$blog   = isset( $assoc_args['blog'] ) ? (int) $assoc_args['blog'] : 0;
 		$format = (string) ( $assoc_args['format'] ?? 'table' );
 
 		// Post-status filter. Default: all non-trash statuses so every bit of
@@ -146,12 +146,12 @@ class BackfillAuthorshipCommand {
 
 		$report = array();
 		$totals = array(
-			'candidates'        => 0,
-			'to_bot'            => 0,
-			'to_submitter'      => 0,
-			'skipped_bad_user'  => 0,
-			'reattributed'      => 0,
-			'failed'            => 0,
+			'candidates'       => 0,
+			'to_bot'           => 0,
+			'to_submitter'     => 0,
+			'skipped_bad_user' => 0,
+			'reattributed'     => 0,
+			'failed'           => 0,
 		);
 
 		foreach ( $targets as $blog_id => $post_type ) {
@@ -219,8 +219,9 @@ class BackfillAuthorshipCommand {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$authors = $wpdb->get_results(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $posts_table is $wpdb->posts and $status_placeholders is a generated list of %s placeholders from the trusted $statuses array.
 				"SELECT post_author, COUNT(*) AS cnt FROM {$posts_table} WHERE post_type = %s AND post_status IN ({$status_placeholders}) GROUP BY post_author ORDER BY cnt DESC LIMIT 20",
-				$status_args
+				...$status_args
 			),
 			ARRAY_A
 		);
@@ -232,11 +233,11 @@ class BackfillAuthorshipCommand {
 				array_map(
 					static function ( $row ) {
 						return array(
-							'blog'          => '',
-							'post_type'     => '',
+							'blog'           => '',
+							'post_type'      => '',
 							'current_author' => (string) $row['post_author'],
-							'count'         => (string) $row['cnt'],
-							'plan'          => '',
+							'count'          => (string) $row['cnt'],
+							'plan'           => '',
 						);
 					},
 					$authors
@@ -250,9 +251,11 @@ class BackfillAuthorshipCommand {
 		$candidate_args = array_merge( array( $post_type, $from ), $statuses );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$candidates = $wpdb->get_col(
+			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $candidate_args supplies %s + %d + one value per status placeholder; count matches by construction.
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $posts_table is $wpdb->posts and $status_placeholders is a generated list of %s placeholders from the trusted $statuses array.
 				"SELECT ID FROM {$posts_table} WHERE post_type = %s AND post_author = %d AND post_status IN ({$status_placeholders}) ORDER BY ID ASC",
-				$candidate_args
+				...$candidate_args
 			)
 		);
 
@@ -271,8 +274,8 @@ class BackfillAuthorshipCommand {
 		// → bot. The submitter-attribution branch only applies to event CPT
 		// (blog 7); the wire has no submission meta.
 		foreach ( $candidates as $post_id ) {
-			$post_id     = (int) $post_id;
-			$submitter   = (int) get_post_meta( $post_id, '_datamachine_submitted_by', true );
+			$post_id   = (int) $post_id;
+			$submitter = (int) get_post_meta( $post_id, '_datamachine_submitted_by', true );
 
 			if ( $submitter > 0 && get_userdata( $submitter ) ) {
 				++$to_submitter;

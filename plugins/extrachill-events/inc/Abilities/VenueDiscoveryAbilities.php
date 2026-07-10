@@ -212,7 +212,8 @@ class VenueDiscoveryAbilities {
 			return new \WP_Error( 'invalid_service_account', 'Service account JSON missing client_email or private_key.' );
 		}
 
-		$now    = time();
+		$now = time();
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Base64url is required by the JWT spec to encode the token header; not obfuscation.
 		$header = base64_encode(
 			wp_json_encode(
 				array(
@@ -221,6 +222,7 @@ class VenueDiscoveryAbilities {
 				)
 			)
 		);
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Base64url is required by the JWT spec to encode the token claim set; not obfuscation.
 		$claims = base64_encode(
 			wp_json_encode(
 				array(
@@ -240,6 +242,7 @@ class VenueDiscoveryAbilities {
 			return new \WP_Error( 'jwt_sign_failed', 'Failed to sign JWT.' );
 		}
 
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Base64url is required by the JWT spec to encode the RS256 signature; not obfuscation.
 		$jwt = $unsigned . '.' . str_replace( array( '+', '/', '=' ), array( '-', '_', '' ), base64_encode( $signature ) );
 
 		$response = wp_remote_post(

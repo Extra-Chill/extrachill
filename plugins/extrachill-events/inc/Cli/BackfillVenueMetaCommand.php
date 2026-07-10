@@ -98,6 +98,7 @@ class BackfillVenueMetaCommand {
 		// the venue address fields without a complex JOIN.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix; LIKE pattern is a fixed literal with no user input.
 			"SELECT flow_id, flow_name, flow_config FROM {$flows_table}
 			WHERE flow_config LIKE '%universal_web_scraper%'
 			ORDER BY flow_id ASC",

@@ -251,6 +251,7 @@ class AuditPipelinesCommand {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix; query has no user-supplied values.
 			"SELECT pipeline_id, pipeline_name, pipeline_config FROM {$table}",
 			ARRAY_A
 		);
@@ -321,6 +322,7 @@ class AuditPipelinesCommand {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 					"SELECT flow_id, flow_name, pipeline_id, flow_config FROM {$table} WHERE flow_id = %d",
 					$only_flow_id
 				),
@@ -329,6 +331,7 @@ class AuditPipelinesCommand {
 		} else {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$rows = $wpdb->get_results(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix; LIKE pattern is a fixed literal with no user input.
 				"SELECT flow_id, flow_name, pipeline_id, flow_config FROM {$table} WHERE flow_config LIKE '%universal_web_scraper%'",
 				ARRAY_A
 			);

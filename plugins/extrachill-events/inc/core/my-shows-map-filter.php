@@ -291,7 +291,7 @@ function ec_events_my_shows_get_tracked_events_for_venues( int $user_id, array $
 	$tracking_table = $wpdb->base_prefix . 'ec_concert_tracking';
 	$placeholders   = implode( ',', array_fill( 0, count( $venue_ids ), '%d' ) );
 
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 	$query = $wpdb->prepare(
 		"SELECT
 			tt.term_id AS venue_term_id,

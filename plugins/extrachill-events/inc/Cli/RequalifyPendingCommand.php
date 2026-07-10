@@ -207,6 +207,7 @@ class RequalifyPendingCommand {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
 		$rows = $wpdb->get_results(
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 			$wpdb->prepare(
 				"SELECT v.url, v.verdict, v.fingerprint, v.qualified_at
 				FROM {$table} v
@@ -225,6 +226,7 @@ class RequalifyPendingCommand {
 			),
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$out = array();
 		foreach ( (array) $rows as $row ) {

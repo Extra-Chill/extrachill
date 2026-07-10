@@ -60,7 +60,7 @@ function extrachill_events_register_filters_ability(): void {
  * @param array $input Input (unused — no params).
  * @return array|WP_Error Filter options or error.
  */
-function extrachill_events_ability_filters( array $input ): array|\WP_Error {
+function extrachill_events_ability_filters(): array|\WP_Error {
 	$ability = wp_get_ability( 'data-machine-events/get-filter-options' );
 	if ( ! $ability ) {
 		return new \WP_Error(

@@ -27,6 +27,7 @@ function extrachill_events_init_archive_title() {
  * @return string Modified archive title.
  */
 function extrachill_events_filter_archive_title( $title, $context ) {
+	unset( $context );
 	$suffix = 'Events Calendar';
 
 	if ( $title === $suffix ) {

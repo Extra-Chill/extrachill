@@ -113,6 +113,7 @@ class LocationEventAbilities {
 				'events'         => array(),
 				'returned_count' => 0,
 				'message'        => sprintf(
+					/* translators: %s: location name that could not be found. */
 					__( 'Location "%s" not found.', 'extrachill-events' ),
 					$location
 				),
@@ -140,6 +141,7 @@ class LocationEventAbilities {
 			'events'         => $events,
 			'returned_count' => count( $events ),
 			'message'        => sprintf(
+				/* translators: 1: number of events found, 2: location name. */
 				__( 'Found %1$d events in %2$s.', 'extrachill-events' ),
 				count( $events ),
 				$term->name

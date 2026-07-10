@@ -37,6 +37,7 @@ function extrachill_events_init_badge_styling() {
  * @return array Enhanced wrapper classes with theme compatibility.
  */
 function extrachill_events_add_wrapper_classes( $wrapper_classes, $post_id ) {
+	unset( $post_id );
 	$wrapper_classes[] = 'taxonomy-badges';
 	return $wrapper_classes;
 }
@@ -54,6 +55,7 @@ function extrachill_events_add_wrapper_classes( $wrapper_classes, $post_id ) {
  * @return array Enhanced badge classes with taxonomy-specific styling.
  */
 function extrachill_events_add_badge_classes( $badge_classes, $taxonomy_slug, $term, $post_id ) {
+	unset( $post_id );
 	$badge_classes[] = 'taxonomy-badge';
 
 	switch ( $taxonomy_slug ) {

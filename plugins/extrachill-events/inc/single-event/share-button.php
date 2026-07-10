@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.1.0
  */
 function ec_events_render_share_button( $post_id, $ticket_url ) {
+	unset( $ticket_url );
 	if ( function_exists( 'extrachill_share_button' ) ) {
 		extrachill_share_button(
 			array(

@@ -159,6 +159,7 @@ class PriorityEventAbilities {
 	}
 
 	public function listPriorityEvents( array $input ): array {
+		unset( $input );
 		$ids = extrachill_get_priority_event_ids();
 
 		if ( empty( $ids ) ) {

@@ -137,6 +137,8 @@ class QualifyStatsCommand {
 		// Latest verdict per url_hash. The subquery picks max(id) per hash —
 		// id is autoincrement so it's a stable proxy for "most recent".
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+		// Table name is a trusted internal identifier built from $wpdb->prefix; $since_sql is itself a $wpdb->prepare() fragment with a bound %d placeholder.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			"SELECT v.verdict, v.fingerprint
 			FROM {$table} v
@@ -148,6 +150,7 @@ class QualifyStatsCommand {
 			) latest ON latest.max_id = v.id",
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$histogram = array();
 		foreach ( (array) $rows as $row ) {

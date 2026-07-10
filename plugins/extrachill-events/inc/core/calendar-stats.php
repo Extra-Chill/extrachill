@@ -204,6 +204,7 @@ function extrachill_events_get_term_calendar_stats( string $taxonomy, int $term_
 			);
 
 			if ( is_wp_error( $venue_result ) ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional diagnostic logging of an error-path failure for operators.
 				error_log(
 					sprintf(
 						'[extrachill-events] term calendar stats: venue count failed for %s=%d: %s',
@@ -229,6 +230,7 @@ function extrachill_events_get_term_calendar_stats( string $taxonomy, int $term_
 			);
 
 			if ( is_wp_error( $location_result ) ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional diagnostic logging of an error-path failure for operators.
 				error_log(
 					sprintf(
 						'[extrachill-events] term calendar stats: location count failed for %s=%d: %s',

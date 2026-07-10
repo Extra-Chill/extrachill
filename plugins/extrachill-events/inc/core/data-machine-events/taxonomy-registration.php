@@ -41,11 +41,12 @@ function extrachill_events_get_event_taxonomies() {
  * @param WP_Post_Type $post_type_object Post type object.
  */
 function extrachill_events_on_registered_post_type( $post_type, $post_type_object ) {
+	unset( $post_type_object );
 	if ( ! defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 		return;
 	}
 
-	if ( $post_type !== DATA_MACHINE_EVENTS_POST_TYPE ) {
+	if ( DATA_MACHINE_EVENTS_POST_TYPE !== $post_type ) {
 		return;
 	}
 
@@ -60,6 +61,8 @@ function extrachill_events_on_registered_post_type( $post_type, $post_type_objec
  * @param array        $args        Taxonomy arguments.
  */
 function extrachill_events_on_registered_taxonomy( $taxonomy, $object_type, $args ) {
+	unset( $object_type );
+	unset( $args );
 	if ( ! defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 		return;
 	}

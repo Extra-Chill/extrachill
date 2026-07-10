@@ -85,6 +85,7 @@ class ArtistUrlSubmissionsAdmin {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'extrachill-events' ) );
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list-filter param on an admin screen gated by current_user_can( 'manage_options' ) above; value is sanitized and whitelisted against $allowed_statuses below.
 		$status           = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( (string) $_GET['status'] ) ) : ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW;
 		$allowed_statuses = array(
 			ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
@@ -101,6 +102,7 @@ class ArtistUrlSubmissionsAdmin {
 
 		$base_url = admin_url( 'edit.php?post_type=' . self::events_post_type() . '&page=' . self::PAGE_SLUG );
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flash-notice flag set by our own nonce-protected admin-post redirect; display-only and gated by current_user_can( 'manage_options' ) above.
 		$flash = isset( $_GET['flash'] ) ? sanitize_key( wp_unslash( (string) $_GET['flash'] ) ) : '';
 
 		echo '<div class="wrap">';
@@ -112,6 +114,7 @@ class ArtistUrlSubmissionsAdmin {
 		} elseif ( 'rejected' === $flash ) {
 			echo '<div class="notice notice-success"><p>' . esc_html__( 'Submission rejected.', 'extrachill-events' ) . '</p></div>';
 		} elseif ( 'error' === $flash ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flash-error text set by our own nonce-protected admin-post redirect; display-only and gated by current_user_can( 'manage_options' ) above.
 			$msg = isset( $_GET['msg'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['msg'] ) ) : __( 'Action failed.', 'extrachill-events' );
 			echo '<div class="notice notice-error"><p>' . esc_html( $msg ) . '</p></div>';
 		}
@@ -166,12 +169,12 @@ class ArtistUrlSubmissionsAdmin {
 	}
 
 	private function render_row( array $row, string $status_context ): void {
-		$submitter = (string) ( $row['contact_name'] ?: $row['contact_email'] ?: '—' );
+		$submitter = (string) ( $row['contact_name'] ? $row['contact_name'] : ( $row['contact_email'] ? $row['contact_email'] : '—' ) );
 		$user_id   = (int) ( $row['user_id'] ?? 0 );
 		if ( $user_id > 0 ) {
 			$user = get_userdata( $user_id );
 			if ( $user ) {
-				$submitter = sprintf( '%s (#%d)', $user->display_name ?: $user->user_login, $user_id );
+				$submitter = sprintf( '%s (#%d)', $user->display_name ? $user->display_name : $user->user_login, $user_id );
 			}
 		}
 
@@ -187,7 +190,7 @@ class ArtistUrlSubmissionsAdmin {
 		echo '<td>' . esc_html( (string) $row['id'] ) . '</td>';
 		echo '<td><a href="' . esc_url( $row['url'] ) . '" target="_blank" rel="noopener">' . esc_html( $row['url'] ) . '</a></td>';
 		echo '<td>' . esc_html( $submitter ) . '</td>';
-		echo '<td>' . esc_html( $suggested ?: '—' ) . '</td>';
+		echo '<td>' . esc_html( $suggested ? $suggested : '—' ) . '</td>';
 		echo '<td>' . esc_html( (string) (int) $row['events_found_count'] ) . '</td>';
 		echo '<td><code>' . esc_html( (string) ( $row['detected_format'] ?? '' ) ) . '</code></td>';
 		echo '<td>' . esc_html( (string) $row['created_at'] ) . '</td>';
@@ -207,7 +210,7 @@ class ArtistUrlSubmissionsAdmin {
 			}
 		} elseif ( ArtistUrlSubmissionsTable::STATUS_REJECTED === $status_context ) {
 			$reason = (string) ( $row['rejection_reason'] ?? '' );
-			echo esc_html( $reason ?: __( 'Rejected (no reason)', 'extrachill-events' ) );
+			echo esc_html( $reason ? $reason : __( 'Rejected (no reason)', 'extrachill-events' ) );
 		} else {
 			// scraping_failed — read-only.
 			echo '<em>' . esc_html__( 'No actions — investigate handler coverage.', 'extrachill-events' ) . '</em>';
@@ -229,7 +232,7 @@ class ArtistUrlSubmissionsAdmin {
 
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'Existing artist term ID:', 'extrachill-events' ); ?>
-				<input type="number" name="artist_term_id" min="0" value="<?php echo esc_attr( $suggested_term_id ?: '' ); ?>" style="width: 100px;" />
+				<input type="number" name="artist_term_id" min="0" value="<?php echo esc_attr( $suggested_term_id ? $suggested_term_id : '' ); ?>" style="width: 100px;" />
 			</label>
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'OR new artist name:', 'extrachill-events' ); ?>

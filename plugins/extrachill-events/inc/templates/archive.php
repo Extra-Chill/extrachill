@@ -19,18 +19,18 @@ extrachill_breadcrumbs();
 	<div class="page-content">
 	<?php
 	if ( is_tax( 'venue' ) ) :
-		$term              = get_queried_object();
-		$venue_data        = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( (int) $term->term_id ) : null;
-		$formatted_address = function_exists( 'data_machine_events_get_venue_address' ) ? data_machine_events_get_venue_address( (int) $term->term_id, $venue_data ) : '';
+		$queried_term      = get_queried_object();
+		$venue_data        = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( (int) $queried_term->term_id ) : null;
+		$formatted_address = function_exists( 'data_machine_events_get_venue_address' ) ? data_machine_events_get_venue_address( (int) $queried_term->term_id, $venue_data ) : '';
 		?>
 		<header class="taxonomy-archive-header venue-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
 			
-			<?php if ( ! empty( $term->description ) ) : ?>
-				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( $term->description ) ); ?></div>
+			<?php if ( ! empty( $queried_term->description ) ) : ?>
+				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( $queried_term->description ) ); ?></div>
 			<?php endif; ?>
 
-			<?php extrachill_events_render_term_calendar_stats( 'venue', (int) $term->term_id ); ?>
+			<?php extrachill_events_render_term_calendar_stats( 'venue', (int) $queried_term->term_id ); ?>
 
 			<?php if ( $formatted_address || ! empty( $venue_data['website'] ) ) : ?>
 				<div class="taxonomy-meta">
@@ -48,14 +48,14 @@ extrachill_breadcrumbs();
 		</header>
 		<?php
 	elseif ( is_tax( 'promoter' ) ) :
-		$term          = get_queried_object();
-		$promoter_data = function_exists( 'data_machine_events_get_promoter_data' ) ? data_machine_events_get_promoter_data( (int) $term->term_id ) : null;
+		$queried_term  = get_queried_object();
+		$promoter_data = function_exists( 'data_machine_events_get_promoter_data' ) ? data_machine_events_get_promoter_data( (int) $queried_term->term_id ) : null;
 		?>
 		<header class="taxonomy-archive-header promoter-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
 			
-			<?php if ( ! empty( $term->description ) ) : ?>
-				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( $term->description ) ); ?></div>
+			<?php if ( ! empty( $queried_term->description ) ) : ?>
+				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( $queried_term->description ) ); ?></div>
 			<?php endif; ?>
 			
 			<?php if ( ! empty( $promoter_data['url'] ) ) : ?>
@@ -68,25 +68,25 @@ extrachill_breadcrumbs();
 		</header>
 		<?php
 	elseif ( is_tax( 'location' ) ) :
-		$term = get_queried_object();
+		$queried_term = get_queried_object();
 		?>
 		<header class="taxonomy-archive-header location-archive-header">
 			<h1 class="page-title">Live Music in <?php single_term_title(); ?></h1>
 			<?php if ( term_description() ) : ?>
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
 			<?php endif; ?>
-			<?php extrachill_events_render_term_calendar_stats( 'location', (int) $term->term_id ); ?>
+			<?php extrachill_events_render_term_calendar_stats( 'location', (int) $queried_term->term_id ); ?>
 		</header>
 		<?php
 	elseif ( is_tax( 'artist' ) ) :
-		$term = get_queried_object();
+		$queried_term = get_queried_object();
 		?>
 		<header class="taxonomy-archive-header artist-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Tour Dates</h1>
 			<?php if ( term_description() ) : ?>
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
 			<?php endif; ?>
-			<?php extrachill_events_render_term_calendar_stats( 'artist', (int) $term->term_id ); ?>
+			<?php extrachill_events_render_term_calendar_stats( 'artist', (int) $queried_term->term_id ); ?>
 		</header>
 	<?php elseif ( is_tax() ) : ?>
 		<header class="taxonomy-archive-header">
@@ -116,6 +116,7 @@ extrachill_breadcrumbs();
 		// URLs still live on the dedicated discovery landing pages rendered by
 		// discovery.php (extrachill_events_render_scope_nav with real links),
 		// which is their canonical home.
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- do_blocks() renders a hardcoded, trusted block-comment string into safe block markup.
 		echo do_blocks( '<!-- wp:data-machine-events/calendar {"showScopePresets":true} /-->' );
 		?>
 	</div>

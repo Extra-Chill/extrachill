@@ -245,7 +245,7 @@ class EventSubmissionAbilities {
 		$existing = get_user_by( 'email', $email );
 		if ( $existing instanceof \WP_User ) {
 			return array(
-				'user_id'  => (int) $existing->ID,
+				'user_id'   => (int) $existing->ID,
 				'claim_url' => $this->buildClaimUrl( $existing ),
 			);
 		}
@@ -253,12 +253,15 @@ class EventSubmissionAbilities {
 		// Create a locked subscriber account on the submitter's behalf.
 		$create = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/create-user' ) : null;
 		if ( ! $create ) {
-			return array( 'user_id' => 0, 'claim_url' => '' );
+			return array(
+				'user_id'   => 0,
+				'claim_url' => '',
+			);
 		}
 
 		$username = function_exists( 'ec_generate_username_from_email' )
 			? ec_generate_username_from_email( $email )
-			: sanitize_title( substr( strstr( $email, '@', true ) ?: 'user', 0, 50 ) );
+			: sanitize_title( substr( strstr( $email, '@', true ) ? strstr( $email, '@', true ) : 'user', 0, 50 ) );
 
 		$result = $create->execute(
 			array(
@@ -273,7 +276,10 @@ class EventSubmissionAbilities {
 		);
 
 		if ( is_wp_error( $result ) || empty( $result ) ) {
-			return array( 'user_id' => 0, 'claim_url' => '' );
+			return array(
+				'user_id'   => 0,
+				'claim_url' => '',
+			);
 		}
 
 		$user_id = (int) $result;

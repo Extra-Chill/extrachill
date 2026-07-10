@@ -42,7 +42,7 @@ class FlowOps {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_id, flow_name, scheduling_config FROM {$table} WHERE flow_id = %d", $flow_id ),
+			$wpdb->prepare( "SELECT flow_id, flow_name, scheduling_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 			ARRAY_A
 		);
 		if ( ! $row ) {
@@ -292,7 +292,7 @@ class FlowOps {
 		// so the recheck handler's other callers remain unchanged.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_id, scheduling_config, flow_config FROM {$table} WHERE flow_id = %d", $flow_id ),
+			$wpdb->prepare( "SELECT flow_id, scheduling_config, flow_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 			ARRAY_A
 		);
 		if ( ! $row ) {
@@ -510,7 +510,9 @@ class FlowOps {
 	 * @return bool
 	 */
 	private static function same_host( string $a, string $b ): bool {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Defensive fallback only; wp_parse_url() is preferred and used whenever available.
 		$ha = function_exists( 'wp_parse_url' ) ? wp_parse_url( $a, PHP_URL_HOST ) : parse_url( $a, PHP_URL_HOST );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Defensive fallback only; wp_parse_url() is preferred and used whenever available.
 		$hb = function_exists( 'wp_parse_url' ) ? wp_parse_url( $b, PHP_URL_HOST ) : parse_url( $b, PHP_URL_HOST );
 		if ( ! is_string( $ha ) || ! is_string( $hb ) || '' === $ha || '' === $hb ) {
 			return false;

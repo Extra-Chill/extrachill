@@ -159,7 +159,8 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 	global $wpdb;
 	$city_placeholders = implode( ', ', array_fill( 0, count( $city_names ), '%s' ) );
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// Core table names come from $wpdb; $city_placeholders is a generated list of %s placeholders bound via spread; the LIKE pattern is a fixed literal (matches "lat,lon") with no user input.
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$venue_rows = $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT t.term_id, t.name, t.slug,
@@ -176,6 +177,7 @@ function extrachill_events_get_location_venues( int $term_id ): array {
 			...$city_names
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	$matched = array();
 
@@ -235,6 +237,7 @@ function extrachill_events_get_location_venues( int $term_id ): array {
  * @param int $term_id Venue term ID.
  */
 function extrachill_events_invalidate_location_venue_cache( int $term_id ) {
+	unset( $term_id );
 	global $wpdb;
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 	$wpdb->query(

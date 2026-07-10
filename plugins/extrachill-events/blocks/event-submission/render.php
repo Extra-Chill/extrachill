@@ -18,12 +18,12 @@ $defaults   = array(
 );
 $attributes = wp_parse_args( $attributes, $defaults );
 
-$headline         = $attributes['headline'] ?? '';
-$description      = $attributes['description'] ?? '';
-$success_message  = $attributes['successMessage'] ?? '';
-$button_label     = $attributes['buttonLabel'] ? $attributes['buttonLabel'] : __( 'Send Submission', 'data-machine-events' );
-$system_prompt    = $attributes['systemPrompt'] ?? '';
-$endpoint         = esc_url( rest_url( 'extrachill/v1/event-submissions' ) );
+$headline        = $attributes['headline'] ?? '';
+$description     = $attributes['description'] ?? '';
+$success_message = $attributes['successMessage'] ?? '';
+$button_label    = $attributes['buttonLabel'] ? $attributes['buttonLabel'] : __( 'Send Submission', 'extrachill-events' );
+$system_prompt   = $attributes['systemPrompt'] ?? '';
+$endpoint        = esc_url( rest_url( 'extrachill/v1/event-submissions' ) );
 // Artist URL import endpoints moved from the data-machine-events substrate to
 // this plugin's own extrachill/v1 namespace in extrachill-events#200.
 $preview_endpoint = esc_url( rest_url( 'extrachill/v1/artist-url/preview' ) );
@@ -35,7 +35,7 @@ if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 	ec_enqueue_turnstile_script();
 }
 
-$success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message ) : __( 'Thanks! We received your submission.', 'data-machine-events' ) );
+$success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( 'Thanks! We received your submission.', 'extrachill-events' );
 ?>
 
 <div
@@ -44,7 +44,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 	data-artist-url-preview="<?php echo esc_url( $preview_endpoint ); ?>"
 	data-artist-url-submit="<?php echo esc_url( $submit_endpoint ); ?>"
 	data-rest-nonce="<?php echo esc_attr( $rest_nonce ); ?>"
-	data-success-message="<?php echo $success_attr; ?>"
+	data-success-message="<?php echo esc_attr( $success_attr ); ?>"
 	data-system-prompt="<?php echo esc_attr( $system_prompt ); ?>"
 >
 	<div class="ec-event-submission__inner">
@@ -60,10 +60,10 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 		<div class="ec-event-submission__url-import" data-state="idle">
 			<div class="ec-event-submission__url-import-intro">
 				<label for="<?php echo esc_attr( $form_id ); ?>-artist-url">
-					<strong><?php esc_html_e( 'Have an artist tour page?', 'data-machine-events' ); ?></strong>
+					<strong><?php esc_html_e( 'Have an artist tour page?', 'extrachill-events' ); ?></strong>
 				</label>
 				<p class="ec-event-submission__url-import-hint">
-					<?php esc_html_e( "Paste the URL and we'll import all their events automatically. Leave blank to submit a single event manually below.", 'data-machine-events' ); ?>
+					<?php esc_html_e( "Paste the URL and we'll import all their events automatically. Leave blank to submit a single event manually below.", 'extrachill-events' ); ?>
 				</p>
 				<div class="ec-event-submission__url-import-row">
 					<input
@@ -74,7 +74,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 						autocomplete="off"
 					/>
 					<button type="button" class="button button-secondary ec-event-submission__url-import-try">
-						<?php esc_html_e( 'Try URL', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'Try URL', 'extrachill-events' ); ?>
 					</button>
 				</div>
 				<div class="ec-event-submission__url-import-status" aria-live="polite"></div>
@@ -85,10 +85,10 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 				<ul class="ec-event-submission__url-import-events"></ul>
 				<div class="ec-event-submission__url-import-actions">
 					<button type="button" class="button-1 ec-event-submission__url-import-submit">
-						<?php esc_html_e( 'Submit for review', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'Submit for review', 'extrachill-events' ); ?>
 					</button>
 					<button type="button" class="button button-link ec-event-submission__url-import-cancel">
-						<?php esc_html_e( 'Cancel and use manual form', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'Cancel and use manual form', 'extrachill-events' ); ?>
 					</button>
 				</div>
 			</div>
@@ -107,7 +107,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 					<?php
 					printf(
 						/* translators: %s: user display name */
-						esc_html__( 'Submitting as %s', 'data-machine-events' ),
+						esc_html__( 'Submitting as %s', 'extrachill-events' ),
 						'<strong>' . esc_html( wp_get_current_user()->display_name ) . '</strong>'
 					);
 					?>
@@ -118,7 +118,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 				<?php if ( ! is_user_logged_in() ) : ?>
 					<div class="ec-event-submission__field">
 						<label for="<?php echo esc_attr( $form_id ); ?>-contact-name">
-							<?php esc_html_e( 'Your Name', 'data-machine-events' ); ?>
+							<?php esc_html_e( 'Your Name', 'extrachill-events' ); ?>
 							<span aria-hidden="true">*</span>
 						</label>
 						<input type="text" name="contact_name" id="<?php echo esc_attr( $form_id ); ?>-contact-name" required />
@@ -126,7 +126,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 
 					<div class="ec-event-submission__field">
 						<label for="<?php echo esc_attr( $form_id ); ?>-contact-email">
-							<?php esc_html_e( 'Contact Email', 'data-machine-events' ); ?>
+							<?php esc_html_e( 'Contact Email', 'extrachill-events' ); ?>
 							<span aria-hidden="true">*</span>
 						</label>
 						<input type="email" name="contact_email" id="<?php echo esc_attr( $form_id ); ?>-contact-email" required />
@@ -135,7 +135,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-event-title">
-						<?php esc_html_e( 'Event Title', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'Event Title', 'extrachill-events' ); ?>
 						<span aria-hidden="true">*</span>
 					</label>
 					<input type="text" name="event_title" id="<?php echo esc_attr( $form_id ); ?>-event-title" required />
@@ -143,7 +143,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-event-date">
-						<?php esc_html_e( 'Event Date', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'Event Date', 'extrachill-events' ); ?>
 						<span aria-hidden="true">*</span>
 					</label>
 					<input type="date" name="event_date" id="<?php echo esc_attr( $form_id ); ?>-event-date" required />
@@ -151,35 +151,35 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-event-time">
-						<?php esc_html_e( 'Event Time', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'Event Time', 'extrachill-events' ); ?>
 					</label>
 					<input type="time" name="event_time" id="<?php echo esc_attr( $form_id ); ?>-event-time" />
 				</div>
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-venue">
-						<?php esc_html_e( 'Venue', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'Venue', 'extrachill-events' ); ?>
 					</label>
 					<input type="text" name="venue_name" id="<?php echo esc_attr( $form_id ); ?>-venue" />
 				</div>
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-city">
-						<?php esc_html_e( 'City / Region', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'City / Region', 'extrachill-events' ); ?>
 					</label>
 					<input type="text" name="event_city" id="<?php echo esc_attr( $form_id ); ?>-city" />
 				</div>
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-lineup">
-						<?php esc_html_e( 'Lineup / Headliners', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'Lineup / Headliners', 'extrachill-events' ); ?>
 					</label>
 					<input type="text" name="event_lineup" id="<?php echo esc_attr( $form_id ); ?>-lineup" />
 				</div>
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-link">
-						<?php esc_html_e( 'Ticket or Info Link', 'data-machine-events' ); ?>
+						<?php esc_html_e( 'Ticket or Info Link', 'extrachill-events' ); ?>
 					</label>
 					<input type="url" name="event_link" id="<?php echo esc_attr( $form_id ); ?>-link" placeholder="https://" />
 				</div>
@@ -187,14 +187,14 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 
 			<div class="ec-event-submission__field ec-event-submission__field--full">
 				<label for="<?php echo esc_attr( $form_id ); ?>-details">
-					<?php esc_html_e( 'Additional Details', 'data-machine-events' ); ?>
+					<?php esc_html_e( 'Additional Details', 'extrachill-events' ); ?>
 				</label>
 				<textarea name="notes" id="<?php echo esc_attr( $form_id ); ?>-details" rows="4"></textarea>
 			</div>
 
 			<div class="ec-event-submission__field ec-event-submission__field--file">
 				<label for="<?php echo esc_attr( $form_id ); ?>-flyer">
-					<?php esc_html_e( 'Flyer Upload (JPG, PNG, WebP, PDF)', 'data-machine-events' ); ?>
+					<?php esc_html_e( 'Flyer Upload (JPG, PNG, WebP, PDF)', 'extrachill-events' ); ?>
 				</label>
 				<input type="file" name="flyer" id="<?php echo esc_attr( $form_id ); ?>-flyer" accept="image/*,.pdf" />
 			</div>
@@ -204,7 +204,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 				if ( function_exists( 'ec_render_turnstile_widget' ) ) {
 					echo wp_kses_post( ec_render_turnstile_widget( array( 'data-appearance' => 'always' ) ) );
 				} else {
-					esc_html_e( 'Security challenge unavailable. Please contact support.', 'data-machine-events' );
+					esc_html_e( 'Security challenge unavailable. Please contact support.', 'extrachill-events' );
 				}
 				?>
 			</div>

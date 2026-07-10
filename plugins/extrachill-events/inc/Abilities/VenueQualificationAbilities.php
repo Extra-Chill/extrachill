@@ -757,7 +757,7 @@ class VenueQualificationAbilities {
 
 		foreach ( $matches as $match ) {
 			$href = $match[1];
-			$text = strtolower( strip_tags( trim( $match[2] ) ) );
+			$text = strtolower( wp_strip_all_tags( trim( $match[2] ) ) );
 
 			$is_event_link = false;
 			foreach ( self::LINK_KEYWORDS as $keyword ) {
@@ -801,7 +801,7 @@ class VenueQualificationAbilities {
 
 			$links[] = array(
 				'url'  => $href,
-				'text' => strip_tags( trim( $match[2] ) ),
+				'text' => wp_strip_all_tags( trim( $match[2] ) ),
 			);
 		}
 

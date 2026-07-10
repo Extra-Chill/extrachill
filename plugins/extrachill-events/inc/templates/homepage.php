@@ -36,6 +36,7 @@ extrachill_breadcrumbs();
 				if ( $homepage_id ) {
 					$homepage = get_post( $homepage_id );
 					if ( $homepage ) {
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Standard WordPress content output: post_content rendered through the 'the_content' filter chain, which handles sanitization/escaping.
 						echo apply_filters( 'the_content', $homepage->post_content );
 					}
 				}

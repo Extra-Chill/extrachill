@@ -231,7 +231,8 @@ function extrachill_events_transform_calendar_response( array $result ): array {
 			// Ticket URL from block attributes or post meta.
 			$ticket_url = $event_data['ticketUrl'] ?? null;
 			if ( empty( $ticket_url ) ) {
-				$ticket_url = get_post_meta( $post_id, '_datamachine_ticket_url', true ) ?: null;
+				$meta_ticket_url = get_post_meta( $post_id, '_datamachine_ticket_url', true );
+				$ticket_url      = $meta_ticket_url ? $meta_ticket_url : null;
 			}
 
 			$events[] = array(

@@ -289,7 +289,8 @@ class MarketReportAbilities {
 
 		$placeholders = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
 
-		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		// Core table names come from $wpdb; $placeholders is a generated list of %d placeholders (no user input) bound via spread.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT loc_tt.term_id AS location_id, COUNT(DISTINCT venue_t.term_id) AS venue_count
@@ -305,6 +306,7 @@ class MarketReportAbilities {
 				...$term_ids
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		foreach ( $rows as $row ) {
 			$counts[ (int) $row->location_id ] = (int) $row->venue_count;
@@ -333,7 +335,8 @@ class MarketReportAbilities {
 		$now               = current_time( 'mysql' );
 		$event_dates_table = $wpdb->prefix . 'datamachine_event_dates';
 
-		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		// Core + custom table names come from $wpdb/$wpdb->prefix; $placeholders is a generated list of %d placeholders (no user input) bound via spread alongside $now.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT tt.term_id AS location_id, COUNT(DISTINCT p.ID) AS upcoming_count
@@ -352,6 +355,7 @@ class MarketReportAbilities {
 				...$term_ids
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		foreach ( $rows as $row ) {
 			$counts[ (int) $row->location_id ] = (int) $row->upcoming_count;
@@ -375,11 +379,14 @@ class MarketReportAbilities {
 		$table_flows     = $wpdb->prefix . 'datamachine_flows';
 		$table_pipelines = $wpdb->prefix . 'datamachine_pipelines';
 
+		// Table names are trusted internal identifiers built from $wpdb->prefix; query has no user-supplied values.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$flows = $wpdb->get_results(
 			"SELECT f.flow_config, p.pipeline_name
 			FROM {$table_flows} f
 			JOIN {$table_pipelines} p ON f.pipeline_id = p.pipeline_id"
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		// Build a name-to-term-id lookup for fallback matching.
 		$all_locations = get_terms(

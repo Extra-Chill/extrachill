@@ -111,7 +111,8 @@ function extrachill_events_ability_get_venue( array $input ): array|\WP_Error {
 		$venue_data['country']     = $raw['country'] ?? '';
 		$venue_data['timezone']    = $raw['timezone'] ?? '';
 		$venue_data['website']     = $raw['website'] ?? '';
-		$venue_data['coordinates'] = get_term_meta( $term->term_id, '_venue_coordinates', true ) ?: '';
+		$coordinates_meta          = get_term_meta( $term->term_id, '_venue_coordinates', true );
+		$venue_data['coordinates'] = $coordinates_meta ? $coordinates_meta : '';
 	}
 
 	return extrachill_events_transform_venue_detail( $venue_data );

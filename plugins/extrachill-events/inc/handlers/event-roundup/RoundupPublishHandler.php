@@ -35,6 +35,7 @@ class RoundupPublishHandler extends PublishHandler {
 			null,
 			RoundupPublishSettings::class,
 			function ( $tools, $handler_slug, $handler_config ) {
+				unset( $handler_config );
 				if ( 'roundup_publish' === $handler_slug ) {
 					$tools['roundup_publish'] = array(
 						'class'       => self::class,

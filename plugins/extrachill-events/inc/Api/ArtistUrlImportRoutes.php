@@ -31,14 +31,14 @@ const ARTIST_URL_NAMESPACE_DEPRECATED = 'datamachine/v1';
 /**
  * Register the artist-url routes for a given namespace.
  *
- * @param string $namespace REST namespace.
+ * @param string $route_namespace REST namespace.
  * @return void
  */
-function register_artist_url_routes_for( string $namespace ): void {
+function register_artist_url_routes_for( string $route_namespace ): void {
 	$controller = new ArtistUrlImport();
 
 	register_rest_route(
-		$namespace,
+		$route_namespace,
 		'/artist-url/preview',
 		array(
 			'methods'             => 'POST',
@@ -55,7 +55,7 @@ function register_artist_url_routes_for( string $namespace ): void {
 	);
 
 	register_rest_route(
-		$namespace,
+		$route_namespace,
 		'/artist-url/submit',
 		array(
 			'methods'             => 'POST',
@@ -80,7 +80,7 @@ function register_artist_url_routes_for( string $namespace ): void {
 	);
 
 	register_rest_route(
-		$namespace,
+		$route_namespace,
 		'/artist-url/(?P<id>\d+)/approve',
 		array(
 			'methods'             => 'POST',
@@ -109,7 +109,7 @@ function register_artist_url_routes_for( string $namespace ): void {
 	);
 
 	register_rest_route(
-		$namespace,
+		$route_namespace,
 		'/artist-url/(?P<id>\d+)/reject',
 		array(
 			'methods'             => 'POST',

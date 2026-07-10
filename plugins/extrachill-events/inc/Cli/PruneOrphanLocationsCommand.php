@@ -153,7 +153,7 @@ class PruneOrphanLocationsCommand {
 				);
 			} else {
 				++$totals['failed'];
-				$reason   = is_wp_error( $result ) ? $result->get_error_code() : 'wp_delete_term_returned_' . var_export( $result, true );
+				$reason   = is_wp_error( $result ) ? $result->get_error_code() : 'wp_delete_term_returned_' . wp_json_encode( $result );
 				$report[] = array(
 					'term_id' => $term_id,
 					'name'    => $name,

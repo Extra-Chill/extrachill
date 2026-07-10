@@ -96,7 +96,9 @@ class RepairFlowLocationsCommand {
 			$params[] = $flow_id;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// Table names are trusted internal identifiers built from $wpdb->prefix; $where is a
+		// code-built fragment of %s/%d placeholders bound via $params.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT f.flow_id, f.flow_name, f.pipeline_id, p.pipeline_name
@@ -108,6 +110,7 @@ class RepairFlowLocationsCommand {
 			),
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		if ( empty( $rows ) ) {
 			\WP_CLI::log( 'No flows with upsert_event found.' );

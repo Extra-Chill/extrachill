@@ -345,6 +345,7 @@ class CityAbilities {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$flows = $wpdb->get_results(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 				"SELECT flow_config FROM {$flows_table} WHERE pipeline_id = %d",
 				$pipeline_id
 			)
@@ -398,6 +399,7 @@ class CityAbilities {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$pipeline_id = $wpdb->get_var(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 				"SELECT pipeline_id FROM {$table} WHERE pipeline_name = %s LIMIT 1",
 				$pipeline_name
 			)
@@ -442,7 +444,7 @@ class CityAbilities {
 		}
 
 		// Find existing city term under the resolved parent.
-		$parent_id = $state_term_id ?: 0;
+		$parent_id = $state_term_id ? $state_term_id : 0;
 
 		if ( $parent_id ) {
 			$existing = term_exists( $city_label, 'location', $parent_id );
@@ -610,7 +612,7 @@ class CityAbilities {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$pipeline = $wpdb->get_row(
-			$wpdb->prepare( "SELECT pipeline_config FROM {$table} WHERE pipeline_id = %d", $pipeline_id ),
+			$wpdb->prepare( "SELECT pipeline_config FROM {$table} WHERE pipeline_id = %d", $pipeline_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 			ARRAY_A
 		);
 
@@ -811,7 +813,7 @@ class CityAbilities {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$flow = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_config FROM {$table} WHERE flow_id = %d", $flow_id ),
+			$wpdb->prepare( "SELECT flow_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 			ARRAY_A
 		);
 

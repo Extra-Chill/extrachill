@@ -163,12 +163,14 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 	if ( ! empty( $related_posts_array ) ) :
 		?>
 		<div class="related-tax-section">
-			<h3 class="related-tax-header">More <?php echo esc_html( $preposition ); ?> <a href="<?php echo esc_url( $term_link ); ?>"><?php echo $term_name; ?></a></h3>
+			<h3 class="related-tax-header">More <?php echo esc_html( $preposition ); ?> <a href="<?php echo esc_url( $term_link ); ?>"><?php echo esc_html( $term_name ); ?></a></h3>
 			
 			<div class="related-tax-grid">
 				<?php
 				foreach ( $related_posts_array as $related_post ) :
-					setup_postdata( $GLOBALS['post'] = $related_post );
+					// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional related-posts loop: set the global $post so template tags (the_permalink/the_title) resolve, then restored via wp_reset_postdata() after the loop.
+					$GLOBALS['post'] = $related_post;
+					setup_postdata( $GLOBALS['post'] );
 					$post = $related_post;
 
 					$event_data = data_machine_events_parse_event_data( $post ) ?? array();
@@ -194,7 +196,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 							</div>
 						<?php endif; ?>
 						
-						<?php echo data_machine_events_render_taxonomy_badges( $post->ID ); ?>
+						<?php echo data_machine_events_render_taxonomy_badges( $post->ID ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Returns pre-escaped taxonomy-badge HTML from the data-machine-events public API. ?>
 						<h4 class="related-tax-title">
 							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
 						</h4>
@@ -202,14 +204,14 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 						<div class="related-tax-meta">
 							<?php if ( $date_str ) : ?>
 								<div class="ec-related-meta-item">
-									<?php echo ec_icon( 'calendar' ); ?>
+									<?php echo ec_icon( 'calendar' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns a trusted <svg> string with esc_attr()-escaped attributes. ?>
 									<span><?php echo esc_html( $date_str ); ?></span>
 								</div>
 							<?php endif; ?>
 							
 							<?php if ( $time_str ) : ?>
 								<div class="ec-related-meta-item">
-									<?php echo ec_icon( 'clock' ); ?>
+									<?php echo ec_icon( 'clock' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns a trusted <svg> string with esc_attr()-escaped attributes. ?>
 									<span><?php echo esc_html( $time_str ); ?></span>
 								</div>
 							<?php endif; ?>

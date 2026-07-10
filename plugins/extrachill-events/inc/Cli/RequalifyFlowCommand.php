@@ -143,14 +143,13 @@ class RequalifyFlowCommand {
 				// QUALIFIED_FOR_FLYER — still qualified but needs review;
 				// recommend operator inspection rather than auto-pause.
 				$row['action'] = 'review_recommended';
+			} elseif ( $auto ) {
+				// Not qualified anymore and --auto-pause is set — pause the flow.
+				$ok            = $this->pause_flow_by_verdict( $flow['flow_id'], $row['new_verdict'] );
+				$row['action'] = $ok ? 'paused' : 'pause_failed';
 			} else {
-				// Not qualified anymore — recommend pause, and pause if --auto-pause.
-				if ( $auto ) {
-					$ok            = $this->pause_flow_by_verdict( $flow['flow_id'], $row['new_verdict'] );
-					$row['action'] = $ok ? 'paused' : 'pause_failed';
-				} else {
-					$row['action'] = 'recommend_pause';
-				}
+				// Not qualified anymore — recommend pause without acting.
+				$row['action'] = 'recommend_pause';
 			}
 
 			$results[] = $row;

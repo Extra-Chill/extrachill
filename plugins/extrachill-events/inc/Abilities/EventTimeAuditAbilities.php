@@ -355,10 +355,10 @@ class EventTimeAuditAbilities {
 			'title'       => $post->post_title,
 			'venue'       => $venue_name,
 			'start_time'  => $start_time,
-			'venue_tz'    => $venue_tz ?: '(none)',
-			'expected_tz' => $expected_tz ?: '(unknown)',
+			'venue_tz'    => $venue_tz ? $venue_tz : '(none)',
+			'expected_tz' => $expected_tz ? $expected_tz : '(unknown)',
 			'location'    => $location_name,
-			'flow_id'     => $event_flow_id ?: '',
+			'flow_id'     => $event_flow_id ? $event_flow_id : '',
 			'issues'      => implode( ', ', $issues ),
 		);
 	}
@@ -384,6 +384,7 @@ class EventTimeAuditAbilities {
 			$from_tz = new \DateTimeZone( $from );
 			$to_tz   = new \DateTimeZone( $to );
 		} catch ( \Exception $e ) {
+			/* translators: %s: error message describing why the timezone is invalid. */
 			return new \WP_Error( 'invalid_timezone', sprintf( __( 'Invalid timezone: %s', 'extrachill-events' ), $e->getMessage() ) );
 		}
 
@@ -420,6 +421,7 @@ class EventTimeAuditAbilities {
 				'from'          => $from,
 				'to'            => $to,
 				'results'       => array(),
+				/* translators: %s: timezone identifier that was searched for. */
 				'message'       => sprintf( __( 'No venues found with timezone "%s".', 'extrachill-events' ), $from ),
 			);
 		}

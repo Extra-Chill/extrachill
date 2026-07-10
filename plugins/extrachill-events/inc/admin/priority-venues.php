@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param string  $taxonomy Current taxonomy slug.
  */
 function ec_events_priority_venue_field( $term, $taxonomy ) {
+	unset( $taxonomy );
 	$is_priority = get_term_meta( $term->term_id, '_ec_priority_venue', true );
 	?>
 	<tr class="form-field">
@@ -40,11 +41,13 @@ add_action( 'venue_edit_form_fields', 'ec_events_priority_venue_field', 10, 2 );
  * @param int $tt_id   Term taxonomy ID.
  */
 function ec_events_save_priority_venue( $term_id, $tt_id ) {
+	unset( $tt_id );
 	if ( ! current_user_can( 'manage_categories' ) ) {
 		return;
 	}
 
-	$is_priority = isset( $_POST['ec_priority_venue'] ) && '1' === $_POST['ec_priority_venue'];
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Fires on core's edited_venue term hook, which WordPress verifies with its own term-edit nonce before dispatch; capability is re-checked via current_user_can( 'manage_categories' ) above.
+	$is_priority = isset( $_POST['ec_priority_venue'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['ec_priority_venue'] ) );
 
 	if ( $is_priority ) {
 		update_term_meta( $term_id, '_ec_priority_venue', true );

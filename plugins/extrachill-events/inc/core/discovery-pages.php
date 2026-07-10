@@ -428,7 +428,7 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current, st
 	printf(
 		'<nav class="%s" aria-label="Time scope navigation" data-term-id="%d" data-term-name="%s" data-term-link="%s">',
 		esc_attr( $nav_class ),
-		$term->term_id,
+		(int) $term->term_id,
 		esc_attr( $term->name ),
 		esc_url( $term_link )
 	);
@@ -446,7 +446,7 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current, st
 
 		printf(
 			'<li%s><a href="%s" data-scope="%s"%s>%s</a></li>',
-			$class,
+			$class, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Hardcoded literal (' class="active"' or ''), not user-supplied.
 			esc_url( $url ),
 			esc_attr( $scope_slug ),
 			$is_active ? ' aria-current="page"' : '',

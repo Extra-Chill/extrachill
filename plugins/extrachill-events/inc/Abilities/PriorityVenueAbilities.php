@@ -155,6 +155,7 @@ class PriorityVenueAbilities {
 	}
 
 	public function listPriorityVenues( array $input ): array {
+		unset( $input );
 		$ids = ec_get_priority_venue_ids();
 
 		if ( empty( $ids ) ) {

@@ -133,7 +133,8 @@ class NetworkSettings {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'extrachill-events' ) );
 		}
 
-		$saved = isset( $_GET['updated'] ) && '1' === $_GET['updated'];
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag set by our own admin-post redirect; the mutating save is nonce-protected and this branch is behind a current_user_can( 'manage_network_options' ) check above.
+		$saved = isset( $_GET['updated'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['updated'] ) );
 
 		$pause_confirmation = (bool) get_site_option( self::OPTION_PAUSE_CONFIRMATION, true );
 		$recheck_enabled    = (bool) get_site_option( self::OPTION_RECHECK_ENABLED, true );

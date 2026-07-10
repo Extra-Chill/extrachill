@@ -204,6 +204,7 @@ class QualifyDigestAbilities {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = (array) $wpdb->get_results(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 				"SELECT flow_id, flow_name, scheduling_config FROM {$flows_table} WHERE scheduling_config LIKE %s OR scheduling_config LIKE %s",
 				'%paused_reason%',
 				'%resumed_at%'
@@ -242,6 +243,7 @@ class QualifyDigestAbilities {
 		$standing_inventory = array();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$inv_rows = (array) $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix; LIKE pattern is a fixed literal with no user input.
 			"SELECT scheduling_config FROM {$flows_table} WHERE flow_config LIKE '%universal_web_scraper%'",
 			ARRAY_A
 		);
@@ -263,10 +265,12 @@ class QualifyDigestAbilities {
 		// Newly-qualified venues this week — count of QUALIFIED_STRUCTURED
 		// verdict rows in the window.
 		$new_qualified = 0;
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 		if ( $wpdb->get_var( "SHOW TABLES LIKE '" . $verdicts_table . "'" ) === $verdicts_table ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$new_qualified = (int) $wpdb->get_var(
 				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 					"SELECT COUNT(*) FROM {$verdicts_table} WHERE verdict = %s AND qualified_at >= %s AND qualified_at <= %s",
 					QualifyVerdict::QUALIFIED_STRUCTURED,
 					$start,
@@ -279,10 +283,12 @@ class QualifyDigestAbilities {
 		// blob; we group by `improvement_hint` as a coarse proxy for the
 		// platform / shape signature.
 		$top_extraction_gap = array();
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 		if ( $wpdb->get_var( "SHOW TABLES LIKE '" . $verdicts_table . "'" ) === $verdicts_table ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$gap_rows = (array) $wpdb->get_results(
 				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 					"SELECT improvement_hint, COUNT(*) AS c FROM {$verdicts_table}
 					 WHERE verdict = %s AND qualified_at >= %s AND qualified_at <= %s
 					 GROUP BY improvement_hint
