@@ -11,7 +11,7 @@
  * is active there. switch_to_blog() changes the DB context, not the loaded
  * code, so a direct data_machine_events_query_events() call here silently
  * renders nothing. Instead this section consumes the network-registered
- * `data-machine-events/events-by-artist` ability (see data-machine-events#409),
+ * `data-machine-events/events-by-term` ability (see data-machine-events#431),
  * which routes to the events-plugin implementation regardless of which blog the
  * caller is on. The ability returns PLAIN pre-resolved scalars (title,
  * permalink, venue name, formatted date/time) so this surface renders its own
@@ -55,7 +55,7 @@ add_filter( 'ec_artist_profile_sections', 'ec_register_artist_profile_shows_sect
  * Resolve the shared artist slug for a bound artist.
  *
  * The bound $artist_term_id is a MAIN-blog `artist` term. Its slug is the
- * canonical cross-blog join key: the events-by-artist ability looks the same
+ * canonical cross-blog join key: the events-by-term ability looks the same
  * slug up on the events blog. Resolution is done inside a switch_to_blog()/
  * restore_current_blog() pair so blog context can never leak.
  *
@@ -119,13 +119,14 @@ function ec_artist_shows_archive_url( $slug ) {
 }
 
 /**
- * Gather the artist's shows via the cross-site events-by-artist ability.
+ * Gather the artist's shows via the cross-site events-by-term ability.
  *
  * Resolves the artist slug from the bound main-blog term, then calls the
- * network-registered `data-machine-events/events-by-artist` ability. The
- * ability resolves everything (permalinks, venue names, formatted dates) on the
- * events blog and hands back plain scalars this surface can render directly —
- * which is why it works from blog 4 where the events plugin's PHP is not loaded.
+ * network-registered `data-machine-events/events-by-term` ability with
+ * `taxonomy => 'artist'`. The ability resolves everything (permalinks, venue
+ * names, formatted dates) on the events blog and hands back plain scalars this
+ * surface can render directly — which is why it works from blog 4 where the
+ * events plugin's PHP is not loaded.
  *
  * @param int $artist_term_id Bound main-blog `artist` term_id.
  * @return array{upcoming:array[],past:array[]} Event rows grouped by scope.
@@ -147,16 +148,17 @@ function ec_artist_shows_gather( $artist_term_id ) {
 		return $empty;
 	}
 
-	$ability = wp_get_ability( 'data-machine-events/events-by-artist' );
+	$ability = wp_get_ability( 'data-machine-events/events-by-term' );
 	if ( ! $ability ) {
 		return $empty;
 	}
 
 	$result = $ability->execute(
 		array(
-			'artist_slug' => $slug,
-			'scope'       => 'all',
-			'limit'       => 12,
+			'taxonomy'  => 'artist',
+			'term_slug' => $slug,
+			'scope'     => 'all',
+			'limit'     => 12,
 		)
 	);
 
@@ -266,7 +268,7 @@ function ec_render_artist_profile_shows_section( $artist_id, $artist_term_id = 0
  * styles in artist-profile.css — no card grid, no events-plugin CSS.
  *
  * @param string  $heading Group heading (e.g. "Upcoming Shows").
- * @param array[] $shows   Event rows from the events-by-artist ability. Each is
+ * @param array[] $shows   Event rows from the events-by-term ability. Each is
  *                         a plain array: event_id, title, permalink, venue_name,
  *                         date_iso, date_display, time_display, timing.
  * @return void
