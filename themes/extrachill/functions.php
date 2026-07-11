@@ -189,6 +189,13 @@ function extrachill_dequeue_jquery_frontend() {
 		return;
 	}
 
+	// WooCommerce scripts depend on jquery; dequeuing it fires a doing_it_wrong
+	// notice on every shop page load (~365/day network-wide). Bail before the filter
+	// so Woo sites are always safe regardless of the filter default.
+	if ( function_exists( 'WC' ) || class_exists( 'WooCommerce' ) ) {
+		return;
+	}
+
 	$should_dequeue = apply_filters( 'extrachill_dequeue_jquery_frontend', true );
 	if ( ! $should_dequeue ) {
 		return;
