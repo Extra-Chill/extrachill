@@ -89,13 +89,7 @@ class QualifyDigestAbilities {
 			);
 		};
 
-		if ( function_exists( 'doing_action' ) && doing_action( 'wp_abilities_api_init' ) ) {
-			$callback();
-		} elseif ( function_exists( 'did_action' ) && ! did_action( 'wp_abilities_api_init' ) ) {
-			add_action( 'wp_abilities_api_init', $callback );
-		} else {
-			$callback();
-		}
+		add_action( 'wp_abilities_api_init', $callback );
 	}
 
 	/**
