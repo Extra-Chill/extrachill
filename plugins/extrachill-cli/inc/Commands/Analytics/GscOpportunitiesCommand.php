@@ -174,6 +174,14 @@ class GscOpportunitiesCommand {
 		$snippet = array_map( array( $this, 'snippet_row' ), (array) ( $result['snippet_gap'] ?? array() ) );
 		$page2   = array_map( array( $this, 'page2_row' ), (array) ( $result['page2_demand'] ?? array() ) );
 
+		$has_definition_box = false;
+		foreach ( $snippet as $row ) {
+			if ( ! empty( $row['definition_box'] ) ) {
+				$has_definition_box = true;
+				break;
+			}
+		}
+
 		if ( 'table' !== $format ) {
 			Utils\format_items(
 				$format,
@@ -181,7 +189,7 @@ class GscOpportunitiesCommand {
 					'page2' === $class ? array() : $snippet,
 					'snippet' === $class ? array() : $page2
 				),
-				array( 'class', 'type', 'target', 'position', 'impressions', 'current_ctr', 'expected_ctr', 'recoverable_clicks' )
+				array( 'class', 'type', 'target', 'position', 'impressions', 'current_ctr', 'expected_ctr', 'recoverable_clicks', 'definition_box' )
 			);
 			return;
 		}
@@ -196,13 +204,28 @@ class GscOpportunitiesCommand {
 				$window['end_date'] ?? ''
 			)
 		);
-		WP_CLI::log(
-			sprintf(
-				'%d snippet/CTR-gap · %d page-2 demand (ranked by estimated recoverable clicks)',
-				(int) ( $result['snippet_gap_count'] ?? count( $snippet ) ),
-				(int) ( $result['page2_demand_count'] ?? count( $page2 ) )
-			)
-		);
+		$snippet_count        = (int) ( $result['snippet_gap_count'] ?? count( $snippet ) );
+		$definition_box_count = (int) ( $result['definition_box_count'] ?? 0 );
+		$page2_count          = (int) ( $result['page2_demand_count'] ?? count( $page2 ) );
+
+		if ( $definition_box_count > 0 ) {
+			WP_CLI::log(
+				sprintf(
+					'%d snippet/CTR-gap (%d SERP-captured) · %d page-2 demand (ranked by estimated recoverable clicks)',
+					$snippet_count,
+					$definition_box_count,
+					$page2_count
+				)
+			);
+		} else {
+			WP_CLI::log(
+				sprintf(
+					'%d snippet/CTR-gap · %d page-2 demand (ranked by estimated recoverable clicks)',
+					$snippet_count,
+					$page2_count
+				)
+			);
+		}
 		WP_CLI::log( str_repeat( '─', 72 ) );
 
 		if ( 'page2' !== $class ) {
@@ -216,6 +239,10 @@ class GscOpportunitiesCommand {
 					$snippet,
 					array( 'type', 'target', 'position', 'impressions', 'current_ctr', 'expected_ctr', 'recoverable_clicks' )
 				);
+
+				if ( $has_definition_box ) {
+					WP_CLI::log( '  [SERP-captured] rows rank well but Google answers inline (definition box / AI Overview) — not a title/meta fix.' );
+				}
 			}
 		}
 
@@ -257,19 +284,32 @@ class GscOpportunitiesCommand {
 	/**
 	 * Shape one snippet/CTR-gap opportunity row for display.
 	 *
+	 * SERP-captured (definition-box) rows are flagged in the target column so
+	 * they read visibly in the table instead of appearing as a silently-zeroed
+	 * recoverable-clicks count. The raw `definition_box` flag is preserved on
+	 * the shaped row for faithful json/csv output.
+	 *
 	 * @param array $o Opportunity row from the ability.
 	 * @return array<string, mixed>
 	 */
 	private function snippet_row( array $o ) {
+		$definition_box = (bool) ( $o['definition_box'] ?? false );
+		$target         = $o['target'] ?? '';
+
+		if ( $definition_box && '' !== $target ) {
+			$target = '[SERP-captured] ' . $target;
+		}
+
 		return array(
 			'class'              => 'snippet',
 			'type'               => $o['type'] ?? '',
-			'target'             => $o['target'] ?? '',
+			'target'             => $target,
 			'position'           => $this->num( $o['position'] ?? 0 ),
 			'impressions'        => (int) ( $o['impressions'] ?? 0 ),
 			'current_ctr'        => $this->pct( $o['current_ctr'] ?? 0 ),
 			'expected_ctr'       => $this->pct( $o['expected_ctr'] ?? 0 ),
 			'recoverable_clicks' => (int) ( $o['recoverable_clicks'] ?? 0 ),
+			'definition_box'     => $definition_box,
 		);
 	}
 
