@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.11.4] - 2026-07-11
+
+### Fixed
+- scope PHPCS to theme source, excluding vendor/node_modules
+- stop deregistering jQuery on frontend, keep dequeue-only (#67)
+
 ## [2.11.3] - 2026-07-05
 
 ### Fixed
