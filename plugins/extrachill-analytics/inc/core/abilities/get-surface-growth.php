@@ -316,11 +316,13 @@ function extrachill_analytics_surface_supply_growth( $surface, $window_start, $d
  *
  * Calls datamachine/google-analytics action=date_stats twice — current window
  * and the immediately-preceding equal-length window — scoped to the surface's
- * host, then derives the organic share from action=traffic_sources so the
- * reported demand leans on organic sessions rather than the bot-heavy Direct
- * floor. The slope is the percent change in (organic) sessions between the two
- * windows. Any failure (ability absent, unconfigured, no data) returns a
- * not_instrumented marker — never a zero.
+ * host, then sums organic sessions per window from action=traffic_sources so
+ * the reported demand leans on real organic sessions rather than the bot-heavy
+ * Direct floor. The slope is the percent change in organic sessions between the
+ * two windows. If organic sessions cannot be derived for either window, both
+ * windows fall back to total sessions and basis is set to 'all_sessions'. Any
+ * failure (ability absent, unconfigured, no data) returns a not_instrumented
+ * marker — never a zero.
  *
  * @param array           $surface      Surface definition.
  * @param WP_Ability|null $ga_ability   Resolved GA ability (or null).
@@ -356,18 +358,32 @@ function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_
 		return extrachill_analytics_not_instrumented( 'GA date_stats failed for previous window: ' . $prev_total->get_error_message() );
 	}
 
-	// Organic share of the current window, used to demote the bot-heavy Direct
-	// floor. If the share can't be derived, fall back to total sessions and flag
-	// it, rather than failing the whole demand read.
-	$organic_share = extrachill_analytics_ga_organic_share( $ga_ability, $host, $cur_start, $cur_end );
+	// Sum organic sessions per window from traffic_sources so the slope is
+	// computed from true organic demand, not a single-window share applied to
+	// both periods (which algebraically cancels back to the total-sessions slope).
+	$cur_organic  = extrachill_analytics_ga_organic_sessions( $ga_ability, $host, $cur_start, $cur_end );
+	$prev_organic = extrachill_analytics_ga_organic_sessions( $ga_ability, $host, $prev_start, $prev_end );
+
 	$organic_basis = 'organic';
-	if ( is_wp_error( $organic_share ) || null === $organic_share ) {
-		$organic_share = 1.0;
+	// If organic data can't be derived for EITHER window, fall back to total
+	// sessions for BOTH windows. Mixing organic-basis for one window with
+	// total-basis for the other would manufacture a misleading slope.
+	if ( is_wp_error( $cur_organic ) || is_wp_error( $prev_organic ) ) {
+		$cur_organic   = $cur_total;
+		$prev_organic  = $prev_total;
 		$organic_basis = 'all_sessions';
 	}
 
-	$cur_organic  = (int) round( $cur_total * $organic_share );
-	$prev_organic = (int) round( $prev_total * $organic_share );
+	$cur_organic  = (int) $cur_organic;
+	$prev_organic = (int) $prev_organic;
+
+	// Current-window organic share for reference; null when we fell back to totals.
+	$organic_share = ( 'organic' === $organic_basis )
+		? extrachill_analytics_ga_organic_share( $ga_ability, $host, $cur_start, $cur_end )
+		: null;
+	if ( is_wp_error( $organic_share ) ) {
+		$organic_share = null;
+	}
 
 	// Percent slope of (organic) sessions, current vs previous equal window.
 	$slope_pct = null;
@@ -385,7 +401,7 @@ function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_
 	return array(
 		'measured'          => true,
 		'basis'             => $organic_basis,
-		'organic_share'     => round( (float) $organic_share, 4 ),
+		'organic_share'     => null !== $organic_share ? round( (float) $organic_share, 4 ) : null,
 		'current_sessions'  => $cur_total,
 		'previous_sessions' => $prev_total,
 		'current_organic'   => $cur_organic,
@@ -393,7 +409,7 @@ function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_
 		'slope_pct'         => $slope_pct,
 		'pct_per_week'      => $per_week_pct,
 		'is_new_traffic'    => ( null === $slope_pct && $cur_organic > 0 ),
-		'definition'        => 'Percent change in organic sessions (current window vs previous equal-length window) for the host, organic share derived from traffic_sources. basis=all_sessions means organic share was unavailable and totals were used. slope_pct null with is_new_traffic=true means traffic appeared this window with no prior base.',
+		'definition'        => 'Percent change in organic sessions (current window vs previous equal-length window) for the host, computed from true per-window organic-session sums from traffic_sources. basis=all_sessions means organic data was unavailable for at least one window and total sessions were used for both windows. slope_pct is the full-window percent change; pct_per_week divides that by the number of weeks. slope_pct null with is_new_traffic=true means traffic appeared this window with no prior base.',
 	);
 }
 
@@ -527,6 +543,55 @@ function extrachill_analytics_ga_organic_share( $ga_ability, $host, $start, $end
 	}
 
 	return $organic / $total;
+}
+
+/**
+ * Sum organic sessions for a host over a GA date window.
+ *
+ * Uses action=traffic_sources (grouped by sessionSource / sessionMedium) and
+ * sums sessions whose medium contains 'organic'. This is the true per-window
+ * organic-session count; using it for both windows avoids the algebraic
+ * cancellation that happens when one window's organic share is applied to both
+ * windows' totals.
+ *
+ * @param WP_Ability $ga_ability GA ability instance.
+ * @param string     $host       Hostname filter.
+ * @param string     $start      Start date (YYYY-MM-DD).
+ * @param string     $end        End date (YYYY-MM-DD).
+ * @return int|WP_Error Organic sessions count, or error.
+ */
+function extrachill_analytics_ga_organic_sessions( $ga_ability, $host, $start, $end ) {
+	$result = $ga_ability->execute(
+		array(
+			'action'     => 'traffic_sources',
+			'hostname'   => $host,
+			'start_date' => $start,
+			'end_date'   => $end,
+			'limit'      => 1000,
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	if ( ! is_array( $result ) || empty( $result['success'] ) ) {
+		return new WP_Error( 'ga_organic_sessions_failed', is_array( $result ) && ! empty( $result['error'] ) ? $result['error'] : 'GA traffic_sources returned no result.' );
+	}
+
+	$organic = 0;
+	foreach ( (array) ( $result['results'] ?? array() ) as $row ) {
+		$sessions = (int) ( $row['sessions'] ?? 0 );
+		$medium   = strtolower( (string) ( $row['sessionMedium'] ?? '' ) );
+		// GA4 organic mediums: "organic" (search) and "organic_social". We count
+		// search organic as the audience-growth signal; treat anything literally
+		// containing "organic" as organic to stay robust to GA naming.
+		if ( false !== strpos( $medium, 'organic' ) ) {
+			$organic += $sessions;
+		}
+	}
+
+	return $organic;
 }
 
 /**
