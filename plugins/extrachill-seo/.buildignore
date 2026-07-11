@@ -15,3 +15,4 @@ package-lock.json
 .DS_Store
 phpunit.xml
 .phpcs.xml
+phpcs.xml.dist

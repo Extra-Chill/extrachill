@@ -27,24 +27,24 @@ function ec_seo_emit_webpage_schema( $graph ) {
 		$page_url      = $current_url; // Preserve current page URL for breadcrumb reference.
 
 		// Use canonical authority URL for taxonomy archives with cross-site authority.
-		if ( is_tax() && function_exists( 'ec_get_canonical_authority_url' ) ) {
-			$term          = get_queried_object();
-			$authority_url = ec_get_canonical_authority_url( $term, $term->taxonomy );
-			if ( $authority_url ) {
-				$page_url = $authority_url;
-			}
+	if ( is_tax() && function_exists( 'ec_get_canonical_authority_url' ) ) {
+		$term          = get_queried_object();
+		$authority_url = ec_get_canonical_authority_url( $term, $term->taxonomy );
+		if ( $authority_url ) {
+			$page_url = $authority_url;
 		}
+	}
 
 		// Determine page type
 		$page_type = 'WebPage';
 
-		if ( is_home() || is_archive() ) {
-			$page_type = 'CollectionPage';
-		}
+	if ( is_home() || is_archive() ) {
+		$page_type = 'CollectionPage';
+	}
 
-		if ( is_search() ) {
-			$page_type = 'SearchResultsPage';
-		}
+	if ( is_search() ) {
+		$page_type = 'SearchResultsPage';
+	}
 
 		$webpage = array(
 			'@type'      => $page_type,

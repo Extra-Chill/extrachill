@@ -23,28 +23,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 function ec_seo_emit_product_schema( $graph ) {
 		// Only run on shop site.
 		$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : 3;
-		if ( (int) get_current_blog_id() !== (int) $shop_blog_id ) {
-			return $graph;
-		}
+	if ( (int) get_current_blog_id() !== (int) $shop_blog_id ) {
+		return $graph;
+	}
 
 		// Only run on single products.
-		if ( ! is_singular( 'product' ) || ! function_exists( 'wc_get_product' ) ) {
-			return $graph;
-		}
+	if ( ! is_singular( 'product' ) || ! function_exists( 'wc_get_product' ) ) {
+		return $graph;
+	}
 
 		$product = wc_get_product( get_the_ID() );
-		if ( ! $product ) {
-			return $graph;
-		}
+	if ( ! $product ) {
+		return $graph;
+	}
 
 		$permalink = get_permalink();
 
-		$schema = [
+		$schema = array(
 			'@type' => 'Product',
 			'@id'   => $permalink . '#product',
 			'name'  => $product->get_name(),
 			'url'   => $permalink,
-		];
+		);
 
 		// Add description.
 		$description = $product->get_short_description();
@@ -60,12 +60,12 @@ function ec_seo_emit_product_schema( $graph ) {
 		if ( $image_id ) {
 			$image = wp_get_attachment_image_src( $image_id, 'full' );
 			if ( $image ) {
-				$schema['image'] = [
+				$schema['image'] = array(
 					'@type'  => 'ImageObject',
 					'url'    => $image[0],
 					'width'  => $image[1],
 					'height' => $image[2],
-				];
+				);
 			}
 		}
 
@@ -78,12 +78,12 @@ function ec_seo_emit_product_schema( $graph ) {
 		// Add offers.
 		$price = $product->get_price();
 		if ( '' !== $price ) {
-			$offer = [
+			$offer = array(
 				'@type'         => 'Offer',
 				'price'         => $price,
 				'priceCurrency' => get_woocommerce_currency(),
 				'url'           => $permalink,
-			];
+			);
 
 			// Add availability.
 			if ( $product->is_in_stock() ) {
@@ -101,10 +101,10 @@ function ec_seo_emit_product_schema( $graph ) {
 		// Add brand from artist taxonomy if available.
 		$artist_terms = get_the_terms( $product->get_id(), 'artist' );
 		if ( $artist_terms && ! is_wp_error( $artist_terms ) ) {
-			$schema['brand'] = [
+			$schema['brand'] = array(
 				'@type' => 'Brand',
 				'name'  => $artist_terms[0]->name,
-			];
+			);
 		}
 
 		$graph[] = $schema;

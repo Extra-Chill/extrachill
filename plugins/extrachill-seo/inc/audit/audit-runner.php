@@ -147,7 +147,9 @@ function ec_seo_continue_batch_audit() {
 	$checks   = $progress['checks'];
 	$sites    = $progress['sites'];
 
-	while ( $progress['current_check_index'] < count( $checks ) ) {
+	$check_count = count( $checks );
+
+	while ( $progress['current_check_index'] < $check_count ) {
 		$check_key = $checks[ $progress['current_check_index'] ];
 		$is_slow   = ec_seo_is_slow_check( $check_key );
 
@@ -246,7 +248,7 @@ function ec_seo_process_slow_check_batch( &$audit_data, $check_key ) {
 
 				switch ( $check_key ) {
 					case 'broken_images':
-						$broken_featured = ec_seo_count_broken_featured_images();
+						$broken_featured                                       = ec_seo_count_broken_featured_images();
 						$results[ $check_key ]['by_site'][ $blog_id ]['count'] = $broken_featured;
 						$site_urls = ec_seo_get_image_urls_to_check();
 						break;

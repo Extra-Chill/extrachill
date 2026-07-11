@@ -38,7 +38,7 @@ function ec_seo_count_broken_links( $type = 'internal' ) {
 	$args   = $allowed;
 	$args[] = '%<a %';
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$posts = $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT ID, post_content FROM {$wpdb->posts}
@@ -48,6 +48,7 @@ function ec_seo_count_broken_links( $type = 'internal' ) {
 			...$args
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	foreach ( $posts as $post ) {
 		$urls = ec_seo_extract_link_urls( $post->post_content );
@@ -60,7 +61,7 @@ function ec_seo_count_broken_links( $type = 'internal' ) {
 			$is_internal = ec_seo_is_network_url( $url, $network_domains );
 
 			if ( ( 'internal' === $type && $is_internal ) ||
-				 ( 'external' === $type && ! $is_internal ) ) {
+				( 'external' === $type && ! $is_internal ) ) {
 				if ( ec_seo_url_is_broken( $url ) ) {
 					++$broken_count;
 				}
@@ -88,7 +89,7 @@ function ec_seo_get_link_urls_to_check( $type = 'internal' ) {
 	$args   = $allowed;
 	$args[] = '%<a %';
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$posts = $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT ID, post_content FROM {$wpdb->posts}
@@ -98,6 +99,7 @@ function ec_seo_get_link_urls_to_check( $type = 'internal' ) {
 			...$args
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	foreach ( $posts as $post ) {
 		$urls = ec_seo_extract_link_urls( $post->post_content );
@@ -110,7 +112,7 @@ function ec_seo_get_link_urls_to_check( $type = 'internal' ) {
 			$is_internal = ec_seo_is_network_url( $url, $network_domains );
 
 			if ( ( 'internal' === $type && $is_internal ) ||
-				 ( 'external' === $type && ! $is_internal ) ) {
+				( 'external' === $type && ! $is_internal ) ) {
 				$urls_to_check[] = $url;
 			}
 		}
@@ -148,7 +150,7 @@ function ec_seo_get_broken_links( $type = 'internal', $limit = 50, $offset = 0 )
 			$args   = $allowed;
 			$args[] = '%<a %';
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			$posts = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT ID, post_title, post_content FROM {$wpdb->posts}
@@ -159,6 +161,7 @@ function ec_seo_get_broken_links( $type = 'internal', $limit = 50, $offset = 0 )
 					...$args
 				)
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 			foreach ( $posts as $post ) {
 				$urls = ec_seo_extract_link_urls( $post->post_content );
@@ -171,7 +174,7 @@ function ec_seo_get_broken_links( $type = 'internal', $limit = 50, $offset = 0 )
 					$is_internal = ec_seo_is_network_url( $url, $network_domains );
 
 					if ( ( 'internal' === $type && $is_internal ) ||
-						 ( 'external' === $type && ! $is_internal ) ) {
+						( 'external' === $type && ! $is_internal ) ) {
 						$items[] = array(
 							'blog_id'    => $blog_id,
 							'site_label' => $site_label,

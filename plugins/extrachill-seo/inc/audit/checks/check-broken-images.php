@@ -33,7 +33,7 @@ function ec_seo_count_broken_images() {
 	$placeholders = ec_seo_sql_placeholders( $allowed );
 
 	// Check featured images with missing attachments
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$missing_featured = (int) $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT COUNT(*) FROM {$wpdb->posts} p
@@ -45,13 +45,14 @@ function ec_seo_count_broken_images() {
 			...$allowed
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$broken_count += $missing_featured;
 
 	// Check images in post content via HTTP
 	$args   = $allowed;
 	$args[] = '%<img %';
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$posts = $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT ID, post_content FROM {$wpdb->posts}
@@ -61,6 +62,7 @@ function ec_seo_count_broken_images() {
 			...$args
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	foreach ( $posts as $post ) {
 		$urls = ec_seo_extract_image_urls( $post->post_content );
@@ -90,7 +92,7 @@ function ec_seo_get_image_urls_to_check() {
 	$args   = $allowed;
 	$args[] = '%<img %';
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$posts = $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT ID, post_content FROM {$wpdb->posts}
@@ -100,6 +102,7 @@ function ec_seo_get_image_urls_to_check() {
 			...$args
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	foreach ( $posts as $post ) {
 		$post_urls = ec_seo_extract_image_urls( $post->post_content );
@@ -120,7 +123,7 @@ function ec_seo_count_broken_featured_images() {
 	$allowed      = ec_seo_get_allowed_post_types();
 	$placeholders = ec_seo_sql_placeholders( $allowed );
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	return (int) $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT COUNT(*) FROM {$wpdb->posts} p
@@ -132,6 +135,7 @@ function ec_seo_count_broken_featured_images() {
 			...$allowed
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 }
 
 /**
@@ -160,7 +164,7 @@ function ec_seo_get_broken_images( $limit = 50, $offset = 0 ) {
 			$placeholders = ec_seo_sql_placeholders( $allowed );
 
 			// Get broken featured images (missing attachments)
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			$broken_featured = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT p.ID, p.post_title, m.meta_value as thumbnail_id FROM {$wpdb->posts} p
@@ -173,18 +177,19 @@ function ec_seo_get_broken_images( $limit = 50, $offset = 0 ) {
 					...$allowed
 				)
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 			$total += count( $broken_featured );
 
 			foreach ( $broken_featured as $post ) {
 				$items[] = array(
-					'blog_id'      => $blog_id,
-					'site_label'   => $site_label,
-					'post_id'      => $post->ID,
-					'post_title'   => $post->post_title,
-					'image_url'    => '(Missing featured image - ID: ' . $post->thumbnail_id . ')',
-					'issue_type'   => 'missing_featured',
-					'edit_url'     => get_edit_post_link( $post->ID, 'raw' ),
+					'blog_id'    => $blog_id,
+					'site_label' => $site_label,
+					'post_id'    => $post->ID,
+					'post_title' => $post->post_title,
+					'image_url'  => '(Missing featured image - ID: ' . $post->thumbnail_id . ')',
+					'issue_type' => 'missing_featured',
+					'edit_url'   => get_edit_post_link( $post->ID, 'raw' ),
 				);
 			}
 
@@ -192,7 +197,7 @@ function ec_seo_get_broken_images( $limit = 50, $offset = 0 ) {
 			$args   = $allowed;
 			$args[] = '%<img %';
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			$posts = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT ID, post_title, post_content FROM {$wpdb->posts}
@@ -203,19 +208,20 @@ function ec_seo_get_broken_images( $limit = 50, $offset = 0 ) {
 					...$args
 				)
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 			foreach ( $posts as $post ) {
 				$urls = ec_seo_extract_image_urls( $post->post_content );
 
 				foreach ( $urls as $url ) {
 					$items[] = array(
-						'blog_id'      => $blog_id,
-						'site_label'   => $site_label,
-						'post_id'      => $post->ID,
-						'post_title'   => $post->post_title,
-						'image_url'    => $url,
-						'issue_type'   => 'content_image',
-						'edit_url'     => get_edit_post_link( $post->ID, 'raw' ),
+						'blog_id'    => $blog_id,
+						'site_label' => $site_label,
+						'post_id'    => $post->ID,
+						'post_title' => $post->post_title,
+						'image_url'  => $url,
+						'issue_type' => 'content_image',
+						'edit_url'   => get_edit_post_link( $post->ID, 'raw' ),
 					);
 					++$total;
 				}

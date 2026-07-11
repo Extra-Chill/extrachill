@@ -27,10 +27,10 @@ function register_redirect_abilities() {
 	wp_register_ability(
 		'extrachill-seo/add-redirect',
 		array(
-			'label'       => __( 'Add Redirect', 'extrachill-seo' ),
-			'description' => __( 'Create a 301/302 redirect rule from one URL to another.', 'extrachill-seo' ),
-			'category'    => 'extrachill-seo',
-			'input_schema' => array(
+			'label'               => __( 'Add Redirect', 'extrachill-seo' ),
+			'description'         => __( 'Create a 301/302 redirect rule from one URL to another.', 'extrachill-seo' ),
+			'category'            => 'extrachill-seo',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'from_url'    => array(
@@ -52,9 +52,9 @@ function register_redirect_abilities() {
 						'default'     => '',
 					),
 				),
-				'required' => array( 'from_url', 'to_url' ),
+				'required'   => array( 'from_url', 'to_url' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'success' => array( 'type' => 'boolean' ),
@@ -66,7 +66,7 @@ function register_redirect_abilities() {
 			'permission_callback' => function () {
 				return current_user_can( 'manage_options' );
 			},
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
 					'readonly'    => false,
@@ -81,10 +81,10 @@ function register_redirect_abilities() {
 	wp_register_ability(
 		'extrachill-seo/delete-redirect',
 		array(
-			'label'       => __( 'Delete Redirect', 'extrachill-seo' ),
-			'description' => __( 'Remove a redirect rule by ID.', 'extrachill-seo' ),
-			'category'    => 'extrachill-seo',
-			'input_schema' => array(
+			'label'               => __( 'Delete Redirect', 'extrachill-seo' ),
+			'description'         => __( 'Remove a redirect rule by ID.', 'extrachill-seo' ),
+			'category'            => 'extrachill-seo',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'id' => array(
@@ -92,9 +92,9 @@ function register_redirect_abilities() {
 						'description' => __( 'Redirect rule ID to delete.', 'extrachill-seo' ),
 					),
 				),
-				'required' => array( 'id' ),
+				'required'   => array( 'id' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'success' => array( 'type' => 'boolean' ),
@@ -105,7 +105,7 @@ function register_redirect_abilities() {
 			'permission_callback' => function () {
 				return current_user_can( 'manage_options' );
 			},
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
 					'readonly'    => false,
@@ -120,10 +120,10 @@ function register_redirect_abilities() {
 	wp_register_ability(
 		'extrachill-seo/list-redirects',
 		array(
-			'label'       => __( 'List Redirects', 'extrachill-seo' ),
-			'description' => __( 'Query redirect rules with optional filtering.', 'extrachill-seo' ),
-			'category'    => 'extrachill-seo',
-			'input_schema' => array(
+			'label'               => __( 'List Redirects', 'extrachill-seo' ),
+			'description'         => __( 'Query redirect rules with optional filtering.', 'extrachill-seo' ),
+			'category'            => 'extrachill-seo',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'search'      => array(
@@ -156,7 +156,7 @@ function register_redirect_abilities() {
 					),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'  => 'array',
 				'items' => array( 'type' => 'object' ),
 			),
@@ -164,7 +164,7 @@ function register_redirect_abilities() {
 			'permission_callback' => function () {
 				return current_user_can( 'manage_options' );
 			},
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
 					'readonly'    => true,

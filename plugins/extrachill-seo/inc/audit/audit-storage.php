@@ -47,31 +47,31 @@ function ec_seo_save_audit_results( $results ) {
  */
 function ec_seo_get_empty_results() {
 	return array(
-		'missing_excerpts'       => array(
+		'missing_excerpts'      => array(
 			'total'   => 0,
 			'by_site' => array(),
 		),
-		'missing_alt_text'       => array(
+		'missing_alt_text'      => array(
 			'total'   => 0,
 			'by_site' => array(),
 		),
-		'missing_featured'       => array(
+		'missing_featured'      => array(
 			'total'   => 0,
 			'by_site' => array(),
 		),
-		'broken_images'          => array(
+		'broken_images'         => array(
 			'total'   => 0,
 			'by_site' => array(),
 		),
-		'broken_internal_links'  => array(
+		'broken_internal_links' => array(
 			'total'   => 0,
 			'by_site' => array(),
 		),
-		'broken_external_links'  => array(
+		'broken_external_links' => array(
 			'total'   => 0,
 			'by_site' => array(),
 		),
-		'redirect_links'         => array(
+		'redirect_links'        => array(
 			'total'   => 0,
 			'by_site' => array(),
 		),

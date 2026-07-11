@@ -52,7 +52,7 @@ function extrachill_seo_ability_analyze_url( $input = array() ) {
 		$final_url = $redirect_info['final_url'];
 
 		if ( $redirect_info['redirects'] ) {
-			$score -= 10;
+			$score            -= 10;
 			$recommendations[] = sprintf(
 				/* translators: 1: Original URL, 2: Final URL */
 				__( 'Update link from %1$s to %2$s to avoid redirect.', 'extrachill-seo' ),
@@ -62,7 +62,7 @@ function extrachill_seo_ability_analyze_url( $input = array() ) {
 		}
 
 		if ( $redirect_info['hops'] > 1 ) {
-			$score -= 5 * ( $redirect_info['hops'] - 1 );
+			$score            -= 5 * ( $redirect_info['hops'] - 1 );
 			$recommendations[] = sprintf(
 				/* translators: %d: Number of redirect hops */
 				__( 'Redirect chain has %d hops. Reduce to a single redirect.', 'extrachill-seo' ),
@@ -72,41 +72,41 @@ function extrachill_seo_ability_analyze_url( $input = array() ) {
 	}
 
 	if ( in_array( 'meta', $checks, true ) ) {
-		$meta_analysis = extrachill_seo_analyze_meta( $final_url );
+		$meta_analysis    = extrachill_seo_analyze_meta( $final_url );
 		$analysis['meta'] = $meta_analysis['data'];
 
 		if ( ! empty( $meta_analysis['issues'] ) ) {
-			$score -= count( $meta_analysis['issues'] ) * 5;
+			$score          -= count( $meta_analysis['issues'] ) * 5;
 			$recommendations = array_merge( $recommendations, $meta_analysis['issues'] );
 		}
 	}
 
 	if ( in_array( 'schema', $checks, true ) ) {
-		$schema_analysis = extrachill_seo_analyze_schema( $final_url );
+		$schema_analysis    = extrachill_seo_analyze_schema( $final_url );
 		$analysis['schema'] = $schema_analysis['data'];
 
 		if ( ! empty( $schema_analysis['issues'] ) ) {
-			$score -= count( $schema_analysis['issues'] ) * 5;
+			$score          -= count( $schema_analysis['issues'] ) * 5;
 			$recommendations = array_merge( $recommendations, $schema_analysis['issues'] );
 		}
 	}
 
 	if ( in_array( 'robots', $checks, true ) ) {
-		$robots_analysis = extrachill_seo_analyze_robots( $final_url );
+		$robots_analysis    = extrachill_seo_analyze_robots( $final_url );
 		$analysis['robots'] = $robots_analysis['data'];
 
 		if ( ! empty( $robots_analysis['issues'] ) ) {
-			$score -= count( $robots_analysis['issues'] ) * 10;
+			$score          -= count( $robots_analysis['issues'] ) * 10;
 			$recommendations = array_merge( $recommendations, $robots_analysis['issues'] );
 		}
 	}
 
 	if ( in_array( 'social', $checks, true ) ) {
-		$social_analysis = extrachill_seo_analyze_social( $final_url );
+		$social_analysis    = extrachill_seo_analyze_social( $final_url );
 		$analysis['social'] = $social_analysis['data'];
 
 		if ( ! empty( $social_analysis['issues'] ) ) {
-			$score -= count( $social_analysis['issues'] ) * 3;
+			$score          -= count( $social_analysis['issues'] ) * 3;
 			$recommendations = array_merge( $recommendations, $social_analysis['issues'] );
 		}
 	}
@@ -147,7 +147,10 @@ function extrachill_seo_analyze_meta( $url ) {
 
 	if ( is_wp_error( $response ) ) {
 		$issues[] = __( 'Could not fetch URL to analyze meta tags.', 'extrachill-seo' );
-		return array( 'data' => $data, 'issues' => $issues );
+		return array(
+			'data'   => $data,
+			'issues' => $issues,
+		);
 	}
 
 	$body = wp_remote_retrieve_body( $response );
@@ -180,7 +183,10 @@ function extrachill_seo_analyze_meta( $url ) {
 
 	$data['issues'] = $issues;
 
-	return array( 'data' => $data, 'issues' => $issues );
+	return array(
+		'data'   => $data,
+		'issues' => $issues,
+	);
 }
 
 /**
@@ -208,7 +214,10 @@ function extrachill_seo_analyze_schema( $url ) {
 
 	if ( is_wp_error( $response ) ) {
 		$issues[] = __( 'Could not fetch URL to analyze schema.', 'extrachill-seo' );
-		return array( 'data' => $data, 'issues' => $issues );
+		return array(
+			'data'   => $data,
+			'issues' => $issues,
+		);
 	}
 
 	$body = wp_remote_retrieve_body( $response );
@@ -240,7 +249,10 @@ function extrachill_seo_analyze_schema( $url ) {
 
 	$data['issues'] = $issues;
 
-	return array( 'data' => $data, 'issues' => $issues );
+	return array(
+		'data'   => $data,
+		'issues' => $issues,
+	);
 }
 
 /**
@@ -267,42 +279,48 @@ function extrachill_seo_analyze_robots( $url ) {
 
 	if ( is_wp_error( $response ) ) {
 		$issues[] = __( 'Could not fetch URL to analyze robots.', 'extrachill-seo' );
-		return array( 'data' => $data, 'issues' => $issues );
+		return array(
+			'data'   => $data,
+			'issues' => $issues,
+		);
 	}
 
 	$body = wp_remote_retrieve_body( $response );
 
 	if ( preg_match( '/<meta[^>]+name=["\']robots["\'][^>]+content=["\']([^"\']+)["\'][^>]*>/i', $body, $matches ) ) {
-		$directives = array_map( 'trim', explode( ',', strtolower( $matches[1] ) ) );
+		$directives         = array_map( 'trim', explode( ',', strtolower( $matches[1] ) ) );
 		$data['directives'] = $directives;
 
 		if ( in_array( 'noindex', $directives, true ) ) {
 			$data['indexable'] = false;
-			$issues[] = __( 'Page has noindex directive - it will not appear in search results.', 'extrachill-seo' );
+			$issues[]          = __( 'Page has noindex directive - it will not appear in search results.', 'extrachill-seo' );
 		}
 	} elseif ( preg_match( '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']robots["\'][^>]*>/i', $body, $matches ) ) {
-		$directives = array_map( 'trim', explode( ',', strtolower( $matches[1] ) ) );
+		$directives         = array_map( 'trim', explode( ',', strtolower( $matches[1] ) ) );
 		$data['directives'] = $directives;
 
 		if ( in_array( 'noindex', $directives, true ) ) {
 			$data['indexable'] = false;
-			$issues[] = __( 'Page has noindex directive - it will not appear in search results.', 'extrachill-seo' );
+			$issues[]          = __( 'Page has noindex directive - it will not appear in search results.', 'extrachill-seo' );
 		}
 	}
 
-	$headers        = wp_remote_retrieve_headers( $response );
-	$x_robots_tag   = isset( $headers['x-robots-tag'] ) ? $headers['x-robots-tag'] : '';
+	$headers      = wp_remote_retrieve_headers( $response );
+	$x_robots_tag = isset( $headers['x-robots-tag'] ) ? $headers['x-robots-tag'] : '';
 	if ( ! empty( $x_robots_tag ) ) {
-		$header_directives = array_map( 'trim', explode( ',', strtolower( $x_robots_tag ) ) );
+		$header_directives  = array_map( 'trim', explode( ',', strtolower( $x_robots_tag ) ) );
 		$data['directives'] = array_merge( $data['directives'], $header_directives );
 
 		if ( in_array( 'noindex', $header_directives, true ) ) {
 			$data['indexable'] = false;
-			$issues[] = __( 'X-Robots-Tag header contains noindex.', 'extrachill-seo' );
+			$issues[]          = __( 'X-Robots-Tag header contains noindex.', 'extrachill-seo' );
 		}
 	}
 
-	return array( 'data' => $data, 'issues' => $issues );
+	return array(
+		'data'   => $data,
+		'issues' => $issues,
+	);
 }
 
 /**
@@ -330,7 +348,10 @@ function extrachill_seo_analyze_social( $url ) {
 
 	if ( is_wp_error( $response ) ) {
 		$issues[] = __( 'Could not fetch URL to analyze social tags.', 'extrachill-seo' );
-		return array( 'data' => $data, 'issues' => $issues );
+		return array(
+			'data'   => $data,
+			'issues' => $issues,
+		);
 	}
 
 	$body = wp_remote_retrieve_body( $response );
@@ -375,7 +396,10 @@ function extrachill_seo_analyze_social( $url ) {
 
 	$data['issues'] = $issues;
 
-	return array( 'data' => $data, 'issues' => $issues );
+	return array(
+		'data'   => $data,
+		'issues' => $issues,
+	);
 }
 
 /**

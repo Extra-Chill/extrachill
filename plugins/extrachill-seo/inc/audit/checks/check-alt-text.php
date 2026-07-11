@@ -29,7 +29,11 @@ function ec_seo_count_missing_alt_text() {
 	$allowed      = ec_seo_get_allowed_post_types();
 	$placeholders = ec_seo_sql_placeholders( $allowed );
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// The `image/%` LIKE pattern is a hard-coded literal (no user input), and
+	// $placeholders is a controlled `%s,%s,...` string from
+	// ec_seo_sql_placeholders() with the values bound via ...$allowed — so this
+	// query is fully prepared despite the sniff being unable to prove it.
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$count = $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT COUNT(DISTINCT a.ID) 
@@ -44,6 +48,7 @@ function ec_seo_count_missing_alt_text() {
 			...$allowed
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	return (int) $count;
 }
@@ -70,7 +75,11 @@ function ec_seo_get_missing_alt_text( $limit = 50, $offset = 0 ) {
 			$allowed      = ec_seo_get_allowed_post_types();
 			$placeholders = ec_seo_sql_placeholders( $allowed );
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			// The `image/%` LIKE pattern is a hard-coded literal (no user input),
+			// and $placeholders is a controlled `%s,%s,...` string from
+			// ec_seo_sql_placeholders() with values bound via ...$allowed — both
+			// queries are fully prepared despite the sniff being unable to prove it.
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			$site_total = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					"SELECT COUNT(DISTINCT a.ID) 
@@ -88,7 +97,6 @@ function ec_seo_get_missing_alt_text( $limit = 50, $offset = 0 ) {
 
 			$total += $site_total;
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$images = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT DISTINCT a.ID, a.post_title as filename, a.guid, p.ID as parent_id, p.post_title as parent_title
@@ -104,13 +112,14 @@ function ec_seo_get_missing_alt_text( $limit = 50, $offset = 0 ) {
 					...$allowed
 				)
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 			foreach ( $images as $image ) {
 				$items[] = array(
 					'blog_id'      => $blog_id,
 					'site_label'   => $site_label,
 					'image_id'     => $image->ID,
-					'filename'     => $image->filename ?: basename( $image->guid ),
+					'filename'     => $image->filename ? $image->filename : basename( $image->guid ),
 					'parent_id'    => $image->parent_id,
 					'parent_title' => $image->parent_title,
 					'edit_url'     => get_edit_post_link( $image->ID, 'raw' ),

@@ -25,9 +25,9 @@ function ec_seo_emit_article_schema( $graph ) {
 		$post_types = array( 'post', 'festival_wire', 'ec_doc' );
 		$post_types = apply_filters( 'extrachill_seo_article_post_types', $post_types );
 
-		if ( ! is_singular( $post_types ) ) {
-			return $graph;
-		}
+	if ( ! is_singular( $post_types ) ) {
+		return $graph;
+	}
 
 		$post          = get_queried_object();
 		$site_base_url = ec_seo_get_schema_site_base_url();

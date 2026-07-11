@@ -21,24 +21,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Graph with the ProfilePage entity appended when applicable.
  */
 function ec_seo_emit_link_page_schema( $graph ) {
-		if ( ! is_singular( 'artist_link_page' ) ) {
-			return $graph;
-		}
+	if ( ! is_singular( 'artist_link_page' ) ) {
+		return $graph;
+	}
 
 		$post = get_queried_object();
 
 		// Get associated artist profile ID
 		$artist_id = get_post_meta( $post->ID, '_associated_artist_profile_id', true );
 
-		if ( empty( $artist_id ) ) {
-			return $graph;
-		}
+	if ( empty( $artist_id ) ) {
+		return $graph;
+	}
 
 		// Verify artist profile exists
 		$artist_post = get_post( $artist_id );
-		if ( ! $artist_post || $artist_post->post_type !== 'artist_profile' ) {
-			return $graph;
-		}
+	if ( ! $artist_post || 'artist_profile' !== $artist_post->post_type ) {
+		return $graph;
+	}
 
 		// Build canonical extrachill.link URL from post slug
 		$link_page_url = 'https://extrachill.link/' . $post->post_name . '/';

@@ -36,7 +36,7 @@ function ec_seo_count_redirect_links() {
 	$args   = $allowed;
 	$args[] = '%<a %';
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$posts = $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT ID, post_content FROM {$wpdb->posts}
@@ -46,6 +46,7 @@ function ec_seo_count_redirect_links() {
 			...$args
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	foreach ( $posts as $post ) {
 		$urls = ec_seo_extract_link_urls( $post->post_content );
@@ -85,7 +86,7 @@ function ec_seo_get_redirect_urls_to_check() {
 	$args   = $allowed;
 	$args[] = '%<a %';
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	$posts = $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT ID, post_content FROM {$wpdb->posts}
@@ -95,6 +96,7 @@ function ec_seo_get_redirect_urls_to_check() {
 			...$args
 		)
 	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	foreach ( $posts as $post ) {
 		$urls = ec_seo_extract_link_urls( $post->post_content );
@@ -161,8 +163,8 @@ function ec_seo_check_url_redirect( $url ) {
 			}
 
 			if ( 0 === strpos( $location, '/' ) ) {
-				$parsed      = wp_parse_url( $current_url );
-				$location    = $parsed['scheme'] . '://' . $parsed['host'] . $location;
+				$parsed   = wp_parse_url( $current_url );
+				$location = $parsed['scheme'] . '://' . $parsed['host'] . $location;
 			}
 
 			$result['redirects']   = true;
@@ -218,7 +220,7 @@ function ec_seo_get_redirect_links( $limit = 50, $offset = 0 ) {
 			$args   = $allowed;
 			$args[] = '%<a %';
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			$posts = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT ID, post_title, post_content FROM {$wpdb->posts}
@@ -229,6 +231,7 @@ function ec_seo_get_redirect_links( $limit = 50, $offset = 0 ) {
 					...$args
 				)
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 			foreach ( $posts as $post ) {
 				$urls = ec_seo_extract_link_urls( $post->post_content );

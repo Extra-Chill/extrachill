@@ -23,34 +23,34 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function ec_seo_emit_breadcrumb_schema( $graph ) {
 		// No breadcrumbs on homepage
-		if ( is_front_page() ) {
-			return $graph;
-		}
+	if ( is_front_page() ) {
+		return $graph;
+	}
 
 		$items = ec_seo_get_breadcrumb_items();
 
-		if ( empty( $items ) ) {
-			return $graph;
-		}
+	if ( empty( $items ) ) {
+		return $graph;
+	}
 
 		$item_list = array();
 		$position  = 1;
 
-		foreach ( $items as $item ) {
-			$list_item = array(
-				'@type'    => 'ListItem',
-				'position' => $position,
-				'name'     => $item['name'],
-			);
+	foreach ( $items as $item ) {
+		$list_item = array(
+			'@type'    => 'ListItem',
+			'position' => $position,
+			'name'     => $item['name'],
+		);
 
-			// Add URL for all except last item
-			if ( ! empty( $item['url'] ) ) {
-				$list_item['item'] = $item['url'];
-			}
-
-			$item_list[] = $list_item;
-			$position++;
+		// Add URL for all except last item
+		if ( ! empty( $item['url'] ) ) {
+			$list_item['item'] = $item['url'];
 		}
+
+		$item_list[] = $list_item;
+		++$position;
+	}
 
 		// Get current page URL for breadcrumb ID
 		$current_url = ec_seo_get_current_url();

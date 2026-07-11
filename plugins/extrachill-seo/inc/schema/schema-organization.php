@@ -33,7 +33,7 @@ function ec_seo_get_network_sites() {
 
 	foreach ( $blog_ids as $slug => $blog_id ) {
 		// Skip main site (it's the parent Organization, not a subOrganization)
-		if ( $slug === 'main' ) {
+		if ( 'main' === $slug ) {
 			continue;
 		}
 

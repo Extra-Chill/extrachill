@@ -21,21 +21,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Graph with the MusicGroup entity appended when applicable.
  */
 function ec_seo_emit_artist_schema( $graph ) {
-		if ( ! is_singular( 'artist_profile' ) ) {
-			return $graph;
-		}
+	if ( ! is_singular( 'artist_profile' ) ) {
+		return $graph;
+	}
 
 		// Require artist platform data function
-		if ( ! function_exists( 'ec_get_artist_profile_data' ) ) {
-			return $graph;
-		}
+	if ( ! function_exists( 'ec_get_artist_profile_data' ) ) {
+		return $graph;
+	}
 
-		$post         = get_queried_object();
-		$artist_data  = ec_get_artist_profile_data( $post->ID );
+		$post        = get_queried_object();
+		$artist_data = ec_get_artist_profile_data( $post->ID );
 
-		if ( empty( $artist_data ) ) {
-			return $graph;
-		}
+	if ( empty( $artist_data ) ) {
+		return $graph;
+	}
 
 		$permalink = get_permalink( $post->ID );
 

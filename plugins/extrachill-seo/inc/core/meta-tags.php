@@ -384,7 +384,7 @@ function ec_seo_get_manual_post_description( $post ) {
  * @return string Rendered description text, or empty string.
  */
 function ec_seo_get_rendered_description( $post ) {
-	static $cache    = array();
+	static $cache     = array();
 	static $rendering = false;
 
 	if ( isset( $cache[ $post->ID ] ) ) {

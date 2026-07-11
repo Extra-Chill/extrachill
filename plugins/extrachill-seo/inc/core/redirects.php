@@ -90,7 +90,7 @@ add_action(
 				// ec_vid-stitched) for the destination-outcome reader.
 				extrachill_seo_record_redirect_fire( $rule );
 
-				$to_url     = $rule->to_url;
+				$to_url      = $rule->to_url;
 				$status_code = in_array( (int) $rule->status_code, array( 301, 302, 307, 308 ), true )
 					? (int) $rule->status_code
 					: 301;

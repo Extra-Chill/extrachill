@@ -27,7 +27,7 @@ define( 'EXTRACHILL_SEO_REDIRECTS_DB_VERSION_OPTION', 'extrachill_seo_redirects_
 function extrachill_seo_redirects_create_table() {
 	$current = get_site_option( EXTRACHILL_SEO_REDIRECTS_DB_VERSION_OPTION );
 
-	if ( $current === EXTRACHILL_SEO_REDIRECTS_DB_VERSION ) {
+	if ( EXTRACHILL_SEO_REDIRECTS_DB_VERSION === $current ) {
 		return;
 	}
 
@@ -138,12 +138,17 @@ function extrachill_seo_get_redirect_by_url( $from_url ) {
 	$from_url = '/' . ltrim( $from_url, '/' );
 	$from_url = untrailingslashit( $from_url );
 
-	return $wpdb->get_row(
-		$wpdb->prepare(
-			'SELECT * FROM ' . extrachill_seo_redirects_table() . ' WHERE from_url = %s AND active = 1',
-			$from_url
-		)
+	// The table name is an internal, prefix-derived identifier (not user input)
+	// and cannot be bound as a prepare() placeholder; the value is bound via %s.
+	// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+	$sql = $wpdb->prepare(
+		'SELECT * FROM ' . extrachill_seo_redirects_table() . ' WHERE from_url = %s AND active = 1',
+		$from_url
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+	return $wpdb->get_row( $sql );
 }
 
 /**
@@ -203,12 +208,19 @@ function extrachill_seo_get_redirects( $args = array() ) {
 	$vals[] = absint( $args['limit'] );
 	$vals[] = absint( $args['offset'] );
 
-	return $wpdb->get_results(
-		$wpdb->prepare(
-			"SELECT * FROM {$table} WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
-			$vals
-		)
+	// $table is an internal, prefix-derived identifier; $where_clause is built
+	// only from hard-coded `%d`/`%s` fragments (values passed via $vals); and
+	// $orderby/$order are whitelisted above. Table/column identifiers cannot be
+	// bound as prepare() placeholders, so this query is safe by construction.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+	$sql = $wpdb->prepare(
+		"SELECT * FROM {$table} WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
+		...$vals
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+	return $wpdb->get_results( $sql );
 }
 
 /**
@@ -250,11 +262,20 @@ function extrachill_seo_count_redirects( $args = array() ) {
 
 	$where_clause = implode( ' AND ', $where );
 
+	// $table is an internal, prefix-derived identifier and $where_clause is
+	// built only from hard-coded `%d`/`%s` fragments (values passed via $vals).
 	if ( ! empty( $vals ) ) {
-		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}", $vals ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		$sql = $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}", ...$vals );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+		return (int) $wpdb->get_var( $sql );
 	}
 
-	return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}" );
+	// No dynamic values: $where_clause is the literal '1=1' and $table is the
+	// internal prefix-derived identifier, so there is nothing to prepare.
+	$count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
+	return (int) $wpdb->get_var( $count_sql );
 }
 
 /**
@@ -265,13 +286,19 @@ function extrachill_seo_count_redirects( $args = array() ) {
 function extrachill_seo_record_redirect_hit( $id ) {
 	global $wpdb;
 
-	$wpdb->query(
-		$wpdb->prepare(
-			'UPDATE ' . extrachill_seo_redirects_table() . ' SET hit_count = hit_count + 1, last_hit = %s WHERE id = %d',
-			current_time( 'mysql', true ),
-			absint( $id )
-		)
+	// The table name is an internal, prefix-derived identifier (not user input)
+	// and cannot be bound as a prepare() placeholder; the values are bound via
+	// %s/%d.
+	// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+	$sql = $wpdb->prepare(
+		'UPDATE ' . extrachill_seo_redirects_table() . ' SET hit_count = hit_count + 1, last_hit = %s WHERE id = %d',
+		current_time( 'mysql', true ),
+		absint( $id )
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+	$wpdb->query( $sql );
 }
 
 /**

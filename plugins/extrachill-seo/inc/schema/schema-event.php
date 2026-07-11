@@ -156,7 +156,10 @@ function ec_seo_parse_event_price( string $price ): array {
 		$low  = min( $numbers );
 		$high = max( $numbers );
 		if ( $low === $high ) {
-			return array( 'type' => 'single', 'price' => number_format( $low, 2, '.', '' ) );
+			return array(
+				'type'  => 'single',
+				'price' => number_format( $low, 2, '.', '' ),
+			);
 		}
 		return array(
 			'type' => 'range',
