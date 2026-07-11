@@ -191,7 +191,7 @@ export default function Editor() {
 							onChange={ setActiveTab }
 							showDesktopTabs={ true }
 							renderPanel={ () => (
-								<Panel className="ec-editor__tab-content" compact depth={ 2 }>
+								<Panel>
 									{ renderTabContent() }
 								</Panel>
 							) }

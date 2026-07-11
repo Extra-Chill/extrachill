@@ -193,22 +193,13 @@
 	height: 100%;
 }
 
-/* Align the tab-button row's horizontal inset with the content Panel below it
-   (.ec-editor__tab-content uses --spacing-lg). Previously this used --spacing-md
-   (16px) while the content inset --spacing-lg (24px), so the tab buttons sat
-   indented differently from the panel edge — reading as arbitrary indentation. */
-.ec-editor__sidebar-tabs .ec-tabs__tabs {
-	padding: var(--spacing-md) var(--spacing-lg) 0;
-}
-
-/* Tab Content Area.
-   The ResponsiveTabs renderPanel wraps a <Panel compact depth={2}>. The Panel
-   primitive (.ec-panel) already provides border + radius + background + padding,
-   so this only tunes the inner padding for breathing room — it no longer nills
-   the primitive's border (the source of the "missing border" half-edges). */
-.ec-editor__tab-content {
-	padding: var(--spacing-lg);
-}
+/* Tab-to-content spacing is provided entirely by the @extrachill/components
+   primitive: .ec-responsive-tabs sets the gap between the tab strip and the
+   panel, .ec-tabs__tabs provides the tab-row padding-bottom, and .ec-panel
+   provides the content padding — all at the platform-standard --spacing-md.
+   Do not re-add ad-hoc overrides here; this block composes ResponsiveTabs +
+   Panel the same way the other tab-blocks (artist-manager, artist-shop-manager,
+   studio, community user-settings, community edit-profile) do. */
 
 /* Preview Container */
 .ec-editor__preview-region {
@@ -801,14 +792,6 @@
 	}
 
 
-
-	.ec-editor__sidebar-tabs .ec-tabs__tabs {
-		padding: var(--spacing-md) var(--spacing-md) 0;
-	}
-
-	.ec-editor__tab-content {
-		padding: var(--spacing-md);
-	}
 
 	.ec-editor__preview-region {
 		gap: 12px;
