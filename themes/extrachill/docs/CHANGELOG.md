@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.11.6] - 2026-07-11
+
+### Fixed
+- skip jQuery dequeue on WooCommerce sites to stop doing_it_wrong notice flood
+
 ## [2.11.5] - 2026-07-11
 
 ### Fixed
