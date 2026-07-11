@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.11.5] - 2026-07-11
+
+### Fixed
+- align PHPCS ruleset to homeboy release gate
+
 ## [2.11.4] - 2026-07-11
 
 ### Fixed
