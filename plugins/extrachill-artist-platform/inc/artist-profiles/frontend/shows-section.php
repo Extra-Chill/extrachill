@@ -9,13 +9,15 @@
  * Cross-site data source: events live on the events blog, but that plugin's PHP
  * is NOT loaded on the artist blog (blog 4) — only extrachill-artist-platform
  * is active there. switch_to_blog() changes the DB context, not the loaded
- * code, so a direct data_machine_events_query_events() call here silently
- * renders nothing. Instead this section consumes the network-registered
- * `data-machine-events/events-by-term` ability (see data-machine-events#431),
- * which routes to the events-plugin implementation regardless of which blog the
- * caller is on. The ability returns PLAIN pre-resolved scalars (title,
- * permalink, venue name, formatted date/time) so this surface renders its own
- * markup with no cross-blog switching here.
+ * code, so neither a direct data_machine_events_query_events() call NOR a
+ * direct wp_get_ability() lookup resolves here: the `data-machine-events/
+ * events-by-term` ability is registered ONLY on the events blog, where
+ * data-machine-events loads (see data-machine-events#422). Instead this section
+ * reaches that ability through the existing ec_cross_site_rest_request() seam
+ * (extrachill-multisite), forcing its HTTP-loopback strategy so a fresh worker
+ * boots the events site — where the ability IS registered — and returns PLAIN
+ * pre-resolved scalars (title, permalink, venue name, formatted date/time) this
+ * surface renders directly.
  *
  * Presentation: a clean, date-forward LIST view (rows, not cards, not the
  * events calendar block). Two groups — "Upcoming Shows" then "Past Shows".
@@ -122,24 +124,40 @@ function ec_artist_shows_archive_url( $slug ) {
  * Gather the artist's shows via the cross-site events-by-term ability.
  *
  * Resolves the artist slug from the bound main-blog term, then calls the
- * network-registered `data-machine-events/events-by-term` ability with
- * `taxonomy => 'artist'`. The ability resolves everything (permalinks, venue
- * names, formatted dates) on the events blog and hands back plain scalars this
- * surface can render directly — which is why it works from blog 4 where the
- * events plugin's PHP is not loaded.
+ * events-blog-only `data-machine-events/events-by-term` ability through the
+ * existing ec_cross_site_rest_request() seam. The ability is registered ONLY
+ * on the events blog (where data-machine-events loads); switch_to_blog() does
+ * not load that plugin's PHP on the artist blog, so the call uses the seam's
+ * HTTP-loopback strategy to boot a fresh events-site worker where the ability
+ * resolves. Results are memoized per artist term within the request so the
+ * visibility gate and the render do not trigger two loopback calls.
  *
  * @param int $artist_term_id Bound main-blog `artist` term_id.
  * @return array{upcoming:array[],past:array[]} Event rows grouped by scope.
  */
 function ec_artist_shows_gather( $artist_term_id ) {
+	static $memo = array();
+
+	$artist_term_id = (int) $artist_term_id;
+	if ( isset( $memo[ $artist_term_id ] ) ) {
+		return $memo[ $artist_term_id ];
+	}
+
 	$empty = array(
 		'upcoming' => array(),
 		'past'     => array(),
 	);
+	$memo[ $artist_term_id ] = $empty;
 
-	// Abilities API must be present. Guard for graceful degradation on any blog
-	// where it is not loaded.
-	if ( ! function_exists( 'wp_get_ability' ) ) {
+	// The events-by-term ability is registered ONLY on the events blog (where
+	// data-machine-events loads). switch_to_blog() does NOT load that plugin's
+	// PHP on the artist blog, so a direct wp_get_ability() lookup here fails
+	// (see data-machine-events#422) and the in-process cross-site REST path
+	// fails the same way. The ability IS exposed as a read-only REST route on
+	// the events blog, so reach it through the existing ec_cross_site_rest_request()
+	// seam — forcing its HTTP-loopback strategy, which boots a fresh worker on
+	// the events site where the ability resolves. Invent nothing: reuse the seam.
+	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
 		return $empty;
 	}
 
@@ -148,19 +166,25 @@ function ec_artist_shows_gather( $artist_term_id ) {
 		return $empty;
 	}
 
-	$ability = wp_get_ability( 'data-machine-events/events-by-term' );
-	if ( ! $ability ) {
-		return $empty;
-	}
-
-	$result = $ability->execute(
-		array(
+	$route = '/wp-abilities/v1/abilities/data-machine-events/events-by-term/run';
+	$query = array(
+		'input' => array(
 			'taxonomy'  => 'artist',
 			'term_slug' => $slug,
 			'scope'     => 'all',
 			'limit'     => 12,
-		)
+		),
 	);
+
+	// Scope the loopback opt-in to this one call so the seam's global default
+	// (in-process) is unchanged for every other cross-site caller. Add/remove
+	// around the single dispatch.
+	$force_loopback = static function ( $enabled ) {
+		return true;
+	};
+	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	$result = ec_cross_site_rest_request( 'events', 'GET', $route, array( 'query' => $query ) );
+	remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
 
 	if ( is_wp_error( $result ) || ! is_array( $result ) ) {
 		return $empty;
@@ -170,10 +194,12 @@ function ec_artist_shows_gather( $artist_term_id ) {
 		return $empty;
 	}
 
-	return array(
+	$found = array(
 		'upcoming' => isset( $result['upcoming'] ) && is_array( $result['upcoming'] ) ? $result['upcoming'] : array(),
 		'past'     => isset( $result['past'] ) && is_array( $result['past'] ) ? $result['past'] : array(),
 	);
+	$memo[ $artist_term_id ] = $found;
+	return $found;
 }
 
 /**
