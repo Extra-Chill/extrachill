@@ -19,6 +19,110 @@ if ( ! defined( 'ABSPATH' ) ) {
 class LocationCommand {
 
 	/**
+	 * Switch into the events site and ensure its abilities are loaded.
+	 *
+	 * The events-domain abilities (extrachill/market-report,
+	 * extrachill/audit-event-times, extrachill/fix-event-times,
+	 * extrachill/reconcile-event-locations, extrachill/event-roundup-build)
+	 * are registered by the extrachill-events plugin, which is only active
+	 * on the events subsite. `wp extrachill events ...` defaults to the
+	 * network main site where that plugin's code never loads, so the
+	 * abilities are absent from the registry and every report/ops subcommand
+	 * fails with "ability not available".
+	 *
+	 * switch_to_blog() alone does NOT fix this: it changes the active blog
+	 * but does not load an inactive plugin's PHP. This helper therefore
+	 * switches to the events blog AND requires the plugin's abilities
+	 * bootstrap so the abilities resolve in this process.
+	 *
+	 * The abilities API only accepts registrations while the lazy one-shot
+	 * `wp_abilities_api_init` action is firing (enforced via
+	 * `doing_action()`), and that action fires the first time the registry
+	 * is touched. The events classes register on that action, so the
+	 * bootstrap MUST be loaded before any registry read — otherwise the
+	 * first read fires the action with the events callbacks absent and the
+	 * one-shot is spent. This helper therefore loads + instantiates the
+	 * events ability classes first (queuing their callbacks) and only then
+	 * touches the registry via `wp_has_ability()`, which triggers the action
+	 * during which the events callbacks register. This mirrors
+	 * ArtistCommand::ensure_artist_site_context().
+	 *
+	 * Each subcommand is a short-lived WP-CLI process, so the switch is left
+	 * in place for the remainder of the command (every subsequent ability
+	 * execute() must also run in the events site context to read/write its
+	 * data).
+	 *
+	 * @return void
+	 */
+	private function ensure_events_site_context() {
+		if ( ! function_exists( 'ec_get_blog_id' ) ) {
+			WP_CLI::error( 'ec_get_blog_id() unavailable — extrachill-multisite must be active to resolve the events site.' );
+		}
+
+		$blog_id = ec_get_blog_id( 'events' );
+		if ( ! $blog_id ) {
+			WP_CLI::error( 'Could not resolve the events site ID.' );
+		}
+
+		if ( get_current_blog_id() !== (int) $blog_id ) {
+			switch_to_blog( $blog_id );
+		}
+
+		// Load the events plugin's abilities bootstrap BEFORE touching the
+		// abilities registry. The bootstrap queues the events category and
+		// ability callbacks on wp_abilities_api_init / its categories
+		// counterpart; the events plugin only loads on its own subsite, so
+		// this code is not defined here yet.
+		if ( ! defined( 'EXTRACHILL_EVENTS_PLUGIN_DIR' ) ) {
+			define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', WP_PLUGIN_DIR . '/extrachill-events/' );
+		}
+
+		$register_bootstrap = EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/abilities/register.php';
+		if ( ! is_readable( $register_bootstrap ) ) {
+			WP_CLI::error( 'Events abilities bootstrap not found — is extrachill-events installed?' );
+		}
+
+		require_once $register_bootstrap;
+
+		// The class-based abilities (location alignment, event times, market
+		// report, roundup) self-register on wp_abilities_api_init from their
+		// constructors. Load and instantiate them so their callbacks are
+		// queued alongside the bootstrap's procedural callbacks.
+		$ability_classes = array(
+			'EventLocationAlignmentAbilities',
+			'EventTimeAuditAbilities',
+			'MarketReportAbilities',
+			'EventRoundupAbilities',
+		);
+
+		foreach ( $ability_classes as $class_base ) {
+			$fqcn = '\ExtraChillEvents\Abilities\\' . $class_base;
+			$file = EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/' . $class_base . '.php';
+
+			if ( ! class_exists( $fqcn ) ) {
+				if ( ! is_readable( $file ) ) {
+					WP_CLI::error( sprintf( 'Events ability class not found: %s', $fqcn ) );
+				}
+				require_once $file;
+			}
+
+			if ( class_exists( $fqcn ) ) {
+				new $fqcn();
+			}
+		}
+
+		// Now that every events callback is queued, touch the registry. This
+		// initializes it (if it hasn't been already) and fires
+		// wp_abilities_api_init, during which the queued events callbacks
+		// register the abilities. On the events site the abilities are
+		// already registered and this is a harmless read. (require_once +
+		// the classes' static $registered guards make repeat calls safe.)
+		if ( function_exists( 'wp_has_ability' ) ) {
+			wp_has_ability( 'extrachill/market-report' );
+		}
+	}
+
+	/**
 	 * Audit event location assignments against venue city.
 	 *
 	 * ## OPTIONS
@@ -61,6 +165,7 @@ class LocationCommand {
 	 * @when after_wp_load
 	 */
 	public function audit_locations( $args, $assoc_args ) {
+		$this->ensure_events_site_context();
 		$result = $this->run_alignment_ability( $assoc_args, false );
 		$this->render_result( $result, $assoc_args['format'] ?? 'table' );
 	}
@@ -110,6 +215,8 @@ class LocationCommand {
 	 * @when after_wp_load
 	 */
 	public function fix_locations( $args, $assoc_args ) {
+		$this->ensure_events_site_context();
+
 		if ( empty( $assoc_args['yes'] ) ) {
 			WP_CLI::confirm( 'This will update event location terms to match venue city. Continue?' );
 		}
@@ -203,16 +310,18 @@ class LocationCommand {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp extrachill events market-report --url=events.extrachill.com
-	 *     wp extrachill events market-report --location=nashville --url=events.extrachill.com
-	 *     wp extrachill events market-report --sort=sessions --days=14 --url=events.extrachill.com
-	 *     wp extrachill events market-report --sort=scrapers --url=events.extrachill.com
-	 *     wp extrachill events market-report --format=json --url=events.extrachill.com
+	 *     wp extrachill events market-report
+	 *     wp extrachill events market-report --location=nashville
+	 *     wp extrachill events market-report --sort=sessions --days=14
+	 *     wp extrachill events market-report --sort=scrapers
+	 *     wp extrachill events market-report --format=json
 	 *
 	 * @subcommand market-report
 	 * @when after_wp_load
 	 */
 	public function market_report( $args, $assoc_args ) {
+		$this->ensure_events_site_context();
+
 		$ability = wp_get_ability( 'extrachill/market-report' );
 
 		if ( ! $ability ) {
@@ -330,15 +439,16 @@ class LocationCommand {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp extrachill events audit-times --url=events.extrachill.com
-	 *     wp extrachill events audit-times --flow=704 --url=events.extrachill.com
-	 *     wp extrachill events audit-times --location=salt-lake-city --url=events.extrachill.com
-	 *     wp extrachill events audit-times --limit=0 --format=json --url=events.extrachill.com
+	 *     wp extrachill events audit-times
+	 *     wp extrachill events audit-times --flow=704
+	 *     wp extrachill events audit-times --location=salt-lake-city
+	 *     wp extrachill events audit-times --limit=0 --format=json
 	 *
 	 * @subcommand audit-times
 	 * @when after_wp_load
 	 */
 	public function audit_times( $args, $assoc_args ) {
+		$this->ensure_events_site_context();
 		wp_set_current_user( 1 );
 
 		$ability = wp_get_ability( 'extrachill/audit-event-times' );
@@ -436,14 +546,15 @@ class LocationCommand {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp extrachill events fix-times --from=UTC --to=America/Denver --dry-run --url=events.extrachill.com
-	 *     wp extrachill events fix-times --from=UTC --to=America/Denver --flow=704 --yes --url=events.extrachill.com
-	 *     wp extrachill events fix-times --from=America/Chicago --to=America/New_York --dry-run --url=events.extrachill.com
+	 *     wp extrachill events fix-times --from=UTC --to=America/Denver --dry-run
+	 *     wp extrachill events fix-times --from=UTC --to=America/Denver --flow=704 --yes
+	 *     wp extrachill events fix-times --from=America/Chicago --to=America/New_York --dry-run
 	 *
 	 * @subcommand fix-times
 	 * @when after_wp_load
 	 */
 	public function fix_times( $args, $assoc_args ) {
+		$this->ensure_events_site_context();
 		wp_set_current_user( 1 );
 
 		$ability = wp_get_ability( 'extrachill/fix-event-times' );
@@ -641,25 +752,27 @@ class LocationCommand {
 	 * ## EXAMPLES
 	 *
 	 *     # Tonight in Charleston
-	 *     wp extrachill events roundup --location=charleston --title="Tonight in Charleston" --url=events.extrachill.com
+	 *     wp extrachill events roundup --location=charleston --title="Tonight in Charleston"
 	 *
 	 *     # This weekend (next Fri-Sun) in Charleston, save to a folder
 	 *     wp extrachill events roundup --week-start-day=friday --week-end-day=sunday \
 	 *       --location=charleston --title="This Weekend in Charleston" \
-	 *       --output=/tmp/charleston-weekend --url=events.extrachill.com
+	 *       --output=/tmp/charleston-weekend
 	 *
 	 *     # Custom 5-day stretch, all locations, JSON output for piping
 	 *     wp extrachill events roundup --date-start=2026-04-25 --date-end=2026-04-30 \
-	 *       --title="End of April Lineup" --format=json --url=events.extrachill.com
+	 *       --title="End of April Lineup" --format=json
 	 *
 	 *     # Single day, by date
 	 *     wp extrachill events roundup --date-start=2026-05-15 \
-	 *       --location=austin --title="Friday in Austin" --url=events.extrachill.com
+	 *       --location=austin --title="Friday in Austin"
 	 *
 	 * @subcommand roundup
 	 * @when after_wp_load
 	 */
 	public function roundup( $args, $assoc_args ) {
+		$this->ensure_events_site_context();
+
 		$ability = wp_get_ability( 'extrachill/event-roundup-build' );
 
 		if ( ! $ability ) {
