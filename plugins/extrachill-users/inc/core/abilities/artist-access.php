@@ -366,7 +366,7 @@ function extrachill_users_send_artist_access_request_email( $user_id, $user, $ac
 		);
 	}
 
-	$admin_tools_url = admin_url( 'tools.php?page=extrachill-admin-tools#artist-access-requests' );
+	$admin_tools_url = network_admin_url( 'admin.php?page=extrachill-artist-access' );
 
 	$subject = sprintf(
 		/* translators: %s: user display name */
