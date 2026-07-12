@@ -242,7 +242,7 @@ class RevenueCommand {
 			return new \WP_Error( 'mediavine_tmp_open', 'Could not open the temp CSV for writing.' );
 		}
 
-		fputcsv( $handle, $headers );
+		fputcsv( $handle, $headers, ',', '"', '\\' );
 
 		foreach ( $rows as $row ) {
 			fputcsv(
@@ -256,7 +256,10 @@ class RevenueCommand {
 					$row['viewability'] ?? 0,
 					$row['fillRate'] ?? 0,
 					$row['impressionsPerPageview'] ?? 0,
-				)
+				),
+				',',
+				'"',
+				'\\'
 			);
 		}
 
