@@ -63,6 +63,56 @@
 	margin: var(--spacing-xs) 0 0;
 }
 
+.festival-pillar-subscription {
+	margin: var(--spacing-lg) 0;
+	padding: var(--spacing-lg);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+}
+
+.festival-pillar-subscription h2,
+.festival-pillar-subscription p {
+	margin-top: 0;
+}
+
+.festival-pillar-subscription-button {
+	display: inline-block;
+	padding: 0.7rem 1rem;
+	color: var(--background-color);
+	font: inherit;
+	font-weight: 700;
+	text-decoration: none;
+	cursor: pointer;
+	background: var(--accent);
+	border: 1px solid var(--accent);
+	border-radius: var(--border-radius);
+}
+
+.festival-pillar-subscription-button:hover,
+.festival-pillar-subscription-button:focus-visible {
+	color: var(--background-color);
+	background: var(--accent-hover);
+	border-color: var(--accent-hover);
+}
+
+.festival-pillar-subscription-button[aria-pressed="true"] {
+	color: var(--text-color);
+	background: transparent;
+	border-color: var(--text-color);
+}
+
+.festival-pillar-subscription-button:disabled {
+	cursor: wait;
+	opacity: 0.65;
+}
+
+.festival-pillar-subscription-status {
+	min-height: 1.5em;
+	margin-bottom: 0;
+	color: var(--muted-text);
+}
+
 .festival-pillar-newsletter {
 	max-width: var(--content-width);
 	margin: var(--spacing-xl) auto;
@@ -84,7 +134,8 @@
 	}
 
 	.festival-pillar-route,
-	.festival-pillar-newsletter {
+	.festival-pillar-newsletter,
+	.festival-pillar-subscription {
 		padding: var(--spacing-md);
 	}
 }

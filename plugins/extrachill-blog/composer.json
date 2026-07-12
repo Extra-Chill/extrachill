@@ -14,6 +14,7 @@
         "lint:fix": "vendor/bin/phpcbf --standard=WordPress *.php inc/",
         "test": [
             "php tests/homepage-event-markets.php",
+            "php tests/festival-subscriptions.php",
             "@lint:php"
         ]
     },

@@ -1,0 +1,98 @@
+<?php
+/**
+ * Focused smoke coverage for festival subscription notifications.
+ *
+ * Run with: php tests/festival-subscriptions.php
+ */
+
+define( 'ABSPATH', __DIR__ . '/' );
+
+class WP_Term {
+	public $slug;
+
+	public function __construct( $slug ) {
+		$this->slug = $slug;
+	}
+}
+
+$test_meta          = array();
+$test_notifications = array();
+
+function add_action() {}
+function add_filter() {}
+function is_wp_error() {
+	return false;
+}
+function wp_get_post_terms() {
+	return array( new WP_Term( 'festival-one' ), new WP_Term( 'festival-two' ) );
+}
+function get_post_meta( $post_id, $key ) {
+	global $test_meta;
+	return $test_meta[ $post_id ][ $key ] ?? '';
+}
+function update_post_meta( $post_id, $key, $value ) {
+	global $test_meta;
+	$test_meta[ $post_id ][ $key ] = $value;
+}
+function current_time() {
+	return '2026-07-12 20:00:00';
+}
+function get_current_blog_id() {
+	return 1;
+}
+function get_userdata( $user_id ) {
+	return $user_id > 0 ? (object) array( 'ID' => $user_id ) : false;
+}
+function absint( $value ) {
+	return abs( (int) $value );
+}
+function get_the_title() {
+	return 'Festival coverage';
+}
+function get_permalink() {
+	return 'https://extrachill.com/festival-coverage/';
+}
+function __( $text ) {
+	return $text;
+}
+function extrachill_users_entity_subscription_recipients( $producer, $entity_type, $taxonomy, $slug ) {
+	if ( 'extrachill-blog' !== $producer || 'festival' !== $entity_type || 'festival' !== $taxonomy ) {
+		return array();
+	}
+	return 'festival-one' === $slug ? array( 4, 7 ) : array( 7, 9 );
+}
+function ec_users_notify( $recipient_ids, $data ) {
+	global $test_notifications;
+	$test_notifications[] = array(
+		'recipient_ids' => $recipient_ids,
+		'data'          => $data,
+	);
+}
+
+require_once dirname( __DIR__ ) . '/inc/archive/festival-subscriptions.php';
+
+function assert_same( $expected, $actual, $message ) {
+	if ( $expected !== $actual ) {
+		fwrite( STDERR, $message . "\n" );
+		exit( 1 );
+	}
+}
+
+assert_same( true, extrachill_blog_authorize_festival_subscription_producer( false, 'extrachill-blog' ), 'Blog producer must be authorized.' );
+assert_same( false, extrachill_blog_authorize_festival_subscription_producer( false, 'untrusted-producer' ), 'Untrusted producer must remain unauthorized.' );
+
+$post = (object) array(
+	'ID'          => 46,
+	'post_type'   => 'post',
+	'post_author' => 12,
+);
+
+extrachill_blog_notify_festival_subscribers( 'publish', 'draft', $post );
+assert_same( 1, count( $test_notifications ), 'First publication should notify subscribers once.' );
+assert_same( array( 4, 7, 9 ), $test_notifications[0]['recipient_ids'], 'Recipients from multiple festival terms must be unique.' );
+assert_same( 'festival_update', $test_notifications[0]['data']['type'], 'Festival updates must use their dedicated notification type.' );
+
+extrachill_blog_notify_festival_subscribers( 'publish', 'draft', $post );
+assert_same( 1, count( $test_notifications ), 'Publish guard must prevent duplicate notifications.' );
+
+fwrite( STDOUT, "Festival subscription tests passed.\n" );

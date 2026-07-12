@@ -35,6 +35,7 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/power/power-page.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/blog-archive-routing.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/breadcrumbs.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/festival-pillar.php';
+require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/festival-subscriptions.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/share-card.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/network-bridge.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/login-register-cta.php';
@@ -61,6 +62,17 @@ function extrachill_blog_register_styles() {
 		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/festival-pillar.css',
 		array( 'extrachill-root' ),
 		$festival_version
+	);
+
+	$festival_script_version = filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/js/festival-subscriptions.js' );
+	$festival_script_version = false === $festival_script_version ? null : (string) $festival_script_version;
+
+	wp_register_script(
+		'extrachill-blog-festival-subscriptions',
+		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/js/festival-subscriptions.js',
+		array(),
+		$festival_script_version,
+		true
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_blog_register_styles', 5 );
