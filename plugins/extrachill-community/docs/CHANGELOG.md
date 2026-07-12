@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.16.2] - 2026-07-12
+
+### Changed
+- Use let/const in heatmap tooltip JS
+- Clear remaining phpcs errors blocking release lint gate
+
+### Fixed
+- clear phpcs errors from profile-polish changes
+
 ## [1.16.1] - 2026-07-12
 
 ### Changed
