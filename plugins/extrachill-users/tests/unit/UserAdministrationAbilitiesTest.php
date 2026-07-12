@@ -68,6 +68,19 @@ class Test_User_Administration_Abilities extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Transition registration supplies an ability when no prior owner exists.
+	 */
+	public function test_registration_registers_absent_ability(): void {
+		wp_unregister_ability( 'extrachill/grant-lifetime-membership' );
+
+		$this->assertFalse( wp_has_ability( 'extrachill/grant-lifetime-membership' ) );
+
+		extrachill_users_register_user_administration_abilities();
+
+		$this->assertTrue( wp_has_ability( 'extrachill/grant-lifetime-membership' ) );
+	}
+
+	/**
 	 * Transition registration never replaces an ability owned by Admin Tools.
 	 */
 	public function test_registration_does_not_replace_existing_owner(): void {

@@ -115,7 +115,7 @@ function extrachill_users_register_user_administration_abilities() {
 	);
 
 	foreach ( $abilities as $name => $definition ) {
-		if ( wp_get_ability( $name ) ) {
+		if ( wp_has_ability( $name ) ) {
 			continue;
 		}
 
