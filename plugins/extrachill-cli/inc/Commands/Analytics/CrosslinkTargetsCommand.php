@@ -7,8 +7,8 @@
  * get-conversion-map per-article journey ranking with the Data Machine internal
  * link graph to produce a ranked, dry-run crosslink ops-pass targeting list:
  * blog-1 articles that returning visitors re-enter AND that are orphaned /
- * low-inbound, tagged with category and a suggested forward surface
- * (events/community). This command only shapes that result for the terminal.
+ * low-inbound. Each result is a target page that needs contextual inbound links
+ * TO it. This command only shapes that result for the terminal.
  *
  * @package ExtraChill\CLI\Commands\Analytics
  */
@@ -31,12 +31,11 @@ class CrosslinkTargetsCommand {
 	 * graph: blog-1 editorial articles that returning visitors re-enter AND that
 	 * are orphaned / low-inbound (orphan = zero INBOUND links, i.e. nothing links
 	 * TO the post — NOT the zero-OUTBOUND "posts_without_links" count from
-	 * `wp datamachine links diagnose`), each tagged with category, inbound count,
-	 * and a suggested forward surface (events/community) to route a new internal
-	 * link toward. This is a DRY-RUN list — it inserts no links; it is the
-	 * targeting pass the crosslink hook consumes. An empty or short list IS the
-	 * finding (no returning article journeys in window, or the catalog is already
-	 * well-linked), not a bug.
+	 * `wp datamachine links diagnose`). Each result is a target page that needs
+	 * contextual inbound links TO it. This is a DRY-RUN list — it inserts no
+	 * links; it is the targeting pass the crosslink hook consumes. An empty or
+	 * short list IS the finding (no returning article journeys in window, or the
+	 * catalog is already well-linked), not a bug.
 	 *
 	 * ## OPTIONS
 	 *
@@ -142,7 +141,7 @@ class CrosslinkTargetsCommand {
 
 		if ( 'table' !== $format ) {
 			$rows    = array_map( array( $this, 'target_row' ), $targets );
-			$columns = array( 'post_id', 'title', 'category', 'returned', 'inbound_links', 'orphan', 'suggested_surface', 'score' );
+			$columns = array( 'post_id', 'title', 'category', 'returned', 'inbound_links', 'orphan', 'score' );
 			Utils\format_items( $format, $rows, $columns );
 			return;
 		}
@@ -189,7 +188,7 @@ class CrosslinkTargetsCommand {
 		Utils\format_items(
 			'table',
 			$rows,
-			array( 'post_id', 'title', 'category', 'returned', 'inbound_links', 'orphan', 'suggested_surface', 'score' )
+			array( 'post_id', 'title', 'category', 'returned', 'inbound_links', 'orphan', 'score' )
 		);
 
 		if ( ! empty( $result['note'] ) ) {
@@ -206,14 +205,13 @@ class CrosslinkTargetsCommand {
 	 */
 	private function target_row( $t ) {
 		return array(
-			'post_id'           => (int) ( $t['post_id'] ?? 0 ),
-			'title'             => $this->truncate( (string) ( $t['title'] ?? '(unknown)' ), 50 ),
-			'category'          => $this->truncate( (string) ( $t['category'] ?? '' ), 22 ),
-			'returned'          => number_format( (int) ( $t['returned'] ?? 0 ) ),
-			'inbound_links'     => (int) ( $t['inbound_links'] ?? 0 ),
-			'orphan'            => ! empty( $t['orphan'] ) ? 'yes' : 'no',
-			'suggested_surface' => (string) ( $t['suggested_surface'] ?? '' ),
-			'score'             => $t['score'] ?? 0,
+			'post_id'       => (int) ( $t['post_id'] ?? 0 ),
+			'title'         => $this->truncate( (string) ( $t['title'] ?? '(unknown)' ), 50 ),
+			'category'      => $this->truncate( (string) ( $t['category'] ?? '' ), 22 ),
+			'returned'      => number_format( (int) ( $t['returned'] ?? 0 ) ),
+			'inbound_links' => (int) ( $t['inbound_links'] ?? 0 ),
+			'orphan'        => ! empty( $t['orphan'] ) ? 'yes' : 'no',
+			'score'         => $t['score'] ?? 0,
 		);
 	}
 

@@ -8,7 +8,8 @@
   "remote_path": "wp-content/plugins/extrachill-cli",
   "self_checks": {
     "test": [
-      "php tests/QRCodeCommandTest.php"
+      "php tests/QRCodeCommandTest.php",
+      "php tests/CrosslinkTargetsCommandTest.php"
     ]
   },
   "version_targets": [
