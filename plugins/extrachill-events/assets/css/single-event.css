@@ -17,22 +17,79 @@
     padding: var(--spacing-lg);
 }
 
-/* Event Action Buttons Container (Ticket + Share) */
+/*
+ * Event Action Buttons Row
+ *
+ * This row is a COMPOSED surface: its children come from four different
+ * plugins, each rendering its own markup —
+ *   1. Ticket / Event Link      <a.ticket-button>            (data-machine-events)
+ *   2. Attendance toggle        <div.ec-attendance> > button (extrachill-users)
+ *   3. Add to Calendar          <div.dm-events-add-to-calendar> > button (data-machine-events)
+ *   4. Share                    <div.share-dropdown> > button (theme)
+ *
+ * Some are bare buttons, some are wrapper <div>s that also anchor a dropdown.
+ * Left to the theme's default button sizing they stack at different widths
+ * with inconsistent alignment. This block is the composition layer: it
+ * normalizes every direct child into ONE uniform action item so the row reads
+ * as a single coherent button system.
+ *
+ * Desktop: centered row, buttons at natural width, equal height, wraps.
+ * Mobile:  every CTA goes full-width and stacks (theme .button-block behavior,
+ *          applied here via CSS so we don't have to touch four plugins' markup).
+ */
 .data-machine-event-details .event-action-buttons {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    align-items: center;
-    gap: 1rem;
+    align-items: stretch;
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
 }
 
-/* Ensure share button container fits in flexbox */
-.data-machine-event-details .event-action-buttons .share-button-container {
+/*
+ * Normalize every direct child into a uniform flex item. The wrapper <div>s
+ * (attendance / add-to-calendar / share) must not collapse to content width,
+ * and must keep a positioning context for their dropdowns.
+ */
+.data-machine-event-details .event-action-buttons > a,
+.data-machine-event-details .event-action-buttons > .ec-attendance,
+.data-machine-event-details .event-action-buttons > .dm-events-add-to-calendar,
+.data-machine-event-details .event-action-buttons > .share-dropdown {
+    flex: 0 1 auto;
     margin: 0;
+    position: relative;
 }
 
-.data-machine-event-details .event-action-buttons .share-button {
-    margin: 0;
+/*
+ * Force the actual button/anchor inside each wrapper to fill its wrapper, so
+ * the wrapper's width is driven by the button (not the reverse). Every button
+ * already carries .button-medium, so once widths agree the heights agree too.
+ */
+.data-machine-event-details .event-action-buttons > .ec-attendance .ec-attendance__button,
+.data-machine-event-details .event-action-buttons > .dm-events-add-to-calendar .dm-events-add-to-calendar-toggle,
+.data-machine-event-details .event-action-buttons > .share-dropdown .ec-mini-dropdown-toggle {
+    width: 100%;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+/*
+ * Attendance is an inline-flex wrapper holding the button PLUS a count label.
+ * Keep button + count side-by-side on desktop; the button still fills the
+ * remaining width so it lines up with its neighbors.
+ */
+.data-machine-event-details .event-action-buttons > .ec-attendance {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm, 0.5rem);
+}
+
+.data-machine-event-details .event-action-buttons > .ec-attendance .ec-attendance__button {
+    flex: 1 1 auto;
+    width: auto;
 }
 
 /* Farm Friends Promo Badge */
@@ -53,8 +110,42 @@
 }
 
 @media (max-width: 768px) {
+    /*
+     * Mobile: one full-width CTA per row. Every direct child stretches edge to
+     * edge and stacks — the theme ships a .button-block modifier for exactly
+     * this, but the buttons come from four plugins we don't want to touch, so
+     * we apply the same width:100% behavior here at the composition layer.
+     */
     .data-machine-event-details .event-action-buttons {
         flex-direction: column;
+        flex-wrap: nowrap;
         gap: 0.75rem;
+    }
+
+    .data-machine-event-details .event-action-buttons > a,
+    .data-machine-event-details .event-action-buttons > .ec-attendance,
+    .data-machine-event-details .event-action-buttons > .dm-events-add-to-calendar,
+    .data-machine-event-details .event-action-buttons > .share-dropdown {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+
+    /*
+     * Attendance goes full-width too, with the count label dropping BELOW the
+     * button (centered) instead of sitting beside it — so the button matches
+     * the width of every other stacked CTA.
+     */
+    .data-machine-event-details .event-action-buttons > .ec-attendance {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.25rem;
+    }
+
+    .data-machine-event-details .event-action-buttons > .ec-attendance .ec-attendance__button {
+        width: 100%;
+    }
+
+    .data-machine-event-details .event-action-buttons > .ec-attendance .ec-attendance__count {
+        text-align: center;
     }
 }
