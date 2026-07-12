@@ -39,3 +39,33 @@ function extrachill_community_get_public_local_scene( $user_id ) {
 	$scenes[ $user_id ] = $scene;
 	return $scene;
 }
+
+/**
+ * Render a canonical Local Scene as a linked platform location badge.
+ *
+ * @param array $scene   Visibility-filtered Local Scene data.
+ * @param bool  $compact Whether to use only the city name.
+ */
+function extrachill_community_render_local_scene_badge( array $scene, bool $compact = false ): void {
+	$name      = sanitize_text_field( $scene['name'] ?? '' );
+	$hierarchy = is_array( $scene['hierarchy'] ?? null ) ? $scene['hierarchy'] : array();
+	$label     = $compact ? $name : sanitize_text_field( $hierarchy['label'] ?? $name );
+	$url       = esc_url( $scene['url'] ?? '' );
+	$slug      = sanitize_title( $scene['slug'] ?? '' );
+
+	if ( '' === $label ) {
+		return;
+	}
+
+	$classes = 'taxonomy-badge location-badge';
+	if ( '' !== $slug ) {
+		$classes .= ' location-' . sanitize_html_class( $slug );
+	}
+
+	if ( '' !== $url ) {
+		printf( '<a class="%1$s" href="%2$s">%3$s</a>', esc_attr( $classes ), $url, esc_html( $label ) );
+		return;
+	}
+
+	printf( '<span class="%1$s">%2$s</span>', esc_attr( $classes ), esc_html( $label ) );
+}
