@@ -25,7 +25,7 @@ interface EventLocation {
 	term_id: number;
 	name: string;
 	slug: string;
-	archive_url: string;
+	url: string;
 	coordinates: { lat: number; lon: number } | null;
 	hierarchy: {
 		region: string;
@@ -68,6 +68,7 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 	const [ displayName, setDisplayName ] = useState( settings.display_name );
 	const [ defaultEventLocationSlug, setDefaultEventLocationSlug ] = useState< string | null >( settings.default_event_location?.slug ?? null );
 	const [ locationOptions, setLocationOptions ] = useState< Array<{ label: string; value: string }> >( settings.default_event_location ? [ { label: settings.default_event_location.name, value: settings.default_event_location.slug } ] : [] );
+	const [ locationSearchError, setLocationSearchError ] = useState( false );
 	const [ saving, setSaving ] = useState( false );
 	const [ notice, setNotice ] = useState< { type: 'success' | 'error'; message: string } | null >( null );
 	const locationSearchTimeout = useRef< number | null >( null );
@@ -80,19 +81,24 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 		}
 		const trimmed = search.trim();
 		if ( ! trimmed ) {
+			setLocationSearchError( false );
 			setLocationOptions( settings.default_event_location ? [ { label: settings.default_event_location.name, value: settings.default_event_location.slug } ] : [] );
 			return;
 		}
 
 		locationSearchTimeout.current = window.setTimeout( () => {
-			client.execute< EventLocationsResponse >( 'extrachill/events-locations', { mode: 'search', search: trimmed, limit: 10 } )
+			client.execute< EventLocationsResponse >( 'extrachill/user-event-locations', { mode: 'search', search: trimmed, limit: 10 } )
 				.then( ( result ) => {
 					if ( request === locationSearchRequest.current ) {
+						setLocationSearchError( false );
 						setLocationOptions( result.locations.map( ( location ) => ( { label: location.hierarchy.label, value: location.slug } ) ) );
 					}
 				} )
 				.catch( () => {
-					if ( request === locationSearchRequest.current ) setLocationOptions( [] );
+					if ( request === locationSearchRequest.current ) {
+						setLocationSearchError( true );
+						setLocationOptions( [] );
+					}
 				} );
 		}, LOCATION_SEARCH_DEBOUNCE_MS );
 
@@ -133,6 +139,7 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 				</select>
 			</FieldGroup>
 			<FieldGroup help="Used when you have not chosen an event location or shared your browser location. This does not change your public Local Scene.">
+				{ locationSearchError && <Notice type="error" message="Event market search is temporarily unavailable." /> }
 				<ComboboxControl
 					label="Default Event Market"
 					value={ defaultEventLocationSlug }
