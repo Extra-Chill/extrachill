@@ -42,19 +42,15 @@ extrachill_breadcrumbs();
 				if ( '' === $member_title ) {
 					$member_title = sanitize_text_field( $member['rank'] ?? '' );
 				}
-				$bio = sanitize_textarea_field( $member['bio'] ?? '' );
 				?>
-				<article class="bbp-user-profile-card local-scene-member-card">
+				<article class="local-scene-member-card">
 					<a class="local-scene-member-avatar" href="<?php echo esc_url( $profile_url ); ?>">
 						<img src="<?php echo esc_url( $member['avatar_url'] ?? '' ); ?>" alt="" width="96" height="96" loading="lazy">
 					</a>
 					<div class="local-scene-member-details">
-						<h2><a href="<?php echo esc_url( $profile_url ); ?>"><?php echo esc_html( $name ); ?></a></h2>
+						<h2 class="local-scene-member-name"><a href="<?php echo esc_url( $profile_url ); ?>"><?php echo esc_html( $name ); ?></a></h2>
 						<?php if ( $member_title ) : ?>
-							<p class="user-custom-title"><?php echo esc_html( $member_title ); ?></p>
-						<?php endif; ?>
-						<?php if ( $bio ) : ?>
-							<p><?php echo esc_html( wp_trim_words( $bio, 28 ) ); ?></p>
+							<p class="local-scene-member-title"><?php echo esc_html( $member_title ); ?></p>
 						<?php endif; ?>
 					</div>
 				</article>

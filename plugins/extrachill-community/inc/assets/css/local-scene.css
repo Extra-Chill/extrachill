@@ -15,20 +15,52 @@
 
 .local-scene-member-card {
     display: flex;
+    align-items: center;
     gap: var(--spacing-md);
     width: 100%;
-    margin: 0;
+    min-width: 0;
+    padding: var(--spacing-md);
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--card-shadow);
+    box-sizing: border-box;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.local-scene-member-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-hover-shadow);
 }
 
 .local-scene-member-avatar img {
-    border-radius: var(--border-radius-circle);
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
     display: block;
     object-fit: cover;
 }
 
-.local-scene-member-details h2,
-.local-scene-member-details p {
-    margin-top: 0;
+.local-scene-member-details {
+    min-width: 0;
+}
+
+.local-scene-member-name {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    line-height: 1.25;
+}
+
+.local-scene-member-name a {
+    color: var(--accent-2);
+    text-decoration: none;
+}
+
+.local-scene-member-title {
+    margin: var(--spacing-xs) 0 0;
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+    line-height: 1.3;
 }
 
 .local-scene-empty {
