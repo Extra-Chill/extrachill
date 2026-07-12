@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.13.2] - 2026-07-12
+
+### Fixed
+- consume corrected ability client
+
 ## [1.13.1] - 2026-07-12
 
 ### Fixed
