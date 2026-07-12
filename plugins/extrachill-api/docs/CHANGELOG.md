@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.23.2] - 2026-07-12
+
+### Fixed
+- remove admin tools route inversions
+
 ## [0.23.1] - 2026-07-12
 
 ### Fixed
