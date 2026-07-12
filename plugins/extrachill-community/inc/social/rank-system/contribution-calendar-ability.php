@@ -54,23 +54,57 @@ const EC_CONTRIB_CALENDAR_CACHE_TTL = HOUR_IN_SECONDS;
  *                     bypass the cache (the card always uses the default).
  * @return array Calendar payload.
  */
-function extrachill_community_get_contribution_calendar( $user_id, $days = 365 ) {
+function extrachill_community_get_contribution_calendar( $user_id, $days = 365, $year = 0 ) {
 	$user_id = (int) $user_id;
 	$days    = max( 1, (int) $days );
+	$year    = (int) $year;
 
-	// Grid columns: full weeks needed to cover the window, capped at one year.
-	$weeks = (int) ceil( $days / 7 );
-	if ( $weeks > 53 ) {
-		$weeks = 53;
-	}
-	if ( $weeks < 1 ) {
-		$weeks = 1;
+	try {
+		$today = current_datetime(); // DateTimeImmutable in site timezone.
+	} catch ( Exception $e ) {
+		$today = new DateTimeImmutable( 'now', wp_timezone() );
 	}
 
-	// Only the canonical one-year window is cached; custom windows compute live
-	// so a transient keyed by user_id can never serve a stale window size.
-	$use_cache = ( 365 === $days );
-	$cache_key = 'ec_contrib_calendar_' . $user_id;
+	$current_year = (int) $today->format( 'Y' );
+
+	// A $year at or beyond the current year is the trailing-window view.
+	if ( $year >= $current_year ) {
+		$year = 0;
+	}
+
+	if ( $year > 0 ) {
+		// Calendar-year mode (Jan 1 – Dec 31 of a past year, GitHub's year
+		// tabs). Grid runs from the Sunday on/before Jan 1 through Dec 31.
+		$tz         = wp_timezone();
+		$jan_first  = new DateTimeImmutable( sprintf( '%d-01-01', $year ), $tz );
+		$dec_last   = new DateTimeImmutable( sprintf( '%d-12-31', $year ), $tz );
+		$start_dow  = (int) $jan_first->format( 'w' );
+		$first_sunday = $jan_first->modify( '-' . $start_dow . ' days' );
+		$grid_end     = $dec_last;
+
+		$weeks = (int) ceil( ( $first_sunday->diff( $dec_last )->days + 1 ) / 7 );
+	} else {
+		// Trailing-window mode (default): last $days ending today.
+		$weeks = (int) ceil( $days / 7 );
+		if ( $weeks > 53 ) {
+			$weeks = 53;
+		}
+		if ( $weeks < 1 ) {
+			$weeks = 1;
+		}
+
+		$dow          = (int) $today->format( 'w' ); // 0 = Sunday … 6 = Saturday.
+		$last_sunday  = $today->modify( '-' . $dow . ' days' );
+		$first_sunday = $last_sunday->modify( '-' . ( ( $weeks - 1 ) * 7 ) . ' days' );
+		$grid_end     = $today;
+	}
+
+	// Cache the canonical trailing-year view and past calendar years (which
+	// are immutable outside backfills). Custom day windows compute live.
+	$use_cache = ( $year > 0 ) || ( 365 === $days );
+	$cache_key = $year > 0
+		? 'ec_contrib_calendar_' . $user_id . '_y' . $year
+		: 'ec_contrib_calendar_' . $user_id;
 
 	if ( $use_cache ) {
 		$cached = get_transient( $cache_key );
@@ -79,18 +113,8 @@ function extrachill_community_get_contribution_calendar( $user_id, $days = 365 )
 		}
 	}
 
-	try {
-		$today = current_datetime(); // DateTimeImmutable in site timezone.
-	} catch ( Exception $e ) {
-		$today = new DateTimeImmutable( 'now', wp_timezone() );
-	}
-
-	$dow          = (int) $today->format( 'w' ); // 0 = Sunday … 6 = Saturday.
-	$last_sunday  = $today->modify( '-' . $dow . ' days' );
-	$first_sunday = $last_sunday->modify( '-' . ( ( $weeks - 1 ) * 7 ) . ' days' );
-
 	$window_start = $first_sunday->format( 'Y-m-d' );
-	$window_end   = $today->format( 'Y-m-d' );
+	$window_end   = $grid_end->format( 'Y-m-d' );
 
 	// Consume the dated-contributions seam. The seam merges every registered
 	// source (forum, main posts, concerts) and converts UTC → site-local day.
@@ -117,18 +141,33 @@ function extrachill_community_get_contribution_calendar( $user_id, $days = 365 )
 		}
 	}
 
+	// Calendar-year mode: trim events that belong to the year window's leading
+	// pre-January Sunday padding or trail past Dec 31 (the seam only filters
+	// by the lower bound).
+	if ( $year > 0 ) {
+		$year_start = sprintf( '%d-01-01', $year );
+		foreach ( array_keys( $counts ) as $day ) {
+			if ( $day < $year_start ) {
+				unset( $counts[ $day ] );
+			}
+		}
+	}
+
 	ksort( $counts );
 
 	$total        = array_sum( $counts );
 	$max_day_count = $counts ? (int) max( $counts ) : 0;
 
-	$current_streak = extrachill_community_count_current_streak( $counts, $today );
-	$longest_streak = extrachill_community_count_longest_streak( $counts, $first_sunday, $today );
+	// Streaks are relative to the displayed window. The "current" streak only
+	// makes sense in the trailing view; a past year shows longest only.
+	$current_streak = ( $year > 0 ) ? 0 : extrachill_community_count_current_streak( $counts, $today );
+	$longest_streak = extrachill_community_count_longest_streak( $counts, $first_sunday, $grid_end );
 
 	$payload = array(
 		'user_id'             => $user_id,
 		'days'                => $days,
 		'weeks'               => $weeks,
+		'year'                => $year,
 		'first_sunday'        => $window_start,
 		'window_start'        => $window_start,
 		'window_end'          => $window_end,
@@ -220,7 +259,11 @@ function extrachill_community_register_contribution_calendar_ability() {
 					),
 					'days'    => array(
 						'type'        => 'integer',
-						'description' => __( 'Window length in days (default 365).', 'extra-chill-community' ),
+						'description' => __( 'Window length in days (default 365). Ignored when year is set.', 'extra-chill-community' ),
+					),
+					'year'    => array(
+						'type'        => 'integer',
+						'description' => __( 'Past calendar year (Jan 1 – Dec 31). Omit or 0 for the trailing window.', 'extra-chill-community' ),
 					),
 				),
 				'required'   => array( 'user_id' ),
@@ -231,6 +274,7 @@ function extrachill_community_register_contribution_calendar_ability() {
 					'user_id'             => array( 'type' => 'integer' ),
 					'days'                => array( 'type' => 'integer' ),
 					'weeks'               => array( 'type' => 'integer' ),
+					'year'                => array( 'type' => 'integer' ),
 					'first_sunday'        => array( 'type' => 'string' ),
 					'window_start'        => array( 'type' => 'string' ),
 					'window_end'          => array( 'type' => 'string' ),
@@ -280,6 +324,7 @@ function extrachill_community_ability_get_contribution_calendar( $input ) {
 	}
 
 	$days = isset( $input['days'] ) ? (int) $input['days'] : 365;
+	$year = isset( $input['year'] ) ? (int) $input['year'] : 0;
 
-	return extrachill_community_get_contribution_calendar( $user_id, $days );
+	return extrachill_community_get_contribution_calendar( $user_id, $days, $year );
 }

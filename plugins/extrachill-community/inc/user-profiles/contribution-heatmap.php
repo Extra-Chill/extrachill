@@ -90,7 +90,26 @@ function ec_community_display_contribution_heatmap() {
 		return;
 	}
 
-	$calendar = extrachill_community_get_contribution_calendar( (int) $user_id );
+	try {
+		$now = current_datetime();
+	} catch ( Exception $e ) {
+		$now = new DateTimeImmutable( 'now', wp_timezone() );
+	}
+	$current_year = (int) $now->format( 'Y' );
+
+	// Year navigation: ?contrib_year=YYYY selects a past calendar year.
+	// Valid years span the user's registration year through last year; the
+	// default (no param / invalid) is the trailing 12-month view.
+	$join_year = 0;
+	$user_data = get_userdata( (int) $user_id );
+	if ( $user_data && ! empty( $user_data->user_registered ) ) {
+		$join_year = (int) get_date_from_gmt( $user_data->user_registered, 'Y' );
+	}
+
+	$requested_year = isset( $_GET['contrib_year'] ) ? (int) $_GET['contrib_year'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view selector on a public profile.
+	$selected_year  = ( $requested_year >= $join_year && $join_year > 0 && $requested_year < $current_year ) ? $requested_year : 0;
+
+	$calendar = extrachill_community_get_contribution_calendar( (int) $user_id, 365, $selected_year );
 	if ( ! is_array( $calendar ) ) {
 		return;
 	}
@@ -109,8 +128,11 @@ function ec_community_display_contribution_heatmap() {
 		return;
 	}
 
+	// Cell emission stops at the window end: today for the trailing view,
+	// Dec 31 for a selected past year.
+	$window_end_ymd = isset( $calendar['window_end'] ) ? (string) $calendar['window_end'] : '';
 	try {
-		$today = current_datetime();
+		$today = '' !== $window_end_ymd ? new DateTimeImmutable( $window_end_ymd, wp_timezone() ) : current_datetime();
 	} catch ( Exception $e ) {
 		$today = new DateTimeImmutable( 'now', wp_timezone() );
 	}
@@ -139,24 +161,37 @@ function ec_community_display_contribution_heatmap() {
 			<span class="ec-heatmap-total">
 				<strong><?php echo esc_html( number_format_i18n( $total ) ); ?></strong>
 				<?php
-				echo esc_html(
-					sprintf(
-						/* translators: %s: localized description of the window. */
-						_n( 'contribution in the last year', 'contributions in the last year', $total, 'extra-chill-community' ),
-						''
-					)
-				);
+				if ( $selected_year > 0 ) {
+					echo esc_html(
+						sprintf(
+							/* translators: 1: contribution count context, 2: year. */
+							_n( 'contribution in %2$d', 'contributions in %2$d', $total, 'extra-chill-community' ),
+							'',
+							$selected_year
+						)
+					);
+				} else {
+					echo esc_html(
+						sprintf(
+							/* translators: %s: localized description of the window. */
+							_n( 'contribution in the last year', 'contributions in the last year', $total, 'extra-chill-community' ),
+							''
+						)
+					);
+				}
 				?>
 			</span>
 			<span class="ec-heatmap-streaks">
-				<?php
-				printf(
-					/* translators: %d: day count. */
-					esc_html__( 'Current streak: %d days', 'extra-chill-community' ),
-					(int) $current
-				);
-				?>
-				<span class="ec-heatmap-streak-sep" aria-hidden="true">·</span>
+				<?php if ( 0 === $selected_year ) : ?>
+					<?php
+					printf(
+						/* translators: %d: day count. */
+						esc_html__( 'Current streak: %d days', 'extra-chill-community' ),
+						(int) $current
+					);
+					?>
+					<span class="ec-heatmap-streak-sep" aria-hidden="true">·</span>
+				<?php endif; ?>
 				<?php
 				printf(
 					/* translators: %d: day count. */
@@ -167,8 +202,27 @@ function ec_community_display_contribution_heatmap() {
 			</span>
 		</div>
 
+		<?php
+		// Year navigation: only when the user has history beyond the trailing
+		// window (joined before the current year).
+		if ( $join_year > 0 && $join_year < $current_year ) :
+			$profile_url = bbp_get_user_profile_url( (int) $user_id );
+			?>
+			<nav class="ec-heatmap-years" aria-label="<?php esc_attr_e( 'Contribution activity by year', 'extra-chill-community' ); ?>">
+				<a href="<?php echo esc_url( $profile_url ); ?>" class="ec-heatmap-year<?php echo 0 === $selected_year ? ' is-active' : ''; ?>"<?php echo 0 === $selected_year ? ' aria-current="true"' : ''; ?>><?php esc_html_e( 'Last year', 'extra-chill-community' ); ?></a>
+				<?php for ( $y = $current_year - 1; $y >= $join_year; $y-- ) : ?>
+					<a href="<?php echo esc_url( add_query_arg( 'contrib_year', $y, $profile_url ) ); ?>" class="ec-heatmap-year<?php echo $y === $selected_year ? ' is-active' : ''; ?>"<?php echo $y === $selected_year ? ' aria-current="true"' : ''; ?>><?php echo esc_html( (string) $y ); ?></a>
+				<?php endfor; ?>
+			</nav>
+		<?php endif; ?>
+
 		<div class="ec-heatmap-scroll">
-			<div class="ec-heatmap" role="img" style="--ec-heat-weeks:<?php echo (int) $weeks; ?>;" aria-label="<?php echo esc_attr( sprintf( /* translators: %d: total contribution count. */ __( '%d contributions in the last year', 'extra-chill-community' ), $total ) ); ?>">
+			<?php
+			$grid_aria_label = $selected_year > 0
+				? sprintf( /* translators: 1: total contribution count, 2: year. */ __( '%1$d contributions in %2$d', 'extra-chill-community' ), $total, $selected_year )
+				: sprintf( /* translators: %d: total contribution count. */ __( '%d contributions in the last year', 'extra-chill-community' ), $total );
+			?>
+			<div class="ec-heatmap" role="img" style="--ec-heat-weeks:<?php echo (int) $weeks; ?>;" aria-label="<?php echo esc_attr( $grid_aria_label ); ?>">
 				<div class="ec-heatmap-corner" aria-hidden="true"></div>
 
 				<div class="ec-heatmap-months" style="grid-template-columns:repeat(<?php echo (int) $weeks; ?>,var(--ec-heat-cell));">
