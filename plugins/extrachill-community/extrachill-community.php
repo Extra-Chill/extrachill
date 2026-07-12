@@ -81,6 +81,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-replies.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-mentions.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-subscriptions.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-festival-topics.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notifications-content.php';
 
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/contribution-heatmap.php';
