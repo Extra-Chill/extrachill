@@ -64,6 +64,50 @@ function extrachill_get_profile_conversations_query( $user_id ) {
 }
 
 /**
+ * Get deep-link URLs to a user's latest reply in each given topic.
+ *
+ * One query across all topics (newest-first, grouped in PHP) instead of one
+ * per card. bbp_get_reply_url() computes the correct pagination page and
+ * #post anchor for each reply. Topics where the user's only contribution is
+ * the opening post get no entry — callers fall back to the topic permalink.
+ *
+ * @param int   $user_id   User ID.
+ * @param int[] $topic_ids Topic IDs shown in the feed.
+ * @return array<int,string> topic_id => reply deep-link URL.
+ */
+function extrachill_get_user_latest_reply_urls( $user_id, array $topic_ids ) {
+	$user_id   = (int) $user_id;
+	$topic_ids = array_filter( array_map( 'intval', $topic_ids ) );
+	if ( $user_id <= 0 || empty( $topic_ids ) ) {
+		return array();
+	}
+
+	$replies = get_posts(
+		array(
+			'post_type'       => bbp_get_reply_post_type(),
+			'author'          => $user_id,
+			'post_parent__in' => $topic_ids,
+			'post_status'     => array( 'publish', 'closed' ),
+			'posts_per_page'  => -1,
+			'orderby'         => 'date',
+			'order'           => 'DESC',
+			'fields'          => 'id=>parent',
+		)
+	);
+
+	$urls = array();
+	foreach ( $replies as $reply_id => $topic_id ) {
+		$topic_id = (int) $topic_id;
+		// Newest-first: the first reply seen per topic is the user's latest.
+		if ( ! isset( $urls[ $topic_id ] ) ) {
+			$urls[ $topic_id ] = bbp_get_reply_url( (int) $reply_id );
+		}
+	}
+
+	return $urls;
+}
+
+/**
  * Render the displayed user's recent conversations below their profile.
  *
  * Hooked to bbp_template_after_user_profile at priority 99 so it renders as
@@ -104,12 +148,24 @@ function extrachill_render_profile_activity_feed() {
 			extrachill_is_activity_feed_card(true);
 		}
 
+		// Deep-link each card title to the displayed user's LATEST REPLY in
+		// that conversation (correct page + #post anchor via
+		// bbp_get_reply_url), not the topic head. Topics where their latest
+		// contribution is the opening post keep the plain topic permalink.
+		// Passed to the card template via query var so only the title link is
+		// overridden — the freshness link keeps pointing at the newest reply
+		// by anyone.
+		$topic_ids  = wp_list_pluck( $query->posts, 'ID' );
+		$deep_links = extrachill_get_user_latest_reply_urls( $user_id, $topic_ids );
+
 		echo '<div class="ec-mobile-full-width-panel"><div class="bbp-body">';
 		while ( $query->have_posts() ) {
 			$query->the_post();
 			$topic_id = get_the_ID();
+			set_query_var( 'ec_topic_card_url', isset( $deep_links[ $topic_id ] ) ? $deep_links[ $topic_id ] : '' );
 			require EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'bbpress/loop-single-topic-card.php';
 		}
+		set_query_var( 'ec_topic_card_url', '' );
 		echo '</div></div>';
 		wp_reset_postdata();
 

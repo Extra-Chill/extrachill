@@ -50,7 +50,14 @@ if ( ! $topic_id ) {
 						</div> 
 					</div> 
 				</div><!-- .bbp-meta-upvote -->
-				<a class="bbp-topic-title" href="<?php echo esc_url( bbp_get_topic_permalink( $topic_id ) ); ?>"><?php echo esc_html( bbp_get_topic_title( $topic_id ) ); ?></a>
+				<?php
+				// Optional per-card URL override (e.g. the profile Recent
+				// Conversations feed deep-links to the displayed user's
+				// latest reply). Falls back to the topic permalink.
+				$ec_topic_card_url = (string) get_query_var( 'ec_topic_card_url' );
+				$ec_topic_link     = '' !== $ec_topic_card_url ? $ec_topic_card_url : bbp_get_topic_permalink( $topic_id );
+				?>
+				<a class="bbp-topic-title" href="<?php echo esc_url( $ec_topic_link ); ?>"><?php echo esc_html( bbp_get_topic_title( $topic_id ) ); ?></a>
 				<?php
 				// Render canonical taxonomy badges (location, etc.) via the
 				// theme's single-source-of-truth engine. Guarded so the card
