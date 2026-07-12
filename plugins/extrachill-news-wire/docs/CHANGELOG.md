@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0] - 2026-07-12
+
+### Added
+- notify festival subscribers of wire updates
+
+### Changed
+- consume shared network bridge primitive from multisite
+
+### Fixed
+- align Festival Wire with theme composition
+- make responsive card grids overflow-safe (min(100%, floor))
+
 ## [0.4.1] - 2026-06-16
 
 ### Changed
