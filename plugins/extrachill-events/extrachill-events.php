@@ -74,6 +74,10 @@ if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCo
 	require_once __DIR__ . '/inc/Cli/PruneOrphanLocationsCommand.php';
 	\WP_CLI::add_command( 'extrachill events locations prune-orphans', \ExtraChillEvents\Cli\PruneOrphanLocationsCommand::class );
 
+	require_once __DIR__ . '/inc/Core/LocationIntegrityAuditor.php';
+	require_once __DIR__ . '/inc/Cli/AuditLocationIntegrityCommand.php';
+	\WP_CLI::add_command( 'extrachill events locations audit-integrity', \ExtraChillEvents\Cli\AuditLocationIntegrityCommand::class );
+
 	require_once __DIR__ . '/inc/Cli/BackfillVenueMetaCommand.php';
 	\WP_CLI::add_command( 'extrachill events venues backfill-meta', \ExtraChillEvents\Cli\BackfillVenueMetaCommand::class );
 
