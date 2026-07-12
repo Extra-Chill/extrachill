@@ -24,10 +24,10 @@ function extrachill_add_rank_and_points_to_reply() {
 
 	echo '<div class="rankpoints">';
 
-	$local_city = get_user_meta( $reply_author_id, 'local_city', true );
-	if ( ! empty( $local_city ) ) {
+	$local_scene = extrachill_community_get_public_local_scene( $reply_author_id );
+	if ( ! empty( $local_scene['name'] ) ) {
 		echo '<div class="reply-author-local-scene">';
-		echo '<span>Local Scene:</span> ' . esc_html( $local_city );
+		echo '<span>Local Scene:</span> ' . esc_html( $local_scene['name'] );
 		echo '</div>';
 	}
 

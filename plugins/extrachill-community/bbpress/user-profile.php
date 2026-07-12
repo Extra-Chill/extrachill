@@ -27,8 +27,8 @@ do_action('bbp_template_before_user_profile');
 // there is actually something to show (avoids an empty bordered box for users
 // with no description and no local scene).
 $about_description = bbp_get_displayed_user_field('description');
-$about_local_city  = get_user_meta( bbp_get_displayed_user_id(), 'local_city', true );
-$has_about_content = ! empty( $about_description ) || ! empty( $about_local_city );
+$about_local_scene = extrachill_community_get_public_local_scene( bbp_get_displayed_user_id() );
+$has_about_content = ! empty( $about_description ) || ! empty( $about_local_scene['name'] );
 ?>
 <div class="bbp-user-profile-cards-container"> <?php // Start Flex Grid Container ?>
 <?php if ( $has_about_content ) : ?>
@@ -38,8 +38,8 @@ $has_about_content = ! empty( $about_description ) || ! empty( $about_local_city
 		<p class="bbp-user-description"><?php echo wp_kses_post( bbp_rel_nofollow( $about_description ) ); ?></p>
 			<?php endif; ?>
 
-			<?php if ( $about_local_city ) : ?>
-		<p class="bbp-user-local-scene-inline"><strong><?php esc_html_e( 'Local Scene:', 'extra-chill-community' ); ?></strong> <?php echo esc_html( $about_local_city ); ?></p>
+			<?php if ( ! empty( $about_local_scene['name'] ) ) : ?>
+		<p class="bbp-user-local-scene-inline"><strong><?php esc_html_e( 'Local Scene:', 'extra-chill-community' ); ?></strong> <?php echo esc_html( $about_local_scene['name'] ); ?></p>
 			<?php endif; ?>
 </div>
 <?php endif; // End has_about_content ?>

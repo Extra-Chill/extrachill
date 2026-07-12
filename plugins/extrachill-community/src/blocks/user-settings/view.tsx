@@ -21,7 +21,7 @@ import type {
 const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), { validateAbilityNames: false } );
 const LOCATION_SEARCH_DEBOUNCE_MS = 250;
 
-interface EventLocation {
+interface LocalScene {
 	term_id: number;
 	name: string;
 	slug: string;
@@ -35,8 +35,8 @@ interface EventLocation {
 }
 
 interface EventLocationsResponse {
-	locations: EventLocation[];
-	location: EventLocation | null;
+	locations: LocalScene[];
+	location: LocalScene | null;
 }
 
 const styles = {
@@ -66,8 +66,10 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 	const [ firstName, setFirstName ] = useState( settings.first_name );
 	const [ lastName, setLastName ] = useState( settings.last_name );
 	const [ displayName, setDisplayName ] = useState( settings.display_name );
-	const [ defaultEventLocationSlug, setDefaultEventLocationSlug ] = useState< string | null >( settings.default_event_location?.slug ?? null );
-	const [ locationOptions, setLocationOptions ] = useState< Array<{ label: string; value: string }> >( settings.default_event_location ? [ { label: settings.default_event_location.name, value: settings.default_event_location.slug } ] : [] );
+	const [ localSceneSlug, setLocalSceneSlug ] = useState< string | null >( settings.local_scene?.slug ?? null );
+	const [ localSceneVisibility, setLocalSceneVisibility ] = useState( settings.local_scene_visibility );
+	const [ localSceneChanged, setLocalSceneChanged ] = useState( false );
+	const [ locationOptions, setLocationOptions ] = useState< Array<{ label: string; value: string }> >( settings.local_scene ? [ { label: settings.local_scene.hierarchy?.label ?? settings.local_scene.name, value: settings.local_scene.slug } ] : [] );
 	const [ locationSearchError, setLocationSearchError ] = useState( false );
 	const [ saving, setSaving ] = useState( false );
 	const [ notice, setNotice ] = useState< { type: 'success' | 'error'; message: string } | null >( null );
@@ -82,7 +84,7 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 		const trimmed = search.trim();
 		if ( ! trimmed ) {
 			setLocationSearchError( false );
-			setLocationOptions( settings.default_event_location ? [ { label: settings.default_event_location.name, value: settings.default_event_location.slug } ] : [] );
+			setLocationOptions( settings.local_scene ? [ { label: settings.local_scene.hierarchy?.label ?? settings.local_scene.name, value: settings.local_scene.slug } ] : [] );
 			return;
 		}
 
@@ -102,7 +104,7 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 				} );
 		}, LOCATION_SEARCH_DEBOUNCE_MS );
 
-	}, [ settings.default_event_location ] );
+	}, [ settings.local_scene ] );
 
 	useEffect( () => () => {
 		if ( locationSearchTimeout.current !== null ) {
@@ -114,15 +116,21 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 		setSaving( true );
 		setNotice( null );
 		try {
-			const result = await client.execute< UserSettings & { message?: string } >( 'extrachill/update-user-settings', { first_name: firstName, last_name: lastName, display_name: displayName, default_event_location: defaultEventLocationSlug ?? '' } );
+			const input: Record<string, string> = { first_name: firstName, last_name: lastName, display_name: displayName, local_scene_visibility: localSceneVisibility };
+			if ( localSceneChanged ) {
+				input.local_scene = localSceneSlug ?? '';
+			}
+			const result = await client.execute< UserSettings & { message?: string } >( 'extrachill/update-user-settings', input );
 			onUpdate( result );
-			setDefaultEventLocationSlug( result.default_event_location?.slug ?? null );
+			setLocalSceneSlug( result.local_scene?.slug ?? null );
+			setLocalSceneVisibility( result.local_scene_visibility );
+			setLocalSceneChanged( false );
 			setNotice( { type: 'success', message: result.message || 'Account details updated.' } );
 		} catch ( err ) {
 			setNotice( { type: 'error', message: err instanceof Error ? err.message : 'Update failed.' } );
 		}
 		setSaving( false );
-	}, [ firstName, lastName, displayName, defaultEventLocationSlug, onUpdate ] );
+	}, [ firstName, lastName, displayName, localSceneSlug, localSceneVisibility, localSceneChanged, onUpdate ] );
 
 	return (
 		<Panel>
@@ -138,17 +146,26 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 					{ settings.display_name_options.map( ( option ) => <option key={ option } value={ option }>{ option }</option> ) }
 				</select>
 			</FieldGroup>
-			<FieldGroup help="Used when you have not chosen an event location or shared your browser location. This does not change your public Local Scene.">
-				{ locationSearchError && <Notice type="error" message="Event market search is temporarily unavailable." /> }
+			<FieldGroup help="Choose the city or region that anchors your local music scene.">
+				{ locationSearchError && <Notice type="error" message="Local Scene search is temporarily unavailable." /> }
 				<ComboboxControl
-					label="Default Event Market"
-					value={ defaultEventLocationSlug }
+					label="Local Scene"
+					value={ localSceneSlug }
 					options={ locationOptions }
 					onFilterValueChange={ searchLocations }
-					onChange={ ( slug ) => setDefaultEventLocationSlug( slug ?? null ) }
+					onChange={ ( slug ) => {
+						setLocalSceneSlug( slug ?? null );
+						setLocalSceneChanged( true );
+					} }
 					allowReset={ true }
-					placeholder="Search event markets"
+					placeholder="Search cities and regions"
 				/>
+			</FieldGroup>
+			<FieldGroup help="Private scenes still personalize your event experience but do not appear on your public profile or forum posts.">
+				<label>
+					<input type="checkbox" checked={ localSceneVisibility === 'public' } onChange={ ( event ) => setLocalSceneVisibility( event.target.checked ? 'public' : 'private' ) } />
+					Show my Local Scene publicly
+				</label>
 			</FieldGroup>
 			<ActionRow>
 				<button className="button-1 button-small" style={ saving ? styles.button : undefined } onClick={ handleSave } disabled={ saving }>{ saving ? 'Saving...' : 'Save Account Details' }</button>

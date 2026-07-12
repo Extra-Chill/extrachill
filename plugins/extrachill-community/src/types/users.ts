@@ -53,12 +53,17 @@ export interface LeaderboardResponse {
 
 // ─── User Settings ──────────────────────────────────────────────────────────
 
-export interface EventLocation {
+export interface LocalScene {
 	term_id: number;
 	name: string;
 	slug: string;
 	url: string;
 	coordinates: { lat: number; lon: number } | null;
+	hierarchy?: {
+		region: string;
+		state: string;
+		label: string;
+	};
 }
 
 export interface UserSettings {
@@ -69,7 +74,8 @@ export interface UserSettings {
 	display_name_options: string[];
 	email: string;
 	pending_email: string | null;
-	default_event_location: EventLocation | null;
+	local_scene: LocalScene | null;
+	local_scene_visibility: 'public' | 'private';
 }
 
 export interface ChangeEmailResponse {
@@ -105,7 +111,7 @@ export interface UserProfile {
 	avatar_url: string;
 	custom_title: string;
 	bio: string;
-	local_city: string;
+	local_scene?: LocalScene | null;
 	links: UserLink[];
 	link_types: Record<string, string>;
 	artist_access: ArtistAccessStatus;

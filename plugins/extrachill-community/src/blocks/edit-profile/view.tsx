@@ -223,7 +223,6 @@ function EditProfileApp( {
 	const [ notice, setNotice ] = useState<{ type: 'success' | 'error'; message: string } | null>( null );
 	const [ customTitle, setCustomTitle ] = useState( '' );
 	const [ bio, setBio ] = useState( '' );
-	const [ localCity, setLocalCity ] = useState( '' );
 	const [ links, setLinks ] = useState<UserLink[]>( [] );
 	const [ avatarUrl, setAvatarUrl ] = useState( '' );
 
@@ -232,7 +231,6 @@ function EditProfileApp( {
 			setProfile( data );
 			setCustomTitle( data.custom_title || '' );
 			setBio( data.bio || '' );
-			setLocalCity( data.local_city || '' );
 			setLinks( data.links || [] );
 			setAvatarUrl( data.avatar_url || '' );
 			setLoading( false );
@@ -262,7 +260,6 @@ function EditProfileApp( {
 				client.execute< UserProfile >( 'extrachill/update-user-profile', {
 					custom_title: customTitle,
 					bio,
-					local_city: localCity,
 				} ),
 				client.execute( 'extrachill/update-user-links', { links } ),
 			] );
@@ -274,7 +271,7 @@ function EditProfileApp( {
 		}
 
 		setSaving( false );
-	}, [ customTitle, bio, localCity, links ] );
+	}, [ customTitle, bio, links ] );
 
 	if ( loading ) {
 		return (
@@ -338,15 +335,6 @@ function EditProfileApp( {
 												id="ec-bio"
 												value={ bio }
 												onChange={ ( e ) => setBio( e.target.value ) }
-											/>
-										</FieldGroup>
-										<FieldGroup label="Local Scene (City/Region)" htmlFor="ec-local-city">
-											<input
-												id="ec-local-city"
-												type="text"
-												value={ localCity }
-												onChange={ ( e ) => setLocalCity( e.target.value ) }
-												placeholder="Your local city/region..."
 											/>
 										</FieldGroup>
 									</Panel>
