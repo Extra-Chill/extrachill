@@ -155,14 +155,70 @@ class Test_User_Settings_Default_Event_Location extends WP_UnitTestCase {
 
 		$updated = extrachill_users_ability_update_settings( array( 'default_event_location' => 'Charleston SC' ) );
 		$this->assertSame( 'charleston-sc', $updated['default_event_location']['slug'] );
-		$this->assertSame( 'charleston-sc', get_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, true ) );
+		$this->assertSame( 'charleston-sc', $updated['local_scene']['slug'] );
+		$this->assertSame( 'charleston-sc', get_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY, true ) );
 
 		$settings = extrachill_users_ability_get_settings();
 		$this->assertSame( 'Charleston, South Carolina', $settings['default_event_location']['hierarchy']['label'] );
 
 		$cleared = extrachill_users_ability_update_settings( array( 'default_event_location' => '' ) );
 		$this->assertNull( $cleared['default_event_location'] );
-		$this->assertSame( '', get_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, true ) );
+		$this->assertNull( $cleared['local_scene'] );
+		$this->assertTrue( metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY ) );
+	}
+
+	/**
+	 * Legacy storage is an idempotent fallback and canonical writes do not destroy it.
+	 */
+	public function test_legacy_default_falls_back_without_migration_write(): void {
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		update_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, 'charleston-sc' );
+
+		$settings = extrachill_users_ability_get_settings();
+
+		$this->assertSame( 'charleston-sc', $settings['local_scene']['slug'] );
+		$this->assertSame( $settings['local_scene'], $settings['default_event_location'] );
+		$this->assertFalse( metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY ) );
+
+		extrachill_users_ability_update_settings( array( 'local_scene' => '' ) );
+		$this->assertNull( extrachill_users_ability_get_settings()['local_scene'] );
+		$this->assertSame( 'charleston-sc', get_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, true ) );
+	}
+
+	/**
+	 * Visibility defaults public and private scenes hide both canonical and legacy city output.
+	 */
+	public function test_local_scene_visibility_controls_public_profile(): void {
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		update_user_meta( $user_id, 'local_city', 'Charleston' );
+		extrachill_users_ability_update_settings( array( 'local_scene' => 'charleston-sc' ) );
+
+		$public = extrachill_users_ability_get_profile( array( 'user_id' => $user_id ) );
+		$this->assertSame( 'public', extrachill_users_ability_get_settings()['local_scene_visibility'] );
+		$this->assertSame( 'charleston-sc', $public['local_scene']['slug'] );
+		$this->assertSame( 'Charleston', $public['local_city'] );
+
+		$private = extrachill_users_ability_update_settings( array( 'local_scene_visibility' => 'private' ) );
+		$profile = extrachill_users_ability_get_profile( array( 'user_id' => $user_id ) );
+		$this->assertSame( 'private', $private['local_scene_visibility'] );
+		$this->assertNull( $profile['local_scene'] );
+		$this->assertSame( '', $profile['local_city'] );
+		$this->assertSame( 'charleston-sc', $private['local_scene']['slug'] );
+	}
+
+	/**
+	 * Direct callers receive the same visibility validation as schema consumers.
+	 */
+	public function test_invalid_visibility_is_rejected(): void {
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+
+		$result = extrachill_users_ability_update_settings( array( 'local_scene_visibility' => 'friends' ) );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'invalid_local_scene_visibility', $result->get_error_code() );
 	}
 
 	/**

@@ -164,8 +164,15 @@ function extrachill_users_ability_get_profile( $input ) {
 	// Bio.
 	$bio = $user->description;
 
-	// Local city.
-	$local_city = get_user_meta( $user_id, 'local_city', true );
+	$local_scene_visibility = extrachill_users_get_local_scene_visibility( $user_id );
+	$local_city             = 'public' === $local_scene_visibility ? get_user_meta( $user_id, 'local_city', true ) : '';
+	$local_scene            = null;
+	if ( 'public' === $local_scene_visibility ) {
+		$local_scene = extrachill_users_get_local_scene( $user_id );
+		if ( is_wp_error( $local_scene ) ) {
+			$local_scene = null;
+		}
+	}
 
 	// Dynamic links.
 	$links = get_user_meta( $user_id, '_user_profile_dynamic_links', true );
@@ -210,6 +217,7 @@ function extrachill_users_ability_get_profile( $input ) {
 		'custom_title'  => $custom_title,
 		'bio'           => $bio,
 		'local_city'    => $local_city,
+		'local_scene'   => $local_scene,
 		'links'         => $links,
 		'link_types'    => $link_types,
 		'artist_access' => $artist_access,

@@ -13,6 +13,8 @@
 defined( 'ABSPATH' ) || exit;
 
 const EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY = '_extrachill_default_event_location';
+const EXTRACHILL_USERS_LOCAL_SCENE_META_KEY            = '_extrachill_local_scene';
+const EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY = '_extrachill_local_scene_visibility';
 
 add_action( 'wp_abilities_api_init', 'extrachill_users_register_settings_abilities' );
 
@@ -59,9 +61,17 @@ function extrachill_users_register_settings_abilities() {
 					'first_name'             => array( 'type' => 'string' ),
 					'last_name'              => array( 'type' => 'string' ),
 					'display_name'           => array( 'type' => 'string' ),
+					'local_scene'            => array(
+						'type'        => 'string',
+						'description' => __( 'Canonical Events location slug. Pass an empty string to clear it.', 'extrachill-users' ),
+					),
+					'local_scene_visibility' => array(
+						'type' => 'string',
+						'enum' => array( 'public', 'private' ),
+					),
 					'default_event_location' => array(
 						'type'        => 'string',
-						'description' => __( 'Canonical events location slug. Pass an empty string to clear it.', 'extrachill-users' ),
+						'description' => __( 'Compatibility alias for local_scene.', 'extrachill-users' ),
 					),
 				),
 			),
@@ -181,13 +191,9 @@ function extrachill_users_ability_get_settings() {
 		$pending_email = $pending_email_data['newemail'];
 	}
 
-	$default_event_location_slug = (string) get_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, true );
-	$default_event_location      = null;
-	if ( '' !== $default_event_location_slug ) {
-		$default_event_location = extrachill_users_resolve_default_event_location( $default_event_location_slug );
-		if ( is_wp_error( $default_event_location ) ) {
-			$default_event_location = null;
-		}
+	$local_scene = extrachill_users_get_local_scene( $user_id );
+	if ( is_wp_error( $local_scene ) ) {
+		$local_scene = null;
 	}
 
 	return array(
@@ -198,7 +204,9 @@ function extrachill_users_ability_get_settings() {
 		'display_name_options'   => array_values( $display_name_options ),
 		'email'                  => $user->user_email,
 		'pending_email'          => $pending_email,
-		'default_event_location' => $default_event_location,
+		'local_scene'            => $local_scene,
+		'local_scene_visibility' => extrachill_users_get_local_scene_visibility( $user_id ),
+		'default_event_location' => $local_scene,
 	);
 }
 
@@ -222,7 +230,7 @@ function extrachill_users_ability_update_settings( $input ) {
 
 	$update_args            = array( 'ID' => $user_id );
 	$changed                = false;
-	$location_input_present = array_key_exists( 'default_event_location', $input );
+	$location_input_present = array_key_exists( 'local_scene', $input ) || array_key_exists( 'default_event_location', $input );
 
 	if ( isset( $input['first_name'] ) ) {
 		$first_name = sanitize_text_field( $input['first_name'] );
@@ -249,29 +257,27 @@ function extrachill_users_ability_update_settings( $input ) {
 	}
 
 	if ( $location_input_present ) {
-		$location_slug = sanitize_title( (string) $input['default_event_location'] );
-		$current_slug  = (string) get_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, true );
+		$location_input = array_key_exists( 'local_scene', $input ) ? $input['local_scene'] : $input['default_event_location'];
+		$result         = extrachill_users_set_local_scene( $user_id, (string) $location_input );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$changed = $result || $changed;
+	}
 
-		if ( '' === $location_slug ) {
-			if ( '' !== $current_slug ) {
-				delete_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY );
-				$changed = true;
-			}
-		} else {
-			$location = extrachill_users_resolve_default_event_location( $location_slug );
-			if ( is_wp_error( $location ) ) {
-				return $location;
-			}
-
-			if ( $location_slug !== $current_slug ) {
-				update_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, $location_slug );
-				$changed = true;
-			}
+	if ( array_key_exists( 'local_scene_visibility', $input ) ) {
+		$visibility = sanitize_key( (string) $input['local_scene_visibility'] );
+		if ( ! in_array( $visibility, array( 'public', 'private' ), true ) ) {
+			return new WP_Error( 'invalid_local_scene_visibility', __( 'Local Scene visibility must be public or private.', 'extrachill-users' ), array( 'status' => 400 ) );
+		}
+		if ( extrachill_users_get_local_scene_visibility( $user_id ) !== $visibility || ! metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY ) ) {
+			update_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY, $visibility );
+			$changed = true;
 		}
 	}
 
 	if ( ! $changed ) {
-		if ( $location_input_present ) {
+		if ( $location_input_present || array_key_exists( 'local_scene_visibility', $input ) ) {
 			return extrachill_users_ability_get_settings();
 		}
 
@@ -298,7 +304,7 @@ function extrachill_users_ability_update_settings( $input ) {
  * @param string $slug Location term slug.
  * @return array|WP_Error Resolved location or dependency/validation error.
  */
-function extrachill_users_resolve_default_event_location( string $slug ) {
+function extrachill_users_resolve_local_scene( string $slug ) {
 	$result = extrachill_users_ability_event_locations(
 		array(
 			'mode' => 'resolve',
@@ -319,6 +325,73 @@ function extrachill_users_resolve_default_event_location( string $slug ) {
 	}
 
 	return $result['location'];
+}
+
+/**
+ * Read and resolve a user's canonical Local Scene.
+ *
+ * The legacy default is a deterministic fallback only when canonical meta has
+ * never been written. This preserves legacy data without requiring mass writes.
+ *
+ * @param int $user_id User ID.
+ * @return array|null|WP_Error Resolved location, null, or resolution error.
+ */
+function extrachill_users_get_local_scene( int $user_id ) {
+	if ( metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY ) ) {
+		$slug = (string) get_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY, true );
+	} else {
+		$slug = (string) get_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, true );
+	}
+
+	return '' === $slug ? null : extrachill_users_resolve_local_scene( $slug );
+}
+
+/**
+ * Persist a canonical Local Scene slug after authoritative resolution.
+ *
+ * @param int    $user_id User ID.
+ * @param string $value Location slug input, or an empty string to clear.
+ * @return bool|WP_Error Whether canonical storage changed, or an error.
+ */
+function extrachill_users_set_local_scene( int $user_id, string $value ) {
+	$slug = sanitize_title( $value );
+	if ( '' !== $slug ) {
+		$location = extrachill_users_resolve_local_scene( $slug );
+		if ( is_wp_error( $location ) ) {
+			return $location;
+		}
+		$slug = $location['slug'];
+	}
+
+	$current = metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY )
+		? (string) get_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY, true )
+		: null;
+	if ( $slug === $current ) {
+		return false;
+	}
+
+	update_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY, $slug );
+	return true;
+}
+
+/**
+ * Get Local Scene visibility, defaulting missing legacy values to public.
+ *
+ * @param int $user_id User ID.
+ * @return string public|private.
+ */
+function extrachill_users_get_local_scene_visibility( int $user_id ): string {
+	return 'private' === get_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY, true ) ? 'private' : 'public';
+}
+
+/**
+ * Compatibility resolver retained for existing consumers.
+ *
+ * @param string $slug Location term slug.
+ * @return array|WP_Error Resolved location or dependency/validation error.
+ */
+function extrachill_users_resolve_default_event_location( string $slug ) {
+	return extrachill_users_resolve_local_scene( $slug );
 }
 
 /**
