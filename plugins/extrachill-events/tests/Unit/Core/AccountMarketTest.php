@@ -27,7 +27,10 @@ if ( ! function_exists( 'is_user_logged_in' ) ) {
 
 if ( ! function_exists( 'wp_get_ability' ) ) {
 	function wp_get_ability( $name ) {
-		return 'extrachill/get-user-settings' === $name ? ( $GLOBALS['test_account_market_ability'] ?? null ) : null;
+		if ( 'extrachill/get-user-settings' === $name ) {
+			return $GLOBALS['test_account_market_ability'] ?? null;
+		}
+		return 'extrachill/update-user-settings' === $name ? ( $GLOBALS['test_update_scene_ability'] ?? null ) : null;
 	}
 }
 
@@ -208,6 +211,55 @@ if ( ! function_exists( 'home_url' ) ) {
 	}
 }
 
+if ( ! class_exists( 'WP_Term' ) ) {
+	class WP_Term {
+		public int $term_id;
+		public string $name;
+		public string $slug;
+		public function __construct( int $term_id, string $name, string $slug ) {
+			$this->term_id = $term_id;
+			$this->name    = $name;
+			$this->slug    = $slug;
+		}
+	}
+}
+
+if ( ! function_exists( 'get_queried_object' ) ) {
+	function get_queried_object() {
+		return $GLOBALS['test_queried_term'] ?? null;
+	}
+}
+
+if ( ! function_exists( 'get_ancestors' ) ) {
+	function get_ancestors() {
+		return $GLOBALS['test_term_ancestors'] ?? array();
+	}
+}
+
+if ( ! function_exists( 'get_term_link' ) ) {
+	function get_term_link( $term ) {
+		return 'https://events.example/location/' . $term->slug . '/';
+	}
+}
+
+if ( ! function_exists( 'wp_nonce_field' ) ) {
+	function wp_nonce_field( $action, $name ) {
+		echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="nonce-' . esc_attr( $action ) . '">';
+	}
+}
+
+if ( ! function_exists( 'nocache_headers' ) ) {
+	function nocache_headers() {
+		$GLOBALS['test_nocache_headers'] = true;
+	}
+}
+
+if ( ! function_exists( 'wp_verify_nonce' ) ) {
+	function wp_verify_nonce( $nonce, $action ) {
+		return $nonce === 'nonce-' . $action;
+	}
+}
+
 require_once dirname( __DIR__, 3 ) . '/inc/core/router-pages.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/account-market.php';
 
@@ -224,7 +276,7 @@ final class AccountMarketTest extends TestCase {
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {
 				return array(
-					'default_event_location' => array(
+					'local_scene' => array(
 						'slug'        => 'Charleston SC',
 						'term_id'     => 1618,
 						'coordinates' => array(
@@ -271,7 +323,7 @@ final class AccountMarketTest extends TestCase {
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {
 				return array(
-					'default_event_location' => array(
+					'local_scene' => array(
 						'slug'        => 'charleston',
 						'term_id'     => 1618,
 						'coordinates' => array(
@@ -325,7 +377,7 @@ final class AccountMarketTest extends TestCase {
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {
 				return array(
-					'default_event_location' => array(
+					'local_scene' => array(
 						'slug'        => 'charleston',
 						'term_id'     => 1618,
 						'coordinates' => array(
@@ -347,7 +399,7 @@ final class AccountMarketTest extends TestCase {
 		extrachill_events_render_account_market_context();
 		$output = (string) ob_get_clean();
 		$this->assertStringContainsString( 'Exploring all locations', $output );
-		$this->assertStringContainsString( 'Use my default market', $output );
+		$this->assertStringContainsString( 'Use my Local Scene', $output );
 	}
 
 	public function test_explore_all_requires_exact_sanitized_flag(): void {
@@ -368,7 +420,7 @@ final class AccountMarketTest extends TestCase {
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {
 				return array(
-					'default_event_location' => array(
+					'local_scene' => array(
 						'slug'        => 'charleston',
 						'term_id'     => 1618,
 						'coordinates' => array(
@@ -471,7 +523,7 @@ final class AccountMarketTest extends TestCase {
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {
 				return array(
-					'default_event_location' => array(
+					'local_scene' => array(
 						'slug'      => 'charleston',
 						'term_id'   => 1618,
 						'hierarchy' => array( 'label' => '<script>Charleston</script>' ),
@@ -501,7 +553,7 @@ final class AccountMarketTest extends TestCase {
 		ob_start();
 		extrachill_events_render_home_market_router( array() );
 		$logged_in = (string) ob_get_clean();
-		$this->assertStringContainsString( 'Set default market', $logged_in );
+		$this->assertStringContainsString( 'Set Local Scene', $logged_in );
 
 		$GLOBALS['test_is_user_logged_in'] = false;
 		ob_start();
@@ -521,7 +573,7 @@ final class AccountMarketTest extends TestCase {
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {
 				return array(
-					'default_event_location' => array(
+					'local_scene' => array(
 						'slug'        => 'charleston',
 						'term_id'     => 1618,
 						'hierarchy'   => array( 'label' => 'Charleston, South Carolina' ),
@@ -554,7 +606,7 @@ final class AccountMarketTest extends TestCase {
 		);
 		$output = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Your market', $output );
+		$this->assertStringContainsString( 'Your Local Scene', $output );
 		$this->assertStringContainsString( 'Charleston, South Carolina', $output );
 		$this->assertStringContainsString( 'https://events.example/location/charleston/', $output );
 		$this->assertStringContainsString( '883 upcoming events', $output );
@@ -563,5 +615,97 @@ final class AccountMarketTest extends TestCase {
 		$this->assertStringContainsString( 'Austin, Texas', $output );
 		$this->assertStringContainsString( 'Browse all locations', $output );
 		$this->assertStringNotContainsString( 'Showing events for', $output );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_archive_cta_only_renders_for_selectable_city(): void {
+		$GLOBALS['test_is_tax']         = true;
+		$GLOBALS['test_queried_term']   = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors'] = array( 22 );
+
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$this->assertSame( '', (string) ob_get_clean() );
+
+		$GLOBALS['test_term_ancestors'] = array( 22, 1 );
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$output = (string) ob_get_clean();
+		$this->assertStringContainsString( 'Is Charleston your local scene?', $output );
+		$this->assertStringContainsString( 'Sign in to save', $output );
+		$this->assertStringContainsString( rawurlencode( 'https://events.example/location/charleston/' ), $output );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_archive_cta_shows_save_form_or_current_confirmation(): void {
+		$GLOBALS['test_is_tax']           = true;
+		$GLOBALS['test_is_user_logged_in'] = true;
+		$GLOBALS['test_queried_term']     = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors']   = array( 22, 1 );
+
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$output = (string) ob_get_clean();
+		$this->assertStringContainsString( 'Make this my Local Scene', $output );
+		$this->assertStringContainsString( 'extrachill_events_scene_nonce', $output );
+		$this->assertTrue( $GLOBALS['test_nocache_headers'] );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_archive_cta_confirms_current_scene_without_save_form(): void {
+		$GLOBALS['test_is_tax']           = true;
+		$GLOBALS['test_is_user_logged_in'] = true;
+		$GLOBALS['test_queried_term']     = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors']   = array( 22, 1 );
+		$GLOBALS['test_account_market_ability'] = new class() {
+			public function execute(): array {
+				return array(
+					'local_scene' => array(
+						'slug'    => 'charleston',
+						'term_id' => 1618,
+					),
+				);
+			}
+		};
+
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$output = (string) ob_get_clean();
+		$this->assertStringContainsString( 'This is your Local Scene.', $output );
+		$this->assertStringNotContainsString( 'Make this my Local Scene', $output );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_archive_update_requires_login_and_nonce_and_uses_settings_ability(): void {
+		$term = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$calls = new ArrayObject();
+		$GLOBALS['test_update_scene_ability'] = new class( $calls ) {
+			private ArrayObject $calls;
+			public function __construct( ArrayObject $calls ) {
+				$this->calls = $calls;
+			}
+			public function execute( array $input ): array {
+				$this->calls[] = $input;
+				return array( 'local_scene' => $input['local_scene'] );
+			}
+		};
+
+		$this->assertFalse( extrachill_events_update_archive_scene( $term, 'nonce-extrachill_events_save_scene_1618' ) );
+		$GLOBALS['test_is_user_logged_in'] = true;
+		$this->assertFalse( extrachill_events_update_archive_scene( $term, 'wrong' ) );
+		$this->assertTrue( extrachill_events_update_archive_scene( $term, 'nonce-extrachill_events_save_scene_1618' ) );
+		$this->assertSame( array( array( 'local_scene' => 'charleston' ) ), $calls->getArrayCopy() );
 	}
 }
