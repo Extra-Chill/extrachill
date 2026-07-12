@@ -34,17 +34,30 @@ function extrachill_api_register_user_settings_routes() {
 				'callback'            => 'extrachill_api_user_settings_update',
 				'permission_callback' => 'extrachill_api_user_settings_permission',
 				'args'                => array(
-					'first_name'   => array(
+					'first_name'             => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'last_name'    => array(
+					'last_name'              => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'display_name' => array(
+					'display_name'           => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'local_scene'            => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_title',
+					),
+					'local_scene_visibility' => array(
+						'type'              => 'string',
+						'enum'              => array( 'public', 'private' ),
+						'sanitize_callback' => 'sanitize_key',
+					),
+					'default_event_location' => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_title',
 					),
 				),
 			),
@@ -140,14 +153,11 @@ function extrachill_api_user_settings_update( WP_REST_Request $request ) {
 
 	$input = array( 'user_id' => get_current_user_id() );
 
-	if ( null !== $request->get_param( 'first_name' ) ) {
-		$input['first_name'] = $request->get_param( 'first_name' );
-	}
-	if ( null !== $request->get_param( 'last_name' ) ) {
-		$input['last_name'] = $request->get_param( 'last_name' );
-	}
-	if ( null !== $request->get_param( 'display_name' ) ) {
-		$input['display_name'] = $request->get_param( 'display_name' );
+	$fields = array( 'first_name', 'last_name', 'display_name', 'local_scene', 'local_scene_visibility', 'default_event_location' );
+	foreach ( $fields as $field ) {
+		if ( null !== $request->get_param( $field ) ) {
+			$input[ $field ] = $request->get_param( $field );
+		}
 	}
 
 	$result = $ability->execute( $input );
