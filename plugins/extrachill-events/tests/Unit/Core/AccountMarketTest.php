@@ -79,6 +79,18 @@ if ( ! function_exists( 'is_front_page' ) ) {
 	}
 }
 
+if ( ! function_exists( 'is_admin' ) ) {
+	function is_admin() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'status_header' ) ) {
+	function status_header( $code ) {
+		$GLOBALS['test_status_header'] = $code;
+	}
+}
+
 if ( ! function_exists( 'ec_is_events_site' ) ) {
 	function ec_is_events_site() {
 		return true;
@@ -399,6 +411,54 @@ final class AccountMarketTest extends TestCase {
 
 	public function test_location_directory_is_enabled_by_default(): void {
 		$this->assertTrue( extrachill_events_location_directory_enabled() );
+	}
+
+	public function test_router_query_flags_use_the_query_being_parsed(): void {
+		$query = new class( array( 'ec_events_router' => 'all' ) ) {
+			public bool $is_404 = true;
+			public bool $is_archive = false;
+			public bool $is_home = true;
+			private array $vars;
+
+			public function __construct( array $vars ) {
+				$this->vars = $vars;
+			}
+
+			public function get( $key, $default = '' ) {
+				return $this->vars[ $key ] ?? $default;
+			}
+
+			public function is_main_query(): bool {
+				return true;
+			}
+		};
+
+		extrachill_events_router_query_flags( $query );
+
+		$this->assertFalse( $query->is_404 );
+		$this->assertTrue( $query->is_archive );
+		$this->assertFalse( $query->is_home );
+	}
+
+	public function test_router_pages_preempt_core_404_handling(): void {
+		$query = new class() {
+			public function get( $key, $default = '' ) {
+				return 'ec_events_location_index' === $key ? '1' : $default;
+			}
+		};
+
+		$this->assertTrue( extrachill_events_router_pre_handle_404( false, $query ) );
+		$this->assertSame( 200, $GLOBALS['test_status_header'] );
+	}
+
+	public function test_unrelated_queries_preserve_core_404_handling(): void {
+		$query = new class() {
+			public function get( $key, $default = '' ) {
+				return $default;
+			}
+		};
+
+		$this->assertNull( extrachill_events_router_pre_handle_404( null, $query ) );
 	}
 
 	/**

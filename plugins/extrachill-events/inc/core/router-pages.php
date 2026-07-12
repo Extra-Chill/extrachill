@@ -143,6 +143,25 @@ function extrachill_events_is_router_page(): bool {
 }
 
 /**
+ * Whether a query targets one of the registered virtual router pages.
+ *
+ * @param \WP_Query $query Query being parsed or handled.
+ * @return bool
+ */
+function extrachill_events_query_is_router_page( $query ): bool {
+	if ( ! ec_is_events_site() ) {
+		return false;
+	}
+
+	if ( 'all' === $query->get( 'ec_events_router', '' ) ) {
+		return true;
+	}
+
+	return extrachill_events_location_directory_enabled()
+		&& '1' === (string) $query->get( 'ec_events_location_index', '' );
+}
+
+/**
  * Route the request to the matching virtual-page template.
  *
  * Runs at priority 20 (after the events archive override at 10 and the
@@ -178,16 +197,33 @@ function extrachill_events_router_query_flags( $query ) {
 	if ( ! $query->is_main_query() || is_admin() ) {
 		return;
 	}
-	if ( ! extrachill_events_is_router_page() ) {
+	if ( ! extrachill_events_query_is_router_page( $query ) ) {
 		return;
 	}
 
 	$query->is_404     = false;
 	$query->is_archive = true;
 	$query->is_home    = false;
-	status_header( 200 );
 }
 add_action( 'parse_query', 'extrachill_events_router_query_flags' );
+
+/**
+ * Prevent core from classifying an empty virtual-page query as a 404.
+ *
+ * @hook pre_handle_404
+ * @param bool|null $preempt Existing 404 preemption result.
+ * @param \WP_Query $query   Main query.
+ * @return bool|null
+ */
+function extrachill_events_router_pre_handle_404( $preempt, $query ) {
+	if ( ! extrachill_events_query_is_router_page( $query ) ) {
+		return $preempt;
+	}
+
+	status_header( 200 );
+	return true;
+}
+add_filter( 'pre_handle_404', 'extrachill_events_router_pre_handle_404', 10, 2 );
 
 /**
  * Document title for the virtual pages.
