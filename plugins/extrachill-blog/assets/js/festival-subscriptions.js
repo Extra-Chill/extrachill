@@ -23,7 +23,11 @@
 		};
 
 		if ( 'GET' === method ) {
-			url += '?input=' + encodeURIComponent( JSON.stringify( input ) );
+			const query = new URLSearchParams();
+			Object.keys( input ).forEach( function ( key ) {
+				query.set( 'input[' + key + ']', input[ key ] );
+			} );
+			url += '?' + query.toString();
 		} else {
 			options.headers['Content-Type'] = 'application/json';
 			options.body = JSON.stringify( { input: input } );
