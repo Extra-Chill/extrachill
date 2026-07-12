@@ -36,12 +36,6 @@ function extrachill_events_router_rewrite_rules() {
 	add_rewrite_tag( '%ec_events_router%', '(all)' );
 	add_rewrite_rule( '^all/?$', 'index.php?ec_events_router=all', 'top' );
 
-	// The /location directory is built but held off for now. When enabled, the
-	// bare location taxonomy base (no term) renders the region-grouped
-	// directory; the catch-all location/(.+?) rule requires a term, so
-	// /location/ would 404 without this rule. 'top' priority matches before
-	// that catch-all. Flip extrachill_events_enable_location_directory to true
-	// (and flush rewrites) to turn it on.
 	if ( extrachill_events_location_directory_enabled() ) {
 		add_rewrite_tag( '%ec_events_location_index%', '(1)' );
 		add_rewrite_rule( '^location/?$', 'index.php?ec_events_location_index=1', 'top' );
@@ -61,13 +55,71 @@ function extrachill_events_is_all_events_page(): bool {
 /**
  * Whether the /location directory page is enabled.
  *
- * Held off by default. Filter to true (and flush rewrites) to expose it.
- *
  * @return bool
  * @since 0.25.0
  */
 function extrachill_events_location_directory_enabled(): bool {
-	return (bool) apply_filters( 'extrachill_events_enable_location_directory', false );
+	return (bool) apply_filters( 'extrachill_events_enable_location_directory', true );
+}
+
+/**
+ * Flush rewrites once when the public location directory route is introduced.
+ */
+function extrachill_events_maybe_flush_router_rewrites(): void {
+	$rewrite_version = '2';
+	if ( get_option( 'extrachill_events_router_rewrite_version' ) === $rewrite_version ) {
+		return;
+	}
+
+	flush_rewrite_rules( false );
+	update_option( 'extrachill_events_router_rewrite_version', $rewrite_version, false );
+}
+add_action( 'init', 'extrachill_events_maybe_flush_router_rewrites', 100 );
+
+/**
+ * Validate and enrich upcoming-count rows as canonical selectable cities.
+ *
+ * @param array $rows Upcoming location count rows.
+ * @return array Canonical city rows with taxonomy hierarchy metadata.
+ */
+function extrachill_events_prepare_location_rows( array $rows ): array {
+	$locations = array();
+
+	foreach ( $rows as $row ) {
+		$term_id = absint( $row['term_id'] ?? 0 );
+		$count   = absint( $row['count'] ?? 0 );
+		$term    = $term_id ? get_term( $term_id, 'location' ) : null;
+		if ( $count < 1 || ! $term instanceof WP_Term ) {
+			continue;
+		}
+
+		$ancestor_ids = get_ancestors( $term_id, 'location', 'taxonomy' );
+		if ( count( $ancestor_ids ) < 2 ) {
+			continue;
+		}
+
+		$root  = get_term( (int) end( $ancestor_ids ), 'location' );
+		$state = get_term( (int) $ancestor_ids[0], 'location' );
+		$url   = get_term_link( $term );
+		if ( ! $root instanceof WP_Term || ! $state instanceof WP_Term || is_wp_error( $url ) ) {
+			continue;
+		}
+
+		$locations[] = array(
+			'term_id'   => $term_id,
+			'name'      => $term->name,
+			'slug'      => $term->slug,
+			'count'     => $count,
+			'url'       => $url,
+			'label'     => sprintf( '%s, %s', $term->name, $state->name ),
+			'region_id' => (int) $root->term_id,
+			'region'    => $root->name,
+			'state_id'  => (int) $state->term_id,
+			'state'     => $state->name,
+		);
+	}
+
+	return $locations;
 }
 
 /**

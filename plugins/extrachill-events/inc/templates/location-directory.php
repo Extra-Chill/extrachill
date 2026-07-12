@@ -36,7 +36,20 @@ $min_events = (int) apply_filters( 'extrachill_events_directory_min_count', 1 );
 $cities_request = new WP_REST_Request( 'GET', '/extrachill/v1/events/upcoming-counts' );
 $cities_request->set_query_params( array( 'taxonomy' => 'location' ) );
 $cities_response = rest_do_request( $cities_request );
-$cities          = $cities_response->is_error() ? array() : (array) $cities_response->get_data();
+$cities          = $cities_response->is_error() ? array() : extrachill_events_prepare_location_rows( (array) $cities_response->get_data() );
+
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public read-only directory search.
+$directory_search = isset( $_GET['search'] ) && is_scalar( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
+if ( '' !== $directory_search ) {
+	$cities = array_values(
+		array_filter(
+			$cities,
+			static function ( array $city ) use ( $directory_search ): bool {
+				return false !== stripos( $city['label'], $directory_search ) || false !== stripos( $city['region'], $directory_search );
+			}
+		)
+	);
+}
 
 // Region rollup totals (ancestor subtree counts). Keyed by term_id.
 $rollup_request = new WP_REST_Request( 'GET', '/extrachill/v1/events/upcoming-counts' );
@@ -54,45 +67,48 @@ foreach ( $rollup_terms as $r ) {
 	$rollup_by_id[ (int) $r['term_id'] ] = (int) $r['count'];
 }
 
-// Bucket cities under their region root using taxonomy ancestry. A city with
-// no region ancestor falls into a generic bucket so nothing is dropped.
-$regions             = array(); // root_term_id => array of city rows.
-$region_meta         = array(); // root_term_id => WP_Term.
-$ungrouped           = array();
-$ungrouped_label_key = 0;
+// Bucket canonical cities by region and state/province.
+$regions = array();
 
 foreach ( $cities as $city ) {
 	if ( (int) $city['count'] < $min_events ) {
 		continue;
 	}
 
-	$ancestors = get_ancestors( (int) $city['term_id'], 'location', 'taxonomy' );
-	if ( empty( $ancestors ) ) {
-		$ungrouped[] = $city;
-		continue;
+	$region_id = (int) $city['region_id'];
+	$state_id  = (int) $city['state_id'];
+	if ( ! isset( $regions[ $region_id ] ) ) {
+		$regions[ $region_id ] = array(
+			'name'   => $city['region'],
+			'states' => array(),
+		);
 	}
-
-	// Topmost ancestor is the region root.
-	$root_id = (int) end( $ancestors );
-	if ( ! isset( $region_meta[ $root_id ] ) ) {
-		$root_term = get_term( $root_id, 'location' );
-		if ( ! $root_term || is_wp_error( $root_term ) ) {
-			$ungrouped[] = $city;
-			continue;
-		}
-		$region_meta[ $root_id ] = $root_term;
-		$regions[ $root_id ]     = array();
+	if ( ! isset( $regions[ $region_id ]['states'][ $state_id ] ) ) {
+		$regions[ $region_id ]['states'][ $state_id ] = array(
+			'name'   => $city['state'],
+			'cities' => array(),
+		);
 	}
-	$regions[ $root_id ][] = $city;
+	$regions[ $region_id ]['states'][ $state_id ]['cities'][] = $city;
 }
 
 // Order regions by their rolled-up total, descending.
 uksort(
 	$regions,
-	static function ( $a, $b ) use ( $rollup_by_id ) {
+	static function ( $a, $b ) use ( $rollup_by_id ): int {
 		return ( $rollup_by_id[ $b ] ?? 0 ) <=> ( $rollup_by_id[ $a ] ?? 0 );
 	}
 );
+
+foreach ( $regions as &$region ) {
+	uksort(
+		$region['states'],
+		static function ( $a, $b ) use ( $rollup_by_id ): int {
+			return ( $rollup_by_id[ $b ] ?? 0 ) <=> ( $rollup_by_id[ $a ] ?? 0 );
+		}
+	);
+}
+unset( $region );
 ?>
 
 <div class="events-calendar-container ec-mobile-full-width-panel">
@@ -103,47 +119,61 @@ uksort(
 				<?php esc_html_e( 'Every city with upcoming live music. Pick a city to see its calendar.', 'extrachill-events' ); ?>
 			</p>
 		</header>
+		<form class="events-location-search" role="search" method="get" action="<?php echo esc_url( home_url( '/location/' ) ); ?>">
+			<label for="location-directory-search"><?php esc_html_e( 'Search cities', 'extrachill-events' ); ?></label>
+			<div class="events-location-search__controls">
+				<input id="location-directory-search" name="search" type="search" value="<?php echo esc_attr( $directory_search ); ?>" placeholder="<?php esc_attr_e( 'City or state', 'extrachill-events' ); ?>">
+				<button class="button-1 button-small" type="submit"><?php esc_html_e( 'Search', 'extrachill-events' ); ?></button>
+			</div>
+		</form>
 	</div>
 
 	<div class="page-content cities-directory">
-		<?php foreach ( $regions as $root_id => $region_cities ) : ?>
+		<?php if ( '' !== $directory_search ) : ?>
+			<p class="cities-directory-results" role="status">
+				<?php
+				printf(
+					/* translators: 1: Result count, 2: Search query. */
+					esc_html( _n( '%1$s active city matching “%2$s”', '%1$s active cities matching “%2$s”', count( $cities ), 'extrachill-events' ) ),
+					esc_html( number_format_i18n( count( $cities ) ) ),
+					esc_html( $directory_search )
+				);
+				?>
+			</p>
+		<?php endif; ?>
+
+		<?php foreach ( $regions as $root_id => $region ) : ?>
 			<?php
-			$region       = $region_meta[ $root_id ];
-			$region_link  = get_term_link( $region );
+			$region_term  = get_term( $root_id, 'location' );
+			$region_link  = $region_term instanceof WP_Term ? get_term_link( $region_term ) : new WP_Error();
 			$region_total = $rollup_by_id[ $root_id ] ?? 0;
 			?>
 			<section class="cities-region">
 				<h2 class="cities-region-title">
 					<?php if ( ! is_wp_error( $region_link ) ) : ?>
-						<a href="<?php echo esc_url( $region_link ); ?>"><?php echo esc_html( $region->name ); ?></a>
+						<a href="<?php echo esc_url( $region_link ); ?>"><?php echo esc_html( $region['name'] ); ?></a>
 					<?php else : ?>
-						<?php echo esc_html( $region->name ); ?>
+						<?php echo esc_html( $region['name'] ); ?>
 					<?php endif; ?>
 					<?php if ( $region_total > 0 ) : ?>
 						<span class="cities-region-count">(<?php echo esc_html( number_format_i18n( $region_total ) ); ?>)</span>
 					<?php endif; ?>
 				</h2>
-				<div class="taxonomy-badges">
-					<?php foreach ( $region_cities as $city ) : ?>
-						<a href="<?php echo esc_url( $city['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $city['slug'] ); ?>">
-							<?php echo esc_html( $city['name'] ); ?> (<?php echo esc_html( $city['count'] ); ?>)
-						</a>
-					<?php endforeach; ?>
-				</div>
+				<?php foreach ( $region['states'] as $state_id => $state ) : ?>
+					<section class="cities-state">
+						<h3 class="cities-state-title"><?php echo esc_html( $state['name'] ); ?> <span>(<?php echo esc_html( number_format_i18n( $rollup_by_id[ $state_id ] ?? 0 ) ); ?>)</span></h3>
+						<div class="taxonomy-badges">
+							<?php foreach ( $state['cities'] as $city ) : ?>
+								<a href="<?php echo esc_url( $city['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $city['slug'] ); ?>"><?php echo esc_html( $city['name'] ); ?> (<?php echo esc_html( number_format_i18n( $city['count'] ) ); ?>)</a>
+							<?php endforeach; ?>
+						</div>
+					</section>
+				<?php endforeach; ?>
 			</section>
 		<?php endforeach; ?>
 
-		<?php if ( ! empty( $ungrouped ) ) : ?>
-			<section class="cities-region cities-region-other">
-				<h2 class="cities-region-title"><?php esc_html_e( 'Other', 'extrachill-events' ); ?></h2>
-				<div class="taxonomy-badges">
-					<?php foreach ( $ungrouped as $city ) : ?>
-						<a href="<?php echo esc_url( $city['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $city['slug'] ); ?>">
-							<?php echo esc_html( $city['name'] ); ?> (<?php echo esc_html( $city['count'] ); ?>)
-						</a>
-					<?php endforeach; ?>
-				</div>
-			</section>
+		<?php if ( empty( $regions ) ) : ?>
+			<p class="cities-directory-empty"><?php esc_html_e( 'No active cities matched your search. Try another city or state.', 'extrachill-events' ); ?></p>
 		<?php endif; ?>
 	</div>
 </div>

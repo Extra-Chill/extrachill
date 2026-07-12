@@ -128,7 +128,7 @@ function extrachill_events_near_me_scripts() {
 	);
 
 	$geo                = extrachill_events_get_geo_params();
-	$account_market     = extrachill_events_get_account_market();
+	$account_market     = extrachill_events_is_exploring_all_markets() ? null : extrachill_events_get_account_market();
 	$has_account_market = null !== $account_market && null !== $account_market['lat'] && null !== $account_market['lon'];
 
 	wp_localize_script(
@@ -253,6 +253,10 @@ function extrachill_events_near_me_content( string $content ): string {
 	$html           .= '</div>';
 
 	$html .= '</div>';
+
+	ob_start();
+	extrachill_events_render_account_market_context();
+	$html = (string) ob_get_clean() . $html;
 
 	// City grid fallback (hidden by default, JS reveals if geo denied).
 	$locations = get_terms(

@@ -27,6 +27,7 @@ extrachill_breadcrumbs();
 	</div>
 
 	<div class="page-content">
+		<?php extrachill_events_render_account_market_context(); ?>
 		<?php
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- do_blocks() returns trusted, fully-rendered block HTML.
 		echo do_blocks( '<!-- wp:data-machine-events/calendar {"showScopePresets":true} /-->' );

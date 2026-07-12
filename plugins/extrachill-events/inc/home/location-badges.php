@@ -33,28 +33,10 @@ if ( empty( $location_counts ) || ! is_array( $location_counts ) ) {
 	return;
 }
 
-$min_events      = (int) apply_filters( 'extrachill_events_badge_min_count', 20 );
-$location_counts = array_filter(
-	$location_counts,
-	static function ( $location ) use ( $min_events ) {
-		return $location['count'] >= $min_events;
-	}
-);
+$location_counts = extrachill_events_prepare_location_rows( $location_counts );
 
 if ( empty( $location_counts ) ) {
 	return;
 }
-?>
-	<div class="taxonomy-badges ec-edge-gutter">
-	<?php foreach ( $location_counts as $location ) : ?>
-		<a href="<?php echo esc_url( $location['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $location['slug'] ); ?>">
-			<?php echo esc_html( $location['name'] ); ?> (<?php echo esc_html( $location['count'] ); ?>)
-		</a>
-	<?php endforeach; ?>
-	</div>
 
-	<p class="events-browse-all-cities">
-		<a href="<?php echo esc_url( home_url( '/all/' ) ); ?>">
-			<?php esc_html_e( 'See every event &rarr;', 'extrachill-events' ); ?>
-		</a>
-	</p>
+extrachill_events_render_home_market_router( $location_counts );
