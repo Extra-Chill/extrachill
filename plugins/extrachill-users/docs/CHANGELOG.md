@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.29.1] - 2026-07-12
+
+### Fixed
+- own event market resolution
+
 ## [0.29.0] - 2026-07-12
 
 ### Added
