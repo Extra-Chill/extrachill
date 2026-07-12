@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.29.0] - 2026-07-12
+
+### Added
+- add default event location preference
+
 ## [0.28.0] - 2026-07-12
 
 ### Added
