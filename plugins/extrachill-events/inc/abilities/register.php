@@ -46,6 +46,7 @@ function extrachill_events_register_abilities_category(): void {
 // directly. See Extra-Chill/extrachill-events#104.
 require_once __DIR__ . '/events-calendar.php';
 require_once __DIR__ . '/events-filters.php';
+require_once __DIR__ . '/events-locations.php';
 require_once __DIR__ . '/events-geocode.php';
 require_once __DIR__ . '/events-upcoming-counts.php';
 require_once __DIR__ . '/events-list-venues.php';

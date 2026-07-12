@@ -19,6 +19,7 @@
 		<testsuite name="qualify-v2-unit">
 			<directory>tests/Unit/Core</directory>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
+			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>
