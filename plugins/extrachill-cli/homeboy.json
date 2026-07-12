@@ -9,7 +9,8 @@
   "self_checks": {
     "test": [
       "php tests/QRCodeCommandTest.php",
-      "php tests/CrosslinkTargetsCommandTest.php"
+      "php tests/CrosslinkTargetsCommandTest.php",
+      "php tests/UserLocalSceneCommandTest.php"
     ]
   },
   "version_targets": [

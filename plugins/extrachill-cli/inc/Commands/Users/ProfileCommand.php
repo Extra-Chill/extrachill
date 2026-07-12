@@ -84,8 +84,8 @@ class ProfileCommand {
 					'Value' => mb_substr( $result['bio'] ?? '', 0, 80 ) . ( mb_strlen( $result['bio'] ?? '' ) > 80 ? '...' : '' ),
 				),
 				array(
-					'Field' => 'local_city',
-					'Value' => $result['local_city'] ? $result['local_city'] : '(none)',
+					'Field' => 'local_scene',
+					'Value' => $this->format_local_scene( $result['local_scene'] ?? null ),
 				),
 				array(
 					'Field' => 'links',
@@ -117,11 +117,17 @@ class ProfileCommand {
 	 * : User bio/description.
 	 *
 	 * [--local-city=<local-city>]
-	 * : Local scene city/region.
+	 * : Deprecated alias for --local-scene.
+	 *
+	 * [--local-scene=<location-slug>]
+	 * : Canonical Events location slug. Pass an empty string to clear it.
+	 *
+	 * [--local-scene-visibility=<visibility>]
+	 * : Local Scene visibility: public or private.
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp extrachill users profile update chubes --bio="Founder of Extra Chill" --local-city="Austin, TX"
+	 *     wp extrachill users profile update chubes --bio="Founder of Extra Chill" --local-scene=charleston-sc
 	 *     wp extrachill users profile update 1 --custom-title="Captain Chill"
 	 *
 	 * @when after_wp_load
@@ -132,11 +138,6 @@ class ProfileCommand {
 			WP_CLI::error( 'User not found.' );
 		}
 
-		$ability = wp_get_ability( 'extrachill/update-user-profile' );
-		if ( ! $ability ) {
-			WP_CLI::error( 'extrachill/update-user-profile ability not available.' );
-		}
-
 		$input = array( 'user_id' => (int) $user->ID );
 
 		if ( isset( $assoc_args['custom-title'] ) ) {
@@ -145,18 +146,46 @@ class ProfileCommand {
 		if ( isset( $assoc_args['bio'] ) ) {
 			$input['bio'] = (string) $assoc_args['bio'];
 		}
+
+		$settings_input = array( 'user_id' => (int) $user->ID );
+		if ( isset( $assoc_args['local-scene'] ) ) {
+			$settings_input['local_scene'] = (string) $assoc_args['local-scene'];
+		}
 		if ( isset( $assoc_args['local-city'] ) ) {
-			$input['local_city'] = (string) $assoc_args['local-city'];
+			WP_CLI::warning( '--local-city is deprecated; use --local-scene=<location-slug> instead.' );
+			if ( ! isset( $assoc_args['local-scene'] ) ) {
+				$settings_input['local_scene'] = (string) $assoc_args['local-city'];
+			}
+		}
+		if ( isset( $assoc_args['local-scene-visibility'] ) ) {
+			$settings_input['local_scene_visibility'] = (string) $assoc_args['local-scene-visibility'];
 		}
 
-		$result = $ability->execute( $input );
+		$results = array();
+		if ( count( $input ) > 1 ) {
+			$ability = wp_get_ability( 'extrachill/update-user-profile' );
+			if ( ! $ability ) {
+				WP_CLI::error( 'extrachill/update-user-profile ability not available.' );
+			}
+			$results['profile'] = $ability->execute( $input );
+			if ( is_wp_error( $results['profile'] ) ) {
+				WP_CLI::error( $results['profile']->get_error_message() );
+			}
+		}
 
-		if ( is_wp_error( $result ) ) {
-			WP_CLI::error( $result->get_error_message() );
+		if ( count( $settings_input ) > 1 ) {
+			$ability = wp_get_ability( 'extrachill/update-user-settings' );
+			if ( ! $ability ) {
+				WP_CLI::error( 'extrachill/update-user-settings ability not available.' );
+			}
+			$results['settings'] = $ability->execute( $settings_input );
+			if ( is_wp_error( $results['settings'] ) ) {
+				WP_CLI::error( $results['settings']->get_error_message() );
+			}
 		}
 
 		WP_CLI::success( sprintf( 'Profile updated for user %d (%s).', (int) $user->ID, $user->user_login ) );
-		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+		WP_CLI::log( wp_json_encode( count( $results ) === 1 ? reset( $results ) : $results, JSON_PRETTY_PRINT ) );
 	}
 
 	/**
@@ -228,5 +257,13 @@ class ProfileCommand {
 		}
 
 		return get_user_by( 'login', $identifier );
+	}
+
+	private function format_local_scene( $local_scene ) {
+		if ( ! is_array( $local_scene ) ) {
+			return '(none)';
+		}
+
+		return $local_scene['slug'] ?? ( $local_scene['name'] ?? '(none)' );
 	}
 }

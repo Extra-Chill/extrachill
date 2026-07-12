@@ -87,6 +87,14 @@ class SettingsCommand {
 					'Value' => $result['pending_email'] ?? '(none)',
 				),
 				array(
+					'Field' => 'local_scene',
+					'Value' => $this->format_local_scene( $result['local_scene'] ?? null ),
+				),
+				array(
+					'Field' => 'local_scene_visibility',
+					'Value' => $result['local_scene_visibility'] ?? 'public',
+				),
+				array(
 					'Field' => 'display_name_options',
 					'Value' => implode( ', ', $result['display_name_options'] ),
 				),
@@ -114,10 +122,20 @@ class SettingsCommand {
 	 * [--display-name=<display-name>]
 	 * : Display name.
 	 *
+	 * [--local-scene=<location-slug>]
+	 * : Canonical Events location slug. Pass an empty string to clear it.
+	 *
+	 * [--local-scene-visibility=<visibility>]
+	 * : Local Scene visibility: public or private.
+	 *
+	 * [--local-city=<location-slug>]
+	 * : Deprecated alias for --local-scene.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill users settings update chubes --first-name=Chris --last-name=Huber
 	 *     wp extrachill users settings update 1 --display-name="Chris Huber"
+	 *     wp extrachill users settings update chubes --local-scene=charleston-sc --local-scene-visibility=public
 	 *
 	 * @when after_wp_load
 	 */
@@ -142,6 +160,18 @@ class SettingsCommand {
 		}
 		if ( isset( $assoc_args['display-name'] ) ) {
 			$input['display_name'] = (string) $assoc_args['display-name'];
+		}
+		if ( isset( $assoc_args['local-scene'] ) ) {
+			$input['local_scene'] = (string) $assoc_args['local-scene'];
+		}
+		if ( isset( $assoc_args['local-city'] ) ) {
+			WP_CLI::warning( '--local-city is deprecated; use --local-scene=<location-slug> instead.' );
+			if ( ! isset( $assoc_args['local-scene'] ) ) {
+				$input['local_scene'] = (string) $assoc_args['local-city'];
+			}
+		}
+		if ( isset( $assoc_args['local-scene-visibility'] ) ) {
+			$input['local_scene_visibility'] = (string) $assoc_args['local-scene-visibility'];
 		}
 
 		$result = $ability->execute( $input );
@@ -269,5 +299,13 @@ class SettingsCommand {
 		}
 
 		return get_user_by( 'login', $identifier );
+	}
+
+	private function format_local_scene( $local_scene ) {
+		if ( ! is_array( $local_scene ) ) {
+			return '(none)';
+		}
+
+		return $local_scene['slug'] ?? ( $local_scene['name'] ?? '(none)' );
 	}
 }
