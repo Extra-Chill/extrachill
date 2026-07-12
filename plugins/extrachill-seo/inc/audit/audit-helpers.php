@@ -107,7 +107,7 @@ function ec_seo_url_is_broken( $url ) {
 /**
  * Gets available blog IDs, filtering out unavailable sites.
  *
- * Uses ec_get_blog_ids() from extrachill-multisite as the source of truth,
+ * Uses ec_get_blog_ids() from extrachill-network as the source of truth,
  * then filters to only include sites that exist and are not deleted/archived.
  *
  * @return array Associative array of slug => blog_id for available sites.

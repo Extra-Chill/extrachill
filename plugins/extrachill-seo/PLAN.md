@@ -35,7 +35,7 @@ Based on analysis of Google's official documentation and major publishers (Pitch
   - Network setting: IndexNow key (site option)
   - URL pings on publish/unpublish/delete
   - Requirement: host a static `/{key}.txt` file at each domain root
-- **Network admin page** is implemented under the existing `extrachill-multisite` menu (`SEO` submenu).
+- **Network admin page** is implemented under the existing `extrachill-network` menu (`SEO` submenu).
 - **Default OG image** is implemented as a network setting with media picker UI.
 
 ### Next Enhancements

@@ -21,15 +21,15 @@ add_action( 'network_admin_menu', __NAMESPACE__ . '\\ec_seo_add_network_menu' );
 add_action( 'admin_enqueue_scripts', __NAMESPACE__ . '\\ec_seo_enqueue_network_assets' );
 
 /**
- * Adds SEO submenu under Extra Chill Multisite menu.
+ * Adds SEO submenu under Extra Chill Network menu.
  */
 function ec_seo_add_network_menu() {
-	if ( ! defined( 'EXTRACHILL_MULTISITE_MENU_SLUG' ) ) {
+	if ( ! defined( 'EXTRACHILL_NETWORK_MENU_SLUG' ) ) {
 		return;
 	}
 
 	add_submenu_page(
-		EXTRACHILL_MULTISITE_MENU_SLUG,
+		EXTRACHILL_NETWORK_MENU_SLUG,
 		'SEO',
 		'SEO',
 		'manage_network_options',
@@ -48,7 +48,7 @@ function ec_seo_enqueue_network_assets( $hook_suffix ) {
 		return;
 	}
 
-	if ( 'extra-chill-multisite_page_extrachill-seo' !== $hook_suffix ) {
+	if ( 'extra-chill-network_page_extrachill-seo' !== $hook_suffix ) {
 		return;
 	}
 

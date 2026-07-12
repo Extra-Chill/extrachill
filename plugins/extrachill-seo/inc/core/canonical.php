@@ -142,7 +142,7 @@ function ec_seo_get_login_canonical_url() {
 /**
  * Get canonical URL for taxonomy archives with cross-site authority.
  *
- * Delegates to extrachill-multisite canonical authority system.
+ * Delegates to extrachill-network canonical authority system.
  * Returns cross-domain URL when another site is authoritative,
  * or self-canonical URL when current site is authoritative.
  *

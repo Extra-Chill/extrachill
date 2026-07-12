@@ -76,7 +76,7 @@ function ec_seo_get_schema_organization_base_url() {
  * Get the Organization sameAs social profile URLs.
  *
  * Pulls from the canonical `extrachill_social_links_data` registry (owned by
- * extrachill-multisite) so social profiles live in one place. Falls back to
+ * extrachill-network) so social profiles live in one place. Falls back to
  * the historical literal list when the registry is empty/unavailable.
  *
  * @return array List of social profile URLs.
