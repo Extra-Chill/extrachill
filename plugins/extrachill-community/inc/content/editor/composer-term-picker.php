@@ -5,7 +5,7 @@
  * Curated, pick-from-existing taxonomy tagging for the bbPress topic composer.
  *
  * Users tag their post with EXISTING curated network taxonomy terms (location
- * today; artist/festival/venue later) via an autocomplete React picker. The
+ * and festival today; artist/venue later) via an autocomplete React picker. The
  * picker searches terms through the WP REST API (NO AJAX, per the system-wide
  * rule) and submits the chosen term IDs as a hidden `${field}[]` array that the
  * server-side save handler assigns on bbp_new_topic / bbp_edit_topic.
@@ -14,8 +14,8 @@
  * mints nothing, so the network's shared taxonomy tree never drifts.
  *
  * Taxonomy-parameterized: the picker is driven by a config array (one entry per
- * taxonomy). Enabling artist/festival/venue later is a config addition here, not
- * a new component — build location only now, leave the seam.
+ * taxonomy). Enabling artist/venue later is a config addition here, not
+ * a new component.
  *
  * @package ExtraChillCommunity
  * @since 1.9.0
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Taxonomies the composer term-picker offers, in render order.
  *
- * Location-only today. To add artist/festival/venue later, append entries here
+ * Location and festival are available today. To add artist/venue later, append entries here
  * (and ensure each taxonomy is registered for `topic` and REST-enabled). No
  * React change required.
  *
@@ -50,12 +50,19 @@ function extrachill_community_term_picker_taxonomies() {
 			'placeholder' => __( 'Search locations (e.g. Charleston)…', 'extra-chill-community' ),
 			'field'       => 'bbp_topic_location',
 		),
+		array(
+			'taxonomy'    => 'festival',
+			'rest_base'   => 'festival',
+			'label'       => __( 'Festival', 'extra-chill-community' ),
+			'placeholder' => __( 'Search festivals (e.g. Bonnaroo)…', 'extra-chill-community' ),
+			'field'       => 'bbp_topic_festival',
+		),
 	);
 
 	/**
 	 * Filter the taxonomies offered by the composer term-picker.
 	 *
-	 * This is the generalization seam: artist/festival/venue can be enabled
+	 * This is the generalization seam: artist/venue can be enabled
 	 * later purely by extending this config (each must be registered for the
 	 * `topic` post type and REST-enabled).
 	 *

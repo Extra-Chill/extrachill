@@ -2,10 +2,10 @@
 /**
  * Ability: extrachill/community-taxonomy-counts
  *
- * Return forum URL and topic count for a taxonomy term.
- * Used by cross-site linking — community forums are location hubs.
- * Canonical implementation — the REST route in extrachill-api refactors
- * to a thin shim that delegates here.
+ * Return a topic archive URL and topic count for a taxonomy term.
+ *
+ * Kept for existing consumers. Network cross-site linking uses the generic
+ * extrachill/taxonomy-post-counts ability, which has the same topic semantics.
  *
  * @package ExtraChillCommunity
  */
@@ -25,7 +25,7 @@ function extrachill_community_register_community_taxonomy_counts_ability(): void
 		'extrachill/community-taxonomy-counts',
 		array(
 			'label'               => __( 'Community Taxonomy Counts', 'extra-chill-community' ),
-			'description'         => __( 'Return forum URL and topic count for a taxonomy term (cross-site linking).', 'extra-chill-community' ),
+			'description'         => __( 'Return topic archive URL and topic count for a taxonomy term.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -72,13 +72,10 @@ function extrachill_community_register_community_taxonomy_counts_ability(): void
 // ─── Execute callback ──────────────────────────────────────────────────────────
 
 /**
- * Return forum data for a taxonomy term.
- *
- * Forums are location hubs, so we return the forum permalink and topic count
- * rather than a taxonomy archive URL.
+ * Return topic archive data for a taxonomy term.
  *
  * @param array $input Ability input with 'taxonomy' and 'slug'.
- * @return array|null|WP_Error Forum data or null if not found.
+ * @return array|null|WP_Error Topic archive data or null if not found.
  */
 function extrachill_community_ability_community_taxonomy_counts( array $input ): array|null|WP_Error {
 	$taxonomy = isset( $input['taxonomy'] ) ? sanitize_text_field( (string) $input['taxonomy'] ) : '';
@@ -97,11 +94,13 @@ function extrachill_community_ability_community_taxonomy_counts( array $input ):
 		return null;
 	}
 
-	$forums = get_posts(
+	$topic_query = new WP_Query(
 		array(
-			'post_type'      => 'forum',
+			'post_type'      => 'topic',
 			'post_status'    => 'publish',
 			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'no_found_rows'  => false,
 			'tax_query'      => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 				array(
 					'taxonomy' => $taxonomy,
@@ -111,29 +110,19 @@ function extrachill_community_ability_community_taxonomy_counts( array $input ):
 			),
 		)
 	);
-
-	if ( empty( $forums ) ) {
+	if ( $topic_query->found_posts < 1 ) {
 		return null;
 	}
 
-	$forum = $forums[0];
-
-	$topic_query = new WP_Query(
-		array(
-			'post_type'      => 'topic',
-			'post_status'    => 'publish',
-			'post_parent'    => $forum->ID,
-			'posts_per_page' => 1,
-			'fields'         => 'ids',
-			'no_found_rows'  => false,
-		)
-	);
-	$topic_count = $topic_query->found_posts;
+	$url = get_term_link( $term );
+	if ( is_wp_error( $url ) ) {
+		return null;
+	}
 
 	return array(
 		'slug'  => $term->slug,
 		'name'  => $term->name,
-		'count' => (int) $topic_count,
-		'url'   => get_permalink( $forum ),
+		'count' => (int) $topic_query->found_posts,
+		'url'   => $url,
 	);
 }
