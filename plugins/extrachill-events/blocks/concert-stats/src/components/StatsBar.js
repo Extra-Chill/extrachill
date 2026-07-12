@@ -17,6 +17,9 @@
  * @package
  */
 
+/**
+ * External dependencies
+ */
 import { StatTile, StatGroup } from '@extrachill/components';
 
 /**

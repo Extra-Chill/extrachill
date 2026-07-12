@@ -15,9 +15,12 @@
  * own their own optimistic UI (the block flips a list row; the button flips
  * its own marked state) so this stays presentation-agnostic and reusable.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useCallback, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 

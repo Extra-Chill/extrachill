@@ -1,9 +1,12 @@
 /**
  * YearFilter — Year selection dropdown wrapped in a canonical FieldGroup.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
+/**
+ * External dependencies
+ */
 import { FieldGroup } from '@extrachill/components';
 
 const YearFilter = ( { showsByYear, activeYear, onChange } ) => {
@@ -11,14 +14,23 @@ const YearFilter = ( { showsByYear, activeYear, onChange } ) => {
 		return null;
 	}
 
-	const years = Object.entries( showsByYear ).sort( ( a, b ) => b[ 0 ] - a[ 0 ] );
+	const years = Object.entries( showsByYear ).sort(
+		( a, b ) => b[ 0 ] - a[ 0 ]
+	);
 
 	return (
-		<FieldGroup label="Year" className="ec-concert-stats__year-filter-group">
+		<FieldGroup
+			label="Year"
+			className="ec-concert-stats__year-filter-group"
+		>
 			<select
 				className="ec-concert-stats__year-filter"
 				value={ activeYear || '' }
-				onChange={ ( e ) => onChange( e.target.value ? parseInt( e.target.value, 10 ) : 0 ) }
+				onChange={ ( e ) =>
+					onChange(
+						e.target.value ? parseInt( e.target.value, 10 ) : 0
+					)
+				}
 			>
 				<option value="">All Time</option>
 				{ years.map( ( [ yr, count ] ) => (

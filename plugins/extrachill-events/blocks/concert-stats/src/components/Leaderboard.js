@@ -22,6 +22,9 @@
  * @package
  */
 
+/**
+ * External dependencies
+ */
 import { Badge, Panel } from '@extrachill/components';
 
 /**

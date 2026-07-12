@@ -14,6 +14,9 @@
  * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 

@@ -15,9 +15,10 @@
  * The location search input is part of the EventsMap block (data-machine layer),
  * enabled on this page via the data_machine_events_map_show_location_search filter.
  *
- * @package ExtraChillEvents
+ * @package
  * @since 0.8.0
  */
+/* global ecNearMe */
 ( function () {
 	'use strict';
 
@@ -25,10 +26,7 @@
 		return;
 	}
 
-	var detect  = document.querySelector( '.near-me-detect' );
-	var loading = document.querySelector( '.near-me-loading' );
-	var cities  = document.querySelector( '.near-me-cities' );
-	var status  = document.querySelector( '.near-me-status' );
+	const detect = document.querySelector( '.near-me-detect' );
 
 	// Already have location in URL — map renders with server-side center,
 	// dynamic mode fetches venues, geo-sync updates calendar.
@@ -41,9 +39,15 @@
 
 	// No Geolocation API — show fallback immediately.
 	if ( ! navigator.geolocation ) {
-		showFallback( 'Your browser does not support location detection. Browse by city below.' );
+		showFallback(
+			'Your browser does not support location detection. Browse by city below.'
+		);
 		return;
 	}
+
+	const loading = document.querySelector( '.near-me-loading' );
+	const cities = document.querySelector( '.near-me-cities' );
+	const status = document.querySelector( '.near-me-status' );
 
 	// Show loading state.
 	if ( loading ) {
@@ -61,8 +65,8 @@
 	} );
 
 	function onSuccess( position ) {
-		var lat = position.coords.latitude.toFixed( 6 );
-		var lng = position.coords.longitude.toFixed( 6 );
+		const lat = position.coords.latitude.toFixed( 6 );
+		const lng = position.coords.longitude.toFixed( 6 );
 
 		// Update status text.
 		if ( status ) {
@@ -70,7 +74,7 @@
 		}
 
 		// Update URL via History API — no page reload.
-		var url = new URL( ecNearMe.pageUrl );
+		const url = new URL( ecNearMe.pageUrl );
 		url.searchParams.set( 'lat', lat );
 		url.searchParams.set( 'lng', lng );
 		window.history.replaceState( {}, '', url.toString() );
@@ -78,31 +82,37 @@
 		// Set the map center by updating data attributes on the map root.
 		// The map React component reads these on init. If the map has already
 		// initialized, we dispatch a custom event to recenter it.
-		var mapRoot = document.querySelector( '.data-machine-events-map-root' );
+		const mapRoot = document.querySelector(
+			'.data-machine-events-map-root'
+		);
 		if ( mapRoot ) {
 			mapRoot.dataset.centerLat = lat;
 			mapRoot.dataset.centerLon = lng;
-			mapRoot.dataset.userLat   = lat;
-			mapRoot.dataset.userLon   = lng;
+			mapRoot.dataset.userLat = lat;
+			mapRoot.dataset.userLon = lng;
 
-		// If map is already initialized, dispatch recenter + user location events.
-		if ( mapRoot.dataset.initialized === '1' ) {
-			document.dispatchEvent( new CustomEvent( 'data-machine-map-recenter', {
-				detail: {
-					lat: parseFloat( lat ),
-					lng: parseFloat( lng ),
-					zoom: 12,
-				},
-			} ) );
+			// If map is already initialized, dispatch recenter + user location events.
+			if ( mapRoot.dataset.initialized === '1' ) {
+				document.dispatchEvent(
+					new CustomEvent( 'data-machine-map-recenter', {
+						detail: {
+							lat: parseFloat( lat ),
+							lng: parseFloat( lng ),
+							zoom: 12,
+						},
+					} )
+				);
 
-			// Add the blue dot marker for user location.
-			document.dispatchEvent( new CustomEvent( 'data-machine-map-set-user-location', {
-				detail: {
-					lat: parseFloat( lat ),
-					lng: parseFloat( lng ),
-				},
-			} ) );
-		}
+				// Add the blue dot marker for user location.
+				document.dispatchEvent(
+					new CustomEvent( 'data-machine-map-set-user-location', {
+						detail: {
+							lat: parseFloat( lat ),
+							lng: parseFloat( lng ),
+						},
+					} )
+				);
+			}
 		}
 
 		// Hide the detection UI — map and calendar are now loading.
@@ -110,13 +120,15 @@
 	}
 
 	function onError( error ) {
-		var msg;
+		let msg;
 		switch ( error.code ) {
 			case error.PERMISSION_DENIED:
-				msg = 'Location access denied. Browse by city below, or check your browser settings.';
+				msg =
+					'Location access denied. Browse by city below, or check your browser settings.';
 				break;
 			case error.POSITION_UNAVAILABLE:
-				msg = 'Could not determine your location. Browse by city below.';
+				msg =
+					'Could not determine your location. Browse by city below.';
 				break;
 			case error.TIMEOUT:
 				msg = 'Location request timed out. Browse by city below.';

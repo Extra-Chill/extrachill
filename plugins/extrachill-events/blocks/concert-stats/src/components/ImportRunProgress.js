@@ -7,9 +7,12 @@
  * be swapped out. Wrapped in `<Section>` for chrome consistency with
  * the rest of the platform. Success/error notes use `<InlineStatus>`.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
+/**
+ * External dependencies
+ */
 import { InlineStatus, Section } from '@extrachill/components';
 
 const STATUS_LABEL = {
@@ -24,7 +27,10 @@ function formatPercent( run ) {
 	if ( ! run.total_pages || run.total_pages < 1 ) {
 		return null;
 	}
-	const current = Math.min( run.total_pages, Math.max( 0, ( run.next_page || 1 ) - 1 ) );
+	const current = Math.min(
+		run.total_pages,
+		Math.max( 0, ( run.next_page || 1 ) - 1 )
+	);
 	const pct = Math.round( ( current / run.total_pages ) * 100 );
 	return Math.min( 100, Math.max( 0, pct ) );
 }
@@ -87,11 +93,15 @@ const ImportRunProgress = ( { run } ) => {
 						const total = matched + created;
 						const parts = [];
 						parts.push(
-							`${ total } show${ total === 1 ? '' : 's' } added to your history`
+							`${ total } show${
+								total === 1 ? '' : 's'
+							} added to your history`
 						);
 						if ( created > 0 && matched > 0 ) {
 							parts.push(
-								` (${ matched } matched existing event${ matched === 1 ? '' : 's' }, ${ created } newly created)`
+								` (${ matched } matched existing event${
+									matched === 1 ? '' : 's'
+								}, ${ created } newly created)`
 							);
 						} else if ( created > 0 ) {
 							parts.push( ` (${ created } newly created)` );
@@ -102,9 +112,7 @@ const ImportRunProgress = ( { run } ) => {
 			) }
 
 			{ isFailed && run.error_message && (
-				<InlineStatus tone="error">
-					{ run.error_message }
-				</InlineStatus>
+				<InlineStatus tone="error">{ run.error_message }</InlineStatus>
 			) }
 		</Section>
 	);

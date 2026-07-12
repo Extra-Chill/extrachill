@@ -7,10 +7,17 @@
  * server-side. By the time the source list reaches this component, every
  * entry is actionable.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
+/**
+ * External dependencies
+ */
 import { Grid, InlineStatus, Section } from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import ImportSourceCard from './ImportSourceCard';
 
 /**
@@ -18,6 +25,8 @@ import ImportSourceCard from './ImportSourceCard';
  * down so the Import tab visibility check (`hasImports`) shares the same
  * fetch as the tab body. This component is a pure renderer — it does not
  * fetch on its own. `bag` is the return value of `useImportRuns()`.
+ * @param {Object} root0     Component props.
+ * @param {Object} root0.bag Return value of `useImportRuns()`.
  */
 const ImportTab = ( { bag } ) => {
 	const { sources, runs, loading, error, preview, start } = bag;
@@ -41,9 +50,10 @@ const ImportTab = ( { bag } ) => {
 	return (
 		<Section className="ec-concert-stats__import-tab">
 			<p className="ec-concert-stats__import-intro">
-				Already tracking your shows on another site? Pull your history into Extra Chill.
-				We&rsquo;ll match each show to events in our database and mark you as attended.
-				Shows we don&rsquo;t already have we&rsquo;ll add for you so your full history comes in.
+				Already tracking your shows on another site? Pull your history
+				into Extra Chill. We&rsquo;ll match each show to events in our
+				database and mark you as attended. Shows we don&rsquo;t already
+				have we&rsquo;ll add for you so your full history comes in.
 			</p>
 
 			<Grid

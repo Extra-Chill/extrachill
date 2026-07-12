@@ -7,9 +7,12 @@
  * Search button, or clears the input. Debouncing (if any) lives in the
  * consuming hook (`useEventSearch`).
  *
- * @package ExtraChillEvents
+ * @package
  */
 
+/**
+ * External dependencies
+ */
 import { SearchBox } from '@extrachill/components';
 
 const EventSearchInput = ( { value, onChange, placeholder } ) => {
@@ -18,7 +21,9 @@ const EventSearchInput = ( { value, onChange, placeholder } ) => {
 			value={ value }
 			onSearch={ ( next ) => onChange( next ) }
 			onClear={ () => onChange( '' ) }
-			placeholder={ placeholder || 'Search past shows by artist, venue, or title…' }
+			placeholder={
+				placeholder || 'Search past shows by artist, venue, or title…'
+			}
 		/>
 	);
 };

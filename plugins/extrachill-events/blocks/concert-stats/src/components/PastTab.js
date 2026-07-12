@@ -19,7 +19,14 @@
  * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useCallback } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
 import AddPastShows from './AddPastShows';
 import ShowList from './ShowList';
 

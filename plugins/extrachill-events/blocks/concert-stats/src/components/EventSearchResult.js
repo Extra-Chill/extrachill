@@ -10,8 +10,14 @@
  * @package
  */
 
+/**
+ * External dependencies
+ */
 import { ActionRow, InlineStatus } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import { formatLongDate } from '../utils/formatDate';
 import useMarkAttendance from '../hooks/useMarkAttendance';
 

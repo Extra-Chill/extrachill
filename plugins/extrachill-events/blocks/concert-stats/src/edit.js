@@ -3,9 +3,12 @@
  *
  * Shows a preview of the concert stats block in the Gutenberg editor.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useBlockProps } from '@wordpress/block-editor';
 import { Placeholder } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -19,7 +22,7 @@ export default function Edit() {
 				icon="tickets-alt"
 				label={ __( 'Concert Stats', 'extrachill-events' ) }
 				instructions={ __(
-					'Displays the logged-in user\'s concert history, stats, and leaderboards. This block renders dynamically on the frontend.',
+					"Displays the logged-in user's concert history, stats, and leaderboards. This block renders dynamically on the frontend.",
 					'extrachill-events'
 				) }
 			/>

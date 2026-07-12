@@ -19,8 +19,19 @@
  * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useCallback } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import { ActionRow, InlineStatus, Section } from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import EventSearchInput from './EventSearchInput';
 import EventSearchResult from './EventSearchResult';
 import useEventSearch from '../hooks/useEventSearch';

@@ -1,9 +1,12 @@
 /**
  * useShows — Fetch paginated concert history from REST API.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 
@@ -38,7 +41,10 @@ export default function useShows( userId, filters = {} ) {
 			.then( ( response ) => {
 				if ( page > 1 && period === 'past' ) {
 					// Append for load-more behavior on past shows.
-					setShows( ( prev ) => [ ...prev, ...( response.shows || [] ) ] );
+					setShows( ( prev ) => [
+						...prev,
+						...( response.shows || [] ),
+					] );
 				} else {
 					setShows( response.shows || [] );
 				}

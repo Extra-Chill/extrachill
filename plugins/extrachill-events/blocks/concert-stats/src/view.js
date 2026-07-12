@@ -7,7 +7,14 @@
  * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { createRoot, useState, useEffect, useRef } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import {
 	BlockShell,
 	BlockShellInner,
@@ -16,6 +23,10 @@ import {
 	InlineStatus,
 	ResponsiveTabs,
 } from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import StatsBar from './components/StatsBar';
 import ShowList from './components/ShowList';
 import PastTab from './components/PastTab';
@@ -109,7 +120,7 @@ function readInitialTab() {
  * including a legacy `?tab=add-past` link, which resolveTabId() maps to
  * `past` (#159).
  *
- * @return {boolean}
+ * @return {boolean} True when the URL carries a recognized `?tab=` value.
  */
 function hasExplicitTabParam() {
 	if ( typeof window === 'undefined' ) {
@@ -121,6 +132,13 @@ function hasExplicitTabParam() {
 
 /**
  * Main Concert Stats App component.
+ * @param {Object}  root0              Component props.
+ * @param {number}  root0.userId       Profile owner's user ID.
+ * @param {string}  root0.eventsUrl    Base URL for the events site.
+ * @param {boolean} root0.isOwn        Whether the viewer owns this profile.
+ * @param {boolean} root0.hasCalendar  Whether an embedded calendar sibling is present.
+ * @param {boolean} root0.hasMap       Whether an embedded map sibling is present.
+ * @param {Object}  root0.containerRef Ref object pointing at the React mount container.
  */
 function ConcertStatsApp( {
 	userId,
@@ -527,6 +545,7 @@ function ConcertStatsApp( {
  * so the Calendar-tab useEffect can walk up to the shared
  * .ec-concert-stats-shell parent and locate the sibling embedded
  * calendar wrapper emitted at server-render time.
+ * @param {Object} props Component props, forwarded to ConcertStatsApp plus `mountNode`.
  */
 function ConcertStatsAppWithRef( props ) {
 	const { mountNode, ...rest } = props;

@@ -4,8 +4,19 @@
  * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import { ActionRow, InlineStatus } from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import ShowCard from './ShowCard';
 import useShows from '../hooks/useShows';
 

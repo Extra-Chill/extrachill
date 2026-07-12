@@ -4,9 +4,12 @@
  * Fetches the registered sources and current user's runs, polls while any
  * run is active, and exposes preview + start actions.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useEffect, useCallback, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 
@@ -58,7 +61,9 @@ export default function useImportRuns() {
 
 	// Poll while any run is active.
 	useEffect( () => {
-		const anyActive = runs.some( ( r ) => ACTIVE_STATUSES.includes( r.status ) );
+		const anyActive = runs.some( ( r ) =>
+			ACTIVE_STATUSES.includes( r.status )
+		);
 
 		if ( pollTimerRef.current ) {
 			clearInterval( pollTimerRef.current );

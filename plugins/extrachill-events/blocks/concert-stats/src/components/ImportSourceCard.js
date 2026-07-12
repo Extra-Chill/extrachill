@@ -6,10 +6,17 @@
  *  2. Preview returns total event count → confirmation dialog.
  *  3. User confirms → start import → progress polled by parent.
  *
- * @package ExtraChillEvents
+ * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useMemo } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import {
 	ActionRow,
 	FieldGroup,
@@ -17,6 +24,10 @@ import {
 	Panel,
 	PanelHeader,
 } from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import ImportRunProgress from './ImportRunProgress';
 
 const ACTIVE_STATUSES = [ 'pending', 'running', 'paused' ];
@@ -32,8 +43,12 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 		() => runs.filter( ( r ) => r.source_slug === source.slug ),
 		[ runs, source.slug ]
 	);
-	const activeRun = sourceRuns.find( ( r ) => ACTIVE_STATUSES.includes( r.status ) ) || null;
-	const recentRuns = sourceRuns.filter( ( r ) => ! ACTIVE_STATUSES.includes( r.status ) ).slice( 0, 3 );
+	const activeRun =
+		sourceRuns.find( ( r ) => ACTIVE_STATUSES.includes( r.status ) ) ||
+		null;
+	const recentRuns = sourceRuns
+		.filter( ( r ) => ! ACTIVE_STATUSES.includes( r.status ) )
+		.slice( 0, 3 );
 
 	const handlePreview = ( e ) => {
 		e.preventDefault();
@@ -75,10 +90,7 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 
 	return (
 		<Panel className="ec-concert-stats__import-card">
-			<PanelHeader
-				title={ source.label }
-				description={ rateLimitMeta }
-			/>
+			<PanelHeader title={ source.label } description={ rateLimitMeta } />
 
 			{ /*
 			   The server-side ability filters unconfigured sources out for end
@@ -86,12 +98,13 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 			   actionable. No `source.configured === false` branch — that path
 			   should never be exposed to end users.
 			 */ }
-			{ activeRun && (
-				<ImportRunProgress run={ activeRun } />
-			) }
+			{ activeRun && <ImportRunProgress run={ activeRun } /> }
 
 			{ ! activeRun && ! previewState && (
-				<form className="ec-concert-stats__import-card-form" onSubmit={ handlePreview }>
+				<form
+					className="ec-concert-stats__import-card-form"
+					onSubmit={ handlePreview }
+				>
 					<FieldGroup label={ `Your ${ source.label } username` }>
 						<input
 							type="text"
@@ -119,12 +132,16 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 				<div className="ec-concert-stats__import-card-confirm">
 					<p>
 						Import <strong>~{ previewState.total }</strong> show
-						{ previewState.total === 1 ? '' : 's' } from { source.label } user{' '}
+						{ previewState.total === 1 ? '' : 's' } from{ ' ' }
+						{ source.label } user{ ' ' }
 						<strong>{ previewState.username }</strong>?
 					</p>
 					<p className="ec-concert-stats__import-card-hint">
-						We&rsquo;ll match each show to events in our database. Shows we don&rsquo;t already have we&rsquo;ll add for you.
-						Large imports may take several days to complete due to { source.label } rate limits — we&rsquo;ll resume automatically.
+						We&rsquo;ll match each show to events in our database.
+						Shows we don&rsquo;t already have we&rsquo;ll add for
+						you. Large imports may take several days to complete due
+						to { source.label } rate limits — we&rsquo;ll resume
+						automatically.
 					</p>
 					<ActionRow align="end">
 						<button
@@ -147,13 +164,13 @@ const ImportSourceCard = ( { source, runs, onPreview, onStart } ) => {
 				</div>
 			) }
 
-			{ error && (
-				<InlineStatus tone="error">{ error }</InlineStatus>
-			) }
+			{ error && <InlineStatus tone="error">{ error }</InlineStatus> }
 
 			{ recentRuns.length > 0 && (
 				<div className="ec-concert-stats__import-card-history">
-					<h4 className="ec-concert-stats__import-card-history-title">Recent imports</h4>
+					<h4 className="ec-concert-stats__import-card-history-title">
+						Recent imports
+					</h4>
 					{ recentRuns.map( ( run ) => (
 						<ImportRunProgress key={ run.id } run={ run } />
 					) ) }

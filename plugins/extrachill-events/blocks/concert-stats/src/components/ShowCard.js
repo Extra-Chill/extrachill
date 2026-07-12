@@ -28,6 +28,9 @@
  * @package
  */
 
+/**
+ * Internal dependencies
+ */
 import { formatShortDate } from '../utils/formatDate';
 
 /**
@@ -59,7 +62,7 @@ const badgeClasses = ( taxonomy, slug ) => {
  * @param {Object}      props.term      Term object with `name`, `slug`, optional `url`.
  * @param {string}      props.className Base CSS class for the rendered element.
  * @param {string|null} props.taxonomy  Badge taxonomy: `venue` | `location`.
- * @return {JSX.Element|null} Rendered link/span, or null when nameless.
+ * @return {Element|null} Rendered link/span, or null when nameless.
  */
 const TermLink = ( { term, className, taxonomy = null } ) => {
 	if ( ! term || ! term.name ) {

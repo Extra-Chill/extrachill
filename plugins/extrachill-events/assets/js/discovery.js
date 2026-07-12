@@ -5,7 +5,7 @@
  * without a full page reload. Updates the URL, title, H1, breadcrumbs,
  * and active tab state client-side.
  *
- * @package ExtraChillEvents
+ * @package
  * @since 0.8.0
  */
 
@@ -13,7 +13,7 @@
 	'use strict';
 
 	/** Scope labels for title/H1 generation. */
-	var SCOPE_LABELS = {
+	const SCOPE_LABELS = {
 		tonight: 'Tonight',
 		'this-weekend': 'This Weekend',
 		'this-week': 'This Week',
@@ -22,48 +22,46 @@
 	document.addEventListener( 'DOMContentLoaded', init );
 
 	function init() {
-		var nav = document.querySelector( '.discovery-scope-nav' );
+		const nav = document.querySelector( '.discovery-scope-nav' );
 		if ( ! nav ) {
 			return;
 		}
 
 		nav.addEventListener( 'click', function ( e ) {
-			var link = e.target.closest( 'a[data-scope]' );
+			const link = e.target.closest( 'a[data-scope]' );
 			if ( ! link ) {
 				return;
 			}
 
 			e.preventDefault();
 
-			var scope = link.getAttribute( 'data-scope' );
-			var termId = nav.getAttribute( 'data-term-id' );
-			var termName = nav.getAttribute( 'data-term-name' );
-			var termLink = nav.getAttribute( 'data-term-link' );
-			var targetUrl = link.getAttribute( 'href' );
+			const scope = link.getAttribute( 'data-scope' );
+			const termId = nav.getAttribute( 'data-term-id' );
+			const termName = nav.getAttribute( 'data-term-name' );
+			const targetUrl = link.getAttribute( 'href' );
 
 			// Update active tab immediately for responsive feel.
 			updateActiveTab( nav, link );
 
 			// Update URL without reload.
-			window.history.pushState( { scope: scope }, '', targetUrl );
+			window.history.pushState( { scope }, '', targetUrl );
 
 			// Update page title and H1.
 			updatePageText( termName, scope );
 
 			// Fetch calendar events for new scope.
-			fetchScopedCalendar( scope, termId, termName, termLink );
+			fetchScopedCalendar( scope, termId );
 		} );
 
 		// Handle browser back/forward navigation.
 		window.addEventListener( 'popstate', function ( e ) {
 			if ( e.state && typeof e.state.scope === 'string' ) {
-				var scope = e.state.scope;
-				var termId = nav.getAttribute( 'data-term-id' );
-				var termName = nav.getAttribute( 'data-term-name' );
-				var termLink = nav.getAttribute( 'data-term-link' );
+				const scope = e.state.scope;
+				const termId = nav.getAttribute( 'data-term-id' );
+				const termName = nav.getAttribute( 'data-term-name' );
 
 				// Find the matching tab link.
-				var tabLink = nav.querySelector(
+				const tabLink = nav.querySelector(
 					'a[data-scope="' + scope + '"]'
 				);
 				if ( tabLink ) {
@@ -71,14 +69,14 @@
 				}
 
 				updatePageText( termName, scope );
-				fetchScopedCalendar( scope, termId, termName, termLink );
+				fetchScopedCalendar( scope, termId );
 			}
 		} );
 
 		// Set initial state for popstate support.
-		var activeLink = nav.querySelector( 'li.active a[data-scope]' );
+		const activeLink = nav.querySelector( 'li.active a[data-scope]' );
 		if ( activeLink ) {
-			var initialScope = activeLink.getAttribute( 'data-scope' );
+			const initialScope = activeLink.getAttribute( 'data-scope' );
 			window.history.replaceState(
 				{ scope: initialScope },
 				'',
@@ -89,20 +87,22 @@
 
 	/**
 	 * Update active tab styling.
+	 * @param {Element} nav        Scope-nav container element.
+	 * @param {Element} activeLink The tab link to mark active.
 	 */
 	function updateActiveTab( nav, activeLink ) {
 		// Remove active from all tabs.
-		var items = nav.querySelectorAll( 'li' );
-		for ( var i = 0; i < items.length; i++ ) {
+		const items = nav.querySelectorAll( 'li' );
+		for ( let i = 0; i < items.length; i++ ) {
 			items[ i ].classList.remove( 'active' );
-			var a = items[ i ].querySelector( 'a' );
+			const a = items[ i ].querySelector( 'a' );
 			if ( a ) {
 				a.removeAttribute( 'aria-current' );
 			}
 		}
 
 		// Set new active tab.
-		var li = activeLink.closest( 'li' );
+		const li = activeLink.closest( 'li' );
 		if ( li ) {
 			li.classList.add( 'active' );
 		}
@@ -111,22 +111,24 @@
 
 	/**
 	 * Update H1 and document title for the new scope.
+	 * @param {string} termName Location term display name.
+	 * @param {string} scope    Scope slug (e.g. 'tonight', 'this-weekend').
 	 */
 	function updatePageText( termName, scope ) {
-		var scopeLabel = SCOPE_LABELS[ scope ] || '';
-		var h1Text = scopeLabel
+		const scopeLabel = SCOPE_LABELS[ scope ] || '';
+		const h1Text = scopeLabel
 			? 'Live Music in ' + termName + ' ' + scopeLabel
 			: 'Live Music in ' + termName;
 
 		// Update H1.
-		var h1 = document.querySelector( '.page-title' );
+		const h1 = document.querySelector( '.page-title' );
 		if ( h1 ) {
 			h1.textContent = h1Text;
 		}
 
 		// Update document title.
-		var siteSuffix = ' – Extra Chill Events';
-		var titleBase = scopeLabel
+		const siteSuffix = ' – Extra Chill Events';
+		const titleBase = scopeLabel
 			? 'Live Music in ' + termName + ' ' + scopeLabel
 			: 'Live Music in ' + termName + ' Tonight & This Week';
 		document.title = titleBase + siteSuffix;
@@ -134,16 +136,18 @@
 
 	/**
 	 * Fetch scoped calendar events via REST API and swap DOM.
+	 * @param {string} scope  Scope slug (e.g. 'tonight', 'this-weekend').
+	 * @param {string} termId Location term ID to fetch events for.
 	 */
-	function fetchScopedCalendar( scope, termId, termName, termLink ) {
-		var calendar = document.querySelector(
+	function fetchScopedCalendar( scope, termId ) {
+		const calendar = document.querySelector(
 			'.data-machine-events-calendar'
 		);
 		if ( ! calendar ) {
 			return;
 		}
 
-		var content = calendar.querySelector(
+		const content = calendar.querySelector(
 			'.data-machine-events-content'
 		);
 		if ( ! content ) {
@@ -161,7 +165,7 @@
 		}
 
 		// Build REST API URL.
-		var params = new URLSearchParams();
+		const params = new URLSearchParams();
 		params.set( 'archive_taxonomy', 'location' );
 		params.set( 'archive_term_id', termId );
 		if ( scope ) {
@@ -169,23 +173,23 @@
 		}
 
 		// Preserve search/filter params from current URL.
-		var urlParams = new URLSearchParams( window.location.search );
-		var passthroughKeys = [ 'event_search', 'date_start', 'date_end' ];
+		const urlParams = new URLSearchParams( window.location.search );
+		const passthroughKeys = [ 'event_search', 'date_start', 'date_end' ];
 		passthroughKeys.forEach( function ( key ) {
-			var val = urlParams.get( key );
+			const val = urlParams.get( key );
 			if ( val ) {
 				params.set( key, val );
 			}
 		} );
 
 		// Taxonomy filters.
-		for ( var pair of urlParams.entries() ) {
+		for ( const pair of urlParams.entries() ) {
 			if ( pair[ 0 ].indexOf( 'tax_filter[' ) === 0 ) {
 				params.append( pair[ 0 ], pair[ 1 ] );
 			}
 		}
 
-		var apiUrl =
+		const apiUrl =
 			'/wp-json/datamachine/v1/events/calendar?' + params.toString();
 
 		fetch( apiUrl, {
@@ -213,7 +217,7 @@
 					// dispatch below. Without this, a scope-tab switch
 					// stacks a Load More button above re-injected
 					// numbered pagination on location archive pages.
-					var loadMoreNav = calendar.querySelector(
+					const loadMoreNav = calendar.querySelector(
 						'.data-machine-events-load-more-nav'
 					);
 					if ( loadMoreNav ) {
@@ -221,7 +225,7 @@
 					}
 
 					// Update pagination.
-					var paginationEl = calendar.querySelector(
+					const paginationEl = calendar.querySelector(
 						'.data-machine-events-pagination'
 					);
 					if ( data.pagination && data.pagination.html ) {
@@ -238,7 +242,7 @@
 					}
 
 					// Update counter.
-					var counterEl = calendar.querySelector(
+					const counterEl = calendar.querySelector(
 						'.data-machine-events-results-counter'
 					);
 					if ( data.counter ) {
@@ -255,7 +259,7 @@
 					}
 
 					// Update navigation.
-					var navEl = calendar.querySelector(
+					const navEl = calendar.querySelector(
 						'.data-machine-events-past-navigation'
 					);
 					if ( data.navigation && data.navigation.html ) {
@@ -292,14 +296,18 @@
 	 * rendering. After swapping the DOM, we dispatch a custom event that
 	 * the calendar's lazy-render module can listen for, or we simply
 	 * re-observe the new elements.
+	 * @param {Element} calendar The calendar container element.
 	 */
 	function triggerLazyRender( calendar ) {
 		// The calendar's own JS re-initializes via MutationObserver or
 		// we can dispatch a synthetic event for it to pick up.
-		var event = new CustomEvent( 'data-machine-calendar-content-updated', {
-			bubbles: true,
-			detail: { calendar: calendar },
-		} );
+		const event = new CustomEvent(
+			'data-machine-calendar-content-updated',
+			{
+				bubbles: true,
+				detail: { calendar },
+			}
+		);
 		calendar.dispatchEvent( event );
 	}
 } )();
