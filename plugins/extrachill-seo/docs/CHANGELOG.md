@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
+## [0.14.3] - 2026-07-12
+
+### Changed
+- migrate network settings menu to EXTRACHILL_NETWORK_MENU_SLUG (#44)
+- adopt shared Grid/.ec-card-grid primitive for Audit cards
+
+### Fixed
+- resolve PHPCS errors blocking release gate
+
 ## [0.14.2] - 2026-06-27
 
 ### Fixed
