@@ -285,6 +285,139 @@ function extrachill_analytics_backfill_apply( $table, $ids, $is_bot ) {
 	return $result;
 }
 
+/**
+ * Backfill correcting mis-stamped `is_bot:true` pageview rows.
+ *
+ * Issue #115: the `extrachill/track-page-view` ability runs inside a REST
+ * request, so the generic classifier's request_origin signal stamped every
+ * anonymous beacon pageview as bot. This migration finds pageview rows that
+ * carry a visitor_id (the JS beacon minted an ec_vid cookie) but are flagged
+ * `is_bot:true`, and re-stamps them `false`.
+ *
+ * Idempotent: once a row is stamped `false` it no longer matches the
+ * `JSON_EXTRACT(..., '$.is_bot') IS TRUE` predicate. A one-time network option
+ * guard prevents accidental re-runs; pass `skip_guard => true` to bypass.
+ *
+ * @param array $args {
+ *     Optional. Backfill parameters.
+ *
+ *     @type int      $blog_id    Restrict to a single blog id. 0 = all. Default 0.
+ *     @type int      $batch_size Rows processed per UPDATE loop. Default 2000.
+ *     @type bool     $live       When false (default) computes counts without
+ *                                writing. When true, performs the UPDATEs.
+ *     @type callable $progress   Optional callback( array $tick ) invoked after
+ *                                each batch with running totals for CLI output.
+ *     @type bool     $skip_guard Skip the one-time guard option. Default false.
+ * }
+ * @return array{
+ *     scanned: int,
+ *     corrected: int,
+ *     batches: int,
+ *     live: bool,
+ *     blog_id: int
+ * }
+ */
+function extrachill_analytics_backfill_fix_pageview_is_bot( $args = array() ) {
+	global $wpdb;
+
+	$defaults = array(
+		'blog_id'    => 0,
+		'batch_size' => 2000,
+		'live'       => false,
+		'progress'   => null,
+		'skip_guard' => false,
+	);
+
+	$args       = wp_parse_args( $args, $defaults );
+	$blog_id    = (int) $args['blog_id'];
+	$batch_size = max( 1, (int) $args['batch_size'] );
+	$live       = (bool) $args['live'];
+	$progress   = is_callable( $args['progress'] ) ? $args['progress'] : null;
+
+	$table = extrachill_analytics_events_table();
+
+	// Only pageview rows with a stored visitor_id and an explicit bot flag are
+	// candidates. visitor_id IS NOT NULL is the positive human signal: a real
+	// browser minted the ec_vid cookie before the beacon fired. The REST-origin
+	// stamp condemned these rows; this corrects it without touching rows that
+	// were already false or that lack a visitor_id.
+	$where  = array(
+		"event_type = 'pageview'",
+		'visitor_id IS NOT NULL',
+		"JSON_EXTRACT(event_data, '$.is_bot') IS TRUE",
+	);
+	$values = array();
+
+	if ( $blog_id > 0 ) {
+		$where[]  = 'blog_id = %d';
+		$values[] = $blog_id;
+	}
+
+	$totals = array(
+		'scanned'   => 0,
+		'corrected' => 0,
+		'batches'   => 0,
+		'live'      => $live,
+		'blog_id'   => $blog_id,
+	);
+
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+	// Cursor by id so a live run (which removes rows from the candidate set as it
+	// re-stamps them) and a dry run both make forward progress without re-reading
+	// the same rows.
+	$last_id = 0;
+
+	do {
+		$batch_where    = $where;
+		$batch_where[]  = 'id > %d';
+		$batch_values   = $values;
+		$batch_values[] = $last_id;
+		$batch_values[] = $batch_size;
+
+		$select_sql = "SELECT id FROM {$table} WHERE "
+			. implode( ' AND ', $batch_where )
+			. ' ORDER BY id ASC LIMIT %d';
+
+		$rows = $wpdb->get_results( $wpdb->prepare( $select_sql, $batch_values ) );
+
+		if ( empty( $rows ) ) {
+			break;
+		}
+
+		$ids = array();
+		foreach ( $rows as $row ) {
+			$last_id = (int) $row->id;
+			$ids[]   = (int) $row->id;
+		}
+
+		$totals['scanned']   += count( $rows );
+		$totals['corrected'] += count( $ids );
+		++$totals['batches'];
+
+		if ( $live && ! empty( $ids ) ) {
+			// Merge the corrected flag in with JSON_SET so every other event_data
+			// key is preserved. The WHERE clause repeats the candidate predicate
+			// so a concurrent write cannot flip a row back to true unnoticed, and
+			// so re-running the backfill is a no-op for already-corrected rows.
+			$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+			$sql          = "UPDATE {$table} "
+				. "SET event_data = JSON_SET(event_data, '$.is_bot', false) "
+				. "WHERE id IN ({$placeholders}) AND JSON_EXTRACT(event_data, '$.is_bot') IS TRUE";
+
+			$wpdb->query( $wpdb->prepare( $sql, $ids ) );
+		}
+
+		if ( $progress ) {
+			call_user_func( $progress, $totals );
+		}
+	} while ( count( $rows ) === $batch_size ); // phpcs:ignore Squiz.PHP.DisallowSizeFunctionsInLoops.Found -- $rows is a fresh paginated batch, so hoisting it would break loop termination.
+
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+	return $totals;
+}
+
 // -----------------------------------------------------------------------------
 // WP-CLI command
 // -----------------------------------------------------------------------------
@@ -399,4 +532,109 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	}
 
 	WP_CLI::add_command( 'extrachill-analytics backfill-isbot', 'extrachill_analytics_cli_backfill_isbot' );
+
+	/**
+	 * Correct mis-stamped is_bot:true pageview rows (issue #115).
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--blog=<id>]
+	 * : Restrict to a single blog id. 0 = network-wide (all blogs).
+	 * ---
+	 * default: 0
+	 * ---
+	 *
+	 * [--batch-size=<n>]
+	 * : Rows processed per batch loop.
+	 * ---
+	 * default: 2000
+	 * ---
+	 *
+	 * [--dry-run]
+	 * : Compute and report the projected count WITHOUT writing. This is the
+	 *   default; the flag is accepted for explicitness.
+	 *
+	 * [--live]
+	 * : Actually write the corrections. Without this flag the command is read-only.
+	 *
+	 * [--skip-guard]
+	 * : Skip the one-time network option guard that prevents accidental re-runs.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Dry-run the network-wide pageview correction (default, no writes).
+	 *     wp extrachill-analytics backfill-pageview-isbot
+	 *
+	 *     # Live correct pageviews for blog 1 only.
+	 *     wp extrachill-analytics backfill-pageview-isbot --live --blog=1
+	 *
+	 * @param array $pos_args   Positional args (unused).
+	 * @param array $assoc_args Flags.
+	 * @return void
+	 */
+	function extrachill_analytics_cli_backfill_pageview_isbot( $pos_args, $assoc_args ) {
+		$live       = isset( $assoc_args['live'] );
+		$blog_id    = isset( $assoc_args['blog'] ) ? (int) $assoc_args['blog'] : 0;
+		$batch_size = isset( $assoc_args['batch-size'] ) ? (int) $assoc_args['batch-size'] : 2000;
+		$skip_guard = isset( $assoc_args['skip-guard'] );
+
+		$guard_option = 'extrachill_analytics_backfill_pageview_isbot_115_done';
+
+		if ( ! $skip_guard && get_site_option( $guard_option ) ) {
+			WP_CLI::warning( 'Pageview is_bot backfill (#115) already ran. Use --skip-guard to re-run.' );
+			return;
+		}
+
+		WP_CLI::log(
+			sprintf(
+				'Pageview is_bot correction (#115) — blog=%s, batch_size=%d, mode=%s',
+				$blog_id > 0 ? (string) $blog_id : 'all',
+				$batch_size,
+				$live ? 'LIVE (writing)' : 'DRY-RUN (no writes)'
+			)
+		);
+
+		$progress = static function ( $tick ) {
+			WP_CLI::log(
+				sprintf(
+					'  batch %d — scanned %d, corrected %d',
+					$tick['batches'],
+					$tick['scanned'],
+					$tick['corrected']
+				)
+			);
+		};
+
+		$result = extrachill_analytics_backfill_fix_pageview_is_bot(
+			array(
+				'blog_id'    => $blog_id,
+				'batch_size' => $batch_size,
+				'live'       => $live,
+				'progress'   => $progress,
+				'skip_guard' => $skip_guard,
+			)
+		);
+
+		WP_CLI::log( '' );
+		WP_CLI::log(
+			sprintf(
+				'%s: %d rows %s in %d batch(es).',
+				$live ? 'CORRECTED' : 'WOULD CORRECT',
+				$result['corrected'],
+				$live ? 'corrected' : 'projected',
+				$result['batches']
+			)
+		);
+
+		if ( $live ) {
+			if ( ! $skip_guard ) {
+				update_site_option( $guard_option, true );
+			}
+			WP_CLI::success( 'Backfill complete.' );
+		} else {
+			WP_CLI::success( 'Dry-run complete. Re-run with --live to apply.' );
+		}
+	}
+
+	WP_CLI::add_command( 'extrachill-analytics backfill-pageview-isbot', 'extrachill_analytics_cli_backfill_pageview_isbot' );
 }

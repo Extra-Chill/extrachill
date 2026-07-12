@@ -140,6 +140,18 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 			}
 		}
 
+		// The write-time classifier in events.php treats request_origin as a
+		// bot signal for anonymous traffic, and a REST ability request like
+		// this beacon is detected as 'rest'. That would stamp every beacon
+		// pageview as is_bot:true even though this endpoint is, by construction,
+		// a browser-initiated fetch that already passed the UA-only gate above.
+		// Because the beacon knows its own caller class, supply the verdict
+		// explicitly here so the generic classifier's REST-origin policy does
+		// not condemn real human pageviews. The value is always false at this
+		// point: the surrounding `if ( ! $is_bot )` already rejected bot/empty
+		// UAs. See extrachill-analytics#115.
+		$event_data['is_bot'] = false;
+
 		extrachill_track_analytics_event(
 			defined( 'EC_ANALYTICS_EVENT_PAGEVIEW' ) ? EC_ANALYTICS_EVENT_PAGEVIEW : 'pageview',
 			$event_data,
