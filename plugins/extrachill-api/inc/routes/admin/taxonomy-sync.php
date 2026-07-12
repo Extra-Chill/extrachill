@@ -26,7 +26,9 @@ function extrachill_api_register_taxonomy_sync_routes() {
 				'target_sites' => array(
 					'required'          => true,
 					'type'              => 'array',
+					'items'             => array( 'type' => 'string' ),
 					'sanitize_callback' => 'extrachill_api_taxonomy_sync_sanitize_site_slugs',
+					'description'       => 'Target site slugs resolved by ec_get_blog_id().',
 				),
 				'taxonomies'   => array(
 					'required'          => true,
@@ -57,7 +59,13 @@ function extrachill_api_taxonomy_sync_sanitize_site_slugs( $value ) {
 
 	$site_slugs = array();
 	foreach ( $value as $site_slug ) {
+		if ( ! is_string( $site_slug ) ) {
+			continue;
+		}
 		$site_slug = sanitize_key( $site_slug );
+		if ( is_numeric( $site_slug ) ) {
+			continue;
+		}
 		if ( '' === $site_slug ) {
 			continue;
 		}
@@ -88,27 +96,183 @@ function extrachill_api_taxonomy_sync_sanitize_taxonomies( $value ) {
 /**
  * Syncs shared taxonomies from the main site to target sites.
  *
- * Wraps the extrachill/sync-taxonomies ability.
- *
  * @param WP_REST_Request $request The REST request object.
  * @return WP_REST_Response|WP_Error Response with sync report or error.
  */
 function extrachill_api_taxonomy_sync( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'extrachill/sync-taxonomies' );
-	if ( ! $ability ) {
-		return new WP_Error( 'ability_not_found', 'Taxonomy sync ability is not available.', array( 'status' => 500 ) );
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return new WP_Error( 'dependency_missing', 'Required function ec_get_blog_id() not available.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute(
-		array(
-			'target_sites' => $request->get_param( 'target_sites' ),
-			'taxonomies'   => $request->get_param( 'taxonomies' ),
-		)
+	$target_sites = $request->get_param( 'target_sites' );
+	$taxonomies   = $request->get_param( 'taxonomies' );
+
+	if ( empty( $target_sites ) || empty( $taxonomies ) ) {
+		return new WP_Error( 'invalid_params', 'Please select at least one target site and one taxonomy.', array( 'status' => 400 ) );
+	}
+
+	$target_blog_ids = array();
+	foreach ( $target_sites as $site_slug ) {
+		$blog_id = ec_get_blog_id( $site_slug );
+		if ( $blog_id ) {
+			$target_blog_ids[] = absint( $blog_id );
+		}
+	}
+
+	if ( empty( $target_blog_ids ) ) {
+		return new WP_Error( 'invalid_params', 'No valid target sites selected.', array( 'status' => 400 ) );
+	}
+
+	return rest_ensure_response( extrachill_api_perform_taxonomy_sync( $target_blog_ids, $taxonomies ) );
+}
+
+/**
+ * Group source terms by parent term ID.
+ *
+ * @param WP_Term[] $terms Terms to organize.
+ * @return array<int,WP_Term[]>
+ */
+function extrachill_api_organize_terms_by_parent( $terms ) {
+	$hierarchy = array();
+	foreach ( $terms as $term ) {
+		$parent_id                 = (int) $term->parent;
+		$hierarchy[ $parent_id ][] = $term;
+	}
+
+	return $hierarchy;
+}
+
+/**
+ * Sync one hierarchical term and its descendants.
+ *
+ * @param WP_Term $term                Source term.
+ * @param string  $taxonomy            Taxonomy slug.
+ * @param array   $hierarchy           Terms grouped by source parent ID.
+ * @param int     $parent_id_on_target Target parent term ID.
+ * @param array   $site_report         Per-site counters.
+ * @param array   $report              Aggregate counters.
+ */
+function extrachill_api_sync_term_recursive( $term, $taxonomy, $hierarchy, $parent_id_on_target, &$site_report, &$report ) {
+	++$report['total_terms_processed'];
+	$existing_term = term_exists( $term->slug, $taxonomy );
+
+	if ( $existing_term ) {
+		++$site_report['skipped'];
+		++$report['total_terms_skipped'];
+		$synced_term_id = is_array( $existing_term ) ? $existing_term['term_id'] : $existing_term;
+	} else {
+		$term_args = array(
+			'slug'        => $term->slug,
+			'description' => $term->description,
+		);
+		if ( $parent_id_on_target > 0 ) {
+			$term_args['parent'] = $parent_id_on_target;
+		}
+
+		$result = wp_insert_term( $term->name, $taxonomy, $term_args );
+		if ( is_wp_error( $result ) ) {
+			++$site_report['failed'];
+			return;
+		}
+
+		++$site_report['created'];
+		++$report['total_terms_created'];
+		$synced_term_id = $result['term_id'];
+	}
+
+	foreach ( $hierarchy[ $term->term_id ] ?? array() as $child_term ) {
+		extrachill_api_sync_term_recursive( $child_term, $taxonomy, $hierarchy, $synced_term_id, $site_report, $report );
+	}
+}
+
+/**
+ * Copy selected taxonomies from the main site to target blog IDs.
+ *
+ * @param int[]    $target_blog_ids Target blog IDs.
+ * @param string[] $taxonomies     Taxonomy slugs.
+ * @return array Sync report.
+ */
+function extrachill_api_perform_taxonomy_sync( $target_blog_ids, $taxonomies ) {
+	$source_blog_id = ec_get_blog_id( 'main' );
+	$report         = array(
+		'total_terms_processed' => 0,
+		'total_terms_created'   => 0,
+		'total_terms_skipped'   => 0,
+		'breakdown'             => array(),
 	);
 
-	if ( is_wp_error( $result ) ) {
-		return $result;
+	if ( ! $source_blog_id ) {
+		return $report;
 	}
 
-	return rest_ensure_response( $result );
+	foreach ( $taxonomies as $taxonomy ) {
+		try {
+			switch_to_blog( $source_blog_id );
+			$source_terms    = get_terms(
+				array(
+					'taxonomy'   => $taxonomy,
+					'hide_empty' => false,
+				)
+			);
+			$is_hierarchical = is_taxonomy_hierarchical( $taxonomy );
+		} finally {
+			restore_current_blog();
+		}
+
+		if ( is_wp_error( $source_terms ) || empty( $source_terms ) ) {
+			continue;
+		}
+
+		$report['breakdown'][ $taxonomy ] = array(
+			'source_terms' => count( $source_terms ),
+			'sites'        => array(),
+		);
+
+		foreach ( $target_blog_ids as $target_blog_id ) {
+			$site_report = array(
+				'created' => 0,
+				'skipped' => 0,
+				'failed'  => 0,
+			);
+			try {
+				switch_to_blog( $target_blog_id );
+				if ( $is_hierarchical ) {
+					$hierarchy = extrachill_api_organize_terms_by_parent( $source_terms );
+					foreach ( $hierarchy[0] ?? array() as $root_term ) {
+						extrachill_api_sync_term_recursive( $root_term, $taxonomy, $hierarchy, 0, $site_report, $report );
+					}
+				} else {
+					foreach ( $source_terms as $term ) {
+						++$report['total_terms_processed'];
+						if ( term_exists( $term->slug, $taxonomy ) ) {
+							++$site_report['skipped'];
+							++$report['total_terms_skipped'];
+							continue;
+						}
+
+						$result = wp_insert_term(
+							$term->name,
+							$taxonomy,
+							array(
+								'slug'        => $term->slug,
+								'description' => $term->description,
+							)
+						);
+						if ( is_wp_error( $result ) ) {
+							++$site_report['failed'];
+							continue;
+						}
+						++$site_report['created'];
+						++$report['total_terms_created'];
+					}
+				}
+			} finally {
+				restore_current_blog();
+			}
+
+			$report['breakdown'][ $taxonomy ]['sites'][ (string) $target_blog_id ] = $site_report;
+		}
+	}
+
+	return $report;
 }

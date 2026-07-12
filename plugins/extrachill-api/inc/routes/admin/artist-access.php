@@ -266,11 +266,11 @@ function extrachill_api_artist_access_email_approve( $request ) {
 	}
 
 	if ( ! empty( $result['skipped'] ) ) {
-		wp_safe_redirect( admin_url( 'tools.php?page=extrachill-admin-tools#artist-access-requests&already_approved=1' ) );
+		wp_safe_redirect( network_admin_url( 'users.php?page=extrachill-artist-access&already_approved=1' ) );
 		exit;
 	}
 
-	wp_safe_redirect( admin_url( 'tools.php?page=extrachill-admin-tools#artist-access-requests&approved=1' ) );
+	wp_safe_redirect( network_admin_url( 'users.php?page=extrachill-artist-access&approved=1' ) );
 	exit;
 }
 
