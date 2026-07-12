@@ -13,6 +13,7 @@
         "lint:php": "vendor/bin/phpcs --standard=WordPress *.php inc/",
         "lint:fix": "vendor/bin/phpcbf --standard=WordPress *.php inc/",
         "test": [
+            "php tests/homepage-event-markets.php",
             "@lint:php"
         ]
     },

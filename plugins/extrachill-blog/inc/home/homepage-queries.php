@@ -23,19 +23,58 @@ $latest_blog_posts = get_posts(
 /**
  * Get location terms with upcoming event counts from events.extrachill.com
  *
- * Uses internal REST API call to get top 8 locations with upcoming events,
- * sorted by event count descending.
+ * Uses the existing user-settings and upcoming-counts contracts to put an
+ * authenticated user's preferred market first. All failures retain the global
+ * top-eight response.
  *
  * @return array Array of location data: name, slug, count, url
  */
 function extrachill_blog_get_location_event_counts() {
-	$request = new WP_REST_Request( 'GET', '/extrachill/v1/events/upcoming-counts' );
-	$request->set_query_params(
+	$locations = extrachill_blog_request_location_event_counts(
 		array(
 			'taxonomy' => 'location',
 			'limit'    => 8,
 		)
 	);
+
+	if ( empty( $locations ) ) {
+		return array();
+	}
+
+	$preferred_slug = extrachill_blog_get_default_event_location_slug();
+	if ( '' === $preferred_slug ) {
+		return $locations;
+	}
+
+	foreach ( $locations as $location ) {
+		if ( isset( $location['slug'] ) && $preferred_slug === $location['slug'] ) {
+			return extrachill_blog_prioritize_event_market( $locations, $location );
+		}
+	}
+
+	$preferred = extrachill_blog_request_location_event_counts(
+		array(
+			'taxonomy' => 'location',
+			'slug'     => $preferred_slug,
+		)
+	);
+
+	if ( empty( $preferred[0] ) ) {
+		return $locations;
+	}
+
+	return extrachill_blog_prioritize_event_market( $locations, $preferred[0] );
+}
+
+/**
+ * Request upcoming location counts through the existing network REST contract.
+ *
+ * @param array $query Query parameters accepted by upcoming-counts.
+ * @return array[] Location count rows.
+ */
+function extrachill_blog_request_location_event_counts( $query ) {
+	$request = new WP_REST_Request( 'GET', '/extrachill/v1/events/upcoming-counts' );
+	$request->set_query_params( $query );
 
 	$response = rest_do_request( $request );
 
@@ -45,6 +84,74 @@ function extrachill_blog_get_location_event_counts() {
 
 	$data = $response->get_data();
 	return is_array( $data ) ? $data : array();
+}
+
+/**
+ * Read the authenticated user's canonical default event location.
+ *
+ * The preference is supplied by extrachill-users#179 through the existing
+ * self-only settings Ability. Its resolved object is canonicalized by the
+ * Events-owned extrachill/events-locations Ability; this consumer does not
+ * repeat taxonomy validation. Unavailable or malformed data intentionally
+ * fails open to global markets.
+ *
+ * @return string Canonical location slug, or an empty string.
+ */
+function extrachill_blog_get_default_event_location_slug() {
+	if (
+		! is_user_logged_in() ||
+		! function_exists( 'wp_has_ability' ) ||
+		! function_exists( 'wp_get_ability' ) ||
+		! wp_has_ability( 'extrachill/get-user-settings' )
+	) {
+		return '';
+	}
+
+	$ability = wp_get_ability( 'extrachill/get-user-settings' );
+	if ( ! $ability ) {
+		return '';
+	}
+
+	$settings = $ability->execute( array() );
+	if ( is_wp_error( $settings ) || ! is_array( $settings ) ) {
+		return '';
+	}
+
+	$location = $settings['default_event_location'] ?? null;
+	if ( ! is_array( $location ) || empty( $location['slug'] ) ) {
+		return '';
+	}
+
+	return (string) $location['slug'];
+}
+
+/**
+ * Lead market rows with a preferred location and remove duplicate slugs.
+ *
+ * @param array[] $locations Global market rows.
+ * @param array   $preferred Preferred market row.
+ * @return array[] At most eight market rows.
+ */
+function extrachill_blog_prioritize_event_market( $locations, $preferred ) {
+	if ( empty( $preferred['slug'] ) ) {
+		return array_slice( $locations, 0, 8 );
+	}
+
+	$preferred_slug = (string) $preferred['slug'];
+	$prioritized    = array( $preferred );
+
+	foreach ( $locations as $location ) {
+		if ( empty( $location['slug'] ) || $preferred_slug === (string) $location['slug'] ) {
+			continue;
+		}
+
+		$prioritized[] = $location;
+		if ( 8 === count( $prioritized ) ) {
+			break;
+		}
+	}
+
+	return $prioritized;
 }
 
 /**
