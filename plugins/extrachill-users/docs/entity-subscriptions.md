@@ -6,8 +6,8 @@ Entity subscriptions are private, network-wide update preferences for canonical 
 
 Authenticated users manage only their own records through:
 
-- `extrachill/subscribe`
-- `extrachill/unsubscribe`
+- `extrachill/entity-subscribe`
+- `extrachill/entity-unsubscribe`
 - `extrachill/entity-subscription-status`
 
 `extrachill/resolve-entity-subscription-recipients` is a non-REST ability restricted to network administrators. Runtime producers use the private PHP contract below instead.

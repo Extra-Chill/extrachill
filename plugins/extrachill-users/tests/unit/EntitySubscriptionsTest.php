@@ -35,10 +35,26 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 	}
 
 	public function test_abilities_include_private_recipient_resolution(): void {
-		$this->assertNotNull( wp_get_ability( 'extrachill/subscribe' ) );
-		$this->assertNotNull( wp_get_ability( 'extrachill/unsubscribe' ) );
+		$subscribe   = wp_get_ability( 'extrachill/entity-subscribe' );
+		$unsubscribe = wp_get_ability( 'extrachill/entity-unsubscribe' );
+
+		$this->assertNotNull( $subscribe );
+		$this->assertNotNull( $unsubscribe );
 		$this->assertNotNull( wp_get_ability( 'extrachill/entity-subscription-status' ) );
 		$this->assertNotNull( wp_get_ability( 'extrachill/resolve-entity-subscription-recipients' ) );
+
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		$result = $subscribe->execute(
+			array(
+				'entity_type' => 'festival',
+				'taxonomy'    => 'festival',
+				'slug'        => 'bonnaroo',
+			)
+		);
+
+		$this->assertSame( 'bonnaroo', $result['slug'] );
+		$this->assertTrue( $result['subscribed'] );
 	}
 
 	public function test_status_and_unsubscribe_are_self_contained(): void {

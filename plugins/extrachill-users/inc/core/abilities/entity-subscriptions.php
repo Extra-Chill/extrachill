@@ -28,8 +28,8 @@ function extrachill_users_register_entity_subscription_abilities(): void {
 
 	foreach (
 		array(
-			'subscribe'                  => 'Subscribe',
-			'unsubscribe'                => 'Unsubscribe',
+			'entity-subscribe'           => 'Subscribe to Entity',
+			'entity-unsubscribe'         => 'Unsubscribe from Entity',
 			'entity-subscription-status' => 'Get Entity Subscription Status',
 		) as $name => $label
 	) {
@@ -129,7 +129,7 @@ function extrachill_users_entity_subscription_ability( array $input, string $ope
  * @param array $input Ability input.
  * @return array|WP_Error
  */
-function extrachill_users_ability_subscribe( array $input ) {
+function extrachill_users_ability_entity_subscribe( array $input ) {
 	return extrachill_users_entity_subscription_ability( $input, 'subscribe' );
 }
 
@@ -139,7 +139,7 @@ function extrachill_users_ability_subscribe( array $input ) {
  * @param array $input Ability input.
  * @return array|WP_Error
  */
-function extrachill_users_ability_unsubscribe( array $input ) {
+function extrachill_users_ability_entity_unsubscribe( array $input ) {
 	return extrachill_users_entity_subscription_ability( $input, 'unsubscribe' );
 }
 
