@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.32.0] - 2026-07-12
+
+### Added
+- list public Local Scene members
+
 ## [0.31.0] - 2026-07-12
 
 ### Added
