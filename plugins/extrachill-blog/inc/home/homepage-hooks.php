@@ -25,10 +25,9 @@ function extrachill_blog_render_homepage() {
 	?>
 	<div class="home-network-grid">
 		<?php
-		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-artist-platform.php';
 		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-community.php';
+		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-artist-platform.php';
 		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-events.php';
-		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-wire.php';
 		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-docs.php';
 		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-about.php';
 		?>
@@ -47,11 +46,12 @@ function extrachill_blog_enqueue_home_styles() {
 
 	$css_path = EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/css/home.css';
 	if ( file_exists( $css_path ) ) {
+		$css_version = filemtime( $css_path );
 		wp_enqueue_style(
 			'extrachill-blog-home',
 			EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/home.css',
 			array( 'extrachill-root' ),
-			filemtime( $css_path )
+			false !== $css_version ? (string) $css_version : false
 		);
 	}
 }

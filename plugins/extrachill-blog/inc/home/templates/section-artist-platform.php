@@ -27,7 +27,7 @@ if ( $is_logged_in ) {
 	<p class="home-network-card-description">
 		The home for independent music on Extra Chill. Create your profile, build a custom link page, and track your growth with real-time analytics.
 	</p>
-	<div class="home-network-card-cta" style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap; justify-content: center;">
+	<div class="home-network-card-cta home-network-card-cta-row">
 		<?php if ( $is_logged_in && ! empty( $user_artist_ids ) ) : ?>
 			<a href="<?php echo esc_url( $artist_site_url . '/manage-artist/' ); ?>" class="button-1 button-medium">Manage Artists</a>
 		<?php elseif ( $is_logged_in && $can_create_artists ) : ?>

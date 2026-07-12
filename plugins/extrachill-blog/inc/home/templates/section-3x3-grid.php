@@ -1,120 +1,112 @@
 <?php
 /**
- * Homepage 3x3 Content Grid
+ * Homepage Live Network Grid
+ *
+ * Three columns ordered by freshness: Festival Wire dispatches (published
+ * daily, timestamped), latest blog stories (any category), and the
+ * newsletter subscribe form alongside live upcoming-event city counts.
  *
  * @package ExtraChillBlog
  * @since 0.1.0
  */
 
-global $live_reviews_posts, $interviews_posts;
+global $latest_blog_posts;
+
+$wire_items      = extrachill_blog_get_wire_latest( 4 );
+$wire_url        = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'wire' ) : 'https://wire.extrachill.com';
+$location_counts = extrachill_blog_get_location_event_counts();
+$events_url      = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'events' ) : 'https://events.extrachill.com';
 ?>
 <div class="full-width-breakout ec-edge-shell">
 	<div class="home-3x3-grid">
-	<!-- Interviews Column -->
+	<!-- Festival Wire Column: freshest surface on the network -->
 	<div class="home-3x3-col">
 		<div class="home-3x3-header">
-		<span class="home-3x3-label">Interviews</span>
-		<a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( get_category_link( 723 ) ); ?>">View All</a>
+		<span class="home-3x3-label"><?php esc_html_e( 'Festival Wire', 'extrachill-blog' ); ?></span>
+		<a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( $wire_url ); ?>"><?php esc_html_e( 'View All', 'extrachill-blog' ); ?></a>
 		</div>
 		<div class="home-3x3-list">
 		<?php
-		if ( ! empty( $interviews_posts ) ) :
-			foreach ( $interviews_posts as $interview_post ) :
-				$permalink = get_permalink( $interview_post->ID );
-				$title     = get_the_title( $interview_post->ID );
-				$date      = get_the_date( '', $interview_post->ID );
+		if ( ! empty( $wire_items ) ) :
+			foreach ( $wire_items as $wire_item ) :
 				?>
-			<a href="<?php echo esc_url( $permalink ); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php echo esc_attr( $title ); ?>">
-				<?php if ( has_post_thumbnail( $interview_post->ID ) ) : ?>
-				<span class="home-3x3-thumb"><?php echo get_the_post_thumbnail( $interview_post->ID, 'medium' ); ?></span>
-				<?php endif; ?>
-				<span class="home-3x3-title"><?php echo esc_html( $title ); ?></span>
-				<span class="home-3x3-meta"><?php echo esc_html( $date ); ?></span>
+			<a href="<?php echo esc_url( $wire_item['url'] ); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php echo esc_attr( $wire_item['title'] ); ?>">
+				<span class="home-3x3-title"><?php echo esc_html( $wire_item['title'] ); ?></span>
+				<span class="home-3x3-meta">
+					<?php
+					printf(
+						/* translators: %s: human-readable time difference, e.g. "3 hours" */
+						esc_html__( '%s ago', 'extrachill-blog' ),
+						esc_html( $wire_item['time_diff'] )
+					);
+					?>
+				</span>
 			</a>
 				<?php
 			endforeach;
 		else :
-				?>
-			<div class="home-3x3-card home-3x3-empty">No interviews yet.</div>
-					<?php endif; ?>
+			?>
+			<div class="home-3x3-card home-3x3-empty"><?php esc_html_e( 'No dispatches yet.', 'extrachill-blog' ); ?></div>
+		<?php endif; ?>
 		</div>
 	</div>
 
-	<!-- Live Reviews Column -->
+	<!-- Latest Stories Column -->
 	<div class="home-3x3-col">
 		<div class="home-3x3-header">
-		<span class="home-3x3-label">Live Reviews</span>
-		<a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( get_category_link( 2608 ) ); ?>">View All</a>
+		<span class="home-3x3-label"><?php esc_html_e( 'Latest Stories', 'extrachill-blog' ); ?></span>
+		<a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( home_url( '/blog/' ) ); ?>"><?php esc_html_e( 'View All', 'extrachill-blog' ); ?></a>
 		</div>
 		<div class="home-3x3-list">
 		<?php
-		if ( ! empty( $live_reviews_posts ) ) :
-			foreach ( $live_reviews_posts as $live_review_post ) :
-				$permalink = get_permalink( $live_review_post->ID );
-				$title     = get_the_title( $live_review_post->ID );
-				$date      = get_the_date( '', $live_review_post->ID );
+		if ( ! empty( $latest_blog_posts ) ) :
+			$story_index = 0;
+			foreach ( $latest_blog_posts as $story_post ) :
+				$story_permalink = get_permalink( $story_post->ID );
+				if ( false === $story_permalink ) {
+					$story_permalink = '';
+				}
+				$story_title = (string) get_the_title( $story_post->ID );
+				$story_date  = (string) get_the_date( '', $story_post->ID );
+				++$story_index;
 				?>
-			<a href="<?php echo esc_url( $permalink ); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php echo esc_attr( $title ); ?>">
-				<?php if ( has_post_thumbnail( $live_review_post->ID ) ) : ?>
-				<span class="home-3x3-thumb"><?php echo get_the_post_thumbnail( $live_review_post->ID, 'medium' ); ?></span>
+			<a href="<?php echo esc_url( $story_permalink ); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php echo esc_attr( $story_title ); ?>">
+				<?php if ( 1 === $story_index && has_post_thumbnail( $story_post->ID ) ) : ?>
+				<span class="home-3x3-thumb"><?php echo get_the_post_thumbnail( $story_post->ID, 'medium' ); ?></span>
 				<?php endif; ?>
-				<span class="home-3x3-title"><?php echo esc_html( $title ); ?></span>
-				<span class="home-3x3-meta"><?php echo esc_html( $date ); ?></span>
+				<span class="home-3x3-title"><?php echo esc_html( $story_title ); ?></span>
+				<span class="home-3x3-meta"><?php echo esc_html( $story_date ); ?></span>
 			</a>
 				<?php
 			endforeach;
 		else :
-				?>
-			<div class="home-3x3-card home-3x3-empty">No reviews yet.</div>
-					<?php endif; ?>
+			?>
+			<div class="home-3x3-card home-3x3-empty"><?php esc_html_e( 'No stories yet.', 'extrachill-blog' ); ?></div>
+		<?php endif; ?>
 		</div>
 	</div>
 
-	<!-- Right Column: Newsletter Subscribe + Recent Newsletters -->
+	<!-- Right Column: Newsletter Subscribe + Live Events by City -->
 	<div class="home-3x3-col home-3x3-col-newsletter">
 		<div class="home-3x3-stacked-section home-3x3-newsletter-form-section">
 			<?php do_action( 'extrachill_render_newsletter_form', 'homepage' ); ?>
 		</div>
 		<div class="home-3x3-stacked-section">
 			<div class="home-3x3-header">
-				<span class="home-3x3-label">Recent Newsletters</span>
-				<a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( ec_get_site_url( 'newsletter' ) ); ?>">View All</a>
+				<span class="home-3x3-label"><?php esc_html_e( 'Shows Near You', 'extrachill-blog' ); ?></span>
+				<a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( $events_url ); ?>"><?php esc_html_e( 'View All', 'extrachill-blog' ); ?></a>
 			</div>
-			<div class="home-3x3-list">
-			<?php
-			$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
-			if ( $newsletter_blog_id ) {
-				switch_to_blog( $newsletter_blog_id );
-			}
-			$newsletter_posts = get_posts(
-				array(
-					'numberposts' => 3,
-					'post_type'   => 'newsletter',
-				)
-			);
-
-			if ( ! empty( $newsletter_posts ) ) :
-				foreach ( $newsletter_posts as $newsletter ) :
-					$permalink        = get_permalink( $newsletter->ID );
-					$newsletter_title = get_the_title( $newsletter->ID );
-					$date             = get_the_date( '', $newsletter->ID );
-					?>
-				<a href="<?php echo esc_url( $permalink ); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php echo esc_attr( $newsletter_title ); ?>">
-					<span class="home-3x3-title"><?php echo esc_html( $newsletter_title ); ?></span>
-					<span class="home-3x3-meta">Sent <?php echo esc_html( $date ); ?></span>
-				</a>
-					<?php
-				endforeach;
-			else :
-				?>
-				<div class="home-3x3-card home-3x3-empty">No newsletters yet.</div>
+			<?php if ( ! empty( $location_counts ) ) : ?>
+				<div class="taxonomy-badges home-city-badges">
+					<?php foreach ( $location_counts as $location ) : ?>
+						<a href="<?php echo esc_url( $location['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $location['slug'] ); ?>">
+							<?php echo esc_html( $location['name'] ); ?> (<?php echo esc_html( $location['count'] ); ?>)
+						</a>
+					<?php endforeach; ?>
+				</div>
+			<?php else : ?>
+				<div class="home-3x3-card home-3x3-empty"><?php esc_html_e( 'Calendar loading — browse all events.', 'extrachill-blog' ); ?></div>
 			<?php endif; ?>
-			<?php
-			if ( $newsletter_blog_id ) {
-				restore_current_blog();
-			}
-			?>
-			</div>
 		</div>
 	</div>
 	</div>

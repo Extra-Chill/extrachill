@@ -2,27 +2,22 @@
 /**
  * Homepage Events Card
  *
+ * City badges with live counts render in the top grid ("Shows Near You"),
+ * so this card focuses on the mission + submission CTA.
+ *
  * @package ExtraChillBlog
  * @since 0.1.0
  */
 
-$location_counts = extrachill_blog_get_location_event_counts();
+$events_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'events' ) : 'https://events.extrachill.com';
 ?>
 <div class="home-network-card" aria-labelledby="events-header">
-	<h2 class="home-network-card-header" id="events-header">Events Calendar</h2>
+	<h2 class="home-network-card-header" id="events-header"><?php esc_html_e( 'Events Calendar', 'extrachill-blog' ); ?></h2>
 	<p class="home-network-card-description">
-		Discover concerts, festivals, and music events in your city. Organized by location, you can easily find events near you. For DIY artists, also submit your own events to share with the Extra Chill network.
+		<?php esc_html_e( 'Discover concerts, festivals, and music events in your city — free to browse, no login wall. DIY artists can submit their own events to share with the Extra Chill network.', 'extrachill-blog' ); ?>
 	</p>
-	<?php if ( ! empty( $location_counts ) ) : ?>
-		<div class="taxonomy-badges" style="justify-content: center;">
-			<?php foreach ( $location_counts as $location ) : ?>
-				<a href="<?php echo esc_url( $location['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $location['slug'] ); ?>">
-					<?php echo esc_html( $location['name'] ); ?> (<?php echo esc_html( $location['count'] ); ?>)
-				</a>
-			<?php endforeach; ?>
-		</div>
-	<?php endif; ?>
-	<div class="home-network-card-cta">
-		<a href="https://events.extrachill.com" class="button-2 button-medium">Browse Events</a>
+	<div class="home-network-card-cta home-network-card-cta-row">
+		<a href="<?php echo esc_url( $events_site_url ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Browse Events', 'extrachill-blog' ); ?></a>
+		<a href="<?php echo esc_url( trailingslashit( $events_site_url ) . 'submit' ); ?>" class="button-3 button-medium"><?php esc_html_e( 'Submit an Event', 'extrachill-blog' ); ?></a>
 	</div>
 </div>

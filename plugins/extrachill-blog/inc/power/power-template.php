@@ -188,8 +188,8 @@ function extrachill_blog_power_network_map() {
 				array(
 					array(
 						'key'      => 'community_members',
-						'singular' => __( 'member', 'extrachill-blog' ),
-						'plural'   => __( 'members', 'extrachill-blog' ),
+						'singular' => __( 'active member', 'extrachill-blog' ),
+						'plural'   => __( 'active members', 'extrachill-blog' ),
 					),
 					array(
 						'key'      => 'community_topics',
