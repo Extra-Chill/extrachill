@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.11.7] - 2026-07-12
+
+### Fixed
+- preserve ec_icon SVG chevron in breadcrumb trail output
+
 ## [2.11.6] - 2026-07-11
 
 ### Fixed
