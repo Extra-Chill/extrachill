@@ -12,6 +12,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+const EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY = '_extrachill_default_event_location';
+
 add_action( 'wp_abilities_api_init', 'extrachill_users_register_settings_abilities' );
 
 /**
@@ -24,7 +26,7 @@ function extrachill_users_register_settings_abilities() {
 		'extrachill/get-user-settings',
 		array(
 			'label'               => __( 'Get User Settings', 'extrachill-users' ),
-			'description'         => __( 'Retrieve account settings for a user: name, display name, email, pending email.', 'extrachill-users' ),
+			'description'         => __( 'Retrieve private account settings for the authenticated user.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -54,9 +56,13 @@ function extrachill_users_register_settings_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'first_name'   => array( 'type' => 'string' ),
-					'last_name'    => array( 'type' => 'string' ),
-					'display_name' => array( 'type' => 'string' ),
+					'first_name'             => array( 'type' => 'string' ),
+					'last_name'              => array( 'type' => 'string' ),
+					'display_name'           => array( 'type' => 'string' ),
+					'default_event_location' => array(
+						'type'        => 'string',
+						'description' => __( 'Canonical events location slug. Pass an empty string to clear it.', 'extrachill-users' ),
+					),
 				),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
@@ -168,21 +174,31 @@ function extrachill_users_ability_get_settings() {
 	$display_name_options = array_unique( array_filter( array_map( 'trim', $display_name_options ) ) );
 
 	// Pending email change — WordPress core uses '_new_email' meta key.
-	// (The old community settings page incorrectly read '_new_user_email'.)
+	// The old community settings page incorrectly read '_new_user_email'.
 	$pending_email      = null;
 	$pending_email_data = get_user_meta( $user_id, '_new_email', true );
 	if ( $pending_email_data && isset( $pending_email_data['newemail'] ) ) {
 		$pending_email = $pending_email_data['newemail'];
 	}
 
+	$default_event_location_slug = (string) get_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, true );
+	$default_event_location      = null;
+	if ( '' !== $default_event_location_slug ) {
+		$default_event_location = extrachill_users_resolve_default_event_location( $default_event_location_slug );
+		if ( is_wp_error( $default_event_location ) ) {
+			$default_event_location = null;
+		}
+	}
+
 	return array(
-		'user_id'              => $user_id,
-		'first_name'           => $user->first_name,
-		'last_name'            => $user->last_name,
-		'display_name'         => $user->display_name,
-		'display_name_options' => array_values( $display_name_options ),
-		'email'                => $user->user_email,
-		'pending_email'        => $pending_email,
+		'user_id'                => $user_id,
+		'first_name'             => $user->first_name,
+		'last_name'              => $user->last_name,
+		'display_name'           => $user->display_name,
+		'display_name_options'   => array_values( $display_name_options ),
+		'email'                  => $user->user_email,
+		'pending_email'          => $pending_email,
+		'default_event_location' => $default_event_location,
 	);
 }
 
@@ -204,8 +220,9 @@ function extrachill_users_ability_update_settings( $input ) {
 		return new WP_Error( 'user_not_found', 'User not found.' );
 	}
 
-	$update_args = array( 'ID' => $user_id );
-	$changed     = false;
+	$update_args            = array( 'ID' => $user_id );
+	$changed                = false;
+	$location_input_present = array_key_exists( 'default_event_location', $input );
 
 	if ( isset( $input['first_name'] ) ) {
 		$first_name = sanitize_text_field( $input['first_name'] );
@@ -231,7 +248,33 @@ function extrachill_users_ability_update_settings( $input ) {
 		}
 	}
 
+	if ( $location_input_present ) {
+		$location_slug = sanitize_title( (string) $input['default_event_location'] );
+		$current_slug  = (string) get_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, true );
+
+		if ( '' === $location_slug ) {
+			if ( '' !== $current_slug ) {
+				delete_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY );
+				$changed = true;
+			}
+		} else {
+			$location = extrachill_users_resolve_default_event_location( $location_slug );
+			if ( is_wp_error( $location ) ) {
+				return $location;
+			}
+
+			if ( $location_slug !== $current_slug ) {
+				update_user_meta( $user_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, $location_slug );
+				$changed = true;
+			}
+		}
+	}
+
 	if ( ! $changed ) {
+		if ( $location_input_present ) {
+			return extrachill_users_ability_get_settings();
+		}
+
 		return array(
 			'success' => true,
 			'message' => 'No changes detected.',
@@ -247,6 +290,44 @@ function extrachill_users_ability_update_settings( $input ) {
 
 	// Return fresh settings data (resolves the same authenticated user).
 	return extrachill_users_ability_get_settings();
+}
+
+/**
+ * Resolve a canonical location through the Events domain's public Ability.
+ *
+ * @param string $slug Location term slug.
+ * @return array|WP_Error Resolved location or dependency/validation error.
+ */
+function extrachill_users_resolve_default_event_location( string $slug ) {
+	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/events-locations' ) : null;
+	if ( ! $ability ) {
+		return new WP_Error(
+			'events_locations_unavailable',
+			__( 'Canonical event locations are currently unavailable.', 'extrachill-users' ),
+			array( 'status' => 503 )
+		);
+	}
+
+	$result = $ability->execute(
+		array(
+			'mode' => 'resolve',
+			'slug' => $slug,
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	if ( ! is_array( $result ) || ! isset( $result['location'] ) || ! is_array( $result['location'] ) ) {
+		return new WP_Error(
+			'events_locations_invalid_response',
+			__( 'Canonical event locations returned an invalid response.', 'extrachill-users' ),
+			array( 'status' => 502 )
+		);
+	}
+
+	return $result['location'];
 }
 
 /**
