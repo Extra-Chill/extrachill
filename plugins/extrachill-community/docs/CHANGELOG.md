@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.17.0] - 2026-07-12
+
+### Added
+- heatmap year navigation back to the user's join year
+
 ## [1.16.3] - 2026-07-12
 
 ### Fixed
