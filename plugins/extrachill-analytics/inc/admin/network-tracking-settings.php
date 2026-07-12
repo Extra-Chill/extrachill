@@ -12,13 +12,13 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'network_admin_menu', 'extrachill_analytics_add_tracking_network_menu', 30 );
 
 /**
- * Add Tracking submenu under Extra Chill Multisite.
+ * Add Tracking submenu under Extra Chill Network.
  *
  * @return void
  */
 function extrachill_analytics_add_tracking_network_menu() {
 	add_submenu_page(
-		'extrachill-multisite',
+		defined( 'EXTRACHILL_NETWORK_MENU_SLUG' ) ? EXTRACHILL_NETWORK_MENU_SLUG : 'extrachill-network',
 		'Tracking',
 		'Tracking',
 		'manage_network_options',

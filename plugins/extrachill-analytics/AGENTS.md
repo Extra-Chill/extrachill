@@ -82,7 +82,7 @@ $views = ec_get_post_views($post_id);
 **Pattern**: WordPress multisite submenu page pattern with asset loading restrictions.
 
 **Menu Structure**:
-- Parent: `extrachill-multisite` (defined by extrachill-multisite plugin)
+- Parent: `EXTRACHILL_NETWORK_MENU_SLUG` (`extrachill-network`, defined by extrachill-network plugin, with literal fallback)
 - Page: `extrachill-analytics`
 - Capability: `manage_network_options`
 
@@ -90,7 +90,7 @@ $views = ec_get_post_views($post_id);
 
 **Asset Loading**: Only loads on specific submenu page via hook parameter check:
 ```php
-if ('extrachill-multisite_page_extrachill-analytics' !== $hook) {
+if ('extra-chill-network_page_extrachill-analytics' !== $hook) {
     return;
 }
 ```

@@ -2,7 +2,7 @@
 /**
  * Network Admin Menu Integration
  *
- * Registers the analytics submenu under Extra Chill Multisite.
+ * Registers the analytics submenu under Extra Chill Network.
  *
  * @package ExtraChill\Analytics
  */
@@ -10,11 +10,11 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Add submenu page to Extra Chill Multisite menu.
+ * Add submenu page to Extra Chill Network menu.
  */
 function extrachill_analytics_add_network_menu() {
 	add_submenu_page(
-		'extrachill-multisite',
+		defined( 'EXTRACHILL_NETWORK_MENU_SLUG' ) ? EXTRACHILL_NETWORK_MENU_SLUG : 'extrachill-network',
 		'Analytics',
 		'Analytics',
 		'manage_network_options',
@@ -42,7 +42,7 @@ function extrachill_analytics_render_admin_page() {
  * Enqueue admin assets for the analytics page.
  */
 function extrachill_analytics_enqueue_admin_assets( $hook ) {
-	if ( 'extra-chill-multisite_page_extrachill-analytics' !== $hook ) {
+	if ( 'extra-chill-network_page_extrachill-analytics' !== $hook ) {
 		return;
 	}
 
