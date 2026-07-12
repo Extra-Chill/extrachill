@@ -4,10 +4,10 @@
  *
  * THE crosslink ops-pass targeting instrument. It does not measure anything new
  * — it JOINS two instruments that already exist and answers the only question a
- * crosslink pass actually needs: *which blog-1 editorial articles are
+ * inbound crosslink pass actually needs: *which blog-1 editorial articles are
  * simultaneously (a) proven journey entry points that visitors return through,
- * and (b) orphaned or thinly-linked in the internal link graph, so that adding
- * an internal link to a forward platform surface would do the most good?*
+ * and (b) orphaned or thinly-linked in the internal link graph, so editors can
+ * prioritize adding contextual links TO those high-value publication pages?*
  *
  * The two instruments it joins (and deliberately does NOT reimplement):
  *
@@ -46,13 +46,13 @@
  * it owns none of the link-graph math. The funnel math stays in
  * get-conversion-map; the graph math stays in InternalLinkingAbilities.
  *
- * OUTPUT is a ranked, dry-run targeting list. Each row is a blog-1 article that
+ * OUTPUT is a ranked, dry-run inbound targeting list. Each row is a blog-1
+ * article that
  * scored high on returning-journey volume AND is orphaned / low-inbound, tagged
  * with its category (so residual song-meaning / music-history SEO equity is
- * visible) and a suggested forward surface (events / community) to route the new
- * crosslink toward. This is precisely the list the crosslink hook
- * (data-machine#2727 + multisite#64) consumes — it does not itself insert any
- * link; it is the targeting pass, not the write pass.
+ * visible). The report identifies valuable destinations needing contextual
+ * links TO them; it neither identifies source-page candidates nor prescribes
+ * outbound destinations. It does not itself insert any link.
  *
  * HONEST BY CONSTRUCTION: an empty or tiny list IS a finding (either the funnel
  * window holds no returning article journeys yet, or the catalog is already
@@ -72,8 +72,8 @@ function extrachill_analytics_register_crosslink_targets_ability() {
 	wp_register_ability(
 		'extrachill/get-crosslink-targets',
 		array(
-			'label'               => __( 'Get Crosslink Targets', 'extrachill-analytics' ),
-			'description'         => __( 'Ranked, dry-run crosslink ops-pass targeting list. JOINs the get-conversion-map per-article journey ranking with the Data Machine internal link graph: blog-1 articles that are simultaneously high on returning-journey volume AND orphaned / low-inbound, tagged with category and a suggested forward surface (events/community) to route a new internal link toward. Consults — never duplicates — the link-graph primitive.', 'extrachill-analytics' ),
+			'label'               => __( 'Get Inbound Crosslink Targets', 'extrachill-analytics' ),
+			'description'         => __( 'Ranked, dry-run list of high-value blog-1 publication pages needing contextual links TO them. JOINs the get-conversion-map per-article journey ranking with the Data Machine internal link graph to prioritize returning-journey entry pages that are orphaned or low-inbound. It does not identify source-page candidates or prescribe outbound destinations. Consults — never duplicates — the link-graph primitive.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -117,7 +117,7 @@ function extrachill_analytics_register_crosslink_targets_ability() {
 			),
 			'output_schema'       => array(
 				'type'        => 'object',
-				'description' => __( 'Object with the ranked crosslink targets, the join inputs (conversion + link-graph), and the exact window. The link_graph block reports inbound_orphan_count (zero-INBOUND orphans, orphan_definition=zero_inbound) — NOT comparable to the zero-OUTBOUND posts_without_links count from `wp datamachine links diagnose`.', 'extrachill-analytics' ),
+				'description' => __( 'Object with ranked high-value publication pages needing contextual links TO them, the join inputs (conversion + link-graph), and the exact window. Target rows do not identify source-page candidates or prescribe outbound destinations. The link_graph block reports inbound_orphan_count (zero-INBOUND orphans, orphan_definition=zero_inbound) — NOT comparable to the zero-OUTBOUND posts_without_links count from `wp datamachine links diagnose`.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_crosslink_targets',
 			'permission_callback' => function () {
@@ -151,8 +151,9 @@ function extrachill_analytics_register_crosslink_targets_ability() {
  *
  * The join keeps only articles that returning visitors actually re-enter
  * (min_returned) AND that are orphaned / low-inbound (<= max_inbound), ranks
- * them by a crosslink-opportunity score, and tags each with its category and a
- * suggested forward surface.
+ * them by an inbound crosslink-opportunity score and tags each with its
+ * category. The result identifies destinations needing links TO them; it cannot
+ * prove contextual source-page candidates.
  *
  * @param array $input Input parameters.
  * @return array Ranked crosslink targeting list.
@@ -223,17 +224,7 @@ function extrachill_analytics_ability_get_crosslink_targets( $input ) {
 			continue;
 		}
 
-		$category    = extrachill_analytics_crosslink_primary_category( $article );
-		$same_events = (float) ( $article['same_session']['events'] ?? 0 );
-		$same_comm   = (float) ( $article['same_session']['community'] ?? 0 );
-		$ret_events  = (float) ( $article['return']['events'] ?? 0 );
-		$ret_comm    = (float) ( $article['return']['community'] ?? 0 );
-
-		$surface = extrachill_analytics_crosslink_suggest_surface(
-			$category,
-			$same_events + $ret_events,
-			$same_comm + $ret_comm
-		);
+		$category = extrachill_analytics_crosslink_primary_category( $article );
 
 		// Crosslink-opportunity score: returning-journey volume weighted up for
 		// orphans (an orphan with returning traffic is the highest-value target,
@@ -242,18 +233,17 @@ function extrachill_analytics_ability_get_crosslink_targets( $input ) {
 		$score = round( $returned * ( 1 / ( $inbound + 1 ) ), 2 );
 
 		$targets[] = array(
-			'post_id'           => $post_id,
-			'title'             => (string) ( $article['title'] ?? '(unknown)' ),
-			'slug'              => (string) ( $article['slug'] ?? '' ),
-			'category'          => $category,
-			'entry_sessions'    => (int) ( $article['entry_sessions'] ?? 0 ),
-			'returned'          => $returned,
-			'returned_rate'     => (float) ( $article['returned_rate'] ?? 0 ),
-			'reached_any'       => (int) ( $article['reached_any'] ?? 0 ),
-			'inbound_links'     => (int) $inbound,
-			'orphan'            => $is_orphan,
-			'suggested_surface' => $surface,
-			'score'             => $score,
+			'post_id'        => $post_id,
+			'title'          => (string) ( $article['title'] ?? '(unknown)' ),
+			'slug'           => (string) ( $article['slug'] ?? '' ),
+			'category'       => $category,
+			'entry_sessions' => (int) ( $article['entry_sessions'] ?? 0 ),
+			'returned'       => $returned,
+			'returned_rate'  => (float) ( $article['returned_rate'] ?? 0 ),
+			'reached_any'    => (int) ( $article['reached_any'] ?? 0 ),
+			'inbound_links'  => (int) $inbound,
+			'orphan'         => $is_orphan,
+			'score'          => $score,
 		);
 	}
 
@@ -272,7 +262,7 @@ function extrachill_analytics_ability_get_crosslink_targets( $input ) {
 	$targets = array_slice( $targets, 0, $limit );
 
 	$note = sprintf(
-		'Crosslink ops-pass targeting list — the JOIN of two existing instruments, not a new measurement. Source A: extrachill/get-conversion-map per-article journey ranking (%d articles scanned, %d-day window). Source B: Data Machine internal link graph (consulted read-only via InternalLinkingAbilities::auditInternalLinks — %s). A target is a blog-1 article that returning visitors re-enter (returned >= %d) AND that the link graph reports orphaned or low-inbound (inbound <= %d). score = returned * 1/(inbound+1): an orphan with returning traffic ranks highest. suggested_surface routes the new internal link toward the forward platform surface (events/community) the article is closest to / weakest on. ORPHAN DEFINITION: "orphan" here means zero INBOUND links (nothing links TO the post), per the link-graph primitive. This is NOT the same metric as `wp datamachine links diagnose`, whose "posts_without_links" counts zero-OUTBOUND posts (the post links to nothing). The two count opposite edges of the link graph and are not comparable — a difference between them is not movement. This is a DRY-RUN list — it inserts no links; it is the targeting pass the crosslink hook consumes. An empty or short list is itself the finding (no returning article journeys in window, or the catalog is already well-linked) — not a bug.',
+		'Inbound crosslink targeting list — the JOIN of two existing instruments, not a new measurement. Source A: extrachill/get-conversion-map per-article journey ranking (%d articles scanned, %d-day window). Source B: Data Machine internal link graph (consulted read-only via InternalLinkingAbilities::auditInternalLinks — %s). A target is a high-value blog-1 publication page that returning visitors re-enter (returned >= %d) AND that the link graph reports orphaned or low-inbound (inbound <= %d). score = returned * 1/(inbound+1): an orphan with returning traffic ranks highest. These are destinations needing contextual links TO them; this report does not prove source-page candidates or prescribe outbound destinations. ORPHAN DEFINITION: "orphan" here means zero INBOUND links (nothing links TO the post), per the link-graph primitive. This is NOT the same metric as `wp datamachine links diagnose`, whose "posts_without_links" counts zero-OUTBOUND posts (the post links to nothing). The two count opposite edges of the link graph and are not comparable — a difference between them is not movement. This is a DRY-RUN list — it inserts no links. An empty or short list is itself the finding (no returning article journeys in window, or the catalog is already well-linked) — not a bug.',
 		$scanned,
 		$days,
 		$graph_note,
@@ -297,7 +287,7 @@ function extrachill_analytics_ability_get_crosslink_targets( $input ) {
 			'orphan_definition'    => 'zero_inbound',
 			// Deprecated alias kept for back-compat with existing readers. Prefer
 			// inbound_orphan_count — the bare name conflates with links diagnose's
-			// zero-outbound count. @deprecated since 0.14.1
+			// zero-outbound count. @deprecated since 0.14.1.
 			'orphan_count'         => $graph_orphan_cnt,
 		),
 		'days'             => $days,
@@ -480,40 +470,4 @@ function extrachill_analytics_crosslink_primary_category( $article ) {
 	}
 
 	return '';
-}
-
-/**
- * Suggest the forward platform surface to route a crosslink toward.
- *
- * Heuristic, deliberately simple and documented: route toward the surface the
- * article is WEAKEST on (lowest current reach), because that is where a new
- * crosslink has the most headroom to convert returning visitors. Category is a
- * light tiebreaker — show/festival/event-flavored categories lean events;
- * everything else leans community (the durable-stickiness surface). The
- * crosslink hook is free to override; this is a suggestion, not a mandate.
- *
- * @param string $category      Article primary category name.
- * @param float  $events_reach  Combined same+return events reach rate (0..1).
- * @param float  $community_reach Combined same+return community reach rate (0..1).
- * @return string 'events' or 'community'.
- */
-function extrachill_analytics_crosslink_suggest_surface( $category, $events_reach, $community_reach ) {
-	// Lowest current reach = most headroom. If reach is tied (commonly both 0
-	// in the siloed-front-door state), fall back to the category lean.
-	if ( $events_reach < $community_reach ) {
-		return 'events';
-	}
-	if ( $community_reach < $events_reach ) {
-		return 'community';
-	}
-
-	$cat             = strtolower( (string) $category );
-	$events_flavored = array( 'show', 'shows', 'festival', 'festivals', 'event', 'events', 'concert', 'concerts', 'live', 'tour', 'tours' );
-	foreach ( $events_flavored as $needle ) {
-		if ( '' !== $cat && false !== strpos( $cat, $needle ) ) {
-			return 'events';
-		}
-	}
-
-	return 'community';
 }
