@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.14.0] - 2026-07-12
+
+### Added
+- adopt canonical Local Scene
+
 ## [1.13.2] - 2026-07-12
 
 ### Fixed
