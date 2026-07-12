@@ -31,6 +31,10 @@
 	border-left-color: var(--link-color);
 }
 
+.festival-pillar-route-community {
+	border-left-color: var(--accent-3);
+}
+
 .festival-pillar-route-kicker,
 .festival-pillar-coverage-header p {
 	margin: 0;

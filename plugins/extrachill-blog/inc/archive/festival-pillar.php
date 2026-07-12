@@ -60,7 +60,7 @@ function extrachill_blog_render_festival_network_routes() {
 		}
 	}
 
-	if ( empty( $links['wire'] ) && empty( $links['events'] ) ) {
+	if ( empty( $links['wire'] ) && empty( $links['events'] ) && empty( $links['community'] ) ) {
 		return;
 	}
 
@@ -74,6 +74,10 @@ function extrachill_blog_render_festival_network_routes() {
 	$events_title = sprintf( __( 'Upcoming %s dates', 'extrachill-blog' ), $term->name );
 	/* translators: %s: number of upcoming events. */
 	$events_count = ! empty( $links['events'] ) ? sprintf( _n( '%s upcoming event', '%s upcoming events', (int) $links['events']['count'], 'extrachill-blog' ), number_format_i18n( (int) $links['events']['count'] ) ) : '';
+	/* translators: %s: festival name. */
+	$community_title = sprintf( __( 'Discuss %s with the community', 'extrachill-blog' ), $term->name );
+	/* translators: %s: number of Community topics. */
+	$community_count = ! empty( $links['community'] ) ? sprintf( _n( '%s festival discussion', '%s festival discussions', (int) $links['community']['count'], 'extrachill-blog' ), number_format_i18n( (int) $links['community']['count'] ) ) : '';
 	?>
 	<nav class="festival-pillar-routes" aria-label="<?php echo esc_attr( $navigation_label ); ?>">
 		<?php if ( ! empty( $links['wire'] ) ) : ?>
@@ -89,6 +93,14 @@ function extrachill_blog_render_festival_network_routes() {
 				<span class="festival-pillar-route-kicker"><?php esc_html_e( 'Events', 'extrachill-blog' ); ?></span>
 				<strong><?php echo esc_html( $events_title ); ?></strong>
 				<span><?php echo esc_html( $events_count ); ?></span>
+			</a>
+		<?php endif; ?>
+
+		<?php if ( ! empty( $links['community'] ) ) : ?>
+			<a class="festival-pillar-route festival-pillar-route-community" href="<?php echo esc_url( $links['community']['url'] ); ?>">
+				<span class="festival-pillar-route-kicker"><?php esc_html_e( 'Community', 'extrachill-blog' ); ?></span>
+				<strong><?php echo esc_html( $community_title ); ?></strong>
+				<span><?php echo esc_html( $community_count ); ?></span>
 			</a>
 		<?php endif; ?>
 	</nav>
