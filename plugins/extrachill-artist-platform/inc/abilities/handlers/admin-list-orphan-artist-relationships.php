@@ -18,13 +18,10 @@ defined( 'ABSPATH' ) || exit;
  * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_admin_list_orphan_artist_relationships( array $input ): array|WP_Error {
-	$response = extrachill_api_get_orphaned_relationships();
-
-	if ( is_wp_error( $response ) ) {
-		return $response;
+	$orphans = ec_get_orphaned_artist_relationships();
+	if ( is_wp_error( $orphans ) ) {
+		return $orphans;
 	}
 
-	$data = $response instanceof WP_REST_Response ? $response->get_data() : (array) $response;
-
-	return is_array( $data ) ? $data : array( 'orphans' => array() );
+	return array( 'orphans' => $orphans );
 }

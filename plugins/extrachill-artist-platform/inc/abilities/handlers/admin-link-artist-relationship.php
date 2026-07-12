@@ -29,17 +29,14 @@ function extrachill_artist_platform_ability_admin_link_artist_relationship( arra
 		);
 	}
 
-	$request = new WP_REST_Request( 'POST', '/extrachill/v1/admin/artist-relationships/link' );
-	$request->set_param( 'user_id', (int) $input['user_id'] );
-	$request->set_param( 'artist_id', (int) $input['artist_id'] );
-
-	$response = extrachill_api_link_user_to_artist( $request );
-
-	if ( is_wp_error( $response ) ) {
-		return $response;
+	$user_id   = (int) $input['user_id'];
+	$artist_id = (int) $input['artist_id'];
+	if ( ! get_userdata( $user_id ) ) {
+		return new WP_Error( 'invalid_user', __( 'User not found.', 'extrachill-artist-platform' ), array( 'status' => 404 ) );
+	}
+	if ( ! ec_add_artist_membership( $user_id, $artist_id ) ) {
+		return new WP_Error( 'invalid_artist', __( 'Artist profile not found.', 'extrachill-artist-platform' ), array( 'status' => 404 ) );
 	}
 
-	$data = $response instanceof WP_REST_Response ? $response->get_data() : (array) $response;
-
-	return is_array( $data ) ? $data : array( 'success' => true );
+	return array( 'success' => true );
 }

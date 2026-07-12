@@ -24,17 +24,10 @@ function extrachill_artist_platform_ability_admin_list_artist_relationships( arr
 	$view   = isset( $input['view'] ) ? sanitize_text_field( $input['view'] ) : 'artists';
 	$search = isset( $input['search'] ) ? sanitize_text_field( $input['search'] ) : '';
 
-	$request = new WP_REST_Request( 'GET', '/extrachill/v1/admin/artist-relationships' );
-	$request->set_param( 'view', $view );
-	$request->set_param( 'search', $search );
-
-	$response = extrachill_api_get_artist_relationships( $request );
-
-	if ( is_wp_error( $response ) ) {
-		return $response;
+	$items = ec_get_artist_relationships_for_admin( $view, $search );
+	if ( is_wp_error( $items ) ) {
+		return $items;
 	}
 
-	$data = $response instanceof WP_REST_Response ? $response->get_data() : (array) $response;
-
-	return is_array( $data ) ? $data : array( 'items' => array() );
+	return array( 'items' => $items );
 }

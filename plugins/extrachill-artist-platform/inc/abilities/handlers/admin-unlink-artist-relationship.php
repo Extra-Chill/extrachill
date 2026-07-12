@@ -29,17 +29,7 @@ function extrachill_artist_platform_ability_admin_unlink_artist_relationship( ar
 		);
 	}
 
-	$request = new WP_REST_Request( 'POST', '/extrachill/v1/admin/artist-relationships/unlink' );
-	$request->set_param( 'user_id', (int) $input['user_id'] );
-	$request->set_param( 'artist_id', (int) $input['artist_id'] );
+	ec_remove_artist_membership( (int) $input['user_id'], (int) $input['artist_id'] );
 
-	$response = extrachill_api_unlink_user_from_artist( $request );
-
-	if ( is_wp_error( $response ) ) {
-		return $response;
-	}
-
-	$data = $response instanceof WP_REST_Response ? $response->get_data() : (array) $response;
-
-	return is_array( $data ) ? $data : array( 'success' => true );
+	return array( 'success' => true );
 }
