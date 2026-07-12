@@ -191,28 +191,6 @@ function extrachill_get_recent_feed_query($per_page = 15, $paged = null) {
 }
 
 /**
- * User-scoped profile activity feed.
- *
- * Owns a single user's profile activity feed: the same topic+reply stream as
- * the global feed, filtered to the displayed user. Replaces the former
- * near-duplicate extrachill_get_recent_activity_query() helper.
- *
- * @param int      $user_id  User to scope the feed to.
- * @param int      $per_page Items per page.
- * @param int|null $paged    Page number; null resolves from the current request.
- *
- * @return array|false Feed payload or false when empty / invalid user.
- */
-function extrachill_get_user_activity_query($user_id, $per_page = 15, $paged = null) {
-	$user_id = (int) $user_id;
-	if ( $user_id <= 0 ) {
-		return false;
-	}
-
-	return extrachill_build_activity_feed($per_page, $paged, $user_id);
-}
-
-/**
  * Render an activity feed payload as bbPress reply cards.
  *
  * Shared renderer for both the global /recent feed and the user-scoped profile

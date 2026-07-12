@@ -13,11 +13,10 @@
  * cross-site aggregation of its own — it only projects the assembled calendar
  * onto a CSS grid.
  *
- * Placement: full-width card rendered via `bbp_template_after_user_details`
- * at priority 1, directly under the header card and ABOVE the 2-column
- * `.bbp-user-profile-cards-container` grid (same outside-the-grid placement
- * pattern as Concert History at priority 5). The Recent Activity feed
- * (priority 3) sits between them as the chart's detail view.
+ * Placement: full-width card rendered via `bbp_template_after_user_profile`
+ * at priority 1, below the About card that follows the profile hero.
+ * Concert History (priority 5) and the Recent Activity feed (priority 99)
+ * follow it on the same hook.
  *
  * Empty grid on a brand-new user is expected and rendered as-is — the "dead
  * chart" invites the owner to fill it in. If the contribution seam is not yet
@@ -169,10 +168,10 @@ function ec_community_display_contribution_heatmap() {
 		</div>
 
 		<div class="ec-heatmap-scroll">
-			<div class="ec-heatmap" role="img" aria-label="<?php echo esc_attr( sprintf( __( '%d contributions in the last year', 'extra-chill-community' ), $total ) ); ?>">
+			<div class="ec-heatmap" role="img" style="--ec-heat-weeks:<?php echo (int) $weeks; ?>;" aria-label="<?php echo esc_attr( sprintf( __( '%d contributions in the last year', 'extra-chill-community' ), $total ) ); ?>">
 				<div class="ec-heatmap-corner" aria-hidden="true"></div>
 
-				<div class="ec-heatmap-months" style="--ec-heat-weeks:<?php echo (int) $weeks; ?>;grid-template-columns:repeat(<?php echo (int) $weeks; ?>,var(--ec-heat-cell));">
+				<div class="ec-heatmap-months" style="grid-template-columns:repeat(<?php echo (int) $weeks; ?>,var(--ec-heat-cell));">
 					<?php
 					$prev_month = '';
 					for ( $col = 0; $col < $weeks; $col++ ) {
@@ -228,7 +227,8 @@ function ec_community_display_contribution_heatmap() {
 							?>
 							<span
 								class="ec-heat-cell level-<?php echo (int) $level; ?>"
-								title="<?php echo esc_attr( $label ); ?>"
+								data-ec-tip="<?php echo esc_attr( $label ); ?>"
+								tabindex="0"
 							></span>
 							<?php
 						}
@@ -251,7 +251,8 @@ function ec_community_display_contribution_heatmap() {
 	<?php
 }
 
-// Render directly under the header card, above everything else in the profile
-// body. Priority 1 keeps it the hero element; the Recent Activity feed
-// (priority 3) and Concert History (priority 5) follow it.
-add_action( 'bbp_template_after_user_details', 'ec_community_display_contribution_heatmap', 1 );
+// Render below the profile card grid (About / Community Activity / Artists),
+// which sits directly under the header. Priority 1 leads the post-grid
+// sections; Concert History (priority 5) follows, with the Recent Activity
+// feed closing out the page (99).
+add_action( 'bbp_template_after_user_profile', 'ec_community_display_contribution_heatmap', 1 );

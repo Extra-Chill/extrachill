@@ -11,52 +11,6 @@ defined( 'ABSPATH' ) || exit;
 
 ?>
 
-<?php if ( bbp_get_displayed_user_id() === get_current_user_id() ) : ?>
-
-
-	<?php
-
-	// Check for user's bbPress posts (topics or replies)
-	$user_id          = bbp_get_displayed_user_id();
-	$display_user     = wp_get_current_user();
-	$user_posts_query = ec_get_user_last_post( $user_id );
-
-	if ( $user_posts_query->have_posts() ) {
-		while ( $user_posts_query->have_posts() ) {
-			$user_posts_query->the_post();
-			$last_post_type = get_post_type();
-
-			if ( 'reply' === $last_post_type ) {
-				// For replies, link to the parent topic with an anchor to the reply
-				$topic_id      = bbp_get_reply_topic_id(get_the_ID());
-				$topic_title   = get_the_title($topic_id);
-				$reply_anchor  = '#post-' . get_the_ID(); // The anchor ID used by bbPress for replies
-				$last_post_url = get_permalink($topic_id) . $reply_anchor;
-				$post_date     = get_the_date(); // Get the date of the post
-				$post_time     = get_the_time(); // Get the time of the post
-				$message       = 'Welcome back, <b>' . esc_html($display_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($topic_title) . '</a> on ' . esc_html($post_date) . ' at ' . esc_html($post_time) . '.';
-			} else {
-				// For topics, just link to the topic itself
-				$last_post_title = get_the_title();
-				$last_post_url   = get_the_permalink();
-				$post_date       = get_the_date(); // Get the date of the post
-				$post_time       = get_the_time(); // Get the time of the post
-				$message         = 'Welcome back, <b>' . esc_html($display_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($last_post_title) . '</a> on ' . esc_html($post_date) . ' at ' . esc_html($post_time) . '.';
-			}
-
-
-			echo '<p>' . wp_kses_post($message) . '</p>';
-		}
-	} else {
-		// User hasn't posted yet
-		echo '<p>Welcome, <b>' . esc_html($display_user->display_name) . "</b>! You haven't posted yet. Start by introducing yourself in <a href='/t/introductions-thread'>The Back Bar!</a></p>";
-	}
-	wp_reset_postdata(); // Reset the global post object
-
-	?>
-<?php endif; ?>
-
-
 <div class="bbp-user-header-card">
 	<div class="bbp-user-avatar-area">
 		<span class='vcard'>
@@ -75,11 +29,29 @@ defined( 'ABSPATH' ) || exit;
 				<?php do_action( 'bbp_theme_after_user_name', bbp_get_displayed_user_id() ); ?>
 			</div>
 		</h1>
+		<?php
+		// Title + Points only — the current rank already leads the rank-progress
+		// bar below ("Current: {rank}"), so repeating it here was duplication.
+		?>
 		<p class="bbp-user-title-rank">
-			<b>Title:</b> <?php echo esc_html(bbp_get_user_display_role()); ?> | 
-			<b>Rank:</b> <?php echo esc_html(extrachill_display_user_rank(bbp_get_displayed_user_id())); ?>
+			<b>Title:</b> <?php echo esc_html(bbp_get_user_display_role()); ?>
 			| <b>Points:</b> <?php echo esc_html(extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
 		</p>
+		<?php
+		// Compact meta line: join date + linked activity counts (threads,
+		// replies, articles, blog comments). Replaces the old Community
+		// Activity card — see extrachill_display_profile_meta_line().
+		if ( function_exists( 'extrachill_display_profile_meta_line' ) ) {
+			extrachill_display_profile_meta_line();
+		}
+
+		// Identity line: Local Scene + artist memberships ("Member of:").
+		// Replaces the old Artists card and About's Local Scene line — see
+		// extrachill_community_display_identity_line().
+		if ( function_exists( 'extrachill_community_display_identity_line' ) ) {
+			extrachill_community_display_identity_line();
+		}
+		?>
 		<?php
 		// "Last seen" status. Composes the ec_get_last_seen() primitive from
 		// extrachill-users (Network: true), which formats the centralized
@@ -172,6 +144,28 @@ defined( 'ABSPATH' ) || exit;
 				<?php if ( bbp_get_displayed_user_id() === get_current_user_id() ) : ?>
 					<a href="/settings" class="button-1 button-small"><?php esc_html_e('Settings', 'extra-chill-community'); ?></a>
 				<a href="<?php echo esc_url( bbp_get_user_profile_edit_url( bbp_get_displayed_user_id() ) ); ?>" class="button-1 button-small"><?php esc_html_e('Edit Profile', 'extra-chill-community'); ?></a>
+				<?php
+				// Artist management action for artist/professional accounts.
+				// Lives here with the other self-management buttons — the old
+				// standalone Artists card is gone.
+				$ec_hero_is_artist = get_user_meta( bbp_get_displayed_user_id(), 'user_is_artist', true )
+					|| get_user_meta( bbp_get_displayed_user_id(), 'user_is_professional', true );
+				if ( $ec_hero_is_artist && function_exists( 'ec_get_site_url' ) ) {
+					$ec_hero_memberships = function_exists( 'extrachill_community_get_artist_memberships' )
+						? extrachill_community_get_artist_memberships( bbp_get_displayed_user_id() )
+						: array();
+					if ( ! empty( $ec_hero_memberships ) ) {
+						$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/manage-artist/';
+						$ec_artist_action_label = 1 === count( $ec_hero_memberships )
+							? __( 'Manage Artist', 'extra-chill-community' )
+							: __( 'Manage Artists', 'extra-chill-community' );
+					} else {
+						$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/create-artist/';
+						$ec_artist_action_label = __( 'Create Artist Profile', 'extra-chill-community' );
+					}
+					?>
+					<a href="<?php echo esc_url( $ec_artist_action_url ); ?>" class="button-1 button-small"><?php echo esc_html( $ec_artist_action_label ); ?></a>
+				<?php } ?>
 			<?php endif; ?>
 		</div>
 

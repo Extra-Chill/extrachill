@@ -127,22 +127,4 @@ function ec_get_recently_active_topics( $number = 6, $exclude_topic_id = 0 ) {
 	return new WP_Query( $args );
 }
 
-/**
- * Query the displayed user's most recent topic or reply.
- *
- * Backs the "Welcome back, your last post was..." message on the user profile.
- *
- * @param int $user_id User ID.
- * @return WP_Query
- */
-function ec_get_user_last_post( $user_id ) {
-	return new WP_Query(
-		array(
-			'author'         => (int) $user_id,
-			'post_type'      => array( bbp_get_reply_post_type(), bbp_get_topic_post_type() ),
-			'posts_per_page' => 1,
-			'orderby'        => 'date',
-			'order'          => 'DESC',
-		)
-	);
-}
+

@@ -1,11 +1,5 @@
 /* --- Profile Styles Updated to Use Global Variables --- */
 
-/* --- User Band Management Actions --- */
-.user-artist-management-actions {
-	text-align: right;
-	margin-top: 15px;
-}
-
 /* ==================================================
    Profile link editor
 ================================================== */
@@ -124,6 +118,20 @@
 	color: var(--muted-text);
 	margin-bottom: 0.25rem;
 	width: 100%;
+}
+
+/* Hero meta line (join date + linked activity counts, ex-Community Activity
+   card) and identity line (Local Scene + Member of, ex-Artists card). */
+.bbp-user-profile .bbp-user-meta-line,
+.bbp-user-profile .bbp-user-identity-line {
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+	margin-bottom: 0.25rem;
+	width: 100%;
+}
+
+.bbp-user-profile .bbp-user-meta-sep {
+	opacity: 0.6;
 }
 
 .bbp-user-profile .bbp-user-last-seen {
@@ -261,31 +269,8 @@
     width: 100%;
 }
 
-/* Container for the profile cards to enable flex grid */
-.bbp-user-profile-cards-container {
-    display: flex;
-    flex-wrap: wrap;
-    max-width: 100%;
-}
-
-/* Desktop styles for user profile cards (2 columns) */
-@media (min-width: 768px) {
-    .bbp-user-profile-card {
-        width: calc(50% - 20px);
-        margin-left: 10px;
-        margin-right: 10px;
-    }
-    /* Ensure header card remains full width */
-    .bbp-user-header-card {
-        margin-left: 0;
-        margin-right: 0;
-    }
-    /* Activity feed spans the full row; reset card gutters so it cannot overflow. */
-    .bbp-user-profile-card.user-profile-activity-feed {
-        margin-left: 0;
-        margin-right: 0;
-    }
-}
+/* All profile-body cards stack full-width — the 2-column flex grid is gone
+   (its former occupants live in the hero as the meta and identity lines). */
 
 /* Style headings within the profile cards */
 .bbp-user-profile-card h2,
@@ -352,40 +337,6 @@
     }
 }
 
-.bbp-user-profile-card.user-artist-cards-fullwidth{
-    width: 100%;
-}
-
-/* Activity feed spans the full row instead of occupying one half-width column. */
-.bbp-user-profile-card.user-profile-activity-feed {
-    width: 100%;
-}
-
-/* Concert History, Contribution heatmap, and legacy Music Fan cards render via
-   the bbp_template_after_user_details hook (see user-details.php), which places
-   them outside .bbp-user-profile-cards-container — directly under the header
-   card, not inside the 2-column flex grid. Keep them full-width so the desktop
-   half-width card rule above doesn't shrink them. */
-.bbp-user-profile-card.ec-concert-history-card,
-.bbp-user-profile-card.ec-music-fan-details-card,
-.bbp-user-profile-card.ec-contribution-heatmap-card {
-    width: 100%;
-}
-
-/* Artist list renders as pill-style buttons; suppress default list bullets. */
-.user-artist-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.user-artist-item {
-    margin: 0;
-}
-
 /* Edit-profile block gutter.
  * The bbPress routing path strips .extrachill-content padding on mobile
  * (body.page.bbpress rule in theme style.css) for edge-to-edge forum cards.
@@ -448,17 +399,6 @@
 	margin-bottom: 0.75rem;
 }
 
-/* Legacy free-text music-fan notes: demoted, lighter weight. */
-.ec-music-fan-details-card .ec-music-fan-nudge {
-	margin-top: 0.75rem;
-	font-size: 0.9rem;
-	opacity: 0.85;
-}
-
-.ec-music-fan-details-card .ec-music-fan-nudge em {
-	opacity: 0.7;
-}
-
 /* ==================================================
    Contribution Activity heatmap (GitHub-style grid)
    ================================================== */
@@ -492,11 +432,31 @@
 }
 
 /* Horizontal scroll on narrow viewports so the 53-week grid never overflows
-   the profile column. Touch users swipe; the fade is a subtle affordance. */
+   the profile column. Touch users swipe; the fade is a subtle affordance.
+   container-type makes this the sizing container for the fluid cell calc. */
 .ec-heatmap-scroll {
 	overflow-x: auto;
 	-webkit-overflow-scrolling: touch;
 	padding-bottom: 2px;
+	container-type: inline-size;
+}
+
+/* Fluid cells: scale squares so the grid fills the card width exactly —
+   no dead space to the right of the graph. The calc distributes the
+   container width minus the weekday column and inter-cell gaps across all
+   weeks; max() keeps a readable floor so narrow viewports fall back to
+   horizontal scrolling instead of unreadable squares. Browsers without
+   container-query support keep the fixed-size fallback above. */
+@container (min-width: 0) {
+	.ec-heatmap {
+		--ec-heat-cell: max(
+			9px,
+			calc(
+				(100cqw - var(--ec-heat-weekday-col) - var(--ec-heat-weeks, 53) * var(--ec-heat-gap))
+				/ var(--ec-heat-weeks, 53)
+			)
+		);
+	}
 }
 
 .ec-heatmap {
@@ -587,6 +547,32 @@
 }
 .ec-heat-cell.level-4 {
 	background-color: var(--accent);
+}
+
+/* Hover/focus affordance on day cells. */
+.ec-heatmap-cells .ec-heat-cell {
+	cursor: default;
+}
+.ec-heatmap-cells .ec-heat-cell:hover,
+.ec-heatmap-cells .ec-heat-cell:focus-visible {
+	outline: 1px solid var(--muted-text);
+	outline-offset: 0;
+}
+
+/* Shared tooltip element (appended to <body> by heatmap-tooltip.js so it
+   escapes the scroll container's overflow clipping). */
+.ec-heatmap-tooltip {
+	position: absolute;
+	z-index: 1000;
+	padding: 4px 8px;
+	background: var(--text-color, #24292f);
+	color: var(--background-color, #fff);
+	font-size: var(--font-size-xs);
+	line-height: 1.4;
+	border-radius: var(--border-radius-sm);
+	pointer-events: none;
+	white-space: nowrap;
+	box-shadow: var(--card-shadow);
 }
 
 /* Legend */
