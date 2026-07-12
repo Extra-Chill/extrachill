@@ -12,8 +12,7 @@ get_header(); ?>
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
-	<div class="main-content">
-		<main id="main" class="site-main" role="main">
+	<div class="content-column">
 
 		<?php
 		// Display breadcrumbs using theme function
@@ -22,8 +21,7 @@ get_header(); ?>
 		while ( have_posts() ) : the_post();
 		?>
 	
-<div class="single-post-card">
-<article id="post-<?php the_ID(); ?>" <?php post_class( array( 'festival-wire-single-post', 'single-post' ) ); ?>>
+<article id="post-<?php the_ID(); ?>" <?php post_class( array( 'single-post-card', 'ec-mobile-full-width-panel', 'festival-wire-single-post', 'single-post' ) ); ?>>
 	<?php do_action('extrachill_before_post_content'); ?>
 				<header class="ec-edge-gutter">
 					<?php do_action( 'extrachill_above_post_title' ); ?>
@@ -34,17 +32,17 @@ get_header(); ?>
 				<?php 
 				// Display featured image
 				if ( has_post_thumbnail() ) { ?>
-					<div class="post-thumbnail">
+					<figure class="wp-block-image size-large festival-wire-featured-image">
 						<?php the_post_thumbnail( 'large' ); ?>
 						<?php 
 						// Display image caption if available
 						$thumbnail_id = get_post_thumbnail_id();
-						$thumbnail_caption = get_post($thumbnail_id)->post_excerpt;
+						$thumbnail_caption = wp_get_attachment_caption( $thumbnail_id );
 						if (!empty($thumbnail_caption)) {
-							echo '<div class="featured-image-caption">' . wp_kses_post($thumbnail_caption) . '</div>';
+							echo '<figcaption class="wp-element-caption">' . wp_kses_post($thumbnail_caption) . '</figcaption>';
 						}
 						?>
-					</div>
+					</figure>
 				<?php } ?>
 
 				<div class="entry-content ec-edge-gutter">
@@ -60,7 +58,6 @@ get_header(); ?>
 
 	<?php do_action('extrachill_after_post_content'); ?>
 			</article><!-- #post-<?php the_ID(); ?> -->
-</div>
 
 	<?php endwhile; // End of the loop. ?>
 
@@ -124,11 +121,10 @@ get_header(); ?>
 
 		<!-- Back to Archive Button -->
 		<div class="festival-wire-back-button-container">
-			<a href="<?php echo esc_url( get_post_type_archive_link( 'festival_wire' ) ); ?>" class="cm-button cm-back-button">Back to Festival Wire</a>
+			<a href="<?php echo esc_url( get_post_type_archive_link( 'festival_wire' ) ); ?>" class="button-3 button-medium">Back to Festival Wire</a>
 		</div>
 
-		</main><!-- #main -->
-	</div><!-- .main-content -->
+	</div><!-- .content-column -->
 
 <?php get_sidebar(); ?>
 

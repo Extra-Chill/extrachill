@@ -3,7 +3,7 @@
  * Festival Wire Custom Post Type Registration
  *
  * Registers the festival_wire custom post type with proper labels,
- * taxonomies, and capabilities. Includes location taxonomy integration.
+ * taxonomies, and capabilities.
  *
  * @package ExtraChillNewsWire
  * @since 0.1.0
@@ -63,8 +63,6 @@ function register_festival_wire_cpt() {
         'description'           => __( 'News feed for music festivals', 'extrachill' ),
 		'labels'                => $labels,
 		'supports'              => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'revisions', 'custom-fields' ),
-		'taxonomies'			=> array( 'festival' ),
-
 		'hierarchical'          => false,
 		'public'                => true,
 		'show_ui'               => true,
@@ -85,16 +83,3 @@ function register_festival_wire_cpt() {
 
 }
 add_action( 'init', 'register_festival_wire_cpt', 0 );
-
-/**
- * Add location taxonomy to Festival Wire posts
- *
- * Registers existing location taxonomy for use with Festival Wire posts.
- * Location taxonomy is defined in the theme's core functionality.
- *
- * @since 0.1.0
- */
-function add_location_to_festival_wire() {
-	register_taxonomy_for_object_type( 'location', 'festival_wire' );
-}
-add_action( 'init', 'add_location_to_festival_wire' ); 
