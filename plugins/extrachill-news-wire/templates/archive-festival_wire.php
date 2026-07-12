@@ -8,10 +8,11 @@
  * @since 0.1.0
  */
 
-get_header(); ?>
+get_header();
+do_action( 'extrachill_before_body_content' );
+?>
 
-	<div class="main-content festival-wire-page">
-		<main id="main" class="site-main" role="main">
+	<div class="festival-wire-page">
 
 			<?php
 			// Display breadcrumbs
@@ -19,8 +20,11 @@ get_header(); ?>
 
 			if ( have_posts() ) : ?>
 
-				<div class="ec-edge-gutter"><header class="page-header">
-					<h1 class="page-title">Festival Wire</h1>
+				<header class="page-header ec-edge-gutter">
+					<div class="archive-header-row">
+						<h1 class="page-title">Festival Wire</h1>
+						<div class="archive-header-actions"><?php do_action( 'extrachill_archive_header_actions' ); ?></div>
+					</div>
 					<div class="archive-description">Stay updated with the latest music festival news, announcements, and updates.</div>
 					
 					<div class="festival-filter-controls">
@@ -70,12 +74,17 @@ get_header(); ?>
 								</div>
 							</div>
 							<div class="filter-actions">
-								<button id="festival-filter-button" class="filter-button">Apply Filters</button>
+								<button id="festival-filter-button" class="filter-button button-1 button-medium">Apply Filters</button>
 								<a href="<?php echo esc_url(get_post_type_archive_link('festival_wire')); ?>" class="filter-reset">Reset Filters</a>
 							</div>
 						</div>
 					</div>
-				</header></div><!-- .page-header -->
+				</header><!-- .page-header -->
+
+				<?php
+				do_action( 'extrachill_archive_below_description' );
+				do_action( 'extrachill_archive_above_posts' );
+				?>
 
 				<?php
 				// --- Display Last Updated Time ---
@@ -94,7 +103,7 @@ get_header(); ?>
 				<?php endif; ?>
 				<?php // --- End Display Last Updated Time --- ?>
 
-				<div class="festival-wire-grid-container">
+				<div class="festival-wire-grid-container full-width-breakout ec-mobile-full-width-panel">
 					<div id="festival-wire-posts-container" class="festival-wire-grid">
 					<?php
 					/* Start the Loop */
@@ -118,7 +127,8 @@ get_header(); ?>
 				<div class="forum-cta-container">
 					<h2 class="forum-cta-title">Join our Community!</h2>
 					<p class="forum-cta-description">Discuss with fellow festival fans and share your experiences in our community forum.</p>
-					<a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/r/music-discussion' ); ?>" class="forum-cta-link button" target="_blank" rel="noopener noreferrer">Visit the Forum</a>
+					<?php $community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url( '/' ); ?>
+					<a href="<?php echo esc_url( trailingslashit( $community_url ) . 'r/music-discussion' ); ?>" class="forum-cta-link button-1 button-medium" target="_blank" rel="noopener noreferrer">Visit the Forum</a>
 				</div>
 
 				<!-- Festival Wire FAQ Section -->
@@ -127,21 +137,21 @@ get_header(); ?>
 					<div class="faq-accordion">
 						
 						<div class="faq-item">
-							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-1">What is the Festival Wire?</button>
+							<button id="faq-question-1" class="faq-question" aria-expanded="false" aria-controls="faq-answer-1">What is the Festival Wire?</button>
 							<div id="faq-answer-1" class="faq-answer" role="region" aria-labelledby="faq-question-1" hidden>
 								<p>The Festival Wire is your go-to source for the latest news, lineup announcements, schedule drops, and official updates directly from music festivals across the globe. We aggregate information to keep you informed in one convenient place.</p>
 							</div>
 						</div>
 
 						<div class="faq-item">
-							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-2">How does it work?</button>
+							<button id="faq-question-2" class="faq-question" aria-expanded="false" aria-controls="faq-answer-2">How does it work?</button>
 							<div id="faq-answer-2" class="faq-answer" role="region" aria-labelledby="faq-question-2" hidden>
 								<p>Our system automatically monitors official news outlets, festival sources, and online discussions (like Reddit) for updates. This data is then processed using AI to aggregate and summarize the information. While we strive for accuracy, always double-check the official festival website or source for the most current and definitive details.</p>
 							</div>
 						</div>
 
 						<div class="faq-item">
-							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-3">Is it accurate?</button>
+							<button id="faq-question-3" class="faq-question" aria-expanded="false" aria-controls="faq-answer-3">Is it accurate?</button>
 					<div id="faq-answer-3" class="faq-answer" role="region" aria-labelledby="faq-question-3" hidden>
 						<p>We include fact-checking steps in our AI aggregation process and manually clean up entries that we notice are incorrect. However, due to the high volume of information and the nature of automated processing, occasional inaccuracies may slip through. If you spot something wrong, post in the Music Festivals forum or contact us directly so we can verify and update the entry.</p>
 					</div>
@@ -149,34 +159,33 @@ get_header(); ?>
 						</div>
 
 						<div class="faq-item">
-							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-4">How often is it updated?</button>
+							<button id="faq-question-4" class="faq-question" aria-expanded="false" aria-controls="faq-answer-4">How often is it updated?</button>
 							<div id="faq-answer-4" class="faq-answer" role="region" aria-labelledby="faq-question-4" hidden>
 								<p>The Festival Wire is updated multiple times per day as new information becomes available. We aim to bring you news as close to real-time as possible.</p>
 							</div>
 						</div>
 
 						<div class="faq-item">
-							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-5">How can I follow along?</button>
+							<button id="faq-question-5" class="faq-question" aria-expanded="false" aria-controls="faq-answer-5">How can I follow along?</button>
 							<div id="faq-answer-5" class="faq-answer" role="region" aria-labelledby="faq-question-5" hidden>
-								<p>Stay plugged in! We share links to Festival Wire updates all day, every day on our social media channels. Follow us on:
+								<p>Stay plugged in! We share links to Festival Wire updates all day, every day on our social media channels.</p>
 									<ul>
 										<li><a href="https://x.com/extra_chill" target="_blank" rel="noopener noreferrer">X (formerly Twitter)</a></li>
 										<li><a href="https://www.facebook.com/extrachill" target="_blank" rel="noopener noreferrer">Facebook</a></li>
 										<li><a href="https://bsky.app/profile/festivalwire.bsky.social" target="_blank" rel="noopener noreferrer">BlueSky</a></li>
 									</ul>
-								</p>
 							</div>
 						</div>
 
 						<div class="faq-item">
-							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-6">How do the filters work?</button>
+							<button id="faq-question-6" class="faq-question" aria-expanded="false" aria-controls="faq-answer-6">How do the filters work?</button>
 							<div id="faq-answer-6" class="faq-answer" role="region" aria-labelledby="faq-question-6" hidden>
 								<p>You can use the dropdown menus at the top of the page to filter the news feed by specific festivals or locations. Select your desired options and click "Apply Filters" to see relevant updates.</p>
 							</div>
 						</div>
 						
 					<div class="faq-item">
-						<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-7">How do I share corrections or leads?</button>
+						<button id="faq-question-7" class="faq-question" aria-expanded="false" aria-controls="faq-answer-7">How do I share corrections or leads?</button>
 						<div id="faq-answer-7" class="faq-answer" role="region" aria-labelledby="faq-question-7" hidden>
 							<p>Use the Music Festivals forum or contact the editorial team directly if you spot something that needs attention. We monitor community reports and update the Festival Wire accordingly.</p>
 						</div>
@@ -184,7 +193,7 @@ get_header(); ?>
 
 
 						<div class="faq-item">
-							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-8">Why isn't [Specific Festival] listed?</button>
+							<button id="faq-question-8" class="faq-question" aria-expanded="false" aria-controls="faq-answer-8">Why isn't [Specific Festival] listed?</button>
 							<div id="faq-answer-8" class="faq-answer" role="region" aria-labelledby="faq-question-8" hidden>
 								<p>The festivals included depend on the sources our automated system monitors (official sites, news outlets, online discussions). We're continuously working to expand coverage. If a festival isn't listed, it might be because we haven't integrated a reliable source for it yet, or they simply haven't had recent relevant news or announcements detected by our system.</p>
 							</div>
@@ -196,11 +205,13 @@ get_header(); ?>
 			<?php
 			else : 
 				// If no content, include the "No posts found" template.
-				get_template_part( 'template-parts/content/content', 'none' );
+				extrachill_no_results();
 			?>
 			<?php endif; ?>
 
-		</main><!-- #main -->
-	</div><!-- .main-content -->
+	</div><!-- .festival-wire-page -->
 
-<?php get_footer(); ?>
+<?php
+do_action( 'extrachill_after_body_content' );
+get_footer();
+?>

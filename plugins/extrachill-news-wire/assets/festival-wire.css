@@ -4,7 +4,7 @@
  */
 
 /* General Styles */
-.main-content.festival-wire-page {
+.festival-wire-page {
     width: 100%;
     margin: 0 auto;
     float: none;
@@ -109,20 +109,9 @@
 }
 
 .filter-button {
-    background-color: #0b5394;
-    color: #fff;
-    padding: 0.75rem 1.25rem;
-    border: none;
-    border-radius: 5px;
-    font-size: var(--font-size-base);
     cursor: pointer;
-    transition: background-color 0.2s ease;
     min-width: 140px;
     text-align: center;
-}
-
-.filter-button:hover {
-    background-color: #083b6c;
 }
 
 .filter-reset {
@@ -269,27 +258,10 @@
 }
 
 /* Single Post Styles - Plugin-specific overrides only */
-.festival-wire-single-post .post-thumbnail {
-    position: relative;
-}
-
-.festival-wire-single-post .post-thumbnail img {
+.festival-wire-featured-image img {
     width: 100%;
     height: auto;
     margin-bottom: 0;
-}
-
-.festival-wire-single-post .featured-image-caption {
-    padding: 0.5rem 2rem;
-    font-size: 0.85rem;
-    color: var(--muted-text);
-    text-align: center;
-    font-style: italic;
-}
-
-#festival-wire-load-more{
-    display: flex;
-    margin: auto;
 }
 
 /* Related Festival Wire Posts - inherits from theme .related-tax-section */
@@ -323,77 +295,14 @@
     margin-right: auto;
 }
 
-.forum-cta-link.button {
-    display: inline-block;
-    background-color: #0b5394; /* Keep solid button */
-    color: #fff;
-    padding: 0.75rem 1.5rem;
-    border-radius: 5px;
-    text-decoration: none;
-    font-size: var(--font-size-base);
-    font-weight: 500;
-    transition: background-color 0.2s ease, color 0.2s ease; /* Added color transition */
-    cursor: pointer;
-    border: 1px solid #0b5394;
+.forum-cta-link {
     margin-top: 0.5rem;
-}
-
-.forum-cta-link.button:hover {
-    background-color: #083b6c;
-    border-color: #083b6c;
-    color: #fff;
-    text-decoration: none;
-}
-
-/* Pagination styling */
-.wp-pagenavi {
-    text-align: center;
-    padding: 1rem 0;
-}
-
-.wp-pagenavi .page, .wp-pagenavi a {
-    display: inline-block;
-    margin: 0 0.25rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 5px;
-    background-color: var(--card-background);
-    color: var(--text-color);
-    text-decoration: none;
-    border: 1px solid var(--border-color);
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-}
-
-.wp-pagenavi .current {
-    background-color: #0b5394;
-    color: #fff;
-    border-color: #0b5394;
 }
 
 /* Back to Archive Button Styling */
 .festival-wire-back-button-container {
     text-align: center; /* Center the button */
     margin: 2rem 0; /* Add space above and below */
-}
-
-.festival-wire-back-button-container .cm-back-button {
-    display: inline-block; /* Allows margin/padding and centering */
-    background-color: #0b5394;
-    color: #fff;
-    padding: 0.75rem 1.5rem; /* Match other theme buttons */
-    border-radius: 5px; /* Match other theme buttons */
-    text-decoration: none;
-    font-size: var(--font-size-base); /* Match filter button */
-    font-weight: 500;
-    transition: background-color 0.2s ease;
-    cursor: pointer;
-    border: none; /* Ensure no default border */
-}
-
-.festival-wire-back-button-container .cm-back-button:hover {
-    background-color: #083b6c;
-    color: #fff; /* Keep text color white on hover */
-    text-decoration: none;
 }
 
 /* Responsive Styles */
@@ -461,9 +370,6 @@
         font-size: 1.6rem;
     }
     
-    .related-wire-title {
-        font-size: var(--font-size-xl);
-    }
 }
 
 @media screen and (max-width: 576px) {
@@ -537,7 +443,6 @@
 .faq-question:hover,
 .faq-question:focus {
     color: var(--link-color);
-    outline: none;
 }
 
 .faq-question::after {

@@ -44,7 +44,7 @@ function enqueue_festival_wire_assets() {
 			wp_enqueue_style(
 				'extrachill-festival-wire',
 				$css_file_uri,
-				array(),
+				array( 'extrachill-root', 'extrachill-style' ),
 				filemtime( $css_file_path )
 			);
 		}
@@ -56,7 +56,7 @@ function enqueue_festival_wire_assets() {
 			wp_enqueue_script(
 				'extrachill-festival-wire',
 				$js_file_uri,
-				array(),
+				array( 'extrachill-root', 'extrachill-style' ),
 				filemtime( $js_file_path ),
 				true
 			);
@@ -109,6 +109,11 @@ function ec_news_wire_override_single_template( $template ) {
 
 function ec_news_wire_render_wire_hub_homepage() {
 	if ( ! is_front_page() && ! is_home() ) {
+		return;
+	}
+
+	$wire_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'wire' ) : '';
+	if ( ! $wire_site_url || untrailingslashit( home_url() ) !== untrailingslashit( $wire_site_url ) ) {
 		return;
 	}
 
