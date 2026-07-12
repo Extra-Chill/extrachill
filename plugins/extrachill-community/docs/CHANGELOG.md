@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.16.3] - 2026-07-12
+
+### Fixed
+- deep-link Recent Conversations cards to the user's latest reply
+
 ## [1.16.2] - 2026-07-12
 
 ### Changed
