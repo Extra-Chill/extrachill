@@ -71,6 +71,7 @@ require_once __DIR__ . '/welcome-email.php';
 require_once __DIR__ . '/artist-access.php';
 require_once __DIR__ . '/user-administration.php';
 require_once __DIR__ . '/user-settings.php';
+require_once __DIR__ . '/user-event-locations.php';
 require_once __DIR__ . '/user-profile.php';
 require_once __DIR__ . '/subscriptions.php';
 require_once __DIR__ . '/concert-tracking.php';

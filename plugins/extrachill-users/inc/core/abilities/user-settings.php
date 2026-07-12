@@ -293,22 +293,13 @@ function extrachill_users_ability_update_settings( $input ) {
 }
 
 /**
- * Resolve a canonical location through the Events domain's public Ability.
+ * Resolve a canonical event location through the Users-owned preference helper.
  *
  * @param string $slug Location term slug.
  * @return array|WP_Error Resolved location or dependency/validation error.
  */
 function extrachill_users_resolve_default_event_location( string $slug ) {
-	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/events-locations' ) : null;
-	if ( ! $ability ) {
-		return new WP_Error(
-			'events_locations_unavailable',
-			__( 'Canonical event locations are currently unavailable.', 'extrachill-users' ),
-			array( 'status' => 503 )
-		);
-	}
-
-	$result = $ability->execute(
+	$result = extrachill_users_ability_event_locations(
 		array(
 			'mode' => 'resolve',
 			'slug' => $slug,
@@ -321,7 +312,7 @@ function extrachill_users_resolve_default_event_location( string $slug ) {
 
 	if ( ! is_array( $result ) || ! isset( $result['location'] ) || ! is_array( $result['location'] ) ) {
 		return new WP_Error(
-			'events_locations_invalid_response',
+			'user_event_locations_invalid_response',
 			__( 'Canonical event locations returned an invalid response.', 'extrachill-users' ),
 			array( 'status' => 502 )
 		);
