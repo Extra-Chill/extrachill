@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.0] - 2026-07-12
+
+### Added
+- add auto-subscribe-to-replies notification preference
+
+### Changed
+- migrate to extrachill-network names (#171)
+
 ## [0.26.0] - 2026-07-06
 
 ### Added
