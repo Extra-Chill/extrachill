@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.4] - 2026-07-12
+
+### Changed
+- migrate image-voting to extrachill_network_subscribe (#17)
+
 ## [1.3.3] - 2026-06-15
 
 ### Changed
