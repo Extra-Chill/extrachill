@@ -27,7 +27,6 @@ function extrachill_add_rank_and_points_to_reply() {
 	$local_scene = extrachill_community_get_public_local_scene( $reply_author_id );
 	if ( ! empty( $local_scene['name'] ) ) {
 		echo '<div class="reply-author-local-scene">';
-		echo '<span>' . esc_html__( 'Local Scene:', 'extra-chill-community' ) . '</span> ';
 		extrachill_community_render_local_scene_badge( $local_scene, true );
 		echo '</div>';
 	}

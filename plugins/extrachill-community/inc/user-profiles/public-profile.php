@@ -50,8 +50,9 @@ function extrachill_community_render_local_scene_badge( array $scene, bool $comp
 	$name      = sanitize_text_field( $scene['name'] ?? '' );
 	$hierarchy = is_array( $scene['hierarchy'] ?? null ) ? $scene['hierarchy'] : array();
 	$label     = $compact ? $name : sanitize_text_field( $hierarchy['label'] ?? $name );
-	$url       = esc_url( $scene['url'] ?? '' );
 	$slug      = sanitize_title( $scene['slug'] ?? '' );
+	$url       = '' !== $slug ? extrachill_community_get_local_scene_url( $slug ) : '';
+	$aria      = sprintf( 'Local Scene: %s', $label );
 
 	if ( '' === $label ) {
 		return;
@@ -63,9 +64,9 @@ function extrachill_community_render_local_scene_badge( array $scene, bool $comp
 	}
 
 	if ( '' !== $url ) {
-		printf( '<a class="%1$s" href="%2$s">%3$s</a>', esc_attr( $classes ), $url, esc_html( $label ) );
+		printf( '<a class="%1$s" href="%2$s" aria-label="%3$s">%4$s</a>', esc_attr( $classes ), esc_url( $url ), esc_attr( $aria ), esc_html( $label ) );
 		return;
 	}
 
-	printf( '<span class="%1$s">%2$s</span>', esc_attr( $classes ), esc_html( $label ) );
+	printf( '<span class="%1$s" aria-label="%2$s">%3$s</span>', esc_attr( $classes ), esc_attr( $aria ), esc_html( $label ) );
 }

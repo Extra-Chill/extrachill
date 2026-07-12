@@ -40,7 +40,6 @@ $has_about_content = ! empty( $about_description ) || ! empty( $about_local_scen
 
 			<?php if ( ! empty( $about_local_scene['name'] ) ) : ?>
 		<div class="bbp-user-local-scene-inline">
-			<strong><?php esc_html_e( 'Local Scene', 'extra-chill-community' ); ?></strong>
 			<div class="taxonomy-badges"><?php extrachill_community_render_local_scene_badge( $about_local_scene ); ?></div>
 		</div>
 			<?php endif; ?>

@@ -41,6 +41,20 @@ function extrachill_enqueue_leaderboard_styles() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_leaderboard_styles' );
 
+function extrachill_community_enqueue_local_scene_styles() {
+	if ( ! extrachill_community_is_local_scene_archive() ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'extrachill-local-scene',
+		EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/local-scene.css',
+		array( 'extrachill-community-global' ),
+		filemtime( EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/local-scene.css' )
+	);
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_community_enqueue_local_scene_styles' );
+
 function enqueue_bbpress_global_styles() {
 	wp_register_style(
 		'extrachill-bbpress',
