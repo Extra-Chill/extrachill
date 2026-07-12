@@ -110,6 +110,7 @@ function extrachill_community_register_blocks() {
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/leaderboard' );
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/user-settings' );
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/edit-profile' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/contribution-heatmap' );
 }
 
 register_activation_hook( __FILE__, 'extrachill_community_activate' );
