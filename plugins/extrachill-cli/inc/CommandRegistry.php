@@ -64,6 +64,9 @@ class CommandRegistry {
 			// SEO commands.
 			'extrachill seo redirects'               => Commands\SEO\RedirectsCommand::class,
 
+			// Content commands.
+			'extrachill content'                     => Commands\Content\TriviaCommand::class,
+
 			// Tools commands.
 			'extrachill tools qr'                    => Commands\Tools\QRCodeCommand::class,
 
