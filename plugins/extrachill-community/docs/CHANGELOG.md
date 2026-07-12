@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.13.1] - 2026-07-12
+
+### Fixed
+- use Users-owned event market search
+
 ## [1.13.0] - 2026-07-12
 
 ### Added
