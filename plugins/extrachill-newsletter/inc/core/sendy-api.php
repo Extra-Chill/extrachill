@@ -129,7 +129,7 @@ function extrachill_newsletter_get_sendy_ability( $ability ) {
  * @param string $name       Optional subscriber name.
  * @return array Success status and message.
  */
-function extrachill_multisite_subscribe( $email, $context, $source_url = '', $name = '' ) {
+function extrachill_network_subscribe( $email, $context, $source_url = '', $name = '' ) {
 	$ability = wp_get_ability( 'extrachill/subscribe' );
 
 	if ( ! $ability ) {

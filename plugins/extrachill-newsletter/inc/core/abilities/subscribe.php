@@ -3,7 +3,7 @@
  * Subscribe Ability
  *
  * Core primitive for newsletter subscriptions via Sendy.
- * Replaces extrachill_multisite_subscribe() and extrachill_subscribe_to_list().
+ * Replaces extrachill_network_subscribe() and extrachill_subscribe_to_list().
  *
  * @package ExtraChillNewsletter
  * @since 0.3.0
