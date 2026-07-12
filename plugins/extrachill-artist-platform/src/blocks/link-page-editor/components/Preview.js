@@ -366,7 +366,7 @@ export default function Preview() {
 
 					<div className="extrch-link-page-powered">
 						<a
-							href="https://extrachill.link"
+							href="https://extrachill.com/power/?utm_source=linkpage&utm_medium=footer&utm_campaign=power"
 							target="_blank"
 							rel="noopener noreferrer"
 						>

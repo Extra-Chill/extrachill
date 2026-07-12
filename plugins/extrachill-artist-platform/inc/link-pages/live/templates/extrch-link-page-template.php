@@ -196,9 +196,13 @@ $body_bg_style = '';
         }
         ?>
 
-        <?php if ($data['powered_by']): ?>
+        <?php if ($data['powered_by']):
+            // Route the generic footer credit to the main site's network discovery page,
+            // with UTM params for attribution.
+            $powered_by_url = ec_get_site_url('main') . '/power/?utm_source=linkpage&utm_medium=footer&utm_campaign=power';
+        ?>
         <div class="extrch-link-page-powered" style="margin-top:auto; padding-top:1em; padding-bottom:1em;">
-            <a href="https://extrachill.com" rel="noopener">Powered by Extra Chill</a>
+            <a href="<?php echo esc_url($powered_by_url); ?>" rel="noopener">Powered by Extra Chill</a>
         </div>
         <?php endif; ?>
     </div>
