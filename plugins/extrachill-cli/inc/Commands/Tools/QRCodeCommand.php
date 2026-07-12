@@ -97,7 +97,7 @@ class QRCodeCommand {
 	 * Ensure the QR ability is available.
 	 */
 	private function ensure_qr_ability() {
-		if ( ! wp_get_ability( 'extrachill/generate-qr-code' ) ) {
+		if ( ! wp_has_ability( 'extrachill/generate-qr-code' ) ) {
 			WP_CLI::error( 'QR code ability is unavailable. Ensure Extra Chill Network is active and abilities are registered.' );
 		}
 	}

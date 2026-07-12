@@ -44,14 +44,27 @@ class QRCodeCommandTestFilesystem {
 	}
 }
 
-$qr_code_test_ability = null;
+$qr_code_test_ability   = null;
+$qr_code_test_get_calls = 0;
+
+function wp_has_ability( $name ) {
+	global $qr_code_test_ability;
+
+	if ( 'extrachill/generate-qr-code' !== $name ) {
+		throw new RuntimeException( 'Unexpected ability checked: ' . $name );
+	}
+
+	return null !== $qr_code_test_ability;
+}
 
 function wp_get_ability( $name ) {
-	global $qr_code_test_ability;
+	global $qr_code_test_ability, $qr_code_test_get_calls;
 
 	if ( 'extrachill/generate-qr-code' !== $name ) {
 		throw new RuntimeException( 'Unexpected ability requested: ' . $name );
 	}
+
+	++$qr_code_test_get_calls;
 
 	return $qr_code_test_ability;
 }
@@ -82,11 +95,12 @@ if ( false === $output ) {
 }
 
 try {
-	global $wp_filesystem, $qr_code_test_ability;
+	global $wp_filesystem, $qr_code_test_ability, $qr_code_test_get_calls;
 
-	$wp_filesystem        = new QRCodeCommandTestFilesystem();
-	$qr_code_test_ability = new QRCodeCommandTestAbility();
-	WP_CLI::$messages     = array();
+	$wp_filesystem          = new QRCodeCommandTestFilesystem();
+	$qr_code_test_ability   = new QRCodeCommandTestAbility();
+	$qr_code_test_get_calls = 0;
+	WP_CLI::$messages       = array();
 
 	$command = new QRCodeCommand();
 	$command->generate(
@@ -99,6 +113,7 @@ try {
 		$qr_code_test_ability->inputs,
 		'Command must invoke the canonical QR ability with the existing input contract.'
 	);
+	qr_code_test_assert_same( 1, $qr_code_test_get_calls, 'Present ability must be retrieved exactly once for execution.' );
 	qr_code_test_assert_same( 'png-bytes', file_get_contents( $output ), 'Command must decode and write the returned PNG bytes.' );
 	qr_code_test_assert_same(
 		array(
@@ -109,7 +124,8 @@ try {
 		'Command success output must remain compatible.'
 	);
 
-	$qr_code_test_ability = null;
+	$qr_code_test_ability   = null;
+	$qr_code_test_get_calls = 0;
 	try {
 		$command->generate( array( 'https://example.com' ), array( 'output' => $output ) );
 		throw new RuntimeException( 'Missing QR ability did not terminate the command.' );
@@ -120,6 +136,7 @@ try {
 			'Missing ability error must identify the canonical owner.'
 		);
 	}
+	qr_code_test_assert_same( 0, $qr_code_test_get_calls, 'Absent ability availability check must not retrieve the ability.' );
 } finally {
 	@unlink( $output );
 }
