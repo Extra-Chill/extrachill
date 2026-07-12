@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0] - 2026-07-12
+
+### Added
+- add default event market setting
+- add Notifications tab to user-settings block + link from notifications page (#152)
+- bridge bbPress topic subscriptions into notification system
+
 ## [1.12.0] - 2026-07-06
 
 ### Added
