@@ -41,7 +41,7 @@ function extrachill_blog_get_location_event_counts() {
 		return array();
 	}
 
-	$preferred_slug = extrachill_blog_get_default_event_location_slug();
+	$preferred_slug = extrachill_blog_get_local_scene_slug();
 	if ( '' === $preferred_slug ) {
 		return $locations;
 	}
@@ -87,7 +87,7 @@ function extrachill_blog_request_location_event_counts( $query ) {
 }
 
 /**
- * Read the authenticated user's canonical default event location.
+ * Read the authenticated user's canonical local scene.
  *
  * The preference is supplied by extrachill-users#179 through the existing
  * self-only settings Ability. Its resolved object is canonicalized by the
@@ -97,7 +97,7 @@ function extrachill_blog_request_location_event_counts( $query ) {
  *
  * @return string Canonical location slug, or an empty string.
  */
-function extrachill_blog_get_default_event_location_slug() {
+function extrachill_blog_get_local_scene_slug() {
 	if (
 		! is_user_logged_in() ||
 		! function_exists( 'wp_has_ability' ) ||
@@ -117,7 +117,7 @@ function extrachill_blog_get_default_event_location_slug() {
 		return '';
 	}
 
-	$location = $settings['default_event_location'] ?? null;
+	$location = $settings['local_scene'] ?? null;
 	if ( ! is_array( $location ) || empty( $location['slug'] ) ) {
 		return '';
 	}

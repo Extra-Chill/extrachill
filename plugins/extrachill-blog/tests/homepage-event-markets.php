@@ -79,17 +79,24 @@ assert_same( 'market-7', $result[7]['slug'], 'Global order should be retained af
 $result = extrachill_blog_prioritize_event_market( $global, array() );
 assert_same( $global, $result, 'Missing preference should retain global markets unchanged.' );
 
-assert_same( '', extrachill_blog_get_default_event_location_slug(), 'Anonymous requests should not read a preference.' );
+assert_same( '', extrachill_blog_get_local_scene_slug(), 'Anonymous requests should not read a preference.' );
 
 $test_logged_in = true;
 $test_settings  = array();
-assert_same( '', extrachill_blog_get_default_event_location_slug(), 'Missing dependency field should fail open.' );
+assert_same( '', extrachill_blog_get_local_scene_slug(), 'Missing dependency field should fail open.' );
 
 $test_settings = array(
 	'default_event_location' => array(
 		'slug' => 'new-york-city',
 	),
 );
-assert_same( 'new-york-city', extrachill_blog_get_default_event_location_slug(), 'Resolved canonical preference slug should pass through unchanged.' );
+assert_same( '', extrachill_blog_get_local_scene_slug(), 'Compatibility aliases should not be consumed by Blog.' );
+
+$test_settings = array(
+	'local_scene' => array(
+		'slug' => 'new-york-city',
+	),
+);
+assert_same( 'new-york-city', extrachill_blog_get_local_scene_slug(), 'Resolved canonical local scene slug should pass through unchanged.' );
 
 fwrite( STDOUT, "Homepage event-market tests passed.\n" );
