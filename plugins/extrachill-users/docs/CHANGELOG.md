@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.31.0] - 2026-07-12
+
+### Added
+- migrate deterministic Local Scenes
+- add private entity subscriptions
+
+### Fixed
+- avoid newsletter ability collision (#187)
+
 ## [0.30.0] - 2026-07-12
 
 ### Added
