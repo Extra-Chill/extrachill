@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.16.1] - 2026-07-12
+
+### Changed
+- Profile polish: reorder page flow and compose topic cards in the feed
+
+### Fixed
+- style Local Scene member cards
+
 ## [1.16.0] - 2026-07-12
 
 ### Added
