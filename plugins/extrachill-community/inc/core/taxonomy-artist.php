@@ -16,7 +16,7 @@
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 /**
@@ -32,11 +32,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * would duplicate identity per-post without adding signal.
  */
 function extrachill_register_artist_for_bbpress() {
-    if ( ! taxonomy_exists( 'artist' ) ) {
-        return;
-    }
+	if ( ! taxonomy_exists( 'artist' ) ) {
+		return;
+	}
 
-    register_taxonomy_for_object_type( 'artist', 'topic' );
+	register_taxonomy_for_object_type( 'artist', 'topic' );
 }
 add_action( 'init', 'extrachill_register_artist_for_bbpress', 20 );
 

@@ -62,6 +62,7 @@ defined( 'ABSPATH' ) || exit;
 		if ( function_exists( 'ec_get_last_seen' ) ) {
 			$last_seen = ec_get_last_seen( bbp_get_displayed_user_id() );
 			if ( '' !== $last_seen ) {
+				// phpcs:ignore WordPress.WP.I18n.TextDomainMismatch -- Intentional comparison against the extrachill-users plugin's own localized string, which owns ec_get_last_seen().
 				$is_online = ( __( 'Online now', 'extrachill-users' ) === $last_seen );
 				printf(
 					'<p class="bbp-user-last-seen%s">%s</p>',

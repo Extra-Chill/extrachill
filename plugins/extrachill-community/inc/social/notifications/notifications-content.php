@@ -38,7 +38,7 @@ function extrachill_display_notifications() {
 	printf(
 		'<p class="extrachill-notifications-settings-link"><a href="%s">%s</a></p>',
 		esc_url( $settings_url ),
-		esc_html__( 'Manage notification settings', 'extrachill-community' )
+		esc_html__( 'Manage notification settings', 'extra-chill-community' )
 	);
 
 	if ( empty( $notifications ) ) {
@@ -60,12 +60,12 @@ function extrachill_display_notifications() {
 		// Explicit "Mark all as read" control (no AJAX): a GET link into the
 		// read-all redirect route in extrachill-users, returning to this page.
 		if ( function_exists( 'ec_notifications_mark_all_read_url' ) ) {
-			$here             = get_permalink();
-			$mark_all_url     = ec_notifications_mark_all_read_url( $here ? $here : '' );
+			$here         = get_permalink();
+			$mark_all_url = ec_notifications_mark_all_read_url( $here ? $here : '' );
 			printf(
 				'<a class="extrachill-notifications-mark-all-read" href="%s">%s</a>',
 				esc_url( $mark_all_url ),
-				esc_html__( 'Mark all as read', 'extrachill-community' )
+				esc_html__( 'Mark all as read', 'extra-chill-community' )
 			);
 		}
 

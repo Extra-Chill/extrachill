@@ -151,9 +151,8 @@ function extrachill_community_bbpress_drafts_upsert( $user_id, array $draft ) {
 		$row['content'],
 		$row['updated_at']
 	);
-	// phpcs:enable WordPress.DB.PreparedSQL
-
 	$result = $wpdb->query( $sql );
+	// phpcs:enable WordPress.DB.PreparedSQL
 	if ( false === $result ) {
 		return false;
 	}
