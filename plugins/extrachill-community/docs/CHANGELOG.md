@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.16.0] - 2026-07-12
+
+### Added
+- add Local Scene member archives
+
 ## [1.15.0] - 2026-07-12
 
 ### Added
