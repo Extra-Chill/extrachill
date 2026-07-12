@@ -126,5 +126,3 @@ function ec_get_recently_active_topics( $number = 6, $exclude_topic_id = 0 ) {
 
 	return new WP_Query( $args );
 }
-
-

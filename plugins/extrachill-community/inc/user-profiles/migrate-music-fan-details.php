@@ -40,13 +40,13 @@ function extrachill_community_build_music_fan_addendum( $favorite_artists, $top_
 	$sections = array();
 
 	if ( '' !== trim( (string) $favorite_artists ) ) {
-		$sections[] = "Favorite artists: " . trim( (string) $favorite_artists );
+		$sections[] = 'Favorite artists: ' . trim( (string) $favorite_artists );
 	}
 	if ( '' !== trim( (string) $top_concerts ) ) {
-		$sections[] = "Top concerts: " . trim( (string) $top_concerts );
+		$sections[] = 'Top concerts: ' . trim( (string) $top_concerts );
 	}
 	if ( '' !== trim( (string) $top_venues ) ) {
-		$sections[] = "Top venues: " . trim( (string) $top_venues );
+		$sections[] = 'Top venues: ' . trim( (string) $top_venues );
 	}
 
 	return implode( "\n\n", $sections );

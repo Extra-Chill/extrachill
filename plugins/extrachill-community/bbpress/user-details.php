@@ -144,28 +144,28 @@ defined( 'ABSPATH' ) || exit;
 				<?php if ( bbp_get_displayed_user_id() === get_current_user_id() ) : ?>
 					<a href="/settings" class="button-1 button-small"><?php esc_html_e('Settings', 'extra-chill-community'); ?></a>
 				<a href="<?php echo esc_url( bbp_get_user_profile_edit_url( bbp_get_displayed_user_id() ) ); ?>" class="button-1 button-small"><?php esc_html_e('Edit Profile', 'extra-chill-community'); ?></a>
-				<?php
-				// Artist management action for artist/professional accounts.
-				// Lives here with the other self-management buttons — the old
-				// standalone Artists card is gone.
-				$ec_hero_is_artist = get_user_meta( bbp_get_displayed_user_id(), 'user_is_artist', true )
+					<?php
+					// Artist management action for artist/professional accounts.
+					// Lives here with the other self-management buttons — the old
+					// standalone Artists card is gone.
+					$ec_hero_is_artist = get_user_meta( bbp_get_displayed_user_id(), 'user_is_artist', true )
 					|| get_user_meta( bbp_get_displayed_user_id(), 'user_is_professional', true );
-				if ( $ec_hero_is_artist && function_exists( 'ec_get_site_url' ) ) {
-					$ec_hero_memberships = function_exists( 'extrachill_community_get_artist_memberships' )
+					if ( $ec_hero_is_artist && function_exists( 'ec_get_site_url' ) ) {
+						$ec_hero_memberships = function_exists( 'extrachill_community_get_artist_memberships' )
 						? extrachill_community_get_artist_memberships( bbp_get_displayed_user_id() )
 						: array();
-					if ( ! empty( $ec_hero_memberships ) ) {
-						$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/manage-artist/';
-						$ec_artist_action_label = 1 === count( $ec_hero_memberships )
+						if ( ! empty( $ec_hero_memberships ) ) {
+							$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/manage-artist/';
+							$ec_artist_action_label = 1 === count( $ec_hero_memberships )
 							? __( 'Manage Artist', 'extra-chill-community' )
 							: __( 'Manage Artists', 'extra-chill-community' );
-					} else {
-						$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/create-artist/';
-						$ec_artist_action_label = __( 'Create Artist Profile', 'extra-chill-community' );
-					}
-					?>
+						} else {
+							$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/create-artist/';
+							$ec_artist_action_label = __( 'Create Artist Profile', 'extra-chill-community' );
+						}
+						?>
 					<a href="<?php echo esc_url( $ec_artist_action_url ); ?>" class="button-1 button-small"><?php echo esc_html( $ec_artist_action_label ); ?></a>
-				<?php } ?>
+					<?php } ?>
 			<?php endif; ?>
 		</div>
 
