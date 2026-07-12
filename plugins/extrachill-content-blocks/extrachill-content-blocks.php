@@ -68,6 +68,8 @@ function extrachill_content_blocks_load_abilities() {
 		'/generate-rapper-name.php',
 		'/image-voting-list.php',
 		'/image-voting-vote.php',
+		'/trivia-create.php',
+		'/trivia-list.php',
 	);
 
 	foreach ( $ability_files as $file ) {
