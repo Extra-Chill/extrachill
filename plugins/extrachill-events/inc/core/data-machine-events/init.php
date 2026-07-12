@@ -20,6 +20,7 @@ require_once __DIR__ . '/post-meta.php';
 require_once __DIR__ . '/assets.php';
 require_once __DIR__ . '/promoter-badges.php';
 require_once __DIR__ . '/venue-promos.php';
+require_once __DIR__ . '/festival-notifications.php';
 
 /**
  * Initialize all DataMachine Events integrations
@@ -33,4 +34,5 @@ function extrachill_events_init_data_machine_integration() {
 	extrachill_events_init_assets();
 	extrachill_events_init_promoter_badges();
 	extrachill_events_init_venue_promos();
+	extrachill_events_init_festival_notifications();
 }
