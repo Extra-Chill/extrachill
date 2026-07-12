@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.17.1] - 2026-07-12
+
+### Changed
+- convert contribution heatmap to headless Gutenberg block
+
 ## [1.17.0] - 2026-07-12
 
 ### Added
