@@ -2,7 +2,7 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 3,
 	"name": "extrachill/link-page-editor",
-	"version": "1.14.7",
+	"version": "1.14.8",
 	"title": "Link Page Editor",
 	"category": "widgets",
 	"icon": "admin-links",
