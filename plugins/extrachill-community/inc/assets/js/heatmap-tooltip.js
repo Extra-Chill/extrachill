@@ -10,7 +10,7 @@
 (function () {
 	'use strict';
 
-	var tooltip = null;
+	let tooltip = null;
 
 	function ensureTooltip() {
 		if (tooltip) {
@@ -25,23 +25,23 @@
 	}
 
 	function show(cell) {
-		var text = cell.getAttribute('data-ec-tip');
+		const text = cell.getAttribute('data-ec-tip');
 		if (!text) {
 			return;
 		}
 
-		var tip = ensureTooltip();
+		const tip = ensureTooltip();
 		tip.textContent = text;
 		tip.hidden = false;
 
-		var rect = cell.getBoundingClientRect();
-		var tipRect = tip.getBoundingClientRect();
+		const rect = cell.getBoundingClientRect();
+		const tipRect = tip.getBoundingClientRect();
 
-		var left = rect.left + rect.width / 2 - tipRect.width / 2 + window.scrollX;
-		var top = rect.top - tipRect.height - 8 + window.scrollY;
+		let left = rect.left + rect.width / 2 - tipRect.width / 2 + window.scrollX;
+		const top = rect.top - tipRect.height - 8 + window.scrollY;
 
 		// Clamp horizontally to the viewport.
-		var maxLeft = window.scrollX + document.documentElement.clientWidth - tipRect.width - 4;
+		const maxLeft = window.scrollX + document.documentElement.clientWidth - tipRect.width - 4;
 		left = Math.max(window.scrollX + 4, Math.min(left, maxLeft));
 
 		tip.style.left = left + 'px';
@@ -55,7 +55,7 @@
 	}
 
 	document.addEventListener('mouseover', function (event) {
-		var cell = event.target.closest('.ec-heatmap-cells .ec-heat-cell');
+		const cell = event.target.closest('.ec-heatmap-cells .ec-heat-cell');
 		if (cell) {
 			show(cell);
 		}
@@ -68,7 +68,7 @@
 	});
 
 	document.addEventListener('focusin', function (event) {
-		var cell = event.target.closest('.ec-heatmap-cells .ec-heat-cell');
+		const cell = event.target.closest('.ec-heatmap-cells .ec-heat-cell');
 		if (cell) {
 			show(cell);
 		}
