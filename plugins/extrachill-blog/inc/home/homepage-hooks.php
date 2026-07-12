@@ -14,6 +14,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Schedule the Recently Shipped warmer without performing a frontend fetch.
+ */
+function extrachill_blog_schedule_recently_shipped_refresh() {
+	if ( wp_next_scheduled( 'extrachill_blog_refresh_recently_shipped' ) ) {
+		return;
+	}
+
+	wp_schedule_event( time() + MINUTE_IN_SECONDS, 'hourly', 'extrachill_blog_refresh_recently_shipped' );
+}
+add_action( 'init', 'extrachill_blog_schedule_recently_shipped_refresh' );
+
+/**
+ * Refresh the last-good Recently Shipped payload from the scheduled event.
+ */
+function extrachill_blog_refresh_recently_shipped() {
+	require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/homepage-queries.php';
+
+	$payload = extrachill_blog_fetch_recently_shipped();
+	if ( empty( $payload ) ) {
+		return;
+	}
+
+	set_transient( 'extrachill_blog_recently_shipped_last_good', $payload, WEEK_IN_SECONDS );
+}
+add_action( 'extrachill_blog_refresh_recently_shipped', 'extrachill_blog_refresh_recently_shipped' );
+
+/**
  * Render the complete homepage content for extrachill.com
  */
 function extrachill_blog_render_homepage() {
@@ -22,6 +49,7 @@ function extrachill_blog_render_homepage() {
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/hero.php';
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-3x3-grid.php';
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-search.php';
+	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-recently-shipped.php';
 	?>
 	<div class="home-network-grid">
 		<?php

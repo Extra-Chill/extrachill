@@ -1,0 +1,75 @@
+<?php
+/**
+ * Homepage Recently Shipped Strip
+ *
+ * Surfaces recent GitHub releases across the whole Extra-Chill org — the
+ * platform plugins alongside the agent tooling (homeboy, data-machine)
+ * that builds and ships them. Renders nothing when the payload is
+ * empty/unavailable; this section must degrade to invisible, never to
+ * an error or empty-state box.
+ *
+ * @package ExtraChillBlog
+ * @since 0.1.0
+ */
+
+$recently_shipped = extrachill_blog_get_recently_shipped();
+
+if ( empty( $recently_shipped['releases'] ) ) {
+	return;
+}
+
+$releases                = $recently_shipped['releases'];
+$repos_active_this_month = $recently_shipped['repos_active_this_month'];
+$repos_total             = $recently_shipped['repos_total'];
+?>
+<div class="full-width-breakout ec-edge-shell">
+	<div class="home-shipped-strip">
+		<div class="home-shipped-header">
+			<span class="home-shipped-label"><?php esc_html_e( 'Recently Shipped', 'extrachill-blog' ); ?></span>
+			<span class="home-shipped-kicker"><?php esc_html_e( 'recent releases from active repositories', 'extrachill-blog' ); ?></span>
+		</div>
+		<div class="home-shipped-list">
+			<?php foreach ( $releases as $release ) : ?>
+				<a
+					href="<?php echo esc_url( $release['url'] ); ?>"
+					class="home-shipped-row"
+					target="_blank"
+					rel="noopener"
+					aria-label="<?php echo esc_attr( sprintf( '%s %s', $release['repo'], $release['tag'] ) ); ?>"
+				>
+					<span class="home-shipped-type home-shipped-type-<?php echo esc_attr( $release['type'] ); ?>"><?php echo esc_html( $release['type'] ); ?></span>
+					<span class="home-shipped-main">
+						<span class="home-shipped-repo"><?php echo esc_html( $release['repo'] ); ?></span>
+						<span class="home-shipped-tag"><?php echo esc_html( $release['tag'] ); ?></span>
+						<?php if ( ! empty( $release['summary'] ) ) : ?>
+							<span class="home-shipped-summary"><?php echo esc_html( $release['summary'] ); ?></span>
+						<?php endif; ?>
+					</span>
+					<span class="home-shipped-meta">
+						<?php
+						printf(
+							/* translators: %s: human-readable time difference, e.g. "3 hours" */
+							esc_html__( '%s ago', 'extrachill-blog' ),
+							esc_html( human_time_diff( $release['published_at'], time() ) )
+						);
+						?>
+					</span>
+				</a>
+			<?php endforeach; ?>
+		</div>
+		<?php if ( $repos_total > 0 ) : ?>
+			<div class="home-shipped-footer">
+				<?php
+				printf(
+					/* translators: 1: number of repos active this month, 2: total repo count */
+					esc_html__( '%1$d of %2$d repos active this month', 'extrachill-blog' ),
+					absint( $repos_active_this_month ),
+					absint( $repos_total )
+				);
+				?>
+				&middot;
+				<a href="https://github.com/Extra-Chill" target="_blank" rel="noopener"><?php esc_html_e( 'See it all on GitHub', 'extrachill-blog' ); ?></a>
+			</div>
+		<?php endif; ?>
+	</div>
+</div>

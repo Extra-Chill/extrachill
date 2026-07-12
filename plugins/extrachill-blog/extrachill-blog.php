@@ -42,11 +42,14 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/login-register-cta.php';
  * Register plugin styles
  */
 function extrachill_blog_register_styles() {
+	$version = filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/css/share-card.css' );
+	$version = false === $version ? null : (string) $version;
+
 	wp_register_style(
 		'extrachill-blog-share-card',
 		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/share-card.css',
 		array(),
-		filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/css/share-card.css' )
+		$version
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_blog_register_styles', 5 );
@@ -61,5 +64,15 @@ function extrachill_blog_activate() {
 	if ( function_exists( 'extrachill_blog_create_power_page' ) ) {
 		extrachill_blog_create_power_page();
 	}
+
+	extrachill_blog_schedule_recently_shipped_refresh();
 }
 register_activation_hook( __FILE__, 'extrachill_blog_activate' );
+
+/**
+ * Remove the Recently Shipped scheduled event when the plugin is deactivated.
+ */
+function extrachill_blog_deactivate() {
+	wp_clear_scheduled_hook( 'extrachill_blog_refresh_recently_shipped' );
+}
+register_deactivation_hook( __FILE__, 'extrachill_blog_deactivate' );
