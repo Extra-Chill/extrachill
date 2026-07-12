@@ -7,8 +7,9 @@ Extra Chill News Wire provides a specialized platform for automated festival new
 ### Core Components
 
 1.  **Festival Wire CPT (`festival_wire`)**: The primary content container for news items.
-2.  **Taxonomy System**: Uses `festival`, `category`, and `data_source` taxonomies for organization.
+2.  **Taxonomy System**: Attaches the network-owned `festival` and `location` taxonomies to Wire stories.
 3.  **Wire Hub Homepage**: A dedicated template (`home-wire.php`) that serves as the entry point for the wire site.
+4.  **Data Machine Pipelines**: Fetch, AI, and publish steps create Wire stories while retaining execution evidence outside this plugin.
 
 ### Multisite Integration
 
@@ -25,12 +26,11 @@ The plugin implements a robust template override system:
 -   `home-wire.php`: The homepage for the wire domain, showcasing latest updates.
 -   `content-card.php`: Modular component used across archives and homepage.
 
-## Migration Tools
+## Provenance
 
-Located under **Tools > Festival Wire Migration**:
+Machine-published Wire stories use Data Machine's generic source URL, handler, flow, processed-item, and job-artifact primitives. News Wire owns story-level editorial and deduplication policy rather than duplicating that infrastructure.
 
--   **Tag Migration**: Converts standard post tags to the `festival` taxonomy.
--   **Author Migration**: Allows bulk reassignment of wire posts to specific users.
+See [provenance.md](provenance.md) for the required publication evidence, source-truth boundary, and identity rules.
 
 ## Frontend Integration
 

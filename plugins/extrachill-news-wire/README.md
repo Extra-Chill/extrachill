@@ -1,28 +1,24 @@
 # ExtraChill News Wire
 
-WordPress plugin providing festival and music news wire functionality with custom post types, native pagination, and migration tools.
+WordPress plugin providing the Extra Chill Festival Wire content model, presentation, and Data Machine integration policy.
 
 ## Development Status
 
-- **Active Refinement**: News Wire is being hardened after extraction from the theme; template overrides, pagination, and taxonomy migration tools still receive updates before the 0.3.0 release.
-- **Testing Focus**: Work continues on improving migration reporting and verifying front-end templates in multisite contexts.
+- **Active Refinement**: Festival Wire is the proven first vertical for a broader reactive music-news system.
+- **Testing Focus**: Work centers on source provenance, template composition, discovery, and multisite integration.
 
 ## Overview
 
-ExtraChill News Wire is a standalone WordPress plugin providing comprehensive festival news coverage functionality for wire.extrachill.com (Blog ID 11). It includes custom post types, native WordPress pagination, and administrative migration tools. It was extracted from the ExtraChill theme to isolate automated news feeds from the main editorial site.
+ExtraChill News Wire provides festival news coverage for wire.extrachill.com. It owns the `festival_wire` content model and presentation while Data Machine owns generic fetch, AI, publishing, tracking, and job evidence.
 
 ## Features
 
 ### Core Functionality
 - **Festival Wire Custom Post Type**: Dedicated content management for festival news and coverage
 - **Native Pagination**: Standard WordPress pagination using the theme's `extrachill_pagination()` function
-- **Custom Taxonomies**: Festival, category, and data source taxonomy support
+- **Shared Taxonomies**: Network-owned festival and location classification
 - **Template System**: Complete template hierarchy for archive and single post display
-
-### Administrative Tools
-- **Tag Migration**: One-time migration tool to convert post tags to festival taxonomy
-- **Author Migration**: Bulk author reassignment for all Festival Wire posts
-- **Content Management**: Full WordPress admin integration with custom post type support
+- **Auditable Automation**: A defined boundary between authoritative source data and AI-generated editorial output
 
 ### Frontend Features
 - **Archive Pages**: Dedicated festival wire archive with filtering and pagination
@@ -47,24 +43,11 @@ The build artifact is `build/extrachill-news-wire.zip`.
 ### Content Management
 1. Navigate to **Festival Wire** in the WordPress admin menu
 2. Create new Festival Wire posts using the standard WordPress editor
-3. Assign festivals, categories, and data sources using the taxonomy metaboxes
+3. Assign festival and location terms using the taxonomy metaboxes
 4. Set featured images and excerpts for optimal display
 
-### Migration Tools
-Access migration tools via **Tools > Festival Wire Migration**:
-
-#### Tag to Festival Migration
-- Converts existing post tags on Festival Wire posts to the Festival taxonomy
-- Removes migrated tags and deletes unused tags
-- One-time operation with detailed reporting
-
-#### Author Migration
-- Bulk reassign all Festival Wire posts to a selected author
-- Useful for content consolidation and author management
-- Provides migration statistics and confirmation
-
 ### Frontend Display
-- **Archive**: Visit `/festival_wire/` for the complete news wire archive
+- **Archive**: Visit `/festival-wire/` for the complete Festival Wire archive
 - **Single Posts**: Individual festival wire posts display with enhanced metadata
 - **Homepage Integration**: Compatible with homepage ticker widgets (requires theme support)
 
@@ -106,10 +89,9 @@ extrachill-news-wire/
 ## Configuration
 
 ### Taxonomies
-The plugin registers and utilizes these taxonomies:
+The plugin attaches these network-owned taxonomies:
 - **Festival**: Primary festival classification
-- **Category**: Standard WordPress categories
-- **Data Source**: Content source tracking
+- **Location**: Geographic classification
 
 ### Custom Fields
 Festival Wire posts support all standard WordPress features:
@@ -119,6 +101,10 @@ Festival Wire posts support all standard WordPress features:
 - Author assignment
 - Custom fields
 - Revisions
+
+### Data Machine Provenance
+
+See [docs/provenance.md](docs/provenance.md) for source attribution, execution tracking, AI authority, story identity, and revision rules.
 
 ## Development
 
