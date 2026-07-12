@@ -2,7 +2,7 @@
 /**
  * Image Voting Block initialization
  * REST endpoint: /wp-json/extrachill/v1/blog/image-voting/vote
- * Newsletter integration: extrachill_multisite_subscribe() bridge function
+ * Newsletter integration: extrachill_network_subscribe() bridge function
  *
  * Votes are stored as native anonymous WordPress comments with a custom
  * comment_type of 'image_vote'. Each vote is one comment row, identified by
@@ -133,9 +133,9 @@ function extrachill_content_blocks_process_image_vote( $post_id, $instance_id, $
 	add_comment_meta( $comment_id, 'instance_id', (string) $instance_id );
 
 	// Newsletter integration (non-blocking). Behavior unchanged — still
-	// delegates to the extrachill/subscribe ability via the multisite bridge.
-	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
-		$subscription_result = extrachill_multisite_subscribe( $email_address, 'image_voting' );
+	// delegates to the extrachill/subscribe ability via the network bridge.
+	if ( function_exists( 'extrachill_network_subscribe' ) ) {
+		$subscription_result = extrachill_network_subscribe( $email_address, 'image_voting' );
 		if ( ! $subscription_result['success'] ) {
 			error_log(
 				sprintf(
