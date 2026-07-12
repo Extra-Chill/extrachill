@@ -187,6 +187,50 @@ class Test_User_Settings_Default_Event_Location extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Migration resolves deterministic hierarchy values but never guesses namesakes.
+	 */
+	public function test_legacy_local_scene_migration_dry_run_and_apply(): void {
+		$matched   = self::factory()->user->create();
+		$ambiguous = self::factory()->user->create();
+		$unmatched = self::factory()->user->create();
+		$already   = self::factory()->user->create();
+
+		update_user_meta( $matched, 'local_city', 'Charleston, SC' );
+		update_user_meta( $ambiguous, 'local_city', 'Charleston' );
+		update_user_meta( $unmatched, 'local_city', 'Nowhere' );
+		update_user_meta( $already, 'local_city', 'Charleston, SC' );
+		update_user_meta( $already, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY, 'charleston-tx' );
+
+		$dry_run = extrachill_users_migrate_legacy_local_scenes( false, array( $matched, $ambiguous, $unmatched, $already ) );
+
+		$this->assertSame( array( 'matched' => 1, 'ambiguous' => 1, 'unmatched' => 1, 'already-set' => 1 ), $dry_run['totals'] );
+		$this->assertFalse( metadata_exists( 'user', $matched, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY ) );
+
+		$applied = extrachill_users_migrate_legacy_local_scenes( true, array( $matched, $ambiguous, $unmatched, $already ) );
+
+		$this->assertTrue( $applied['applied'] );
+		$this->assertSame( 'charleston-sc', get_user_meta( $matched, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY, true ) );
+		$this->assertSame( 'Charleston, SC', get_user_meta( $matched, 'local_city', true ) );
+		$this->assertFalse( metadata_exists( 'user', $ambiguous, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY ) );
+		$this->assertFalse( metadata_exists( 'user', $unmatched, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY ) );
+		$this->assertFalse( metadata_exists( 'user', $already, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY ) );
+	}
+
+	/**
+	 * A canonical empty Local Scene is an intentional setting and is not overwritten.
+	 */
+	public function test_legacy_migration_respects_explicitly_cleared_local_scene(): void {
+		$user_id = self::factory()->user->create();
+		update_user_meta( $user_id, 'local_city', 'Charleston, SC' );
+		update_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY, '' );
+
+		$result = extrachill_users_migrate_legacy_local_scenes( true, array( $user_id ) );
+
+		$this->assertSame( 1, $result['totals']['already-set'] );
+		$this->assertSame( '', get_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY, true ) );
+	}
+
+	/**
 	 * Visibility defaults public and private scenes hide both canonical and legacy city output.
 	 */
 	public function test_local_scene_visibility_controls_public_profile(): void {
