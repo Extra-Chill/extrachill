@@ -138,6 +138,13 @@ if ( ! function_exists( 'extrachill_cache_url_identity' ) || ! function_exists( 
 	return;
 }
 
+// Functional query strings are not cached. Tracking-only query strings are
+// discarded by the shared identity normalizer and use the canonical key.
+$ec_cache_query = isset( $_SERVER['QUERY_STRING'] ) ? (string) $_SERVER['QUERY_STRING'] : '';
+if ( '' !== $ec_cache_query && ! extrachill_cache_query_is_tracking_only( $ec_cache_query ) ) {
+	return;
+}
+
 $ec_cache_identity = extrachill_cache_url_identity();
 if ( '' === $ec_cache_identity ) {
 	return;

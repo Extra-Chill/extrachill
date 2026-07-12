@@ -106,6 +106,62 @@ if ( ! function_exists( 'extrachill_cache_file_path' ) ) {
 
 if ( ! function_exists( 'extrachill_cache_url_identity' ) ) {
 	/**
+	 * Determine whether a query string contains tracking parameters only.
+	 *
+	 * @param string $query Query string without the leading question mark.
+	 * @return bool True when every parameter is safe to discard.
+	 */
+	function extrachill_cache_query_is_tracking_only( $query ) {
+		if ( '' === $query ) {
+			return true;
+		}
+
+		parse_str( $query, $args );
+		if ( empty( $args ) ) {
+			return true;
+		}
+
+		$tracking_keys = array( 'fbclid', 'gclid', 'dclid', 'msclkid', 'mc_cid', 'mc_eid', '_ga' );
+		foreach ( array_keys( $args ) as $key ) {
+			if ( 0 !== strpos( $key, 'utm_' ) && ! in_array( $key, $tracking_keys, true ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Normalize a URL into the identity used by the cache key.
+	 *
+	 * Tracking-only query strings collapse to the canonical path. Functional
+	 * query strings are retained, although request gates keep them out of the
+	 * page cache.
+	 *
+	 * @param string $url Absolute URL.
+	 * @return string Normalized identity, or an empty string when invalid.
+	 */
+	function extrachill_cache_normalize_url_identity( $url ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Shared with the pre-WordPress drop-in where wp_parse_url() is unavailable.
+		$parts = parse_url( $url );
+		if ( false === $parts || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+			return '';
+		}
+
+		$identity = strtolower( $parts['scheme'] ) . '://' . strtolower( $parts['host'] );
+		if ( ! empty( $parts['port'] ) ) {
+			$identity .= ':' . (int) $parts['port'];
+		}
+		$identity .= isset( $parts['path'] ) && '' !== $parts['path'] ? $parts['path'] : '/';
+
+		if ( ! empty( $parts['query'] ) && ! extrachill_cache_query_is_tracking_only( $parts['query'] ) ) {
+			$identity .= '?' . $parts['query'];
+		}
+
+		return $identity;
+	}
+
+	/**
 	 * Build a normalized URL identity string for the CURRENT request.
 	 *
 	 * Modeled on Breeze's breeze_get_url_path() (execute-cache.php:574): scheme
@@ -126,7 +182,33 @@ if ( ! function_exists( 'extrachill_cache_url_identity' ) ) {
 		$host = strtolower( (string) $_SERVER['HTTP_HOST'] );
 		$uri  = (string) $_SERVER['REQUEST_URI'];
 
-		return $scheme . rtrim( $host, '/' ) . $uri;
+		return extrachill_cache_normalize_url_identity( $scheme . rtrim( $host, '/' ) . $uri );
+	}
+}
+
+if ( ! function_exists( 'extrachill_cache_delete_url' ) ) {
+	/**
+	 * Delete desktop and mobile cache variants for one absolute URL.
+	 *
+	 * @param string $url     Absolute URL.
+	 * @param int    $blog_id Blog ID.
+	 * @return int Number of files deleted.
+	 */
+	function extrachill_cache_delete_url( $url, $blog_id = 0 ) {
+		$identity = extrachill_cache_normalize_url_identity( $url );
+		if ( '' === $identity ) {
+			return 0;
+		}
+
+		$deleted = 0;
+		foreach ( array( 'desktop', 'mobile' ) as $device ) {
+			$path = extrachill_cache_file_path( extrachill_cache_key( $identity, $device ), $blog_id );
+			if ( is_file( $path ) && @unlink( $path ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged,WordPress.WP.AlternativeFunctions.unlink_unlink -- Targeted local cache invalidation; a concurrent miss is harmless.
+				++$deleted;
+			}
+		}
+
+		return $deleted;
 	}
 }
 

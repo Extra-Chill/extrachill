@@ -74,6 +74,25 @@ function extrachill_cache_purge_on_post_change( $post_id ) {
 		return;
 	}
 
+	/**
+	 * Filter exact public URLs to invalidate for a post change.
+	 *
+	 * Return an array to use targeted invalidation. The default null retains the
+	 * correctness-first full-blog purge for post types without an integration.
+	 *
+	 * @param null|array $urls      Absolute URLs, or null for a full purge.
+	 * @param int        $post_id   Changed post ID.
+	 * @param string     $post_type Changed post type.
+	 */
+	$urls = apply_filters( 'extrachill_cache_post_change_urls', null, $post_id, $post_type );
+	if ( is_array( $urls ) ) {
+		$blog_id = get_current_blog_id();
+		foreach ( array_unique( array_filter( $urls, 'is_string' ) ) as $url ) {
+			extrachill_cache_delete_url( $url, $blog_id );
+		}
+		return;
+	}
+
 	extrachill_cache_purge_current_blog();
 }
 

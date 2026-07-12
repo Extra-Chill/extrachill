@@ -76,9 +76,14 @@ function extrachill_cache_request_is_cacheable() {
 		return false;
 	}
 
-	// Don't cache requests carrying query strings we can't safely key on.
-	// Anonymous crawl/pagination URLs are fine; anything with a nonce/preview
-	// arg is already excluded above. Comment-author cookies opt out below.
+	// Functional query strings create unbounded crawler-controlled cache keys.
+	// Tracking-only queries are safe because the identity normalizer discards
+	// them and stores the canonical path instead.
+	$query = isset( $_SERVER['QUERY_STRING'] ) ? (string) $_SERVER['QUERY_STRING'] : '';
+	if ( '' !== $query && ! extrachill_cache_query_is_tracking_only( $query ) ) {
+		return false;
+	}
+
 	if ( ! empty( $_COOKIE ) ) {
 		foreach ( $_COOKIE as $name => $value ) {
 			// Comment authors see their just-submitted (unmoderated) comment,
