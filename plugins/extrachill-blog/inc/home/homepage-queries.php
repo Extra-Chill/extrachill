@@ -95,14 +95,24 @@ function extrachill_blog_get_wire_latest( $limit = 4 ) {
  * Get the "Recently Shipped" homepage payload — recent GitHub releases
  * across the whole Extra-Chill org plus a monthly-activity stat.
  *
- * Reads only the long-TTL last-good transient populated by the scheduled
- * warmer. If no payload is available, the section renders nothing.
+ * Reads only the durable last-good option populated by the scheduled warmer.
+ * A legacy transient is migrated when present. If no payload is available,
+ * the section renders nothing.
  *
  * @return array{releases: array[], repos_active_this_month: int, repos_total: int}|array{}
  */
 function extrachill_blog_get_recently_shipped() {
-	$last_good = get_transient( 'extrachill_blog_recently_shipped_last_good' );
+	$option_name = 'extrachill_blog_recently_shipped_last_good';
+	$last_good   = get_option( $option_name, array() );
 	if ( is_array( $last_good ) && ! empty( $last_good ) ) {
+		return $last_good;
+	}
+
+	$last_good = get_transient( $option_name );
+	if ( is_array( $last_good ) && ! empty( $last_good ) ) {
+		update_option( $option_name, $last_good, false );
+		delete_transient( $option_name );
+
 		return $last_good;
 	}
 
@@ -153,7 +163,7 @@ function extrachill_blog_fetch_recently_shipped() {
 
 	foreach ( $candidate_repos as $repo_name ) {
 		$release_response = wp_remote_get(
-			sprintf( 'https://api.github.com/repos/Extra-Chill/%s/releases?per_page=1', rawurlencode( $repo_name ) ),
+			sprintf( 'https://api.github.com/repos/Extra-Chill/%s/releases/latest', rawurlencode( $repo_name ) ),
 			array(
 				'timeout' => 10,
 				'headers' => array( 'Accept' => 'application/vnd.github+json' ),
@@ -166,11 +176,11 @@ function extrachill_blog_fetch_recently_shipped() {
 
 		$release_data = json_decode( wp_remote_retrieve_body( $release_response ), true );
 
-		if ( ! is_array( $release_data ) || empty( $release_data[0] ) ) {
+		if ( ! is_array( $release_data ) || empty( $release_data['tag_name'] ) ) {
 			continue;
 		}
 
-		$release = $release_data[0];
+		$release = $release_data;
 
 		if ( empty( $release['tag_name'] ) || empty( $release['published_at'] ) || empty( $release['html_url'] ) ) {
 			continue;

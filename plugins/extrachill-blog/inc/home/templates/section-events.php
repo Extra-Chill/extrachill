@@ -2,7 +2,7 @@
 /**
  * Homepage Events Card
  *
- * City badges with live counts render in the top grid ("Shows Near You"),
+ * City badges with live counts render in the top grid ("Top Event Markets"),
  * so this card focuses on the mission + submission CTA.
  *
  * @package ExtraChillBlog

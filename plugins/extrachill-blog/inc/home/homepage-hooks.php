@@ -36,7 +36,7 @@ function extrachill_blog_refresh_recently_shipped() {
 		return;
 	}
 
-	set_transient( 'extrachill_blog_recently_shipped_last_good', $payload, WEEK_IN_SECONDS );
+	update_option( 'extrachill_blog_recently_shipped_last_good', $payload, false );
 }
 add_action( 'extrachill_blog_refresh_recently_shipped', 'extrachill_blog_refresh_recently_shipped' );
 
@@ -49,7 +49,6 @@ function extrachill_blog_render_homepage() {
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/hero.php';
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-3x3-grid.php';
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-search.php';
-	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-recently-shipped.php';
 	?>
 	<div class="home-network-grid">
 		<?php
@@ -58,6 +57,7 @@ function extrachill_blog_render_homepage() {
 		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-events.php';
 		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-docs.php';
 		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-about.php';
+		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-recently-shipped.php';
 		?>
 	</div>
 	<?php

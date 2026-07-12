@@ -93,7 +93,7 @@ $events_url      = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'even
 		</div>
 		<div class="home-3x3-stacked-section">
 			<div class="home-3x3-header">
-				<span class="home-3x3-label"><?php esc_html_e( 'Shows Near You', 'extrachill-blog' ); ?></span>
+				<span class="home-3x3-label"><?php esc_html_e( 'Top Event Markets', 'extrachill-blog' ); ?></span>
 				<a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( $events_url ); ?>"><?php esc_html_e( 'View All', 'extrachill-blog' ); ?></a>
 			</div>
 			<?php if ( ! empty( $location_counts ) ) : ?>
