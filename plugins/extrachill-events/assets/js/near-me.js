@@ -120,6 +120,13 @@
 	}
 
 	function onError( error ) {
+		// The server-rendered calendar/map already use the account market.
+		// Keep that result instead of dropping to anonymous city discovery.
+		if ( ecNearMe.hasAccountMarket ) {
+			hideDetectUI();
+			return;
+		}
+
 		let msg;
 		switch ( error.code ) {
 			case error.PERMISSION_DENIED:
