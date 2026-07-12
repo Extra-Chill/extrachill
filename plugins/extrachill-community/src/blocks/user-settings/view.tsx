@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from '@wordpress/element';
+import { useState, useEffect, useCallback, useRef } from '@wordpress/element';
 import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { ComboboxControl } from '@wordpress/components';
 import { WPNativeClient } from 'wp-native-client';
 import { WpApiFetchTransport } from 'wp-native-client/wordpress';
 import { BlockShell, BlockShellInner, ResponsiveTabs, Panel, PanelHeader, ActionRow, FieldGroup, BlockShellHeader, BlockIntro } from '@extrachill/components';
@@ -18,6 +19,25 @@ import type {
 } from '../../types/users';
 
 const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), { validateAbilityNames: false } );
+const LOCATION_SEARCH_DEBOUNCE_MS = 250;
+
+interface EventLocation {
+	term_id: number;
+	name: string;
+	slug: string;
+	archive_url: string;
+	coordinates: { lat: number; lon: number } | null;
+	hierarchy: {
+		region: string;
+		state: string;
+		label: string;
+	};
+}
+
+interface EventLocationsResponse {
+	locations: EventLocation[];
+	location: EventLocation | null;
+}
 
 const styles = {
 	button: {
@@ -46,21 +66,57 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 	const [ firstName, setFirstName ] = useState( settings.first_name );
 	const [ lastName, setLastName ] = useState( settings.last_name );
 	const [ displayName, setDisplayName ] = useState( settings.display_name );
+	const [ defaultEventLocationSlug, setDefaultEventLocationSlug ] = useState< string | null >( settings.default_event_location?.slug ?? null );
+	const [ locationOptions, setLocationOptions ] = useState< Array<{ label: string; value: string }> >( settings.default_event_location ? [ { label: settings.default_event_location.name, value: settings.default_event_location.slug } ] : [] );
 	const [ saving, setSaving ] = useState( false );
 	const [ notice, setNotice ] = useState< { type: 'success' | 'error'; message: string } | null >( null );
+	const locationSearchTimeout = useRef< number | null >( null );
+	const locationSearchRequest = useRef( 0 );
+
+	const searchLocations = useCallback( ( search: string ) => {
+		const request = ++locationSearchRequest.current;
+		if ( locationSearchTimeout.current !== null ) {
+			window.clearTimeout( locationSearchTimeout.current );
+		}
+		const trimmed = search.trim();
+		if ( ! trimmed ) {
+			setLocationOptions( settings.default_event_location ? [ { label: settings.default_event_location.name, value: settings.default_event_location.slug } ] : [] );
+			return;
+		}
+
+		locationSearchTimeout.current = window.setTimeout( () => {
+			client.execute< EventLocationsResponse >( 'extrachill/events-locations', { mode: 'search', search: trimmed, limit: 10 } )
+				.then( ( result ) => {
+					if ( request === locationSearchRequest.current ) {
+						setLocationOptions( result.locations.map( ( location ) => ( { label: location.hierarchy.label, value: location.slug } ) ) );
+					}
+				} )
+				.catch( () => {
+					if ( request === locationSearchRequest.current ) setLocationOptions( [] );
+				} );
+		}, LOCATION_SEARCH_DEBOUNCE_MS );
+
+	}, [ settings.default_event_location ] );
+
+	useEffect( () => () => {
+		if ( locationSearchTimeout.current !== null ) {
+			window.clearTimeout( locationSearchTimeout.current );
+		}
+	}, [] );
 
 	const handleSave = useCallback( async () => {
 		setSaving( true );
 		setNotice( null );
 		try {
-			const result = await client.execute< UserSettings & { message?: string } >( 'extrachill/update-user-settings', { first_name: firstName, last_name: lastName, display_name: displayName } );
+			const result = await client.execute< UserSettings & { message?: string } >( 'extrachill/update-user-settings', { first_name: firstName, last_name: lastName, display_name: displayName, default_event_location: defaultEventLocationSlug ?? '' } );
 			onUpdate( result );
+			setDefaultEventLocationSlug( result.default_event_location?.slug ?? null );
 			setNotice( { type: 'success', message: result.message || 'Account details updated.' } );
 		} catch ( err ) {
 			setNotice( { type: 'error', message: err instanceof Error ? err.message : 'Update failed.' } );
 		}
 		setSaving( false );
-	}, [ firstName, lastName, displayName, onUpdate ] );
+	}, [ firstName, lastName, displayName, defaultEventLocationSlug, onUpdate ] );
 
 	return (
 		<Panel>
@@ -75,6 +131,17 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 				<select id="ec-display-name" value={ displayName } onChange={ ( e ) => setDisplayName( e.target.value ) }>
 					{ settings.display_name_options.map( ( option ) => <option key={ option } value={ option }>{ option }</option> ) }
 				</select>
+			</FieldGroup>
+			<FieldGroup help="Used when you have not chosen an event location or shared your browser location. This does not change your public Local Scene.">
+				<ComboboxControl
+					label="Default Event Market"
+					value={ defaultEventLocationSlug }
+					options={ locationOptions }
+					onFilterValueChange={ searchLocations }
+					onChange={ ( slug ) => setDefaultEventLocationSlug( slug ?? null ) }
+					allowReset={ true }
+					placeholder="Search event markets"
+				/>
 			</FieldGroup>
 			<ActionRow>
 				<button className="button-1 button-small" style={ saving ? styles.button : undefined } onClick={ handleSave } disabled={ saving }>{ saving ? 'Saving...' : 'Save Account Details' }</button>

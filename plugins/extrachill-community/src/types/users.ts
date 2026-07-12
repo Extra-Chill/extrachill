@@ -53,6 +53,14 @@ export interface LeaderboardResponse {
 
 // ─── User Settings ──────────────────────────────────────────────────────────
 
+export interface EventLocation {
+	term_id: number;
+	name: string;
+	slug: string;
+	url: string;
+	coordinates: { lat: number; lon: number } | null;
+}
+
 export interface UserSettings {
 	user_id: number;
 	first_name: string;
@@ -61,6 +69,7 @@ export interface UserSettings {
 	display_name_options: string[];
 	email: string;
 	pending_email: string | null;
+	default_event_location: EventLocation | null;
 }
 
 export interface ChangeEmailResponse {
