@@ -2,6 +2,11 @@
 
 All notable changes to extrachill-cache are documented here.
 
+## [0.3.1] - 2026-07-12
+
+### Fixed
+- bound page cache growth
+
 ## [0.3.0] - 2026-07-10
 
 ### Added
