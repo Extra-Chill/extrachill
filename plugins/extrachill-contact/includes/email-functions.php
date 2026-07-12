@@ -7,7 +7,7 @@
  * - User confirmation emails   (extrachill/branded template)
  * - Sendy newsletter integration
  *
- * Sends route through `ec_send_email()` (from extrachill-multisite), which
+ * Sends route through `ec_send_email()` (from extrachill-network), which
  * delegates to the `datamachine/send-email` ability. Per-site SMTP routing
  * and EC-branded HTML markup are owned by the template layer — this file
  * just supplies the message context.
@@ -58,7 +58,7 @@ HTML;
  * Send confirmation email to user who submitted the contact form.
  *
  * Uses the `extrachill/branded` template — the canonical EC link grid and
- * footer now live in `extrachill-multisite`'s template, so this function
+ * footer now live in `extrachill-network`'s template, so this function
  * only supplies the user-facing message body.
  */
 function ec_contact_send_user_confirmation( $name, $email, $subject, $message ) {
@@ -90,7 +90,7 @@ HTML;
  * Sync contact form submission to Sendy newsletter list.
  */
 function ec_contact_sync_to_sendy( $email ) {
-	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
-		extrachill_multisite_subscribe( $email, 'contact' );
+	if ( function_exists( 'extrachill_network_subscribe' ) ) {
+		extrachill_network_subscribe( $email, 'contact' );
 	}
 }
