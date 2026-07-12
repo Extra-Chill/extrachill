@@ -2,9 +2,9 @@
 /**
  * QR Code CLI Commands
  *
- * Delegates to the existing `extrachill/generate-qr-code` ability provided by
- * extrachill-admin-tools. This keeps QR generation primitive logic in its
- * existing home while exposing a CLI entrypoint under `wp extrachill`.
+ * Delegates to the canonical `extrachill/generate-qr-code` ability provided by
+ * Extra Chill Network. This keeps QR generation primitive logic in its owning
+ * plugin while exposing a CLI entrypoint under `wp extrachill`.
  *
  * @package ExtraChill\CLI\Commands\Tools
  */
@@ -98,7 +98,7 @@ class QRCodeCommand {
 	 */
 	private function ensure_qr_ability() {
 		if ( ! wp_get_ability( 'extrachill/generate-qr-code' ) ) {
-			WP_CLI::error( 'QR code ability is unavailable. Ensure extrachill-admin-tools is active and abilities are registered.' );
+			WP_CLI::error( 'QR code ability is unavailable. Ensure Extra Chill Network is active and abilities are registered.' );
 		}
 	}
 }

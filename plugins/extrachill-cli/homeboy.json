@@ -6,6 +6,11 @@
   },
   "id": "extrachill-cli",
   "remote_path": "wp-content/plugins/extrachill-cli",
+  "self_checks": {
+    "test": [
+      "php tests/QRCodeCommandTest.php"
+    ]
+  },
   "version_targets": [
     {
       "file": "extrachill-cli.php",
