@@ -5,7 +5,7 @@
  * Network-wide functions for retrieving user's artist profile relationships.
  * Centralized location for user-artist data access across the entire multisite network.
  *
- * Note: ec_get_artist_profile_by_slug() moved to extrachill-multisite/inc/cross-site-links/entity-links.php
+ * Note: ec_get_artist_profile_by_slug() moved to extrachill-network/inc/cross-site-links/entity-links.php
  *
  * @package ExtraChill\Users
  */

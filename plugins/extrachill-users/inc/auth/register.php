@@ -83,8 +83,8 @@ function extrachill_handle_registration() {
 
 	update_user_meta( $user_id, 'registration_timestamp', current_time( 'mysql' ) );
 
-	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
-		$sync_result = extrachill_multisite_subscribe( $email, 'registration' );
+	if ( function_exists( 'extrachill_network_subscribe' ) ) {
+		$sync_result = extrachill_network_subscribe( $email, 'registration' );
 		if ( ! $sync_result['success'] ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for newsletter sync failures.
 			error_log( 'Registration newsletter subscription failed: ' . $sync_result['message'] );

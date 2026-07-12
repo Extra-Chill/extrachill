@@ -238,10 +238,10 @@ function extrachill_users_wp_native_after_register( int $user_id, string $device
 	}
 
 	// Newsletter subscription: same call as service.php.
-	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
+	if ( function_exists( 'extrachill_network_subscribe' ) ) {
 		$email = $user ? $user->user_email : '';
 		if ( $email ) {
-			$sync_result = extrachill_multisite_subscribe( $email, 'registration' );
+			$sync_result = extrachill_network_subscribe( $email, 'registration' );
 			if ( isset( $sync_result['success'] ) && ! $sync_result['success'] ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for newsletter sync failures.
 				error_log( 'wp-native-bridge: registration newsletter subscription failed for user ' . $user_id . ': ' . ( isset( $sync_result['message'] ) ? $sync_result['message'] : '' ) );

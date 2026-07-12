@@ -778,8 +778,8 @@ Use `expo-auth-session` for Google OAuth:
 | `extrachill-users/assets/js/google-signin.js` | Google Sign-In frontend module | ✅ Done |
 | `extrachill-users/assets/js/auth-utils.js` | Shared auth utilities | ✅ Done |
 | `extrachill-users/blocks/onboarding/` | Onboarding Gutenberg block | ✅ Done |
-| `extrachill-multisite/admin/network-payments-settings.php` | Stripe keys admin UI | ✅ Done |
-| `extrachill-multisite/admin/network-oauth-settings.php` | OAuth keys admin UI | ✅ Done |
+| `extrachill-network/admin/network-payments-settings.php` | Stripe keys admin UI | ✅ Done |
+| `extrachill-network/admin/network-oauth-settings.php` | OAuth keys admin UI | ✅ Done |
 | `extrachill-app/app/onboarding.tsx` | App onboarding screen | ⏳ Pending |
 
 ### Modified Files

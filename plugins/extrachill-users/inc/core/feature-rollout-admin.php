@@ -9,10 +9,10 @@
  * ceiling/ladder/clamp functions and never reimplements that logic.
  *
  * Layering: the page lives in extrachill-users (next to the primitive it
- * controls) but attaches as a submenu of the multisite network menu via the
- * public slug constant EXTRACHILL_MULTISITE_MENU_SLUG. It references only that
- * constant — guarded with defined() — and never any multisite internals, so it
- * cleanly no-ops if the multisite menu shell is absent.
+ * controls) but attaches as a submenu of the network menu via the
+ * public slug constant EXTRACHILL_NETWORK_MENU_SLUG. It references only that
+ * constant — guarded with defined() — and never any network internals, so it
+ * cleanly no-ops if the network menu shell is absent.
  *
  * See Extra-Chill/extrachill-users#66.
  *
@@ -26,18 +26,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'network_admin_menu', 'ec_feature_rollout_add_menu' );
 
 /**
- * Register the "Feature Rollout" submenu under the multisite network menu.
+ * Register the "Feature Rollout" submenu under the network menu.
  *
- * Soft dependency: no-ops if the multisite menu shell (and therefore its slug
+ * Soft dependency: no-ops if the network menu shell (and therefore its slug
  * constant) is absent, so extrachill-users never hard-requires the menu.
  */
 function ec_feature_rollout_add_menu() {
-	if ( ! defined( 'EXTRACHILL_MULTISITE_MENU_SLUG' ) ) {
+	if ( ! defined( 'EXTRACHILL_NETWORK_MENU_SLUG' ) ) {
 		return;
 	}
 
 	add_submenu_page(
-		EXTRACHILL_MULTISITE_MENU_SLUG,
+		EXTRACHILL_NETWORK_MENU_SLUG,
 		__( 'Feature Rollout', 'extrachill-users' ),
 		__( 'Feature Rollout', 'extrachill-users' ),
 		'manage_network_options',

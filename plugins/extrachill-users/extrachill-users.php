@@ -7,7 +7,7 @@
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
- * Requires Plugins: extrachill-multisite, extrachill-api
+ * Requires Plugins: extrachill-network, extrachill-api
  * Requires at least: 5.0
  * Tested up to: 6.4
  * Requires PHP: 8.0

@@ -874,7 +874,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
  * - venue  → the events-site venue archive.
  * - location (city) → the events-site location archive.
  *
- * Uses the network's canonical linker primitives (extrachill-multisite) rather
+ * Uses the network's canonical linker primitives (extrachill-network) rather
  * than hand-building URLs, so caching + content-awareness are inherited. Items
  * with no resolvable target keep `url => ''` (the UI renders plain text).
  *

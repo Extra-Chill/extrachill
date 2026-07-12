@@ -59,7 +59,7 @@ All auth endpoints live in `extrachill-api` under `extrachill/v1`:
 - WordPress Multisite
 - PHP 7.4+
 - WordPress 5.0+
-- Requires: `extrachill-multisite`, `extrachill-api`
+- Requires: `extrachill-network`, `extrachill-api`
 
 ## Development
 

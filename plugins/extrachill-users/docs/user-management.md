@@ -15,7 +15,7 @@ Network-wide user management plugin providing authentication (including Google O
 - Server-side OAuth flow via `inc/oauth/google-service.php`
 - RS256 ID token verification via `inc/oauth/jwt-rs256.php`
 - Dedicated sign-in button with `assets/js/google-signin.js`
-- Configuration stored in network options (via extrachill-multisite)
+- Configuration stored in network options (via extrachill-network)
 - REST API endpoint: `POST /wp-json/extrachill/v1/auth/google`
 
 ## User Onboarding
@@ -49,5 +49,5 @@ Network-wide user management plugin providing authentication (including Google O
 
 ## Integration points
 - Blog switching is used where the single source of truth lives on a different site (notably community + main-site author archives).
-- OAuth client config is stored as network options (managed by extrachill-multisite).
+- OAuth client config is stored as network options (managed by extrachill-network).
 - **Administrative Management**: User memberships (e.g., Lifetime Membership) and artist-user relationships are managed via the `extrachill-admin-tools` React interface, consuming REST endpoints from `extrachill-api`.

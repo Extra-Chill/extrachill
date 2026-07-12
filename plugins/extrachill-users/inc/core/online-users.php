@@ -6,7 +6,7 @@
  * that feeds the network-wide "online now" count.
  *
  * The COUNT itself is owned by the NetworkStats `online_users` metric provider
- * in extrachill-multisite — that primitive is the single source and single
+ * in extrachill-network — that primitive is the single source and single
  * cache for the number. Consumers read it directly via
  * ec_get_network_stats(['online_users']); this plugin only records activity and
  * invalidates the metric cache when a user becomes active.
@@ -56,9 +56,9 @@ function ec_record_user_activity() {
 			set_transient( $user_activity_cache_key, $current_time, 900 );
 
 			// The online-users count is owned + cached by the NetworkStats
-			// primitive (extrachill-multisite). Bust just that metric so the
+			// primitive (extrachill-network). Bust just that metric so the
 			// next read reflects this activity. Guarded so a version skew
-			// during deploy (multisite a version behind) never fatals.
+			// during deploy (network plugin a version behind) never fatals.
 			if ( function_exists( 'ec_network_stats_forget' ) ) {
 				ec_network_stats_forget( 'online_users' );
 			}

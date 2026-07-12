@@ -470,8 +470,8 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		update_user_meta( (int) $user_id, 'onboarding_redirect_url', $success_redirect_url );
 	}
 
-	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
-		$sync_result = extrachill_multisite_subscribe( $email, 'registration' );
+	if ( function_exists( 'extrachill_network_subscribe' ) ) {
+		$sync_result = extrachill_network_subscribe( $email, 'registration' );
 		if ( isset( $sync_result['success'] ) && ! $sync_result['success'] ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for newsletter sync failures.
 			error_log( 'Registration newsletter subscription failed: ' . ( isset( $sync_result['message'] ) ? $sync_result['message'] : '' ) );

@@ -43,7 +43,7 @@ function extrachill_send_registration_email( array $args ) {
 	if ( ! function_exists( 'ec_send_email' ) ) {
 		return array(
 			'success' => false,
-			'error'   => 'ec_send_email() is unavailable — extrachill-multisite mail layer not loaded.',
+			'error'   => 'ec_send_email() is unavailable — extrachill-network mail layer not loaded.',
 		);
 	}
 

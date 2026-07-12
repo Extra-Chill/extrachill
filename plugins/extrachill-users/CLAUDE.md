@@ -2,7 +2,7 @@
 
 **THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication (including Google OAuth), registration, password reset, user onboarding, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 11 active sites (Blog IDs 1–5, 7–12) with docs at Blog ID 10.
 
-User management functionality was migrated here from extrachill-multisite plugin to follow the single responsibility principle. All user-specific features, authentication flows, and user data operations are consolidated in this plugin.
+User management functionality was migrated here from extrachill-network plugin to follow the single responsibility principle. All user-specific features, authentication flows, and user data operations are consolidated in this plugin.
 
 ## Plugin Information
 
@@ -13,7 +13,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 - **Author URI**: https://chubes.net
 - **License**: GPL v2 or later
 - **Network**: true (network activated across all sites)
-- **Requires Plugins**: extrachill-multisite, extrachill-api
+- **Requires Plugins**: extrachill-network, extrachill-api
 - **Requires at least**: 5.0
 - **Tested up to**: 6.4
 - **Requires PHP**: 7.4
@@ -23,14 +23,14 @@ User management functionality was migrated here from extrachill-multisite plugin
 ### Plugin Purpose
 **Single Source of Truth for User Management** - This plugin is the centralized authority for all user-related functionality across the ExtraChill multisite network. Comprehensive user management system providing authentication, registration, password reset, team member management, profile URL resolution, custom avatars, online user tracking, and network-wide avatar menu functionality.
 
-**Migration History**: User management features were extracted from extrachill-multisite plugin to follow the single responsibility principle. This plugin now handles ALL user-specific logic while extrachill-multisite focuses solely on multisite infrastructure (Cloudflare Turnstile and network admin menu).
+**Migration History**: User management features were extracted from extrachill-network plugin to follow the single responsibility principle. This plugin now handles ALL user-specific logic while extrachill-network focuses solely on multisite infrastructure (Cloudflare Turnstile and network admin menu).
 
 ### Changelog / migrations (authoritative)
 
 - The plugin `CHANGELOG.md` is the definitive record of historical removals, migrations, and deprecated hooks. When other docs reference removed functionality, prefer the changelog entry as the source of truth.
 - Notable migrations:
   - Avatar upload UI relocated to `extrachill-community` (display logic and avatar menu remain in `extrachill-users`). See `CHANGELOG.md` v0.2.4.
-  - Profile URL resolution helpers moved to `extrachill-multisite` to centralize cross-site linking. See `CHANGELOG.md` v0.5.8.
+  - Profile URL resolution helpers moved to `extrachill-network` to centralize cross-site linking. See `CHANGELOG.md` v0.5.8.
   - Legacy hooks and fallback code have been removed over time; consult the changelog for exact hook names and recommended replacements.
 
 If you update docs that reference removed functionality, add a short parenthetical pointing to the plugin changelog and the current replacement location (plugin/file) to avoid confusion.
@@ -49,7 +49,7 @@ If you update docs that reference removed functionality, add a short parenthetic
 - Server-side Google OAuth integration via `inc/oauth/google-service.php`
 - RS256 ID token verification via `inc/oauth/jwt-rs256.php`
 - Dedicated Google sign-in button with JavaScript handling via `assets/js/google-signin.js`
-- Network-wide OAuth configuration managed by extrachill-multisite plugin
+- Network-wide OAuth configuration managed by extrachill-network plugin
 - REST API endpoint: `POST /wp-json/extrachill/v1/auth/google`
 
 **OAuth Service Functions**:
@@ -57,7 +57,7 @@ If you update docs that reference removed functionality, add a short parenthetic
 - `ec_google_get_or_create_user()` - Creates or retrieves user from Google profile
 - Auto-login after successful Google authentication
 
-**Configuration**: OAuth client ID and settings stored in network options via extrachill-multisite admin page (`admin/network-oauth-settings.php`)
+**Configuration**: OAuth client ID and settings stored in network options via extrachill-network admin page (`admin/network-oauth-settings.php`)
 
 #### User Onboarding System (`inc/onboarding/`, `blocks/onboarding/`)
 
@@ -295,10 +295,10 @@ If you update docs that reference removed functionality, add a short parenthetic
 
 #### Cross-Site Artist Linking (`inc/artist-profiles.php`)
 **Canonical Linking**:
-- `ec_get_artist_profile_by_slug()` and `ec_render_cross_site_artist_profile_links()` have been migrated to the `extrachill-multisite` plugin (`inc/cross-site-links/`) to provide unified linking across the 11-site network.
+- `ec_get_artist_profile_by_slug()` and `ec_render_cross_site_artist_profile_links()` have been migrated to the `extrachill-network` plugin (`inc/cross-site-links/`) to provide unified linking across the 11-site network.
  - This plugin now consumes these centralized functions for all user-artist profile link resolution.
 
-**Note**: Profile URL resolution functionality (including `ec_get_user_profile_url`, `ec_get_comment_author_link_multisite`, `ec_display_author_community_link`, and `ec_get_user_author_archive_url`) has been migrated to the `extrachill-multisite` plugin (`inc/cross-site-links/`) for unified cross-site linking across the 11-site network. This plugin now consumes these centralized functions from extrachill-multisite for all profile URL resolution needs.
+**Note**: Profile URL resolution functionality (including `ec_get_user_profile_url`, `ec_get_comment_author_link_multisite`, `ec_display_author_community_link`, and `ec_get_user_author_archive_url`) has been migrated to the `extrachill-network` plugin (`inc/cross-site-links/`) for unified cross-site linking across the 11-site network. This plugin now consumes these centralized functions from extrachill-network for all profile URL resolution needs.
 
 #### Avatar Menu System (`inc/avatar-menu.php`)
 **Function**: `extrachill_display_user_avatar_menu()`
@@ -554,7 +554,7 @@ if ( $blog_id = ec_get_blog_id( 'community' ) ) {
  28. `inc/comment-auto-approval.php` - Comment auto-approval system
  29. `inc/footer/online-users-stats.php` - Online users footer component
 
-**Note**: Profile URL resolution functions (ec_get_user_profile_url, ec_get_comment_author_link_multisite, ec_display_author_community_link, ec_get_user_author_archive_url) are provided by extrachill-multisite plugin. Avatar upload UI is provided by extrachill-community plugin for bbPress integration.
+**Note**: Profile URL resolution functions (ec_get_user_profile_url, ec_get_comment_author_link_multisite, ec_display_author_community_link, ec_get_user_author_archive_url) are provided by extrachill-network plugin. Avatar upload UI is provided by extrachill-community plugin for bbPress integration.
 
 
 ## Development Standards
@@ -579,12 +579,12 @@ if ( $blog_id = ec_get_blog_id( 'community' ) ) {
 - **PHP**: 7.4+
 - **WordPress**: 5.0+ multisite network
 - **Multisite**: Requires WordPress multisite installation (enforced on activation)
-- **Requires Plugins**: extrachill-multisite (WordPress 6.5+ native dependency)
+- **Requires Plugins**: extrachill-network (WordPress 6.5+ native dependency)
 
 ### Plugin Dependencies
-- **extrachill-multisite**: Required for Turnstile captcha (`ec_render_turnstile_widget()`, `ec_verify_turnstile_response()`)
+- **extrachill-network**: Required for Turnstile captcha (`ec_render_turnstile_widget()`, `ec_verify_turnstile_response()`)
 - **extrachill-api**: Required for REST API infrastructure
-- **extrachill-newsletter**: Required for newsletter subscription (`extrachill_multisite_subscribe()` function)
+- **extrachill-newsletter**: Required for newsletter subscription (`extrachill_network_subscribe()` function)
 - **extrachill-artist-platform** (optional): Optional integration for roster invitation acceptance during registration (`bp_get_pending_invitations()`, `bp_add_artist_membership()`, `bp_remove_pending_invitation()`)
 
 ### Development Dependencies

@@ -5,7 +5,7 @@
  * Displays the network-wide "online now" count plus total members in the footer.
  *
  * The online count is read directly from the NetworkStats `online_users` metric
- * provider (extrachill-multisite) via ec_get_network_stats() — the single source
+ * provider (extrachill-network) via ec_get_network_stats() — the single source
  * and single cache for that number. Total members is counted from the community
  * blog and cached locally for a day.
  *
