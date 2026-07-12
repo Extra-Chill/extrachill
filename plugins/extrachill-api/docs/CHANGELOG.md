@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.24.0] - 2026-07-12
+
+### Added
+- expose Local Scene adapters
+
 ## [0.23.2] - 2026-07-12
 
 ### Fixed
