@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.39.0] - 2026-07-12
+
+### Added
+- apply account market fallback to event discovery
+- expose canonical event locations ability
+
+### Fixed
+- add eslint config and clear source findings for release lint gate (#226)
+
 ## [0.38.3] - 2026-07-12
 
 ### Fixed
