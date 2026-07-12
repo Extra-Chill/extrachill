@@ -172,6 +172,9 @@ function extrachill_users_init() {
 	// Header notification bell — renders network-wide via the theme header hook.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/bell.php';
 
+	// Private, network-wide entity update subscriptions.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/entity-subscriptions/service.php';
+
 	// wp-native-auth bridge: layer EC policy (membership, blocking, Turnstile)
 	// onto the generic wp-native-auth filter surface when both plugins are active.
 	if ( defined( 'WP_NATIVE_AUTH_VERSION' ) ) {
