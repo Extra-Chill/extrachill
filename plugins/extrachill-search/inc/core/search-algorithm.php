@@ -384,7 +384,7 @@ function extrachill_hydrate_search_result( $post, $blog_id, $blog_details ) {
  * @param array  $args        Optional overrides (limit, offset, filters).
  * @return array|array[] Either results array or paginated data when return_count true.
  */
-function extrachill_multisite_search( $search_term, $site_urls = array(), $args = array() ) {
+function extrachill_network_search( $search_term, $site_urls = array(), $args = array() ) {
 	if ( ! is_multisite() ) {
 		error_log( 'Multisite search error: WordPress multisite not detected' );
 		return array();

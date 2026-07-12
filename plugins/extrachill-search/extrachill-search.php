@@ -54,7 +54,7 @@ class ExtraChill_Search_Plugin {
 	 * Write a `search` analytics event for genuine frontend human searches only.
 	 *
 	 * Listens to the `extrachill_search_performed` action fired by the core
-	 * retrieval function `extrachill_multisite_search()`. That primitive is
+	 * retrieval function `extrachill_network_search()`. That primitive is
 	 * also called by programmatic callers (the `extrachill/multisite-search`
 	 * ability, the events pipeline's artist-matching lookups, and any
 	 * REST/CLI/agent search), so the analytics write must NOT live inside it.
@@ -170,7 +170,7 @@ class ExtraChill_Search_Plugin {
         }
 
         $search_term = get_query_var( 's' );
-        if ( empty( $search_term ) || ! function_exists( 'extrachill_multisite_search' ) ) {
+        if ( empty( $search_term ) || ! function_exists( 'extrachill_network_search' ) ) {
             return;
         }
 
@@ -182,7 +182,7 @@ class ExtraChill_Search_Plugin {
 			? extrachill_search_scope_site_urls()
 			: array();
 
-		$search_data = extrachill_multisite_search(
+		$search_data = extrachill_network_search(
 			$search_term,
 			$site_urls,
 			array(

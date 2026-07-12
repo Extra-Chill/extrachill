@@ -13,12 +13,12 @@ function extrachill_get_search_results() {
     $posts_per_page = get_option( 'posts_per_page', 10 );
     $offset = ( $current_page - 1 ) * $posts_per_page;
 
-    if ( ! empty( $search_term ) && function_exists( 'extrachill_multisite_search' ) ) {
+    if ( ! empty( $search_term ) && function_exists( 'extrachill_network_search' ) ) {
         $site_urls = function_exists( 'extrachill_search_scope_site_urls' )
             ? extrachill_search_scope_site_urls()
             : array();
 
-        $search_data = extrachill_multisite_search(
+        $search_data = extrachill_network_search(
             $search_term,
             $site_urls,
             array(

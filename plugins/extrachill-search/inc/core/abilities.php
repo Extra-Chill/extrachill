@@ -167,7 +167,7 @@ function extrachill_ability_multisite_search( $input = array() ) {
 		'return_count' => isset( $input['return_count'] ) ? (bool) $input['return_count'] : false,
 	);
 
-	if ( ! function_exists( 'extrachill_multisite_search' ) ) {
+	if ( ! function_exists( 'extrachill_network_search' ) ) {
 		return new WP_Error(
 			'search_function_unavailable',
 			__( 'Multisite search function is not available.', 'extrachill-search' ),
@@ -175,7 +175,7 @@ function extrachill_ability_multisite_search( $input = array() ) {
 		);
 	}
 
-	$results = extrachill_multisite_search( $search_term, $site_urls, $args );
+	$results = extrachill_network_search( $search_term, $site_urls, $args );
 
 	if ( is_wp_error( $results ) ) {
 		return $results;

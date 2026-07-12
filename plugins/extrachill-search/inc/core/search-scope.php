@@ -7,7 +7,7 @@
  * ('network'). Everything else in the plugin asks this layer instead of
  * re-deriving scope from the request.
  *
- * The underlying primitive — extrachill_multisite_search( $term, $site_urls )
+ * The underlying primitive — extrachill_network_search( $term, $site_urls )
  * — is unchanged: an empty $site_urls still means "whole network". This
  * layer only decides what $site_urls the *front-end search request* should
  * resolve to, defaulting to the current site so a visitor on one site is
@@ -91,12 +91,12 @@ function extrachill_resolve_search_scope() {
 /**
  * Resolve a scope key into the $site_urls argument for the search primitive.
  *
- * - 'network' returns an empty array, which extrachill_multisite_search()
+ * - 'network' returns an empty array, which extrachill_network_search()
  *   treats as "every network site".
  * - 'site' returns the current site's host so only that blog is searched.
  *
  * @param string|null $scope Optional explicit scope. Resolves from the request when null.
- * @return array Site URL/host list to pass to extrachill_multisite_search().
+ * @return array Site URL/host list to pass to extrachill_network_search().
  */
 function extrachill_search_scope_site_urls( $scope = null ) {
 	if ( null === $scope ) {
