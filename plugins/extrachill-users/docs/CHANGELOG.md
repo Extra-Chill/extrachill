@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.30.0] - 2026-07-12
+
+### Added
+- establish network Local Scene preference
+
 ## [0.29.1] - 2026-07-12
 
 ### Fixed
