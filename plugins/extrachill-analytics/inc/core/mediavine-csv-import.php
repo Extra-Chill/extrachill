@@ -151,7 +151,7 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 
 	$header_map = extrachill_analytics_revenue_csv_header_map();
 	$columns    = array();
-	$headers    = fgetcsv( $handle );
+	$headers    = fgetcsv( $handle, null, ',', '"', '\\' );
 
 	if ( false === $headers ) {
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- paired with the streaming fopen above.
@@ -204,7 +204,7 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 	};
 
 	// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- idiomatic fgetcsv streaming loop.
-	while ( false !== ( $line = fgetcsv( $handle ) ) ) {
+	while ( false !== ( $line = fgetcsv( $handle, null, ',', '"', '\\' ) ) ) {
 		$raw_slug = trim( (string) $cell( $line, $columns, 'slug' ) );
 		if ( '' === $raw_slug ) {
 			continue;
