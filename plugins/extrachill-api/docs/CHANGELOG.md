@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.23.1] - 2026-07-12
+
+### Fixed
+- forward beacon referrer param to track-page-view ability (#99)
+
 ## [0.23.0] - 2026-06-30
 
 ### Added
