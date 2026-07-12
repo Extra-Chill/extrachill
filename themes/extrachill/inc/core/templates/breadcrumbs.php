@@ -15,6 +15,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( ! function_exists( 'extrachill_breadcrumbs_allowed_html' ) ) {
+	/**
+	 * Allowed HTML for breadcrumb trail output.
+	 *
+	 * Extends the post allowlist with the sprite-reference SVG markup emitted
+	 * by ec_icon() (e.g. the network dropdown chevron), which wp_kses_post()
+	 * would otherwise strip.
+	 *
+	 * @return array Allowed HTML tags and attributes for wp_kses().
+	 */
+	function extrachill_breadcrumbs_allowed_html() {
+		$allowed = wp_kses_allowed_html( 'post' );
+
+		$allowed['svg'] = array(
+			'class'       => true,
+			'aria-hidden' => true,
+			'role'        => true,
+			'focusable'   => true,
+		);
+		$allowed['use'] = array(
+			'href'       => true,
+			'xlink:href' => true,
+		);
+
+		return $allowed;
+	}
+}
+
 if ( ! function_exists( 'extrachill_breadcrumbs' ) ) {
 	function extrachill_breadcrumbs() {
 		echo '<nav class="breadcrumbs" itemprop="breadcrumb">';
@@ -26,7 +54,7 @@ if ( ! function_exists( 'extrachill_breadcrumbs' ) ) {
 		// Allow plugins to override the default breadcrumb trail.
 		$custom_trail = apply_filters( 'extrachill_breadcrumbs_override_trail', '' );
 		if ( ! empty( $custom_trail ) ) {
-			echo wp_kses_post( apply_filters( 'extrachill_breadcrumbs_trail_output', $custom_trail ) );
+			echo wp_kses( apply_filters( 'extrachill_breadcrumbs_trail_output', $custom_trail ), extrachill_breadcrumbs_allowed_html() );
 		} else {
 			// Original breadcrumb logic.
 			if ( is_single() && is_singular( 'post' ) ) {
