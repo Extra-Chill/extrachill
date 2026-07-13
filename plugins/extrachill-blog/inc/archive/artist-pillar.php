@@ -201,12 +201,20 @@ function extrachill_blog_get_artist_events_activity( $term ) {
 
 	$items = array();
 	foreach ( array_merge( $result['upcoming'] ?? array(), $result['past'] ?? array() ) as $event ) {
-		$items[] = extrachill_blog_build_artist_activity_item(
+		$event_context = array_filter(
+			array(
+				isset( $event['venue_name'] ) ? $event['venue_name'] : '',
+				isset( $event['time_display'] ) ? $event['time_display'] : '',
+			)
+		);
+		$items[]       = extrachill_blog_build_artist_activity_item(
 			isset( $event['title'] ) ? $event['title'] : '',
 			isset( $event['permalink'] ) ? $event['permalink'] : '',
 			isset( $event['date_iso'] ) ? $event['date_iso'] : '',
 			__( 'Events', 'extrachill-blog' ),
-			isset( $event['date_display'] ) ? $event['date_display'] : ''
+			isset( $event['date_display'] ) ? $event['date_display'] : '',
+			implode( ', ', $event_context ),
+			isset( $event['timing'] ) ? $event['timing'] : ''
 		);
 	}
 
@@ -256,7 +264,7 @@ function extrachill_blog_get_artist_community_activity( $term ) {
 		foreach ( $topics as $topic ) {
 			$items[] = extrachill_blog_build_artist_activity_item(
 				get_the_title( $topic ),
-				get_permalink( $topic ),
+				extrachill_blog_get_artist_community_topic_permalink( $topic ),
 				get_post_time( 'c', true, $topic ),
 				__( 'Community discussion', 'extrachill-blog' )
 			);
@@ -266,6 +274,21 @@ function extrachill_blog_get_artist_community_activity( $term ) {
 	}
 
 	return array_filter( $items );
+}
+
+/**
+ * Resolve a Community topic's canonical bbPress permalink.
+ *
+ * @param WP_Post $topic Community topic post.
+ * @return string Canonical topic URL.
+ */
+function extrachill_blog_get_artist_community_topic_permalink( $topic ) {
+	$topic_id = $topic instanceof WP_Post ? (int) $topic->ID : 0;
+	if ( $topic_id && function_exists( 'bbp_get_topic_permalink' ) ) {
+		return bbp_get_topic_permalink( $topic_id );
+	}
+
+	return $topic_id ? get_permalink( $topic_id ) : '';
 }
 
 /**
@@ -322,9 +345,11 @@ function extrachill_blog_get_artist_platform_activity( $term ) {
  * @param string $date         ISO-compatible date.
  * @param string $source       Source label.
  * @param string $date_display Source-formatted date, when available.
+ * @param string $context      Source-owned venue and time context, when available.
+ * @param string $timing       Source-owned upcoming or past timing, when available.
  * @return array|null Activity item.
  */
-function extrachill_blog_build_artist_activity_item( $title, $url, $date, $source, $date_display = '' ) {
+function extrachill_blog_build_artist_activity_item( $title, $url, $date, $source, $date_display = '', $context = '', $timing = '' ) {
 	$timestamp = strtotime( $date );
 	if ( '' === $title || '' === $url || ! $timestamp ) {
 		return null;
@@ -336,6 +361,8 @@ function extrachill_blog_build_artist_activity_item( $title, $url, $date, $sourc
 		'date'         => gmdate( 'c', $timestamp ),
 		'date_display' => '' !== $date_display ? (string) $date_display : wp_date( get_option( 'date_format' ), $timestamp ),
 		'source'       => (string) $source,
+		'context'      => (string) $context,
+		'timing'       => (string) $timing,
 		'timestamp'    => $timestamp,
 	);
 }
@@ -384,8 +411,11 @@ function extrachill_blog_render_artist_activity() {
 				<li class="entity-pillar-activity-item">
 					<time datetime="<?php echo esc_attr( $item['date'] ); ?>"><?php echo esc_html( $item['date_display'] ); ?></time>
 					<div>
-						<p><?php echo esc_html( $item['source'] ); ?></p>
+						<p><?php echo esc_html( $item['source'] ); ?><?php echo ! empty( $item['timing'] ) ? esc_html( ' - ' . ucfirst( $item['timing'] ) ) : ''; ?></p>
 						<a href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['title'] ); ?></a>
+						<?php if ( ! empty( $item['context'] ) ) : ?>
+							<span class="entity-pillar-activity-context"><?php echo esc_html( $item['context'] ); ?></span>
+						<?php endif; ?>
 					</div>
 				</li>
 			<?php endforeach; ?>
@@ -439,7 +469,7 @@ function extrachill_blog_render_artist_subscription_control() {
 		<section class="entity-pillar-subscription" aria-labelledby="artist-pillar-subscription-title">
 			<h2 id="artist-pillar-subscription-title"><?php esc_html_e( 'Get artist updates', 'extrachill-blog' ); ?></h2>
 			<p><?php esc_html_e( 'Log in to subscribe to private Extra Chill notifications for this artist.', 'extrachill-blog' ); ?></p>
-			<a class="entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to subscribe', 'extrachill-blog' ); ?></a>
+			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to subscribe', 'extrachill-blog' ); ?></a>
 		</section>
 		<?php
 		return;
@@ -451,7 +481,7 @@ function extrachill_blog_render_artist_subscription_control() {
 		<h2 id="artist-pillar-subscription-title"><?php esc_html_e( 'Get artist updates', 'extrachill-blog' ); ?></h2>
 		<p><?php esc_html_e( 'Subscribe to private Extra Chill notifications for new editorial coverage of this artist.', 'extrachill-blog' ); ?></p>
 		<button
-			class="entity-pillar-subscription-button"
+			class="button-1 button-medium entity-pillar-subscription-button"
 			type="button"
 			aria-pressed="false"
 			disabled

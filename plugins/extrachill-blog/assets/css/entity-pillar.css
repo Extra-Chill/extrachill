@@ -78,26 +78,6 @@
 	margin-top: 0;
 }
 
-.entity-pillar-subscription-button {
-	display: inline-block;
-	padding: 0.7rem 1rem;
-	color: var(--background-color);
-	font: inherit;
-	font-weight: 700;
-	text-decoration: none;
-	cursor: pointer;
-	background: var(--accent);
-	border: 1px solid var(--accent);
-	border-radius: var(--border-radius);
-}
-
-.entity-pillar-subscription-button:hover,
-.entity-pillar-subscription-button:focus-visible {
-	color: var(--background-color);
-	background: var(--accent-hover);
-	border-color: var(--accent-hover);
-}
-
 .entity-pillar-subscription-button[aria-pressed="true"] {
 	color: var(--text-color);
 	background: transparent;
@@ -155,6 +135,13 @@
 	font-family: var(--font-family-heading);
 	font-size: var(--font-size-lg);
 	font-weight: 700;
+}
+
+.entity-pillar-activity-context {
+	display: block;
+	margin-top: var(--spacing-xs);
+	color: var(--muted-text);
+	font-size: var(--font-size-sm);
 }
 
 .entity-pillar-newsletter {

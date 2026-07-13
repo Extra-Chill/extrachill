@@ -45,7 +45,7 @@ function extrachill_blog_render_festival_subscription_control() {
 		<section class="entity-pillar-subscription" aria-labelledby="festival-pillar-subscription-title">
 			<h2 id="festival-pillar-subscription-title"><?php esc_html_e( 'Get festival updates', 'extrachill-blog' ); ?></h2>
 			<p><?php esc_html_e( 'Log in to subscribe to private Extra Chill notifications for this festival.', 'extrachill-blog' ); ?></p>
-			<a class="entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to subscribe', 'extrachill-blog' ); ?></a>
+			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to subscribe', 'extrachill-blog' ); ?></a>
 		</section>
 		<?php
 		return;
@@ -57,7 +57,7 @@ function extrachill_blog_render_festival_subscription_control() {
 		<h2 id="festival-pillar-subscription-title"><?php esc_html_e( 'Get festival updates', 'extrachill-blog' ); ?></h2>
 		<p><?php esc_html_e( 'Subscribe to private Extra Chill notifications for new editorial coverage of this festival.', 'extrachill-blog' ); ?></p>
 		<button
-			class="entity-pillar-subscription-button"
+			class="button-1 button-medium entity-pillar-subscription-button"
 			type="button"
 			aria-pressed="false"
 			disabled
