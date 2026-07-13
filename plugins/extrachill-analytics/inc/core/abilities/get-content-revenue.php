@@ -39,7 +39,7 @@ function extrachill_analytics_register_content_revenue_ability() {
 		'extrachill/get-content-revenue',
 		array(
 			'label'               => __( 'Get Content Revenue Lens', 'extrachill-analytics' ),
-			'description'         => __( 'Join imported Mediavine per-URL ad revenue to WordPress content metadata (category, content format, age) and roll it up by category, by content format, or as a TIME-SERIES revenue arc. group_by=timeseries sums revenue/views per time bucket chronologically (month-over-month, the HCU cliff in dollars) — the first-class capability, since each monthly Mediavine export is one point on the arc. group_by=format/category/both reports pages, views, revenue, RPM, and $/page (revenue/pages) — $/page is the honest "worth producing" metric because RPM alone misleads (high RPM on tiny volume = pennies); scope these to one bucket with period=YYYY-MM. Revenue is exactly what was imported from the Mediavine Pages CSV (Mediavine has no per-page revenue API, only ad-config); this ability never estimates ad income. NOTE: the flat lifetime export is time-blind (no date column, one cumulative total per URL) and undercounts the 2022-2023 peak — import date-ranged monthly CSVs for the real arc.', 'extrachill-analytics' ),
+			'description'         => __( 'Join imported Mediavine per-URL ad revenue to WordPress content metadata (category, content format, age) and roll it up by category, by content format, or as a TIME-SERIES revenue arc. Content totals and rollups cover RESOLVED PUBLISHED POSTS ONLY — unresolved routes (home, pagination, taxonomy archives, app/account routes, legacy .html ghosts) are excluded from content metrics so published-content RPM is honest, and reported separately under `unresolved` with a by_route_family breakdown. group_by=timeseries sums revenue/views per time bucket chronologically (month-over-month, the HCU cliff in dollars) — the first-class capability, since each monthly Mediavine export is one point on the arc. group_by=format/category/both reports pages, views, revenue, RPM, and $/page (revenue/pages) — $/page is the honest "worth producing" metric because RPM alone misleads (high RPM on tiny volume = pennies); scope these to one bucket with period=YYYY-MM. Revenue is exactly what was imported from the Mediavine Pages CSV (Mediavine has no per-page revenue API, only ad-config); this ability never estimates ad income. NOTE: the flat lifetime export is time-blind (no date column, one cumulative total per URL) and undercounts the 2022-2023 peak — import date-ranged monthly CSVs for the real arc.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -146,100 +146,89 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 
 	if ( empty( $rows ) ) {
 		return array(
-			'success' => true,
-			'rows'    => 0,
-			'window'  => extrachill_analytics_revenue_window_label( $period_start, $period_end, $period ),
-			'rollups' => array(),
-			'totals'  => array(
+			'success'    => true,
+			'rows'       => 0,
+			'window'     => extrachill_analytics_revenue_window_label( $period_start, $period_end, $period ),
+			'rollups'    => array(),
+			'totals'     => array(
 				'pages'            => 0,
 				'views'            => 0,
 				'revenue'          => 0.0,
 				'rpm'              => 0.0,
 				'dollars_per_page' => 0.0,
 			),
-			'caveat'  => __( 'No revenue snapshots for this blog/window. Import a Mediavine Pages CSV first: wp extrachill analytics revenue import <csv>.', 'extrachill-analytics' ),
+			'unresolved' => array(
+				'pages'           => 0,
+				'views'           => 0,
+				'revenue'         => 0.0,
+				'rpm'             => 0.0,
+				'by_route_family' => array(),
+			),
+			'caveat'     => __( 'No revenue snapshots for this blog/window. Import a Mediavine Pages CSV first: wp extrachill analytics revenue import <csv>.', 'extrachill-analytics' ),
 		);
 	}
 
-	// Accumulators keyed by bucket label, per axis.
-	$by_format   = array();
-	$by_category = array();
-
-	$total_pages   = 0;
-	$total_views   = 0;
-	$total_revenue = 0.0;
-
-	// De-dupe pages across multiple URL variants of the same post within this
-	// window so a post is counted once per bucket (its revenue is summed).
-	$seen_post = array();
+	// Classify each snapshot row into a resolved-content record or an unresolved
+	// route record. Resolution = a post that currently EXISTS and is PUBLISHED.
+	// url_to_postid() (used at import AND here) already returns only published
+	// posts, but a stored post_id can go stale (post trashed since import), so the
+	// publish-status recheck is what keeps non-published IDs out of content
+	// totals. Unresolved rows become a diagnostic cohort, never content buckets.
+	$records = array();
 
 	foreach ( $rows as $row ) {
 		$post_id = (int) $row->post_id;
-		if ( 0 === $post_id && '' !== $row->slug ) {
+		if ( $post_id <= 0 && '' !== $row->slug ) {
 			$post_id = extrachill_analytics_revenue_resolve_post_id( $row->url ? $row->url : $row->slug, $hostname );
 		}
 
 		$views   = (int) $row->views;
 		$revenue = (float) $row->revenue;
 
-		$format     = 'legacy-html';
-		$categories = array( 'legacy-html' );
-
-		if ( $post_id > 0 ) {
-			$format = extrachill_analytics_classify_format( $post_id );
-			$terms  = get_the_terms( $post_id, 'category' );
+		if ( $post_id > 0 && 'publish' === get_post_status( $post_id ) ) {
+			$terms = get_the_terms( $post_id, 'category' );
 			if ( is_array( $terms ) && ! empty( $terms ) ) {
 				$categories = wp_list_pluck( $terms, 'slug' );
 			} else {
+				// Genuinely resolved post with no category — this is the real
+				// `uncategorized` cohort, NOT unresolved routes (issue #130).
 				$categories = array( 'uncategorized' );
 			}
+
+			$records[] = array(
+				'is_content' => true,
+				'page_key'   => 'p' . $post_id,
+				'format'     => extrachill_analytics_classify_format( $post_id ),
+				'categories' => $categories,
+				'views'      => $views,
+				'revenue'    => $revenue,
+				'url'        => $row->url ? $row->url : $row->slug,
+			);
 		} else {
-			// Unresolved: bucket by legacy-html if .html, else uncategorized.
-			$format     = preg_match( '/\.html(?:[\/?#]|$)/i', (string) $row->url ) ? 'legacy-html' : 'uncategorized';
-			$categories = array( $format );
-		}
-
-		// A page (post) is counted once per format bucket; revenue/views still sum.
-		$page_key               = $post_id > 0 ? 'p' . $post_id : 'u' . md5( $row->slug );
-		$count_page             = empty( $seen_post[ $page_key ] );
-		$seen_post[ $page_key ] = true;
-
-		extrachill_analytics_revenue_accumulate( $by_format, $format, $views, $revenue, $count_page );
-
-		foreach ( $categories as $cat ) {
-			extrachill_analytics_revenue_accumulate( $by_category, $cat, $views, $revenue, $count_page );
-		}
-
-		$total_views   += $views;
-		$total_revenue += $revenue;
-		if ( $count_page ) {
-			++$total_pages;
+			// Unresolved route (post_id 0, or stale/non-published ID): diagnostic
+			// cohort only — excluded from content totals and buckets.
+			$records[] = array(
+				'is_content' => false,
+				'page_key'   => 'u' . md5( (string) $row->slug ),
+				'views'      => $views,
+				'revenue'    => $revenue,
+				'url'        => $row->url ? $row->url : $row->slug,
+			);
 		}
 	}
 
-	$rollups = array();
-	if ( 'format' === $group_by || 'both' === $group_by ) {
-		$rollups['by_format'] = extrachill_analytics_revenue_finalize( $by_format );
-	}
-	if ( 'category' === $group_by || 'both' === $group_by ) {
-		$rollups['by_category'] = extrachill_analytics_revenue_finalize( $by_category );
-	}
+	$built = extrachill_analytics_revenue_build_rollups( $records, $group_by );
 
 	return array(
-		'success'  => true,
-		'rows'     => count( $rows ),
-		'blog_id'  => $blog_id,
-		'group_by' => $group_by,
-		'window'   => extrachill_analytics_revenue_window_label( $period_start, $period_end, $period ),
-		'rollups'  => $rollups,
-		'totals'   => array(
-			'pages'            => $total_pages,
-			'views'            => $total_views,
-			'revenue'          => round( $total_revenue, 2 ),
-			'rpm'              => $total_views > 0 ? round( $total_revenue / ( $total_views / 1000 ), 2 ) : 0.0,
-			'dollars_per_page' => $total_pages > 0 ? round( $total_revenue / $total_pages, 2 ) : 0.0,
-		),
-		'caveat'   => __( '$/page is the honest "worth producing" metric — RPM alone misleads (high RPM on tiny volume = pennies). High LIFETIME revenue can just mean a page is old and accumulated; use a window for the earning-NOW lens. Revenue is Mediavine-imported (the only source of ad income); never estimated.', 'extrachill-analytics' ),
+		'success'    => true,
+		'rows'       => count( $rows ),
+		'blog_id'    => $blog_id,
+		'group_by'   => $group_by,
+		'window'     => extrachill_analytics_revenue_window_label( $period_start, $period_end, $period ),
+		'rollups'    => $built['rollups'],
+		'totals'     => $built['totals'],
+		'unresolved' => $built['unresolved'],
+		'caveat'     => __( 'Totals and rollups cover RESOLVED PUBLISHED CONTENT ONLY — unresolved routes (home, pagination, taxonomy archives, app/account routes, legacy .html ghosts) are excluded so published-content RPM is honest, and reported separately under `unresolved` with a by_route_family breakdown. $/page is the honest "worth producing" metric — RPM alone misleads (high RPM on tiny volume = pennies). Revenue is Mediavine-imported (the only source of ad income); never estimated. Note: the Mediavine Pages CSV carries one path per row and may omit hostnames, so cross-site paths (e.g. Festival Wire) can land under the import blog when the hostname is ambiguous — treat the unresolved cohort as coverage signal, not an attribution verdict.', 'extrachill-analytics' ),
 	);
 }
 
@@ -303,6 +292,210 @@ function extrachill_analytics_revenue_finalize( array $bucket ) {
 	);
 
 	return $rows;
+}
+
+/**
+ * Classify an unresolved (non-post) route into a coarse diagnostic family.
+ *
+ * Pure (no WordPress dependency) so the revenue rollup can report WHAT the
+ * unresolved traffic actually is — home, pagination, taxonomy archives, app/
+ * account routes, legacy .html ghost pages — instead of lumping every
+ * non-content path under a misleading `uncategorized` bucket. See issue #130.
+ *
+ * @param string $url Raw URL/path from the revenue row (may be host-relative).
+ * @return string Route family slug.
+ */
+function extrachill_analytics_revenue_classify_route_family( $url ) {
+	$raw = strtolower( trim( (string) $url ) );
+
+	// Reduce a full URL to its path; bare slugs/paths pass through.
+	$path = $raw;
+	if ( preg_match( '#^https?://#i', $raw ) ) {
+		$parsed = parse_url( $raw ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- pure by design (no WP at test time).
+		$path   = isset( $parsed['path'] ) ? $parsed['path'] : '/';
+	}
+	if ( '' === $path ) {
+		$path = '/';
+	}
+	$path = '/' . ltrim( $path, '/' );
+
+	if ( '/' === $path ) {
+		return 'home';
+	}
+
+	if ( preg_match( '#^/page/\d+(/|$)#i', $path ) ) {
+		return 'pagination';
+	}
+
+	// Legacy .html ghost pages that no longer resolve to a WordPress post.
+	if ( preg_match( '/\.html(?:[\/?#]|$)/i', $path ) ) {
+		return 'legacy-html';
+	}
+
+	// Taxonomy / archive routes (no single post to attribute revenue to).
+	if ( preg_match( '#^/(location|locations|category|categories|tag|tags|t|festival|festivals|artist|artists|venue|venues)(/|$)#i', $path ) ) {
+		return 'taxonomy-archive';
+	}
+
+	// App / account / auth / admin / shop chrome routes.
+	if ( preg_match( '#^/(account|accounts|app|apps|login|log-in|signin|sign-in|register|sign-up|signup|member|members|my-|dashboard|cart|checkout|wp-|wp-admin|wp-login)(/|$)#i', $path ) ) {
+		return 'app-account';
+	}
+
+	return 'other';
+}
+
+/**
+ * Build the category/format rollups, content totals, and the unresolved
+ * diagnostic cohort from pre-classified revenue records.
+ *
+ * This is the PURE core of the rollup — it touches no WordPress state, so it is
+ * unit-tested directly. The execute_callback does the WordPress-dependent
+ * resolution (post lookup, publish-status gate, term lookup) and hands the
+ * resulting records here.
+ *
+ * CONTRACT (issue #130):
+ *   - `totals` and `rollups` contain RESOLVED PUBLISHED CONTENT ONLY. Unresolved
+ *     routes never inflate content pages/views/revenue or leak into category/
+ *     format buckets. This keeps published-content RPM honest ($23.37, not the
+ *     contaminated $13.98 the combined rollup reported).
+ *   - `unresolved` is an explicit diagnostic cohort — same metrics, plus a
+ *     `by_route_family` breakdown — so non-content routes (/, /page/2/,
+ *     /location/..., app routes, legacy .html ghosts) stay visible without being
+ *     mistaken for uncategorized posts.
+ *
+ * Each record shape:
+ *   {
+ *     is_content (bool):  true = resolved published post; false = unresolved.
+ *     page_key   (string): dedupe key ('p'.post_id or 'u'.hash(slug)).
+ *     format     (string): content format (content rows only; unused otherwise).
+ *     categories (string[]): category slugs (content rows only).
+ *     views      (int),
+ *     revenue    (float),
+ *     url        (string): raw URL/path (unresolved rows only, for route family).
+ *   }
+ *
+ * @param array  $records  Pre-classified revenue records.
+ * @param string $group_by 'format', 'category', 'both', or 'timeseries'.
+ * @return array {
+ *     @type array $rollups    by_format and/or by_category (content only).
+ *     @type array $totals     Content-only pages/views/revenue/rpm/dollars_per_page.
+ *     @type array $unresolved Diagnostic cohort + by_route_family breakdown.
+ * }
+ */
+function extrachill_analytics_revenue_build_rollups( array $records, $group_by ) {
+	$by_format   = array();
+	$by_category = array();
+
+	$content_pages   = 0;
+	$content_views   = 0;
+	$content_revenue = 0.0;
+	$seen_content    = array();
+
+	$unresolved_pages   = 0;
+	$unresolved_views   = 0;
+	$unresolved_revenue = 0.0;
+	$seen_unresolved    = array();
+	$unresolved_family  = array();
+
+	foreach ( $records as $rec ) {
+		$views   = (int) ( isset( $rec['views'] ) ? $rec['views'] : 0 );
+		$revenue = (float) ( isset( $rec['revenue'] ) ? $rec['revenue'] : 0.0 );
+		$key     = (string) ( isset( $rec['page_key'] ) ? $rec['page_key'] : '' );
+
+		if ( empty( $rec['is_content'] ) ) {
+			// Unresolved diagnostic cohort — excluded from content totals/buckets.
+			if ( '' !== $key && empty( $seen_unresolved[ $key ] ) ) {
+				$seen_unresolved[ $key ] = true;
+				++$unresolved_pages;
+			}
+			$unresolved_views   += $views;
+			$unresolved_revenue += $revenue;
+
+			$family = extrachill_analytics_revenue_classify_route_family( isset( $rec['url'] ) ? $rec['url'] : '' );
+			if ( ! isset( $unresolved_family[ $family ] ) ) {
+				$unresolved_family[ $family ] = array(
+					'pages'   => 0,
+					'views'   => 0,
+					'revenue' => 0.0,
+					'seen'    => array(),
+				);
+			}
+			if ( '' !== $key && empty( $unresolved_family[ $family ]['seen'][ $key ] ) ) {
+				$unresolved_family[ $family ]['seen'][ $key ] = true;
+				++$unresolved_family[ $family ]['pages'];
+			}
+			$unresolved_family[ $family ]['views']   += $views;
+			$unresolved_family[ $family ]['revenue'] += $revenue;
+			continue;
+		}
+
+		// Resolved content: de-dupe the page across URL variants in this window.
+		$count_page           = '' !== $key && empty( $seen_content[ $key ] );
+		$seen_content[ $key ] = true;
+
+		$format = isset( $rec['format'] ) ? (string) $rec['format'] : 'uncategorized';
+		extrachill_analytics_revenue_accumulate( $by_format, $format, $views, $revenue, $count_page );
+
+		$categories = ( ! empty( $rec['categories'] ) && is_array( $rec['categories'] ) )
+			? array_map( 'strval', $rec['categories'] )
+			: array( 'uncategorized' );
+		foreach ( $categories as $cat ) {
+			extrachill_analytics_revenue_accumulate( $by_category, $cat, $views, $revenue, $count_page );
+		}
+
+		$content_views   += $views;
+		$content_revenue += $revenue;
+		if ( $count_page ) {
+			++$content_pages;
+		}
+	}
+
+	$rollups = array();
+	if ( 'format' === $group_by || 'both' === $group_by ) {
+		$rollups['by_format'] = extrachill_analytics_revenue_finalize( $by_format );
+	}
+	if ( 'category' === $group_by || 'both' === $group_by ) {
+		$rollups['by_category'] = extrachill_analytics_revenue_finalize( $by_category );
+	}
+
+	$family_rows = array();
+	foreach ( $unresolved_family as $family => $agg ) {
+		$fpages        = (int) $agg['pages'];
+		$fviews        = (int) $agg['views'];
+		$frevenue      = (float) $agg['revenue'];
+		$family_rows[] = array(
+			'route_family' => $family,
+			'pages'        => $fpages,
+			'views'        => $fviews,
+			'revenue'      => round( $frevenue, 2 ),
+			'rpm'          => $fviews > 0 ? round( $frevenue / ( $fviews / 1000 ), 2 ) : 0.0,
+		);
+	}
+	usort(
+		$family_rows,
+		static function ( $a, $b ) {
+			return $b['views'] <=> $a['views'];
+		}
+	);
+
+	return array(
+		'rollups'    => $rollups,
+		'totals'     => array(
+			'pages'            => $content_pages,
+			'views'            => $content_views,
+			'revenue'          => round( $content_revenue, 2 ),
+			'rpm'              => $content_views > 0 ? round( $content_revenue / ( $content_views / 1000 ), 2 ) : 0.0,
+			'dollars_per_page' => $content_pages > 0 ? round( $content_revenue / $content_pages, 2 ) : 0.0,
+		),
+		'unresolved' => array(
+			'pages'           => $unresolved_pages,
+			'views'           => $unresolved_views,
+			'revenue'         => round( $unresolved_revenue, 2 ),
+			'rpm'             => $unresolved_views > 0 ? round( $unresolved_revenue / ( $unresolved_views / 1000 ), 2 ) : 0.0,
+			'by_route_family' => $family_rows,
+		),
+	);
 }
 
 /**
