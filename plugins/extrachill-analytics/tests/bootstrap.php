@@ -141,6 +141,127 @@ if ( ! function_exists( 'update_site_option' ) ) {
 		return true;
 	}
 }
+if ( ! function_exists( 'sanitize_text_field' ) ) {
+	/**
+	 * Stub for sanitize_text_field().
+	 *
+	 * @param mixed $str Input value.
+	 * @return string Scalar cast to string, else empty string.
+	 */
+	function sanitize_text_field( $str ) {
+		return is_scalar( $str ) ? (string) $str : '';
+	}
+}
+if ( ! function_exists( 'get_current_blog_id' ) ) {
+	/**
+	 * Stub for get_current_blog_id().
+	 *
+	 * @return int Always 1 in the stub.
+	 */
+	function get_current_blog_id() {
+		return 1;
+	}
+}
+if ( ! function_exists( 'current_user_can' ) ) {
+	/**
+	 * Stub current_user_can() against a capability map in $GLOBALS.
+	 *
+	 * @param string $capability Capability name.
+	 * @return bool Whether the test granted the capability.
+	 */
+	function current_user_can( $capability ) {
+		$caps = isset( $GLOBALS['extrachill_ingest_capabilities'] ) ? $GLOBALS['extrachill_ingest_capabilities'] : array();
+		return ! empty( $caps[ $capability ] );
+	}
+}
+if ( ! function_exists( 'current_user_can_for_site' ) ) {
+	/**
+	 * Stub target-site capability checks against a per-site map.
+	 *
+	 * @param int    $site_id    Site ID.
+	 * @param string $capability Capability name.
+	 * @return bool Whether the test granted the capability on that site.
+	 */
+	function current_user_can_for_site( $site_id, $capability ) {
+		$sites = isset( $GLOBALS['extrachill_ingest_site_capabilities'] ) ? $GLOBALS['extrachill_ingest_site_capabilities'] : array();
+		return ! empty( $sites[ (int) $site_id ][ $capability ] );
+	}
+}
+if ( ! function_exists( 'switch_to_blog' ) ) {
+	/**
+	 * Stub for switch_to_blog().
+	 *
+	 * @return bool Always true.
+	 */
+	function switch_to_blog() {
+		return true;
+	}
+}
+if ( ! function_exists( 'restore_current_blog' ) ) {
+	/**
+	 * Stub for restore_current_blog().
+	 *
+	 * @return bool Always true.
+	 */
+	function restore_current_blog() {
+		return true;
+	}
+}
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	/**
+	 * Stub for wp_parse_url().
+	 *
+	 * @param string $url The URL to parse.
+	 * @return array<string,mixed> Parse components.
+	 */
+	function wp_parse_url( $url ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
+		return parse_url( (string) $url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
+	}
+}
+if ( ! function_exists( 'url_to_postid' ) ) {
+	/**
+	 * Stub url_to_postid against a per-test map in $GLOBALS.
+	 *
+	 * Matches the supplied URL, its trimmed path, and slash-bracketed path
+	 * against the `extrachill_ingest_url_map` map so a test can key on any form.
+	 *
+	 * @param string $url URL to resolve.
+	 * @return int Post ID or 0.
+	 */
+	function url_to_postid( $url ) {
+		$map        = isset( $GLOBALS['extrachill_ingest_url_map'] ) ? $GLOBALS['extrachill_ingest_url_map'] : array();
+		$url        = (string) $url;
+		$path       = isset( wp_parse_url( $url )['path'] ) ? trim( (string) wp_parse_url( $url )['path'], '/' ) : '';
+		$candidates = array( $url, $path, '/' . $path . '/' );
+		foreach ( $candidates as $candidate ) {
+			if ( isset( $map[ $candidate ] ) ) {
+				return (int) $map[ $candidate ];
+			}
+		}
+		return 0;
+	}
+}
+if ( ! function_exists( 'get_post' ) ) {
+	/**
+	 * Stub get_post returning an object with post_name from a $GLOBALS map.
+	 *
+	 * Reads the `extrachill_ingest_post_map` map (post_id => post_name).
+	 *
+	 * @param int $id Post ID.
+	 * @return stdClass|null
+	 */
+	function get_post( $id ) {
+		$map = isset( $GLOBALS['extrachill_ingest_post_map'] ) ? $GLOBALS['extrachill_ingest_post_map'] : array();
+		$id  = (int) $id;
+		if ( isset( $map[ $id ] ) ) {
+			$post            = new stdClass();
+			$post->ID        = $id;
+			$post->post_name = $map[ $id ];
+			return $post;
+		}
+		return null;
+	}
+}
 
 require_once dirname( __DIR__ ) . '/inc/core/php-error-log.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-php-error-summary.php';

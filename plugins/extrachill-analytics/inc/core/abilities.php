@@ -33,6 +33,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_crosslink_ta
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_stickiness_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_activation_funnel_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_content_revenue_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_ingest_revenue_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_bot_filter_impact_ability' );
 
 /**

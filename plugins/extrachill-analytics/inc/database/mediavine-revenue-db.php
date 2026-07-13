@@ -339,6 +339,116 @@ function extrachill_analytics_revenue_get_timeseries( array $args = array() ) {
 }
 
 /**
+ * Delete revenue snapshot rows by their primary-key IDs.
+ *
+ * Scoped deletion used by the ingestion ability's deterministic-replace path to
+ * remove rows that belonged to a snapshot but disappeared from a refreshed
+ * source. Callers MUST pass IDs they obtained from a snapshot query scoped to
+ * exactly one (blog_id, period_label, import_batch) so the delete can never
+ * escape that snapshot. There is intentionally no "delete by slug" helper here:
+ * the caller always holds the concrete row IDs it intends to remove.
+ *
+ * @param array<int> $ids Row IDs to delete.
+ * @return int|false Number of rows deleted, or false on error.
+ */
+function extrachill_analytics_revenue_delete_ids( array $ids ) {
+	$ids = array_values(
+		array_filter(
+			array_map( 'intval', $ids ),
+			static function ( $id ) {
+				return $id > 0;
+			}
+		)
+	);
+
+	if ( empty( $ids ) ) {
+		return 0;
+	}
+
+	global $wpdb;
+
+	$table        = extrachill_analytics_revenue_table();
+	$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+	$sql          = "DELETE FROM {$table} WHERE id IN ({$placeholders})";
+
+	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$result = $wpdb->query( $wpdb->prepare( $sql, $ids ) );
+
+	return false === $result ? false : (int) $result;
+}
+
+/**
+ * Begin a transaction around a revenue snapshot mutation.
+ *
+ * A no-op safety net on storage engines without transactions (e.g. MyISAM); on
+ * InnoDB it makes the ingestion ability's replace path (upserts + stale-row
+ * deletes) atomic so a mid-snapshot failure rolls back to the prior snapshot
+ * instead of leaving a half-replaced one.
+ *
+ * @return bool True on success (or when unsupported), false on error.
+ */
+function extrachill_analytics_revenue_transaction_begin() {
+	global $wpdb;
+	$result = $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+	return false !== $result;
+}
+
+/**
+ * Commit the active revenue mutation transaction.
+ *
+ * @return bool True on success, false on error.
+ */
+function extrachill_analytics_revenue_transaction_commit() {
+	global $wpdb;
+	$result = $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+	return false !== $result;
+}
+
+/**
+ * Roll back the active revenue mutation transaction.
+ *
+ * @return bool True on success, false on error.
+ */
+function extrachill_analytics_revenue_transaction_rollback() {
+	global $wpdb;
+	$result = $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+	return false !== $result;
+}
+
+/**
+ * Acquire a named advisory lock to serialize ingestion for one period.
+ *
+ * Concurrent refreshes of the same (blog, period) can otherwise union snapshots:
+ * each reads the prior snapshot, then both upsert/delete, re-adding rows the
+ * other removed. MySQL/MariaDB session-scoped advisory locks (GET_LOCK) are
+ * independent of transactions but bound to the connection, so acquiring one
+ * here — held until release after commit — serializes the whole critical
+ * section per period. Returns false if the lock could not be obtained within
+ * the timeout so the caller fails closed instead of racing.
+ *
+ * @param string $name    Lock name.
+ * @param int    $timeout Seconds to wait (0 = non-blocking).
+ * @return bool True if the lock was acquired.
+ */
+function extrachill_analytics_revenue_lock_acquire( $name, $timeout = 10 ) {
+	global $wpdb;
+	$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $name, $timeout ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+	return '1' === $result;
+}
+
+/**
+ * Release a previously acquired advisory lock.
+ *
+ * @param string $name Lock name.
+ * @return bool True if released.
+ */
+function extrachill_analytics_revenue_lock_release( $name ) {
+	global $wpdb;
+	$result = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+	return '1' === $result;
+}
+
+/**
  * Resolve an operator-supplied period token into a canonical label + date range.
  *
  * The flat Mediavine pages export has NO date column, so the operator passes the

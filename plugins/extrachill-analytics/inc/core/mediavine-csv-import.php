@@ -78,6 +78,46 @@ function extrachill_analytics_revenue_parse_number( $value ) {
 }
 
 /**
+ * Resolve a raw CSV/row slug to a post ID and a normalized slug key.
+ *
+ * Shared by the CSV importer and the ingestion ability so slug->post resolution
+ * and slug normalization stay in exactly one place. A resolved row keys its
+ * slug on the post's actual `post_name` (stable across URL variants); an
+ * unresolved row keys on the path's last segment. This normalized slug is the
+ * dedupe key the store's UNIQUE (blog_id, slug, period_label, import_batch)
+ * index relies on, so identical inputs must always normalize identically.
+ *
+ * Resolution (url_to_postid) always runs against the CURRENT blog — callers
+ * that import for a different blog must switch_to_blog() first so the stamped
+ * blog_id and the resolved post_id agree.
+ *
+ * @param string $raw_slug  Raw identifier from the CSV / source row (slug, path, or URL).
+ * @param string $hostname  Hostname pages map to.
+ * @return array{post_id:int,slug:string} Resolved post ID (0 when unresolved) and normalized slug.
+ */
+function extrachill_analytics_revenue_resolve_slug( $raw_slug, $hostname ) {
+	$raw_slug = trim( (string) $raw_slug );
+
+	$post_id = extrachill_analytics_revenue_resolve_post_id( $raw_slug, $hostname );
+
+	if ( $post_id > 0 && function_exists( 'get_post' ) ) {
+		$post = get_post( $post_id );
+		if ( is_object( $post ) && isset( $post->post_name ) ) {
+			$slug = $post->post_name;
+		} else {
+			$slug = trim( (string) strtok( $raw_slug, '?#' ), '/' );
+		}
+	} else {
+		$slug = trim( (string) strtok( $raw_slug, '?#' ), '/' );
+	}
+
+	return array(
+		'post_id' => $post_id,
+		'slug'    => $slug,
+	);
+}
+
+/**
  * Import a Mediavine Pages CSV into the revenue store.
  *
  * Time-awareness: the flat Mediavine pages export has NO date column — it is one
@@ -212,21 +252,14 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 
 		++$rows;
 
-		$post_id = extrachill_analytics_revenue_resolve_post_id( $raw_slug, $hostname );
+		$resolved_row = extrachill_analytics_revenue_resolve_slug( $raw_slug, $hostname );
+		$post_id      = $resolved_row['post_id'];
+		$slug         = $resolved_row['slug'];
+
 		if ( $post_id > 0 ) {
 			++$resolved;
 		} else {
 			++$unresolved;
-		}
-
-		// Normalize the slug to a stable key: prefer the post's slug when
-		// resolved, else the path's last segment.
-		if ( $post_id > 0 ) {
-			$post = get_post( $post_id );
-			$slug = $post instanceof WP_Post ? $post->post_name : $raw_slug;
-		} else {
-			$path = strtok( $raw_slug, '?#' );
-			$slug = trim( (string) $path, '/' );
 		}
 
 		$record = array(
