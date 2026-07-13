@@ -73,6 +73,18 @@ if ( ! function_exists( 'ec_users_notify' ) ) {
 	}
 }
 
+if ( ! function_exists( 'extrachill_users_get_local_scene' ) ) {
+	function extrachill_users_get_local_scene( $user_id ) {
+		return $GLOBALS['festival_notification_scenes'][ $user_id ] ?? null;
+	}
+}
+
+if ( ! function_exists( 'sanitize_title' ) ) {
+	function sanitize_title( $value ) {
+		return strtolower( trim( (string) $value ) );
+	}
+}
+
 if ( ! function_exists( 'absint' ) ) {
 	function absint( $value ) {
 		return abs( (int) $value );
@@ -113,6 +125,7 @@ class FestivalNotificationsTest extends TestCase {
 		$GLOBALS['festival_notification_recipients']  = array();
 		$GLOBALS['festival_notification_resolutions'] = array();
 		$GLOBALS['festival_notification_calls']       = array();
+		$GLOBALS['festival_notification_scenes']      = array();
 	}
 
 	public function test_authorizes_only_event_entity_notification_resolution(): void {
@@ -197,6 +210,41 @@ class FestivalNotificationsTest extends TestCase {
 			$GLOBALS['festival_notification_resolutions']
 		);
 		$this->assertSame( array( 7, 9, 11, 13 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
+	}
+
+	public function test_notifies_nearby_artist_subscribers_with_a_distinct_notification(): void {
+		$GLOBALS['festival_notification_terms'] = array(
+			'artist'   => array( 'the-headliners' ),
+			'festival' => array( 'summer-jam' ),
+			'location' => array( 'charleston-sc' ),
+		);
+		$GLOBALS['festival_notification_recipients'] = array(
+			'the-headliners' => array( 7, 9, 11 ),
+			'summer-jam'     => array( 11, 13 ),
+		);
+		$GLOBALS['festival_notification_scenes'] = array(
+			7  => array( 'slug' => 'charleston-sc' ),
+			9  => array( 'slug' => 'austin-tx' ),
+			11 => null,
+		);
+		$post = new WP_Post(
+			array(
+				'ID'          => 42,
+				'post_author' => 3,
+				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
+				'post_title'  => 'The Big Show',
+			)
+		);
+
+		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
+
+		$this->assertCount( 2, $GLOBALS['festival_notification_calls'] );
+		$this->assertSame( array( 9, 11, 13 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
+		$this->assertSame( 'festival_event_published', $GLOBALS['festival_notification_calls'][0]['data']['type'] );
+		$this->assertSame( 'New event: The Big Show', $GLOBALS['festival_notification_calls'][0]['data']['title'] );
+		$this->assertSame( array( 7 ), $GLOBALS['festival_notification_calls'][1]['user_ids'] );
+		$this->assertSame( EXTRACHILL_EVENTS_NEARBY_ARTIST_EVENT_NOTIFICATION, $GLOBALS['festival_notification_calls'][1]['data']['type'] );
+		$this->assertSame( 'Nearby show: The Big Show', $GLOBALS['festival_notification_calls'][1]['data']['title'] );
 	}
 
 	public function test_does_not_notify_for_published_post_updates(): void {
