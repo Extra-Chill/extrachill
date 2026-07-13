@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.18.1] - 2026-07-13
+
+### Changed
+- Internal improvements
+
 ## [1.18.0] - 2026-07-13
 
 ### Added
