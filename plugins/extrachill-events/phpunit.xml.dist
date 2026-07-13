@@ -20,6 +20,7 @@
 			<directory>tests/Unit/Core</directory>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
+			<file>tests/Unit/Abilities/EventsByTermTaxonomyContextTest.php</file>
 			<file>tests/Unit/FestivalNotificationsTest.php</file>
 		</testsuite>
 	</testsuites>
