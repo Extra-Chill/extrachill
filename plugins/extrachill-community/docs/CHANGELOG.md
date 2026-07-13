@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.19.0] - 2026-07-13
+
+### Added
+- notify artist subscribers of new discussions
+
 ## [1.18.1] - 2026-07-13
 
 ### Changed
