@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.20.0] - 2026-07-13
+
+### Added
+- prompt members to choose Local Scene
+
 ## [1.19.1] - 2026-07-13
 
 ### Changed
