@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.25.0] - 2026-07-13
+
+### Added
+- pass Local Scene through onboarding
+
 ## [0.24.0] - 2026-07-12
 
 ### Added
