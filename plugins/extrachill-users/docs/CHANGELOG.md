@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.34.0] - 2026-07-13
+
+### Added
+- persist Local Scene prompt state
+
 ## [0.33.0] - 2026-07-13
 
 ### Added
