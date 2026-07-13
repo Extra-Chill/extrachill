@@ -51,8 +51,8 @@ if ( ! function_exists( 'get_post_type' ) ) {
 }
 
 if ( ! function_exists( 'wp_get_post_terms' ) ) {
-	function wp_get_post_terms() {
-		return $GLOBALS['festival_notification_terms'];
+	function wp_get_post_terms( $post_id, $taxonomy ) {
+		return $GLOBALS['festival_notification_terms'][ $taxonomy ] ?? array();
 	}
 }
 
@@ -106,26 +106,34 @@ require_once dirname( __DIR__, 2 ) . '/inc/core/data-machine-events/festival-not
 class FestivalNotificationsTest extends TestCase {
 
 	protected function setUp(): void {
-		$GLOBALS['festival_notification_terms']       = array();
+		$GLOBALS['festival_notification_terms']       = array(
+			'artist'   => array(),
+			'festival' => array(),
+		);
 		$GLOBALS['festival_notification_recipients']  = array();
 		$GLOBALS['festival_notification_resolutions'] = array();
 		$GLOBALS['festival_notification_calls']       = array();
 	}
 
-	public function test_authorizes_only_festival_notification_resolution(): void {
-		$entity = array(
+	public function test_authorizes_only_event_entity_notification_resolution(): void {
+		$festival = array(
 			'entity_type' => 'festival',
 			'taxonomy'    => 'festival',
 		);
+		$artist   = array(
+			'entity_type' => 'artist',
+			'taxonomy'    => 'artist',
+		);
 
-		$this->assertTrue( extrachill_events_authorize_festival_notification_producer( false, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER, $entity, 'notification' ) );
-		$this->assertFalse( extrachill_events_authorize_festival_notification_producer( false, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER, $entity, 'email' ) );
-		$this->assertFalse( extrachill_events_authorize_festival_notification_producer( false, 'untrusted', $entity, 'notification' ) );
+		$this->assertTrue( extrachill_events_authorize_festival_notification_producer( false, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER, $festival, 'notification' ) );
+		$this->assertTrue( extrachill_events_authorize_festival_notification_producer( false, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER, $artist, 'notification' ) );
+		$this->assertFalse( extrachill_events_authorize_festival_notification_producer( false, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER, $artist, 'email' ) );
+		$this->assertFalse( extrachill_events_authorize_festival_notification_producer( false, 'untrusted', $artist, 'notification' ) );
 	}
 
 	public function test_notifies_deduplicated_recipients_for_every_festival(): void {
-		$GLOBALS['festival_notification_terms']      = array( 'summer-jam', 'river-fest' );
-		$GLOBALS['festival_notification_recipients'] = array(
+		$GLOBALS['festival_notification_terms']['festival'] = array( 'summer-jam', 'river-fest' );
+		$GLOBALS['festival_notification_recipients']        = array(
 			'summer-jam' => array( 7, 9 ),
 			'river-fest' => array( 9, 11 ),
 		);
@@ -144,6 +152,51 @@ class FestivalNotificationsTest extends TestCase {
 		$this->assertSame( array( 7, 9, 11 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
 		$this->assertSame( 'New event: The Big Show', $GLOBALS['festival_notification_calls'][0]['data']['title'] );
 		$this->assertSame( 'https://events.example/events/42/', $GLOBALS['festival_notification_calls'][0]['data']['link'] );
+	}
+
+	public function test_notifies_artist_subscribers_and_deduplicates_across_entity_terms(): void {
+		$GLOBALS['festival_notification_terms']['artist']   = array( 'the-headliners', 'support-act' );
+		$GLOBALS['festival_notification_terms']['festival'] = array( 'summer-jam' );
+		$GLOBALS['festival_notification_recipients']        = array(
+			'the-headliners' => array( 7, 9 ),
+			'support-act'    => array( 9, 11 ),
+			'summer-jam'     => array( 11, 13 ),
+		);
+		$post = new WP_Post(
+			array(
+				'ID'          => 42,
+				'post_author' => 3,
+				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
+				'post_title'  => 'The Big Show',
+			)
+		);
+
+		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
+
+		$this->assertSame(
+			array(
+				array(
+					'producer'    => EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER,
+					'entity_type' => 'artist',
+					'taxonomy'    => 'artist',
+					'slug'        => 'the-headliners',
+				),
+				array(
+					'producer'    => EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER,
+					'entity_type' => 'artist',
+					'taxonomy'    => 'artist',
+					'slug'        => 'support-act',
+				),
+				array(
+					'producer'    => EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER,
+					'entity_type' => 'festival',
+					'taxonomy'    => 'festival',
+					'slug'        => 'summer-jam',
+				),
+			),
+			$GLOBALS['festival_notification_resolutions']
+		);
+		$this->assertSame( array( 7, 9, 11, 13 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
 	}
 
 	public function test_does_not_notify_for_published_post_updates(): void {

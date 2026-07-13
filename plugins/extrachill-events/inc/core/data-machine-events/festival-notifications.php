@@ -1,6 +1,6 @@
 <?php
 /**
- * Festival event notifications.
+ * Event entity notifications.
  *
  * @package ExtraChillEvents
  */
@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 const EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER = 'extrachill-events-festival-notifications';
 
 /**
- * Register festival event notification hooks.
+ * Register event entity notification hooks.
  *
  * @return void
  */
@@ -22,7 +22,7 @@ function extrachill_events_init_festival_notifications(): void {
 }
 
 /**
- * Authorize this plugin to resolve private festival notification recipients.
+ * Authorize this plugin to resolve private event entity notification recipients.
  *
  * @param bool   $authorized Whether the producer is already authorized.
  * @param string $producer   Producer identifier.
@@ -35,11 +35,11 @@ function extrachill_events_authorize_festival_notification_producer( $authorized
 		return (bool) $authorized;
 	}
 
-	return is_array( $entity ) && 'festival' === ( $entity['entity_type'] ?? '' ) && 'festival' === ( $entity['taxonomy'] ?? '' );
+	return is_array( $entity ) && in_array( $entity['entity_type'] ?? '', array( 'artist', 'festival' ), true ) && ( $entity['entity_type'] ?? '' ) === ( $entity['taxonomy'] ?? '' );
 }
 
 /**
- * Notify festival subscribers when an event first becomes published.
+ * Notify artist and festival subscribers when an event first becomes published.
  *
  * @param string   $new_status New post status.
  * @param string   $old_status Previous post status.
@@ -59,24 +59,26 @@ function extrachill_events_notify_festival_subscribers( $new_status, $old_status
 		return;
 	}
 
-	$festival_slugs = wp_get_post_terms( $post->ID, 'festival', array( 'fields' => 'slugs' ) );
-	if ( is_wp_error( $festival_slugs ) || empty( $festival_slugs ) ) {
-		return;
-	}
-
 	$recipient_ids = array();
-	foreach ( $festival_slugs as $festival_slug ) {
-		$recipients = extrachill_users_entity_subscription_recipients(
-			EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER,
-			'festival',
-			'festival',
-			$festival_slug
-		);
-		if ( is_wp_error( $recipients ) ) {
+	foreach ( array( 'artist', 'festival' ) as $taxonomy ) {
+		$slugs = wp_get_post_terms( $post->ID, $taxonomy, array( 'fields' => 'slugs' ) );
+		if ( is_wp_error( $slugs ) || empty( $slugs ) ) {
 			continue;
 		}
 
-		$recipient_ids = array_merge( $recipient_ids, $recipients );
+		foreach ( $slugs as $slug ) {
+			$recipients = extrachill_users_entity_subscription_recipients(
+				EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER,
+				$taxonomy,
+				$taxonomy,
+				$slug
+			);
+			if ( is_wp_error( $recipients ) ) {
+				continue;
+			}
+
+			$recipient_ids = array_merge( $recipient_ids, $recipients );
+		}
 	}
 
 	$recipient_ids = array_values( array_unique( array_map( 'absint', $recipient_ids ) ) );
