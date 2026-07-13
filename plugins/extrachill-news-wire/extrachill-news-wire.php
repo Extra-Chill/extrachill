@@ -50,14 +50,18 @@ function enqueue_festival_wire_assets() {
 			);
 		}
 
-		// Festival Wire JavaScript (filters and FAQ accordion)
+		// Festival Wire JavaScript (filters and FAQ accordion).
+		// Distinct handle from the stylesheet; the script is a self-contained
+		// IIFE with no JavaScript dependencies, so it declares none. The theme
+		// handles extrachill-root / extrachill-style are stylesheet handles and
+		// must never be passed as script dependencies.
 		$js_file_path = plugin_dir_path(__FILE__) . 'assets/festival-wire.js';
 		$js_file_uri  = plugin_dir_url(__FILE__) . 'assets/festival-wire.js';
 		if ( file_exists( $js_file_path ) ) {
 			wp_enqueue_script(
-				'extrachill-festival-wire',
+				'extrachill-festival-wire-script',
 				$js_file_uri,
-				array( 'extrachill-root', 'extrachill-style' ),
+				array(),
 				filemtime( $js_file_path ),
 				true
 			);
