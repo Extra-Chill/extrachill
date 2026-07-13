@@ -5,10 +5,10 @@
  * Handles event submissions from the public form — validates input,
  * stores flyers, and executes via Data Machine ephemeral workflow.
  *
- * Captcha / human-verification (Cloudflare Turnstile) is enforced at
- * the REST route's permission_callback (see extrachill-api), not here.
- * This keeps the ability callable from non-REST contexts (CLI, admin
- * forms, scheduled re-runs) without fabricating a Turnstile token.
+ * Captcha / human-verification (Cloudflare Turnstile) is enforced by the
+ * dedicated public REST route in extrachill-api. This ability is deliberately
+ * not exposed by the generic Abilities REST endpoint so that route remains
+ * the canonical public write boundary.
  *
  * @package ExtraChillEvents\Abilities
  */
@@ -82,10 +82,6 @@ class EventSubmissionAbilities {
 								'type'        => 'string',
 								'description' => 'Submitter email. Required for anonymous submissions.',
 							),
-							'system_prompt' => array(
-								'type'        => 'string',
-								'description' => 'Custom system prompt for AI processing step. Optional.',
-							),
 							'flyer'         => array(
 								'type'        => 'object',
 								'description' => 'Uploaded flyer file data from $_FILES. Optional.',
@@ -102,12 +98,12 @@ class EventSubmissionAbilities {
 					'execute_callback'    => array( $this, 'executeSubmitEvent' ),
 					'permission_callback' => '__return_true',
 					'meta'                => array(
-						'show_in_rest' => true,
+						'show_in_rest' => false,
 						'annotations'  => array(
 							'readonly'     => false,
 							'idempotent'   => false,
 							'destructive'  => false,
-							'instructions' => __( 'Public-facing ability. Creates pending events for review. Captcha verification is enforced upstream at the REST route.', 'extrachill-events' ),
+							'instructions' => __( 'Creates pending events for review. The dedicated event-submissions REST route is the public, Turnstile-protected entry point.', 'extrachill-events' ),
 						),
 					),
 				)
@@ -120,9 +116,8 @@ class EventSubmissionAbilities {
 	/**
 	 * Execute event submission.
 	 *
-	 * Captcha verification is the caller's responsibility (the REST route
-	 * enforces Turnstile in its permission_callback). This method only
-	 * validates event fields and runs the workflow.
+	 * The public REST route verifies Turnstile before calling this method. The
+	 * generic Abilities REST endpoint cannot invoke this ability.
 	 *
 	 * @param array $input Submission data.
 	 * @return array Result with message and job_id, or error.
@@ -166,7 +161,7 @@ class EventSubmissionAbilities {
 		$flyer = $input['flyer'] ?? null;
 
 		// 5. Execute ephemeral workflow.
-		return $this->executeDirect( $submission, $flyer, sanitize_textarea_field( $input['system_prompt'] ?? '' ), $account_claim );
+		return $this->executeDirect( $submission, $flyer, $account_claim );
 	}
 
 	/**
@@ -316,10 +311,10 @@ class EventSubmissionAbilities {
 	 *
 	 * @param array      $submission    Sanitized submission data.
 	 * @param array|null $flyer         File data from $_FILES, or null.
-	 * @param string     $system_prompt Custom system prompt. Optional.
+	 * @param string     $account_claim One-time account claim URL, if applicable.
 	 * @return array Result.
 	 */
-	private function executeDirect( array $submission, ?array $flyer, string $system_prompt = '', string $account_claim = '' ): array|\WP_Error {
+	private function executeDirect( array $submission, ?array $flyer, string $account_claim = '' ): array|\WP_Error {
 		$execute = wp_get_ability( 'datamachine/execute-workflow' );
 		if ( ! $execute ) {
 			return new \WP_Error( 'dm_unavailable', __( 'Data Machine is unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
@@ -336,7 +331,7 @@ class EventSubmissionAbilities {
 
 		$provider = \DataMachine\Core\PluginSettings::get( 'default_provider', 'anthropic' );
 		$model    = \DataMachine\Core\PluginSettings::get( 'default_model', 'claude-sonnet-4-20250514' );
-		$workflow = $this->buildWorkflow( $submission, $stored_flyer, $provider, $model, $system_prompt );
+		$workflow = $this->buildWorkflow( $submission, $stored_flyer, $provider, $model );
 
 		$initial_data = array( 'submission' => $submission );
 		if ( $stored_flyer && ! empty( $stored_flyer['stored_path'] ) ) {
@@ -428,10 +423,9 @@ class EventSubmissionAbilities {
 	 * @param array|null $stored_flyer  Stored flyer data.
 	 * @param string     $provider      AI provider slug.
 	 * @param string     $model         AI model identifier.
-	 * @param string     $system_prompt Custom system prompt.
 	 * @return array Workflow config for DM execute endpoint.
 	 */
-	private function buildWorkflow( array $submission, ?array $stored_flyer, string $provider, string $model, string $system_prompt = '' ): array {
+	private function buildWorkflow( array $submission, ?array $stored_flyer, string $provider, string $model ): array {
 		$steps = array();
 
 		$handler_config = array(
@@ -483,7 +477,7 @@ class EventSubmissionAbilities {
 			'type'          => 'ai',
 			'provider'      => $provider,
 			'model'         => $model,
-			'system_prompt' => $system_prompt ? $system_prompt : $default_prompt,
+			'system_prompt' => $default_prompt,
 			'user_message'  => $user_message,
 			'enabled_tools' => array( 'upsert_event' ),
 		);
