@@ -105,7 +105,7 @@ function extrachill_community_emit_local_scene_prompt_event( $event_type, $event
 }
 
 /**
- * Render the inline prompt in normal theme body flow.
+ * Render the prompt through the theme notice area.
  */
 function extrachill_community_render_local_scene_prompt() {
 	$settings = extrachill_community_local_scene_prompt_settings();
@@ -122,9 +122,9 @@ function extrachill_community_render_local_scene_prompt() {
 		)
 	);
 	?>
-	<section class="ec-local-scene-prompt" id="ec-local-scene-prompt" aria-labelledby="ec-local-scene-prompt-title">
+	<section class="notice notice-info ec-local-scene-prompt" id="ec-local-scene-prompt" aria-labelledby="ec-local-scene-prompt-title">
 		<div class="ec-local-scene-prompt__copy">
-			<h2 id="ec-local-scene-prompt-title"><?php esc_html_e( 'Find your Local Scene', 'extra-chill-community' ); ?></h2>
+			<p id="ec-local-scene-prompt-title"><strong><?php esc_html_e( 'Find your Local Scene', 'extra-chill-community' ); ?></strong></p>
 			<p><?php esc_html_e( 'Connect with people and discover live music near you.', 'extra-chill-community' ); ?></p>
 		</div>
 		<form class="ec-local-scene-prompt__form">
@@ -139,15 +139,15 @@ function extrachill_community_render_local_scene_prompt() {
 				<span><?php esc_html_e( 'Show publicly', 'extra-chill-community' ); ?></span>
 			</label>
 			<div class="ec-local-scene-prompt__actions">
-				<button type="submit" class="button-1"><?php esc_html_e( 'Save', 'extra-chill-community' ); ?></button>
-				<button type="button" class="button-2 ec-local-scene-prompt__dismiss"><?php esc_html_e( 'Not now', 'extra-chill-community' ); ?></button>
+				<button type="submit" class="button-1 button-small"><?php esc_html_e( 'Save', 'extra-chill-community' ); ?></button>
+				<button type="button" class="button-3 button-small ec-local-scene-prompt__dismiss"><?php esc_html_e( 'Dismiss', 'extra-chill-community' ); ?></button>
 			</div>
 			<p class="ec-local-scene-prompt__status" role="status" aria-live="polite"></p>
 		</form>
 	</section>
 	<?php
 }
-add_action( 'extrachill_before_body_content', 'extrachill_community_render_local_scene_prompt', 5 );
+add_action( 'extrachill_notices', 'extrachill_community_render_local_scene_prompt', 15 );
 
 /**
  * Record a client-side prompt outcome through the Analytics-owned Ability.

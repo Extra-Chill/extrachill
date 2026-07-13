@@ -20,7 +20,11 @@
 	let requestId = 0;
 
 	function ability( name, input, readonly = false ) {
-		let url = config.abilitiesUrl + encodeURIComponent( name ) + '/run';
+		const abilityPath = name
+			.split( '/' )
+			.map( ( segment ) => encodeURIComponent( segment ) )
+			.join( '/' );
+		let url = config.abilitiesUrl + abilityPath + '/run';
 		if ( readonly ) {
 			const query = new URLSearchParams();
 			Object.entries( input ).forEach( ( [ key, value ] ) => {
