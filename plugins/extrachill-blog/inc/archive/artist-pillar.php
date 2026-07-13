@@ -98,6 +98,304 @@ function extrachill_blog_render_artist_network_routes() {
 add_action( 'extrachill_archive_below_description', 'extrachill_blog_render_artist_network_routes' );
 
 /**
+ * Build the artist archive's small, source-owned activity timeline.
+ *
+ * This is deliberately local to the editorial artist router. Events supply
+ * date-aware rows through their existing read ability, while Community's
+ * native artist archive supplies topic rows. The Artist Platform contributes
+ * only its public profile update timestamp, never profile content.
+ *
+ * @param WP_Term $term Artist term.
+ * @return array[] Renderable activity items.
+ */
+function extrachill_blog_get_artist_activity( $term ) {
+	if ( ! ( $term instanceof WP_Term ) ) {
+		return array();
+	}
+
+	$items = array_merge(
+		extrachill_blog_get_artist_coverage_activity( $term ),
+		extrachill_blog_get_artist_events_activity( $term ),
+		extrachill_blog_get_artist_community_activity( $term ),
+		extrachill_blog_get_artist_platform_activity( $term )
+	);
+
+	$items = extrachill_blog_sort_artist_activity( $items );
+
+	return array_slice( $items, 0, 12 );
+}
+
+/**
+ * Gather recent main-site coverage without changing the native archive loop.
+ *
+ * @param WP_Term $term Artist term.
+ * @return array[] Activity items.
+ */
+function extrachill_blog_get_artist_coverage_activity( $term ) {
+	$items = array();
+	$posts = get_posts(
+		array(
+			'post_type'           => 'post',
+			'post_status'         => 'publish',
+			'posts_per_page'      => 4,
+			'orderby'             => 'date',
+			'order'               => 'DESC',
+			'ignore_sticky_posts' => true,
+			'tax_query'           => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+				array(
+					'taxonomy' => 'artist',
+					'field'    => 'term_id',
+					'terms'    => (int) $term->term_id,
+				),
+			),
+		)
+	);
+
+	foreach ( $posts as $post ) {
+		$items[] = extrachill_blog_build_artist_activity_item(
+			get_the_title( $post ),
+			get_permalink( $post ),
+			get_post_time( 'c', true, $post ),
+			__( 'Editorial coverage', 'extrachill-blog' )
+		);
+	}
+
+	return array_filter( $items );
+}
+
+/**
+ * Gather Events-owned rows through its date-aware read ability.
+ *
+ * @param WP_Term $term Artist term.
+ * @return array[] Activity items.
+ */
+function extrachill_blog_get_artist_events_activity( $term ) {
+	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
+		return array();
+	}
+
+	$force_loopback = static function () {
+		return true;
+	};
+	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	$result = ec_cross_site_rest_request(
+		'events',
+		'GET',
+		'/wp-abilities/v1/abilities/data-machine-events/events-by-term/run',
+		array(
+			'query' => array(
+				'input' => array(
+					'taxonomy'  => 'artist',
+					'term_slug' => $term->slug,
+					'scope'     => 'all',
+					'limit'     => 4,
+				),
+			),
+		)
+	);
+	remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+
+	if ( is_wp_error( $result ) || ! is_array( $result ) ) {
+		return array();
+	}
+
+	$items = array();
+	foreach ( array_merge( $result['upcoming'] ?? array(), $result['past'] ?? array() ) as $event ) {
+		$items[] = extrachill_blog_build_artist_activity_item(
+			isset( $event['title'] ) ? $event['title'] : '',
+			isset( $event['permalink'] ) ? $event['permalink'] : '',
+			isset( $event['date_iso'] ) ? $event['date_iso'] : '',
+			__( 'Events', 'extrachill-blog' ),
+			isset( $event['date_display'] ) ? $event['date_display'] : ''
+		);
+	}
+
+	return array_filter( $items );
+}
+
+/**
+ * Gather the native Community artist archive's recent topics.
+ *
+ * Community intentionally exposes this surface as an archive, not a REST
+ * collection. Match that archive's topic and post-status scope here.
+ *
+ * @param WP_Term $term Artist term.
+ * @return array[] Activity items.
+ */
+function extrachill_blog_get_artist_community_activity( $term ) {
+	if ( ! function_exists( 'ec_get_blog_id' ) || ! ec_get_blog_id( 'community' ) ) {
+		return array();
+	}
+
+	$items = array();
+	switch_to_blog( (int) ec_get_blog_id( 'community' ) );
+	try {
+		$community_term = get_term_by( 'slug', $term->slug, 'artist' );
+		if ( ! ( $community_term instanceof WP_Term ) ) {
+			return array();
+		}
+
+		$topics = get_posts(
+			array(
+				'post_type'           => 'topic',
+				'post_status'         => array( 'publish', 'closed' ),
+				'posts_per_page'      => 4,
+				'orderby'             => 'date',
+				'order'               => 'DESC',
+				'ignore_sticky_posts' => true,
+				'tax_query'           => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+					array(
+						'taxonomy' => 'artist',
+						'field'    => 'term_id',
+						'terms'    => (int) $community_term->term_id,
+					),
+				),
+			)
+		);
+
+		foreach ( $topics as $topic ) {
+			$items[] = extrachill_blog_build_artist_activity_item(
+				get_the_title( $topic ),
+				get_permalink( $topic ),
+				get_post_time( 'c', true, $topic ),
+				__( 'Community discussion', 'extrachill-blog' )
+			);
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	return array_filter( $items );
+}
+
+/**
+ * Gather the canonical Artist Platform profile's public update timestamp.
+ *
+ * @param WP_Term $term Artist term.
+ * @return array[] Activity items.
+ */
+function extrachill_blog_get_artist_platform_activity( $term ) {
+	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
+		return array();
+	}
+
+	$force_loopback = static function () {
+		return true;
+	};
+	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	$profiles = ec_cross_site_rest_request(
+		'artist',
+		'GET',
+		'/wp/v2/artist_profile',
+		array(
+			'query' => array(
+				'slug'     => $term->slug,
+				'per_page' => 1,
+				'_fields'  => 'link,modified_gmt,modified',
+			),
+		)
+	);
+	remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+
+	if ( is_wp_error( $profiles ) || empty( $profiles[0] ) || ! is_array( $profiles[0] ) ) {
+		return array();
+	}
+
+	$profile = $profiles[0];
+	return array_filter(
+		array(
+			extrachill_blog_build_artist_activity_item(
+				__( 'Artist profile updated', 'extrachill-blog' ),
+				isset( $profile['link'] ) ? $profile['link'] : '',
+				isset( $profile['modified_gmt'] ) ? $profile['modified_gmt'] : ( $profile['modified'] ?? '' ),
+				__( 'Artist Platform', 'extrachill-blog' )
+			),
+		)
+	);
+}
+
+/**
+ * Create a timeline item only when its native link and date are available.
+ *
+ * @param string $title        Item title.
+ * @param string $url          Canonical source URL.
+ * @param string $date         ISO-compatible date.
+ * @param string $source       Source label.
+ * @param string $date_display Source-formatted date, when available.
+ * @return array|null Activity item.
+ */
+function extrachill_blog_build_artist_activity_item( $title, $url, $date, $source, $date_display = '' ) {
+	$timestamp = strtotime( $date );
+	if ( '' === $title || '' === $url || ! $timestamp ) {
+		return null;
+	}
+
+	return array(
+		'title'        => (string) $title,
+		'url'          => (string) $url,
+		'date'         => gmdate( 'c', $timestamp ),
+		'date_display' => '' !== $date_display ? (string) $date_display : wp_date( get_option( 'date_format' ), $timestamp ),
+		'source'       => (string) $source,
+		'timestamp'    => $timestamp,
+	);
+}
+
+/**
+ * Sort activity newest-first.
+ *
+ * @param array[] $items Activity items.
+ * @return array[] Sorted activity items.
+ */
+function extrachill_blog_sort_artist_activity( $items ) {
+	usort(
+		$items,
+		static function ( $left, $right ) {
+			return (int) $right['timestamp'] <=> (int) $left['timestamp'];
+		}
+	);
+
+	return $items;
+}
+
+/**
+ * Render an artist-specific chronological activity timeline.
+ *
+ * @return void
+ */
+function extrachill_blog_render_artist_activity() {
+	if ( ! extrachill_blog_is_artist_pillar() || is_paged() ) {
+		return;
+	}
+
+	$term = get_queried_object();
+	if ( ! ( $term instanceof WP_Term ) ) {
+		return;
+	}
+
+	$items = extrachill_blog_get_artist_activity( $term );
+	if ( empty( $items ) ) {
+		return;
+	}
+	?>
+	<section class="entity-pillar-activity" aria-labelledby="artist-activity-title">
+		<h2 id="artist-activity-title"><?php esc_html_e( 'Artist activity', 'extrachill-blog' ); ?></h2>
+		<ol class="entity-pillar-activity-list">
+			<?php foreach ( $items as $item ) : ?>
+				<li class="entity-pillar-activity-item">
+					<time datetime="<?php echo esc_attr( $item['date'] ); ?>"><?php echo esc_html( $item['date_display'] ); ?></time>
+					<div>
+						<p><?php echo esc_html( $item['source'] ); ?></p>
+						<a href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['title'] ); ?></a>
+					</div>
+				</li>
+			<?php endforeach; ?>
+		</ol>
+	</section>
+	<?php
+}
+add_action( 'extrachill_archive_below_description', 'extrachill_blog_render_artist_activity', 15 );
+
+/**
  * Frame the native archive loop as editorial coverage.
  *
  * @return void

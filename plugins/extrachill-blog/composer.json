@@ -15,6 +15,7 @@
         "test": [
             "php tests/homepage-event-markets.php",
             "php tests/festival-subscriptions.php",
+            "php tests/artist-activity.php",
             "@lint:php"
         ]
     },
