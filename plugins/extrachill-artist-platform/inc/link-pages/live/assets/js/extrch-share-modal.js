@@ -145,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (trigger.classList.contains('extrch-bell-page-trigger')) return;
             trigger.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // Prevent link navigation if button is inside <a>
                 openModal(trigger); // Pass the trigger element directly
             });
         });
@@ -234,4 +233,4 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal();
         }
     });
-}); 
+});

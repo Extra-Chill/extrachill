@@ -157,7 +157,7 @@ body {
   width: 100%;
   margin-bottom: 1.5em;
 }
-.extrch-link-page-link {
+.extrch-link-button-wrapper {
   background: var(--link-page-button-bg-color);
   color: var(--link-page-link-text-color);
   padding: 0.95em 1.2em;
@@ -185,16 +185,21 @@ body {
   text-overflow: wrap;
 }
 
-/* New class for the link icon span/element */
-.extrch-link-page-link-icon {
-  flex-shrink: 0; /* Prevent icon from shrinking */
-  display: flex; /* To help align icon if it's complex */
-  align-items: center;
+.extrch-link-page-link {
+  color: inherit;
+  display: flex;
+  flex-grow: 1;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.extrch-link-button-wrapper:hover {
+  background: var(--link-page-button-hover-bg-color);
+  color: var(--link-page-button-bg-color); /* Revert to original button background color for text on hover */
 }
 
 .extrch-link-page-link:hover {
-  background: var(--link-page-button-hover-bg-color);
-  color: var(--link-page-button-bg-color); /* Revert to original button background color for text on hover */
+  color: inherit;
   text-decoration: none;
 }
 .extrch-link-page-links-container{

@@ -31,15 +31,16 @@ if ( $youtube_embed ) {
     $link_classes .= ' extrch-youtube-embed-link';
 }
 ?>
-<a href="<?php echo esc_url( $display_url ); ?>" class="<?php echo esc_attr( $link_classes ); ?>" rel="ugc noopener">
-    <span class="extrch-link-page-link-text"><?php echo esc_html( $display_text ); ?></span>
-    <span class="extrch-link-page-link-icon">
-        <button class="extrch-share-trigger extrch-share-item-trigger"
-                aria-label="Share this link"
-                data-share-type="link"
-                data-share-url="<?php echo esc_url( $share_url ); ?>"
-                data-share-title="<?php echo esc_attr( $share_title ); ?>">
-            <i class="fas fa-ellipsis-v"></i>
-        </button>
-    </span>
-</a>
+<div class="extrch-link-button-wrapper">
+    <a href="<?php echo esc_url( $display_url ); ?>" class="<?php echo esc_attr( $link_classes ); ?>" rel="ugc noopener">
+        <span class="extrch-link-page-link-text"><?php echo esc_html( $display_text ); ?></span>
+    </a>
+    <button type="button"
+            class="extrch-share-trigger extrch-share-item-trigger"
+            aria-label="Share this link"
+            data-share-type="link"
+            data-share-url="<?php echo esc_url( $share_url ); ?>"
+            data-share-title="<?php echo esc_attr( $share_title ); ?>">
+        <i class="fas fa-ellipsis-v"></i>
+    </button>
+</div>

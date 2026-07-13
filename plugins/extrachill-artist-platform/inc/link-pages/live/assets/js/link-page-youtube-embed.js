@@ -33,14 +33,11 @@
      * @returns {HTMLElement} The placeholder div.
      */
     function getOrCreateVideoPlaceholder(linkElement) {
-        let placeholder = linkElement.nextElementSibling;
+        const parentContainer = linkElement.closest('.extrch-link-button-wrapper') || linkElement;
+        let placeholder = parentContainer.nextElementSibling;
         if (!placeholder || !placeholder.classList.contains(YOUTUBE_VIDEO_PLACEHOLDER_CLASS)) {
             placeholder = document.createElement('div');
             placeholder.className = YOUTUBE_VIDEO_PLACEHOLDER_CLASS;
-            // No need for placeholder.style.display = 'none'; CSS handles initial hidden state via max-height
-            // Insert after the button's parent if the button is wrapped, or after the button itself.
-            // Assuming buttons might be wrapped in <li> or <p>
-            const parentContainer = linkElement.parentElement.classList.contains('extrch-link-button-wrapper') ? linkElement.parentElement : linkElement;
             parentContainer.parentNode.insertBefore(placeholder, parentContainer.nextSibling);
         }
         return placeholder;
@@ -56,8 +53,10 @@
             if (event.target.closest('.extrch-share-trigger')) return;
             event.preventDefault();
 
+            const parentContainer = link.closest('.extrch-link-button-wrapper') || link;
+
             // Check if the next sibling is a visible placeholder for this link (toggle close)
-            let placeholder = link.nextElementSibling;
+            let placeholder = parentContainer.nextElementSibling;
             if (placeholder && placeholder.classList.contains('extrch-youtube-video-placeholder')) {
                 if (placeholder.classList.contains('video-visible')) {
                     // Already open, so close (remove video after transition, remove placeholder from DOM)
@@ -87,10 +86,10 @@
                 }
             });
 
-            // Create and insert placeholder after the link
+            // Create and insert placeholder after the link and share-control wrapper.
             placeholder = document.createElement('div');
             placeholder.className = 'extrch-youtube-video-placeholder';
-            link.parentNode.insertBefore(placeholder, link.nextSibling);
+            parentContainer.parentNode.insertBefore(placeholder, parentContainer.nextSibling);
 
             // Extract videoId for embed
             const videoId = getYouTubeVideoId(href);
@@ -121,4 +120,4 @@
         init: initializeGlobalDelegatedYoutubeEmbeds
     };
 
-})(); 
+})();
