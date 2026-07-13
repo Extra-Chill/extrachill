@@ -81,6 +81,12 @@ function extrachill_community_notify_festival_topic_subscribers( $topic_id ) {
 		return;
 	}
 
+	// Claim before delivery so concurrent bbPress hooks cannot duplicate notices.
+	// The claim remains when delivery inserts no rows, making retries at-most-once.
+	if ( ! add_post_meta( $topic_id, EXTRACHILL_COMMUNITY_FESTIVAL_TOPIC_NOTIFIED_META, current_time( 'mysql', true ), true ) ) {
+		return;
+	}
+
 	ec_users_notify(
 		$recipients,
 		array(
@@ -91,9 +97,6 @@ function extrachill_community_notify_festival_topic_subscribers( $topic_id ) {
 			'item_id'  => $topic_id,
 		)
 	);
-
-	// Keep a repeated bbPress new-topic action from creating duplicate notices.
-	update_post_meta( $topic_id, EXTRACHILL_COMMUNITY_FESTIVAL_TOPIC_NOTIFIED_META, current_time( 'mysql', true ) );
 }
 add_action( 'bbp_new_topic', 'extrachill_community_notify_festival_topic_subscribers', 30 );
 
@@ -151,6 +154,12 @@ function extrachill_community_notify_artist_topic_subscribers( $topic_id ) {
 		return;
 	}
 
+	// Claim before delivery so concurrent bbPress hooks cannot duplicate notices.
+	// The claim remains when delivery inserts no rows, making retries at-most-once.
+	if ( ! add_post_meta( $topic_id, EXTRACHILL_COMMUNITY_ARTIST_TOPIC_NOTIFIED_META, current_time( 'mysql', true ), true ) ) {
+		return;
+	}
+
 	ec_users_notify(
 		$recipients,
 		array(
@@ -161,8 +170,5 @@ function extrachill_community_notify_artist_topic_subscribers( $topic_id ) {
 			'item_id'  => $topic_id,
 		)
 	);
-
-	// Keep a repeated bbPress new-topic action from creating duplicate notices.
-	update_post_meta( $topic_id, EXTRACHILL_COMMUNITY_ARTIST_TOPIC_NOTIFIED_META, current_time( 'mysql', true ) );
 }
 add_action( 'bbp_new_topic', 'extrachill_community_notify_artist_topic_subscribers', 30 );
