@@ -70,6 +70,18 @@ const EC_ANALYTICS_EVENT_ONBOARDING_REMINDER_SENT      = 'onboarding_reminder_se
 const EC_ANALYTICS_EVENT_ONBOARDING_REMINDER_RECOVERED = 'onboarding_reminder_recovered';
 
 /**
+ * Local Scene prompt events.
+ *
+ * Emitters MUST keep event_data privacy-safe. Payloads are limited to
+ * `user_id` and boolean state such as `visibility` or `has_local_scene`.
+ * Never record a Local Scene slug or name, or PII such as an email address,
+ * username, display name, IP address, or free-form user input.
+ */
+const EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_VIEWED    = 'local_scene_prompt_viewed';
+const EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_DISMISSED = 'local_scene_prompt_dismissed';
+const EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_COMPLETED = 'local_scene_prompt_completed';
+
+/**
  * Artist-funnel events.
  *
  * The activation funnel a new member walks while trying to build/claim an
@@ -159,6 +171,17 @@ const EC_ANALYTICS_ONBOARDING_FUNNEL_EVENTS = array(
 const EC_ANALYTICS_ONBOARDING_HAPPY_PATH = array(
 	EC_ANALYTICS_EVENT_ONBOARDING_VIEWED,
 	EC_ANALYTICS_EVENT_ONBOARDING_COMPLETED,
+);
+
+/**
+ * Local Scene prompt events in lifecycle order.
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_LOCAL_SCENE_PROMPT_EVENTS = array(
+	EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_VIEWED,
+	EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_DISMISSED,
+	EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_COMPLETED,
 );
 
 /**
