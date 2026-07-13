@@ -50,6 +50,35 @@ function extrachill_analytics_categorize_404_url( $url ) {
 		return 'config-probe';
 	}
 
+	// Scanner path-enumeration probes — filesystem LFI targets, dependency
+	// manifests, and Java web descriptors a WordPress site will never
+	// legitimately serve. These are the next hostile slice after secrets and
+	// config: OS files (/etc/passwd, win.ini, boot.ini), package manifests
+	// (/package.json, /Gemfile, composer.json), Java descriptors
+	// (/WEB-INF/web.xml, /META-INF/), and JSP endpoints. Without this catch
+	// they fall through to 'content' and dominate the actionable bucket —
+	// see issue #134.
+	//
+	// Matched BEFORE the taxonomy-prefix catches (community-thread, events,
+	// festival, date-prefix) so nested probe forms — /events/etc/passwd,
+	// /festival/WEB-INF/web.xml, /t/package.json — classify as scanner noise,
+	// not as actionable content. Both the raw path and a rawurldecoded view
+	// are tested so URL-encoded probes (%2FWEB-INF%2Fweb.xml,
+	// %2e%2e%2fetc%2fpasswd) land here too.
+	$scanner_path_regex = '#(?:^|/)(?:etc/(?:passwd|shadow|hosts)|windows/(?:win\.ini|system32)|win\.ini|boot\.ini|proc/self(?:/|$)|package(?:-lock)?\.json|composer\.(?:json|lock)|yarn\.lock|gemfile(?:\.lock)?|requirements\.txt|pipfile(?:\.lock)?|web-inf/|meta-inf/)|(?:^|/)[^?]*\.(?:jsp|jspx)(?:[/?\#%]|$)#i';
+
+	$scanner_path_views = array( $url );
+	$decoded_url        = rawurldecode( $url );
+	if ( $decoded_url !== $url ) {
+		$scanner_path_views[] = $decoded_url;
+	}
+
+	foreach ( $scanner_path_views as $scanner_view ) {
+		if ( preg_match( $scanner_path_regex, $scanner_view ) ) {
+			return 'scanner-path-probe';
+		}
+	}
+
 	// REST API user enumeration — /wp-json/wp/v2/users harvesting.
 	if ( preg_match( '#/wp-json/wp/v2/users#i', $url ) ) {
 		return 'wpjson-user-enum';
@@ -233,6 +262,7 @@ function extrachill_analytics_is_scanner_404_category( $category ) {
 		'sql-injection',
 		'secret-probe',
 		'config-probe',
+		'scanner-path-probe',
 		'wpjson-user-enum',
 		'php-probe',
 		'plugin-probe',
