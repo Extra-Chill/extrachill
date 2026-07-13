@@ -9,8 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-const EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER = 'extrachill-events-festival-notifications';
+const EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER   = 'extrachill-events-festival-notifications';
 const EXTRACHILL_EVENTS_NEARBY_ARTIST_EVENT_NOTIFICATION = 'nearby_artist_event_published';
+const EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META  = '_extrachill_events_festival_notification_sent';
 
 /**
  * Register event entity notification hooks.
@@ -56,6 +57,10 @@ function extrachill_events_notify_festival_subscribers( $new_status, $old_status
 		return;
 	}
 
+	if ( get_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META, true ) ) {
+		return;
+	}
+
 	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify' ) ) {
 		return;
 	}
@@ -91,12 +96,21 @@ function extrachill_events_notify_festival_subscribers( $new_status, $old_status
 		return;
 	}
 
-	$artist_recipient_ids = array_values( array_unique( array_map( 'absint', $artist_recipient_ids ) ) );
-	$nearby_recipient_ids = extrachill_events_get_nearby_artist_event_recipients( $post, $artist_recipient_ids );
+	$artist_recipient_ids  = array_values( array_unique( array_map( 'absint', $artist_recipient_ids ) ) );
+	$nearby_recipient_ids  = extrachill_events_get_nearby_artist_event_recipients( $post, $artist_recipient_ids );
 	$general_recipient_ids = array_values( array_diff( $recipient_ids, $nearby_recipient_ids ) );
 
+	// Claim before delivery so concurrent publish hooks cannot duplicate notices.
+	if ( ! add_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META, current_time( 'mysql', true ), true ) ) {
+		return;
+	}
+
+	$expected_deliveries = 0;
+	$delivered           = 0;
+
 	if ( ! empty( $general_recipient_ids ) ) {
-		ec_users_notify(
+		$expected_deliveries += count( $general_recipient_ids );
+		$delivered           += ec_users_notify(
 			$general_recipient_ids,
 			array(
 				'actor_id' => (int) $post->post_author,
@@ -110,10 +124,15 @@ function extrachill_events_notify_festival_subscribers( $new_status, $old_status
 	}
 
 	if ( empty( $nearby_recipient_ids ) ) {
+		if ( $delivered < $expected_deliveries ) {
+			delete_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META );
+		}
+
 		return;
 	}
 
-	ec_users_notify(
+	$expected_deliveries += count( $nearby_recipient_ids );
+	$delivered           += ec_users_notify(
 		$nearby_recipient_ids,
 		array(
 			'actor_id' => (int) $post->post_author,
@@ -124,6 +143,10 @@ function extrachill_events_notify_festival_subscribers( $new_status, $old_status
 			'item_id'  => (int) $post->ID,
 		)
 	);
+
+	if ( $delivered < $expected_deliveries ) {
+		delete_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META );
+	}
 }
 
 /**
