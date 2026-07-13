@@ -30,8 +30,14 @@
  *      the classifier existed (or that the classifier doesn't fire on):
  *        - terms longer than the human-plausible ceiling (default 60 chars),
  *        - terms that the shared security classifier flags as a payload
- *          (SQLi / XSS / path-traversal / scanner markers), reusing the exact
- *          same catalog the insert path uses so the two stay in lockstep.
+ *          (SQLi / XSS / path-traversal / scanner markers / RCE & blind-XSS
+ *          callback probes added in issue #133), reusing the exact same catalog
+ *          the insert path uses so the two stay in lockstep.
+ *      Issue #133 runs this classification BEFORE aggregation: distinct
+ *      in-window terms are classified once, then excluded from every aggregate
+ *      (total_searches, gap buckets, by_source) via a shared NOT IN clause, and
+ *      the filtered attack volume is reported as excluded_attack_searches /
+ *      excluded_attack_terms so the filtered-vs-human split is visible.
  * Only plausibly-human terms survive into the returned report.
  *
  * @package ExtraChill\Analytics
@@ -113,13 +119,15 @@ function extrachill_analytics_register_search_gaps_ability() {
  *   [
  *     'zero_result'      => [ ['term' => ..., 'count' => N], ... ],
  *     'low_result'       => [ ['term' => ..., 'count' => N], ... ],  // only when max_results > 0
- *     'total_searches'   => int,   // all human search events in window
+ *     'total_searches'   => int,   // HUMAN search events in window (attack payloads excluded, issue #133)
  *     'classified_human' => int,   // subset stamped is_bot:false by the classifier
  *     'unclassified'     => int,   // subset with NULL/no-flag is_bot (legacy, kept as human)
  *     'zero_result_total'=> int,   // distinct-agnostic count of zero-result human searches
  *     'zero_result_rate' => float, // percentage 0..100
  *     'by_source'        => [ ['source' => 'nav', 'count' => N, 'zero_result_count' => M], ... ], // per-surface split (issue #86)
- *     'excluded_bot'     => int,   // search events filtered out as bot/payload
+ *     'excluded_bot'     => int,   // search events filtered out as payload (full attack volume; issue #133)
+ *     'excluded_attack_searches' => int, // payload search events removed BEFORE aggregation (issue #133)
+ *     'excluded_attack_terms'    => int, // distinct payload terms removed before aggregation (issue #133)
  *     'max_results'      => int,
  *     'days'             => int,
  *     'period'           => string,
@@ -222,9 +230,6 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 		$where[] = "visitor_id IS NOT NULL AND visitor_id != ''";
 	}
 
-	$where_clause = implode( ' AND ', $where );
-	$where_values = $values;
-
 	// Read-only aggregation over a custom analytics table — the table name and
 	// JSON-extract expressions are interpolated from trusted, code-defined
 	// constants (never request input), and every value bound through the WHERE
@@ -232,12 +237,53 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	// this is an on-demand admin/CLI report, not a hot path.
 	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-	// Total human-plausible searches in window (after the length filter AND the
-	// endpoint-automation `is_bot` exclusion in $where; the term-classifier
-	// exclusion is applied per-term below for the buckets, and reflected via
-	// excluded_bot). Because the is_bot filter lives in the shared $where, it
-	// trims the denominator and the buckets identically, keeping
-	// zero_result_rate honest.
+	// --- Pre-aggregation attack-term exclusion (issue #133) -------------------
+	// The canonical security classifier already routes payload-shaped search
+	// terms to event_type='search_attack' at insert time, so most junk never
+	// enters this event_type='search' set. But families the catalog did not yet
+	// cover (blind-XSS callback hosts, print(md5()) code-exec probes, Gemfile
+	// dependency-manifest scanners) landed as ordinary 'search' rows and were
+	// counted as audience demand. To keep the headline totals honest, classify
+	// the distinct in-window terms ONCE here, then exclude every payload term
+	// from ALL downstream aggregation (total_searches, buckets, by_source) by
+	// folding a NOT IN clause into the shared $where. This reuses the exact same
+	// classifier the insert path and extrachill_analytics_search_gap_is_bot_term
+	// use — one catalog, no second taxonomy. The per-row classifier call in the
+	// gap loop below stays as defense-in-depth (a no-op for these terms now).
+	$distinct_terms_sql = "SELECT {$term_expr} AS term, COUNT(*) AS cnt "
+		. 'FROM ' . $table . ' WHERE ' . implode( ' AND ', $where ) . ' '
+		. 'GROUP BY term';
+	$distinct_term_rows = empty( $values )
+		? $wpdb->get_results( $distinct_terms_sql )
+		: $wpdb->get_results( $wpdb->prepare( $distinct_terms_sql, $values ) );
+
+	$attack_terms             = array();
+	$excluded_attack_searches = 0;
+	foreach ( (array) $distinct_term_rows as $row ) {
+		$term = (string) $row->term;
+		if ( '' !== $term && extrachill_analytics_search_gap_is_bot_term( $term ) ) {
+			$attack_terms[]            = $term;
+			$excluded_attack_searches += (int) $row->cnt;
+		}
+	}
+
+	if ( ! empty( $attack_terms ) ) {
+		$placeholders = implode( ',', array_fill( 0, count( $attack_terms ), '%s' ) );
+		$where[]      = "{$term_expr} NOT IN ({$placeholders})";
+		foreach ( $attack_terms as $attack_term ) {
+			$values[] = $attack_term;
+		}
+	}
+
+	$where_clause = implode( ' AND ', $where );
+	$where_values = $values;
+
+	// Total HUMAN demand searches in window (window + blog + length + insert-time
+	// is_bot exclusion + the pre-aggregation payload-term exclusion above). The
+	// classifier-stamped payload volume is surfaced separately as
+	// excluded_attack_searches / excluded_attack_terms so callers see the
+	// filtered-vs-human split; total_searches is the honest denominator for
+	// zero_result_rate.
 	$total_sql      = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
 	$total_searches = empty( $where_values )
 		? (int) $wpdb->get_var( $total_sql )
@@ -312,9 +358,14 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 		);
 	}
 
-	$zero_result  = array();
-	$low_result   = array();
-	$excluded_bot = 0;
+	$zero_result = array();
+	$low_result  = array();
+	// Seed with the pre-aggregation payload volume (issue #133). The per-row
+	// classifier below is now a defense-in-depth backstop that adds 0 in
+	// practice because payload terms are already excluded from $gap_rows by the
+	// shared NOT IN clause; this seeding keeps excluded_bot equal to the full
+	// attack search volume (any result_count), not just the gap-window subset.
+	$excluded_bot = $excluded_attack_searches;
 	$zero_total   = 0;
 
 	foreach ( $gap_rows as $row ) {
@@ -369,22 +420,24 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 		: 0.0;
 
 	$report = array(
-		'zero_result'          => $zero_result,
-		'zero_result_distinct' => $zero_result_distinct,
-		'total_searches'       => $total_searches,
-		'classified_human'     => $classified_human,
-		'unclassified'         => $unclassified_searches,
-		'zero_result_total'    => $zero_total,
-		'zero_result_rate'     => $zero_result_rate,
-		'by_source'            => $by_source,
-		'excluded_bot'         => $excluded_bot,
-		'max_results'          => $max_results,
-		'days'                 => $days,
-		'period'               => $days > 0
+		'zero_result'              => $zero_result,
+		'zero_result_distinct'     => $zero_result_distinct,
+		'total_searches'           => $total_searches,
+		'classified_human'         => $classified_human,
+		'unclassified'             => $unclassified_searches,
+		'zero_result_total'        => $zero_total,
+		'zero_result_rate'         => $zero_result_rate,
+		'by_source'                => $by_source,
+		'excluded_bot'             => $excluded_bot,
+		'excluded_attack_searches' => $excluded_attack_searches,
+		'excluded_attack_terms'    => count( $attack_terms ),
+		'max_results'              => $max_results,
+		'days'                     => $days,
+		'period'                   => $days > 0
 			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
-		'since'                => $since,
-		'as_of'                => $now_utc,
+		'since'                    => $since,
+		'as_of'                    => $now_utc,
 	);
 
 	// Only surface the low-result bucket when the caller asked for near-misses.

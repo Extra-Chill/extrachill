@@ -100,6 +100,23 @@ if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 		return strip_tags( (string) $text ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
 	}
 }
+if ( ! function_exists( 'wp_unslash' ) ) {
+	/**
+	 * Stub for wp_unslash() used by the security classifier.
+	 *
+	 * Recursively strips backslashes so the classifier can be unit-tested
+	 * against the same normalization it applies in production.
+	 *
+	 * @param string|array $value String or array of strings to unslash.
+	 * @return string|array Unslashed value, preserving shape.
+	 */
+	function wp_unslash( $value ) {
+		if ( is_array( $value ) ) {
+			return array_map( 'wp_unslash', $value );
+		}
+		return stripslashes( (string) $value );
+	}
+}
 if ( ! function_exists( 'get_site_option' ) ) {
 	/**
 	 * Stub for get_site_option().
@@ -127,3 +144,4 @@ if ( ! function_exists( 'update_site_option' ) ) {
 
 require_once dirname( __DIR__ ) . '/inc/core/php-error-log.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-php-error-summary.php';
+require_once dirname( __DIR__ ) . '/inc/core/security-classifier.php';

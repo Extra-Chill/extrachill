@@ -105,6 +105,24 @@ function extrachill_analytics_classify_search_payload( $term ) {
 			'pattern_family' => 'xss',
 			'regex'          => '/javascript\s*:/i',
 		),
+		// Blind-XSS callback hosts. Attackers inject a payload that phones home
+		// to a callback domain (e.g. <script src=//bxss.me/...>); the bare host
+		// then shows up as the "search term" while the probe waits for a hit.
+		// On a music platform these host tokens are never legitimate demand.
+		array(
+			'pattern_name'   => 'blind_xss_callback',
+			'pattern_family' => 'xss',
+			'regex'          => '/bxss\.me/i',
+		),
+		// PHP / template code-execution probes. `print(md5(N))` reflects a known
+		// hash so the attacker can confirm remote / template code execution; it
+		// is near-zero false positive and is one of the highest-volume residual
+		// payloads that previously slipped past the sqli/xss catalog.
+		array(
+			'pattern_name'   => 'code_exec_md5_probe',
+			'pattern_family' => 'rce',
+			'regex'          => '/\bprint\s*\(\s*md5\s*\(\s*\d+\s*\)\s*\)/i',
+		),
 		// Path traversal.
 		array(
 			'pattern_name'   => 'path_traversal',
@@ -167,6 +185,16 @@ function extrachill_analytics_classify_search_payload( $term ) {
 			// No legitimate human search contains this shape. Match raw.
 			'regex'          => '/%25(?:27|22)%25(?:27|22)/i',
 			'match_raw'      => true,
+		),
+		// Dependency-manifest probes. Scanners enumerate exposed Ruby / Node /
+		// PHP manifests for dependency-confusion and source-disclosure attacks;
+		// `Gemfile` / `the/Gemfile` are recurring high-volume probe terms that a
+		// music audience never types. Whole-token anchored so a band name that
+		// happens to contain the substring stays classified as human.
+		array(
+			'pattern_name'   => 'dependency_manifest_probe',
+			'pattern_family' => 'scanner',
+			'regex'          => '/\bGemfile(?:\.lock)?\b/i',
 		),
 		// Excessive length — legitimate searches are rarely > 300 chars.
 		array(
