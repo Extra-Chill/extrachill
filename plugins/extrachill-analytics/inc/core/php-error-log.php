@@ -16,6 +16,16 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Site-option key storing the byte high-water mark of the last snapshot pass.
+ *
+ * The snapshot writer persists bytes [0, offset) into the durable daily table
+ * and records {inode, offset} here. Read-side consumers (the summary ability)
+ * read the live tail starting at this offset so live entries are the
+ * not-yet-snapshotted bytes only — disjoint from the persisted set.
+ */
+define( 'EXTRACHILL_ANALYTICS_PHP_ERROR_LOG_OFFSET_OPTION', 'extrachill_analytics_php_error_log_offset' );
+
+/**
  * Resolve the path to the active PHP error log file.
  *
  * Honors the `error_log` ini directive when it points at a real file, then
@@ -90,13 +100,19 @@ function extrachill_analytics_php_error_log_siblings( $log_path ) {
  * @param string   $log_path Path to a log file.
  * @param int|null $since_ts Unix timestamp lower bound (inclusive). Null = no bound.
  * @param int      $max_bytes Maximum bytes to read from the tail of the file. 0 = whole file.
+ * @param int      $start_offset Byte offset to begin reading at. Used to read only
+ *                              the not-yet-snapshotted tail: persisted bytes live in
+ *                              [0, start_offset), so the live read starts here to
+ *                              stay disjoint and avoid double counting. The effective
+ *                              start is max( start_offset, size - max_bytes ) so the
+ *                              memory cap is still honored.
  * @return array{
  *     entries: array<int, array{ts:int|null, severity:string, message:string, file:string, line:int, signature:string, sample:string, origin_path:string, from_production:bool}>,
  *     min_ts: int|null,
  *     max_ts: int|null
  * }
  */
-function extrachill_analytics_parse_php_error_log( $log_path, $since_ts = null, $max_bytes = 0 ) {
+function extrachill_analytics_parse_php_error_log( $log_path, $since_ts = null, $max_bytes = 0, $start_offset = 0 ) {
 	$result = array(
 		'entries' => array(),
 		'min_ts'  => null,
@@ -114,10 +130,25 @@ function extrachill_analytics_parse_php_error_log( $log_path, $since_ts = null, 
 
 	if ( $max_bytes > 0 ) {
 		$size = filesize( $log_path );
-		if ( $size > $max_bytes ) {
-			fseek( $handle, $size - $max_bytes );
-			// Discard the partial first line after seeking into the middle.
-			fgets( $handle );
+		if ( is_int( $size ) && $size > $max_bytes ) {
+			$tail_start = $size - $max_bytes;
+			// Honor the memory cap: never read earlier than the tail window.
+			if ( $tail_start > $start_offset ) {
+				$start_offset = $tail_start;
+			}
+		}
+	}
+
+	if ( $start_offset > 0 ) {
+		// Only discard the first line when the seek landed mid-line (a partial
+		// fragment). The snapshot byte watermark always lands on a line boundary
+		// (ftell after a complete fgets loop), so its first full entry must be
+		// preserved — discarding it would silently lose the newest snapshot gap.
+		// A tail-memory-cap seek lands mid-line and drops the fragment instead.
+		fseek( $handle, $start_offset - 1 );
+		$prev = fgetc( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fgetc — advances pointer to start_offset.
+		if ( "\n" !== $prev ) {
+			fgets( $handle ); // Discard the remainder of the partial first line.
 		}
 	}
 
@@ -384,6 +415,61 @@ function extrachill_analytics_canonical_severity( $raw_severity ) {
 }
 
 /**
+ * Resolve the byte offset marking the boundary between already-snapshotted
+ * (persisted) bytes and not-yet-snapshotted bytes of the current error log.
+ *
+ * The snapshot writer (extrachill_analytics_snapshot_php_errors) persists bytes
+ * [0, offset) into the durable daily table and stores {inode, offset}. Reading
+ * the live tail from this offset guarantees live entries are disjoint from the
+ * persisted set, preventing double counting when the summary ability merges the
+ * two sources.
+ *
+ * Rotation / truncation is detected the same way the snapshot writer does: a
+ * changed inode (when one was previously recorded) or a file shorter than the
+ * stored offset resets to 0 — the persisted data from the prior inode is
+ * already in the table, and a truncated/rotated file starts fresh. This helper
+ * is read-only: it never mutates the stored offset (the snapshot owns the write).
+ *
+ * @param string $log_path Absolute path to the error log file.
+ * @return int Byte offset to start reading live (unsnapshotted) bytes from.
+ */
+function extrachill_analytics_php_error_log_snapshot_offset( $log_path ) {
+	if ( ! is_file( $log_path ) || ! is_readable( $log_path ) ) {
+		return 0;
+	}
+
+	clearstatcache( true, $log_path );
+	$size  = (int) filesize( $log_path );
+	$inode = (int) @fileinode( $log_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+
+	$stored = get_site_option(
+		EXTRACHILL_ANALYTICS_PHP_ERROR_LOG_OFFSET_OPTION,
+		array(
+			'inode'  => 0,
+			'offset' => 0,
+		)
+	);
+	if ( ! is_array( $stored ) ) {
+		$stored = array(
+			'inode'  => 0,
+			'offset' => 0,
+		);
+	}
+
+	$stored_inode  = isset( $stored['inode'] ) ? (int) $stored['inode'] : 0;
+	$stored_offset = isset( $stored['offset'] ) ? (int) $stored['offset'] : 0;
+
+	// Rotation / truncation: new inode (when one was recorded), or the file
+	// shrank below the stored offset. Either means the stored boundary no
+	// longer describes the current file — start live reads from the top.
+	if ( ( 0 !== $stored_inode && $stored_inode !== $inode ) || $size < $stored_offset ) {
+		return 0;
+	}
+
+	return $stored_offset;
+}
+
+/**
  * Snapshot today's (and recent) signature counts from the live log into the
  * durable daily table, so per-day rates survive log rotation.
  *
@@ -399,7 +485,7 @@ function extrachill_analytics_snapshot_php_errors() {
 	global $wpdb;
 
 	$log_path      = extrachill_analytics_php_error_log_path();
-	$offset_option = 'extrachill_analytics_php_error_log_offset';
+	$offset_option = EXTRACHILL_ANALYTICS_PHP_ERROR_LOG_OFFSET_OPTION;
 	$stored        = get_site_option(
 		$offset_option,
 		array(

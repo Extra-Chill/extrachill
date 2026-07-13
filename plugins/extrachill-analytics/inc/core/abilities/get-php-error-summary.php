@@ -86,10 +86,10 @@ function extrachill_analytics_register_php_error_summary_ability() {
  *   [
  *     'rows'                => [ [ signature, severity, file, count, per_day, sample, first_seen, last_seen ], ... ],
  *     'total'               => int,
- *     'active_total'        => int,    // Hits from signatures still firing within the active window.
- *     'active_per_day'      => float,  // active_total / days_covered — the CURRENT error rate.
- *     'active_window_hours' => int,    // The activity threshold used to decide still-firing vs resolved.
- *     'active_signatures'   => int,    // Distinct signatures whose last_seen is within the active window.
+ *     'active_total'        => int,    // Occurrences whose timestamps fall inside the active window.
+ *     'active_per_day'      => float,  // active_total normalized to the active-window length (per day).
+ *     'active_window_hours' => int,    // The activity threshold defining "currently firing".
+ *     'active_signatures'   => int,    // Distinct signatures with at least one active-window occurrence.
  *     'distinct_signatures' => int,
  *     'window_days'         => int,
  *     'days_covered'        => int,
@@ -99,12 +99,18 @@ function extrachill_analytics_register_php_error_summary_ability() {
  *     'log_path'            => string,
  *   ]
  *
- * The `active_*` keys are the "currently firing" lens: a signature whose
- * last_seen is older than the active window is treated as RESOLVED and excluded
- * from `active_total` / `active_per_day`, so a spike that was fixed hours ago
- * stops inflating the current error rate. The full-window `total` is preserved
+ * The `active_*` keys are the "currently firing" lens: `active_total` counts
+ * ONLY occurrences whose own timestamps fall inside the active window — not the
+ * full-window count of a signature that merely has a recent tail (issue #128).
+ * A resolved multi-day spike that left a single fresh occurrence contributes
+ * just that one recent occurrence, so a fixed spike stops inflating the current
+ * error rate. The full-window `total` and per-signature `per_day` are preserved
  * unchanged for trend continuity. The activity window defaults to 24 hours and
  * is filterable via `extrachill_analytics_error_active_window_hours`.
+ *
+ * Persisted/live merge: the persisted daily table covers bytes [0, watermark)
+ * already snapshotted; the live tail is read from that watermark so the two
+ * sources are byte-disjoint and never count the same occurrence twice.
  */
 function extrachill_analytics_ability_get_php_error_summary( $input ) {
 	global $wpdb;
@@ -126,6 +132,13 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 
 	$since_ts  = $days > 0 ? strtotime( "-{$days} days", time() ) : null;
 	$since_day = null !== $since_ts ? gmdate( 'Y-m-d', $since_ts ) : null;
+
+	// Active-window threshold (computed early so both persisted and live sources
+	// share one cutoff). active_total counts only occurrences inside this window,
+	// not the full-window count of a signature that merely has a recent tail (#128).
+	$active_window_hours = (int) apply_filters( 'extrachill_analytics_error_active_window_hours', 24 );
+	$active_window_hours = max( 1, $active_window_hours );
+	$active_cutoff       = time() - ( $active_window_hours * HOUR_IN_SECONDS );
 
 	// 1. Persisted daily counts from the durable table.
 	$table  = extrachill_analytics_php_error_table();
@@ -161,6 +174,35 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 		: $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
+	// Active-window persisted counts: sum the per-day rows whose latest
+	// occurrence (last_seen) falls inside the active cutoff. The durable table
+	// stores daily aggregates, so active resolution is day-granularity: a daily
+	// row counts toward active_total when its newest occurrence that day is
+	// recent. This correctly EXCLUDES resolved multi-day-old spikes even when the
+	// same signature has one fresh occurrence, fixing the #128 regression. Sub-day
+	// splitting is the documented limit of the daily schema.
+	$active_where        = $where;
+	$active_values       = $values;
+	$active_where[]      = 'last_seen >= %s';
+	$active_values[]     = gmdate( 'Y-m-d H:i:s', $active_cutoff );
+	$active_where_clause = implode( ' AND ', $active_where );
+
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$active_sql = "SELECT signature, SUM(count) AS active_count
+				FROM {$table}
+				WHERE {$active_where_clause}
+				GROUP BY signature";
+
+	$persisted_active = $wpdb->get_results( $wpdb->prepare( $active_sql, $active_values ) );
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+	$persisted_active_map = array();
+	if ( is_array( $persisted_active ) ) {
+		foreach ( $persisted_active as $active_row ) {
+			$persisted_active_map[ (string) $active_row->signature ] = (int) $active_row->active_count;
+		}
+	}
+
 	$agg          = array();
 	$covered_days = array();
 
@@ -168,13 +210,14 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 		foreach ( $persisted as $row ) {
 			$sig         = (string) $row->signature;
 			$agg[ $sig ] = array(
-				'signature'  => $sig,
-				'severity'   => (string) $row->severity,
-				'file'       => (string) $row->file_line,
-				'count'      => (int) $row->total_count,
-				'sample'     => (string) $row->sample_message,
-				'first_seen' => (string) $row->first_seen,
-				'last_seen'  => (string) $row->last_seen,
+				'signature'    => $sig,
+				'severity'     => (string) $row->severity,
+				'file'         => (string) $row->file_line,
+				'count'        => (int) $row->total_count,
+				'active_count' => isset( $persisted_active_map[ $sig ] ) ? $persisted_active_map[ $sig ] : 0,
+				'sample'       => (string) $row->sample_message,
+				'first_seen'   => (string) $row->first_seen,
+				'last_seen'    => (string) $row->last_seen,
 			);
 			if ( $row->first_seen ) {
 				$covered_days[ gmdate( 'Y-m-d', strtotime( $row->first_seen ) ) ] = true;
@@ -187,9 +230,12 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 
 	// 2. Live tail of the current debug.log for not-yet-snapshotted entries.
 	$log_path = extrachill_analytics_php_error_log_path();
-	// Cap the live read so an enormous unrotated log can't blow up memory; the
-	// durable table is the source of truth for older history anyway.
-	$live = extrachill_analytics_parse_php_error_log( $log_path, $since_ts, 32 * MB_IN_BYTES );
+	// Read the live tail starting at the snapshot byte watermark so live entries
+	// are the not-yet-snapshotted bytes only — disjoint from the persisted set
+	// (which already covers bytes [0, watermark)). This prevents the same
+	// occurrence being counted in both sources. The memory cap still applies.
+	$watermark = extrachill_analytics_php_error_log_snapshot_offset( $log_path );
+	$live      = extrachill_analytics_parse_php_error_log( $log_path, $since_ts, 32 * MB_IN_BYTES, $watermark );
 
 	foreach ( $live['entries'] as $entry ) {
 		if ( 'all' !== $severity && $entry['severity'] !== $severity ) {
@@ -200,17 +246,23 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 
 		if ( ! isset( $agg[ $sig ] ) ) {
 			$agg[ $sig ] = array(
-				'signature'  => $sig,
-				'severity'   => $entry['severity'],
-				'file'       => $entry['file'],
-				'count'      => 0,
-				'sample'     => $entry['sample'],
-				'first_seen' => null,
-				'last_seen'  => null,
+				'signature'    => $sig,
+				'severity'     => $entry['severity'],
+				'file'         => $entry['file'],
+				'count'        => 0,
+				'active_count' => 0,
+				'sample'       => $entry['sample'],
+				'first_seen'   => null,
+				'last_seen'    => null,
 			);
 		}
 
 		++$agg[ $sig ]['count'];
+
+		// Live occurrences inside the active window count toward active volume.
+		if ( null !== $entry['ts'] && $entry['ts'] >= $active_cutoff ) {
+			++$agg[ $sig ]['active_count'];
+		}
 
 		if ( null !== $entry['ts'] ) {
 			$ts_str = gmdate( 'Y-m-d H:i:s', $entry['ts'] );
@@ -244,33 +296,21 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 		}
 	);
 
-	// Active-window threshold: a signature whose last_seen is older than this many
-	// hours is considered RESOLVED and excluded from the "currently firing" lens.
-	// The live tail is the arbiter — if a signature has stopped appearing, it no
-	// longer counts toward the current error rate even if it still sits in the
-	// persisted window total.
-	$active_window_hours = (int) apply_filters( 'extrachill_analytics_error_active_window_hours', 24 );
-	$active_window_hours = max( 1, $active_window_hours );
-	$active_cutoff       = time() - ( $active_window_hours * HOUR_IN_SECONDS );
+	// Finalize per-row rates and the active-window totals. The active lens is
+	// driven by each row's active_count (occurrences inside the active window),
+	// NOT its full-window count — the #128 fix. Isolated in a pure helper so the
+	// counting contract is unit-testable without a database.
+	$computed = extrachill_analytics_compute_php_error_active_totals(
+		$rows,
+		$denominator,
+		$active_window_hours
+	);
 
-	$grand_total       = 0;
-	$active_total      = 0;
-	$active_signatures = 0;
-	foreach ( $rows as &$row ) {
-		$grand_total   += $row['count'];
-		$row['per_day'] = round( $row['count'] / $denominator, 1 );
-
-		// Mark each row active/resolved and accumulate the active-only totals.
-		$last_seen_ts  = ! empty( $row['last_seen'] ) ? strtotime( (string) $row['last_seen'] . ' UTC' ) : false;
-		$row['active'] = ( false !== $last_seen_ts && $last_seen_ts >= $active_cutoff );
-		if ( $row['active'] ) {
-			$active_total += $row['count'];
-			++$active_signatures;
-		}
-	}
-	unset( $row );
-
-	$active_per_day = round( $active_total / $denominator, 1 );
+	$rows              = $computed['rows'];
+	$grand_total       = $computed['total'];
+	$active_total      = $computed['active_total'];
+	$active_per_day    = $computed['active_per_day'];
+	$active_signatures = $computed['active_signatures'];
 
 	$distinct  = count( $rows );
 	$truncated = false;
@@ -302,5 +342,70 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 		'source'              => $source,
 		'truncated'           => $truncated,
 		'log_path'            => $log_path,
+	);
+}
+
+/**
+ * Finalize per-row rates and compute the active-window (currently-firing) totals.
+ *
+ * Pure — no WP / DB dependencies — so the counting contract at the heart of
+ * issue #128 is unit-testable in isolation. Each row contributes to the active
+ * volume via its `active_count` (occurrences inside the active window), NOT its
+ * full-window `count`. A signature is "active" when it has at least one recent
+ * occurrence; a resolved multi-day spike that left a single fresh occurrence
+ * contributes just that one occurrence, not its entire historical count.
+ *
+ * `active_per_day` normalizes active volume to the active-window length (e.g.
+ * last-24h count expressed per day), matching the platform-health consumer's
+ * own active-window normalization.
+ *
+ * @param array $rows Aggregated rows; each carries 'count' (full window) and
+ *                    optionally 'active_count' (active window, defaulted to 0).
+ *                    Mutated in place: 'per_day', 'active_count', and 'active'
+ *                    are stamped on each row.
+ * @param int   $denominator Full-window per-day denominator (for per_day trend).
+ * @param int   $active_window_hours Active window length in hours.
+ * @return array{
+ *     rows: array<int, array>,
+ *     total: int,
+ *     active_total: int,
+ *     active_per_day: float,
+ *     active_signatures: int,
+ * }
+ */
+function extrachill_analytics_compute_php_error_active_totals( array $rows, $denominator, $active_window_hours ) {
+	$denominator        = max( 1, (int) $denominator );
+	$active_window_days = max( 1.0, (float) $active_window_hours / 24.0 );
+
+	$grand_total       = 0;
+	$active_total      = 0;
+	$active_signatures = 0;
+
+	foreach ( $rows as &$row ) {
+		$grand_total += (int) $row['count'];
+
+		// Full-window per-day trend rate (unchanged): total count over the
+		// requested window denominator.
+		$row['per_day'] = round( (int) $row['count'] / $denominator, 1 );
+
+		// Active lens: count only occurrences inside the active window.
+		if ( ! isset( $row['active_count'] ) ) {
+			$row['active_count'] = 0;
+		}
+		$row['active_count'] = (int) $row['active_count'];
+		$row['active']       = $row['active_count'] > 0;
+		if ( $row['active'] ) {
+			$active_total += $row['active_count'];
+			++$active_signatures;
+		}
+	}
+	unset( $row );
+
+	return array(
+		'rows'              => $rows,
+		'total'             => $grand_total,
+		'active_total'      => $active_total,
+		'active_per_day'    => round( $active_total / $active_window_days, 1 ),
+		'active_signatures' => $active_signatures,
 	);
 }
