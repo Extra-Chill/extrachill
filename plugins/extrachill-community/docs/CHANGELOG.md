@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.4] - 2026-07-13
+
+### Fixed
+- declare webpack config as build-only
+- cache and bound Twitter oEmbed requests during content rendering (#196)
+- claim community topic notifications before delivery
+
 ## [1.20.3] - 2026-07-13
 
 ### Fixed
