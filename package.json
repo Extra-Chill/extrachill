@@ -1,7 +1,7 @@
 {
   "name": "extrachill-theme",
   "private": true,
-  "version": "2.11.7",
+  "version": "2.12.0",
   "description": "Extra Chill WordPress theme",
   "scripts": {
     "build": "cp node_modules/@extrachill/tokens/css/root.css assets/css/root.css && cp node_modules/@extrachill/tokens/css/theme.json theme.json && node scripts/build-taxonomy-badges.js && node scripts/build-design-system.js"

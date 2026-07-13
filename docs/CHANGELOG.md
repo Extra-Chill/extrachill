@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.12.0] - 2026-07-13
+
+### Added
+- add back-to-top navigation
+
 ## [2.11.7] - 2026-07-12
 
 ### Fixed
