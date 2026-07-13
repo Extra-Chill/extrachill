@@ -144,6 +144,11 @@
 	font-size: var(--font-size-sm);
 }
 
+.entity-pillar-activity-badges {
+	margin: var(--spacing-sm) 0 0;
+	gap: var(--spacing-xs);
+}
+
 .entity-pillar-newsletter {
 	max-width: var(--content-width);
 	margin: var(--spacing-xl) auto;

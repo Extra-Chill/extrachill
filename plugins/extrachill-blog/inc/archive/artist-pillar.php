@@ -214,7 +214,8 @@ function extrachill_blog_get_artist_events_activity( $term ) {
 			__( 'Events', 'extrachill-blog' ),
 			isset( $event['date_display'] ) ? $event['date_display'] : '',
 			implode( ', ', $event_context ),
-			isset( $event['timing'] ) ? $event['timing'] : ''
+			isset( $event['timing'] ) ? $event['timing'] : '',
+			isset( $event['relationships'] ) ? $event['relationships'] : array()
 		);
 	}
 
@@ -347,24 +348,88 @@ function extrachill_blog_get_artist_platform_activity( $term ) {
  * @param string $date_display Source-formatted date, when available.
  * @param string $context      Source-owned venue and time context, when available.
  * @param string $timing       Source-owned upcoming or past timing, when available.
+ * @param array  $relationships Events-owned venue, location, and festival relationships.
  * @return array|null Activity item.
  */
-function extrachill_blog_build_artist_activity_item( $title, $url, $date, $source, $date_display = '', $context = '', $timing = '' ) {
+function extrachill_blog_build_artist_activity_item( $title, $url, $date, $source, $date_display = '', $context = '', $timing = '', $relationships = array() ) {
 	$timestamp = strtotime( $date );
 	if ( '' === $title || '' === $url || ! $timestamp ) {
 		return null;
 	}
 
 	return array(
-		'title'        => (string) $title,
-		'url'          => (string) $url,
-		'date'         => gmdate( 'c', $timestamp ),
-		'date_display' => '' !== $date_display ? (string) $date_display : wp_date( get_option( 'date_format' ), $timestamp ),
-		'source'       => (string) $source,
-		'context'      => (string) $context,
-		'timing'       => (string) $timing,
-		'timestamp'    => $timestamp,
+		'title'         => (string) $title,
+		'url'           => (string) $url,
+		'date'          => gmdate( 'c', $timestamp ),
+		'date_display'  => '' !== $date_display ? (string) $date_display : wp_date( get_option( 'date_format' ), $timestamp ),
+		'source'        => (string) $source,
+		'context'       => (string) $context,
+		'timing'        => (string) $timing,
+		'relationships' => is_array( $relationships ) ? $relationships : array(),
+		'timestamp'     => $timestamp,
 	);
+}
+
+/**
+ * Return renderable taxonomy badges from Events-owned relationship objects.
+ *
+ * @param array $relationships Event relationship data.
+ * @return array[] Badge data.
+ */
+function extrachill_blog_get_artist_activity_badges( $relationships ) {
+	if ( ! is_array( $relationships ) ) {
+		return array();
+	}
+
+	$badges = array();
+	foreach (
+		array(
+			'venue'    => 'venue-badge',
+			'location' => 'location-badge',
+			'festival' => 'festival-badge',
+		) as $relationship_type => $badge_class
+	) {
+		$relationship = $relationships[ $relationship_type ] ?? null;
+		if ( ! is_array( $relationship ) || empty( $relationship['name'] ) || empty( $relationship['url'] ) ) {
+			continue;
+		}
+
+		$label   = 'location' === $relationship_type && ! empty( $relationship['display'] )
+			? $relationship['display']
+			: $relationship['name'];
+		$classes = array( 'taxonomy-badge', $badge_class );
+		if ( ! empty( $relationship['slug'] ) ) {
+			$classes[] = $relationship_type . '-' . sanitize_html_class( $relationship['slug'] );
+		}
+
+		$badges[] = array(
+			'label' => (string) $label,
+			'url'   => (string) $relationship['url'],
+			'class' => implode( ' ', $classes ),
+		);
+	}
+
+	return $badges;
+}
+
+/**
+ * Render Events-owned taxonomy badges for an activity row.
+ *
+ * @param array $relationships Event relationship data.
+ * @return void
+ */
+function extrachill_blog_render_artist_activity_badges( $relationships ) {
+	$badges = extrachill_blog_get_artist_activity_badges( $relationships );
+	if ( empty( $badges ) ) {
+		return;
+	}
+	?>
+	<div class="taxonomy-badges entity-pillar-activity-badges">
+		<?php foreach ( $badges as $badge ) : ?>
+			<a href="<?php echo esc_url( $badge['url'] ); ?>" class="<?php echo esc_attr( $badge['class'] ); ?>"><?php echo esc_html( $badge['label'] ); ?></a>
+		<?php endforeach; ?>
+	</div>
+	<?php
 }
 
 /**
@@ -416,6 +481,7 @@ function extrachill_blog_render_artist_activity() {
 						<?php if ( ! empty( $item['context'] ) ) : ?>
 							<span class="entity-pillar-activity-context"><?php echo esc_html( $item['context'] ); ?></span>
 						<?php endif; ?>
+						<?php extrachill_blog_render_artist_activity_badges( $item['relationships'] ?? array() ); ?>
 					</div>
 				</li>
 			<?php endforeach; ?>
