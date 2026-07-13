@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.33.0] - 2026-07-13
+
+### Added
+- collect Local Scene during onboarding
+
 ## [0.32.0] - 2026-07-12
 
 ### Added
