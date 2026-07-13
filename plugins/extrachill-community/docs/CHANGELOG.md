@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.19.1] - 2026-07-13
+
+### Changed
+- Clear residual gate lint errors (dependency-group + smoke script)
+
 ## [1.19.0] - 2026-07-13
 
 ### Added
