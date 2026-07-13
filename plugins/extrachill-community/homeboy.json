@@ -7,6 +7,13 @@
   "extract_command": "unzip -o {{artifact}} && rm {{artifact}}",
   "id": "extrachill-community",
   "remote_path": "wp-content/plugins/extrachill-community",
+  "scopes": {
+    "release": {
+      "exclude": [
+        "webpack.config.js"
+      ]
+    }
+  },
   "version_targets": [
     {
       "file": "extrachill-community.php",
