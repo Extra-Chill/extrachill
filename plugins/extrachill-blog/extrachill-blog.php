@@ -36,6 +36,7 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/blog-archive-routing.php'
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/breadcrumbs.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/festival-pillar.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/festival-subscriptions.php';
+require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/artist-pillar.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/share-card.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/network-bridge.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/login-register-cta.php';
@@ -54,24 +55,24 @@ function extrachill_blog_register_styles() {
 		$version
 	);
 
-	$festival_version = filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/css/festival-pillar.css' );
-	$festival_version = false === $festival_version ? null : (string) $festival_version;
+	$entity_pillar_version = filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/css/entity-pillar.css' );
+	$entity_pillar_version = false === $entity_pillar_version ? null : (string) $entity_pillar_version;
 
 	wp_register_style(
-		'extrachill-blog-festival-pillar',
-		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/festival-pillar.css',
+		'extrachill-blog-entity-pillar',
+		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/entity-pillar.css',
 		array( 'extrachill-root' ),
-		$festival_version
+		$entity_pillar_version
 	);
 
-	$festival_script_version = filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/js/festival-subscriptions.js' );
-	$festival_script_version = false === $festival_script_version ? null : (string) $festival_script_version;
+	$entity_subscription_version = filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/js/entity-subscriptions.js' );
+	$entity_subscription_version = false === $entity_subscription_version ? null : (string) $entity_subscription_version;
 
 	wp_register_script(
-		'extrachill-blog-festival-subscriptions',
-		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/js/festival-subscriptions.js',
+		'extrachill-blog-entity-subscriptions',
+		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/js/entity-subscriptions.js',
 		array(),
-		$festival_script_version,
+		$entity_subscription_version,
 		true
 	);
 }

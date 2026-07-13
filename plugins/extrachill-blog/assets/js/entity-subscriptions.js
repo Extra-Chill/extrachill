@@ -1,12 +1,16 @@
 ( function () {
 	'use strict';
 
-	const buttons = document.querySelectorAll( '.festival-pillar-subscription-button[data-endpoint]' );
+	const buttons = document.querySelectorAll( '[data-entity-subscription][data-endpoint]' );
+
+	function getControl( button ) {
+		return button.closest( '[data-entity-subscription-control]' );
+	}
 
 	function setState( button, subscribed, message ) {
 		button.setAttribute( 'aria-pressed', subscribed ? 'true' : 'false' );
 		button.textContent = subscribed ? 'Subscribed to updates' : 'Subscribe to updates';
-		button.closest( '.festival-pillar-subscription' ).querySelector( '.festival-pillar-subscription-status' ).textContent = message || '';
+		getControl( button ).querySelector( '.entity-pillar-subscription-status' ).textContent = message || '';
 	}
 
 	function request( button, ability, method ) {
@@ -47,7 +51,7 @@
 		request( button, 'entity-subscription-status', 'GET' ).then( function ( data ) {
 			setState( button, Boolean( data.subscribed ) );
 		} ).catch( function () {
-			button.closest( '.festival-pillar-subscription' ).querySelector( '.festival-pillar-subscription-status' ).textContent = 'Subscription status is unavailable. Please try again.';
+			getControl( button ).querySelector( '.entity-pillar-subscription-status' ).textContent = 'Subscription status is unavailable. Please try again.';
 		} ).finally( function () {
 			button.disabled = false;
 		} );
@@ -56,9 +60,9 @@
 			const subscribed = 'true' === button.getAttribute( 'aria-pressed' );
 			button.disabled = true;
 			request( button, subscribed ? 'entity-unsubscribe' : 'entity-subscribe', 'POST' ).then( function ( data ) {
-				setState( button, Boolean( data.subscribed ), data.subscribed ? 'You will receive festival updates.' : 'You will no longer receive festival updates.' );
+				setState( button, Boolean( data.subscribed ), data.subscribed ? 'You will receive updates.' : 'You will no longer receive updates.' );
 			} ).catch( function () {
-				button.closest( '.festival-pillar-subscription' ).querySelector( '.festival-pillar-subscription-status' ).textContent = 'Unable to update your subscription. Please try again.';
+				getControl( button ).querySelector( '.entity-pillar-subscription-status' ).textContent = 'Unable to update your subscription. Please try again.';
 			} ).finally( function () {
 				button.disabled = false;
 			} );

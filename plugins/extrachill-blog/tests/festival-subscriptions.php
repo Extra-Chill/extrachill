@@ -1,6 +1,6 @@
 <?php
 /**
- * Focused smoke coverage for festival subscription notifications.
+ * Focused smoke coverage for entity subscription notifications.
  *
  * Run with: php tests/festival-subscriptions.php
  */
@@ -23,7 +23,11 @@ function add_filter() {}
 function is_wp_error() {
 	return false;
 }
-function wp_get_post_terms() {
+function wp_get_post_terms( $post_id, $taxonomy ) {
+	if ( 'artist' === $taxonomy ) {
+		return array( new WP_Term( 'artist-one' ), new WP_Term( 'artist-two' ) );
+	}
+
 	return array( new WP_Term( 'festival-one' ), new WP_Term( 'festival-two' ) );
 }
 function get_post_meta( $post_id, $key ) {
@@ -33,6 +37,14 @@ function get_post_meta( $post_id, $key ) {
 function update_post_meta( $post_id, $key, $value ) {
 	global $test_meta;
 	$test_meta[ $post_id ][ $key ] = $value;
+}
+function add_post_meta( $post_id, $key, $value, $unique ) {
+	global $test_meta;
+	if ( $unique && isset( $test_meta[ $post_id ][ $key ] ) ) {
+		return false;
+	}
+	$test_meta[ $post_id ][ $key ] = $value;
+	return true;
 }
 function current_time() {
 	return '2026-07-12 20:00:00';
@@ -56,10 +68,10 @@ function __( $text ) {
 	return $text;
 }
 function extrachill_users_entity_subscription_recipients( $producer, $entity_type, $taxonomy, $slug ) {
-	if ( 'extrachill-blog' !== $producer || 'festival' !== $entity_type || 'festival' !== $taxonomy ) {
+	if ( 'extrachill-blog' !== $producer || $entity_type !== $taxonomy ) {
 		return array();
 	}
-	return 'festival-one' === $slug ? array( 4, 7 ) : array( 7, 9 );
+	return '-one' === substr( $slug, -4 ) ? array( 4, 7 ) : array( 7, 9 );
 }
 function ec_users_notify( $recipient_ids, $data ) {
 	global $test_notifications;
@@ -95,4 +107,18 @@ assert_same( 'festival_update', $test_notifications[0]['data']['type'], 'Festiva
 extrachill_blog_notify_festival_subscribers( 'publish', 'draft', $post );
 assert_same( 1, count( $test_notifications ), 'Publish guard must prevent duplicate notifications.' );
 
-fwrite( STDOUT, "Festival subscription tests passed.\n" );
+$artist_post = (object) array(
+	'ID'          => 47,
+	'post_type'   => 'post',
+	'post_author' => 12,
+);
+
+extrachill_blog_notify_artist_subscribers( 'publish', 'draft', $artist_post );
+assert_same( 2, count( $test_notifications ), 'First artist publication should notify subscribers once.' );
+assert_same( array( 4, 7, 9 ), $test_notifications[1]['recipient_ids'], 'Artist recipients from multiple terms must be unique.' );
+assert_same( 'artist_update', $test_notifications[1]['data']['type'], 'Artist updates must use their dedicated notification type.' );
+
+extrachill_blog_notify_artist_subscribers( 'publish', 'draft', $artist_post );
+assert_same( 2, count( $test_notifications ), 'Artist publish guard must prevent duplicate notifications.' );
+
+fwrite( STDOUT, "Entity subscription tests passed.\n" );
