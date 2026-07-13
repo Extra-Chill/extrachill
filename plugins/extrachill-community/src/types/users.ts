@@ -113,7 +113,7 @@ export interface UserProfile {
 	bio: string;
 	local_scene?: LocalScene | null;
 	links: UserLink[];
-	link_types: Record<string, string>;
+	link_types: Record< string, string >;
 	artist_access: ArtistAccessStatus;
 }
 

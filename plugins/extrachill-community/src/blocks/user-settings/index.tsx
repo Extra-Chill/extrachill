@@ -9,7 +9,12 @@ function Edit() {
 
 	return (
 		<div { ...blockProps }>
-			<BlockIntro description={ __( 'User Settings — renders on the frontend.', 'extra-chill-community' ) } />
+			<BlockIntro
+				description={ __(
+					'User Settings — renders on the frontend.',
+					'extra-chill-community'
+				) }
+			/>
 		</div>
 	);
 }

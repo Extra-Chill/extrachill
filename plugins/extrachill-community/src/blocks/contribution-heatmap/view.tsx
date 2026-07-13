@@ -113,8 +113,8 @@ function formatDayLabel( ymd: string, count: number ): string {
 			date
 		);
 	}
-	/* translators: %s: localized date. */
 	return sprintf(
+		/* translators: %s: localized date. */
 		__( 'No contributions on %s', 'extra-chill-community' ),
 		date
 	);
@@ -134,19 +134,22 @@ function useCellTooltip() {
 		top: number;
 	} | null >( null );
 
-	const show = useCallback( ( event: React.SyntheticEvent< HTMLElement > ) => {
-		const cell = event.currentTarget;
-		const text = cell.getAttribute( 'data-ec-tip' );
-		if ( ! text ) {
-			return;
-		}
-		const rect = cell.getBoundingClientRect();
-		setTip( {
-			text,
-			left: rect.left + rect.width / 2,
-			top: rect.top,
-		} );
-	}, [] );
+	const show = useCallback(
+		( event: React.SyntheticEvent< HTMLElement > ) => {
+			const cell = event.currentTarget;
+			const text = cell.getAttribute( 'data-ec-tip' );
+			if ( ! text ) {
+				return;
+			}
+			const rect = cell.getBoundingClientRect();
+			setTip( {
+				text,
+				left: rect.left + rect.width / 2,
+				top: rect.top,
+			} );
+		},
+		[]
+	);
 
 	const hide = useCallback( () => setTip( null ), [] );
 

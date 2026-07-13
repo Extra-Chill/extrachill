@@ -334,6 +334,7 @@ export function TermPicker( { config }: TermPickerProps ) {
 						{ loading && (
 							<li
 								className="ec-term-picker__suggestion ec-term-picker__suggestion--status"
+								role="option"
 								aria-disabled="true"
 							>
 								{ __( 'Searching…', 'extra-chill-community' ) }
@@ -342,6 +343,7 @@ export function TermPicker( { config }: TermPickerProps ) {
 						{ ! loading && visibleSuggestions.length === 0 && (
 							<li
 								className="ec-term-picker__suggestion ec-term-picker__suggestion--status"
+								role="option"
 								aria-disabled="true"
 							>
 								{ __(

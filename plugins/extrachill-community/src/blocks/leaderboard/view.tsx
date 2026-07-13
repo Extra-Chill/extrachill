@@ -1,14 +1,26 @@
-import { useState, useEffect, useCallback } from '@wordpress/element';
-import { createRoot } from '@wordpress/element';
+import {
+	useState,
+	useEffect,
+	useCallback,
+	createRoot,
+} from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { WPNativeClient } from 'wp-native-client';
 import { WpApiFetchTransport } from 'wp-native-client/wordpress';
-import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, Panel, BlockIntro } from '@extrachill/components';
+import {
+	ActionRow,
+	BlockShell,
+	BlockShellHeader,
+	BlockShellInner,
+	Panel,
+} from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, colors, fontSize } from '@extrachill/tokens';
 import type { LeaderboardResponse, LeaderboardEntry } from '../../types/users';
 
-const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), { validateAbilityNames: false } );
+const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {
+	validateAbilityNames: false,
+} );
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -51,7 +63,8 @@ function UserCell( { item, spriteUrl }: UserCellProps ) {
 		<>{ name }</>
 	);
 
-	const hasBadges = Array.isArray( item.badges ) && item.badges.length > 0 && spriteUrl;
+	const hasBadges =
+		Array.isArray( item.badges ) && item.badges.length > 0 && spriteUrl;
 
 	return (
 		<td>
@@ -59,7 +72,11 @@ function UserCell( { item, spriteUrl }: UserCellProps ) {
 			{ hasBadges && (
 				<span className="ec-user-badges">
 					{ item.badges.map( ( badge, i ) => {
-						if ( ! badge?.icon || ! badge?.class_name || ! badge?.title ) {
+						if (
+							! badge?.icon ||
+							! badge?.class_name ||
+							! badge?.title
+						) {
 							return null;
 						}
 						return (
@@ -99,35 +116,53 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState< string | null >( null );
 
-	const load = useCallback( ( targetPage: number ) => {
-		setLoading( true );
-		setError( null );
-		client
-			.execute< LeaderboardResponse >( 'extrachill/users-leaderboard', { page: targetPage, per_page: perPage } )
-			.then( ( response ) => {
-				setData( response );
-				setLoading( false );
-			} )
-			.catch( () => {
-				setError( 'Unable to load leaderboard.' );
-				setLoading( false );
-			} );
-	}, [ perPage ] );
+	const load = useCallback(
+		( targetPage: number ) => {
+			setLoading( true );
+			setError( null );
+			client
+				.execute< LeaderboardResponse >(
+					'extrachill/users-leaderboard',
+					{ page: targetPage, per_page: perPage }
+				)
+				.then( ( response ) => {
+					setData( response );
+					setLoading( false );
+				} )
+				.catch( () => {
+					setError( 'Unable to load leaderboard.' );
+					setLoading( false );
+				} );
+		},
+		[ perPage ]
+	);
 
 	useEffect( () => {
 		load( page );
 	}, [ page, load ] );
 
 	if ( loading ) {
-		return <div className="notice notice-info"><p>Loading leaderboard…</p></div>;
+		return (
+			<div className="notice notice-info">
+				<p>Loading leaderboard…</p>
+			</div>
+		);
 	}
 
 	if ( error ) {
-		return <div className="notice notice-error"><p>{ error }</p></div>;
+		return (
+			<div className="notice notice-error">
+				<p>{ error }</p>
+			</div>
+		);
 	}
 
 	if ( ! data || ! Array.isArray( data.items ) ) {
-		return <div className="notice notice-info"><p>No leaderboard data.</p></div>;
+		return (
+			<div className="notice notice-info">
+				<p>No leaderboard data.</p>
+			</div>
+		);
 	}
 
 	const totalPages = data.pagination?.total_pages ?? 1;
@@ -155,10 +190,17 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 								{ data.items.map( ( item ) => (
 									<tr key={ item.id }>
 										<td>{ item.position }</td>
-										<UserCell item={ item } spriteUrl={ spriteUrl } />
+										<UserCell
+											item={ item }
+											spriteUrl={ spriteUrl }
+										/>
 										<td>{ item.points }</td>
 										<td>{ item.rank }</td>
-										<td>{ item.registered ? formatDate( item.registered ) : '' }</td>
+										<td>
+											{ item.registered
+												? formatDate( item.registered )
+												: '' }
+										</td>
 									</tr>
 								) ) }
 							</tbody>
@@ -169,7 +211,9 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 							type="button"
 							className="button-3 button-small"
 							disabled={ page <= 1 }
-							onClick={ () => setPage( ( p ) => Math.max( 1, p - 1 ) ) }
+							onClick={ () =>
+								setPage( ( p ) => Math.max( 1, p - 1 ) )
+							}
 						>
 							Previous
 						</button>
@@ -204,12 +248,17 @@ function init(): void {
 
 			const perPage = Math.max(
 				1,
-				Math.min( 100, parseInt( container.dataset.perPage || '25', 10 ) ),
+				Math.min(
+					100,
+					parseInt( container.dataset.perPage || '25', 10 )
+				)
 			);
 			const spriteUrl = container.dataset.spriteUrl || '';
 
 			const root = createRoot( container );
-			root.render( <Leaderboard perPage={ perPage } spriteUrl={ spriteUrl } /> );
+			root.render(
+				<Leaderboard perPage={ perPage } spriteUrl={ spriteUrl } />
+			);
 		} );
 }
 

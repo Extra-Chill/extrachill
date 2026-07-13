@@ -21,9 +21,15 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 	// Get the bottom form wrapper (contains the Gutenberg editor)
 	const bottomForm = document.getElementById( 'new-post' );
-	const bottomFormWrapper = bottomForm ? bottomForm.closest( '.bbp-reply-form' ) : null;
-	const bottomFormLegend = bottomFormWrapper ? bottomFormWrapper.querySelector( '.bbp-form > legend' ) : null;
-	const originalLegendText = bottomFormLegend ? bottomFormLegend.textContent : null;
+	const bottomFormWrapper = bottomForm
+		? bottomForm.closest( '.bbp-reply-form' )
+		: null;
+	const bottomFormLegend = bottomFormWrapper
+		? bottomFormWrapper.querySelector( '.bbp-form > legend' )
+		: null;
+	const originalLegendText = bottomFormLegend
+		? bottomFormLegend.textContent
+		: null;
 	let originalFormLocation = null;
 	let activeReplyCard = null;
 	let activeReplyId = null;
@@ -53,7 +59,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			return;
 		}
 
-		const topicIdField = bottomForm.querySelector( 'input[name="bbp_topic_id"]' );
+		const topicIdField = bottomForm.querySelector(
+			'input[name="bbp_topic_id"]'
+		);
 		const topicId = topicIdField ? parseInt( topicIdField.value, 10 ) : 0;
 		if ( ! topicId ) {
 			return;
@@ -72,7 +80,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	}
 
 	function getReplyToFieldValue() {
-		const replyToField = bottomForm ? bottomForm.querySelector( 'input[name="bbp_reply_to"]' ) : null;
+		const replyToField = bottomForm
+			? bottomForm.querySelector( 'input[name="bbp_reply_to"]' )
+			: null;
 		if ( ! replyToField ) {
 			return 0;
 		}
@@ -97,7 +107,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		if ( ! bottomFormWrapper ) {
 			return;
 		}
-		const wrapper = bottomFormWrapper.querySelector( '.blocks-everywhere-editor' );
+		const wrapper = bottomFormWrapper.querySelector(
+			'.blocks-everywhere-editor'
+		);
 		if ( ! wrapper ) {
 			return;
 		}
@@ -125,7 +137,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		}
 
 		// Reset the reply_to field to 0 (top-level reply)
-		const replyToField = bottomForm ? bottomForm.querySelector( 'input[name="bbp_reply_to"]' ) : null;
+		const replyToField = bottomForm
+			? bottomForm.querySelector( 'input[name="bbp_reply_to"]' )
+			: null;
 		if ( replyToField ) {
 			replyToField.value = '0';
 		}
@@ -163,11 +177,16 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		}
 
 		// Mark the original location with placeholder
-		bottomFormWrapper.parentNode.insertBefore( placeholder, bottomFormWrapper );
+		bottomFormWrapper.parentNode.insertBefore(
+			placeholder,
+			bottomFormWrapper
+		);
 		originalFormLocation = placeholder;
 
 		// Set the reply_to field to the parent reply ID
-		const replyToField = bottomForm ? bottomForm.querySelector( 'input[name="bbp_reply_to"]' ) : null;
+		const replyToField = bottomForm
+			? bottomForm.querySelector( 'input[name="bbp_reply_to"]' )
+			: null;
 		if ( replyToField ) {
 			replyToField.value = String( replyId );
 		}
@@ -188,11 +207,19 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		if ( ! cancelButton ) {
 			cancelButton = createCancelButton();
 		}
-		const submitButton = bottomForm ? bottomForm.querySelector( '.bbp-submit-button' ) : null;
-		const actionsContainer = bottomForm ? bottomForm.querySelector( '.ec-reply-actions' ) : null;
+		const submitButton = bottomForm
+			? bottomForm.querySelector( '.bbp-submit-button' )
+			: null;
+		const actionsContainer = bottomForm
+			? bottomForm.querySelector( '.ec-reply-actions' )
+			: null;
 		if ( submitButton ) {
 			submitButton.classList.add( 'button-large' );
-			if ( actionsContainer && cancelButton && ! actionsContainer.contains( cancelButton ) ) {
+			if (
+				actionsContainer &&
+				cancelButton &&
+				! actionsContainer.contains( cancelButton )
+			) {
 				actionsContainer.appendChild( cancelButton );
 			}
 		}
@@ -202,7 +229,10 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		activeReplyId = replyId;
 
 		// Scroll to the form
-		bottomFormWrapper.scrollIntoView( { behavior: 'smooth', block: 'start' } );
+		bottomFormWrapper.scrollIntoView( {
+			behavior: 'smooth',
+			block: 'start',
+		} );
 
 		// Focus the editor
 		setTimeout( function () {

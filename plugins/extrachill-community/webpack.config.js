@@ -1,9 +1,9 @@
 /**
  * Custom webpack extends @wordpress/scripts defaults.
  *
- * - Disables strict ESM resolution for .mjs files so that
- *   @extrachill/tokens (and similar packages) can import
- *   internal modules without explicit extensions.
+ * - Disables strict ESM resolution for .mjs files so packages
+ *   like `@extrachill/tokens` can import internal modules without
+ *   explicit extensions.
  * - Adds the standalone composer term-picker entry (not a block — it mounts
  *   into the server-rendered bbPress topic form) alongside the default
  *   block.json-discovered entries.
@@ -18,11 +18,16 @@ module.exports = {
 	...defaultConfig,
 	entry: ( ...args ) => {
 		const blockEntries =
-			typeof defaultEntry === 'function' ? defaultEntry( ...args ) : defaultEntry;
+			typeof defaultEntry === 'function'
+				? defaultEntry( ...args )
+				: defaultEntry;
 
 		return {
 			...blockEntries,
-			'term-picker': path.resolve( process.cwd(), 'src/term-picker/index.tsx' ),
+			'term-picker': path.resolve(
+				process.cwd(),
+				'src/term-picker/index.tsx'
+			),
 		};
 	},
 	module: {

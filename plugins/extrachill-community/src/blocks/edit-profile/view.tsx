@@ -1,5 +1,9 @@
-import { useState, useEffect, useCallback } from '@wordpress/element';
-import { createRoot } from '@wordpress/element';
+import {
+	useState,
+	useEffect,
+	useCallback,
+	createRoot,
+} from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { WPNativeClient } from 'wp-native-client';
 import { WpApiFetchTransport } from 'wp-native-client/wordpress';
@@ -8,7 +12,6 @@ import {
 	BlockShell,
 	BlockShellInner,
 	BlockShellHeader,
-	BlockIntro,
 	FieldGroup,
 	Panel,
 	PanelHeader,
@@ -18,7 +21,9 @@ import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors } from '@extrachill/tokens';
 import type { UserProfile, UserLink } from '../../types/users';
 
-const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), { validateAbilityNames: false } );
+const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {
+	validateAbilityNames: false,
+} );
 
 const styles = {
 	avatarContainer: {
@@ -59,7 +64,13 @@ const styles = {
 	},
 } as const;
 
-function Notice( { type, message }: { type: 'success' | 'error'; message: string } ) {
+function Notice( {
+	type,
+	message,
+}: {
+	type: 'success' | 'error';
+	message: string;
+} ) {
 	return (
 		<div className={ `notice notice-${ type }` }>
 			<p>{ message }</p>
@@ -78,51 +89,69 @@ function AvatarUpload( {
 } ) {
 	const [ uploading, setUploading ] = useState( false );
 
-	const handleFileChange = useCallback( async ( e: React.ChangeEvent<HTMLInputElement> ) => {
-		const file = e.target.files?.[ 0 ];
-		if ( ! file ) return;
-
-		setUploading( true );
-
-		try {
-			// B1 exception: avatar upload is a multipart POST with no backing
-			// ability (the Abilities API run endpoint is JSON-only). It stays on
-			// the existing extrachill/v1/media REST route, called directly via
-			// apiFetch — mirroring the former api-client media.upload() wire.
-			const formData = new FormData();
-			formData.append( 'context', 'user_avatar' );
-			if ( userId ) {
-				formData.append( 'target_id', String( userId ) );
+	const handleFileChange = useCallback(
+		async ( e: React.ChangeEvent< HTMLInputElement > ) => {
+			const file = e.target.files?.[ 0 ];
+			if ( ! file ) {
+				return;
 			}
-			formData.append( 'file', file );
 
-			const result = await apiFetch< { url?: string } >( {
-				path: 'extrachill/v1/media',
-				method: 'POST',
-				body: formData,
-			} );
-			if ( result.url ) {
-				onAvatarChange( result.url );
-			}
-		} catch {}
+			setUploading( true );
 
-		setUploading( false );
-	}, [ onAvatarChange, userId ] );
+			try {
+				// B1 exception: avatar upload is a multipart POST with no backing
+				// ability (the Abilities API run endpoint is JSON-only). It stays on
+				// the existing extrachill/v1/media REST route, called directly via
+				// apiFetch — mirroring the former api-client media.upload() wire.
+				const formData = new FormData();
+				formData.append( 'context', 'user_avatar' );
+				if ( userId ) {
+					formData.append( 'target_id', String( userId ) );
+				}
+				formData.append( 'file', file );
+
+				const result = await apiFetch< { url?: string } >( {
+					path: 'extrachill/v1/media',
+					method: 'POST',
+					body: formData,
+				} );
+				if ( result.url ) {
+					onAvatarChange( result.url );
+				}
+			} catch {}
+
+			setUploading( false );
+		},
+		[ onAvatarChange, userId ]
+	);
 
 	return (
 		<div style={ styles.avatarContainer }>
 			<img src={ avatarUrl } alt="Avatar" style={ styles.avatar } />
 			<div>
-				<h4 style={ { margin: 0, marginBottom: '4px' } }>Current Avatar</h4>
-				<p style={ { marginTop: 0, marginBottom: '8px', color: cssVar( colors.mutedText ) } }>
-					This is the avatar you currently have set. Upload a new image to change it.
+				<h4 style={ { margin: 0, marginBottom: '4px' } }>
+					Current Avatar
+				</h4>
+				<p
+					style={ {
+						marginTop: 0,
+						marginBottom: '8px',
+						color: cssVar( colors.mutedText ),
+					} }
+				>
+					This is the avatar you currently have set. Upload a new
+					image to change it.
 				</p>
 				<label
-					className={ `button-3 button-small${ uploading ? ' is-disabled' : '' }` }
+					htmlFor="ec-edit-profile-avatar-upload"
+					className={ `button-3 button-small${
+						uploading ? ' is-disabled' : ''
+					}` }
 					style={ uploading ? styles.disabledButton : undefined }
 				>
 					{ uploading ? 'Uploading...' : 'Upload New Avatar' }
 					<input
+						id="ec-edit-profile-avatar-upload"
 						type="file"
 						accept="image/*"
 						onChange={ handleFileChange }
@@ -141,58 +170,98 @@ function LinksManager( {
 	onChange,
 }: {
 	links: UserLink[];
-	linkTypes: Record<string, string>;
+	linkTypes: Record< string, string >;
 	onChange: ( links: UserLink[] ) => void;
 } ) {
 	const addLink = useCallback( () => {
 		onChange( [ ...links, { type_key: 'website', url: '' } ] );
 	}, [ links, onChange ] );
 
-	const removeLink = useCallback( ( index: number ) => {
-		onChange( links.filter( ( _, i ) => i !== index ) );
-	}, [ links, onChange ] );
+	const removeLink = useCallback(
+		( index: number ) => {
+			onChange( links.filter( ( _, i ) => i !== index ) );
+		},
+		[ links, onChange ]
+	);
 
-	const updateLink = useCallback( ( index: number, field: keyof UserLink, value: string ) => {
-		onChange( links.map( ( link, i ) => ( i !== index ? link : { ...link, [ field ]: value } ) ) );
-	}, [ links, onChange ] );
+	const updateLink = useCallback(
+		( index: number, field: keyof UserLink, value: string ) => {
+			onChange(
+				links.map( ( link, i ) =>
+					i !== index ? link : { ...link, [ field ]: value }
+				)
+			);
+		},
+		[ links, onChange ]
+	);
 
 	return (
 		<div>
-			<p style={ styles.mutedText }>Add links to your website, social media, streaming, etc.</p>
+			<p style={ styles.mutedText }>
+				Add links to your website, social media, streaming, etc.
+			</p>
 			{ links.map( ( link, index ) => (
 				<div key={ index } style={ styles.linkRow }>
 					<select
 						style={ styles.linkSelect }
 						value={ link.type_key }
-						onChange={ ( e ) => updateLink( index, 'type_key', e.target.value ) }
+						onChange={ ( e ) =>
+							updateLink( index, 'type_key', e.target.value )
+						}
 					>
-						{ Object.entries( linkTypes ).map( ( [ key, label ] ) => (
-							<option key={ key } value={ key }>{ label }</option>
-						) ) }
+						{ Object.entries( linkTypes ).map(
+							( [ key, label ] ) => (
+								<option key={ key } value={ key }>
+									{ label }
+								</option>
+							)
+						) }
 					</select>
 					<input
 						type="url"
 						style={ styles.linkInput }
 						value={ link.url }
-						onChange={ ( e ) => updateLink( index, 'url', e.target.value ) }
+						onChange={ ( e ) =>
+							updateLink( index, 'url', e.target.value )
+						}
 						placeholder="https://..."
 					/>
 					{ link.type_key === 'other' && (
 						<input
 							type="text"
-							style={ { ...styles.linkInput, minWidth: '120px', flex: 'none', width: '140px' } }
+							style={ {
+								...styles.linkInput,
+								minWidth: '120px',
+								flex: 'none',
+								width: '140px',
+							} }
 							value={ link.custom_label || '' }
-							onChange={ ( e ) => updateLink( index, 'custom_label', e.target.value ) }
+							onChange={ ( e ) =>
+								updateLink(
+									index,
+									'custom_label',
+									e.target.value
+								)
+							}
 							placeholder="Label"
 						/>
 					) }
-					<button type="button" className="button-3 button-small" onClick={ () => removeLink( index ) } title="Remove link">
+					<button
+						type="button"
+						className="button-3 button-small"
+						onClick={ () => removeLink( index ) }
+						title="Remove link"
+					>
 						Remove
 					</button>
 				</div>
 			) ) }
 			<ActionRow>
-				<button type="button" className="button-3 button-small" onClick={ addLink }>
+				<button
+					type="button"
+					className="button-3 button-small"
+					onClick={ addLink }
+				>
 					+ Add Link
 				</button>
 			</ActionRow>
@@ -215,34 +284,50 @@ function EditProfileApp( {
 	hasArtists: boolean;
 	canCreateArtists: boolean;
 } ) {
-	const [ activeTab, setActiveTab ] = useState<TabId>( 'avatar-title' );
-	const [ profile, setProfile ] = useState<UserProfile | null>( null );
+	const [ activeTab, setActiveTab ] = useState< TabId >( 'avatar-title' );
+	const [ profile, setProfile ] = useState< UserProfile | null >( null );
 	const [ loading, setLoading ] = useState( true );
-	const [ error, setError ] = useState<string | null>( null );
+	const [ error, setError ] = useState< string | null >( null );
 	const [ saving, setSaving ] = useState( false );
-	const [ notice, setNotice ] = useState<{ type: 'success' | 'error'; message: string } | null>( null );
+	const [ , setNotice ] = useState< {
+		type: 'success' | 'error';
+		message: string;
+	} | null >( null );
 	const [ customTitle, setCustomTitle ] = useState( '' );
 	const [ bio, setBio ] = useState( '' );
-	const [ links, setLinks ] = useState<UserLink[]>( [] );
+	const [ links, setLinks ] = useState< UserLink[] >( [] );
 	const [ avatarUrl, setAvatarUrl ] = useState( '' );
 
 	useEffect( () => {
-		client.execute< UserProfile >( 'extrachill/get-user-profile', { user_id: userId } ).then( ( data ) => {
-			setProfile( data );
-			setCustomTitle( data.custom_title || '' );
-			setBio( data.bio || '' );
-			setLinks( data.links || [] );
-			setAvatarUrl( data.avatar_url || '' );
-			setLoading( false );
-		} ).catch( ( err ) => {
-			setError( err instanceof Error ? err.message : 'Failed to load profile.' );
-			setLoading( false );
-		} );
+		client
+			.execute< UserProfile >( 'extrachill/get-user-profile', {
+				user_id: userId,
+			} )
+			.then( ( data ) => {
+				setProfile( data );
+				setCustomTitle( data.custom_title || '' );
+				setBio( data.bio || '' );
+				setLinks( data.links || [] );
+				setAvatarUrl( data.avatar_url || '' );
+				setLoading( false );
+			} )
+			.catch( ( err ) => {
+				setError(
+					err instanceof Error
+						? err.message
+						: 'Failed to load profile.'
+				);
+				setLoading( false );
+			} );
 	}, [ userId ] );
 
 	useEffect( () => {
 		const hash = window.location.hash.replace( '#tab-', '' );
-		if ( [ 'avatar-title', 'about', 'links', 'artist-profiles' ].includes( hash ) ) {
+		if (
+			[ 'avatar-title', 'about', 'links', 'artist-profiles' ].includes(
+				hash
+			)
+		) {
 			setActiveTab( hash as TabId );
 		}
 	}, [] );
@@ -257,17 +342,26 @@ function EditProfileApp( {
 
 		try {
 			const [ profileResult ] = await Promise.all( [
-				client.execute< UserProfile >( 'extrachill/update-user-profile', {
-					custom_title: customTitle,
-					bio,
-				} ),
+				client.execute< UserProfile >(
+					'extrachill/update-user-profile',
+					{
+						custom_title: customTitle,
+						bio,
+					}
+				),
 				client.execute( 'extrachill/update-user-links', { links } ),
 			] );
 
 			setProfile( profileResult );
-			setNotice( { type: 'success', message: 'Profile updated successfully.' } );
+			setNotice( {
+				type: 'success',
+				message: 'Profile updated successfully.',
+			} );
 		} catch ( err ) {
-			setNotice( { type: 'error', message: err instanceof Error ? err.message : 'Update failed.' } );
+			setNotice( {
+				type: 'error',
+				message: err instanceof Error ? err.message : 'Update failed.',
+			} );
 		}
 
 		setSaving( false );
@@ -282,7 +376,12 @@ function EditProfileApp( {
 	}
 
 	if ( error || ! profile ) {
-		return <Notice type="error" message={ error || 'Failed to load profile.' } />;
+		return (
+			<Notice
+				type="error"
+				message={ error || 'Failed to load profile.' }
+			/>
+		);
 	}
 
 	const hasArtistAccess = profile.artist_access.status === 'approved';
@@ -290,7 +389,9 @@ function EditProfileApp( {
 		{ id: 'avatar-title', label: 'Avatar & Title' },
 		{ id: 'about', label: 'About' },
 		{ id: 'links', label: 'Your Links' },
-		...( hasArtistAccess ? [ { id: 'artist-profiles', label: 'Artist Profiles' } ] : [] ),
+		...( hasArtistAccess
+			? [ { id: 'artist-profiles', label: 'Artist Profiles' } ]
+			: [] ),
 	] as const;
 
 	return (
@@ -301,28 +402,40 @@ function EditProfileApp( {
 					description="Update your public profile, links, and artist profile access."
 				/>
 				<ResponsiveTabs
-						tabs={ tabs as Array<{ id: string; label: string }> }
-						active={ activeTab }
-						onChange={ ( id ) => switchTab( id as TabId ) }
-						syncWithHash={ true }
-						showDesktopTabs={ true }
-						renderPanel={ ( id ) => {
-							switch ( id as TabId ) {
+					tabs={ tabs as Array< { id: string; label: string } > }
+					active={ activeTab }
+					onChange={ ( id ) => switchTab( id as TabId ) }
+					syncWithHash={ true }
+					showDesktopTabs={ true }
+					renderPanel={ ( id ) => {
+						switch ( id as TabId ) {
 							case 'avatar-title':
 								return (
 									<Panel>
-										<AvatarUpload avatarUrl={ avatarUrl } userId={ userId } onAvatarChange={ setAvatarUrl } />
+										<AvatarUpload
+											avatarUrl={ avatarUrl }
+											userId={ userId }
+											onAvatarChange={ setAvatarUrl }
+										/>
 										<FieldGroup
-											label={ `Custom Title${ customTitle ? ` (Current: ${ customTitle })` : '' }` }
+											label={ `Custom Title${
+												customTitle
+													? ` (Current: ${ customTitle })`
+													: ''
+											}` }
 											htmlFor="ec-custom-title"
 											help="Enter a custom title, or leave blank for default."
 										>
-										<input
-											id="ec-custom-title"
-											type="text"
-											value={ customTitle }
-											onChange={ ( e ) => setCustomTitle( e.target.value ) }
-											placeholder="Extra Chillian"
+											<input
+												id="ec-custom-title"
+												type="text"
+												value={ customTitle }
+												onChange={ ( e ) =>
+													setCustomTitle(
+														e.target.value
+													)
+												}
+												placeholder="Extra Chillian"
 											/>
 										</FieldGroup>
 									</Panel>
@@ -330,11 +443,16 @@ function EditProfileApp( {
 							case 'about':
 								return (
 									<Panel>
-										<FieldGroup label="Bio" htmlFor="ec-bio">
+										<FieldGroup
+											label="Bio"
+											htmlFor="ec-bio"
+										>
 											<textarea
 												id="ec-bio"
 												value={ bio }
-												onChange={ ( e ) => setBio( e.target.value ) }
+												onChange={ ( e ) =>
+													setBio( e.target.value )
+												}
 											/>
 										</FieldGroup>
 									</Panel>
@@ -342,47 +460,59 @@ function EditProfileApp( {
 							case 'links':
 								return (
 									<Panel>
-										<LinksManager links={ links } linkTypes={ profile.link_types } onChange={ setLinks } />
+										<LinksManager
+											links={ links }
+											linkTypes={ profile.link_types }
+											onChange={ setLinks }
+										/>
 									</Panel>
 								);
 							case 'artist-profiles':
 								return hasArtistAccess ? (
 									<Panel>
-										<PanelHeader
-											description="Manage your artist profiles and link pages."
-										/>
-										{ hasArtists ? (
+										<PanelHeader description="Manage your artist profiles and link pages." />
+										{ hasArtists && (
 											<ActionRow>
 												<a
 													href={ `${ artistSiteUrl }/manage-artist/` }
 													className="button-2 button-small"
-													style={ styles.inlineButtonLink }
+													style={
+														styles.inlineButtonLink
+													}
 												>
 													Manage Artist
 												</a>
 											</ActionRow>
-										) : canCreateArtists ? (
+										) }
+										{ ! hasArtists && canCreateArtists && (
 											<ActionRow>
 												<a
 													href={ `${ artistSiteUrl }/create-artist/` }
 													className="button-2 button-small"
-													style={ styles.inlineButtonLink }
+													style={
+														styles.inlineButtonLink
+													}
 												>
 													Create Artist Profile
 												</a>
 											</ActionRow>
-										) : (
-											<p style={ styles.mutedText }>No artist profiles available yet.</p>
 										) }
+										{ ! hasArtists &&
+											! canCreateArtists && (
+												<p style={ styles.mutedText }>
+													No artist profiles available
+													yet.
+												</p>
+											) }
 									</Panel>
 								) : null;
-								default:
-									return null;
-							}
-						} }
-					/>
-					<ActionRow>
-						<button
+							default:
+								return null;
+						}
+					} }
+				/>
+				<ActionRow>
+					<button
 						type="button"
 						className="button-1 button-small"
 						style={ saving ? styles.disabledButton : undefined }
@@ -400,35 +530,41 @@ function EditProfileApp( {
 							View Public Profile
 						</a>
 					) }
-					</ActionRow>
+				</ActionRow>
 			</BlockShellInner>
 		</BlockShell>
 	);
 }
 
 function init(): void {
-	document.querySelectorAll<HTMLElement>( '.wp-block-extrachill-edit-profile' ).forEach( ( container ) => {
-		if ( container.dataset.initialized === '1' ) return;
+	document
+		.querySelectorAll< HTMLElement >( '.wp-block-extrachill-edit-profile' )
+		.forEach( ( container ) => {
+			if ( container.dataset.initialized === '1' ) {
+				return;
+			}
 
-		container.dataset.initialized = '1';
+			container.dataset.initialized = '1';
 
-		const artistSiteUrl = container.dataset.artistSiteUrl || 'https://artist.extrachill.com';
-		const userId = Number( container.dataset.userId || '0' );
-		const profileUrl = container.dataset.profileUrl || '#';
-		const hasArtists = container.dataset.hasArtists === '1';
-		const canCreateArtists = container.dataset.canCreateArtists === '1';
-		const root = createRoot( container );
+			const artistSiteUrl =
+				container.dataset.artistSiteUrl ||
+				'https://artist.extrachill.com';
+			const userId = Number( container.dataset.userId || '0' );
+			const profileUrl = container.dataset.profileUrl || '#';
+			const hasArtists = container.dataset.hasArtists === '1';
+			const canCreateArtists = container.dataset.canCreateArtists === '1';
+			const root = createRoot( container );
 
-		root.render(
-			<EditProfileApp
-				artistSiteUrl={ artistSiteUrl }
-				userId={ userId }
-				profileUrl={ profileUrl }
-				hasArtists={ hasArtists }
-				canCreateArtists={ canCreateArtists }
-			/>
-		);
-	} );
+			root.render(
+				<EditProfileApp
+					artistSiteUrl={ artistSiteUrl }
+					userId={ userId }
+					profileUrl={ profileUrl }
+					hasArtists={ hasArtists }
+					canCreateArtists={ canCreateArtists }
+				/>
+			);
+		} );
 }
 
 if ( document.readyState === 'loading' ) {

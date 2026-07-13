@@ -5,12 +5,14 @@ import { __ } from '@wordpress/i18n';
 import { BlockIntro } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 
-
 interface Attributes {
 	perPage: number;
 }
 
-function Edit( { attributes, setAttributes }: {
+function Edit( {
+	attributes,
+	setAttributes,
+}: {
 	attributes: Attributes;
 	setAttributes: ( attrs: Partial< Attributes > ) => void;
 } ) {
@@ -25,7 +27,10 @@ function Edit( { attributes, setAttributes }: {
 				>
 					<RangeControl
 						__nextHasNoMarginBottom
-						label={ __( 'Users per page', 'extra-chill-community' ) }
+						label={ __(
+							'Users per page',
+							'extra-chill-community'
+						) }
 						value={ perPage }
 						onChange={ ( value ) =>
 							setAttributes( { perPage: value } )
@@ -36,7 +41,12 @@ function Edit( { attributes, setAttributes }: {
 				</PanelBody>
 			</InspectorControls>
 			<div { ...blockProps }>
-				<BlockIntro description={ __( 'Leaderboard — renders on the frontend.', 'extra-chill-community' ) } />
+				<BlockIntro
+					description={ __(
+						'Leaderboard — renders on the frontend.',
+						'extra-chill-community'
+					) }
+				/>
 			</div>
 		</>
 	);
