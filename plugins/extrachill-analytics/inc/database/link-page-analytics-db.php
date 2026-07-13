@@ -16,8 +16,8 @@
  * IMPORTANT — table names and prefix are intentionally IDENTICAL to AP's prior
  * schema (per-site `$wpdb->prefix`, same table names, same columns/keys) so the
  * existing data is shared and continuous: no migration, no backfill. dbDelta on
- * an already-correct table is a no-op, so ECA adopting the same schema is safe
- * even while AP's create-table routine is still registered (#89 removes it).
+ * an already-correct table is a no-op. AP's own create-table routine was removed
+ * in AP#89 (shipped v1.13.1, 2026-06-27), so ECA is the sole table owner.
  *
  * @package ExtraChill\Analytics
  * @since 0.23.0
@@ -55,10 +55,10 @@ function extrachill_analytics_link_page_clicks_table() {
  * Create or update the link-page analytics tables when the DB version changes.
  *
  * Schema is a verbatim copy of AP's prior definition so dbDelta treats an
- * already-existing AP table as up-to-date (no-op). We use a DISTINCT option key
- * from AP (`extrachill_analytics_link_page_db_version`) so ECA's gate is
- * independent of AP's `extrch_analytics_db_version` — both can run dbDelta
- * harmlessly against the same idempotent schema during the coexistence window.
+ * already-existing AP table as up-to-date (no-op). ECA uses its own option key
+ * (`extrachill_analytics_link_page_db_version`), independent of AP's now-removed
+ * `extrch_analytics_db_version`, to gate dbDelta. ECA has been the sole table
+ * owner since AP#89 shipped (v1.13.1).
  */
 function extrachill_analytics_link_page_create_table() {
 	$current_db_version = get_option( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION_OPTION );

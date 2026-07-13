@@ -2,9 +2,9 @@
 /**
  * Link Page Analytics — Provider, Write Path, and Prune
  *
- * ECA-owned analytics for artist link pages (extrachill-analytics#94). This is
- * a lift-and-shift of the logic that previously lived in extrachill-artist-
- * platform's `inc/link-pages/live/analytics.php`:
+ * ECA is the sole owner of artist link-page analytics (extrachill-analytics#94):
+ * the store (see inc/database/link-page-analytics-db.php), the write path, the
+ * read provider, and the daily prune.
  *
  *   - WRITE PATH: listeners on `extrachill_link_page_view_recorded` (fired by
  *     ECA's own track-page-view ability) and `extrachill_link_click_recorded`
@@ -15,27 +15,17 @@
  *     frontend contract (summary / chart_data{labels,datasets} / top_links).
  *   - PRUNE: a daily cron that drops rows older than 90 days.
  *
- * COEXISTENCE WITH ARTIST-PLATFORM (until extrachill-analytics#94's companion,
- * extrachill-artist-platform#89, lands):
+ * Ownership history: this logic was lifted from extrachill-artist-platform (AP)
+ * and the ownership flip completed in AP#89 / ECA#94 (both shipped 2026-06-27;
+ * first AP release without the duplicate callbacks was v1.13.1). A temporary
+ * coexistence shim detached AP's duplicate callbacks during the cutover; it was
+ * removed in extrachill-analytics#132 once AP stopped registering them. ECA
+ * declares no dependency on AP and the Extra Chill network upgrades atomically,
+ * so no minimum-version gap requires retaining any of that shim.
  *
- *   AP currently still attaches its own copies of these write listeners and its
- *   own filter provider against the SAME tables and SAME hooks. If both ECA's
- *   and AP's listeners stayed attached, every view/click would be DOUBLE-
- *   counted and the filter would resolve twice. To guarantee a single writer
- *   and a single provider regardless of load order, ECA detaches AP's known
- *   callbacks (by their stable global function names) before attaching its own.
- *   `remove_action`/`remove_filter` against a callback that isn't attached is a
- *   harmless no-op, so this is safe whether AP is present, already removed by
- *   #89, or loads after ECA. ECA also unschedules AP's prune cron event and
- *   runs its own, so pruning happens exactly once.
- *
- *   When #89 lands and AP stops registering these, the detach calls simply
- *   become no-ops and ECA is the sole owner with no behavioural change.
- *
- * AP still owns (ECA only CALLS INTO these, guarded with function_exists /
- * apply_filters): the artist-analytics React block UI, the beacon JS, and the
- * ownership/resolution helpers ec_get_link_page_for_artist / ec_can_manage_artist
- * / ec_get_artist_id.
+ * AP now only CONSUMES the read primitive (the artist-analytics React block UI,
+ * the beacon JS, and the ownership/resolution helpers ec_get_link_page_for_artist
+ * / ec_can_manage_artist / ec_get_artist_id).
  *
  * @package ExtraChill\Analytics
  * @since 0.23.0
@@ -43,46 +33,15 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Detach artist-platform's legacy link-page analytics callbacks so ECA is the
- * single writer/provider during the coexistence window.
- *
- * Runs late on `init` (priority 99) — after AP's own `init`-time registration
- * (its create-table + prune scheduling hook on `init`, and its module-load-time
- * add_action/add_filter calls which all execute during plugin load, before
- * `init`). Detaching by the stable AP function names is idempotent: if AP is
- * gone (post-#89) or never loaded, every call is a no-op.
- */
-function extrachill_analytics_link_page_detach_legacy_providers() {
-	// Write listeners (AP: extrachill_handle_link_page_view_db_write @10,
-	// extrachill_handle_link_click_db_write @10).
-	remove_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_view_db_write', 10 );
-	remove_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10 );
-
-	// Read provider (AP: extrachill_provide_link_page_analytics @10).
-	remove_filter( 'extrachill_get_link_page_analytics', 'extrachill_provide_link_page_analytics', 10 );
-
-	// Prune (AP: extrachill_artist_prune_old_analytics_data on its own event).
-	// Detach AP's listener and unschedule AP's event so only ECA's prune runs.
-	remove_action( 'extrachill_artist_daily_analytics_prune_event', 'extrachill_artist_prune_old_analytics_data' );
-	if ( wp_next_scheduled( 'extrachill_artist_daily_analytics_prune_event' ) ) {
-		wp_clear_scheduled_hook( 'extrachill_artist_daily_analytics_prune_event' );
-	}
-}
-add_action( 'init', 'extrachill_analytics_link_page_detach_legacy_providers', 99 );
-
 /*
- * ECA write-path listeners. Attached at load time on the SAME action hooks the
- * write routes fire. AP's identically-named callbacks are detached on init@99
- * above, so exactly one increment happens per beacon.
+ * ECA write-path listeners. Attached at load time on the action hooks the write
+ * routes fire; ECA is the sole writer, so exactly one increment happens per beacon.
  */
 add_action( 'extrachill_link_page_view_recorded', 'extrachill_analytics_handle_link_page_view_db_write', 10, 1 );
 add_action( 'extrachill_link_click_recorded', 'extrachill_analytics_handle_link_click_db_write', 10, 3 );
 
 /*
- * ECA read provider. Registered at priority 20 so that — even in the unlikely
- * window before init@99 detaches AP's @10 provider — ECA's value is the one the
- * filter ultimately returns (later priority wins as the final filtered value).
+ * ECA read provider for the extrachill_get_link_page_analytics filter.
  */
 add_filter( 'extrachill_get_link_page_analytics', 'extrachill_analytics_provide_link_page_analytics', 20, 3 );
 
