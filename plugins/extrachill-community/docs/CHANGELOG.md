@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.18.0] - 2026-07-13
+
+### Added
+- add artist-tagged community discussions
+
 ## [1.17.1] - 2026-07-12
 
 ### Changed
