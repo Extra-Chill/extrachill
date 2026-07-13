@@ -75,3 +75,18 @@ add_filter( 'bbp_get_single_forum_description', '__return_empty_string' );
  * line-by-line.
  */
 add_filter( 'bbp_no_breadcrumb', '__return_true' );
+
+/**
+ * Keep topic conversations compatible with bbPress reply pagination.
+ *
+ * bbPress intentionally queries and renders every reply when threading is
+ * enabled, regardless of the configured replies-per-page value. A flat
+ * display keeps pagination, direct reply URLs, and Jump to Latest aligned.
+ * Reply-to relationships are still stored and available to the composer.
+ *
+ * @return bool
+ */
+function extrachill_community_disable_threaded_reply_display() {
+	return false;
+}
+add_filter( 'bbp_thread_replies', 'extrachill_community_disable_threaded_reply_display' );

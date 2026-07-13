@@ -64,7 +64,7 @@ defined( 'ABSPATH' ) || exit;
 
 					$bbp = bbpress();
 					if ( ! empty( $bbp->reply_query ) && bbp_get_topic_reply_count() > 0 ) {
-						extrachill_pagination( $bbp->reply_query, 'bbpress' );
+						extrachill_pagination( $bbp->reply_query, 'bbpress', 'reply' );
 					}
 
 				endif;
