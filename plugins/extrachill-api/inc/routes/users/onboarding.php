@@ -46,6 +46,17 @@ function extrachill_api_register_onboarding_routes() {
 						'type'     => 'boolean',
 						'default'  => false,
 					),
+					'local_scene'            => array(
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_title',
+					),
+					'local_scene_visibility' => array(
+						'required' => false,
+						'type'     => 'string',
+						'enum'     => array( 'public', 'private' ),
+						'default'  => 'public',
+					),
 				),
 			),
 		)
@@ -98,10 +109,12 @@ function extrachill_api_onboarding_post_handler( WP_REST_Request $request ) {
 
 	$result = $ability->execute(
 		array(
-			'user_id'              => get_current_user_id(),
-			'username'             => $request->get_param( 'username' ),
-			'user_is_artist'       => $request->get_param( 'user_is_artist' ),
-			'user_is_professional' => $request->get_param( 'user_is_professional' ),
+			'user_id'                => get_current_user_id(),
+			'username'               => $request->get_param( 'username' ),
+			'user_is_artist'         => $request->get_param( 'user_is_artist' ),
+			'user_is_professional'   => $request->get_param( 'user_is_professional' ),
+			'local_scene_visibility' => $request->get_param( 'local_scene_visibility' ),
+			'local_scene'            => $request->get_param( 'local_scene' ),
 		)
 	);
 
