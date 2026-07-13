@@ -185,13 +185,6 @@ function enqueue_user_profile_styles() {
 			array( 'extrachill-bbpress' ),
 			filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/user-profile.css')
 		);
-		wp_enqueue_script(
-			'ec-heatmap-tooltip',
-			EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/heatmap-tooltip.js',
-			array(),
-			filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/heatmap-tooltip.js'),
-			true
-		);
 	}
 }
 add_action('wp_enqueue_scripts', 'enqueue_user_profile_styles');

@@ -122,7 +122,54 @@ function formatDayLabel( ymd: string, count: number ): string {
 
 // ─── Components ──────────────────────────────────────────────────────────────
 
+/**
+ * Shared tooltip for day cells (the block owns its own tooltip — no page
+ * script). A single fixed-position element escapes the scroll container's
+ * overflow clipping; shown on hover/focus, GitHub-style.
+ */
+function useCellTooltip() {
+	const [ tip, setTip ] = useState< {
+		text: string;
+		left: number;
+		top: number;
+	} | null >( null );
+
+	const show = useCallback( ( event: React.SyntheticEvent< HTMLElement > ) => {
+		const cell = event.currentTarget;
+		const text = cell.getAttribute( 'data-ec-tip' );
+		if ( ! text ) {
+			return;
+		}
+		const rect = cell.getBoundingClientRect();
+		setTip( {
+			text,
+			left: rect.left + rect.width / 2,
+			top: rect.top,
+		} );
+	}, [] );
+
+	const hide = useCallback( () => setTip( null ), [] );
+
+	const tooltipEl = tip ? (
+		<div
+			className="ec-heatmap-tooltip"
+			role="tooltip"
+			style={ {
+				position: 'fixed',
+				left: tip.left,
+				top: tip.top - 8,
+				transform: 'translate(-50%, -100%)',
+			} }
+		>
+			{ tip.text }
+		</div>
+	) : null;
+
+	return { show, hide, tooltipEl };
+}
+
 function HeatmapGrid( { calendar }: { calendar: CalendarPayload } ) {
+	const { show, hide, tooltipEl } = useCellTooltip();
 	const firstSunday = ymdToDate( calendar.first_sunday );
 	const windowEnd = ymdToDate( calendar.window_end );
 	const weeks = calendar.weeks;
@@ -157,6 +204,10 @@ function HeatmapGrid( { calendar }: { calendar: CalendarPayload } ) {
 					className={ `ec-heat-cell level-${ level }` }
 					data-ec-tip={ formatDayLabel( ymd, count ) }
 					tabIndex={ 0 }
+					onMouseEnter={ show }
+					onMouseLeave={ hide }
+					onFocus={ show }
+					onBlur={ hide }
 				/>
 			);
 		}
@@ -218,6 +269,7 @@ function HeatmapGrid( { calendar }: { calendar: CalendarPayload } ) {
 				</div>
 				<div className="ec-heatmap-cells">{ cells }</div>
 			</div>
+			{ tooltipEl }
 		</div>
 	);
 }

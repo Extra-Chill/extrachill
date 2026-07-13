@@ -189,10 +189,10 @@
 	outline-offset: 0;
 }
 
-/* Shared tooltip element (appended to <body> by heatmap-tooltip.js so it
-   escapes the scroll container's overflow clipping). */
+/* Shared tooltip element (rendered fixed-position by the block's tooltip
+   component so it escapes the scroll container's overflow clipping). */
 .ec-heatmap-tooltip {
-	position: absolute;
+	/* Positioned inline (fixed) by the block's tooltip component. */
 	z-index: 1000;
 	padding: 4px 8px;
 	background: var(--text-color, #24292f);
