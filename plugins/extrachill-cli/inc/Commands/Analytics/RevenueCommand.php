@@ -71,7 +71,10 @@ class RevenueCommand {
 			WP_CLI::error( '--snapshot is required when --mode=additive.' );
 		}
 
-		$input = array( 'action' => 'backfill', 'periods' => $periods );
+		$input = array(
+			'action'  => 'backfill',
+			'periods' => $periods,
+		);
 		if ( isset( $assoc_args['site-id'] ) && '' !== $assoc_args['site-id'] ) {
 			$input['site_id'] = (string) $assoc_args['site-id'];
 		}
@@ -122,7 +125,7 @@ class RevenueCommand {
 			WP_CLI::log(
 				sprintf(
 					'  %s - snapshot %s - rows %d - resolved %d - unresolved %d - inserted %d - replaced %d%s',
-					$period ?: 'all-time',
+					$period ? $period : 'all-time',
 					$identity['import_batch'] ?? '(unknown)',
 					(int) ( $result['rows'] ?? 0 ),
 					(int) ( $result['resolved'] ?? 0 ),
@@ -343,7 +346,11 @@ class RevenueCommand {
 			return $this->validate_periods( $periods );
 		}
 
-		$period = array( 'period' => $assoc_args['period'] ?? '', 'start_date' => $assoc_args['start'] ?? '', 'end_date' => $assoc_args['end'] ?? '' );
+		$period = array(
+			'period'     => $assoc_args['period'] ?? '',
+			'start_date' => $assoc_args['start'] ?? '',
+			'end_date'   => $assoc_args['end'] ?? '',
+		);
 		return $this->validate_periods( array( $period ) );
 	}
 
