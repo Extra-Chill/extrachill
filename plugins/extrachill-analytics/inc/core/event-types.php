@@ -49,6 +49,27 @@ const EC_ANALYTICS_EVENT_ROADIE_SESSION_STARTED   = 'roadie_session_started';
 const EC_ANALYTICS_EVENT_ROADIE_TOOL_INVOKED      = 'roadie_tool_invoked';
 
 /**
+ * General account-onboarding events.
+ *
+ * The ordered happy path is `onboarding_viewed` -> `onboarding_completed`.
+ * Submission failures describe validation or persistence failures alongside
+ * that path. Reminder events record reminder delivery and a later completion
+ * attributed to a reminder without exposing the reminder recipient.
+ *
+ * Emitters MUST keep event_data privacy-safe. The payload contract is limited
+ * to `user_id`, registration `source`, `method`, and `surface`, plus boolean
+ * state such as `has_local_scene`. The anonymous `visitor_id`, when available,
+ * remains a top-level ability argument for pre/post-login stitching. Never
+ * record a Local Scene slug or name, or PII such as an email address, username,
+ * display name, IP address, or free-form user input.
+ */
+const EC_ANALYTICS_EVENT_ONBOARDING_VIEWED             = 'onboarding_viewed';
+const EC_ANALYTICS_EVENT_ONBOARDING_SUBMISSION_FAILED  = 'onboarding_submission_failed';
+const EC_ANALYTICS_EVENT_ONBOARDING_COMPLETED          = 'onboarding_completed';
+const EC_ANALYTICS_EVENT_ONBOARDING_REMINDER_SENT      = 'onboarding_reminder_sent';
+const EC_ANALYTICS_EVENT_ONBOARDING_REMINDER_RECOVERED = 'onboarding_reminder_recovered';
+
+/**
  * Artist-funnel events.
  *
  * The activation funnel a new member walks while trying to build/claim an
@@ -114,6 +135,30 @@ const EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS = array(
 	EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN,
 	EC_ANALYTICS_EVENT_ROADIE_SESSION_STARTED,
 	EC_ANALYTICS_EVENT_ROADIE_TOOL_INVOKED,
+);
+
+/**
+ * All general account-onboarding events. Order follows the lifecycle; failure
+ * and reminder signals are not additional required funnel steps.
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_ONBOARDING_FUNNEL_EVENTS = array(
+	EC_ANALYTICS_EVENT_ONBOARDING_VIEWED,
+	EC_ANALYTICS_EVENT_ONBOARDING_SUBMISSION_FAILED,
+	EC_ANALYTICS_EVENT_ONBOARDING_COMPLETED,
+	EC_ANALYTICS_EVENT_ONBOARDING_REMINDER_SENT,
+	EC_ANALYTICS_EVENT_ONBOARDING_REMINDER_RECOVERED,
+);
+
+/**
+ * Ordered required steps in the general account-onboarding happy path.
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_ONBOARDING_HAPPY_PATH = array(
+	EC_ANALYTICS_EVENT_ONBOARDING_VIEWED,
+	EC_ANALYTICS_EVENT_ONBOARDING_COMPLETED,
 );
 
 /**
