@@ -189,7 +189,7 @@ function extrachill_api_docs_info_collect_post_types() {
 			'public'        => (bool) $object->public,
 			'has_archive'   => (bool) $object->has_archive,
 			'hierarchical'  => (bool) $object->hierarchical,
-			'supports'      => is_array( $object->supports ) ? array_values( $object->supports ) : array(),
+			'supports'      => array_keys( get_all_post_type_supports( $post_type ) ),
 			'publish_count' => $published_count,
 			'taxonomies'    => $tax_data,
 		);
