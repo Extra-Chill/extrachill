@@ -34,6 +34,52 @@ function sanitize_text_field( $value ) {
 	return trim( $value );
 }
 
+function get_post_type( $post_id ) {
+	return $GLOBALS['ec_test']['posts'][ $post_id ]->post_type ?? '';
+}
+
+function get_post_meta( $post_id, $key = '', $single = false ) {
+	$meta = $GLOBALS['ec_test']['meta'][ $post_id ] ?? array();
+	if ( $key === '' ) {
+		return $meta;
+	}
+	$value = $meta[ $key ] ?? ( $single ? '' : array() );
+	return $single && is_array( $value ) ? ( $value[0] ?? '' ) : $value;
+}
+
+function maybe_unserialize( $value ) {
+	return $value;
+}
+
+function get_post_thumbnail_id( $post_id ) {
+	return $GLOBALS['ec_test']['thumbnails'][ $post_id ] ?? 0;
+}
+
+function get_the_title( $post_id ) {
+	return $GLOBALS['ec_test']['posts'][ $post_id ]->post_title ?? '';
+}
+
+function get_post_field( $field, $post_id ) {
+	return $GLOBALS['ec_test']['posts'][ $post_id ]->{$field} ?? '';
+}
+
+function get_permalink( $post_id ) {
+	return 'https://artist.example/artists/' . get_post_field( 'post_name', $post_id ) . '/';
+}
+
+function get_post( $post_id ) {
+	return $GLOBALS['ec_test']['posts'][ $post_id ] ?? null;
+}
+
+function wp_get_attachment_url( $attachment_id ) {
+	return 'https://artist.example/media/' . $attachment_id . '.jpg';
+}
+
+function get_the_post_thumbnail_url( $post_id, $size ) {
+	$attachment_id = get_post_thumbnail_id( $post_id );
+	return $attachment_id ? wp_get_attachment_url( $attachment_id ) : false;
+}
+
 function ec_get_artist_relationships_for_admin( $view, $search ) {
 	$GLOBALS['ec_test']['list'] = array( $view, $search );
 	return $GLOBALS['ec_test']['list_result'] ?? array();
@@ -62,3 +108,5 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-link-artist-rel
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-unlink-artist-relationship.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-list-orphan-artist-relationships.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-cleanup-artist-relationships.php';
+require_once dirname( __DIR__ ) . '/inc/core/filters/data.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get.php';

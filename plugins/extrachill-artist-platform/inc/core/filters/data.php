@@ -214,6 +214,9 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
 
     $social_links = $meta['_artist_profile_social_links'][0] ?? array();
     $social_links = maybe_unserialize( $social_links );
+    if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
+        $social_links = extrachill_artist_platform_social_links()->get( $artist_id );
+    }
     if ( ! is_array( $social_links ) ) {
         $social_links = array();
     }
@@ -224,6 +227,8 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
     $data = array(
         'artist_id' => (int) $artist_id,
         'title' => get_the_title( $artist_id ) ?: '',
+        'slug' => get_post_field( 'post_name', $artist_id ) ?: '',
+        'permalink' => get_permalink( $artist_id ) ?: '',
         'bio' => ( get_post( $artist_id )->post_content ?? '' ),
         'genre' => $meta['_genre'][0] ?? '',
         'local_city' => $meta['_local_city'][0] ?? '',
@@ -236,6 +241,7 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
         'header_image_url' => $header_image_id ? wp_get_attachment_url( $header_image_id ) : '',
         'profile_image_id' => $profile_image_id,
         'profile_image_url' => $profile_image_id ? get_the_post_thumbnail_url( $artist_id, 'large' ) : '',
+        'link_page_id' => function_exists( 'ec_get_link_page_id' ) ? (int) ec_get_link_page_id( $artist_id ) : 0,
     );
 
     if ( isset( $overrides['title'] ) ) {

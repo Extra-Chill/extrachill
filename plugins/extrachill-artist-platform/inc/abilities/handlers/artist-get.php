@@ -34,26 +34,14 @@ function extrachill_artist_platform_ability_artist_get( array $input ): array|WP
 
 	$artist = get_post( $artist_id );
 
-	if ( ! $artist || $artist->post_type !== 'artist_profile' ) {
+	if ( ! $artist || $artist->post_type !== 'artist_profile' || $artist->post_status !== 'publish' ) {
 		if ( $did_switch ) {
 			restore_current_blog();
 		}
 		return new WP_Error( 'invalid_artist', 'Artist not found.' );
 	}
 
-	$local_city = get_post_meta( $artist_id, '_local_city', true );
-	$genre      = get_post_meta( $artist_id, '_genre', true );
-
-	$profile_image_id  = get_post_thumbnail_id( $artist_id );
-	$profile_image_url = $profile_image_id ? wp_get_attachment_image_url( (int) $profile_image_id, 'medium' ) : null;
-
-	$header_image_id  = get_post_meta( $artist_id, '_artist_profile_header_image_id', true );
-	$header_image_url = $header_image_id ? wp_get_attachment_image_url( (int) $header_image_id, 'large' ) : null;
-
-	$link_page_id = null;
-	if ( function_exists( 'ec_get_link_page_id' ) ) {
-		$link_page_id = ec_get_link_page_id( $artist_id );
-	}
+	$data = ec_get_artist_profile_data( $artist_id );
 
 	if ( $did_switch ) {
 		restore_current_blog();
@@ -61,15 +49,17 @@ function extrachill_artist_platform_ability_artist_get( array $input ): array|WP
 
 	return array(
 		'id'                => (int) $artist_id,
-		'name'              => $artist->post_title,
-		'slug'              => $artist->post_name,
-		'bio'               => $artist->post_content,
-		'local_city'        => $local_city !== '' ? $local_city : null,
-		'genre'             => $genre !== '' ? $genre : null,
-		'profile_image_id'  => $profile_image_id ? (int) $profile_image_id : null,
-		'profile_image_url' => $profile_image_url,
-		'header_image_id'   => $header_image_id ? (int) $header_image_id : null,
-		'header_image_url'  => $header_image_url,
-		'link_page_id'      => $link_page_id ? (int) $link_page_id : null,
+		'name'              => $data['title'],
+		'slug'              => $data['slug'],
+		'permalink'         => $data['permalink'],
+		'bio'               => $data['bio'],
+		'local_city'        => $data['local_city'] !== '' ? $data['local_city'] : null,
+		'genre'             => $data['genre'] !== '' ? $data['genre'] : null,
+		'profile_image_id'  => $data['profile_image_id'] ? (int) $data['profile_image_id'] : null,
+		'profile_image_url' => $data['profile_image_url'] ?: null,
+		'header_image_id'   => $data['header_image_id'] ? (int) $data['header_image_id'] : null,
+		'header_image_url'  => $data['header_image_url'] ?: null,
+		'official_links'    => $data['social_links'],
+		'link_page_id'      => $data['link_page_id'] ?: null,
 	);
 }

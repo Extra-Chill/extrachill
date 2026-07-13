@@ -439,7 +439,7 @@ function extrachill_artist_platform_register_abilities() {
 		'extrachill/artist-get',
 		array(
 			'label'               => __( 'Get artist by ID', 'extrachill-artist-platform' ),
-			'description'         => __( 'Returns a single artist payload.', 'extrachill-artist-platform' ),
+			'description'         => __( 'Returns the canonical published artist profile payload, including imagery, profile details, and official links.', 'extrachill-artist-platform' ),
 			'category'            => 'extrachill-artists',
 			'input_schema'        => array(
 				'type'                 => 'object',
@@ -455,6 +455,7 @@ function extrachill_artist_platform_register_abilities() {
 					'id'                => array( 'type' => 'integer' ),
 					'name'              => array( 'type' => 'string' ),
 					'slug'              => array( 'type' => 'string' ),
+					'permalink'         => array( 'type' => 'string', 'format' => 'uri' ),
 					'bio'               => array( 'type' => 'string' ),
 					'local_city'        => array( 'type' => array( 'string', 'null' ) ),
 					'genre'             => array( 'type' => array( 'string', 'null' ) ),
@@ -462,6 +463,7 @@ function extrachill_artist_platform_register_abilities() {
 					'profile_image_url' => array( 'type' => array( 'string', 'null' ) ),
 					'header_image_id'   => array( 'type' => array( 'integer', 'null' ) ),
 					'header_image_url'  => array( 'type' => array( 'string', 'null' ) ),
+					'official_links'    => array( 'type' => 'array' ),
 					'link_page_id'      => array( 'type' => array( 'integer', 'null' ) ),
 				),
 			),
