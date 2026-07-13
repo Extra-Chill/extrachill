@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.20.1] - 2026-07-13
+
+### Fixed
+- integrate Local Scene prompt with notices
+
 ## [1.20.0] - 2026-07-13
 
 ### Added
