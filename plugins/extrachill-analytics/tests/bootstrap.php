@@ -154,12 +154,12 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 }
 if ( ! function_exists( 'get_current_blog_id' ) ) {
 	/**
-	 * Stub for get_current_blog_id().
+	 * Return the current blog fixture ID.
 	 *
-	 * @return int Always 1 in the stub.
+	 * @return int Blog ID.
 	 */
 	function get_current_blog_id() {
-		return 1;
+		return isset( $GLOBALS['extrachill_analytics_test_blog_id'] ) ? (int) $GLOBALS['extrachill_analytics_test_blog_id'] : 1;
 	}
 }
 if ( ! function_exists( 'current_user_can' ) ) {
@@ -189,22 +189,43 @@ if ( ! function_exists( 'current_user_can_for_site' ) ) {
 }
 if ( ! function_exists( 'switch_to_blog' ) ) {
 	/**
-	 * Stub for switch_to_blog().
+	 * Switch the current blog fixture ID.
 	 *
+	 * @param int $blog_id Target blog ID.
 	 * @return bool Always true.
 	 */
-	function switch_to_blog() {
+	function switch_to_blog( $blog_id ) {
+		$GLOBALS['extrachill_analytics_test_blog_stack'][] = get_current_blog_id();
+		$GLOBALS['extrachill_analytics_test_blog_id']      = (int) $blog_id;
 		return true;
 	}
 }
 if ( ! function_exists( 'restore_current_blog' ) ) {
 	/**
-	 * Stub for restore_current_blog().
+	 * Restore the prior blog fixture ID.
 	 *
-	 * @return bool Always true.
+	 * @return bool True when a prior blog was restored.
 	 */
 	function restore_current_blog() {
+		if ( empty( $GLOBALS['extrachill_analytics_test_blog_stack'] ) ) {
+			return false;
+		}
+		$GLOBALS['extrachill_analytics_test_blog_id'] = array_pop( $GLOBALS['extrachill_analytics_test_blog_stack'] );
 		return true;
+	}
+}
+if ( ! function_exists( 'home_url' ) ) {
+	/**
+	 * Return the configured home URL for the current blog fixture.
+	 *
+	 * @param string $path Optional path.
+	 * @return string Home URL.
+	 */
+	function home_url( $path = '' ) {
+		$blog_id = get_current_blog_id();
+		$homes   = isset( $GLOBALS['extrachill_analytics_test_home_urls'] ) ? $GLOBALS['extrachill_analytics_test_home_urls'] : array();
+		$home    = isset( $homes[ $blog_id ] ) ? $homes[ $blog_id ] : 'https://extrachill.com';
+		return rtrim( $home, '/' ) . '/' . ltrim( $path, '/' );
 	}
 }
 if ( ! function_exists( 'wp_parse_url' ) ) {
@@ -220,20 +241,22 @@ if ( ! function_exists( 'wp_parse_url' ) ) {
 }
 if ( ! function_exists( 'url_to_postid' ) ) {
 	/**
-	 * Stub url_to_postid against a per-test map in $GLOBALS.
-	 *
-	 * Matches the supplied URL, its trimmed path, and slash-bracketed path
-	 * against the `extrachill_ingest_url_map` map so a test can key on any form.
+	 * Capture resolver URLs and resolve against both test fixture maps.
 	 *
 	 * @param string $url URL to resolve.
 	 * @return int Post ID or 0.
 	 */
 	function url_to_postid( $url ) {
+		$GLOBALS['extrachill_analytics_test_resolved_urls'][] = $url;
+		$posts      = isset( $GLOBALS['extrachill_analytics_test_url_post_ids'] ) ? $GLOBALS['extrachill_analytics_test_url_post_ids'] : array();
 		$map        = isset( $GLOBALS['extrachill_ingest_url_map'] ) ? $GLOBALS['extrachill_ingest_url_map'] : array();
 		$url        = (string) $url;
 		$path       = isset( wp_parse_url( $url )['path'] ) ? trim( (string) wp_parse_url( $url )['path'], '/' ) : '';
 		$candidates = array( $url, $path, '/' . $path . '/' );
 		foreach ( $candidates as $candidate ) {
+			if ( isset( $posts[ $candidate ] ) ) {
+				return (int) $posts[ $candidate ];
+			}
 			if ( isset( $map[ $candidate ] ) ) {
 				return (int) $map[ $candidate ];
 			}
