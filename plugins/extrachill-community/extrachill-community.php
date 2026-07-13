@@ -45,6 +45,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-scripts.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/filter-bar.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/notice-bridge.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/local-scene-member-prompt.php';
 
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/blocks-everywhere.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-abilities-category.php';
