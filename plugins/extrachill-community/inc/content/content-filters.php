@@ -5,25 +5,111 @@
  * bbPress content transformation: Twitter/X embed handling, inline style stripping.
  */
 
+/**
+ * Cache TTL for a successful tweet oEmbed lookup (the embed HTML is effectively
+ * static). Bounded so a deleted/private tweet eventually falls back to the URL.
+ */
+if ( ! defined( 'EXTRACHILL_COMMUNITY_TWEET_OEMBED_TTL' ) ) {
+	define( 'EXTRACHILL_COMMUNITY_TWEET_OEMBED_TTL', 30 * DAY_IN_SECONDS );
+}
+
+/**
+ * Cache TTL for a failed lookup. Short, so a transient Twitter outage doesn't
+ * pin the raw URL in place for long, but long enough to stop repeated renders
+ * from hammering the endpoint while it's down.
+ */
+if ( ! defined( 'EXTRACHILL_COMMUNITY_TWEET_OEMBED_FAIL_TTL' ) ) {
+	define( 'EXTRACHILL_COMMUNITY_TWEET_OEMBED_FAIL_TTL', 5 * MINUTE_IN_SECONDS );
+}
+
+/**
+ * Transform Twitter/X status URLs into cached, latency-bounded oEmbed HTML.
+ *
+ * Each unique content body is resolved at most once per request via a static
+ * memo keyed on the content hash, so overlapping filters (the_content +
+ * bbp_get_topic_content + bbp_get_reply_content) never re-process the same
+ * body. Per-URL results are cached with the core Transients API: successes are
+ * cached long-term and failures short-term, so page latency is never coupled
+ * to Twitter's response time on repeat renders.
+ */
 function embed_tweets($content) {
+	static $processed = array();
+
+	$content_hash = md5((string) $content);
+	if ( array_key_exists($content_hash, $processed) ) {
+		return $processed[$content_hash];
+	}
+
+	// Reserve the slot before resolution so a nested filter call can't re-enter.
+	$processed[$content_hash] = $content;
+
+	if ( false === stripos($content, 'twitter.com') && false === stripos($content, 'x.com') ) {
+		return $content;
+	}
+
 	$pattern = '/https?:\/\/(?:www\.)?(twitter\.com|x\.com)\/(?:#!\/)?(\w+)\/status(?:es)?\/(\d+)/i';
 
 	$callback = function($matches) {
-		$tweet_url       = 'https://' . $matches[1] . '/' . $matches[2] . '/status/' . $matches[3];
-		$oembed_endpoint = 'https://publish.twitter.com/oembed?url=' . urlencode($tweet_url);
-		$response        = wp_remote_get($oembed_endpoint);
+		$tweet_url = 'https://' . $matches[1] . '/' . $matches[2] . '/status/' . $matches[3];
+		$html      = extrachill_community_get_tweet_oembed($tweet_url);
 
-		if ( ! is_wp_error($response) && isset($response['body']) ) {
-			$embed_data = json_decode($response['body'], true);
-			if ( $embed_data && isset($embed_data['html']) ) {
-				return '<div class="twitter-embed">' . $embed_data['html'] . '</div>';
-			}
+		if ( false === $html ) {
+			return $matches[0];
 		}
 
-		return $matches[0];
+		return '<div class="twitter-embed">' . $html . '</div>';
 	};
 
-	return preg_replace_callback($pattern, $callback, $content);
+	$processed[$content_hash] = preg_replace_callback($pattern, $callback, $content);
+	return $processed[$content_hash];
+}
+
+/**
+ * Resolve a single tweet's oEmbed HTML through the core Transients cache.
+ *
+ * Uses the core Transients API directly (the standard WP cache primitive) so
+ * no wrapper substrate is introduced. Returns the oEmbed HTML on success, or
+ * boolean false on any failure (HTTP error, malformed JSON, missing html key);
+ * the caller is responsible for the fallback markup.
+ *
+ * @param string $tweet_url Normalized https://twitter.com/.../status/<id> URL.
+ * @return string|false
+ */
+function extrachill_community_get_tweet_oembed($tweet_url) {
+	$cache_key   = 'ec_tweet_oembed_' . md5($tweet_url);
+	$cached_html = get_transient($cache_key);
+
+	/*
+	 * Sentinel values stored in the transient:
+	 *   - false  : cache miss; perform a bounded fetch below.
+	 *   - ''     : cached failure; return false so the caller renders the URL.
+	 *   - string : cached oEmbed HTML.
+	 */
+	if ( '' === $cached_html ) {
+		return false;
+	}
+	if ( is_string($cached_html) ) {
+		return $cached_html;
+	}
+
+	$oembed_endpoint = 'https://publish.twitter.com/oembed?url=' . urlencode($tweet_url);
+	$response        = wp_remote_get($oembed_endpoint, array('timeout' => 5));
+
+	$html = false;
+	if ( ! is_wp_error($response) && ! empty($response['body']) ) {
+		$embed_data = json_decode($response['body'], true);
+		if ( is_array($embed_data) && ! empty($embed_data['html']) ) {
+			$html = (string) $embed_data['html'];
+		}
+	}
+
+	if ( false === $html ) {
+		set_transient($cache_key, '', EXTRACHILL_COMMUNITY_TWEET_OEMBED_FAIL_TTL);
+		return false;
+	}
+
+	set_transient($cache_key, $html, EXTRACHILL_COMMUNITY_TWEET_OEMBED_TTL);
+	return $html;
 }
 
 add_filter('the_content', 'embed_tweets', 9);
