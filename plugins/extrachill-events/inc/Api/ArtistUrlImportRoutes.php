@@ -6,14 +6,11 @@
  * `extrachill/v1` namespace (matching `extrachill/v1/event-submissions`).
  * Migrated out of data-machine-events in extrachill-events#200.
  *
- * Compatibility (extrachill-events#200): the event-submission block
- * historically called these under the data-machine-events REST namespace
- * `datamachine/v1/artist-url/*`. To avoid breaking any cached page markup
- * or third-party consumer mid-deploy, the old `datamachine/v1` routes are
- * ALSO registered here as deprecated aliases for one release. The block's
- * own render.php is repointed to the new `extrachill/v1` paths in this same
- * change; the aliases are belt-and-braces and should be removed in a
- * follow-up once no traffic hits them.
+ * The one-release `datamachine/v1/artist-url/*` compatibility aliases that
+ * shipped with the #200 migration were retired in extrachill-events#256: the
+ * event-submission block was repointed to the canonical `extrachill/v1`
+ * paths in the same #201 change, no in-repo consumer referenced the aliases,
+ * and the compat window is closed. Only the canonical namespace is served.
  *
  * @package ExtraChillEvents\Api
  * @since   0.35.0
@@ -25,8 +22,7 @@ use ExtraChillEvents\Api\Controllers\ArtistUrlImport;
 
 defined( 'ABSPATH' ) || exit;
 
-const ARTIST_URL_NAMESPACE            = 'extrachill/v1';
-const ARTIST_URL_NAMESPACE_DEPRECATED = 'datamachine/v1';
+const ARTIST_URL_NAMESPACE = 'extrachill/v1';
 
 /**
  * Register the artist-url routes for a given namespace.
@@ -133,25 +129,13 @@ function register_artist_url_routes_for( string $route_namespace ): void {
 /**
  * Register all artist-url routes on rest_api_init.
  *
- * Registers under the canonical `extrachill/v1` namespace plus the
- * deprecated `datamachine/v1` namespace (one-release compat alias).
+ * Only the canonical `extrachill/v1` namespace is registered; the
+ * `datamachine/v1` one-release aliases were retired in extrachill-events#256.
  *
  * @return void
  */
 function register_artist_url_routes(): void {
 	register_artist_url_routes_for( ARTIST_URL_NAMESPACE );
-
-	/**
-	 * Filter whether to keep registering the deprecated `datamachine/v1`
-	 * artist-url route aliases. Defaults to true for one release so cached
-	 * page markup keeps working through a deploy. Set to false (or remove
-	 * the routes in a follow-up) once no traffic hits the old paths.
-	 *
-	 * @param bool $enabled Whether the deprecated aliases are registered.
-	 */
-	if ( (bool) apply_filters( 'extrachill_events_artist_url_legacy_routes', true ) ) {
-		register_artist_url_routes_for( ARTIST_URL_NAMESPACE_DEPRECATED );
-	}
 }
 
 add_action( 'rest_api_init', __NAMESPACE__ . '\\register_artist_url_routes' );
