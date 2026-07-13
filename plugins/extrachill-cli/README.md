@@ -108,6 +108,34 @@ installs where a `user_login` collides with a numeric user ID (e.g. a login of
 but noisy `Ambiguous user match detected` warning before the output, which
 clutters scripted captures. Omit `--user` entirely.
 
+### Analytics — Revenue
+
+Revenue commands are thin adapters over the Data Machine Business and Extra
+Chill Analytics abilities. Fetches replace the deterministic snapshot for the
+source site and period, so repeating a monthly fetch is safe.
+
+Use `--mode=additive --snapshot=<label>` only for an intentional parallel
+snapshot; the ingestion ability validates that mode and snapshot. The default
+`replace` mode owns deterministic snapshot identity in analytics.
+
+The legacy `revenue import` and `revenue batches` commands are intentionally
+retired. They bypassed the ability-owned ingestion identity and persistence
+contract; use `revenue fetch` for supported Mediavine ingestion.
+
+```bash
+# Fetch a month directly from Mediavine and replace that period's snapshot.
+wp extrachill analytics revenue fetch --start=2026-05-01 --end=2026-05-31 --period=2026-05
+
+# Inspect resolved pages without direct database access.
+wp extrachill analytics revenue pages --period=2026-05 --min-views=100 --sort-by=derived_rpm
+
+# Inspect unresolved report routes separately.
+wp extrachill analytics revenue pages --period=2026-05 --cohort=unresolved --format=csv
+
+# Run store-integrity checks. Warnings remain successful; failures exit nonzero.
+wp extrachill analytics revenue diagnose --format=json
+```
+
 ### Output Formats
 
 All list/query commands support `--format=table|json|csv`:

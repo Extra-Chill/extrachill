@@ -10,7 +10,8 @@
     "test": [
       "php tests/QRCodeCommandTest.php",
       "php tests/CrosslinkTargetsCommandTest.php",
-      "php tests/UserLocalSceneCommandTest.php"
+      "php tests/UserLocalSceneCommandTest.php",
+      "php tests/RevenueCommandTest.php"
     ]
   },
   "version_targets": [
