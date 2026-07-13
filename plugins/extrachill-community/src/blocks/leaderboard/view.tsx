@@ -1,3 +1,6 @@
+/**
+ * WordPress dependencies
+ */
 import {
 	useState,
 	useEffect,
@@ -5,6 +8,10 @@ import {
 	createRoot,
 } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+
+/**
+ * External dependencies
+ */
 import { WPNativeClient } from 'wp-native-client';
 import { WpApiFetchTransport } from 'wp-native-client/wordpress';
 import {
@@ -16,6 +23,10 @@ import {
 } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, colors, fontSize } from '@extrachill/tokens';
+
+/**
+ * Internal dependencies
+ */
 import type { LeaderboardResponse, LeaderboardEntry } from '../../types/users';
 
 const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {

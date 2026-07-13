@@ -8,8 +8,15 @@
  * `taxonomies` array — no code change here.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+
+/**
+ * Internal dependencies
+ */
 import { TermPicker } from './TermPicker';
 import type { TermPickerConfig } from './types';
 import './style.scss';

@@ -8,7 +8,15 @@
  *   into the server-rendered bbPress topic form) alongside the default
  *   block.json-discovered entries.
  */
+
+/**
+ * External dependencies
+ */
 const path = require( 'path' );
+
+/**
+ * WordPress dependencies
+ */
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
 // wp-scripts exposes `entry` as a function that discovers block entries.

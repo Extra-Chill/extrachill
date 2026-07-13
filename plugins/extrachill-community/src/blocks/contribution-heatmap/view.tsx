@@ -7,11 +7,27 @@
  * clicked — no page reload. Fetched years are cached in component state
  * (past years are immutable).
  */
+
+/**
+ * WordPress dependencies
+ */
 import { useState, useCallback, useMemo, createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+
+/**
+ * External dependencies
+ */
 import { WPNativeClient } from 'wp-native-client';
 import { WpApiFetchTransport } from 'wp-native-client/wordpress';
+
+/**
+ * WordPress dependencies
+ */
 import { __, sprintf, _n } from '@wordpress/i18n';
+
+/**
+ * Internal dependencies
+ */
 import './style.css';
 
 const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {

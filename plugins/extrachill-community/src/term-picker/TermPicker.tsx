@@ -11,6 +11,9 @@
  * and artist/festival/venue later share one implementation.
  */
 
+/**
+ * WordPress dependencies
+ */
 import {
 	useCallback,
 	useEffect,
@@ -20,6 +23,10 @@ import {
 } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
+
+/**
+ * Internal dependencies
+ */
 import type { TaxonomyConfig, Term } from './types';
 
 const SEARCH_DEBOUNCE_MS = 250;

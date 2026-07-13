@@ -1,3 +1,6 @@
+/**
+ * WordPress dependencies
+ */
 import {
 	useState,
 	useEffect,
@@ -7,6 +10,10 @@ import {
 } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { ComboboxControl } from '@wordpress/components';
+
+/**
+ * External dependencies
+ */
 import { WPNativeClient } from 'wp-native-client';
 import { WpApiFetchTransport } from 'wp-native-client/wordpress';
 import {
@@ -21,6 +28,10 @@ import {
 } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 import { cssVar, spacing, colors } from '@extrachill/tokens';
+
+/**
+ * Internal dependencies
+ */
 import type {
 	UserSettings,
 	UserProfile,
