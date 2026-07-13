@@ -103,6 +103,26 @@ function ec_remove_artist_membership( $user_id, $artist_id ) {
 	return true;
 }
 
+function wp_unslash( $value ) {
+	if ( is_string( $value ) ) {
+		return stripslashes( $value );
+	}
+
+	return $value;
+}
+
+function sanitize_hex_color( $color ) {
+	if ( '' === $color ) {
+		return '';
+	}
+
+	if ( preg_match( '|^#([A-Fa-f0-9]{3}){1,2}$|', $color ) ) {
+		return $color;
+	}
+
+	return null;
+}
+
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-list-artist-relationships.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-link-artist-relationship.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-unlink-artist-relationship.php';
@@ -110,3 +130,4 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-list-orphan-art
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-cleanup-artist-relationships.php';
 require_once dirname( __DIR__ ) . '/inc/core/filters/data.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/helpers.php';

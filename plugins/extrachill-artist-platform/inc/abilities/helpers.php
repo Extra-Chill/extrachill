@@ -206,6 +206,10 @@ function extrachill_artist_platform_sanitize_css_vars( $vars ) {
 		}
 
 		if ( strpos( $key, 'color' ) !== false || strpos( $key, '-bg' ) !== false ) {
+			if ( ! is_string( $value ) ) {
+				continue;
+			}
+
 			// Accept hex (#rgb, #rrggbb), rgb(), rgba(), hsl(), hsla() — not just hex.
 			$hex = sanitize_hex_color( $value );
 			if ( $hex ) {
