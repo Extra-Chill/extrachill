@@ -113,6 +113,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/network-bot-user.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/registration-emails.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/local-scene-migration.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/orphan-meta-cleanup.php';
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/login.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/register.php';
