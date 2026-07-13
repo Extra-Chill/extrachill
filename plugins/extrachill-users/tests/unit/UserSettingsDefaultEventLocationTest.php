@@ -213,6 +213,52 @@ class Test_User_Settings_Default_Event_Location extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Prompt dismissal is private settings state with a false default.
+	 */
+	public function test_local_scene_prompt_dismissal_is_private_and_writable(): void {
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+
+		$settings = extrachill_users_ability_get_settings();
+		$this->assertTrue( $settings['onboarding_completed'] );
+		$this->assertFalse( $settings['local_scene_prompt_dismissed'] );
+		$this->assertFalse( metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY ) );
+
+		$updated = extrachill_users_ability_update_settings( array( 'local_scene_prompt_dismissed' => true ) );
+
+		$this->assertTrue( $updated['local_scene_prompt_dismissed'] );
+		$this->assertSame( '1', get_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY, true ) );
+		$this->assertArrayNotHasKey( 'local_scene_prompt_dismissed', extrachill_users_ability_get_profile( array( 'user_id' => $user_id ) ) );
+
+		$reset = extrachill_users_ability_update_settings( array( 'local_scene_prompt_dismissed' => false ) );
+		$this->assertFalse( $reset['local_scene_prompt_dismissed'] );
+		$this->assertFalse( metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY ) );
+	}
+
+	/**
+	 * Selecting a scene resets dismissal so a later explicit clear can prompt again.
+	 */
+	public function test_selecting_local_scene_resets_prompt_dismissal(): void {
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		extrachill_users_ability_update_settings( array( 'local_scene_prompt_dismissed' => true ) );
+
+		$selected = extrachill_users_ability_update_settings(
+			array(
+				'local_scene'                  => 'charleston-sc',
+				'local_scene_prompt_dismissed' => true,
+			)
+		);
+
+		$this->assertFalse( $selected['local_scene_prompt_dismissed'] );
+		$this->assertFalse( metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY ) );
+
+		$cleared = extrachill_users_ability_update_settings( array( 'local_scene' => '' ) );
+		$this->assertNull( $cleared['local_scene'] );
+		$this->assertFalse( $cleared['local_scene_prompt_dismissed'] );
+	}
+
+	/**
 	 * Legacy storage is an idempotent fallback and canonical writes do not destroy it.
 	 */
 	public function test_legacy_default_falls_back_without_migration_write(): void {

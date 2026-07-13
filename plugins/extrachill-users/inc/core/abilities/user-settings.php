@@ -12,9 +12,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY = '_extrachill_default_event_location';
-const EXTRACHILL_USERS_LOCAL_SCENE_META_KEY            = '_extrachill_local_scene';
-const EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY = '_extrachill_local_scene_visibility';
+const EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY       = '_extrachill_default_event_location';
+const EXTRACHILL_USERS_LOCAL_SCENE_META_KEY                  = '_extrachill_local_scene';
+const EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY       = '_extrachill_local_scene_visibility';
+const EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY = '_extrachill_local_scene_prompt_dismissed';
 
 add_action( 'wp_abilities_api_init', 'extrachill_users_register_settings_abilities' );
 
@@ -58,18 +59,19 @@ function extrachill_users_register_settings_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'first_name'             => array( 'type' => 'string' ),
-					'last_name'              => array( 'type' => 'string' ),
-					'display_name'           => array( 'type' => 'string' ),
-					'local_scene'            => array(
+					'first_name'                   => array( 'type' => 'string' ),
+					'last_name'                    => array( 'type' => 'string' ),
+					'display_name'                 => array( 'type' => 'string' ),
+					'local_scene'                  => array(
 						'type'        => 'string',
 						'description' => __( 'Canonical Events location slug. Pass an empty string to clear it.', 'extrachill-users' ),
 					),
-					'local_scene_visibility' => array(
+					'local_scene_visibility'       => array(
 						'type' => 'string',
 						'enum' => array( 'public', 'private' ),
 					),
-					'default_event_location' => array(
+					'local_scene_prompt_dismissed' => array( 'type' => 'boolean' ),
+					'default_event_location'       => array(
 						'type'        => 'string',
 						'description' => __( 'Compatibility alias for local_scene.', 'extrachill-users' ),
 					),
@@ -197,16 +199,18 @@ function extrachill_users_ability_get_settings() {
 	}
 
 	return array(
-		'user_id'                => $user_id,
-		'first_name'             => $user->first_name,
-		'last_name'              => $user->last_name,
-		'display_name'           => $user->display_name,
-		'display_name_options'   => array_values( $display_name_options ),
-		'email'                  => $user->user_email,
-		'pending_email'          => $pending_email,
-		'local_scene'            => $local_scene,
-		'local_scene_visibility' => extrachill_users_get_local_scene_visibility( $user_id ),
-		'default_event_location' => $local_scene,
+		'user_id'                      => $user_id,
+		'first_name'                   => $user->first_name,
+		'last_name'                    => $user->last_name,
+		'display_name'                 => $user->display_name,
+		'display_name_options'         => array_values( $display_name_options ),
+		'email'                        => $user->user_email,
+		'pending_email'                => $pending_email,
+		'onboarding_completed'          => function_exists( 'ec_is_onboarding_complete' ) ? ec_is_onboarding_complete( $user_id ) : true,
+		'local_scene'                  => $local_scene,
+		'local_scene_visibility'       => extrachill_users_get_local_scene_visibility( $user_id ),
+		'local_scene_prompt_dismissed' => extrachill_users_get_local_scene_prompt_dismissed( $user_id ),
+		'default_event_location'       => $local_scene,
 	);
 }
 
@@ -256,6 +260,10 @@ function extrachill_users_ability_update_settings( $input ) {
 		}
 	}
 
+	if ( array_key_exists( 'local_scene_prompt_dismissed', $input ) ) {
+		$changed = extrachill_users_set_local_scene_prompt_dismissed( $user_id, (bool) $input['local_scene_prompt_dismissed'] ) || $changed;
+	}
+
 	if ( $location_input_present ) {
 		$location_input = array_key_exists( 'local_scene', $input ) ? $input['local_scene'] : $input['default_event_location'];
 		$result         = extrachill_users_set_local_scene( $user_id, (string) $location_input );
@@ -263,6 +271,10 @@ function extrachill_users_ability_update_settings( $input ) {
 			return $result;
 		}
 		$changed = $result || $changed;
+
+		if ( '' !== sanitize_title( (string) $location_input ) ) {
+			$changed = extrachill_users_set_local_scene_prompt_dismissed( $user_id, false ) || $changed;
+		}
 	}
 
 	if ( array_key_exists( 'local_scene_visibility', $input ) ) {
@@ -277,7 +289,7 @@ function extrachill_users_ability_update_settings( $input ) {
 	}
 
 	if ( ! $changed ) {
-		if ( $location_input_present || array_key_exists( 'local_scene_visibility', $input ) ) {
+		if ( $location_input_present || array_key_exists( 'local_scene_visibility', $input ) || array_key_exists( 'local_scene_prompt_dismissed', $input ) ) {
 			return extrachill_users_ability_get_settings();
 		}
 
@@ -402,6 +414,42 @@ function extrachill_users_set_local_scene_visibility( int $user_id, string $visi
 	}
 
 	update_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY, $visibility );
+	return true;
+}
+
+/**
+ * Check whether the user dismissed the Local Scene prompt.
+ *
+ * @param int $user_id User ID.
+ * @return bool Whether the prompt was dismissed.
+ */
+function extrachill_users_get_local_scene_prompt_dismissed( int $user_id ): bool {
+	return '1' === get_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY, true );
+}
+
+/**
+ * Persist the private Local Scene prompt dismissal state.
+ *
+ * False is represented by absent meta so new and reset users share the same default.
+ *
+ * @param int  $user_id   User ID.
+ * @param bool $dismissed Whether the prompt was dismissed.
+ * @return bool Whether storage changed.
+ */
+function extrachill_users_set_local_scene_prompt_dismissed( int $user_id, bool $dismissed ): bool {
+	$current = extrachill_users_get_local_scene_prompt_dismissed( $user_id );
+	$exists  = metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY );
+
+	if ( $dismissed === $current && ( $dismissed || ! $exists ) ) {
+		return false;
+	}
+
+	if ( $dismissed ) {
+		update_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY, '1' );
+	} else {
+		delete_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY );
+	}
+
 	return true;
 }
 
