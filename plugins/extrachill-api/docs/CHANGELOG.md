@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.25.1] - 2026-07-13
+
+### Fixed
+- use core post type support API in docs route
+
 ## [0.25.0] - 2026-07-13
 
 ### Added
