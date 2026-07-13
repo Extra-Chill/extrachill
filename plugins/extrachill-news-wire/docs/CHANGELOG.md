@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.1] - 2026-07-13
+
+### Fixed
+- correct Festival Wire asset dependencies
+
 ## [0.5.0] - 2026-07-12
 
 ### Added
