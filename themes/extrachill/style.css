@@ -41,6 +41,58 @@ html {
 	-ms-text-size-adjust: 100%;
 }
 
+.back-to-top {
+	align-items: center;
+	background: var(--accent-2);
+	border: 0;
+	border-radius: var(--border-radius-circle);
+	bottom: var(--spacing-lg);
+	box-shadow: var(--card-hover-shadow);
+	color: var(--button-text-color);
+	cursor: pointer;
+	display: flex;
+	height: 3rem;
+	justify-content: center;
+	left: var(--spacing-lg);
+	opacity: 0;
+	pointer-events: none;
+	position: fixed;
+	transform: translateY(0.75rem);
+	transition: opacity var(--transition-normal), transform var(--transition-normal), visibility var(--transition-normal);
+	visibility: hidden;
+	width: 3rem;
+	z-index: 1000;
+}
+
+.back-to-top.is-visible {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translateY(0);
+	visibility: visible;
+}
+
+.back-to-top:hover {
+	background: var(--link-color-hover);
+}
+
+.back-to-top:focus-visible {
+	box-shadow: var(--focus-box-shadow);
+	outline: 2px solid var(--focus-border-color);
+	outline-offset: 2px;
+}
+
+.back-to-top .ec-icon {
+	fill: currentColor;
+	height: 1.5rem;
+	width: 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.back-to-top {
+		transition: none;
+	}
+}
+
 article, aside, details, figcaption, figure, footer, header, main, nav, section {
 	display: block;
 }
