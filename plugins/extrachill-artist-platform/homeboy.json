@@ -6,6 +6,14 @@
   },
   "id": "extrachill-artist-platform",
   "remote_path": "wp-content/plugins/extrachill-artist-platform",
+  "scopes": {
+    "release": {
+      "exclude": [
+        "src/**",
+        "webpack.config.js"
+      ]
+    }
+  },
   "version_targets": [
     {
       "file": "extrachill-artist-platform.php",
