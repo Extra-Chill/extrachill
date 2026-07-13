@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.20.2] - 2026-07-13
+
+### Fixed
+- honor reply pagination on topics
+
 ## [1.20.1] - 2026-07-13
 
 ### Fixed
