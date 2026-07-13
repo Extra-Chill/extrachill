@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.20.3] - 2026-07-13
+
+### Fixed
+- restore accurate topic pagination label
+
 ## [1.20.2] - 2026-07-13
 
 ### Fixed
