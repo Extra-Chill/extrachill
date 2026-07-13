@@ -279,8 +279,7 @@
 					triggerLazyRender( calendar );
 				}
 			} )
-			.catch( function ( error ) {
-				console.error( 'Error fetching scoped events:', error );
+			.catch( function () {
 				content.innerHTML =
 					'<div class="data-machine-events-error"><p>Error loading events. Please try again.</p></div>';
 			} )

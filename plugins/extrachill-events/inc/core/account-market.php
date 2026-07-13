@@ -380,12 +380,18 @@ function extrachill_events_update_archive_scene( WP_Term $term, string $nonce ):
  * Handle the archive Local Scene form submission.
  */
 function extrachill_events_handle_archive_scene_update(): void {
-	$term = extrachill_events_get_archive_scene_term();
-	if ( null === $term || 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! isset( $_POST['extrachill_events_scene_action'] ) ) {
+	$term           = extrachill_events_get_archive_scene_term();
+	$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+	if ( null === $term || 'POST' !== $request_method || ! isset( $_POST['extrachill_events_scene_action'] ) || ! isset( $_POST['extrachill_events_scene_nonce'] ) ) {
 		return;
 	}
 
-	$nonce  = isset( $_POST['extrachill_events_scene_nonce'] ) && is_scalar( $_POST['extrachill_events_scene_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['extrachill_events_scene_nonce'] ) ) : '';
+	$nonce = isset( $_POST['extrachill_events_scene_nonce'] ) && is_scalar( $_POST['extrachill_events_scene_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['extrachill_events_scene_nonce'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'extrachill_events_save_scene_' . $term->term_id ) ) {
+		wp_safe_redirect( add_query_arg( 'scene_status', 'failed', get_term_link( $term ) ) );
+		exit;
+	}
+
 	$status = extrachill_events_update_archive_scene( $term, $nonce ) ? 'saved' : 'failed';
 	wp_safe_redirect( add_query_arg( 'scene_status', $status, get_term_link( $term ) ) );
 	exit;
@@ -405,7 +411,8 @@ function extrachill_events_render_archive_scene_cta(): void {
 	$is_logged_in = is_user_logged_in();
 	$current      = extrachill_events_get_account_market();
 	$is_current   = $current && (int) $current['term_id'] === (int) $term->term_id;
-	$status       = isset( $_GET['scene_status'] ) && is_scalar( $_GET['scene_status'] ) ? sanitize_text_field( wp_unslash( $_GET['scene_status'] ) ) : '';
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flash status set by this handler's nonce-protected redirect.
+	$status = isset( $_GET['scene_status'] ) && is_scalar( $_GET['scene_status'] ) ? sanitize_text_field( wp_unslash( $_GET['scene_status'] ) ) : '';
 
 	if ( $is_logged_in ) {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {

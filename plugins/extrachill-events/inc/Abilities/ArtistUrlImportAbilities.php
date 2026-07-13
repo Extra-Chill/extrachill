@@ -406,10 +406,14 @@ class ArtistUrlImportAbilities {
 
 		$hash     = ArtistUrlSubmissionsTable::url_hash( $normalized );
 		$existing = ArtistUrlSubmissionsTable::find_by_hash( $hash );
-		if ( $existing && in_array( $existing['status'], array(
-			ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
-			ArtistUrlSubmissionsTable::STATUS_APPROVED,
-		), true ) ) {
+		if ( $existing && in_array(
+			$existing['status'],
+			array(
+				ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
+				ArtistUrlSubmissionsTable::STATUS_APPROVED,
+			),
+			true
+		) ) {
 			return new \WP_Error(
 				'url_already_tracked',
 				__( 'This URL is already being tracked.', 'extrachill-events' ),
@@ -470,10 +474,14 @@ class ArtistUrlImportAbilities {
 
 		$hash     = ArtistUrlSubmissionsTable::url_hash( $normalized );
 		$existing = ArtistUrlSubmissionsTable::find_by_hash( $hash );
-		if ( $existing && in_array( $existing['status'], array(
-			ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
-			ArtistUrlSubmissionsTable::STATUS_APPROVED,
-		), true ) ) {
+		if ( $existing && in_array(
+			$existing['status'],
+			array(
+				ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
+				ArtistUrlSubmissionsTable::STATUS_APPROVED,
+			),
+			true
+		) ) {
 			return new \WP_Error(
 				'url_already_tracked',
 				__( 'This URL is already being tracked.', 'extrachill-events' ),
@@ -642,17 +650,17 @@ class ArtistUrlImportAbilities {
 		$artist_name = ( $artist_term && ! is_wp_error( $artist_term ) ) ? (string) $artist_term->name : 'Artist ' . $artist_term_id;
 
 		// 1. Resolve the single shared Artist Tour Import pipeline (B1).
-		//    One pipeline is reused across every approved artist URL; each
-		//    approval creates a NEW FLOW on it carrying the per-artist
-		//    config (source_url + PRE_SELECTED artist term). There is no
-		//    per-artist pipeline and no per-artist pipeline-level AI prompt.
+		// One pipeline is reused across every approved artist URL; each
+		// approval creates a NEW FLOW on it carrying the per-artist
+		// config (source_url + PRE_SELECTED artist term). There is no
+		// per-artist pipeline and no per-artist pipeline-level AI prompt.
 		$pipeline_id = $this->resolveSharedArtistImportPipeline();
 		if ( is_wp_error( $pipeline_id ) ) {
 			return $pipeline_id;
 		}
 
 		// 2. Create the flow with universal_web_scraper handler and the
-		//    SelectionMode-driven taxonomy bindings on the shared pipeline.
+		// SelectionMode-driven taxonomy bindings on the shared pipeline.
 		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
 		if ( ! $flow_ability ) {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-flow ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
@@ -765,11 +773,11 @@ class ArtistUrlImportAbilities {
 		);
 
 		// 4. Trigger first scrape immediately.
-		//    datamachine/run-flow starts the job asynchronously, so a real
-		//    immediate import count is not available. Returning null keeps the
-		//    output schema (integer|null) clean; a boolean here caused
-		//    validation failures (#221). If a future run result ever exposes a
-		//    count, use it.
+		// datamachine/run-flow starts the job asynchronously, so a real
+		// immediate import count is not available. Returning null keeps the
+		// output schema (integer|null) clean; a boolean here caused
+		// validation failures (#221). If a future run result ever exposes a
+		// count, use it.
 		$events_imported_immediately = null;
 		$run_ability                 = wp_get_ability( 'datamachine/run-flow' );
 		if ( $run_ability ) {

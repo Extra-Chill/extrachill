@@ -509,7 +509,7 @@ class EventSubmissionAbilities {
 	 * edge cases. Uses the `extrachill/branded` template — submitters get
 	 * the full EC visual identity.
 	 *
-	 * @param array $submission Submission data.
+	 * @param array  $submission Submission data.
 	 * @param string $account_claim Optional one-time claim/set-password URL for
 	 *              anonymous submitters whose account was resolved or created.
 	 *              Empty for logged-in submitters (no claim section rendered).

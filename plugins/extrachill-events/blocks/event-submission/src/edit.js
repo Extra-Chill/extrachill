@@ -65,10 +65,7 @@ export default function Edit( { attributes, setAttributes } ) {
 				<RichText
 					tagName="h3"
 					className="ec-event-submission-editor__headline"
-					placeholder={ __(
-						'Add a headline…',
-						'extrachill-events'
-					) }
+					placeholder={ __( 'Add a headline…', 'extrachill-events' ) }
 					value={ headline }
 					onChange={ ( value ) =>
 						setAttributes( { headline: value } )

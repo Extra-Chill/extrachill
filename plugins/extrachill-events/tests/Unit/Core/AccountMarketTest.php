@@ -334,8 +334,8 @@ final class AccountMarketTest extends TestCase {
 				);
 			}
 		};
-		$_GET = array();
-		$result = extrachill_events_calendar_account_market_defaults( array(), array( 'archive_term' => null ) );
+		$_GET                                   = array();
+		$result                                 = extrachill_events_calendar_account_market_defaults( array(), array( 'archive_term' => null ) );
 
 		$this->assertSame( array( 'location' => array( 1618 ) ), $result['tax_filter'] );
 		$this->assertSame( array(), $_GET );
@@ -388,7 +388,7 @@ final class AccountMarketTest extends TestCase {
 				);
 			}
 		};
-		$_GET = array( 'explore_all' => '1' );
+		$_GET                                   = array( 'explore_all' => '1' );
 
 		$this->assertTrue( extrachill_events_is_exploring_all_markets() );
 		$this->assertSame( array(), extrachill_events_calendar_account_market_defaults( array(), array( 'archive_term' => null ) ) );
@@ -449,7 +449,7 @@ final class AccountMarketTest extends TestCase {
 		$GLOBALS['test_is_front_page'] = true;
 		$this->assertTrue( extrachill_events_supports_account_market() );
 
-		$GLOBALS['test_is_front_page']     = false;
+		$GLOBALS['test_is_front_page']      = false;
 		$GLOBALS['test_is_all_events_page'] = true;
 		$this->assertTrue( extrachill_events_supports_account_market() );
 
@@ -467,9 +467,9 @@ final class AccountMarketTest extends TestCase {
 
 	public function test_router_query_flags_use_the_query_being_parsed(): void {
 		$query = new class( array( 'ec_events_router' => 'all' ) ) {
-			public bool $is_404 = true;
+			public bool $is_404     = true;
 			public bool $is_archive = false;
-			public bool $is_home = true;
+			public bool $is_home    = true;
 			private array $vars;
 
 			public function __construct( array $vars ) {
@@ -644,10 +644,10 @@ final class AccountMarketTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_archive_cta_shows_save_form_or_current_confirmation(): void {
-		$GLOBALS['test_is_tax']           = true;
+		$GLOBALS['test_is_tax']            = true;
 		$GLOBALS['test_is_user_logged_in'] = true;
-		$GLOBALS['test_queried_term']     = new WP_Term( 1618, 'Charleston', 'charleston' );
-		$GLOBALS['test_term_ancestors']   = array( 22, 1 );
+		$GLOBALS['test_queried_term']      = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors']    = array( 22, 1 );
 
 		ob_start();
 		extrachill_events_render_archive_scene_cta();
@@ -662,10 +662,10 @@ final class AccountMarketTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_archive_cta_confirms_current_scene_without_save_form(): void {
-		$GLOBALS['test_is_tax']           = true;
-		$GLOBALS['test_is_user_logged_in'] = true;
-		$GLOBALS['test_queried_term']     = new WP_Term( 1618, 'Charleston', 'charleston' );
-		$GLOBALS['test_term_ancestors']   = array( 22, 1 );
+		$GLOBALS['test_is_tax']                 = true;
+		$GLOBALS['test_is_user_logged_in']      = true;
+		$GLOBALS['test_queried_term']           = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors']         = array( 22, 1 );
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {
 				return array(
@@ -689,8 +689,8 @@ final class AccountMarketTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_archive_update_requires_login_and_nonce_and_uses_settings_ability(): void {
-		$term = new WP_Term( 1618, 'Charleston', 'charleston' );
-		$calls = new ArrayObject();
+		$term                                 = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$calls                                = new ArrayObject();
 		$GLOBALS['test_update_scene_ability'] = new class( $calls ) {
 			private ArrayObject $calls;
 			public function __construct( ArrayObject $calls ) {

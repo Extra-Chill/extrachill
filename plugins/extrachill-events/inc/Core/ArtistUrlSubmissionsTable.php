@@ -394,11 +394,13 @@ class ArtistUrlSubmissionsTable {
 		global $wpdb;
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		return (int) $wpdb->get_var( $wpdb->prepare(
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a trusted internal table name returned by self::table_name(); not user input.
-			"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status = %s",
-			$user_id,
-			self::STATUS_APPROVED
-		) );
+				"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status = %s",
+				$user_id,
+				self::STATUS_APPROVED
+			)
+		);
 	}
 }

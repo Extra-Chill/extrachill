@@ -134,7 +134,7 @@ $fail = 0;
 
 foreach ( $cases as $case ) {
 	list( $city, $state, $zip, $expected ) = $case;
-	$got = extrachill_events_get_market_slug_for_venue( $city, $state, $zip );
+	$got                                   = extrachill_events_get_market_slug_for_venue( $city, $state, $zip );
 
 	if ( $got === $expected ) {
 		++$pass;
