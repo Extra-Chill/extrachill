@@ -133,6 +133,51 @@ class Test_User_Settings_Default_Event_Location extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Onboarding persists the canonical scene and explicit visibility.
+	 */
+	public function test_onboarding_persists_private_local_scene_before_completion(): void {
+		$user_id = self::factory()->user->create( array( 'user_login' => 'sceneuser' ) );
+		update_user_meta( $user_id, 'onboarding_completed', '0' );
+
+		$result = extrachill_users_ability_complete_onboarding(
+			array(
+				'user_id'                => $user_id,
+				'username'               => 'sceneuser',
+				'user_is_artist'         => false,
+				'user_is_professional'   => false,
+				'local_scene'            => 'charleston-sc',
+				'local_scene_visibility' => 'private',
+			)
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertSame( '1', get_user_meta( $user_id, 'onboarding_completed', true ) );
+		$this->assertSame( 'charleston-sc', get_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY, true ) );
+		$this->assertSame( 'private', extrachill_users_get_local_scene_visibility( $user_id ) );
+	}
+
+	/**
+	 * A rejected scene must not mark onboarding complete.
+	 */
+	public function test_onboarding_local_scene_failure_prevents_completion(): void {
+		$user_id = self::factory()->user->create( array( 'user_login' => 'invalidsceneuser' ) );
+		update_user_meta( $user_id, 'onboarding_completed', '0' );
+
+		$result = extrachill_users_ability_complete_onboarding(
+			array(
+				'user_id'                => $user_id,
+				'username'               => 'invalidsceneuser',
+				'local_scene'            => 'not-a-scene',
+				'local_scene_visibility' => 'public',
+			)
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( '0', get_user_meta( $user_id, 'onboarding_completed', true ) );
+		$this->assertFalse( metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY ) );
+	}
+
+	/**
 	 * Non-city terms and unknown slugs are rejected.
 	 */
 	public function test_invalid_write_returns_error_without_persisting(): void {
@@ -203,7 +248,15 @@ class Test_User_Settings_Default_Event_Location extends WP_UnitTestCase {
 
 		$dry_run = extrachill_users_migrate_legacy_local_scenes( false, array( $matched, $ambiguous, $unmatched, $already ) );
 
-		$this->assertSame( array( 'matched' => 1, 'ambiguous' => 1, 'unmatched' => 1, 'already-set' => 1 ), $dry_run['totals'] );
+		$this->assertSame(
+			array(
+				'matched'     => 1,
+				'ambiguous'   => 1,
+				'unmatched'   => 1,
+				'already-set' => 1,
+			),
+			$dry_run['totals']
+		);
 		$this->assertFalse( metadata_exists( 'user', $matched, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY ) );
 
 		$applied = extrachill_users_migrate_legacy_local_scenes( true, array( $matched, $ambiguous, $unmatched, $already ) );

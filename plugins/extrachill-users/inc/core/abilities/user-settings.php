@@ -267,11 +267,11 @@ function extrachill_users_ability_update_settings( $input ) {
 
 	if ( array_key_exists( 'local_scene_visibility', $input ) ) {
 		$visibility = sanitize_key( (string) $input['local_scene_visibility'] );
-		if ( ! in_array( $visibility, array( 'public', 'private' ), true ) ) {
-			return new WP_Error( 'invalid_local_scene_visibility', __( 'Local Scene visibility must be public or private.', 'extrachill-users' ), array( 'status' => 400 ) );
+		$result     = extrachill_users_set_local_scene_visibility( $user_id, $visibility );
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
-		if ( extrachill_users_get_local_scene_visibility( $user_id ) !== $visibility || ! metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY ) ) {
-			update_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY, $visibility );
+		if ( $result ) {
 			$changed = true;
 		}
 	}
@@ -382,6 +382,27 @@ function extrachill_users_set_local_scene( int $user_id, string $value ) {
  */
 function extrachill_users_get_local_scene_visibility( int $user_id ): string {
 	return 'private' === get_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY, true ) ? 'private' : 'public';
+}
+
+/**
+ * Persist Local Scene profile visibility using the canonical meta semantics.
+ *
+ * @param int    $user_id User ID.
+ * @param string $visibility Public or private.
+ * @return bool|WP_Error Whether storage changed, or an error.
+ */
+function extrachill_users_set_local_scene_visibility( int $user_id, string $visibility ) {
+	$visibility = sanitize_key( $visibility );
+	if ( ! in_array( $visibility, array( 'public', 'private' ), true ) ) {
+		return new WP_Error( 'invalid_local_scene_visibility', __( 'Local Scene visibility must be public or private.', 'extrachill-users' ), array( 'status' => 400 ) );
+	}
+
+	if ( extrachill_users_get_local_scene_visibility( $user_id ) === $visibility && metadata_exists( 'user', $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY ) ) {
+		return false;
+	}
+
+	update_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY, $visibility );
+	return true;
 }
 
 /**

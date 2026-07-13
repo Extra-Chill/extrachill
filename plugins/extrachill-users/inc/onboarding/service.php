@@ -153,9 +153,11 @@ function ec_get_onboarding_status( $user_id ) {
 		'completed' => $completed,
 		'from_join' => $from_join,
 		'fields'    => array(
-			'username'             => $user->user_login,
-			'user_is_artist'       => '1' === get_user_meta( $user_id, 'user_is_artist', true ),
-			'user_is_professional' => '1' === get_user_meta( $user_id, 'user_is_professional', true ),
+			'username'               => $user->user_login,
+			'user_is_artist'         => '1' === get_user_meta( $user_id, 'user_is_artist', true ),
+			'user_is_professional'   => '1' === get_user_meta( $user_id, 'user_is_professional', true ),
+			'local_scene'            => extrachill_users_get_local_scene( $user_id ),
+			'local_scene_visibility' => extrachill_users_get_local_scene_visibility( $user_id ),
 		),
 	);
 }
@@ -178,10 +180,12 @@ function ec_complete_onboarding( $user_id, $data ) {
 
 	return $ability->execute(
 		array(
-			'user_id'              => absint( $user_id ),
-			'username'             => isset( $data['username'] ) ? $data['username'] : '',
-			'user_is_artist'       => ! empty( $data['user_is_artist'] ),
-			'user_is_professional' => ! empty( $data['user_is_professional'] ),
+			'user_id'                => absint( $user_id ),
+			'username'               => isset( $data['username'] ) ? $data['username'] : '',
+			'user_is_artist'         => ! empty( $data['user_is_artist'] ),
+			'user_is_professional'   => ! empty( $data['user_is_professional'] ),
+			'local_scene_visibility' => isset( $data['local_scene_visibility'] ) ? $data['local_scene_visibility'] : 'public',
+			'local_scene'            => isset( $data['local_scene'] ) ? $data['local_scene'] : '',
 		)
 	);
 }

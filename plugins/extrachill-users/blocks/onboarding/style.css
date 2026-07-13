@@ -35,7 +35,8 @@
 	font-weight: 500;
 }
 
-.onboarding-field input[type="text"] {
+.onboarding-field input[type="text"],
+.onboarding-field input[type="search"] {
 	width: 100%;
 	padding: 0.75rem;
 	border: 1px solid var(--border-color);
@@ -43,11 +44,20 @@
 	font-size: 1rem;
 }
 
-.onboarding-field input[type="text"]:focus {
+.onboarding-field input[type="text"]:focus,
+.onboarding-field input[type="search"]:focus {
 	outline: none;
 	border-color: var(--focus-border-color);
 	box-shadow: var(--focus-box-shadow);
 }
+
+.onboarding-local-scene { position: relative; }
+.onboarding-local-scene-results { position: absolute; z-index: 10; width: 100%; max-height: 12rem; overflow-y: auto; background: var(--card-background); border: 1px solid var(--border-color); border-radius: 4px; }
+.onboarding-local-scene-option { display: block; width: 100%; padding: 0.75rem; border: 0; border-bottom: 1px solid var(--border-color); background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.onboarding-local-scene-option:hover, .onboarding-local-scene-option:focus { background: var(--notice-bg); }
+.onboarding-visibility { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin: 0.75rem 0 0; padding: 0; border: 0; }
+.onboarding-visibility legend { width: 100%; margin-bottom: 0.35rem; font-size: 0.875rem; font-weight: 500; }
+.onboarding-visibility label { display: inline-flex; align-items: center; gap: 0.3rem; margin: 0; font-weight: normal; }
 
 .onboarding-field-hint {
 	display: block;

@@ -37,6 +37,7 @@ $redirect_url     = $stored_redirect ? $stored_redirect : $default_url;
 $from_join        = get_user_meta( $user_id, 'onboarding_from_join', true ) === '1';
 $user             = get_userdata( $user_id );
 $current_username = $user ? $user->user_login : '';
+ec_users_emit_onboarding_event( EC_ANALYTICS_EVENT_ONBOARDING_VIEWED, $user_id );
 ?>
 
 <div class="onboarding-container">
@@ -50,6 +51,7 @@ $current_username = $user ? $user->user_login : '';
 		data-redirect-url="<?php echo esc_attr( $redirect_url ); ?>"
 		data-from-join="<?php echo $from_join ? 'true' : 'false'; ?>"
 		data-rest-url="<?php echo esc_url( rest_url( 'extrachill/v1/' ) ); ?>"
+		data-abilities-url="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>"
 		data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 		data-username="<?php echo esc_attr( $current_username ); ?>"
 	>
@@ -68,6 +70,19 @@ $current_username = $user ? $user->user_login : '';
 					placeholder="<?php esc_attr_e( 'Your username', 'extrachill-users' ); ?>"
 				>
 				<small class="onboarding-field-hint"><?php esc_html_e( 'Letters, numbers, hyphens, and underscores only. 3-60 characters.', 'extrachill-users' ); ?></small>
+			</div>
+
+			<div class="onboarding-field onboarding-local-scene">
+				<label for="onboarding-local-scene"><?php esc_html_e( 'Local Scene (optional)', 'extrachill-users' ); ?></label>
+				<input type="search" id="onboarding-local-scene" autocomplete="off" placeholder="<?php esc_attr_e( 'Search cities and regions', 'extrachill-users' ); ?>" aria-autocomplete="list" aria-controls="onboarding-local-scene-results">
+				<input type="hidden" id="onboarding-local-scene-slug" value="">
+				<div id="onboarding-local-scene-results" class="onboarding-local-scene-results" role="listbox" hidden></div>
+				<small class="onboarding-field-hint"><?php esc_html_e( 'Find people and live music near you. You can change this anytime.', 'extrachill-users' ); ?></small>
+				<fieldset class="onboarding-visibility">
+					<legend><?php esc_html_e( 'Who can see your Local Scene?', 'extrachill-users' ); ?></legend>
+					<label><input type="radio" name="local_scene_visibility" value="public" checked> <?php esc_html_e( 'Public', 'extrachill-users' ); ?></label>
+					<label><input type="radio" name="local_scene_visibility" value="private"> <?php esc_html_e( 'Private', 'extrachill-users' ); ?></label>
+				</fieldset>
 			</div>
 
 			<div class="onboarding-field onboarding-checkboxes">

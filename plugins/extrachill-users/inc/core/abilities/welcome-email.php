@@ -76,8 +76,12 @@ function extrachill_users_ability_send_welcome_email( $input ) {
 	$user_id    = absint( $input['user_id'] );
 	$email_type = $input['email_type'];
 
-	$already_sent = get_user_meta( $user_id, 'welcome_email_sent', true );
-	if ( '1' === $already_sent ) {
+	$variant_meta = 'onboarding_complete' === $email_type ? 'welcome_email_complete_sent' : 'welcome_email_incomplete_sent';
+	$already_sent = get_user_meta( $user_id, $variant_meta, true );
+	$legacy_sent  = '1' === get_user_meta( $user_id, 'welcome_email_sent', true );
+	$was_reminder = (bool) get_user_meta( $user_id, 'onboarding_reminder_sent_at', true );
+
+	if ( '1' === $already_sent || ( $legacy_sent && ! ( 'onboarding_complete' === $email_type && $was_reminder ) ) ) {
 		return false;
 	}
 
@@ -96,6 +100,11 @@ function extrachill_users_ability_send_welcome_email( $input ) {
 
 	if ( $result ) {
 		update_user_meta( $user_id, 'welcome_email_sent', '1' );
+		update_user_meta( $user_id, $variant_meta, '1' );
+		if ( 'onboarding_incomplete' === $email_type ) {
+			update_user_meta( $user_id, 'onboarding_reminder_sent_at', time() );
+			ec_users_emit_onboarding_event( EC_ANALYTICS_EVENT_ONBOARDING_REMINDER_SENT, $user_id );
+		}
 	}
 
 	return $result;

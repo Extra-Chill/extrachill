@@ -30,21 +30,30 @@ function extrachill_users_register_onboarding_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'              => array(
+					'user_id'                => array(
 						'type'        => 'integer',
 						'description' => __( 'User ID to complete onboarding for.', 'extrachill-users' ),
 					),
-					'username'             => array(
+					'username'               => array(
 						'type'        => 'string',
 						'description' => __( 'Chosen username.', 'extrachill-users' ),
 					),
-					'user_is_artist'       => array(
+					'user_is_artist'         => array(
 						'type'        => 'boolean',
 						'description' => __( 'Whether user is a musician.', 'extrachill-users' ),
 					),
-					'user_is_professional' => array(
+					'user_is_professional'   => array(
 						'type'        => 'boolean',
 						'description' => __( 'Whether user works in the music industry.', 'extrachill-users' ),
+					),
+					'local_scene'            => array(
+						'type'        => 'string',
+						'description' => __( 'Optional canonical Local Scene slug.', 'extrachill-users' ),
+					),
+					'local_scene_visibility' => array(
+						'type'    => 'string',
+						'enum'    => array( 'public', 'private' ),
+						'default' => 'public',
 					),
 				),
 				'required'   => array( 'user_id', 'username' ),
@@ -161,14 +170,16 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 	$username             = isset( $input['username'] ) ? sanitize_user( $input['username'], true ) : '';
 	$user_is_artist       = ! empty( $input['user_is_artist'] );
 	$user_is_professional = ! empty( $input['user_is_professional'] );
+	$local_scene          = isset( $input['local_scene'] ) ? sanitize_title( (string) $input['local_scene'] ) : '';
+	$visibility           = isset( $input['local_scene_visibility'] ) ? sanitize_key( (string) $input['local_scene_visibility'] ) : 'public';
 
 	$user = get_userdata( $user_id );
 	if ( ! $user ) {
-		return new WP_Error( 'invalid_user', __( 'Invalid user.', 'extrachill-users' ) );
+		return ec_users_onboarding_error( 'invalid_user', __( 'Invalid user.', 'extrachill-users' ), $user_id );
 	}
 
 	if ( function_exists( 'ec_is_onboarding_complete' ) && ec_is_onboarding_complete( $user_id ) ) {
-		return new WP_Error( 'already_completed', __( 'Onboarding already completed.', 'extrachill-users' ) );
+		return ec_users_onboarding_error( 'already_completed', __( 'Onboarding already completed.', 'extrachill-users' ), $user_id );
 	}
 
 	// Validate username via ability.
@@ -182,17 +193,30 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 		);
 
 		if ( is_wp_error( $valid ) ) {
-			return $valid;
+			return ec_users_onboarding_error( $valid->get_error_code(), $valid->get_error_message(), $user_id );
 		}
 	}
 
 	// Join flow requires artist or professional flag.
 	$from_join = function_exists( 'ec_is_onboarding_from_join' ) && ec_is_onboarding_from_join( $user_id );
 	if ( $from_join && ! $user_is_artist && ! $user_is_professional ) {
-		return new WP_Error(
+		return ec_users_onboarding_error(
 			'artist_or_professional_required',
-			__( 'Please select "I am a musician" or "I work in the music industry" to continue.', 'extrachill-users' )
+			__( 'Please select "I am a musician" or "I work in the music industry" to continue.', 'extrachill-users' ),
+			$user_id
 		);
+	}
+
+	if ( '' !== $local_scene ) {
+		$scene_result = extrachill_users_resolve_local_scene( $local_scene );
+		if ( is_wp_error( $scene_result ) ) {
+			return ec_users_onboarding_error( $scene_result->get_error_code(), $scene_result->get_error_message(), $user_id );
+		}
+		$local_scene = $scene_result['slug'];
+	}
+
+	if ( ! in_array( $visibility, array( 'public', 'private' ), true ) ) {
+		return ec_users_onboarding_error( 'invalid_local_scene_visibility', __( 'Local Scene visibility must be public or private.', 'extrachill-users' ), $user_id );
 	}
 
 	// Update username in database.
@@ -211,8 +235,13 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 	);
 
 	if ( false === $result ) {
-		return new WP_Error( 'update_failed', __( 'Failed to update username.', 'extrachill-users' ) );
+		return ec_users_onboarding_error( 'update_failed', __( 'Failed to update username.', 'extrachill-users' ), $user_id );
 	}
+
+	if ( '' !== $local_scene ) {
+		extrachill_users_set_local_scene( $user_id, $local_scene );
+	}
+	extrachill_users_set_local_scene_visibility( $user_id, $visibility );
 
 	// Set flags and mark complete.
 	update_user_meta( $user_id, 'user_is_artist', $user_is_artist ? '1' : '0' );
@@ -233,6 +262,17 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 	 * @param array $input   Onboarding data.
 	 */
 	do_action( 'ec_onboarding_completed', $user_id, $input );
+
+	$event_data = array(
+		'has_local_scene' => '' !== $local_scene,
+		'is_artist'       => $user_is_artist,
+		'is_professional' => $user_is_professional,
+		'from_join'       => $from_join,
+	);
+	ec_users_emit_onboarding_event( EC_ANALYTICS_EVENT_ONBOARDING_COMPLETED, $user_id, $event_data );
+	if ( get_user_meta( $user_id, 'onboarding_reminder_sent_at', true ) ) {
+		ec_users_emit_onboarding_event( EC_ANALYTICS_EVENT_ONBOARDING_REMINDER_RECOVERED, $user_id, $event_data );
+	}
 
 	// Send welcome email via ability.
 	$email_ability = wp_get_ability( 'extrachill/send-welcome-email' );
@@ -297,9 +337,11 @@ function extrachill_users_ability_get_onboarding_status( $input ) {
 		'completed' => $completed,
 		'from_join' => '1' === get_user_meta( $user_id, 'onboarding_from_join', true ),
 		'fields'    => array(
-			'username'             => $user->user_login,
-			'user_is_artist'       => '1' === get_user_meta( $user_id, 'user_is_artist', true ),
-			'user_is_professional' => '1' === get_user_meta( $user_id, 'user_is_professional', true ),
+			'username'               => $user->user_login,
+			'user_is_artist'         => '1' === get_user_meta( $user_id, 'user_is_artist', true ),
+			'user_is_professional'   => '1' === get_user_meta( $user_id, 'user_is_professional', true ),
+			'local_scene'            => extrachill_users_get_local_scene( $user_id ),
+			'local_scene_visibility' => extrachill_users_get_local_scene_visibility( $user_id ),
 		),
 	);
 }
