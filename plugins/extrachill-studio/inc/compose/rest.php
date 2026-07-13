@@ -452,7 +452,7 @@ function ec_studio_compose_relay_response( $response ) {
  * @param \WP_REST_Request $request REST request.
  * @return \WP_REST_Response|\WP_Error
  */
-function ec_studio_compose_list_drafts( \WP_REST_Request $request ) {
+function ec_studio_compose_list_drafts( \WP_REST_Request $request ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required REST callback signature.
 	$guard = ec_studio_compose_require_cross_site();
 	if ( is_wp_error( $guard ) ) {
 		return $guard;
@@ -881,7 +881,7 @@ function ec_studio_compose_whitelist_post_params( $raw ): array {
 		if ( ! isset( $raw[ $field ] ) ) {
 			continue;
 		}
-		$ids = array_values(
+		$ids              = array_values(
 			array_unique(
 				array_filter(
 					array_map( 'absint', (array) $raw[ $field ] )
@@ -1193,7 +1193,8 @@ function ec_studio_compose_upload_media( \WP_REST_Request $request ) {
 		);
 	}
 
-	$files = $request->get_file_params();
+	$files = $request->get_file_params(); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This authenticated REST route has a team-member permission callback; uploaded file fields are validated below.
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- This authenticated REST route has a team-member permission callback; uploaded file fields are validated below.
 	if ( empty( $files['file'] ) && isset( $_FILES['file'] ) ) {
 		$files['file'] = $_FILES['file']; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- REST cookie nonce already validated by the auth layer; file params are validated below.
 	}

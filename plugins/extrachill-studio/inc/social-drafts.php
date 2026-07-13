@@ -64,7 +64,7 @@ function register_social_meta() {
 				'schema' => array(
 					'type'  => 'array',
 					'items' => array(
-						'type' => 'object',
+						'type'       => 'object',
 						'properties' => array(
 							'url' => array( 'type' => 'string' ),
 						),
@@ -198,11 +198,16 @@ function on_publish_crosspost( string $new_status, string $old_status, \WP_Post 
 		return;
 	}
 
-	$images       = get_post_meta( $post->ID, META_IMAGES, true ) ?: array();
-	$aspect_ratio = get_post_meta( $post->ID, META_ASPECT_RATIO, true ) ?: '4:5';
-	$media_kind   = get_post_meta( $post->ID, META_MEDIA_KIND, true ) ?: 'image';
-	$video_url    = get_post_meta( $post->ID, META_VIDEO_URL, true ) ?: '';
-	$cover_url    = get_post_meta( $post->ID, META_COVER_URL, true ) ?: '';
+	$images       = get_post_meta( $post->ID, META_IMAGES, true );
+	$images       = $images ? $images : array();
+	$aspect_ratio = get_post_meta( $post->ID, META_ASPECT_RATIO, true );
+	$aspect_ratio = $aspect_ratio ? $aspect_ratio : '4:5';
+	$media_kind   = get_post_meta( $post->ID, META_MEDIA_KIND, true );
+	$media_kind   = $media_kind ? $media_kind : 'image';
+	$video_url    = get_post_meta( $post->ID, META_VIDEO_URL, true );
+	$video_url    = $video_url ? $video_url : '';
+	$cover_url    = get_post_meta( $post->ID, META_COVER_URL, true );
+	$cover_url    = $cover_url ? $cover_url : '';
 
 	// Schedule async cross-post via DM Task System.
 	$job_id = \DataMachine\Engine\Tasks\TaskScheduler::schedule(
@@ -246,7 +251,8 @@ add_action( 'transition_post_status', __NAMESPACE__ . '\\on_publish_crosspost', 
  * @param array $results Array of result entries.
  */
 function log_publish_result( int $post_id, array $results ) {
-	$existing = get_post_meta( $post_id, META_PUBLISH_LOG, true ) ?: array();
+	$existing = get_post_meta( $post_id, META_PUBLISH_LOG, true );
+	$existing = $existing ? $existing : array();
 	$merged   = array_merge( $existing, $results );
 	update_post_meta( $post_id, META_PUBLISH_LOG, $merged );
 }
@@ -288,7 +294,7 @@ function render_admin_columns( string $column, int $post_id ) {
 			} ) );
 			$total   = count( $log );
 			/* translators: 1: success count 2: total count */
-			printf( esc_html__( '%1$d / %2$d posted', 'extrachill-studio' ), $success, $total );
+			printf( esc_html__( '%1$d / %2$d posted', 'extrachill-studio' ), absint( $success ), absint( $total ) );
 		} else {
 			$platforms = get_post_meta( $post_id, META_PLATFORMS, true );
 			if ( ! empty( $platforms ) ) {

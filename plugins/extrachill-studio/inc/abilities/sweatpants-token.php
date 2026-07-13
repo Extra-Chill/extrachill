@@ -125,9 +125,9 @@ function ec_studio_register_sweatpants_token_ability(): void {
 				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						'token'           => array( 'type' => 'string' ),
-						'expires_at'      => array( 'type' => 'integer' ),
-						'scope'           => array( 'type' => 'string' ),
+						'token'            => array( 'type' => 'string' ),
+						'expires_at'       => array( 'type' => 'integer' ),
+						'scope'            => array( 'type' => 'string' ),
 						// Callback handoff fields — populated only when the
 						// requested scope includes `callback:write`. The React
 						// tab passes these straight through to sweatpants in
@@ -143,9 +143,9 @@ function ec_studio_register_sweatpants_token_ability(): void {
 						// for a stolen browser-side copy beyond what the team
 						// member could already do, (c) it's per-deployment
 						// rotatable.
-						'callback_url'    => array( 'type' => array( 'string', 'null' ) ),
-						'callback_secret' => array( 'type' => array( 'string', 'null' ) ),
-						'callback_issuer' => array( 'type' => array( 'string', 'null' ) ),
+						'callback_url'     => array( 'type' => array( 'string', 'null' ) ),
+						'callback_secret'  => array( 'type' => array( 'string', 'null' ) ),
+						'callback_issuer'  => array( 'type' => array( 'string', 'null' ) ),
 						'callback_user_id' => array( 'type' => array( 'integer', 'null' ) ),
 					),
 				),
@@ -265,10 +265,10 @@ function ec_studio_execute_sweatpants_token( array $input ): array|\WP_Error {
 	// back to /wp-json/extrachill/v1/transcribe/callback when the job
 	// finishes. See inc/transcription/callback.php for the receiver.
 	if ( in_array( 'callback:write', $requested_scopes, true ) ) {
-		$callback_url = function_exists( 'rest_url' )
+		$callback_url                 = function_exists( 'rest_url' )
 			? rest_url( 'extrachill/v1/transcribe/callback' )
 			: '';
-		$response['callback_url']     = $callback_url ?: null;
+		$response['callback_url']     = $callback_url ? $callback_url : null;
 		$response['callback_secret']  = $secret;
 		$response['callback_issuer']  = EC_STUDIO_SWEATPANTS_TOKEN_ISSUER;
 		$response['callback_user_id'] = $user_id;

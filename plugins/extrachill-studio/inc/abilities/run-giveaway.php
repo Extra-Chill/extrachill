@@ -88,10 +88,10 @@ function ec_studio_pick_giveaway_winners( array $entries, int $count ): array {
 	// Shuffle using random_int() for crypto-secure selection.
 	$indices = range( 0, $total - 1 );
 	for ( $i = $total - 1; $i > 0; $i-- ) {
-		$j              = random_int( 0, $i );
-		$tmp            = $indices[ $i ];
-		$indices[ $i ]  = $indices[ $j ];
-		$indices[ $j ]  = $tmp;
+		$j             = random_int( 0, $i );
+		$tmp           = $indices[ $i ];
+		$indices[ $i ] = $indices[ $j ];
+		$indices[ $j ] = $tmp;
 	}
 
 	$winners = array();
@@ -247,7 +247,10 @@ function ec_studio_execute_run_giveaway( array $input ): array|\WP_Error {
 		return new \WP_Error(
 			'no_valid_entries',
 			sprintf( 'No valid entries after filtering. %d comments, %d filtered out.', $stats['total_comments'], $stats['filtered_out'] ),
-			array( 'status' => 404, 'stats' => $stats )
+			array(
+				'status' => 404,
+				'stats'  => $stats,
+			)
 		);
 	}
 
@@ -263,14 +266,14 @@ function ec_studio_execute_run_giveaway( array $input ): array|\WP_Error {
 		$message  = str_replace( '{username}', $username, $message_tpl );
 
 		$winner_data = array(
-			'rank'            => $index + 1,
-			'username'        => $username,
-			'comment_id'      => $winner['id'] ?? '',
-			'comment_text'    => $winner['text'] ?? '',
-			'mentions'        => $winner['mentions'] ?? array(),
-			'announced'       => false,
-			'reply_id'        => null,
-			'announce_error'  => null,
+			'rank'           => $index + 1,
+			'username'       => $username,
+			'comment_id'     => $winner['id'] ?? '',
+			'comment_text'   => $winner['text'] ?? '',
+			'mentions'       => $winner['mentions'] ?? array(),
+			'announced'      => false,
+			'reply_id'       => null,
+			'announce_error' => null,
 		);
 
 		if ( $announce && $reply_ability && ! empty( $winner['id'] ) ) {
