@@ -2,22 +2,22 @@
 /**
  * Get Outbound Clicks Ability
  *
- * Read-side ability that surfaces first-party, bot-filtered outbound-click
- * behaviour — where readers EXIT the Extra Chill network to external domains.
+ * Read-side ability that surfaces first-party outbound-click behaviour — where
+ * readers EXIT the Extra Chill network to external domains.
  * It reads the sibling `outbound_click` events written by the outbound-click
  * instrumentation (assets/js/outbound-tracking.js → /analytics/click → the
  * track-analytics-event ability), the cross-DOMAIN counterpart to the
  * cross-SITE conversion map.
  *
- * Why this is the bot-filtered exit channel (same guarantee get-bridge-ctr
- * documents):
+ * Why this is the first-party exit channel:
  *
  *   Each `outbound_click` row is fired client-side with sendBeacon and
- *   therefore only exists for a real, JS-executing browser. Counting them IS
- *   the bot filter — every outbound click is a human-with-JS by construction.
- *   Rows are stamped with the canonical is_bot verdict at write time and
- *   carry the anonymous first-party visitor_id (NULL under GPC/DNT opt-out,
- *   excluded from per-visitor cuts exactly like the rest of the system).
+ *   therefore only exists for a real, JS-executing browser. The generic
+ *   request classifier currently stamps these REST beacons as bots, so this
+ *   report deliberately counts outbound_click rows regardless of that stamp.
+ *   Rows carry the anonymous first-party visitor_id (NULL under GPC/DNT
+ *   opt-out, excluded from per-visitor cuts exactly like the rest of the
+ *   system).
  *
  * HONEST BY CONSTRUCTION: this event is NEW — it captures going forward only.
  * Until clicks accumulate, totals will be low or zero, and that low number is
@@ -54,7 +54,7 @@ function extrachill_analytics_register_outbound_clicks_ability() {
 		'extrachill/get-outbound-clicks',
 		array(
 			'label'               => __( 'Get Outbound Clicks', 'extrachill-analytics' ),
-			'description'         => __( 'First-party, bot-filtered outbound-click report: where readers exit the network to external domains, grouped by category, top destination host, and top source page. Deterministic from the sendBeacon outbound_click events.', 'extrachill-analytics' ),
+			'description'         => __( 'First-party outbound-click report: where readers exit the network to external domains, grouped by category, top destination host, and top source page. Deterministic from the sendBeacon outbound_click events.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -81,14 +81,14 @@ function extrachill_analytics_register_outbound_clicks_ability() {
 					),
 					'include_bots' => array(
 						'type'        => 'boolean',
-						'description' => __( 'Include rows flagged as bot at write time. Default false (humans only).', 'extrachill-analytics' ),
-						'default'     => false,
+						'description' => __( 'Deprecated compatibility option. Outbound browser beacons are always included because the generic REST bot stamp does not distinguish them from bots.', 'extrachill-analytics' ),
+						'default'     => true,
 					),
 				),
 			),
 			'output_schema'       => array(
 				'type'        => 'object',
-				'description' => __( 'Object with total, by_category, by_destination, by_source, the window, and a data-honesty note.', 'extrachill-analytics' ),
+				'description' => __( 'Object with total, by_category, by_destination, by_source, the window, and a diagnostic when stored rows lack destination dimensions.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_outbound_clicks',
 			'permission_callback' => function () {
@@ -111,10 +111,12 @@ function extrachill_analytics_register_outbound_clicks_ability() {
  *
  * Strategy: pull the in-window `outbound_click` rows (bounded by the
  * event_type + created_at index) and aggregate in PHP. event_data carries the
- * dest_host, dest_url, category, and is_bot the capture route stamped — so the
- * read does not re-derive classification, it just rolls up. Volume is low (a
- * new event), so a single bounded fetch + PHP aggregation is clearer and
- * cheaper than three GROUP-BY JSON queries.
+ * dest_host, dest_url, and category the capture route stamped — so the read
+ * does not re-derive classification, it just rolls up. The generic REST is_bot
+ * stamp is intentionally not used: browser beacons are consistently marked as
+ * bots despite being the canonical outbound signal. Volume is low (a new
+ * event), so a single bounded fetch + PHP aggregation is clearer and cheaper
+ * than three GROUP-BY JSON queries.
  *
  * @param array $input Input parameters.
  * @return array Outbound-click report.
@@ -122,12 +124,10 @@ function extrachill_analytics_register_outbound_clicks_ability() {
 function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 	global $wpdb;
 
-	$days         = isset( $input['days'] ) ? (int) $input['days'] : 28;
-	$blog_id      = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
-	$category     = isset( $input['category'] ) ? sanitize_key( (string) $input['category'] ) : '';
-	$limit        = isset( $input['limit'] ) ? max( 1, (int) $input['limit'] ) : 25;
-	$include_bots = ! empty( $input['include_bots'] );
-
+	$days       = isset( $input['days'] ) ? (int) $input['days'] : 28;
+	$blog_id    = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
+	$category   = isset( $input['category'] ) ? sanitize_key( (string) $input['category'] ) : '';
+	$limit      = isset( $input['limit'] ) ? max( 1, (int) $input['limit'] ) : 25;
 	$event_type = defined( 'EC_ANALYTICS_EVENT_OUTBOUND_CLICK' ) ? EC_ANALYTICS_EVENT_OUTBOUND_CLICK : 'outbound_click';
 
 	// Read the in-window outbound_click rows through the canonical events query
@@ -160,19 +160,15 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 		$query_args['offset'] += $query_args['limit'];
 	} while ( $page_count === $query_args['limit'] );
 
-	$total          = 0;
-	$by_category    = array();
-	$by_destination = array();
-	$by_source      = array();
+	$total                          = 0;
+	$by_category                    = array();
+	$by_destination                 = array();
+	$by_source                      = array();
+	$missing_destination_dimensions = 0;
 
 	foreach ( (array) $rows as $row ) {
 		// extrachill_get_analytics_events() returns event_data already decoded.
 		$data = is_array( $row->event_data ) ? $row->event_data : array();
-
-		// Honour the write-time bot verdict unless the caller wants everything.
-		if ( ! $include_bots && ! empty( $data['is_bot'] ) ) {
-			continue;
-		}
 
 		$dest_host = isset( $data['dest_host'] ) ? strtolower( (string) $data['dest_host'] ) : '';
 
@@ -204,6 +200,8 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 				);
 			}
 			++$by_destination[ $dest_host ]['clicks'];
+		} else {
+			++$missing_destination_dimensions;
 		}
 
 		$source = (string) $row->source_url;
@@ -248,6 +246,18 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 	);
 	$destination_rank = array_slice( $destination_rank, 0, $limit );
 
+	$diagnostic = null;
+	if ( $total > 0 && empty( $destination_rank ) ) {
+		$diagnostic = array(
+			'code'                   => 'missing_destination_dimensions',
+			'message'                => sprintf(
+				'%d outbound_click event(s) matched the requested window, but none contain a dest_host dimension.',
+				$missing_destination_dimensions
+			),
+			'rows_missing_dest_host' => $missing_destination_dimensions,
+		);
+	}
+
 	// Top source pages.
 	$source_rank = array();
 	foreach ( $by_source as $src => $count ) {
@@ -272,9 +282,10 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 		'days'           => $days,
 		'blog_id'        => $blog_id,
 		'category'       => $category,
+		'diagnostic'     => $diagnostic,
 		'period'         => $days > 0
 			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
-		'note'           => 'Outbound clicks fire client-side (sendBeacon) and are humans-with-JS by construction, so this report is bot-filtered by design. The outbound_click event is NEW — it captures exits going forward only, so totals are low/zero until clicks accumulate; that is the young-data state, not a broken query. NULL-visitor rows (GPC/DNT opt-out) are still counted in aggregate volume but excluded from any per-visitor cut, same as the rest of the system.',
+		'note'           => 'Outbound clicks fire client-side (sendBeacon) and are counted regardless of the generic REST bot stamp, which does not distinguish these browser beacons from bots. The outbound_click event captures exits going forward only, so totals are low/zero until clicks accumulate. NULL-visitor rows (GPC/DNT opt-out) are still counted in aggregate volume but excluded from any per-visitor cut, same as the rest of the system.',
 	);
 }

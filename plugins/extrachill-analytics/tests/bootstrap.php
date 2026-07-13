@@ -61,6 +61,34 @@ if ( ! function_exists( 'apply_filters' ) ) {
 		return $value;
 	}
 }
+if ( ! function_exists( 'sanitize_key' ) ) {
+	/**
+	 * Stub for sanitize_key().
+	 *
+	 * @param string $key Input key.
+	 * @return string Sanitized key.
+	 */
+	function sanitize_key( $key ) {
+		return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $key ) );
+	}
+}
+if ( ! function_exists( 'extrachill_get_analytics_events' ) ) {
+	/**
+	 * Return a paginated outbound-report fixture when configured by a test.
+	 *
+	 * @param array $args Event query arguments.
+	 * @return array<object> Fixture event rows.
+	 */
+	function extrachill_get_analytics_events( $args = array() ) {
+		$offset = isset( $args['offset'] ) ? (int) $args['offset'] : 0;
+		$limit  = isset( $args['limit'] ) ? (int) $args['limit'] : 100;
+		$rows   = isset( $GLOBALS['extrachill_analytics_outbound_fixture_rows'] )
+			? $GLOBALS['extrachill_analytics_outbound_fixture_rows']
+			: array();
+
+		return array_slice( $rows, $offset, $limit );
+	}
+}
 if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 	/**
 	 * Stub for wp_strip_all_tags().
