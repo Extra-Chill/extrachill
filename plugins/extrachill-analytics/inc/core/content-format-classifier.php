@@ -42,8 +42,8 @@ function extrachill_analytics_format_category_map() {
 		// Song meanings / lyric explainers — the HCU-dead but high-$/page legacy.
 		'song-meaning'     => array( 'song-meanings', 'song-meaning', 'lyrics', 'lyric-meanings' ),
 		// Music history / artist history / guitar history deep-dives.
-		'guitar-history'   => array( 'guitar-history', 'guitars', 'gear' ),
-		'music-history'    => array( 'music-history', 'history' ),
+		'guitar-history'   => array( 'guitar-history', 'guitars', 'gear', 'famous-guitars' ),
+		'music-history'    => array( 'music-history', 'history', 'band-art' ),
 		// Charleston / local scene — the defensible moat with an events funnel.
 		'charleston-local' => array( 'charleston', 'charleston-music', 'local', 'local-music', 'sc-music', 'south-carolina', 'columbia', 'savannah' ),
 		// Interviews / artist Q&As.

@@ -36,6 +36,8 @@ if ( ! defined( 'WP_CONTENT_DIR' ) ) {
 	define( 'WP_CONTENT_DIR', sys_get_temp_dir() . '/ec-analytics-wp-content' );
 }
 
+require_once __DIR__ . '/class-wp-post.php';
+
 // Minimal WordPress function stubs (only when a real WP is not present). These
 // are intentional polyfill stubs for the unit-test harness, written to satisfy
 // the WordPress coding standard rather than wrap WP_Filesystem.
@@ -274,8 +276,17 @@ if ( ! function_exists( 'get_post' ) ) {
 	 * @return stdClass|null
 	 */
 	function get_post( $id ) {
+		if ( $id instanceof WP_Post ) {
+			return $id;
+		}
+
+		$classifier_posts = isset( $GLOBALS['extrachill_analytics_classifier_posts'] ) ? $GLOBALS['extrachill_analytics_classifier_posts'] : array();
+		$id               = (int) $id;
+		if ( isset( $classifier_posts[ $id ] ) ) {
+			return $classifier_posts[ $id ];
+		}
+
 		$map = isset( $GLOBALS['extrachill_ingest_post_map'] ) ? $GLOBALS['extrachill_ingest_post_map'] : array();
-		$id  = (int) $id;
 		if ( isset( $map[ $id ] ) ) {
 			$post            = new stdClass();
 			$post->ID        = $id;
@@ -283,6 +294,41 @@ if ( ! function_exists( 'get_post' ) ) {
 			return $post;
 		}
 		return null;
+	}
+}
+if ( ! function_exists( 'get_permalink' ) ) {
+	/**
+	 * Return a classifier-test permalink.
+	 *
+	 * @param WP_Post|int $post Post fixture or ID.
+	 * @return string Permalink.
+	 */
+	function get_permalink( $post ) {
+		$id         = $post instanceof WP_Post ? $post->ID : (int) $post;
+		$permalinks = isset( $GLOBALS['extrachill_analytics_classifier_permalinks'] ) ? $GLOBALS['extrachill_analytics_classifier_permalinks'] : array();
+		return isset( $permalinks[ $id ] ) ? $permalinks[ $id ] : 'https://extrachill.com/post-' . $id . '/';
+	}
+}
+if ( ! function_exists( 'get_the_terms' ) ) {
+	/**
+	 * Return classifier-test category fixtures.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $taxonomy Taxonomy name.
+	 * @return array<int,object>|false Category terms or false.
+	 */
+	function get_the_terms( $post_id, $taxonomy ) {
+		$terms = isset( $GLOBALS['extrachill_analytics_classifier_terms'][ (int) $post_id ] ) ? $GLOBALS['extrachill_analytics_classifier_terms'][ (int) $post_id ] : array();
+		if ( 'category' !== $taxonomy || empty( $terms ) ) {
+			return false;
+		}
+
+		return array_map(
+			static function ( $slug ) {
+				return (object) array( 'slug' => $slug );
+			},
+			$terms
+		);
 	}
 }
 
