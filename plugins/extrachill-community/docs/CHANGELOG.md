@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.20.5] - 2026-07-14
+
+### Fixed
+- redirect retired article topics to blog posts
+
 ## [1.20.4] - 2026-07-13
 
 ### Fixed
