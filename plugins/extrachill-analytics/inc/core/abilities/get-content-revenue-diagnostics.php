@@ -303,6 +303,11 @@ function extrachill_analytics_revenue_diagnostic_totals_schema() {
 		'ratio'               => array( 'type' => 'number' ),
 		'checked'             => array( 'type' => 'integer' ),
 		'high_variance'       => array( 'type' => 'integer' ),
+		'high_rate_rows'      => array( 'type' => 'integer' ),
+		'high_rate_samples'   => array(
+			'type'  => 'array',
+			'items' => $sample,
+		),
 		'missing_batch'       => array( 'type' => 'integer' ),
 		'missing_period'      => array( 'type' => 'integer' ),
 	);
@@ -1159,13 +1164,15 @@ function extrachill_analytics_revenue_diag_views_zero_revenue( array $rows ) {
 
 /**
  * Negative / impossible values: negative views/revenue/rpm/cpm, OR rates/views
- * outside plausible ranges. This is the one check where 'fail' is warranted on a
- * genuine data-integrity violation.
+ * outside their structurally valid ranges. This is the one check where 'fail' is
+ * warranted on a genuine data-integrity violation.
  *
  * Range contract:
  *   - views, revenue, rpm, cpm: must be >= 0.
  *   - viewability, fill_rate: must be in [0, 100] (percentages).
- *   - source/derived rpm, cpm: flagged as impossibly high above 1000.
+ *   - source/derived rpm, cpm: must be finite and non-negative. High values are
+ *     warnings, not failures: a small pageview denominator can legitimately
+ *     produce an extreme rate.
  *   - impressions/pageview: must be in [0, 1000].
  *   - views: flagged as impossibly high above 1,000,000,000.
  *   - every floating-point metric must be finite.
@@ -1174,8 +1181,10 @@ function extrachill_analytics_revenue_diag_views_zero_revenue( array $rows ) {
  * @return array Check.
  */
 function extrachill_analytics_revenue_diag_negative_impossible_values( array $rows ) {
-	$bad     = array();
-	$samples = array();
+	$bad               = array();
+	$high_rate_rows    = 0;
+	$high_rate_samples = array();
+	$samples           = array();
 
 	foreach ( $rows as $r ) {
 		$issues      = array();
@@ -1216,17 +1225,21 @@ function extrachill_analytics_revenue_diag_negative_impossible_values( array $ro
 		if ( $rpm < 0 ) {
 			$issues[] = "negative source rpm ({$rpm})";
 		}
+		if ( $derived_rpm < 0 ) {
+			$issues[] = "negative derived rpm ({$derived_rpm})";
+		}
 		if ( $cpm < 0 ) {
 			$issues[] = "negative cpm ({$cpm})";
 		}
+		$high_rates = array();
 		if ( $rpm > 1000 ) {
-			$issues[] = "impossibly high source rpm ({$rpm})";
+			$high_rates[] = "high source rpm ({$rpm})";
 		}
-		if ( $derived_rpm < 0 || $derived_rpm > 1000 ) {
-			$issues[] = "derived rpm out of [0,1000] ({$derived_rpm})";
+		if ( $derived_rpm > 1000 ) {
+			$high_rates[] = "high derived rpm ({$derived_rpm})";
 		}
 		if ( $cpm > 1000 ) {
-			$issues[] = "impossibly high cpm ({$cpm})";
+			$high_rates[] = "high cpm ({$cpm})";
 		}
 		if ( $viewability < 0 || $viewability > 100 ) {
 			$issues[] = "viewability out of [0,100] ({$viewability})";
@@ -1247,18 +1260,35 @@ function extrachill_analytics_revenue_diag_negative_impossible_values( array $ro
 				);
 			}
 		}
+		if ( ! empty( $high_rates ) ) {
+			++$high_rate_rows;
+			if ( count( $high_rate_samples ) < 5 ) {
+				$high_rate_samples[] = array(
+					'slug'   => $slug,
+					'issues' => $high_rates,
+				);
+			}
+		}
 	}
 
-	$status   = empty( $bad ) ? 'pass' : 'fail';
+	$status   = ! empty( $bad ) ? 'fail' : ( $high_rate_rows > 0 ? 'warning' : 'pass' );
 	$evidence = array();
-	if ( empty( $bad ) ) {
-		$evidence[] = 'No negative, non-finite, or out-of-range values detected (views/revenue/rpm/cpm >= 0 and capped; viewability/fill_rate in [0,100]; impressions/pageview in [0,1000]).';
-	} else {
+	if ( ! empty( $bad ) ) {
 		$evidence[] = count( $bad ) . ' row(s) with negative or impossible values:';
 		foreach ( $samples as $s ) {
 			$evidence[] = "  {$s['slug']}: " . implode( '; ', $s['issues'] );
 		}
 		$evidence[] = 'Negative/out-of-range values are genuine integrity violations — investigate the import source.';
+	}
+	if ( $high_rate_rows > 0 ) {
+		$evidence[] = $high_rate_rows . ' row(s) have unusually high rate values (up to 5 shown):';
+		foreach ( $high_rate_samples as $s ) {
+			$evidence[] = "  {$s['slug']}: " . implode( '; ', $s['issues'] );
+		}
+		$evidence[] = 'High rate values are anomalies, not structurally impossible values; inspect source metrics and their denominators before treating them as corruption.';
+	}
+	if ( empty( $bad ) && 0 === $high_rate_rows ) {
+		$evidence[] = 'No negative, non-finite, or out-of-range values detected (views/revenue/rpm/cpm >= 0; viewability/fill_rate in [0,100]; impressions/pageview in [0,1000]).';
 	}
 
 	return array(
@@ -1266,8 +1296,10 @@ function extrachill_analytics_revenue_diag_negative_impossible_values( array $ro
 		'status'   => $status,
 		'evidence' => $evidence,
 		'totals'   => array(
-			'rows'    => count( $bad ),
-			'samples' => $samples,
+			'rows'              => count( $bad ),
+			'samples'           => $samples,
+			'high_rate_rows'    => $high_rate_rows,
+			'high_rate_samples' => $high_rate_samples,
 		),
 	);
 }
