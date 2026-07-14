@@ -7,6 +7,48 @@
 }
 
 /* --- Homepage Topic Actions --- */
+.community-newcomer-welcome {
+    width: 100%;
+    max-width: var(--content-width);
+    margin: 0 auto var(--spacing-xl);
+    padding: var(--spacing-xl);
+    background: linear-gradient(135deg, var(--card-background), var(--background-color));
+    border: 1px solid var(--border-color);
+    border-left: 5px solid var(--accent);
+    border-radius: var(--border-radius-xl);
+}
+
+.community-newcomer-welcome__eyebrow {
+    margin: 0 0 var(--spacing-sm);
+    color: var(--accent);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.community-newcomer-welcome h1 {
+    margin: 0 0 var(--spacing-md);
+    max-width: 13em;
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-3xl);
+    line-height: var(--line-height-tight);
+}
+
+.community-newcomer-welcome__lede {
+    max-width: 42rem;
+    margin: 0;
+    color: var(--muted-text);
+    font-size: var(--font-size-lg);
+}
+
+.community-newcomer-welcome__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+}
+
 .community-home-topic-actions {
     display: flex;
     flex-wrap: wrap;
@@ -111,6 +153,21 @@
 }
 
 @media (max-width: 480px) {
+    .community-newcomer-welcome {
+        padding: var(--spacing-lg) var(--spacing-md);
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+    }
+
+    .community-newcomer-welcome h1 {
+        font-size: var(--font-size-2xl);
+    }
+
+    .community-newcomer-welcome__lede {
+        font-size: var(--font-size-base);
+    }
+
     .community-home-topic-actions {
         justify-content: center;
     }
