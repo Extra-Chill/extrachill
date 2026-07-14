@@ -19,6 +19,25 @@ if ( ! function_exists( 'add_action' ) ) {
 	}
 }
 
+if ( ! function_exists( 'add_rewrite_tag' ) ) {
+	function add_rewrite_tag( $tag, $regex ) {
+		$GLOBALS['test_rewrite_tags'][] = array(
+			'tag'   => $tag,
+			'regex' => $regex,
+		);
+	}
+}
+
+if ( ! function_exists( 'add_rewrite_rule' ) ) {
+	function add_rewrite_rule( $regex, $query, $after ) {
+		$GLOBALS['test_rewrite_rules'][] = array(
+			'regex' => $regex,
+			'query' => $query,
+			'after' => $after,
+		);
+	}
+}
+
 if ( ! function_exists( 'is_user_logged_in' ) ) {
 	function is_user_logged_in() {
 		return (bool) ( $GLOBALS['test_is_user_logged_in'] ?? false );
@@ -463,6 +482,40 @@ final class AccountMarketTest extends TestCase {
 
 	public function test_location_directory_is_enabled_by_default(): void {
 		$this->assertTrue( extrachill_events_location_directory_enabled() );
+	}
+
+	public function test_all_events_pagination_rewrite_routes_upcoming_page_two(): void {
+		$GLOBALS['test_rewrite_rules'] = array();
+
+		extrachill_events_router_rewrite_rules();
+
+		$this->assertContains(
+			array(
+				'regex' => '^all/page/([0-9]{1,})/?$',
+				'query' => 'index.php?ec_events_router=all&paged=$matches[1]',
+				'after' => 'top',
+			),
+			$GLOBALS['test_rewrite_rules']
+		);
+	}
+
+	public function test_all_events_pagination_rewrite_keeps_past_requests_on_router_page(): void {
+		$GLOBALS['test_rewrite_rules'] = array();
+
+		extrachill_events_router_rewrite_rules();
+
+		$pagination_rule = array_values(
+			array_filter(
+				$GLOBALS['test_rewrite_rules'],
+				static function ( array $rule ): bool {
+					return '^all/page/([0-9]{1,})/?$' === $rule['regex'];
+				}
+			)
+		);
+
+		$this->assertCount( 1, $pagination_rule );
+		$this->assertSame( 'index.php?ec_events_router=all&paged=$matches[1]', $pagination_rule[0]['query'] );
+		$this->assertSame( 'past=1', (string) wp_parse_url( 'https://events.example/all/page/2/?past=1', PHP_URL_QUERY ) );
 	}
 
 	public function test_router_query_flags_use_the_query_being_parsed(): void {

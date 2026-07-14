@@ -35,6 +35,7 @@ function extrachill_events_router_rewrite_rules() {
 
 	add_rewrite_tag( '%ec_events_router%', '(all)' );
 	add_rewrite_rule( '^all/?$', 'index.php?ec_events_router=all', 'top' );
+	add_rewrite_rule( '^all/page/([0-9]{1,})/?$', 'index.php?ec_events_router=all&paged=$matches[1]', 'top' );
 
 	if ( extrachill_events_location_directory_enabled() ) {
 		add_rewrite_tag( '%ec_events_location_index%', '(1)' );
@@ -66,7 +67,7 @@ function extrachill_events_location_directory_enabled(): bool {
  * Flush rewrites once when the public location directory route is introduced.
  */
 function extrachill_events_maybe_flush_router_rewrites(): void {
-	$rewrite_version = '2';
+	$rewrite_version = '3';
 	if ( get_option( 'extrachill_events_router_rewrite_version' ) === $rewrite_version ) {
 		return;
 	}
