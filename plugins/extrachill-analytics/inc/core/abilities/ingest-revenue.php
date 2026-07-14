@@ -457,6 +457,7 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 		if ( '' === $slug ) {
 			continue;
 		}
+		$canonical_url = $post_id > 0 && function_exists( 'get_permalink' ) ? (string) get_permalink( $post_id ) : '';
 
 		if ( isset( $by_slug[ $slug ] ) ) {
 			++$duplicates;
@@ -466,6 +467,8 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 			'slug'                     => $slug,
 			'url'                      => $raw_slug,
 			'post_id'                  => $post_id,
+			'content_blog_id'          => $post_id > 0 ? $blog_id : null,
+			'canonical_url'            => $canonical_url,
 			'views'                    => isset( $input['views'] ) ? (int) $input['views'] : 0,
 			'revenue'                  => isset( $input['revenue'] ) ? (float) $input['revenue'] : 0.0,
 			'rpm'                      => isset( $input['rpm'] ) ? (float) $input['rpm'] : 0.0,
@@ -483,6 +486,41 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 	if ( $switched && function_exists( 'restore_current_blog' ) ) {
 		restore_current_blog();
 	}
+
+	// Local resolution is authoritative for the snapshot site. Resolve only the
+	// remaining host-relative paths through Network, once per unique path. This
+	// happens before the store is opened, so an incomplete scan cannot delete or
+	// replace any part of the existing snapshot.
+	$network_paths = array();
+	foreach ( $by_slug as $record ) {
+		if ( empty( $record['post_id'] ) ) {
+			$path = extrachill_analytics_revenue_frontend_path( $record['url'] );
+			if ( null !== $path ) {
+				$network_paths[ $path ] = true;
+			}
+		}
+	}
+	$network = extrachill_analytics_revenue_resolve_network_paths( array_keys( $network_paths ) );
+	if ( ! $network['success'] ) {
+		return array(
+			'success' => false,
+			'written' => false,
+			'error'   => $network['error'],
+		);
+	}
+	foreach ( $by_slug as &$record ) {
+		if ( ! empty( $record['post_id'] ) ) {
+			continue;
+		}
+		$path   = extrachill_analytics_revenue_frontend_path( $record['url'] );
+		$result = null !== $path && isset( $network['results'][ $path ] ) ? $network['results'][ $path ] : null;
+		if ( is_array( $result ) && 'resolved' === ( $result['status'] ?? '' ) && isset( $result['candidate'] ) && is_array( $result['candidate'] ) ) {
+			$record['post_id']         = (int) $result['candidate']['post_id'];
+			$record['content_blog_id'] = (int) $result['candidate']['blog_id'];
+			$record['canonical_url']   = (string) $result['candidate']['canonical_url'];
+		}
+	}
+	unset( $record );
 
 	$records = array_values( $by_slug );
 

@@ -266,6 +266,37 @@ if ( ! function_exists( 'url_to_postid' ) ) {
 		return 0;
 	}
 }
+if ( ! function_exists( 'ec_resolve_frontend_paths' ) ) {
+	/**
+	 * Test double for the Network batch resolver contract.
+	 *
+	 * @param array $paths Host-relative paths.
+	 * @param array $args Resolver arguments.
+	 * @return array Contract-shaped fixture response.
+	 */
+	function ec_resolve_frontend_paths( array $paths, array $args = array() ) {
+		unset( $args );
+		$GLOBALS['extrachill_network_resolver_calls'][] = $paths;
+		if ( ! empty( $GLOBALS['extrachill_network_resolver_incomplete'] ) ) {
+			return array(
+				'scan'    => array( 'status' => 'incomplete' ),
+				'results' => array(),
+			);
+		}
+		$fixtures = isset( $GLOBALS['extrachill_network_resolver_results'] ) ? $GLOBALS['extrachill_network_resolver_results'] : array();
+		$results  = array();
+		foreach ( $paths as $path ) {
+			$results[] = isset( $fixtures[ $path ] ) ? $fixtures[ $path ] : array(
+				'path'   => $path,
+				'status' => 'unresolved',
+			);
+		}
+		return array(
+			'scan'    => array( 'status' => 'complete' ),
+			'results' => $results,
+		);
+	}
+}
 if ( ! function_exists( 'get_post' ) ) {
 	/**
 	 * Stub get_post returning an object with post_name from a $GLOBALS map.

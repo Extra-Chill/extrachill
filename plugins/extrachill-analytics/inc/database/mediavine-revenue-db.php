@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION', '1.1' );
+define( 'EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION', '1.2' );
 define( 'EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION_OPTION', 'extrachill_analytics_revenue_db_version' );
 
 /**
@@ -63,6 +63,8 @@ function extrachill_analytics_revenue_create_table() {
 		slug varchar(400) NOT NULL DEFAULT '',
 		url varchar(2083) NOT NULL DEFAULT '',
 		post_id bigint(20) unsigned DEFAULT NULL,
+		content_blog_id int(11) unsigned DEFAULT NULL,
+		canonical_url varchar(2083) NOT NULL DEFAULT '',
 		views bigint(20) unsigned NOT NULL DEFAULT 0,
 		revenue decimal(12,4) NOT NULL DEFAULT 0,
 		rpm decimal(10,4) NOT NULL DEFAULT 0,
@@ -79,6 +81,7 @@ function extrachill_analytics_revenue_create_table() {
 		UNIQUE KEY snapshot (blog_id, slug(191), period_label, import_batch),
 		KEY slug_idx (slug(191)),
 		KEY post_id_idx (post_id),
+		KEY content_identity_idx (content_blog_id, post_id),
 		KEY blog_id_idx (blog_id),
 		KEY period_label_idx (period_label),
 		KEY period_idx (period_start, period_end),
@@ -155,6 +158,8 @@ function extrachill_analytics_revenue_upsert( array $row ) {
 		array( 'slug', '%s', isset( $row['slug'] ) ? (string) $row['slug'] : '' ),
 		array( 'url', '%s', isset( $row['url'] ) ? (string) $row['url'] : '' ),
 		array( 'post_id', null === $post_id ? 'NULL' : '%d', $post_id ),
+		array( 'content_blog_id', ! empty( $row['content_blog_id'] ) ? '%d' : 'NULL', ! empty( $row['content_blog_id'] ) ? (int) $row['content_blog_id'] : null ),
+		array( 'canonical_url', '%s', isset( $row['canonical_url'] ) ? (string) $row['canonical_url'] : '' ),
 		array( 'views', '%d', isset( $row['views'] ) ? max( 0, (int) $row['views'] ) : 0 ),
 		array( 'revenue', '%f', isset( $row['revenue'] ) ? (float) $row['revenue'] : 0.0 ),
 		array( 'rpm', '%f', isset( $row['rpm'] ) ? (float) $row['rpm'] : 0.0 ),

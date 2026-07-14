@@ -219,6 +219,10 @@ function extrachill_analytics_register_content_revenue_pages_ability() {
 									'type'        => 'integer',
 									'description' => 'WordPress post ID (0 when unresolved).',
 								),
+								'content_blog_id'          => array(
+									'type'        => 'integer',
+									'description' => 'Owning content blog ID (0 when unresolved).',
+								),
 								'title'                    => array(
 									'type'        => 'string',
 									'description' => 'Post title (resolved only, when include_post_meta).',
@@ -297,7 +301,7 @@ function extrachill_analytics_register_content_revenue_pages_ability() {
 									'description' => 'derived_rpm / cohort_median_rpm, or null when benchmark not computed.',
 								),
 							),
-							'required'   => array( 'page_key', 'cohort', 'post_id', 'title', 'url', 'path', 'categories', 'format', 'route_family', 'published_date', 'views', 'revenue', 'derived_rpm', 'source_rpm', 'cpm', 'viewability', 'fill_rate', 'impressions_per_pageview', 'dollars_per_page', 'zero_views', 'benchmark_opportunity', 'benchmark_score' ),
+							'required'   => array( 'page_key', 'cohort', 'post_id', 'content_blog_id', 'title', 'url', 'path', 'categories', 'format', 'route_family', 'published_date', 'views', 'revenue', 'derived_rpm', 'source_rpm', 'cpm', 'viewability', 'fill_rate', 'impressions_per_pageview', 'dollars_per_page', 'zero_views', 'benchmark_opportunity', 'benchmark_score' ),
 						),
 					),
 					'totals'  => array(
@@ -563,91 +567,34 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 		);
 	}
 
-	// switch_to_blog so slug->post resolution, publish-status, terms, permalink,
-	// and format classification all run against the TARGET blog. A row stamped
-	// for blog N must resolve against blog N's post table — without this, a
-	// cross-blog read resolves every slug against the wrong posts.
-	$records = extrachill_analytics_revenue_run_in_blog(
-		$blog_id,
-		static function () use ( $rows, $hostname, $include_post_meta ) {
-			$records    = array();
-			$post_cache = array();
-			$hostname   = extrachill_analytics_revenue_resolution_hostname( $hostname );
-
-			foreach ( $rows as $row ) {
-				$post_id = (int) $row->post_id;
-				if ( $post_id <= 0 && '' !== $row->slug ) {
-					$post_id = extrachill_analytics_revenue_resolve_post_id( $row->url ? $row->url : $row->slug, $hostname );
-				}
-
-				$is_content = $post_id > 0 && 'publish' === get_post_status( $post_id );
-
-				$title          = '';
-				$url            = $row->url ? $row->url : $row->slug;
-				$path           = '';
-				$categories     = array();
-				$format         = '';
-				$published_date = '';
-				$route_family   = '';
-
-				if ( $is_content ) {
-					if ( ! isset( $post_cache[ $post_id ] ) ) {
-						$post = get_post( $post_id );
-						if ( $post ) {
-							$permalink              = get_permalink( $post_id );
-							$categories_list        = get_the_terms( $post_id, 'category' );
-							$post_cache[ $post_id ] = array(
-								'title'          => $post->post_title,
-								'url'            => is_string( $permalink ) ? $permalink : '',
-								'path'           => is_string( $permalink ) ? wp_make_link_relative( $permalink ) : '',
-								'published_date' => $post->post_date,
-								'categories'     => ( is_array( $categories_list ) && ! empty( $categories_list ) )
-								? wp_list_pluck( $categories_list, 'slug' )
-								: array( 'uncategorized' ),
-								'format'         => extrachill_analytics_classify_format( $post_id ),
-							);
-						} else {
-							$post_cache[ $post_id ] = null;
-						}
-					}
-
-					$cached = $post_cache[ $post_id ];
-					if ( is_array( $cached ) ) {
-						$title          = $include_post_meta ? $cached['title'] : '';
-						$url            = $include_post_meta ? $cached['url'] : ( $row->url ? $row->url : $row->slug );
-						$path           = $include_post_meta ? $cached['path'] : '';
-						$published_date = $include_post_meta ? $cached['published_date'] : '';
-						$categories     = $cached['categories'];
-						$format         = $cached['format'];
-					}
-				} else {
-					$route_family = extrachill_analytics_revenue_classify_route_family( $row->url ? $row->url : $row->slug );
-				}
-
-				$records[] = array(
-					'page_key'                 => $is_content ? 'p' . $post_id : 'u' . md5( (string) $row->slug ),
-					'is_content'               => $is_content,
-					'post_id'                  => $is_content ? $post_id : 0,
-					'format'                   => $format,
-					'categories'               => $categories,
-					'route_family'             => $route_family,
-					'views'                    => (int) $row->views,
-					'revenue'                  => (float) $row->revenue,
-					'source_rpm'               => (float) $row->rpm,
-					'cpm'                      => (float) $row->cpm,
-					'viewability'              => (float) $row->viewability,
-					'fill_rate'                => (float) $row->fill_rate,
-					'impressions_per_pageview' => (float) $row->impressions_per_pageview,
-					'url'                      => $url,
-					'title'                    => $title,
-					'path'                     => $path,
-					'published_date'           => $published_date,
-				);
-			}
-
-			return $records;
-		}
-	);
+	$records = array();
+	foreach ( $rows as $row ) {
+		$post_id         = (int) $row->post_id;
+		$content_blog_id = ! empty( $row->content_blog_id ) ? (int) $row->content_blog_id : $blog_id;
+		$metadata        = extrachill_analytics_revenue_content_metadata( $content_blog_id, $post_id );
+		$is_content      = is_array( $metadata );
+		$source_url      = $row->url ? $row->url : $row->slug;
+		$records[]       = array(
+			'page_key'                 => $is_content ? 'p' . $content_blog_id . ':' . $post_id : 'u' . md5( (string) $row->slug ),
+			'is_content'               => $is_content,
+			'content_blog_id'          => $is_content ? $content_blog_id : 0,
+			'post_id'                  => $is_content ? $post_id : 0,
+			'format'                   => $is_content ? $metadata['format'] : '',
+			'categories'               => $is_content ? $metadata['categories'] : array(),
+			'route_family'             => $is_content ? '' : extrachill_analytics_revenue_classify_route_family( $source_url ),
+			'views'                    => (int) $row->views,
+			'revenue'                  => (float) $row->revenue,
+			'source_rpm'               => (float) $row->rpm,
+			'cpm'                      => (float) $row->cpm,
+			'viewability'              => (float) $row->viewability,
+			'fill_rate'                => (float) $row->fill_rate,
+			'impressions_per_pageview' => (float) $row->impressions_per_pageview,
+			'url'                      => $is_content && $include_post_meta ? $metadata['url'] : $source_url,
+			'title'                    => $is_content && $include_post_meta ? $metadata['title'] : '',
+			'path'                     => $is_content && $include_post_meta ? $metadata['path'] : '',
+			'published_date'           => $is_content && $include_post_meta ? $metadata['published_date'] : '',
+		);
+	}
 
 	$built = extrachill_analytics_revenue_build_pages(
 		$records,
@@ -920,6 +867,7 @@ function extrachill_analytics_revenue_build_pages( array $records, array $args )
 				'page_key'           => $key,
 				'is_content'         => $is_content,
 				'post_id'            => (int) ( isset( $rec['post_id'] ) ? $rec['post_id'] : 0 ),
+				'content_blog_id'    => (int) ( isset( $rec['content_blog_id'] ) ? $rec['content_blog_id'] : 0 ),
 				'format'             => isset( $rec['format'] ) ? (string) $rec['format'] : '',
 				'categories'         => isset( $rec['categories'] ) && is_array( $rec['categories'] ) ? array_values( $rec['categories'] ) : array(),
 				'route_family'       => isset( $rec['route_family'] ) ? (string) $rec['route_family'] : '',
@@ -987,6 +935,7 @@ function extrachill_analytics_revenue_build_pages( array $records, array $args )
 			'page_key'                 => $key,
 			'cohort'                   => $a['is_content'] ? 'resolved' : 'unresolved',
 			'post_id'                  => $a['post_id'],
+			'content_blog_id'          => $a['content_blog_id'],
 			'title'                    => $a['title'],
 			'url'                      => $a['url'],
 			'path'                     => $a['path'],

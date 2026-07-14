@@ -388,49 +388,39 @@ function extrachill_analytics_ability_get_content_revenue_diagnostics( $input ) 
 
 	$rows = extrachill_analytics_revenue_get_rows( $scope_args );
 
-	// switch_to_blog so resolution + publish-status + term/format classification
-	// all run against the TARGET blog.
-	$normalized = extrachill_analytics_revenue_run_in_blog(
-		$blog_id,
-		static function () use ( $rows, $hostname ) {
-			$normalized = array();
-			$hostname   = extrachill_analytics_revenue_resolution_hostname( $hostname );
-			foreach ( $rows as $row ) {
-				$post_id = (int) $row->post_id;
-				if ( $post_id <= 0 && '' !== $row->slug ) {
-					$post_id = extrachill_analytics_revenue_resolve_post_id( $row->url ? $row->url : $row->slug, $hostname );
-				}
-				$is_content = $post_id > 0 && 'publish' === get_post_status( $post_id );
+	$normalized = array();
+	foreach ( $rows as $row ) {
+		$post_id         = (int) $row->post_id;
+		$content_blog_id = ! empty( $row->content_blog_id ) ? (int) $row->content_blog_id : $blog_id;
+		$metadata        = extrachill_analytics_revenue_content_metadata( $content_blog_id, $post_id );
+		$is_content      = is_array( $metadata );
 
-				$views   = (int) $row->views;
-				$revenue = (float) $row->revenue;
+		$views   = (int) $row->views;
+		$revenue = (float) $row->revenue;
 
-				$normalized[] = array(
-					'period_label'             => (string) $row->period_label,
-					'import_batch'             => (string) $row->import_batch,
-					'period_start'             => $row->period_start ? (string) $row->period_start : null,
-					'period_end'               => $row->period_end ? (string) $row->period_end : null,
-					'imported_at'              => (string) $row->imported_at,
-					'slug'                     => (string) $row->slug,
-					'stored_post_id'           => (int) $row->post_id,
-					'post_id'                  => $is_content ? $post_id : 0,
-					'is_content'               => $is_content,
-					'route_family'             => $is_content ? '' : extrachill_analytics_revenue_classify_route_family( $row->url ? $row->url : $row->slug ),
-					'format'                   => $is_content ? extrachill_analytics_classify_format( $post_id ) : '',
-					'views'                    => $views,
-					'revenue'                  => $revenue,
-					'source_rpm'               => (float) $row->rpm,
-					'cpm'                      => (float) $row->cpm,
-					'viewability'              => (float) $row->viewability,
-					'fill_rate'                => (float) $row->fill_rate,
-					'impressions_per_pageview' => (float) $row->impressions_per_pageview,
-					'derived_rpm'              => $views > 0 ? round( $revenue / ( $views / 1000 ), 4 ) : 0.0,
-				);
-			}
-
-			return $normalized;
-		}
-	);
+		$normalized[] = array(
+			'period_label'             => (string) $row->period_label,
+			'import_batch'             => (string) $row->import_batch,
+			'period_start'             => $row->period_start ? (string) $row->period_start : null,
+			'period_end'               => $row->period_end ? (string) $row->period_end : null,
+			'imported_at'              => (string) $row->imported_at,
+			'slug'                     => (string) $row->slug,
+			'stored_post_id'           => (int) $row->post_id,
+			'content_blog_id'          => $is_content ? $content_blog_id : 0,
+			'post_id'                  => $is_content ? $post_id : 0,
+			'is_content'               => $is_content,
+			'route_family'             => $is_content ? '' : extrachill_analytics_revenue_classify_route_family( $row->url ? $row->url : $row->slug ),
+			'format'                   => $is_content ? $metadata['format'] : '',
+			'views'                    => $views,
+			'revenue'                  => $revenue,
+			'source_rpm'               => (float) $row->rpm,
+			'cpm'                      => (float) $row->cpm,
+			'viewability'              => (float) $row->viewability,
+			'fill_rate'                => (float) $row->fill_rate,
+			'impressions_per_pageview' => (float) $row->impressions_per_pageview,
+			'derived_rpm'              => $views > 0 ? round( $revenue / ( $views / 1000 ), 4 ) : 0.0,
+		);
+	}
 
 	// Selected periods/batches in scope.
 	$selected_periods = array();
@@ -873,7 +863,7 @@ function extrachill_analytics_revenue_diag_content_unresolved_reconciliation( ar
 
 	foreach ( $rows as $r ) {
 		$key = ! empty( $r['is_content'] )
-			? 'p' . (int) $r['post_id']
+			? 'p' . (int) ( $r['content_blog_id'] ?? 0 ) . ':' . (int) $r['post_id']
 			: 'u' . md5( isset( $r['slug'] ) ? (string) $r['slug'] : '' );
 
 		if ( ! empty( $r['is_content'] ) ) {
@@ -947,7 +937,7 @@ function extrachill_analytics_revenue_diag_resolution_coverage( array $rows ) {
 
 	foreach ( $rows as $r ) {
 		$key = ! empty( $r['is_content'] )
-			? 'p' . (int) $r['post_id']
+			? 'p' . (int) ( $r['content_blog_id'] ?? 0 ) . ':' . (int) $r['post_id']
 			: 'u' . md5( isset( $r['slug'] ) ? (string) $r['slug'] : '' );
 
 		if ( ! empty( $r['is_content'] ) ) {
@@ -1017,8 +1007,8 @@ function extrachill_analytics_revenue_diag_format_coverage( array $rows ) {
 		if ( empty( $r['is_content'] ) ) {
 			continue;
 		}
-		// Dedupe by post id — one vote per resolved page.
-		$key = 'p' . (int) $r['post_id'];
+		// Dedupe by owning content identity — one vote per resolved page.
+		$key = 'p' . (int) ( $r['content_blog_id'] ?? 0 ) . ':' . (int) $r['post_id'];
 		if ( isset( $by_format['_seen'][ $key ] ) ) {
 			continue;
 		}

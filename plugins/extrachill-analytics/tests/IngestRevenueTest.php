@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 require_once dirname( __DIR__ ) . '/inc/core/content-format-classifier.php';
 require_once dirname( __DIR__ ) . '/inc/database/mediavine-revenue-db.php';
 require_once dirname( __DIR__ ) . '/inc/core/mediavine-csv-import.php';
+require_once dirname( __DIR__ ) . '/inc/core/revenue-content-attribution.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/ingest-revenue.php';
 require_once dirname( __DIR__ ) . '/inc/database/class-extrachill-analytics-revenue-store.php';
 require_once __DIR__ . '/class-fake-revenue-store.php';
@@ -40,7 +41,8 @@ final class IngestRevenueTest extends TestCase {
 	 */
 	protected function setUp(): void {
 		$this->store = new Fake_Revenue_Store();
-		unset( $GLOBALS['extrachill_ingest_url_map'], $GLOBALS['extrachill_ingest_post_map'], $GLOBALS['extrachill_ingest_capabilities'], $GLOBALS['extrachill_ingest_site_capabilities'] );
+		unset( $GLOBALS['extrachill_ingest_url_map'], $GLOBALS['extrachill_ingest_post_map'], $GLOBALS['extrachill_ingest_capabilities'], $GLOBALS['extrachill_ingest_site_capabilities'], $GLOBALS['extrachill_network_resolver_results'], $GLOBALS['extrachill_network_resolver_incomplete'] );
+		$GLOBALS['extrachill_network_resolver_calls'] = array();
 	}
 
 	/**
@@ -188,6 +190,260 @@ final class IngestRevenueTest extends TestCase {
 
 		$this->assertSame( $totals_after_first, $this->store_totals( '2026-05' ) );
 		$this->assertSame( $first['identity']['import_batch'], $second['identity']['import_batch'] );
+	}
+
+	/**
+	 * Path-only rows resolved by Network retain snapshot scope separately from
+	 * their authoritative content identity.
+	 */
+	public function test_network_resolved_rows_persist_content_ownership(): void {
+		$GLOBALS['extrachill_network_resolver_results'] = array(
+			'/events/show/' => array(
+				'path'      => '/events/show/',
+				'status'    => 'resolved',
+				'candidate' => array(
+					'blog_id'       => 7,
+					'post_id'       => 71,
+					'canonical_url' => 'https://events.extrachill.com/events/show/',
+				),
+			),
+		);
+
+		$result = $this->ingest(
+			array(
+				array(
+					'slug'    => '/events/show/',
+					'views'   => 100,
+					'revenue' => 2.5,
+				),
+			),
+			array( 'period' => '2026-06' )
+		);
+		$row    = reset( $this->store->rows );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 1, $row['blog_id'], 'The snapshot scope remains the importing blog.' );
+		$this->assertSame( 7, $row['content_blog_id'] );
+		$this->assertSame( 71, $row['post_id'] );
+		$this->assertSame( 'https://events.extrachill.com/events/show/', $row['canonical_url'] );
+	}
+
+	/**
+	 * Incomplete network evidence aborts before the existing snapshot is read or
+	 * mutated, preserving deterministic replacement atomicity.
+	 */
+	public function test_incomplete_network_scan_aborts_before_snapshot_replacement(): void {
+		$this->ingest( $this->rows( array( 'existing' => 10.0 ) ), array( 'period' => '2026-06' ) );
+		$before                     = $this->store->rows;
+		$this->store->operation_log = array();
+		$GLOBALS['extrachill_network_resolver_incomplete'] = true;
+
+		$result = $this->ingest(
+			array(
+				array(
+					'slug'    => '/festival-wire/story/',
+					'views'   => 20,
+					'revenue' => 4.0,
+				),
+			),
+			array( 'period' => '2026-06' )
+		);
+
+		$this->assertFalse( $result['success'] );
+		$this->assertFalse( $result['written'] );
+		$this->assertSame( $before, $this->store->rows );
+		$this->assertSame( array(), $this->store->operation_log );
+	}
+
+	/**
+	 * A nominally complete scan must be a strict one-result-per-path bijection.
+	 */
+	public function test_malformed_complete_network_scan_is_rejected(): void {
+		$paths = array( '/events/show/', '/festival-wire/story/' );
+		$valid = array(
+			'scan'    => array( 'status' => 'complete' ),
+			'results' => array(
+				array(
+					'path'   => '/events/show/',
+					'status' => 'unresolved',
+				),
+				array(
+					'path'   => '/events/show/',
+					'status' => 'unresolved',
+				),
+			),
+		);
+
+		$result = extrachill_analytics_revenue_validate_network_scan( $valid, $paths );
+		$this->assertFalse( $result['success'] );
+
+		$missing_candidate = array(
+			'scan'    => array( 'status' => 'complete' ),
+			'results' => array(
+				array(
+					'path'      => '/events/show/',
+					'status'    => 'resolved',
+					'candidate' => array(),
+				),
+				array(
+					'path'   => '/festival-wire/story/',
+					'status' => 'unresolved',
+				),
+			),
+		);
+		$this->assertFalse( extrachill_analytics_revenue_validate_network_scan( $missing_candidate, $paths )['success'] );
+	}
+
+	/**
+	 * Batch boundaries retain every distinct path and never repeat resolver work.
+	 */
+	public function test_network_path_batches_retain_all_paths(): void {
+		foreach ( array( 100, 101, 200, 201 ) as $count ) {
+			$paths = array();
+			for ( $i = 0; $i < $count; ++$i ) {
+				$paths[] = '/events/test-' . $i . '/';
+			}
+			$GLOBALS['extrachill_network_resolver_calls'] = array();
+			$result                                       = extrachill_analytics_revenue_resolve_network_paths( $paths );
+			$this->assertTrue( $result['success'] );
+			$this->assertCount( $count, $result['results'] );
+			$this->assertSame( $paths, array_keys( $result['results'] ) );
+			$expected_chunks = array_fill( 0, (int) floor( $count / 100 ), 100 );
+			if ( 0 !== $count % 100 ) {
+				$expected_chunks[] = $count % 100;
+			}
+			$this->assertSame( $expected_chunks, array_map( 'count', $GLOBALS['extrachill_network_resolver_calls'] ) );
+		}
+	}
+
+	/**
+	 * Resolved evidence accepts only typed positive IDs and absolute HTTP URLs.
+	 */
+	public function test_network_resolved_evidence_requires_strict_types(): void {
+		$path = '/events/show/';
+		foreach ( array( '7', 0, -1 ) as $blog_id ) {
+			$scan = array(
+				'scan'    => array( 'status' => 'complete' ),
+				'results' => array(
+					array(
+						'path'      => $path,
+						'status'    => 'resolved',
+						'candidate' => array(
+							'blog_id'       => $blog_id,
+							'post_id'       => 7,
+							'canonical_url' => 'https://events.extrachill.com/events/show/',
+						),
+					),
+				),
+			);
+			$this->assertFalse( extrachill_analytics_revenue_validate_network_scan( $scan, array( $path ) )['success'] );
+		}
+		foreach ( array( '7', 0, -1 ) as $post_id ) {
+			$scan = array(
+				'scan'    => array( 'status' => 'complete' ),
+				'results' => array(
+					array(
+						'path'      => $path,
+						'status'    => 'resolved',
+						'candidate' => array(
+							'blog_id'       => 7,
+							'post_id'       => $post_id,
+							'canonical_url' => 'https://events.extrachill.com/events/show/',
+						),
+					),
+				),
+			);
+			$this->assertFalse( extrachill_analytics_revenue_validate_network_scan( $scan, array( $path ) )['success'] );
+		}
+		foreach ( array( '/events/show/', 'ftp://events.extrachill.com/events/show/', 'not-a-url' ) as $url ) {
+			$scan = array(
+				'scan'    => array( 'status' => 'complete' ),
+				'results' => array(
+					array(
+						'path'      => $path,
+						'status'    => 'resolved',
+						'candidate' => array(
+							'blog_id'       => 7,
+							'post_id'       => 7,
+							'canonical_url' => $url,
+						),
+					),
+				),
+			);
+			$this->assertFalse( extrachill_analytics_revenue_validate_network_scan( $scan, array( $path ) )['success'] );
+		}
+	}
+
+	/**
+	 * Events and Wire candidates retain their authoritative identity on a
+	 * deterministic re-ingest without changing source metrics or totals.
+	 */
+	public function test_network_events_and_wire_attribution_is_idempotent(): void {
+		$GLOBALS['extrachill_network_resolver_results'] = array(
+			'/events/show/'         => array(
+				'path'      => '/events/show/',
+				'status'    => 'resolved',
+				'candidate' => array(
+					'blog_id'       => 7,
+					'post_id'       => 71,
+					'canonical_url' => 'https://events.extrachill.com/events/show/',
+				),
+			),
+			'/festival-wire/story/' => array(
+				'path'      => '/festival-wire/story/',
+				'status'    => 'resolved',
+				'candidate' => array(
+					'blog_id'       => 11,
+					'post_id'       => 71,
+					'canonical_url' => 'https://wire.extrachill.com/festival-wire/story/',
+				),
+			),
+		);
+		$rows   = array(
+			array(
+				'slug'    => '/events/show/',
+				'views'   => 100,
+				'revenue' => 2.5,
+			),
+			array(
+				'slug'    => '/festival-wire/story/',
+				'views'   => 40,
+				'revenue' => 1.0,
+			),
+		);
+		$first  = $this->ingest( $rows, array( 'period' => '2026-06' ) );
+		$stored = $this->store_records( '2026-06' );
+		$second = $this->ingest( $rows, array( 'period' => '2026-06' ) );
+
+		$this->assertTrue( $first['success'] );
+		$this->assertTrue( $second['success'] );
+		$this->assertSame( 2, $second['replaced'] );
+		$this->assertSame( array( 7, 11 ), array_column( $stored, 'content_blog_id' ) );
+		$this->assertSame( array( 71, 71 ), array_column( $stored, 'post_id' ) );
+		$this->assertSame( array( 140, 3.5 ), array_values( $this->store_totals( '2026-06' ) ) );
+	}
+
+	/**
+	 * Ambiguous and unresolved Network evidence never selects a candidate.
+	 */
+	public function test_ambiguous_and_unresolved_network_rows_remain_unowned(): void {
+		$GLOBALS['extrachill_network_resolver_results'] = array(
+			'/events/ambiguous/' => array(
+				'path'       => '/events/ambiguous/',
+				'status'     => 'ambiguous',
+				'candidates' => array(),
+			),
+			'/events/missing/'   => array(
+				'path'   => '/events/missing/',
+				'status' => 'unresolved',
+			),
+		);
+		$result = $this->ingest( array( array( 'slug' => '/events/ambiguous/' ), array( 'slug' => '/events/missing/' ) ), array( 'period' => '2026-06' ) );
+		$this->assertTrue( $result['success'] );
+		foreach ( $this->store_records( '2026-06' ) as $row ) {
+			$this->assertEmpty( $row['post_id'] );
+			$this->assertEmpty( $row['content_blog_id'] );
+		}
 	}
 
 	/**

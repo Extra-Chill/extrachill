@@ -52,6 +52,49 @@ final class GetContentRevenueDiagnosticsTest extends TestCase {
 	}
 
 	/**
+	 * Diagnostics count equal post IDs independently for each owning blog.
+	 */
+	public function test_owning_site_identity_prevents_diagnostic_collisions(): void {
+		$rows           = array(
+			$this->row(
+				array(
+					'content_blog_id' => 1,
+					'post_id'         => 71,
+					'format'          => 'song-meaning',
+				)
+			),
+			$this->row(
+				array(
+					'content_blog_id' => 7,
+					'post_id'         => 71,
+					'format'          => 'events',
+				)
+			),
+			$this->row(
+				array(
+					'content_blog_id' => 11,
+					'post_id'         => 71,
+					'format'          => 'news',
+				)
+			),
+		);
+		$reconciliation = extrachill_analytics_revenue_diag_content_unresolved_reconciliation( $rows );
+		$resolution     = extrachill_analytics_revenue_diag_resolution_coverage( $rows );
+		$format         = extrachill_analytics_revenue_diag_format_coverage( $rows );
+
+		$this->assertSame( 3, $reconciliation['totals']['resolved_pages'] );
+		$this->assertSame( 3, $resolution['totals']['resolved_pages'] );
+		$this->assertSame(
+			array(
+				'song-meaning' => 1,
+				'events'       => 1,
+				'news'         => 1,
+			),
+			$format['totals']['by_format']
+		);
+	}
+
+	/**
 	 * Helper: a period-batch aggregate.
 	 *
 	 * @param array $over Overrides.
@@ -1079,17 +1122,18 @@ final class GetContentRevenueDiagnosticsTest extends TestCase {
 
 	/**
 	 * B2/B1/M2: source-string contract — the callback enforces blog
-	 * authorization, switch_to_blog around resolution, queries the independent
+	 * authorization, persisted owning-site metadata, queries the independent
 	 * scope aggregate, and freshness uses the period boundary.
 	 */
-	public function test_callback_enforces_auth_switch_independent_and_boundary(): void {
+	public function test_callback_enforces_auth_identity_independent_and_boundary(): void {
 		$source = $this->ability_source();
 
 		// Authorization helper.
 		$this->assertStringContainsString( 'extrachill_analytics_revenue_authorize_blog_read', $source );
 		$this->assertStringContainsString( 'manage_network_options', $source );
-		// switch_to_blog around resolution.
-		$this->assertStringContainsString( 'extrachill_analytics_revenue_run_in_blog', $source );
+		// Persisted ownership supplies the site context; no resolver runs during reads.
+		$this->assertStringContainsString( 'extrachill_analytics_revenue_content_metadata', $source );
+		$this->assertStringNotContainsString( 'extrachill_analytics_revenue_resolve_post_id', $source );
 		// Independent SQL aggregate for reconciliation.
 		$this->assertStringContainsString( 'extrachill_analytics_revenue_get_scope_totals', $source );
 		$this->assertStringContainsString( "'independent_totals'", $source );
