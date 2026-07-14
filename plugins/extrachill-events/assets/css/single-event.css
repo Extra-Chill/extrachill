@@ -61,6 +61,36 @@
 }
 
 /*
+ * Contextual exploration follows the conversion actions as its own full row.
+ * The shared network bridge still owns link markup and instrumentation; this
+ * consumer only composes it into the Event Details surface.
+ */
+.data-machine-event-details .event-action-buttons > .network-bridge-section {
+    flex: 1 0 100%;
+    width: 100%;
+    margin: var(--spacing-md, 1rem) 0 0;
+    text-align: left;
+}
+
+.data-machine-event-details .event-action-buttons > .network-bridge-section .network-bridge-header {
+    margin: 0 0 var(--spacing-sm, 0.5rem);
+}
+
+.data-machine-event-details .event-action-buttons > .network-bridge-section .network-bridge-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--spacing-sm, 0.5rem);
+}
+
+.data-machine-event-details .event-action-buttons > .network-bridge-section .event-exploration-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    text-align: center;
+}
+
+/*
  * Force the actual button/anchor inside each wrapper to fill its wrapper, so
  * the wrapper's width is driven by the button (not the reverse). Every button
  * already carries .button-medium, so once widths agree the heights agree too.
@@ -128,6 +158,10 @@
     .data-machine-event-details .event-action-buttons > .share-dropdown {
         flex: 0 0 auto;
         width: 100%;
+    }
+
+    .data-machine-event-details .event-action-buttons > .network-bridge-section .network-bridge-links {
+        grid-template-columns: 1fr;
     }
 
     /*
