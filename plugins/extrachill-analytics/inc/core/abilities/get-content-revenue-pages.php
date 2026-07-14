@@ -138,37 +138,41 @@ function extrachill_analytics_register_content_revenue_pages_ability() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'success' => array(
+					'success'   => array(
 						'type'        => 'boolean',
 						'description' => 'Whether the read succeeded.',
 					),
-					'rows'    => array(
+					'rows'      => array(
 						'type'        => 'integer',
 						'description' => 'Snapshot rows examined in scope.',
 					),
-					'blog_id' => array(
+					'blog_id'   => array(
 						'type'        => 'integer',
 						'description' => 'Blog ID the revenue was read for.',
 					),
-					'window'  => array(
+					'window'    => array(
 						'type'        => 'string',
 						'description' => 'Human-readable window label.',
 					),
-					'cohort'  => array(
+					'cohort'    => array(
 						'type'        => 'string',
 						'enum'        => array( 'resolved', 'unresolved', 'all' ),
 						'description' => 'Cohort filter applied.',
 					),
-					'sort_by' => array(
+					'sort_by'   => array(
 						'type'        => 'string',
 						'description' => 'Sort key applied.',
 					),
-					'order'   => array(
+					'order'     => array(
 						'type'        => 'string',
 						'enum'        => array( 'desc', 'asc' ),
 						'description' => 'Sort direction applied.',
 					),
-					'scope'   => array(
+					'ad_policy' => array(
+						'type'        => 'object',
+						'description' => 'Current site-level policy from Extra Chill Network; null fields mean not instrumented.',
+					),
+					'scope'     => array(
 						'type'       => 'object',
 						'properties' => array(
 							'requested_period' => array(
@@ -200,7 +204,7 @@ function extrachill_analytics_register_content_revenue_pages_ability() {
 						),
 						'required'   => array( 'requested_period', 'effective_period', 'effective_batch', 'defaulted', 'selected_periods', 'selected_batches' ),
 					),
-					'pages'   => array(
+					'pages'     => array(
 						'type'        => 'array',
 						'description' => 'Ranked page rows.',
 						'items'       => array(
@@ -292,6 +296,19 @@ function extrachill_analytics_register_content_revenue_pages_ability() {
 									'type'        => 'boolean',
 									'description' => 'True when views=0 but revenue may be >0.',
 								),
+								'ad_policy'                => array(
+									'type'        => 'object',
+									'description' => 'Effective network-owned ad policy for this page/route.',
+								),
+								'revenue_status'           => array(
+									'type'        => 'string',
+									'enum'        => array( 'applicable', 'not_applicable', 'unknown' ),
+									'description' => 'Whether ad-revenue performance analysis applies to this row.',
+								),
+								'policy_conflict'          => array(
+									'type'        => 'boolean',
+									'description' => 'Imported revenue is positive while policy declares ads blocked.',
+								),
 								'benchmark_opportunity'    => array(
 									'type'        => 'boolean',
 									'description' => 'True when high RPM at meaningful volume (defensible).',
@@ -301,10 +318,10 @@ function extrachill_analytics_register_content_revenue_pages_ability() {
 									'description' => 'derived_rpm / cohort_median_rpm, or null when benchmark not computed.',
 								),
 							),
-							'required'   => array( 'page_key', 'cohort', 'post_id', 'content_blog_id', 'title', 'url', 'path', 'categories', 'format', 'route_family', 'published_date', 'views', 'revenue', 'derived_rpm', 'source_rpm', 'cpm', 'viewability', 'fill_rate', 'impressions_per_pageview', 'dollars_per_page', 'zero_views', 'benchmark_opportunity', 'benchmark_score' ),
+							'required'   => array( 'page_key', 'cohort', 'post_id', 'content_blog_id', 'title', 'url', 'path', 'categories', 'format', 'route_family', 'published_date', 'views', 'revenue', 'derived_rpm', 'source_rpm', 'cpm', 'viewability', 'fill_rate', 'impressions_per_pageview', 'dollars_per_page', 'zero_views', 'ad_policy', 'revenue_status', 'policy_conflict', 'benchmark_opportunity', 'benchmark_score' ),
 						),
 					),
-					'totals'  => array(
+					'totals'    => array(
 						'type'       => 'object',
 						'properties' => array(
 							'pages_before_limit' => array(
@@ -334,7 +351,7 @@ function extrachill_analytics_register_content_revenue_pages_ability() {
 						),
 						'required'   => array( 'pages_before_limit', 'pages_returned', 'cohort_pages', 'zero_views_pages', 'views', 'revenue' ),
 					),
-					'sample'  => array(
+					'sample'    => array(
 						'type'       => 'object',
 						'properties' => array(
 							'rows_in_window'           => array(
@@ -368,11 +385,11 @@ function extrachill_analytics_register_content_revenue_pages_ability() {
 						),
 						'required'   => array( 'rows_in_window', 'resolved_pages', 'unresolved_pages', 'after_min_views', 'truncated', 'benchmark_computed', 'sufficient_for_benchmark' ),
 					),
-					'caveat'  => array(
+					'caveat'    => array(
 						'type'        => 'string',
 						'description' => 'Stable analyst caveat.',
 					),
-					'error'   => array(
+					'error'     => array(
 						'type'        => 'string',
 						'description' => 'Error message when success is false.',
 					),
@@ -420,6 +437,9 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 	$order             = isset( $input['order'] ) ? (string) $input['order'] : 'desc';
 	$limit             = isset( $input['limit'] ) ? max( 0, (int) $input['limit'] ) : 50;
 	$include_post_meta = isset( $input['include_post_meta'] ) ? (bool) $input['include_post_meta'] : true;
+	$site_policy       = extrachill_analytics_revenue_get_ad_policy(
+		extrachill_analytics_revenue_ad_policy_context( $blog_id )
+	);
 
 	if ( ! in_array( $cohort, array( 'resolved', 'unresolved', 'all' ), true ) ) {
 		$cohort = 'resolved';
@@ -450,15 +470,16 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 	$auth = extrachill_analytics_revenue_authorize_blog_read( $blog_id );
 	if ( true !== $auth ) {
 		return array(
-			'success' => false,
-			'error'   => is_string( $auth ) ? $auth : 'Permission denied.',
-			'rows'    => 0,
-			'blog_id' => $blog_id,
-			'window'  => '',
-			'cohort'  => $cohort,
-			'sort_by' => $sort_by,
-			'order'   => $order,
-			'scope'   => array(
+			'success'   => false,
+			'error'     => is_string( $auth ) ? $auth : 'Permission denied.',
+			'rows'      => 0,
+			'blog_id'   => $blog_id,
+			'window'    => '',
+			'cohort'    => $cohort,
+			'sort_by'   => $sort_by,
+			'order'     => $order,
+			'ad_policy' => $site_policy,
+			'scope'     => array(
 				'requested_period' => $requested_period,
 				'effective_period' => '',
 				'effective_batch'  => '',
@@ -466,8 +487,8 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 				'selected_periods' => array(),
 				'selected_batches' => array(),
 			),
-			'pages'   => array(),
-			'totals'  => array(
+			'pages'     => array(),
+			'totals'    => array(
 				'pages_before_limit' => 0,
 				'pages_returned'     => 0,
 				'cohort_pages'       => 0,
@@ -475,7 +496,7 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 				'views'              => 0,
 				'revenue'            => 0.0,
 			),
-			'sample'  => array(
+			'sample'    => array(
 				'rows_in_window'           => 0,
 				'resolved_pages'           => 0,
 				'unresolved_pages'         => 0,
@@ -484,7 +505,7 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 				'benchmark_computed'       => false,
 				'sufficient_for_benchmark' => false,
 			),
-			'caveat'  => __( 'Permission denied.', 'extrachill-analytics' ),
+			'caveat'    => __( 'Permission denied.', 'extrachill-analytics' ),
 		);
 	}
 
@@ -550,18 +571,19 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 
 	if ( empty( $rows ) ) {
 		return array(
-			'success' => true,
-			'rows'    => 0,
-			'blog_id' => $blog_id,
-			'window'  => extrachill_analytics_revenue_window_label( $period_start, $period_end, $effective_period ),
-			'cohort'  => $cohort,
-			'sort_by' => $sort_by,
-			'order'   => $order,
-			'scope'   => $scope_block,
-			'pages'   => array(),
-			'totals'  => $empty_totals,
-			'sample'  => $empty_sample,
-			'caveat'  => $defaulted
+			'success'   => true,
+			'rows'      => 0,
+			'blog_id'   => $blog_id,
+			'window'    => extrachill_analytics_revenue_window_label( $period_start, $period_end, $effective_period ),
+			'cohort'    => $cohort,
+			'sort_by'   => $sort_by,
+			'order'     => $order,
+			'ad_policy' => $site_policy,
+			'scope'     => $scope_block,
+			'pages'     => array(),
+			'totals'    => $empty_totals,
+			'sample'    => $empty_sample,
+			'caveat'    => $defaulted
 				? __( 'No revenue snapshots for this blog. Import a Mediavine Pages CSV first: wp extrachill analytics revenue import <csv>.', 'extrachill-analytics' )
 				: __( 'No revenue snapshots match the requested scope for this blog. Check period/batch, or import: wp extrachill analytics revenue import <csv>.', 'extrachill-analytics' ),
 		);
@@ -574,6 +596,11 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 		$metadata        = extrachill_analytics_revenue_content_metadata( $content_blog_id, $post_id );
 		$is_content      = is_array( $metadata );
 		$source_url      = $row->url ? $row->url : $row->slug;
+		$route_family    = $is_content ? '' : extrachill_analytics_revenue_classify_route_family( $source_url );
+		$post_type       = $is_content && isset( $metadata['post_type'] ) ? (string) $metadata['post_type'] : '';
+		$ad_policy       = extrachill_analytics_revenue_get_ad_policy(
+			extrachill_analytics_revenue_ad_policy_context( $content_blog_id, $source_url, $post_type, $route_family )
+		);
 		$records[]       = array(
 			'page_key'                 => $is_content ? 'p' . $content_blog_id . ':' . $post_id : 'u' . md5( (string) $row->slug ),
 			'is_content'               => $is_content,
@@ -581,7 +608,7 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 			'post_id'                  => $is_content ? $post_id : 0,
 			'format'                   => $is_content ? $metadata['format'] : '',
 			'categories'               => $is_content ? $metadata['categories'] : array(),
-			'route_family'             => $is_content ? '' : extrachill_analytics_revenue_classify_route_family( $source_url ),
+			'route_family'             => $route_family,
 			'views'                    => (int) $row->views,
 			'revenue'                  => (float) $row->revenue,
 			'source_rpm'               => (float) $row->rpm,
@@ -593,6 +620,7 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 			'title'                    => $is_content && $include_post_meta ? $metadata['title'] : '',
 			'path'                     => $is_content && $include_post_meta ? $metadata['path'] : '',
 			'published_date'           => $is_content && $include_post_meta ? $metadata['published_date'] : '',
+			'ad_policy'                => $ad_policy,
 		);
 	}
 
@@ -608,18 +636,19 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 	);
 
 	return array(
-		'success' => true,
-		'rows'    => count( $rows ),
-		'blog_id' => $blog_id,
-		'window'  => extrachill_analytics_revenue_window_label( $period_start, $period_end, $effective_period ),
-		'cohort'  => $cohort,
-		'sort_by' => $sort_by,
-		'order'   => $order,
-		'scope'   => $scope_block,
-		'pages'   => $built['pages'],
-		'totals'  => $built['totals'],
-		'sample'  => $built['sample'],
-		'caveat'  => __( 'Pages cover the requested cohort. derived_rpm = revenue / (views/1000), recomputed here; source_rpm is the Mediavine-reported rpm column — they can disagree and are kept distinct (rank on either). Pages with revenue but zero views are flagged zero_views with derived_rpm = 0 (never a division error) and revenue preserved. benchmark_opportunity flags genuinely strong RPM at meaningful volume (>= 1.5x cohort median RPM AND >= cohort median views; requires >= 5 views-positive pages). URL-variant rows of one post collapse by page_key: volume is summed, while rate metrics (source_rpm, cpm, viewability, fill_rate, impressions_per_pageview) are simple-averaged because their true impression/request denominators are not stored — derived_rpm stays the correct aggregated RPM. With no explicit scope the query defaults to the freshest dated period (never silently combines all-time + monthly + duplicates). Revenue is Mediavine-imported (the only source of ad income); never estimated.', 'extrachill-analytics' ),
+		'success'   => true,
+		'rows'      => count( $rows ),
+		'blog_id'   => $blog_id,
+		'window'    => extrachill_analytics_revenue_window_label( $period_start, $period_end, $effective_period ),
+		'cohort'    => $cohort,
+		'sort_by'   => $sort_by,
+		'order'     => $order,
+		'ad_policy' => $site_policy,
+		'scope'     => $scope_block,
+		'pages'     => $built['pages'],
+		'totals'    => $built['totals'],
+		'sample'    => $built['sample'],
+		'caveat'    => __( 'Pages cover the requested cohort. Ad policy is owned by Extra Chill Network: blocked rows remain visible with revenue_status=not_applicable, and unknown means the policy integration is not instrumented. Only policy-confirmed applicable rows participate in benchmark_opportunity; imported revenue is never altered, and policy_conflict discloses contradictory source revenue. derived_rpm = revenue / (views/1000), recomputed here; source_rpm is the Mediavine-reported rpm column — they can disagree and are kept distinct (rank on either). Pages with revenue but zero views are flagged zero_views with derived_rpm = 0 (never a division error) and revenue preserved. URL-variant rows of one post collapse by page_key: volume is summed, while rate metrics are simple-averaged because their true denominators are not stored. With no explicit scope the query defaults to the freshest dated period.', 'extrachill-analytics' ),
 	);
 }
 
@@ -882,6 +911,9 @@ function extrachill_analytics_revenue_build_pages( array $records, array $args )
 				'title'              => isset( $rec['title'] ) ? (string) $rec['title'] : '',
 				'path'               => isset( $rec['path'] ) ? (string) $rec['path'] : '',
 				'published_date'     => isset( $rec['published_date'] ) ? (string) $rec['published_date'] : '',
+				'ad_policy'          => extrachill_analytics_revenue_normalize_ad_policy( isset( $rec['ad_policy'] ) ? $rec['ad_policy'] : null ),
+				'policy_statuses'    => array(),
+				'policy_conflict'    => false,
 			);
 		}
 
@@ -890,11 +922,15 @@ function extrachill_analytics_revenue_build_pages( array $records, array $args )
 		$a['views']   += $views;
 		$a['revenue'] += (float) ( isset( $rec['revenue'] ) ? $rec['revenue'] : 0.0 );
 
-		$a['source_rpm_values'][]  = (float) ( isset( $rec['source_rpm'] ) ? $rec['source_rpm'] : 0.0 );
-		$a['cpm_values'][]         = (float) ( isset( $rec['cpm'] ) ? $rec['cpm'] : 0.0 );
-		$a['viewability_values'][] = (float) ( isset( $rec['viewability'] ) ? $rec['viewability'] : 0.0 );
-		$a['fill_rate_values'][]   = (float) ( isset( $rec['fill_rate'] ) ? $rec['fill_rate'] : 0.0 );
-		$a['impressions_values'][] = (float) ( isset( $rec['impressions_per_pageview'] ) ? $rec['impressions_per_pageview'] : 0.0 );
+		$a['source_rpm_values'][]                      = (float) ( isset( $rec['source_rpm'] ) ? $rec['source_rpm'] : 0.0 );
+		$a['cpm_values'][]                             = (float) ( isset( $rec['cpm'] ) ? $rec['cpm'] : 0.0 );
+		$a['viewability_values'][]                     = (float) ( isset( $rec['viewability'] ) ? $rec['viewability'] : 0.0 );
+		$a['fill_rate_values'][]                       = (float) ( isset( $rec['fill_rate'] ) ? $rec['fill_rate'] : 0.0 );
+		$a['impressions_values'][]                     = (float) ( isset( $rec['impressions_per_pageview'] ) ? $rec['impressions_per_pageview'] : 0.0 );
+		$record_policy                                 = extrachill_analytics_revenue_normalize_ad_policy( isset( $rec['ad_policy'] ) ? $rec['ad_policy'] : null );
+		$record_policy_status                          = extrachill_analytics_revenue_policy_status( $record_policy );
+		$a['policy_statuses'][ $record_policy_status ] = isset( $a['policy_statuses'][ $record_policy_status ] ) ? $a['policy_statuses'][ $record_policy_status ] + 1 : 1;
+		$a['policy_conflict']                          = $a['policy_conflict'] || extrachill_analytics_revenue_policy_conflicts( $record_policy, isset( $rec['revenue'] ) ? $rec['revenue'] : 0.0 );
 		unset( $a );
 	}
 
@@ -928,8 +964,15 @@ function extrachill_analytics_revenue_build_pages( array $records, array $args )
 		$fill_rate   = extrachill_analytics_revenue_simple_average( $a['fill_rate_values'] );
 		$impressions = extrachill_analytics_revenue_simple_average( $a['impressions_values'] );
 
-		$zero_views  = $views <= 0;
-		$derived_rpm = $views > 0 ? round( $revenue / ( $views / 1000 ), 4 ) : 0.0;
+		$zero_views     = $views <= 0;
+		$derived_rpm    = $views > 0 ? round( $revenue / ( $views / 1000 ), 4 ) : 0.0;
+		$revenue_status = extrachill_analytics_revenue_aggregate_policy_status( $a['policy_statuses'] );
+		$ad_policy      = $a['ad_policy'];
+		if ( 'mixed' === $revenue_status ) {
+			$ad_policy           = extrachill_analytics_revenue_normalize_ad_policy( null );
+			$ad_policy['reason'] = 'mixed_policy';
+			$revenue_status      = 'unknown';
+		}
 
 		$pages[ $key ] = array(
 			'page_key'                 => $key,
@@ -953,6 +996,9 @@ function extrachill_analytics_revenue_build_pages( array $records, array $args )
 			'impressions_per_pageview' => round( $impressions, 4 ),
 			'dollars_per_page'         => round( $revenue, 4 ),
 			'zero_views'               => $zero_views,
+			'ad_policy'                => $ad_policy,
+			'revenue_status'           => $revenue_status,
+			'policy_conflict'          => (bool) $a['policy_conflict'],
 			'benchmark_opportunity'    => false,
 			'benchmark_score'          => null,
 		);
@@ -964,7 +1010,7 @@ function extrachill_analytics_revenue_build_pages( array $records, array $args )
 	$sufficient_for_benchmark = false;
 	$views_positive           = array();
 	foreach ( $pages as $p ) {
-		if ( $p['views'] > 0 ) {
+		if ( $p['views'] > 0 && 'applicable' === $p['revenue_status'] ) {
 			$views_positive[] = $p;
 		}
 	}
@@ -988,6 +1034,9 @@ function extrachill_analytics_revenue_build_pages( array $records, array $args )
 		$median_views             = extrachill_analytics_revenue_median( $views_values );
 
 		foreach ( $pages as $key => $p ) {
+			if ( 'applicable' !== $p['revenue_status'] ) {
+				continue;
+			}
 			if ( $p['views'] <= 0 || $median_rpm <= 0 ) {
 				$pages[ $key ]['benchmark_score'] = $p['views'] > 0 ? 0.0 : null;
 				continue;

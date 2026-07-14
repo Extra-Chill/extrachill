@@ -242,6 +242,7 @@ function extrachill_analytics_revenue_diagnostic_totals_schema() {
 			'source_rpm'  => array( 'type' => 'number' ),
 			'derived_rpm' => array( 'type' => 'number' ),
 			'relative'    => array( 'type' => 'number' ),
+			'reason'      => array( 'type' => 'string' ),
 		),
 	);
 
@@ -310,6 +311,10 @@ function extrachill_analytics_revenue_diagnostic_totals_schema() {
 		),
 		'missing_batch'       => array( 'type' => 'integer' ),
 		'missing_period'      => array( 'type' => 'integer' ),
+		'instrumented_rows'   => array( 'type' => 'integer' ),
+		'unknown_rows'        => array( 'type' => 'integer' ),
+		'conflict_rows'       => array( 'type' => 'integer' ),
+		'conflict_revenue'    => array( 'type' => 'number' ),
 	);
 }
 
@@ -395,8 +400,14 @@ function extrachill_analytics_ability_get_content_revenue_diagnostics( $input ) 
 		$metadata        = extrachill_analytics_revenue_content_metadata( $content_blog_id, $post_id );
 		$is_content      = is_array( $metadata );
 
-		$views   = (int) $row->views;
-		$revenue = (float) $row->revenue;
+		$views        = (int) $row->views;
+		$revenue      = (float) $row->revenue;
+		$source_url   = $row->url ? $row->url : $row->slug;
+		$route_family = $is_content ? '' : extrachill_analytics_revenue_classify_route_family( $source_url );
+		$post_type    = $is_content && isset( $metadata['post_type'] ) ? (string) $metadata['post_type'] : '';
+		$ad_policy    = extrachill_analytics_revenue_get_ad_policy(
+			extrachill_analytics_revenue_ad_policy_context( $content_blog_id, $source_url, $post_type, $route_family )
+		);
 
 		$normalized[] = array(
 			'period_label'             => (string) $row->period_label,
@@ -409,7 +420,7 @@ function extrachill_analytics_ability_get_content_revenue_diagnostics( $input ) 
 			'content_blog_id'          => $is_content ? $content_blog_id : 0,
 			'post_id'                  => $is_content ? $post_id : 0,
 			'is_content'               => $is_content,
-			'route_family'             => $is_content ? '' : extrachill_analytics_revenue_classify_route_family( $row->url ? $row->url : $row->slug ),
+			'route_family'             => $route_family,
 			'format'                   => $is_content ? $metadata['format'] : '',
 			'views'                    => $views,
 			'revenue'                  => $revenue,
@@ -419,6 +430,7 @@ function extrachill_analytics_ability_get_content_revenue_diagnostics( $input ) 
 			'fill_rate'                => (float) $row->fill_rate,
 			'impressions_per_pageview' => (float) $row->impressions_per_pageview,
 			'derived_rpm'              => $views > 0 ? round( $revenue / ( $views / 1000 ), 4 ) : 0.0,
+			'ad_policy'                => $ad_policy,
 		);
 	}
 
@@ -473,7 +485,7 @@ function extrachill_analytics_ability_get_content_revenue_diagnostics( $input ) 
 		'summary'        => $built['summary'],
 		'checks'         => $built['checks'],
 		'scope'          => $scope_block_base,
-		'caveat'         => __( 'Source quirks (zero-view revenue, duplicate period batches, stored-vs-derived RPM variance, unresolved routes) are warnings — disclosure, not corruption claims. fail is reserved for genuine integrity violations: negative/impossible values or a read model that does not reconcile against the independent SQL aggregate. Freshness uses the period boundary (period_end), not the import timestamp. Resolution/format coverage dedupe by page_key before counting. Freshness/missing-period/duplicate-batch checks consider the whole per-blog history (unscoped); row-level checks honor the requested period/window/batch scope. An empty scoped query never passes. Resolution coverage uses the same publish-status gate as the rollup/pages abilities.', 'extrachill-analytics' ),
+		'caveat'         => __( 'Source quirks are warnings, not corruption claims. The ad_policy_consistency check consumes Extra Chill Network policy: unavailable policy is reported as unknown/not instrumented, and positive imported revenue on a blocked row warns with evidence without changing source revenue. fail remains reserved for impossible values or reconciliation failures. Freshness uses period_end; row-level checks honor the requested scope.', 'extrachill-analytics' ),
 	);
 }
 
@@ -518,6 +530,7 @@ function extrachill_analytics_revenue_build_diagnostics( array $snapshot ) {
 	$checks[] = extrachill_analytics_revenue_diag_negative_impossible_values( $rows );
 	$checks[] = extrachill_analytics_revenue_diag_rpm_variance( $rows );
 	$checks[] = extrachill_analytics_revenue_diag_provenance_coverage( $rows );
+	$checks[] = extrachill_analytics_revenue_diag_ad_policy_consistency( $rows );
 
 	$summary = array(
 		'pass'    => 0,
@@ -545,6 +558,73 @@ function extrachill_analytics_revenue_build_diagnostics( array $snapshot ) {
 		'overall_status' => $overall,
 		'summary'        => $summary,
 		'scope'          => $scope,
+	);
+}
+
+/**
+ * Disclose unavailable policy and positive revenue that contradicts no-ads policy.
+ *
+ * Source revenue is evidence only and is never rewritten.
+ *
+ * @param array $rows Normalized revenue rows.
+ * @return array Check.
+ */
+function extrachill_analytics_revenue_diag_ad_policy_consistency( array $rows ) {
+	$instrumented     = 0;
+	$unknown          = 0;
+	$conflicts        = 0;
+	$conflict_revenue = 0.0;
+	$samples          = array();
+
+	foreach ( $rows as $row ) {
+		$policy = extrachill_analytics_revenue_normalize_ad_policy( isset( $row['ad_policy'] ) ? $row['ad_policy'] : null );
+		if ( null === $policy['serve_ads'] ) {
+			++$unknown;
+			continue;
+		}
+		++$instrumented;
+
+		$revenue = isset( $row['revenue'] ) ? (float) $row['revenue'] : 0.0;
+		if ( ! extrachill_analytics_revenue_policy_conflicts( $policy, $revenue ) ) {
+			continue;
+		}
+
+		++$conflicts;
+		$conflict_revenue += $revenue;
+		if ( count( $samples ) < 5 ) {
+			$samples[] = array(
+				'slug'    => isset( $row['slug'] ) ? (string) $row['slug'] : '',
+				'revenue' => round( $revenue, 4 ),
+				'views'   => isset( $row['views'] ) ? (int) $row['views'] : 0,
+				'reason'  => $policy['reason'],
+			);
+		}
+	}
+
+	$evidence = array();
+	$status   = 'pass';
+	if ( $conflicts > 0 ) {
+		$status     = 'warning';
+		$evidence[] = sprintf( '%d row(s) contain $%0.4f imported revenue while authoritative policy declares ads blocked.', $conflicts, $conflict_revenue );
+		$evidence[] = 'Source revenue is preserved; investigate attribution timing or policy drift.';
+	} elseif ( $unknown > 0 ) {
+		$status     = 'warning';
+		$evidence[] = sprintf( 'Ad policy is unknown/not instrumented for %d row(s); no eligibility conclusion was inferred.', $unknown );
+	} else {
+		$evidence[] = sprintf( 'All %d row(s) have policy context and no imported revenue conflicts with it.', $instrumented );
+	}
+
+	return array(
+		'check'    => 'ad_policy_consistency',
+		'status'   => $status,
+		'evidence' => $evidence,
+		'totals'   => array(
+			'instrumented_rows' => $instrumented,
+			'unknown_rows'      => $unknown,
+			'conflict_rows'     => $conflicts,
+			'conflict_revenue'  => round( $conflict_revenue, 4 ),
+			'samples'           => $samples,
+		),
 	);
 }
 

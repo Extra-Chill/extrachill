@@ -64,6 +64,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-surface-g
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-demand-drill.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-conversion-map.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-crosslink-targets.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/revenue-ad-policy.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-surface-stickiness.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-activation-funnel.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-content-revenue.php';

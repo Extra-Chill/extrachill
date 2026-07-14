@@ -121,6 +121,9 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 	$include_alltime = ! empty( $input['include_alltime'] );
 	$blog_id         = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : get_current_blog_id();
 	$hostname        = ! empty( $input['hostname'] ) ? (string) $input['hostname'] : 'extrachill.com';
+	$site_policy     = extrachill_analytics_revenue_get_ad_policy(
+		extrachill_analytics_revenue_ad_policy_context( $blog_id )
+	);
 
 	if ( ! in_array( $group_by, array( 'format', 'category', 'both', 'timeseries' ), true ) ) {
 		$group_by = 'format';
@@ -131,7 +134,7 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 	// answers "what did we earn month-over-month" so the HCU cliff shows in
 	// dollars. Each monthly CSV the operator imports becomes one point.
 	if ( 'timeseries' === $group_by ) {
-		return extrachill_analytics_revenue_timeseries_response( $blog_id, $include_alltime );
+		return extrachill_analytics_revenue_timeseries_response( $blog_id, $include_alltime, $site_policy );
 	}
 
 	$rows = extrachill_analytics_revenue_get_rows(
@@ -146,25 +149,27 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 
 	if ( empty( $rows ) ) {
 		return array(
-			'success'    => true,
-			'rows'       => 0,
-			'window'     => extrachill_analytics_revenue_window_label( $period_start, $period_end, $period ),
-			'rollups'    => array(),
-			'totals'     => array(
+			'success'        => true,
+			'rows'           => 0,
+			'window'         => extrachill_analytics_revenue_window_label( $period_start, $period_end, $period ),
+			'ad_policy'      => $site_policy,
+			'revenue_status' => extrachill_analytics_revenue_policy_status( $site_policy ),
+			'rollups'        => array(),
+			'totals'         => array(
 				'pages'            => 0,
 				'views'            => 0,
 				'revenue'          => 0.0,
 				'rpm'              => 0.0,
 				'dollars_per_page' => 0.0,
 			),
-			'unresolved' => array(
+			'unresolved'     => array(
 				'pages'           => 0,
 				'views'           => 0,
 				'revenue'         => 0.0,
 				'rpm'             => 0.0,
 				'by_route_family' => array(),
 			),
-			'caveat'     => __( 'No revenue snapshots for this blog/window. Import a Mediavine Pages CSV first: wp extrachill analytics revenue import <csv>.', 'extrachill-analytics' ),
+			'caveat'         => __( 'No revenue snapshots for this blog/window. Import a Mediavine Pages CSV first: wp extrachill analytics revenue import <csv>.', 'extrachill-analytics' ),
 		);
 	}
 
@@ -179,8 +184,9 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 	foreach ( $rows as $row ) {
 		$post_id = (int) $row->post_id;
 
-		$views   = (int) $row->views;
-		$revenue = (float) $row->revenue;
+		$views      = (int) $row->views;
+		$revenue    = (float) $row->revenue;
+		$source_url = ! empty( $row->canonical_url ) ? $row->canonical_url : ( $row->url ? $row->url : $row->slug );
 
 		$content_blog_id = ! empty( $row->content_blog_id ) ? (int) $row->content_blog_id : $blog_id;
 		// Content remains eligible only when 'publish' === get_post_status( $post_id ).
@@ -194,11 +200,15 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 				return array(
 					'categories' => ( is_array( $terms ) && ! empty( $terms ) ) ? wp_list_pluck( $terms, 'slug' ) : array( 'uncategorized' ),
 					'format'     => extrachill_analytics_classify_format( $post_id ),
+					'post_type'  => (string) get_post_type( $post_id ),
 				);
 			}
 		) : null;
 
 		if ( is_array( $content ) ) {
+			$ad_policy = extrachill_analytics_revenue_get_ad_policy(
+				extrachill_analytics_revenue_ad_policy_context( $content_blog_id, $source_url, $content['post_type'] )
+			);
 			$records[] = array(
 				'is_content' => true,
 				'page_key'   => 'p' . $content_blog_id . ':' . $post_id,
@@ -206,17 +216,23 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 				'categories' => $content['categories'],
 				'views'      => $views,
 				'revenue'    => $revenue,
-				'url'        => ! empty( $row->canonical_url ) ? $row->canonical_url : ( $row->url ? $row->url : $row->slug ),
+				'url'        => $source_url,
+				'ad_policy'  => $ad_policy,
 			);
 		} else {
 			// Unresolved route (post_id 0, or stale/non-published ID): diagnostic
 			// cohort only — excluded from content totals and buckets.
-			$records[] = array(
+			$route_family = extrachill_analytics_revenue_classify_route_family( $source_url );
+			$ad_policy    = extrachill_analytics_revenue_get_ad_policy(
+				extrachill_analytics_revenue_ad_policy_context( $content_blog_id, $source_url, '', $route_family )
+			);
+			$records[]    = array(
 				'is_content' => false,
 				'page_key'   => 'u' . md5( (string) $row->slug ),
 				'views'      => $views,
 				'revenue'    => $revenue,
-				'url'        => $row->url ? $row->url : $row->slug,
+				'url'        => $source_url,
+				'ad_policy'  => $ad_policy,
 			);
 		}
 	}
@@ -224,15 +240,17 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 	$built = extrachill_analytics_revenue_build_rollups( $records, $group_by );
 
 	return array(
-		'success'    => true,
-		'rows'       => count( $rows ),
-		'blog_id'    => $blog_id,
-		'group_by'   => $group_by,
-		'window'     => extrachill_analytics_revenue_window_label( $period_start, $period_end, $period ),
-		'rollups'    => $built['rollups'],
-		'totals'     => $built['totals'],
-		'unresolved' => $built['unresolved'],
-		'caveat'     => __( 'Totals and rollups cover RESOLVED PUBLISHED CONTENT ONLY — unresolved routes (home, pagination, taxonomy archives, app/account routes, legacy .html ghosts) are excluded so published-content RPM is honest, and reported separately under `unresolved` with a by_route_family breakdown. $/page is the honest "worth producing" metric — RPM alone misleads (high RPM on tiny volume = pennies). Revenue is Mediavine-imported (the only source of ad income); never estimated. Note: the Mediavine Pages CSV carries one path per row and may omit hostnames, so cross-site paths (e.g. Festival Wire) can land under the import blog when the hostname is ambiguous — treat the unresolved cohort as coverage signal, not an attribution verdict.', 'extrachill-analytics' ),
+		'success'        => true,
+		'rows'           => count( $rows ),
+		'blog_id'        => $blog_id,
+		'group_by'       => $group_by,
+		'window'         => extrachill_analytics_revenue_window_label( $period_start, $period_end, $period ),
+		'ad_policy'      => $site_policy,
+		'revenue_status' => extrachill_analytics_revenue_policy_status( $site_policy ),
+		'rollups'        => $built['rollups'],
+		'totals'         => $built['totals'],
+		'unresolved'     => $built['unresolved'],
+		'caveat'         => __( 'Totals and rollups cover RESOLVED PUBLISHED CONTENT ONLY; unresolved routes are reported separately. Ad policy is owned by Extra Chill Network. revenue_status marks aggregates as applicable, not_applicable, mixed, or unknown while imported revenue remains unchanged; policy_conflicts counts contradictory positive revenue on blocked rows. $/page is the honest "worth producing" metric — RPM alone misleads. The Mediavine Pages CSV may omit hostnames, so unresolved cross-site paths remain coverage signal, not an attribution verdict.', 'extrachill-analytics' ),
 	);
 }
 
@@ -244,18 +262,26 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
  * @param int    $views      Views to add.
  * @param float  $revenue    Revenue to add.
  * @param bool   $count_page Whether this contributes a new page to the count.
+ * @param string $policy_status Policy status for this row.
+ * @param bool   $policy_conflict Whether source revenue conflicts with policy.
  */
-function extrachill_analytics_revenue_accumulate( array &$bucket, $key, $views, $revenue, $count_page ) {
+function extrachill_analytics_revenue_accumulate( array &$bucket, $key, $views, $revenue, $count_page, $policy_status = 'unknown', $policy_conflict = false ) {
 	if ( ! isset( $bucket[ $key ] ) ) {
 		$bucket[ $key ] = array(
-			'pages'   => 0,
-			'views'   => 0,
-			'revenue' => 0.0,
+			'pages'            => 0,
+			'views'            => 0,
+			'revenue'          => 0.0,
+			'policy_statuses'  => array(),
+			'policy_conflicts' => 0,
 		);
 	}
 
-	$bucket[ $key ]['views']   += $views;
-	$bucket[ $key ]['revenue'] += $revenue;
+	$bucket[ $key ]['views']                            += $views;
+	$bucket[ $key ]['revenue']                          += $revenue;
+	$bucket[ $key ]['policy_statuses'][ $policy_status ] = isset( $bucket[ $key ]['policy_statuses'][ $policy_status ] ) ? $bucket[ $key ]['policy_statuses'][ $policy_status ] + 1 : 1;
+	if ( $policy_conflict ) {
+		++$bucket[ $key ]['policy_conflicts'];
+	}
 	if ( $count_page ) {
 		++$bucket[ $key ]['pages'];
 	}
@@ -285,6 +311,8 @@ function extrachill_analytics_revenue_finalize( array $bucket ) {
 			'revenue'          => round( $revenue, 2 ),
 			'rpm'              => $views > 0 ? round( $revenue / ( $views / 1000 ), 2 ) : 0.0,
 			'dollars_per_page' => $pages > 0 ? round( $revenue / $pages, 2 ) : 0.0,
+			'revenue_status'   => extrachill_analytics_revenue_aggregate_policy_status( isset( $agg['policy_statuses'] ) ? $agg['policy_statuses'] : array() ),
+			'policy_conflicts' => isset( $agg['policy_conflicts'] ) ? (int) $agg['policy_conflicts'] : 0,
 		);
 	}
 
@@ -391,21 +419,28 @@ function extrachill_analytics_revenue_build_rollups( array $records, $group_by )
 	$by_format   = array();
 	$by_category = array();
 
-	$content_pages   = 0;
-	$content_views   = 0;
-	$content_revenue = 0.0;
-	$seen_content    = array();
+	$content_pages            = 0;
+	$content_views            = 0;
+	$content_revenue          = 0.0;
+	$seen_content             = array();
+	$content_policy_statuses  = array();
+	$content_policy_conflicts = 0;
 
-	$unresolved_pages   = 0;
-	$unresolved_views   = 0;
-	$unresolved_revenue = 0.0;
-	$seen_unresolved    = array();
-	$unresolved_family  = array();
+	$unresolved_pages            = 0;
+	$unresolved_views            = 0;
+	$unresolved_revenue          = 0.0;
+	$seen_unresolved             = array();
+	$unresolved_family           = array();
+	$unresolved_policy_statuses  = array();
+	$unresolved_policy_conflicts = 0;
 
 	foreach ( $records as $rec ) {
-		$views   = (int) ( isset( $rec['views'] ) ? $rec['views'] : 0 );
-		$revenue = (float) ( isset( $rec['revenue'] ) ? $rec['revenue'] : 0.0 );
-		$key     = (string) ( isset( $rec['page_key'] ) ? $rec['page_key'] : '' );
+		$views           = (int) ( isset( $rec['views'] ) ? $rec['views'] : 0 );
+		$revenue         = (float) ( isset( $rec['revenue'] ) ? $rec['revenue'] : 0.0 );
+		$key             = (string) ( isset( $rec['page_key'] ) ? $rec['page_key'] : '' );
+		$policy          = extrachill_analytics_revenue_normalize_ad_policy( isset( $rec['ad_policy'] ) ? $rec['ad_policy'] : null );
+		$policy_status   = extrachill_analytics_revenue_policy_status( $policy );
+		$policy_conflict = extrachill_analytics_revenue_policy_conflicts( $policy, $revenue );
 
 		if ( empty( $rec['is_content'] ) ) {
 			// Unresolved diagnostic cohort — excluded from content totals/buckets.
@@ -413,24 +448,34 @@ function extrachill_analytics_revenue_build_rollups( array $records, $group_by )
 				$seen_unresolved[ $key ] = true;
 				++$unresolved_pages;
 			}
-			$unresolved_views   += $views;
-			$unresolved_revenue += $revenue;
+			$unresolved_views                            += $views;
+			$unresolved_revenue                          += $revenue;
+			$unresolved_policy_statuses[ $policy_status ] = isset( $unresolved_policy_statuses[ $policy_status ] ) ? $unresolved_policy_statuses[ $policy_status ] + 1 : 1;
+			if ( $policy_conflict ) {
+				++$unresolved_policy_conflicts;
+			}
 
 			$family = extrachill_analytics_revenue_classify_route_family( isset( $rec['url'] ) ? $rec['url'] : '' );
 			if ( ! isset( $unresolved_family[ $family ] ) ) {
 				$unresolved_family[ $family ] = array(
-					'pages'   => 0,
-					'views'   => 0,
-					'revenue' => 0.0,
-					'seen'    => array(),
+					'pages'            => 0,
+					'views'            => 0,
+					'revenue'          => 0.0,
+					'seen'             => array(),
+					'policy_statuses'  => array(),
+					'policy_conflicts' => 0,
 				);
 			}
 			if ( '' !== $key && empty( $unresolved_family[ $family ]['seen'][ $key ] ) ) {
 				$unresolved_family[ $family ]['seen'][ $key ] = true;
 				++$unresolved_family[ $family ]['pages'];
 			}
-			$unresolved_family[ $family ]['views']   += $views;
-			$unresolved_family[ $family ]['revenue'] += $revenue;
+			$unresolved_family[ $family ]['views']                            += $views;
+			$unresolved_family[ $family ]['revenue']                          += $revenue;
+			$unresolved_family[ $family ]['policy_statuses'][ $policy_status ] = isset( $unresolved_family[ $family ]['policy_statuses'][ $policy_status ] ) ? $unresolved_family[ $family ]['policy_statuses'][ $policy_status ] + 1 : 1;
+			if ( $policy_conflict ) {
+				++$unresolved_family[ $family ]['policy_conflicts'];
+			}
 			continue;
 		}
 
@@ -439,17 +484,21 @@ function extrachill_analytics_revenue_build_rollups( array $records, $group_by )
 		$seen_content[ $key ] = true;
 
 		$format = isset( $rec['format'] ) ? (string) $rec['format'] : 'uncategorized';
-		extrachill_analytics_revenue_accumulate( $by_format, $format, $views, $revenue, $count_page );
+		extrachill_analytics_revenue_accumulate( $by_format, $format, $views, $revenue, $count_page, $policy_status, $policy_conflict );
 
 		$categories = ( ! empty( $rec['categories'] ) && is_array( $rec['categories'] ) )
 			? array_map( 'strval', $rec['categories'] )
 			: array( 'uncategorized' );
 		foreach ( $categories as $cat ) {
-			extrachill_analytics_revenue_accumulate( $by_category, $cat, $views, $revenue, $count_page );
+			extrachill_analytics_revenue_accumulate( $by_category, $cat, $views, $revenue, $count_page, $policy_status, $policy_conflict );
 		}
 
-		$content_views   += $views;
-		$content_revenue += $revenue;
+		$content_views                            += $views;
+		$content_revenue                          += $revenue;
+		$content_policy_statuses[ $policy_status ] = isset( $content_policy_statuses[ $policy_status ] ) ? $content_policy_statuses[ $policy_status ] + 1 : 1;
+		if ( $policy_conflict ) {
+			++$content_policy_conflicts;
+		}
 		if ( $count_page ) {
 			++$content_pages;
 		}
@@ -469,11 +518,13 @@ function extrachill_analytics_revenue_build_rollups( array $records, $group_by )
 		$fviews        = (int) $agg['views'];
 		$frevenue      = (float) $agg['revenue'];
 		$family_rows[] = array(
-			'route_family' => $family,
-			'pages'        => $fpages,
-			'views'        => $fviews,
-			'revenue'      => round( $frevenue, 2 ),
-			'rpm'          => $fviews > 0 ? round( $frevenue / ( $fviews / 1000 ), 2 ) : 0.0,
+			'route_family'     => $family,
+			'pages'            => $fpages,
+			'views'            => $fviews,
+			'revenue'          => round( $frevenue, 2 ),
+			'rpm'              => $fviews > 0 ? round( $frevenue / ( $fviews / 1000 ), 2 ) : 0.0,
+			'revenue_status'   => extrachill_analytics_revenue_aggregate_policy_status( $agg['policy_statuses'] ),
+			'policy_conflicts' => (int) $agg['policy_conflicts'],
 		);
 	}
 	usort(
@@ -491,13 +542,17 @@ function extrachill_analytics_revenue_build_rollups( array $records, $group_by )
 			'revenue'          => round( $content_revenue, 2 ),
 			'rpm'              => $content_views > 0 ? round( $content_revenue / ( $content_views / 1000 ), 2 ) : 0.0,
 			'dollars_per_page' => $content_pages > 0 ? round( $content_revenue / $content_pages, 2 ) : 0.0,
+			'revenue_status'   => extrachill_analytics_revenue_aggregate_policy_status( $content_policy_statuses ),
+			'policy_conflicts' => $content_policy_conflicts,
 		),
 		'unresolved' => array(
-			'pages'           => $unresolved_pages,
-			'views'           => $unresolved_views,
-			'revenue'         => round( $unresolved_revenue, 2 ),
-			'rpm'             => $unresolved_views > 0 ? round( $unresolved_revenue / ( $unresolved_views / 1000 ), 2 ) : 0.0,
-			'by_route_family' => $family_rows,
+			'pages'            => $unresolved_pages,
+			'views'            => $unresolved_views,
+			'revenue'          => round( $unresolved_revenue, 2 ),
+			'rpm'              => $unresolved_views > 0 ? round( $unresolved_revenue / ( $unresolved_views / 1000 ), 2 ) : 0.0,
+			'revenue_status'   => extrachill_analytics_revenue_aggregate_policy_status( $unresolved_policy_statuses ),
+			'policy_conflicts' => $unresolved_policy_conflicts,
+			'by_route_family'  => $family_rows,
 		),
 	);
 }
@@ -530,12 +585,14 @@ function extrachill_analytics_revenue_window_label( $period_start, $period_end, 
  * — is readable in dollars. The flat "all-time" cumulative bucket is excluded by
  * default (it is a lifetime total, not a point on the arc).
  *
- * @param int  $blog_id         Blog ID.
- * @param bool $include_alltime Include the cumulative "all-time" bucket.
+ * @param int        $blog_id         Blog ID.
+ * @param bool       $include_alltime Include the cumulative "all-time" bucket.
+ * @param array|null $ad_policy       Current network-owned site policy.
  * @return array Ability response with a `series` array.
  */
-function extrachill_analytics_revenue_timeseries_response( $blog_id, $include_alltime ) {
-	$points = extrachill_analytics_revenue_get_timeseries(
+function extrachill_analytics_revenue_timeseries_response( $blog_id, $include_alltime, $ad_policy = null ) {
+	$ad_policy = extrachill_analytics_revenue_normalize_ad_policy( $ad_policy );
+	$points    = extrachill_analytics_revenue_get_timeseries(
 		array(
 			'blog_id'         => $blog_id,
 			'include_alltime' => $include_alltime,
@@ -584,21 +641,23 @@ function extrachill_analytics_revenue_timeseries_response( $blog_id, $include_al
 	}
 
 	return array(
-		'success'  => true,
-		'rows'     => count( $points ),
-		'blog_id'  => $blog_id,
-		'group_by' => 'timeseries',
-		'window'   => 'revenue arc (per-period, chronological)',
-		'series'   => $series,
-		'peak'     => array(
+		'success'        => true,
+		'rows'           => count( $points ),
+		'blog_id'        => $blog_id,
+		'group_by'       => 'timeseries',
+		'window'         => 'revenue arc (per-period, chronological)',
+		'ad_policy'      => $ad_policy,
+		'revenue_status' => extrachill_analytics_revenue_policy_status( $ad_policy ),
+		'series'         => $series,
+		'peak'           => array(
 			'period'  => $peak_label,
 			'revenue' => round( $peak_revenue, 2 ),
 		),
-		'totals'   => array(
+		'totals'         => array(
 			'periods' => count( $series ),
 			'views'   => $total_views,
 			'revenue' => round( $total_revenue, 2 ),
 		),
-		'caveat'   => __( 'The revenue ARC needs DATE-RANGED (monthly) Mediavine exports — import each with --period=YYYY-MM. The flat lifetime export is one cumulative "all-time" total per URL (no dates) and is excluded here by default; on its own it is time-blind and undercounts the 2022-2023 peak, whose revenue ran on old URL structures. Revenue is Mediavine-imported (the only source of ad income); never estimated.', 'extrachill-analytics' ),
+		'caveat'         => __( 'The revenue ARC needs DATE-RANGED (monthly) Mediavine exports — import each with --period=YYYY-MM. The flat lifetime export is one cumulative "all-time" total per URL (no dates) and is excluded here by default; on its own it is time-blind and undercounts the 2022-2023 peak, whose revenue ran on old URL structures. Revenue is Mediavine-imported (the only source of ad income); never estimated.', 'extrachill-analytics' ),
 	);
 }

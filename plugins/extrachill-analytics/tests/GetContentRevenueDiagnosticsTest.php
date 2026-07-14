@@ -11,6 +11,7 @@
 
 use PHPUnit\Framework\TestCase;
 
+require_once dirname( __DIR__ ) . '/inc/core/revenue-ad-policy.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-content-revenue-diagnostics.php';
 
 /**
@@ -46,6 +47,11 @@ final class GetContentRevenueDiagnosticsTest extends TestCase {
 				'fill_rate'                => 90.0,
 				'impressions_per_pageview' => 2.0,
 				'derived_rpm'              => 100.0,
+				'ad_policy'                => array(
+					'site_enabled' => true,
+					'serve_ads'    => true,
+					'reason'       => 'enabled',
+				),
 			),
 			$over
 		);
@@ -1048,7 +1054,7 @@ final class GetContentRevenueDiagnosticsTest extends TestCase {
 	}
 
 	/**
-	 * A clean store → all pass, overall pass (12 checks now).
+	 * A clean store → all pass, overall pass.
 	 */
 	public function test_clean_store_overall_pass(): void {
 		$periods = array();
@@ -1087,10 +1093,58 @@ final class GetContentRevenueDiagnosticsTest extends TestCase {
 		);
 
 		$this->assertSame( 'pass', $built['overall_status'] );
-		$this->assertSame( 12, $built['summary']['total'] );
-		$this->assertSame( 12, $built['summary']['pass'] );
+		$this->assertSame( 13, $built['summary']['total'] );
+		$this->assertSame( 13, $built['summary']['pass'] );
 		$this->assertSame( 0, $built['summary']['warning'] );
 		$this->assertSame( 0, $built['summary']['fail'] );
+	}
+
+	/**
+	 * Positive imported revenue on an intentionally blocked route warns only.
+	 */
+	public function test_contradictory_imported_revenue_warns_without_mutation(): void {
+		$rows = array(
+			$this->row(
+				array(
+					'slug'       => '/',
+					'post_id'    => 0,
+					'is_content' => false,
+					'revenue'    => 12.5,
+					'ad_policy'  => array(
+						'site_enabled' => true,
+						'serve_ads'    => false,
+						'reason'       => 'route_blocked',
+					),
+				)
+			),
+		);
+
+		$check = extrachill_analytics_revenue_diag_ad_policy_consistency( $rows );
+
+		$this->assertSame( 'warning', $check['status'] );
+		$this->assertSame( 1, $check['totals']['conflict_rows'] );
+		$this->assertSame( 12.5, $check['totals']['conflict_revenue'] );
+		$this->assertSame( 12.5, $rows[0]['revenue'] );
+		$this->assertSame( 'route_blocked', $check['totals']['samples'][0]['reason'] );
+	}
+
+	/**
+	 * Missing upstream policy is an explicit coverage warning, never eligibility.
+	 */
+	public function test_unknown_policy_is_not_instrumented_warning(): void {
+		$rows = array(
+			$this->row(
+				array(
+					'ad_policy' => extrachill_analytics_revenue_normalize_ad_policy( null ),
+				)
+			),
+		);
+
+		$check = extrachill_analytics_revenue_diag_ad_policy_consistency( $rows );
+
+		$this->assertSame( 'warning', $check['status'] );
+		$this->assertSame( 1, $check['totals']['unknown_rows'] );
+		$this->assertStringContainsString( 'unknown/not instrumented', $check['evidence'][0] );
 	}
 
 	/**

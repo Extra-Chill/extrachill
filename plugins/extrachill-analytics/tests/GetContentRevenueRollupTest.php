@@ -11,6 +11,7 @@
 
 use PHPUnit\Framework\TestCase;
 
+require_once dirname( __DIR__ ) . '/inc/core/revenue-ad-policy.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-content-revenue.php';
 
 /**
@@ -308,6 +309,35 @@ final class GetContentRevenueRollupTest extends TestCase {
 		$this->assertSame( $result['unresolved']['views'], $views );
 		$this->assertEquals( round( $result['unresolved']['revenue'], 2 ), round( $revenue, 2 ) );
 		$this->assertSame( $result['unresolved']['pages'], $family['home']['pages'] + $family['pagination']['pages'] + $family['taxonomy-archive']['pages'] + $family['legacy-html']['pages'] );
+	}
+
+	/**
+	 * Intentional no-ads traffic remains visible without reading as underperformance.
+	 */
+	public function test_blocked_home_revenue_is_not_applicable_but_preserved(): void {
+		$result = extrachill_analytics_revenue_build_rollups(
+			array(
+				array(
+					'is_content' => false,
+					'page_key'   => 'home',
+					'views'      => 5000,
+					'revenue'    => 2.5,
+					'url'        => '/',
+					'ad_policy'  => array(
+						'site_enabled' => true,
+						'serve_ads'    => false,
+						'reason'       => 'route_blocked',
+					),
+				),
+			),
+			'format'
+		);
+
+		$this->assertSame( 5000, $result['unresolved']['views'] );
+		$this->assertSame( 2.5, $result['unresolved']['revenue'] );
+		$this->assertSame( 'not_applicable', $result['unresolved']['revenue_status'] );
+		$this->assertSame( 1, $result['unresolved']['policy_conflicts'] );
+		$this->assertSame( 'not_applicable', $result['unresolved']['by_route_family'][0]['revenue_status'] );
 	}
 
 	/**

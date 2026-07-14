@@ -3,9 +3,9 @@
  * Get Surface Stickiness Ability
  *
  * Engagement instrument for the platform's NON-ARTICLE surfaces — community,
- * artist platform, and the events calendar. These surfaces earn $0 ad revenue
- * BY DESIGN (community has no ads; the artist platform is not monetized), so
- * the all-time revenue x-ray reads them as dead. They are not dead — they are
+ * artist platform, and the events calendar. Community and the artist platform
+ * are intentionally ad-free; Events is ad-enabled. Regardless of ad policy,
+ * the all-time revenue x-ray alone cannot measure their platform value. They are
  * the platform pivot. Their value is STICKINESS: do real people come back, go
  * deeper, and traverse between surfaces? This ability answers that question
  * with a deterministic, first-party read, and deliberately NEVER references ad
@@ -61,7 +61,7 @@ function extrachill_analytics_register_surface_stickiness_ability() {
 		'extrachill/get-surface-stickiness',
 		array(
 			'label'               => __( 'Get Surface Stickiness', 'extrachill-analytics' ),
-			'description'         => __( 'Returns a per-surface ENGAGEMENT (not revenue) scorecard for the platform pivot surfaces (community, artist, events): return rate, session depth, new-vs-returning, and windowed activity — each as a this-period-vs-prior trend — plus a network-wide cross-surface traversal figure. These surfaces earn $0 ad revenue by design and must be judged by stickiness. Unmeasurable cells return a not_instrumented coverage marker, never a zero.', 'extrachill-analytics' ),
+			'description'         => __( 'Returns a per-surface ENGAGEMENT scorecard for community, artist, and events, plus authoritative network-owned ad-policy context. Community and artist are intentionally ad-free; Events is ad-enabled. Unmeasurable cells return a not_instrumented marker, never a zero.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -165,14 +165,19 @@ function extrachill_analytics_ability_get_surface_stickiness( $input ) {
 	foreach ( extrachill_analytics_stickiness_surface_map() as $key => $surface ) {
 		$engagement = extrachill_analytics_surface_engagement_trend( $retention_ability, $retention_present, $surface['blog_id'], $days );
 		$activity   = extrachill_analytics_surface_activity_trend( $surface, $window_start, $prior_start, $days );
+		$ad_policy  = extrachill_analytics_revenue_get_ad_policy(
+			extrachill_analytics_revenue_ad_policy_context( $surface['blog_id'] )
+		);
 
 		$surfaces[ $key ] = array(
-			'surface'    => $key,
-			'label'      => $surface['label'],
-			'blog_id'    => $surface['blog_id'],
-			'host'       => $surface['host'],
-			'engagement' => $engagement,
-			'activity'   => $activity,
+			'surface'        => $key,
+			'label'          => $surface['label'],
+			'blog_id'        => $surface['blog_id'],
+			'host'           => $surface['host'],
+			'engagement'     => $engagement,
+			'activity'       => $activity,
+			'ad_policy'      => $ad_policy,
+			'revenue_status' => extrachill_analytics_revenue_policy_status( $ad_policy ),
 		);
 	}
 
@@ -194,7 +199,7 @@ function extrachill_analytics_ability_get_surface_stickiness( $input ) {
 		'retention_available' => $retention_present,
 		'as_of'               => $now_utc,
 		'lens'                => 'engagement',
-		'note'                => 'ENGAGEMENT lens, NOT revenue. These surfaces (community, artist, events) earn $0 ad revenue by design; judging them by ad revenue is the wrong instrument and always reads $0. ENGAGEMENT CORE = first-party return_rate / session_depth / new-vs-returning from extrachill/get-retention-stats, scoped per blog and reported as current-window-vs-prior-equal-window trend. ACTIVITY = deterministic COUNT(*) of each surface stickiness post type (topics / profiles / events) created per window. CROSS-SURFACE = network-wide visitors hitting >= 2 blogs on >= 2 days. A measured 0 means flat (honest + expected for these low-activity surfaces right now); not_instrumented is a coverage gap and must never be read as a zero.',
+		'note'                => 'ENGAGEMENT lens with network-owned ad-policy context. Community and Artist are intentionally ad-free; Events is ad-enabled and may carry attributed revenue. Analytics does not own or infer that policy. ENGAGEMENT CORE = first-party return_rate / session_depth / new-vs-returning, ACTIVITY = deterministic published-item counts, and CROSS-SURFACE = network-wide visitors hitting >= 2 blogs on >= 2 days. A measured 0 is real; not_instrumented is a coverage gap.',
 	);
 }
 

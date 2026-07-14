@@ -11,6 +11,7 @@
 
 use PHPUnit\Framework\TestCase;
 
+require_once dirname( __DIR__ ) . '/inc/core/revenue-ad-policy.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-content-revenue-pages.php';
 require_once dirname( __DIR__ ) . '/inc/core/content-format-classifier.php';
 
@@ -45,6 +46,11 @@ final class GetContentRevenuePagesTest extends TestCase {
 				'title'                    => 'A Song',
 				'path'                     => '/song/',
 				'published_date'           => '2024-01-01 00:00:00',
+				'ad_policy'                => array(
+					'site_enabled' => true,
+					'serve_ads'    => true,
+					'reason'       => 'enabled',
+				),
 			),
 			$over
 		);
@@ -76,6 +82,11 @@ final class GetContentRevenuePagesTest extends TestCase {
 				'title'                    => '',
 				'path'                     => '',
 				'published_date'           => '',
+				'ad_policy'                => array(
+					'site_enabled' => true,
+					'serve_ads'    => true,
+					'reason'       => 'enabled',
+				),
 			),
 			$over
 		);
@@ -691,6 +702,82 @@ final class GetContentRevenuePagesTest extends TestCase {
 		$this->assertNotNull( $by_key['p6']['benchmark_score'] );
 		// score = 300 / 35 ≈ 8.57.
 		$this->assertEqualsWithDelta( 8.5714, $by_key['p6']['benchmark_score'], 0.01 );
+	}
+
+	/**
+	 * Only policy-confirmed ad-serving pages participate in benchmarks.
+	 */
+	public function test_ad_free_and_unknown_surfaces_are_excluded_from_benchmark(): void {
+		$eligible = array(
+			array( 'p-main', 1, 'enabled', 10.0 ),
+			array( 'p-events', 7, 'enabled', 20.0 ),
+			array( 'p-wire', 11, 'enabled', 30.0 ),
+			array( 'p-main-2', 1, 'enabled', 40.0 ),
+			array( 'p-events-2', 7, 'enabled', 200.0 ),
+		);
+		$records  = array();
+		foreach ( $eligible as $item ) {
+			$records[] = $this->content(
+				array(
+					'page_key'        => $item[0],
+					'content_blog_id' => $item[1],
+					'views'           => 5000,
+					'revenue'         => $item[3] * 5,
+				)
+			);
+		}
+
+		$records[] = $this->content(
+			array(
+				'page_key'        => 'community',
+				'content_blog_id' => 2,
+				'views'           => 10000,
+				'revenue'         => 0.0,
+				'ad_policy'       => array(
+					'site_enabled' => false,
+					'serve_ads'    => false,
+					'reason'       => 'site_disabled',
+				),
+			)
+		);
+		$records[] = $this->unresolved(
+			array(
+				'page_key'  => 'main-home',
+				'views'     => 20000,
+				'revenue'   => 0.0,
+				'ad_policy' => array(
+					'site_enabled' => true,
+					'serve_ads'    => false,
+					'reason'       => 'route_blocked',
+				),
+			)
+		);
+		$records[] = $this->content(
+			array(
+				'page_key'  => 'unknown-policy',
+				'views'     => 10000,
+				'revenue'   => 10000.0,
+				'ad_policy' => extrachill_analytics_revenue_normalize_ad_policy( null ),
+			)
+		);
+
+		$built  = extrachill_analytics_revenue_build_pages( $records, array( 'cohort' => 'all' ) );
+		$by_key = array();
+		foreach ( $built['pages'] as $page ) {
+			$by_key[ $page['page_key'] ] = $page;
+		}
+
+		$this->assertTrue( $built['sample']['benchmark_computed'] );
+		$this->assertSame( 'not_applicable', $by_key['community']['revenue_status'] );
+		$this->assertSame( 'not_applicable', $by_key['main-home']['revenue_status'] );
+		$this->assertSame( 'unknown', $by_key['unknown-policy']['revenue_status'] );
+		$this->assertFalse( $by_key['community']['benchmark_opportunity'] );
+		$this->assertFalse( $by_key['main-home']['benchmark_opportunity'] );
+		$this->assertFalse( $by_key['unknown-policy']['benchmark_opportunity'] );
+		$this->assertNull( $by_key['unknown-policy']['benchmark_score'] );
+		$this->assertSame( 'applicable', $by_key['p-main']['revenue_status'] );
+		$this->assertSame( 'applicable', $by_key['p-events']['revenue_status'] );
+		$this->assertSame( 'applicable', $by_key['p-wire']['revenue_status'] );
 	}
 
 	/**

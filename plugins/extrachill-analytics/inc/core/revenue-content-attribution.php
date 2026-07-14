@@ -193,6 +193,7 @@ function extrachill_analytics_revenue_content_metadata( $blog_id, $post_id ) {
 				'title'          => $post ? (string) $post->post_title : '',
 				'url'            => is_string( $permalink ) ? $permalink : '',
 				'path'           => is_string( $permalink ) ? wp_make_link_relative( $permalink ) : '',
+				'post_type'      => $post && isset( $post->post_type ) ? (string) $post->post_type : '',
 				'published_date' => $post ? (string) $post->post_date : '',
 				'categories'     => ( is_array( $terms ) && ! empty( $terms ) ) ? wp_list_pluck( $terms, 'slug' ) : array( 'uncategorized' ),
 				'format'         => extrachill_analytics_classify_format( $post_id ),
