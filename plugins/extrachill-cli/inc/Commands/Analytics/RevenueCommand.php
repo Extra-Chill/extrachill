@@ -19,6 +19,8 @@ class RevenueCommand {
 	/**
 	 * Fetch Mediavine period reports and replace their deterministic snapshots.
 	 *
+	 * @synopsis [--start=<date>] [--end=<date>] [--period=<period>] [--periods=<json>] [--site-id=<id>] [--hostname=<host>] [--mode=<mode>] [--snapshot=<label>] [--dry-run]
+	 *
 	 * ## OPTIONS
 	 *
 	 * [--start=<date>]
@@ -145,6 +147,8 @@ class RevenueCommand {
 	/**
 	 * List page-level Mediavine delivery metrics.
 	 *
+	 * @synopsis [--period=<period>] [--period-start=<date>] [--period-end=<date>] [--batch=<label>] [--blog-id=<id>] [--hostname=<host>] [--cohort=<cohort>] [--min-views=<n>] [--sort-by=<metric>] [--order=<direction>] [--limit=<n>] [--format=<format>]
+	 *
 	 * ## OPTIONS
 	 *
 	 * [--period=<period>]
@@ -204,6 +208,8 @@ class RevenueCommand {
 	/**
 	 * Roll up ability-provided revenue metrics by format or category.
 	 *
+	 * @synopsis [--group-by=<axis>] [--period=<period>] [--period-start=<date>] [--period-end=<date>] [--batch=<label>] [--hostname=<host>] [--limit=<n>] [--format=<format>]
+	 *
 	 * ## OPTIONS
 	 *
 	 * [--group-by=<axis>]
@@ -254,6 +260,8 @@ class RevenueCommand {
 	/**
 	 * Show the ability-provided revenue time series.
 	 *
+	 * @synopsis [--include-alltime] [--format=<format>]
+	 *
 	 * ## OPTIONS
 	 *
 	 * [--include-alltime]
@@ -284,6 +292,8 @@ class RevenueCommand {
 
 	/**
 	 * Show structured integrity diagnostics for the revenue store.
+	 *
+	 * @synopsis [--period=<period>] [--period-start=<date>] [--period-end=<date>] [--batch=<label>] [--blog-id=<id>] [--hostname=<host>] [--format=<format>]
 	 *
 	 * ## OPTIONS
 	 *

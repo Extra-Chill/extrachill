@@ -73,6 +73,7 @@ namespace {
 			throw new \RuntimeException( $message );
 		}
 	}
+
 }
 
 namespace WP_CLI\Utils {
