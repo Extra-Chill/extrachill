@@ -193,6 +193,75 @@ final class IngestRevenueTest extends TestCase {
 	}
 
 	/**
+	 * The homepage remains an unresolved revenue row instead of being discarded.
+	 */
+	public function test_homepage_row_is_preserved_and_idempotent(): void {
+		$GLOBALS['extrachill_network_resolver_results']['/'] = array(
+			'path'      => '/',
+			'status'    => 'resolved',
+			'candidate' => array(
+				'blog_id'       => 7,
+				'post_id'       => 99,
+				'canonical_url' => 'https://events.extrachill.com/',
+			),
+		);
+		$rows = array(
+			array(
+				'slug'    => '/',
+				'views'   => 7027,
+				'revenue' => 1.08,
+			),
+			array(
+				'slug'    => '/article/',
+				'views'   => 100,
+				'revenue' => 5.00,
+			),
+		);
+
+		$first = $this->ingest( $rows, array( 'period' => '2026-06' ) );
+		$this->assertTrue( $first['success'] );
+		$this->assertSame( 2, $first['input_rows'] );
+		$this->assertSame( 2, $first['rows'] );
+		$this->assertSame( 2, $first['inserted'] );
+		$this->assertSame( 0, $first['resolved'] );
+		$this->assertSame( 2, $first['unresolved'] );
+
+		$records = $this->store_records( '2026-06' );
+		$this->assertCount( 2, $records );
+		$home = array_values(
+			array_filter(
+				$records,
+				static function ( $row ) {
+					return '' === $row['slug'];
+				}
+			)
+		)[0];
+		$this->assertSame( '/', $home['url'] );
+		$this->assertSame( 0, $home['post_id'] );
+		$this->assertNull( $home['content_blog_id'] );
+		$this->assertNotContains( '/', array_merge( ...$GLOBALS['extrachill_network_resolver_calls'] ) );
+		$this->assertSame(
+			array(
+				'views'   => 7127,
+				'revenue' => 6.08,
+			),
+			$this->store_totals( '2026-06' )
+		);
+
+		$second = $this->ingest( $rows, array( 'period' => '2026-06' ) );
+		$this->assertTrue( $second['success'] );
+		$this->assertSame( 0, $second['inserted'] );
+		$this->assertSame( 2, $second['replaced'] );
+		$this->assertSame(
+			array(
+				'views'   => 7127,
+				'revenue' => 6.08,
+			),
+			$this->store_totals( '2026-06' )
+		);
+	}
+
+	/**
 	 * Path-only rows resolved by Network retain snapshot scope separately from
 	 * their authoritative content identity.
 	 */

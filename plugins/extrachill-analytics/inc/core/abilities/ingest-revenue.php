@@ -165,11 +165,9 @@ function extrachill_analytics_revenue_snapshot_identity( array $args ) {
 function extrachill_analytics_revenue_build_ingestion_plan( array $records, array $existing, $mode ) {
 	$existing_by_slug = array();
 	foreach ( $existing as $row ) {
-		$slug = is_object( $row ) && isset( $row->slug ) ? (string) $row->slug : (string) ( isset( $row['slug'] ) ? $row['slug'] : '' );
-		if ( '' !== $slug ) {
-			$id                        = is_object( $row ) && isset( $row->id ) ? (int) $row->id : (int) ( isset( $row['id'] ) ? $row['id'] : 0 );
-			$existing_by_slug[ $slug ] = $id;
-		}
+		$slug                      = is_object( $row ) && isset( $row->slug ) ? (string) $row->slug : (string) ( isset( $row['slug'] ) ? $row['slug'] : '' );
+		$id                        = is_object( $row ) && isset( $row->id ) ? (int) $row->id : (int) ( isset( $row['id'] ) ? $row['id'] : 0 );
+		$existing_by_slug[ $slug ] = $id;
 	}
 
 	$inserts  = array();
@@ -178,9 +176,6 @@ function extrachill_analytics_revenue_build_ingestion_plan( array $records, arra
 
 	foreach ( $records as $rec ) {
 		$slug = isset( $rec['slug'] ) ? (string) $rec['slug'] : '';
-		if ( '' === $slug ) {
-			continue;
-		}
 		if ( isset( $existing_by_slug[ $slug ] ) ) {
 			$replaces[] = $rec;
 		} else {
@@ -439,8 +434,12 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 		if ( '' === trim( $raw_slug ) ) {
 			continue;
 		}
+		$is_home = '/' === extrachill_analytics_revenue_frontend_path( $raw_slug );
 
-		if ( isset( $input['post_id'] ) && (int) $input['post_id'] > 0 ) {
+		if ( $is_home ) {
+			$post_id = 0;
+			$slug    = '';
+		} elseif ( isset( $input['post_id'] ) && (int) $input['post_id'] > 0 ) {
 			$post_id = (int) $input['post_id'];
 			if ( function_exists( 'get_post' ) ) {
 				$post = get_post( $post_id );
@@ -454,7 +453,7 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 			$slug         = $resolved_row['slug'];
 		}
 
-		if ( '' === $slug ) {
+		if ( '' === $slug && ! $is_home ) {
 			continue;
 		}
 		$canonical_url = $post_id > 0 && function_exists( 'get_permalink' ) ? (string) get_permalink( $post_id ) : '';
@@ -493,7 +492,7 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 	// replace any part of the existing snapshot.
 	$network_paths = array();
 	foreach ( $by_slug as $record ) {
-		if ( empty( $record['post_id'] ) ) {
+		if ( empty( $record['post_id'] ) && '' !== $record['slug'] ) {
 			$path = extrachill_analytics_revenue_frontend_path( $record['url'] );
 			if ( null !== $path ) {
 				$network_paths[ $path ] = true;
@@ -509,7 +508,7 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 		);
 	}
 	foreach ( $by_slug as &$record ) {
-		if ( ! empty( $record['post_id'] ) ) {
+		if ( ! empty( $record['post_id'] ) || '' === $record['slug'] ) {
 			continue;
 		}
 		$path   = extrachill_analytics_revenue_frontend_path( $record['url'] );
