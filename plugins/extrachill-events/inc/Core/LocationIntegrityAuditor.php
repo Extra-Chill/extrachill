@@ -115,15 +115,15 @@ class LocationIntegrityAuditor {
 
 	private static function finding( string $issue, string $reason, array $candidate, array $canonical ): array {
 		return array(
-			'issue'          => $issue,
-			'reason'         => $reason,
-			'candidate_id'   => (int) $candidate['term_id'],
-			'candidate_name' => (string) $candidate['name'],
-			'candidate_slug' => (string) $candidate['slug'],
+			'issue'           => $issue,
+			'reason'          => $reason,
+			'candidate_id'    => (int) $candidate['term_id'],
+			'candidate_name'  => (string) $candidate['name'],
+			'candidate_slug'  => (string) $candidate['slug'],
 			'candidate_count' => (int) ( $candidate['count'] ?? 0 ),
-			'canonical_id'   => (int) $canonical['term_id'],
-			'canonical_name' => (string) $canonical['name'],
-			'canonical_slug' => (string) $canonical['slug'],
+			'canonical_id'    => (int) $canonical['term_id'],
+			'canonical_name'  => (string) $canonical['name'],
+			'canonical_slug'  => (string) $canonical['slug'],
 			'canonical_count' => (int) ( $canonical['count'] ?? 0 ),
 		);
 	}
