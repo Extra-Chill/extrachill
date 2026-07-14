@@ -294,6 +294,75 @@ function extrachill_analytics_revenue_ingest_authorize( $blog_id, $mode ) {
 }
 
 /**
+ * Aggregate metrics from rows that normalize to the same revenue identity.
+ *
+ * Impressions are inferred as views * impressions-per-pageview. Delivery rates
+ * use inferred-impression weighting when possible, then view weighting when no
+ * impressions can be inferred, then an arithmetic mean for all-zero-view rows.
+ * Sorting first makes floating-point addition deterministic for reordered input.
+ *
+ * @param array<int,array> $rows Metric-bearing normalized rows.
+ * @return array Aggregated metrics.
+ */
+function extrachill_analytics_revenue_aggregate_metrics( array $rows ) {
+	usort(
+		$rows,
+		static function ( $a, $b ) {
+			$fields = array( 'slug', 'url', 'views', 'revenue', 'rpm', 'cpm', 'viewability', 'fill_rate', 'impressions_per_pageview' );
+			$left   = array();
+			$right  = array();
+			foreach ( $fields as $field ) {
+				$left[]  = isset( $a[ $field ] ) ? (string) $a[ $field ] : '';
+				$right[] = isset( $b[ $field ] ) ? (string) $b[ $field ] : '';
+			}
+			return strcmp( implode( "\0", $left ), implode( "\0", $right ) );
+		}
+	);
+
+	$total_views       = 0;
+	$total_revenue     = 0.0;
+	$total_impressions = 0.0;
+	$weighted          = array_fill_keys( array( 'cpm', 'viewability', 'fill_rate' ), 0.0 );
+	$view_weighted     = array_fill_keys( array( 'cpm', 'viewability', 'fill_rate' ), 0.0 );
+	$unweighted        = array_fill_keys( array( 'cpm', 'viewability', 'fill_rate' ), 0.0 );
+
+	foreach ( $rows as $row ) {
+		$views       = max( 0, isset( $row['views'] ) ? (int) $row['views'] : 0 );
+		$revenue     = isset( $row['revenue'] ) ? (float) $row['revenue'] : 0.0;
+		$impressions = $views * max( 0.0, isset( $row['impressions_per_pageview'] ) ? (float) $row['impressions_per_pageview'] : 0.0 );
+
+		$total_views       += $views;
+		$total_revenue     += $revenue;
+		$total_impressions += $impressions;
+
+		foreach ( array_keys( $weighted ) as $metric ) {
+			$value                     = isset( $row[ $metric ] ) ? (float) $row[ $metric ] : 0.0;
+			$weighted[ $metric ]      += $value * $impressions;
+			$view_weighted[ $metric ] += $value * $views;
+			$unweighted[ $metric ]    += $value;
+		}
+	}
+
+	$metrics = array(
+		'views'                    => $total_views,
+		'revenue'                  => $total_revenue,
+		'rpm'                      => $total_views > 0 ? $total_revenue / $total_views * 1000 : 0.0,
+		'impressions_per_pageview' => $total_views > 0 ? $total_impressions / $total_views : 0.0,
+	);
+	foreach ( array_keys( $weighted ) as $metric ) {
+		if ( $total_impressions > 0 ) {
+			$metrics[ $metric ] = $weighted[ $metric ] / $total_impressions;
+		} elseif ( $total_views > 0 ) {
+			$metrics[ $metric ] = $view_weighted[ $metric ] / $total_views;
+		} else {
+			$metrics[ $metric ] = $unweighted[ $metric ] / count( $rows );
+		}
+	}
+
+	return $metrics;
+}
+
+/**
  * Ingest a set of normalized revenue rows into the store with deterministic
  * snapshot identity and explicit replace/additive semantics.
  *
@@ -417,8 +486,8 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 	$period_start = $identity['period_start'];
 	$period_end   = $identity['period_end'];
 
-	// Resolve + normalize each incoming row against the target blog, deduping
-	// by normalized slug (last occurrence wins). Resolution (url_to_postid) is
+	// Resolve + normalize each incoming row against the target blog, aggregating
+	// rows that share a normalized slug. Resolution (url_to_postid) is
 	// current-blog-scoped, so switch for the duration to keep the stamped
 	// blog_id and resolved post_id in agreement on a multisite.
 	$switched = false;
@@ -457,14 +526,26 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 			continue;
 		}
 		$canonical_url = $post_id > 0 && function_exists( 'get_permalink' ) ? (string) get_permalink( $post_id ) : '';
+		$source_url    = extrachill_analytics_revenue_frontend_path( $raw_slug );
+		$source_url    = null !== $source_url ? $source_url : trim( $raw_slug );
 
 		if ( isset( $by_slug[ $slug ] ) ) {
 			++$duplicates;
+			$by_slug[ $slug ]['_metric_rows'][] = $input;
+			if ( strcmp( $source_url, $by_slug[ $slug ]['url'] ) < 0 ) {
+				$by_slug[ $slug ]['url'] = $source_url;
+			}
+			if ( $post_id > 0 && ( 0 === $by_slug[ $slug ]['post_id'] || $post_id < $by_slug[ $slug ]['post_id'] ) ) {
+				$by_slug[ $slug ]['post_id']         = $post_id;
+				$by_slug[ $slug ]['content_blog_id'] = $blog_id;
+				$by_slug[ $slug ]['canonical_url']   = $canonical_url;
+			}
+			continue;
 		}
 		$by_slug[ $slug ] = array(
 			'blog_id'                  => $blog_id,
 			'slug'                     => $slug,
-			'url'                      => $raw_slug,
+			'url'                      => $source_url,
 			'post_id'                  => $post_id,
 			'content_blog_id'          => $post_id > 0 ? $blog_id : null,
 			'canonical_url'            => $canonical_url,
@@ -479,12 +560,18 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 			'period_start'             => $period_start,
 			'period_end'               => $period_end,
 			'import_batch'             => $batch,
+			'_metric_rows'             => array( $input ),
 		);
 	}
 
 	if ( $switched && function_exists( 'restore_current_blog' ) ) {
 		restore_current_blog();
 	}
+	foreach ( $by_slug as &$record ) {
+		$record = array_merge( $record, extrachill_analytics_revenue_aggregate_metrics( $record['_metric_rows'] ) );
+		unset( $record['_metric_rows'] );
+	}
+	unset( $record );
 
 	// Local resolution is authoritative for the snapshot site. Resolve only the
 	// remaining host-relative paths through Network, once per unique path. This
@@ -725,7 +812,7 @@ function extrachill_analytics_register_ingest_revenue_ability() {
 				'properties' => array(
 					'rows'         => array(
 						'type'        => 'array',
-						'description' => __( 'REQUIRED, non-empty. Normalized per-URL revenue rows. Each row carries a slug/url plus metrics (views, revenue, rpm, cpm, viewability, fill_rate, impressions_per_pageview) and an optional pre-resolved post_id. Duplicate slugs are deduped (last wins).', 'extrachill-analytics' ),
+						'description' => __( 'REQUIRED, non-empty. Normalized per-URL revenue rows. Each row carries a slug/url plus metrics (views, revenue, rpm, cpm, viewability, fill_rate, impressions_per_pageview) and an optional pre-resolved post_id. Rows sharing a normalized slug are deterministically aggregated into one canonical row with summed views/revenue and derived or weighted rates.', 'extrachill-analytics' ),
 						'minItems'    => 1,
 						'items'       => array(
 							'type'       => 'object',

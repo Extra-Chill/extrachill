@@ -990,20 +990,28 @@ final class IngestRevenueTest extends TestCase {
 	}
 
 	/**
-	 * Duplicate raw routes that normalize to one slug keep only the final row.
+	 * Slash variants aggregate exact totals and derive weighted delivery metrics.
 	 */
-	public function test_duplicate_normalized_rows_are_deduped(): void {
+	public function test_duplicate_normalized_rows_are_aggregated(): void {
 		$result = $this->ingest(
 			array(
 				array(
-					'slug'    => '/a/',
-					'views'   => 100,
-					'revenue' => 10.0,
+					'slug'                     => '/mama-say-mama-sa-mama-coosa-meaning/',
+					'views'                    => 591,
+					'revenue'                  => 13.45,
+					'cpm'                      => 2.0,
+					'viewability'              => 70.0,
+					'fill_rate'                => 90.0,
+					'impressions_per_pageview' => 2.0,
 				),
 				array(
-					'slug'    => 'a',
-					'views'   => 200,
-					'revenue' => 20.0,
+					'slug'                     => '/mama-say-mama-sa-mama-coosa-meaning',
+					'views'                    => 83,
+					'revenue'                  => 2.20,
+					'cpm'                      => 4.0,
+					'viewability'              => 80.0,
+					'fill_rate'                => 100.0,
+					'impressions_per_pageview' => 3.0,
 				),
 			),
 			array( 'period' => '2026-05' )
@@ -1011,13 +1019,151 @@ final class IngestRevenueTest extends TestCase {
 
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 1, $result['duplicate_rows_deduped'] );
+		$row = reset( $this->store->rows );
 		$this->assertSame(
 			array(
-				'views'   => 200,
-				'revenue' => 20.0,
+				'views'   => 674,
+				'revenue' => 15.65,
 			),
 			$this->store_totals( '2026-05' )
 		);
+		$this->assertSame( '/mama-say-mama-sa-mama-coosa-meaning/', $row['url'] );
+		$this->assertEqualsWithDelta( 15.65 / 674 * 1000, $row['rpm'], 0.000001 );
+		$this->assertEqualsWithDelta( ( 591 * 2 + 83 * 3 ) / 674, $row['impressions_per_pageview'], 0.000001 );
+		$this->assertEqualsWithDelta( ( 2 * 1182 + 4 * 249 ) / 1431, $row['cpm'], 0.000001 );
+		$this->assertEqualsWithDelta( ( 70 * 1182 + 80 * 249 ) / 1431, $row['viewability'], 0.000001 );
+		$this->assertEqualsWithDelta( ( 90 * 1182 + 100 * 249 ) / 1431, $row['fill_rate'], 0.000001 );
+	}
+
+	/**
+	 * Aggregation is independent of source order and repeat replacement is stable.
+	 */
+	public function test_aggregation_is_order_independent_and_repeatable(): void {
+		$rows = array(
+			array(
+				'slug'                     => '/a',
+				'views'                    => 2,
+				'revenue'                  => 0.2,
+				'cpm'                      => 4,
+				'impressions_per_pageview' => 2,
+			),
+			array(
+				'slug'                     => '/a/',
+				'views'                    => 3,
+				'revenue'                  => 0.3,
+				'cpm'                      => 6,
+				'impressions_per_pageview' => 1,
+			),
+			array(
+				'slug'                     => '/a/?source=feed',
+				'views'                    => 5,
+				'revenue'                  => 0.5,
+				'cpm'                      => 8,
+				'impressions_per_pageview' => 3,
+			),
+		);
+
+		$first      = $this->ingest( $rows, array( 'period' => '2026-05' ) );
+		$first_row  = reset( $this->store->rows );
+		$second     = $this->ingest( array_reverse( $rows ), array( 'period' => '2026-05' ) );
+		$second_row = reset( $this->store->rows );
+
+		$this->assertTrue( $first['success'] );
+		$this->assertTrue( $second['success'] );
+		$this->assertSame( 2, $second['duplicate_rows_deduped'] );
+		$this->assertSame( 0, $second['inserted'] );
+		$this->assertSame( 1, $second['replaced'] );
+		$this->assertSame( $first_row, $second_row );
+		$this->assertSame( 10, $second_row['views'] );
+		$this->assertSame( 1.0, $second_row['revenue'] );
+		$this->assertSame( '/a/', $second_row['url'] );
+	}
+
+	/**
+	 * Zero-impression rows use view weighting; all-zero-view rows use a mean.
+	 */
+	public function test_zero_view_and_zero_impression_rate_fallbacks(): void {
+		$this->ingest(
+			array(
+				array(
+					'slug'        => '/views/',
+					'views'       => 10,
+					'cpm'         => 2,
+					'viewability' => 20,
+					'fill_rate'   => 40,
+				),
+				array(
+					'slug'        => '/views',
+					'views'       => 30,
+					'cpm'         => 6,
+					'viewability' => 60,
+					'fill_rate'   => 80,
+				),
+				array(
+					'slug'        => '/zero/',
+					'views'       => 0,
+					'revenue'     => 1.25,
+					'cpm'         => 2,
+					'viewability' => 20,
+					'fill_rate'   => 40,
+					'rpm'         => 99,
+				),
+				array(
+					'slug'        => '/zero',
+					'views'       => 0,
+					'revenue'     => 2.75,
+					'cpm'         => 6,
+					'viewability' => 60,
+					'fill_rate'   => 80,
+					'rpm'         => 199,
+				),
+			),
+			array( 'period' => '2026-05' )
+		);
+
+		$records = array_column( $this->store->rows, null, 'slug' );
+		$this->assertSame( 5.0, $records['views']['cpm'] );
+		$this->assertSame( 50.0, $records['views']['viewability'] );
+		$this->assertSame( 70.0, $records['views']['fill_rate'] );
+		$this->assertSame( 0.0, $records['views']['impressions_per_pageview'] );
+		$this->assertSame( 0.0, $records['zero']['rpm'] );
+		$this->assertSame( 4.0, $records['zero']['cpm'] );
+		$this->assertSame( 40.0, $records['zero']['viewability'] );
+		$this->assertSame( 60.0, $records['zero']['fill_rate'] );
+		$this->assertSame( 4.0, $records['zero']['revenue'] );
+	}
+
+	/**
+	 * Homepage variants remain one unresolved canonical row with summed metrics.
+	 */
+	public function test_homepage_variants_aggregate_without_network_attribution(): void {
+		$result = $this->ingest(
+			array(
+				array(
+					'slug'    => '/',
+					'views'   => 7,
+					'revenue' => 1.25,
+				),
+				array(
+					'slug'    => '/?source=feed',
+					'views'   => 3,
+					'revenue' => 0.75,
+				),
+			),
+			array( 'period' => '2026-05' )
+		);
+		$row    = reset( $this->store->rows );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 1, $result['rows'] );
+		$this->assertSame( 1, $result['duplicate_rows_deduped'] );
+		$this->assertSame( '', $row['slug'] );
+		$this->assertSame( '/', $row['url'] );
+		$this->assertSame( 10, $row['views'] );
+		$this->assertSame( 2.0, $row['revenue'] );
+		$this->assertSame( 0, $row['post_id'] );
+		$this->assertNull( $row['content_blog_id'] );
+		$this->assertEmpty( $GLOBALS['extrachill_network_resolver_calls'] );
 	}
 
 	/**
