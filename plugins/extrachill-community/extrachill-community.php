@@ -37,6 +37,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/taxonomy-artist.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/breadcrumb-filter.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/page-templates.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/legacy-topic-redirects.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/local-scene-archives.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-spam-adjustments.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/sidebar.php';
