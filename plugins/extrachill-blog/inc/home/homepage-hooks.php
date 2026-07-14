@@ -14,6 +14,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Tag a cross-site destination for the existing network bridge analytics.
+ *
+ * @param string $url      Destination URL.
+ * @param string $site_key Canonical destination site key.
+ * @param string $source   Analytics source placement.
+ * @return string
+ */
+function extrachill_blog_bridge_url( $url, $site_key, $source = 'homepage' ) {
+	return function_exists( 'extrachill_network_bridge_tag_url' )
+		? extrachill_network_bridge_tag_url( $url, $site_key, $source )
+		: $url;
+}
+
+/**
  * Schedule the Recently Shipped warmer without performing a frontend fetch.
  */
 function extrachill_blog_schedule_recently_shipped_refresh() {

@@ -13,6 +13,6 @@
 		Everything you need to know about the Extra Chill ecosystem. Comprehensive guides for artists and fans to get the most out of our platform.
 	</p>
 	<div class="home-network-card-cta">
-		<a href="https://docs.extrachill.com" class="button-3 button-medium">Explore the Docs</a>
+		<a href="<?php echo esc_url( extrachill_blog_bridge_url( 'https://docs.extrachill.com', 'docs' ) ); ?>" class="button-3 button-medium ec-cross-site-link">Explore the Docs</a>
 	</div>
 </div>

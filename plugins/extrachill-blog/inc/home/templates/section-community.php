@@ -15,6 +15,9 @@ $profile_url  = '';
 
 if ( $is_logged_in && function_exists( 'extrachill_get_user_profile_url' ) ) {
 	$profile_url = extrachill_get_user_profile_url( get_current_user_id() );
+	if ( $profile_url ) {
+		$profile_url = extrachill_blog_bridge_url( $profile_url, 'community' );
+	}
 }
 
 $community_activity = function_exists( 'extrachill_get_community_activity_items' )
@@ -29,7 +32,7 @@ $community_activity = function_exists( 'extrachill_get_community_activity_items'
 	<?php if ( ! empty( $community_activity ) ) : ?>
 		<div class="home-community-activity">
 			<?php foreach ( $community_activity as $activity ) : ?>
-				<a class="home-community-activity-item" href="<?php echo esc_url( $activity['topic_url'] ); ?>">
+				<a class="home-community-activity-item ec-cross-site-link" href="<?php echo esc_url( extrachill_blog_bridge_url( $activity['topic_url'], 'community' ) ); ?>">
 					<span class="home-community-activity-title"><?php echo esc_html( $activity['topic_title'] ); ?></span>
 					<span class="home-community-activity-meta">
 						<?php
@@ -47,10 +50,10 @@ $community_activity = function_exists( 'extrachill_get_community_activity_items'
 	<?php endif; ?>
 	<div class="home-network-card-cta home-network-card-cta-row">
 		<?php if ( $is_logged_in && $profile_url ) : ?>
-			<a href="<?php echo esc_url( $profile_url ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Your Profile', 'extrachill-blog' ); ?></a>
+			<a href="<?php echo esc_url( $profile_url ); ?>" class="button-2 button-medium ec-cross-site-link"><?php esc_html_e( 'Your Profile', 'extrachill-blog' ); ?></a>
 		<?php else : ?>
-			<a href="https://community.extrachill.com" class="button-2 button-medium"><?php esc_html_e( 'Join the Conversation', 'extrachill-blog' ); ?></a>
+			<a href="<?php echo esc_url( extrachill_blog_bridge_url( 'https://community.extrachill.com', 'community' ) ); ?>" class="button-2 button-medium ec-cross-site-link"><?php esc_html_e( 'Join the Conversation', 'extrachill-blog' ); ?></a>
 		<?php endif; ?>
-		<a href="https://community.extrachill.com/recent" class="button-3 button-medium"><?php esc_html_e( 'Recent Activity', 'extrachill-blog' ); ?></a>
+		<a href="<?php echo esc_url( extrachill_blog_bridge_url( 'https://community.extrachill.com/recent', 'community' ) ); ?>" class="button-3 button-medium ec-cross-site-link"><?php esc_html_e( 'Recent Activity', 'extrachill-blog' ); ?></a>
 	</div>
 </div>

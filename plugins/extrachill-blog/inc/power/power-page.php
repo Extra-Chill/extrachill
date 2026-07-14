@@ -1,12 +1,11 @@
 <?php
 /**
- * The /power network manifesto landing page.
+ * The /power network explorer landing page.
  *
- * The /power surface is the network MANIFESTO + router: it tells outsiders
+ * The /power surface is the network router: it shows outsiders
  * Extra Chill is a whole independent-music NETWORK (events, community, wire,
- * artist platform, publication), not just a blog. It is manifesto-first,
- * routing-second — it LINKS to the live surfaces, it does not embed cross-blog
- * functional blocks.
+ * artist platform, publication), not just a blog. It leads with links to the
+ * live surfaces rather than making visitors read a manifesto first.
  *
  * Approach (server-rendered page):
  *  - /power is a standard published WP Page at the (confirmed-free) slug
@@ -14,7 +13,7 @@
  *    admin_init — the same provisioning convention the artist platform uses for
  *    /create-artist et al. The page renders through the theme's normal loop +
  *    inc/single/single-page.php (which calls the_content()).
- *  - The manifesto + network map are rendered SERVER-SIDE via a `the_content`
+ *  - The network explorer is rendered SERVER-SIDE via a `the_content`
  *    filter (inc/power/power-template.php), NOT seeded as Gutenberg block
  *    markup. This is deliberate and matches every other Extra Chill surface
  *    (homepage section templates, network-bridge, etc.): plain semantic HTML
@@ -41,8 +40,6 @@
  *    re-aim is artist-platform#76, intentionally not touched here).
  *  - Cards deep-link OUT to the subsites; the page embeds no cross-blog
  *    functional blocks.
- *  - The artist conversion section carries an #artists anchor so the future
- *    footer re-aim can target it directly.
  *
  * @package ExtraChillBlog
  * @since 0.6.0
@@ -55,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/power-template.php';
 
 /**
- * Slug for the manifesto page.
+ * Slug for the network explorer page.
  */
 const EXTRACHILL_BLOG_POWER_SLUG = 'power';
 
@@ -63,7 +60,7 @@ const EXTRACHILL_BLOG_POWER_SLUG = 'power';
  * Ensure the published /power page exists, creating it if absent.
  *
  * The page is a lightweight shell: its stored content is a single sentinel
- * paragraph. The manifesto + network map are injected at render time by the
+ * paragraph. The network explorer is injected at render time by the
  * the_content filter in power-template.php, so the live design tokens (and
  * therefore dark mode) always apply and the proof numbers are never frozen
  * into post_content.
@@ -107,14 +104,14 @@ function extrachill_blog_maybe_create_power_page() {
 add_action( 'admin_init', 'extrachill_blog_maybe_create_power_page' );
 
 /**
- * Replace the /power page content with the server-rendered manifesto.
+ * Replace the /power page content with the server-rendered network explorer.
  *
  * Runs only in the main query on the /power page so block themes, feeds, and
- * other contexts are untouched. Hides the page title (the manifesto supplies
+ * other contexts are untouched. Hides the page title (the explorer supplies
  * its own hero H1).
  *
  * @param string $content Original post content.
- * @return string Manifesto HTML on /power, original content otherwise.
+ * @return string Network explorer HTML on /power, original content otherwise.
  */
 function extrachill_blog_render_power_content( $content ) {
 	if ( ! is_page( EXTRACHILL_BLOG_POWER_SLUG ) || ! is_main_query() || ! in_the_loop() ) {

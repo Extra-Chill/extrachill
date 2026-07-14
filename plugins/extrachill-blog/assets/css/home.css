@@ -17,6 +17,18 @@
     font-family: var(--font-family-heading);
 }
 
+.hero-profile-link {
+    color: inherit;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.15em;
+}
+
+.hero-profile-link:hover,
+.hero-profile-link:focus {
+    color: var(--accent);
+}
+
 #hero-section h3 {
     font-size: var(--font-size-xl);
     margin-bottom: var(--spacing-xl);

@@ -1,5 +1,5 @@
 /**
- * Styles for the /power manifesto page.
+ * Styles for the /power network explorer.
  *
  * Built entirely on the live Extra Chill design tokens (the `--*` CSS custom
  * properties from the theme's root.css). Because EC dark mode flips those
@@ -70,49 +70,6 @@
 	color: var(--muted-text);
 }
 
-/* ---- Pillars ---- */
-
-.power-pillars {
-	display: grid;
-	grid-template-columns: 1fr;
-	gap: var(--spacing-md);
-}
-
-@media (min-width: 700px) {
-	.power-pillars {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-}
-
-.power-pillar {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: var(--spacing-md);
-	padding: var(--spacing-lg);
-	background: var(--card-background);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-xl);
-}
-
-.power-pillar__title {
-	margin: 0;
-	font-family: var(--font-family-heading);
-	font-size: var(--font-size-xl);
-	color: var(--text-color);
-}
-
-.power-pillar__statement {
-	margin: 0;
-	font-size: var(--font-size-body);
-	color: var(--text-color);
-	flex: 1 1 auto;
-}
-
-.power-pillar__cta {
-	margin-top: auto;
-}
-
 /* ---- Network map ---- */
 
 .power-network-map {
@@ -180,64 +137,27 @@
 	color: var(--link-color);
 }
 
-/* ---- Artist conversion section ---- */
+/* ---- Independence note ---- */
 
-.power-artists {
-	padding: var(--spacing-xl) var(--spacing-lg);
-	background: var(--card-background);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-xl);
-	margin: var(--spacing-xl) var(--spacing-md);
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: var(--spacing-md);
-}
-
-.power-artists__title {
-	margin: 0;
-	font-family: var(--font-family-heading);
-	font-size: var(--font-size-2xl);
-	color: var(--text-color);
-}
-
-.power-artists__intro {
-	margin: 0;
-	font-size: var(--font-size-body);
-	color: var(--text-color);
-}
-
-.power-artists__list {
-	margin: 0;
-	padding-left: var(--spacing-lg);
-	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-sm);
-	font-size: var(--font-size-body);
-	color: var(--text-color);
-}
-
-/* ---- Closing ---- */
-
-.power-closing {
+.power-note {
 	text-align: center;
-	padding: var(--spacing-xl) var(--spacing-md);
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: var(--spacing-md);
+	margin: var(--spacing-xl) var(--spacing-md);
+	padding: var(--spacing-xl);
+	background: var(--card-background);
+	border-left: 5px solid var(--accent);
+	border-radius: var(--border-radius-xl);
 }
 
-.power-closing__title {
-	margin: 0;
+.power-note__title {
+	margin: 0 0 var(--spacing-sm);
 	font-family: var(--font-family-heading);
 	font-size: var(--font-size-2xl);
 	color: var(--text-color);
 }
 
-.power-closing__text {
-	margin: 0;
-	max-width: 36rem;
+.power-note p {
+	margin: 0 auto;
+	max-width: 40rem;
 	font-size: var(--font-size-body);
 	color: var(--text-color);
 }
