@@ -679,7 +679,67 @@ final class GetContentRevenueDiagnosticsTest extends TestCase {
 		$this->assertSame( 'warning', $fmt['status'] );
 		// 5 distinct resolved pages (the post-3 variant collapsed), 3 uncategorized.
 		$this->assertSame( 5, $fmt['totals']['resolved_pages'] );
+		$this->assertSame( 5, $fmt['totals']['eligible_editorial_pages'] );
 		$this->assertSame( 3, $fmt['totals']['uncategorized_pages'] );
+	}
+
+	/**
+	 * Format coverage excludes resolved non-editorial entities from its denominator.
+	 */
+	public function test_format_coverage_reports_non_editorial_content_separately(): void {
+		$rows = array(
+			$this->row(
+				array(
+					'content_blog_id' => 1,
+					'post_id'         => 10,
+					'format'          => 'news',
+					'post_type'       => 'post',
+					'format_eligible' => true,
+				)
+			),
+			$this->row(
+				array(
+					'content_blog_id' => 1,
+					'post_id'         => 11,
+					'format'          => 'uncategorized',
+					'post_type'       => 'post',
+					'format_eligible' => true,
+				)
+			),
+			$this->row(
+				array(
+					'content_blog_id' => 7,
+					'post_id'         => 12,
+					'format'          => 'uncategorized',
+					'post_type'       => 'data_machine_events',
+					'format_eligible' => false,
+				)
+			),
+			$this->row(
+				array(
+					'content_blog_id' => 11,
+					'post_id'         => 13,
+					'format'          => 'uncategorized',
+					'post_type'       => 'festival_wire',
+					'format_eligible' => false,
+				)
+			),
+		);
+
+		$fmt = extrachill_analytics_revenue_diag_format_coverage( $rows );
+
+		$this->assertSame( 4, $fmt['totals']['resolved_pages'] );
+		$this->assertSame( 2, $fmt['totals']['eligible_editorial_pages'] );
+		$this->assertSame( 2, $fmt['totals']['non_editorial_pages'] );
+		$this->assertSame( 1, $fmt['totals']['uncategorized_pages'] );
+		$this->assertSame( 0.5, $fmt['totals']['uncategorized_ratio'] );
+		$this->assertSame(
+			array(
+				'blog-7:data_machine_events' => 1,
+				'blog-11:festival_wire'      => 1,
+			),
+			$fmt['totals']['by_non_editorial']
+		);
 	}
 
 	/**

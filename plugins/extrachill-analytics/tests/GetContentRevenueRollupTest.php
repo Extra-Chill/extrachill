@@ -175,6 +175,62 @@ final class GetContentRevenueRollupTest extends TestCase {
 	}
 
 	/**
+	 * Resolved cross-site entities stay visible without contaminating editorial peers.
+	 */
+	public function test_non_editorial_content_is_excluded_from_editorial_rollups(): void {
+		$records = array(
+			array(
+				'is_content'      => true,
+				'format_eligible' => true,
+				'page_key'        => 'p1:10',
+				'content_blog_id' => 1,
+				'post_type'       => 'post',
+				'format'          => 'news',
+				'categories'      => array( 'music-news' ),
+				'views'           => 1000,
+				'revenue'         => 20.0,
+			),
+			array(
+				'is_content'      => true,
+				'format_eligible' => false,
+				'page_key'        => 'p7:10',
+				'content_blog_id' => 7,
+				'post_type'       => 'data_machine_events',
+				'format'          => 'uncategorized',
+				'categories'      => array( 'uncategorized' ),
+				'views'           => 5000,
+				'revenue'         => 5.0,
+			),
+			array(
+				'is_content'      => true,
+				'format_eligible' => false,
+				'page_key'        => 'p11:10',
+				'content_blog_id' => 11,
+				'post_type'       => 'festival_wire',
+				'format'          => 'listicle',
+				'categories'      => array( 'uncategorized' ),
+				'views'           => 2000,
+				'revenue'         => 25.0,
+			),
+		);
+
+		$result = extrachill_analytics_revenue_build_rollups( $records, 'both' );
+
+		$this->assertSame( 1, $result['totals']['pages'] );
+		$this->assertSame( 1000, $result['totals']['views'] );
+		$this->assertSame( 20.0, $result['totals']['revenue'] );
+		$this->assertSame( array( 'news' ), $this->pluck( $result['rollups']['by_format'], 'bucket' ) );
+		$this->assertSame( array( 'music-news' ), $this->pluck( $result['rollups']['by_category'], 'bucket' ) );
+		$this->assertSame( 2, $result['non_editorial']['pages'] );
+		$this->assertSame( 7000, $result['non_editorial']['views'] );
+		$this->assertSame( 30.0, $result['non_editorial']['revenue'] );
+		$this->assertEqualsCanonicalizing(
+			array( 'blog-7:data_machine_events', 'blog-11:festival_wire' ),
+			$this->pluck( $result['non_editorial']['by_content_type'], 'bucket' )
+		);
+	}
+
+	/**
 	 * Duplicate URL variants of the same post/page count once for pages while
 	 * revenue and views still sum (the existing de-dupe contract, preserved).
 	 */
@@ -350,8 +406,8 @@ final class GetContentRevenueRollupTest extends TestCase {
 		// A row is content only when its post is currently published.
 		$this->assertStringContainsString( "'publish' === get_post_status( \$post_id )", $source );
 		// Unresolved routes are marked is_content => false and excluded.
-		$this->assertStringContainsString( "'is_content' => false", $source );
-		$this->assertStringContainsString( "'is_content' => true", $source );
+		$this->assertMatchesRegularExpression( "/'is_content'\s*=>\s*false/", $source );
+		$this->assertMatchesRegularExpression( "/'is_content'\s*=>\s*true/", $source );
 		// The response exposes an explicit unresolved cohort.
 		$this->assertStringContainsString( "'unresolved'", $source );
 		$this->assertStringContainsString( "'by_route_family'", $source );

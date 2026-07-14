@@ -39,7 +39,7 @@ function extrachill_analytics_register_content_revenue_ability() {
 		'extrachill/get-content-revenue',
 		array(
 			'label'               => __( 'Get Content Revenue Lens', 'extrachill-analytics' ),
-			'description'         => __( 'Join imported Mediavine per-URL ad revenue to WordPress content metadata (category, content format, age) and roll it up by category, by content format, or as a TIME-SERIES revenue arc. Content totals and rollups cover RESOLVED PUBLISHED POSTS ONLY — unresolved routes (home, pagination, taxonomy archives, app/account routes, legacy .html ghosts) are excluded from content metrics so published-content RPM is honest, and reported separately under `unresolved` with a by_route_family breakdown. group_by=timeseries sums revenue/views per time bucket chronologically (month-over-month, the HCU cliff in dollars) — the first-class capability, since each monthly Mediavine export is one point on the arc. group_by=format/category/both reports pages, views, revenue, RPM, and $/page (revenue/pages) — $/page is the honest "worth producing" metric because RPM alone misleads (high RPM on tiny volume = pennies); scope these to one bucket with period=YYYY-MM. Revenue is exactly what was imported from the Mediavine Pages CSV (Mediavine has no per-page revenue API, only ad-config); this ability never estimates ad income. NOTE: the flat lifetime export is time-blind (no date column, one cumulative total per URL) and undercounts the 2022-2023 peak — import date-ranged monthly CSVs for the real arc.', 'extrachill-analytics' ),
+			'description'         => __( 'Join imported Mediavine per-URL ad revenue to WordPress content metadata (category, content format, age) and roll main-site editorial posts up by category, by content format, or as a TIME-SERIES revenue arc. Resolved non-editorial sites and post types are reported separately under `non_editorial`; unresolved routes are reported under `unresolved`. group_by=timeseries sums revenue/views per time bucket chronologically (month-over-month, the HCU cliff in dollars) — the first-class capability, since each monthly Mediavine export is one point on the arc. group_by=format/category/both reports pages, views, revenue, RPM, and $/page (revenue/pages) — $/page is the honest "worth producing" metric because RPM alone misleads (high RPM on tiny volume = pennies); scope these to one bucket with period=YYYY-MM. Revenue is exactly what was imported from the Mediavine Pages CSV (Mediavine has no per-page revenue API, only ad-config); this ability never estimates ad income. NOTE: the flat lifetime export is time-blind (no date column, one cumulative total per URL) and undercounts the 2022-2023 peak — import date-ranged monthly CSVs for the real arc.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -169,6 +169,13 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 				'rpm'             => 0.0,
 				'by_route_family' => array(),
 			),
+			'non_editorial'  => array(
+				'pages'           => 0,
+				'views'           => 0,
+				'revenue'         => 0.0,
+				'rpm'             => 0.0,
+				'by_content_type' => array(),
+			),
 			'caveat'         => __( 'No revenue snapshots for this blog/window. Import a Mediavine Pages CSV first: wp extrachill analytics revenue import <csv>.', 'extrachill-analytics' ),
 		);
 	}
@@ -210,14 +217,17 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 				extrachill_analytics_revenue_ad_policy_context( $content_blog_id, $source_url, $content['post_type'] )
 			);
 			$records[] = array(
-				'is_content' => true,
-				'page_key'   => 'p' . $content_blog_id . ':' . $post_id,
-				'format'     => $content['format'],
-				'categories' => $content['categories'],
-				'views'      => $views,
-				'revenue'    => $revenue,
-				'url'        => $source_url,
-				'ad_policy'  => $ad_policy,
+				'is_content'      => true,
+				'page_key'        => 'p' . $content_blog_id . ':' . $post_id,
+				'format'          => $content['format'],
+				'categories'      => $content['categories'],
+				'content_blog_id' => $content_blog_id,
+				'post_type'       => $content['post_type'],
+				'format_eligible' => extrachill_analytics_is_editorial_format_eligible( $content_blog_id, $content['post_type'] ),
+				'views'           => $views,
+				'revenue'         => $revenue,
+				'url'             => $source_url,
+				'ad_policy'       => $ad_policy,
 			);
 		} else {
 			// Unresolved route (post_id 0, or stale/non-published ID): diagnostic
@@ -250,7 +260,8 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 		'rollups'        => $built['rollups'],
 		'totals'         => $built['totals'],
 		'unresolved'     => $built['unresolved'],
-		'caveat'         => __( 'Totals and rollups cover RESOLVED PUBLISHED CONTENT ONLY; unresolved routes are reported separately. Ad policy is owned by Extra Chill Network. revenue_status marks aggregates as applicable, not_applicable, mixed, or unknown while imported revenue remains unchanged; policy_conflicts counts contradictory positive revenue on blocked rows. $/page is the honest "worth producing" metric — RPM alone misleads. The Mediavine Pages CSV may omit hostnames, so unresolved cross-site paths remain coverage signal, not an attribution verdict.', 'extrachill-analytics' ),
+		'non_editorial'  => $built['non_editorial'],
+		'caveat'         => __( 'Totals and category/format rollups cover main-site editorial posts only. Resolved content from other sites or post types is reported separately under non_editorial; unresolved routes are reported under unresolved. Ad policy is owned by Extra Chill Network. revenue_status marks aggregates as applicable, not_applicable, mixed, or unknown while imported revenue remains unchanged; policy_conflicts counts contradictory positive revenue on blocked rows. $/page is the honest "worth producing" metric — RPM alone misleads. The Mediavine Pages CSV may omit hostnames, so unresolved cross-site paths remain coverage signal, not an attribution verdict.', 'extrachill-analytics' ),
 	);
 }
 
@@ -386,11 +397,11 @@ function extrachill_analytics_revenue_classify_route_family( $url ) {
  * resolution (post lookup, publish-status gate, term lookup) and hands the
  * resulting records here.
  *
- * CONTRACT (issue #130):
- *   - `totals` and `rollups` contain RESOLVED PUBLISHED CONTENT ONLY. Unresolved
- *     routes never inflate content pages/views/revenue or leak into category/
- *     format buckets. This keeps published-content RPM honest ($23.37, not the
- *     contaminated $13.98 the combined rollup reported).
+ * CONTRACT (issues #130 and #159):
+ *   - `totals` and `rollups` contain eligible main-site editorial posts only.
+ *     Resolved non-editorial sites/types remain visible under `non_editorial`.
+ *   - Unresolved routes never inflate content pages/views/revenue or leak into
+ *     category/format buckets. This keeps published-content RPM honest.
  *   - `unresolved` is an explicit diagnostic cohort — same metrics, plus a
  *     `by_route_family` breakdown — so non-content routes (/, /page/2/,
  *     /location/..., app routes, legacy .html ghosts) stay visible without being
@@ -410,21 +421,29 @@ function extrachill_analytics_revenue_classify_route_family( $url ) {
  * @param array  $records  Pre-classified revenue records.
  * @param string $group_by 'format', 'category', 'both', or 'timeseries'.
  * @return array {
- *     @type array $rollups    by_format and/or by_category (content only).
- *     @type array $totals     Content-only pages/views/revenue/rpm/dollars_per_page.
- *     @type array $unresolved Diagnostic cohort + by_route_family breakdown.
+ *     @type array $rollups       by_format and/or by_category (editorial only).
+ *     @type array $totals        Editorial-only pages/views/revenue/rpm/dollars_per_page.
+ *     @type array $non_editorial Resolved non-editorial cohort + content types.
+ *     @type array $unresolved    Diagnostic cohort + by_route_family breakdown.
  * }
  */
 function extrachill_analytics_revenue_build_rollups( array $records, $group_by ) {
 	$by_format   = array();
 	$by_category = array();
 
-	$content_pages            = 0;
-	$content_views            = 0;
-	$content_revenue          = 0.0;
-	$seen_content             = array();
-	$content_policy_statuses  = array();
-	$content_policy_conflicts = 0;
+	$content_pages                  = 0;
+	$content_views                  = 0;
+	$content_revenue                = 0.0;
+	$seen_content                   = array();
+	$content_policy_statuses        = array();
+	$content_policy_conflicts       = 0;
+	$non_editorial_pages            = 0;
+	$non_editorial_views            = 0;
+	$non_editorial_revenue          = 0.0;
+	$seen_non_editorial             = array();
+	$non_editorial_types            = array();
+	$non_editorial_policy_statuses  = array();
+	$non_editorial_policy_conflicts = 0;
 
 	$unresolved_pages            = 0;
 	$unresolved_views            = 0;
@@ -475,6 +494,23 @@ function extrachill_analytics_revenue_build_rollups( array $records, $group_by )
 			$unresolved_family[ $family ]['policy_statuses'][ $policy_status ] = isset( $unresolved_family[ $family ]['policy_statuses'][ $policy_status ] ) ? $unresolved_family[ $family ]['policy_statuses'][ $policy_status ] + 1 : 1;
 			if ( $policy_conflict ) {
 				++$unresolved_family[ $family ]['policy_conflicts'];
+			}
+			continue;
+		}
+
+		if ( isset( $rec['format_eligible'] ) && ! $rec['format_eligible'] ) {
+			$count_page                 = '' !== $key && empty( $seen_non_editorial[ $key ] );
+			$seen_non_editorial[ $key ] = true;
+			$type                       = 'blog-' . (int) ( isset( $rec['content_blog_id'] ) ? $rec['content_blog_id'] : 0 ) . ':' . ( isset( $rec['post_type'] ) && '' !== $rec['post_type'] ? (string) $rec['post_type'] : 'unknown' );
+			extrachill_analytics_revenue_accumulate( $non_editorial_types, $type, $views, $revenue, $count_page, $policy_status, $policy_conflict );
+			$non_editorial_views                            += $views;
+			$non_editorial_revenue                          += $revenue;
+			$non_editorial_policy_statuses[ $policy_status ] = isset( $non_editorial_policy_statuses[ $policy_status ] ) ? $non_editorial_policy_statuses[ $policy_status ] + 1 : 1;
+			if ( $policy_conflict ) {
+				++$non_editorial_policy_conflicts;
+			}
+			if ( $count_page ) {
+				++$non_editorial_pages;
 			}
 			continue;
 		}
@@ -535,8 +571,8 @@ function extrachill_analytics_revenue_build_rollups( array $records, $group_by )
 	);
 
 	return array(
-		'rollups'    => $rollups,
-		'totals'     => array(
+		'rollups'       => $rollups,
+		'totals'        => array(
 			'pages'            => $content_pages,
 			'views'            => $content_views,
 			'revenue'          => round( $content_revenue, 2 ),
@@ -545,7 +581,7 @@ function extrachill_analytics_revenue_build_rollups( array $records, $group_by )
 			'revenue_status'   => extrachill_analytics_revenue_aggregate_policy_status( $content_policy_statuses ),
 			'policy_conflicts' => $content_policy_conflicts,
 		),
-		'unresolved' => array(
+		'unresolved'    => array(
 			'pages'            => $unresolved_pages,
 			'views'            => $unresolved_views,
 			'revenue'          => round( $unresolved_revenue, 2 ),
@@ -553,6 +589,15 @@ function extrachill_analytics_revenue_build_rollups( array $records, $group_by )
 			'revenue_status'   => extrachill_analytics_revenue_aggregate_policy_status( $unresolved_policy_statuses ),
 			'policy_conflicts' => $unresolved_policy_conflicts,
 			'by_route_family'  => $family_rows,
+		),
+		'non_editorial' => array(
+			'pages'            => $non_editorial_pages,
+			'views'            => $non_editorial_views,
+			'revenue'          => round( $non_editorial_revenue, 2 ),
+			'rpm'              => $non_editorial_views > 0 ? round( $non_editorial_revenue / ( $non_editorial_views / 1000 ), 2 ) : 0.0,
+			'revenue_status'   => extrachill_analytics_revenue_aggregate_policy_status( $non_editorial_policy_statuses ),
+			'policy_conflicts' => $non_editorial_policy_conflicts,
+			'by_content_type'  => extrachill_analytics_revenue_finalize( $non_editorial_types ),
 		),
 	);
 }

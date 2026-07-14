@@ -8,6 +8,7 @@
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__ ) . '/inc/core/content-format-classifier.php';
+require_once dirname( __DIR__ ) . '/inc/core/revenue-ad-policy.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-content-revenue.php';
 
 /**
@@ -52,6 +53,42 @@ final class ContentFormatClassifierTest extends TestCase {
 
 		$this->assertSame( 'guitar-history', extrachill_analytics_classify_format( 145 ) );
 		$this->assertSame( 'music-history', extrachill_analytics_classify_format( 146 ) );
+	}
+
+	/**
+	 * Every stable editorial taxonomy family resolves to its intended format.
+	 */
+	public function test_stable_editorial_taxonomy_families(): void {
+		$fixtures = array(
+			'song-meanings'      => 'song-meaning',
+			'famous-guitars'     => 'guitar-history',
+			'music-history'      => 'music-history',
+			'charleston-music'   => 'charleston-local',
+			'interviews'         => 'interview',
+			'trivia'             => 'trivia',
+			'lists'              => 'listicle',
+			'music-theory'       => 'explainer',
+			'music-news'         => 'news',
+			'premieres'          => 'news',
+			'live-music-reviews' => 'news',
+		);
+		$id       = 200;
+
+		foreach ( $fixtures as $category => $expected ) {
+			$this->fixture_post( $id, array( $category ) );
+			$this->assertSame( $expected, extrachill_analytics_classify_format( $id ), $category );
+			++$id;
+		}
+	}
+
+	/**
+	 * Editorial eligibility follows owning site and post type, never URL shape.
+	 */
+	public function test_editorial_format_eligibility_is_explicit(): void {
+		$this->assertTrue( extrachill_analytics_is_editorial_format_eligible( 1, 'post' ) );
+		$this->assertFalse( extrachill_analytics_is_editorial_format_eligible( 1, 'page' ) );
+		$this->assertFalse( extrachill_analytics_is_editorial_format_eligible( 7, 'data_machine_events' ) );
+		$this->assertFalse( extrachill_analytics_is_editorial_format_eligible( 11, 'festival_wire' ) );
 	}
 
 	/**
