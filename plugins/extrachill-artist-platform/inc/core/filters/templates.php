@@ -54,10 +54,6 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
             'file' => 'inc/link-pages/live/templates/components/social-icons-container.php',
             'required' => array( 'social_links' )
         ),
-        'artist-switcher' => array(
-            'file' => 'inc/core/templates/artist-switcher.php',
-            'required' => array()
-        ),
         // Subscription Templates
         'subscribe-inline-form' => array(
             'file' => 'inc/link-pages/live/templates/subscribe-inline-form.php',

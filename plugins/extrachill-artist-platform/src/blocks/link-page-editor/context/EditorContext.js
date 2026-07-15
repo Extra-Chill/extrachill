@@ -82,8 +82,16 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 	const config = window.ecLinkPageEditorConfig || {};
 	const fonts = config.fonts || [];
 	const localFontsCss = config.localFontsCss || '';
+	const userArtists = Array.isArray( config.userArtists )
+		? config.userArtists
+		: [];
+	const initialEligibleArtistId = userArtists.some(
+		( artist ) => Number( artist.id ) === Number( initialArtistId )
+	)
+		? initialArtistId
+		: userArtists[ 0 ]?.id || 0;
 
-	const [ artistId, setArtistId ] = useState( initialArtistId );
+	const [ artistId, setArtistId ] = useState( initialEligibleArtistId );
 	const [ activeTab, setActiveTab ] = useState( 'info' );
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ saveError, setSaveError ] = useState( null );
@@ -92,7 +100,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 	// `useState` lazy initializer guarantees synchronous resolution and a
 	// single prompt before any child hook runs.
 	const [ restoredBuffer, setRestoredBuffer ] = useState( () =>
-		resolveRestoredBuffer( initialArtistId )
+		resolveRestoredBuffer( initialEligibleArtistId )
 	);
 
 	const [ hasUnsavedChanges, setHasUnsavedChanges ] = useState(
@@ -394,7 +402,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			isUploading: mediaUpload.isUploading,
 			uploadError: mediaUpload.error,
 
-			userArtists: config.userArtists || [],
+			userArtists,
 			fonts,
 			socialTypes: config.socialTypes || [],
 			linkPageCssUrl: config.linkPageCssUrl || '',
@@ -429,7 +437,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			socialsData,
 			mediaUpload,
 			editorArtist,
-			config.userArtists,
+			userArtists,
 			fonts,
 			config.socialTypes,
 			config.linkPageCssUrl,

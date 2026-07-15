@@ -4,7 +4,7 @@
  * Dropdown for switching between user's artists across all artist platform blocks.
  */
 
-import { useCallback } from '@wordpress/element';
+import { useCallback, useId } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 export default function ArtistSwitcher( {
@@ -16,6 +16,7 @@ export default function ArtistSwitcher( {
 	hideIfSingle = true,
 	emptyStateMessage = null,
 } ) {
+	const selectId = useId();
 	const handleChange = useCallback(
 		( e ) => {
 			const newId =
@@ -42,14 +43,15 @@ export default function ArtistSwitcher( {
 	}
 
 	return (
-		<div className="ec-artist-switcher">
+		<div>
 			{ showLabel && (
-				<label htmlFor="ec-artist-switcher-select">
+				<label htmlFor={ selectId }>
 					{ __( 'Your Artists', 'extrachill-artist-platform' ) }
 				</label>
 			) }
 			<select
-				id={ showLabel ? 'ec-artist-switcher-select' : undefined }
+				id={ selectId }
+				className="ec-toolbar__select"
 				value={ selectedId || '' }
 				onChange={ handleChange }
 				aria-label={ __( 'Select artist', 'extrachill-artist-platform' ) }

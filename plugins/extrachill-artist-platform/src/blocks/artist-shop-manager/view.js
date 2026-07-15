@@ -51,13 +51,18 @@ const getCachedStripeStatus = ( userArtists, artistId ) => {
 
 const App = () => {
 	const config = useConfig();
+	const initialArtistId = config.userArtists.some(
+		( artist ) => Number( artist.id ) === config.selectedId
+	)
+		? config.selectedId
+		: 0;
 	const [ activeTab, setActiveTab ] = useState( 'products' );
-	const [ artistId, setArtistId ] = useState( config.selectedId || 0 );
+	const [ artistId, setArtistId ] = useState( initialArtistId );
 	const [ products, setProducts ] = useState( [] );
 	const [ loading, setLoading ] = useState( false );
 	const [ error, setError ] = useState( '' );
 	const [ stripeStatus, setStripeStatus ] = useState( () =>
-		getCachedStripeStatus( config.userArtists, config.selectedId || 0 )
+		getCachedStripeStatus( config.userArtists, initialArtistId )
 	);
 	const [ stripeLoading, setStripeLoading ] = useState( false );
 	const [ stripeError, setStripeError ] = useState( '' );

@@ -10,9 +10,16 @@ const AnalyticsContext = createContext( null );
 
 export function AnalyticsProvider( { initialArtistId, children } ) {
 	const config = window.ecArtistAnalyticsConfig || {};
-	const [ artistId, setArtistId ] = useState( initialArtistId || config.artistId );
-
-	const userArtists = config.userArtists || [];
+	const userArtists = Array.isArray( config.userArtists )
+		? config.userArtists
+		: [];
+	const configuredArtistId = initialArtistId || config.artistId;
+	const initialEligibleArtistId = userArtists.some(
+		( artist ) => Number( artist.id ) === Number( configuredArtistId )
+	)
+		? configuredArtistId
+		: userArtists[ 0 ]?.id || 0;
+	const [ artistId, setArtistId ] = useState( initialEligibleArtistId );
 
 	const switchArtist = useCallback(
 		( newArtistId ) => {

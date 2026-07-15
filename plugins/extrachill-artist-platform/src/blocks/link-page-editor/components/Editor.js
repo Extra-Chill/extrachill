@@ -100,23 +100,6 @@ export default function Editor() {
 		[ artistId, switchArtist ]
 	);
 
-	if ( isLoading ) {
-		return (
-			<div className="ec-editor-loading">
-				<span className="spinner is-active"></span>
-				<p>{ __( 'Loading editor...', 'extrachill-artist-platform' ) }</p>
-			</div>
-		);
-	}
-
-	if ( error ) {
-		return (
-			<div className="notice notice-error">
-				<p>{ error }</p>
-			</div>
-		);
-	}
-
 	const renderTabContent = () => {
 		switch ( activeTab ) {
 			case 'info':
@@ -182,37 +165,48 @@ export default function Editor() {
 					artistSlug={ artist?.slug || currentArtist?.slug }
 				/>
 
-				<div className="ec-editor__body">
-					<div className="ec-editor__sidebar">
-						<ResponsiveTabs
-							className="ec-editor__sidebar-tabs"
-							tabs={ TABS }
-							active={ activeTab }
-							onChange={ setActiveTab }
-							showDesktopTabs={ true }
-							renderPanel={ () => (
-								<Panel>
-									{ renderTabContent() }
-								</Panel>
-							) }
-						/>
+				{ isLoading ? (
+					<div className="ec-editor-loading">
+						<span className="spinner is-active"></span>
+						<p>{ __( 'Loading editor...', 'extrachill-artist-platform' ) }</p>
 					</div>
-
-					<div className="ec-editor__preview-region">
-						<div className="ec-editor__preview-header">
-							<h2 className="ec-editor__preview-title">
-								{ __( 'Preview', 'extrachill-artist-platform' ) }
-							</h2>
-							<p className="ec-editor__preview-description">
-								{ __( 'Live preview of your public link page.', 'extrachill-artist-platform' ) }
-							</p>
+				) : error ? (
+					<div className="notice notice-error">
+						<p>{ error }</p>
+					</div>
+				) : (
+					<div className="ec-editor__body">
+						<div className="ec-editor__sidebar">
+							<ResponsiveTabs
+								className="ec-editor__sidebar-tabs"
+								tabs={ TABS }
+								active={ activeTab }
+								onChange={ setActiveTab }
+								showDesktopTabs={ true }
+								renderPanel={ () => (
+									<Panel>
+										{ renderTabContent() }
+									</Panel>
+								) }
+							/>
 						</div>
 
-						<div className="ec-editor__preview-container">
-							<Preview />
+						<div className="ec-editor__preview-region">
+							<div className="ec-editor__preview-header">
+								<h2 className="ec-editor__preview-title">
+									{ __( 'Preview', 'extrachill-artist-platform' ) }
+								</h2>
+								<p className="ec-editor__preview-description">
+									{ __( 'Live preview of your public link page.', 'extrachill-artist-platform' ) }
+								</p>
+							</div>
+
+							<div className="ec-editor__preview-container">
+								<Preview />
+							</div>
 						</div>
 					</div>
-				</div>
+				) }
 			</BlockShellInner>
 		</BlockShell>
 	);

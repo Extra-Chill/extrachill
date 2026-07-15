@@ -94,25 +94,6 @@ export default function Analytics() {
 		setDateRange( parseInt( e.target.value, 10 ) );
 	}, [ setDateRange ] );
 
-	if ( isLoading ) {
-		return (
-			<div className="ec-aa ec-aa--loading">
-				<span className="spinner is-active"></span>
-				<p>{ __( 'Loading analytics...', 'extrachill-artist-platform' ) }</p>
-			</div>
-		);
-	}
-
-	if ( error ) {
-		return (
-			<div className="ec-aa">
-				<div className="notice notice-error">
-					<p>{ error }</p>
-				</div>
-			</div>
-		);
-	}
-
 	return (
 		<BlockShell className="ec-aa">
 			<BlockShellInner maxWidth="wide">
@@ -146,63 +127,76 @@ export default function Analytics() {
 					}
 				/>
 
-				<Section className="ec-aa__stats" depth={ 1 }>
-				<div className="ec-aa__stat">
-					<span className="ec-aa__stat-value">{ analytics?.summary?.total_views || 0 }</span>
-					<span className="ec-aa__stat-label">{ __( 'Total Views', 'extrachill-artist-platform' ) }</span>
-				</div>
-				<div className="ec-aa__stat">
-					<span className="ec-aa__stat-value">{ analytics?.summary?.total_clicks || 0 }</span>
-					<span className="ec-aa__stat-label">{ __( 'Total Clicks', 'extrachill-artist-platform' ) }</span>
-				</div>
-				<div className="ec-aa__stat">
-					<span className="ec-aa__stat-value">
-						{ analytics?.summary?.total_views
-							? `${ ( ( analytics.summary.total_clicks / analytics.summary.total_views ) * 100 ).toFixed( 1 ) }%`
-							: '0%' }
-					</span>
-					<span className="ec-aa__stat-label">{ __( 'Click Rate', 'extrachill-artist-platform' ) }</span>
-				</div>
-				</Section>
+				{ isLoading ? (
+					<div className="ec-aa ec-aa--loading">
+						<span className="spinner is-active"></span>
+						<p>{ __( 'Loading analytics...', 'extrachill-artist-platform' ) }</p>
+					</div>
+				) : error ? (
+					<div className="notice notice-error">
+						<p>{ error }</p>
+					</div>
+				) : (
+					<>
+						<Section className="ec-aa__stats" depth={ 1 }>
+							<div className="ec-aa__stat">
+								<span className="ec-aa__stat-value">{ analytics?.summary?.total_views || 0 }</span>
+								<span className="ec-aa__stat-label">{ __( 'Total Views', 'extrachill-artist-platform' ) }</span>
+							</div>
+							<div className="ec-aa__stat">
+								<span className="ec-aa__stat-value">{ analytics?.summary?.total_clicks || 0 }</span>
+								<span className="ec-aa__stat-label">{ __( 'Total Clicks', 'extrachill-artist-platform' ) }</span>
+							</div>
+							<div className="ec-aa__stat">
+								<span className="ec-aa__stat-value">
+									{ analytics?.summary?.total_views
+										? `${ ( ( analytics.summary.total_clicks / analytics.summary.total_views ) * 100 ).toFixed( 1 ) }%`
+										: '0%' }
+								</span>
+								<span className="ec-aa__stat-label">{ __( 'Click Rate', 'extrachill-artist-platform' ) }</span>
+							</div>
+						</Section>
 
-				<Panel className="ec-aa__chart" compact depth={ 1 }>
-					<canvas ref={ chartRef } height="300"></canvas>
-				</Panel>
+						<Panel className="ec-aa__chart" compact depth={ 1 }>
+							<canvas ref={ chartRef } height="300"></canvas>
+						</Panel>
 
-				<Panel className="ec-aa__top-links" compact depth={ 1 }>
-					<PanelHeader title={ __( 'Top Links', 'extrachill-artist-platform' ) } />
-					<table className="ec-aa__table">
-					<thead>
-						<tr>
-							<th>{ __( 'Link Text / URL', 'extrachill-artist-platform' ) }</th>
-							<th>{ __( 'Clicks', 'extrachill-artist-platform' ) }</th>
-						</tr>
-					</thead>
-					<tbody>
-						{ analytics?.top_links?.length > 0 ? (
-							analytics.top_links.map( ( link, index ) => (
-								<tr key={ index }>
-									<td>
-										<span className="ec-aa__link-title">{ link.text || link.identifier }</span>
-										{ link.identifier && (
-											<span className="ec-aa__link-url">{ link.identifier }</span>
-										) }
-									</td>
-									<td>{ link.clicks }</td>
-								</tr>
-							) )
-						) : (
-							<tr>
-								<td colSpan="2">{ __( 'No link click data available.', 'extrachill-artist-platform' ) }</td>
-							</tr>
-						) }
-					</tbody>
-					</table>
-				</Panel>
+						<Panel className="ec-aa__top-links" compact depth={ 1 }>
+							<PanelHeader title={ __( 'Top Links', 'extrachill-artist-platform' ) } />
+							<table className="ec-aa__table">
+								<thead>
+									<tr>
+										<th>{ __( 'Link Text / URL', 'extrachill-artist-platform' ) }</th>
+										<th>{ __( 'Clicks', 'extrachill-artist-platform' ) }</th>
+									</tr>
+								</thead>
+								<tbody>
+									{ analytics?.top_links?.length > 0 ? (
+										analytics.top_links.map( ( link, index ) => (
+											<tr key={ index }>
+												<td>
+													<span className="ec-aa__link-title">{ link.text || link.identifier }</span>
+													{ link.identifier && (
+														<span className="ec-aa__link-url">{ link.identifier }</span>
+													) }
+												</td>
+												<td>{ link.clicks }</td>
+											</tr>
+										) )
+									) : (
+										<tr>
+											<td colSpan="2">{ __( 'No link click data available.', 'extrachill-artist-platform' ) }</td>
+										</tr>
+									) }
+								</tbody>
+							</table>
+						</Panel>
 
-				<p className="ec-aa__note">
-					{ __( 'Analytics data is updated daily. Data older than 90 days is automatically pruned.', 'extrachill-artist-platform' ) }
-				</p>
+						<p className="ec-aa__note">
+							{ __( 'Analytics data is updated daily. Data older than 90 days is automatically pruned.', 'extrachill-artist-platform' ) }
+						</p>
+					</>
+				) }
 			</BlockShellInner>
 		</BlockShell>
 	);

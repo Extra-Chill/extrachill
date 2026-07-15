@@ -509,8 +509,13 @@ const getInitialFormState = (artist) => ({
 
 const App = () => {
 	const config = useConfig();
+	const initialSelectedId = config.userArtists.some(
+		( artist ) => Number( artist.id ) === Number( config.selectedId )
+	)
+		? Number( config.selectedId )
+		: 0;
 	const [activeTab, setActiveTab] = useState('info');
-	const [selectedId, setSelectedId] = useState(Number(config.selectedId) || 0);
+	const [selectedId, setSelectedId] = useState(initialSelectedId);
 	const [artist, setArtist] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
@@ -544,11 +549,11 @@ const App = () => {
 	};
 
 	useEffect(() => {
-		if (config.selectedId) {
-			loadArtist(config.selectedId);
+		if (initialSelectedId) {
+			loadArtist(initialSelectedId);
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ config.selectedId ]);
+	}, [ initialSelectedId ]);
 
 	const handleSave = async () => {
 		if (!selectedId) {
