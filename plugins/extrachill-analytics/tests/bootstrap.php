@@ -367,3 +367,4 @@ if ( ! function_exists( 'get_the_terms' ) ) {
 require_once dirname( __DIR__ ) . '/inc/core/php-error-log.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-php-error-summary.php';
 require_once dirname( __DIR__ ) . '/inc/core/security-classifier.php';
+require_once dirname( __DIR__ ) . '/inc/core/retention-cohorts.php';

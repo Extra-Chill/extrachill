@@ -147,55 +147,72 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 	$return_rate        = $total_visitors > 0 ? round( $returning_visitors / $total_visitors, 4 ) : 0.0;
 
 	// ---------------------------------------------------------------------
-	// (b) Cohort retention: of visitors first-seen in week N, what % return in
-	// a later week (N+1, N+2, ...). "Week" is the ISO week of the visitor's
-	// first-ever pageview within the window. We compute, per cohort, the
-	// share still active 1 and 2 weeks later.
+	// (b) Cohort retention: acquisition is the first observed pageview in the
+	// available history (within the requested blog scope). W1 and W2 are the
+	// first and second complete ISO weeks after that acquisition week.
 	// ---------------------------------------------------------------------
 	$cohort_since = gmdate( 'Y-m-d H:i:s', strtotime( "-{$cohort_weeks} weeks" ) );
 
-	$cohort_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s' );
-	$cohort_values = array( $event_type, $cohort_since );
+	$cohort_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at < %s' );
+	$cohort_values = array( $event_type, $now_utc );
 	if ( $blog_id > 0 ) {
 		$cohort_where[]  = 'blog_id = %d';
 		$cohort_values[] = $blog_id;
 	}
 	$cohort_where_clause = implode( ' AND ', $cohort_where );
 
-	// Per visitor: their first-seen week, and the full set of weeks they were active.
+	// The first derived table reads all available pageview history to establish
+	// acquisition before restricting the requested cohort range. The activity
+	// join is bounded to W1/W2 and uses the existing (visitor_id, created_at)
+	// index for each acquired visitor.
 	$cohort_sql = "SELECT
-			first_week,
+			cohort_week_start,
 			COUNT(*) AS cohort_size,
-			SUM(CASE WHEN max_week >= first_week + 1 THEN 1 ELSE 0 END) AS returned_w1,
-			SUM(CASE WHEN max_week >= first_week + 2 THEN 1 ELSE 0 END) AS returned_w2
+			SUM(active_w1) AS returned_w1,
+			SUM(active_w2) AS returned_w2
 		FROM (
 			SELECT
-				visitor_id,
-				MIN(YEARWEEK(created_at, 3)) AS first_week,
-				MAX(YEARWEEK(created_at, 3)) AS max_week
-			FROM {$table}
-			WHERE {$cohort_where_clause}
-			GROUP BY visitor_id
-		) AS v
-		GROUP BY first_week
-		ORDER BY first_week ASC";
+				acquisition.visitor_id,
+				acquisition.cohort_week_start,
+				MAX(CASE WHEN activity.created_at >= DATE_ADD(acquisition.cohort_week_start, INTERVAL 7 DAY) AND activity.created_at < DATE_ADD(acquisition.cohort_week_start, INTERVAL 14 DAY) THEN 1 ELSE 0 END) AS active_w1,
+				MAX(CASE WHEN activity.created_at >= DATE_ADD(acquisition.cohort_week_start, INTERVAL 14 DAY) AND activity.created_at < DATE_ADD(acquisition.cohort_week_start, INTERVAL 21 DAY) THEN 1 ELSE 0 END) AS active_w2
+			FROM (
+				SELECT
+					visitor_id,
+					DATE_SUB( DATE( MIN(created_at) ), INTERVAL WEEKDAY( MIN(created_at) ) DAY ) AS cohort_week_start
+				FROM {$table}
+				WHERE {$cohort_where_clause}
+				GROUP BY visitor_id
+				HAVING MIN(created_at) >= %s
+			) AS acquisition
+			LEFT JOIN {$table} AS activity
+				ON activity.visitor_id = acquisition.visitor_id
+				AND activity.event_type = %s
+				AND activity.visitor_id IS NOT NULL
+				AND activity.created_at < %s
+				AND activity.created_at >= DATE_ADD(acquisition.cohort_week_start, INTERVAL 7 DAY)
+				AND activity.created_at < DATE_ADD(acquisition.cohort_week_start, INTERVAL 21 DAY)";
+
+	if ( $blog_id > 0 ) {
+		$cohort_sql .= ' AND activity.blog_id = %d';
+	}
+
+	$cohort_sql .= '
+			GROUP BY acquisition.visitor_id, acquisition.cohort_week_start
+		) AS per_visitor
+		GROUP BY cohort_week_start
+		ORDER BY cohort_week_start ASC';
+
+	$cohort_query_values = array_merge( $cohort_values, array( $cohort_since, $event_type, $now_utc ) );
+	if ( $blog_id > 0 ) {
+		$cohort_query_values[] = $blog_id;
+	}
 
 	// phpcs:disable WordPress.DB.PreparedSQL -- $cohort_sql interpolates only a code-defined table name and a placeholder where_clause bound via prepare().
-	$cohort_rows = $wpdb->get_results( $wpdb->prepare( $cohort_sql, $cohort_values ) );
+	$cohort_rows = $wpdb->get_results( $wpdb->prepare( $cohort_sql, $cohort_query_values ) );
 	// phpcs:enable WordPress.DB.PreparedSQL
 
-	$cohort_retention = array();
-	foreach ( (array) $cohort_rows as $row ) {
-		$size               = (int) $row->cohort_size;
-		$cohort_retention[] = array(
-			'cohort_week'  => (string) $row->first_week,
-			'cohort_size'  => $size,
-			'returned_w1'  => (int) $row->returned_w1,
-			'returned_w2'  => (int) $row->returned_w2,
-			'retention_w1' => $size > 0 ? round( (int) $row->returned_w1 / $size, 4 ) : 0.0,
-			'retention_w2' => $size > 0 ? round( (int) $row->returned_w2 / $size, 4 ) : 0.0,
-		);
-	}
+	$cohort_retention = extrachill_analytics_build_cohort_retention( $cohort_rows, $now_utc );
 
 	// ---------------------------------------------------------------------
 	// (c) Cross-site return: visitors who hit >= 2 distinct blog_ids on
@@ -304,7 +321,7 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 		'cohort_retention'  => array(
 			'cohorts'    => $cohort_retention,
 			'weeks'      => $cohort_weeks,
-			'definition' => 'Per weekly first-seen cohort (ISO YEARWEEK), share still active 1 and 2 weeks later.',
+			'definition' => 'Acquisition is each visitor\'s first observed pageview in the available event history, scoped by blog_id when set. W1 is activity during the first complete ISO week after acquisition; W2 is activity during the second. A horizon is reported only after its full week has elapsed; incomplete horizons are null and must not be treated as zero retention. This cohort history is distinct from the rolling-window return_rate metric.',
 		),
 		'cross_site_return' => array(
 			'total_visitors'      => $xsite_total,
