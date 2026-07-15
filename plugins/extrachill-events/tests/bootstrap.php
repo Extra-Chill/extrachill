@@ -40,8 +40,27 @@ if ( ! function_exists( 'wp_parse_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'add_filter' ) ) {
+	$GLOBALS['ec_test_filters'] = array();
+
+	function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+		$GLOBALS['ec_test_filters'][ $hook ][ $priority ][] = array( $callback, $accepted_args );
+	}
+}
+
 if ( ! function_exists( 'apply_filters' ) ) {
 	function apply_filters( $hook, $value, ...$args ) {
+		if ( empty( $GLOBALS['ec_test_filters'][ $hook ] ) ) {
+			return $value;
+		}
+
+		ksort( $GLOBALS['ec_test_filters'][ $hook ] );
+		foreach ( $GLOBALS['ec_test_filters'][ $hook ] as $callbacks ) {
+			foreach ( $callbacks as $callback ) {
+				$value = call_user_func_array( $callback[0], array_slice( array_merge( array( $value ), $args ), 0, $callback[1] ) );
+			}
+		}
+
 		return $value;
 	}
 }

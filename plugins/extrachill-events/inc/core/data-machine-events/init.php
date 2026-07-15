@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/taxonomy-registration.php';
+require_once __DIR__ . '/configuration.php';
 require_once __DIR__ . '/badge-styling.php';
 require_once __DIR__ . '/button-styling.php';
 require_once __DIR__ . '/archive-title.php';
