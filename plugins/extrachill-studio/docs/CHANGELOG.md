@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.22.0] - 2026-07-15
+
+### Added
+- add scoped Network analytics workspace
+
+### Fixed
+- declare Studio release scope
+- resolve PHPCS findings blocking release
+
 ## [0.21.2] - 2026-07-05
 
 ### Fixed
