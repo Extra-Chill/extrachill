@@ -4,9 +4,9 @@
  *
  * THE first-party cross-surface conversion instrument. Answers the central
  * rebuild question deterministically and per-entry-page: *when an anonymous
- * visitor lands first on an editorial article (blog 1), do they ever reach a
- * platform surface — events, community, or artist platform — in the same
- * session or on a return visit?*
+ * visitor starts an eligible journey on an editorial article (blog 1), do they
+ * ever reach a tracked, post-backed destination on the events, community, or
+ * artist platform in the same session or on a return visit?*
  *
  * The rebuild thesis is that song-meaning / music-history articles are
  * "fishhooks" that should convert search visitors into returning platform
@@ -28,10 +28,18 @@
  *   visitor_id (opted-out via GPC/DNT, or pre-cookie) cannot be attributed to a
  *   session and are excluded by construction.
  *
+ * SCOPE: pageviews are currently collected through the post-view endpoint,
+ * which requires a positive post ID. The map therefore measures singular,
+ * post-backed destinations only. Platform homepages, archives, directories,
+ * forum indexes, and search routes are intentionally excluded rather than
+ * silently represented as zero conversion.
+ *
  * SESSIONIZATION: a "session" is a run of a visitor's pageviews with no gap
  * larger than the inactivity timeout (default 30 minutes — the GA-standard
- * session boundary). The ENTRY session is the visitor's first session whose
- * FIRST pageview is a blog-1 editorial article. From that anchor we measure:
+ * session boundary). The ENTRY session is the visitor's first eligible session
+ * whose FIRST pageview is a published blog-1 `post`. Only the first eligible,
+ * mature journey per visitor in the reporting window enters the denominator.
+ * From that anchor we measure:
  *
  *   - SAME-SESSION reach: the visitor hit a platform surface (events/community/
  *     artist) within that same entry session. The strongest signal — the
@@ -72,30 +80,35 @@ function extrachill_analytics_register_conversion_map_ability() {
 		'extrachill/get-conversion-map',
 		array(
 			'label'               => __( 'Get Conversion Map', 'extrachill-analytics' ),
-			'description'         => __( 'First-party, bot-filtered cross-surface conversion map: for visitors whose first session starts on an editorial article (blog 1), the share that reach a platform surface (events/community/artist) same-session or on a return visit. Ranked per entry article and per entry category. Deterministic from the ec_vid pageview events table.', 'extrachill-analytics' ),
+			'description'         => __( 'First-party, bot-filtered editorial-to-platform conversion map: for visitors whose first eligible journey starts on a published blog-1 post, the share that reach a tracked, post-backed destination on events/community/artist same-session or on a return visit. Platform homepages, archives, directories, forum indexes, and search routes are not measured. Ranked per entry article and category.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'days'               => array(
+					'days'                    => array(
 						'type'        => 'integer',
 						'description' => __( 'Number of days to look back for the window. Default 28.', 'extrachill-analytics' ),
 						'default'     => 28,
 					),
-					'session_gap_mins'   => array(
+					'session_gap_mins'        => array(
 						'type'        => 'integer',
 						'description' => __( 'Inactivity gap (minutes) that ends a session. Default 30 (GA-standard).', 'extrachill-analytics' ),
 						'default'     => 30,
 					),
-					'top_articles'       => array(
+					'top_articles'            => array(
 						'type'        => 'integer',
 						'description' => __( 'Number of top entry articles to rank. Default 25.', 'extrachill-analytics' ),
 						'default'     => 25,
 					),
-					'min_entry_sessions' => array(
+					'min_entry_sessions'      => array(
 						'type'        => 'integer',
 						'description' => __( 'Minimum entry sessions for an article/category to appear in the ranked output. Default 1.', 'extrachill-analytics' ),
 						'default'     => 1,
+					),
+					'return_observation_days' => array(
+						'type'        => 'integer',
+						'description' => __( 'Minimum completed days after an entry journey before it enters the denominator. Excludes late-window entries with unequal return opportunity. Default 7.', 'extrachill-analytics' ),
+						'default'     => 7,
 					),
 				),
 			),
@@ -160,10 +173,11 @@ function extrachill_analytics_conversion_surface_map() {
 function extrachill_analytics_ability_get_conversion_map( $input ) {
 	global $wpdb;
 
-	$days               = isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28;
-	$session_gap_mins   = isset( $input['session_gap_mins'] ) ? max( 1, (int) $input['session_gap_mins'] ) : 30;
-	$top_articles       = isset( $input['top_articles'] ) ? max( 1, (int) $input['top_articles'] ) : 25;
-	$min_entry_sessions = isset( $input['min_entry_sessions'] ) ? max( 1, (int) $input['min_entry_sessions'] ) : 1;
+	$days                    = isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28;
+	$session_gap_mins        = isset( $input['session_gap_mins'] ) ? max( 1, (int) $input['session_gap_mins'] ) : 30;
+	$top_articles            = isset( $input['top_articles'] ) ? max( 1, (int) $input['top_articles'] ) : 25;
+	$min_entry_sessions      = isset( $input['min_entry_sessions'] ) ? max( 1, (int) $input['min_entry_sessions'] ) : 1;
+	$return_observation_days = isset( $input['return_observation_days'] ) ? max( 0, (int) $input['return_observation_days'] ) : 7;
 
 	$gap_secs = $session_gap_mins * 60;
 
@@ -175,11 +189,15 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 	$platform      = $surfaces['platform'];
 	$platform_ids  = array_map( 'intval', array_values( $platform ) );
 
-	$now_utc = gmdate( 'Y-m-d H:i:s' );
-	$since   = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+	$now_utc       = gmdate( 'Y-m-d H:i:s' );
+	$since         = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+	$stream_since  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days -{$session_gap_mins} minutes" ) );
+	$mature_before = gmdate( 'Y-m-d H:i:s', strtotime( "-{$return_observation_days} days" ) );
 
-	// Pull the full in-window pageview stream for every visitor who touched the
-	// entry blog at least once. We restrict to that cohort first (a subquery on
+	// Pull one inactivity-gap of pre-window context plus the in-window stream for
+	// every visitor who touched the entry blog. The buffer prevents a session
+	// that started just before the lower boundary from being truncated. We
+	// restrict to that cohort first (a subquery on
 	// the visitor_created index) so we never load the entire network's stream.
 	// $table is the internal, trusted network events-table name from
 	// $wpdb->base_prefix — never user input — so it cannot be a prepare()
@@ -205,9 +223,9 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 				)
 			ORDER BY e.visitor_id ASC, e.created_at ASC, e.id ASC",
 			$event_type,
-			$since,
+			$stream_since,
 			$event_type,
-			$since,
+			$stream_since,
 			$entry_blog_id
 		)
 	);
@@ -248,6 +266,8 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		$platform_ids,
 		$platform_id_to_key,
 		$gap_secs,
+		$since,
+		$mature_before,
 		&$overall,
 		&$by_article,
 		&$by_category
@@ -272,14 +292,12 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 			$sessions[] = $session;
 		}
 
-		// Find the ENTRY session: the first session whose first pageview is a
-		// blog-1 editorial article. If the visitor never enters via the article
-		// front door (e.g. their first session starts on a platform surface),
-		// they are not an article-entry visitor and are skipped entirely — the
-		// funnel question is specifically about article-started journeys.
+		// Find the first eligible, mature entry journey in the reporting window.
+		// One journey per visitor is deliberate: the denominator is visitor
+		// journeys, not every entry session a repeat reader starts.
 		$entry_index = null;
 		foreach ( $sessions as $i => $sess ) {
-			if ( (int) $sess[0]['blog_id'] === $entry_blog_id ) {
+			if ( extrachill_analytics_conversion_is_mature_entry_session( $sess[0], $entry_blog_id, $since, $mature_before ) ) {
 				$entry_index = $i;
 				break;
 			}
@@ -298,9 +316,8 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 			'artist'    => false,
 		);
 		foreach ( $entry_session as $ev ) {
-			$bid = (int) $ev['blog_id'];
-			if ( isset( $platform_id_to_key[ $bid ] ) ) {
-				$same[ $platform_id_to_key[ $bid ] ] = true;
+			if ( extrachill_analytics_conversion_is_measured_platform_event( $ev, $platform_id_to_key ) ) {
+				$same[ $platform_id_to_key[ (int) $ev['blog_id'] ] ] = true;
 			}
 		}
 
@@ -317,9 +334,8 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 				continue;
 			}
 			foreach ( $sess as $ev ) {
-				$bid = (int) $ev['blog_id'];
-				if ( isset( $platform_id_to_key[ $bid ] ) ) {
-					$ret[ $platform_id_to_key[ $bid ] ] = true;
+				if ( extrachill_analytics_conversion_is_measured_platform_event( $ev, $platform_id_to_key ) ) {
+					$ret[ $platform_id_to_key[ (int) $ev['blog_id'] ] ] = true;
 				}
 			}
 		}
@@ -444,18 +460,65 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 	);
 
 	return array(
-		'overall'          => extrachill_analytics_conversion_rate_row( $overall, array() ),
-		'by_article'       => $article_rank,
-		'by_category'      => $category_rank,
-		'entry_blog_id'    => $entry_blog_id,
-		'platform_blogs'   => $platform,
-		'days'             => $days,
-		'session_gap_mins' => $session_gap_mins,
-		'period'           => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' ),
-		'since'            => $since,
-		'as_of'            => $now_utc,
-		'note'             => 'THE first-party cross-surface conversion funnel. entry_sessions = visitor journeys whose first session starts on a blog-1 editorial article. same-session reach = hit a platform surface (events/community/artist) within that entry session; return reach = hit one in a later session (visitor_id ties sessions across days); the two are distinct and reported separately. Deterministic + bot-filtered: pageview rows are written server-side only for non-bot, JS-executing browsers; visitor_id is an anonymous first-party UUID v4 (no PII). NULL-visitor rows (GPC/DNT opt-out) cannot be sessionized and are excluded. A low or zero reach is the real signal — the article front door measured to be siloed from the platform — not a broken query. The first-party pageview table is young, so short windows reflect only recently-accumulated visitor history.',
+		'overall'                     => extrachill_analytics_conversion_rate_row( $overall, array() ),
+		'by_article'                  => $article_rank,
+		'by_category'                 => $category_rank,
+		'entry_blog_id'               => $entry_blog_id,
+		'platform_blogs'              => $platform,
+		'days'                        => $days,
+		'session_gap_mins'            => $session_gap_mins,
+		'return_observation_days'     => $return_observation_days,
+		'denominator'                 => 'One first eligible, mature editorial-entry journey per visitor. An eligible entry is a session starting in the reporting window on a published blog-1 post; late entries without the configured return observation period are excluded.',
+		'measured_destination_routes' => 'Singular, post-backed pageviews on events, community, and artist only. Homepages, archives, directories, forum indexes, search, and other non-singular routes are excluded because the current post-view endpoint does not collect them.',
+		'period'                      => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' ),
+		'since'                       => $since,
+		'as_of'                       => $now_utc,
+		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post. Same-session reach is a tracked post-backed events/community/artist destination within that session; return reach is one in a later session. Homepages, archives, directories, forum indexes, search, and other non-singular routes are outside this report. The query reads one inactivity-gap before the lower boundary to avoid session truncation, and excludes late entries until they have the configured return observation period. NULL-visitor rows (GPC/DNT opt-out) cannot be sessionized and are excluded.',
 	);
+}
+
+/**
+ * Whether a session-start event is a published editorial post on the entry blog.
+ *
+ * @param array $event         Session event.
+ * @param int   $entry_blog_id Editorial blog ID.
+ * @return bool Whether the event is an eligible entry.
+ */
+function extrachill_analytics_conversion_is_editorial_entry( $event, $entry_blog_id ) {
+	if ( (int) ( $event['blog_id'] ?? 0 ) !== (int) $entry_blog_id ) {
+		return false;
+	}
+
+	$post = extrachill_analytics_get_blog_post( $entry_blog_id, (int) ( $event['post_id'] ?? 0 ) );
+	return $post && 'post' === $post->post_type && 'publish' === $post->post_status;
+}
+
+/**
+ * Whether an entry-session start is inside the report window and fully observed.
+ *
+ * @param array  $event         Session-start event.
+ * @param int    $entry_blog_id Editorial blog ID.
+ * @param string $since         Inclusive UTC report-window start.
+ * @param string $mature_before Inclusive UTC maturity cutoff.
+ * @return bool Whether the entry session is eligible for the denominator.
+ */
+function extrachill_analytics_conversion_is_mature_entry_session( $event, $entry_blog_id, $since, $mature_before ) {
+	$timestamp = (int) ( $event['ts'] ?? 0 );
+	return $timestamp >= strtotime( $since )
+		&& $timestamp <= strtotime( $mature_before )
+		&& extrachill_analytics_conversion_is_editorial_entry( $event, $entry_blog_id );
+}
+
+/**
+ * Whether an event is a collected destination route within platform scope.
+ *
+ * @param array<int,mixed>  $event              Session event.
+ * @param array<int,string> $platform_id_to_key Platform blog IDs keyed to surface names.
+ * @return bool Whether the event is a measured platform destination.
+ */
+function extrachill_analytics_conversion_is_measured_platform_event( $event, $platform_id_to_key ) {
+	return (int) ( $event['post_id'] ?? 0 ) > 0
+		&& isset( $platform_id_to_key[ (int) ( $event['blog_id'] ?? 0 ) ] );
 }
 
 /**

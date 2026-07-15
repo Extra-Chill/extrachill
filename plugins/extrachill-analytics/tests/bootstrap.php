@@ -164,6 +164,16 @@ if ( ! function_exists( 'get_current_blog_id' ) ) {
 		return isset( $GLOBALS['extrachill_analytics_test_blog_id'] ) ? (int) $GLOBALS['extrachill_analytics_test_blog_id'] : 1;
 	}
 }
+if ( ! function_exists( 'is_multisite' ) ) {
+	/**
+	 * The unit-test harness exercises a single-blog fixture.
+	 *
+	 * @return bool False for the fixture.
+	 */
+	function is_multisite() {
+		return false;
+	}
+}
 if ( ! function_exists( 'current_user_can' ) ) {
 	/**
 	 * Stub current_user_can() against a capability map in $GLOBALS.
