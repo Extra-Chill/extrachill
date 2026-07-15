@@ -17,14 +17,14 @@
  * analytics — mirroring how the Compose pane layers its richer draft context on
  * top of the generic tab broadcast.
  */
-import { useEffect } from '@wordpress/element';
+import { useEffect, useId, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import {
 	getOrCreateClientContextRegistry,
 	registerClientContextProvider,
 } from '@extrachill/chat';
-import { Grid } from '@extrachill/components';
+import { ResponsiveTabs, Toolbar } from '@extrachill/components';
 
 import type { StudioPaneProps } from '../../types/studio';
 import { ConversionMapChart } from './conversion-map-chart';
@@ -34,20 +34,29 @@ import { SurfaceGrowthChart } from './surface-growth-chart';
 
 const CLIENT_CONTEXT_PROVIDER_ID = 'extrachill-studio.network';
 
-/**
- * Resolve the current site host from the context site URL (GA query scope).
- * @param siteUrl
- */
-const resolveHost = ( siteUrl: string ): string => {
-	try {
-		return new URL( siteUrl ).host;
-	} catch {
-		return '';
-	}
-};
+const REPORTS = [
+	{ id: 'sessions', label: __( 'Sessions', 'extrachill-studio' ) },
+	{ id: 'growth', label: __( 'Growth', 'extrachill-studio' ) },
+	{ id: 'retention', label: __( 'Retention', 'extrachill-studio' ) },
+	{ id: 'conversion', label: __( 'Conversion', 'extrachill-studio' ) },
+];
+
+const DATE_RANGES = [
+	{ value: 28, label: __( 'Last 4 weeks', 'extrachill-studio' ) },
+	{ value: 84, label: __( 'Last 12 weeks', 'extrachill-studio' ) },
+	{ value: 364, label: __( 'Last 52 weeks', 'extrachill-studio' ) },
+];
 
 const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
-	const host = resolveHost( context.siteUrl );
+	const [ activeReport, setActiveReport ] = useState( 'sessions' );
+	const [ days, setDays ] = useState( 28 );
+	const [ selectedBlogId, setSelectedBlogId ] = useState( 0 );
+	const controlId = useId().replace( /:/g, '' );
+	const rangeControlId = `${ controlId }-range`;
+	const siteControlId = `${ controlId }-site`;
+	const selectedSite = context.networkSites.find(
+		( site ) => site.id === selectedBlogId
+	);
 
 	// Broadcast `surface: 'network'` to Roadie while this pane is active.
 	useEffect( () => {
@@ -68,24 +77,149 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 		};
 	}, [] );
 
+	const supportsSiteScope =
+		activeReport === 'sessions' || activeReport === 'retention';
+	let scopeDescription: string = __(
+		'Scope: entire network',
+		'extrachill-studio'
+	);
+	if ( activeReport === 'growth' ) {
+		scopeDescription = __(
+			'Scope: five measured publishing surfaces',
+			'extrachill-studio'
+		);
+	} else if ( activeReport === 'conversion' ) {
+		scopeDescription = __(
+			'Scope: main blog to Events, Community, and Artist',
+			'extrachill-studio'
+		);
+	} else if ( selectedSite ) {
+		scopeDescription =
+			activeReport === 'retention'
+				? `${ __( 'Scope:', 'extrachill-studio' ) } ${
+						selectedSite.name
+				  } ${ __(
+						'(cross-site return remains network-wide)',
+						'extrachill-studio'
+				  ) }`
+				: `${ __( 'Scope:', 'extrachill-studio' ) } ${
+						selectedSite.name
+				  }`;
+	}
+
+	const controls = (
+		<Toolbar
+			className="ec-studio-network__toolbar"
+			actions={
+				<>
+					<label
+						className="ec-studio-network__filter"
+						htmlFor={ rangeControlId }
+					>
+						<span>{ __( 'Range', 'extrachill-studio' ) }</span>
+						<select
+							id={ rangeControlId }
+							className="ec-toolbar__select"
+							value={ days }
+							onChange={ ( event ) =>
+								setDays( Number( event.currentTarget.value ) )
+							}
+						>
+							{ DATE_RANGES.map( ( range ) => (
+								<option
+									key={ range.value }
+									value={ range.value }
+								>
+									{ range.label }
+								</option>
+							) ) }
+						</select>
+					</label>
+					{ supportsSiteScope ? (
+						<label
+							className="ec-studio-network__filter"
+							htmlFor={ siteControlId }
+						>
+							<span>{ __( 'Site', 'extrachill-studio' ) }</span>
+							<select
+								id={ siteControlId }
+								className="ec-toolbar__select"
+								value={ selectedBlogId }
+								onChange={ ( event ) =>
+									setSelectedBlogId(
+										Number( event.currentTarget.value )
+									)
+								}
+							>
+								<option value={ 0 }>
+									{ __(
+										'Entire network',
+										'extrachill-studio'
+									) }
+								</option>
+								{ context.networkSites.map( ( site ) => (
+									<option key={ site.id } value={ site.id }>
+										{ site.name }
+									</option>
+								) ) }
+							</select>
+						</label>
+					) : null }
+				</>
+			}
+		>
+			<span className="ec-studio-network__scope">
+				{ scopeDescription }
+			</span>
+		</Toolbar>
+	);
+
+	const renderReport = ( reportId: string ): ReactNode => {
+		let report: ReactNode;
+		switch ( reportId ) {
+			case 'growth':
+				report = <SurfaceGrowthChart days={ days } />;
+				break;
+			case 'retention':
+				report = (
+					<RetentionChart days={ days } blogId={ selectedBlogId } />
+				);
+				break;
+			case 'conversion':
+				report = <ConversionMapChart days={ days } />;
+				break;
+			case 'sessions':
+			default:
+				report = (
+					<SessionsChart days={ days } host={ selectedSite?.host } />
+				);
+		}
+
+		return (
+			<div className="ec-studio-network__report">
+				{ controls }
+				{ report }
+			</div>
+		);
+	};
+
 	return (
 		<div className="ec-studio-pane ec-studio-pane--network">
 			<p className="ec-studio-network__intro">
 				{ __(
-					'Platform health at a glance — first-party traffic, growth, retention, and conversion across the network.',
+					'Choose a report, range, and supported site scope. Each view uses the full workspace width.',
 					'extrachill-studio'
 				) }
 			</p>
-			<Grid
-				minColumnWidth="480px"
-				gap="var(--spacing-lg)"
-				className="ec-studio-network__grid"
-			>
-				<SessionsChart host={ host } />
-				<SurfaceGrowthChart />
-				<RetentionChart />
-				<ConversionMapChart />
-			</Grid>
+			<ResponsiveTabs
+				tabs={ REPORTS }
+				active={ activeReport }
+				onChange={ setActiveReport }
+				renderPanel={ renderReport }
+				syncWithHash
+				hashPrefix="network-report-"
+				contextSurface="studio-network"
+			/>
 		</div>
 	);
 };

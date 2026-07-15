@@ -20,16 +20,26 @@ import type { ChartConfiguration } from './chart-loader';
 const BAR_COLOR = 'rgba(60, 132, 206, 0.75)';
 const BAR_BORDER = 'rgba(60, 132, 206, 1)';
 
-export const SurfaceGrowthChart = (): ReactElement => {
+interface SurfaceGrowthChartProps {
+	days: number;
+}
+
+export const SurfaceGrowthChart = ( {
+	days,
+}: SurfaceGrowthChartProps ): ReactElement => {
 	const [ data, setData ] = useState< SurfaceGrowthResponse | null >( null );
 	const [ state, setState ] = useState< ChartCardState >( 'loading' );
 	const [ errorMessage, setErrorMessage ] = useState( '' );
 
 	useEffect( () => {
 		let cancelled = false;
+		setState( 'loading' );
+		setErrorMessage( '' );
 
 		studioAnalyticsApi
-			.getSurfaceGrowth( { weeks: 4 } )
+			.getSurfaceGrowth( {
+				weeks: Math.max( 1, Math.round( days / 7 ) ),
+			} )
 			.then( ( response ) => {
 				if ( cancelled ) {
 					return;
@@ -49,7 +59,7 @@ export const SurfaceGrowthChart = (): ReactElement => {
 		return () => {
 			cancelled = true;
 		};
-	}, [] );
+	}, [ days ] );
 
 	const configuration = useMemo< ChartConfiguration | null >( () => {
 		const ranked = data?.supply_ranking?.ranked ?? [];

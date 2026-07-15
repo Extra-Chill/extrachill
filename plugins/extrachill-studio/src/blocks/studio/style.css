@@ -1148,31 +1148,30 @@
 	line-height: 1.6;
 }
 
-/*
- * Two-column-max dashboard grid. A 480px floor guarantees at most two columns
- * on typical screens so every Chart.js canvas / DataTable gets legible width,
- * collapsing to a single column when two legible cards no longer fit. Rendered
- * via the shared <Grid> primitive from @extrachill/components with
- * minColumnWidth="480px" and gap="var(--spacing-lg)" (see tabs/network/index.tsx),
- * which applies the .ec-card-grid utility. This class only carries
- * element-specific overrides.
- */
-.ec-studio-network__grid {
+.ec-studio-network__report {
+	display: grid;
+	gap: var(--spacing-md);
 	min-width: 0;
+}
+
+.ec-studio-network__toolbar {
+	margin-top: var(--spacing-md);
+}
+
+.ec-studio-network__scope {
+	font-size: var(--font-size-sm);
+	color: var(--text-color-muted, #666);
+}
+
+.ec-studio-network__filter {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	font-size: var(--font-size-sm);
 }
 
 .ec-studio-network__card {
 	min-width: 0;
-}
-
-/*
- * The conversion-map card is a ranked DATA TABLE (entry article → platform
- * reach), which reads best across the full dashboard width rather than
- * shoulder-to-shoulder with a chart. Span it across both columns on
- * multi-column layouts; it naturally occupies the single column otherwise.
- */
-.ec-studio-network__card--wide {
-	grid-column: 1 / -1;
 }
 
 .ec-studio-network__card-body {
@@ -1219,9 +1218,10 @@
 	color: var(--color-error, #b3261e);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 480px) {
 
-	.ec-studio-network__grid {
-		grid-template-columns: 1fr;
+	.ec-studio-network__filter {
+		display: grid;
+		width: 100%;
 	}
 }

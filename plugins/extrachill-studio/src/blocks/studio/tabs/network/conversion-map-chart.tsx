@@ -33,27 +33,36 @@ interface ArticleTableRow extends Record< string, unknown > {
 	reached_any_rate: string;
 }
 
-export const ConversionMapChart = (): ReactElement => {
+interface ConversionMapChartProps {
+	days: number;
+}
+
+export const ConversionMapChart = ( {
+	days,
+}: ConversionMapChartProps ): ReactElement => {
 	const [ data, setData ] = useState< ConversionMapResponse | null >( null );
 	const [ state, setState ] = useState< ChartCardState >( 'loading' );
 	const [ errorMessage, setErrorMessage ] = useState( '' );
 
 	useEffect( () => {
 		let cancelled = false;
+		setState( 'loading' );
+		setErrorMessage( '' );
 
 		studioAnalyticsApi
 			.getConversionMap( {
-				days: 28,
+				days,
 				top_articles: 10,
-				min_entry_sessions: 1,
+				min_entry_sessions: 5,
 			} )
 			.then( ( response ) => {
 				if ( cancelled ) {
 					return;
 				}
 				setData( response );
-				const hasArticles = ( response.by_article?.length ?? 0 ) > 0;
-				setState( hasArticles ? 'ready' : 'empty' );
+				const hasEntries =
+					( response.overall?.entry_sessions ?? 0 ) > 0;
+				setState( hasEntries ? 'ready' : 'empty' );
 			} )
 			.catch( ( error: unknown ) => {
 				if ( cancelled ) {
@@ -66,7 +75,7 @@ export const ConversionMapChart = (): ReactElement => {
 		return () => {
 			cancelled = true;
 		};
-	}, [] );
+	}, [ days ] );
 
 	const rows = useMemo< ArticleTableRow[] >( () => {
 		const articles = data?.by_article ?? [];
@@ -110,7 +119,7 @@ export const ConversionMapChart = (): ReactElement => {
 		<ChartCard
 			title={ __( 'Top content → platform', 'extrachill-studio' ) }
 			description={ __(
-				'Visitors who entered on an article and reached events, community, or artist — last 28 days.',
+				'Visitors who entered on an article and reached events, community, or artist over the selected range.',
 				'extrachill-studio'
 			) }
 			className="ec-studio-network__card--wide"

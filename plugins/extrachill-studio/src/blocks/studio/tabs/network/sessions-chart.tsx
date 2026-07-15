@@ -25,8 +25,9 @@ import { ChartCanvas } from './chart-canvas';
 import type { ChartConfiguration } from './chart-loader';
 
 interface SessionsChartProps {
-	/** Current site host (e.g. extrachill.com) used to scope the GA query. */
-	host: string;
+	/** Empty means the full GA property; otherwise scope to one network host. */
+	host?: string;
+	days: number;
 }
 
 /** Extra state: GA4 not authorized for this user (the expected degrade path). */
@@ -57,20 +58,37 @@ const isUnauthorizedError = ( error: unknown ): boolean => {
 	);
 };
 
-export const SessionsChart = ( { host }: SessionsChartProps ): ReactElement => {
+export const SessionsChart = ( {
+	host = '',
+	days,
+}: SessionsChartProps ): ReactElement => {
 	const [ data, setData ] = useState< GaDateStatsResponse | null >( null );
 	const [ state, setState ] = useState< SessionsState >( 'loading' );
 	const [ errorMessage, setErrorMessage ] = useState( '' );
+	const scopeDescription = host
+		? __( 'GA4 daily sessions for the selected site.', 'extrachill-studio' )
+		: __( 'GA4 daily sessions across the network.', 'extrachill-studio' );
+	const rangeDescription = host
+		? __(
+				'GA4 daily sessions for the selected site, over the selected range.',
+				'extrachill-studio'
+		  )
+		: __(
+				'GA4 daily sessions across the network, over the selected range.',
+				'extrachill-studio'
+		  );
 
 	useEffect( () => {
 		let cancelled = false;
+		setState( 'loading' );
+		setErrorMessage( '' );
 
 		studioAnalyticsApi
 			.getGaDateStats( {
 				hostname: host,
-				start_date: toDate( 28 ),
+				start_date: toDate( days ),
 				end_date: toDate( 1 ),
-				limit: 40,
+				limit: days + 5,
 			} )
 			.then( ( response ) => {
 				if ( cancelled ) {
@@ -101,10 +119,12 @@ export const SessionsChart = ( { host }: SessionsChartProps ): ReactElement => {
 		return () => {
 			cancelled = true;
 		};
-	}, [ host ] );
+	}, [ days, host ] );
 
 	const configuration = useMemo< ChartConfiguration | null >( () => {
-		const rows = data?.results ?? [];
+		const rows = [ ...( data?.results ?? [] ) ].sort( ( a, b ) =>
+			String( a.date ?? '' ).localeCompare( String( b.date ?? '' ) )
+		);
 		if ( rows.length === 0 ) {
 			return null;
 		}
@@ -112,7 +132,12 @@ export const SessionsChart = ( { host }: SessionsChartProps ): ReactElement => {
 		return {
 			type: 'line',
 			data: {
-				labels: rows.map( ( r ) => String( r.date ?? '' ) ),
+				labels: rows.map( ( r ) => {
+					const date = String( r.date ?? '' );
+					return date.length === 8
+						? `${ date.slice( 4, 6 ) }/${ date.slice( 6, 8 ) }`
+						: date;
+				} ),
 				datasets: [
 					{
 						label: __( 'Sessions', 'extrachill-studio' ),
@@ -139,10 +164,7 @@ export const SessionsChart = ( { host }: SessionsChartProps ): ReactElement => {
 		return (
 			<ChartCard
 				title={ __( 'Sessions over time', 'extrachill-studio' ) }
-				description={ __(
-					'GA4 daily sessions for this site.',
-					'extrachill-studio'
-				) }
+				description={ scopeDescription }
 				state="notInstrumented"
 				notInstrumentedReason={ __(
 					'Sessions chart is available to admins for now — team access is coming soon once the read-only analytics permission ships.',
@@ -155,10 +177,7 @@ export const SessionsChart = ( { host }: SessionsChartProps ): ReactElement => {
 	return (
 		<ChartCard
 			title={ __( 'Sessions over time', 'extrachill-studio' ) }
-			description={ __(
-				'GA4 daily sessions for this site, last 28 days.',
-				'extrachill-studio'
-			) }
+			description={ rangeDescription }
 			state={ state }
 			errorMessage={ errorMessage }
 			emptyMessage={ __(

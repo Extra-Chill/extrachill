@@ -58,6 +58,36 @@ $site_name   = get_bloginfo( 'name' );
 $site_url    = home_url( '/' );
 $rest_nonce  = wp_create_nonce( 'wp_rest' );
 $socials_api = rest_url( 'datamachine/v1/socials/' );
+$network_sites = array();
+
+if ( is_multisite() ) {
+	$sites = get_sites(
+		array(
+			'public'   => 1,
+			'archived' => 0,
+			'deleted'  => 0,
+			'spam'     => 0,
+			'number'   => 0,
+		)
+	);
+
+	foreach ( $sites as $site ) {
+		$site_id   = (int) $site->blog_id;
+		$network_site_url = get_home_url( $site_id, '/' );
+		$site_host        = wp_parse_url( $network_site_url, PHP_URL_HOST );
+
+		if ( ! is_string( $site_host ) || '' === $site_host ) {
+			continue;
+		}
+
+		$network_sites[] = array(
+			'id'   => $site_id,
+			'name' => (string) get_blog_option( $site_id, 'blogname', $site_host ),
+			'url'  => $network_site_url,
+			'host' => $site_host,
+		);
+	}
+}
 
 /**
  * Filter the social platform slugs shown in Studio's Socials tab.
@@ -101,6 +131,7 @@ $can_brand_socials = function_exists( 'ec_feature_available' )
 	data-description="<?php echo esc_attr( $description ); ?>"
 	data-social-platforms="<?php echo esc_attr( wp_json_encode( $allowed_platforms ) ); ?>"
 	data-can-brand-socials="<?php echo $can_brand_socials ? 'true' : 'false'; ?>"
+	data-network-sites="<?php echo esc_attr( wp_json_encode( $network_sites ) ); ?>"
 >
 	<div class="ec-studio-app__mount" data-ec-studio-app></div>
 </div>

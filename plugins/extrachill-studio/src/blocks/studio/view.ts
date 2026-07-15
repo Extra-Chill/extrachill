@@ -1,6 +1,11 @@
 import { createElement, useState } from '@wordpress/element';
 import type { ComponentType, ReactElement } from 'react';
-import { BlockShell, BlockShellHeader, BlockShellInner, ResponsiveTabs } from '@extrachill/components';
+import {
+	BlockShell,
+	BlockShellHeader,
+	BlockShellInner,
+	ResponsiveTabs,
+} from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 
 import { mountComponent } from './app/mount';
@@ -30,39 +35,33 @@ const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
 		return createElement( ActivePane, { context } );
 	};
 
-	return createElement(
-		BlockShell,
-		{
-			children: createElement(
-				BlockShellInner,
-				{
-					maxWidth: 'wide',
-					children: [
-						createElement( BlockShellHeader, {
-							key: 'header',
-							title: context.headline || 'Studio',
-							description: context.description,
-						} ),
-						createElement( ResponsiveTabs, {
-							key: 'tabs',
-							tabs,
-							active: activeTab,
-							onChange: setActiveTab,
-							renderPanel,
-							showDesktopTabs: true,
-							// Broadcast the active Studio tab into the shared
-							// client-context registry so Roadie's chat knows
-							// which tab the team member is on. Generic — handled
-							// entirely by ResponsiveTabs; Studio just names the
-							// surface. The Compose pane layers its richer
-							// draft-specific context on top at higher priority.
-							contextSurface: 'studio',
-						} ),
-					],
-				}
-			),
-		},
-	);
+	return createElement( BlockShell, {
+		children: createElement( BlockShellInner, {
+			maxWidth: 'wide',
+			children: [
+				createElement( BlockShellHeader, {
+					key: 'header',
+					title: context.headline || 'Studio',
+					description: context.description,
+				} ),
+				createElement( ResponsiveTabs, {
+					key: 'tabs',
+					tabs,
+					active: activeTab,
+					onChange: setActiveTab,
+					renderPanel,
+					showDesktopTabs: true,
+					// Broadcast the active Studio tab into the shared
+					// client-context registry so Roadie's chat knows
+					// which tab the team member is on. Generic — handled
+					// entirely by ResponsiveTabs; Studio just names the
+					// surface. The Compose pane layers its richer
+					// draft-specific context on top at higher priority.
+					contextSurface: 'studio',
+				} ),
+			],
+		} ),
+	} );
 };
 
 const initRoot = ( root: HTMLElement ): void => {
@@ -73,10 +72,16 @@ const initRoot = ( root: HTMLElement ): void => {
 	root.dataset.ecStudioMounted = 'true';
 
 	let socialPlatforms: string[] = [];
+	let networkSites: StudioContext[ 'networkSites' ] = [];
 	try {
 		socialPlatforms = JSON.parse( root.dataset.socialPlatforms || '[]' );
 	} catch {
 		socialPlatforms = [];
+	}
+	try {
+		networkSites = JSON.parse( root.dataset.networkSites || '[]' );
+	} catch {
+		networkSites = [];
 	}
 
 	const context: StudioContext = {
@@ -89,14 +94,19 @@ const initRoot = ( root: HTMLElement ): void => {
 		description: root.dataset.description || '',
 		socialPlatforms,
 		canBrandSocials: root.dataset.canBrandSocials === 'true',
+		networkSites,
 	};
 
-	const appMount = root.querySelector< HTMLElement >( '[data-ec-studio-app]' );
+	const appMount = root.querySelector< HTMLElement >(
+		'[data-ec-studio-app]'
+	);
 	mountComponent( appMount, createElement( StudioApp, { context } ) );
 };
 
 const init = (): void => {
-	document.querySelectorAll< HTMLElement >( ROOT_SELECTOR ).forEach( initRoot );
+	document
+		.querySelectorAll< HTMLElement >( ROOT_SELECTOR )
+		.forEach( initRoot );
 };
 
 if ( document.readyState === 'loading' ) {

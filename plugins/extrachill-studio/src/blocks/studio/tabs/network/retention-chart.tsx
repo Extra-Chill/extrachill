@@ -19,16 +19,30 @@ import type { ChartConfiguration } from './chart-loader';
 
 const pct = ( rate: number ): string => `${ Math.round( rate * 1000 ) / 10 }%`;
 
-export const RetentionChart = (): ReactElement => {
+interface RetentionChartProps {
+	days: number;
+	blogId: number;
+}
+
+export const RetentionChart = ( {
+	days,
+	blogId,
+}: RetentionChartProps ): ReactElement => {
 	const [ data, setData ] = useState< RetentionResponse | null >( null );
 	const [ state, setState ] = useState< ChartCardState >( 'loading' );
 	const [ errorMessage, setErrorMessage ] = useState( '' );
 
 	useEffect( () => {
 		let cancelled = false;
+		setState( 'loading' );
+		setErrorMessage( '' );
 
 		studioAnalyticsApi
-			.getRetention( { days: 28, cohort_weeks: 8 } )
+			.getRetention( {
+				days,
+				blog_id: blogId,
+				cohort_weeks: Math.max( 4, Math.ceil( days / 7 ) ),
+			} )
 			.then( ( response ) => {
 				if ( cancelled ) {
 					return;
@@ -51,7 +65,7 @@ export const RetentionChart = (): ReactElement => {
 		return () => {
 			cancelled = true;
 		};
-	}, [] );
+	}, [ blogId, days ] );
 
 	const configuration = useMemo< ChartConfiguration | null >( () => {
 		const cohorts = data?.cohort_retention?.cohorts ?? [];
@@ -140,7 +154,7 @@ export const RetentionChart = (): ReactElement => {
 		<ChartCard
 			title={ __( 'Retention', 'extrachill-studio' ) }
 			description={ __(
-				'First-party visitor return rate and per-cohort retention, last 28 days.',
+				'First-party return rate for the selected range, with a separate weekly cohort history.',
 				'extrachill-studio'
 			) }
 			state={ state }
