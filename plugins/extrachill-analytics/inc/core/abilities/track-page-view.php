@@ -29,11 +29,6 @@ function extrachill_analytics_register_track_page_view_ability(): void {
 						'type'        => 'integer',
 						'description' => __( 'The post ID to record a view for.', 'extrachill-analytics' ),
 					),
-					'visitor_id' => array(
-						'type'        => 'string',
-						'description' => __( 'Optional anonymous first-party visitor UUID v4. Stored on the pageview event only if well-formed; never PII. Empty when the visitor opted out (GPC/DNT).', 'extrachill-analytics' ),
-						'default'     => '',
-					),
 					'referrer'   => array(
 						'type'        => 'string',
 						'description' => __( 'Optional raw client-side referrer (document.referrer). Normalized server-side to a host-only `referrer_host` (no query strings, no PII) on the pageview event. Empty for direct traffic.', 'extrachill-analytics' ),
@@ -76,7 +71,6 @@ function extrachill_analytics_register_track_page_view_ability(): void {
  */
 function extrachill_analytics_ability_track_page_view( array $input ) {
 	$post_id    = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
-	$visitor_id = isset( $input['visitor_id'] ) ? (string) $input['visitor_id'] : '';
 	$referrer   = isset( $input['referrer'] ) ? (string) $input['referrer'] : '';
 
 	if ( $post_id <= 0 ) {
@@ -93,6 +87,31 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 			__( 'View tracking function not available.', 'extrachill-analytics' ),
 			array( 'status' => 500 )
 		);
+	}
+
+	// Resolve identity from this request's first-party cookie, never from the
+	// request body. A render-time UUID would be persisted in anonymous full-page
+	// cache HTML and replayed by every visitor receiving that cache entry. The
+	// REST response can safely mint the HttpOnly cookie for a first cached visit
+	// because response headers have not been sent yet. GPC/DNT returns an empty
+	// value and keeps the pageview anonymous.
+	$visitor_id = '';
+	$is_first_party_beacon = function_exists( 'extrachill_analytics_beacon_is_first_party' )
+		&& extrachill_analytics_beacon_is_first_party();
+
+	// Do not stitch a custom-domain request even if a browser permits its
+	// third-party cookie. Cross-site beacons have no durable first-party
+	// identity guarantee and intentionally remain anonymous.
+	if ( $is_first_party_beacon && function_exists( 'extrachill_analytics_read_visitor_id' ) ) {
+		$visitor_id = extrachill_analytics_read_visitor_id();
+	}
+
+	if (
+		$is_first_party_beacon
+		&& '' === $visitor_id
+		&& function_exists( 'extrachill_analytics_get_or_mint_visitor_id' )
+	) {
+		$visitor_id = extrachill_analytics_get_or_mint_visitor_id();
 	}
 
 	// All-time view increment (post meta) — retained for theme back-compat.

@@ -31,10 +31,6 @@
 			dest_host: destHost,
 		};
 
-		if ( config.visitorId ) {
-			payload.visitor_id = config.visitorId;
-		}
-
 		var data = JSON.stringify( payload );
 
 		if ( navigator.sendBeacon ) {

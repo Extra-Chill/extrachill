@@ -6,13 +6,6 @@
 
 	var payload = { post_id: config.postId };
 
-	// Echo the server-minted first-party visitor id when present. Empty/absent
-	// when the visitor opted out via GPC/DNT — the pageview is still recorded,
-	// just without an id.
-	if ( config.visitorId ) {
-		payload.visitor_id = config.visitorId;
-	}
-
 	// Capture the TRUE referrer client-side. This beacon fires after page load,
 	// so the request's own HTTP Referer header is this article page itself —
 	// document.referrer is the only place the page the reader navigated FROM is

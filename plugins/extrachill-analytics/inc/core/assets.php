@@ -132,6 +132,42 @@ function extrachill_analytics_read_visitor_id() {
 }
 
 /**
+ * Check whether a browser beacon originated on the cookie's first-party site.
+ *
+ * Custom-domain link pages can beacon to an Extra Chill subdomain, but browsers
+ * may reject that response's cookie as third-party. Such requests must remain
+ * anonymous instead of minting a new, non-persistent UUID on every pageview.
+ *
+ * @return bool True when the request origin belongs to the cookie domain.
+ */
+function extrachill_analytics_beacon_is_first_party() {
+	$source = '';
+
+	if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+		$source = sanitize_text_field( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) );
+	} elseif ( isset( $_SERVER['HTTP_REFERER'] ) ) {
+		$source = sanitize_text_field( wp_unslash( $_SERVER['HTTP_REFERER'] ) );
+	}
+
+	$source_host   = wp_parse_url( $source, PHP_URL_HOST );
+	$cookie_domain = ltrim( extrachill_analytics_visitor_cookie_domain(), '.' );
+	if ( '' === $cookie_domain ) {
+		$cookie_domain = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+	}
+
+	if ( ! is_string( $source_host ) || '' === $source_host || ! is_string( $cookie_domain ) || '' === $cookie_domain ) {
+		return false;
+	}
+
+	$source_host   = strtolower( rtrim( $source_host, '.' ) );
+	$cookie_domain = strtolower( rtrim( $cookie_domain, '.' ) );
+	$suffix        = '.' . $cookie_domain;
+
+	return $source_host === $cookie_domain
+		|| ( strlen( $source_host ) > strlen( $suffix ) && $suffix === substr( $source_host, -strlen( $suffix ) ) );
+}
+
+/**
  * Read the existing first-party visitor id, or mint a new one server-side.
  *
  * The cookie value is a random UUID v4 only — never an IP, email, or
@@ -143,9 +179,9 @@ function extrachill_analytics_read_visitor_id() {
  * an empty string and set no cookie.
  *
  * Must be called before output starts (headers not yet sent) so setcookie()
- * works — the deferred beacon cannot reliably set a cookie itself. The result
- * is memoized per-request so callers after output has started (e.g. the
- * footer enqueue) read the already-resolved id without re-minting.
+ * works. This is safe from both template_redirect and the pageview REST beacon,
+ * whose response headers have not been sent yet. The result is memoized per
+ * request so later callers read the already-resolved id without re-minting.
  *
  * @return string The visitor UUID, or empty string if opted out / cannot mint.
  */
@@ -297,11 +333,6 @@ function extrachill_analytics_enqueue_view_tracking() {
 		return;
 	}
 
-	// Read the visitor id already resolved on template_redirect (before output
-	// started, so its cookie was actually set). Empty string when the visitor
-	// opted out (GPC/DNT). Memoization guarantees no re-mint here.
-	$visitor_id = extrachill_analytics_get_or_mint_visitor_id();
-
 	wp_enqueue_script(
 		'extrachill-view-tracking',
 		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'assets/js/view-tracking.js',
@@ -317,9 +348,8 @@ function extrachill_analytics_enqueue_view_tracking() {
 		'extrachill-view-tracking',
 		'ecViewTracking',
 		array(
-			'postId'    => get_the_ID(),
-			'endpoint'  => rest_url( 'extrachill/v1/analytics/view' ),
-			'visitorId' => $visitor_id,
+			'postId'   => get_the_ID(),
+			'endpoint' => rest_url( 'extrachill/v1/analytics/view' ),
 		)
 	);
 }
@@ -336,10 +366,8 @@ add_action( 'wp_enqueue_scripts', 'extrachill_analytics_enqueue_view_tracking' )
  *
  * Because the beacon fires only from a real, JS-executing browser, the data is
  * bot-filtered by construction — the same guarantee the bridge_click /
- * pageview beacons rely on. The visitor_id echoed here is the already-resolved
- * `ec_vid` (present on singular pages where it was minted; empty on other
- * surfaces or under GPC/DNT opt-out — in which case the click is still recorded
- * anonymously with a NULL visitor_id, exactly like the rest of the system).
+ * pageview beacons rely on. Visitor identity is omitted from cacheable HTML and
+ * resolved by the browser-facing write adapter when a stable cookie exists.
  *
  * The network-host list is the canonical multisite map so an INTERNAL hop
  * (extrachill.com → community.extrachill.com, already covered by the conversion
@@ -354,13 +382,6 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 	if ( ! file_exists( $js_path ) ) {
 		return;
 	}
-
-	// Read-only: never mint here (this runs on non-singular pages too, after
-	// output may have started). Empty when no cookie / opted out — the click is
-	// then recorded anonymously, consistent with the rest of the system.
-	$visitor_id = function_exists( 'extrachill_analytics_read_visitor_id' )
-		? extrachill_analytics_read_visitor_id()
-		: '';
 
 	// Canonical Extra Chill network hosts — a click to any of these is an
 	// internal hop, not an outbound exit. Falls back to the current site host
@@ -391,7 +412,6 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 		'ecOutboundTracking',
 		array(
 			'endpoint'     => rest_url( 'extrachill/v1/analytics/click' ),
-			'visitorId'    => $visitor_id,
 			'networkHosts' => $network_hosts,
 		)
 	);

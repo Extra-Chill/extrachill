@@ -234,11 +234,12 @@ if ( ! function_exists( 'wp_parse_url' ) ) {
 	/**
 	 * Stub for wp_parse_url().
 	 *
-	 * @param string $url The URL to parse.
-	 * @return array<string,mixed> Parse components.
+	 * @param string   $url URL to parse.
+	 * @param int|null $component Optional PHP_URL_* component.
+	 * @return array<string,mixed>|string|int|null|false Parse result.
 	 */
-	function wp_parse_url( $url ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
-		return parse_url( (string) $url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
+	function wp_parse_url( $url, $component = -1 ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
+		return parse_url( (string) $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 	}
 }
 if ( ! function_exists( 'url_to_postid' ) ) {
