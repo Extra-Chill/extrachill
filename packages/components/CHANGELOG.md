@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.2] - 2026-07-15
+
+### Fixed
+- ignore generated build output
+- align responsive tabs and keyboard behavior
+
 ## [0.9.1] - 2026-07-05
 
 ### Fixed
