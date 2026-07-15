@@ -141,6 +141,24 @@ function extrachill_users_get_link_types() {
 }
 
 /**
+ * Require the authenticated user to finish the onboarding lifecycle.
+ *
+ * @param int $user_id User ID.
+ * @return true|WP_Error True when eligible, otherwise an onboarding error.
+ */
+function extrachill_users_require_completed_onboarding( $user_id ) {
+	if ( ec_is_onboarding_complete( $user_id ) ) {
+		return true;
+	}
+
+	return new WP_Error(
+		'onboarding_incomplete',
+		__( 'Complete onboarding before updating your public profile.', 'extrachill-users' ),
+		array( 'status' => 403 )
+	);
+}
+
+/**
  * Get user profile data.
  *
  * @param array $input Input with 'user_id'.
@@ -237,6 +255,11 @@ function extrachill_users_ability_update_profile( $input ) {
 		return $user_id;
 	}
 
+	$onboarding = extrachill_users_require_completed_onboarding( $user_id );
+	if ( is_wp_error( $onboarding ) ) {
+		return $onboarding;
+	}
+
 	$user = get_user_by( 'ID', $user_id );
 	if ( ! $user ) {
 		return new WP_Error( 'user_not_found', 'User not found.' );
@@ -296,6 +319,11 @@ function extrachill_users_ability_update_links( $input ) {
 	$user_id = extrachill_users_resolve_self_user_id();
 	if ( is_wp_error( $user_id ) ) {
 		return $user_id;
+	}
+
+	$onboarding = extrachill_users_require_completed_onboarding( $user_id );
+	if ( is_wp_error( $onboarding ) ) {
+		return $onboarding;
 	}
 
 	$links = isset( $input['links'] ) ? $input['links'] : array();
