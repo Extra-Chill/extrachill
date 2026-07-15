@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.21.0] - 2026-07-15
+
+### Added
+- welcome community newcomers
+
 ## [1.20.5] - 2026-07-14
 
 ### Fixed
