@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.23.0] - 2026-07-15
+
+### Added
+- simplify Studio Compose workflow
+
 ## [0.22.0] - 2026-07-15
 
 ### Added
