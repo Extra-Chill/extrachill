@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.25.2] - 2026-07-15
+
+### Fixed
+- resolve browser analytics identity from cookies
+
 ## [0.25.1] - 2026-07-13
 
 ### Fixed
