@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Tabs, type TabItem } from './Tabs.tsx';
 import { useTabClientContext } from './useTabClientContext.ts';
@@ -65,6 +65,7 @@ export function ResponsiveTabs( {
 		surface: contextSurface,
 		enabled: broadcastTabContext,
 	} );
+	const tabIdPrefix = `ec-responsive-tabs-${ useId().replace( /[^a-zA-Z0-9_-]/g, '' ) }`;
 
 	const [ isMobile, setIsMobile ] = useState( () => {
 		if ( typeof window === 'undefined' ) {
@@ -167,9 +168,17 @@ export function ResponsiveTabs( {
 							onChange={ handleChange }
 							className={ tabsClassName }
 							classPrefix={ tabsClassPrefix }
+							idPrefix={ tabIdPrefix }
 						/>
 					) }
-					<div className={ `${ classPrefix }__desktop-panel` }>{ renderPanel( active ) }</div>
+					<div
+						className={ `${ classPrefix }__desktop-panel` }
+						id={ `${ tabIdPrefix }-panel-${ tabs.findIndex( ( tab ) => tab.id === active ) }` }
+						role="tabpanel"
+						aria-labelledby={ `${ tabIdPrefix }-tab-${ tabs.findIndex( ( tab ) => tab.id === active ) }` }
+					>
+						{ renderPanel( active ) }
+					</div>
 				</div>
 			</div>
 		);

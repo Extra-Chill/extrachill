@@ -1,6 +1,5 @@
 export interface ResponsiveTabsDomOptions {
 	selector?: string;
-	mobileBreakpoint?: number;
 	hashPrefix?: string;
 	onPanelRender?: ( panel: HTMLElement, tabId: string, root: HTMLElement ) => void;
 }
