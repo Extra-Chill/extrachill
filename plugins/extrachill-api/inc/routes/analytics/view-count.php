@@ -29,21 +29,6 @@ function extrachill_api_register_view_count_route() {
 					},
 					'sanitize_callback' => 'absint',
 				),
-				'visitor_id' => array(
-					'required'          => false,
-					'type'              => 'string',
-					'default'           => '',
-					// Anonymous first-party UUID v4 echoed by the beacon. Accept only a
-					// well-formed UUID v4; anything else (including empty / opted-out)
-					// is coerced to '' so the ability records the pageview anonymously.
-					'validate_callback' => function ( $param ) {
-						return '' === $param || 1 === preg_match(
-							'/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
-							(string) $param
-						);
-					},
-					'sanitize_callback' => 'sanitize_text_field',
-				),
 				'referrer'   => array(
 					'required'          => false,
 					'type'              => 'string',
@@ -62,11 +47,11 @@ function extrachill_api_register_view_count_route() {
 
 function extrachill_api_view_count_handler( $request ) {
 	$post_id    = (int) $request->get_param( 'post_id' );
-	$visitor_id = (string) $request->get_param( 'visitor_id' );
 	$referrer   = (string) $request->get_param( 'referrer' );
 
 	// Thin wrapper: all write logic (post-meta bump, pageview event row carrying
-	// visitor_id, link-page daily-table action) lives in the analytics ability.
+	// cookie-resolved visitor identity, link-page daily-table action) lives in the
+	// analytics ability.
 	$ability = wp_get_ability( 'extrachill/track-page-view' );
 	if ( ! $ability ) {
 		return new WP_Error(
@@ -78,9 +63,8 @@ function extrachill_api_view_count_handler( $request ) {
 
 	$result = $ability->execute(
 		array(
-			'post_id'    => $post_id,
-			'visitor_id' => $visitor_id,
-			'referrer'   => $referrer,
+			'post_id'  => $post_id,
+			'referrer' => $referrer,
 		)
 	);
 

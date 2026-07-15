@@ -20,10 +20,10 @@
  *             only and is bot-filtered by construction, exactly like 'bridge'.
  *             Records `dest_host` + the normalized `destination_url` plus the
  *             server-classified destination `category` in event_data, and
- *             carries the anonymous first-party `visitor_id` (NULL under
- *             GPC/DNT). This is the cross-DOMAIN counterpart to the cross-SITE
- *             conversion map — the missing half of "where do readers go." See
- *             extrachill-analytics#66.
+ *             carries an existing cookie-owned anonymous `visitor_id` (NULL
+ *             under GPC/DNT or when no first-party cookie exists). This is the
+ *             cross-DOMAIN counterpart to the cross-SITE conversion map — the
+ *             missing half of "where do readers go." See extrachill-analytics#66.
  *
  * Future click types (internal_link, taxonomy_badge, cta, etc.) will route through abilities.
  */
@@ -108,22 +108,6 @@ function extrachill_api_register_click_route() {
 					'default'           => '',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'visitor_id'        => array(
-					'required'          => false,
-					'type'              => 'string',
-					'default'           => '',
-					// Anonymous first-party UUID v4 echoed by the outbound beacon.
-					// Accept only a well-formed UUID v4; anything else (including
-					// empty / opted-out) is coerced to '' so the click records
-					// anonymously.
-					'validate_callback' => function ( $param ) {
-						return '' === $param || 1 === preg_match(
-							'/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
-							(string) $param
-						);
-					},
-					'sanitize_callback' => 'sanitize_text_field',
-				),
 			),
 		)
 	);
@@ -191,7 +175,6 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 	$source_site       = $request->get_param( 'source_site' );
 	$term              = $request->get_param( 'term' );
 	$dest_host         = $request->get_param( 'dest_host' );
-	$visitor_id        = (string) $request->get_param( 'visitor_id' );
 
 	$normalized_destination = extrachill_api_normalize_tracked_url( $destination_url );
 
@@ -332,6 +315,9 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 			$category = function_exists( 'extrachill_analytics_classify_outbound_host' )
 				? extrachill_analytics_classify_outbound_host( $dest_host )
 				: 'other';
+			$visitor_id = function_exists( 'extrachill_analytics_read_visitor_id' )
+				? extrachill_analytics_read_visitor_id()
+				: '';
 
 			$event_id = $ability->execute(
 				array(

@@ -11,7 +11,7 @@ Unified click tracking endpoint that routes to appropriate storage based on clic
 ### Common Parameters
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `click_type` | string | Yes | Type of click: `share`, `link_page_link` |
+| `click_type` | string | Yes | Type of click: `share`, `link_page_link`, `bridge`, or `outbound` |
 | `source_url` | string | Yes | Page URL where the click occurred |
 | `destination_url` | string | Conditional | URL being navigated to (required for `link_page_link`) |
 | `element_text` | string | No | Text content of the clicked element |
@@ -26,12 +26,21 @@ Unified click tracking endpoint that routes to appropriate storage based on clic
 | --- | --- | --- | --- |
 | `link_page_id` | integer | Yes (when `click_type=link_page_link`) | WordPress post ID of the artist link page |
 
+### Outbound Click Parameters
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `dest_host` | string | Conditional | External destination host. Required when `destination_url` is absent. |
+| `destination_url` | string | Conditional | External destination URL. Required when `dest_host` is absent. |
+
+Outbound identity is never accepted from the browser. The Analytics integration reads an existing valid first-party `ec_vid` cookie server-side; clicks with no cookie, a cross-site request without the cookie, or GPC/DNT opt-out remain anonymous. Outbound clicks do not mint an identity, preventing a first click from racing the pageview beacon.
+
 ## Storage Routing
 
 | Click Type | Storage | Via |
 | --- | --- | --- |
 | `share` | `{base_prefix}extrachill_analytics_events` table | `extrachill_track_analytics_event('share_click', ...)` |
 | `link_page_link` | `{prefix}extrch_link_page_daily_link_clicks` table | `do_action('extrachill_link_click_recorded', ...)` |
+| `outbound` | `{base_prefix}extrachill_analytics_events` table | `extrachill/track-analytics-event` ability |
 
 ## URL Normalization
 
