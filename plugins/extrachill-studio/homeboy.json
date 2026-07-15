@@ -4,6 +4,13 @@
   "extensions": {
     "wordpress": {}
   },
+  "scopes": {
+    "release": {
+      "exclude": [
+        "webpack.config.js"
+      ]
+    }
+  },
   "version_targets": [
     {
       "file": "extrachill-studio.php",
