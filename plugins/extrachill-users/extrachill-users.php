@@ -146,6 +146,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/contribution-events.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/onboarding/analytics.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/onboarding/service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/onboarding/form-handler.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/lifetime-membership.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/shop-permissions.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/brand-socials-permissions.php';

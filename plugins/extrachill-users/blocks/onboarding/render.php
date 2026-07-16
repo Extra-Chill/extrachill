@@ -12,8 +12,6 @@ if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 	return;
 }
 
-wp_enqueue_script( 'extrachill-auth-utils' );
-
 if ( ! is_user_logged_in() ) {
 	$login_url = function_exists( 'ec_get_site_url' )
 		? ec_get_site_url( 'community' ) . '/login/'
@@ -30,14 +28,15 @@ if ( function_exists( 'ec_is_onboarding_complete' ) && ec_is_onboarding_complete
 	exit;
 }
 
-$user_id          = get_current_user_id();
-$stored_redirect  = get_user_meta( $user_id, 'onboarding_redirect_url', true );
-$default_url      = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url();
-$redirect_url     = $stored_redirect ? $stored_redirect : $default_url;
-$from_join        = get_user_meta( $user_id, 'onboarding_from_join', true ) === '1';
-$user             = get_userdata( $user_id );
-$current_username = $user ? $user->user_login : '';
-ec_users_emit_onboarding_event( EC_ANALYTICS_EVENT_ONBOARDING_VIEWED, $user_id );
+$user_id           = get_current_user_id();
+$stored_redirect   = get_user_meta( $user_id, 'onboarding_redirect_url', true );
+$default_url       = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url();
+$redirect_url      = $stored_redirect ? $stored_redirect : $default_url;
+$from_join         = get_user_meta( $user_id, 'onboarding_from_join', true ) === '1';
+$user              = get_userdata( $user_id );
+$current_username  = $user ? $user->user_login : '';
+$onboarding_notice = EC_Redirect_Handler::get_message( 'ec_onboarding' );
+ec_users_emit_onboarding_viewed_once( $user_id );
 ?>
 
 <div class="onboarding-container">
@@ -53,9 +52,20 @@ ec_users_emit_onboarding_event( EC_ANALYTICS_EVENT_ONBOARDING_VIEWED, $user_id )
 		data-rest-url="<?php echo esc_url( rest_url( 'extrachill/v1/' ) ); ?>"
 		data-abilities-url="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>"
 		data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+		data-analytics-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>"
+		data-analytics-nonce="<?php echo esc_attr( wp_create_nonce( 'extrachill_onboarding_analytics' ) ); ?>"
 		data-username="<?php echo esc_attr( $current_username ); ?>"
 	>
-		<form id="onboarding-form">
+		<?php if ( $onboarding_notice ) : ?>
+			<div class="ec-auth-notice ec-auth-notice--<?php echo esc_attr( $onboarding_notice['type'] ); ?>" data-ec-auth-notice="1">
+				<p><?php echo esc_html( $onboarding_notice['text'] ); ?></p>
+			</div>
+		<?php endif; ?>
+
+		<form id="onboarding-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="extrachill_complete_onboarding">
+			<?php wp_nonce_field( 'extrachill_complete_onboarding', 'onboarding_nonce' ); ?>
+			<?php EC_Redirect_Handler::render_hidden_fields(); ?>
 			<div class="onboarding-field">
 				<label for="onboarding-username"><?php esc_html_e( 'Choose your username', 'extrachill-users' ); ?></label>
 				<input 
@@ -74,10 +84,11 @@ ec_users_emit_onboarding_event( EC_ANALYTICS_EVENT_ONBOARDING_VIEWED, $user_id )
 
 			<div class="onboarding-field onboarding-local-scene">
 				<label for="onboarding-local-scene"><?php esc_html_e( 'Local Scene (optional)', 'extrachill-users' ); ?></label>
-				<input type="search" id="onboarding-local-scene" autocomplete="off" placeholder="<?php esc_attr_e( 'Search cities and regions', 'extrachill-users' ); ?>" aria-autocomplete="list" aria-controls="onboarding-local-scene-results">
-				<input type="hidden" id="onboarding-local-scene-slug" value="">
+				<input type="search" id="onboarding-local-scene" autocomplete="off" placeholder="<?php esc_attr_e( 'Search cities and regions', 'extrachill-users' ); ?>" aria-autocomplete="list" aria-controls="onboarding-local-scene-results" disabled>
+				<input type="hidden" id="onboarding-local-scene-slug" name="local_scene" value="">
 				<div id="onboarding-local-scene-results" class="onboarding-local-scene-results" role="listbox" hidden></div>
 				<small class="onboarding-field-hint"><?php esc_html_e( 'Find people and live music near you. You can change this anytime.', 'extrachill-users' ); ?></small>
+				<noscript><small class="onboarding-field-hint"><?php esc_html_e( 'You can add a Local Scene from Settings after setup.', 'extrachill-users' ); ?></small></noscript>
 				<fieldset class="onboarding-visibility">
 					<legend><?php esc_html_e( 'Who can see your Local Scene?', 'extrachill-users' ); ?></legend>
 					<label><input type="radio" name="local_scene_visibility" value="public" checked> <?php esc_html_e( 'Public', 'extrachill-users' ); ?></label>
