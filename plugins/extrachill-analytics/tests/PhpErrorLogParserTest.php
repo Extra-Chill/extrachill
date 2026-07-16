@@ -121,5 +121,45 @@ final class PhpErrorLogParserTest extends TestCase {
 			@unlink( $log['path'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		}
 	}
+
+	/**
+	 * A CLI eval can throw from a production file without representing a web
+	 * request failure.
+	 */
+	public function test_cli_eval_stack_marks_production_file_as_non_production(): void {
+		$file = WP_CONTENT_DIR . '/plugins/extrachill-blog/inc/home/templates/hero.php';
+		$raw  = '[15-Jul-2026 01:20:31 UTC] PHP Fatal error: Uncaught Error: Missing helper in ' . $file . " on line 26\n";
+		$raw .= "Stack trace:\n";
+		$raw .= "#0 phar:///usr/local/bin/wp/vendor/wp-cli/eval-command/src/Eval_Command.php(39) : eval()'d code(1): include()\n";
+		$raw .= '#1 phar:///usr/local/bin/wp/vendor/wp-cli/eval-command/src/Eval_Command.php(39): eval()';
+
+		$entry = extrachill_analytics_normalize_php_error( $raw );
+
+		$this->assertIsArray( $entry );
+		$this->assertFalse( $entry['from_production'] );
+
+		$eval_file_entry = extrachill_analytics_normalize_php_error(
+			str_replace( 'Eval_Command.php', 'EvalFile_Command.php', $raw )
+		);
+
+		$this->assertIsArray( $eval_file_entry );
+		$this->assertFalse( $eval_file_entry['from_production'] );
+	}
+
+	/**
+	 * A normal stack whose thrown file is under wp-content remains production.
+	 */
+	public function test_normal_stack_keeps_production_file_classification(): void {
+		$file = WP_CONTENT_DIR . '/plugins/example/render.php';
+		$raw  = '[15-Jul-2026 01:20:31 UTC] PHP Fatal error: Uncaught Error: Broken render in ' . $file . " on line 12\n";
+		$raw .= "Stack trace:\n";
+		$raw .= '#0 ' . WP_CONTENT_DIR . "/themes/example/front-page.php(8): include()\n";
+		$raw .= '#1 {main}';
+
+		$entry = extrachill_analytics_normalize_php_error( $raw );
+
+		$this->assertIsArray( $entry );
+		$this->assertTrue( $entry['from_production'] );
+	}
 }
 // phpcs:enable WordPress.WP.AlternativeFunctions
