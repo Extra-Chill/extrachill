@@ -12,6 +12,7 @@
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__ ) . '/inc/core/revenue-ad-policy.php';
+require_once dirname( __DIR__ ) . '/inc/core/revenue-content-attribution.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-content-revenue-pages.php';
 require_once dirname( __DIR__ ) . '/inc/core/content-format-classifier.php';
 
@@ -90,6 +91,87 @@ final class GetContentRevenuePagesTest extends TestCase {
 			),
 			$over
 		);
+	}
+
+	/**
+	 * Host scope follows canonical ownership and fails closed without provenance.
+	 */
+	public function test_hostname_scope_uses_canonical_owner_and_source_evidence(): void {
+		$rows = array(
+			array(
+				'key'       => 'main',
+				'resolved'  => true,
+				'canonical' => 'https://extrachill.com/post/',
+				'source'    => '/post/',
+			),
+			array(
+				'key'       => 'community',
+				'resolved'  => true,
+				'canonical' => 'https://community.extrachill.com/?p=5254',
+				'source'    => '/?p=5254',
+			),
+			array(
+				'key'       => 'wire',
+				'resolved'  => true,
+				'canonical' => 'https://wire.extrachill.com/story/',
+				'source'    => '/story/',
+			),
+			array(
+				'key'       => 'events',
+				'resolved'  => true,
+				'canonical' => 'https://events.extrachill.com/show/',
+				'source'    => '/show/',
+			),
+			array(
+				'key'       => 'unresolved-main',
+				'resolved'  => false,
+				'canonical' => '',
+				'source'    => 'https://extrachill.com/ghost/',
+			),
+			array(
+				'key'       => 'unresolved-unknown',
+				'resolved'  => false,
+				'canonical' => '',
+				'source'    => '/ghost/',
+			),
+		);
+
+		$filter = static function ( $hostname ) use ( $rows ) {
+			return array_values(
+				array_map(
+					static function ( $row ) {
+						return $row['key'];
+					},
+					array_filter(
+						$rows,
+						static function ( $row ) use ( $hostname ) {
+							return extrachill_analytics_revenue_row_matches_hostname( $hostname, $row['resolved'], $row['canonical'], $row['source'] );
+						}
+					)
+				)
+			);
+		};
+
+		$this->assertSame( array( 'main', 'unresolved-main' ), $filter( 'extrachill.com' ) );
+		$this->assertSame( array( 'community' ), $filter( 'community.extrachill.com' ) );
+		$this->assertSame( array( 'wire' ), $filter( 'wire.extrachill.com' ) );
+		$this->assertSame( array( 'events' ), $filter( 'events.extrachill.com' ) );
+		$this->assertSame( array_column( $rows, 'key' ), $filter( '' ) );
+	}
+
+	/**
+	 * Host matching normalizes aliases, scheme, port, case, and trailing dots.
+	 */
+	public function test_hostname_scope_normalization(): void {
+		$this->assertTrue(
+			extrachill_analytics_revenue_row_matches_hostname(
+				'https://WWW.ExtraChill.com:443/path',
+				true,
+				'http://extrachill.com./canonical/',
+				'https://wire.extrachill.com/source/'
+			)
+		);
+		$this->assertFalse( extrachill_analytics_revenue_row_matches_hostname( 'extrachill.com', false, '', '/hostless/' ) );
 	}
 
 	/**
@@ -439,6 +521,7 @@ final class GetContentRevenuePagesTest extends TestCase {
 		$this->assertStringContainsString( "'selected_batches'", $source );
 		// Reuses shared substrate (no new SQL/table).
 		$this->assertStringContainsString( 'extrachill_analytics_revenue_get_rows', $source );
+		$this->assertStringContainsString( 'extrachill_analytics_revenue_row_matches_hostname', $source );
 		$this->assertStringNotContainsString( 'CREATE TABLE', $source );
 	}
 

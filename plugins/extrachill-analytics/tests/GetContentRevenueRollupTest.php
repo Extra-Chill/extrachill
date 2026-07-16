@@ -12,6 +12,7 @@
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__ ) . '/inc/core/revenue-ad-policy.php';
+require_once dirname( __DIR__ ) . '/inc/core/revenue-content-attribution.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-content-revenue.php';
 
 /**
@@ -411,6 +412,7 @@ final class GetContentRevenueRollupTest extends TestCase {
 		// The response exposes an explicit unresolved cohort.
 		$this->assertStringContainsString( "'unresolved'", $source );
 		$this->assertStringContainsString( "'by_route_family'", $source );
+		$this->assertStringContainsString( 'extrachill_analytics_revenue_row_matches_hostname', $source );
 		// The old conflation (unresolved rows bucketed as uncategorized/legacy-html
 		// content) is gone.
 		$this->assertStringNotContainsString( "preg_match( '/\\.html(?:[\\/?#]|$)/i', (string) \$row->url ) ? 'legacy-html' : 'uncategorized'", $source );

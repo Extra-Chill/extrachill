@@ -81,8 +81,8 @@ function extrachill_analytics_register_content_revenue_ability() {
 					),
 					'hostname'        => array(
 						'type'        => 'string',
-						'description' => __( 'Hostname for resolving any still-unresolved slugs to posts (default: extrachill.com).', 'extrachill-analytics' ),
-						'default'     => 'extrachill.com',
+						'description' => __( 'Optional hostname scope. Resolved content matches its canonical owner host; unresolved rows require an absolute source URL with matching host. Empty = all hosts.', 'extrachill-analytics' ),
+						'default'     => '',
 					),
 				),
 			),
@@ -120,7 +120,7 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 	$import_batch    = isset( $input['import_batch'] ) ? (string) $input['import_batch'] : '';
 	$include_alltime = ! empty( $input['include_alltime'] );
 	$blog_id         = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : get_current_blog_id();
-	$hostname        = ! empty( $input['hostname'] ) ? (string) $input['hostname'] : 'extrachill.com';
+	$hostname        = isset( $input['hostname'] ) ? trim( (string) $input['hostname'] ) : '';
 	$site_policy     = extrachill_analytics_revenue_get_ad_policy(
 		extrachill_analytics_revenue_ad_policy_context( $blog_id )
 	);
@@ -193,7 +193,7 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 
 		$views      = (int) $row->views;
 		$revenue    = (float) $row->revenue;
-		$source_url = ! empty( $row->canonical_url ) ? $row->canonical_url : ( $row->url ? $row->url : $row->slug );
+		$source_url = $row->url ? $row->url : $row->slug;
 
 		$content_blog_id = ! empty( $row->content_blog_id ) ? (int) $row->content_blog_id : $blog_id;
 		// Content remains eligible only when 'publish' === get_post_status( $post_id ).
@@ -208,13 +208,21 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 					'categories' => ( is_array( $terms ) && ! empty( $terms ) ) ? wp_list_pluck( $terms, 'slug' ) : array( 'uncategorized' ),
 					'format'     => extrachill_analytics_classify_format( $post_id ),
 					'post_type'  => (string) get_post_type( $post_id ),
+					'url'        => (string) get_permalink( $post_id ),
 				);
 			}
 		) : null;
 
+		$canonical_url = is_array( $content )
+			? ( ! empty( $row->canonical_url ) ? (string) $row->canonical_url : $content['url'] )
+			: '';
+		if ( ! extrachill_analytics_revenue_row_matches_hostname( $hostname, is_array( $content ), $canonical_url, $source_url ) ) {
+			continue;
+		}
+
 		if ( is_array( $content ) ) {
 			$ad_policy = extrachill_analytics_revenue_get_ad_policy(
-				extrachill_analytics_revenue_ad_policy_context( $content_blog_id, $source_url, $content['post_type'] )
+				extrachill_analytics_revenue_ad_policy_context( $content_blog_id, $canonical_url, $content['post_type'] )
 			);
 			$records[] = array(
 				'is_content'      => true,
@@ -226,7 +234,7 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 				'format_eligible' => extrachill_analytics_is_editorial_format_eligible( $content_blog_id, $content['post_type'] ),
 				'views'           => $views,
 				'revenue'         => $revenue,
-				'url'             => $source_url,
+				'url'             => $canonical_url,
 				'ad_policy'       => $ad_policy,
 			);
 		} else {
@@ -251,7 +259,7 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 
 	return array(
 		'success'        => true,
-		'rows'           => count( $rows ),
+		'rows'           => count( $records ),
 		'blog_id'        => $blog_id,
 		'group_by'       => $group_by,
 		'window'         => extrachill_analytics_revenue_window_label( $period_start, $period_end, $period ),

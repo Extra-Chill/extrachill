@@ -35,6 +35,88 @@ function extrachill_analytics_revenue_frontend_path( $value ) {
 }
 
 /**
+ * Normalize a hostname or URL for revenue host scoping.
+ *
+ * Scheme, port, case, a trailing DNS dot, and the common `www` alias do not
+ * change content ownership. A bare hostname is accepted for CLI ergonomics.
+ *
+ * @param string $value Hostname or URL.
+ * @return string Normalized hostname, or an empty string when invalid.
+ */
+function extrachill_analytics_revenue_normalize_hostname( $value ) {
+	$value = trim( (string) $value );
+	if ( '' === $value ) {
+		return '';
+	}
+
+	$url = preg_match( '#^https?://#i', $value ) || 0 === strpos( $value, '//' )
+		? $value
+		: 'https://' . $value;
+	if ( 0 === strpos( $url, '//' ) ) {
+		$url = 'https:' . $url;
+	}
+
+	$parts = wp_parse_url( $url );
+	if ( false === $parts || empty( $parts['host'] ) ) {
+		return '';
+	}
+
+	$host = rtrim( strtolower( (string) $parts['host'] ), '.' );
+	if ( 0 === strpos( $host, 'www.' ) ) {
+		$host = substr( $host, 4 );
+	}
+
+	return $host;
+}
+
+/**
+ * Extract trustworthy hostname evidence from an absolute source URL.
+ *
+ * Host-relative paths deliberately return an empty string. Their owner cannot
+ * be inferred from the path without recreating resolver fanout at read time.
+ *
+ * @param string $url Source or canonical URL.
+ * @return string Normalized hostname, or an empty string when unavailable.
+ */
+function extrachill_analytics_revenue_url_hostname( $url ) {
+	$url = trim( (string) $url );
+	if ( ! preg_match( '#^https?://#i', $url ) && 0 !== strpos( $url, '//' ) ) {
+		return '';
+	}
+
+	return extrachill_analytics_revenue_normalize_hostname( $url );
+}
+
+/**
+ * Determine whether one revenue row belongs to a requested hostname.
+ *
+ * Resolved content is scoped exclusively by its canonical owner URL. An
+ * unresolved row may match only from an absolute source URL; missing source
+ * host evidence fails closed. With no requested hostname, all rows match for
+ * backward compatibility.
+ *
+ * @param string $requested_hostname Requested hostname or URL.
+ * @param bool   $is_content          Whether the row resolved to published content.
+ * @param string $canonical_url       Canonical resolved owner URL.
+ * @param string $source_url          Original source URL/path.
+ * @return bool Whether the row is in scope.
+ */
+function extrachill_analytics_revenue_row_matches_hostname( $requested_hostname, $is_content, $canonical_url, $source_url ) {
+	$requested_hostname = trim( (string) $requested_hostname );
+	if ( '' === $requested_hostname ) {
+		return true;
+	}
+
+	$requested = extrachill_analytics_revenue_normalize_hostname( $requested_hostname );
+	if ( '' === $requested ) {
+		return false;
+	}
+
+	$evidence = $is_content ? $canonical_url : $source_url;
+	return extrachill_analytics_revenue_url_hostname( $evidence ) === $requested;
+}
+
+/**
  * Resolve unresolved content paths through the Network batch contract.
  *
  * This deliberately runs before the ingestion transaction. An incomplete scan

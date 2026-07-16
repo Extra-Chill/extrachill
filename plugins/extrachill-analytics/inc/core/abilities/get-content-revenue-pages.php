@@ -97,7 +97,7 @@ function extrachill_analytics_register_content_revenue_pages_ability() {
 					),
 					'hostname'          => array(
 						'type'        => 'string',
-						'description' => __( 'Optional hostname for resolving relative slugs to posts. Empty = the target blog hostname.', 'extrachill-analytics' ),
+						'description' => __( 'Optional hostname scope. Resolved content matches its canonical owner host; unresolved rows require an absolute source URL with matching host. Empty = all hosts.', 'extrachill-analytics' ),
 						'default'     => '',
 					),
 					'cohort'            => array(
@@ -535,22 +535,6 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 		)
 	);
 
-	$selected_periods = array();
-	$selected_batches = array();
-	foreach ( $rows as $r ) {
-		$selected_periods[ (string) $r->period_label ] = true;
-		$selected_batches[ (string) $r->import_batch ] = true;
-	}
-
-	$scope_block = array(
-		'requested_period' => $requested_period,
-		'effective_period' => $effective_period,
-		'effective_batch'  => $effective_batch,
-		'defaulted'        => $defaulted,
-		'selected_periods' => array_keys( $selected_periods ),
-		'selected_batches' => array_keys( $selected_batches ),
-	);
-
 	$empty_totals = array(
 		'pages_before_limit' => 0,
 		'pages_returned'     => 0,
@@ -570,6 +554,14 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 	);
 
 	if ( empty( $rows ) ) {
+		$scope_block = array(
+			'requested_period' => $requested_period,
+			'effective_period' => $effective_period,
+			'effective_batch'  => $effective_batch,
+			'defaulted'        => $defaulted,
+			'selected_periods' => array(),
+			'selected_batches' => array(),
+		);
 		return array(
 			'success'   => true,
 			'rows'      => 0,
@@ -589,19 +581,30 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 		);
 	}
 
-	$records = array();
+	$records          = array();
+	$selected_periods = array();
+	$selected_batches = array();
 	foreach ( $rows as $row ) {
 		$post_id         = (int) $row->post_id;
 		$content_blog_id = ! empty( $row->content_blog_id ) ? (int) $row->content_blog_id : $blog_id;
 		$metadata        = extrachill_analytics_revenue_content_metadata( $content_blog_id, $post_id );
 		$is_content      = is_array( $metadata );
 		$source_url      = $row->url ? $row->url : $row->slug;
-		$route_family    = $is_content ? '' : extrachill_analytics_revenue_classify_route_family( $source_url );
-		$post_type       = $is_content && isset( $metadata['post_type'] ) ? (string) $metadata['post_type'] : '';
-		$ad_policy       = extrachill_analytics_revenue_get_ad_policy(
+		$canonical_url   = $is_content
+			? ( ! empty( $row->canonical_url ) ? (string) $row->canonical_url : (string) $metadata['url'] )
+			: '';
+		if ( ! extrachill_analytics_revenue_row_matches_hostname( $hostname, $is_content, $canonical_url, $source_url ) ) {
+			continue;
+		}
+		$selected_periods[ (string) $row->period_label ] = true;
+		$selected_batches[ (string) $row->import_batch ] = true;
+
+		$route_family = $is_content ? '' : extrachill_analytics_revenue_classify_route_family( $source_url );
+		$post_type    = $is_content && isset( $metadata['post_type'] ) ? (string) $metadata['post_type'] : '';
+		$ad_policy    = extrachill_analytics_revenue_get_ad_policy(
 			extrachill_analytics_revenue_ad_policy_context( $content_blog_id, $source_url, $post_type, $route_family )
 		);
-		$records[]       = array(
+		$records[]    = array(
 			'page_key'                 => $is_content ? 'p' . $content_blog_id . ':' . $post_id : 'u' . md5( (string) $row->slug ),
 			'is_content'               => $is_content,
 			'content_blog_id'          => $is_content ? $content_blog_id : 0,
@@ -635,9 +638,18 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 		)
 	);
 
+	$scope_block = array(
+		'requested_period' => $requested_period,
+		'effective_period' => $effective_period,
+		'effective_batch'  => $effective_batch,
+		'defaulted'        => $defaulted,
+		'selected_periods' => array_keys( $selected_periods ),
+		'selected_batches' => array_keys( $selected_batches ),
+	);
+
 	return array(
 		'success'   => true,
-		'rows'      => count( $rows ),
+		'rows'      => count( $records ),
 		'blog_id'   => $blog_id,
 		'window'    => extrachill_analytics_revenue_window_label( $period_start, $period_end, $effective_period ),
 		'cohort'    => $cohort,
