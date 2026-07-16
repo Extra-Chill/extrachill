@@ -241,7 +241,7 @@ function extrachill_analytics_parse_log_timestamp( $line ) {
  */
 function extrachill_analytics_normalize_php_error( $raw ) {
 	// Take only the first physical line for the headline message; the rest is the
-	// stack trace which we use only for the "thrown in file:line" of fatals.
+	// stack trace used for fatal locations and execution-context classification.
 	$first_line = strtok( $raw, "\n" );
 	if ( false === $first_line ) {
 		$first_line = $raw;
@@ -292,7 +292,8 @@ function extrachill_analytics_normalize_php_error( $raw ) {
 	// near-real-time alarm ignore that noise so it never pages on, e.g., a
 	// "Cannot redeclare" raised by a worktree copy of an already-loaded plugin.
 	// An empty/unresolvable origin classifies as production (fail open).
-	$from_production = extrachill_analytics_is_production_error_path( $file );
+	$from_production = extrachill_analytics_is_production_error_path( $file )
+		&& ! extrachill_analytics_has_cli_eval_stack( $raw );
 
 	// Build the normalized message used for the signature: strip the trailing
 	// "in <path> on line N", drop request-specific numerics, addresses, and IDs.
@@ -384,6 +385,31 @@ function extrachill_analytics_is_production_error_path( $file ) {
 	}
 
 	return false;
+}
+
+/**
+ * Detect a WP-CLI eval or eval-file frame in an error stack trace.
+ *
+ * These commands can directly include production files while running ad hoc
+ * diagnostics. The thrown file therefore looks like live application code even
+ * though the failing execution path cannot occur in a web request.
+ *
+ * Only explicit stack frames are matched so unknown contexts continue to fail
+ * open as production errors.
+ *
+ * @param string $raw Raw, possibly multi-line log entry.
+ * @return bool True when the stack came through WP-CLI eval or eval-file.
+ */
+function extrachill_analytics_has_cli_eval_stack( $raw ) {
+	$stack = strstr( (string) $raw, "\n" );
+	if ( false === $stack ) {
+		return false;
+	}
+
+	return 1 === preg_match(
+		'/^#\d+\s+phar:\/\/.*\/wp-cli\/eval-command\/src\/Eval(?:File)?_Command\.php(?:\(\d+\))?/mi',
+		$stack
+	);
 }
 
 /**
