@@ -55,7 +55,7 @@ function extrachill_analytics_format_category_map() {
 		// Explainers / how-tos / guides.
 		'explainer'        => array( 'explainers', 'explainer', 'guides', 'how-to', 'how-tos', 'music-theory', 'education' ),
 		// News / festival-wire reactive coverage.
-		'news'             => array( 'news', 'festival-wire', 'festivals', 'live-music', 'shows', 'concerts', 'reviews' ),
+		'news'             => array( 'news', 'music-news', 'premieres', 'festival-wire', 'festivals', 'live-music', 'live-music-reviews', 'shows', 'concerts', 'reviews' ),
 	);
 
 	/**
@@ -64,6 +64,21 @@ function extrachill_analytics_format_category_map() {
 	 * @param array $map Format => list of category slugs (precedence top-down).
 	 */
 	return apply_filters( 'extrachill_analytics_format_category_map', $map );
+}
+
+/**
+ * Determine whether resolved content belongs in editorial-format comparisons.
+ *
+ * Extra Chill's editorial taxonomy belongs to posts on the network main site.
+ * Other sites and post types remain resolved content, but are not comparable
+ * editorial formats and must be reported separately.
+ *
+ * @param int    $blog_id   Owning blog ID.
+ * @param string $post_type Owning post type.
+ * @return bool
+ */
+function extrachill_analytics_is_editorial_format_eligible( $blog_id, $post_type ) {
+	return 1 === (int) $blog_id && 'post' === (string) $post_type;
 }
 
 /**

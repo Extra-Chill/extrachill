@@ -247,74 +247,80 @@ function extrachill_analytics_revenue_diagnostic_totals_schema() {
 	);
 
 	return array(
-		'periods'             => array( 'type' => 'integer' ),
-		'rows'                => array( 'type' => 'integer' ),
-		'has_dated'           => array( 'type' => 'boolean' ),
-		'latest_period'       => array( 'type' => 'string' ),
-		'latest_period_end'   => array( 'type' => 'string' ),
-		'data_age_days'       => array( 'type' => array( 'integer', 'null' ) ),
-		'dated_periods'       => array( 'type' => 'integer' ),
-		'missing_periods'     => array( 'type' => 'integer' ),
-		'missing'             => array(
+		'periods'                  => array( 'type' => 'integer' ),
+		'rows'                     => array( 'type' => 'integer' ),
+		'has_dated'                => array( 'type' => 'boolean' ),
+		'latest_period'            => array( 'type' => 'string' ),
+		'latest_period_end'        => array( 'type' => 'string' ),
+		'data_age_days'            => array( 'type' => array( 'integer', 'null' ) ),
+		'dated_periods'            => array( 'type' => 'integer' ),
+		'missing_periods'          => array( 'type' => 'integer' ),
+		'missing'                  => array(
 			'type'  => 'array',
 			'items' => array( 'type' => 'string' ),
 		),
-		'period_labels'       => array( 'type' => 'integer' ),
-		'duplicate_labels'    => array( 'type' => 'integer' ),
-		'duplicates'          => array(
+		'period_labels'            => array( 'type' => 'integer' ),
+		'duplicate_labels'         => array( 'type' => 'integer' ),
+		'duplicates'               => array(
 			'type'                 => 'object',
 			'additionalProperties' => array(
 				'type'  => 'array',
 				'items' => array( 'type' => 'string' ),
 			),
 		),
-		'row_sum'             => $aggregate,
-		'independent'         => $aggregate,
-		'reconciled'          => array( 'type' => 'boolean' ),
-		'raw_rows'            => array( 'type' => 'integer' ),
-		'distinct_pages'      => array( 'type' => 'integer' ),
-		'resolved_pages'      => array( 'type' => 'integer' ),
-		'unresolved_pages'    => array( 'type' => 'integer' ),
-		'stale_post_id_rows'  => array( 'type' => 'integer' ),
-		'partition_complete'  => array( 'type' => 'boolean' ),
-		'content_rows'        => array( 'type' => 'integer' ),
-		'unresolved_rows'     => array( 'type' => 'integer' ),
-		'partition_views'     => array( 'type' => 'integer' ),
-		'partition_revenue'   => array( 'type' => 'number' ),
-		'total_pages'         => array( 'type' => 'integer' ),
-		'resolved_views'      => array( 'type' => 'integer' ),
-		'unresolved_views'    => array( 'type' => 'integer' ),
-		'unresolved_ratio'    => array( 'type' => 'number' ),
-		'by_route_family'     => array(
+		'row_sum'                  => $aggregate,
+		'independent'              => $aggregate,
+		'reconciled'               => array( 'type' => 'boolean' ),
+		'raw_rows'                 => array( 'type' => 'integer' ),
+		'distinct_pages'           => array( 'type' => 'integer' ),
+		'resolved_pages'           => array( 'type' => 'integer' ),
+		'unresolved_pages'         => array( 'type' => 'integer' ),
+		'stale_post_id_rows'       => array( 'type' => 'integer' ),
+		'partition_complete'       => array( 'type' => 'boolean' ),
+		'content_rows'             => array( 'type' => 'integer' ),
+		'unresolved_rows'          => array( 'type' => 'integer' ),
+		'partition_views'          => array( 'type' => 'integer' ),
+		'partition_revenue'        => array( 'type' => 'number' ),
+		'total_pages'              => array( 'type' => 'integer' ),
+		'resolved_views'           => array( 'type' => 'integer' ),
+		'unresolved_views'         => array( 'type' => 'integer' ),
+		'unresolved_ratio'         => array( 'type' => 'number' ),
+		'by_route_family'          => array(
 			'type'                 => 'object',
 			'additionalProperties' => array( 'type' => 'integer' ),
 		),
-		'uncategorized_pages' => array( 'type' => 'integer' ),
-		'uncategorized_ratio' => array( 'type' => 'number' ),
-		'by_format'           => array(
+		'uncategorized_pages'      => array( 'type' => 'integer' ),
+		'uncategorized_ratio'      => array( 'type' => 'number' ),
+		'eligible_editorial_pages' => array( 'type' => 'integer' ),
+		'non_editorial_pages'      => array( 'type' => 'integer' ),
+		'by_non_editorial'         => array(
 			'type'                 => 'object',
 			'additionalProperties' => array( 'type' => 'integer' ),
 		),
-		'revenue'             => array( 'type' => 'number' ),
-		'samples'             => array(
+		'by_format'                => array(
+			'type'                 => 'object',
+			'additionalProperties' => array( 'type' => 'integer' ),
+		),
+		'revenue'                  => array( 'type' => 'number' ),
+		'samples'                  => array(
 			'type'  => 'array',
 			'items' => $sample,
 		),
-		'views'               => array( 'type' => 'integer' ),
-		'ratio'               => array( 'type' => 'number' ),
-		'checked'             => array( 'type' => 'integer' ),
-		'high_variance'       => array( 'type' => 'integer' ),
-		'high_rate_rows'      => array( 'type' => 'integer' ),
-		'high_rate_samples'   => array(
+		'views'                    => array( 'type' => 'integer' ),
+		'ratio'                    => array( 'type' => 'number' ),
+		'checked'                  => array( 'type' => 'integer' ),
+		'high_variance'            => array( 'type' => 'integer' ),
+		'high_rate_rows'           => array( 'type' => 'integer' ),
+		'high_rate_samples'        => array(
 			'type'  => 'array',
 			'items' => $sample,
 		),
-		'missing_batch'       => array( 'type' => 'integer' ),
-		'missing_period'      => array( 'type' => 'integer' ),
-		'instrumented_rows'   => array( 'type' => 'integer' ),
-		'unknown_rows'        => array( 'type' => 'integer' ),
-		'conflict_rows'       => array( 'type' => 'integer' ),
-		'conflict_revenue'    => array( 'type' => 'number' ),
+		'missing_batch'            => array( 'type' => 'integer' ),
+		'missing_period'           => array( 'type' => 'integer' ),
+		'instrumented_rows'        => array( 'type' => 'integer' ),
+		'unknown_rows'             => array( 'type' => 'integer' ),
+		'conflict_rows'            => array( 'type' => 'integer' ),
+		'conflict_revenue'         => array( 'type' => 'number' ),
 	);
 }
 
@@ -422,6 +428,8 @@ function extrachill_analytics_ability_get_content_revenue_diagnostics( $input ) 
 			'is_content'               => $is_content,
 			'route_family'             => $route_family,
 			'format'                   => $is_content ? $metadata['format'] : '',
+			'post_type'                => $post_type,
+			'format_eligible'          => $is_content && extrachill_analytics_is_editorial_format_eligible( $content_blog_id, $post_type ),
 			'views'                    => $views,
 			'revenue'                  => $revenue,
 			'source_rpm'               => (float) $row->rpm,
@@ -1069,8 +1077,8 @@ function extrachill_analytics_revenue_diag_resolution_coverage( array $rows ) {
 }
 
 /**
- * Content-format coverage: resolved posts that classified as 'uncategorized',
- * counted on DEDUPED pages (not raw rows).
+ * Content-format coverage for eligible main-site editorial posts, counted on
+ * DEDUPED pages (not raw rows). Other resolved content is reported separately.
  *
  * A high uncategorized ratio means the format classifier has no mapping for
  * many posts — a taxonomy gap, not corruption. Unresolved routes are excluded
@@ -1080,8 +1088,12 @@ function extrachill_analytics_revenue_diag_resolution_coverage( array $rows ) {
  * @return array Check.
  */
 function extrachill_analytics_revenue_diag_format_coverage( array $rows ) {
-	$by_format     = array();
-	$uncategorized = 0;
+	$by_format           = array();
+	$by_non_editorial    = array();
+	$seen                = array();
+	$uncategorized       = 0;
+	$resolved_total      = 0;
+	$non_editorial_total = 0;
 
 	foreach ( $rows as $r ) {
 		if ( empty( $r['is_content'] ) ) {
@@ -1089,10 +1101,18 @@ function extrachill_analytics_revenue_diag_format_coverage( array $rows ) {
 		}
 		// Dedupe by owning content identity — one vote per resolved page.
 		$key = 'p' . (int) ( $r['content_blog_id'] ?? 0 ) . ':' . (int) $r['post_id'];
-		if ( isset( $by_format['_seen'][ $key ] ) ) {
+		if ( isset( $seen[ $key ] ) ) {
 			continue;
 		}
-		$by_format['_seen'][ $key ] = true;
+		$seen[ $key ] = true;
+		++$resolved_total;
+
+		if ( isset( $r['format_eligible'] ) && ! $r['format_eligible'] ) {
+			$type                      = 'blog-' . (int) ( $r['content_blog_id'] ?? 0 ) . ':' . ( ! empty( $r['post_type'] ) ? (string) $r['post_type'] : 'unknown' );
+			$by_non_editorial[ $type ] = isset( $by_non_editorial[ $type ] ) ? $by_non_editorial[ $type ] + 1 : 1;
+			++$non_editorial_total;
+			continue;
+		}
 
 		$format = isset( $r['format'] ) ? (string) $r['format'] : 'uncategorized';
 		if ( '' === $format ) {
@@ -1106,34 +1126,37 @@ function extrachill_analytics_revenue_diag_format_coverage( array $rows ) {
 			++$uncategorized;
 		}
 	}
-	unset( $by_format['_seen'] );
-
-	$resolved_total = 0;
+	$eligible_total = 0;
 	foreach ( $by_format as $count ) {
-		$resolved_total += $count;
+		$eligible_total += $count;
 	}
 
-	$ratio = $resolved_total > 0 ? $uncategorized / $resolved_total : 0.0;
+	$ratio = $eligible_total > 0 ? $uncategorized / $eligible_total : 0.0;
 	// Warn above 30% — a lot of distinct resolved pages fall outside every bucket.
-	$status     = ( $resolved_total > 0 && $ratio > 0.30 ) ? 'warning' : 'pass';
+	$status     = ( $eligible_total > 0 && $ratio > 0.30 ) ? 'warning' : 'pass';
 	$evidence   = array();
-	$evidence[] = "{$uncategorized} of {$resolved_total} distinct resolved page(s) classified as 'uncategorized'.";
+	$evidence[] = "{$uncategorized} of {$eligible_total} eligible editorial page(s) classified as 'uncategorized'.";
+	$evidence[] = "{$non_editorial_total} resolved non-editorial page(s) excluded from format coverage and reported by owning blog/post type.";
 	if ( 'warning' === $status ) {
-		$evidence[] = 'Over 30% of resolved pages match no content-format bucket — a taxonomy-mapping gap. Add their category slugs to extrachill_analytics_format_category_map().';
+		$evidence[] = 'Over 30% of eligible editorial pages match no content-format bucket — audit their taxonomy before adding stable category mappings.';
 	} else {
 		$evidence[] = 'Format classifier covers the majority of resolved pages.';
 	}
 	arsort( $by_format );
+	arsort( $by_non_editorial );
 
 	return array(
 		'check'    => 'format_coverage',
 		'status'   => $status,
 		'evidence' => $evidence,
 		'totals'   => array(
-			'resolved_pages'      => $resolved_total,
-			'uncategorized_pages' => $uncategorized,
-			'uncategorized_ratio' => round( $ratio, 4 ),
-			'by_format'           => $by_format,
+			'resolved_pages'           => $resolved_total,
+			'eligible_editorial_pages' => $eligible_total,
+			'non_editorial_pages'      => $non_editorial_total,
+			'uncategorized_pages'      => $uncategorized,
+			'uncategorized_ratio'      => round( $ratio, 4 ),
+			'by_format'                => $by_format,
+			'by_non_editorial'         => $by_non_editorial,
 		),
 	);
 }
