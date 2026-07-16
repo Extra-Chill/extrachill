@@ -10,6 +10,7 @@
     "test": [
       "php tests/QRCodeCommandTest.php",
       "php tests/CrosslinkTargetsCommandTest.php",
+      "php tests/ConversionCommandTest.php",
       "php tests/UserLocalSceneCommandTest.php",
       "php tests/RevenueCommandTest.php",
       "php tests/RevenueCommandRuntimeTest.php"
