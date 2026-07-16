@@ -231,6 +231,28 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 	);
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
+	// Outcomes are read independently from the pageview cohort because direct
+	// source attribution remains useful when a signup has no visitor identity.
+	// Successful registrations/newsletter signups are server-side outcomes, so
+	// their write-time request classifier is not used as an outcome validity
+	// filter (REST registration requests can legitimately carry is_bot=true).
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$outcome_rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT id, event_type, event_data, source_url, user_id, visitor_id, UNIX_TIMESTAMP(created_at) AS ts
+			FROM {$table}
+			WHERE event_type IN (%s, %s)
+				AND created_at >= %s
+				AND created_at <= %s
+			ORDER BY created_at ASC, id ASC",
+			'newsletter_signup',
+			'user_registration',
+			$since,
+			$now_utc
+		)
+	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
 	// Accumulators.
 	$overall = array(
 		'entry_sessions'           => 0,
@@ -252,6 +274,16 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 	$by_article  = array();
 	$by_category = array();
 
+	$outcome_types        = array( 'newsletter_signup', 'user_registration' );
+	$outcome_overall      = extrachill_analytics_conversion_outcome_zero_bucket();
+	$outcomes_by_article  = array();
+	$outcomes_by_category = array();
+	$outcome_coverage     = array();
+	foreach ( $outcome_types as $outcome_type ) {
+		$outcome_coverage[ $outcome_type ] = extrachill_analytics_conversion_outcome_zero_coverage();
+	}
+	$journeys_by_visitor = array();
+
 	$platform_id_to_key = array();
 	foreach ( $platform as $key => $bid ) {
 		$platform_id_to_key[ (int) $bid ] = $key;
@@ -261,7 +293,10 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 	$current_visitor = null;
 	$buffer          = array();
 
-	$flush = function ( $events ) use (
+	$flush = function (
+		$events,
+		$visitor_id
+	) use (
 		$entry_blog_id,
 		$platform_ids,
 		$platform_id_to_key,
@@ -270,7 +305,8 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		$mature_before,
 		&$overall,
 		&$by_article,
-		&$by_category
+		&$by_category,
+		&$journeys_by_visitor
 	) {
 		if ( empty( $events ) ) {
 			return;
@@ -306,8 +342,13 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 			return;
 		}
 
-		$entry_session = $sessions[ $entry_index ];
-		$entry_post_id = (int) ( $entry_session[0]['post_id'] ?? 0 );
+		$entry_session                      = $sessions[ $entry_index ];
+		$entry_post_id                      = (int) ( $entry_session[0]['post_id'] ?? 0 );
+		$journeys_by_visitor[ $visitor_id ] = array(
+			'post_id'              => $entry_post_id,
+			'entry_ts'             => (int) $entry_session[0]['ts'],
+			'same_session_through' => (int) $entry_session[ count( $entry_session ) - 1 ]['ts'] + $gap_secs,
+		);
 
 		// Same-session reach: any platform pageview within the entry session.
 		$same = array(
@@ -386,7 +427,7 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		$vid = (string) $row->visitor_id;
 		if ( $vid !== $current_visitor ) {
 			if ( null !== $current_visitor ) {
-				$flush( $buffer );
+				$flush( $buffer, $current_visitor );
 			}
 			$current_visitor = $vid;
 			$buffer          = array();
@@ -407,8 +448,108 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		);
 	}
 	if ( null !== $current_visitor ) {
-		$flush( $buffer );
+		$flush( $buffer, $current_visitor );
 	}
+
+	// Attribute each deduplicated outcome through two independent lenses:
+	// direct source_url resolution and the visitor's eligible entry journey.
+	// Neither lens fills gaps in the other.
+	$seen_outcomes = array();
+	foreach ( (array) $outcome_rows as $row ) {
+		$type = (string) $row->event_type;
+		if ( ! isset( $outcome_coverage[ $type ] ) ) {
+			continue;
+		}
+
+		$data = json_decode( (string) $row->event_data, true );
+		$data = is_array( $data ) ? $data : array();
+		++$outcome_coverage[ $type ]['stored_events'];
+
+		// The newsletter emitter already skips registration subscriptions. Keep
+		// this guard so legacy or alternate emitters cannot inflate the outcome.
+		if ( 'newsletter_signup' === $type && 'registration' === (string) ( $data['context'] ?? '' ) ) {
+			++$outcome_coverage[ $type ]['automatic_registration_excluded'];
+			continue;
+		}
+
+		$outcome    = array(
+			'id'         => (int) $row->id,
+			'event_type' => $type,
+			'event_data' => $data,
+			'source_url' => (string) $row->source_url,
+			'user_id'    => (int) $row->user_id,
+			'visitor_id' => (string) $row->visitor_id,
+			'ts'         => (int) $row->ts,
+		);
+		$dedupe_key = extrachill_analytics_conversion_outcome_dedupe_key( $outcome );
+		if ( isset( $seen_outcomes[ $type ][ $dedupe_key ] ) ) {
+			++$outcome_coverage[ $type ]['duplicate_events'];
+			continue;
+		}
+		$seen_outcomes[ $type ][ $dedupe_key ] = true;
+		++$outcome_coverage[ $type ]['deduplicated_outcomes'];
+
+		$direct_post_id = 0;
+		if ( '' === trim( $outcome['source_url'] ) ) {
+			++$outcome_coverage[ $type ]['missing_source_url'];
+		} else {
+			++$outcome_coverage[ $type ]['with_source_url'];
+			$direct_post_id = extrachill_analytics_conversion_source_article_id( $outcome['source_url'], $entry_blog_id );
+			if ( $direct_post_id > 0 ) {
+				++$outcome_coverage[ $type ]['direct_source_attributed'];
+				extrachill_analytics_conversion_apply_outcome( $outcome_overall, $type, 'direct_source' );
+				extrachill_analytics_conversion_apply_article_outcome(
+					$outcomes_by_article,
+					$outcomes_by_category,
+					$direct_post_id,
+					$type,
+					'direct_source'
+				);
+			} else {
+				++$outcome_coverage[ $type ]['unresolved_source_url'];
+			}
+		}
+
+		$visitor_id = $outcome['visitor_id'];
+		if ( '' === $visitor_id ) {
+			++$outcome_coverage[ $type ]['missing_visitor_identity'];
+			continue;
+		}
+		++$outcome_coverage[ $type ]['with_visitor_identity'];
+
+		if ( ! isset( $journeys_by_visitor[ $visitor_id ] ) ) {
+			++$outcome_coverage[ $type ]['identity_without_eligible_journey'];
+			continue;
+		}
+
+		$stage = extrachill_analytics_conversion_outcome_journey_stage( $outcome['ts'], $journeys_by_visitor[ $visitor_id ] );
+		if ( null === $stage ) {
+			++$outcome_coverage[ $type ]['outcome_before_entry'];
+			continue;
+		}
+
+		++$outcome_coverage[ $type ]['visitor_journey_attributed'];
+		extrachill_analytics_conversion_apply_outcome( $outcome_overall, $type, $stage );
+		extrachill_analytics_conversion_apply_article_outcome(
+			$outcomes_by_article,
+			$outcomes_by_category,
+			(int) $journeys_by_visitor[ $visitor_id ]['post_id'],
+			$type,
+			$stage
+		);
+	}
+
+	foreach ( $outcome_types as $outcome_type ) {
+		$outcome_coverage[ $outcome_type ] = extrachill_analytics_conversion_finalize_outcome_coverage( $outcome_coverage[ $outcome_type ] );
+	}
+
+	$article_outcomes  = extrachill_analytics_conversion_rank_article_outcomes(
+		$outcomes_by_article,
+		$outcome_coverage,
+		$entry_blog_id,
+		$top_articles
+	);
+	$category_outcomes = extrachill_analytics_conversion_rank_category_outcomes( $outcomes_by_category, $outcome_coverage );
 
 	// Build ranked article output (resolve titles for the top N).
 	$article_rank = array();
@@ -465,6 +606,13 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		'by_category'                 => $category_rank,
 		'entry_blog_id'               => $entry_blog_id,
 		'platform_blogs'              => $platform,
+		'outcomes'                    => array(
+			'overall'               => extrachill_analytics_conversion_outcome_row( $outcome_overall, $outcome_coverage ),
+			'by_article'            => $article_outcomes,
+			'by_category'           => $category_outcomes,
+			'coverage'              => $outcome_coverage,
+			'attribution_semantics' => 'direct_source resolves the outcome event source_url to a published main-site article. visitor_journey attributes an identified outcome occurring after that visitor\'s first eligible mature entry journey, split at the configured pageview-session boundary. The lenses are independent and may both attribute one outcome; do not add them as unique people. Coverage status measured, partial, or not_instrumented must be read with each count.',
+		),
 		'days'                        => $days,
 		'session_gap_mins'            => $session_gap_mins,
 		'return_observation_days'     => $return_observation_days,
@@ -473,8 +621,301 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		'period'                      => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' ),
 		'since'                       => $since,
 		'as_of'                       => $now_utc,
-		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post. Same-session reach is a tracked post-backed events/community/artist destination within that session; return reach is one in a later session. Homepages, archives, directories, forum indexes, search, and other non-singular routes are outside this report. The query reads one inactivity-gap before the lower boundary to avoid session truncation, and excludes late entries until they have the configured return observation period. NULL-visitor rows (GPC/DNT opt-out) cannot be sessionized and are excluded.',
+		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post. Same-session reach is a tracked post-backed events/community/artist destination within that session; return reach is one in a later session. Newsletter and registration outcomes are successful server-side events and are reported through separate direct-source and visitor-journey lenses. Automatic registration newsletter subscriptions are excluded. Missing source or visitor identity remains explicit coverage, never an inferred zero. Homepages, archives, directories, forum indexes, search, and other non-singular routes are outside the pageview destination report. The query reads one inactivity-gap before the lower boundary to avoid session truncation, and excludes late entries until they have the configured return observation period. NULL-visitor pageviews (GPC/DNT opt-out) cannot be sessionized and are excluded.',
 	);
+}
+
+/**
+ * Build an empty outcome-attribution bucket.
+ *
+ * @return array<string,array<string,int>> Outcome counts by type and lens.
+ */
+function extrachill_analytics_conversion_outcome_zero_bucket() {
+	$shape = array(
+		'direct_source' => 0,
+		'same_session'  => 0,
+		'later_session' => 0,
+	);
+
+	return array(
+		'newsletter_signup' => $shape,
+		'user_registration' => $shape,
+	);
+}
+
+/**
+ * Build empty coverage counters for one outcome type.
+ *
+ * @return array<string,int> Coverage counters.
+ */
+function extrachill_analytics_conversion_outcome_zero_coverage() {
+	return array(
+		'stored_events'                     => 0,
+		'automatic_registration_excluded'   => 0,
+		'deduplicated_outcomes'             => 0,
+		'duplicate_events'                  => 0,
+		'with_source_url'                   => 0,
+		'direct_source_attributed'          => 0,
+		'missing_source_url'                => 0,
+		'unresolved_source_url'             => 0,
+		'with_visitor_identity'             => 0,
+		'missing_visitor_identity'          => 0,
+		'visitor_journey_attributed'        => 0,
+		'identity_without_eligible_journey' => 0,
+		'outcome_before_entry'              => 0,
+	);
+}
+
+/**
+ * Deduplicate an outcome by its strongest available person identity.
+ *
+ * Registration user IDs live in event_data because the account is created
+ * before the request becomes authenticated. Visitor identity is the fallback;
+ * identity-free events remain individually observable rather than collapsed.
+ *
+ * @param array $outcome Normalized outcome row.
+ * @return string Stable type-local deduplication key.
+ */
+function extrachill_analytics_conversion_outcome_dedupe_key( $outcome ) {
+	$data    = isset( $outcome['event_data'] ) && is_array( $outcome['event_data'] ) ? $outcome['event_data'] : array();
+	$user_id = (int) ( $data['user_id'] ?? ( $outcome['user_id'] ?? 0 ) );
+	if ( $user_id > 0 ) {
+		return 'user:' . $user_id;
+	}
+
+	$visitor_id = trim( (string) ( $outcome['visitor_id'] ?? '' ) );
+	if ( '' !== $visitor_id ) {
+		return 'visitor:' . $visitor_id;
+	}
+
+	return 'event:' . (int) ( $outcome['id'] ?? 0 );
+}
+
+/**
+ * Classify an identified outcome relative to an eligible entry journey.
+ *
+ * @param int   $outcome_ts Outcome UTC timestamp.
+ * @param array $journey    Entry timestamp and same-session upper boundary.
+ * @return string|null same_session, later_session, or null before entry.
+ */
+function extrachill_analytics_conversion_outcome_journey_stage( $outcome_ts, $journey ) {
+	if ( (int) $outcome_ts < (int) ( $journey['entry_ts'] ?? 0 ) ) {
+		return null;
+	}
+
+	return (int) $outcome_ts <= (int) ( $journey['same_session_through'] ?? 0 )
+		? 'same_session'
+		: 'later_session';
+}
+
+/**
+ * Resolve a direct source URL to a published main-site article.
+ *
+ * @param string $source_url    Outcome source URL.
+ * @param int    $entry_blog_id Editorial blog ID.
+ * @return int Published article ID, or 0 when outside coverage/unresolved.
+ */
+function extrachill_analytics_conversion_source_article_id( $source_url, $entry_blog_id ) {
+	$source_host = strtolower( (string) wp_parse_url( $source_url, PHP_URL_HOST ) );
+	$switched    = false;
+	if ( is_multisite() && get_current_blog_id() !== (int) $entry_blog_id ) {
+		switch_to_blog( (int) $entry_blog_id );
+		$switched = true;
+	}
+	$entry_host = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+
+	if ( preg_replace( '/^www\./', '', $source_host ) !== preg_replace( '/^www\./', '', $entry_host ) ) {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+		return 0;
+	}
+
+	$post_id = (int) url_to_postid( $source_url );
+	if ( $switched ) {
+		restore_current_blog();
+	}
+
+	return $post_id > 0 && extrachill_analytics_conversion_is_editorial_entry(
+		array(
+			'blog_id' => $entry_blog_id,
+			'post_id' => $post_id,
+		),
+		$entry_blog_id
+	) ? $post_id : 0;
+}
+
+/**
+ * Increment one outcome lens in a bucket.
+ *
+ * @param array  $bucket Outcome bucket, by reference.
+ * @param string $type   Outcome event type.
+ * @param string $lens   direct_source, same_session, or later_session.
+ */
+function extrachill_analytics_conversion_apply_outcome( &$bucket, $type, $lens ) {
+	if ( isset( $bucket[ $type ][ $lens ] ) ) {
+		++$bucket[ $type ][ $lens ];
+	}
+}
+
+/**
+ * Apply an attributed outcome to article and category buckets.
+ *
+ * @param array  $by_article  Article buckets, by reference.
+ * @param array  $by_category Category buckets, by reference.
+ * @param int    $post_id     Entry/direct-source article ID.
+ * @param string $type        Outcome event type.
+ * @param string $lens        Attribution lens.
+ */
+function extrachill_analytics_conversion_apply_article_outcome( &$by_article, &$by_category, $post_id, $type, $lens ) {
+	if ( $post_id <= 0 ) {
+		return;
+	}
+	if ( ! isset( $by_article[ $post_id ] ) ) {
+		$by_article[ $post_id ] = extrachill_analytics_conversion_outcome_zero_bucket();
+	}
+	extrachill_analytics_conversion_apply_outcome( $by_article[ $post_id ], $type, $lens );
+
+	foreach ( extrachill_analytics_conversion_post_categories( $post_id ) as $term_id => $term_name ) {
+		if ( ! isset( $by_category[ $term_id ] ) ) {
+			$by_category[ $term_id ] = array(
+				'name'     => $term_name,
+				'outcomes' => extrachill_analytics_conversion_outcome_zero_bucket(),
+			);
+		}
+		extrachill_analytics_conversion_apply_outcome( $by_category[ $term_id ]['outcomes'], $type, $lens );
+	}
+}
+
+/**
+ * Finalize coverage statuses without converting missing instrumentation to zero.
+ *
+ * @param array $coverage Raw coverage counters.
+ * @return array Coverage counters plus stable lens statuses.
+ */
+function extrachill_analytics_conversion_finalize_outcome_coverage( $coverage ) {
+	$total = (int) $coverage['deduplicated_outcomes'];
+	if ( 0 === $total ) {
+		$direct_status  = 'measured';
+		$journey_status = 'measured';
+	} else {
+		$direct_status  = 0 === (int) $coverage['with_source_url']
+			? 'not_instrumented'
+			: ( (int) $coverage['direct_source_attributed'] === $total ? 'measured' : 'partial' );
+		$journey_status = 0 === (int) $coverage['with_visitor_identity']
+			? 'not_instrumented'
+			: ( (int) $coverage['with_visitor_identity'] === $total ? 'measured' : 'partial' );
+	}
+
+	$coverage['direct_source_status']   = $direct_status;
+	$coverage['visitor_journey_status'] = $journey_status;
+	return $coverage;
+}
+
+/**
+ * Project outcome counts with their coverage status.
+ *
+ * Not_instrumented lenses return null counts. Partial lenses retain measured
+ * counts alongside the explicit status and missing-coverage counters.
+ *
+ * @param array $bucket   Outcome counts.
+ * @param array $coverage Finalized coverage keyed by outcome type.
+ * @return array<string,array<string,mixed>> Machine-readable outcomes.
+ */
+function extrachill_analytics_conversion_outcome_row( $bucket, $coverage ) {
+	$row = array();
+	foreach ( array( 'newsletter_signup', 'user_registration' ) as $type ) {
+		$direct_status  = (string) $coverage[ $type ]['direct_source_status'];
+		$journey_status = (string) $coverage[ $type ]['visitor_journey_status'];
+		$row[ $type ]   = array(
+			'direct_source'   => array(
+				'count'           => 'not_instrumented' === $direct_status ? null : (int) $bucket[ $type ]['direct_source'],
+				'coverage_status' => $direct_status,
+			),
+			'visitor_journey' => array(
+				'same_session_count'  => 'not_instrumented' === $journey_status ? null : (int) $bucket[ $type ]['same_session'],
+				'later_session_count' => 'not_instrumented' === $journey_status ? null : (int) $bucket[ $type ]['later_session'],
+				'coverage_status'     => $journey_status,
+			),
+		);
+	}
+	return $row;
+}
+
+/**
+ * Rank article outcome rows deterministically.
+ *
+ * @param array $buckets       Outcome buckets keyed by post ID.
+ * @param array $coverage      Finalized coverage.
+ * @param int   $entry_blog_id Editorial blog ID.
+ * @param int   $limit         Maximum rows.
+ * @return array<int,array<string,mixed>> Ranked article outcomes.
+ */
+function extrachill_analytics_conversion_rank_article_outcomes( $buckets, $coverage, $entry_blog_id, $limit ) {
+	$rows = array();
+	foreach ( $buckets as $post_id => $bucket ) {
+		$post   = extrachill_analytics_get_blog_post( $entry_blog_id, (int) $post_id );
+		$rows[] = array_merge(
+			array(
+				'post_id'             => (int) $post_id,
+				'attribution_signals' => extrachill_analytics_conversion_outcome_signal_total( $bucket ),
+				'outcomes'            => extrachill_analytics_conversion_outcome_row( $bucket, $coverage ),
+			),
+			extrachill_analytics_conversion_article_identity( $entry_blog_id, $post )
+		);
+	}
+	usort(
+		$rows,
+		static function ( $a, $b ) {
+			$signal_order = $b['attribution_signals'] <=> $a['attribution_signals'];
+			return 0 !== $signal_order ? $signal_order : $a['post_id'] <=> $b['post_id'];
+		}
+	);
+	return array_slice( $rows, 0, $limit );
+}
+
+/**
+ * Rank category outcome rows deterministically.
+ *
+ * @param array $buckets  Category records keyed by term ID.
+ * @param array $coverage Finalized coverage.
+ * @return array<int,array<string,mixed>> Ranked category outcomes.
+ */
+function extrachill_analytics_conversion_rank_category_outcomes( $buckets, $coverage ) {
+	$rows = array();
+	foreach ( $buckets as $term_id => $record ) {
+		$rows[] = array(
+			'term_id'             => (int) $term_id,
+			'category'            => (string) $record['name'],
+			'attribution_signals' => extrachill_analytics_conversion_outcome_signal_total( $record['outcomes'] ),
+			'outcomes'            => extrachill_analytics_conversion_outcome_row( $record['outcomes'], $coverage ),
+		);
+	}
+	usort(
+		$rows,
+		static function ( $a, $b ) {
+			$signal_order = $b['attribution_signals'] <=> $a['attribution_signals'];
+			return 0 !== $signal_order ? $signal_order : $a['term_id'] <=> $b['term_id'];
+		}
+	);
+	return $rows;
+}
+
+/**
+ * Count attribution signals for deterministic ranking only.
+ *
+ * Direct and journey signals may describe the same outcome and are therefore
+ * intentionally not labelled as unique outcomes.
+ *
+ * @param array $bucket Outcome counts.
+ * @return int Attribution signal count.
+ */
+function extrachill_analytics_conversion_outcome_signal_total( $bucket ) {
+	$total = 0;
+	foreach ( $bucket as $counts ) {
+		$total += array_sum( array_map( 'intval', $counts ) );
+	}
+	return $total;
 }
 
 /**
