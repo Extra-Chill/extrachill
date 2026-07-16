@@ -48,13 +48,6 @@ add_action( 'admin_post_nopriv_extrachill_complete_onboarding', 'extrachill_user
  * @return array|WP_Error Event descriptor or validation error.
  */
 function extrachill_users_get_onboarding_client_event( string $outcome, string $error_code = '' ) {
-	if ( 'viewed' === $outcome ) {
-		return array(
-			'event_type' => EC_ANALYTICS_EVENT_ONBOARDING_VIEWED,
-			'event_data' => array(),
-		);
-	}
-
 	$allowed_errors = array(
 		'auth_utils_missing',
 		'form_missing',

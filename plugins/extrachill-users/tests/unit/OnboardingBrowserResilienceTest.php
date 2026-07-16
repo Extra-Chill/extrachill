@@ -52,11 +52,8 @@ class Test_Onboarding_Browser_Resilience extends WP_UnitTestCase {
 	 * Client events reuse analytics-owned lifecycle event names.
 	 */
 	public function test_client_diagnostics_map_to_bounded_analytics_events(): void {
-		$viewed = extrachill_users_get_onboarding_client_event( 'viewed' );
 		$failed = extrachill_users_get_onboarding_client_event( 'client_failed', 'auth_utils_missing' );
 
-		$this->assertSame( EC_ANALYTICS_EVENT_ONBOARDING_VIEWED, $viewed['event_type'] );
-		$this->assertSame( array(), $viewed['event_data'] );
 		$this->assertSame( EC_ANALYTICS_EVENT_ONBOARDING_SUBMISSION_FAILED, $failed['event_type'] );
 		$this->assertSame( array( 'error_code' => 'client_auth_utils_missing' ), $failed['event_data'] );
 	}
