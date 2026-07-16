@@ -430,11 +430,11 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		}
 	);
 	$article_rank = array_slice( $article_rank, 0, $top_articles );
-	// Resolve titles/permalinks only for the surviving top rows (blog 1 context).
+	// Resolve identity only for the surviving top rows (blog 1 context).
 	foreach ( $article_rank as &$ar ) {
-		$post        = extrachill_analytics_get_blog_post( $entry_blog_id, (int) $ar['post_id'] );
-		$ar['title'] = $post ? $post->post_title : '(unknown)';
-		$ar['slug']  = $post ? $post->post_name : '';
+		$post     = extrachill_analytics_get_blog_post( $entry_blog_id, (int) $ar['post_id'] );
+		$identity = extrachill_analytics_conversion_article_identity( $entry_blog_id, $post );
+		$ar       = array_merge( $ar, $identity );
 	}
 	unset( $ar );
 
@@ -474,6 +474,47 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		'since'                       => $since,
 		'as_of'                       => $now_utc,
 		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post. Same-session reach is a tracked post-backed events/community/artist destination within that session; return reach is one in a later session. Homepages, archives, directories, forum indexes, search, and other non-singular routes are outside this report. The query reads one inactivity-gap before the lower boundary to avoid session truncation, and excludes late entries until they have the configured return observation period. NULL-visitor rows (GPC/DNT opt-out) cannot be sessionized and are excluded.',
+	);
+}
+
+/**
+ * Resolve stable identity for an article output row.
+ *
+ * @param int          $blog_id Entry blog ID.
+ * @param WP_Post|null $post    Entry article post.
+ * @return array{title:string,slug:string,url:string,path:string} Article identity.
+ */
+function extrachill_analytics_conversion_article_identity( $blog_id, $post ) {
+	if ( ! $post instanceof WP_Post ) {
+		return array(
+			'title' => '(unknown)',
+			'slug'  => '',
+			'url'   => '',
+			'path'  => '',
+		);
+	}
+
+	$switched = false;
+	if ( is_multisite() && get_current_blog_id() !== (int) $blog_id ) {
+		switch_to_blog( (int) $blog_id );
+		$switched = true;
+	}
+
+	$url  = (string) get_permalink( $post );
+	$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+	if ( '' !== $path ) {
+		$path = '/' . ltrim( $path, '/' );
+	}
+
+	if ( $switched ) {
+		restore_current_blog();
+	}
+
+	return array(
+		'title' => (string) $post->post_title,
+		'slug'  => (string) $post->post_name,
+		'url'   => $url,
+		'path'  => $path,
 	);
 }
 

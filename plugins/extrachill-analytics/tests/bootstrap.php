@@ -252,6 +252,19 @@ if ( ! function_exists( 'wp_parse_url' ) ) {
 		return parse_url( (string) $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 	}
 }
+if ( ! function_exists( 'get_permalink' ) ) {
+	/**
+	 * Return a canonical permalink for a post fixture.
+	 *
+	 * @param WP_Post|int $post Post fixture or ID.
+	 * @return string Canonical fixture URL.
+	 */
+	function get_permalink( $post ) {
+		$post_id    = $post instanceof WP_Post ? (int) $post->ID : (int) $post;
+		$permalinks = isset( $GLOBALS['extrachill_analytics_test_permalinks'] ) ? $GLOBALS['extrachill_analytics_test_permalinks'] : array();
+		return isset( $permalinks[ $post_id ] ) ? (string) $permalinks[ $post_id ] : '';
+	}
+}
 if ( ! function_exists( 'url_to_postid' ) ) {
 	/**
 	 * Capture resolver URLs and resolve against both test fixture maps.

@@ -156,6 +156,42 @@ final class ConversionMapScopeTest extends TestCase {
 	}
 
 	/**
+	 * Machine consumers receive complete canonical article identity and typed metrics.
+	 */
+	public function test_article_identity_and_metrics_are_machine_readable(): void {
+		$post             = new WP_Post();
+		$post->ID         = 173;
+		$post->post_title = 'Mama Say Mama Sa Mama Coosa: The Story Behind an Iconic Michael Jackson Lyric';
+		$post->post_name  = 'mama-say-mama-sa-mama-coosa';
+
+		$GLOBALS['extrachill_analytics_test_permalinks'][173] = 'https://extrachill.com/mama-say-mama-sa-mama-coosa/';
+
+		$identity = extrachill_analytics_conversion_article_identity( 1, $post );
+		$metrics  = extrachill_analytics_conversion_rate_row(
+			array_merge(
+				extrachill_analytics_conversion_zero_bucket(),
+				array(
+					'entry_sessions'     => 4,
+					'reached_any'        => 2,
+					'reached_any_same'   => 1,
+					'reached_any_return' => 1,
+					'returned'           => 3,
+				)
+			),
+			array( 'post_id' => 173 )
+		);
+
+		$this->assertSame( $post->post_title, $identity['title'] );
+		$this->assertSame( 'https://extrachill.com/mama-say-mama-sa-mama-coosa/', $identity['url'] );
+		$this->assertSame( '/mama-say-mama-sa-mama-coosa/', $identity['path'] );
+		$this->assertSame( 173, $metrics['post_id'] );
+		$this->assertIsInt( $metrics['entry_sessions'] );
+		$this->assertIsInt( $metrics['reached_any'] );
+		$this->assertIsFloat( $metrics['reached_any_rate'] );
+		$this->assertSame( 0.5, $metrics['reached_any_rate'] );
+	}
+
+	/**
 	 * The contract documents buffered lower-boundary sessionization and mature
 	 * journey denominator semantics instead of implying every entry session.
 	 */
