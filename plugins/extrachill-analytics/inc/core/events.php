@@ -358,7 +358,7 @@ function extrachill_get_analytics_event_stats( $event_type, $days = 30, $blog_id
 			FROM {$table_name} 
 			WHERE {$where_clause} AND source_url != '' 
 			GROUP BY source_url 
-			ORDER BY count DESC 
+			ORDER BY count DESC, source_url ASC
 			LIMIT 20",
 			$values
 		)
@@ -371,7 +371,8 @@ function extrachill_get_analytics_event_stats( $event_type, $days = 30, $blog_id
 			FROM {$table_name} 
 			WHERE {$where_clause} AND JSON_EXTRACT(event_data, '$.context') IS NOT NULL 
 			GROUP BY context 
-			ORDER BY count DESC",
+			ORDER BY count DESC, context ASC
+			LIMIT 20",
 			$values
 		)
 	);

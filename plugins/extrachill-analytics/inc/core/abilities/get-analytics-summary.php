@@ -19,7 +19,7 @@ function extrachill_analytics_register_summary_ability() {
 		'extrachill/get-analytics-summary',
 		array(
 			'label'               => __( 'Get Analytics Summary', 'extrachill-analytics' ),
-			'description'         => __( 'Returns event counts grouped by type with optional date filtering.', 'extrachill-analytics' ),
+			'description'         => __( 'Returns event counts grouped by type, plus date, source, and context detail when one event type is requested.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -43,7 +43,7 @@ function extrachill_analytics_register_summary_ability() {
 			),
 			'output_schema'       => array(
 				'type'        => 'object',
-				'description' => __( 'Summary with event_types array and total count.', 'extrachill-analytics' ),
+				'description' => __( 'Summary with event_types and total count. An event_type filter also adds by_date, by_source, and by_context arrays.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_summary',
 			'permission_callback' => 'extrachill_analytics_can_read_reports',
@@ -130,7 +130,7 @@ function extrachill_analytics_ability_get_summary( $input ) {
 		$total += $count;
 	}
 
-	return array(
+	$summary = array(
 		'event_types' => $event_types,
 		'total'       => $total,
 		'days'        => $days,
@@ -143,4 +143,40 @@ function extrachill_analytics_ability_get_summary( $input ) {
 		'since'       => $since,
 		'as_of'       => $now_utc,
 	);
+
+	// Preserve the compact all-event response while exposing the existing
+	// aggregation detail when the caller requests one event type.
+	if ( ! empty( $event_type ) && function_exists( 'extrachill_get_analytics_event_stats' ) ) {
+		$detail = extrachill_get_analytics_event_stats( $event_type, $days, $blog_id );
+
+		$summary['by_date']    = array_map(
+			static function ( $row ) {
+				return array(
+					'date'  => (string) $row->date,
+					'count' => (int) $row->count,
+				);
+			},
+			(array) $detail['by_date']
+		);
+		$summary['by_source']  = array_map(
+			static function ( $row ) {
+				return array(
+					'source_url' => (string) $row->source_url,
+					'count'      => (int) $row->count,
+				);
+			},
+			(array) $detail['by_source']
+		);
+		$summary['by_context'] = array_map(
+			static function ( $row ) {
+				return array(
+					'context' => (string) $row->context,
+					'count'   => (int) $row->count,
+				);
+			},
+			(array) $detail['by_context']
+		);
+	}
+
+	return $summary;
 }

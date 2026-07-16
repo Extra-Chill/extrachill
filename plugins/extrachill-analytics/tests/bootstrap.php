@@ -74,6 +74,16 @@ if ( ! function_exists( 'sanitize_key' ) ) {
 		return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $key ) );
 	}
 }
+if ( ! function_exists( 'extrachill_analytics_events_table' ) ) {
+	/**
+	 * Return the fixture analytics events table name.
+	 *
+	 * @return string
+	 */
+	function extrachill_analytics_events_table() {
+		return 'wp_extrachill_analytics_events';
+	}
+}
 if ( ! function_exists( 'extrachill_get_analytics_events' ) ) {
 	/**
 	 * Return a paginated outbound-report fixture when configured by a test.
@@ -89,6 +99,26 @@ if ( ! function_exists( 'extrachill_get_analytics_events' ) ) {
 			: array();
 
 		return array_slice( $rows, $offset, $limit );
+	}
+}
+if ( ! function_exists( 'extrachill_get_analytics_event_stats' ) ) {
+	/**
+	 * Return event-detail fixtures configured by summary ability tests.
+	 *
+	 * @param string $event_type Event type (unused in the stub).
+	 * @param int    $days       Lookback days (unused in the stub).
+	 * @param int    $blog_id    Blog ID (unused in the stub).
+	 * @return array<string,mixed> Event detail fixture.
+	 */
+	function extrachill_get_analytics_event_stats( $event_type, $days = 30, $blog_id = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		return isset( $GLOBALS['extrachill_analytics_event_stats_fixture'] )
+			? $GLOBALS['extrachill_analytics_event_stats_fixture']
+			: array(
+				'total'      => 0,
+				'by_date'    => array(),
+				'by_source'  => array(),
+				'by_context' => array(),
+			);
 	}
 }
 if ( ! function_exists( 'wp_strip_all_tags' ) ) {
