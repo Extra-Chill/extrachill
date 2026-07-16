@@ -36,7 +36,7 @@ function extrachill_users_apply_moderation_action( int $user_id, array $args = a
 	update_user_meta( $user_id, extrachill_users_moderation_meta_key(), $payload );
 	delete_user_meta( $user_id, extrachill_users_legacy_ban_meta_key() );
 
-	if ( ! empty( $policy['effects']['revoke_sessions'] ) && function_exists( 'WP_Session_Tokens' ) ) {
+	if ( ! empty( $policy['effects']['revoke_sessions'] ) && class_exists( 'WP_Session_Tokens' ) ) {
 		$manager = WP_Session_Tokens::get_instance( $user_id );
 		$manager->destroy_all();
 	}
