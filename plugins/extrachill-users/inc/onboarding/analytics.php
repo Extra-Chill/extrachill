@@ -32,6 +32,23 @@ function ec_users_emit_onboarding_event( string $event_type, int $user_id, array
 }
 
 /**
+ * Emit one viewed event when a dynamic block renders more than once per request.
+ *
+ * @param int $user_id User ID.
+ * @return int Event ID, or zero when already emitted or analytics is unavailable.
+ */
+function ec_users_emit_onboarding_viewed_once( int $user_id ): int {
+	static $emitted = array();
+
+	if ( isset( $emitted[ $user_id ] ) ) {
+		return 0;
+	}
+	$emitted[ $user_id ] = true;
+
+	return ec_users_emit_onboarding_event( EC_ANALYTICS_EVENT_ONBOARDING_VIEWED, $user_id );
+}
+
+/**
  * Get bounded registration attribution for onboarding events.
  *
  * @param int $user_id User ID.
