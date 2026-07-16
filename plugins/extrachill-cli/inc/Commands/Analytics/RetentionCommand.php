@@ -101,11 +101,16 @@ class RetentionCommand {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		if ( 'table' !== $format ) {
+		if ( 'json' === $format ) {
+			WP_CLI::print_value( $result, array( 'format' => $format ) );
+			return;
+		}
+
+		if ( 'csv' === $format ) {
 			Utils\format_items(
 				$format,
-				$this->cohort_rows( $result ),
-				array( 'cohort_week', 'cohort_size', 'retention_w1', 'retention_w2' )
+				array( $this->csv_row( $result ) ),
+				array_keys( $result )
 			);
 			return;
 		}
@@ -153,10 +158,37 @@ class RetentionCommand {
 		$rows = $this->cohort_rows( $result );
 		if ( empty( $rows ) ) {
 			WP_CLI::log( '  (no cohorts in window)' );
+		} else {
+			Utils\format_items( 'table', $rows, array( 'cohort_week', 'cohort_size', 'retention_w1', 'retention_w2' ) );
+		}
+
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Referrer-host landings:' );
+		$referrer_rows = $this->referrer_rows( $result );
+		if ( empty( $referrer_rows ) ) {
+			WP_CLI::log( '  (no referrer hosts in window)' );
 			return;
 		}
 
-		Utils\format_items( 'table', $rows, array( 'cohort_week', 'cohort_size', 'retention_w1', 'retention_w2' ) );
+		Utils\format_items( 'table', $referrer_rows, array( 'referrer_host', 'landings' ) );
+	}
+
+	/**
+	 * Preserve the complete response envelope in a deterministic CSV row.
+	 *
+	 * Nested values are JSON-encoded because CSV cells cannot represent arrays.
+	 *
+	 * @param array $result Ability result.
+	 * @return array<string, mixed>
+	 */
+	private function csv_row( array $result ) {
+		foreach ( $result as $key => $value ) {
+			if ( is_array( $value ) || is_object( $value ) ) {
+				$result[ $key ] = wp_json_encode( $value );
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -173,8 +205,28 @@ class RetentionCommand {
 			$rows[] = array(
 				'cohort_week'  => $c['cohort_week'],
 				'cohort_size'  => number_format( (int) $c['cohort_size'] ),
-				'retention_w1' => number_format( (float) $c['retention_w1'] * 100, 1 ) . '%',
-				'retention_w2' => number_format( (float) $c['retention_w2'] * 100, 1 ) . '%',
+				'retention_w1' => null === $c['retention_w1'] ? 'n/a' : number_format( (float) $c['retention_w1'] * 100, 1 ) . '%',
+				'retention_w2' => null === $c['retention_w2'] ? 'n/a' : number_format( (float) $c['retention_w2'] * 100, 1 ) . '%',
+			);
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Build display rows for referrer-host landings.
+	 *
+	 * @param array $result Ability result.
+	 * @return array<int, array<string, string>>
+	 */
+	private function referrer_rows( array $result ) {
+		$hosts = isset( $result['by_referrer_host']['hosts'] ) ? $result['by_referrer_host']['hosts'] : array();
+		$rows  = array();
+
+		foreach ( $hosts as $host ) {
+			$rows[] = array(
+				'referrer_host' => (string) $host['referrer_host'],
+				'landings'      => number_format( (int) $host['landings'] ),
 			);
 		}
 
