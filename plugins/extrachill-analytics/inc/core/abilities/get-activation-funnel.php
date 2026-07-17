@@ -19,10 +19,10 @@
  * funnel: counting rows instead of people inflates the top of the funnel and
  * makes every downstream conversion % too low.
  *
- * This ability is the funnel's rightful reader: it iterates the ordered
- * `EC_ANALYTICS_ARTIST_ACTIVATION_STEPS` group and counts each step by
- * DISTINCT person, then computes step-to-step and overall conversion plus the
- * single biggest abandon step.
+ * This ability is the funnel's rightful reader: it walks each person's events
+ * in `created_at`, then row-ID order and counts a step only after that person
+ * completed every preceding step. Repeated and out-of-order emits therefore
+ * cannot inflate a downstream population.
  *
  * Friction / anomaly signals
  * --------------------------
@@ -39,11 +39,12 @@
  * (populated server-side from `get_current_user_id()`) is the authoritative,
  * reliably-present per-person identity — confirmed against live rows where
  * `artist_profile_created` has a non-NULL user_id on 100% of rows. The
- * anonymous first-party `visitor_id` is the fallback for any row whose user_id
- * is NULL (opted-out context or a pre-login emit), which keeps the same
- * member's pre/post-login path stitched into one identity. The dedup key is
- * therefore `COALESCE(NULLIF(user_id,0), visitor_id)`; a row with neither is
- * excluded from the per-person count (it cannot be attributed to a person).
+ * anonymous first-party `visitor_id` bridges pre-login events to a later row
+ * carrying both that visitor and a user identity. As elsewhere in analytics,
+ * `event_data.user_id` is preferred because registration is emitted before the
+ * new account becomes the current user; the stored `user_id` column is the
+ * fallback. A visitor observed with exactly one user is resolved to that user.
+ * Rows with neither identity are excluded from per-person counts.
  *
  * The window, UTC handling, and `since`/`as_of` reproducibility echo
  * get-analytics-summary so a caller can reconcile the two readers exactly.
@@ -62,7 +63,7 @@ function extrachill_analytics_register_activation_funnel_ability() {
 		'extrachill/get-activation-funnel',
 		array(
 			'label'               => __( 'Get Activation Funnel', 'extrachill-analytics' ),
-			'description'         => __( 'Returns the artist-signup activation funnel as a per-person funnel (DISTINCT user_id/visitor_id) with step-to-step and overall conversion and the biggest abandon step.', 'extrachill-analytics' ),
+			'description'         => __( 'Returns the artist-signup activation funnel as an ordered per-person funnel (user_id with visitor_id fallback) with step-to-step and overall conversion and the biggest abandon step.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -81,7 +82,7 @@ function extrachill_analytics_register_activation_funnel_ability() {
 			),
 			'output_schema'       => array(
 				'type'        => 'object',
-				'description' => __( 'Object with an ordered steps array (event_type, people, conversion_from_prev, conversion_from_top), the biggest_abandon_step, an anomalies array of friction signals (duplicate profile creation, re-registration attempts) each with DISTINCT people and raw event counts, and the exact UTC window.', 'extrachill-analytics' ),
+				'description' => __( 'Object with a chronologically ordered per-person steps array (event_type, people, conversion_from_prev, conversion_from_top), the biggest_abandon_step, an anomalies array of friction signals (duplicate profile creation, re-registration attempts) each with DISTINCT people and raw event counts, and the exact UTC window.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_activation_funnel',
 			'permission_callback' => function () {
@@ -100,14 +101,85 @@ function extrachill_analytics_register_activation_funnel_ability() {
 }
 
 /**
+ * Read activation rows in bounded keyset pages.
+ *
+ * The upper UTC bound applies even to all-time reports. `created_at, id`
+ * keyset pagination preserves deterministic equal-timestamp ordering without
+ * materializing the report window in PHP.
+ *
+ * @param string   $table         Trusted analytics events table name.
+ * @param string[] $event_types   Activation event types to read.
+ * @param string[] $window_where  Prepared window/blog predicates.
+ * @param array    $window_values Values for the window/blog predicates.
+ * @param callable $consume       Receives each ordered page of event rows.
+ */
+function extrachill_analytics_activation_each_event_page( $table, $event_types, $window_where, $window_values, $consume ) {
+	global $wpdb;
+
+	$page_size          = 500;
+	$event_placeholders = implode( ', ', array_fill( 0, count( $event_types ), '%s' ) );
+	$cursor_time        = null;
+	$cursor_id          = 0;
+
+	do {
+		$where  = array_merge( array( "event_type IN ({$event_placeholders})" ), $window_where );
+		$values = array_merge( array_map( 'sanitize_key', $event_types ), $window_values );
+
+		if ( null !== $cursor_time ) {
+			$where[]  = '(created_at > %s OR (created_at = %s AND id > %d))';
+			$values[] = $cursor_time;
+			$values[] = $cursor_time;
+			$values[] = $cursor_id;
+		}
+		$values[] = $page_size;
+
+		$where_clause = implode( ' AND ', $where );
+		// phpcs:disable WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery -- Bounded reporting page; identifiers are code-defined and every value is prepared.
+		$sql  = "SELECT id, event_type, event_data, user_id, visitor_id, created_at
+			FROM {$table}
+			WHERE {$where_clause}
+			ORDER BY created_at ASC, id ASC
+			LIMIT %d";
+		$page = (array) $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery
+
+		if ( empty( $page ) ) {
+			break;
+		}
+
+		$consume( $page );
+		$page_count  = count( $page );
+		$last        = end( $page );
+		$cursor_time = (string) $last->created_at;
+		$cursor_id   = (int) $last->id;
+	} while ( $page_count === $page_size );
+}
+
+/**
+ * Resolve the strongest user identity stored on an analytics event.
+ *
+ * Registration events carry the newly created user in event_data before that
+ * account is authenticated, matching conversion-map outcome deduplication.
+ *
+ * @param object $row Analytics event row.
+ * @return int Positive user ID, or 0 when unavailable.
+ */
+function extrachill_analytics_activation_event_user_id( $row ) {
+	$data = is_array( $row->event_data )
+		? $row->event_data
+		: json_decode( (string) $row->event_data, true );
+	$data = is_array( $data ) ? $data : array();
+
+	return (int) ( $data['user_id'] ?? ( $row->user_id ?? 0 ) );
+}
+
+/**
  * Execute callback for get-activation-funnel ability.
  *
  * @param array $input Input parameters.
  * @return array Funnel data.
  */
 function extrachill_analytics_ability_get_activation_funnel( $input ) {
-	global $wpdb;
-
 	$days    = isset( $input['days'] ) ? (int) $input['days'] : 28;
 	$blog_id = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
 
@@ -125,8 +197,8 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 	$now_utc = gmdate( 'Y-m-d H:i:s' );
 	$since   = '';
 
-	$window_where  = array();
-	$window_values = array();
+	$window_where  = array( 'created_at <= %s' );
+	$window_values = array( $now_utc );
 
 	if ( $days > 0 ) {
 		$since           = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
@@ -139,40 +211,88 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 		$window_values[] = $blog_id;
 	}
 
-	// Per-person dedup key: prefer the authoritative user_id column, fall back
-	// to the anonymous visitor_id so a pre-login emit still attributes to one
-	// person. A row with neither identity is excluded (can't be a "person").
-	$person_key = 'COALESCE(NULLIF(user_id, 0), visitor_id)';
+	$friction_events = defined( 'EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS' )
+		? EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS
+		: array( 'artist_profile_duplicate_created', 'user_reregistration_attempt' );
+	$event_types     = array_merge( $steps, $friction_events );
+
+	// First pass: observe real visitor-to-user bridges. A visitor shared by more
+	// than one user is deliberately left ambiguous rather than merging accounts.
+	$visitor_users = array();
+	extrachill_analytics_activation_each_event_page(
+		$table,
+		$event_types,
+		$window_where,
+		$window_values,
+		static function ( $page ) use ( &$visitor_users ) {
+			foreach ( $page as $row ) {
+				$user_id    = extrachill_analytics_activation_event_user_id( $row );
+				$visitor_id = trim( (string) $row->visitor_id );
+				if ( $user_id > 0 && '' !== $visitor_id ) {
+					$visitor_users[ $visitor_id ][ $user_id ] = true;
+				}
+			}
+		}
+	);
+
+	$visitor_to_user = array();
+	foreach ( $visitor_users as $visitor_id => $user_ids ) {
+		if ( 1 === count( $user_ids ) ) {
+			$visitor_to_user[ $visitor_id ] = (int) array_key_first( $user_ids );
+		}
+	}
+
+	$step_index     = array_flip( $steps );
+	$friction_index = array_flip( $friction_events );
+	$ordered_counts = array_fill( 0, count( $steps ), 0 );
+	$progress       = array();
+	$anomaly_events = array_fill_keys( $friction_events, 0 );
+	$anomaly_people = array_fill_keys( $friction_events, array() );
+
+	// Second pass: resolve every row through the observed bridge and advance the
+	// per-person state machine in deterministic stored event order.
+	extrachill_analytics_activation_each_event_page(
+		$table,
+		$event_types,
+		$window_where,
+		$window_values,
+		static function ( $page ) use ( &$ordered_counts, &$progress, &$anomaly_events, &$anomaly_people, $visitor_to_user, $step_index, $friction_index ) {
+			foreach ( $page as $row ) {
+				$user_id    = extrachill_analytics_activation_event_user_id( $row );
+				$visitor_id = trim( (string) $row->visitor_id );
+
+				if ( $user_id > 0 ) {
+					$person_id = 'user:' . $user_id;
+				} elseif ( '' !== $visitor_id && isset( $visitor_to_user[ $visitor_id ] ) ) {
+					$person_id = 'user:' . $visitor_to_user[ $visitor_id ];
+				} elseif ( '' !== $visitor_id ) {
+					$person_id = 'visitor:' . $visitor_id;
+				} else {
+					continue;
+				}
+
+				$event_type = (string) $row->event_type;
+				if ( isset( $step_index[ $event_type ] ) ) {
+					$next_step = isset( $progress[ $person_id ] ) ? $progress[ $person_id ] : 0;
+					if ( $step_index[ $event_type ] === $next_step ) {
+						++$ordered_counts[ $next_step ];
+						$progress[ $person_id ] = $next_step + 1;
+					}
+				} elseif ( isset( $friction_index[ $event_type ] ) ) {
+					++$anomaly_events[ $event_type ];
+					$anomaly_people[ $event_type ][ $person_id ] = true;
+				}
+			}
+		}
+	);
 
 	$step_rows = array();
-	$top_count = 0;
+	$top_count = isset( $ordered_counts[0] ) ? $ordered_counts[0] : 0;
 
 	foreach ( $steps as $index => $event_type ) {
-		$where  = array( 'event_type = %s', "{$person_key} IS NOT NULL AND {$person_key} != ''" );
-		$values = array( sanitize_key( $event_type ) );
-
-		if ( ! empty( $window_where ) ) {
-			$where  = array_merge( $where, $window_where );
-			$values = array_merge( $values, $window_values );
-		}
-
-		$where_clause = implode( ' AND ', $where );
-
-		// Count DISTINCT people who reached this step — not rows. This is the
-		// whole point: re-views of the form collapse to one person here.
-		// phpcs:disable WordPress.DB.PreparedSQL -- $sql interpolates only code-defined identifiers ($person_key, $table) and a placeholder where_clause bound via prepare().
-		$sql = "SELECT COUNT(DISTINCT {$person_key}) FROM {$table} WHERE {$where_clause}";
-
-		$people = (int) $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL
-
-		if ( 0 === $index ) {
-			$top_count = $people;
-		}
-
 		$step_rows[] = array(
 			'event_type' => $event_type,
-			'people'     => $people,
+			'people'     => $ordered_counts[ $index ],
 			'index'      => $index,
 		);
 	}
@@ -224,36 +344,14 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 	// make funnel leaks visible: instead of a person silently vanishing between
 	// two steps, an anomaly count records the thrash. Counted by DISTINCT person
 	// over the SAME window and dedup key as the steps so they reconcile exactly.
-	$friction_events = defined( 'EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS' )
-		? EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS
-		: array( 'artist_profile_duplicate_created', 'user_reregistration_attempt' );
-
 	$anomalies = array();
 
 	foreach ( $friction_events as $event_type ) {
-		$where  = array( 'event_type = %s', "{$person_key} IS NOT NULL AND {$person_key} != ''" );
-		$values = array( sanitize_key( $event_type ) );
-
-		if ( ! empty( $window_where ) ) {
-			$where  = array_merge( $where, $window_where );
-			$values = array_merge( $values, $window_values );
-		}
-
-		$where_clause = implode( ' AND ', $where );
-
-		// Count DISTINCT people who hit this friction signal (people, not rows:
-		// a member who created three duplicate profiles is one thrashing person)
-		// AND the raw row volume (how much thrash that cohort generated).
-		// phpcs:disable WordPress.DB.PreparedSQL -- both queries interpolate only code-defined identifiers and a placeholder where_clause bound via prepare().
-		$people_sql = "SELECT COUNT(DISTINCT {$person_key}) FROM {$table} WHERE {$where_clause}";
-		$events_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
-
 		$anomalies[] = array(
 			'event_type' => $event_type,
-			'people'     => (int) $wpdb->get_var( $wpdb->prepare( $people_sql, $values ) ),
-			'events'     => (int) $wpdb->get_var( $wpdb->prepare( $events_sql, $values ) ),
+			'people'     => count( $anomaly_people[ $event_type ] ),
+			'events'     => $anomaly_events[ $event_type ],
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL
 	}
 
 	return array(
@@ -270,6 +368,6 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 		// same created_at >= since bound used by get-analytics-summary.
 		'since'                => $since,
 		'as_of'                => $now_utc,
-		'note'                 => 'Per-person funnel: each step is COUNT(DISTINCT COALESCE(NULLIF(user_id,0), visitor_id)), so multiple emits per person (e.g. re-views of the create form emitting artist_signup_started) collapse to one. Rows with neither identity are excluded. Counts here are intentionally NOT comparable to get-analytics-summary COUNT(*) raw volume. The anomalies array reports activation friction signals (duplicate profile creation, re-registration attempts) over the same window: people is DISTINCT persons hitting that signal, events is raw row volume.',
+		'note'                 => 'Ordered per-person funnel: event_data.user_id (registration-safe) then stored user_id is authoritative; visitor_id is the anonymous fallback and is stitched to a user only when this window observes that visitor with exactly one user. Ambiguous visitors are not merged. Events are read in bounded keyset pages and ordered by created_at then event row ID; equal timestamps follow insertion order. A person counts at a step only after completing every prior step, and repeated emits count once. Rows with neither identity are excluded because their progression is unknowable. Counts are intentionally NOT comparable to get-analytics-summary COUNT(*) raw volume. The anomalies array remains independent reach over the same bounded stream.',
 	);
 }
