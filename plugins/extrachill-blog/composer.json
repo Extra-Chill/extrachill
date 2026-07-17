@@ -17,6 +17,7 @@
             "php tests/festival-subscriptions.php",
             "php tests/artist-activity.php",
             "php tests/newsletter-context.php",
+            "php tests/network-bridge.php",
             "@lint:php"
         ]
     },
