@@ -107,6 +107,20 @@ class SummaryCommand {
 			}
 		}
 
+		if ( 'json' === $format ) {
+			WP_CLI::print_value( $result, array( 'format' => $format ) );
+			return;
+		}
+
+		if ( 'csv' === $format ) {
+			Utils\format_items(
+				$format,
+				array( $this->csv_row( $result ) ),
+				array_keys( $result )
+			);
+			return;
+		}
+
 		if ( empty( $result['event_types'] ) ) {
 			$period = $days > 0 ? "the last {$days} days" : 'all time';
 			WP_CLI::success( "No analytics events found for {$period}." );
@@ -143,5 +157,23 @@ class SummaryCommand {
 			WP_CLI::log( '' );
 			WP_CLI::log( sprintf( 'Total: %s events', number_format( $result['total'] ) ) );
 		}
+	}
+
+	/**
+	 * Preserve the complete response envelope in a deterministic CSV row.
+	 *
+	 * Nested values are JSON-encoded because CSV cells cannot represent arrays.
+	 *
+	 * @param array $result Ability result.
+	 * @return array<string, mixed>
+	 */
+	private function csv_row( array $result ) {
+		foreach ( $result as $key => $value ) {
+			if ( is_array( $value ) || is_object( $value ) ) {
+				$result[ $key ] = wp_json_encode( $value );
+			}
+		}
+
+		return $result;
 	}
 }
