@@ -15,6 +15,8 @@
 
 use PHPUnit\Framework\TestCase;
 
+require_once dirname( __DIR__ ) . '/inc/core/abilities.php';
+
 /**
  * Pins the live probe families from issue #133 plus the pre-existing catalog.
  */
@@ -59,6 +61,15 @@ final class SearchPayloadClassifierTest extends TestCase {
 			array( 'Gemfile', 'scanner', 'dependency_manifest_probe' ),
 			array( 'the/Gemfile', 'scanner', 'dependency_manifest_probe' ),
 			array( 'Gemfile.lock', 'scanner', 'dependency_manifest_probe' ),
+			// Unix file probes, including URL-encoded and double-encoded forms.
+			array( '/etc/shells', 'lfi', 'path_traversal' ),
+			array( '%2Fetc%2Fshells', 'lfi', 'path_traversal' ),
+			array( '%252Fetc%252Fshadow', 'lfi', 'path_traversal' ),
+			// Sanitized PHP assertion/eval payloads and encoded variants.
+			array( ';assert(base64_decode("Q09NTUFORA=="));', 'rce', 'code_exec_base64_probe' ),
+			array( 'eval(base64_decode("U0FGRV9GSVhUVVJF"))', 'rce', 'code_exec_base64_probe' ),
+			array( '%3Bassert%28base64_decode%28%22U0FGRQ%3D%3D%22%29%29%3B', 'rce', 'code_exec_base64_probe' ),
+			array( '%253Bassert%2528base64_decode%2528%2522U0FGRQ%253D%253D%2522%2529%2529%253B', 'rce', 'code_exec_base64_probe' ),
 		);
 		// phpcs:enable WordPress.Arrays.ArrayDeclarationSpacing
 	}
@@ -137,6 +148,14 @@ final class SearchPayloadClassifierTest extends TestCase {
 			array( 'Gemma' ),
 			array( 'memphis' ),
 			array( 'the jealous seas' ),
+			// Slash-heavy searches and artist punctuation remain human demand.
+			array( 'AC/DC' ),
+			array( '/artists/phish' ),
+			array( 'songs/base64' ),
+			array( 'assert yourself lyrics' ),
+			array( 'P!nk' ),
+			array( "Guns N' Roses" ),
+			array( 'Portugal. The Man' ),
 		);
 		// phpcs:enable WordPress.Arrays.ArrayDeclarationSpacing
 	}
@@ -147,5 +166,31 @@ final class SearchPayloadClassifierTest extends TestCase {
 	public function test_empty_input_is_benign() {
 		$this->assertNull( extrachill_analytics_classify_search_payload( '' ) );
 		$this->assertNull( extrachill_analytics_classify_search_payload( null ) );
+	}
+
+	/**
+	 * The write path must preserve attack telemetry while routing payload terms
+	 * away from ordinary search demand.
+	 */
+	public function test_payload_search_is_routed_to_search_attack() {
+		$GLOBALS['extrachill_analytics_test_events'] = array();
+
+		extrachill_analytics_ability_track_event(
+			array(
+				'event_type' => 'search',
+				'event_data' => array(
+					'search_term'  => '%252Fetc%252Fshells',
+					'result_count' => 2,
+				),
+			)
+		);
+
+		$this->assertCount( 1, $GLOBALS['extrachill_analytics_test_events'] );
+		$this->assertSame( 'search_attack', $GLOBALS['extrachill_analytics_test_events'][0][0] );
+		$this->assertSame( 'path_traversal', $GLOBALS['extrachill_analytics_test_events'][0][1]['classification'] );
+		$this->assertSame( 'lfi', $GLOBALS['extrachill_analytics_test_events'][0][1]['pattern_family'] );
+		$this->assertSame( 2, $GLOBALS['extrachill_analytics_test_events'][0][1]['result_count'] );
+
+		unset( $GLOBALS['extrachill_analytics_test_events'] );
 	}
 }

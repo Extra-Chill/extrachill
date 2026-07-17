@@ -42,7 +42,13 @@ function extrachill_analytics_classify_search_payload( $term ) {
 	$raw        = wp_unslash( $term );
 	$normalized = $raw;
 	$normalized = html_entity_decode( $normalized, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-	$normalized = rawurldecode( $normalized );
+	for ( $decode_pass = 0; $decode_pass < 3; $decode_pass++ ) {
+		$decoded = rawurldecode( $normalized );
+		if ( $decoded === $normalized ) {
+			break;
+		}
+		$normalized = $decoded;
+	}
 
 	$catalog = array(
 		// Time-based blind SQLi — highest signal, near-zero false positives.
@@ -123,6 +129,12 @@ function extrachill_analytics_classify_search_payload( $term ) {
 			'pattern_family' => 'rce',
 			'regex'          => '/\bprint\s*\(\s*md5\s*\(\s*\d+\s*\)\s*\)/i',
 		),
+		array(
+			'pattern_name'   => 'code_exec_base64_probe',
+			'pattern_family' => 'rce',
+			// PHP payloads commonly pass encoded code directly to assert() or eval().
+			'regex'          => '/\b(?:assert|eval)\s*\(\s*base64_decode\s*\(/i',
+		),
 		// Path traversal.
 		array(
 			'pattern_name'   => 'path_traversal',
@@ -132,7 +144,7 @@ function extrachill_analytics_classify_search_payload( $term ) {
 		array(
 			'pattern_name'   => 'path_traversal',
 			'pattern_family' => 'lfi',
-			'regex'          => '/\/etc\/passwd\b/i',
+			'regex'          => '/\/etc\/(?:passwd|shadow|group|hosts|shells)\b/i',
 		),
 		// Scanner session markers — sqlmap / AcuneticX-style fingerprints.
 		array(
