@@ -121,14 +121,17 @@ class ConversionCommand {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		if ( 'table' !== $format ) {
-			$rows    = ( 'article' === $by )
-				? array_map( array( $this, 'article_machine_row' ), (array) ( $result['by_article'] ?? array() ) )
-				: array_map( array( $this, 'category_machine_row' ), (array) ( $result['by_category'] ?? array() ) );
-			$columns = ( 'article' === $by )
-				? array( 'post_id', 'title', 'url', 'path', 'entry_sessions', 'reached_any', 'reached_any_rate', 'reached_any_same_count', 'same_session_rate', 'reached_any_return_count', 'return_rate', 'returned_count', 'returned_rate' )
-				: array( 'term_id', 'category', 'entry_sessions', 'reached_any', 'reached_any_rate', 'reached_any_same_count', 'same_session_rate', 'reached_any_return_count', 'return_rate', 'returned_count', 'returned_rate' );
-			Utils\format_items( $format, $rows, $columns );
+		if ( 'json' === $format ) {
+			WP_CLI::print_value( $result, array( 'format' => $format ) );
+			return;
+		}
+
+		if ( 'csv' === $format ) {
+			Utils\format_items(
+				$format,
+				array( $this->csv_row( $result ) ),
+				array_keys( $result )
+			);
 			return;
 		}
 
@@ -204,57 +207,21 @@ class ConversionCommand {
 	}
 
 	/**
-	 * Build a typed machine-readable row for an entry article.
+	 * Preserve the complete response envelope in a deterministic CSV row.
 	 *
-	 * @param array $a Article result row.
-	 * @return array<string, int|float|string>
+	 * Nested values are JSON-encoded because CSV cells cannot represent arrays.
+	 *
+	 * @param array $result Ability result.
+	 * @return array<string, mixed>
 	 */
-	private function article_machine_row( $a ) {
-		return array_merge(
-			array(
-				'post_id' => (int) ( $a['post_id'] ?? 0 ),
-				'title'   => (string) ( $a['title'] ?? '(unknown)' ),
-				'url'     => (string) ( $a['url'] ?? '' ),
-				'path'    => (string) ( $a['path'] ?? '' ),
-			),
-			$this->machine_metrics( $a )
-		);
-	}
+	private function csv_row( array $result ) {
+		foreach ( $result as $key => $value ) {
+			if ( is_array( $value ) || is_object( $value ) ) {
+				$result[ $key ] = wp_json_encode( $value );
+			}
+		}
 
-	/**
-	 * Build a typed machine-readable row for an entry category.
-	 *
-	 * @param array $c Category result row.
-	 * @return array<string, int|float|string>
-	 */
-	private function category_machine_row( $c ) {
-		return array_merge(
-			array(
-				'term_id'  => (int) ( $c['term_id'] ?? 0 ),
-				'category' => (string) ( $c['category'] ?? '' ),
-			),
-			$this->machine_metrics( $c )
-		);
-	}
-
-	/**
-	 * Flatten typed ability metrics for deterministic JSON and CSV rows.
-	 *
-	 * @param array $row Ability result row.
-	 * @return array<string, int|float>
-	 */
-	private function machine_metrics( $row ) {
-		return array(
-			'entry_sessions'           => (int) ( $row['entry_sessions'] ?? 0 ),
-			'reached_any'              => (int) ( $row['reached_any'] ?? 0 ),
-			'reached_any_rate'         => (float) ( $row['reached_any_rate'] ?? 0 ),
-			'reached_any_same_count'   => (int) ( $row['reached_any_same_count'] ?? 0 ),
-			'same_session_rate'        => (float) ( $row['same_session']['any'] ?? 0 ),
-			'reached_any_return_count' => (int) ( $row['reached_any_return_count'] ?? 0 ),
-			'return_rate'              => (float) ( $row['return']['any'] ?? 0 ),
-			'returned_count'           => (int) ( $row['returned_count'] ?? 0 ),
-			'returned_rate'            => (float) ( $row['returned_rate'] ?? 0 ),
-		);
+		return $result;
 	}
 
 	/**

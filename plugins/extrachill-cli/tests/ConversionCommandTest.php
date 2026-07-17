@@ -8,6 +8,7 @@ namespace {
 
 	class WP_CLI {
 		public static $messages = array();
+		public static $printed  = array();
 
 		public static function error( $message ) {
 			throw new RuntimeException( $message );
@@ -16,47 +17,67 @@ namespace {
 		public static function log( $message ) {
 			self::$messages[] = $message;
 		}
-	}
 
-	class ConversionCommandTestAbility {
-		public function execute( $input ) {
-			return array(
-				'period'          => '2025-07-16 to 2026-07-16',
-				'since'           => '2025-07-16 00:00:00',
-				'as_of'           => '2026-07-16 00:00:00',
-				'entry_blog_id'   => 1,
-				'platform_blogs'  => array(),
-				'overall'         => array(
-					'entry_sessions'  => 1234,
-					'reached_any'     => 321,
-					'reached_any_rate'=> 0.2601,
-					'same_session'    => array( 'events' => 0.1, 'community' => 0.05, 'artist' => 0.02, 'any' => 0.17 ),
-					'return'          => array( 'events' => 0.04, 'community' => 0.03, 'artist' => 0.02, 'any' => 0.09 ),
-					'returned_rate'   => 0.42,
-				),
-				'by_article'      => array(
-					array(
-						'post_id'                  => 173,
-						'title'                    => 'Mama Say Mama Sa Mama Coosa: The Story Behind an Iconic Michael Jackson Lyric',
-						'url'                      => 'https://extrachill.com/mama-say-mama-sa-mama-coosa/',
-						'path'                     => '/mama-say-mama-sa-mama-coosa/',
-						'entry_sessions'           => 1234,
-						'reached_any'              => 321,
-						'reached_any_rate'         => 0.2601,
-						'reached_any_same_count'   => 210,
-						'same_session'             => array( 'any' => 0.1702 ),
-						'reached_any_return_count' => 111,
-						'return'                   => array( 'any' => 0.0899 ),
-						'returned_count'           => 518,
-						'returned_rate'            => 0.4198,
-					),
-				),
-				'by_category'     => array(),
-			);
+		public static function print_value( $value, $args ) {
+			self::$printed[] = compact( 'value', 'args' );
 		}
 	}
 
-	$conversion_command_test_ability = new ConversionCommandTestAbility();
+	class ConversionCommandTestAbility {
+		public $result;
+
+		public function __construct( $result ) {
+			$this->result = $result;
+		}
+
+		public function execute( $input ) {
+			return $this->result;
+		}
+	}
+
+	$conversion_command_test_result = array(
+		'period'         => '2025-07-16 to 2026-07-16',
+		'since'          => '2025-07-16 00:00:00',
+		'as_of'          => '2026-07-16 00:00:00',
+		'entry_blog_id'  => 1,
+		'platform_blogs' => array(),
+		'overall'        => array(
+			'entry_sessions'   => 1234,
+			'reached_any'      => 321,
+			'reached_any_rate' => 0.2601,
+			'same_session'     => array( 'events' => 0.1, 'community' => 0.05, 'artist' => 0.02, 'any' => 0.17 ),
+			'return'           => array( 'events' => 0.04, 'community' => 0.03, 'artist' => 0.02, 'any' => 0.09 ),
+			'returned_rate'    => 0.42,
+		),
+		'by_article'     => array(
+			array(
+				'post_id'                  => 173,
+				'title'                    => 'Mama Say Mama Sa Mama Coosa: The Story Behind an Iconic Michael Jackson Lyric',
+				'url'                      => 'https://extrachill.com/mama-say-mama-sa-mama-coosa/',
+				'path'                     => '/mama-say-mama-sa-mama-coosa/',
+				'entry_sessions'           => 1234,
+				'reached_any'              => 321,
+				'reached_any_rate'         => 0.2601,
+				'reached_any_same_count'   => 210,
+				'same_session'             => array( 'any' => 0.1702 ),
+				'reached_any_return_count' => 111,
+				'return'                   => array( 'any' => 0.0899 ),
+				'returned_count'           => 518,
+				'returned_rate'            => 0.4198,
+			),
+		),
+		'by_category'    => array(),
+		'outcomes'       => array(
+			'overall'               => array( 'newsletter_signup' => array( 'count' => 12, 'rate' => 0.0097 ) ),
+			'by_article'            => array( array( 'post_id' => 173, 'newsletter_signup' => array( 'count' => 4, 'rate' => 0.0032 ) ) ),
+			'by_category'           => array(),
+			'coverage'              => array( 'identified_visitors' => 0.82, 'newsletter_events' => 0.76 ),
+			'attribution_semantics' => array( 'direct_source' => 'Entry article was the direct source.' ),
+		),
+		'future_metric'  => array( 'count' => 7, 'rate' => 0.5 ),
+	);
+
+	$conversion_command_test_ability = new ConversionCommandTestAbility( $conversion_command_test_result );
 
 	function wp_get_ability( $name ) {
 		global $conversion_command_test_ability;
@@ -92,26 +113,25 @@ namespace {
 
 	use ExtraChill\CLI\Commands\Analytics\ConversionCommand;
 
-	global $conversion_command_test_formats;
+	global $conversion_command_test_formats, $conversion_command_test_result;
 
 	$command = new ConversionCommand();
 	$command( array(), array( 'by' => 'article', 'format' => 'json' ) );
+	conversion_command_test_assert_same( $conversion_command_test_result, WP_CLI::$printed[0]['value'], 'JSON must preserve the complete typed ability result.' );
+	conversion_command_test_assert_same( array( 'format' => 'json' ), WP_CLI::$printed[0]['args'], 'JSON must use WP-CLI structured output.' );
+	conversion_command_test_assert_same( 0.82, WP_CLI::$printed[0]['value']['outcomes']['coverage']['identified_visitors'], 'JSON must retain outcome coverage.' );
+	conversion_command_test_assert_same( $conversion_command_test_result['future_metric'], WP_CLI::$printed[0]['value']['future_metric'], 'JSON must retain newly added ability fields without presenter changes.' );
+
 	$command( array(), array( 'by' => 'article', 'format' => 'csv' ) );
 	$command( array(), array( 'by' => 'article' ) );
 
-	$machine_fields = array( 'post_id', 'title', 'url', 'path', 'entry_sessions', 'reached_any', 'reached_any_rate', 'reached_any_same_count', 'same_session_rate', 'reached_any_return_count', 'return_rate', 'returned_count', 'returned_rate' );
-	foreach ( array( 0, 1 ) as $index ) {
-		$row = $conversion_command_test_formats[ $index ]['items'][0];
-		conversion_command_test_assert_same( $machine_fields, $conversion_command_test_formats[ $index ]['fields'], 'Machine fields must expose stable identity and explicit typed metrics.' );
-		conversion_command_test_assert_same( 173, $row['post_id'], 'Post ID must remain an integer.' );
-		conversion_command_test_assert_same( 'Mama Say Mama Sa Mama Coosa: The Story Behind an Iconic Michael Jackson Lyric', $row['title'], 'Machine titles must not be truncated.' );
-		conversion_command_test_assert_same( 'https://extrachill.com/mama-say-mama-sa-mama-coosa/', $row['url'], 'Machine rows must expose the canonical URL.' );
-		conversion_command_test_assert_same( '/mama-say-mama-sa-mama-coosa/', $row['path'], 'Machine rows must expose the canonical path.' );
-		conversion_command_test_assert_same( 1234, $row['entry_sessions'], 'Counts must remain integers.' );
-		conversion_command_test_assert_same( 0.2601, $row['reached_any_rate'], 'Rates must remain numeric 0..1 values.' );
-	}
+	$csv = $conversion_command_test_formats[0];
+	conversion_command_test_assert_same( array_keys( $conversion_command_test_result ), $csv['fields'], 'CSV must retain every top-level ability field without a presenter allowlist.' );
+	conversion_command_test_assert_same( '2025-07-16 to 2026-07-16', $csv['items'][0]['period'], 'CSV scalar values must retain their source type before formatting.' );
+	conversion_command_test_assert_same( $conversion_command_test_result['outcomes'], json_decode( $csv['items'][0]['outcomes'], true ), 'CSV must preserve the complete outcomes envelope as JSON.' );
+	conversion_command_test_assert_same( $conversion_command_test_result['future_metric'], json_decode( $csv['items'][0]['future_metric'], true ), 'CSV must preserve newly added ability fields without presenter changes.' );
 
-	$table = $conversion_command_test_formats[2];
+	$table = $conversion_command_test_formats[1];
 	conversion_command_test_assert_same( array( 'title', 'entry_sessions', 'same_any', 'return_any', 'returned', 'reached_any' ), $table['fields'], 'Table columns must remain backward compatible.' );
 	conversion_command_test_assert_same( 'Mama Say Mama Sa Mama Coosa: The Story Behind an Iconic…', $table['items'][0]['title'], 'Table titles must retain compact display truncation.' );
 	conversion_command_test_assert_same( '1,234', $table['items'][0]['entry_sessions'], 'Table counts must retain human formatting.' );
