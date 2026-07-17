@@ -86,14 +86,13 @@ $api_base = $artist_site_url . '/wp-json/extrachill/v1';
 $permissions_api_url = $api_base . '/artists/' . $artist_id . '/permissions';
 $subscribe_api_url = $api_base . '/artists/' . $artist_id . '/subscribe';
 $tracking_click_url = $api_base . '/analytics/click';
-$tracking_view_url = $api_base . '/analytics/view';
 // Bearer-token mint handoff on the artist site, where the .extrachill.com auth
 // cookie is first-party. The edit-button JS redirects here once to obtain a
 // short-lived token, which comes back in the URL fragment (see
 // extrachill-api/inc/auth/extrachill-link-token-handoff.php).
 $token_handoff_url = $artist_site_url . '/wp-admin/admin-post.php?action=ec_link_token_handoff';
 ?>
-<body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?> data-extrch-artist-id="<?php echo esc_attr( (string) absint( $artist_id ) ); ?>" data-extrch-link-page-id="<?php echo esc_attr( (string) absint( $link_page_id ) ); ?>" data-extrch-permissions-api-url="<?php echo esc_url( $permissions_api_url ); ?>" data-extrch-token-handoff-url="<?php echo esc_url( $token_handoff_url ); ?>" data-extrch-subscribe-api-url="<?php echo esc_url( $subscribe_api_url ); ?>" data-extrch-tracking-click-url="<?php echo esc_url( $tracking_click_url ); ?>" data-extrch-tracking-view-url="<?php echo esc_url( $tracking_view_url ); ?>">
+<body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?> data-extrch-artist-id="<?php echo esc_attr( (string) absint( $artist_id ) ); ?>" data-extrch-link-page-id="<?php echo esc_attr( (string) absint( $link_page_id ) ); ?>" data-extrch-permissions-api-url="<?php echo esc_url( $permissions_api_url ); ?>" data-extrch-token-handoff-url="<?php echo esc_url( $token_handoff_url ); ?>" data-extrch-subscribe-api-url="<?php echo esc_url( $subscribe_api_url ); ?>" data-extrch-tracking-click-url="<?php echo esc_url( $tracking_click_url ); ?>">
 <?php
 // Google Tag Manager (noscript)
 ?>
@@ -125,4 +124,4 @@ $token_handoff_url = $artist_site_url . '/wp-admin/admin-post.php?action=ec_link
     ?>
     <?php wp_print_footer_scripts(); // Output scripts enqueued for footer ?>
 </body>
-</html> 
+</html>

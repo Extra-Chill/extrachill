@@ -64,7 +64,7 @@ The tracking flow follows this pattern:
 
 Location: `inc/link-pages/live/assets/js/link-page-public-tracking.js`
 
-Tracks page views and link clicks using sendBeacon API for reliable delivery with Fetch API fallback.
+Tracks link clicks using sendBeacon API for reliable delivery with Fetch API fallback. Page views are recorded by the signed first-party tracker attached to the minimal-head lifecycle.
 
 **Click Tracking Payload**:
 ```javascript

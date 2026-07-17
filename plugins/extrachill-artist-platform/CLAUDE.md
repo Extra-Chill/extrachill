@@ -403,7 +403,7 @@ add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 
 #### Public Link Page Scripts
 **Directory**: `inc/link-pages/live/assets/js/`
-- `link-page-public-tracking.js` - Analytics and click tracking
+- `link-page-public-tracking.js` - Link click tracking
 - `link-page-subscribe.js` - Subscription form functionality
 - `link-page-youtube-embed.js` - YouTube video embed handling
 - `extrch-share-modal.js` - Native Web Share API with social fallbacks
@@ -419,7 +419,7 @@ add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 
 **Key JavaScript Modules**:
 - `join-flow-ui.js` - Join flow modal UI (login/register)
-- `link-page-public-tracking.js` - Link page view + click tracking
+- `link-page-public-tracking.js` - Link page click tracking
 - `link-page-subscribe.js` - Link page subscription form handling
 - `link-page-youtube-embed.js` - YouTube embed handling
 - `extrch-share-modal.js` - Share modal UI

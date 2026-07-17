@@ -1,63 +1,69 @@
 /**
- * Public Link Page Tracking - Views and Link Clicks
+ * Public Link Page Click Tracking
  *
- * Tracks page views and link clicks for artist link pages via REST API.
- * Views: Fires on page load, tracked to both all-time counter and 90-day rolling table.
- * Clicks: Fires on link click, URL normalization handled server-side.
+ * Tracks link clicks for artist link pages via REST API.
+ * URL normalization is handled server-side.
  */
 
-(function() {
-    'use strict';
+/* global navigator */
 
-    const body = document.body;
-    const dataset = body && body.dataset ? body.dataset : null;
+( function () {
+	'use strict';
 
-    const clickRestUrl = dataset ? dataset.extrchTrackingClickUrl : '';
-    const viewRestUrl = dataset ? dataset.extrchTrackingViewUrl : '';
-    const linkPageId = dataset ? dataset.extrchLinkPageId : '';
+	const body = document.body;
+	const dataset = body && body.dataset ? body.dataset : null;
 
-    if (!clickRestUrl || !viewRestUrl || !linkPageId) {
-        return;
-    }
+	const clickRestUrl = dataset ? dataset.extrchTrackingClickUrl : '';
+	const linkPageId = dataset ? dataset.extrchLinkPageId : '';
 
-    function sendBeacon(url, data) {
-        const jsonData = JSON.stringify(data);
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(url, new Blob([jsonData], { type: 'application/json' }));
-        } else {
-            fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: jsonData,
-                keepalive: true
-            }).catch(() => {});
-        }
-    }
+	if ( ! clickRestUrl || ! linkPageId ) {
+		return;
+	}
 
-    // Track page view on load
-    if (viewRestUrl) {
-        sendBeacon(viewRestUrl, { post_id: linkPageId });
-    }
+	function sendBeacon( url, data ) {
+		const jsonData = JSON.stringify( data );
+		if ( navigator.sendBeacon ) {
+			navigator.sendBeacon(
+				url,
+				new Blob( [ jsonData ], { type: 'application/json' } )
+			);
+		} else {
+			fetch( url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: jsonData,
+				keepalive: true,
+			} ).catch( () => {} );
+		}
+	}
 
-    // Track link clicks
-    if (clickRestUrl) {
-        const linkContainer = document.querySelector('.extrch-link-page-content-wrapper');
-        if (linkContainer) {
-            linkContainer.addEventListener('click', (event) => {
-                const linkElement = event.target.closest('a');
-                if (linkElement && linkElement.href && !linkElement.classList.contains('extrch-link-page-edit-btn')) {
-                    const linkTextEl = linkElement.querySelector('.extrch-link-page-link-text');
-                    const linkText = linkTextEl ? linkTextEl.textContent.trim() : '';
+	// Track link clicks
+	const linkContainer = document.querySelector(
+		'.extrch-link-page-content-wrapper'
+	);
+	if ( linkContainer ) {
+		linkContainer.addEventListener( 'click', ( event ) => {
+			const linkElement = event.target.closest( 'a' );
+			if (
+				linkElement &&
+				linkElement.href &&
+				! linkElement.classList.contains( 'extrch-link-page-edit-btn' )
+			) {
+				const linkTextEl = linkElement.querySelector(
+					'.extrch-link-page-link-text'
+				);
+				const linkText = linkTextEl
+					? linkTextEl.textContent.trim()
+					: '';
 
-                    sendBeacon(clickRestUrl, {
-                        click_type: 'link_page_link',
-                        link_page_id: linkPageId,
-                        source_url: window.location.href,
-                        destination_url: linkElement.href,
-                        element_text: linkText
-                    });
-                }
-            });
-        }
-    }
-})();
+				sendBeacon( clickRestUrl, {
+					click_type: 'link_page_link',
+					link_page_id: linkPageId,
+					source_url: window.location.href,
+					destination_url: linkElement.href,
+					element_text: linkText,
+				} );
+			}
+		} );
+	}
+} )();
