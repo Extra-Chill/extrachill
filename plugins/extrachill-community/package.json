@@ -6,6 +6,7 @@
   "scripts": {
     "build": "wp-scripts build --webpack-copy-php",
     "start": "wp-scripts start",
+    "test:js": "wp-scripts test-unit-js --runInBand",
     "lint:js": "wp-scripts lint-js",
     "lint:css": "wp-scripts lint-style",
     "format": "wp-scripts format",

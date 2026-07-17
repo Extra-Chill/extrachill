@@ -137,9 +137,8 @@
 		}
 	}
 
-	function openModal( e ) {
-		e.preventDefault();
-		activeTrigger = e.currentTarget;
+	function showModal( triggerEl ) {
+		activeTrigger = triggerEl;
 
 		modal.classList.add( 'is-open' );
 		overlay.classList.add( 'is-open' );
@@ -159,6 +158,11 @@
 		}
 
 		document.addEventListener( 'keydown', trapFocus );
+	}
+
+	function openModal( e ) {
+		e.preventDefault();
+		showModal( e.currentTarget );
 	}
 
 	function closeModal() {
@@ -222,4 +226,8 @@
 	}
 
 	overlay.addEventListener( 'click', closeModal );
+
+	if ( modal.dataset.autoOpen === 'true' ) {
+		showModal( discussionTrigger );
+	}
 } )();

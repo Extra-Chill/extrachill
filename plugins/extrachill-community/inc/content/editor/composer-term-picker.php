@@ -78,6 +78,148 @@ function extrachill_community_term_picker_taxonomies() {
 }
 
 /**
+ * Resolve a valid entity continuation from composer query state.
+ *
+ * Contract: `?compose=discussion&entity_taxonomy=<taxonomy>&entity_slug=<slug>`.
+ * Only the entity taxonomies already supported by the composer are accepted,
+ * and the slug must resolve to an existing REST-enabled topic term.
+ *
+ * @param array<string,mixed>|null $query Query values, or null for the request.
+ * @return array{taxonomy:string,term:object}|null Valid continuation state.
+ */
+function extrachill_community_get_discussion_composer_state( $query = null ) {
+	if ( null === $query ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only composer state; no mutation occurs.
+		$query = $_GET;
+	}
+
+	if ( ! isset( $query['compose'], $query['entity_taxonomy'], $query['entity_slug'] )
+		|| ! is_scalar( $query['compose'] )
+		|| ! is_scalar( $query['entity_taxonomy'] )
+		|| ! is_scalar( $query['entity_slug'] ) ) {
+		return null;
+	}
+
+	$raw_compose  = wp_unslash( (string) $query['compose'] );
+	$raw_taxonomy = wp_unslash( (string) $query['entity_taxonomy'] );
+	$raw_slug     = wp_unslash( (string) $query['entity_slug'] );
+	$compose      = sanitize_key( $raw_compose );
+	$taxonomy     = sanitize_key( $raw_taxonomy );
+	$slug         = sanitize_title( $raw_slug );
+
+	if ( $raw_compose !== $compose || $raw_taxonomy !== $taxonomy || $raw_slug !== $slug
+		|| 'discussion' !== $compose
+		|| ! in_array( $taxonomy, array( 'artist', 'festival', 'location' ), true )
+		|| '' === $slug ) {
+		return null;
+	}
+
+	$tax_object = get_taxonomy( $taxonomy );
+	if ( ! $tax_object || empty( $tax_object->show_in_rest ) || ! is_object_in_taxonomy( 'topic', $taxonomy ) ) {
+		return null;
+	}
+
+	$term = get_term_by( 'slug', $slug, $taxonomy );
+	if ( ! $term || is_wp_error( $term ) ) {
+		return null;
+	}
+
+	return array(
+		'taxonomy' => $taxonomy,
+		'term'     => $term,
+	);
+}
+
+/**
+ * Build the canonical Community composer URL for a validated entity term.
+ *
+ * @param string $taxonomy Entity taxonomy.
+ * @param string $slug     Existing term slug.
+ * @return string Composer URL, or an empty string for invalid state.
+ */
+function extrachill_community_get_discussion_composer_url( $taxonomy, $slug ) {
+	$state = extrachill_community_get_discussion_composer_state(
+		array(
+			'compose'         => 'discussion',
+			'entity_taxonomy' => $taxonomy,
+			'entity_slug'     => $slug,
+		)
+	);
+	if ( ! $state ) {
+		return '';
+	}
+
+	$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url( '/' );
+
+	return add_query_arg(
+		array(
+			'compose'         => 'discussion',
+			'entity_taxonomy' => $state['taxonomy'],
+			'entity_slug'     => $state['term']->slug,
+		),
+		trailingslashit( $community_url )
+	);
+}
+
+/**
+ * Build the canonical login URL for a validated composer continuation.
+ *
+ * Extra Chill Users owns validation and precedence for the eventual login
+ * round trip. Community only supplies its validated same-network destination.
+ *
+ * @param string $taxonomy Entity taxonomy.
+ * @param string $slug     Existing term slug.
+ * @return string Login URL, or an empty string for invalid state.
+ */
+function extrachill_community_get_discussion_composer_login_url( $taxonomy, $slug ) {
+	$redirect_to = extrachill_community_get_discussion_composer_url( $taxonomy, $slug );
+	if ( '' === $redirect_to ) {
+		return '';
+	}
+
+	$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url( '/' );
+
+	return add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), trailingslashit( $community_url ) . 'login/' );
+}
+
+/**
+ * Whether the current user may receive composer preselection state.
+ *
+ * The normal bbPress form and submission checks remain authoritative; this
+ * gate only prevents continuation state from bypassing topic permissions.
+ *
+ * @return bool
+ */
+function extrachill_community_can_continue_discussion_composer() {
+	return is_user_logged_in()
+		&& function_exists( 'bbp_current_user_can_publish_topics' )
+		&& bbp_current_user_can_publish_topics();
+}
+
+/**
+ * Send logged-out continuation requests through the canonical login page.
+ */
+function extrachill_community_maybe_redirect_discussion_composer_login() {
+	if ( ! is_front_page() || is_user_logged_in() ) {
+		return;
+	}
+
+	$state = extrachill_community_get_discussion_composer_state();
+	if ( ! $state ) {
+		return;
+	}
+
+	$login_url = extrachill_community_get_discussion_composer_login_url( $state['taxonomy'], $state['term']->slug );
+	if ( '' === $login_url ) {
+		return;
+	}
+
+	wp_safe_redirect( $login_url );
+	exit;
+}
+add_action( 'template_redirect', 'extrachill_community_maybe_redirect_discussion_composer_login' );
+
+/**
  * Build the localized config the React picker consumes.
  *
  * Filters out taxonomies that are not actually registered/REST-enabled, and
@@ -87,7 +229,10 @@ function extrachill_community_term_picker_taxonomies() {
  * @return array<string,mixed> Localizable config.
  */
 function extrachill_community_term_picker_config( $topic_id = 0 ) {
-	$taxonomies = array();
+	$taxonomies   = array();
+	$continuation = 0 === (int) $topic_id && extrachill_community_can_continue_discussion_composer()
+		? extrachill_community_get_discussion_composer_state()
+		: null;
 
 	foreach ( extrachill_community_term_picker_taxonomies() as $entry ) {
 		$taxonomy = $entry['taxonomy'];
@@ -109,6 +254,12 @@ function extrachill_community_term_picker_config( $topic_id = 0 ) {
 					);
 				}
 			}
+		} elseif ( $continuation && $taxonomy === $continuation['taxonomy'] ) {
+			$selected[] = array(
+				'id'     => (int) $continuation['term']->term_id,
+				'name'   => $continuation['term']->name,
+				'parent' => (int) $continuation['term']->parent,
+			);
 		}
 
 		$rest_base = ! empty( $tax_object->rest_base ) ? $tax_object->rest_base : $taxonomy;

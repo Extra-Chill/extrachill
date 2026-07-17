@@ -12,10 +12,14 @@
 if ( ! defined('ABSPATH') ) {
 	exit;
 }
+
+$discussion_continuation = extrachill_community_can_continue_discussion_composer()
+	? extrachill_community_get_discussion_composer_state()
+	: null;
 ?>
 
 <div id="new-topic-modal-overlay" class="new-topic-modal-overlay"></div>
-<div id="new-topic-modal" class="new-topic-modal" role="dialog" aria-modal="true" aria-labelledby="new-topic-modal-title">
+<div id="new-topic-modal" class="new-topic-modal" role="dialog" aria-modal="true" aria-labelledby="new-topic-modal-title" data-auto-open="<?php echo $discussion_continuation ? 'true' : 'false'; ?>">
 	<div class="new-topic-modal-content">
 		<button type="button" class="new-topic-modal-close" aria-label="<?php esc_attr_e( 'Close modal', 'extra-chill-community' ); ?>">&times;</button>
 		<h2 id="new-topic-modal-title" class="new-topic-modal-title"><?php esc_html_e( 'Create Discussion', 'extra-chill-community' ); ?></h2>
