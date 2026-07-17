@@ -261,7 +261,22 @@ function extrachill_analytics_get_or_mint_visitor_id() {
 function extrachill_analytics_should_prime_visitor_cookie() {
 	if (
 		extrachill_analytics_visitor_opted_out()
-		|| is_preview()
+		|| ! extrachill_analytics_is_eligible_public_template_request()
+	) {
+		return false;
+	}
+
+	return extrachill_analytics_request_host_is_first_party();
+}
+
+/**
+ * Whether the current request is a safe public browser template request.
+ *
+ * @return bool True for frontend GET/HEAD template requests.
+ */
+function extrachill_analytics_is_eligible_public_template_request() {
+	if (
+		is_preview()
 		|| is_admin()
 		|| wp_doing_ajax()
 		|| wp_doing_cron()
@@ -277,6 +292,16 @@ function extrachill_analytics_should_prime_visitor_cookie() {
 	if ( ! in_array( $request_method, array( 'GET', 'HEAD' ), true ) ) {
 		return false;
 	}
+
+	return true;
+}
+
+/**
+ * Whether the current template host belongs to the first-party network.
+ *
+ * @return bool True for the cookie domain or one of its subdomains.
+ */
+function extrachill_analytics_request_host_is_first_party() {
 
 	$request_host  = isset( $_SERVER['HTTP_HOST'] )
 		? wp_parse_url( 'https://' . sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ), PHP_URL_HOST )
@@ -369,10 +394,25 @@ add_action( 'wp_enqueue_scripts', 'extrachill_analytics_register_chart_asset', 5
 add_action( 'admin_enqueue_scripts', 'extrachill_analytics_register_chart_asset', 5 );
 
 /**
- * Enqueue view tracking script on singular pages.
+ * Enqueue view tracking on eligible public routes.
  */
 function extrachill_analytics_enqueue_view_tracking() {
-	if ( ! is_singular() || is_preview() ) {
+	if ( ! extrachill_analytics_is_eligible_public_template_request() ) {
+		return;
+	}
+
+	$post_id = is_singular() ? get_the_ID() : 0;
+	// Existing custom-domain singular views remain anonymous and post-backed;
+	// route-level collection is first-party only.
+	if ( $post_id <= 0 && ! extrachill_analytics_request_host_is_first_party() ) {
+		return;
+	}
+
+	$request_uri = isset( $_SERVER['REQUEST_URI'] )
+		? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+		: '/';
+	$source_path = extrachill_analytics_normalize_route_path( $request_uri );
+	if ( '' === $source_path ) {
 		return;
 	}
 
@@ -396,8 +436,10 @@ function extrachill_analytics_enqueue_view_tracking() {
 		'extrachill-view-tracking',
 		'ecViewTracking',
 		array(
-			'postId'   => get_the_ID(),
-			'endpoint' => rest_url( 'extrachill/v1/analytics/view' ),
+			'postId'      => $post_id,
+			'sourcePath'  => $source_path,
+			'routeFamily' => extrachill_analytics_classify_current_route( $source_path ),
+			'endpoint'    => rest_url( 'wp-abilities/v1/abilities/extrachill/track-page-view/run' ),
 		)
 	);
 }

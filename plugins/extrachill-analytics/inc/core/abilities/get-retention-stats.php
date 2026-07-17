@@ -311,40 +311,74 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
 		);
 	}
 
+	// Collection coverage is explicit because route-level rows begin only after
+	// issue #182 ships. Historical rows remain valid post-backed observations;
+	// they must not be silently presented as whole-platform route coverage.
+	$coverage_where  = array( 'event_type = %s', 'created_at >= %s' );
+	$coverage_values = array( $event_type, $since );
+	if ( $end_days_ago > 0 ) {
+		$coverage_where[]  = 'created_at < %s';
+		$coverage_values[] = $window_end;
+	}
+	if ( $blog_id > 0 ) {
+		$coverage_where[]  = 'blog_id = %d';
+		$coverage_values[] = $blog_id;
+	}
+	$coverage_where_clause = implode( ' AND ', $coverage_where );
+	$coverage_sql          = "SELECT
+			COUNT(*) AS total_pageviews,
+			SUM(CASE WHEN CAST(JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.post_id')) AS UNSIGNED) > 0 THEN 1 ELSE 0 END) AS post_backed_pageviews,
+			SUM(CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.view_kind')) = 'route' THEN 1 ELSE 0 END) AS route_pageviews,
+			SUM(CASE WHEN (JSON_EXTRACT(event_data, '$.post_id') IS NULL OR CAST(JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.post_id')) AS UNSIGNED) = 0)
+				AND JSON_EXTRACT(event_data, '$.view_kind') IS NULL THEN 1 ELSE 0 END) AS historical_unclassified_pageviews
+		FROM {$table}
+		WHERE {$coverage_where_clause}";
+
+	// phpcs:disable WordPress.DB.PreparedSQL -- Code-defined table and placeholder clause; values are bound below.
+	$coverage_row = $wpdb->get_row( $wpdb->prepare( $coverage_sql, $coverage_values ) );
+	// phpcs:enable WordPress.DB.PreparedSQL
+
 	return array(
-		'return_rate'       => array(
+		'return_rate'         => array(
 			'total_visitors'     => $total_visitors,
 			'returning_visitors' => $returning_visitors,
 			'rate'               => $return_rate,
 			'definition'         => 'Share of visitors active on >= 2 distinct UTC days within the window.',
 		),
-		'cohort_retention'  => array(
+		'cohort_retention'    => array(
 			'cohorts'    => $cohort_retention,
 			'weeks'      => $cohort_weeks,
 			'definition' => 'Acquisition is each visitor\'s first observed pageview in the available event history, scoped by blog_id when set. W1 is activity during the first complete ISO week after acquisition; W2 is activity during the second. A horizon is reported only after its full week has elapsed; incomplete horizons are null and must not be treated as zero retention. This cohort history is distinct from the rolling-window return_rate metric.',
 		),
-		'cross_site_return' => array(
+		'cross_site_return'   => array(
 			'total_visitors'      => $xsite_total,
 			'cross_site_visitors' => $xsite_visitors,
 			'rate'                => $cross_site_rate,
 			'definition'          => 'Share of visitors who hit >= 2 distinct blog_ids on >= 2 distinct UTC days (network-wide; ignores blog_id filter).',
 		),
-		'session_depth'     => array(
+		'session_depth'       => array(
 			'avg_pageviews_per_visitor_day' => $avg_depth,
 			'max_pageviews_per_visitor_day' => $max_depth,
 			'definition'                    => 'Average (and max) pageview events per visitor per active UTC day.',
 		),
-		'by_referrer_host'  => array(
+		'by_referrer_host'    => array(
 			'hosts'      => $by_referrer_host,
 			'definition' => 'Top cross-surface referrer hosts (host-only, no query strings/PII) that sent readers to a pageview in the window — AI-citation (chatgpt.com / perplexity.ai), social, search engines, and cross-subdomain landings. Counts ALL pageviews carrying a referrer_host (not just identified visitors); direct + same-host traffic omit the field, and rows predating issue #90 do not appear.',
 		),
-		'days'              => $days,
-		'end_days_ago'      => $end_days_ago,
-		'blog_id'           => $blog_id,
-		'period'            => gmdate( 'Y-m-d', strtotime( $since ) ) . ' to ' . gmdate( 'Y-m-d', strtotime( $window_end ) ),
-		'since'             => $since,
-		'until'             => $window_end,
-		'as_of'             => $now_utc,
-		'note'              => 'Deterministic + bot-filtered: pageview rows are written server-side only for non-bot, JS-executing browsers; visitor_id is an anonymous first-party UUID v4 (no PII). Opted-out (GPC/DNT) rows have NULL visitor_id and are excluded from per-visitor metrics.',
+		'collection_coverage' => array(
+			'total_pageviews'                   => $coverage_row ? (int) $coverage_row->total_pageviews : 0,
+			'post_backed_pageviews'             => $coverage_row ? (int) $coverage_row->post_backed_pageviews : 0,
+			'route_pageviews'                   => $coverage_row ? (int) $coverage_row->route_pageviews : 0,
+			'historical_unclassified_pageviews' => $coverage_row ? (int) $coverage_row->historical_unclassified_pageviews : 0,
+			'definition'                        => 'Post-backed includes singular pageviews carrying post_id. Route includes new non-singular rows explicitly stamped view_kind=route. Historical unclassified rows lack both signals and predate the route-view contract; periods spanning deployment combine singular-only historical collection with broader current collection.',
+		),
+		'days'                => $days,
+		'end_days_ago'        => $end_days_ago,
+		'blog_id'             => $blog_id,
+		'period'              => gmdate( 'Y-m-d', strtotime( $since ) ) . ' to ' . gmdate( 'Y-m-d', strtotime( $window_end ) ),
+		'since'               => $since,
+		'until'               => $window_end,
+		'as_of'               => $now_utc,
+		'note'                => 'Deterministic + bot-filtered: pageview rows are written server-side only for non-bot, JS-executing browsers; visitor_id is an anonymous first-party UUID v4 (no PII). Opted-out (GPC/DNT) rows have NULL visitor_id and are excluded from per-visitor metrics. Route-level collection is additive from issue #182 onward; use collection_coverage before comparing periods that cross deployment.',
 	);
 }

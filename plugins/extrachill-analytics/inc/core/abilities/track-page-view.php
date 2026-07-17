@@ -2,13 +2,14 @@
 /**
  * Track Page View Ability
  *
- * Write-side ability that increments post view counts.
+ * Write-side ability that records post-backed and route-level pageviews.
  * High-frequency hot-path — keeps logic minimal.
  *
  * @package ExtraChill\Analytics
  * @since 0.8.0
  */
-declare(strict_types=1);
+
+declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
@@ -20,22 +21,36 @@ function extrachill_analytics_register_track_page_view_ability(): void {
 		'extrachill/track-page-view',
 		array(
 			'label'               => __( 'Track Page View', 'extrachill-analytics' ),
-			'description'         => __( 'Increment the view counter for a post. High-frequency endpoint called async after page load.', 'extrachill-analytics' ),
+			'description'         => __( 'Record a pageview for an eligible public route and increment legacy counters for valid post-backed views.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'post_id'    => array(
+					'post_id'      => array(
 						'type'        => 'integer',
-						'description' => __( 'The post ID to record a view for.', 'extrachill-analytics' ),
+						'description' => __( 'Optional post ID for a singular post-backed view.', 'extrachill-analytics' ),
+						'minimum'     => 1,
 					),
-					'referrer'   => array(
+					'source_path'  => array(
+						'type'        => 'string',
+						'description' => __( 'Normalized query-free browser route path.', 'extrachill-analytics' ),
+						'maxLength'   => 512,
+					),
+					'route_family' => array(
+						'type'        => 'string',
+						'description' => __( 'Bounded browser route family.', 'extrachill-analytics' ),
+						'enum'        => extrachill_analytics_route_families(),
+					),
+					'referrer'     => array(
 						'type'        => 'string',
 						'description' => __( 'Optional raw client-side referrer (document.referrer). Normalized server-side to a host-only `referrer_host` (no query strings, no PII) on the pageview event. Empty for direct traffic.', 'extrachill-analytics' ),
 						'default'     => '',
 					),
 				),
-				'required'   => array( 'post_id' ),
+				'anyOf'      => array(
+					array( 'required' => array( 'post_id' ) ),
+					array( 'required' => array( 'source_path', 'route_family' ) ),
+				),
 			),
 			'output_schema'       => array(
 				'type'        => 'object',
@@ -70,18 +85,31 @@ function extrachill_analytics_register_track_page_view_ability(): void {
  * @return array{recorded: bool}|WP_Error Confirmation or error.
  */
 function extrachill_analytics_ability_track_page_view( array $input ) {
-	$post_id    = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
-	$referrer   = isset( $input['referrer'] ) ? (string) $input['referrer'] : '';
+	$post_id      = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+	$referrer     = isset( $input['referrer'] ) ? (string) $input['referrer'] : '';
+	$source_path  = isset( $input['source_path'] ) ? extrachill_analytics_normalize_route_path( $input['source_path'] ) : '';
+	$route_family = isset( $input['route_family'] ) ? sanitize_key( $input['route_family'] ) : '';
 
-	if ( $post_id <= 0 ) {
+	// The deployed Extra Chill API adapter still calls this ability directly
+	// with post_id/referrer. Keep that valid while browser writes move to Core's
+	// Abilities REST runner and carry the complete route contract.
+	if ( $post_id > 0 && '' === $source_path ) {
+		$permalink   = get_permalink( $post_id );
+		$source_path = is_string( $permalink ) ? extrachill_analytics_normalize_route_path( $permalink ) : '';
+	}
+	if ( $post_id > 0 && '' === $route_family ) {
+		$route_family = 'singular';
+	}
+
+	if ( '' === $source_path || ! in_array( $route_family, extrachill_analytics_route_families(), true ) ) {
 		return new \WP_Error(
-			'invalid_post_id',
-			__( 'A valid post_id is required.', 'extrachill-analytics' ),
+			'invalid_route',
+			__( 'A normalized source_path and valid route_family are required.', 'extrachill-analytics' ),
 			array( 'status' => 400 )
 		);
 	}
 
-	if ( ! function_exists( 'ec_track_post_views' ) ) {
+	if ( $post_id > 0 && ! function_exists( 'ec_track_post_views' ) ) {
 		return new \WP_Error(
 			'function_missing',
 			__( 'View tracking function not available.', 'extrachill-analytics' ),
@@ -95,9 +123,16 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 	// REST response can safely mint the HttpOnly cookie for a first cached visit
 	// because response headers have not been sent yet. GPC/DNT returns an empty
 	// value and keeps the pageview anonymous.
-	$visitor_id = '';
+	$visitor_id            = '';
 	$is_first_party_beacon = function_exists( 'extrachill_analytics_beacon_is_first_party' )
 		&& extrachill_analytics_beacon_is_first_party();
+	if ( $post_id <= 0 && ! $is_first_party_beacon ) {
+		return new \WP_Error(
+			'invalid_route_origin',
+			__( 'Route-level views must originate on the first-party network.', 'extrachill-analytics' ),
+			array( 'status' => 403 )
+		);
+	}
 
 	// Do not stitch a custom-domain request even if a browser permits its
 	// third-party cookie. Cross-site beacons have no durable first-party
@@ -114,8 +149,10 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 		$visitor_id = extrachill_analytics_get_or_mint_visitor_id();
 	}
 
-	// All-time view increment (post meta) — retained for theme back-compat.
-	ec_track_post_views( $post_id );
+	// All-time view increment (post meta) is retained only for post-backed views.
+	if ( $post_id > 0 ) {
+		ec_track_post_views( $post_id );
+	}
 
 	// Write a deterministic pageview event row so per-visitor retention can be
 	// queried. visitor_id is persisted only when it is a valid UUID v4; an empty
@@ -138,8 +175,14 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 		&& 'browser' !== extrachill_analytics_classify_user_agent( $user_agent );
 
 	if ( ! $is_bot && function_exists( 'extrachill_track_analytics_event' ) ) {
-		$permalink  = get_permalink( $post_id );
-		$event_data = array( 'post_id' => $post_id );
+		$permalink  = $post_id > 0 ? get_permalink( $post_id ) : home_url( $source_path );
+		$event_data = array(
+			'route_family' => $route_family,
+			'view_kind'    => $post_id > 0 ? 'post' : 'route',
+		);
+		if ( $post_id > 0 ) {
+			$event_data['post_id'] = $post_id;
+		}
 
 		// Stamp a NORMALIZED, host-only referrer provenance on the pageview so
 		// AI-citation (chatgpt.com / perplexity.ai / gemini.google.com), social,
@@ -180,7 +223,7 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 	}
 
 	// Link pages also fire the 90-day daily-table action.
-	if ( get_post_type( $post_id ) === 'artist_link_page' ) {
+	if ( $post_id > 0 && get_post_type( $post_id ) === 'artist_link_page' ) {
 		do_action( 'extrachill_link_page_view_recorded', $post_id );
 	}
 

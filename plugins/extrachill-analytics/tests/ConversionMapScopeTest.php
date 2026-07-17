@@ -66,17 +66,16 @@ final class ConversionMapScopeTest extends TestCase {
 	}
 
 	/**
-	 * Homepage and archive events have no post ID, so they are explicitly outside
-	 * the current post-view collector's destination scope.
+	 * Route-level destinations count without becoming editorial entries.
 	 */
-	public function test_homepage_and_archive_destinations_are_not_counted(): void {
+	public function test_homepage_and_archive_destinations_are_counted(): void {
 		$platform = array(
 			7 => 'events',
 			2 => 'community',
 			4 => 'artist',
 		);
 
-		$this->assertFalse(
+		$this->assertTrue(
 			extrachill_analytics_conversion_is_measured_platform_event(
 				array(
 					'blog_id' => 7,
@@ -85,7 +84,7 @@ final class ConversionMapScopeTest extends TestCase {
 				$platform
 			)
 		);
-		$this->assertFalse(
+		$this->assertTrue(
 			extrachill_analytics_conversion_is_measured_platform_event(
 				array(
 					'blog_id' => 2,
@@ -99,6 +98,15 @@ final class ConversionMapScopeTest extends TestCase {
 				array(
 					'blog_id' => 4,
 					'post_id' => 99,
+				),
+				$platform
+			)
+		);
+		$this->assertFalse(
+			extrachill_analytics_conversion_is_measured_platform_event(
+				array(
+					'blog_id' => 9,
+					'post_id' => 0,
 				),
 				$platform
 			)

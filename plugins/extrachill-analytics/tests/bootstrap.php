@@ -37,6 +37,7 @@ if ( ! defined( 'WP_CONTENT_DIR' ) ) {
 }
 
 require_once __DIR__ . '/class-wp-post.php';
+require_once __DIR__ . '/class-wp-error.php';
 
 // Minimal WordPress function stubs (only when a real WP is not present). These
 // are intentional polyfill stubs for the unit-test harness, written to satisfy
@@ -49,6 +50,17 @@ if ( ! function_exists( 'add_action' ) ) {
 	 */
 	function add_action( ...$args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
 		return true;
+	}
+}
+if ( ! function_exists( '__' ) ) {
+	/**
+	 * Return untranslated fixture text.
+	 *
+	 * @param string $text Text to translate.
+	 * @return string Original text.
+	 */
+	function __( $text ) {
+		return $text;
 	}
 }
 if ( ! function_exists( 'apply_filters' ) ) {
@@ -194,6 +206,56 @@ if ( ! function_exists( 'is_preview' ) ) {
 		return ! empty( $GLOBALS['extrachill_analytics_test_is_preview'] );
 	}
 }
+if ( ! function_exists( 'is_singular' ) ) {
+	/**
+	 * Return the singular-route fixture state.
+	 *
+	 * @return bool Whether the route is singular.
+	 */
+	function is_singular() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_is_singular'] );
+	}
+}
+if ( ! function_exists( 'is_search' ) ) {
+	/**
+	 * Return the search-route fixture state.
+	 *
+	 * @return bool Whether the route is search results.
+	 */
+	function is_search() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_is_search'] );
+	}
+}
+if ( ! function_exists( 'is_front_page' ) ) {
+	/**
+	 * Return the front-page fixture state.
+	 *
+	 * @return bool Whether the route is the front page.
+	 */
+	function is_front_page() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_is_front_page'] );
+	}
+}
+if ( ! function_exists( 'is_home' ) ) {
+	/**
+	 * Return the posts-home fixture state.
+	 *
+	 * @return bool Whether the route is the posts home.
+	 */
+	function is_home() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_is_home'] );
+	}
+}
+if ( ! function_exists( 'is_archive' ) ) {
+	/**
+	 * Return the archive-route fixture state.
+	 *
+	 * @return bool Whether the route is an archive.
+	 */
+	function is_archive() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_is_archive'] );
+	}
+}
 if ( ! function_exists( 'is_admin' ) ) {
 	/**
 	 * Return the admin-request fixture state.
@@ -333,6 +395,65 @@ if ( ! function_exists( 'get_permalink' ) ) {
 		$post_id    = $post instanceof WP_Post ? (int) $post->ID : (int) $post;
 		$permalinks = isset( $GLOBALS['extrachill_analytics_test_permalinks'] ) ? $GLOBALS['extrachill_analytics_test_permalinks'] : array();
 		return isset( $permalinks[ $post_id ] ) ? (string) $permalinks[ $post_id ] : '';
+	}
+}
+if ( ! function_exists( 'ec_track_post_views' ) ) {
+	/**
+	 * Capture legacy post-counter increments.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	function ec_track_post_views( $post_id ) {
+		$GLOBALS['extrachill_analytics_test_tracked_post_views'][] = (int) $post_id;
+	}
+}
+if ( ! function_exists( 'get_post_type' ) ) {
+	/**
+	 * Return a post-type fixture.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return string Post type.
+	 */
+	function get_post_type( $post_id ) {
+		$types = isset( $GLOBALS['extrachill_analytics_test_post_types'] ) ? $GLOBALS['extrachill_analytics_test_post_types'] : array();
+		return isset( $types[ (int) $post_id ] ) ? $types[ (int) $post_id ] : 'post';
+	}
+}
+if ( ! function_exists( 'do_action' ) ) {
+	/**
+	 * Capture fired action hooks.
+	 *
+	 * @param string $hook Hook name.
+	 * @param mixed  ...$args Hook arguments.
+	 */
+	function do_action( $hook, ...$args ) {
+		$GLOBALS['extrachill_analytics_test_actions'][] = array( $hook, $args );
+	}
+}
+if ( ! function_exists( 'extrachill_analytics_classify_user_agent' ) ) {
+	/**
+	 * Classify a browser user-agent fixture.
+	 *
+	 * @param string $user_agent User agent.
+	 * @return string Browser or bot class.
+	 */
+	function extrachill_analytics_classify_user_agent( $user_agent ) {
+		return false !== stripos( (string) $user_agent, 'bot' ) ? 'bot' : 'browser';
+	}
+}
+if ( ! function_exists( 'extrachill_track_analytics_event' ) ) {
+	/**
+	 * Capture an analytics event write.
+	 *
+	 * @param string $event_type Event type.
+	 * @param array  $event_data Event payload.
+	 * @param string $source_url Source URL.
+	 * @param string $visitor_id Visitor UUID.
+	 * @return int Fixture event ID.
+	 */
+	function extrachill_track_analytics_event( $event_type, $event_data, $source_url, $visitor_id ) {
+		$GLOBALS['extrachill_analytics_test_events'][] = array( $event_type, $event_data, $source_url, $visitor_id );
+		return 1;
 	}
 }
 if ( ! function_exists( 'url_to_postid' ) ) {

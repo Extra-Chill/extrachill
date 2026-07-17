@@ -1,10 +1,21 @@
 ( function () {
-	var config = window.ecViewTracking;
-	if ( ! config || ! config.postId || ! config.endpoint ) {
+	const config = window.ecViewTracking;
+	if (
+		! config ||
+		! config.sourcePath ||
+		! config.routeFamily ||
+		! config.endpoint
+	) {
 		return;
 	}
 
-	var payload = { post_id: config.postId };
+	const input = {
+		source_path: config.sourcePath,
+		route_family: config.routeFamily,
+	};
+	if ( config.postId ) {
+		input.post_id = config.postId;
+	}
 
 	// Capture the TRUE referrer client-side. This beacon fires after page load,
 	// so the request's own HTTP Referer header is this article page itself —
@@ -13,13 +24,13 @@
 	// query strings, no PII) and drops direct/same-host referrers. Empty for
 	// direct traffic.
 	if ( document.referrer ) {
-		payload.referrer = document.referrer;
+		input.referrer = document.referrer;
 	}
 
-	var data = JSON.stringify( payload );
+	const data = JSON.stringify( { input } );
 
-	if ( navigator.sendBeacon ) {
-		navigator.sendBeacon(
+	if ( window.navigator.sendBeacon ) {
+		window.navigator.sendBeacon(
 			config.endpoint,
 			new Blob( [ data ], { type: 'application/json' } )
 		);

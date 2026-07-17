@@ -5,7 +5,7 @@
  * THE first-party cross-surface conversion instrument. Answers the central
  * rebuild question deterministically and per-entry-page: *when an anonymous
  * visitor starts an eligible journey on an editorial article (blog 1), do they
- * ever reach a tracked, post-backed destination on the events, community, or
+ * ever reach a tracked destination on the events, community, or
  * artist platform in the same session or on a return visit?*
  *
  * The rebuild thesis is that song-meaning / music-history articles are
@@ -28,11 +28,10 @@
  *   visitor_id (opted-out via GPC/DNT, or pre-cookie) cannot be attributed to a
  *   session and are excluded by construction.
  *
- * SCOPE: pageviews are currently collected through the post-view endpoint,
- * which requires a positive post ID. The map therefore measures singular,
- * post-backed destinations only. Platform homepages, archives, directories,
- * forum indexes, and search routes are intentionally excluded rather than
- * silently represented as zero conversion.
+ * SCOPE: entry semantics remain editorial and post-backed. Destination reach
+ * includes every eligible pageview collected on a platform blog, including
+ * route-level homepage, archive, search, auth, and directory views added by
+ * issue #182. Historical periods remain singular-only before that deployment.
  *
  * SESSIONIZATION: a "session" is a run of a visitor's pageviews with no gap
  * larger than the inactivity timeout (default 30 minutes — the GA-standard
@@ -80,7 +79,7 @@ function extrachill_analytics_register_conversion_map_ability() {
 		'extrachill/get-conversion-map',
 		array(
 			'label'               => __( 'Get Conversion Map', 'extrachill-analytics' ),
-			'description'         => __( 'First-party, bot-filtered editorial-to-platform conversion map: for visitors whose first eligible journey starts on a published blog-1 post, the share that reach a tracked, post-backed destination on events/community/artist same-session or on a return visit. Platform homepages, archives, directories, forum indexes, and search routes are not measured. Ranked per entry article and category.', 'extrachill-analytics' ),
+			'description'         => __( 'First-party, bot-filtered editorial-to-platform conversion map: for visitors whose first eligible journey starts on a published blog-1 post, the share that reach an eligible collected route on events/community/artist same-session or on a return visit. Ranked per entry article and category.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -617,11 +616,11 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		'session_gap_mins'            => $session_gap_mins,
 		'return_observation_days'     => $return_observation_days,
 		'denominator'                 => 'One first eligible, mature editorial-entry journey per visitor. An eligible entry is a session starting in the reporting window on a published blog-1 post; late entries without the configured return observation period are excluded.',
-		'measured_destination_routes' => 'Singular, post-backed pageviews on events, community, and artist only. Homepages, archives, directories, forum indexes, search, and other non-singular routes are excluded because the current post-view endpoint does not collect them.',
+		'measured_destination_routes' => 'Eligible collected pageviews on events, community, and artist, including post-backed singular views and route-level homepage, archive, search, auth, and directory views. Entry journeys remain published blog-1 posts only. Historical periods before issue #182 deployment remain singular-only.',
 		'period'                      => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' ),
 		'since'                       => $since,
 		'as_of'                       => $now_utc,
-		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post. Same-session reach is a tracked post-backed events/community/artist destination within that session; return reach is one in a later session. Newsletter and registration outcomes are successful server-side events and are reported through separate direct-source and visitor-journey lenses. Automatic registration newsletter subscriptions are excluded. Missing source or visitor identity remains explicit coverage, never an inferred zero. Homepages, archives, directories, forum indexes, search, and other non-singular routes are outside the pageview destination report. The query reads one inactivity-gap before the lower boundary to avoid session truncation, and excludes late entries until they have the configured return observation period. NULL-visitor pageviews (GPC/DNT opt-out) cannot be sessionized and are excluded.',
+		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post; route views never become editorial entries. Same-session and return reach include eligible collected events/community/artist routes. Newsletter and registration outcomes are successful server-side events and are reported through separate direct-source and visitor-journey lenses. Automatic registration newsletter subscriptions are excluded. Missing source or visitor identity remains explicit coverage, never an inferred zero. Route-level destination collection is additive from issue #182 onward, so historical periods remain singular-only. The query reads one inactivity-gap before the lower boundary to avoid session truncation, and excludes late entries until they have the configured return observation period. NULL-visitor pageviews (GPC/DNT opt-out) cannot be sessionized and are excluded.',
 	);
 }
 
@@ -999,8 +998,7 @@ function extrachill_analytics_conversion_is_mature_entry_session( $event, $entry
  * @return bool Whether the event is a measured platform destination.
  */
 function extrachill_analytics_conversion_is_measured_platform_event( $event, $platform_id_to_key ) {
-	return (int) ( $event['post_id'] ?? 0 ) > 0
-		&& isset( $platform_id_to_key[ (int) ( $event['blog_id'] ?? 0 ) ] );
+	return isset( $platform_id_to_key[ (int) ( $event['blog_id'] ?? 0 ) ] );
 }
 
 /**
