@@ -330,9 +330,15 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	$registration_page    = isset( $payload['registration_page'] ) ? esc_url_raw( (string) $payload['registration_page'] ) : '';
 	$registration_source  = isset( $payload['registration_source'] ) ? sanitize_text_field( (string) $payload['registration_source'] ) : '';
 	$registration_method  = isset( $payload['registration_method'] ) ? sanitize_text_field( (string) $payload['registration_method'] ) : '';
-	$success_redirect_url = isset( $payload['success_redirect_url'] ) ? esc_url_raw( (string) $payload['success_redirect_url'] ) : '';
-	$referrer             = isset( $payload['referrer'] ) ? esc_url_raw( (string) $payload['referrer'] ) : '';
-	$utm                  = ( isset( $payload['utm'] ) && function_exists( 'extrachill_users_sanitize_utm' ) )
+	$success_redirect_url = isset( $payload['success_redirect_url'] ) ? (string) $payload['success_redirect_url'] : '';
+	if ( ! function_exists( 'ec_users_is_valid_return_to_url' )
+		|| ! ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
+		$success_redirect_url = '';
+	} else {
+		$success_redirect_url = esc_url_raw( $success_redirect_url );
+	}
+	$referrer = isset( $payload['referrer'] ) ? esc_url_raw( (string) $payload['referrer'] ) : '';
+	$utm      = ( isset( $payload['utm'] ) && function_exists( 'extrachill_users_sanitize_utm' ) )
 		? extrachill_users_sanitize_utm( $payload['utm'] )
 		: array();
 

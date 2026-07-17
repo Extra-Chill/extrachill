@@ -176,6 +176,30 @@ function ec_users_get_validated_login_redirect_from_request() {
 }
 
 /**
+ * Resolve the login block's post-auth destination.
+ *
+ * A safe request continuation represents the user's current intent and takes
+ * precedence over the block's configured default. The current login URL is the
+ * final fallback when neither value is safe.
+ *
+ * @param mixed  $block_redirect Configured login block redirect.
+ * @param string $fallback       Current login URL.
+ * @return string Safe post-auth destination.
+ */
+function ec_users_resolve_login_block_redirect( $block_redirect, $fallback ) {
+	$request_redirect = ec_users_get_validated_login_redirect_from_request();
+	if ( null !== $request_redirect ) {
+		return $request_redirect;
+	}
+
+	if ( ec_users_is_valid_return_to_url( $block_redirect ) ) {
+		return esc_url_raw( $block_redirect );
+	}
+
+	return esc_url_raw( $fallback );
+}
+
+/**
  * Add a safe continuation to a custom login URL.
  *
  * @param string $login_url   Custom login URL.

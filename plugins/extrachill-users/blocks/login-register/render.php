@@ -61,23 +61,11 @@ $current_url = set_url_scheme(
 	( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . strtok( $request_uri, '?' )
 );
 
-$login_redirect_url = $current_url;
-$success_redirect   = $current_url;
-
-if ( ! empty( $attributes['redirectUrl'] )
-	&& function_exists( 'ec_users_is_valid_return_to_url' )
-	&& ec_users_is_valid_return_to_url( $attributes['redirectUrl'] ) ) {
-	$login_redirect_url = esc_url_raw( $attributes['redirectUrl'] );
-	$success_redirect   = $login_redirect_url;
-}
-
-if ( function_exists( 'ec_users_get_validated_login_redirect_from_request' ) ) {
-	$validated_login_redirect = ec_users_get_validated_login_redirect_from_request();
-	if ( null !== $validated_login_redirect ) {
-		$login_redirect_url = $validated_login_redirect;
-		$success_redirect   = $validated_login_redirect;
-	}
-}
+$block_redirect_url = isset( $attributes['redirectUrl'] ) ? $attributes['redirectUrl'] : '';
+$login_redirect_url = function_exists( 'ec_users_resolve_login_block_redirect' )
+	? ec_users_resolve_login_block_redirect( $block_redirect_url, $current_url )
+	: $current_url;
+$success_redirect   = $login_redirect_url;
 
 // Single-origin Google OAuth: when a non-canonical subsite redirected
 // the user here for sign-in, it carries the original page URL in the

@@ -4,6 +4,7 @@
   "description": "User management system for ExtraChill Platform",
   "scripts": {
     "build": "npm run build:blocks && npm run copy:block-files",
+    "test:unit:js": "wp-scripts test-unit-js",
     "build:blocks": "npm run build:login-register && npm run build:login-register:view && npm run build:password-reset && npm run build:onboarding && npm run build:concert-attendance",
     "build:login-register": "wp-scripts build blocks/login-register/src/index.js --output-path=build/login-register",
     "build:login-register:view": "wp-scripts build blocks/login-register/view.js --output-path=build/login-register",

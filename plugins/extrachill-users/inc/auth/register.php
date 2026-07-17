@@ -31,7 +31,7 @@ function extrachill_handle_registration() {
 	$turnstile_token = isset( $_POST['cf-turnstile-response'] )
 		? wp_unslash( $_POST['cf-turnstile-response'] )
 		: '';
-	$check = ec_turnstile_check_request( $turnstile_token );
+	$check           = ec_turnstile_check_request( $turnstile_token );
 	if ( is_wp_error( $check ) ) {
 		$redirect->error( $check->get_error_message() );
 	}
@@ -118,7 +118,13 @@ function extrachill_handle_registration() {
 		}
 	}
 
-	$success_redirect_url = isset( $_POST['success_redirect_url'] ) ? esc_url_raw( wp_unslash( $_POST['success_redirect_url'] ) ) : '';
+	$success_redirect_url = isset( $_POST['success_redirect_url'] ) ? wp_unslash( $_POST['success_redirect_url'] ) : '';
+	if ( ! function_exists( 'ec_users_is_valid_return_to_url' )
+		|| ! ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
+		$success_redirect_url = '';
+	} else {
+		$success_redirect_url = esc_url_raw( $success_redirect_url );
+	}
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	extrachill_auto_login_new_user( $user_id, $redirect, $processed_invite_artist_id, $success_redirect_url );

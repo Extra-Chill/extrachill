@@ -124,7 +124,7 @@ function LoggedInCard( { config } ) {
 	);
 }
 
-function LoginPanel( { config, notice, setNotice } ) {
+export function LoginPanel( { config, notice, setNotice } ) {
 	const panelRef = useRef( null );
 
 	useEffect( () => {
@@ -221,6 +221,7 @@ function LoginPanel( { config, notice, setNotice } ) {
 				) }
 				<form id="loginform" onSubmit={ handleSubmit }>
 					<input type="hidden" name="redirect_to" value={ config.loginRedirectUrl } />
+					<input type="hidden" name="success_redirect_url" value={ config.successRedirectUrl } />
 					<label htmlFor="user_login">Username</label>
 					<input type="text" name="log" id="user_login" className="input" placeholder="Your username" required />
 					<label htmlFor="user_pass">Password</label>
