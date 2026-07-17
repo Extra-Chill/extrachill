@@ -32,10 +32,6 @@ export class AnalyticsResource extends BaseResource {
     return this.get('extrachill/v1/analytics/meta');
   }
 
-  trackView(data: { url: string; referrer?: string }): Promise<void> {
-    return this.post('extrachill/v1/analytics/view', data as Record<string, unknown>);
-  }
-
   trackClick(data: { url: string; element?: string }): Promise<void> {
     return this.post('extrachill/v1/analytics/click', data as Record<string, unknown>);
   }
