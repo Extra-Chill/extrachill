@@ -300,6 +300,7 @@ body {
 
 .extrch-link-page-socials {
   display: flex;
+  flex-wrap: wrap;
   gap: 1.1em;
   justify-content: center;
   margin-bottom: 1.5em;
