@@ -129,7 +129,7 @@ body button.extrch-share-item-trigger:active {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--link-page-overlay-color)); /* Use theme variable */
+    background-color: var(--link-page-overlay-color); /* Use theme variable */
     z-index: 1000;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;

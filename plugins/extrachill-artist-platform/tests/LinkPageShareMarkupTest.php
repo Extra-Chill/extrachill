@@ -67,4 +67,11 @@ final class LinkPageShareMarkupTest extends TestCase {
 		$this->assertStringContainsString( 'openModal(trigger);', $script );
 		$this->assertStringNotContainsString( 'e.stopPropagation();', $script );
 	}
+
+	public function test_share_modal_overlay_has_a_valid_background_color_declaration(): void {
+		$styles = file_get_contents( dirname( __DIR__ ) . '/assets/css/extrch-share-modal.css' );
+
+		$this->assertStringContainsString( 'background-color: var(--link-page-overlay-color);', $styles );
+		$this->assertStringNotContainsString( 'var(--link-page-overlay-color));', $styles );
+	}
 }
