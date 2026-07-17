@@ -1,0 +1,54 @@
+.extrch-profile-subscribe-inline-form-container {
+	box-sizing: border-box;
+	width: min(100%, 680px);
+	margin: 0 auto 2em;
+	padding: 1.5em;
+	border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+	border-radius: 8px;
+	background: var(--card-background, #fff);
+	box-shadow: var(--card-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.extrch-profile-subscribe-inline-form-container h3,
+.extrch-profile-subscribe-inline-form-container p {
+	margin-top: 0;
+	text-align: center;
+}
+
+.extrch-profile-subscribe-inline-form-container .extrch-subscribe-form {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.75em;
+	align-items: start;
+}
+
+.extrch-profile-subscribe-inline-form-container input[type="email"] {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 44px;
+}
+
+.extrch-profile-subscribe-inline-form-container button[type="submit"] {
+	min-height: 44px;
+}
+
+.extrch-profile-subscribe-inline-form-container .extrch-form-message {
+	grid-column: 1 / -1;
+	min-height: 1.5em;
+	text-align: center;
+}
+
+@media (max-width: 600px) {
+
+	.extrch-profile-subscribe-inline-form-container {
+		padding: 1.25em 1em;
+	}
+
+	.extrch-profile-subscribe-inline-form-container .extrch-subscribe-form {
+		grid-template-columns: 1fr;
+	}
+
+	.extrch-profile-subscribe-inline-form-container button[type="submit"] {
+		width: 100%;
+	}
+}
