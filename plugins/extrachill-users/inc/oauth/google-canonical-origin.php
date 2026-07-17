@@ -93,7 +93,7 @@ function ec_users_canonical_google_signin_url( $return_to ) {
  * external phishing page after auth. We require:
  *
  *   - Scheme is https (no http downgrades, no javascript: URLs)
- *   - Host is either extrachill.com or a subdomain of extrachill.com
+ *   - Host is registered by the network redirect policy
  *
  * @param mixed $url Candidate return URL (defensive against non-string input).
  * @return bool True iff the URL is safe to redirect a logged-in user to.
@@ -103,7 +103,12 @@ function ec_users_is_valid_return_to_url( $url ) {
 		return false;
 	}
 
-	$parts = wp_parse_url( $url );
+	$validated = wp_validate_redirect( $url, '' );
+	if ( '' === $validated ) {
+		return false;
+	}
+
+	$parts = wp_parse_url( $validated );
 	if ( ! is_array( $parts ) ) {
 		return false;
 	}
@@ -119,18 +124,70 @@ function ec_users_is_valid_return_to_url( $url ) {
 		return false;
 	}
 
-	// Allow the apex domain and any subdomain. We match against a
-	// trailing dot to avoid string-prefix attacks like
-	// "extrachill.com.attacker.example".
-	if ( 'extrachill.com' === $host ) {
-		return true;
+	if ( function_exists( 'ec_get_allowed_redirect_hosts' ) ) {
+		$allowed_hosts = array_map( 'strtolower', ec_get_allowed_redirect_hosts() );
+		return in_array( $host, $allowed_hosts, true );
 	}
 
-	if ( str_ends_with( $host, '.extrachill.com' ) ) {
-		return true;
+	// Keep the helper usable when the network plugin is unavailable, such as
+	// isolated tests, while preserving the original Extra Chill-only policy.
+	return 'extrachill.com' === $host
+		|| str_ends_with( $host, '.extrachill.com' )
+		|| in_array( $host, array( 'extrachill.link', 'www.extrachill.link' ), true );
+}
+
+/**
+ * Read a validated redirect parameter from the current request.
+ *
+ * @param string $parameter Query parameter name.
+ * @return string|null Validated destination, or null.
+ */
+function ec_users_get_validated_redirect_from_request( $parameter ) {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only query parameter used only as a post-auth destination.
+	if ( ! isset( $_GET[ $parameter ] ) ) {
+		return null;
 	}
 
-	return false;
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Preserve encoded destination query values until the URL is validated below.
+	$raw = wp_unslash( $_GET[ $parameter ] );
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+	if ( ! is_string( $raw ) || '' === $raw ) {
+		return null;
+	}
+
+	if ( ! ec_users_is_valid_return_to_url( $raw ) ) {
+		return null;
+	}
+
+	return esc_url_raw( $raw );
+}
+
+/**
+ * Read the standard WordPress login continuation from the current request.
+ *
+ * The outer query value has already been decoded by PHP. Decoding it again
+ * would corrupt encoded query values inside the destination URL.
+ *
+ * @return string|null Validated destination, or null.
+ */
+function ec_users_get_validated_login_redirect_from_request() {
+	return ec_users_get_validated_redirect_from_request( 'redirect_to' );
+}
+
+/**
+ * Add a safe continuation to a custom login URL.
+ *
+ * @param string $login_url   Custom login URL.
+ * @param mixed  $redirect_to Candidate post-auth destination.
+ * @return string Login URL, with redirect_to only when it is safe.
+ */
+function ec_users_login_url_with_redirect( $login_url, $redirect_to ) {
+	if ( ! ec_users_is_valid_return_to_url( $redirect_to ) ) {
+		return $login_url;
+	}
+
+	return add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), $login_url );
 }
 
 /**
@@ -148,23 +205,5 @@ function ec_users_is_valid_return_to_url( $url ) {
  * @return string|null Validated return-to URL, or null.
  */
 function ec_users_get_validated_google_redirect_from_request() {
-	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only query param used to compute a destination URL; no state change here.
-	if ( ! isset( $_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] ) ) {
-		return null;
-	}
-
-	$raw = wp_unslash( $_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] );
-	// phpcs:enable WordPress.Security.NonceVerification.Recommended
-
-	if ( ! is_string( $raw ) || '' === $raw ) {
-		return null;
-	}
-
-	$decoded = rawurldecode( $raw );
-
-	if ( ! ec_users_is_valid_return_to_url( $decoded ) ) {
-		return null;
-	}
-
-	return esc_url_raw( $decoded );
+	return ec_users_get_validated_redirect_from_request( EC_USERS_GOOGLE_REDIRECT_PARAM );
 }

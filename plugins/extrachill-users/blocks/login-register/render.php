@@ -61,20 +61,36 @@ $current_url = set_url_scheme(
 	( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . strtok( $request_uri, '?' )
 );
 
-$login_redirect_url = ! empty( $attributes['redirectUrl'] ) ? esc_url( $attributes['redirectUrl'] ) : $current_url;
-$success_redirect   = ! empty( $attributes['redirectUrl'] ) ? esc_url( $attributes['redirectUrl'] ) : $current_url;
+$login_redirect_url = $current_url;
+$success_redirect   = $current_url;
+
+if ( ! empty( $attributes['redirectUrl'] )
+	&& function_exists( 'ec_users_is_valid_return_to_url' )
+	&& ec_users_is_valid_return_to_url( $attributes['redirectUrl'] ) ) {
+	$login_redirect_url = esc_url_raw( $attributes['redirectUrl'] );
+	$success_redirect   = $login_redirect_url;
+}
+
+if ( function_exists( 'ec_users_get_validated_login_redirect_from_request' ) ) {
+	$validated_login_redirect = ec_users_get_validated_login_redirect_from_request();
+	if ( null !== $validated_login_redirect ) {
+		$login_redirect_url = $validated_login_redirect;
+		$success_redirect   = $validated_login_redirect;
+	}
+}
 
 // Single-origin Google OAuth: when a non-canonical subsite redirected
 // the user here for sign-in, it carries the original page URL in the
 // google_redirect query param. Pick it up and use it as the post-auth
 // destination so the user lands back where they started. The helper
-// validates the host against the *.extrachill.com allowlist and
+// validates the host against the network redirect allowlist and
 // returns null on anything else, so this is safe to override
 // $success_redirect with.
 if ( function_exists( 'ec_users_get_validated_google_redirect_from_request' ) ) {
 	$validated_google_redirect = ec_users_get_validated_google_redirect_from_request();
 	if ( null !== $validated_google_redirect ) {
-		$success_redirect = $validated_google_redirect;
+		$login_redirect_url = $validated_google_redirect;
+		$success_redirect   = $validated_google_redirect;
 	}
 }
 
@@ -130,23 +146,23 @@ $from_join = isset( $_GET['from_join'] ) && 'true' === sanitize_text_field( wp_u
 // origins not pre-registered in GCP).
 $google_signin_redirect_url = null;
 if ( $google_oauth_enabled && ! $google_is_canonical && function_exists( 'ec_users_canonical_google_signin_url' ) ) {
-	$google_signin_redirect_url = ec_users_canonical_google_signin_url( $current_url );
+	$google_signin_redirect_url = ec_users_canonical_google_signin_url( $success_redirect );
 }
 
 $config = array(
-	'loggedIn'                 => is_user_logged_in(),
-	'googleOAuthEnabled'       => $google_oauth_enabled,
-	'googleSignInRedirectUrl'  => $google_signin_redirect_url,
-	'currentUrl'               => $current_url,
-	'loginRedirectUrl'         => $login_redirect_url,
-	'successRedirectUrl'       => $success_redirect,
-	'resetPasswordUrl'         => ec_get_site_url( 'community' ) . '/reset-password/',
-	'inviteToken'              => $invite_token,
-	'inviteArtistId'           => $invite_artist_id,
-	'invitedEmail'             => $invited_email,
-	'fromJoin'                 => $from_join,
-	'turnstileHtml'            => wp_kses_post( ec_render_turnstile_widget() ),
-	'initialNotice'            => $initial_notice ? array(
+	'loggedIn'                => is_user_logged_in(),
+	'googleOAuthEnabled'      => $google_oauth_enabled,
+	'googleSignInRedirectUrl' => $google_signin_redirect_url,
+	'currentUrl'              => $current_url,
+	'loginRedirectUrl'        => $login_redirect_url,
+	'successRedirectUrl'      => $success_redirect,
+	'resetPasswordUrl'        => ec_get_site_url( 'community' ) . '/reset-password/',
+	'inviteToken'             => $invite_token,
+	'inviteArtistId'          => $invite_artist_id,
+	'invitedEmail'            => $invited_email,
+	'fromJoin'                => $from_join,
+	'turnstileHtml'           => wp_kses_post( ec_render_turnstile_widget() ),
+	'initialNotice'           => $initial_notice ? array(
 		'message' => $initial_notice['text'] ?? '',
 		'type'    => $initial_notice['type'] ?? 'info',
 	) : null,

@@ -216,10 +216,14 @@ function extrachill_users_maybe_handle_two_factor( string $identifier, string $p
  * @return array|WP_Error
  */
 function extrachill_users_login_with_tokens( string $identifier, string $password, string $device_id, array $options = array() ) {
-	$device_name = isset( $options['device_name'] ) ? (string) $options['device_name'] : '';
-	$remember    = ! empty( $options['remember'] );
-	$set_cookie  = ! empty( $options['set_cookie'] );
-	$redirect_to = isset( $options['redirect_to'] ) ? (string) $options['redirect_to'] : '';
+	$device_name      = isset( $options['device_name'] ) ? (string) $options['device_name'] : '';
+	$remember         = ! empty( $options['remember'] );
+	$set_cookie       = ! empty( $options['set_cookie'] );
+	$redirect_to      = isset( $options['redirect_to'] ) ? (string) $options['redirect_to'] : '';
+	$safe_redirect_to = function_exists( 'ec_users_is_valid_return_to_url' )
+		&& ec_users_is_valid_return_to_url( $redirect_to )
+		? esc_url_raw( $redirect_to )
+		: home_url();
 
 	if ( ! function_exists( 'ec_get_blog_id' ) ) {
 		return new WP_Error(
@@ -249,7 +253,7 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 	 * wp_authenticate(), validate the password manually, create a Two Factor
 	 * login nonce, and return a redirect URL to the existing validate_2fa page.
 	 */
-	$two_factor_redirect = extrachill_users_maybe_handle_two_factor( $identifier, $password, $remember, $redirect_to );
+	$two_factor_redirect = extrachill_users_maybe_handle_two_factor( $identifier, $password, $remember, $safe_redirect_to );
 	if ( null !== $two_factor_redirect ) {
 		return $two_factor_redirect;
 	}
@@ -292,6 +296,7 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 		'access_expires_at'  => gmdate( 'c', (int) $tokens['access']['expires_at'] ),
 		'refresh_token'      => $tokens['refresh']['token'],
 		'refresh_expires_at' => gmdate( 'c', (int) $tokens['refresh']['expires_at'] ),
+		'redirect_url'       => $safe_redirect_to,
 		'user'               => extrachill_users_token_user_payload( $user ),
 	);
 }

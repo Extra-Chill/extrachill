@@ -65,7 +65,7 @@ function captureAttribution() {
 				referrer = raw;
 			}
 		}
-	} catch ( e ) {
+	} catch {
 		referrer = '';
 	}
 
@@ -78,7 +78,7 @@ function captureAttribution() {
 				utm[ key ] = value;
 			}
 		} );
-	} catch ( e ) {
+	} catch {
 		// Leave utm empty on any parsing failure.
 	}
 
@@ -193,7 +193,7 @@ function LoginPanel( { config, notice, setNotice } ) {
 				return;
 			}
 
-			window.location.assign( redirectTo );
+			window.location.assign( data?.redirect_url || config.loginRedirectUrl );
 		} catch ( error ) {
 			const message = error instanceof Error ? error.message : 'Login failed. Please try again.';
 			setNotice( {

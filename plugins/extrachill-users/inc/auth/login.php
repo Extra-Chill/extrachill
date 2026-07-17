@@ -236,7 +236,16 @@ function extrachill_redirect_wp_login_access() {
 	}
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-	wp_safe_redirect( home_url( '/login/' ) );
+	$login_url = home_url( '/login/' );
+	if ( function_exists( 'ec_users_get_validated_login_redirect_from_request' )
+		&& function_exists( 'ec_users_login_url_with_redirect' ) ) {
+		$redirect_to = ec_users_get_validated_login_redirect_from_request();
+		if ( null !== $redirect_to ) {
+			$login_url = ec_users_login_url_with_redirect( $login_url, $redirect_to );
+		}
+	}
+
+	wp_safe_redirect( $login_url );
 	exit;
 }
 add_action( 'init', 'extrachill_redirect_wp_login_access' );

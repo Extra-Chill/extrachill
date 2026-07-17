@@ -125,7 +125,7 @@ class Test_Google_Canonical_Origin extends WP_UnitTestCase {
 		parse_str( $parsed['query'] ?? '', $args );
 		$this->assertSame(
 			'https://studio.extrachill.com/compose?draft=42',
-			rawurldecode( $args[ EC_USERS_GOOGLE_REDIRECT_PARAM ] ?? '' )
+			$args[ EC_USERS_GOOGLE_REDIRECT_PARAM ] ?? ''
 		);
 	}
 
@@ -139,7 +139,7 @@ class Test_Google_Canonical_Origin extends WP_UnitTestCase {
 	}
 
 	public function test_get_validated_redirect_returns_valid_url(): void {
-		$_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] = rawurlencode( 'https://studio.extrachill.com/compose' );
+		$_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] = 'https://studio.extrachill.com/compose';
 		$this->assertSame(
 			'https://studio.extrachill.com/compose',
 			ec_users_get_validated_google_redirect_from_request()
@@ -147,12 +147,12 @@ class Test_Google_Canonical_Origin extends WP_UnitTestCase {
 	}
 
 	public function test_get_validated_redirect_rejects_external_host(): void {
-		$_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] = rawurlencode( 'https://attacker.example/phish' );
+		$_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] = 'https://attacker.example/phish';
 		$this->assertNull( ec_users_get_validated_google_redirect_from_request() );
 	}
 
 	public function test_get_validated_redirect_rejects_dangerous_scheme(): void {
-		$_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] = rawurlencode( 'javascript:alert(1)' );
+		$_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] = 'javascript:alert(1)';
 		$this->assertNull( ec_users_get_validated_google_redirect_from_request() );
 	}
 
