@@ -164,7 +164,7 @@ function extrachill_analytics_beacon_is_first_party() {
 	$suffix        = '.' . $cookie_domain;
 
 	return $source_host === $cookie_domain
-		|| ( strlen( $source_host ) > strlen( $suffix ) && $suffix === substr( $source_host, -strlen( $suffix ) ) );
+		|| ( strlen( $source_host ) > strlen( $suffix ) && substr( $source_host, -strlen( $suffix ) ) === $suffix );
 }
 
 /**
@@ -250,11 +250,59 @@ function extrachill_analytics_get_or_mint_visitor_id() {
  * then reads the memoized result instead of trying — and failing — to set the
  * cookie itself.
  *
- * Gated on the same conditions as the enqueue: singular, non-preview, and not
- * opted out via GPC/DNT.
+ * Unlike the singular-only pageview beacon, the cookie is primed on every
+ * first-party public template request. This lets outcomes from homepages,
+ * archives, and custom login/register pages reuse the same anonymous identity
+ * without minting from REST, admin, cron, CLI, preview, or custom-domain
+ * requests.
+ *
+ * @return bool True when the current request may prime visitor identity.
+ */
+function extrachill_analytics_should_prime_visitor_cookie() {
+	if (
+		extrachill_analytics_visitor_opted_out()
+		|| is_preview()
+		|| is_admin()
+		|| wp_doing_ajax()
+		|| wp_doing_cron()
+		|| ( defined( 'REST_REQUEST' ) && REST_REQUEST )
+		|| ( defined( 'WP_CLI' ) && WP_CLI )
+	) {
+		return false;
+	}
+
+	$request_method = isset( $_SERVER['REQUEST_METHOD'] )
+		? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) )
+		: '';
+	if ( ! in_array( $request_method, array( 'GET', 'HEAD' ), true ) ) {
+		return false;
+	}
+
+	$request_host  = isset( $_SERVER['HTTP_HOST'] )
+		? wp_parse_url( 'https://' . sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ), PHP_URL_HOST )
+		: '';
+	$cookie_domain = ltrim( extrachill_analytics_visitor_cookie_domain(), '.' );
+	if ( '' === $cookie_domain ) {
+		$cookie_domain = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+	}
+
+	if ( ! is_string( $request_host ) || '' === $request_host || ! is_string( $cookie_domain ) || '' === $cookie_domain ) {
+		return false;
+	}
+
+	$request_host  = strtolower( rtrim( $request_host, '.' ) );
+	$cookie_domain = strtolower( rtrim( $cookie_domain, '.' ) );
+	$suffix        = '.' . $cookie_domain;
+
+	return $request_host === $cookie_domain
+		|| ( strlen( $request_host ) > strlen( $suffix ) && substr( $request_host, -strlen( $suffix ) ) === $suffix );
+}
+
+/**
+ * Mint/read the visitor cookie early on eligible public template requests.
  */
 function extrachill_analytics_prime_visitor_cookie() {
-	if ( ! is_singular() || is_preview() ) {
+	if ( ! extrachill_analytics_should_prime_visitor_cookie() ) {
 		return;
 	}
 
@@ -266,7 +314,7 @@ add_action( 'template_redirect', 'extrachill_analytics_prime_visitor_cookie' );
 /**
  * Script handle for the shared, network-activated Chart.js v4 asset.
  *
- * extrachill-analytics is network-activated, so registering Chart.js once here
+ * Extra Chill Analytics is network-activated, so registering Chart.js once here
  * makes a single guaranteed-present copy available to every consumer on the
  * network — instead of each plugin re-bundling its own. Consumers (artist-
  * platform link-page analytics, the Mediavine revenue ARC, the Studio Network

@@ -184,6 +184,46 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 		return is_scalar( $str ) ? (string) $str : '';
 	}
 }
+if ( ! function_exists( 'is_preview' ) ) {
+	/**
+	 * Return the preview-request fixture state.
+	 *
+	 * @return bool Whether the request is a preview.
+	 */
+	function is_preview() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_is_preview'] );
+	}
+}
+if ( ! function_exists( 'is_admin' ) ) {
+	/**
+	 * Return the admin-request fixture state.
+	 *
+	 * @return bool Whether the request is administrative.
+	 */
+	function is_admin() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_is_admin'] );
+	}
+}
+if ( ! function_exists( 'wp_doing_ajax' ) ) {
+	/**
+	 * Return the AJAX-request fixture state.
+	 *
+	 * @return bool Whether WordPress is handling AJAX.
+	 */
+	function wp_doing_ajax() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_doing_ajax'] );
+	}
+}
+if ( ! function_exists( 'wp_doing_cron' ) ) {
+	/**
+	 * Return the cron-request fixture state.
+	 *
+	 * @return bool Whether WordPress is handling cron.
+	 */
+	function wp_doing_cron() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_doing_cron'] );
+	}
+}
 if ( ! function_exists( 'get_current_blog_id' ) ) {
 	/**
 	 * Return the current blog fixture ID.
