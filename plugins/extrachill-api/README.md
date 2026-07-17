@@ -35,7 +35,6 @@ The plugin ships route files under `inc/routes/` (loaded recursively) and regist
 - `GET /config/oauth` - OAuth provider configuration
 
 ### Analytics Endpoints
-- `POST /analytics/view` - Async view tracking (increments `ec_post_views`)
 - `POST /analytics/click` - Unified click tracking
 - `GET /analytics/link-page` - Fetch link page analytics
 - `GET /analytics/events` - Query network analytics events (requires `manage_network_options`)
@@ -251,8 +250,7 @@ extrachill-api/
         │   └── object.php
         ├── analytics/
         │   ├── click.php
-        │   ├── link-page.php
-        │   └── view-count.php
+        │   └── link-page.php
         ├── artists/
         │   ├── analytics.php
         │   ├── artist.php

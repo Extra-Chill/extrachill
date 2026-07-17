@@ -12,19 +12,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class OutboundClickIdentityTest extends TestCase {
 	/**
-	 * Pageviews also leave identity resolution to the Analytics ability.
-	 */
-	public function test_pageview_route_does_not_accept_client_visitor_id(): void {
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source fixture.
-		$source = file_get_contents( dirname( __DIR__, 2 ) . '/inc/routes/analytics/view-count.php' );
-
-		$this->assertNotFalse( $source );
-		$this->assertStringNotContainsString( "\$request->get_param( 'visitor_id' )", $source );
-		$this->assertStringNotContainsString( "'visitor_id' => array(", $source );
-		$this->assertStringNotContainsString( "'visitor_id' => \$visitor_id", $source );
-	}
-
-	/**
 	 * Client input must not expose or control visitor identity.
 	 */
 	public function test_route_does_not_accept_client_visitor_id(): void {

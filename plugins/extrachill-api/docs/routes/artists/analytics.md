@@ -62,7 +62,6 @@ Artist ID is extracted from the URL path. Optional date range parameter controls
 - `GET /artists/{id}` - Get core artist data
 - `GET/PUT /artists/{id}/links` - Manage link page presentation
 - `POST /analytics/click` - Track clicks including link page links (called by frontend)
-- `POST /analytics/view` - Track views (used by extrachill-analytics for post views; link-page view tracking depends on the requesting surface)
 
 ## Usage Examples
 
@@ -82,7 +81,7 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/artists/123/analytics?date_
 ```
 
 ## Data Flow
-1. A requesting surface records views (commonly via `POST /analytics/view`) when appropriate
+1. The Analytics-owned signed first-party tracker records views
 2. A requesting surface records clicks via `POST /analytics/click` (e.g. `click_type: 'link_page_link'`)
 3. Artist dashboard calls this endpoint to display analytics
 4. Data aggregation is handled by the analytics provider via the filter hook

@@ -43,8 +43,7 @@ extrachill-api/
 │       │   └── team-members.php (Team member sync and management)
 │       ├── analytics/
 │       │   ├── click.php (Unified click tracking - shares, link page clicks)
-│       │   ├── link-page.php (Track link page views)
-│       │   └── view-count.php (Track content views)
+│       │   └── link-page.php (Track link page views)
 │       ├── artists/
 │       │   ├── analytics.php (Artist link page analytics)
 │       │   ├── artist.php (Core artist data CRUD)
@@ -139,8 +138,7 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: `docs/routes/` (see specific route files)
 
-### Analytics Endpoints (7)
-- `POST /analytics/view` - Async view tracking (increments `ec_post_views`)
+### Analytics Endpoints (6)
 - `POST /analytics/click` - Unified click tracking (`share`, `link_page_link`)
 - `GET /analytics/link-page` - Fetch link page analytics (authenticated, provider-driven)
 - `POST /analytics/link-page` - Track link page view events

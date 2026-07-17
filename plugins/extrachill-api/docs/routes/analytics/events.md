@@ -81,5 +81,4 @@ Matches `extrachill_get_analytics_event_stats()`:
 
 ## Related documentation
 - [Analytics Meta Endpoint](meta.md)
-- [Async View Count Endpoint](view-count.md)
 - [Click Analytics Endpoint](click.md)
