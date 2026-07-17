@@ -22,6 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/telemetry-validation.php';
+
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_impression_route' );
 
 function extrachill_api_register_impression_route() {
@@ -45,6 +47,7 @@ function extrachill_api_register_impression_route() {
 				'source_url'      => array(
 					'required'          => true,
 					'type'              => 'string',
+					'maxLength'         => 2048,
 					'sanitize_callback' => 'esc_url_raw',
 				),
 				'source_post'     => array(
@@ -69,6 +72,7 @@ function extrachill_api_register_impression_route() {
 					'required'          => false,
 					'type'              => 'string',
 					'default'           => '',
+					'maxLength'         => 200,
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 			),
@@ -83,8 +87,13 @@ function extrachill_api_register_impression_route() {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_impression_handler( WP_REST_Request $request ) {
+	$source = extrachill_api_validate_telemetry_request( $request );
+	if ( is_wp_error( $source ) ) {
+		return $source;
+	}
+
 	$impression_type = $request->get_param( 'impression_type' );
-	$source_url      = $request->get_param( 'source_url' );
+	$source_url      = $source['path'];
 	$source_post     = (int) $request->get_param( 'source_post' );
 	$source_site     = $request->get_param( 'source_site' );
 	$dest_site       = $request->get_param( 'dest_site' );
@@ -96,6 +105,21 @@ function extrachill_api_impression_handler( WP_REST_Request $request ) {
 			'Unsupported impression type.',
 			array( 'status' => 400 )
 		);
+	}
+
+	if ( ! extrachill_api_is_safe_telemetry_text( (string) $term ) ) {
+		return new WP_Error( 'unsafe_telemetry_payload', 'Telemetry text payload is not accepted.', array( 'status' => 400 ) );
+	}
+
+	$current_site = function_exists( 'ec_get_blog_slug_by_id' ) ? ec_get_blog_slug_by_id( get_current_blog_id() ) : '';
+	if ( $source_site && $current_site && $source_site !== $current_site ) {
+		return new WP_Error( 'invalid_source_site', 'source_site does not match source_url.', array( 'status' => 400 ) );
+	}
+	if ( $dest_site && function_exists( 'ec_get_blog_id' ) && ( null === ec_get_blog_id( $dest_site ) || $dest_site === $current_site ) ) {
+		return new WP_Error( 'invalid_destination_site', 'dest_site is not a valid cross-site destination.', array( 'status' => 400 ) );
+	}
+	if ( ! $source_site && $current_site ) {
+		$source_site = $current_site;
 	}
 
 	$ability = wp_get_ability( 'extrachill/track-analytics-event' );

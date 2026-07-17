@@ -32,6 +32,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/telemetry-validation.php';
+
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_click_route' );
 
 function extrachill_api_register_click_route() {
@@ -55,17 +57,20 @@ function extrachill_api_register_click_route() {
 				'source_url'        => array(
 					'required'          => true,
 					'type'              => 'string',
+					'maxLength'         => 2048,
 					'sanitize_callback' => 'esc_url_raw',
 				),
 				'destination_url'   => array(
 					'required'          => false,
 					'type'              => 'string',
+					'maxLength'         => 2048,
 					'sanitize_callback' => 'esc_url_raw',
 				),
 				'element_text'      => array(
 					'required'          => false,
 					'type'              => 'string',
 					'default'           => '',
+					'maxLength'         => 200,
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 				'share_destination' => array(
@@ -100,6 +105,7 @@ function extrachill_api_register_click_route() {
 					'required'          => false,
 					'type'              => 'string',
 					'default'           => '',
+					'maxLength'         => 200,
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 				'dest_host'         => array(
@@ -164,8 +170,13 @@ function extrachill_api_normalize_tracked_url( $url ) {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_click_handler( WP_REST_Request $request ) {
+	$source = extrachill_api_validate_telemetry_request( $request );
+	if ( is_wp_error( $source ) ) {
+		return $source;
+	}
+
 	$click_type        = $request->get_param( 'click_type' );
-	$source_url        = $request->get_param( 'source_url' );
+	$source_url        = $source['path'];
 	$destination_url   = $request->get_param( 'destination_url' );
 	$element_text      = $request->get_param( 'element_text' );
 	$share_destination = $request->get_param( 'share_destination' );
@@ -176,7 +187,20 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 	$term              = $request->get_param( 'term' );
 	$dest_host         = $request->get_param( 'dest_host' );
 
-	$normalized_destination = extrachill_api_normalize_tracked_url( $destination_url );
+	if ( ! extrachill_api_is_safe_telemetry_text( (string) $element_text )
+		|| ! extrachill_api_is_safe_telemetry_text( (string) $term ) ) {
+		return new WP_Error( 'unsafe_telemetry_payload', 'Telemetry text payload is not accepted.', array( 'status' => 400 ) );
+	}
+
+	$normalized_destination = '';
+	$destination            = null;
+	if ( $destination_url ) {
+		$destination = extrachill_api_normalize_telemetry_destination( $destination_url );
+		if ( is_wp_error( $destination ) ) {
+			return $destination;
+		}
+		$normalized_destination = $destination['url'];
+	}
 
 	switch ( $click_type ) {
 		case 'share':
@@ -202,7 +226,7 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 					'event_type' => 'share_click',
 					'event_data' => array(
 						'destination' => $share_destination,
-						'share_url'   => $normalized_destination ?: $source_url,
+						'share_url'   => $normalized_destination ? $normalized_destination : $source_url,
 					),
 					'source_url' => $source_url,
 				)
@@ -249,6 +273,17 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 			break;
 
 		case 'bridge':
+			$current_site = function_exists( 'ec_get_blog_slug_by_id' ) ? ec_get_blog_slug_by_id( get_current_blog_id() ) : '';
+			if ( $source_site && $current_site && $source_site !== $current_site ) {
+				return new WP_Error( 'invalid_source_site', 'source_site does not match source_url.', array( 'status' => 400 ) );
+			}
+			if ( $dest_site && function_exists( 'ec_get_blog_id' ) && ( null === ec_get_blog_id( $dest_site ) || $dest_site === $current_site ) ) {
+				return new WP_Error( 'invalid_destination_site', 'dest_site is not a valid cross-site destination.', array( 'status' => 400 ) );
+			}
+			if ( ! $source_site && $current_site ) {
+				$source_site = $current_site;
+			}
+
 			$ability = wp_get_ability( 'extrachill/track-analytics-event' );
 			if ( ! $ability ) {
 				return new WP_Error(
@@ -285,19 +320,23 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 			break;
 
 		case 'outbound':
-			if ( empty( $dest_host ) && empty( $normalized_destination ) ) {
+			if ( empty( $normalized_destination ) ) {
 				return new WP_Error(
 					'missing_destination',
-					'dest_host or destination_url is required for outbound click type.',
+					'destination_url is required for outbound click type.',
 					array( 'status' => 400 )
 				);
 			}
 
-			// Derive the host from the destination URL when the client didn't
-			// send one explicitly (defensive — the JS always sends dest_host).
-			if ( empty( $dest_host ) ) {
-				$parsed_host = wp_parse_url( $normalized_destination, PHP_URL_HOST );
-				$dest_host   = is_string( $parsed_host ) ? $parsed_host : '';
+			if ( $dest_host && strtolower( $dest_host ) !== $destination['host'] ) {
+				return new WP_Error( 'invalid_destination_host', 'dest_host does not match destination_url.', array( 'status' => 400 ) );
+			}
+			$dest_host = $destination['host'];
+
+			$network_hosts   = function_exists( 'ec_get_allowed_redirect_hosts' ) ? ec_get_allowed_redirect_hosts() : array();
+			$network_hosts[] = $source['host'];
+			if ( extrachill_api_is_network_telemetry_host( $dest_host, $network_hosts ) ) {
+				return new WP_Error( 'invalid_outbound_destination', 'Outbound destination must be off-network.', array( 'status' => 400 ) );
 			}
 
 			$ability = wp_get_ability( 'extrachill/track-analytics-event' );
@@ -312,7 +351,7 @@ function extrachill_api_click_handler( WP_REST_Request $request ) {
 			// Classify the destination once at write time so each stored row
 			// carries its category; the read ability honours the stamp and only
 			// re-classifies older/unstamped rows.
-			$category = function_exists( 'extrachill_analytics_classify_outbound_host' )
+			$category   = function_exists( 'extrachill_analytics_classify_outbound_host' )
 				? extrachill_analytics_classify_outbound_host( $dest_host )
 				: 'other';
 			$visitor_id = function_exists( 'extrachill_analytics_read_visitor_id' )
