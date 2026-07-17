@@ -2,7 +2,7 @@
 /**
  * Analytics Outbound CLI Command
  *
- * Surfaces the first-party, bot-filtered outbound-click report from the
+ * Surfaces the first-party outbound-click report from the
  * extrachill-analytics plugin via the extrachill/get-outbound-clicks ability:
  * where readers EXIT the network to external domains (Spotify, ticketing,
  * artist sites, merch, social), grouped by category, top destination host, and
@@ -28,8 +28,9 @@ class OutboundCommand {
 	 * Where readers exit the Extra Chill network to external domains, grouped
 	 * into actionable destination categories (spotify/social/ticketing/
 	 * artist-site/merch/other), ranked by top destination host, and ranked by
-	 * the top source pages that drive the most exits. Deterministic +
-	 * bot-filtered from the sendBeacon outbound_click events.
+	 * the top source pages that drive the most exits. Deterministic from the
+	 * stored sendBeacon outbound_click events. All stored rows are counted: the
+	 * generic REST bot stamp does not reliably classify these browser beacons.
 	 *
 	 * The outbound_click event is NEW — it captures exits going forward only,
 	 * so a low or zero total IS the young-data state, not a bug.
@@ -79,7 +80,9 @@ class OutboundCommand {
 	 * ---
 	 *
 	 * [--include-bots]
-	 * : Include rows flagged as bot at write time (default: humans only).
+	 * : Deprecated compatibility flag; ignored. The report always includes all
+	 * stored outbound browser beacons because their generic REST bot stamp is
+	 * not a trustworthy human/bot filter.
 	 *
 	 * [--format=<format>]
 	 * : Output format.
@@ -123,11 +126,10 @@ class OutboundCommand {
 
 		$result = $ability->execute(
 			array(
-				'days'         => $days,
-				'blog_id'      => $blog_id,
-				'category'     => $category,
-				'limit'        => $limit,
-				'include_bots' => isset( $assoc_args['include-bots'] ),
+				'days'     => $days,
+				'blog_id'  => $blog_id,
+				'category' => $category,
+				'limit'    => $limit,
 			)
 		);
 
