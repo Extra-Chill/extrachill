@@ -4,6 +4,7 @@
 		! config ||
 		! config.sourcePath ||
 		! config.routeFamily ||
+		! config.proof ||
 		! config.endpoint
 	) {
 		return;
@@ -12,6 +13,7 @@
 	const input = {
 		source_path: config.sourcePath,
 		route_family: config.routeFamily,
+		proof: config.proof,
 	};
 	if ( config.postId ) {
 		input.post_id = config.postId;

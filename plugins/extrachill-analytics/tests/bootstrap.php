@@ -99,6 +99,74 @@ if ( ! function_exists( 'apply_filters' ) ) {
 		return $value;
 	}
 }
+if ( ! function_exists( 'is_wp_error' ) ) {
+	/**
+	 * Check the test error fixture type.
+	 *
+	 * @param mixed $value Candidate value.
+	 * @return bool
+	 */
+	function is_wp_error( $value ) {
+		return $value instanceof WP_Error;
+	}
+}
+if ( ! function_exists( 'wp_salt' ) ) {
+	/**
+	 * Return a stable test salt.
+	 *
+	 * @param string $scheme Salt scheme.
+	 * @return string
+	 */
+	function wp_salt( $scheme = 'auth' ) {
+		return 'test-salt-' . $scheme;
+	}
+}
+if ( ! function_exists( 'wp_using_ext_object_cache' ) ) {
+	/**
+	 * Return the persistent-cache fixture state.
+	 *
+	 * @return bool
+	 */
+	function wp_using_ext_object_cache() {
+		return ! isset( $GLOBALS['extrachill_analytics_test_ext_object_cache'] )
+			|| (bool) $GLOBALS['extrachill_analytics_test_ext_object_cache'];
+	}
+}
+if ( ! function_exists( 'wp_cache_add' ) ) {
+	/**
+	 * Atomically add a cache fixture when absent.
+	 *
+	 * @param string $key        Cache key.
+	 * @param mixed  $value      Cache value.
+	 * @param string $group      Cache group.
+	 * @param int    $expiration Expiration (unused in fixture).
+	 * @return bool
+	 */
+	function wp_cache_add( $key, $value, $group = '', $expiration = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		if ( isset( $GLOBALS['extrachill_analytics_test_cache'][ $group ][ $key ] ) ) {
+			return false;
+		}
+		$GLOBALS['extrachill_analytics_test_cache'][ $group ][ $key ] = $value;
+		return true;
+	}
+}
+if ( ! function_exists( 'wp_cache_incr' ) ) {
+	/**
+	 * Atomically increment an existing cache fixture.
+	 *
+	 * @param string $key    Cache key.
+	 * @param int    $offset Increment amount.
+	 * @param string $group  Cache group.
+	 * @return int|false
+	 */
+	function wp_cache_incr( $key, $offset = 1, $group = '' ) {
+		if ( ! isset( $GLOBALS['extrachill_analytics_test_cache'][ $group ][ $key ] ) ) {
+			return false;
+		}
+		$GLOBALS['extrachill_analytics_test_cache'][ $group ][ $key ] += (int) $offset;
+		return $GLOBALS['extrachill_analytics_test_cache'][ $group ][ $key ];
+	}
+}
 if ( ! function_exists( 'sanitize_key' ) ) {
 	/**
 	 * Stub for sanitize_key().
@@ -108,6 +176,28 @@ if ( ! function_exists( 'sanitize_key' ) ) {
 	 */
 	function sanitize_key( $key ) {
 		return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $key ) );
+	}
+}
+if ( ! function_exists( 'sanitize_title' ) ) {
+	/**
+	 * Normalize a title fixture to a slug.
+	 *
+	 * @param string $title Candidate title.
+	 * @return string
+	 */
+	function sanitize_title( $title ) {
+		return trim( strtolower( preg_replace( '/[^a-z0-9]+/i', '-', (string) $title ) ), '-' );
+	}
+}
+if ( ! function_exists( 'untrailingslashit' ) ) {
+	/**
+	 * Remove trailing slashes from a fixture string.
+	 *
+	 * @param string $value Input value.
+	 * @return string
+	 */
+	function untrailingslashit( $value ) {
+		return rtrim( (string) $value, '/\\' );
 	}
 }
 if ( ! function_exists( 'extrachill_analytics_events_table' ) ) {
@@ -394,6 +484,54 @@ if ( ! function_exists( 'home_url' ) ) {
 		$homes   = isset( $GLOBALS['extrachill_analytics_test_home_urls'] ) ? $GLOBALS['extrachill_analytics_test_home_urls'] : array();
 		$home    = isset( $homes[ $blog_id ] ) ? $homes[ $blog_id ] : 'https://extrachill.com';
 		return rtrim( $home, '/' ) . '/' . ltrim( $path, '/' );
+	}
+}
+if ( ! function_exists( 'site_url' ) ) {
+	/**
+	 * Return the configured site URL fixture.
+	 *
+	 * @param string $path Optional path.
+	 * @return string
+	 */
+	function site_url( $path = '' ) {
+		return home_url( $path );
+	}
+}
+if ( ! function_exists( 'ec_get_domain_map' ) ) {
+	/**
+	 * Return mapped-domain fixtures.
+	 *
+	 * @return array<string,int>
+	 */
+	function ec_get_domain_map() {
+		return isset( $GLOBALS['extrachill_analytics_test_domain_map'] )
+			? $GLOBALS['extrachill_analytics_test_domain_map']
+			: array( 'extrachill.com' => 1 );
+	}
+}
+if ( ! function_exists( 'ec_get_blog_slug_by_id' ) ) {
+	/**
+	 * Return a logical site slug fixture.
+	 *
+	 * @param int $blog_id Blog ID.
+	 * @return string
+	 */
+	function ec_get_blog_slug_by_id( $blog_id ) {
+		$slugs = isset( $GLOBALS['extrachill_analytics_test_blog_slugs'] ) ? $GLOBALS['extrachill_analytics_test_blog_slugs'] : array( 1 => 'main' );
+		return isset( $slugs[ (int) $blog_id ] ) ? $slugs[ (int) $blog_id ] : '';
+	}
+}
+if ( ! function_exists( 'ec_get_blog_id' ) ) {
+	/**
+	 * Resolve a logical site fixture.
+	 *
+	 * @param string $slug Logical site slug.
+	 * @return int|null
+	 */
+	function ec_get_blog_id( $slug ) {
+		$slugs   = isset( $GLOBALS['extrachill_analytics_test_blog_slugs'] ) ? $GLOBALS['extrachill_analytics_test_blog_slugs'] : array( 1 => 'main' );
+		$blog_id = array_search( $slug, $slugs, true );
+		return false === $blog_id ? null : (int) $blog_id;
 	}
 }
 if ( ! function_exists( 'wp_parse_url' ) ) {

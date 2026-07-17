@@ -23,5 +23,19 @@ if ( ! class_exists( 'WP_Post' ) ) {
 		 * @var string
 		 */
 		public $post_title = '';
+
+		/**
+		 * Post slug.
+		 *
+		 * @var string
+		 */
+		public $post_name = '';
+
+		/**
+		 * Post status.
+		 *
+		 * @var string
+		 */
+		public $post_status = 'publish';
 	}
 }

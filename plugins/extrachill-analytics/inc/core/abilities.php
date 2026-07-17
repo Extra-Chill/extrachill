@@ -118,17 +118,35 @@ function extrachill_analytics_register_abilities() {
  * Execute callback for track-analytics-event ability.
  *
  * @param array $input Input parameters.
- * @return int Event ID on success, 0 on failure.
+ * @return int|WP_Error Event ID on success, 0 on failure, or an admission error.
  */
 function extrachill_analytics_ability_track_event( $input ) {
 	if ( empty( $input['event_type'] ) ) {
 		return 0;
 	}
 
-	$event_type = $input['event_type'];
+	$raw_event_type = (string) $input['event_type'];
+	$event_type     = sanitize_key( $raw_event_type );
+	if ( $raw_event_type !== $event_type ) {
+		return new WP_Error(
+			'invalid_event_type',
+			__( 'Event type must use its canonical lowercase identifier.', 'extrachill-analytics' ),
+			array( 'status' => 400 )
+		);
+	}
 	$event_data = isset( $input['event_data'] ) ? $input['event_data'] : array();
 	$source_url = isset( $input['source_url'] ) ? $input['source_url'] : '';
 	$visitor_id = isset( $input['visitor_id'] ) ? (string) $input['visitor_id'] : '';
+
+	$admission = extrachill_analytics_validate_public_event_write( $event_type, $event_data, $source_url );
+	if ( is_wp_error( $admission ) ) {
+		return $admission;
+	}
+	$event_data = $admission['event_data'];
+	$source_url = $admission['source_url'];
+	if ( in_array( $event_type, extrachill_analytics_public_browser_event_types(), true ) ) {
+		$visitor_id = function_exists( 'extrachill_analytics_read_visitor_id' ) ? extrachill_analytics_read_visitor_id() : '';
+	}
 
 	// Defense-in-depth: if a 'search' event arrives with a payload-shaped term,
 	// reclassify it as 'search_attack' so real search metrics stay clean while

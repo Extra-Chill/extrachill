@@ -14,7 +14,8 @@ The ExtraChill Analytics plugin provides network-wide analytics tracking and rep
 - `navigator.sendBeacon()` preferred (modern browsers, automatic cleanup)
 - Fallback to `fetch()` with `keepalive` option
 - Excludes preview mode via `is_preview()` check
-- Only loads on singular pages (`is_singular()`)
+- Loads on eligible public routes, including signed post-backed and route views
+- Enqueues through the custom minimal-head lifecycle on mapped link-page domains that bypass `wp_head()`
 
 **File**: `inc/core/assets.php` → `extrachill_analytics_enqueue_view_tracking()`
 
@@ -24,36 +25,38 @@ User visits post
 ↓
 wp_enqueue_scripts hook fires
 ↓
-view-tracking.js enqueued with localized data (postId, endpoint)
+view-tracking.js enqueued with localized host/path/family/post proof
 ↓
 IIFE executes on page load
 ↓
-POST request to /extrachill/v1/analytics/view
+POST request to the Core Abilities runner
 ↓
-extrachill-api plugin handles endpoint
+extrachill/track-page-view validates origin, proof, rate, and post state
 ↓
-ec_track_post_views() increments post meta
+pageview event is stored; post-backed views also increment post meta
 ```
 
-### 2. REST API Endpoint Usage
+### 2. Signed Pageview Ability
 
-**Pattern**: Plugin does not define its own REST endpoints; consumes network-activated endpoint from extrachill-api plugin.
+**Pattern**: The Analytics-owned ability is exposed through WordPress's Core Abilities REST runner. No pageview adapter is owned by `extrachill-api`.
 
-**Endpoint**: `POST /extrachill/v1/analytics/view`
+**Endpoint**: `POST /wp-abilities/v1/abilities/extrachill/track-page-view/run`
 
-**Plugin Contract**:
-- **Provider**: extrachill-api plugin defines and registers the endpoint
-- **Consumer**: extrachill-analytics plugin calls the endpoint
-- **Handler**: `ec_track_post_views()` in `inc/core/view-counts.php` processes the request
+**Required Input**:
+- `source_path` - normalized, query-free browser path
+- `route_family` - bounded server-classified route family
+- `proof` - server-rendered HMAC binding blog, host, path, family, and post
+- `post_id` - optional; present only for a post-backed view
 
-**Function Existence Check**:
-```php
-if (function_exists('ec_track_post_views')) {
-    ec_track_post_views($post_id);
-}
-```
+**Admission Contract**:
+- The browser origin must resolve to the current canonical or mapped site.
+- The proof must match the exact rendered tuple.
+- Claimed posts must exist in the published state.
+- Public writes use the Analytics-owned atomic abuse bound.
+- GPC/DNT views remain aggregate-only with no visitor identity.
+- Post-only public input is invalid and must not be inferred from `Referer`.
 
-**Rationale**: Centralized API infrastructure ensures consistent endpoint patterns across all network plugins.
+**Coordinated Removal**: The obsolete post-only adapter/client references are removed by Extra-Chill/extrachill-artist-platform#133, Extra-Chill/extrachill-api#118, and Extra-Chill/extrachill-api-client#14. Do not restore compatibility in Analytics. API #116 continues to own click/impression request normalization and destination validation.
 
 ### 3. Post Meta Storage
 
@@ -126,15 +129,18 @@ if ('extra-chill-network_page_extrachill-analytics' !== $hook) {
 
 ### Frontend Asset Loading
 
-**Hook**: `wp_enqueue_scripts`
+**Hooks**: `wp_enqueue_scripts` and the mapped link-page minimal-head lifecycle
 
-**Condition**: `is_singular() && !is_preview()`
+**Condition**: Eligible, non-preview public template requests; non-post routes are first-party only
 
 **Localization**:
 ```php
 wp_localize_script('extrachill-view-tracking', 'ecViewTracking', [
-    'postId' => get_the_ID(),
-    'endpoint' => rest_url('extrachill/v1/analytics/view'),
+    'postId'      => is_singular() ? get_the_ID() : 0,
+    'sourcePath'  => $source_path,
+    'routeFamily' => $route_family,
+    'proof'       => extrachill_analytics_pageview_proof($post_id, $source_path, $route_family, $request_host),
+    'endpoint'    => rest_url('wp-abilities/v1/abilities/extrachill/track-page-view/run'),
 ]);
 ```
 
@@ -148,11 +154,11 @@ wp_localize_script('extrachill-view-tracking', 'ecViewTracking', [
 
 ## Architectural Decisions
 
-### 1. Why REST API for View Tracking?
+### 1. Why the Core Abilities Runner for View Tracking?
 - **Performance**: Asynchronous, non-blocking request
 - **Reliability**: `sendBeacon` ensures request completes even if user navigates away
-- **Consistency**: Follows modern WordPress patterns
-- **Debuggability**: REST API requests visible in browser dev tools
+- **Integrity**: The Analytics-owned write contract validates the signed render tuple before persistence
+- **Layer Purity**: WordPress exposes the ability without a duplicate Extra Chill API pageview adapter
 
 ### 2. Why Post Meta Over Custom Table?
 - **Simplicity**: Uses built-in WordPress storage mechanism
@@ -160,11 +166,10 @@ wp_localize_script('extrachill-view-tracking', 'ecViewTracking', [
 - **Performance**: WordPress caches meta queries
 - **Integration**: Works with standard WP_Query and post list views
 
-### 3. Why Consume extrachill-api Endpoint?
-- **Single Source of Truth**: All API endpoints defined in one plugin
-- **Version Control**: API namespace (`extrachill/v1`) managed centrally
-- **Dependency Management**: Clear dependency declaration in plugin requirements
-- **Consistency**: Same authentication and permission patterns across all endpoints
+### 3. Why No Pageview API Adapter?
+- **Single Write Owner**: Analytics owns pageview admission, identity, side effects, and persistence
+- **No Contract Drift**: The signed input reaches the ability without being reduced to a post ID
+- **Layer Purity**: Extra Chill API keeps click/impression HTTP normalization from #116 and does not duplicate pageview semantics
 
 ### 4. Why React for Admin Dashboard?
 - **WordPress Native**: Uses same libraries as Gutenberg
@@ -174,26 +179,24 @@ wp_localize_script('extrachill-view-tracking', 'ecViewTracking', [
 
 ## Plugin Integration Points
 
-### extrachill-api Integration
+### Browser Pageview Integration
 
-**Required Endpoints** (must be registered by extrachill-api):
-- `POST /extrachill/v1/analytics/view` - View tracking
+**Required Ability Runner**:
+- `POST /wp-abilities/v1/abilities/extrachill/track-page-view/run`
 
-**Registration Pattern** (in extrachill-api):
+**Browser Envelope**:
 ```php
-// inc/routes/analytics/view-count.php
-register_rest_route('extrachill/v1', '/analytics/view', [
-    'methods' => 'POST',
-    'callback' => function($request) {
-        $post_id = $request->get_param('post_id');
-        if (function_exists('ec_track_post_views')) {
-            ec_track_post_views($post_id);
-        }
-        return new WP_REST_Response(['success' => true]);
-    },
-    'permission_callback' => '__return_true', // Public endpoint
-]);
+array(
+    'input' => array(
+        'post_id'      => 123,
+        'source_path'  => '/story/',
+        'route_family' => 'singular',
+        'proof'        => '<server-rendered proof>',
+    ),
+)
 ```
+
+The signed tracker is the sole browser pageview path. The former post-only public route is being removed in Artist #133, API #118, and API Client #14 and must not be treated as an active integration.
 
 ### Theme Integration
 

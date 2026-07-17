@@ -39,13 +39,11 @@ wp_register_ability( 'extrachill/track-analytics-event', [
 ] );
 ```
 
-### REST API Integration
+### Browser and REST Integration
 
-The plugin consumes network/extrachill-api endpoints for data persistence:
-
-- `POST /wp-json/extrachill/v1/analytics/view-count` - Track content views
-- `POST /wp-json/extrachill/v1/analytics/click` - Track link clicks
-- `POST /wp-json/extrachill/v1/analytics/link-page` - Track link page analytics
+- Signed first-party browser pageviews submit to the Analytics tracking Ability.
+- Extra Chill API owns thin public click and impression adapters; Analytics validates canonical events and persists them.
+- The retired post-only pageview adapter is not a supported integration path.
 
 ### Admin Dashboard Display
 
@@ -59,7 +57,7 @@ The analytics plugin integrates with other network plugins through:
 
 - **extrachill-users**: User registration tracking
 - **extrachill-newsletter**: Newsletter signup tracking
-- **extrachill-api**: Data persistence via REST endpoints
+- **extrachill-api**: Thin public click and impression request adapters
 - **Theme**: Analytics display in admin areas
 
 ### Data Storage
@@ -81,20 +79,3 @@ Follows Extra Chill Platform architectural patterns:
 - WordPress coding standards compliance
 - Security-first development practices
 - Network-activated plugin structure
-
-## File Structure
-
-```
-extrachill-analytics/
-├── extrachill-analytics.php     # Main plugin file
-├── inc/
-│   ├── core/
-│   │   ├── abilities.php         # Abilities API registration
-│   │   ├── tracking.php          # Event tracking functions
-│   │   └── admin-display.php     # Admin dashboard integration
-│   └── api/
-│       └── endpoints.php         # REST API integration
-└── assets/
-    └── js/
-        └── tracking.js           # Frontend tracking script
-```
