@@ -72,7 +72,7 @@ function extrachill_community_get_artist_memberships( $user_id ) {
 		foreach ( $artist_ids as $artist_id ) {
 			$artist_post = get_post( $artist_id );
 			if ( $artist_post && 'publish' === $artist_post->post_status ) {
-				$memberships[ $artist_post->post_title ] = ec_get_site_url( 'artist' ) . '/' . $artist_post->post_name . '/';
+				$memberships[ $artist_post->post_title ] = get_permalink( $artist_post );
 			}
 		}
 	} finally {
