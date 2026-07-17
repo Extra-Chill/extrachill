@@ -282,7 +282,7 @@
         gap: var(--spacing-sm);
     }
 
-    .artist-platform-homepage-actions .button {
+    .artist-platform-homepage-actions a {
         width: 100%;
         text-align: center;
         max-width: 300px;
