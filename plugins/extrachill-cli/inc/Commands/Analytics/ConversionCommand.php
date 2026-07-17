@@ -59,6 +59,13 @@ class ConversionCommand {
 	 * default: 1
 	 * ---
 	 *
+	 * [--return-observation-days=<days>]
+	 * : Minimum completed days after an entry journey before it enters the
+	 * denominator. Excludes late-window entries with unequal return opportunity.
+	 * ---
+	 * default: 7
+	 * ---
+	 *
 	 * [--by=<dimension>]
 	 * : Which ranking to print in table mode.
 	 * ---
@@ -83,6 +90,7 @@ class ConversionCommand {
 	 *     wp extrachill analytics conversion
 	 *     wp extrachill analytics conversion --by=article --top-articles=40
 	 *     wp extrachill analytics conversion --days=90 --min-entry-sessions=10
+	 *     wp extrachill analytics conversion --return-observation-days=14
 	 *     wp extrachill analytics conversion --format=json
 	 *
 	 * ## NOTES
@@ -101,19 +109,21 @@ class ConversionCommand {
 			WP_CLI::error( 'extrachill/get-conversion-map ability not found. Is extrachill-analytics active?' );
 		}
 
-		$days               = max( 1, (int) ( $assoc_args['days'] ?? 28 ) );
-		$session_gap_mins   = max( 1, (int) ( $assoc_args['session-gap-mins'] ?? 30 ) );
-		$top_articles       = max( 1, (int) ( $assoc_args['top-articles'] ?? 25 ) );
-		$min_entry_sessions = max( 1, (int) ( $assoc_args['min-entry-sessions'] ?? 1 ) );
-		$by                 = $assoc_args['by'] ?? 'category';
-		$format             = $assoc_args['format'] ?? 'table';
+		$days                    = max( 1, (int) ( $assoc_args['days'] ?? 28 ) );
+		$session_gap_mins        = max( 1, (int) ( $assoc_args['session-gap-mins'] ?? 30 ) );
+		$top_articles            = max( 1, (int) ( $assoc_args['top-articles'] ?? 25 ) );
+		$min_entry_sessions      = max( 1, (int) ( $assoc_args['min-entry-sessions'] ?? 1 ) );
+		$return_observation_days = max( 0, (int) ( $assoc_args['return-observation-days'] ?? 7 ) );
+		$by                      = $assoc_args['by'] ?? 'category';
+		$format                  = $assoc_args['format'] ?? 'table';
 
 		$result = $ability->execute(
 			array(
 				'days'               => $days,
 				'session_gap_mins'   => $session_gap_mins,
 				'top_articles'       => $top_articles,
-				'min_entry_sessions' => $min_entry_sessions,
+				'min_entry_sessions'      => $min_entry_sessions,
+				'return_observation_days' => $return_observation_days,
 			)
 		);
 
@@ -143,10 +153,11 @@ class ConversionCommand {
 		}
 		WP_CLI::log(
 			sprintf(
-				'Entry: blog %d editorial articles → platform surfaces %s. Session gap: %dm.',
+				'Entry: blog %d editorial articles → platform surfaces %s. Session gap: %dm. Return observation: %d completed days.',
 				(int) ( $result['entry_blog_id'] ?? 1 ),
 				wp_json_encode( $result['platform_blogs'] ?? array() ),
-				$session_gap_mins
+				$session_gap_mins,
+				(int) ( $result['return_observation_days'] ?? $return_observation_days )
 			)
 		);
 		WP_CLI::log( str_repeat( '─', 72 ) );
@@ -181,6 +192,7 @@ class ConversionCommand {
 		WP_CLI::log( sprintf( 'Returned (2nd session):  %s%%', $this->pct( $overall['returned_rate'] ?? 0 ) ) );
 
 		WP_CLI::log( '' );
+		$this->display_outcomes( (array) ( $result['outcomes'] ?? array() ) );
 
 		if ( 'article' === $by ) {
 			WP_CLI::log( sprintf( 'Top %d entry articles (by entry sessions):', $top_articles ) );
@@ -204,6 +216,79 @@ class ConversionCommand {
 			WP_CLI::log( '' );
 			WP_CLI::log( $result['note'] );
 		}
+	}
+
+	/**
+	 * Render outcome attribution without combining its independent lenses.
+	 *
+	 * @param array $outcomes Ability outcome envelope.
+	 * @return void
+	 */
+	private function display_outcomes( array $outcomes ) {
+		$overall = (array) ( $outcomes['overall'] ?? array() );
+		$coverage = (array) ( $outcomes['coverage'] ?? array() );
+
+		if ( empty( $overall ) ) {
+			return;
+		}
+
+		$event_rows   = array();
+		$direct_rows  = array();
+		$journey_rows = array();
+
+		foreach ( $overall as $type => $attribution ) {
+			$type_coverage = (array) ( $coverage[ $type ] ?? array() );
+			$direct        = (array) ( $attribution['direct_source'] ?? array() );
+			$journey       = (array) ( $attribution['visitor_journey'] ?? array() );
+			$outcome       = str_replace( '_', ' ', (string) $type );
+
+			$event_rows[] = array(
+				'outcome'       => $outcome,
+				'stored'        => $this->count( $type_coverage['stored_events'] ?? 0 ),
+				'auto_excluded' => $this->count( $type_coverage['automatic_registration_excluded'] ?? 0 ),
+				'deduplicated'  => $this->count( $type_coverage['deduplicated_outcomes'] ?? 0 ),
+				'duplicates'    => $this->count( $type_coverage['duplicate_events'] ?? 0 ),
+			);
+			$direct_rows[] = array(
+				'outcome'           => $outcome,
+				'count'             => $this->count( $direct['count'] ?? null ),
+				'coverage'          => (string) ( $direct['coverage_status'] ?? 'unknown' ),
+				'with_source'       => $this->count( $type_coverage['with_source_url'] ?? 0 ),
+				'attributed'        => $this->count( $type_coverage['direct_source_attributed'] ?? 0 ),
+				'missing_source'    => $this->count( $type_coverage['missing_source_url'] ?? 0 ),
+				'unresolved_source' => $this->count( $type_coverage['unresolved_source_url'] ?? 0 ),
+			);
+			$journey_rows[] = array(
+				'outcome'            => $outcome,
+				'same_session'       => $this->count( $journey['same_session_count'] ?? null ),
+				'later_session'      => $this->count( $journey['later_session_count'] ?? null ),
+				'coverage'           => (string) ( $journey['coverage_status'] ?? 'unknown' ),
+				'with_identity'      => $this->count( $type_coverage['with_visitor_identity'] ?? 0 ),
+				'attributed'         => $this->count( $type_coverage['visitor_journey_attributed'] ?? 0 ),
+				'missing_identity'   => $this->count( $type_coverage['missing_visitor_identity'] ?? 0 ),
+				'no_entry_journey'   => $this->count( $type_coverage['identity_without_eligible_journey'] ?? 0 ),
+				'before_entry'       => $this->count( $type_coverage['outcome_before_entry'] ?? 0 ),
+			);
+		}
+
+		WP_CLI::log( 'Outcome event coverage (before attribution):' );
+		Utils\format_items( 'table', $event_rows, array( 'outcome', 'stored', 'auto_excluded', 'deduplicated', 'duplicates' ) );
+		WP_CLI::log( 'Direct-source lens (source URL resolves to a published entry article):' );
+		Utils\format_items( 'table', $direct_rows, array( 'outcome', 'count', 'coverage', 'with_source', 'attributed', 'missing_source', 'unresolved_source' ) );
+		WP_CLI::log( 'Visitor-journey lens (identified outcome follows a mature entry journey):' );
+		Utils\format_items( 'table', $journey_rows, array( 'outcome', 'same_session', 'later_session', 'coverage', 'with_identity', 'attributed', 'missing_identity', 'no_entry_journey', 'before_entry' ) );
+		WP_CLI::log( 'Lens counts are independent and may describe the same outcome; do not add them as unique people.' );
+		WP_CLI::log( '' );
+	}
+
+	/**
+	 * Format an outcome count for human display.
+	 *
+	 * @param mixed $value Count or null when the lens is not instrumented.
+	 * @return string
+	 */
+	private function count( $value ) {
+		return null === $value ? 'n/a' : number_format( (int) $value );
 	}
 
 	/**
