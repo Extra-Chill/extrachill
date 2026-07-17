@@ -52,6 +52,16 @@ if ( ! function_exists( 'add_action' ) ) {
 		return true;
 	}
 }
+if ( ! function_exists( 'add_filter' ) ) {
+	/**
+	 * Stub for the WordPress add_filter() function.
+	 *
+	 * @param mixed ...$args Hook name, callback, and optional priority/args.
+	 */
+	function add_filter( ...$args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+		return true;
+	}
+}
 if ( ! function_exists( '__' ) ) {
 	/**
 	 * Return untranslated fixture text.
@@ -284,6 +294,9 @@ if ( ! function_exists( 'get_site_option' ) ) {
 	 * @return mixed The fallback default.
 	 */
 	function get_site_option( $option, $fallback = false ) {
+		if ( isset( $GLOBALS['extrachill_analytics_test_site_options'] ) && array_key_exists( $option, $GLOBALS['extrachill_analytics_test_site_options'] ) ) {
+			return $GLOBALS['extrachill_analytics_test_site_options'][ $option ];
+		}
 		return $fallback;
 	}
 }
@@ -295,8 +308,158 @@ if ( ! function_exists( 'update_site_option' ) ) {
 	 * @param mixed  $val    Option value (unused in the stub).
 	 * @return bool Always true in the stub.
 	 */
-	function update_site_option( $option, $val ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	function update_site_option( $option, $val ) {
+		$GLOBALS['extrachill_analytics_test_site_options'][ $option ] = $val;
 		return true;
+	}
+}
+if ( ! function_exists( 'is_main_site' ) ) {
+	/**
+	 * Return the main-site fixture state.
+	 *
+	 * @return bool
+	 */
+	function is_main_site() {
+		return ! empty( $GLOBALS['extrachill_analytics_test_is_main_site'] );
+	}
+}
+if ( ! function_exists( 'wp_next_scheduled' ) ) {
+	/**
+	 * Return a scheduled event fixture.
+	 *
+	 * @param string $hook Cron hook.
+	 * @return int|false
+	 */
+	function wp_next_scheduled( $hook ) {
+		return $GLOBALS['extrachill_analytics_test_scheduled'][ $hook ] ?? false;
+	}
+}
+if ( ! function_exists( 'wp_schedule_event' ) ) {
+	/**
+	 * Record a recurring event fixture.
+	 *
+	 * @param int    $timestamp  Event timestamp.
+	 * @param string $recurrence Recurrence key.
+	 * @param string $hook       Cron hook.
+	 * @return bool
+	 */
+	function wp_schedule_event( $timestamp, $recurrence, $hook ) {
+		$GLOBALS['extrachill_analytics_test_scheduled'][ $hook ] = $timestamp;
+		$GLOBALS['extrachill_analytics_test_recurring'][]        = compact( 'timestamp', 'recurrence', 'hook' );
+		return true;
+	}
+}
+if ( ! function_exists( 'wp_schedule_single_event' ) ) {
+	/**
+	 * Record a single event fixture.
+	 *
+	 * @param int    $timestamp Event timestamp.
+	 * @param string $hook      Cron hook.
+	 * @return bool
+	 */
+	function wp_schedule_single_event( $timestamp, $hook ) {
+		$GLOBALS['extrachill_analytics_test_scheduled'][ $hook ] = $timestamp;
+		$GLOBALS['extrachill_analytics_test_single'][]           = compact( 'timestamp', 'hook' );
+		return true;
+	}
+}
+if ( ! function_exists( 'add_site_option' ) ) {
+	/**
+	 * Add an atomic network-option fixture.
+	 *
+	 * @param string $option Option name.
+	 * @param mixed  $value  Option value.
+	 * @return bool
+	 */
+	function add_site_option( $option, $value ) {
+		if ( array_key_exists( $option, $GLOBALS['extrachill_analytics_test_site_options'] ) ) {
+			return false;
+		}
+		$GLOBALS['extrachill_analytics_test_site_options'][ $option ] = $value;
+		return true;
+	}
+}
+if ( ! function_exists( 'delete_site_option' ) ) {
+	/**
+	 * Delete a network-option fixture.
+	 *
+	 * @param string $option Option name.
+	 * @return bool
+	 */
+	function delete_site_option( $option ) {
+		unset( $GLOBALS['extrachill_analytics_test_site_options'][ $option ] );
+		return true;
+	}
+}
+if ( ! function_exists( 'get_site_transient' ) ) {
+	/**
+	 * Return a network-transient fixture.
+	 *
+	 * @param string $key Transient key.
+	 * @return mixed
+	 */
+	function get_site_transient( $key ) {
+		return $GLOBALS['extrachill_analytics_test_site_transients'][ $key ] ?? false;
+	}
+}
+if ( ! function_exists( 'set_site_transient' ) ) {
+	/**
+	 * Store a network-transient fixture.
+	 *
+	 * @param string $key        Transient key.
+	 * @param mixed  $value      Transient value.
+	 * @param int    $expiration Expiration in seconds.
+	 * @return bool
+	 */
+	function set_site_transient( $key, $value, $expiration ) {
+		$GLOBALS['extrachill_analytics_test_site_transients'][ $key ] = $value;
+		$GLOBALS['extrachill_analytics_test_transient_ttls'][ $key ]  = $expiration;
+		return true;
+	}
+}
+if ( ! function_exists( 'delete_site_transient' ) ) {
+	/**
+	 * Delete a network-transient fixture.
+	 *
+	 * @param string $key Transient key.
+	 * @return bool
+	 */
+	function delete_site_transient( $key ) {
+		unset( $GLOBALS['extrachill_analytics_test_site_transients'][ $key ] );
+		return true;
+	}
+}
+if ( ! function_exists( 'get_user_by' ) ) {
+	/**
+	 * Return the user fixture.
+	 *
+	 * @param string $field Lookup field.
+	 * @param string $value Lookup value.
+	 * @return object|false
+	 */
+	function get_user_by( $field, $value ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		return $GLOBALS['extrachill_analytics_test_user'] ?? false;
+	}
+}
+if ( ! function_exists( 'wp_salt' ) ) {
+	/**
+	 * Return a deterministic test salt.
+	 *
+	 * @param string $scheme Salt scheme.
+	 * @return string
+	 */
+	function wp_salt( $scheme = 'auth' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+		return 'email-privacy-test-salt';
+	}
+}
+if ( ! function_exists( 'get_current_network_id' ) ) {
+	/**
+	 * Return the authoritative network ID fixture.
+	 *
+	 * @return int
+	 */
+	function get_current_network_id() {
+		return 1;
 	}
 }
 if ( ! function_exists( 'sanitize_text_field' ) ) {
