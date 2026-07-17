@@ -230,9 +230,13 @@ if ( ! function_exists( 'extrachill_get_analytics_events' ) ) {
 	function extrachill_get_analytics_events( $args = array() ) {
 		$offset = isset( $args['offset'] ) ? (int) $args['offset'] : 0;
 		$limit  = isset( $args['limit'] ) ? (int) $args['limit'] : 100;
-		$rows   = isset( $GLOBALS['extrachill_analytics_outbound_fixture_rows'] )
-			? $GLOBALS['extrachill_analytics_outbound_fixture_rows']
-			: array();
+		if ( isset( $GLOBALS['extrachill_analytics_bridge_fixture_rows'] ) ) {
+			$rows = $GLOBALS['extrachill_analytics_bridge_fixture_rows'];
+		} else {
+			$rows = isset( $GLOBALS['extrachill_analytics_outbound_fixture_rows'] )
+				? $GLOBALS['extrachill_analytics_outbound_fixture_rows']
+				: array();
+		}
 
 		return array_slice( $rows, $offset, $limit );
 	}
