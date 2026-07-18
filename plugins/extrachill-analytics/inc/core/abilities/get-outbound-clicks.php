@@ -11,10 +11,9 @@
  *
  * Why this is the first-party exit channel:
  *
- *   Each `outbound_click` row is fired client-side with sendBeacon and
- *   therefore only exists for a real, JS-executing browser. The generic
- *   request classifier currently stamps these REST beacons as bots, so this
- *   report deliberately counts outbound_click rows regardless of that stamp.
+ *   Each `outbound_click` row is fired client-side with sendBeacon. The public
+ *   write boundary classifies that validated browser beacon with the canonical
+ *   visitor classifier, and this report includes only human-stamped rows.
  *   Rows carry the anonymous first-party visitor_id (NULL under GPC/DNT
  *   opt-out, excluded from per-visitor cuts exactly like the rest of the
  *   system).
@@ -74,8 +73,8 @@ function extrachill_analytics_register_outbound_clicks_ability() {
 					),
 					'include_bots' => array(
 						'type'        => 'boolean',
-						'description' => __( 'Deprecated compatibility option. Outbound browser beacons are always included because the generic REST bot stamp does not distinguish them from bots.', 'extrachill-analytics' ),
-						'default'     => true,
+						'description' => __( 'Include bot-stamped outbound events for diagnostics. Human-only by default.', 'extrachill-analytics' ),
+						'default'     => false,
 					),
 				),
 			),
@@ -105,11 +104,10 @@ function extrachill_analytics_register_outbound_clicks_ability() {
  * Strategy: pull the in-window `outbound_click` rows (bounded by the
  * event_type + created_at index) and aggregate in PHP. event_data carries the
  * dest_host, dest_url, and category the capture route stamped — so the read
- * does not re-derive classification, it just rolls up. The generic REST is_bot
- * stamp is intentionally not used: browser beacons are consistently marked as
- * bots despite being the canonical outbound signal. Volume is low (a new
- * event), so a single bounded fetch + PHP aggregation is clearer and cheaper
- * than three GROUP-BY JSON queries.
+ * does not re-derive destination classification, it just rolls up. The
+ * server-owned is_bot stamp enforces the default human-only report contract.
+ * Volume is low, so a single bounded fetch + PHP aggregation is clearer and
+ * cheaper than three GROUP-BY JSON queries.
  *
  * @param array $input Input parameters.
  * @return array Outbound-click report.
@@ -117,11 +115,12 @@ function extrachill_analytics_register_outbound_clicks_ability() {
 function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 	global $wpdb;
 
-	$days       = isset( $input['days'] ) ? (int) $input['days'] : 28;
-	$blog_id    = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
-	$category   = isset( $input['category'] ) ? sanitize_key( (string) $input['category'] ) : '';
-	$limit      = isset( $input['limit'] ) ? max( 1, (int) $input['limit'] ) : 25;
-	$event_type = EC_ANALYTICS_EVENT_OUTBOUND_CLICK;
+	$days         = isset( $input['days'] ) ? (int) $input['days'] : 28;
+	$blog_id      = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
+	$category     = isset( $input['category'] ) ? sanitize_key( (string) $input['category'] ) : '';
+	$limit        = isset( $input['limit'] ) ? max( 1, (int) $input['limit'] ) : 25;
+	$include_bots = ! empty( $input['include_bots'] );
+	$event_type   = EC_ANALYTICS_EVENT_OUTBOUND_CLICK;
 
 	// Read the in-window outbound_click rows through the canonical events query
 	// helper (it owns the safe, prepared WHERE building) rather than re-rolling
@@ -162,6 +161,9 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 	foreach ( (array) $rows as $row ) {
 		// extrachill_get_analytics_events() returns event_data already decoded.
 		$data = is_array( $row->event_data ) ? $row->event_data : array();
+		if ( ! $include_bots && ( ! array_key_exists( 'is_bot', $data ) || false !== $data['is_bot'] ) ) {
+			continue;
+		}
 
 		$dest_host = isset( $data['dest_host'] ) ? strtolower( (string) $data['dest_host'] ) : '';
 
@@ -197,7 +199,9 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 			++$missing_destination_dimensions;
 		}
 
-		$source = (string) $row->source_url;
+		$source = function_exists( 'extrachill_analytics_canonicalize_tracked_url' )
+			? extrachill_analytics_canonicalize_tracked_url( (string) $row->source_url )
+			: '';
 		if ( '' !== $source ) {
 			if ( ! isset( $by_source[ $source ] ) ) {
 				$by_source[ $source ] = 0;
@@ -279,6 +283,6 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 		'period'         => $days > 0
 			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
-		'note'           => 'Outbound clicks fire client-side (sendBeacon) and are counted regardless of the generic REST bot stamp, which does not distinguish these browser beacons from bots. The outbound_click event captures exits going forward only, so totals are low/zero until clicks accumulate. NULL-visitor rows (GPC/DNT opt-out) are still counted in aggregate volume but excluded from any per-visitor cut, same as the rest of the system.',
+		'note'           => $include_bots ? 'Outbound clicks include bot-stamped rows for diagnostics.' : 'Outbound clicks are limited to events classified as human at the server-owned write boundary. Source and destination URLs are reduced to origin plus path.',
 	);
 }

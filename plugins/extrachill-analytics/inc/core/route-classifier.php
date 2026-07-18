@@ -35,6 +35,47 @@ function extrachill_analytics_normalize_route_path( $route ) {
 }
 
 /**
+ * Reduce an HTTP(S) URL or root-relative route to origin plus path only.
+ *
+ * @param string $url Raw URL or path.
+ * @return string Canonical URL/path, or an empty string when invalid.
+ */
+function extrachill_analytics_canonicalize_tracked_url( $url ) {
+	$url = trim( (string) $url );
+	if ( '' === $url || false !== strpos( $url, "\0" ) ) {
+		return '';
+	}
+
+	if ( '/' === $url[0] && 0 !== strpos( $url, '//' ) ) {
+		return extrachill_analytics_normalize_route_path( $url );
+	}
+
+	$parts = wp_parse_url( $url );
+	if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+		return '';
+	}
+
+	$scheme = strtolower( (string) $parts['scheme'] );
+	if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+		return '';
+	}
+
+	$host = strtolower( rtrim( (string) $parts['host'], '.' ) );
+	if ( '' === $host || preg_match( '/[\s\/?#@]/', $host ) ) {
+		return '';
+	}
+
+	$path = extrachill_analytics_normalize_route_path( isset( $parts['path'] ) ? (string) $parts['path'] : '/' );
+	if ( '' === $path ) {
+		return '';
+	}
+
+	$port = isset( $parts['port'] ) ? ':' . (int) $parts['port'] : '';
+
+	return $scheme . '://' . $host . $port . $path;
+}
+
+/**
  * Return the route families accepted by pageview events.
  *
  * @return string[] Route family slugs.

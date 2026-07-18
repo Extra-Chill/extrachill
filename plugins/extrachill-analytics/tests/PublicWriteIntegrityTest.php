@@ -152,11 +152,72 @@ final class PublicWriteIntegrityTest extends TestCase {
 				'source_site' => 'main',
 				'dest_site'   => 'events',
 			),
-			'https://extrachill.com/story/?email=reader@example.test'
+			'https://extrachill.com/story/?email=fixture%40example.test#form'
 		);
 
 		$this->assertIsArray( $result );
 		$this->assertSame( '/story/', $result['source_url'] );
+	}
+
+	/**
+	 * The public event boundary minimizes source and destination URLs.
+	 */
+	public function test_outbound_event_urls_are_minimized_server_side(): void {
+		$result = extrachill_analytics_ability_track_event(
+			array(
+				'event_type' => EC_ANALYTICS_EVENT_OUTBOUND_CLICK,
+				'event_data' => array(
+					'dest_host' => 'tickets.example',
+					'dest_url'  => 'https://tickets.example/show/?token=fixture#checkout',
+					'category'  => 'ticketing',
+				),
+				'source_url' => 'https://extrachill.com/login/?redirect_to=%2Faccount%2F#form',
+			)
+		);
+
+		$this->assertSame( 1, $result );
+		$this->assertSame( '/login/', $GLOBALS['extrachill_analytics_test_events'][0][2] );
+		$this->assertSame( 'https://tickets.example/show/', $GLOBALS['extrachill_analytics_test_events'][0][1]['dest_url'] );
+	}
+
+	/**
+	 * URL user information is never retained by canonicalization.
+	 */
+	public function test_tracked_url_canonicalization_removes_userinfo(): void {
+		$this->assertSame(
+			'https://extrachill.com/account/',
+			extrachill_analytics_canonicalize_tracked_url( 'https://fixture:fixture@extrachill.com/account/' )
+		);
+	}
+
+	/**
+	 * Malformed and non-HTTP event URLs fail closed.
+	 *
+	 * @dataProvider invalid_tracked_url_provider
+	 *
+	 * @param string $url Invalid URL fixture.
+	 */
+	public function test_public_event_rejects_invalid_tracked_urls( $url ): void {
+		$result = extrachill_analytics_validate_public_event_write(
+			EC_ANALYTICS_EVENT_OUTBOUND_CLICK,
+			array( 'dest_url' => $url ),
+			'/story/'
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'invalid_event_field', $result->code );
+	}
+
+	/**
+	 * Invalid tracked URLs.
+	 *
+	 * @return array<string,array{string}>
+	 */
+	public function invalid_tracked_url_provider() {
+		return array(
+			'non-http scheme' => array( 'javascript:alert(1)' ),
+			'malformed value' => array( 'not a URL' ),
+		);
 	}
 
 	/**

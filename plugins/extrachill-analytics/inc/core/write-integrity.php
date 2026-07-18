@@ -384,13 +384,14 @@ function extrachill_analytics_validate_public_event_write( $event_type, $event_d
 		return new WP_Error( 'invalid_event_origin', __( 'Analytics events must originate on the current public site.', 'extrachill-analytics' ), array( 'status' => 403 ) );
 	}
 
-	$parts        = wp_parse_url( (string) $source_url );
-	$claimed_host = is_array( $parts ) && isset( $parts['host'] ) ? strtolower( rtrim( (string) $parts['host'], '.' ) ) : '';
+	$canonical_source = extrachill_analytics_canonicalize_tracked_url( (string) $source_url );
+	$parts            = wp_parse_url( $canonical_source );
+	$claimed_host     = is_array( $parts ) && isset( $parts['host'] ) ? strtolower( rtrim( (string) $parts['host'], '.' ) ) : '';
 	if ( '' !== $claimed_host && $source_host !== $claimed_host ) {
 		return new WP_Error( 'invalid_event_source', __( 'Event source host does not match the browser origin.', 'extrachill-analytics' ), array( 'status' => 403 ) );
 	}
 
-	$source_path = extrachill_analytics_normalize_route_path( (string) $source_url );
+	$source_path = extrachill_analytics_normalize_route_path( $canonical_source );
 	if ( '' === $source_path ) {
 		return new WP_Error( 'invalid_event_source', __( 'A valid event source path is required.', 'extrachill-analytics' ), array( 'status' => 400 ) );
 	}
@@ -402,6 +403,22 @@ function extrachill_analytics_validate_public_event_write( $event_type, $event_d
 	$valid_event_data = extrachill_analytics_validate_public_event_data( $event_type, $event_data );
 	if ( is_wp_error( $valid_event_data ) ) {
 		return $valid_event_data;
+	}
+
+	$url_field = EC_ANALYTICS_EVENT_OUTBOUND_CLICK === $event_type ? 'dest_url' : 'share_url';
+	if ( isset( $event_data[ $url_field ] ) && '' !== $event_data[ $url_field ] ) {
+		$canonical_url = extrachill_analytics_canonicalize_tracked_url( $event_data[ $url_field ] );
+		if ( '' === $canonical_url ) {
+			return new WP_Error(
+				'invalid_event_field',
+				__( 'Event data contains an invalid URL.', 'extrachill-analytics' ),
+				array(
+					'status' => 400,
+					'field'  => $url_field,
+				)
+			);
+		}
+		$event_data[ $url_field ] = $canonical_url;
 	}
 
 	$source_post = isset( $event_data['source_post'] ) ? (int) $event_data['source_post'] : 0;

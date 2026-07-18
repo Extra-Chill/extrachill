@@ -94,6 +94,12 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 
 	$current_user_id = get_current_user_id();
 
+	// The event table is the final trust boundary for every caller, including
+	// server-owned events that do not pass through the public ability adapter.
+	$source_url = function_exists( 'extrachill_analytics_canonicalize_tracked_url' )
+		? extrachill_analytics_canonicalize_tracked_url( $source_url )
+		: '';
+
 	$result = $wpdb->insert(
 		$table_name,
 		array(
