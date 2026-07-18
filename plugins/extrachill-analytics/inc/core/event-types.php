@@ -206,6 +206,37 @@ const EC_ANALYTICS_EVENT_ARTIST_PROFILE_DUPLICATE_CREATED = 'artist_profile_dupl
 const EC_ANALYTICS_EVENT_USER_REREGISTRATION_ATTEMPT      = 'user_reregistration_attempt';
 
 /**
+ * Artist Dispatch editorial lifecycle events.
+ *
+ * Persisted access-event payloads are limited to a positive integer `user_id`,
+ * an optional `request_id` as a canonical lowercase UUID v4 string of exactly
+ * 36 ASCII characters matching
+ * `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
+ * and an `eligibility_cohort` selected from a fixed, emitter-owned enum. Omit
+ * `request_id` when unavailable rather than substituting free text. Persisted
+ * post-event payloads are limited to a positive integer `post_id`,
+ * `submitter_user_id`, and canonical `artist_id`. Omit other unavailable
+ * identifiers rather than substituting free text.
+ *
+ * Never record names, emails, proposal or application text, article title or
+ * content, internal decision notes, rights acknowledgements, or free-form
+ * disclosure text in Artist Dispatch event_data.
+ *
+ * Discovery signals are frontend-only and belong in the existing GA/GTM
+ * browser path. `artist_dispatch_writer_cta_clicked`,
+ * `artist_dispatch_pathway_viewed`, `artist_dispatch_editor_opened`, and
+ * `artist_dispatch_resumed` MUST NOT be persisted through `ec_track_event()`
+ * or the internal analytics events table.
+ */
+const EC_ANALYTICS_EVENT_ARTIST_DISPATCH_ACCESS_REQUESTED = 'artist_dispatch_access_requested';
+const EC_ANALYTICS_EVENT_ARTIST_DISPATCH_ACCESS_APPROVED  = 'artist_dispatch_access_approved';
+const EC_ANALYTICS_EVENT_ARTIST_DISPATCH_ACCESS_REJECTED  = 'artist_dispatch_access_rejected';
+const EC_ANALYTICS_EVENT_ARTIST_DISPATCH_ACCESS_REVOKED   = 'artist_dispatch_access_revoked';
+const EC_ANALYTICS_EVENT_ARTIST_DISPATCH_DRAFT_CREATED    = 'artist_dispatch_draft_created';
+const EC_ANALYTICS_EVENT_ARTIST_DISPATCH_SUBMITTED        = 'artist_dispatch_submitted';
+const EC_ANALYTICS_EVENT_ARTIST_DISPATCH_PUBLISHED        = 'artist_dispatch_published';
+
+/**
  * The team-experience event set surfaced by the cohort rollup
  * (`extrachill/get-team-experience-stats` in extrachill-users). Readers
  * build their query array by iterating this group instead of re-listing
@@ -297,4 +328,19 @@ const EC_ANALYTICS_ARTIST_ACTIVATION_STEPS = array(
 const EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS = array(
 	EC_ANALYTICS_EVENT_ARTIST_PROFILE_DUPLICATE_CREATED,
 	EC_ANALYTICS_EVENT_USER_REREGISTRATION_ATTEMPT,
+);
+
+/**
+ * Artist Dispatch persisted events in lifecycle order.
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_ARTIST_DISPATCH_EVENTS = array(
+	EC_ANALYTICS_EVENT_ARTIST_DISPATCH_ACCESS_REQUESTED,
+	EC_ANALYTICS_EVENT_ARTIST_DISPATCH_ACCESS_APPROVED,
+	EC_ANALYTICS_EVENT_ARTIST_DISPATCH_ACCESS_REJECTED,
+	EC_ANALYTICS_EVENT_ARTIST_DISPATCH_ACCESS_REVOKED,
+	EC_ANALYTICS_EVENT_ARTIST_DISPATCH_DRAFT_CREATED,
+	EC_ANALYTICS_EVENT_ARTIST_DISPATCH_SUBMITTED,
+	EC_ANALYTICS_EVENT_ARTIST_DISPATCH_PUBLISHED,
 );
