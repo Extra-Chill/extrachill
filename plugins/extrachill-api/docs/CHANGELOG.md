@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.25.3] - 2026-07-18
+
+### Changed
+- remove obsolete analytics view adapter
+
+### Fixed
+- validate public telemetry beacons
+
 ## [0.25.2] - 2026-07-15
 
 ### Fixed
