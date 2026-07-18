@@ -78,6 +78,64 @@ function extrachill_community_term_picker_taxonomies() {
 }
 
 /**
+ * Return the public discussion composer contract.
+ *
+ * This serializable definition is both the live resolver configuration and the
+ * deployment marker read by cross-site consumers with get_blog_option().
+ *
+ * @return array{
+ *     schema_version:int,
+ *     action:string,
+ *     query_parameters:array{action:string,taxonomy:string,slug:string},
+ *     supported_taxonomies:string[]
+ * }
+ */
+function extrachill_community_discussion_composer_contract() {
+	$taxonomies = array_column( extrachill_community_term_picker_taxonomies(), 'taxonomy' );
+
+	return array(
+		'schema_version'       => 1,
+		'action'               => 'discussion',
+		'query_parameters'     => array(
+			'action'   => 'compose',
+			'taxonomy' => 'entity_taxonomy',
+			'slug'     => 'entity_slug',
+		),
+		'supported_taxonomies' => array_values( array_unique( $taxonomies ) ),
+	);
+}
+
+/**
+ * Option key used to publish the composer contract on the Community site.
+ *
+ * @return string
+ */
+function extrachill_community_discussion_composer_contract_option() {
+	return 'extrachill_community_discussion_composer_contract';
+}
+
+/**
+ * Publish or migrate the deployment-discoverable composer contract.
+ *
+ * The plugin is site-active on Community, so the current-site option is
+ * directly readable from any network site with get_blog_option().
+ *
+ * @return bool Whether the stored contract changed.
+ */
+function extrachill_community_publish_discussion_composer_contract() {
+	$option   = extrachill_community_discussion_composer_contract_option();
+	$contract = extrachill_community_discussion_composer_contract();
+
+	if ( get_option( $option, null ) === $contract ) {
+		return false;
+	}
+
+	update_option( $option, $contract, false );
+	return true;
+}
+add_action( 'plugins_loaded', 'extrachill_community_publish_discussion_composer_contract', 20 );
+
+/**
  * Resolve a valid entity continuation from composer query state.
  *
  * Contract: `?compose=discussion&entity_taxonomy=<taxonomy>&entity_slug=<slug>`.
@@ -88,28 +146,31 @@ function extrachill_community_term_picker_taxonomies() {
  * @return array{taxonomy:string,term:object}|null Valid continuation state.
  */
 function extrachill_community_get_discussion_composer_state( $query = null ) {
+	$contract = extrachill_community_discussion_composer_contract();
+	$keys     = $contract['query_parameters'];
+
 	if ( null === $query ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only composer state; no mutation occurs.
 		$query = $_GET;
 	}
 
-	if ( ! isset( $query['compose'], $query['entity_taxonomy'], $query['entity_slug'] )
-		|| ! is_scalar( $query['compose'] )
-		|| ! is_scalar( $query['entity_taxonomy'] )
-		|| ! is_scalar( $query['entity_slug'] ) ) {
+	if ( ! isset( $query[ $keys['action'] ], $query[ $keys['taxonomy'] ], $query[ $keys['slug'] ] )
+		|| ! is_scalar( $query[ $keys['action'] ] )
+		|| ! is_scalar( $query[ $keys['taxonomy'] ] )
+		|| ! is_scalar( $query[ $keys['slug'] ] ) ) {
 		return null;
 	}
 
-	$raw_compose  = wp_unslash( (string) $query['compose'] );
-	$raw_taxonomy = wp_unslash( (string) $query['entity_taxonomy'] );
-	$raw_slug     = wp_unslash( (string) $query['entity_slug'] );
+	$raw_compose  = wp_unslash( (string) $query[ $keys['action'] ] );
+	$raw_taxonomy = wp_unslash( (string) $query[ $keys['taxonomy'] ] );
+	$raw_slug     = wp_unslash( (string) $query[ $keys['slug'] ] );
 	$compose      = sanitize_key( $raw_compose );
 	$taxonomy     = sanitize_key( $raw_taxonomy );
 	$slug         = sanitize_title( $raw_slug );
 
 	if ( $raw_compose !== $compose || $raw_taxonomy !== $taxonomy || $raw_slug !== $slug
-		|| 'discussion' !== $compose
-		|| ! in_array( $taxonomy, array( 'artist', 'festival', 'location' ), true )
+		|| $contract['action'] !== $compose
+		|| ! in_array( $taxonomy, $contract['supported_taxonomies'], true )
 		|| '' === $slug ) {
 		return null;
 	}
@@ -138,11 +199,13 @@ function extrachill_community_get_discussion_composer_state( $query = null ) {
  * @return string Composer URL, or an empty string for invalid state.
  */
 function extrachill_community_get_discussion_composer_url( $taxonomy, $slug ) {
-	$state = extrachill_community_get_discussion_composer_state(
+	$contract = extrachill_community_discussion_composer_contract();
+	$keys     = $contract['query_parameters'];
+	$state    = extrachill_community_get_discussion_composer_state(
 		array(
-			'compose'         => 'discussion',
-			'entity_taxonomy' => $taxonomy,
-			'entity_slug'     => $slug,
+			$keys['action']   => $contract['action'],
+			$keys['taxonomy'] => $taxonomy,
+			$keys['slug']     => $slug,
 		)
 	);
 	if ( ! $state ) {
@@ -153,9 +216,9 @@ function extrachill_community_get_discussion_composer_url( $taxonomy, $slug ) {
 
 	return add_query_arg(
 		array(
-			'compose'         => 'discussion',
-			'entity_taxonomy' => $state['taxonomy'],
-			'entity_slug'     => $state['term']->slug,
+			$keys['action']   => $contract['action'],
+			$keys['taxonomy'] => $state['taxonomy'],
+			$keys['slug']     => $state['term']->slug,
 		),
 		trailingslashit( $community_url )
 	);
