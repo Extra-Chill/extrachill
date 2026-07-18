@@ -1,6 +1,6 @@
 <?php
 /**
- * Focused tests for post lifecycle cache invalidation.
+ * Standalone tests for post lifecycle cache invalidation.
  *
  * @package ExtraChillCache
  */
