@@ -1,32 +1,9 @@
 <?php
 /**
- * Get Bridge CTR Ability
+ * Get Bridge Exposure Report Ability
  *
- * Read-side ability that computes the cross-site network bridge's
- * bot-filtered click-through rate from the sibling `bridge_click` and
- * `bridge_impression` events recorded by the multisite bridge instrumentation
- * (extrachill-multisite#58).
- *
- * Why this is the bot-filtered density channel:
- *
- *   The raw GA4 `network_bridge` channel counts UTM *arrivals*, which
- *   prefetch/prerender/crawler hits fake — it shows physically-impossible
- *   sub-1.0 pageviews/session. Both events read here, by contrast, are fired
- *   client-side with sendBeacon and therefore only exist for real,
- *   JS-executing browsers. Counting them is the bot filter: every click and
- *   every impression is a human-with-JS by construction.
- *
- *   CTR = clicks / impressions is therefore a deterministic, bot-free
- *   engagement signal that can demote the bot-inflated raw `network_bridge`
- *   session count to a diagnostic.
- *
- * PER-DESTINATION GRAIN: both events now carry `dest_site` in event_data — the
- * click beacon always did, and the impression beacon does as of
- * extrachill-analytics#75 (one impression per rendered card instead of one
- * per pageview). Clicks and impressions therefore share the per-destination
- * grain, so this ability returns a real per-destination-site CTR breakdown
- * alongside the network total, rather than pairing a per-pageview denominator
- * with a per-link numerator.
+ * Reports stored bridge clicks against observed viewport exposure evidence.
+ * The ability name and legacy output aliases remain for existing consumers.
  *
  * @package ExtraChill\Analytics
  * @since 0.9.0
@@ -41,27 +18,32 @@ function extrachill_analytics_register_bridge_ctr_ability() {
 	wp_register_ability(
 		'extrachill/get-bridge-ctr',
 		array(
-			'label'               => __( 'Get Bridge CTR', 'extrachill-analytics' ),
-			'description'         => __( 'Returns the bot-filtered cross-site bridge click-through rate (clicks / impressions) over a window.', 'extrachill-analytics' ),
+			'label'               => __( 'Get Bridge Exposure Report', 'extrachill-analytics' ),
+			'description'         => __( 'Returns bridge clicks and observed viewport exposures under the shipped best-effort delivery contract.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'days'    => array(
+					'days'       => array(
 						'type'        => 'integer',
-						'description' => __( 'Number of days to look back. 0 for all time.', 'extrachill-analytics' ),
+						'description' => __( 'Number of days to look back. 0 for all available history within max_events.', 'extrachill-analytics' ),
 						'default'     => 28,
 					),
-					'blog_id' => array(
+					'blog_id'    => array(
 						'type'        => 'integer',
 						'description' => __( 'Filter to a specific blog ID. 0 for all sites.', 'extrachill-analytics' ),
 						'default'     => 0,
+					),
+					'max_events' => array(
+						'type'        => 'integer',
+						'description' => __( 'Maximum stored bridge rows to aggregate.', 'extrachill-analytics' ),
+						'default'     => 50000,
 					),
 				),
 			),
 			'output_schema'       => array(
 				'type'        => 'object',
-				'description' => __( 'Object with network-total clicks, impressions, ctr, and a per-destination-site breakdown (clicks, impressions, ctr per dest_site).', 'extrachill-analytics' ),
+				'description' => __( 'Bridge clicks, viewport exposure evidence, bounded click-to-observed-exposure ratio, destination aggregates, and coverage diagnostics.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_bridge_ctr',
 			'permission_callback' => function () {
@@ -80,29 +62,107 @@ function extrachill_analytics_register_bridge_ctr_ability() {
 }
 
 /**
+ * Normalize nested event data before building an exact-row signature.
+ *
+ * @param mixed $value Value to normalize.
+ * @return mixed Normalized value.
+ */
+function extrachill_analytics_bridge_signature_value( $value ) {
+	if ( ! is_array( $value ) ) {
+		return $value;
+	}
+
+	foreach ( $value as $key => $item ) {
+		$value[ $key ] = extrachill_analytics_bridge_signature_value( $item );
+	}
+
+	if ( array_keys( $value ) !== range( 0, count( $value ) - 1 ) ) {
+		ksort( $value );
+	}
+
+	return $value;
+}
+
+/**
+ * Build the strongest retry-dedupe signature supported by canonical rows.
+ *
+ * Row IDs are deliberately excluded because an ambiguous retry creates a new
+ * ID. No element or page-load identifier is stored, so this only collapses
+ * otherwise exact rows; it cannot reconstruct exact client opportunities.
+ *
+ * @param object $row Canonical analytics event row.
+ * @param array  $data Decoded event data.
+ * @return string Row signature.
+ */
+function extrachill_analytics_bridge_row_signature( $row, $data ) {
+	$signature = array(
+		'event_type' => isset( $row->event_type ) ? (string) $row->event_type : '',
+		'event_data' => extrachill_analytics_bridge_signature_value( $data ),
+		'source_url' => isset( $row->source_url ) ? (string) $row->source_url : '',
+		'blog_id'    => isset( $row->blog_id ) ? (int) $row->blog_id : 0,
+		'user_id'    => isset( $row->user_id ) ? (int) $row->user_id : 0,
+		'visitor_id' => isset( $row->visitor_id ) ? (string) $row->visitor_id : '',
+		'created_at' => isset( $row->created_at ) ? (string) $row->created_at : '',
+	);
+
+	return hash( 'sha256', wp_json_encode( $signature ) );
+}
+
+/**
+ * Initialize one report aggregate bucket.
+ *
+ * @return array<string,int>
+ */
+function extrachill_analytics_bridge_bucket() {
+	return array(
+		'click_events'             => 0,
+		'viewport_exposure_events' => 0,
+	);
+}
+
+/**
+ * Finalize counts under the lossy exposure contract.
+ *
+ * A stored click proves browser exposure even when its independently delivered
+ * exposure event is missing. The maximum is therefore the smallest honest
+ * observed-exposure denominator supported by the stored aggregate evidence.
+ *
+ * @param array $counts Aggregate event counts.
+ * @return array<string,int|float|null>
+ */
+function extrachill_analytics_bridge_finalize_counts( $counts ) {
+	$clicks          = (int) $counts['click_events'];
+	$exposure_events = (int) $counts['viewport_exposure_events'];
+	$exposures       = max( $exposure_events, $clicks );
+
+	return array(
+		'clicks'                           => $clicks,
+		'viewport_exposure_events'         => $exposure_events,
+		'click_proven_missing_exposures'   => max( 0, $clicks - $exposure_events ),
+		'observed_exposures'               => $exposures,
+		'click_to_observed_exposure_ratio' => $exposures > 0 ? round( $clicks / $exposures, 4 ) : null,
+	);
+}
+
+/**
  * Execute callback for get-bridge-ctr ability.
  *
- * Strategy: pull the in-window `bridge_click` and `bridge_impression` rows
- * through the canonical events query helper (it owns the safe, prepared WHERE
- * building and returns event_data already JSON-decoded) and aggregate in PHP.
- * Both events now carry `dest_site` in event_data, so the same pass produces
- * the network total AND the per-destination-site breakdown. Volume is bounded
- * (these events fire only for humans-with-JS), so a paged fetch + PHP rollup is
- * clearer than GROUP-BY-on-JSON SQL — and it matches get-outbound-clicks.
- *
  * @param array $input Input parameters.
- * @return array CTR summary.
+ * @return array Bridge exposure summary.
  */
 function extrachill_analytics_ability_get_bridge_ctr( $input ) {
-	$days    = isset( $input['days'] ) ? (int) $input['days'] : 28;
-	$blog_id = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
+	$days       = isset( $input['days'] ) ? max( 0, (int) $input['days'] ) : 28;
+	$blog_id    = isset( $input['blog_id'] ) ? max( 0, (int) $input['blog_id'] ) : 0;
+	$max_events = isset( $input['max_events'] ) ? (int) $input['max_events'] : 50000;
+	$max_events = max( 1, min( 100000, $max_events ) );
+	$page_size  = 1000;
 
-	// Pull both bridge events in pages so the whole window is aggregated
-	// without an arbitrary single-query cap. event_data comes back decoded.
 	$query_args = array(
 		'event_type' => array( 'bridge_click', 'bridge_impression' ),
-		'limit'      => 5000,
+		'limit'      => $page_size,
 		'offset'     => 0,
+		'orderby'    => 'id',
+		'order'      => 'DESC',
 	);
 
 	if ( $days > 0 ) {
@@ -113,83 +173,151 @@ function extrachill_analytics_ability_get_bridge_ctr( $input ) {
 		$query_args['blog_id'] = $blog_id;
 	}
 
-	$rows = array();
-	do {
-		$page       = extrachill_get_analytics_events( $query_args );
-		$page_count = count( (array) $page );
+	$raw_counts   = extrachill_analytics_bridge_bucket();
+	$counts       = extrachill_analytics_bridge_bucket();
+	$by_dest      = array();
+	$seen         = array();
+	$loaded       = 0;
+	$duplicates   = 0;
+	$identified   = 0;
+	$anonymous    = 0;
+	$missing_dest = 0;
+	$truncated    = false;
+
+	while ( $loaded <= $max_events ) {
+		$query_args['limit'] = min( $page_size, $max_events + 1 - $loaded );
+		$page                = (array) extrachill_get_analytics_events( $query_args );
+		$page_count          = count( $page );
 		if ( 0 === $page_count ) {
 			break;
 		}
-		$rows                  = array_merge( $rows, $page );
-		$query_args['offset'] += $query_args['limit'];
-	} while ( $page_count === $query_args['limit'] );
 
-	$clicks      = 0;
-	$impressions = 0;
+		foreach ( $page as $row ) {
+			++$loaded;
+			if ( $loaded > $max_events ) {
+				$truncated = true;
+				break 2;
+			}
 
-	// Per-destination accumulators keyed by dest_site.
-	$by_dest = array();
+			$data     = isset( $row->event_data ) && is_array( $row->event_data ) ? $row->event_data : array();
+			$is_click = isset( $row->event_type ) && 'bridge_click' === $row->event_type;
+			$key      = $is_click ? 'click_events' : 'viewport_exposure_events';
+			++$raw_counts[ $key ];
 
-	foreach ( (array) $rows as $row ) {
-		// extrachill_get_analytics_events() returns event_data already decoded.
-		$data      = is_array( $row->event_data ) ? $row->event_data : array();
-		$dest_site = isset( $data['dest_site'] ) ? (string) $data['dest_site'] : '';
-		$is_click  = ( 'bridge_click' === $row->event_type );
+			$signature = extrachill_analytics_bridge_row_signature( $row, $data );
+			if ( isset( $seen[ $signature ] ) ) {
+				++$duplicates;
+				continue;
+			}
+			$seen[ $signature ] = true;
+			++$counts[ $key ];
 
-		if ( $is_click ) {
-			++$clicks;
-		} else {
-			++$impressions;
+			if ( isset( $row->visitor_id ) && '' !== (string) $row->visitor_id ) {
+				++$identified;
+			} else {
+				++$anonymous;
+			}
+
+			$dest_site = isset( $data['dest_site'] ) ? (string) $data['dest_site'] : '';
+			if ( '' === $dest_site ) {
+				++$missing_dest;
+			}
+			if ( ! isset( $by_dest[ $dest_site ] ) ) {
+				$by_dest[ $dest_site ] = extrachill_analytics_bridge_bucket();
+			}
+			++$by_dest[ $dest_site ][ $key ];
 		}
 
-		if ( ! isset( $by_dest[ $dest_site ] ) ) {
-			$by_dest[ $dest_site ] = array(
-				'clicks'      => 0,
-				'impressions' => 0,
-			);
-		}
-
-		if ( $is_click ) {
-			++$by_dest[ $dest_site ]['clicks'];
-		} else {
-			++$by_dest[ $dest_site ]['impressions'];
+		$query_args['offset'] += $page_count;
+		if ( $page_count < $query_args['limit'] ) {
+			break;
 		}
 	}
 
-	// Build the per-destination ranking with a per-dest CTR. dest_site '' means
-	// the event predates the per-card dest_site emit (extrachill-analytics#75)
-	// or carried an untagged card; it is surfaced as '(unknown)' so the legacy
-	// dest-less rows are visible rather than silently dropped.
-	$by_dest_site = array();
-	foreach ( $by_dest as $dest => $counts ) {
-		$dest_clicks      = (int) $counts['clicks'];
-		$dest_impressions = (int) $counts['impressions'];
-		$by_dest_site[]   = array(
-			'dest_site'   => '' === $dest ? '(unknown)' : $dest,
-			'clicks'      => $dest_clicks,
-			'impressions' => $dest_impressions,
-			'ctr'         => $dest_impressions > 0 ? round( $dest_clicks / $dest_impressions, 4 ) : 0.0,
-		);
+	$total        = extrachill_analytics_bridge_finalize_counts( $counts );
+	$deduplicated = $counts['click_events'] + $counts['viewport_exposure_events'];
+	$dest_rows    = array();
+	foreach ( $by_dest as $dest => $dest_counts ) {
+		$row              = extrachill_analytics_bridge_finalize_counts( $dest_counts );
+		$row['dest_site'] = '' === $dest ? '(unknown)' : $dest;
+		if ( '' === $dest ) {
+			$row['click_to_observed_exposure_ratio'] = null;
+		}
+		$row['ctr']         = $row['click_to_observed_exposure_ratio'];
+		$row['impressions'] = $row['observed_exposures'];
+		$dest_rows[]        = $row;
 	}
 
-	// Rank by impressions (the exposure denominator) so the busiest hops lead.
 	usort(
-		$by_dest_site,
+		$dest_rows,
 		static function ( $a, $b ) {
-			return $b['impressions'] <=> $a['impressions'];
+			if ( $a['observed_exposures'] !== $b['observed_exposures'] ) {
+				return $b['observed_exposures'] <=> $a['observed_exposures'];
+			}
+			if ( $a['clicks'] !== $b['clicks'] ) {
+				return $b['clicks'] <=> $a['clicks'];
+			}
+			return strcmp( $a['dest_site'], $b['dest_site'] );
 		}
 	);
 
-	return array(
-		'clicks'       => $clicks,
-		'impressions'  => $impressions,
-		'ctr'          => $impressions > 0 ? round( $clicks / $impressions, 4 ) : 0.0,
-		'by_dest_site' => $by_dest_site,
-		'days'         => $days,
-		'blog_id'      => $blog_id,
-		'period'       => $days > 0
-			? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
-			: 'all time',
-		'note'         => 'Both events fire client-side (sendBeacon) and are humans-with-JS by construction; this CTR is bot-filtered by design, unlike the raw GA4 network_bridge channel. Clicks and impressions now share the per-destination grain (one impression per rendered card carries dest_site as of extrachill-analytics#75), so by_dest_site pairs each destination\'s clicks to its own impressions. dest_site "(unknown)" rows are legacy page-level impressions emitted before the per-card change (or untagged cards); they shrink as new per-card data accumulates.',
+	$destination_status = 'not_observed';
+	if ( $deduplicated > 0 ) {
+		$destination_status = 0 === $missing_dest ? 'measured' : ( $missing_dest === $deduplicated ? 'not_instrumented' : 'partial' );
+	}
+	$identity_status = 'not_observed';
+	if ( $deduplicated > 0 ) {
+		$identity_status = 0 === $anonymous ? 'complete' : ( 0 === $identified ? 'unavailable' : 'partial' );
+	}
+
+	$ratio = $total['click_to_observed_exposure_ratio'];
+
+	return array_merge(
+		$total,
+		array(
+			// Compatibility aliases retain the ability's existing shape while the
+			// explicit fields above define the corrected semantics.
+			'impressions'   => $total['observed_exposures'],
+			'ctr'           => $ratio,
+			'by_dest_site'  => $dest_rows,
+			'stored'        => array(
+				'click_rows'             => $raw_counts['click_events'],
+				'viewport_exposure_rows' => $raw_counts['viewport_exposure_events'],
+			),
+			'dedupe'        => array(
+				'unit'                   => 'exact_canonical_row_fields_except_id',
+				'duplicate_rows_removed' => $duplicates,
+				'limitation'             => 'No page-load or DOM-element identifier is stored. Exact retries can be collapsed, but indistinguishable legitimate opportunities and non-identical ambiguous retries cannot be separated.',
+			),
+			'coverage'      => array(
+				'status'                     => 0 === $deduplicated ? 'not_observed' : ( $truncated ? 'truncated' : 'observed' ),
+				'measurement_contract'       => 0 === $deduplicated ? 'not_observed' : 'historically_mixed_unmarked',
+				'destination_status'         => $destination_status,
+				'rows_missing_dest_site'     => $missing_dest,
+				'identity_status'            => $identity_status,
+				'identified_rows'            => $identified,
+				'anonymous_rows'             => $anonymous,
+				'truncated'                  => $truncated,
+				'loaded_rows'                => min( $loaded, $max_events ),
+				'historical_contract_notice' => 'Stored rows do not carry an instrumentation version. Windows may mix legacy render-opportunity impressions with current 50%-viewport exposure attempts, so the two eras cannot be separated exactly.',
+				'privacy_notice'             => 'GPC/DNT and visitors without a usable first-party cookie remain anonymous. Aggregate exposure evidence is retained, but visitor-level dedupe or attribution is unavailable for those rows.',
+			),
+			'compatibility' => array(
+				'ability' => 'extrachill/get-bridge-ctr',
+				'aliases' => array(
+					'clicks'      => 'deduplicated stored click rows',
+					'impressions' => 'observed_exposures',
+					'ctr'         => 'click_to_observed_exposure_ratio',
+				),
+				'notice'  => 'The legacy ability and keys remain, but impressions and ctr now use the bounded observed-exposure denominator. Use the explicit viewport_exposure_events and click_to_observed_exposure_ratio fields in new consumers.',
+			),
+			'days'          => $days,
+			'blog_id'       => $blog_id,
+			'max_events'    => $max_events,
+			'period'        => $days > 0
+				? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+				: 'all time',
+			'note'          => 'A bridge impression is currently attempted once when an eligible initial link reaches at least 50% viewport visibility; a first click attempts any missing exposure first. Exposure and click persist independently through best-effort beacon/fetch delivery, so stored rows may be missing or duplicated. observed_exposures is the lower-bound aggregate evidence max(viewport_exposure_events, clicks), which prevents impossible ratios without claiming exact per-card reconstruction. JavaScript execution filters non-JS crawlers and inert prefetches, but does not prove human identity or exclude JS-capable automation.',
+		)
 	);
 }
