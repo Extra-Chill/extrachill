@@ -155,6 +155,15 @@ function extrachill_analytics_ability_track_event( $input ) {
 	$source_url = $admission['source_url'];
 	if ( in_array( $event_type, extrachill_analytics_public_browser_event_types(), true ) ) {
 		$visitor_id = function_exists( 'extrachill_analytics_read_visitor_id' ) ? extrachill_analytics_read_visitor_id() : '';
+		if ( function_exists( 'extrachill_analytics_classify_request' ) ) {
+			$verdict              = extrachill_analytics_classify_request(
+				array(
+					'has_visitor_cookie' => '' !== $visitor_id,
+					'request_origin'     => 'web',
+				)
+			);
+			$event_data['is_bot'] = (bool) $verdict['is_bot'];
+		}
 	}
 
 	// Defense-in-depth: if a 'search' event arrives with a payload-shaped term,

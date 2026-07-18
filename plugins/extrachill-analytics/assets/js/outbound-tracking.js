@@ -26,7 +26,7 @@
 	function send( destUrl, destHost ) {
 		var payload = {
 			click_type: 'outbound',
-			source_url: window.location.href,
+			source_url: window.location.origin + window.location.pathname,
 			destination_url: destUrl,
 			dest_host: destHost,
 		};
@@ -79,7 +79,7 @@
 				return;
 			}
 
-			send( url.href, host );
+			send( url.origin + url.pathname, host );
 		},
 		true
 	);
