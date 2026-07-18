@@ -45,15 +45,17 @@ namespace {
 	}
 
 	class ExperimentsCommandTestAbility {
-		public $inputs = array();
+		public $inputs          = array();
+		public $argument_counts = array();
 		private $callback;
 
 		public function __construct( $callback ) {
 			$this->callback = $callback;
 		}
 
-		public function execute( $input ) {
-			$this->inputs[] = $input;
+		public function execute( $input = null ) {
+			$this->argument_counts[] = func_num_args();
+			$this->inputs[]          = $input;
 			return call_user_func( $this->callback, $input );
 		}
 	}
@@ -237,6 +239,7 @@ namespace {
 
 	// List/get machine output retains complete typed definitions and future fields.
 	$command->list_( array(), array( 'format' => 'json' ) );
+	experiments_command_test_assert_same( 0, $list_ability->argument_counts[0], 'List must omit input for an Ability without an input schema.' );
 	experiments_command_test_assert_same( $experiments_command_test_definitions, WP_CLI::$printed[0]['value'], 'List JSON must preserve every owner definition.' );
 	experiments_command_test_assert_same( 3, WP_CLI::$printed[0]['value'][0]['definition_version'], 'List JSON versions must remain integers.' );
 	experiments_command_test_assert_same( true, WP_CLI::$printed[0]['value'][0]['future_definition']['typed'], 'List JSON future booleans must remain typed.' );

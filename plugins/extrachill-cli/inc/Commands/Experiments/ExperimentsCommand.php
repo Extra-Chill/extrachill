@@ -49,7 +49,7 @@ class ExperimentsCommand {
 	 * @when after_wp_load
 	 */
 	public function list_( $args, $assoc_args ) {
-		$result = $this->execute( 'extrachill/list-experiments', array(), 'Extra Chill Network' );
+		$result = $this->execute( 'extrachill/list-experiments', null, 'Extra Chill Network' );
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
@@ -278,12 +278,12 @@ class ExperimentsCommand {
 	}
 
 	/** Execute one owner ability and preserve its error message. */
-	private function execute( $name, array $input, $owner ) {
+	private function execute( $name, $input, $owner ) {
 		$ability = wp_get_ability( $name );
 		if ( ! $ability ) {
 			WP_CLI::error( sprintf( '%s ability not found. Is %s active and up to date?', $name, $owner ) );
 		}
-		$result = $ability->execute( $input );
+		$result = null === $input ? $ability->execute() : $ability->execute( $input );
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
 		}
@@ -292,7 +292,7 @@ class ExperimentsCommand {
 
 	/** Find one complete definition envelope through Network's list ability. */
 	private function definition( $key ) {
-		foreach ( $this->execute( 'extrachill/list-experiments', array(), 'Extra Chill Network' ) as $definition ) {
+		foreach ( $this->execute( 'extrachill/list-experiments', null, 'Extra Chill Network' ) as $definition ) {
 			if ( (string) ( $definition['key'] ?? '' ) === (string) $key ) {
 				return $definition;
 			}
