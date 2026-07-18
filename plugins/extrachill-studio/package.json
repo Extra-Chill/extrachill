@@ -5,6 +5,7 @@
 	"private": true,
 	"scripts": {
 		"build": "wp-scripts build && cp src/blocks/studio/style.css build/blocks/studio/",
+		"test:unit": "wp-scripts test-unit-js",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {

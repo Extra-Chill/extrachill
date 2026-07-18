@@ -11,6 +11,8 @@ import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrac
 import type { StudioPaneProps } from '../../types/studio';
 import { markComposeRequest, registerComposeInstance } from './cross-site-middleware';
 import { installChatRefreshAdapter } from './refresh-adapter';
+import { openComposePreview } from './preview';
+import type { AutosavePreviewResponse, ComposeSnapshot } from './preview';
 
 /**
  * apiFetch wrapper that tags a request as Compose-pane-originated so the
@@ -101,6 +103,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 
 	const [ title, setTitle ] = useState( '' );
 	const [ isSubmitting, setIsSubmitting ] = useState( false );
+	const [ isPreviewing, setIsPreviewing ] = useState( false );
 	const [ isSwitching, setIsSwitching ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
@@ -118,6 +121,8 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	const isAutosavingRef = useRef( false );
 	const inFlightPromiseRef = useRef< Promise< void > | null >( null );
 	const pendingRerunRef = useRef( false );
+	const isPreviewingRef = useRef( false );
+	const manualSavePromiseRef = useRef< Promise< void > | null >( null );
 	const consecutiveFailuresRef = useRef( 0 );
 	const autosaveErrorActiveRef = useRef( false );
 	// Set while an external-edit refresh is applying (Roadie accept → BE
@@ -488,6 +493,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	}, [ flushCurrentDraft, scheduleClientContextUpdate ] );
 
 	const startNew = useCallback( async (): Promise< void > => {
+		if ( isPreviewingRef.current ) {
+			return;
+		}
 		await switchToDraft( null );
 	}, [ switchToDraft ] );
 
@@ -503,6 +511,13 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		// NOT set pendingRerunRef: the refresh's onRefreshed makes the editor
 		// the new baseline, so there is nothing stale left to flush afterward.
 		if ( isRefreshingRef.current ) {
+			return;
+		}
+
+		// Preview owns a complete live snapshot write. Queue normal autosave so
+		// it cannot race the preview autosave or duplicate a first draft create.
+		if ( isPreviewingRef.current ) {
+			pendingRerunRef.current = true;
 			return;
 		}
 
@@ -833,7 +848,90 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		};
 	}, [ restNonce ] );
 
+	const previewPost = async (): Promise< void > => {
+		// This ref changes synchronously, unlike button disabled state, so a fast
+		// double click cannot create two first drafts or two preview writes.
+		if ( isPreviewingRef.current ) {
+			return;
+		}
+
+		isPreviewingRef.current = true;
+		setIsPreviewing( true );
+		setError( '' );
+		setStatus( __( 'Preparing preview…', 'extrachill-studio' ) );
+
+		try {
+			const result = await openComposePreview( {
+				openWindow: () => window.open( '', 'ec-studio-compose-preview' ),
+				cancelPendingSave: () => {
+					if ( autosaveTimerRef.current ) {
+						clearTimeout( autosaveTimerRef.current );
+						autosaveTimerRef.current = null;
+					}
+				},
+				waitForPendingSaves: async () => {
+					// An autosave can schedule one trailing rerun in its finally block.
+					// Drain the live refs until both write paths are quiescent.
+					while ( inFlightPromiseRef.current || manualSavePromiseRef.current ) {
+						await ( inFlightPromiseRef.current || manualSavePromiseRef.current );
+					}
+				},
+				getSnapshot: (): ComposeSnapshot => ( {
+					title: titleRef.current.trim(),
+					content: getContent().trim(),
+				} ),
+				getParentId: () => activePostIdRef.current,
+				createDraft: async ( snapshot ) => {
+					const post = await composeApiFetch< WpPost >( {
+						path: '/wp/v2/posts',
+						method: 'POST',
+						data: { ...snapshot, status: 'draft' },
+					} );
+					return post.id;
+				},
+				setParentId: ( postId ) => {
+					activePostIdRef.current = postId;
+					setActivePostId( postId );
+				},
+				createAutosave: ( postId, snapshot ) => composeApiFetch< AutosavePreviewResponse >( {
+					path: `/wp/v2/posts/${ postId }/autosaves`,
+					method: 'POST',
+					data: snapshot,
+				} ),
+			} );
+
+			const savedPayload = JSON.stringify( result.snapshot );
+			const currentPayload = JSON.stringify( {
+				title: titleRef.current.trim(),
+				content: getContent().trim(),
+			} );
+			lastSavedPayloadRef.current = savedPayload;
+			setHasUnsavedChanges( currentPayload !== savedPayload );
+			if ( currentPayload !== savedPayload ) {
+				pendingRerunRef.current = true;
+			}
+			setStatus( __( 'Preview opened in a new tab.', 'extrachill-studio' ) );
+		} catch ( previewError ) {
+			setStatus( '' );
+			setError(
+				( previewError as Error )?.message ||
+				__( 'Failed to open the post preview. Try again.', 'extrachill-studio' )
+			);
+		} finally {
+			isPreviewingRef.current = false;
+			setIsPreviewing( false );
+			if ( pendingRerunRef.current ) {
+				pendingRerunRef.current = false;
+				performAutosave();
+			}
+		}
+	};
+
 	const submitForReview = async (): Promise< void > => {
+		if ( isPreviewingRef.current ) {
+			return;
+		}
+
 		const content = getContent();
 
 		if ( ! title.trim() ) {
@@ -888,9 +986,14 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	};
 
 	const saveDraft = async (): Promise< void > => {
-		const content = getContent();
+		if ( isPreviewingRef.current ) {
+			return;
+		}
 
-		if ( ! title.trim() && ! content.trim() ) {
+		const content = getContent();
+		const currentTitle = titleRef.current.trim();
+
+		if ( ! currentTitle && ! content.trim() ) {
 			setError( __( 'Add a title or content before saving.', 'extrachill-studio' ) );
 			setStatus( '' );
 			return;
@@ -905,34 +1008,45 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		setError( '' );
 		setStatus( __( 'Saving…', 'extrachill-studio' ) );
 
-		try {
-			const path = activePostId ? `/wp/v2/posts/${ activePostId }` : '/wp/v2/posts';
-			const post = await composeApiFetch< WpPost >( {
-				path,
-				method: 'POST',
-				data: { title: title.trim(), content, status: 'draft' },
-			} );
+		const operation = ( async (): Promise< void > => {
+			try {
+				const postId = activePostIdRef.current;
+				const path = postId ? `/wp/v2/posts/${ postId }` : '/wp/v2/posts';
+				const post = await composeApiFetch< WpPost >( {
+					path,
+					method: 'POST',
+					data: { title: currentTitle, content, status: 'draft' },
+				} );
 
-			activePostIdRef.current = post.id;
-			titleRef.current = title.trim();
-			contentSnapshotRef.current = content;
-			setActivePostId( post.id );
-			lastSavedPayloadRef.current = JSON.stringify( { title: title.trim(), content } );
-			setHasUnsavedChanges( false );
-			setStatus( __( 'Draft saved.', 'extrachill-studio' ) );
+				activePostIdRef.current = post.id;
+				titleRef.current = currentTitle;
+				contentSnapshotRef.current = content;
+				setActivePostId( post.id );
+				lastSavedPayloadRef.current = JSON.stringify( { title: currentTitle, content } );
+				setHasUnsavedChanges( false );
+				setStatus( __( 'Draft saved.', 'extrachill-studio' ) );
 
-			const refreshed = await loadDrafts();
-			setDrafts( refreshed );
-			scheduleClientContextUpdate();
-		} catch ( saveError ) {
-			setStatus( '' );
-			setError( ( saveError as Error )?.message || __( 'Failed to save draft.', 'extrachill-studio' ) );
-		} finally {
-			setIsSubmitting( false );
-		}
+				const refreshed = await loadDrafts();
+				setDrafts( refreshed );
+				scheduleClientContextUpdate();
+			} catch ( saveError ) {
+				setStatus( '' );
+				setError( ( saveError as Error )?.message || __( 'Failed to save draft.', 'extrachill-studio' ) );
+			} finally {
+				setIsSubmitting( false );
+				manualSavePromiseRef.current = null;
+			}
+		} )();
+
+		manualSavePromiseRef.current = operation;
+		await operation;
 	};
 
 	const onDraftSelect = async ( e: ChangeEvent< HTMLSelectElement > ): Promise< void > => {
+		if ( isPreviewingRef.current ) {
+			return;
+		}
+
 		const value = e.target.value;
 
 		// "New draft" selected.
@@ -974,7 +1088,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			className: 'ec-studio-compose-draft-picker',
 			value: activePostId || 'new',
 			onChange: onDraftSelect,
-			disabled: isLoadingDrafts || isSwitching,
+			disabled: isLoadingDrafts || isSwitching || isPreviewing,
 		},
 		createElement(
 			'option',
@@ -1016,7 +1130,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 									type: 'button',
 									className: 'button-1 button-small',
 									onClick: startNew,
-									disabled: isSubmitting || isSwitching || ! activePostId,
+									disabled: isSubmitting || isSwitching || isPreviewing || ! activePostId,
 								},
 								__( 'New', 'extrachill-studio' )
 							),
@@ -1058,26 +1172,37 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					createElement(
 						'button',
 						{
-						type: 'button',
-						className: 'button-1 button-medium',
-						onClick: submitForReview,
-						disabled: isSubmitting || isSwitching || ! editorReady,
-					},
-					isSubmitting ? __( 'Submitting…', 'extrachill-studio' ) : __( 'Submit for Review', 'extrachill-studio' )
-				),
-				createElement(
-					'button',
-					{
-						type: 'button',
-						className: 'button-1 button-medium button-secondary',
-						onClick: saveDraft,
-						disabled: isSubmitting || isSwitching || ! editorReady,
-					},
-					isSubmitting ? __( 'Saving…', 'extrachill-studio' ) : (
-						activePostId
-							? __( 'Update Draft', 'extrachill-studio' )
-							: __( 'Save Draft', 'extrachill-studio' )
-					)
+							type: 'button',
+							className: 'button-1 button-medium',
+							onClick: submitForReview,
+							disabled: isSubmitting || isSwitching || isPreviewing || ! editorReady,
+						},
+						isSubmitting ? __( 'Submitting…', 'extrachill-studio' ) : __( 'Submit for Review', 'extrachill-studio' )
+					),
+					createElement(
+						'button',
+						{
+							type: 'button',
+							className: 'button-1 button-medium button-secondary',
+							onClick: previewPost,
+							disabled: isSubmitting || isSwitching || isPreviewing || ! editorReady,
+							'aria-label': __( 'Preview post on extrachill.com in a new tab', 'extrachill-studio' ),
+						},
+						isPreviewing ? __( 'Preparing Preview…', 'extrachill-studio' ) : __( 'Preview in New Tab', 'extrachill-studio' )
+					),
+					createElement(
+						'button',
+						{
+							type: 'button',
+							className: 'button-1 button-medium button-secondary',
+							onClick: saveDraft,
+							disabled: isSubmitting || isSwitching || isPreviewing || ! editorReady,
+						},
+						isSubmitting ? __( 'Saving…', 'extrachill-studio' ) : (
+							activePostId
+								? __( 'Update Draft', 'extrachill-studio' )
+								: __( 'Save Draft', 'extrachill-studio' )
+						)
 					)
 				)
 			),
