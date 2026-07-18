@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.0] - 2026-07-18
+
+### Added
+- add real Compose post preview
+
+### Fixed
+- clear Compose REST lint error
+
 ## [0.23.0] - 2026-07-15
 
 ### Added
