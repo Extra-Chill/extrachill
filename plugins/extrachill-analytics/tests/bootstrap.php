@@ -228,15 +228,36 @@ if ( ! function_exists( 'extrachill_get_analytics_events' ) ) {
 	 * @return array<object> Fixture event rows.
 	 */
 	function extrachill_get_analytics_events( $args = array() ) {
+		if ( isset( $GLOBALS['extrachill_analytics_bridge_fixture_rows'] ) ) {
+			$GLOBALS['extrachill_analytics_bridge_query_args'][] = $args;
+			$rows = $GLOBALS['extrachill_analytics_bridge_fixture_rows'];
+			if ( ! empty( $args['before_id'] ) ) {
+				$rows = array_values(
+					array_filter(
+						$rows,
+						static function ( $row ) use ( $args ) {
+							return (int) $row->id < (int) $args['before_id'];
+						}
+					)
+				);
+			}
+			if ( isset( $args['orderby'], $args['order'] ) && 'id' === $args['orderby'] && 'DESC' === $args['order'] ) {
+				usort(
+					$rows,
+					static function ( $a, $b ) {
+						return (int) $b->id <=> (int) $a->id;
+					}
+				);
+			}
+
+			return array_slice( $rows, 0, isset( $args['limit'] ) ? (int) $args['limit'] : 100 );
+		}
+
 		$offset = isset( $args['offset'] ) ? (int) $args['offset'] : 0;
 		$limit  = isset( $args['limit'] ) ? (int) $args['limit'] : 100;
-		if ( isset( $GLOBALS['extrachill_analytics_bridge_fixture_rows'] ) ) {
-			$rows = $GLOBALS['extrachill_analytics_bridge_fixture_rows'];
-		} else {
-			$rows = isset( $GLOBALS['extrachill_analytics_outbound_fixture_rows'] )
-				? $GLOBALS['extrachill_analytics_outbound_fixture_rows']
-				: array();
-		}
+		$rows   = isset( $GLOBALS['extrachill_analytics_outbound_fixture_rows'] )
+			? $GLOBALS['extrachill_analytics_outbound_fixture_rows']
+			: array();
 
 		return array_slice( $rows, $offset, $limit );
 	}

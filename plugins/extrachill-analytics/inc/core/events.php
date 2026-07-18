@@ -126,6 +126,7 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
  *                    - date_from (string): Start date (Y-m-d format).
  *                    - date_to (string): End date (Y-m-d format).
  *                    - search (string): Search within event_data JSON.
+ *                    - before_id (int): Return rows with IDs below this cursor.
  *                    - limit (int): Number of results (default 100).
  *                    - offset (int): Offset for pagination.
  *                    - orderby (string): Column to order by (default 'created_at').
@@ -142,6 +143,7 @@ function extrachill_get_analytics_events( $args = array() ) {
 		'date_from'  => '',
 		'date_to'    => '',
 		'search'     => '',
+		'before_id'  => 0,
 		'limit'      => 100,
 		'offset'     => 0,
 		'orderby'    => 'created_at',
@@ -189,6 +191,11 @@ function extrachill_get_analytics_events( $args = array() ) {
 		$values[] = '%' . $wpdb->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
 	}
 
+	if ( ! empty( $args['before_id'] ) ) {
+		$where[]  = 'id < %d';
+		$values[] = absint( $args['before_id'] );
+	}
+
 	$where_clause = implode( ' AND ', $where );
 
 	$allowed_orderby = array( 'id', 'event_type', 'blog_id', 'user_id', 'created_at' );
@@ -203,15 +210,20 @@ function extrachill_get_analytics_events( $args = array() ) {
 	// whitelisted through in_array() and $order is hard-coded ASC/DESC. No
 	// request input reaches the query unprepared.
 	// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	$sql = "SELECT * FROM {$table_name} WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
-
-	$values[] = $limit;
-	$values[] = $offset;
-
-	if ( count( $values ) > 2 ) {
-		$query = $wpdb->prepare( $sql, $values );
+	if ( ! empty( $args['before_id'] ) ) {
+		$sql      = "SELECT * FROM {$table_name} WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d";
+		$values[] = $limit;
+		$query    = $wpdb->prepare( $sql, $values );
 	} else {
-		$query = $wpdb->prepare( $sql, $limit, $offset );
+		$sql      = "SELECT * FROM {$table_name} WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
+		$values[] = $limit;
+		$values[] = $offset;
+
+		if ( count( $values ) > 2 ) {
+			$query = $wpdb->prepare( $sql, $values );
+		} else {
+			$query = $wpdb->prepare( $sql, $limit, $offset );
+		}
 	}
 
 	$results = $wpdb->get_results( $query );
