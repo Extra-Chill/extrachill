@@ -133,7 +133,7 @@ function extrachill_community_publish_discussion_composer_contract() {
 	update_option( $option, $contract, false );
 	return true;
 }
-add_action( 'plugins_loaded', 'extrachill_community_publish_discussion_composer_contract', 20 );
+add_action( 'init', 'extrachill_community_publish_discussion_composer_contract', 20 );
 
 /**
  * Resolve a valid entity continuation from composer query state.

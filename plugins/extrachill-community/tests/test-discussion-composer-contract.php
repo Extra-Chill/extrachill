@@ -88,23 +88,30 @@ $picker_taxonomies = array_column( extrachill_community_term_picker_taxonomies()
 check( 'contract is absent before initial publication', null === get_option( $option, null ) );
 check( 'marker taxonomies exactly match the composer taxonomy source', $picker_taxonomies === $contract['supported_taxonomies'] );
 check(
-	'publisher is registered on plugins_loaded at priority 20',
-	in_array( 'extrachill_community_publish_discussion_composer_contract', $GLOBALS['_test_actions']['plugins_loaded'][20] ?? array(), true )
+	'publisher is not registered before init',
+	! in_array( 'extrachill_community_publish_discussion_composer_contract', $GLOBALS['_test_actions']['plugins_loaded'][20] ?? array(), true )
+);
+check(
+	'publisher is registered on init at priority 20',
+	in_array( 'extrachill_community_publish_discussion_composer_contract', $GLOBALS['_test_actions']['init'][20] ?? array(), true )
 );
 
 run_test_action( 'plugins_loaded' );
-check( 'initial plugins_loaded lifecycle publishes the contract', $contract === get_option( $option ) );
+check( 'plugins_loaded does not publish the contract before translations are safe', null === get_option( $option, null ) );
+
+run_test_action( 'init' );
+check( 'initial init lifecycle publishes the contract', $contract === get_option( $option ) );
 check( 'published option exactly matches the live definition', $contract === get_option( $option ) );
 check( 'initial publication performs one option write', 1 === $GLOBALS['_test_option_updates'] );
 
-run_test_action( 'plugins_loaded' );
+run_test_action( 'init' );
 check( 'idempotent publication performs no additional write', 1 === $GLOBALS['_test_option_updates'] );
 
 $GLOBALS['_test_options'][ $option ] = array(
 	'schema_version' => 0,
 );
-run_test_action( 'plugins_loaded' );
-check( 'plugins_loaded lifecycle upgrades the old contract version', $contract === get_option( $option ) );
+run_test_action( 'init' );
+check( 'init lifecycle upgrades the old contract version', $contract === get_option( $option ) );
 check( 'upgrade stores the complete current contract', $contract === get_option( $option ) );
 check( 'upgrade performs exactly one additional write', 2 === $GLOBALS['_test_option_updates'] );
 
