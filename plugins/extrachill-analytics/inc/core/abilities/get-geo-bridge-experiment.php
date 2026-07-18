@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once dirname( __DIR__ ) . '/experiment-reporting.php';
+
 /**
  * Register the one approved contextual-bridge experiment report.
  */
@@ -118,65 +120,7 @@ function extrachill_analytics_geo_bridge_event_types() {
  * @return array{rows:array,truncated:bool}
  */
 function extrachill_analytics_geo_bridge_read_events( $event_types, $since, $as_of, $max_events ) {
-	global $wpdb;
-
-	$table        = extrachill_analytics_events_table();
-	$page_size    = 500;
-	$rows         = array();
-	$cursor_time  = null;
-	$cursor_id    = 0;
-	$placeholders = implode( ', ', array_fill( 0, count( $event_types ), '%s' ) );
-
-	do {
-		$remaining = $max_events + 1 - count( $rows );
-		if ( $remaining <= 0 ) {
-			break;
-		}
-		$limit  = min( $page_size, $remaining );
-		$where  = array(
-			"event_type IN ({$placeholders})",
-			'created_at >= %s',
-			'created_at <= %s',
-		);
-		$values = array_merge( array_map( 'sanitize_key', $event_types ), array( $since, $as_of ) );
-		if ( null !== $cursor_time ) {
-			$where[]  = '(created_at > %s OR (created_at = %s AND id > %d))';
-			$values[] = $cursor_time;
-			$values[] = $cursor_time;
-			$values[] = $cursor_id;
-		}
-		$values[]     = $limit;
-		$where_clause = implode( ' AND ', $where );
-
-		// phpcs:disable WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery -- Bounded report; identifiers are code-defined and values are prepared.
-		$sql  = "SELECT id, event_type, event_data, source_url, blog_id, user_id, visitor_id, created_at, UNIX_TIMESTAMP(created_at) AS ts
-			FROM {$table}
-			WHERE {$where_clause}
-			ORDER BY created_at ASC, id ASC
-			LIMIT %d";
-		$page = (array) $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
-		// phpcs:enable WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery
-
-		if ( empty( $page ) ) {
-			break;
-		}
-		$rows        = array_merge( $rows, $page );
-		$page_count  = count( $page );
-		$last        = end( $page );
-		$cursor_time = (string) $last->created_at;
-		$cursor_id   = (int) $last->id;
-		$row_count   = count( $rows );
-	} while ( $page_count === $limit && $row_count <= $max_events );
-
-	$truncated = count( $rows ) > $max_events;
-	if ( $truncated ) {
-		array_pop( $rows );
-	}
-
-	return array(
-		'rows'      => $rows,
-		'truncated' => $truncated,
-	);
+	return extrachill_analytics_experiment_read_events( $event_types, $since, $as_of, $max_events );
 }
 
 /**
@@ -186,23 +130,7 @@ function extrachill_analytics_geo_bridge_read_events( $event_types, $since, $as_
  * @return array Normalized event.
  */
 function extrachill_analytics_geo_bridge_normalize_event( $row ) {
-	$row  = (array) $row;
-	$data = $row['event_data'] ?? array();
-	if ( is_string( $data ) ) {
-		$data = json_decode( $data, true );
-	}
-	$data = is_array( $data ) ? $data : array();
-	$ts   = isset( $row['ts'] ) ? (int) $row['ts'] : strtotime( (string) ( $row['created_at'] ?? '' ) . ' UTC' );
-
-	return array(
-		'id'         => (int) ( $row['id'] ?? 0 ),
-		'event_type' => (string) ( $row['event_type'] ?? '' ),
-		'event_data' => $data,
-		'blog_id'    => (int) ( $row['blog_id'] ?? 0 ),
-		'user_id'    => (int) ( $row['user_id'] ?? 0 ),
-		'visitor_id' => trim( (string) ( $row['visitor_id'] ?? '' ) ),
-		'ts'         => max( 0, (int) $ts ),
-	);
+	return extrachill_analytics_experiment_normalize_event( $row );
 }
 
 /**
@@ -212,7 +140,7 @@ function extrachill_analytics_geo_bridge_normalize_event( $row ) {
  * @return int Positive user ID or zero.
  */
 function extrachill_analytics_geo_bridge_event_user_id( $event ) {
-	return (int) ( $event['event_data']['user_id'] ?? $event['user_id'] ?? 0 );
+	return extrachill_analytics_experiment_event_user_id( $event );
 }
 
 /**
@@ -223,18 +151,7 @@ function extrachill_analytics_geo_bridge_event_user_id( $event ) {
  * @return string Person key, or empty when unidentified.
  */
 function extrachill_analytics_geo_bridge_person_key( $event, $visitor_to_user ) {
-	$user_id = extrachill_analytics_geo_bridge_event_user_id( $event );
-	if ( $user_id > 0 ) {
-		return 'user:' . $user_id;
-	}
-	$visitor_id = (string) $event['visitor_id'];
-	if ( '' === $visitor_id ) {
-		return '';
-	}
-	if ( isset( $visitor_to_user[ $visitor_id ] ) ) {
-		return 'user:' . (int) $visitor_to_user[ $visitor_id ];
-	}
-	return 'visitor:' . $visitor_id;
+	return extrachill_analytics_experiment_person_key( $event, $visitor_to_user );
 }
 
 /**
@@ -245,8 +162,7 @@ function extrachill_analytics_geo_bridge_person_key( $event, $visitor_to_user ) 
  * @return bool Whether event is strictly later.
  */
 function extrachill_analytics_geo_bridge_is_after( $event, $anchor ) {
-	return (int) $event['ts'] > (int) $anchor['ts']
-		|| ( (int) $event['ts'] === (int) $anchor['ts'] && (int) $event['id'] > (int) $anchor['id'] );
+	return extrachill_analytics_experiment_is_after( $event, $anchor );
 }
 
 /**

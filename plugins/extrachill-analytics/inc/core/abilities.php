@@ -31,6 +31,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_demand_drill
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_conversion_map_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_route_transitions_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_geo_bridge_experiment_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_experiment_summary_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_crosslink_targets_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_stickiness_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_activation_funnel_ability' );
@@ -133,6 +134,13 @@ function extrachill_analytics_ability_track_event( $input ) {
 			'invalid_event_type',
 			__( 'Event type must use its canonical lowercase identifier.', 'extrachill-analytics' ),
 			array( 'status' => 400 )
+		);
+	}
+	if ( in_array( $event_type, array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE ), true ) ) {
+		return new WP_Error(
+			'protected_event_type',
+			__( 'Experiment events are accepted only from trusted server hooks.', 'extrachill-analytics' ),
+			array( 'status' => 403 )
 		);
 	}
 	$event_data = isset( $input['event_data'] ) ? $input['event_data'] : array();

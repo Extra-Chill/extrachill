@@ -58,28 +58,33 @@ add_filter( 'extrachill_experiment_measurement_eligible', 'extrachill_analytics_
  * Network fires the assignment hook only after a measured assignment resolves,
  * and the exposure hook only after re-validating the browser's 50%-viewport
  * signal against that assignment. This callback accepts no browser request and
- * persists only the three bounded scalar dimensions supplied by those hooks.
+ * persists only the five bounded scalar dimensions supplied by those hooks.
  *
  * @param string $event_type Canonical assignment or exposure event name.
  * @param array  $metadata   Network-validated experiment metadata.
  * @return int|false Event ID, or false when the contract/privacy check fails.
  */
 function extrachill_analytics_record_experiment_event( $event_type, $metadata ) {
-	if ( ! is_array( $metadata ) || array( 'experiment_key', 'variant', 'surface' ) !== array_keys( $metadata ) ) {
+	$fields = array( 'experiment_key', 'definition_version', 'assignment_policy', 'variant', 'surface' );
+	if ( ! is_array( $metadata ) || array_keys( $metadata ) !== $fields ) {
 		return false;
 	}
 
-	$experiment_key = $metadata['experiment_key'];
-	$variant        = $metadata['variant'];
-	$surface        = $metadata['surface'];
+	$experiment_key     = $metadata['experiment_key'];
+	$definition_version = $metadata['definition_version'];
+	$assignment_policy  = $metadata['assignment_policy'];
+	$variant            = $metadata['variant'];
+	$surface            = $metadata['surface'];
 	if (
 		! in_array( $event_type, array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE ), true )
-		|| ! is_string( $experiment_key )
-		|| ! is_string( $variant )
-		|| ! is_string( $surface )
-		|| EC_ANALYTICS_EXPERIMENT_GEO_BRIDGE_HOLDOUT !== $experiment_key
-		|| EC_ANALYTICS_EXPERIMENT_SURFACE_SINGLE_POST_BRIDGE !== $surface
-		|| ! in_array( $variant, EC_ANALYTICS_EXPERIMENT_VARIANTS, true )
+		|| ! function_exists( 'extrachill_analytics_experiment_identifier_is_valid' )
+		|| ! extrachill_analytics_experiment_identifier_is_valid( $experiment_key )
+		|| ! is_int( $definition_version )
+		|| $definition_version <= 0
+		|| $definition_version > 1000000
+		|| ! extrachill_analytics_experiment_identifier_is_valid( $assignment_policy )
+		|| ! extrachill_analytics_experiment_identifier_is_valid( $variant )
+		|| ! extrachill_analytics_experiment_identifier_is_valid( $surface )
 		|| ( function_exists( 'extrachill_analytics_visitor_opted_out' ) && extrachill_analytics_visitor_opted_out() )
 	) {
 		return false;

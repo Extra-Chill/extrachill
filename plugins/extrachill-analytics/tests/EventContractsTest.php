@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__ ) . '/inc/core/event-types.php';
 require_once dirname( __DIR__ ) . '/inc/core/assets.php';
+require_once dirname( __DIR__ ) . '/inc/core/experiment-reporting.php';
 require_once dirname( __DIR__ ) . '/inc/core/experiment-integration.php';
 require_once dirname( __DIR__ ) . '/inc/core/write-integrity.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities.php';
@@ -62,6 +63,20 @@ final class EventContractsTest extends TestCase {
 	public function test_experiment_events_are_not_public_browser_events(): void {
 		$this->assertNotContains( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, extrachill_analytics_public_browser_event_types() );
 		$this->assertNotContains( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, extrachill_analytics_public_browser_event_types() );
+		$result = extrachill_analytics_ability_track_event(
+			array(
+				'event_type' => EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT,
+				'event_data' => array(
+					'experiment_key'     => 'copy-test',
+					'definition_version' => 1,
+					'assignment_policy'  => 'weighted_random',
+					'variant'            => 'control',
+					'surface'            => 'hero',
+				),
+			)
+		);
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'protected_event_type', $result->code );
 	}
 
 	/**
@@ -119,16 +134,20 @@ final class EventContractsTest extends TestCase {
 	public function test_network_hooks_persist_exact_assignment_and_exposure_payloads(): void {
 		extrachill_analytics_record_experiment_assignment(
 			array(
-				'experiment_key' => 'geo-bridge-holdout',
-				'variant'        => 'control',
-				'surface'        => 'single-post-bridge',
+				'experiment_key'     => 'geo-bridge-holdout',
+				'definition_version' => 1,
+				'assignment_policy'  => 'weighted_random',
+				'variant'            => 'control',
+				'surface'            => 'single-post-bridge',
 			)
 		);
 		extrachill_analytics_record_experiment_exposure(
 			array(
-				'experiment_key' => 'geo-bridge-holdout',
-				'variant'        => 'treatment',
-				'surface'        => 'single-post-bridge',
+				'experiment_key'     => 'artist-cta-copy',
+				'definition_version' => 3,
+				'assignment_policy'  => 'weighted_random',
+				'variant'            => 'challenger-b',
+				'surface'            => 'artist-link-page',
 			)
 		);
 
@@ -137,13 +156,15 @@ final class EventContractsTest extends TestCase {
 		$this->assertSame( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, $GLOBALS['extrachill_analytics_test_events'][1][0] );
 		$this->assertSame(
 			array(
-				'experiment_key' => 'geo-bridge-holdout',
-				'variant'        => 'control',
-				'surface'        => 'single-post-bridge',
+				'experiment_key'     => 'geo-bridge-holdout',
+				'definition_version' => 1,
+				'assignment_policy'  => 'weighted_random',
+				'variant'            => 'control',
+				'surface'            => 'single-post-bridge',
 			),
 			$GLOBALS['extrachill_analytics_test_events'][0][1]
 		);
-		$this->assertSame( array( 'experiment_key', 'variant', 'surface' ), array_keys( $GLOBALS['extrachill_analytics_test_events'][1][1] ) );
+		$this->assertSame( array( 'experiment_key', 'definition_version', 'assignment_policy', 'variant', 'surface' ), array_keys( $GLOBALS['extrachill_analytics_test_events'][1][1] ) );
 	}
 
 	/**
@@ -174,10 +195,12 @@ final class EventContractsTest extends TestCase {
 			extrachill_analytics_record_experiment_event(
 				EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT,
 				array(
-					'experiment_key' => 'geo-bridge-holdout',
-					'variant'        => 'control',
-					'surface'        => 'single-post-bridge',
-					'extra'          => 'rejected',
+					'experiment_key'     => 'geo-bridge-holdout',
+					'definition_version' => 1,
+					'assignment_policy'  => 'weighted_random',
+					'variant'            => 'control',
+					'surface'            => 'single-post-bridge',
+					'extra'              => 'rejected',
 				)
 			)
 		);
@@ -186,14 +209,16 @@ final class EventContractsTest extends TestCase {
 	/**
 	 * The persistence listener rejects drift and privacy exclusion.
 	 */
-	public function test_experiment_listener_rejects_unregistered_contract_values(): void {
+	public function test_experiment_listener_rejects_unbounded_contract_values(): void {
 		$this->assertFalse(
 			extrachill_analytics_record_experiment_event(
 				EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT,
 				array(
-					'experiment_key' => 'other',
-					'variant'        => 'control',
-					'surface'        => 'single-post-bridge',
+					'experiment_key'     => 'invalid key',
+					'definition_version' => 1,
+					'assignment_policy'  => 'weighted_random',
+					'variant'            => 'control',
+					'surface'            => 'single-post-bridge',
 				)
 			)
 		);
@@ -201,9 +226,11 @@ final class EventContractsTest extends TestCase {
 			extrachill_analytics_record_experiment_event(
 				EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT,
 				array(
-					'experiment_key' => 'geo-bridge-holdout',
-					'variant'        => 'challenger',
-					'surface'        => 'single-post-bridge',
+					'experiment_key'     => 'geo-bridge-holdout',
+					'definition_version' => 0,
+					'assignment_policy'  => 'weighted_random',
+					'variant'            => 'challenger',
+					'surface'            => 'single-post-bridge',
 				)
 			)
 		);
@@ -211,9 +238,11 @@ final class EventContractsTest extends TestCase {
 			extrachill_analytics_record_experiment_event(
 				EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE,
 				array(
-					'experiment_key' => 'geo-bridge-holdout',
-					'variant'        => 'treatment',
-					'surface'        => 'other',
+					'experiment_key'     => 'geo-bridge-holdout',
+					'definition_version' => 1,
+					'assignment_policy'  => str_repeat( 'x', 65 ),
+					'variant'            => 'treatment',
+					'surface'            => 'other',
 				)
 			)
 		);
@@ -223,9 +252,11 @@ final class EventContractsTest extends TestCase {
 			extrachill_analytics_record_experiment_event(
 				EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE,
 				array(
-					'experiment_key' => 'geo-bridge-holdout',
-					'variant'        => 'treatment',
-					'surface'        => 'single-post-bridge',
+					'experiment_key'     => 'geo-bridge-holdout',
+					'definition_version' => 1,
+					'assignment_policy'  => 'weighted_random',
+					'variant'            => 'treatment',
+					'surface'            => 'single-post-bridge',
 				)
 			)
 		);
