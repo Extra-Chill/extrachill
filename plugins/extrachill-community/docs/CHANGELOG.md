@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.22.1] - 2026-07-18
+
+### Fixed
+- defer composer contract publication
+
 ## [1.22.0] - 2026-07-18
 
 ### Added
