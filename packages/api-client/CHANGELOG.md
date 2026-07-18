@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0] - 2026-07-18
+
+### Added
+- add SocialPlatformConfig.preview type for #140
+
+### Changed
+- remove obsolete analytics view client
+
 ## [0.7.0] - 2026-05-10
 
 ### Added
