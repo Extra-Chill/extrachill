@@ -8,17 +8,39 @@
  */
 
 define( 'ABSPATH', __DIR__ . '/' );
+define( 'EXTRACHILL_BLOG_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
+define( 'EXTRACHILL_BLOG_PLUGIN_URL', 'https://extrachill.test/wp-content/plugins/extrachill-blog/' );
 
 // Test doubles intentionally mirror WordPress and shared renderer signatures.
 // phpcs:disable Squiz.Commenting.FunctionComment.Missing,Squiz.Commenting.FunctionComment.MissingParamTag,WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid,Universal.NamingConventions.NoReservedKeywordParameterNames.classFound
 
-$test_cards_by_taxonomy = array();
-$test_resolver_calls    = array();
-$test_is_post           = true;
-$test_enqueued_styles   = array();
+$test_cards_by_taxonomy    = array();
+$test_resolver_calls       = array();
+$test_is_post              = true;
+$test_enqueued_styles      = array();
+$test_enqueued_scripts     = array();
+$test_registered_scripts   = array(
+	'extrachill-experiment-assignment'  => array( 'registered' => true ),
+	'extrachill-blog-geographic-bridge' => array(),
+);
+$test_experiment_available = true;
+$test_post_type            = 'post';
+$test_post_status          = 'publish';
 
 /** Stub action registration. */
 function add_action() {}
+
+/** Stub filter registration. */
+function add_filter() {}
+
+/** Stub script registration. */
+function wp_register_script( $handle, $src, $dependencies ) {
+	global $test_registered_scripts;
+	$test_registered_scripts[ $handle ] = array(
+		'src'          => $src,
+		'dependencies' => $dependencies,
+	);
+}
 
 /** Stub current post ID. */
 function get_the_ID() {
@@ -51,10 +73,54 @@ function esc_url( $url ) {
 	return htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' );
 }
 
+/** Stub WordPress JSON encoding. */
+function wp_json_encode( $value ) {
+	return json_encode( $value ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Standalone WordPress test double.
+}
+
 /** Capture enqueued styles. */
 function wp_enqueue_style( $handle ) {
 	global $test_enqueued_styles;
 	$test_enqueued_styles[] = $handle;
+}
+
+/** Capture enqueued scripts. */
+function wp_enqueue_script( $handle ) {
+	global $test_enqueued_scripts;
+	$test_enqueued_scripts[] = $handle;
+}
+
+/** Report registered dependency state. */
+function wp_script_is( $handle, $status ) {
+	global $test_registered_scripts;
+	return 'registered' === $status && ! empty( $test_registered_scripts[ $handle ] );
+}
+
+/** Return controlled post type. */
+function get_post_type() {
+	global $test_post_type;
+	return $test_post_type;
+}
+
+/** Return controlled post status. */
+function get_post_status() {
+	global $test_post_status;
+	return $test_post_status;
+}
+
+/** Mirror Network's cache-neutral attribute contract. */
+function extrachill_experiment_attributes( $key, $surface, $context ) {
+	global $test_experiment_available;
+	if ( ! $test_experiment_available ) {
+		return '';
+	}
+
+	return sprintf(
+		'data-ec-experiment-key="%s" data-ec-experiment-surface="%s" data-ec-experiment-variant="control" data-ec-experiment-context="%s"',
+		esc_attr( $key ),
+		esc_attr( $surface ),
+		esc_attr( wp_json_encode( $context ) )
+	);
 }
 
 /** Stub the shared verified resolver and capture its contract. */
@@ -89,6 +155,7 @@ function extrachill_cross_site_link_button( $card, $class = '' ) {
 }
 
 require_once dirname( __DIR__ ) . '/inc/single/network-bridge.php';
+extrachill_blog_register_geographic_bridge_script();
 
 /** Assert strict equality. */
 function assert_same( $expected, $actual, $message ) {
@@ -143,6 +210,7 @@ $festival_wire  = bridge_card( 'wire', 'High Water', 'festival' );
 $cards          = resolve_cards( array( $artist_profile, $festival_wire ), array( $city_event, $community ) );
 assert_same( array( 'artist', 'events', 'wire', 'community' ), array_column( $cards, 'site_key' ), 'Mixed terms should preserve slot order while geography only fills capacity.' );
 assert_same( 'High Water', $cards[2]['term_name'], 'A location card must not displace a primary festival destination.' );
+assert_same( count( $cards ), count( array_unique( array_column( $cards, 'site_key' ) ) ), 'Treatment cards must not duplicate a destination slot.' );
 
 $cards = resolve_cards( array(), array() );
 assert_same( array(), $cards, 'Posts without a verified destination must fail closed.' );
@@ -159,5 +227,51 @@ assert_same( true, false !== strpos( $mobile_output, 'network-bridge-links ec-cr
 assert_same( true, false !== strpos( $mobile_output, 'button-3 button-small ec-cross-site-link network-bridge-link' ), 'Mobile cards should use the shared compact card renderer.' );
 assert_same( true, in_array( 'extrachill-network-bridge', $test_enqueued_styles, true ), 'A rendered bridge should enqueue the shared responsive stylesheet.' );
 assert_same( true, false !== strpos( $mobile_output, 'utm_medium=network_bridge' ), 'Rendered destinations should retain shared UTM instrumentation.' );
+assert_same( true, false !== strpos( $mobile_output, 'data-ec-experiment-key="geo-bridge-holdout"' ), 'Eligible bridges should use Network experiment markup.' );
+assert_same( true, false !== strpos( $mobile_output, 'data-ec-experiment-variant="control"' ), 'Cached markup must contain only declared control state.' );
+assert_same( true, false === strpos( $mobile_output, 'visitor-' ), 'Cached markup must not contain visitor identity.' );
+assert_same( true, false !== strpos( $mobile_output, 'hidden inert aria-hidden="true"' ), 'Geographic candidates must be inert and unfocusable before activation.' );
+assert_same( true, false !== strpos( $mobile_output, 'class="network-bridge-section related-tax-section"' ) && false !== strpos( $mobile_output, ' hidden>' ), 'A geography-only bridge must remain hidden in control.' );
+assert_same( true, in_array( 'extrachill-blog-geographic-bridge', $test_enqueued_scripts, true ), 'Eligible bridges should enqueue treatment activation.' );
+assert_same( array( 'extrachill-experiment-assignment' ), $test_registered_scripts['extrachill-blog-geographic-bridge']['dependencies'], 'Viewport exposure must remain wired through Network assignment.' );
+
+$definition = extrachill_blog_register_bridge_experiment( array() );
+assert_same( array( 'geo-bridge-holdout' ), array_keys( $definition ), 'Blog should register exactly one code-owned experiment.' );
+assert_same(
+	array(
+		'control'   => 50,
+		'treatment' => 50,
+	),
+	$definition['geo-bridge-holdout']['variants'],
+	'The holdout must use exact 50/50 weights.'
+);
+assert_same( array( 'single-post-bridge' ), $definition['geo-bridge-holdout']['surfaces'], 'The experiment must be bounded to the single-post bridge.' );
+
+resolve_cards( array(), array( $city_event ) );
+assert_same( true, extrachill_blog_geographic_bridge_experiment_eligible( array( 'post_id' => '64' ), 'single-post-bridge' ), 'Published posts with verified geographic capacity should be eligible.' );
+resolve_cards( array( $artist_event, $primary_community ), array( $city_event, $community ) );
+assert_same( false, extrachill_blog_geographic_bridge_experiment_eligible( array( 'post_id' => '64' ), 'single-post-bridge' ), 'Posts without vacant geographic capacity must be ineligible.' );
+assert_same( false, extrachill_blog_geographic_bridge_experiment_eligible( array( 'post_id' => '64' ), 'other-surface' ), 'Other surfaces must be ineligible.' );
+$test_post_status = 'draft';
+assert_same( false, extrachill_blog_geographic_bridge_experiment_eligible( array( 'post_id' => '64' ), 'single-post-bridge' ), 'Non-published posts must be ineligible.' );
+$test_post_status = 'publish';
+
+resolve_cards( array( $artist_profile ), array( $city_event ) );
+$test_registered_scripts['extrachill-experiment-assignment'] = array();
+ob_start();
+extrachill_blog_network_bridge();
+$dependency_output = ob_get_clean();
+assert_same( true, false !== strpos( $dependency_output, 'Kid Lake' ), 'Primary artist cards must survive experiment dependency absence.' );
+assert_same( true, false === strpos( $dependency_output, 'Charleston' ), 'Geographic cards must fail closed when Network assignment is absent.' );
+assert_same( true, false === strpos( $dependency_output, 'data-ec-experiment-key' ), 'Dependency absence must emit no partial experiment markup.' );
+$test_registered_scripts['extrachill-experiment-assignment'] = array( 'registered' => true );
+
+resolve_cards( array(), array( $city_event ) );
+$test_experiment_available = false;
+ob_start();
+extrachill_blog_network_bridge();
+$provider_output = ob_get_clean();
+assert_same( '', $provider_output, 'Missing or invalid experiment configuration must leave geography-only control empty.' );
+$test_experiment_available = true;
 
 fwrite( STDOUT, "Network bridge tests passed.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- CLI test output.
