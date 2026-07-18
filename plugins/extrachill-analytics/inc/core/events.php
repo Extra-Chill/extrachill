@@ -84,7 +84,7 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 	// for `search` events, only when the caller hasn't already supplied an
 	// explicit source (a future upstream caller threading its own surface
 	// still wins), and only when the classifier is loaded.
-	if ( 'search' === $event_type
+	if ( EC_ANALYTICS_EVENT_SEARCH === $event_type
 		&& is_array( $event_data )
 		&& ! array_key_exists( 'source', $event_data )
 		&& function_exists( 'extrachill_analytics_classify_search_source' )

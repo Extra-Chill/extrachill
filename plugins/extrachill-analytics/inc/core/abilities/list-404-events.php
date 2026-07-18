@@ -73,7 +73,7 @@ function extrachill_analytics_ability_list_404_events( $input ) {
 	$limit   = isset( $input['limit'] ) ? (int) $input['limit'] : 50;
 
 	$args = array(
-		'event_type' => '404_error',
+		'event_type' => EC_ANALYTICS_EVENT_404_ERROR,
 		'limit'      => $limit,
 		'orderby'    => 'created_at',
 		'order'      => 'DESC',

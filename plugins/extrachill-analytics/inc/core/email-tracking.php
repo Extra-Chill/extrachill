@@ -63,7 +63,7 @@ function extrachill_analytics_normalize_email_context( $context ) {
  */
 function extrachill_analytics_log_email_sent( $mail_data ) {
 	extrachill_track_analytics_event(
-		'email_sent',
+		EC_ANALYTICS_EVENT_EMAIL_SENT,
 		array(
 			'recipient_count' => extrachill_analytics_email_recipient_count( $mail_data['to'] ?? array() ),
 			'context'         => extrachill_analytics_normalize_email_context( extrachill_analytics_detect_email_context() ),
@@ -86,7 +86,7 @@ function extrachill_analytics_log_email_failed( $error ) {
 	$error_code = sanitize_key( (string) $error->get_error_code() );
 
 	extrachill_track_analytics_event(
-		'email_failed',
+		EC_ANALYTICS_EVENT_EMAIL_FAILED,
 		array(
 			'recipient_count' => extrachill_analytics_email_recipient_count( $recipients ),
 			'error_code'      => substr( $error_code ? $error_code : 'unknown', 0, 64 ),
@@ -150,8 +150,8 @@ function extrachill_analytics_run_email_cleanup_batch() {
 	$expired       = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded maintenance query against the plugin-owned analytics table.
 		$wpdb->prepare(
 			"DELETE FROM {$table} WHERE event_type IN (%s, %s) AND created_at < %s ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Code-defined table name; values are prepared.
-			'email_sent',
-			'email_failed',
+			EC_ANALYTICS_EVENT_EMAIL_SENT,
+			EC_ANALYTICS_EVENT_EMAIL_FAILED,
 			$cutoff,
 			EXTRACHILL_ANALYTICS_EMAIL_CLEANUP_BATCH_SIZE
 		)
@@ -161,8 +161,8 @@ function extrachill_analytics_run_email_cleanup_batch() {
 	$scrubbed       = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded maintenance query against the plugin-owned analytics table.
 		$wpdb->prepare(
 			"UPDATE {$table} SET event_data = JSON_REMOVE(event_data, '$.to', '$.subject', '$.error') WHERE event_type IN (%s, %s) AND JSON_VALID(event_data) = 1 AND (JSON_EXTRACT(event_data, '$.to') IS NOT NULL OR JSON_EXTRACT(event_data, '$.subject') IS NOT NULL OR JSON_EXTRACT(event_data, '$.error') IS NOT NULL) ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Code-defined table name; values are prepared.
-			'email_sent',
-			'email_failed',
+			EC_ANALYTICS_EVENT_EMAIL_SENT,
+			EC_ANALYTICS_EVENT_EMAIL_FAILED,
 			EXTRACHILL_ANALYTICS_EMAIL_CLEANUP_BATCH_SIZE
 		)
 	);
@@ -172,8 +172,8 @@ function extrachill_analytics_run_email_cleanup_batch() {
 	$invalid       = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded maintenance query against the plugin-owned analytics table.
 		$wpdb->prepare(
 			"DELETE FROM {$table} WHERE event_type IN (%s, %s) AND JSON_VALID(event_data) = 0 ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Code-defined table name; values are prepared.
-			'email_sent',
-			'email_failed',
+			EC_ANALYTICS_EVENT_EMAIL_SENT,
+			EC_ANALYTICS_EVENT_EMAIL_FAILED,
 			EXTRACHILL_ANALYTICS_EMAIL_CLEANUP_BATCH_SIZE
 		)
 	);
@@ -345,8 +345,8 @@ function extrachill_analytics_email_event_exporter( $email_address, $page = 1 ) 
 			$wpdb->prepare(
 				"SELECT MAX(id) FROM {$table} WHERE user_id = %d AND event_type IN (%s, %s)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Code-defined table name; values are prepared.
 				$user->ID,
-				'email_sent',
-				'email_failed'
+				EC_ANALYTICS_EVENT_EMAIL_SENT,
+				EC_ANALYTICS_EVENT_EMAIL_FAILED
 			)
 		);
 		$state  = array(
@@ -367,8 +367,8 @@ function extrachill_analytics_email_event_exporter( $email_address, $page = 1 ) 
 		$wpdb->prepare(
 			"SELECT id, blog_id, event_type, event_data, created_at FROM {$table} WHERE user_id = %d AND event_type IN (%s, %s) AND id > %d AND id <= %d ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Code-defined table name; values are prepared.
 			$user->ID,
-			'email_sent',
-			'email_failed',
+			EC_ANALYTICS_EVENT_EMAIL_SENT,
+			EC_ANALYTICS_EVENT_EMAIL_FAILED,
 			$cursor,
 			(int) $state['max_id'],
 			EXTRACHILL_ANALYTICS_EMAIL_PRIVACY_BATCH_SIZE
@@ -383,7 +383,7 @@ function extrachill_analytics_email_event_exporter( $email_address, $page = 1 ) 
 		$fields     = array(
 			array(
 				'name'  => __( 'Delivery result', 'extrachill-analytics' ),
-				'value' => 'email_sent' === $row->event_type ? __( 'Sent', 'extrachill-analytics' ) : __( 'Failed', 'extrachill-analytics' ),
+				'value' => EC_ANALYTICS_EVENT_EMAIL_SENT === $row->event_type ? __( 'Sent', 'extrachill-analytics' ) : __( 'Failed', 'extrachill-analytics' ),
 			),
 			array(
 				'name'  => __( 'Recorded at', 'extrachill-analytics' ),
@@ -486,8 +486,8 @@ function extrachill_analytics_email_event_eraser( $email_address, $page = 1 ) {
 		$wpdb->prepare(
 			"DELETE FROM {$table} WHERE user_id = %d AND event_type IN (%s, %s) ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Code-defined table name; values are prepared.
 			$user->ID,
-			'email_sent',
-			'email_failed',
+			EC_ANALYTICS_EVENT_EMAIL_SENT,
+			EC_ANALYTICS_EVENT_EMAIL_FAILED,
 			EXTRACHILL_ANALYTICS_EMAIL_PRIVACY_BATCH_SIZE
 		)
 	);

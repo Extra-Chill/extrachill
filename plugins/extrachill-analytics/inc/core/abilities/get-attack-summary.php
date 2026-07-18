@@ -106,8 +106,8 @@ function extrachill_analytics_ability_get_attack_summary( $input ) {
 	}
 
 	$table  = extrachill_analytics_events_table();
-	$where  = array( "event_type = 'search_attack'" );
-	$values = array();
+	$where  = array( 'event_type = %s' );
+	$values = array( EC_ANALYTICS_EVENT_SEARCH_ATTACK );
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at >= %s';

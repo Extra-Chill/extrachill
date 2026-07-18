@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__ ) . '/inc/core/route-classifier.php';
 require_once dirname( __DIR__ ) . '/inc/core/assets.php';
+require_once dirname( __DIR__ ) . '/inc/core/event-types.php';
 require_once dirname( __DIR__ ) . '/inc/core/write-integrity.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/track-page-view.php';
@@ -159,6 +160,24 @@ final class PublicWriteIntegrityTest extends TestCase {
 	}
 
 	/**
+	 * Optional adapter fields retain their existing null compatibility.
+	 */
+	public function test_public_event_accepts_null_optional_field(): void {
+		$result = extrachill_analytics_validate_public_event_write(
+			EC_ANALYTICS_EVENT_OUTBOUND_CLICK,
+			array(
+				'dest_host' => 'tickets.example',
+				'dest_url'  => null,
+				'category'  => 'ticketing',
+			),
+			'/story/'
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertNull( $result['event_data']['dest_url'] );
+	}
+
+	/**
 	 * A source post cannot be attached to a different page path.
 	 */
 	public function test_public_event_rejects_source_post_mismatch(): void {
@@ -228,6 +247,39 @@ final class PublicWriteIntegrityTest extends TestCase {
 		$result = extrachill_analytics_validate_public_event_write( 'user_registration', array( 'method' => 'form' ), '/register/' );
 
 		$this->assertSame( '/register/', $result['source_url'] );
+	}
+
+	/**
+	 * Public adapters reject fields that could create unbounded dimensions.
+	 *
+	 * @dataProvider unbounded_public_payload_provider
+	 *
+	 * @param string $event_type Event type.
+	 * @param array  $event_data Public dimensions.
+	 */
+	public function test_public_event_rejects_unbounded_or_unknown_values( $event_type, $event_data ): void {
+		$result = extrachill_analytics_validate_public_event_write( $event_type, $event_data, '/story/' );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'invalid_event_field', $result->code );
+	}
+
+	/**
+	 * Invalid public dimensions.
+	 *
+	 * @return array<string,array{string,array}>
+	 */
+	public function unbounded_public_payload_provider() {
+		return array(
+			'unbounded bridge term' => array( EC_ANALYTICS_EVENT_BRIDGE_CLICK, array( 'term' => str_repeat( 'x', 201 ) ) ),
+			'unknown browser field' => array(
+				EC_ANALYTICS_EVENT_SHARE_CLICK,
+				array(
+					'destination' => 'facebook',
+					'free_form'   => 'nope',
+				),
+			),
+		);
 	}
 
 	/**

@@ -49,6 +49,7 @@ if ( ! function_exists( 'add_action' ) ) {
 	 * @param mixed ...$args Hook name, callback, and optional priority/args.
 	 */
 	function add_action( ...$args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+		$GLOBALS['extrachill_analytics_test_registered_actions'][] = $args;
 		return true;
 	}
 }

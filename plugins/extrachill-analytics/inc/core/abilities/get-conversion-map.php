@@ -469,7 +469,7 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 	);
 
 	foreach ( $outcome_types as $outcome_type ) {
-		$is_new_lifecycle_outcome          = ! in_array( $outcome_type, array( 'newsletter_signup', 'user_registration' ), true );
+		$is_new_lifecycle_outcome          = ! in_array( $outcome_type, array( EC_ANALYTICS_EVENT_NEWSLETTER_SIGNUP, EC_ANALYTICS_EVENT_USER_REGISTRATION ), true );
 		$outcome_coverage[ $outcome_type ] = extrachill_analytics_conversion_finalize_outcome_coverage( $outcome_coverage[ $outcome_type ], $is_new_lifecycle_outcome );
 	}
 
@@ -567,8 +567,8 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
  */
 function extrachill_analytics_conversion_outcome_types() {
 	return array(
-		'newsletter_signup',
-		'user_registration',
+		EC_ANALYTICS_EVENT_NEWSLETTER_SIGNUP,
+		EC_ANALYTICS_EVENT_USER_REGISTRATION,
 		defined( 'EC_ANALYTICS_EVENT_ONBOARDING_COMPLETED' ) ? EC_ANALYTICS_EVENT_ONBOARDING_COMPLETED : 'onboarding_completed',
 		defined( 'EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH' ) ? EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH : 'artist_profile_first_publish',
 	);
@@ -656,7 +656,7 @@ function extrachill_analytics_conversion_normalize_outcome( $row ) {
  * @return bool Whether the event is excluded.
  */
 function extrachill_analytics_conversion_outcome_is_excluded( $outcome ) {
-	return 'newsletter_signup' === $outcome['event_type']
+	return EC_ANALYTICS_EVENT_NEWSLETTER_SIGNUP === $outcome['event_type']
 		&& 'registration' === (string) ( $outcome['event_data']['context'] ?? '' );
 }
 

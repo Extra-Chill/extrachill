@@ -249,7 +249,113 @@ function extrachill_analytics_validate_pageview_write( $post_id, $source_path, $
  * @return string[]
  */
 function extrachill_analytics_public_browser_event_types() {
-	return array( 'bridge_click', 'bridge_impression', 'outbound_click', 'share_click' );
+	return EC_ANALYTICS_PUBLIC_BROWSER_EVENTS;
+}
+
+/**
+ * Reject a public payload field that is not a bounded scalar of the expected type.
+ *
+ * @param array  $event_data Event dimensions.
+ * @param string $field      Field name.
+ * @param string $type       Expected scalar type.
+ * @param int    $max_length Maximum string length.
+ * @return true|WP_Error
+ */
+function extrachill_analytics_validate_public_event_field( $event_data, $field, $type, $max_length = 0 ) {
+	if ( ! array_key_exists( $field, $event_data ) ) {
+		return true;
+	}
+
+	$value = $event_data[ $field ];
+	if ( null === $value ) {
+		return true;
+	}
+	if ( 'integer' === $type ) {
+		if ( ! is_int( $value ) && ! ( is_string( $value ) && preg_match( '/^\d+$/', $value ) ) ) {
+			return new WP_Error(
+				'invalid_event_field',
+				__( 'Event data contains an invalid field value.', 'extrachill-analytics' ),
+				array(
+					'status' => 400,
+					'field'  => $field,
+				)
+			);
+		}
+		return true;
+	}
+
+	if ( ! is_string( $value ) || ( $max_length > 0 && strlen( $value ) > $max_length ) ) {
+		return new WP_Error(
+			'invalid_event_field',
+			__( 'Event data contains an invalid or unbounded field value.', 'extrachill-analytics' ),
+			array(
+				'status' => 400,
+				'field'  => $field,
+			)
+		);
+	}
+
+	return true;
+}
+
+/**
+ * Validate the event-specific dimensions accepted from public adapters.
+ *
+ * This intentionally remains a narrow switch over the six browser events. It
+ * is not a schema registry and does not constrain trusted server-owned events.
+ *
+ * @param string $event_type Event type.
+ * @param array  $event_data Event dimensions.
+ * @return true|WP_Error
+ */
+function extrachill_analytics_validate_public_event_data( $event_type, $event_data ) {
+	switch ( $event_type ) {
+		case EC_ANALYTICS_EVENT_SHARE_CLICK:
+			$fields = array(
+				'destination' => array( 'string', 64 ),
+				'share_url'   => array( 'string', 2048 ),
+			);
+			break;
+		case EC_ANALYTICS_EVENT_BRIDGE_CLICK:
+		case EC_ANALYTICS_EVENT_BRIDGE_IMPRESSION:
+			$fields = array(
+				'dest_site'   => array( 'string', 64 ),
+				'source_post' => array( 'integer', 0 ),
+				'source_site' => array( 'string', 64 ),
+				'term'        => array( 'string', 200 ),
+			);
+			break;
+		case EC_ANALYTICS_EVENT_OUTBOUND_CLICK:
+			$fields = array(
+				'dest_host' => array( 'string', 253 ),
+				'dest_url'  => array( 'string', 2048 ),
+				'category'  => array( 'string', 32 ),
+			);
+			break;
+		default:
+			return true;
+	}
+
+	$unknown_fields = array_diff( array_keys( $event_data ), array_keys( $fields ), array( 'is_bot' ) );
+	if ( ! empty( $unknown_fields ) ) {
+		return new WP_Error(
+			'invalid_event_field',
+			__( 'Event data contains an unsupported field.', 'extrachill-analytics' ),
+			array(
+				'status' => 400,
+				'field'  => reset( $unknown_fields ),
+			)
+		);
+	}
+
+	foreach ( $fields as $field => $contract ) {
+		$valid = extrachill_analytics_validate_public_event_field( $event_data, $field, $contract[0], $contract[1] );
+		if ( is_wp_error( $valid ) ) {
+			return $valid;
+		}
+	}
+
+	return true;
 }
 
 /**
@@ -291,6 +397,11 @@ function extrachill_analytics_validate_public_event_write( $event_type, $event_d
 
 	if ( ! is_array( $event_data ) ) {
 		return new WP_Error( 'invalid_event_data', __( 'Event data must be an object.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+	}
+
+	$valid_event_data = extrachill_analytics_validate_public_event_data( $event_type, $event_data );
+	if ( is_wp_error( $valid_event_data ) ) {
+		return $valid_event_data;
 	}
 
 	$source_post = isset( $event_data['source_post'] ) ? (int) $event_data['source_post'] : 0;

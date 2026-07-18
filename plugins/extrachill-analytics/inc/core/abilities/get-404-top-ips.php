@@ -75,8 +75,8 @@ function extrachill_analytics_ability_get_404_top_ips( $input ) {
 	$limit   = isset( $input['limit'] ) ? (int) $input['limit'] : 15;
 
 	$table  = extrachill_analytics_events_table();
-	$where  = array( "event_type = '404_error'" );
-	$values = array();
+	$where  = array( 'event_type = %s' );
+	$values = array( EC_ANALYTICS_EVENT_404_ERROR );
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at >= %s';
@@ -111,8 +111,8 @@ function extrachill_analytics_ability_get_404_top_ips( $input ) {
 	$results = array();
 	foreach ( $rows as $row ) {
 		// Second pass: find the most common user agent for this IP.
-		$ua_values = array();
-		$ua_where  = array( "event_type = '404_error'" );
+		$ua_values = array( EC_ANALYTICS_EVENT_404_ERROR );
+		$ua_where  = array( 'event_type = %s' );
 
 		$ua_where[]  = "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.ip_hash')) = %s";
 		$ua_values[] = $row->ip_hash;

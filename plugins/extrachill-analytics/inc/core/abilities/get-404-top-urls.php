@@ -81,8 +81,8 @@ function extrachill_analytics_ability_get_404_top_urls( $input ) {
 	$min_hits = isset( $input['min_hits'] ) ? (int) $input['min_hits'] : 2;
 
 	$table  = extrachill_analytics_events_table();
-	$where  = array( "event_type = '404_error'" );
-	$values = array();
+	$where  = array( 'event_type = %s' );
+	$values = array( EC_ANALYTICS_EVENT_404_ERROR );
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at >= %s';

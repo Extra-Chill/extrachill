@@ -103,7 +103,7 @@ function extrachill_analytics_ability_get_bridge_ctr( $input ) {
 	$page_size  = 1000;
 
 	$query_args = array(
-		'event_type' => array( 'bridge_click', 'bridge_impression' ),
+		'event_type' => array( EC_ANALYTICS_EVENT_BRIDGE_CLICK, EC_ANALYTICS_EVENT_BRIDGE_IMPRESSION ),
 		'limit'      => $page_size,
 		'orderby'    => 'id',
 		'order'      => 'DESC',
@@ -152,7 +152,7 @@ function extrachill_analytics_ability_get_bridge_ctr( $input ) {
 				continue;
 			}
 
-			$is_click = isset( $row->event_type ) && 'bridge_click' === $row->event_type;
+			$is_click = isset( $row->event_type ) && EC_ANALYTICS_EVENT_BRIDGE_CLICK === $row->event_type;
 			$key      = $is_click ? 'clicks' : 'impressions';
 			++$counts[ $key ];
 

@@ -40,13 +40,6 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The canonical event_type for an outbound (off-network) click.
- */
-if ( ! defined( 'EC_ANALYTICS_EVENT_OUTBOUND_CLICK' ) ) {
-	define( 'EC_ANALYTICS_EVENT_OUTBOUND_CLICK', 'outbound_click' );
-}
-
-/**
  * Register the get-outbound-clicks ability.
  */
 function extrachill_analytics_register_outbound_clicks_ability() {
@@ -128,7 +121,7 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 	$blog_id    = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
 	$category   = isset( $input['category'] ) ? sanitize_key( (string) $input['category'] ) : '';
 	$limit      = isset( $input['limit'] ) ? max( 1, (int) $input['limit'] ) : 25;
-	$event_type = defined( 'EC_ANALYTICS_EVENT_OUTBOUND_CLICK' ) ? EC_ANALYTICS_EVENT_OUTBOUND_CLICK : 'outbound_click';
+	$event_type = EC_ANALYTICS_EVENT_OUTBOUND_CLICK;
 
 	// Read the in-window outbound_click rows through the canonical events query
 	// helper (it owns the safe, prepared WHERE building) rather than re-rolling

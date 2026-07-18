@@ -28,7 +28,7 @@ function extrachill_analytics_track_404() {
 		return;
 	}
 
-	$url = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( $_SERVER['REQUEST_URI'] ) : '';
+	$url = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 
 	// Exclude event URLs (calendar plugin).
 	if ( preg_match( '/^\/event\//', $url ) ) {
@@ -47,7 +47,7 @@ function extrachill_analytics_track_404() {
 	$ip_address = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 
 	extrachill_track_analytics_event(
-		'404_error',
+		EC_ANALYTICS_EVENT_404_ERROR,
 		array(
 			'requested_url' => $url,
 			'referer'       => $referer,

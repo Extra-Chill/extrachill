@@ -144,8 +144,8 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	$blog_id     = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
 
 	$table  = extrachill_analytics_events_table();
-	$where  = array( "event_type = 'search'" );
-	$values = array();
+	$where  = array( 'event_type = %s' );
+	$values = array( EC_ANALYTICS_EVENT_SEARCH );
 
 	// Reproducible UTC window — created_at is stored in UTC, so bound in UTC too.
 	$now_utc = gmdate( 'Y-m-d H:i:s' );
@@ -201,7 +201,7 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	// 'search', created_at >= 2026-05-30): old predicate 271,548 rows vs new
 	// 241,666 — the 29,883 explicitly-true bots are now dropped, and all 227,175
 	// NULL/no-flag legacy rows are retained. (`CAST('true' AS JSON)` errored on
-	// this server, so it is intentionally avoided.)
+	// this server, so it is intentionally avoided).
 	$where[] = "JSON_EXTRACT(event_data, '$.is_bot') IS NOT TRUE";
 
 	// Defense-in-depth for legacy-contaminated rows. The OLD search rule
