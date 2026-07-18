@@ -170,7 +170,6 @@ function ec_studio_compose_register_routes(): void {
 			),
 		)
 	);
-
 }
 add_action( 'rest_api_init', 'ec_studio_compose_register_routes' );
 
