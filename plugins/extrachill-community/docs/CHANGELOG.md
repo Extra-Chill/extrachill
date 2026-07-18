@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.22.0] - 2026-07-18
+
+### Added
+- publish discussion composer contract
+- continue entity discussions in composer
+- add role-aware artist platform CTA
+
+### Fixed
+- use canonical artist profile permalinks
+
 ## [1.21.0] - 2026-07-15
 
 ### Added
