@@ -31,6 +31,24 @@ wp plugin activate extrachill-cli --network --allow-root
 
 ## Commands
 
+### Platform Experiments
+
+Inspect registered definitions and orphaned lifecycle records, transition
+registered experiments, and request Analytics-owned experiment summaries:
+
+```bash
+wp --allow-root --path=/var/www/extrachill.com extrachill experiments list
+wp --allow-root --path=/var/www/extrachill.com extrachill experiments get geo-bridge-holdout
+wp --allow-root --path=/var/www/extrachill.com extrachill experiments state geo-bridge-holdout active
+wp --allow-root --path=/var/www/extrachill.com extrachill experiments report geo-bridge-holdout --outcome-event-types=bridge_click
+```
+
+Network authorizes these private administrative Abilities for trusted local
+WP-CLI execution. Use the standard local invocation above without `--user`.
+Web and REST contexts still require Network's administrative capability.
+Orphaned rows are inspectable through `list` and `get`, but cannot be
+transitioned or reported because they have no registered code definition.
+
 ### Tools — QR Code
 
 Generate print-ready QR code PNG files through the existing admin-tools ability primitive.

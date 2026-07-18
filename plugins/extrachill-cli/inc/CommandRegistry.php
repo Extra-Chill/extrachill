@@ -33,6 +33,7 @@ class CommandRegistry {
 		return array(
 			// Platform commands.
 			'extrachill platform'                    => Commands\Platform\HealthCommand::class,
+			'extrachill experiments'                 => Commands\Experiments\ExperimentsCommand::class,
 
 			// Network commands — thin wrappers over extrachill-multisite primitives.
 			'extrachill network'                     => Commands\Network\MigratePostCommand::class,

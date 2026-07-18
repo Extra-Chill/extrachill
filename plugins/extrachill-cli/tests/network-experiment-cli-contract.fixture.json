@@ -1,0 +1,17 @@
+{
+  "owner": "Extra-Chill/extrachill-network#141",
+  "abilities": {
+    "list": "extrachill/list-experiments",
+    "transition": "extrachill/transition-experiment-state"
+  },
+  "permission": {
+    "trusted_local_wp_cli": true,
+    "web_capability": "manage_network_options",
+    "user_zero_outside_wp_cli": false
+  },
+  "list_status_fields": [
+    "registered",
+    "orphaned"
+  ],
+  "standard_invocation": "wp --allow-root --path=/var/www/extrachill.com extrachill experiments list"
+}

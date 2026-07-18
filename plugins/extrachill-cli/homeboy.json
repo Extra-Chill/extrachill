@@ -9,6 +9,8 @@
   "self_checks": {
     "test": [
       "php tests/QRCodeCommandTest.php",
+      "php tests/ExperimentsCommandTest.php",
+      "php tests/ExperimentsOwnerContractTest.php",
       "php tests/CrosslinkTargetsCommandTest.php",
       "php tests/OutboundCommandTest.php",
       "php tests/ConversionCommandTest.php",
