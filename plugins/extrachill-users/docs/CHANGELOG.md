@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.35.0] - 2026-07-18
+
+### Added
+- add audited Artist Dispatch access lifecycle
+
+### Fixed
+- declare compiled block release scope
+- honor request login continuations
+- preserve safe login continuations
+- keep onboarding views server-owned
+- make onboarding resilient to browser failures
+- revoke sessions when banning users
+- require onboarding before profile writes
+
 ## [0.34.0] - 2026-07-13
 
 ### Added
