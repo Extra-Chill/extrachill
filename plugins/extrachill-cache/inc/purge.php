@@ -25,11 +25,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Post lifecycle — mirrors Breeze purge-cache.php:37-43.
-add_action( 'save_post', 'extrachill_cache_purge_on_post_change', 10, 1 );
-add_action( 'pre_post_update', 'extrachill_cache_purge_on_post_change', 10, 1 );
-add_action( 'wp_trash_post', 'extrachill_cache_purge_on_post_change', 10, 1 );
-add_action( 'delete_post', 'extrachill_cache_purge_on_post_change', 10, 1 );
+// Post lifecycle. Only changes that can affect public output need invalidation.
+add_action( 'transition_post_status', 'extrachill_cache_purge_on_post_transition', 10, 3 );
+add_action( 'before_delete_post', 'extrachill_cache_purge_on_post_delete', 10, 2 );
 
 // Comments — mirrors Breeze purge-cache.php:44-48.
 add_action( 'comment_post', 'extrachill_cache_purge_current_blog', 10, 0 );
@@ -51,6 +49,53 @@ add_action( 'customize_save_after', 'extrachill_cache_purge_current_blog', 10, 0
 // callers keep working. Also expose a namespaced flush action.
 add_action( 'purge_post_cache', 'extrachill_cache_purge_on_post_change', 10, 1 );
 add_action( 'extrachill_cache_flush', 'extrachill_cache_purge_current_blog', 10, 0 );
+
+/**
+ * Purge when a post enters, leaves, or remains in a public status.
+ *
+ * @param string  $new_status New post status.
+ * @param string  $old_status Previous post status.
+ * @param WP_Post $post       Post object.
+ * @return void
+ */
+function extrachill_cache_purge_on_post_transition( $new_status, $old_status, $post ) {
+	if ( ! extrachill_cache_is_public_post_status( $new_status ) && ! extrachill_cache_is_public_post_status( $old_status ) ) {
+		return;
+	}
+
+	extrachill_cache_purge_on_post_change( $post->ID );
+}
+
+/**
+ * Purge when permanently deleting a post that is still public.
+ *
+ * @param int          $post_id Post ID.
+ * @param WP_Post|null $post    Post object.
+ * @return void
+ */
+function extrachill_cache_purge_on_post_delete( $post_id, $post = null ) {
+	if ( null === $post ) {
+		$post = get_post( $post_id );
+	}
+
+	if ( ! $post || ! extrachill_cache_is_public_post_status( $post->post_status ) ) {
+		return;
+	}
+
+	extrachill_cache_purge_on_post_change( $post_id );
+}
+
+/**
+ * Determine whether a registered post status exposes content publicly.
+ *
+ * @param string $status Post status name.
+ * @return bool
+ */
+function extrachill_cache_is_public_post_status( $status ) {
+	$status_object = get_post_status_object( $status );
+
+	return $status_object && $status_object->public;
+}
 
 /**
  * Purge on a post lifecycle event, guarding autosaves and revisions.
