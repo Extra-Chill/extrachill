@@ -123,9 +123,14 @@ check('provisioning is idempotent and preserves existing pages', $first_pages ==
 $GLOBALS['dispatch_pages']['submit']->post_content = 'Human content';
 check('human-edited page is no longer claimed or overwritten', 0 === extrachill_blog_provision_submit_page('submit', 'Artist Dispatch', EXTRACHILL_BLOG_DISPATCH_PAGES['submit']['sentinel']));
 $GLOBALS['dispatch_pages']['submit']->post_content = EXTRACHILL_BLOG_DISPATCH_PAGES['submit']['sentinel'];
+$dispatch_css = file_get_contents( dirname( __DIR__ ) . '/assets/css/artist-dispatch.css' );
+check('feature CSS uses canonical design tokens', false === strpos($dispatch_css, '--dispatch-') && false === strpos($dispatch_css, '--border-radius-large') && false !== strpos($dispatch_css, 'var(--spacing-lg)'));
+check('intro uses canonical surface and button primitives', false !== strpos(extrachill_blog_dispatch_intro_html(), 'ec-surface-card') && false !== strpos(extrachill_blog_dispatch_intro_html(), 'button-medium'));
 
 $GLOBALS['dispatch_logged_in'] = false;
-check('logged-out cohort has login and community actions', false !== strpos(extrachill_blog_dispatch_state_html(), 'Join the community'));
+$logged_out_state = extrachill_blog_dispatch_state_html();
+check('logged-out cohort has login and community actions', false !== strpos($logged_out_state, 'Join the community'));
+check('logged-out cohort uses canonical surface primitives', false !== strpos($logged_out_state, 'ec-surface-card') && false !== strpos($logged_out_state, 'button-medium'));
 $GLOBALS['dispatch_logged_in'] = true;
 $GLOBALS['dispatch_ability'] = null;
 check('missing Users ability fails closed', false !== strpos(extrachill_blog_dispatch_state_html(), 'not accepting requests'));
@@ -143,8 +148,10 @@ $eligible['eligibility']['eligible'] = true;
 $eligible['eligibility']['criteria']['claimed_artist'] = array('passed' => true, 'artist_ids' => array(22));
 $GLOBALS['dispatch_ability'] = $eligible;
 check('eligible cohort consumes canonical artist IDs from owner contract', false !== strpos(extrachill_blog_dispatch_state_html(), 'value="22"'));
+check('request acknowledgement uses canonical checkbox primitive', false !== strpos(extrachill_blog_dispatch_state_html(), 'ec-checkbox-row'));
 $GLOBALS['dispatch_ability'] = array_merge($eligible, array('status' => 'approved', 'artist_id' => 22, 'terms_acknowledged' => true, 'terms_version' => EXTRACHILL_BLOG_DISPATCH_TERMS_VERSION));
 check('approved cohort renders native post dashboard', false !== strpos(extrachill_blog_dispatch_state_html(), 'New Artist Dispatch'));
+check('approved dashboard uses canonical surface primitive', false !== strpos(extrachill_blog_dispatch_state_html(), 'ec-surface-card'));
 $GLOBALS['dispatch_ability']['eligibility']['policy']['pilot_enabled'] = false;
 check('disabled pilot fails closed for approved state', false !== strpos(extrachill_blog_dispatch_state_html(), 'not accepting requests'));
 

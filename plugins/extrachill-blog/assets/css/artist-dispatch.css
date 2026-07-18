@@ -1,35 +1,27 @@
 .artist-dispatch-page,
 .artist-dispatch-guidelines,
 .artist-dispatch-write {
-	--dispatch-border: color-mix(in srgb, var(--text-color) 18%, transparent);
-	max-width: 920px;
+	width: 100%;
+	max-width: var(--content-width);
 	margin: 0 auto;
 }
 
 .artist-dispatch-hero {
-	padding: clamp(2.5rem, 8vw, 6rem) 0 clamp(2rem, 5vw, 4rem);
-	border-bottom: 1px solid var(--dispatch-border);
-}
-
-.artist-dispatch-hero h1,
-.artist-dispatch-guidelines h1 {
-	font-size: clamp(3rem, 9vw, 6.5rem);
-	line-height: .9;
-	letter-spacing: -.065em;
-	margin: .2em 0;
+	padding: var(--spacing-xl) 0;
+	border-bottom: 1px solid var(--border-color);
 }
 
 .artist-dispatch-hero > p:last-child,
 .artist-dispatch-guidelines header > p:last-child {
-	font-size: clamp(1.1rem, 2vw, 1.4rem);
-	max-width: 720px;
+	max-width: var(--content-width);
+	font-size: var(--font-size-lg);
 }
 
 .artist-dispatch-kicker,
 .artist-dispatch-label {
-	font-size: .75rem;
-	font-weight: 800;
-	letter-spacing: .12em;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-bold);
+	letter-spacing: .08em;
 	text-transform: uppercase;
 	color: var(--accent);
 }
@@ -37,16 +29,13 @@
 .artist-dispatch-panel,
 .artist-dispatch-state,
 .artist-dispatch-dashboard {
-	margin: 2rem 0;
-	padding: clamp(1.25rem, 4vw, 2.5rem);
-	background: var(--card-background);
-	border: 1px solid var(--dispatch-border);
-	border-radius: var(--border-radius-large);
+	margin: var(--spacing-xl) 0;
+	padding: var(--spacing-lg);
 }
 
 .artist-dispatch-panel p,
 .artist-dispatch-state > p {
-	max-width: 740px;
+	max-width: var(--content-width);
 }
 
 .artist-dispatch-actions,
@@ -55,20 +44,20 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 1rem;
+	gap: var(--spacing-md);
 	flex-wrap: wrap;
 }
 
 .artist-dispatch-form {
 	display: grid;
-	gap: 1.25rem;
-	max-width: 680px;
+	gap: var(--spacing-md);
+	max-width: var(--form-width);
 }
 
-.artist-dispatch-form label:not(.artist-dispatch-check) {
+.artist-dispatch-form label:not(.ec-checkbox-row) {
 	display: grid;
-	gap: .45rem;
-	font-weight: 700;
+	gap: var(--spacing-sm);
+	font-weight: var(--font-weight-bold);
 }
 
 .artist-dispatch-form input,
@@ -76,25 +65,14 @@
 .artist-dispatch-form textarea {
 	width: 100%;
 	box-sizing: border-box;
-	padding: .8rem;
-	color: var(--text-color);
-	background: var(--body-background);
-	border: 1px solid var(--dispatch-border);
-	border-radius: var(--border-radius-small);
 }
 
 .artist-dispatch-form textarea {
-	min-height: 150px;
-}
-
-.artist-dispatch-check {
-	display: grid;
-	grid-template-columns: auto 1fr;
-	gap: .75rem;
+	min-height: 10rem;
 }
 
 .artist-dispatch-message {
-	min-height: 1.5em;
+	min-height: var(--spacing-lg);
 }
 
 .artist-dispatch-criteria,
@@ -107,28 +85,28 @@
 .artist-dispatch-group li {
 	display: flex;
 	justify-content: space-between;
-	gap: 1rem;
-	padding: .85rem 0;
-	border-bottom: 1px solid var(--dispatch-border);
+	gap: var(--spacing-md);
+	padding: var(--spacing-sm) 0;
+	border-bottom: 1px solid var(--border-color);
 }
 
 .artist-dispatch-criteria li span,
 .artist-dispatch-group li span {
 	display: block;
-	font-size: .85rem;
-	opacity: .72;
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
 }
 
 .artist-dispatch-criteria .is-met::before {
 	content: "✓";
-	color: var(--accent);
-	margin-right: .6rem;
+	color: var(--success-color);
+	margin-right: var(--spacing-sm);
 }
 
 .artist-dispatch-groups {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 1rem;
+	gap: var(--spacing-md);
 }
 
 .artist-dispatch-group {
@@ -137,14 +115,14 @@
 
 .artist-dispatch-guidelines header,
 .artist-dispatch-guidelines section {
-	padding: clamp(1.5rem, 4vw, 3rem) 0;
-	border-bottom: 1px solid var(--dispatch-border);
+	padding: var(--spacing-xl) 0;
+	border-bottom: 1px solid var(--border-color);
 }
 
 .artist-dispatch-guidelines section {
 	display: grid;
-	grid-template-columns: minmax(180px, 1fr) 2fr;
-	gap: 2rem;
+	grid-template-columns: minmax(11rem, 1fr) 2fr;
+	gap: var(--spacing-xl);
 }
 
 .artist-dispatch-guidelines h2,
@@ -153,24 +131,21 @@
 }
 
 .artist-dispatch-write {
-	max-width: 1100px;
+	max-width: var(--container-width);
 }
 
 .artist-dispatch-write__intro {
-	padding: 1rem 0;
+	padding: var(--spacing-md) 0;
 }
 
 .artist-dispatch-editor {
 	min-height: 70vh;
-	background: var(--card-background);
-	border: 1px solid var(--dispatch-border);
-	border-radius: var(--border-radius-large);
 	overflow: hidden;
 }
 
 .artist-dispatch-editor-title {
 	width: 100%;
-	padding: 1rem clamp(1rem, 4vw, 3rem) 0;
+	padding: var(--spacing-md) var(--spacing-lg) 0;
 	box-sizing: border-box;
 }
 
@@ -181,26 +156,23 @@
 .artist-dispatch-save-state {
 	display: inline-flex;
 	align-items: center;
-	gap: .4rem;
+	gap: var(--spacing-xs);
 	margin-right: auto;
 }
 
 .artist-dispatch-disclosure {
-	padding: 1rem 1.25rem;
-	margin-bottom: 2rem;
-	background: var(--card-background);
-	border-left: 4px solid var(--accent);
+	margin-bottom: var(--spacing-xl);
 }
 
 .artist-dispatch-disclosure p {
-	margin: .35rem 0 0;
+	margin: var(--spacing-xs) 0 0;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
 	.artist-dispatch-groups,
 	.artist-dispatch-guidelines section {
 		grid-template-columns: 1fr;
-		gap: .5rem;
+		gap: var(--spacing-sm);
 	}
 
 	.artist-dispatch-dashboard__head {

@@ -73,7 +73,7 @@ function extrachill_blog_dispatch_disclosure_html( $post_id ) {
 			esc_url( $artist['url'] )
 		);
 	}
-	$notice = '<aside class="artist-dispatch-disclosure" aria-label="' . esc_attr__( 'Artist Dispatch disclosure', 'extrachill-blog' ) . '"><span class="artist-dispatch-label">' . esc_html__( 'Artist Dispatch', 'extrachill-blog' ) . '</span><p>' . $disclosure . '</p></aside>';
+	$notice = '<aside class="artist-dispatch-disclosure notice notice-info" aria-label="' . esc_attr__( 'Artist Dispatch disclosure', 'extrachill-blog' ) . '"><span class="artist-dispatch-label">' . esc_html__( 'Artist Dispatch', 'extrachill-blog' ) . '</span><p>' . $disclosure . '</p></aside>';
 
 	return $notice;
 }
