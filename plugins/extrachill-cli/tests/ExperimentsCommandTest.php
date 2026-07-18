@@ -162,7 +162,13 @@ namespace {
 
 	$list_ability = new ExperimentsCommandTestAbility(
 		static function () use ( &$experiments_command_test_definitions ) {
-			return $experiments_command_test_definitions;
+			return array(
+				'items'                    => $experiments_command_test_definitions,
+				'registered_count'         => 2,
+				'orphan_count'             => 1,
+				'orphan_samples_truncated' => false,
+				'lifecycle_over_bound'     => false,
+			);
 		}
 	);
 	$transition_ability = new ExperimentsCommandTestAbility(
@@ -240,9 +246,10 @@ namespace {
 	// List/get machine output retains complete typed definitions and future fields.
 	$command->list_( array(), array( 'format' => 'json' ) );
 	experiments_command_test_assert_same( 0, $list_ability->argument_counts[0], 'List must omit input for an Ability without an input schema.' );
-	experiments_command_test_assert_same( $experiments_command_test_definitions, WP_CLI::$printed[0]['value'], 'List JSON must preserve every owner definition.' );
-	experiments_command_test_assert_same( 3, WP_CLI::$printed[0]['value'][0]['definition_version'], 'List JSON versions must remain integers.' );
-	experiments_command_test_assert_same( true, WP_CLI::$printed[0]['value'][0]['future_definition']['typed'], 'List JSON future booleans must remain typed.' );
+	experiments_command_test_assert_same( $experiments_command_test_definitions, WP_CLI::$printed[0]['value']['items'], 'List JSON must preserve every owner definition.' );
+	experiments_command_test_assert_same( 2, WP_CLI::$printed[0]['value']['registered_count'], 'List JSON must preserve owner bounds diagnostics.' );
+	experiments_command_test_assert_same( 3, WP_CLI::$printed[0]['value']['items'][0]['definition_version'], 'List JSON versions must remain integers.' );
+	experiments_command_test_assert_same( true, WP_CLI::$printed[0]['value']['items'][0]['future_definition']['typed'], 'List JSON future booleans must remain typed.' );
 	experiments_command_test_reset_output();
 	$command->list_( array(), array( 'format' => 'csv' ) );
 	$csv = $experiments_command_test_formats[0];

@@ -49,23 +49,24 @@ class ExperimentsCommand {
 	 * @when after_wp_load
 	 */
 	public function list_( $args, $assoc_args ) {
-		$result = $this->execute( 'extrachill/list-experiments', null, 'Extra Chill Network' );
-		$format = $assoc_args['format'] ?? 'table';
+		$result      = $this->execute( 'extrachill/list-experiments', null, 'Extra Chill Network' );
+		$definitions = (array) ( $result['items'] ?? array() );
+		$format      = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
 			WP_CLI::print_value( $result, array( 'format' => 'json' ) );
 			return;
 		}
 		if ( 'csv' === $format ) {
-			$this->display_csv( $result );
+			$this->display_csv( $definitions );
 			return;
 		}
 
-		if ( empty( $result ) ) {
+		if ( empty( $definitions ) ) {
 			WP_CLI::log( 'No registered experiments.' );
 			return;
 		}
-		foreach ( $result as $definition ) {
+		foreach ( $definitions as $definition ) {
 			$this->display_definition( (array) $definition );
 		}
 	}
@@ -292,7 +293,8 @@ class ExperimentsCommand {
 
 	/** Find one complete definition envelope through Network's list ability. */
 	private function definition( $key ) {
-		foreach ( $this->execute( 'extrachill/list-experiments', null, 'Extra Chill Network' ) as $definition ) {
+		$result = $this->execute( 'extrachill/list-experiments', null, 'Extra Chill Network' );
+		foreach ( (array) ( $result['items'] ?? array() ) as $definition ) {
 			if ( (string) ( $definition['key'] ?? '' ) === (string) $key ) {
 				return $definition;
 			}
