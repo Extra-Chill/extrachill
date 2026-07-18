@@ -188,7 +188,7 @@ add_action( 'wp_enqueue_scripts', 'extrachill_blog_dispatch_enqueue_assets', 30 
  * @return string HTML.
  */
 function extrachill_blog_dispatch_intro_html() {
-	return '<header class="artist-dispatch-hero"><p class="artist-dispatch-kicker">' . esc_html__( 'From the people making the music', 'extrachill-blog' ) . '</p><h1>' . esc_html__( 'Artist Dispatch', 'extrachill-blog' ) . '</h1><p>' . esc_html__( 'Tell the real story behind your music in your own voice, with Extra Chill editorial review and a permanent main-site byline.', 'extrachill-blog' ) . '</p></header><section class="artist-dispatch-panel ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'A publication lane, not a promo form', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Forum posting is open to the community. Artist Dispatch is a scarce pathway into the Extra Chill publication for transparent first-person release stories, studio diaries, tour journals, scene reports, production breakdowns, and lessons from independent music work.', 'extrachill-blog' ) . '</p><p>' . esc_html__( 'It is not self-publishing, freelance hiring, a review of yourself, fake third-person reporting, or a place to paste a press release. Every Dispatch is reviewed by an editor before publication.', 'extrachill-blog' ) . '</p><a class="button-2 button-medium" href="' . esc_url( home_url( '/submit/guidelines/' ) ) . '">' . esc_html__( 'Read the guidelines', 'extrachill-blog' ) . '</a></section>';
+	return '<header class="artist-dispatch-hero"><p class="artist-dispatch-kicker">' . esc_html__( 'Stories from inside the music', 'extrachill-blog' ) . '</p><h1>' . esc_html__( 'Artist Dispatch', 'extrachill-blog' ) . '</h1><p>' . esc_html__( 'Every song, show, and tour has a story. Artist Dispatch is a place to share yours in your own words, with help from an Extra Chill editor.', 'extrachill-blog' ) . '</p></header><section class="artist-dispatch-panel ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Tell us what happened', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Write about making a record, life on tour, a lesson from the studio, the scene around you, or another part of music that you have lived firsthand.', 'extrachill-blog' ) . '</p><p>' . esc_html__( 'This is a place for honest stories, not press releases or reviews of your own music. An Extra Chill editor reads every piece and may help you shape it before it goes live.', 'extrachill-blog' ) . '</p><a class="button-2 button-medium" href="' . esc_url( home_url( '/submit/guidelines/' ) ) . '">' . esc_html__( 'See how it works', 'extrachill-blog' ) . '</a></section>';
 }
 
 /**
@@ -199,7 +199,7 @@ function extrachill_blog_dispatch_intro_html() {
 function extrachill_blog_dispatch_logged_out_html() {
 	$login = wp_login_url( home_url( '/submit/' ) );
 	$join  = function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'community' ) ) . 'join/' : 'https://community.extrachill.com/join/';
-	return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Build your voice in the community', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Log in to check your Artist Dispatch eligibility, or join the community and start participating in the online music scene.', 'extrachill-blog' ) . '</p><div class="artist-dispatch-actions"><a class="button-1 button-medium" href="' . esc_url( $login ) . '">' . esc_html__( 'Log in', 'extrachill-blog' ) . '</a><a class="button-2 button-medium" href="' . esc_url( $join ) . '">' . esc_html__( 'Join the community', 'extrachill-blog' ) . '</a></div></section>';
+	return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Have a story to share?', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Log in to see if you can request access. If you are new here, join the community, meet other music people, and start taking part.', 'extrachill-blog' ) . '</p><div class="artist-dispatch-actions"><a class="button-1 button-medium" href="' . esc_url( $login ) . '">' . esc_html__( 'Log in', 'extrachill-blog' ) . '</a><a class="button-2 button-medium" href="' . esc_url( $join ) . '">' . esc_html__( 'Join the community', 'extrachill-blog' ) . '</a></div></section>';
 }
 
 /**
@@ -215,14 +215,11 @@ function extrachill_blog_dispatch_criteria_html( $eligibility ) {
 	}
 	$html   = '<ul class="artist-dispatch-criteria">';
 	$labels = array(
-		'policy_configured' => __( 'Pilot policy configured', 'extrachill-blog' ),
-		'pilot_enabled'     => __( 'Pilot accepting requests', 'extrachill-blog' ),
-		'points'            => __( 'Community participation', 'extrachill-blog' ),
-		'onboarding'        => __( 'Profile and onboarding complete', 'extrachill-blog' ),
-		'account_age'       => __( 'Minimum account age', 'extrachill-blog' ),
-		'claimed_account'   => __( 'Claimed account', 'extrachill-blog' ),
-		'active_moderation' => __( 'Good moderation standing', 'extrachill-blog' ),
-		'claimed_artist'    => __( 'Claimed or managed artist', 'extrachill-blog' ),
+		'points'            => __( '50 community points', 'extrachill-blog' ),
+		'onboarding'        => __( 'Account setup complete', 'extrachill-blog' ),
+		'claimed_account'   => __( 'Account confirmed', 'extrachill-blog' ),
+		'active_moderation' => __( 'Account in good standing', 'extrachill-blog' ),
+		'claimed_artist'    => __( 'Connected artist profile', 'extrachill-blog' ),
 	);
 	foreach ( $criteria as $key => $criterion ) {
 		if ( ! is_array( $criterion ) || ! isset( $labels[ $key ] ) ) {
@@ -269,11 +266,11 @@ function extrachill_blog_dispatch_request_html( $access ) {
 		$options .= '<option value="' . esc_attr( $artist_id ) . '">' . esc_html( $artist['name'] ) . '</option>';
 	}
 	if ( '' === $options ) {
-		return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'A represented artist is required', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Connect your account to a canonical Artist Platform profile before requesting Artist Dispatch access.', 'extrachill-blog' ) . '</p></section>';
+		return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'Connect your artist profile', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Before you can request access, your Extra Chill account needs to be connected to the artist profile you manage.', 'extrachill-blog' ) . '</p></section>';
 	}
 
 	/* translators: %s: Artist Dispatch guidelines URL. */
-	$acknowledgement = sprintf( wp_kses_post( __( 'I have read the <a href="%s">Artist Dispatch guidelines</a>, disclosed my relationship to the project, and accept the rights and editorial terms.', 'extrachill-blog' ) ), esc_url( home_url( '/submit/guidelines/' ) ) );
+	$acknowledgement = sprintf( wp_kses_post( __( 'I have read the <a href="%s">Artist Dispatch guidelines</a>, explained my connection to this artist or project, and agree to the publishing terms.', 'extrachill-blog' ) ), esc_url( home_url( '/submit/guidelines/' ) ) );
 	return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Request Artist Dispatch access', 'extrachill-blog' ) . '</h2><form id="artist-dispatch-request" class="artist-dispatch-form"><label>' . esc_html__( 'Artist or project you represent', 'extrachill-blog' ) . '<select name="artist_id" required>' . $options . '</select></label><label>' . esc_html__( 'What story do you want to tell?', 'extrachill-blog' ) . '<textarea name="description" minlength="50" maxlength="2000" required></textarea></label><label>' . esc_html__( 'Optional sample or reference URL', 'extrachill-blog' ) . '<input type="url" name="sample_url"></label><label class="ec-checkbox-row"><input type="checkbox" name="acknowledgement" required><span>' . $acknowledgement . '</span></label><button class="button-1 button-medium" type="submit">' . esc_html__( 'Request access', 'extrachill-blog' ) . '</button><p class="artist-dispatch-message" aria-live="polite"></p></form></section>';
 }
 
@@ -355,34 +352,34 @@ function extrachill_blog_dispatch_state_html() {
 	}
 	$access = extrachill_blog_dispatch_access();
 	if ( is_wp_error( $access ) || empty( $access['eligibility']['policy']['pilot_enabled'] ) ) {
-		return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'Artist Dispatch is not accepting requests', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'The pilot is currently unavailable. Your account and community access are unaffected.', 'extrachill-blog' ) . '</p></section>';
+		return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'Artist Dispatch is taking a break', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'We are not accepting new requests right now. You can still use the rest of Extra Chill as usual.', 'extrachill-blog' ) . '</p></section>';
 	}
 
 	switch ( $access['status'] ) {
 		case 'approved':
 			if ( ! extrachill_blog_dispatch_is_approved( $access ) ) {
-				return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'Writing access unavailable', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Your approval is recorded, but the required native writing role is unavailable. An editor has been asked to review it.', 'extrachill-blog' ) . '</p></section>';
+				return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'We could not open your writing tools', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Your approval is safe. An Extra Chill editor needs to fix your access before you can start writing.', 'extrachill-blog' ) . '</p></section>';
 			}
 			if ( ! extrachill_blog_dispatch_has_current_terms( $access ) ) {
-				return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'Current terms acceptance required', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'The audited Artist Dispatch request does not include the current guidelines and affiliation acknowledgement. Submit a current request before writing.', 'extrachill-blog' ) . '</p></section>';
+				return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'Please review the updated guidelines', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'The Artist Dispatch guidelines have changed since you were approved. Accept the current version before you start your next story.', 'extrachill-blog' ) . '</p></section>';
 			}
 			if ( ! extrachill_blog_dispatch_has_editor_dependency() ) {
-				return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'Writing editor unavailable', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Blocks Everywhere 3.6.0 or newer must be active before a new Artist Dispatch can be started.', 'extrachill-blog' ) . '</p></section>';
+				return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'The writing tool is temporarily unavailable', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Please try again later. Your approval and existing stories are safe.', 'extrachill-blog' ) . '</p></section>';
 			}
 			return extrachill_blog_dispatch_dashboard_html( $access );
 		case 'pending':
-			return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Your request is under review', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'An Extra Chill editor will review your represented artist and proposed story. Approval opens the writing dashboard; it does not guarantee publication.', 'extrachill-blog' ) . '</p></section>';
+			return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'We are taking a look', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'An Extra Chill editor is reviewing your artist connection and story idea. We will let you know when a decision is made.', 'extrachill-blog' ) . '</p></section>';
 		case 'rejected':
-			return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Your request was not approved', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Keep participating and refining the first-person story you want to tell. If reapplication is available, the unmet criteria below will update.', 'extrachill-blog' ) . '</p>' . extrachill_blog_dispatch_criteria_html( isset( $access['eligibility'] ) ? $access['eligibility'] : array() ) . '</section>';
+			return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Not this time', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Keep taking part in the community and working on the story you want to tell. The checklist below will show when you are ready to request access again.', 'extrachill-blog' ) . '</p>' . extrachill_blog_dispatch_criteria_html( isset( $access['eligibility'] ) ? $access['eligibility'] : array() ) . '</section>';
 		case 'revoked':
 		case 'moderated':
-			return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'Artist Dispatch access is unavailable', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'This account cannot use the submission pathway right now. Existing published work is unaffected.', 'extrachill-blog' ) . '</p></section>';
+			return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel is-closed"><h2>' . esc_html__( 'Artist Dispatch is not available for this account', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'You cannot submit a new story right now. Anything already published will stay online.', 'extrachill-blog' ) . '</p></section>';
 		default:
 			$eligibility = isset( $access['eligibility'] ) ? $access['eligibility'] : array();
 			if ( ! empty( $eligibility['eligible'] ) ) {
 				return extrachill_blog_dispatch_request_html( $access );
 			}
-			return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Keep building trust in the community', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Artist Dispatch access is earned through a complete account, good moderation standing, meaningful participation, and a verified relationship to an artist project.', 'extrachill-blog' ) . '</p>' . extrachill_blog_dispatch_criteria_html( $eligibility ) . '</section>';
+			return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Almost there', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Complete the steps below to request Artist Dispatch access. Your community activity helps us get to know you before we hand over the keys to the writing tools.', 'extrachill-blog' ) . '</p>' . extrachill_blog_dispatch_criteria_html( $eligibility ) . '</section>';
 	}
 }
 
@@ -392,15 +389,15 @@ function extrachill_blog_dispatch_state_html() {
  * @return string HTML.
  */
 function extrachill_blog_dispatch_guidelines_html() {
-	return '<div class="artist-dispatch-guidelines"><header><p class="artist-dispatch-kicker">' . esc_html__( 'Artist Dispatch', 'extrachill-blog' ) . '</p><h1>' . esc_html__( 'Contributor Guidelines', 'extrachill-blog' ) . '</h1><p>' . esc_html__( 'These defaults are the trust contract between contributors, featured projects, editors, and readers.', 'extrachill-blog' ) . '</p></header>' .
-	'<section><h2>' . esc_html__( 'Write the story only you can tell', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Dispatches should offer meaningful creative context: a release story, songwriting or studio diary, tour journal, production breakdown, first-person scene report, or practical reflection from independent music work. Generic promotion, self-reviews, fake third-person journalism, and pasted or lightly rewritten press releases are not accepted.', 'extrachill-blog' ) . '</p></section>' .
-	'<section><h2>' . esc_html__( 'Accuracy, sources, and quotes', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Verify names, dates, credits, quotes, and factual claims. Link supporting sources where useful. Get permission for private quotes and distinguish firsthand memory from verified fact. Tell an editor promptly about an error; Extra Chill may correct, update, annotate, or remove material.', 'extrachill-blog' ) . '</p></section>' .
-	'<section><h2>' . esc_html__( 'Originality and prior publication', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Submit original work. Disclose any prior publication or substantial overlap before review. Plagiarism, fabricated experiences, invented quotes, and unattributed reuse are prohibited.', 'extrachill-blog' ) . '</p></section>' .
-	'<section><h2>' . esc_html__( 'Affiliations and conflicts', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Disclose your relationship to the featured artist or project and any relevant label, management, venue, promoter, sponsor, financial, family, or personal interest. Disclose free tickets, travel, products, payment, gifts, or special access. Every published Dispatch carries a visible first-party relationship disclosure.', 'extrachill-blog' ) . '</p></section>' .
-	'<section><h2>' . esc_html__( 'Images and media rights', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'The initial editor is text-first and does not accept uploads. For later editorial media requests, provide only work you own, commissioned, licensed, or have explicit permission to use, with creator credit and license details. Never submit unattributed images found online. Generated imagery requires disclosure.', 'extrachill-blog' ) . '</p></section>' .
-	'<section><h2>' . esc_html__( 'AI use', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'AI may assist with transcription, organization, research triage, or copyediting, but you remain accountable for every fact, quote, source, and claim. It may not fabricate reporting, attendance, listening experience, sources, or quotes. Do not enter sensitive or unpublished source material into unapproved systems. Disclose material AI assistance.', 'extrachill-blog' ) . '</p></section>' .
-	'<section><h2>' . esc_html__( 'Editorial control and submission limits', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Submission does not guarantee publication. Extra Chill may request revisions, edit for accuracy, clarity, length, style, and legal or safety concerns, delay or reject a piece, or remove published material. Active draft and review limits keep the pilot sustainable. Contact the editorial team promptly about corrections or withdrawal requests.', 'extrachill-blog' ) . '</p></section>' .
-	'<section><h2>' . esc_html__( 'Rights and compensation', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'You retain copyright. By submitting, you grant Extra Chill a non-exclusive license to edit, publish, archive, distribute, and promote accepted work. You confirm that you have the rights needed for the text and any supplied material. Submission or publication does not guarantee payment and is not paid placement. A separate written arrangement, if one exists, overrides these defaults.', 'extrachill-blog' ) . '</p></section></div>';
+	return '<div class="artist-dispatch-guidelines"><header><p class="artist-dispatch-kicker">' . esc_html__( 'Artist Dispatch', 'extrachill-blog' ) . '</p><h1>' . esc_html__( 'A few things to know', 'extrachill-blog' ) . '</h1><p>' . esc_html__( 'These guidelines help you tell a strong story and make sure everyone involved is treated fairly.', 'extrachill-blog' ) . '</p></header>' .
+	'<section><h2>' . esc_html__( 'Write what you know', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Tell a story you actually lived: making a release, writing a song, recording in the studio, going on tour, building a scene, or learning something the hard way. Give readers details they would not get from a press release. Do not review your own music or pretend to be an outside reporter.', 'extrachill-blog' ) . '</p></section>' .
+	'<section><h2>' . esc_html__( 'Get the details right', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Double-check names, dates, credits, quotes, and other facts. Ask permission before sharing a private conversation. If you later spot a mistake, tell us so we can fix it.', 'extrachill-blog' ) . '</p></section>' .
+	'<section><h2>' . esc_html__( 'Send us your own work', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Your story should be original. Tell us if any part has appeared somewhere else. Do not copy another writer, invent experiences or quotes, or reuse someone else’s work without credit.', 'extrachill-blog' ) . '</p></section>' .
+	'<section><h2>' . esc_html__( 'Be open about your connection', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Tell readers how you are connected to the artist or project. Let us know about labels, managers, venues, sponsors, payment, free tickets, travel, gifts, or personal relationships that matter to the story. We will add a short note to every published Dispatch so readers understand where you are coming from.', 'extrachill-blog' ) . '</p></section>' .
+	'<section><h2>' . esc_html__( 'Only share media you can use', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'The writing tool is text-first and does not accept uploads yet. If an editor asks for a photo or other media, send only work you own or have permission to use, along with the creator’s name. Tell us if an image was generated with AI.', 'extrachill-blog' ) . '</p></section>' .
+	'<section><h2>' . esc_html__( 'AI can help, but the story must be yours', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'You may use AI to organize notes, transcribe a conversation, or clean up a draft. You are still responsible for every fact and quote. Never use it to invent something you did, heard, saw, or were told, and tell your editor if AI played a major role in the piece.', 'extrachill-blog' ) . '</p></section>' .
+	'<section><h2>' . esc_html__( 'An editor works with every story', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Sending a story does not guarantee that it will be published. We may ask questions, suggest changes, fix wording, hold a piece, or decide it is not right for Extra Chill. You can have up to three drafts and one story waiting for review at a time.', 'extrachill-blog' ) . '</p></section>' .
+	'<section><h2>' . esc_html__( 'Your work stays yours', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'You keep the copyright. If we accept your story, you give Extra Chill permission to edit, publish, archive, share, and promote it. Artist Dispatch does not promise payment, and it is never paid placement. Any separate written agreement with Extra Chill takes priority over these guidelines.', 'extrachill-blog' ) . '</p></section></div>';
 }
 
 /**
@@ -413,7 +410,7 @@ function extrachill_blog_dispatch_editor_html() {
 	if ( ! $post instanceof WP_Post ) {
 		return '';
 	}
-	return '<div class="artist-dispatch-write"><div class="artist-dispatch-write__intro"><a href="' . esc_url( home_url( '/submit/' ) ) . '">← ' . esc_html__( 'Your Dispatches', 'extrachill-blog' ) . '</a><p>' . esc_html__( 'Draft privately, preview through the real Extra Chill theme, then submit to the editorial queue.', 'extrachill-blog' ) . '</p></div><div class="artist-dispatch-editor ec-surface-card ec-mobile-full-width-panel"><textarea id="artist-dispatch-content" class="wp-editor-area">' . esc_textarea( $post->post_content ) . '</textarea></div></div>';
+	return '<div class="artist-dispatch-write"><div class="artist-dispatch-write__intro"><a href="' . esc_url( home_url( '/submit/' ) ) . '">← ' . esc_html__( 'Your Dispatches', 'extrachill-blog' ) . '</a><p>' . esc_html__( 'Write at your own pace, preview the finished page, and send it to an editor when you are ready.', 'extrachill-blog' ) . '</p></div><div class="artist-dispatch-editor ec-surface-card ec-mobile-full-width-panel"><textarea id="artist-dispatch-content" class="wp-editor-area">' . esc_textarea( $post->post_content ) . '</textarea></div></div>';
 }
 
 /**

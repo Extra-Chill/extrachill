@@ -133,15 +133,15 @@ check('logged-out cohort has login and community actions', false !== strpos($log
 check('logged-out cohort uses canonical surface primitives', false !== strpos($logged_out_state, 'ec-surface-card') && false !== strpos($logged_out_state, 'button-medium'));
 $GLOBALS['dispatch_logged_in'] = true;
 $GLOBALS['dispatch_ability'] = null;
-check('missing Users ability fails closed', false !== strpos(extrachill_blog_dispatch_state_html(), 'not accepting requests'));
+check('missing Users ability fails closed', false !== strpos(extrachill_blog_dispatch_state_html(), 'taking a break'));
 
 $base = array('eligibility' => array('eligible' => false, 'criteria' => array(), 'reasons' => array(), 'policy' => array('pilot_enabled' => true)));
-foreach (array('pending' => 'under review', 'rejected' => 'not approved', 'revoked' => 'access is unavailable', 'moderated' => 'access is unavailable') as $status => $copy) {
+foreach (array('pending' => 'taking a look', 'rejected' => 'Not this time', 'revoked' => 'not available for this account', 'moderated' => 'not available for this account') as $status => $copy) {
 	$GLOBALS['dispatch_ability'] = array_merge($base, array('status' => $status));
 	check("$status cohort renders its bounded state", false !== strpos(extrachill_blog_dispatch_state_html(), $copy));
 }
 $GLOBALS['dispatch_ability'] = array_merge($base, array('status' => 'ineligible'));
-check('ineligible cohort renders progress path', false !== strpos(extrachill_blog_dispatch_state_html(), 'Keep building trust'));
+check('ineligible cohort renders progress path', false !== strpos(extrachill_blog_dispatch_state_html(), 'Almost there'));
 $eligible = $base;
 $eligible['status'] = 'none';
 $eligible['eligibility']['eligible'] = true;
@@ -153,7 +153,8 @@ $GLOBALS['dispatch_ability'] = array_merge($eligible, array('status' => 'approve
 check('approved cohort renders native post dashboard', false !== strpos(extrachill_blog_dispatch_state_html(), 'New Artist Dispatch'));
 check('approved dashboard uses canonical surface primitive', false !== strpos(extrachill_blog_dispatch_state_html(), 'ec-surface-card'));
 $GLOBALS['dispatch_ability']['eligibility']['policy']['pilot_enabled'] = false;
-check('disabled pilot fails closed for approved state', false !== strpos(extrachill_blog_dispatch_state_html(), 'not accepting requests'));
+check('disabled pilot fails closed for approved state', false !== strpos(extrachill_blog_dispatch_state_html(), 'taking a break'));
+check('public copy avoids internal product language', 0 === preg_match('/scarce pathway|canonical|audited|native writing role|editorial queue|Blocks Everywhere/', extrachill_blog_dispatch_intro_html() . extrachill_blog_dispatch_guidelines_html()));
 
 $valid_blocks = array(
 	array('blockName' => 'core/paragraph', 'attrs' => array(), 'innerBlocks' => array()),
