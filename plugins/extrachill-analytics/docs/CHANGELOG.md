@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.31.0] - 2026-07-18
+
+### Added
+- report geographic bridge experiment
+- add Artist Dispatch event contracts
+- attribute lifecycle conversion outcomes
+- report first-party route transitions
+
+### Changed
+- canonicalize active analytics event contracts
+- minimize retained email analytics data
+
+### Fixed
+- restore honest bridge event reporting
+- align bridge report with viewport exposure
+- protect public analytics writes
+- enforce ordered activation funnel progression
+- filter encoded search attack probes
+
 ## [0.30.2] - 2026-07-17
 
 ### Fixed
