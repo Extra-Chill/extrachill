@@ -7,6 +7,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Apply a moderation state and its configured effects.
+ *
+ * @param int   $user_id User ID.
+ * @param array $args    Moderation inputs.
+ * @return array|WP_Error
+ */
 function extrachill_users_apply_moderation_action( int $user_id, array $args = array() ) {
 	if ( $user_id <= 0 ) {
 		return new WP_Error( 'invalid_user', __( 'A valid user ID is required.', 'extrachill-users' ) );
@@ -55,6 +62,13 @@ function extrachill_users_apply_moderation_action( int $user_id, array $args = a
 	}
 
 	$status = extrachill_users_get_moderation_status( $user_id );
+	if ( function_exists( 'ec_users_revoke_artist_dispatch_for_moderation' ) && empty( $status['active'] ) ) {
+		$dispatch_reason = $payload['reason'] ? $payload['reason'] : $reason_key;
+		$dispatch_result = ec_users_revoke_artist_dispatch_for_moderation( $user_id, $actor_id, $dispatch_reason );
+		if ( is_wp_error( $dispatch_result ) ) {
+			return $dispatch_result;
+		}
+	}
 
 	if ( ! empty( $policy['effects']['send_email'] ) ) {
 		extrachill_users_send_moderation_email( $user, $status );
@@ -67,6 +81,12 @@ function extrachill_users_apply_moderation_action( int $user_id, array $args = a
 	return $status;
 }
 
+/**
+ * Clear moderation state without restoring separately revoked product access.
+ *
+ * @param int $user_id User ID.
+ * @return array|WP_Error
+ */
 function extrachill_users_clear_moderation_action( int $user_id ) {
 	if ( $user_id <= 0 ) {
 		return new WP_Error( 'invalid_user', __( 'A valid user ID is required.', 'extrachill-users' ) );

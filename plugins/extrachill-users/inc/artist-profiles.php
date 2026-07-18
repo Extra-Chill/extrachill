@@ -20,8 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Single source of truth for user-artist profile relationships across the network.
  * Handles both frontend (user's own artists) and management contexts (admin override for all artists).
  *
- * @param int|null $user_id       User ID (defaults to current user)
- * @param bool     $admin_override Allow admins to access ALL artists (default: false)
+ * @param int|null $user_id       User ID (defaults to current user).
+ * @param bool     $admin_override Allow admins to access ALL artists (default: false).
  * @return array                   Array of published artist profile IDs
  */
 function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
@@ -33,7 +33,7 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 		return array();
 	}
 
-	// Admin override: return ALL artists (only for management contexts)
+	// Admin override: return ALL artists (only for management contexts).
 	if ( $admin_override && user_can( $user_id, 'manage_options' ) ) {
 		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
 		if ( ! $artist_blog_id ) {
@@ -57,7 +57,7 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 		}
 	}
 
-	// Default: return user's owned artists (for both regular users and admins in frontend contexts)
+	// Default: return user's owned artists (for regular users and frontend admins).
 	$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
 	if ( ! is_array( $user_artist_ids ) ) {
 		return array();
@@ -73,7 +73,12 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 		$published_artists = array();
 		foreach ( $user_artist_ids as $artist_id ) {
 			$artist_id_int = absint( $artist_id );
-			if ( $artist_id_int > 0 && get_post_status( $artist_id_int ) === 'publish' ) {
+			if ( 0 >= $artist_id_int || 'artist_profile' !== get_post_type( $artist_id_int ) || 'publish' !== get_post_status( $artist_id_int ) ) {
+				continue;
+			}
+
+			$member_ids = get_post_meta( $artist_id_int, '_artist_member_ids', true );
+			if ( is_array( $member_ids ) && in_array( (int) $user_id, array_map( 'intval', $member_ids ), true ) ) {
 				$published_artists[] = $artist_id_int;
 			}
 		}
@@ -92,7 +97,7 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
  *                  refactor tooling in homeboy#3075). Kept as a thin compat
  *                  function; ec_user_can() delegates here so logic has one home.
  *
- * @param int|null $user_id User ID (defaults to current user)
+ * @param int|null $user_id User ID (defaults to current user).
  * @return bool             True if user has permission to create artist profiles
  */
 function ec_can_create_artist_profiles( $user_id = null ) {
@@ -116,7 +121,7 @@ function ec_can_create_artist_profiles( $user_id = null ) {
  * based on link page modification time. Falls back to first artist
  * if no link pages exist.
  *
- * @param int|null $user_id User ID (defaults to current user)
+ * @param int|null $user_id User ID (defaults to current user).
  * @return int Artist profile ID, or 0 if none found
  */
 function ec_get_latest_artist_for_user( $user_id = null ) {
@@ -140,8 +145,8 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 			$link_pages = get_posts(
 				array(
 					'post_type'      => 'artist_link_page',
-					'meta_key'       => '_associated_artist_profile_id',
-					'meta_value'     => (string) $artist_id,
+					'meta_key'       => '_associated_artist_profile_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical relationship lookup.
+					'meta_value'     => (string) $artist_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Canonical relationship lookup.
 					'posts_per_page' => 1,
 					'fields'         => 'ids',
 				)
@@ -163,7 +168,7 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 		restore_current_blog();
 	}
 
-	// Fall back to first artist if no link pages found
+	// Fall back to first artist if no link pages are found.
 	return $latest_artist_id > 0 ? $latest_artist_id : reset( $user_artists );
 }
 
@@ -180,8 +185,8 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
  *                  refactor tooling in homeboy#3075). Kept as a thin compat
  *                  function; ec_user_can() delegates here so logic has one home.
  *
- * @param int|null $user_id   User ID (defaults to current user)
- * @param int|null $artist_id Artist profile post ID
+ * @param int|null $user_id   User ID (defaults to current user).
+ * @param int|null $artist_id Artist profile post ID.
  * @return bool               True if user can manage the artist
  */
 function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
@@ -193,18 +198,18 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
 		return false;
 	}
 
-	// Admins can manage any artist
+	// Admins can manage any artist.
 	if ( user_can( $user_id, 'manage_options' ) ) {
 		return true;
 	}
 
-	// Check if user owns this artist via user meta
+	// Check if user owns this artist via user meta.
 	$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
 	if ( is_array( $user_artist_ids ) && in_array( (int) $artist_id, array_map( 'intval', $user_artist_ids ), true ) ) {
 		return true;
 	}
 
-	// Check if user is post author (requires blog switch for cross-site check)
+	// Check if user is post author (requires a cross-site blog switch).
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
 	if ( $artist_blog_id ) {
 		switch_to_blog( $artist_blog_id );
@@ -226,7 +231,7 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
  *
  * Counts how many link pages exist across all of a user's artist profiles.
  *
- * @param int|null $user_id User ID (defaults to current user)
+ * @param int|null $user_id User ID (defaults to current user).
  * @return int Count of link pages
  */
 function ec_get_link_page_count_for_user( $user_id = null ) {
@@ -250,8 +255,8 @@ function ec_get_link_page_count_for_user( $user_id = null ) {
 				array(
 					'post_type'      => 'artist_link_page',
 					'post_status'    => 'publish',
-					'meta_key'       => '_associated_artist_profile_id',
-					'meta_value'     => (string) $artist_id,
+					'meta_key'       => '_associated_artist_profile_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical relationship lookup.
+					'meta_value'     => (string) $artist_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Canonical relationship lookup.
 					'posts_per_page' => 1,
 					'fields'         => 'ids',
 				)

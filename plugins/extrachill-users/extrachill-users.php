@@ -140,6 +140,8 @@ function extrachill_users_init() {
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-profiles.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/team-members.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-dispatch-role.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-dispatch.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/badges/user-badges.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/rank-tiers.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/points-engine.php';
@@ -175,6 +177,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/read-redirect.php';
 	// Header notification bell — renders network-wide via the theme header hook.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/bell.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/artist-dispatch-admin.php';
 
 	// Private, network-wide entity update subscriptions.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/entity-subscriptions/service.php';

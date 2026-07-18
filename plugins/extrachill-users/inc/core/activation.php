@@ -62,6 +62,9 @@ function extrachill_users_run_activation() {
 	ec_users_migrate_team_meta_to_role();
 	update_site_option( 'extrachill_users_team_migration_version', EXTRACHILL_USERS_VERSION );
 
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-dispatch-role.php';
+	ec_users_register_artist_dispatch_role_on_main();
+
 	if ( ! wp_next_scheduled( 'extrachill_welcome_email_fallback' ) ) {
 		wp_schedule_event( time(), 'hourly', 'extrachill_welcome_email_fallback' );
 	}
