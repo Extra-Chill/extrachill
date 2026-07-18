@@ -23,7 +23,9 @@ $test_registered_scripts   = array(
 	'extrachill-experiment-assignment'  => array( 'registered' => true ),
 	'extrachill-blog-geographic-bridge' => array(),
 );
+$test_experiment_state     = 'inactive';
 $test_experiment_available = true;
+$test_experiment_requests  = 0;
 $test_post_type            = 'post';
 $test_post_status          = 'publish';
 
@@ -110,7 +112,8 @@ function get_post_status() {
 
 /** Mirror Network's cache-neutral attribute contract. */
 function extrachill_experiment_attributes( $key, $surface, $context ) {
-	global $test_experiment_available;
+	global $test_experiment_available, $test_experiment_requests;
+	++$test_experiment_requests;
 	if ( ! $test_experiment_available ) {
 		return '';
 	}
@@ -121,6 +124,12 @@ function extrachill_experiment_attributes( $key, $surface, $context ) {
 		esc_attr( $surface ),
 		esc_attr( wp_json_encode( $context ) )
 	);
+}
+
+/** Mirror Network's lifecycle-only no-op helper. */
+function extrachill_experiment_is_active( $key ) {
+	global $test_experiment_state;
+	return 'geo-bridge-holdout' === $key && 'active' === $test_experiment_state;
 }
 
 /** Stub the shared verified resolver and capture its contract. */
@@ -220,6 +229,18 @@ $empty_output = ob_get_clean();
 assert_same( '', $empty_output, 'No-result bridges must render no empty container.' );
 
 resolve_cards( array(), array( $city_event ) );
+$test_enqueued_scripts    = array();
+$test_experiment_requests = 0;
+ob_start();
+extrachill_blog_network_bridge();
+$inactive_output = ob_get_clean();
+assert_same( true, false !== strpos( $inactive_output, 'Charleston' ), 'Inactive default must preserve the normal verified geographic bridge.' );
+assert_same( true, false === strpos( $inactive_output, 'data-ec-experiment-key' ), 'Inactive default must emit no experiment markup.' );
+assert_same( true, false === strpos( $inactive_output, 'hidden inert aria-hidden="true"' ), 'Inactive default must not hide or disable geographic links.' );
+assert_same( array(), $test_enqueued_scripts, 'Inactive default must enqueue no experiment assets.' );
+assert_same( 0, $test_experiment_requests, 'Inactive default must make no assignment attribute request.' );
+
+$test_experiment_state = 'active';
 ob_start();
 extrachill_blog_network_bridge();
 $mobile_output = ob_get_clean();
@@ -233,10 +254,15 @@ assert_same( true, false === strpos( $mobile_output, 'visitor-' ), 'Cached marku
 assert_same( true, false !== strpos( $mobile_output, 'hidden inert aria-hidden="true"' ), 'Geographic candidates must be inert and unfocusable before activation.' );
 assert_same( true, false !== strpos( $mobile_output, 'class="network-bridge-section related-tax-section"' ) && false !== strpos( $mobile_output, ' hidden>' ), 'A geography-only bridge must remain hidden in control.' );
 assert_same( true, in_array( 'extrachill-blog-geographic-bridge', $test_enqueued_scripts, true ), 'Eligible bridges should enqueue treatment activation.' );
+assert_same( 1, $test_experiment_requests, 'Active lifecycle must request Network assignment markup exactly once.' );
 assert_same( array( 'extrachill-experiment-assignment' ), $test_registered_scripts['extrachill-blog-geographic-bridge']['dependencies'], 'Viewport exposure must remain wired through Network assignment.' );
 
 $definition = extrachill_blog_register_bridge_experiment( array() );
 assert_same( array( 'geo-bridge-holdout' ), array_keys( $definition ), 'Blog should register exactly one code-owned experiment.' );
+assert_same( 'geo-bridge-holdout', $definition['geo-bridge-holdout']['key'], 'The registration key must match the stable definition key.' );
+assert_same( 1, $definition['geo-bridge-holdout']['definition_version'], 'The holdout must register definition version one.' );
+assert_same( 'weighted_random', $definition['geo-bridge-holdout']['assignment_policy'], 'The holdout must use Network weighted random allocation.' );
+assert_same( 'inactive', $definition['geo-bridge-holdout']['default_state'], 'The holdout must require explicit operator activation.' );
 assert_same(
 	array(
 		'control'   => 50,
@@ -273,5 +299,26 @@ extrachill_blog_network_bridge();
 $provider_output = ob_get_clean();
 assert_same( '', $provider_output, 'Missing or invalid experiment configuration must leave geography-only control empty.' );
 $test_experiment_available = true;
+
+foreach ( array( 'paused', 'completed' ) as $lifecycle_state ) {
+	$test_experiment_state    = $lifecycle_state;
+	$test_enqueued_scripts    = array();
+	$test_experiment_requests = 0;
+	ob_start();
+	extrachill_blog_network_bridge();
+	$lifecycle_output = ob_get_clean();
+	assert_same( true, false !== strpos( $lifecycle_output, 'Charleston' ), ucfirst( $lifecycle_state ) . ' lifecycle must preserve normal geography.' );
+	assert_same( true, false === strpos( $lifecycle_output, 'data-ec-experiment-key' ), ucfirst( $lifecycle_state ) . ' lifecycle must emit no experiment markup.' );
+	assert_same( true, false === strpos( $lifecycle_output, 'hidden inert aria-hidden="true"' ), ucfirst( $lifecycle_state ) . ' lifecycle must preserve accessible geographic links.' );
+	assert_same( array(), $test_enqueued_scripts, ucfirst( $lifecycle_state ) . ' lifecycle must enqueue no experiment assets.' );
+	assert_same( 0, $test_experiment_requests, ucfirst( $lifecycle_state ) . ' lifecycle must make no assignment attribute request.' );
+}
+
+$bridge_source = file_get_contents( dirname( __DIR__ ) . '/inc/single/network-bridge.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source inspection proves consumer layer purity.
+foreach ( array( 'get_site_option(', 'update_site_option(', 'update_option(', 'set_transient(', 'wp_cache_add(', 'wp_cache_set(', 'random_int(', 'mt_rand(', 'hash_hmac(', '$_COOKIE', 'EXTRACHILL_EXPERIMENT_LIFECYCLE_OPTION', 'extrachill_analytics', 'experiment_report', 'extrachill_experiment_assignment\'', 'extrachill_experiment_exposure\'' ) as $consumer_substrate ) {
+	assert_same( false, strpos( $bridge_source, $consumer_substrate ), 'Blog must not contain consumer-local experiment substrate: ' . $consumer_substrate );
+}
+assert_same( true, false !== strpos( $bridge_source, "add_filter( 'extrachill_experiment_definitions'" ), 'Blog must remain a definition-only Network registry consumer.' );
+assert_same( true, false !== strpos( $bridge_source, "extrachill_experiment_is_active( 'geo-bridge-holdout'" ), 'Blog lifecycle gating must use Network canonical no-op helper.' );
 
 fwrite( STDOUT, "Network bridge tests passed.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- CLI test output.

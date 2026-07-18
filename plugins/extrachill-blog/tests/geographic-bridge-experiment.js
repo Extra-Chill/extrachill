@@ -57,6 +57,8 @@ listener( {
 	target: control.section,
 	detail: {
 		experiment_key: 'geo-bridge-holdout',
+		definition_version: 1,
+		assignment_policy: 'weighted_random',
 		variant: 'control',
 		surface: 'single-post-bridge',
 	},
@@ -69,6 +71,8 @@ listener( {
 	target: treatment.section,
 	detail: {
 		experiment_key: 'geo-bridge-holdout',
+		definition_version: 1,
+		assignment_policy: 'weighted_random',
 		variant: 'treatment',
 		surface: 'single-post-bridge',
 	},
@@ -93,6 +97,7 @@ check( 'invalid assignments fail closed', invalid.candidateAttributes.has( 'iner
 check( 'activation emits no independent analytics requests', ! source.includes( 'fetch(' ) && ! source.includes( 'sendBeacon' ) );
 check( 'activation consumes Network assignment event', source.includes( 'extrachill:experiment-assignment' ) );
 check( 'Network retains viewport exposure ownership', ! source.includes( 'IntersectionObserver' ) );
+check( 'Network retains versioned assignment proof ownership', ! source.includes( 'exposure_token' ) );
 check( 'preassigned treatment reconciles listener timing', source.includes( 'data-ec-experiment-variant="treatment"' ) );
 
 console.log( 'Geographic bridge experiment JS tests passed.' );

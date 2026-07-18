@@ -72,6 +72,10 @@ function extrachill_blog_register_bridge_experiment( $definitions ) {
 	}
 
 	$definitions['geo-bridge-holdout'] = array(
+		'key'                  => 'geo-bridge-holdout',
+		'definition_version'   => 1,
+		'assignment_policy'    => 'weighted_random',
+		'default_state'        => 'inactive',
 		'default_variant'      => 'control',
 		'control_variant'      => 'control',
 		'variants'             => array(
@@ -220,8 +224,11 @@ function extrachill_blog_network_bridge() {
 		return;
 	}
 
+	$experiment_active     = ! empty( $groups['geographic'] )
+		&& function_exists( 'extrachill_experiment_is_active' )
+		&& extrachill_experiment_is_active( 'geo-bridge-holdout' );
 	$experiment_attributes = '';
-	if ( ! empty( $groups['geographic'] )
+	if ( $experiment_active
 		&& function_exists( 'extrachill_experiment_attributes' )
 		&& function_exists( 'wp_script_is' )
 		&& wp_script_is( 'extrachill-experiment-assignment', 'registered' )
@@ -233,13 +240,13 @@ function extrachill_blog_network_bridge() {
 		);
 	}
 
-	if ( empty( $groups['primary'] ) && '' === $experiment_attributes ) {
+	if ( $experiment_active && empty( $groups['primary'] ) && '' === $experiment_attributes ) {
 		return;
 	}
 
-	if ( '' !== $experiment_attributes ) {
+	if ( $experiment_active && '' !== $experiment_attributes ) {
 		wp_enqueue_script( 'extrachill-blog-geographic-bridge' );
-	} else {
+	} elseif ( $experiment_active ) {
 		$groups['geographic'] = array();
 	}
 
@@ -252,14 +259,16 @@ function extrachill_blog_network_bridge() {
 	}
 	foreach ( $groups['geographic'] as $card ) {
 		if ( ! empty( $card['site_key'] ) && ! isset( $cards_by_site[ $card['site_key'] ] ) ) {
-			$cards_by_site[ $card['site_key'] ]    = $card;
-			$geographic_sites[ $card['site_key'] ] = true;
+			$cards_by_site[ $card['site_key'] ] = $card;
+			if ( $experiment_active ) {
+				$geographic_sites[ $card['site_key'] ] = true;
+			}
 		}
 	}
 
 	wp_enqueue_style( 'extrachill-network-bridge' );
 	?>
-	<div class="network-bridge-section related-tax-section" aria-labelledby="<?php echo esc_attr( $args['heading_id'] ); ?>" <?php echo $experiment_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Network returns fully escaped, cache-neutral attributes. ?><?php echo empty( $groups['primary'] ) ? ' hidden' : ''; ?>>
+	<div class="network-bridge-section related-tax-section" aria-labelledby="<?php echo esc_attr( $args['heading_id'] ); ?>" <?php echo $experiment_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Network returns fully escaped, cache-neutral attributes. ?><?php echo $experiment_active && empty( $groups['primary'] ) ? ' hidden' : ''; ?>>
 		<h3 class="network-bridge-header related-tax-header" id="<?php echo esc_attr( $args['heading_id'] ); ?>"><?php echo esc_html( $args['heading_text'] ); ?></h3>
 		<div class="network-bridge-links ec-cross-site-links">
 			<?php foreach ( $args['slot_order'] as $site_key ) : ?>
