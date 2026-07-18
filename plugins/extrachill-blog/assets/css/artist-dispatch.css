@@ -1,0 +1,209 @@
+.artist-dispatch-page,
+.artist-dispatch-guidelines,
+.artist-dispatch-write {
+	--dispatch-border: color-mix(in srgb, var(--text-color) 18%, transparent);
+	max-width: 920px;
+	margin: 0 auto;
+}
+
+.artist-dispatch-hero {
+	padding: clamp(2.5rem, 8vw, 6rem) 0 clamp(2rem, 5vw, 4rem);
+	border-bottom: 1px solid var(--dispatch-border);
+}
+
+.artist-dispatch-hero h1,
+.artist-dispatch-guidelines h1 {
+	font-size: clamp(3rem, 9vw, 6.5rem);
+	line-height: .9;
+	letter-spacing: -.065em;
+	margin: .2em 0;
+}
+
+.artist-dispatch-hero > p:last-child,
+.artist-dispatch-guidelines header > p:last-child {
+	font-size: clamp(1.1rem, 2vw, 1.4rem);
+	max-width: 720px;
+}
+
+.artist-dispatch-kicker,
+.artist-dispatch-label {
+	font-size: .75rem;
+	font-weight: 800;
+	letter-spacing: .12em;
+	text-transform: uppercase;
+	color: var(--accent);
+}
+
+.artist-dispatch-panel,
+.artist-dispatch-state,
+.artist-dispatch-dashboard {
+	margin: 2rem 0;
+	padding: clamp(1.25rem, 4vw, 2.5rem);
+	background: var(--card-background);
+	border: 1px solid var(--dispatch-border);
+	border-radius: var(--border-radius-large);
+}
+
+.artist-dispatch-panel p,
+.artist-dispatch-state > p {
+	max-width: 740px;
+}
+
+.artist-dispatch-actions,
+.artist-dispatch-dashboard__head,
+.artist-dispatch-editor-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.artist-dispatch-form {
+	display: grid;
+	gap: 1.25rem;
+	max-width: 680px;
+}
+
+.artist-dispatch-form label:not(.artist-dispatch-check) {
+	display: grid;
+	gap: .45rem;
+	font-weight: 700;
+}
+
+.artist-dispatch-form input,
+.artist-dispatch-form select,
+.artist-dispatch-form textarea {
+	width: 100%;
+	box-sizing: border-box;
+	padding: .8rem;
+	color: var(--text-color);
+	background: var(--body-background);
+	border: 1px solid var(--dispatch-border);
+	border-radius: var(--border-radius-small);
+}
+
+.artist-dispatch-form textarea {
+	min-height: 150px;
+}
+
+.artist-dispatch-check {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: .75rem;
+}
+
+.artist-dispatch-message {
+	min-height: 1.5em;
+}
+
+.artist-dispatch-criteria,
+.artist-dispatch-group ul {
+	list-style: none;
+	padding: 0;
+}
+
+.artist-dispatch-criteria li,
+.artist-dispatch-group li {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: .85rem 0;
+	border-bottom: 1px solid var(--dispatch-border);
+}
+
+.artist-dispatch-criteria li span,
+.artist-dispatch-group li span {
+	display: block;
+	font-size: .85rem;
+	opacity: .72;
+}
+
+.artist-dispatch-criteria .is-met::before {
+	content: "✓";
+	color: var(--accent);
+	margin-right: .6rem;
+}
+
+.artist-dispatch-groups {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.artist-dispatch-group {
+	min-width: 0;
+}
+
+.artist-dispatch-guidelines header,
+.artist-dispatch-guidelines section {
+	padding: clamp(1.5rem, 4vw, 3rem) 0;
+	border-bottom: 1px solid var(--dispatch-border);
+}
+
+.artist-dispatch-guidelines section {
+	display: grid;
+	grid-template-columns: minmax(180px, 1fr) 2fr;
+	gap: 2rem;
+}
+
+.artist-dispatch-guidelines h2,
+.artist-dispatch-guidelines p {
+	margin-top: 0;
+}
+
+.artist-dispatch-write {
+	max-width: 1100px;
+}
+
+.artist-dispatch-write__intro {
+	padding: 1rem 0;
+}
+
+.artist-dispatch-editor {
+	min-height: 70vh;
+	background: var(--card-background);
+	border: 1px solid var(--dispatch-border);
+	border-radius: var(--border-radius-large);
+	overflow: hidden;
+}
+
+.artist-dispatch-editor-title {
+	width: 100%;
+	padding: 1rem clamp(1rem, 4vw, 3rem) 0;
+	box-sizing: border-box;
+}
+
+.artist-dispatch-editor-actions {
+	width: 100%;
+}
+
+.artist-dispatch-save-state {
+	display: inline-flex;
+	align-items: center;
+	gap: .4rem;
+	margin-right: auto;
+}
+
+.artist-dispatch-disclosure {
+	padding: 1rem 1.25rem;
+	margin-bottom: 2rem;
+	background: var(--card-background);
+	border-left: 4px solid var(--accent);
+}
+
+.artist-dispatch-disclosure p {
+	margin: .35rem 0 0;
+}
+
+@media (max-width: 720px) {
+	.artist-dispatch-groups,
+	.artist-dispatch-guidelines section {
+		grid-template-columns: 1fr;
+		gap: .5rem;
+	}
+
+	.artist-dispatch-dashboard__head {
+		align-items: flex-start;
+	}
+}

@@ -32,6 +32,7 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/admin-customizations.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/ads-filter.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/homepage-hooks.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/power/power-page.php';
+require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/submit/artist-dispatch.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/blog-archive-routing.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/breadcrumbs.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/festival-pillar.php';
@@ -88,6 +89,9 @@ add_action( 'wp_enqueue_scripts', 'extrachill_blog_register_styles', 5 );
 function extrachill_blog_activate() {
 	if ( function_exists( 'extrachill_blog_create_power_page' ) ) {
 		extrachill_blog_create_power_page();
+	}
+	if ( function_exists( 'extrachill_blog_provision_submit_pages' ) ) {
+		extrachill_blog_provision_submit_pages();
 	}
 
 	extrachill_blog_schedule_recently_shipped_refresh();
