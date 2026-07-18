@@ -6,6 +6,13 @@
   },
   "id": "extrachill-users",
   "remote_path": "wp-content/plugins/extrachill-users",
+  "scopes": {
+    "release": {
+      "exclude": [
+        "blocks/**"
+      ]
+    }
+  },
   "version_targets": [
     {
       "file": "extrachill-users.php",
