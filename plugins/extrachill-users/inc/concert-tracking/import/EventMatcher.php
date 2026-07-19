@@ -51,6 +51,7 @@ final class EventMatcher {
 	public function __construct( int $blog_id = 0, int $threshold = self::DEFAULT_THRESHOLD ) {
 		if ( ! $blog_id ) {
 			$blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 7;
+			$blog_id = (int) apply_filters( 'extrachill_users_events_blog_id', $blog_id );
 		}
 		$this->blog_id   = $blog_id;
 		$this->threshold = $threshold;

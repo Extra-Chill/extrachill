@@ -198,11 +198,13 @@ final class ImportOrchestrator {
 		$events_blog  = $matcher->blog_id();
 		$source_slug  = (string) $run['source_slug'];
 
-		$seen      = 0;
-		$matched   = 0;
-		$created   = 0;
-		$unmatched = 0;
-		$skipped   = 0;
+		$seen             = 0;
+		$matched          = 0;
+		$created          = 0;
+		$unmatched        = 0;
+		$skipped          = 0;
+		$attendance_error = null;
+		$rejected_event   = null;
 
 		// Suppress per-event IndexNow pings for the duration of this import
 		// batch. Each created event would otherwise trigger a synchronous
@@ -268,7 +270,13 @@ final class ImportOrchestrator {
 					$was_created = true;
 				}
 
-				ec_users_mark_event( (int) $run['user_id'], $resolved_id, $events_blog );
+				$mark_result = ec_users_mark_event( (int) $run['user_id'], $resolved_id, $events_blog );
+				if ( is_wp_error( $mark_result ) ) {
+					++$unmatched;
+					$attendance_error = $mark_result;
+					$rejected_event   = $external;
+					break;
+				}
 
 				if ( $was_created ) {
 					++$created;
@@ -290,6 +298,18 @@ final class ImportOrchestrator {
 				'total_pages' => $total_pages,
 			)
 		);
+		if ( $attendance_error ) {
+			self::mark_failed(
+				$run_id,
+				sprintf(
+					'Attendance import rejected %s (%s): %s',
+					$rejected_event instanceof ExternalEvent ? $rejected_event->label() : 'event',
+					$attendance_error->get_error_code(),
+					$attendance_error->get_error_message()
+				)
+			);
+			return;
+		}
 
 		if ( $page >= $total_pages ) {
 			self::mark_complete( $run_id );

@@ -311,13 +311,22 @@ function extrachill_users_register_concert_tracking_abilities() {
 function extrachill_users_ability_toggle_event_mark( array $input ) {
 	$user_id  = get_current_user_id();
 	$event_id = (int) $input['event_id'];
-	$blog_id  = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id() );
+	$blog_id  = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
 
 	if ( ! $user_id ) {
 		return new WP_Error( 'not_logged_in', 'You must be logged in to mark events.', array( 'status' => 401 ) );
 	}
 
+	$blog_id = ec_users_validate_event_target( $event_id, $blog_id );
+	if ( is_wp_error( $blog_id ) ) {
+		return $blog_id;
+	}
+
 	$result = ec_users_toggle_event( $user_id, $event_id, $blog_id );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
 	$count  = ec_users_get_event_mark_count( $event_id, $blog_id );
 	$timing = ec_users_get_event_timing( $event_id );
 
