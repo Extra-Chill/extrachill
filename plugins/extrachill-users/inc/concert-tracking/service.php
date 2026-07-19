@@ -392,10 +392,11 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	$table         = extrachill_users_concert_tracking_table_name();
 	$blog_id       = $args['blog_id'] ? $args['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7 );
 	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
+	$posts_table   = $events_prefix . 'posts';
 
 	// Build WHERE clauses.
-	$where   = array( 'ct.user_id = %d', 'ct.blog_id = %d' );
-	$prepare = array( $user_id, $blog_id );
+	$where   = array( 'ct.user_id = %d', 'ct.blog_id = %d', 'p.post_type = %s', 'p.post_status = %s' );
+	$prepare = array( $user_id, $blog_id, 'data_machine_events', 'publish' );
 
 	$dates_table = $events_prefix . 'datamachine_event_dates';
 
@@ -434,6 +435,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 		"SELECT COUNT(*)
 		FROM {$table} ct
 		INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
+		INNER JOIN {$posts_table} p ON ct.event_id = p.ID
 		WHERE {$where_sql}",
 		...$prepare
 	);
@@ -451,6 +453,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 		"SELECT ct.event_id, ct.created_at AS marked_at, DATE(ed.start_datetime) AS event_date
 		FROM {$table} ct
 		INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
+		INNER JOIN {$posts_table} p ON ct.event_id = p.ID
 		WHERE {$where_sql}
 		ORDER BY ed.start_datetime {$order_sql}
 		LIMIT %d OFFSET %d",
@@ -480,6 +483,8 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	}
 
 	try {
+		_prime_post_caches( array_map( 'intval', wp_list_pluck( $rows, 'event_id' ) ), true, true );
+
 		foreach ( $rows as $row ) {
 			$event_id = (int) $row['event_id'];
 			$post     = get_post( $event_id );
@@ -610,12 +615,13 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	$blog_id       = ! empty( $args['blog_id'] ) ? (int) $args['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7 );
 	$table         = extrachill_users_concert_tracking_table_name();
 	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
+	$posts_table   = $events_prefix . 'posts';
 
 	$dates_table = $events_prefix . 'datamachine_event_dates';
 
 	// Base WHERE for this user + blog.
-	$where   = array( 'ct.user_id = %d', 'ct.blog_id = %d' );
-	$prepare = array( $user_id, $blog_id );
+	$where   = array( 'ct.user_id = %d', 'ct.blog_id = %d', 'p.post_type = %s', 'p.post_status = %s' );
+	$prepare = array( $user_id, $blog_id, 'data_machine_events', 'publish' );
 
 	if ( ! empty( $args['year'] ) ) {
 		$where[]   = 'YEAR(ed.start_datetime) = %d';
@@ -639,6 +645,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 			"SELECT COUNT(*)
 			FROM {$table} ct
 			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
+			INNER JOIN {$posts_table} p ON ct.event_id = p.ID
 			WHERE {$where_sql}",
 			...$prepare
 		)
@@ -667,6 +674,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 			"SELECT ct.event_id
 			FROM {$table} ct
 			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
+			INNER JOIN {$posts_table} p ON ct.event_id = p.ID
 			WHERE {$where_sql}",
 			...$prepare
 		)
@@ -768,6 +776,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 			"SELECT YEAR(ed.start_datetime) AS yr, COUNT(*) AS count
 			FROM {$table} ct
 			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
+			INNER JOIN {$posts_table} p ON ct.event_id = p.ID
 			WHERE {$where_sql}
 			GROUP BY yr
 			ORDER BY yr DESC",
@@ -789,6 +798,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 			"SELECT ct.event_id, DATE(ed.start_datetime) AS event_date
 			FROM {$table} ct
 			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
+			INNER JOIN {$posts_table} p ON ct.event_id = p.ID
 			WHERE {$where_sql}
 			ORDER BY ed.start_datetime ASC
 			LIMIT 1",
@@ -802,6 +812,7 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 			"SELECT ct.event_id, DATE(ed.start_datetime) AS event_date
 			FROM {$table} ct
 			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
+			INNER JOIN {$posts_table} p ON ct.event_id = p.ID
 			WHERE {$where_sql}
 			ORDER BY ed.start_datetime DESC
 			LIMIT 1",
@@ -814,25 +825,45 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 	$first_show  = null;
 	$latest_show = null;
 
-	if ( $first_show_row ) {
-		$post = get_post( (int) $first_show_row['event_id'] );
-		if ( $post instanceof WP_Post ) {
-			$first_show = array(
-				'event_id' => $post->ID,
-				'title'    => $post->post_title,
-				'date'     => $first_show_row['event_date'],
-			);
-		}
+	$switched = false;
+	if ( get_current_blog_id() !== $blog_id ) {
+		switch_to_blog( $blog_id );
+		$switched = true;
 	}
 
-	if ( $latest_show_row ) {
-		$post = get_post( (int) $latest_show_row['event_id'] );
-		if ( $post instanceof WP_Post ) {
-			$latest_show = array(
-				'event_id' => $post->ID,
-				'title'    => $post->post_title,
-				'date'     => $latest_show_row['event_date'],
-			);
+	try {
+		$summary_ids = array_filter(
+			array(
+				$first_show_row ? (int) $first_show_row['event_id'] : 0,
+				$latest_show_row ? (int) $latest_show_row['event_id'] : 0,
+			)
+		);
+		_prime_post_caches( array_values( array_unique( $summary_ids ) ), true, true );
+
+		if ( $first_show_row ) {
+			$post = get_post( (int) $first_show_row['event_id'] );
+			if ( $post instanceof WP_Post ) {
+				$first_show = array(
+					'event_id' => $post->ID,
+					'title'    => $post->post_title,
+					'date'     => $first_show_row['event_date'],
+				);
+			}
+		}
+
+		if ( $latest_show_row ) {
+			$post = get_post( (int) $latest_show_row['event_id'] );
+			if ( $post instanceof WP_Post ) {
+				$latest_show = array(
+					'event_id' => $post->ID,
+					'title'    => $post->post_title,
+					'date'     => $latest_show_row['event_date'],
+				);
+			}
+		}
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
 		}
 	}
 
