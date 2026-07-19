@@ -14,9 +14,97 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'wp_abilities_api_init', 'extrachill_users_register_concert_tracking_abilities' );
 
 /**
+ * Check whether the current user may set attendance for the requested user.
+ *
+ * @param array $input Validated ability input.
+ * @return bool
+ */
+function extrachill_users_can_set_event_mark( array $input ): bool {
+	$current_user_id = get_current_user_id();
+	if ( ! $current_user_id ) {
+		return false;
+	}
+
+	$target_user_id = ! empty( $input['user_id'] ) ? (int) $input['user_id'] : $current_user_id;
+
+	return $target_user_id === $current_user_id || current_user_can( 'manage_network_options' );
+}
+
+/**
+ * Keep untargeted event attendance public while authorizing targeted reads.
+ *
+ * @param array $input Validated ability input.
+ * @return bool
+ */
+function extrachill_users_can_get_event_attendance( array $input ): bool {
+	if ( empty( $input['user_id'] ) ) {
+		return true;
+	}
+
+	return extrachill_users_can_set_event_mark( $input );
+}
+
+/**
  * Register concert tracking abilities.
  */
 function extrachill_users_register_concert_tracking_abilities() {
+
+	// ─── Set Event Mark ────────────────────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/set-event-mark',
+		array(
+			'label'               => __( 'Set Event Mark', 'extrachill-users' ),
+			'description'         => __( 'Idempotently mark or unmark an event for the current user, or for another user when authorized.', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'user_id'  => array(
+						'type'        => 'integer',
+						'description' => 'User ID. Defaults to current user. Targeting another user requires network administration permission.',
+						'default'     => 0,
+					),
+					'event_id' => array(
+						'type'        => 'integer',
+						'description' => 'Event post ID.',
+					),
+					'blog_id'  => array(
+						'type'        => 'integer',
+						'description' => 'Blog ID. Defaults to events blog.',
+						'default'     => 0,
+					),
+					'marked'   => array(
+						'type'        => 'boolean',
+						'description' => 'Desired attendance state.',
+					),
+				),
+				'required'   => array( 'event_id', 'marked' ),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'user_id'     => array( 'type' => 'integer' ),
+					'marked'      => array( 'type' => 'boolean' ),
+					'changed'     => array( 'type' => 'boolean' ),
+					'count'       => array( 'type' => 'integer' ),
+					'count_label' => array( 'type' => 'string' ),
+					'timing'      => array( 'type' => 'string' ),
+				),
+				'required'   => array( 'user_id', 'marked', 'changed', 'count', 'count_label', 'timing' ),
+			),
+			'execute_callback'    => 'extrachill_users_ability_set_event_mark',
+			'permission_callback' => 'extrachill_users_can_set_event_mark',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
 
 	// ─── Mark / Unmark Event ─────────────────────────────────────────────────
 
@@ -254,6 +342,11 @@ function extrachill_users_register_concert_tracking_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
+					'user_id'           => array(
+						'type'        => 'integer',
+						'description' => 'User ID whose mark state to return. Defaults to current user. Targeting another user requires network administration permission.',
+						'default'     => 0,
+					),
 					'event_id'          => array(
 						'type'        => 'integer',
 						'description' => 'Event post ID.',
@@ -285,9 +378,10 @@ function extrachill_users_register_concert_tracking_abilities() {
 					'user_marked' => array( 'type' => 'boolean' ),
 					'attendees'   => array( 'type' => 'array' ),
 				),
+				'required'   => array( 'count', 'count_label', 'timing', 'user_marked', 'attendees' ),
 			),
 			'execute_callback'    => 'extrachill_users_ability_get_event_attendance',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_users_can_get_event_attendance',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -301,6 +395,62 @@ function extrachill_users_register_concert_tracking_abilities() {
 }
 
 // ─── Execute Callbacks ───────────────────────────────────────────────────────
+
+/**
+ * Resolve and authorize the user targeted by a concert tracking ability.
+ *
+ * @param array $input Ability input.
+ * @return int|WP_Error
+ */
+function extrachill_users_resolve_concert_tracking_user( array $input ) {
+	$current_user_id = get_current_user_id();
+	$user_id         = ! empty( $input['user_id'] ) ? (int) $input['user_id'] : $current_user_id;
+
+	if ( ! $user_id || ! get_userdata( $user_id ) ) {
+		return new WP_Error( 'no_user', 'A valid user ID is required.', array( 'status' => 400 ) );
+	}
+
+	if ( $user_id !== $current_user_id && ! current_user_can( 'manage_network_options' ) ) {
+		return new WP_Error( 'forbidden_user_target', 'You are not authorized to manage concert attendance for this user.', array( 'status' => 403 ) );
+	}
+
+	return $user_id;
+}
+
+/**
+ * Set event mark ability callback.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error
+ */
+function extrachill_users_ability_set_event_mark( array $input ) {
+	$user_id = extrachill_users_resolve_concert_tracking_user( $input );
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
+	}
+
+	$event_id     = (int) $input['event_id'];
+	$blog_id      = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id() );
+	$marked       = (bool) $input['marked'];
+	$write_result = $marked
+		? ec_users_mark_event( $user_id, $event_id, $blog_id )
+		: ec_users_unmark_event( $user_id, $event_id, $blog_id );
+	if ( is_wp_error( $write_result ) ) {
+		return $write_result;
+	}
+
+	$count  = ec_users_get_event_mark_count( $event_id, $blog_id );
+	$timing = ec_users_get_event_timing( $event_id );
+
+	return array(
+		'user_id'     => $user_id,
+		'marked'      => $marked,
+		'changed'     => (bool) $write_result,
+		'count'       => $count,
+		'count_label' => ec_users_format_count_label( $count, $timing ),
+		'timing'      => $timing,
+	);
+}
 
 /**
  * Toggle event mark ability callback.
@@ -397,9 +547,19 @@ function extrachill_users_ability_search_events_for_marking( array $input ) {
  * Get event attendance ability callback.
  *
  * @param array $input Ability input.
- * @return array
+ * @return array|WP_Error
  */
 function extrachill_users_ability_get_event_attendance( array $input ) {
+	$user_id = 0;
+	if ( ! empty( $input['user_id'] ) ) {
+		$user_id = extrachill_users_resolve_concert_tracking_user( $input );
+		if ( is_wp_error( $user_id ) ) {
+			return $user_id;
+		}
+	} elseif ( is_user_logged_in() ) {
+		$user_id = get_current_user_id();
+	}
+
 	$event_id = (int) $input['event_id'];
 	$blog_id  = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id() );
 
@@ -414,8 +574,8 @@ function extrachill_users_ability_get_event_attendance( array $input ) {
 		'attendees'   => array(),
 	);
 
-	if ( is_user_logged_in() ) {
-		$result['user_marked'] = ec_users_is_event_marked( get_current_user_id(), $event_id, $blog_id );
+	if ( $user_id ) {
+		$result['user_marked'] = ec_users_is_event_marked( $user_id, $event_id, $blog_id );
 	}
 
 	if ( ! empty( $input['include_attendees'] ) ) {
