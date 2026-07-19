@@ -18,6 +18,7 @@
       "php tests/SummaryCommandTest.php",
       "php tests/RetentionCommandTest.php",
       "php tests/UserLocalSceneCommandTest.php",
+      "php tests/ConcertTrackingCommandTest.php",
       "php tests/RevenueCommandTest.php",
       "php tests/RevenueCommandRuntimeTest.php"
     ]
