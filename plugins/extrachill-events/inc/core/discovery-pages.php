@@ -419,6 +419,7 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current, st
 		'this-week'    => 'This Week',
 		''             => 'All Shows',
 	);
+	$query_args = extrachill_events_scope_nav_query_args();
 
 	$nav_class = 'discovery-scope-nav';
 	if ( '' !== trim( $extra_class ) ) {
@@ -443,6 +444,9 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current, st
 		} else {
 			$url = trailingslashit( $term_link ) . $scope_slug . '/';
 		}
+		if ( ! empty( $query_args ) ) {
+			$url = add_query_arg( $query_args, $url );
+		}
 
 		printf(
 			'<li%s><a href="%s" data-scope="%s"%s>%s</a></li>',
@@ -456,4 +460,37 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current, st
 
 	echo '</ul>';
 	echo '</nav>';
+}
+
+/**
+ * Return user-facing calendar filters that survive a scope switch.
+ *
+ * Pagination resets, while scope, archive context, and opaque scope tokens are
+ * intentionally excluded because the destination path and calendar DOM own
+ * those values.
+ *
+ * @return array<string, mixed> Supported query arguments.
+ */
+function extrachill_events_scope_nav_query_args(): array {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public filter state.
+	$request = wp_unslash( $_GET );
+	$args    = array();
+
+	foreach ( array( 'event_search', 'date_start', 'date_end', 'past', 'month', 'lat', 'lng', 'radius', 'radius_unit' ) as $key ) {
+		if ( isset( $request[ $key ] ) && is_scalar( $request[ $key ] ) && '' !== (string) $request[ $key ] ) {
+			$args[ $key ] = sanitize_text_field( (string) $request[ $key ] );
+		}
+	}
+
+	if ( ! empty( $request['tax_filter'] ) && is_array( $request['tax_filter'] ) ) {
+		foreach ( $request['tax_filter'] as $taxonomy => $term_ids ) {
+			$taxonomy = sanitize_key( (string) $taxonomy );
+			$term_ids = array_values( array_filter( array_map( 'absint', (array) $term_ids ) ) );
+			if ( $taxonomy && $term_ids ) {
+				$args['tax_filter'][ $taxonomy ] = $term_ids;
+			}
+		}
+	}
+
+	return $args;
 }

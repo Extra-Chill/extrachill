@@ -14,10 +14,24 @@
 
 	/** Scope labels for title/H1 generation. */
 	const SCOPE_LABELS = {
+		today: 'Today',
 		tonight: 'Tonight',
 		'this-weekend': 'This Weekend',
 		'this-week': 'This Week',
 	};
+	const FILTER_QUERY_KEYS = [
+		'event_search',
+		'date_start',
+		'date_end',
+		'past',
+		'month',
+		'lat',
+		'lng',
+		'radius',
+		'radius_unit',
+	];
+	let activeRequest = null;
+	let requestSequence = 0;
 
 	document.addEventListener( 'DOMContentLoaded', init );
 
@@ -38,7 +52,7 @@
 			const scope = link.getAttribute( 'data-scope' );
 			const termId = nav.getAttribute( 'data-term-id' );
 			const termName = nav.getAttribute( 'data-term-name' );
-			const targetUrl = link.getAttribute( 'href' );
+			const targetUrl = buildScopeUrl( link.getAttribute( 'href' ) );
 
 			// Update active tab immediately for responsive feel.
 			updateActiveTab( nav, link );
@@ -50,33 +64,41 @@
 			updatePageText( termName, scope );
 
 			// Fetch calendar events for new scope.
-			fetchScopedCalendar( scope, termId );
+			fetchScopedCalendar( scope, termId, targetUrl.searchParams );
 		} );
 
 		// Handle browser back/forward navigation.
-		window.addEventListener( 'popstate', function ( e ) {
-			if ( e.state && typeof e.state.scope === 'string' ) {
-				const scope = e.state.scope;
-				const termId = nav.getAttribute( 'data-term-id' );
-				const termName = nav.getAttribute( 'data-term-name' );
-
-				// Find the matching tab link.
-				const tabLink = nav.querySelector(
-					'a[data-scope="' + scope + '"]'
-				);
-				if ( tabLink ) {
-					updateActiveTab( nav, tabLink );
-				}
-
-				updatePageText( termName, scope );
-				fetchScopedCalendar( scope, termId );
+		window.addEventListener( 'popstate', function () {
+			const tabLink = findTabForLocation( nav );
+			const scope = tabLink
+				? tabLink.getAttribute( 'data-scope' )
+				: findScopeForLocation();
+			if ( typeof scope !== 'string' ) {
+				return;
 			}
+
+			const termId = nav.getAttribute( 'data-term-id' );
+			const termName = nav.getAttribute( 'data-term-name' );
+
+			if ( tabLink ) {
+				updateActiveTab( nav, tabLink );
+			} else {
+				clearActiveTabs( nav );
+			}
+			updatePageText( termName, scope );
+			fetchScopedCalendar(
+				scope,
+				termId,
+				new URLSearchParams( window.location.search )
+			);
 		} );
 
 		// Set initial state for popstate support.
 		const activeLink = nav.querySelector( 'li.active a[data-scope]' );
-		if ( activeLink ) {
-			const initialScope = activeLink.getAttribute( 'data-scope' );
+		const initialScope = activeLink
+			? activeLink.getAttribute( 'data-scope' )
+			: findScopeForLocation();
+		if ( typeof initialScope === 'string' ) {
 			window.history.replaceState(
 				{ scope: initialScope },
 				'',
@@ -86,12 +108,98 @@
 	}
 
 	/**
+	 * Read a valid scope slug from the current URL path.
+	 * @return {string|undefined} Current scope, if represented by the path.
+	 */
+	function findScopeForLocation() {
+		const parts = normalizePath( window.location.pathname ).split( '/' );
+		const candidate = parts[ parts.length - 1 ];
+
+		return Object.prototype.hasOwnProperty.call( SCOPE_LABELS, candidate )
+			? candidate
+			: undefined;
+	}
+
+	/**
+	 * Build a scope destination without carrying REST-owned state or pagination.
+	 * @param {string} href Scope link destination.
+	 * @return {URL} Scope destination with current filters.
+	 */
+	function buildScopeUrl( href ) {
+		const targetUrl = new URL( href, window.location.href );
+		const currentParams = new URLSearchParams( window.location.search );
+
+		targetUrl.search = '';
+		FILTER_QUERY_KEYS.forEach( function ( key ) {
+			const value = currentParams.get( key );
+			if ( value ) {
+				targetUrl.searchParams.set( key, value );
+			}
+		} );
+
+		for ( const pair of currentParams.entries() ) {
+			if ( pair[ 0 ].indexOf( 'tax_filter[' ) === 0 ) {
+				targetUrl.searchParams.append( pair[ 0 ], pair[ 1 ] );
+			}
+		}
+
+		return targetUrl;
+	}
+
+	/**
+	 * Find the tab whose generated path represents the current location.
+	 * @param {Element} nav Scope-nav container element.
+	 * @return {Element|null} Matching tab link.
+	 */
+	function findTabForLocation( nav ) {
+		const links = nav.querySelectorAll( 'a[data-scope]' );
+		const currentPath = normalizePath( window.location.pathname );
+
+		for ( let i = 0; i < links.length; i++ ) {
+			const linkPath = normalizePath(
+				new URL(
+					links[ i ].getAttribute( 'href' ),
+					window.location.href
+				).pathname
+			);
+			if ( linkPath === currentPath ) {
+				return links[ i ];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Normalize trailing slashes for tab path comparisons.
+	 * @param {string} path URL path.
+	 * @return {string} Normalized path.
+	 */
+	function normalizePath( path ) {
+		return path.replace( /\/+$/, '' ) || '/';
+	}
+
+	/**
 	 * Update active tab styling.
 	 * @param {Element} nav        Scope-nav container element.
 	 * @param {Element} activeLink The tab link to mark active.
 	 */
 	function updateActiveTab( nav, activeLink ) {
-		// Remove active from all tabs.
+		clearActiveTabs( nav );
+
+		// Set new active tab.
+		const li = activeLink.closest( 'li' );
+		if ( li ) {
+			li.classList.add( 'active' );
+		}
+		activeLink.setAttribute( 'aria-current', 'page' );
+	}
+
+	/**
+	 * Clear scope tab styling when a valid scope has no corresponding tab.
+	 * @param {Element} nav Scope-nav container element.
+	 */
+	function clearActiveTabs( nav ) {
 		const items = nav.querySelectorAll( 'li' );
 		for ( let i = 0; i < items.length; i++ ) {
 			items[ i ].classList.remove( 'active' );
@@ -100,13 +208,6 @@
 				a.removeAttribute( 'aria-current' );
 			}
 		}
-
-		// Set new active tab.
-		const li = activeLink.closest( 'li' );
-		if ( li ) {
-			li.classList.add( 'active' );
-		}
-		activeLink.setAttribute( 'aria-current', 'page' );
 	}
 
 	/**
@@ -136,10 +237,11 @@
 
 	/**
 	 * Fetch scoped calendar events via REST API and swap DOM.
-	 * @param {string} scope  Scope slug (e.g. 'tonight', 'this-weekend').
-	 * @param {string} termId Location term ID to fetch events for.
+	 * @param {string}          scope     Scope slug (e.g. 'tonight', 'this-weekend').
+	 * @param {string}          termId    Location term ID to fetch events for.
+	 * @param {URLSearchParams} urlParams Filter state owned by this navigation.
 	 */
-	function fetchScopedCalendar( scope, termId ) {
+	function fetchScopedCalendar( scope, termId, urlParams ) {
 		const calendar = document.querySelector(
 			'.data-machine-events-calendar'
 		);
@@ -154,7 +256,14 @@
 			return;
 		}
 
-		// Show loading state.
+		if ( activeRequest ) {
+			activeRequest.controller.abort();
+		}
+
+		const requestId = ++requestSequence;
+		const controller = new AbortController();
+		activeRequest = { id: requestId, controller };
+
 		content.classList.add( 'loading' );
 
 		// Update the calendar's data-scope attribute.
@@ -172,10 +281,8 @@
 			params.set( 'scope', scope );
 		}
 
-		// Preserve search/filter params from current URL.
-		const urlParams = new URLSearchParams( window.location.search );
-		const passthroughKeys = [ 'event_search', 'date_start', 'date_end' ];
-		passthroughKeys.forEach( function ( key ) {
+		// Preserve user-owned filters from the navigation snapshot.
+		FILTER_QUERY_KEYS.forEach( function ( key ) {
 			const val = urlParams.get( key );
 			if ( val ) {
 				params.set( key, val );
@@ -189,12 +296,33 @@
 			}
 		}
 
+		// Archive context and opaque tokens are server-owned DOM state. Never
+		// trust query-string copies of either value.
+		const archiveTaxonomy = calendar.getAttribute(
+			'data-archive-taxonomy'
+		);
+		const archiveTermId = calendar.getAttribute( 'data-archive-term-id' );
+		if ( archiveTaxonomy && archiveTermId ) {
+			params.set( 'archive_taxonomy', archiveTaxonomy );
+			params.set( 'archive_term_id', archiveTermId );
+		}
+
+		const scopeToken = calendar.getAttribute( 'data-scope-token' );
+		if ( scopeToken ) {
+			params.set( 'scope_token', scopeToken );
+		}
+
 		const apiUrl =
 			'/wp-json/datamachine/v1/events/calendar?' + params.toString();
 
 		fetch( apiUrl, {
 			method: 'GET',
-			headers: { 'Content-Type': 'application/json' },
+			signal: controller.signal,
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'application/json',
+				'X-Requested-With': 'XMLHttpRequest',
+			},
 		} )
 			.then( function ( response ) {
 				if ( ! response.ok ) {
@@ -203,6 +331,10 @@
 				return response.json();
 			} )
 			.then( function ( data ) {
+				if ( requestId !== requestSequence ) {
+					return;
+				}
+
 				if ( data.success ) {
 					// Swap events content.
 					content.innerHTML = data.html;
@@ -277,15 +409,60 @@
 
 					// Re-trigger lazy render for new content.
 					triggerLazyRender( calendar );
+				} else {
+					renderRequestError( content, scope, termId, urlParams );
 				}
 			} )
-			.catch( function () {
-				content.innerHTML =
-					'<div class="data-machine-events-error"><p>Error loading events. Please try again.</p></div>';
+			.catch( function ( error ) {
+				if (
+					error.name === 'AbortError' ||
+					requestId !== requestSequence
+				) {
+					return;
+				}
+
+				renderRequestError( content, scope, termId, urlParams );
 			} )
 			.finally( function () {
-				content.classList.remove( 'loading' );
+				if ( requestId === requestSequence ) {
+					content.classList.remove( 'loading' );
+					activeRequest = null;
+				}
 			} );
+	}
+
+	/**
+	 * Replace stale results with an explicit, retryable latest-request error.
+	 * @param {Element}         content   Calendar content element.
+	 * @param {string}          scope     Requested scope.
+	 * @param {string}          termId    Location term ID.
+	 * @param {URLSearchParams} urlParams Request filter snapshot.
+	 */
+	function renderRequestError( content, scope, termId, urlParams ) {
+		const calendar = content.closest( '.data-machine-events-calendar' );
+		if ( calendar ) {
+			calendar
+				.querySelectorAll(
+					'.data-machine-events-pagination, .data-machine-events-load-more-nav, .data-machine-events-results-counter, .data-machine-events-past-navigation'
+				)
+				.forEach( function ( element ) {
+					element.remove();
+				} );
+		}
+
+		content.innerHTML =
+			'<div class="data-machine-events-error"><p>Error loading events. Please try again.</p><button type="button" class="data-machine-events-retry">Try again</button></div>';
+
+		const retry = content.querySelector( '.data-machine-events-retry' );
+		if ( retry ) {
+			retry.addEventListener( 'click', function () {
+				fetchScopedCalendar(
+					scope,
+					termId,
+					new URLSearchParams( urlParams.toString() )
+				);
+			} );
+		}
 	}
 
 	/**
