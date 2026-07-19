@@ -12,7 +12,7 @@ import apiFetch from '@wordpress/api-fetch';
 
 /**
  * @param {number} userId
- * @param {Object} filters - { period, year, page, perPage }
+ * @param {Object} filters - { period, year, page, perPage, enabled }
  */
 export default function useShows( userId, filters = {} ) {
 	const [ shows, setShows ] = useState( [] );
@@ -21,10 +21,16 @@ export default function useShows( userId, filters = {} ) {
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState( null );
 
-	const { period = 'all', year = 0, page = 1, perPage = 20 } = filters;
+	const {
+		period = 'all',
+		year = 0,
+		page = 1,
+		perPage = 20,
+		enabled = true,
+	} = filters;
 
 	const fetchShows = useCallback( () => {
-		if ( ! userId ) {
+		if ( ! userId || ! enabled ) {
 			setLoading( false );
 			return;
 		}
@@ -56,7 +62,7 @@ export default function useShows( userId, filters = {} ) {
 				setError( err.message || 'Failed to load shows.' );
 				setLoading( false );
 			} );
-	}, [ userId, period, year, page, perPage ] );
+	}, [ userId, period, year, page, perPage, enabled ] );
 
 	useEffect( () => {
 		fetchShows();

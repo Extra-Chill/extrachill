@@ -20,7 +20,7 @@ import { ActionRow, InlineStatus } from '@extrachill/components';
 import ShowCard from './ShowCard';
 import useShows from '../hooks/useShows';
 
-const ShowList = ( { userId, period, year, eventsUrl } ) => {
+const ShowList = ( { userId, period, year, eventsUrl, isOwn = true } ) => {
 	const [ page, setPage ] = useState( 1 );
 
 	const { shows, total, pages, loading, error } = useShows( userId, {
@@ -51,8 +51,9 @@ const ShowList = ( { userId, period, year, eventsUrl } ) => {
 		}
 		return (
 			<InlineStatus tone="info">
-				No past shows tracked yet. Use the search above to find shows
-				you&rsquo;ve attended, or Import from setlist.fm/phish.net.
+				{ isOwn
+					? "No past shows tracked yet. Use the search above to find shows you've attended, or Import from setlist.fm/phish.net."
+					: 'No past shows tracked yet.' }
 			</InlineStatus>
 		);
 	}

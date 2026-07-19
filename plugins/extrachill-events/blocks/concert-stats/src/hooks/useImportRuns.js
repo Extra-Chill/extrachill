@@ -18,8 +18,10 @@ const ACTIVE_STATUSES = [ 'pending', 'running', 'paused' ];
 
 /**
  * Hook returning import sources + runs + actions.
+ *
+ * @param {boolean} enabled Whether owner-only import requests may run.
  */
-export default function useImportRuns() {
+export default function useImportRuns( enabled = true ) {
 	const [ sources, setSources ] = useState( [] );
 	const [ runs, setRuns ] = useState( [] );
 	const [ loading, setLoading ] = useState( true );
@@ -48,11 +50,16 @@ export default function useImportRuns() {
 	}, [] );
 
 	const refresh = useCallback( () => {
+		if ( ! enabled ) {
+			setLoading( false );
+			return Promise.resolve();
+		}
+
 		setLoading( true );
 		return Promise.all( [ fetchSources(), fetchRuns() ] ).finally( () =>
 			setLoading( false )
 		);
-	}, [ fetchSources, fetchRuns ] );
+	}, [ enabled, fetchSources, fetchRuns ] );
 
 	// Initial load.
 	useEffect( () => {
@@ -70,7 +77,7 @@ export default function useImportRuns() {
 			pollTimerRef.current = null;
 		}
 
-		if ( anyActive ) {
+		if ( enabled && anyActive ) {
 			pollTimerRef.current = setInterval( () => {
 				fetchRuns();
 			}, POLL_INTERVAL_MS );
@@ -82,7 +89,7 @@ export default function useImportRuns() {
 				pollTimerRef.current = null;
 			}
 		};
-	}, [ runs, fetchRuns ] );
+	}, [ enabled, runs, fetchRuns ] );
 
 	const preview = useCallback( ( source, username ) => {
 		return apiFetch( {

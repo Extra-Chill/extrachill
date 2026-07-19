@@ -38,10 +38,8 @@ import useShows from './hooks/useShows';
 import useImportRuns from './hooks/useImportRuns';
 
 /**
- * Whitelist of tab IDs that may appear in `?tab=` URL state. Anything
- * else falls back to the default ("upcoming"). Owner-only tabs are
- * still gated by `isOwn` inside the render — the whitelist just guards
- * against arbitrary strings becoming React state.
+ * Whitelist of tab IDs that may appear in `?tab=` URL state. Owners default
+ * to Upcoming; public viewers default to Past and can also open Stats.
  */
 const VALID_TAB_IDS = [
 	'upcoming',
@@ -74,19 +72,26 @@ const TAB_ALIASES = {
  * recognized (or aliased) tab so callers can apply their own default.
  *
  * @param {?string} requested Raw `tab` query param value.
+ * @param {boolean} isOwn     Whether owner-only tabs are available.
  * @return {?string} A valid tab ID, or null when unrecognized.
  */
-function resolveTabId( requested ) {
+function resolveTabId( requested, isOwn = true ) {
 	if ( ! requested ) {
 		return null;
 	}
 	const aliased = TAB_ALIASES[ requested ] || requested;
-	return VALID_TAB_IDS.includes( aliased ) ? aliased : null;
+	if ( ! VALID_TAB_IDS.includes( aliased ) ) {
+		return null;
+	}
+	return ! isOwn && ! [ 'past', 'stats' ].includes( aliased )
+		? 'past'
+		: aliased;
 }
 
 /**
  * Read the initial active tab from `?tab=` on first render. SSR-safe
- * (no-op when `window` is absent). Falls back to `'upcoming'`.
+ * (no-op when `window` is absent). Public viewers always land on a
+ * public tab, with unavailable owner-only links normalized to Past.
  *
  * #126: when `?tab=` is absent we default to `'upcoming'`. A
  * post-fetch effect inside the app swaps the default to `'past'`
@@ -103,14 +108,18 @@ function resolveTabId( requested ) {
  * #159: a legacy `?tab=add-past` deep link resolves to `'past'` via
  * resolveTabId()'s alias table.
  *
+ * @param {boolean} isOwn Whether owner-only tabs are available.
  * @return {string} Tab ID.
  */
-function readInitialTab() {
+function readInitialTab( isOwn ) {
 	if ( typeof window === 'undefined' ) {
-		return 'upcoming';
+		return isOwn ? 'upcoming' : 'past';
 	}
 	const params = new URLSearchParams( window.location.search );
-	return resolveTabId( params.get( 'tab' ) ) || 'upcoming';
+	return (
+		resolveTabId( params.get( 'tab' ), isOwn ) ||
+		( isOwn ? 'upcoming' : 'past' )
+	);
 }
 
 /**
@@ -120,14 +129,15 @@ function readInitialTab() {
  * including a legacy `?tab=add-past` link, which resolveTabId() maps to
  * `past` (#159).
  *
+ * @param {boolean} isOwn Whether owner-only tabs are available.
  * @return {boolean} True when the URL carries a recognized `?tab=` value.
  */
-function hasExplicitTabParam() {
+function hasExplicitTabParam( isOwn ) {
 	if ( typeof window === 'undefined' ) {
 		return false;
 	}
 	const params = new URLSearchParams( window.location.search );
-	return resolveTabId( params.get( 'tab' ) ) !== null;
+	return resolveTabId( params.get( 'tab' ), isOwn ) !== null;
 }
 
 /**
@@ -136,30 +146,41 @@ function hasExplicitTabParam() {
  * @param {number}  root0.userId       Profile owner's user ID.
  * @param {string}  root0.eventsUrl    Base URL for the events site.
  * @param {boolean} root0.isOwn        Whether the viewer owns this profile.
+ * @param {string}  root0.publicDateTo Last date included in public stats.
  * @param {boolean} root0.hasCalendar  Whether an embedded calendar sibling is present.
  * @param {boolean} root0.hasMap       Whether an embedded map sibling is present.
  * @param {Object}  root0.containerRef Ref object pointing at the React mount container.
  */
-function ConcertStatsApp( {
+export function ConcertStatsApp( {
 	userId,
 	eventsUrl,
 	isOwn,
+	publicDateTo,
 	hasCalendar,
 	hasMap,
 	containerRef,
 } ) {
 	const [ year, setYear ] = useState( 0 );
-	const [ activeTab, setActiveTab ] = useState( readInitialTab );
+	const [ activeTab, setActiveTab ] = useState( () =>
+		readInitialTab( isOwn )
+	);
 	// #126: tracks whether the user (or a deep link) has chosen a tab.
 	// Until then, the post-stats-fetch effect below is allowed to swap
 	// the default from 'upcoming' → 'past' when the owner has zero
 	// tracked shows. Once the user explicitly picks a tab via the tab
 	// strip, this flips to true and the auto-swap stops fighting them.
-	const [ userPickedTab, setUserPickedTab ] = useState( hasExplicitTabParam );
+	const [ userPickedTab, setUserPickedTab ] = useState( () =>
+		hasExplicitTabParam( isOwn )
+	);
 
-	const { stats, loading: statsLoading } = useStats( userId, { year } );
+	const { stats, loading: statsLoading } = useStats( userId, {
+		year,
+		dateTo: isOwn ? '' : publicDateTo,
+	} );
 
-	// Badge counts for the Upcoming / Past tabs. The aggregate stats
+	// Badge counts for the Upcoming / Past tabs. Public views disable the
+	// upcoming request entirely so the browser never receives itinerary data.
+	// The aggregate stats
 	// payload doesn't split tracked shows by period, so we read the
 	// accurate per-period `total` from the same paginated shows
 	// endpoint ShowList uses, but with `perPage: 1` so it's a cheap
@@ -170,6 +191,7 @@ function ConcertStatsApp( {
 		year,
 		page: 1,
 		perPage: 1,
+		enabled: isOwn,
 	} );
 	const { total: pastCount } = useShows( userId, {
 		period: 'past',
@@ -188,7 +210,7 @@ function ConcertStatsApp( {
 	// We hoist the hook to the parent and pass the full bag down to ImportTab
 	// so we don't double-fetch from two `useImportRuns()` sites on the same
 	// page. ImportTab consumes the props directly.
-	const importRunsBag = useImportRuns();
+	const importRunsBag = useImportRuns( isOwn );
 	const hasImports =
 		isOwn && importRunsBag.sources && importRunsBag.sources.length > 0;
 
@@ -306,21 +328,25 @@ function ConcertStatsApp( {
 		}
 	}, [ activeTab, hasMap, containerRef ] );
 
-	// Tab order: Upcoming → Past → Calendar (owner, #110) → Map
+	// Owner tab order: Upcoming → Past → Calendar (#110) → Map
 	// (owner, #111) → Stats → Import (owner, #112). The Past tab now
 	// also hosts the owner-only "add a past show" search affordance
 	// (#159 folded the old standalone "Add Past Shows" tab into Past),
 	// so there's no separate growth tab in the strip anymore.
 	// Visualization tabs (Calendar, Map) sit alongside the history axes
 	// (Upcoming, Past); Stats stays second-to-last as the summary
-	// surface; Import is the remaining growth tab. Owner-only tabs exist
-	// because the underlying tracking table is per-user.
+	// surface; Import is the remaining growth tab. Public viewers receive only
+	// Past and past-derived Stats, never a centralized upcoming itinerary.
 	const tabs = [
-		{
-			id: 'upcoming',
-			label: 'Upcoming',
-			badge: upcomingCount,
-		},
+		...( isOwn
+			? [
+					{
+						id: 'upcoming',
+						label: 'Upcoming',
+						badge: upcomingCount,
+					},
+			  ]
+			: [] ),
 		{
 			id: 'past',
 			label: 'Past',
@@ -581,6 +607,7 @@ function init() {
 		const userId = parseInt( container.dataset.userId, 10 );
 		const eventsUrl = container.dataset.eventsUrl || '';
 		const isOwn = container.dataset.isOwn === '1';
+		const publicDateTo = container.dataset.publicDateTo || '';
 		const hasCalendar = container.dataset.hasCalendar === '1';
 		const hasMap = container.dataset.hasMap === '1';
 
@@ -590,6 +617,7 @@ function init() {
 				userId={ userId }
 				eventsUrl={ eventsUrl }
 				isOwn={ isOwn }
+				publicDateTo={ publicDateTo }
 				hasCalendar={ hasCalendar }
 				hasMap={ hasMap }
 				mountNode={ container }

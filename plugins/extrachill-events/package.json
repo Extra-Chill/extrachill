@@ -12,6 +12,7 @@
 		"copy:concert-stats": "cp blocks/concert-stats/block.json blocks/concert-stats/render.php build/concert-stats/",
 		"start": "wp-scripts start blocks/event-submission/src/index.js --output-path=build/event-submission",
 		"start:concert-stats": "wp-scripts start blocks/concert-stats/src/index.js blocks/concert-stats/src/view.js --output-path=build/concert-stats",
+		"test:js": "wp-scripts test-unit-js",
 		"lint:js": "wp-scripts lint-js",
 		"lint:js:fix": "wp-scripts lint-js --fix"
 	},

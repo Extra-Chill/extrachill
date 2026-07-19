@@ -12,14 +12,14 @@ import apiFetch from '@wordpress/api-fetch';
 
 /**
  * @param {number} userId
- * @param {Object} filters - { year }
+ * @param {Object} filters - { year, dateTo }
  */
 export default function useStats( userId, filters = {} ) {
 	const [ stats, setStats ] = useState( null );
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState( null );
 
-	const { year = 0 } = filters;
+	const { year = 0, dateTo = '' } = filters;
 
 	const fetchStats = useCallback( () => {
 		if ( ! userId ) {
@@ -30,10 +30,17 @@ export default function useStats( userId, filters = {} ) {
 		setLoading( true );
 		setError( null );
 
-		let path = `/extrachill/v1/concert-tracking/user/${ userId }/stats`;
+		const params = new URLSearchParams();
 		if ( year ) {
-			path += `?year=${ year }`;
+			params.set( 'year', year );
 		}
+		if ( dateTo ) {
+			params.set( 'date_to', dateTo );
+		}
+		const query = params.toString();
+		const path = `/extrachill/v1/concert-tracking/user/${ userId }/stats${
+			query ? `?${ query }` : ''
+		}`;
 
 		apiFetch( { path } )
 			.then( ( response ) => {
@@ -44,7 +51,7 @@ export default function useStats( userId, filters = {} ) {
 				setError( err.message || 'Failed to load stats.' );
 				setLoading( false );
 			} );
-	}, [ userId, year ] );
+	}, [ userId, year, dateTo ] );
 
 	useEffect( () => {
 		fetchStats();

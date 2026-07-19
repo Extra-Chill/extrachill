@@ -47,6 +47,7 @@ const PastTab = ( { userId, year, isOwn } ) => {
 				userId={ userId }
 				period="past"
 				year={ year }
+				isOwn={ isOwn }
 			/>
 		</div>
 	);

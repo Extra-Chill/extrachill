@@ -23,6 +23,7 @@
 			<file>tests/Unit/Abilities/EventsByTermTaxonomyContextTest.php</file>
 			<file>tests/Unit/FestivalNotificationsTest.php</file>
 			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
+			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>
