@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.26.0] - 2026-07-20
+
+### Added
+- expose concert privacy settings
+
+### Fixed
+- bound concert tracking routes
+
 ## [0.25.3] - 2026-07-18
 
 ### Changed
