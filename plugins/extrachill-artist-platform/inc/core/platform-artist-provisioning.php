@@ -53,9 +53,9 @@ function ec_provision_platform_artist() {
 			if ( $existing_post
 				&& 'artist_profile' === $existing_post->post_type
 				&& 'publish' === $existing_post->post_status ) {
-				// Valid - ensure super admin is linked and return.
-				restore_current_blog();
-				ec_ensure_super_admin_linked( $existing_id );
+				if ( ! ec_ensure_super_admin_linked( $existing_id ) ) {
+					return false;
+				}
 				return $existing_id;
 			}
 			// Invalid - clear and re-provision.
@@ -66,9 +66,10 @@ function ec_provision_platform_artist() {
 		$existing_by_slug = get_page_by_path( 'extra-chill', OBJECT, 'artist_profile' );
 		if ( $existing_by_slug && 'publish' === $existing_by_slug->post_status ) {
 			$artist_id = $existing_by_slug->ID;
+			if ( ! ec_ensure_super_admin_linked( $artist_id ) ) {
+				return false;
+			}
 			update_site_option( 'ec_platform_artist_id', $artist_id );
-			restore_current_blog();
-			ec_ensure_super_admin_linked( $artist_id );
 			return $artist_id;
 		}
 
@@ -90,6 +91,14 @@ function ec_provision_platform_artist() {
 			return false;
 		}
 
+		if ( ! ec_ensure_super_admin_linked( $artist_id ) ) {
+			if ( ! wp_delete_post( $artist_id, true ) ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Actionable provisioning rollback failure.
+				error_log( sprintf( 'Artist platform provisioning rollback failed for artist %d.', $artist_id ) );
+			}
+			return false;
+		}
+
 		update_site_option( 'ec_platform_artist_id', $artist_id );
 
 		// Trigger shop to re-sync lifetime membership product with new platform artist.
@@ -99,13 +108,9 @@ function ec_provision_platform_artist() {
 			update_option( 'extrachill_shop_needs_lifetime_membership_product_sync', 1 );
 			restore_current_blog();
 		}
-
 	} finally {
 		restore_current_blog();
 	}
-
-	// Link super admin to artist (outside blog switch - user meta is network-wide).
-	ec_ensure_super_admin_linked( $artist_id );
 
 	return $artist_id;
 }
@@ -114,14 +119,15 @@ function ec_provision_platform_artist() {
  * Ensure super admin is linked to the platform artist.
  *
  * @param int $artist_id Platform artist profile ID.
+ * @return bool Whether the reciprocal membership is established.
  */
 function ec_ensure_super_admin_linked( $artist_id ) {
 	if ( ! function_exists( 'ec_add_artist_membership' ) ) {
-		return;
+		return false;
 	}
 
 	$super_admin_id = ec_get_super_admin_user_id();
-	ec_add_artist_membership( $super_admin_id, $artist_id );
+	return ec_add_artist_membership( $super_admin_id, $artist_id );
 }
 
 /**
@@ -159,8 +165,13 @@ function ec_maybe_provision_platform_artist() {
 		return;
 	}
 
-	ec_provision_platform_artist();
-	set_site_transient( $transient_key, 1, DAY_IN_SECONDS );
+	if ( ec_provision_platform_artist() ) {
+		set_site_transient( $transient_key, 1, DAY_IN_SECONDS );
+		return;
+	}
+
+	// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Provisioning failure must remain visible and retryable.
+	error_log( 'Artist platform provisioning failed; success throttle was not set.' );
 }
 add_action( 'admin_init', 'ec_maybe_provision_platform_artist' );
 
@@ -168,6 +179,11 @@ add_action( 'admin_init', 'ec_maybe_provision_platform_artist' );
  * Run provisioning on plugin activation (suspenders).
  */
 function ec_activate_provision_platform_artist() {
-	ec_provision_platform_artist();
-	set_site_transient( 'ec_platform_artist_provisioned', 1, DAY_IN_SECONDS );
+	if ( ec_provision_platform_artist() ) {
+		set_site_transient( 'ec_platform_artist_provisioned', 1, DAY_IN_SECONDS );
+		return;
+	}
+
+	// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Activation cannot throw, but failure must not be reported as success.
+	error_log( 'Artist platform activation provisioning failed; success throttle was not set.' );
 }

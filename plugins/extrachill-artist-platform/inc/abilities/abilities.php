@@ -16,6 +16,7 @@ require_once __DIR__ . '/registry.php';
 require_once __DIR__ . '/handlers/get-artist-data.php';
 require_once __DIR__ . '/handlers/get-link-page-data.php';
 require_once __DIR__ . '/handlers/create-artist.php';
+require_once __DIR__ . '/handlers/artist-invitation.php';
 require_once __DIR__ . '/handlers/update-artist.php';
 require_once __DIR__ . '/handlers/save-link-page-links.php';
 require_once __DIR__ . '/handlers/save-link-page-styles.php';

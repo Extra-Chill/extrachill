@@ -4,7 +4,21 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminArtistRelationshipsTest extends TestCase {
 	protected function setUp(): void {
-		$GLOBALS['ec_test'] = array();
+		$GLOBALS['ec_test'] = array(
+			'current_blog_id' => 4,
+			'blog_stack'      => array(),
+			'blogs'           => array(
+				4 => array(
+					'posts' => array(
+						19 => (object) array(
+							'ID'          => 19,
+							'post_type'   => 'artist_profile',
+							'post_status' => 'publish',
+						),
+					),
+				),
+			),
+		);
 	}
 
 	public function test_list_preserves_items_envelope_and_filters_input(): void {
@@ -25,7 +39,8 @@ final class AdminArtistRelationshipsTest extends TestCase {
 			array( 'user_id' => 7, 'artist_id' => 19 )
 		);
 
-		$this->assertSame( array( 7, 19 ), $GLOBALS['ec_test']['added'] );
+		$this->assertSame( array( 19 ), get_user_meta( 7, '_artist_profile_ids', true ) );
+		$this->assertSame( array( 7 ), get_post_meta( 19, '_artist_member_ids', true ) );
 		$this->assertSame( array( 'success' => true ), $result );
 	}
 
@@ -48,10 +63,9 @@ final class AdminArtistRelationshipsTest extends TestCase {
 			array( 'success' => true ),
 			extrachill_artist_platform_ability_admin_unlink_artist_relationship( array( 'user_id' => 4, 'artist_id' => 8 ) )
 		);
-		$this->assertSame( array( 4, 8 ), $GLOBALS['ec_test']['removed'] );
-
+		$GLOBALS['ec_test']['user_meta'][5]['_artist_profile_ids'] = array( 9 );
 		extrachill_artist_platform_ability_admin_cleanup_artist_relationships( array( 'user_id' => 5, 'artist_id' => 9 ) );
-		$this->assertSame( array( 5, 9 ), $GLOBALS['ec_test']['removed'] );
+		$this->assertSame( array(), get_user_meta( 5, '_artist_profile_ids', true ) );
 	}
 
 	public function test_admin_mutations_fail_closed_when_handlers_are_called_directly(): void {
@@ -68,8 +82,7 @@ final class AdminArtistRelationshipsTest extends TestCase {
 			$this->assertSame( 'admin_access_denied', $result->get_error_code() );
 		}
 
-		$this->assertArrayNotHasKey( 'added', $GLOBALS['ec_test'] );
-		$this->assertArrayNotHasKey( 'removed', $GLOBALS['ec_test'] );
+		$this->assertArrayNotHasKey( 'user_meta', $GLOBALS['ec_test'] );
 	}
 
 	public function test_orphan_list_preserves_orphans_envelope(): void {

@@ -37,7 +37,10 @@ function extrachill_artist_platform_ability_admin_unlink_artist_relationship( ar
 		);
 	}
 
-	ec_remove_artist_membership( (int) $input['user_id'], (int) $input['artist_id'] );
+	if ( ! ec_remove_artist_membership( (int) $input['user_id'], (int) $input['artist_id'] ) ) {
+		$membership_failure = ec_get_artist_membership_failure();
+		return $membership_failure ? $membership_failure : new WP_Error( 'relationship_update_failed', __( 'Artist membership could not be fully removed. Retry to reconcile the relationship.', 'extrachill-artist-platform' ), array( 'status' => 500 ) );
+	}
 
 	return array( 'success' => true );
 }

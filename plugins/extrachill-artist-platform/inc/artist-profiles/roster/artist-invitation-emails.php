@@ -152,8 +152,7 @@ function ec_handle_invitation_acceptance() {
 		if ( ! empty( $pending_invitations ) ) {
 			foreach ( $pending_invitations as $key => $invite ) {
 				if ( isset( $invite['token'] ) && $invite['token'] === $token ) {
-					// Check invite status - only EC_INVITE_STATUS_EXISTING_ARTIST is relevant here for now
-					if ( isset( $invite['status'] ) && EC_INVITE_STATUS_EXISTING_ARTIST === $invite['status'] ) {
+					if ( isset( $invite['status'] ) && in_array( $invite['status'], array( EC_INVITE_STATUS_EXISTING_ARTIST, EC_INVITE_STATUS_NEW_USER ), true ) ) {
 						// Check email match
 						if ( isset( $invite['email'] ) && strtolower( $invite['email'] ) === strtolower( $current_user->user_email ) ) {
 							$valid_invite         = $invite;
@@ -174,12 +173,9 @@ function ec_handle_invitation_acceptance() {
 			exit;
 		}
 
-		// 4. Link User to Artist & Remove Pending Invite
-		if ( ec_add_artist_membership( $user_id, $artist_id ) ) {
-			// Use the specific ID of the invitation for removal
-			if ( ! ec_remove_pending_invitation( $artist_id, $valid_invite['id'] ) ) {
-				error_log( 'Invitation cleanup failed for artist ID ' . $artist_id . ', user ID ' . $user_id );
-			}
+		// 4. Link User to Artist & Remove Pending Invite.
+		$acceptance = ec_accept_artist_membership_invitation( $user_id, $artist_id, $valid_invite['id'] );
+		if ( true === $acceptance ) {
 			extrachill_set_notice(
 				__( 'Invitation accepted! You are now a manager of this artist.', 'extrachill-artist-platform' ),
 				'success'
@@ -188,7 +184,7 @@ function ec_handle_invitation_acceptance() {
 			exit;
 		} else {
 			extrachill_set_notice(
-				__( 'There was an error adding you to the artist. Please try again or contact support.', 'extrachill-artist-platform' ),
+				$acceptance->get_error_message(),
 				'error'
 			);
 			wp_safe_redirect( $redirect_url );

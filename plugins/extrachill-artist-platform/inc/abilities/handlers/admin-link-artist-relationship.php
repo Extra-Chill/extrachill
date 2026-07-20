@@ -43,7 +43,8 @@ function extrachill_artist_platform_ability_admin_link_artist_relationship( arra
 		return new WP_Error( 'invalid_user', __( 'User not found.', 'extrachill-artist-platform' ), array( 'status' => 404 ) );
 	}
 	if ( ! ec_add_artist_membership( $user_id, $artist_id ) ) {
-		return new WP_Error( 'invalid_artist', __( 'Artist profile not found.', 'extrachill-artist-platform' ), array( 'status' => 404 ) );
+		$membership_failure = ec_get_artist_membership_failure();
+		return $membership_failure ? $membership_failure : new WP_Error( 'relationship_update_failed', __( 'Artist membership could not be fully saved. Retry to reconcile the relationship.', 'extrachill-artist-platform' ), array( 'status' => 500 ) );
 	}
 
 	return array( 'success' => true );

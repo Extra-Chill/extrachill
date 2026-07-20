@@ -552,8 +552,12 @@ function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files
         
         foreach ( $user_ids_to_remove as $user_id_to_remove ) {
             if ( $user_id_to_remove > 0 && $user_id_to_remove !== $current_user_id ) { 
-                if ( function_exists( 'ec_remove_artist_membership' ) ) {
-                    ec_remove_artist_membership( $user_id_to_remove, $artist_id );
+                if ( ! function_exists( 'ec_remove_artist_membership' ) ) {
+                    return new WP_Error( 'membership_dependency_missing', 'Artist membership management is unavailable.' );
+                }
+                if ( ! ec_remove_artist_membership( $user_id_to_remove, $artist_id ) ) {
+                    $membership_failure = ec_get_artist_membership_failure();
+                    return $membership_failure ? $membership_failure : new WP_Error( 'artist_member_removal_failed', 'An artist member could not be fully removed. Retry to reconcile the relationship.' );
                 }
             }
         }

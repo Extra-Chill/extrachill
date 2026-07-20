@@ -63,6 +63,36 @@ final class AbilityAuthorizationTest extends TestCase {
 		$this->assertTrue( $ability->check_permissions( array( 'name' => 'Band', 'user_id' => 8 ) ) );
 	}
 
+	public function test_create_artist_rolls_back_profile_when_membership_fails(): void {
+		$GLOBALS['ec_test']['current_user_id'] = 7;
+		$GLOBALS['ec_test']['current_blog_id'] = 1;
+		$GLOBALS['ec_test']['blog_stack']      = array();
+		$GLOBALS['ec_test']['blogs'][4]        = array( 'posts' => array(), 'post_meta' => array() );
+		$GLOBALS['ec_test']['fail_post_meta_add'] = true;
+
+		$result = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Rollback Band' ) );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'artist_roster_update_failed', $result->get_error_code() );
+		$this->assertSame( array( 1 ), $GLOBALS['ec_test']['deleted_posts'] );
+		$this->assertSame( array(), $GLOBALS['ec_test']['blogs'][4]['posts'] );
+	}
+
+	public function test_create_artist_reports_failed_profile_rollback(): void {
+		$GLOBALS['ec_test']['current_user_id'] = 7;
+		$GLOBALS['ec_test']['current_blog_id'] = 1;
+		$GLOBALS['ec_test']['blog_stack']      = array();
+		$GLOBALS['ec_test']['blogs'][4]        = array( 'posts' => array(), 'post_meta' => array() );
+		$GLOBALS['ec_test']['fail_post_meta_add'] = true;
+		$GLOBALS['ec_test']['fail_post_delete']   = true;
+
+		$result = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Stranded Band' ) );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'artist_creation_rollback_failed', $result->get_error_code() );
+		$this->assertArrayHasKey( 1, $GLOBALS['ec_test']['blogs'][4]['posts'] );
+	}
+
 	public function test_public_artist_reads_remain_public(): void {
 		$abilities = array(
 			'extrachill/artists-list'          => array(),

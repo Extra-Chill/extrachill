@@ -88,6 +88,43 @@ function extrachill_artist_platform_register_abilities() {
 	// --- Write abilities ---
 
 	wp_register_ability(
+		'extrachill/artist-invitation',
+		array(
+			'label'               => __( 'Artist Invitation', 'extrachill-artist-platform' ),
+			'description'         => __( 'Validate or accept a token-authenticated artist invitation.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artist-platform',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'artist_id', 'email', 'token' ),
+				'properties'           => array(
+					'artist_id' => array( 'type' => 'integer', 'minimum' => 1 ),
+					'email'     => array( 'type' => 'string', 'format' => 'email' ),
+					'token'     => array( 'type' => 'string', 'minLength' => 1 ),
+					'user_id'   => array( 'type' => 'integer', 'minimum' => 1 ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'status'    => array( 'type' => 'string', 'enum' => array( 'valid', 'applied' ) ),
+					'artist_id' => array( 'type' => 'integer' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_invitation',
+			'permission_callback' => '__return_true',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => false,
+					'idempotent'  => false,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
 		'extrachill/create-artist',
 		array(
 			'label'               => __( 'Create Artist', 'extrachill-artist-platform' ),
