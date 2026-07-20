@@ -7,66 +7,163 @@
 /**
  * WordPress dependencies
  */
-import { useState, useEffect, useCallback } from '@wordpress/element';
+import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+
+const emptyResult = ( queryKey ) => ( {
+	queryKey,
+	shows: [],
+	total: 0,
+	pages: 0,
+	page: 1,
+	loading: true,
+	error: null,
+} );
+
+const dedupeShows = ( shows ) => [
+	...new Map( shows.map( ( show ) => [ show.event_id, show ] ) ).values(),
+];
 
 /**
  * @param {number} userId
- * @param {Object} filters - { period, year, page, perPage, enabled }
+ * @param {Object} filters - { period, year, perPage, enabled, queryScope }
  */
 export default function useShows( userId, filters = {} ) {
-	const [ shows, setShows ] = useState( [] );
-	const [ total, setTotal ] = useState( 0 );
-	const [ pages, setPages ] = useState( 0 );
-	const [ loading, setLoading ] = useState( true );
-	const [ error, setError ] = useState( null );
-
 	const {
 		period = 'all',
 		year = 0,
-		page = 1,
 		perPage = 20,
 		enabled = true,
+		queryScope = 'default',
 	} = filters;
+	const queryKey = [
+		userId,
+		queryScope,
+		period,
+		year,
+		perPage,
+		enabled,
+	].join( ':' );
+	const activeQueryKey = useRef( queryKey );
+	activeQueryKey.current = queryKey;
+	const abortRef = useRef( null );
+	const [ result, setResult ] = useState( () => emptyResult( queryKey ) );
 
-	const fetchShows = useCallback( () => {
-		if ( ! userId || ! enabled ) {
-			setLoading( false );
-			return;
-		}
+	const fetchShows = useCallback(
+		( requestedPage = 1 ) => {
+			if ( abortRef.current ) {
+				abortRef.current.abort();
+			}
 
-		setLoading( true );
-		setError( null );
+			if ( ! userId || ! enabled ) {
+				setResult( {
+					...emptyResult( queryKey ),
+					loading: false,
+				} );
+				return;
+			}
 
-		let path = `/extrachill/v1/concert-tracking/user/${ userId }/shows?period=${ period }&page=${ page }&per_page=${ perPage }`;
-		if ( year ) {
-			path += `&year=${ year }`;
-		}
+			const controller = new AbortController();
+			abortRef.current = controller;
+			setResult( ( current ) => ( {
+				...( current.queryKey === queryKey
+					? current
+					: emptyResult( queryKey ) ),
+				loading: true,
+				error: null,
+			} ) );
 
-		apiFetch( { path } )
-			.then( ( response ) => {
-				if ( page > 1 && period === 'past' ) {
-					// Append for load-more behavior on past shows.
-					setShows( ( prev ) => [
-						...prev,
-						...( response.shows || [] ),
-					] );
-				} else {
-					setShows( response.shows || [] );
+			const requestPage = ( page ) => {
+				let path = `/extrachill/v1/concert-tracking/user/${ userId }/shows?period=${ period }&page=${ page }&per_page=${ perPage }`;
+				if ( year ) {
+					path += `&year=${ year }`;
 				}
-				setTotal( response.total || 0 );
-				setPages( response.pages || 0 );
-				setLoading( false );
-			} )
-			.catch( ( err ) => {
-				setError( err.message || 'Failed to load shows.' );
-				setLoading( false );
-			} );
-	}, [ userId, period, year, page, perPage, enabled ] );
+				return apiFetch( { path, signal: controller.signal } );
+			};
+
+			requestPage( requestedPage )
+				.then( async ( response ) => {
+					const responsePage =
+						Number( response.page ) || requestedPage;
+					if ( requestedPage > 1 && responsePage !== requestedPage ) {
+						return requestPage( 1 );
+					}
+					return response;
+				} )
+				.then( ( response ) => {
+					if (
+						controller.signal.aborted ||
+						activeQueryKey.current !== queryKey
+					) {
+						return;
+					}
+
+					const responsePage = Number( response.page ) || 1;
+					const incoming = response.shows || [];
+					setResult( ( current ) => {
+						if ( current.queryKey !== queryKey ) {
+							return current;
+						}
+						return {
+							queryKey,
+							shows: dedupeShows(
+								responsePage > 1
+									? [ ...current.shows, ...incoming ]
+									: incoming
+							),
+							total: response.total || 0,
+							pages: response.pages || 0,
+							page: responsePage,
+							loading: false,
+							error: null,
+						};
+					} );
+				} )
+				.catch( ( err ) => {
+					if (
+						( err && err.name === 'AbortError' ) ||
+						controller.signal.aborted ||
+						activeQueryKey.current !== queryKey
+					) {
+						return;
+					}
+					setResult( ( current ) => ( {
+						...current,
+						loading: false,
+						error: err.message || 'Failed to load shows.',
+					} ) );
+				} );
+		},
+		[ userId, period, year, perPage, enabled, queryKey ]
+	);
 
 	useEffect( () => {
-		fetchShows();
-	}, [ fetchShows ] );
+		setResult( emptyResult( queryKey ) );
+		fetchShows( 1 );
+		return () => {
+			if ( abortRef.current ) {
+				abortRef.current.abort();
+			}
+		};
+	}, [ fetchShows, queryKey ] );
 
-	return { shows, total, pages, loading, error, refetch: fetchShows };
+	const activeResult =
+		result.queryKey === queryKey ? result : emptyResult( queryKey );
+	const loadMore = useCallback( () => {
+		if ( activeResult.loading || activeResult.page >= activeResult.pages ) {
+			return;
+		}
+		fetchShows( activeResult.page + 1 );
+	}, [
+		activeResult.loading,
+		activeResult.page,
+		activeResult.pages,
+		fetchShows,
+	] );
+
+	return {
+		...activeResult,
+		loadMore,
+		refetch: () => fetchShows( 1 ),
+	};
 }

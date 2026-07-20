@@ -189,15 +189,15 @@ export function ConcertStatsApp( {
 	const { total: upcomingCount } = useShows( userId, {
 		period: 'upcoming',
 		year,
-		page: 1,
 		perPage: 1,
 		enabled: isOwn,
+		queryScope: isOwn ? 'owner' : 'public',
 	} );
 	const { total: pastCount } = useShows( userId, {
 		period: 'past',
 		year,
-		page: 1,
 		perPage: 1,
+		queryScope: isOwn ? 'owner' : 'public',
 	} );
 
 	// Pull the configured source list at the parent level so the Import tab
