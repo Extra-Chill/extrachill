@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.23.0] - 2026-07-20
+
+### Added
+- add concert privacy settings
+
 ## [1.22.1] - 2026-07-18
 
 ### Fixed
