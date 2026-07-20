@@ -33,7 +33,7 @@ class UserLocalSceneAdaptersTest extends TestCase {
 		$source = file_get_contents( dirname( __DIR__, 2 ) . '/inc/routes/users/settings.php' );
 
 		$this->assertStringContainsString(
-			"array( 'first_name', 'last_name', 'display_name', 'local_scene', 'local_scene_visibility', 'default_event_location' )",
+			"array( 'first_name', 'last_name', 'display_name', 'local_scene', 'local_scene_visibility', 'concert_history_visibility', 'event_attendance_visibility', 'default_event_location' )",
 			$source
 		);
 	}

@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_user_settings_routes' );
 
+/**
+ * Register account settings routes.
+ */
 function extrachill_api_register_user_settings_routes() {
 	// Settings (GET + POST).
 	register_rest_route(
@@ -34,28 +37,38 @@ function extrachill_api_register_user_settings_routes() {
 				'callback'            => 'extrachill_api_user_settings_update',
 				'permission_callback' => 'extrachill_api_user_settings_permission',
 				'args'                => array(
-					'first_name'             => array(
+					'first_name'                  => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'last_name'              => array(
+					'last_name'                   => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'display_name'           => array(
+					'display_name'                => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'local_scene'            => array(
+					'local_scene'                 => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_title',
 					),
-					'local_scene_visibility' => array(
+					'local_scene_visibility'      => array(
 						'type'              => 'string',
 						'enum'              => array( 'public', 'private' ),
 						'sanitize_callback' => 'sanitize_key',
 					),
-					'default_event_location' => array(
+					'concert_history_visibility'  => array(
+						'type'              => 'string',
+						'enum'              => array( 'public', 'private' ),
+						'sanitize_callback' => 'sanitize_key',
+					),
+					'event_attendance_visibility' => array(
+						'type'              => 'string',
+						'enum'              => array( 'public', 'private' ),
+						'sanitize_callback' => 'sanitize_key',
+					),
+					'default_event_location'      => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_title',
 					),
@@ -110,8 +123,13 @@ function extrachill_api_register_user_settings_routes() {
 
 /**
  * Permission check — must be logged in.
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return true|WP_Error
  */
 function extrachill_api_user_settings_permission( WP_REST_Request $request ) {
+	unset( $request );
+
 	if ( ! is_user_logged_in() ) {
 		return new WP_Error(
 			'rest_forbidden',
@@ -124,15 +142,20 @@ function extrachill_api_user_settings_permission( WP_REST_Request $request ) {
 
 /**
  * GET /users/me/settings
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_user_settings_get( WP_REST_Request $request ) {
+	unset( $request );
+
 	$ability = wp_get_ability( 'extrachill/get-user-settings' );
 
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array( 'user_id' => get_current_user_id() ) );
+	$result = $ability->execute( array() );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
@@ -143,6 +166,9 @@ function extrachill_api_user_settings_get( WP_REST_Request $request ) {
 
 /**
  * POST /users/me/settings
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_user_settings_update( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/update-user-settings' );
@@ -151,9 +177,9 @@ function extrachill_api_user_settings_update( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$input = array( 'user_id' => get_current_user_id() );
+	$input = array();
 
-	$fields = array( 'first_name', 'last_name', 'display_name', 'local_scene', 'local_scene_visibility', 'default_event_location' );
+	$fields = array( 'first_name', 'last_name', 'display_name', 'local_scene', 'local_scene_visibility', 'concert_history_visibility', 'event_attendance_visibility', 'default_event_location' );
 	foreach ( $fields as $field ) {
 		if ( null !== $request->get_param( $field ) ) {
 			$input[ $field ] = $request->get_param( $field );
@@ -171,6 +197,9 @@ function extrachill_api_user_settings_update( WP_REST_Request $request ) {
 
 /**
  * POST /users/me/email
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_user_email_change( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/change-user-email' );
@@ -195,6 +224,9 @@ function extrachill_api_user_email_change( WP_REST_Request $request ) {
 
 /**
  * POST /users/me/password
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_user_password_change( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/change-user-password' );

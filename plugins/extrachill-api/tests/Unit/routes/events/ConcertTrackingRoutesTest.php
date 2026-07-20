@@ -10,16 +10,39 @@
  */
 class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 
-	/** @var array<int, array<string, mixed>> */
+	/**
+	 * History ability inputs.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
 	private $history_inputs = array();
 
-	/** @var array<int, array<string, mixed>> */
+	/**
+	 * Attendance ability inputs.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
 	private $attendance_inputs = array();
 
-	/** @var bool */
+	/**
+	 * Stats ability inputs.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private $stats_inputs = array();
+
+	/**
+	 * Whether the test registered its ability category.
+	 *
+	 * @var bool
+	 */
 	private $registered_category = false;
 
-	/** @var string[] */
+	/**
+	 * Ability names registered by the test.
+	 *
+	 * @var string[]
+	 */
 	private $registered_abilities = array();
 
 	/**
@@ -62,6 +85,16 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 			),
 			array( $this, 'execute_attendance' )
 		);
+		$this->register_test_ability(
+			'extrachill/get-user-concert-stats',
+			array(
+				'user_id'   => array( 'type' => 'integer' ),
+				'year'      => array( 'type' => 'integer' ),
+				'date_from' => array( 'type' => 'string' ),
+				'date_to'   => array( 'type' => 'string' ),
+			),
+			array( $this, 'execute_stats' )
+		);
 
 		do_action( 'rest_api_init' );
 	}
@@ -84,8 +117,8 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 	 * Route schemas mirror the canonical Users bounds without coercive sanitizers.
 	 */
 	public function test_route_schemas_mirror_canonical_bounds() {
-		$routes = rest_get_server()->get_routes();
-		$history_schema = $routes['/extrachill/v1/concert-tracking/user/(?P<user_id>\d+)/shows'][0]['args']['per_page'];
+		$routes          = rest_get_server()->get_routes();
+		$history_schema  = $routes['/extrachill/v1/concert-tracking/user/(?P<user_id>\d+)/shows'][0]['args']['per_page'];
 		$attendee_schema = $routes['/extrachill/v1/concert-tracking/event/(?P<event_id>\d+)'][0]['args']['limit'];
 
 		$this->assertSame( array( 1, 20, 100 ), array( $history_schema['minimum'], $history_schema['default'], $history_schema['maximum'] ) );
@@ -99,7 +132,7 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 	 */
 	public function test_history_route_forwards_default_minimum_and_maximum() {
 		foreach ( array( null, 1, 100 ) as $per_page ) {
-			$params = null === $per_page ? array() : array( 'per_page' => $per_page );
+			$params   = null === $per_page ? array() : array( 'per_page' => $per_page );
 			$response = $this->dispatch( '/extrachill/v1/concert-tracking/user/7/shows', $params );
 
 			$this->assertSame( 200, $response->get_status() );
@@ -131,7 +164,7 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 	 */
 	public function test_history_route_rejects_invalid_values_before_ability( $value ) {
 		$calls_before = count( $this->history_inputs );
-		$response = $this->dispatch(
+		$response     = $this->dispatch(
 			'/extrachill/v1/concert-tracking/user/7/shows',
 			array( 'per_page' => $value )
 		);
@@ -149,7 +182,7 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 	 */
 	public function test_attendance_route_rejects_invalid_values_before_ability( $value ) {
 		$calls_before = count( $this->attendance_inputs );
-		$response = $this->dispatch(
+		$response     = $this->dispatch(
 			'/extrachill/v1/concert-tracking/event/42',
 			array(
 				'include_attendees' => true,
@@ -160,6 +193,76 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 		$this->assertSame( 400, $response->get_status() );
 		$this->assertSame( 'rest_invalid_param', $response->get_data()['code'] );
 		$this->assertCount( $calls_before, $this->attendance_inputs );
+	}
+
+	/**
+	 * Private-history errors retain the canonical code and HTTP status.
+	 *
+	 * @dataProvider private_history_route_provider
+	 * @param string $route Private history or stats route.
+	 */
+	public function test_private_history_errors_propagate_unchanged( $route ) {
+		$response = $this->dispatch( $route, array() );
+
+		$this->assertSame( 403, $response->get_status() );
+		$this->assertSame( 'concert_history_private', $response->get_data()['code'] );
+	}
+
+	/**
+	 * Private-history route paths.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function private_history_route_provider() {
+		return array(
+			'history' => array( '/extrachill/v1/concert-tracking/user/99/shows' ),
+			'stats'   => array( '/extrachill/v1/concert-tracking/user/99/stats' ),
+		);
+	}
+
+	/**
+	 * Public history remains ability-owned and past-only through the wrapper.
+	 */
+	public function test_public_history_is_past_only_without_wrapper_policy() {
+		$response = $this->dispatch(
+			'/extrachill/v1/concert-tracking/user/8/shows',
+			array( 'period' => 'all' )
+		);
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 'all', end( $this->history_inputs )['period'] );
+		$this->assertSame( array( 'Past Show' ), wp_list_pluck( $response->get_data()['shows'], 'title' ) );
+	}
+
+	/**
+	 * Public stats remain ability-owned and past-only through the wrapper.
+	 */
+	public function test_public_stats_are_past_only_without_wrapper_policy() {
+		$response = $this->dispatch(
+			'/extrachill/v1/concert-tracking/user/8/stats',
+			array( 'date_to' => '2099-12-31' )
+		);
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( '2099-12-31', end( $this->stats_inputs )['date_to'] );
+		$this->assertSame( 'past', $response->get_data()['latest_show']['timing'] );
+	}
+
+	/**
+	 * Filtered attendee identities do not alter aggregate counts or owner state.
+	 */
+	public function test_attendee_filtering_preserves_count_parity() {
+		$response = $this->dispatch(
+			'/extrachill/v1/concert-tracking/event/77',
+			array( 'include_attendees' => true )
+		);
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 3, $data['count'] );
+		$this->assertCount( 2, $data['attendees'] );
+		$this->assertTrue( $data['user_marked'] );
+		$this->assertSame( '3 were there', $data['count_label'] );
 	}
 
 	/**
@@ -181,10 +284,27 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 	 * Controlled history ability callback.
 	 *
 	 * @param array $input Ability input.
-	 * @return array
+	 * @return array|WP_Error
 	 */
 	public function execute_history( array $input ) {
 		$this->history_inputs[] = $input;
+		if ( 99 === $input['user_id'] ) {
+			return new WP_Error( 'concert_history_private', 'This concert history is private.', array( 'status' => 403 ) );
+		}
+		if ( 8 === $input['user_id'] ) {
+			return array(
+				'shows'    => array(
+					array(
+						'title'  => 'Past Show',
+						'timing' => 'past',
+					),
+				),
+				'total'    => 1,
+				'pages'    => 1,
+				'page'     => $input['page'],
+				'per_page' => $input['per_page'],
+			);
+		}
 
 		return array(
 			'shows'    => array(),
@@ -203,6 +323,25 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 	 */
 	public function execute_attendance( array $input ) {
 		$this->attendance_inputs[] = $input;
+		if ( 77 === $input['event_id'] ) {
+			return array(
+				'count'       => 3,
+				'count_label' => '3 were there',
+				'timing'      => 'past',
+				'user_marked' => true,
+				'attendees'   => array(
+					array(
+						'user_id'      => 1,
+						'display_name' => 'Public One',
+					),
+					array(
+						'user_id'      => 3,
+						'display_name' => 'Public Two',
+					),
+				),
+				'limit'       => $input['limit'],
+			);
+		}
 
 		return array(
 			'count'       => 0,
@@ -212,6 +351,30 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 			'attendees'   => array(),
 			'limit'       => $input['limit'],
 		);
+	}
+
+	/**
+	 * Controlled stats ability callback.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|WP_Error
+	 */
+	public function execute_stats( array $input ) {
+		$this->stats_inputs[] = $input;
+		if ( 99 === $input['user_id'] ) {
+			return new WP_Error( 'concert_history_private', 'This concert history is private.', array( 'status' => 403 ) );
+		}
+		if ( 8 === $input['user_id'] ) {
+			return array(
+				'total_shows' => 1,
+				'latest_show' => array(
+					'title'  => 'Past Show',
+					'timing' => 'past',
+				),
+			);
+		}
+
+		return array( 'total_shows' => 1 );
 	}
 
 	/**
