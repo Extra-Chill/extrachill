@@ -1,23 +1,6 @@
 <?php
 /**
- * Artist Profile <-> Artist Term Binding ("the hub join")
- *
- * An artist exists as BOTH an `artist_profile` CPT (on the artist blog) AND an
- * `artist` taxonomy term (on the MAIN blog, attached to `post`). Historically
- * the two were joined ONLY by matching slug (see extrachill-artist-platform#60),
- * which silently breaks when either side is renamed.
- *
- * This module establishes a stored, bidirectional, ID-based binding plus
- * resolvers that prefer the stored binding and fall back to slug-matching,
- * self-healing the stored binding on a successful fallback so the next call is
- * O(1).
- *
- *   - `_artist_term_id`    POST meta on the artist_profile  -> main-blog term_id
- *   - `_artist_profile_id` TERM meta on the artist term      -> artist-blog post ID
- *
- * The `artist` term lives on the MAIN blog; the profile lives on the ARTIST
- * blog. Every cross-blog hop pairs switch_to_blog() with restore_current_blog()
- * in a try/finally so the blog context can never leak.
+ * Artist Profile <-> Artist Term Binding ("the hub join").
  *
  * @package ExtraChillArtistPlatform
  */
@@ -25,333 +8,419 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Resolve the main-blog `artist` term_id bound to an artist_profile.
+ * Resolve the blogs that own each side of the binding.
  *
- * Reads the stored `_artist_term_id` binding first. If absent, falls back to
- * matching the profile's slug against an `artist` term on the MAIN blog and,
- * on success, writes BOTH meta sides so the next lookup is O(1).
- *
- * @param int $profile_id Artist profile post ID (on the artist blog).
- * @return int Main-blog `artist` term_id, or 0 if none can be resolved.
+ * @return array{artist:int,main:int}|array{}
  */
-function ec_get_artist_term_id( $profile_id ) {
-    $profile_id = (int) $profile_id;
-    if ( $profile_id <= 0 ) {
-        return 0;
-    }
+function ec_artist_binding_blog_ids() {
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return array();
+	}
 
-    // 1. Stored binding wins.
-    $stored = (int) get_post_meta( $profile_id, '_artist_term_id', true );
-    if ( $stored > 0 ) {
-        return $stored;
-    }
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
+	$main_blog_id   = (int) ec_get_blog_id( 'main' );
+	if ( $artist_blog_id <= 0 || $main_blog_id <= 0 ) {
+		return array();
+	}
 
-    // 2. Slug fallback. The profile lives on the artist blog; resolve its slug
-    //    there, then look the term up on the main blog.
-    $slug = get_post_field( 'post_name', $profile_id );
-    if ( empty( $slug ) ) {
-        return 0;
-    }
-
-    $main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
-    if ( ! $main_blog_id ) {
-        return 0;
-    }
-
-    $term_id   = 0;
-    $term_slug = '';
-    switch_to_blog( $main_blog_id );
-    try {
-        $term = get_term_by( 'slug', $slug, 'artist' );
-        if ( $term && ! is_wp_error( $term ) ) {
-            $term_id   = (int) $term->term_id;
-            $term_slug = $term->slug;
-        }
-    } finally {
-        restore_current_blog();
-    }
-
-    if ( $term_id <= 0 ) {
-        return 0;
-    }
-
-    // 3. Self-heal: persist both sides of the binding.
-    ec_bind_artist_profile_to_term( $profile_id, $term_id, $main_blog_id );
-
-    return $term_id;
+	return array(
+		'artist' => $artist_blog_id,
+		'main'   => $main_blog_id,
+	);
 }
 
 /**
- * Resolve the artist-blog artist_profile post ID bound to an `artist` term.
+ * Read and validate an artist profile from its owning blog.
  *
- * Reads the stored `_artist_profile_id` term meta first. If absent, falls back
- * to matching the term's slug against an `artist_profile` post on the ARTIST
- * blog and, on success, writes BOTH meta sides so the next lookup is O(1).
- *
- * @param int $term_id Main-blog `artist` term_id.
- * @return int Artist profile post ID (on the artist blog), or 0 if none.
+ * @param int $profile_id    Artist profile post ID.
+ * @param int $artist_blog_id Artist blog ID.
+ * @return array{id:int,term_id:int,slug:string,title:string}|array{}
  */
-function ec_get_artist_profile_id( $term_id ) {
-    $term_id = (int) $term_id;
-    if ( $term_id <= 0 ) {
-        return 0;
-    }
+function ec_artist_binding_read_profile( $profile_id, $artist_blog_id ) {
+	$profile = array();
+	switch_to_blog( $artist_blog_id );
+	try {
+		$post = get_post( $profile_id );
+		if ( $post && 'artist_profile' === $post->post_type ) {
+			$profile = array(
+				'id'      => (int) $post->ID,
+				'term_id' => (int) get_post_meta( $profile_id, '_artist_term_id', true ),
+				'slug'    => (string) $post->post_name,
+				'title'   => (string) $post->post_title,
+			);
+		}
+	} finally {
+		restore_current_blog();
+	}
 
-    $main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
-    if ( ! $main_blog_id ) {
-        return 0;
-    }
-
-    // 1. Stored binding wins. Term meta lives on the MAIN blog alongside the term.
-    $stored    = 0;
-    $term_slug = '';
-    switch_to_blog( $main_blog_id );
-    try {
-        $stored = (int) get_term_meta( $term_id, '_artist_profile_id', true );
-        if ( $stored <= 0 ) {
-            $term = get_term( $term_id, 'artist' );
-            if ( $term && ! is_wp_error( $term ) ) {
-                $term_slug = $term->slug;
-            }
-        }
-    } finally {
-        restore_current_blog();
-    }
-
-    if ( $stored > 0 ) {
-        return $stored;
-    }
-
-    if ( empty( $term_slug ) ) {
-        return 0;
-    }
-
-    // 2. Slug fallback. Look the profile up on the artist blog by slug.
-    $artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-    if ( ! $artist_blog_id ) {
-        return 0;
-    }
-
-    $profile_id = 0;
-    switch_to_blog( $artist_blog_id );
-    try {
-        $found = get_posts( array(
-            'post_type'        => 'artist_profile',
-            'name'             => $term_slug,
-            'post_status'      => 'publish',
-            'posts_per_page'   => 1,
-            'fields'           => 'ids',
-            'suppress_filters' => false,
-        ) );
-        if ( ! empty( $found ) ) {
-            $profile_id = (int) $found[0];
-        }
-    } finally {
-        restore_current_blog();
-    }
-
-    if ( $profile_id <= 0 ) {
-        return 0;
-    }
-
-    // 3. Self-heal: persist both sides of the binding.
-    ec_bind_artist_profile_to_term( $profile_id, $term_id, $main_blog_id );
-
-    return $profile_id;
+	return $profile;
 }
 
 /**
- * Persist both sides of the profile <-> term binding.
+ * Read and validate an artist term from the main blog.
  *
- * Writes `_artist_term_id` on the profile (artist blog) and `_artist_profile_id`
- * on the term (main blog). The term meta write is performed inside a
- * switch_to_blog()/restore_current_blog() pair so it always lands on the main
- * blog regardless of the caller's current context.
+ * @param int $term_id      Artist term ID.
+ * @param int $main_blog_id Main blog ID.
+ * @return array{id:int,profile_id:int,slug:string}|array{}
+ */
+function ec_artist_binding_read_term( $term_id, $main_blog_id ) {
+	$artist_term = array();
+	switch_to_blog( $main_blog_id );
+	try {
+		$term = get_term( $term_id, 'artist' );
+		if ( $term && ! is_wp_error( $term ) && 'artist' === $term->taxonomy ) {
+			$artist_term = array(
+				'id'         => (int) $term->term_id,
+				'profile_id' => (int) get_term_meta( $term_id, '_artist_profile_id', true ),
+				'slug'       => (string) $term->slug,
+			);
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	return $artist_term;
+}
+
+/**
+ * Delete profile-side binding metadata only when it still has the expected value.
  *
- * @param int      $profile_id   Artist profile post ID (artist blog).
- * @param int      $term_id      Main-blog `artist` term_id.
- * @param int|null $main_blog_id Optional resolved main blog ID (avoids a lookup).
+ * @param int $profile_id    Artist profile post ID.
+ * @param int $term_id       Expected term ID.
+ * @param int $artist_blog_id Artist blog ID.
  * @return void
  */
-function ec_bind_artist_profile_to_term( $profile_id, $term_id, $main_blog_id = null ) {
-    $profile_id = (int) $profile_id;
-    $term_id    = (int) $term_id;
-    if ( $profile_id <= 0 || $term_id <= 0 ) {
-        return;
-    }
-
-    // Profile-side meta. update_post_meta targets the post on whichever blog it
-    // lives on; this binding is only ever resolved from the artist blog where
-    // the profile is the current post, so write it directly.
-    update_post_meta( $profile_id, '_artist_term_id', $term_id );
-
-    // Term-side meta lives on the main blog.
-    if ( null === $main_blog_id ) {
-        $main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
-    }
-    if ( ! $main_blog_id ) {
-        return;
-    }
-
-    switch_to_blog( $main_blog_id );
-    try {
-        update_term_meta( $term_id, '_artist_profile_id', $profile_id );
-    } finally {
-        restore_current_blog();
-    }
+function ec_artist_binding_delete_profile_meta( $profile_id, $term_id, $artist_blog_id ) {
+	switch_to_blog( $artist_blog_id );
+	try {
+		delete_post_meta( $profile_id, '_artist_term_id', $term_id );
+	} finally {
+		restore_current_blog();
+	}
 }
 
 /**
- * Ensure an artist_profile is bound to a matching `artist` term on save.
+ * Delete term-side binding metadata only when it still has the expected value.
  *
- * Runs on the artist blog when a profile is created or updated. If no stored
- * binding exists, resolves (or creates) the matching main-blog `artist` term by
- * slug and persists both meta sides. A term without a profile is fine (most of
- * the 1,182 terms have none); this only guarantees that a profile always has a
- * term.
+ * @param int $term_id      Artist term ID.
+ * @param int $profile_id   Expected profile ID.
+ * @param int $main_blog_id Main blog ID.
+ * @return void
+ */
+function ec_artist_binding_delete_term_meta( $term_id, $profile_id, $main_blog_id ) {
+	switch_to_blog( $main_blog_id );
+	try {
+		delete_term_meta( $term_id, '_artist_profile_id', $profile_id );
+	} finally {
+		restore_current_blog();
+	}
+}
+
+/**
+ * Reconcile a resolver-discovered pair without changing an existing binding.
+ *
+ * Unlike the explicit binder, resolvers may only complete an unambiguous
+ * one-sided pair. They must never rebind either entity as a side effect of a
+ * lookup or slug fallback.
+ *
+ * @param int      $profile_id   Artist profile post ID.
+ * @param int      $term_id      Main-blog artist term ID.
+ * @param int|null $main_blog_id Optional resolved main blog ID.
+ * @return bool Whether the pair is reciprocal or was safely completed.
+ */
+function ec_reconcile_artist_profile_term_pair( $profile_id, $term_id, $main_blog_id = null ) {
+	$blog_ids = ec_artist_binding_blog_ids();
+	if ( empty( $blog_ids ) ) {
+		return false;
+	}
+
+	$main_blog_id = null === $main_blog_id ? $blog_ids['main'] : (int) $main_blog_id;
+	if ( $main_blog_id !== $blog_ids['main'] ) {
+		return false;
+	}
+
+	$profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
+	$term    = ec_artist_binding_read_term( (int) $term_id, $main_blog_id );
+	if ( empty( $profile ) || empty( $term ) ) {
+		return false;
+	}
+
+	if ( $profile['term_id'] > 0 && $profile['term_id'] !== (int) $term_id ) {
+		return false;
+	}
+	if ( $term['profile_id'] > 0 && $term['profile_id'] !== (int) $profile_id ) {
+		return false;
+	}
+
+	return ec_bind_artist_profile_to_term( (int) $profile_id, (int) $term_id, $main_blog_id );
+}
+
+/**
+ * Persist a validated one-to-one profile <-> term binding.
+ *
+ * One-sided stale references are replaced. A reciprocal binding owned by a
+ * different live entity is a collision and is left unchanged.
+ *
+ * @param int      $profile_id   Artist profile post ID.
+ * @param int      $term_id      Main-blog artist term ID.
+ * @param int|null $main_blog_id Optional resolved main blog ID.
+ * @return bool Whether the requested binding is valid and persisted.
+ */
+function ec_bind_artist_profile_to_term( $profile_id, $term_id, $main_blog_id = null ) {
+	$profile_id = (int) $profile_id;
+	$term_id    = (int) $term_id;
+	$blog_ids   = ec_artist_binding_blog_ids();
+	if ( $profile_id <= 0 || $term_id <= 0 || empty( $blog_ids ) ) {
+		return false;
+	}
+
+	$artist_blog_id = $blog_ids['artist'];
+	$main_blog_id   = null === $main_blog_id ? $blog_ids['main'] : (int) $main_blog_id;
+	if ( $main_blog_id !== $blog_ids['main'] ) {
+		return false;
+	}
+
+	$profile = ec_artist_binding_read_profile( $profile_id, $artist_blog_id );
+	$term    = ec_artist_binding_read_term( $term_id, $main_blog_id );
+	if ( empty( $profile ) || empty( $term ) ) {
+		return false;
+	}
+
+	if ( $term['profile_id'] > 0 && $term['profile_id'] !== $profile_id ) {
+		$other_profile = ec_artist_binding_read_profile( $term['profile_id'], $artist_blog_id );
+		if ( ! empty( $other_profile ) && $other_profile['term_id'] === $term_id ) {
+			return false;
+		}
+
+		// The inverse points to a missing profile or one that does not point back.
+		ec_artist_binding_delete_term_meta( $term_id, $term['profile_id'], $main_blog_id );
+	}
+
+	if ( $profile['term_id'] > 0 && $profile['term_id'] !== $term_id ) {
+		$old_term = ec_artist_binding_read_term( $profile['term_id'], $main_blog_id );
+		if ( ! empty( $old_term ) && $old_term['profile_id'] === $profile_id ) {
+			ec_artist_binding_delete_term_meta( $profile['term_id'], $profile_id, $main_blog_id );
+		}
+	}
+
+	switch_to_blog( $artist_blog_id );
+	try {
+		update_post_meta( $profile_id, '_artist_term_id', $term_id );
+	} finally {
+		restore_current_blog();
+	}
+
+	switch_to_blog( $main_blog_id );
+	try {
+		update_term_meta( $term_id, '_artist_profile_id', $profile_id );
+	} finally {
+		restore_current_blog();
+	}
+
+	return true;
+}
+
+/**
+ * Resolve the main-blog artist term bound to an artist profile.
+ *
+ * @param int $profile_id Artist profile post ID.
+ * @return int Main-blog artist term ID, or 0.
+ */
+function ec_get_artist_term_id( $profile_id ) {
+	$profile_id = (int) $profile_id;
+	$blog_ids   = ec_artist_binding_blog_ids();
+	if ( $profile_id <= 0 || empty( $blog_ids ) ) {
+		return 0;
+	}
+
+	$profile = ec_artist_binding_read_profile( $profile_id, $blog_ids['artist'] );
+	if ( empty( $profile ) ) {
+		return 0;
+	}
+
+	if ( $profile['term_id'] > 0 ) {
+		if ( ec_reconcile_artist_profile_term_pair( $profile_id, $profile['term_id'], $blog_ids['main'] ) ) {
+			return $profile['term_id'];
+		}
+		ec_artist_binding_delete_profile_meta( $profile_id, $profile['term_id'], $blog_ids['artist'] );
+	}
+
+	if ( '' === $profile['slug'] ) {
+		return 0;
+	}
+
+	$term_id = 0;
+	switch_to_blog( $blog_ids['main'] );
+	try {
+		$term = get_term_by( 'slug', $profile['slug'], 'artist' );
+		if ( $term && ! is_wp_error( $term ) ) {
+			$term_id = (int) $term->term_id;
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	return $term_id > 0 && ec_reconcile_artist_profile_term_pair( $profile_id, $term_id, $blog_ids['main'] ) ? $term_id : 0;
+}
+
+/**
+ * Resolve the artist-blog profile bound to a main-blog artist term.
+ *
+ * @param int $term_id Main-blog artist term ID.
+ * @return int Artist profile post ID, or 0.
+ */
+function ec_get_artist_profile_id( $term_id ) {
+	$term_id  = (int) $term_id;
+	$blog_ids = ec_artist_binding_blog_ids();
+	if ( $term_id <= 0 || empty( $blog_ids ) ) {
+		return 0;
+	}
+
+	$term = ec_artist_binding_read_term( $term_id, $blog_ids['main'] );
+	if ( empty( $term ) ) {
+		return 0;
+	}
+
+	if ( $term['profile_id'] > 0 ) {
+		if ( ec_reconcile_artist_profile_term_pair( $term['profile_id'], $term_id, $blog_ids['main'] ) ) {
+			return $term['profile_id'];
+		}
+		ec_artist_binding_delete_term_meta( $term_id, $term['profile_id'], $blog_ids['main'] );
+	}
+
+	if ( '' === $term['slug'] ) {
+		return 0;
+	}
+
+	$profile_id = 0;
+	switch_to_blog( $blog_ids['artist'] );
+	try {
+		$found = get_posts(
+			array(
+				'post_type'        => 'artist_profile',
+				'name'             => $term['slug'],
+				'post_status'      => 'publish',
+				'posts_per_page'   => 1,
+				'fields'           => 'ids',
+				'suppress_filters' => false,
+			)
+		);
+		if ( ! empty( $found ) ) {
+			$profile_id = (int) $found[0];
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	return $profile_id > 0 && ec_reconcile_artist_profile_term_pair( $profile_id, $term_id, $blog_ids['main'] ) ? $profile_id : 0;
+}
+
+/**
+ * Ensure an artist profile is bound to a matching main-blog artist term.
  *
  * @param int $profile_id Artist profile post ID.
  * @return void
  */
 function ec_sync_artist_profile_term_binding( $profile_id ) {
-    $profile_id = (int) $profile_id;
-    if ( $profile_id <= 0 || get_post_type( $profile_id ) !== 'artist_profile' ) {
-        return;
-    }
+	$profile_id = (int) $profile_id;
+	$blog_ids   = ec_artist_binding_blog_ids();
+	if ( $profile_id <= 0 || empty( $blog_ids ) ) {
+		return;
+	}
 
-    // Already bound? Nothing to do.
-    if ( (int) get_post_meta( $profile_id, '_artist_term_id', true ) > 0 ) {
-        return;
-    }
+	$profile = ec_artist_binding_read_profile( $profile_id, $blog_ids['artist'] );
+	if ( empty( $profile ) || ec_get_artist_term_id( $profile_id ) > 0 ) {
+		return;
+	}
 
-    // Try the slug-fallback resolver first (it self-heals on success).
-    $term_id = ec_get_artist_term_id( $profile_id );
-    if ( $term_id > 0 ) {
-        return;
-    }
+	if ( '' === $profile['title'] || '' === $profile['slug'] ) {
+		return;
+	}
 
-    // No matching term exists yet — create one on the main blog so the profile
-    // is always represented in the network join key.
-    $title = get_the_title( $profile_id );
-    $slug  = get_post_field( 'post_name', $profile_id );
-    if ( empty( $title ) || empty( $slug ) ) {
-        return;
-    }
+	$new_term_id = 0;
+	switch_to_blog( $blog_ids['main'] );
+	try {
+		$existing = get_term_by( 'slug', $profile['slug'], 'artist' );
+		if ( $existing && ! is_wp_error( $existing ) ) {
+			$new_term_id = (int) $existing->term_id;
+		} else {
+			$inserted = wp_insert_term( $profile['title'], 'artist', array( 'slug' => $profile['slug'] ) );
+			if ( ! is_wp_error( $inserted ) && ! empty( $inserted['term_id'] ) ) {
+				$new_term_id = (int) $inserted['term_id'];
+			}
+		}
+	} finally {
+		restore_current_blog();
+	}
 
-    $main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
-    if ( ! $main_blog_id ) {
-        return;
-    }
-
-    $new_term_id = 0;
-    switch_to_blog( $main_blog_id );
-    try {
-        $existing = get_term_by( 'slug', $slug, 'artist' );
-        if ( $existing && ! is_wp_error( $existing ) ) {
-            $new_term_id = (int) $existing->term_id;
-        } else {
-            $inserted = wp_insert_term( $title, 'artist', array( 'slug' => $slug ) );
-            if ( ! is_wp_error( $inserted ) && ! empty( $inserted['term_id'] ) ) {
-                $new_term_id = (int) $inserted['term_id'];
-            }
-        }
-    } finally {
-        restore_current_blog();
-    }
-
-    if ( $new_term_id > 0 ) {
-        ec_bind_artist_profile_to_term( $profile_id, $new_term_id, $main_blog_id );
-    }
+	if ( $new_term_id > 0 ) {
+		ec_bind_artist_profile_to_term( $profile_id, $new_term_id, $blog_ids['main'] );
+	}
 }
 add_action( 'ec_artist_profile_save', 'ec_sync_artist_profile_term_binding', 5, 1 );
 
 /**
- * Idempotent, run-once-per-version backfill of profile <-> term bindings.
+ * Remove the reciprocal term reference before an artist profile is deleted.
  *
- * Mirrors the version-gated option pattern used by
- * extrachill_artist_platform_heal_zero_modified_dates(): an option stores the
- * backfill version; the walk only runs when the stored version is behind.
- *
- * Walks every artist_profile on the artist blog, resolves each one's `artist`
- * term by slug on the main blog, and writes both meta sides. Profiles that
- * already carry a stored `_artist_term_id` are skipped. Terms without a profile
- * are left untouched (a term without a profile is just an untagged artist).
+ * @param int $profile_id Post ID being deleted.
+ * @return void
+ */
+function ec_delete_artist_profile_term_binding( $profile_id ) {
+	$blog_ids = ec_artist_binding_blog_ids();
+	if ( empty( $blog_ids ) || get_current_blog_id() !== $blog_ids['artist'] ) {
+		return;
+	}
+
+	$profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
+	if ( ! empty( $profile ) && $profile['term_id'] > 0 ) {
+		$term = ec_artist_binding_read_term( $profile['term_id'], $blog_ids['main'] );
+		if ( ! empty( $term ) && $term['profile_id'] === (int) $profile_id ) {
+			ec_artist_binding_delete_term_meta( $profile['term_id'], (int) $profile_id, $blog_ids['main'] );
+		}
+	}
+}
+add_action( 'before_delete_post', 'ec_delete_artist_profile_term_binding', 10, 1 );
+
+// Main-site term deletion is owned by the network-active runtime; see
+// Extra-Chill/extrachill-network#143. Resolvers remain fail-closed meanwhile.
+
+/**
+ * Idempotent, run-once backfill of profile <-> term bindings.
  *
  * @return void
  */
 function ec_backfill_artist_term_bindings() {
-    $backfill_version = '1.0.0';
-    $stored = get_option( 'extrachill_artist_platform_term_binding_backfill', '0' );
-    if ( version_compare( $stored, $backfill_version, '>=' ) ) {
-        return;
-    }
+	$backfill_version = '2.0.0';
+	$option_key       = 'extrachill_artist_platform_term_binding_integrity_backfill';
+	$stored           = get_option( $option_key, '0' );
+	if ( version_compare( $stored, $backfill_version, '>=' ) ) {
+		return;
+	}
 
-    $artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-    $main_blog_id   = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
-    if ( ! $artist_blog_id || ! $main_blog_id ) {
-        // Network helpers unavailable; do not burn the version gate. Retry next load.
-        return;
-    }
+	$blog_ids = ec_artist_binding_blog_ids();
+	if ( empty( $blog_ids ) ) {
+		return;
+	}
 
-    // Collect candidate profiles (id + slug) from the artist blog.
-    $profiles = array();
-    switch_to_blog( $artist_blog_id );
-    try {
-        $found = get_posts( array(
-            'post_type'        => 'artist_profile',
-            'post_status'      => 'any',
-            'posts_per_page'   => -1,
-            'fields'           => 'ids',
-            'suppress_filters' => false,
-        ) );
-        foreach ( (array) $found as $pid ) {
-            $pid = (int) $pid;
-            if ( (int) get_post_meta( $pid, '_artist_term_id', true ) > 0 ) {
-                continue; // already bound
-            }
-            $slug = get_post_field( 'post_name', $pid );
-            if ( ! empty( $slug ) ) {
-                $profiles[ $pid ] = $slug;
-            }
-        }
-    } finally {
-        restore_current_blog();
-    }
+	switch_to_blog( $blog_ids['artist'] );
+	try {
+		$profile_ids = get_posts(
+			array(
+				'post_type'        => 'artist_profile',
+				'post_status'      => 'any',
+				'posts_per_page'   => -1,
+				'fields'           => 'ids',
+				'suppress_filters' => false,
+			)
+		);
+	} finally {
+		restore_current_blog();
+	}
 
-    if ( empty( $profiles ) ) {
-        update_option( 'extrachill_artist_platform_term_binding_backfill', $backfill_version );
-        return;
-    }
+	foreach ( (array) $profile_ids as $profile_id ) {
+		ec_get_artist_term_id( (int) $profile_id );
+	}
 
-    // Resolve each slug to a term on the main blog (single switch for the batch).
-    $resolved = array();
-    switch_to_blog( $main_blog_id );
-    try {
-        foreach ( $profiles as $pid => $slug ) {
-            $term = get_term_by( 'slug', $slug, 'artist' );
-            if ( $term && ! is_wp_error( $term ) ) {
-                $term_id = (int) $term->term_id;
-                $resolved[ $pid ] = $term_id;
-                // Write the term-side meta while we are already on the main blog.
-                update_term_meta( $term_id, '_artist_profile_id', $pid );
-            }
-        }
-    } finally {
-        restore_current_blog();
-    }
-
-    // Write the profile-side meta on the artist blog.
-    if ( ! empty( $resolved ) ) {
-        switch_to_blog( $artist_blog_id );
-        try {
-            foreach ( $resolved as $pid => $term_id ) {
-                update_post_meta( $pid, '_artist_term_id', $term_id );
-            }
-        } finally {
-            restore_current_blog();
-        }
-    }
-
-    update_option( 'extrachill_artist_platform_term_binding_backfill', $backfill_version );
+	update_option( $option_key, $backfill_version );
 }
 add_action( 'admin_init', 'ec_backfill_artist_term_bindings' );

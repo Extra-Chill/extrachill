@@ -57,9 +57,8 @@ add_filter( 'ec_artist_profile_sections', 'ec_register_artist_profile_shows_sect
  * Resolve the shared artist slug for a bound artist.
  *
  * The bound $artist_term_id is a MAIN-blog `artist` term. Its slug is the
- * canonical cross-blog join key: the events-by-term ability looks the same
- * slug up on the events blog. Resolution is done inside a switch_to_blog()/
- * restore_current_blog() pair so blog context can never leak.
+ * current cross-blog join key until data-machine-events#491 and its mapping
+ * migration are deployed.
  *
  * @param int $artist_term_id Bound main-blog `artist` term_id.
  * @return string Artist slug, or '' when unresolvable.
