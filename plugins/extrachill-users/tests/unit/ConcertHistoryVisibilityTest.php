@@ -26,6 +26,7 @@ class Test_Concert_History_Visibility extends WP_UnitTestCase {
 
 		$this->events_blog_id = self::factory()->blog->create();
 		$this->user_id        = self::factory()->user->create();
+		update_user_meta( $this->user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, 'public' );
 		$this->dates_table    = $wpdb->get_blog_prefix( $this->events_blog_id ) . 'datamachine_event_dates';
 
 		extrachill_users_install_concert_tracking_table();

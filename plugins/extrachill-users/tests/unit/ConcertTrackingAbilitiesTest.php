@@ -308,6 +308,43 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '%d', end( $this->attendee_queries ) );
 	}
 
+	public function test_private_attendees_are_filtered_before_limit_without_changing_count_or_owner_mark(): void {
+		global $wpdb;
+		$table           = extrachill_users_concert_tracking_table_name();
+		$seeded_user_ids = $this->seed_attendees( 4 );
+		extrachill_users_set_event_attendance_visibility( $seeded_user_ids[0], 'private' );
+		extrachill_users_set_event_attendance_visibility( $seeded_user_ids[2], 'private' );
+
+		$wpdb->insert(
+			$table,
+			array(
+				'user_id'    => $this->user_id,
+				'event_id'   => $this->event_id,
+				'blog_id'    => $this->events_blog_id,
+				'created_at' => gmdate( 'Y-m-d H:i:s', time() + 1 ),
+			),
+			array( '%d', '%d', '%d', '%s' )
+		);
+		extrachill_users_set_event_attendance_visibility( $this->user_id, 'private' );
+		$this->assertSame(
+			array( $seeded_user_ids[1], $seeded_user_ids[3] ),
+			wp_list_pluck( ec_users_get_event_attendees( $this->event_id, $this->events_blog_id, 2 ), 'user_id' )
+		);
+
+		$result = wp_get_ability( 'extrachill/get-event-attendance' )->execute(
+			array(
+				'event_id'          => $this->event_id,
+				'blog_id'           => $this->events_blog_id,
+				'include_attendees' => true,
+				'limit'             => 2,
+			)
+		);
+
+		$this->assertSame( 5, $result['count'] );
+		$this->assertTrue( $result['user_marked'] );
+		$this->assertSame( array( $seeded_user_ids[1], $seeded_user_ids[3] ), wp_list_pluck( $result['attendees'], 'user_id' ) );
+	}
+
 	public function test_registered_attendance_ability_and_rest_route_apply_defaults_and_bounds(): void {
 		$this->seed_attendees( 105 );
 		$ability = wp_get_ability( 'extrachill/get-event-attendance' );
@@ -441,6 +478,7 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 		for ( $index = 0; $index < $count; ++$index ) {
 			$user_id    = self::factory()->user->create();
 			$user_ids[] = $user_id;
+			update_user_meta( $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, 'public' );
 			$wpdb->insert(
 				$table,
 				array(

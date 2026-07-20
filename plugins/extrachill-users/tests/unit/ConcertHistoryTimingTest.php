@@ -25,6 +25,7 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 
 		$this->events_blog_id = self::factory()->blog->create();
 		$this->user_id        = self::factory()->user->create();
+		update_user_meta( $this->user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, 'public' );
 		$this->dates_table    = $wpdb->get_blog_prefix( $this->events_blog_id ) . 'datamachine_event_dates';
 
 		update_blog_option( $this->events_blog_id, 'timezone_string', 'America/New_York' );
@@ -170,6 +171,7 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 
 	public function test_public_date_bounded_stats_remain_canonically_past_only(): void {
 		$owner_id = self::factory()->user->create();
+		update_user_meta( $owner_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, 'public' );
 		$this->track_event( 'Public Past Show', '2025-05-10 20:00:00', '2025-05-10 23:00:00', $owner_id );
 		$this->track_event( 'Public Ongoing Show', '2026-07-18 20:00:00', '2026-07-20 01:00:00', $owner_id );
 		$this->track_event( 'Public Future Show', '2027-05-10 20:00:00', null, $owner_id );
@@ -184,6 +186,50 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 
 		$this->assertSame( 1, $stats['total_shows'] );
 		$this->assertSame( array( '2025' => 1 ), $stats['shows_by_year'] );
+	}
+
+	public function test_public_stats_are_past_only_without_trusting_date_to(): void {
+		$owner_id = self::factory()->user->create();
+		update_user_meta( $owner_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, 'public' );
+		$this->track_event( 'Public Past', '2025-05-10 20:00:00', '2025-05-10 23:00:00', $owner_id );
+		$this->track_event( 'Public Future', '2027-05-10 20:00:00', null, $owner_id );
+		wp_set_current_user( 0 );
+
+		$unbounded = wp_get_ability( 'extrachill/get-user-concert-stats' )->execute( array( 'user_id' => $owner_id ) );
+		$widened   = wp_get_ability( 'extrachill/get-user-concert-stats' )->execute(
+			array(
+				'user_id' => $owner_id,
+				'date_to' => '2099-12-31',
+			)
+		);
+
+		$this->assertSame( 1, $unbounded['total_shows'] );
+		$this->assertSame( 1, $widened['total_shows'] );
+		$this->assertSame( array( '2025' => 1 ), $widened['shows_by_year'] );
+	}
+
+	public function test_private_history_returns_forbidden_but_owner_and_admin_keep_full_access(): void {
+		$owner_id = self::factory()->user->create();
+		$this->track_event( 'Private Past', '2025-05-10 20:00:00', '2025-05-10 23:00:00', $owner_id );
+		$this->track_event( 'Private Future', '2027-05-10 20:00:00', null, $owner_id );
+		extrachill_users_set_concert_history_visibility( $owner_id, 'private' );
+
+		wp_set_current_user( 0 );
+		foreach ( array( 'extrachill/get-user-shows', 'extrachill/get-user-concert-stats' ) as $ability_name ) {
+			$result = wp_get_ability( $ability_name )->execute( array( 'user_id' => $owner_id ) );
+			$this->assertWPError( $result );
+			$this->assertSame( 'concert_history_private', $result->get_error_code() );
+			$this->assertSame( 403, $result->get_error_data()['status'] );
+		}
+
+		wp_set_current_user( $owner_id );
+		$this->assertSame( 2, wp_get_ability( 'extrachill/get-user-concert-stats' )->execute( array( 'user_id' => $owner_id ) )['total_shows'] );
+
+		$administrator_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		grant_super_admin( $administrator_id );
+		wp_set_current_user( $administrator_id );
+		$this->assertSame( 2, wp_get_ability( 'extrachill/get-user-shows' )->execute( array( 'user_id' => $owner_id ) )['total'] );
+		revoke_super_admin( $administrator_id );
 	}
 
 	public function test_exact_boundaries_and_missing_end_match_canonical_states(): void {

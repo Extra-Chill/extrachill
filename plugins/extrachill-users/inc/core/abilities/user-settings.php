@@ -16,8 +16,12 @@ const EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY       = '_extrachill_defa
 const EXTRACHILL_USERS_LOCAL_SCENE_META_KEY                  = '_extrachill_local_scene';
 const EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY       = '_extrachill_local_scene_visibility';
 const EXTRACHILL_USERS_LOCAL_SCENE_PROMPT_DISMISSED_META_KEY = '_extrachill_local_scene_prompt_dismissed';
+const EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY   = '_extrachill_concert_history_visibility';
+const EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY  = '_extrachill_event_attendance_visibility';
 
 add_action( 'wp_abilities_api_init', 'extrachill_users_register_settings_abilities' );
+add_action( 'user_register', 'extrachill_users_set_new_user_visibility_defaults' );
+add_action( 'extrachill_users_visibility_changed', 'extrachill_users_purge_visibility_caches', 10, 4 );
 
 /**
  * Register user settings abilities.
@@ -67,6 +71,14 @@ function extrachill_users_register_settings_abilities() {
 						'description' => __( 'Canonical Events location slug. Pass an empty string to clear it.', 'extrachill-users' ),
 					),
 					'local_scene_visibility'       => array(
+						'type' => 'string',
+						'enum' => array( 'public', 'private' ),
+					),
+					'concert_history_visibility'   => array(
+						'type' => 'string',
+						'enum' => array( 'public', 'private' ),
+					),
+					'event_attendance_visibility'  => array(
 						'type' => 'string',
 						'enum' => array( 'public', 'private' ),
 					),
@@ -209,6 +221,8 @@ function extrachill_users_ability_get_settings() {
 		'onboarding_completed'          => function_exists( 'ec_is_onboarding_complete' ) ? ec_is_onboarding_complete( $user_id ) : true,
 		'local_scene'                  => $local_scene,
 		'local_scene_visibility'       => extrachill_users_get_local_scene_visibility( $user_id ),
+		'concert_history_visibility'   => extrachill_users_get_concert_history_visibility( $user_id ),
+		'event_attendance_visibility'  => extrachill_users_get_event_attendance_visibility( $user_id ),
 		'local_scene_prompt_dismissed' => extrachill_users_get_local_scene_prompt_dismissed( $user_id ),
 		'default_event_location'       => $local_scene,
 	);
@@ -288,8 +302,24 @@ function extrachill_users_ability_update_settings( $input ) {
 		}
 	}
 
+	$visibility_setters = array(
+		'concert_history_visibility'  => 'extrachill_users_set_concert_history_visibility',
+		'event_attendance_visibility' => 'extrachill_users_set_event_attendance_visibility',
+	);
+	foreach ( $visibility_setters as $setting => $setter ) {
+		if ( ! array_key_exists( $setting, $input ) ) {
+			continue;
+		}
+
+		$result = $setter( $user_id, sanitize_key( (string) $input[ $setting ] ) );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$changed = $result || $changed;
+	}
+
 	if ( ! $changed ) {
-		if ( $location_input_present || array_key_exists( 'local_scene_visibility', $input ) || array_key_exists( 'local_scene_prompt_dismissed', $input ) ) {
+		if ( $location_input_present || array_key_exists( 'local_scene_visibility', $input ) || array_key_exists( 'local_scene_prompt_dismissed', $input ) || array_intersect_key( $visibility_setters, $input ) ) {
 			return extrachill_users_ability_get_settings();
 		}
 
@@ -415,6 +445,165 @@ function extrachill_users_set_local_scene_visibility( int $user_id, string $visi
 
 	update_user_meta( $user_id, EXTRACHILL_USERS_LOCAL_SCENE_VISIBILITY_META_KEY, $visibility );
 	return true;
+}
+
+/**
+ * Get concert history visibility, defaulting missing legacy values to public.
+ *
+ * @param int $user_id User ID.
+ * @return string public|private.
+ */
+function extrachill_users_get_concert_history_visibility( int $user_id ): string {
+	return 'private' === get_user_meta( $user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, true ) ? 'private' : 'public';
+}
+
+/**
+ * Get event attendance identity visibility, defaulting missing legacy values to public.
+ *
+ * @param int $user_id User ID.
+ * @return string public|private.
+ */
+function extrachill_users_get_event_attendance_visibility( int $user_id ): string {
+	return 'private' === get_user_meta( $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, true ) ? 'private' : 'public';
+}
+
+/**
+ * Persist a visibility setting and publish its transition to downstream owners.
+ *
+ * @param int    $user_id   User ID.
+ * @param string $setting   Public setting name.
+ * @param string $meta_key  Canonical user meta key.
+ * @param string $visibility Public or private.
+ * @return bool|WP_Error Whether storage changed, or an error.
+ */
+function extrachill_users_set_visibility( int $user_id, string $setting, string $meta_key, string $visibility ) {
+	$visibility = sanitize_key( $visibility );
+	if ( ! in_array( $visibility, array( 'public', 'private' ), true ) ) {
+		return new WP_Error( 'invalid_' . $setting, __( 'Visibility must be public or private.', 'extrachill-users' ), array( 'status' => 400 ) );
+	}
+
+	$old_visibility = 'private' === get_user_meta( $user_id, $meta_key, true ) ? 'private' : 'public';
+	if ( $old_visibility === $visibility && metadata_exists( 'user', $user_id, $meta_key ) ) {
+		return false;
+	}
+
+	$updated = update_user_meta( $user_id, $meta_key, $visibility );
+	$stored  = (string) get_user_meta( $user_id, $meta_key, true );
+	if ( false === $updated || $visibility !== $stored ) {
+		return new WP_Error(
+			'visibility_update_failed',
+			__( 'Visibility could not be updated.', 'extrachill-users' ),
+			array(
+				'status'  => 500,
+				'user_id' => $user_id,
+				'setting' => $setting,
+			)
+		);
+	}
+
+	if ( $old_visibility !== $visibility ) {
+		/**
+		 * Fires after a Users-owned visibility setting changes effective value.
+		 *
+		 * @param int    $user_id       User ID.
+		 * @param string $setting       Public setting name.
+		 * @param string $old_visibility Previous public/private value.
+		 * @param string $visibility     New public/private value.
+		 */
+		do_action( 'extrachill_users_visibility_changed', $user_id, $setting, $old_visibility, $visibility );
+	}
+
+	return true;
+}
+
+/**
+ * Persist concert history visibility.
+ *
+ * @param int    $user_id User ID.
+ * @param string $visibility Public or private.
+ * @return bool|WP_Error Whether storage changed, or an error.
+ */
+function extrachill_users_set_concert_history_visibility( int $user_id, string $visibility ) {
+	return extrachill_users_set_visibility( $user_id, 'concert_history_visibility', EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, $visibility );
+}
+
+/**
+ * Persist event attendance identity visibility.
+ *
+ * @param int    $user_id User ID.
+ * @param string $visibility Public or private.
+ * @return bool|WP_Error Whether storage changed, or an error.
+ */
+function extrachill_users_set_event_attendance_visibility( int $user_id, string $visibility ) {
+	return extrachill_users_set_visibility( $user_id, 'event_attendance_visibility', EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, $visibility );
+}
+
+/**
+ * Set privacy-preserving defaults for registrations created by Extra Chill.
+ *
+ * @param int $user_id User ID.
+ */
+function extrachill_users_set_new_user_visibility_defaults( int $user_id ): void {
+	if ( ! metadata_exists( 'user', $user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY ) ) {
+		update_user_meta( $user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, 'private' );
+	}
+	if ( ! metadata_exists( 'user', $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY ) ) {
+		update_user_meta( $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, 'private' );
+	}
+}
+
+/**
+ * Purge anonymous HTML caches that can project concert visibility.
+ *
+ * The domain owner selects affected sites and invokes the cache plugin's
+ * generic current-blog purge hook. The cache layer remains unaware of users,
+ * concerts, or visibility settings.
+ *
+ * @param int    $user_id       User ID.
+ * @param string $setting       Visibility setting name.
+ * @param string $old_visibility Previous visibility value.
+ * @param string $new_visibility New visibility value.
+ */
+function extrachill_users_purge_visibility_caches( int $user_id, string $setting, string $old_visibility, string $new_visibility ): void {
+	if ( $old_visibility === $new_visibility ) {
+		return;
+	}
+
+	$blog_ids = function_exists( 'ec_get_blog_id' )
+		? array( (int) ec_get_blog_id( 'community' ), (int) ec_get_blog_id( 'events' ) )
+		: array();
+
+	/**
+	 * Filters the site IDs whose anonymous HTML can project Users visibility.
+	 *
+	 * @param int[]  $blog_ids Affected site IDs.
+	 * @param int    $user_id User ID.
+	 * @param string $setting Changed visibility setting.
+	 */
+	$blog_ids = apply_filters( 'extrachill_users_visibility_cache_blog_ids', $blog_ids, $user_id, $setting );
+	$blog_ids = array_unique(
+		array_filter(
+			array_map( 'intval', (array) $blog_ids ),
+			static function ( int $blog_id ): bool {
+				return $blog_id > 0 && (bool) get_site( $blog_id );
+			}
+		)
+	);
+
+	foreach ( $blog_ids as $blog_id ) {
+		$switched = get_current_blog_id() !== $blog_id;
+		if ( $switched ) {
+			switch_to_blog( $blog_id );
+		}
+
+		try {
+			do_action( 'extrachill_cache_flush' );
+		} finally {
+			if ( $switched ) {
+				restore_current_blog();
+			}
+		}
+	}
 }
 
 /**

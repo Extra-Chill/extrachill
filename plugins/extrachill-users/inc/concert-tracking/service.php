@@ -806,10 +806,12 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 		$where[]   = 'DATE(ed.start_datetime) >= %s';
 		$prepare[] = sanitize_text_field( $args['date_from'] );
 	}
+	if ( ! empty( $args['past_only'] ) ) {
+		$past    = ec_users_build_event_timing_condition( 'past', ec_users_get_events_now( $blog_id ) );
+		$where[] = $past['where'];
+		$prepare = array_merge( $prepare, $past['prepare'] );
+	}
 	if ( ! empty( $args['date_to'] ) ) {
-		$past      = ec_users_build_event_timing_condition( 'past', ec_users_get_events_now( $blog_id ) );
-		$where[]   = $past['where'];
-		$prepare   = array_merge( $prepare, $past['prepare'] );
 		$where[]   = 'DATE(ed.start_datetime) <= %s';
 		$prepare[] = sanitize_text_field( $args['date_to'] );
 	}
@@ -1180,9 +1182,18 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, $limit =
 
 	$user_ids = $wpdb->get_col(
 		$wpdb->prepare(
-			"SELECT user_id FROM {$table} WHERE event_id = %d AND blog_id = %d ORDER BY created_at DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			"SELECT user_id FROM {$table} ct
+			WHERE event_id = %d AND blog_id = %d
+			AND NOT EXISTS (
+				SELECT 1 FROM {$wpdb->usermeta} um
+				WHERE um.user_id = ct.user_id
+				AND um.meta_key = %s
+				AND um.meta_value = 'private'
+			)
+			ORDER BY created_at DESC, id DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names are trusted WordPress tables.
 			$event_id,
 			$blog_id,
+			EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY,
 			$limit
 		)
 	);

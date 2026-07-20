@@ -66,6 +66,50 @@ class Test_User_Creation extends WP_UnitTestCase {
 		$this->assertSame( '0', get_user_meta( $user_id, 'onboarding_from_join', true ) );
 	}
 
+	public function test_create_user_sets_explicit_private_concert_defaults(): void {
+		$user_id = $this->create_user(
+			array(
+				'username' => 'privateconcertuser',
+				'email'    => 'privateconcert@example.com',
+			)
+		);
+
+		$this->assertSame( 'private', get_user_meta( $user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, true ) );
+		$this->assertSame( 'private', get_user_meta( $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, true ) );
+	}
+
+	public function test_core_user_registration_sets_private_concert_defaults(): void {
+		$user_id = wp_insert_user(
+			array(
+				'user_login' => 'coreprivateconcertuser',
+				'user_pass'  => 'securepassword',
+				'user_email' => 'coreprivateconcert@example.com',
+			)
+		);
+
+		$this->assertIsInt( $user_id );
+		$this->assertSame( 'private', get_user_meta( $user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, true ) );
+		$this->assertSame( 'private', get_user_meta( $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, true ) );
+	}
+
+	public function test_core_user_registration_preserves_explicit_visibility_meta_input(): void {
+		$user_id = wp_insert_user(
+			array(
+				'user_login' => 'corepublicconcertuser',
+				'user_pass'  => 'securepassword',
+				'user_email' => 'corepublicconcert@example.com',
+				'meta_input' => array(
+					EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY  => 'public',
+					EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY => 'public',
+				),
+			)
+		);
+
+		$this->assertIsInt( $user_id );
+		$this->assertSame( 'public', get_user_meta( $user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, true ) );
+		$this->assertSame( 'public', get_user_meta( $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, true ) );
+	}
+
 	public function test_create_user_from_join_flag(): void {
 		$user_id = $this->create_user(
 			array(

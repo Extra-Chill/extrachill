@@ -45,6 +45,37 @@ function extrachill_users_can_get_event_attendance( array $input ): bool {
 }
 
 /**
+ * Check whether the current reader has full owner/admin concert history access.
+ *
+ * @param int $user_id History owner ID.
+ * @return bool
+ */
+function extrachill_users_can_view_full_concert_history( int $user_id ): bool {
+	return get_current_user_id() === $user_id
+		|| current_user_can( 'manage_network_options' );
+}
+
+/**
+ * Check whether the current reader may read a user's concert history.
+ *
+ * @param int $user_id History owner ID.
+ * @return bool
+ */
+function extrachill_users_can_view_concert_history( int $user_id ): bool {
+	return extrachill_users_can_view_full_concert_history( $user_id )
+		|| 'public' === extrachill_users_get_concert_history_visibility( $user_id );
+}
+
+/**
+ * Build the canonical private-history response.
+ *
+ * @return WP_Error
+ */
+function extrachill_users_concert_history_private_error(): WP_Error {
+	return new WP_Error( 'concert_history_private', __( 'This concert history is private.', 'extrachill-users' ), array( 'status' => 403 ) );
+}
+
+/**
  * Register concert tracking abilities.
  */
 function extrachill_users_register_concert_tracking_abilities() {
@@ -517,8 +548,12 @@ function extrachill_users_ability_get_user_shows( array $input ) {
 		return new WP_Error( 'no_user', 'User ID required.', array( 'status' => 400 ) );
 	}
 
-	$is_owner = get_current_user_id() === $user_id || current_user_can( 'manage_network_options' );
+	$is_owner = extrachill_users_can_view_full_concert_history( $user_id );
 	if ( ! $is_owner ) {
+		if ( ! extrachill_users_can_view_concert_history( $user_id ) ) {
+			return extrachill_users_concert_history_private_error();
+		}
+
 		if ( 'upcoming' === ( $input['period'] ?? 'all' ) ) {
 			return array(
 				'shows' => array(),
@@ -545,6 +580,15 @@ function extrachill_users_ability_get_user_concert_stats( array $input ) {
 
 	if ( ! $user_id ) {
 		return new WP_Error( 'no_user', 'User ID required.', array( 'status' => 400 ) );
+	}
+
+	$is_owner = extrachill_users_can_view_full_concert_history( $user_id );
+	if ( ! $is_owner ) {
+		if ( ! extrachill_users_can_view_concert_history( $user_id ) ) {
+			return extrachill_users_concert_history_private_error();
+		}
+
+		$input['past_only'] = true;
 	}
 
 	return ec_users_get_user_concert_stats( $user_id, $input );
