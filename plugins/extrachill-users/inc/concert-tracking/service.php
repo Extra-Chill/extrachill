@@ -343,6 +343,106 @@ function ec_users_get_user_dated_event_checks( int $user_id ): array {
 // ─── Event Timing ────────────────────────────────────────────────────────────
 
 /**
+ * Resolve the Events site blog ID.
+ *
+ * @return int Events site blog ID.
+ */
+function ec_users_get_events_blog_id(): int {
+	$blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+
+	return (int) apply_filters( 'extrachill_users_events_blog_id', $blog_id );
+}
+
+/**
+ * Capture the current time in the Events site's local timezone.
+ *
+ * @param int $blog_id Events site blog ID.
+ * @return string MySQL datetime in the Events site's timezone.
+ */
+function ec_users_get_events_now( int $blog_id ): string {
+	$switched = false;
+	if ( get_current_blog_id() !== $blog_id ) {
+		switch_to_blog( $blog_id );
+		$switched = true;
+	}
+
+	try {
+		$now = current_time( 'mysql' );
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+
+	/**
+	 * Filters the captured Events-site time used for timing comparisons.
+	 *
+	 * @param string $now     MySQL datetime in the Events site's timezone.
+	 * @param int    $blog_id Events site blog ID.
+	 */
+	return (string) apply_filters( 'extrachill_users_event_timing_now', $now, $blog_id );
+}
+
+/**
+ * Build a canonical event timing SQL condition.
+ *
+ * The two history tabs map states explicitly: Past contains only `past`, while
+ * Upcoming uses `active` and therefore contains both `upcoming` and `ongoing`.
+ * Past leads with the indexed start range and uses COALESCE only for the
+ * residual end check, avoiding an OR that prevents index condition pushdown.
+ *
+ * @param string $timing `upcoming`, `ongoing`, `past`, or `active`.
+ * @param string $now    MySQL datetime in the Events site's timezone.
+ * @param string $alias  Trusted event dates table alias.
+ * @return array{where: string, prepare: array}
+ */
+function ec_users_build_event_timing_condition( string $timing, string $now, string $alias = 'ed' ): array {
+	$start = $alias . '.start_datetime';
+	$end   = $alias . '.end_datetime';
+
+	switch ( $timing ) {
+		case 'upcoming':
+			return array(
+				'where'   => "{$start} >= %s",
+				'prepare' => array( $now ),
+			);
+		case 'ongoing':
+			return array(
+				'where'   => "({$start} < %s AND {$end} >= %s)",
+				'prepare' => array( $now, $now ),
+			);
+		case 'past':
+			return array(
+				'where'   => "({$start} < %s AND COALESCE({$end}, {$start}) < %s)",
+				'prepare' => array( $now, $now ),
+			);
+		case 'active':
+		default:
+			return array(
+				'where'   => "({$start} >= %s OR {$end} >= %s)",
+				'prepare' => array( $now, $now ),
+			);
+	}
+}
+
+/**
+ * Build a CASE expression that returns canonical event timing.
+ *
+ * @param string $now   MySQL datetime in the Events site's timezone.
+ * @param string $alias Trusted event dates table alias.
+ * @return array{sql: string, prepare: array}
+ */
+function ec_users_build_event_timing_case( string $now, string $alias = 'ed' ): array {
+	$upcoming = ec_users_build_event_timing_condition( 'upcoming', $now, $alias );
+	$ongoing  = ec_users_build_event_timing_condition( 'ongoing', $now, $alias );
+
+	return array(
+		'sql'     => "CASE WHEN {$upcoming['where']} THEN 'upcoming' WHEN {$ongoing['where']} THEN 'ongoing' ELSE 'past' END",
+		'prepare' => array_merge( $upcoming['prepare'], $ongoing['prepare'] ),
+	);
+}
+
+/**
  * Determine the timing state of an event.
  *
  * Extra Chill Users is network-activated and runs on every site, but the
@@ -359,40 +459,27 @@ function ec_users_get_user_dated_event_checks( int $user_id ): array {
  *   past     = start < now AND (end < now OR end IS NULL), or no start date.
  *
  * @param int $event_id Event post ID.
+ * @param int $blog_id  Events site blog ID. Defaults to the canonical Events site.
  * @return string 'upcoming' | 'ongoing' | 'past'
  */
-function ec_users_get_event_timing( int $event_id ): string {
+function ec_users_get_event_timing( int $event_id, int $blog_id = 0 ): string {
 	global $wpdb;
 
-	$blog_id       = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	$blog_id       = $blog_id ? $blog_id : ec_users_get_events_blog_id();
 	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
 	$dates_table   = $events_prefix . 'datamachine_event_dates';
+	$timing_case   = ec_users_build_event_timing_case( ec_users_get_events_now( $blog_id ) );
 
-	$dates = $wpdb->get_row(
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted table name and shared prepared CASE fragment.
+	$timing = $wpdb->get_var(
 		$wpdb->prepare(
-			"SELECT start_datetime, end_datetime FROM {$dates_table} WHERE post_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name built from trusted blog prefix.
-			$event_id
+			"SELECT {$timing_case['sql']} FROM {$dates_table} ed WHERE ed.post_id = %d",
+			...array_merge( $timing_case['prepare'], array( $event_id ) )
 		)
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
-	if ( ! $dates || empty( $dates->start_datetime ) ) {
-		return 'past';
-	}
-
-	// Event datetimes are stored in site-local time; compare against the same.
-	$now         = current_time( 'mysql' );
-	$event_start = $dates->start_datetime;
-	$event_end   = $dates->end_datetime ?? null;
-
-	if ( $event_start >= $now ) {
-		return 'upcoming';
-	}
-
-	if ( $event_end && $event_end >= $now ) {
-		return 'ongoing';
-	}
-
-	return 'past';
+	return in_array( $timing, array( 'upcoming', 'ongoing', 'past' ), true ) ? $timing : 'past';
 }
 
 /**
@@ -464,7 +551,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	}
 
 	$table         = extrachill_users_concert_tracking_table_name();
-	$blog_id       = $args['blog_id'] ? $args['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7 );
+	$blog_id       = $args['blog_id'] ? (int) $args['blog_id'] : ec_users_get_events_blog_id();
 	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
 	$posts_table   = $events_prefix . 'posts';
 
@@ -474,15 +561,18 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 
 	$dates_table = $events_prefix . 'datamachine_event_dates';
 
-	// Date filtering via datamachine_event_dates table.
-	$now_date = current_time( 'Y-m-d' );
+	// Timing uses one Events-site snapshot for filtering, totals, and row labels.
+	$now         = ec_users_get_events_now( $blog_id );
+	$timing_case = ec_users_build_event_timing_case( $now );
 
 	if ( 'upcoming' === $args['period'] ) {
-		$where[]   = 'DATE(ed.start_datetime) >= %s';
-		$prepare[] = $now_date;
+		$timing  = ec_users_build_event_timing_condition( 'active', $now );
+		$where[] = $timing['where'];
+		$prepare = array_merge( $prepare, $timing['prepare'] );
 	} elseif ( 'past' === $args['period'] ) {
-		$where[]   = 'DATE(ed.start_datetime) < %s';
-		$prepare[] = $now_date;
+		$timing  = ec_users_build_event_timing_condition( 'past', $now );
+		$where[] = $timing['where'];
+		$prepare = array_merge( $prepare, $timing['prepare'] );
 	}
 
 	if ( $args['year'] ) {
@@ -524,14 +614,14 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	// Fetch event IDs with date ordering.
 	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table names from trusted helpers, $where_sql carries additional placeholders matched by $prepare; $order_sql validated to ASC/DESC above.
 	$query = $wpdb->prepare(
-		"SELECT ct.event_id, ct.created_at AS marked_at, DATE(ed.start_datetime) AS event_date
+		"SELECT ct.event_id, ct.created_at AS marked_at, DATE(ed.start_datetime) AS event_date, {$timing_case['sql']} AS timing
 		FROM {$table} ct
 		INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
 		INNER JOIN {$posts_table} p ON ct.event_id = p.ID
 		WHERE {$where_sql}
 		ORDER BY ed.start_datetime {$order_sql}
 		LIMIT %d OFFSET %d",
-		...array_merge( $prepare, array( $args['per_page'], $offset ) )
+		...array_merge( $timing_case['prepare'], $prepare, array( $args['per_page'], $offset ) )
 	);
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
@@ -661,7 +751,7 @@ function ec_users_build_show_data( WP_Post $post, array $row ): array {
 		'venue'      => $venue,
 		'city'       => $city,
 		'artists'    => $artists,
-		'timing'     => ec_users_get_event_timing( $event_id ),
+		'timing'     => isset( $row['timing'] ) ? (string) $row['timing'] : ec_users_get_event_timing( $event_id, $blog_id ),
 		'marked_at'  => $row['marked_at'] ?? '',
 		'permalink'  => get_permalink( $event_id ),
 		'thumbnail'  => get_the_post_thumbnail_url( $event_id, 'medium' ),
@@ -686,7 +776,7 @@ function ec_users_build_show_data( WP_Post $post, array $row ): array {
 function ec_users_get_user_concert_stats( int $user_id, array $args = array() ): array {
 	global $wpdb;
 
-	$blog_id       = ! empty( $args['blog_id'] ) ? (int) $args['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7 );
+	$blog_id       = ! empty( $args['blog_id'] ) ? (int) $args['blog_id'] : ec_users_get_events_blog_id();
 	$table         = extrachill_users_concert_tracking_table_name();
 	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
 	$posts_table   = $events_prefix . 'posts';
@@ -706,6 +796,9 @@ function ec_users_get_user_concert_stats( int $user_id, array $args = array() ):
 		$prepare[] = sanitize_text_field( $args['date_from'] );
 	}
 	if ( ! empty( $args['date_to'] ) ) {
+		$past      = ec_users_build_event_timing_condition( 'past', ec_users_get_events_now( $blog_id ) );
+		$where[]   = $past['where'];
+		$prepare   = array_merge( $prepare, $past['prepare'] );
 		$where[]   = 'DATE(ed.start_datetime) <= %s';
 		$prepare[] = sanitize_text_field( $args['date_to'] );
 	}
@@ -1106,7 +1199,7 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, int $lim
 /**
  * Search past events for the "Add Past Shows" My Shows feature.
  *
- * Returns past events (start_datetime < NOW()) matching the query against:
+ * Returns canonically past events matching the query against:
  *   - event post title
  *   - artist taxonomy term names
  *   - venue taxonomy term names
@@ -1159,7 +1252,7 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 	}
 
 	$per_page = max( 1, min( 100, (int) $args['per_page'] ) );
-	$blog_id  = $args['blog_id'] ? (int) $args['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7 );
+	$blog_id  = $args['blog_id'] ? (int) $args['blog_id'] : ec_users_get_events_blog_id();
 
 	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
 	$posts_table   = $events_prefix . 'posts';
@@ -1168,14 +1261,16 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 	$tt_table      = $events_prefix . 'term_taxonomy';
 	$terms_table   = $events_prefix . 'terms';
 
-	$now_mysql = current_time( 'mysql' );
+	$now_mysql   = ec_users_get_events_now( $blog_id );
+	$past        = ec_users_build_event_timing_condition( 'past', $now_mysql );
+	$timing_case = ec_users_build_event_timing_case( $now_mysql );
 
 	$where   = array(
 		"p.post_type = 'data_machine_events'",
 		"p.post_status = 'publish'",
-		'ed.start_datetime < %s',
+		$past['where'],
 	);
-	$prepare = array( $now_mysql );
+	$prepare = $past['prepare'];
 
 	// Build search clause if query provided.
 	if ( '' !== $query ) {
@@ -1206,7 +1301,7 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 		WHERE {$where_sql}",
 		...$prepare
 	);
-	$total = (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
+	$total     = (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
 	// phpcs:enable
 
 	$pages  = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
@@ -1224,16 +1319,16 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 
 	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table names from trusted prefix; placeholders inside $where_sql matched in $prepare.
 	$rows_sql = $wpdb->prepare(
-		"SELECT p.ID AS post_id, p.post_title, DATE(ed.start_datetime) AS event_date
+		"SELECT p.ID AS post_id, p.post_title, DATE(ed.start_datetime) AS event_date, {$timing_case['sql']} AS timing
 		FROM {$posts_table} p
 		INNER JOIN {$dates_table} ed ON p.ID = ed.post_id
 		WHERE {$where_sql}
 		GROUP BY p.ID
 		ORDER BY ed.start_datetime DESC
 		LIMIT %d OFFSET %d",
-		...array_merge( $prepare, array( $per_page, $offset ) )
+		...array_merge( $timing_case['prepare'], $prepare, array( $per_page, $offset ) )
 	);
-	$rows = $wpdb->get_results( $rows_sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
+	$rows     = $wpdb->get_results( $rows_sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
 	// phpcs:enable
 
 	if ( empty( $rows ) ) {

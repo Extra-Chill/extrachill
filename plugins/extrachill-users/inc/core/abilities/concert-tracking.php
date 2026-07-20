@@ -157,7 +157,7 @@ function extrachill_users_register_concert_tracking_abilities() {
 		'extrachill/get-user-shows',
 		array(
 			'label'               => __( 'Get User Shows', 'extrachill-users' ),
-			'description'         => __( 'Get paginated concert history for a user with enriched event details.', 'extrachill-users' ),
+			'description'         => __( 'Get paginated concert history for a user with enriched event details. Public non-owner reads expose past shows only.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -499,6 +499,20 @@ function extrachill_users_ability_get_user_shows( array $input ) {
 
 	if ( ! $user_id ) {
 		return new WP_Error( 'no_user', 'User ID required.', array( 'status' => 400 ) );
+	}
+
+	$is_owner = get_current_user_id() === $user_id || current_user_can( 'manage_network_options' );
+	if ( ! $is_owner ) {
+		if ( 'upcoming' === ( $input['period'] ?? 'all' ) ) {
+			return array(
+				'shows' => array(),
+				'total' => 0,
+				'pages' => 0,
+				'page'  => 1,
+			);
+		}
+
+		$input['period'] = 'past';
 	}
 
 	return ec_users_get_user_events( $user_id, $input );
