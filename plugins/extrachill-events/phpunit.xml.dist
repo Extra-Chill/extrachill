@@ -21,6 +21,7 @@
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/EventsByTermTaxonomyContextTest.php</file>
+			<file>tests/Unit/Abilities/EventsByArtistAbilityTest.php</file>
 			<file>tests/Unit/FestivalNotificationsTest.php</file>
 			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
