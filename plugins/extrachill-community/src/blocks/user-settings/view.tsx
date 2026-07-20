@@ -89,13 +89,18 @@ function Notice( {
 	message: string;
 } ) {
 	return (
-		<div className={ `notice notice-${ type }` }>
+		<div
+			className={ `notice notice-${ type }` }
+			role={ type === 'error' ? 'alert' : 'status' }
+			aria-live={ type === 'error' ? 'assertive' : 'polite' }
+			aria-atomic="true"
+		>
 			<p>{ message }</p>
 		</div>
 	);
 }
 
-function AccountTab( {
+export function AccountTab( {
 	settings,
 	onUpdate,
 }: {
@@ -111,6 +116,11 @@ function AccountTab( {
 	const [ localSceneVisibility, setLocalSceneVisibility ] = useState(
 		settings.local_scene_visibility
 	);
+	const [ concertHistoryVisibility, setConcertHistoryVisibility ] = useState(
+		settings.concert_history_visibility
+	);
+	const [ eventAttendanceVisibility, setEventAttendanceVisibility ] =
+		useState( settings.event_attendance_visibility );
 	const [ localSceneChanged, setLocalSceneChanged ] = useState( false );
 	const [ locationOptions, setLocationOptions ] = useState<
 		Array< { label: string; value: string } >
@@ -205,6 +215,8 @@ function AccountTab( {
 				last_name: lastName,
 				display_name: displayName,
 				local_scene_visibility: localSceneVisibility,
+				concert_history_visibility: concertHistoryVisibility,
+				event_attendance_visibility: eventAttendanceVisibility,
 			};
 			if ( localSceneChanged ) {
 				input.local_scene = localSceneSlug ?? '';
@@ -215,6 +227,8 @@ function AccountTab( {
 			onUpdate( result );
 			setLocalSceneSlug( result.local_scene?.slug ?? null );
 			setLocalSceneVisibility( result.local_scene_visibility );
+			setConcertHistoryVisibility( result.concert_history_visibility );
+			setEventAttendanceVisibility( result.event_attendance_visibility );
 			setLocalSceneChanged( false );
 			setNotice( {
 				type: 'success',
@@ -233,6 +247,8 @@ function AccountTab( {
 		displayName,
 		localSceneSlug,
 		localSceneVisibility,
+		concertHistoryVisibility,
+		eventAttendanceVisibility,
 		localSceneChanged,
 		onUpdate,
 	] );
@@ -305,6 +321,53 @@ function AccountTab( {
 					/>
 					Show my Local Scene publicly
 				</label>
+			</FieldGroup>
+			<FieldGroup>
+				<label htmlFor="ec-concert-history-visibility">
+					<input
+						id="ec-concert-history-visibility"
+						type="checkbox"
+						aria-describedby="ec-concert-history-visibility-help"
+						checked={ concertHistoryVisibility === 'public' }
+						onChange={ ( event ) =>
+							setConcertHistoryVisibility(
+								event.target.checked ? 'public' : 'private'
+							)
+						}
+					/>
+					Show my concert history publicly
+				</label>
+				<p
+					id="ec-concert-history-visibility-help"
+					style={ styles.mutedText }
+				>
+					When private, only you and network administrators can view
+					your tracked shows and concert stats.
+				</p>
+			</FieldGroup>
+			<FieldGroup>
+				<label htmlFor="ec-event-attendance-visibility">
+					<input
+						id="ec-event-attendance-visibility"
+						type="checkbox"
+						aria-describedby="ec-event-attendance-visibility-help"
+						checked={ eventAttendanceVisibility === 'public' }
+						onChange={ ( event ) =>
+							setEventAttendanceVisibility(
+								event.target.checked ? 'public' : 'private'
+							)
+						}
+					/>
+					Show me in event attendee lists
+				</label>
+				<p
+					id="ec-event-attendance-visibility-help"
+					style={ styles.mutedText }
+				>
+					Your attendance still counts toward event totals when this
+					is private, but your name and avatar stay hidden from
+					attendee lists.
+				</p>
 			</FieldGroup>
 			<ActionRow>
 				<button
@@ -913,7 +976,7 @@ type TabId =
 	| 'notifications'
 	| 'artist-platform';
 
-function UserSettingsApp( {
+export function UserSettingsApp( {
 	artistSiteUrl,
 	hasArtists,
 	canCreateArtists,
@@ -936,15 +999,19 @@ function UserSettingsApp( {
 	} >( { status: 'none', type: '' } );
 
 	useEffect( () => {
-		Promise.all( [
-			client.execute< UserSettings >( 'extrachill/get-user-settings' ),
-			client.execute< UserProfile >( 'extrachill/get-user-profile', {
+		client
+			.execute< UserProfile >( 'extrachill/get-user-profile', {
 				user_id: userId,
-			} ),
-		] )
-			.then( ( [ settingsData, profileData ] ) => {
-				setSettings( settingsData );
+			} )
+			.then( ( profileData ) => {
 				setArtistAccess( profileData.artist_access );
+			} )
+			.catch( () => undefined );
+
+		client
+			.execute< UserSettings >( 'extrachill/get-user-settings' )
+			.then( ( settingsData ) => {
+				setSettings( settingsData );
 				setLoading( false );
 			} )
 			.catch( ( err ) => {
@@ -955,7 +1022,7 @@ function UserSettingsApp( {
 				);
 				setLoading( false );
 			} );
-	}, [] );
+	}, [ userId ] );
 
 	const switchTab = useCallback( ( tab: TabId ) => {
 		setActiveTab( tab );

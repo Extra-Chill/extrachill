@@ -76,6 +76,8 @@ export interface UserSettings {
 	pending_email: string | null;
 	local_scene: LocalScene | null;
 	local_scene_visibility: 'public' | 'private';
+	concert_history_visibility: 'public' | 'private';
+	event_attendance_visibility: 'public' | 'private';
 }
 
 export interface ChangeEmailResponse {

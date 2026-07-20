@@ -13,10 +13,6 @@
  * taxonomy enrichment (artist/venue/city names) requires events-site context,
  * so we always route through the events site.
  *
- * Performance: stats are cached per-user in a short transient on the community
- * site so repeated profile views don't re-dispatch a cross-site request each
- * time. The cache is invalidated by TTL only (concert history changes rarely).
- *
  * @package ExtraChillCommunity
  * @since 0.x
  */
@@ -24,17 +20,12 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Cache TTL for per-user concert stats on the profile (seconds).
- */
-const EC_CONCERT_HISTORY_CACHE_TTL = 15 * MINUTE_IN_SECONDS;
-
-/**
  * Fetch a user's aggregate concert stats from the events site.
  *
  * Calls the public get-user-concert-stats ability via in-process cross-site
- * REST dispatch and caches the result in a per-user transient. Returns null
- * on any failure (missing primitive, cross-site error, malformed payload) so
- * the caller can silently skip the card without ever breaking the profile.
+ * REST dispatch. Returns null on any failure (missing primitive, cross-site
+ * error, malformed payload) so the renderer can distinguish unavailable data
+ * from a legitimate zero-show response.
  *
  * @param int $user_id User ID.
  * @return array|null Stats payload, or null on failure / unavailable.
@@ -44,11 +35,10 @@ function ec_community_get_concert_stats( int $user_id ): ?array {
 		return null;
 	}
 
-	$cache_key = 'ec_concert_stats_' . $user_id;
-	$cached    = get_transient( $cache_key );
-	if ( false !== $cached ) {
-		// Empty-array sentinel means "fetched, but user has no shows".
-		return is_array( $cached ) ? $cached : null;
+	// Authorization must precede the cross-site request so private data is never
+	// fetched for an unauthorized viewer.
+	if ( ! function_exists( 'extrachill_users_can_view_concert_history' ) || ! extrachill_users_can_view_concert_history( $user_id ) ) {
+		return null;
 	}
 
 	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
@@ -62,13 +52,9 @@ function ec_community_get_concert_stats( int $user_id ): ?array {
 		array( 'user_id' => $user_id )
 	);
 
-	if ( is_wp_error( $response ) || ! is_array( $response ) ) {
-		// Cache a brief negative result to avoid hammering on every view.
-		set_transient( $cache_key, 'none', MINUTE_IN_SECONDS );
+	if ( is_wp_error( $response ) || ! is_array( $response ) || ! isset( $response['total_shows'] ) || ! is_numeric( $response['total_shows'] ) ) {
 		return null;
 	}
-
-	set_transient( $cache_key, $response, EC_CONCERT_HISTORY_CACHE_TTL );
 
 	return $response;
 }
@@ -139,9 +125,9 @@ function ec_community_render_top_list( array $items, int $limit = 5 ): string {
  * Display the Concert History card on the bbPress user profile.
  *
  * Pulls real tracked shows from the events site and renders an aggregate
- * summary with a link to the full My Shows history. Skips silently when the
- * data is unavailable. For a profile owner with zero tracked shows, renders a
- * soft call-to-action to start their history.
+ * summary with a link to the full My Shows history. Visitors see no card when
+ * data is unavailable; owners see an explicit unavailable state. For a profile
+ * owner with zero tracked shows, renders a soft call-to-action instead.
  */
 function ec_community_display_concert_history() {
 	$user_id = bbp_get_displayed_user_id();
@@ -152,7 +138,20 @@ function ec_community_display_concert_history() {
 	$is_own = ( (int) get_current_user_id() === (int) $user_id );
 	$stats  = ec_community_get_concert_stats( (int) $user_id );
 
-	$total_shows = is_array( $stats ) && isset( $stats['total_shows'] ) ? (int) $stats['total_shows'] : 0;
+	if ( null === $stats ) {
+		if ( ! $is_own ) {
+			return;
+		}
+		?>
+		<div class="bbp-user-profile-card ec-concert-history-card ec-concert-history-unavailable">
+			<h3><?php esc_html_e( 'Concert History', 'extra-chill-community' ); ?></h3>
+			<p><?php esc_html_e( 'Your concert history is temporarily unavailable. Please try again later.', 'extra-chill-community' ); ?></p>
+		</div>
+		<?php
+		return;
+	}
+
+	$total_shows = (int) $stats['total_shows'];
 
 	// No tracked shows: show a CTA on the owner's profile, hide for visitors.
 	if ( $total_shows < 1 ) {
