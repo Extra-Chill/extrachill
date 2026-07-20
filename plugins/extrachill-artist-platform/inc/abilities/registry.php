@@ -36,7 +36,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Artist profile data.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_get_artist_data',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -73,7 +73,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Complete link page data.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_get_link_page_data',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -124,7 +124,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Created artist profile data.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_create_artist',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_create_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -181,7 +181,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Updated artist profile data.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_update_artist',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -218,7 +218,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Updated link page data.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_save_link_page_links',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -255,7 +255,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Updated link page data.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_save_link_page_styles',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -304,7 +304,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Updated link page data.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_save_link_page_settings',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -341,7 +341,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Updated social links data.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_save_social_links',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -468,7 +468,7 @@ function extrachill_artist_platform_register_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_get',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => '__return_true',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -499,7 +499,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Complete link page data.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_get_links',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -537,7 +537,7 @@ function extrachill_artist_platform_register_abilities() {
 				'description' => __( 'Fresh link page data after update.', 'extrachill-artist-platform' ),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_update_links',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -606,7 +606,7 @@ function extrachill_artist_platform_register_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_get_roster',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -639,7 +639,7 @@ function extrachill_artist_platform_register_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_list_socials',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -674,7 +674,7 @@ function extrachill_artist_platform_register_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_create_social',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -710,7 +710,7 @@ function extrachill_artist_platform_register_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_update_social',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -746,7 +746,7 @@ function extrachill_artist_platform_register_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_delete_social',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -818,7 +818,7 @@ function extrachill_artist_platform_register_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_list_subscribers',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -856,11 +856,11 @@ function extrachill_artist_platform_register_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_export_subscribers',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
-					'readonly'    => true,
+					'readonly'    => false,
 					'destructive' => false,
 					'idempotent'  => false,
 				),
@@ -892,7 +892,7 @@ function extrachill_artist_platform_register_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_artist_get_analytics',
-			'permission_callback' => 'extrachill_artist_platform_ability_read_permission',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(

@@ -30,14 +30,12 @@ function extrachill_artist_platform_ability_admin_permission() {
 }
 
 /**
- * Permission callback for read-only artist platform abilities.
+ * Permission callback for abilities that operate on an owned artist.
  *
- * Read abilities are available to WP-CLI, Action Scheduler, network admins,
- * and any logged-in user who can manage the specified artist.
- *
+ * @param array $input Ability input containing artist_id or id.
  * @return bool
  */
-function extrachill_artist_platform_ability_read_permission() {
+function extrachill_artist_platform_ability_artist_permission( $input ) {
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		return true;
 	}
@@ -46,7 +44,34 @@ function extrachill_artist_platform_ability_read_permission() {
 		return true;
 	}
 
-	return current_user_can( 'manage_network_options' ) || is_user_logged_in();
+	$artist_id = isset( $input['artist_id'] ) ? absint( $input['artist_id'] ) : absint( $input['id'] ?? 0 );
+
+	return $artist_id
+		&& function_exists( 'ec_can_manage_artist' )
+		&& ec_can_manage_artist( get_current_user_id(), $artist_id );
+}
+
+/**
+ * Permission callback for creating an artist for a user.
+ *
+ * @param array $input Ability input containing an optional user_id.
+ * @return bool
+ */
+function extrachill_artist_platform_ability_create_permission( $input ) {
+	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		return true;
+	}
+
+	if ( class_exists( 'ActionScheduler' ) && did_action( 'action_scheduler_before_execute' ) ) {
+		return true;
+	}
+
+	$current_user_id = get_current_user_id();
+	$target_user_id  = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : $current_user_id;
+
+	return $current_user_id
+		&& $target_user_id
+		&& ( $current_user_id === $target_user_id || current_user_can( 'manage_options' ) || current_user_can( 'manage_network_options' ) );
 }
 
 /**

@@ -21,6 +21,14 @@ defined( 'ABSPATH' ) || exit;
  * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_admin_unlink_artist_relationship( array $input ): array|WP_Error {
+	if ( ! extrachill_artist_platform_ability_admin_permission() ) {
+		return new WP_Error(
+			'admin_access_denied',
+			__( 'You are not allowed to manage artist relationships.', 'extrachill-artist-platform' ),
+			array( 'status' => 403 )
+		);
+	}
+
 	if ( empty( $input['user_id'] ) || empty( $input['artist_id'] ) ) {
 		return new WP_Error(
 			'missing_params',

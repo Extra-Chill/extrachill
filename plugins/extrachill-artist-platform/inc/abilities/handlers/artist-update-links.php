@@ -33,6 +33,10 @@ function extrachill_artist_platform_ability_artist_update_links( array $input ):
 		return new WP_Error( 'missing_id', 'id is required.' );
 	}
 
+	if ( ! extrachill_artist_platform_ability_artist_permission( $input ) ) {
+		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
+	}
+
 	if ( get_post_type( $artist_id ) !== 'artist_profile' ) {
 		return new WP_Error( 'invalid_artist', 'Artist not found.' );
 	}

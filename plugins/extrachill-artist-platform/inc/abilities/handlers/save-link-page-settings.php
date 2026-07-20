@@ -21,6 +21,10 @@ function extrachill_artist_platform_ability_save_link_page_settings( $input ) {
 		return new WP_Error( 'missing_artist_id', 'artist_id is required.' );
 	}
 
+	if ( ! extrachill_artist_platform_ability_artist_permission( $input ) ) {
+		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
+	}
+
 	$link_page_id = ec_get_link_page_for_artist( $artist_id );
 	if ( ! $link_page_id ) {
 		return new WP_Error( 'no_link_page', 'No link page exists for this artist.' );

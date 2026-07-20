@@ -19,6 +19,8 @@ final class AdminArtistRelationshipsTest extends TestCase {
 	}
 
 	public function test_link_uses_canonical_membership_mutator(): void {
+		$GLOBALS['ec_test']['capabilities']['manage_network_options'] = true;
+
 		$result = extrachill_artist_platform_ability_admin_link_artist_relationship(
 			array( 'user_id' => 7, 'artist_id' => 19 )
 		);
@@ -28,7 +30,8 @@ final class AdminArtistRelationshipsTest extends TestCase {
 	}
 
 	public function test_link_rejects_missing_user(): void {
-		$GLOBALS['ec_test']['missing_user'] = true;
+		$GLOBALS['ec_test']['capabilities']['manage_network_options'] = true;
+		$GLOBALS['ec_test']['missing_user']                            = true;
 
 		$result = extrachill_artist_platform_ability_admin_link_artist_relationship(
 			array( 'user_id' => 7, 'artist_id' => 19 )
@@ -39,6 +42,8 @@ final class AdminArtistRelationshipsTest extends TestCase {
 	}
 
 	public function test_unlink_and_cleanup_use_canonical_membership_mutator(): void {
+		$GLOBALS['ec_test']['capabilities']['manage_network_options'] = true;
+
 		$this->assertSame(
 			array( 'success' => true ),
 			extrachill_artist_platform_ability_admin_unlink_artist_relationship( array( 'user_id' => 4, 'artist_id' => 8 ) )
@@ -47,6 +52,24 @@ final class AdminArtistRelationshipsTest extends TestCase {
 
 		extrachill_artist_platform_ability_admin_cleanup_artist_relationships( array( 'user_id' => 5, 'artist_id' => 9 ) );
 		$this->assertSame( array( 5, 9 ), $GLOBALS['ec_test']['removed'] );
+	}
+
+	public function test_admin_mutations_fail_closed_when_handlers_are_called_directly(): void {
+		$handlers = array(
+			'extrachill_artist_platform_ability_admin_link_artist_relationship',
+			'extrachill_artist_platform_ability_admin_unlink_artist_relationship',
+			'extrachill_artist_platform_ability_admin_cleanup_artist_relationships',
+		);
+
+		foreach ( $handlers as $handler ) {
+			$result = $handler( array( 'user_id' => 7, 'artist_id' => 19 ) );
+
+			$this->assertInstanceOf( WP_Error::class, $result );
+			$this->assertSame( 'admin_access_denied', $result->get_error_code() );
+		}
+
+		$this->assertArrayNotHasKey( 'added', $GLOBALS['ec_test'] );
+		$this->assertArrayNotHasKey( 'removed', $GLOBALS['ec_test'] );
 	}
 
 	public function test_orphan_list_preserves_orphans_envelope(): void {

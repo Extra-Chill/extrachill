@@ -34,6 +34,10 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 	$genre      = isset( $input['genre'] ) ? sanitize_text_field( wp_unslash( $input['genre'] ) ) : '';
 	$user_id    = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : get_current_user_id();
 
+	if ( ! extrachill_artist_platform_ability_create_permission( $input ) ) {
+		return new WP_Error( 'artist_access_denied', 'You are not allowed to create an artist for this user.' );
+	}
+
 	if ( strlen( $name ) < 1 ) {
 		return new WP_Error( 'invalid_artist_name', 'Artist name is required.' );
 	}
