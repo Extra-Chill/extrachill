@@ -54,7 +54,11 @@ function restore_current_blog() {
 }
 
 function ec_get_blog_id( $site ) {
-	return array( 'main' => 1, 'artist' => 4 )[ $site ] ?? 0;
+	return array(
+		'main'   => 1,
+		'artist' => 4,
+		'events' => 7,
+	)[ $site ] ?? 0;
 }
 
 function get_current_blog_id() {
