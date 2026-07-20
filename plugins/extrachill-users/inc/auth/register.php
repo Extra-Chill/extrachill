@@ -55,7 +55,17 @@ function extrachill_handle_registration() {
 		$redirect->error( __( 'Registration source is missing. Please reload and try again.', 'extrachill-users' ) );
 	}
 
-	$from_join = isset( $_POST['from_join'] ) && 'true' === $_POST['from_join'];
+	$from_join               = isset( $_POST['from_join'] ) && 'true' === $_POST['from_join'];
+	$invite_token_posted     = isset( $_POST['invite_token'] ) ? sanitize_text_field( wp_unslash( $_POST['invite_token'] ) ) : '';
+	$invite_artist_id_posted = isset( $_POST['invite_artist_id'] ) ? absint( $_POST['invite_artist_id'] ) : 0;
+	$has_artist_invitation   = false;
+	if ( $invite_token_posted || $invite_artist_id_posted ) {
+		$validation = ec_users_request_artist_invitation( $email, $invite_token_posted, $invite_artist_id_posted );
+		if ( is_wp_error( $validation ) ) {
+			$redirect->error( $validation->get_error_message() );
+		}
+		$has_artist_invitation = true;
+	}
 
 	$username = function_exists( 'ec_generate_username_from_email' )
 		? ec_generate_username_from_email( $email )
@@ -92,29 +102,13 @@ function extrachill_handle_registration() {
 	}
 
 	$processed_invite_artist_id = null;
-	$invite_token_posted        = isset( $_POST['invite_token'] ) ? sanitize_text_field( wp_unslash( $_POST['invite_token'] ) ) : null;
-	$invite_artist_id_posted    = isset( $_POST['invite_artist_id'] ) ? absint( $_POST['invite_artist_id'] ) : null;
-
-	if ( $invite_token_posted && $invite_artist_id_posted && function_exists( 'ec_get_pending_invitations' ) && function_exists( 'ec_add_artist_membership' ) && function_exists( 'ec_remove_pending_invitation' ) ) {
-		$pending_invitations         = ec_get_pending_invitations( $invite_artist_id_posted );
-		$valid_invite_data           = null;
-		$valid_invite_id_for_removal = null;
-
-		foreach ( $pending_invitations as $invite ) {
-			if ( isset( $invite['token'] ) && $invite['token'] === $invite_token_posted &&
-				isset( $invite['email'] ) && strtolower( $invite['email'] ) === strtolower( $email ) &&
-				isset( $invite['status'] ) && 'invited_new_user' === $invite['status'] ) {
-				$valid_invite_data           = $invite;
-				$valid_invite_id_for_removal = $invite['id'];
-				break;
-			}
-		}
-
-		if ( $valid_invite_data ) {
-			if ( ec_add_artist_membership( $user_id, $invite_artist_id_posted ) ) {
-				ec_remove_pending_invitation( $invite_artist_id_posted, $valid_invite_id_for_removal );
-				$processed_invite_artist_id = $invite_artist_id_posted;
-			}
+	$invitation_outcome         = array();
+	if ( $has_artist_invitation ) {
+		$acceptance = ec_users_request_artist_invitation( $email, $invite_token_posted, $invite_artist_id_posted, $user_id );
+		if ( is_wp_error( $acceptance ) ) {
+			$invitation_outcome = ec_users_classify_artist_invitation_error( $acceptance );
+		} else {
+			$processed_invite_artist_id = $invite_artist_id_posted;
 		}
 	}
 
@@ -127,7 +121,7 @@ function extrachill_handle_registration() {
 	}
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-	extrachill_auto_login_new_user( $user_id, $redirect, $processed_invite_artist_id, $success_redirect_url );
+	extrachill_auto_login_new_user( $user_id, $redirect, $processed_invite_artist_id, $success_redirect_url, $invitation_outcome );
 }
 add_action( 'admin_post_nopriv_extrachill_register_user', 'extrachill_handle_registration' );
 add_action( 'admin_post_extrachill_register_user', 'extrachill_handle_registration' );
@@ -139,8 +133,9 @@ add_action( 'admin_post_extrachill_register_user', 'extrachill_handle_registrati
  * @param EC_Redirect_Handler $redirect                   Redirect handler instance.
  * @param int|null            $processed_invite_artist_id Artist ID if roster invitation was processed.
  * @param string              $success_redirect_url       Custom success redirect URL from block attribute.
+ * @param array               $invitation_outcome         Classified invitation failure after account creation.
  */
-function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redirect, ?int $processed_invite_artist_id = null, string $success_redirect_url = '' ) {
+function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redirect, ?int $processed_invite_artist_id = null, string $success_redirect_url = '', array $invitation_outcome = array() ) {
 	$user = get_user_by( 'id', $user_id );
 
 	if ( ! $user ) {
@@ -171,6 +166,14 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 	$onboarding_url = function_exists( 'ec_get_site_url' )
 		? ec_get_site_url( 'community' ) . '/onboarding/'
 		: home_url( '/onboarding/' );
+	if ( $invitation_outcome ) {
+		$query_args = array( 'artist_invitation' => $invitation_outcome['status'] );
+		if ( ! empty( $invitation_outcome['error'] ) ) {
+			$query_args['artist_invitation_error']        = $invitation_outcome['error']['code'];
+			$query_args['artist_invitation_error_status'] = $invitation_outcome['error']['status'];
+		}
+		$onboarding_url = add_query_arg( $query_args, $onboarding_url );
+	}
 
 	$redirect->redirect_to( $onboarding_url );
 }

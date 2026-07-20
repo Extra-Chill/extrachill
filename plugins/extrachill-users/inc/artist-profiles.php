@@ -90,6 +90,97 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 }
 
 /**
+ * Validate or accept an artist invitation on the artist site.
+ *
+ * @param string $email     Registration email.
+ * @param string $token     Invitation token.
+ * @param int    $artist_id Artist profile ID.
+ * @param int    $user_id   User ID when accepting after account creation.
+ * @return array|WP_Error Artist-owned invitation result or an error.
+ */
+function ec_users_request_artist_invitation( $email, $token, $artist_id, $user_id = 0 ) {
+	if ( ! $token || ! $artist_id ) {
+		return new WP_Error( 'invalid_artist_invitation', __( 'A complete artist invitation is required.', 'extrachill-users' ), array( 'status' => 400 ) );
+	}
+	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
+		return new WP_Error( 'artist_invitation_dependency_missing', __( 'Artist invitations are temporarily unavailable.', 'extrachill-users' ), array( 'status' => 503 ) );
+	}
+
+	$input = array(
+		'artist_id' => absint( $artist_id ),
+		'email'     => sanitize_email( $email ),
+		'token'     => sanitize_text_field( $token ),
+	);
+	if ( $user_id ) {
+		$input['user_id'] = absint( $user_id );
+	}
+
+	$force_loopback = static function () {
+		return true;
+	};
+	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	try {
+		return ec_cross_site_rest_request(
+			'artist',
+			'POST',
+			'/wp-abilities/v1/abilities/extrachill/artist-invitation/run',
+			array( 'body' => array( 'input' => $input ) )
+		);
+	} finally {
+		remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	}
+}
+
+/**
+ * Classify an artist-owned invitation failure for a created account response.
+ *
+ * Unknown and permanent failures are never presented as client-retryable.
+ *
+ * @param WP_Error $error Artist invitation failure.
+ * @return array{status:string,retryable:bool,error:array{code:string,message:string,status:int}}
+ */
+function ec_users_classify_artist_invitation_error( WP_Error $error ) {
+	$code                = $error->get_error_code();
+	$data                = $error->get_error_data();
+	$http_status         = is_array( $data ) && isset( $data['status'] ) ? (int) $data['status'] : 500;
+	$retryable_codes     = array(
+		'artist_membership_busy',
+		'artist_site_unavailable',
+		'artist_roster_update_failed',
+		'user_membership_update_failed',
+		'artist_membership_retry_required',
+		'invitation_cleanup_failed',
+		'ec_cross_site_request_failed',
+	);
+	$manual_repair_codes = array(
+		'artist_membership_rollback_failed',
+		'artist_invitation_rollback_failed',
+		'artist_membership_partial_remove',
+	);
+
+	if ( in_array( $code, $retryable_codes, true ) ) {
+		$status    = 'pending_repair';
+		$retryable = true;
+	} elseif ( in_array( $code, $manual_repair_codes, true ) ) {
+		$status    = 'manual_repair';
+		$retryable = false;
+	} else {
+		$status    = 'failed';
+		$retryable = false;
+	}
+
+	return array(
+		'status'    => $status,
+		'retryable' => $retryable,
+		'error'     => array(
+			'code'    => $code,
+			'message' => $error->get_error_message(),
+			'status'  => $http_status,
+		),
+	);
+}
+
+/**
  * Check if user can create artist profiles
  *
  * @deprecated-soon Slated for migration to ec_user_can( 'create_artist_profile' )
@@ -175,10 +266,10 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 /**
  * Check if user can manage a specific artist profile
  *
- * Network-wide permission check for artist management. Returns true if user is:
+ * Network-wide permission check for artist management. The target must be a
+ * published artist profile. Returns true if the user is:
  * - An administrator (manage_options capability)
- * - The post author of the artist profile
- * - Listed in the user's _artist_profile_ids meta (roster member)
+ * - A validated reciprocal roster member
  *
  * @deprecated-soon Slated for migration to ec_user_can( 'manage_artist', [ 'artist_id' => $id ] )
  *                  and deletion per Extra-Chill/extrachill-users#60 (pending the
@@ -198,32 +289,26 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
 		return false;
 	}
 
-	// Admins can manage any artist.
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return false;
+	}
+
+	switch_to_blog( $artist_blog_id );
+	try {
+		$post = get_post( $artist_id );
+		if ( ! $post instanceof WP_Post || 'artist_profile' !== $post->post_type || 'publish' !== $post->post_status ) {
+			return false;
+		}
+	} finally {
+		restore_current_blog();
+	}
+
 	if ( user_can( $user_id, 'manage_options' ) ) {
 		return true;
 	}
 
-	// Check if user owns this artist via user meta.
-	$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-	if ( is_array( $user_artist_ids ) && in_array( (int) $artist_id, array_map( 'intval', $user_artist_ids ), true ) ) {
-		return true;
-	}
-
-	// Check if user is post author (requires a cross-site blog switch).
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	if ( $artist_blog_id ) {
-		switch_to_blog( $artist_blog_id );
-		try {
-			$post = get_post( $artist_id );
-			if ( $post instanceof WP_Post && (int) $post->post_author === (int) $user_id ) {
-				return true;
-			}
-		} finally {
-			restore_current_blog();
-		}
-	}
-
-	return false;
+	return in_array( (int) $artist_id, ec_get_artists_for_user( $user_id ), true );
 }
 
 /**
