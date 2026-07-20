@@ -55,6 +55,16 @@ const emptyStats = {
 	shows_by_year: {},
 };
 
+const deferred = () => {
+	let resolve;
+	let reject;
+	const promise = new Promise( ( done, fail ) => {
+		resolve = done;
+		reject = fail;
+	} );
+	return { promise, resolve, reject };
+};
+
 function mockApi() {
 	apiFetch.mockImplementation( ( { path } ) => {
 		if ( path.includes( '/stats' ) ) {
@@ -90,7 +100,7 @@ function mockApi() {
 	} );
 }
 
-async function renderApp( { isOwn, tab } ) {
+async function renderApp( { isOwn, tab, userId = 34 } ) {
 	window.history.replaceState(
 		{},
 		'',
@@ -99,23 +109,33 @@ async function renderApp( { isOwn, tab } ) {
 	const container = document.createElement( 'div' );
 	document.body.appendChild( container );
 	const root = createRoot( container );
+	const render = ( nextUserId ) => (
+		<ConcertStatsApp
+			userId={ nextUserId }
+			eventsUrl="https://events.example"
+			isOwn={ isOwn }
+			publicDateTo="2026-07-18"
+			hasCalendar={ isOwn }
+			hasMap={ isOwn }
+			containerRef={ { current: container } }
+		/>
+	);
 
 	await act( async () => {
-		root.render(
-			<ConcertStatsApp
-				userId={ 34 }
-				eventsUrl="https://events.example"
-				isOwn={ isOwn }
-				publicDateTo="2026-07-18"
-				hasCalendar={ isOwn }
-				hasMap={ isOwn }
-				containerRef={ { current: container } }
-			/>
-		);
+		root.render( render( userId ) );
 		await Promise.resolve();
 	} );
 
-	return { container, root };
+	return {
+		container,
+		root,
+		rerenderUser: async ( nextUserId ) => {
+			await act( async () => {
+				root.render( render( nextUserId ) );
+				await Promise.resolve();
+			} );
+		},
+	};
 }
 
 describe( 'ConcertStatsApp request boundaries', () => {
@@ -207,6 +227,77 @@ describe( 'ConcertStatsApp request boundaries', () => {
 				path.includes( '/concert-tracking/search' )
 			)
 		).toBe( true );
+
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'renders private history without requesting or displaying shows', async () => {
+		apiFetch.mockImplementation( ( { path } ) => {
+			if ( path.includes( '/stats' ) ) {
+				return Promise.reject( {
+					code: 'concert_history_private',
+					message: 'Concert history is private.',
+					data: { status: 403 },
+				} );
+			}
+			return Promise.resolve( {} );
+		} );
+
+		const { container, root } = await renderApp( {
+			isOwn: false,
+			tab: 'past',
+		} );
+		const paths = apiFetch.mock.calls.map(
+			( [ request ] ) => request.path
+		);
+
+		expect( container.textContent ).toContain(
+			'This concert history is private.'
+		);
+		expect( container.textContent ).not.toContain( 'Past Concert' );
+		expect( paths.some( ( path ) => path.includes( '/shows' ) ) ).toBe(
+			false
+		);
+
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'does not authorize a new private profile from an old success', async () => {
+		const oldStats = deferred();
+		const newStats = deferred();
+		apiFetch
+			.mockImplementationOnce( () => oldStats.promise )
+			.mockImplementationOnce( () => newStats.promise );
+		const { container, root, rerenderUser } = await renderApp( {
+			isOwn: false,
+			tab: 'past',
+			userId: 34,
+		} );
+
+		expect(
+			apiFetch.mock.calls.some( ( [ request ] ) =>
+				request.path.includes( '/shows' )
+			)
+		).toBe( false );
+
+		await rerenderUser( 35 );
+		await act( async () =>
+			newStats.reject( {
+				code: 'concert_history_private',
+				message: 'Concert history is private.',
+				data: { status: 403 },
+			} )
+		);
+		await act( async () => oldStats.resolve( emptyStats ) );
+
+		expect( container.textContent ).toContain(
+			'This concert history is private.'
+		);
+		expect(
+			apiFetch.mock.calls.some( ( [ request ] ) =>
+				request.path.includes( '/shows' )
+			)
+		).toBe( false );
 
 		await act( async () => root.unmount() );
 	} );

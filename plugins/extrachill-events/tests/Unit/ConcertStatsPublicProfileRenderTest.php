@@ -28,6 +28,12 @@ if ( ! function_exists( 'is_user_logged_in' ) ) {
 	}
 }
 
+if ( ! function_exists( 'current_user_can' ) ) {
+	function current_user_can( $capability ) {
+		return 'manage_network_options' === $capability && ! empty( $GLOBALS['ec_test_is_network_admin'] );
+	}
+}
+
 if ( ! function_exists( 'get_userdata' ) ) {
 	function get_userdata( $user_id ) {
 		return in_array( (int) $user_id, $GLOBALS['ec_test_existing_user_ids'], true ) ? (object) array( 'ID' => (int) $user_id ) : false;
@@ -108,6 +114,7 @@ final class ConcertStatsPublicProfileRenderTest extends TestCase {
 	protected function setUp(): void {
 		$GLOBALS['ec_test_current_user_id']   = 0;
 		$GLOBALS['ec_test_existing_user_ids'] = array( 12, 34 );
+		$GLOBALS['ec_test_is_network_admin']  = false;
 		$GLOBALS['test_is_user_logged_in']    = false;
 		$_GET                                 = array();
 	}
@@ -141,6 +148,21 @@ final class ConcertStatsPublicProfileRenderTest extends TestCase {
 		$this->assertStringContainsString( 'data-user-id="34"', $output );
 		$this->assertStringContainsString( 'data-is-own="0"', $output );
 		$this->assertStringContainsString( 'data-public-date-to="2026-07-18"', $output );
+		$this->assertStringContainsString( 'data-has-calendar="0"', $output );
+		$this->assertStringContainsString( 'data-has-map="0"', $output );
+		$this->assertStringNotContainsString( 'ec-concert-stats__embedded-calendar', $output );
+		$this->assertStringNotContainsString( 'ec-concert-stats__embedded-map', $output );
+	}
+
+	public function test_network_admin_does_not_receive_another_users_owner_ui(): void {
+		$GLOBALS['ec_test_current_user_id']  = 12;
+		$GLOBALS['ec_test_is_network_admin'] = true;
+		$_GET['user_id']                     = '34';
+
+		$output = $this->renderBlock();
+
+		$this->assertStringContainsString( 'data-user-id="34"', $output );
+		$this->assertStringContainsString( 'data-is-own="0"', $output );
 		$this->assertStringContainsString( 'data-has-calendar="0"', $output );
 		$this->assertStringContainsString( 'data-has-map="0"', $output );
 		$this->assertStringNotContainsString( 'ec-concert-stats__embedded-calendar', $output );

@@ -30,7 +30,7 @@ import { useState, useCallback } from '@wordpress/element';
 import AddPastShows from './AddPastShows';
 import ShowList from './ShowList';
 
-const PastTab = ( { userId, year, isOwn } ) => {
+const PastTab = ( { userId, year, isOwn, enabled = true } ) => {
 	// Bumping this remounts ShowList, forcing a fresh fetch so a
 	// just-marked show shows up in the tracked-past list.
 	const [ refreshKey, setRefreshKey ] = useState( 0 );
@@ -48,6 +48,7 @@ const PastTab = ( { userId, year, isOwn } ) => {
 				period="past"
 				year={ year }
 				isOwn={ isOwn }
+				enabled={ enabled }
 			/>
 		</div>
 	);

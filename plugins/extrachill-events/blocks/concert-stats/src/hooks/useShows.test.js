@@ -43,6 +43,10 @@ const ShowsHarness = ( { userId, filters } ) => {
 			<span data-testid="loading">
 				{ result.loading ? 'loading' : 'ready' }
 			</span>
+			<span data-testid="error-code">{ result.error?.code || '' }</span>
+			<span data-testid="error-status">
+				{ result.error?.data?.status || '' }
+			</span>
 			<button type="button" onClick={ result.loadMore }>
 				Load More
 			</button>
@@ -235,6 +239,26 @@ describe( 'useShows', () => {
 
 		expect( value( harness.container, 'shows' ) ).toBe( '1,2,3' );
 		expect( value( harness.container, 'total' ) ).toBe( '3' );
+		await act( async () => harness.root.unmount() );
+	} );
+
+	it( 'preserves canonical error code and status', async () => {
+		apiFetch.mockRejectedValue( {
+			code: 'concert_history_private',
+			message: 'Concert history is private.',
+			data: { status: 403 },
+		} );
+
+		const harness = await renderHarness( {
+			userId: 7,
+			filters: { period: 'past' },
+		} );
+
+		expect( value( harness.container, 'error-code' ) ).toBe(
+			'concert_history_private'
+		);
+		expect( value( harness.container, 'error-status' ) ).toBe( '403' );
+		expect( value( harness.container, 'shows' ) ).toBe( '' );
 		await act( async () => harness.root.unmount() );
 	} );
 

@@ -130,7 +130,7 @@ export default function useShows( userId, filters = {} ) {
 					setResult( ( current ) => ( {
 						...current,
 						loading: false,
-						error: err.message || 'Failed to load shows.',
+						error: err,
 					} ) );
 				} );
 		},

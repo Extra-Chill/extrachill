@@ -173,10 +173,15 @@ export function ConcertStatsApp( {
 		hasExplicitTabParam( isOwn )
 	);
 
-	const { stats, loading: statsLoading } = useStats( userId, {
+	const {
+		stats,
+		loading: statsLoading,
+		error: statsError,
+	} = useStats( userId, {
 		year,
 		dateTo: isOwn ? '' : publicDateTo,
 	} );
+	const publicHistoryAllowed = isOwn || ( ! statsLoading && !! stats );
 
 	// Badge counts for the Upcoming / Past tabs. Public views disable the
 	// upcoming request entirely so the browser never receives itinerary data.
@@ -197,6 +202,7 @@ export function ConcertStatsApp( {
 		period: 'past',
 		year,
 		perPage: 1,
+		enabled: publicHistoryAllowed,
 		queryScope: isOwn ? 'owner' : 'public',
 	} );
 
@@ -241,6 +247,10 @@ export function ConcertStatsApp( {
 	};
 
 	const hasAnyShows = !! stats && stats.total_shows > 0;
+	const isPrivateHistory =
+		! isOwn &&
+		statsError?.code === 'concert_history_private' &&
+		Number( statsError?.data?.status ?? statsError?.status ) === 403;
 
 	// Sync `?tab=` to URL whenever the active tab changes. Use
 	// replaceState to keep the back button useful — switching tabs
@@ -434,7 +444,12 @@ export function ConcertStatsApp( {
 				// composes the two and refetches the list when a show
 				// is marked so additions appear without a reload.
 				return (
-					<PastTab userId={ userId } year={ year } isOwn={ isOwn } />
+					<PastTab
+						userId={ userId }
+						year={ year }
+						isOwn={ isOwn }
+						enabled={ publicHistoryAllowed }
+					/>
 				);
 
 			case 'calendar':
@@ -521,6 +536,35 @@ export function ConcertStatsApp( {
 				return null;
 		}
 	};
+
+	if ( isPrivateHistory ) {
+		return (
+			<BlockShell>
+				<BlockShellInner maxWidth="narrow">
+					<BlockShellHeader title="Concert History" />
+					<InlineStatus tone="info">
+						This concert history is private.
+					</InlineStatus>
+				</BlockShellInner>
+			</BlockShell>
+		);
+	}
+
+	if ( statsError ) {
+		return (
+			<BlockShell>
+				<BlockShellInner maxWidth="narrow">
+					<BlockShellHeader
+						title={ isOwn ? 'My Shows' : 'Concert History' }
+					/>
+					<InlineStatus tone="error">
+						{ statsError.message ||
+							'This concert history could not be loaded.' }
+					</InlineStatus>
+				</BlockShellInner>
+			</BlockShell>
+		);
+	}
 
 	return (
 		<BlockShell>
