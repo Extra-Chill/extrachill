@@ -16,6 +16,13 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/db.php';
 
+const EC_USERS_CONCERT_HISTORY_PER_PAGE_MIN     = 1;
+const EC_USERS_CONCERT_HISTORY_PER_PAGE_DEFAULT = 20;
+const EC_USERS_CONCERT_HISTORY_PER_PAGE_MAX     = 100;
+const EC_USERS_EVENT_ATTENDEE_LIMIT_MIN         = 1;
+const EC_USERS_EVENT_ATTENDEE_LIMIT_DEFAULT     = 10;
+const EC_USERS_EVENT_ATTENDEE_LIMIT_MAX         = 100;
+
 // ─── Core CRUD ───────────────────────────────────────────────────────────────
 
 /**
@@ -519,7 +526,7 @@ function ec_users_format_count_label( int $count, string $timing ): string {
  *     @type string $date_from Start date (Y-m-d).
  *     @type string $date_to   End date (Y-m-d).
  *     @type int    $page      Page number. Default 1.
- *     @type int    $per_page  Results per page. Default 20.
+ *     @type int    $per_page  Results per page (1-100). Default 20.
  *     @type string $order     'ASC' | 'DESC'. Default depends on period.
  * }
  * @return array{ shows: array, total: int, pages: int, page: int }
@@ -533,12 +540,16 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 		'date_from' => '',
 		'date_to'   => '',
 		'page'      => 1,
-		'per_page'  => 20,
+		'per_page'  => EC_USERS_CONCERT_HISTORY_PER_PAGE_DEFAULT,
 		'order'     => '',
 		'blog_id'   => 0,
 	);
 
-	$args = wp_parse_args( $args, $defaults );
+	$args     = wp_parse_args( $args, $defaults );
+	$per_page = max(
+		EC_USERS_CONCERT_HISTORY_PER_PAGE_MIN,
+		min( EC_USERS_CONCERT_HISTORY_PER_PAGE_MAX, (int) $args['per_page'] )
+	);
 
 	// Default sort: upcoming ASC (soonest first), past DESC (most recent first).
 	if ( ! $args['order'] ) {
@@ -606,10 +617,10 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	$total = (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
-	$pages = $args['per_page'] > 0 ? (int) ceil( $total / $args['per_page'] ) : 1;
+	$pages = (int) ceil( $total / $per_page );
 	$page  = max( 1, min( (int) $args['page'], $pages ? $pages : 1 ) );
 
-	$offset = ( $page - 1 ) * $args['per_page'];
+	$offset = ( $page - 1 ) * $per_page;
 
 	// Fetch event IDs with date ordering.
 	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table names from trusted helpers, $where_sql carries additional placeholders matched by $prepare; $order_sql validated to ASC/DESC above.
@@ -621,7 +632,7 @@ function ec_users_get_user_events( int $user_id, array $args = array() ): array 
 		WHERE {$where_sql}
 		ORDER BY ed.start_datetime {$order_sql}
 		LIMIT %d OFFSET %d",
-		...array_merge( $timing_case['prepare'], $prepare, array( $args['per_page'], $offset ) )
+		...array_merge( $timing_case['prepare'], $prepare, array( $per_page, $offset ) )
 	);
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
@@ -1151,11 +1162,15 @@ function ec_users_events_term_archive_url( string $slug, string $taxonomy, int $
  *
  * @param int $event_id Event post ID.
  * @param int $blog_id Blog ID (default: current blog).
- * @param int $limit Max users to return. Default 10.
- * @return array Array of user data.
+ * @param mixed $limit Max users to return (1-100). Default 10.
+ * @return array<int, array{user_id: int, display_name: string, avatar_url: string, profile_url: string}> Attendee data, newest mark first.
  */
-function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, int $limit = 10 ): array {
+function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, $limit = EC_USERS_EVENT_ATTENDEE_LIMIT_DEFAULT ): array {
 	global $wpdb;
+	$limit = max(
+		EC_USERS_EVENT_ATTENDEE_LIMIT_MIN,
+		min( EC_USERS_EVENT_ATTENDEE_LIMIT_MAX, (int) $limit )
+	);
 
 	if ( ! $blog_id ) {
 		$blog_id = get_current_blog_id();
@@ -1185,8 +1200,8 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, int $lim
 
 		$attendees[] = array(
 			'user_id'      => (int) $user->ID,
-			'display_name' => $user->display_name,
-			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 48 ) ),
+			'display_name' => (string) $user->display_name,
+			'avatar_url'   => (string) get_avatar_url( $user->ID, array( 'size' => 48 ) ),
 			'profile_url'  => $profile_url,
 		);
 	}

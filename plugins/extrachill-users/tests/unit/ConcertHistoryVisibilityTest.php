@@ -16,6 +16,9 @@ class Test_Concert_History_Visibility extends WP_UnitTestCase {
 	/** @var string */
 	private $dates_table;
 
+	/** @var string[] */
+	private $history_queries = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 
@@ -123,6 +126,128 @@ class Test_Concert_History_Visibility extends WP_UnitTestCase {
 		$this->assertSame( 'Latest Public', $stats['latest_show']['title'] );
 	}
 
+	public function test_large_public_history_clamps_service_bounds_and_preserves_pagination(): void {
+		$event_ids = array();
+		for ( $index = 0; $index < 105; ++$index ) {
+			$event_ids[] = $this->track_event(
+				'Past Event ' . $index,
+				'publish',
+				'data_machine_events',
+				gmdate( 'Y-m-d H:i:s', strtotime( '2023-01-01 20:00:00 UTC' ) + ( $index * DAY_IN_SECONDS ) )
+			);
+		}
+		$future_event = $this->track_event( 'Future Event', 'publish', 'data_machine_events', '2099-01-01 20:00:00' );
+
+		$default = ec_users_get_user_events(
+			$this->user_id,
+			array(
+				'blog_id' => $this->events_blog_id,
+				'period'  => 'past',
+			)
+		);
+		$this->assertCount( EC_USERS_CONCERT_HISTORY_PER_PAGE_DEFAULT, $default['shows'] );
+		$this->assertSame( 105, $default['total'] );
+		$this->assertSame( 6, $default['pages'] );
+
+		foreach ( array( 0, -10, 'not-a-number' ) as $malformed_per_page ) {
+			$minimum = ec_users_get_user_events(
+				$this->user_id,
+				array(
+					'blog_id'  => $this->events_blog_id,
+					'period'   => 'past',
+					'per_page' => $malformed_per_page,
+				)
+			);
+			$this->assertCount( EC_USERS_CONCERT_HISTORY_PER_PAGE_MIN, $minimum['shows'] );
+			$this->assertSame( 105, $minimum['pages'] );
+		}
+
+		$maximum = ec_users_get_user_events(
+			$this->user_id,
+			array(
+				'blog_id'  => $this->events_blog_id,
+				'period'   => 'past',
+				'per_page' => EC_USERS_CONCERT_HISTORY_PER_PAGE_MAX,
+			)
+		);
+		$this->assertCount( 100, $maximum['shows'] );
+		$this->assertSame( 2, $maximum['pages'] );
+
+		$ability_default = wp_get_ability( 'extrachill/get-user-shows' )->execute(
+			array(
+				'user_id' => $this->user_id,
+				'blog_id' => $this->events_blog_id,
+				'period'  => 'past',
+			)
+		);
+		$this->assertFalse( is_wp_error( $ability_default ) );
+		$this->assertCount( 20, $ability_default['shows'] );
+
+		foreach ( array( 1, 100 ) as $valid_per_page ) {
+			$request = new WP_REST_Request( 'GET', '/wp-abilities/v1/abilities/extrachill/get-user-shows/run' );
+			$request->set_query_params(
+				array(
+					'input' => array(
+						'user_id'  => $this->user_id,
+						'blog_id'  => $this->events_blog_id,
+						'period'   => 'past',
+						'per_page' => $valid_per_page,
+					),
+				)
+			);
+			$response = rest_do_request( $request );
+			$this->assertSame( 200, $response->get_status() );
+			$this->assertCount( $valid_per_page, $response->get_data()['shows'] );
+		}
+
+		foreach ( array( 0, -1, 101, 'all' ) as $invalid_per_page ) {
+			$request = new WP_REST_Request( 'GET', '/wp-abilities/v1/abilities/extrachill/get-user-shows/run' );
+			$request->set_query_params(
+				array(
+					'input' => array(
+						'user_id'  => $this->user_id,
+						'blog_id'  => $this->events_blog_id,
+						'period'   => 'past',
+						'per_page' => $invalid_per_page,
+					),
+				)
+			);
+			$this->assertSame( 400, rest_do_request( $request )->get_status() );
+		}
+
+		add_filter( 'query', array( $this, 'capture_history_query' ) );
+		try {
+			$clamped = ec_users_get_user_events(
+				$this->user_id,
+				array(
+					'blog_id'  => $this->events_blog_id,
+					'period'   => 'past',
+					'page'     => PHP_INT_MAX,
+					'per_page' => (string) PHP_INT_MAX,
+				)
+			);
+		} finally {
+			remove_filter( 'query', array( $this, 'capture_history_query' ) );
+		}
+
+		$this->assertCount( 5, $clamped['shows'] );
+		$this->assertSame( 2, $clamped['page'] );
+		$this->assertSame( 2, $clamped['pages'] );
+		$this->assertNotContains( $future_event, wp_list_pluck( $clamped['shows'], 'event_id' ) );
+		$this->assertNotEmpty( $this->history_queries );
+		$this->assertStringContainsString( 'LIMIT 100 OFFSET 100', end( $this->history_queries ) );
+		$this->assertStringNotContainsString( '%d', end( $this->history_queries ) );
+		$this->assertSame( array_slice( $event_ids, 0, 5 ), array_reverse( wp_list_pluck( $clamped['shows'], 'event_id' ) ) );
+	}
+
+	public function capture_history_query( string $query ): string {
+		if ( false !== strpos( $query, 'SELECT ct.event_id' ) ) {
+			$this->history_queries[] = $query;
+		}
+
+		return $query;
+	}
+
 	private function track_event( string $title, string $status, string $post_type, string $start_datetime ): int {
 		switch_to_blog( $this->events_blog_id );
 		$post_id = self::factory()->post->create(
@@ -135,7 +260,17 @@ class Test_Concert_History_Visibility extends WP_UnitTestCase {
 		restore_current_blog();
 
 		$this->write_event_date( $post_id, $start_datetime, $status );
-		ec_users_mark_event( $this->user_id, $post_id, $this->events_blog_id );
+		global $wpdb;
+		$wpdb->insert(
+			extrachill_users_concert_tracking_table_name(),
+			array(
+				'user_id'    => $this->user_id,
+				'event_id'   => $post_id,
+				'blog_id'    => $this->events_blog_id,
+				'created_at' => current_time( 'mysql', true ),
+			),
+			array( '%d', '%d', '%d', '%s' )
+		);
 
 		return $post_id;
 	}

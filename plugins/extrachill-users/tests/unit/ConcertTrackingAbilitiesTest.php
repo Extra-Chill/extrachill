@@ -16,6 +16,9 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 
 	private int $user_id;
 
+	/** @var string[] */
+	private array $attendee_queries = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		$this->events_blog_id = self::factory()->blog->create();
@@ -229,6 +232,140 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 		revoke_super_admin( $administrator_id );
 	}
 
+	public function test_registered_reader_schemas_declare_shared_query_bounds(): void {
+		$history_schema = wp_get_ability( 'extrachill/get-user-shows' )->get_input_schema()['properties']['per_page'];
+		$this->assertSame( EC_USERS_CONCERT_HISTORY_PER_PAGE_MIN, $history_schema['minimum'] );
+		$this->assertSame( EC_USERS_CONCERT_HISTORY_PER_PAGE_DEFAULT, $history_schema['default'] );
+		$this->assertSame( EC_USERS_CONCERT_HISTORY_PER_PAGE_MAX, $history_schema['maximum'] );
+
+		$attendee_schema = wp_get_ability( 'extrachill/get-event-attendance' )->get_input_schema()['properties']['limit'];
+		$this->assertSame( EC_USERS_EVENT_ATTENDEE_LIMIT_MIN, $attendee_schema['minimum'] );
+		$this->assertSame( EC_USERS_EVENT_ATTENDEE_LIMIT_DEFAULT, $attendee_schema['default'] );
+		$this->assertSame( EC_USERS_EVENT_ATTENDEE_LIMIT_MAX, $attendee_schema['maximum'] );
+		$this->assertSame(
+			array( 'user_id', 'display_name', 'avatar_url', 'profile_url' ),
+			wp_get_ability( 'extrachill/get-event-attendance' )->get_output_schema()['properties']['attendees']['items']['required']
+		);
+	}
+
+	/**
+	 * @dataProvider invalid_reader_input_provider
+	 */
+	public function test_registered_reader_abilities_reject_malformed_and_out_of_range_inputs( string $ability_name, string $field, $value ): void {
+		$input = 'extrachill/get-user-shows' === $ability_name
+			? array(
+				'user_id' => $this->user_id,
+				$field     => $value,
+			)
+			: array(
+				'event_id' => $this->event_id,
+				$field      => $value,
+			);
+		$result = wp_get_ability( $ability_name )->execute( $input );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'ability_invalid_input', $result->get_error_code() );
+	}
+
+	public function invalid_reader_input_provider(): array {
+		return array(
+			'history zero'          => array( 'extrachill/get-user-shows', 'per_page', 0 ),
+			'history negative'      => array( 'extrachill/get-user-shows', 'per_page', -1 ),
+			'history over maximum'  => array( 'extrachill/get-user-shows', 'per_page', 101 ),
+			'history nonnumeric'    => array( 'extrachill/get-user-shows', 'per_page', 'all' ),
+			'attendee zero'         => array( 'extrachill/get-event-attendance', 'limit', 0 ),
+			'attendee negative'     => array( 'extrachill/get-event-attendance', 'limit', -1 ),
+			'attendee over maximum' => array( 'extrachill/get-event-attendance', 'limit', 101 ),
+			'attendee nonnumeric'   => array( 'extrachill/get-event-attendance', 'limit', 'all' ),
+		);
+	}
+
+	public function test_attendee_service_clamps_defaults_boundaries_and_malformed_values(): void {
+		$seeded_user_ids = $this->seed_attendees( 105 );
+
+		$default = ec_users_get_event_attendees( $this->event_id, $this->events_blog_id );
+		$this->assertCount( 10, $default );
+		$this->assertSame( array_slice( $seeded_user_ids, 0, 10 ), wp_list_pluck( $default, 'user_id' ) );
+		$this->assertSame( array( 'user_id', 'display_name', 'avatar_url', 'profile_url' ), array_keys( $default[0] ) );
+		$this->assertIsInt( $default[0]['user_id'] );
+		$this->assertIsString( $default[0]['display_name'] );
+		$this->assertIsString( $default[0]['avatar_url'] );
+		$this->assertIsString( $default[0]['profile_url'] );
+		foreach ( array( 0, -10, 'not-a-number' ) as $malformed_limit ) {
+			$this->assertCount( 1, ec_users_get_event_attendees( $this->event_id, $this->events_blog_id, $malformed_limit ) );
+		}
+
+		add_filter( 'query', array( $this, 'capture_attendee_query' ) );
+		try {
+			$maximum = ec_users_get_event_attendees( $this->event_id, $this->events_blog_id, PHP_INT_MAX );
+		} finally {
+			remove_filter( 'query', array( $this, 'capture_attendee_query' ) );
+		}
+
+		$this->assertCount( 100, $maximum );
+		$this->assertNotEmpty( $this->attendee_queries );
+		$this->assertStringContainsString( 'LIMIT 100', end( $this->attendee_queries ) );
+		$this->assertStringNotContainsString( '%d', end( $this->attendee_queries ) );
+	}
+
+	public function test_registered_attendance_ability_and_rest_route_apply_defaults_and_bounds(): void {
+		$this->seed_attendees( 105 );
+		$ability = wp_get_ability( 'extrachill/get-event-attendance' );
+
+		$default = $ability->execute(
+			array(
+				'event_id'          => $this->event_id,
+				'blog_id'           => $this->events_blog_id,
+				'include_attendees' => true,
+			)
+		);
+		$this->assertCount( 10, $default['attendees'] );
+
+		$minimum = $ability->execute(
+			array(
+				'event_id'          => $this->event_id,
+				'blog_id'           => $this->events_blog_id,
+				'include_attendees' => true,
+				'limit'             => 1,
+			)
+		);
+		$this->assertCount( 1, $minimum['attendees'] );
+
+		$maximum = $ability->execute(
+			array(
+				'event_id'          => $this->event_id,
+				'blog_id'           => $this->events_blog_id,
+				'include_attendees' => true,
+				'limit'             => 100,
+			)
+		);
+		$this->assertCount( 100, $maximum['attendees'] );
+
+		wp_set_current_user( 0 );
+		foreach ( array( 0, -1, 101, 'all' ) as $invalid_limit ) {
+			$request = new WP_REST_Request( 'GET', '/wp-abilities/v1/abilities/extrachill/get-event-attendance/run' );
+			$request->set_query_params(
+				array(
+					'input' => array(
+						'event_id'          => $this->event_id,
+						'blog_id'           => $this->events_blog_id,
+						'include_attendees' => true,
+						'limit'             => $invalid_limit,
+					),
+				)
+			);
+			$this->assertSame( 400, rest_do_request( $request )->get_status() );
+		}
+	}
+
+	public function capture_attendee_query( string $query ): string {
+		if ( false !== strpos( $query, 'SELECT user_id' ) && false !== strpos( $query, 'LIMIT' ) ) {
+			$this->attendee_queries[] = $query;
+		}
+
+		return $query;
+	}
+
 	public function test_registered_set_ability_reports_insert_and_delete_failures(): void {
 		global $wpdb;
 		$ability = wp_get_ability( 'extrachill/set-event-mark' );
@@ -295,5 +432,27 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 		global $wpdb;
 		$table = extrachill_users_concert_tracking_table_name();
 		$wpdb->query( "DELETE FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- trusted table helper.
+	}
+
+	private function seed_attendees( int $count ): array {
+		global $wpdb;
+		$table    = extrachill_users_concert_tracking_table_name();
+		$user_ids = array();
+		for ( $index = 0; $index < $count; ++$index ) {
+			$user_id    = self::factory()->user->create();
+			$user_ids[] = $user_id;
+			$wpdb->insert(
+				$table,
+				array(
+					'user_id'    => $user_id,
+					'event_id'   => $this->event_id,
+					'blog_id'    => $this->events_blog_id,
+					'created_at' => gmdate( 'Y-m-d H:i:s', time() - $index ),
+				),
+				array( '%d', '%d', '%d', '%s' )
+			);
+		}
+
+		return $user_ids;
 	}
 }

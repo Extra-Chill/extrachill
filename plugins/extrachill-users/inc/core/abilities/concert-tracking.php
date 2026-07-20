@@ -195,8 +195,10 @@ function extrachill_users_register_concert_tracking_abilities() {
 					),
 					'per_page'  => array(
 						'type'        => 'integer',
-						'description' => 'Results per page.',
-						'default'     => 20,
+						'description' => 'Results per page (1-100).',
+						'default'     => EC_USERS_CONCERT_HISTORY_PER_PAGE_DEFAULT,
+						'minimum'     => EC_USERS_CONCERT_HISTORY_PER_PAGE_MIN,
+						'maximum'     => EC_USERS_CONCERT_HISTORY_PER_PAGE_MAX,
 					),
 				),
 			),
@@ -363,8 +365,10 @@ function extrachill_users_register_concert_tracking_abilities() {
 					),
 					'limit'             => array(
 						'type'        => 'integer',
-						'description' => 'Max attendees to return.',
-						'default'     => 10,
+						'description' => 'Max attendees to return (1-100).',
+						'default'     => EC_USERS_EVENT_ATTENDEE_LIMIT_DEFAULT,
+						'minimum'     => EC_USERS_EVENT_ATTENDEE_LIMIT_MIN,
+						'maximum'     => EC_USERS_EVENT_ATTENDEE_LIMIT_MAX,
 					),
 				),
 				'required'   => array( 'event_id' ),
@@ -376,7 +380,19 @@ function extrachill_users_register_concert_tracking_abilities() {
 					'count_label' => array( 'type' => 'string' ),
 					'timing'      => array( 'type' => 'string' ),
 					'user_marked' => array( 'type' => 'boolean' ),
-					'attendees'   => array( 'type' => 'array' ),
+					'attendees'   => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'       => 'object',
+							'properties' => array(
+								'user_id'      => array( 'type' => 'integer' ),
+								'display_name' => array( 'type' => 'string' ),
+								'avatar_url'   => array( 'type' => 'string' ),
+								'profile_url'  => array( 'type' => 'string' ),
+							),
+							'required'   => array( 'user_id', 'display_name', 'avatar_url', 'profile_url' ),
+						),
+					),
 				),
 				'required'   => array( 'count', 'count_label', 'timing', 'user_marked', 'attendees' ),
 			),
@@ -593,7 +609,7 @@ function extrachill_users_ability_get_event_attendance( array $input ) {
 	}
 
 	if ( ! empty( $input['include_attendees'] ) ) {
-		$limit               = ! empty( $input['limit'] ) ? (int) $input['limit'] : 10;
+		$limit               = $input['limit'] ?? EC_USERS_EVENT_ATTENDEE_LIMIT_DEFAULT;
 		$result['attendees'] = ec_users_get_event_attendees( $event_id, $blog_id, $limit );
 	}
 
