@@ -70,7 +70,7 @@ See [AGENTS.md](AGENTS.md) for technical implementation details.
 npm run build
 
 # Package for distribution
-./build.sh
+homeboy review build extrachill-users
 ```
 
 ## Documentation
