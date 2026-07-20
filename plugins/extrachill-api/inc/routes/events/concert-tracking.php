@@ -18,6 +18,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
+const EXTRACHILL_API_CONCERT_HISTORY_PER_PAGE_MIN     = 1;
+const EXTRACHILL_API_CONCERT_HISTORY_PER_PAGE_DEFAULT = 20;
+const EXTRACHILL_API_CONCERT_HISTORY_PER_PAGE_MAX     = 100;
+const EXTRACHILL_API_EVENT_ATTENDEE_LIMIT_MIN         = 1;
+const EXTRACHILL_API_EVENT_ATTENDEE_LIMIT_DEFAULT     = 10;
+const EXTRACHILL_API_EVENT_ATTENDEE_LIMIT_MAX         = 100;
+
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_concert_tracking_routes' );
 
 /**
@@ -72,11 +79,12 @@ function extrachill_api_register_concert_tracking_routes() {
 					'description' => 'Include attendee list.',
 				),
 				'limit'             => array(
-					'required'          => false,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
-					'default'           => 10,
-					'description'       => 'Max attendees to return.',
+					'required'    => false,
+					'type'        => 'integer',
+					'minimum'     => EXTRACHILL_API_EVENT_ATTENDEE_LIMIT_MIN,
+					'maximum'     => EXTRACHILL_API_EVENT_ATTENDEE_LIMIT_MAX,
+					'default'     => EXTRACHILL_API_EVENT_ATTENDEE_LIMIT_DEFAULT,
+					'description' => 'Max attendees to return (1-100).',
 				),
 			),
 		)
@@ -127,10 +135,12 @@ function extrachill_api_register_concert_tracking_routes() {
 					'default'           => 1,
 				),
 				'per_page'  => array(
-					'required'          => false,
-					'type'              => 'integer',
-					'sanitize_callback' => 'absint',
-					'default'           => 20,
+					'required'    => false,
+					'type'        => 'integer',
+					'minimum'     => EXTRACHILL_API_CONCERT_HISTORY_PER_PAGE_MIN,
+					'maximum'     => EXTRACHILL_API_CONCERT_HISTORY_PER_PAGE_MAX,
+					'default'     => EXTRACHILL_API_CONCERT_HISTORY_PER_PAGE_DEFAULT,
+					'description' => 'Results per page (1-100).',
 				),
 			),
 		)
