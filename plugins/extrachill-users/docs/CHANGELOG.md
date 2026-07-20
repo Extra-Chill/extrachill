@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.36.0] - 2026-07-20
+
+### Added
+- add concert privacy controls
+- add idempotent concert attendance contract
+
+### Fixed
+- bound public concert queries
+- align concert history with canonical timing
+- validate and serialize attendance writes
+- hide non-public events from concert histories
+
 ## [0.35.0] - 2026-07-18
 
 ### Added
