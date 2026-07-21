@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.5.4] - 2026-07-21
+
+### Fixed
+- prioritize synced documentation pages
+
 ## [0.5.3] - 2026-07-21
 
 ### Fixed
