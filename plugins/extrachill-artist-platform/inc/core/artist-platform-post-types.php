@@ -50,7 +50,7 @@ function extrachill_register_artist_profile_cpt() {
         'label'                 => __( 'Artist Profile', 'extrachill-artist-platform' ),
         'description'           => __( 'Custom Post Type for Artist Profiles', 'extrachill-artist-platform' ),
         'labels'                => $labels,
-        'supports'              => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
+        'supports'              => array( 'title', 'editor', 'thumbnail', 'custom-fields', 'revisions' ),
         'hierarchical'          => false,
         'public'                => true,
         'show_ui'               => true,
@@ -64,6 +64,7 @@ function extrachill_register_artist_profile_cpt() {
         'exclude_from_search'   => false,
         'publicly_queryable'    => true,
         'rewrite'               => array( 'slug' => 'artists', 'with_front' => false ),
+        'capability_type'       => array( 'artist_profile', 'artist_profiles' ),
         'map_meta_cap'          => true,
         'show_in_rest'          => true,
     );

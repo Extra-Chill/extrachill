@@ -60,6 +60,10 @@ function __( $text ) {
 	return $text;
 }
 
+function _x( $text ) {
+	return $text;
+}
+
 function is_wp_error( $value ) {
 	return $value instanceof WP_Error;
 }
@@ -110,6 +114,11 @@ function add_filter() {
 	return true;
 }
 
+function register_post_type( $post_type, $args ) {
+	$GLOBALS['ec_test']['registered_post_types'][ $post_type ] = $args;
+	return (object) $args;
+}
+
 function remove_filter() {
 	return true;
 }
@@ -152,6 +161,33 @@ function get_current_user_id() {
 
 function current_user_can( $capability ) {
 	return ! empty( $GLOBALS['ec_test']['capabilities'][ $capability ] );
+}
+
+function user_can( $user_id, $capability ) {
+	return ! empty( $GLOBALS['ec_test']['user_capabilities'][ (int) $user_id ][ $capability ] );
+}
+
+function map_meta_cap( $capability, $user_id, ...$args ) {
+	$object_id = isset( $args[0] ) ? (int) $args[0] : 0;
+	return $GLOBALS['ec_test']['mapped_caps'][ $capability ][ $object_id ] ?? array( $capability );
+}
+
+function ec_get_artists_for_user( $user_id ) {
+	$user_id    = (int) $user_id;
+	$artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+	if ( ! is_array( $artist_ids ) ) {
+		return array();
+	}
+
+	$artists = array();
+	foreach ( array_map( 'intval', $artist_ids ) as $artist_id ) {
+		$member_ids = get_post_meta( $artist_id, '_artist_member_ids', true );
+		if ( 'artist_profile' === get_post_type( $artist_id ) && 'publish' === get_post_status( $artist_id ) && is_array( $member_ids ) && in_array( $user_id, array_map( 'intval', $member_ids ), true ) ) {
+			$artists[] = $artist_id;
+		}
+	}
+
+	return $artists;
 }
 
 function did_action( $hook_name ) {
@@ -565,6 +601,8 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-unlink-artist-r
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-list-orphan-artist-relationships.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-cleanup-artist-relationships.php';
 require_once dirname( __DIR__ ) . '/inc/core/filters/data.php';
+require_once dirname( __DIR__ ) . '/inc/core/filters/permissions.php';
+require_once dirname( __DIR__ ) . '/inc/core/artist-platform-post-types.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/helpers.php';
 require_once dirname( __DIR__ ) . '/inc/core/artist-term-binding.php';
