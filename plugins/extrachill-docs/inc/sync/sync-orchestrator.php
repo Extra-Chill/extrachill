@@ -13,8 +13,8 @@
  * CI side and the production sync side share one source of truth).
  *
  * For each repo:
- *   1. List docs/user/**\/*.md via datamachine/list-github-tree
- *   2. Fetch each file's content + sha via datamachine/get-github-file
+ *   1. List docs/user/**\/*.md via datamachine-code/list-github-tree
+ *   2. Fetch each file's content + sha via datamachine-code/get-github-file
  *   3. Call extrachill-docs/upsert-doc-page per file
  *
  * Errors are per-file. One bad file logs and continues; one bad repo
@@ -67,11 +67,22 @@ function extrachill_docs_unschedule_sync_cron(): void {
  * @return void
  */
 function extrachill_docs_run_sync_cron(): void {
-	$summary = extrachill_docs_sync_all_repos( false, null );
+	if ( class_exists( '\\DataMachine\\Abilities\\PermissionHelper' ) ) {
+		$summary = \DataMachine\Abilities\PermissionHelper::run_as_authenticated(
+			static fn() => extrachill_docs_sync_all_repos( false, null )
+		);
+	} else {
+		$summary = extrachill_docs_sync_all_repos( false, null );
+	}
 
 	do_action( 'extrachill_docs_sync_completed', $summary );
 }
 add_action( EXTRACHILL_DOCS_SYNC_CRON_HOOK, 'extrachill_docs_run_sync_cron' );
+
+// Activation hooks do not run during a normal plugin upgrade. Repair the
+// schedule idempotently so installations that received sync after activation
+// begin syncing without an operator deactivate/reactivate cycle.
+add_action( 'init', 'extrachill_docs_schedule_sync_cron' );
 
 /**
  * Return the list of repos to sync, with their parent-page identities.
@@ -285,9 +296,9 @@ function extrachill_docs_sync_one_repo( array $entry, bool $dry_run ): array {
 		return $result;
 	}
 
-	$list_ability = wp_get_ability( 'datamachine/list-github-tree' );
-	if ( null === $list_ability ) {
-		$result['errors'][] = 'datamachine/list-github-tree ability not registered. Is data-machine-code active?';
+	$list_ability = wp_get_ability( 'datamachine-code/list-github-tree' );
+	if ( ! is_object( $list_ability ) || ! method_exists( $list_ability, 'execute' ) ) {
+		$result['errors'][] = 'datamachine-code/list-github-tree ability not registered. Is data-machine-code active?';
 		return $result;
 	}
 
@@ -339,14 +350,14 @@ function extrachill_docs_sync_one_repo( array $entry, bool $dry_run ): array {
 		return $result;
 	}
 
-	$fetch_ability  = wp_get_ability( 'datamachine/get-github-file' );
+	$fetch_ability  = wp_get_ability( 'datamachine-code/get-github-file' );
 	$upsert_ability = wp_get_ability( 'extrachill-docs/upsert-doc-page' );
 
-	if ( null === $fetch_ability ) {
-		$result['errors'][] = 'datamachine/get-github-file ability not registered.';
+	if ( ! is_object( $fetch_ability ) || ! method_exists( $fetch_ability, 'execute' ) ) {
+		$result['errors'][] = 'datamachine-code/get-github-file ability not registered.';
 		return $result;
 	}
-	if ( null === $upsert_ability ) {
+	if ( ! is_object( $upsert_ability ) || ! method_exists( $upsert_ability, 'execute' ) ) {
 		$result['errors'][] = 'extrachill-docs/upsert-doc-page ability not registered.';
 		return $result;
 	}
@@ -418,7 +429,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	 *
 	 * ## OPTIONS
 	 *
-	 * [--repo=<owner/repo>]
+	 * [--repo=<repository>]
 	 * : Sync only this repo.
 	 *
 	 * [--dry-run]

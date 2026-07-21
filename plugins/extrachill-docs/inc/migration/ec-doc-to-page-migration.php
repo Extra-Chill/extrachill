@@ -20,11 +20,9 @@
  *        runs will eventually write to. When the real markdown file
  *        appears in the source repo, sync sees the existing page and
  *        updates content instead of duplicating.
- *     3. Call extrachill-docs/upsert-doc-page with the existing post
- *        content as the "markdown" input. (The content is already
- *        Gutenberg blocks — the ability runs it through BFB anyway, and
- *        the markdown adapter passes serialized blocks through cleanly
- *        when the source happens to already be blocks.)
+ *     3. Preserve the existing Gutenberg block content directly while
+ *        creating the same source-coordinate metadata shape as the sync
+ *        ability.
  *     4. Set _migrated_from_ec_doc = <ec_doc_post_id> on the new page
  *        as an audit breadcrumb and the idempotency key for re-runs.
  *     5. Move the source ec_doc post to "private" status (not trashed)

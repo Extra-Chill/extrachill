@@ -14,7 +14,7 @@
  * a full repo walk.
  *
  * Dependencies:
- *   - block-format-bridge/convert  (provided by data-machine plugin)
+ *   - DataMachine\Core\Content\ContentFormat (provided by data-machine)
  *   - Native WordPress post functions (wp_insert_post, wp_update_post, etc.)
  *
  * @package ExtraChillDocs
@@ -28,8 +28,8 @@ add_action( 'wp_abilities_api_init', 'extrachill_docs_register_upsert_doc_page_a
 /**
  * Register the upsert-doc-page ability with the WordPress Abilities API.
  *
- * Skipped cleanly when the Abilities API or block-format-bridge are not
- * loaded (e.g. unit tests, plugin deactivation transitions).
+ * Skipped cleanly when the Abilities API is not loaded (e.g. unit tests or
+ * plugin deactivation transitions).
  *
  * @since 0.5.0
  * @return void
@@ -63,7 +63,7 @@ function extrachill_docs_register_upsert_doc_page_ability(): void {
 					),
 					'markdown'     => array(
 						'type'        => 'string',
-						'description' => __( 'Full markdown content of the source file. Will be converted to Gutenberg blocks via block-format-bridge.', 'extrachill-docs' ),
+						'description' => __( 'Full markdown content of the source file. Will be converted to Gutenberg blocks through Data Machine content-format conversion.', 'extrachill-docs' ),
 					),
 					'parent_slug'  => array(
 						'type'        => 'string',
@@ -139,7 +139,7 @@ function extrachill_docs_upsert_doc_page_permission_callback(): bool {
  *
  * Algorithm:
  *   1. Resolve or create the parent page from parent_slug + parent_title.
- *   2. Convert markdown → Gutenberg blocks via block-format-bridge/convert.
+ *   2. Convert markdown → Gutenberg blocks through Data Machine ContentFormat.
  *   3. Look up existing page by { _source_repo, _source_path } meta query.
  *   4. If unchanged (same _source_sha), return 'unchanged' without writing.
  *   5. If new, wp_insert_post under the parent with required meta.
@@ -205,26 +205,18 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 		}
 	}
 
-	// Convert markdown to serialized Gutenberg blocks.
-	$bfb_result = wp_get_ability( 'block-format-bridge/convert' )->execute(
-		array(
-			'content' => $markdown,
-			'from'    => 'markdown',
-			'to'      => 'blocks',
-		)
-	);
-
-	if ( ! is_array( $bfb_result ) || empty( $bfb_result['success'] ) ) {
+	$markdown       = extrachill_docs_resolve_internal_markdown_links( $markdown, $parent_slug );
+	$blocks_content = extrachill_docs_convert_markdown_to_blocks( $markdown );
+	if ( is_wp_error( $blocks_content ) ) {
 		return array(
 			'success'      => false,
-			'error'        => isset( $bfb_result['error'] ) ? (string) $bfb_result['error'] : 'extrachill_docs_conversion_failed',
-			'error_detail' => isset( $bfb_result['error_detail'] ) ? (string) $bfb_result['error_detail'] : sprintf( 'Markdown-to-blocks conversion failed for %s::%s.', $repo, $path ),
+			'error'        => (string) $blocks_content->get_error_code(),
+			'error_detail' => (string) $blocks_content->get_error_message(),
 		);
 	}
 
-	$blocks_content = isset( $bfb_result['content'] ) ? (string) $bfb_result['content'] : '';
-	$title          = extrachill_docs_extract_title_from_markdown( $markdown, $path );
-	$slug           = extrachill_docs_derive_slug_from_path( $path );
+	$title = extrachill_docs_extract_title_from_markdown( $markdown, $path );
+	$slug  = extrachill_docs_derive_slug_from_path( $path );
 
 	if ( $dry_run ) {
 		return array(
@@ -277,6 +269,77 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 		'page_id'   => $page_id,
 		'parent_id' => (int) $parent_id,
 		'permalink' => (string) get_permalink( $page_id ),
+	);
+}
+
+/**
+ * Convert Markdown through Data Machine's canonical content boundary.
+ *
+ * @since 0.5.3
+ *
+ * @param string $markdown Markdown source.
+ * @return string|\WP_Error Serialized block markup or an error.
+ */
+function extrachill_docs_convert_markdown_to_blocks( string $markdown ) {
+	if ( ! class_exists( '\\DataMachine\\Core\\Content\\ContentFormat' ) ) {
+		return new WP_Error(
+			'extrachill_docs_content_converter_missing',
+			'Data Machine content-format conversion is unavailable.'
+		);
+	}
+
+	$result = \DataMachine\Core\Content\ContentFormat::convert(
+		$markdown,
+		'markdown',
+		'blocks',
+		array( 'post_type' => 'page' )
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	if ( ! is_string( $result ) || '' === trim( $result ) ) {
+		return new WP_Error(
+			'extrachill_docs_conversion_empty',
+			'Markdown-to-blocks conversion returned no content.'
+		);
+	}
+
+	return $result;
+}
+
+/**
+ * Resolve repository-local Markdown links to sibling Docs pages.
+ *
+ * Synced documents are flattened beneath their configured parent page, so the
+ * destination slug is always derived from the linked Markdown filename.
+ * Images, absolute URLs, root-relative URLs, and non-Markdown targets remain
+ * unchanged.
+ *
+ * @since 0.5.3
+ *
+ * @param string $markdown    Markdown source.
+ * @param string $parent_slug Destination parent page slug.
+ * @return string Markdown with internal document links resolved.
+ */
+function extrachill_docs_resolve_internal_markdown_links( string $markdown, string $parent_slug ): string {
+	return (string) preg_replace_callback(
+		'/(?<!!)\[([^\]]+)\]\((?![a-z][a-z0-9+.-]*:|\/|#)([^)\s]+\.md)(#[^)\s]+)?\)/i',
+		static function ( array $matches ) use ( $parent_slug ): string {
+			$target_slug = sanitize_title( pathinfo( $matches[2], PATHINFO_FILENAME ) );
+			if ( '' === $target_slug ) {
+				return $matches[0];
+			}
+
+			$url = home_url( '/' . trim( $parent_slug, '/' ) . '/' . $target_slug . '/' );
+			if ( ! empty( $matches[3] ) ) {
+				$url .= $matches[3];
+			}
+
+			return '[' . $matches[1] . '](' . $url . ')';
+		},
+		$markdown
 	);
 }
 

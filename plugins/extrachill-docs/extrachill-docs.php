@@ -11,6 +11,7 @@
  * Text Domain: extrachill-docs
  * Requires at least: 6.9
  * Requires PHP: 8.2
+ * Requires Plugins: data-machine, data-machine-code
  * Network: false
  *
  * Deployed on docs.extrachill.com (Blog ID 10). Uses ec_doc custom post type
