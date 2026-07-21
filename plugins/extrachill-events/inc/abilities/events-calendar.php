@@ -193,7 +193,8 @@ function extrachill_events_ability_calendar( array $input ): array|\WP_Error {
  * @return array Transformed response.
  */
 function extrachill_events_transform_calendar_response( array $result ): array {
-	$dates = array();
+	$dates      = array();
+	$serializer = new \DataMachineEvents\Api\Controllers\Calendar();
 
 	foreach ( $result['paged_date_groups'] ?? array() as $group ) {
 		$date_obj = date_create( $group['date'] );
@@ -201,49 +202,7 @@ function extrachill_events_transform_calendar_response( array $result ): array {
 
 		$events = array();
 		foreach ( $group['events'] ?? array() as $event ) {
-			$event_data = $event['event_data'] ?? array();
-			$post_id    = $event['post_id'];
-
-			// Build datetime from startDate + startTime block attributes.
-			$datetime = '';
-			if ( ! empty( $event_data['startDate'] ) ) {
-				$time     = $event_data['startTime'] ?? '00:00:00';
-				$datetime = $event_data['startDate'] . 'T' . $time;
-			}
-
-			$end_datetime = null;
-			if ( ! empty( $event_data['endDate'] ) ) {
-				$end_time     = $event_data['endTime'] ?? '23:59:59';
-				$end_datetime = $event_data['endDate'] . 'T' . $end_time;
-			}
-
-			// Resolve venue from post terms.
-			$venue_data  = null;
-			$venue_terms = wp_get_post_terms( $post_id, 'venue', array( 'fields' => 'all' ) );
-			if ( ! empty( $venue_terms ) && ! is_wp_error( $venue_terms ) ) {
-				$venue_data = array(
-					'id'   => $venue_terms[0]->term_id,
-					'name' => $venue_terms[0]->name,
-					'slug' => $venue_terms[0]->slug,
-				);
-			}
-
-			// Ticket URL from block attributes or post meta.
-			$ticket_url = $event_data['ticketUrl'] ?? null;
-			if ( empty( $ticket_url ) ) {
-				$meta_ticket_url = get_post_meta( $post_id, '_datamachine_ticket_url', true );
-				$ticket_url      = $meta_ticket_url ? $meta_ticket_url : null;
-			}
-
-			$events[] = array(
-				'id'           => $post_id,
-				'title'        => $event['title'],
-				'datetime'     => $datetime,
-				'end_datetime' => $end_datetime,
-				'venue'        => $venue_data,
-				'ticket_url'   => $ticket_url,
-				'permalink'    => get_permalink( $post_id ),
-			);
+			$events[] = extrachill_events_transform_calendar_event( $serializer->serialize_contract_occurrence( $event ) );
 		}
 
 		$dates[] = array(
@@ -258,5 +217,45 @@ function extrachill_events_transform_calendar_response( array $result ): array {
 		'total'    => $result['total_event_count'] ?? 0,
 		'page'     => $result['current_page'] ?? 1,
 		'has_more' => ( $result['current_page'] ?? 1 ) < ( $result['max_pages'] ?? 1 ),
+	);
+}
+
+/**
+ * Adapt one canonical calendar occurrence without discarding its context.
+ *
+ * @param array $occurrence Canonical DME calendar occurrence contract.
+ * @return array Adapted event.
+ */
+function extrachill_events_transform_calendar_event( array $occurrence ): array {
+	$event    = $occurrence['event'];
+	$date     = $event['date'];
+	$post_id  = (int) $event['id'];
+	$datetime = '' !== $date['start_date']
+		? $date['start_date'] . 'T' . ( '' !== $date['start_time'] ? $date['start_time'] : '00:00:00' )
+		: '';
+
+	$end_datetime = null;
+	if ( '' !== $date['end_date'] ) {
+		$end_datetime = $date['end_date'] . 'T' . ( '' !== $date['end_time'] ? $date['end_time'] : '23:59:59' );
+	}
+	$ticket_url = $event['ticket']['url'];
+	if ( '' === $ticket_url ) {
+		$ticket_url = (string) get_post_meta( $post_id, '_datamachine_ticket_url', true );
+	}
+
+	return array(
+		'id'                 => $post_id,
+		'title'              => $event['title'],
+		'datetime'           => $datetime,
+		'end_datetime'       => $end_datetime,
+		'venue'              => null === $event['venue'] ? null : extrachill_events_transform_venue_detail( $event['venue'] ),
+		'organizer'          => $event['organizer'],
+		'performer'          => $event['performer'],
+		'taxonomies'         => $event['taxonomies'],
+		'status'             => $event['status'],
+		'occurrence_context' => $occurrence['occurrence']['display_context'],
+		'occurrence_display' => $occurrence['occurrence']['display'],
+		'ticket_url'         => '' !== $ticket_url ? $ticket_url : null,
+		'permalink'          => get_permalink( $post_id ),
 	);
 }

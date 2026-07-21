@@ -72,13 +72,22 @@ function extrachill_events_register_list_venues_ability(): void {
 				'items' => array(
 					'type'       => 'object',
 					'properties' => array(
-						'id'          => array( 'type' => 'integer' ),
-						'name'        => array( 'type' => 'string' ),
-						'slug'        => array( 'type' => 'string' ),
-						'address'     => array( 'type' => 'string' ),
-						'latitude'    => array( 'type' => 'number' ),
-						'longitude'   => array( 'type' => 'number' ),
-						'event_count' => array( 'type' => 'integer' ),
+						'id'                => array( 'type' => 'integer' ),
+						'name'              => array( 'type' => 'string' ),
+						'slug'              => array( 'type' => 'string' ),
+						'address'           => array( 'type' => 'string' ),
+						'formatted_address' => array( 'type' => 'string' ),
+						'city'              => array( 'type' => 'string' ),
+						'state'             => array( 'type' => 'string' ),
+						'zip'               => array( 'type' => 'string' ),
+						'country'           => array( 'type' => 'string' ),
+						'latitude'          => array( 'type' => 'number' ),
+						'longitude'         => array( 'type' => 'number' ),
+						'coordinates'       => array( 'type' => 'string' ),
+						'timezone'          => array( 'type' => 'string' ),
+						'website'           => array( 'type' => 'string' ),
+						'url'               => array( 'type' => 'string' ),
+						'event_count'       => array( 'type' => 'integer' ),
 					),
 				),
 			),
@@ -153,7 +162,23 @@ function extrachill_events_ability_list_venues( array $input ): array|\WP_Error 
 		);
 	}
 
-	return array_map( 'extrachill_events_transform_venue', $result['venues'] ?? array() );
+	return extrachill_events_transform_venue_list( $result['venues'] ?? array() );
+}
+
+/**
+ * Prime canonical venue metadata once and adapt a venue list.
+ *
+ * @param array $venues Canonical map venue records.
+ * @return array Adapted venue records.
+ */
+function extrachill_events_transform_venue_list( array $venues ): array {
+	$venue_ids = array_values( array_filter( array_map( 'absint', array_column( $venues, 'term_id' ) ) ) );
+
+	if ( ! empty( $venue_ids ) ) {
+		update_termmeta_cache( $venue_ids );
+	}
+
+	return array_map( 'extrachill_events_transform_venue', $venues );
 }
 
 /**
@@ -163,13 +188,18 @@ function extrachill_events_ability_list_venues( array $input ): array|\WP_Error 
  * @return array Transformed venue.
  */
 function extrachill_events_transform_venue( array $venue ): array {
-	return array(
-		'id'          => (int) ( $venue['term_id'] ?? 0 ),
-		'name'        => $venue['name'] ?? '',
-		'slug'        => $venue['slug'] ?? '',
-		'address'     => $venue['address'] ?? null,
-		'latitude'    => isset( $venue['lat'] ) ? (float) $venue['lat'] : null,
-		'longitude'   => isset( $venue['lon'] ) ? (float) $venue['lon'] : null,
-		'event_count' => (int) ( $venue['event_count'] ?? 0 ),
-	);
+	$canonical = function_exists( 'data_machine_events_get_venue_data' )
+		? data_machine_events_get_venue_data( (int) ( $venue['term_id'] ?? 0 ) )
+		: null;
+
+	if ( is_array( $canonical ) ) {
+		$venue['formatted_address'] = $venue['address'] ?? null;
+		$venue                      = array_merge( $venue, $canonical );
+	}
+
+	if ( empty( $venue['coordinates'] ) && isset( $venue['lat'], $venue['lon'] ) ) {
+		$venue['coordinates'] = $venue['lat'] . ',' . $venue['lon'];
+	}
+
+	return extrachill_events_transform_venue_detail( $venue );
 }

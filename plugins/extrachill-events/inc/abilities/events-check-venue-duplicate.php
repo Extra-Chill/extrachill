@@ -31,13 +31,25 @@ function extrachill_events_register_check_venue_duplicate_ability(): void {
 				'type'       => 'object',
 				'required'   => array( 'name' ),
 				'properties' => array(
-					'name' => array(
+					'name'    => array(
 						'type'        => 'string',
 						'description' => 'Venue name to check.',
 					),
-					'city' => array(
+					'city'    => array(
 						'type'        => 'string',
 						'description' => 'City for more accurate matching.',
+					),
+					'address' => array(
+						'type'        => 'string',
+						'description' => 'Street address for canonical venue identity matching.',
+					),
+					'state'   => array(
+						'type'        => 'string',
+						'description' => 'State or region for canonical venue identity matching.',
+					),
+					'country' => array(
+						'type'        => 'string',
+						'description' => 'Country for canonical venue identity matching.',
 					),
 				),
 			),
@@ -46,17 +58,19 @@ function extrachill_events_register_check_venue_duplicate_ability(): void {
 				'items' => array(
 					'type'       => 'object',
 					'properties' => array(
-						'id'        => array( 'type' => 'integer' ),
-						'name'      => array( 'type' => 'string' ),
-						'slug'      => array( 'type' => 'string' ),
-						'address'   => array( 'type' => 'string' ),
-						'city'      => array( 'type' => 'string' ),
-						'state'     => array( 'type' => 'string' ),
-						'country'   => array( 'type' => 'string' ),
-						'latitude'  => array( 'type' => 'number' ),
-						'longitude' => array( 'type' => 'number' ),
-						'timezone'  => array( 'type' => 'string' ),
-						'website'   => array( 'type' => 'string' ),
+						'id'          => array( 'type' => 'integer' ),
+						'name'        => array( 'type' => 'string' ),
+						'slug'        => array( 'type' => 'string' ),
+						'address'     => array( 'type' => 'string' ),
+						'city'        => array( 'type' => 'string' ),
+						'state'       => array( 'type' => 'string' ),
+						'country'     => array( 'type' => 'string' ),
+						'zip'         => array( 'type' => 'string' ),
+						'latitude'    => array( 'type' => 'number' ),
+						'longitude'   => array( 'type' => 'number' ),
+						'coordinates' => array( 'type' => 'string' ),
+						'timezone'    => array( 'type' => 'string' ),
+						'website'     => array( 'type' => 'string' ),
 					),
 				),
 			),
@@ -90,30 +104,56 @@ function extrachill_events_ability_check_venue_duplicate( array $input ): array|
 		);
 	}
 
-	// Search for venues matching the name.
-	$terms = get_terms(
-		array(
-			'taxonomy'   => 'venue',
-			'hide_empty' => false,
-			'name__like' => $name,
-			'number'     => 10,
-		)
-	);
-
-	if ( is_wp_error( $terms ) || empty( $terms ) ) {
-		return array();
-	}
-
-	$matches = array();
-	foreach ( $terms as $term ) {
-		$matches[] = extrachill_events_transform_venue_detail(
-			array(
-				'term_id' => $term->term_id,
-				'name'    => $term->name,
-				'slug'    => $term->slug,
-			)
+	if ( ! class_exists( '\DataMachineEvents\Core\Venue_Taxonomy' )
+		|| ! method_exists( '\DataMachineEvents\Core\Venue_Taxonomy', 'resolve_venue_identity' )
+	) {
+		return new \WP_Error(
+			'ability_unavailable',
+			__( 'Canonical venue identity resolver is not available.', 'extrachill-events' ),
+			array( 'status' => 500 )
 		);
 	}
 
-	return $matches;
+	return extrachill_events_find_duplicate_venues(
+		$input,
+		array( '\DataMachineEvents\Core\Venue_Taxonomy', 'resolve_venue_identity' )
+	);
+}
+
+/**
+ * Delegate matching to the canonical venue identity ability and adapt its result.
+ *
+ * @param array    $input    Venue identity evidence.
+ * @param callable $resolver Canonical DME venue identity resolver.
+ * @return array|WP_Error Matching canonical venue records or error.
+ */
+function extrachill_events_find_duplicate_venues( array $input, callable $resolver ): array|\WP_Error {
+	$name = sanitize_text_field( $input['name'] ?? '' );
+
+	$venue_data = array();
+	foreach ( array( 'address', 'city', 'state', 'country' ) as $field ) {
+		if ( ! empty( $input[ $field ] ) ) {
+			$venue_data[ $field ] = sanitize_text_field( $input[ $field ] );
+		}
+	}
+
+	$identity = $resolver( $name, $venue_data );
+	$term_id  = (int) ( $identity['term_id'] ?? 0 );
+	if ( 'matched' !== ( $identity['match_status'] ?? '' ) || ! $term_id ) {
+		return array();
+	}
+
+	$venue = function_exists( 'data_machine_events_get_venue_data' )
+		? data_machine_events_get_venue_data( $term_id )
+		: null;
+
+	if ( empty( $venue ) ) {
+		return new \WP_Error(
+			'venue_not_found',
+			__( 'The canonical duplicate venue could not be loaded.', 'extrachill-events' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	return array( extrachill_events_transform_venue_detail( $venue ) );
 }

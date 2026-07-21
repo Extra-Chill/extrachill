@@ -40,17 +40,20 @@ function extrachill_events_register_get_venue_ability(): void {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'id'        => array( 'type' => 'integer' ),
-					'name'      => array( 'type' => 'string' ),
-					'slug'      => array( 'type' => 'string' ),
-					'address'   => array( 'type' => 'string' ),
-					'city'      => array( 'type' => 'string' ),
-					'state'     => array( 'type' => 'string' ),
-					'country'   => array( 'type' => 'string' ),
-					'latitude'  => array( 'type' => 'number' ),
-					'longitude' => array( 'type' => 'number' ),
-					'timezone'  => array( 'type' => 'string' ),
-					'website'   => array( 'type' => 'string' ),
+					'id'          => array( 'type' => 'integer' ),
+					'name'        => array( 'type' => 'string' ),
+					'slug'        => array( 'type' => 'string' ),
+					'address'     => array( 'type' => 'string' ),
+					'city'        => array( 'type' => 'string' ),
+					'state'       => array( 'type' => 'string' ),
+					'country'     => array( 'type' => 'string' ),
+					'zip'         => array( 'type' => 'string' ),
+					'latitude'    => array( 'type' => 'number' ),
+					'longitude'   => array( 'type' => 'number' ),
+					'coordinates' => array( 'type' => 'string' ),
+					'timezone'    => array( 'type' => 'string' ),
+					'website'     => array( 'type' => 'string' ),
+					'url'         => array( 'type' => 'string' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_events_ability_get_venue',
@@ -83,36 +86,16 @@ function extrachill_events_ability_get_venue( array $input ): array|\WP_Error {
 		);
 	}
 
-	$term = get_term( $term_id, 'venue' );
-	if ( ! $term || is_wp_error( $term ) ) {
+	$venue_data = function_exists( 'data_machine_events_get_venue_data' )
+		? data_machine_events_get_venue_data( $term_id )
+		: null;
+
+	if ( empty( $venue_data ) ) {
 		return new \WP_Error(
 			'venue_not_found',
 			__( 'Venue not found.', 'extrachill-events' ),
 			array( 'status' => 404 )
 		);
-	}
-
-	// Build venue detail from term meta.
-	$venue_data = array(
-		'term_id' => $term->term_id,
-		'name'    => $term->name,
-		'slug'    => $term->slug,
-	);
-
-	// Read venue meta fields via data-machine-events public integration API.
-	$raw = function_exists( 'data_machine_events_get_venue_data' )
-		? data_machine_events_get_venue_data( (int) $term->term_id )
-		: null;
-
-	if ( is_array( $raw ) ) {
-		$venue_data['address']     = $raw['address'] ?? '';
-		$venue_data['city']        = $raw['city'] ?? '';
-		$venue_data['state']       = $raw['state'] ?? '';
-		$venue_data['country']     = $raw['country'] ?? '';
-		$venue_data['timezone']    = $raw['timezone'] ?? '';
-		$venue_data['website']     = $raw['website'] ?? '';
-		$coordinates_meta          = get_term_meta( $term->term_id, '_venue_coordinates', true );
-		$venue_data['coordinates'] = $coordinates_meta ? $coordinates_meta : '';
 	}
 
 	return extrachill_events_transform_venue_detail( $venue_data );
@@ -137,16 +120,26 @@ function extrachill_events_transform_venue_detail( array $venue ): array {
 	}
 
 	return array(
-		'id'        => (int) ( $venue['term_id'] ?? 0 ),
-		'name'      => $venue['name'] ?? '',
-		'slug'      => $venue['slug'] ?? '',
-		'address'   => $venue['address'] ?? null,
-		'city'      => $venue['city'] ?? null,
-		'state'     => $venue['state'] ?? null,
-		'country'   => $venue['country'] ?? null,
-		'latitude'  => $lat,
-		'longitude' => $lon,
-		'timezone'  => $venue['timezone'] ?? null,
-		'website'   => $venue['website'] ?? null,
+		'id'                       => (int) ( $venue['term_id'] ?? 0 ),
+		'name'                     => $venue['name'] ?? '',
+		'slug'                     => $venue['slug'] ?? '',
+		'description'              => $venue['description'] ?? null,
+		'address'                  => $venue['address'] ?? null,
+		'formatted_address'        => $venue['formatted_address'] ?? null,
+		'city'                     => $venue['city'] ?? null,
+		'state'                    => $venue['state'] ?? null,
+		'zip'                      => $venue['zip'] ?? null,
+		'country'                  => $venue['country'] ?? null,
+		'latitude'                 => $lat,
+		'longitude'                => $lon,
+		'coordinates'              => $venue['coordinates'] ?? null,
+		'timezone'                 => $venue['timezone'] ?? null,
+		'website'                  => $venue['website'] ?? null,
+		'phone'                    => $venue['phone'] ?? null,
+		'capacity'                 => $venue['capacity'] ?? null,
+		'url'                      => $venue['url'] ?? null,
+		'event_count'              => isset( $venue['event_count'] ) ? (int) $venue['event_count'] : null,
+		'distance'                 => isset( $venue['distance'] ) ? (float) $venue['distance'] : null,
+		'upcoming_events_at_venue' => $venue['upcoming_events_at_venue'] ?? array(),
 	);
 }
