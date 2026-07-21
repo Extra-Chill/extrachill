@@ -76,6 +76,40 @@ function ec_events_my_shows_emit_map_scope_token( $scope_token, $context = array
 add_filter( 'data_machine_events_map_scope_token', 'ec_events_my_shows_emit_map_scope_token', 10, 2 );
 
 /**
+ * Anchor the owner My Shows map to the account's canonical Local Scene.
+ *
+ * Extra Chill Users owns this private preference. The account-market resolver
+ * consumes its public Ability contract and returns canonical location-term
+ * coordinates; this integration only passes those coordinates into the
+ * generic map center seam.
+ *
+ * @param mixed $center  Existing map center.
+ * @param array $context Map render context from Data Machine Events.
+ * @return mixed Existing center or Local Scene coordinates.
+ */
+function ec_events_my_shows_map_account_center( $center, array $context = array() ) {
+	$is_route_map = ! empty( $context['attributes']['chronologicalRouteMode'] );
+	if ( null !== $center || ! $is_route_map || ! is_page( 'my-shows' ) || get_current_user_id() < 1 ) {
+		return $center;
+	}
+
+	if ( ! function_exists( 'extrachill_events_get_account_market' ) ) {
+		return $center;
+	}
+
+	$market = extrachill_events_get_account_market();
+	if ( null === $market || null === $market['lat'] || null === $market['lon'] ) {
+		return $center;
+	}
+
+	return array(
+		'lat' => $market['lat'],
+		'lon' => $market['lon'],
+	);
+}
+add_filter( 'data_machine_events_map_center', 'ec_events_my_shows_map_account_center', 20, 2 );
+
+/**
  * Restrict events-map venue lookup to venues of the token owner's
  * tracked shows.
  *

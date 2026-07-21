@@ -101,6 +101,18 @@ if ( ! function_exists( 'is_front_page' ) ) {
 	}
 }
 
+if ( ! function_exists( 'is_page' ) ) {
+	function is_page( $slug = '' ) {
+		return ( $GLOBALS['test_page_slug'] ?? '' ) === $slug;
+	}
+}
+
+if ( ! function_exists( 'get_current_user_id' ) ) {
+	function get_current_user_id() {
+		return (int) ( $GLOBALS['test_current_user_id'] ?? 0 );
+	}
+}
+
 if ( ! function_exists( 'is_admin' ) ) {
 	function is_admin() {
 		return false;
@@ -281,6 +293,7 @@ if ( ! function_exists( 'wp_verify_nonce' ) ) {
 
 require_once dirname( __DIR__, 3 ) . '/inc/core/router-pages.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/account-market.php';
+require_once dirname( __DIR__, 3 ) . '/inc/core/my-shows-map-filter.php';
 
 /**
  * Verifies the account preference integration and its precedence gates.
@@ -478,6 +491,57 @@ final class AccountMarketTest extends TestCase {
 
 		$GLOBALS['test_is_near_me_page'] = false;
 		$this->assertFalse( extrachill_events_supports_account_market() );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_my_shows_route_map_uses_account_market_center(): void {
+		$GLOBALS['test_is_user_logged_in']      = true;
+		$GLOBALS['test_current_user_id']        = 42;
+		$GLOBALS['test_page_slug']              = 'my-shows';
+		$GLOBALS['test_account_market_ability'] = new class() {
+			public function execute(): array {
+				return array(
+					'local_scene' => array(
+						'slug'        => 'charleston',
+						'term_id'     => 1618,
+						'coordinates' => array(
+							'lat' => 32.7765,
+							'lon' => -79.9311,
+						),
+					),
+				);
+			}
+		};
+		$context                                = array(
+			'attributes' => array( 'chronologicalRouteMode' => true ),
+		);
+
+		$this->assertSame(
+			array(
+				'lat' => 32.7765,
+				'lon' => -79.9311,
+			),
+			ec_events_my_shows_map_account_center( null, $context )
+		);
+	}
+
+	public function test_my_shows_center_preserves_stronger_context_and_other_maps(): void {
+		$existing = array(
+			'lat' => 40.7128,
+			'lon' => -74.0060,
+		);
+
+		$this->assertSame(
+			$existing,
+			ec_events_my_shows_map_account_center(
+				$existing,
+				array( 'attributes' => array( 'chronologicalRouteMode' => true ) )
+			)
+		);
+		$this->assertNull( ec_events_my_shows_map_account_center( null, array() ) );
 	}
 
 	public function test_location_directory_is_enabled_by_default(): void {
