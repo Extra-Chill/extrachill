@@ -14,6 +14,26 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'wp_abilities_api_init', 'extrachill_users_register_artist_access_abilities' );
 
 /**
+ * Authorize Artist Platform access administration.
+ *
+ * @return bool
+ */
+function extrachill_users_artist_access_admin_permission() {
+	return current_user_can( 'manage_network_options' ) || ( defined( 'WP_CLI' ) && WP_CLI );
+}
+
+/**
+ * Require Artist Platform access administration authorization.
+ *
+ * @return true|WP_Error
+ */
+function extrachill_users_require_artist_access_admin() {
+	return extrachill_users_artist_access_admin_permission()
+		? true
+		: new WP_Error( 'artist_access_forbidden', __( 'You cannot manage Artist Platform access.', 'extrachill-users' ), array( 'status' => 403 ) );
+}
+
+/**
  * Register artist access management abilities.
  */
 function extrachill_users_register_artist_access_abilities() {
@@ -29,7 +49,7 @@ function extrachill_users_register_artist_access_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_list_artist_access_requests',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_users_artist_access_admin_permission',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
@@ -59,7 +79,7 @@ function extrachill_users_register_artist_access_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_approve_artist_access',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_users_artist_access_admin_permission',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
@@ -114,7 +134,7 @@ function extrachill_users_register_artist_access_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_reject_artist_access',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_users_artist_access_admin_permission',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
@@ -133,6 +153,11 @@ function extrachill_users_register_artist_access_abilities() {
  * @return array Array with 'requests' key containing pending request data.
  */
 function extrachill_users_ability_list_artist_access_requests() {
+	$allowed = extrachill_users_require_artist_access_admin();
+	if ( is_wp_error( $allowed ) ) {
+		return $allowed;
+	}
+
 	$user_query = new WP_User_Query(
 		array(
 			'blog_id'  => 0,
@@ -174,6 +199,11 @@ function extrachill_users_ability_list_artist_access_requests() {
  * @return array|WP_Error Result or error.
  */
 function extrachill_users_ability_approve_artist_access( $input ) {
+	$allowed = extrachill_users_require_artist_access_admin();
+	if ( is_wp_error( $allowed ) ) {
+		return $allowed;
+	}
+
 	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
 	$type    = isset( $input['type'] ) ? sanitize_text_field( $input['type'] ) : '';
 
@@ -246,6 +276,11 @@ function extrachill_users_ability_approve_artist_access( $input ) {
  * @return array|WP_Error Result or error.
  */
 function extrachill_users_ability_reject_artist_access( $input ) {
+	$allowed = extrachill_users_require_artist_access_admin();
+	if ( is_wp_error( $allowed ) ) {
+		return $allowed;
+	}
+
 	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
 
 	if ( ! $user_id ) {
