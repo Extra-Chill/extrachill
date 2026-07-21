@@ -32,6 +32,57 @@ function ec_users_emit_onboarding_event( string $event_type, int $user_id, array
 }
 
 /**
+ * Resolve the bounded access method for an onboarding grant.
+ *
+ * @param bool $is_artist       Whether artist access was granted.
+ * @param bool $is_professional Whether professional access was granted.
+ * @return string Canonical grant method.
+ */
+function ec_users_get_onboarding_artist_grant_method( bool $is_artist, bool $is_professional ): string {
+	if ( $is_artist && $is_professional ) {
+		return 'artist_and_professional';
+	}
+	return $is_artist ? 'artist' : 'professional';
+}
+
+/**
+ * Emit the canonical onboarding-origin artist access transition.
+ *
+ * The payload is entirely server-owned and restricted to the Analytics-owned
+ * contract. User input and registration attribution are deliberately excluded.
+ *
+ * @param int  $user_id             User receiving access.
+ * @param bool $is_artist           Whether artist access was granted.
+ * @param bool $is_professional     Whether professional access was granted.
+ * @return int Event ID, or zero when analytics is unavailable.
+ */
+function ec_users_emit_onboarding_artist_access_granted( int $user_id, bool $is_artist, bool $is_professional ): int {
+	$method = ec_users_get_onboarding_artist_grant_method( $is_artist, $is_professional );
+
+	if ( ! in_array( $method, EC_ANALYTICS_ARTIST_ACCESS_GRANTED_METHODS, true ) ) {
+		return 0;
+	}
+
+	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/track-analytics-event' ) : null;
+	if ( ! $ability ) {
+		return 0;
+	}
+
+	$result = $ability->execute(
+		array(
+			'event_type' => EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED,
+			'event_data' => array(
+				'user_id' => $user_id,
+				'source'  => EC_ANALYTICS_ARTIST_ACCESS_GRANTED_SOURCE_ONBOARDING,
+				'method'  => $method,
+			),
+		)
+	);
+
+	return is_int( $result ) ? $result : 0;
+}
+
+/**
  * Emit one viewed event when a dynamic block renders more than once per request.
  *
  * @param int $user_id User ID.
