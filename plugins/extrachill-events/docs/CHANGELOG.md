@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.48.0] - 2026-07-21
+
+### Added
+- turn My Shows into an onboarding surface
+- resolve canonical artist identity at Events boundary
+
+### Changed
+- require canonical artist event identity
+
 ## [0.47.0] - 2026-07-20
 
 ### Added
