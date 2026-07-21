@@ -82,6 +82,30 @@ final class ActivationFunnelTest extends TestCase {
 	}
 
 	/**
+	 * Manual approval and onboarding grant remain readable as distinct paths.
+	 */
+	public function test_ability_reports_distinct_access_paths_without_changing_activation_steps(): void {
+		$rows = array(
+			$this->row( 1, 'artist_access_requested', 100, 80 ),
+			$this->row( 2, 'artist_access_approved', 101, 80 ),
+			$this->row( 3, 'artist_access_granted', 102, 90 ),
+			$this->row( 4, 'artist_access_granted', 103, 90 ),
+			$this->row( 5, 'artist_signup_started', 104, 90 ),
+		);
+		$this->install_database( array( $rows, $rows ) );
+
+		$response = extrachill_analytics_ability_get_activation_funnel( array( 'days' => 28 ) );
+
+		$this->assertSame(
+			array( 'artist_access_requested', 'artist_access_approved', 'artist_access_granted' ),
+			array_column( $response['access_paths'], 'event_type' )
+		);
+		$this->assertSame( array( 1, 1, 1 ), array_column( $response['access_paths'], 'people' ) );
+		$this->assertSame( array( 1, 1, 2 ), array_column( $response['access_paths'], 'events' ) );
+		$this->assertSame( array( 1, 0, 0 ), array_column( $response['steps'], 'people' ) );
+	}
+
+	/**
 	 * Equal timestamps follow row-ID order in the ability's persisted stream.
 	 */
 	public function test_ability_uses_event_id_for_equal_timestamp_ordering(): void {

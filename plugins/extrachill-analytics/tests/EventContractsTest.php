@@ -55,6 +55,21 @@ final class EventContractsTest extends TestCase {
 		$this->assertNotSame( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE );
 		$this->assertSame( 'geo-bridge-holdout', EC_ANALYTICS_EXPERIMENT_GEO_BRIDGE_HOLDOUT );
 		$this->assertSame( 'single-post-bridge', EC_ANALYTICS_EXPERIMENT_SURFACE_SINGLE_POST_BRIDGE );
+		$this->assertSame( 'artist_access_granted', EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED );
+		$this->assertSame( 'onboarding', EC_ANALYTICS_ARTIST_ACCESS_GRANTED_SOURCE_ONBOARDING );
+		$this->assertSame(
+			array( 'artist', 'professional', 'artist_and_professional' ),
+			EC_ANALYTICS_ARTIST_ACCESS_GRANTED_METHODS
+		);
+		$this->assertContains( EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED, EC_ANALYTICS_ARTIST_FUNNEL_EVENTS );
+		$this->assertSame(
+			array(
+				EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED,
+				EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED,
+				EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED,
+			),
+			EC_ANALYTICS_ARTIST_ACCESS_EVENTS
+		);
 	}
 
 	/**

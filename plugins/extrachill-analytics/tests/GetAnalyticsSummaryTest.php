@@ -131,6 +131,50 @@ final class GetAnalyticsSummaryTest extends TestCase {
 	}
 
 	/**
+	 * Canonical onboarding grants require no parallel summary reader.
+	 */
+	public function test_onboarding_grant_is_readable_by_existing_summary(): void {
+		$GLOBALS['wpdb'] = new class() {
+			/**
+			 * Capture prepared values and return the fixture query.
+			 *
+			 * @param string $query Query string.
+			 * @param mixed  ...$args Prepared values.
+			 * @return string Query string.
+			 */
+			public function prepare( $query, ...$args ) {
+				$this->args = $args;
+				return $query;
+			}
+
+			/**
+			 * Return the canonical grant summary fixture.
+			 *
+			 * @return array<object> Summary rows.
+			 */
+			public function get_results() {
+				return array(
+					(object) array(
+						'event_type' => 'artist_access_granted',
+						'count'      => '2',
+					),
+				);
+			}
+		};
+
+		$summary = extrachill_analytics_ability_get_summary(
+			array(
+				'days'       => 28,
+				'event_type' => EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED,
+			)
+		);
+
+		$this->assertSame( 'artist_access_granted', $summary['event_types'][0]['event_type'] );
+		$this->assertSame( 2, $summary['event_types'][0]['count'] );
+		$this->assertContains( 'artist_access_granted', $GLOBALS['wpdb']->args[0] );
+	}
+
+	/**
 	 * Source and context rankings are deterministic and bounded in SQL.
 	 */
 	public function test_source_and_context_queries_are_stable_and_bounded(): void {

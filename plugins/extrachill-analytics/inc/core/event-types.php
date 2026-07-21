@@ -173,14 +173,29 @@ const EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_COMPLETED = 'local_scene_prompt_comp
  * is the same visitor_id<->user_id stitching the registration referrer/UTM
  * work keys on (Extra-Chill/extrachill-users#145) — built once, shared.
  *
- * The access-gate events (`artist_access_requested` / `_approved`) sit
- * upstream of this funnel for users who must request access first.
+ * The access-gate events sit upstream of this funnel. Explicit access keeps
+ * its request -> approval semantics, while onboarding-origin access uses the
+ * distinct `artist_access_granted` transition event.
+ *
+ * `artist_access_granted` has one bounded, privacy-safe payload contract:
+ * `user_id` is a positive server-owned integer, `source` is exactly
+ * `onboarding`, and `method` is one of `artist`, `professional`, or
+ * `artist_and_professional`. Emitters MUST NOT add names, emails, usernames,
+ * profile text, Local Scene values, or other free-form/user-controlled data.
  */
 const EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED      = 'artist_access_requested';
 const EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED       = 'artist_access_approved';
+const EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED        = 'artist_access_granted';
 const EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED        = 'artist_signup_started';
 const EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED       = 'artist_profile_created';
 const EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH = 'artist_profile_first_publish';
+
+const EC_ANALYTICS_ARTIST_ACCESS_GRANTED_SOURCE_ONBOARDING = 'onboarding';
+const EC_ANALYTICS_ARTIST_ACCESS_GRANTED_METHODS           = array(
+	'artist',
+	'professional',
+	'artist_and_professional',
+);
 
 /**
  * Artist-funnel FRICTION events — the failure/thrash modes that sit alongside
@@ -297,9 +312,22 @@ const EC_ANALYTICS_LOCAL_SCENE_PROMPT_EVENTS = array(
 const EC_ANALYTICS_ARTIST_FUNNEL_EVENTS = array(
 	EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED,
 	EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED,
+	EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED,
 	EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED,
 	EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED,
 	EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH,
+);
+
+/**
+ * Distinct upstream access-path events surfaced by the activation reader.
+ * Order preserves the explicit request/approve branch before auto-grant.
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_ARTIST_ACCESS_EVENTS = array(
+	EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED,
+	EC_ANALYTICS_EVENT_ARTIST_ACCESS_APPROVED,
+	EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED,
 );
 
 /**

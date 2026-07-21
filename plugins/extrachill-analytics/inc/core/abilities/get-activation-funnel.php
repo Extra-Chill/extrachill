@@ -26,7 +26,10 @@
  *
  * Friction / anomaly signals
  * --------------------------
- * Alongside the happy-path steps it also surfaces an `anomalies` section that
+ * The `access_paths` section reports explicit request, explicit approval, and
+ * onboarding grant as separate upstream events so the auto-grant branch never
+ * changes the meaning of manual approval. Alongside the happy-path steps it
+ * also surfaces an `anomalies` section that
  * counts the activation FRICTION events (`EC_ANALYTICS_ARTIST_ACTIVATION_
  * FRICTION_EVENTS` — duplicate profile creation and re-registration attempts)
  * by DISTINCT person over the SAME window and dedup key. These make funnel
@@ -82,7 +85,7 @@ function extrachill_analytics_register_activation_funnel_ability() {
 			),
 			'output_schema'       => array(
 				'type'        => 'object',
-				'description' => __( 'Object with a chronologically ordered per-person steps array (event_type, people, conversion_from_prev, conversion_from_top), the biggest_abandon_step, an anomalies array of friction signals (duplicate profile creation, re-registration attempts) each with DISTINCT people and raw event counts, and the exact UTC window.', 'extrachill-analytics' ),
+				'description' => __( 'Object with separate upstream access_paths, a chronologically ordered per-person steps array (event_type, people, conversion_from_prev, conversion_from_top), the biggest_abandon_step, an anomalies array of friction signals (duplicate profile creation, re-registration attempts) each with DISTINCT people and raw event counts, and the exact UTC window.', 'extrachill-analytics' ),
 			),
 			'execute_callback'    => 'extrachill_analytics_ability_get_activation_funnel',
 			'permission_callback' => function () {
@@ -214,7 +217,10 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 	$friction_events = defined( 'EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS' )
 		? EC_ANALYTICS_ARTIST_ACTIVATION_FRICTION_EVENTS
 		: array( 'artist_profile_duplicate_created', 'user_reregistration_attempt' );
-	$event_types     = array_merge( $steps, $friction_events );
+	$access_events   = defined( 'EC_ANALYTICS_ARTIST_ACCESS_EVENTS' )
+		? EC_ANALYTICS_ARTIST_ACCESS_EVENTS
+		: array( 'artist_access_requested', 'artist_access_approved', 'artist_access_granted' );
+	$event_types     = array_merge( $steps, $friction_events, $access_events );
 
 	// First pass: observe real visitor-to-user bridges. A visitor shared by more
 	// than one user is deliberately left ambiguous rather than merging accounts.
@@ -244,10 +250,13 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 
 	$step_index     = array_flip( $steps );
 	$friction_index = array_flip( $friction_events );
+	$access_index   = array_flip( $access_events );
 	$ordered_counts = array_fill( 0, count( $steps ), 0 );
 	$progress       = array();
 	$anomaly_events = array_fill_keys( $friction_events, 0 );
 	$anomaly_people = array_fill_keys( $friction_events, array() );
+	$access_counts  = array_fill_keys( $access_events, 0 );
+	$access_people  = array_fill_keys( $access_events, array() );
 
 	// Second pass: resolve every row through the observed bridge and advance the
 	// per-person state machine in deterministic stored event order.
@@ -256,7 +265,7 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 		$event_types,
 		$window_where,
 		$window_values,
-		static function ( $page ) use ( &$ordered_counts, &$progress, &$anomaly_events, &$anomaly_people, $visitor_to_user, $step_index, $friction_index ) {
+		static function ( $page ) use ( &$ordered_counts, &$progress, &$anomaly_events, &$anomaly_people, &$access_counts, &$access_people, $visitor_to_user, $step_index, $friction_index, $access_index ) {
 			foreach ( $page as $row ) {
 				$user_id    = extrachill_analytics_activation_event_user_id( $row );
 				$visitor_id = trim( (string) $row->visitor_id );
@@ -281,6 +290,9 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 				} elseif ( isset( $friction_index[ $event_type ] ) ) {
 					++$anomaly_events[ $event_type ];
 					$anomaly_people[ $event_type ][ $person_id ] = true;
+				} elseif ( isset( $access_index[ $event_type ] ) ) {
+					++$access_counts[ $event_type ];
+					$access_people[ $event_type ][ $person_id ] = true;
 				}
 			}
 		}
@@ -354,7 +366,17 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 		);
 	}
 
+	$access_paths = array();
+	foreach ( $access_events as $event_type ) {
+		$access_paths[] = array(
+			'event_type' => $event_type,
+			'people'     => count( $access_people[ $event_type ] ),
+			'events'     => $access_counts[ $event_type ],
+		);
+	}
+
 	return array(
+		'access_paths'         => $access_paths,
 		'steps'                => $steps_out,
 		'overall_conversion'   => $overall_conversion,
 		'biggest_abandon_step' => $biggest_abandon,
@@ -368,6 +390,6 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 		// same created_at >= since bound used by get-analytics-summary.
 		'since'                => $since,
 		'as_of'                => $now_utc,
-		'note'                 => 'Ordered per-person funnel: event_data.user_id (registration-safe) then stored user_id is authoritative; visitor_id is the anonymous fallback and is stitched to a user only when this window observes that visitor with exactly one user. Ambiguous visitors are not merged. Events are read in bounded keyset pages and ordered by created_at then event row ID; equal timestamps follow insertion order. A person counts at a step only after completing every prior step, and repeated emits count once. Rows with neither identity are excluded because their progression is unknowable. Counts are intentionally NOT comparable to get-analytics-summary COUNT(*) raw volume. The anomalies array remains independent reach over the same bounded stream.',
+		'note'                 => 'Ordered per-person funnel: event_data.user_id (registration-safe) then stored user_id is authoritative; visitor_id is the anonymous fallback and is stitched to a user only when this window observes that visitor with exactly one user. Ambiguous visitors are not merged. Events are read in bounded keyset pages and ordered by created_at then event row ID; equal timestamps follow insertion order. A person counts at a step only after completing every prior step, and repeated emits count once. Rows with neither identity are excluded because their progression is unknowable. Counts are intentionally NOT comparable to get-analytics-summary COUNT(*) raw volume. Access paths preserve explicit request/approval and onboarding grant as separate independent reach; anomalies remain independent reach over the same bounded stream.',
 	);
 }
