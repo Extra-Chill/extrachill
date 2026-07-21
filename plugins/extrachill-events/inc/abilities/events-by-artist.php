@@ -27,19 +27,12 @@ function extrachill_events_register_events_by_artist_ability(): void {
 			'category'            => 'extrachill-events',
 			'input_schema'        => array(
 				'type'       => 'object',
-				'anyOf'      => array(
-					array( 'required' => array( 'artist_term_id' ) ),
-					array( 'required' => array( 'term_slug' ) ),
-				),
+				'required'   => array( 'artist_term_id' ),
 				'properties' => array(
 					'artist_term_id' => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
 						'description' => __( 'Canonical main-site artist term ID.', 'extrachill-events' ),
-					),
-					'term_slug'      => array(
-						'type'        => 'string',
-						'description' => __( 'Legacy Events-site artist slug used during migration.', 'extrachill-events' ),
 					),
 					'scope'          => array(
 						'type' => 'string',
@@ -89,12 +82,11 @@ function extrachill_events_register_events_by_artist_ability(): void {
  */
 function extrachill_events_ability_events_by_artist( array $input ) {
 	$artist_term_id = absint( $input['artist_term_id'] ?? 0 );
-	$legacy_slug    = sanitize_title( $input['term_slug'] ?? '' );
-	if ( $artist_term_id < 1 && '' === $legacy_slug ) {
-		return new WP_Error( 'missing_artist_identity', __( 'A canonical artist_term_id or legacy term_slug is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+	if ( $artist_term_id < 1 ) {
+		return new WP_Error( 'missing_artist_identity', __( 'A canonical artist_term_id is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 	}
 
-	$resolved = extrachill_events_resolve_artist_term( $artist_term_id, $legacy_slug );
+	$resolved = extrachill_events_resolve_artist_term( $artist_term_id );
 	if ( is_wp_error( $resolved ) ) {
 		return $resolved;
 	}
@@ -105,9 +97,8 @@ function extrachill_events_ability_events_by_artist( array $input ) {
 	}
 
 	$delegate_input = array(
-		'taxonomy'  => 'artist',
-		'term_id'   => $resolved['term_id'],
-		'term_slug' => $resolved['term_slug'],
+		'taxonomy' => 'artist',
+		'term_id'  => $resolved['term_id'],
 	);
 	if ( isset( $input['scope'] ) ) {
 		$delegate_input['scope'] = sanitize_key( $input['scope'] );
@@ -132,65 +123,41 @@ function extrachill_events_ability_events_by_artist( array $input ) {
 /**
  * Resolve a canonical main-site artist term to a validated local Events term.
  *
- * @param int    $artist_term_id Canonical main-site artist term ID, or zero for legacy lookup.
- * @param string $legacy_slug    Optional legacy local slug.
+ * @param int $artist_term_id Canonical main-site artist term ID.
  * @return array{term_id:int,term_slug:string}|WP_Error
  */
-function extrachill_events_resolve_artist_term( int $artist_term_id, string $legacy_slug = '' ) {
+function extrachill_events_resolve_artist_term( int $artist_term_id ) {
 	$main_blog_id   = extrachill_events_artist_blog_id( 'main' );
 	$events_blog_id = extrachill_events_artist_blog_id( 'events' );
 	if ( $main_blog_id < 1 || $events_blog_id < 1 ) {
 		return new WP_Error( 'artist_sites_unresolved', __( 'Could not resolve the main and Events sites.', 'extrachill-events' ), array( 'status' => 500 ) );
 	}
 
-	$mapped_term_id = 0;
-	$canonical_slug = '';
-	if ( $artist_term_id > 0 ) {
-		switch_to_blog( $main_blog_id );
-		try {
-			$canonical = get_term( $artist_term_id, 'artist' );
-			if ( ! $canonical || is_wp_error( $canonical ) || 'artist' !== $canonical->taxonomy ) {
-				return new WP_Error( 'invalid_canonical_artist', __( 'The canonical artist term is missing or invalid.', 'extrachill-events' ), array( 'status' => 404 ) );
-			}
-
-			$canonical_slug = (string) $canonical->slug;
-			$mapped_term_id = absint( get_term_meta( $artist_term_id, EXTRACHILL_EVENTS_ARTIST_TERM_META, true ) );
-			if ( $mapped_term_id > 0 ) {
-				$claims = extrachill_events_find_artist_mapping_claims( $mapped_term_id );
-				if ( count( $claims ) > 1 ) {
-					return new WP_Error( 'duplicate_artist_mapping', __( 'Multiple canonical artists claim the same Events artist term.', 'extrachill-events' ), array( 'status' => 409 ) );
-				}
-			}
-		} finally {
-			restore_current_blog();
+	switch_to_blog( $main_blog_id );
+	try {
+		$canonical = get_term( $artist_term_id, 'artist' );
+		if ( ! $canonical || is_wp_error( $canonical ) || 'artist' !== $canonical->taxonomy ) {
+			return new WP_Error( 'invalid_canonical_artist', __( 'The canonical artist term is missing or invalid.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
+
+		$mapped_term_id = absint( get_term_meta( $artist_term_id, EXTRACHILL_EVENTS_ARTIST_TERM_META, true ) );
+		if ( $mapped_term_id < 1 ) {
+			return new WP_Error( 'artist_mapping_missing', __( 'No Events artist mapping exists.', 'extrachill-events' ), array( 'status' => 404 ) );
+		}
+
+		$claims = extrachill_events_find_artist_mapping_claims( $mapped_term_id );
+		if ( count( $claims ) > 1 ) {
+			return new WP_Error( 'duplicate_artist_mapping', __( 'Multiple canonical artists claim the same Events artist term.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+	} finally {
+		restore_current_blog();
 	}
 
-	$lookup_slug = $artist_term_id > 0 ? $canonical_slug : $legacy_slug;
 	switch_to_blog( $events_blog_id );
 	try {
-		if ( $mapped_term_id > 0 ) {
-			$local = get_term( $mapped_term_id, 'artist' );
-			if ( ! $local || is_wp_error( $local ) || 'artist' !== $local->taxonomy ) {
-				return new WP_Error( 'stale_artist_mapping', __( 'The mapped Events artist term is missing or has the wrong taxonomy.', 'extrachill-events' ), array( 'status' => 409 ) );
-			}
-		} else {
-			$local = '' !== $lookup_slug ? get_term_by( 'slug', $lookup_slug, 'artist' ) : false;
-			if ( ! $local || is_wp_error( $local ) ) {
-				return new WP_Error( 'artist_mapping_missing', __( 'No Events artist mapping or legacy slug match exists.', 'extrachill-events' ), array( 'status' => 404 ) );
-			}
-
-			if ( $artist_term_id > 0 ) {
-				switch_to_blog( $main_blog_id );
-				try {
-					$claims = extrachill_events_find_artist_mapping_claims( (int) $local->term_id );
-					if ( ! empty( $claims ) ) {
-						return new WP_Error( 'duplicate_artist_mapping', __( 'The matched Events artist term is already claimed by another canonical artist.', 'extrachill-events' ), array( 'status' => 409 ) );
-					}
-				} finally {
-					restore_current_blog();
-				}
-			}
+		$local = get_term( $mapped_term_id, 'artist' );
+		if ( ! $local || is_wp_error( $local ) || 'artist' !== $local->taxonomy ) {
+			return new WP_Error( 'stale_artist_mapping', __( 'The mapped Events artist term is missing or has the wrong taxonomy.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 
 		return array(

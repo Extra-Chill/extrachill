@@ -158,10 +158,11 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$GLOBALS['ec_artist_test']['ability'] = new class() {
 			public function execute( array $input ): array {
 				$GLOBALS['ec_artist_test']['delegated'] = $input;
+				$term = get_term( $input['term_id'], 'artist' );
 				return array(
 					'taxonomy'  => 'artist',
 					'term_id'   => $input['term_id'],
-					'term_slug' => $input['term_slug'],
+					'term_slug' => $term ? $term->slug : '',
 					'found'     => true,
 					'upcoming'  => array(),
 					'past'      => array(),
@@ -190,7 +191,7 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 
 		$this->assertSame( 501, $result['term_id'] );
-		$this->assertSame( 'renamed-events', $GLOBALS['ec_artist_test']['delegated']['term_slug'] );
+		$this->assertArrayNotHasKey( 'term_slug', $GLOBALS['ec_artist_test']['delegated'] );
 		$this->assertSame( 4, get_current_blog_id() );
 	}
 
@@ -217,7 +218,7 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->assertSame( 'artist_mapping_missing', $result->get_error_code() );
 	}
 
-	public function test_canonical_slug_fallback_rejects_a_term_claimed_by_another_artist(): void {
+	public function test_missing_mapping_does_not_fall_back_to_a_matching_slug(): void {
 		$this->addTerm( 1, 101, 'shared-band' );
 		$this->addTerm( 1, 102, 'other-name' );
 		$this->addTerm( 7, 501, 'shared-band' );
@@ -225,7 +226,7 @@ final class EventsByArtistAbilityTest extends TestCase {
 
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 
-		$this->assertSame( 'duplicate_artist_mapping', $result->get_error_code() );
+		$this->assertSame( 'artist_mapping_missing', $result->get_error_code() );
 		$this->assertSame( 4, get_current_blog_id() );
 	}
 
@@ -240,11 +241,11 @@ final class EventsByArtistAbilityTest extends TestCase {
 	}
 
 	public function test_deleted_or_wrong_taxonomy_canonical_terms_are_rejected(): void {
-		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101, 'term_slug' => 'legacy-band' ) );
+		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 		$this->assertSame( 'invalid_canonical_artist', $result->get_error_code() );
 
 		$this->addTerm( 1, 101, 'band', 'festival' );
-		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101, 'term_slug' => 'legacy-band' ) );
+		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 		$this->assertSame( 'invalid_canonical_artist', $result->get_error_code() );
 		$this->assertSame( 4, get_current_blog_id() );
 	}
@@ -262,13 +263,13 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->assertSame( 4, get_current_blog_id() );
 	}
 
-	public function test_legacy_slug_lookup_remains_available(): void {
+	public function test_slug_only_lookup_is_rejected(): void {
 		$this->addTerm( 7, 501, 'legacy-band' );
 
 		$result = extrachill_events_ability_events_by_artist( array( 'term_slug' => 'legacy-band' ) );
 
-		$this->assertSame( 501, $result['term_id'] );
-		$this->assertSame( 501, $GLOBALS['ec_artist_test']['delegated']['term_id'] );
+		$this->assertSame( 'missing_artist_identity', $result->get_error_code() );
+		$this->assertArrayNotHasKey( 'delegated', $GLOBALS['ec_artist_test'] );
 	}
 
 	public function test_backfill_maps_only_bound_exact_unclaimed_pairs_and_reports_failures(): void {
@@ -344,16 +345,11 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_ARTIST_TERM_META, $GLOBALS['ec_artist_test']['meta'][1][101] );
 	}
 
-	public function test_input_schema_requires_a_canonical_id_or_legacy_slug(): void {
+	public function test_input_schema_requires_only_a_canonical_id(): void {
 		extrachill_events_register_events_by_artist_ability();
 
 		$schema = $GLOBALS['ec_artist_test']['registered']['extrachill-events/events-by-artist']['input_schema'];
-		$this->assertSame(
-			array(
-				array( 'required' => array( 'artist_term_id' ) ),
-				array( 'required' => array( 'term_slug' ) ),
-			),
-			$schema['anyOf']
-		);
+		$this->assertSame( array( 'artist_term_id' ), $schema['required'] );
+		$this->assertArrayNotHasKey( 'term_slug', $schema['properties'] );
 	}
 }
