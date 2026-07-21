@@ -1,5 +1,12 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.5.3] - 2026-07-21
+
+### Fixed
+- resolve PHPCS + ESLint errors blocking release preflight
+- restore production documentation sync
+- make responsive card grids overflow-safe (min(100%, floor))
+
 ## [0.5.2] - 2026-06-15
 
 ### Fixed
