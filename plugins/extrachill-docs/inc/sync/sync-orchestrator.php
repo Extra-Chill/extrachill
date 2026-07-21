@@ -264,9 +264,35 @@ function extrachill_docs_sync_all_repos( bool $dry_run = false, ?string $only_re
 		$summary['repos'][ $entry['repo'] ] = extrachill_docs_sync_one_repo( $entry, $dry_run );
 	}
 
+	if ( ! $dry_run && extrachill_docs_sync_created_pages( $summary['repos'] ) && function_exists( 'flush_rewrite_rules' ) ) {
+		flush_rewrite_rules( false );
+		$summary['rewrite_rules_flushed'] = true;
+	}
+
 	$summary['finished_at'] = gmdate( 'c' );
 
 	return $summary;
+}
+
+/**
+ * Determine whether a sync created Pages that need new rewrite rules.
+ *
+ * @since 0.5.4
+ *
+ * @param array<string,mixed> $repos Repo sync results.
+ * @return bool
+ */
+function extrachill_docs_sync_created_pages( array $repos ): bool {
+	foreach ( $repos as $repo ) {
+		$files = is_array( $repo ) && isset( $repo['files'] ) && is_array( $repo['files'] ) ? $repo['files'] : array();
+		foreach ( $files as $file ) {
+			if ( is_array( $file ) && isset( $file['action'] ) && 'created' === $file['action'] ) {
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 /**

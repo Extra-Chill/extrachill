@@ -29,6 +29,34 @@ function extrachill_docs_add_rewrite_rules() {
 		'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]',
 		'top'
 	);
+
+	// Synced Pages must outrank the legacy two-segment ec_doc fallback.
+	$synced_page_ids = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_key'       => '_source_repo',
+			'meta_compare'   => 'EXISTS',
+			'orderby'        => 'ID',
+			'order'          => 'ASC',
+			'no_found_rows'  => true,
+		)
+	);
+
+	foreach ( $synced_page_ids as $page_id ) {
+		$page_uri = get_page_uri( $page_id );
+		if ( ! is_string( $page_uri ) || '' === $page_uri ) {
+			continue;
+		}
+
+		add_rewrite_rule(
+			'^' . preg_quote( trim( $page_uri, '/' ), '#' ) . '/?$',
+			'index.php?page_id=' . (int) $page_id,
+			'top'
+		);
+	}
 }
 add_action( 'init', 'extrachill_docs_add_rewrite_rules', 20 );
 

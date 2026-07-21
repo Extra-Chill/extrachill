@@ -38,9 +38,27 @@ namespace {
 	}
 
 	$GLOBALS['extrachill_docs_test_actions'] = array();
+	$GLOBALS['extrachill_docs_test_filters'] = array();
+	$GLOBALS['extrachill_docs_test_rules']   = array();
 
 	function add_action( $hook, $callback ) {
 		$GLOBALS['extrachill_docs_test_actions'][] = array( $hook, $callback );
+	}
+
+	function add_filter( $hook, $callback ) {
+		$GLOBALS['extrachill_docs_test_filters'][] = array( $hook, $callback );
+	}
+
+	function add_rewrite_rule( $regex, $query, $position ) {
+		$GLOBALS['extrachill_docs_test_rules'][] = array( $regex, $query, $position );
+	}
+
+	function get_posts() {
+		return array( 58 );
+	}
+
+	function get_page_uri( $page_id ) {
+		return 58 === $page_id ? 'events-calendar/getting-started-with-my-shows' : false;
 	}
 
 	function __( $text ) {
@@ -62,6 +80,7 @@ namespace {
 
 	require dirname( __DIR__ ) . '/inc/abilities/upsert-doc-page.php';
 	require dirname( __DIR__ ) . '/inc/sync/sync-orchestrator.php';
+	require dirname( __DIR__ ) . '/inc/core/rewrite-rules.php';
 
 	$failures = array();
 	$assert   = static function ( bool $condition, string $message ) use ( &$failures ): void {
@@ -94,6 +113,14 @@ namespace {
 	$assert( str_contains( $sync_source, "wp_get_ability( 'datamachine-code/list-github-tree' )" ), 'sync uses the current GitHub tree ability' );
 	$assert( str_contains( $sync_source, "wp_get_ability( 'datamachine-code/get-github-file' )" ), 'sync uses the current GitHub file ability' );
 	$assert( str_contains( $sync_source, 'PermissionHelper::run_as_authenticated' ), 'background sync establishes a bounded system context' );
+	$assert( extrachill_docs_sync_created_pages( array( array( 'files' => array( array( 'action' => 'created' ) ) ) ) ), 'created pages require a rewrite flush' );
+	$assert( ! extrachill_docs_sync_created_pages( array( array( 'files' => array( array( 'action' => 'unchanged' ) ) ) ) ), 'unchanged pages do not flush rewrites' );
+
+	extrachill_docs_add_rewrite_rules();
+	$legacy_rule_index = array_search( array( '^([^/]+)/([^/]+)/?$', 'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]', 'top' ), $GLOBALS['extrachill_docs_test_rules'], true );
+	$page_rule_index   = array_search( array( '^events\-calendar/getting\-started\-with\-my\-shows/?$', 'index.php?page_id=58', 'top' ), $GLOBALS['extrachill_docs_test_rules'], true );
+	$assert( false !== $page_rule_index, 'synced pages receive exact rewrite rules' );
+	$assert( false !== $legacy_rule_index && $page_rule_index > $legacy_rule_index, 'synced page rules are registered after and outrank the legacy fallback' );
 
 	$plugin_source = file_get_contents( dirname( __DIR__ ) . '/extrachill-docs.php' );
 	$assert( str_contains( $plugin_source, 'Requires Plugins: data-machine, data-machine-code' ), 'runtime dependencies are declared' );
