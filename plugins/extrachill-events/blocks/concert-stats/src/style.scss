@@ -27,6 +27,274 @@
 	justify-content: center;
 }
 
+/* ─── Anonymous My Shows landing page ─────────────────────────────────── */
+
+/* stylelint-disable no-descending-specificity */
+.ec-concert-stats-shell--marketing {
+
+	.ec-block-shell-inner {
+		max-width: 1120px;
+	}
+
+	h1,
+	h2,
+	h3,
+	p {
+		margin-top: 0;
+	}
+}
+
+.ec-concert-stats-marketing__hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+	align-items: center;
+	gap: clamp(2rem, 6vw, 5rem);
+	padding: clamp(2.5rem, 7vw, 6rem) 0;
+}
+
+.ec-concert-stats-marketing__hero-copy h1 {
+	max-width: 720px;
+	margin-bottom: var(--spacing-lg, 1.5rem);
+	font-size: clamp(2.5rem, 6vw, 5.5rem);
+	line-height: 0.98;
+	letter-spacing: -0.045em;
+}
+
+.ec-concert-stats-marketing__lede {
+	max-width: 680px;
+	margin-bottom: var(--spacing-xl, 2rem);
+	font-size: clamp(1.05rem, 2vw, 1.3rem);
+	line-height: 1.65;
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats-marketing__eyebrow,
+.ec-concert-stats-marketing__feature-label {
+	margin-bottom: var(--spacing-sm, 0.5rem);
+	font-size: var(--font-size-xs, 0.75rem);
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--accent-color, #53940b);
+}
+
+.ec-concert-stats-marketing__assurance {
+	margin: var(--spacing-md, 1rem) 0 0;
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats-marketing__preview {
+	position: relative;
+	padding: clamp(1.25rem, 3vw, 2rem);
+	overflow: hidden;
+	background:
+		radial-gradient(circle at 90% 5%, rgba(83, 148, 11, 0.2), transparent 34%),
+		var(--card-background, #f9fafb);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: var(--border-radius-lg, 16px);
+	box-shadow: var(--card-shadow, 0 18px 48px rgba(0, 0, 0, 0.1));
+}
+
+.ec-concert-stats-marketing__preview-header {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--spacing-md, 1rem);
+	padding-bottom: var(--spacing-md, 1rem);
+	font-weight: 700;
+	border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.ec-concert-stats-marketing__preview-status {
+	font-size: var(--font-size-xs, 0.75rem);
+	font-weight: 600;
+	color: var(--accent-color, #53940b);
+}
+
+.ec-concert-stats-marketing__trail {
+	position: relative;
+	padding: var(--spacing-lg, 1.5rem) 0;
+	margin: 0;
+	list-style: none;
+}
+
+.ec-concert-stats-marketing__trail::before {
+	position: absolute;
+	top: 2rem;
+	bottom: 2rem;
+	left: 2.2rem;
+	width: 2px;
+	content: "";
+	background: var(--accent-color, #53940b);
+	opacity: 0.35;
+}
+
+.ec-concert-stats-marketing__trail li {
+	position: relative;
+	display: grid;
+	grid-template-columns: 4.5rem 1fr;
+	gap: var(--spacing-md, 1rem);
+	align-items: center;
+	min-height: 4.5rem;
+}
+
+.ec-concert-stats-marketing__trail li span {
+	z-index: 1;
+	display: grid;
+	width: 4.5rem;
+	height: 2rem;
+	place-items: center;
+	font-size: var(--font-size-xs, 0.75rem);
+	font-weight: 700;
+	background: var(--background-color, #fff);
+	border: 1px solid var(--accent-color, #53940b);
+	border-radius: 999px;
+}
+
+.ec-concert-stats-marketing__trail-copy {
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 700;
+}
+
+.ec-concert-stats-marketing__preview-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-concert-stats-marketing__preview-tabs span {
+	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+	font-size: var(--font-size-xs, 0.75rem);
+	color: var(--muted-text, #6b7280);
+	background: var(--background-color, #fff);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: 999px;
+}
+
+.ec-concert-stats-marketing__section {
+	padding: clamp(2.5rem, 6vw, 5rem) 0;
+	border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.ec-concert-stats-marketing__section > h2 {
+	max-width: 760px;
+	margin-bottom: clamp(2rem, 4vw, 3rem);
+	font-size: clamp(1.8rem, 4vw, 3.25rem);
+	line-height: 1.12;
+	letter-spacing: -0.025em;
+}
+
+.ec-concert-stats-marketing__steps,
+.ec-concert-stats-marketing__feature-grid,
+.ec-concert-stats-marketing__split {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--spacing-xl, 2rem);
+}
+
+.ec-concert-stats-marketing__steps article span {
+	display: grid;
+	width: 2.5rem;
+	height: 2.5rem;
+	margin-bottom: var(--spacing-md, 1rem);
+	place-items: center;
+	font-weight: 700;
+	color: var(--background-color, #fff);
+	background: var(--accent-color, #53940b);
+	border-radius: 999px;
+}
+
+.ec-concert-stats-marketing__steps h3,
+.ec-concert-stats-marketing__feature-grid h3 {
+	margin-bottom: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats-marketing__steps p,
+.ec-concert-stats-marketing__feature-grid article > p:last-child,
+.ec-concert-stats-marketing__split article > p:not(.ec-concert-stats-marketing__eyebrow),
+.ec-concert-stats-marketing__docs p {
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats-marketing__feature-grid {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ec-concert-stats-marketing__feature-grid article {
+	padding: clamp(1.25rem, 3vw, 2rem);
+	background: var(--card-background, #f9fafb);
+	border-left: 3px solid var(--accent-color, #53940b);
+}
+
+.ec-concert-stats-marketing__split {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ec-concert-stats-marketing__split article {
+	padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.ec-concert-stats-marketing__split article > a {
+	display: inline-block;
+	margin-top: var(--spacing-md, 1rem);
+	font-weight: 700;
+}
+
+.ec-concert-stats-marketing__docs {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-xl, 2rem);
+}
+
+.ec-concert-stats-marketing__docs > div {
+	max-width: 680px;
+}
+
+.ec-concert-stats-marketing__docs h2 {
+	margin-bottom: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats-marketing__closing {
+	padding: clamp(3rem, 8vw, 6rem) clamp(1.25rem, 5vw, 4rem);
+	text-align: center;
+	background: var(--card-background, #f9fafb);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: var(--border-radius-lg, 16px);
+}
+
+.ec-concert-stats-marketing__closing h2 {
+	margin-bottom: var(--spacing-sm, 0.5rem);
+	font-size: clamp(2rem, 5vw, 4rem);
+	line-height: 1.05;
+	letter-spacing: -0.035em;
+}
+
+.ec-concert-stats-marketing__closing p {
+	margin-bottom: var(--spacing-xl, 2rem);
+	color: var(--muted-text, #6b7280);
+}
+
+@media (max-width: 780px) {
+
+	.ec-concert-stats-marketing__hero,
+	.ec-concert-stats-marketing__steps,
+	.ec-concert-stats-marketing__feature-grid,
+	.ec-concert-stats-marketing__split {
+		grid-template-columns: 1fr;
+	}
+
+	.ec-concert-stats-marketing__hero {
+		padding-top: var(--spacing-xl, 2rem);
+	}
+
+	.ec-concert-stats-marketing__docs {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}
+/* stylelint-enable no-descending-specificity */
+
 /* ─── Stats Bar (canonical StatGroup / StatTile primitives) ─────────────── */
 
 /*

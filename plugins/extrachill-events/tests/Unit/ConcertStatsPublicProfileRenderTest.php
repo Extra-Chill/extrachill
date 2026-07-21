@@ -98,6 +98,24 @@ if ( ! function_exists( 'wp_login_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'ec_get_site_url' ) ) {
+	function ec_get_site_url( $site ) {
+		return 'https://' . $site . '.example';
+	}
+}
+
+if ( ! function_exists( 'trailingslashit' ) ) {
+	function trailingslashit( $value ) {
+		return rtrim( $value, '/' ) . '/';
+	}
+}
+
+if ( ! function_exists( 'esc_attr_e' ) ) {
+	function esc_attr_e( $text ) {
+		echo htmlspecialchars( (string) $text, ENT_QUOTES );
+	}
+}
+
 if ( ! function_exists( 'do_blocks' ) ) {
 	function do_blocks( $content ) {
 		return '<div class="embedded-block">' . htmlspecialchars( $content, ENT_QUOTES ) . '</div>';
@@ -178,6 +196,19 @@ final class ConcertStatsPublicProfileRenderTest extends TestCase {
 		$this->assertStringContainsString( 'data-is-own="0"', $output );
 		$this->assertStringContainsString( 'data-public-date-to="2026-07-18"', $output );
 		$this->assertStringNotContainsString( 'ec-concert-stats-shell--marketing', $output );
+	}
+
+	public function test_logged_out_visitor_gets_complete_marketing_and_docs_surface(): void {
+		$output = $this->renderBlock();
+
+		$this->assertStringContainsString( 'ec-concert-stats-shell--marketing', $output );
+		$this->assertStringContainsString( 'Every show has a story. Keep yours.', $output );
+		$this->assertStringContainsString( 'id="how-it-works"', $output );
+		$this->assertStringContainsString( 'https://community.example/register/', $output );
+		$this->assertStringContainsString( '/events-calendar/getting-started-with-my-shows/', $output );
+		$this->assertStringContainsString( '/events-calendar/importing-concert-history/', $output );
+		$this->assertStringContainsString( '/events-calendar/concert-history-privacy/', $output );
+		$this->assertStringNotContainsString( 'class="ec-concert-stats"', $output );
 	}
 
 	public function test_invalid_selection_does_not_fall_back_to_viewer(): void {

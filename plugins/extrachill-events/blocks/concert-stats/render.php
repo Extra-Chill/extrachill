@@ -92,6 +92,9 @@ if ( ! $user_id ) {
 		$login_url  = function_exists( 'ec_get_site_url' )
 			? trailingslashit( ec_get_site_url( 'events' ) ) . 'login/?redirect_to=' . rawurlencode( home_url( '/my-shows/' ) )
 			: wp_login_url( home_url( '/my-shows/' ) );
+		$docs_url   = function_exists( 'ec_get_site_url' )
+			? trailingslashit( ec_get_site_url( 'docs' ) ) . 'events-calendar/'
+			: 'https://docs.extrachill.com/events-calendar/';
 
 		$wrapper_attributes = get_block_wrapper_attributes(
 			array(
@@ -101,36 +104,94 @@ if ( ! $user_id ) {
 		?>
 		<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped via get_block_wrapper_attributes. ?>>
 			<div class="ec-block-shell ec-block-shell--depth-0 ec-mobile-full-width-panel">
-				<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
-					<div class="ec-block-shell-header">
-						<div class="ec-block-shell-header__main">
-							<div class="ec-block-shell-header__title">
-								<?php esc_html_e( 'Your concert history, in one place', 'extrachill-events' ); ?>
+				<div class="ec-block-shell-inner">
+					<section class="ec-concert-stats-marketing__hero">
+						<div class="ec-concert-stats-marketing__hero-copy">
+							<p class="ec-concert-stats-marketing__eyebrow"><?php esc_html_e( 'Your live music life', 'extrachill-events' ); ?></p>
+							<h1><?php esc_html_e( 'Every show has a story. Keep yours.', 'extrachill-events' ); ?></h1>
+							<p class="ec-concert-stats-marketing__lede">
+								<?php esc_html_e( 'My Shows turns the concerts you have seen and the ones still ahead into a personal archive you can explore by date, artist, venue, city, and route.', 'extrachill-events' ); ?>
+							</p>
+							<div class="ec-action-row">
+								<a href="<?php echo esc_url( $signup_url ); ?>" class="button-1 button-large">
+									<?php esc_html_e( 'Start My Shows', 'extrachill-events' ); ?>
+								</a>
+								<a href="#how-it-works" class="button-2 button-large">
+									<?php esc_html_e( 'See How It Works', 'extrachill-events' ); ?>
+								</a>
 							</div>
-							<div class="ec-block-shell-header__description">
-								<?php esc_html_e( 'My Shows lets you track every concert you\'ve been to and every one you\'re going to.', 'extrachill-events' ); ?>
+							<p class="ec-concert-stats-marketing__assurance">
+								<?php esc_html_e( 'Free Extra Chill account. You control what other people can see.', 'extrachill-events' ); ?>
+							</p>
+						</div>
+						<div class="ec-concert-stats-marketing__preview" aria-label="<?php esc_attr_e( 'Example concert archive', 'extrachill-events' ); ?>">
+							<div class="ec-concert-stats-marketing__preview-header">
+								<span><?php esc_html_e( 'Your concert trail', 'extrachill-events' ); ?></span>
+								<span class="ec-concert-stats-marketing__preview-status"><?php esc_html_e( 'Always growing', 'extrachill-events' ); ?></span>
+							</div>
+							<ol class="ec-concert-stats-marketing__trail">
+								<li><span>2018</span><div class="ec-concert-stats-marketing__trail-copy"><?php esc_html_e( 'The first one you remember', 'extrachill-events' ); ?></div></li>
+								<li><span>2023</span><div class="ec-concert-stats-marketing__trail-copy"><?php esc_html_e( 'The set you still talk about', 'extrachill-events' ); ?></div></li>
+								<li><span><?php esc_html_e( 'Next', 'extrachill-events' ); ?></span><div class="ec-concert-stats-marketing__trail-copy"><?php esc_html_e( 'The show already on your calendar', 'extrachill-events' ); ?></div></li>
+							</ol>
+							<div class="ec-concert-stats-marketing__preview-tabs" aria-hidden="true">
+								<span><?php esc_html_e( 'History', 'extrachill-events' ); ?></span>
+								<span><?php esc_html_e( 'Calendar', 'extrachill-events' ); ?></span>
+								<span><?php esc_html_e( 'Map', 'extrachill-events' ); ?></span>
+								<span><?php esc_html_e( 'Stats', 'extrachill-events' ); ?></span>
 							</div>
 						</div>
-					</div>
-					<div class="ec-panel ec-panel--depth-1">
-						<div class="ec-section ec-section--depth-2">
-							<h3><?php esc_html_e( 'What you can do', 'extrachill-events' ); ?></h3>
-							<ul>
-								<li><?php esc_html_e( 'Mark events as \'Going\' or \'I Was There\' — across decades of past shows', 'extrachill-events' ); ?></li>
-								<li><?php esc_html_e( 'See your concert history on a calendar and a map, with chronological tour routes for the artists you\'ve followed', 'extrachill-events' ); ?></li>
-								<li><?php esc_html_e( 'Import your full history from setlist.fm or phish.net', 'extrachill-events' ); ?></li>
-								<li><?php esc_html_e( 'Stats: shows, venues, artists, cities', 'extrachill-events' ); ?></li>
-							</ul>
+					</section>
+
+					<section id="how-it-works" class="ec-concert-stats-marketing__section">
+						<p class="ec-concert-stats-marketing__eyebrow"><?php esc_html_e( 'Three simple moves', 'extrachill-events' ); ?></p>
+						<h2><?php esc_html_e( 'Build an archive that gets better with every show', 'extrachill-events' ); ?></h2>
+						<div class="ec-concert-stats-marketing__steps">
+							<article><span>1</span><h3><?php esc_html_e( 'Find a show', 'extrachill-events' ); ?></h3><p><?php esc_html_e( 'Browse upcoming events or search decades of past concerts.', 'extrachill-events' ); ?></p></article>
+							<article><span>2</span><h3><?php esc_html_e( 'Mark your place', 'extrachill-events' ); ?></h3><p><?php esc_html_e( 'Choose Going for what is ahead or I Was There for the nights already lived.', 'extrachill-events' ); ?></p></article>
+							<article><span>3</span><h3><?php esc_html_e( 'Explore your history', 'extrachill-events' ); ?></h3><p><?php esc_html_e( 'Watch your calendar, map, route, and personal stats take shape.', 'extrachill-events' ); ?></p></article>
 						</div>
+					</section>
+
+					<section class="ec-concert-stats-marketing__section ec-concert-stats-marketing__feature-grid">
+						<article><p class="ec-concert-stats-marketing__feature-label"><?php esc_html_e( 'Remember', 'extrachill-events' ); ?></p><h3><?php esc_html_e( 'A chronological concert archive', 'extrachill-events' ); ?></h3><p><?php esc_html_e( 'Keep upcoming plans and past memories together without losing the details.', 'extrachill-events' ); ?></p></article>
+						<article><p class="ec-concert-stats-marketing__feature-label"><?php esc_html_e( 'See', 'extrachill-events' ); ?></p><h3><?php esc_html_e( 'Calendar and map views', 'extrachill-events' ); ?></h3><p><?php esc_html_e( 'Move through years of shows and trace the cities and venues that shaped your route.', 'extrachill-events' ); ?></p></article>
+						<article><p class="ec-concert-stats-marketing__feature-label"><?php esc_html_e( 'Learn', 'extrachill-events' ); ?></p><h3><?php esc_html_e( 'Stats with a human pulse', 'extrachill-events' ); ?></h3><p><?php esc_html_e( 'Discover your most-seen artists, most-visited venues, cities, and milestones.', 'extrachill-events' ); ?></p></article>
+						<article><p class="ec-concert-stats-marketing__feature-label"><?php esc_html_e( 'Return', 'extrachill-events' ); ?></p><h3><?php esc_html_e( 'A home for what comes next', 'extrachill-events' ); ?></h3><p><?php esc_html_e( 'Keep upcoming shows close and receive an Extra Chill reminder before showtime.', 'extrachill-events' ); ?></p></article>
+					</section>
+
+					<section class="ec-concert-stats-marketing__section ec-concert-stats-marketing__split">
+						<article class="ec-panel ec-panel--depth-1">
+							<p class="ec-concert-stats-marketing__eyebrow"><?php esc_html_e( 'Already have a history?', 'extrachill-events' ); ?></p>
+							<h2><?php esc_html_e( 'Bring the whole archive with you', 'extrachill-events' ); ?></h2>
+							<p><?php esc_html_e( 'Import attended shows from setlist.fm or phish.net. My Shows matches what it can and adds missing events so the story does not start today.', 'extrachill-events' ); ?></p>
+							<a href="<?php echo esc_url( $docs_url . 'importing-concert-history/' ); ?>"><?php esc_html_e( 'How concert imports work', 'extrachill-events' ); ?> &rarr;</a>
+						</article>
+						<article class="ec-panel ec-panel--depth-1">
+							<p class="ec-concert-stats-marketing__eyebrow"><?php esc_html_e( 'Your history, your call', 'extrachill-events' ); ?></p>
+							<h2><?php esc_html_e( 'Private by default for new accounts', 'extrachill-events' ); ?></h2>
+							<p><?php esc_html_e( 'Choose whether people can view your past concert history and whether your identity appears on event attendee lists. Upcoming plans stay owner-only.', 'extrachill-events' ); ?></p>
+							<a href="<?php echo esc_url( $docs_url . 'concert-history-privacy/' ); ?>"><?php esc_html_e( 'Understand privacy controls', 'extrachill-events' ); ?> &rarr;</a>
+						</article>
+					</section>
+
+					<section class="ec-concert-stats-marketing__section ec-concert-stats-marketing__docs">
+						<div>
+							<p class="ec-concert-stats-marketing__eyebrow"><?php esc_html_e( 'No guesswork', 'extrachill-events' ); ?></p>
+							<h2><?php esc_html_e( 'Start with the full My Shows guide', 'extrachill-events' ); ?></h2>
+							<p><?php esc_html_e( 'Learn how marking, search, imports, public histories, and each dashboard view fit together.', 'extrachill-events' ); ?></p>
+						</div>
+						<a href="<?php echo esc_url( $docs_url . 'getting-started-with-my-shows/' ); ?>" class="button-2 button-large"><?php esc_html_e( 'Read the Guide', 'extrachill-events' ); ?></a>
+					</section>
+
+					<section class="ec-concert-stats-marketing__closing">
+						<h2><?php esc_html_e( 'Your next favorite show belongs here.', 'extrachill-events' ); ?></h2>
+						<p><?php esc_html_e( 'Start with one concert. The archive grows from there.', 'extrachill-events' ); ?></p>
 						<div class="ec-action-row ec-action-row--center">
-							<a href="<?php echo esc_url( $signup_url ); ?>" class="button-1 button-large">
-								<?php esc_html_e( 'Sign Up', 'extrachill-events' ); ?>
-							</a>
-							<a href="<?php echo esc_url( $login_url ); ?>" class="button-2 button-large">
-								<?php esc_html_e( 'Log In', 'extrachill-events' ); ?>
-							</a>
+							<a href="<?php echo esc_url( $signup_url ); ?>" class="button-1 button-large"><?php esc_html_e( 'Create Free Account', 'extrachill-events' ); ?></a>
+							<a href="<?php echo esc_url( $login_url ); ?>" class="button-2 button-large"><?php esc_html_e( 'Log In', 'extrachill-events' ); ?></a>
 						</div>
-					</div>
+					</section>
 				</div>
 			</div>
 		</div>
