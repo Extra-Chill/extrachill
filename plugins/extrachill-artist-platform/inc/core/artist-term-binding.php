@@ -360,7 +360,7 @@ function ec_sync_artist_profile_term_binding( $profile_id ) {
 add_action( 'ec_artist_profile_save', 'ec_sync_artist_profile_term_binding', 5, 1 );
 
 /**
- * Remove the reciprocal term reference before an artist profile is deleted.
+ * Remove all term references before an artist profile is deleted.
  *
  * @param int $profile_id Post ID being deleted.
  * @return void
@@ -372,11 +372,67 @@ function ec_delete_artist_profile_term_binding( $profile_id ) {
 	}
 
 	$profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
-	if ( ! empty( $profile ) && $profile['term_id'] > 0 ) {
-		$term = ec_artist_binding_read_term( $profile['term_id'], $blog_ids['main'] );
-		if ( ! empty( $term ) && $term['profile_id'] === (int) $profile_id ) {
-			ec_artist_binding_delete_term_meta( $profile['term_id'], (int) $profile_id, $blog_ids['main'] );
-		}
+	if ( empty( $profile ) ) {
+		return;
+	}
+
+	switch_to_blog( $blog_ids['main'] );
+	try {
+		$batch_size        = 100;
+		$offset            = 0;
+		$profile_id_string = (string) (int) $profile_id;
+		do {
+			$term_ids = get_terms(
+				array(
+					'taxonomy'               => 'artist',
+					'hide_empty'             => false,
+					'fields'                 => 'ids',
+					'number'                 => $batch_size,
+					'offset'                 => $offset,
+					'orderby'                => 'term_id',
+					'order'                  => 'ASC',
+					'cache_results'          => false,
+					'update_term_meta_cache' => false,
+					// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Deletion must find every stale inverse reference.
+					'meta_query'             => array(
+						array(
+							'key'     => '_artist_profile_id',
+							'value'   => (int) $profile_id,
+							'compare' => '=',
+							'type'    => 'NUMERIC',
+						),
+					),
+				)
+			);
+			if ( is_wp_error( $term_ids ) || empty( $term_ids ) ) {
+				break;
+			}
+
+			$deleted = false;
+			foreach ( $term_ids as $term_id ) {
+				$stored_values = get_term_meta( (int) $term_id, '_artist_profile_id', false );
+				foreach ( $stored_values as $stored_value ) {
+					if ( ! is_int( $stored_value ) && ! is_string( $stored_value ) ) {
+						continue;
+					}
+					$stored_value_string = (string) $stored_value;
+					if ( 1 !== preg_match( '/^\+?\d+$/D', $stored_value_string ) ) {
+						continue;
+					}
+					$normalized_value = ltrim( ltrim( $stored_value_string, '+' ), '0' );
+					$normalized_value = '' === $normalized_value ? '0' : $normalized_value;
+					if ( $normalized_value === $profile_id_string ) {
+						$deleted = delete_term_meta( (int) $term_id, '_artist_profile_id', $stored_value ) || $deleted;
+					}
+				}
+			}
+
+			if ( ! $deleted ) {
+				$offset += count( $term_ids );
+			}
+		} while ( true );
+	} finally {
+		restore_current_blog();
 	}
 }
 add_action( 'before_delete_post', 'ec_delete_artist_profile_term_binding', 10, 1 );
