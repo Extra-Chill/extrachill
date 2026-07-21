@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.5.5] - 2026-07-21
+
+### Fixed
+- compile synced page rewrites first
+
 ## [0.5.4] - 2026-07-21
 
 ### Fixed
