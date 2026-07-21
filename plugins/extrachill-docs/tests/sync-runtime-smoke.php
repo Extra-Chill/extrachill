@@ -120,7 +120,7 @@ namespace {
 	$legacy_rule_index = array_search( array( '^([^/]+)/([^/]+)/?$', 'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]', 'top' ), $GLOBALS['extrachill_docs_test_rules'], true );
 	$page_rule_index   = array_search( array( '^events\-calendar/getting\-started\-with\-my\-shows/?$', 'index.php?page_id=58', 'top' ), $GLOBALS['extrachill_docs_test_rules'], true );
 	$assert( false !== $page_rule_index, 'synced pages receive exact rewrite rules' );
-	$assert( false !== $legacy_rule_index && $page_rule_index > $legacy_rule_index, 'synced page rules are registered after and outrank the legacy fallback' );
+	$assert( false !== $legacy_rule_index && $page_rule_index < $legacy_rule_index, 'synced page rules are registered before and outrank the legacy fallback' );
 
 	$plugin_source = file_get_contents( dirname( __DIR__ ) . '/extrachill-docs.php' );
 	$assert( str_contains( $plugin_source, 'Requires Plugins: data-machine, data-machine-code' ), 'runtime dependencies are declared' );

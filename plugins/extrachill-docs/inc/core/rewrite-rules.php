@@ -16,21 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Add custom rewrite rules for ec_doc posts and ec_doc_platform taxonomy
  */
 function extrachill_docs_add_rewrite_rules() {
-	// Platform archive: /{platform-slug}/.
-	add_rewrite_rule(
-		'^([^/]+)/?$',
-		'index.php?ec_doc_platform=$matches[1]',
-		'top'
-	);
-
-	// Single doc: /{platform-slug}/{doc-slug}/.
-	add_rewrite_rule(
-		'^([^/]+)/([^/]+)/?$',
-		'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]',
-		'top'
-	);
-
-	// Synced Pages must outrank the legacy two-segment ec_doc fallback.
+	// Register exact synced Pages before the legacy catch-all rules.
 	$synced_page_ids = get_posts(
 		array(
 			'post_type'      => 'page',
@@ -57,6 +43,20 @@ function extrachill_docs_add_rewrite_rules() {
 			'top'
 		);
 	}
+
+	// Platform archive: /{platform-slug}/.
+	add_rewrite_rule(
+		'^([^/]+)/?$',
+		'index.php?ec_doc_platform=$matches[1]',
+		'top'
+	);
+
+	// Single doc: /{platform-slug}/{doc-slug}/.
+	add_rewrite_rule(
+		'^([^/]+)/([^/]+)/?$',
+		'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]',
+		'top'
+	);
 }
 add_action( 'init', 'extrachill_docs_add_rewrite_rules', 20 );
 
