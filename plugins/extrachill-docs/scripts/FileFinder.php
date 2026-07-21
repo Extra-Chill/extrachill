@@ -2,7 +2,7 @@
 
 class FileFinder {
 	public static function find( string $directory, string $extension ): array {
-		$files = [];
+		$files    = array();
 		$iterator = new RecursiveIteratorIterator(
 			new RecursiveDirectoryIterator( $directory, RecursiveDirectoryIterator::SKIP_DOTS )
 		);

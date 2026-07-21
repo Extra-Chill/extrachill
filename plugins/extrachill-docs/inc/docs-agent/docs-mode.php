@@ -63,16 +63,18 @@ add_action( 'datamachine_agent_modes', 'extrachill_docs_register_docs_mode' );
  *
  * @param string $content Existing guidance text (empty by default for new modes).
  * @param array  $payload Full AI request payload (agent_id, flow_step_id, etc.).
+ *                        Part of the filter signature; unused by this provider.
  * @return string Guidance text injected into the system context at priority 22.
  */
-function extrachill_docs_provide_docs_mode_guidance( string $content, array $payload ): string {
+function extrachill_docs_provide_docs_mode_guidance( string $content, array $payload ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 	$rules_path = EXTRACHILL_DOCS_PLUGIN_DIR . 'runner-configs/writing-rules.md';
 
 	if ( ! is_readable( $rules_path ) ) {
 		return $content;
 	}
 
-	$rules = file_get_contents( $rules_path );
+	// Local plugin file read (not a remote URL); WP_Filesystem/wp_remote_get do not apply.
+	$rules = file_get_contents( $rules_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	if ( false === $rules || '' === trim( $rules ) ) {
 		return $content;
 	}

@@ -154,7 +154,7 @@ function extrachill_docs_schema_breadcrumb_items( $items ) {
 
 	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
 
-	// Homepage: Extra Chill → Documentation
+	// Homepage: Extra Chill → Documentation.
 	if ( is_front_page() ) {
 		return array(
 			array(
@@ -168,7 +168,7 @@ function extrachill_docs_schema_breadcrumb_items( $items ) {
 		);
 	}
 
-	// Platform taxonomy archive: Extra Chill → Documentation → Platform Name
+	// Platform taxonomy archive: Extra Chill → Documentation → Platform Name.
 	if ( is_tax( 'ec_doc_platform' ) ) {
 		$term = get_queried_object();
 		return array(
@@ -187,7 +187,7 @@ function extrachill_docs_schema_breadcrumb_items( $items ) {
 		);
 	}
 
-	// Single doc: Extra Chill → Documentation → Platform Name → Doc Title
+	// Single doc: Extra Chill → Documentation → Platform Name → Doc Title.
 	if ( is_singular( 'ec_doc' ) ) {
 		$breadcrumbs = array(
 			array(
@@ -204,7 +204,7 @@ function extrachill_docs_schema_breadcrumb_items( $items ) {
 		$terms = get_the_terms( $post->ID, 'ec_doc_platform' );
 
 		if ( $terms && ! is_wp_error( $terms ) ) {
-			$platform = reset( $terms );
+			$platform      = reset( $terms );
 			$breadcrumbs[] = array(
 				'name' => $platform->name,
 				'url'  => get_term_link( $platform ),

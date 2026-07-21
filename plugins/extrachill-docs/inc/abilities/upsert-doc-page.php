@@ -164,16 +164,16 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 
 	if ( '' === $repo || '' === $path || '' === $parent_slug || '' === $parent_title ) {
 		return array(
-			'success' => false,
-			'error'   => 'extrachill_docs_missing_input',
+			'success'      => false,
+			'error'        => 'extrachill_docs_missing_input',
 			'error_detail' => 'repo, path, parent_slug, and parent_title are required.',
 		);
 	}
 
 	if ( ! function_exists( 'wp_get_ability' ) ) {
 		return array(
-			'success' => false,
-			'error'   => 'extrachill_docs_abilities_api_missing',
+			'success'      => false,
+			'error'        => 'extrachill_docs_abilities_api_missing',
 			'error_detail' => 'WordPress Abilities API is not available.',
 		);
 	}

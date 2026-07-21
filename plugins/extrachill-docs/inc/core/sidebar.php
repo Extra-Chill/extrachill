@@ -38,19 +38,22 @@ function extrachill_docs_generate_sidebar( $post_id ) {
 	}
 
 	// Build array of headers.
-	$headers = [];
+	$headers = array();
 	foreach ( $matches as $match ) {
-		$headers[] = [
+		$headers[] = array(
 			'id'   => $match[1],
 			'text' => wp_strip_all_tags( $match[2] ),
-		];
+		);
 	}
 
 	ob_start();
 	?>
 	<nav class="docs-toc sidebar-card" aria-label="Table of Contents">
 		<h3 class="docs-toc-title"><span>On This Page</span></h3>
-		<?php echo extrachill_docs_build_toc_list( $headers ); ?>
+		<?php
+		// extrachill_docs_build_toc_list() returns markup escaped per-field with esc_attr()/esc_html().
+		echo extrachill_docs_build_toc_list( $headers ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		?>
 	</nav>
 	<?php
 	return ob_get_clean();

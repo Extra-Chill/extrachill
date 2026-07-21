@@ -16,14 +16,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Add custom rewrite rules for ec_doc posts and ec_doc_platform taxonomy
  */
 function extrachill_docs_add_rewrite_rules() {
-	// Platform archive: /{platform-slug}/
+	// Platform archive: /{platform-slug}/.
 	add_rewrite_rule(
 		'^([^/]+)/?$',
 		'index.php?ec_doc_platform=$matches[1]',
 		'top'
 	);
 
-	// Single doc: /{platform-slug}/{doc-slug}/
+	// Single doc: /{platform-slug}/{doc-slug}/.
 	add_rewrite_rule(
 		'^([^/]+)/([^/]+)/?$',
 		'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]',
@@ -40,7 +40,7 @@ add_action( 'init', 'extrachill_docs_add_rewrite_rules', 20 );
  * @return string Modified permalink.
  */
 function extrachill_docs_post_type_link( $post_link, $post ) {
-	if ( $post->post_type !== 'ec_doc' ) {
+	if ( 'ec_doc' !== $post->post_type ) {
 		return $post_link;
 	}
 
@@ -63,7 +63,7 @@ add_filter( 'post_type_link', 'extrachill_docs_post_type_link', 10, 2 );
  * @return string Modified term link.
  */
 function extrachill_docs_term_link( $termlink, $term, $taxonomy ) {
-	if ( $taxonomy !== 'ec_doc_platform' ) {
+	if ( 'ec_doc_platform' !== $taxonomy ) {
 		return $termlink;
 	}
 

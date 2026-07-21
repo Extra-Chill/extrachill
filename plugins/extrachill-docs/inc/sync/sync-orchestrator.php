@@ -154,7 +154,8 @@ function extrachill_docs_load_platform_map(): array {
 		return array();
 	}
 
-	$yaml = file_get_contents( $path );
+	// Local plugin-bundled YAML read (not a remote URL); WP_Filesystem/wp_remote_get do not apply.
+	$yaml = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	if ( false === $yaml ) {
 		return array();
 	}
@@ -184,7 +185,7 @@ function extrachill_docs_load_platform_map(): array {
 			continue;
 		}
 
-		// Two-space-indented repo key: 'OWNER/REPO:'
+		// Two-space-indented repo key: 'OWNER/REPO:'.
 		if ( preg_match( '/^  ([^\s:][^:]*):\s*$/', $raw, $matches ) ) {
 			extrachill_docs_flush_platform_map_entry( $out, $current_repo, $current );
 			$current_repo = trim( $matches[1] );
@@ -192,7 +193,7 @@ function extrachill_docs_load_platform_map(): array {
 			continue;
 		}
 
-		// Four-space-indented field: '    key: "value"' or '    key: value'
+		// Four-space-indented field: '    key: "value"' or '    key: value'.
 		if ( null !== $current_repo && preg_match( '/^    ([a-z_]+):\s*"?([^"\n]*)"?\s*$/', $raw, $matches ) ) {
 			$key   = $matches[1];
 			$value = trim( $matches[2], " \t\"'" );

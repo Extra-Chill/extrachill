@@ -4,40 +4,45 @@
  * Progressive enhancement: highlights current section as user scrolls.
  * Works without JS (links still function), enhanced with JS.
  *
- * @package ExtraChillDocs
  * @since 0.3.0
  */
 (function () {
 	'use strict';
 
-	var toc = document.querySelector('.docs-toc');
-	if (!toc) return;
+	const toc = document.querySelector('.docs-toc');
+	if (!toc) {
+		return;
+	}
 
-	var links = Array.prototype.slice.call(toc.querySelectorAll('.docs-toc-link'));
-	if (!links.length) return;
+	const links = Array.prototype.slice.call(toc.querySelectorAll('.docs-toc-link'));
+	if (!links.length) {
+		return;
+	}
 
 	// Build array of sections with their elements.
-	var sections = links
+	const sections = links
 		.map(function (link) {
-			var id = link.getAttribute('href').slice(1);
-			var header = document.getElementById(id);
-			return { link: link, header: header };
+			const id = link.getAttribute('href').slice(1);
+			const header = document.getElementById(id);
+			return { link, header };
 		})
 		.filter(function (s) {
 			return s.header;
 		});
 
-	if (!sections.length) return;
+	if (!sections.length) {
+		return;
+	}
 
 	// Offset for fixed header.
-	var headerOffset = 80;
+	const headerOffset = 80;
 
 	function updateActiveLink() {
-		var scrollPos = window.scrollY + headerOffset;
+		const scrollPos = window.scrollY + headerOffset;
 
 		// Find current section (last one that's above scroll position).
-		var current = sections[0];
-		for (var i = 0; i < sections.length; i++) {
+		let current = sections[0];
+		for (let i = 0; i < sections.length; i++) {
 			if (sections[i].header.offsetTop <= scrollPos) {
 				current = sections[i];
 			} else {
@@ -55,11 +60,13 @@
 	}
 
 	// Throttled scroll handler.
-	var ticking = false;
+	let ticking = false;
 	function onScroll() {
-		if (ticking) return;
+		if (ticking) {
+			return;
+		}
 		ticking = true;
-		requestAnimationFrame(function () {
+		window.requestAnimationFrame(function () {
 			updateActiveLink();
 			ticking = false;
 		});
@@ -70,13 +77,13 @@
 	// Smooth scroll on click.
 	links.forEach(function (link) {
 		link.addEventListener('click', function (e) {
-			var id = link.getAttribute('href').slice(1);
-			var target = document.getElementById(id);
+			const id = link.getAttribute('href').slice(1);
+			const target = document.getElementById(id);
 			if (target) {
 				e.preventDefault();
-				var top = target.offsetTop - headerOffset + 10;
-				window.scrollTo({ top: top, behavior: 'smooth' });
-				history.pushState(null, '', '#' + id);
+				const top = target.offsetTop - headerOffset + 10;
+				window.scrollTo({ top, behavior: 'smooth' });
+				window.history.pushState(null, '', '#' + id);
 			}
 		});
 	});

@@ -1,8 +1,24 @@
 <?php
+/**
+ * WordPress REST API client for the standalone docs uploader.
+ *
+ * Standalone command-line helper loaded by scripts/upload.php OUTSIDE the
+ * WordPress runtime. WordPress HTTP/escaping helpers are unavailable, so the
+ * script talks to the REST API directly over cURL and surfaces failures as
+ * plain Exception messages (no browser output). The WordPress runtime sniffs
+ * below are disabled for this dev-only CLI helper:
+ *
+ *  - Security.EscapeOutput   : Exception messages are read from a terminal.
+ *  - WP.AlternativeFunctions : wp_remote_* / wp_json_encode are not loaded here.
+ *
+ * @package ExtraChillDocs
+ */
+
+// phpcs:disable WordPress.Security.EscapeOutput, WordPress.WP.AlternativeFunctions, WordPress.PHP.DiscouragedPHPFunctions
 
 /**
- * Class WordPressClient
- * 
+ * Class WordPressClient.
+ *
  * Handles low-level HTTP communication with the WordPress REST API.
  * Encapsulates authentication and cURL logic.
  */
@@ -27,8 +43,8 @@ class WordPressClient {
 	/**
 	 * Make an authenticated request to the WordPress API.
 	 *
-	 * @param string $method HTTP method (GET, POST, DELETE, etc.)
-	 * @param string $endpoint API endpoint (relative to site URL, e.g., '/wp-json/extrachill/v1/...')
+	 * @param string     $method HTTP method (GET, POST, DELETE, etc.)
+	 * @param string     $endpoint API endpoint (relative to site URL, e.g., '/wp-json/extrachill/v1/...')
 	 * @param array|null $data Optional data to send as JSON body
 	 * @return array Decoded JSON response
 	 * @throws Exception On cURL error or HTTP error status
@@ -37,16 +53,16 @@ class WordPressClient {
 		$url = $this->site_url . $endpoint;
 		$ch  = curl_init();
 
-		$headers = [
+		$headers = array(
 			$this->auth_header,
 			'Accept: application/json',
 			'Content-Type: application/json',
-		];
+		);
 
 		$json_data = null;
-		if ( $data !== null ) {
+		if ( null !== $data ) {
 			$json_data = json_encode( $data );
-			if ( $json_data === false ) {
+			if ( false === $json_data ) {
 				throw new Exception( 'Failed to encode JSON data: ' . json_last_error_msg() );
 			}
 			$headers[] = 'Content-Length: ' . strlen( $json_data );
@@ -54,17 +70,17 @@ class WordPressClient {
 
 		curl_setopt_array(
 			$ch,
-			[
+			array(
 				CURLOPT_URL            => $url,
 				CURLOPT_RETURNTRANSFER => true,
 				CURLOPT_CUSTOMREQUEST  => $method,
 				CURLOPT_HTTPHEADER     => $headers,
 				CURLOPT_SSL_VERIFYPEER => true,
 				CURLOPT_TIMEOUT        => 30,
-			]
+			)
 		);
 
-		if ( $json_data !== null ) {
+		if ( null !== $json_data ) {
 			curl_setopt( $ch, CURLOPT_POSTFIELDS, $json_data );
 		}
 
@@ -83,7 +99,7 @@ class WordPressClient {
 		}
 
 		$decoded = json_decode( $response, true );
-		if ( $decoded === null && json_last_error() !== JSON_ERROR_NONE ) {
+		if ( null === $decoded && JSON_ERROR_NONE !== json_last_error() ) {
 			throw new Exception( "Invalid JSON response. HTTP: {$http_code}" );
 		}
 

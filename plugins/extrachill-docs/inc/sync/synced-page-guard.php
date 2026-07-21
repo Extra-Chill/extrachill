@@ -97,7 +97,8 @@ function extrachill_docs_synced_page_admin_notice(): void {
 
 	$github_url = sprintf( 'https://github.com/%s/blob/main/%s', $source_repo, $source_path );
 
-	$can_override = current_user_can( 'override_synced_docs' );
+	// 'override_synced_docs' is a custom capability granted to docs editors; the sniff cannot see it.
+	$can_override = current_user_can( 'override_synced_docs' ); // phpcs:ignore WordPress.WP.Capabilities.Unknown
 
 	$message_class = $can_override ? 'notice-info' : 'notice-warning';
 	$prefix        = $can_override
@@ -114,6 +115,7 @@ function extrachill_docs_synced_page_admin_notice(): void {
 		esc_html( $prefix ),
 		esc_html( $suffix ),
 		esc_url( $github_url ),
+		/* translators: %s: source file path in the docs repository. */
 		esc_html( sprintf( __( 'Open %s on GitHub →', 'extrachill-docs' ), $source_path ) )
 	);
 }
