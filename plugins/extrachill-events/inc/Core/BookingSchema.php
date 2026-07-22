@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns and verifies the site-scoped private booking schema. */
 class BookingSchema {
 
-	public const SCHEMA_VERSION = '1';
+	public const SCHEMA_VERSION = '2';
 	public const VERSION_OPTION = 'extrachill_events_booking_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_booking_schema_error';
 
@@ -34,12 +34,19 @@ class BookingSchema {
 		return $wpdb->prefix . 'ec_booking_activity';
 	}
 
-	/** Create or repair both tables, stamping the version only after verification. */
+	/** Get the venue membership table for the current site. */
+	public static function memberships_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ec_venue_members';
+	}
+
+	/** Create or repair all tables, stamping the version only after verification. */
 	public static function install() {
 		global $wpdb;
 
 		$bookings = self::bookings_table();
 		$activity = self::activity_table();
+		$members  = self::memberships_table();
 		$charset  = $wpdb->get_charset_collate();
 
 		$bookings_sql = "CREATE TABLE {$bookings} (
@@ -95,6 +102,23 @@ class BookingSchema {
 			KEY channel_external (channel, external_id)
 		) ENGINE=InnoDB {$charset};";
 
+		$members_sql = "CREATE TABLE {$members} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			venue_term_id BIGINT UNSIGNED NOT NULL,
+			user_id BIGINT UNSIGNED NOT NULL,
+			role VARCHAR(32) NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'active',
+			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
+			created_by_user_id BIGINT UNSIGNED NOT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			revoked_at DATETIME NULL,
+			PRIMARY KEY (id),
+			UNIQUE KEY venue_user (venue_term_id, user_id),
+			KEY user_status_venue (user_id, status, venue_term_id),
+			KEY venue_status_role (venue_term_id, status, role)
+		) ENGINE=InnoDB {$charset};";
+
 		$repair = self::drop_conflicting_indexes();
 		if ( is_wp_error( $repair ) ) {
 			self::record_failure( $repair );
@@ -106,17 +130,26 @@ class BookingSchema {
 		$bookings_error = (string) $wpdb->last_error;
 		dbDelta( $activity_sql );
 		$activity_error = (string) $wpdb->last_error;
-		if ( '' !== $bookings_error || '' !== $activity_error ) {
+		dbDelta( $members_sql );
+		$members_error = (string) $wpdb->last_error;
+		if ( '' !== $bookings_error || '' !== $activity_error || '' !== $members_error ) {
 			$error = new \WP_Error(
 				'booking_schema_dbdelta_failed',
 				__( 'The booking schema could not be reconciled.', 'extrachill-events' ),
 				array(
 					'bookings_error' => $bookings_error,
 					'activity_error' => $activity_error,
+					'members_error'  => $members_error,
 				)
 			);
 			self::record_failure( $error );
 			return $error;
+		}
+
+		$engine_repair = self::repair_storage_engines();
+		if ( is_wp_error( $engine_repair ) ) {
+			self::record_failure( $engine_repair );
+			return $engine_repair;
 		}
 
 		$health = self::health();
@@ -138,6 +171,11 @@ class BookingSchema {
 		return self::install();
 	}
 
+	/** Check the cheap request-time readiness signal established by install. */
+	public static function is_ready(): bool {
+		return self::SCHEMA_VERSION === (string) get_option( self::VERSION_OPTION, '' );
+	}
+
 	/** Verify tables, column attributes, indexes, and uniqueness contracts. */
 	public static function health() {
 		global $wpdb;
@@ -150,6 +188,25 @@ class BookingSchema {
 			}
 			if ( $found !== $table ) {
 				return new \WP_Error( 'booking_schema_table_missing', __( 'A required booking table is missing.', 'extrachill-events' ), array( 'table' => $table ) );
+			}
+			if ( isset( $contract['engine'] ) ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Installation health cannot be cached.
+				$status = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS WHERE Name = %s', $table ), ARRAY_A );
+				if ( '' !== (string) $wpdb->last_error ) {
+					return self::database_error( __( 'Could not inspect the booking table engine.', 'extrachill-events' ), $table );
+				}
+				$engine = strtolower( (string) ( $status['Engine'] ?? '' ) );
+				if ( $contract['engine'] !== $engine ) {
+					return new \WP_Error(
+						'booking_schema_engine_invalid',
+						__( 'A booking table does not use the required transactional engine.', 'extrachill-events' ),
+						array(
+							'table'    => $table,
+							'expected' => $contract['engine'],
+							'actual'   => $engine,
+						)
+					);
+				}
 			}
 
 			$columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
@@ -260,6 +317,42 @@ class BookingSchema {
 		return true;
 	}
 
+	/** Convert required tables to their declared transactional engine. */
+	private static function repair_storage_engines() {
+		global $wpdb;
+
+		foreach ( self::contracts() as $table => $contract ) {
+			if ( ! isset( $contract['engine'] ) ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Installation repair cannot be cached.
+			$status = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS WHERE Name = %s', $table ), ARRAY_A );
+			if ( '' !== (string) $wpdb->last_error ) {
+				return self::database_error( __( 'Could not inspect the booking table engine for repair.', 'extrachill-events' ), $table );
+			}
+			if ( ! is_array( $status ) ) {
+				continue;
+			}
+			if ( strtolower( (string) ( $status['Engine'] ?? '' ) ) === $contract['engine'] ) {
+				continue;
+			}
+			$engine = strtoupper( $contract['engine'] );
+			$result = $wpdb->query( "ALTER TABLE `{$table}` ENGINE={$engine}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Table and engine come from the private schema contract.
+			if ( false === $result ) {
+				return new \WP_Error(
+					'booking_schema_engine_repair_failed',
+					__( 'A booking table could not be converted to its required transactional engine.', 'extrachill-events' ),
+					array(
+						'table'          => $table,
+						'engine'         => $contract['engine'],
+						'database_error' => $wpdb->last_error,
+					)
+				);
+			}
+		}
+		return true;
+	}
+
 	/** Return the final initial schema contract shared by health and repair. */
 	private static function contracts(): array {
 		$required = static function ( string $type, bool $nullable, array $attributes = array() ): array {
@@ -272,7 +365,7 @@ class BookingSchema {
 			);
 		};
 		return array(
-			self::bookings_table() => array(
+			self::bookings_table()    => array(
 				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
 					'public_id'          => $required( 'char(36)', false ),
@@ -335,7 +428,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::activity_table() => array(
+			self::activity_table()    => array(
 				'columns' => array(
 					'id'              => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
 					'booking_id'      => $required( 'bigint unsigned', false ),
@@ -370,6 +463,39 @@ class BookingSchema {
 					'channel_external'    => array(
 						'unique'  => false,
 						'columns' => array( 'channel', 'external_id' ),
+					),
+				),
+			),
+			self::memberships_table() => array(
+				'engine'  => 'innodb',
+				'columns' => array(
+					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
+					'venue_term_id'      => $required( 'bigint unsigned', false ),
+					'user_id'            => $required( 'bigint unsigned', false ),
+					'role'               => $required( 'varchar(32)', false ),
+					'status'             => $required( 'varchar(20)', false, array( 'default' => 'active' ) ),
+					'version'            => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
+					'created_by_user_id' => $required( 'bigint unsigned', false ),
+					'created_at'         => $required( 'datetime', false ),
+					'updated_at'         => $required( 'datetime', false ),
+					'revoked_at'         => $required( 'datetime', true ),
+				),
+				'indexes' => array(
+					'PRIMARY'           => array(
+						'unique'  => true,
+						'columns' => array( 'id' ),
+					),
+					'venue_user'        => array(
+						'unique'  => true,
+						'columns' => array( 'venue_term_id', 'user_id' ),
+					),
+					'user_status_venue' => array(
+						'unique'  => false,
+						'columns' => array( 'user_id', 'status', 'venue_term_id' ),
+					),
+					'venue_status_role' => array(
+						'unique'  => false,
+						'columns' => array( 'venue_term_id', 'status', 'role' ),
 					),
 				),
 			),

@@ -236,6 +236,9 @@ class ExtraChillEvents {
 		// init_abilities(); the admin screen instantiates in init_admin().
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistUrlSubmissionsTable.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingSchema.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipRepository.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueAuthorization.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingActivityRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueBookingConfig.php';
@@ -319,6 +322,11 @@ class ExtraChillEvents {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/LocationEventAbilities.php';
 		new \ExtraChillEvents\Abilities\LocationEventAbilities();
+
+		if ( \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
+			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueMembershipAbilities.php';
+			new \ExtraChillEvents\Abilities\VenueMembershipAbilities();
+		}
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/PriorityVenueAbilities.php';
 		new \ExtraChillEvents\Abilities\PriorityVenueAbilities();

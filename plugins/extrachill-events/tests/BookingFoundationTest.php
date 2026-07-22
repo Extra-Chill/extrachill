@@ -149,6 +149,7 @@ final class BookingWpdb {
 	public $last_error              = '';
 	public $rows                    = array();
 	public $schemas                 = array();
+	public $engines                 = array();
 	public $schema_omit             = array();
 	public $schema_queries          = 0;
 	public $dropped_indexes         = array();
@@ -156,6 +157,7 @@ final class BookingWpdb {
 	public $fail_activity_reads     = false;
 	public $fail_inserts            = false;
 	public $fail_updates            = false;
+	public $fail_engine_repair      = false;
 	public $race_activity_insert    = false;
 	public $race_activity_read_fail = false;
 	public $race_event_read_fail    = false;
@@ -183,6 +185,7 @@ final class BookingWpdb {
 		if ( ! preg_match( '/CREATE TABLE ([^\s(]+)/', $sql, $match ) ) {
 			return; }
 		$table                   = $match[1];
+		$this->engines[ $table ] = $this->engines[ $table ] ?? ( preg_match( '/ENGINE=([a-zA-Z0-9_]+)/', $sql, $engine ) ? $engine[1] : '' );
 		$this->schemas[ $table ] = $this->schemas[ $table ] ?? array(
 			'columns' => array(),
 			'indexes' => array(),
@@ -258,6 +261,10 @@ final class BookingWpdb {
 		unset( $output );
 		$this->last_query = $query;
 		$this->last_error = '';
+		if ( preg_match( "/SHOW TABLE STATUS WHERE Name = '([^']+)'/", $query, $match ) ) {
+			$table = stripslashes( $match[1] );
+			return isset( $this->engines[ $table ] ) ? array( 'Engine' => $this->engines[ $table ] ) : null;
+		}
 		$is_activity      = false !== strpos( $query, 'ec_booking_activity' );
 		if ( null !== $this->reads_before_failure ) {
 			if ( 0 === $this->reads_before_failure ) {
@@ -380,6 +387,14 @@ final class BookingWpdb {
 	public function query( $query ) {
 		$this->last_query = $query;
 		$this->last_error = '';
+		if ( preg_match( '/ALTER TABLE `([^`]+)` ENGINE=([a-zA-Z0-9_]+)/', $query, $engine ) ) {
+			if ( $this->fail_engine_repair ) {
+				$this->last_error = 'simulated engine conversion failure';
+				return false;
+			}
+			$this->engines[ $engine[1] ] = $engine[2];
+			return 1;
+		}
 		if ( preg_match( '/ALTER TABLE `([^`]+)` DROP (?:INDEX `([^`]+)`|PRIMARY KEY)/', $query, $drop ) ) {
 			$name = ! empty( $drop[2] ) ? $drop[2] : 'PRIMARY';
 			unset( $this->schemas[ $drop[1] ]['indexes'][ $name ] );
@@ -535,6 +550,7 @@ final class BookingFoundationTest extends TestCase {
 
 		$GLOBALS['wpdb']->prefix = 'wp_12_';
 		$this->assertSame( 'wp_12_ec_bookings', BookingSchema::bookings_table() );
+		$this->assertSame( 'wp_12_ec_venue_members', BookingSchema::memberships_table() );
 		$this->assertSame( 'booking_schema_table_missing', BookingSchema::health()->get_error_code() );
 	}
 
@@ -564,9 +580,11 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertTrue( BookingSchema::install() );
 		$bookings = 'wp_7_ec_bookings';
 		$activity = 'wp_7_ec_booking_activity';
+		$members  = 'wp_7_ec_venue_members';
 		$GLOBALS['wpdb']->schemas[ $bookings ]['indexes']['PRIMARY']['columns']             = array( 'id', 'public_id' );
 		$GLOBALS['wpdb']->schemas[ $bookings ]['indexes']['public_id']['unique']            = false;
 		$GLOBALS['wpdb']->schemas[ $activity ]['indexes']['booking_idempotency']['columns'] = array( 'idempotency_key' );
+		$GLOBALS['wpdb']->schemas[ $members ]['indexes']['venue_user']['unique']            = false;
 		$GLOBALS['wpdb']->schemas[ $activity ]['indexes']['operator_extra']                 = array(
 			'unique'  => false,
 			'columns' => array( 'created_at' ),
@@ -579,6 +597,7 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertSame( array( 'id' ), $GLOBALS['wpdb']->schemas[ $bookings ]['indexes']['PRIMARY']['columns'] );
 		$this->assertTrue( $GLOBALS['wpdb']->schemas[ $bookings ]['indexes']['public_id']['unique'] );
 		$this->assertSame( array( 'booking_id', 'idempotency_key' ), $GLOBALS['wpdb']->schemas[ $activity ]['indexes']['booking_idempotency']['columns'] );
+		$this->assertTrue( $GLOBALS['wpdb']->schemas[ $members ]['indexes']['venue_user']['unique'] );
 		$this->assertArrayHasKey( 'operator_extra', $GLOBALS['wpdb']->schemas[ $activity ]['indexes'] );
 		$this->assertSame(
 			array(
@@ -594,6 +613,10 @@ final class BookingFoundationTest extends TestCase {
 					'table' => $activity,
 					'index' => 'booking_idempotency',
 				),
+				array(
+					'table' => $members,
+					'index' => 'venue_user',
+				),
 			),
 			$GLOBALS['wpdb']->dropped_indexes
 		);
@@ -606,6 +629,22 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertTrue( BookingSchema::maybe_install() );
 		$this->assertSame( 0, $GLOBALS['wpdb']->schema_queries );
 		$this->assertSame( array(), $GLOBALS['ec_artist_test']['dbdelta'] );
+	}
+
+	public function test_membership_table_engine_is_repaired_before_version_stamp(): void {
+		$this->assertTrue( BookingSchema::install() );
+		$table = BookingSchema::memberships_table();
+		$GLOBALS['wpdb']->engines[ $table ] = 'MyISAM';
+		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '';
+		$this->assertTrue( BookingSchema::maybe_install() );
+		$this->assertSame( 'INNODB', strtoupper( $GLOBALS['wpdb']->engines[ $table ] ) );
+
+		$GLOBALS['wpdb']->engines[ $table ]                                  = 'MyISAM';
+		$GLOBALS['wpdb']->fail_engine_repair                                  = true;
+		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '';
+		$result = BookingSchema::maybe_install();
+		$this->assertSame( 'booking_schema_engine_repair_failed', $result->get_error_code() );
+		$this->assertSame( '', get_option( BookingSchema::VERSION_OPTION, '' ) );
 	}
 
 	public function test_missing_unique_index_and_schema_read_errors_remain_retryable(): void {
