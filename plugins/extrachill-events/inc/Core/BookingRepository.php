@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class BookingRepository {
 
 	private const PAYLOAD_VERSION = 1;
+	public const STATUSES         = array( 'submitted', 'needs_info', 'under_review', 'negotiating', 'held', 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed' );
 
 	/** Create a booking without an event handoff. */
 	public function create( array $data ) {
@@ -70,40 +71,56 @@ class BookingRepository {
 			}
 		}
 
-		$status = $this->status( $data['status'] ?? 'inquiry' );
-		if ( is_wp_error( $status ) ) {
-			return $status;
+		$request_hash = $this->request_hash( $data['inquiry_request_hash'] ?? null );
+		if ( is_wp_error( $request_hash ) ) {
+			return $request_hash;
 		}
-
 		$now = gmdate( 'Y-m-d H:i:s' );
 		$row = array(
-			'public_id'          => wp_generate_uuid4(),
-			'venue_term_id'      => $venue_term_id,
-			'artist_term_id'     => $identity['artist_term_id'],
-			'artist_profile_id'  => $identity['artist_profile_id'],
-			'artist_name'        => $artist_name,
-			'submitter_user_id'  => $ids['submitter_user_id'],
-			'contact_name'       => $this->nullable_text( $data['contact_name'] ?? null, 255 ),
-			'contact_email'      => $this->nullable_email( $data['contact_email'] ?? null ),
-			'contact_phone'      => $this->nullable_text( $data['contact_phone'] ?? null, 64 ),
-			'space_key'          => $this->nullable_key( $data['space_key'] ?? null, 64 ),
-			'status'             => $status,
-			'version'            => 1,
-			'assignee_user_id'   => $ids['assignee_user_id'],
-			'requested_start_at' => $start,
-			'requested_end_at'   => $end,
-			'intake_payload'     => $intake,
-			'deal_payload'       => $deal,
-			'event_id'           => null,
-			'created_at'         => $now,
-			'updated_at'         => $now,
+			'public_id'               => wp_generate_uuid4(),
+			'venue_term_id'           => $venue_term_id,
+			'artist_term_id'          => $identity['artist_term_id'],
+			'artist_profile_id'       => $identity['artist_profile_id'],
+			'artist_name'             => $artist_name,
+			'submitter_user_id'       => $ids['submitter_user_id'],
+			'contact_name'            => $this->nullable_text( $data['contact_name'] ?? null, 255 ),
+			'contact_email'           => $this->nullable_email( $data['contact_email'] ?? null ),
+			'contact_phone'           => $this->nullable_text( $data['contact_phone'] ?? null, 64 ),
+			'inquiry_idempotency_key' => $this->nullable_text( $data['inquiry_idempotency_key'] ?? null, 191 ),
+			'inquiry_request_hash'    => $request_hash,
+			'space_key'               => $this->nullable_key( $data['space_key'] ?? null, 64 ),
+			'status'                  => 'submitted',
+			'version'                 => 1,
+			'assignee_user_id'        => $ids['assignee_user_id'],
+			'requested_start_at'      => $start,
+			'requested_end_at'        => $end,
+			'intake_payload'          => $intake,
+			'deal_payload'            => $deal,
+			'event_id'                => null,
+			'created_at'              => $now,
+			'updated_at'              => $now,
 		);
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private operational table write.
 		if ( false === $wpdb->insert( BookingSchema::bookings_table(), $row ) ) {
-			return new \WP_Error( 'booking_create_failed', __( 'The booking could not be created.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			$database_error = $wpdb->last_error;
+			if ( null !== $row['inquiry_idempotency_key'] ) {
+				return new \WP_Error( 'booking_idempotent_insert_failed', __( 'The idempotent inquiry insert failed.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
+			}
+			return new \WP_Error( 'booking_create_failed', __( 'The booking could not be created.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
 		}
 		return $this->get( (int) $wpdb->insert_id );
+	}
+
+	/** Find a retried inquiry by its venue-scoped key. */
+	public function find_inquiry( int $venue_term_id, string $idempotency_key ) {
+		global $wpdb;
+		$table = BookingSchema::bookings_table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d AND inquiry_idempotency_key = %s LIMIT 1", $venue_term_id, $idempotency_key ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_read_failed', __( 'The booking could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
 
 	/** Get a booking by numeric ID or UUID public reference. */
@@ -217,9 +234,12 @@ class BookingRepository {
 			}
 			$changes['artist_term_id']    = $identity['artist_term_id'];
 			$changes['artist_profile_id'] = $identity['artist_profile_id'];
+			if ( '' !== $identity['artist_name'] ) {
+				$changes['artist_name'] = $identity['artist_name'];
+			}
 		}
 
-		$allowed = array( 'artist_term_id', 'artist_profile_id', 'artist_name', 'contact_name', 'contact_email', 'contact_phone', 'space_key', 'status', 'assignee_user_id', 'requested_start_at', 'requested_end_at', 'intake', 'deal' );
+		$allowed = array( 'artist_term_id', 'artist_profile_id', 'artist_name', 'contact_name', 'contact_email', 'contact_phone', 'space_key', 'assignee_user_id', 'requested_start_at', 'requested_end_at', 'intake', 'deal' );
 		$changes = array_intersect_key( $changes, array_flip( $allowed ) );
 		if ( empty( $changes ) ) {
 			return new \WP_Error( 'empty_booking_update', __( 'No supported booking fields were supplied.', 'extrachill-events' ) );
@@ -243,8 +263,6 @@ class BookingRepository {
 				$value = $this->nullable_text( $value, 64 );
 			} elseif ( 'space_key' === $key ) {
 				$value = $this->nullable_key( $value, 64 );
-			} elseif ( 'status' === $key ) {
-				$value = $this->status( $value );
 			}
 			if ( is_wp_error( $value ) ) {
 				return $value;
@@ -449,6 +467,11 @@ class BookingRepository {
 
 	/** Hydrate scalar IDs and validated JSON envelopes. */
 	public function hydrate( array $row ) {
+		$status = $this->status( $row['status'] ?? '' );
+		if ( is_wp_error( $status ) ) {
+			return $status;
+		}
+		$row['status'] = $status;
 		foreach ( array( 'id', 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'submitter_user_id', 'version', 'assignee_user_id', 'event_id' ) as $key ) {
 			$row[ $key ] = isset( $row[ $key ] ) ? (int) $row[ $key ] : null;
 		}
@@ -524,9 +547,17 @@ class BookingRepository {
 		return '' === $value ? null : $value;
 	}
 
+	private function request_hash( $value ) {
+		if ( null === $value || '' === $value ) {
+			return null;
+		}
+		$value = strtolower( (string) $value );
+		return preg_match( '/^[a-f0-9]{64}$/', $value ) ? $value : new \WP_Error( 'invalid_booking_request_hash', __( 'The booking request fingerprint is invalid.', 'extrachill-events' ) );
+	}
+
 	private function status( $value ) {
 		$value = mb_substr( sanitize_key( (string) $value ), 0, 32 );
-		return '' === $value ? new \WP_Error( 'invalid_booking_status', __( 'A valid booking status is required.', 'extrachill-events' ) ) : $value;
+		return in_array( $value, self::STATUSES, true ) ? $value : new \WP_Error( 'invalid_booking_status', __( 'The booking status is not supported.', 'extrachill-events' ) );
 	}
 
 	private function datetime( $value, string $field ) {

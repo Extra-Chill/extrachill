@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns and verifies the site-scoped private booking schema. */
 class BookingSchema {
 
-	public const SCHEMA_VERSION = '3';
+	public const SCHEMA_VERSION = '4';
 	public const VERSION_OPTION = 'extrachill_events_booking_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_booking_schema_error';
 
@@ -60,8 +60,10 @@ class BookingSchema {
 			contact_name VARCHAR(255) NULL,
 			contact_email VARCHAR(255) NULL,
 			contact_phone VARCHAR(64) NULL,
+			inquiry_idempotency_key VARCHAR(191) NULL,
+			inquiry_request_hash CHAR(64) NULL,
 			space_key VARCHAR(64) NULL,
-			status VARCHAR(32) NOT NULL DEFAULT 'inquiry',
+			status VARCHAR(32) NOT NULL DEFAULT 'submitted',
 			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
 			assignee_user_id BIGINT UNSIGNED NULL,
 			requested_start_at DATETIME NULL,
@@ -74,6 +76,7 @@ class BookingSchema {
 			PRIMARY KEY (id),
 			UNIQUE KEY public_id (public_id),
 			UNIQUE KEY event_id (event_id),
+			UNIQUE KEY venue_inquiry_idempotency (venue_term_id, inquiry_idempotency_key),
 			KEY venue_status_created (venue_term_id, status, created_at),
 			KEY venue_requested_start (venue_term_id, requested_start_at),
 			KEY artist_term_created (artist_term_id, created_at),
@@ -415,69 +418,77 @@ class BookingSchema {
 		};
 		return array(
 			self::bookings_table()    => array(
+				'engine'  => 'innodb',
 				'columns' => array(
-					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
-					'public_id'          => $required( 'char(36)', false ),
-					'venue_term_id'      => $required( 'bigint unsigned', false ),
-					'artist_term_id'     => $required( 'bigint unsigned', true ),
-					'artist_profile_id'  => $required( 'bigint unsigned', true ),
-					'artist_name'        => $required( 'varchar(255)', false ),
-					'submitter_user_id'  => $required( 'bigint unsigned', true ),
-					'contact_name'       => $required( 'varchar(255)', true ),
-					'contact_email'      => $required( 'varchar(255)', true ),
-					'contact_phone'      => $required( 'varchar(64)', true ),
-					'space_key'          => $required( 'varchar(64)', true ),
-					'status'             => $required( 'varchar(32)', false, array( 'default' => 'inquiry' ) ),
-					'version'            => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
-					'assignee_user_id'   => $required( 'bigint unsigned', true ),
-					'requested_start_at' => $required( 'datetime', true ),
-					'requested_end_at'   => $required( 'datetime', true ),
-					'intake_payload'     => $required( 'longtext', false ),
-					'deal_payload'       => $required( 'longtext', true ),
-					'event_id'           => $required( 'bigint unsigned', true ),
-					'created_at'         => $required( 'datetime', false ),
-					'updated_at'         => $required( 'datetime', false ),
+					'id'                      => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
+					'public_id'               => $required( 'char(36)', false ),
+					'venue_term_id'           => $required( 'bigint unsigned', false ),
+					'artist_term_id'          => $required( 'bigint unsigned', true ),
+					'artist_profile_id'       => $required( 'bigint unsigned', true ),
+					'artist_name'             => $required( 'varchar(255)', false ),
+					'submitter_user_id'       => $required( 'bigint unsigned', true ),
+					'contact_name'            => $required( 'varchar(255)', true ),
+					'contact_email'           => $required( 'varchar(255)', true ),
+					'contact_phone'           => $required( 'varchar(64)', true ),
+					'inquiry_idempotency_key' => $required( 'varchar(191)', true ),
+					'inquiry_request_hash'    => $required( 'char(64)', true ),
+					'space_key'               => $required( 'varchar(64)', true ),
+					'status'                  => $required( 'varchar(32)', false, array( 'default' => 'submitted' ) ),
+					'version'                 => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
+					'assignee_user_id'        => $required( 'bigint unsigned', true ),
+					'requested_start_at'      => $required( 'datetime', true ),
+					'requested_end_at'        => $required( 'datetime', true ),
+					'intake_payload'          => $required( 'longtext', false ),
+					'deal_payload'            => $required( 'longtext', true ),
+					'event_id'                => $required( 'bigint unsigned', true ),
+					'created_at'              => $required( 'datetime', false ),
+					'updated_at'              => $required( 'datetime', false ),
 				),
 				'indexes' => array(
-					'PRIMARY'                => array(
+					'PRIMARY'                   => array(
 						'unique'  => true,
 						'columns' => array( 'id' ),
 					),
-					'public_id'              => array(
+					'public_id'                 => array(
 						'unique'  => true,
 						'columns' => array( 'public_id' ),
 					),
-					'event_id'               => array(
+					'event_id'                  => array(
 						'unique'  => true,
 						'columns' => array( 'event_id' ),
 					),
-					'venue_status_created'   => array(
+					'venue_inquiry_idempotency' => array(
+						'unique'  => true,
+						'columns' => array( 'venue_term_id', 'inquiry_idempotency_key' ),
+					),
+					'venue_status_created'      => array(
 						'unique'  => false,
 						'columns' => array( 'venue_term_id', 'status', 'created_at' ),
 					),
-					'venue_requested_start'  => array(
+					'venue_requested_start'     => array(
 						'unique'  => false,
 						'columns' => array( 'venue_term_id', 'requested_start_at' ),
 					),
-					'artist_term_created'    => array(
+					'artist_term_created'       => array(
 						'unique'  => false,
 						'columns' => array( 'artist_term_id', 'created_at' ),
 					),
-					'artist_profile_created' => array(
+					'artist_profile_created'    => array(
 						'unique'  => false,
 						'columns' => array( 'artist_profile_id', 'created_at' ),
 					),
-					'assignee_status'        => array(
+					'assignee_status'           => array(
 						'unique'  => false,
 						'columns' => array( 'assignee_user_id', 'status' ),
 					),
-					'status_updated'         => array(
+					'status_updated'            => array(
 						'unique'  => false,
 						'columns' => array( 'status', 'updated_at' ),
 					),
 				),
 			),
 			self::activity_table()    => array(
+				'engine'  => 'innodb',
 				'columns' => array(
 					'id'              => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
 					'booking_id'      => $required( 'bigint unsigned', false ),
