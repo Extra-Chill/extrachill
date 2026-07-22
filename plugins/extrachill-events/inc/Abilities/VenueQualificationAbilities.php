@@ -127,7 +127,6 @@ class VenueQualificationAbilities {
 					'category'            => 'extrachill-events',
 					'input_schema'        => array(
 						'type'       => 'object',
-						'required'   => array( 'url' ),
 						'properties' => array(
 							'url'  => array(
 								'type'        => 'string',
@@ -136,6 +135,15 @@ class VenueQualificationAbilities {
 							'name' => array(
 								'type'        => 'string',
 								'description' => 'Venue name (optional, for display).',
+							),
+							'flow_id' => array(
+								'type'        => 'integer',
+								'description' => 'Existing flow whose persisted scraper config and lifecycle scope must be diagnosed.',
+							),
+							'persist_verdict' => array(
+								'type'        => 'boolean',
+								'description' => 'Whether to persist the qualification verdict. Defaults to true; dry-run callers pass false.',
+								'default'     => true,
 							),
 						),
 					),
@@ -151,6 +159,8 @@ class VenueQualificationAbilities {
 							'improvement_hint' => array( 'type' => 'string' ),
 							'agent_guidance'   => array( 'type' => 'string' ),
 							'warnings'         => array( 'type' => 'array' ),
+							'production_context' => array( 'type' => 'object' ),
+							'repair_proposal'    => array( 'type' => array( 'object', 'null' ) ),
 						),
 					),
 					'execute_callback'    => array( $this, 'executeQualifyVenue' ),
@@ -177,8 +187,18 @@ class VenueQualificationAbilities {
 	 * @return array Results.
 	 */
 	public function executeQualifyVenue( array $input ): array|\WP_Error {
-		$url  = esc_url_raw( $input['url'] ?? '' );
-		$name = sanitize_text_field( $input['name'] ?? '' );
+		$url             = esc_url_raw( $input['url'] ?? '' );
+		$name            = sanitize_text_field( $input['name'] ?? '' );
+		$flow_context    = null;
+		$persist_verdict = ! array_key_exists( 'persist_verdict', $input ) || ! empty( $input['persist_verdict'] );
+
+		if ( ! empty( $input['flow_id'] ) ) {
+			$flow_context = $this->loadPersistedFlowContext( (int) $input['flow_id'] );
+			if ( is_wp_error( $flow_context ) ) {
+				return $flow_context;
+			}
+			$url = esc_url_raw( $flow_context['handler_config']['source_url'] ?? '' );
+		}
 
 		if ( empty( $url ) ) {
 			return new \WP_Error( 'missing_url', 'URL is required.', array( 'status' => 400 ) );
@@ -211,6 +231,17 @@ class VenueQualificationAbilities {
 			),
 			'urls_tested'           => array(),
 			'elapsed_ms'            => 0,
+			'production_context'    => null === $flow_context
+				? array(
+					'context_supplied' => false,
+					'reason'           => 'Ad-hoc URL mode has no persisted production flow context.',
+				)
+				: array(
+					'context_supplied' => true,
+					'flow_id'          => (int) $flow_context['flow_id'],
+					'flow_step_id'     => (string) $flow_context['flow_step_id'],
+					'job_id'           => (string) $flow_context['job_id'],
+				),
 		);
 
 		// ---- Ticketmaster precheck (short-circuits everything else). ----
@@ -221,7 +252,7 @@ class VenueQualificationAbilities {
 				'matched'      => (string) ( $tm_check['matched'] ?? '' ),
 			);
 			$fingerprint['elapsed_ms']            = (int) round( ( microtime( true ) - $started_at ) * 1000 );
-			return $this->finalize_and_persist( $url, $name, 'ticketmaster_precheck', $fingerprint );
+			return $this->finalize_and_persist( $url, $name, 'ticketmaster_precheck', $fingerprint, $persist_verdict );
 		}
 
 		// ---- Fetch the homepage once and capture status/redirects/HTML. ----
@@ -275,7 +306,15 @@ class VenueQualificationAbilities {
 				}
 				$urls_tested[] = $candidate['url'];
 
-				$attempt = QualifyFingerprinter::run_extractor_attempt( $candidate['url'] );
+				$attempt = QualifyFingerprinter::run_extractor_attempt(
+					$candidate['url'],
+					null !== $flow_context ? $flow_context['handler_config'] : null
+				);
+				if ( null !== $flow_context && $candidate['url'] === $url ) {
+					$attempt                          = QualifyFingerprinter::add_production_eligibility( $attempt, $flow_context );
+					$fingerprint['production_context'] = $attempt['production_context'];
+				}
+				unset( $attempt['_diagnostic_identifiers'] );
 				if ( ! empty( $attempt['ran'] ) ) {
 					$ran_any = true;
 				}
@@ -306,7 +345,61 @@ class VenueQualificationAbilities {
 		$fingerprint['elapsed_ms'] = (int) round( ( microtime( true ) - $started_at ) * 1000 );
 
 		$method = '' !== $short_circuit_method ? $short_circuit_method : $this->resolve_method_from_attempts( $fingerprint['extractor_attempts'] );
-		return $this->finalize_and_persist( $url, $name, $method, $fingerprint );
+		return $this->finalize_and_persist( $url, $name, $method, $fingerprint, $persist_verdict );
+	}
+
+	/**
+	 * Load the persisted universal web scraper step and its lifecycle scope.
+	 *
+	 * @param int $flow_id Flow ID.
+	 * @return array|\WP_Error Flow context or an error.
+	 */
+	protected function loadPersistedFlowContext( int $flow_id ): array|\WP_Error {
+		if ( ! class_exists( '\\DataMachine\\Core\\Database\\Flows\\Flows' ) ) {
+			return new \WP_Error( 'flow_context_unavailable', 'Data Machine flow storage is unavailable.' );
+		}
+
+		$flow = ( new \DataMachine\Core\Database\Flows\Flows() )->get_flow( $flow_id );
+		if ( ! is_array( $flow ) ) {
+			return new \WP_Error( 'flow_not_found', sprintf( 'Flow %d was not found.', $flow_id ) );
+		}
+
+		foreach ( (array) ( $flow['flow_config'] ?? array() ) as $step ) {
+			if ( ! is_array( $step ) || 'event_import' !== ( $step['step_type'] ?? '' ) ) {
+				continue;
+			}
+
+			$handler_config = null;
+			if ( 'universal_web_scraper' === ( $step['handler_slug'] ?? '' ) ) {
+				$handler_config = $step['handler_config'] ?? null;
+			} elseif ( isset( $step['handler_configs']['universal_web_scraper'] ) ) {
+				$handler_config = $step['handler_configs']['universal_web_scraper'];
+			}
+			if ( ! is_array( $handler_config ) || empty( $handler_config['source_url'] ) ) {
+				continue;
+			}
+
+			global $wpdb;
+			$jobs_table = $wpdb->prefix . 'datamachine_jobs';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$job_id = $wpdb->get_var(
+				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+					"SELECT job_id FROM {$jobs_table} WHERE flow_id = %s ORDER BY created_at DESC LIMIT 1",
+					(string) $flow_id
+				)
+			);
+
+			return array(
+				'flow_id'        => $flow_id,
+				'pipeline_id'    => (int) ( $step['pipeline_id'] ?? 0 ),
+				'flow_step_id'   => (string) ( $step['flow_step_id'] ?? '' ),
+				'job_id'         => (string) $job_id,
+				'handler_config' => $handler_config,
+			);
+		}
+
+		return new \WP_Error( 'flow_context_missing', sprintf( 'Flow %d has no configured universal web scraper step.', $flow_id ) );
 	}
 
 	/**
@@ -387,14 +480,14 @@ class VenueQualificationAbilities {
 	/**
 	 * Resolve the verdict, persist the row, and return the ability payload.
 	 */
-	private function finalize_and_persist( string $url, string $name, string $method, array $fingerprint ): array {
+	private function finalize_and_persist( string $url, string $name, string $method, array $fingerprint, bool $persist_verdict = true ): array {
 		$resolved = QualifyVerdictResolver::resolve( $fingerprint );
 
 		$qualifier_version = defined( 'EXTRACHILL_EVENTS_VERSION' ) ? (string) EXTRACHILL_EVENTS_VERSION : '';
 
 		// Persist — fire-and-forget. The verdict log is best-effort; a missing
 		// table should not break qualify for callers.
-		if ( class_exists( '\\ExtraChillEvents\\Core\\QualifyVerdictsTable' ) && QualifyVerdictsTable::table_exists() ) {
+		if ( $persist_verdict && class_exists( '\\ExtraChillEvents\\Core\\QualifyVerdictsTable' ) && QualifyVerdictsTable::table_exists() ) {
 			QualifyVerdictsTable::insert(
 				array(
 					'url'               => $url,
@@ -418,6 +511,21 @@ class VenueQualificationAbilities {
 			$warnings[] = $resolved['improvement_hint'];
 		}
 
+		$repair_proposal = null;
+		$events_url      = (string) ( $resolved['events_url'] ?? '' );
+		if ( ! empty( $fingerprint['production_context']['context_supplied'] )
+			&& '' !== $events_url
+			&& untrailingslashit( $events_url ) !== untrailingslashit( $url ) ) {
+			$repair_proposal = array(
+				'type'            => 'source_url',
+				'current'         => $url,
+				'proposed'        => $events_url,
+				'same_host'       => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ) === strtolower( (string) wp_parse_url( $events_url, PHP_URL_HOST ) ),
+				'applied'         => false,
+				'confirmation'    => 'A separate explicit apply with confirmation is required.',
+			);
+		}
+
 		return array(
 			'qualified'        => QualifyVerdict::is_qualified( $resolved['verdict'] ),
 			'verdict'          => $resolved['verdict'],
@@ -430,6 +538,8 @@ class VenueQualificationAbilities {
 			'agent_guidance'   => $resolved['agent_guidance'],
 			'warnings'         => $warnings,
 			'urls_tested'      => isset( $fingerprint['urls_tested'] ) ? $fingerprint['urls_tested'] : array(),
+			'production_context' => $fingerprint['production_context'] ?? array(),
+			'repair_proposal'    => $repair_proposal,
 		);
 	}
 

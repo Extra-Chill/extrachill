@@ -59,7 +59,15 @@ class UnqualifiableFlowsCommand {
 	 * venue is dead. Requires --auto-pause.
 	 *
 	 * [--dry-run]
-	 * : List candidate flows but do not run qualify or pause anything.
+	 * : Run bounded qualification diagnostics without persisting verdicts,
+	 * pausing flows, or applying repair proposals.
+	 *
+	 * [--apply-repair]
+	 * : Apply same-host source_url repair proposals. Requires --yes and cannot
+	 * be combined with --dry-run.
+	 *
+	 * [--yes]
+	 * : Confirm source_url repairs requested with --apply-repair.
 	 *
 	 * [--limit=<n>]
 	 * : Maximum flows to audit.
@@ -96,8 +104,15 @@ class UnqualifiableFlowsCommand {
 		$auto            = ! empty( $assoc_args['auto-pause'] );
 		$force           = ! empty( $assoc_args['force'] );
 		$dry_run         = ! empty( $assoc_args['dry-run'] );
+		$apply_repair    = ! empty( $assoc_args['apply-repair'] );
+		$confirmed       = ! empty( $assoc_args['yes'] );
 		$limit           = max( 1, (int) ( $assoc_args['limit'] ?? 200 ) );
 		$format          = $assoc_args['format'] ?? 'table';
+
+		if ( $apply_repair && ( $dry_run || ! $confirmed ) ) {
+			\WP_CLI::error( '--apply-repair requires --yes and cannot be combined with --dry-run.' );
+			return;
+		}
 
 		// Network option lets operators disable confirmation globally
 		// (restores pre-v0.21 "pause on first failing verdict" behavior).
@@ -160,17 +175,6 @@ class UnqualifiableFlowsCommand {
 
 		\WP_CLI::log( sprintf( 'Auditing %d zero-yield flow(s)%s.', count( $candidates ), $dry_run ? ' (dry run)' : '' ) );
 
-		if ( $dry_run ) {
-			\WP_CLI\Utils\format_items(
-				$format,
-				$candidates,
-				array( 'flow_id', 'flow_name', 'source_url', 'recent_runs', 'zero_yield' )
-			);
-			\WP_CLI::log( '' );
-			\WP_CLI::log( 'Run without --dry-run to qualify and (optionally) pause.' );
-			return;
-		}
-
 		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/qualify-venue' ) : null;
 		if ( ! $ability ) {
 			\WP_CLI::error( 'extrachill/qualify-venue ability not available.' );
@@ -181,7 +185,13 @@ class UnqualifiableFlowsCommand {
 		$results        = array();
 		$progress       = \WP_CLI\Utils\make_progress_bar( 'Auditing', count( $candidates ) );
 		foreach ( $candidates as $c ) {
-			$result = $ability->execute( array( 'url' => $c['source_url'] ) );
+			$result = $ability->execute(
+				array(
+					'url'             => $c['source_url'],
+					'flow_id'         => (int) $c['flow_id'],
+					'persist_verdict' => ! $dry_run,
+				)
+			);
 			$progress->tick();
 
 			$row = array(
@@ -190,6 +200,18 @@ class UnqualifiableFlowsCommand {
 				'source_url'  => $c['source_url'],
 				'new_verdict' => '',
 				'event_count' => 0,
+				'raw_extracted' => 0,
+				'unique_source' => 0,
+				'processed'     => null,
+				'active_claim'  => null,
+				'reprocess_eligible' => null,
+				'selected_by_max_items' => null,
+				'production_eligible' => null,
+				'context_supplied' => false,
+				'complete'         => false,
+				'identifier_source' => '',
+				'diagnostic_error' => '',
+				'repair_proposal' => null,
 				'action'      => 'none',
 			);
 
@@ -202,10 +224,35 @@ class UnqualifiableFlowsCommand {
 
 			$row['new_verdict'] = (string) ( $result['verdict'] ?? '' );
 			$row['event_count'] = (int) ( $result['event_count'] ?? 0 );
+			$production = is_array( $result['production_context'] ?? null ) ? $result['production_context'] : array();
+			$row['raw_extracted']         = (int) ( $production['raw_extracted'] ?? 0 );
+			$row['unique_source']        = (int) ( $production['unique_source'] ?? 0 );
+			$row['processed']            = $production['processed'] ?? null;
+			$row['active_claim']         = $production['active_claim'] ?? null;
+			$row['reprocess_eligible']    = $production['reprocess_eligible'] ?? null;
+			$row['selected_by_max_items'] = $production['selected_by_max_items'] ?? null;
+			$row['production_eligible']  = $production['production_eligible'] ?? null;
+			$row['context_supplied']     = ! empty( $production['context_supplied'] );
+			$row['complete']             = true === ( $production['complete'] ?? false );
+			$row['identifier_source']    = (string) ( $production['identifier_source'] ?? '' );
+			$row['diagnostic_error']     = (string) ( $production['error'] ?? '' );
+			$row['repair_proposal']      = $result['repair_proposal'] ?? null;
 
 			if ( QualifyVerdict::QUALIFIED_STRUCTURED === $row['new_verdict'] ) {
-				$row['action'] = 'unexpected_pass';
-			} elseif ( $auto ) {
+				$row['action'] = $this->classify_qualified_action( $production, $row['repair_proposal'] );
+				if ( 'repair_proposed' === $row['action'] ) {
+					if ( $apply_repair && ! empty( $row['repair_proposal']['same_host'] ) ) {
+						$repaired      = FlowOps::repair_flow_source_url(
+							(int) $c['flow_id'],
+							(string) $row['repair_proposal']['current'],
+							(string) $row['repair_proposal']['proposed']
+						);
+						$row['action'] = $repaired ? 'repaired' : 'repair_failed';
+					} else {
+						$row['action'] = 'repair_proposed';
+					}
+				}
+			} elseif ( $auto && ! $dry_run ) {
 				// Confirmation gate — unless --force or the network option
 				// has disabled it, the candidate verdict must clear the
 				// per-verdict CONFIRMATION_RULES threshold before we pause.
@@ -235,7 +282,7 @@ class UnqualifiableFlowsCommand {
 		\WP_CLI\Utils\format_items(
 			$format,
 			$results,
-			array( 'flow_id', 'flow_name', 'new_verdict', 'event_count', 'action' )
+			array( 'flow_id', 'flow_name', 'new_verdict', 'raw_extracted', 'unique_source', 'processed', 'active_claim', 'reprocess_eligible', 'selected_by_max_items', 'production_eligible', 'complete', 'identifier_source', 'diagnostic_error', 'action' )
 		);
 
 		$paused      = array_filter( $results, fn( $r ) => 'paused' === $r['action'] );
@@ -263,5 +310,23 @@ class UnqualifiableFlowsCommand {
 			\WP_CLI::log( '' );
 			\WP_CLI::warning( sprintf( '%d zero-yield flow(s) now qualify as STRUCTURED — investigate why they were yielding zero.', count( $unexpected ) ) );
 		}
+	}
+
+	/**
+	 * Interpret a structured extraction using production lifecycle evidence.
+	 *
+	 * @param array      $production     Production diagnostics.
+	 * @param array|null $repair_proposal Optional source URL repair proposal.
+	 * @return string CLI action.
+	 */
+	protected function classify_qualified_action( array $production, ?array $repair_proposal ): string {
+		if ( ! empty( $repair_proposal ) ) {
+			return 'repair_proposed';
+		}
+		if ( true === ( $production['complete'] ?? false )
+			&& 0 === ( $production['production_eligible'] ?? null ) ) {
+			return 'expected_zero';
+		}
+		return 'unexpected_pass';
 	}
 }

@@ -316,4 +316,23 @@ class FlowOpsResumeTest extends TestCase {
 			$patched[0]['handler_configs']['universal_web_scraper']['source_url']
 		);
 	}
+
+	public function test_confirmed_repair_only_updates_same_host_source_url(): void {
+		$this->seed_paused_flow( 107, 'https://venue.com/calendar' );
+
+		$this->assertTrue(
+			FlowOps::repair_flow_source_url( 107, 'https://venue.com/calendar', 'https://venue.com/events' )
+		);
+		$patched = $this->captured_flow_config( 107 );
+		$this->assertSame( 'https://venue.com/events', $patched[0]['handler_config']['source_url'] );
+	}
+
+	public function test_confirmed_repair_rejects_cross_host_source_url(): void {
+		$this->seed_paused_flow( 108, 'https://venue.com/calendar' );
+
+		$this->assertFalse(
+			FlowOps::repair_flow_source_url( 108, 'https://venue.com/calendar', 'https://other.example/events' )
+		);
+		$this->assertNull( $this->captured_flow_config( 108 ) );
+	}
 }

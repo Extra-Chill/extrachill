@@ -417,6 +417,57 @@ class FlowOps {
 	}
 
 	/**
+	 * Apply an explicitly confirmed, same-host source URL repair only.
+	 *
+	 * Unlike resume_flow_from_qualified(), this does not alter scheduling or
+	 * enqueue a run. The caller must separately obtain operator confirmation.
+	 *
+	 * @param int    $flow_id      Flow ID.
+	 * @param string $current_url  Source URL observed during diagnosis.
+	 * @param string $proposed_url Same-host replacement URL.
+	 * @return bool True when at least one matching scraper step was updated.
+	 */
+	public static function repair_flow_source_url( int $flow_id, string $current_url, string $proposed_url ): bool {
+		if ( '' === $current_url || '' === $proposed_url || ! self::same_host( $current_url, $proposed_url ) ) {
+			return false;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_flows';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$encoded = $wpdb->get_var(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				"SELECT flow_config FROM {$table} WHERE flow_id = %d",
+				$flow_id
+			)
+		);
+		$flow_config = json_decode( (string) $encoded, true );
+		if ( ! is_array( $flow_config ) || self::extract_source_url_from_flow_config( $flow_config ) !== $current_url ) {
+			return false;
+		}
+
+		$patched = self::patch_source_url_in_flow_config( $flow_config, $current_url, $proposed_url );
+		if ( 0 === $patched['changed'] ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$updated = $wpdb->update(
+			$table,
+			array( 'flow_config' => wp_json_encode( $patched['config'] ) ),
+			array(
+				'flow_id'    => $flow_id,
+				'flow_config' => (string) $encoded,
+			),
+			array( '%s' ),
+			array( '%d', '%s' )
+		);
+
+		return is_int( $updated ) && $updated > 0;
+	}
+
+	/**
 	 * Extract the universal_web_scraper source_url from a decoded
 	 * flow_config array. Mirrors the parsing in FlowHelpers::extract_web_scraper_meta
 	 * but kept local here so FlowOps does not depend on the trait.

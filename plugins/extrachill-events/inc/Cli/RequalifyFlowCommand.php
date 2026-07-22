@@ -125,7 +125,12 @@ class RequalifyFlowCommand {
 				continue;
 			}
 
-			$result = $ability->execute( array( 'url' => $flow['source_url'] ) );
+			$result = $ability->execute(
+				array(
+					'url'     => $flow['source_url'],
+					'flow_id' => (int) $flow['flow_id'],
+				)
+			);
 			if ( is_wp_error( $result ) ) {
 				$row['new_verdict'] = 'error';
 				$row['action']      = 'error: ' . $result->get_error_message();

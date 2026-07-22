@@ -73,6 +73,11 @@ namespace ExtraChillEvents\Tests\Unit\Core {
 				return $row;
 			}
 
+			public function get_var( string $sql ) {
+				$row = $this->get_row( $sql );
+				return is_array( $row ) ? ( $row['flow_config'] ?? null ) : null;
+			}
+
 			public function update( string $table, array $data, array $where, $format = null, $where_format = null ) {
 				$this->updates[] = array(
 					'table'        => $table,
