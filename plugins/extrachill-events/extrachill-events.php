@@ -235,6 +235,10 @@ class ExtraChillEvents {
 		// Moderation-queue table + REST controller/routes. The abilities load in
 		// init_abilities(); the admin screen instantiates in init_admin().
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistUrlSubmissionsTable.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingSchema.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingRepository.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingActivityRepository.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueBookingConfig.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/Controllers/ArtistUrlImport.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/ArtistUrlImportRoutes.php';
 
@@ -376,6 +380,9 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistUrlSubmissionsTable.php';
 		\ExtraChillEvents\Core\ArtistUrlSubmissionsTable::create_table();
 
+		// Private, site-scoped venue booking tables.
+		\ExtraChillEvents\Core\BookingSchema::install();
+
 		flush_rewrite_rules();
 	}
 
@@ -399,6 +406,10 @@ class ExtraChillEvents {
 		// data-machine-events in #200). Network-scoped; idempotent install.
 		if ( class_exists( '\\ExtraChillEvents\\Core\\ArtistUrlSubmissionsTable' ) ) {
 			\ExtraChillEvents\Core\ArtistUrlSubmissionsTable::maybe_install();
+		}
+
+		if ( class_exists( '\\ExtraChillEvents\\Core\\BookingSchema' ) ) {
+			\ExtraChillEvents\Core\BookingSchema::maybe_install();
 		}
 	}
 
