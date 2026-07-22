@@ -11,6 +11,132 @@
 
 defined( 'ABSPATH' ) || exit;
 
+const EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT  = 5;
+const EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW = 15 * MINUTE_IN_SECONDS;
+
+/**
+ * Get the registration attempt key for the current requester.
+ *
+ * The IP-only key prevents callers from evading the limit by rotating email
+ * addresses. The stored value includes a fixed expiry so later attempts do not
+ * extend the window.
+ *
+ * @return string Transient key.
+ */
+function extrachill_users_registration_attempt_key(): string {
+	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+
+	return 'ec_registration_attempts_' . md5( $ip );
+}
+
+/**
+ * Return the current registration throttle state.
+ *
+ * @return array{attempts:int,expires_at:int}
+ */
+function extrachill_users_registration_attempt_state(): array {
+	$state = get_transient( extrachill_users_registration_attempt_key() );
+	if ( ! is_array( $state ) || ! isset( $state['attempts'], $state['expires_at'] ) || (int) $state['expires_at'] <= time() ) {
+		return array(
+			'attempts'   => 0,
+			'expires_at' => 0,
+		);
+	}
+
+	return array(
+		'attempts'   => max( 0, (int) $state['attempts'] ),
+		'expires_at' => (int) $state['expires_at'],
+	);
+}
+
+/**
+ * Check whether the current requester has exhausted registration attempts.
+ *
+ * @return true|WP_Error True when another attempt is allowed.
+ */
+function extrachill_users_check_registration_rate_limit() {
+	$state = extrachill_users_registration_attempt_state();
+	if ( $state['attempts'] < EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT ) {
+		return true;
+	}
+
+	$retry_after = max( 1, $state['expires_at'] - time() );
+
+	return new WP_Error(
+		'registration_rate_limited',
+		__( 'Too many registration attempts. Please try again in 15 minutes.', 'extrachill-users' ),
+		array(
+			'status'      => 429,
+			'retry_after' => $retry_after,
+			'expires_at'  => $state['expires_at'],
+		)
+	);
+}
+
+/**
+ * Record a registration attempt without extending the current window.
+ */
+function extrachill_users_record_registration_attempt(): void {
+	$key   = extrachill_users_registration_attempt_key();
+	$state = extrachill_users_registration_attempt_state();
+
+	if ( 0 === $state['expires_at'] ) {
+		$state['expires_at'] = time() + EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW;
+	}
+
+	++$state['attempts'];
+	set_transient( $key, $state, max( 1, $state['expires_at'] - time() ) );
+}
+
+/**
+ * Apply shared anti-abuse policy to branded password registration.
+ *
+ * @param string $email            Sanitized registration email.
+ * @param string $turnstile_token  Turnstile response token.
+ * @return true|WP_Error True when registration may continue.
+ */
+function extrachill_users_validate_password_registration( string $email, string $turnstile_token ) {
+	$rate_limit = extrachill_users_check_registration_rate_limit();
+	if ( is_wp_error( $rate_limit ) ) {
+		return $rate_limit;
+	}
+
+	// Count failed CAPTCHA and validation requests as attempts too.
+	extrachill_users_record_registration_attempt();
+
+	/**
+	 * Filter the Turnstile verifier used by password registration.
+	 *
+	 * Production uses Extra Chill Network's verifier. Tests can substitute a
+	 * deterministic callable without making external Cloudflare requests.
+	 *
+	 * @param callable $verifier Turnstile verifier callable.
+	 */
+	$turnstile_verifier = apply_filters( 'extrachill_users_registration_turnstile_verifier', 'ec_turnstile_check_request' );
+	if ( ! is_callable( $turnstile_verifier ) ) {
+		return new WP_Error(
+			'turnstile_missing',
+			__( 'Security verification unavailable.', 'extrachill-users' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	$turnstile_check = call_user_func( $turnstile_verifier, $turnstile_token );
+	if ( is_wp_error( $turnstile_check ) ) {
+		return $turnstile_check;
+	}
+
+	if ( is_email( $email ) && is_email_address_unsafe( $email ) ) {
+		return new WP_Error(
+			'unsafe_email',
+			__( 'That email address is not allowed. Please use another email provider.', 'extrachill-users' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	return true;
+}
+
 /**
  * Handle registration form submission.
  *
@@ -31,7 +157,7 @@ function extrachill_handle_registration() {
 	$turnstile_token = isset( $_POST['cf-turnstile-response'] )
 		? wp_unslash( $_POST['cf-turnstile-response'] )
 		: '';
-	$check           = ec_turnstile_check_request( $turnstile_token );
+	$check           = extrachill_users_validate_password_registration( $email, $turnstile_token );
 	if ( is_wp_error( $check ) ) {
 		$redirect->error( $check->get_error_message() );
 	}
