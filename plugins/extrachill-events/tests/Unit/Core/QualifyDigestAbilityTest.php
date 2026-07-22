@@ -16,9 +16,16 @@ use ExtraChillEvents\Core\QualifyVerdict;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Stubs/digest-stubs.php';
+require_once __DIR__ . '/Stubs/class-qualifydigestwpdbstub.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyVerdictsTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/QualifyDigestAbilities.php';
 
 class QualifyDigestAbilityTest extends TestCase {
+
+	protected function tearDown(): void {
+		unset( $GLOBALS['wpdb'], $GLOBALS['ec_digest_timezone'] );
+		parent::tearDown();
+	}
 
 	private function seed_data(): array {
 		return array(
@@ -26,6 +33,7 @@ class QualifyDigestAbilityTest extends TestCase {
 				'paused_total'        => 4,
 				'resumed_total'       => 12,
 				'new_qualified_total' => 18,
+				'unsupported_total'   => 9,
 				'stale_total'         => 1,
 			),
 			'paused_by_verdict'  => array(
@@ -72,6 +80,7 @@ class QualifyDigestAbilityTest extends TestCase {
 		$this->assertStringContainsString( 'Paused this week:        4 flows', $body );
 		$this->assertStringContainsString( 'Auto-resumed this week:  12 flows', $body );
 		$this->assertStringContainsString( 'New venues qualified:    18', $body );
+		$this->assertStringContainsString( 'Unsupported sources:     9', $body );
 		$this->assertStringContainsString( 'Stale paused flows:      1', $body );
 	}
 
@@ -113,6 +122,7 @@ class QualifyDigestAbilityTest extends TestCase {
 				'paused_total'        => 0,
 				'resumed_total'       => 0,
 				'new_qualified_total' => 0,
+				'unsupported_total'   => 0,
 				'stale_total'         => 0,
 			),
 			'paused_by_verdict'  => array(),
@@ -136,5 +146,319 @@ class QualifyDigestAbilityTest extends TestCase {
 		$this->assertStringContainsString( '147', $body, 'standing inventory active:daily count' );
 		$this->assertStringContainsString( '22', $body, 'paused extraction_gap count' );
 		$this->assertStringContainsString( '18', $body, 'new qualified total' );
+		$this->assertStringContainsString( '9', $body, 'unsupported source total' );
+	}
+
+	/**
+	 * Digest boundaries use site-local time and canonical latest-row ordering.
+	 */
+	public function test_digest_uses_canonical_latest_unsupported_rows_in_local_half_open_window(): void {
+		$start                         = strtotime( '2026-07-01 04:00:00 UTC' );
+		$end                           = strtotime( '2026-07-08 04:00:00 UTC' );
+		$GLOBALS['ec_digest_timezone'] = 'America/New_York';
+
+		$wpdb            = new QualifyDigestWpdbStub(
+			array(
+				array(
+					'id'           => 1,
+					'url_hash'     => 'repeat',
+					'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+					'qualified_at' => '2026-07-02 00:00:00',
+				),
+				array(
+					'id'           => 2,
+					'url_hash'     => 'repeat',
+					'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+					'qualified_at' => '2026-07-03 00:00:00',
+				),
+				array(
+					'id'           => 3,
+					'url_hash'     => 'recovered',
+					'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+					'qualified_at' => '2026-07-04 00:00:00',
+				),
+				array(
+					'id'           => 4,
+					'url_hash'     => 'recovered',
+					'verdict'      => QualifyVerdict::QUALIFIED_STRUCTURED,
+					'qualified_at' => '2026-07-05 00:00:00',
+				),
+				array(
+					'id'           => 100,
+					'url_hash'     => 'backfill',
+					'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+					'qualified_at' => '2026-07-02 00:00:00',
+				),
+				array(
+					'id'           => 5,
+					'url_hash'     => 'backfill',
+					'verdict'      => QualifyVerdict::QUALIFIED_STRUCTURED,
+					'qualified_at' => '2026-07-06 00:00:00',
+				),
+				array(
+					'id'           => 10,
+					'url_hash'     => 'timestamp-tie',
+					'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+					'qualified_at' => '2026-07-06 12:00:00',
+				),
+				array(
+					'id'           => 11,
+					'url_hash'     => 'timestamp-tie',
+					'verdict'      => QualifyVerdict::QUALIFIED_STRUCTURED,
+					'qualified_at' => '2026-07-06 12:00:00',
+				),
+				array(
+					'id'           => 12,
+					'url_hash'     => 'end-boundary',
+					'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+					'qualified_at' => '2026-07-08 00:00:00',
+				),
+				array(
+					'id'           => 6,
+					'url_hash'     => 'current',
+					'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+					'qualified_at' => '2026-07-07 00:00:00',
+				),
+			)
+		);
+		$GLOBALS['wpdb'] = $wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test installs an isolated database stub.
+
+		$data = ( new QualifyDigestAbilities() )->gather_data( $start, $end );
+
+		$this->assertSame( 2, $data['counts']['unsupported_total'] );
+		$this->assertSame( array( QualifyVerdict::UNSUPPORTED_SOURCE, '2026-07-01 00:00:00', '2026-07-08 00:00:00' ), $wpdb->unsupported_args );
+		$this->assertStringContainsString( 'COUNT(DISTINCT current_verdict.url_hash)', $wpdb->unsupported_query );
+		$this->assertStringContainsString( 'current_verdict.qualified_at <', $wpdb->unsupported_query );
+		$this->assertStringContainsString( 'newer_verdict.qualified_at > current_verdict.qualified_at', $wpdb->unsupported_query );
+		$this->assertStringContainsString( 'newer_verdict.id > current_verdict.id', $wpdb->unsupported_query );
+		$this->assertStringNotContainsString( 'MAX(id)', $wpdb->unsupported_query );
+	}
+
+	/**
+	 * Every digest event section uses the same site-local half-open window.
+	 */
+	public function test_all_digest_sections_exclude_exact_end_boundary_in_site_timezone(): void {
+		$GLOBALS['ec_digest_timezone'] = 'America/New_York';
+		$verdict_rows                  = array(
+			array(
+				'id'           => 1,
+				'url_hash'     => 'qualified-start',
+				'verdict'      => QualifyVerdict::QUALIFIED_STRUCTURED,
+				'qualified_at' => '2026-07-01 00:00:00',
+			),
+			array(
+				'id'           => 2,
+				'url_hash'     => 'qualified-end',
+				'verdict'      => QualifyVerdict::QUALIFIED_STRUCTURED,
+				'qualified_at' => '2026-07-08 00:00:00',
+			),
+			array(
+				'id'               => 3,
+				'url_hash'         => 'gap-start',
+				'verdict'          => QualifyVerdict::EXTRACTION_GAP,
+				'qualified_at'     => '2026-07-01 00:00:00',
+				'improvement_hint' => 'inside gap',
+			),
+			array(
+				'id'               => 4,
+				'url_hash'         => 'gap-end',
+				'verdict'          => QualifyVerdict::EXTRACTION_GAP,
+				'qualified_at'     => '2026-07-08 00:00:00',
+				'improvement_hint' => 'excluded gap',
+			),
+			array(
+				'id'           => 5,
+				'url_hash'     => 'unsupported-start',
+				'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+				'qualified_at' => '2026-07-01 00:00:00',
+			),
+			array(
+				'id'           => 6,
+				'url_hash'     => 'unsupported-end',
+				'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+				'qualified_at' => '2026-07-08 00:00:00',
+			),
+		);
+		$flow_rows                     = array(
+			array(
+				'flow_id'           => 1,
+				'flow_name'         => 'Paused Start',
+				'scheduling_config' => wp_json_encode(
+					array(
+						'paused_at'     => '2026-07-01 00:00:00',
+						'paused_reason' => QualifyVerdict::EXTRACTION_GAP,
+					)
+				),
+			),
+			array(
+				'flow_id'           => 2,
+				'flow_name'         => 'Paused End',
+				'scheduling_config' => wp_json_encode(
+					array(
+						'paused_at'     => '2026-07-08 00:00:00',
+						'paused_reason' => QualifyVerdict::UNSUPPORTED_SOURCE,
+					)
+				),
+			),
+			array(
+				'flow_id'           => 3,
+				'flow_name'         => 'Resumed Start',
+				'scheduling_config' => wp_json_encode(
+					array(
+						'resumed_at'         => '2026-07-01 00:00:00',
+						'resumed_by_qualify' => true,
+					)
+				),
+			),
+			array(
+				'flow_id'           => 4,
+				'flow_name'         => 'Resumed End',
+				'scheduling_config' => wp_json_encode(
+					array(
+						'resumed_at'         => '2026-07-08 00:00:00',
+						'resumed_by_qualify' => true,
+					)
+				),
+			),
+		);
+		$wpdb                          = new QualifyDigestWpdbStub( $verdict_rows, $flow_rows );
+		$GLOBALS['wpdb']               = $wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test installs an isolated database stub.
+
+		$data = ( new QualifyDigestAbilities() )->gather_data(
+			strtotime( '2026-07-01 04:00:00 UTC' ),
+			strtotime( '2026-07-08 04:00:00 UTC' )
+		);
+
+		$this->assertSame( array( QualifyVerdict::EXTRACTION_GAP => 1 ), $data['paused_by_verdict'] );
+		$this->assertSame( 1, $data['counts']['resumed_total'] );
+		$this->assertSame( 1, $data['counts']['new_qualified_total'] );
+		$this->assertSame( 1, $data['counts']['unsupported_total'] );
+		$this->assertSame(
+			array(
+				array(
+					'hint'  => 'inside gap',
+					'count' => 1,
+				),
+			),
+			$data['top_extraction_gap']
+		);
+		$this->assertStringContainsString( 'qualified_at <', $wpdb->qualified_query );
+		$this->assertStringNotContainsString( 'qualified_at <=', $wpdb->qualified_query );
+		$this->assertStringContainsString( 'qualified_at <', $wpdb->gap_query );
+		$this->assertStringNotContainsString( 'qualified_at <=', $wpdb->gap_query );
+	}
+
+	/**
+	 * Verify each edge case in the canonical latest unsupported contract.
+	 *
+	 * @param array<int,array<string,mixed>> $rows     Verdict history.
+	 * @param int                            $expected Expected URL count.
+	 *
+	 * @dataProvider latestUnsupportedContractProvider
+	 */
+	public function test_latest_unsupported_count_contract( array $rows, int $expected ): void {
+		$GLOBALS['wpdb'] = new QualifyDigestWpdbStub( $rows ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test installs an isolated database stub.
+
+		$data = ( new QualifyDigestAbilities() )->gather_data(
+			strtotime( '2026-07-01 00:00:00 UTC' ),
+			strtotime( '2026-07-08 00:00:00 UTC' )
+		);
+
+		$this->assertSame( $expected, $data['counts']['unsupported_total'] );
+	}
+
+	/**
+	 * Edge cases required by the latest unsupported contract.
+	 *
+	 * @return array<string,array{0:array<int,array<string,mixed>>,1:int}>
+	 */
+	public static function latestUnsupportedContractProvider(): array {
+		return array(
+			'backfilled higher id does not override newer timestamp' => array(
+				array(
+					array(
+						'id'           => 100,
+						'url_hash'     => 'backfill',
+						'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+						'qualified_at' => '2026-07-02 00:00:00',
+					),
+					array(
+						'id'           => 5,
+						'url_hash'     => 'backfill',
+						'verdict'      => QualifyVerdict::QUALIFIED_STRUCTURED,
+						'qualified_at' => '2026-07-03 00:00:00',
+					),
+				),
+				0,
+			),
+			'timestamp tie uses higher id'    => array(
+				array(
+					array(
+						'id'           => 10,
+						'url_hash'     => 'tie',
+						'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+						'qualified_at' => '2026-07-03 00:00:00',
+					),
+					array(
+						'id'           => 11,
+						'url_hash'     => 'tie',
+						'verdict'      => QualifyVerdict::QUALIFIED_STRUCTURED,
+						'qualified_at' => '2026-07-03 00:00:00',
+					),
+				),
+				0,
+			),
+			'end boundary is excluded'        => array(
+				array(
+					array(
+						'id'           => 1,
+						'url_hash'     => 'boundary',
+						'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+						'qualified_at' => '2026-07-08 00:00:00',
+					),
+				),
+				0,
+			),
+			'recovered URL is excluded'       => array(
+				array(
+					array(
+						'id'           => 1,
+						'url_hash'     => 'recovered',
+						'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+						'qualified_at' => '2026-07-02 00:00:00',
+					),
+					array(
+						'id'           => 2,
+						'url_hash'     => 'recovered',
+						'verdict'      => QualifyVerdict::QUALIFIED_STRUCTURED,
+						'qualified_at' => '2026-07-04 00:00:00',
+					),
+				),
+				0,
+			),
+			'repeated rechecks count one URL' => array(
+				array(
+					array(
+						'id'           => 1,
+						'url_hash'     => 'repeat',
+						'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+						'qualified_at' => '2026-07-02 00:00:00',
+					),
+					array(
+						'id'           => 2,
+						'url_hash'     => 'repeat',
+						'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+						'qualified_at' => '2026-07-03 00:00:00',
+					),
+					array(
+						'id'           => 3,
+						'url_hash'     => 'repeat',
+						'verdict'      => QualifyVerdict::UNSUPPORTED_SOURCE,
+						'qualified_at' => '2026-07-04 00:00:00',
+					),
+				),
+				1,
+			),
+		);
 	}
 }

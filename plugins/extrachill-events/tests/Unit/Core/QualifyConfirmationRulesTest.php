@@ -33,6 +33,13 @@ class QualifyConfirmationRulesTest extends TestCase {
 		$this->assertSame( 168, $rule['hours'] );
 	}
 
+	public function test_unsupported_source_requires_two_verdicts_over_48h(): void {
+		$rule = QualifyVerdict::confirmation_for( QualifyVerdict::UNSUPPORTED_SOURCE );
+		$this->assertIsArray( $rule );
+		$this->assertSame( 2, $rule['verdicts'] );
+		$this->assertSame( 48, $rule['hours'] );
+	}
+
 	public function test_unreachable_requires_three_verdicts_over_7_days(): void {
 		$rule = QualifyVerdict::confirmation_for( QualifyVerdict::UNREACHABLE );
 		$this->assertIsArray( $rule );
@@ -64,6 +71,10 @@ class QualifyConfirmationRulesTest extends TestCase {
 
 	public function test_bot_blocked_recheck_interval_is_7_days(): void {
 		$this->assertSame( 7 * DAY_IN_SECONDS, QualifyVerdict::recheck_interval_for( QualifyVerdict::BOT_BLOCKED ) );
+	}
+
+	public function test_unsupported_source_recheck_interval_is_30_days(): void {
+		$this->assertSame( 30 * DAY_IN_SECONDS, QualifyVerdict::recheck_interval_for( QualifyVerdict::UNSUPPORTED_SOURCE ) );
 	}
 
 	public function test_unreachable_recheck_interval_is_3_days(): void {

@@ -182,8 +182,9 @@ class QualifyDigestAbilities {
 	public function gather_data( int $start_ts, int $end_ts ): array {
 		global $wpdb;
 
-		$start = gmdate( 'Y-m-d H:i:s', $start_ts );
-		$end   = gmdate( 'Y-m-d H:i:s', $end_ts );
+		$timezone = wp_timezone();
+		$start    = wp_date( 'Y-m-d H:i:s', $start_ts, $timezone );
+		$end      = wp_date( 'Y-m-d H:i:s', $end_ts, $timezone );
 
 		$verdicts_table = QualifyVerdictsTable::table_name();
 		$flows_table    = $wpdb->prefix . 'datamachine_flows';
@@ -210,16 +211,14 @@ class QualifyDigestAbilities {
 			if ( ! is_array( $cfg ) ) {
 				continue;
 			}
-			$paused_at_str = (string) ( $cfg['paused_at'] ?? '' );
-			$paused_at_ts  = '' !== $paused_at_str ? strtotime( $paused_at_str . ' UTC' ) : false;
-			if ( $paused_at_ts && $paused_at_ts >= $start_ts && $paused_at_ts <= $end_ts ) {
+			$paused_at_ts = self::site_datetime_timestamp( (string) ( $cfg['paused_at'] ?? '' ), $timezone );
+			if ( null !== $paused_at_ts && $paused_at_ts >= $start_ts && $paused_at_ts < $end_ts ) {
 				$verdict                       = (string) ( $cfg['paused_reason'] ?? 'unknown' );
 				$paused_by_verdict[ $verdict ] = ( $paused_by_verdict[ $verdict ] ?? 0 ) + 1;
 			}
 
-			$resumed_at_str = (string) ( $cfg['resumed_at'] ?? '' );
-			$resumed_at_ts  = '' !== $resumed_at_str ? strtotime( $resumed_at_str . ' UTC' ) : false;
-			if ( $resumed_at_ts && $resumed_at_ts >= $start_ts && $resumed_at_ts <= $end_ts && ! empty( $cfg['resumed_by_qualify'] ) ) {
+			$resumed_at_ts = self::site_datetime_timestamp( (string) ( $cfg['resumed_at'] ?? '' ), $timezone );
+			if ( null !== $resumed_at_ts && $resumed_at_ts >= $start_ts && $resumed_at_ts < $end_ts && ! empty( $cfg['resumed_by_qualify'] ) ) {
 				++$resumed_count;
 			}
 
@@ -258,18 +257,24 @@ class QualifyDigestAbilities {
 
 		// Newly-qualified venues this week — count of QUALIFIED_STRUCTURED
 		// verdict rows in the window.
-		$new_qualified = 0;
+		$new_qualified       = 0;
+		$unsupported_sources = 0;
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 		if ( $wpdb->get_var( "SHOW TABLES LIKE '" . $verdicts_table . "'" ) === $verdicts_table ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$new_qualified = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-					"SELECT COUNT(*) FROM {$verdicts_table} WHERE verdict = %s AND qualified_at >= %s AND qualified_at <= %s",
+					"SELECT COUNT(*) FROM {$verdicts_table} WHERE verdict = %s AND qualified_at >= %s AND qualified_at < %s",
 					QualifyVerdict::QUALIFIED_STRUCTURED,
 					$start,
 					$end
 				)
+			);
+			$unsupported_sources = QualifyVerdictsTable::count_latest_verdicts_in_window(
+				QualifyVerdict::UNSUPPORTED_SOURCE,
+				$start,
+				$end
 			);
 		}
 
@@ -284,7 +289,7 @@ class QualifyDigestAbilities {
 				$wpdb->prepare(
 					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 					"SELECT improvement_hint, COUNT(*) AS c FROM {$verdicts_table}
-					 WHERE verdict = %s AND qualified_at >= %s AND qualified_at <= %s
+					 WHERE verdict = %s AND qualified_at >= %s AND qualified_at < %s
 					 GROUP BY improvement_hint
 					 ORDER BY c DESC LIMIT 3",
 					QualifyVerdict::EXTRACTION_GAP,
@@ -305,6 +310,7 @@ class QualifyDigestAbilities {
 			'paused_total'        => array_sum( $paused_by_verdict ),
 			'resumed_total'       => $resumed_count,
 			'new_qualified_total' => $new_qualified,
+			'unsupported_total'   => $unsupported_sources,
 			'stale_total'         => count( $stale_flows ),
 		);
 
@@ -339,6 +345,7 @@ class QualifyDigestAbilities {
 		$h .= '<tr><td>Flows paused this week</td><td class="count">' . (int) $data['counts']['paused_total'] . '</td></tr>';
 		$h .= '<tr><td>Flows auto-resumed this week</td><td class="count">' . (int) $data['counts']['resumed_total'] . '</td></tr>';
 		$h .= '<tr><td>New venues qualified</td><td class="count">' . (int) $data['counts']['new_qualified_total'] . '</td></tr>';
+		$h .= '<tr><td>Unsupported sources identified</td><td class="count">' . (int) ( $data['counts']['unsupported_total'] ?? 0 ) . '</td></tr>';
 		$h .= '<tr><td>Stale paused flows (need review)</td><td class="count">' . (int) $data['counts']['stale_total'] . '</td></tr>';
 		$h .= '</table>';
 
@@ -415,6 +422,7 @@ class QualifyDigestAbilities {
 		$lines[] = sprintf( 'Paused this week:        %d flows', (int) $data['counts']['paused_total'] );
 		$lines[] = sprintf( 'Auto-resumed this week:  %d flows', (int) $data['counts']['resumed_total'] );
 		$lines[] = sprintf( 'New venues qualified:    %d', (int) $data['counts']['new_qualified_total'] );
+		$lines[] = sprintf( 'Unsupported sources:     %d', (int) ( $data['counts']['unsupported_total'] ?? 0 ) );
 		$lines[] = sprintf( 'Stale paused flows:      %d', (int) $data['counts']['stale_total'] );
 		$lines[] = '';
 
@@ -462,5 +470,21 @@ class QualifyDigestAbilities {
 		$lines[] = 'Run: wp extrachill venues qualify-stats   for the full breakdown.';
 
 		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Parse a DATETIME stored by current_time( 'mysql' ) in the site timezone.
+	 *
+	 * @param string        $value    Stored local DATETIME value.
+	 * @param \DateTimeZone $timezone Site timezone.
+	 * @return int|null Unix timestamp, or null for an invalid value.
+	 */
+	private static function site_datetime_timestamp( string $value, \DateTimeZone $timezone ): ?int {
+		if ( '' === $value ) {
+			return null;
+		}
+
+		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, $timezone );
+		return false === $date ? null : $date->getTimestamp();
 	}
 }

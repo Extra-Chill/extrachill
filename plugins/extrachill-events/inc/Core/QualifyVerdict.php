@@ -41,6 +41,9 @@ final class QualifyVerdict {
 	/** Page reachable, structured data present, but our extractors do not cover it. Fixable. */
 	public const EXTRACTION_GAP = 'extraction_gap';
 
+	/** Page reachable, but no evidence identifies actionable extractor work. */
+	public const UNSUPPORTED_SOURCE = 'unsupported_source';
+
 	/** Reservation-only platform (OpenTable/Resy/Tock). Permanently disqualify. */
 	public const RESERVATION_ONLY = 'reservation_only';
 
@@ -97,6 +100,7 @@ final class QualifyVerdict {
 			self::QUALIFIED_STRUCTURED,
 			self::QUALIFIED_FOR_FLYER,
 			self::EXTRACTION_GAP,
+			self::UNSUPPORTED_SOURCE,
 			self::RESERVATION_ONLY,
 			self::BOT_BLOCKED,
 			self::UNREACHABLE,
@@ -136,6 +140,8 @@ final class QualifyVerdict {
 
 	public const GUIDANCE_EXTRACTION_GAP = 'Page is reachable and contains structured data, but our extractors did not parse it. Fetch the URL via WebFetch and inspect the HTML. If you can identify a predictable pattern (JSON-LD shape, platform-specific markup, etc.), file an issue against data-machine-events suggesting the extractor fix. DO NOT recommend wiring this venue until the extractor lands.';
 
+	public const GUIDANCE_UNSUPPORTED_SOURCE = 'Page is reachable, but the fingerprint contains no structured event data or detected platform with a missing extractor. Do NOT treat this as extractor work or recommend wiring. Re-qualify only if the source changes or relevant platform support lands.';
+
 	public const GUIDANCE_BOT_BLOCKED = 'HTTP 403/429 — venue origin is blocking our scraper. No code-level fix is possible without proxy support. Park the URL; revisit when proxy support lands. Do NOT recommend wiring.';
 
 	public const GUIDANCE_RESERVATION_ONLY = 'Venue uses OpenTable/Resy/Tock for reservations only and does not publish event listings. Permanently disqualified. Do NOT recommend wiring. Do NOT file an extractor issue.';
@@ -159,6 +165,8 @@ final class QualifyVerdict {
 				return self::GUIDANCE_QUALIFIED_FOR_FLYER;
 			case self::EXTRACTION_GAP:
 				return self::GUIDANCE_EXTRACTION_GAP;
+			case self::UNSUPPORTED_SOURCE:
+				return self::GUIDANCE_UNSUPPORTED_SOURCE;
 			case self::BOT_BLOCKED:
 				return self::GUIDANCE_BOT_BLOCKED;
 			case self::RESERVATION_ONLY:
@@ -173,7 +181,8 @@ final class QualifyVerdict {
 	}
 
 	/**
-	 * Whether a verdict is fixable by shipping a new/improved extractor.
+	 * Whether a verdict can change through source recovery, source updates, or
+	 * new/improved extractor support.
 	 *
 	 * Used by requalify-pending to decide which verdicts to consider
 	 * candidates for automatic re-qualification when a new extractor lands.
@@ -184,7 +193,7 @@ final class QualifyVerdict {
 	public static function is_requalifiable( string $verdict ): bool {
 		return in_array(
 			$verdict,
-			array( self::EXTRACTION_GAP, self::BOT_BLOCKED, self::UNREACHABLE ),
+			array( self::EXTRACTION_GAP, self::UNSUPPORTED_SOURCE, self::BOT_BLOCKED, self::UNREACHABLE ),
 			true
 		);
 	}
@@ -204,6 +213,8 @@ final class QualifyVerdict {
 	// QUALIFIED_STRUCTURED / QUALIFIED_FOR_FLYER: never auto-paused.
 	// EXTRACTION_GAP: 2 verdicts over ≥48h — extractor gaps don't fix
 	// themselves between consecutive audit runs.
+	// UNSUPPORTED_SOURCE: 2 verdicts over ≥48h — require confirmation before
+	// pausing a source that may have temporarily stopped exposing events.
 	// BOT_BLOCKED / UNREACHABLE: 3 verdicts over ≥7 days — Cloudflare rules
 	// flip; DNS/timeout/5xx is often transient.
 	// RESERVATION_ONLY / COVERED_ELSEWHERE: single verdict — these are
@@ -218,6 +229,10 @@ final class QualifyVerdict {
 		self::QUALIFIED_STRUCTURED => null,
 		self::QUALIFIED_FOR_FLYER  => null,
 		self::EXTRACTION_GAP       => array(
+			'verdicts' => 2,
+			'hours'    => 48,
+		),
+		self::UNSUPPORTED_SOURCE   => array(
 			'verdicts' => 2,
 			'hours'    => 48,
 		),
@@ -261,6 +276,7 @@ final class QualifyVerdict {
 	// to the digest after 6 consecutive failures).
 	//
 	// EXTRACTION_GAP: 14d — extractor coverage usually ships in batches.
+	// UNSUPPORTED_SOURCE: 30d — sources may change or gain platform support.
 	// BOT_BLOCKED:    7d  — Cloudflare rules can flip.
 	// UNREACHABLE:    3d  — DNS/timeout/5xx is often short-lived.
 	// QUALIFIED_FOR_FLYER: 21d — operator-review state; long cadence.
@@ -273,6 +289,7 @@ final class QualifyVerdict {
 	 */
 	public const RECHECK_INTERVALS = array(
 		self::EXTRACTION_GAP      => 14 * DAY_IN_SECONDS,
+		self::UNSUPPORTED_SOURCE  => 30 * DAY_IN_SECONDS,
 		self::BOT_BLOCKED         => 7 * DAY_IN_SECONDS,
 		self::UNREACHABLE         => 3 * DAY_IN_SECONDS,
 		self::QUALIFIED_FOR_FLYER => 21 * DAY_IN_SECONDS,

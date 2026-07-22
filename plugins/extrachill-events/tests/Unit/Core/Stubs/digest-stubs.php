@@ -37,3 +37,27 @@ if ( ! function_exists( 'did_action' ) ) {
 		return false;
 	}
 }
+
+if ( ! function_exists( 'wp_timezone' ) ) {
+	/**
+	 * Return the timezone configured by the current digest test.
+	 */
+	function wp_timezone(): \DateTimeZone {
+		return new \DateTimeZone( $GLOBALS['ec_digest_timezone'] ?? 'UTC' );
+	}
+}
+
+if ( ! function_exists( 'wp_date' ) ) {
+	/**
+	 * Format a timestamp in the supplied WordPress site timezone.
+	 *
+	 * @param string             $format    Date format.
+	 * @param int|null           $timestamp Unix timestamp.
+	 * @param \DateTimeZone|null $timezone  Output timezone.
+	 * @return string Formatted local date.
+	 */
+	function wp_date( string $format, ?int $timestamp = null, ?\DateTimeZone $timezone = null ): string {
+		$date = new \DateTimeImmutable( '@' . ( $timestamp ?? time() ) );
+		return $date->setTimezone( $timezone ?? wp_timezone() )->format( $format );
+	}
+}

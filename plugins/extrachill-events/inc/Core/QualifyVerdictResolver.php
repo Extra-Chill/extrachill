@@ -16,7 +16,7 @@
  *  7. JSON-LD/microdata present but 0 events extracted  → EXTRACTION_GAP
  *  8. platform detected but no extractor exists for it  → EXTRACTION_GAP
  *  9. reservation-only platform and no other platforms  → RESERVATION_ONLY
- * 10. default                                           → EXTRACTION_GAP
+ * 10. default                                           → UNSUPPORTED_SOURCE
  *
  * @package ExtraChillEvents\Core
  * @since   0.20.0
@@ -212,9 +212,9 @@ class QualifyVerdictResolver {
 
 		// ---- 10. Default fallback. ----
 		return self::bundle(
-			QualifyVerdict::EXTRACTION_GAP,
+			QualifyVerdict::UNSUPPORTED_SOURCE,
 			'',
-			'Scraper could not extract events from any discovered URL. Manual investigation recommended.',
+			'Reachable source contains no structured event data or detected platform requiring a missing extractor.',
 			0
 		);
 	}

@@ -207,6 +207,58 @@ class QualifyVerdictsTable {
 	}
 
 	/**
+	 * Count URLs whose canonical latest verdict matches inside a local-time window.
+	 *
+	 * Verdict timestamps are stored with current_time( 'mysql' ), so callers must
+	 * pass site-local DATETIME bounds. The window is half-open [start, end).
+	 * Canonical latest ordering matches latest_for_url_hash(): qualified_at DESC,
+	 * then id DESC. This remains correct for backfilled rows whose IDs do not
+	 * reflect event time and makes timestamp ties deterministic.
+	 *
+	 * Keep this query as the shared latest-window semantic for digest/cohort
+	 * consumers; do not replace it with MAX(id) grouping.
+	 *
+	 * @param string $verdict    Verdict to count.
+	 * @param string $start_local Inclusive site-local DATETIME bound.
+	 * @param string $end_local   Exclusive site-local DATETIME bound.
+	 * @return int Distinct canonical URLs matching the verdict.
+	 */
+	public static function count_latest_verdicts_in_window( string $verdict, string $start_local, string $end_local ): int {
+		global $wpdb;
+		$table = self::table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = $wpdb->get_var(
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
+			$wpdb->prepare(
+				"SELECT COUNT(DISTINCT current_verdict.url_hash)
+				 FROM {$table} current_verdict
+				 WHERE current_verdict.verdict = %s
+				   AND current_verdict.qualified_at >= %s
+				   AND current_verdict.qualified_at < %s
+				   AND NOT EXISTS (
+					 SELECT 1
+					 FROM {$table} newer_verdict
+					 WHERE newer_verdict.url_hash = current_verdict.url_hash
+					   AND (
+						 newer_verdict.qualified_at > current_verdict.qualified_at
+						 OR (
+							 newer_verdict.qualified_at = current_verdict.qualified_at
+							 AND newer_verdict.id > current_verdict.id
+						 )
+					   )
+				   )",
+				$verdict,
+				$start_local,
+				$end_local
+			)
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		);
+
+		return (int) $count;
+	}
+
+	/**
 	 * Fetch the N most recent verdict rows for a URL hash, newest first.
 	 *
 	 * Used by meets_pause_confirmation() to inspect verdict history when

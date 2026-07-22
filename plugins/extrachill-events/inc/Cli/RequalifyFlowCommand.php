@@ -145,7 +145,7 @@ class RequalifyFlowCommand {
 				$row['action'] = 'review_recommended';
 			} elseif ( $auto ) {
 				// Not qualified anymore and --auto-pause is set — pause the flow.
-				$ok            = $this->pause_flow_by_verdict( $flow['flow_id'], $row['new_verdict'] );
+				$ok            = $this->pause_requalified_flow( $flow, $row['new_verdict'] );
 				$row['action'] = $ok ? 'paused' : 'pause_failed';
 			} else {
 				// Not qualified anymore — recommend pause without acting.
@@ -176,5 +176,16 @@ class RequalifyFlowCommand {
 			\WP_CLI::log( '' );
 			\WP_CLI::warning( sprintf( '%d flow(s) recommend pausing. Re-run with --auto-pause to apply.', count( $recommended ) ) );
 		}
+	}
+
+	/**
+	 * Pause a requalified flow while preserving the URL needed by rechecks.
+	 *
+	 * @param array  $flow    Flow metadata from FlowHelpers.
+	 * @param string $verdict New qualification verdict.
+	 * @return bool True when the flow was paused.
+	 */
+	protected function pause_requalified_flow( array $flow, string $verdict ): bool {
+		return $this->pause_flow_by_verdict( $flow['flow_id'], $verdict, $flow['source_url'] );
 	}
 }

@@ -392,9 +392,10 @@ class QualifyVerdictResolverTest extends TestCase {
 		$this->assertNotSame( QualifyVerdict::RESERVATION_ONLY, $verdict['verdict'] );
 	}
 
-	public function test_default_fallback_is_extraction_gap(): void {
+	public function test_reachable_page_without_event_evidence_is_unsupported_source(): void {
 		$fingerprint = array(
 			'http_status'        => 200,
+			'final_url'          => 'https://example.com/about',
 			'platforms_detected' => array(),
 			'structured_data'    => array(),
 			'extractor_attempts' => array(),
@@ -402,8 +403,28 @@ class QualifyVerdictResolverTest extends TestCase {
 
 		$verdict = QualifyVerdictResolver::resolve( $fingerprint );
 
-		$this->assertSame( QualifyVerdict::EXTRACTION_GAP, $verdict['verdict'] );
-		$this->assertSame( QualifyVerdict::GUIDANCE_EXTRACTION_GAP, $verdict['agent_guidance'] );
+		$this->assertSame( QualifyVerdict::UNSUPPORTED_SOURCE, $verdict['verdict'] );
+		$this->assertSame( QualifyVerdict::GUIDANCE_UNSUPPORTED_SOURCE, $verdict['agent_guidance'] );
+	}
+
+	public function test_facebook_login_wall_is_unsupported_source(): void {
+		$fingerprint = array(
+			'http_status'        => 200,
+			'final_url'          => 'https://www.facebook.com/login/?next=%2Freggiesnc',
+			'redirects'          => array( 'https://facebook.com/reggiesnc → https://www.facebook.com/login/?next=%2Freggiesnc' ),
+			'platforms_detected' => array(),
+			'structured_data'    => array(
+				'jsonld_events'              => 0,
+				'jsonld_event_graph_present' => false,
+				'microdata_events'           => 0,
+			),
+			'extractor_attempts' => array(),
+		);
+
+		$verdict = QualifyVerdictResolver::resolve( $fingerprint );
+
+		$this->assertSame( QualifyVerdict::UNSUPPORTED_SOURCE, $verdict['verdict'] );
+		$this->assertNotSame( QualifyVerdict::EXTRACTION_GAP, $verdict['verdict'] );
 	}
 
 	/**
@@ -421,6 +442,7 @@ class QualifyVerdictResolverTest extends TestCase {
 			'qualified_structured' => array( QualifyVerdict::QUALIFIED_STRUCTURED, 'Safe to promote to a live flow. Recommend the operator wire it via wp extrachill venues add.' ),
 			'qualified_for_flyer'  => array( QualifyVerdict::QUALIFIED_FOR_FLYER, 'Vision detected a likely flyer image, but no structured events were extracted. Fetch the source_url directly. Verify the image is actually an event flyer (not a logo, decoration, or stale ad). If it is a genuine flyer, recommend the operator wire it with the event_flyer handler, NOT universal_web_scraper. If it is noise, recommend pausing and filing the URL for re-qualification when extractor coverage improves.' ),
 			'extraction_gap'       => array( QualifyVerdict::EXTRACTION_GAP, 'Page is reachable and contains structured data, but our extractors did not parse it. Fetch the URL via WebFetch and inspect the HTML. If you can identify a predictable pattern (JSON-LD shape, platform-specific markup, etc.), file an issue against data-machine-events suggesting the extractor fix. DO NOT recommend wiring this venue until the extractor lands.' ),
+			'unsupported_source'   => array( QualifyVerdict::UNSUPPORTED_SOURCE, 'Page is reachable, but the fingerprint contains no structured event data or detected platform with a missing extractor. Do NOT treat this as extractor work or recommend wiring. Re-qualify only if the source changes or relevant platform support lands.' ),
 			'bot_blocked'          => array( QualifyVerdict::BOT_BLOCKED, 'HTTP 403/429 — venue origin is blocking our scraper. No code-level fix is possible without proxy support. Park the URL; revisit when proxy support lands. Do NOT recommend wiring.' ),
 			'reservation_only'     => array( QualifyVerdict::RESERVATION_ONLY, 'Venue uses OpenTable/Resy/Tock for reservations only and does not publish event listings. Permanently disqualified. Do NOT recommend wiring. Do NOT file an extractor issue.' ),
 			'unreachable'          => array( QualifyVerdict::UNREACHABLE, 'Site DNS/timeout/5xx. Could be transient. Requeue for re-qualification in 7 days. If still unreachable then, permanently disqualify.' ),
@@ -441,11 +463,23 @@ class QualifyVerdictResolverTest extends TestCase {
 
 	public function test_is_requalifiable_helper(): void {
 		$this->assertTrue( QualifyVerdict::is_requalifiable( QualifyVerdict::EXTRACTION_GAP ) );
+		$this->assertTrue( QualifyVerdict::is_requalifiable( QualifyVerdict::UNSUPPORTED_SOURCE ) );
 		$this->assertTrue( QualifyVerdict::is_requalifiable( QualifyVerdict::BOT_BLOCKED ) );
 		$this->assertTrue( QualifyVerdict::is_requalifiable( QualifyVerdict::UNREACHABLE ) );
 		$this->assertFalse( QualifyVerdict::is_requalifiable( QualifyVerdict::COVERED_ELSEWHERE ) );
 		$this->assertFalse( QualifyVerdict::is_requalifiable( QualifyVerdict::RESERVATION_ONLY ) );
 		$this->assertFalse( QualifyVerdict::is_requalifiable( QualifyVerdict::QUALIFIED_STRUCTURED ) );
+	}
+
+	public function test_taxonomy_preserves_extraction_gap_and_adds_unsupported_source(): void {
+		$this->assertContains( QualifyVerdict::EXTRACTION_GAP, QualifyVerdict::all() );
+		$this->assertContains( QualifyVerdict::UNSUPPORTED_SOURCE, QualifyVerdict::all() );
+	}
+
+	public function test_unsupported_source_is_not_an_actionable_extractor_cohort(): void {
+		$this->assertNotSame( QualifyVerdict::EXTRACTION_GAP, QualifyVerdict::UNSUPPORTED_SOURCE );
+		$this->assertFalse( QualifyVerdict::is_qualified( QualifyVerdict::UNSUPPORTED_SOURCE ) );
+		$this->assertStringContainsString( 'Do NOT treat this as extractor work', QualifyVerdict::guidance_for( QualifyVerdict::UNSUPPORTED_SOURCE ) );
 	}
 
 	public function test_min_events_thresholds_are_distinct(): void {
