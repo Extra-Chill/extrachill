@@ -108,6 +108,47 @@ class QualifyDigestWpdbStub {
 		if ( false !== strpos( $sql, 'SELECT flow_id, flow_name, scheduling_config' ) ) {
 			return $this->flow_rows;
 		}
+		if ( false !== strpos( $sql, 'SELECT v.id, v.url' ) ) {
+			$this->gap_query = $sql;
+			$args            = $this->prepared_args[ $sql ];
+			$latest          = array();
+			foreach ( $this->verdict_rows as $row ) {
+				if ( $row['id'] > $args[0] ) {
+					continue;
+				}
+				$hash = $row['url_hash'];
+				if ( ! isset( $latest[ $hash ] )
+					|| $row['qualified_at'] > $latest[ $hash ]['qualified_at']
+					|| ( $row['qualified_at'] === $latest[ $hash ]['qualified_at'] && $row['id'] > $latest[ $hash ]['id'] ) ) {
+					$latest[ $hash ] = $row;
+				}
+			}
+
+			$rows = array_values(
+				array_filter(
+					$latest,
+					static function ( array $row ) use ( $args ): bool {
+						return in_array( $row['verdict'], array( $args[1], $args[2] ), true )
+							&& $row['qualified_at'] >= $args[3]
+							&& $row['qualified_at'] < $args[4]
+							&& $row['id'] > $args[5];
+					}
+				)
+			);
+			usort( $rows, static fn( array $left, array $right ): int => $left['id'] <=> $right['id'] );
+			$rows = array_slice( $rows, 0, $args[7] );
+			return array_map(
+				static function ( array $row ): array {
+					return array(
+						'id'          => $row['id'],
+						'url'         => $row['url'] ?? 'https://' . $row['url_hash'] . '.example/events',
+						'verdict'     => $row['verdict'],
+						'fingerprint' => $row['fingerprint'] ?? '{}',
+					);
+				},
+				$rows
+			);
+		}
 		if ( false !== strpos( $sql, "verdict = '" . QualifyVerdict::EXTRACTION_GAP . "'" ) ) {
 			$this->gap_query = $sql;
 			$args            = $this->prepared_args[ $sql ];
@@ -142,14 +183,18 @@ class QualifyDigestWpdbStub {
 		if ( 0 === strpos( $sql, 'SHOW TABLES LIKE' ) ) {
 			return $this->prefix . 'dme_qualify_verdicts';
 		}
+		if ( false !== strpos( $sql, 'COALESCE(MAX(id), 0)' ) ) {
+			return empty( $this->verdict_rows ) ? 0 : max( array_column( $this->verdict_rows, 'id' ) );
+		}
 		if ( false !== strpos( $sql, "verdict = '" . QualifyVerdict::QUALIFIED_STRUCTURED . "'" ) ) {
 			$this->qualified_query = $sql;
 			$args                  = $this->prepared_args[ $sql ];
 			$count                 = 0;
 			foreach ( $this->verdict_rows as $row ) {
 				if ( QualifyVerdict::QUALIFIED_STRUCTURED === $row['verdict']
-					&& $row['qualified_at'] >= $args[1]
-					&& $row['qualified_at'] < $args[2] ) {
+					&& $row['id'] <= $args[0]
+					&& $row['qualified_at'] >= $args[2]
+					&& $row['qualified_at'] < $args[3] ) {
 					++$count;
 				}
 			}
@@ -164,6 +209,9 @@ class QualifyDigestWpdbStub {
 		$this->unsupported_args  = $args;
 		$latest                  = array();
 		foreach ( $this->verdict_rows as $row ) {
+			if ( isset( $args[3] ) && $row['id'] > $args[3] ) {
+				continue;
+			}
 			$hash = $row['url_hash'];
 			if ( ! isset( $latest[ $hash ] )
 				|| $row['qualified_at'] > $latest[ $hash ]['qualified_at']

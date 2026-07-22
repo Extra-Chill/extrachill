@@ -218,28 +218,38 @@ class QualifyVerdictsTable {
 	 * Keep this query as the shared latest-window semantic for digest/cohort
 	 * consumers; do not replace it with MAX(id) grouping.
 	 *
-	 * @param string $verdict    Verdict to count.
-	 * @param string $start_local Inclusive site-local DATETIME bound.
-	 * @param string $end_local   Exclusive site-local DATETIME bound.
+	 * @param string   $verdict      Verdict to count.
+	 * @param string   $start_local  Inclusive site-local DATETIME bound.
+	 * @param string   $end_local    Exclusive site-local DATETIME bound.
+	 * @param int|null $max_id       Optional inclusive snapshot upper bound.
 	 * @return int Distinct canonical URLs matching the verdict.
 	 */
-	public static function count_latest_verdicts_in_window( string $verdict, string $start_local, string $end_local ): int {
+	public static function count_latest_verdicts_in_window( string $verdict, string $start_local, string $end_local, ?int $max_id = null ): int {
 		global $wpdb;
-		$table = self::table_name();
+		$table                  = self::table_name();
+		$current_snapshot_bound = null === $max_id ? '' : ' AND current_verdict.id <= %d';
+		$newer_snapshot_bound   = null === $max_id ? '' : ' AND newer_verdict.id <= %d';
+		$args                   = array( $verdict, $start_local, $end_local );
+		if ( null !== $max_id ) {
+			$args[] = $max_id;
+			$args[] = $max_id;
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$count = $wpdb->get_var(
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted table name; optional snapshot clauses determine the prepared argument count.
 			$wpdb->prepare(
 				"SELECT COUNT(DISTINCT current_verdict.url_hash)
 				 FROM {$table} current_verdict
 				 WHERE current_verdict.verdict = %s
 				   AND current_verdict.qualified_at >= %s
 				   AND current_verdict.qualified_at < %s
+				   {$current_snapshot_bound}
 				   AND NOT EXISTS (
 					 SELECT 1
 					 FROM {$table} newer_verdict
 					 WHERE newer_verdict.url_hash = current_verdict.url_hash
+					   {$newer_snapshot_bound}
 					   AND (
 						 newer_verdict.qualified_at > current_verdict.qualified_at
 						 OR (
@@ -248,11 +258,9 @@ class QualifyVerdictsTable {
 						 )
 					   )
 				   )",
-				$verdict,
-				$start_local,
-				$end_local
+				...$args
 			)
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 		);
 
 		return (int) $count;

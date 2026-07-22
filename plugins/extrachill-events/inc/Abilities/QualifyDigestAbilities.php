@@ -17,6 +17,7 @@
 
 namespace ExtraChillEvents\Abilities;
 
+use ExtraChillEvents\Core\QualifyCohortDeriver;
 use ExtraChillEvents\Core\QualifyVerdict;
 use ExtraChillEvents\Core\QualifyVerdictsTable;
 
@@ -25,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class QualifyDigestAbilities {
+	private const VERDICT_PAGE_SIZE = 250;
 
 	private static bool $registered = false;
 
@@ -188,6 +190,17 @@ class QualifyDigestAbilities {
 
 		$verdicts_table = QualifyVerdictsTable::table_name();
 		$flows_table    = $wpdb->prefix . 'datamachine_flows';
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only metadata against a trusted internal table.
+		$verdicts_exist = $wpdb->get_var( "SHOW TABLES LIKE '" . $verdicts_table . "'" ) === $verdicts_table;
+		$snapshot_id    = 0;
+		if ( $verdicts_exist ) {
+			$snapshot_id = (int) $wpdb->get_var( "SELECT COALESCE(MAX(id), 0) FROM {$verdicts_table}" );
+		}
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// Ordinary appends receive ids above the snapshot and cannot extend the
+		// scan. A transaction that reserved a lower id before this read may commit
+		// later and appear only on the next digest; avoiding that rare omission
+		// would require a long transaction or lock across all paged fingerprint reads.
 
 		// Paused-this-week — read scheduling_config from datamachine_flows
 		// rows whose paused_at falls in the window. paused_at is stashed as
@@ -259,13 +272,13 @@ class QualifyDigestAbilities {
 		// verdict rows in the window.
 		$new_qualified       = 0;
 		$unsupported_sources = 0;
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '" . $verdicts_table . "'" ) === $verdicts_table ) {
+		if ( $verdicts_exist ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$new_qualified = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-					"SELECT COUNT(*) FROM {$verdicts_table} WHERE verdict = %s AND qualified_at >= %s AND qualified_at < %s",
+					"SELECT COUNT(*) FROM {$verdicts_table} WHERE id <= %d AND verdict = %s AND qualified_at >= %s AND qualified_at < %s",
+					$snapshot_id,
 					QualifyVerdict::QUALIFIED_STRUCTURED,
 					$start,
 					$end
@@ -274,36 +287,62 @@ class QualifyDigestAbilities {
 			$unsupported_sources = QualifyVerdictsTable::count_latest_verdicts_in_window(
 				QualifyVerdict::UNSUPPORTED_SOURCE,
 				$start,
-				$end
+				$end,
+				$snapshot_id
 			);
 		}
 
-		// Top 3 fingerprints in extraction_gap. The fingerprint is a JSON
-		// blob; we group by `improvement_hint` as a coarse proxy for the
-		// platform / shape signature.
+		// Current remediation cohorts changed in this window. The inner query
+		// preserves canonical latest-verdict-per-URL semantics; keyset paging
+		// bounds fingerprint memory while incremental grouping retains only a
+		// fixed number of representative URLs per cohort.
 		$top_extraction_gap = array();
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '" . $verdicts_table . "'" ) === $verdicts_table ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$gap_rows = (array) $wpdb->get_results(
-				$wpdb->prepare(
-					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-					"SELECT improvement_hint, COUNT(*) AS c FROM {$verdicts_table}
-					 WHERE verdict = %s AND qualified_at >= %s AND qualified_at < %s
-					 GROUP BY improvement_hint
-					 ORDER BY c DESC LIMIT 3",
-					QualifyVerdict::EXTRACTION_GAP,
-					$start,
-					$end
-				),
-				ARRAY_A
-			);
-			foreach ( $gap_rows as $g ) {
-				$top_extraction_gap[] = array(
-					'hint'  => (string) ( $g['improvement_hint'] ?? '' ),
-					'count' => (int) ( $g['c'] ?? 0 ),
+		if ( $verdicts_exist ) {
+			$cohort_state = QualifyCohortDeriver::start();
+			$after_id     = 0;
+			$page_count   = 0;
+			do {
+				// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only report against a trusted internal table name.
+				$gap_rows = (array) $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT v.id, v.url, v.verdict, v.fingerprint FROM {$verdicts_table} v
+						 WHERE v.id <= %d
+						 AND v.verdict IN (%s, %s)
+						 AND v.qualified_at >= %s AND v.qualified_at < %s
+						 AND v.id > %d
+						 AND NOT EXISTS (
+							 SELECT 1 FROM {$verdicts_table} newer
+							 WHERE newer.url_hash = v.url_hash
+							 AND newer.id <= %d
+							 AND (
+								 newer.qualified_at > v.qualified_at
+								 OR ( newer.qualified_at = v.qualified_at AND newer.id > v.id )
+							 )
+						 )
+						 ORDER BY v.id ASC
+						 LIMIT %d",
+						$snapshot_id,
+						QualifyVerdict::EXTRACTION_GAP,
+						QualifyVerdict::UNSUPPORTED_SOURCE,
+						$start,
+						$end,
+						$after_id,
+						$snapshot_id,
+						self::VERDICT_PAGE_SIZE
+					),
+					ARRAY_A
 				);
-			}
+				// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				if ( empty( $gap_rows ) ) {
+					break;
+				}
+				QualifyCohortDeriver::accumulate( $cohort_state, $gap_rows );
+				$last       = end( $gap_rows );
+				$after_id   = (int) ( $last['id'] ?? 0 );
+				$page_count = count( $gap_rows );
+			} while ( self::VERDICT_PAGE_SIZE === $page_count );
+
+			$top_extraction_gap = QualifyCohortDeriver::finish( $cohort_state, 3 );
 		}
 
 		$counts = array(
@@ -374,15 +413,16 @@ class QualifyDigestAbilities {
 			$h .= '</table>';
 		}
 
-		// Top extraction_gap.
-		$h .= '<h2>Top extraction_gap fingerprints</h2>';
+		// Top qualification remediation cohorts.
+		$h .= '<h2>Top qualification remediation cohorts</h2>';
 		if ( empty( $data['top_extraction_gap'] ) ) {
-			$h .= '<p class="empty">No extraction_gap verdicts this week.</p>';
+			$h .= '<p class="empty">No remediation verdicts this week.</p>';
 		} else {
-			$h .= '<table><tr><th>Hint</th><th class="count">Count</th></tr>';
+			$h .= '<table><tr><th>Cohort</th><th>Representative URLs</th><th class="count">Count</th></tr>';
 			foreach ( $data['top_extraction_gap'] as $row ) {
-				$hint = '' === $row['hint'] ? '(no hint)' : $row['hint'];
-				$h   .= '<tr><td>' . esc_html( $hint ) . '</td><td class="count">' . (int) $row['count'] . '</td></tr>';
+				$label = $this->format_cohort_label( $row );
+				$urls  = implode( '<br>', array_map( 'esc_html', $row['representative_urls'] ) );
+				$h    .= '<tr><td>' . esc_html( $label ) . '</td><td>' . $urls . '</td><td class="count">' . (int) $row['count'] . '</td></tr>';
 			}
 			$h .= '</table>';
 		}
@@ -444,11 +484,14 @@ class QualifyDigestAbilities {
 		}
 
 		if ( ! empty( $data['top_extraction_gap'] ) ) {
-			$lines[] = 'Top 3 extraction_gap fingerprints:';
+			$lines[] = 'Top qualification remediation cohorts:';
 			$i       = 1;
 			foreach ( $data['top_extraction_gap'] as $row ) {
-				$hint    = '' === $row['hint'] ? '(no hint)' : $row['hint'];
-				$lines[] = sprintf( '  %d. %s — %d', $i++, $hint, (int) $row['count'] );
+				$label   = $this->format_cohort_label( $row );
+				$lines[] = sprintf( '  %d. %s — %d', $i++, $label, (int) $row['count'] );
+				foreach ( $row['representative_urls'] as $url ) {
+					$lines[] = '     ' . $url;
+				}
 			}
 			$lines[] = '';
 		}
@@ -486,5 +529,22 @@ class QualifyDigestAbilities {
 
 		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, $timezone );
 		return false === $date ? null : $date->getTimestamp();
+	}
+
+	/**
+	 * Format all fields that make one remediation cohort distinct.
+	 *
+	 * @param array $row Cohort summary.
+	 */
+	private function format_cohort_label( array $row ): string {
+		return sprintf(
+			'%s: platform=%s, signal=%s, shape=%s, extractor=%s, reason=%s',
+			(string) $row['category'],
+			(string) $row['platform'],
+			(string) $row['structured_signal'],
+			(string) $row['page_shape'],
+			(string) $row['extractor'],
+			(string) $row['reason']
+		);
 	}
 }

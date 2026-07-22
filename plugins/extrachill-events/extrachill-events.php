@@ -39,6 +39,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCo
 	// Core classes need to load before the CLI commands instantiate them.
 	require_once __DIR__ . '/inc/Core/QualifyVerdict.php';
 	require_once __DIR__ . '/inc/Core/QualifyVerdictsTable.php';
+	require_once __DIR__ . '/inc/Core/QualifyCohortDeriver.php';
 	require_once __DIR__ . '/inc/Core/QualifyVerdictResolver.php';
 	require_once __DIR__ . '/inc/Core/PlatformDetector.php';
 	require_once __DIR__ . '/inc/Core/QualifyFingerprinter.php';
@@ -94,6 +95,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCo
 // CLI runner.
 require_once __DIR__ . '/inc/Core/QualifyVerdict.php';
 require_once __DIR__ . '/inc/Core/QualifyVerdictsTable.php';
+require_once __DIR__ . '/inc/Core/QualifyCohortDeriver.php';
 require_once __DIR__ . '/inc/Cli/FlowOps.php';
 require_once __DIR__ . '/inc/Core/QualifyRecheckHandler.php';
 \ExtraChillEvents\Core\QualifyRecheckHandler::register();
