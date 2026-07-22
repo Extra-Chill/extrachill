@@ -116,6 +116,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/orphan-meta-cleanup.php';
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/login.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/core-signup.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/register.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/logout.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/password-reset.php';
