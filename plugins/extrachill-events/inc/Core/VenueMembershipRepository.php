@@ -35,11 +35,8 @@ class VenueMembershipRepository {
 			return new \WP_Error( 'invalid_venue_membership_user', __( 'Venue memberships require existing network users.', 'extrachill-events' ) );
 		}
 
-		$role   = sanitize_key( (string) ( $data['role'] ?? '' ) );
-		$status = sanitize_key( (string) ( $data['status'] ?? VenueAuthorization::STATUS_ACTIVE ) );
-		if ( ! in_array( $role, VenueAuthorization::roles(), true ) ) {
-			return new \WP_Error( 'invalid_venue_membership_role', __( 'The venue membership role is not supported.', 'extrachill-events' ) );
-		}
+		$is_owner = ! empty( $data['is_owner'] );
+		$status   = sanitize_key( (string) ( $data['status'] ?? VenueAuthorization::STATUS_ACTIVE ) );
 		if ( ! in_array( $status, VenueAuthorization::statuses(), true ) ) {
 			return new \WP_Error( 'invalid_venue_membership_status', __( 'The venue membership status is not supported.', 'extrachill-events' ) );
 		}
@@ -48,7 +45,7 @@ class VenueMembershipRepository {
 		$row   = array(
 			'venue_term_id'      => $venue_term_id,
 			'user_id'            => $user_id,
-			'role'               => $role,
+			'is_owner'           => $is_owner ? 1 : 0,
 			'status'             => $status,
 			'version'            => 1,
 			'created_by_user_id' => $creator_id,
@@ -75,11 +72,19 @@ class VenueMembershipRepository {
 			$this->rollback();
 			return $this->forbidden();
 		}
+		$has_active_owner = false;
 		foreach ( $memberships as $existing ) {
 			if ( $existing['user_id'] === $user_id ) {
 				$this->rollback();
 				return $this->conflict( $existing );
 			}
+			if ( $existing['is_owner'] && VenueAuthorization::STATUS_ACTIVE === $existing['status'] ) {
+				$has_active_owner = true;
+			}
+		}
+		if ( VenueAuthorization::STATUS_ACTIVE === $status && ! $is_owner && ! $has_active_owner ) {
+			$this->rollback();
+			return new \WP_Error( 'venue_membership_owner_required', __( 'The first active venue member must be an owner.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private operational table write.
@@ -138,20 +143,20 @@ class VenueMembershipRepository {
 		$where      = array( 'member.venue_term_id = %d' );
 		$values     = array( $venue_term_id );
 		if ( $actor_user_id > 0 && ! user_can( $actor_user_id, 'manage_options' ) ) {
-			$table_from .= " INNER JOIN {$table} AS actor ON actor.venue_term_id = member.venue_term_id AND actor.user_id = %d AND actor.role = 'owner' AND actor.status = 'active'";
+			$table_from .= " INNER JOIN {$table} AS actor ON actor.venue_term_id = member.venue_term_id AND actor.user_id = %d AND actor.is_owner = 1 AND actor.status = 'active'";
 			array_unshift( $values, $actor_user_id );
 		}
-		foreach ( array( 'role', 'status' ) as $field ) {
-			if ( empty( $filters[ $field ] ) ) {
-				continue;
+		if ( array_key_exists( 'is_owner', $filters ) ) {
+			$where[]  = 'member.is_owner = %d';
+			$values[] = $filters['is_owner'] ? 1 : 0;
+		}
+		if ( ! empty( $filters['status'] ) ) {
+			$status = sanitize_key( (string) $filters['status'] );
+			if ( ! in_array( $status, VenueAuthorization::statuses(), true ) ) {
+				return new \WP_Error( 'invalid_venue_membership_status', __( 'The venue membership filter is not supported.', 'extrachill-events' ) );
 			}
-			$allowed = 'role' === $field ? VenueAuthorization::roles() : VenueAuthorization::statuses();
-			$value   = sanitize_key( (string) $filters[ $field ] );
-			if ( ! in_array( $value, $allowed, true ) ) {
-				return new \WP_Error( "invalid_venue_membership_{$field}", __( 'The venue membership filter is not supported.', 'extrachill-events' ) );
-			}
-			$where[]  = "member.{$field} = %s";
-			$values[] = $value;
+			$where[]  = 'member.status = %s';
+			$values[] = $status;
 		}
 
 		$limit    = max( 1, min( 100, absint( $filters['limit'] ?? 50 ) ) );
@@ -175,13 +180,9 @@ class VenueMembershipRepository {
 		return $memberships;
 	}
 
-	/** Change one role at an expected version while preserving an active owner. */
-	public function update_role( int $venue_term_id, int $user_id, string $role, int $expected_version, int $actor_user_id ) {
-		$role = sanitize_key( $role );
-		if ( ! in_array( $role, VenueAuthorization::roles(), true ) ) {
-			return new \WP_Error( 'invalid_venue_membership_role', __( 'The venue membership role is not supported.', 'extrachill-events' ) );
-		}
-		return $this->mutate( $venue_term_id, $user_id, $expected_version, $role, null, $actor_user_id );
+	/** Change structural ownership at an expected version. */
+	public function update_owner( int $venue_term_id, int $user_id, bool $is_owner, int $expected_version, int $actor_user_id ) {
+		return $this->mutate( $venue_term_id, $user_id, $expected_version, $is_owner, null, $actor_user_id );
 	}
 
 	/** Revoke one relationship at an expected version while preserving an active owner. */
@@ -189,23 +190,24 @@ class VenueMembershipRepository {
 		return $this->mutate( $venue_term_id, $user_id, $expected_version, null, VenueAuthorization::STATUS_REVOKED, $actor_user_id );
 	}
 
-	/** Hydrate scalar fields and fail closed on corrupt role/status values. */
+	/** Hydrate scalar fields and fail closed on corrupt status values. */
 	public function hydrate( array $row ) {
-		if ( ! in_array( $row['role'] ?? '', VenueAuthorization::roles(), true ) ) {
-			return new \WP_Error( 'venue_membership_corrupt_role', __( 'The stored venue membership role is invalid.', 'extrachill-events' ) );
-		}
 		if ( ! in_array( $row['status'] ?? '', VenueAuthorization::statuses(), true ) ) {
 			return new \WP_Error( 'venue_membership_corrupt_status', __( 'The stored venue membership status is invalid.', 'extrachill-events' ) );
+		}
+		if ( ! in_array( $row['is_owner'] ?? null, array( 0, 1, '0', '1' ), true ) ) {
+			return new \WP_Error( 'venue_membership_corrupt_owner', __( 'The stored venue membership ownership value is invalid.', 'extrachill-events' ) );
 		}
 		foreach ( array( 'id', 'venue_term_id', 'user_id', 'version', 'created_by_user_id' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
 		}
+		$row['is_owner']   = (bool) (int) ( $row['is_owner'] ?? 0 );
 		$row['revoked_at'] = empty( $row['revoked_at'] ) ? null : (string) $row['revoked_at'];
 		return $row;
 	}
 
 	/** Execute one serialized membership mutation. */
-	private function mutate( int $venue_term_id, int $user_id, int $expected_version, ?string $role, ?string $status, int $actor_user_id ) {
+	private function mutate( int $venue_term_id, int $user_id, int $expected_version, ?bool $is_owner, ?string $status, int $actor_user_id ) {
 		global $wpdb;
 
 		if ( $venue_term_id < 1 || $user_id < 1 || $expected_version < 1 || $actor_user_id < 1 ) {
@@ -235,7 +237,7 @@ class VenueMembershipRepository {
 			if ( $membership['user_id'] === $user_id ) {
 				$current = $membership;
 			}
-			if ( VenueAuthorization::ROLE_OWNER === $membership['role'] && VenueAuthorization::STATUS_ACTIVE === $membership['status'] ) {
+			if ( $membership['is_owner'] && VenueAuthorization::STATUS_ACTIVE === $membership['status'] ) {
 				++$active_owner;
 			}
 		}
@@ -253,9 +255,9 @@ class VenueMembershipRepository {
 			return $this->version_conflict( $current );
 		}
 
-		$removes_owner = VenueAuthorization::ROLE_OWNER === $current['role']
+		$removes_owner = $current['is_owner']
 			&& VenueAuthorization::STATUS_ACTIVE === $current['status']
-			&& ( ( null !== $role && VenueAuthorization::ROLE_OWNER !== $role ) || VenueAuthorization::STATUS_REVOKED === $status );
+			&& ( false === $is_owner || VenueAuthorization::STATUS_REVOKED === $status );
 		if ( $removes_owner && $active_owner < 2 ) {
 			$this->rollback();
 			return new \WP_Error( 'venue_membership_last_owner', __( 'The final active venue owner cannot be removed.', 'extrachill-events' ), array( 'status' => 409 ) );
@@ -263,9 +265,9 @@ class VenueMembershipRepository {
 
 		$set    = array( 'version = version + 1', 'updated_at = %s' );
 		$values = array( gmdate( 'Y-m-d H:i:s' ) );
-		if ( null !== $role ) {
-			$set[]    = 'role = %s';
-			$values[] = $role;
+		if ( null !== $is_owner ) {
+			$set[]    = 'is_owner = %d';
+			$values[] = $is_owner ? 1 : 0;
 		}
 		if ( null !== $status ) {
 			$set[]    = 'status = %s';
@@ -314,8 +316,14 @@ class VenueMembershipRepository {
 		if ( user_can( $actor_user_id, 'manage_options' ) ) {
 			return true;
 		}
+		if ( ! user_can( $actor_user_id, VenueAuthorization::ACCESS_CAPABILITY ) ) {
+			return false;
+		}
+		if ( ! function_exists( 'ec_feature_available' ) || ! ec_feature_available( VenueAuthorization::FEATURE, $actor_user_id ) ) {
+			return false;
+		}
 		foreach ( $memberships as $membership ) {
-			if ( $membership['user_id'] === $actor_user_id && VenueAuthorization::ROLE_OWNER === $membership['role'] && VenueAuthorization::STATUS_ACTIVE === $membership['status'] ) {
+			if ( $membership['user_id'] === $actor_user_id && $membership['is_owner'] && VenueAuthorization::STATUS_ACTIVE === $membership['status'] ) {
 				return true;
 			}
 		}

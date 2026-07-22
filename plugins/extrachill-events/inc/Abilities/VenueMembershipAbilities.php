@@ -48,9 +48,9 @@ class VenueMembershipAbilities {
 				'description' => __( 'Network user ID.', 'extrachill-events' ),
 			),
 		);
-		$role_schema     = array(
-			'type' => 'string',
-			'enum' => VenueAuthorization::roles(),
+		$owner_schema    = array(
+			'type'        => 'boolean',
+			'description' => __( 'Whether the member may administer venue membership.', 'extrachill-events' ),
 		);
 		$version_schema  = array(
 			'type'    => 'integer',
@@ -61,8 +61,8 @@ class VenueMembershipAbilities {
 			'extrachill/create-venue-membership',
 			__( 'Create Venue Membership', 'extrachill-events' ),
 			__( 'Add an existing network user to a venue.', 'extrachill-events' ),
-			array_merge( $base_properties, array( 'role' => $role_schema ) ),
-			array( 'venue_term_id', 'user_id', 'role' ),
+			array_merge( $base_properties, array( 'is_owner' => $owner_schema ) ),
+			array( 'venue_term_id', 'user_id', 'is_owner' ),
 			array( $this, 'create_membership' ),
 			false,
 			false,
@@ -72,15 +72,15 @@ class VenueMembershipAbilities {
 		$this->register_ability(
 			'extrachill/update-venue-membership',
 			__( 'Update Venue Membership', 'extrachill-events' ),
-			__( 'Change a venue member role at an expected version.', 'extrachill-events' ),
+			__( 'Change structural venue ownership at an expected version.', 'extrachill-events' ),
 			array_merge(
 				$base_properties,
 				array(
-					'role'             => $role_schema,
+					'is_owner'         => $owner_schema,
 					'expected_version' => $version_schema,
 				)
 			),
-			array( 'venue_term_id', 'user_id', 'role', 'expected_version' ),
+			array( 'venue_term_id', 'user_id', 'is_owner', 'expected_version' ),
 			array( $this, 'update_membership' ),
 			false,
 			false,
@@ -105,10 +105,7 @@ class VenueMembershipAbilities {
 			__( 'List members for one authorized venue.', 'extrachill-events' ),
 			array(
 				'venue_term_id' => $base_properties['venue_term_id'],
-				'role'          => array(
-					'type' => 'string',
-					'enum' => VenueAuthorization::roles(),
-				),
+				'is_owner'      => $owner_schema,
 				'status'        => array(
 					'type' => 'string',
 					'enum' => VenueAuthorization::statuses(),
@@ -147,15 +144,15 @@ class VenueMembershipAbilities {
 	}
 
 	public function create_membership( array $input ) {
-		return $this->service->create( get_current_user_id(), absint( $input['venue_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), (string) ( $input['role'] ?? '' ) );
+		return $this->service->create( get_current_user_id(), absint( $input['venue_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ) );
 	}
 
 	public function update_membership( array $input ) {
-		return $this->service->update_role(
+		return $this->service->update_owner(
 			get_current_user_id(),
 			absint( $input['venue_term_id'] ?? 0 ),
 			absint( $input['user_id'] ?? 0 ),
-			(string) ( $input['role'] ?? '' ),
+			(bool) ( $input['is_owner'] ?? false ),
 			absint( $input['expected_version'] ?? 0 )
 		);
 	}
@@ -210,10 +207,7 @@ class VenueMembershipAbilities {
 				'id'                 => array( 'type' => 'integer' ),
 				'venue_term_id'      => array( 'type' => 'integer' ),
 				'user_id'            => array( 'type' => 'integer' ),
-				'role'               => array(
-					'type' => 'string',
-					'enum' => VenueAuthorization::roles(),
-				),
+				'is_owner'           => array( 'type' => 'boolean' ),
 				'status'             => array(
 					'type' => 'string',
 					'enum' => VenueAuthorization::statuses(),

@@ -190,6 +190,7 @@ class ExtraChillEvents {
 	}
 
 	private function init_hooks() {
+		add_filter( 'ec_feature_ceilings', array( $this, 'register_feature_ceilings' ) );
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 		add_action( 'init', array( $this, 'init_data_machine_handlers' ), 20 );
 		add_action( 'init', array( $this, 'init_abilities' ), 25 );
@@ -203,6 +204,12 @@ class ExtraChillEvents {
 		}
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+	}
+
+	/** Keep venue booking tools on the established internal-team rollout rung. */
+	public function register_feature_ceilings( array $ceilings ): array {
+		$ceilings[ \ExtraChillEvents\Core\VenueAuthorization::FEATURE ] = 'team';
+		return $ceilings;
 	}
 
 	public function load_textdomain() {

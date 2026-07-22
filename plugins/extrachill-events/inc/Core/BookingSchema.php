@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns and verifies the site-scoped private booking schema. */
 class BookingSchema {
 
-	public const SCHEMA_VERSION = '2';
+	public const SCHEMA_VERSION = '3';
 	public const VERSION_OPTION = 'extrachill_events_booking_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_booking_schema_error';
 
@@ -106,7 +106,7 @@ class BookingSchema {
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			venue_term_id BIGINT UNSIGNED NOT NULL,
 			user_id BIGINT UNSIGNED NOT NULL,
-			role VARCHAR(32) NOT NULL,
+			is_owner TINYINT UNSIGNED NOT NULL DEFAULT '0',
 			status VARCHAR(20) NOT NULL DEFAULT 'active',
 			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
 			created_by_user_id BIGINT UNSIGNED NOT NULL,
@@ -116,7 +116,7 @@ class BookingSchema {
 			PRIMARY KEY (id),
 			UNIQUE KEY venue_user (venue_term_id, user_id),
 			KEY user_status_venue (user_id, status, venue_term_id),
-			KEY venue_status_role (venue_term_id, status, role)
+			KEY venue_status_owner (venue_term_id, status, is_owner)
 		) ENGINE=InnoDB {$charset};";
 
 		$repair = self::drop_conflicting_indexes();
@@ -144,6 +144,12 @@ class BookingSchema {
 			);
 			self::record_failure( $error );
 			return $error;
+		}
+
+		$membership_migration = self::migrate_membership_authority();
+		if ( is_wp_error( $membership_migration ) ) {
+			self::record_failure( $membership_migration );
+			return $membership_migration;
 		}
 
 		$engine_repair = self::repair_storage_engines();
@@ -353,6 +359,49 @@ class BookingSchema {
 		return true;
 	}
 
+	/** Collapse the unreleased speculative role matrix into structural ownership. */
+	private static function migrate_membership_authority() {
+		global $wpdb;
+
+		$table   = self::memberships_table();
+		$columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private schema migration.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return self::database_error( __( 'Could not inspect venue membership authority.', 'extrachill-events' ), $table );
+		}
+		$column_names = array_column( (array) $columns, 'Field' );
+		if ( ! in_array( 'role', $column_names, true ) ) {
+			return true;
+		}
+
+		$result = $wpdb->query( "UPDATE `{$table}` SET is_owner = IF(role = 'owner', 1, 0)" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration from the unreleased role matrix.
+		if ( false === $result ) {
+			$remaining_columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes a concurrent completed migration from a real failure.
+			if ( '' !== (string) $wpdb->last_error || in_array( 'role', array_column( (array) $remaining_columns, 'Field' ), true ) ) {
+				return self::database_error( __( 'Could not migrate venue membership ownership.', 'extrachill-events' ), $table );
+			}
+			return true;
+		}
+
+		$indexes = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private schema migration.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return self::database_error( __( 'Could not inspect venue membership indexes.', 'extrachill-events' ), $table );
+		}
+		if ( isset( $indexes['venue_status_role'] ) && false === $wpdb->query( "ALTER TABLE `{$table}` DROP INDEX `venue_status_role`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes the obsolete private index.
+			$current_indexes = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes concurrent removal from a real failure.
+			if ( '' !== (string) $wpdb->last_error || isset( $current_indexes['venue_status_role'] ) ) {
+				return self::database_error( __( 'Could not remove the obsolete venue membership index.', 'extrachill-events' ), $table );
+			}
+		}
+		if ( false === $wpdb->query( "ALTER TABLE `{$table}` DROP COLUMN `role`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes an unreleased speculative field after preserving structural ownership.
+			$current_columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes concurrent removal from a real failure.
+			if ( '' !== (string) $wpdb->last_error || in_array( 'role', array_column( (array) $current_columns, 'Field' ), true ) ) {
+				return self::database_error( __( 'Could not remove obsolete venue membership roles.', 'extrachill-events' ), $table );
+			}
+		}
+
+		return true;
+	}
+
 	/** Return the final initial schema contract shared by health and repair. */
 	private static function contracts(): array {
 		$required = static function ( string $type, bool $nullable, array $attributes = array() ): array {
@@ -472,7 +521,7 @@ class BookingSchema {
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
 					'venue_term_id'      => $required( 'bigint unsigned', false ),
 					'user_id'            => $required( 'bigint unsigned', false ),
-					'role'               => $required( 'varchar(32)', false ),
+					'is_owner'           => $required( 'tinyint unsigned', false, array( 'default' => '0' ) ),
 					'status'             => $required( 'varchar(20)', false, array( 'default' => 'active' ) ),
 					'version'            => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
 					'created_by_user_id' => $required( 'bigint unsigned', false ),
@@ -481,21 +530,21 @@ class BookingSchema {
 					'revoked_at'         => $required( 'datetime', true ),
 				),
 				'indexes' => array(
-					'PRIMARY'           => array(
+					'PRIMARY'            => array(
 						'unique'  => true,
 						'columns' => array( 'id' ),
 					),
-					'venue_user'        => array(
+					'venue_user'         => array(
 						'unique'  => true,
 						'columns' => array( 'venue_term_id', 'user_id' ),
 					),
-					'user_status_venue' => array(
+					'user_status_venue'  => array(
 						'unique'  => false,
 						'columns' => array( 'user_id', 'status', 'venue_term_id' ),
 					),
-					'venue_status_role' => array(
+					'venue_status_owner' => array(
 						'unique'  => false,
-						'columns' => array( 'venue_term_id', 'status', 'role' ),
+						'columns' => array( 'venue_term_id', 'status', 'is_owner' ),
 					),
 				),
 			),
@@ -504,7 +553,7 @@ class BookingSchema {
 
 	/** Normalize one SHOW COLUMNS row to the declared contract shape. */
 	private static function normalize_column( array $column ): array {
-		$type = preg_replace( '/\((?:8|11|20)\)(?=\s+unsigned)/', '', strtolower( trim( (string) ( $column['Type'] ?? '' ) ) ) );
+		$type = preg_replace( '/\(\d+\)(?=\s+unsigned)/', '', strtolower( trim( (string) ( $column['Type'] ?? '' ) ) ) );
 		return array(
 			'type'     => preg_replace( '/\s+/', ' ', $type ),
 			'nullable' => 'YES' === strtoupper( (string) ( $column['Null'] ?? '' ) ),

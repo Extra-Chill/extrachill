@@ -26,7 +26,7 @@ class VenueMembershipService {
 	}
 
 	/** Add an active membership for an existing network user. */
-	public function create( int $actor_user_id, int $venue_term_id, int $target_user_id, string $role ) {
+	public function create( int $actor_user_id, int $venue_term_id, int $target_user_id, bool $is_owner ) {
 		$allowed = $this->authorization->authorize( $actor_user_id, $venue_term_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
 		if ( is_wp_error( $allowed ) ) {
 			return $allowed;
@@ -35,20 +35,20 @@ class VenueMembershipService {
 			array(
 				'venue_term_id'      => $venue_term_id,
 				'user_id'            => $target_user_id,
-				'role'               => $role,
+				'is_owner'           => $is_owner,
 				'status'             => VenueAuthorization::STATUS_ACTIVE,
 				'created_by_user_id' => $actor_user_id,
 			)
 		);
 	}
 
-	/** Change one membership role. */
-	public function update_role( int $actor_user_id, int $venue_term_id, int $target_user_id, string $role, int $expected_version ) {
+	/** Change structural membership ownership. */
+	public function update_owner( int $actor_user_id, int $venue_term_id, int $target_user_id, bool $is_owner, int $expected_version ) {
 		$allowed = $this->authorization->authorize( $actor_user_id, $venue_term_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
 		if ( is_wp_error( $allowed ) ) {
 			return $allowed;
 		}
-		return $this->memberships->update_role( $venue_term_id, $target_user_id, $role, $expected_version, $actor_user_id );
+		return $this->memberships->update_owner( $venue_term_id, $target_user_id, $is_owner, $expected_version, $actor_user_id );
 	}
 
 	/** Revoke one membership without deleting its audit identity. */

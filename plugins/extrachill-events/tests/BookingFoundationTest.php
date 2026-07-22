@@ -144,25 +144,26 @@ if ( ! function_exists( 'delete_option' ) ) {
 
 /** Stateful wpdb fake that enforces the persistence contracts under test. */
 final class BookingWpdb {
-	public $prefix                  = 'wp_7_';
-	public $insert_id               = 0;
-	public $last_error              = '';
-	public $rows                    = array();
-	public $schemas                 = array();
-	public $engines                 = array();
-	public $schema_omit             = array();
-	public $schema_queries          = 0;
-	public $dropped_indexes         = array();
-	public $fail_reads              = false;
-	public $fail_activity_reads     = false;
-	public $fail_inserts            = false;
-	public $fail_updates            = false;
-	public $fail_engine_repair      = false;
-	public $race_activity_insert    = false;
-	public $race_activity_read_fail = false;
-	public $race_event_read_fail    = false;
-	public $reads_before_failure    = null;
-	public $last_query              = '';
+	public $prefix                    = 'wp_7_';
+	public $insert_id                 = 0;
+	public $last_error                = '';
+	public $rows                      = array();
+	public $schemas                   = array();
+	public $engines                   = array();
+	public $schema_omit               = array();
+	public $schema_queries            = 0;
+	public $dropped_indexes           = array();
+	public $fail_reads                = false;
+	public $fail_activity_reads       = false;
+	public $fail_inserts              = false;
+	public $fail_updates              = false;
+	public $fail_engine_repair        = false;
+	public $race_activity_insert      = false;
+	public $race_activity_read_fail   = false;
+	public $race_event_read_fail      = false;
+	public $concurrent_role_migration = false;
+	public $reads_before_failure      = null;
+	public $last_query                = '';
 
 	public function get_charset_collate() {
 		return 'DEFAULT CHARACTER SET utf8mb4'; }
@@ -265,7 +266,7 @@ final class BookingWpdb {
 			$table = stripslashes( $match[1] );
 			return isset( $this->engines[ $table ] ) ? array( 'Engine' => $this->engines[ $table ] ) : null;
 		}
-		$is_activity      = false !== strpos( $query, 'ec_booking_activity' );
+		$is_activity = false !== strpos( $query, 'ec_booking_activity' );
 		if ( null !== $this->reads_before_failure ) {
 			if ( 0 === $this->reads_before_failure ) {
 				$this->last_error = 'simulated delayed row read failure';
@@ -387,12 +388,38 @@ final class BookingWpdb {
 	public function query( $query ) {
 		$this->last_query = $query;
 		$this->last_error = '';
+		if ( preg_match( "/UPDATE `([^`]+)` SET is_owner = IF\(role = 'owner', 1, 0\)/", $query, $migration ) ) {
+			$this->rows[ $migration[1] ] = $this->rows[ $migration[1] ] ?? array();
+			foreach ( $this->rows[ $migration[1] ] as &$row ) {
+				$row['is_owner'] = 'owner' === ( $row['role'] ?? '' ) ? 1 : 0;
+				if ( $this->concurrent_role_migration ) {
+					unset( $row['role'] );
+				}
+			}
+			unset( $row );
+			if ( $this->concurrent_role_migration ) {
+				$this->concurrent_role_migration = false;
+				unset( $this->schemas[ $migration[1] ]['columns']['role'], $this->schemas[ $migration[1] ]['indexes']['venue_status_role'] );
+				$this->last_error = 'simulated concurrent migration';
+				return false;
+			}
+			return 1;
+		}
 		if ( preg_match( '/ALTER TABLE `([^`]+)` ENGINE=([a-zA-Z0-9_]+)/', $query, $engine ) ) {
 			if ( $this->fail_engine_repair ) {
 				$this->last_error = 'simulated engine conversion failure';
 				return false;
 			}
 			$this->engines[ $engine[1] ] = $engine[2];
+			return 1;
+		}
+		if ( preg_match( '/ALTER TABLE `([^`]+)` DROP COLUMN `([^`]+)`/', $query, $drop_column ) ) {
+			unset( $this->schemas[ $drop_column[1] ]['columns'][ $drop_column[2] ] );
+			$this->rows[ $drop_column[1] ] = $this->rows[ $drop_column[1] ] ?? array();
+			foreach ( $this->rows[ $drop_column[1] ] as &$row ) {
+				unset( $row[ $drop_column[2] ] );
+			}
+			unset( $row );
 			return 1;
 		}
 		if ( preg_match( '/ALTER TABLE `([^`]+)` DROP (?:INDEX `([^`]+)`|PRIMARY KEY)/', $query, $drop ) ) {
@@ -529,6 +556,8 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertTrue( BookingSchema::install() );
 		$this->assertSame( BookingSchema::SCHEMA_VERSION, get_option( BookingSchema::VERSION_OPTION ) );
 		$this->assertTrue( BookingSchema::health() );
+		$this->assertArrayHasKey( 'is_owner', $GLOBALS['wpdb']->schemas['wp_7_ec_venue_members']['columns'] );
+		$this->assertArrayNotHasKey( 'role', $GLOBALS['wpdb']->schemas['wp_7_ec_venue_members']['columns'] );
 
 		$columns                   =& $GLOBALS['wpdb']->schemas['wp_7_ec_bookings']['columns'];
 		$columns['status']['Type'] = 'text';
@@ -552,6 +581,68 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertSame( 'wp_12_ec_bookings', BookingSchema::bookings_table() );
 		$this->assertSame( 'wp_12_ec_venue_members', BookingSchema::memberships_table() );
 		$this->assertSame( 'booking_schema_table_missing', BookingSchema::health()->get_error_code() );
+	}
+
+	public function test_role_schema_migrates_only_structural_ownership(): void {
+		$this->assertTrue( BookingSchema::install() );
+		$table = BookingSchema::memberships_table();
+		$GLOBALS['wpdb']->schemas[ $table ]['columns']['role']                 = array(
+			'Type'    => 'varchar(32)',
+			'Null'    => 'NO',
+			'Default' => null,
+			'Extra'   => '',
+		);
+		$GLOBALS['wpdb']->schemas[ $table ]['indexes']['venue_status_role']    = array(
+			'unique'  => false,
+			'columns' => array( 'venue_term_id', 'status', 'role' ),
+		);
+		$GLOBALS['wpdb']->rows[ $table ]                                       = array(
+			1 => array(
+				'role'     => 'owner',
+				'is_owner' => 0,
+			),
+			2 => array(
+				'role'     => 'marketing',
+				'is_owner' => 1,
+			),
+		);
+		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '2';
+
+		$this->assertTrue( BookingSchema::maybe_install() );
+		$this->assertSame( 1, $GLOBALS['wpdb']->rows[ $table ][1]['is_owner'] );
+		$this->assertSame( 0, $GLOBALS['wpdb']->rows[ $table ][2]['is_owner'] );
+		$this->assertArrayNotHasKey( 'role', $GLOBALS['wpdb']->rows[ $table ][1] );
+		$this->assertArrayNotHasKey( 'role', $GLOBALS['wpdb']->schemas[ $table ]['columns'] );
+		$this->assertArrayNotHasKey( 'venue_status_role', $GLOBALS['wpdb']->schemas[ $table ]['indexes'] );
+		$this->assertSame( BookingSchema::SCHEMA_VERSION, get_option( BookingSchema::VERSION_OPTION ) );
+	}
+
+	public function test_concurrent_completed_role_migration_is_treated_as_success(): void {
+		$this->assertTrue( BookingSchema::install() );
+		$table = BookingSchema::memberships_table();
+		$GLOBALS['wpdb']->schemas[ $table ]['columns']['role']                 = array(
+			'Type'    => 'varchar(32)',
+			'Null'    => 'NO',
+			'Default' => null,
+			'Extra'   => '',
+		);
+		$GLOBALS['wpdb']->schemas[ $table ]['indexes']['venue_status_role']    = array(
+			'unique'  => false,
+			'columns' => array( 'venue_term_id', 'status', 'role' ),
+		);
+		$GLOBALS['wpdb']->rows[ $table ]                                       = array(
+			1 => array(
+				'role'     => 'owner',
+				'is_owner' => 0,
+			),
+		);
+		$GLOBALS['wpdb']->concurrent_role_migration                            = true;
+		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '2';
+
+		$this->assertTrue( BookingSchema::maybe_install() );
+		$this->assertSame( 1, $GLOBALS['wpdb']->rows[ $table ][1]['is_owner'] );
+		$this->assertSame( BookingSchema::SCHEMA_VERSION, get_option( BookingSchema::VERSION_OPTION ) );
+		$this->assertFalse( get_option( BookingSchema::FAILURE_OPTION, false ) );
 	}
 
 	public function test_unrepairable_column_attributes_are_not_stamped(): void {
@@ -633,14 +724,14 @@ final class BookingFoundationTest extends TestCase {
 
 	public function test_membership_table_engine_is_repaired_before_version_stamp(): void {
 		$this->assertTrue( BookingSchema::install() );
-		$table = BookingSchema::memberships_table();
+		$table                              = BookingSchema::memberships_table();
 		$GLOBALS['wpdb']->engines[ $table ] = 'MyISAM';
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '';
 		$this->assertTrue( BookingSchema::maybe_install() );
 		$this->assertSame( 'INNODB', strtoupper( $GLOBALS['wpdb']->engines[ $table ] ) );
 
-		$GLOBALS['wpdb']->engines[ $table ]                                  = 'MyISAM';
-		$GLOBALS['wpdb']->fail_engine_repair                                  = true;
+		$GLOBALS['wpdb']->engines[ $table ]                                    = 'MyISAM';
+		$GLOBALS['wpdb']->fail_engine_repair                                   = true;
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '';
 		$result = BookingSchema::maybe_install();
 		$this->assertSame( 'booking_schema_engine_repair_failed', $result->get_error_code() );
