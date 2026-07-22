@@ -15,12 +15,13 @@ class Test_Artist_Invitation_Registration extends WP_UnitTestCase {
 		unset( $_SERVER['HTTP_EXTRACHILL_CLIENT'] );
 		remove_all_filters( 'pre_http_request' );
 		remove_all_filters( 'extrachill_users_registration_turnstile_verifier' );
-		delete_transient( extrachill_users_registration_attempt_key() );
+		remove_all_filters( 'extrachill_users_registration_admitter' );
 		parent::tearDown();
 	}
 
 	public function test_incomplete_invitation_is_rejected_before_token_registration_creates_user(): void {
 		add_filter( 'extrachill_users_registration_turnstile_verifier', array( $this, 'pass_turnstile' ) );
+		add_filter( 'extrachill_users_registration_admitter', array( $this, 'admit_registration' ) );
 		$email = 'failed-invite@example.com';
 
 		$result = extrachill_users_register_with_tokens(
@@ -107,6 +108,7 @@ class Test_Artist_Invitation_Registration extends WP_UnitTestCase {
 
 	private function assert_token_registration_invitation_outcome( string $error_code, int $error_status, string $expected_status, bool $expected_retryable ): void {
 		add_filter( 'extrachill_users_registration_turnstile_verifier', array( $this, 'pass_turnstile' ) );
+		add_filter( 'extrachill_users_registration_admitter', array( $this, 'admit_registration' ) );
 		$request_count = 0;
 		add_filter(
 			'pre_http_request',
@@ -170,6 +172,10 @@ class Test_Artist_Invitation_Registration extends WP_UnitTestCase {
 	}
 
 	public function pass_turnstile(): bool {
+		return true;
+	}
+
+	public function admit_registration(): bool {
 		return true;
 	}
 

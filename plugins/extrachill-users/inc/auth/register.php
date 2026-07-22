@@ -13,79 +13,108 @@ defined( 'ABSPATH' ) || exit;
 
 const EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT  = 5;
 const EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW = 15 * MINUTE_IN_SECONDS;
+const EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP = 'extrachill-users-registration-admission';
 
 /**
- * Get the registration attempt key for the current requester.
+ * Get the registration limiter key for the current requester and window.
  *
- * The IP-only key prevents callers from evading the limit by rotating email
- * addresses. The stored value includes a fixed expiry so later attempts do not
- * extend the window.
+ * The custom cache group is registered as global so all sites in the network
+ * share one IP budget. Network ID remains in the key to isolate separate
+ * networks when a cache backend serves more than one.
  *
- * @return string Transient key.
+ * @param int|null $now Optional Unix timestamp. Defaults to now.
+ * @return string Cache key, or an empty string when the requester IP is unavailable.
  */
-function extrachill_users_registration_attempt_key(): string {
+function extrachill_users_registration_attempt_key( ?int $now = null ): string {
 	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+	if ( '' === $ip ) {
+		return '';
+	}
 
-	return 'ec_registration_attempts_' . md5( $ip );
+	$now       = null === $now ? time() : $now;
+	$window_id = intdiv( $now, EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW );
+	$ip_hash   = substr( hash_hmac( 'sha256', $ip, wp_salt( 'nonce' ) ), 0, 32 );
+
+	return sprintf( 'network_%d_window_%d_ip_%s', get_current_network_id(), $window_id, $ip_hash );
 }
 
 /**
- * Return the current registration throttle state.
+ * Build a stable registration rate-limit error.
  *
- * @return array{attempts:int,expires_at:int}
+ * @param int $expires_at Fixed-window expiry timestamp.
+ * @return WP_Error Rate-limit response with REST-safe metadata.
  */
-function extrachill_users_registration_attempt_state(): array {
-	$state = get_transient( extrachill_users_registration_attempt_key() );
-	if ( ! is_array( $state ) || ! isset( $state['attempts'], $state['expires_at'] ) || (int) $state['expires_at'] <= time() ) {
-		return array(
-			'attempts'   => 0,
-			'expires_at' => 0,
-		);
-	}
-
-	return array(
-		'attempts'   => max( 0, (int) $state['attempts'] ),
-		'expires_at' => (int) $state['expires_at'],
-	);
-}
-
-/**
- * Check whether the current requester has exhausted registration attempts.
- *
- * @return true|WP_Error True when another attempt is allowed.
- */
-function extrachill_users_check_registration_rate_limit() {
-	$state = extrachill_users_registration_attempt_state();
-	if ( $state['attempts'] < EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT ) {
-		return true;
-	}
-
-	$retry_after = max( 1, $state['expires_at'] - time() );
-
+function extrachill_users_registration_rate_limit_error( int $expires_at ): WP_Error {
 	return new WP_Error(
 		'registration_rate_limited',
-		__( 'Too many registration attempts. Please try again in 15 minutes.', 'extrachill-users' ),
+		__( 'Too many registration attempts. Please try again later.', 'extrachill-users' ),
 		array(
 			'status'      => 429,
-			'retry_after' => $retry_after,
-			'expires_at'  => $state['expires_at'],
+			'retry_after' => max( 1, $expires_at - time() ),
+			'expires_at'  => $expires_at,
 		)
 	);
 }
 
 /**
- * Record a registration attempt without extending the current window.
+ * Atomically increment and admit one registration attempt.
+ *
+ * `wp_cache_add()` admits the first request and `wp_cache_incr()` atomically
+ * admits every concurrent follower without a separate read/write race. Redis
+ * preserves the original TTL on increment, keeping the fixed expiry stable.
+ *
+ * @param string $key        Network-global cache key.
+ * @param int    $expires_at Fixed-window expiry timestamp.
+ * @return true|WP_Error True when admitted, otherwise a stable error.
  */
-function extrachill_users_record_registration_attempt(): void {
-	$key   = extrachill_users_registration_attempt_key();
-	$state = extrachill_users_registration_attempt_state();
+function extrachill_users_increment_registration_attempt( string $key, int $expires_at ) {
+	wp_cache_add_global_groups( EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP );
 
-	if ( 0 === $state['expires_at'] ) {
-		$state['expires_at'] = time() + EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW;
+	$ttl = max( 1, $expires_at - time() );
+	if ( wp_cache_add( $key, 1, EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP, $ttl ) ) {
+		$count = 1;
+	} else {
+		$count = wp_cache_incr( $key, 1, EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP );
 	}
 
-	++$state['attempts'];
-	set_transient( $key, $state, max( 1, $state['expires_at'] - time() ) );
+	if ( false === $count || ! is_numeric( $count ) ) {
+		return new WP_Error(
+			'registration_limiter_unavailable',
+			__( 'Registration is temporarily unavailable. Please try again.', 'extrachill-users' ),
+			array( 'status' => 503 )
+		);
+	}
+
+	return (int) $count > EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT
+		? extrachill_users_registration_rate_limit_error( $expires_at )
+		: true;
+}
+
+/**
+ * Admit the current requester through the network-wide registration limiter.
+ *
+ * @return true|WP_Error True when admitted, otherwise a fail-closed error.
+ */
+function extrachill_users_admit_registration_attempt() {
+	$key = extrachill_users_registration_attempt_key();
+	if ( '' === $key
+		|| ! function_exists( 'wp_using_ext_object_cache' )
+		|| ! wp_using_ext_object_cache()
+		|| ! function_exists( 'wp_cache_add' )
+		|| ! function_exists( 'wp_cache_incr' )
+		|| ! function_exists( 'wp_cache_add_global_groups' )
+	) {
+		return new WP_Error(
+			'registration_limiter_unavailable',
+			__( 'Registration is temporarily unavailable. Please try again.', 'extrachill-users' ),
+			array( 'status' => 503 )
+		);
+	}
+
+	$now        = time();
+	$expires_at = ( intdiv( $now, EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW ) + 1 ) * EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW;
+
+	return extrachill_users_increment_registration_attempt( $key, $expires_at );
 }
 
 /**
@@ -96,14 +125,6 @@ function extrachill_users_record_registration_attempt(): void {
  * @return true|WP_Error True when registration may continue.
  */
 function extrachill_users_validate_password_registration( string $email, string $turnstile_token ) {
-	$rate_limit = extrachill_users_check_registration_rate_limit();
-	if ( is_wp_error( $rate_limit ) ) {
-		return $rate_limit;
-	}
-
-	// Count failed CAPTCHA and validation requests as attempts too.
-	extrachill_users_record_registration_attempt();
-
 	/**
 	 * Filter the Turnstile verifier used by password registration.
 	 *
@@ -126,6 +147,28 @@ function extrachill_users_validate_password_registration( string $email, string 
 		return $turnstile_check;
 	}
 
+	/**
+	 * Filter the atomic registration admission callable.
+	 *
+	 * Tests may substitute a deterministic concurrency seam. Production uses
+	 * the network-global persistent-object-cache implementation above.
+	 *
+	 * @param callable $admitter Atomic admission callable.
+	 */
+	$admitter = apply_filters( 'extrachill_users_registration_admitter', 'extrachill_users_admit_registration_attempt' );
+	if ( ! is_callable( $admitter ) ) {
+		return new WP_Error(
+			'registration_limiter_unavailable',
+			__( 'Registration is temporarily unavailable. Please try again.', 'extrachill-users' ),
+			array( 'status' => 503 )
+		);
+	}
+
+	$admission = call_user_func( $admitter );
+	if ( is_wp_error( $admission ) ) {
+		return $admission;
+	}
+
 	if ( is_email( $email ) && is_email_address_unsafe( $email ) ) {
 		return new WP_Error(
 			'unsafe_email',
@@ -135,6 +178,19 @@ function extrachill_users_validate_password_registration( string $email, string 
 	}
 
 	return true;
+}
+
+/**
+ * Validate the anti-abuse policy fields from a registration form request.
+ *
+ * @param array $request Form request values.
+ * @return true|WP_Error True when the form request may continue.
+ */
+function extrachill_users_validate_registration_form_request( array $request ) {
+	$email = isset( $request['extrachill_email'] ) ? sanitize_email( wp_unslash( $request['extrachill_email'] ) ) : '';
+	$token = isset( $request['cf-turnstile-response'] ) ? wp_unslash( $request['cf-turnstile-response'] ) : '';
+
+	return extrachill_users_validate_password_registration( $email, $token );
 }
 
 /**
@@ -154,10 +210,7 @@ function extrachill_handle_registration() {
 	$password         = isset( $_POST['extrachill_password'] ) ? wp_unslash( $_POST['extrachill_password'] ) : '';
 	$password_confirm = isset( $_POST['extrachill_password_confirm'] ) ? wp_unslash( $_POST['extrachill_password_confirm'] ) : '';
 
-	$turnstile_token = isset( $_POST['cf-turnstile-response'] )
-		? wp_unslash( $_POST['cf-turnstile-response'] )
-		: '';
-	$check           = extrachill_users_validate_password_registration( $email, $turnstile_token );
+	$check = extrachill_users_validate_registration_form_request( $_POST );
 	if ( is_wp_error( $check ) ) {
 		$redirect->error( $check->get_error_message() );
 	}
