@@ -70,7 +70,7 @@ final class ArtistTermBindingTest extends TestCase {
 		$this->addProfile( 12, 'the-band', 999 );
 
 		$this->assertSame( 0, ec_get_artist_term_id( 12 ) );
-		$this->assertArrayNotHasKey( '_artist_term_id', $GLOBALS['ec_test']['blogs'][4]['post_meta'][12] );
+		$this->assertArrayNotHasKey( '_artist_term_id', $GLOBALS['ec_test']['blogs'][4]['post_meta'][12] ?? array() );
 
 		$this->addTerm( 101, 'missing-profile', 999 );
 		$this->assertSame( 0, ec_get_artist_profile_id( 101 ) );
@@ -117,6 +117,84 @@ final class ArtistTermBindingTest extends TestCase {
 		$this->assertSame( 102, $GLOBALS['ec_test']['blogs'][4]['post_meta'][12]['_artist_term_id'] );
 		$this->assertSame( 12, $GLOBALS['ec_test']['blogs'][1]['term_meta'][102]['_artist_profile_id'] );
 		$this->assertArrayNotHasKey( '_artist_profile_id', $GLOBALS['ec_test']['blogs'][1]['term_meta'][101] );
+	}
+
+	public function test_failed_rebinding_restores_the_previous_reciprocal_pair(): void {
+		$this->addProfile( 12, 'the-band', 101 );
+		$this->addTerm( 101, 'old-name', 12 );
+		$this->addTerm( 102, 'new-name' );
+		$GLOBALS['ec_test']['fail_term_meta_update_keys']['_artist_profile_id'] = 1;
+
+		$this->assertFalse( ec_bind_artist_profile_to_term( 12, 102 ) );
+		$this->assertSame( 101, $GLOBALS['ec_test']['blogs'][4]['post_meta'][12]['_artist_term_id'] );
+		$this->assertSame( 12, $GLOBALS['ec_test']['blogs'][1]['term_meta'][101]['_artist_profile_id'] );
+		$this->assertArrayNotHasKey( 102, $GLOBALS['ec_test']['blogs'][1]['term_meta'] );
+	}
+
+	public function test_rebinding_stops_when_old_inverse_cannot_be_removed(): void {
+		$this->addProfile( 12, 'the-band', 101 );
+		$this->addTerm( 101, 'old-name', 12 );
+		$this->addTerm( 102, 'new-name' );
+		$GLOBALS['ec_test']['fail_term_meta_delete_keys']['_artist_profile_id'] = 1;
+
+		$this->assertFalse( ec_bind_artist_profile_to_term( 12, 102 ) );
+		$this->assertSame( 101, $GLOBALS['ec_test']['blogs'][4]['post_meta'][12]['_artist_term_id'] );
+		$this->assertSame( 12, $GLOBALS['ec_test']['blogs'][1]['term_meta'][101]['_artist_profile_id'] );
+		$this->assertArrayNotHasKey( 102, $GLOBALS['ec_test']['blogs'][1]['term_meta'] );
+	}
+
+	public function test_profile_side_compensation_exhaustion_is_reported_for_manual_repair(): void {
+		$this->addProfile( 12, 'the-band' );
+		$this->addTerm( 102, 'the-band' );
+		$GLOBALS['ec_test']['fail_term_meta_update_keys']['_artist_profile_id'] = 1;
+		$GLOBALS['ec_test']['fail_post_meta_delete_keys']['_artist_term_id'] = 5;
+
+		$this->assertFalse( ec_bind_artist_profile_to_term( 12, 102 ) );
+		$this->assertSame( 'artist_binding_compensation_failed', ec_get_artist_binding_failure()->get_error_code() );
+		$this->assertFalse( ec_get_artist_binding_failure()->get_error_data()['retryable'] );
+		$this->assertSame( 102, $GLOBALS['ec_test']['blogs'][4]['post_meta'][12]['_artist_term_id'] );
+		$this->assertArrayNotHasKey( 102, $GLOBALS['ec_test']['blogs'][1]['term_meta'] );
+	}
+
+	public function test_term_side_compensation_exhaustion_is_reported_for_manual_repair(): void {
+		$this->addProfile( 12, 'the-band' );
+		$this->addTerm( 102, 'the-band' );
+		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_artist_term_id'] = 1;
+		$GLOBALS['ec_test']['fail_term_meta_delete_keys']['_artist_profile_id'] = 5;
+
+		$this->assertFalse( ec_bind_artist_profile_to_term( 12, 102 ) );
+		$this->assertSame( 'artist_binding_compensation_failed', ec_get_artist_binding_failure()->get_error_code() );
+		$this->assertFalse( ec_get_artist_binding_failure()->get_error_data()['retryable'] );
+		$this->assertArrayNotHasKey( '_artist_term_id', $GLOBALS['ec_test']['blogs'][4]['post_meta'][12] ?? array() );
+		$this->assertSame( 12, $GLOBALS['ec_test']['blogs'][1]['term_meta'][102]['_artist_profile_id'] );
+	}
+
+	public function test_existing_pair_compensation_exhaustion_is_reported_for_manual_repair(): void {
+		$this->addProfile( 12, 'the-band', 101 );
+		$this->addTerm( 101, 'old-name', 12 );
+		$this->addTerm( 102, 'new-name' );
+		$GLOBALS['ec_test']['fail_term_meta_update_keys']['_artist_profile_id'] = 1;
+		$GLOBALS['ec_test']['fail_post_meta_update_on_calls'] = array( 2, 3, 4 );
+
+		$this->assertFalse( ec_bind_artist_profile_to_term( 12, 102 ) );
+		$this->assertSame( 'artist_binding_compensation_failed', ec_get_artist_binding_failure()->get_error_code() );
+		$this->assertFalse( ec_get_artist_binding_failure()->get_error_data()['retryable'] );
+		$this->assertSame( 102, $GLOBALS['ec_test']['blogs'][4]['post_meta'][12]['_artist_term_id'] );
+		$this->assertArrayNotHasKey( '_artist_profile_id', $GLOBALS['ec_test']['blogs'][1]['term_meta'][101] );
+	}
+
+	public function test_sync_propagates_resolver_compensation_failure_without_cleanup(): void {
+		$this->addProfile( 12, 'the-band' );
+		$this->addTerm( 102, 'the-band' );
+		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_artist_term_id'] = 1;
+		$GLOBALS['ec_test']['fail_term_meta_delete_keys']['_artist_profile_id'] = 5;
+
+		$result = ec_sync_artist_profile_term_binding( 12 );
+
+		$this->assertSame( 'artist_binding_compensation_failed', $result->get_error_code() );
+		$this->assertFalse( $result->get_error_data()['retryable'] );
+		$this->assertArrayNotHasKey( '_artist_term_id', $GLOBALS['ec_test']['blogs'][4]['post_meta'][12] ?? array() );
+		$this->assertSame( 12, $GLOBALS['ec_test']['blogs'][1]['term_meta'][102]['_artist_profile_id'] );
 	}
 
 	public function test_deleting_a_colliding_main_blog_post_does_not_unbind_the_profile(): void {

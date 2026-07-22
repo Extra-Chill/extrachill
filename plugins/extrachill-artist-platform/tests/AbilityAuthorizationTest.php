@@ -90,6 +90,7 @@ final class AbilityAuthorizationTest extends TestCase {
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'artist_creation_rollback_failed', $result->get_error_code() );
+		$this->assertFalse( $result->get_error_data()['retryable'] );
 		$this->assertArrayHasKey( 1, $GLOBALS['ec_test']['blogs'][4]['posts'] );
 	}
 

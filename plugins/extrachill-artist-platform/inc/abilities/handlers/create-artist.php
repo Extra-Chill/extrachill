@@ -104,7 +104,7 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		$membership_failure = function_exists( 'ec_get_artist_membership_failure' ) ? ec_get_artist_membership_failure() : null;
 		if ( ! wp_delete_post( $artist_id, true ) ) {
 			restore_current_blog();
-			return new WP_Error( 'artist_creation_rollback_failed', 'Artist membership and profile rollback both failed. Manual reconciliation is required.', array( 'artist_id' => (int) $artist_id ) );
+			return new WP_Error( 'artist_creation_rollback_failed', 'Artist membership and profile rollback both failed. Manual reconciliation is required.', array( 'artist_id' => (int) $artist_id, 'retryable' => false ) );
 		}
 		restore_current_blog();
 		return $membership_failure ? $membership_failure : new WP_Error( 'artist_membership_failed', 'Artist membership could not be established. No profile was created.' );
