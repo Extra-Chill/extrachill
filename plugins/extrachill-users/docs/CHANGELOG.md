@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.37.0] - 2026-07-22
+
+### Added
+- track onboarding artist access grants ([#234](https://github.com/Extra-Chill/extrachill-users/pull/234)) (by Chris Huber)
+
+### Fixed
+- close core multisite signup surface ([#241](https://github.com/Extra-Chill/extrachill-users/pull/241)) (by Chris Huber)
+- secure artist access administration ([#232](https://github.com/Extra-Chill/extrachill-users/pull/232)) (by Chris Huber)
+- enforce reciprocal membership authorization ([#231](https://github.com/Extra-Chill/extrachill-users/pull/231)) (by Chris Huber)
+
 ## [0.36.0] - 2026-07-20
 
 ### Added
