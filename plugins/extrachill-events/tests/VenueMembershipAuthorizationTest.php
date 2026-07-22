@@ -6,8 +6,10 @@
  */
 
 use ExtraChillEvents\Abilities\VenueMembershipAbilities;
+use ExtraChillEvents\Abilities\VenueBookingConfigAbilities;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 use ExtraChillEvents\Core\VenueMembershipService;
 use PHPUnit\Framework\TestCase;
@@ -48,6 +50,10 @@ if ( ! function_exists( 'absint' ) ) {
 if ( ! function_exists( 'sanitize_key' ) ) {
 	function sanitize_key( $value ) {
 		return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
+}
+if ( ! function_exists( 'sanitize_text_field' ) ) {
+	function sanitize_text_field( $value ) {
+		return trim( strip_tags( (string) $value ) ); }
 }
 if ( ! function_exists( 'get_term' ) ) {
 	function get_term( $term_id, $taxonomy = '' ) {
@@ -90,17 +96,53 @@ if ( ! function_exists( 'get_option' ) ) {
 	function get_option( $key, $default = false ) {
 		return $GLOBALS['venue_membership_test']['options'][ $key ] ?? $default; }
 }
+if ( ! function_exists( 'get_term_meta' ) ) {
+	function get_term_meta( $term_id, $key, $single = false ) {
+		unset( $single );
+		return $GLOBALS['venue_membership_test']['term_meta'][ $term_id ][ $key ] ?? '';
+	}
+}
+if ( ! function_exists( 'do_action' ) ) {
+	function do_action( $hook, ...$args ) {
+		$GLOBALS['venue_membership_test']['fired_actions'][ $hook ][] = $args;
+	}
+}
+if ( ! function_exists( 'wp_cache_delete' ) ) {
+	function wp_cache_delete( $key, $group = '' ) {
+		$GLOBALS['venue_membership_test']['cache_deletes'][] = array( $key, $group );
+		return true;
+	}
+}
+if ( ! function_exists( 'maybe_serialize' ) ) {
+	function maybe_serialize( $value ) {
+		return is_array( $value ) || is_object( $value ) ? serialize( $value ) : $value;
+	}
+}
+if ( ! function_exists( 'maybe_unserialize' ) ) {
+	function maybe_unserialize( $value ) {
+		if ( ! is_string( $value ) || ! preg_match( '/^[aObis]:/', $value ) ) {
+			return $value;
+		}
+		return unserialize( $value );
+	}
+}
 
 /** Minimal membership wpdb fake with transaction and optimistic update support. */
 final class VenueMembershipWpdb {
-	public $prefix      = 'wp_7_';
-	public $insert_id   = 0;
-	public $last_error  = '';
-	public $rows        = array();
-	public $race_insert = false;
-	public $after_start = null;
-	public $before_list = null;
-	private $snapshot   = null;
+	public $prefix                = 'wp_7_';
+	public $terms                 = 'wp_7_terms';
+	public $termmeta              = 'wp_7_termmeta';
+	public $insert_id             = 0;
+	public $last_error            = '';
+	public $rows                  = array();
+	public $race_insert           = false;
+	public $after_start           = null;
+	public $before_list           = null;
+	private $snapshot             = null;
+	private $meta_snapshot        = null;
+	private $history_snapshot     = null;
+	private $meta_values          = array();
+	private $meta_values_snapshot = array();
 
 	public function prepare( $query, ...$args ) {
 		if ( 1 === count( $args ) && is_array( $args[0] ) ) {
@@ -119,6 +161,25 @@ final class VenueMembershipWpdb {
 
 	public function insert( $table, $row ) {
 		$this->last_error = '';
+		if ( $this->termmeta === $table ) {
+			if ( VenueBookingConfig::META_KEY === $row['meta_key'] && ! empty( $GLOBALS['venue_membership_test']['fail_config_save'] ) ) {
+				$this->last_error = 'simulated config write failure';
+				return false;
+			}
+			if ( VenueBookingConfig::HISTORY_META_KEY === $row['meta_key'] && ! empty( $GLOBALS['venue_membership_test']['fail_config_audit'] ) ) {
+				$this->last_error = 'simulated config audit failure';
+				return false;
+			}
+			$this->insert_id                       = max( 101, $this->insert_id + 1 );
+			$this->meta_values[ $this->insert_id ] = $row['meta_value'];
+			$value                                 = maybe_unserialize( $row['meta_value'] );
+			if ( VenueBookingConfig::HISTORY_META_KEY === $row['meta_key'] ) {
+				$GLOBALS['venue_membership_test']['term_history'][ $row['term_id'] ][ $row['meta_key'] ][] = $value;
+			} else {
+				$GLOBALS['venue_membership_test']['term_meta'][ $row['term_id'] ][ $row['meta_key'] ] = $value;
+			}
+			return 1;
+		}
 		foreach ( $this->rows[ $table ] ?? array() as $existing ) {
 			if ( (int) $existing['venue_term_id'] === (int) $row['venue_term_id'] && (int) $existing['user_id'] === (int) $row['user_id'] ) {
 				$this->last_error = 'duplicate venue user';
@@ -139,6 +200,17 @@ final class VenueMembershipWpdb {
 	public function get_row( $query, $output = null ) {
 		unset( $output );
 		$this->last_error = '';
+		if ( preg_match( "/SELECT meta_id, meta_value FROM .*term_id = (\d+) AND meta_key = '([^']+)'/", $query, $meta_match ) ) {
+			$value = $GLOBALS['venue_membership_test']['term_meta'][ (int) $meta_match[1] ][ stripslashes( $meta_match[2] ) ] ?? null;
+			if ( null === $value ) {
+				return null;
+			}
+			$this->meta_values[100] = maybe_serialize( $value );
+			return array(
+				'meta_id'    => 100,
+				'meta_value' => $this->meta_values[100],
+			);
+		}
 		if ( ! preg_match( '/venue_term_id = (\d+) AND user_id = (\d+)/', $query, $match ) ) {
 			return null;
 		}
@@ -146,6 +218,25 @@ final class VenueMembershipWpdb {
 			if ( (int) $row['venue_term_id'] === (int) $match[1] && (int) $row['user_id'] === (int) $match[2] ) {
 				return $row;
 			}
+		}
+		return null;
+	}
+
+	public function get_var( $query ) {
+		$this->last_error = '';
+		if ( preg_match( '/SELECT meta_value FROM .*meta_id = (\d+) FOR UPDATE/', $query, $meta_match ) ) {
+			return $this->meta_values[ (int) $meta_match[1] ] ?? null;
+		}
+		if ( preg_match( '/SELECT id FROM .*venue_term_id = (\d+) AND user_id = (\d+) FOR UPDATE/', $query, $match ) ) {
+			foreach ( $this->rows[ $this->prefix . 'ec_venue_members' ] ?? array() as $row ) {
+				if ( (int) $row['venue_term_id'] === (int) $match[1] && (int) $row['user_id'] === (int) $match[2] ) {
+					return $row['id'];
+				}
+			}
+			return null;
+		}
+		if ( preg_match( '/SELECT term_id FROM .*term_id = (\d+) FOR UPDATE/', $query, $match ) ) {
+			return isset( $GLOBALS['venue_membership_test']['terms'][ (int) $match[1] ] ) ? (int) $match[1] : null;
 		}
 		return null;
 	}
@@ -219,22 +310,37 @@ final class VenueMembershipWpdb {
 	public function query( $query ) {
 		$this->last_error = '';
 		if ( 'START TRANSACTION' === $query ) {
-			$this->snapshot = $this->rows;
+			$this->snapshot             = $this->rows;
+			$this->meta_snapshot        = $GLOBALS['venue_membership_test']['term_meta'];
+			$this->history_snapshot     = $GLOBALS['venue_membership_test']['term_history'];
+			$this->meta_values_snapshot = $this->meta_values;
 			if ( is_callable( $this->after_start ) ) {
 				$callback          = $this->after_start;
 				$this->after_start = null;
 				$callback( $this );
-				$this->snapshot = $this->rows;
+				$this->snapshot             = $this->rows;
+				$this->meta_snapshot        = $GLOBALS['venue_membership_test']['term_meta'];
+				$this->history_snapshot     = $GLOBALS['venue_membership_test']['term_history'];
+				$this->meta_values_snapshot = $this->meta_values;
 			}
 			return 1;
 		}
 		if ( 'ROLLBACK' === $query ) {
-			$this->rows     = $this->snapshot;
-			$this->snapshot = null;
+			$this->rows                                       = $this->snapshot;
+			$GLOBALS['venue_membership_test']['term_meta']    = $this->meta_snapshot;
+			$GLOBALS['venue_membership_test']['term_history'] = $this->history_snapshot;
+			$this->meta_values                                = $this->meta_values_snapshot;
+			$this->snapshot                                   = null;
+			$this->meta_snapshot                              = null;
+			$this->history_snapshot                           = null;
+			$this->meta_values_snapshot                       = array();
 			return 1;
 		}
 		if ( 'COMMIT' === $query ) {
-			$this->snapshot = null;
+			$this->snapshot             = null;
+			$this->meta_snapshot        = null;
+			$this->history_snapshot     = null;
+			$this->meta_values_snapshot = array();
 			return 1;
 		}
 		if ( ! preg_match( '/WHERE venue_term_id = (\d+) AND user_id = (\d+) AND version = (\d+)/', $query, $match ) ) {
@@ -261,6 +367,22 @@ final class VenueMembershipWpdb {
 		return 0;
 	}
 
+	public function update( $table, $data, $where, $format = null, $where_format = null ) {
+		unset( $format, $where_format );
+		$this->last_error = '';
+		if ( $this->termmeta !== $table || ! isset( $where['meta_id'], $data['meta_value'] ) ) {
+			return false;
+		}
+		if ( ! empty( $GLOBALS['venue_membership_test']['fail_config_save'] ) ) {
+			$this->last_error = 'simulated config write failure';
+			return false;
+		}
+		$meta_id                       = (int) $where['meta_id'];
+		$this->meta_values[ $meta_id ] = $data['meta_value'];
+		$GLOBALS['venue_membership_test']['term_meta'][55][ VenueBookingConfig::META_KEY ] = maybe_unserialize( $data['meta_value'] );
+		return 1;
+	}
+
 	private function store( $table, $row ): void {
 		$this->insert_id                          = count( $this->rows[ $table ] ?? array() ) + 1;
 		$row['id']                                = $this->insert_id;
@@ -272,7 +394,9 @@ require_once dirname( __DIR__ ) . '/inc/Core/BookingSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipService.php';
+require_once dirname( __DIR__ ) . '/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueMembershipAbilities.php';
+require_once dirname( __DIR__ ) . '/inc/Abilities/VenueBookingConfigAbilities.php';
 
 final class VenueMembershipAuthorizationTest extends TestCase {
 	protected function setUp(): void {
@@ -314,6 +438,12 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 			'actions'           => array(),
 			'abilities'         => array(),
 			'options'           => array( BookingSchema::VERSION_OPTION => BookingSchema::SCHEMA_VERSION ),
+			'term_meta'         => array(),
+			'term_history'      => array(),
+			'fired_actions'     => array(),
+			'cache_deletes'     => array(),
+			'fail_config_save'  => false,
+			'fail_config_audit' => false,
 		);
 		$GLOBALS['wpdb']                  = new VenueMembershipWpdb();
 	}
@@ -526,5 +656,102 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 			)
 		);
 		$this->assertSame( 'venue_action_forbidden', $denied->get_error_code() );
+	}
+
+	public function test_config_abilities_round_trip_revision_and_audit(): void {
+		$this->create_member( 55, 2, true );
+		$this->create_member( 55, 3, false );
+		$GLOBALS['venue_membership_test']['current_user_id'] = 3;
+		$abilities = new VenueBookingConfigAbilities();
+		$abilities->register();
+
+		$this->assertSame(
+			array( 'extrachill/get-venue-booking-config', 'extrachill/update-venue-booking-config' ),
+			array_keys( $GLOBALS['venue_membership_test']['abilities'] )
+		);
+		$get    = $GLOBALS['venue_membership_test']['abilities']['extrachill/get-venue-booking-config'];
+		$update = $GLOBALS['venue_membership_test']['abilities']['extrachill/update-venue-booking-config'];
+		$this->assertTrue( call_user_func( $get['permission_callback'], array( 'venue_term_id' => 55 ) ) );
+		$this->assertSame( 'venue_action_forbidden', call_user_func( $get['permission_callback'], array( 'venue_term_id' => 56 ) )->get_error_code() );
+
+		$legacy = ( new VenueBookingConfig() )->defaults();
+		unset( $legacy['revision'], $legacy['updated_by_user_id'], $legacy['updated_at'] );
+		$GLOBALS['venue_membership_test']['term_meta'][55][ VenueBookingConfig::META_KEY ] = $legacy;
+		$current = call_user_func( $get['execute_callback'], array( 'venue_term_id' => 55 ) );
+		$this->assertSame( 0, $current['revision'] );
+		$this->assertNull( $current['updated_by_user_id'] );
+		$settings = $current;
+		unset( $settings['revision'], $settings['updated_by_user_id'], $settings['updated_at'] );
+		$settings['enabled'] = true;
+		$saved               = call_user_func(
+			$update['execute_callback'],
+			array(
+				'venue_term_id'     => 55,
+				'expected_revision' => 0,
+				'config'            => $settings,
+			)
+		);
+		$this->assertSame( 1, $saved['revision'] );
+		$this->assertSame( 3, $saved['updated_by_user_id'] );
+		$this->assertTrue( $saved['enabled'] );
+		$history = $GLOBALS['venue_membership_test']['term_history'][55][ VenueBookingConfig::HISTORY_META_KEY ];
+		$this->assertCount( 1, $history );
+		$this->assertSame( array( 'enabled' ), $history[0]['changed_fields'] );
+		$this->assertCount( 1, $GLOBALS['venue_membership_test']['fired_actions']['extrachill_events_venue_booking_config_updated'] );
+		$this->assertNotEmpty( $GLOBALS['venue_membership_test']['cache_deletes'] );
+
+		$stale = call_user_func(
+			$update['execute_callback'],
+			array(
+				'venue_term_id'     => 55,
+				'expected_revision' => 0,
+				'config'            => $settings,
+			)
+		);
+		$this->assertSame( 'booking_config_revision_conflict', $stale->get_error_code() );
+		$this->assertSame( 1, $stale->get_error_data()['current_revision'] );
+
+		$unchanged = call_user_func(
+			$update['execute_callback'],
+			array(
+				'venue_term_id'     => 55,
+				'expected_revision' => 1,
+				'config'            => $settings,
+			)
+		);
+		$this->assertSame( 1, $unchanged['revision'] );
+		$this->assertCount( 1, $GLOBALS['venue_membership_test']['term_history'][55][ VenueBookingConfig::HISTORY_META_KEY ] );
+	}
+
+	public function test_config_update_reauthorizes_and_rolls_back_failed_audit(): void {
+		$this->create_member( 55, 2, true );
+		$config   = new VenueBookingConfig();
+		$settings = $config->defaults();
+		unset( $settings['revision'], $settings['updated_by_user_id'], $settings['updated_at'] );
+		$settings['enabled'] = true;
+
+		$GLOBALS['wpdb']->after_start = static function ( VenueMembershipWpdb $wpdb ): void {
+			foreach ( $wpdb->rows['wp_7_ec_venue_members'] as &$row ) {
+				if ( 2 === (int) $row['user_id'] ) {
+					$row['status'] = VenueAuthorization::STATUS_REVOKED;
+				}
+			}
+			unset( $row );
+		};
+		$denied = $config->update( 55, $settings, 0, 2 );
+		$this->assertSame( 'venue_action_forbidden', $denied->get_error_code() );
+		$this->assertSame( array(), $GLOBALS['venue_membership_test']['term_meta'] );
+
+		foreach ( $GLOBALS['wpdb']->rows['wp_7_ec_venue_members'] as &$row ) {
+			if ( 2 === (int) $row['user_id'] ) {
+				$row['status'] = VenueAuthorization::STATUS_ACTIVE;
+			}
+		}
+		unset( $row );
+		$GLOBALS['venue_membership_test']['fail_config_audit'] = true;
+		$failed = $config->update( 55, $settings, 0, 2 );
+		$this->assertSame( 'booking_config_audit_failed', $failed->get_error_code() );
+		$this->assertSame( array(), $GLOBALS['venue_membership_test']['term_meta'] );
+		$this->assertSame( array( 55, 'term_meta' ), $GLOBALS['venue_membership_test']['cache_deletes'][0] );
 	}
 }

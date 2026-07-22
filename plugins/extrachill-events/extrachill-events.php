@@ -333,6 +333,9 @@ class ExtraChillEvents {
 		if ( \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueMembershipAbilities.php';
 			new \ExtraChillEvents\Abilities\VenueMembershipAbilities();
+
+			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueBookingConfigAbilities.php';
+			new \ExtraChillEvents\Abilities\VenueBookingConfigAbilities();
 		}
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/PriorityVenueAbilities.php';

@@ -976,10 +976,10 @@ final class BookingFoundationTest extends TestCase {
 
 	public function test_config_handles_unchanged_values_and_rejects_wrong_term_or_versions(): void {
 		$service = new VenueBookingConfig();
-		$config  = $service->save( 55, array( 'enabled' => true ) );
+		$config  = $service->normalize( array( 'enabled' => true ) );
 		$this->assertIsArray( $config );
-		$this->assertSame( $config, $service->save( 55, $config ) );
-		$this->assertSame( 'invalid_booking_config_venue', $service->save( 56, array() )->get_error_code() );
+		$this->assertSame( $config, $service->normalize( $config ) );
+		$this->assertSame( 'invalid_booking_config_venue', $service->get( 56 )->get_error_code() );
 		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 2 ) )->get_error_code() );
 		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => '1junk' ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'intake' => array( 'version' => 2 ) ) )->get_error_code() );
@@ -1007,6 +1007,21 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertSame( 'invalid_booking_space', $result->get_error_code() );
 		$result = $service->normalize( array( 'intake' => array( 'fields' => array( array( 'key' => $prefix . 'x' ), array( 'key' => $prefix . 'y' ) ) ) ) );
 		$this->assertSame( 'invalid_booking_intake_field', $result->get_error_code() );
+		$this->assertSame(
+			'invalid_booking_intake_field',
+			$service->normalize(
+				array(
+					'intake' => array(
+						'fields' => array(
+							array(
+								'key'   => 'bio',
+								'label' => '<b></b>',
+							),
+						),
+					),
+				)
+			)->get_error_code()
+		);
 		$this->assertSame( 'invalid_booking_marketing_channels', $service->normalize( array( 'marketing_channels' => array_fill( 0, 21, 'email' ) ) )->get_error_code() );
 		$this->assertSame( 'invalid_booking_marketing_channel', $service->normalize( array( 'marketing_channels' => array( $prefix . 'x', $prefix . 'y' ) ) )->get_error_code() );
 		$this->assertSame( 'invalid_booking_currency', $service->normalize( array( 'default_deal' => array( 'currency' => 'US1' ) ) )->get_error_code() );
