@@ -134,6 +134,35 @@ function extrachill_users_sanitize_utm( $raw ) {
 }
 
 /**
+ * Roll back a user created by the create-user ability.
+ *
+ * Multisite requires network deletion. Removing the user from only the
+ * Community site would leave the generated-password global account intact.
+ *
+ * @param int $user_id User ID to delete.
+ * @return bool Whether the user no longer exists.
+ */
+function extrachill_users_rollback_created_user( $user_id ) {
+	if ( ! get_userdata( $user_id ) ) {
+		return true;
+	}
+
+	if ( is_multisite() ) {
+		if ( ! function_exists( 'wpmu_delete_user' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/ms.php';
+		}
+		wpmu_delete_user( $user_id );
+	} else {
+		if ( ! function_exists( 'wp_delete_user' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/user.php';
+		}
+		wp_delete_user( $user_id );
+	}
+
+	return ! get_userdata( $user_id );
+}
+
+/**
  * Create a community user account.
  *
  * Switches to the community blog, creates the WordPress user, sets onboarding
@@ -171,6 +200,41 @@ function extrachill_users_ability_create_user( $input ) {
 
 	$user_id = wp_create_user( $username, $password, $email );
 
+	if ( ! is_wp_error( $user_id ) && $unclaimed ) {
+		update_user_meta( $user_id, 'ec_unclaimed', 1 );
+
+		if ( '1' !== (string) get_user_meta( $user_id, 'ec_unclaimed', true ) ) {
+			$rolled_back = extrachill_users_rollback_created_user( $user_id );
+
+			if ( $switched ) {
+				restore_current_blog();
+			}
+
+			if ( ! $rolled_back ) {
+				return new WP_Error(
+					'unclaimed_state_reconciliation_required',
+					'Unable to store the unclaimed account state or roll back the created account. Manual reconciliation is required.',
+					array(
+						'status'         => 500,
+						'classification' => 'manual_reconciliation',
+						'retryable'      => false,
+						'user_id'        => $user_id,
+					)
+				);
+			}
+
+			return new WP_Error(
+				'unclaimed_state_persistence_failed',
+				'Unable to store the unclaimed account state. The created account was rolled back.',
+				array(
+					'status'         => 500,
+					'classification' => 'rolled_back',
+					'retryable'      => false,
+				)
+			);
+		}
+	}
+
 	if ( ! is_wp_error( $user_id ) ) {
 		if ( ! empty( $registration_page ) ) {
 			update_user_meta( $user_id, 'registration_page', esc_url_raw( (string) $registration_page ) );
@@ -192,14 +256,6 @@ function extrachill_users_ability_create_user( $input ) {
 		if ( ! empty( $role ) ) {
 			$user = new WP_User( $user_id );
 			$user->set_role( $role );
-		}
-
-		// Unclaimed flag: accounts created on a user's behalf (e.g. an anonymous
-		// event submitter) are subscriber-role and flagged ec_unclaimed=1 until
-		// the user sets their password via the claim link, so the account can't
-		// be logged into before the rightful owner claims it.
-		if ( $unclaimed ) {
-			update_user_meta( $user_id, 'ec_unclaimed', 1 );
 		}
 
 		// Source attribution (last-touch): persist the external referrer and any

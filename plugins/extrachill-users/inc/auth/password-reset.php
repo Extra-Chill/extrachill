@@ -111,6 +111,32 @@ function ec_filter_new_user_notification_email( $email, $user, $blogname ) {
 add_filter( 'wp_new_user_notification_email', 'ec_filter_new_user_notification_email', 10, 3 );
 
 /**
+ * Mark an unclaimed account as claimed after its password reset completes.
+ *
+ * WordPress fires this hook only after reset_password() has persisted the new
+ * password. This covers both the Extra Chill reset handler and core reset
+ * flows without clearing the marker for invalid or failed attempts.
+ *
+ * @param WP_User $user     User whose password was reset.
+ * @param string  $new_pass New password supplied to WordPress.
+ * @return bool Whether the password and claimed state are both persisted.
+ */
+function extrachill_users_clear_unclaimed_after_password_reset( $user, $new_pass ) {
+	$persisted_user = get_userdata( $user->ID );
+	if ( ! $persisted_user || ! wp_check_password( $new_pass, $persisted_user->user_pass, $user->ID ) ) {
+		return false;
+	}
+
+	if ( ! metadata_exists( 'user', $user->ID, 'ec_unclaimed' ) ) {
+		return true;
+	}
+
+	delete_user_meta( $user->ID, 'ec_unclaimed' );
+	return ! metadata_exists( 'user', $user->ID, 'ec_unclaimed' );
+}
+add_action( 'after_password_reset', 'extrachill_users_clear_unclaimed_after_password_reset', 10, 2 );
+
+/**
  * Get the transient key for password reset attempts.
  *
  * Keyed on requester IP only (not on submitted user_login) so attackers
@@ -244,6 +270,48 @@ add_action( 'admin_post_nopriv_ec_password_reset_request', 'ec_handle_password_r
 add_action( 'admin_post_ec_password_reset_request', 'ec_handle_password_reset_request' );
 
 /**
+ * Validate and complete a custom password reset submission.
+ *
+ * This is the non-redirecting seam used by the admin-post handler. Successful
+ * submissions delegate to reset_password(), which owns both the core password
+ * write and the after_password_reset completion action.
+ *
+ * @param string $key   Password reset key.
+ * @param string $login User login.
+ * @param string $pass1 New password.
+ * @param string $pass2 Password confirmation.
+ * @return WP_User|WP_Error Reset user on success, error otherwise.
+ */
+function ec_process_reset_password_submission( $key, $login, $pass1, $pass2 ) {
+	if ( $pass1 !== $pass2 ) {
+		return new WP_Error( 'password_mismatch', __( 'Passwords do not match.', 'extrachill-users' ) );
+	}
+
+	if ( strlen( $pass1 ) < 8 ) {
+		return new WP_Error( 'password_too_short', __( 'Password must be at least 8 characters.', 'extrachill-users' ) );
+	}
+
+	$user = check_password_reset_key( $key, $login );
+
+	if ( is_wp_error( $user ) ) {
+		return new WP_Error( 'invalid_reset_key', __( 'Invalid or expired reset link. Please request a new one.', 'extrachill-users' ) );
+	}
+
+	reset_password( $user, $pass1 );
+	$persisted_user = get_userdata( $user->ID );
+
+	if ( ! $persisted_user || ! wp_check_password( $pass1, $persisted_user->user_pass, $user->ID ) ) {
+		return new WP_Error( 'password_update_failed', __( 'Unable to update your password. Please request a new reset link and try again.', 'extrachill-users' ) );
+	}
+
+	if ( metadata_exists( 'user', $user->ID, 'ec_unclaimed' ) ) {
+		return new WP_Error( 'unclaimed_state_clear_failed', __( 'Your password was updated, but the account claim could not be completed. Please request a new reset link and try again.', 'extrachill-users' ) );
+	}
+
+	return $persisted_user;
+}
+
+/**
  * Handle password reset form submission (setting new password).
  */
 function ec_handle_reset_password() {
@@ -258,35 +326,20 @@ function ec_handle_reset_password() {
 	$pass2 = isset( $_POST['pass2'] ) ? wp_unslash( $_POST['pass2'] ) : '';
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-	if ( $pass1 !== $pass2 ) {
-		$redirect->error(
-			__( 'Passwords do not match.', 'extrachill-users' ),
-			array(
-				'action' => 'reset',
-				'key'    => $key,
-				'login'  => $login,
-			)
-		);
-	}
-
-	if ( strlen( $pass1 ) < 8 ) {
-		$redirect->error(
-			__( 'Password must be at least 8 characters.', 'extrachill-users' ),
-			array(
-				'action' => 'reset',
-				'key'    => $key,
-				'login'  => $login,
-			)
-		);
-	}
-
-	$user = check_password_reset_key( $key, $login );
+	$user = ec_process_reset_password_submission( $key, $login, $pass1, $pass2 );
 
 	if ( is_wp_error( $user ) ) {
-		$redirect->error( __( 'Invalid or expired reset link. Please request a new one.', 'extrachill-users' ) );
+		$query_args = array();
+		if ( in_array( $user->get_error_code(), array( 'password_mismatch', 'password_too_short' ), true ) ) {
+			$query_args = array(
+				'action' => 'reset',
+				'key'    => $key,
+				'login'  => $login,
+			);
+		}
+		$redirect->error( $user->get_error_message(), $query_args );
 	}
 
-	reset_password( $user, $pass1 );
 	wp_set_auth_cookie( $user->ID, true );
 
 	wp_safe_redirect( home_url() );
