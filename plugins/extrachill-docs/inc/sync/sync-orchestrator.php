@@ -296,6 +296,56 @@ function extrachill_docs_sync_created_pages( array $repos ): bool {
 }
 
 /**
+ * Normalize an ability failure without assuming an array result.
+ *
+ * @param mixed  $result   Ability result.
+ * @param string $fallback Fallback message when no error detail is available.
+ * @return string
+ */
+function extrachill_docs_sync_error_message( $result, string $fallback ): string {
+	if ( is_wp_error( $result ) ) {
+		$code    = (string) $result->get_error_code();
+		$message = $result->get_error_message();
+		return '' !== $code ? sprintf( '%s: %s', $code, $message ) : $message;
+	}
+
+	if ( ! is_array( $result ) ) {
+		return $fallback;
+	}
+
+	$messages = array();
+	foreach ( array( 'error', 'error_detail' ) as $key ) {
+		if ( ! isset( $result[ $key ] ) ) {
+			continue;
+		}
+		if ( is_wp_error( $result[ $key ] ) ) {
+			$messages[] = extrachill_docs_sync_error_message( $result[ $key ], $fallback );
+		} elseif ( is_scalar( $result[ $key ] ) && '' !== (string) $result[ $key ] ) {
+			$messages[] = (string) $result[ $key ];
+		}
+	}
+
+	foreach ( is_array( $result['errors'] ?? null ) ? $result['errors'] : array() as $error ) {
+		if ( is_wp_error( $error ) ) {
+			$messages[] = extrachill_docs_sync_error_message( $error, $fallback );
+			continue;
+		}
+		if ( is_array( $error ) ) {
+			$code    = is_scalar( $error['code'] ?? null ) ? (string) $error['code'] : '';
+			$message = is_scalar( $error['message'] ?? null ) ? (string) $error['message'] : '';
+			if ( '' !== $message ) {
+				$messages[] = '' !== $code ? sprintf( '%s: %s', $code, $message ) : $message;
+			}
+		} elseif ( is_scalar( $error ) && '' !== (string) $error ) {
+			$messages[] = (string) $error;
+		}
+	}
+
+	$messages = array_values( array_unique( $messages ) );
+	return empty( $messages ) ? $fallback : implode( '; ', $messages );
+}
+
+/**
  * Sync a single repo: list → fetch → upsert per file.
  *
  * @since 0.5.0
@@ -340,7 +390,7 @@ function extrachill_docs_sync_one_repo( array $entry, bool $dry_run ): array {
 		$result['errors'][] = sprintf(
 			'list-github-tree failed for %s: %s',
 			$repo,
-			isset( $listing['error'] ) ? (string) $listing['error'] : 'unknown error'
+			extrachill_docs_sync_error_message( $listing, 'unknown error' )
 		);
 		return $result;
 	}
@@ -401,7 +451,7 @@ function extrachill_docs_sync_one_repo( array $entry, bool $dry_run ): array {
 			$result['files'][] = array(
 				'path'   => $file['path'],
 				'action' => 'fetch_failed',
-				'error'  => isset( $fetch['error'] ) ? (string) $fetch['error'] : 'unknown',
+				'error'  => extrachill_docs_sync_error_message( $fetch, 'unknown' ),
 			);
 			continue;
 		}
@@ -433,6 +483,15 @@ function extrachill_docs_sync_one_repo( array $entry, bool $dry_run ): array {
 				'dry_run'      => $dry_run,
 			)
 		);
+		if ( ! is_array( $upsert ) || empty( $upsert['success'] ) ) {
+			$result['files'][] = array(
+				'path'    => $file['path'],
+				'action'  => 'upsert_failed',
+				'page_id' => 0,
+				'error'   => extrachill_docs_sync_error_message( $upsert, 'unknown' ),
+			);
+			continue;
+		}
 
 		$result['files'][] = array(
 			'path'    => $file['path'],

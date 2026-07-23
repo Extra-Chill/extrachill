@@ -37,9 +37,23 @@ namespace {
 		}
 	}
 
+	class ExtraChillDocsTestAbility {
+		private $result;
+
+		public function __construct( $result ) {
+			$this->result = $result;
+		}
+
+		public function execute( array $input ) {
+			unset( $input );
+			return $this->result;
+		}
+	}
+
 	$GLOBALS['extrachill_docs_test_actions'] = array();
 	$GLOBALS['extrachill_docs_test_filters'] = array();
 	$GLOBALS['extrachill_docs_test_rules']   = array();
+	$GLOBALS['extrachill_docs_test_abilities'] = array();
 
 	function add_action( $hook, $callback ) {
 		$GLOBALS['extrachill_docs_test_actions'][] = array( $hook, $callback );
@@ -76,6 +90,10 @@ namespace {
 
 	function is_wp_error( $value ) {
 		return $value instanceof WP_Error;
+	}
+
+	function wp_get_ability( $name ) {
+		return $GLOBALS['extrachill_docs_test_abilities'][ $name ] ?? null;
 	}
 
 	require dirname( __DIR__ ) . '/inc/abilities/upsert-doc-page.php';
@@ -115,6 +133,80 @@ namespace {
 	$assert( str_contains( $sync_source, 'PermissionHelper::run_as_authenticated' ), 'background sync establishes a bounded system context' );
 	$assert( extrachill_docs_sync_created_pages( array( array( 'files' => array( array( 'action' => 'created' ) ) ) ) ), 'created pages require a rewrite flush' );
 	$assert( ! extrachill_docs_sync_created_pages( array( array( 'files' => array( array( 'action' => 'unchanged' ) ) ) ) ), 'unchanged pages do not flush rewrites' );
+
+	$entry = array(
+		'repo'         => 'Extra-Chill/example',
+		'parent_slug'  => 'example',
+		'parent_title' => 'Example',
+		'docs_subpath' => 'docs/user',
+	);
+	$GLOBALS['extrachill_docs_test_abilities']['datamachine-code/list-github-tree'] = new ExtraChillDocsTestAbility( new WP_Error( 'github_unavailable', 'GitHub unavailable.' ) );
+	$listing_failure = extrachill_docs_sync_one_repo( $entry, true );
+	$assert( str_contains( $listing_failure['errors'][0] ?? '', 'github_unavailable: GitHub unavailable.' ), 'listing WP_Error preserves code and message' );
+	$assert( 'nested_error: Nested failure.' === extrachill_docs_sync_error_message( array( 'error' => new WP_Error( 'nested_error', 'Nested failure.' ) ), 'unknown' ), 'nested WP_Error preserves code and message' );
+
+	$listing = array(
+		'success' => true,
+		'files'   => array(
+			array(
+				'path' => 'docs/user/start.md',
+				'sha'  => 'abc',
+				'type' => 'blob',
+			),
+		),
+	);
+	$GLOBALS['extrachill_docs_test_abilities']['datamachine-code/list-github-tree'] = new ExtraChillDocsTestAbility( $listing );
+	$GLOBALS['extrachill_docs_test_abilities']['datamachine-code/get-github-file']  = new ExtraChillDocsTestAbility( new WP_Error( 'fetch_denied', 'Fetch denied.' ) );
+	$GLOBALS['extrachill_docs_test_abilities']['extrachill-docs/upsert-doc-page']   = new ExtraChillDocsTestAbility( array( 'success' => true ) );
+	$fetch_failure = extrachill_docs_sync_one_repo( $entry, true );
+	$assert( 'fetch_failed' === ( $fetch_failure['files'][0]['action'] ?? '' ) && 'fetch_denied: Fetch denied.' === ( $fetch_failure['files'][0]['error'] ?? '' ), 'fetch WP_Error becomes a structured file failure' );
+	$GLOBALS['extrachill_docs_test_abilities']['datamachine-code/get-github-file'] = new ExtraChillDocsTestAbility(
+		array(
+			'success' => false,
+			'errors'  => array(
+				array(
+					'code'    => 'github_http_error',
+					'message' => 'GitHub returned 503.',
+				),
+			),
+		)
+	);
+	$fetch_failure = extrachill_docs_sync_one_repo( $entry, true );
+	$assert( 'github_http_error: GitHub returned 503.' === ( $fetch_failure['files'][0]['error'] ?? '' ), 'provider errors array preserves code and message' );
+
+	$GLOBALS['extrachill_docs_test_abilities']['datamachine-code/get-github-file'] = new ExtraChillDocsTestAbility(
+		array(
+			'success' => true,
+			'files'   => array(
+				array(
+					'path'    => 'docs/user/start.md',
+					'content' => '# Start',
+				),
+			),
+		)
+	);
+	$GLOBALS['extrachill_docs_test_abilities']['extrachill-docs/upsert-doc-page'] = new ExtraChillDocsTestAbility( new WP_Error( 'upsert_failed', 'Upsert failed.' ) );
+	$upsert_failure = extrachill_docs_sync_one_repo( $entry, true );
+	$assert( 'upsert_failed' === ( $upsert_failure['files'][0]['action'] ?? '' ) && 'upsert_failed: Upsert failed.' === ( $upsert_failure['files'][0]['error'] ?? '' ), 'upsert WP_Error becomes a structured file failure' );
+	$GLOBALS['extrachill_docs_test_abilities']['extrachill-docs/upsert-doc-page'] = new ExtraChillDocsTestAbility(
+		array(
+			'success'      => false,
+			'error'        => 'insert_failed',
+			'error_detail' => 'Database rejected the page.',
+		)
+	);
+	$upsert_failure = extrachill_docs_sync_one_repo( $entry, true );
+	$assert( 'insert_failed; Database rejected the page.' === ( $upsert_failure['files'][0]['error'] ?? '' ), 'upsert failure preserves code and detail' );
+
+	$GLOBALS['extrachill_docs_test_abilities']['extrachill-docs/upsert-doc-page'] = new ExtraChillDocsTestAbility(
+		array(
+			'success' => true,
+			'action'  => 'created',
+			'page_id' => 42,
+		)
+	);
+	$sync_success = extrachill_docs_sync_one_repo( $entry, true );
+	$assert( 'created' === ( $sync_success['files'][0]['action'] ?? '' ) && 42 === ( $sync_success['files'][0]['page_id'] ?? 0 ) && '' === ( $sync_success['files'][0]['error'] ?? '' ), 'successful upsert mapping remains unchanged' );
 
 	extrachill_docs_add_rewrite_rules();
 	$legacy_rule_index = array_search( array( '^([^/]+)/([^/]+)/?$', 'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]', 'top' ), $GLOBALS['extrachill_docs_test_rules'], true );
