@@ -1,5 +1,5 @@
 {
-  "url": "/login/",
+  "url": "/?pagename=login",
   "profile": "desktop-chrome",
   "captures": ["steps", "console", "errors", "html", "network", "screenshot", "dom-snapshot"],
   "steps": [

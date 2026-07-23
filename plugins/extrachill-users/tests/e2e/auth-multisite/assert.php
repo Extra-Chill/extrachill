@@ -32,6 +32,13 @@ function auth_fuzz_network_user_count(): int {
 }
 
 $initial_count = (int) $fixture['initial_user_count'];
+foreach ( $sites as $site_key => $site_id ) {
+	switch_to_blog( (int) $site_id );
+	$login_page = get_page_by_path( 'login' );
+	auth_fuzz_assert( $login_page instanceof WP_Post, 'Login page is missing on ' . $site_key . '.' );
+	auth_fuzz_assert( has_block( 'extrachill/login-register', $login_page ), 'Login block is missing on ' . $site_key . '.' );
+	restore_current_blog();
+}
 foreach ( $plan['invalid_registrations'] as $case ) {
 	$response = auth_fuzz_rest( '/extrachill/v1/auth/register', auth_fuzz_registration( $case ) );
 	auth_fuzz_assert( $response->get_status() >= 400, $case['id'] . ' unexpectedly registered.' );
