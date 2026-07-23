@@ -5,6 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class ArtistMembershipContractTest extends TestCase {
 	protected function setUp(): void {
 		unset( $GLOBALS['ec_artist_membership_locks'] );
+		$GLOBALS['wpdb'] = new EcTestWpdb();
 		$GLOBALS['ec_test'] = array(
 			'current_blog_id' => 1,
 			'blog_stack'      => array(),
@@ -135,6 +136,116 @@ final class ArtistMembershipContractTest extends TestCase {
 		switch_to_blog( 4 );
 		$this->assertSame( array(), get_post_meta( 20, '_artist_member_ids', true ) );
 		restore_current_blog();
+	}
+
+	public function test_mysql_lock_contention_is_reported_as_busy(): void {
+		$GLOBALS['ec_test']['advisory_lock_result'] = 'contention';
+
+		$this->assertFalse( ec_add_artist_membership( 7, 20 ) );
+		$this->assertSame( 'artist_membership_busy', ec_get_artist_membership_failure()->get_error_code() );
+		$this->assertArrayNotHasKey( 'options', $GLOBALS['ec_test'] );
+	}
+
+	public function test_mysql_lock_acquires_and_releases_advisory_lock(): void {
+		$this->assertTrue( ec_acquire_artist_membership_lock( 7, 20 ) );
+		$this->assertSame( 'mysql', $GLOBALS['ec_artist_membership_locks']['ec_artist_membership_7_20']['backend'] );
+		$this->assertSame( 1, $GLOBALS['ec_test']['db_locks']['ec_artist_membership_7_20'] );
+
+		ec_release_artist_membership_lock( 7, 20 );
+
+		$this->assertArrayNotHasKey( 'ec_artist_membership_7_20', $GLOBALS['ec_test']['db_locks'] );
+		$this->assertArrayNotHasKey( 'ec_artist_membership_7_20', $GLOBALS['ec_artist_membership_locks'] );
+	}
+
+	public function test_mysql_lock_query_failure_is_not_downgraded_to_fallback(): void {
+		$GLOBALS['ec_test']['advisory_lock_result'] = 'error';
+
+		$this->assertFalse( ec_add_artist_membership( 7, 20 ) );
+		$this->assertSame( 'artist_membership_lock_failed', ec_get_artist_membership_failure()->get_error_code() );
+		$this->assertSame( 'MySQL advisory lock query failed.', ec_get_artist_membership_failure()->get_error_data()['database_error'] );
+		$this->assertArrayNotHasKey( 'options', $GLOBALS['ec_test'] );
+	}
+
+	public function test_mysql_lock_null_without_database_error_is_not_downgraded_to_fallback(): void {
+		$GLOBALS['ec_test']['advisory_lock_result'] = 'null';
+
+		$this->assertFalse( ec_add_artist_membership( 7, 20 ) );
+		$this->assertSame( 'artist_membership_lock_failed', ec_get_artist_membership_failure()->get_error_code() );
+		$this->assertSame( 'MySQL GET_LOCK() returned an invalid result.', ec_get_artist_membership_failure()->get_error_data()['database_error'] );
+		$this->assertArrayNotHasKey( 'options', $GLOBALS['ec_test'] );
+	}
+
+	public function test_sqlite_runtime_skips_mysql_queries_and_uses_fallback(): void {
+		$GLOBALS['wpdb'] = new EcTestSqliteWpdb();
+
+		$this->assertTrue( ec_add_artist_membership( 7, 20 ) );
+		$this->assertArrayNotHasKey( 'db_lock_get_calls', $GLOBALS['ec_test'] );
+		$this->assertSame( array(), $GLOBALS['ec_test']['options'] );
+	}
+
+	public function test_fallback_lock_contention_and_nested_same_request_are_denied(): void {
+		$GLOBALS['wpdb'] = new EcTestSqliteWpdb();
+		$this->assertTrue( ec_acquire_artist_membership_lock( 7, 20 ) );
+		$lock = $GLOBALS['ec_artist_membership_locks']['ec_artist_membership_7_20'];
+
+		$this->assertFalse( ec_acquire_artist_membership_lock( 7, 20 ) );
+		unset( $GLOBALS['ec_artist_membership_locks']['ec_artist_membership_7_20'] );
+		$this->assertFalse( ec_acquire_artist_membership_lock( 7, 20 ) );
+
+		$GLOBALS['ec_artist_membership_locks']['ec_artist_membership_7_20'] = $lock;
+		ec_release_artist_membership_lock( 7, 20 );
+	}
+
+	public function test_fallback_lock_atomically_recovers_stale_owner(): void {
+		$GLOBALS['wpdb'] = new EcTestSqliteWpdb();
+		$option = 'ec_artist_membership_lock_' . md5( 'ec_artist_membership_7_20' );
+		$GLOBALS['ec_test']['options'][ $option ] = array(
+			'owner'   => 'stale-owner',
+			'expires' => time() - 1,
+		);
+
+		$this->assertTrue( ec_acquire_artist_membership_lock( 7, 20 ) );
+		$this->assertNotSame( 'stale-owner', $GLOBALS['ec_test']['options'][ $option ]['owner'] );
+		ec_release_artist_membership_lock( 7, 20 );
+	}
+
+	public function test_fallback_release_never_deletes_another_owner_lock(): void {
+		$GLOBALS['wpdb'] = new EcTestSqliteWpdb();
+		$this->assertTrue( ec_acquire_artist_membership_lock( 7, 20 ) );
+		$lock = $GLOBALS['ec_artist_membership_locks']['ec_artist_membership_7_20'];
+		$GLOBALS['ec_test']['options'][ $lock['option'] ] = array(
+			'owner'   => 'replacement-owner',
+			'expires' => time() + 30,
+		);
+
+		ec_release_artist_membership_lock( 7, 20 );
+
+		$this->assertSame( 'replacement-owner', $GLOBALS['ec_test']['options'][ $lock['option'] ]['owner'] );
+		$this->assertArrayNotHasKey( 'ec_artist_membership_7_20', $GLOBALS['ec_artist_membership_locks'] );
+	}
+
+	public function test_fallback_storage_failure_is_actionable(): void {
+		$GLOBALS['wpdb'] = new EcTestSqliteWpdb();
+		$GLOBALS['ec_test']['fail_option_add'] = true;
+
+		$this->assertFalse( ec_add_artist_membership( 7, 20 ) );
+		$this->assertSame( 'artist_membership_lock_failed', ec_get_artist_membership_failure()->get_error_code() );
+		$this->assertSame( 'Network lock option insert failed.', ec_get_artist_membership_failure()->get_error_data()['database_error'] );
+	}
+
+	public function test_fallback_stale_recovery_query_failure_is_actionable(): void {
+		$GLOBALS['wpdb'] = new EcTestSqliteWpdb();
+		$option = 'ec_artist_membership_lock_' . md5( 'ec_artist_membership_7_20' );
+		$GLOBALS['ec_test']['options'][ $option ] = array(
+			'owner'   => 'stale-owner',
+			'expires' => time() - 1,
+		);
+		$GLOBALS['ec_test']['fallback_lock_query_error'] = true;
+
+		$this->assertFalse( ec_add_artist_membership( 7, 20 ) );
+		$this->assertSame( 'artist_membership_lock_failed', ec_get_artist_membership_failure()->get_error_code() );
+		$this->assertSame( 'Network lock query failed.', ec_get_artist_membership_failure()->get_error_data()['database_error'] );
+		$this->assertSame( 'stale-owner', $GLOBALS['ec_test']['options'][ $option ]['owner'] );
 	}
 
 	public function test_add_reports_actionable_error_when_compensating_rollback_fails(): void {

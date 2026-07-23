@@ -35,15 +35,29 @@ class WP_Error {
 }
 
 class EcTestWpdb {
+	public $last_error = '';
+	public $options    = 'wp_options';
+
 	public function prepare( $query, ...$args ) {
 		return array( 'query' => $query, 'args' => $args );
 	}
 
 	public function get_var( $prepared ) {
+		$this->last_error = '';
 		$query = $prepared['query'];
 		$name  = (string) ( $prepared['args'][0] ?? '' );
 		if ( str_contains( $query, 'GET_LOCK' ) ) {
 			$GLOBALS['ec_test']['db_lock_get_calls'][ $name ] = ( $GLOBALS['ec_test']['db_lock_get_calls'][ $name ] ?? 0 ) + 1;
+			if ( 'contention' === ( $GLOBALS['ec_test']['advisory_lock_result'] ?? '' ) ) {
+				return '0';
+			}
+			if ( 'null' === ( $GLOBALS['ec_test']['advisory_lock_result'] ?? '' ) ) {
+				return null;
+			}
+			if ( 'error' === ( $GLOBALS['ec_test']['advisory_lock_result'] ?? '' ) ) {
+				$this->last_error = 'MySQL advisory lock query failed.';
+				return null;
+			}
 			$GLOBALS['ec_test']['db_locks'][ $name ] = ( $GLOBALS['ec_test']['db_locks'][ $name ] ?? 0 ) + 1;
 			if ( isset( $GLOBALS['ec_test']['after_external_artist_lock'] ) ) {
 				$callback = $GLOBALS['ec_test']['after_external_artist_lock'];
@@ -51,6 +65,10 @@ class EcTestWpdb {
 				$callback();
 			}
 			return '1';
+		}
+		if ( 'error' === ( $GLOBALS['ec_test']['advisory_release_result'] ?? '' ) ) {
+			$this->last_error = 'MySQL advisory lock release failed.';
+			return null;
 		}
 		if ( isset( $GLOBALS['ec_test']['db_locks'][ $name ] ) ) {
 			--$GLOBALS['ec_test']['db_locks'][ $name ];
@@ -60,6 +78,39 @@ class EcTestWpdb {
 		}
 		return '1';
 	}
+
+	public function query( $prepared ) {
+		$this->last_error = '';
+		if ( ! empty( $GLOBALS['ec_test']['fallback_lock_query_error'] ) ) {
+			$this->last_error = 'Network lock query failed.';
+			return false;
+		}
+
+		$query = $prepared['query'];
+		$args  = $prepared['args'];
+		if ( str_starts_with( $query, 'UPDATE ' ) ) {
+			list( $replacement, $option, $expected ) = $args;
+			$current = $GLOBALS['ec_test']['options'][ $option ] ?? false;
+			if ( maybe_serialize( $current ) !== $expected ) {
+				return 0;
+			}
+			$GLOBALS['ec_test']['options'][ $option ] = unserialize( $replacement );
+			return 1;
+		}
+		if ( str_starts_with( $query, 'DELETE ' ) ) {
+			list( $option, $expected ) = $args;
+			$current = $GLOBALS['ec_test']['options'][ $option ] ?? false;
+			if ( maybe_serialize( $current ) !== $expected ) {
+				return 0;
+			}
+			unset( $GLOBALS['ec_test']['options'][ $option ] );
+			return 1;
+		}
+		return false;
+	}
+}
+
+class EcTestSqliteWpdb extends EcTestWpdb {
 }
 
 $GLOBALS['wpdb'] = new EcTestWpdb();
@@ -638,6 +689,19 @@ function get_option( $key, $default = false ) {
 	return $GLOBALS['ec_test']['options'][ $key ] ?? $default;
 }
 
+function add_option( $key, $value, $deprecated = '', $autoload = null ) {
+	global $wpdb;
+	if ( ! empty( $GLOBALS['ec_test']['fail_option_add'] ) ) {
+		$wpdb->last_error = 'Network lock option insert failed.';
+		return false;
+	}
+	if ( array_key_exists( $key, $GLOBALS['ec_test']['options'] ?? array() ) ) {
+		return false;
+	}
+	$GLOBALS['ec_test']['options'][ $key ] = $value;
+	return true;
+}
+
 function update_option( $key, $value ) {
 	$GLOBALS['ec_test']['options'][ $key ] = $value;
 	return true;
@@ -668,6 +732,19 @@ function is_admin() {
 function delete_site_option( $key ) {
 	unset( $GLOBALS['ec_test']['site_options'][ $key ] );
 	return true;
+}
+
+function get_main_site_id() {
+	return 1;
+}
+
+function wp_cache_delete() {
+	return true;
+}
+
+function wp_generate_uuid4() {
+	$GLOBALS['ec_test']['uuid_sequence'] = ( $GLOBALS['ec_test']['uuid_sequence'] ?? 0 ) + 1;
+	return '00000000-0000-4000-8000-' . str_pad( (string) $GLOBALS['ec_test']['uuid_sequence'], 12, '0', STR_PAD_LEFT );
 }
 
 function get_page_by_path() {

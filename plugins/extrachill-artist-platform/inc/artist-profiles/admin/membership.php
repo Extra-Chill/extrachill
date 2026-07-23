@@ -50,15 +50,17 @@ function ec_add_artist_membership( $user_id, $artist_id ) {
 	}
 
 	if ( ! ec_acquire_artist_membership_lock( $user_id, $artist_id ) ) {
-		ec_set_artist_membership_failure(
-			'artist_membership_busy',
-			__( 'The artist membership is being updated. Retry the operation.', 'extrachill-artist-platform' ),
-			array(
-				'status'                => 409,
-				'retryable'             => true,
-				'partial_state_created' => false,
-			)
-		);
+		if ( ! ec_get_artist_membership_failure() ) {
+			ec_set_artist_membership_failure(
+				'artist_membership_busy',
+				__( 'The artist membership is being updated. Retry the operation.', 'extrachill-artist-platform' ),
+				array(
+					'status'                => 409,
+					'retryable'             => true,
+					'partial_state_created' => false,
+				)
+			);
+		}
 		return false;
 	}
 
@@ -187,14 +189,16 @@ function ec_remove_artist_membership( $user_id, $artist_id ) {
 	}
 
 	if ( ! ec_acquire_artist_membership_lock( $user_id, $artist_id ) ) {
-		ec_set_artist_membership_failure(
-			'artist_membership_busy',
-			__( 'The artist membership is being updated. Retry the operation.', 'extrachill-artist-platform' ),
-			array(
-				'status'    => 409,
-				'retryable' => true,
-			)
-		);
+		if ( ! ec_get_artist_membership_failure() ) {
+			ec_set_artist_membership_failure(
+				'artist_membership_busy',
+				__( 'The artist membership is being updated. Retry the operation.', 'extrachill-artist-platform' ),
+				array(
+					'status'    => 409,
+					'retryable' => true,
+				)
+			);
+		}
 		return false;
 	}
 
@@ -251,7 +255,7 @@ function ec_get_artist_membership_failure() {
 }
 
 /**
- * Acquire the relationship-wide database advisory lock.
+ * Acquire the relationship-wide lock.
  *
  * @param int $user_id   User ID.
  * @param int $artist_id Artist ID.
@@ -264,15 +268,130 @@ function ec_acquire_artist_membership_lock( $user_id, $artist_id ) {
 		return false;
 	}
 
-	$acquired = '1' === (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock_name, 5 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL advisory lock serializes two-table relationship writes, including absent rows.
-	if ( $acquired ) {
-		$GLOBALS['ec_artist_membership_locks'][ $lock_name ] = true;
+	if ( ! ec_artist_membership_database_supports_advisory_locks() ) {
+		return ec_acquire_artist_membership_network_lock( $lock_name );
 	}
-	return $acquired;
+
+	$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock_name, 5 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL advisory lock serializes two-table relationship writes, including absent rows.
+	if ( '1' === (string) $result ) {
+		$GLOBALS['ec_artist_membership_locks'][ $lock_name ] = array( 'backend' => 'mysql' );
+		return true;
+	}
+	if ( '0' === (string) $result ) {
+		return false;
+	}
+
+	$database_error = ! empty( $wpdb->last_error )
+		? $wpdb->last_error
+		: __( 'MySQL GET_LOCK() returned an invalid result.', 'extrachill-artist-platform' );
+	ec_set_artist_membership_lock_failure( $database_error );
+	return false;
 }
 
 /**
- * Release the relationship-wide database advisory lock.
+ * Whether the current database runtime supports MySQL advisory locks.
+ *
+ * Known non-MySQL wpdb implementations are detected before issuing MySQL-only
+ * SQL. All other implementations are treated as MySQL-capable, and unexpected
+ * advisory-lock results are reported as database failures rather than falling
+ * back after the query.
+ *
+ * @return bool Whether advisory locks should be attempted.
+ */
+function ec_artist_membership_database_supports_advisory_locks() {
+	global $wpdb;
+	$class_name = strtolower( get_class( $wpdb ) );
+	return ! preg_match( '/sqlite|pgsql|postgres/', $class_name );
+}
+
+/**
+ * Acquire an atomic network-wide lock when advisory locks are unavailable.
+ *
+ * The current network's main-site options table has a unique option_name key,
+ * unlike sitemeta, so add_option() is the portable atomic insert primitive.
+ *
+ * @param string $lock_name Relationship lock name.
+ * @return bool Whether the lock was acquired.
+ */
+function ec_acquire_artist_membership_network_lock( $lock_name ) {
+	global $wpdb;
+	$option  = 'ec_artist_membership_lock_' . md5( $lock_name );
+	$payload = array(
+		'owner'   => wp_generate_uuid4(),
+		'expires' => time() + 30,
+	);
+	$acquired = false;
+
+	switch_to_blog( get_main_site_id() );
+	try {
+		if ( add_option( $option, $payload, '', false ) ) {
+			$acquired = true;
+		} else {
+			$insert_error = $wpdb->last_error;
+			$existing     = get_option( $option, false );
+			if ( false === $existing ) {
+				ec_set_artist_membership_lock_failure( $insert_error ?: $wpdb->last_error );
+				return false;
+			}
+			if ( is_array( $existing ) && (int) ( $existing['expires'] ?? 0 ) > time() ) {
+				return false;
+			}
+
+			$updated = $wpdb->query(
+				$wpdb->prepare(
+					"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+					maybe_serialize( $payload ),
+					$option,
+					maybe_serialize( $existing )
+				)
+			); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Conditional update atomically replaces only the observed stale network lock.
+			if ( false === $updated ) {
+				ec_set_artist_membership_lock_failure( $wpdb->last_error );
+				return false;
+			}
+			if ( 1 !== (int) $updated ) {
+				return false;
+			}
+			wp_cache_delete( $option, 'options' );
+			$acquired = true;
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( ! $acquired ) {
+		return false;
+	}
+	$GLOBALS['ec_artist_membership_locks'][ $lock_name ] = array(
+		'backend' => 'main_site_option',
+		'option'  => $option,
+		'payload' => $payload,
+	);
+	return true;
+}
+
+/**
+ * Store an actionable lock infrastructure failure.
+ *
+ * @param string $database_error Database error detail.
+ */
+function ec_set_artist_membership_lock_failure( $database_error ) {
+	if ( ec_get_artist_membership_failure() ) {
+		return;
+	}
+	ec_set_artist_membership_failure(
+		'artist_membership_lock_failed',
+		__( 'The artist membership lock could not be established because of a database error.', 'extrachill-artist-platform' ),
+		array(
+			'status'         => 503,
+			'retryable'      => true,
+			'database_error' => (string) $database_error,
+		)
+	);
+}
+
+/**
+ * Release the relationship-wide lock.
  *
  * @param int $user_id   User ID.
  * @param int $artist_id Artist ID.
@@ -283,8 +402,43 @@ function ec_release_artist_membership_lock( $user_id, $artist_id ) {
 	if ( empty( $GLOBALS['ec_artist_membership_locks'][ $lock_name ] ) ) {
 		return;
 	}
-	$released = '1' === (string) $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the relationship-scoped advisory lock acquired above.
-	if ( $released ) {
+
+	$lock = $GLOBALS['ec_artist_membership_locks'][ $lock_name ];
+	if ( 'mysql' === ( $lock['backend'] ?? '' ) ) {
+		$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the relationship-scoped advisory lock acquired above.
+		if ( '1' === (string) $released ) {
+			unset( $GLOBALS['ec_artist_membership_locks'][ $lock_name ] );
+		} elseif ( ! empty( $wpdb->last_error ) ) {
+			ec_set_artist_membership_lock_failure( $wpdb->last_error );
+		}
+		return;
+	}
+
+	if ( 'main_site_option' !== ( $lock['backend'] ?? '' ) ) {
+		return;
+	}
+
+	switch_to_blog( get_main_site_id() );
+	try {
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s",
+				$lock['option'],
+				maybe_serialize( $lock['payload'] )
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Deletes only the exact owner payload acquired by this request.
+		if ( 1 === (int) $deleted ) {
+			wp_cache_delete( $lock['option'], 'options' );
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( false === $deleted ) {
+		ec_set_artist_membership_lock_failure( $wpdb->last_error );
+		return;
+	}
+	if ( 0 === (int) $deleted || 1 === (int) $deleted ) {
 		unset( $GLOBALS['ec_artist_membership_locks'][ $lock_name ] );
 	}
 }
