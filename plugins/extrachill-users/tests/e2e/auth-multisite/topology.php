@@ -3,6 +3,7 @@
 if ( ! is_multisite() ) {
 	throw new RuntimeException( 'Auth fuzz requires multisite.' );
 }
+$_SERVER['REMOTE_ADDR'] = '127.0.0.248';
 $host = wp_parse_url( network_home_url( '/' ), PHP_URL_HOST );
 $sites = array( 'main' => get_main_site_id() );
 foreach ( array( 'community' => 2, 'shop' => 3, 'artist' => 4, 'placeholder-five' => 5, 'placeholder-six' => 6, 'events' => 7 ) as $key => $expected ) {

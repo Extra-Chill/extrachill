@@ -27,22 +27,26 @@ function auth_fuzz_registration( array $overrides ): array {
 	), $overrides );
 }
 
+function auth_fuzz_network_user_count(): int {
+	return count( get_users( array( 'blog_id' => 0, 'fields' => 'ID' ) ) );
+}
+
 $initial_count = (int) $fixture['initial_user_count'];
 foreach ( $plan['invalid_registrations'] as $case ) {
 	$response = auth_fuzz_rest( '/extrachill/v1/auth/register', auth_fuzz_registration( $case ) );
 	auth_fuzz_assert( $response->get_status() >= 400, $case['id'] . ' unexpectedly registered.' );
-	auth_fuzz_assert( count_users()['total_users'] === $initial_count, $case['id'] . ' mutated the network user count.' );
+	auth_fuzz_assert( auth_fuzz_network_user_count() === $initial_count, $case['id'] . ' mutated the network user count.' );
 }
 
 $created = auth_fuzz_rest( '/extrachill/v1/auth/register', auth_fuzz_registration( array( 'email' => $plan['generated_email'] ) ) );
 $created_data = (array) $created->get_data();
 $created_id = (int) ( $created_data['user']['id'] ?? 0 );
 auth_fuzz_assert( 200 === $created->get_status() && $created_id > 0, 'Valid generated registration failed: ' . wp_json_encode( $created_data ) );
-auth_fuzz_assert( count_users()['total_users'] === $initial_count + 1, 'Valid registration did not create exactly one user.' );
+auth_fuzz_assert( auth_fuzz_network_user_count() === $initial_count + 1, 'Valid registration did not create exactly one user.' );
 auth_fuzz_assert( is_user_member_of_blog( $created_id, (int) $sites['community'] ), 'Registered user lacks Community membership.' );
 $duplicate = auth_fuzz_rest( '/extrachill/v1/auth/register', auth_fuzz_registration( array( 'email' => $plan['generated_email'] ) ) );
 auth_fuzz_assert( 400 === $duplicate->get_status(), 'Duplicate registration did not return a generic client error.' );
-auth_fuzz_assert( count_users()['total_users'] === $initial_count + 1, 'Duplicate registration created another user.' );
+auth_fuzz_assert( auth_fuzz_network_user_count() === $initial_count + 1, 'Duplicate registration created another user.' );
 
 $existing = get_user_by( 'id', (int) $fixture['existing_user_id'] );
 foreach ( array( $existing->user_login, $existing->user_email ) as $identifier ) {

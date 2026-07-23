@@ -26,4 +26,10 @@ if ( is_wp_error( $user_id ) ) {
 	throw new RuntimeException( 'Could not create the existing auth persona.' );
 }
 add_user_to_blog( (int) $sites['community'], (int) $user_id, 'subscriber' );
-update_site_option( 'extrachill_auth_fuzz_fixture', array( 'existing_user_id' => (int) $user_id, 'initial_user_count' => count_users()['total_users'] ) );
+update_site_option(
+	'extrachill_auth_fuzz_fixture',
+	array(
+		'existing_user_id'  => (int) $user_id,
+		'initial_user_count' => count( get_users( array( 'blog_id' => 0, 'fields' => 'ID' ) ) ),
+	)
+);
