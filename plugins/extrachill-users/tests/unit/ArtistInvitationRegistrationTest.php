@@ -14,12 +14,15 @@ class Test_Artist_Invitation_Registration extends WP_UnitTestCase {
 	protected function tearDown(): void {
 		unset( $_SERVER['HTTP_EXTRACHILL_CLIENT'] );
 		remove_all_filters( 'pre_http_request' );
+		remove_all_filters( 'extrachill_users_registration_turnstile_verifier' );
+		remove_all_filters( 'extrachill_users_registration_admitter' );
 		parent::tearDown();
 	}
 
 	public function test_incomplete_invitation_is_rejected_before_token_registration_creates_user(): void {
-		$_SERVER['HTTP_EXTRACHILL_CLIENT'] = 'app';
-		$email                             = 'failed-invite@example.com';
+		add_filter( 'extrachill_users_registration_turnstile_verifier', array( $this, 'pass_turnstile' ) );
+		add_filter( 'extrachill_users_registration_admitter', array( $this, 'admit_registration' ) );
+		$email = 'failed-invite@example.com';
 
 		$result = extrachill_users_register_with_tokens(
 			array(
@@ -104,8 +107,9 @@ class Test_Artist_Invitation_Registration extends WP_UnitTestCase {
 	}
 
 	private function assert_token_registration_invitation_outcome( string $error_code, int $error_status, string $expected_status, bool $expected_retryable ): void {
-		$_SERVER['HTTP_EXTRACHILL_CLIENT'] = 'app';
-		$request_count                     = 0;
+		add_filter( 'extrachill_users_registration_turnstile_verifier', array( $this, 'pass_turnstile' ) );
+		add_filter( 'extrachill_users_registration_admitter', array( $this, 'admit_registration' ) );
+		$request_count = 0;
 		add_filter(
 			'pre_http_request',
 			static function () use ( &$request_count, $error_code, $error_status ) {
@@ -165,6 +169,14 @@ class Test_Artist_Invitation_Registration extends WP_UnitTestCase {
 		$this->assertSame( $error_status, $result['artist_invitation_error']['status'] );
 		$this->assertNotFalse( email_exists( $email ) );
 		$this->assertSame( 2, $request_count );
+	}
+
+	public function pass_turnstile(): bool {
+		return true;
+	}
+
+	public function admit_registration(): bool {
+		return true;
 	}
 
 	private function assert_browser_invitation_outcome( string $error_code, int $error_status, string $expected_status, bool $expected_retryable ): void {

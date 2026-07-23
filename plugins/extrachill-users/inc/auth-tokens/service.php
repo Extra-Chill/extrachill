@@ -342,14 +342,9 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		? extrachill_users_sanitize_utm( $payload['utm'] )
 		: array();
 
-	$is_app_client = isset( $_SERVER['HTTP_EXTRACHILL_CLIENT'] )
-		&& 'app' === sanitize_text_field( wp_unslash( $_SERVER['HTTP_EXTRACHILL_CLIENT'] ) );
-
-	if ( ! $is_app_client ) {
-		$check = ec_turnstile_check_request( $turnstile_token );
-		if ( is_wp_error( $check ) ) {
-			return $check;
-		}
+	$check = extrachill_users_validate_password_registration( $email, $turnstile_token );
+	if ( is_wp_error( $check ) ) {
+		return $check;
 	}
 
 	if ( empty( $email ) || empty( $password ) || empty( $password_confirm ) ) {
@@ -444,16 +439,6 @@ function extrachill_users_register_with_tokens( array $payload ) {
 
 	if ( ! empty( $utm ) ) {
 		$registration_data['utm'] = $utm;
-	}
-
-	if ( $is_app_client ) {
-		if ( empty( $registration_data['registration_source'] ) ) {
-			$registration_data['registration_source'] = 'extrachill-app';
-		}
-
-		if ( empty( $registration_data['registration_method'] ) ) {
-			$registration_data['registration_method'] = 'standard';
-		}
 	}
 
 	$has_artist_invitation = false;

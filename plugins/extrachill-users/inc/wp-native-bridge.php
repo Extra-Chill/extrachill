@@ -169,38 +169,33 @@ function extrachill_users_wp_native_after_login( int $user_id, string $device_id
 add_action( 'wp_native_auth_after_login', 'extrachill_users_wp_native_after_login', 10, 3 );
 
 /**
- * Pre-register gate: override username generation for EC conventions.
+ * Pre-register gate: fail closed when site registration policy cannot run.
  *
- * Delegates to ec_generate_username_from_email() — the same function used by
- * the existing extrachill_users_register_with_tokens() service in
- * inc/auth-tokens/service.php. The framework's default deterministic hash-based
- * username is replaced with EC's human-readable convention.
- *
- * Out-of-scope concerns (deferred to follow-up issues):
- *  - Turnstile verification: wp-native-auth's input schema doesn't accept a
- *    turnstile_response field. Turnstile enforcement remains web-only via the
- *    existing /extrachill/v1/auth/register REST route (same constraint as the
- *    pre_authenticate handler above).
- *  - Invite-token redemption: wp-native-auth's input schema doesn't accept
- *    invite_token / invite_artist_id. Invite-flow registrations stay on the
- *    existing REST route.
+ * wp-native-auth deliberately exposes a generic registration ability, but its
+ * schema cannot carry Extra Chill's Turnstile proof. Block that path before
+ * user creation; branded registration remains the only public site surface.
  *
  * @param null|WP_Error $result            Pass-through from earlier filters, or null.
  * @param array         $registration_data Registration data: [email, password, username]. Passed by reference by the caller.
  * @param array         $context           Contextual data from wp-native-auth (device_id, etc.).
- * @return null|WP_Error Null to continue, WP_Error to abort registration.
+ * @return WP_Error Existing policy error or the fail-closed site policy error.
  */
 function extrachill_users_wp_native_pre_register( null|WP_Error $result, array &$registration_data, array $context ): null|WP_Error {
 	if ( $result instanceof WP_Error ) {
 		return $result; // Earlier filter already blocked.
 	}
 
-	// Override username with EC convention if the helper exists.
-	if ( function_exists( 'ec_generate_username_from_email' ) && ! empty( $registration_data['email'] ) ) {
-		$registration_data['username'] = ec_generate_username_from_email( $registration_data['email'] );
-	}
-
-	return $result;
+	/*
+	 * wp-native/auth-register is public but cannot carry Extra Chill's required
+	 * Turnstile proof. Keep it fail-closed at the consumer policy layer. Future
+	 * exposure must route through the branded registration boundary or supply a
+	 * server-verifiable context that can execute the same site policy first.
+	 */
+	return new WP_Error(
+		'extrachill_registration_surface_unavailable',
+		__( 'Registration is not available through this endpoint.', 'extrachill-users' ),
+		array( 'status' => 403 )
+	);
 }
 add_filter( 'wp_native_auth_pre_register', 'extrachill_users_wp_native_pre_register', 10, 3 );
 
