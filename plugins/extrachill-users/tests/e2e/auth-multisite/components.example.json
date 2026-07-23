@@ -1,0 +1,8 @@
+{
+  "extrachill-network": {"path":"/absolute/path/to/extrachill-network","version":"0000000000000000000000000000000000000000"},
+  "extrachill-api": {"path":"/absolute/path/to/extrachill-api","version":"0000000000000000000000000000000000000000"},
+  "wp-native": {"path":"/absolute/path/to/wp-native","version":"0000000000000000000000000000000000000000"},
+  "extrachill-analytics": {"path":"/absolute/path/to/extrachill-analytics","version":"0000000000000000000000000000000000000000"},
+  "extrachill-users": {"path":"/absolute/path/to/extrachill-users","version":"0000000000000000000000000000000000000000"},
+  "extrachill": {"path":"/absolute/path/to/extrachill-theme","version":"0000000000000000000000000000000000000000"}
+}

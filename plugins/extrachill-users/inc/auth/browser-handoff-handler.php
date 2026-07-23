@@ -53,8 +53,9 @@ function extrachill_users_handle_browser_handoff() {
 		exit;
 	}
 
-	$redirect_host = wp_parse_url( $redirect_url, PHP_URL_HOST );
-	if ( ! is_string( $redirect_host ) || '' === $redirect_host ) {
+	$redirect_scheme = wp_parse_url( $redirect_url, PHP_URL_SCHEME );
+	$redirect_host   = wp_parse_url( $redirect_url, PHP_URL_HOST );
+	if ( 'https' !== $redirect_scheme || ! is_string( $redirect_host ) || '' === $redirect_host ) {
 		status_header( 400 );
 		exit;
 	}

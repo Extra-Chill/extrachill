@@ -1,0 +1,18 @@
+{
+  "url": "/?pagename=login",
+  "profile": "desktop-chrome",
+  "captures": ["steps", "console", "errors", "html", "network", "screenshot", "dom-snapshot"],
+  "steps": [
+    {"kind": "expect", "selector": "[data-ec-login-register-root]", "state": "attached"},
+    {"kind": "expect", "selector": "#loginform", "state": "visible"},
+    {"kind": "click", "selector": "a[href='#tab-register']"},
+    {"kind": "expect", "selector": "#extrachill_email", "state": "visible"},
+    {"kind": "fill", "selector": "#extrachill_email", "value": "mismatch-browser@example.test"},
+    {"kind": "fill", "selector": "#extrachill_password", "value": "valid-pass-248"},
+    {"kind": "fill", "selector": "#extrachill_password_confirm", "value": "different-pass-248"},
+    {"kind": "click", "selector": "input[name='extrachill_register']"},
+    {"kind": "waitFor", "selector": ".ec-auth-notice--error", "timeout": "20s"},
+    {"kind": "expect", "selector": "#extrachill_email", "state": "visible"}
+  ],
+  "assertions": [{"type": "noPageErrors"}]
+}
