@@ -76,11 +76,14 @@ foreach ( array( $nonmember_id, $blocked_id, $onboarding_id, $victim_id ) as $pe
 add_user_to_blog( (int) $sites['community'], (int) $blocked_id, 'subscriber' );
 add_user_to_blog( (int) $sites['community'], (int) $onboarding_id, 'subscriber' );
 add_user_to_blog( (int) $sites['community'], (int) $victim_id, 'subscriber' );
-update_user_meta( (int) $blocked_id, extrachill_users_moderation_meta_key(), array(
+$moderated = extrachill_users_apply_moderation_action( (int) $blocked_id, array(
 	'state'      => 'banned',
 	'reason_key' => 'other',
-	'effects'    => extrachill_users_get_moderation_policy( 'other' )['effects'],
+	'source'     => 'auth-fuzz',
 ) );
+if ( is_wp_error( $moderated ) || ! extrachill_users_is_blocked( (int) $blocked_id ) ) {
+	throw new RuntimeException( 'Could not establish the moderated auth persona.' );
+}
 update_user_meta( (int) $onboarding_id, 'onboarding_completed', '0' );
 update_site_option(
 	'extrachill_auth_fuzz_fixture',
