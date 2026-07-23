@@ -49,9 +49,10 @@ function extrachill_api_auth_browser_handoff_handler( WP_REST_Request $request )
 		return new WP_Error( 'missing_redirect_url', 'redirect_url is required.', array( 'status' => 400 ) );
 	}
 
-	$redirect_host = wp_parse_url( $redirect_url, PHP_URL_HOST );
-	if ( ! is_string( $redirect_host ) || '' === $redirect_host ) {
-		return new WP_Error( 'invalid_redirect_url', 'redirect_url must be an absolute URL.', array( 'status' => 400 ) );
+	$redirect_scheme = wp_parse_url( $redirect_url, PHP_URL_SCHEME );
+	$redirect_host   = wp_parse_url( $redirect_url, PHP_URL_HOST );
+	if ( 'https' !== $redirect_scheme || ! is_string( $redirect_host ) || '' === $redirect_host ) {
+		return new WP_Error( 'invalid_redirect_url', 'redirect_url must be an absolute HTTPS URL.', array( 'status' => 400 ) );
 	}
 
 	$redirect_host = strtolower( $redirect_host );
