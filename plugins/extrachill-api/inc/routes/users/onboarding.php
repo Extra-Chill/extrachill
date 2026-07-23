@@ -107,16 +107,19 @@ function extrachill_api_onboarding_post_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute(
-		array(
-			'user_id'                => get_current_user_id(),
-			'username'               => $request->get_param( 'username' ),
-			'user_is_artist'         => $request->get_param( 'user_is_artist' ),
-			'user_is_professional'   => $request->get_param( 'user_is_professional' ),
-			'local_scene_visibility' => $request->get_param( 'local_scene_visibility' ),
-			'local_scene'            => $request->get_param( 'local_scene' ),
-		)
+	$input = array(
+		'user_id'                => get_current_user_id(),
+		'username'               => $request->get_param( 'username' ),
+		'user_is_artist'         => $request->get_param( 'user_is_artist' ),
+		'user_is_professional'   => $request->get_param( 'user_is_professional' ),
+		'local_scene_visibility' => $request->get_param( 'local_scene_visibility' ),
 	);
+	$local_scene = $request->get_param( 'local_scene' );
+	if ( is_string( $local_scene ) && '' !== $local_scene ) {
+		$input['local_scene'] = $local_scene;
+	}
+
+	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
 		return new WP_Error(
