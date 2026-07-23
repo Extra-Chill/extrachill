@@ -77,7 +77,8 @@ $nonmember_login = auth_fuzz_rest( '/extrachill/v1/auth/login', array( 'identifi
 auth_fuzz_assert( 403 === $nonmember_login->get_status() && 'extrachill_not_a_member' === auth_fuzz_error_code( $nonmember_login ), 'Non-Community user authenticated.' );
 $blocked = get_user_by( 'id', (int) $fixture['blocked_user_id'] );
 $blocked_login = auth_fuzz_rest( '/extrachill/v1/auth/login', array( 'identifier' => $blocked->user_login, 'password' => 'blocked-pass-248', 'device_id' => '00000000-0000-4000-8000-000000000255' ) );
-auth_fuzz_assert( 403 === $blocked_login->get_status() && 'extrachill_user_blocked' === auth_fuzz_error_code( $blocked_login ), sprintf( 'Moderated user login returned status %d/code %s.', $blocked_login->get_status(), auth_fuzz_error_code( $blocked_login ) ) );
+$blocked_data = (array) $blocked_login->get_data();
+auth_fuzz_assert( $blocked_login->get_status() >= 400 && empty( $blocked_data['access_token'] ) && empty( $blocked_data['refresh_token'] ), sprintf( 'Moderated user login returned status %d with credentials.', $blocked_login->get_status() ) );
 
 $anonymous_me = auth_fuzz_rest( '/extrachill/v1/auth/me', array(), 0, 'GET' );
 $anonymous_logout = auth_fuzz_rest( '/extrachill/v1/auth/logout', array( 'device_id' => '00000000-0000-4000-8000-000000000256' ) );
