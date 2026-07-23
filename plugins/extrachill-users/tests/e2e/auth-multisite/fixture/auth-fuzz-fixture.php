@@ -7,6 +7,15 @@
 
 add_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 add_filter( 'pre_wp_mail', '__return_true' );
+add_filter(
+	'ec_site_url_override',
+	static function ( $url, $key, $blog_id ) {
+		$site_url = get_site_url( (int) $blog_id );
+		return is_string( $site_url ) && '' !== $site_url ? untrailingslashit( $site_url ) : $url;
+	},
+	10,
+	3
+);
 
 add_action(
 	'plugins_loaded',
