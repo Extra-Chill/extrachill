@@ -2,7 +2,11 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "settings": {
+        "wordpress_runtime_php_version": "8.4"
+      }
+    }
   },
   "id": "extrachill-users",
   "remote_path": "wp-content/plugins/extrachill-users",
