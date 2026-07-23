@@ -17,8 +17,11 @@ defined( 'ABSPATH' ) || exit;
  * @return string Transient key.
  */
 function ec_get_login_attempt_key( $username ) {
-	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-	return 'ec_login_attempts_' . md5( $ip . strtolower( (string) $username ) );
+	$ip         = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+	$identifier = trim( (string) $username );
+	$user       = is_email( $identifier ) ? get_user_by( 'email', $identifier ) : get_user_by( 'login', $identifier );
+	$identity   = $user instanceof WP_User ? 'user:' . $user->ID : 'identifier:' . strtolower( $identifier );
+	return 'ec_login_attempts_' . md5( $ip . '|' . $identity );
 }
 
 /**
