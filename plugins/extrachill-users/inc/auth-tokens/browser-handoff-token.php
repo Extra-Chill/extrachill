@@ -44,18 +44,45 @@ function extrachill_users_create_browser_handoff_token( int $user_id, string $re
  * @return array|WP_Error Payload array.
  */
 function extrachill_users_consume_browser_handoff_token( string $token ) {
+	global $wpdb;
+
 	$token = trim( $token );
 	if ( '' === $token ) {
 		return new WP_Error( 'invalid_handoff_token', 'Invalid handoff token.', array( 'status' => 400 ) );
 	}
 
-	$key     = 'ec_browser_handoff_' . hash( 'sha256', $token );
-	$payload = get_site_transient( $key );
-	delete_site_transient( $key );
+	$token_hash = hash( 'sha256', $token );
+	$key        = 'ec_browser_handoff_' . $token_hash;
+	$db_lock    = 'ec_handoff_' . substr( $token_hash, 0, 53 );
 
-	if ( ! is_array( $payload ) || empty( $payload['user_id'] ) || empty( $payload['redirect_url'] ) ) {
+	// Network options have no unique database key, and an object-cache drop-in
+	// may degrade to process-local storage. This lock is atomic across workers,
+	// creates no rows, and is released automatically if the connection dies.
+	$claimed = '1' === (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $db_lock ) );
+
+	if ( ! $claimed ) {
 		return new WP_Error( 'invalid_handoff_token', 'Invalid or expired handoff token.', array( 'status' => 400 ) );
 	}
 
-	return $payload;
+	try {
+		$payload = get_site_transient( $key );
+		$deleted = delete_site_transient( $key );
+		$now     = time();
+
+		if (
+			! $deleted
+			|| ! is_array( $payload )
+			|| empty( $payload['user_id'] )
+			|| empty( $payload['redirect_url'] )
+			|| empty( $payload['created_at_ts'] )
+			|| (int) $payload['created_at_ts'] > $now
+			|| ( $now - (int) $payload['created_at_ts'] ) >= 60
+		) {
+			return new WP_Error( 'invalid_handoff_token', 'Invalid or expired handoff token.', array( 'status' => 400 ) );
+		}
+
+		return $payload;
+	} finally {
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $db_lock ) );
+	}
 }
