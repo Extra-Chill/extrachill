@@ -58,6 +58,12 @@ class BookingRepository {
 		if ( is_wp_error( $dates ) ) {
 			return $dates;
 		}
+		$performance_start = $this->datetime( $data['performance_start_at'] ?? null, 'performance_start_at' );
+		$performance_end   = $this->datetime( $data['performance_end_at'] ?? null, 'performance_end_at' );
+		$performance_dates = $this->validate_date_range( $performance_start, $performance_end, 'performance' );
+		if ( is_wp_error( $performance_dates ) ) {
+			return $performance_dates;
+		}
 
 		$intake = $this->encode_payload( $data['intake'] ?? array(), 'intake' );
 		if ( is_wp_error( $intake ) ) {
@@ -65,9 +71,35 @@ class BookingRepository {
 		}
 		$deal = null;
 		if ( array_key_exists( 'deal', $data ) ) {
-			$deal = $this->encode_payload( $data['deal'], 'deal' );
+			$deal_document = is_array( $data['deal'] ) ? BookingMutationService::normalize_deal_document( $data['deal'] ) : new \WP_Error( 'invalid_booking_deal', __( 'The complete version 1 deal document is required.', 'extrachill-events' ) );
+			if ( is_wp_error( $deal_document ) ) {
+				return $deal_document;
+			}
+			$deal = $this->encode_payload( $deal_document, 'deal' );
 			if ( is_wp_error( $deal ) ) {
 				return $deal;
+			}
+		}
+		$production = null;
+		if ( array_key_exists( 'production', $data ) ) {
+			$production_document = is_array( $data['production'] ) ? BookingMutationService::normalize_production_document( $data['production'] ) : new \WP_Error( 'invalid_booking_production', __( 'The production document is invalid.', 'extrachill-events' ) );
+			if ( is_wp_error( $production_document ) ) {
+				return $production_document;
+			}
+			$production = $this->encode_payload( $production_document, 'production' );
+			if ( is_wp_error( $production ) ) {
+				return $production;
+			}
+		}
+		$confirmed_deal = null;
+		if ( array_key_exists( 'confirmed_deal', $data ) ) {
+			$confirmed_document = is_array( $data['confirmed_deal'] ) ? BookingMutationService::normalize_deal_document( $data['confirmed_deal'] ) : new \WP_Error( 'invalid_booking_deal', __( 'The complete version 1 confirmed deal document is required.', 'extrachill-events' ) );
+			if ( is_wp_error( $confirmed_document ) ) {
+				return $confirmed_document;
+			}
+			$confirmed_deal = $this->encode_payload( $confirmed_document, 'confirmed_deal' );
+			if ( is_wp_error( $confirmed_deal ) ) {
+				return $confirmed_deal;
 			}
 		}
 
@@ -88,14 +120,19 @@ class BookingRepository {
 			'contact_phone'           => $this->nullable_text( $data['contact_phone'] ?? null, 64 ),
 			'inquiry_idempotency_key' => $this->nullable_text( $data['inquiry_idempotency_key'] ?? null, 191 ),
 			'inquiry_request_hash'    => $request_hash,
+			'requested_space_key'     => $this->nullable_key( $data['requested_space_key'] ?? null, 64 ),
 			'space_key'               => $this->nullable_key( $data['space_key'] ?? null, 64 ),
 			'status'                  => 'submitted',
 			'version'                 => 1,
 			'assignee_user_id'        => $ids['assignee_user_id'],
 			'requested_start_at'      => $start,
 			'requested_end_at'        => $end,
+			'performance_start_at'    => $performance_start,
+			'performance_end_at'      => $performance_end,
 			'intake_payload'          => $intake,
+			'production_payload'      => $production,
 			'deal_payload'            => $deal,
+			'confirmed_deal_payload'  => $confirmed_deal,
 			'event_id'                => null,
 			'created_at'              => $now,
 			'updated_at'              => $now,
@@ -239,7 +276,7 @@ class BookingRepository {
 			}
 		}
 
-		$allowed = array( 'artist_term_id', 'artist_profile_id', 'artist_name', 'contact_name', 'contact_email', 'contact_phone', 'space_key', 'assignee_user_id', 'requested_start_at', 'requested_end_at', 'intake', 'deal' );
+		$allowed = array( 'artist_term_id', 'artist_profile_id', 'artist_name' );
 		$changes = array_intersect_key( $changes, array_flip( $allowed ) );
 		if ( empty( $changes ) ) {
 			return new \WP_Error( 'empty_booking_update', __( 'No supported booking fields were supplied.', 'extrachill-events' ) );
@@ -247,34 +284,15 @@ class BookingRepository {
 
 		$normalized = array();
 		foreach ( $changes as $key => $value ) {
-			if ( 'intake' === $key || 'deal' === $key ) {
-				$value = $this->encode_payload( $value, $key );
-			} elseif ( in_array( $key, array( 'artist_term_id', 'artist_profile_id', 'assignee_user_id' ), true ) ) {
+			if ( in_array( $key, array( 'artist_term_id', 'artist_profile_id' ), true ) ) {
 				$value = $this->positive_id( $value, $key, true );
-			} elseif ( in_array( $key, array( 'requested_start_at', 'requested_end_at' ), true ) ) {
-				$value = $this->datetime( $value, $key );
 			} elseif ( 'artist_name' === $key ) {
 				$value = $this->required_text( $value, $key, 255 );
-			} elseif ( 'contact_name' === $key ) {
-				$value = $this->nullable_text( $value, 255 );
-			} elseif ( 'contact_email' === $key ) {
-				$value = $this->nullable_email( $value );
-			} elseif ( 'contact_phone' === $key ) {
-				$value = $this->nullable_text( $value, 64 );
-			} elseif ( 'space_key' === $key ) {
-				$value = $this->nullable_key( $value, 64 );
 			}
 			if ( is_wp_error( $value ) ) {
 				return $value;
 			}
-			$normalized[ 'intake' === $key || 'deal' === $key ? $key . '_payload' : $key ] = $value;
-		}
-
-		$start = array_key_exists( 'requested_start_at', $normalized ) ? $normalized['requested_start_at'] : $current['requested_start_at'];
-		$end   = array_key_exists( 'requested_end_at', $normalized ) ? $normalized['requested_end_at'] : $current['requested_end_at'];
-		$dates = $this->validate_date_range( $start, $end );
-		if ( is_wp_error( $dates ) ) {
-			return $dates;
+			$normalized[ $key ] = $value;
 		}
 
 		$result = $this->conditional_update( $id, $expected, $normalized, '' );
@@ -476,8 +494,10 @@ class BookingRepository {
 			$row[ $key ] = isset( $row[ $key ] ) ? (int) $row[ $key ] : null;
 		}
 		foreach ( array(
-			'intake' => false,
-			'deal'   => true,
+			'intake'         => false,
+			'production'     => true,
+			'deal'           => true,
+			'confirmed_deal' => true,
 		) as $key => $nullable ) {
 			$decoded = $this->decode_payload( $row[ $key . '_payload' ] ?? null, $key, $nullable );
 			if ( is_wp_error( $decoded ) ) {
@@ -571,12 +591,12 @@ class BookingRepository {
 		return $date->format( 'Y-m-d H:i:s' );
 	}
 
-	private function validate_date_range( $start, $end ) {
+	private function validate_date_range( $start, $end, string $kind = 'requested' ) {
 		if ( is_wp_error( $start ) || is_wp_error( $end ) ) {
 			return is_wp_error( $start ) ? $start : $end;
 		}
 		if ( null !== $start && null !== $end && $end <= $start ) {
-			return new \WP_Error( 'invalid_booking_date_range', __( 'The requested end must be later than the requested start.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_date_range', 'performance' === $kind ? __( 'The performance end must be later than the performance start.', 'extrachill-events' ) : __( 'The requested end must be later than the requested start.', 'extrachill-events' ) );
 		}
 		return true;
 	}

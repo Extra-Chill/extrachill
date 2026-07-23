@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns and verifies the site-scoped private booking schema. */
 class BookingSchema {
 
-	public const SCHEMA_VERSION = '5';
+	public const SCHEMA_VERSION = '6';
 	public const VERSION_OPTION = 'extrachill_events_booking_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_booking_schema_error';
 
@@ -69,14 +69,19 @@ class BookingSchema {
 			contact_phone VARCHAR(64) NULL,
 			inquiry_idempotency_key VARCHAR(191) NULL,
 			inquiry_request_hash CHAR(64) NULL,
+			requested_space_key VARCHAR(64) NULL,
 			space_key VARCHAR(64) NULL,
 			status VARCHAR(32) NOT NULL DEFAULT 'submitted',
 			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
 			assignee_user_id BIGINT UNSIGNED NULL,
 			requested_start_at DATETIME NULL,
 			requested_end_at DATETIME NULL,
+			performance_start_at DATETIME NULL,
+			performance_end_at DATETIME NULL,
 			intake_payload LONGTEXT NOT NULL,
+			production_payload LONGTEXT NULL,
 			deal_payload LONGTEXT NULL,
+			confirmed_deal_payload LONGTEXT NULL,
 			event_id BIGINT UNSIGNED NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
@@ -86,6 +91,7 @@ class BookingSchema {
 			UNIQUE KEY venue_inquiry_idempotency (venue_term_id, inquiry_idempotency_key),
 			KEY venue_status_created (venue_term_id, status, created_at),
 			KEY venue_requested_start (venue_term_id, requested_start_at),
+			KEY venue_performance_start (venue_term_id, performance_start_at),
 			KEY artist_term_created (artist_term_id, created_at),
 			KEY artist_profile_created (artist_profile_id, created_at),
 			KEY assignee_status (assignee_user_id, status),
@@ -467,14 +473,19 @@ class BookingSchema {
 					'contact_phone'           => $required( 'varchar(64)', true ),
 					'inquiry_idempotency_key' => $required( 'varchar(191)', true ),
 					'inquiry_request_hash'    => $required( 'char(64)', true ),
+					'requested_space_key'     => $required( 'varchar(64)', true ),
 					'space_key'               => $required( 'varchar(64)', true ),
 					'status'                  => $required( 'varchar(32)', false, array( 'default' => 'submitted' ) ),
 					'version'                 => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
 					'assignee_user_id'        => $required( 'bigint unsigned', true ),
 					'requested_start_at'      => $required( 'datetime', true ),
 					'requested_end_at'        => $required( 'datetime', true ),
+					'performance_start_at'    => $required( 'datetime', true ),
+					'performance_end_at'      => $required( 'datetime', true ),
 					'intake_payload'          => $required( 'longtext', false ),
+					'production_payload'      => $required( 'longtext', true ),
 					'deal_payload'            => $required( 'longtext', true ),
+					'confirmed_deal_payload'  => $required( 'longtext', true ),
 					'event_id'                => $required( 'bigint unsigned', true ),
 					'created_at'              => $required( 'datetime', false ),
 					'updated_at'              => $required( 'datetime', false ),
@@ -503,6 +514,10 @@ class BookingSchema {
 					'venue_requested_start'     => array(
 						'unique'  => false,
 						'columns' => array( 'venue_term_id', 'requested_start_at' ),
+					),
+					'venue_performance_start'   => array(
+						'unique'  => false,
+						'columns' => array( 'venue_term_id', 'performance_start_at' ),
 					),
 					'artist_term_created'       => array(
 						'unique'  => false,

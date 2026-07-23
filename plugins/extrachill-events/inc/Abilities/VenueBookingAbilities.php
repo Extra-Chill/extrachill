@@ -49,9 +49,9 @@ class VenueBookingAbilities {
 	/**
 	 * Build and hook the booking ability surface.
 	 *
-	 * @param BookingRepository|null  $bookings      Booking reads.
-	 * @param BookingLifecycle|null   $lifecycle     Booking mutations.
-	 * @param VenueAuthorization|null $authorization Venue authorization.
+	 * @param BookingRepository|null     $bookings      Booking reads.
+	 * @param BookingLifecycle|null      $lifecycle     Booking mutations.
+	 * @param VenueAuthorization|null    $authorization Venue authorization.
 	 * @param BookingHoldRepository|null $holds     Hold reconciliation.
 	 */
 	public function __construct( ?BookingRepository $bookings = null, ?BookingLifecycle $lifecycle = null, ?VenueAuthorization $authorization = null, ?BookingHoldRepository $holds = null ) {
@@ -371,48 +371,48 @@ class VenueBookingAbilities {
 		return array(
 			'type'                 => 'object',
 			'properties'           => array(
-				'idempotency_key'    => array(
+				'idempotency_key'     => array(
 					'type'      => 'string',
 					'minLength' => 1,
 					'maxLength' => 191,
 				),
-				'venue_term_id'      => array(
+				'venue_term_id'       => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'artist_term_id'     => array(
+				'artist_term_id'      => array(
 					'type'    => array( 'integer', 'null' ),
 					'minimum' => 1,
 				),
-				'artist_profile_id'  => array(
+				'artist_profile_id'   => array(
 					'type'    => array( 'integer', 'null' ),
 					'minimum' => 1,
 				),
-				'artist_name'        => array(
+				'artist_name'         => array(
 					'type'      => 'string',
 					'minLength' => 1,
 					'maxLength' => 255,
 				),
-				'contact_name'       => array(
+				'contact_name'        => array(
 					'type'      => array( 'string', 'null' ),
 					'maxLength' => 255,
 				),
-				'contact_email'      => array(
+				'contact_email'       => array(
 					'type'      => array( 'string', 'null' ),
 					'format'    => 'email',
 					'maxLength' => 255,
 				),
-				'contact_phone'      => array(
+				'contact_phone'       => array(
 					'type'      => array( 'string', 'null' ),
 					'maxLength' => 64,
 				),
-				'space_key'          => array(
+				'requested_space_key' => array(
 					'type'      => array( 'string', 'null' ),
 					'maxLength' => 64,
 				),
-				'requested_start_at' => $this->nullable_datetime_schema(),
-				'requested_end_at'   => $this->nullable_datetime_schema(),
-				'intake'             => array(
+				'requested_start_at'  => $this->nullable_datetime_schema(),
+				'requested_end_at'    => $this->nullable_datetime_schema(),
+				'intake'              => array(
 					'type'                 => 'object',
 					'additionalProperties' => true,
 				),
@@ -478,7 +478,7 @@ class VenueBookingAbilities {
 	}
 
 	/** Return the stable hydrated booking output schema. */
-	private function booking_schema(): array {
+	public function booking_schema(): array {
 		$nullable_id     = array(
 			'type'    => array( 'integer', 'null' ),
 			'minimum' => 1,
@@ -487,44 +487,49 @@ class VenueBookingAbilities {
 		return array(
 			'type'                 => 'object',
 			'properties'           => array(
-				'id'                 => array(
+				'id'                   => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'public_id'          => array(
+				'public_id'            => array(
 					'type'   => 'string',
 					'format' => 'uuid',
 				),
-				'venue_term_id'      => array(
+				'venue_term_id'        => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'artist_term_id'     => $nullable_id,
-				'artist_profile_id'  => $nullable_id,
-				'artist_name'        => array( 'type' => 'string' ),
-				'submitter_user_id'  => $nullable_id,
-				'contact_name'       => $nullable_string,
-				'contact_email'      => $nullable_string,
-				'contact_phone'      => $nullable_string,
-				'space_key'          => $nullable_string,
-				'status'             => array(
+				'artist_term_id'       => $nullable_id,
+				'artist_profile_id'    => $nullable_id,
+				'artist_name'          => array( 'type' => 'string' ),
+				'submitter_user_id'    => $nullable_id,
+				'contact_name'         => $nullable_string,
+				'contact_email'        => $nullable_string,
+				'contact_phone'        => $nullable_string,
+				'requested_space_key'  => $nullable_string,
+				'space_key'            => $nullable_string,
+				'status'               => array(
 					'type' => 'string',
 					'enum' => BookingLifecycle::STATUSES,
 				),
-				'version'            => array(
+				'version'              => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'assignee_user_id'   => $nullable_id,
-				'requested_start_at' => $this->nullable_datetime_schema(),
-				'requested_end_at'   => $this->nullable_datetime_schema(),
-				'intake'             => $this->payload_schema( false ),
-				'deal'               => $this->payload_schema( true ),
-				'event_id'           => $nullable_id,
-				'created_at'         => array( 'type' => 'string' ),
-				'updated_at'         => array( 'type' => 'string' ),
+				'assignee_user_id'     => $nullable_id,
+				'requested_start_at'   => $this->nullable_datetime_schema(),
+				'requested_end_at'     => $this->nullable_datetime_schema(),
+				'performance_start_at' => $this->nullable_datetime_schema(),
+				'performance_end_at'   => $this->nullable_datetime_schema(),
+				'intake'               => $this->payload_schema( false ),
+				'production'           => $this->payload_schema( true, $this->production_document_schema() ),
+				'deal'                 => $this->payload_schema( true, $this->deal_document_schema() ),
+				'confirmed_deal'       => $this->payload_schema( true, $this->deal_document_schema() ),
+				'event_id'             => $nullable_id,
+				'created_at'           => array( 'type' => 'string' ),
+				'updated_at'           => array( 'type' => 'string' ),
 			),
-			'required'             => array( 'id', 'public_id', 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'artist_name', 'submitter_user_id', 'contact_name', 'contact_email', 'contact_phone', 'space_key', 'status', 'version', 'assignee_user_id', 'requested_start_at', 'requested_end_at', 'intake', 'deal', 'event_id', 'created_at', 'updated_at' ),
+			'required'             => array( 'id', 'public_id', 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'artist_name', 'submitter_user_id', 'contact_name', 'contact_email', 'contact_phone', 'requested_space_key', 'space_key', 'status', 'version', 'assignee_user_id', 'requested_start_at', 'requested_end_at', 'performance_start_at', 'performance_end_at', 'intake', 'production', 'deal', 'confirmed_deal', 'event_id', 'created_at', 'updated_at' ),
 			'additionalProperties' => false,
 		);
 	}
@@ -534,7 +539,7 @@ class VenueBookingAbilities {
 	 *
 	 * @param bool $nullable Whether null is accepted.
 	 */
-	private function payload_schema( bool $nullable ): array {
+	private function payload_schema( bool $nullable, ?array $data_schema = null ): array {
 		$schema = array(
 			'type'                 => 'object',
 			'properties'           => array(
@@ -542,7 +547,7 @@ class VenueBookingAbilities {
 					'type' => 'integer',
 					'enum' => array( 1 ),
 				),
-				'data'    => array(
+				'data'    => $data_schema ? $data_schema : array(
 					'type'                 => 'object',
 					'additionalProperties' => true,
 				),
@@ -554,6 +559,94 @@ class VenueBookingAbilities {
 			$schema['type'] = array( 'object', 'null' );
 		}
 		return $schema;
+	}
+
+	/** Strict production data-document schema shared by mutations and output. */
+	public function production_document_schema(): array {
+		$list = array(
+			'type'     => 'array',
+			'maxItems' => 50,
+			'items'    => array(
+				'type'      => 'string',
+				'minLength' => 1,
+				'maxLength' => 500,
+			),
+		);
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'version'              => array(
+					'type' => 'integer',
+					'enum' => array( 1 ),
+				),
+				'support_requirements' => $list,
+				'support_offers'       => $list,
+				'production_notes'     => array(
+					'type'      => array( 'string', 'null' ),
+					'maxLength' => 10000,
+				),
+			),
+			'required'             => array( 'version', 'support_requirements', 'support_offers', 'production_notes' ),
+			'additionalProperties' => false,
+		);
+	}
+
+	/** Strict complete draft/confirmed deal data-document schema. */
+	public function deal_document_schema(): array {
+		$nullable_money = array(
+			'type'    => array( 'integer', 'null' ),
+			'minimum' => 0,
+		);
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'version'                    => array(
+					'type' => 'integer',
+					'enum' => array( 1 ),
+				),
+				'type'                       => array(
+					'type'      => 'string',
+					'minLength' => 1,
+					'maxLength' => 32,
+				),
+				'guarantee_cents'            => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+				'revenue_share_basis_points' => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+					'maximum' => 10000,
+				),
+				'revenue_share_basis'        => array(
+					'type' => 'string',
+					'enum' => array( 'gross_ticket_sales', 'net_ticket_sales', 'door_receipts' ),
+				),
+				'currency'                   => array(
+					'type'    => 'string',
+					'pattern' => '^[A-Z]{3}$',
+				),
+				'capacity'                   => array(
+					'type'    => array( 'integer', 'null' ),
+					'minimum' => 1,
+				),
+				'advance_ticket_price_cents' => $nullable_money,
+				'door_ticket_price_cents'    => $nullable_money,
+				'ticket_fee_cents'           => $nullable_money,
+				'tickets_on_sale_at'         => $this->nullable_datetime_schema(),
+				'ticket_url'                 => array(
+					'type'      => array( 'string', 'null' ),
+					'format'    => 'uri',
+					'maxLength' => 2048,
+				),
+				'additional_terms'           => array(
+					'type'      => array( 'string', 'null' ),
+					'maxLength' => 10000,
+				),
+			),
+			'required'             => array( 'version', 'type', 'guarantee_cents', 'revenue_share_basis_points', 'revenue_share_basis', 'currency', 'capacity', 'advance_ticket_price_cents', 'door_ticket_price_cents', 'ticket_fee_cents', 'tickets_on_sale_at', 'ticket_url', 'additional_terms' ),
+			'additionalProperties' => false,
+		);
 	}
 
 	/** Return the UTC database datetime schema. */

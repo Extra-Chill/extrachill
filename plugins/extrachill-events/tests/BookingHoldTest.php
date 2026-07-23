@@ -73,13 +73,27 @@ final class BookingHoldTest extends TestCase {
 		$booking = ( new BookingRepository() )->create(
 			array_merge(
 				array(
-					'venue_term_id'      => 55,
-					'artist_name'        => 'Test Band',
-					'intake'             => array(),
-					'deal'               => array( 'type' => 'guarantee' ),
-					'space_key'          => $space,
-					'requested_start_at' => $start,
-					'requested_end_at'   => $end,
+					'venue_term_id'        => 55,
+					'artist_name'          => 'Test Band',
+					'intake'               => array(),
+					'deal'                 => array(
+						'version'                    => 1,
+						'type'                       => 'guarantee',
+						'guarantee_cents'            => 100000,
+						'revenue_share_basis_points' => 0,
+						'revenue_share_basis'        => 'gross_ticket_sales',
+						'currency'                   => 'USD',
+						'capacity'                   => null,
+						'advance_ticket_price_cents' => null,
+						'door_ticket_price_cents'    => null,
+						'ticket_fee_cents'           => null,
+						'tickets_on_sale_at'         => null,
+						'ticket_url'                  => null,
+						'additional_terms'           => null,
+					),
+					'space_key'            => $space,
+					'performance_start_at' => $start,
+					'performance_end_at'   => $end,
 				),
 				$overrides
 			)
@@ -117,8 +131,8 @@ final class BookingHoldTest extends TestCase {
 		return array( $holds, $lifecycle );
 	}
 
-	public function test_schema_v5_installs_site_scoped_holds_contract(): void {
-		$this->assertSame( '5', BookingSchema::SCHEMA_VERSION );
+	public function test_schema_v6_installs_site_scoped_holds_contract(): void {
+		$this->assertSame( '6', BookingSchema::SCHEMA_VERSION );
 		$this->assertTrue( BookingSchema::install() );
 		$table = BookingSchema::holds_table();
 		$this->assertSame( 'wp_7_ec_booking_holds', $table );
@@ -181,7 +195,7 @@ final class BookingHoldTest extends TestCase {
 		$this->assertSame( 'changed plans', $released['release_reason'] );
 		$this->assertSame( 2, ( new BookingRepository() )->get( $booking['id'] )['version'], 'Release is hold-local and intentionally leaves the booking version unchanged.' );
 		$this->assertSame( 'hold_released', ( new BookingActivityRepository() )->list_for_booking( $booking['id'] )[0]['kind'] );
-		$empty = $this->booking( '2030-09-01 20:00:00', '2030-09-01 23:00:00' );
+		$empty      = $this->booking( '2030-09-01 20:00:00', '2030-09-01 23:00:00' );
 		$empty_hold = $holds->create( $empty['id'], 1, 12 );
 		$this->assertSame( 'booking_hold_release_reason_required', $holds->release( $empty_hold['hold']['id'], 1, 12, '<b></b>' )->get_error_code() );
 	}
@@ -242,8 +256,23 @@ final class BookingHoldTest extends TestCase {
 		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][ $id ]['expires_at'] = gmdate( 'Y-m-d H:i:s' );
 		$this->assertSame( 'expired', $holds->get( $id )['status'] );
 		$this->assertSame( $holds->get( $id )['expires_at'], $holds->get( $id )['expired_at'] );
-		$this->assertCount( 0, $holds->list( array( 'venue_term_id' => 55, 'status' => 'active' ), 12 ) );
-		$expired = $holds->list( array( 'venue_term_id' => 55, 'status' => 'expired' ), 12 );
+		$this->assertCount(
+			0,
+			$holds->list(
+				array(
+					'venue_term_id' => 55,
+					'status'        => 'active',
+				),
+				12
+			)
+		);
+		$expired = $holds->list(
+			array(
+				'venue_term_id' => 55,
+				'status'        => 'expired',
+			),
+			12
+		);
 		$this->assertSame( array( 'expired' ), array_column( $expired, 'status' ) );
 		$this->assertSame( 'expired', $holds->list( array( 'venue_term_id' => 55 ), 12 )[0]['status'] );
 		$this->assertSame( 'booking_hold_not_active', $holds->release( $id, 1, 12, 'too late' )->get_error_code() );
@@ -267,10 +296,10 @@ final class BookingHoldTest extends TestCase {
 
 		$replacement = $holds->create( $booking['id'], 4, 12 );
 		$lifecycle->transition( $booking['id'], 'held', 5, 12 );
-		$alternative              = $replacement['hold'];
-		$alternative['id']        = 3;
-		$alternative['space_key'] = 'patio';
-		$alternative['expires_at']= gmdate( 'Y-m-d H:i:s' );
+		$alternative               = $replacement['hold'];
+		$alternative['id']         = 3;
+		$alternative['space_key']  = 'patio';
+		$alternative['expires_at'] = gmdate( 'Y-m-d H:i:s' );
 		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][3] = $alternative;
 		$holds->expire( 3 );
 		$this->assertSame( 'held', ( new BookingRepository() )->get( $booking['id'] )['status'] );
@@ -326,7 +355,7 @@ final class BookingHoldTest extends TestCase {
 		$second_hold = $holds->create( $second['id'], 1, 12 );
 		$lifecycle->transition( $second['id'], 'held', 2, 12 );
 		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][ $second_hold['hold']['id'] ]['expires_at'] = gmdate( 'Y-m-d H:i:s' );
-		$list = $abilities->list_bookings( array( 'venue_term_id' => 55 ) );
+		$list  = $abilities->list_bookings( array( 'venue_term_id' => 55 ) );
 		$by_id = array_column( $list, null, 'id' );
 		$this->assertSame( 'negotiating', $by_id[ $second['id'] ]['status'] );
 		$this->assertSame( 4, $by_id[ $second['id'] ]['version'] );
@@ -346,45 +375,119 @@ final class BookingHoldTest extends TestCase {
 		$lifecycle->transition( $second['id'], 'held', 2, 12 );
 		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][ $second_hold['hold']['id'] ]['expires_at'] = gmdate( 'Y-m-d H:i:s' );
 
-		$page_one = $abilities->list_bookings( array( 'venue_term_id' => 55, 'status' => 'negotiating', 'limit' => 1, 'offset' => 0 ) );
-		$page_two = $abilities->list_bookings( array( 'venue_term_id' => 55, 'status' => 'negotiating', 'limit' => 1, 'offset' => 1 ) );
+		$page_one = $abilities->list_bookings(
+			array(
+				'venue_term_id' => 55,
+				'status'        => 'negotiating',
+				'limit'         => 1,
+				'offset'        => 0,
+			)
+		);
+		$page_two = $abilities->list_bookings(
+			array(
+				'venue_term_id' => 55,
+				'status'        => 'negotiating',
+				'limit'         => 1,
+				'offset'        => 1,
+			)
+		);
 		$this->assertSame( array( $second['id'] ), array_column( $page_one, 'id' ) );
 		$this->assertSame( array( $first['id'] ), array_column( $page_two, 'id' ) );
-		$this->assertSame( array(), $abilities->list_bookings( array( 'venue_term_id' => 55, 'status' => 'held' ) ) );
+		$this->assertSame(
+			array(),
+			$abilities->list_bookings(
+				array(
+					'venue_term_id' => 55,
+					'status'        => 'held',
+				)
+			)
+		);
 	}
 
 	public function test_more_than_five_hundred_valid_held_bookings_do_not_block_listing(): void {
 		list( $holds, $lifecycle ) = $this->seed_held_venue( 501, false );
-		$abilities = new VenueBookingAbilities( new BookingRepository(), $lifecycle, new BookingTestAuthorization(), $holds );
-		$result    = $abilities->list_bookings( array( 'venue_term_id' => 55, 'status' => 'held', 'limit' => 1 ) );
+		$abilities                 = new VenueBookingAbilities( new BookingRepository(), $lifecycle, new BookingTestAuthorization(), $holds );
+		$result                    = $abilities->list_bookings(
+			array(
+				'venue_term_id' => 55,
+				'status'        => 'held',
+				'limit'         => 1,
+			)
+		);
 		$this->assertCount( 1, $result );
 		$this->assertSame( 'held', $result[0]['status'] );
 	}
 
 	public function test_stale_held_batches_make_forward_progress_before_filters(): void {
 		list( $holds, $lifecycle ) = $this->seed_held_venue( 101, true );
-		$abilities = new VenueBookingAbilities( new BookingRepository(), $lifecycle, new BookingTestAuthorization(), $holds );
-		$first_page = $abilities->list_bookings( array( 'venue_term_id' => 55, 'status' => 'negotiating', 'limit' => 100, 'offset' => 0 ) );
-		$second_page = $abilities->list_bookings( array( 'venue_term_id' => 55, 'status' => 'negotiating', 'limit' => 100, 'offset' => 100 ) );
+		$abilities                 = new VenueBookingAbilities( new BookingRepository(), $lifecycle, new BookingTestAuthorization(), $holds );
+		$first_page                = $abilities->list_bookings(
+			array(
+				'venue_term_id' => 55,
+				'status'        => 'negotiating',
+				'limit'         => 100,
+				'offset'        => 0,
+			)
+		);
+		$second_page               = $abilities->list_bookings(
+			array(
+				'venue_term_id' => 55,
+				'status'        => 'negotiating',
+				'limit'         => 100,
+				'offset'        => 100,
+			)
+		);
 		$this->assertCount( 100, $first_page );
 		$this->assertCount( 1, $second_page );
-		$this->assertSame( array(), $abilities->list_bookings( array( 'venue_term_id' => 55, 'status' => 'held' ) ) );
-		$this->assertCount( 101, array_filter( $GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ], static function ( $booking ) { return 'negotiating' === $booking['status']; } ) );
+		$this->assertSame(
+			array(),
+			$abilities->list_bookings(
+				array(
+					'venue_term_id' => 55,
+					'status'        => 'held',
+				)
+			)
+		);
+		$this->assertCount(
+			101,
+			array_filter(
+				$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ],
+				static function ( $booking ) {
+					return 'negotiating' === $booking['status'];
+				}
+			)
+		);
 	}
 
 	public function test_exact_reconciliation_safety_cap_succeeds_when_no_stale_rows_remain(): void {
 		list( $holds ) = $this->seed_held_venue( 1000, true );
 		$this->assertTrue( $holds->reconcile_venue( 55 ) );
-		$this->assertCount( 1000, array_filter( $GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ], static function ( $booking ) { return 'negotiating' === $booking['status']; } ) );
+		$this->assertCount(
+			1000,
+			array_filter(
+				$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ],
+				static function ( $booking ) {
+					return 'negotiating' === $booking['status'];
+				}
+			)
+		);
 	}
 
 	public function test_over_reconciliation_safety_cap_is_retryable_only_when_stale_remains(): void {
 		list( $holds ) = $this->seed_held_venue( 1001, true );
-		$result = $holds->reconcile_venue( 55 );
+		$result        = $holds->reconcile_venue( 55 );
 		$this->assertSame( 'booking_hold_venue_reconciliation_limit', $result->get_error_code() );
 		$this->assertSame( 503, $result->get_error_data()['status'] );
 		$this->assertSame( 1000, $result->get_error_data()['processed'] );
-		$this->assertCount( 1, array_filter( $GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ], static function ( $booking ) { return 'held' === $booking['status']; } ) );
+		$this->assertCount(
+			1,
+			array_filter(
+				$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ],
+				static function ( $booking ) {
+					return 'held' === $booking['status'];
+				}
+			)
+		);
 	}
 
 	public function test_assign_and_bind_reconcile_before_expected_version_checks(): void {
@@ -408,10 +511,10 @@ final class BookingHoldTest extends TestCase {
 	}
 
 	public function test_elapsed_selected_release_reconciles_before_and_after_lock(): void {
-		$holds      = $this->holds();
-		$lifecycle  = new BookingLifecycle( null, null, null, null, $holds );
-		$pre        = $this->booking( '2031-06-01 20:00:00', '2031-06-01 23:00:00' );
-		$pre_hold   = $holds->create( $pre['id'], 1, 12 );
+		$holds     = $this->holds();
+		$lifecycle = new BookingLifecycle( null, null, null, null, $holds );
+		$pre       = $this->booking( '2031-06-01 20:00:00', '2031-06-01 23:00:00' );
+		$pre_hold  = $holds->create( $pre['id'], 1, 12 );
 		$lifecycle->transition( $pre['id'], 'held', 2, 12 );
 		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][ $pre_hold['hold']['id'] ]['expires_at'] = gmdate( 'Y-m-d H:i:s' );
 		$this->assertSame( 'booking_hold_not_active', $holds->release( $pre_hold['hold']['id'], 1, 12, 'elapsed' )->get_error_code() );
@@ -433,23 +536,23 @@ final class BookingHoldTest extends TestCase {
 	}
 
 	public function test_booking_get_and_list_reauthorize_under_membership_lock(): void {
-		$authorization = new BookingTestAuthorization();
-		$holds         = new BookingHoldRepository( null, null, $authorization );
-		$lifecycle     = new BookingLifecycle( null, null, $authorization, null, $holds );
-		$abilities     = new VenueBookingAbilities( new BookingRepository(), $lifecycle, $authorization, $holds );
-		$booking       = $this->booking( '2031-09-01 20:00:00', '2031-09-01 23:00:00' );
+		$authorization                          = new BookingTestAuthorization();
+		$holds                                  = new BookingHoldRepository( null, null, $authorization );
+		$lifecycle                              = new BookingLifecycle( null, null, $authorization, null, $holds );
+		$abilities                              = new VenueBookingAbilities( new BookingRepository(), $lifecycle, $authorization, $holds );
+		$booking                                = $this->booking( '2031-09-01 20:00:00', '2031-09-01 23:00:00' );
 		$GLOBALS['wpdb']->after_membership_lock = static function () use ( $authorization ) {
 			unset( $authorization->allowed['12:55'] );
 		};
-		$get = $abilities->get_booking( array( 'booking_id' => $booking['id'] ) );
+		$get                                    = $abilities->get_booking( array( 'booking_id' => $booking['id'] ) );
 		$this->assertSame( 'venue_action_forbidden', $get->get_error_code() );
 		$this->assertInstanceOf( WP_Error::class, $get );
 
-		$authorization->allowed['12:55'] = true;
+		$authorization->allowed['12:55']        = true;
 		$GLOBALS['wpdb']->after_membership_lock = static function () use ( $authorization ) {
 			unset( $authorization->allowed['12:55'] );
 		};
-		$list = $abilities->list_bookings( array( 'venue_term_id' => 55 ) );
+		$list                                   = $abilities->list_bookings( array( 'venue_term_id' => 55 ) );
 		$this->assertSame( 'venue_action_forbidden', $list->get_error_code() );
 		$this->assertInstanceOf( WP_Error::class, $list );
 	}
@@ -507,22 +610,22 @@ final class BookingHoldTest extends TestCase {
 	}
 
 	public function test_uncertain_commit_is_not_followed_by_a_false_rollback_claim(): void {
-		$holds                                      = $this->holds();
-		$booking                                    = $this->booking();
-		$GLOBALS['wpdb']->fail_transaction_commit   = true;
-		$rollbacks                                  = $GLOBALS['wpdb']->rollback_queries;
-		$result                                     = $holds->create( $booking['id'], 1, 12 );
+		$holds                                    = $this->holds();
+		$booking                                  = $this->booking();
+		$GLOBALS['wpdb']->fail_transaction_commit = true;
+		$rollbacks                                = $GLOBALS['wpdb']->rollback_queries;
+		$result                                   = $holds->create( $booking['id'], 1, 12 );
 		$this->assertSame( 'booking_hold_transaction_commit_uncertain', $result->get_error_code() );
 		$this->assertSame( $rollbacks, $GLOBALS['wpdb']->rollback_queries );
 		$this->assertSame( 'release', end( $GLOBALS['wpdb']->lock_names )[0] );
 	}
 
 	public function test_scheduler_failure_after_commit_does_not_fail_or_rollback_create(): void {
-		$holds                                      = $this->holds();
-		$booking                                    = $this->booking();
+		$holds                                        = $this->holds();
+		$booking                                      = $this->booking();
 		$GLOBALS['ec_artist_test']['throw_scheduler'] = true;
-		$rollbacks                                  = $GLOBALS['wpdb']->rollback_queries;
-		$result                                     = $holds->create( $booking['id'], 1, 12 );
+		$rollbacks                                    = $GLOBALS['wpdb']->rollback_queries;
+		$result                                       = $holds->create( $booking['id'], 1, 12 );
 		$this->assertSame( 'active', $result['hold']['status'] );
 		$this->assertSame( 2, $result['booking_version'] );
 		$this->assertSame( $rollbacks, $GLOBALS['wpdb']->rollback_queries );
@@ -530,19 +633,19 @@ final class BookingHoldTest extends TestCase {
 	}
 
 	public function test_scheduler_zero_return_is_diagnostic_but_create_remains_committed(): void {
-		$holds                                      = $this->holds();
-		$booking                                    = $this->booking();
+		$holds                                       = $this->holds();
+		$booking                                     = $this->booking();
 		$GLOBALS['ec_artist_test']['scheduler_zero'] = true;
-		$result                                     = $holds->create( $booking['id'], 1, 12 );
+		$result                                      = $holds->create( $booking['id'], 1, 12 );
 		$this->assertSame( 'active', $result['hold']['status'] );
 		$this->assertSame( 2, ( new BookingRepository() )->get( $booking['id'] )['version'] );
 		$this->assertCount( 1, $GLOBALS['ec_artist_test']['fired_actions']['extrachill_events_booking_hold_schedule_failed'] );
 	}
 
 	public function test_failed_scheduled_expiry_retries_and_throws_visible_failure(): void {
-		$holds   = $this->holds();
-		$booking = $this->booking();
-		$created = $holds->create( $booking['id'], 1, 12 );
+		$holds                                  = $this->holds();
+		$booking                                = $this->booking();
+		$created                                = $holds->create( $booking['id'], 1, 12 );
 		$GLOBALS['ec_artist_test']['scheduled'] = array();
 		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][ $created['hold']['id'] ]['expires_at'] = gmdate( 'Y-m-d H:i:s' );
 		$GLOBALS['wpdb']->get_lock_result = 0;
@@ -557,12 +660,12 @@ final class BookingHoldTest extends TestCase {
 	}
 
 	public function test_failed_expiry_retry_zero_return_fires_diagnostic_and_throws(): void {
-		$holds   = $this->holds();
-		$booking = $this->booking( '2031-08-01 20:00:00', '2031-08-01 23:00:00' );
-		$created = $holds->create( $booking['id'], 1, 12 );
+		$holds                                  = $this->holds();
+		$booking                                = $this->booking( '2031-08-01 20:00:00', '2031-08-01 23:00:00' );
+		$created                                = $holds->create( $booking['id'], 1, 12 );
 		$GLOBALS['ec_artist_test']['scheduled'] = array();
 		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][ $created['hold']['id'] ]['expires_at'] = gmdate( 'Y-m-d H:i:s' );
-		$GLOBALS['wpdb']->get_lock_result = 0;
+		$GLOBALS['wpdb']->get_lock_result            = 0;
 		$GLOBALS['ec_artist_test']['scheduler_zero'] = true;
 		try {
 			BookingHoldRepository::expire_scheduled( $created['hold']['id'], 0 );
@@ -627,15 +730,15 @@ final class BookingHoldTest extends TestCase {
 	}
 
 	public function test_list_reauthorizes_after_lock_and_rolls_back_on_revocation(): void {
-		$authorization                          = new BookingTestAuthorization();
-		$holds                                  = new BookingHoldRepository( null, null, $authorization );
-		$booking                                = $this->booking();
+		$authorization = new BookingTestAuthorization();
+		$holds         = new BookingHoldRepository( null, null, $authorization );
+		$booking       = $this->booking();
 		$holds->create( $booking['id'], 1, 12 );
 		$GLOBALS['wpdb']->after_membership_lock = static function () use ( $authorization ) {
 			unset( $authorization->allowed['12:55'] );
 		};
-		$before = $GLOBALS['wpdb']->rollback_queries;
-		$result = $holds->list( array( 'venue_term_id' => 55 ), 12 );
+		$before                                 = $GLOBALS['wpdb']->rollback_queries;
+		$result                                 = $holds->list( array( 'venue_term_id' => 55 ), 12 );
 		$this->assertSame( 'venue_action_forbidden', $result->get_error_code() );
 		$this->assertSame( $before + 1, $GLOBALS['wpdb']->rollback_queries );
 	}
@@ -660,14 +763,14 @@ final class BookingHoldTest extends TestCase {
 		$this->assertSame( 'active', $holds->create( $overlap['id'], 1, 12 )['hold']['status'] );
 		$GLOBALS['wpdb']->event_dates = array(
 			array(
-				'post_id'       => 902,
-				'venue_term_id' => 55,
-				'post_status'   => 'publish',
-				'start_datetime'=> '2030-11-03 01:05:00',
-				'end_datetime'  => null,
+				'post_id'        => 902,
+				'venue_term_id'  => 55,
+				'post_status'    => 'publish',
+				'start_datetime' => '2030-11-03 01:05:00',
+				'end_datetime'   => null,
 			),
 		);
-		$dst = $this->booking( '2030-11-03 06:00:00', '2030-11-03 07:00:00' );
+		$dst                          = $this->booking( '2030-11-03 06:00:00', '2030-11-03 07:00:00' );
 		$this->assertSame( 'canonical_event', $holds->create( $dst['id'], 1, 12 )->get_error_data()['conflict']['conflict_type'], '06:00 UTC converts to the repeated 01:00 hour after the DST fallback.' );
 		$crossing_fold = $this->booking( '2030-11-03 05:45:00', '2030-11-03 06:15:00' );
 		$this->assertSame( 'canonical_event', $holds->create( $crossing_fold['id'], 1, 12 )->get_error_data()['conflict']['conflict_type'], 'The local window must include the early segment of the repeated fold.' );
@@ -683,14 +786,14 @@ final class BookingHoldTest extends TestCase {
 		$booking   = $this->booking();
 		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $booking['id'] ]['status'] = 'negotiating';
 		$this->assertSame( 'booking_matching_hold_required', $lifecycle->transition( $booking['id'], 'held', 1, 12 )->get_error_code() );
-		$created = $holds->create( $booking['id'], 1, 12 );
-		$alternative                 = $created['hold'];
-		$alternative['id']           = 2;
-		$alternative['space_key']    = 'patio';
-		$alternative['version']      = 1;
-		$alternative['expires_at']   = gmdate( 'Y-m-d H:i:s' );
+		$created                   = $holds->create( $booking['id'], 1, 12 );
+		$alternative               = $created['hold'];
+		$alternative['id']         = 2;
+		$alternative['space_key']  = 'patio';
+		$alternative['version']    = 1;
+		$alternative['expires_at'] = gmdate( 'Y-m-d H:i:s' );
 		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][2] = $alternative;
-		$held    = $lifecycle->transition( $booking['id'], 'held', 2, 12 );
+		$held = $lifecycle->transition( $booking['id'], 'held', 2, 12 );
 		$this->assertSame( 'held', $held['status'] );
 		$confirmed = $lifecycle->transition( $booking['id'], 'confirmed', 3, 12 );
 		$this->assertSame( 'confirmed', $confirmed['status'] );
@@ -751,10 +854,27 @@ final class BookingHoldTest extends TestCase {
 		$holds->create( $first['id'], 1, 12 );
 		$second = $this->booking( '2030-09-01 20:00:00', '2030-09-01 23:00:00' );
 		$holds->create( $second['id'], 1, 12 );
-		$list = $holds->list( array( 'venue_term_id' => 55, 'range_start' => '2030-08-01 23:00:00', 'range_end' => '2030-09-02 00:00:00', 'limit' => 1 ), 12 );
+		$list = $holds->list(
+			array(
+				'venue_term_id' => 55,
+				'range_start'   => '2030-08-01 23:00:00',
+				'range_end'     => '2030-09-02 00:00:00',
+				'limit'         => 1,
+			),
+			12
+		);
 		$this->assertCount( 1, $list );
 		$this->assertSame( $second['id'], $list[0]['booking_id'] );
-		$this->assertSame( 'invalid_booking_hold_status', $holds->list( array( 'venue_term_id' => 55, 'status' => 'deleted' ), 12 )->get_error_code() );
+		$this->assertSame(
+			'invalid_booking_hold_status',
+			$holds->list(
+				array(
+					'venue_term_id' => 55,
+					'status'        => 'deleted',
+				),
+				12
+			)->get_error_code()
+		);
 	}
 
 	public function test_abilities_are_strict_rest_visible_and_do_not_enumerate_missing_records(): void {

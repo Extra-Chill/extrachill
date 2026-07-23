@@ -83,6 +83,7 @@ class BookingLifecycle {
 	 * @param int|null $actor_id Authenticated submitter, when present.
 	 */
 	public function create_inquiry( array $data, ?int $actor_id = null ) {
+		unset( $data['space_key'], $data['performance_start_at'], $data['performance_end_at'], $data['production'], $data['deal'], $data['confirmed_deal'] );
 		$key = mb_substr( sanitize_text_field( (string) ( $data['idempotency_key'] ?? '' ) ), 0, 191 );
 		if ( '' === $key ) {
 			return new \WP_Error( 'booking_idempotency_key_required', __( 'Inquiry creation requires an idempotency key.', 'extrachill-events' ), array( 'status' => 400 ) );
@@ -337,15 +338,19 @@ class BookingLifecycle {
 				)
 			);
 		}
-		if ( 'held' === $to_status && ( empty( $booking['requested_start_at'] ) || empty( $booking['requested_end_at'] ) || empty( $booking['space_key'] ) ) ) {
+		if ( 'held' === $to_status && ( empty( $booking['performance_start_at'] ) || empty( $booking['performance_end_at'] ) || empty( $booking['space_key'] ) ) ) {
 			return new \WP_Error( 'booking_hold_selection_required', __( 'A hold requires a selected date range and space.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		if ( 'confirmed' === $to_status ) {
-			if ( empty( $booking['requested_start_at'] ) || empty( $booking['requested_end_at'] ) || empty( $booking['space_key'] ) ) {
+			if ( empty( $booking['performance_start_at'] ) || empty( $booking['performance_end_at'] ) || empty( $booking['space_key'] ) ) {
 				return new \WP_Error( 'booking_confirmation_selection_required', __( 'Confirmation requires a selected date range and space.', 'extrachill-events' ), array( 'status' => 409 ) );
 			}
 			if ( empty( $booking['deal']['data'] ) ) {
 				return new \WP_Error( 'booking_confirmation_deal_required', __( 'Confirmation requires deal terms.', 'extrachill-events' ), array( 'status' => 409 ) );
+			}
+			$normalized_deal = BookingMutationService::normalize_deal_document( $booking['deal']['data'] );
+			if ( is_wp_error( $normalized_deal ) || ! BookingMutationService::documents_equal( $normalized_deal, $booking['deal']['data'] ) ) {
+				return new \WP_Error( 'booking_confirmation_deal_invalid', __( 'Confirmation requires a normalized complete draft deal.', 'extrachill-events' ), array( 'status' => 409 ) );
 			}
 			return true;
 		}

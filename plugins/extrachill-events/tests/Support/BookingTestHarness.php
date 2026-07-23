@@ -8,11 +8,13 @@
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingHoldRepository;
+use ExtraChillEvents\Core\BookingMutationService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Abilities\VenueBookingAbilities;
 use ExtraChillEvents\Abilities\VenueBookingHoldAbilities;
+use ExtraChillEvents\Abilities\VenueBookingMutationAbilities;
 use ExtraChillEvents\Core\VenueAuthorization;
 
 if ( ! defined( 'ARRAY_A' ) ) {
@@ -56,6 +58,10 @@ if ( ! function_exists( 'sanitize_email' ) ) {
 	function sanitize_email( $value ) {
 		$sanitized = filter_var( trim( (string) $value ), FILTER_VALIDATE_EMAIL );
 		return false === $sanitized ? '' : $sanitized; }
+}
+if ( ! function_exists( 'sanitize_textarea_field' ) ) {
+	function sanitize_textarea_field( $value ) {
+		return trim( strip_tags( (string) $value ) ); }
 }
 if ( ! function_exists( 'wp_generate_uuid4' ) ) {
 	function wp_generate_uuid4() {
@@ -199,47 +205,47 @@ if ( ! function_exists( 'do_action' ) ) {
 
 /** Stateful wpdb fake that enforces the persistence contracts under test. */
 final class BookingWpdb {
-	public $prefix                           = 'wp_7_';
-	public $terms                            = 'wp_7_terms';
-	public $posts                            = 'wp_7_posts';
-	public $term_relationships               = 'wp_7_term_relationships';
-	public $term_taxonomy                    = 'wp_7_term_taxonomy';
-	public $insert_id                        = 0;
-	public $last_error                       = '';
-	public $rows                             = array();
-	public $schemas                          = array();
-	public $engines                          = array();
-	public $schema_omit                      = array();
-	public $schema_queries                   = 0;
-	public $dropped_indexes                  = array();
-	public $fail_reads                       = false;
-	public $fail_activity_reads              = false;
-	public $fail_inserts                     = false;
-	public $fail_updates                     = false;
-	public $fail_engine_repair               = false;
-	public $race_activity_insert             = false;
-	public $race_booking_insert              = false;
-	public $race_booking_hash                = null;
-	public $race_activity_read_fail          = false;
-	public $race_event_read_fail             = false;
-	public $concurrent_role_migration        = false;
-	public $reads_before_failure             = null;
-	public $last_query                       = '';
-	public $fail_activity_inserts            = false;
-	public $fail_transaction_start           = false;
-	public $fail_transaction_commit          = false;
-	public $fail_transaction_rollback        = false;
-	public $rollback_queries                 = 0;
-	public $after_membership_lock            = null;
-	public $after_venue_lock                 = null;
-	public $fail_venue_lock                  = false;
-	public $venue_lock_queries               = 0;
-	public $transaction_active               = false;
-	public $natural_key_reads_in_transaction = 0;
-	public $get_lock_result                  = 1;
-	public $release_lock_result              = 1;
-	public $lock_names                       = array();
-	public $event_dates                      = array();
+	public $prefix                            = 'wp_7_';
+	public $terms                             = 'wp_7_terms';
+	public $posts                             = 'wp_7_posts';
+	public $term_relationships                = 'wp_7_term_relationships';
+	public $term_taxonomy                     = 'wp_7_term_taxonomy';
+	public $insert_id                         = 0;
+	public $last_error                        = '';
+	public $rows                              = array();
+	public $schemas                           = array();
+	public $engines                           = array();
+	public $schema_omit                       = array();
+	public $schema_queries                    = 0;
+	public $dropped_indexes                   = array();
+	public $fail_reads                        = false;
+	public $fail_activity_reads               = false;
+	public $fail_inserts                      = false;
+	public $fail_updates                      = false;
+	public $fail_engine_repair                = false;
+	public $race_activity_insert              = false;
+	public $race_booking_insert               = false;
+	public $race_booking_hash                 = null;
+	public $race_activity_read_fail           = false;
+	public $race_event_read_fail              = false;
+	public $concurrent_role_migration         = false;
+	public $reads_before_failure              = null;
+	public $last_query                        = '';
+	public $fail_activity_inserts             = false;
+	public $fail_transaction_start            = false;
+	public $fail_transaction_commit           = false;
+	public $fail_transaction_rollback         = false;
+	public $rollback_queries                  = 0;
+	public $after_membership_lock             = null;
+	public $after_venue_lock                  = null;
+	public $fail_venue_lock                   = false;
+	public $venue_lock_queries                = 0;
+	public $transaction_active                = false;
+	public $natural_key_reads_in_transaction  = 0;
+	public $get_lock_result                   = 1;
+	public $release_lock_result               = 1;
+	public $lock_names                        = array();
+	public $event_dates                       = array();
 	public $elapse_hold_after_membership_lock = null;
 	public $elapse_hold_before_release_update = null;
 	public $elapse_hold_before_conversion_update = null;
@@ -397,7 +403,7 @@ final class BookingWpdb {
 					continue;
 				}
 				foreach ( $this->rows[ $this->prefix . 'ec_booking_holds' ] ?? array() as $hold ) {
-					if ( (int) $hold['booking_id'] === (int) $booking['id'] && (int) $hold['venue_term_id'] === (int) $booking['venue_term_id'] && $hold['space_key'] === $booking['space_key'] && $hold['start_at'] === $booking['requested_start_at'] && $hold['end_at'] === $booking['requested_end_at'] && 'active' === $hold['status'] && $hold['expires_at'] <= $database_now ) {
+					if ( (int) $hold['booking_id'] === (int) $booking['id'] && (int) $hold['venue_term_id'] === (int) $booking['venue_term_id'] && $hold['space_key'] === $booking['space_key'] && $hold['start_at'] === $booking['performance_start_at'] && $hold['end_at'] === $booking['performance_end_at'] && 'active' === $hold['status'] && $hold['expires_at'] <= $database_now ) {
 						return $booking['id'];
 					}
 				}
@@ -516,9 +522,9 @@ final class BookingWpdb {
 			return null;
 		}
 		if ( ! $is_hold && false !== strpos( $query, "'confirmed_booking' AS conflict_type" ) ) {
-			preg_match( "/venue_term_id = (\d+) AND space_key = '([^']+)'.*requested_start_at < '([^']+)' AND requested_end_at > '([^']+)' AND id <> (\d+)/", $query, $match );
+			preg_match( "/venue_term_id = (\d+) AND space_key = '([^']+)'.*performance_start_at < '([^']+)' AND performance_end_at > '([^']+)' AND id <> (\d+)/", $query, $match );
 			foreach ( $this->rows[ $table ] ?? array() as $row ) {
-				if ( (int) $row['venue_term_id'] === (int) $match[1] && $row['space_key'] === stripslashes( $match[2] ) && 'confirmed' === $row['status'] && $row['requested_start_at'] < $match[3] && $row['requested_end_at'] > $match[4] && (int) $row['id'] !== (int) $match[5] ) {
+				if ( (int) $row['venue_term_id'] === (int) $match[1] && $row['space_key'] === stripslashes( $match[2] ) && 'confirmed' === $row['status'] && $row['performance_start_at'] < $match[3] && $row['performance_end_at'] > $match[4] && (int) $row['id'] !== (int) $match[5] ) {
 					return array(
 						'id'            => $row['id'],
 						'conflict_type' => 'confirmed_booking',
@@ -581,13 +587,18 @@ final class BookingWpdb {
 					continue;
 				}
 				foreach ( $this->rows[ $this->prefix . 'ec_booking_holds' ] ?? array() as $hold ) {
-					if ( (int) $hold['booking_id'] === (int) $booking['id'] && (int) $hold['venue_term_id'] === (int) $booking['venue_term_id'] && $hold['space_key'] === $booking['space_key'] && $hold['start_at'] === $booking['requested_start_at'] && $hold['end_at'] === $booking['requested_end_at'] && 'active' === $hold['status'] && $hold['expires_at'] <= $this->current_database_time() ) {
+					if ( (int) $hold['booking_id'] === (int) $booking['id'] && (int) $hold['venue_term_id'] === (int) $booking['venue_term_id'] && $hold['space_key'] === $booking['space_key'] && $hold['start_at'] === $booking['performance_start_at'] && $hold['end_at'] === $booking['performance_end_at'] && 'active' === $hold['status'] && $hold['expires_at'] <= $this->current_database_time() ) {
 						$rows[] = $booking;
 						break;
 					}
 				}
 			}
-			usort( $rows, static function ( $left, $right ) { return $left['id'] <=> $right['id']; } );
+			usort(
+				$rows,
+				static function ( $left, $right ) {
+					return $left['id'] <=> $right['id'];
+				}
+			);
 			return array_slice( $rows, 0, 100 );
 		}
 		if ( preg_match( '/SHOW COLUMNS FROM `([^`]+)`/', $query, $match ) ) {
@@ -664,7 +675,14 @@ final class BookingWpdb {
 		} elseif ( $is_hold && false !== strpos( $query, "(status = 'expired' OR (status = 'active'" ) && preg_match( "/expires_at <= '([^']+)'/", $query, $filter ) ) {
 			$rows = array_values( array_filter( $rows, static function ( $row ) use ( $filter ) { return 'expired' === $row['status'] || ( 'active' === $row['status'] && $row['expires_at'] <= $filter[1] ); } ) );
 		} elseif ( $is_hold && false !== strpos( $query, "status = 'active' AND expires_at >" ) && preg_match( "/expires_at > '([^']+)'/", $query, $filter ) ) {
-			$rows = array_values( array_filter( $rows, static function ( $row ) use ( $filter ) { return 'active' === $row['status'] && $row['expires_at'] > $filter[1]; } ) );
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) use ( $filter ) {
+						return 'active' === $row['status'] && $row['expires_at'] > $filter[1];
+					}
+				)
+			);
 		} elseif ( preg_match( "/status = '([^']+)'/", $query, $filter ) ) {
 			$rows = array_values(
 				array_filter(
@@ -817,7 +835,7 @@ final class BookingWpdb {
 			$id       = (int) $release_hold[2];
 			$expected = (int) $release_hold[3];
 			if ( (int) $this->elapse_hold_before_release_update === $id ) {
-				$past = gmdate( 'Y-m-d H:i:s' );
+				$past                                      = gmdate( 'Y-m-d H:i:s' );
 				$this->rows[ $table ][ $id ]['expires_at'] = $past;
 				if ( is_array( $this->transaction_snapshot ) ) {
 					$this->transaction_snapshot[ $table ][ $id ]['expires_at'] = $past;
@@ -880,7 +898,7 @@ final class BookingWpdb {
 		if ( false !== strpos( $query, 'event_id IS NULL' ) && null !== $this->rows[ $table ][ $id ]['event_id'] ) {
 			return 0; }
 		$set = substr( $query, strpos( $query, ' SET ' ) + 5, strpos( $query, ' WHERE ' ) - strpos( $query, ' SET ' ) - 5 );
-		preg_match_all( "/([a-z_]+) = (version \\+ 1|NULL|\\d+|'(?:\\\\.|[^'])*')(?=, [a-z_]+ = |$)/", $set, $assignments, PREG_SET_ORDER );
+		preg_match_all( "/([a-z_]+) = (version \\+ 1|NULL|\\d+|[a-z_]+|'(?:\\\\.|[^'])*')(?=, [a-z_]+ = |$)/", $set, $assignments, PREG_SET_ORDER );
 		foreach ( $assignments as $assignment ) {
 			$column = $assignment[1];
 			$value  = $assignment[2];
@@ -890,6 +908,8 @@ final class BookingWpdb {
 				$this->rows[ $table ][ $id ][ $column ] = null;
 			} elseif ( "'" === substr( $value, 0, 1 ) ) {
 				$this->rows[ $table ][ $id ][ $column ] = stripslashes( substr( $value, 1, -1 ) );
+			} elseif ( preg_match( '/^[a-z_]+$/', $value ) ) {
+				$this->rows[ $table ][ $id ][ $column ] = $this->rows[ $table ][ $id ][ $value ] ?? null;
 			} else {
 				$this->rows[ $table ][ $id ][ $column ] = (int) $value;
 			}
@@ -904,10 +924,12 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingActivityRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingHoldRepository.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingMutationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingLifecycle.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingHoldAbilities.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingMutationAbilities.php';
 
 final class BookingTestAuthorization extends VenueAuthorization {
 	public $calls   = array();

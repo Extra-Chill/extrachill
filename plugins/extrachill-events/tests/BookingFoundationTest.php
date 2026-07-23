@@ -324,7 +324,7 @@ final class BookingFoundationTest extends TestCase {
 
 		$booking = $this->create_booking();
 		$result  = ( new BookingRepository() )->update( $booking['id'], array( 'deal' => $recursive ), 1 );
-		$this->assertSame( 'booking_payload_encode_failed', $result->get_error_code() );
+		$this->assertSame( 'empty_booking_update', $result->get_error_code(), 'Generic repository updates cannot bypass deal policy.' );
 		$this->assertSame( 1, ( new BookingRepository() )->get( $booking['id'] )['version'] );
 		$result = ( new BookingActivityRepository() )->append(
 			array(
@@ -457,7 +457,7 @@ final class BookingFoundationTest extends TestCase {
 	public function test_event_claim_distinguishes_stale_version_and_missing_booking(): void {
 		$repository = new BookingRepository();
 		$booking    = $this->create_booking();
-		$updated    = $repository->update( $booking['id'], array( 'contact_name' => 'Updated' ), 1 );
+		$updated    = $repository->update( $booking['id'], array( 'artist_name' => 'Updated' ), 1 );
 		$this->assertSame( 2, $updated['version'] );
 		$this->assertSame( 'booking_version_conflict', $repository->claim_event( $booking['id'], 900, 1 )->get_error_code() );
 		$GLOBALS['wpdb']->race_event_read_fail = true;
@@ -632,13 +632,10 @@ final class BookingFoundationTest extends TestCase {
 			1
 		);
 		$this->assertSame( 255, strlen( $updated['artist_name'] ) );
-		$this->assertSame( 64, strlen( $updated['space_key'] ) );
+		$this->assertNull( $updated['space_key'], 'Generic updates cannot bypass scheduling policy.' );
 		$this->assertSame( 'submitted', $updated['status'] );
 		$this->assertSame(
-			array(
-				'one' => 1,
-				'two' => 2,
-			),
+			array( 'draw' => 100 ),
 			$updated['intake']['data']
 		);
 	}
@@ -697,8 +694,8 @@ final class BookingFoundationTest extends TestCase {
 		$repository = new BookingRepository();
 		$this->assertSame( 'booking_not_found', $repository->update( 999, array( 'contact_name' => 'Reviewing' ), 1 )->get_error_code() );
 		$booking = $this->create_booking();
-		$repository->update( $booking['id'], array( 'contact_name' => 'Reviewing' ), 1 );
-		$this->assertSame( 'booking_version_conflict', $repository->update( $booking['id'], array( 'contact_name' => 'Accepted' ), 1 )->get_error_code() );
+		$repository->update( $booking['id'], array( 'artist_name' => 'Reviewing' ), 1 );
+		$this->assertSame( 'booking_version_conflict', $repository->update( $booking['id'], array( 'artist_name' => 'Accepted' ), 1 )->get_error_code() );
 		$GLOBALS['wpdb']->fail_reads = true;
 		$this->assertSame( 'booking_read_failed', $repository->get( $booking['id'] )->get_error_code() );
 		$this->assertSame( 'booking_list_failed', $repository->list( array( 'venue_term_id' => 55 ) )->get_error_code() );
@@ -727,13 +724,27 @@ final class BookingFoundationTest extends TestCase {
 			foreach ( BookingLifecycle::STATUSES as $to ) {
 				$result = $lifecycle->validate_transition(
 					array(
-						'status'             => $from,
-						'requested_start_at' => '2026-08-01 20:00:00',
-						'requested_end_at'   => '2026-08-01 23:00:00',
-						'space_key'          => 'main-room',
-						'deal'               => array(
+						'status'               => $from,
+						'performance_start_at' => '2026-08-01 20:00:00',
+						'performance_end_at'   => '2026-08-01 23:00:00',
+						'space_key'            => 'main-room',
+						'deal'                 => array(
 							'version' => 1,
-							'data'    => array( 'type' => 'guarantee' ),
+							'data'    => array(
+								'version'                 => 1,
+								'type'                    => 'guarantee',
+								'guarantee_cents'         => 0,
+								'revenue_share_basis_points' => 0,
+								'revenue_share_basis'     => 'gross_ticket_sales',
+								'currency'                => 'USD',
+								'capacity'                => null,
+								'advance_ticket_price_cents' => null,
+								'door_ticket_price_cents' => null,
+								'ticket_fee_cents'        => null,
+								'tickets_on_sale_at'      => null,
+								'ticket_url'               => null,
+								'additional_terms'        => null,
+							),
 						),
 					),
 					$to
@@ -750,21 +761,35 @@ final class BookingFoundationTest extends TestCase {
 	public function test_missing_hold_and_conflict_substrates_fail_closed(): void {
 		$lifecycle = new BookingLifecycle();
 		$booking   = array(
-			'status'             => 'negotiating',
-			'requested_start_at' => null,
-			'requested_end_at'   => null,
-			'space_key'          => null,
-			'deal'               => null,
+			'status'               => 'negotiating',
+			'performance_start_at' => null,
+			'performance_end_at'   => null,
+			'space_key'            => null,
+			'deal'                 => null,
 		);
 		$this->assertSame( 'booking_hold_selection_required', $lifecycle->validate_transition( $booking, 'held' )->get_error_code() );
 		$this->assertSame( 'booking_confirmation_selection_required', $lifecycle->validate_transition( $booking, 'confirmed' )->get_error_code() );
-		$booking['requested_start_at'] = '2026-08-01 20:00:00';
-		$booking['requested_end_at']   = '2026-08-01 23:00:00';
-		$booking['space_key']          = 'main-room';
+		$booking['performance_start_at'] = '2026-08-01 20:00:00';
+		$booking['performance_end_at']   = '2026-08-01 23:00:00';
+		$booking['space_key']            = 'main-room';
 		$this->assertSame( 'booking_confirmation_deal_required', $lifecycle->validate_transition( $booking, 'confirmed' )->get_error_code() );
 		$booking['deal'] = array(
 			'version' => 1,
-			'data'    => array( 'type' => 'guarantee' ),
+			'data'    => array(
+				'version'                    => 1,
+				'type'                       => 'guarantee',
+				'guarantee_cents'            => 0,
+				'revenue_share_basis_points' => 0,
+				'revenue_share_basis'        => 'gross_ticket_sales',
+				'currency'                   => 'USD',
+				'capacity'                   => null,
+				'advance_ticket_price_cents' => null,
+				'door_ticket_price_cents'    => null,
+				'ticket_fee_cents'           => null,
+				'tickets_on_sale_at'         => null,
+				'ticket_url'                  => null,
+				'additional_terms'           => null,
+			),
 		);
 		$this->assertTrue( $lifecycle->validate_transition( $booking, 'confirmed' ) );
 	}
