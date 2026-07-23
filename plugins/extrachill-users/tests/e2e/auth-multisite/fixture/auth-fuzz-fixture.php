@@ -18,6 +18,39 @@ add_filter(
 );
 
 add_action(
+	'set_logged_in_cookie',
+	static function ( $cookie, $expire, $expiration, $user_id ) {
+		update_site_option(
+			'extrachill_auth_fuzz_emitted_cookie',
+			array(
+				'user_id' => (int) $user_id,
+				'hash'    => hash( 'sha256', (string) $cookie ),
+				'valid'   => (int) wp_validate_auth_cookie( (string) $cookie, 'logged_in' ),
+			)
+		);
+	},
+	PHP_INT_MAX,
+	4
+);
+
+add_action(
+	'template_redirect',
+	static function () {
+		if ( ! isset( $_GET['auth_fuzz_observe'] ) ) {
+			return;
+		}
+		$key = sanitize_key( wp_unslash( $_GET['auth_fuzz_observe'] ) );
+		$observations = get_site_option( 'extrachill_auth_fuzz_browser_observations', array() );
+		$cookie = isset( $_COOKIE[ LOGGED_IN_COOKIE ] ) ? (string) $_COOKIE[ LOGGED_IN_COOKIE ] : '';
+		$observations[ $key ] = array(
+			'user_id'     => get_current_user_id(),
+			'cookie_hash' => '' !== $cookie ? hash( 'sha256', $cookie ) : '',
+		);
+		update_site_option( 'extrachill_auth_fuzz_browser_observations', $observations );
+	}
+);
+
+add_action(
 	'plugins_loaded',
 	static function () {
 		remove_action( 'extrachill_new_user_registered', 'extrachill_notify_admin_new_user', 10 );

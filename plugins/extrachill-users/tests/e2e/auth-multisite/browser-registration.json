@@ -13,11 +13,11 @@
     {"kind": "expect", "selector": "#extrachill-onboarding-form", "state": "visible"},
     {"kind": "fill", "selector": "#onboarding-username", "value": "traveler_auth_fuzz"},
     {"kind": "click", "selector": "#onboarding-submit"},
-    {"kind": "waitFor", "selector": "body.home.logged-in", "timeout": "30s"},
-    {"kind": "navigate", "url": "/artist/?pagename=login", "waitFor": "load"},
-    {"kind": "expect", "selector": ".logged-in-status", "state": "visible"},
-    {"kind": "navigate", "url": "/events/?pagename=login", "waitFor": "load"},
-    {"kind": "expect", "selector": ".logged-in-status", "state": "visible"}
+    {"kind": "waitFor", "selector": "body.home", "timeout": "30s"},
+    {"kind": "navigate", "url": "/artist/?pagename=login&auth_fuzz_observe=artist", "waitFor": "load"},
+    {"kind": "expect", "selector": "[data-ec-login-register-root]", "state": "attached"},
+    {"kind": "navigate", "url": "/events/?pagename=login&auth_fuzz_observe=events", "waitFor": "load"},
+    {"kind": "expect", "selector": "[data-ec-login-register-root]", "state": "attached"}
   ],
   "assertions": [{"type": "noPageErrors"}]
 }
