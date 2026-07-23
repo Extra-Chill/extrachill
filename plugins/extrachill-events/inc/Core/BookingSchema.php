@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns and verifies the site-scoped private booking schema. */
 class BookingSchema {
 
-	public const SCHEMA_VERSION = '4';
+	public const SCHEMA_VERSION = '5';
 	public const VERSION_OPTION = 'extrachill_events_booking_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_booking_schema_error';
 
@@ -40,6 +40,12 @@ class BookingSchema {
 		return $wpdb->prefix . 'ec_venue_members';
 	}
 
+	/** Get the booking holds table for the current site. */
+	public static function holds_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ec_booking_holds';
+	}
+
 	/** Create or repair all tables, stamping the version only after verification. */
 	public static function install() {
 		global $wpdb;
@@ -47,6 +53,7 @@ class BookingSchema {
 		$bookings = self::bookings_table();
 		$activity = self::activity_table();
 		$members  = self::memberships_table();
+		$holds    = self::holds_table();
 		$charset  = $wpdb->get_charset_collate();
 
 		$bookings_sql = "CREATE TABLE {$bookings} (
@@ -122,6 +129,31 @@ class BookingSchema {
 			KEY venue_status_owner (venue_term_id, status, is_owner)
 		) ENGINE=InnoDB {$charset};";
 
+		$holds_sql = "CREATE TABLE {$holds} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			booking_id BIGINT UNSIGNED NOT NULL,
+			venue_term_id BIGINT UNSIGNED NOT NULL,
+			space_key VARCHAR(64) NOT NULL,
+			start_at DATETIME NOT NULL,
+			end_at DATETIME NOT NULL,
+			expires_at DATETIME NOT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'active',
+			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
+			created_by_user_id BIGINT UNSIGNED NOT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			released_at DATETIME NULL,
+			released_by_user_id BIGINT UNSIGNED NULL,
+			release_reason VARCHAR(255) NULL,
+			expired_at DATETIME NULL,
+			converted_at DATETIME NULL,
+			converted_by_user_id BIGINT UNSIGNED NULL,
+			PRIMARY KEY (id),
+			KEY venue_space_overlap (venue_term_id, space_key, status, start_at, end_at),
+			KEY booking_status (booking_id, status),
+			KEY status_expiration (status, expires_at)
+		) ENGINE=InnoDB {$charset};";
+
 		$repair = self::drop_conflicting_indexes();
 		if ( is_wp_error( $repair ) ) {
 			self::record_failure( $repair );
@@ -135,7 +167,9 @@ class BookingSchema {
 		$activity_error = (string) $wpdb->last_error;
 		dbDelta( $members_sql );
 		$members_error = (string) $wpdb->last_error;
-		if ( '' !== $bookings_error || '' !== $activity_error || '' !== $members_error ) {
+		dbDelta( $holds_sql );
+		$holds_error = (string) $wpdb->last_error;
+		if ( '' !== $bookings_error || '' !== $activity_error || '' !== $members_error || '' !== $holds_error ) {
 			$error = new \WP_Error(
 				'booking_schema_dbdelta_failed',
 				__( 'The booking schema could not be reconciled.', 'extrachill-events' ),
@@ -143,6 +177,7 @@ class BookingSchema {
 					'bookings_error' => $bookings_error,
 					'activity_error' => $activity_error,
 					'members_error'  => $members_error,
+					'holds_error'    => $holds_error,
 				)
 			);
 			self::record_failure( $error );
@@ -556,6 +591,47 @@ class BookingSchema {
 					'venue_status_owner' => array(
 						'unique'  => false,
 						'columns' => array( 'venue_term_id', 'status', 'is_owner' ),
+					),
+				),
+			),
+			self::holds_table()       => array(
+				'engine'  => 'innodb',
+				'columns' => array(
+					'id'                   => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
+					'booking_id'           => $required( 'bigint unsigned', false ),
+					'venue_term_id'        => $required( 'bigint unsigned', false ),
+					'space_key'            => $required( 'varchar(64)', false ),
+					'start_at'             => $required( 'datetime', false ),
+					'end_at'               => $required( 'datetime', false ),
+					'expires_at'           => $required( 'datetime', false ),
+					'status'               => $required( 'varchar(16)', false, array( 'default' => 'active' ) ),
+					'version'              => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
+					'created_by_user_id'   => $required( 'bigint unsigned', false ),
+					'created_at'           => $required( 'datetime', false ),
+					'updated_at'           => $required( 'datetime', false ),
+					'released_at'          => $required( 'datetime', true ),
+					'released_by_user_id'  => $required( 'bigint unsigned', true ),
+					'release_reason'       => $required( 'varchar(255)', true ),
+					'expired_at'           => $required( 'datetime', true ),
+					'converted_at'         => $required( 'datetime', true ),
+					'converted_by_user_id' => $required( 'bigint unsigned', true ),
+				),
+				'indexes' => array(
+					'PRIMARY'             => array(
+						'unique'  => true,
+						'columns' => array( 'id' ),
+					),
+					'venue_space_overlap' => array(
+						'unique'  => false,
+						'columns' => array( 'venue_term_id', 'space_key', 'status', 'start_at', 'end_at' ),
+					),
+					'booking_status'      => array(
+						'unique'  => false,
+						'columns' => array( 'booking_id', 'status' ),
+					),
+					'status_expiration'   => array(
+						'unique'  => false,
+						'columns' => array( 'status', 'expires_at' ),
 					),
 				),
 			),

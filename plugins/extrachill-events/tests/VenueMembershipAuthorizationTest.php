@@ -473,6 +473,12 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 		$this->assertTrue( $authorization->can( 3, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
 		$this->assertFalse( $authorization->can( 4, 56, VenueAuthorization::ACTION_ACCESS_VENUE ) );
 		$this->assertFalse( $authorization->can( 5, 56, VenueAuthorization::ACTION_ACCESS_VENUE ) );
+		$locked = array_values( $GLOBALS['wpdb']->rows['wp_7_ec_venue_members'] );
+		$this->assertSame( 'venue_action_forbidden', $authorization->authorize_locked( 4, 56, VenueAuthorization::ACTION_ACCESS_VENUE, $locked )->get_error_code() );
+		$this->assertSame( 'venue_action_forbidden', $authorization->authorize_locked( 5, 56, VenueAuthorization::ACTION_ACCESS_VENUE, $locked )->get_error_code() );
+		$this->assertSame( 'venue_action_forbidden', $authorization->authorize_locked( 4, 56, VenueAuthorization::ACTION_MANAGE_MEMBERS, $locked )->get_error_code() );
+		$this->assertSame( 'venue_action_forbidden', $authorization->authorize_locked( 5, 56, VenueAuthorization::ACTION_MANAGE_MEMBERS, $locked )->get_error_code() );
+		$this->assertTrue( $authorization->authorize_locked( 6, 56, VenueAuthorization::ACTION_MANAGE_MEMBERS, $locked ) );
 
 		unset( $GLOBALS['venue_membership_test']['team_access'][6] );
 		$this->assertFalse( $authorization->can( 6, 56, VenueAuthorization::ACTION_ACCESS_VENUE ) );

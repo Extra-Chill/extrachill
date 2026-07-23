@@ -43,6 +43,47 @@ class VenueAuthorization {
 
 	/** Authorize one network user for one action at one Events-site venue. */
 	public function authorize( int $user_id, int $venue_term_id, string $action ) {
+		$valid = $this->validate_request( $user_id, $venue_term_id, $action );
+		if ( true !== $valid ) {
+			return $valid;
+		}
+		if ( self::ACTION_MANAGE_MEMBERS === $action && $this->is_administrator( $user_id ) ) {
+			return true;
+		}
+		if ( ! $this->has_feature_access( $user_id ) ) {
+			return $this->denied();
+		}
+
+		$membership = $this->active_membership( $user_id, $venue_term_id );
+		return $this->authorize_membership( $membership, $action );
+	}
+
+	/** Authorize from lock-current membership rows without a consistent-snapshot reread. */
+	public function authorize_locked( int $user_id, int $venue_term_id, string $action, array $locked_memberships ) {
+		$valid = $this->validate_request( $user_id, $venue_term_id, $action );
+		if ( true !== $valid ) {
+			return $valid;
+		}
+		if ( self::ACTION_MANAGE_MEMBERS === $action && $this->is_administrator( $user_id ) ) {
+			return true;
+		}
+		if ( ! $this->has_feature_access( $user_id ) ) {
+			return $this->denied();
+		}
+
+		$membership = null;
+		foreach ( $locked_memberships as $row ) {
+			if ( (int) ( $row['venue_term_id'] ?? 0 ) !== $venue_term_id || (int) ( $row['user_id'] ?? 0 ) !== $user_id ) {
+				continue;
+			}
+			$membership = $this->memberships->hydrate( $row );
+			break;
+		}
+		return $this->authorize_membership( $membership, $action );
+	}
+
+	/** Validate the non-membership portion of one authorization request. */
+	private function validate_request( int $user_id, int $venue_term_id, string $action ) {
 		if ( ! in_array( $action, self::actions(), true ) ) {
 			return new \WP_Error(
 				'invalid_venue_action',
@@ -71,18 +112,18 @@ class VenueAuthorization {
 			return $this->denied();
 		}
 
-		if ( self::ACTION_MANAGE_MEMBERS === $action && $this->is_administrator( $user_id ) ) {
-			return true;
-		}
-		if ( ! $this->has_feature_access( $user_id ) ) {
-			return $this->denied();
-		}
+		return true;
+	}
 
-		$membership = $this->active_membership( $user_id, $venue_term_id );
+	/** Apply action policy to a resolved membership. */
+	private function authorize_membership( $membership, string $action ) {
 		if ( is_wp_error( $membership ) ) {
 			return $membership;
 		}
 		if ( ! is_array( $membership ) ) {
+			return $this->denied();
+		}
+		if ( self::STATUS_ACTIVE !== ( $membership['status'] ?? '' ) ) {
 			return $this->denied();
 		}
 		if ( self::ACTION_MANAGE_MEMBERS === $action && ! $membership['is_owner'] ) {

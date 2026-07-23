@@ -575,8 +575,8 @@ class BookingRepository {
 		if ( is_wp_error( $start ) || is_wp_error( $end ) ) {
 			return is_wp_error( $start ) ? $start : $end;
 		}
-		if ( null !== $start && null !== $end && $end < $start ) {
-			return new \WP_Error( 'invalid_booking_date_range', __( 'The requested end must not precede the requested start.', 'extrachill-events' ) );
+		if ( null !== $start && null !== $end && $end <= $start ) {
+			return new \WP_Error( 'invalid_booking_date_range', __( 'The requested end must be later than the requested start.', 'extrachill-events' ) );
 		}
 		return true;
 	}

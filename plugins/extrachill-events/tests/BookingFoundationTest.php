@@ -19,15 +19,15 @@ require_once __DIR__ . '/Support/BookingTestHarness.php';
 final class BookingFoundationTest extends TestCase {
 	protected function setUp(): void {
 		$GLOBALS['ec_artist_test'] = array(
-			'blog_id'   => 7,
-			'stack'     => array(),
-			'uuid'      => 0,
-			'options'   => array(),
-			'dbdelta'   => array(),
-			'abilities' => array(),
-			'actions'   => array(),
+			'blog_id'       => 7,
+			'stack'         => array(),
+			'uuid'          => 0,
+			'options'       => array(),
+			'dbdelta'       => array(),
+			'abilities'     => array(),
+			'actions'       => array(),
 			'cache_deletes' => array(),
-			'terms'     => array(
+			'terms'         => array(
 				1 => array(
 					101 => (object) array(
 						'term_id'  => 101,
@@ -48,11 +48,16 @@ final class BookingFoundationTest extends TestCase {
 					),
 				),
 			),
-			'meta'      => array(
+			'meta'          => array(
 				1 => array( 101 => array( '_artist_profile_id' => 501 ) ),
-				7 => array( 55 => array( '_extrachill_booking_config' => array( 'enabled' => true ) ) ),
+				7 => array(
+					55 => array(
+						'_extrachill_booking_config' => array( 'enabled' => true ),
+						'_venue_timezone'            => 'America/New_York',
+					),
+				),
 			),
-			'posts'     => array(
+			'posts'         => array(
 				4 => array(
 					501 => (object) array(
 						'ID'          => 501,
@@ -80,7 +85,7 @@ final class BookingFoundationTest extends TestCase {
 					),
 				),
 			),
-			'post_meta' => array( 4 => array( 501 => array( '_artist_term_id' => 101 ) ) ),
+			'post_meta'     => array( 4 => array( 501 => array( '_artist_term_id' => 101 ) ) ),
 		);
 		$GLOBALS['wpdb']           = new BookingWpdb();
 	}
@@ -286,8 +291,8 @@ final class BookingFoundationTest extends TestCase {
 
 	public function test_aggregate_table_engines_are_repaired_and_failures_are_not_stamped(): void {
 		$this->assertTrue( BookingSchema::install() );
-		$bookings = BookingSchema::bookings_table();
-		$activity = BookingSchema::activity_table();
+		$bookings                              = BookingSchema::bookings_table();
+		$activity                              = BookingSchema::activity_table();
 		$GLOBALS['wpdb']->engines[ $bookings ] = 'MyISAM';
 		$GLOBALS['wpdb']->engines[ $activity ] = 'MyISAM';
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '';
@@ -295,8 +300,8 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertSame( 'INNODB', strtoupper( $GLOBALS['wpdb']->engines[ $bookings ] ) );
 		$this->assertSame( 'INNODB', strtoupper( $GLOBALS['wpdb']->engines[ $activity ] ) );
 
-		$GLOBALS['wpdb']->engines[ $bookings ] = 'MyISAM';
-		$GLOBALS['wpdb']->fail_engine_repair = true;
+		$GLOBALS['wpdb']->engines[ $bookings ]                                 = 'MyISAM';
+		$GLOBALS['wpdb']->fail_engine_repair                                   = true;
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '';
 		$this->assertSame( 'booking_schema_engine_repair_failed', BookingSchema::maybe_install()->get_error_code() );
 		$this->assertSame( '', get_option( BookingSchema::VERSION_OPTION, '' ) );
@@ -647,7 +652,7 @@ final class BookingFoundationTest extends TestCase {
 				'requested_end_at'   => '2026-08-02 00:00:00',
 			)
 		);
-		$confirmed = $this->create_booking(
+		$confirmed  = $this->create_booking(
 			array(
 				'requested_start_at' => '2026-09-01 00:00:00',
 				'requested_end_at'   => '2026-09-02 00:00:00',
@@ -705,7 +710,7 @@ final class BookingFoundationTest extends TestCase {
 			BookingLifecycle::STATUSES
 		);
 		$this->assertSame( BookingRepository::STATUSES, BookingLifecycle::STATUSES );
-		$allowed = array(
+		$allowed   = array(
 			'submitted'    => array( 'needs_info', 'under_review', 'declined', 'withdrawn' ),
 			'needs_info'   => array( 'submitted', 'under_review', 'declined', 'withdrawn' ),
 			'under_review' => array( 'needs_info', 'negotiating', 'declined', 'withdrawn' ),
@@ -726,7 +731,10 @@ final class BookingFoundationTest extends TestCase {
 						'requested_start_at' => '2026-08-01 20:00:00',
 						'requested_end_at'   => '2026-08-01 23:00:00',
 						'space_key'          => 'main-room',
-						'deal'               => array( 'version' => 1, 'data' => array( 'type' => 'guarantee' ) ),
+						'deal'               => array(
+							'version' => 1,
+							'data'    => array( 'type' => 'guarantee' ),
+						),
 					),
 					$to
 				);
@@ -741,15 +749,24 @@ final class BookingFoundationTest extends TestCase {
 
 	public function test_missing_hold_and_conflict_substrates_fail_closed(): void {
 		$lifecycle = new BookingLifecycle();
-		$booking   = array( 'status' => 'negotiating', 'requested_start_at' => null, 'requested_end_at' => null, 'space_key' => null, 'deal' => null );
-		$this->assertSame( 'booking_hold_repository_unavailable', $lifecycle->validate_transition( $booking, 'held' )->get_error_code() );
+		$booking   = array(
+			'status'             => 'negotiating',
+			'requested_start_at' => null,
+			'requested_end_at'   => null,
+			'space_key'          => null,
+			'deal'               => null,
+		);
+		$this->assertSame( 'booking_hold_selection_required', $lifecycle->validate_transition( $booking, 'held' )->get_error_code() );
 		$this->assertSame( 'booking_confirmation_selection_required', $lifecycle->validate_transition( $booking, 'confirmed' )->get_error_code() );
 		$booking['requested_start_at'] = '2026-08-01 20:00:00';
 		$booking['requested_end_at']   = '2026-08-01 23:00:00';
 		$booking['space_key']          = 'main-room';
 		$this->assertSame( 'booking_confirmation_deal_required', $lifecycle->validate_transition( $booking, 'confirmed' )->get_error_code() );
-		$booking['deal'] = array( 'version' => 1, 'data' => array( 'type' => 'guarantee' ) );
-		$this->assertSame( 'booking_conflict_repository_unavailable', $lifecycle->validate_transition( $booking, 'confirmed' )->get_error_code() );
+		$booking['deal'] = array(
+			'version' => 1,
+			'data'    => array( 'type' => 'guarantee' ),
+		);
+		$this->assertTrue( $lifecycle->validate_transition( $booking, 'confirmed' ) );
 	}
 
 	public function test_inquiry_creation_is_atomic_anonymous_and_race_idempotent(): void {
@@ -760,11 +777,16 @@ final class BookingFoundationTest extends TestCase {
 			'artist_name'     => 'New Band',
 			'intake'          => array( 'draw' => 100 ),
 		);
-		$first = $lifecycle->create_inquiry( $input );
+		$first     = $lifecycle->create_inquiry( $input );
 		$this->assertSame( 'submitted', $first['status'] );
 		$this->assertNull( $first['submitter_user_id'] );
 		$this->assertSame( $first['id'], $lifecycle->create_inquiry( $input )['id'] );
-		$reordered = array( 'intake' => array( 'draw' => 100 ), 'artist_name' => 'New Band', 'venue_term_id' => 55, 'idempotency_key' => 'request-298' );
+		$reordered = array(
+			'intake'          => array( 'draw' => 100 ),
+			'artist_name'     => 'New Band',
+			'venue_term_id'   => 55,
+			'idempotency_key' => 'request-298',
+		);
 		$this->assertSame( $first['id'], $lifecycle->create_inquiry( $reordered )['id'] );
 		$conflict = $lifecycle->create_inquiry( array_merge( $input, array( 'artist_name' => 'Different Band' ) ) );
 		$this->assertSame( 'booking_idempotency_conflict', $conflict->get_error_code() );
@@ -773,29 +795,47 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertCount( 1, $GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ] );
 
 		$GLOBALS['wpdb']->race_booking_insert = true;
-		$race = $lifecycle->create_inquiry( array_merge( $input, array( 'idempotency_key' => 'request-race' ) ) );
+		$race                                 = $lifecycle->create_inquiry( array_merge( $input, array( 'idempotency_key' => 'request-race' ) ) );
 		$this->assertIsArray( $race );
 		$this->assertSame( 0, $GLOBALS['wpdb']->natural_key_reads_in_transaction, 'The loser must resolve its winner only after rollback.' );
 		$this->assertCount( 2, $GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ] );
 		$this->assertCount( 2, $GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ] );
-		$this->assertSame( 'booking_idempotency_conflict', $lifecycle->create_inquiry( array_merge( $input, array( 'idempotency_key' => 'request-race', 'contact_email' => 'other@example.com' ) ) )->get_error_code() );
+		$this->assertSame(
+			'booking_idempotency_conflict',
+			$lifecycle->create_inquiry(
+				array_merge(
+					$input,
+					array(
+						'idempotency_key' => 'request-race',
+						'contact_email'   => 'other@example.com',
+					)
+				)
+			)->get_error_code()
+		);
 		$GLOBALS['wpdb']->race_booking_insert = true;
 		$GLOBALS['wpdb']->race_booking_hash   = str_repeat( '0', 64 );
-		$race_conflict = $lifecycle->create_inquiry( array_merge( $input, array( 'idempotency_key' => 'request-race-mismatch' ) ) );
+		$race_conflict                        = $lifecycle->create_inquiry( array_merge( $input, array( 'idempotency_key' => 'request-race-mismatch' ) ) );
 		$this->assertSame( 'booking_idempotency_conflict', $race_conflict->get_error_code() );
 		$this->assertSame( array( 'status' => 409 ), $race_conflict->get_error_data() );
 		$this->assertSame( 'booking_idempotency_conflict', $lifecycle->create_inquiry( $input, 12 )->get_error_code(), 'Authenticated actor identity must be part of the fingerprint.' );
 
 		$GLOBALS['wpdb']->fail_activity_inserts = true;
-		$result = $lifecycle->create_inquiry( array_merge( $input, array( 'idempotency_key' => 'request-fails' ) ) );
+		$result                                 = $lifecycle->create_inquiry( array_merge( $input, array( 'idempotency_key' => 'request-fails' ) ) );
 		$this->assertSame( 'booking_activity_write_failed', $result->get_error_code() );
 		$this->assertCount( 3, $GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ] );
 	}
 
 	public function test_failed_idempotent_insert_without_winner_preserves_database_error(): void {
-		$lifecycle = new BookingLifecycle();
+		$lifecycle                     = new BookingLifecycle();
 		$GLOBALS['wpdb']->fail_inserts = true;
-		$result = $lifecycle->create_inquiry( array( 'idempotency_key' => 'no-winner', 'venue_term_id' => 55, 'intake' => array(), 'artist_name' => 'Band' ) );
+		$result                        = $lifecycle->create_inquiry(
+			array(
+				'idempotency_key' => 'no-winner',
+				'venue_term_id'   => 55,
+				'intake'          => array(),
+				'artist_name'     => 'Band',
+			)
+		);
 		$this->assertSame( 'booking_create_failed', $result->get_error_code() );
 		$this->assertSame( array( 'database_error' => 'simulated insert failure' ), $result->get_error_data() );
 		$this->assertSame( 0, $GLOBALS['wpdb']->natural_key_reads_in_transaction );
@@ -803,7 +843,12 @@ final class BookingFoundationTest extends TestCase {
 
 	public function test_inquiry_admission_requires_enabled_config_but_retry_survives_disable(): void {
 		$lifecycle = new BookingLifecycle();
-		$input     = array( 'idempotency_key' => 'enabled-request', 'venue_term_id' => 55, 'intake' => array(), 'artist_name' => 'Band' );
+		$input     = array(
+			'idempotency_key' => 'enabled-request',
+			'venue_term_id'   => 55,
+			'intake'          => array(),
+			'artist_name'     => 'Band',
+		);
 		$created   = $lifecycle->create_inquiry( $input );
 		$this->assertIsArray( $created );
 		$this->assertSame( 1, $GLOBALS['wpdb']->venue_lock_queries );
@@ -814,7 +859,7 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertSame( 'booking_inquiry_admission_disabled', $lifecycle->create_inquiry( array_merge( $input, array( 'idempotency_key' => 'disabled-request' ) ) )->get_error_code() );
 
 		$GLOBALS['ec_artist_test']['meta'][7][55]['_extrachill_booking_config'] = array( 'enabled' => true );
-		$GLOBALS['wpdb']->after_venue_lock = static function () {
+		$GLOBALS['wpdb']->after_venue_lock                                      = static function () {
 			$GLOBALS['ec_artist_test']['meta'][7][55]['_extrachill_booking_config'] = array( 'enabled' => false );
 		};
 		$this->assertSame( 'booking_inquiry_admission_disabled', $lifecycle->create_inquiry( array_merge( $input, array( 'idempotency_key' => 'disabled-during-lock' ) ) )->get_error_code() );
@@ -825,7 +870,14 @@ final class BookingFoundationTest extends TestCase {
 
 	public function test_inquiry_config_read_failure_rolls_back_after_venue_lock(): void {
 		$lifecycle = new BookingLifecycle( null, null, null, new BookingTestConfig() );
-		$result    = $lifecycle->create_inquiry( array( 'idempotency_key' => 'read-failure', 'venue_term_id' => 55, 'intake' => array(), 'artist_name' => 'Band' ) );
+		$result    = $lifecycle->create_inquiry(
+			array(
+				'idempotency_key' => 'read-failure',
+				'venue_term_id'   => 55,
+				'intake'          => array(),
+				'artist_name'     => 'Band',
+			)
+		);
 		$this->assertSame( 'booking_inquiry_config_read_failed', $result->get_error_code() );
 		$this->assertSame( 1, $GLOBALS['wpdb']->venue_lock_queries );
 		$this->assertSame( 1, $GLOBALS['wpdb']->rollback_queries );
@@ -846,7 +898,7 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertSame( 3, $assigned['version'] );
 
 		$GLOBALS['wpdb']->fail_activity_inserts = true;
-		$result = $lifecycle->transition( $booking['id'], 'negotiating', 3, 12 );
+		$result                                 = $lifecycle->transition( $booking['id'], 'negotiating', 3, 12 );
 		$this->assertSame( 'booking_activity_write_failed', $result->get_error_code() );
 		$current = ( new BookingRepository() )->get( $booking['id'] );
 		$this->assertSame( 'under_review', $current['status'] );
@@ -888,18 +940,18 @@ final class BookingFoundationTest extends TestCase {
 	}
 
 	public function test_transaction_lock_reauthorizes_actor_and_atomic_artist_binding(): void {
-		$authorization = new BookingTestAuthorization();
-		$lifecycle     = new BookingLifecycle( null, null, $authorization );
-		$booking       = $this->create_booking();
+		$authorization                          = new BookingTestAuthorization();
+		$lifecycle                              = new BookingLifecycle( null, null, $authorization );
+		$booking                                = $this->create_booking();
 		$GLOBALS['wpdb']->after_membership_lock = static function () use ( $authorization ) {
 			unset( $authorization->allowed['12:55'] );
 		};
-		$denied = $lifecycle->transition( $booking['id'], 'under_review', 1, 12 );
+		$denied                                 = $lifecycle->transition( $booking['id'], 'under_review', 1, 12 );
 		$this->assertSame( 'venue_action_forbidden', $denied->get_error_code() );
 		$this->assertSame( 1, ( new BookingRepository() )->get( $booking['id'] )['version'] );
 
 		$authorization->allowed['12:55'] = true;
-		$bound = $lifecycle->bind_artist( $booking['id'], 101, 501, 1, 12 );
+		$bound                           = $lifecycle->bind_artist( $booking['id'], 101, 501, 1, 12 );
 		$this->assertSame( 101, $bound['artist_term_id'] );
 		$this->assertSame( 501, $bound['artist_profile_id'] );
 		$this->assertSame( 'Canonical Artist', $bound['artist_name'] );
@@ -915,13 +967,13 @@ final class BookingFoundationTest extends TestCase {
 	}
 
 	public function test_assignment_target_is_reauthorized_after_venue_lock(): void {
-		$authorization = new BookingTestAuthorization( array( '20:55' => true ) );
-		$lifecycle     = new BookingLifecycle( null, null, $authorization );
-		$booking       = $this->create_booking();
+		$authorization                          = new BookingTestAuthorization( array( '20:55' => true ) );
+		$lifecycle                              = new BookingLifecycle( null, null, $authorization );
+		$booking                                = $this->create_booking();
 		$GLOBALS['wpdb']->after_membership_lock = static function () use ( $authorization ) {
 			unset( $authorization->allowed['20:55'] );
 		};
-		$result = $lifecycle->assign( $booking['id'], 20, 1, 12 );
+		$result                                 = $lifecycle->assign( $booking['id'], 20, 1, 12 );
 		$this->assertSame( 'invalid_booking_assignee', $result->get_error_code() );
 		$current = ( new BookingRepository() )->get( $booking['id'] );
 		$this->assertNull( $current['assignee_user_id'] );
@@ -929,14 +981,19 @@ final class BookingFoundationTest extends TestCase {
 	}
 
 	public function test_transaction_control_failures_are_explicit(): void {
-		$lifecycle = new BookingLifecycle();
-		$input     = array( 'idempotency_key' => 'transaction-test', 'venue_term_id' => 55, 'artist_name' => 'New Band', 'intake' => array() );
+		$lifecycle                               = new BookingLifecycle();
+		$input                                   = array(
+			'idempotency_key' => 'transaction-test',
+			'venue_term_id'   => 55,
+			'artist_name'     => 'New Band',
+			'intake'          => array(),
+		);
 		$GLOBALS['wpdb']->fail_transaction_start = true;
 		$this->assertSame( 'booking_transaction_start_failed', $lifecycle->create_inquiry( $input )->get_error_code() );
 
 		$GLOBALS['wpdb']->fail_transaction_start  = false;
 		$GLOBALS['wpdb']->fail_transaction_commit = true;
-		$rollbacks_before = $GLOBALS['wpdb']->rollback_queries;
+		$rollbacks_before                         = $GLOBALS['wpdb']->rollback_queries;
 		$this->assertSame( 'booking_transaction_commit_uncertain', $lifecycle->create_inquiry( $input )->get_error_code() );
 		$this->assertSame( $rollbacks_before, $GLOBALS['wpdb']->rollback_queries );
 
@@ -964,6 +1021,11 @@ final class BookingFoundationTest extends TestCase {
 		);
 		$this->assertFalse( $registered['extrachill/create-booking-inquiry']['meta']['show_in_rest'] );
 		$this->assertTrue( $registered['extrachill/list-venue-bookings']['meta']['show_in_rest'] );
+		foreach ( array( 'extrachill/list-venue-bookings', 'extrachill/get-venue-booking' ) as $reconciling_ability ) {
+			$this->assertFalse( $registered[ $reconciling_ability ]['meta']['annotations']['readonly'] );
+			$this->assertTrue( $registered[ $reconciling_ability ]['meta']['annotations']['idempotent'] );
+			$this->assertFalse( $registered[ $reconciling_ability ]['meta']['annotations']['destructive'] );
+		}
 		foreach ( $registered as $definition ) {
 			$this->assertFalse( $definition['input_schema']['additionalProperties'] );
 			$this->assertFalse( $definition['output_schema']['additionalProperties'] ?? false );
@@ -974,14 +1036,20 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertSame( array( 'booking_id', 'to_status', 'expected_version' ), $registered['extrachill/transition-venue-booking']['input_schema']['required'] );
 		$this->assertSame( array( 'booking_id', 'expected_version' ), $registered['extrachill/bind-venue-booking-artist']['input_schema']['required'] );
 		$this->assertSame( array( 'public_id', 'venue_term_id', 'submitted_at' ), $registered['extrachill/create-booking-inquiry']['output_schema']['required'] );
-		$receipt_input = array( 'idempotency_key' => 'public-receipt', 'venue_term_id' => 55, 'intake' => array(), 'artist_name' => 'Private Band', 'contact_email' => 'private@example.com' );
+		$receipt_input = array(
+			'idempotency_key' => 'public-receipt',
+			'venue_term_id'   => 55,
+			'intake'          => array(),
+			'artist_name'     => 'Private Band',
+			'contact_email'   => 'private@example.com',
+		);
 		$receipt       = call_user_func( $registered['extrachill/create-booking-inquiry']['execute_callback'], $receipt_input );
 		$this->assertSame( array( 'public_id', 'venue_term_id', 'submitted_at' ), array_keys( $receipt ) );
 		$this->assertArrayNotHasKey( 'id', $receipt );
 		$this->assertArrayNotHasKey( 'status', $receipt );
 		$this->assertArrayNotHasKey( 'contact_email', $receipt );
 		$stored = reset( $GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ] );
-		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $stored['id'] ]['status'] = 'under_review';
+		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $stored['id'] ]['status']        = 'under_review';
 		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $stored['id'] ]['contact_email'] = 'changed@example.com';
 		$this->assertSame( $receipt, call_user_func( $registered['extrachill/create-booking-inquiry']['execute_callback'], $receipt_input ) );
 

@@ -8,6 +8,7 @@
 namespace ExtraChillEvents\Abilities;
 
 use ExtraChillEvents\Core\BookingLifecycle;
+use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\VenueAuthorization;
 
@@ -42,6 +43,8 @@ class VenueBookingAbilities {
 	 * @var VenueAuthorization
 	 */
 	private $authorization;
+	/** @var BookingHoldRepository */
+	private $holds;
 
 	/**
 	 * Build and hook the booking ability surface.
@@ -49,11 +52,13 @@ class VenueBookingAbilities {
 	 * @param BookingRepository|null  $bookings      Booking reads.
 	 * @param BookingLifecycle|null   $lifecycle     Booking mutations.
 	 * @param VenueAuthorization|null $authorization Venue authorization.
+	 * @param BookingHoldRepository|null $holds     Hold reconciliation.
 	 */
-	public function __construct( ?BookingRepository $bookings = null, ?BookingLifecycle $lifecycle = null, ?VenueAuthorization $authorization = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingLifecycle $lifecycle = null, ?VenueAuthorization $authorization = null, ?BookingHoldRepository $holds = null ) {
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
-		$this->lifecycle     = $lifecycle ? $lifecycle : new BookingLifecycle( $this->bookings, null, $this->authorization );
+		$this->holds         = $holds ? $holds : new BookingHoldRepository( $this->bookings, null, $this->authorization );
+		$this->lifecycle     = $lifecycle ? $lifecycle : new BookingLifecycle( $this->bookings, null, $this->authorization, null, $this->holds );
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
@@ -100,7 +105,7 @@ class VenueBookingAbilities {
 				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
-						'readonly'    => true,
+						'readonly'    => false,
 						'idempotent'  => true,
 						'destructive' => false,
 					),
@@ -132,7 +137,7 @@ class VenueBookingAbilities {
 				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
-						'readonly'    => true,
+						'readonly'    => false,
 						'idempotent'  => true,
 						'destructive' => false,
 					),
@@ -292,8 +297,11 @@ class VenueBookingAbilities {
 			'limit'              => $input['limit'] ?? 50,
 			'offset'             => $input['offset'] ?? 0,
 		);
-		$result  = $this->bookings->list( $filters );
-		return is_array( $result ) ? array_map( array( $this, 'present' ), $result ) : $result;
+		$result  = $this->holds->list_bookings_authorized( $filters, get_current_user_id() );
+		if ( ! is_array( $result ) ) {
+			return $result;
+		}
+		return array_map( array( $this, 'present' ), $result );
 	}
 
 	/**
@@ -302,7 +310,7 @@ class VenueBookingAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function get_booking( array $input ) {
-		$result = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
+		$result = $this->holds->get_booking_authorized( absint( $input['booking_id'] ?? 0 ), get_current_user_id() );
 		return is_array( $result ) ? $this->present( $result ) : $result;
 	}
 
