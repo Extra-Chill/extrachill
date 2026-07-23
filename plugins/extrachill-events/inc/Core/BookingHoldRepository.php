@@ -587,6 +587,17 @@ class BookingHoldRepository {
 		return is_array( $hold ) ? $this->hydrate( $hold ) : $hold;
 	}
 
+	/** Read every converted hold matching the booking's authoritative selection. */
+	public function converted_for_booking( array $booking ) {
+		global $wpdb;
+		$table = BookingSchema::holds_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND venue_term_id = %d AND space_key = %s AND start_at = %s AND end_at = %s AND status = 'converted' AND converted_at IS NOT NULL ORDER BY id ASC", $booking['id'], $booking['venue_term_id'], $booking['space_key'], $booking['performance_start_at'], $booking['performance_end_at'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Focused exact converted-selection read.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_converted_hold_read_failed', __( 'The converted booking hold could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return array_map( array( $this, 'hydrate' ), (array) $rows );
+	}
+
 	/** Read one stored hold without applying its effective elapsed status. */
 	private function raw_get( int $hold_id ) {
 		global $wpdb;

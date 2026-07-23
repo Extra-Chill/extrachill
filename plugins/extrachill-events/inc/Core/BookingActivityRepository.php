@@ -132,6 +132,103 @@ class BookingActivityRepository {
 		return $hydrated;
 	}
 
+	/** Reconstruct and validate the complete activity-backed event conversion state. */
+	public function event_conversion_state( int $booking_id, string $public_id ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND (kind IN ('event_conversion_started', 'event_conversion_failed', 'event_converted') OR idempotency_key LIKE %s) ORDER BY id ASC", $booking_id, 'event-conversion:' . $public_id . ':%' ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Complete narrow conversion history plus colliding keys, never a bounded recent list.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_event_conversion_state_read_failed', __( 'Booking event conversion state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		$source   = 'extrachill-events-booking';
+		$identity = hash( 'sha256', $source . "\0" . $public_id );
+		$attempts = array();
+		foreach ( (array) $rows as $row ) {
+			$marker = $this->hydrate( $row );
+			if ( is_wp_error( $marker ) ) {
+				return $this->conversion_state_error( 'payload', $row['id'] ?? 0 );
+			}
+			$data    = $marker['payload']['data'];
+			$attempt = $data['attempt'] ?? null;
+			$kind    = $marker['kind'];
+			$key     = sprintf( 'event-conversion:%s:%d:%s', $public_id, (int) $attempt, $kind );
+			if ( ! is_int( $attempt ) || $attempt < 1 || ! in_array( $kind, array( 'event_conversion_started', 'event_conversion_failed', 'event_converted' ), true ) || $marker['idempotency_key'] !== $key || ( $data['source'] ?? null ) !== $source || ( $data['source_id'] ?? null ) !== $public_id || ( $data['source_identity'] ?? null ) !== $identity || isset( $attempts[ $attempt ][ $kind ] ) ) {
+				return $this->conversion_state_error( 'marker', $marker['id'] );
+			}
+			if ( 'event_conversion_started' === $kind && ( ! is_int( $data['expected_version'] ?? null ) || $data['expected_version'] < 1 || null !== $marker['external_id'] ) ) {
+				return $this->conversion_state_error( 'started', $marker['id'] );
+			}
+			if ( 'event_conversion_failed' === $kind && ( ! is_string( $data['upstream_code'] ?? null ) || '' === $data['upstream_code'] || ! array_key_exists( 'upstream_data', $data ) || ! is_bool( $data['retryable'] ?? null ) || null !== $marker['external_id'] ) ) {
+				return $this->conversion_state_error( 'failed', $marker['id'] );
+			}
+			if ( 'event_converted' === $kind && ( ! is_int( $data['event_id'] ?? null ) || $data['event_id'] < 1 || (string) $data['event_id'] !== (string) $marker['external_id'] ) ) {
+				return $this->conversion_state_error( 'completed', $marker['id'] );
+			}
+			$attempts[ $attempt ][ $kind ] = $marker;
+		}
+		if ( empty( $attempts ) ) {
+			return array(
+				'attempt'   => 0,
+				'status'    => 'none',
+				'pending'   => false,
+				'started'   => null,
+				'failed'    => null,
+				'completed' => null,
+			);
+		}
+		ksort( $attempts, SORT_NUMERIC );
+		$expected_attempt     = 1;
+		$latest               = null;
+		$previous_terminal_id = 0;
+		foreach ( $attempts as $attempt => $markers ) {
+			$terminals = (int) isset( $markers['event_conversion_failed'] ) + (int) isset( $markers['event_converted'] );
+			$start_id  = (int) ( $markers['event_conversion_started']['id'] ?? 0 );
+			$terminal  = $markers['event_conversion_failed'] ?? ( $markers['event_converted'] ?? null );
+			if ( $attempt !== $expected_attempt || ! isset( $markers['event_conversion_started'] ) || $terminals > 1 || ( null !== $latest && 'failed' !== $latest['status'] ) || $start_id <= $previous_terminal_id || ( is_array( $terminal ) && (int) $terminal['id'] <= $start_id ) ) {
+				return $this->conversion_state_error( 'sequence', $markers['event_conversion_started']['id'] ?? 0 );
+			}
+			$expected_version = $markers['event_conversion_started']['payload']['data']['expected_version'];
+			if ( isset( $markers['event_conversion_failed'] ) && ( $markers['event_conversion_failed']['payload']['data']['booking_version'] ?? null ) !== $expected_version ) {
+				return $this->conversion_state_error( 'failed_version', $markers['event_conversion_failed']['id'] );
+			}
+			if ( isset( $markers['event_converted'] ) && ( $markers['event_converted']['payload']['data']['version'] ?? null ) !== $expected_version + 1 ) {
+				return $this->conversion_state_error( 'completed_version', $markers['event_converted']['id'] );
+			}
+			$latest               = array(
+				'attempt'   => $attempt,
+				'markers'   => $markers,
+				'terminals' => $terminals,
+				'status'    => isset( $markers['event_conversion_failed'] ) ? 'failed' : ( isset( $markers['event_converted'] ) ? 'completed' : 'pending' ),
+			);
+			$previous_terminal_id = is_array( $terminal ) ? (int) $terminal['id'] : 0;
+			++$expected_attempt;
+		}
+		$markers   = $latest['markers'];
+		$completed = $markers['event_converted'] ?? null;
+		$failed    = $markers['event_conversion_failed'] ?? null;
+		return array(
+			'attempt'   => $latest['attempt'],
+			'status'    => $completed ? 'completed' : ( $failed ? 'failed' : 'pending' ),
+			'pending'   => ! $completed && ! $failed,
+			'started'   => $markers['event_conversion_started'],
+			'failed'    => $failed,
+			'completed' => $completed,
+		);
+	}
+
+	private function conversion_state_error( string $detail, int $activity_id ): \WP_Error {
+		return new \WP_Error(
+			'booking_event_conversion_state_invalid',
+			__( 'Booking event conversion activity is malformed or inconsistent.', 'extrachill-events' ),
+			array(
+				'status'      => 409,
+				'repairable'  => true,
+				'detail'      => $detail,
+				'activity_id' => $activity_id,
+			)
+		);
+	}
+
 	/** Find an existing booking-scoped idempotent activity. */
 	private function find_by_idempotency( int $booking_id, string $key ) {
 		global $wpdb;

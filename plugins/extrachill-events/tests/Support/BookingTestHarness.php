@@ -9,12 +9,14 @@ use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingMutationService;
+use ExtraChillEvents\Core\BookingEventConversionService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Abilities\VenueBookingAbilities;
 use ExtraChillEvents\Abilities\VenueBookingHoldAbilities;
 use ExtraChillEvents\Abilities\VenueBookingMutationAbilities;
+use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
 use ExtraChillEvents\Core\VenueAuthorization;
 
 if ( ! defined( 'ARRAY_A' ) ) {
@@ -138,6 +140,15 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 		return $state['post_meta'][ $state['blog_id'] ][ $post_id ][ $key ] ?? '';
 	}
 }
+if ( ! function_exists( 'wp_get_object_terms' ) ) {
+	function wp_get_object_terms( $post_id, $taxonomy, $args = array() ) {
+		if ( 'venue' !== $taxonomy ) {
+			return array();
+		}
+		$ids = $GLOBALS['ec_artist_test']['event_venues'][ get_current_blog_id() ][ $post_id ] ?? array();
+		return ( $args['fields'] ?? '' ) === 'ids' ? $ids : array();
+	}
+}
 if ( ! function_exists( 'get_option' ) ) {
 	function get_option( $key, $default = false ) {
 		return $GLOBALS['ec_artist_test']['options'][ $key ] ?? $default; }
@@ -179,6 +190,14 @@ if ( ! function_exists( 'add_action' ) ) {
 if ( ! function_exists( 'wp_register_ability' ) ) {
 	function wp_register_ability( $name, $definition ) {
 		$GLOBALS['ec_artist_test']['abilities'][ $name ] = $definition; }
+}
+if ( ! function_exists( 'wp_get_ability' ) ) {
+	function wp_get_ability( $name ) {
+		return $GLOBALS['ec_artist_test']['ability_objects'][ $name ] ?? null; }
+}
+if ( ! function_exists( 'get_permalink' ) ) {
+	function get_permalink( $post_id ) {
+		return $GLOBALS['ec_artist_test']['permalinks'][ get_current_blog_id() ][ $post_id ] ?? 'https://events.example/event/' . (int) $post_id; }
 }
 if ( ! function_exists( 'wp_cache_delete' ) ) {
 	function wp_cache_delete( $key, $group = '' ) {
@@ -232,6 +251,7 @@ final class BookingWpdb {
 	public $reads_before_failure              = null;
 	public $last_query                        = '';
 	public $fail_activity_inserts             = false;
+	public $fail_activity_kinds               = array();
 	public $fail_transaction_start            = false;
 	public $fail_transaction_commit           = false;
 	public $fail_transaction_rollback         = false;
@@ -246,6 +266,7 @@ final class BookingWpdb {
 	public $release_lock_result               = 1;
 	public $lock_names                        = array();
 	public $event_dates                       = array();
+	public $booking_lock_queries              = 0;
 	public $elapse_hold_after_membership_lock = null;
 	public $elapse_hold_before_release_update = null;
 	public $elapse_hold_before_conversion_update = null;
@@ -314,7 +335,7 @@ final class BookingWpdb {
 
 	public function insert( $table, $row ) {
 		$this->last_error = '';
-		if ( $this->fail_inserts || ( $this->fail_activity_inserts && false !== strpos( $table, 'ec_booking_activity' ) ) ) {
+		if ( $this->fail_inserts || ( false !== strpos( $table, 'ec_booking_activity' ) && ( $this->fail_activity_inserts || in_array( $row['kind'] ?? '', $this->fail_activity_kinds, true ) ) ) ) {
 			$this->last_error = 'simulated insert failure';
 			return false;
 		}
@@ -372,6 +393,14 @@ final class BookingWpdb {
 			return false;
 		}
 		return 1;
+	}
+
+	/** Make a simulated second-connection commit survive this connection's rollback. */
+	public function simulate_external_commit( callable $write ): void {
+		$write();
+		if ( is_array( $this->transaction_snapshot ) ) {
+			$this->transaction_snapshot = $this->rows;
+		}
 	}
 
 	public function get_var( $query ) {
@@ -475,6 +504,9 @@ final class BookingWpdb {
 			return null;
 		}
 		$table = $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' );
+		if ( ! $is_activity && ! $is_hold && false !== strpos( $query, 'FOR UPDATE' ) ) {
+			++$this->booking_lock_queries;
+		}
 		if ( preg_match( '/WHERE id = (\d+)/', $query, $match ) ) {
 			$row = $this->rows[ $table ][ (int) $match[1] ] ?? null;
 			if ( is_array( $row ) && false !== strpos( $query, 'AS database_now' ) ) {
@@ -652,6 +684,27 @@ final class BookingWpdb {
 				$row['database_now'] = $database_now;
 			}
 			unset( $row );
+		}
+		if ( $is_activity && false !== strpos( $query, "kind IN ('event_conversion_started', 'event_conversion_failed', 'event_converted')" ) ) {
+			preg_match( "/idempotency_key LIKE '([^']+)%'/", $query, $key_prefix );
+			$prefix = isset( $key_prefix[1] ) ? stripslashes( $key_prefix[1] ) : '';
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) use ( $prefix ) {
+						return in_array( $row['kind'], array( 'event_conversion_started', 'event_conversion_failed', 'event_converted' ), true ) || ( '' !== $prefix && 0 === strpos( (string) $row['idempotency_key'], $prefix ) );
+					}
+				)
+			);
+			usort( $rows, static function ( $left, $right ) { return $left['id'] <=> $right['id']; } );
+		}
+		if ( $is_hold && false !== strpos( $query, "status = 'converted'" ) ) {
+			foreach ( array( 'space_key', 'start_at', 'end_at' ) as $field ) {
+				if ( preg_match( "/{$field} = '([^']+)'/", $query, $exact ) ) {
+					$rows = array_values( array_filter( $rows, static function ( $row ) use ( $field, $exact ) { return $row[ $field ] === stripslashes( $exact[1] ); } ) );
+				}
+			}
+			$rows = array_values( array_filter( $rows, static function ( $row ) { return null !== $row['converted_at']; } ) );
 		}
 		$filters     = array( 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'assignee_user_id', 'booking_id' );
 		foreach ( $filters as $field ) {
@@ -925,11 +978,13 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingActivityRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingHoldRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingMutationService.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingEventConversionService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingLifecycle.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingHoldAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingMutationAbilities.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingEventAbilities.php';
 
 final class BookingTestAuthorization extends VenueAuthorization {
 	public $calls   = array();

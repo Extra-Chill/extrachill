@@ -180,6 +180,21 @@ class BookingRepository {
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
 
+	/** Read and lock one booking inside an existing transaction. */
+	public function get_for_update( int $id ) {
+		global $wpdb;
+		$id = $this->positive_id( $id, 'booking_id', false );
+		if ( is_wp_error( $id ) ) {
+			return $id;
+		}
+		$table = BookingSchema::bookings_table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1 FOR UPDATE", $id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate row lock inside a caller-owned transaction.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_read_failed', __( 'The booking could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return is_array( $row ) ? $this->hydrate( $row ) : null;
+	}
+
 	/** List bookings for one venue with bounded optional filters. */
 	public function list( array $filters ) {
 		global $wpdb;

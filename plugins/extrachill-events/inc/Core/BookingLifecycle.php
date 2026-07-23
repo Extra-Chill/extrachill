@@ -252,6 +252,23 @@ class BookingLifecycle {
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
+		$locked = $this->bookings->get_for_update( $booking_id );
+		if ( ! is_array( $locked ) ) {
+			return $this->rollback( is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) ) );
+		}
+		if ( (int) $locked['version'] !== $expected_version ) {
+			return $this->rollback( $this->version_conflict( $locked ) );
+		}
+		$conversion = $this->check_event_conversion_pending( $locked );
+		if ( is_wp_error( $conversion ) ) {
+			return $this->rollback( $conversion );
+		}
+		if ( null !== $locked['event_id'] ) {
+			return $this->rollback( new \WP_Error( 'booking_event_artist_frozen', __( 'Public event performer identity is frozen; use the event correction path to synchronize artist changes.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+		}
+		if ( ( $locked['artist_term_id'] && null !== $term_id && $locked['artist_term_id'] !== $term_id ) || ( $locked['artist_profile_id'] && null !== $profile_id && $locked['artist_profile_id'] !== $profile_id ) ) {
+			return $this->rollback( new \WP_Error( 'booking_artist_already_bound', __( 'Existing booking artist bindings cannot be replaced implicitly.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+		}
 		$changes = array();
 		if ( null !== $term_id ) {
 			$changes['artist_term_id'] = $term_id;
@@ -374,8 +391,20 @@ class BookingLifecycle {
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
-		$set    = array();
-		$values = array();
+		$locked = $this->bookings->get_for_update( $current['id'] );
+		if ( ! is_array( $locked ) ) {
+			return $this->rollback( is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) ) );
+		}
+		if ( (int) $locked['version'] !== $expected_version ) {
+			return $this->rollback( $this->version_conflict( $locked ) );
+		}
+		$conversion = $this->check_event_conversion_pending( $locked );
+		if ( is_wp_error( $conversion ) ) {
+			return $this->rollback( $conversion );
+		}
+		$current = $locked;
+		$set     = array();
+		$values  = array();
 		foreach ( $changes as $column => $value ) {
 			if ( null === $value ) {
 				$set[] = "{$column} = NULL";
@@ -426,6 +455,17 @@ class BookingLifecycle {
 		}
 		$committed = $this->commit();
 		return is_wp_error( $committed ) ? $committed : $this->bookings->get( $current['id'] );
+	}
+
+	/** Fail closed before any lifecycle-owned version change while conversion runs. */
+	private function check_event_conversion_pending( array $booking ) {
+		$state = $this->activity->event_conversion_state( $booking['id'], $booking['public_id'] );
+		if ( is_wp_error( $state ) ) {
+			return $state;
+		}
+		return $state['pending']
+			? new \WP_Error( 'booking_event_conversion_pending', __( 'The booking cannot change while event conversion is pending.', 'extrachill-events' ), array( 'status' => 409 ) )
+			: true;
 	}
 
 	/** Start the aggregate transaction. */
