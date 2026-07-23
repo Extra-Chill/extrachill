@@ -98,7 +98,26 @@ $handoff_token = (string) ( $handoff_query['ec_browser_handoff'] ?? '' );
 auth_fuzz_assert( 200 === $handoff->get_status() && 64 === strlen( $handoff_token ), 'Valid browser handoff was not created.' );
 $handoff_key = 'ec_browser_handoff_' . hash( 'sha256', $handoff_token );
 auth_fuzz_assert( is_array( get_site_transient( $handoff_key ) ), 'Browser handoff was not stored under its token hash.' );
-$consumed_handoff = extrachill_users_consume_browser_handoff_token( $handoff_token );
+$claim_control_key = 'ec_browser_handoff_claim_control_' . hash( 'sha256', $handoff_token );
+$main_site_id      = get_main_site_id();
+$consumer_site_id  = (int) get_sites( array( 'number' => 1, 'site__not_in' => array( $main_site_id ), 'fields' => 'ids' ) )[0];
+
+switch_to_blog( $main_site_id );
+try {
+	delete_option( $claim_control_key );
+	auth_fuzz_assert( add_option( $claim_control_key, 'winner', '', false ), 'Real options storage could not create an atomic claim.' );
+	auth_fuzz_assert( ! add_option( $claim_control_key, 'loser', '', false ), 'Real options storage allowed a duplicate atomic claim.' );
+	delete_option( $claim_control_key );
+} finally {
+	restore_current_blog();
+}
+
+switch_to_blog( $consumer_site_id );
+try {
+	$consumed_handoff = extrachill_users_consume_browser_handoff_token( $handoff_token );
+} finally {
+	restore_current_blog();
+}
 auth_fuzz_assert( is_array( $consumed_handoff ) && (int) $consumed_handoff['user_id'] === (int) $existing->ID, 'Valid browser handoff could not be consumed.' );
 auth_fuzz_assert( is_wp_error( extrachill_users_consume_browser_handoff_token( $handoff_token ) ), 'Browser handoff token was reusable.' );
 

@@ -19,8 +19,9 @@ The browser handoff system lets a user authenticate in a non-browser client (e.g
 - Function: `extrachill_users_consume_browser_handoff_token( string $token )`
 - File: `inc/auth-tokens/browser-handoff-token.php`
 - Behavior:
-  - Reads payload from the site transient
-  - Deletes the transient immediately (single-use)
+  - Atomically claims a hashed key in the network main site's options table
+  - Reads and deletes the site-transient payload while holding the claim
+  - Releases only its own claim; scheduled expiry cleans claims after interruption
   - Returns `WP_Error( 'invalid_handoff_token', ... )` on invalid/expired tokens
 
 ### Browser handler
