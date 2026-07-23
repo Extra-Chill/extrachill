@@ -137,7 +137,7 @@ function extrachill_events_transform_venue_detail( array $venue ): array {
 		'website'                  => $venue['website'] ?? null,
 		'phone'                    => $venue['phone'] ?? null,
 		'capacity'                 => $venue['capacity'] ?? null,
-		'url'                      => $venue['url'] ?? null,
+		'url'                      => (string) ( $venue['url'] ?? '' ),
 		'event_count'              => isset( $venue['event_count'] ) ? (int) $venue['event_count'] : null,
 		'distance'                 => isset( $venue['distance'] ) ? (float) $venue['distance'] : null,
 		'upcoming_events_at_venue' => $venue['upcoming_events_at_venue'] ?? array(),

@@ -153,6 +153,7 @@ final class CanonicalAdapterContractsTest extends TestCase {
 		}
 		$this->assertSame( '970 Morrison Dr, Charleston, SC, 29403', $list[0]['formatted_address'] );
 		$this->assertSame( 7, $list[0]['event_count'] );
+		$this->assertSame( '', $detail['url'] );
 	}
 
 	public function test_duplicate_check_delegates_all_identity_evidence_and_returns_canonical_venue(): void {
