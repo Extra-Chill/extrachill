@@ -43,6 +43,7 @@ function extrachill_api_register_contact_submit_route() {
 					'required'          => true,
 					'type'              => 'string',
 					'format'            => 'email',
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_email',
 				),
 				'subject'            => array(
