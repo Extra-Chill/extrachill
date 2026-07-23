@@ -8,12 +8,17 @@ cross-site cookie continuity, captures evidence, and destroys the runtime.
 
 ```bash
 AUTH_FUZZ_COMPONENTS_FILE=/absolute/path/components.json \
-AUTH_FUZZ_WORDPRESS_VERSION=nightly \
+AUTH_FUZZ_WORDPRESS_VERSION=7.0.2 \
 AUTH_FUZZ_PHP_VERSION=8.4 \
 AUTH_FUZZ_SEED=auth-campaign-001 \
 AUTH_FUZZ_ARTIFACT_ROOT=/absolute/path/artifacts \
 node tests/e2e/auth-multisite/run.mjs
 ```
+
+The campaign defaults to WordPress `7.0.2` and rejects every other version so
+security evidence cannot accidentally come from a nightly or moving runtime.
+Potential WordPress Core vulnerabilities must be retained privately and shared
+with the project security team rather than filed in a public issue.
 
 The component manifest must point to clean Git checkouts at exact full commit
 revisions. The Users checkout must have ignored release assets generated with

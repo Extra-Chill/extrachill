@@ -8,6 +8,7 @@ import { buildCasePlan } from './cases.mjs';
 
 const execFileAsync = promisify(execFile);
 const immutableRevision = /^[0-9a-f]{40}$/i;
+export const requiredWordPressVersion = '7.0.2';
 
 export const root = path.dirname(fileURLToPath(import.meta.url));
 export const repositoryRoot = path.resolve(root, '../../..');
@@ -42,7 +43,9 @@ export async function readComponents(file = process.env.AUTH_FUZZ_COMPONENTS_FIL
 }
 
 export function buildSettings(components, wordpressVersion, phpVersion, seed) {
-  if (!wordpressVersion) throw new Error('AUTH_FUZZ_WORDPRESS_VERSION is required.');
+  if (wordpressVersion !== requiredWordPressVersion) {
+    throw new Error(`Authentication fuzzing requires WordPress ${requiredWordPressVersion}; received ${wordpressVersion || 'no version'}.`);
+  }
   if (!phpVersion) throw new Error('AUTH_FUZZ_PHP_VERSION is required.');
   const plan = buildCasePlan(seed);
   const provenance = buildProvenance(components, wordpressVersion, phpVersion, plan);

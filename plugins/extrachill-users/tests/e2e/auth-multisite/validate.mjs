@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { buildCasePlan } from './cases.mjs';
-import { buildSettings, componentFiles, readComponents, root } from './settings.mjs';
+import { buildSettings, componentFiles, readComponents, requiredWordPressVersion, root } from './settings.mjs';
 
 const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'auth-fuzz-validate-'));
 try {
@@ -25,11 +25,13 @@ try {
   await writeFile(manifestFile, `${JSON.stringify(manifest)}\n`);
   const components = await readComponents(manifestFile, { enforceUsersRoot: false });
   const plan = buildCasePlan('validation-seed');
-  const settings = buildSettings(components, 'nightly', '8.4', plan.seed);
+  const settings = buildSettings(components, requiredWordPressVersion, '8.4', plan.seed);
 
   assert.deepEqual(buildCasePlan('validation-seed'), plan);
   assert.notEqual(buildCasePlan('different-seed').generated_email, plan.generated_email);
   assert.equal(settings.wordpress_multisite_synthetic_fixture, false);
+  assert.equal(settings.wordpress_runtime_version, '7.0.2');
+  assert.throws(() => buildSettings(components, 'nightly', '8.4', plan.seed), /requires WordPress 7\.0\.2/);
   assert.equal(settings.wp_codebox_extra_plugins.length, 6);
   assert.equal(settings.wp_codebox_extra_themes.length, 1);
   assert.equal(settings.wordpress_runtime_prepare_steps.length, 5);

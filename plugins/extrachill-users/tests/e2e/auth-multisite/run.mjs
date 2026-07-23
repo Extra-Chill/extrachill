@@ -3,10 +3,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { buildCasePlan } from './cases.mjs';
-import { buildProvenance, buildSettings, readComponents } from './settings.mjs';
+import { buildProvenance, buildSettings, readComponents, requiredWordPressVersion } from './settings.mjs';
 
 const components = await readComponents();
-const wordpress = process.env.AUTH_FUZZ_WORDPRESS_VERSION;
+const wordpress = process.env.AUTH_FUZZ_WORDPRESS_VERSION || requiredWordPressVersion;
 const php = process.env.AUTH_FUZZ_PHP_VERSION;
 const seed = process.env.AUTH_FUZZ_SEED || 'extrachill-auth-fuzz';
 const artifactRoot = path.resolve(process.env.AUTH_FUZZ_ARTIFACT_ROOT || 'artifacts/auth-fuzz');
