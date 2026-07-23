@@ -32,6 +32,7 @@ function extrachill_api_register_auth_register_route() {
 					'required'          => true,
 					'type'              => 'string',
 					'format'            => 'email',
+					'maxLength'         => 254,
 					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_email',
 				),
