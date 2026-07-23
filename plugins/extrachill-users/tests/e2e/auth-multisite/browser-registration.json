@@ -1,0 +1,21 @@
+{
+  "url": "/login/#tab-register",
+  "profile": "desktop-chrome",
+  "captures": ["steps", "console", "errors", "html", "network", "screenshot", "dom-snapshot"],
+  "steps": [
+    {"kind": "expect", "selector": "#extrachill_email", "state": "visible"},
+    {"kind": "fill", "selector": "#extrachill_email", "value": "browser-auth-fuzz@example.test"},
+    {"kind": "fill", "selector": "#extrachill_password", "value": "browser-pass-248"},
+    {"kind": "fill", "selector": "#extrachill_password_confirm", "value": "browser-pass-248"},
+    {"kind": "click", "selector": "input[name='extrachill_register']"},
+    {"kind": "waitFor", "selector": "#extrachill-onboarding-form", "timeout": "30s"},
+    {"kind": "fill", "selector": "#onboarding-username", "value": "traveler_auth_fuzz"},
+    {"kind": "click", "selector": "#onboarding-submit"},
+    {"kind": "waitFor", "selector": ".logged-in-status", "timeout": "30s"},
+    {"kind": "navigate", "url": "/artist/login/", "waitFor": "load"},
+    {"kind": "expect", "selector": ".logged-in-status", "state": "visible"},
+    {"kind": "navigate", "url": "/events/login/", "waitFor": "load"},
+    {"kind": "expect", "selector": ".logged-in-status", "state": "visible"}
+  ],
+  "assertions": [{"type": "noPageErrors"}]
+}
