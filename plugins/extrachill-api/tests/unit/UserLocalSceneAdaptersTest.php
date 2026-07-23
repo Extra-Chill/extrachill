@@ -60,4 +60,16 @@ class UserLocalSceneAdaptersTest extends TestCase {
 		$this->assertStringContainsString( "'local_city'", $source );
 		$this->assertStringContainsString( "\$input['local_city']", $source );
 	}
+
+	/**
+	 * Optional onboarding scenes are omitted instead of forwarded as null.
+	 */
+	public function test_onboarding_adapter_only_forwards_a_supplied_local_scene() {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local fixture.
+		$source = file_get_contents( dirname( __DIR__, 2 ) . '/inc/routes/users/onboarding.php' );
+
+		$this->assertStringContainsString( "is_string( \$local_scene ) && '' !== \$local_scene", $source );
+		$this->assertStringContainsString( "\$input['local_scene'] = \$local_scene", $source );
+		$this->assertStringNotContainsString( "'local_scene'            => \$request->get_param( 'local_scene' )", $source );
+	}
 }
