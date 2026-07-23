@@ -32,6 +32,7 @@ class VenueBookingEventAbilities {
 		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
 		$this->conversion    = $conversion ? $conversion : new BookingEventConversionService( $this->bookings, null, null, $this->authorization );
 		add_filter( 'datamachine_events_upsert_event_permission', array( $this, 'can_upsert_booking_event' ), 10, 2 );
+		add_filter( 'extrachill_events_canonical_event_excluded_booking_id', array( $this, 'excluded_booking_id_for_active_conversion' ), 10, 3 );
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
@@ -87,6 +88,34 @@ class VenueBookingEventAbilities {
 			(int) $this->active_conversion['venue_term_id'],
 			VenueAuthorization::ACTION_ACCESS_VENUE
 		);
+	}
+
+	/** Exempt only the exact booking in the active authorized conversion wrapper. */
+	public function excluded_booking_id_for_active_conversion( int $booking_id, array $input, array $publication ): int {
+		unset( $booking_id );
+		if ( ! is_array( $this->active_conversion ) ) {
+			return 0;
+		}
+		$candidate_match = false;
+		$candidate_intervals = (array) ( $publication['_candidate_intervals'] ?? array() );
+		if ( empty( $candidate_intervals ) && isset( $publication['start_at'], $publication['end_at'] ) ) {
+			$candidate_intervals[] = array( 'start_at' => $publication['start_at'], 'end_at' => $publication['end_at'] );
+		}
+		foreach ( $candidate_intervals as $interval ) {
+			if ( $this->active_conversion['performance_start_at'] === ( $interval['start_at'] ?? '' )
+				&& $this->active_conversion['performance_end_at'] === ( $interval['end_at'] ?? '' ) ) {
+				$candidate_match = true;
+				break;
+			}
+		}
+		if ( BookingEventConversionService::SOURCE !== ( $input['source'] ?? '' )
+			|| $this->active_conversion['public_id'] !== ( $input['source_id'] ?? '' )
+			|| (int) $this->active_conversion['venue_term_id'] !== (int) ( $publication['venue_id'] ?? 0 )
+			|| ! $candidate_match ) {
+			return 0;
+		}
+
+		return (int) $this->active_conversion['id'];
 	}
 
 	/** Missing records deliberately use the same denial as inaccessible records. */

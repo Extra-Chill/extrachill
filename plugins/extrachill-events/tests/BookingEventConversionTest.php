@@ -29,6 +29,7 @@ final class BookingConversionAbilityFake {
 
 final class BookingEventConversionTest extends TestCase {
 	protected function setUp(): void {
+		$GLOBALS['ec_test_filters'] = array();
 		$GLOBALS['ec_artist_test'] = array(
 			'blog_id'         => 7,
 			'stack'           => array(),
@@ -238,9 +239,19 @@ final class BookingEventConversionTest extends TestCase {
 		$authorization = new BookingTestAuthorization();
 		$wrapper       = null;
 		$this->install_ability(
-			function ( array $input ) use ( &$wrapper ): array {
+			function ( array $input ) use ( &$wrapper, $booking ): array {
+				$publication = array(
+					'venue_id' => $booking['venue_term_id'],
+					'start_at' => $booking['performance_start_at'],
+					'end_at'   => $booking['performance_end_at'],
+				);
 				$this->assertTrue( $wrapper->can_upsert_booking_event( false, $input ) );
 				$this->assertFalse( $wrapper->can_upsert_booking_event( false, array_merge( $input, array( 'source_id' => 'another-booking' ) ) ) );
+				$this->assertSame( $booking['id'], apply_filters( 'extrachill_events_canonical_event_excluded_booking_id', 0, $input, $publication ) );
+				$this->assertSame( 0, apply_filters( 'extrachill_events_canonical_event_excluded_booking_id', 0, array_merge( $input, array( 'source_id' => 'another-booking' ) ), $publication ) );
+				$this->assertSame( 0, apply_filters( 'extrachill_events_canonical_event_excluded_booking_id', 0, $input, array_merge( $publication, array( 'venue_id' => 999 ) ) ) );
+				$this->assertSame( 0, apply_filters( 'extrachill_events_canonical_event_excluded_booking_id', 0, $input, array_merge( $publication, array( 'start_at' => '2030-01-01 00:00:00' ) ) ) );
+				$this->assertSame( 0, apply_filters( 'extrachill_events_canonical_event_excluded_booking_id', 0, $input, array_merge( $publication, array( 'end_at' => '2030-01-01 01:00:00' ) ) ) );
 				$this->add_event( 901 );
 				$this->add_event_source_proof( 901, $input );
 				return $this->upstream_result( $input );
@@ -255,6 +266,15 @@ final class BookingEventConversionTest extends TestCase {
 			$wrapper->can_upsert_booking_event(
 				false,
 				array( 'source' => BookingEventConversionService::SOURCE, 'source_id' => $booking['public_id'] )
+			)
+		);
+		$this->assertSame(
+			0,
+			apply_filters(
+				'extrachill_events_canonical_event_excluded_booking_id',
+				0,
+				array( 'source' => BookingEventConversionService::SOURCE, 'source_id' => $booking['public_id'] ),
+				array( 'venue_id' => $booking['venue_term_id'], 'start_at' => $booking['performance_start_at'], 'end_at' => $booking['performance_end_at'] )
 			)
 		);
 	}

@@ -10,6 +10,7 @@ use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingMutationService;
 use ExtraChillEvents\Core\BookingEventConversionService;
+use ExtraChillEvents\Core\CanonicalEventPublicationGuard;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
@@ -142,11 +143,19 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 }
 if ( ! function_exists( 'wp_get_object_terms' ) ) {
 	function wp_get_object_terms( $post_id, $taxonomy, $args = array() ) {
+		if ( ! empty( $GLOBALS['ec_artist_test']['venue_terms_error'] ) ) {
+			return new WP_Error( 'venue_terms_read_failed', 'simulated venue taxonomy read failure' );
+		}
 		if ( 'venue' !== $taxonomy ) {
 			return array();
 		}
 		$ids = $GLOBALS['ec_artist_test']['event_venues'][ get_current_blog_id() ][ $post_id ] ?? array();
 		return ( $args['fields'] ?? '' ) === 'ids' ? $ids : array();
+	}
+}
+if ( ! function_exists( 'parse_blocks' ) ) {
+	function parse_blocks( $content ) {
+		return $GLOBALS['ec_artist_test']['parsed_blocks'][ $content ] ?? array();
 	}
 }
 if ( ! function_exists( 'get_option' ) ) {
@@ -264,6 +273,8 @@ final class BookingWpdb {
 	public $natural_key_reads_in_transaction  = 0;
 	public $get_lock_result                   = 1;
 	public $release_lock_result               = 1;
+	public $release_lock_results              = array();
+	public $release_lock_errors               = array();
 	public $lock_names                        = array();
 	public $event_dates                       = array();
 	public $booking_lock_queries              = 0;
@@ -412,11 +423,23 @@ final class BookingWpdb {
 		}
 		if ( preg_match( "/SELECT RELEASE_LOCK\('([^']+)'\)/", $query, $match ) ) {
 			$this->lock_names[] = array( 'release', stripslashes( $match[1] ) );
-			return $this->release_lock_result;
+			$result = empty( $this->release_lock_results ) ? $this->release_lock_result : array_shift( $this->release_lock_results );
+			if ( ! empty( $this->release_lock_errors ) ) {
+				$this->last_error = (string) array_shift( $this->release_lock_errors );
+			}
+			return $result;
 		}
 		if ( preg_match( "/SELECT id FROM .*ec_booking_holds WHERE id = (\d+) AND status = 'active' AND expires_at <= UTC_TIMESTAMP\(\)/", $query, $match ) ) {
 			$row = $this->rows[ $this->prefix . 'ec_booking_holds' ][ (int) $match[1] ] ?? null;
 			return is_array( $row ) && 'active' === $row['status'] && $row['expires_at'] <= $database_now ? $row['id'] : null;
+		}
+		if ( preg_match( "/SELECT id FROM .*ec_bookings WHERE public_id = '([^']+)' AND status = 'confirmed'/", $query, $match ) ) {
+			foreach ( $this->rows[ $this->prefix . 'ec_bookings' ] ?? array() as $row ) {
+				if ( $row['public_id'] === stripslashes( $match[1] ) && 'confirmed' === $row['status'] ) {
+					return $row['id'];
+				}
+			}
+			return null;
 		}
 		if ( preg_match( "/SELECT id FROM .*ec_booking_holds WHERE booking_id = (\d+) AND venue_term_id = (\d+) AND space_key = '([^']+)' AND start_at = '([^']+)' AND end_at = '([^']+)'.*expires_at > UTC_TIMESTAMP\(\).*id <> (\d+)/", $query, $match ) ) {
 			foreach ( $this->rows[ $this->prefix . 'ec_booking_holds' ] ?? array() as $row ) {
@@ -513,6 +536,47 @@ final class BookingWpdb {
 				$row['database_now'] = $this->current_database_time();
 			}
 			return $row; }
+		if ( ! $is_hold && false !== strpos( $query, "performance_end_at, 'confirmed_booking' AS conflict_type" ) && preg_match( '/event_id = (\d+)/', $query, $match ) ) {
+			foreach ( $this->rows[ $table ] ?? array() as $row ) {
+				if ( (int) ( $row['event_id'] ?? 0 ) === (int) $match[1] && 'confirmed' === $row['status'] ) {
+					return array_merge( $row, array( 'conflict_type' => 'confirmed_booking' ) );
+				}
+			}
+			return null;
+		}
+		if ( $is_hold && false !== strpos( $query, "space_key, 'hold' AS conflict_type" ) ) {
+			preg_match( "/venue_term_id = (\d+).*start_at < '([^']+)'.*end_at > '([^']+)'.*booking_id = (\d+)/", $query, $match );
+			preg_match_all( "/\(start_at = '([^']+)' AND end_at = '([^']+)'\)/", $query, $exact_matches, PREG_SET_ORDER );
+			foreach ( $this->rows[ $table ] ?? array() as $row ) {
+				$exact_exempt = (int) $row['booking_id'] === (int) $match[4] && array_filter( $exact_matches, static fn( array $exact ): bool => $row['start_at'] === $exact[1] && $row['end_at'] === $exact[2] );
+				if ( (int) $row['venue_term_id'] === (int) $match[1] && 'active' === $row['status'] && $row['expires_at'] > $database_now && $row['start_at'] < $match[2] && $row['end_at'] > $match[3] && ! $exact_exempt ) {
+					return array(
+						'id'            => $row['id'],
+						'booking_id'    => $row['booking_id'],
+						'space_key'     => $row['space_key'],
+						'conflict_type' => 'hold',
+					);
+				}
+			}
+			return null;
+		}
+		if ( ! $is_hold && false !== strpos( $query, "space_key, 'confirmed_booking' AS conflict_type" ) ) {
+			preg_match( "/venue_term_id = (\d+).*performance_start_at < '([^']+)'.*performance_end_at > '([^']+)'.*id = (\d+) OR event_id = (\d+)/", $query, $match );
+			preg_match_all( "/\(performance_start_at = '([^']+)' AND performance_end_at = '([^']+)'\)/", $query, $exact_matches, PREG_SET_ORDER );
+			foreach ( $this->rows[ $table ] ?? array() as $row ) {
+				$origin = ( (int) $match[4] > 0 && (int) $row['id'] === (int) $match[4] )
+					|| ( (int) $match[5] > 0 && (int) ( $row['event_id'] ?? 0 ) === (int) $match[5] );
+				$exact_exempt = $origin && array_filter( $exact_matches, static fn( array $exact ): bool => $row['performance_start_at'] === $exact[1] && $row['performance_end_at'] === $exact[2] );
+				if ( (int) $row['venue_term_id'] === (int) $match[1] && 'confirmed' === $row['status'] && $row['performance_start_at'] < $match[2] && $row['performance_end_at'] > $match[3] && ! $exact_exempt ) {
+					return array(
+						'id'            => $row['id'],
+						'space_key'     => $row['space_key'],
+						'conflict_type' => 'confirmed_booking',
+					);
+				}
+			}
+			return null;
+		}
 		if ( $is_hold && false !== strpos( $query, 'booking_id =' ) ) {
 			foreach ( $this->rows[ $table ] ?? array() as $row ) {
 				if ( preg_match( '/booking_id = (\d+)/', $query, $match ) && (int) $row['booking_id'] !== (int) $match[1] ) {
@@ -981,6 +1045,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingMutationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingEventConversionService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingLifecycle.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingConfig.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/CanonicalEventPublicationGuard.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingHoldAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingMutationAbilities.php';
@@ -1011,5 +1076,31 @@ final class BookingTestConfig extends VenueBookingConfig {
 		unset( $venue_term_id );
 		$GLOBALS['wpdb']->last_error = 'simulated config read failure';
 		return array( 'enabled' => true );
+	}
+}
+
+final class BookingTestVenueTaxonomy {
+	public static function resolve_venue_identity( string $venue_name, array $venue_data = array() ): array {
+		unset( $venue_data );
+		foreach ( $GLOBALS['ec_artist_test']['terms'][ get_current_blog_id() ] ?? array() as $term ) {
+			if ( 'venue' === $term->taxonomy && 0 === strcasecmp( $term->name, $venue_name ) ) {
+				return array( 'term_id' => (int) $term->term_id, 'match_status' => 'matched' );
+			}
+		}
+		return array( 'term_id' => null, 'match_status' => 'no_match' );
+	}
+}
+
+if ( ! class_exists( '\\DataMachineEvents\\Core\\Venue_Taxonomy' ) ) {
+	class_alias( BookingTestVenueTaxonomy::class, '\\DataMachineEvents\\Core\\Venue_Taxonomy' );
+}
+
+final class BookingTestRestRequest {
+	private $params;
+	public function __construct( array $params ) {
+		$this->params = $params;
+	}
+	public function get_param( string $key ) {
+		return $this->params[ $key ] ?? null;
 	}
 }

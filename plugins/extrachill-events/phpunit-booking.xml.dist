@@ -12,6 +12,7 @@
 			<file>tests/BookingHoldTest.php</file>
 			<file>tests/BookingMutationTest.php</file>
 			<file>tests/BookingEventConversionTest.php</file>
+			<file>tests/CanonicalEventPublicationGuardTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

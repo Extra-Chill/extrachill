@@ -217,8 +217,9 @@ class BookingHoldRepository {
 			return new \WP_Error( 'invalid_booking_performance', __( 'A configured space and strict UTC performance range are required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 		$venue_id = (int) $booking['venue_term_id'];
-		return $this->with_lock(
-			$this->lock_name( $booking['venue_term_id'], $space_key ),
+		return $this->with_booking_locks(
+			(int) $booking['venue_term_id'],
+			$space_key,
 			function () use ( $booking_id, $expected_version, $space_key, $start_at, $end_at, $actor_id, $venue_id ) {
 				$started = $this->begin_authorized( $venue_id, $actor_id );
 				if ( is_wp_error( $started ) ) {
@@ -321,10 +322,10 @@ class BookingHoldRepository {
 		if ( is_wp_error( $selection ) ) {
 			return $selection;
 		}
-		$lock     = $this->lock_name( $booking['venue_term_id'], $booking['space_key'] );
 		$venue_id = (int) $booking['venue_term_id'];
-		$result   = $this->with_lock(
-			$lock,
+		$result   = $this->with_booking_locks(
+			$venue_id,
+			(string) $booking['space_key'],
 			function () use ( $booking_id, $expected_booking_version, $actor_id, $venue_id ) {
 				$started = $this->begin_authorized( $venue_id, $actor_id );
 				if ( is_wp_error( $started ) ) {
@@ -475,8 +476,9 @@ class BookingHoldRepository {
 			return is_wp_error( $reconciled ) ? $reconciled : $this->hold_not_active_error();
 		}
 		$venue_id = (int) $hold['venue_term_id'];
-		$result   = $this->with_lock(
-			$this->lock_name( $hold['venue_term_id'], $hold['space_key'] ),
+		$result   = $this->with_booking_locks(
+			$venue_id,
+			(string) $hold['space_key'],
 			function () use ( $hold_id, $expected_version, $actor_id, $reason, $venue_id ) {
 				$started = $this->begin_authorized( $venue_id, $actor_id );
 				if ( is_wp_error( $started ) ) {
@@ -677,8 +679,9 @@ class BookingHoldRepository {
 		if ( is_wp_error( $elapsed ) || ! $elapsed ) {
 			return is_wp_error( $elapsed ) ? $elapsed : $this->hydrate( $hold );
 		}
-		return $this->with_lock(
-			$this->lock_name( $hold['venue_term_id'], $hold['space_key'] ),
+		return $this->with_booking_locks(
+			(int) $hold['venue_term_id'],
+			(string) $hold['space_key'],
 			function () use ( $hold_id ) {
 				$hold = $this->raw_get( $hold_id );
 				if ( ! is_array( $hold ) || 'active' !== $hold['status'] ) {
@@ -785,9 +788,10 @@ class BookingHoldRepository {
 		if ( in_array( $to_status, array( 'held', 'confirmed' ), true ) && ! is_array( $hold ) ) {
 			return new \WP_Error( 'booking_matching_hold_required', __( 'This transition requires an exact active unexpired hold.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		$lock = is_array( $hold ) ? $this->lock_name( $hold['venue_term_id'], $hold['space_key'] ) : $this->lock_name( $booking['venue_term_id'], (string) $booking['space_key'] );
-		return $this->with_lock(
-			$lock,
+		$space_key = is_array( $hold ) ? (string) $hold['space_key'] : (string) $booking['space_key'];
+		return $this->with_booking_locks(
+			(int) $booking['venue_term_id'],
+			$space_key,
 			function () use ( $booking, $to_status, $expected_version, $actor_id, $note ) {
 				$started = $this->begin_authorized( $booking['venue_term_id'], $actor_id );
 				if ( is_wp_error( $started ) ) {
@@ -1078,7 +1082,23 @@ class BookingHoldRepository {
 		return $result;
 	}
 
-	private function lock_name( int $venue_id, string $space_key ): string {
+	/** Acquire the stable venue domain before its narrower venue-space lock. */
+	private function with_booking_locks( int $venue_id, string $space_key, callable $callback ) {
+		return $this->with_lock(
+			self::venue_lock_name( $venue_id ),
+			function () use ( $venue_id, $space_key, $callback ) {
+				return $this->with_lock( self::venue_space_lock_name( $venue_id, $space_key ), $callback );
+			}
+		);
+	}
+
+	/** Return the shared advisory-lock name for all booking writes at one venue. */
+	public static function venue_lock_name( int $venue_id ): string {
+		return 'ecbv:' . sha1( BookingSchema::holds_table() . ':' . $venue_id );
+	}
+
+	/** Return the shared advisory-lock name for one venue space. */
+	public static function venue_space_lock_name( int $venue_id, string $space_key ): string {
 		return 'ecbh:' . sha1( BookingSchema::holds_table() . ':' . $venue_id . ':' . $space_key );
 	}
 

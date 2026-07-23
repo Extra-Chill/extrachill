@@ -150,14 +150,16 @@ final class BookingHoldTest extends TestCase {
 		$this->assertSame( 'active', $holds->create( $adjacent['id'], 1, 12 )['hold']['status'] );
 		$patio = $this->booking( '2030-08-01 23:00:00', '2030-08-02 01:00:00', 'patio' );
 		$this->assertSame( 'active', $holds->create( $patio['id'], 1, 12 )['hold']['status'] );
-		$this->assertSame( $GLOBALS['wpdb']->lock_names[0][1], $GLOBALS['wpdb']->lock_names[2][1], 'The same venue-space must produce the same lock name.' );
-		$this->assertNotSame( $GLOBALS['wpdb']->lock_names[0][1], $GLOBALS['wpdb']->lock_names[4][1], 'Different spaces must not share a lock.' );
+		$this->assertSame( BookingHoldRepository::venue_lock_name( 55 ), $GLOBALS['wpdb']->lock_names[0][1], 'Booking writers must acquire the venue lock first.' );
+		$this->assertSame( $GLOBALS['wpdb']->lock_names[0][1], $GLOBALS['wpdb']->lock_names[4][1], 'The same venue must produce the same outer lock name.' );
+		$this->assertSame( $GLOBALS['wpdb']->lock_names[1][1], $GLOBALS['wpdb']->lock_names[5][1], 'The same venue-space must produce the same inner lock name.' );
+		$this->assertNotSame( $GLOBALS['wpdb']->lock_names[1][1], $GLOBALS['wpdb']->lock_names[9][1], 'Different spaces must not share an inner lock.' );
 		$this->assertLessThanOrEqual( 64, strlen( $GLOBALS['wpdb']->lock_names[0][1] ) );
 		$first_lock = $GLOBALS['wpdb']->lock_names[0][1];
 		$GLOBALS['wpdb']->prefix = 'wp_8_';
 		$other_site = $this->booking( '2030-10-01 20:00:00', '2030-10-01 23:00:00' );
 		$holds->create( $other_site['id'], 1, 12 );
-		$this->assertNotSame( $first_lock, $GLOBALS['wpdb']->lock_names[6][1], 'Different site tables must not share advisory locks.' );
+		$this->assertNotSame( $first_lock, $GLOBALS['wpdb']->lock_names[12][1], 'Different site tables must not share advisory locks.' );
 	}
 
 	public function test_same_space_conflicts_different_space_succeeds_and_elapsed_never_blocks(): void {
