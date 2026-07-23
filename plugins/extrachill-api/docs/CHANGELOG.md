@@ -2,6 +2,17 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.26.1] - 2026-07-23
+
+### Fixed
+- align API PHP runtime requirements
+- require HTTPS browser handoffs
+- bound public email inputs
+- enforce REST email schemas
+- validate REST email types safely
+- omit empty onboarding Local Scene
+- preserve route affinity transport invariants
+
 ## [0.26.0] - 2026-07-20
 
 ### Added
