@@ -37,7 +37,7 @@ function extrachill_api_register_content_blocks_image_voting_vote_route() {
 				'email_address' => array(
 					'required'          => true,
 					'type'              => 'string',
-					'validate_callback' => 'is_email',
+					'format'            => 'email',
 					'sanitize_callback' => 'sanitize_email',
 				),
 			),
