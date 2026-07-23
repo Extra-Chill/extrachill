@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.37.1] - 2026-07-23
+
+### Changed
+- assert moderated login denial
+- establish canonical moderated persona
+- adversarially probe authentication invariants
+- strengthen auth identity oracles
+- diagnose auth cookie continuity
+- keep auth redirects inside sandbox
+- provision auth pages explicitly
+- route auth browser cases through WordPress
+- correct network auth fuzz oracles
+- add multisite auth fuzz campaign
+
+### Fixed
+- throttle account login aliases together
+- reject non-HTTPS browser handoffs
+- rehydrate user after onboarding rename
+- clear unclaimed state after password claim
+
 ## [0.37.0] - 2026-07-22
 
 ### Added
