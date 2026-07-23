@@ -34,7 +34,16 @@ foreach ( array( 'artist', 'events' ) as $surface ) {
 }
 global $wpdb;
 $table = function_exists( 'extrachill_analytics_events_table' ) ? extrachill_analytics_events_table() : $wpdb->base_prefix . 'extrachill_analytics_events';
-$registrations = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE event_type = %s AND user_id = %d", 'user_registration', $browser_user->ID ) );
+$registration_rows = $wpdb->get_col( $wpdb->prepare( "SELECT event_data FROM {$table} WHERE event_type = %s", 'user_registration' ) );
+$registrations = count(
+	array_filter(
+		$registration_rows,
+		static function ( $event_data ) use ( $browser_user ) {
+			$decoded = json_decode( (string) $event_data, true );
+			return is_array( $decoded ) && (int) ( $decoded['user_id'] ?? 0 ) === (int) $browser_user->ID;
+		}
+	)
+);
 $completions = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE event_type = %s AND user_id = %d", 'onboarding_completed', $browser_user->ID ) );
 if ( 1 !== $registrations || 1 !== $completions ) {
 	throw new RuntimeException( sprintf( 'Expected one registration and completion event; got %d/%d.', $registrations, $completions ) );

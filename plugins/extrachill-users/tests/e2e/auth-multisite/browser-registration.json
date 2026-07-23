@@ -15,9 +15,9 @@
     {"kind": "click", "selector": "#onboarding-submit"},
     {"kind": "waitFor", "selector": "body.home", "timeout": "30s"},
     {"kind": "navigate", "url": "/artist/?pagename=login&auth_fuzz_observe=artist", "waitFor": "load"},
-    {"kind": "expect", "selector": "[data-ec-login-register-root]", "state": "attached"},
+    {"kind": "expect", "selector": ".logged-in-status", "state": "visible"},
     {"kind": "navigate", "url": "/events/?pagename=login&auth_fuzz_observe=events", "waitFor": "load"},
-    {"kind": "expect", "selector": "[data-ec-login-register-root]", "state": "attached"}
+    {"kind": "expect", "selector": ".logged-in-status", "state": "visible"}
   ],
   "assertions": [{"type": "noPageErrors"}]
 }

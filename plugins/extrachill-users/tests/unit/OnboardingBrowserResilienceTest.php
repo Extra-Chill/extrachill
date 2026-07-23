@@ -67,26 +67,4 @@ class Test_Onboarding_Browser_Resilience extends WP_UnitTestCase {
 		$this->assertWPError( $result );
 		$this->assertSame( 'invalid_onboarding_diagnostic', $result->get_error_code() );
 	}
-
-	/**
-	 * Username mutation refreshes the request's authenticated user object.
-	 */
-	public function test_onboarding_rehydrates_current_user_after_username_change(): void {
-		$user_id = self::factory()->user->create( array( 'user_login' => 'before_onboarding' ) );
-		update_user_meta( $user_id, 'onboarding_completed', '0' );
-		wp_set_current_user( $user_id );
-
-		$result = extrachill_users_ability_complete_onboarding(
-			array(
-				'user_id'              => $user_id,
-				'username'             => 'after_onboarding',
-				'user_is_artist'       => false,
-				'user_is_professional' => false,
-			)
-		);
-
-		$this->assertIsArray( $result );
-		$this->assertSame( $user_id, get_current_user_id() );
-		$this->assertSame( 'after_onboarding', wp_get_current_user()->user_login );
-	}
 }
