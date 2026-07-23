@@ -682,8 +682,11 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 
 	clean_user_cache( $user_id );
 
-	// Refresh auth session.
-	wp_set_current_user( $user_id );
+	// Rehydrate the renamed user before refreshing the auth session. Core returns
+	// the existing global unchanged when wp_set_current_user() receives the same
+	// ID, which would leave downstream hooks observing the pre-onboarding login.
+	wp_set_current_user( 0 );
+	wp_set_current_user( $user_id, $username );
 	wp_set_auth_cookie( $user_id, true );
 
 	/**
