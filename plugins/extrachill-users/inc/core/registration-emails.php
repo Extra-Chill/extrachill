@@ -188,8 +188,8 @@ function extrachill_send_welcome_email_complete( $user_data ) {
 
 	$subject = 'Welcome to the Extra Chill Community!';
 
-	$body_html  = "<p>Welcome to <strong>Extra Chill</strong>! Now that you're here, this place is a lot more chill!</p>";
-	$body_html .= '<p>With your account, you can now participate in community discussions, comment on posts, and follow your favorite artists.</p>';
+	$body_html  = "<p>Welcome to <strong>Extra Chill</strong>! Now that you're here, this place is a lot more chill.</p>";
+	$body_html .= '<p>Make yourself at home. You can join discussions, comment on stories, track concerts, and keep up with replies and activity through notifications.</p>';
 	$body_html .= '<p><strong>Account Details:</strong><br>';
 	$body_html .= 'Username: <strong>' . esc_html( $username ) . '</strong><br>';
 	$body_html .= 'If you forget your password, you can reset it <a href="' . esc_url( $reset_pass_link ) . '">here</a>.</p>';
@@ -205,8 +205,8 @@ function extrachill_send_welcome_email_complete( $user_data ) {
 				'subject_html'   => esc_html( $subject ),
 				'body_html'      => $body_html,
 				'recipient_name' => $username,
-				'cta_url'        => $community_url . '/t/introductions-thread',
-				'cta_label'      => 'Introduce Yourself',
+				'cta_url'        => $community_url,
+				'cta_label'      => 'See What’s Happening',
 				'preheader'      => 'Welcome to Extra Chill — your account is ready.',
 			),
 		)
@@ -233,19 +233,23 @@ function extrachill_send_welcome_email_complete( $user_data ) {
  */
 function extrachill_send_welcome_email_incomplete( $user_data ) {
 	$email         = $user_data->user_email;
-	$profile_url   = ec_get_site_url( 'community' ) . '/settings/';
 	$community_url = ec_get_site_url( 'community' );
+	$profile_url   = $community_url . '/settings/';
+	$events_url    = ec_get_site_url( 'events' );
+	$artist_url    = ec_get_site_url( 'artist' );
 
-	$subject = 'Your Extra Chill account is ready';
+	$subject = 'Make yourself at home at Extra Chill';
 
-	$body_html  = '<p>Welcome to <strong>Extra Chill</strong>! Your account is ready, and you can jump in whenever you want.</p>';
-	$body_html .= '<p><strong>Make your profile yours</strong> by adding a photo, bio, links, username, and local scene. You can do that now or come back to it later.</p>';
-	$body_html .= '<p>Your account lets you:</p>';
-	$body_html .= '<ul><li>Join community discussions and comment on stories</li>';
-	$body_html .= '<li>Track concerts and see who else is going</li>';
-	$body_html .= '<li>Follow artists and keep up with notifications</li>';
-	$body_html .= '<li>Explore artist and music-industry tools</li></ul>';
-	$body_html .= '<p><a href="' . esc_url( $community_url ) . '">Visit the Extra Chill Community</a> anytime.</p>';
+	$body_html  = '<p>You’re in. <strong>Extra Chill</strong> is an online music scene: a place to keep up with the music around you, talk with people who care, and take part in what’s happening.</p>';
+	$body_html .= '<p>There’s no setup checklist. Make yourself at home:</p>';
+	$body_html .= '<ul><li><a href="' . esc_url( $community_url ) . '">See what people are talking about</a></li>';
+	$body_html .= '<li><a href="' . esc_url( $events_url ) . '">Find shows and track concerts</a></li>';
+	$body_html .= '<li><a href="' . esc_url( $profile_url ) . '">Make your profile yours</a> whenever you’re ready</li></ul>';
+	$body_html .= '<p><strong>A few quick answers</strong></p>';
+	$body_html .= '<p><strong>Do I need to finish my profile?</strong><br>Nope. Add a photo, bio, links, username, and local scene now or come back later.</p>';
+	$body_html .= '<p><strong>Is Extra Chill just a music blog?</strong><br>No. Stories are one part of an interconnected publication, community, event calendar, and set of artist tools.</p>';
+	$body_html .= '<p><strong>Where should I start?</strong><br>See what’s happening and jump in whenever something grabs you.</p>';
+	$body_html .= '<p>If you make music, you can also explore the <a href="' . esc_url( $artist_url ) . '">artist platform</a> whenever you’re ready.</p>';
 	$body_html .= '<p>Much love,<br>Extra Chill</p>';
 
 	$result = extrachill_send_registration_email(
@@ -256,9 +260,9 @@ function extrachill_send_welcome_email_incomplete( $user_data ) {
 			'context'  => array(
 				'subject_html' => esc_html( $subject ),
 				'body_html'    => $body_html,
-				'cta_url'      => $profile_url,
-				'cta_label'    => 'Customize Your Profile',
-				'preheader'    => 'Your account is ready. Make your profile yours whenever you have time.',
+				'cta_url'      => $community_url,
+				'cta_label'    => 'See What’s Happening',
+				'preheader'    => 'You’re in. See what’s happening and make yourself at home.',
 			),
 		)
 	);
