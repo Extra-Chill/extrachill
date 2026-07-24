@@ -6,7 +6,10 @@ import { createRoot } from 'react-dom/client';
 import { BlockShell, BlockShellHeader, BlockShellInner, Panel, ResponsiveTabs } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 
-function GoogleButtons( { redirectUrl } ) {
+export function GoogleButtons( { redirectUrl, registration = false } ) {
+	const buttonLabel = registration ? 'Sign up with Google' : 'Continue with Google';
+	const googleText = registration ? 'signup_with' : 'continue_with';
+
 	// When redirectUrl is set, this subsite is NOT the canonical Google
 	// origin — render a styled link that sends the user to the canonical
 	// login page instead of trying to render the GIS button here (which
@@ -33,10 +36,10 @@ function GoogleButtons( { redirectUrl } ) {
 								<path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
 							</svg>
 						</span>
-						<span className="google-signin-button__label">Continue with Google</span>
+						<span className="google-signin-button__label">{ buttonLabel }</span>
 					</a>
 				) : (
-					<div className="google-signin-button"></div>
+					<div className="google-signin-button" data-google-text={ googleText }></div>
 				) }
 			</div>
 		</>
@@ -247,7 +250,7 @@ export function LoginPanel( { config, notice, setNotice } ) {
 	);
 }
 
-function RegisterPanel( { config, notice, setNotice } ) {
+export function RegisterPanel( { config, notice, setNotice } ) {
 	const panelRef = useRef( null );
 
 	useEffect( () => {
@@ -359,7 +362,7 @@ function RegisterPanel( { config, notice, setNotice } ) {
 					</div>
 					<div className="login-register-turnstile" dangerouslySetInnerHTML={ { __html: config.turnstileHtml } } />
 				</form>
-				{ config.googleOAuthEnabled && <GoogleButtons redirectUrl={ config.googleSignInRedirectUrl } /> }
+				{ config.googleOAuthEnabled && <GoogleButtons redirectUrl={ config.googleSignInRedirectUrl } registration={ true } /> }
 			</div>
 		</Panel>
 	);

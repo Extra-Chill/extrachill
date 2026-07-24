@@ -92,7 +92,7 @@ function extrachill_notify_admin_new_user( $user_id, $registration_page, $regist
 	$body_html .= '<strong>Registration Source:</strong> ' . esc_html( $source_label ) . ' (' . esc_html( $method_label ) . ')<br>';
 	$body_html .= '<strong>Registration Page:</strong> ' . esc_html( $page_display ) . '</p>';
 	$body_html .= '<p><a href="' . esc_url( $edit_url ) . '">Edit user in admin</a></p>';
-	$body_html .= '<p><em>Note: User has not yet completed onboarding — profile URL not available until username is chosen.</em></p>';
+	$body_html .= '<p><em>Note: User has not yet customized their profile.</em></p>';
 
 	$result = extrachill_send_registration_email(
 		array(
@@ -226,25 +226,26 @@ function extrachill_send_welcome_email_complete( $user_data ) {
 /**
  * Send welcome email for users who haven't completed onboarding.
  *
- * Encourages user to complete their account setup.
+ * Encourages optional profile customization after account creation.
  *
  * @param WP_User $user_data User data object.
  * @return bool True if email sent successfully.
  */
 function extrachill_send_welcome_email_incomplete( $user_data ) {
-	$email           = $user_data->user_email;
-	$reset_pass_link = ec_get_site_url( 'community' ) . '/reset-password/';
-	$onboarding_url  = ec_get_site_url( 'community' ) . '/onboarding/';
+	$email         = $user_data->user_email;
+	$profile_url   = ec_get_site_url( 'community' ) . '/settings/';
+	$community_url = ec_get_site_url( 'community' );
 
-	$subject = 'Complete Your Extra Chill Account Setup!';
+	$subject = 'Your Extra Chill account is ready';
 
-	$body_html  = "<p>Welcome to <strong>Extra Chill</strong>! You're almost ready to join the community.</p>";
-	$body_html .= '<p><strong><a href="' . esc_url( $onboarding_url ) . '">Complete your account setup</a></strong> to choose your username and get started.</p>';
-	$body_html .= '<p>Once set up, you can participate in community discussions, comment on posts, and follow your favorite artists.</p>';
-	$body_html .= '<p><strong>Account Details:</strong><br>';
-	$body_html .= 'Email: <strong>' . esc_html( $email ) . '</strong><br>';
-	$body_html .= 'If you forget your password, you can reset it <a href="' . esc_url( $reset_pass_link ) . '">here</a>.</p>';
-	$body_html .= '<p>See you around!</p>';
+	$body_html  = '<p>Welcome to <strong>Extra Chill</strong>! Your account is ready, and you can jump in whenever you want.</p>';
+	$body_html .= '<p><strong>Make your profile yours</strong> by adding a photo, bio, links, username, and local scene. You can do that now or come back to it later.</p>';
+	$body_html .= '<p>Your account lets you:</p>';
+	$body_html .= '<ul><li>Join community discussions and comment on stories</li>';
+	$body_html .= '<li>Track concerts and see who else is going</li>';
+	$body_html .= '<li>Follow artists and keep up with notifications</li>';
+	$body_html .= '<li>Explore artist and music-industry tools</li></ul>';
+	$body_html .= '<p><a href="' . esc_url( $community_url ) . '">Visit the Extra Chill Community</a> anytime.</p>';
 	$body_html .= '<p>Much love,<br>Extra Chill</p>';
 
 	$result = extrachill_send_registration_email(
@@ -255,9 +256,9 @@ function extrachill_send_welcome_email_incomplete( $user_data ) {
 			'context'  => array(
 				'subject_html' => esc_html( $subject ),
 				'body_html'    => $body_html,
-				'cta_url'      => $onboarding_url,
-				'cta_label'    => 'Complete Your Account Setup',
-				'preheader'    => 'Finish setting up your Extra Chill account.',
+				'cta_url'      => $profile_url,
+				'cta_label'    => 'Customize Your Profile',
+				'preheader'    => 'Your account is ready. Make your profile yours whenever you have time.',
 			),
 		)
 	);

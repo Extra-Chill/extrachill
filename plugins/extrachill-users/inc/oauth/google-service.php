@@ -244,6 +244,41 @@ function ec_get_user_by_google_id( $google_id ) {
 }
 
 /**
+ * Resolve the destination after Google authentication.
+ *
+ * Artist/professional join requests still require onboarding. Ordinary account
+ * creation returns visitors to the Extra Chill feature that prompted login so
+ * profile customization can happen later.
+ *
+ * @param bool   $from_join             Whether the request came from /join.
+ * @param bool   $onboarding_completed Whether profile onboarding is complete.
+ * @param string $success_redirect_url  Requested post-auth destination.
+ * @param string $account_created_token Signed one-time confirmation token.
+ * @return string Safe post-auth destination.
+ */
+function ec_google_post_auth_redirect_url( $from_join, $onboarding_completed, $success_redirect_url, $account_created_token = '' ) {
+	if ( $from_join && ! $onboarding_completed ) {
+		$redirect_url = function_exists( 'ec_get_site_url' )
+			? ec_get_site_url( 'community' ) . '/onboarding/'
+			: home_url( '/onboarding/' );
+	} elseif ( '' !== (string) $success_redirect_url
+		&& function_exists( 'ec_users_is_valid_return_to_url' )
+		&& ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
+		$redirect_url = $from_join
+			? add_query_arg( 'from_join', 'true', (string) $success_redirect_url )
+			: (string) $success_redirect_url;
+	} else {
+		$redirect_url = function_exists( 'ec_get_site_url' )
+			? ec_get_site_url( 'community' )
+			: home_url();
+	}
+
+	return '' !== $account_created_token
+		? add_query_arg( EC_USERS_GOOGLE_ACCOUNT_CREATED_PARAM, $account_created_token, $redirect_url )
+		: $redirect_url;
+}
+
+/**
  * Google OAuth login service.
  * Authenticates via Google, optionally sets cookies, and returns tokens.
  *
@@ -338,7 +373,8 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 	$access  = wp_native_auth_generate_access_token( (int) $user_id, $device_id );
 	$refresh = wp_native_auth_issue_refresh_token( (int) $user_id, $device_id, $device_name );
 
-	// Determine redirect URL.
+	// Preserve profile-completion state for progressive onboarding without
+	// making it an entry gate for ordinary Google registrations.
 	$onboarding_completed = function_exists( 'ec_is_onboarding_complete' )
 		? ec_is_onboarding_complete( $user_id )
 		: true;
@@ -356,23 +392,17 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 		$safe_success_redirect_url = (string) $success_redirect_url;
 	}
 
-	if ( $is_new || ! $onboarding_completed ) {
-		// Store where user should return after onboarding.
+	if ( $from_join && ! $onboarding_completed ) {
+		// The artist/professional join flow still completes onboarding before
+		// returning to its original destination.
+		update_user_meta( $user_id, 'onboarding_from_join', '1' );
 		if ( '' !== $safe_success_redirect_url ) {
 			update_user_meta( $user_id, 'onboarding_redirect_url', $safe_success_redirect_url );
 		}
-
-		$redirect_url = function_exists( 'ec_get_site_url' )
-			? ec_get_site_url( 'community' ) . '/onboarding/'
-			: home_url( '/onboarding/' );
-		// Existing user with completed onboarding - redirect to success URL or community home.
-	} elseif ( '' !== $safe_success_redirect_url ) {
-		$redirect_url = $safe_success_redirect_url;
-	} else {
-		$redirect_url = function_exists( 'ec_get_site_url' )
-			? ec_get_site_url( 'community' )
-			: home_url();
 	}
+
+	$account_created_token = $is_new && $set_cookie ? wp_create_nonce( 'ec_google_account_created' ) : '';
+	$redirect_url          = ec_google_post_auth_redirect_url( $from_join, $onboarding_completed, $safe_success_redirect_url, $account_created_token );
 
 	return array(
 		'success'              => true,

@@ -1,12 +1,12 @@
 <?php
 /**
- * Tests for the public profile onboarding gate.
+ * Tests for progressive public profile onboarding.
  *
  * @package ExtraChill\Users
  */
 
 /**
- * Verify profile writes use the canonical onboarding lifecycle state.
+ * Verify profile writes remain available throughout the onboarding lifecycle.
  */
 class Test_User_Profile_Onboarding_Gate extends WP_UnitTestCase {
 
@@ -31,9 +31,9 @@ class Test_User_Profile_Onboarding_Gate extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Incomplete users cannot publish profile fields or links.
+	 * Incomplete users can customize profile fields and links later.
 	 */
-	public function test_incomplete_user_cannot_update_public_profile(): void {
+	public function test_incomplete_user_can_update_public_profile(): void {
 		$user_id = $this->create_authenticated_user();
 		update_user_meta( $user_id, 'onboarding_completed', '0' );
 
@@ -54,13 +54,11 @@ class Test_User_Profile_Onboarding_Gate extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertWPError( $profile_result );
-		$this->assertSame( 'onboarding_incomplete', $profile_result->get_error_code() );
-		$this->assertWPError( $links_result );
-		$this->assertSame( 'onboarding_incomplete', $links_result->get_error_code() );
-		$this->assertSame( '', get_userdata( $user_id )->description );
-		$this->assertSame( '', get_user_meta( $user_id, 'ec_custom_title', true ) );
-		$this->assertSame( '', get_user_meta( $user_id, '_user_profile_dynamic_links', true ) );
+		$this->assertNotWPError( $profile_result );
+		$this->assertNotWPError( $links_result );
+		$this->assertSame( 'Promotional profile', get_userdata( $user_id )->description );
+		$this->assertSame( 'Promotional title', get_user_meta( $user_id, 'ec_custom_title', true ) );
+		$this->assertCount( 1, get_user_meta( $user_id, '_user_profile_dynamic_links', true ) );
 	}
 
 	/**

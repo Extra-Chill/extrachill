@@ -8,6 +8,27 @@ class Test_Google_Canonical_Origin extends WP_UnitTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		require_once dirname( __DIR__, 2 ) . '/inc/oauth/google-canonical-origin.php';
+		add_filter( 'allowed_redirect_hosts', array( $this, 'allow_extra_chill_test_hosts' ) );
+	}
+
+	protected function tearDown(): void {
+		remove_filter( 'allowed_redirect_hosts', array( $this, 'allow_extra_chill_test_hosts' ) );
+		unset( $_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] );
+		parent::tearDown();
+	}
+
+	public function allow_extra_chill_test_hosts( $hosts ): array {
+		return array_merge(
+			$hosts,
+			array(
+				'extrachill.com',
+				'community.extrachill.com',
+				'studio.extrachill.com',
+				'artist.extrachill.com',
+				'shop.extrachill.com',
+				'events.extrachill.com',
+			)
+		);
 	}
 
 	// -----------------------------------------------------------------
@@ -114,6 +135,13 @@ class Test_Google_Canonical_Origin extends WP_UnitTestCase {
 		$this->assertStringContainsString( '/login/', $url );
 	}
 
+	public function test_canonical_signin_url_preserves_join_requirement(): void {
+		$url = ec_users_canonical_google_signin_url( 'https://artist.extrachill.com/create-artist/', true );
+
+		$this->assertStringContainsString( 'from_join=true', $url );
+		$this->assertStringContainsString( EC_USERS_GOOGLE_REDIRECT_PARAM, $url );
+	}
+
 	public function test_canonical_signin_url_appends_encoded_return_to(): void {
 		$url = ec_users_canonical_google_signin_url( 'https://studio.extrachill.com/compose?draft=42' );
 
@@ -156,8 +184,4 @@ class Test_Google_Canonical_Origin extends WP_UnitTestCase {
 		$this->assertNull( ec_users_get_validated_google_redirect_from_request() );
 	}
 
-	protected function tearDown(): void {
-		unset( $_GET[ EC_USERS_GOOGLE_REDIRECT_PARAM ] );
-		parent::tearDown();
-	}
 }
