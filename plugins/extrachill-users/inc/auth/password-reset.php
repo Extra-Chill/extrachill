@@ -146,7 +146,105 @@ add_action( 'after_password_reset', 'extrachill_users_clear_unclaimed_after_pass
  */
 function ec_get_password_reset_attempt_key() {
 	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+	if ( '' === $ip ) {
+		return '';
+	}
+
 	return 'ec_password_reset_attempts_' . md5( $ip );
+}
+
+const EXTRACHILL_USERS_PASSWORD_RESET_RATE_LIMIT  = 5;
+const EXTRACHILL_USERS_PASSWORD_RESET_RATE_WINDOW = 15 * MINUTE_IN_SECONDS;
+const EXTRACHILL_USERS_PASSWORD_RESET_CACHE_GROUP = 'extrachill-users-password-reset-rate-limit';
+
+/**
+ * Return a stable error when atomic password-reset accounting is unavailable.
+ *
+ * @return WP_Error Storage error.
+ */
+function ec_password_reset_limiter_unavailable_error() {
+	return new WP_Error(
+		'ec_password_reset_limiter_unavailable',
+		__( 'Password reset is temporarily unavailable. Please try again.', 'extrachill-users' )
+	);
+}
+
+/**
+ * Run one password-reset rate-limit storage operation.
+ *
+ * @param string   $operation Operation name: get or increment.
+ * @param string   $key       Hashed requester key.
+ * @param int|null $now       Optional Unix timestamp for deterministic tests.
+ * @return int|WP_Error Current attempt count, or an error on storage failure.
+ */
+function ec_password_reset_rate_limit_cache_operation( $operation, $key, $now = null ) {
+	if ( ! function_exists( 'wp_using_ext_object_cache' )
+		|| ! wp_using_ext_object_cache()
+		|| ! function_exists( 'wp_cache_add' )
+		|| ! function_exists( 'wp_cache_incr' )
+	) {
+		return ec_password_reset_limiter_unavailable_error();
+	}
+
+	$now         = null === $now ? time() : (int) $now;
+	$key        .= '_window_' . intdiv( $now, EXTRACHILL_USERS_PASSWORD_RESET_RATE_WINDOW );
+	$storage_ttl = 2 * EXTRACHILL_USERS_PASSWORD_RESET_RATE_WINDOW;
+	$found       = false;
+	if ( 'get' === $operation ) {
+		$count = wp_cache_get( $key, EXTRACHILL_USERS_PASSWORD_RESET_CACHE_GROUP, true, $found );
+		if ( $found ) {
+			return is_numeric( $count ) ? (int) $count : ec_password_reset_limiter_unavailable_error();
+		}
+
+		if ( wp_cache_add( $key, 0, EXTRACHILL_USERS_PASSWORD_RESET_CACHE_GROUP, $storage_ttl ) ) {
+			return 0;
+		}
+
+		$count = wp_cache_get( $key, EXTRACHILL_USERS_PASSWORD_RESET_CACHE_GROUP, true, $found );
+		return $found && is_numeric( $count ) ? (int) $count : ec_password_reset_limiter_unavailable_error();
+	}
+
+	if ( 'increment' !== $operation ) {
+		return ec_password_reset_limiter_unavailable_error();
+	}
+
+	if ( wp_cache_add( $key, 1, EXTRACHILL_USERS_PASSWORD_RESET_CACHE_GROUP, $storage_ttl ) ) {
+		return 1;
+	}
+
+	$count = wp_cache_incr( $key, 1, EXTRACHILL_USERS_PASSWORD_RESET_CACHE_GROUP );
+	return false === $count || ! is_numeric( $count ) ? ec_password_reset_limiter_unavailable_error() : (int) $count;
+}
+
+/**
+ * Use the configured password-reset rate-limit store.
+ *
+ * Tests can replace this callable to provide deterministic barriers without a
+ * persistent object cache in the WP Codebox SQLite runtime.
+ *
+ * @param string $operation Operation name.
+ * @param string $key       Hashed limiter key.
+ * @return int|WP_Error Current attempt count, or an error on storage failure.
+ */
+function ec_password_reset_rate_limit_store( $operation, $key ) {
+	if ( '' === $key ) {
+		return ec_password_reset_limiter_unavailable_error();
+	}
+
+	/**
+	 * Filter the atomic password-reset rate-limit storage callable.
+	 *
+	 * @param callable $store Storage callable accepting operation and key.
+	 */
+	$store = apply_filters( 'extrachill_users_password_reset_rate_limit_store', 'ec_password_reset_rate_limit_cache_operation' );
+	if ( ! is_callable( $store ) ) {
+		return ec_password_reset_limiter_unavailable_error();
+	}
+
+	$result = call_user_func( $store, $operation, $key, null );
+	return is_wp_error( $result ) || is_numeric( $result )
+		? $result
+		: ec_password_reset_limiter_unavailable_error();
 }
 
 /**
@@ -155,18 +253,17 @@ function ec_get_password_reset_attempt_key() {
  * @return bool True if blocked.
  */
 function ec_is_password_reset_blocked() {
-	$attempts = get_transient( ec_get_password_reset_attempt_key() );
-	return $attempts && $attempts >= 5;
+	$attempts = ec_password_reset_rate_limit_store( 'get', ec_get_password_reset_attempt_key() );
+	return is_wp_error( $attempts ) || $attempts >= EXTRACHILL_USERS_PASSWORD_RESET_RATE_LIMIT;
 }
 
 /**
  * Record a password reset request attempt.
+ *
+ * @return int|WP_Error Current attempt count, or an error on storage failure.
  */
 function ec_record_password_reset_attempt() {
-	$key      = ec_get_password_reset_attempt_key();
-	$attempts = get_transient( $key );
-	$attempts = $attempts ? $attempts + 1 : 1;
-	set_transient( $key, $attempts, 15 * MINUTE_IN_SECONDS );
+	return ec_password_reset_rate_limit_store( 'increment', ec_get_password_reset_attempt_key() );
 }
 
 /**
@@ -177,10 +274,6 @@ function ec_handle_password_reset_request() {
 
 	$redirect->verify_nonce( 'ec_password_reset_nonce', 'ec_password_reset_request' );
 
-	if ( ec_is_password_reset_blocked() ) {
-		$redirect->error( __( 'Too many password reset requests. Please try again in 15 minutes.', 'extrachill-users' ) );
-	}
-
 	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above through EC_Redirect_Handler.
 	$user_login = isset( $_POST['user_login'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['user_login'] ) ) ) : '';
 
@@ -188,7 +281,13 @@ function ec_handle_password_reset_request() {
 		$redirect->error( __( 'Please enter your email or username.', 'extrachill-users' ) );
 	}
 
-	ec_record_password_reset_attempt();
+	$attempts = ec_record_password_reset_attempt();
+	if ( is_wp_error( $attempts ) ) {
+		$redirect->error( $attempts->get_error_message() );
+	}
+	if ( $attempts > EXTRACHILL_USERS_PASSWORD_RESET_RATE_LIMIT ) {
+		$redirect->error( __( 'Too many password reset requests. Please try again in 15 minutes.', 'extrachill-users' ) );
+	}
 
 	/**
 	 * Fires before password reset processing.
