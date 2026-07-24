@@ -29,8 +29,8 @@ defined( 'ABSPATH' ) || exit;
 
 final class ImportOrchestrator {
 
-	public const HOOK         = 'extrachill_concert_import_process';
-	public const GROUP        = 'extrachill-concert-import';
+	public const HOOK            = 'extrachill_concert_import_process';
+	public const GROUP           = 'extrachill-concert-import';
 	public const STATUS_PENDING  = 'pending';
 	public const STATUS_RUNNING  = 'running';
 	public const STATUS_COMPLETE = 'complete';
@@ -192,11 +192,11 @@ final class ImportOrchestrator {
 			return;
 		}
 
-		$events       = isset( $result['events'] ) && is_array( $result['events'] ) ? $result['events'] : array();
-		$total_pages  = isset( $result['total_pages'] ) ? max( 1, (int) $result['total_pages'] ) : $page;
-		$matcher      = new EventMatcher();
-		$events_blog  = $matcher->blog_id();
-		$source_slug  = (string) $run['source_slug'];
+		$events      = isset( $result['events'] ) && is_array( $result['events'] ) ? $result['events'] : array();
+		$total_pages = isset( $result['total_pages'] ) ? max( 1, (int) $result['total_pages'] ) : $page;
+		$matcher     = new EventMatcher();
+		$events_blog = $matcher->blog_id();
+		$source_slug = (string) $run['source_slug'];
 
 		$seen             = 0;
 		$matched          = 0;
@@ -242,9 +242,9 @@ final class ImportOrchestrator {
 				}
 
 				// 1. external_id idempotency check. The source's stable
-				//    identifier is more authoritative than name similarity, so
-				//    we look here BEFORE running the similarity matcher.
-				//    Re-imports for previously-created events become a no-op.
+				// identifier is more authoritative than name similarity, so
+				// we look here BEFORE running the similarity matcher.
+				// Re-imports for previously-created events become a no-op.
 				$resolved_id = EventCreator::find_by_external_id( $source_slug, $external->source_id );
 
 				// 2. Similarity match against existing events on the same date.
@@ -255,9 +255,9 @@ final class ImportOrchestrator {
 				$was_created = false;
 
 				// 3. Fall through to create. Skipping is data loss — every
-				//    other event-import path on the platform creates events,
-				//    and we already have the user's confirmation to bring this
-				//    history in.
+				// other event-import path on the platform creates events,
+				// and we already have the user's confirmation to bring this
+				// history in.
 				if ( null === $resolved_id ) {
 					$resolved_id = EventCreator::create( $external, $source_slug );
 					if ( null === $resolved_id ) {
@@ -431,7 +431,7 @@ final class ImportOrchestrator {
 
 	private static function update_run( int $run_id, array $changes ): void {
 		global $wpdb;
-		$table             = extrachill_users_concert_import_runs_table_name();
+		$table                 = extrachill_users_concert_import_runs_table_name();
 		$changes['updated_at'] = current_time( 'mysql', true );
 		$wpdb->update( $table, $changes, array( 'id' => $run_id ) );
 	}

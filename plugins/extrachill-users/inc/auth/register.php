@@ -133,7 +133,7 @@ function extrachill_users_validate_password_registration( string $email, string 
 	 * Production uses Extra Chill Network's verifier. Tests can substitute a
 	 * deterministic callable without making external Cloudflare requests.
 	 *
-	 * @param callable $verifier Turnstile verifier callable.
+	 * @param callable(string):(true|WP_Error)|string $verifier Turnstile verifier callable.
 	 */
 	$turnstile_verifier = apply_filters( 'extrachill_users_registration_turnstile_verifier', 'ec_turnstile_check_request' );
 	if ( ! is_callable( $turnstile_verifier ) ) {

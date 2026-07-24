@@ -48,7 +48,7 @@ function extrachill_send_registration_email( array $args ) {
 	}
 
 	$helper = '\DataMachine\Abilities\PermissionHelper';
-	if ( class_exists( $helper ) && method_exists( $helper, 'run_as_authenticated' ) ) {
+	if ( class_exists( $helper ) ) {
 		return $helper::run_as_authenticated(
 			static function () use ( $args ) {
 				return ec_send_email( $args );

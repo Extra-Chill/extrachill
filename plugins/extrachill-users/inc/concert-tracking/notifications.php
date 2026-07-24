@@ -97,7 +97,12 @@ add_action( 'ec_users_event_marked', 'ec_users_on_event_marked', 10, 3 );
 add_action( 'ec_users_event_unmarked', 'ec_users_on_event_unmarked', 10, 3 );
 add_action( EC_USERS_SHOW_REMINDER_ACTION, 'ec_users_deliver_show_reminder', 10, 3 );
 add_action( 'init', 'ec_users_stale_reminder_sweep_maybe_schedule' );
-add_action( EC_USERS_STALE_REMINDER_SWEEP_HOOK, 'ec_users_resolve_stale_show_reminders' );
+add_action(
+	EC_USERS_STALE_REMINDER_SWEEP_HOOK,
+	static function (): void {
+		ec_users_resolve_stale_show_reminders();
+	}
+);
 
 /**
  * React to a newly-marked event: schedule a reminder + check milestones.

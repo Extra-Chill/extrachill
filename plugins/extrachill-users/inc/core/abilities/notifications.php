@@ -221,8 +221,8 @@ function extrachill_users_register_notification_abilities() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'               => array( 'type' => 'integer' ),
-					'emails_enabled'        => array(
+					'user_id'                => array( 'type' => 'integer' ),
+					'emails_enabled'         => array(
 						'type'        => 'boolean',
 						'description' => 'True when the user receives unread-notification digest emails.',
 					),
@@ -256,7 +256,7 @@ function extrachill_users_register_notification_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'emails_enabled' => array(
+					'emails_enabled'         => array(
 						'type'        => 'boolean',
 						'description' => 'Set true to receive unread-notification digest emails, false to opt out.',
 					),

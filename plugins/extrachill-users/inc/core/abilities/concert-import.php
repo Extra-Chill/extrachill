@@ -184,11 +184,11 @@ function extrachill_users_shape_concert_import_source( $source, int $user_id ): 
 	$rate     = $source->rate_limit();
 
 	return array(
-		'slug'         => $slug,
-		'label'        => $source->label(),
-		'configured'   => $source->is_configured(),
-		'username'     => $username,
-		'rate_limit'   => array(
+		'slug'       => $slug,
+		'label'      => $source->label(),
+		'configured' => $source->is_configured(),
+		'username'   => $username,
+		'rate_limit' => array(
 			'requests_per_second' => isset( $rate['requests_per_second'] ) ? (float) $rate['requests_per_second'] : 0.0,
 			'requests_per_day'    => isset( $rate['requests_per_day'] ) ? (int) $rate['requests_per_day'] : 0,
 		),

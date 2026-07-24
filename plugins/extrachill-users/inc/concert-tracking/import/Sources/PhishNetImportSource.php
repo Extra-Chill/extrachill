@@ -140,7 +140,7 @@ final class PhishNetImportSource implements ImportSource {
 			return new \WP_Error( 'invalid_json', 'phish.net returned malformed JSON.' );
 		}
 
-		// phish.net v5 envelope: { error: false, error_message: "", data: [...] }
+		// phish.net v5 wraps response rows in a data envelope with error metadata.
 		if ( ! empty( $payload['error'] ) ) {
 			$msg = isset( $payload['error_message'] ) ? (string) $payload['error_message'] : 'phish.net API error.';
 			return new \WP_Error( 'phishnet_error', $msg );

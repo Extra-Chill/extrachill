@@ -93,8 +93,8 @@ if ( $registration_notice ) {
 	$initial_notice = $registration_notice;
 }
 
+// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only invite context from signed URL parameters for rendering.
 if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
-	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only invite context from signed URL parameters for rendering.
 	$token_from_url     = sanitize_text_field( wp_unslash( $_GET['token'] ) );
 	$artist_id_from_url = absint( $_GET['artist_id'] );
 

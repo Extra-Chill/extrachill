@@ -728,7 +728,6 @@ function ec_users_build_show_data( WP_Post $post, array $row ): array {
 				$deepest   = $term;
 			}
 		}
-		// @phpstan-ignore-next-line -- Defensive: $deepest is null when location_terms is empty, always set otherwise.
 		if ( null !== $deepest ) {
 			$city = array(
 				'name' => $deepest->name,
@@ -1162,8 +1161,8 @@ function ec_users_events_term_archive_url( string $slug, string $taxonomy, int $
 /**
  * Get users who marked an event.
  *
- * @param int $event_id Event post ID.
- * @param int $blog_id Blog ID (default: current blog).
+ * @param int   $event_id Event post ID.
+ * @param int   $blog_id Blog ID (default: current blog).
  * @param mixed $limit Max users to return (1-100). Default 10.
  * @return array<int, array{user_id: int, display_name: string, avatar_url: string, profile_url: string}> Attendee data, newest mark first.
  */
@@ -1180,6 +1179,7 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, $limit =
 
 	$table = extrachill_users_concert_tracking_table_name();
 
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifiers are trusted WordPress table names.
 	$user_ids = $wpdb->get_col(
 		$wpdb->prepare(
 			"SELECT user_id FROM {$table} ct
@@ -1190,13 +1190,14 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, $limit =
 				AND um.meta_key = %s
 				AND um.meta_value = 'private'
 			)
-			ORDER BY created_at DESC, id DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names are trusted WordPress tables.
+			ORDER BY created_at DESC, id DESC LIMIT %d",
 			$event_id,
 			$blog_id,
 			EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY,
 			$limit
 		)
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	$attendees = array();
 	foreach ( $user_ids as $uid ) {
@@ -1298,13 +1299,11 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 	);
 	$prepare = $past['prepare'];
 
-	// Build search clause if query provided.
-	if ( '' !== $query ) {
-		$like = '%' . $wpdb->esc_like( $query ) . '%';
+	$like = '%' . $wpdb->esc_like( $query ) . '%';
 
-		// Subquery: term-ids whose names match the query, restricted to artist/venue.
-		// We use IN (...) against tr.term_taxonomy_id via a join in OR clause.
-		$where[]   = '(p.post_title LIKE %s OR EXISTS (
+	// Subquery: term-ids whose names match the query, restricted to artist/venue.
+	// We use IN (...) against tr.term_taxonomy_id via a join in OR clause.
+	$where[]   = '(p.post_title LIKE %s OR EXISTS (
 			SELECT 1
 			FROM ' . $tr_table . ' tr2
 			INNER JOIN ' . $tt_table . ' tt2 ON tr2.term_taxonomy_id = tt2.term_taxonomy_id
@@ -1313,9 +1312,8 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 			  AND tt2.taxonomy IN (\'artist\', \'venue\')
 			  AND t2.name LIKE %s
 		))';
-		$prepare[] = $like;
-		$prepare[] = $like;
-	}
+	$prepare[] = $like;
+	$prepare[] = $like;
 
 	$where_sql = implode( ' AND ', $where );
 

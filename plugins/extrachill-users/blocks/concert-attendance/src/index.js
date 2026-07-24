@@ -11,11 +11,18 @@
  * the server's first-paint state (not an imperative control surface — the
  * React component owns all interaction after mount).
  *
- * @package ExtraChillUsers
+ * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import domReady from '@wordpress/dom-ready';
 import { createRoot } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
 import AttendanceButton from './AttendanceButton';
 
 domReady( () => {

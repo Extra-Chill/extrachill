@@ -120,7 +120,7 @@ function extrachill_users_ability_leaderboard( array $input ): array {
 		)
 	);
 
-	$total       = (int) $total_query->get_total();
+	$total = (int) $total_query->get_total();
 	// $per_page is clamped to 1..100 above, so the divisor is always > 0.
 	$total_pages = (int) ceil( $total / $per_page );
 

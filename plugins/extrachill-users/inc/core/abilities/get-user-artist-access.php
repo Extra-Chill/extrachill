@@ -69,6 +69,7 @@ function extrachill_users_register_get_user_artist_access_ability(): void {
  * @return array|WP_Error Artist access status or error.
  */
 function extrachill_users_ability_get_user_artist_access( array $input ): array|WP_Error {
+	unset( $input );
 	$user_id = get_current_user_id();
 
 	if ( ! $user_id ) {

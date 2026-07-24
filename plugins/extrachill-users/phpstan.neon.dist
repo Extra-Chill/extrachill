@@ -1,11 +1,27 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
 parameters:
 	level: 5
+	treatPhpDocTypesAsCertain: false
 	# Production runs PHP 8.4. Allow PHPStan to recognise native PHP 8.0+
 	# union types (e.g. `null|WP_Error`) and matching narrowing semantics.
 	phpVersion: 80000
+	excludePaths:
+		analyseAndScan:
+			- %currentWorkingDirectory%/../extrachill-network/tests/*
+			- %currentWorkingDirectory%/../extrachill-api/tests/*
+	ignoreErrors:
+		-
+			identifier: require.fileNotFound
+			path: inc/concert-tracking/buttons.php
+			count: 1
 	paths:
-		- extrachill-users.php
 		- inc
 		- blocks
-	stubFiles:
+	scanFiles:
+		- extrachill-users.php
 		- tests/phpstan-stubs.php
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
+	stubFiles:
+		- tests/phpstan-wordpress-overrides.php

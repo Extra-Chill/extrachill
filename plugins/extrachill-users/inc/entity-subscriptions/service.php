@@ -65,7 +65,7 @@ function extrachill_users_normalize_entity_subscription( $entity_type, $taxonomy
 /**
  * Subscribe a user to a canonical entity.
  *
- * @param int   $user_id User ID.
+ * @param int    $user_id User ID.
  * @param string $entity_type Entity type.
  * @param string $taxonomy Taxonomy.
  * @param string $slug Entity slug.
@@ -102,7 +102,7 @@ function extrachill_users_subscribe_to_entity( $user_id, $entity_type, $taxonomy
 /**
  * Unsubscribe a user from a canonical entity.
  *
- * @param int $user_id User ID.
+ * @param int    $user_id User ID.
  * @param string $entity_type Entity type.
  * @param string $taxonomy Taxonomy.
  * @param string $slug Entity slug.
@@ -138,7 +138,7 @@ function extrachill_users_unsubscribe_from_entity( $user_id, $entity_type, $taxo
 /**
  * Get one user's subscription status.
  *
- * @param int $user_id User ID.
+ * @param int    $user_id User ID.
  * @param string $entity_type Entity type.
  * @param string $taxonomy Taxonomy.
  * @param string $slug Entity slug.

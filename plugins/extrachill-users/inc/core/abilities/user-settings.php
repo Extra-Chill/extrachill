@@ -224,7 +224,7 @@ function extrachill_users_ability_get_settings() {
 		'display_name_options'         => array_values( $display_name_options ),
 		'email'                        => $user->user_email,
 		'pending_email'                => $pending_email,
-		'onboarding_completed'          => function_exists( 'ec_is_onboarding_complete' ) ? ec_is_onboarding_complete( $user_id ) : true,
+		'onboarding_completed'         => function_exists( 'ec_is_onboarding_complete' ) ? ec_is_onboarding_complete( $user_id ) : true,
 		'local_scene'                  => $local_scene,
 		'local_scene_visibility'       => extrachill_users_get_local_scene_visibility( $user_id ),
 		'concert_history_visibility'   => extrachill_users_get_concert_history_visibility( $user_id ),

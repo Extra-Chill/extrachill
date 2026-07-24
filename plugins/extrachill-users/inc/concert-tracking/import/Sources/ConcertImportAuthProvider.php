@@ -100,10 +100,10 @@ abstract class ConcertImportAuthProvider extends BaseAuthProvider {
 				if ( ! is_array( $providers ) ) {
 					$providers = array();
 				}
-				$slug = SetlistFmAuthProvider::PROVIDER_SLUG;
+				$slug               = SetlistFmAuthProvider::PROVIDER_SLUG;
 				$providers[ $slug ] = $providers[ $slug ] ?? new SetlistFmAuthProvider();
 
-				$slug = PhishNetAuthProvider::PROVIDER_SLUG;
+				$slug               = PhishNetAuthProvider::PROVIDER_SLUG;
 				$providers[ $slug ] = $providers[ $slug ] ?? new PhishNetAuthProvider();
 
 				return $providers;

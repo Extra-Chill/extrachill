@@ -12,14 +12,21 @@
  *   - button-2 (green accent) when marked
  *   - button-3 (neutral)      when unmarked
  *
- * @package ExtraChillUsers
+ * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
 import useMarkAttendance from './useMarkAttendance';
 
 /**
- * @param {Object}  props
+ * @param {Object}  props               Component properties.
  * @param {number}  props.eventId       Event post ID.
  * @param {number}  props.blogId        Blog ID the event lives on.
  * @param {boolean} props.isLoggedIn    Whether a user is logged in.
@@ -29,8 +36,8 @@ import useMarkAttendance from './useMarkAttendance';
  * @param {string}  props.labelActive   Label when marked.
  * @param {string}  props.loginUrl      Login URL for logged-out users.
  * @param {string}  props.redirectTo    Optional explicit post-login return URL.
- *                                       When empty, the current request URL is
- *                                       used (prior default behavior).
+ *                                      When empty, the current request URL is
+ *                                      used (prior default behavior).
  */
 const AttendanceButton = ( {
 	eventId,

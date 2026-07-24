@@ -295,7 +295,7 @@ final class EventCreator {
 		$attrs = array_filter(
 			$attrs,
 			static function ( $value ) {
-				return '' !== $value && null !== $value;
+				return '' !== $value;
 			}
 		);
 
@@ -365,7 +365,7 @@ final class EventCreator {
 		);
 
 		if ( class_exists( '\\DataMachineEvents\\Core\\Venue_Taxonomy' ) ) {
-			$result = \DataMachineEvents\Core\Venue_Taxonomy::find_or_create_venue(
+			$result  = \DataMachineEvents\Core\Venue_Taxonomy::find_or_create_venue(
 				$event->venue_name,
 				$venue_data
 			);

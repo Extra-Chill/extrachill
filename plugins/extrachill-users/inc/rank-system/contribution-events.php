@@ -47,9 +47,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array<int, array{date:string,type:string,count:int}>
  */
 function ec_bucket_utc_events_by_local_day( array $utc_datetimes, $type, $since_ymd = '' ) {
-	$tz       = wp_timezone();
-	$utc_tz   = new DateTimeZone( 'UTC' );
-	$by_date  = array();
+	$tz      = wp_timezone();
+	$utc_tz  = new DateTimeZone( 'UTC' );
+	$by_date = array();
 
 	foreach ( $utc_datetimes as $dt_str ) {
 		try {

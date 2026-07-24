@@ -22,9 +22,12 @@
  * The hook owns ONLY the network write + its in-flight / error state. The
  * caller owns its own optimistic UI.
  *
- * @package ExtraChillUsers
+ * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useCallback, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
