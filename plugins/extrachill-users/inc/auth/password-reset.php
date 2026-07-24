@@ -287,8 +287,9 @@ function ec_process_reset_password_submission( $key, $login, $pass1, $pass2 ) {
 		return new WP_Error( 'password_mismatch', __( 'Passwords do not match.', 'extrachill-users' ) );
 	}
 
-	if ( strlen( $pass1 ) < 8 ) {
-		return new WP_Error( 'password_too_short', __( 'Password must be at least 8 characters.', 'extrachill-users' ) );
+	$password_validation = extrachill_users_validate_password( $pass1 );
+	if ( is_wp_error( $password_validation ) ) {
+		return $password_validation;
 	}
 
 	$user = check_password_reset_key( $key, $login );
@@ -330,7 +331,7 @@ function ec_handle_reset_password() {
 
 	if ( is_wp_error( $user ) ) {
 		$query_args = array();
-		if ( in_array( $user->get_error_code(), array( 'password_mismatch', 'password_too_short' ), true ) ) {
+		if ( in_array( $user->get_error_code(), array( 'password_mismatch', 'password_too_short', 'invalid_password' ), true ) ) {
 			$query_args = array(
 				'action' => 'reset',
 				'key'    => $key,

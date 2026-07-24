@@ -101,6 +101,7 @@ function extrachill_users_init() {
 	}
 	$initialized = true;
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/password-policy.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/gating.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/feature-rollout-admin.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/artist-access-admin.php';
