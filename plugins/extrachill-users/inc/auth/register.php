@@ -61,7 +61,9 @@ function extrachill_users_registration_rate_limit_error( int $expires_at ): WP_E
  *
  * `wp_cache_add()` admits the first request and `wp_cache_incr()` atomically
  * admits every concurrent follower without a separate read/write race. Redis
- * preserves the original TTL on increment, keeping the fixed expiry stable.
+ * preserves the original TTL on increment. Retaining each addressed key for
+ * two windows prevents it from expiring between a failed add and increment,
+ * while the window in the key keeps admission accounting fixed and bounded.
  *
  * @param string $key        Network-global cache key.
  * @param int    $expires_at Fixed-window expiry timestamp.
@@ -70,7 +72,7 @@ function extrachill_users_registration_rate_limit_error( int $expires_at ): WP_E
 function extrachill_users_increment_registration_attempt( string $key, int $expires_at ) {
 	wp_cache_add_global_groups( EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP );
 
-	$ttl = max( 1, $expires_at - time() );
+	$ttl = 2 * EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW;
 	if ( wp_cache_add( $key, 1, EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP, $ttl ) ) {
 		$count = 1;
 	} else {
