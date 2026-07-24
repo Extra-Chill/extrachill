@@ -252,6 +252,12 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingMutationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingEventConversionService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingLifecycle.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingPrivateFileProvider.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalBookingPrivateFileProvider.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingPrivateFileProviders.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingAttachmentPolicy.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingAttachmentRepository.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingAttachmentService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueBookingConfig.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/CanonicalEventPublicationGuard.php';
 		\ExtraChillEvents\Core\BookingHoldRepository::register();
@@ -346,6 +352,9 @@ class ExtraChillEvents {
 
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueBookingAbilities.php';
 			new \ExtraChillEvents\Abilities\VenueBookingAbilities();
+
+			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/BookingAttachmentAbilities.php';
+			new \ExtraChillEvents\Abilities\BookingAttachmentAbilities();
 
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueBookingHoldAbilities.php';
 			new \ExtraChillEvents\Abilities\VenueBookingHoldAbilities();

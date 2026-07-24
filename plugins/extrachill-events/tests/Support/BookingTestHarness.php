@@ -6,6 +6,7 @@
  */
 
 use ExtraChillEvents\Core\BookingActivityRepository;
+use ExtraChillEvents\Core\BookingPrivateFileProvider;
 use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingMutationService;
@@ -61,6 +62,49 @@ if ( ! function_exists( 'sanitize_email' ) ) {
 	function sanitize_email( $value ) {
 		$sanitized = filter_var( trim( (string) $value ), FILTER_VALIDATE_EMAIL );
 		return false === $sanitized ? '' : $sanitized; }
+}
+if ( ! function_exists( 'sanitize_text_field' ) ) {
+	function sanitize_text_field( $value ) {
+		return trim( strip_tags( (string) $value ) ); }
+}
+if ( ! function_exists( 'wp_unslash' ) ) {
+	function wp_unslash( $value ) {
+		return is_string( $value ) ? stripslashes( $value ) : $value;
+	}
+}
+if ( ! function_exists( 'sanitize_file_name' ) ) {
+	function sanitize_file_name( $value ) {
+		$value = basename( (string) $value );
+		return preg_replace( '/[^A-Za-z0-9._-]/', '-', $value ); }
+}
+if ( ! function_exists( 'wp_check_filetype' ) ) {
+	function wp_check_filetype( $filename, $mimes = null ) {
+		$mimes = $mimes ? $mimes : array();
+		foreach ( $mimes as $extensions => $mime ) {
+			if ( preg_match( '/\.(' . $extensions . ')$/i', $filename, $match ) ) {
+				return array(
+					'ext'  => strtolower( $match[1] ),
+					'type' => $mime,
+				);
+			}
+		}
+		return array(
+			'ext'  => false,
+			'type' => false,
+		);
+	}
+}
+if ( ! function_exists( 'wp_max_upload_size' ) ) {
+	function wp_max_upload_size() {
+		return $GLOBALS['ec_artist_test']['max_upload_size'] ?? 2 * 1024 * 1024;
+	}
+}
+if ( ! function_exists( 'wp_upload_dir' ) ) {
+	function wp_upload_dir() {
+		return array(
+			'basedir' => $GLOBALS['ec_artist_test']['uploads_basedir'] ?? ABSPATH . 'uploads',
+		);
+	}
 }
 if ( ! function_exists( 'sanitize_textarea_field' ) ) {
 	function sanitize_textarea_field( $value ) {
@@ -248,6 +292,7 @@ final class BookingWpdb {
 	public $dropped_indexes                   = array();
 	public $fail_reads                        = false;
 	public $fail_activity_reads               = false;
+	public $fail_attachment_reference_reads   = false;
 	public $fail_inserts                      = false;
 	public $fail_updates                      = false;
 	public $fail_engine_repair                = false;
@@ -269,6 +314,12 @@ final class BookingWpdb {
 	public $after_venue_lock                  = null;
 	public $fail_venue_lock                   = false;
 	public $venue_lock_queries                = 0;
+	public $reference_locks                   = array();
+	public $lock_sequence                     = array();
+	public $reference_lock_queries            = 0;
+	public $fail_reference_unlock             = false;
+	public $after_reference_lock              = null;
+	public $after_reference_unlock            = null;
 	public $transaction_active                = false;
 	public $natural_key_reads_in_transaction  = 0;
 	public $get_lock_result                   = 1;
@@ -284,6 +335,8 @@ final class BookingWpdb {
 	public $fail_read_after_conversion_update = false;
 	public $fail_clock_reads                  = false;
 	public $database_now                     = null;
+	public $ready                            = true;
+	public $close_calls                      = 0;
 	private $transaction_snapshot            = null;
 
 	public function get_charset_collate() {
@@ -366,6 +419,14 @@ final class BookingWpdb {
 				}
 			}
 		}
+		if ( false !== strpos( $table, 'ec_booking_attachments' ) ) {
+			foreach ( $this->rows[ $table ] ?? array() as $existing ) {
+				if ( (int) $existing['booking_id'] === (int) $row['booking_id'] && $existing['idempotency_key'] === $row['idempotency_key'] ) {
+					$this->last_error = 'duplicate booking attachment idempotency key';
+					return false;
+				}
+			}
+		}
 		$this->insert_id                          = count( $this->rows[ $table ] ?? array() ) + 1;
 		$row['id']                                = $this->insert_id;
 		$this->rows[ $table ][ $this->insert_id ] = $row;
@@ -415,17 +476,52 @@ final class BookingWpdb {
 	}
 
 	public function get_var( $query ) {
+		if ( ! $this->ready ) {
+			$this->last_error = 'simulated closed database connection';
+			return null;
+		}
 		$this->last_error = '';
-		$database_now = $this->current_database_time();
+		$database_now     = $this->current_database_time();
 		if ( preg_match( "/SELECT GET_LOCK\('([^']+)', (\d+)\)/", $query, $match ) ) {
-			$this->lock_names[] = array( 'get', stripslashes( $match[1] ) );
-			return $this->get_lock_result;
+			$name               = stripslashes( $match[1] );
+			$this->lock_names[] = array( 'get', $name );
+			++$this->reference_lock_queries;
+			$result = $this->get_lock_result;
+			if ( 1 === (int) $result ) {
+				$this->reference_locks[ $name ] = ( $this->reference_locks[ $name ] ?? 0 ) + 1;
+				$this->lock_sequence[]          = 'reference';
+			}
+			if ( 1 === (int) $result && is_callable( $this->after_reference_lock ) ) {
+				$callback                   = $this->after_reference_lock;
+				$this->after_reference_lock = null;
+				$callback();
+			}
+			return $result;
 		}
 		if ( preg_match( "/SELECT RELEASE_LOCK\('([^']+)'\)/", $query, $match ) ) {
-			$this->lock_names[] = array( 'release', stripslashes( $match[1] ) );
+			$name               = stripslashes( $match[1] );
+			$this->lock_names[] = array( 'release', $name );
+			if ( $this->fail_reference_unlock ) {
+				return 0;
+			}
+			if ( ! isset( $this->reference_locks[ $name ] ) ) {
+				return null;
+			}
 			$result = empty( $this->release_lock_results ) ? $this->release_lock_result : array_shift( $this->release_lock_results );
 			if ( ! empty( $this->release_lock_errors ) ) {
 				$this->last_error = (string) array_shift( $this->release_lock_errors );
+			}
+			if ( 1 !== (int) $result ) {
+				return $result;
+			}
+			--$this->reference_locks[ $name ];
+			if ( $this->reference_locks[ $name ] < 1 ) {
+				unset( $this->reference_locks[ $name ] );
+			}
+			if ( is_callable( $this->after_reference_unlock ) ) {
+				$callback                     = $this->after_reference_unlock;
+				$this->after_reference_unlock = null;
+				$callback();
 			}
 			return $result;
 		}
@@ -512,9 +608,10 @@ final class BookingWpdb {
 			$table = stripslashes( $match[1] );
 			return isset( $this->engines[ $table ] ) ? array( 'Engine' => $this->engines[ $table ] ) : null;
 		}
-		$is_activity = false !== strpos( $query, 'ec_booking_activity' );
-		$is_hold     = false !== strpos( $query, 'ec_booking_holds' );
-		$database_now = $this->current_database_time();
+		$is_activity   = false !== strpos( $query, 'ec_booking_activity' );
+		$is_attachment = false !== strpos( $query, 'ec_booking_attachments' );
+		$is_hold       = false !== strpos( $query, 'ec_booking_holds' );
+		$database_now  = $this->current_database_time();
 		if ( null !== $this->reads_before_failure ) {
 			if ( 0 === $this->reads_before_failure ) {
 				$this->last_error = 'simulated delayed row read failure';
@@ -526,11 +623,14 @@ final class BookingWpdb {
 			$this->last_error = 'simulated row read failure';
 			return null;
 		}
-		$table = $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' );
-		if ( ! $is_activity && ! $is_hold && false !== strpos( $query, 'FOR UPDATE' ) ) {
+		$table = $is_attachment ? $this->prefix . 'ec_booking_attachments' : ( $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' ) );
+		if ( ! $is_attachment && ! $is_activity && ! $is_hold && false !== strpos( $query, 'FOR UPDATE' ) ) {
 			++$this->booking_lock_queries;
 		}
 		if ( preg_match( '/WHERE id = (\d+)/', $query, $match ) ) {
+			if ( ! $is_attachment && ! $is_activity && ! $is_hold && false !== strpos( $query, 'FOR UPDATE' ) ) {
+				$this->lock_sequence[] = 'booking:' . (int) $match[1];
+			}
 			$row = $this->rows[ $table ][ (int) $match[1] ] ?? null;
 			if ( is_array( $row ) && false !== strpos( $query, 'AS database_now' ) ) {
 				$row['database_now'] = $this->current_database_time();
@@ -666,6 +766,13 @@ final class BookingWpdb {
 					return $row; }
 			}
 		}
+		if ( preg_match( "/WHERE storage_reference = '([^']+)'/", $query, $match ) ) {
+			foreach ( $this->rows[ $table ] ?? array() as $row ) {
+				if ( stripslashes( $match[1] ) === $row['storage_reference'] ) {
+					return $row;
+				}
+			}
+		}
 		return null;
 	}
 
@@ -676,6 +783,10 @@ final class BookingWpdb {
 		if ( $this->fail_reads ) {
 			$this->last_error = 'simulated result read failure';
 			return null; }
+		if ( $this->fail_attachment_reference_reads && false !== strpos( $query, 'ec_booking_attachments' ) && false !== strpos( $query, 'storage_reference =' ) ) {
+			$this->last_error = 'simulated attachment reference read failure';
+			return null;
+		}
 		if ( false !== strpos( $query, 'INNER JOIN' ) && false !== strpos( $query, 'ec_booking_holds' ) && preg_match( "/b\.venue_term_id = (\d+).*h\.expires_at <= UTC_TIMESTAMP\(\)/", $query, $stale ) ) {
 			$rows = array();
 			foreach ( $this->rows[ $this->prefix . 'ec_bookings' ] ?? array() as $booking ) {
@@ -706,6 +817,9 @@ final class BookingWpdb {
 			return $rows;
 		}
 		if ( false !== strpos( $query, 'ec_venue_members' ) && false !== strpos( $query, 'FOR UPDATE' ) ) {
+			if ( preg_match( '/venue_term_id = (\d+)/', $query, $venue ) ) {
+				$this->lock_sequence[] = 'membership:' . (int) $venue[1];
+			}
 			if ( is_callable( $this->after_membership_lock ) ) {
 				$callback                    = $this->after_membership_lock;
 				$this->after_membership_lock = null;
@@ -738,10 +852,11 @@ final class BookingWpdb {
 			}
 			return $rows;
 		}
-		$is_activity = false !== strpos( $query, 'ec_booking_activity' );
-		$is_hold     = false !== strpos( $query, 'ec_booking_holds' );
-		$table       = $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' );
-		$rows        = array_values( $this->rows[ $table ] ?? array() );
+		$is_activity   = false !== strpos( $query, 'ec_booking_activity' );
+		$is_attachment = false !== strpos( $query, 'ec_booking_attachments' );
+		$is_hold       = false !== strpos( $query, 'ec_booking_holds' );
+		$table         = $is_attachment ? $this->prefix . 'ec_booking_attachments' : ( $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' ) );
+		$rows          = array_values( $this->rows[ $table ] ?? array() );
 		if ( false !== strpos( $query, 'AS database_now' ) ) {
 			$database_now = $this->current_database_time();
 			foreach ( $rows as &$row ) {
@@ -770,7 +885,7 @@ final class BookingWpdb {
 			}
 			$rows = array_values( array_filter( $rows, static function ( $row ) { return null !== $row['converted_at']; } ) );
 		}
-		$filters     = array( 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'assignee_user_id', 'booking_id' );
+		$filters = array( 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'assignee_user_id', 'booking_id' );
 		foreach ( $filters as $field ) {
 			if ( preg_match( "/{$field} = (\\d+)/", $query, $filter ) ) {
 				$rows = array_values(
@@ -782,6 +897,16 @@ final class BookingWpdb {
 					)
 				);
 			}
+		}
+		if ( $is_attachment && preg_match( '/id > (\d+)/', $query, $filter ) ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) use ( $filter ) {
+						return (int) $row['id'] > (int) $filter[1];
+					}
+				)
+			);
 		}
 		if ( $is_hold && false !== strpos( $query, "(status = 'expired' OR (status = 'active'" ) && false !== strpos( $query, 'expires_at <= UTC_TIMESTAMP()' ) ) {
 			$now  = $this->current_database_time();
@@ -806,6 +931,56 @@ final class BookingWpdb {
 					$rows,
 					static function ( $row ) use ( $filter ) {
 						return stripslashes( $filter[1] ) === $row['status'];
+					}
+				)
+			);
+		}
+		if ( $is_attachment && preg_match( "/storage_reference = '([^']+)'/", $query, $filter ) ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) use ( $filter ) {
+						return stripslashes( $filter[1] ) === $row['storage_reference'];
+					}
+				)
+			);
+		}
+		if ( $is_attachment && false !== strpos( $query, "state != 'purged'" ) ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) {
+						return 'purged' !== $row['state'];
+					}
+				)
+			);
+		}
+		if ( $is_attachment && false !== strpos( $query, "state IN ('replaced', 'deleted', 'abandoned', 'purging')" ) ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) {
+						return in_array( $row['state'], array( 'replaced', 'deleted', 'abandoned', 'purging' ), true );
+					}
+				)
+			);
+		}
+		if ( $is_attachment && false !== strpos( $query, "state = 'active'" ) ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) {
+						return 'active' === $row['state'];
+					}
+				)
+			);
+		}
+		if ( $is_attachment && false !== strpos( $query, 'replaces_attachment_id IS NOT NULL' ) ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) {
+						return null !== $row['replaces_attachment_id'];
 					}
 				)
 			);
@@ -850,13 +1025,17 @@ final class BookingWpdb {
 				)
 			);
 		}
-		usort(
-			$rows,
-			static function ( $a, $b ) {
-				$date_order = $b['created_at'] <=> $a['created_at'];
-				return 0 !== $date_order ? $date_order : ( $b['id'] <=> $a['id'] );
-			}
-		);
+		if ( false !== strpos( $query, 'ORDER BY id ASC' ) ) {
+			usort( $rows, static function ( $a, $b ) { return $a['id'] <=> $b['id']; } );
+		} else {
+			usort(
+				$rows,
+				static function ( $a, $b ) {
+					$date_order = $b['created_at'] <=> $a['created_at'];
+					return 0 !== $date_order ? $date_order : ( $b['id'] <=> $a['id'] );
+				}
+			);
+		}
 		if ( preg_match( '/LIMIT (\d+) OFFSET (\d+)/', $query, $page ) ) {
 			$rows = array_slice( $rows, (int) $page[2], (int) $page[1] );
 		}
@@ -864,6 +1043,10 @@ final class BookingWpdb {
 	}
 
 	public function query( $query ) {
+		if ( ! $this->ready ) {
+			$this->last_error = 'simulated closed database connection';
+			return false;
+		}
 		$this->last_query = $query;
 		$this->last_error = '';
 		if ( 'START TRANSACTION' === $query ) {
@@ -1033,6 +1216,37 @@ final class BookingWpdb {
 		}
 		return 1;
 	}
+
+	public function close() {
+		++$this->close_calls;
+		if ( $this->transaction_active && is_array( $this->transaction_snapshot ) ) {
+			$this->rows = $this->transaction_snapshot;
+		}
+		$this->ready                = false;
+		$this->transaction_active   = false;
+		$this->reference_locks      = array();
+		$this->transaction_snapshot = null;
+		return true;
+	}
+
+	public function update( $table, $data, $where ) {
+		$this->last_error = '';
+		if ( $this->fail_updates ) {
+			$this->last_error = 'simulated update failure';
+			return false;
+		}
+		$id = (int) ( $where['id'] ?? 0 );
+		if ( ! isset( $this->rows[ $table ][ $id ] ) ) {
+			return 0;
+		}
+		foreach ( $where as $key => $value ) {
+			if ( $this->rows[ $table ][ $id ][ $key ] !== $value ) {
+				return 0;
+			}
+		}
+		$this->rows[ $table ][ $id ] = array_merge( $this->rows[ $table ][ $id ], $data );
+		return 1;
+	}
 }
 
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
@@ -1044,30 +1258,42 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingHoldRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingMutationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingEventConversionService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingLifecycle.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivateFileProvider.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalBookingPrivateFileProvider.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivateFileProviders.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentPolicy.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentRepository.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/CanonicalEventPublicationGuard.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingAbilities.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/BookingAttachmentAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingHoldAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingMutationAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingEventAbilities.php';
 
 final class BookingTestAuthorization extends VenueAuthorization {
-	public $calls   = array();
-	public $allowed = array();
+	public $calls        = array();
+	public $direct_calls = array();
+	public $locked_calls = array();
+	public $allowed      = array();
 	public $require_locked_membership = false;
 	public function __construct( array $allowed = array() ) {
 		parent::__construct();
 		$this->allowed = array_merge( array( '12:55' => true ), $allowed );
 	}
 	public function authorize( int $user_id, int $venue_term_id, string $action ) {
-		$this->calls[] = array( $user_id, $venue_term_id, $action );
+		$this->calls[]        = array( $user_id, $venue_term_id, $action );
+		$this->direct_calls[] = array( $user_id, $venue_term_id, $action );
 		return ! empty( $this->allowed[ $user_id . ':' . $venue_term_id ] ) ? true : new WP_Error( 'venue_action_forbidden' );
 	}
 	public function authorize_locked( int $user_id, int $venue_term_id, string $action, array $locked_memberships ) {
+		$this->calls[]        = array( $user_id, $venue_term_id, $action );
+		$this->locked_calls[] = array( $user_id, $venue_term_id, $action, $locked_memberships );
 		if ( $this->require_locked_membership ) {
 			return parent::authorize_locked( $user_id, $venue_term_id, $action, $locked_memberships );
 		}
-		return $this->authorize( $user_id, $venue_term_id, $action );
+		return ! empty( $this->allowed[ $user_id . ':' . $venue_term_id ] ) ? true : new WP_Error( 'venue_action_forbidden' );
 	}
 }
 
@@ -1076,6 +1302,92 @@ final class BookingTestConfig extends VenueBookingConfig {
 		unset( $venue_term_id );
 		$GLOBALS['wpdb']->last_error = 'simulated config read failure';
 		return array( 'enabled' => true );
+	}
+}
+
+final class BookingTestPrivateFileProvider implements BookingPrivateFileProvider {
+	public $objects  = array();
+	public $claims   = array();
+	public $released = array();
+	public $retired  = array();
+	public $fail_release = false;
+	public $fail_retire  = false;
+	public $handoffs = array();
+	public $claim_records = array();
+	public $throw_claim = false;
+	public $inspect_uncertain = 0;
+	public $inspect_truncated = false;
+	public function stage( string $source_path, string $filename, string $purpose ) {
+		unset( $source_path, $filename, $purpose );
+		return new WP_Error( 'not_implemented' );
+	}
+	public function claim( string $storage_reference, string $claim_key, string $purpose = '' ) {
+		unset( $purpose );
+		if ( $this->throw_claim ) {
+			throw new RuntimeException( 'simulated provider crash' );
+		}
+		$this->claims[] = array( $storage_reference, $claim_key );
+		$this->claim_records[ $storage_reference . '|' . $claim_key ] = array(
+			'storage_reference' => $storage_reference,
+			'claim_key'         => $claim_key,
+			'state'             => 'active',
+			'updated_at'        => gmdate( 'Y-m-d H:i:s' ),
+		);
+		return $this->objects[ $storage_reference ] ?? new WP_Error( 'private_object_missing' );
+	}
+	public function release_claim( string $storage_reference, string $claim_key ) {
+		$this->released[] = array( $storage_reference, $claim_key );
+		if ( isset( $this->claim_records[ $storage_reference . '|' . $claim_key ] ) ) {
+			$this->claim_records[ $storage_reference . '|' . $claim_key ]['state'] = 'abandoned';
+		}
+		return $this->fail_release ? new WP_Error( 'simulated_claim_release_failure' ) : true;
+	}
+	public function inspect_claims( ?string $cursor = null ) {
+		$candidates = array();
+		foreach ( $this->claim_records as $claim ) {
+			if ( 'active' !== ( $claim['state'] ?? '' ) ) {
+				continue;
+			}
+			$key = hash( 'sha256', $claim['storage_reference'] . "\0" . $claim['claim_key'] );
+			if ( null !== $cursor && strcmp( $key, $cursor ) <= 0 ) {
+				continue;
+			}
+			$claim['cursor'] = $key;
+			$candidates[]    = $claim;
+		}
+		usort( $candidates, static function ( array $left, array $right ): int { return strcmp( $left['cursor'], $right['cursor'] ); } );
+		$truncated    = $this->inspect_truncated || count( $candidates ) > 250;
+		$claims       = array_slice( $candidates, 0, 250 );
+		$continuation = $truncated && ! empty( $claims ) ? $claims[ count( $claims ) - 1 ]['cursor'] : null;
+		foreach ( $claims as &$claim ) {
+			unset( $claim['cursor'] );
+		}
+		unset( $claim );
+		return array(
+			'claims'       => $claims,
+			'uncertain'    => $this->inspect_uncertain,
+			'truncated'    => $truncated,
+			'continuation' => $continuation,
+		);
+	}
+	public function download_descriptor( string $storage_reference, string $attachment_public_id, int $actor_id, string $purpose, string $claim_key ) {
+		$token = bin2hex( random_bytes( 32 ) );
+		$this->handoffs[ $token ] = array( $storage_reference, $attachment_public_id, $actor_id, $purpose, $claim_key );
+		return isset( $this->objects[ $storage_reference ] ) ? array(
+			'stream_token' => $token,
+			'expires_at'   => '2026-08-01T00:05:00Z',
+		) : new WP_Error( 'private_object_missing' );
+	}
+	public function open_stream( string $stream_token, string $attachment_public_id, int $actor_id, string $purpose ) {
+		$handoff = $this->handoffs[ $stream_token ] ?? null;
+		unset( $this->handoffs[ $stream_token ] );
+		return is_array( $handoff ) && $handoff[1] === $attachment_public_id && $handoff[2] === $actor_id && $handoff[3] === $purpose
+			? fopen( 'php://temp', 'rb+' )
+			: new WP_Error( 'booking_private_stream_invalid' );
+	}
+	public function retire( string $storage_reference ) {
+		$this->retired[] = $storage_reference;
+		return $this->fail_retire ? new WP_Error( 'simulated_retirement_failure' ) : true;
 	}
 }
 

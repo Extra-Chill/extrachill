@@ -131,8 +131,8 @@ final class BookingHoldTest extends TestCase {
 		return array( $holds, $lifecycle );
 	}
 
-	public function test_schema_v6_installs_site_scoped_holds_contract(): void {
-		$this->assertSame( '6', BookingSchema::SCHEMA_VERSION );
+	public function test_combined_schema_installs_site_scoped_holds_contract(): void {
+		$this->assertSame( '7', BookingSchema::SCHEMA_VERSION );
 		$this->assertTrue( BookingSchema::install() );
 		$table = BookingSchema::holds_table();
 		$this->assertSame( 'wp_7_ec_booking_holds', $table );

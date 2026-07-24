@@ -1,0 +1,125 @@
+name: Booking attachment MySQL concurrency
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/booking-attachment-mysql.yml
+      - composer.json
+      - composer.lock
+      - inc/Core/BookingAttachmentService.php
+      - inc/Core/BookingAttachmentRepository.php
+      - inc/Core/BookingRepository.php
+      - inc/Core/BookingSchema.php
+      - inc/Core/VenueAuthorization.php
+      - inc/Core/VenueMembershipRepository.php
+      - phpunit-booking-mysql.xml.dist
+      - tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php
+      - tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php
+
+permissions:
+  contents: read
+
+jobs:
+  booking-attachment-mysql:
+    name: Booking attachment MySQL concurrency
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Extra Chill Events
+        uses: actions/checkout@v4
+
+      - name: Checkout WP Codebox
+        uses: actions/checkout@v4
+        with:
+          repository: Automattic/wp-codebox
+          ref: main
+          path: .ci/wp-codebox
+
+      - name: Checkout Homeboy WordPress test adapter
+        uses: actions/checkout@v4
+        with:
+          repository: Extra-Chill/homeboy-extensions
+          ref: f7811c8c4a2e1ef0afd048dbe18929fd56e63b13
+          path: .ci/homeboy-extensions
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install plugin test dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Install Homeboy WordPress PHPUnit harness
+        working-directory: .ci/homeboy-extensions/wordpress
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Build WP Codebox
+        working-directory: .ci/wp-codebox
+        run: |
+          set -euo pipefail
+          npm install
+          npm run build
+
+      - name: Run application-level two-session MySQL proof
+        env:
+          HOMEBOY_COMPONENT_ID: extrachill-events
+          HOMEBOY_COMPONENT_PATH: ${{ github.workspace }}
+          HOMEBOY_EXTENSION_PATH: ${{ github.workspace }}/.ci/homeboy-extensions/wordpress
+          HOMEBOY_WP_CODEBOX_BIN: ${{ github.workspace }}/.ci/wp-codebox/packages/cli/dist/index.js
+          HOMEBOY_WP_CODEBOX_CORE_MODULE: ${{ github.workspace }}/.ci/wp-codebox/packages/runtime-core/dist/index.js
+          HOMEBOY_WP_CODEBOX_ARTIFACTS_DIR: ${{ runner.temp }}/booking-attachment-mysql
+        run: |
+          set -euo pipefail
+          export HOMEBOY_SETTINGS_JSON
+          HOMEBOY_SETTINGS_JSON=$(jq -nc \
+            --arg root "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration" \
+            --arg config "/wordpress/wp-content/plugins/extrachill-events/phpunit-booking-mysql.xml.dist" \
+            --arg preload "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php" \
+            '{
+              database_type: "mysql",
+              phpunit_no_tests: "fail",
+              wp_codebox_phpunit_test_root: $root,
+              wp_codebox_phpunit_config: $config,
+              wp_codebox_phpunit_cwd: "/wordpress/wp-content/plugins/extrachill-events",
+              wp_codebox_phpunit_preload_files: [$preload]
+            }')
+          node .ci/homeboy-extensions/wordpress/scripts/test/wp-codebox-phpunit-adapter.mjs
+
+      - name: Verify executed PHPUnit evidence
+        env:
+          ARTIFACTS_DIR: ${{ runner.temp }}/booking-attachment-mysql
+        run: |
+          set -euo pipefail
+          run_artifacts_dir=$(find "$ARTIFACTS_DIR" -maxdepth 1 -type d -name 'wp-codebox-phpunit.*' -print -quit)
+          test -n "$run_artifacts_dir"
+          runtime_dir=$(jq -er '.paths.runtimeDirectory' "$run_artifacts_dir/latest-runtime.json")
+          commands="$run_artifacts_dir/$runtime_dir/commands.jsonl"
+          metadata="$run_artifacts_dir/$runtime_dir/metadata.json"
+          test -f "$commands"
+          test -f "$metadata"
+          jq -ers '
+            [.[] | select(.command == "wordpress.phpunit")] as $runs
+            | ($runs | length) == 1
+              and $runs[0].exitCode == 0
+              and $runs[0].result.status == "ok"
+              and ($runs[0].stdout | test("OK \\(1 test, [1-9][0-9]* assertions?\\)"))
+              and (($runs[0].stdout | test("skip|no tests executed|OK, but"; "i")) | not)
+          ' "$commands" >/dev/null
+          jq -e '
+            any(.context.managedRuntimeServices[]; .kind == "mysql" and .provider == "docker" and .readiness == "ready")
+            and any(.context.recipe.workflow.steps[].args[]; . == "database-type=mysql")
+          ' "$metadata" >/dev/null
+          jq -rs '[.[] | select(.command == "wordpress.phpunit")][0].stdout' "$commands" > "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
+          printf '%s\n' "Verified application-level MySQL proof:"
+          grep -E 'OK \(1 test, [1-9][0-9]* assertions?\)' "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
+
+      - name: Upload WP Codebox evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: booking-attachment-mysql-evidence
+          path: ${{ runner.temp }}/booking-attachment-mysql
+          if-no-files-found: error
