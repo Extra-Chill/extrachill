@@ -163,7 +163,7 @@ function extrachill_api_is_route_affinity_reentry( WP_REST_Request $request ) {
 
 	$timestamp = (int) $request->get_header( 'X-EC-Affinity-Timestamp' );
 	$signature = $request->get_header( 'X-EC-Affinity-Signature' );
-	$target    = strtolower( $request->get_header( 'X-EC-Affinity-Target' ) );
+	$target    = strtolower( (string) $request->get_header( 'X-EC-Affinity-Target' ) );
 	$nonce     = $request->get_header( 'X-EC-Affinity-Nonce' );
 	$host      = isset( $_SERVER['HTTP_HOST'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) : '';
 	if ( ! $timestamp || ! $signature || ! $target || ! $nonce || $target !== $host || abs( time() - $timestamp ) > 300 ) {

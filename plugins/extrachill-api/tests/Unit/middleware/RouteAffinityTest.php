@@ -138,6 +138,22 @@ class Route_AffinityTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A partial local token without a target host is safely rejected.
+	 */
+	public function test_local_reentry_without_target_host_is_rejected() {
+		$request                = new WP_REST_Request( 'GET', '/extrachill/v1/artists/42' );
+		$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+		$_SERVER['HTTP_HOST']   = 'artist.example.com';
+
+		$request->set_header( 'X-EC-Affinity-Timestamp', (string) time() );
+		$request->set_header( 'X-EC-Affinity-Signature', str_repeat( 'b', 64 ) );
+		$request->set_header( 'X-EC-Affinity-Nonce', wp_generate_uuid4() );
+
+		$this->assertNull( $request->get_header( 'X-EC-Affinity-Target' ) );
+		$this->assert_reentry_rejected( $request );
+	}
+
+	/**
 	 * Signed tokens cannot be reused with altered query or body data.
 	 */
 	public function test_signature_rejects_altered_query_and_body() {
