@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.37.2] - 2026-07-24
+
+### Fixed
+- preserve registration counter ttl at rollover
+- make auth rate counters atomic
+- revoke native sessions during moderation
+- enforce password policy for authenticated changes
+- make browser handoff lock portable
+- make browser handoff consumption atomic
+- make registration admission atomic
+- harden password registration against automation
+
 ## [0.37.1] - 2026-07-23
 
 ### Changed
