@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.38.0] - 2026-07-24
+
+### Added
+- make progressive registration method agnostic
+- make Google registration progressive
+
+### Changed
+- provision event dates fixture
+
 ## [0.37.2] - 2026-07-24
 
 ### Fixed
