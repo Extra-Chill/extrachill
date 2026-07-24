@@ -6,6 +6,7 @@
  */
 
 use ExtraChillEvents\Core\BookingActivityRepository;
+use ExtraChillEvents\Core\BookingCommunicationService;
 use ExtraChillEvents\Core\BookingPrivateFileProvider;
 use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingHoldRepository;
@@ -19,6 +20,7 @@ use ExtraChillEvents\Abilities\VenueBookingAbilities;
 use ExtraChillEvents\Abilities\VenueBookingHoldAbilities;
 use ExtraChillEvents\Abilities\VenueBookingMutationAbilities;
 use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
+use ExtraChillEvents\Abilities\VenueBookingCommunicationAbilities;
 use ExtraChillEvents\Core\VenueAuthorization;
 
 if ( ! defined( 'ARRAY_A' ) ) {
@@ -40,6 +42,8 @@ if ( ! class_exists( 'WP_Error' ) ) {
 			return $this->message; }
 		public function get_error_data() {
 			return $this->data; }
+		public function add_data( $data ) {
+			$this->data = $data; }
 	}
 }
 if ( ! function_exists( 'is_wp_error' ) ) {
@@ -295,6 +299,7 @@ final class BookingWpdb {
 	public $fail_attachment_reference_reads   = false;
 	public $fail_inserts                      = false;
 	public $fail_updates                      = false;
+	public $fail_communication_state_updates = false;
 	public $fail_engine_repair                = false;
 	public $race_activity_insert              = false;
 	public $race_booking_insert               = false;
@@ -311,6 +316,7 @@ final class BookingWpdb {
 	public $fail_transaction_rollback         = false;
 	public $rollback_queries                  = 0;
 	public $after_membership_lock             = null;
+	public $after_booking_lock                = null;
 	public $after_venue_lock                  = null;
 	public $fail_venue_lock                   = false;
 	public $venue_lock_queries                = 0;
@@ -329,6 +335,12 @@ final class BookingWpdb {
 	public $lock_names                        = array();
 	public $event_dates                       = array();
 	public $booking_lock_queries              = 0;
+	public $communication_state_queries       = 0;
+	public $communication_attempt_queries     = 0;
+	public $communication_public_rows_returned = 0;
+	public $pending_reminder_rows_returned    = 0;
+	public $pending_reminder_query_limits     = array();
+	public $pending_reminder_query_cursors    = array();
 	public $elapse_hold_after_membership_lock = null;
 	public $elapse_hold_before_release_update = null;
 	public $elapse_hold_before_conversion_update = null;
@@ -338,12 +350,17 @@ final class BookingWpdb {
 	public $ready                            = true;
 	public $close_calls                      = 0;
 	private $transaction_snapshot            = null;
+	private $savepoint_snapshot              = null;
 
 	public function get_charset_collate() {
 		return 'DEFAULT CHARACTER SET utf8mb4'; }
 
 	private function current_database_time(): string {
 		return null === $this->database_now ? gmdate( 'Y-m-d H:i:s' ) : $this->database_now;
+	}
+
+	public function esc_like( $text ) {
+		return addcslashes( $text, '_%\\' );
 	}
 
 	public function prepare( $query, ...$args ) {
@@ -419,6 +436,10 @@ final class BookingWpdb {
 				}
 			}
 		}
+		if ( false !== strpos( $table, 'ec_booking_communication_state' ) && isset( $this->rows[ $table ][ (int) $row['intent_id'] ] ) ) {
+			$this->last_error = 'duplicate communication intent state';
+			return false;
+		}
 		if ( false !== strpos( $table, 'ec_booking_attachments' ) ) {
 			foreach ( $this->rows[ $table ] ?? array() as $existing ) {
 				if ( (int) $existing['booking_id'] === (int) $row['booking_id'] && $existing['idempotency_key'] === $row['idempotency_key'] ) {
@@ -428,8 +449,11 @@ final class BookingWpdb {
 			}
 		}
 		$this->insert_id                          = count( $this->rows[ $table ] ?? array() ) + 1;
-		$row['id']                                = $this->insert_id;
-		$this->rows[ $table ][ $this->insert_id ] = $row;
+		$key                                      = false !== strpos( $table, 'ec_booking_communication_state' ) ? (int) $row['intent_id'] : $this->insert_id;
+		if ( ! isset( $row['id'] ) && false === strpos( $table, 'ec_booking_communication_state' ) ) {
+			$row['id'] = $this->insert_id;
+		}
+		$this->rows[ $table ][ $key ] = $row;
 		if ( false !== strpos( $table, 'ec_bookings' ) && $this->race_booking_insert ) {
 			$this->race_booking_insert = false;
 			if ( null !== $this->race_booking_hash ) {
@@ -579,6 +603,20 @@ final class BookingWpdb {
 			}
 			return null;
 		}
+		if ( preg_match( "/SELECT COUNT\(\*\) FROM .*ec_booking_activity WHERE communication_intent_id = (\d+) AND kind = '([^']+)'/", $query, $match ) ) {
+			++$this->communication_attempt_queries;
+			if ( $this->fail_reads || $this->fail_activity_reads ) {
+				$this->last_error = 'simulated communication attempt read failure';
+				return null;
+			}
+			$count = 0;
+			foreach ( $this->rows[ $this->prefix . 'ec_booking_activity' ] ?? array() as $row ) {
+				if ( (int) ( $row['communication_intent_id'] ?? 0 ) === (int) $match[1] && $row['kind'] === stripslashes( $match[2] ) ) {
+					++$count;
+				}
+			}
+			return $count;
+		}
 		++$this->schema_queries;
 		if ( $this->fail_reads ) {
 			$this->last_error = 'simulated schema read failure';
@@ -610,6 +648,7 @@ final class BookingWpdb {
 		}
 		$is_activity   = false !== strpos( $query, 'ec_booking_activity' );
 		$is_attachment = false !== strpos( $query, 'ec_booking_attachments' );
+		$is_state      = false !== strpos( $query, 'ec_booking_communication_state' );
 		$is_hold       = false !== strpos( $query, 'ec_booking_holds' );
 		$database_now  = $this->current_database_time();
 		if ( null !== $this->reads_before_failure ) {
@@ -623,12 +662,27 @@ final class BookingWpdb {
 			$this->last_error = 'simulated row read failure';
 			return null;
 		}
-		$table = $is_attachment ? $this->prefix . 'ec_booking_attachments' : ( $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' ) );
-		if ( ! $is_attachment && ! $is_activity && ! $is_hold && false !== strpos( $query, 'FOR UPDATE' ) ) {
+		$table = $is_attachment ? $this->prefix . 'ec_booking_attachments' : ( $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_state ? $this->prefix . 'ec_booking_communication_state' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' ) ) );
+		if ( $is_state && preg_match( '/WHERE intent_id = (\d+)/', $query, $match ) ) {
+			++$this->communication_state_queries;
+			return $this->rows[ $table ][ (int) $match[1] ] ?? null;
+		}
+		if ( $is_activity && preg_match( '/WHERE communication_intent_id = (\d+) ORDER BY id DESC LIMIT 1/', $query, $match ) ) {
+			++$this->communication_state_queries;
+			$rows = array_values( array_filter( $this->rows[ $table ] ?? array(), static function ( $row ) use ( $match ) { return (int) ( $row['communication_intent_id'] ?? 0 ) === (int) $match[1]; } ) );
+			usort( $rows, static function ( $left, $right ) { return $right['id'] <=> $left['id']; } );
+			return $rows[0] ?? null;
+		}
+		if ( ! $is_attachment && ! $is_activity && ! $is_state && ! $is_hold && false !== strpos( $query, 'FOR UPDATE' ) ) {
 			++$this->booking_lock_queries;
+			if ( is_callable( $this->after_booking_lock ) ) {
+				$callback                 = $this->after_booking_lock;
+				$this->after_booking_lock = null;
+				$callback();
+			}
 		}
 		if ( preg_match( '/WHERE id = (\d+)/', $query, $match ) ) {
-			if ( ! $is_attachment && ! $is_activity && ! $is_hold && false !== strpos( $query, 'FOR UPDATE' ) ) {
+			if ( ! $is_attachment && ! $is_activity && ! $is_state && ! $is_hold && false !== strpos( $query, 'FOR UPDATE' ) ) {
 				$this->lock_sequence[] = 'booking:' . (int) $match[1];
 			}
 			$row = $this->rows[ $table ][ (int) $match[1] ] ?? null;
@@ -783,6 +837,33 @@ final class BookingWpdb {
 		if ( $this->fail_reads ) {
 			$this->last_error = 'simulated result read failure';
 			return null; }
+		if ( false !== strpos( $query, 'ec_booking_communication_state' ) && false !== strpos( $query, 'INNER JOIN' ) && preg_match( "/s\.booking_id = (\d+) AND s\.status = 'scheduled' AND s\.intent_id > (\d+).*LIMIT (\d+)/", $query, $match ) ) {
+			++$this->communication_state_queries;
+			$this->pending_reminder_query_cursors[] = (int) $match[2];
+			$this->pending_reminder_query_limits[]  = (int) $match[3];
+			$rows = array();
+			foreach ( $this->rows[ $this->prefix . 'ec_booking_communication_state' ] ?? array() as $state ) {
+				if ( (int) $state['booking_id'] !== (int) $match[1] || 'scheduled' !== $state['status'] || (int) $state['intent_id'] <= (int) $match[2] ) {
+					continue;
+				}
+				$intent = $this->rows[ $this->prefix . 'ec_booking_activity' ][ (int) $state['intent_id'] ] ?? null;
+				if ( is_array( $intent ) ) {
+					$rows[] = array_merge(
+						$intent,
+						array(
+							'communication_status'              => $state['status'],
+							'communication_claim_stage'         => $state['claim_stage'],
+							'communication_action_id'           => $state['action_id'],
+							'communication_updated_activity_id' => $state['updated_activity_id'],
+						)
+					);
+				}
+			}
+			usort( $rows, static function ( $left, $right ) { return $left['id'] <=> $right['id']; } );
+			$rows = array_slice( $rows, 0, (int) $match[3] );
+			$this->pending_reminder_rows_returned += count( $rows );
+			return $rows;
+		}
 		if ( $this->fail_attachment_reference_reads && false !== strpos( $query, 'ec_booking_attachments' ) && false !== strpos( $query, 'storage_reference =' ) ) {
 			$this->last_error = 'simulated attachment reference read failure';
 			return null;
@@ -854,9 +935,13 @@ final class BookingWpdb {
 		}
 		$is_activity   = false !== strpos( $query, 'ec_booking_activity' );
 		$is_attachment = false !== strpos( $query, 'ec_booking_attachments' );
+		$is_state      = false !== strpos( $query, 'ec_booking_communication_state' );
 		$is_hold       = false !== strpos( $query, 'ec_booking_holds' );
-		$table         = $is_attachment ? $this->prefix . 'ec_booking_attachments' : ( $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' ) );
+		$table         = $is_attachment ? $this->prefix . 'ec_booking_attachments' : ( $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_state ? $this->prefix . 'ec_booking_communication_state' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' ) ) );
 		$rows          = array_values( $this->rows[ $table ] ?? array() );
+		if ( $is_activity && false !== strpos( $query, 'is_communication = 1' ) ) {
+			$rows = array_values( array_filter( $rows, static function ( $row ) { return 1 === (int) ( $row['is_communication'] ?? 0 ); } ) );
+		}
 		if ( false !== strpos( $query, 'AS database_now' ) ) {
 			$database_now = $this->current_database_time();
 			foreach ( $rows as &$row ) {
@@ -1038,8 +1123,31 @@ final class BookingWpdb {
 		}
 		if ( preg_match( '/LIMIT (\d+) OFFSET (\d+)/', $query, $page ) ) {
 			$rows = array_slice( $rows, (int) $page[2], (int) $page[1] );
+		} elseif ( preg_match( '/LIMIT (\d+)/', $query, $page ) ) {
+			$rows = array_slice( $rows, 0, (int) $page[1] );
+		}
+		if ( $is_activity && false !== strpos( $query, 'is_communication = 1' ) ) {
+			$this->communication_public_rows_returned += count( $rows );
 		}
 		return $rows;
+	}
+
+	public function update( $table, $data, $where ) {
+		$this->last_error = '';
+		if ( $this->fail_updates || ( $this->fail_communication_state_updates && false !== strpos( $table, 'ec_booking_communication_state' ) ) ) {
+			$this->last_error = 'simulated update failure';
+			return false;
+		}
+		foreach ( $this->rows[ $table ] ?? array() as $key => $row ) {
+			foreach ( $where as $field => $value ) {
+				if ( (string) ( $row[ $field ] ?? '' ) !== (string) $value ) {
+					continue 2;
+				}
+			}
+			$this->rows[ $table ][ $key ] = array_merge( $row, $data );
+			return 1;
+		}
+		return 0;
 	}
 
 	public function query( $query ) {
@@ -1055,7 +1163,24 @@ final class BookingWpdb {
 				return false;
 			}
 			$this->transaction_snapshot = $this->rows;
+			$this->savepoint_snapshot   = null;
 			$this->transaction_active   = true;
+			return 1;
+		}
+		if ( 'SAVEPOINT booking_communication_projection' === $query ) {
+			$this->savepoint_snapshot = $this->rows;
+			return 1;
+		}
+		if ( 'ROLLBACK TO SAVEPOINT booking_communication_projection' === $query ) {
+			if ( ! is_array( $this->savepoint_snapshot ) ) {
+				$this->last_error = 'simulated missing savepoint';
+				return false;
+			}
+			$this->rows = $this->savepoint_snapshot;
+			return 1;
+		}
+		if ( 'RELEASE SAVEPOINT booking_communication_projection' === $query ) {
+			$this->savepoint_snapshot = null;
 			return 1;
 		}
 		if ( 'COMMIT' === $query ) {
@@ -1064,6 +1189,7 @@ final class BookingWpdb {
 				return false;
 			}
 			$this->transaction_snapshot = null;
+			$this->savepoint_snapshot   = null;
 			$this->transaction_active   = false;
 			return 1;
 		}
@@ -1075,6 +1201,7 @@ final class BookingWpdb {
 			}
 			$this->rows                 = $this->transaction_snapshot;
 			$this->transaction_snapshot = null;
+			$this->savepoint_snapshot   = null;
 			$this->transaction_active   = false;
 			return 1;
 		}
@@ -1226,27 +1353,10 @@ final class BookingWpdb {
 		$this->transaction_active   = false;
 		$this->reference_locks      = array();
 		$this->transaction_snapshot = null;
+		$this->savepoint_snapshot   = null;
 		return true;
 	}
 
-	public function update( $table, $data, $where ) {
-		$this->last_error = '';
-		if ( $this->fail_updates ) {
-			$this->last_error = 'simulated update failure';
-			return false;
-		}
-		$id = (int) ( $where['id'] ?? 0 );
-		if ( ! isset( $this->rows[ $table ][ $id ] ) ) {
-			return 0;
-		}
-		foreach ( $where as $key => $value ) {
-			if ( $this->rows[ $table ][ $id ][ $key ] !== $value ) {
-				return 0;
-			}
-		}
-		$this->rows[ $table ][ $id ] = array_merge( $this->rows[ $table ][ $id ], $data );
-		return 1;
-	}
 }
 
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
@@ -1254,6 +1364,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingActivityRepository.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingCommunicationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingHoldRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingMutationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingEventConversionService.php';
@@ -1271,6 +1382,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Abilities/BookingAttachmentAbilities.
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingHoldAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingMutationAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingEventAbilities.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingCommunicationAbilities.php';
 
 final class BookingTestAuthorization extends VenueAuthorization {
 	public $calls        = array();

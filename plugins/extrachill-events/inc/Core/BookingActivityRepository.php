@@ -66,17 +66,19 @@ class BookingActivityRepository {
 		}
 
 		$row = array(
-			'booking_id'      => $booking_id,
-			'kind'            => $kind,
-			'actor_type'      => mb_substr( sanitize_key( (string) ( $data['actor_type'] ?? 'system' ) ), 0, 32 ),
-			'actor_id'        => $actor_id,
-			'direction'       => $this->nullable_key( $data['direction'] ?? null, 16 ),
-			'channel'         => $this->nullable_key( $data['channel'] ?? null, 32 ),
-			'payload'         => $payload,
-			'external_id'     => $this->nullable_text( $data['external_id'] ?? null, 191 ),
-			'idempotency_key' => $idempotency_key,
-			'occurred_at'     => $occurred_at,
-			'created_at'      => gmdate( 'Y-m-d H:i:s' ),
+			'booking_id'              => $booking_id,
+			'kind'                    => $kind,
+			'actor_type'              => mb_substr( sanitize_key( (string) ( $data['actor_type'] ?? 'system' ) ), 0, 32 ),
+			'actor_id'                => $actor_id,
+			'direction'               => $this->nullable_key( $data['direction'] ?? null, 16 ),
+			'channel'                 => $this->nullable_key( $data['channel'] ?? null, 32 ),
+			'communication_intent_id' => $this->communication_intent_id( $kind, $data['payload'] ?? array() ),
+			'is_communication'        => $this->is_communication_kind( $kind ) ? 1 : 0,
+			'payload'                 => $payload,
+			'external_id'             => $this->nullable_text( $data['external_id'] ?? null, 191 ),
+			'idempotency_key'         => $idempotency_key,
+			'occurred_at'             => $occurred_at,
+			'created_at'              => gmdate( 'Y-m-d H:i:s' ),
 		);
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private append-only table write.
@@ -130,6 +132,150 @@ class BookingActivityRepository {
 			$hydrated[] = $item;
 		}
 		return $hydrated;
+	}
+
+	/** List the bounded public correspondence ledger without reconstructing state. */
+	public function list_communications( int $booking_id, int $limit = 200 ) {
+		global $wpdb;
+		$booking_id = $this->positive_id( $booking_id, 'booking_id', false );
+		if ( is_wp_error( $booking_id ) ) {
+			return $booking_id;
+		}
+		$table = BookingSchema::activity_table();
+		$limit = max( 1, min( 200, $limit ) );
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND is_communication = 1 ORDER BY occurred_at DESC, id DESC LIMIT %d", $booking_id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed, booking-scoped correspondence page.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		$hydrated = array();
+		foreach ( (array) $rows as $row ) {
+			$item = $this->hydrate( $row );
+			if ( is_wp_error( $item ) ) {
+				return $item;
+			}
+			$hydrated[] = $item;
+		}
+		return $hydrated;
+	}
+
+	/** Initialize the durable current-state projection for a new intent. */
+	public function create_communication_state( array $intent ) {
+		global $wpdb;
+		$now = gmdate( 'Y-m-d H:i:s' );
+		$row = array(
+			'intent_id'           => (int) $intent['id'],
+			'booking_id'          => (int) $intent['booking_id'],
+			'status'              => 'requested',
+			'claim_stage'         => null,
+			'action_id'           => null,
+			'updated_activity_id' => (int) $intent['id'],
+			'created_at'          => $now,
+			'updated_at'          => $now,
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional private read-model write.
+		if ( false === $wpdb->insert( BookingSchema::communication_state_table(), $row ) ) {
+			return new \WP_Error( 'booking_communication_state_write_failed', __( 'Booking communication state could not be initialized.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return $row;
+	}
+
+	/** Read one intent's durable state by its primary key. */
+	public function communication_state( int $intent_id ) {
+		global $wpdb;
+		$table = BookingSchema::communication_state_table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE intent_id = %d LIMIT 1", $intent_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact indexed state read.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+		foreach ( array( 'intent_id', 'booking_id', 'updated_activity_id' ) as $field ) {
+			$row[ $field ] = (int) $row[ $field ];
+		}
+		$row['action_id'] = null === $row['action_id'] ? null : (int) $row['action_id'];
+		return $row;
+	}
+
+	/** Read one keyset page of currently scheduled reminders. */
+	public function pending_reminders( int $booking_id, int $after_intent_id, int $limit ) {
+		global $wpdb;
+		$state_table     = BookingSchema::communication_state_table();
+		$activity_table  = BookingSchema::activity_table();
+		$after_intent_id = max( 0, $after_intent_id );
+		$limit           = max( 1, min( 100, $limit ) );
+		$rows            = $wpdb->get_results( $wpdb->prepare( "SELECT a.*, s.status AS communication_status, s.claim_stage AS communication_claim_stage, s.action_id AS communication_action_id, s.updated_activity_id AS communication_updated_activity_id FROM {$state_table} s INNER JOIN {$activity_table} a ON a.id = s.intent_id WHERE s.booking_id = %d AND s.status = 'scheduled' AND s.intent_id > %d ORDER BY s.intent_id ASC LIMIT %d", $booking_id, $after_intent_id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed pending-reminder keyset page joined to exact intents.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Pending booking reminders could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		$pending = array();
+		foreach ( (array) $rows as $row ) {
+			$state = array(
+				'intent_id'           => (int) $row['id'],
+				'booking_id'          => (int) $row['booking_id'],
+				'status'              => $row['communication_status'],
+				'claim_stage'         => $row['communication_claim_stage'],
+				'action_id'           => null === $row['communication_action_id'] ? null : (int) $row['communication_action_id'],
+				'updated_activity_id' => (int) $row['communication_updated_activity_id'],
+			);
+			unset( $row['communication_status'], $row['communication_claim_stage'], $row['communication_action_id'], $row['communication_updated_activity_id'] );
+			$intent = $this->hydrate( $row );
+			if ( is_wp_error( $intent ) ) {
+				return $intent;
+			}
+			$pending[] = array(
+				'intent' => $intent,
+				'state'  => $state,
+			);
+		}
+		return $pending;
+	}
+
+	/** Count one marker kind through the intent/kind index. */
+	public function communication_attempt_count( int $intent_id, string $kind ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE communication_intent_id = %d AND kind = %s", $intent_id, $kind ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact indexed attempt count.
+		if ( '' !== (string) $wpdb->last_error || ! is_numeric( $count ) ) {
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication attempts could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return (int) $count;
+	}
+
+	/** Return the latest append-only marker for one intent through its index. */
+	public function latest_communication_marker( int $intent_id ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE communication_intent_id = %d ORDER BY id DESC LIMIT 1", $intent_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact indexed projection-consistency check.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication state could not be verified.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return is_array( $row ) ? $this->hydrate( $row ) : null;
+	}
+
+	/** Advance the current-state projection only from the state just validated. */
+	public function update_communication_state( array $current, string $status, ?string $claim_stage, ?int $action_id, int $activity_id ) {
+		global $wpdb;
+		$updated = $wpdb->update(
+			BookingSchema::communication_state_table(),
+			array(
+				'status'              => $status,
+				'claim_stage'         => $claim_stage,
+				'action_id'           => $action_id,
+				'updated_activity_id' => $activity_id,
+				'updated_at'          => gmdate( 'Y-m-d H:i:s' ),
+			),
+			array(
+				'intent_id'           => (int) $current['intent_id'],
+				'booking_id'          => (int) $current['booking_id'],
+				'status'              => $current['raw_status'],
+				'updated_activity_id' => (int) $current['updated_activity_id'],
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Optimistic transactional projection update.
+		if ( 1 !== $updated ) {
+			return new \WP_Error( 'booking_communication_state_write_failed', __( 'Booking communication state could not be advanced.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return true;
 	}
 
 	/** Reconstruct and validate the complete activity-backed event conversion state. */
@@ -230,7 +376,7 @@ class BookingActivityRepository {
 	}
 
 	/** Find an existing booking-scoped idempotent activity. */
-	private function find_by_idempotency( int $booking_id, string $key ) {
+	public function find_by_idempotency( int $booking_id, string $key ) {
 		global $wpdb;
 		$table = BookingSchema::activity_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND idempotency_key = %s LIMIT 1", $booking_id, $key ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
@@ -253,7 +399,20 @@ class BookingActivityRepository {
 		$row['booking_id'] = (int) $row['booking_id'];
 		$row['actor_id']   = isset( $row['actor_id'] ) ? (int) $row['actor_id'] : null;
 		$row['payload']    = $decoded;
+		unset( $row['communication_intent_id'], $row['is_communication'] );
 		return $row;
+	}
+
+	private function is_communication_kind( string $kind ): bool {
+		return 0 === strpos( $kind, 'booking_message_' ) || 0 === strpos( $kind, 'booking_reminder_' );
+	}
+
+	private function communication_intent_id( string $kind, array $payload ): ?int {
+		if ( ! $this->is_communication_kind( $kind ) || 'booking_message_requested' === $kind ) {
+			return null;
+		}
+		$intent_id = $payload['intent_id'] ?? null;
+		return ( is_int( $intent_id ) || ( is_string( $intent_id ) && ctype_digit( $intent_id ) ) ) && (int) $intent_id > 0 ? (int) $intent_id : null;
 	}
 
 	private function positive_id( $value, string $field, bool $nullable ) {

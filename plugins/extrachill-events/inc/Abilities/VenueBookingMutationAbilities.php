@@ -71,8 +71,16 @@ class VenueBookingMutationAbilities {
 	public function correct_intake( array $input ) {
 		$id      = (int) $input['booking_id'];
 		$version = (int) $input['expected_version'];
+		$before  = $this->bookings->get( $id );
 		unset( $input['booking_id'], $input['expected_version'] );
 		$result = $this->mutations->correct_intake( $id, $version, $input, get_current_user_id() );
+		if ( is_array( $before ) && is_array( $result ) && strtolower( (string) $before['contact_email'] ) !== strtolower( (string) $result['contact_email'] ) ) {
+			$suppressed = ( new \ExtraChillEvents\Core\BookingCommunicationService() )->suppress_pending_reminders( $id, 'booking_recipient_changed' );
+			if ( is_wp_error( $suppressed ) ) {
+				$suppressed->add_data( array_merge( (array) $suppressed->get_error_data(), array( 'booking_committed' => true ) ) );
+				return $suppressed;
+			}
+		}
 		return is_array( $result ) ? $this->schemas->present( $result ) : $result;
 	}
 

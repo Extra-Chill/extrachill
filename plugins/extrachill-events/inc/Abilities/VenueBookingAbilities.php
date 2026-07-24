@@ -330,7 +330,15 @@ class VenueBookingAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function transition_booking( array $input ) {
+		$before = $this->bookings->get( (int) $input['booking_id'] );
 		$result = $this->lifecycle->transition( (int) $input['booking_id'], (string) $input['to_status'], (int) $input['expected_version'], get_current_user_id(), $input['note'] ?? null );
+		if ( is_array( $before ) && is_array( $result ) && $before['status'] !== $result['status'] ) {
+			$suppressed = ( new \ExtraChillEvents\Core\BookingCommunicationService() )->suppress_pending_reminders( (int) $input['booking_id'], 'booking_status_changed' );
+			if ( is_wp_error( $suppressed ) ) {
+				$suppressed->add_data( array_merge( (array) $suppressed->get_error_data(), array( 'booking_committed' => true ) ) );
+				return $suppressed;
+			}
+		}
 		return is_array( $result ) ? $this->present( $result ) : $result;
 	}
 
