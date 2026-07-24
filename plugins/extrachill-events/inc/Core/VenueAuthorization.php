@@ -1,6 +1,6 @@
 <?php
 /**
- * Venue-scoped booking authorization.
+ * Venue-scoped membership and booking authorization.
  *
  * @package ExtraChillEvents\Core
  */
@@ -50,7 +50,7 @@ class VenueAuthorization {
 		if ( self::ACTION_MANAGE_MEMBERS === $action && $this->is_administrator( $user_id ) ) {
 			return true;
 		}
-		if ( ! $this->has_feature_access( $user_id ) ) {
+		if ( self::ACTION_ACCESS_VENUE === $action && ! $this->has_feature_access( $user_id ) ) {
 			return $this->denied();
 		}
 
@@ -67,7 +67,7 @@ class VenueAuthorization {
 		if ( self::ACTION_MANAGE_MEMBERS === $action && $this->is_administrator( $user_id ) ) {
 			return true;
 		}
-		if ( ! $this->has_feature_access( $user_id ) ) {
+		if ( self::ACTION_ACCESS_VENUE === $action && ! $this->has_feature_access( $user_id ) ) {
 			return $this->denied();
 		}
 
@@ -148,7 +148,7 @@ class VenueAuthorization {
 		return $user_id > 0 && user_can( $user_id, 'manage_options' );
 	}
 
-	/** Check the established WordPress capability and rollout primitives. */
+	/** Check the established booking capability and rollout primitives. */
 	public function has_feature_access( int $user_id ): bool {
 		if ( $user_id < 1 || ! user_can( $user_id, self::ACCESS_CAPABILITY ) ) {
 			return false;

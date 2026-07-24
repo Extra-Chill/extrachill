@@ -118,7 +118,7 @@ final class BookingMutationTest extends TestCase {
 	}
 
 	public function test_schema_and_public_inquiry_separate_requested_from_authoritative_fields(): void {
-		$this->assertSame( '7', BookingSchema::SCHEMA_VERSION );
+		$this->assertSame( '8', BookingSchema::SCHEMA_VERSION );
 		$this->assertTrue( BookingSchema::install() );
 		$columns = $GLOBALS['wpdb']->schemas[ BookingSchema::bookings_table() ]['columns'];
 		foreach ( array( 'requested_space_key', 'performance_start_at', 'performance_end_at', 'production_payload', 'confirmed_deal_payload' ) as $column ) {

@@ -127,6 +127,14 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertSame( 'extra', BookingSchema::health()->get_error_data()['attribute'] );
 		$columns['id']['Extra'] = 'auto_increment';
 		$this->assertTrue( BookingSchema::health() );
+		$invitation_columns =& $GLOBALS['wpdb']->schemas['wp_7_ec_venue_invitations']['columns'];
+		$this->assertArrayHasKey( 'account_created', $invitation_columns );
+		unset( $invitation_columns['account_created'] );
+		$missing_provenance = BookingSchema::health();
+		$this->assertSame( 'booking_schema_columns_missing', $missing_provenance->get_error_code() );
+		$this->assertSame( 'account_created', $missing_provenance->get_error_data()['column'] );
+		$this->assertTrue( BookingSchema::install() );
+		$this->assertArrayHasKey( 'account_created', $GLOBALS['wpdb']->schemas['wp_7_ec_venue_invitations']['columns'] );
 
 		$GLOBALS['wpdb']->prefix = 'wp_12_';
 		$this->assertSame( 'wp_12_ec_bookings', BookingSchema::bookings_table() );
