@@ -126,7 +126,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 		}
 
 		try {
-			if ( ! copy( $source_path, $temporary ) || ! chmod( $temporary, 0600 ) ) {
+			if ( ! copy( $source_path, $temporary ) || ! chmod( $temporary, 0600 ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Private staging requires an exact owner-only mode before validation.
 				return new \WP_Error( 'booking_private_stage_failed', __( 'The private attachment could not be copied securely.', 'extrachill-events' ) );
 			}
 			clearstatcache( true, $temporary );
@@ -172,12 +172,12 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 			}
 			$blob_path     = $this->blob_path( $reference );
 			$metadata_path = $this->metadata_path( $reference );
-			if ( file_exists( $blob_path ) || file_exists( $metadata_path ) || ! rename( $temporary, $blob_path ) ) {
+			if ( file_exists( $blob_path ) || file_exists( $metadata_path ) || ! rename( $temporary, $blob_path ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Same-filesystem rename provides the required atomic private-file commit.
 				return new \WP_Error( 'booking_private_finalize_failed', __( 'The private attachment could not be finalized atomically.', 'extrachill-events' ) );
 			}
 			$temporary = '';
-			if ( ! chmod( $blob_path, 0600 ) ) {
-				unlink( $blob_path );
+			if ( ! chmod( $blob_path, 0600 ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Stored private blobs require an exact owner-only mode.
+				unlink( $blob_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Failed private blobs must be removed immediately before returning.
 				return new \WP_Error( 'booking_private_finalize_failed', __( 'The private attachment could not be secured.', 'extrachill-events' ) );
 			}
 			$record = array(
@@ -194,13 +194,13 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 				'created_at'   => gmdate( 'Y-m-d H:i:s' ),
 			);
 			if ( ! $this->write_metadata_atomic( $metadata_path, $record ) ) {
-				unlink( $blob_path );
+				unlink( $blob_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- A blob without its atomic metadata commit must be removed immediately.
 				return new \WP_Error( 'booking_private_finalize_failed', __( 'The private attachment metadata could not be finalized atomically.', 'extrachill-events' ) );
 			}
 			return $reference;
 		} finally {
 			if ( '' !== $temporary && file_exists( $temporary ) ) {
-				unlink( $temporary );
+				unlink( $temporary ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- The provider owns this contained temporary file and must clean it in finally.
 			}
 		}
 	}
@@ -406,15 +406,15 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 		}
 		$handoff_path = $this->handoff_path( $stream_token );
 		$consuming    = $handoff_path . '.consuming';
-		if ( ! $this->handoffs_directory_is_safe() || ! $this->is_contained( $handoff_path ) || is_link( $handoff_path ) || ! is_file( $handoff_path ) || ! rename( $handoff_path, $consuming ) ) {
+		if ( ! $this->handoffs_directory_is_safe() || ! $this->is_contained( $handoff_path ) || is_link( $handoff_path ) || ! is_file( $handoff_path ) || ! rename( $handoff_path, $consuming ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Atomic rename is the one-time token consumption boundary.
 			return new \WP_Error( 'booking_private_stream_invalid', __( 'The private stream token is invalid.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
 		if ( ! $this->handoffs_directory_is_safe() || is_link( $consuming ) || ! is_file( $consuming ) ) {
 			return new \WP_Error( 'booking_private_handoff_directory_unsafe', __( 'The private handoff directory changed unexpectedly.', 'extrachill-events' ) );
 		}
-		$contents = file_get_contents( $consuming );
+		$contents = file_get_contents( $consuming ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- This reads a validated contained local handoff, not a remote URL.
 		$decoded  = false !== $contents ? json_decode( $contents, true ) : null;
-		if ( ! $this->handoffs_directory_is_safe() || ! unlink( $consuming ) ) {
+		if ( ! $this->handoffs_directory_is_safe() || ! unlink( $consuming ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Consumed one-time handoffs must be deleted synchronously.
 			return new \WP_Error( 'booking_private_handoff_consume_failed', __( 'The private stream handoff could not be consumed safely.', 'extrachill-events' ) );
 		}
 		if ( ! is_array( $decoded ) || time() >= (int) ( $decoded['expires'] ?? 0 ) || ! hash_equals( (string) ( $decoded['attachment_public_id'] ?? '' ), $attachment_public_id ) || (int) ( $decoded['actor_id'] ?? 0 ) !== $actor_id || ! hash_equals( (string) ( $decoded['purpose'] ?? '' ), $purpose ) ) {
@@ -460,10 +460,10 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 						return new \WP_Error( 'booking_private_retirement_tombstone_failed', __( 'Private object retirement could not be made recoverable.', 'extrachill-events' ) );
 					}
 				}
-				if ( file_exists( $blob ) && ! unlink( $blob ) ) {
+				if ( file_exists( $blob ) && ! unlink( $blob ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Retirement synchronously removes the exact contained private blob.
 					return new \WP_Error( 'booking_private_retirement_partial', __( 'Private object retirement remains incomplete and recoverable.', 'extrachill-events' ) );
 				}
-				if ( file_exists( $metadata ) && ! unlink( $metadata ) ) {
+				if ( file_exists( $metadata ) && ! unlink( $metadata ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Retirement synchronously removes the exact contained metadata sidecar.
 					return new \WP_Error( 'booking_private_retirement_partial', __( 'Private object retirement remains incomplete and recoverable.', 'extrachill-events' ) );
 				}
 				return true;
@@ -520,7 +520,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 			if ( is_wp_error( $held ) ) {
 				return $held;
 			}
-			if ( false === $held && ( $is_temporary || $is_handoff || $is_metadata_temp || $is_orphan_blob || $is_orphan_sidecar ) && file_exists( $path ) && unlink( $path ) ) {
+			if ( false === $held && ( $is_temporary || $is_handoff || $is_metadata_temp || $is_orphan_blob || $is_orphan_sidecar ) && file_exists( $path ) && unlink( $path ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Approved cleanup deletes only contained provider-owned private artifacts.
 				++$deleted;
 			}
 		}
@@ -551,7 +551,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 				}
 				$deleted = 0;
 				foreach ( array( $this->blob_path( $reference ), $this->metadata_path( $reference ) ) as $path ) {
-					if ( file_exists( $path ) && unlink( $path ) ) {
+					if ( file_exists( $path ) && unlink( $path ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Approved cleanup deletes the exact contained unclaimed object files.
 						++$deleted;
 					}
 				}
@@ -574,7 +574,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 			return new \WP_Error( 'booking_private_storage_unsafe', __( 'The configured private storage root is missing or unsafe.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
 		$real = realpath( $configured );
-		if ( false === $real || str_replace( '\\', '/', $real ) !== $configured || ! is_writable( $real ) ) {
+		if ( false === $real || str_replace( '\\', '/', $real ) !== $configured || ! is_writable( $real ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Storage admission must verify host-level writability of the configured private root.
 			return new \WP_Error( 'booking_private_storage_unsafe', __( 'The configured private storage root is unwritable or resolves through a symlink.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
 		$permissions = fileperms( $real );
@@ -619,11 +619,11 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 		if ( is_link( $existing ) || false === $existing_real || ! $this->is_contained( $existing_real ) ) {
 			return false;
 		}
-		if ( ! is_dir( $directory ) && ! mkdir( $directory, 0700, true ) ) {
+		if ( ! is_dir( $directory ) && ! mkdir( $directory, 0700, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Private directories require an exact owner-only creation mode.
 			return false;
 		}
 		$real = realpath( $directory );
-		return false !== $real && ! is_link( $directory ) && $this->is_contained( $real ) && chmod( $real, 0700 ) && is_writable( $real );
+		return false !== $real && ! is_link( $directory ) && $this->is_contained( $real ) && chmod( $real, 0700 ) && is_writable( $real ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod,WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Revalidate exact private permissions and host-level writability after creation.
 	}
 
 	/**
@@ -666,7 +666,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 		if ( false === $metadata_path || false === $blob_path || ! $this->is_contained( $metadata_path ) || ! $this->is_contained( $blob_path ) || is_link( $metadata_candidate ) || is_link( $blob_candidate ) || ! is_file( $metadata_path ) || ! is_file( $blob_path ) ) {
 			return new \WP_Error( 'booking_private_object_missing', __( 'The private object was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
-		$contents = file_get_contents( $metadata_path );
+		$contents = file_get_contents( $metadata_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- This reads a validated contained local metadata sidecar, not a remote URL.
 		$record   = false !== $contents ? json_decode( $contents, true ) : null;
 		if ( ! is_array( $record ) || 1 !== (int) ( $record['version'] ?? 0 ) || ( $record['object_id'] ?? '' ) !== $reference || ! is_array( $record['claims'] ?? null ) || ! in_array( ( $record['state'] ?? '' ), array( 'ready', 'retiring' ), true ) ) {
 			return new \WP_Error( 'booking_private_metadata_invalid', __( 'The private object metadata is invalid.', 'extrachill-events' ) );
@@ -705,7 +705,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 		if ( is_link( $metadata ) || ! is_file( $metadata ) || ! $this->is_contained( (string) realpath( $metadata ) ) ) {
 			return new \WP_Error( 'booking_private_object_missing', __( 'The private object was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
-		$contents = file_get_contents( $metadata );
+		$contents = file_get_contents( $metadata ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- This reads a validated contained local retirement sidecar, not a remote URL.
 		$record   = false !== $contents ? json_decode( $contents, true ) : null;
 		return is_array( $record ) && ( $record['object_id'] ?? '' ) === $reference && 'retiring' === ( $record['state'] ?? '' )
 			? $record
@@ -724,7 +724,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 		if ( false === $real || is_link( $candidate ) || ! $this->is_contained( $real ) ) {
 			return new \WP_Error( 'booking_private_object_missing', __( 'The private object was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
-		$stream = fopen( $candidate, 'rb' );
+		$stream = fopen( $candidate, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- The open resource is required for inode and content verification before streaming.
 		if ( false === $stream ) {
 			return new \WP_Error( 'booking_private_stream_failed', __( 'The private object could not be opened.', 'extrachill-events' ) );
 		}
@@ -734,7 +734,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 		$hashed  = hash_update_stream( $hash, $stream );
 		$digest  = hash_final( $hash );
 		if ( false === $opened || false === $current || $opened['dev'] !== $current['dev'] || $opened['ino'] !== $current['ino'] || 0100000 !== ( $opened['mode'] & 0170000 ) || false === $hashed || ! hash_equals( (string) $record['content_hash'], $digest ) ) {
-			fclose( $stream );
+			fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- This closes the directly owned verification stream on failure.
 			return new \WP_Error( 'booking_private_object_corrupt', __( 'The private object changed before it could be opened safely.', 'extrachill-events' ) );
 		}
 		rewind( $stream );
@@ -776,15 +776,15 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 			return false;
 		}
 		$encoded = wp_json_encode( $record );
-		$written = false !== $encoded && false !== file_put_contents( $temporary, $encoded, LOCK_EX ) && chmod( $temporary, 0600 );
-		if ( $written && ( ( ! $is_handoff || $this->handoffs_directory_is_safe() ) && rename( $temporary, $path ) ) ) {
+		$written = false !== $encoded && false !== file_put_contents( $temporary, $encoded, LOCK_EX ) && chmod( $temporary, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents,WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Atomic metadata staging requires an exclusive write and exact owner-only mode.
+		if ( $written && ( ( ! $is_handoff || $this->handoffs_directory_is_safe() ) && rename( $temporary, $path ) ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Same-directory rename atomically commits the private metadata sidecar.
 			return true;
 		}
 		if ( ! $written && file_exists( $temporary ) ) {
-			unlink( $temporary );
+			unlink( $temporary ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Failed provider-owned metadata staging files must be removed immediately.
 		}
 		if ( file_exists( $temporary ) ) {
-			unlink( $temporary );
+			unlink( $temporary ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Uncommitted provider-owned metadata staging files must be removed immediately.
 		}
 		return false;
 	}
@@ -801,10 +801,10 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 			return new \WP_Error( 'booking_private_lock_failed', __( 'The private object could not be locked.', 'extrachill-events' ) );
 		}
 		$lock_path = $directory . '/' . $reference . '.lock';
-		$lock      = fopen( $lock_path, 'c' );
-		if ( false === $lock || ! chmod( $lock_path, 0600 ) || ! flock( $lock, LOCK_EX ) ) {
+		$lock      = fopen( $lock_path, 'c' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- A persistent local stream is required for flock-based object serialization.
+		if ( false === $lock || ! chmod( $lock_path, 0600 ) || ! flock( $lock, LOCK_EX ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Lock files require an exact owner-only mode.
 			if ( is_resource( $lock ) ) {
-				fclose( $lock );
+				fclose( $lock ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- This closes the directly owned lock stream after acquisition failure.
 			}
 			return new \WP_Error( 'booking_private_lock_failed', __( 'The private object could not be locked.', 'extrachill-events' ) );
 		}
@@ -812,7 +812,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 			return $callback();
 		} finally {
 			flock( $lock, LOCK_UN );
-			fclose( $lock );
+			fclose( $lock ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- This closes the directly owned flock stream after unlocking.
 		}
 	}
 

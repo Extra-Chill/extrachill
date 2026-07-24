@@ -128,15 +128,15 @@ class VenueQualificationAbilities {
 					'input_schema'        => array(
 						'type'       => 'object',
 						'properties' => array(
-							'url'  => array(
+							'url'             => array(
 								'type'        => 'string',
 								'description' => 'Venue website URL (homepage). The ability will find the events page and test the scraper.',
 							),
-							'name' => array(
+							'name'            => array(
 								'type'        => 'string',
 								'description' => 'Venue name (optional, for display).',
 							),
-							'flow_id' => array(
+							'flow_id'         => array(
 								'type'        => 'integer',
 								'description' => 'Existing flow whose persisted scraper config and lifecycle scope must be diagnosed.',
 							),
@@ -150,15 +150,15 @@ class VenueQualificationAbilities {
 					'output_schema'       => array(
 						'type'       => 'object',
 						'properties' => array(
-							'qualified'        => array( 'type' => 'boolean' ),
-							'verdict'          => array( 'type' => 'string' ),
-							'events_url'       => array( 'type' => 'string' ),
-							'method'           => array( 'type' => 'string' ),
-							'event_count'      => array( 'type' => 'integer' ),
-							'fingerprint'      => array( 'type' => 'object' ),
-							'improvement_hint' => array( 'type' => 'string' ),
-							'agent_guidance'   => array( 'type' => 'string' ),
-							'warnings'         => array( 'type' => 'array' ),
+							'qualified'          => array( 'type' => 'boolean' ),
+							'verdict'            => array( 'type' => 'string' ),
+							'events_url'         => array( 'type' => 'string' ),
+							'method'             => array( 'type' => 'string' ),
+							'event_count'        => array( 'type' => 'integer' ),
+							'fingerprint'        => array( 'type' => 'object' ),
+							'improvement_hint'   => array( 'type' => 'string' ),
+							'agent_guidance'     => array( 'type' => 'string' ),
+							'warnings'           => array( 'type' => 'array' ),
 							'production_context' => array( 'type' => 'object' ),
 							'repair_proposal'    => array( 'type' => array( 'object', 'null' ) ),
 						),
@@ -311,7 +311,7 @@ class VenueQualificationAbilities {
 					null !== $flow_context ? $flow_context['handler_config'] : null
 				);
 				if ( null !== $flow_context && $candidate['url'] === $url ) {
-					$attempt                          = QualifyFingerprinter::add_production_eligibility( $attempt, $flow_context );
+					$attempt                           = QualifyFingerprinter::add_production_eligibility( $attempt, $flow_context );
 					$fingerprint['production_context'] = $attempt['production_context'];
 				}
 				unset( $attempt['_diagnostic_identifiers'] );
@@ -517,27 +517,27 @@ class VenueQualificationAbilities {
 			&& '' !== $events_url
 			&& untrailingslashit( $events_url ) !== untrailingslashit( $url ) ) {
 			$repair_proposal = array(
-				'type'            => 'source_url',
-				'current'         => $url,
-				'proposed'        => $events_url,
-				'same_host'       => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ) === strtolower( (string) wp_parse_url( $events_url, PHP_URL_HOST ) ),
-				'applied'         => false,
-				'confirmation'    => 'A separate explicit apply with confirmation is required.',
+				'type'         => 'source_url',
+				'current'      => $url,
+				'proposed'     => $events_url,
+				'same_host'    => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ) === strtolower( (string) wp_parse_url( $events_url, PHP_URL_HOST ) ),
+				'applied'      => false,
+				'confirmation' => 'A separate explicit apply with confirmation is required.',
 			);
 		}
 
 		return array(
-			'qualified'        => QualifyVerdict::is_qualified( $resolved['verdict'] ),
-			'verdict'          => $resolved['verdict'],
-			'events_url'       => $resolved['events_url'],
-			'method'           => $method,
-			'name'             => $name,
-			'event_count'      => $resolved['event_count'],
-			'fingerprint'      => $fingerprint,
-			'improvement_hint' => $resolved['improvement_hint'],
-			'agent_guidance'   => $resolved['agent_guidance'],
-			'warnings'         => $warnings,
-			'urls_tested'      => isset( $fingerprint['urls_tested'] ) ? $fingerprint['urls_tested'] : array(),
+			'qualified'          => QualifyVerdict::is_qualified( $resolved['verdict'] ),
+			'verdict'            => $resolved['verdict'],
+			'events_url'         => $resolved['events_url'],
+			'method'             => $method,
+			'name'               => $name,
+			'event_count'        => $resolved['event_count'],
+			'fingerprint'        => $fingerprint,
+			'improvement_hint'   => $resolved['improvement_hint'],
+			'agent_guidance'     => $resolved['agent_guidance'],
+			'warnings'           => $warnings,
+			'urls_tested'        => isset( $fingerprint['urls_tested'] ) ? $fingerprint['urls_tested'] : array(),
 			'production_context' => $fingerprint['production_context'] ?? array(),
 			'repair_proposal'    => $repair_proposal,
 		);

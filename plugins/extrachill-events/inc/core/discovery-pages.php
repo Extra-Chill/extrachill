@@ -413,7 +413,7 @@ function extrachill_events_render_scope_nav( \WP_Term $term, string $current, st
 		return;
 	}
 
-	$tabs = array(
+	$tabs       = array(
 		'tonight'      => 'Tonight',
 		'this-weekend' => 'This Weekend',
 		'this-week'    => 'This Week',

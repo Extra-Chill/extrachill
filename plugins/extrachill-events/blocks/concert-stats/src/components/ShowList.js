@@ -5,7 +5,7 @@
  */
 
 /**
- * WordPress dependencies
+ * External dependencies
  */
 import { ActionRow, InlineStatus } from '@extrachill/components';
 

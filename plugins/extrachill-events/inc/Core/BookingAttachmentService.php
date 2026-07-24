@@ -720,7 +720,7 @@ class BookingAttachmentService {
 			}
 		);
 		if ( is_wp_error( $result ) && is_resource( $opened ) ) {
-			fclose( $opened );
+			fclose( $opened ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- The provider returned an open stream that this error path must close directly.
 		}
 		return $result;
 	}

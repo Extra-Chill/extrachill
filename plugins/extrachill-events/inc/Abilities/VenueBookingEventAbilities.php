@@ -63,7 +63,7 @@ class VenueBookingEventAbilities {
 	}
 
 	public function execute( array $input ) {
-		$booking = $this->bookings->get( (int) $input['booking_id'] );
+		$booking                 = $this->bookings->get( (int) $input['booking_id'] );
 		$this->active_conversion = is_array( $booking ) ? $booking : null;
 		try {
 			return $this->conversion->convert( (int) $input['booking_id'], (int) $input['expected_version'], get_current_user_id() );
@@ -79,7 +79,7 @@ class VenueBookingEventAbilities {
 		}
 		if ( ! is_array( $this->active_conversion )
 			|| BookingEventConversionService::SOURCE !== ( $input['source'] ?? '' )
-			|| $this->active_conversion['public_id'] !== ( $input['source_id'] ?? '' ) ) {
+			|| ( $input['source_id'] ?? '' ) !== $this->active_conversion['public_id'] ) {
 			return false;
 		}
 
@@ -96,21 +96,24 @@ class VenueBookingEventAbilities {
 		if ( ! is_array( $this->active_conversion ) ) {
 			return 0;
 		}
-		$candidate_match = false;
+		$candidate_match     = false;
 		$candidate_intervals = (array) ( $publication['_candidate_intervals'] ?? array() );
 		if ( empty( $candidate_intervals ) && isset( $publication['start_at'], $publication['end_at'] ) ) {
-			$candidate_intervals[] = array( 'start_at' => $publication['start_at'], 'end_at' => $publication['end_at'] );
+			$candidate_intervals[] = array(
+				'start_at' => $publication['start_at'],
+				'end_at'   => $publication['end_at'],
+			);
 		}
 		foreach ( $candidate_intervals as $interval ) {
-			if ( $this->active_conversion['performance_start_at'] === ( $interval['start_at'] ?? '' )
-				&& $this->active_conversion['performance_end_at'] === ( $interval['end_at'] ?? '' ) ) {
+			if ( ( $interval['start_at'] ?? '' ) === $this->active_conversion['performance_start_at']
+				&& ( $interval['end_at'] ?? '' ) === $this->active_conversion['performance_end_at'] ) {
 				$candidate_match = true;
 				break;
 			}
 		}
 		if ( BookingEventConversionService::SOURCE !== ( $input['source'] ?? '' )
-			|| $this->active_conversion['public_id'] !== ( $input['source_id'] ?? '' )
-			|| (int) $this->active_conversion['venue_term_id'] !== (int) ( $publication['venue_id'] ?? 0 )
+			|| ( $input['source_id'] ?? '' ) !== $this->active_conversion['public_id']
+			|| (int) ( $publication['venue_id'] ?? 0 ) !== (int) $this->active_conversion['venue_term_id']
 			|| ! $candidate_match ) {
 			return 0;
 		}

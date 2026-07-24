@@ -1,7 +1,7 @@
 /**
  * Discovery scope navigation request-state coverage.
  */
-/* eslint-env jest */
+/* global MouseEvent, PopStateEvent, beforeAll, beforeEach, describe, expect, it, jest */
 
 function deferred() {
 	let resolve;

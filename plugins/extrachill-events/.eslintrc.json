@@ -10,6 +10,18 @@
 	"env": {
 		"browser": true
 	},
+	"overrides": [
+		{
+			"files": [ "**/*.test.js" ],
+			"env": {
+				"jest": true
+			},
+			"globals": {
+				"MouseEvent": "readonly",
+				"PopStateEvent": "readonly"
+			}
+		}
+	],
 	"rules": {
 		"no-console": [ "error", { "allow": [ "warn", "error" ] } ],
 		"no-unused-vars": [ "error", { "argsIgnorePattern": "^_" } ],

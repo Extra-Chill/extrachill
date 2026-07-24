@@ -226,19 +226,19 @@ class QualifyFingerprinter {
 	 */
 	public static function run_extractor_attempt( string $url, ?array $handler_config = null ): array {
 		$attempt = array(
-			'url'                       => $url,
-			'events_url'                => $url,
-			'events'                    => 0,
-			'raw_extracted'             => 0,
-			'unique_source_events'      => 0,
-			'production_max_items'      => null,
-			'production_context'        => null,
-			'_diagnostic_identifiers'   => array(),
-			'ran'                       => false,
-			'name'                      => '',
-			'exists'                    => true,
-			'matched'                   => false,
-			'source_type'               => '',
+			'url'                     => $url,
+			'events_url'              => $url,
+			'events'                  => 0,
+			'raw_extracted'           => 0,
+			'unique_source_events'    => 0,
+			'production_max_items'    => null,
+			'production_context'      => null,
+			'_diagnostic_identifiers' => array(),
+			'ran'                     => false,
+			'name'                    => '',
+			'exists'                  => true,
+			'matched'                 => false,
+			'source_type'             => '',
 		);
 
 		$ability = function_exists( 'wp_get_ability' )
@@ -255,9 +255,9 @@ class QualifyFingerprinter {
 		if ( null !== $handler_config ) {
 			$ability_config = $handler_config;
 			if ( method_exists( $ability, 'get_input_schema' ) ) {
-				$input_schema       = (array) $ability->get_input_schema();
-				$config_properties  = (array) ( $input_schema['properties']['handler_config']['properties'] ?? array() );
-				$ability_config     = array_intersect_key( $handler_config, $config_properties );
+				$input_schema      = (array) $ability->get_input_schema();
+				$config_properties = (array) ( $input_schema['properties']['handler_config']['properties'] ?? array() );
+				$ability_config    = array_intersect_key( $handler_config, $config_properties );
 			}
 			$ability_input['handler_config'] = $ability_config;
 		}
@@ -275,10 +275,10 @@ class QualifyFingerprinter {
 		$source_type       = (string) ( $extraction['source_type'] ?? '' );
 		$payload_type      = (string) ( $extraction['payload_type'] ?? '' );
 
-		$attempt['ran']         = true;
-		$attempt['matched']     = ! empty( $result['success'] );
-		$attempt['source_type'] = $source_type ? $source_type : $payload_type;
-		$attempt['name']        = self::extractor_class_from_method( $extraction_method, $payload_type, $source_type );
+		$attempt['ran']                  = true;
+		$attempt['matched']              = ! empty( $result['success'] );
+		$attempt['source_type']          = $source_type ? $source_type : $payload_type;
+		$attempt['name']                 = self::extractor_class_from_method( $extraction_method, $payload_type, $source_type );
 		$attempt['raw_extracted']        = (int) ( $extraction['extracted_packet_count'] ?? 0 );
 		$attempt['unique_source_events'] = (int) ( $extraction['unique_source_event_count'] ?? 0 );
 		$attempt['production_max_items'] = isset( $extraction['production_max_items'] )
@@ -311,27 +311,27 @@ class QualifyFingerprinter {
 	 */
 	public static function add_production_eligibility( array $attempt, array $flow_context ): array {
 		$diagnostics = array(
-			'context_supplied'     => true,
-			'flow_id'              => (int) ( $flow_context['flow_id'] ?? 0 ),
-			'flow_step_id'         => (string) ( $flow_context['flow_step_id'] ?? '' ),
-			'job_id'               => (string) ( $flow_context['job_id'] ?? '' ),
+			'context_supplied'      => true,
+			'flow_id'               => (int) ( $flow_context['flow_id'] ?? 0 ),
+			'flow_step_id'          => (string) ( $flow_context['flow_step_id'] ?? '' ),
+			'job_id'                => (string) ( $flow_context['job_id'] ?? '' ),
 			'raw_extracted'         => (int) ( $attempt['raw_extracted'] ?? 0 ),
-			'unique_source'        => (int) ( $attempt['unique_source_events'] ?? 0 ),
-			'processed'            => null,
-			'active_claim'         => null,
+			'unique_source'         => (int) ( $attempt['unique_source_events'] ?? 0 ),
+			'processed'             => null,
+			'active_claim'          => null,
 			'reprocess_eligible'    => null,
 			'selected_by_max_items' => null,
-			'production_eligible'  => null,
-			'complete'             => false,
-			'bounded'              => true,
-			'identifier_limit'     => self::MAX_LIFECYCLE_IDENTIFIERS,
-			'identifier_source'    => '',
-			'error'                => '',
+			'production_eligible'   => null,
+			'complete'              => false,
+			'bounded'               => true,
+			'identifier_limit'      => self::MAX_LIFECYCLE_IDENTIFIERS,
+			'identifier_source'     => '',
+			'error'                 => '',
 		);
 
 		$test_handler = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'datamachine/test-handler' ) : null;
 		if ( ! $test_handler || ! class_exists( '\\DataMachine\\Core\\ExecutionContext' ) ) {
-			$diagnostics['error']             = 'Production lifecycle diagnostics are unavailable.';
+			$diagnostics['error']          = 'Production lifecycle diagnostics are unavailable.';
 			$attempt['production_context'] = $diagnostics;
 			return $attempt;
 		}
@@ -350,7 +350,7 @@ class QualifyFingerprinter {
 		);
 
 		if ( is_wp_error( $raw_result ) || empty( $raw_result['success'] ) ) {
-			$diagnostics['error'] = is_wp_error( $raw_result )
+			$diagnostics['error']          = is_wp_error( $raw_result )
 				? $raw_result->get_error_message()
 				: (string) ( $raw_result['error'] ?? 'Handler diagnostics failed.' );
 			$attempt['production_context'] = $diagnostics;
@@ -382,8 +382,8 @@ class QualifyFingerprinter {
 			$identifier_source = 'verified_event_inventory';
 		}
 
-		$unique_identifiers = array_values( array_unique( $identifiers ) );
-		$complete           = count( $unique_identifiers ) === $expected_identifiers
+		$unique_identifiers                  = array_values( array_unique( $identifiers ) );
+		$complete                            = count( $unique_identifiers ) === $expected_identifiers
 			&& $expected_identifiers <= self::MAX_LIFECYCLE_IDENTIFIERS;
 		$diagnostics['complete']             = $complete;
 		$diagnostics['identifier_source']    = $identifier_source;
@@ -391,7 +391,7 @@ class QualifyFingerprinter {
 		$diagnostics['truncation']           = (array) ( $raw_result['truncation'] ?? array() );
 
 		if ( ! $complete ) {
-			$diagnostics['error'] = sprintf(
+			$diagnostics['error']          = sprintf(
 				'Lifecycle coverage is incomplete: observed %d of %d unique identifiers within the %d-item safety ceiling.',
 				count( $unique_identifiers ),
 				$expected_identifiers,
@@ -407,11 +407,11 @@ class QualifyFingerprinter {
 			$diagnostics['reprocess_eligible']    = 0;
 			$diagnostics['selected_by_max_items'] = 0;
 			$diagnostics['production_eligible']   = 0;
-			$attempt['production_context']         = $diagnostics;
+			$attempt['production_context']        = $diagnostics;
 			return $attempt;
 		}
 
-		$context = \DataMachine\Core\ExecutionContext::fromFlow(
+		$context        = \DataMachine\Core\ExecutionContext::fromFlow(
 			(int) ( $flow_context['pipeline_id'] ?? 0 ),
 			(int) $flow_context['flow_id'],
 			(string) $flow_context['flow_step_id'],
@@ -422,8 +422,8 @@ class QualifyFingerprinter {
 			$unique_identifiers,
 			max( 0, (int) ( $flow_context['handler_config']['max_items'] ?? 0 ) )
 		);
-		$counts = (array) ( $classification['diagnostics'] ?? array() );
-		$processed = 0;
+		$counts         = (array) ( $classification['diagnostics'] ?? array() );
+		$processed      = 0;
 		foreach ( (array) ( $classification['classifications'] ?? array() ) as $item ) {
 			if ( ! empty( $item['processed'] ) ) {
 				++$processed;
@@ -432,7 +432,7 @@ class QualifyFingerprinter {
 
 		$diagnostics['processed']             = $processed;
 		$diagnostics['active_claim']          = (int) ( $counts['actively_claimed'] ?? 0 );
-		$diagnostics['reprocess_eligible']     = (int) ( $counts['processed_reprocess_eligible'] ?? 0 );
+		$diagnostics['reprocess_eligible']    = (int) ( $counts['processed_reprocess_eligible'] ?? 0 );
 		$diagnostics['selected_by_max_items'] = (int) ( $counts['selected'] ?? 0 );
 		$diagnostics['production_eligible']   = (int) ( $counts['selected'] ?? 0 );
 

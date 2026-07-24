@@ -457,7 +457,7 @@ class FlowOps {
 			$table,
 			array( 'flow_config' => wp_json_encode( $patched['config'] ) ),
 			array(
-				'flow_id'    => $flow_id,
+				'flow_id'     => $flow_id,
 				'flow_config' => (string) $encoded,
 			),
 			array( '%s' ),

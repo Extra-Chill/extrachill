@@ -1,11 +1,22 @@
 /**
  * useShows pagination and query identity behavior.
  */
-/* eslint-env jest */
+/* global MouseEvent, afterAll, beforeAll, beforeEach, describe, expect, it, jest */
 
-import { createRoot } from '@wordpress/element';
-import { act } from 'react';
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
+import { createRoot } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
+import { act } from 'react';
+
+/**
+ * Internal dependencies
+ */
 import useShows from './useShows';
 
 jest.mock( '@wordpress/api-fetch', () => ( {
@@ -105,12 +116,12 @@ describe( 'useShows', () => {
 
 	it( 'starts a selected year at page one after multiple pages', async () => {
 		apiFetch.mockImplementation( ( { path } ) => {
-			const page = Number(
-				new URLSearchParams( path.split( '?' )[ 1 ] ).get( 'page' )
-			);
 			if ( path.includes( 'year=2025' ) ) {
 				return Promise.resolve( response( [ 25 ], 1, 1, 1 ) );
 			}
+			const page = Number(
+				new URLSearchParams( path.split( '?' )[ 1 ] ).get( 'page' )
+			);
 			return Promise.resolve( response( [ page ], 3, 3, page ) );
 		} );
 		const initial = {

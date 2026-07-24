@@ -1,11 +1,22 @@
 /**
  * useStats request isolation and authorization behavior.
  */
-/* eslint-env jest */
+/* global afterAll, beforeAll, beforeEach, describe, expect, it, jest */
 
-import { createRoot } from '@wordpress/element';
-import { act } from 'react';
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
+import { createRoot } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
+import { act } from 'react';
+
+/**
+ * Internal dependencies
+ */
 import useStats from './useStats';
 
 jest.mock( '@wordpress/api-fetch', () => ( {

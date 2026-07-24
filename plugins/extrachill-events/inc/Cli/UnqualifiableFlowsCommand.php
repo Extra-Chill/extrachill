@@ -195,24 +195,24 @@ class UnqualifiableFlowsCommand {
 			$progress->tick();
 
 			$row = array(
-				'flow_id'     => $c['flow_id'],
-				'flow_name'   => $c['flow_name'],
-				'source_url'  => $c['source_url'],
-				'new_verdict' => '',
-				'event_count' => 0,
-				'raw_extracted' => 0,
-				'unique_source' => 0,
-				'processed'     => null,
-				'active_claim'  => null,
-				'reprocess_eligible' => null,
+				'flow_id'               => $c['flow_id'],
+				'flow_name'             => $c['flow_name'],
+				'source_url'            => $c['source_url'],
+				'new_verdict'           => '',
+				'event_count'           => 0,
+				'raw_extracted'         => 0,
+				'unique_source'         => 0,
+				'processed'             => null,
+				'active_claim'          => null,
+				'reprocess_eligible'    => null,
 				'selected_by_max_items' => null,
-				'production_eligible' => null,
-				'context_supplied' => false,
-				'complete'         => false,
-				'identifier_source' => '',
-				'diagnostic_error' => '',
-				'repair_proposal' => null,
-				'action'      => 'none',
+				'production_eligible'   => null,
+				'context_supplied'      => false,
+				'complete'              => false,
+				'identifier_source'     => '',
+				'diagnostic_error'      => '',
+				'repair_proposal'       => null,
+				'action'                => 'none',
 			);
 
 			if ( is_wp_error( $result ) ) {
@@ -222,21 +222,21 @@ class UnqualifiableFlowsCommand {
 				continue;
 			}
 
-			$row['new_verdict'] = (string) ( $result['verdict'] ?? '' );
-			$row['event_count'] = (int) ( $result['event_count'] ?? 0 );
-			$production = is_array( $result['production_context'] ?? null ) ? $result['production_context'] : array();
+			$row['new_verdict']           = (string) ( $result['verdict'] ?? '' );
+			$row['event_count']           = (int) ( $result['event_count'] ?? 0 );
+			$production                   = is_array( $result['production_context'] ?? null ) ? $result['production_context'] : array();
 			$row['raw_extracted']         = (int) ( $production['raw_extracted'] ?? 0 );
-			$row['unique_source']        = (int) ( $production['unique_source'] ?? 0 );
-			$row['processed']            = $production['processed'] ?? null;
-			$row['active_claim']         = $production['active_claim'] ?? null;
+			$row['unique_source']         = (int) ( $production['unique_source'] ?? 0 );
+			$row['processed']             = $production['processed'] ?? null;
+			$row['active_claim']          = $production['active_claim'] ?? null;
 			$row['reprocess_eligible']    = $production['reprocess_eligible'] ?? null;
 			$row['selected_by_max_items'] = $production['selected_by_max_items'] ?? null;
-			$row['production_eligible']  = $production['production_eligible'] ?? null;
-			$row['context_supplied']     = ! empty( $production['context_supplied'] );
-			$row['complete']             = true === ( $production['complete'] ?? false );
-			$row['identifier_source']    = (string) ( $production['identifier_source'] ?? '' );
-			$row['diagnostic_error']     = (string) ( $production['error'] ?? '' );
-			$row['repair_proposal']      = $result['repair_proposal'] ?? null;
+			$row['production_eligible']   = $production['production_eligible'] ?? null;
+			$row['context_supplied']      = ! empty( $production['context_supplied'] );
+			$row['complete']              = true === ( $production['complete'] ?? false );
+			$row['identifier_source']     = (string) ( $production['identifier_source'] ?? '' );
+			$row['diagnostic_error']      = (string) ( $production['error'] ?? '' );
+			$row['repair_proposal']       = $result['repair_proposal'] ?? null;
 
 			if ( QualifyVerdict::QUALIFIED_STRUCTURED === $row['new_verdict'] ) {
 				$row['action'] = $this->classify_qualified_action( $production, $row['repair_proposal'] );

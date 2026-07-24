@@ -82,11 +82,11 @@ class CanonicalEventPublicationGuard {
 			return $result;
 		}
 
-		$this->active_context       = 'dme';
-		$this->active_post_id       = (int) ( $context['existing_post_id'] ?? 0 );
-		$this->active_publication   = $publication;
-		$this->active_lifecycle_key = $this->lifecycle_key( $context );
-		$this->active_poisoned      = false;
+		$this->active_context           = 'dme';
+		$this->active_post_id           = (int) ( $context['existing_post_id'] ?? 0 );
+		$this->active_publication       = $publication;
+		$this->active_lifecycle_key     = $this->lifecycle_key( $context );
+		$this->active_poisoned          = false;
 		$this->active_boundary_consumed = false;
 		return $preflight;
 	}
@@ -105,7 +105,14 @@ class CanonicalEventPublicationGuard {
 			return;
 		}
 		if ( $post_id < 1 || ( $this->active_post_id > 0 && $post_id !== $this->active_post_id ) ) {
-			$error = new \WP_Error( 'canonical_event_publication_identity_mismatch', __( 'Canonical event publication could not bind its reserved post identity.', 'extrachill-events' ), array( 'status' => 409, 'post_id' => $post_id ) );
+			$error                 = new \WP_Error(
+				'canonical_event_publication_identity_mismatch',
+				__( 'Canonical event publication could not bind its reserved post identity.', 'extrachill-events' ),
+				array(
+					'status'  => 409,
+					'post_id' => $post_id,
+				)
+			);
 			$this->active_poisoned = true;
 			$this->audit_denial( 'dme', $error );
 			return;
@@ -145,11 +152,11 @@ class CanonicalEventPublicationGuard {
 			return $result;
 		}
 
-		$this->active_context     = 'rest';
-		$this->active_post_id     = $post_id;
-		$this->active_publication = $publication;
+		$this->active_context           = 'rest';
+		$this->active_post_id           = $post_id;
+		$this->active_publication       = $publication;
 		$this->active_boundary_consumed = false;
-		$this->active_rest_request = is_object( $request ) ? $request : null;
+		$this->active_rest_request      = is_object( $request ) ? $request : null;
 		return $prepared_post;
 	}
 
@@ -176,19 +183,26 @@ class CanonicalEventPublicationGuard {
 		if ( $maybe_empty ) {
 			return true;
 		}
-		if ( $post_type !== ( $postarr['post_type'] ?? '' ) || 'publish' !== ( $postarr['post_status'] ?? '' ) ) {
+		if ( ( $postarr['post_type'] ?? '' ) !== $post_type || 'publish' !== ( $postarr['post_status'] ?? '' ) ) {
 			return $maybe_empty;
 		}
 
 		$post_id = absint( $postarr['ID'] ?? 0 );
 		if ( 'dme' === $this->active_context ) {
-			$matches_reserved = $post_id > 0 && $post_id === $this->active_post_id;
+			$matches_reserved       = $post_id > 0 && $post_id === $this->active_post_id;
 			$matches_sourceless_new = 0 === $post_id && 0 === $this->active_post_id;
 			if ( ! $this->active_poisoned && ! $this->active_boundary_consumed && ( $matches_reserved || $matches_sourceless_new ) ) {
 				$this->active_boundary_consumed = true;
 				return false;
 			}
-			$error = new \WP_Error( 'canonical_event_publication_post_mismatch', __( 'This event write does not match the active canonical publication.', 'extrachill-events' ), array( 'status' => 409, 'post_id' => $post_id ) );
+			$error                 = new \WP_Error(
+				'canonical_event_publication_post_mismatch',
+				__( 'This event write does not match the active canonical publication.', 'extrachill-events' ),
+				array(
+					'status'  => 409,
+					'post_id' => $post_id,
+				)
+			);
 			$this->active_poisoned = true;
 			$this->audit_denial( 'wp_insert_post_empty_content', $error );
 			return true;
@@ -198,7 +212,14 @@ class CanonicalEventPublicationGuard {
 				$this->active_boundary_consumed = true;
 				return false;
 			}
-			$error = new \WP_Error( 'canonical_event_publication_post_mismatch', __( 'This event write does not match the active canonical publication.', 'extrachill-events' ), array( 'status' => 409, 'post_id' => $post_id ) );
+			$error                 = new \WP_Error(
+				'canonical_event_publication_post_mismatch',
+				__( 'This event write does not match the active canonical publication.', 'extrachill-events' ),
+				array(
+					'status'  => 409,
+					'post_id' => $post_id,
+				)
+			);
 			$this->active_poisoned = true;
 			$this->audit_denial( 'wp_insert_post_empty_content', $error );
 			return true;
@@ -221,9 +242,9 @@ class CanonicalEventPublicationGuard {
 			return true;
 		}
 		if ( true === $result ) {
-			$this->active_context     = 'post';
-			$this->active_post_id     = $post_id;
-			$this->active_publication = $publication;
+			$this->active_context           = 'post';
+			$this->active_post_id           = $post_id;
+			$this->active_publication       = $publication;
 			$this->active_boundary_consumed = true;
 		}
 		return false;
@@ -234,7 +255,7 @@ class CanonicalEventPublicationGuard {
 		unset( $update, $post_before );
 		$post      = is_object( $post ) ? $post : get_post( $post_id );
 		$post_type = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
-		if ( 'post' === $this->active_context && $post && $post_type === ( $post->post_type ?? '' ) && ( 0 === $this->active_post_id || $post_id === $this->active_post_id ) ) {
+		if ( 'post' === $this->active_context && $post && ( $post->post_type ?? '' ) === $post_type && ( 0 === $this->active_post_id || $post_id === $this->active_post_id ) ) {
 			$this->active_post_id = $post_id;
 			$this->release();
 		}
@@ -245,15 +266,22 @@ class CanonicalEventPublicationGuard {
 		if ( is_wp_error( $preflight ) || false === $preflight || 'publish' !== ( $context['post_status'] ?? '' ) ) {
 			return $preflight;
 		}
-		$post_id  = absint( $context['post_id'] ?? 0 );
-		$venue_id = absint( $context['next_venue_id'] ?? 0 );
+		$post_id            = absint( $context['post_id'] ?? 0 );
+		$venue_id           = absint( $context['next_venue_id'] ?? 0 );
 		$previous_venue_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) ( $context['previous_venue_ids'] ?? array() ) ) ) ) );
 		if ( $post_id < 1 ) {
 			return $preflight;
 		}
 		if ( $venue_id < 1 ) {
 			if ( count( $previous_venue_ids ) > 1 ) {
-				$error = new \WP_Error( 'canonical_event_venue_ambiguous', __( 'The published event has multiple retained venue assignments and cannot be updated safely.', 'extrachill-events' ), array( 'status' => 409, 'venue_ids' => $previous_venue_ids ) );
+				$error = new \WP_Error(
+					'canonical_event_venue_ambiguous',
+					__( 'The published event has multiple retained venue assignments and cannot be updated safely.', 'extrachill-events' ),
+					array(
+						'status'    => 409,
+						'venue_ids' => $previous_venue_ids,
+					)
+				);
 				$this->audit_denial( 'event_update', $error );
 				return $error;
 			}
@@ -274,11 +302,11 @@ class CanonicalEventPublicationGuard {
 			$this->audit_denial( 'event_update', $result );
 			return $result;
 		}
-		$this->active_context       = 'event_update';
-		$this->active_post_id       = $post_id;
-		$this->active_publication   = $publication;
-		$this->active_lifecycle_key = $this->lifecycle_key( $context );
-		$this->active_poisoned      = false;
+		$this->active_context           = 'event_update';
+		$this->active_post_id           = $post_id;
+		$this->active_publication       = $publication;
+		$this->active_lifecycle_key     = $this->lifecycle_key( $context );
+		$this->active_poisoned          = false;
 		$this->active_boundary_consumed = false;
 		return $preflight;
 	}
@@ -297,12 +325,24 @@ class CanonicalEventPublicationGuard {
 		$name     = BookingHoldRepository::venue_lock_name( $venue_id );
 		$acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $name, 5 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cross-connection venue booking serialization.
 		if ( 1 !== (int) $acquired || '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'canonical_event_booking_lock_not_acquired', __( 'Venue booking availability is busy; retry publication.', 'extrachill-events' ), array( 'status' => 503, 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error(
+				'canonical_event_booking_lock_not_acquired',
+				__( 'Venue booking availability is busy; retry publication.', 'extrachill-events' ),
+				array(
+					'status'         => 503,
+					'database_error' => $wpdb->last_error,
+				)
+			);
 		}
 		$this->acquired_locks[] = $name;
 
-		$candidate_intervals = empty( $candidate_intervals ) ? array( array( 'start_at' => $start_at, 'end_at' => $end_at ) ) : $candidate_intervals;
-		$conflict = $this->find_booking_conflict( $venue_id, $start_at, $end_at, $post_id, $excluded_booking_id, $candidate_intervals );
+		$candidate_intervals = empty( $candidate_intervals ) ? array(
+			array(
+				'start_at' => $start_at,
+				'end_at'   => $end_at,
+			),
+		) : $candidate_intervals;
+		$conflict            = $this->find_booking_conflict( $venue_id, $start_at, $end_at, $post_id, $excluded_booking_id, $candidate_intervals );
 		if ( is_wp_error( $conflict ) ) {
 			$this->release();
 			return $conflict;
@@ -344,14 +384,14 @@ class CanonicalEventPublicationGuard {
 				)
 			);
 		}
-		$this->acquired_locks = array();
-		$this->active_context = null;
-		$this->active_post_id = 0;
-		$this->active_publication = null;
-		$this->active_lifecycle_key = '';
-		$this->active_poisoned = false;
+		$this->acquired_locks           = array();
+		$this->active_context           = null;
+		$this->active_post_id           = 0;
+		$this->active_publication       = null;
+		$this->active_lifecycle_key     = '';
+		$this->active_poisoned          = false;
 		$this->active_boundary_consumed = false;
-		$this->active_rest_request = null;
+		$this->active_rest_request      = null;
 	}
 
 	/** Match only the REST request object which acquired the active lock. */
@@ -361,9 +401,9 @@ class CanonicalEventPublicationGuard {
 
 	private function find_booking_conflict( int $venue_id, string $start_at, string $end_at, int $post_id, int $excluded_booking_id, array $candidate_intervals ) {
 		global $wpdb;
-		$hold_exact       = array();
-		$booking_exact    = array();
-		$exact_values     = array();
+		$hold_exact    = array();
+		$booking_exact = array();
+		$exact_values  = array();
 		foreach ( $candidate_intervals as $interval ) {
 			$hold_exact[]    = '(start_at = %s AND end_at = %s)';
 			$booking_exact[] = '(performance_start_at = %s AND performance_end_at = %s)';
@@ -376,7 +416,14 @@ class CanonicalEventPublicationGuard {
 		if ( $post_id > 0 ) {
 			$linked = $wpdb->get_row( $wpdb->prepare( "SELECT id, venue_term_id, space_key, performance_start_at, performance_end_at, 'confirmed_booking' AS conflict_type FROM {$bookings} WHERE event_id = %d AND status = 'confirmed' LIMIT 1", $post_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- A linked booking may not be silently detached by moving its event.
 			if ( '' !== (string) $wpdb->last_error ) {
-				return new \WP_Error( 'canonical_event_booking_conflict_check_failed', __( 'The event-linked booking could not be checked safely.', 'extrachill-events' ), array( 'status' => 503, 'database_error' => $wpdb->last_error ) );
+				return new \WP_Error(
+					'canonical_event_booking_conflict_check_failed',
+					__( 'The event-linked booking could not be checked safely.', 'extrachill-events' ),
+					array(
+						'status'         => 503,
+						'database_error' => $wpdb->last_error,
+					)
+				);
 			}
 			if ( is_array( $linked ) ) {
 				$exact = (int) $linked['venue_term_id'] === $venue_id;
@@ -391,20 +438,34 @@ class CanonicalEventPublicationGuard {
 				}
 			}
 		}
-		$holds = BookingSchema::holds_table();
+		$holds       = BookingSchema::holds_table();
 		$hold_values = array_merge( array( $venue_id, $end_at, $start_at, $excluded_booking_id ), $exact_values );
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT id, booking_id, space_key, 'hold' AS conflict_type FROM {$holds} WHERE venue_term_id = %d AND status = 'active' AND expires_at > UTC_TIMESTAMP() AND start_at < %s AND end_at > %s AND NOT (booking_id = %d AND ({$hold_exact_sql})) LIMIT 1", $hold_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Checked while the stable venue-wide lock is held.
+		$row         = $wpdb->get_row( $wpdb->prepare( "SELECT id, booking_id, space_key, 'hold' AS conflict_type FROM {$holds} WHERE venue_term_id = %d AND status = 'active' AND expires_at > UTC_TIMESTAMP() AND start_at < %s AND end_at > %s AND NOT (booking_id = %d AND ({$hold_exact_sql})) LIMIT 1", $hold_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic exact-interval placeholders are matched by the flattened value array while the stable venue-wide lock is held.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'canonical_event_booking_conflict_check_failed', __( 'Venue booking holds could not be checked safely.', 'extrachill-events' ), array( 'status' => 503, 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error(
+				'canonical_event_booking_conflict_check_failed',
+				__( 'Venue booking holds could not be checked safely.', 'extrachill-events' ),
+				array(
+					'status'         => 503,
+					'database_error' => $wpdb->last_error,
+				)
+			);
 		}
 		if ( is_array( $row ) ) {
 			return $row;
 		}
 
 		$booking_values = array_merge( array( $venue_id, $end_at, $start_at, $excluded_booking_id, $post_id ), $exact_values );
-		$row      = $wpdb->get_row( $wpdb->prepare( "SELECT id, space_key, 'confirmed_booking' AS conflict_type FROM {$bookings} WHERE venue_term_id = %d AND status = 'confirmed' AND performance_start_at < %s AND performance_end_at > %s AND NOT ((id = %d OR event_id = %d) AND ({$booking_exact_sql})) LIMIT 1", $booking_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Only an exact originating booking is exempt from the venue-wide policy.
+		$row            = $wpdb->get_row( $wpdb->prepare( "SELECT id, space_key, 'confirmed_booking' AS conflict_type FROM {$bookings} WHERE venue_term_id = %d AND status = 'confirmed' AND performance_start_at < %s AND performance_end_at > %s AND NOT ((id = %d OR event_id = %d) AND ({$booking_exact_sql})) LIMIT 1", $booking_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic exact-interval placeholders are matched by the flattened value array; only an exact originating booking is exempt.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'canonical_event_booking_conflict_check_failed', __( 'Confirmed venue bookings could not be checked safely.', 'extrachill-events' ), array( 'status' => 503, 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error(
+				'canonical_event_booking_conflict_check_failed',
+				__( 'Confirmed venue bookings could not be checked safely.', 'extrachill-events' ),
+				array(
+					'status'         => 503,
+					'database_error' => $wpdb->last_error,
+				)
+			);
 		}
 		return is_array( $row ) ? $row : null;
 	}
@@ -412,7 +473,7 @@ class CanonicalEventPublicationGuard {
 	private function publication_from_post( $post, $request, int $post_id ) {
 		$venue_id = $this->venue_id_from_request( $request );
 		if ( $venue_id < 1 && $post_id > 0 ) {
-			$venues   = wp_get_object_terms( $post_id, 'venue', array( 'fields' => 'ids' ) );
+			$venues = wp_get_object_terms( $post_id, 'venue', array( 'fields' => 'ids' ) );
 			if ( is_wp_error( $venues ) ) {
 				return new \WP_Error(
 					'canonical_event_venue_read_failed',
@@ -454,7 +515,7 @@ class CanonicalEventPublicationGuard {
 		} else {
 			$value = null;
 		}
-		$ids   = array_values( array_filter( array_map( 'absint', (array) $value ) ) );
+		$ids = array_values( array_filter( array_map( 'absint', (array) $value ) ) );
 		return 1 === count( $ids ) ? $ids[0] : 0;
 	}
 
@@ -504,21 +565,31 @@ class CanonicalEventPublicationGuard {
 			return $end_candidates;
 		}
 
-		$start_timestamps = array_map( static function ( \DateTimeImmutable $date ): int { return $date->getTimestamp(); }, $start_candidates );
-		$end_timestamps   = array_map( static function ( \DateTimeImmutable $date ): int { return $date->getTimestamp(); }, $end_candidates );
+		$start_timestamps = array_map(
+			static function ( \DateTimeImmutable $date ): int {
+				return $date->getTimestamp();
+			},
+			$start_candidates
+		);
+		$end_timestamps   = array_map(
+			static function ( \DateTimeImmutable $date ): int {
+				return $date->getTimestamp();
+			},
+			$end_candidates
+		);
 		$start_timestamp  = min( $start_timestamps );
 		$end_timestamp    = max( $end_timestamps );
 		if ( $end_timestamp <= $start_timestamp ) {
 			return new \WP_Error( 'canonical_event_datetime_invalid', __( 'The event end must be later than its start.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		$utc = new \DateTimeZone( 'UTC' );
+		$utc                 = new \DateTimeZone( 'UTC' );
 		$candidate_intervals = array();
 		foreach ( $start_timestamps as $candidate_start ) {
 			foreach ( $end_timestamps as $candidate_end ) {
 				if ( $candidate_end <= $candidate_start ) {
 					continue;
 				}
-				$key = $candidate_start . ':' . $candidate_end;
+				$key                         = $candidate_start . ':' . $candidate_end;
 				$candidate_intervals[ $key ] = array(
 					'start_at' => ( new \DateTimeImmutable( '@' . $candidate_start ) )->setTimezone( $utc )->format( 'Y-m-d H:i:s' ),
 					'end_at'   => ( new \DateTimeImmutable( '@' . $candidate_end ) )->setTimezone( $utc )->format( 'Y-m-d H:i:s' ),
@@ -526,9 +597,9 @@ class CanonicalEventPublicationGuard {
 			}
 		}
 		return array(
-			'venue_id' => $venue_id,
-			'start_at' => ( new \DateTimeImmutable( '@' . $start_timestamp ) )->setTimezone( $utc )->format( 'Y-m-d H:i:s' ),
-			'end_at'   => ( new \DateTimeImmutable( '@' . $end_timestamp ) )->setTimezone( $utc )->format( 'Y-m-d H:i:s' ),
+			'venue_id'             => $venue_id,
+			'start_at'             => ( new \DateTimeImmutable( '@' . $start_timestamp ) )->setTimezone( $utc )->format( 'Y-m-d H:i:s' ),
+			'end_at'               => ( new \DateTimeImmutable( '@' . $end_timestamp ) )->setTimezone( $utc )->format( 'Y-m-d H:i:s' ),
 			'_candidate_intervals' => array_values( $candidate_intervals ),
 		);
 	}
@@ -564,15 +635,20 @@ class CanonicalEventPublicationGuard {
 	}
 
 	private function lifecycle_key( array $context ): string {
-		return hash( 'sha256', wp_json_encode( array(
-			'invocation_id'    => (string) ( $context['invocation_id'] ?? '' ),
-			'venue_term_id'   => (int) ( $context['venue_term_id'] ?? $context['next_venue_id'] ?? 0 ),
-			'existing_post_id' => (int) ( $context['existing_post_id'] ?? $context['post_id'] ?? 0 ),
-			'source'          => (string) ( $context['source'] ?? '' ),
-			'source_id'       => (string) ( $context['source_id'] ?? '' ),
-			'source_identity' => (string) ( $context['source_identity'] ?? '' ),
-			'event'           => $context['event'] ?? array(),
-		) ) );
+		return hash(
+			'sha256',
+			wp_json_encode(
+				array(
+					'invocation_id'    => (string) ( $context['invocation_id'] ?? '' ),
+					'venue_term_id'    => (int) ( $context['venue_term_id'] ?? $context['next_venue_id'] ?? 0 ),
+					'existing_post_id' => (int) ( $context['existing_post_id'] ?? $context['post_id'] ?? 0 ),
+					'source'           => (string) ( $context['source'] ?? '' ),
+					'source_id'        => (string) ( $context['source_id'] ?? '' ),
+					'source_identity'  => (string) ( $context['source_identity'] ?? '' ),
+					'event'            => $context['event'] ?? array(),
+				)
+			)
+		);
 	}
 
 	private function audit_denial( string $context, \WP_Error $error ): void {
