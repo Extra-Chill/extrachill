@@ -46,6 +46,13 @@ function extrachill_users_apply_moderation_action( int $user_id, array $args = a
 	if ( ! empty( $policy['effects']['revoke_sessions'] ) && class_exists( 'WP_Session_Tokens' ) ) {
 		$manager = WP_Session_Tokens::get_instance( $user_id );
 		$manager->destroy_all();
+
+		if ( function_exists( 'wp_native_auth_revoke_user_refresh_tokens' ) ) {
+			$native_result = wp_native_auth_revoke_user_refresh_tokens( $user_id );
+			if ( is_wp_error( $native_result ) ) {
+				return $native_result;
+			}
+		}
 	}
 
 	// Explicit, opt-in hard delete. DESTRUCTIVE AND IRREVERSIBLE — only fires
