@@ -134,7 +134,7 @@ $from_join = isset( $_GET['from_join'] ) && 'true' === sanitize_text_field( wp_u
 // origins not pre-registered in GCP).
 $google_signin_redirect_url = null;
 if ( $google_oauth_enabled && ! $google_is_canonical && function_exists( 'ec_users_canonical_google_signin_url' ) ) {
-	$google_signin_redirect_url = ec_users_canonical_google_signin_url( $success_redirect );
+	$google_signin_redirect_url = ec_users_canonical_google_signin_url( $success_redirect, $from_join );
 }
 
 $config = array(

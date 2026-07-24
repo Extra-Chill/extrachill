@@ -304,8 +304,9 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 /**
  * Register service: validates, creates user, optionally sets cookies, and returns tokens.
  *
- * User is created with auto-generated username and must complete onboarding
- * to set final username and artist/professional flags.
+ * User is created with an auto-generated username. Ordinary registrations can
+ * participate immediately and customize their profile later; /join still
+ * requires artist/professional onboarding.
  *
  * EC policy (Turnstile, invite redemption, onboarding redirect fields,
  * community provisioning) is enforced here; token minting is delegated to the
@@ -471,7 +472,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 
 	update_user_meta( (int) $user_id, 'registration_timestamp', current_time( 'mysql' ) );
 
-	if ( ! empty( $success_redirect_url ) ) {
+	if ( $from_join && ! empty( $success_redirect_url ) ) {
 		update_user_meta( (int) $user_id, 'onboarding_redirect_url', $success_redirect_url );
 	}
 
@@ -519,9 +520,8 @@ function extrachill_users_register_with_tokens( array $payload ) {
 
 	$tokens = extrachill_users_mint_token_pair( (int) $user_id, $device_id, $device_name );
 
-	$onboarding_url = function_exists( 'ec_get_site_url' )
-		? ec_get_site_url( 'community' ) . '/onboarding/'
-		: home_url( '/onboarding/' );
+	$account_created_token = $set_cookie ? wp_create_nonce( 'ec_account_created' ) : '';
+	$redirect_url          = ec_users_post_registration_redirect_url( $from_join, false, $success_redirect_url, $account_created_token );
 
 	$response = array(
 		'access_token'         => $tokens['access']['token'],
@@ -529,7 +529,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		'refresh_token'        => $tokens['refresh']['token'],
 		'refresh_expires_at'   => gmdate( 'c', (int) $tokens['refresh']['expires_at'] ),
 		'onboarding_completed' => false,
-		'redirect_url'         => $onboarding_url,
+		'redirect_url'         => $redirect_url,
 		'user'                 => extrachill_users_token_user_payload( $user ),
 	);
 

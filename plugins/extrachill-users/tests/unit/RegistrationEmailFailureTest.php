@@ -238,6 +238,22 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		$this->assertSame( '', $this->read_error_log() );
 	}
 
+	public function test_welcome_incomplete_promotes_optional_profile_setup_and_features(): void {
+		$GLOBALS['test_ec_send_email_result'] = array( 'success' => true );
+
+		$user_id   = $this->make_user();
+		$user_data = get_userdata( $user_id );
+
+		$this->assertTrue( extrachill_send_welcome_email_incomplete( $user_data ) );
+
+		$args = $GLOBALS['test_ec_send_email_last_args'];
+		$this->assertSame( 'Your Extra Chill account is ready', $args['subject'] );
+		$this->assertSame( 'https://community.extrachill.com/settings/', $args['context']['cta_url'] );
+		$this->assertSame( 'Customize Your Profile', $args['context']['cta_label'] );
+		$this->assertStringContainsString( 'you can jump in', $args['context']['body_html'] );
+		$this->assertStringContainsString( 'Track concerts', $args['context']['body_html'] );
+	}
+
 	// ---------------------------------------------------------------------
 	// extrachill_log_email_failure() — log formatter
 	// ---------------------------------------------------------------------

@@ -75,7 +75,7 @@
             type: 'standard',
             theme: 'outline',
             size: 'large',
-            text: 'continue_with',
+            text: container.dataset.googleText || 'continue_with',
             shape: 'rectangular',
             logo_alignment: 'left',
             width: 300

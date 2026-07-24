@@ -66,21 +66,27 @@ function ec_users_is_canonical_google_origin() {
  * @param string $return_to The URL to send the user to after sign-in
  *                          (must pass ec_users_is_valid_return_to_url()
  *                          to be honored by the canonical origin).
+ * @param bool   $from_join Whether artist/professional onboarding is required.
  * @return string The canonical login URL.
  */
-function ec_users_canonical_google_signin_url( $return_to ) {
+function ec_users_canonical_google_signin_url( $return_to, $from_join = false ) {
 	$base = function_exists( 'ec_get_site_url' )
 		? ec_get_site_url( 'community' ) . '/login/'
 		: home_url( '/login/' );
 
-	if ( '' === (string) $return_to ) {
+	$args = array();
+	if ( '' !== (string) $return_to ) {
+		$args[ EC_USERS_GOOGLE_REDIRECT_PARAM ] = rawurlencode( $return_to );
+	}
+	if ( $from_join ) {
+		$args['from_join'] = 'true';
+	}
+
+	if ( empty( $args ) ) {
 		return $base;
 	}
 
-	return add_query_arg(
-		array( EC_USERS_GOOGLE_REDIRECT_PARAM => rawurlencode( $return_to ) ),
-		$base
-	);
+	return add_query_arg( $args, $base );
 }
 
 /**

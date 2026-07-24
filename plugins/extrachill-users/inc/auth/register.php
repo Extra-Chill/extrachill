@@ -309,7 +309,7 @@ add_action( 'admin_post_nopriv_extrachill_register_user', 'extrachill_handle_reg
 add_action( 'admin_post_extrachill_register_user', 'extrachill_handle_registration' );
 
 /**
- * Auto-login user after registration and redirect to onboarding.
+ * Auto-login user after registration and resume the requested destination.
  *
  * @param int                 $user_id                    User ID.
  * @param EC_Redirect_Handler $redirect                   Redirect handler instance.
@@ -341,21 +341,21 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 		$final_redirect_url = $success_redirect_url;
 	}
 
-	if ( ! empty( $final_redirect_url ) ) {
+	$from_join = function_exists( 'ec_is_onboarding_from_join' ) && ec_is_onboarding_from_join( $user_id );
+	if ( $from_join && ! empty( $final_redirect_url ) ) {
 		update_user_meta( $user_id, 'onboarding_redirect_url', $final_redirect_url );
 	}
 
-	$onboarding_url = function_exists( 'ec_get_site_url' )
-		? ec_get_site_url( 'community' ) . '/onboarding/'
-		: home_url( '/onboarding/' );
+	$account_created_token = wp_create_nonce( 'ec_account_created' );
+	$redirect_url          = ec_users_post_registration_redirect_url( $from_join, false, $final_redirect_url, $account_created_token );
 	if ( $invitation_outcome ) {
 		$query_args = array( 'artist_invitation' => $invitation_outcome['status'] );
 		if ( ! empty( $invitation_outcome['error'] ) ) {
 			$query_args['artist_invitation_error']        = $invitation_outcome['error']['code'];
 			$query_args['artist_invitation_error_status'] = $invitation_outcome['error']['status'];
 		}
-		$onboarding_url = add_query_arg( $query_args, $onboarding_url );
+		$redirect_url = add_query_arg( $query_args, $redirect_url );
 	}
 
-	$redirect->redirect_to( $onboarding_url );
+	$redirect->redirect_to( $redirect_url );
 }

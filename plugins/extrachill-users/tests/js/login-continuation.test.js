@@ -4,7 +4,7 @@
 
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { LoginPanel } from '../../blocks/login-register/view';
+import { GoogleButtons, LoginPanel } from '../../blocks/login-register/view';
 
 jest.mock( '@extrachill/components', () => {
 	const React = require( 'react' );
@@ -162,5 +162,27 @@ describe( 'login continuation requests', () => {
 		expect( request.redirect_to ).toBe( continuation );
 
 		act( () => root.unmount() );
+	} );
+} );
+
+describe( 'Google authentication intent', () => {
+	test( 'uses sign-up language only for the registration control', () => {
+		const previousActEnvironment = global.IS_REACT_ACT_ENVIRONMENT;
+		global.IS_REACT_ACT_ENVIRONMENT = true;
+		const container = document.createElement( 'div' );
+		const root = createRoot( container );
+
+		act( () => {
+			root.render( <GoogleButtons redirectUrl="https://extrachill.com/login/" registration={ true } /> );
+		} );
+		expect( container.textContent ).toContain( 'Sign up with Google' );
+
+		act( () => {
+			root.render( <GoogleButtons redirectUrl={ null } registration={ true } /> );
+		} );
+		expect( container.querySelector( '.google-signin-button' ).dataset.googleText ).toBe( 'signup_with' );
+
+		act( () => root.unmount() );
+		global.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
 	} );
 } );
