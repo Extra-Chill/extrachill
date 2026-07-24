@@ -4,6 +4,7 @@
   "extensions": {
     "wordpress": {
       "settings": {
+        "validation_dependencies": ["data-machine-events"],
         "wordpress_runtime_php_version": "8.4"
       }
     }
