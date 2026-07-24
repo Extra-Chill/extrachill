@@ -219,8 +219,9 @@ function extrachill_handle_registration() {
 		$redirect->error( __( 'Passwords do not match.', 'extrachill-users' ) );
 	}
 
-	if ( strlen( $password ) < 8 ) {
-		$redirect->error( __( 'Password must be at least 8 characters.', 'extrachill-users' ) );
+	$password_validation = extrachill_users_validate_password( $password );
+	if ( is_wp_error( $password_validation ) ) {
+		$redirect->error( $password_validation->get_error_message() );
 	}
 
 	if ( email_exists( $email ) ) {

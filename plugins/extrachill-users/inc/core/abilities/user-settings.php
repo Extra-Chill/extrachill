@@ -141,8 +141,14 @@ function extrachill_users_register_settings_abilities() {
 				'type'       => 'object',
 				'properties' => array(
 					'current_password' => array( 'type' => 'string' ),
-					'new_password'     => array( 'type' => 'string' ),
-					'confirm_password' => array( 'type' => 'string' ),
+					'new_password'     => array(
+						'type'      => 'string',
+						'minLength' => 8,
+					),
+					'confirm_password' => array(
+						'type'      => 'string',
+						'minLength' => 8,
+					),
 				),
 				'required'   => array( 'current_password', 'new_password', 'confirm_password' ),
 			),
@@ -790,6 +796,11 @@ function extrachill_users_ability_change_password( $input ) {
 
 	if ( $new_password !== $confirm_password ) {
 		return new WP_Error( 'password_mismatch', 'New passwords do not match.' );
+	}
+
+	$password_validation = extrachill_users_validate_password( $new_password );
+	if ( is_wp_error( $password_validation ) ) {
+		return $password_validation;
 	}
 
 	$result = wp_update_user(

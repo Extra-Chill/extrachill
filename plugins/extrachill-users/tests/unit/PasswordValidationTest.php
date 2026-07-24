@@ -5,30 +5,31 @@
 
 class Test_Password_Validation extends WP_UnitTestCase {
 
-	private function is_password_valid_length( string $password ): bool {
-		return strlen( $password ) >= 8;
-	}
-
 	private function passwords_match( string $password, string $password_confirm ): bool {
 		return $password === $password_confirm;
 	}
 
-	protected function setUp(): void {
-		parent::setUp();
-		if ( function_exists( 'extrachill_users_register_onboarding_abilities' ) ) {
-			extrachill_users_register_onboarding_abilities();
-		}
-	}
-
 	public function test_password_minimum_length_fails(): void {
 		foreach ( array( '', 'a', 'abc', '1234567' ) as $password ) {
-			$this->assertFalse( $this->is_password_valid_length( $password ) );
+			$result = extrachill_users_validate_password( $password );
+			$this->assertWPError( $result );
+			$this->assertSame( 'password_too_short', $result->get_error_code() );
+			$this->assertSame( 400, $result->get_error_data()['status'] );
 		}
 	}
 
 	public function test_password_valid_length_passes(): void {
 		foreach ( array( '12345678', '123456789', 'mysecurepassword', str_repeat( 'a', 100 ) ) as $password ) {
-			$this->assertTrue( $this->is_password_valid_length( $password ) );
+			$this->assertTrue( extrachill_users_validate_password( $password ) );
+		}
+	}
+
+	public function test_password_rejects_non_string_and_backslash_values(): void {
+		foreach ( array( array( 'password' ), 'password\\value' ) as $password ) {
+			$result = extrachill_users_validate_password( $password );
+			$this->assertWPError( $result );
+			$this->assertSame( 'invalid_password', $result->get_error_code() );
+			$this->assertSame( 400, $result->get_error_data()['status'] );
 		}
 	}
 
