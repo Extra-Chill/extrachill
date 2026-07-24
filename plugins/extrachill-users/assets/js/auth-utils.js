@@ -18,7 +18,7 @@
                 url.pathname += '/';
             }
             return url.toString();
-        } catch (err) {
+        } catch {
             return '';
         }
     }
@@ -88,7 +88,7 @@
 
             window.localStorage.setItem(key, generated);
             return generated;
-        } catch (err) {
+        } catch {
             return '';
         }
     }

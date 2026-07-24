@@ -345,14 +345,14 @@ function ec_users_restore_onboarding_transition_meta( $user_id, array $previous_
 	$restored = true;
 	foreach ( $previous_meta as $meta_key => $previous ) {
 		if ( $previous['exists'] ) {
-			$write_failed   = false === update_user_meta( $user_id, $meta_key, $previous['value'] );
+			update_user_meta( $user_id, $meta_key, $previous['value'] );
 			$restored_value = get_user_meta( $user_id, $meta_key, true );
 			$key_restored   = $restored_value === $previous['value'];
 		} else {
-			$write_failed = false === delete_user_meta( $user_id, $meta_key );
+			delete_user_meta( $user_id, $meta_key );
 			$key_restored = ! metadata_exists( 'user', $user_id, $meta_key );
 		}
-		$restored = $restored && $key_restored && ( ! $write_failed || $key_restored );
+		$restored = $restored && $key_restored;
 	}
 
 	return $restored;

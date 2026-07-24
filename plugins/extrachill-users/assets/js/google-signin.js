@@ -20,16 +20,19 @@
      */
     function init(config) {
         if (!config || !config.clientId) {
+            // eslint-disable-next-line no-console
             console.error('ECGoogleSignIn: clientId is required');
             return;
         }
 
         if (!utils) {
+            // eslint-disable-next-line no-console
             console.error('ECGoogleSignIn: ECAuthUtils not loaded');
             return;
         }
 
         if (typeof google === 'undefined' || !google.accounts) {
+            // eslint-disable-next-line no-console
             console.error('ECGoogleSignIn: Google Identity Services not loaded');
             return;
         }
@@ -181,7 +184,7 @@
         try {
             const params = new URL(window.location.href).searchParams;
             return params.get('from_join') === 'true';
-        } catch (e) {
+        } catch {
             return false;
         }
     }
@@ -196,6 +199,7 @@
         if (container && utils) {
             utils.renderNotice(container, 'error', message);
         } else {
+            // eslint-disable-next-line no-console
             console.error('ECGoogleSignIn:', message);
         }
     }

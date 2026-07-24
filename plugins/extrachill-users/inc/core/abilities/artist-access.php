@@ -149,8 +149,7 @@ function extrachill_users_register_artist_access_abilities() {
 /**
  * List all pending artist access requests.
  *
- * @param array $input Unused.
- * @return array Array with 'requests' key containing pending request data.
+ * @return array|WP_Error Array with pending request data, or a permission error.
  */
 function extrachill_users_ability_list_artist_access_requests() {
 	$allowed = extrachill_users_require_artist_access_admin();

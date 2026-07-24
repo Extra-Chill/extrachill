@@ -239,7 +239,7 @@ function ec_users_write_artist_dispatch_state( $user_id, array $next, array $cur
 function ec_users_acquire_artist_dispatch_lock( $user_id, $request_id ) {
 	$user_id = absint( $user_id );
 	$key     = EC_USERS_ARTIST_DISPATCH_LOCK_META . '_' . $user_id;
-	$blog_id                      = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = ec_users_get_artist_dispatch_blog_id();
 	for ( $attempt = 0; 5 > $attempt; ++$attempt ) {
 		$now  = time();
 		$lock = array(
@@ -505,7 +505,7 @@ function ec_users_mark_artist_dispatch_delivery_receipt( $user_id, $channel, $ev
 	$delivered                 = $receipt;
 	$delivered['status']       = 'delivered';
 	$delivered['delivered_at'] = time();
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id                   = ec_users_get_artist_dispatch_blog_id();
 	switch_to_blog( $blog_id );
 	try {
 		return update_option( ec_users_get_artist_dispatch_delivery_meta_key( $user_id, $channel, $event_type, $request_id ), $delivered, false );

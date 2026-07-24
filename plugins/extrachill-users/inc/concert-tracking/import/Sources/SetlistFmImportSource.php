@@ -87,8 +87,8 @@ final class SetlistFmImportSource implements ImportSource {
 			array(
 				'timeout' => 15,
 				'headers' => array(
-					'Accept'    => 'application/json',
-					'x-api-key' => $api_key,
+					'Accept'     => 'application/json',
+					'x-api-key'  => $api_key,
 					'User-Agent' => 'ExtraChill-Concert-Import/1.0 (+https://extrachill.com)',
 				),
 			)

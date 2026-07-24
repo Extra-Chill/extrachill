@@ -235,6 +235,7 @@ add_filter( 'authenticate', 'ec_rate_limit_login', 20, 2 );
  * @param WP_User $user       User object.
  */
 function ec_clear_attempts_on_login( $user_login, $user ) {
+	unset( $user );
 	if ( empty( $user_login ) ) {
 		return;
 	}
@@ -262,6 +263,7 @@ add_action( 'two_factor_user_authenticated', 'ec_clear_attempts_on_two_factor' )
  * @param string $username Username attempted
  */
 function extrachill_handle_login_failed( $username ) {
+	unset( $username );
 	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
 		return;
 	}

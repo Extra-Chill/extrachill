@@ -34,6 +34,7 @@ defined( 'ABSPATH' ) || exit;
  * @return null|WP_Error Null to continue, WP_Error to block login.
  */
 function extrachill_users_wp_native_pre_login_check( null|WP_Error $result, WP_User $user, array $context ): null|WP_Error {
+	unset( $context );
 	if ( $result instanceof WP_Error ) {
 		return $result; // Earlier filter already blocked.
 	}
@@ -83,6 +84,7 @@ add_filter( 'wp_native_auth_pre_login', 'extrachill_users_wp_native_pre_login_ch
  * @return array The decorated User payload.
  */
 function extrachill_users_wp_native_decorate_user( array $payload, WP_User $wp_user, array $context ): array {
+	unset( $context );
 	if ( function_exists( 'extrachill_get_user_profile_url' ) ) {
 		$payload['profile_url'] = extrachill_get_user_profile_url( $wp_user->ID, $wp_user->user_email );
 	}
@@ -114,6 +116,7 @@ add_filter( 'wp_native_auth_user_payload', 'extrachill_users_wp_native_decorate_
  * @return null|WP_Error Null to continue, WP_Error to block.
  */
 function extrachill_users_wp_native_pre_authenticate( null|WP_Error $result, string $identifier, array $context ): null|WP_Error {
+	unset( $identifier, $context );
 	if ( $result instanceof WP_Error ) {
 		return $result;
 	}
@@ -180,7 +183,8 @@ add_action( 'wp_native_auth_after_login', 'extrachill_users_wp_native_after_logi
  * @param array         $context           Contextual data from wp-native-auth (device_id, etc.).
  * @return WP_Error Existing policy error or the fail-closed site policy error.
  */
-function extrachill_users_wp_native_pre_register( null|WP_Error $result, array &$registration_data, array $context ): null|WP_Error {
+function extrachill_users_wp_native_pre_register( null|WP_Error $result, array &$registration_data, array $context ): WP_Error {
+	unset( $registration_data, $context );
 	if ( $result instanceof WP_Error ) {
 		return $result; // Earlier filter already blocked.
 	}

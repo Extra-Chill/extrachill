@@ -403,8 +403,8 @@ function ec_users_enqueue_concert_tracking_assets() {
 	// generated .asset.php supplies dependency handles (wp-element, wp-api-fetch,
 	// wp-dom-ready, …) and a content-hash version, so no manual dependency list
 	// or window global is needed. Replaces the legacy data-* IIFE.
-	$script_path  = EXTRACHILL_USERS_PLUGIN_DIR . 'build/concert-attendance/index.js';
-	$asset_path   = EXTRACHILL_USERS_PLUGIN_DIR . 'build/concert-attendance/index.asset.php';
+	$script_path = EXTRACHILL_USERS_PLUGIN_DIR . 'build/concert-attendance/index.js';
+	$asset_path  = EXTRACHILL_USERS_PLUGIN_DIR . 'build/concert-attendance/index.asset.php';
 
 	if ( file_exists( $script_path ) && file_exists( $asset_path ) ) {
 		$asset = require $asset_path;

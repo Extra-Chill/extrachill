@@ -150,10 +150,10 @@ final class EventMatcher {
 		$venue_terms  = wp_get_post_terms( $post_id, 'venue' );
 		$artist_terms = wp_get_post_terms( $post_id, 'artist' );
 
-		$venue_score    = 0;
-		$artist_score   = 0;
-		$venue_weight   = 0.6;
-		$artist_weight  = 0.4;
+		$venue_score   = 0;
+		$artist_score  = 0;
+		$venue_weight  = 0.6;
+		$artist_weight = 0.4;
 
 		if ( ! is_wp_error( $venue_terms ) && ! empty( $venue_terms ) ) {
 			$best = 0;

@@ -102,7 +102,7 @@ function extrachill_users_entity_subscription_recipient_ability_permission(): bo
 /**
  * Execute a self-only entity subscription operation.
  *
- * @param array $input Ability input.
+ * @param array  $input Ability input.
  * @param string $operation subscribe, unsubscribe, or status.
  * @return array|WP_Error
  */

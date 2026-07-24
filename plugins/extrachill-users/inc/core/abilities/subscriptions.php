@@ -117,8 +117,8 @@ function extrachill_users_ability_get_subscriptions() {
 
 		if ( ! empty( $results ) ) {
 			foreach ( $results as $row ) {
-				$artist_id            = (int) $row['artist_profile_id'];
-				$followed_artists[]   = array(
+				$artist_id          = (int) $row['artist_profile_id'];
+				$followed_artists[] = array(
 					'artist_id'     => $artist_id,
 					'name'          => get_the_title( $artist_id ),
 					'url'           => get_permalink( $artist_id ),

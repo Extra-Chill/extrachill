@@ -398,7 +398,7 @@ function ec_notifications_read_redirect_allowed_hosts() {
 	if ( function_exists( 'get_sites' ) && is_multisite() ) {
 		$sites = get_sites( array( 'number' => 0 ) );
 		foreach ( (array) $sites as $site ) {
-			$domain = isset( $site->domain ) ? strtolower( (string) $site->domain ) : '';
+			$domain = strtolower( (string) $site->domain );
 			if ( '' !== $domain ) {
 				$hosts[] = $domain;
 			}

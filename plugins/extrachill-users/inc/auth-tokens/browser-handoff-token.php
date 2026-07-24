@@ -16,7 +16,14 @@ defined( 'ABSPATH' ) || exit;
 const EXTRACHILL_USERS_BROWSER_HANDOFF_TTL                = 60;
 const EXTRACHILL_USERS_BROWSER_HANDOFF_CLAIM_CLEANUP_HOOK = 'extrachill_users_cleanup_browser_handoff_claim';
 
-add_action( EXTRACHILL_USERS_BROWSER_HANDOFF_CLAIM_CLEANUP_HOOK, 'extrachill_users_cleanup_browser_handoff_claim', 10, 2 );
+add_action(
+	EXTRACHILL_USERS_BROWSER_HANDOFF_CLAIM_CLEANUP_HOOK,
+	static function ( $claim_key, $expected_claim ): void {
+		extrachill_users_cleanup_browser_handoff_claim( $claim_key, $expected_claim );
+	},
+	10,
+	2
+);
 
 /**
  * Create a single-use browser handoff token.

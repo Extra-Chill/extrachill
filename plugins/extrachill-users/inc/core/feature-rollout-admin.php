@@ -120,7 +120,7 @@ function ec_feature_rollout_render_page() {
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Feature Rollout', 'extrachill-users' ); ?></h1>
 
-		<?php if ( isset( $_GET['updated'] ) ) : ?>
+		<?php if ( isset( $_GET['updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success indicator after a nonce-protected update. ?>
 			<div class="notice notice-success is-dismissible">
 				<p><?php esc_html_e( 'Feature rollout tiers updated successfully.', 'extrachill-users' ); ?></p>
 			</div>

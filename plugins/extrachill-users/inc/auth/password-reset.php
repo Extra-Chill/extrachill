@@ -46,6 +46,7 @@ add_filter( 'lostpassword_url', 'ec_custom_lostpassword_url', 10, 2 );
  * @return array Modified email content with the reset URL pointing at /reset-password/.
  */
 function ec_filter_password_reset_email( $email, $key, $user_login, $user_data ) {
+	unset( $user_data );
 	$reset_url = add_query_arg(
 		array(
 			'action' => 'reset',
@@ -81,6 +82,7 @@ add_filter( 'retrieve_password_notification_email', 'ec_filter_password_reset_em
  * @return array Modified email content.
  */
 function ec_filter_new_user_notification_email( $email, $user, $blogname ) {
+	unset( $user, $blogname );
 	if ( ! isset( $email['message'] ) || ! is_string( $email['message'] ) ) {
 		return $email;
 	}
@@ -134,7 +136,14 @@ function extrachill_users_clear_unclaimed_after_password_reset( $user, $new_pass
 	delete_user_meta( $user->ID, 'ec_unclaimed' );
 	return ! metadata_exists( 'user', $user->ID, 'ec_unclaimed' );
 }
-add_action( 'after_password_reset', 'extrachill_users_clear_unclaimed_after_password_reset', 10, 2 );
+add_action(
+	'after_password_reset',
+	static function ( $user, $new_pass ): void {
+		extrachill_users_clear_unclaimed_after_password_reset( $user, $new_pass );
+	},
+	10,
+	2
+);
 
 /**
  * Get the transient key for password reset attempts.
