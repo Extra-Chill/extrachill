@@ -15,6 +15,7 @@
 			<file>tests/BookingMutationTest.php</file>
 			<file>tests/BookingEventConversionTest.php</file>
 			<file>tests/CanonicalEventPublicationGuardTest.php</file>
+			<file>tests/VenueMembershipAuthorizationTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>
