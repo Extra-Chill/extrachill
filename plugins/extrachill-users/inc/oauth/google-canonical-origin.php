@@ -31,11 +31,6 @@ defined( 'ABSPATH' ) || exit;
 const EC_USERS_GOOGLE_REDIRECT_PARAM = 'google_redirect';
 
 /**
- * One-time query marker used to show account-creation confirmation.
- */
-const EC_USERS_GOOGLE_ACCOUNT_CREATED_PARAM = 'ec_account_created';
-
-/**
  * Is the current site the canonical origin for Google OAuth?
  *
  * The canonical origin is the community subsite — it's the identity hub
@@ -242,43 +237,3 @@ function ec_users_login_url_with_redirect( $login_url, $redirect_to ) {
 function ec_users_get_validated_google_redirect_from_request() {
 	return ec_users_get_validated_redirect_from_request( EC_USERS_GOOGLE_REDIRECT_PARAM );
 }
-
-/**
- * Show a one-time confirmation after Google creates an account.
- *
- * The marker is added only by the authenticated server response. Removing it
- * through a same-page redirect prevents refreshes from repeating the notice
- * while preserving every other feature-specific query parameter.
- */
-function ec_users_handle_google_account_created_notice() {
-	if ( ! is_user_logged_in() || ! isset( $_GET[ EC_USERS_GOOGLE_ACCOUNT_CREATED_PARAM ] ) ) {
-		return;
-	}
-
-	$notice_nonce = sanitize_text_field( wp_unslash( $_GET[ EC_USERS_GOOGLE_ACCOUNT_CREATED_PARAM ] ) );
-	if ( ! wp_verify_nonce( $notice_nonce, 'ec_google_account_created' ) ) {
-		return;
-	}
-
-	if ( function_exists( 'extrachill_set_notice' ) ) {
-		$args = array();
-		if ( function_exists( 'ec_get_site_url' ) ) {
-			$args['actions'] = array(
-				array(
-					'label' => __( 'Customize Your Profile', 'extrachill-users' ),
-					'url'   => ec_get_site_url( 'community' ) . '/settings/',
-				),
-			);
-		}
-
-		extrachill_set_notice(
-			__( "You're in! Your Extra Chill account is ready. Set up your profile whenever you have time.", 'extrachill-users' ),
-			'success',
-			$args
-		);
-	}
-
-	wp_safe_redirect( remove_query_arg( EC_USERS_GOOGLE_ACCOUNT_CREATED_PARAM ) );
-	exit;
-}
-add_action( 'template_redirect', 'ec_users_handle_google_account_created_notice', 1 );

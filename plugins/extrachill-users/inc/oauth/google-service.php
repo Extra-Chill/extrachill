@@ -244,41 +244,6 @@ function ec_get_user_by_google_id( $google_id ) {
 }
 
 /**
- * Resolve the destination after Google authentication.
- *
- * Artist/professional join requests still require onboarding. Ordinary account
- * creation returns visitors to the Extra Chill feature that prompted login so
- * profile customization can happen later.
- *
- * @param bool   $from_join             Whether the request came from /join.
- * @param bool   $onboarding_completed Whether profile onboarding is complete.
- * @param string $success_redirect_url  Requested post-auth destination.
- * @param string $account_created_token Signed one-time confirmation token.
- * @return string Safe post-auth destination.
- */
-function ec_google_post_auth_redirect_url( $from_join, $onboarding_completed, $success_redirect_url, $account_created_token = '' ) {
-	if ( $from_join && ! $onboarding_completed ) {
-		$redirect_url = function_exists( 'ec_get_site_url' )
-			? ec_get_site_url( 'community' ) . '/onboarding/'
-			: home_url( '/onboarding/' );
-	} elseif ( '' !== (string) $success_redirect_url
-		&& function_exists( 'ec_users_is_valid_return_to_url' )
-		&& ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
-		$redirect_url = $from_join
-			? add_query_arg( 'from_join', 'true', (string) $success_redirect_url )
-			: (string) $success_redirect_url;
-	} else {
-		$redirect_url = function_exists( 'ec_get_site_url' )
-			? ec_get_site_url( 'community' )
-			: home_url();
-	}
-
-	return '' !== $account_created_token
-		? add_query_arg( EC_USERS_GOOGLE_ACCOUNT_CREATED_PARAM, $account_created_token, $redirect_url )
-		: $redirect_url;
-}
-
-/**
  * Google OAuth login service.
  * Authenticates via Google, optionally sets cookies, and returns tokens.
  *
@@ -401,8 +366,8 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 		}
 	}
 
-	$account_created_token = $is_new && $set_cookie ? wp_create_nonce( 'ec_google_account_created' ) : '';
-	$redirect_url          = ec_google_post_auth_redirect_url( $from_join, $onboarding_completed, $safe_success_redirect_url, $account_created_token );
+	$account_created_token = $is_new && $set_cookie ? wp_create_nonce( 'ec_account_created' ) : '';
+	$redirect_url          = ec_users_post_registration_redirect_url( $from_join, $onboarding_completed, $safe_success_redirect_url, $account_created_token );
 
 	return array(
 		'success'              => true,
