@@ -5,6 +5,8 @@
  * @package ExtraChill\Users
  */
 
+use DataMachineEvents\Core\EventDatesTable;
+
 /**
  * Exercise concert attendance through registered WP_Ability contracts.
  */
@@ -25,18 +27,21 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 		$this->user_id        = self::factory()->user->create();
 
 		add_filter( 'extrachill_users_events_blog_id', array( $this, 'filter_events_blog_id' ) );
+		add_filter( 'extrachill_users_event_timing_now', array( $this, 'filter_event_timing_now' ) );
 		if ( ! post_type_exists( 'data_machine_events' ) ) {
 			register_post_type( 'data_machine_events', array( 'public' => true ) );
 		}
 
 		switch_to_blog( $this->events_blog_id );
 		try {
+			EventDatesTable::create_table();
 			$this->event_id = self::factory()->post->create(
 				array(
 					'post_type'   => 'data_machine_events',
 					'post_status' => 'publish',
 				)
 			);
+			EventDatesTable::upsert( $this->event_id, '2026-07-25 20:00:00', null, 'publish' );
 		} finally {
 			restore_current_blog();
 		}
@@ -49,12 +54,35 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 	protected function tearDown(): void {
 		$this->clear_tracking_table();
 		remove_filter( 'extrachill_users_events_blog_id', array( $this, 'filter_events_blog_id' ) );
+		remove_filter( 'extrachill_users_event_timing_now', array( $this, 'filter_event_timing_now' ) );
 		wp_set_current_user( 0 );
 		parent::tearDown();
 	}
 
 	public function filter_events_blog_id(): int {
 		return $this->events_blog_id;
+	}
+
+	public function filter_event_timing_now(): string {
+		return '2026-07-24 12:00:00';
+	}
+
+	public function test_event_timing_uses_owned_event_dates_fixture_for_all_states(): void {
+		$fixtures = array(
+			'upcoming' => array( '2026-07-25 20:00:00', null ),
+			'ongoing'  => array( '2026-07-24 10:00:00', '2026-07-24 14:00:00' ),
+			'past'     => array( '2026-07-23 20:00:00', '2026-07-23 23:00:00' ),
+		);
+
+		switch_to_blog( $this->events_blog_id );
+		try {
+			foreach ( $fixtures as $expected => $dates ) {
+				EventDatesTable::upsert( $this->event_id, $dates[0], $dates[1], 'publish' );
+				$this->assertSame( $expected, ec_users_get_event_timing( $this->event_id, $this->events_blog_id ) );
+			}
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	public function test_registered_set_ability_validates_input_and_declares_stable_output(): void {
