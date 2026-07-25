@@ -4,6 +4,7 @@ $plan = get_site_option( 'extrachill_auth_fuzz_plan', array() );
 $fixture = get_site_option( 'extrachill_auth_fuzz_fixture', array() );
 $sites = get_site_option( 'extrachill_auth_fuzz_sites', array() );
 $passes = 0;
+$_SERVER['REMOTE_ADDR'] = '127.0.0.249';
 
 function auth_fuzz_assert( $condition, string $message ): void {
 	global $passes;
@@ -61,9 +62,12 @@ auth_fuzz_assert( 400 === $duplicate->get_status(), 'Duplicate registration did 
 auth_fuzz_assert( auth_fuzz_network_user_count() === $initial_count + 1, 'Duplicate registration created another user.' );
 
 $existing = get_user_by( 'id', (int) $fixture['existing_user_id'] );
+auth_fuzz_assert( wp_check_password( 'existing-pass-248', $existing->user_pass, $existing->ID ), 'Stored password verification failed for the existing auth persona.' );
+$direct_auth = wp_authenticate( $existing->user_login, 'existing-pass-248' );
+auth_fuzz_assert( $direct_auth instanceof WP_User, 'Direct authentication failed for the existing auth persona: ' . ( is_wp_error( $direct_auth ) ? implode( ',', $direct_auth->get_error_codes() ) : gettype( $direct_auth ) ) );
 foreach ( array( $existing->user_login, $existing->user_email ) as $identifier ) {
 	$login = auth_fuzz_rest( '/extrachill/v1/auth/login', array( 'identifier' => $identifier, 'password' => 'existing-pass-248', 'device_id' => '00000000-0000-4000-8000-000000000249', 'set_cookie' => false ) );
-	auth_fuzz_assert( 200 === $login->get_status(), 'Login failed for ' . ( is_email( $identifier ) ? 'email.' : 'username.' ) );
+	auth_fuzz_assert( 200 === $login->get_status(), 'Login failed for ' . ( is_email( $identifier ) ? 'email: ' : 'username: ' ) . wp_json_encode( $login->get_data() ) );
 	auth_fuzz_assert( (int) ( $login->get_data()['user']['id'] ?? 0 ) === (int) $existing->ID, 'Login resolved the wrong network identity.' );
 }
 $unknown_login = auth_fuzz_rest( '/extrachill/v1/auth/login', array( 'identifier' => 'missing-auth-fuzz', 'password' => 'wrong-pass', 'device_id' => '00000000-0000-4000-8000-000000000252' ) );

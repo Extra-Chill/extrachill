@@ -8,9 +8,16 @@
 add_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 add_filter( 'pre_wp_mail', '__return_true' );
 
+if ( empty( $_SERVER['REMOTE_ADDR'] ) ) {
+	$_SERVER['REMOTE_ADDR'] = '127.0.0.248';
+}
+
 function extrachill_auth_fuzz_registration_admitter() {
-	$count = (int) get_site_option( 'extrachill_auth_fuzz_registration_attempts', 0 ) + 1;
-	update_site_option( 'extrachill_auth_fuzz_registration_attempts', $count );
+	$key   = extrachill_users_registration_attempt_key();
+	$state = get_site_option( 'extrachill_auth_fuzz_registration_attempts', array() );
+	$count = (int) ( $state[ $key ] ?? 0 ) + 1;
+	$state[ $key ] = $count;
+	update_site_option( 'extrachill_auth_fuzz_registration_attempts', $state );
 
 	return $count > EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT
 		? extrachill_users_registration_rate_limit_error( time() + EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW )
@@ -39,7 +46,7 @@ function extrachill_auth_fuzz_login_rate_limit_store( $operation, $key ) {
 	if ( 'clear' === $operation ) {
 		unset( $state[ $key ] );
 		update_site_option( 'extrachill_auth_fuzz_login_attempts', $state );
-		return true;
+		return 0;
 	}
 
 	return new WP_Error( 'ec_login_limiter_unavailable', 'Unsupported auth fuzz limiter operation.' );
