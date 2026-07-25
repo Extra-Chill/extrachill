@@ -15,7 +15,7 @@ CREATE TABLE wp_artist_subscribers (
     artist_profile_id BIGINT(20) UNSIGNED NOT NULL,
     subscriber_email VARCHAR(255) NOT NULL,
     username VARCHAR(60) NULL DEFAULT NULL,
-    source VARCHAR(50) NOT NULL DEFAULT 'platform_follow_consent',
+    source VARCHAR(50) NOT NULL DEFAULT 'artist_subscribe_form',
     subscribed_at DATETIME NOT NULL,
     exported TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (subscriber_id),
@@ -43,7 +43,7 @@ function extrch_create_subscribers_table() {
         artist_profile_id BIGINT(20) UNSIGNED NOT NULL,
         subscriber_email VARCHAR(255) NOT NULL,
         username VARCHAR(60) NULL DEFAULT NULL,
-        source VARCHAR(50) NOT NULL DEFAULT 'platform_follow_consent',
+        source VARCHAR(50) NOT NULL DEFAULT 'artist_subscribe_form',
         subscribed_at DATETIME NOT NULL,
         exported TINYINT(1) NOT NULL DEFAULT 0,
         PRIMARY KEY (subscriber_id),
@@ -416,7 +416,7 @@ The system tracks subscription sources:
 - `inline_form`: Inline form on link page
 - `modal_form`: Modal popup form  
 - `icon_modal`: Icon-triggered modal
-- `platform_follow_consent`: Following artist on platform
+- `platform_follow_consent`: Legacy source identifier for email-sharing consent granted by a logged-in user
 - `manual_import`: Manually imported subscribers
 
 ### Source-Based Filtering
@@ -439,7 +439,7 @@ If another plugin wants to sync subscribers to an ESP, implement that in the int
 
 Subscriber rows optionally store a `user_id` when the subscription is associated with a logged-in WordPress account.
 
-The artist platform does not implement an in-plugin "follow" UI or follow-to-subscribe automation. Integrations that want to subscribe users programmatically should call `add_artist_subscriber()` directly.
+The artist platform does not expose public subscriber relationships or counts, and it does not turn other platform activity into email consent. Integrations that want to subscribe users programmatically should call `add_artist_subscriber()` directly.
 
 ## Privacy Compliance
 
