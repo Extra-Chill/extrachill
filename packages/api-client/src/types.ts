@@ -262,16 +262,21 @@ export interface UpdateUserLinksResponse {
 
 // ─── User Subscriptions ─────────────────────────────────────────────────────
 
-export interface FollowedArtist {
+export interface ArtistEmailConsent {
   artist_id: number;
   name: string;
   url: string;
   email_consent: boolean;
 }
 
+/** @deprecated Use ArtistEmailConsent. */
+export type FollowedArtist = ArtistEmailConsent;
+
 export interface UserSubscriptions {
   user_id: number;
-  followed_artists: FollowedArtist[];
+  artist_email_consents?: ArtistEmailConsent[];
+  /** @deprecated Compatibility field from extrachill-users. */
+  followed_artists: ArtistEmailConsent[];
 }
 
 export interface UpdateSubscriptionsRequest {
