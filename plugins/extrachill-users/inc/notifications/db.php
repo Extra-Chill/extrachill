@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * upgrade path).
  */
 if ( ! defined( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION' ) ) {
-	define( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION', '2' );
+	define( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION', '3' );
 }
 
 /**
@@ -62,11 +62,16 @@ function extrachill_users_notifications_table_name() {
  *                (NULL == never emailed). Drives "nudge once per notification":
  *                a notification is eligible for the digest exactly once, then
  *                its emailed_at is stamped so it never re-triggers an email.
+ *   - producer / idempotency_key identify an optional producer-owned delivery
+ *   - delivery_key is their SHA-256 digest, used for compact atomic uniqueness
  *
  * Indexes:
  *   - idx_user_unread  (user_id, is_read, created_at) — bell badge + unread list
  *   - idx_user_created (user_id, created_at)          — full paginated list
  *   - idx_email_sweep  (is_read, emailed_at, created_at) — digest eligibility scan
+ *   - uq_delivery      (user_id, delivery_key) — per-recipient replay protection
+ *
+ * @return bool True when the receipt columns and unique index are installed.
  */
 function extrachill_users_install_notifications_table() {
 	global $wpdb;
@@ -87,15 +92,53 @@ function extrachill_users_install_notifications_table() {
 		is_read tinyint(1) NOT NULL DEFAULT 0,
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		emailed_at datetime DEFAULT NULL,
+		producer varchar(64) DEFAULT NULL,
+		idempotency_key varchar(191) DEFAULT NULL,
+		delivery_key char(64) DEFAULT NULL,
 		PRIMARY KEY  (id),
 		KEY idx_user_unread (user_id, is_read, created_at),
 		KEY idx_user_created (user_id, created_at),
-		KEY idx_email_sweep (is_read, emailed_at, created_at)
+		KEY idx_email_sweep (is_read, emailed_at, created_at),
+		UNIQUE KEY uq_delivery (user_id, delivery_key)
 	) {$charset_collate};";
 
 	dbDelta( $sql );
 
 	extrachill_users_backfill_notifications_emailed_at();
+
+	return extrachill_users_notifications_receipt_schema_is_healthy();
+}
+
+/**
+ * Verify the columns and unique index required for atomic delivery receipts.
+ *
+ * This is deliberately called after dbDelta rather than on every request. The
+ * schema version is advanced only after the migration is actually usable, so a
+ * failed migration is retried by the existing init guard.
+ *
+ * @return bool True when the receipt schema is ready.
+ */
+function extrachill_users_notifications_receipt_schema_is_healthy() {
+	global $wpdb;
+
+	$table   = extrachill_users_notifications_table_name();
+	$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+
+	foreach ( array( 'producer', 'idempotency_key', 'delivery_key' ) as $required_column ) {
+		if ( ! in_array( $required_column, (array) $columns, true ) ) {
+			return false;
+		}
+	}
+
+	$indexes = $wpdb->get_results( "SHOW INDEX FROM {$table} WHERE Key_name = 'uq_delivery'", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper and static index name.
+	if ( 2 !== count( (array) $indexes ) ) {
+		return false;
+	}
+
+	$indexed_columns = array_column( $indexes, 'Column_name' );
+
+	return array( 'user_id', 'delivery_key' ) === array_values( $indexed_columns )
+		&& 0 === (int) $indexes[0]['Non_unique'];
 }
 
 /**
