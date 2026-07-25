@@ -38,7 +38,7 @@ import type {
 	ChangeEmailResponse,
 	ChangePasswordResponse,
 	UserSubscriptions,
-	FollowedArtist,
+	ArtistEmailConsent,
 	RequestArtistAccessResponse,
 	NotificationPreferences,
 } from '../../types/users';
@@ -566,27 +566,35 @@ function SubscriptionsTab() {
 		type: 'success' | 'error';
 		message: string;
 	} | null >( null );
-	const [ consented, setConsented ] = useState< Set< number > >( new Set() );
+	const [ consentedArtistIds, setConsentedArtistIds ] = useState<
+		Set< number >
+	>( new Set() );
 
 	useEffect( () => {
 		client
 			.execute< UserSubscriptions >( 'extrachill/get-subscriptions' )
 			.then( ( result ) => {
 				setData( result );
+				const artistEmailConsents =
+					result.artist_email_consents ??
+					result.followed_artists ??
+					[];
 				const ids = new Set< number >();
-				result.followed_artists.forEach( ( a: FollowedArtist ) => {
-					if ( a.email_consent ) {
-						ids.add( a.artist_id );
+				artistEmailConsents.forEach(
+					( consent: ArtistEmailConsent ) => {
+						if ( consent.email_consent ) {
+							ids.add( consent.artist_id );
+						}
 					}
-				} );
-				setConsented( ids );
+				);
+				setConsentedArtistIds( ids );
 				setLoading( false );
 			} )
 			.catch( () => setLoading( false ) );
 	}, [] );
 
 	const toggleConsent = useCallback( ( artistId: number ) => {
-		setConsented( ( prev ) => {
+		setConsentedArtistIds( ( prev ) => {
 			const next = new Set( prev );
 			if ( next.has( artistId ) ) {
 				next.delete( artistId );
@@ -602,11 +610,11 @@ function SubscriptionsTab() {
 		setNotice( null );
 		try {
 			await client.execute( 'extrachill/update-subscriptions', {
-				consented_artists: Array.from( consented ),
+				consented_artists: Array.from( consentedArtistIds ),
 			} );
 			setNotice( {
 				type: 'success',
-				message: 'Subscription preferences updated.',
+				message: 'Artist email preferences updated.',
 			} );
 		} catch ( err ) {
 			setNotice( {
@@ -615,7 +623,7 @@ function SubscriptionsTab() {
 			} );
 		}
 		setSaving( false );
-	}, [ consented ] );
+	}, [ consentedArtistIds ] );
 
 	if ( loading ) {
 		return (
@@ -624,57 +632,62 @@ function SubscriptionsTab() {
 			</div>
 		);
 	}
-	const artists = data?.followed_artists || [];
+	const artistEmailConsents =
+		data?.artist_email_consents ?? data?.followed_artists ?? [];
 
 	return (
 		<Panel>
-			<PanelHeader description="Manage email consent for bands you follow. Unchecking will prevent a band from seeing your email or including it in their exports." />
+			<PanelHeader description="Choose which artists may access your email for updates and subscriber exports." />
 			{ notice && (
 				<Notice type={ notice.type } message={ notice.message } />
 			) }
-			{ artists.length === 0 ? (
+			{ artistEmailConsents.length === 0 ? (
 				<p style={ styles.mutedText }>
-					You are not currently following any bands.
+					You have not shared your email with any artists.
 				</p>
 			) : (
 				<>
 					<ul style={ styles.checkboxList }>
-						{ artists.map( ( artist: FollowedArtist ) => (
-							<li
-								key={ artist.artist_id }
-								style={ styles.checkboxItem }
-							>
-								<input
-									type="checkbox"
-									id={ `ec-consent-${ artist.artist_id }` }
-									checked={ consented.has(
-										artist.artist_id
-									) }
-									onChange={ () =>
-										toggleConsent( artist.artist_id )
-									}
-								/>
-								<label
-									htmlFor={ `ec-consent-${ artist.artist_id }` }
-									style={ {
-										fontWeight: 'normal',
-										cursor: 'pointer',
-									} }
+						{ artistEmailConsents.map(
+							( artist: ArtistEmailConsent ) => (
+								<li
+									key={ artist.artist_id }
+									style={ styles.checkboxItem }
 								>
-									Share my email with{ ' ' }
-									<a
-										href={ artist.url }
-										target="_blank"
-										rel="noopener noreferrer"
+									<input
+										type="checkbox"
+										id={ `ec-consent-${ artist.artist_id }` }
+										checked={ consentedArtistIds.has(
+											artist.artist_id
+										) }
+										onChange={ () =>
+											toggleConsent( artist.artist_id )
+										}
+									/>
+									<label
+										htmlFor={ `ec-consent-${ artist.artist_id }` }
 										style={ {
-											color: cssVar( colors.linkColor ),
+											fontWeight: 'normal',
+											cursor: 'pointer',
 										} }
 									>
-										{ artist.name }
-									</a>
-								</label>
-							</li>
-						) ) }
+										Share my email with{ ' ' }
+										<a
+											href={ artist.url }
+											target="_blank"
+											rel="noopener noreferrer"
+											style={ {
+												color: cssVar(
+													colors.linkColor
+												),
+											} }
+										>
+											{ artist.name }
+										</a>
+									</label>
+								</li>
+							)
+						) }
 					</ul>
 					<ActionRow>
 						<button
@@ -788,7 +801,7 @@ function NotificationsTab() {
 					>
 						<strong>Auto-subscribe to replies</strong>
 						<div style={ styles.mutedText }>
-							Automatically follow topics you reply to.
+							Automatically subscribe to reply notifications.
 						</div>
 					</label>
 				</li>
@@ -1046,7 +1059,7 @@ export function UserSettingsApp( {
 	const tabs: Array< { id: TabId; label: string } > = [
 		{ id: 'account-details', label: 'Account Details' },
 		{ id: 'security', label: 'Security' },
-		{ id: 'subscriptions', label: 'Subscriptions' },
+		{ id: 'subscriptions', label: 'Artist Email Access' },
 		{ id: 'notifications', label: 'Notifications' },
 		{ id: 'artist-platform', label: 'Artist Platform' },
 	];
