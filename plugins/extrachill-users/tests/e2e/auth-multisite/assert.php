@@ -4,6 +4,7 @@ $plan = get_site_option( 'extrachill_auth_fuzz_plan', array() );
 $fixture = get_site_option( 'extrachill_auth_fuzz_fixture', array() );
 $sites = get_site_option( 'extrachill_auth_fuzz_sites', array() );
 $passes = 0;
+$_SERVER['REMOTE_ADDR'] = '127.0.0.249';
 
 function auth_fuzz_assert( $condition, string $message ): void {
 	global $passes;

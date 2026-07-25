@@ -13,8 +13,11 @@ if ( empty( $_SERVER['REMOTE_ADDR'] ) ) {
 }
 
 function extrachill_auth_fuzz_registration_admitter() {
-	$count = (int) get_site_option( 'extrachill_auth_fuzz_registration_attempts', 0 ) + 1;
-	update_site_option( 'extrachill_auth_fuzz_registration_attempts', $count );
+	$key   = extrachill_users_registration_attempt_key();
+	$state = get_site_option( 'extrachill_auth_fuzz_registration_attempts', array() );
+	$count = (int) ( $state[ $key ] ?? 0 ) + 1;
+	$state[ $key ] = $count;
+	update_site_option( 'extrachill_auth_fuzz_registration_attempts', $state );
 
 	return $count > EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT
 		? extrachill_users_registration_rate_limit_error( time() + EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW )
