@@ -41,6 +41,17 @@ function ec_seo_output_schema_graph() {
 add_action( 'wp_head', __NAMESPACE__ . '\\ec_seo_output_schema_graph', 10 );
 
 /**
+ * Remove structured identity for a resource that does not exist.
+ *
+ * @param array $graph Schema graph.
+ * @return array Filtered schema graph.
+ */
+function ec_seo_suppress_404_schema_graph( $graph ) {
+	return is_404() ? array() : $graph;
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_suppress_404_schema_graph', PHP_INT_MAX );
+
+/**
  * Get schema base URL for the current site.
  *
  * This should match the domain the page is actually served from, so Google

@@ -33,9 +33,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function ec_seo_render_head( $context = array() ) {
 	// --- Canonical ---
-	$canonical = ! empty( $context['canonical'] )
-		? $context['canonical']
-		: ec_seo_get_final_canonical_url();
+	$canonical = is_404()
+		? ''
+		: ( ! empty( $context['canonical'] ) ? $context['canonical'] : ec_seo_get_final_canonical_url() );
 
 	if ( ! empty( $canonical ) ) {
 		printf(

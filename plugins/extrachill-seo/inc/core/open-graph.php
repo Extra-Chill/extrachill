@@ -177,6 +177,21 @@ function ec_seo_get_open_graph_data() {
 }
 
 /**
+ * Remove missing-resource identity from Open Graph data.
+ *
+ * @param array $data Open Graph properties.
+ * @return array Filtered Open Graph properties.
+ */
+function ec_seo_suppress_404_open_graph_url( $data ) {
+	if ( is_404() ) {
+		unset( $data['og:url'] );
+	}
+
+	return $data;
+}
+add_filter( 'extrachill_seo_open_graph_data', __NAMESPACE__ . '\\ec_seo_suppress_404_open_graph_url', PHP_INT_MAX );
+
+/**
  * Get canonical URL for current page
  *
  * @deprecated Use ec_seo_get_final_canonical_url() or ec_seo_get_default_canonical_url() instead.

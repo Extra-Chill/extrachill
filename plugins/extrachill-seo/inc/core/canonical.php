@@ -63,6 +63,10 @@ add_action(
  * @return string Canonical URL or empty string.
  */
 function ec_seo_get_final_canonical_url() {
+	if ( is_404() ) {
+		return '';
+	}
+
 	$canonical = ec_seo_get_default_canonical_url();
 
 	/**

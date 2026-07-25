@@ -79,6 +79,10 @@ if ( ! function_exists( 'wp_timezone' ) ) {
 
 if ( ! function_exists( 'get_permalink' ) ) {
 	function get_permalink( $post = 0 ) {
+		if ( 0 === $post && ! empty( $GLOBALS['ec_seo_test_queried_object'] ) ) {
+			$post = $GLOBALS['ec_seo_test_queried_object'];
+		}
+
 		if ( $post instanceof WP_Post ) {
 			return $post->permalink ?? 'https://events.example.com/events/' . $post->post_name;
 		}
@@ -104,19 +108,85 @@ if ( ! function_exists( 'get_the_terms' ) ) {
 
 if ( ! function_exists( 'is_singular' ) ) {
 	function is_singular( $post_types = '' ) {
-		return false;
+		return ! empty( $GLOBALS['ec_seo_test_is_singular'] );
 	}
 }
 
 if ( ! function_exists( 'get_queried_object' ) ) {
 	function get_queried_object() {
-		return null;
+		return $GLOBALS['ec_seo_test_queried_object'] ?? null;
+	}
+}
+
+if ( ! function_exists( 'is_404' ) ) {
+	function is_404() {
+		return ! empty( $GLOBALS['ec_seo_test_is_404'] );
+	}
+}
+
+if ( ! function_exists( 'is_page' ) ) {
+	function is_page() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'is_tax' ) ) {
+	function is_tax() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'is_front_page' ) ) {
+	function is_front_page() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'is_home' ) ) {
+	function is_home() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'is_category' ) ) {
+	function is_category() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'is_tag' ) ) {
+	function is_tag() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'is_author' ) ) {
+	function is_author() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'is_search' ) ) {
+	function is_search() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'apply_filters' ) ) {
+	function apply_filters( $hook_name, $value, ...$args ) {
+		return $value;
 	}
 }
 
 if ( ! function_exists( 'add_filter' ) ) {
 	function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 		// No-op for unit tests; we exercise the helper functions directly.
+		return true;
+	}
+}
+
+if ( ! function_exists( 'add_action' ) ) {
+	function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 		return true;
 	}
 }
@@ -178,3 +248,6 @@ if ( ! function_exists( 'data_machine_events_get_venue_data' ) ) {
 // ---------------------------------------------------------------------------
 
 require_once __DIR__ . '/../inc/schema/schema-event.php';
+require_once __DIR__ . '/../inc/core/canonical.php';
+require_once __DIR__ . '/../inc/core/open-graph.php';
+require_once __DIR__ . '/../inc/schema/schema-output.php';
