@@ -91,9 +91,9 @@ function ec_users_maybe_install_notifications_table() {
 		return;
 	}
 
-	extrachill_users_install_notifications_table();
-
-	update_site_option( 'extrachill_users_notifications_schema_version', $current_version );
+	if ( extrachill_users_install_notifications_table() ) {
+		update_site_option( 'extrachill_users_notifications_schema_version', $current_version );
+	}
 }
 add_action( 'init', 'ec_users_maybe_install_notifications_table' );
 
@@ -119,11 +119,50 @@ add_action( 'init', 'ec_users_maybe_install_notifications_table' );
  * @return int Number of notification rows inserted.
  */
 function ec_users_notify( $user_ids, array $data ): int {
+	$receipt = ec_users_notify_with_receipts( $user_ids, $data );
+
+	return (int) $receipt['inserted'];
+}
+
+/**
+ * Create notifications and return a per-recipient delivery receipt.
+ *
+ * Producers that need retry safety pass both `producer` and `idempotency_key`.
+ * Their exact pair is hashed into the compact delivery key protected by the
+ * table's unique (user_id, delivery_key) index. Concurrent calls therefore
+ * converge on one row per recipient while unrelated producers remain isolated.
+ * Omitting both fields retains the historical non-idempotent insert behavior.
+ *
+ * Requested IDs are normalized to a unique recipient set. Each receipt has an
+ * inserted, existing, or failed status. A notification row ID is returned only
+ * after an insert or an exact producer/key replay has been verified.
+ *
+ * @param int|int[] $user_ids Single recipient ID or array of recipient IDs.
+ * @param array     $data {
+ *     Notification payload. See ec_users_notify().
+ *
+ *     @type string $producer        Optional producer namespace. Must be paired
+ *                                   with idempotency_key.
+ *     @type string $idempotency_key Optional producer-owned replay key. Must be
+ *                                   paired with producer.
+ * }
+ * @return array{requested:int, inserted:int, existing:int, failed:int, recipients:array<int,array{user_id:int,status:string,notification_id:?int,error:?string}>}
+ */
+function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 	global $wpdb;
 
 	if ( ! is_array( $user_ids ) ) {
 		$user_ids = array( $user_ids );
 	}
+
+	$user_ids = array_values( array_unique( array_map( 'intval', $user_ids ) ) );
+	$receipt  = array(
+		'requested'  => count( $user_ids ),
+		'inserted'   => 0,
+		'existing'   => 0,
+		'failed'     => 0,
+		'recipients' => array(),
+	);
 
 	// Validate required fields.
 	$actor_id = isset( $data['actor_id'] ) ? (int) $data['actor_id'] : 0;
@@ -138,12 +177,31 @@ function ec_users_notify( $user_ids, array $data ): int {
 
 	$title = sanitize_text_field( $title );
 
+	$producer        = isset( $data['producer'] ) ? strtolower( trim( (string) $data['producer'] ) ) : '';
+	$idempotency_key = isset( $data['idempotency_key'] ) ? trim( (string) $data['idempotency_key'] ) : '';
+	$has_producer    = '' !== $producer;
+	$has_key         = '' !== $idempotency_key;
+	$payload_error   = null;
+
 	if ( ! $actor_id || '' === $type || '' === $link || '' === $title ) {
-		return 0;
+		$payload_error = 'invalid_payload';
+	} elseif ( ! get_userdata( $actor_id ) ) {
+		$payload_error = 'invalid_actor';
+	} elseif ( $has_producer !== $has_key ) {
+		$payload_error = 'incomplete_idempotency';
+	} elseif ( $has_producer && ( strlen( $producer ) > 64 || ! preg_match( '/^[a-z0-9][a-z0-9._\/-]*$/', $producer ) ) ) {
+		$payload_error = 'invalid_producer';
+	} elseif ( $has_key && ( strlen( $idempotency_key ) > 191 || preg_match( '/[\x00-\x1F\x7F]/', $idempotency_key ) ) ) {
+		$payload_error = 'invalid_idempotency_key';
 	}
 
-	if ( ! get_userdata( $actor_id ) ) {
-		return 0;
+	if ( null !== $payload_error ) {
+		foreach ( $user_ids as $user_id ) {
+			$receipt['recipients'][ $user_id ] = ec_users_notification_failed_receipt( $user_id, $payload_error );
+			++$receipt['failed'];
+		}
+
+		return $receipt;
 	}
 
 	$item_id = isset( $data['item_id'] ) ? (int) $data['item_id'] : 0;
@@ -154,33 +212,93 @@ function ec_users_notify( $user_ids, array $data ): int {
 
 	$table        = extrachill_users_notifications_table_name();
 	$created_at   = current_time( 'mysql', true );
-	$inserted     = 0;
 	$notified_ids = array();
+	$delivery_key = $has_producer ? hash( 'sha256', $producer . "\0" . $idempotency_key ) : null;
 
 	foreach ( $user_ids as $user_id ) {
-		$user_id = (int) $user_id;
-
 		if ( $user_id <= 0 || ! get_userdata( $user_id ) ) {
+			$receipt['recipients'][ $user_id ] = ec_users_notification_failed_receipt( $user_id, 'invalid_user' );
+			++$receipt['failed'];
 			continue;
 		}
 
-		$result = $wpdb->insert(
-			$table,
-			array(
-				'user_id'    => $user_id,
-				'actor_id'   => $actor_id,
-				'type'       => $type,
-				'title'      => $title,
-				'link'       => $link,
-				'item_id'    => $item_id > 0 ? $item_id : null,
-				'is_read'    => 0,
-				'created_at' => $created_at,
-			),
-			array( '%d', '%d', '%s', '%s', '%s', $item_id > 0 ? '%d' : null, '%d', '%s' )
-		);
+		if ( $has_producer ) {
+			$result = $wpdb->query(
+				$wpdb->prepare(
+					"INSERT IGNORE INTO {$table} (user_id, actor_id, type, title, link, item_id, is_read, created_at, producer, idempotency_key, delivery_key) VALUES (%d, %d, %s, %s, %s, NULLIF(%d, 0), 0, %s, %s, %s, %s)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+					$user_id,
+					$actor_id,
+					$type,
+					$title,
+					$link,
+					$item_id,
+					$created_at,
+					$producer,
+					$idempotency_key,
+					$delivery_key
+				)
+			);
+		} else {
+			$result = $wpdb->insert(
+				$table,
+				array(
+					'user_id'    => $user_id,
+					'actor_id'   => $actor_id,
+					'type'       => $type,
+					'title'      => $title,
+					'link'       => $link,
+					'item_id'    => $item_id > 0 ? $item_id : null,
+					'is_read'    => 0,
+					'created_at' => $created_at,
+				),
+				array( '%d', '%d', '%s', '%s', '%s', $item_id > 0 ? '%d' : null, '%d', '%s' )
+			);
+		}
 
-		if ( $result ) {
-			++$inserted;
+		if ( false === $result ) {
+			$receipt['recipients'][ $user_id ] = ec_users_notification_failed_receipt( $user_id, 'insert_failed' );
+			++$receipt['failed'];
+			continue;
+		}
+
+		$notification_id = (int) $wpdb->insert_id;
+		$status          = 'inserted';
+
+		if ( $has_producer && 1 !== (int) $result ) {
+			$existing = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT id, producer, idempotency_key FROM {$table} WHERE user_id = %d AND delivery_key = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+					$user_id,
+					$delivery_key
+				),
+				ARRAY_A
+			);
+
+			if ( ! $existing || $producer !== $existing['producer'] || $idempotency_key !== $existing['idempotency_key'] ) {
+				$receipt['recipients'][ $user_id ] = ec_users_notification_failed_receipt( $user_id, 'insert_failed' );
+				++$receipt['failed'];
+				continue;
+			}
+
+			$status          = 'existing';
+			$notification_id = (int) $existing['id'];
+		}
+
+		if ( $notification_id <= 0 ) {
+			$receipt['recipients'][ $user_id ] = ec_users_notification_failed_receipt( $user_id, 'row_id_unavailable' );
+			++$receipt['failed'];
+			continue;
+		}
+
+		$receipt['recipients'][ $user_id ] = array(
+			'user_id'         => $user_id,
+			'status'          => $status,
+			'notification_id' => $notification_id,
+			'error'           => null,
+		);
+		++$receipt[ $status ];
+
+		if ( 'inserted' === $status ) {
 			$notified_ids[] = $user_id;
 		}
 	}
@@ -190,7 +308,23 @@ function ec_users_notify( $user_ids, array $data ): int {
 		ec_users_flush_unread_count_cache( $notified_ids );
 	}
 
-	return $inserted;
+	return $receipt;
+}
+
+/**
+ * Build a failed per-recipient delivery receipt.
+ *
+ * @param int    $user_id Recipient ID as requested.
+ * @param string $error   Stable failure code.
+ * @return array{user_id:int,status:string,notification_id:null,error:string}
+ */
+function ec_users_notification_failed_receipt( int $user_id, string $error ): array {
+	return array(
+		'user_id'         => $user_id,
+		'status'          => 'failed',
+		'notification_id' => null,
+		'error'           => $error,
+	);
 }
 
 // ─── Read / CRUD ─────────────────────────────────────────────────────────────
