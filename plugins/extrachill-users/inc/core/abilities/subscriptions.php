@@ -2,7 +2,7 @@
 /**
  * Subscription Abilities
  *
- * Email consent management for followed artists.
+ * Artist email-sharing consent management.
  * Controls whether artists can see a user's email / include in exports.
  *
  * @package ExtraChill\Users
@@ -23,7 +23,7 @@ function extrachill_users_register_subscription_abilities() {
 		'extrachill/get-subscriptions',
 		array(
 			'label'               => __( 'Get Subscriptions', 'extrachill-users' ),
-			'description'         => __( 'Get followed artists and email consent preferences for a user.', 'extrachill-users' ),
+			'description'         => __( 'Get the authenticated user’s artist email-sharing preferences.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -31,7 +31,7 @@ function extrachill_users_register_subscription_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_get_subscriptions',
-			// Self-only: returns the authenticated user's followed artists / consent.
+			// Self-only: returns the authenticated user's artist email consent records.
 			'permission_callback' => 'is_user_logged_in',
 			'meta'                => array(
 				'show_in_rest' => true,
@@ -48,7 +48,7 @@ function extrachill_users_register_subscription_abilities() {
 		'extrachill/update-subscriptions',
 		array(
 			'label'               => __( 'Update Subscriptions', 'extrachill-users' ),
-			'description'         => __( 'Update email consent preferences for followed artists.', 'extrachill-users' ),
+			'description'         => __( 'Update which artists may access the authenticated user’s email.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -76,7 +76,7 @@ function extrachill_users_register_subscription_abilities() {
 }
 
 /**
- * Get followed artists and email consent status.
+ * Get artist email-sharing consent status.
  *
  * Self-only: resolves the authenticated user; takes no input.
  *
@@ -94,12 +94,12 @@ function extrachill_users_ability_get_subscriptions() {
 		return new WP_Error( 'user_not_found', 'User not found.' );
 	}
 
-	// Resolve followed artists directly from the artist_subscribers consent rows.
+	// Resolve artist email consent directly from artist_subscribers rows.
 	// The artist_subscribers table lives on the artist site (blog 4), so we
 	// switch_to_blog to get the correct table prefix. Each consent row is an
 	// artist the user has subscribed to with email consent granted.
-	$followed_artists = array();
-	$artist_blog_id   = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_email_consents = array();
+	$artist_blog_id        = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
 
 	if ( $artist_blog_id ) {
 		switch_to_blog( $artist_blog_id );
@@ -117,8 +117,8 @@ function extrachill_users_ability_get_subscriptions() {
 
 		if ( ! empty( $results ) ) {
 			foreach ( $results as $row ) {
-				$artist_id          = (int) $row['artist_profile_id'];
-				$followed_artists[] = array(
+				$artist_id               = (int) $row['artist_profile_id'];
+				$artist_email_consents[] = array(
 					'artist_id'     => $artist_id,
 					'name'          => get_the_title( $artist_id ),
 					'url'           => get_permalink( $artist_id ),
@@ -131,15 +131,17 @@ function extrachill_users_ability_get_subscriptions() {
 	}
 
 	return array(
-		'user_id'          => $user_id,
-		'followed_artists' => $followed_artists,
+		'user_id'               => $user_id,
+		'artist_email_consents' => $artist_email_consents,
+		// Deprecated compatibility field for shipped REST and typed-client consumers.
+		'followed_artists'      => $artist_email_consents,
 	);
 }
 
 /**
- * Update email consent preferences for followed artists.
+ * Update which artists may access the authenticated user’s email.
  *
- * @param array $input Input with 'user_id' and 'consented_artists' (array of artist IDs to consent to).
+ * @param array $input Input with 'consented_artists' (array of artist IDs to consent to).
  * @return array|WP_Error Result or error.
  */
 function extrachill_users_ability_update_subscriptions( $input ) {
