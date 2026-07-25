@@ -8,6 +8,10 @@
 add_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 add_filter( 'pre_wp_mail', '__return_true' );
 
+if ( empty( $_SERVER['REMOTE_ADDR'] ) ) {
+	$_SERVER['REMOTE_ADDR'] = '127.0.0.248';
+}
+
 function extrachill_auth_fuzz_registration_admitter() {
 	$count = (int) get_site_option( 'extrachill_auth_fuzz_registration_attempts', 0 ) + 1;
 	update_site_option( 'extrachill_auth_fuzz_registration_attempts', $count );
