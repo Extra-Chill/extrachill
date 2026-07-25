@@ -205,6 +205,20 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		$this->assertSame( '', $this->read_error_log() );
 	}
 
+	public function test_welcome_complete_uses_participation_language_without_followers(): void {
+		$GLOBALS['test_ec_send_email_result'] = array( 'success' => true );
+
+		$user_id   = $this->make_user();
+		$user_data = get_userdata( $user_id );
+
+		$this->assertTrue( extrachill_send_welcome_email_complete( $user_data ) );
+
+		$args = $GLOBALS['test_ec_send_email_last_args'];
+		$this->assertSame( 'See What’s Happening', $args['context']['cta_label'] );
+		$this->assertStringContainsString( 'Make yourself at home', $args['context']['body_html'] );
+		$this->assertDoesNotMatchRegularExpression( '/\bfollow(?:er|ers|ing|s|ed)?\b/i', $args['context']['body_html'] );
+	}
+
 	// ---------------------------------------------------------------------
 	// extrachill_send_welcome_email_incomplete() — onboarding-incomplete path
 	// ---------------------------------------------------------------------
@@ -238,7 +252,7 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		$this->assertSame( '', $this->read_error_log() );
 	}
 
-	public function test_welcome_incomplete_promotes_optional_profile_setup_and_features(): void {
+	public function test_welcome_incomplete_invites_users_into_the_clubhouse(): void {
 		$GLOBALS['test_ec_send_email_result'] = array( 'success' => true );
 
 		$user_id   = $this->make_user();
@@ -247,11 +261,16 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		$this->assertTrue( extrachill_send_welcome_email_incomplete( $user_data ) );
 
 		$args = $GLOBALS['test_ec_send_email_last_args'];
-		$this->assertSame( 'Your Extra Chill account is ready', $args['subject'] );
-		$this->assertSame( 'https://community.extrachill.com/settings/', $args['context']['cta_url'] );
-		$this->assertSame( 'Customize Your Profile', $args['context']['cta_label'] );
-		$this->assertStringContainsString( 'you can jump in', $args['context']['body_html'] );
-		$this->assertStringContainsString( 'Track concerts', $args['context']['body_html'] );
+		$this->assertSame( 'Make yourself at home at Extra Chill', $args['subject'] );
+		$this->assertSame( 'https://community.extrachill.com', $args['context']['cta_url'] );
+		$this->assertSame( 'See What’s Happening', $args['context']['cta_label'] );
+		$this->assertStringContainsString( 'online music scene', $args['context']['body_html'] );
+		$this->assertStringContainsString( 'There’s no setup checklist', $args['context']['body_html'] );
+		$this->assertStringContainsString( 'A few quick answers', $args['context']['body_html'] );
+		$this->assertStringContainsString( 'Do I need to finish my profile?', $args['context']['body_html'] );
+		$this->assertStringContainsString( 'Is Extra Chill just a music blog?', $args['context']['body_html'] );
+		$this->assertStringContainsString( 'Find shows and track concerts', $args['context']['body_html'] );
+		$this->assertDoesNotMatchRegularExpression( '/\bfollow(?:er|ers|ing|s|ed)?\b/i', $args['context']['body_html'] );
 	}
 
 	// ---------------------------------------------------------------------
