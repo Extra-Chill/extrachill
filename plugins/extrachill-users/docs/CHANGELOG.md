@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.39.0] - 2026-07-25
+
+### Added
+- add idempotent notification receipts
+- welcome new users into the clubhouse
+
+### Fixed
+- persist artist email consent identity
+- remove follower language from artist email consent
+
 ## [0.38.0] - 2026-07-24
 
 ### Added
