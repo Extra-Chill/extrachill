@@ -198,7 +198,7 @@ add_filter( 'extrachill_seo_meta_description', 'extrachill_events_discovery_desc
 /**
  * Override canonical URL for discovery pages via extrachill-seo filter.
  *
- * Appends the scope segment to the base location term URL.
+ * Appends the scope segment and preserves query-string pagination.
  *
  * @hook extrachill_seo_canonical_url
  * @param string $canonical Default canonical from extrachill-seo.
@@ -219,7 +219,14 @@ function extrachill_events_discovery_canonical( string $canonical ): string {
 		return $canonical;
 	}
 
-	return trailingslashit( $term_link ) . extrachill_events_get_current_scope() . '/';
+	$canonical = trailingslashit( $term_link ) . extrachill_events_get_current_scope();
+	$paged     = max( 1, (int) get_query_var( 'paged', 1 ) );
+
+	if ( $paged > 1 ) {
+		$canonical = add_query_arg( 'paged', $paged, $canonical );
+	}
+
+	return $canonical;
 }
 add_filter( 'extrachill_seo_canonical_url', 'extrachill_events_discovery_canonical' );
 

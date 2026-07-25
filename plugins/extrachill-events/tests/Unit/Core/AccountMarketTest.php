@@ -95,6 +95,18 @@ if ( ! function_exists( 'is_tax' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_current_blog_id' ) ) {
+	function get_current_blog_id() {
+		if ( isset( $GLOBALS['venue_membership_test']['current_blog_id'] ) ) {
+			return (int) $GLOBALS['venue_membership_test']['current_blog_id'];
+		}
+		if ( isset( $GLOBALS['ec_artist_test']['blog_id'] ) ) {
+			return (int) $GLOBALS['ec_artist_test']['blog_id'];
+		}
+		return (int) ( $GLOBALS['ec_locations_blog_id'] ?? 7 );
+	}
+}
+
 if ( ! function_exists( 'is_front_page' ) ) {
 	function is_front_page() {
 		return (bool) ( $GLOBALS['test_is_front_page'] ?? false );
@@ -145,6 +157,9 @@ if ( ! function_exists( 'apply_filters' ) ) {
 
 if ( ! function_exists( 'get_query_var' ) ) {
 	function get_query_var( $name, $default = '' ) {
+		if ( array_key_exists( $name, $GLOBALS['test_query_vars'] ?? array() ) ) {
+			return $GLOBALS['test_query_vars'][ $name ];
+		}
 		if ( 'ec_events_router' === $name && ! empty( $GLOBALS['test_is_all_events_page'] ) ) {
 			return 'all';
 		}
@@ -269,7 +284,7 @@ if ( ! function_exists( 'get_ancestors' ) ) {
 
 if ( ! function_exists( 'get_term_link' ) ) {
 	function get_term_link( $term ) {
-		return 'https://events.example/location/' . $term->slug . '/';
+		return $GLOBALS['test_term_link'] ?? 'https://events.example/location/' . $term->slug . '/';
 	}
 }
 
@@ -292,6 +307,7 @@ if ( ! function_exists( 'wp_verify_nonce' ) ) {
 }
 
 require_once dirname( __DIR__, 3 ) . '/inc/core/router-pages.php';
+require_once dirname( __DIR__, 3 ) . '/inc/core/discovery-pages.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/account-market.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/my-shows-map-filter.php';
 
@@ -580,6 +596,53 @@ final class AccountMarketTest extends TestCase {
 		$this->assertCount( 1, $pagination_rule );
 		$this->assertSame( 'index.php?ec_events_router=all&paged=$matches[1]', $pagination_rule[0]['query'] );
 		$this->assertSame( 'past=1', (string) wp_parse_url( 'https://events.example/all/page/2/?past=1', PHP_URL_QUERY ) );
+	}
+
+	public function test_scoped_query_pagination_preserves_serving_url_identity(): void {
+		$GLOBALS['ec_locations_blog_id'] = 7;
+		$GLOBALS['test_is_tax']           = true;
+		$GLOBALS['test_query_vars']       = array(
+			'event_scope' => 'this-weekend',
+			'paged'       => 2,
+		);
+		$GLOBALS['test_queried_term'] = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_link']     = 'https://events.example/location/usa/south-carolina/charleston/';
+
+		$canonical = extrachill_events_discovery_canonical( 'https://events.example/?paged=2' );
+		unset( $GLOBALS['ec_locations_blog_id'], $GLOBALS['test_term_link'] );
+
+		$this->assertSame( 'https://events.example/location/usa/south-carolina/charleston/this-weekend?paged=2', $canonical );
+	}
+
+	public function test_scoped_page_one_canonical_matches_slashless_serving_url(): void {
+		$GLOBALS['ec_locations_blog_id'] = 7;
+		$GLOBALS['test_is_tax']           = true;
+		$GLOBALS['test_query_vars']       = array(
+			'event_scope' => 'tonight',
+			'paged'       => 1,
+		);
+		$GLOBALS['test_queried_term'] = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_link']     = 'https://events.example/location/usa/south-carolina/charleston/';
+
+		$canonical = extrachill_events_discovery_canonical( 'https://events.example/?paged=1' );
+		unset( $GLOBALS['ec_locations_blog_id'], $GLOBALS['test_term_link'] );
+
+		$this->assertSame(
+			'https://events.example/location/usa/south-carolina/charleston/tonight',
+			$canonical
+		);
+	}
+
+	public function test_discovery_canonical_and_open_graph_preserve_other_pages(): void {
+		$GLOBALS['test_is_tax']     = false;
+		$GLOBALS['test_query_vars'] = array();
+		$og_data                    = array(
+			'og:url'   => 'https://events.example/original/',
+			'og:title' => 'Original',
+		);
+
+		$this->assertSame( 'https://events.example/original/', extrachill_events_discovery_canonical( 'https://events.example/original/' ) );
+		$this->assertSame( $og_data, extrachill_events_discovery_og_data( $og_data ) );
 	}
 
 	public function test_router_query_flags_use_the_query_being_parsed(): void {
