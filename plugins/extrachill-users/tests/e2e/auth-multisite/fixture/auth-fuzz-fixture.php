@@ -7,6 +7,50 @@
 
 add_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 add_filter( 'pre_wp_mail', '__return_true' );
+
+function extrachill_auth_fuzz_registration_admitter() {
+	$count = (int) get_site_option( 'extrachill_auth_fuzz_registration_attempts', 0 ) + 1;
+	update_site_option( 'extrachill_auth_fuzz_registration_attempts', $count );
+
+	return $count > EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT
+		? extrachill_users_registration_rate_limit_error( time() + EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW )
+		: true;
+}
+
+add_filter(
+	'extrachill_users_registration_admitter',
+	static function () {
+		return 'extrachill_auth_fuzz_registration_admitter';
+	}
+);
+
+function extrachill_auth_fuzz_login_rate_limit_store( $operation, $key ) {
+	$state = get_site_option( 'extrachill_auth_fuzz_login_attempts', array() );
+	$count = (int) ( $state[ $key ] ?? 0 );
+
+	if ( 'get' === $operation ) {
+		return $count;
+	}
+	if ( 'increment' === $operation ) {
+		$state[ $key ] = ++$count;
+		update_site_option( 'extrachill_auth_fuzz_login_attempts', $state );
+		return $count;
+	}
+	if ( 'clear' === $operation ) {
+		unset( $state[ $key ] );
+		update_site_option( 'extrachill_auth_fuzz_login_attempts', $state );
+		return true;
+	}
+
+	return new WP_Error( 'ec_login_limiter_unavailable', 'Unsupported auth fuzz limiter operation.' );
+}
+
+add_filter(
+	'extrachill_users_login_rate_limit_store',
+	static function () {
+		return 'extrachill_auth_fuzz_login_rate_limit_store';
+	}
+);
 add_filter(
 	'ec_site_url_override',
 	static function ( $url, $key, $blog_id ) {

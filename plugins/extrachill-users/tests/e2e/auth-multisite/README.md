@@ -24,8 +24,9 @@ The component manifest must point to clean Git checkouts at exact full commit
 revisions. The Users checkout must have ignored release assets generated with
 `npm run build`; mounted-byte SHA-256 provenance binds those assets to the run.
 
-Turnstile and email use documented local/test seams. Google OAuth, real email,
-mapped subdomains, TLS, and `.extrachill.com` cookie-domain behavior are outside
-this localhost path-multisite proof and require deployed smoke coverage.
+Turnstile, email, and atomic rate-limit storage use documented local/test seams.
+Google OAuth, real email, mapped subdomains, TLS, and `.extrachill.com`
+cookie-domain behavior are outside this localhost path-multisite proof and
+require deployed smoke coverage.
 Browser page fixtures use WordPress's `pagename` query because the localhost
 Playground router does not provide production-equivalent pretty-page rewrites.
