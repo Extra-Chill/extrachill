@@ -63,7 +63,7 @@ auth_fuzz_assert( auth_fuzz_network_user_count() === $initial_count + 1, 'Duplic
 $existing = get_user_by( 'id', (int) $fixture['existing_user_id'] );
 foreach ( array( $existing->user_login, $existing->user_email ) as $identifier ) {
 	$login = auth_fuzz_rest( '/extrachill/v1/auth/login', array( 'identifier' => $identifier, 'password' => 'existing-pass-248', 'device_id' => '00000000-0000-4000-8000-000000000249', 'set_cookie' => false ) );
-	auth_fuzz_assert( 200 === $login->get_status(), 'Login failed for ' . ( is_email( $identifier ) ? 'email.' : 'username.' ) );
+	auth_fuzz_assert( 200 === $login->get_status(), 'Login failed for ' . ( is_email( $identifier ) ? 'email: ' : 'username: ' ) . wp_json_encode( $login->get_data() ) );
 	auth_fuzz_assert( (int) ( $login->get_data()['user']['id'] ?? 0 ) === (int) $existing->ID, 'Login resolved the wrong network identity.' );
 }
 $unknown_login = auth_fuzz_rest( '/extrachill/v1/auth/login', array( 'identifier' => 'missing-auth-fuzz', 'password' => 'wrong-pass', 'device_id' => '00000000-0000-4000-8000-000000000252' ) );

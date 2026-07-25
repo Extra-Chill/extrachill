@@ -39,7 +39,7 @@ function extrachill_auth_fuzz_login_rate_limit_store( $operation, $key ) {
 	if ( 'clear' === $operation ) {
 		unset( $state[ $key ] );
 		update_site_option( 'extrachill_auth_fuzz_login_attempts', $state );
-		return true;
+		return 0;
 	}
 
 	return new WP_Error( 'ec_login_limiter_unavailable', 'Unsupported auth fuzz limiter operation.' );
