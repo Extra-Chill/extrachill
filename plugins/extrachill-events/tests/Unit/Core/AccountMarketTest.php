@@ -648,6 +648,21 @@ final class AccountMarketTest extends TestCase {
 		);
 	}
 
+	public function test_venue_settings_rewrite_uses_existing_router_surface(): void {
+		$GLOBALS['test_rewrite_rules'] = array();
+
+		extrachill_events_router_rewrite_rules();
+
+		$this->assertContains(
+			array(
+				'regex' => '^venue-settings/?$',
+				'query' => 'index.php?ec_events_router=venue-settings',
+				'after' => 'top',
+			),
+			$GLOBALS['test_rewrite_rules']
+		);
+	}
+
 	public function test_all_events_pagination_rewrite_keeps_past_requests_on_router_page(): void {
 		$GLOBALS['test_rewrite_rules'] = array();
 
@@ -719,6 +734,33 @@ final class AccountMarketTest extends TestCase {
 
 	public function test_router_query_flags_use_the_query_being_parsed(): void {
 		$query = new class( array( 'ec_events_router' => 'all' ) ) {
+			public bool $is_404     = true;
+			public bool $is_archive = false;
+			public bool $is_home    = true;
+			private array $vars;
+
+			public function __construct( array $vars ) {
+				$this->vars = $vars;
+			}
+
+			public function get( $key, $default = '' ) {
+				return $this->vars[ $key ] ?? $default;
+			}
+
+			public function is_main_query(): bool {
+				return true;
+			}
+		};
+
+		extrachill_events_router_query_flags( $query );
+
+		$this->assertFalse( $query->is_404 );
+		$this->assertTrue( $query->is_archive );
+		$this->assertFalse( $query->is_home );
+	}
+
+	public function test_venue_settings_query_uses_router_archive_flags(): void {
+		$query = new class( array( 'ec_events_router' => 'venue-settings' ) ) {
 			public bool $is_404     = true;
 			public bool $is_archive = false;
 			public bool $is_home    = true;

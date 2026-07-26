@@ -1,0 +1,20 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/venue-settings",
+	"title": "Venue Settings",
+	"category": "widgets",
+	"icon": "admin-settings",
+	"description": "Manage a venue profile, booking defaults, onboarding, and team.",
+	"textdomain": "extrachill-events",
+	"supports": {
+		"html": false,
+		"multiple": false,
+		"reusable": false,
+		"align": [ "wide", "full" ]
+	},
+	"editorScript": "file:./index.js",
+	"render": "file:./render.php",
+	"style": "file:./style-index.css",
+	"viewScript": "file:./view.js"
+}

@@ -11,6 +11,7 @@
  *                driven by the location taxonomy hierarchy and appear only
  *                when they have events. This lives at the taxonomy's own base
  *                slug rather than an invented route.
+ *   /venue-settings/ — authenticated venue onboarding and settings app.
  *
  * Implemented with rewrite rules + the extrachill_template_archive override,
  * mirroring the discovery-pages pattern. No physical WP pages required.
@@ -33,9 +34,10 @@ function extrachill_events_router_rewrite_rules() {
 		return;
 	}
 
-	add_rewrite_tag( '%ec_events_router%', '(all)' );
+	add_rewrite_tag( '%ec_events_router%', '(all|venue-settings)' );
 	add_rewrite_rule( '^all/?$', 'index.php?ec_events_router=all', 'top' );
 	add_rewrite_rule( '^all/page/([0-9]{1,})/?$', 'index.php?ec_events_router=all&paged=$matches[1]', 'top' );
+	add_rewrite_rule( '^venue-settings/?$', 'index.php?ec_events_router=venue-settings', 'top' );
 
 	if ( extrachill_events_location_directory_enabled() ) {
 		add_rewrite_tag( '%ec_events_location_index%', '(1)' );
@@ -53,6 +55,11 @@ function extrachill_events_is_all_events_page(): bool {
 	return ec_is_events_site() && 'all' === get_query_var( 'ec_events_router', '' );
 }
 
+/** Whether the current request is the venue settings application page. */
+function extrachill_events_is_venue_settings_page(): bool {
+	return ec_is_events_site() && 'venue-settings' === get_query_var( 'ec_events_router', '' );
+}
+
 /**
  * Whether the /location directory page is enabled.
  *
@@ -67,7 +74,7 @@ function extrachill_events_location_directory_enabled(): bool {
  * Flush rewrites once when the public location directory route is introduced.
  */
 function extrachill_events_maybe_flush_router_rewrites(): void {
-	$rewrite_version = '3';
+	$rewrite_version = '4';
 	if ( get_option( 'extrachill_events_router_rewrite_version' ) === $rewrite_version ) {
 		return;
 	}
@@ -140,7 +147,7 @@ function extrachill_events_is_location_index(): bool {
  * @return bool
  */
 function extrachill_events_is_router_page(): bool {
-	return extrachill_events_is_all_events_page() || extrachill_events_is_location_index();
+	return extrachill_events_is_all_events_page() || extrachill_events_is_location_index() || extrachill_events_is_venue_settings_page();
 }
 
 /**
@@ -154,7 +161,7 @@ function extrachill_events_query_is_router_page( $query ): bool {
 		return false;
 	}
 
-	if ( 'all' === $query->get( 'ec_events_router', '' ) ) {
+	if ( in_array( $query->get( 'ec_events_router', '' ), array( 'all', 'venue-settings' ), true ) ) {
 		return true;
 	}
 
@@ -179,6 +186,10 @@ function extrachill_events_router_template( string $template ): string {
 
 	if ( extrachill_events_is_location_index() ) {
 		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/location-directory.php';
+	}
+
+	if ( extrachill_events_is_venue_settings_page() ) {
+		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/venue-settings.php';
 	}
 
 	return $template;
@@ -238,6 +249,8 @@ function extrachill_events_router_title( array $parts ): array {
 		$parts['title'] = __( 'All Live Music Events', 'extrachill-events' );
 	} elseif ( extrachill_events_is_location_index() ) {
 		$parts['title'] = __( 'Live Music by Location', 'extrachill-events' );
+	} elseif ( extrachill_events_is_venue_settings_page() ) {
+		$parts['title'] = __( 'Venue Settings', 'extrachill-events' );
 	}
 
 	return $parts;

@@ -1,0 +1,139 @@
+@use "@extrachill/components/styles/components.scss";
+
+.ec-venue-settings-page {
+	padding-block: var(--wp--preset--spacing--40, 2rem);
+}
+
+.ec-venue-settings {
+	--venue-accent: var(--wp--preset--color--primary, #1f6f5b);
+
+	.ec-block-shell-header {
+		background:
+			linear-gradient(135deg, color-mix(in srgb, var(--venue-accent) 18%, transparent), transparent 60%),
+			var(--wp--preset--color--base, #fff);
+	}
+
+	input:not([type="checkbox"]):not([type="radio"]),
+	select,
+	textarea {
+		box-sizing: border-box;
+		max-width: 100%;
+		width: 100%;
+	}
+
+	textarea {
+		min-height: 7rem;
+		resize: vertical;
+	}
+
+	button:focus-visible,
+	input:focus-visible,
+	select:focus-visible,
+	textarea:focus-visible {
+		outline: 3px solid color-mix(in srgb, var(--venue-accent) 55%, white);
+		outline-offset: 2px;
+	}
+}
+
+.ec-venue-settings__context {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-block: 1rem 1.5rem;
+	padding: 0.9rem 1rem;
+	border-left: 4px solid var(--venue-accent);
+	background: color-mix(in srgb, var(--venue-accent) 7%, transparent);
+}
+
+.ec-venue-settings__stack {
+	display: grid;
+	gap: 1rem;
+}
+
+.ec-venue-settings__grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.ec-venue-settings__toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-weight: 650;
+	margin-block-end: 1rem;
+}
+
+.ec-venue-settings__repeater {
+	display: grid;
+	gap: 0.8rem;
+	margin: 0 0 1rem;
+	padding: 1rem;
+	border: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
+	border-radius: 0.5rem;
+}
+
+.ec-venue-settings__repeater legend {
+	padding-inline: 0.4rem;
+	font-weight: 700;
+}
+
+.ec-venue-settings__records {
+	display: grid;
+	gap: 0;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.ec-venue-settings__records li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-block: 1rem;
+	border-bottom: 1px solid var(--wp--preset--color--contrast-3, #d9dfdc);
+}
+
+.ec-venue-settings__records li:last-child {
+	border-bottom: 0;
+}
+
+.ec-venue-settings__dirty {
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--wp--preset--color--contrast-2, #67520b);
+}
+
+.ec-venue-settings__save-note {
+	margin-block-start: 1rem;
+	font-size: 0.9rem;
+	font-style: italic;
+}
+
+.ec-inline-status .button-link {
+	margin-inline-start: 0.75rem;
+}
+
+@media (max-width: 720px) {
+	.ec-venue-settings__grid {
+		grid-template-columns: 1fr;
+	}
+
+	.ec-venue-settings__context,
+	.ec-venue-settings__records li {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.ec-venue-settings__records .ec-action-row {
+		width: 100%;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ec-venue-settings * {
+		scroll-behavior: auto !important;
+	}
+}
