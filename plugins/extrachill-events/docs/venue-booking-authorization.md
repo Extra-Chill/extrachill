@@ -24,8 +24,13 @@ membership for the exact venue.
 
 Membership has no operational role taxonomy. An active member may access the
 venue booking feature. The structural `is_owner` flag only determines whether
-that member may administer venue membership. Product permissions must not be
-predicted before real workflow demonstrates a need.
+that member may administer venue membership and perform the finance-finalizing
+actions introduced by ticket settlement. Recording, listing, and calculating
+sales evidence require ordinary venue access. Finalizing, marking paid, and
+voiding require an active owner relationship plus the existing booking feature
+capability and rollout gate. Administrators receive no finance bypass. Paid and
+void writes also revalidate the booking version under lock; payment is limited
+to completed bookings.
 
 Only `active` memberships authorize access. `invited` and `revoked` rows
 authorize nothing. Invitation acceptance and first-owner claim verification

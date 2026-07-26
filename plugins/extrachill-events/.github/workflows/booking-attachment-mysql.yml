@@ -9,6 +9,7 @@ on:
       - composer.lock
       - inc/Core/BookingAttachmentService.php
       - inc/Core/BookingAttachmentRepository.php
+      - inc/Core/TicketSettlementService.php
       - inc/Core/BookingAttachmentPolicy.php
       - inc/Core/BookingInquiryAdmissionService.php
       - inc/Core/BookingLifecycle.php
@@ -157,7 +158,7 @@ jobs:
             | ($runs | length) == 1
               and $runs[0].exitCode == 0
               and $runs[0].result.status == "ok"
-              and ($runs[0].stdout | test("OK \\(1 test, [1-9][0-9]* assertions?\\)"))
+              and ($runs[0].stdout | test("OK \\(2 tests, [1-9][0-9]* assertions?\\)"))
               and (($runs[0].stdout | test("skip|no tests executed|OK, but"; "i")) | not)
           ' "$commands" >/dev/null
           jq -e '
@@ -166,7 +167,7 @@ jobs:
           ' "$metadata" >/dev/null
           jq -rs '[.[] | select(.command == "wordpress.phpunit")][0].stdout' "$commands" > "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
           printf '%s\n' "Verified application-level MySQL proof:"
-          grep -E 'OK \(1 test, [1-9][0-9]* assertions?\)' "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
+          grep -E 'OK \(2 tests, [1-9][0-9]* assertions?\)' "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
 
       - name: Upload WP Codebox evidence
         if: always()

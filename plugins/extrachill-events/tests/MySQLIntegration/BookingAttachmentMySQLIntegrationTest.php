@@ -15,9 +15,11 @@ use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingPrivateFileProvider;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\TicketSettlementService;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
+use ExtraChillEvents\Abilities\TicketSettlementAbilities;
 
 /** Provider probe that pauses inside production service callbacks. */
 final class BookingAttachmentMySQLProbeProvider implements BookingPrivateFileProvider {
@@ -113,6 +115,20 @@ final class BookingAttachmentMySQLProbeProvider implements BookingPrivateFilePro
 	}
 }
 
+/** Settlement service probe that races only after production locks evidence. */
+final class TicketSettlementMySQLProbeService extends TicketSettlementService {
+	/** @var callable|null */
+	public $evidence_probe;
+
+	/** Invoke the configured contender while finalize owns the evidence range. */
+	protected function after_evidence_locked( array $booking ): void {
+		unset( $booking );
+		if ( is_callable( $this->evidence_probe ) ) {
+			( $this->evidence_probe )();
+		}
+	}
+}
+
 /** Exercises production repositories, authorization, transactions, and cleanup. */
 class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 	/** Independent contender connection.
@@ -145,6 +161,11 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 	 * @var bool
 	 */
 	private $reference_lock_waited = false;
+	/** Whether a concurrent evidence insert waited on the settlement snapshot.
+	 *
+	 * @var bool
+	 */
+	private $evidence_insert_waited = false;
 
 	/** Install the production schema and create two real database sessions. */
 	public function set_up(): void {
@@ -194,7 +215,7 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		if ( $this->contender instanceof mysqli ) {
 			$this->contender->close();
 		}
-		foreach ( array( BookingSchema::holds_table(), BookingSchema::attachment_deliveries_table(), BookingSchema::attachments_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), BookingSchema::memberships_table() ) as $table ) {
+		foreach ( array( BookingSchema::settlements_table(), BookingSchema::sales_reports_table(), BookingSchema::holds_table(), BookingSchema::attachment_deliveries_table(), BookingSchema::attachments_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), BookingSchema::memberships_table() ) as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Disposable test database cleanup.
 		}
 		delete_option( BookingSchema::VERSION_OPTION );
@@ -247,8 +268,8 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 
 		$lock_name                    = $this->reference_lock_name( $attachment['storage_reference'] );
 		$this->provider->retire_probe = function () use ( $lock_name ): void {
-			$escaped = $this->contender->real_escape_string( $lock_name );
-			$result                       = $this->contender->query( "SELECT GET_LOCK('{$escaped}', 1)" );
+			$escaped                     = $this->contender->real_escape_string( $lock_name );
+			$result                      = $this->contender->query( "SELECT GET_LOCK('{$escaped}', 1)" );
 			$this->reference_lock_waited = $result instanceof mysqli_result && 0 === (int) $result->fetch_row()[0];
 		};
 		$cleanup                      = $service->cleanup(
@@ -268,6 +289,225 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		$this->assertSame( 1, (int) $this->contender->query( "SELECT RELEASE_LOCK('{$lock_name}')" )->fetch_row()[0] );
 		$this->assertSame( array( 'private_object_integration_123456' ), $this->provider->retired );
 		$this->assertSame( 'purged', ( new BookingAttachmentRepository() )->get( $attachment['id'] )['state'] );
+	}
+
+	/** Prove settlement evidence snapshots block concurrent same-booking inserts. */
+	public function test_production_settlement_locks_evidence_and_preserves_payment_audit(): void {
+		global $wpdb;
+		$event_id = self::factory()->post->create(
+			array(
+				'post_type'   => defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events',
+				'post_status' => 'publish',
+			)
+		);
+		$bookings = new BookingRepository();
+		$booking  = $bookings->create(
+			array(
+				'venue_term_id' => $this->venue_id,
+				'artist_name'   => 'Settlement Integration Artist',
+				'intake'        => array(),
+			)
+		);
+		$this->assertIsArray( $booking, is_wp_error( $booking ) ? $booking->get_error_code() : '' );
+		$booking = $bookings->claim_event( $booking['id'], $event_id, $booking['version'] );
+		$this->assertIsArray( $booking, is_wp_error( $booking ) ? $booking->get_error_code() : '' );
+
+		$service   = new TicketSettlementMySQLProbeService();
+		$abilities = $this->register_settlement_abilities( $service );
+		wp_set_current_user( $this->actor_id );
+		$report = $abilities['extrachill/record-booking-ticket-sales']->execute(
+			array(
+				'booking_id'         => $booking['id'],
+				'provider'           => 'manual-certified',
+				'external_report_id' => 'mysql-settlement-report-1',
+				'source_type'        => 'manual',
+				'period_start'       => '2026-07-01 00:00:00',
+				'period_end'         => '2026-07-31 23:59:59',
+				'tickets_sold'       => 100,
+				'tickets_refunded'   => 5,
+				'gross_minor'        => 100000,
+				'fees_minor'         => 5000,
+				'tax_minor'          => 3000,
+				'refunds_minor'      => 5000,
+				'net_minor'          => 87000,
+				'currency'           => 'USD',
+				'source'             => array( 'certificate' => 'mysql-proof' ),
+			)
+		);
+		$this->assertIsArray( $report, is_wp_error( $report ) ? $report->get_error_code() : '' );
+		$listed = $abilities['extrachill/list-booking-ticket-sales']->execute( array( 'booking_id' => $booking['id'] ) );
+		$this->assertIsArray( $listed, is_wp_error( $listed ) ? $listed->get_error_code() : '' );
+		$this->assertSame( $report['id'], $listed[0]['id'] );
+
+		$sales        = BookingSchema::sales_reports_table();
+		$external     = wp_json_encode(
+			array(
+				'version' => 1,
+				'data'    => array( 'certificate' => 'contender' ),
+			)
+		);
+		$sql          = $this->contender->prepare( "INSERT INTO {$sales} (booking_id,event_id,venue_term_id,provider,external_report_id,source_type,period_start,period_end,tickets_sold,tickets_refunded,gross_minor,fees_minor,tax_minor,refunds_minor,net_minor,currency,corrects_report_id,source_payload,request_hash,created_by_user_id,created_at) VALUES (?,?,?,?,?,'manual','2026-07-01 00:00:00','2026-07-31 23:59:59',1,0,100,0,0,0,100,'USD',NULL,?,?,?,UTC_TIMESTAMP())" );
+		$provider     = 'manual-certified';
+		$external_id  = 'mysql-settlement-contender';
+		$request_hash = hash( 'sha256', 'contender' );
+		$sql->bind_param( 'iiissssi', $booking['id'], $event_id, $this->venue_id, $provider, $external_id, $external, $request_hash, $this->actor_id );
+		$preview = $abilities['extrachill/calculate-booking-settlement']->execute(
+			array(
+				'booking_id'   => $booking['id'],
+				'basis'        => 'gross_ticket_sales',
+				'basis_points' => 2000,
+				'currency'     => 'USD',
+			)
+		);
+		$this->assertIsArray( $preview, is_wp_error( $preview ) ? $preview->get_error_code() : '' );
+		$this->assertSame( 20000, $preview['amount_due_minor'] );
+		$service->evidence_probe = function () use ( $sql ): void {
+			try {
+				$inserted                     = $sql->execute();
+				$this->evidence_insert_waited = false === $inserted && 1205 === $sql->errno;
+			} catch ( mysqli_sql_exception $exception ) {
+				$this->evidence_insert_waited = 1205 === $exception->getCode();
+			}
+			$this->contender->rollback();
+		};
+		$settlement              = $abilities['extrachill/finalize-booking-settlement']->execute(
+			array(
+				'booking_id'               => $booking['id'],
+				'expected_booking_version' => $booking['version'],
+				'expected_report_ids'      => $preview['included_report_ids'],
+				'basis'                    => $preview['basis'],
+				'basis_points'             => $preview['basis_points'],
+				'currency'                 => $preview['currency'],
+				'formula_version'          => $preview['formula_version'],
+				'adjustment_minor'         => 0,
+			)
+		);
+		$this->assertIsArray( $settlement, is_wp_error( $settlement ) ? $settlement->get_error_code() : '' );
+		$this->assertSame( 'finalized', $settlement['status'] );
+		$this->assertTrue( $this->evidence_insert_waited, 'Concurrent ticket evidence bypassed production finalize() evidence locking.' );
+		$next_booking_version = $booking['version'] + 1;
+		$this->assertSame(
+			1,
+			$wpdb->update(
+				BookingSchema::bookings_table(),
+				array(
+					'status'  => 'completed',
+					'version' => $next_booking_version,
+				),
+				array(
+					'id'      => $booking['id'],
+					'version' => $booking['version'],
+				)
+			)
+		);
+		$paid = $abilities['extrachill/mark-booking-settlement-paid']->execute(
+			array(
+				'booking_id'               => $booking['id'],
+				'expected_booking_version' => $next_booking_version,
+				'expected_version'         => 1,
+				'payment_reference'        => 'mysql-ach-proof',
+			)
+		);
+		$this->assertIsArray( $paid, is_wp_error( $paid ) ? $paid->get_error_code() : '' );
+		$this->assertSame( 'paid', $paid['status'] );
+		$this->assertSame( 'mysql-ach-proof', $paid['payment_reference'] );
+		$this->assertSame( $this->actor_id, $paid['paid_by_user_id'] );
+
+		$service->evidence_probe = null;
+		$void_event_id           = self::factory()->post->create(
+			array(
+				'post_type'   => defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events',
+				'post_status' => 'publish',
+			)
+		);
+		$void_booking            = $bookings->create(
+			array(
+				'venue_term_id' => $this->venue_id,
+				'artist_name'   => 'Settlement Void Artist',
+				'intake'        => array(),
+			)
+		);
+		$void_booking            = $bookings->claim_event( $void_booking['id'], $void_event_id, $void_booking['version'] );
+		$this->assertIsArray( $void_booking, is_wp_error( $void_booking ) ? $void_booking->get_error_code() : '' );
+		$this->assertIsArray( $abilities['extrachill/record-booking-ticket-sales']->execute( $this->settlement_report_input( $void_booking['id'], 'mysql-settlement-void-report' ) ) );
+		$void_preview = $abilities['extrachill/calculate-booking-settlement']->execute(
+			array(
+				'booking_id'   => $void_booking['id'],
+				'basis'        => 'gross_ticket_sales',
+				'basis_points' => 2000,
+				'currency'     => 'USD',
+			)
+		);
+		$this->assertIsArray( $void_preview, is_wp_error( $void_preview ) ? $void_preview->get_error_code() : '' );
+		$void_settlement = $abilities['extrachill/finalize-booking-settlement']->execute(
+			array(
+				'booking_id'               => $void_booking['id'],
+				'expected_booking_version' => $void_preview['booking_version'],
+				'expected_report_ids'      => $void_preview['included_report_ids'],
+				'basis'                    => $void_preview['basis'],
+				'basis_points'             => $void_preview['basis_points'],
+				'currency'                 => $void_preview['currency'],
+				'formula_version'          => $void_preview['formula_version'],
+				'adjustment_minor'         => 0,
+			)
+		);
+		$this->assertIsArray( $void_settlement, is_wp_error( $void_settlement ) ? $void_settlement->get_error_code() : '' );
+		$voided = $abilities['extrachill/void-booking-settlement']->execute(
+			array(
+				'booking_id'               => $void_booking['id'],
+				'expected_booking_version' => $void_booking['version'],
+				'expected_version'         => 1,
+				'reason'                   => 'MySQL ability void proof.',
+			)
+		);
+		$this->assertIsArray( $voided, is_wp_error( $voided ) ? $voided->get_error_code() : '' );
+		$this->assertSame( 'void', $voided['status'] );
+	}
+
+	/** Register settlement definitions into the real Core Abilities registry. */
+	private function register_settlement_abilities( TicketSettlementService $service ): array {
+		$names = array( 'extrachill/record-booking-ticket-sales', 'extrachill/list-booking-ticket-sales', 'extrachill/calculate-booking-settlement', 'extrachill/finalize-booking-settlement', 'extrachill/mark-booking-settlement-paid', 'extrachill/void-booking-settlement' );
+		foreach ( $names as $name ) {
+			if ( wp_has_ability( $name ) ) {
+				wp_unregister_ability( $name );
+			}
+		}
+		$registrar = new TicketSettlementAbilities( $service );
+		$previous  = isset( $GLOBALS['wp_filter']['wp_abilities_api_init'] ) ? clone $GLOBALS['wp_filter']['wp_abilities_api_init'] : null;
+		remove_all_actions( 'wp_abilities_api_init' );
+		add_action( 'wp_abilities_api_init', array( $registrar, 'register' ) );
+		do_action( 'wp_abilities_api_init' );
+		remove_all_actions( 'wp_abilities_api_init' );
+		if ( null !== $previous ) {
+			$GLOBALS['wp_filter']['wp_abilities_api_init'] = $previous;
+		}
+		$abilities = array();
+		foreach ( $names as $name ) {
+			$abilities[ $name ] = wp_get_ability( $name );
+			$this->assertInstanceOf( WP_Ability::class, $abilities[ $name ], $name . ' was not registered in Core.' );
+		}
+		return $abilities;
+	}
+
+	/** Build valid immutable evidence for an ability execution. */
+	private function settlement_report_input( int $booking_id, string $external_id ): array {
+		return array(
+			'booking_id'         => $booking_id,
+			'provider'           => 'manual-certified',
+			'external_report_id' => $external_id,
+			'source_type'        => 'manual',
+			'period_start'       => '2026-07-01 00:00:00',
+			'period_end'         => '2026-07-31 23:59:59',
+			'tickets_sold'       => 1,
+			'tickets_refunded'   => 0,
+			'gross_minor'        => 100,
+			'fees_minor'         => 0,
+			'tax_minor'          => 0,
+			'refunds_minor'      => 0,
+			'net_minor'          => 100,
+			'currency'           => 'USD',
+			'source'             => array( 'certificate' => $external_id ),
+		);
 	}
 
 	/** Give a forked application process an independent WordPress DB session. */

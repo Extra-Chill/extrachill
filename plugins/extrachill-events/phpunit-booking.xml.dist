@@ -16,6 +16,7 @@
 			<file>tests/BookingMutationTest.php</file>
 			<file>tests/BookingEventConversionTest.php</file>
 			<file>tests/BookingCommunicationTest.php</file>
+			<file>tests/TicketSettlementTest.php</file>
 			<file>tests/BookingNotificationTest.php</file>
 			<file>tests/CanonicalEventPublicationGuardTest.php</file>
 			<file>tests/VenueMembershipAuthorizationTest.php</file>

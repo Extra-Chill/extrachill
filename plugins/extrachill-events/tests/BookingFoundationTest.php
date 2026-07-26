@@ -286,6 +286,31 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertSame( array(), $GLOBALS['ec_artist_test']['dbdelta'] );
 	}
 
+	public function test_stamped_v11_install_adds_settlement_tables_without_disturbing_existing_contracts(): void {
+		$this->assertTrue( BookingSchema::install() );
+		$wpdb        = $GLOBALS['wpdb'];
+		$sales       = BookingSchema::sales_reports_table();
+		$settlements = BookingSchema::settlements_table();
+		unset( $wpdb->schemas[ $sales ], $wpdb->schemas[ $settlements ], $wpdb->engines[ $sales ], $wpdb->engines[ $settlements ], $wpdb->rows[ $sales ], $wpdb->rows[ $settlements ] );
+
+		$bookings = BookingSchema::bookings_table();
+		$wpdb->rows[ $bookings ][999] = array( 'id' => 999, 'marker' => 'existing-v11-booking' );
+		$existing_schemas              = $wpdb->schemas;
+		$existing_engines              = $wpdb->engines;
+		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '11';
+
+		$this->assertTrue( BookingSchema::maybe_install() );
+		$this->assertSame( '12', get_option( BookingSchema::VERSION_OPTION ) );
+		$this->assertArrayHasKey( $sales, $wpdb->schemas );
+		$this->assertArrayHasKey( $settlements, $wpdb->schemas );
+		$this->assertSame( 'INNODB', strtoupper( $wpdb->engines[ $sales ] ) );
+		$this->assertSame( 'INNODB', strtoupper( $wpdb->engines[ $settlements ] ) );
+		$this->assertSame( $existing_schemas, array_intersect_key( $wpdb->schemas, $existing_schemas ) );
+		$this->assertSame( $existing_engines, array_intersect_key( $wpdb->engines, $existing_engines ) );
+		$this->assertSame( 'existing-v11-booking', $wpdb->rows[ $bookings ][999]['marker'] );
+		$this->assertTrue( BookingSchema::health() );
+	}
+
 	public function test_membership_table_engine_is_repaired_before_version_stamp(): void {
 		$this->assertTrue( BookingSchema::install() );
 		$table                              = BookingSchema::memberships_table();

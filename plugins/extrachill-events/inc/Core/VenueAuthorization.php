@@ -18,8 +18,9 @@ class VenueAuthorization {
 	public const STATUS_INVITED = 'invited';
 	public const STATUS_REVOKED = 'revoked';
 
-	public const ACTION_ACCESS_VENUE   = 'access_venue';
-	public const ACTION_MANAGE_MEMBERS = 'manage_members';
+	public const ACTION_ACCESS_VENUE    = 'access_venue';
+	public const ACTION_MANAGE_MEMBERS  = 'manage_members';
+	public const ACTION_MANAGE_FINANCES = 'manage_finances';
 
 	public const ACCESS_CAPABILITY = 'access_events_admin';
 	public const FEATURE           = 'venue_booking';
@@ -38,7 +39,7 @@ class VenueAuthorization {
 
 	/** Return only the concrete authorization checks currently implemented. */
 	public static function actions(): array {
-		return array( self::ACTION_ACCESS_VENUE, self::ACTION_MANAGE_MEMBERS );
+		return array( self::ACTION_ACCESS_VENUE, self::ACTION_MANAGE_MEMBERS, self::ACTION_MANAGE_FINANCES );
 	}
 
 	/** Authorize one network user for one action at one Events-site venue. */
@@ -50,7 +51,7 @@ class VenueAuthorization {
 		if ( self::ACTION_MANAGE_MEMBERS === $action && $this->is_administrator( $user_id ) ) {
 			return true;
 		}
-		if ( self::ACTION_ACCESS_VENUE === $action && ! $this->has_feature_access( $user_id ) ) {
+		if ( in_array( $action, array( self::ACTION_ACCESS_VENUE, self::ACTION_MANAGE_FINANCES ), true ) && ! $this->has_feature_access( $user_id ) ) {
 			return $this->denied();
 		}
 
@@ -67,7 +68,7 @@ class VenueAuthorization {
 		if ( self::ACTION_MANAGE_MEMBERS === $action && $this->is_administrator( $user_id ) ) {
 			return true;
 		}
-		if ( self::ACTION_ACCESS_VENUE === $action && ! $this->has_feature_access( $user_id ) ) {
+		if ( in_array( $action, array( self::ACTION_ACCESS_VENUE, self::ACTION_MANAGE_FINANCES ), true ) && ! $this->has_feature_access( $user_id ) ) {
 			return $this->denied();
 		}
 
@@ -126,7 +127,7 @@ class VenueAuthorization {
 		if ( self::STATUS_ACTIVE !== ( $membership['status'] ?? '' ) ) {
 			return $this->denied();
 		}
-		if ( self::ACTION_MANAGE_MEMBERS === $action && ! $membership['is_owner'] ) {
+		if ( in_array( $action, array( self::ACTION_MANAGE_MEMBERS, self::ACTION_MANAGE_FINANCES ), true ) && ! $membership['is_owner'] ) {
 			return $this->denied();
 		}
 

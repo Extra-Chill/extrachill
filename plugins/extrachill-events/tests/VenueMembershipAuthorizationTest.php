@@ -940,7 +940,10 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 
 		$this->assertTrue( $authorization->can( 2, 55, VenueAuthorization::ACTION_ACCESS_VENUE ) );
 		$this->assertFalse( $authorization->can( 2, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$this->assertFalse( $authorization->can( 2, 55, VenueAuthorization::ACTION_MANAGE_FINANCES ) );
 		$this->assertTrue( $authorization->can( 3, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$this->assertTrue( $authorization->can( 3, 55, VenueAuthorization::ACTION_MANAGE_FINANCES ) );
+		$this->assertFalse( $authorization->can( 6, 55, VenueAuthorization::ACTION_MANAGE_FINANCES ) );
 		$this->assertFalse( $authorization->can( 4, 56, VenueAuthorization::ACTION_ACCESS_VENUE ) );
 		$this->assertFalse( $authorization->can( 5, 56, VenueAuthorization::ACTION_ACCESS_VENUE ) );
 		$locked = array_values( $GLOBALS['wpdb']->rows['wp_7_ec_venue_members'] );
@@ -955,6 +958,7 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 		$this->assertTrue( $authorization->can( 6, 56, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
 		$GLOBALS['venue_membership_test']['feature_available'] = false;
 		$this->assertFalse( $authorization->can( 3, 55, VenueAuthorization::ACTION_ACCESS_VENUE ) );
+		$this->assertFalse( $authorization->can( 3, 55, VenueAuthorization::ACTION_MANAGE_FINANCES ) );
 		$this->assertTrue( $authorization->can( 3, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
 	}
 
@@ -962,6 +966,7 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 		$authorization = new VenueAuthorization();
 		$this->assertTrue( $authorization->can( 1, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
 		$this->assertFalse( $authorization->can( 1, 55, VenueAuthorization::ACTION_ACCESS_VENUE ) );
+		$this->assertFalse( $authorization->can( 1, 55, VenueAuthorization::ACTION_MANAGE_FINANCES ) );
 		$this->assertSame( 'invalid_venue_membership_venue', $authorization->authorize( 1, 999, VenueAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
 		$this->assertSame( 'invalid_venue_membership_venue', $authorization->authorize( 1, 57, VenueAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
 
