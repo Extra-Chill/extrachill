@@ -21,8 +21,28 @@ final class DelegatedCampaignTask extends SystemTask {
 			return;
 		}
 
-		$result        = \extrachill_newsletter_execute_delegated_campaign( $input );
 		$operation_ref = isset( $params['owner_context']['operation_ref'] ) && is_string( $params['owner_context']['operation_ref'] ) ? $params['owner_context']['operation_ref'] : '';
+		$existing      = \extrachill_newsletter_get_delegated_campaign_outcome( $operation_ref );
+		if ( is_array( $existing ) && in_array( $existing['status'] ?? '', array( 'executed', 'no-op' ), true ) ) {
+			$this->completeJob(
+				$jobId,
+				array(
+					'effect_count'        => 'executed' === $existing['status'] ? 1 : 0,
+					'newsletter_campaign' => $existing,
+				)
+			);
+			return;
+		}
+		$authorized = \extrachill_newsletter_authorize_delegated_campaign_effect( $operation_ref, $input );
+		if ( true !== $authorized ) {
+			$error_code = 'newsletter_campaign_forbidden';
+			$result     = \extrachill_newsletter_delegated_campaign_result( 'failed', null, null, $error_code );
+			\extrachill_newsletter_record_delegated_campaign_outcome( $operation_ref, $result );
+			$this->failJob( $jobId, $error_code );
+			return;
+		}
+
+		$result = \extrachill_newsletter_execute_delegated_campaign( $input );
 		if ( ! \extrachill_newsletter_record_delegated_campaign_outcome( $operation_ref, $result ) ) {
 			$this->failJob( $jobId, 'newsletter_campaign_receipt_failed' );
 			return;

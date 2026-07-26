@@ -12,6 +12,8 @@ namespace {
 		'mode'      => 'executed',
 		'completed' => array(),
 		'failed'    => array(),
+		'existing'  => null,
+		'executions' => 0,
 	);
 
 	class WP_Error {
@@ -36,8 +38,26 @@ namespace {
 		return true;
 	}
 
+	function extrachill_newsletter_get_delegated_campaign_outcome( $operation_ref ) {
+		unset( $operation_ref );
+		return $GLOBALS['newsletter_task_test']['existing'];
+	}
+
+	function extrachill_newsletter_authorize_delegated_campaign_effect( $operation_ref, $input ) {
+		unset( $operation_ref, $input );
+		return 'revoked' === $GLOBALS['newsletter_task_test']['mode']
+			? new WP_Error( 'provider_secret_diagnostic' )
+			: true;
+	}
+
+	function extrachill_newsletter_delegated_campaign_result( $status, $post_id, $campaign_id, $error_code ) {
+		unset( $post_id, $campaign_id );
+		return array( 'status' => $status, 'record' => null, 'error_code' => $error_code );
+	}
+
 	function extrachill_newsletter_execute_delegated_campaign( $params ) {
 		unset( $params );
+		++$GLOBALS['newsletter_task_test']['executions'];
 		$mode = $GLOBALS['newsletter_task_test']['mode'];
 		return array(
 			'status'     => $mode,
@@ -94,6 +114,19 @@ namespace {
 	$GLOBALS['newsletter_task_test']['mode'] = 'forbidden';
 	$task->executeTask( 44, array() );
 	$assert( array( 44, 'newsletter_campaign_task_forbidden' ) === $GLOBALS['newsletter_task_test']['failed'][1], 'direct task invocation fails before owner execution' );
+
+	$executed_before = count( $GLOBALS['newsletter_task_test']['completed'] );
+	$GLOBALS['newsletter_task_test']['mode'] = 'revoked';
+	$task->executeTask( 45, array( 'owner_context' => array( 'operation_ref' => 'dop_' . str_repeat( 'b', 64 ) ) ) );
+	$assert( array( 45, 'newsletter_campaign_forbidden' ) === $GLOBALS['newsletter_task_test']['failed'][2], 'authorization revoked after enqueue fails at effect time' );
+	$assert( $executed_before === count( $GLOBALS['newsletter_task_test']['completed'] ), 'revoked execution applies no campaign effect' );
+
+	$GLOBALS['newsletter_task_test']['mode']     = 'executed';
+	$GLOBALS['newsletter_task_test']['existing'] = array( 'status' => 'no-op', 'record' => null, 'error_code' => null );
+	$executions_before = $GLOBALS['newsletter_task_test']['executions'];
+	$task->executeTask( 46, array( 'owner_context' => array( 'operation_ref' => 'dop_' . str_repeat( 'c', 64 ) ) ) );
+	$assert( $executions_before === $GLOBALS['newsletter_task_test']['executions'], 'duplicate delivery reuses terminal no-op without applying a later effect' );
+	$assert( 0 === $GLOBALS['newsletter_task_test']['completed'][2][1]['effect_count'], 'duplicate no-op remains canonical zero-effect work' );
 
 	if ( $failures ) {
 		fwrite( STDERR, "FAILED\n- " . implode( "\n- ", $failures ) . "\n" );

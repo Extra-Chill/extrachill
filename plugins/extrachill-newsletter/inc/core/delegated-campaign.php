@@ -7,12 +7,18 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/newsletter-post-type-registration.php';
+
 const EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_ACTION = 'extrachill-newsletter/canonical-post-campaign';
 const EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_POLICY = 'canonical-post-draft';
 const EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_TASK   = 'extrachill_newsletter_delegated_campaign';
+const EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_AGENT  = 'newsletter-campaign-owner';
+
+require_once __DIR__ . '/delegated-campaign-agent.php';
 
 add_filter( 'datamachine_delegated_operation_actions', 'extrachill_newsletter_register_delegated_campaign_action' );
 add_action( 'plugins_loaded', 'extrachill_newsletter_register_delegated_campaign_task', 30 );
+add_action( 'wp_agents_api_init', 'extrachill_newsletter_register_delegated_campaign_agent' );
 
 /**
  * Register the Newsletter-owned delegated operation with Data Machine.
@@ -27,6 +33,7 @@ function extrachill_newsletter_register_delegated_campaign_action( array $action
 		'authorize'       => 'extrachill_newsletter_authorize_delegated_campaign',
 		'prepare'         => 'extrachill_newsletter_prepare_delegated_campaign',
 		'project'         => 'extrachill_newsletter_project_delegated_campaign',
+		'retry'           => 'extrachill_newsletter_retry_delegated_campaign',
 	);
 
 	return $actions;
@@ -118,9 +125,7 @@ function extrachill_newsletter_authorize_delegated_campaign( array $context ) {
 		return true;
 	}
 
-	return is_wp_error( $authorized )
-		? $authorized
-		: new WP_Error( 'newsletter_campaign_forbidden', 'The delegated campaign is not authorized.' );
+	return new WP_Error( 'newsletter_campaign_forbidden', 'The delegated campaign is not authorized.' );
 }
 
 /**
@@ -131,20 +136,17 @@ function extrachill_newsletter_authorize_delegated_campaign( array $context ) {
  * @return array|WP_Error Private workflow descriptor.
  */
 function extrachill_newsletter_prepare_delegated_campaign( array $input, array $context ) {
-	$owner_user_id = absint(
-		apply_filters(
-			'extrachill_newsletter_delegated_campaign_owner_user_id',
-			get_site_option( 'admin_user_id', 0 ),
-			$input,
-			$context
-		)
-	);
+	$owner_user_id = extrachill_newsletter_delegated_campaign_owner_user_id();
 	if ( ! $owner_user_id ) {
 		return new WP_Error( 'newsletter_campaign_owner_unavailable', 'The Newsletter execution owner is unavailable.' );
 	}
 	$operation_ref = isset( $context['operation_ref'] ) && is_string( $context['operation_ref'] ) ? $context['operation_ref'] : '';
 	if ( ! preg_match( '/^dop_[a-f0-9]{64}$/', $operation_ref ) ) {
 		return new WP_Error( 'newsletter_campaign_operation_invalid', 'The delegated operation reference is invalid.' );
+	}
+	$receipt = extrachill_newsletter_prepare_delegated_campaign_authorization_receipt( $operation_ref, $input, $context );
+	if ( is_wp_error( $receipt ) ) {
+		return $receipt;
 	}
 	$task_params = array_merge(
 		$input,
@@ -161,6 +163,7 @@ function extrachill_newsletter_prepare_delegated_campaign( array $input, array $
 
 	return array(
 		'owner_user_id' => $owner_user_id,
+		'agent_slug'    => EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_AGENT,
 		'label'         => 'Create canonical post newsletter campaign',
 		'workflow'      => array(
 			'steps' => array(
@@ -173,6 +176,61 @@ function extrachill_newsletter_prepare_delegated_campaign( array $input, array $
 				),
 			),
 		),
+	);
+}
+
+/** Freeze the first initiating actor for fresh effect-time authorization. */
+function extrachill_newsletter_prepare_delegated_campaign_authorization_receipt( $operation_ref, array $input, array $context ) {
+	$actor   = isset( $context['actor'] ) && is_array( $context['actor'] ) ? $context['actor'] : array();
+	$receipt = array(
+		'action'        => EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_ACTION,
+		'operation_ref' => $operation_ref,
+		'input'         => $input,
+		'actor'         => array(
+			'user_id'  => absint( $actor['user_id'] ?? 0 ),
+			'agent_id' => absint( $actor['agent_id'] ?? 0 ),
+			'token_id' => absint( $actor['token_id'] ?? 0 ),
+		),
+	);
+	if ( ! $receipt['actor']['user_id'] && ! $receipt['actor']['agent_id'] ) {
+		return new WP_Error( 'newsletter_campaign_actor_invalid', 'The delegated campaign actor is invalid.' );
+	}
+
+	$option = 'extrachill_newsletter_delegated_auth_' . substr( $operation_ref, 4 );
+	add_site_option( $option, $receipt );
+	$stored = get_site_option( $option, null );
+	if (
+		! is_array( $stored )
+		|| ( $stored['action'] ?? null ) !== $receipt['action']
+		|| ( $stored['operation_ref'] ?? null ) !== $operation_ref
+		|| ( $stored['input'] ?? null ) !== $input
+		|| ! is_array( $stored['actor'] ?? null )
+		|| ( empty( $stored['actor']['user_id'] ) && empty( $stored['actor']['agent_id'] ) )
+	) {
+		return new WP_Error( 'newsletter_campaign_authorization_receipt_invalid', 'The delegated campaign authorization receipt is invalid.' );
+	}
+
+	return $stored;
+}
+
+/** Re-run domain authorization for the attested initiator immediately before effects. */
+function extrachill_newsletter_authorize_delegated_campaign_effect( $operation_ref, array $input ) {
+	if ( ! is_string( $operation_ref ) || ! preg_match( '/^dop_[a-f0-9]{64}$/', $operation_ref ) ) {
+		return new WP_Error( 'newsletter_campaign_authorization_missing', 'The delegated campaign authorization receipt is unavailable.' );
+	}
+	$receipt = get_site_option( 'extrachill_newsletter_delegated_auth_' . substr( $operation_ref, 4 ), null );
+	if ( ! is_array( $receipt ) || EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_ACTION !== ( $receipt['action'] ?? null ) || ( $receipt['operation_ref'] ?? null ) !== $operation_ref || ( $receipt['input'] ?? null ) !== $input || ! is_array( $receipt['actor'] ?? null ) ) {
+		return new WP_Error( 'newsletter_campaign_authorization_missing', 'The delegated campaign authorization receipt is unavailable.' );
+	}
+
+	return extrachill_newsletter_authorize_delegated_campaign(
+		array(
+			'phase'         => 'execute',
+			'action'        => EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_ACTION,
+			'operation_ref' => $operation_ref,
+			'actor'         => $receipt['actor'],
+			'input'         => $input,
+		)
 	);
 }
 
@@ -236,37 +294,105 @@ function extrachill_newsletter_verify_delegated_campaign_task( array $params ) {
  *
  * @param array $run_result Canonical Data Machine run result.
  * @param array $context    Frozen delegated operation context.
- * @return array Redacted public projection.
+ * @return array|WP_Error Redacted public projection.
  */
-function extrachill_newsletter_project_delegated_campaign( array $run_result, array $context ): array {
-	$operation_ref = isset( $context['operation_ref'] ) && is_string( $context['operation_ref'] ) ? $context['operation_ref'] : '';
-	$outcome       = extrachill_newsletter_get_delegated_campaign_outcome( $operation_ref );
-	$status        = strtolower( (string) ( $run_result['status'] ?? '' ) );
+function extrachill_newsletter_project_delegated_campaign( array $run_result, array $context ) {
+	if ( 'datamachine.run_result.v1' !== ( $run_result['schema_version'] ?? null ) ) {
+		return new WP_Error( 'newsletter_campaign_run_result_invalid', 'The delegated campaign run result is invalid.' );
+	}
+	$operation_ref  = isset( $context['operation_ref'] ) && is_string( $context['operation_ref'] ) ? $context['operation_ref'] : '';
+	$outcome        = extrachill_newsletter_get_delegated_campaign_outcome( $operation_ref );
+	$status         = strtolower( (string) ( $run_result['status'] ?? '' ) );
+	$input          = isset( $context['input'] ) && is_array( $context['input'] ) ? $context['input'] : array();
+	$source         = isset( $input['source'] ) && is_array( $input['source'] ) ? $input['source'] : array();
+	$durable_record = extrachill_newsletter_get_delegated_campaign_record( $source, $input['policy'] ?? '' );
 
-	if ( is_array( $outcome ) ) {
+	if ( in_array( $status, array( 'submitted', 'executing', 'retrying', 'cancelled' ), true ) ) {
+		$classification = $status;
+		$record         = null;
+		$error_code     = null;
+	} elseif ( is_array( $outcome ) ) {
 		$classification = in_array( $outcome['status'] ?? '', array( 'executed', 'no-op', 'failed' ), true ) ? $outcome['status'] : 'failed';
 		$record         = isset( $outcome['record'] ) && is_array( $outcome['record'] ) ? $outcome['record'] : null;
 		$error_code     = isset( $outcome['error_code'] ) && is_string( $outcome['error_code'] ) ? $outcome['error_code'] : null;
-	} elseif ( '' === $status ) {
-		$classification = 'submitted';
-		$record         = null;
+	} elseif ( ! empty( $durable_record['campaign_id'] ) ) {
+		$classification = 'executed';
+		$record         = $durable_record;
 		$error_code     = null;
 	} elseif ( str_contains( $status, 'fail' ) || str_contains( $status, 'error' ) ) {
 		$classification = 'failed';
 		$record         = null;
 		$error_code     = 'newsletter_campaign_failed';
-	} else {
+	} elseif ( in_array( $status, array( 'agent_skipped', 'skipped', 'completed_no_items', 'no_items', 'no-op' ), true ) || 0 === ( $run_result['outputs']['effect_count'] ?? null ) ) {
 		$classification = 'no-op';
 		$record         = null;
 		$error_code     = null;
+	} else {
+		$classification = 'failed';
+		$record         = null;
+		$error_code     = 'newsletter_campaign_outcome_missing';
 	}
 
-	return array(
-		'effect_count'   => ! empty( $record['campaign_id'] ) ? 1 : 0,
+	$projection = array(
 		'classification' => $classification,
 		'record'         => $record,
 		'error_code'     => $error_code,
 	);
+	if ( in_array( $classification, array( 'executed', 'no-op' ), true ) ) {
+		$projection['effect_count'] = 'executed' === $classification && ! empty( $record['campaign_id'] ) ? 1 : 0;
+	}
+
+	return $projection;
+}
+
+/** Prove explicit retry safe from Newsletter's durable effect receipt. */
+function extrachill_newsletter_retry_delegated_campaign( array $run_result, array $context ) {
+	if ( 'datamachine.run_result.v1' !== ( $run_result['schema_version'] ?? null ) || ! str_starts_with( strtolower( (string) ( $run_result['status'] ?? '' ) ), 'failed' ) ) {
+		return new WP_Error( 'newsletter_campaign_retry_unsafe', 'The delegated campaign cannot be retried safely.' );
+	}
+
+	$operation_ref = isset( $context['operation_ref'] ) && is_string( $context['operation_ref'] ) ? $context['operation_ref'] : '';
+	$outcome       = extrachill_newsletter_get_delegated_campaign_outcome( $operation_ref );
+	$input         = isset( $context['input'] ) && is_array( $context['input'] ) ? $context['input'] : array();
+	$source        = isset( $input['source'] ) && is_array( $input['source'] ) ? $input['source'] : array();
+	$record        = extrachill_newsletter_get_delegated_campaign_record( $source, $input['policy'] ?? '' );
+	if ( ! empty( $record['campaign_id'] ) ) {
+		return true;
+	}
+	if ( ! is_array( $outcome ) || 'failed' !== ( $outcome['status'] ?? '' ) ) {
+		if ( null === $record ) {
+			return true;
+		}
+		$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'newsletter' ) ) : 0;
+		if ( $newsletter_blog_id && ! empty( $record['newsletter_post_id'] ) ) {
+			switch_to_blog( $newsletter_blog_id );
+			try {
+				$state = (string) get_post_meta( $record['newsletter_post_id'], '_extrachill_newsletter_delegated_campaign_state', true );
+				if ( '' === $state ) {
+					return true;
+				}
+			} finally {
+				restore_current_blog();
+			}
+		}
+		return new WP_Error( 'newsletter_campaign_retry_unsafe', 'The delegated campaign cannot be retried safely.' );
+	}
+
+	$safe_codes = array(
+		'newsletter_campaign_authorization_missing',
+		'newsletter_campaign_forbidden',
+		'newsletter_campaign_owner_runtime_unavailable',
+		'newsletter_campaign_owner_unavailable',
+		'newsletter_campaign_busy',
+		'newsletter_campaign_draft_create_failed',
+		'newsletter_campaign_draft_identity_failed',
+		'newsletter_campaign_draft_restore_failed',
+		'newsletter_campaign_receipt_failed',
+		'newsletter_campaign_transport_unavailable',
+	);
+	return in_array( $outcome['error_code'] ?? '', $safe_codes, true )
+		? true
+		: new WP_Error( 'newsletter_campaign_retry_unsafe', 'The delegated campaign cannot be retried safely.' );
 }
 
 /** Persist one bounded owner outcome for exact operation reconciliation. */
@@ -275,12 +401,30 @@ function extrachill_newsletter_record_delegated_campaign_outcome( $operation_ref
 		return false;
 	}
 
-	$option = 'extrachill_newsletter_delegated_result_' . substr( $operation_ref, 4 );
-	if ( update_site_option( $option, $result ) ) {
-		return true;
+	$result = extrachill_newsletter_sanitize_delegated_campaign_result( $result );
+	if ( null === $result ) {
+		return false;
 	}
 
-	return get_site_option( $option, null ) === $result;
+	$option    = 'extrachill_newsletter_delegated_result_' . substr( $operation_ref, 4 );
+	$lock_name = 'ecn_result_' . substr( hash( 'sha256', $operation_ref ), 0, 53 );
+	if ( ! extrachill_newsletter_acquire_delegated_campaign_lock( $lock_name ) ) {
+		return false;
+	}
+	try {
+		$current = get_site_option( $option, null );
+		$current = is_array( $current ) ? extrachill_newsletter_sanitize_delegated_campaign_result( $current ) : null;
+		if ( is_array( $current ) && in_array( $current['status'], array( 'executed', 'no-op' ), true ) ) {
+			return true;
+		}
+		if ( update_site_option( $option, $result ) ) {
+			return true;
+		}
+
+		return get_site_option( $option, null ) === $result;
+	} finally {
+		extrachill_newsletter_release_delegated_campaign_lock( $lock_name );
+	}
 }
 
 /** Read one bounded owner outcome by opaque operation reference. */
@@ -290,7 +434,7 @@ function extrachill_newsletter_get_delegated_campaign_outcome( $operation_ref ) 
 	}
 
 	$outcome = get_site_option( 'extrachill_newsletter_delegated_result_' . substr( $operation_ref, 4 ), null );
-	return is_array( $outcome ) ? $outcome : null;
+	return is_array( $outcome ) ? extrachill_newsletter_sanitize_delegated_campaign_result( $outcome ) : null;
 }
 
 /**
@@ -323,7 +467,12 @@ function extrachill_newsletter_execute_delegated_campaign( $input ) {
 	}
 
 	switch_to_blog( $newsletter_blog_id );
+	$runtime_registered_here = ! post_type_exists( 'newsletter' );
 	try {
+		$runtime = extrachill_newsletter_ensure_delegated_campaign_owner_runtime();
+		if ( is_wp_error( $runtime ) ) {
+			return extrachill_newsletter_delegated_campaign_result( 'failed', null, null, (string) $runtime->get_error_code() );
+		}
 		$lock_name = extrachill_newsletter_delegated_campaign_lock_name( $source, $input['policy'] );
 		if ( ! extrachill_newsletter_acquire_delegated_campaign_lock( $lock_name ) ) {
 			return extrachill_newsletter_delegated_campaign_result( 'failed', null, null, 'newsletter_campaign_busy' );
@@ -341,6 +490,9 @@ function extrachill_newsletter_execute_delegated_campaign( $input ) {
 			$state = (string) get_post_meta( $newsletter_post_id, '_extrachill_newsletter_delegated_campaign_state', true );
 			if ( in_array( $state, array( 'creating', 'indeterminate', 'completed' ), true ) ) {
 				return extrachill_newsletter_delegated_campaign_result( 'failed', $newsletter_post_id, null, 'newsletter_campaign_reconciliation_required' );
+			}
+			if ( ! extrachill_newsletter_get_sendy_ability( 'datamachine/sendy-push-campaign' ) ) {
+				return extrachill_newsletter_delegated_campaign_result( 'failed', $newsletter_post_id, null, 'newsletter_campaign_transport_unavailable' );
 			}
 			if ( false === update_post_meta( $newsletter_post_id, '_extrachill_newsletter_delegated_campaign_state', 'creating' ) ) {
 				return extrachill_newsletter_delegated_campaign_result( 'failed', $newsletter_post_id, null, 'newsletter_campaign_receipt_failed' );
@@ -383,8 +535,19 @@ function extrachill_newsletter_execute_delegated_campaign( $input ) {
 			extrachill_newsletter_release_delegated_campaign_lock( $lock_name );
 		}
 	} finally {
+		if ( $runtime_registered_here ) {
+			unregister_post_type( 'newsletter' );
+		}
 		restore_current_blog();
 	}
+}
+
+/** Register only the Newsletter-owned post type in the switched blog. */
+function extrachill_newsletter_ensure_delegated_campaign_owner_runtime() {
+	create_newsletter_post_type();
+	return post_type_exists( 'newsletter' )
+		? true
+		: new WP_Error( 'newsletter_campaign_owner_runtime_unavailable', 'The Newsletter owner runtime is unavailable.' );
 }
 
 /** Build the multisite-scoped owner lock name. */
@@ -440,28 +603,83 @@ function extrachill_newsletter_get_delegated_campaign_source( array $reference )
  * @return int|WP_Error Newsletter post ID.
  */
 function extrachill_newsletter_get_or_create_delegated_draft( array $source, array $input ) {
-	$existing = extrachill_newsletter_find_delegated_campaign_draft( $source, $input['policy'] );
+	$post_id  = extrachill_newsletter_find_delegated_campaign_draft( $source, $input['policy'] );
+	$existing = (bool) $post_id;
 
-	if ( $existing ) {
-		return $existing;
+	if ( $post_id ) {
+		if ( 'trash' === get_post_status( $post_id ) ) {
+			$restored = wp_untrash_post( $post_id );
+			if ( ! $restored ) {
+				return new WP_Error( 'newsletter_campaign_draft_restore_failed', 'The Newsletter campaign record could not be restored.' );
+			}
+			$updated = wp_update_post(
+				array(
+					'ID'          => $post_id,
+					'post_status' => 'draft',
+				),
+				true
+			);
+			if ( is_wp_error( $updated ) ) {
+				return new WP_Error( 'newsletter_campaign_draft_restore_failed', 'The Newsletter campaign record could not be restored.' );
+			}
+		}
+	} else {
+		$post_id = wp_insert_post(
+			array(
+				'post_type'    => 'newsletter',
+				'post_status'  => 'draft',
+				'post_author'  => 0,
+				'post_name'    => 'delegated-' . hash( 'sha256', $source['site_id'] . ':' . $source['post_id'] . ':' . $input['policy'] ),
+				'post_title'   => $source['title'],
+				'post_content' => $source['content'],
+				'post_excerpt' => $source['excerpt'],
+				'meta_input'   => array(
+					'_extrachill_newsletter_source_site_id'  => $source['site_id'],
+					'_extrachill_newsletter_source_post_id'  => $source['post_id'],
+					'_extrachill_newsletter_campaign_policy' => $input['policy'],
+				),
+			),
+			true
+		);
+		if ( is_wp_error( $post_id ) ) {
+			return new WP_Error( 'newsletter_campaign_draft_create_failed', 'The Newsletter campaign record could not be created.' );
+		}
 	}
 
-	return wp_insert_post(
-		array(
-			'post_type'    => 'newsletter',
-			'post_status'  => 'draft',
-			'post_author'  => 0,
-			'post_title'   => $source['title'],
-			'post_content' => $source['content'],
-			'post_excerpt' => $source['excerpt'],
-			'meta_input'   => array(
-				'_extrachill_newsletter_source_site_id'  => $source['site_id'],
-				'_extrachill_newsletter_source_post_id'  => $source['post_id'],
-				'_extrachill_newsletter_campaign_policy' => $input['policy'],
-			),
-		),
-		true
+	$identity = array(
+		'_extrachill_newsletter_source_site_id'  => (string) $source['site_id'],
+		'_extrachill_newsletter_source_post_id'  => (string) $source['post_id'],
+		'_extrachill_newsletter_campaign_policy' => $input['policy'],
 	);
+	foreach ( $identity as $key => $value ) {
+		$current = (string) get_post_meta( $post_id, $key, true );
+		if ( $current === $value ) {
+			continue;
+		}
+		if ( $existing && ( '' !== $current || get_post_meta( $post_id, '_sendy_campaign_id', true ) ) ) {
+			return new WP_Error( 'newsletter_campaign_draft_identity_conflict', 'The Newsletter campaign identity conflicts with an existing record.' );
+		}
+		update_post_meta( $post_id, $key, $value );
+		if ( (string) get_post_meta( $post_id, $key, true ) !== $value ) {
+			return new WP_Error( 'newsletter_campaign_draft_identity_failed', 'The Newsletter campaign identity could not be persisted.' );
+		}
+	}
+	if ( $existing && ! get_post_meta( $post_id, '_sendy_campaign_id', true ) ) {
+		$updated = wp_update_post(
+			array(
+				'ID'           => $post_id,
+				'post_title'   => $source['title'],
+				'post_content' => $source['content'],
+				'post_excerpt' => $source['excerpt'],
+			),
+			true
+		);
+		if ( is_wp_error( $updated ) ) {
+			return new WP_Error( 'newsletter_campaign_draft_update_failed', 'The Newsletter campaign record could not be updated.' );
+		}
+	}
+
+	return $post_id;
 }
 
 /**
@@ -479,7 +697,8 @@ function extrachill_newsletter_find_delegated_campaign_draft( array $source, $po
 	$existing = get_posts(
 		array(
 			'post_type'              => 'newsletter',
-			'post_status'            => array( 'draft', 'pending', 'publish', 'private' ),
+			'post_status'            => array( 'draft', 'pending', 'publish', 'private', 'trash' ),
+			'name'                   => 'delegated-' . hash( 'sha256', $source['site_id'] . ':' . $source['post_id'] . ':' . $policy ),
 			'posts_per_page'         => 1,
 			'fields'                 => 'ids',
 			'no_found_rows'          => true,
@@ -488,20 +707,6 @@ function extrachill_newsletter_find_delegated_campaign_draft( array $source, $po
 			'suppress_filters'       => true,
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
-			'meta_query'             => array(
-				array(
-					'key'   => '_extrachill_newsletter_source_site_id',
-					'value' => (string) $source['site_id'],
-				),
-				array(
-					'key'   => '_extrachill_newsletter_source_post_id',
-					'value' => (string) $source['post_id'],
-				),
-				array(
-					'key'   => '_extrachill_newsletter_campaign_policy',
-					'value' => $policy,
-				),
-			),
 		)
 	);
 
@@ -548,7 +753,7 @@ function extrachill_newsletter_get_delegated_campaign_record( array $source, $po
  * @return array Redacted result.
  */
 function extrachill_newsletter_delegated_campaign_result( $status, $newsletter_post_id = null, $campaign_id = null, $error_code = null ) {
-	return array(
+	$result = array(
 		'schema'     => 'extrachill-newsletter.delegated-campaign-result.v1',
 		'status'     => $status,
 		'record'     => $newsletter_post_id ? array(
@@ -556,5 +761,45 @@ function extrachill_newsletter_delegated_campaign_result( $status, $newsletter_p
 			'campaign_id'        => null === $campaign_id || '' === $campaign_id ? null : (string) $campaign_id,
 		) : null,
 		'error_code' => $error_code ? (string) $error_code : null,
+	);
+
+	return extrachill_newsletter_sanitize_delegated_campaign_result( $result ) ?? array(
+		'schema'     => 'extrachill-newsletter.delegated-campaign-result.v1',
+		'status'     => 'failed',
+		'record'     => null,
+		'error_code' => 'newsletter_campaign_failed',
+	);
+}
+
+/** Keep persisted and projected owner results to bounded identifiers and codes. */
+function extrachill_newsletter_sanitize_delegated_campaign_result( array $result ) {
+	$status = isset( $result['status'] ) && is_string( $result['status'] ) ? $result['status'] : '';
+	if ( 'extrachill-newsletter.delegated-campaign-result.v1' !== ( $result['schema'] ?? null ) || ! in_array( $status, array( 'executed', 'no-op', 'failed' ), true ) ) {
+		return null;
+	}
+
+	$record = null;
+	if ( is_array( $result['record'] ?? null ) ) {
+		$post_id     = absint( $result['record']['newsletter_post_id'] ?? 0 );
+		$campaign_id = $result['record']['campaign_id'] ?? null;
+		if ( ! $post_id || ( null !== $campaign_id && ( ! is_scalar( $campaign_id ) || ! preg_match( '/^[A-Za-z0-9._:-]{1,191}$/', (string) $campaign_id ) ) ) ) {
+			return null;
+		}
+		$record = array(
+			'newsletter_post_id' => $post_id,
+			'campaign_id'        => null === $campaign_id || '' === $campaign_id ? null : (string) $campaign_id,
+		);
+	}
+
+	$error_code = $result['error_code'] ?? null;
+	if ( null !== $error_code && ( ! is_string( $error_code ) || ! preg_match( '/^newsletter_campaign_[a-z0-9_]{1,96}$/', $error_code ) ) ) {
+		$error_code = 'newsletter_campaign_failed';
+	}
+
+	return array(
+		'schema'     => 'extrachill-newsletter.delegated-campaign-result.v1',
+		'status'     => $status,
+		'record'     => $record,
+		'error_code' => $error_code,
 	);
 }

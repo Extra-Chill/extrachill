@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap-integration.php" colors="true" failOnRisky="true" failOnWarning="true">
+	<php>
+		<const name="WP_TESTS_MULTISITE" value="1"/>
+	</php>
+	<testsuites>
+		<testsuite name="delegated-campaign-integration">
+			<file>tests/Integration/DelegatedCampaignDataMachineTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>
