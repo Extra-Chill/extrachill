@@ -262,10 +262,10 @@ if ( ! class_exists( 'WP_Term' ) ) {
 		public int $term_id;
 		public string $name;
 		public string $slug;
-		public function __construct( int $term_id, string $name, string $slug ) {
-			$this->term_id = $term_id;
-			$this->name    = $name;
-			$this->slug    = $slug;
+		public function __construct( $term ) {
+			foreach ( get_object_vars( $term ) as $key => $value ) {
+				$this->$key = $value;
+			}
 		}
 	}
 }
@@ -315,6 +315,75 @@ require_once dirname( __DIR__, 3 ) . '/inc/core/my-shows-map-filter.php';
  * Verifies the account preference integration and its precedence gates.
  */
 final class AccountMarketTest extends TestCase {
+	private function create_location_term(): WP_Term {
+		return new WP_Term(
+			(object) array(
+				'term_id'          => 1618,
+				'name'             => 'Charleston',
+				'slug'             => 'charleston',
+				'term_group'       => 0,
+				'term_taxonomy_id' => 1618,
+				'taxonomy'         => 'location',
+				'description'      => '',
+				'parent'           => 0,
+				'count'            => 0,
+				'filter'           => 'raw',
+			)
+		);
+	}
+
+	private function set_scoped_location_request( string $scope ): Closure {
+		$term                         = $this->create_location_term();
+		$GLOBALS['test_is_tax']       = true;
+		$GLOBALS['test_query_vars']   = array( 'event_scope' => $scope );
+		$GLOBALS['test_queried_term'] = $term;
+
+		$original_wp_query = $GLOBALS['wp_query'] ?? null;
+		$original_blog_id  = $GLOBALS['blog_id'] ?? null;
+		$registered_term   = false;
+		$term_link_filter  = static function (): string {
+			return $GLOBALS['test_term_link'];
+		};
+
+		if ( class_exists( 'WP_Query' ) ) {
+			$GLOBALS['wp_query']                       = new WP_Query();
+			$GLOBALS['wp_query']->is_tax               = true;
+			$GLOBALS['wp_query']->queried_object       = $term;
+			$GLOBALS['wp_query']->queried_object_id    = $term->term_id;
+			$GLOBALS['wp_query']->query_vars           = array(
+				'event_scope' => $scope,
+				'taxonomy'    => 'location',
+				'term'        => $term->slug,
+			);
+			$GLOBALS['blog_id']                        = 7;
+			$registered_term                           = ! taxonomy_exists( 'location' );
+			if ( $registered_term ) {
+				register_taxonomy( 'location', 'post', array( 'rewrite' => false ) );
+			}
+			add_filter( 'term_link', $term_link_filter );
+		}
+
+		return static function () use ( $original_wp_query, $original_blog_id, $registered_term, $term_link_filter ): void {
+			if ( class_exists( 'WP_Query' ) ) {
+				remove_filter( 'term_link', $term_link_filter );
+				if ( $registered_term ) {
+					unregister_taxonomy( 'location' );
+				}
+			}
+
+			if ( null === $original_wp_query ) {
+				unset( $GLOBALS['wp_query'] );
+			} else {
+				$GLOBALS['wp_query'] = $original_wp_query;
+			}
+			if ( null === $original_blog_id ) {
+				unset( $GLOBALS['blog_id'] );
+			} else {
+				$GLOBALS['blog_id'] = $original_blog_id;
+			}
+		};
+	}
+
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -600,10 +669,8 @@ final class AccountMarketTest extends TestCase {
 
 	public function test_scoped_query_pagination_preserves_serving_url_identity(): void {
 		$GLOBALS['ec_locations_blog_id'] = 7;
-		$GLOBALS['test_is_tax']          = true;
-		$GLOBALS['test_query_vars']      = array( 'event_scope' => 'this-weekend' );
-		$GLOBALS['test_queried_term']    = new WP_Term( 1618, 'Charleston', 'charleston' );
-		$GLOBALS['test_term_link']        = 'https://events.example/location/usa/south-carolina/charleston/';
+		$cleanup                        = $this->set_scoped_location_request( 'this-weekend' );
+		$GLOBALS['test_term_link']       = 'https://events.example/location/usa/south-carolina/charleston/';
 		$_GET                            = array(
 			'paged'      => '2',
 			'past'       => '1',
@@ -611,6 +678,7 @@ final class AccountMarketTest extends TestCase {
 		);
 
 		$canonical = extrachill_events_discovery_canonical( 'https://events.example/?paged=2' );
+		$cleanup();
 		unset( $GLOBALS['ec_locations_blog_id'], $GLOBALS['test_term_link'] );
 		$_GET = array();
 
@@ -619,16 +687,15 @@ final class AccountMarketTest extends TestCase {
 
 	public function test_scoped_page_one_canonical_matches_slashless_serving_url(): void {
 		$GLOBALS['ec_locations_blog_id'] = 7;
-		$GLOBALS['test_is_tax']          = true;
-		$GLOBALS['test_query_vars']      = array( 'event_scope' => 'tonight' );
-		$GLOBALS['test_queried_term']    = new WP_Term( 1618, 'Charleston', 'charleston' );
-		$GLOBALS['test_term_link']        = 'https://events.example/location/usa/south-carolina/charleston/';
+		$cleanup                        = $this->set_scoped_location_request( 'tonight' );
+		$GLOBALS['test_term_link']       = 'https://events.example/location/usa/south-carolina/charleston/';
 		$_GET                            = array(
 			'paged'  => '1',
 			'fbclid' => 'tracking-value',
 		);
 
 		$canonical = extrachill_events_discovery_canonical( 'https://events.example/?paged=1' );
+		$cleanup();
 		unset( $GLOBALS['ec_locations_blog_id'], $GLOBALS['test_term_link'] );
 		$_GET = array();
 
@@ -808,7 +875,7 @@ final class AccountMarketTest extends TestCase {
 	 */
 	public function test_archive_cta_only_renders_for_selectable_city(): void {
 		$GLOBALS['test_is_tax']         = true;
-		$GLOBALS['test_queried_term']   = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_queried_term']   = $this->create_location_term();
 		$GLOBALS['test_term_ancestors'] = array( 22 );
 
 		ob_start();
@@ -831,7 +898,7 @@ final class AccountMarketTest extends TestCase {
 	public function test_archive_cta_shows_save_form_or_current_confirmation(): void {
 		$GLOBALS['test_is_tax']            = true;
 		$GLOBALS['test_is_user_logged_in'] = true;
-		$GLOBALS['test_queried_term']      = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_queried_term']      = $this->create_location_term();
 		$GLOBALS['test_term_ancestors']    = array( 22, 1 );
 
 		ob_start();
@@ -849,7 +916,7 @@ final class AccountMarketTest extends TestCase {
 	public function test_archive_cta_confirms_current_scene_without_save_form(): void {
 		$GLOBALS['test_is_tax']                 = true;
 		$GLOBALS['test_is_user_logged_in']      = true;
-		$GLOBALS['test_queried_term']           = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_queried_term']           = $this->create_location_term();
 		$GLOBALS['test_term_ancestors']         = array( 22, 1 );
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {
@@ -874,7 +941,7 @@ final class AccountMarketTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_archive_update_requires_login_and_nonce_and_uses_settings_ability(): void {
-		$term                                 = new WP_Term( 1618, 'Charleston', 'charleston' );
+		$term                                 = $this->create_location_term();
 		$calls                                = new ArrayObject();
 		$GLOBALS['test_update_scene_ability'] = new class( $calls ) {
 			private ArrayObject $calls;
