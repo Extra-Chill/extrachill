@@ -20,6 +20,6 @@ jobs:
   lint:
     uses: Extra-Chill/homeboy-action/.github/workflows/ci.yml@v2
     with:
-      commands: review lint
-      expected-commands: review lint
+      commands: review lint,review test
+      expected-commands: review lint,review test
     secrets: inherit
