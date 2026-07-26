@@ -34,9 +34,6 @@ $repos_total             = $recently_shipped['repos_total'];
 				<span class="home-shipped-main">
 					<span class="home-shipped-repo"><?php echo esc_html( $release['repo'] ); ?></span>
 					<span class="home-shipped-tag"><?php echo esc_html( $release['tag'] ); ?></span>
-					<?php if ( ! empty( $release['summary'] ) ) : ?>
-						<span class="home-shipped-summary"><?php echo esc_html( $release['summary'] ); ?></span>
-					<?php endif; ?>
 				</span>
 				<span class="home-shipped-meta">
 					<?php

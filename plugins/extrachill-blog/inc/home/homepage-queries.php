@@ -296,7 +296,6 @@ function extrachill_blog_fetch_recently_shipped() {
 		$releases[] = array(
 			'repo'         => $repo_name,
 			'tag'          => $release['tag_name'],
-			'summary'      => extrachill_blog_summarize_release_body( $release['body'] ?? '' ),
 			'published_at' => strtotime( $release['published_at'] ),
 			'url'          => $release['html_url'],
 		);
@@ -320,81 +319,6 @@ function extrachill_blog_fetch_recently_shipped() {
 		'repos_active_this_month' => $repos_active_this_month,
 		'repos_total'             => $repos_total,
 	);
-}
-
-/**
- * Reduce a GitHub release body to a single-line, markdown-stripped summary.
- *
- * Takes the first meaningful bullet/line of the release body (homeboy
- * writes "## What's Changed" + conventional-commit bullets), strips
- * markdown link syntax and PR references, and truncates to ~80 chars.
- *
- * @param string $body Raw release body (markdown).
- * @return string Plain-text summary, empty string if nothing usable.
- */
-function extrachill_blog_summarize_release_body( $body ) {
-	if ( '' === trim( $body ) ) {
-		return '';
-	}
-
-	$lines = preg_split( '/\r\n|\r|\n/', $body );
-	if ( false === $lines ) {
-		return '';
-	}
-
-	foreach ( $lines as $line ) {
-		$line = trim( $line );
-
-		// Skip empty lines, headings, and the auto-generated changelog footer.
-		if ( '' === $line || '#' === substr( $line, 0, 1 ) || false !== stripos( $line, 'Full Changelog' ) ) {
-			continue;
-		}
-
-		// Strip leading bullet markers.
-		$line = preg_replace( '/^[-*]\s*/', '', $line );
-
-		// Strip trailing "by @user in <PR URL>" attribution.
-		$line = preg_replace( '/\s+by\s+@\S+\s+in\s+https?:\/\/\S+\s*$/i', '', $line );
-
-		// Strip markdown links, keeping the link text: [text](url) => text.
-		$line = preg_replace( '/\[([^\]]+)\]\([^)]+\)/', '$1', $line );
-
-		// Strip bare URLs and stray markdown emphasis characters.
-		$line = preg_replace( '/https?:\/\/\S+/', '', $line );
-		$line = preg_replace( '/[`*_]/', '', $line );
-		$line = trim( $line );
-
-		if ( '' === $line ) {
-			continue;
-		}
-
-		return extrachill_blog_truncate_summary( $line, 80 );
-	}
-
-	return '';
-}
-
-/**
- * Truncate a summary string to an approximate character length on a
- * word boundary, appending an ellipsis when truncated.
- *
- * @param string $text   Source text.
- * @param int    $length Approximate max length.
- * @return string Truncated text.
- */
-function extrachill_blog_truncate_summary( $text, $length ) {
-	if ( strlen( $text ) <= $length ) {
-		return $text;
-	}
-
-	$truncated = substr( $text, 0, $length );
-	$space_pos = strrpos( $truncated, ' ' );
-
-	if ( false !== $space_pos ) {
-		$truncated = substr( $truncated, 0, $space_pos );
-	}
-
-	return rtrim( $truncated, " \t\n\r\0\x0B.,;:-" ) . '…';
 }
 
 /**
