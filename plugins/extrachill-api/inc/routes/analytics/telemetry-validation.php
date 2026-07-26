@@ -10,6 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( ! function_exists( 'extrachill_api_check_public_write_rate_limit' ) ) {
+	require_once dirname( __DIR__, 2 ) . '/middleware/public-write-admission.php';
+}
+
 /**
  * Validate and normalize common public telemetry input.
  *
@@ -285,27 +289,12 @@ function extrachill_api_is_safe_telemetry_text( $value ) {
  * @return true|WP_Error
  */
 function extrachill_api_check_telemetry_rate_limit() {
-	$limit = (int) apply_filters( 'extrachill_api_telemetry_rate_limit', 240 );
-	if ( $limit < 1 ) {
-		return true;
+	$limit   = (int) apply_filters( 'extrachill_api_telemetry_rate_limit', 240 );
+	$request = new WP_REST_Request();
+	$result  = extrachill_api_check_public_write_rate_limit( $request, 'telemetry', $limit );
+	if ( is_wp_error( $result ) ) {
+		return new WP_Error( 'telemetry_rate_limited', 'Too many telemetry requests.', array( 'status' => 429 ) );
 	}
 
-	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-	if ( '' === $ip || false === filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-		return true;
-	}
-
-	$key   = 'ec_api_tel_' . substr( hash_hmac( 'sha256', $ip, wp_salt( 'nonce' ) ), 0, 32 );
-	$count = (int) get_transient( $key );
-	if ( $count >= $limit ) {
-		return new WP_Error(
-			'telemetry_rate_limited',
-			'Too many telemetry requests.',
-			array( 'status' => 429 )
-		);
-	}
-
-	set_transient( $key, $count + 1, MINUTE_IN_SECONDS );
-
-	return true;
+	return $result;
 }

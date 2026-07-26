@@ -106,6 +106,10 @@ The plugin ships route files under `inc/routes/` (loaded recursively) and regist
 ### Event Submissions (1)
 - `POST /event-submissions` - Submit event with optional flyer
 
+### Venue Booking Transport (2)
+- `POST /venues/{venue}/booking-inquiries` - Submit a Turnstile-protected anonymous or authenticated booking inquiry
+- `GET /events/bookings/{booking_id}/attachments/{attachment_id}/download` - Stream an authorized private booking attachment
+
 ### Media Management (1)
 - `POST /media` - Upload media
 

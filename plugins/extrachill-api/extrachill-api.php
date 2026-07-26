@@ -5,6 +5,7 @@
  * Description: Central REST API infrastructure for the Extra Chill multisite network.
  * Version: 0.26.1
  * Requires PHP: 8.4
+ * Requires Plugins: extrachill-network
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
