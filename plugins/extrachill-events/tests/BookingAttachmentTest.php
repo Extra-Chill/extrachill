@@ -389,14 +389,154 @@ final class BookingAttachmentTest extends TestCase {
 		$attachment    = $service->attach( $this->input( $booking, array( 'uploader_type' => 'user', 'uploader_user_id' => 12 ) ) );
 		$descriptor    = $service->download_descriptor( $booking['id'], $attachment['id'], 12 );
 		$this->assertStringNotContainsString( $attachment['storage_reference'], $descriptor['stream_token'] );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9-]{36}$/', $descriptor['correlation_id'] );
 
 		$authorization->allowed['12:55'] = false;
-		$this->assertSame( 'venue_action_forbidden', $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12 )->get_error_code() );
+		$this->assertSame( 'venue_action_forbidden', $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12, $descriptor['correlation_id'] )->get_error_code() );
 		$authorization->allowed['12:55'] = true;
-		$stream = $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12 );
+		$stream = $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12, $descriptor['correlation_id'] );
 		$this->assertIsResource( $stream );
 		fclose( $stream );
-		$this->assertSame( 'booking_private_stream_invalid', $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12 )->get_error_code() );
+		$this->assertSame( 'booking_private_stream_invalid', $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12, $descriptor['correlation_id'] )->get_error_code() );
+	}
+
+	public function test_delivery_outcomes_reject_forged_out_of_order_and_conflicting_duplicates(): void {
+		$booking    = $this->booking();
+		$service    = $this->service();
+		$attachment = $service->attach( $this->input( $booking, array( 'uploader_type' => 'user', 'uploader_user_id' => 12 ) ) );
+		$other      = $service->attach(
+			$this->input(
+				$booking,
+				array(
+					'storage_reference' => 'private_object_two_123456',
+					'idempotency_key'   => 'forged-target',
+					'uploader_type'      => 'user',
+					'uploader_user_id'   => 12,
+				)
+			)
+		);
+		$descriptor = $service->download_descriptor( $booking['id'], $attachment['id'], 12 );
+
+		$out_of_order = $service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], 'completed', $attachment['byte_size'], 12 );
+		$this->assertSame( 'booking_attachment_delivery_not_consumed', $out_of_order->get_error_code() );
+		$forged = $service->record_delivery_outcome( $booking['id'], $other['id'], $descriptor['correlation_id'], 'completed', $other['byte_size'], 12 );
+		$this->assertSame( 'booking_attachment_delivery_invalid', $forged->get_error_code() );
+
+		$stream = $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12, $descriptor['correlation_id'] );
+		$this->assertIsResource( $stream );
+		fclose( $stream );
+		$this->assertSame( 'booking_attachment_delivery_bytes_incomplete', $service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], 'completed', 0, 12 )->get_error_code() );
+		$this->assertSame( 'booking_attachment_delivery_bytes_incomplete', $service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], 'completed', $attachment['byte_size'] - 1, 12 )->get_error_code() );
+		$first = $service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], 'completed', $attachment['byte_size'], 12 );
+		$retry = $service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], 'completed', $attachment['byte_size'], 12 );
+		$this->assertSame( $first, $retry );
+		$this->assertSame( 'booking_attachment_delivery_outcome_conflict', $service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], 'partial', 5, 12 )->get_error_code() );
+	}
+
+	public function test_delivery_outcome_rechecks_revoked_actor_after_stream_consumption(): void {
+		$booking       = $this->booking();
+		$authorization = new BookingTestAuthorization();
+		$service       = $this->service( $authorization );
+		$attachment    = $service->attach( $this->input( $booking, array( 'uploader_type' => 'user', 'uploader_user_id' => 12 ) ) );
+		$descriptor    = $service->download_descriptor( $booking['id'], $attachment['id'], 12 );
+		$stream        = $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12, $descriptor['correlation_id'] );
+		fclose( $stream );
+
+		$authorization->allowed['12:55'] = false;
+		$result = $service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], 'completed', $attachment['byte_size'], 12 );
+		$this->assertSame( 'venue_action_forbidden', $result->get_error_code() );
+	}
+
+	public function test_interrupted_partial_and_api_exception_outcomes_are_terminal(): void {
+		$booking    = $this->booking();
+		$service    = $this->service();
+		$attachment = $service->attach( $this->input( $booking, array( 'uploader_type' => 'user', 'uploader_user_id' => 12 ) ) );
+		$cases      = array(
+			array( 'interrupted', 0 ),
+			array( 'partial', 128 ),
+			array( 'failed', 0 ),
+		);
+		foreach ( $cases as $case ) {
+			$descriptor = $service->download_descriptor( $booking['id'], $attachment['id'], 12 );
+			$stream     = $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12, $descriptor['correlation_id'] );
+			$this->assertIsResource( $stream );
+			fclose( $stream );
+			$result = $service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], $case[0], $case[1], 12 );
+			$this->assertSame( 'terminal', $result['state'] );
+			$this->assertSame( $case[0], $result['outcome'] );
+			$this->assertSame( $case[1], $result['bytes_sent'] );
+		}
+	}
+
+	public function test_stale_delivery_reconciliation_and_retention_are_explicit_and_private(): void {
+		$booking    = $this->booking();
+		$service    = $this->service();
+		$attachment = $service->attach( $this->input( $booking, array( 'uploader_type' => 'user', 'uploader_user_id' => 12 ) ) );
+		$issued     = $service->download_descriptor( $booking['id'], $attachment['id'], 12 );
+		$consumed   = $service->download_descriptor( $booking['id'], $attachment['id'], 12 );
+		$stream     = $service->open_download_stream( $booking['id'], $attachment['id'], $consumed['stream_token'], 12, $consumed['correlation_id'] );
+		fclose( $stream );
+		$table = BookingSchema::attachment_deliveries_table();
+		foreach ( $GLOBALS['wpdb']->rows[ $table ] as &$row ) {
+			$row['updated_at'] = '2020-01-01 00:00:00';
+		}
+		unset( $row );
+
+		$this->assertSame( 'booking_attachment_delivery_reconciliation_policy_required', $service->reconcile_delivery_outcomes()->get_error_code() );
+		$dry = $service->reconcile_delivery_outcomes( array( 'actor_id' => 12, 'minimum_age' => HOUR_IN_SECONDS, 'repair' => false ) );
+		$this->assertCount( 2, $dry['items'] );
+		$repaired = $service->reconcile_delivery_outcomes( array( 'actor_id' => 12, 'minimum_age' => HOUR_IN_SECONDS, 'repair' => true ) );
+		$this->assertSame( 2, $repaired['repaired'] );
+		$this->assertSame( array( 'interrupted' ), array_values( array_unique( array_column( $repaired['items'], 'outcome' ) ) ) );
+
+		$diagnostics = $service->delivery_diagnostics( $booking['id'], 12 );
+		$this->assertCount( 2, $diagnostics );
+		$this->assertArrayNotHasKey( 'id', $diagnostics[0] );
+		$this->assertArrayNotHasKey( 'booking_id', $diagnostics[0] );
+		$this->assertArrayNotHasKey( 'attachment_id', $diagnostics[0] );
+		$this->assertArrayNotHasKey( 'actor_id', $diagnostics[0] );
+
+		foreach ( $GLOBALS['wpdb']->rows[ $table ] as &$row ) {
+			$row['terminal_at'] = '2020-01-01 00:00:00';
+		}
+		unset( $row );
+		$this->assertSame( 'booking_attachment_delivery_retention_policy_required', $service->cleanup_delivery_outcomes()->get_error_code() );
+		$this->assertSame( 2, $service->cleanup_delivery_outcomes( array( 'actor_id' => 12, 'retention_days' => 30 ) )['deleted'] );
+		$this->assertSame( array(), $GLOBALS['wpdb']->rows[ $table ] );
+		$this->assertStringNotContainsString( 'private_object_', wp_json_encode( $repaired ) );
+		$this->assertStringNotContainsString( 'stream_token', wp_json_encode( $repaired ) );
+		$this->assertNotSame( $issued['correlation_id'], $consumed['correlation_id'] );
+	}
+
+	public function test_download_activity_contains_correlation_without_private_references(): void {
+		$booking    = $this->booking();
+		$service    = $this->service();
+		$attachment = $service->attach( $this->input( $booking, array( 'uploader_type' => 'user', 'uploader_user_id' => 12 ) ) );
+		$descriptor = $service->download_descriptor( $booking['id'], $attachment['id'], 12 );
+		$stream     = $service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], 12, $descriptor['correlation_id'] );
+		fclose( $stream );
+		$service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], 'completed', $attachment['byte_size'], 12 );
+
+		$activity = wp_json_encode( $GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ] );
+		$this->assertStringContainsString( $descriptor['correlation_id'], $activity );
+		foreach ( array( 'private_object_', 'stream_token', 'content_hash', '/private/', 'claim_key' ) as $private_value ) {
+			$this->assertStringNotContainsString( $private_value, $activity );
+		}
+	}
+
+	public function test_delivery_abilities_are_hidden_bounded_and_idempotent(): void {
+		$abilities = new BookingAttachmentAbilities( null, null, $this->service(), new BookingTestAuthorization() );
+		$abilities->register();
+		$record  = $GLOBALS['ec_artist_test']['abilities']['extrachill/record-booking-attachment-delivery'];
+		$inspect = $GLOBALS['ec_artist_test']['abilities']['extrachill/inspect-booking-attachment-deliveries'];
+
+		$this->assertFalse( $record['meta']['show_in_rest'] );
+		$this->assertTrue( $record['meta']['annotations']['idempotent'] );
+		$this->assertSame( array( 'completed', 'failed', 'interrupted', 'partial' ), $record['input_schema']['properties']['outcome']['enum'] );
+		$this->assertFalse( $record['input_schema']['additionalProperties'] );
+		$this->assertFalse( $inspect['meta']['show_in_rest'] );
+		$this->assertTrue( $inspect['meta']['annotations']['readonly'] );
+		$this->assertSame( 'array', $inspect['output_schema']['type'] );
 	}
 
 	public function test_global_lock_order_and_site_scoped_claim_identity_are_deterministic(): void {

@@ -119,6 +119,13 @@ class BookingAttachmentRepository {
 		return array_map( array( $this, 'hydrate' ), (array) $rows );
 	}
 
+	/** Remove every attachment row owned by one failed inquiry. */
+	public function discard_for_booking( int $booking_id ) {
+		global $wpdb;
+		$deleted = $wpdb->delete( BookingSchema::attachments_table(), array( 'booking_id' => $booking_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed inquiry compensation only.
+		return false === $deleted ? new \WP_Error( 'booking_inquiry_attachment_compensation_failed', __( 'Failed inquiry attachments could not be removed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : true;
+	}
+
 	/**
 	 * Find references to an object so reuse and physical deletion can be bounded.
 	 *
@@ -277,7 +284,7 @@ class BookingAttachmentRepository {
 	 * @param int    $booking_id Booking ID.
 	 * @param string $key        Idempotency key.
 	 */
-	private function find_idempotent( int $booking_id, string $key ) {
+	public function get_idempotent( int $booking_id, string $key ) {
 		global $wpdb;
 		$table = BookingSchema::attachments_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND idempotency_key = %s LIMIT 1", $booking_id, $key ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
@@ -285,6 +292,16 @@ class BookingAttachmentRepository {
 			return new \WP_Error( 'booking_attachment_read_failed', __( 'Attachment idempotency could not be checked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
+	}
+
+	/**
+	 * Backward-internal alias for repository creation paths.
+	 *
+	 * @param int    $booking_id Booking ID.
+	 * @param string $key        Idempotency key.
+	 */
+	private function find_idempotent( int $booking_id, string $key ) {
+		return $this->get_idempotent( $booking_id, $key );
 	}
 
 	/**

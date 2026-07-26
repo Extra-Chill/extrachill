@@ -19,6 +19,11 @@ class BookingAttachmentService {
 	 * @var BookingAttachmentRepository
 	 */
 	private $attachments;
+	/** Delivery correlation repository.
+	 *
+	 * @var BookingAttachmentDeliveryRepository
+	 */
+	private $deliveries;
 	/** Booking repository.
 	 *
 	 * @var BookingRepository
@@ -47,15 +52,17 @@ class BookingAttachmentService {
 	/**
 	 * Build the booking attachment aggregate.
 	 *
-	 * @param BookingAttachmentRepository|null $attachments Attachment repository.
-	 * @param BookingRepository|null           $bookings    Booking repository.
-	 * @param BookingActivityRepository|null   $activity    Activity repository.
-	 * @param BookingAttachmentPolicy|null     $policy      Attachment policy.
-	 * @param mixed                            $provider      Private provider.
-	 * @param VenueAuthorization|null          $authorization Exact venue authorization.
+	 * @param BookingAttachmentRepository|null         $attachments Attachment repository.
+	 * @param BookingRepository|null                   $bookings    Booking repository.
+	 * @param BookingActivityRepository|null           $activity    Activity repository.
+	 * @param BookingAttachmentPolicy|null             $policy      Attachment policy.
+	 * @param mixed                                    $provider      Private provider.
+	 * @param VenueAuthorization|null                  $authorization Exact venue authorization.
+	 * @param BookingAttachmentDeliveryRepository|null $deliveries Delivery repository.
 	 */
-	public function __construct( ?BookingAttachmentRepository $attachments = null, ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?BookingAttachmentPolicy $policy = null, $provider = null, ?VenueAuthorization $authorization = null ) {
+	public function __construct( ?BookingAttachmentRepository $attachments = null, ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?BookingAttachmentPolicy $policy = null, $provider = null, ?VenueAuthorization $authorization = null, ?BookingAttachmentDeliveryRepository $deliveries = null ) {
 		$this->attachments   = $attachments ? $attachments : new BookingAttachmentRepository();
+		$this->deliveries    = $deliveries ? $deliveries : new BookingAttachmentDeliveryRepository();
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->activity      = $activity ? $activity : new BookingActivityRepository();
 		$this->policy        = $policy ? $policy : new BookingAttachmentPolicy();
@@ -72,13 +79,35 @@ class BookingAttachmentService {
 	 * @param array $input Attachment input.
 	 */
 	public function attach( array $input ) {
+		return $this->attach_with_authorization( $input, false );
+	}
+
+	/**
+	 * Attach bytes admitted by the hidden inquiry boundary.
+	 *
+	 * Attribution remains exact, while venue-operator authorization is not
+	 * required from a public inquiry submitter.
+	 *
+	 * @param array $input Attachment input.
+	 */
+	public function attach_admitted( array $input ) {
+		return $this->attach_with_authorization( $input, true );
+	}
+
+	/**
+	 * Run attachment admission with operator or trusted-inquiry authorization.
+	 *
+	 * @param array $input             Attachment input.
+	 * @param bool  $trusted_admission Whether the hidden inquiry boundary admitted it.
+	 */
+	private function attach_with_authorization( array $input, bool $trusted_admission ) {
 		if ( $this->connection_is_quarantined() ) {
 			return $this->connection_quarantined_error();
 		}
 		if ( is_wp_error( $this->provider ) ) {
 			return $this->provider;
 		}
-		$booking = $this->booking( (int) ( $input['booking_id'] ?? 0 ) );
+		$booking = $this->booking( (int) ( $input['booking_id'] ?? 0 ), $trusted_admission );
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
@@ -87,18 +116,19 @@ class BookingAttachmentService {
 			return $normalized;
 		}
 
-		$claim_key = $this->claim_key( $booking['id'], $normalized['idempotency_key'] );
-		$claimed   = false;
-		$result    = $this->authorized_reference_transaction(
+		$claim_key           = $this->claim_key( $booking['id'], $normalized['idempotency_key'] );
+		$claimed             = false;
+		$authorization_actor = $trusted_admission ? null : $normalized['uploader_user_id'];
+		$result              = $this->authorized_reference_transaction(
 			$booking,
-			$normalized['uploader_user_id'],
+			$authorization_actor,
 			$normalized['storage_reference'],
-			function () use ( $booking, $normalized, $claim_key, &$claimed ) {
-				return $this->attach_locked( $booking, $normalized, $claim_key, $claimed );
+			function () use ( $booking, $normalized, $claim_key, &$claimed, $trusted_admission ) {
+				return $this->attach_locked( $booking, $normalized, $claim_key, $claimed, $trusted_admission );
 			}
 		);
 		return is_wp_error( $result ) && $claimed
-			? $this->compensate_claim( $booking, $normalized['uploader_user_id'], $normalized['storage_reference'], $claim_key, $result )
+			? $this->compensate_claim( $booking, $authorization_actor, $normalized['storage_reference'], $claim_key, $result )
 			: $result;
 	}
 
@@ -110,7 +140,7 @@ class BookingAttachmentService {
 	 * @param string $claim_key  Site-scoped claim key.
 	 * @param bool   $claimed    Whether the provider claim was persisted.
 	 */
-	private function attach_locked( array $booking, array $normalized, string $claim_key, bool &$claimed ) {
+	private function attach_locked( array $booking, array $normalized, string $claim_key, bool &$claimed, bool $trusted_admission = false ) {
 		$metadata = $this->provider->claim( $normalized['storage_reference'], $claim_key, $normalized['purpose'] );
 		if ( is_wp_error( $metadata ) ) {
 			return $metadata;
@@ -142,6 +172,9 @@ class BookingAttachmentService {
 		}
 		if ( 'active' !== $attachment['state'] ) {
 			return new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer active.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		if ( $trusted_admission ) {
+			return $attachment;
 		}
 		$activity = $this->activity->append(
 			array(
@@ -616,13 +649,7 @@ class BookingAttachmentService {
 		);
 	}
 
-	/**
-	 * Resolve an authorized stream token without returning storage references or paths.
-	 *
-	 * @param int $booking_id    Booking ID.
-	 * @param int $attachment_id Attachment ID.
-	 * @param int $actor_id      Authorized user ID.
-	 */
+	/** Resolve an authorized stream token without exposing storage internals. */
 	public function download_descriptor( int $booking_id, int $attachment_id, ?int $actor_id = null ) {
 		if ( $this->connection_is_quarantined() ) {
 			return $this->connection_quarantined_error();
@@ -642,27 +669,33 @@ class BookingAttachmentService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$descriptor = $this->authorized_reference_transaction(
+		$correlation_id = wp_generate_uuid4();
+		$descriptor     = $this->authorized_reference_transaction(
 			$booking,
 			$actor_id,
 			$attachment['storage_reference'],
-			function () use ( $attachment, $booking, $actor_id ) {
+			function () use ( $attachment, $booking, $actor_id, $correlation_id ) {
 				$current = $this->attachments->get_for_booking( $booking['id'], $attachment['id'] );
 				if ( is_wp_error( $current ) || 'active' !== $current['state'] ) {
 					return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer downloadable.', 'extrachill-events' ), array( 'status' => 410 ) );
 				}
+				$delivery = $this->deliveries->issue( $correlation_id, $booking['id'], $current['id'], $actor_id, $current['byte_size'] );
+				if ( is_wp_error( $delivery ) ) {
+					return $delivery;
+				}
 				$claim_key  = $this->claim_key( $booking['id'], $current['idempotency_key'] );
-				$descriptor = $this->provider->download_descriptor( $current['storage_reference'], $current['public_id'], $actor_id, $current['purpose'], $claim_key );
+				$descriptor = $this->provider->download_descriptor( $current['storage_reference'], $current['public_id'], $actor_id, $current['purpose'], $claim_key, $correlation_id );
 				if ( is_wp_error( $descriptor ) ) {
 					return $descriptor;
 				}
 				$activity = $this->activity->append(
 					array(
-						'booking_id' => $booking['id'],
-						'kind'       => 'attachment_downloaded',
-						'actor_type' => 'user',
-						'actor_id'   => $actor_id,
-						'payload'    => $this->audit_payload( $current ),
+						'booking_id'      => $booking['id'],
+						'kind'            => 'attachment_download_issued',
+						'actor_type'      => 'user',
+						'actor_id'        => $actor_id,
+						'idempotency_key' => 'attachment-download-issued:' . $correlation_id,
+						'payload'         => array_merge( $this->audit_payload( $current ), array( 'correlation_id' => $correlation_id ) ),
 					)
 				);
 				return is_wp_error( $activity ) ? $activity : $descriptor;
@@ -675,22 +708,16 @@ class BookingAttachmentService {
 			return new \WP_Error( 'booking_private_storage_invalid_response', __( 'Private storage did not return a secure stream handoff.', 'extrachill-events' ), array( 'status' => 502 ) );
 		}
 		return array(
-			'stream_token' => $descriptor['stream_token'],
-			'expires_at'   => $descriptor['expires_at'],
-			'filename'     => $attachment['original_filename'],
-			'mime_type'    => $attachment['mime_type'],
+			'stream_token'   => $descriptor['stream_token'],
+			'correlation_id' => $correlation_id,
+			'expires_at'     => $descriptor['expires_at'],
+			'filename'       => $attachment['original_filename'],
+			'mime_type'      => $attachment['mime_type'],
 		);
 	}
 
-	/**
-	 * Reauthorize and consume an opaque one-time download handoff.
-	 *
-	 * @param int    $booking_id    Booking ID.
-	 * @param int    $attachment_id Attachment ID.
-	 * @param string $stream_token  Opaque handoff.
-	 * @param int    $actor_id      Current user ID.
-	 */
-	public function open_download_stream( int $booking_id, int $attachment_id, string $stream_token, int $actor_id ) {
+	/** Reauthorize and consume an opaque one-time download handoff. */
+	public function open_download_stream( int $booking_id, int $attachment_id, string $stream_token, int $actor_id, string $correlation_id ) {
 		if ( $this->connection_is_quarantined() ) {
 			return $this->connection_quarantined_error();
 		}
@@ -710,13 +737,34 @@ class BookingAttachmentService {
 			$booking,
 			$actor_id,
 			$attachment['storage_reference'],
-			function () use ( $booking, $attachment_id, $stream_token, $actor_id, &$opened ) {
+			function () use ( $booking, $attachment_id, $stream_token, $actor_id, $correlation_id, &$opened ) {
 				$attachment = $this->attachments->get_for_booking( $booking['id'], $attachment_id );
 				if ( is_wp_error( $attachment ) || 'active' !== $attachment['state'] ) {
 					return is_wp_error( $attachment ) ? $attachment : new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer downloadable.', 'extrachill-events' ), array( 'status' => 410 ) );
 				}
-				$opened = $this->provider->open_stream( $stream_token, $attachment['public_id'], $actor_id, $attachment['purpose'] );
-				return $opened;
+				$delivery = $this->deliveries->get( $correlation_id, true );
+				if ( is_wp_error( $delivery ) || ! $this->deliveries->matches( $delivery, $booking['id'], $attachment_id, $actor_id ) ) {
+					return is_wp_error( $delivery ) ? $delivery : $this->deliveries->invalid_binding();
+				}
+				$opened = $this->provider->open_stream( $stream_token, $attachment['public_id'], $actor_id, $attachment['purpose'], $correlation_id );
+				if ( is_wp_error( $opened ) ) {
+					return $opened;
+				}
+				$consumed = $this->deliveries->consume( $delivery );
+				if ( is_wp_error( $consumed ) ) {
+					return $consumed;
+				}
+				$activity = $this->activity->append(
+					array(
+						'booking_id'      => $booking['id'],
+						'kind'            => 'attachment_download_consumed',
+						'actor_type'      => 'user',
+						'actor_id'        => $actor_id,
+						'idempotency_key' => 'attachment-download-consumed:' . $correlation_id,
+						'payload'         => array_merge( $this->audit_payload( $attachment ), array( 'correlation_id' => $correlation_id ) ),
+					)
+				);
+				return is_wp_error( $activity ) ? $activity : $opened;
 			}
 		);
 		if ( is_wp_error( $result ) && is_resource( $opened ) ) {
@@ -725,13 +773,190 @@ class BookingAttachmentService {
 		return $result;
 	}
 
+	/** Record one immutable transport outcome after consumption. */
+	public function record_delivery_outcome( int $booking_id, int $attachment_id, string $correlation_id, string $outcome, int $bytes_sent, int $actor_id ) {
+		if ( ! wp_is_uuid( $correlation_id, 4 ) || ! in_array( $outcome, BookingAttachmentDeliveryRepository::OUTCOMES, true ) || $bytes_sent < 0 || ( 'partial' === $outcome && $bytes_sent < 1 ) || ( in_array( $outcome, array( 'failed', 'interrupted' ), true ) && 0 !== $bytes_sent ) ) {
+			return new \WP_Error( 'booking_attachment_delivery_outcome_invalid', __( 'The attachment delivery outcome is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		$attachment = $this->attachments->get_for_booking( $booking_id, $attachment_id );
+		if ( is_wp_error( $attachment ) ) {
+			return $attachment;
+		}
+		if ( $bytes_sent > $attachment['byte_size'] ) {
+			return new \WP_Error( 'booking_attachment_delivery_bytes_invalid', __( 'The attachment delivery byte count is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		if ( ( 'completed' === $outcome && $bytes_sent !== $attachment['byte_size'] ) || ( 'partial' === $outcome && $bytes_sent >= $attachment['byte_size'] ) ) {
+			return new \WP_Error( 'booking_attachment_delivery_bytes_incomplete', __( 'Completed delivery requires the full expected byte length.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		$booking = $this->booking( $booking_id );
+		if ( is_wp_error( $booking ) ) {
+			return $booking;
+		}
+		return $this->authorized_reference_transaction(
+			$booking,
+			$actor_id,
+			$attachment['storage_reference'],
+			function () use ( $booking_id, $attachment_id, $correlation_id, $outcome, $bytes_sent, $actor_id, $attachment ) {
+				$delivery = $this->deliveries->get( $correlation_id, true );
+				if ( is_wp_error( $delivery ) || ! $this->deliveries->matches( $delivery, $booking_id, $attachment_id, $actor_id ) ) {
+					return is_wp_error( $delivery ) ? $delivery : $this->deliveries->invalid_binding();
+				}
+				$terminal = $this->deliveries->complete( $delivery, $outcome, $bytes_sent );
+				if ( is_wp_error( $terminal ) ) {
+					return $terminal;
+				}
+				$activity = $this->activity->append(
+					array(
+						'booking_id'      => $booking_id,
+						'kind'            => 'attachment_download_' . $outcome,
+						'actor_type'      => 'user',
+						'actor_id'        => $actor_id,
+						'idempotency_key' => 'attachment-download-terminal:' . $correlation_id,
+						'payload'         => array(
+							'attachment_id'  => $attachment['public_id'],
+							'correlation_id' => $correlation_id,
+							'outcome'        => $outcome,
+							'bytes_sent'     => $bytes_sent,
+						),
+					)
+				);
+				return is_wp_error( $activity ) ? $activity : $this->deliveries->present( $terminal );
+			}
+		);
+	}
+
+	/** Return bounded operator-safe diagnostics for one authorized booking. */
+	public function delivery_diagnostics( int $booking_id, int $actor_id, int $limit = 100 ) {
+		$booking = $this->booking( $booking_id );
+		if ( is_wp_error( $booking ) ) {
+			return $booking;
+		}
+		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		if ( true !== $allowed ) {
+			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		}
+		$rows = $this->deliveries->list_for_booking( $booking_id, $limit );
+		return is_wp_error( $rows ) ? $rows : array_map( array( $this->deliveries, 'present' ), $rows );
+	}
+
+	/** Reconcile stale correlations without guessing successful delivery. */
+	public function reconcile_delivery_outcomes( array $policy = array() ) {
+		$actor_id    = absint( $policy['actor_id'] ?? 0 );
+		$minimum_age = absint( $policy['minimum_age'] ?? 0 );
+		$repair      = true === ( $policy['repair'] ?? false );
+		if ( $actor_id < 1 || $minimum_age < HOUR_IN_SECONDS ) {
+			return new \WP_Error( 'booking_attachment_delivery_reconciliation_policy_required', __( 'Delivery reconciliation requires an explicit actor and minimum age.', 'extrachill-events' ) );
+		}
+		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $minimum_age );
+		$rows   = $this->deliveries->list_stale( $cutoff );
+		if ( is_wp_error( $rows ) ) {
+			return $rows;
+		}
+		$items = array();
+		foreach ( $rows as $delivery ) {
+			$attachment = $this->attachments->get_for_booking( $delivery['booking_id'], $delivery['attachment_id'] );
+			$booking    = $this->booking( $delivery['booking_id'] );
+			if ( is_wp_error( $attachment ) || is_wp_error( $booking ) ) {
+				continue;
+			}
+			$result = $this->authorized_reference_transaction(
+				$booking,
+				$actor_id,
+				$attachment['storage_reference'],
+				function () use ( $delivery, $cutoff, $repair, $actor_id, $attachment ) {
+					$current = $this->deliveries->get( $delivery['correlation_id'], true );
+					if ( is_wp_error( $current ) || ! is_array( $current ) || ! in_array( $current['state'], array( 'issued', 'consumed' ), true ) || $current['updated_at'] >= $cutoff ) {
+						return is_wp_error( $current ) ? $current : false;
+					}
+					if ( ! $repair ) {
+						return $current;
+					}
+					$terminal = $this->deliveries->interrupt_stale( $current );
+					if ( is_wp_error( $terminal ) ) {
+						return $terminal;
+					}
+					$activity = $this->activity->append(
+						array(
+							'booking_id'      => $current['booking_id'],
+							'kind'            => 'attachment_download_interrupted',
+							'actor_type'      => 'user',
+							'actor_id'        => $actor_id,
+							'idempotency_key' => 'attachment-download-terminal:' . $current['correlation_id'],
+							'payload'         => array(
+								'attachment_id'  => $attachment['public_id'],
+								'correlation_id' => $current['correlation_id'],
+								'outcome'        => 'interrupted',
+								'bytes_sent'     => 0,
+							),
+						)
+					);
+					return is_wp_error( $activity ) ? $activity : $terminal;
+				}
+			);
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			if ( is_array( $result ) ) {
+				$items[] = $this->deliveries->present( $result );
+			}
+		}
+		return array(
+			'items'     => $items,
+			'repaired'  => $repair ? count( $items ) : 0,
+			'truncated' => 250 === count( $rows ),
+		);
+	}
+
+	/** Delete old terminal correlations only under explicit authorized retention. */
+	public function cleanup_delivery_outcomes( array $policy = array() ) {
+		$actor_id       = absint( $policy['actor_id'] ?? 0 );
+		$retention_days = absint( $policy['retention_days'] ?? 0 );
+		if ( $actor_id < 1 || $retention_days < 30 ) {
+			return new \WP_Error( 'booking_attachment_delivery_retention_policy_required', __( 'Delivery retention requires an explicit actor and at least 30 days.', 'extrachill-events' ) );
+		}
+		$cutoff = gmdate( 'Y-m-d H:i:s', time() - ( $retention_days * DAY_IN_SECONDS ) );
+		$rows   = $this->deliveries->list_terminal_before( $cutoff );
+		if ( is_wp_error( $rows ) ) {
+			return $rows;
+		}
+		$deleted = 0;
+		foreach ( $rows as $delivery ) {
+			$attachment = $this->attachments->get_for_booking( $delivery['booking_id'], $delivery['attachment_id'] );
+			$booking    = $this->booking( $delivery['booking_id'] );
+			if ( is_wp_error( $attachment ) || is_wp_error( $booking ) ) {
+				return is_wp_error( $attachment ) ? $attachment : $booking;
+			}
+			$result = $this->authorized_reference_transaction(
+				$booking,
+				$actor_id,
+				$attachment['storage_reference'],
+				function () use ( $delivery, $cutoff ) {
+					$current = $this->deliveries->get( $delivery['correlation_id'], true );
+					if ( ! is_array( $current ) || 'terminal' !== $current['state'] || $current['terminal_at'] >= $cutoff ) {
+						return new \WP_Error( 'booking_attachment_delivery_retention_conflict', __( 'The delivery correlation changed during retention cleanup.', 'extrachill-events' ) );
+					}
+					return $this->deliveries->delete_terminal( $current );
+				}
+			);
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			++$deleted;
+		}
+		return array(
+			'deleted'   => $deleted,
+			'cutoff'    => $cutoff,
+			'truncated' => 250 === count( $rows ),
+		);
+	}
+
 	/**
 	 * Resolve one booking.
 	 *
 	 * @param int $booking_id Booking ID.
 	 */
-	private function booking( int $booking_id ) {
-		$booking = $this->bookings->get( $booking_id );
+	private function booking( int $booking_id, bool $include_reservations = false ) {
+		$booking = $this->bookings->get( $booking_id, $include_reservations );
 		return is_wp_error( $booking ) || is_array( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
 	}
 
@@ -1099,7 +1324,7 @@ class BookingAttachmentService {
 	 * @param int    $booking_id     Booking ID.
 	 * @param string $idempotency_key Request idempotency key.
 	 */
-	private function claim_key( int $booking_id, string $idempotency_key ): string {
+	public function claim_key( int $booking_id, string $idempotency_key ): string {
 		return 'site:' . get_current_blog_id() . ':table:' . BookingSchema::attachments_table() . ':booking:' . $booking_id . ':request:' . hash( 'sha256', $idempotency_key );
 	}
 

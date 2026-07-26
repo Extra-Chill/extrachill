@@ -106,14 +106,14 @@ final class BookingPrivateFileProviderTest extends TestCase {
 		$reference = $provider->stage( $this->source( 'handoff.txt', 'handoff' ), 'handoff.txt', 'epk' );
 		$claim_key = 'site:7:table:wp_7_ec_booking_attachments:booking:1:request:' . hash( 'sha256', 'handoff' );
 		$provider->claim( $reference, $claim_key, 'epk' );
-		$descriptor = $provider->download_descriptor( $reference, 'attachment-public-id', 12, 'epk', $claim_key );
+		$descriptor = $provider->download_descriptor( $reference, 'attachment-public-id', 12, 'epk', $claim_key, '123e4567-e89b-42d3-a456-426614174000' );
 		$moved      = $this->root . '/.handoffs-original';
 		$outside    = $this->base . '/handoffs-escape';
 		mkdir( $outside, 0700 );
 		rename( $this->root . '/.handoffs', $moved );
 		symlink( $outside, $this->root . '/.handoffs' );
-		$this->assertSame( 'booking_private_handoff_directory_unsafe', $provider->download_descriptor( $reference, 'other-id', 12, 'epk', $claim_key )->get_error_code() );
-		$this->assertSame( 'booking_private_stream_invalid', $provider->open_stream( $descriptor['stream_token'], 'attachment-public-id', 12, 'epk' )->get_error_code() );
+		$this->assertSame( 'booking_private_handoff_directory_unsafe', $provider->download_descriptor( $reference, 'other-id', 12, 'epk', $claim_key, '123e4567-e89b-42d3-a456-426614174000' )->get_error_code() );
+		$this->assertSame( 'booking_private_stream_invalid', $provider->open_stream( $descriptor['stream_token'], 'attachment-public-id', 12, 'epk', '123e4567-e89b-42d3-a456-426614174000' )->get_error_code() );
 		$this->assertSame( array(), $this->files_in( $outside ) );
 	}
 
@@ -185,19 +185,21 @@ final class BookingPrivateFileProviderTest extends TestCase {
 		$reference = $provider->stage( $source, 'press.txt', 'press_release' );
 		$provider->claim( $reference, 'booking:1:press', 'press_release' );
 		$claim_key  = 'booking:1:press';
-		$descriptor = $provider->download_descriptor( $reference, 'attachment-public-id', 12, 'press_release', $claim_key );
+		$descriptor = $provider->download_descriptor( $reference, 'attachment-public-id', 12, 'press_release', $claim_key, '123e4567-e89b-42d3-a456-426614174000' );
 		$this->assertArrayHasKey( 'stream_token', $descriptor );
 		$this->assertArrayNotHasKey( 'path', $descriptor );
 		$this->assertArrayNotHasKey( 'url', $descriptor );
 		$this->assertStringNotContainsString( $this->root, wp_json_encode( $descriptor ) );
 		$this->assertStringNotContainsString( $reference, wp_json_encode( $descriptor ) );
+		$wrong_correlation = $provider->download_descriptor( $reference, 'attachment-public-id', 12, 'press_release', $claim_key, '123e4567-e89b-42d3-a456-426614174001' );
+		$this->assertSame( 'booking_private_stream_expired', $provider->open_stream( $wrong_correlation['stream_token'], 'attachment-public-id', 12, 'press_release', '123e4567-e89b-42d3-a456-426614174002' )->get_error_code() );
 
-		$stream = $provider->open_stream( $descriptor['stream_token'], 'attachment-public-id', 12, 'press_release' );
+		$stream = $provider->open_stream( $descriptor['stream_token'], 'attachment-public-id', 12, 'press_release', '123e4567-e89b-42d3-a456-426614174000' );
 		$this->assertIsResource( $stream );
 		$this->assertSame( 'private bytes', stream_get_contents( $stream ) );
 		fclose( $stream );
-		$this->assertSame( 'booking_private_stream_invalid', $provider->open_stream( $descriptor['stream_token'], 'attachment-public-id', 12, 'press_release' )->get_error_code() );
-		$this->assertSame( 'booking_private_stream_invalid', $provider->open_stream( $descriptor['stream_token'] . 'tampered', 'attachment-public-id', 12, 'press_release' )->get_error_code() );
+		$this->assertSame( 'booking_private_stream_invalid', $provider->open_stream( $descriptor['stream_token'], 'attachment-public-id', 12, 'press_release', '123e4567-e89b-42d3-a456-426614174000' )->get_error_code() );
+		$this->assertSame( 'booking_private_stream_invalid', $provider->open_stream( $descriptor['stream_token'] . 'tampered', 'attachment-public-id', 12, 'press_release', '123e4567-e89b-42d3-a456-426614174000' )->get_error_code() );
 	}
 
 	public function test_byte_tampering_fails_integrity_checks(): void {
@@ -206,7 +208,7 @@ final class BookingPrivateFileProviderTest extends TestCase {
 		$blob      = $this->files_ending_in( '.blob' )[0];
 		file_put_contents( $blob, 'tampered' );
 		$this->assertSame( 'booking_private_object_corrupt', $provider->claim( $reference, 'booking:1:tampered', 'other_private_evidence' )->get_error_code() );
-		$this->assertSame( 'booking_private_object_corrupt', $provider->download_descriptor( $reference, 'attachment-public-id', 12, 'other_private_evidence', 'booking:1:tampered' )->get_error_code() );
+		$this->assertSame( 'booking_private_object_corrupt', $provider->download_descriptor( $reference, 'attachment-public-id', 12, 'other_private_evidence', 'booking:1:tampered', '123e4567-e89b-42d3-a456-426614174000' )->get_error_code() );
 	}
 
 	public function test_claim_is_idempotent_and_exact_retirement_preserves_other_objects(): void {
@@ -263,9 +265,9 @@ final class BookingPrivateFileProviderTest extends TestCase {
 		$reference = $provider->stage( $this->source( 'abandoned.txt', 'abandoned' ), 'abandoned.txt', 'epk' );
 		$claim_key = 'booking:1:abandoned';
 		$provider->claim( $reference, $claim_key, 'epk' );
-		$handoff = $provider->download_descriptor( $reference, 'attachment-public-id', 12, 'epk', $claim_key );
+		$handoff = $provider->download_descriptor( $reference, 'attachment-public-id', 12, 'epk', $claim_key, '123e4567-e89b-42d3-a456-426614174000' );
 		$this->assertTrue( $provider->release_claim( $reference, $claim_key ) );
-		$this->assertSame( 'booking_private_stream_revoked', $provider->open_stream( $handoff['stream_token'], 'attachment-public-id', 12, 'epk' )->get_error_code() );
+		$this->assertSame( 'booking_private_stream_revoked', $provider->open_stream( $handoff['stream_token'], 'attachment-public-id', 12, 'epk', '123e4567-e89b-42d3-a456-426614174000' )->get_error_code() );
 
 		$metadata_path = $this->files_ending_in( '.json' )[0];
 		$metadata      = json_decode( file_get_contents( $metadata_path ), true );

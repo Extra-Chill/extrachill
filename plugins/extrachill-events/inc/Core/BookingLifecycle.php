@@ -80,16 +80,37 @@ class BookingLifecycle {
 	 * Create a submitted inquiry and its receipt event exactly once.
 	 *
 	 * @param array    $data     Inquiry fields.
-	 * @param int|null $actor_id Authenticated submitter, when present.
+	 * @param int|null $actor_id            Authenticated submitter, when present.
+	 * @param array    $fingerprint_context Admission-only fingerprint context.
 	 */
-	public function create_inquiry( array $data, ?int $actor_id = null ) {
+	public function create_inquiry( array $data, ?int $actor_id = null, array $fingerprint_context = array() ) {
+		$key = BookingInquiryAdmissionService::canonical_idempotency_key( $data['idempotency_key'] ?? '' );
+		if ( is_wp_error( $key ) ) {
+			return $key;
+		}
+		$data['idempotency_key'] = $key;
+		$booking                 = $this->reserve_inquiry( $data, $actor_id, $fingerprint_context, wp_generate_uuid4() );
+		if ( is_wp_error( $booking ) ) {
+			return $booking;
+		}
+		$published = $this->publish_inquiry( $booking );
+		if ( ! is_wp_error( $published ) || in_array( $published->get_error_code(), array( 'booking_transaction_commit_uncertain', 'booking_transaction_rollback_failed' ), true ) ) {
+			return $published;
+		}
+		$discarded = $this->discard_reserved_inquiry( $booking );
+		return is_wp_error( $discarded ) ? $discarded : $published;
+	}
+
+	/** Persist or recover an inquiry without publishing its lifecycle event. */
+	public function reserve_inquiry( array $data, ?int $actor_id = null, array $fingerprint_context = array(), string $owner_token = '' ) {
+		unset( $data['attachments'] );
 		unset( $data['space_key'], $data['performance_start_at'], $data['performance_end_at'], $data['production'], $data['deal'], $data['confirmed_deal'] );
-		$key = mb_substr( sanitize_text_field( (string) ( $data['idempotency_key'] ?? '' ) ), 0, 191 );
-		if ( '' === $key ) {
+		$key = (string) ( $data['idempotency_key'] ?? '' );
+		if ( '' === $key || '' === $owner_token || BookingInquiryAdmissionService::canonical_idempotency_key( $key ) !== $key ) {
 			return new \WP_Error( 'booking_idempotency_key_required', __( 'Inquiry creation requires an idempotency key.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 		$venue_id = absint( $data['venue_term_id'] ?? 0 );
-		$hash     = $this->request_hash( $data, $actor_id );
+		$hash     = $this->request_hash( $data, $actor_id, $fingerprint_context );
 		if ( is_wp_error( $hash ) ) {
 			return $hash;
 		}
@@ -98,7 +119,8 @@ class BookingLifecycle {
 			return $existing;
 		}
 		if ( is_array( $existing ) ) {
-			return $this->resolve_retry( $existing, $hash );
+			$retry = $this->resolve_retry( $existing, $hash );
+			return is_array( $retry ) && 'admission_pending' === $retry['status'] ? $this->bookings->claim_admission( $retry, $owner_token ) : $retry;
 		}
 		$venue = get_term( $venue_id, 'venue' );
 		if ( ! $venue || is_wp_error( $venue ) || 'venue' !== $venue->taxonomy ) {
@@ -128,7 +150,8 @@ class BookingLifecycle {
 			array_merge(
 				$data,
 				array(
-					'status'                  => 'submitted',
+					'status'                  => 'admission_pending',
+					'admission_owner_token'   => $owner_token,
 					'inquiry_idempotency_key' => $key,
 					'inquiry_request_hash'    => $hash,
 					'submitter_user_id'       => $actor_id,
@@ -152,21 +175,102 @@ class BookingLifecycle {
 		if ( is_wp_error( $booking ) ) {
 			return $this->rollback( $booking );
 		}
-		$event = $this->activity->append(
+		$committed = $this->commit();
+		return is_wp_error( $committed ) ? $committed : $this->bookings->get( $booking['id'], true );
+	}
+
+	/** Return a completed canonical inquiry after bounded lock contention. */
+	public function replay_completed_inquiry( array $data, ?int $actor_id = null, array $fingerprint_context = array() ) {
+		unset( $data['attachments'] );
+		unset( $data['space_key'], $data['performance_start_at'], $data['performance_end_at'], $data['production'], $data['deal'], $data['confirmed_deal'] );
+		$key      = (string) ( $data['idempotency_key'] ?? '' );
+		$venue_id = absint( $data['venue_term_id'] ?? 0 );
+		$hash     = $this->request_hash( $data, $actor_id, $fingerprint_context );
+		if ( is_wp_error( $hash ) ) {
+			return $hash;
+		}
+		$existing = $this->bookings->find_inquiry( $venue_id, $key );
+		if ( ! is_array( $existing ) ) {
+			return $existing;
+		}
+		$resolved = $this->resolve_retry( $existing, $hash );
+		return is_array( $resolved ) && 'admission_pending' !== $resolved['status'] ? $resolved : null;
+	}
+
+	/** Publish an admitted inquiry exactly once after every attachment succeeds. */
+	public function publish_inquiry( array $booking ) {
+		$started = $this->begin();
+		if ( is_wp_error( $started ) ) {
+			return $started;
+		}
+		$locked = $this->bookings->get_for_update( (int) ( $booking['id'] ?? 0 ), true );
+		if ( ! is_array( $locked ) || empty( $locked['inquiry_idempotency_key'] ) ) {
+			return $this->rollback( is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_inquiry_publication_invalid', __( 'The admitted inquiry could not be published.', 'extrachill-events' ) ) );
+		}
+		$key      = 'inquiry:' . $locked['inquiry_idempotency_key'];
+		$existing = $this->activity->find_by_idempotency( $locked['id'], $key );
+		if ( is_wp_error( $existing ) ) {
+			return $this->rollback( $existing );
+		}
+		if ( is_array( $existing ) ) {
+			$request = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, (int) $existing['id'] );
+			if ( is_wp_error( $request ) ) {
+				return $this->rollback( $request );
+			}
+			$committed = $this->commit();
+			return is_wp_error( $committed ) ? $committed : $locked;
+		}
+		$owner_token = $booking['admission_owner_token'] ?? null;
+		$version     = (int) ( $booking['version'] ?? 0 );
+		if ( 'admission_pending' !== $locked['status'] || empty( $locked['admission_owner_token'] ) || $owner_token !== $locked['admission_owner_token'] || $version !== (int) $locked['version'] ) {
+			return $this->rollback( new \WP_Error( 'booking_inquiry_publication_invalid', __( 'Only the owned inquiry reservation can be published.', 'extrachill-events' ) ) );
+		}
+		$locked = $this->bookings->publish_admission( $locked );
+		if ( is_wp_error( $locked ) ) {
+			return $this->rollback( $locked );
+		}
+		$actor_id = $locked['submitter_user_id'];
+		$event    = $this->activity->append(
 			array(
-				'booking_id'      => $booking['id'],
+				'booking_id'      => $locked['id'],
 				'kind'            => 'inquiry_submitted',
 				'actor_type'      => $actor_id ? 'user' : 'anonymous',
 				'actor_id'        => $actor_id,
-				'idempotency_key' => 'inquiry:' . $key,
+				'idempotency_key' => $key,
 				'payload'         => array( 'status' => 'submitted' ),
 			)
 		);
 		if ( is_wp_error( $event ) ) {
 			return $this->rollback( $event );
 		}
+		$request = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, (int) $event['id'] );
+		if ( is_wp_error( $request ) ) {
+			return $this->rollback( $request );
+		}
 		$committed = $this->commit();
-		return is_wp_error( $committed ) ? $committed : $this->bookings->get( $booking['id'] );
+		if ( is_wp_error( $committed ) ) {
+			return $committed;
+		}
+		BookingNotificationService::emit( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, (int) $event['id'] );
+		return $this->bookings->get( $locked['id'] );
+	}
+
+	/** Remove a reservation when direct publication fails conclusively. */
+	private function discard_reserved_inquiry( array $booking ) {
+		$started = $this->begin();
+		if ( is_wp_error( $started ) ) {
+			return $started;
+		}
+		$current = $this->bookings->get_for_update( (int) $booking['id'], true );
+		if ( ! is_array( $current ) || 'admission_pending' !== $current['status'] || ( $current['admission_owner_token'] ?? null ) !== ( $booking['admission_owner_token'] ?? null ) || (int) $current['version'] !== (int) $booking['version'] ) {
+			return $this->rollback( new \WP_Error( 'booking_inquiry_compensation_invalid', __( 'The inquiry reservation changed before compensation.', 'extrachill-events' ) ) );
+		}
+		$activity = $this->activity->discard_for_booking( (int) $booking['id'] );
+		$discard  = is_wp_error( $activity ) ? $activity : $this->bookings->discard_inquiry( $current );
+		if ( is_wp_error( $discard ) ) {
+			return $this->rollback( $discard );
+		}
+		return $this->commit();
 	}
 
 	/**
@@ -454,7 +558,15 @@ class BookingLifecycle {
 			return $this->rollback( $event );
 		}
 		$committed = $this->commit();
-		return is_wp_error( $committed ) ? $committed : $this->bookings->get( $current['id'] );
+		if ( is_wp_error( $committed ) ) {
+			return $committed;
+		}
+		if ( 'assignment_changed' === $kind ) {
+			BookingNotificationService::emit( BookingNotificationService::TYPE_ASSIGNMENT_CHANGED, (int) $event['id'] );
+		} elseif ( 'status_changed' === $kind && 'needs_info' === ( $payload['from_status'] ?? '' ) && 'submitted' === ( $payload['to_status'] ?? '' ) ) {
+			BookingNotificationService::emit( BookingNotificationService::TYPE_INFORMATION_RECEIVED, (int) $event['id'] );
+		}
+		return $this->bookings->get( $current['id'] );
 	}
 
 	/** Fail closed before any lifecycle-owned version change while conversion runs. */
@@ -569,15 +681,19 @@ class BookingLifecycle {
 	 * Create a deterministic actor-bound HMAC for public inquiry retries.
 	 *
 	 * @param array    $data     Inquiry request.
-	 * @param int|null $actor_id Authenticated actor.
+	 * @param int|null $actor_id            Authenticated actor.
+	 * @param array    $fingerprint_context Admission-only context.
 	 */
-	private function request_hash( array $data, ?int $actor_id ) {
+	private function request_hash( array $data, ?int $actor_id, array $fingerprint_context = array() ) {
 		unset( $data['idempotency_key'] );
 		$payload = array(
 			'actor_id' => $actor_id,
 			'request'  => $this->canonicalize( $data ),
 		);
-		$json    = wp_json_encode( $payload );
+		if ( $fingerprint_context ) {
+			$payload['context'] = $this->canonicalize( $fingerprint_context );
+		}
+		$json = wp_json_encode( $payload );
 		return false === $json
 			? new \WP_Error( 'booking_request_hash_failed', __( 'The booking request could not be fingerprinted.', 'extrachill-events' ) )
 			: hash_hmac( 'sha256', $json, wp_salt( 'auth' ) );

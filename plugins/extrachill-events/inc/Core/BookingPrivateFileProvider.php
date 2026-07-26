@@ -57,8 +57,9 @@ interface BookingPrivateFileProvider {
 	 * @param int    $actor_id             Authorized user identity.
 	 * @param string $purpose              Authorized download purpose.
 	 * @param string $claim_key            Exact active attachment claim.
+	 * @param string $correlation_id       Events-owned delivery correlation.
 	 */
-	public function download_descriptor( string $storage_reference, string $attachment_public_id, int $actor_id, string $purpose, string $claim_key );
+	public function download_descriptor( string $storage_reference, string $attachment_public_id, int $actor_id, string $purpose, string $claim_key, string $correlation_id );
 
 	/**
 	 * Open a previously authorized internal stream token.
@@ -67,8 +68,9 @@ interface BookingPrivateFileProvider {
 	 * @param string $attachment_public_id Authorized attachment identity.
 	 * @param int    $actor_id             Currently authorized user identity.
 	 * @param string $purpose              Authorized download purpose.
+	 * @param string $correlation_id       Events-owned delivery correlation.
 	 */
-	public function open_stream( string $stream_token, string $attachment_public_id, int $actor_id, string $purpose );
+	public function open_stream( string $stream_token, string $attachment_public_id, int $actor_id, string $purpose, string $correlation_id );
 
 	/**
 	 * Permanently retire one exact private object.

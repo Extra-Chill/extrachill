@@ -28,6 +28,8 @@ class BookingCommunicationService {
 	private $activity;
 	/** @var VenueAuthorization */
 	private $authorization;
+	/** @var VenueBookingConfig */
+	private $config;
 	/** @var callable|null */
 	private $queue;
 	/** @var callable|null */
@@ -39,10 +41,11 @@ class BookingCommunicationService {
 	/** @var bool */
 	private $transaction_active = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, $queue = null, $schedule = null, $cancel = null, $find_actions = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, $queue = null, $schedule = null, $cancel = null, $find_actions = null, ?VenueBookingConfig $config = null ) {
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->activity      = $activity ? $activity : new BookingActivityRepository();
 		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+		$this->config        = $config ? $config : new VenueBookingConfig( $this->authorization );
 		$this->queue         = $queue;
 		$this->schedule      = $schedule;
 		$this->cancel        = $cancel;
@@ -116,6 +119,11 @@ class BookingCommunicationService {
 			}
 			return $this->resume( $existing );
 		}
+		$prepared = $this->prepare_request( $normalized, $booking );
+		if ( is_wp_error( $prepared ) ) {
+			return $this->rollback( $prepared );
+		}
+		$normalized = $prepared;
 
 		$intent = $this->activity->append(
 			array(
@@ -215,7 +223,15 @@ class BookingCommunicationService {
 		}
 		$data   = $intent['payload']['data'];
 		$reason = null;
-		if ( (int) $booking['version'] !== (int) $data['booking_version'] || in_array( $booking['status'], self::TERMINAL_STATUSES, true ) || ! in_array( $booking['status'], $data['expected_statuses'], true ) ) {
+		$config = $this->config->get( (int) $booking['venue_term_id'] );
+		if ( is_wp_error( $config ) ) {
+			return $this->rollback( $config );
+		}
+		$current_template = $config['correspondence']['templates'][ $data['template'] ] ?? null;
+		$current_policy   = $config['correspondence']['reminder_policies'][ $data['template'] ] ?? null;
+		if ( ! is_array( $current_template ) || ! is_array( $current_policy ) || empty( $current_policy['enabled'] ) || (int) $current_template['version'] !== (int) $data['template_version'] || (int) $current_policy['version'] !== (int) $data['reminder_policy_version'] ) {
+			$reason = 'reminder_policy_changed';
+		} elseif ( (int) $booking['version'] !== (int) $data['booking_version'] || in_array( $booking['status'], self::TERMINAL_STATUSES, true ) || ! in_array( $booking['status'], $data['expected_statuses'], true ) ) {
 			$reason = 'booking_status_changed';
 		} elseif ( strtolower( (string) $booking['contact_email'] ) !== strtolower( $data['recipient'] ) ) {
 			$reason = 'booking_recipient_changed';
@@ -803,7 +819,7 @@ class BookingCommunicationService {
 			'to'           => $data['recipient'],
 			'cc'           => $data['cc'],
 			'subject'      => $data['subject'],
-			'body'         => $this->render_body( $data['template'], $data['message'] ),
+			'body'         => $data['body'],
 			'context'      => array( 'booking_communication_intent_id' => (int) $intent['id'] ),
 			'content_type' => 'text/plain',
 			'from_name'    => $data['from_name'],
@@ -889,44 +905,70 @@ class BookingCommunicationService {
 	}
 
 	private function normalize_request( array $input ) {
-		$booking_id = absint( $input['booking_id'] ?? 0 );
-		$key        = mb_substr( sanitize_text_field( (string) ( $input['idempotency_key'] ?? '' ) ), 0, 120 );
-		$template   = sanitize_key( (string) ( $input['template'] ?? '' ) );
-		$recipient  = sanitize_email( (string) ( $input['recipient'] ?? '' ) );
-		$subject    = mb_substr( sanitize_text_field( (string) ( $input['subject'] ?? '' ) ), 0, 200 );
-		$message    = mb_substr( sanitize_textarea_field( (string) ( $input['message'] ?? '' ) ), 0, 10000 );
-		$reply_to   = sanitize_email( (string) ( $input['reply_to'] ?? '' ) );
-		if ( $booking_id < 1 || '' === $key || ! in_array( $template, self::TEMPLATES, true ) || '' === $recipient || '' === $subject || '' === $message || '' === $reply_to ) {
+		$booking_id       = absint( $input['booking_id'] ?? 0 );
+		$key              = mb_substr( sanitize_text_field( (string) ( $input['idempotency_key'] ?? '' ) ), 0, 120 );
+		$template         = sanitize_key( (string) ( $input['template'] ?? '' ) );
+		$recipient        = sanitize_email( (string) ( $input['recipient'] ?? '' ) );
+		$message          = mb_substr( sanitize_textarea_field( (string) ( $input['message'] ?? '' ) ), 0, 10000 );
+		$reply_to         = sanitize_email( (string) ( $input['reply_to'] ?? '' ) );
+		$template_version = isset( $input['template_version'] ) ? (int) $input['template_version'] : null;
+		if ( $booking_id < 1 || '' === $key || ! in_array( $template, self::TEMPLATES, true ) || '' === $recipient || '' === $message || '' === $reply_to || ( null !== $template_version && $template_version < 1 ) ) {
 			return new \WP_Error( 'booking_message_invalid', __( 'The booking message request is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		$send_at = $input['send_at'] ?? null;
-		if ( null !== $send_at && ( ! is_string( $send_at ) || ! $this->valid_datetime( $send_at ) || strtotime( $send_at . ' UTC' ) <= time() ) ) {
-			return new \WP_Error( 'booking_reminder_datetime_invalid', __( 'Reminder time must be a future UTC datetime.', 'extrachill-events' ), array( 'status' => 400 ) );
-		}
-		$statuses = array_values( array_unique( array_map( 'sanitize_key', (array) ( $input['expected_statuses'] ?? array() ) ) ) );
-		if ( null !== $send_at && ( empty( $statuses ) || array_diff( $statuses, BookingRepository::STATUSES ) ) ) {
-			return new \WP_Error( 'booking_reminder_statuses_invalid', __( 'Scheduled reminders require valid expected booking statuses.', 'extrachill-events' ), array( 'status' => 400 ) );
-		}
 		return array(
-			'booking_id'        => $booking_id,
-			'idempotency_key'   => $key,
-			'template'          => $template,
-			'recipient'         => $recipient,
-			'subject'           => $subject,
-			'message'           => $message,
-			'reply_to'          => $reply_to,
-			'send_at'           => $send_at,
-			'expected_statuses' => $statuses,
+			'booking_id'       => $booking_id,
+			'idempotency_key'  => $key,
+			'template'         => $template,
+			'template_version' => $template_version,
+			'recipient'        => $recipient,
+			'message'          => $message,
+			'reply_to'         => $reply_to,
 		);
 	}
 
-	private function render_body( string $template, string $message ): string {
-		$lead = array(
-			'operator_message' => 'A message from the Extra Chill booking team:',
-			'follow_up'        => 'Following up on your booking inquiry:',
-			'hold_expiring'    => 'A reminder about your booking hold:',
-		)[ $template ];
-		return $lead . "\n\n" . $message . "\n\nExtra Chill Bot sending on Chris's behalf.";
+	/** Resolve server-owned variables and venue policy into one durable payload. */
+	private function prepare_request( array $request, array $booking ) {
+		$venue = get_term( (int) $booking['venue_term_id'], 'venue' );
+		if ( ! $venue || is_wp_error( $venue ) ) {
+			return new \WP_Error( 'booking_correspondence_venue_unavailable', __( 'The booking venue could not be resolved for correspondence.', 'extrachill-events' ) );
+		}
+		$prepared = $this->config->prepare_correspondence(
+			(int) $booking['venue_term_id'],
+			$request['template'],
+			$request['template_version'],
+			array(
+				'artist_name'  => (string) $booking['artist_name'],
+				'booking_id'   => (string) $booking['public_id'],
+				'contact_name' => (string) $booking['contact_name'],
+				'venue_name'   => (string) $venue->name,
+				'message'      => $request['message'],
+			)
+		);
+		if ( is_wp_error( $prepared ) ) {
+			return $prepared;
+		}
+		$policy            = $prepared['reminder_policy'];
+		$send_at           = null;
+		$expected_statuses = array();
+		$policy_version    = null;
+		if ( is_array( $policy ) && ! empty( $policy['enabled'] ) ) {
+			$send_at           = gmdate( 'Y-m-d H:i:s', time() + ( (int) $policy['delay_minutes'] * MINUTE_IN_SECONDS ) );
+			$expected_statuses = $policy['expected_statuses'];
+			$policy_version    = (int) $policy['version'];
+		}
+		return array_merge(
+			$request,
+			array(
+				'template_version'        => (int) $prepared['template_version'],
+				'config_revision'         => (int) $prepared['config_revision'],
+				'subject'                 => $prepared['subject'],
+				'body'                    => $prepared['body'],
+				'reply_to'                => $prepared['booking_address'] ? $prepared['booking_address'] : $request['reply_to'],
+				'send_at'                 => $send_at,
+				'expected_statuses'       => $expected_statuses,
+				'reminder_policy_version' => $policy_version,
+			)
+		);
 	}
 
 	private function request_hash( array $request, int $actor_id ): string {
@@ -941,11 +983,6 @@ class BookingCommunicationService {
 			),
 			wp_salt( 'auth' )
 		);
-	}
-
-	private function valid_datetime( string $value ): bool {
-		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, new \DateTimeZone( 'UTC' ) );
-		return false !== $date && $date->format( 'Y-m-d H:i:s' ) === $value;
 	}
 
 	private function begin_authorized( int $venue_id, int $actor_id ) {

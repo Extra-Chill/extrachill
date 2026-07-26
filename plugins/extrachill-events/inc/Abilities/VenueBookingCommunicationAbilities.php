@@ -102,11 +102,11 @@ class VenueBookingCommunicationAbilities {
 					'summary'       => sprintf( 'Send booking email to %s.', $input['recipient'] ),
 					'apply_input'   => $input,
 					'preview_data'  => array(
-						'booking_id' => $input['booking_id'],
-						'recipient'  => $input['recipient'],
-						'subject'    => $input['subject'],
-						'message'    => $input['message'],
-						'send_at'    => $input['send_at'] ?? null,
+						'booking_id'       => $input['booking_id'],
+						'recipient'        => $input['recipient'],
+						'template'         => $input['template'],
+						'template_version' => $input['template_version'] ?? null,
+						'message'          => $input['message'],
 					),
 					'user_id'       => get_current_user_id(),
 					'authorization' => array(
@@ -183,6 +183,10 @@ class VenueBookingCommunicationAbilities {
 					'minLength' => 1,
 					'maxLength' => 200,
 				),
+				'template_version'  => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
 				'message'           => array(
 					'type'      => 'string',
 					'minLength' => 1,
@@ -211,7 +215,7 @@ class VenueBookingCommunicationAbilities {
 					'default' => 'direct',
 				),
 			),
-			'required'             => array( 'booking_id', 'idempotency_key', 'template', 'recipient', 'subject', 'message', 'reply_to' ),
+			'required'             => array( 'booking_id', 'idempotency_key', 'template', 'recipient', 'message', 'reply_to' ),
 			'additionalProperties' => false,
 		);
 	}

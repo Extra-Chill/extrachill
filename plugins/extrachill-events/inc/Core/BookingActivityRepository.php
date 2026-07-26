@@ -386,6 +386,80 @@ class BookingActivityRepository {
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
 
+	/** List landed source activities that do not yet have outbox requests. */
+	public function notification_sources_without_requests( int $limit ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$limit = max( 1, min( 100, $limit ) );
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT source.* FROM {$table} source WHERE source.kind IN ('inquiry_submitted', 'assignment_changed', 'status_changed', 'hold_expired', 'event_conversion_failed') AND NOT EXISTS (SELECT 1 FROM {$table} request WHERE request.kind IN ('notification_requested', 'notification_source_ignored') AND request.external_id = CAST(source.id AS CHAR)) ORDER BY source.id ASC LIMIT %d", $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded recovery scan over the append-only outbox ledger.
+		return $this->hydrate_rows( $rows, 'booking_notification_source_scan_failed' );
+	}
+
+	/** List pending outbox requests without terminal delivery/suppression records. */
+	public function pending_notification_requests( int $limit ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$limit = max( 1, min( 100, $limit ) );
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT request.* FROM {$table} request WHERE request.kind = 'notification_requested' AND NOT EXISTS (SELECT 1 FROM {$table} terminal WHERE terminal.kind IN ('notification_delivered', 'notification_suppressed') AND terminal.external_id = CAST(request.id AS CHAR)) AND NOT EXISTS (SELECT 1 FROM {$table} deferred WHERE deferred.kind = 'notification_delivery_attempted' AND deferred.external_id = CAST(request.id AS CHAR) AND deferred.occurred_at > UTC_TIMESTAMP()) ORDER BY request.id ASC LIMIT %d", $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded due-only outbox scan.
+		return $this->hydrate_rows( $rows, 'booking_notification_request_scan_failed' );
+	}
+
+	/** Read a terminal notification record for one request. */
+	public function notification_terminal( int $request_activity_id ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE external_id = %s AND kind IN ('notification_delivered', 'notification_suppressed') ORDER BY id DESC LIMIT 1", (string) $request_activity_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact request terminal lookup.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_notification_terminal_read_failed', __( 'Booking notification terminal state could not be read.', 'extrachill-events' ) );
+		}
+		return is_array( $row ) ? $this->hydrate( $row ) : null;
+	}
+
+	/** Count persisted delivery attempts for one request. */
+	public function notification_attempt_count( int $request_activity_id ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE external_id = %s AND kind = 'notification_delivery_attempted'", (string) $request_activity_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact request attempt count.
+		return '' !== (string) $wpdb->last_error || ! is_numeric( $count )
+			? new \WP_Error( 'booking_notification_attempt_read_failed', __( 'Booking notification attempts could not be read.', 'extrachill-events' ) )
+			: (int) $count;
+	}
+
+	/** Confirm the latest persisted retry due time has elapsed. */
+	public function notification_retry_is_due( int $request_activity_id ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$due   = $wpdb->get_var( $wpdb->prepare( "SELECT MAX(occurred_at) FROM {$table} WHERE external_id = %s AND kind = 'notification_delivery_attempted'", (string) $request_activity_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact persisted retry schedule.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_notification_retry_schedule_read_failed', __( 'The notification retry schedule could not be read.', 'extrachill-events' ) );
+		}
+		return null === $due || '' === $due || (string) $due <= gmdate( 'Y-m-d H:i:s' );
+	}
+
+	/** Remove every side effect of one failed inquiry before compensation commits. */
+	public function discard_for_booking( int $booking_id ) {
+		global $wpdb;
+		$deleted = $wpdb->delete( BookingSchema::activity_table(), array( 'booking_id' => $booking_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed inquiry compensation only.
+		return false === $deleted ? new \WP_Error( 'booking_inquiry_activity_compensation_failed', __( 'Failed inquiry activity could not be removed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : true;
+	}
+
+	/** Hydrate a query result set or return its database failure. */
+	private function hydrate_rows( $rows, string $error_code ) {
+		global $wpdb;
+		if ( '' !== (string) $wpdb->last_error || ! is_array( $rows ) ) {
+			return new \WP_Error( $error_code, __( 'Booking notification activity could not be read.', 'extrachill-events' ) );
+		}
+		$output = array();
+		foreach ( $rows as $row ) {
+			$item = $this->hydrate( $row );
+			if ( is_wp_error( $item ) ) {
+				return $item;
+			}
+			$output[] = $item;
+		}
+		return $output;
+	}
+
 	/** Hydrate one validated activity row. */
 	public function hydrate( array $row ) {
 		$decoded = json_decode( (string) ( $row['payload'] ?? '' ), true );

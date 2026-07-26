@@ -122,7 +122,8 @@ class BookingRepository {
 			'inquiry_request_hash'    => $request_hash,
 			'requested_space_key'     => $this->nullable_key( $data['requested_space_key'] ?? null, 64 ),
 			'space_key'               => $this->nullable_key( $data['space_key'] ?? null, 64 ),
-			'status'                  => 'submitted',
+			'status'                  => 'admission_pending' === ( $data['status'] ?? '' ) ? 'admission_pending' : 'submitted',
+			'admission_owner_token'   => $this->nullable_text( $data['admission_owner_token'] ?? null, 36 ),
 			'version'                 => 1,
 			'assignee_user_id'        => $ids['assignee_user_id'],
 			'requested_start_at'      => $start,
@@ -146,7 +147,7 @@ class BookingRepository {
 			}
 			return new \WP_Error( 'booking_create_failed', __( 'The booking could not be created.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
 		}
-		return $this->get( (int) $wpdb->insert_id );
+		return $this->get( (int) $wpdb->insert_id, true );
 	}
 
 	/** Find a retried inquiry by its venue-scoped key. */
@@ -160,20 +161,89 @@ class BookingRepository {
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
 
+	/** Claim an existing hidden reservation for the current serialized attempt. */
+	public function claim_admission( array $booking, string $owner_token ) {
+		global $wpdb;
+		if ( 'admission_pending' !== ( $booking['status'] ?? '' ) || empty( $booking['id'] ) || empty( $booking['version'] ) ) {
+			return new \WP_Error( 'booking_admission_claim_invalid', __( 'Only an admission reservation can be claimed.', 'extrachill-events' ) );
+		}
+		$updated = $wpdb->update(
+			BookingSchema::bookings_table(),
+			array(
+				'admission_owner_token' => $owner_token,
+				'version'               => (int) $booking['version'] + 1,
+				'updated_at'            => gmdate( 'Y-m-d H:i:s' ),
+			),
+			array(
+				'id'      => (int) $booking['id'],
+				'status'  => 'admission_pending',
+				'version' => (int) $booking['version'],
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Owner/version CAS under the inquiry lock.
+		return 1 === $updated ? $this->get( (int) $booking['id'], true ) : new \WP_Error( 'booking_admission_claim_conflict', __( 'The inquiry reservation changed before it could be claimed.', 'extrachill-events' ) );
+	}
+
+	/** Publish one exact owned reservation inside the caller transaction. */
+	public function publish_admission( array $booking ) {
+		global $wpdb;
+		$updated = $wpdb->update(
+			BookingSchema::bookings_table(),
+			array(
+				'status'                => 'submitted',
+				'admission_owner_token' => null,
+				'version'               => (int) $booking['version'] + 1,
+				'updated_at'            => gmdate( 'Y-m-d H:i:s' ),
+			),
+			array(
+				'id'                    => (int) $booking['id'],
+				'status'                => 'admission_pending',
+				'admission_owner_token' => (string) $booking['admission_owner_token'],
+				'version'               => (int) $booking['version'],
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Owner/version CAS inside atomic publication.
+		return 1 === $updated ? $this->get_for_update( (int) $booking['id'] ) : new \WP_Error( 'booking_admission_publish_conflict', __( 'The inquiry reservation changed before publication.', 'extrachill-events' ) );
+	}
+
+	/** Remove one exact failed inquiry during admission compensation. */
+	public function discard_inquiry( array $booking ) {
+		global $wpdb;
+		if ( empty( $booking['id'] ) || empty( $booking['inquiry_idempotency_key'] ) || empty( $booking['admission_owner_token'] ) || empty( $booking['version'] ) || 'admission_pending' !== ( $booking['status'] ?? '' ) || ! empty( $booking['event_id'] ) ) {
+			return new \WP_Error( 'booking_inquiry_compensation_invalid', __( 'Only the owned admission reservation can be compensated.', 'extrachill-events' ) );
+		}
+		$deleted = $wpdb->delete(
+			BookingSchema::bookings_table(),
+			array(
+				'id'                      => (int) $booking['id'],
+				'inquiry_idempotency_key' => (string) $booking['inquiry_idempotency_key'],
+				'status'                  => 'admission_pending',
+				'admission_owner_token'   => (string) $booking['admission_owner_token'],
+				'version'                 => (int) $booking['version'],
+				'event_id'                => null,
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact failed aggregate compensation.
+		return 1 === $deleted ? true : new \WP_Error( 'booking_inquiry_compensation_failed', __( 'The failed inquiry could not be removed safely.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+	}
+
 	/** Get a booking by numeric ID or UUID public reference. */
-	public function get( $identifier ) {
+	public function get( $identifier, bool $include_reservations = false ) {
 		global $wpdb;
 		$table = BookingSchema::bookings_table();
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
 		if ( is_int( $identifier ) || ( is_string( $identifier ) && ctype_digit( $identifier ) ) ) {
 			$id = $this->positive_id( $identifier, 'booking_id', false );
 			if ( is_wp_error( $id ) ) {
 				return $id;
 			}
-			$sql = $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1", $id ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
+			$sql = $include_reservations
+				? $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1", $id )
+				: $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d AND status <> 'admission_pending' LIMIT 1", $id ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
 		} else {
-			$sql = $wpdb->prepare( "SELECT * FROM {$table} WHERE public_id = %s LIMIT 1", (string) $identifier ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
+			$sql = $include_reservations
+				? $wpdb->prepare( "SELECT * FROM {$table} WHERE public_id = %s LIMIT 1", (string) $identifier )
+				: $wpdb->prepare( "SELECT * FROM {$table} WHERE public_id = %s AND status <> 'admission_pending' LIMIT 1", (string) $identifier ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
 		}
 		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query prepared above.
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'booking_read_failed', __( 'The booking could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
@@ -181,14 +251,19 @@ class BookingRepository {
 	}
 
 	/** Read and lock one booking inside an existing transaction. */
-	public function get_for_update( int $id ) {
+	public function get_for_update( int $id, bool $include_reservations = false ) {
 		global $wpdb;
 		$id = $this->positive_id( $id, 'booking_id', false );
 		if ( is_wp_error( $id ) ) {
 			return $id;
 		}
 		$table = BookingSchema::bookings_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1 FOR UPDATE", $id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate row lock inside a caller-owned transaction.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
+		$sql = $include_reservations
+			? $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1 FOR UPDATE", $id )
+			: $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d AND status <> 'admission_pending' LIMIT 1 FOR UPDATE", $id );
+		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate row lock inside a caller-owned transaction.
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'booking_read_failed', __( 'The booking could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
@@ -204,10 +279,13 @@ class BookingRepository {
 			return $venue_term_id;
 		}
 		$table  = BookingSchema::bookings_table();
-		$where  = array( 'venue_term_id = %d' );
+		$where  = array( 'venue_term_id = %d', "status <> 'admission_pending'" );
 		$values = array( $venue_term_id );
 
 		if ( isset( $filters['status'] ) && '' !== $filters['status'] ) {
+			if ( 'admission_pending' === $filters['status'] ) {
+				return new \WP_Error( 'invalid_booking_status', __( 'The booking status is not supported.', 'extrachill-events' ) );
+			}
 			$status = $this->status( $filters['status'] );
 			if ( is_wp_error( $status ) ) {
 				return $status;
@@ -500,7 +578,7 @@ class BookingRepository {
 
 	/** Hydrate scalar IDs and validated JSON envelopes. */
 	public function hydrate( array $row ) {
-		$status = $this->status( $row['status'] ?? '' );
+		$status = 'admission_pending' === ( $row['status'] ?? '' ) ? 'admission_pending' : $this->status( $row['status'] ?? '' );
 		if ( is_wp_error( $status ) ) {
 			return $status;
 		}

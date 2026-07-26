@@ -16,3 +16,10 @@ if ( ! function_exists( 'ec_feature_available' ) ) {
 		return 'venue_booking' === $feature && $user_id > 0;
 	}
 }
+
+if ( ! function_exists( 'ec_get_blog_id' ) ) {
+	/** Map the isolated disposable site to the logical Events site. */
+	function ec_get_blog_id( string $site ): ?int {
+		return 'events' === $site ? get_current_blog_id() : null;
+	}
+}

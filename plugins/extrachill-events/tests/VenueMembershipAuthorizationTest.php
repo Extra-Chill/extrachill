@@ -74,6 +74,10 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 	function sanitize_text_field( $value ) {
 		return trim( strip_tags( (string) $value ) ); }
 }
+if ( ! function_exists( 'sanitize_textarea_field' ) ) {
+	function sanitize_textarea_field( $value ) {
+		return trim( strip_tags( (string) $value ) ); }
+}
 if ( ! function_exists( 'sanitize_email' ) ) {
 	function sanitize_email( $value ) {
 		return filter_var( trim( (string) $value ), FILTER_SANITIZE_EMAIL ); }
@@ -786,6 +790,7 @@ require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationToken.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingService.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationDeliveryWorker.php';
+require_once dirname( __DIR__ ) . '/inc/Core/BookingRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueProfile.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueMembershipAbilities.php';
@@ -1572,23 +1577,39 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 		$abilities->register();
 
 		$this->assertSame(
-			array( 'extrachill/get-venue-booking-config', 'extrachill/update-venue-booking-config' ),
+			array( 'extrachill/get-venue-booking-config', 'extrachill/update-venue-booking-config', 'extrachill/preview-booking-correspondence-template' ),
 			array_keys( $GLOBALS['venue_membership_test']['abilities'] )
 		);
 		$get    = $GLOBALS['venue_membership_test']['abilities']['extrachill/get-venue-booking-config'];
 		$update = $GLOBALS['venue_membership_test']['abilities']['extrachill/update-venue-booking-config'];
 		$this->assertTrue( call_user_func( $get['permission_callback'], array( 'venue_term_id' => 55 ) ) );
 		$this->assertSame( 'venue_action_forbidden', call_user_func( $get['permission_callback'], array( 'venue_term_id' => 56 ) )->get_error_code() );
+		$config_input  = $update['input_schema']['properties']['config'];
+		$config_output = $get['output_schema'];
+		$this->assertCount( 2, $config_input['oneOf'] );
+		$this->assertSame( array( 1 ), $config_input['oneOf'][0]['properties']['version']['enum'] );
+		$this->assertNotContains( 'correspondence', $config_input['oneOf'][0]['required'] );
+		$this->assertSame( array( 2 ), $config_input['oneOf'][1]['properties']['version']['enum'] );
+		$this->assertContains( 'correspondence', $config_input['oneOf'][1]['required'] );
+		$this->assertSame( array( 2 ), $config_output['properties']['version']['enum'] );
+		$this->assertContains( 'correspondence', $config_output['required'] );
 
 		$legacy = ( new VenueBookingConfig() )->defaults();
+		$legacy['version'] = 1;
+		unset( $legacy['correspondence'] );
 		unset( $legacy['revision'], $legacy['updated_by_user_id'], $legacy['updated_at'] );
 		$GLOBALS['venue_membership_test']['term_meta'][55][ VenueBookingConfig::META_KEY ] = $legacy;
 		$current = call_user_func( $get['execute_callback'], array( 'venue_term_id' => 55 ) );
+		$this->assertSame( 2, $current['version'] );
+		$this->assertArrayHasKey( 'correspondence', $current );
 		$this->assertSame( 0, $current['revision'] );
 		$this->assertNull( $current['updated_by_user_id'] );
 		$settings = $current;
 		unset( $settings['revision'], $settings['updated_by_user_id'], $settings['updated_at'] );
 		$settings['enabled'] = true;
+		$settings['correspondence']['booking_address'] = 'booking@example.com';
+		$settings['correspondence']['templates']['operator_message']['version'] = 2;
+		$settings['correspondence']['templates']['operator_message']['subject'] = 'Booking update for {{artist_name}} at {{venue_name}}';
 		$saved               = call_user_func(
 			$update['execute_callback'],
 			array(
@@ -1602,7 +1623,7 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 		$this->assertTrue( $saved['enabled'] );
 		$history = $GLOBALS['venue_membership_test']['term_history'][55][ VenueBookingConfig::HISTORY_META_KEY ];
 		$this->assertCount( 1, $history );
-		$this->assertSame( array( 'enabled' ), $history[0]['changed_fields'] );
+		$this->assertSame( array( 'enabled', 'correspondence' ), $history[0]['changed_fields'] );
 		$this->assertCount( 1, $GLOBALS['venue_membership_test']['fired_actions']['extrachill_events_venue_booking_config_updated'] );
 		$this->assertNotEmpty( $GLOBALS['venue_membership_test']['cache_deletes'] );
 
@@ -1627,6 +1648,35 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 		);
 		$this->assertSame( 1, $unchanged['revision'] );
 		$this->assertCount( 1, $GLOBALS['venue_membership_test']['term_history'][55][ VenueBookingConfig::HISTORY_META_KEY ] );
+		$stale_template = $settings;
+		$stale_template['correspondence']['templates']['operator_message']['subject'] = 'Changed without a template version';
+		$version_conflict = call_user_func(
+			$update['execute_callback'],
+			array(
+				'venue_term_id'     => 55,
+				'expected_revision' => 1,
+				'config'            => $stale_template,
+			)
+		);
+		$this->assertSame( 'booking_correspondence_item_version_conflict', $version_conflict->get_error_code() );
+		$this->assertSame( 2, $version_conflict->get_error_data()['current_version'] );
+		$this->assertCount( 1, $GLOBALS['venue_membership_test']['term_history'][55][ VenueBookingConfig::HISTORY_META_KEY ] );
+
+		$preview = $GLOBALS['venue_membership_test']['abilities']['extrachill/preview-booking-correspondence-template'];
+		$this->assertTrue( call_user_func( $preview['permission_callback'], array( 'venue_term_id' => 55 ) ) );
+		$rendered = call_user_func(
+			$preview['execute_callback'],
+			array(
+				'venue_term_id'            => 55,
+				'template'                => 'operator_message',
+				'expected_template_version' => 2,
+				'variables'               => array( 'artist_name' => 'Test Band', 'message' => 'A safe preview.' ),
+			)
+		);
+		$this->assertSame( 2, $rendered['template_version'] );
+		$this->assertSame( 1, $rendered['config_revision'] );
+		$this->assertStringContainsString( 'Test Band', $rendered['subject'] );
+		$this->assertStringContainsString( 'A safe preview.', $rendered['body'] );
 	}
 
 	public function test_config_update_reauthorizes_and_rolls_back_failed_audit(): void {

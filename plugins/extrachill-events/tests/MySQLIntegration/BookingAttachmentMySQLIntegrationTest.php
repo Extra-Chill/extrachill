@@ -9,9 +9,13 @@
 
 use ExtraChillEvents\Core\BookingAttachmentRepository;
 use ExtraChillEvents\Core\BookingAttachmentService;
+use ExtraChillEvents\Core\BookingActivityRepository;
+use ExtraChillEvents\Core\BookingInquiryAdmissionService;
+use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingPrivateFileProvider;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
@@ -32,11 +36,24 @@ final class BookingAttachmentMySQLProbeProvider implements BookingPrivateFilePro
 	 * @var string[]
 	 */
 	public $retired = array();
+	/** @var callable|null Probe invoked while the complete inquiry lock is held. */
+	public $stage_probe;
+	/** @var int Number of staged objects. */
+	public $stage_count = 0;
+	/** @var string Shared cross-process stage/retire journal. */
+	public $event_log = '';
 
-	/** The integration probe does not stage files. */
+	/** Stage one deterministic probe object. */
 	public function stage( string $source_path, string $filename, string $purpose ) {
 		unset( $source_path, $filename, $purpose );
-		return new WP_Error( 'not_implemented' );
+		++$this->stage_count;
+		if ( '' !== $this->event_log ) {
+			file_put_contents( $this->event_log, "stage\n", FILE_APPEND | LOCK_EX );
+		}
+		if ( is_callable( $this->stage_probe ) ) {
+			( $this->stage_probe )();
+		}
+		return 'private_inquiry_probe_object_' . $this->stage_count;
 	}
 
 	/** Return fixed trusted metadata after running the concurrency probe. */
@@ -72,14 +89,14 @@ final class BookingAttachmentMySQLProbeProvider implements BookingPrivateFilePro
 	}
 
 	/** Downloads are outside this integration scope. */
-	public function download_descriptor( string $storage_reference, string $attachment_public_id, int $actor_id, string $purpose, string $claim_key ) {
-		unset( $storage_reference, $attachment_public_id, $actor_id, $purpose, $claim_key );
+	public function download_descriptor( string $storage_reference, string $attachment_public_id, int $actor_id, string $purpose, string $claim_key, string $correlation_id ) {
+		unset( $storage_reference, $attachment_public_id, $actor_id, $purpose, $claim_key, $correlation_id );
 		return new WP_Error( 'not_implemented' );
 	}
 
 	/** Downloads are outside this integration scope. */
-	public function open_stream( string $stream_token, string $attachment_public_id, int $actor_id, string $purpose ) {
-		unset( $stream_token, $attachment_public_id, $actor_id, $purpose );
+	public function open_stream( string $stream_token, string $attachment_public_id, int $actor_id, string $purpose, string $correlation_id ) {
+		unset( $stream_token, $attachment_public_id, $actor_id, $purpose, $correlation_id );
 		return new WP_Error( 'not_implemented' );
 	}
 
@@ -89,12 +106,15 @@ final class BookingAttachmentMySQLProbeProvider implements BookingPrivateFilePro
 			( $this->retire_probe )();
 		}
 		$this->retired[] = $storage_reference;
+		if ( '' !== $this->event_log ) {
+			file_put_contents( $this->event_log, "retire\n", FILE_APPEND | LOCK_EX );
+		}
 		return true;
 	}
 }
 
 /** Exercises production repositories, authorization, transactions, and cleanup. */
-final class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
+class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 	/** Independent contender connection.
 	 *
 	 * @var mysqli
@@ -104,17 +124,17 @@ final class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 	 *
 	 * @var BookingAttachmentMySQLProbeProvider
 	 */
-	private $provider;
+	protected $provider;
 	/** Venue fixture ID.
 	 *
 	 * @var int
 	 */
-	private $venue_id;
+	protected $venue_id;
 	/** Authorized actor fixture ID.
 	 *
 	 * @var int
 	 */
-	private $actor_id;
+	protected $actor_id;
 	/** Whether the membership contender remained blocked during claim.
 	 *
 	 * @var bool
@@ -144,9 +164,10 @@ final class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		$venue          = self::factory()->term->create_and_get(
 			array(
 				'taxonomy' => 'venue',
-				'name'     => 'Integration Room',
+				'name'     => 'Integration Room ' . wp_generate_uuid4(),
 			)
 		);
+		$this->assertNotWPError( $venue );
 		$this->venue_id = (int) $venue->term_id;
 		$this->actor_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		get_user_by( 'id', $this->actor_id )->add_cap( VenueAuthorization::ACCESS_CAPABILITY );
@@ -173,7 +194,7 @@ final class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		if ( $this->contender instanceof mysqli ) {
 			$this->contender->close();
 		}
-		foreach ( array( BookingSchema::holds_table(), BookingSchema::attachments_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), BookingSchema::memberships_table() ) as $table ) {
+		foreach ( array( BookingSchema::holds_table(), BookingSchema::attachment_deliveries_table(), BookingSchema::attachments_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), BookingSchema::memberships_table() ) as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Disposable test database cleanup.
 		}
 		delete_option( BookingSchema::VERSION_OPTION );
@@ -249,6 +270,16 @@ final class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		$this->assertSame( 'purged', ( new BookingAttachmentRepository() )->get( $attachment['id'] )['state'] );
 	}
 
+	/** Give a forked application process an independent WordPress DB session. */
+	protected function reconnect_wordpress_database(): void {
+		global $wpdb, $table_prefix;
+		if ( $wpdb->dbh instanceof mysqli ) {
+			$wpdb->dbh->close();
+		}
+		$wpdb = new wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
+		$wpdb->set_prefix( $table_prefix );
+	}
+
 	/** Connect to the same disposable database independently of WordPress. */
 	private function connect_second_session(): mysqli {
 		$host = (string) getenv( 'DB_HOST' );
@@ -276,4 +307,5 @@ final class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		$scope = get_current_blog_id() . ':' . BookingSchema::attachments_table() . ':' . $reference;
 		return 'ec_booking_file_' . substr( hash( 'sha256', $scope ), 0, 40 );
 	}
+
 }

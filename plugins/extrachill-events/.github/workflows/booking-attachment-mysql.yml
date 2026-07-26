@@ -9,13 +9,22 @@ on:
       - composer.lock
       - inc/Core/BookingAttachmentService.php
       - inc/Core/BookingAttachmentRepository.php
+      - inc/Core/BookingAttachmentPolicy.php
+      - inc/Core/BookingInquiryAdmissionService.php
+      - inc/Core/BookingLifecycle.php
       - inc/Core/BookingRepository.php
       - inc/Core/BookingSchema.php
       - inc/Core/VenueAuthorization.php
       - inc/Core/VenueMembershipRepository.php
       - phpunit-booking-mysql.xml.dist
+      - phpunit-booking-concurrency.xml.dist
+      - inc/Abilities/VenueBookingAbilities.php
+      - tests/BookingInquiryAdmissionTest.php
       - tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php
+      - tests/MySQLIntegration/BookingAdmissionConcurrencyMySQLProof.php
       - tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php
+      - tests/MySQLIntegration/host-wordpress-bootstrap.php
+      - tests/MySQLIntegration/wp-tests-config.php
 
 permissions:
   contents: read
@@ -25,6 +34,19 @@ jobs:
     name: Booking attachment MySQL concurrency
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
 
     steps:
       - name: Checkout Extra Chill Events
@@ -88,6 +110,36 @@ jobs:
             }')
           node .ci/homeboy-extensions/wordpress/scripts/test/wp-codebox-phpunit-adapter.mjs
 
+      - name: Install native WordPress test runtime
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes subversion
+          curl --fail --location --silent --show-error https://wordpress.org/latest.tar.gz | tar -xz -C /tmp
+          wp_version=$(php -r "include '/tmp/wordpress/wp-includes/version.php'; echo \$wp_version;")
+          wp_branch=$(printf '%s' "$wp_version" | cut -d. -f1,2)
+          mkdir -p /tmp/wordpress-tests-lib
+          svn export --quiet "https://develop.svn.wordpress.org/tags/${wp_branch}/tests/phpunit/includes" /tmp/wordpress-tests-lib/includes
+          svn export --quiet "https://develop.svn.wordpress.org/tags/${wp_branch}/tests/phpunit/data" /tmp/wordpress-tests-lib/data
+
+      - name: Run overlapping application admission proof
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: ""
+          DB_NAME: wordpress_test
+          WP_CORE_DIR: /tmp/wordpress
+          WP_TESTS_DIR: /tmp/wordpress-tests-lib
+          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
+        run: |
+          set -euo pipefail
+          vendor/bin/phpunit -c phpunit-booking-concurrency.xml.dist --filter test_concurrent_exact_inquiry_retry_reuses_one_complete_winner | tee "$RUNNER_TEMP/booking-admission-concurrency.txt"
+          grep -E 'OK \(1 test, [1-9][0-9]* assertions?\)' "$RUNNER_TEMP/booking-admission-concurrency.txt"
+          if grep -Eiq 'skip|no tests executed|OK, but' "$RUNNER_TEMP/booking-admission-concurrency.txt"; then
+            exit 1
+          fi
+
       - name: Verify executed PHPUnit evidence
         env:
           ARTIFACTS_DIR: ${{ runner.temp }}/booking-attachment-mysql
@@ -121,5 +173,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: booking-attachment-mysql-evidence
-          path: ${{ runner.temp }}/booking-attachment-mysql
+          path: |
+            ${{ runner.temp }}/booking-attachment-mysql
+            ${{ runner.temp }}/booking-admission-concurrency.txt
           if-no-files-found: error

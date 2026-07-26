@@ -64,6 +64,8 @@ class BookingAttachmentAbilities {
 		$this->register_ability( 'replace-booking-attachment', false, false, array( $this, 'replace' ), $this->attach_input( true ) );
 		$this->register_ability( 'delete-booking-attachment', false, true, array( $this, 'delete' ), $this->attachment_input() );
 		$this->register_ability( 'download-booking-attachment', false, false, array( $this, 'download' ), $this->attachment_input() );
+		$this->register_ability( 'record-booking-attachment-delivery', false, true, array( $this, 'record_delivery' ), $this->delivery_input() );
+		$this->register_ability( 'inspect-booking-attachment-deliveries', false, true, array( $this, 'inspect_deliveries' ), $this->booking_input() );
 	}
 
 	/**
@@ -83,7 +85,7 @@ class BookingAttachmentAbilities {
 				'description'         => __( 'Manage one private booking attachment within an authorized venue scope.', 'extrachill-events' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $input,
-				'output_schema'       => 'list-booking-attachments' === $slug
+				'output_schema'       => in_array( $slug, array( 'list-booking-attachments', 'inspect-booking-attachment-deliveries' ), true )
 					? array(
 						'type'  => 'array',
 						'items' => array( 'type' => 'object' ),
@@ -94,7 +96,7 @@ class BookingAttachmentAbilities {
 				'meta'                => array(
 					'show_in_rest' => $show_in_rest,
 					'annotations'  => array(
-						'readonly'    => 'list-booking-attachments' === $slug,
+						'readonly'    => in_array( $slug, array( 'list-booking-attachments', 'inspect-booking-attachment-deliveries' ), true ),
 						'idempotent'  => $idempotent,
 						'destructive' => in_array( $slug, array( 'replace-booking-attachment', 'delete-booking-attachment' ), true ),
 					),
@@ -159,6 +161,31 @@ class BookingAttachmentAbilities {
 	}
 
 	/**
+	 * Record an API transport terminal outcome against its exact Events handoff.
+	 *
+	 * @param array $input Ability input.
+	 */
+	public function record_delivery( array $input ) {
+		return $this->service->record_delivery_outcome(
+			(int) $input['booking_id'],
+			(int) $input['attachment_id'],
+			(string) $input['correlation_id'],
+			(string) $input['outcome'],
+			(int) $input['bytes_sent'],
+			get_current_user_id()
+		);
+	}
+
+	/**
+	 * Return bounded diagnostics without attachment, actor, or storage identifiers.
+	 *
+	 * @param array $input Ability input.
+	 */
+	public function inspect_deliveries( array $input ) {
+		return $this->service->delivery_diagnostics( (int) $input['booking_id'], get_current_user_id(), 100 );
+	}
+
+	/**
 	 * Resolve the booking internally, then authorize its stored venue.
 	 *
 	 * @param array $input Ability input.
@@ -204,6 +231,29 @@ class BookingAttachmentAbilities {
 			'minimum' => 1,
 		);
 		$schema['required'][]                  = 'attachment_id';
+		return $schema;
+	}
+
+	/** Return the exact terminal delivery callback contract used by API transport. */
+	private function delivery_input(): array {
+		$schema                                 = $this->attachment_input();
+		$schema['properties']['correlation_id'] = array(
+			'type'      => 'string',
+			'minLength' => 36,
+			'maxLength' => 36,
+			'pattern'   => '^[a-fA-F0-9-]{36}$',
+		);
+		$schema['properties']['outcome']        = array(
+			'type' => 'string',
+			'enum' => array( 'completed', 'failed', 'interrupted', 'partial' ),
+		);
+		$schema['properties']['bytes_sent']     = array(
+			'type'    => 'integer',
+			'minimum' => 0,
+		);
+		$schema['required'][]                   = 'correlation_id';
+		$schema['required'][]                   = 'outcome';
+		$schema['required'][]                   = 'bytes_sent';
 		return $schema;
 	}
 

@@ -305,6 +305,7 @@ class BookingEventConversionService {
 		if ( is_wp_error( $committed ) ) {
 			return $this->failure_finalize_error( $upstream, $attempt, $committed );
 		}
+		BookingNotificationService::emit( BookingNotificationService::TYPE_EVENT_HANDOFF_FAILED, (int) $failed['id'] );
 		return $this->upstream_error( $upstream, $attempt, $booking['version'] );
 	}
 

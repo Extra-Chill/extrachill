@@ -42,7 +42,22 @@ final class BookingCommunicationTest extends TestCase {
 				7 => array(
 					55 => array(
 						'_venue_timezone' => 'America/New_York',
-						VenueBookingConfig::META_KEY => array( 'enabled' => true ),
+						VenueBookingConfig::META_KEY => array(
+							'version'        => 1,
+							'enabled'        => true,
+							'correspondence' => array(
+								'version'           => 1,
+								'booking_address'   => 'venue-booking@example.com',
+								'reminder_policies' => array(
+									'follow_up' => array(
+										'version'           => 1,
+										'enabled'           => true,
+										'delay_minutes'     => 5,
+										'expected_statuses' => array( 'under_review', 'needs_info' ),
+									),
+								),
+							),
+						),
 					),
 				),
 			),
@@ -120,6 +135,7 @@ final class BookingCommunicationTest extends TestCase {
 		$this->assertCount( 1, $queued );
 		$this->assertSame( 'chubes@extrachill.com', $queued[0]['cc'] );
 		$this->assertSame( 'Extra Chill Bot', $queued[0]['from_name'] );
+		$this->assertSame( 'venue-booking@example.com', $queued[0]['reply_to'] );
 		$this->assertStringContainsString( "Extra Chill Bot sending on Chris's behalf.", $queued[0]['body'] );
 		$this->assertArrayNotHasKey( 'attachments', $queued[0] );
 		$this->assertArrayNotHasKey( 'credentials', $queued[0] );
@@ -128,6 +144,86 @@ final class BookingCommunicationTest extends TestCase {
 		$this->assertArrayNotHasKey( 'message_id', $result );
 		$this->assertArrayNotHasKey( 'in_reply_to', $queued[0] );
 		$this->assertArrayNotHasKey( 'references', $queued[0] );
+	}
+
+	public function test_preview_and_queued_delivery_share_the_exact_rendering_contract(): void {
+		$booking = $this->booking();
+		$config  = ( new VenueBookingConfig() )->get( 55 );
+		$config['correspondence']['templates']['operator_message'] = array(
+			'version' => 2,
+			'subject' => '{{artist_name}} at {{venue_name}} [{{booking_id}}]',
+			'body'    => "Hello {{contact_name}},\n\n{{message}}",
+		);
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
+		$variables = array(
+			'artist_name' => 'Test Band',
+			'booking_id'  => $booking['public_id'],
+			'contact_name' => 'Artist Agent',
+			'venue_name'  => 'The Room',
+			'message'     => '<b>One pass</b> {{venue_name}}',
+		);
+		$preview = ( new VenueBookingConfig() )->preview( 55, 'operator_message', 2, $variables );
+		$queued = $scheduled = $cancelled = array();
+		$result = $this->service( $queued, $scheduled, $cancelled )->request(
+			$this->input(
+				$booking['id'],
+				array(
+					'template_version' => 2,
+					'subject'          => 'Caller subject must not win',
+					'message'          => $variables['message'],
+				)
+			),
+			12
+		);
+
+		$this->assertSame( 'queued', $result['status'] );
+		$this->assertSame( $preview['subject'], $queued[0]['subject'] );
+		$this->assertSame( $preview['body'], $queued[0]['body'] );
+		$this->assertStringNotContainsString( '<b>', $queued[0]['body'] );
+		$this->assertStringContainsString( '{{venue_name}}', $queued[0]['body'] );
+	}
+
+	public function test_configured_policy_owns_schedule_and_stale_template_versions_fail_closed(): void {
+		$booking = $this->booking();
+		$queued = $scheduled = $cancelled = array();
+		$before  = time();
+		$result  = $this->service( $queued, $scheduled, $cancelled )->request(
+			$this->input(
+				$booking['id'],
+				array(
+					'template'          => 'follow_up',
+					'template_version'  => 1,
+					'send_at'           => '2035-01-01 12:00:00',
+					'expected_statuses' => array( 'confirmed' ),
+				)
+			),
+			12
+		);
+		$this->assertSame( 'scheduled', $result['status'] );
+		$this->assertGreaterThanOrEqual( $before + 300, $scheduled[0]['timestamp'] );
+		$this->assertLessThanOrEqual( time() + 301, $scheduled[0]['timestamp'] );
+		$intent = ( new BookingActivityRepository() )->find_by_idempotency( $booking['id'], 'booking-message-request:message-1' );
+		$this->assertSame( array( 'under_review', 'needs_info' ), $intent['payload']['data']['expected_statuses'] );
+
+		$other = $this->booking( 'other@example.com' );
+		$stale = $this->service( $queued, $scheduled, $cancelled )->request( $this->input( $other['id'], array( 'recipient' => 'other@example.com', 'idempotency_key' => 'stale', 'template_version' => 99 ) ), 12 );
+		$this->assertSame( 'booking_correspondence_template_version_conflict', $stale->get_error_code() );
+	}
+
+	public function test_policy_change_suppresses_a_scheduled_reminder(): void {
+		$booking = $this->booking();
+		$queued = $scheduled = $cancelled = array();
+		$service = $this->service( $queued, $scheduled, $cancelled );
+		$state   = $service->request( $this->input( $booking['id'], array( 'template' => 'follow_up' ) ), 12 );
+		$config  = ( new VenueBookingConfig() )->get( 55 );
+		$config['correspondence']['reminder_policies']['follow_up']['enabled'] = false;
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
+
+		$result = $service->dispatch_reminder( $state['intent_id'] );
+		$this->assertSame( 'suppressed', $result['status'] );
+		$public = $service->list_for_booking( $booking['id'], 12 );
+		$this->assertSame( 'reminder_policy_changed', $public[0]['state']['reason'] );
+		$this->assertCount( 0, $queued );
 	}
 
 	public function test_retries_are_idempotent_and_conflicting_key_reuse_is_rejected(): void {
@@ -821,7 +917,7 @@ final class BookingCommunicationTest extends TestCase {
 		$this->assertNull( $state['message'] );
 		$this->assertSame( array( 'intent_id', 'status', 'reason' ), array_keys( $state['state'] ) );
 		$encoded = wp_json_encode( $public );
-		foreach ( array( 'request_hash', 'booking_version', 'expected_statuses', 'idempotency_key', 'external_id', 'actor_id', 'actor_type', 'created_at', 'mail_site_id', 'from_name', 'identity', '"cc"', 'action_id', 'attempt', 'retryable', 'scheduler_status' ) as $private_key ) {
+		foreach ( array( 'request_hash', 'booking_version', 'expected_statuses', 'template_version', 'config_revision', 'reminder_policy_version', 'idempotency_key', 'external_id', 'actor_id', 'actor_type', 'created_at', 'mail_site_id', 'from_name', 'identity', '"cc"', 'action_id', 'attempt', 'retryable', 'scheduler_status' ) as $private_key ) {
 			$this->assertStringNotContainsString( $private_key, $encoded );
 		}
 	}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="tests/MySQLIntegration/host-wordpress-bootstrap.php"
+	colors="true"
+	beStrictAboutOutputDuringTests="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnRisky="true"
+	failOnWarning="true">
+	<testsuites>
+		<testsuite name="booking-admission-concurrency">
+			<file>tests/MySQLIntegration/BookingAdmissionConcurrencyMySQLProof.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

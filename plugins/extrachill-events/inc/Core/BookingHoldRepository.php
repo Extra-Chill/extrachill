@@ -774,6 +774,7 @@ class BookingHoldRepository {
 				if ( is_wp_error( $committed ) ) {
 					return $committed;
 				}
+				BookingNotificationService::emit( BookingNotificationService::TYPE_HOLD_EXPIRED, (int) $event['id'] );
 				return $output;
 			}
 		);

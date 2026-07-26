@@ -355,19 +355,20 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 	 * @param int    $actor_id             Authorized user identity.
 	 * @param string $purpose              Authorized purpose.
 	 * @param string $claim_key            Exact active claim.
+	 * @param string $correlation_id       Events-owned delivery correlation.
 	 */
-	public function download_descriptor( string $storage_reference, string $attachment_public_id, int $actor_id, string $purpose, string $claim_key ) {
+	public function download_descriptor( string $storage_reference, string $attachment_public_id, int $actor_id, string $purpose, string $claim_key, string $correlation_id ) {
 		if ( ! $this->handoffs_directory_is_safe() ) {
 			return new \WP_Error( 'booking_private_handoff_directory_unsafe', __( 'The private handoff directory changed unexpectedly.', 'extrachill-events' ) );
 		}
 		return $this->with_object_lock(
 			$storage_reference,
-			function () use ( $storage_reference, $attachment_public_id, $actor_id, $purpose, $claim_key ) {
+			function () use ( $storage_reference, $attachment_public_id, $actor_id, $purpose, $claim_key, $correlation_id ) {
 				$record = $this->read_record( $storage_reference );
 				if ( is_wp_error( $record ) ) {
 					return $record;
 				}
-				if ( 'ready' !== $record['state'] || 'active' !== ( $record['claims'][ $claim_key ]['state'] ?? '' ) || $purpose !== $record['purpose'] || '' === $attachment_public_id || $actor_id < 1 ) {
+				if ( 'ready' !== $record['state'] || 'active' !== ( $record['claims'][ $claim_key ]['state'] ?? '' ) || $purpose !== $record['purpose'] || '' === $attachment_public_id || $actor_id < 1 || ! wp_is_uuid( $correlation_id, 4 ) ) {
 					return new \WP_Error( 'booking_private_handoff_forbidden', __( 'The private object is not available for this attachment.', 'extrachill-events' ), array( 'status' => 403 ) );
 				}
 				$token   = bin2hex( random_bytes( 32 ) );
@@ -379,6 +380,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 					'actor_id'             => $actor_id,
 					'purpose'              => $purpose,
 					'claim_key'            => $claim_key,
+					'correlation_id'       => $correlation_id,
 					'expires'              => $expires,
 				);
 				if ( ! $this->write_metadata_atomic( $this->handoff_path( $token ), $handoff ) ) {
@@ -399,8 +401,9 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 	 * @param string $attachment_public_id Authorized attachment identity.
 	 * @param int    $actor_id             Currently authorized user.
 	 * @param string $purpose              Authorized purpose.
+	 * @param string $correlation_id       Events-owned delivery correlation.
 	 */
-	public function open_stream( string $stream_token, string $attachment_public_id, int $actor_id, string $purpose ) {
+	public function open_stream( string $stream_token, string $attachment_public_id, int $actor_id, string $purpose, string $correlation_id ) {
 		if ( ! $this->valid_reference( $stream_token ) ) {
 			return new \WP_Error( 'booking_private_stream_invalid', __( 'The private stream token is invalid.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
@@ -417,7 +420,7 @@ final class LocalBookingPrivateFileProvider implements BookingPrivateFileProvide
 		if ( ! $this->handoffs_directory_is_safe() || ! unlink( $consuming ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Consumed one-time handoffs must be deleted synchronously.
 			return new \WP_Error( 'booking_private_handoff_consume_failed', __( 'The private stream handoff could not be consumed safely.', 'extrachill-events' ) );
 		}
-		if ( ! is_array( $decoded ) || time() >= (int) ( $decoded['expires'] ?? 0 ) || ! hash_equals( (string) ( $decoded['attachment_public_id'] ?? '' ), $attachment_public_id ) || (int) ( $decoded['actor_id'] ?? 0 ) !== $actor_id || ! hash_equals( (string) ( $decoded['purpose'] ?? '' ), $purpose ) ) {
+		if ( ! is_array( $decoded ) || time() >= (int) ( $decoded['expires'] ?? 0 ) || ! hash_equals( (string) ( $decoded['attachment_public_id'] ?? '' ), $attachment_public_id ) || (int) ( $decoded['actor_id'] ?? 0 ) !== $actor_id || ! hash_equals( (string) ( $decoded['purpose'] ?? '' ), $purpose ) || ! hash_equals( (string) ( $decoded['correlation_id'] ?? '' ), $correlation_id ) ) {
 			return new \WP_Error( 'booking_private_stream_expired', __( 'The private stream token is invalid or expired.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
 		$reference = (string) ( $decoded['object_id'] ?? '' );
