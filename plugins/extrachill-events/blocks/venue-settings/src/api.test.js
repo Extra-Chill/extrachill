@@ -1,4 +1,13 @@
+/* global beforeEach, describe, expect, it, jest */
+
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
+
+/**
+ * Internal dependencies
+ */
 import { runAbility } from './api';
 
 jest.mock( '@wordpress/api-fetch', () => ( {

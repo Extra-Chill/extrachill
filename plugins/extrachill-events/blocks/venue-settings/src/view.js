@@ -1,4 +1,11 @@
+/**
+ * WordPress dependencies
+ */
 import { createRoot, useEffect, useRef, useState } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import {
 	ActionRow,
 	Badge,
@@ -11,6 +18,10 @@ import {
 	PanelHeader,
 	ResponsiveTabs,
 } from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import { errorDetails, runAbility } from './api';
 import {
 	editableConfig,
@@ -1151,7 +1162,6 @@ export function VenueSettingsApp( { context } ) {
 	}, [ dirty ] );
 
 	const switchVenue = ( event ) => {
-		const venueId = Number( event.target.value );
 		if (
 			dirty &&
 			// eslint-disable-next-line no-alert -- Native navigation guard is keyboard and screen-reader accessible.
@@ -1159,6 +1169,7 @@ export function VenueSettingsApp( { context } ) {
 		) {
 			return;
 		}
+		const venueId = Number( event.target.value );
 		const url = new URL( context.route_url );
 		if ( venueId ) {
 			url.searchParams.set( 'venue_id', venueId );
@@ -1461,7 +1472,7 @@ document
 					context={ JSON.parse( contextElement.textContent ) }
 				/>
 			);
-		} catch ( error ) {
+		} catch {
 			element.innerHTML =
 				'<div class="ec-inline-status ec-inline-status--error" role="alert">Venue settings could not start. Refresh the page to try again.</div>';
 		}

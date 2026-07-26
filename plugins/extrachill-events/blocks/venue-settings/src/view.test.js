@@ -1,6 +1,19 @@
+/* global HTMLInputElement, afterAll, beforeAll, beforeEach, describe, expect, it, jest */
+
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
 import { createRoot } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import { act } from 'react';
+
+/**
+ * Internal dependencies
+ */
 import { VenueSettingsApp } from './view';
 
 jest.mock( '@wordpress/api-fetch', () => ( {
@@ -227,11 +240,11 @@ describe( 'venue settings authorization-facing states', () => {
 
 	it( 'keeps successful config data available when profile loading fails', async () => {
 		apiFetch.mockImplementation( ( request ) => {
-			const input = requestInput( request.path );
 			if ( request.path.includes( 'get-venue-profile' ) ) {
 				return Promise.reject( { message: 'Profile unavailable.' } );
 			}
 			if ( request.path.includes( 'get-venue-booking-config' ) ) {
+				const input = requestInput( request.path );
 				return Promise.resolve( config( input.venue_term_id ) );
 			}
 			return Promise.resolve( [] );

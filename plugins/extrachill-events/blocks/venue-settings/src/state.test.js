@@ -1,3 +1,8 @@
+/* global describe, expect, it */
+
+/**
+ * Internal dependencies
+ */
 import {
 	editableConfig,
 	normalizeKey,

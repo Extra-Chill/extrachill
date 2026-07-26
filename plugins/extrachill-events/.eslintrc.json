@@ -19,6 +19,9 @@
 			"globals": {
 				"MouseEvent": "readonly",
 				"PopStateEvent": "readonly"
+			},
+			"rules": {
+				"no-redeclare": "off"
 			}
 		}
 	],
