@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.50.0] - 2026-07-26
+
+### Added
+- add fail-closed booking email reminders
+- add venue claims and invitations
+- authorize venue profile management
+- add fail-closed booking attachment contracts
+- add conflict-safe booking holds
+- add headless booking lifecycle
+- expose venue booking configuration abilities
+
+### Changed
+- Add confirmed booking event conversion
+- Add booking detail and deal mutations
+
+### Fixed
+- preserve scoped query pagination canonicals
+- clear release lint baseline
+- serialize event publication with bookings
+- normalize missing venue URLs
+- use scoped capabilities for venue access
+
 ## [0.49.0] - 2026-07-22
 
 ### Added
