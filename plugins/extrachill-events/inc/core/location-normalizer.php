@@ -59,8 +59,9 @@ function extrachill_events_normalize_location( $post_id ) {
 	$venue_city  = (string) get_term_meta( $venue->term_id, '_venue_city', true );
 	$venue_state = (string) get_term_meta( $venue->term_id, '_venue_state', true );
 	$zip         = (string) get_term_meta( $venue->term_id, '_venue_zip', true );
+	$country     = (string) get_term_meta( $venue->term_id, '_venue_country', true );
 
-	$correct_term = extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state, $zip );
+	$correct_term = extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state, $zip, $country );
 	if ( ! $correct_term ) {
 		return;
 	}
@@ -98,16 +99,17 @@ function extrachill_events_normalize_location( $post_id ) {
  * @param string $venue_city  Venue city.
  * @param string $venue_state Venue state (abbreviation like "SC" or full name).
  * @param string $venue_zip   Venue zip.
+ * @param string $country     Venue country name or code.
  * @return \WP_Term|null Resolved location term, or null when unresolved.
  */
-function extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state = '', $venue_zip = '' ): ?\WP_Term {
+function extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state = '', $venue_zip = '', $country = '' ): ?\WP_Term {
 	$venue_city = trim( (string) $venue_city );
 	if ( '' === $venue_city ) {
 		return null;
 	}
 
 	// 1. Market mapping.
-	$market_slug = extrachill_events_get_market_slug_for_venue( $venue_city, $venue_state, $venue_zip );
+	$market_slug = extrachill_events_get_market_slug_for_venue( $venue_city, $venue_state, $venue_zip, $country );
 	if ( $market_slug ) {
 		$market_term = get_term_by( 'slug', $market_slug, 'location' );
 		if ( $market_term instanceof \WP_Term ) {
@@ -119,19 +121,20 @@ function extrachill_events_resolve_location_term_for_venue_city( $venue_city, $v
 	$city_key = strtolower( $venue_city );
 	$matches  = extrachill_events_get_location_terms_by_name()[ $city_key ] ?? array();
 
-	if ( 1 === count( $matches ) ) {
-		return reset( $matches );
+	$has_hierarchy_context = '' !== trim( (string) $venue_state ) || '' !== trim( (string) $country );
+	if ( $has_hierarchy_context ) {
+		$matches = extrachill_events_filter_locations_by_hierarchy( $matches, (string) $venue_state, (string) $country );
 	}
 
-	if ( count( $matches ) > 1 ) {
-		return extrachill_events_disambiguate_location_by_state( $matches, (string) $venue_state );
+	if ( 1 === count( $matches ) ) {
+		return reset( $matches );
 	}
 
 	return null;
 }
 
 /**
- * Disambiguate multiple same-named location terms using venue state.
+ * Filter same-named location terms using canonical state/country ancestry.
  *
  * Location terms are hierarchical (Country > State > City). Compares the
  * venue's state (abbreviation or full name) against each candidate's parent
@@ -139,17 +142,19 @@ function extrachill_events_resolve_location_term_for_venue_city( $venue_city, $v
  *
  * @param array<int, \WP_Term> $matches     Location terms sharing a city name.
  * @param string               $venue_state Venue state ("SC" or "South Carolina").
- * @return \WP_Term|null Matched term, or null if state doesn't resolve it.
+ * @param string               $country     Venue country name or code.
+ * @return array<int, \WP_Term> Hierarchy-consistent candidates.
  */
-function extrachill_events_disambiguate_location_by_state( array $matches, string $venue_state ): ?\WP_Term {
+function extrachill_events_filter_locations_by_hierarchy( array $matches, string $venue_state, string $country ): array {
 	$venue_state = trim( $venue_state );
-	if ( '' === $venue_state ) {
-		return null;
+	$country     = trim( $country );
+	$state_names = array( strtolower( $venue_state ) );
+	$full_name   = extrachill_events_get_state_abbreviation_map()[ strtoupper( $venue_state ) ] ?? null;
+	if ( $full_name ) {
+		$state_names[] = strtolower( $full_name );
 	}
-
-	$state_lower = strtolower( $venue_state );
-	$abbrev_map  = extrachill_events_get_state_abbreviation_map();
-	$full_name   = $abbrev_map[ strtoupper( $venue_state ) ] ?? null;
+	$country_name = extrachill_events_normalize_country_name( $country );
+	$filtered     = array();
 
 	foreach ( $matches as $match ) {
 		if ( $match->parent <= 0 ) {
@@ -161,18 +166,45 @@ function extrachill_events_disambiguate_location_by_state( array $matches, strin
 			continue;
 		}
 
-		$parent_lower = strtolower( $parent->name );
-
-		if ( $parent_lower === $state_lower ) {
-			return $match;
+		if ( '' !== $venue_state && ! in_array( strtolower( $parent->name ), $state_names, true ) ) {
+			continue;
 		}
 
-		if ( $full_name && strtolower( $full_name ) === $parent_lower ) {
-			return $match;
+		if ( '' !== $country ) {
+			$country_term = $parent->parent > 0 ? get_term( $parent->parent, 'location' ) : null;
+			if ( ! $country_term instanceof \WP_Term || extrachill_events_normalize_country_name( $country_term->name ) !== $country_name ) {
+				continue;
+			}
 		}
+
+		$filtered[] = $match;
 	}
 
-	return null;
+	return $filtered;
+}
+
+/**
+ * Normalize common country names and ISO codes for hierarchy comparisons.
+ *
+ * @param string $country Country name or code.
+ * @return string Normalized country identity.
+ */
+function extrachill_events_normalize_country_name( string $country ): string {
+	$country = strtolower( trim( $country ) );
+	$aliases = array(
+		'us'                       => 'united states',
+		'usa'                      => 'united states',
+		'united states of america' => 'united states',
+		'ca'                       => 'canada',
+		'can'                      => 'canada',
+		'mx'                       => 'mexico',
+		'mex'                      => 'mexico',
+		'gb'                       => 'united kingdom',
+		'gbr'                      => 'united kingdom',
+		'uk'                       => 'united kingdom',
+	);
+
+	return $aliases[ $country ] ?? $country;
 }
 
 /**
@@ -301,12 +333,13 @@ function extrachill_events_get_state_abbreviation_map(): array {
  * 2. Explicit municipality → market mapping
  * 3. No opinion (null)
  *
- * @param string $city  Venue city.
- * @param string $state Venue state.
- * @param string $zip   Venue zip.
+ * @param string $city    Venue city.
+ * @param string $state   Venue state.
+ * @param string $zip     Venue zip.
+ * @param string $country Venue country name or code.
  * @return string|null Canonical location slug, or null if no mapping exists.
  */
-function extrachill_events_get_market_slug_for_venue( $city, $state = '', $zip = '' ) {
+function extrachill_events_get_market_slug_for_venue( $city, $state = '', $zip = '', $country = '' ) {
 	$borough_slug = extrachill_events_get_location_slug_for_zip( $zip );
 	if ( $borough_slug ) {
 		return $borough_slug;
@@ -327,6 +360,10 @@ function extrachill_events_get_market_slug_for_venue( $city, $state = '', $zip =
 	$mapping = $market_map[ $city ];
 
 	if ( is_string( $mapping ) ) {
+		$country_name = extrachill_events_normalize_country_name( (string) $country );
+		if ( '' !== $country_name && 'united states' !== $country_name ) {
+			return null;
+		}
 		return $mapping;
 	}
 
@@ -669,7 +706,10 @@ function extrachill_events_get_city_market_map() {
 			'bc'               => 'vancouver-bc',
 		),
 		'westland'            => 'detroit',
-		'wilmington'          => 'philadelphia',
+		'wilmington'          => array(
+			'delaware' => 'philadelphia',
+			'de'       => 'philadelphia',
+		),
 		'wilton manors'       => 'fort-lauderdale',
 		'windsor'             => array(
 			'michigan' => 'detroit',

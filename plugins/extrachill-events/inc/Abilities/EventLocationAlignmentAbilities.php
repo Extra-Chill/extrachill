@@ -280,11 +280,12 @@ class EventLocationAlignmentAbilities {
 			);
 		}
 
-		$venue       = $venue_terms[0];
-		$venue_city  = trim( (string) get_term_meta( $venue->term_id, '_venue_city', true ) );
-		$venue_state = trim( (string) get_term_meta( $venue->term_id, '_venue_state', true ) );
-		$venue_zip   = trim( (string) get_term_meta( $venue->term_id, '_venue_zip', true ) );
-		$expected    = $this->resolveExpectedLocationTerm( $venue_city, $venue_state, $venue_zip, $flow_location['term'] );
+		$venue         = $venue_terms[0];
+		$venue_city    = trim( (string) get_term_meta( $venue->term_id, '_venue_city', true ) );
+		$venue_state   = trim( (string) get_term_meta( $venue->term_id, '_venue_state', true ) );
+		$venue_zip     = trim( (string) get_term_meta( $venue->term_id, '_venue_zip', true ) );
+		$venue_country = trim( (string) get_term_meta( $venue->term_id, '_venue_country', true ) );
+		$expected      = $this->resolveExpectedLocationTerm( $venue_city, $venue_state, $venue_zip, $venue_country, $flow_location['term'] );
 
 		if ( ! $expected['term'] ) {
 			return array(
@@ -370,13 +371,14 @@ class EventLocationAlignmentAbilities {
 	 * This ensures that a Ticketmaster flow with a 50mi radius centered on Worcester
 	 * does not override the actual venue location for Boston-area events.
 	 *
-	 * @param string        $venue_city  Venue city name.
-	 * @param string        $venue_state Venue state name.
-	 * @param string        $venue_zip   Venue zip code.
-	 * @param \WP_Term|null $flow_term   Flow-configured location term.
+	 * @param string        $venue_city    Venue city name.
+	 * @param string        $venue_state   Venue state name.
+	 * @param string        $venue_zip     Venue zip code.
+	 * @param string        $venue_country Venue country name or code.
+	 * @param \WP_Term|null $flow_term     Flow-configured location term.
 	 * @return array{term: \WP_Term|null, reason: string}
 	 */
-	private function resolveExpectedLocationTerm( string $venue_city, string $venue_state, string $venue_zip, ?\WP_Term $flow_term ): array {
+	private function resolveExpectedLocationTerm( string $venue_city, string $venue_state, string $venue_zip, string $venue_country, ?\WP_Term $flow_term ): array {
 		if ( '' === $venue_city ) {
 			// No venue city — fall back to flow config if available.
 			if ( $flow_term ) {
@@ -395,11 +397,20 @@ class EventLocationAlignmentAbilities {
 		// inc/core/location-normalizer.php so the create-time normalizer and
 		// this audit ability stay in lockstep (extrachill-events#145).
 		if ( function_exists( 'extrachill_events_resolve_location_term_for_venue_city' ) ) {
-			$resolved = extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state, $venue_zip );
+			$resolved = extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state, $venue_zip, $venue_country );
 			if ( $resolved instanceof \WP_Term ) {
 				return array(
 					'term'   => $resolved,
 					'reason' => 'matched_venue_city',
+				);
+			}
+
+			$city_key     = strtolower( trim( $venue_city ) );
+			$city_matches = extrachill_events_get_location_terms_by_name()[ $city_key ] ?? array();
+			if ( ! empty( $city_matches ) ) {
+				return array(
+					'term'   => null,
+					'reason' => 'ambiguous_location_hierarchy',
 				);
 			}
 		}
