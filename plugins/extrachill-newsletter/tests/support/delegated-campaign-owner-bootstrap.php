@@ -17,6 +17,10 @@ function post_type_exists( $post_type ) {
 	return isset( $GLOBALS['newsletter_test']['post_types'][ $post_type ] );
 }
 
+function get_post_stati() {
+	return array_fill_keys( array( 'publish', 'future', 'draft', 'pending', 'private', 'trash', 'custom-review' ), (object) array() );
+}
+
 function register_post_type( $post_type, $args ) {
 	$GLOBALS['newsletter_test']['post_types'][ $post_type ] = $args;
 	return (object) array( 'name' => $post_type );

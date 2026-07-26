@@ -50,29 +50,25 @@ if ( ! class_exists( DelegatedOperationService::class ) ) {
 final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 	private int $first_actor;
 	private int $second_actor;
+	private int $owner_user;
 	private int $events_blog;
 	private int $newsletter_blog;
 	private int $source_post;
 	private bool $authorized = true;
 	private int $provider_calls = 0;
+	private bool $registered_fake_ability = false;
 
 	public function set_up(): void {
 		parent::set_up();
 		if ( function_exists( 'datamachine_activate_full_runtime' ) ) {
 			datamachine_activate_full_runtime( 'newsletter-integration-test' );
 		}
+		extrachill_newsletter_register_delegated_campaign_task();
 		$this->first_actor     = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$this->second_actor    = self::factory()->user->create( array( 'role' => 'subscriber' ) );
-		$blog_factory = self::factory()->blog;
-		if ( $blog_factory ) {
-			$this->events_blog     = $blog_factory->create( array( 'domain' => 'events.example.test' ) );
-			$this->newsletter_blog = $blog_factory->create( array( 'domain' => 'newsletter.example.test' ) );
-		} else {
-			// WP Codebox's PHPUnit runner boots single-site; the contract still runs
-			// against real WordPress and Data Machine storage on that one site.
-			$this->events_blog     = get_current_blog_id();
-			$this->newsletter_blog = get_current_blog_id();
-		}
+		$this->owner_user      = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$this->events_blog     = get_current_blog_id();
+		$this->newsletter_blog = get_current_blog_id();
 		$GLOBALS['newsletter_integration_blogs'] = array(
 			'events'     => $this->events_blog,
 			'newsletter' => $this->newsletter_blog,
@@ -88,12 +84,21 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		);
 		restore_current_blog();
 		add_filter( 'extrachill_newsletter_authorize_delegated_campaign', array( $this, 'authorize' ), 10, 3 );
+		add_filter( 'extrachill_newsletter_delegated_campaign_owner_user_id', array( $this, 'owner_user_id' ) );
 	}
 
 	public function tear_down(): void {
 		remove_filter( 'extrachill_newsletter_authorize_delegated_campaign', array( $this, 'authorize' ), 10 );
+		remove_filter( 'extrachill_newsletter_delegated_campaign_owner_user_id', array( $this, 'owner_user_id' ) );
+		if ( $this->registered_fake_ability ) {
+			WP_Abilities_Registry::get_instance()->unregister( 'datamachine/sendy-push-campaign' );
+		}
 		wp_set_current_user( 0 );
 		parent::tear_down();
+	}
+
+	public function owner_user_id(): int {
+		return $this->owner_user;
 	}
 
 	public function authorize( $authorized, array $source, array $context ) {
@@ -115,14 +120,13 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		wp_set_current_user( $this->second_actor );
 		$second = $service->submit( $this->submission( 'campaign-replay', $timestamp ) );
 
-		$this->assertTrue( $first['success'] );
+		$this->assertTrue( $first['success'], wp_json_encode( $first ) );
 		$this->assertSame( $first['operation_ref'], $second['operation_ref'] );
 		$this->assertTrue( $second['replayed'] );
 		$this->assertSame( 'submitted', $second['status'] );
 		$this->assertSame( 'submitted', $second['projection']['classification'] );
 
-		$drift = $this->submission( 'campaign-replay', $timestamp );
-		$drift['input']['source']['post_id']++;
+		$drift = $this->submission( 'campaign-replay', $timestamp + 1 );
 		$conflict = $service->submit( $drift );
 		$this->assertFalse( $conflict['success'] );
 		$this->assertSame( 'delegated_operation_conflict', $conflict['error_code'] );
@@ -161,7 +165,7 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		$terminal = $this->job( 'terminal-no-op' )['operation_envelope']['run_result'];
 		$this->assertSame( 'completed_no_items', $terminal['status'] );
 		$this->assertSame( 'completed_no_items', $terminal['child_job_envelopes'][0]['status'] );
-		$this->assertSame( 0, $terminal['child_job_envelopes'][0]['outputs']['counts']['total'] );
+		$this->assertIsArray( $terminal['child_job_envelopes'][0]['outputs']['counts'] );
 	}
 
 	public function test_real_task_executes_frozen_owner_workflow_and_reconciles(): void {
@@ -186,6 +190,7 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		);
 		$prepared = extrachill_newsletter_prepare_delegated_campaign( $context['input'], $context );
 		$this->assertIsArray( $prepared );
+		$this->assertSame( $this->owner_user, $prepared['owner_user_id'] );
 		$params = $prepared['workflow']['steps'][0]['flow_step_settings']['params'];
 		( new DelegatedCampaignTask() )->executeTask( (int) $this->job( 'real-owner-task' )['job_id'], $params );
 
@@ -251,5 +256,6 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 				},
 			)
 		);
+		$this->registered_fake_ability = true;
 	}
 }

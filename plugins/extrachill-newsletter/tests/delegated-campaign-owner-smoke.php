@@ -133,12 +133,26 @@ function get_permalink( $post_id ) {
 }
 function get_posts( $args ) {
 	$blog_id = $GLOBALS['newsletter_test']['blog_id'];
+	$matches = array();
 	foreach ( $GLOBALS['newsletter_test']['posts'][ $blog_id ] ?? array() as $post_id => $post ) {
-		if ( ( $post->post_name ?? '' ) === ( $args['name'] ?? '' ) ) {
-			return array( $post_id );
+		if ( isset( $args['name'] ) && ( $post->post_name ?? '' ) !== $args['name'] ) {
+			continue;
+		}
+		if ( isset( $args['post_status'] ) && ! in_array( $post->post_status, $args['post_status'], true ) ) {
+			continue;
+		}
+		$matched = true;
+		foreach ( $args['meta_query'] ?? array() as $clause ) {
+			if ( (string) ( $GLOBALS['newsletter_test']['meta'][ $blog_id ][ $post_id ][ $clause['key'] ] ?? '' ) !== (string) $clause['value'] ) {
+				$matched = false;
+				break;
+			}
+		}
+		if ( $matched ) {
+			$matches[] = $post_id;
 		}
 	}
-	return array();
+	return -1 === ( $args['posts_per_page'] ?? -1 ) ? $matches : array_slice( $matches, 0, (int) $args['posts_per_page'] );
 }
 function wp_insert_post( $post, $wp_error = false ) {
 	unset( $wp_error );
@@ -146,6 +160,7 @@ function wp_insert_post( $post, $wp_error = false ) {
 	$post_id = ++$GLOBALS['newsletter_test']['next_post_id'];
 	$GLOBALS['newsletter_test']['posts'][ $blog_id ][ $post_id ] = (object) array(
 		'ID'           => $post_id,
+		'post_type'    => $post['post_type'],
 		'post_status'  => $post['post_status'],
 		'post_name'    => $post['post_name'],
 		'post_title'   => $post['post_title'],
@@ -189,6 +204,14 @@ function update_post_meta( $post_id, $key, $value ) {
 		return false;
 	}
 	$blog_id = $GLOBALS['newsletter_test']['blog_id'];
+	$GLOBALS['newsletter_test']['meta'][ $blog_id ][ $post_id ][ $key ] = $value;
+	return true;
+}
+function add_post_meta( $post_id, $key, $value, $unique = false ) {
+	$blog_id = $GLOBALS['newsletter_test']['blog_id'];
+	if ( $unique && isset( $GLOBALS['newsletter_test']['meta'][ $blog_id ][ $post_id ][ $key ] ) ) {
+		return false;
+	}
 	$GLOBALS['newsletter_test']['meta'][ $blog_id ][ $post_id ][ $key ] = $value;
 	return true;
 }
@@ -236,6 +259,12 @@ $input = array(
 $normalized = extrachill_newsletter_normalize_delegated_campaign_input( $input );
 $assert( $input === $normalized, 'canonical source input normalizes without adding caller-controlled fields' );
 $assert( is_wp_error( extrachill_newsletter_normalize_delegated_campaign_input( array( 'source' => array( 'site_id' => '7', 'post_id' => 901 ), 'policy' => 'canonical-post-draft' ) ) ), 'numeric strings are rejected by the strict source contract' );
+$assert( is_wp_error( extrachill_newsletter_normalize_delegated_campaign_input( array( 'source' => array( 'site_id' => 0, 'post_id' => 901 ), 'policy' => 'canonical-post-draft' ) ) ), 'zero source site IDs are rejected' );
+$assert( is_wp_error( extrachill_newsletter_normalize_delegated_campaign_input( array( 'source' => array( 'site_id' => 7, 'post_id' => 0 ), 'policy' => 'canonical-post-draft' ) ) ), 'zero source post IDs are rejected' );
+$assert( is_wp_error( extrachill_newsletter_normalize_delegated_campaign_input( array( 'source' => array( 'site_id' => -7, 'post_id' => 901 ), 'policy' => 'canonical-post-draft' ) ) ), 'negative source site IDs are rejected' );
+$assert( is_wp_error( extrachill_newsletter_normalize_delegated_campaign_input( array( 'source' => array( 'site_id' => 7, 'post_id' => -901 ), 'policy' => 'canonical-post-draft' ) ) ), 'negative source post IDs are rejected' );
+$assert( null === extrachill_newsletter_sanitize_delegated_campaign_result( array( 'schema' => 'extrachill-newsletter.delegated-campaign-result.v1', 'status' => 'executed', 'record' => array( 'newsletter_post_id' => -1, 'campaign_id' => 'campaign' ), 'error_code' => null ) ), 'negative public record IDs are rejected rather than coerced' );
+$assert( null === extrachill_newsletter_sanitize_delegated_campaign_result( array( 'schema' => 'extrachill-newsletter.delegated-campaign-result.v1', 'status' => 'executed', 'record' => array( 'newsletter_post_id' => '1001', 'campaign_id' => 'campaign' ), 'error_code' => null ) ), 'string public record IDs are rejected rather than coerced' );
 $assert( is_wp_error( extrachill_newsletter_normalize_delegated_campaign_input( array_merge( $input, array( 'html' => '<p>no</p>' ) ) ) ), 'arbitrary HTML is rejected' );
 $assert( is_wp_error( extrachill_newsletter_normalize_delegated_campaign_input( array_merge( $input, array( 'ability' => 'arbitrary/run' ) ) ) ), 'arbitrary ability names are rejected' );
 $assert( is_wp_error( extrachill_newsletter_normalize_delegated_campaign_input( array_merge( $input, array( 'recipients' => array( 'person@example.com' ) ) ) ) ), 'recipient input is rejected' );
@@ -276,6 +305,10 @@ $second_context = array( 'action' => EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_AC
 $assert( true === $action['authorize']( $first_context ), 'first delegated domain actor is freshly authorized' );
 $assert( true === $action['authorize']( $second_context ), 'second delegated domain actor is freshly authorized' );
 $assert( is_wp_error( $action['authorize']( array_replace( $first_context, array( 'actor' => array( 'user_id' => 99 ) ) ) ) ), 'unapproved actor remains denied' );
+$invalid_actor_context = array_replace( $first_context, array( 'operation_ref' => 'dop_' . str_repeat( '7', 64 ), 'actor' => array( 'user_id' => '12', 'agent_id' => 0, 'token_id' => 0 ) ) );
+$assert( is_wp_error( $action['prepare']( $input, $invalid_actor_context ) ), 'numeric-string actor IDs cannot enter a frozen authorization receipt' );
+$negative_actor_context = array_replace( $first_context, array( 'operation_ref' => 'dop_' . str_repeat( '8', 64 ), 'actor' => array( 'user_id' => -12, 'agent_id' => 0, 'token_id' => 0 ) ) );
+$assert( is_wp_error( $action['prepare']( $input, $negative_actor_context ) ), 'negative actor IDs cannot enter a frozen authorization receipt' );
 $domain_error = static function () {
 	return new WP_Error( 'provider_secret_diagnostic' );
 };
@@ -304,6 +337,12 @@ $runtime_params  = array_merge(
 $assert( ! is_wp_error( extrachill_newsletter_verify_delegated_campaign_task( $runtime_params ) ), 'private owner attestation accepts the real Data Machine task envelope' );
 $prepared_params['owner_context']['attestation'] = str_repeat( '0', 64 );
 $assert( is_wp_error( extrachill_newsletter_verify_delegated_campaign_task( $prepared_params ) ), 'direct task invocation without the owner capability is rejected' );
+$stored_secret = $GLOBALS['newsletter_test']['site_options']['extrachill_newsletter_delegated_campaign_secret'];
+$GLOBALS['newsletter_test']['site_options']['extrachill_newsletter_delegated_campaign_secret'] = '';
+$empty_attestation_params = $runtime_params;
+$empty_attestation_params['owner_context']['attestation'] = '';
+$assert( is_wp_error( extrachill_newsletter_verify_delegated_campaign_task( $empty_attestation_params ) ), 'secret persistence failure cannot authenticate an empty task attestation' );
+$GLOBALS['newsletter_test']['site_options']['extrachill_newsletter_delegated_campaign_secret'] = $stored_secret;
 $assert( 64 === strlen( extrachill_newsletter_delegated_campaign_lock_name( array( 'site_id' => 7, 'post_id' => 901 ), 'canonical-post-draft' ) ), 'owner lock name stays within the portable MySQL limit' );
 
 $GLOBALS['newsletter_test']['content_filter_blog'] = 0;
@@ -370,6 +409,137 @@ $replayed = extrachill_newsletter_execute_delegated_campaign( $input );
 $assert( 1001 === $replayed['record']['newsletter_post_id'], 'owner replay recovers one Newsletter draft' );
 $assert( 1 === count( $GLOBALS['newsletter_test']['posts'][9] ), 'owner replay does not duplicate Newsletter drafts' );
 $assert( 1 === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'owner replay uses the durable campaign receipt without invoking transport again' );
+
+$GLOBALS['newsletter_test']['posts'][9][1001]->post_name   = 'mutated-away-from-deterministic-slug';
+$GLOBALS['newsletter_test']['posts'][9][1001]->post_status = 'future';
+$mutated_replay = extrachill_newsletter_execute_delegated_campaign( $input );
+$assert( 'executed' === $mutated_replay['status'] && 1001 === $mutated_replay['record']['newsletter_post_id'], 'metadata identity recovers the same record after slug and status mutation' );
+$assert( 1 === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'slug and future-status replay never invokes the provider twice' );
+$GLOBALS['newsletter_test']['posts'][9][1001]->post_status = 'custom-review';
+$custom_status_replay = extrachill_newsletter_execute_delegated_campaign( $input );
+$assert( 1001 === $custom_status_replay['record']['newsletter_post_id'] && 1 === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'registered custom statuses remain recoverable without duplicate effects' );
+unset( $GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_source_post_id'] );
+$GLOBALS['newsletter_test']['posts'][9][1001]->post_name = 'mutated-with-partial-meta';
+$partial_mutation_replay = extrachill_newsletter_execute_delegated_campaign( $input );
+$assert( 'executed' === $partial_mutation_replay['status'] && 1001 === $partial_mutation_replay['record']['newsletter_post_id'], 'durable source identity recovers a campaign after slug and metadata mutation' );
+$assert( '901' === (string) $GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_source_post_id'], 'trusted source identity repairs missing post metadata' );
+$assert( 1 === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'partial metadata recovery never invokes the provider twice' );
+
+$failed_second_context = array_replace( $first_context, array( 'operation_ref' => 'dop_' . str_repeat( '1', 64 ) ) );
+$failed_second = $action['project']( $canonical( 'failed: second-operation' ), $failed_second_context );
+$assert( 'failed' === $failed_second['classification'] && null === $failed_second['record'], 'a second failed operation cannot inherit a source-level campaign receipt' );
+$no_op_second_context = array_replace( $first_context, array( 'operation_ref' => 'dop_' . str_repeat( '2', 64 ) ) );
+$no_op_second = $action['project']( $canonical( 'completed_no_items', array( 'effect_count' => 0 ) ), $no_op_second_context );
+$assert( 'no-op' === $no_op_second['classification'] && null === $no_op_second['record'] && 0 === $no_op_second['effect_count'], 'a second no-op operation cannot inherit a source-level campaign receipt' );
+
+$bound_ref = 'dop_' . str_repeat( '3', 64 );
+switch_to_blog( 9 );
+$assert( extrachill_newsletter_claim_delegated_campaign_effect( 1001, $bound_ref ), 'effect owner receipt binds the exact operation immutably' );
+$assert( extrachill_newsletter_record_delegated_campaign_effect_state( 1001, $bound_ref, 'creating' ), 'effect owner receipt enters creating state' );
+$assert( extrachill_newsletter_record_delegated_campaign_effect_state( 1001, $bound_ref, 'completed' ), 'effect owner receipt records completion' );
+restore_current_blog();
+$bound_execution = extrachill_newsletter_execute_delegated_campaign( $input, $bound_ref );
+$bound_context = array_replace( $first_context, array( 'operation_ref' => $bound_ref ) );
+$bound_projection = $action['project']( $canonical( 'completed' ), $bound_context );
+$assert( 'executed' === $bound_execution['status'] && 1001 === $bound_projection['record']['newsletter_post_id'], 'missing outcome reconciles only through the exact operation-bound record' );
+$assert( ! array_key_exists( 'state', $bound_projection['record'] ), 'operation reconciliation exposes no internal effect state' );
+$assert( true === $action['retry']( $canonical( 'failed: outcome-write' ), $bound_context ), 'operation-bound campaign receipt proves retry safe after outcome persistence failure' );
+$later_ref = 'dop_' . str_repeat( '5', 64 );
+$GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_delegated_campaign_operation_ref'] = $later_ref;
+$later_execution = extrachill_newsletter_execute_delegated_campaign( $input, $later_ref );
+$assert( 'no-op' === $later_execution['status'] && null === $later_execution['record'], 'mutable effect-owner meta cannot let a later operation claim an existing campaign' );
+$assert( 1 === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'later operation no-op never invokes the provider again' );
+$later_context = array_replace( $first_context, array( 'operation_ref' => $later_ref ) );
+$later_missing_outcome = $action['project']( $canonical( 'completed' ), $later_context );
+$assert( 'executed' !== $later_missing_outcome['classification'] && null === $later_missing_outcome['record'], 'missing later-operation outcome cannot fall back to another operation effect' );
+$GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_delegated_campaign_state'] = 'indeterminate';
+$GLOBALS['newsletter_test']['site_options']['extrachill_newsletter_delegated_effect_9_1001']['state'] = 'indeterminate';
+$stored_source_post_meta = $GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_source_post_id'];
+unset( $GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_source_post_id'] );
+$GLOBALS['newsletter_test']['posts'][7][901]->post_status = 'draft';
+$indeterminate_with_id = extrachill_newsletter_execute_delegated_campaign( $input, $bound_ref );
+$assert( 'newsletter_campaign_reconciliation_required' === $indeterminate_with_id['error_code'], 'indeterminate effect state wins over mutable source no-op checks' );
+$assert( 1 === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'indeterminate campaign ID replay remains fenced from the provider' );
+$assert( extrachill_newsletter_record_delegated_campaign_outcome( $bound_ref, extrachill_newsletter_delegated_campaign_result( 'executed', 1001, 'campaign-1001', null ) ), 'indeterminate projection test stores an executed operation outcome' );
+$indeterminate_projection = $action['project']( $canonical( 'completed' ), $bound_context );
+$assert( 'failed' === $indeterminate_projection['classification'] && null === $indeterminate_projection['record'], 'immutable operation receipt keeps indeterminate state ahead of a stored executed outcome' );
+$indeterminate_noop_projection = $action['project']( $canonical( 'completed_no_items', array( 'effect_count' => 0 ) ), $bound_context );
+$assert( 'failed' === $indeterminate_noop_projection['classification'], 'owned indeterminate state outranks canonical no-op projection' );
+$indeterminate_cancelled_projection = $action['project']( $canonical( 'cancelled' ), $bound_context );
+$assert( 'failed' === $indeterminate_cancelled_projection['classification'], 'owned indeterminate state outranks canonical cancellation' );
+$assert( is_wp_error( $action['retry']( $canonical( 'failed: outcome-write' ), $bound_context ) ), 'indeterminate state cannot prove retry safe even with a campaign ID' );
+$foreign_indeterminate = extrachill_newsletter_execute_delegated_campaign( $input, $later_ref );
+$assert( 'no-op' === $foreign_indeterminate['status'], 'foreign operation remains a no-op while the owning effect is indeterminate' );
+$GLOBALS['newsletter_test']['posts'][7][901]->post_status = 'publish';
+$GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_source_post_id'] = $stored_source_post_meta;
+$GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_delegated_campaign_state'] = 'completed';
+$GLOBALS['newsletter_test']['site_options']['extrachill_newsletter_delegated_effect_9_1001']['state'] = 'completed';
+$invalid_ref = 'dop_' . str_repeat( '4', 64 );
+$assert( extrachill_newsletter_bind_delegated_campaign_record( $invalid_ref, 1001, $input ), 'invalid campaign reference test binds the exact operation record' );
+$GLOBALS['newsletter_test']['meta'][9][1001]['_sendy_campaign_id'] = 'raw provider diagnostic with spaces';
+$invalid_context = array_replace( $first_context, array( 'operation_ref' => $invalid_ref ) );
+$invalid_projection = $action['project']( $canonical( 'completed' ), $invalid_context );
+$assert( 'failed' === $invalid_projection['classification'] && null === $invalid_projection['record'], 'operation fallback rejects an unbounded persisted campaign reference' );
+$assert( false === strpos( serialize( $invalid_projection ), 'provider diagnostic' ), 'invalid durable provider data is redacted from projection' );
+$GLOBALS['newsletter_test']['meta'][9][1001]['_sendy_campaign_id'] = 'campaign-1001';
+
+$GLOBALS['newsletter_test']['posts'][7][906] = (object) array(
+	'ID'           => 906,
+	'post_status'  => 'publish',
+	'post_title'   => 'Mutated identity source',
+	'post_content' => '<p>Must not adopt another campaign.</p>',
+	'post_excerpt' => '',
+);
+$original_identity_meta = $GLOBALS['newsletter_test']['meta'][9][1001];
+$GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_source_site_id']  = 7;
+$GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_source_post_id']  = 906;
+$GLOBALS['newsletter_test']['meta'][9][1001]['_extrachill_newsletter_campaign_policy'] = 'canonical-post-draft';
+$mutated_identity_input = array( 'source' => array( 'site_id' => 7, 'post_id' => 906 ), 'policy' => 'canonical-post-draft' );
+$mutated_identity = extrachill_newsletter_execute_delegated_campaign( $mutated_identity_input, 'dop_' . str_repeat( '6', 64 ) );
+$assert( 'newsletter_campaign_draft_identity_conflict' === $mutated_identity['error_code'], 'immutable record identity prevents rebinding consistently mutated source metadata' );
+$assert( 1 === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'mutated source metadata cannot invoke or inherit the provider effect' );
+$GLOBALS['newsletter_test']['meta'][9][1001] = $original_identity_meta;
+
+foreach ( array( 908, 909, 910 ) as $source_id ) {
+	$GLOBALS['newsletter_test']['posts'][7][ $source_id ] = (object) array(
+		'ID'           => $source_id,
+		'post_status'  => 'publish',
+		'post_title'   => 'Identity source ' . $source_id,
+		'post_content' => '<p>Identity test.</p>',
+		'post_excerpt' => '',
+	);
+}
+$source_908 = array( 'source' => array( 'site_id' => 7, 'post_id' => 908 ), 'policy' => 'canonical-post-draft' );
+switch_to_blog( 9 );
+$campaignless_id = extrachill_newsletter_get_or_create_delegated_draft(
+	array( 'site_id' => 7, 'post_id' => 908, 'title' => 'Identity source 908', 'content' => '<p>Identity test.</p>', 'excerpt' => '' ),
+	$source_908
+);
+$GLOBALS['newsletter_test']['meta'][9][ $campaignless_id ]['_extrachill_newsletter_source_post_id'] = 909;
+unset( $GLOBALS['newsletter_test']['meta'][9][ $campaignless_id ]['_extrachill_newsletter_delegated_campaign_identity'] );
+restore_current_blog();
+$campaignless_rebind = extrachill_newsletter_execute_delegated_campaign( array( 'source' => array( 'site_id' => 7, 'post_id' => 909 ), 'policy' => 'canonical-post-draft' ) );
+$assert( 'newsletter_campaign_draft_identity_conflict' === $campaignless_rebind['error_code'], 'reverse post receipt prevents campaignless source rebinding after metadata and hash mutation' );
+
+$source_910 = array( 'source' => array( 'site_id' => 7, 'post_id' => 910 ), 'policy' => 'canonical-post-draft' );
+switch_to_blog( 9 );
+$authoritative_910 = extrachill_newsletter_get_or_create_delegated_draft(
+	array( 'site_id' => 7, 'post_id' => 910, 'title' => 'Identity source 910', 'content' => '<p>Identity test.</p>', 'excerpt' => '' ),
+	$source_910
+);
+$GLOBALS['newsletter_test']['posts'][9][ $authoritative_910 ]->post_name = 'mutated-authoritative-slug';
+$slug_sibling = ++$GLOBALS['newsletter_test']['next_post_id'];
+$GLOBALS['newsletter_test']['posts'][9][ $slug_sibling ] = (object) array(
+	'ID' => $slug_sibling, 'post_type' => 'newsletter', 'post_status' => 'future',
+	'post_name' => 'delegated-' . hash( 'sha256', '7:910:canonical-post-draft' ),
+	'post_title' => 'Slug sibling', 'post_content' => 'Sibling', 'post_excerpt' => '',
+);
+$GLOBALS['newsletter_test']['meta'][9][ $slug_sibling ] = array( '_extrachill_newsletter_source_site_id' => 99, '_extrachill_newsletter_delegated_campaign_state' => 'indeterminate' );
+restore_current_blog();
+$calls_before_mixed_duplicate = count( $GLOBALS['newsletter_test']['campaign_calls'] );
+$mixed_duplicate = extrachill_newsletter_execute_delegated_campaign( $source_910 );
+$assert( 'newsletter_campaign_draft_identity_conflict' === $mixed_duplicate['error_code'], 'metadata/index and slug claims are unioned before duplicate resolution' );
+$assert( $calls_before_mixed_duplicate === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'mixed duplicate identity paths cannot invoke the provider' );
 
 $GLOBALS['newsletter_test']['posts'][9][1001]->post_status = 'trash';
 $trashed_replay = extrachill_newsletter_execute_delegated_campaign( $input );
@@ -444,12 +614,35 @@ $identity_input = array(
 $GLOBALS['newsletter_test']['persist_campaign'] = true;
 $GLOBALS['newsletter_test']['blocked_meta_key'] = '_extrachill_newsletter_source_post_id';
 $calls_before_identity = count( $GLOBALS['newsletter_test']['campaign_calls'] );
+$records_before_identity = count( $GLOBALS['newsletter_test']['posts'][9] );
 $identity_failed       = extrachill_newsletter_execute_delegated_campaign( $identity_input );
 $assert( 'newsletter_campaign_draft_identity_failed' === $identity_failed['error_code'], 'partial draft identity fails closed with a bounded code' );
 $assert( $calls_before_identity === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'partial draft identity never reaches the non-idempotent provider' );
 $GLOBALS['newsletter_test']['blocked_meta_key'] = '';
 $identity_replay = extrachill_newsletter_execute_delegated_campaign( $identity_input );
 $assert( 'executed' === $identity_replay['status'] && $calls_before_identity + 1 === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'identity repair replay creates only one external campaign' );
+$assert( $records_before_identity + 1 === count( $GLOBALS['newsletter_test']['posts'][9] ), 'partial metadata recovery reuses one slug candidate instead of creating duplicate records' );
+
+$duplicate_id = ++$GLOBALS['newsletter_test']['next_post_id'];
+$GLOBALS['newsletter_test']['posts'][9][ $duplicate_id ] = (object) array(
+	'ID'           => $duplicate_id,
+	'post_type'    => 'newsletter',
+	'post_status'  => 'future',
+	'post_name'    => 'duplicate-mutated-slug',
+	'post_title'   => 'Duplicate record',
+	'post_content' => '<p>Duplicate.</p>',
+	'post_excerpt' => '',
+);
+$GLOBALS['newsletter_test']['meta'][9][ $duplicate_id ] = array(
+	'_extrachill_newsletter_source_site_id'  => 7,
+	'_extrachill_newsletter_source_post_id'  => 904,
+	'_extrachill_newsletter_campaign_policy' => 'canonical-post-draft',
+	'_extrachill_newsletter_delegated_campaign_state' => 'indeterminate',
+);
+$calls_before_duplicate = count( $GLOBALS['newsletter_test']['campaign_calls'] );
+$duplicate_replay = extrachill_newsletter_execute_delegated_campaign( $identity_input );
+$assert( 'newsletter_campaign_draft_identity_conflict' === $duplicate_replay['error_code'], 'duplicate metadata identities fail closed even when one sibling is indeterminate' );
+$assert( $calls_before_duplicate === count( $GLOBALS['newsletter_test']['campaign_calls'] ), 'duplicate records never trigger a second provider effect' );
 
 $GLOBALS['newsletter_test']['posts'][7][905] = (object) array(
 	'ID'           => 905,

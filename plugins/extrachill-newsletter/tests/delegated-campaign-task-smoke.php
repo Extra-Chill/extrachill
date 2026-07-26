@@ -13,6 +13,7 @@ namespace {
 		'completed' => array(),
 		'failed'    => array(),
 		'existing'  => null,
+		'record'    => array( 'state' => 'completed', 'campaign_id' => 'campaign-12', 'owns_effect' => true ),
 		'executions' => 0,
 	);
 
@@ -41,6 +42,11 @@ namespace {
 	function extrachill_newsletter_get_delegated_campaign_outcome( $operation_ref ) {
 		unset( $operation_ref );
 		return $GLOBALS['newsletter_task_test']['existing'];
+	}
+
+	function extrachill_newsletter_get_operation_campaign_record( $operation_ref, $input ) {
+		unset( $operation_ref, $input );
+		return $GLOBALS['newsletter_task_test']['record'];
 	}
 
 	function extrachill_newsletter_authorize_delegated_campaign_effect( $operation_ref, $input ) {
@@ -127,6 +133,14 @@ namespace {
 	$task->executeTask( 46, array( 'owner_context' => array( 'operation_ref' => 'dop_' . str_repeat( 'c', 64 ) ) ) );
 	$assert( $executions_before === $GLOBALS['newsletter_task_test']['executions'], 'duplicate delivery reuses terminal no-op without applying a later effect' );
 	$assert( 0 === $GLOBALS['newsletter_task_test']['completed'][2][1]['effect_count'], 'duplicate no-op remains canonical zero-effect work' );
+
+	$GLOBALS['newsletter_task_test']['existing'] = array( 'status' => 'executed', 'record' => array( 'newsletter_post_id' => 12, 'campaign_id' => 'campaign-12' ), 'error_code' => null );
+	$GLOBALS['newsletter_task_test']['record']   = array( 'state' => 'indeterminate', 'campaign_id' => 'campaign-12', 'owns_effect' => true );
+	$task->executeTask( 47, array( 'owner_context' => array( 'operation_ref' => 'dop_' . str_repeat( 'd', 64 ) ) ) );
+	$assert( array( 47, 'newsletter_campaign_reconciliation_required' ) === $GLOBALS['newsletter_task_test']['failed'][3], 'duplicate executed outcome cannot bypass indeterminate durable state' );
+	$GLOBALS['newsletter_task_test']['existing'] = array( 'status' => 'no-op', 'record' => null, 'error_code' => null );
+	$task->executeTask( 48, array( 'owner_context' => array( 'operation_ref' => 'dop_' . str_repeat( 'e', 64 ) ) ) );
+	$assert( array( 48, 'newsletter_campaign_reconciliation_required' ) === $GLOBALS['newsletter_task_test']['failed'][4], 'duplicate no-op outcome cannot bypass indeterminate durable state' );
 
 	if ( $failures ) {
 		fwrite( STDERR, "FAILED\n- " . implode( "\n- ", $failures ) . "\n" );
