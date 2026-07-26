@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.39.1] - 2026-07-26
+
+### Changed
+- Grant Studio team private Intelligence reads
+- isolate auth fuzz rate limit phases
+- persist auth fuzz requester identity
+- isolate auth fuzz credential failures
+- preserve auth fuzz limiter diagnostics
+
+### Fixed
+- test network plugin in multisite MySQL
+- restore reproducible dependency installs
+- restore auth fuzz rate limit seams
+
 ## [0.39.0] - 2026-07-25
 
 ### Added
