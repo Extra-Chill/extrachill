@@ -220,7 +220,10 @@ function extrachill_events_discovery_canonical( string $canonical ): string {
 	}
 
 	$canonical = trailingslashit( $term_link ) . extrachill_events_get_current_scope();
-	$paged     = max( 1, (int) get_query_var( 'paged', 1 ) );
+	// The calendar reads query-string pagination before falling back to the
+	// main query, where scoped taxonomy requests do not retain `paged`.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public pagination state.
+	$paged = isset( $_GET['paged'] ) && is_scalar( $_GET['paged'] ) ? max( 1, absint( wp_unslash( $_GET['paged'] ) ) ) : 1;
 
 	if ( $paged > 1 ) {
 		$canonical = add_query_arg( 'paged', $paged, $canonical );
