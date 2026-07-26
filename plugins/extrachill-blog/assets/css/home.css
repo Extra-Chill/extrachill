@@ -593,19 +593,6 @@
     outline: none;
 }
 
-.home-shipped-type {
-    flex-shrink: 0;
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--accent);
-    border: 1px solid var(--accent);
-    border-radius: var(--border-radius-sm);
-    padding: 0.15em 0.55em;
-    white-space: nowrap;
-}
-
 .home-shipped-main {
     display: flex;
     align-items: baseline;

@@ -299,7 +299,6 @@ function extrachill_blog_fetch_recently_shipped() {
 			'summary'      => extrachill_blog_summarize_release_body( $release['body'] ?? '' ),
 			'published_at' => strtotime( $release['published_at'] ),
 			'url'          => $release['html_url'],
-			'type'         => extrachill_blog_classify_shipped_repo( $repo_name ),
 		);
 	}
 
@@ -396,38 +395,6 @@ function extrachill_blog_truncate_summary( $text, $length ) {
 	}
 
 	return rtrim( $truncated, " \t\n\r\0\x0B.,;:-" ) . '…';
-}
-
-/**
- * Classify a repo name into a display "type" badge via a filterable
- * prefix map. Vendor/repo-specific names live only in this config map,
- * never hardcoded in the template.
- *
- * @param string $repo_name GitHub repo name.
- * @return string Type label: platform, agents, orchestration, or tools.
- */
-function extrachill_blog_classify_shipped_repo( $repo_name ) {
-	$default_map = array(
-		'extrachill-'  => 'platform',
-		'data-machine' => 'agents',
-		'homeboy'      => 'orchestration',
-	);
-
-	/**
-	 * Filter the repo-name-prefix => type-label map used to classify
-	 * Recently Shipped rows.
-	 *
-	 * @param array<string,string> $default_map Prefix => type label.
-	 */
-	$map = apply_filters( 'extrachill_blog_shipped_type_map', $default_map );
-
-	foreach ( $map as $prefix => $type ) {
-		if ( 0 === strpos( $repo_name, $prefix ) ) {
-			return $type;
-		}
-	}
-
-	return 'tools';
 }
 
 /**

@@ -31,7 +31,6 @@ $repos_total             = $recently_shipped['repos_total'];
 				rel="noopener"
 				aria-label="<?php echo esc_attr( sprintf( '%s %s', $release['repo'], $release['tag'] ) ); ?>"
 			>
-				<span class="home-shipped-type home-shipped-type-<?php echo esc_attr( $release['type'] ); ?>"><?php echo esc_html( $release['type'] ); ?></span>
 				<span class="home-shipped-main">
 					<span class="home-shipped-repo"><?php echo esc_html( $release['repo'] ); ?></span>
 					<span class="home-shipped-tag"><?php echo esc_html( $release['tag'] ); ?></span>
