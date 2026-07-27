@@ -23,11 +23,11 @@ class EventSourceRampEvaluatorTest extends TestCase {
 	public function test_source_profiles_are_explicit(): void {
 		$profiles = EventSourceRampEvaluator::profiles();
 
-		$this->assertSame( array( 1, 3, 5 ), $profiles['ticketmaster']['stages'] );
+		$this->assertSame( array( 25, 50, 100 ), $profiles['ticketmaster']['stages'] );
 		$this->assertSame( 'ticketmaster', $profiles['ticketmaster']['handler'] );
-		$this->assertSame( array( 1, 3, 10 ), $profiles['dice']['stages'] );
+		$this->assertSame( array( 10, 25, 50 ), $profiles['dice']['stages'] );
 		$this->assertSame( 'dice_fm', $profiles['dice']['handler'] );
-		$this->assertSame( array( 1, 2 ), $profiles['universal_scraper']['stages'] );
+		$this->assertSame( array( 5, 10, 25 ), $profiles['universal_scraper']['stages'] );
 		$this->assertSame( 'universal_web_scraper', $profiles['universal_scraper']['handler'] );
 	}
 
@@ -55,9 +55,9 @@ class EventSourceRampEvaluatorTest extends TestCase {
 	 */
 	public function advancement_provider(): array {
 		return array(
-			'ticketmaster'      => array( 'ticketmaster', 1, 3 ),
-			'dice'              => array( 'dice', 1, 3 ),
-			'universal scraper' => array( 'universal_scraper', 1, 2 ),
+			'ticketmaster'      => array( 'ticketmaster', 25, 50 ),
+			'dice'              => array( 'dice', 10, 25 ),
+			'universal scraper' => array( 'universal_scraper', 5, 10 ),
 		);
 	}
 
@@ -66,7 +66,7 @@ class EventSourceRampEvaluatorTest extends TestCase {
 		$evidence = $this->passing_evidence();
 		unset( $evidence['metrics']['failed_rate'] );
 
-		$result = $this->evaluate( 'ticketmaster', 1, 'preflight', $evidence );
+		$result = $this->evaluate( 'ticketmaster', 25, 'preflight', $evidence );
 
 		$this->assertSame( 'hold', $result['decision'] );
 		$this->assertContains( 'failed_rate', $result['failed_gates'] );
@@ -78,7 +78,7 @@ class EventSourceRampEvaluatorTest extends TestCase {
 		$evidence                = $this->passing_evidence();
 		$evidence['observed_at'] = gmdate( 'c', self::NOW - EventSourceRampEvaluator::MAXIMUM_EVIDENCE_AGE_SECONDS - 1 );
 
-		$result = $this->evaluate( 'dice', 3, 'postflight', $evidence );
+		$result = $this->evaluate( 'dice', 25, 'postflight', $evidence );
 
 		$this->assertSame( 'hold', $result['decision'] );
 		$this->assertContains( 'freshness', $result['failed_gates'] );
@@ -90,7 +90,7 @@ class EventSourceRampEvaluatorTest extends TestCase {
 		$evidence                           = $this->passing_evidence();
 		$evidence['metrics']['queue_depth'] = 26;
 
-		$result = $this->evaluate( 'ticketmaster', 1, 'preflight', $evidence );
+		$result = $this->evaluate( 'ticketmaster', 25, 'preflight', $evidence );
 
 		$this->assertSame( 'hold', $result['decision'] );
 		$this->assertContains( 'queue_depth', $result['failed_gates'] );
@@ -98,7 +98,7 @@ class EventSourceRampEvaluatorTest extends TestCase {
 
 	/** Confirm a passing final stage cannot advance beyond policy. */
 	public function test_passing_final_stage_is_complete(): void {
-		$result = $this->evaluate( 'dice', 10, 'postflight', $this->passing_evidence() );
+		$result = $this->evaluate( 'dice', 50, 'postflight', $this->passing_evidence() );
 
 		$this->assertSame( 'complete', $result['decision'] );
 		$this->assertFalse( $result['can_advance'] );
@@ -111,11 +111,11 @@ class EventSourceRampEvaluatorTest extends TestCase {
 		$evidence                           = $this->passing_evidence();
 		$evidence['metrics']['failed_rate'] = 0.06;
 
-		$result = $this->evaluate( 'ticketmaster', 3, 'postflight', $evidence );
+		$result = $this->evaluate( 'ticketmaster', 50, 'postflight', $evidence );
 
 		$this->assertSame( 'rollback', $result['decision'] );
-		$this->assertStringContainsString( '"max_items":1', $result['apply_plan']['apply_command'] );
-		$this->assertStringContainsString( '"max_items":3', $result['apply_plan']['rollback_command'] );
+		$this->assertStringContainsString( '"max_items":25', $result['apply_plan']['apply_command'] );
+		$this->assertStringContainsString( '"max_items":50', $result['apply_plan']['rollback_command'] );
 		$this->assertTrue( $result['apply_plan']['canonical_events_preserved'] );
 	}
 
@@ -124,7 +124,7 @@ class EventSourceRampEvaluatorTest extends TestCase {
 		$evidence                                  = $this->passing_evidence();
 		$evidence['metrics']['ai_defer_exhausted'] = 1;
 
-		$result = $this->evaluate( 'universal_scraper', 1, 'postflight', $evidence );
+		$result = $this->evaluate( 'universal_scraper', 5, 'postflight', $evidence );
 
 		$this->assertSame( 'rollback', $result['decision'] );
 		$this->assertSame( 'wp datamachine flows pause --pipeline=10', $result['apply_plan']['apply_command'] );
@@ -133,7 +133,7 @@ class EventSourceRampEvaluatorTest extends TestCase {
 
 	/** Confirm evaluator output matches the declared top-level JSON schema. */
 	public function test_output_matches_declared_json_schema(): void {
-		$result = $this->evaluate( 'ticketmaster', 1, 'preflight', $this->passing_evidence() );
+		$result = $this->evaluate( 'ticketmaster', 25, 'preflight', $this->passing_evidence() );
 		$schema = EventSourceRampAbilities::output_schema();
 
 		$this->assertSame( array(), array_diff( $schema['required'], array_keys( $result ) ) );
@@ -160,7 +160,7 @@ class EventSourceRampEvaluatorTest extends TestCase {
 			}
 		);
 
-		$result = $this->evaluate( 'ticketmaster', 1, 'preflight', $this->passing_evidence() );
+		$result = $this->evaluate( 'ticketmaster', 25, 'preflight', $this->passing_evidence() );
 
 		$this->assertSame( 0, $GLOBALS['ec_ramp_mutations'] );
 		$this->assertTrue( $result['apply_plan']['observational'] );

@@ -76,7 +76,7 @@ class EventSourceRampEvaluator {
 		return array(
 			'ticketmaster'      => array(
 				'handler'    => 'ticketmaster',
-				'stages'     => array( 1, 3, 5 ),
+				'stages'     => array( 25, 50, 100 ),
 				'thresholds' => array_merge(
 					$common,
 					array(
@@ -101,7 +101,7 @@ class EventSourceRampEvaluator {
 			),
 			'dice'              => array(
 				'handler'    => 'dice_fm',
-				'stages'     => array( 1, 3, 10 ),
+				'stages'     => array( 10, 25, 50 ),
 				'thresholds' => array_merge(
 					$common,
 					array(
@@ -126,7 +126,7 @@ class EventSourceRampEvaluator {
 			),
 			'universal_scraper' => array(
 				'handler'    => 'universal_web_scraper',
-				'stages'     => array( 1, 2 ),
+				'stages'     => array( 5, 10, 25 ),
 				'thresholds' => array_merge(
 					$common,
 					array(

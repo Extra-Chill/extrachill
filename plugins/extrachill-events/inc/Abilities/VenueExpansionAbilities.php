@@ -6,6 +6,7 @@ namespace ExtraChillEvents\Abilities;
 defined( 'ABSPATH' ) || exit;
 
 use DataMachine\Core\Database\Jobs\Jobs;
+use DataMachine\Engine\AI\System\Tasks\SystemTask;
 use DataMachine\Engine\Tasks\TaskScheduler;
 use ExtraChillEvents\Core\VenueExpansionRunner;
 use ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask;
@@ -83,6 +84,9 @@ class VenueExpansionAbilities {
 		if ( null === $this->scheduler && ! class_exists( TaskScheduler::class ) ) {
 			return new \WP_Error( 'batch_unavailable', 'Data Machine batch scheduling is unavailable.', array( 'status' => 503 ) );
 		}
+		if ( null === $this->scheduler && ! self::ensureExpansionTaskAvailable() ) {
+			return new \WP_Error( 'expansion_task_unavailable', 'Venue expansion task registration is unavailable.', array( 'status' => 503 ) );
+		}
 		$agent_context = array_filter(
 			array(
 				'agent_id'   => (int) ( $input['agent_id'] ?? 0 ),
@@ -106,6 +110,19 @@ class VenueExpansionAbilities {
 			'plan'  => $plan,
 			'batch' => $batch,
 		);
+	}
+
+	/** Load the task lazily for CLI requests that execute before task registry hydration. */
+	private static function ensureExpansionTaskAvailable(): bool {
+		if ( class_exists( VenueExpansionSystemTask::class ) ) {
+			return true;
+		}
+		if ( ! class_exists( SystemTask::class ) ) {
+			return false;
+		}
+		require_once dirname( __DIR__ ) . '/Core/VenueExpansionRunner.php';
+		require_once dirname( __DIR__ ) . '/Steps/VenueExpansion/VenueExpansionSystemTask.php';
+		return class_exists( VenueExpansionSystemTask::class );
 	}
 
 	/** Normalize bounds and allocate a global qualification-operation budget. */

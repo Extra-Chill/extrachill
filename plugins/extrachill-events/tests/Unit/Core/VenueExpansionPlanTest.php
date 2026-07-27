@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueExpansionRunner.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/VenueExpansionAbilities.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Cli/ExpandVenuesCommand.php';
+require_once __DIR__ . '/Stubs/system-task-base-stub.php';
 
 class VenueExpansionPlanTest extends TestCase {
 	public function test_city_file_parser_ignores_comments_blanks_and_duplicates(): void {
@@ -88,6 +89,14 @@ class VenueExpansionPlanTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'agent_context_required', $result->get_error_code() );
+	}
+
+	public function test_expansion_task_can_be_loaded_before_registry_hydration(): void {
+		$method = new \ReflectionMethod( VenueExpansionAbilities::class, 'ensureExpansionTaskAvailable' );
+		$method->setAccessible( true );
+
+		$this->assertTrue( $method->invoke( null ) );
+		$this->assertTrue( class_exists( \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::class ) );
 	}
 
 	public function test_report_schema_preserves_per_city_and_aggregate_evidence(): void {
