@@ -37,6 +37,10 @@ if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCo
 
 	require_once __DIR__ . '/inc/Cli/AddCityCommand.php';
 	\WP_CLI::add_command( 'extrachill-events add-city', \ExtraChillEvents\Cli\AddCityCommand::class );
+	require_once __DIR__ . '/inc/Cli/ExpandVenuesCommand.php';
+	require_once __DIR__ . '/inc/Cli/VenueExpansionReportCommand.php';
+	\WP_CLI::add_command( 'extrachill-events expand', \ExtraChillEvents\Cli\ExpandVenuesCommand::class );
+	\WP_CLI::add_command( 'extrachill-events expand-report', \ExtraChillEvents\Cli\VenueExpansionReportCommand::class );
 
 	// Qualify v2 — verdict-log subcommands hung off the existing
 	// `wp extrachill venues` parent (registered by extrachill-cli).
@@ -109,77 +113,70 @@ require_once __DIR__ . '/inc/admin/network-settings.php';
 
 require_once __DIR__ . '/inc/core/datamachine-settings.php';
 
-/**
- * Register the weekly qualify digest task with Data Machine's system-task
- * surface. Loaded on plugins_loaded so the DM SystemTask base class is
- * available; gated on its existence so this plugin remains compatible
- * with installs that don't have data-machine activated.
- */
-add_action(
-	'plugins_loaded',
-	function () {
+// Register filters during plugin load, before Data Machine builds its task registry.
+add_filter(
+	'datamachine_tasks',
+	function ( array $tasks ): array {
 		if ( ! class_exists( '\\DataMachine\\Engine\\AI\\System\\Tasks\\SystemTask' ) ) {
-			return;
+			return $tasks;
 		}
 		require_once __DIR__ . '/inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
 		require_once __DIR__ . '/inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
+		require_once __DIR__ . '/inc/Core/VenueExpansionRunner.php';
+		require_once __DIR__ . '/inc/Steps/VenueExpansion/VenueExpansionSystemTask.php';
+		$tasks[ \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE ]       = \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::class;
+		$tasks[ \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE ] = \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::class;
+		$tasks[ \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::TASK_TYPE ]     = \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::class;
+		return $tasks;
+	}
+);
 
-		add_filter(
-			'datamachine_tasks',
-			function ( array $tasks ): array {
-				$tasks[ \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE ]       = \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::class;
-				$tasks[ \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE ] = \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::class;
-				return $tasks;
-			}
+add_filter(
+	'datamachine_recurring_schedules',
+	function ( array $schedules ): array {
+		require_once __DIR__ . '/inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
+		require_once __DIR__ . '/inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
+		$schedules['extrachill_local_scene_digest'] = apply_filters(
+			'extrachill_local_scene_digest_schedule',
+			array(
+				'task_type'          => \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE,
+				'interval'           => 'weekly',
+				'enabled_setting'    => 'extrachill_local_scene_digest_enabled',
+				'default_enabled'    => false,
+				'label'              => 'Weekly Local Scene Digest — Thursdays 15:00 UTC',
+				'first_run_callback' => 'strtotime',
+				'first_run_arg'      => 'next thursday 15:00 UTC',
+				'task_params'        => array(
+					'days'    => 7,
+					'limit'   => 8,
+					'dry_run' => false,
+				),
+			)
 		);
-
-		add_filter(
-			'datamachine_recurring_schedules',
-			function ( array $schedules ): array {
-				$schedules['extrachill_local_scene_digest'] = apply_filters(
-					'extrachill_local_scene_digest_schedule',
-					array(
-						'task_type'          => \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE,
-						'interval'           => 'weekly',
-						'enabled_setting'    => 'extrachill_local_scene_digest_enabled',
-						'default_enabled'    => false,
-						'label'              => 'Weekly Local Scene Digest — Thursdays 15:00 UTC',
-						'first_run_callback' => 'strtotime',
-						'first_run_arg'      => 'next thursday 15:00 UTC',
-						'task_params'        => array(
-							'days'    => 7,
-							'limit'   => 8,
-							'dry_run' => false,
-						),
-					)
-				);
-				/**
-				 * Filter the qualify digest schedule definition. Allows
-				 * operators to flip interval, change the first-run anchor,
-				 * etc. without forking the plugin.
-				 */
-				$schedules['extrachill_qualify_digest'] = apply_filters(
-					'dme_qualify_digest_schedule',
-					array(
-						'task_type'          => \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE,
-						'interval'           => 'weekly',
-						'enabled_setting'    => 'dme_qualify_digest_enabled',
-						'default_enabled'    => true,
-						'label'              => 'Weekly — Mondays 09:00 UTC',
-						'first_run_callback' => 'strtotime',
-						'first_run_arg'      => 'next monday 09:00 UTC',
-						'task_params'        => array(
-							'since'   => '1 week ago',
-							'format'  => 'html',
-							'dry_run' => false,
-						),
-					)
-				);
-				return $schedules;
-			}
+		/**
+		 * Filter the qualify digest schedule definition. Allows
+		 * operators to flip interval, change the first-run anchor,
+		 * etc. without forking the plugin.
+		 */
+		$schedules['extrachill_qualify_digest'] = apply_filters(
+			'dme_qualify_digest_schedule',
+			array(
+				'task_type'          => \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE,
+				'interval'           => 'weekly',
+				'enabled_setting'    => 'dme_qualify_digest_enabled',
+				'default_enabled'    => true,
+				'label'              => 'Weekly — Mondays 09:00 UTC',
+				'first_run_callback' => 'strtotime',
+				'first_run_arg'      => 'next monday 09:00 UTC',
+				'task_params'        => array(
+					'since'   => '1 week ago',
+					'format'  => 'html',
+					'dry_run' => false,
+				),
+			)
 		);
-	},
-	20
+		return $schedules;
+	}
 );
 
 /**
@@ -263,6 +260,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdictResolver.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/PlatformDetector.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyFingerprinter.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueExpansionRunner.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/EventSourceRampEvaluator.php';
 
 		// Artist URL Import subsystem (migrated from data-machine-events in #200).
@@ -458,6 +456,9 @@ class ExtraChillEvents {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueAddAbilities.php';
 		new \ExtraChillEvents\Abilities\VenueAddAbilities();
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueExpansionAbilities.php';
+		new \ExtraChillEvents\Abilities\VenueExpansionAbilities();
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/EventSubmissionAbilities.php';
 		new \ExtraChillEvents\Abilities\EventSubmissionAbilities();

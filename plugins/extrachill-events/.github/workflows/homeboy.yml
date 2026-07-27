@@ -119,6 +119,8 @@ jobs:
         with:
           binary-path: ${{ runner.temp }}/homeboy-0.319.2/homeboy
           commands: ${{ matrix.command }}
+          args: ${{ github.event_name == 'workflow_dispatch' && '--changed-since=origin/main' || '' }}
+          auto-issue: ${{ github.event_name == 'workflow_dispatch' && 'false' || '' }}
           extension-source: ${{ github.workspace }}/.ci/homeboy-extensions
           expected-commands: review lint,review test
 

@@ -27,6 +27,10 @@ if ( ! class_exists( __NAMESPACE__ . '\\SystemTask' ) ) {
 			);
 		}
 
+		public function requiresAgentContext(): bool {
+			return true;
+		}
+
 		protected function completeJob( int $jobId, array $data ): void {
 			$GLOBALS['ec_test_systemtask_calls'][] = array(
 				'method' => 'completeJob',
