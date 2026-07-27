@@ -42,3 +42,4 @@ require_once __DIR__ . '/campaign-management.php';
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/stats.php';
 require_once __DIR__ . '/analytics.php';
+require_once dirname( __DIR__ ) . '/delegated-campaign.php';

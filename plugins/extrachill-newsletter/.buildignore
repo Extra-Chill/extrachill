@@ -24,6 +24,8 @@ gulpfile.js
 # Testing
 tests/
 phpunit.xml
+phpunit.xml.dist
+phpstan.neon.dist
 .phpunit.result.cache
 
 # IDE files

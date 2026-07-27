@@ -112,6 +112,9 @@ function extrachill_newsletter_get_sendy_ability( $ability ) {
 	if ( ! function_exists( 'wp_get_ability' ) ) {
 		return null;
 	}
+	if ( function_exists( 'wp_has_ability' ) && ! wp_has_ability( $ability ) ) {
+		return null;
+	}
 
 	$instance = wp_get_ability( $ability );
 	return $instance ? $instance : null;
@@ -218,6 +221,7 @@ function extrachill_subscribe_to_list( $list_id, $email, $name = '', $source = '
  * @return true|WP_Error True on success, WP_Error on failure.
  */
 function send_newsletter_campaign_to_sendy( $post_id, $email_data = array() ) {
+	unset( $email_data );
 	$ability = wp_get_ability( 'extrachill/push-campaign' );
 
 	if ( ! $ability ) {

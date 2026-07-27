@@ -11,47 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-function create_newsletter_post_type() {
-	register_post_type('newsletter', array(
-		'labels' => array(
-			'name' => __('Newsletters', 'extrachill-newsletter'),
-			'singular_name' => __('Newsletter', 'extrachill-newsletter'),
-			'add_new' => __('Create Newsletter', 'extrachill-newsletter'),
-			'add_new_item' => __('Add New Newsletter', 'extrachill-newsletter'),
-			'edit_item' => __('Edit Newsletter', 'extrachill-newsletter'),
-			'new_item' => __('New Newsletter', 'extrachill-newsletter'),
-			'view_item' => __('View Newsletter', 'extrachill-newsletter'),
-			'search_items' => __('Search Newsletters', 'extrachill-newsletter'),
-			'not_found' => __('No newsletters found', 'extrachill-newsletter'),
-			'not_found_in_trash' => __('No newsletters found in trash', 'extrachill-newsletter'),
-		),
-		'public' => true,
-		'has_archive' => false,
-		'rewrite' => array(
-			'slug' => '',
-			'with_front' => false
-		),
-		'supports' => array('title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments'),
-		'show_in_rest' => true,
-		'menu_position' => 6,
-		'menu_icon' => 'dashicons-email-alt',
-		'capability_type' => 'post',
-		'hierarchical' => false,
-		'exclude_from_search' => false,
-		'publicly_queryable' => true,
-		'show_ui' => true,
-		'show_in_menu' => true,
-		'show_in_nav_menus' => true,
-		'show_in_admin_bar' => true,
-		'can_export' => true,
-	));
-}
-add_action('init', 'create_newsletter_post_type');
-function check_newsletter_conditions($post_id, $post) {
-	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+function check_newsletter_conditions( $post_id, $post ) {
+	unset( $post );
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 		return false;
 	}
-	if (wp_is_post_revision($post_id) || 'newsletter' !== get_post_type($post_id) || 'publish' !== get_post_status($post_id)) {
+	if ( wp_is_post_revision( $post_id ) || 'newsletter' !== get_post_type( $post_id ) || 'publish' !== get_post_status( $post_id ) ) {
 		return false;
 	}
 	return true;
@@ -59,24 +24,25 @@ function check_newsletter_conditions($post_id, $post) {
 function add_newsletter_sendy_meta_box() {
 	add_meta_box(
 		'newsletter_sendy_meta_box',
-		__('Sendy Integration', 'extrachill-newsletter'),
+		__( 'Sendy Integration', 'extrachill-newsletter' ),
 		'newsletter_sendy_meta_box_html',
 		'newsletter',
 		'side',
 		'high'
 	);
 }
-add_action('add_meta_boxes', 'add_newsletter_sendy_meta_box');
-function newsletter_sendy_meta_box_html($post) {
-	wp_nonce_field('newsletter_sendy_nonce_action', 'newsletter_sendy_nonce_field');
+add_action( 'add_meta_boxes', 'add_newsletter_sendy_meta_box' );
+function newsletter_sendy_meta_box_html( $post ) {
+	wp_nonce_field( 'newsletter_sendy_nonce_action', 'newsletter_sendy_nonce_field' );
 
-	echo '<p>' . __('Push this newsletter to Sendy as an email campaign.', 'extrachill-newsletter') . '</p>';
-	echo '<button type="button" class="button button-primary" id="push_newsletter_to_sendy">' . __('Push to Sendy', 'extrachill-newsletter') . '</button>';
+	echo '<p>' . esc_html__( 'Push this newsletter to Sendy as an email campaign.', 'extrachill-newsletter' ) . '</p>';
+	echo '<button type="button" class="button button-primary" id="push_newsletter_to_sendy">' . esc_html__( 'Push to Sendy', 'extrachill-newsletter' ) . '</button>';
 
-	// Get campaign status if available
-	$campaign_id = get_post_meta($post->ID, '_sendy_campaign_id', true);
-	if ($campaign_id) {
-		echo '<p><small>' . sprintf(__('Campaign ID: %s', 'extrachill-newsletter'), $campaign_id) . '</small></p>';
+	// Get campaign status if available.
+	$campaign_id = get_post_meta( $post->ID, '_sendy_campaign_id', true );
+	if ( $campaign_id ) {
+		/* translators: %s: Sendy campaign identifier. */
+		echo '<p><small>' . esc_html( sprintf( __( 'Campaign ID: %s', 'extrachill-newsletter' ), $campaign_id ) ) . '</small></p>';
 	}
 
 	?>
@@ -86,17 +52,17 @@ function newsletter_sendy_meta_box_html($post) {
 		var originalText = button.textContent;
 
 		button.disabled = true;
-		button.textContent = '<?php echo esc_js(__('Pushing...', 'extrachill-newsletter')); ?>';
+		button.textContent = '<?php echo esc_js( __( 'Pushing...', 'extrachill-newsletter' ) ); ?>';
 
-		var postId = <?php echo json_encode($post->ID); ?>;
-		var apiUrl = <?php echo json_encode( rest_url( 'extrachill/v1/newsletter/campaign/push' ) ); ?>;
+		var postId = <?php echo wp_json_encode( $post->ID ); ?>;
+		var apiUrl = <?php echo wp_json_encode( rest_url( 'extrachill/v1/newsletter/campaign/push' ) ); ?>;
 
 		fetch(apiUrl, {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: {
 				'Content-Type': 'application/json',
-				'X-WP-Nonce': <?php echo json_encode(wp_create_nonce('wp_rest')); ?>
+				'X-WP-Nonce': <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?>
 			},
 			body: JSON.stringify({ post_id: postId })
 		})
@@ -116,33 +82,34 @@ function newsletter_sendy_meta_box_html($post) {
 			button.disabled = false;
 			button.textContent = originalText;
 			console.error('Push to Sendy failed:', error);
-			alert('<?php echo esc_js(__('Error:', 'extrachill-newsletter')); ?> ' + (error.message || '<?php echo esc_js(__('An error occurred', 'extrachill-newsletter')); ?>'));
+			alert('<?php echo esc_js( __( 'Error:', 'extrachill-newsletter' ) ); ?> ' + (error.message || '<?php echo esc_js( __( 'An error occurred', 'extrachill-newsletter' ) ); ?>'));
 		});
 	});
 	</script>
 	<?php
 }
-function save_newsletter_meta_box_data($post_id) {
-	// Verify nonce
-	if (!isset($_POST['newsletter_sendy_nonce_field']) || !wp_verify_nonce($_POST['newsletter_sendy_nonce_field'], 'newsletter_sendy_nonce_action')) {
+function save_newsletter_meta_box_data( $post_id ) {
+	// Verify nonce.
+	$nonce = isset( $_POST['newsletter_sendy_nonce_field'] ) ? sanitize_text_field( wp_unslash( $_POST['newsletter_sendy_nonce_field'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'newsletter_sendy_nonce_action' ) ) {
 		return;
 	}
 
-	// Check user permissions
-	if (!current_user_can('edit_post', $post_id)) {
+	// Check user permissions.
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
 		return;
 	}
 
-	// Prevent auto-save
-	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+	// Prevent auto-save.
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 		return;
 	}
 
-	// Only process newsletter posts
-	if ('newsletter' !== get_post_type($post_id)) {
+	// Only process newsletter posts.
+	if ( 'newsletter' !== get_post_type( $post_id ) ) {
 		return;
 	}
 
-	// Additional meta data processing can be added here if needed
+	// Additional meta data processing can be added here if needed.
 }
-add_action('save_post', 'save_newsletter_meta_box_data');
+add_action( 'save_post', 'save_newsletter_meta_box_data' );
