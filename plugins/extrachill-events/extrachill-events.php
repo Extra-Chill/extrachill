@@ -446,6 +446,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/PriorityEventAbilities.php';
 		new \ExtraChillEvents\Abilities\PriorityEventAbilities();
 
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowLocationGuard.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/CityAbilities.php';
 		new \ExtraChillEvents\Abilities\CityAbilities();
 
