@@ -130,7 +130,7 @@ class User_Settings_Privacy_RoutesTest extends WP_UnitTestCase {
 		$response = $this->dispatch( 'POST', array( $field => 'friends' ) );
 
 		$this->assertSame( 400, $response->get_status() );
-		$this->assertSame( 'rest_invalid_param', $response->get_data()['code'] );
+		$this->assertSame( 'ability_invalid_input', $response->get_data()['code'] );
 		$this->assertSame( 'public', $this->get_user_settings( $user_id )[ $field ] );
 		$this->assertEmpty( $this->update_inputs );
 	}

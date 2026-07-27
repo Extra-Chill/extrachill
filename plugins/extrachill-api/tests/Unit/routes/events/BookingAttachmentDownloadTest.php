@@ -53,6 +53,7 @@ namespace {
 			$this->delivery_outcomes                                   = array();
 			$this->rate_counts = array();
 			wp_set_current_user( 0 );
+			unset( $_SERVER['HTTP_RANGE'] );
 			remove_filter( 'rest_pre_dispatch', 'extrachill_api_route_affinity_dispatch', 10 );
 			add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 
@@ -81,6 +82,7 @@ namespace {
 				wp_unregister_ability( $name );
 			}
 			wp_set_current_user( 0 );
+			unset( $_SERVER['HTTP_RANGE'] );
 			add_filter( 'rest_pre_dispatch', 'extrachill_api_route_affinity_dispatch', 10, 3 );
 			parent::tear_down();
 		}
@@ -170,6 +172,7 @@ namespace {
 			fwrite( $stream, 'x' );
 			rewind( $stream );
 			$request  = new WP_REST_Request( 'GET', '/extrachill/v1/events/bookings/1/attachments/1/download' );
+			$request->set_header( 'Range', '' );
 			$response = extrachill_api_create_private_stream_response( $stream, "../bad\r\nX-Leak: yes.pdf", "text/plain\r\nX-Leak: yes", $request );
 			$headers  = $response->get_headers();
 
@@ -447,6 +450,7 @@ namespace {
 			wp_set_current_user( self::factory()->user->create() );
 			$nonce   = wp_generate_uuid4();
 			$request = new WP_REST_Request( 'GET', '/extrachill/v1/events/bookings/1/attachments/9/download' );
+			$request->set_header( 'Range', '' );
 			$request->set_param( 'booking_id', 1 );
 			$request->set_param( 'attachment_id', 9 );
 			extrachill_api_set_route_affinity_context( $request, array( 'nonce' => $nonce ) );
@@ -574,6 +578,7 @@ namespace {
 				'GET',
 				sprintf( '/extrachill/v1/events/bookings/%d/attachments/%d/download', $booking_id, $attachment_id )
 			);
+			$request->set_header( 'Range', '' );
 			$response = rest_do_request( $request );
 
 			return extrachill_api_protect_booking_attachment_download_response( $response, rest_get_server(), $request );
