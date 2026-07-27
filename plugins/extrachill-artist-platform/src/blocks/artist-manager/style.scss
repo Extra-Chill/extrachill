@@ -153,7 +153,51 @@
   color: var(--muted-text);
 }
 
+.ec-am__check-row {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	font-weight: 600;
+}
+
+.ec-am__location-picker {
+	position: relative;
+
+	.ec-am__location-input {
+		width: 100%;
+	}
+}
+
+.ec-am__location-results {
+	position: absolute;
+	z-index: 10;
+	display: grid;
+	width: 100%;
+	max-height: 240px;
+	overflow-y: auto;
+	border: 1px solid var(--border-color);
+	background: var(--background-color);
+	box-shadow: var(--card-shadow);
+
+	button {
+		padding: var(--spacing-sm) var(--spacing-md);
+		border: 0;
+		border-bottom: 1px solid var(--border-color);
+		background: transparent;
+		color: var(--text-color);
+		text-align: left;
+		cursor: pointer;
+	}
+}
+
+.ec-am__help,
+.ec-am__privacy-note {
+	color: var(--muted-text);
+	font-size: var(--font-size-sm);
+}
+
 @media (max-width: 480px) {
+
 	.ec-am__inline {
 		flex-direction: column;
 	}

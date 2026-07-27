@@ -657,6 +657,126 @@ function extrachill_artist_platform_register_abilities() {
 	);
 
 	wp_register_ability(
+		'extrachill/artist-get-local-support-availability',
+		array(
+			'label'               => __( 'Get artist local support availability', 'extrachill-artist-platform' ),
+			'description'         => __( 'Returns local support availability for an exactly managed artist.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id' ),
+				'properties'           => array( 'id' => array( 'type' => 'integer', 'minimum' => 1 ) ),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'                 => 'object',
+				'required'             => array( 'artist_id', 'available', 'scene' ),
+				'properties'           => array(
+					'artist_id' => array( 'type' => 'integer' ),
+					'available' => array( 'type' => 'boolean' ),
+					'scene'     => array( 'type' => array( 'object', 'null' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_get_local_support_availability',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array( 'readonly' => true, 'destructive' => false, 'idempotent' => true ),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-update-local-support-availability',
+		array(
+			'label'               => __( 'Update artist local support availability', 'extrachill-artist-platform' ),
+			'description'         => __( 'Enables or disables local support matching for an exactly managed artist.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'id', 'available' ),
+				'properties'           => array(
+					'id'         => array( 'type' => 'integer', 'minimum' => 1 ),
+					'available'  => array( 'type' => 'boolean' ),
+					'scene_slug' => array( 'type' => 'string' ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'                 => 'object',
+				'required'             => array( 'artist_id', 'available', 'scene' ),
+				'properties'           => array(
+					'artist_id' => array( 'type' => 'integer' ),
+					'available' => array( 'type' => 'boolean' ),
+					'scene'     => array( 'type' => array( 'object', 'null' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_update_local_support_availability',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array( 'readonly' => false, 'destructive' => false, 'idempotent' => true ),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-query-local-support-candidates',
+		array(
+			'label'               => __( 'Query local support candidates', 'extrachill-artist-platform' ),
+			'description'         => __( 'Returns privacy-safe local support candidates for an authorized producer.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'producer', 'scene_slug' ),
+				'properties'           => array(
+					'producer'           => array( 'type' => 'string' ),
+					'scene_slug'         => array( 'type' => 'string' ),
+					'genre'              => array( 'type' => 'string' ),
+					'exclude_artist_ids' => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ) ),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'                 => 'object',
+				'required'             => array( 'location', 'candidates' ),
+				'properties'           => array(
+					'location'   => array( 'type' => 'object' ),
+					'candidates' => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'                 => 'object',
+							'required'             => array( 'artist_profile_id', 'artist_term_id', 'name', 'slug', 'permalink', 'genre', 'local_city', 'profile_image_url', 'header_image_url', 'manager_user_ids' ),
+							'properties'           => array(
+								'artist_profile_id' => array( 'type' => 'integer' ),
+								'artist_term_id'    => array( 'type' => 'integer' ),
+								'name'              => array( 'type' => 'string' ),
+								'slug'              => array( 'type' => 'string' ),
+								'permalink'         => array( 'type' => 'string', 'format' => 'uri' ),
+								'genre'             => array( 'type' => array( 'string', 'null' ) ),
+								'local_city'        => array( 'type' => array( 'string', 'null' ) ),
+								'profile_image_url' => array( 'type' => array( 'string', 'null' ) ),
+								'header_image_url'  => array( 'type' => array( 'string', 'null' ) ),
+								'manager_user_ids'  => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ) ),
+							),
+							'additionalProperties' => false,
+						),
+					),
+				),
+				'additionalProperties' => false,
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_query_local_support_candidates',
+			'permission_callback' => 'extrachill_artist_platform_ability_local_support_producer_permission',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array( 'readonly' => true, 'destructive' => false, 'idempotent' => true ),
+			),
+		)
+	);
+
+	wp_register_ability(
 		'extrachill/artist-update-links',
 		array(
 			'label'               => __( 'Update artist link page', 'extrachill-artist-platform' ),

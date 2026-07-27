@@ -783,6 +783,10 @@ function wp_get_attachment_url( $attachment_id ) {
 	return 'https://artist.example/media/' . $attachment_id . '.jpg';
 }
 
+function wp_get_attachment_image_url( $attachment_id, $size = 'thumbnail' ) {
+	return wp_get_attachment_url( $attachment_id );
+}
+
 function get_the_post_thumbnail_url( $post_id, $size ) {
 	$attachment_id = get_post_thumbnail_id( $post_id );
 	return $attachment_id ? wp_get_attachment_url( $attachment_id ) : false;
@@ -829,7 +833,20 @@ function apply_filters( $hook_name, $value, ...$args ) {
 		$artist_id = empty( $args ) ? (int) $value : (int) end( $args );
 		return ec_get_link_page_id( $artist_id );
 	}
+	if ( 'extrachill_artist_platform_local_support_producer_authorized' === $hook_name ) {
+		$producer = (string) ( $args[0] ?? '' );
+		return in_array( $producer, $GLOBALS['ec_test']['authorized_local_support_producers'] ?? array(), true );
+	}
 	return $value;
+}
+
+function extrachill_users_get_local_scene( $user_id ) {
+	return $GLOBALS['ec_test']['local_scenes'][ (int) $user_id ] ?? null;
+}
+
+function extrachill_users_resolve_local_scene( $slug ) {
+	$slug = sanitize_title( $slug );
+	return $GLOBALS['ec_test']['canonical_locations'][ $slug ] ?? new WP_Error( 'location_not_found', 'No canonical location matched that slug.' );
 }
 
 function do_action() {
@@ -907,6 +924,7 @@ require_once dirname( __DIR__ ) . '/inc/core/filters/data.php';
 require_once dirname( __DIR__ ) . '/inc/core/filters/permissions.php';
 require_once dirname( __DIR__ ) . '/inc/core/artist-platform-post-types.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get.php';
+require_once dirname( __DIR__ ) . '/inc/local-support/availability.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/helpers.php';
 require_once dirname( __DIR__ ) . '/inc/core/artist-term-binding.php';
 require_once dirname( __DIR__ ) . '/inc/artist-profiles/frontend/shows-section.php';
@@ -919,5 +937,6 @@ require_once dirname( __DIR__ ) . '/inc/core/filters/create.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-link-page-links.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-social-links.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-export-subscribers.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-local-support.php';
 require_once dirname( __DIR__ ) . '/inc/core/actions/save.php';
 require_once dirname( __DIR__ ) . '/inc/core/platform-artist-provisioning.php';

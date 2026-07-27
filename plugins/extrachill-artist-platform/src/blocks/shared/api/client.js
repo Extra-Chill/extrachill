@@ -31,6 +31,55 @@ export const createArtist = ( data ) => client.artists.create( data );
 export const updateArtist = ( artistId, data ) =>
 	client.artists.update( artistId, data );
 
+const abilityPath = ( name ) =>
+	`/wp-abilities/v1/abilities/${ name
+		.split( '/' )
+		.map( encodeURIComponent )
+		.join( '/' ) }/run`;
+
+export const getLocalSupportAvailability = ( artistId ) => {
+	const query = new URLSearchParams();
+	query.set( 'input[id]', String( artistId ) );
+	return apiFetch( {
+		path: `${ abilityPath(
+			'extrachill/artist-get-local-support-availability'
+		) }?${ query.toString() }`,
+		method: 'GET',
+	} );
+};
+
+export const updateLocalSupportAvailability = (
+	artistId,
+	available,
+	sceneSlug
+) =>
+	apiFetch( {
+		path: abilityPath(
+			'extrachill/artist-update-local-support-availability'
+		),
+		method: 'POST',
+		data: {
+			input: {
+				id: artistId,
+				available,
+				...( sceneSlug ? { scene_slug: sceneSlug } : {} ),
+			},
+		},
+	} );
+
+export const searchEventLocations = ( search ) => {
+	const query = new URLSearchParams();
+	query.set( 'input[mode]', 'search' );
+	query.set( 'input[search]', search );
+	query.set( 'input[limit]', '10' );
+	return apiFetch( {
+		path: `${ abilityPath(
+			'extrachill/user-event-locations'
+		) }?${ query.toString() }`,
+		method: 'GET',
+	} );
+};
+
 // ─── Link page ──────────────────────────────────────────────────────────────
 
 export const getLinks = ( artistId ) => client.artists.getLinks( artistId );
@@ -202,6 +251,9 @@ export default {
 	getArtist,
 	createArtist,
 	updateArtist,
+	getLocalSupportAvailability,
+	updateLocalSupportAvailability,
+	searchEventLocations,
 	getLinks,
 	updateLinks,
 	getSocials,

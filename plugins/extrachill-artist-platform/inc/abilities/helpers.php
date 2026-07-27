@@ -75,6 +75,25 @@ function extrachill_artist_platform_ability_create_permission( $input ) {
 }
 
 /**
+ * Permission callback for the private local-support producer query.
+ *
+ * @param array $input Ability input.
+ * @return bool
+ */
+function extrachill_artist_platform_ability_local_support_producer_permission( $input ) {
+	if ( current_user_can( 'manage_network_options' ) ) {
+		return true;
+	}
+
+	$producer = sanitize_key( $input['producer'] ?? '' );
+	$scene    = extrachill_artist_platform_resolve_local_support_scene( $input['scene_slug'] ?? '' );
+
+	return '' !== $producer
+		&& ! is_wp_error( $scene )
+		&& (bool) apply_filters( 'extrachill_artist_platform_local_support_producer_authorized', false, $producer, $scene );
+}
+
+/**
  * ID meta key map for link page entities.
  *
  * Maps entity type to the post meta counter key stored on the link page.

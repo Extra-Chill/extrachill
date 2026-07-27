@@ -28,6 +28,7 @@ import {
 	deleteMedia,
 } from '../shared/api/client';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
+import LocalSupportTab from './components/LocalSupportTab';
 
 const isValidEmail = (email) => {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -527,6 +528,7 @@ const App = () => {
 		{ id: 'info', label: 'Info' },
 		{ id: 'managers', label: 'Profile Managers' },
 		{ id: 'subscribers', label: 'Subscribers' },
+		{ id: 'local-support', label: 'Local Support' },
 	];
 
 	const loadArtist = async (id) => {
@@ -619,6 +621,10 @@ const App = () => {
 				return selectedId ? <ManagersTab artistId={ selectedId } /> : null;
 			case 'subscribers':
 				return selectedId ? <SubscribersTab artistId={ selectedId } /> : null;
+			case 'local-support':
+				return selectedId ? (
+					<LocalSupportTab artistId={ selectedId } />
+				) : null;
 			default:
 				return null;
 		}
