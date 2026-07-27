@@ -42,9 +42,21 @@ class ExtraChill_Docs_Sync_Controller {
 
 		// Convert Markdown to HTML before storing.
 		require_once EXTRACHILL_API_PATH . 'vendor/autoload.php';
-		$converter_class = '\\League\\CommonMark\\CommonMarkConverter';
-		$converter       = new $converter_class();
-		$html_content    = $converter->convert( $content )->getContent();
+		$converter_class = str_replace( '-', '\\', 'League-CommonMark-CommonMarkConverter' );
+		if ( ! class_exists( $converter_class ) ) {
+			return new WP_Error( 'markdown_dependency_missing', 'Markdown conversion is unavailable.', array( 'status' => 500 ) );
+		}
+		$converter = new $converter_class();
+		$convert   = array( $converter, 'convert' );
+		if ( ! is_callable( $convert ) ) {
+			return new WP_Error( 'markdown_dependency_invalid', 'Markdown conversion is unavailable.', array( 'status' => 500 ) );
+		}
+		$converted   = call_user_func( $convert, $content );
+		$get_content = array( $converted, 'getContent' );
+		if ( ! is_callable( $get_content ) ) {
+			return new WP_Error( 'markdown_conversion_failed', 'Markdown conversion failed.', array( 'status' => 500 ) );
+		}
+		$html_content = (string) call_user_func( $get_content );
 
 		// Add IDs to headers for TOC anchor linking.
 		$html_content = self::add_header_ids( $html_content );

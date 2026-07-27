@@ -172,7 +172,11 @@ function extrachill_api_giveaway_run_handler( WP_REST_Request $request ) {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_giveaway_schedule_handler( WP_REST_Request $request ) {
-	if ( ! class_exists( 'DataMachine\\Engine\\Tasks\\TaskScheduler' ) ) {
+	$scheduler = array(
+		str_replace( '-', '\\', 'DataMachine-Engine-Tasks-TaskScheduler' ),
+		'schedule',
+	);
+	if ( ! is_callable( $scheduler ) ) {
 		return new WP_Error( 'task_system_missing', 'Data Machine Task System not available.', array( 'status' => 500 ) );
 	}
 
@@ -191,7 +195,8 @@ function extrachill_api_giveaway_schedule_handler( WP_REST_Request $request ) {
 		'message'      => $request->get_param( 'message' ),
 	);
 
-	$job_id = \DataMachine\Engine\Tasks\TaskScheduler::schedule(
+	$job_id = call_user_func(
+		$scheduler,
 		'giveaway',
 		$params,
 		array(

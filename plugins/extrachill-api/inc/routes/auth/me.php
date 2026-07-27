@@ -66,9 +66,7 @@ function extrachill_api_auth_me_handler( WP_REST_Request $request ) {
 
 	if ( function_exists( 'ec_get_artists_for_user' ) ) {
 		$artist_ids             = ec_get_artists_for_user( $user->ID );
-		$response['artist_ids'] = is_array( $artist_ids )
-			? array_values( array_map( 'absint', $artist_ids ) )
-			: array();
+		$response['artist_ids'] = array_values( array_map( 'absint', $artist_ids ) );
 	}
 
 	if ( function_exists( 'ec_get_latest_artist_for_user' ) ) {
