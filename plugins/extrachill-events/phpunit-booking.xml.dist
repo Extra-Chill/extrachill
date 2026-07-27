@@ -20,6 +20,7 @@
 			<file>tests/BookingMarketingTest.php</file>
 			<file>tests/BookingMarketingDelegatedSchemaTest.php</file>
 			<file>tests/TicketSettlementTest.php</file>
+			<file>tests/TicketReconciliationTest.php</file>
 			<file>tests/BookingNotificationTest.php</file>
 			<file>tests/LocalSupportNotificationTest.php</file>
 			<file>tests/CanonicalEventPublicationGuardTest.php</file>

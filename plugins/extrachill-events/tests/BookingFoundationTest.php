@@ -309,7 +309,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '11';
 
 		$this->assertTrue( BookingSchema::maybe_install() );
-		$this->assertSame( '12', get_option( BookingSchema::VERSION_OPTION ) );
+		$this->assertSame( '13', get_option( BookingSchema::VERSION_OPTION ) );
 		$this->assertArrayHasKey( $sales, $wpdb->schemas );
 		$this->assertArrayHasKey( $settlements, $wpdb->schemas );
 		$this->assertSame( 'INNODB', strtoupper( $wpdb->engines[ $sales ] ) );

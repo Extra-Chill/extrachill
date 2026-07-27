@@ -16,6 +16,7 @@ use ExtraChillEvents\Core\BookingPrivateFileProvider;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\TicketSettlementService;
+use ExtraChillEvents\Core\TicketReconciliationService;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
@@ -182,7 +183,7 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 			'post',
 			array( 'public' => false )
 		);
-		$venue          = self::factory()->term->create_and_get(
+		$venue = self::factory()->term->create_and_get(
 			array(
 				'taxonomy' => 'venue',
 				'name'     => 'Integration Room ' . wp_generate_uuid4(),
@@ -215,7 +216,7 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		if ( $this->contender instanceof mysqli ) {
 			$this->contender->close();
 		}
-		foreach ( array( BookingSchema::settlements_table(), BookingSchema::sales_reports_table(), BookingSchema::holds_table(), BookingSchema::attachment_deliveries_table(), BookingSchema::attachments_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), BookingSchema::memberships_table() ) as $table ) {
+		foreach ( array( BookingSchema::settlements_table(), BookingSchema::sales_resolutions_table(), BookingSchema::sales_reports_table(), BookingSchema::ticket_sources_table(), BookingSchema::holds_table(), BookingSchema::attachment_deliveries_table(), BookingSchema::attachments_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), BookingSchema::memberships_table() ) as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Disposable test database cleanup.
 		}
 		delete_option( BookingSchema::VERSION_OPTION );
@@ -315,9 +316,32 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		$service   = new TicketSettlementMySQLProbeService();
 		$abilities = $this->register_settlement_abilities( $service );
 		wp_set_current_user( $this->actor_id );
+		$source = ( new TicketReconciliationService() )->register_source(
+			array(
+				'booking_id' => $booking['id'],
+				'provider'   => 'manual-certified',
+				'source_key' => 'primary',
+				'ticket_url' => 'https://tickets.example.test/mysql-primary?token=private',
+			),
+			$this->actor_id
+		);
+		$this->assertIsArray( $source, is_wp_error( $source ) ? $source->get_error_code() : '' );
+		$this->assertSame(
+			$source,
+			( new TicketReconciliationService() )->register_source(
+				array(
+					'booking_id' => $booking['id'],
+					'provider'   => 'manual-certified',
+					'source_key' => 'primary',
+					'ticket_url' => 'https://tickets.example.test/mysql-primary?token=private',
+				),
+				$this->actor_id
+			)
+		);
 		$report = $abilities['extrachill/record-booking-ticket-sales']->execute(
 			array(
 				'booking_id'         => $booking['id'],
+				'ticket_source_id'   => $source['id'],
 				'provider'           => 'manual-certified',
 				'external_report_id' => 'mysql-settlement-report-1',
 				'source_type'        => 'manual',
@@ -375,6 +399,7 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 				'booking_id'               => $booking['id'],
 				'expected_booking_version' => $booking['version'],
 				'expected_report_ids'      => $preview['included_report_ids'],
+				'expected_evidence_hash'   => $preview['evidence_hash'],
 				'basis'                    => $preview['basis'],
 				'basis_points'             => $preview['basis_points'],
 				'currency'                 => $preview['currency'],
@@ -429,7 +454,17 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		);
 		$void_booking            = $bookings->claim_event( $void_booking['id'], $void_event_id, $void_booking['version'] );
 		$this->assertIsArray( $void_booking, is_wp_error( $void_booking ) ? $void_booking->get_error_code() : '' );
-		$this->assertIsArray( $abilities['extrachill/record-booking-ticket-sales']->execute( $this->settlement_report_input( $void_booking['id'], 'mysql-settlement-void-report' ) ) );
+		$void_source = ( new TicketReconciliationService() )->register_source(
+			array(
+				'booking_id' => $void_booking['id'],
+				'provider'   => 'manual-certified',
+				'source_key' => 'primary',
+				'ticket_url' => 'https://tickets.example.test/mysql-void',
+			),
+			$this->actor_id
+		);
+		$this->assertIsArray( $void_source, is_wp_error( $void_source ) ? $void_source->get_error_code() : '' );
+		$this->assertIsArray( $abilities['extrachill/record-booking-ticket-sales']->execute( $this->settlement_report_input( $void_booking['id'], 'mysql-settlement-void-report', $void_source['id'] ) ) );
 		$void_preview = $abilities['extrachill/calculate-booking-settlement']->execute(
 			array(
 				'booking_id'   => $void_booking['id'],
@@ -444,6 +479,7 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 				'booking_id'               => $void_booking['id'],
 				'expected_booking_version' => $void_preview['booking_version'],
 				'expected_report_ids'      => $void_preview['included_report_ids'],
+				'expected_evidence_hash'   => $void_preview['evidence_hash'],
 				'basis'                    => $void_preview['basis'],
 				'basis_points'             => $void_preview['basis_points'],
 				'currency'                 => $void_preview['currency'],
@@ -466,7 +502,7 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 
 	/** Register settlement definitions into the real Core Abilities registry. */
 	private function register_settlement_abilities( TicketSettlementService $service ): array {
-		$names = array( 'extrachill/record-booking-ticket-sales', 'extrachill/list-booking-ticket-sales', 'extrachill/calculate-booking-settlement', 'extrachill/finalize-booking-settlement', 'extrachill/mark-booking-settlement-paid', 'extrachill/void-booking-settlement' );
+		$names = array( 'extrachill/register-booking-ticket-source', 'extrachill/list-booking-ticket-sources', 'extrachill/record-booking-ticket-sales', 'extrachill/import-booking-ticket-sales-csv', 'extrachill/list-booking-ticket-sales', 'extrachill/diagnose-booking-ticket-sales', 'extrachill/resolve-booking-ticket-sales', 'extrachill/calculate-booking-settlement', 'extrachill/finalize-booking-settlement', 'extrachill/mark-booking-settlement-paid', 'extrachill/void-booking-settlement' );
 		foreach ( $names as $name ) {
 			if ( wp_has_ability( $name ) ) {
 				wp_unregister_ability( $name );
@@ -490,9 +526,10 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 	}
 
 	/** Build valid immutable evidence for an ability execution. */
-	private function settlement_report_input( int $booking_id, string $external_id ): array {
+	private function settlement_report_input( int $booking_id, string $external_id, int $source_id ): array {
 		return array(
 			'booking_id'         => $booking_id,
+			'ticket_source_id'   => $source_id,
 			'provider'           => 'manual-certified',
 			'external_report_id' => $external_id,
 			'source_type'        => 'manual',
@@ -547,5 +584,4 @@ class BookingAttachmentMySQLIntegrationTest extends WP_UnitTestCase {
 		$scope = get_current_blog_id() . ':' . BookingSchema::attachments_table() . ':' . $reference;
 		return 'ec_booking_file_' . substr( hash( 'sha256', $scope ), 0, 40 );
 	}
-
 }

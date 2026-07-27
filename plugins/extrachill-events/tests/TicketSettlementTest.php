@@ -10,6 +10,7 @@ use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\TicketSettlementService;
+use ExtraChillEvents\Core\TicketReconciliationService;
 use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
 
@@ -22,6 +23,10 @@ final class TicketSettlementTest extends BookingTestCase {
 	private $authorization;
 	/** @var TicketSettlementService */
 	private $service;
+	/** @var TicketReconciliationService */
+	private $reconciliation;
+	/** @var array<int,int> */
+	private $source_ids = array();
 
 	protected function setUp(): void {
 		$GLOBALS['ec_artist_test'] = array(
@@ -62,7 +67,8 @@ final class TicketSettlementTest extends BookingTestCase {
 		$GLOBALS['wpdb']           = new BookingWpdb();
 		$this->bookings            = new BookingRepository();
 		$this->authorization       = new BookingTestAuthorization();
-		$this->service             = new TicketSettlementService( $this->bookings, new BookingActivityRepository(), $this->authorization );
+		$this->reconciliation      = new TicketReconciliationService( $this->bookings, new BookingActivityRepository(), $this->authorization );
+		$this->service             = new TicketSettlementService( $this->bookings, new BookingActivityRepository(), $this->authorization, null, $this->reconciliation );
 	}
 
 	public function test_schema_installs_signed_evidence_and_frozen_settlement_contracts(): void {
@@ -166,10 +172,12 @@ final class TicketSettlementTest extends BookingTestCase {
 						array(
 							'id'           => $report['id'],
 							'request_hash' => $report['request_hash'],
+							'resolution'   => null,
 						),
 						array(
 							'id'           => $report_2['id'],
 							'request_hash' => $report_2['request_hash'],
+							'resolution'   => null,
 						),
 					)
 				)
@@ -236,6 +244,39 @@ final class TicketSettlementTest extends BookingTestCase {
 				12
 			)->get_error_code()
 		);
+	}
+
+	public function test_formula_one_settlement_retry_and_terminal_transition_remain_compatible(): void {
+		$booking = $this->create_event_booking();
+		$report  = $this->service->record_sales( $this->report_input( $booking['id'], 'legacy-formula' ), 12 );
+		$preview = $this->preview( $booking['id'] );
+		$current = $this->service->finalize( $this->finalize_input( $preview ), 12 );
+		$table   = BookingSchema::settlements_table();
+		$row     = $GLOBALS['wpdb']->rows[ $table ][ $current['id'] ];
+
+		$row['formula_version'] = 1;
+		$row['evidence_hash']   = hash( 'sha256', wp_json_encode( array( array( 'id' => $report['id'], 'request_hash' => $report['request_hash'] ) ) ) );
+		$integrity              = new ReflectionMethod( TicketSettlementService::class, 'settlement_integrity_hash' );
+		$integrity->setAccessible( true );
+		$row['integrity_hash']                              = $integrity->invoke( $this->service, $row );
+		$GLOBALS['wpdb']->rows[ $table ][ $current['id'] ] = $row;
+
+		$retry                    = $this->finalize_input( $preview );
+		$retry['formula_version'] = 1;
+		unset( $retry['expected_evidence_hash'] );
+		$this->assertSame( 1, $this->service->finalize( $retry, 12 )['formula_version'] );
+		$voided = $this->service->void(
+			array(
+				'booking_id'               => $booking['id'],
+				'expected_booking_version' => $booking['version'],
+				'expected_version'         => 1,
+				'reason'                   => 'Legacy compatibility test.',
+			),
+			12
+		);
+		$this->assertIsArray( $voided, is_wp_error( $voided ) ? $voided->get_error_code() : '' );
+		$this->assertSame( 1, $voided['formula_version'] );
+		$this->assertSame( 'void', $voided['status'] );
 	}
 
 	public function test_frozen_financial_snapshot_tampering_fails_before_return_or_payment(): void {
@@ -562,13 +603,28 @@ final class TicketSettlementTest extends BookingTestCase {
 	}
 
 	private function report_input( int $booking_id, string $external_id ): array {
+		if ( ! isset( $this->source_ids[ $booking_id ] ) ) {
+			$source = $this->reconciliation->register_source(
+				array(
+					'booking_id' => $booking_id,
+					'provider'   => 'manual-certified',
+					'source_key' => 'primary',
+					'ticket_url' => 'https://tickets.example.test/events/' . $booking_id . '?private_campaign=secret',
+				),
+				12
+			);
+			$this->assertIsArray( $source, is_wp_error( $source ) ? $source->get_error_code() : '' );
+			$this->source_ids[ $booking_id ] = $source['id'];
+		}
+		$day = 1 + ( hexdec( substr( hash( 'sha256', $external_id ), 0, 4 ) ) % 28 );
 		return array(
 			'booking_id'         => $booking_id,
+			'ticket_source_id'   => $this->source_ids[ $booking_id ],
 			'provider'           => 'manual-certified',
 			'external_report_id' => $external_id,
 			'source_type'        => 'manual',
-			'period_start'       => '2026-07-01 00:00:00',
-			'period_end'         => '2026-07-31 23:59:59',
+			'period_start'       => sprintf( '2026-07-%02d 00:00:00', $day ),
+			'period_end'         => sprintf( '2026-07-%02d 23:59:59', $day ),
 			'tickets_sold'       => 101,
 			'tickets_refunded'   => 1,
 			'gross_minor'        => 10001,
@@ -599,6 +655,7 @@ final class TicketSettlementTest extends BookingTestCase {
 			'booking_id'               => $preview['booking_id'],
 			'expected_booking_version' => $preview['booking_version'],
 			'expected_report_ids'      => $preview['included_report_ids'],
+			'expected_evidence_hash'   => $preview['evidence_hash'],
 			'basis'                    => $preview['basis'],
 			'basis_points'             => $preview['basis_points'],
 			'currency'                 => $preview['currency'],
@@ -639,6 +696,7 @@ final class TicketSettlementTest extends BookingTestCase {
 			$matches = $matches || ( 'null' === $type && null === $value )
 				|| ( 'integer' === $type && is_int( $value ) )
 				|| ( 'string' === $type && is_string( $value ) )
+				|| ( 'boolean' === $type && is_bool( $value ) )
 				|| ( in_array( $type, array( 'object', 'array' ), true ) && is_array( $value ) );
 		}
 		$this->assertTrue( $matches, $path . ' has an invalid type.' );

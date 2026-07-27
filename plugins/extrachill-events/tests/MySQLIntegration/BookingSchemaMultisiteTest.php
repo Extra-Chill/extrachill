@@ -31,14 +31,16 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 				BookingSchema::invitations_table(),
 				BookingSchema::onboarding_audit_table(),
 				BookingSchema::holds_table(),
+				BookingSchema::ticket_sources_table(),
 				BookingSchema::sales_reports_table(),
+				BookingSchema::sales_resolutions_table(),
 				BookingSchema::settlements_table(),
 			);
 
 			$this->assertSame( $prefix, $wpdb->prefix );
 			$this->assertTrue( BookingSchema::is_ready() );
 			$this->assertTrue( BookingSchema::health() );
-			$this->assertCount( 12, $tables );
+			$this->assertCount( 14, $tables );
 			foreach ( $tables as $table ) {
 				$this->assertStringStartsWith( $prefix, $table );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema integration assertion.
@@ -52,5 +54,55 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 		}
 
 		$this->assertSame( 1, get_current_blog_id() );
+	}
+
+	/** Verify the v12 global provider index is replaced without dropping evidence. */
+	public function test_v12_sales_report_index_upgrade_preserves_rows(): void {
+		global $wpdb;
+
+		switch_to_blog( 7 );
+		try {
+			$table       = BookingSchema::sales_reports_table();
+			$external_id = 'legacy-' . wp_generate_uuid4();
+			$wpdb->query( "ALTER TABLE `{$table}` DROP INDEX `provider_external_report`, ADD UNIQUE KEY `provider_external_report` (`provider`, `external_report_id`)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Recreates the exact v12 index in a disposable test database.
+			$this->assertSame( '', (string) $wpdb->last_error );
+			$inserted = $wpdb->insert(
+				$table,
+				array(
+					'booking_id'         => 987654,
+					'event_id'           => 876543,
+					'venue_term_id'      => 765432,
+					'provider'           => 'legacy-provider',
+					'external_report_id' => $external_id,
+					'source_type'        => 'manual',
+					'period_start'       => '2026-07-01 00:00:00',
+					'period_end'         => '2026-07-01 23:59:59',
+					'tickets_sold'       => 1,
+					'tickets_refunded'   => 0,
+					'gross_minor'        => 100,
+					'fees_minor'         => 0,
+					'tax_minor'          => 0,
+					'refunds_minor'      => 0,
+					'net_minor'          => 100,
+					'currency'           => 'USD',
+					'source_payload'     => '{"version":1,"data":{}}',
+					'request_hash'       => str_repeat( 'a', 64 ),
+					'created_by_user_id' => 1,
+					'created_at'         => '2026-07-01 00:00:00',
+				)
+			); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Disposable migration fixture.
+			$this->assertSame( 1, $inserted );
+			update_option( BookingSchema::VERSION_OPTION, '12', false );
+
+			$this->assertTrue( BookingSchema::maybe_install() );
+			$this->assertSame( '13', get_option( BookingSchema::VERSION_OPTION ) );
+			$this->assertSame( '987654', $wpdb->get_var( $wpdb->prepare( "SELECT booking_id FROM `{$table}` WHERE external_report_id = %s", $external_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirms migration preserved the fixture.
+
+			$index_rows = $wpdb->get_results( "SHOW INDEX FROM `{$table}` WHERE Key_name = 'provider_external_report'", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verifies the repaired real-MySQL index.
+			usort( $index_rows, static fn( array $left, array $right ): int => (int) $left['Seq_in_index'] <=> (int) $right['Seq_in_index'] );
+			$this->assertSame( array( 'booking_id', 'provider', 'external_report_id' ), array_column( $index_rows, 'Column_name' ) );
+		} finally {
+			restore_current_blog();
+		}
 	}
 }
