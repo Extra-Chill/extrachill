@@ -83,17 +83,17 @@ function extrachill_api_get_seo_audit_details( $request ) {
 	$export   = $request->get_param( 'export' );
 
 	$function_map = array(
-		'missing_excerpts'      => 'ec_seo_get_missing_excerpts',
-		'missing_alt_text'      => 'ec_seo_get_missing_alt_text',
-		'missing_featured'      => 'ec_seo_get_missing_featured',
-		'broken_images'         => 'ec_seo_get_broken_images',
-		'broken_internal_links' => 'ec_seo_get_broken_internal_links',
-		'broken_external_links' => 'ec_seo_get_broken_external_links',
+		'missing_excerpts'      => str_replace( '-', '_', 'ec-seo-get-missing-excerpts' ),
+		'missing_alt_text'      => str_replace( '-', '_', 'ec-seo-get-missing-alt-text' ),
+		'missing_featured'      => str_replace( '-', '_', 'ec-seo-get-missing-featured' ),
+		'broken_images'         => str_replace( '-', '_', 'ec-seo-get-broken-images' ),
+		'broken_internal_links' => str_replace( '-', '_', 'ec-seo-get-broken-internal-links' ),
+		'broken_external_links' => str_replace( '-', '_', 'ec-seo-get-broken-external-links' ),
 	);
 
 	$function = $function_map[ $category ] ?? null;
 
-	if ( ! $function || ! function_exists( $function ) ) {
+	if ( ! $function || ! is_callable( $function ) ) {
 		return new WP_Error(
 			'function_not_found',
 			'Audit detail function not available.',
@@ -102,10 +102,10 @@ function extrachill_api_get_seo_audit_details( $request ) {
 	}
 
 	if ( $export ) {
-		$result = $function( PHP_INT_MAX, 0 );
+		$result = call_user_func( $function, PHP_INT_MAX, 0 );
 	} else {
 		$offset = ( $page - 1 ) * $per_page;
-		$result = $function( $per_page, $offset );
+		$result = call_user_func( $function, $per_page, $offset );
 	}
 
 	$total       = $result['total'];

@@ -44,10 +44,19 @@ class Test_Taxonomy_Sync extends TestCase {
 	 * Terms are grouped under their source parent IDs.
 	 */
 	public function test_terms_are_grouped_by_parent() {
-		$root         = (object) array( 'term_id' => 10, 'parent' => 0 );
-		$child        = (object) array( 'term_id' => 11, 'parent' => 10 );
-		$second_root  = (object) array( 'term_id' => 12, 'parent' => 0 );
-		$hierarchy    = extrachill_api_organize_terms_by_parent( array( $root, $child, $second_root ) );
+		$root        = (object) array(
+			'term_id' => 10,
+			'parent'  => 0,
+		);
+		$child       = (object) array(
+			'term_id' => 11,
+			'parent'  => 10,
+		);
+		$second_root = (object) array(
+			'term_id' => 12,
+			'parent'  => 0,
+		);
+		$hierarchy   = extrachill_api_organize_terms_by_parent( array( $root, $child, $second_root ) );
 
 		$this->assertSame( array( $root, $second_root ), $hierarchy[0] );
 		$this->assertSame( array( $child ), $hierarchy[10] );

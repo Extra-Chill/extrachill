@@ -59,7 +59,7 @@ function extrachill_api_normalize_telemetry_source( $url ) {
 	}
 
 	$parts = wp_parse_url( $url );
-	if ( false === $parts || ! is_array( $parts ) ) {
+	if ( false === $parts ) {
 		return new WP_Error( 'invalid_source_url', 'A valid source_url is required.', array( 'status' => 400 ) );
 	}
 
@@ -101,7 +101,7 @@ function extrachill_api_normalize_telemetry_destination( $url ) {
 	}
 
 	$parts = wp_parse_url( $url );
-	if ( false === $parts || ! is_array( $parts ) || empty( $parts['host'] ) || empty( $parts['scheme'] ) ) {
+	if ( false === $parts || empty( $parts['host'] ) || empty( $parts['scheme'] ) ) {
 		return new WP_Error( 'invalid_destination_url', 'destination_url must be an absolute HTTP(S) URL.', array( 'status' => 400 ) );
 	}
 
@@ -120,7 +120,7 @@ function extrachill_api_normalize_telemetry_destination( $url ) {
 	if ( ! empty( $parts['query'] ) ) {
 		wp_parse_str( $parts['query'], $query );
 		foreach ( $query as $key => $value ) {
-			if ( extrachill_api_is_sensitive_telemetry_field( $key, $value ) ) {
+			if ( extrachill_api_is_sensitive_telemetry_field( (string) $key, $value ) ) {
 				unset( $query[ $key ] );
 			}
 		}
@@ -238,7 +238,7 @@ function extrachill_api_is_unsafe_telemetry_path( $path ) {
  */
 function extrachill_api_is_sensitive_telemetry_field( $key, $value ) {
 	$key     = strtolower( extrachill_api_decode_telemetry_value( (string) $key ) );
-	$encoded = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+	$encoded = is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value );
 	$value   = strtolower( extrachill_api_decode_telemetry_value( $encoded ) );
 
 	if ( preg_match( '/(?:^|[_-])(?:pass(?:word|wd)?|email|e-mail|user(?:name)?|login|auth(?:orization)?|token|secret|nonce|session(?:id)?|cookie|api[_-]?key|credit|card|cvv|ssn)(?:$|[_-])/i', $key ) ) {

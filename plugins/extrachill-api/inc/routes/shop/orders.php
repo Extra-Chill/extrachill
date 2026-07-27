@@ -179,7 +179,7 @@ function extrachill_api_shop_orders_item_permission_check( WP_REST_Request $requ
 	}
 
 	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
+	if ( ! $order instanceof WC_Order && ! $order instanceof WC_Order_Refund ) {
 		return new WP_Error(
 			'order_not_found',
 			'Order not found.',
@@ -187,7 +187,7 @@ function extrachill_api_shop_orders_item_permission_check( WP_REST_Request $requ
 		);
 	}
 
-	$payouts = $order->get_meta( '_artist_payouts' ) ?: array();
+	$payouts = $order->get_meta( '_artist_payouts' ) ? $order->get_meta( '_artist_payouts' ) : array();
 	if ( ! isset( $payouts[ $artist_id ] ) ) {
 		return new WP_Error(
 			'rest_forbidden',
@@ -308,9 +308,9 @@ function extrachill_api_shop_order_ships_free_only( $artist_payout ) {
  * @return array Order data.
  */
 function extrachill_api_shop_orders_build_response( $order, $artist_id ) {
-	$payouts         = $order->get_meta( '_artist_payouts' ) ?: array();
+	$payouts         = $order->get_meta( '_artist_payouts' ) ? $order->get_meta( '_artist_payouts' ) : array();
 	$artist_payout   = $payouts[ $artist_id ] ?? array();
-	$tracking_number = $order->get_meta( '_artist_tracking_' . $artist_id ) ?: '';
+	$tracking_number = $order->get_meta( '_artist_tracking_' . $artist_id ) ? $order->get_meta( '_artist_tracking_' . $artist_id ) : '';
 
 	$items = array();
 	if ( ! empty( $artist_payout['items'] ) ) {

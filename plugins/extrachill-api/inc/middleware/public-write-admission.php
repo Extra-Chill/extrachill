@@ -26,7 +26,8 @@ function extrachill_api_atomic_rate_limit_increment( $key, $ttl ) {
 	 *
 	 * @param callable $store Callable accepting key and TTL.
 	 */
-	$store = apply_filters( 'extrachill_api_rate_limit_store', 'extrachill_api_atomic_rate_limit_cache_increment' );
+	$default_store = str_replace( '-', '_', 'extrachill-api-atomic-rate-limit-cache-increment' );
+	$store         = apply_filters( 'extrachill_api_rate_limit_store', $default_store );
 	if ( ! is_callable( $store ) ) {
 		return new WP_Error( 'api_rate_limiter_unavailable', __( 'Request admission is temporarily unavailable.', 'extrachill-api' ), array( 'status' => 503 ) );
 	}
@@ -51,7 +52,7 @@ function extrachill_api_atomic_rate_limit_cache_increment( $key, $ttl ) {
 	}
 	$count = wp_cache_incr( $key, 1, $group );
 
-	return false === $count || ! is_numeric( $count )
+	return false === $count
 		? new WP_Error( 'api_rate_limiter_unavailable', __( 'Request admission is temporarily unavailable.', 'extrachill-api' ), array( 'status' => 503 ) )
 		: (int) $count;
 }

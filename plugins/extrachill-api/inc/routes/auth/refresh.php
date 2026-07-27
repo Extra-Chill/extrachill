@@ -80,8 +80,8 @@ function extrachill_api_auth_refresh_handler( WP_REST_Request $request ) {
 	}
 
 	$options = array(
-		'remember'   => rest_sanitize_boolean( $request->get_param( 'remember' ) ),
-		'set_cookie' => rest_sanitize_boolean( $request->get_param( 'set_cookie' ) ),
+		'remember'   => rest_sanitize_boolean( (string) $request->get_param( 'remember' ) ),
+		'set_cookie' => rest_sanitize_boolean( (string) $request->get_param( 'set_cookie' ) ),
 	);
 
 	$result = extrachill_users_refresh_tokens( $refresh_token, $device_id, $options );

@@ -68,9 +68,9 @@ class Route_AffinityTest extends WP_UnitTestCase {
 			$this->original_server[ $key ] = $_SERVER[ $key ] ?? null;
 		}
 
-		$_SERVER['REMOTE_ADDR']    = '203.0.113.10';
-		$this->downstream_response = $this->http_response( 200, array( 'ok' => true ) );
-		$this->delivery_outcomes   = array();
+		$_SERVER['REMOTE_ADDR']     = '203.0.113.10';
+		$this->downstream_response  = $this->http_response( 200, array( 'ok' => true ) );
+		$this->delivery_outcomes    = array();
 		$this->loopback_error_bytes = '';
 		$this->handoff_failure      = false;
 		wp_set_current_user( 0 );
@@ -232,13 +232,13 @@ class Route_AffinityTest extends WP_UnitTestCase {
 			206,
 			'vate',
 			array(
-				'Content-Length'            => '4',
-				'Content-Type'              => 'text/plain',
-				'Content-Disposition'       => 'attachment; filename="rider.txt"',
-				'Content-Range'             => 'bytes 2-5/10',
+				'Content-Length'      => '4',
+				'Content-Type'        => 'text/plain',
+				'Content-Disposition' => 'attachment; filename="rider.txt"',
+				'Content-Range'       => 'bytes 2-5/10',
 			)
 		);
-		$response = $this->dispatch_affinity( $request );
+		$response                  = $this->dispatch_affinity( $request );
 
 		$this->assertSame( 206, $response->get_status() );
 		$this->assertNull( $response->get_data() );
@@ -268,8 +268,8 @@ class Route_AffinityTest extends WP_UnitTestCase {
 			'{"storage_reference":"secret","path":"/private/root"}',
 			array( 'Content-Type' => 'application/json' )
 		);
-		$response = $this->dispatch_affinity( new WP_REST_Request( 'GET', '/extrachill/v1/events/bookings/12/attachments/34/download' ) );
-		$spool    = $this->last_http_args['filename'];
+		$response                  = $this->dispatch_affinity( new WP_REST_Request( 'GET', '/extrachill/v1/events/bookings/12/attachments/34/download' ) );
+		$spool                     = $this->last_http_args['filename'];
 
 		$this->assertWPError( $response );
 		$this->assertSame( 404, $response->get_error_data()['status'] );
@@ -281,8 +281,8 @@ class Route_AffinityTest extends WP_UnitTestCase {
 	public function test_private_stream_wp_error_finalizes_preissued_delivery() {
 		wp_set_current_user( self::factory()->user->create() );
 		$this->downstream_response = new WP_Error( 'http_request_failed', 'Stream reset after consumption.', array( 'status' => 502 ) );
-		$response = $this->dispatch_affinity( new WP_REST_Request( 'GET', '/extrachill/v1/events/bookings/12/attachments/34/download' ) );
-		$spool    = $this->last_http_args['filename'];
+		$response                  = $this->dispatch_affinity( new WP_REST_Request( 'GET', '/extrachill/v1/events/bookings/12/attachments/34/download' ) );
+		$spool                     = $this->last_http_args['filename'];
 
 		$this->assertWPError( $response );
 		$this->assertSame( 502, $response->get_error_data()['status'] );
@@ -298,7 +298,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create() );
 		$this->loopback_error_bytes = 'part';
 		$this->downstream_response  = new WP_Error( 'http_request_failed', 'Stream reset after partial body.', array( 'status' => 502 ) );
-		$response = $this->dispatch_affinity( new WP_REST_Request( 'GET', '/extrachill/v1/events/bookings/12/attachments/34/download' ) );
+		$response                   = $this->dispatch_affinity( new WP_REST_Request( 'GET', '/extrachill/v1/events/bookings/12/attachments/34/download' ) );
 
 		$this->assertWPError( $response );
 		$this->assertCount( 1, $this->delivery_outcomes );
@@ -353,8 +353,8 @@ class Route_AffinityTest extends WP_UnitTestCase {
 	public function test_private_stream_preflight_failures_do_not_leak_spools() {
 		wp_set_current_user( self::factory()->user->create() );
 		$this->handoff_failure = true;
-		$paths = array();
-		$capture = static function ( $path ) use ( &$paths ) {
+		$paths                 = array();
+		$capture               = static function ( $path ) use ( &$paths ) {
 			$paths[] = $path;
 			return $path;
 		};
@@ -542,7 +542,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 	/** JSON booking transport failures use the stable booking error contract. */
 	public function test_json_booking_transport_failure_does_not_leak_network_error() {
 		$this->downstream_response = new WP_Error( 'http_request_failed', 'cURL error 28: private upstream timed out.', array( 'status' => 502 ) );
-		$response = $this->dispatch_affinity( $this->json_request( 'POST', '/extrachill/v1/venues/42/booking-inquiries', array( 'venue' => 42 ) ) );
+		$response                  = $this->dispatch_affinity( $this->json_request( 'POST', '/extrachill/v1/venues/42/booking-inquiries', array( 'venue' => 42 ) ) );
 
 		$this->assertSame( 503, $response->get_status() );
 		$this->assertSame( 'booking_inquiry_unavailable', $response->get_data()['code'] );
@@ -557,7 +557,12 @@ class Route_AffinityTest extends WP_UnitTestCase {
 		add_filter( 'extrachill_api_allow_test_booking_file', '__return_true' );
 		try {
 			$request = new WP_REST_Request( 'POST', '/extrachill/v1/venues/42/booking-inquiries' );
-			$request->set_body_params( array( 'venue' => 42, 'attachment_purposes' => array( 'press_release' ) ) );
+			$request->set_body_params(
+				array(
+					'venue'               => 42,
+					'attachment_purposes' => array( 'press_release' ),
+				)
+			);
 			$request->set_file_params(
 				array(
 					'attachments' => array(
@@ -570,7 +575,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 				)
 			);
 			$this->downstream_response = new WP_Error( 'http_request_failed', 'cURL error 7: private host refused.', array( 'status' => 502 ) );
-			$response = $this->dispatch_affinity( $request );
+			$response                  = $this->dispatch_affinity( $request );
 
 			$this->assertSame( 503, $response->get_status() );
 			$this->assertSame( 'booking_inquiry_unavailable', $response->get_data()['code'] );
@@ -587,7 +592,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 	/** Generic affinity routes retain their existing transport error envelope. */
 	public function test_generic_transport_failure_preserves_original_error() {
 		$this->downstream_response = new WP_Error( 'transport_failed', 'Loopback failed.', array( 'status' => 502 ) );
-		$response = $this->dispatch_affinity( new WP_REST_Request( 'GET', '/extrachill/v1/artists/42' ) );
+		$response                  = $this->dispatch_affinity( new WP_REST_Request( 'GET', '/extrachill/v1/artists/42' ) );
 
 		$this->assertSame( 502, $response->get_status() );
 		$this->assertSame( 'ec_cross_site_request_failed', $response->get_data()['code'] );
@@ -751,10 +756,10 @@ class Route_AffinityTest extends WP_UnitTestCase {
 			file_put_contents( $args['filename'], $this->loopback_error_bytes );
 		}
 		if ( ! empty( $args['stream'] ) && is_array( $this->downstream_response ) ) {
-			$nonce = (string) ( $args['headers']['X-EC-Affinity-Nonce'] ?? '' );
+			$nonce  = (string) ( $args['headers']['X-EC-Affinity-Nonce'] ?? '' );
 			$status = (int) ( $this->downstream_response['response']['code'] ?? 0 );
 			if ( in_array( $status, array( 200, 206 ), true ) ) {
-				$delivery_headers = extrachill_api_booking_attachment_affinity_delivery_headers(
+				$delivery_headers                     = extrachill_api_booking_attachment_affinity_delivery_headers(
 					array(
 						'booking_id'     => 12,
 						'attachment_id'  => 34,

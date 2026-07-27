@@ -123,9 +123,9 @@ function extrachill_api_auth_google_handler( WP_REST_Request $request ) {
 
 	$options = array(
 		'device_name'          => (string) $request->get_param( 'device_name' ),
-		'remember'             => rest_sanitize_boolean( $request->get_param( 'remember' ) ),
-		'set_cookie'           => rest_sanitize_boolean( $request->get_param( 'set_cookie' ) ),
-		'from_join'            => rest_sanitize_boolean( $request->get_param( 'from_join' ) ),
+		'remember'             => rest_sanitize_boolean( (string) $request->get_param( 'remember' ) ),
+		'set_cookie'           => rest_sanitize_boolean( (string) $request->get_param( 'set_cookie' ) ),
+		'from_join'            => rest_sanitize_boolean( (string) $request->get_param( 'from_join' ) ),
 		'success_redirect_url' => (string) $request->get_param( 'success_redirect_url' ),
 		'registration_page'    => (string) $request->get_param( 'registration_page' ),
 		'registration_source'  => (string) $request->get_param( 'registration_source' ),

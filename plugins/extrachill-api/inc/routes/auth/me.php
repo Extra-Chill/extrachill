@@ -34,12 +34,12 @@ function extrachill_api_register_auth_me_route() {
  * Handles the auth me request.
  *
  * @param WP_REST_Request $request Request data.
- * @return array|WP_Error
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_auth_me_handler( WP_REST_Request $request ) {
 	$user = wp_get_current_user();
 
-	if ( ! $user || ! $user->exists() ) {
+	if ( ! $user->exists() ) {
 		return new WP_Error(
 			'not_authenticated',
 			'User not authenticated.',

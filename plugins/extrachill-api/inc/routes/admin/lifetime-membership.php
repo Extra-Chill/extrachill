@@ -95,7 +95,7 @@ function extrachill_api_lifetime_membership_admin_permission_check() {
  * Gets lifetime memberships with search and pagination.
  *
  * @param WP_REST_Request $request The REST request object.
- * @return WP_REST_Response|WP_Error Response with member list or error.
+ * @return WP_REST_Response Response with member list.
  */
 function extrachill_api_get_lifetime_memberships( $request ) {
 	$search   = $request->get_param( 'search' );

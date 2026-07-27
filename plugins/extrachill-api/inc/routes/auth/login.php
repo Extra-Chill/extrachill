@@ -94,7 +94,7 @@ function extrachill_api_register_auth_login_route() {
  * Handles the auth login request.
  *
  * @param WP_REST_Request $request Request data.
- * @return array|WP_Error
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_auth_login_handler( WP_REST_Request $request ) {
 	if ( ! function_exists( 'extrachill_users_login_with_tokens' ) ) {
@@ -135,8 +135,8 @@ function extrachill_api_auth_login_handler( WP_REST_Request $request ) {
 
 	$options = array(
 		'device_name' => (string) $request->get_param( 'device_name' ),
-		'remember'    => rest_sanitize_boolean( $request->get_param( 'remember' ) ),
-		'set_cookie'  => rest_sanitize_boolean( $request->get_param( 'set_cookie' ) ),
+		'remember'    => rest_sanitize_boolean( (string) $request->get_param( 'remember' ) ),
+		'set_cookie'  => rest_sanitize_boolean( (string) $request->get_param( 'set_cookie' ) ),
 		'redirect_to' => (string) $request->get_param( 'redirect_to' ),
 	);
 

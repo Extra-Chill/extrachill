@@ -166,6 +166,7 @@ function extrachill_api_artist_access_admin_check() {
  * @return WP_REST_Response|WP_Error Response with request list or error.
  */
 function extrachill_api_get_artist_access_requests( $request ) {
+	unset( $request );
 	$ability = wp_get_ability( 'extrachill/list-artist-access-requests' );
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );

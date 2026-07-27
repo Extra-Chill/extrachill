@@ -102,7 +102,8 @@ final class ExtraChill_API_Plugin {
 			return;
 		}
 
-		foreach ( glob( $middleware_dir . '*.php' ) as $file ) {
+		$middleware_files = glob( $middleware_dir . '*.php' );
+		foreach ( false !== $middleware_files ? $middleware_files : array() as $file ) {
 			require_once $file;
 		}
 	}

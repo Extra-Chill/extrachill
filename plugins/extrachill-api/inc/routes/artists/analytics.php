@@ -92,7 +92,7 @@ function extrachill_api_artist_analytics_handler( WP_REST_Request $request ) {
 	$input = array( 'id' => $request->get_param( 'id' ) );
 
 	$date_range = $request->get_param( 'date_range' );
-	if ( $date_range !== null ) {
+	if ( null !== $date_range ) {
 		$input['date_range'] = $date_range;
 	}
 

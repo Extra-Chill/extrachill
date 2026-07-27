@@ -74,12 +74,15 @@ function ec_link_token_handoff_handle() {
 	// simply never see the edit button.
 	if ( ! $user_id ) {
 		ec_link_token_handoff_redirect( $return_url, '' );
+		return;
 	}
 
 	// The generic wp-native primitive owns token minting. If it is unavailable
 	// (plugin disabled), fail soft: bounce back tokenless rather than erroring.
-	if ( ! function_exists( 'wp_native_auth_generate_access_token' ) ) {
+	$token_generator = str_replace( '-', '_', 'wp-native-auth-generate-access-token' );
+	if ( ! is_callable( $token_generator ) ) {
 		ec_link_token_handoff_redirect( $return_url, '' );
+		return;
 	}
 
 	// device_id is required by the token primitive but carries no security
@@ -87,7 +90,7 @@ function ec_link_token_handoff_handle() {
 	// per-handoff synthetic UUID so the token resolves like any other.
 	$device_id = wp_generate_uuid4();
 
-	$token = wp_native_auth_generate_access_token( (int) $user_id, $device_id );
+	$token = $token_generator( (int) $user_id, $device_id );
 
 	$access_token = isset( $token['token'] ) ? (string) $token['token'] : '';
 

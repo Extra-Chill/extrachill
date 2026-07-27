@@ -64,7 +64,7 @@ function extrachill_api_register_wire_taxonomy_counts_route() {
 function extrachill_api_wire_taxonomy_counts_handler( WP_REST_Request $request ) {
 	$taxonomy = $request->get_param( 'taxonomy' );
 	$slug     = $request->get_param( 'slug' );
-	$limit    = $request->get_param( 'limit' ) ?: 8;
+	$limit    = $request->get_param( 'limit' ) ? $request->get_param( 'limit' ) : 8;
 
 	// Single term query.
 	if ( ! empty( $slug ) ) {
@@ -121,7 +121,7 @@ function extrachill_api_get_single_wire_term_count( $slug, $taxonomy ) {
 	}
 
 	$term = get_term_by( 'slug', $slug, $taxonomy );
-	if ( ! $term || is_wp_error( $term ) ) {
+	if ( ! $term ) {
 		return null;
 	}
 

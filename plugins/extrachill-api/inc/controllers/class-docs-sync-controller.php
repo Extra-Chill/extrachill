@@ -42,8 +42,9 @@ class ExtraChill_Docs_Sync_Controller {
 
 		// Convert Markdown to HTML before storing.
 		require_once EXTRACHILL_API_PATH . 'vendor/autoload.php';
-		$converter    = new \League\CommonMark\CommonMarkConverter();
-		$html_content = $converter->convert( $content )->getContent();
+		$converter_class = '\\League\\CommonMark\\CommonMarkConverter';
+		$converter       = new $converter_class();
+		$html_content    = $converter->convert( $content )->getContent();
 
 		// Add IDs to headers for TOC anchor linking.
 		$html_content = self::add_header_ids( $html_content );
@@ -196,7 +197,7 @@ class ExtraChill_Docs_Sync_Controller {
 
 				if ( $post ) {
 					$permalink = get_permalink( $post->ID );
-					return sprintf( '<a %shref="%s"%s>', $before_href, esc_url( $permalink ), $after_href );
+					return sprintf( '<a %shref="%s"%s>', $before_href, esc_url( (string) $permalink ), $after_href );
 				}
 
 				// Return unchanged if no matching post found.

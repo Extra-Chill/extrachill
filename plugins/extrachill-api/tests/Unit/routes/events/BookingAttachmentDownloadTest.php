@@ -21,7 +21,7 @@ namespace ExtraChillEvents\Core {
 				return new \WP_Error( 'private_stream_unavailable', 'Internal reference /private/object/leak', array( 'status' => 403 ) );
 			}
 			self::$consumed[ $token ] = true;
-			$stream                    = fopen( 'php://temp', 'w+b' );
+			$stream                   = fopen( 'php://temp', 'w+b' );
 			fwrite( $stream, 'private booking bytes' );
 			rewind( $stream );
 			return $stream;
@@ -49,9 +49,9 @@ namespace {
 		public function set_up() {
 			parent::set_up();
 			\ExtraChillEvents\Core\BookingAttachmentService::$consumed = array();
-			$GLOBALS['extrachill_api_private_streams']                    = array();
-			$this->delivery_outcomes                                     = array();
-			$this->rate_counts                                           = array();
+			$GLOBALS['extrachill_api_private_streams']                 = array();
+			$this->delivery_outcomes                                   = array();
+			$this->rate_counts = array();
 			wp_set_current_user( 0 );
 			remove_filter( 'rest_pre_dispatch', 'extrachill_api_route_affinity_dispatch', 10 );
 			add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
@@ -139,7 +139,16 @@ namespace {
 			$this->assertStringContainsString( 'safe-rider.pdf', $headers['Content-Disposition'] );
 			$this->assertArrayNotHasKey( 'X-EC-Download-Correlation', $headers );
 			$this->assertArrayNotHasKey( 'X-EC-Affinity-Delivery', $headers );
-			$this->assertSame( array( array( 'booking_id' => 1, 'attachment_id' => 9, 'actor_id' => $user_id ) ), $this->audit );
+			$this->assertSame(
+				array(
+					array(
+						'booking_id'    => 1,
+						'attachment_id' => 9,
+						'actor_id'      => $user_id,
+					),
+				),
+				$this->audit
+			);
 			$correlation_id = '11111111-1111-4111-8111-000000000001';
 			$this->assertSame( 'private booking bytes', $this->serve( $response ) );
 			$this->assertSame(
@@ -173,8 +182,22 @@ namespace {
 
 		/** Single ranges are bounded while multiple and unsatisfiable ranges fail. */
 		public function test_range_and_size_limits_are_enforced() {
-			$this->assertSame( array( 'offset' => 2, 'length' => 4, 'status' => 206 ), extrachill_api_booking_attachment_range( 'bytes=2-5', 10 ) );
-			$this->assertSame( array( 'offset' => 7, 'length' => 3, 'status' => 206 ), extrachill_api_booking_attachment_range( 'bytes=-3', 10 ) );
+			$this->assertSame(
+				array(
+					'offset' => 2,
+					'length' => 4,
+					'status' => 206,
+				),
+				extrachill_api_booking_attachment_range( 'bytes=2-5', 10 )
+			);
+			$this->assertSame(
+				array(
+					'offset' => 7,
+					'length' => 3,
+					'status' => 206,
+				),
+				extrachill_api_booking_attachment_range( 'bytes=-3', 10 )
+			);
 			$this->assertWPError( extrachill_api_booking_attachment_range( 'bytes=0-1,4-5', 10 ) );
 			$unsatisfied = extrachill_api_booking_attachment_range( 'bytes=20-', 10 );
 			$this->assertWPError( $unsatisfied );
@@ -207,12 +230,12 @@ namespace {
 		public function test_partial_and_unserved_streams_record_terminal_outcomes() {
 			wp_set_current_user( self::factory()->user->create() );
 			$partial_delivery = array(
-				'booking_id'     => 10,
-				'attachment_id'  => 2,
-				'correlation_id' => '11111111-1111-4111-8111-111111111110',
+				'booking_id'      => 10,
+				'attachment_id'   => 2,
+				'correlation_id'  => '11111111-1111-4111-8111-111111111110',
 				'success_outcome' => 'partial',
 			);
-			$stream = fopen( 'php://temp', 'w+b' );
+			$stream           = fopen( 'php://temp', 'w+b' );
 			fwrite( $stream, 'abc' );
 			rewind( $stream );
 			$response = extrachill_api_register_private_stream( $stream, 5, 200, array(), null, $partial_delivery );
@@ -225,7 +248,7 @@ namespace {
 				'attachment_id'  => 3,
 				'correlation_id' => '11111111-1111-4111-8111-111111111111',
 			);
-			$unserved = fopen( 'php://temp', 'w+b' );
+			$unserved             = fopen( 'php://temp', 'w+b' );
 			fwrite( $unserved, 'pending' );
 			rewind( $unserved );
 			extrachill_api_register_private_stream( $unserved, 7, 200, array(), null, $interrupted_delivery );
@@ -255,23 +278,23 @@ namespace {
 		/** Affinity spools preserve private bytes without trusting unsafe headers. */
 		public function test_affinity_spool_is_bounded_sanitized_and_cleaned() {
 			$nonce = wp_generate_uuid4();
-			$path = wp_tempnam( 'booking-affinity-test' );
+			$path  = wp_tempnam( 'booking-affinity-test' );
 			file_put_contents( $path, 'part' );
 			chmod( $path, 0600 );
 			$delivery = array(
-				'booking_id'     => 10,
-				'attachment_id'  => 2,
-				'correlation_id' => '11111111-1111-4111-8111-111111111110',
+				'booking_id'      => 10,
+				'attachment_id'   => 2,
+				'correlation_id'  => '11111111-1111-4111-8111-111111111110',
 				'success_outcome' => 'partial',
 			);
 			$response = extrachill_api_private_stream_from_affinity_response(
 				array(
 					'headers'  => array_merge(
 						array(
-						'Content-Length'      => '4',
-						'Content-Type'        => 'text/plain',
-						'Content-Disposition' => 'attachment; filename="../rider.txt"',
-						'Content-Range'       => 'bytes 2-5/10',
+							'Content-Length'      => '4',
+							'Content-Type'        => 'text/plain',
+							'Content-Disposition' => 'attachment; filename="../rider.txt"',
+							'Content-Range'       => 'bytes 2-5/10',
 						),
 						extrachill_api_booking_attachment_affinity_delivery_headers( $delivery, array( 'nonce' => $nonce ) )
 					),
@@ -332,8 +355,8 @@ namespace {
 
 		/** Every post-consumption spool failure records one terminal failed outcome. */
 		public function test_affinity_spool_failures_finalize_consumed_handoff() {
-			$nonce    = wp_generate_uuid4();
-			$delivery = array(
+			$nonce            = wp_generate_uuid4();
+			$delivery         = array(
 				'booking_id'      => 10,
 				'attachment_id'   => 2,
 				'correlation_id'  => '11111111-1111-4111-8111-111111111110',
@@ -341,11 +364,25 @@ namespace {
 			);
 			$delivery_headers = extrachill_api_booking_attachment_affinity_delivery_headers( $delivery, array( 'nonce' => $nonce ) );
 			$cases            = array(
-				'missing spool'           => array( '/tmp/missing-booking-spool-' . wp_generate_uuid4(), array( 'Content-Length' => '4' ), null ),
-				'mismatched length'       => array( null, array( 'Content-Length' => '5' ), null ),
-				'malformed content range' => array( null, array( 'Content-Length' => '4', 'Content-Range' => 'private-range' ), null ),
-				'inconsistent range total' => array( null, array( 'Content-Length' => '4', 'Content-Range' => 'bytes 6-9/8' ), null ),
-				'spool open failure'      => array( null, array( 'Content-Length' => '4' ), 'fail_open' ),
+				'missing spool'            => array( '/tmp/missing-booking-spool-' . wp_generate_uuid4(), array( 'Content-Length' => '4' ), null ),
+				'mismatched length'        => array( null, array( 'Content-Length' => '5' ), null ),
+				'malformed content range'  => array(
+					null,
+					array(
+						'Content-Length' => '4',
+						'Content-Range'  => 'private-range',
+					),
+					null,
+				),
+				'inconsistent range total' => array(
+					null,
+					array(
+						'Content-Length' => '4',
+						'Content-Range'  => 'bytes 6-9/8',
+					),
+					null,
+				),
+				'spool open failure'       => array( null, array( 'Content-Length' => '4' ), 'fail_open' ),
 			);
 
 			foreach ( $cases as $label => $case ) {
