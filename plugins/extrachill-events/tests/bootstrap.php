@@ -134,24 +134,12 @@ require_once dirname( __DIR__ ) . '/inc/Core/QualifyFingerprinter.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueQualificationAbilities.php';
 
 // Managed multisite tests exercise the production network's Events blog ID.
-if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'get_site' ) && function_exists( 'wpmu_create_blog' ) ) {
+if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'get_site' ) && function_exists( 'wpmu_create_blog' ) && ! get_site( 7 ) ) {
 	while ( ! get_site( 7 ) ) {
 		$next_id = get_sites( array( 'count' => true ) ) + 1;
 		$created = wpmu_create_blog( 'site-' . $next_id . '.example.org', '/', 'Test Site ' . $next_id, 1 );
 		if ( is_wp_error( $created ) || (int) $created > 7 ) {
 			throw new RuntimeException( 'Unable to provision the Events multisite test fixture.' );
 		}
-	}
-
-	require_once dirname( __DIR__ ) . '/inc/Core/BookingSchema.php';
-	switch_to_blog( 7 );
-	try {
-		$booking_schema = ExtraChillEvents\Core\BookingSchema::install();
-		if ( true !== $booking_schema ) {
-			$failure = is_wp_error( $booking_schema ) ? $booking_schema->get_error_code() . ': ' . wp_json_encode( $booking_schema->get_error_data() ) : 'unknown error';
-			throw new RuntimeException( 'Unable to provision the Events booking schema: ' . $failure );
-		}
-	} finally {
-		restore_current_blog();
 	}
 }

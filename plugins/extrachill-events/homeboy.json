@@ -20,7 +20,10 @@
           }
         },
         "wp_codebox_multisite": true,
-        "wp_codebox_phpunit_bootstrap_mode": "managed"
+        "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wp_codebox_phpunit_preload_files": [
+          "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php"
+        ]
       }
     }
   },
