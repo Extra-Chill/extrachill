@@ -81,6 +81,9 @@ final class BookingEventConversionTest extends TestCase {
 			'post_meta'       => array( 4 => array( 501 => array( '_artist_term_id' => 101 ) ) ),
 		);
 		$GLOBALS['wpdb'] = new BookingWpdb();
+		$GLOBALS['ec_test_ability_resolver'] = static function ( string $name ) {
+			return $GLOBALS['ec_artist_test']['ability_objects'][ $name ] ?? null;
+		};
 		$this->install_ability();
 	}
 
@@ -183,19 +186,25 @@ final class BookingEventConversionTest extends TestCase {
 				$id = (int) $input['event'];
 				if ( isset( $input['venue'] ) ) {
 					$GLOBALS['ec_artist_test']['event_venues'][7][ $id ] = array( (int) $input['venue'] );
-				} else {
-					$attrs = $GLOBALS['ec_artist_test']['parsed_blocks'][ 'event-' . $id ][0]['attrs'];
-					foreach ( $input as $field => $value ) {
-						if ( 'event' !== $field && 'previousStartDate' !== $field ) {
-							$attrs[ $field ] = $value;
-						}
-					}
-					$GLOBALS['ec_artist_test']['parsed_blocks'][ 'event-' . $id ][0]['attrs'] = $attrs;
 				}
-				return array( 'results' => array( array( 'post_id' => $id, 'status' => 'updated', 'updated_fields' => array_keys( $input ) ) ), 'summary' => array( 'updated' => 1, 'failed' => 0, 'total' => 1 ), 'message' => 'Updated 1 event' );
+				$attrs = $GLOBALS['ec_artist_test']['parsed_blocks'][ 'event-' . $id ][0]['attrs'];
+				foreach ( $input as $field => $value ) {
+					if ( ! in_array( $field, array( 'event', 'source', 'source_id', 'source_identity', 'expected_fingerprint', 'venue', 'previousStartDate' ), true ) ) {
+						$attrs[ $field ] = $value;
+					}
+				}
+				$GLOBALS['ec_artist_test']['parsed_blocks'][ 'event-' . $id ][0]['attrs'] = $attrs;
+				return array(
+					'success'              => true,
+					'event_id'             => $id,
+					'action'               => 'updated',
+					'previous_fingerprint' => $input['expected_fingerprint'],
+					'fingerprint'          => hash( 'sha256', wp_json_encode( array( $attrs, $GLOBALS['ec_artist_test']['event_venues'][7][ $id ] ) ) ),
+					'updated_fields'       => array_keys( $input ),
+				);
 			}
 		);
-		$GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/update-event'] = $ability;
+		$GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/update-source-event'] = $ability;
 		return $ability;
 	}
 
@@ -205,6 +214,7 @@ final class BookingEventConversionTest extends TestCase {
 			'event_id'  => 901,
 			'event_url' => 'https://events.example/test-band',
 			'action'    => 'created',
+			'fingerprint' => hash( 'sha256', 'event-901' ),
 			'source'    => array(
 				'name'     => $input['source'],
 				'id'       => $input['source_id'],
@@ -235,7 +245,7 @@ final class BookingEventConversionTest extends TestCase {
 				'kind'            => 'event_converted',
 				'idempotency_key' => sprintf( 'event-conversion:%s:%d:event_converted', $booking['public_id'], $attempt ),
 				'external_id'     => (string) $event_id,
-				'payload'         => array( 'attempt' => $attempt, 'source' => 'extrachill-events-booking', 'source_id' => $booking['public_id'], 'source_identity' => $identity, 'event_id' => $event_id, 'version' => $booking['version'] + 1 ),
+				'payload'         => array( 'attempt' => $attempt, 'source' => 'extrachill-events-booking', 'source_id' => $booking['public_id'], 'source_identity' => $identity, 'event_id' => $event_id, 'version' => $booking['version'] + 1, 'authority' => BookingEventSyncService::authority_from_event( $GLOBALS['ec_artist_test']['parsed_blocks'][ 'event-' . $event_id ][0]['attrs'] ?? array(), 55 ), 'fingerprint' => hash( 'sha256', 'event-' . $event_id ) ),
 			)
 		);
 	}
@@ -826,7 +836,7 @@ final class BookingEventConversionTest extends TestCase {
 		$this->assertCount( 1, array_filter( $activity, static function ( $item ) { return 'event_sync_succeeded' === $item['kind']; } ) );
 		$signals = array_values( array_filter( $activity, static function ( $item ) { return 'event_marketing_change_signaled' === $item['kind']; } ) );
 		$this->assertCount( 1, $signals );
-		$this->assertSame( BookingEventSyncService::MARKETING_ISSUE, $signals[0]['payload']['data']['owner_issue'] );
+		$this->assertArrayNotHasKey( 'owner_issue', $signals[0]['payload']['data'] );
 	}
 
 	public function test_manual_authoritative_divergence_conflicts_without_overwrite(): void {
@@ -853,7 +863,16 @@ final class BookingEventConversionTest extends TestCase {
 				'booking_id'      => $booking['id'],
 				'kind'            => 'event_sync_started',
 				'idempotency_key' => 'event-sync:' . $booking['public_id'] . ':2:1',
-				'payload'         => array( 'attempt' => 1, 'booking_version' => 2, 'event_id' => 901, 'authority' => $authority ),
+				'payload'         => array(
+					'attempt'             => 1,
+					'booking_version'     => 2,
+					'event_id'            => 901,
+					'authority'           => $authority,
+					'baseline'            => $authority,
+					'fingerprint'         => hash( 'sha256', 'event-901' ),
+					'request'             => array( 'expected_version' => 2, 'changes' => array() ),
+					'request_fingerprint' => hash( 'sha256', wp_json_encode( array( 'expected_version' => 2, 'changes' => array() ) ) ),
+				),
 			)
 		);
 		$sync  = new BookingEventSyncService( null, null, new BookingTestAuthorization() );
@@ -892,5 +911,168 @@ final class BookingEventConversionTest extends TestCase {
 		$this->assertSame( 'booking_event_manual_divergence', $error->get_error_code() );
 		$this->assertArrayHasKey( 'venue_id', $error->get_error_data()['conflicts'] );
 		$this->assertCount( 0, $ability->calls );
+	}
+
+	public function test_source_owned_update_is_combined_and_scoped_to_active_wrapper(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$authorization = new BookingTestAuthorization( array( '12:56' => true ) );
+		$wrapper       = null;
+		$ability       = new BookingConversionAbilityFake(
+			function ( array $input ) use ( &$wrapper, $booking ): array {
+				$this->assertTrue( $wrapper->can_update_booking_event( false, $input ) );
+				$this->assertFalse( $wrapper->can_update_booking_event( false, array_merge( $input, array( 'event' => 999 ) ) ) );
+				$this->assertFalse( $wrapper->can_update_booking_event( false, array_merge( $input, array( 'description' => 'outside the delegated correction' ) ) ) );
+				$this->assertSame( BookingEventConversionService::SOURCE, $input['source'] );
+				$this->assertSame( $booking['public_id'], $input['source_id'] );
+				$this->assertArrayHasKey( 'venue', $input );
+				$this->assertArrayHasKey( 'startTime', $input );
+				$GLOBALS['ec_artist_test']['event_venues'][7][901] = array( (int) $input['venue'] );
+				foreach ( $input as $field => $value ) {
+					if ( in_array( $field, array( 'startDate', 'startTime', 'endDate', 'endTime', 'ticketUrl', 'performer', 'performerType', 'eventStatus' ), true ) ) {
+						$GLOBALS['ec_artist_test']['parsed_blocks']['event-901'][0]['attrs'][ $field ] = $value;
+					}
+				}
+				return array( 'success' => true, 'event_id' => 901, 'action' => 'updated', 'previous_fingerprint' => $input['expected_fingerprint'], 'fingerprint' => hash( 'sha256', 'combined' ), 'updated_fields' => array( 'venue', 'startTime' ) );
+			}
+		);
+		$GLOBALS['ec_artist_test']['terms'][7][56] = (object) array( 'term_id' => 56, 'taxonomy' => 'venue', 'name' => 'New Room' );
+		$GLOBALS['ec_artist_test']['meta'][7][56]  = $GLOBALS['ec_artist_test']['meta'][7][55];
+		$GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/update-source-event'] = $ability;
+		$wrapper = new VenueBookingEventAbilities( null, null, $authorization );
+
+		$result = $wrapper->reconcile( array( 'booking_id' => $booking['id'], 'expected_version' => 2, 'changes' => array( 'venue_term_id' => 56, 'performance_start_at' => '2030-03-11 00:00:00', 'performance_end_at' => '2030-03-11 03:00:00' ) ) );
+
+		$this->assertSame( 'succeeded', $result['status'] );
+		$this->assertCount( 1, $ability->calls );
+	}
+
+	public function test_retryable_uncertainty_replays_only_exact_request_with_returned_fingerprint(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$calls   = 0;
+		$ability = new BookingConversionAbilityFake(
+			function ( array $input ) use ( &$calls ) {
+				++$calls;
+				if ( 1 === $calls ) {
+					$GLOBALS['ec_artist_test']['parsed_blocks']['event-901'][0]['attrs']['ticketUrl'] = $input['ticketUrl'];
+					return new WP_Error( 'source_event_commit_uncertain', 'uncertain', array( 'status' => 503, 'retryable' => true, 'fingerprint' => hash( 'sha256', 'committed' ) ) );
+				}
+				return array( 'success' => true, 'event_id' => 901, 'action' => 'no_change', 'previous_fingerprint' => $input['expected_fingerprint'], 'fingerprint' => $input['expected_fingerprint'], 'updated_fields' => array() );
+			}
+		);
+		$GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/update-source-event'] = $ability;
+		$sync    = new BookingEventSyncService( null, null, new BookingTestAuthorization() );
+		$changes = array( 'ticket_url' => 'https://tickets.example/retry' );
+
+		$error = $sync->reconcile( $booking['id'], 2, 12, $changes );
+		$this->assertSame( 'source_event_commit_uncertain', $error->get_error_code() );
+		$this->assertSame( 'booking_event_sync_pending', $sync->reconcile( $booking['id'], 2, 12, array( 'performer' => 'different' ) )->get_error_code() );
+		$result = $sync->reconcile( $booking['id'], 2, 12, $changes );
+		$this->assertSame( 'no_change', $result['status'] );
+		$this->assertSame( 1, $calls );
+	}
+
+	public function test_cancellation_uses_lifecycle_suppression_and_marketing_repair(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$this->install_update_ability();
+		$GLOBALS['wpdb']->fail_activity_kinds = array( 'event_marketing_change_signaled' );
+		$sync  = new BookingEventSyncService( null, null, new BookingTestAuthorization() );
+		$error = $sync->reconcile( $booking['id'], 2, 12, array( 'cancelled' => true ) );
+		$this->assertSame( 'booking_activity_write_failed', $error->get_error_code() );
+		$this->assertTrue( $error->get_error_data()['booking_committed'] );
+		$activity = ( new BookingActivityRepository() )->list_for_booking( $booking['id'] );
+		$this->assertCount( 1, array_filter( $activity, static function ( $item ) { return 'status_changed' === $item['kind']; } ) );
+		$GLOBALS['wpdb']->fail_activity_kinds = array();
+		$result = $sync->reconcile( $booking['id'], 2, 12, array( 'cancelled' => true ) );
+		$this->assertSame( 'succeeded', $result['status'] );
+		$activity = ( new BookingActivityRepository() )->list_for_booking( $booking['id'] );
+		$this->assertCount( 1, array_filter( $activity, static function ( $item ) { return 'event_marketing_change_signaled' === $item['kind']; } ) );
+	}
+
+	public function test_manual_non_authoritative_edit_refreshes_fingerprint_and_retries_once(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$calls   = 0;
+		$ability = new BookingConversionAbilityFake(
+			function ( array $input ) use ( &$calls ) {
+				++$calls;
+				if ( 1 === $calls ) {
+					$GLOBALS['ec_artist_test']['posts'][7][901]->post_title = 'Manual public title';
+					return new WP_Error( 'source_event_fingerprint_conflict', 'stale', array( 'status' => 409, 'retryable' => false, 'fingerprint' => hash( 'sha256', 'manual-title' ) ) );
+				}
+				$GLOBALS['ec_artist_test']['parsed_blocks']['event-901'][0]['attrs']['ticketUrl'] = $input['ticketUrl'];
+				return array( 'success' => true, 'event_id' => 901, 'action' => 'updated', 'previous_fingerprint' => $input['expected_fingerprint'], 'fingerprint' => hash( 'sha256', 'manual-title-updated' ), 'updated_fields' => array( 'ticketUrl' ) );
+			}
+		);
+		$GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/update-source-event'] = $ability;
+
+		$result = ( new BookingEventSyncService( null, null, new BookingTestAuthorization() ) )->reconcile( $booking['id'], 2, 12, array( 'ticket_url' => 'https://tickets.example/manual-safe' ) );
+
+		$this->assertSame( 'succeeded', $result['status'] );
+		$this->assertSame( hash( 'sha256', 'manual-title' ), $ability->calls[1]['expected_fingerprint'] );
+		$this->assertSame( 'Manual public title', $GLOBALS['ec_artist_test']['posts'][7][901]->post_title );
+	}
+
+	public function test_post_update_verification_retry_preserves_returned_fingerprint(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$ability = new BookingConversionAbilityFake(
+			function ( array $input ): array {
+				$GLOBALS['ec_artist_test']['parsed_blocks']['event-901'][0]['attrs']['ticketUrl'] = $input['ticketUrl'];
+				$GLOBALS['ec_artist_test']['event_venues'][7][901] = array();
+				return array( 'success' => true, 'event_id' => 901, 'action' => 'updated', 'previous_fingerprint' => $input['expected_fingerprint'], 'fingerprint' => hash( 'sha256', 'verified-later' ), 'updated_fields' => array( 'ticketUrl' ) );
+			}
+		);
+		$GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/update-source-event'] = $ability;
+		$sync    = new BookingEventSyncService( null, null, new BookingTestAuthorization() );
+		$changes = array( 'ticket_url' => 'https://tickets.example/verified-later' );
+		$error   = $sync->reconcile( $booking['id'], 2, 12, $changes );
+		$this->assertSame( 'booking_event_venue_invalid', $error->get_error_code() );
+		$GLOBALS['ec_artist_test']['event_venues'][7][901] = array( 55 );
+
+		$result   = $sync->reconcile( $booking['id'], 2, 12, $changes );
+		$snapshot = ( new BookingActivityRepository() )->latest_event_snapshot( $booking['id'] );
+		$this->assertSame( 'no_change', $result['status'] );
+		$this->assertSame( hash( 'sha256', 'verified-later' ), $snapshot['fingerprint'] );
+	}
+
+	public function test_venue_lock_race_releases_and_reacquires_actual_old_venue(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$GLOBALS['ec_artist_test']['terms'][7][56] = (object) array( 'term_id' => 56, 'taxonomy' => 'venue', 'name' => 'Raced Room' );
+		$GLOBALS['ec_artist_test']['meta'][7][56]  = $GLOBALS['ec_artist_test']['meta'][7][55];
+		$GLOBALS['wpdb']->after_reference_lock = function () use ( $booking ) {
+			$GLOBALS['wpdb']->simulate_external_commit(
+				static function () use ( $booking ) {
+					$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $booking['id'] ]['venue_term_id'] = 56;
+				}
+			);
+		};
+		$error = ( new BookingEventSyncService( null, null, new BookingTestAuthorization( array( '12:56' => true ) ) ) )->reconcile( $booking['id'], 2, 12, array( 'unsupported' => true ) );
+
+		$this->assertSame( 'booking_event_sync_changes_invalid', $error->get_error_code() );
+		$venue_locks = array_values( array_filter( $GLOBALS['wpdb']->lock_names, static function ( $item ) { return 0 === strpos( $item[1], 'ecbv:' ); } ) );
+		$this->assertSame( array( 'get', 'release', 'get', 'release' ), array_column( $venue_locks, 0 ) );
+	}
+
+	public function test_marketing_delivery_replays_after_delivery_marker_failure(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$this->install_update_ability();
+		$GLOBALS['wpdb']->fail_activity_kinds = array( 'event_marketing_change_delivered' );
+		$calls = 0;
+		add_action( 'extrachill_events_booking_event_changed', static function () use ( &$calls ): void { ++$calls; } );
+		$sync    = new BookingEventSyncService( null, null, new BookingTestAuthorization() );
+		$changes = array( 'ticket_url' => 'https://tickets.example/replay-marketing' );
+		$error = $sync->reconcile( $booking['id'], 2, 12, $changes );
+		$this->assertSame( 'booking_activity_write_failed', $error->get_error_code() );
+		$GLOBALS['wpdb']->fail_activity_kinds = array();
+		$result   = $sync->reconcile( $booking['id'], 2, 12, $changes );
+		$activity = ( new BookingActivityRepository() )->list_for_booking( $booking['id'] );
+		$this->assertSame( 'succeeded', $result['status'] );
+		$this->assertSame( 2, $calls );
+		$this->assertCount( 1, array_filter( $activity, static function ( $item ) { return 'event_marketing_change_delivered' === $item['kind']; } ) );
 	}
 }

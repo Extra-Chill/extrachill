@@ -5,6 +5,11 @@ if ( ! is_multisite() ) {
 	throw new RuntimeException( 'The booking schema integration test requires multisite.' );
 }
 
+if ( ! class_exists( 'DataMachineEvents\\Core\\EventDatesTable' ) ) {
+	throw new RuntimeException( 'The activated Data Machine Events dependency is required.' );
+}
+DataMachineEvents\Core\EventDatesTable::create_table();
+
 while ( ! get_site( 7 ) ) {
 	$next_id = get_sites( array( 'count' => true ) ) + 1;
 	$created = wpmu_create_blog( 'site-' . $next_id . '.example.org', '/', 'Test Site ' . $next_id, 1 );
@@ -16,6 +21,7 @@ while ( ! get_site( 7 ) ) {
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
 switch_to_blog( 7 );
 try {
+	DataMachineEvents\Core\EventDatesTable::create_table();
 	$booking_schema = ExtraChillEvents\Core\BookingSchema::install();
 	if ( true !== $booking_schema ) {
 		$failure = is_wp_error( $booking_schema ) ? $booking_schema->get_error_code() . ': ' . wp_json_encode( $booking_schema->get_error_data() ) : 'unknown error';

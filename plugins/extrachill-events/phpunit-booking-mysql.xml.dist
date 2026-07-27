@@ -8,6 +8,7 @@
 	<testsuites>
 		<testsuite name="booking-attachment-mysql">
 			<file>tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php</file>
+			<file>tests/MySQLIntegration/BookingEventSyncMySQLIntegrationTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

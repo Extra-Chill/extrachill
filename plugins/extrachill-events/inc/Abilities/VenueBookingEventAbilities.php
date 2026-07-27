@@ -29,6 +29,8 @@ class VenueBookingEventAbilities {
 	private $authorization;
 	/** @var array|null Exact booking context active during nested event upsert. */
 	private $active_conversion;
+	/** @var array|null Exact booking context active during nested event synchronization. */
+	private $active_sync;
 
 	public function __construct( ?BookingEventConversionService $conversion = null, ?BookingRepository $bookings = null, ?VenueAuthorization $authorization = null, ?BookingEventSyncService $sync = null ) {
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
@@ -36,6 +38,7 @@ class VenueBookingEventAbilities {
 		$this->conversion    = $conversion ? $conversion : new BookingEventConversionService( $this->bookings, null, null, $this->authorization );
 		$this->sync          = $sync ? $sync : new BookingEventSyncService( $this->bookings, null, $this->authorization );
 		add_filter( 'datamachine_events_upsert_event_permission', array( $this, 'can_upsert_booking_event' ), 10, 2 );
+		add_filter( 'datamachine_events_update_source_event_permission', array( $this, 'can_update_booking_event' ), 10, 2 );
 		add_filter( 'extrachill_events_canonical_event_excluded_booking_id', array( $this, 'excluded_booking_id_for_active_conversion' ), 10, 3 );
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
@@ -98,7 +101,33 @@ class VenueBookingEventAbilities {
 
 	/** Execute the bounded public reconciliation/operator entrypoint. */
 	public function reconcile( array $input ) {
-		return $this->sync->reconcile( (int) $input['booking_id'], (int) $input['expected_version'], get_current_user_id(), (array) ( $input['changes'] ?? array() ) );
+		$booking           = $this->bookings->get( (int) $input['booking_id'] );
+		$this->active_sync = is_array( $booking ) ? $booking : null;
+		try {
+			return $this->sync->reconcile( (int) $input['booking_id'], (int) $input['expected_version'], get_current_user_id(), (array) ( $input['changes'] ?? array() ) );
+		} finally {
+			$this->active_sync = null;
+		}
+	}
+
+	/** Grant only the exact source-owned update nested inside this wrapper. */
+	public function can_update_booking_event( bool $allowed, array $input ): bool {
+		if ( $allowed ) {
+			return true;
+		}
+		if ( ! is_array( $this->active_sync )
+			|| BookingEventConversionService::SOURCE !== ( $input['source'] ?? '' )
+			|| ( $input['source_id'] ?? '' ) !== $this->active_sync['public_id']
+			|| (int) ( $input['event'] ?? 0 ) !== (int) $this->active_sync['event_id']
+			|| ( $input['source_identity'] ?? '' ) !== hash( 'sha256', BookingEventConversionService::SOURCE . "\0" . $this->active_sync['public_id'] )
+			|| 1 !== preg_match( '/^[a-f0-9]{64}$/', (string) ( $input['expected_fingerprint'] ?? '' ) ) ) {
+			return false;
+		}
+		if ( ! BookingEventSyncService::is_active_source_update( $input ) ) {
+			return false;
+		}
+		$venue_id = isset( $input['venue'] ) ? (int) $input['venue'] : (int) $this->active_sync['venue_term_id'];
+		return true === $this->authorization->authorize( get_current_user_id(), $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE );
 	}
 
 	/** Grant only the exact nested DME write performed by this conversion. */

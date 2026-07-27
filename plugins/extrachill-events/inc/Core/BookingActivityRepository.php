@@ -386,15 +386,30 @@ class BookingActivityRepository {
 			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$terminal = is_array( $terminal ) ? $this->hydrate( $terminal ) : null;
-		return is_wp_error( $terminal ) ? $terminal : array(
+		$retry    = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND external_id = %s AND kind = 'event_sync_retryable' ORDER BY id DESC LIMIT 1", $booking_id, (string) $start['id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Latest exact-attempt retry state.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization retry state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		$retry = is_array( $retry ) ? $this->hydrate( $retry ) : null;
+		if ( is_wp_error( $terminal ) || is_wp_error( $retry ) ) {
+			return is_wp_error( $terminal ) ? $terminal : $retry;
+		}
+		return array(
 			'pending'  => null === $terminal,
 			'start'    => $start,
 			'terminal' => $terminal,
+			'retry'    => $retry,
 		);
 	}
 
 	/** Return the last authoritative event snapshot accepted by this booking. */
 	public function latest_event_authority( int $booking_id ) {
+		$snapshot = $this->latest_event_snapshot( $booking_id );
+		return is_wp_error( $snapshot ) || null === $snapshot ? $snapshot : $snapshot['authority'];
+	}
+
+	/** Return the last accepted authority and DME reconciliation fingerprint. */
+	public function latest_event_snapshot( int $booking_id ) {
 		global $wpdb;
 		$table = BookingSchema::activity_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND kind IN ('event_sync_succeeded', 'event_sync_noop', 'event_converted') ORDER BY id DESC LIMIT 1", $booking_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded latest authority snapshot read.
@@ -408,8 +423,22 @@ class BookingActivityRepository {
 		if ( is_wp_error( $row ) ) {
 			return $row;
 		}
-		$authority = $row['payload']['data']['authority'] ?? null;
-		return is_array( $authority ) ? $authority : null;
+		$authority   = $row['payload']['data']['authority'] ?? null;
+		$fingerprint = (string) ( $row['payload']['data']['fingerprint'] ?? '' );
+		return is_array( $authority ) && preg_match( '/^[a-f0-9]{64}$/', $fingerprint )
+			? array(
+				'authority'   => $authority,
+				'fingerprint' => $fingerprint,
+				'activity'    => $row,
+			)
+			: new \WP_Error(
+				'booking_event_sync_snapshot_invalid',
+				__( 'The booking event synchronization snapshot is incomplete.', 'extrachill-events' ),
+				array(
+					'status'     => 409,
+					'repairable' => true,
+				)
+			);
 	}
 
 	private function conversion_state_error( string $detail, int $activity_id ): \WP_Error {

@@ -13,7 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Synchronizes only the public fields which remain booking-authoritative. */
 class BookingEventSyncService {
-	public const MARKETING_ISSUE = 'https://github.com/Extra-Chill/extrachill-events/issues/296';
+	/** @var array|null Exact DME input currently delegated by this service. */
+	private static $active_source_update_input;
 
 	/** @var BookingRepository */
 	private $bookings;
@@ -21,20 +22,60 @@ class BookingEventSyncService {
 	private $activity;
 	/** @var VenueAuthorization */
 	private $authorization;
+	/** @var BookingLifecycle */
+	private $lifecycle;
+	/** @var BookingCommunicationService */
+	private $communication;
+	/** @var string[] */
+	private $acquired_locks = array();
 	/** @var bool */
 	private $transaction_active = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, ?BookingLifecycle $lifecycle = null, ?BookingCommunicationService $communication = null ) {
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->activity      = $activity ? $activity : new BookingActivityRepository();
 		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+		$this->lifecycle     = $lifecycle ? $lifecycle : new BookingLifecycle( $this->bookings, $this->activity, $this->authorization );
+		$this->communication = $communication ? $communication : new BookingCommunicationService( $this->bookings, $this->activity, $this->authorization );
+	}
+
+	/** Hold all affected venue publication locks through booking and DME commits. */
+	public function reconcile( int $booking_id, int $expected_version, int $actor_id, array $changes = array() ) {
+		$request = array(
+			'expected_version' => $expected_version,
+			'changes'          => $this->canonical_request_changes( $changes ),
+		);
+		$locked  = $this->acquire_venue_locks( $booking_id, $changes );
+		if ( is_wp_error( $locked ) ) {
+			return $locked;
+		}
+		try {
+			if ( ! empty( $changes['cancelled'] ) ) {
+				$cancelled = $this->canonical_cancellation( $booking_id, $expected_version, $actor_id );
+				if ( is_wp_error( $cancelled ) ) {
+					$result = $cancelled;
+				} else {
+					$expected_version = (int) $cancelled['version'];
+					unset( $changes['cancelled'] );
+				}
+			}
+			if ( ! isset( $result ) ) {
+				$result = $this->reconcile_locked( $booking_id, $expected_version, $actor_id, $changes, $request );
+			}
+		} finally {
+			$released = $this->release_venue_locks();
+		}
+		return is_wp_error( $released ) ? $released : $result;
 	}
 
 	/** Apply an approved correction, then reconcile its already-linked event. */
-	public function reconcile( int $booking_id, int $expected_version, int $actor_id, array $changes = array() ) {
-		$prepared = $this->prepare( $booking_id, $expected_version, $actor_id, $changes );
-		if ( is_wp_error( $prepared ) || isset( $prepared['status'] ) ) {
+	private function reconcile_locked( int $booking_id, int $expected_version, int $actor_id, array $changes, array $request ) {
+		$prepared = $this->prepare( $booking_id, $expected_version, $actor_id, $changes, $request );
+		if ( is_wp_error( $prepared ) ) {
 			return $prepared;
+		}
+		if ( isset( $prepared['status'] ) ) {
+			return $this->repair_marketing_signal( $prepared );
 		}
 
 		$booking = $prepared['booking'];
@@ -44,25 +85,7 @@ class BookingEventSyncService {
 		if ( is_wp_error( $current ) ) {
 			return $this->finish_error( $booking, $start, $current, 'event_sync_failed' );
 		}
-		$baseline = $this->activity->latest_event_authority( $booking_id );
-		if ( is_wp_error( $baseline ) ) {
-			return $this->finish_error( $booking, $start, $baseline, 'event_sync_failed' );
-		}
-		if ( null === $baseline ) {
-			return $this->finish_error(
-				$booking,
-				$start,
-				new \WP_Error(
-					'booking_event_sync_baseline_missing',
-					__( 'The converted event has no authoritative synchronization baseline.', 'extrachill-events' ),
-					array(
-						'status'     => 409,
-						'repairable' => true,
-					)
-				),
-				'event_sync_conflict'
-			);
-		}
+		$baseline = $prepared['baseline'];
 		if ( 'EventCancelled' !== $desired['eventStatus'] ) {
 			$dates_changed          = ( $baseline['startDate'] ?? null ) !== $desired['startDate']
 				|| ( $baseline['startTime'] ?? null ) !== $desired['startTime']
@@ -71,18 +94,7 @@ class BookingEventSyncService {
 			$desired['eventStatus'] = $dates_changed ? 'EventRescheduled' : (string) ( $baseline['eventStatus'] ?? 'EventScheduled' );
 		}
 
-		$conflicts = array();
-		foreach ( $desired as $field => $value ) {
-			$previous = $baseline[ $field ] ?? null;
-			$actual   = $current[ $field ] ?? null;
-			if ( $actual !== $previous && $actual !== $value ) {
-				$conflicts[ $field ] = array(
-					'previous' => $previous,
-					'current'  => $actual,
-					'booking'  => $value,
-				);
-			}
-		}
+		$conflicts = $this->authority_conflicts( $baseline, $current, $desired );
 		if ( $conflicts ) {
 			return $this->finish_error(
 				$booking,
@@ -99,10 +111,10 @@ class BookingEventSyncService {
 			);
 		}
 		if ( $current === $desired ) {
-			return $this->finish_success( $booking, $start, $desired, 'event_sync_noop', 'no_change', $baseline );
+			return $this->finish_success( $booking, $start, $desired, 'event_sync_noop', 'no_change', $baseline, $prepared['fingerprint'] );
 		}
 
-		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'data-machine-events/update-event' ) : null;
+		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'data-machine-events/update-source-event' ) : null;
 		if ( ! is_object( $ability ) || ! is_callable( array( $ability, 'execute' ) ) ) {
 			return $this->finish_error(
 				$booking,
@@ -119,7 +131,13 @@ class BookingEventSyncService {
 			);
 		}
 
-		$content = array( 'event' => (int) $booking['event_id'] );
+		$content = array(
+			'event'                => (int) $booking['event_id'],
+			'source'               => BookingEventConversionService::SOURCE,
+			'source_id'            => $booking['public_id'],
+			'source_identity'      => hash( 'sha256', BookingEventConversionService::SOURCE . "\0" . $booking['public_id'] ),
+			'expected_fingerprint' => $prepared['fingerprint'],
+		);
 		foreach ( array( 'startDate', 'startTime', 'endDate', 'endTime', 'ticketUrl', 'performer', 'performerType', 'eventStatus' ) as $field ) {
 			if ( ( $current[ $field ] ?? null ) !== $desired[ $field ] ) {
 				$content[ $field ] = $desired[ $field ];
@@ -128,23 +146,24 @@ class BookingEventSyncService {
 		if ( isset( $content['startDate'] ) && 'EventRescheduled' === $desired['eventStatus'] ) {
 			$content['previousStartDate'] = (string) ( $baseline['startDate'] ?? '' );
 		}
-		if ( count( $content ) > 1 ) {
-			$result = $this->execute_update( $ability, $content );
-			if ( is_wp_error( $result ) ) {
-				return $this->finish_error( $booking, $start, $result, 'event_sync_failed' );
-			}
-		}
 		if ( (int) $current['venue_id'] !== (int) $desired['venue_id'] ) {
-			$result = $this->execute_update(
-				$ability,
-				array(
-					'event' => (int) $booking['event_id'],
-					'venue' => (int) $desired['venue_id'],
-				)
-			);
-			if ( is_wp_error( $result ) ) {
-				return $this->finish_error( $booking, $start, $result, 'event_sync_failed' );
+			$content['venue'] = (int) $desired['venue_id'];
+		}
+		$result = $this->execute_update( $ability, $content );
+		if ( is_wp_error( $result ) && 'source_event_fingerprint_conflict' === $result->get_error_code() && 1 === preg_match( '/^[a-f0-9]{64}$/', (string) ( $result->get_error_data()['fingerprint'] ?? '' ) ) ) {
+			$refreshed = $this->read_event_authority( $booking );
+			if ( is_wp_error( $refreshed ) ) {
+				return $this->finish_error( $booking, $start, $refreshed, 'event_sync_failed' );
 			}
+			$conflicts = $this->authority_conflicts( $baseline, $refreshed, $desired );
+			if ( $conflicts ) {
+				return $this->finish_error( $booking, $start, $this->conflict_error( $conflicts ), 'event_sync_conflict' );
+			}
+			$content['expected_fingerprint'] = (string) $result->get_error_data()['fingerprint'];
+			$result                          = $this->execute_update( $ability, $content );
+		}
+		if ( is_wp_error( $result ) ) {
+			return $this->finish_error( $booking, $start, $result, 'event_sync_failed' );
 		}
 
 		$verified = $this->read_event_authority( $booking );
@@ -158,9 +177,18 @@ class BookingEventSyncService {
 					'actual'    => $verified,
 				)
 			);
+			$error->add_data(
+				array_merge(
+					(array) $error->get_error_data(),
+					array(
+						'fingerprint' => (string) $result['fingerprint'],
+						'retryable'   => true,
+					)
+				)
+			);
 			return $this->finish_error( $booking, $start, $error, 'event_sync_failed' );
 		}
-		return $this->finish_success( $booking, $start, $desired, 'event_sync_succeeded', 'updated', $baseline );
+		return $this->finish_success( $booking, $start, $desired, 'event_sync_succeeded', (string) $result['action'], $baseline, (string) $result['fingerprint'] );
 	}
 
 	/** Build the canonical field-level authority snapshot used at conversion and sync. */
@@ -178,8 +206,36 @@ class BookingEventSyncService {
 		);
 	}
 
+	/** Return only manual changes that diverge from both accepted and desired state. */
+	private function authority_conflicts( array $baseline, array $current, array $desired ): array {
+		$conflicts = array();
+		foreach ( $desired as $field => $value ) {
+			$previous = $baseline[ $field ] ?? null;
+			$actual   = $current[ $field ] ?? null;
+			if ( $actual !== $previous && $actual !== $value ) {
+				$conflicts[ $field ] = array(
+					'previous' => $previous,
+					'current'  => $actual,
+					'booking'  => $value,
+				);
+			}
+		}
+		return $conflicts;
+	}
+
+	private function conflict_error( array $conflicts ): \WP_Error {
+		return new \WP_Error(
+			'booking_event_manual_divergence',
+			__( 'Manual changes conflict with booking-authoritative event fields.', 'extrachill-events' ),
+			array(
+				'status'    => 409,
+				'conflicts' => $conflicts,
+			)
+		);
+	}
+
 	/** Lock authorization and aggregate state, apply correction, and persist an outbox intent. */
-	private function prepare( int $booking_id, int $expected_version, int $actor_id, array $changes ) {
+	private function prepare( int $booking_id, int $expected_version, int $actor_id, array $changes, array $request ) {
 		$initial = $this->bookings->get( $booking_id );
 		if ( ! is_array( $initial ) ) {
 			return is_wp_error( $initial ) ? $initial : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
@@ -229,12 +285,9 @@ class BookingEventSyncService {
 		if ( is_wp_error( $state ) ) {
 			return $this->rollback( $state );
 		}
-		$normalized = $this->normalize_changes( $booking, $changes, $actor_id );
-		if ( is_wp_error( $normalized ) ) {
-			return $this->rollback( $normalized );
-		}
+		$request_fingerprint = hash( 'sha256', (string) wp_json_encode( $request ) );
 		if ( $state['pending'] ) {
-			if ( $normalized ) {
+			if ( ! hash_equals( (string) ( $state['start']['payload']['data']['request_fingerprint'] ?? '' ), $request_fingerprint ) ) {
 				return $this->rollback(
 					new \WP_Error(
 						'booking_event_sync_pending',
@@ -248,25 +301,32 @@ class BookingEventSyncService {
 			}
 			$committed = $this->commit();
 			return is_wp_error( $committed ) ? $committed : array(
-				'booking'   => $booking,
-				'start'     => $state['start'],
-				'authority' => $state['start']['payload']['data']['authority'],
+				'booking'     => $booking,
+				'start'       => $state['start'],
+				'authority'   => $state['start']['payload']['data']['authority'],
+				'baseline'    => $state['start']['payload']['data']['baseline'],
+				'fingerprint' => (string) ( $state['retry']['payload']['data']['fingerprint'] ?? $state['start']['payload']['data']['fingerprint'] ),
 			);
 		}
+		$terminal = $state['terminal'];
+		if ( is_array( $terminal ) && in_array( $terminal['kind'], array( 'event_sync_succeeded', 'event_sync_noop' ), true ) && hash_equals( (string) ( $state['start']['payload']['data']['request_fingerprint'] ?? '' ), $request_fingerprint ) ) {
+			$committed = $this->commit();
+			return is_wp_error( $committed ) ? $committed : array(
+				'booking_id'      => $booking['id'],
+				'booking_version' => $booking['version'],
+				'event_id'        => $booking['event_id'],
+				'status'          => 'event_sync_noop' === $terminal['kind'] ? 'no_change' : 'succeeded',
+				'code'            => (string) ( $terminal['payload']['data']['code'] ?? 'replayed' ),
+				'retryable'       => false,
+				'conflicts'       => array(),
+				'_sync_terminal'  => $terminal,
+			);
+		}
+		$normalized = $this->normalize_changes( $booking, $changes, $actor_id );
+		if ( is_wp_error( $normalized ) ) {
+			return $this->rollback( $normalized );
+		}
 		if ( (int) $booking['version'] !== $expected_version ) {
-			$terminal = $state['terminal'];
-			if ( empty( $normalized ) && is_array( $terminal ) && in_array( $terminal['kind'], array( 'event_sync_succeeded', 'event_sync_noop' ), true ) && (int) ( $state['start']['payload']['data']['booking_version'] ?? 0 ) === (int) $booking['version'] ) {
-				$committed = $this->commit();
-				return is_wp_error( $committed ) ? $committed : array(
-					'booking_id'      => $booking['id'],
-					'booking_version' => $booking['version'],
-					'event_id'        => $booking['event_id'],
-					'status'          => 'event_sync_noop' === $terminal['kind'] ? 'no_change' : 'succeeded',
-					'code'            => (string) ( $terminal['payload']['data']['code'] ?? 'replayed' ),
-					'retryable'       => false,
-					'conflicts'       => array(),
-				);
-			}
 			return $this->rollback(
 				new \WP_Error(
 					'booking_version_conflict',
@@ -289,6 +349,19 @@ class BookingEventSyncService {
 		if ( is_wp_error( $authority ) ) {
 			return $this->rollback( $authority );
 		}
+		$snapshot = $this->activity->latest_event_snapshot( $booking_id );
+		if ( is_wp_error( $snapshot ) || null === $snapshot ) {
+			return $this->rollback(
+				is_wp_error( $snapshot ) ? $snapshot : new \WP_Error(
+					'booking_event_sync_baseline_missing',
+					__( 'The converted event has no authoritative synchronization baseline.', 'extrachill-events' ),
+					array(
+						'status'     => 409,
+						'repairable' => true,
+					)
+				)
+			);
+		}
 		$attempt = (int) ( $state['start']['payload']['data']['attempt'] ?? 0 ) + 1;
 		$start   = $this->activity->append(
 			array(
@@ -298,10 +371,14 @@ class BookingEventSyncService {
 				'actor_id'        => $actor_id,
 				'idempotency_key' => sprintf( 'event-sync:%s:%d:%d', $booking['public_id'], $booking['version'], $attempt ),
 				'payload'         => array(
-					'attempt'         => $attempt,
-					'booking_version' => $booking['version'],
-					'event_id'        => $booking['event_id'],
-					'authority'       => $authority,
+					'attempt'             => $attempt,
+					'booking_version'     => $booking['version'],
+					'event_id'            => $booking['event_id'],
+					'authority'           => $authority,
+					'baseline'            => $snapshot['authority'],
+					'fingerprint'         => $snapshot['fingerprint'],
+					'request'             => $request,
+					'request_fingerprint' => $request_fingerprint,
 				),
 			)
 		);
@@ -310,9 +387,11 @@ class BookingEventSyncService {
 		}
 		$committed = $this->commit();
 		return is_wp_error( $committed ) ? $committed : array(
-			'booking'   => $booking,
-			'start'     => $start,
-			'authority' => $authority,
+			'booking'     => $booking,
+			'start'       => $start,
+			'authority'   => $authority,
+			'baseline'    => $snapshot['authority'],
+			'fingerprint' => $snapshot['fingerprint'],
 		);
 	}
 
@@ -502,57 +581,51 @@ class BookingEventSyncService {
 		return self::authority_from_event( $attrs, (int) reset( $venues ) );
 	}
 
-	/** Normalize the DME batch result into one stable error boundary. */
+	/** Normalize the DME source-owned result into one stable error boundary. */
 	private function execute_update( $ability, array $input ) {
-		$result = $ability->execute( $input );
+		self::$active_source_update_input = $input;
+		try {
+			$result = $ability->execute( $input );
+		} finally {
+			self::$active_source_update_input = null;
+		}
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
-		$item = is_array( $result['results'][0] ?? null ) ? $result['results'][0] : null;
-		if ( ! $item || ! in_array( $item['status'] ?? '', array( 'updated', 'no_change' ), true ) ) {
-			$data              = (array) ( $item['error_data'] ?? array() );
-			$data['status']    = (int) ( $item['error_status'] ?? $data['status'] ?? 502 );
-			$data['retryable'] = $data['status'] >= 500;
-			return new \WP_Error( (string) ( $item['error_code'] ?? 'booking_event_update_failed' ), (string) ( $item['error'] ?? 'Canonical event update failed.' ), $data );
+		if ( ! is_array( $result ) || true !== ( $result['success'] ?? null ) || ! in_array( $result['action'] ?? '', array( 'updated', 'no_change' ), true ) || 1 !== preg_match( '/^[a-f0-9]{64}$/', (string) ( $result['fingerprint'] ?? '' ) ) ) {
+			return new \WP_Error(
+				'booking_event_update_failed',
+				__( 'Canonical event update returned an invalid source-owned result.', 'extrachill-events' ),
+				array(
+					'status'    => 502,
+					'retryable' => true,
+				)
+			);
 		}
-		return true;
+		return $result;
 	}
 
-	private function finish_success( array $booking, array $start, array $authority, string $kind, string $action, array $baseline ) {
+	/** Confirm that DME is authorizing the exact nested write assembled here. */
+	public static function is_active_source_update( array $input ): bool {
+		return is_array( self::$active_source_update_input ) && self::$active_source_update_input === $input;
+	}
+
+	private function finish_success( array $booking, array $start, array $authority, string $kind, string $action, array $baseline, string $fingerprint ) {
 		$terminal = $this->append_terminal(
 			$booking,
 			$start,
 			$kind,
 			array(
-				'code'      => $action,
-				'authority' => $authority,
+				'code'        => $action,
+				'authority'   => $authority,
+				'baseline'    => $baseline,
+				'fingerprint' => $fingerprint,
 			)
 		);
 		if ( is_wp_error( $terminal ) ) {
 			return $terminal;
 		}
-		if ( $authority !== $baseline ) {
-			$signal = $this->activity->append(
-				array(
-					'booking_id'      => $booking['id'],
-					'kind'            => 'event_marketing_change_signaled',
-					'idempotency_key' => 'event-marketing-change:' . $start['id'],
-					'external_id'     => (string) $booking['event_id'],
-					'payload'         => array(
-						'sync_activity_id' => $terminal['id'],
-						'event_id'         => $booking['event_id'],
-						'before'           => $baseline,
-						'after'            => $authority,
-						'owner_issue'      => self::MARKETING_ISSUE,
-					),
-				)
-			);
-			if ( is_wp_error( $signal ) ) {
-				return $signal;
-			}
-			do_action( 'extrachill_events_booking_event_changed', $booking['id'], $booking['event_id'], $baseline, $authority, (int) $signal['id'] );
-		}
-		return array(
+		$result = array(
 			'booking_id'      => $booking['id'],
 			'booking_version' => $booking['version'],
 			'event_id'        => $booking['event_id'],
@@ -560,13 +633,41 @@ class BookingEventSyncService {
 			'code'            => $action,
 			'retryable'       => false,
 			'conflicts'       => array(),
+			'_sync_terminal'  => $terminal,
 		);
+		return $this->repair_marketing_signal( $result );
 	}
 
 	private function finish_error( array $booking, array $start, \WP_Error $error, string $kind ) {
 		$data      = (array) $error->get_error_data();
 		$retryable = ! empty( $data['retryable'] ) || (int) ( $data['status'] ?? 0 ) >= 500;
-		$terminal  = $this->append_terminal(
+		if ( $retryable ) {
+			$retry = $this->activity->append(
+				array(
+					'booking_id'      => $booking['id'],
+					'kind'            => 'event_sync_retryable',
+					'external_id'     => (string) $start['id'],
+					'idempotency_key' => 'event-sync-retryable:' . $start['id'] . ':' . hash( 'sha256', (string) wp_json_encode( $data ) ),
+					'payload'         => array(
+						'code'        => $error->get_error_code(),
+						'fingerprint' => (string) ( $data['fingerprint'] ?? $start['payload']['data']['fingerprint'] ),
+					),
+				)
+			);
+			return is_wp_error( $retry ) ? $retry : new \WP_Error(
+				$error->get_error_code(),
+				$error->get_error_message(),
+				array_merge(
+					$data,
+					array(
+						'retryable'         => true,
+						'booking_committed' => true,
+						'sync_activity_id'  => $start['id'],
+					)
+				)
+			);
+		}
+		$terminal = $this->append_terminal(
 			$booking,
 			$start,
 			$kind,
@@ -610,6 +711,194 @@ class BookingEventSyncService {
 				),
 			)
 		);
+	}
+
+	/** Normalize the public request shape before hashing and durable storage. */
+	private function canonical_request_changes( array $changes ): array {
+		ksort( $changes, SORT_STRING );
+		return $changes;
+	}
+
+	/** Route cancellation through the canonical lifecycle and recoverable suppression saga. */
+	private function canonical_cancellation( int $booking_id, int $expected_version, int $actor_id ) {
+		$current = $this->bookings->get( $booking_id );
+		if ( ! is_array( $current ) ) {
+			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+		}
+		if ( 'confirmed' === $current['status'] && (int) $current['version'] === $expected_version ) {
+			$current = $this->lifecycle->transition( $booking_id, 'cancelled', $expected_version, $actor_id );
+		} elseif ( 'cancelled' !== $current['status'] || (int) $current['version'] < $expected_version + 1 ) {
+			return new \WP_Error(
+				'booking_version_conflict',
+				__( 'The booking changed since cancellation was requested.', 'extrachill-events' ),
+				array(
+					'status'          => 409,
+					'current_version' => $current['version'],
+				)
+			);
+		}
+		if ( is_wp_error( $current ) ) {
+			return $current;
+		}
+		$suppressed = $this->communication->suppress_pending_reminders( $booking_id, 'booking_status_changed' );
+		if ( is_wp_error( $suppressed ) ) {
+			$suppressed->add_data(
+				array_merge(
+					(array) $suppressed->get_error_data(),
+					array(
+						'booking_committed' => true,
+						'repairable'        => true,
+					)
+				)
+			);
+			return $suppressed;
+		}
+		return $current;
+	}
+
+	/** Acquire old/new venue locks in global numeric order before any transaction. */
+	private function acquire_venue_locks( int $booking_id, array $changes ) {
+		global $wpdb;
+		for ( $attempt = 0; $attempt < 3; ++$attempt ) {
+			$booking = $this->bookings->get( $booking_id );
+			if ( ! is_array( $booking ) ) {
+				return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+			}
+			$old_venue_id = (int) $booking['venue_term_id'];
+			$venue_ids    = array( $old_venue_id, absint( $changes['venue_term_id'] ?? 0 ) );
+			$venue_ids    = array_values( array_unique( array_filter( $venue_ids ) ) );
+			sort( $venue_ids, SORT_NUMERIC );
+			foreach ( $venue_ids as $venue_id ) {
+				$name     = BookingHoldRepository::venue_lock_name( $venue_id );
+				$acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $name, 5 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Shared publication lock acquired before transaction.
+				if ( '1' !== (string) $acquired ) {
+					$this->release_venue_locks();
+					return new \WP_Error(
+						'booking_event_venue_lock_unavailable',
+						__( 'A booking venue is currently being changed; retry the request.', 'extrachill-events' ),
+						array(
+							'status'    => 409,
+							'retryable' => true,
+							'venue_id'  => $venue_id,
+						)
+					);
+				}
+				$this->acquired_locks[] = $name;
+			}
+			$current = $this->bookings->get( $booking_id );
+			if ( is_array( $current ) && (int) $current['venue_term_id'] === $old_venue_id ) {
+				return true;
+			}
+			$released = $this->release_venue_locks();
+			if ( is_wp_error( $released ) ) {
+				return $released;
+			}
+		}
+		return new \WP_Error(
+			'booking_event_venue_lock_race',
+			__( 'The booking venue changed while synchronization locks were acquired.', 'extrachill-events' ),
+			array(
+				'status'    => 409,
+				'retryable' => true,
+			)
+		);
+	}
+
+	/** Release only this synchronization invocation's advisory locks. */
+	private function release_venue_locks() {
+		global $wpdb;
+		$error = null;
+		foreach ( array_reverse( $this->acquired_locks ) as $name ) {
+			$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases only acquired synchronization locks.
+			if ( '1' !== (string) $released && null === $error ) {
+				$error = new \WP_Error(
+					'booking_event_venue_unlock_uncertain',
+					__( 'A booking venue lock release could not be confirmed.', 'extrachill-events' ),
+					array(
+						'status'    => 503,
+						'retryable' => true,
+						'lock_name' => $name,
+					)
+				);
+			}
+		}
+		$this->acquired_locks = array();
+		return $error ? $error : true;
+	}
+
+	/** Idempotently repair the owner-neutral marketing handoff before replaying success. */
+	private function repair_marketing_signal( array $result ) {
+		$terminal = $result['_sync_terminal'] ?? null;
+		unset( $result['_sync_terminal'] );
+		if ( ! is_array( $terminal ) ) {
+			return $result;
+		}
+		$data   = (array) ( $terminal['payload']['data'] ?? array() );
+		$before = $data['baseline'] ?? null;
+		$after  = $data['authority'] ?? null;
+		if ( ! is_array( $before ) || ! is_array( $after ) || $before === $after ) {
+			return $result;
+		}
+		$key      = 'event-marketing-change:' . $terminal['external_id'];
+		$existing = $this->activity->find_by_idempotency( (int) $result['booking_id'], $key );
+		if ( is_wp_error( $existing ) ) {
+			return $existing;
+		}
+		$signal = $existing;
+		if ( ! is_array( $signal ) ) {
+			$signal = $this->activity->append(
+				array(
+					'booking_id'      => $result['booking_id'],
+					'kind'            => 'event_marketing_change_signaled',
+					'idempotency_key' => $key,
+					'external_id'     => (string) $result['event_id'],
+					'payload'         => array(
+						'sync_activity_id' => $terminal['id'],
+						'event_id'         => $result['event_id'],
+						'before'           => $before,
+						'after'            => $after,
+					),
+				)
+			);
+		}
+		if ( is_wp_error( $signal ) ) {
+			return $this->repairable_side_effect_error( $signal );
+		}
+		$delivered_key = 'event-marketing-change-delivered:' . $signal['id'];
+		$delivered     = $this->activity->find_by_idempotency( (int) $result['booking_id'], $delivered_key );
+		if ( is_wp_error( $delivered ) ) {
+			return $delivered;
+		}
+		if ( is_array( $delivered ) ) {
+			return $result;
+		}
+		do_action( 'extrachill_events_booking_event_changed', $result['booking_id'], $result['event_id'], $before, $after, (int) $signal['id'] );
+		$delivered = $this->activity->append(
+			array(
+				'booking_id'      => $result['booking_id'],
+				'kind'            => 'event_marketing_change_delivered',
+				'idempotency_key' => $delivered_key,
+				'external_id'     => (string) $signal['id'],
+				'payload'         => array(
+					'sync_activity_id'   => $terminal['id'],
+					'signal_activity_id' => $signal['id'],
+				),
+			)
+		);
+		return is_wp_error( $delivered ) ? $this->repairable_side_effect_error( $delivered ) : $result;
+	}
+
+	private function repairable_side_effect_error( \WP_Error $error ): \WP_Error {
+		$error->add_data(
+			array_merge(
+				(array) $error->get_error_data(),
+				array(
+					'booking_committed' => true,
+					'repairable'        => true,
+				)
+			)
+		);
+		return $error;
 	}
 
 	private function authorize( int $actor_id, int $venue_id ) {

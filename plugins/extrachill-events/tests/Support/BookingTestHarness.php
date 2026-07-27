@@ -794,6 +794,11 @@ final class BookingWpdb {
 			usort( $rows, static function ( $left, $right ) { return $right['id'] <=> $left['id']; } );
 			return $rows[0] ?? null;
 		}
+		if ( $is_activity && preg_match( "/WHERE booking_id = (\d+) AND external_id = '(\d+)' AND kind = 'event_sync_retryable'/", $query, $match ) ) {
+			$rows = array_values( array_filter( $this->rows[ $table ] ?? array(), static function ( $row ) use ( $match ) { return (int) $row['booking_id'] === (int) $match[1] && (string) ( $row['external_id'] ?? '' ) === $match[2] && 'event_sync_retryable' === $row['kind']; } ) );
+			usort( $rows, static function ( $left, $right ) { return $right['id'] <=> $left['id']; } );
+			return $rows[0] ?? null;
+		}
 		if ( $is_activity && preg_match( "/WHERE booking_id = (\d+) AND kind IN \('event_sync_succeeded', 'event_sync_noop', 'event_converted'\)/", $query, $match ) ) {
 			$rows = array_values( array_filter( $this->rows[ $table ] ?? array(), static function ( $row ) use ( $match ) { return (int) $row['booking_id'] === (int) $match[1] && in_array( $row['kind'], array( 'event_sync_succeeded', 'event_sync_noop', 'event_converted' ), true ); } ) );
 			usort( $rows, static function ( $left, $right ) { return $right['id'] <=> $left['id']; } );

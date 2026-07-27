@@ -228,6 +228,7 @@ class BookingEventConversionService {
 					'source_id'       => $upstream['source']['id'],
 					'source_identity' => $upstream['source']['identity'],
 					'upstream_action' => $action,
+					'fingerprint'     => $upstream['fingerprint'],
 					'version'         => $expected_version + 1,
 					'authority'       => $upstream['authority'],
 				),
@@ -414,6 +415,7 @@ class BookingEventConversionService {
 			&& true === ( $upstream['success'] ?? null )
 			&& 0 < (int) ( $upstream['event_id'] ?? 0 )
 			&& in_array( $upstream['action'] ?? '', array( 'created', 'updated', 'no_change' ), true )
+			&& 1 === preg_match( '/^[a-f0-9]{64}$/', (string) ( $upstream['fingerprint'] ?? '' ) )
 			&& self::SOURCE === ( $upstream['source']['name'] ?? null )
 			&& ( $upstream['source']['id'] ?? null ) === $booking['public_id']
 			&& ( $upstream['source']['identity'] ?? null ) === $identity
@@ -432,10 +434,11 @@ class BookingEventConversionService {
 			);
 		}
 		return array(
-			'event_id'  => (int) $upstream['event_id'],
-			'event_url' => (string) ( $upstream['event_url'] ?? '' ),
-			'action'    => (string) $upstream['action'],
-			'source'    => $upstream['source'],
+			'event_id'    => (int) $upstream['event_id'],
+			'event_url'   => (string) ( $upstream['event_url'] ?? '' ),
+			'action'      => (string) $upstream['action'],
+			'fingerprint' => (string) $upstream['fingerprint'],
+			'source'      => $upstream['source'],
 		);
 	}
 
