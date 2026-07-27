@@ -170,7 +170,7 @@ class FestivalNotificationsTest extends WP_UnitTestCase {
 			array(
 				'post_author' => self::factory()->user->create(),
 				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
-				'post_status' => 'publish',
+				'post_status' => 'draft',
 				'post_title'  => 'The Big Show',
 			)
 		);

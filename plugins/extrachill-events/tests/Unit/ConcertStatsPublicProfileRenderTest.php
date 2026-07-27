@@ -8,10 +8,16 @@
 final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
 	private int $owner_id;
 	private int $viewer_id;
+	private int $original_user_id;
+	private array $original_get;
+	private bool $registered_test_category = false;
 
 	protected function setUp(): void {
 		parent::setUp();
+		$this->original_user_id = get_current_user_id();
+		$this->original_get     = $_GET;
 		if ( ! wp_has_ability_category( 'extrachill-events-tests' ) ) {
+			$this->registered_test_category = true;
 			WP_Ability_Categories_Registry::get_instance()->register(
 				'extrachill-events-tests',
 				array(
@@ -52,8 +58,14 @@ final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
 	}
 
 	protected function tearDown(): void {
-		$_GET = array();
-		wp_set_current_user( 0 );
+		if ( wp_has_ability( 'extrachill/get-user-settings' ) ) {
+			wp_unregister_ability( 'extrachill/get-user-settings' );
+		}
+		if ( $this->registered_test_category && wp_has_ability_category( 'extrachill-events-tests' ) ) {
+			wp_unregister_ability_category( 'extrachill-events-tests' );
+		}
+		$_GET = $this->original_get;
+		wp_set_current_user( $this->original_user_id );
 		parent::tearDown();
 	}
 

@@ -141,9 +141,14 @@ require_once dirname( __DIR__, 3 ) . '/inc/abilities/events-by-artist.php';
 
 final class EventsByArtistAbilityTest extends TestCase {
 	private int $starting_blog_id = 4;
+	private $original_ability_resolver;
+	private bool $registered_test_category = false;
 
 	protected function setUp(): void {
-		$GLOBALS['ec_artist_test'] = array(
+		parent::setUp();
+		$this->original_ability_resolver     = $GLOBALS['ec_test_ability_resolver'] ?? null;
+		$GLOBALS['ec_test_ability_resolver'] = static fn() => $GLOBALS['ec_artist_test']['ability'] ?? null;
+		$GLOBALS['ec_artist_test']           = array(
 			'blog_id' => 4,
 			'stack'   => array(),
 			'terms'   => array( 1 => array(), 7 => array() ),
@@ -183,6 +188,7 @@ final class EventsByArtistAbilityTest extends TestCase {
 				wp_unregister_ability( 'data-machine-events/events-by-term' );
 			}
 			if ( ! wp_has_ability_category( 'extrachill-events-tests' ) ) {
+				$this->registered_test_category = true;
 				WP_Ability_Categories_Registry::get_instance()->register(
 					'extrachill-events-tests',
 					array(
@@ -231,6 +237,22 @@ final class EventsByArtistAbilityTest extends TestCase {
 				)
 			);
 		}
+	}
+
+	protected function tearDown(): void {
+		if ( function_exists( 'wp_unregister_ability' ) && wp_has_ability( 'data-machine-events/events-by-term' ) ) {
+			wp_unregister_ability( 'data-machine-events/events-by-term' );
+		}
+		if ( $this->registered_test_category && wp_has_ability_category( 'extrachill-events-tests' ) ) {
+			wp_unregister_ability_category( 'extrachill-events-tests' );
+		}
+		if ( null === $this->original_ability_resolver ) {
+			unset( $GLOBALS['ec_test_ability_resolver'] );
+		} else {
+			$GLOBALS['ec_test_ability_resolver'] = $this->original_ability_resolver;
+		}
+		unset( $GLOBALS['ec_artist_test'] );
+		parent::tearDown();
 	}
 
 	private function resetManagedFixture(): void {

@@ -94,6 +94,29 @@ if ( ! function_exists( 'apply_filters' ) ) {
 	}
 }
 
+if ( ! function_exists( 'do_action' ) ) {
+	function do_action( $hook, ...$args ) {
+		if ( empty( $GLOBALS['ec_test_filters'][ $hook ] ) ) {
+			return;
+		}
+
+		ksort( $GLOBALS['ec_test_filters'][ $hook ] );
+		foreach ( $GLOBALS['ec_test_filters'][ $hook ] as $callbacks ) {
+			foreach ( $callbacks as $callback ) {
+				call_user_func_array( $callback[0], array_slice( $args, 0, $callback[1] ) );
+			}
+		}
+	}
+}
+
+if ( ! function_exists( 'wp_get_ability' ) ) {
+	function wp_get_ability( $name ) {
+		$resolver = $GLOBALS['ec_test_ability_resolver'] ?? null;
+
+		return is_callable( $resolver ) ? $resolver( $name ) : null;
+	}
+}
+
 if ( ! function_exists( 'esc_url_raw' ) ) {
 	function esc_url_raw( $url ) {
 		return is_string( $url ) ? trim( $url ) : '';
@@ -102,7 +125,12 @@ if ( ! function_exists( 'esc_url_raw' ) ) {
 
 if ( ! function_exists( 'sanitize_text_field' ) ) {
 	function sanitize_text_field( $str ) {
-		return is_string( $str ) ? trim( strip_tags( $str ) ) : '';
+		if ( ! is_string( $str ) ) {
+			return '';
+		}
+
+		$str = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $str );
+		return trim( strip_tags( $str ) );
 	}
 }
 

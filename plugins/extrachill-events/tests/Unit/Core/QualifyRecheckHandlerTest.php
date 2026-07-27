@@ -30,11 +30,26 @@ class QualifyRecheckHandlerTest extends TestCase {
 	private $original_log_hooks;
 	private $schedule_callback;
 	private $enqueue_callback;
+	private $original_ability_resolver;
+	private bool $registered_test_category = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		$this->original_wpdb                  = $GLOBALS['wpdb'] ?? null;
 		$this->original_log_hooks             = $GLOBALS['wp_filter']['datamachine_log'] ?? null;
+		$this->original_ability_resolver       = $GLOBALS['ec_test_ability_resolver'] ?? null;
+		$GLOBALS['ec_test_ability_resolver']   = static function ( string $name ) {
+			if ( 'extrachill/qualify-venue' !== $name ) {
+				return null;
+			}
+
+			return new class() {
+				public function execute( array $input ) {
+					unset( $input );
+					return $GLOBALS['ec_test_ability_result'];
+				}
+			};
+		};
 		if ( function_exists( 'remove_all_actions' ) ) {
 			remove_all_actions( 'datamachine_log' );
 		}
@@ -55,7 +70,7 @@ class QualifyRecheckHandlerTest extends TestCase {
 		if ( function_exists( 'wp_unregister_ability' ) && wp_has_ability( 'extrachill/qualify-venue' ) ) {
 			wp_unregister_ability( 'extrachill/qualify-venue' );
 		}
-		if ( function_exists( 'wp_unregister_ability_category' ) && wp_has_ability_category( 'extrachill-events-tests' ) ) {
+		if ( $this->registered_test_category && function_exists( 'wp_unregister_ability_category' ) && wp_has_ability_category( 'extrachill-events-tests' ) ) {
 			wp_unregister_ability_category( 'extrachill-events-tests' );
 		}
 		remove_filter( 'pre_as_schedule_single_action', $this->schedule_callback, 10 );
@@ -66,6 +81,11 @@ class QualifyRecheckHandlerTest extends TestCase {
 			$GLOBALS['wp_filter']['datamachine_log'] = $this->original_log_hooks;
 		}
 		$GLOBALS['wpdb'] = $this->original_wpdb;
+		if ( null === $this->original_ability_resolver ) {
+			unset( $GLOBALS['ec_test_ability_resolver'] );
+		} else {
+			$GLOBALS['ec_test_ability_resolver'] = $this->original_ability_resolver;
+		}
 		unset(
 			$GLOBALS['ec_test_action_scheduler'],
 			$GLOBALS['ec_test_ability_result']
@@ -81,6 +101,7 @@ class QualifyRecheckHandlerTest extends TestCase {
 			wp_unregister_ability( 'extrachill/qualify-venue' );
 		}
 		if ( ! wp_has_ability_category( 'extrachill-events-tests' ) ) {
+			$this->registered_test_category = true;
 			\WP_Ability_Categories_Registry::get_instance()->register(
 				'extrachill-events-tests',
 				array(

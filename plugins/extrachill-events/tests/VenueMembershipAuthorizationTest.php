@@ -851,6 +851,8 @@ require_once dirname( __DIR__ ) . '/inc/Abilities/VenueProfileAbilities.php';
  */
 final class VenueMembershipAuthorizationTest extends TestCase {
 	private $original_wpdb;
+	private $original_ability_resolver;
+	private $config_updated_callback;
 
 	private function set_current_user( int $user_id ): void {
 		if ( function_exists( 'wp_set_current_user' ) ) {
@@ -859,7 +861,8 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 	}
 
 	protected function setUp(): void {
-		$this->original_wpdb = $GLOBALS['wpdb'] ?? null;
+		$this->original_wpdb            = $GLOBALS['wpdb'] ?? null;
+		$this->original_ability_resolver = $GLOBALS['ec_test_ability_resolver'] ?? null;
 		if ( $this->original_wpdb ) {
 			$user_emails = array(
 				1 => 'admin@example.com',
@@ -1016,10 +1019,21 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 				return new WP_Error( 'unexpected_dme_update' );
 			},
 		);
+		$GLOBALS['ec_test_ability_resolver'] = static fn( string $name ) => $GLOBALS['venue_membership_test']['ability_objects'][ $name ] ?? null;
+		$this->config_updated_callback       = static function ( ...$args ): void {
+			$GLOBALS['venue_membership_test']['fired_actions']['extrachill_events_venue_booking_config_updated'][] = $args;
+		};
+		add_action( 'extrachill_events_venue_booking_config_updated', $this->config_updated_callback, 10, 3 );
 		$GLOBALS['wpdb']                  = new VenueMembershipWpdb( $this->original_wpdb );
 	}
 
 	protected function tearDown(): void {
+		remove_action( 'extrachill_events_venue_booking_config_updated', $this->config_updated_callback, 10 );
+		if ( null === $this->original_ability_resolver ) {
+			unset( $GLOBALS['ec_test_ability_resolver'] );
+		} else {
+			$GLOBALS['ec_test_ability_resolver'] = $this->original_ability_resolver;
+		}
 		$GLOBALS['wpdb'] = $this->original_wpdb;
 		$this->set_current_user( 0 );
 		parent::tearDown();

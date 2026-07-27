@@ -321,9 +321,20 @@ final class AccountMarketTest extends TestCase {
 	private $original_blog_id;
 	private $ancestor_filter;
 	private $term_link_filter;
+	private $original_ability_resolver;
+	private array $original_get;
 
 	protected function setUp(): void {
 		parent::setUp();
+		$this->original_ability_resolver     = $GLOBALS['ec_test_ability_resolver'] ?? null;
+		$this->original_get                  = $_GET;
+		$GLOBALS['ec_test_ability_resolver'] = static function ( string $name ) {
+			if ( 'extrachill/get-user-settings' === $name ) {
+				return $GLOBALS['test_account_market_ability'] ?? null;
+			}
+
+			return 'extrachill/update-user-settings' === $name ? ( $GLOBALS['test_update_scene_ability'] ?? null ) : null;
+		};
 		foreach (
 			array(
 				'test_is_user_logged_in',
@@ -382,6 +393,12 @@ final class AccountMarketTest extends TestCase {
 		$GLOBALS['current_user'] = $this->original_current_user;
 		$GLOBALS['wp_query']     = $this->original_wp_query;
 		$GLOBALS['blog_id']      = $this->original_blog_id;
+		$_GET                    = $this->original_get;
+		if ( null === $this->original_ability_resolver ) {
+			unset( $GLOBALS['ec_test_ability_resolver'] );
+		} else {
+			$GLOBALS['ec_test_ability_resolver'] = $this->original_ability_resolver;
+		}
 		parent::tearDown();
 	}
 
