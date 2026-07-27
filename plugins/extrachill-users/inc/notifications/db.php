@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * upgrade path).
  */
 if ( ! defined( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION' ) ) {
-	define( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION', '3' );
+	define( 'EXTRACHILL_USERS_NOTIFICATIONS_SCHEMA_VERSION', '4' );
 }
 
 /**
@@ -59,9 +59,9 @@ function extrachill_users_notifications_table_name() {
  *   - is_read    0 unread, 1 read
  *   - created_at when the notification was generated (UTC)
  *   - emailed_at when this notification was first included in a digest email
- *                (NULL == never emailed). Drives "nudge once per notification":
- *                a notification is eligible for the digest exactly once, then
- *                its emailed_at is stamped so it never re-triggers an email.
+ *                (NULL == never emailed by the generic digest).
+ *   - producer_owns_email excludes the row from generic email delivery while
+ *                leaving it visible in the notification reader.
  *   - producer / idempotency_key identify an optional producer-owned delivery
  *   - delivery_key is their SHA-256 digest, used for compact atomic uniqueness
  *
@@ -92,6 +92,7 @@ function extrachill_users_install_notifications_table() {
 		is_read tinyint(1) NOT NULL DEFAULT 0,
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		emailed_at datetime DEFAULT NULL,
+		producer_owns_email tinyint(1) NOT NULL DEFAULT 0,
 		producer varchar(64) DEFAULT NULL,
 		idempotency_key varchar(191) DEFAULT NULL,
 		delivery_key char(64) DEFAULT NULL,
@@ -124,7 +125,7 @@ function extrachill_users_notifications_receipt_schema_is_healthy() {
 	$table   = extrachill_users_notifications_table_name();
 	$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 
-	foreach ( array( 'producer', 'idempotency_key', 'delivery_key' ) as $required_column ) {
+	foreach ( array( 'producer_owns_email', 'producer', 'idempotency_key', 'delivery_key' ) as $required_column ) {
 		if ( ! in_array( $required_column, (array) $columns, true ) ) {
 			return false;
 		}

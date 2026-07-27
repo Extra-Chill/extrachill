@@ -121,8 +121,8 @@ function extrachill_users_unsubscribe_from_entity( $user_id, $entity_type, $taxo
 		return new WP_Error( 'user_not_found', __( 'User not found.', 'extrachill-users' ), array( 'status' => 404 ) );
 	}
 
-	$table = extrachill_users_entity_subscriptions_table_name();
-	$wpdb->query(
+	$table   = extrachill_users_entity_subscriptions_table_name();
+	$deleted = $wpdb->query(
 		$wpdb->prepare(
 			"DELETE FROM {$table} WHERE user_id = %d AND entity_type = %s AND taxonomy = %s AND entity_slug = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- trusted table helper.
 			$user_id,
@@ -131,6 +131,9 @@ function extrachill_users_unsubscribe_from_entity( $user_id, $entity_type, $taxo
 			$entity['slug']
 		)
 	);
+	if ( false === $deleted ) {
+		return new WP_Error( 'entity_subscription_delete_failed', __( 'The subscription could not be removed.', 'extrachill-users' ), array( 'status' => 500 ) );
+	}
 
 	return array_merge( $entity, array( 'subscribed' => false ) );
 }
