@@ -146,6 +146,12 @@ class BookingLifecycle {
 		if ( empty( $config['enabled'] ) ) {
 			return $this->rollback( new \WP_Error( 'booking_inquiry_admission_disabled', __( 'This venue is not accepting booking inquiries.', 'extrachill-events' ), array( 'status' => 403 ) ) );
 		}
+		$intake = $this->validate_public_intake( $data['intake'] ?? array(), $config );
+		if ( is_wp_error( $intake ) ) {
+			return $this->rollback( $intake );
+		}
+		$data['intake'] = $intake;
+
 		$booking = $this->bookings->create(
 			array_merge(
 				$data,
@@ -177,6 +183,76 @@ class BookingLifecycle {
 		}
 		$committed = $this->commit();
 		return is_wp_error( $committed ) ? $committed : $this->bookings->get( $booking['id'], true );
+	}
+
+	/** Validate the revision, consent, and configured public field values. */
+	private function validate_public_intake( $intake, array $config ) {
+		if ( ! is_array( $intake ) ) {
+			return new \WP_Error( 'booking_inquiry_invalid_intake', __( 'A valid booking inquiry is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		// Existing operator and integration callers predate the public projection.
+		if ( ! array_key_exists( 'config_revision', $intake ) ) {
+			return $intake;
+		}
+		if ( (int) ( $intake['config_revision'] ?? -1 ) !== (int) $config['revision'] ) {
+			return new \WP_Error( 'booking_config_revision_conflict', __( 'The venue booking configuration changed since this form loaded.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		$message = sanitize_textarea_field( (string) ( $intake['message'] ?? '' ) );
+		if ( '' === $message || mb_strlen( $message ) > 10000 ) {
+			return new \WP_Error( 'booking_inquiry_message_invalid', __( 'Tell the venue about the proposed performance.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		$submitted_consent = is_array( $intake['consent'] ?? null ) ? $intake['consent'] : array();
+		$consent           = $config['consent'];
+		if ( ( $submitted_consent['id'] ?? '' ) !== $consent['id'] || (int) ( $submitted_consent['version'] ?? 0 ) !== (int) $consent['version'] || ( $consent['required'] && true !== ( $submitted_consent['accepted'] ?? false ) ) ) {
+			return new \WP_Error( 'booking_inquiry_consent_invalid', __( 'Current booking consent is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		$values     = is_array( $intake['fields'] ?? null ) ? $intake['fields'] : array();
+		$normalized = array();
+		foreach ( $config['intake']['fields'] as $field ) {
+			$value = $values[ $field['key'] ] ?? ( 'checkbox' === $field['type'] ? false : '' );
+			if ( 'checkbox' === $field['type'] ) {
+				$value = true === $value;
+			} elseif ( 'number' === $field['type'] ) {
+				$value = '' === $value ? '' : filter_var( $value, FILTER_VALIDATE_FLOAT );
+				if ( false === $value ) {
+					return new \WP_Error( 'booking_inquiry_field_invalid', __( 'A configured booking field is invalid.', 'extrachill-events' ), array(
+						'status' => 400,
+						'field'  => $field['key'],
+					) );
+				}
+			} elseif ( 'textarea' === $field['type'] ) {
+				$value = sanitize_textarea_field( (string) $value );
+			} elseif ( 'email' === $field['type'] ) {
+				$value = sanitize_email( (string) $value );
+			} elseif ( 'url' === $field['type'] ) {
+				$value = esc_url_raw( (string) $value );
+			} else {
+				$value = sanitize_text_field( (string) $value );
+			}
+			if ( $field['required'] && ( false === $value || '' === $value ) ) {
+				return new \WP_Error( 'booking_inquiry_field_required', __( 'A required booking field is missing.', 'extrachill-events' ), array(
+					'status' => 400,
+					'field'  => $field['key'],
+				) );
+			}
+			if ( 'select' === $field['type'] && '' !== $value && ! in_array( $value, $field['options'], true ) ) {
+				return new \WP_Error( 'booking_inquiry_field_invalid', __( 'A configured booking field is invalid.', 'extrachill-events' ), array(
+					'status' => 400,
+					'field'  => $field['key'],
+				) );
+			}
+			$normalized[ $field['key'] ] = $value;
+		}
+		return array(
+			'config_revision' => (int) $config['revision'],
+			'message'         => $message,
+			'fields'          => $normalized,
+			'consent'         => array(
+				'id'       => $consent['id'],
+				'version'  => (int) $consent['version'],
+				'accepted' => true === ( $submitted_consent['accepted'] ?? false ),
+			),
+		);
 	}
 
 	/** Return a completed canonical inquiry after bounded lock contention. */

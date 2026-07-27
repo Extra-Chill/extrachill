@@ -27,6 +27,7 @@
 			<file>tests/Unit/VenueUpdateSubscriptionsTest.php</file>
 			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
+			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>
 		</testsuite>
 		<testsuite name="venue-membership-authorization">
 			<file>tests/VenueMembershipAuthorizationTest.php</file>

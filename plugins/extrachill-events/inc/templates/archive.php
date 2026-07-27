@@ -120,6 +120,15 @@ extrachill_breadcrumbs();
 		echo do_blocks( '<!-- wp:data-machine-events/calendar {"showScopePresets":true} /-->' );
 		?>
 	</div>
+	<?php if ( is_tax( 'venue' ) ) : ?>
+		<div class="page-content">
+			<?php
+			$booking_venue = get_queried_object();
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- do_blocks() renders a hardcoded block with an integer term identifier.
+			echo do_blocks( '<!-- wp:extrachill/venue-booking-inquiry {"venueId":' . absint( $booking_venue->term_id ) . '} /-->' );
+			?>
+		</div>
+	<?php endif; ?>
 </div>
 
 <?php get_footer(); ?>

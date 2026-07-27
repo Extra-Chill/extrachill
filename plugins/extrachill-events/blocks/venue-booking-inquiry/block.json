@@ -1,0 +1,24 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/venue-booking-inquiry",
+	"title": "Venue Booking Inquiry",
+	"category": "widgets",
+	"icon": "calendar-alt",
+	"description": "Render a venue-branded public booking inquiry from canonical venue settings.",
+	"textdomain": "extrachill-events",
+	"attributes": {
+		"venueId": { "type": "integer", "default": 0 },
+		"heading": { "type": "string", "default": "Booking inquiries" },
+		"buttonLabel": { "type": "string", "default": "Send booking inquiry" }
+	},
+	"supports": {
+		"html": false,
+		"align": ["wide", "full"],
+		"spacing": { "margin": ["top", "bottom"] }
+	},
+	"editorScript": "file:./index.js",
+	"render": "file:./render.php",
+	"style": "file:./style-index.css",
+	"viewScript": "file:./view.js"
+}

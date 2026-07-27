@@ -74,12 +74,19 @@ const profile = ( id ) => ( {
 	revision: String( id ).padStart( 64, '0' ),
 } );
 const config = ( id ) => ( {
-	version: 1,
+	version: 3,
 	revision: id,
 	updated_by_user_id: null,
 	updated_at: null,
 	enabled: false,
 	intake: { version: 1, fields: [] },
+	public_requirements: [],
+	consent: {
+		id: 'booking-privacy',
+		version: 1,
+		label: 'I agree.',
+		required: true,
+	},
 	spaces: [],
 	default_deal: {
 		version: 1,
@@ -91,6 +98,7 @@ const config = ( id ) => ( {
 	},
 	ticket_provider_reference: null,
 	marketing_channels: [],
+	marketing_triggers: [],
 	hold_ttl_minutes: 1440,
 } );
 const booking = ( id, venueId = 44 ) => ( {

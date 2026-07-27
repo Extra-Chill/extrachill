@@ -27,6 +27,12 @@ export const normalizeKey = ( value ) =>
 
 export const validateConfig = ( config ) => {
 	const errors = [];
+	if ( config.public_requirements.length > 20 ) {
+		errors.push( 'Use no more than 20 public requirements.' );
+	}
+	if ( ! config.consent.label.trim() || config.consent.version < 1 ) {
+		errors.push( 'Consent needs public wording and a positive version.' );
+	}
 	const spaceKeys = new Set();
 	let defaultSpaces = 0;
 	config.spaces.forEach( ( space ) => {

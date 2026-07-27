@@ -943,6 +943,34 @@ final class BookingFoundationTest extends TestCase {
 		$this->assertCount( 3, $GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ] );
 	}
 
+	public function test_public_inquiry_validates_config_revision_consent_and_fields(): void {
+		$config                        = ( new VenueBookingConfig() )->defaults();
+		$config['enabled']             = true;
+		$config['revision']            = 3;
+		$config['intake']['fields'][]  = array( 'key' => 'draw', 'label' => 'Recent draw', 'type' => 'number', 'required' => true, 'options' => array() );
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
+		$lifecycle                     = new BookingLifecycle();
+		$input                         = array(
+			'idempotency_key' => 'public-intake',
+			'venue_term_id'   => 55,
+			'artist_name'     => 'Test Band',
+			'intake'          => array(
+				'config_revision' => 3,
+				'message'         => 'A complete performance proposal.',
+				'fields'          => array( 'draw' => '125' ),
+				'consent'         => array( 'id' => 'booking-privacy', 'version' => 1, 'accepted' => true ),
+			),
+		);
+
+		$created = $lifecycle->create_inquiry( $input );
+		$this->assertIsArray( $created );
+		$this->assertSame( 125, $created['intake']['data']['fields']['draw'] );
+		$stale = $lifecycle->create_inquiry( array_replace_recursive( $input, array( 'idempotency_key' => 'public-stale', 'intake' => array( 'config_revision' => 2 ) ) ) );
+		$this->assertSame( 'booking_config_revision_conflict', $stale->get_error_code() );
+		$missing = $lifecycle->create_inquiry( array_replace_recursive( $input, array( 'idempotency_key' => 'public-missing', 'intake' => array( 'fields' => array( 'draw' => '' ) ) ) ) );
+		$this->assertSame( 'booking_inquiry_field_required', $missing->get_error_code() );
+	}
+
 	public function test_failed_idempotent_insert_without_winner_preserves_database_error(): void {
 		$lifecycle                     = new BookingLifecycle();
 		$GLOBALS['wpdb']->fail_inserts = true;

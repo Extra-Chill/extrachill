@@ -1744,19 +1744,27 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 		$this->assertCount( 3, $config_input['oneOf'] );
 		$this->assertSame( array( 1 ), $config_input['oneOf'][0]['properties']['version']['enum'] );
 		$this->assertNotContains( 'correspondence', $config_input['oneOf'][0]['required'] );
+		$this->assertNotContains( 'public_requirements', $config_input['oneOf'][0]['required'] );
+		$this->assertNotContains( 'consent', $config_input['oneOf'][0]['required'] );
 		$this->assertNotContains( 'marketing_triggers', $config_input['oneOf'][0]['required'] );
 		$this->assertSame( array( 2 ), $config_input['oneOf'][1]['properties']['version']['enum'] );
 		$this->assertContains( 'correspondence', $config_input['oneOf'][1]['required'] );
+		$this->assertNotContains( 'public_requirements', $config_input['oneOf'][1]['required'] );
+		$this->assertNotContains( 'consent', $config_input['oneOf'][1]['required'] );
 		$this->assertNotContains( 'marketing_triggers', $config_input['oneOf'][1]['required'] );
 		$this->assertSame( array( 3 ), $config_input['oneOf'][2]['properties']['version']['enum'] );
+		$this->assertContains( 'public_requirements', $config_input['oneOf'][2]['required'] );
+		$this->assertContains( 'consent', $config_input['oneOf'][2]['required'] );
 		$this->assertContains( 'marketing_triggers', $config_input['oneOf'][2]['required'] );
 		$this->assertSame( array( 3 ), $config_output['properties']['version']['enum'] );
 		$this->assertContains( 'correspondence', $config_output['required'] );
+		$this->assertContains( 'public_requirements', $config_output['required'] );
+		$this->assertContains( 'consent', $config_output['required'] );
 		$this->assertContains( 'marketing_triggers', $config_output['required'] );
 
 		$legacy = ( new VenueBookingConfig() )->defaults();
 		$legacy['version'] = 1;
-		unset( $legacy['correspondence'], $legacy['marketing_triggers'] );
+		unset( $legacy['correspondence'], $legacy['public_requirements'], $legacy['consent'], $legacy['marketing_triggers'] );
 		unset( $legacy['revision'], $legacy['updated_by_user_id'], $legacy['updated_at'] );
 		$GLOBALS['venue_membership_test']['term_meta'][55][ VenueBookingConfig::META_KEY ] = $legacy;
 		$current = call_user_func( $get['execute_callback'], array( 'venue_term_id' => 55 ) );

@@ -1,0 +1,19 @@
+.ec-venue-booking-inquiry { margin-block: var(--wp--preset--spacing--50, 2rem); }
+.ec-booking-inquiry__identity { align-items: start; display: flex; gap: 1rem; justify-content: space-between; }
+.ec-booking-inquiry__identity h3 { margin: .15rem 0; }
+.ec-booking-inquiry__eyebrow { color: var(--wp--preset--color--primary, #2563eb); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.ec-booking-inquiry__signed-in { background: var(--wp--preset--color--base-2, #f1f5f9); border-radius: 999px; font-size: .8rem; padding: .35rem .65rem; }
+.ec-booking-inquiry__description { font-size: 1.05rem; max-width: 70ch; }
+.ec-booking-inquiry__requirements { display: grid; gap: .5rem; margin-bottom: 0; }
+.ec-booking-inquiry__form { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
+.ec-booking-inquiry__grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ec-booking-inquiry__form input:not([type="checkbox"]), .ec-booking-inquiry__form select, .ec-booking-inquiry__form textarea { box-sizing: border-box; width: 100%; }
+.ec-booking-inquiry__checkbox, .ec-booking-inquiry__consent { align-items: start; display: flex; gap: .55rem; line-height: 1.45; }
+.ec-booking-inquiry__checkbox input, .ec-booking-inquiry__consent input { flex: 0 0 auto; margin-top: .25rem; }
+.ec-booking-inquiry__turnstile { min-height: 65px; }
+.ec-booking-inquiry__privacy { color: var(--wp--preset--color--contrast-2, #475569); font-size: .85rem; max-width: 36rem; }
+.ec-booking-inquiry__result:focus { outline: 3px solid var(--wp--preset--color--primary, #2563eb); outline-offset: .35rem; }
+.ec-booking-inquiry__reference { display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.ec-venue-booking-editor { border: 1px dashed currentColor; padding: 1.5rem; }
+@media (max-width: 700px) { .ec-booking-inquiry__grid { grid-template-columns: 1fr; } .ec-booking-inquiry__identity { display: grid; } }
+@media (prefers-reduced-motion: reduce) { .ec-venue-booking-inquiry * { scroll-behavior: auto !important; transition: none !important; } }
