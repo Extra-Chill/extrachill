@@ -7,8 +7,6 @@
 
 // phpcs:disable -- This isolated fixture intentionally declares WordPress test doubles.
 
-use PHPUnit\Framework\TestCase;
-
 if ( ! class_exists( 'WP_Term' ) ) {
 	class WP_Term {
 		public int $term_id;
@@ -46,23 +44,63 @@ if ( ! function_exists( 'get_term_link' ) ) {
 
 require_once dirname( __DIR__, 3 ) . '/inc/core/events-by-term-taxonomy-context.php';
 
-final class EventsByTermTaxonomyContextTest extends TestCase {
+final class EventsByTermTaxonomyContextTest extends WP_UnitTestCase {
+	private function term( int $term_id, string $name, string $slug ): WP_Term {
+		$constructor = new ReflectionMethod( WP_Term::class, '__construct' );
+		if ( 1 === $constructor->getNumberOfParameters() ) {
+			return new WP_Term(
+				(object) array(
+					'term_id'          => $term_id,
+					'name'             => $name,
+					'slug'             => $slug,
+					'term_group'       => 0,
+					'term_taxonomy_id' => $term_id,
+					'taxonomy'         => 'venue',
+					'description'      => '',
+					'parent'           => 0,
+					'count'            => 0,
+					'filter'           => 'raw',
+				)
+			);
+		}
+
+		return new WP_Term( $term_id, $name, $slug );
+	}
+
 	protected function setUp(): void {
 		parent::setUp();
+		register_post_type( 'data_machine_events' );
+		foreach ( array( 'venue', 'location', 'festival' ) as $taxonomy ) {
+			register_taxonomy( $taxonomy, 'data_machine_events' );
+		}
 		$GLOBALS['ec_events_by_term_relationships'] = array();
 	}
 
 	public function test_enriches_assigned_relationships_without_changing_existing_row_fields(): void {
-		$GLOBALS['ec_events_by_term_relationships'][123] = array(
-			'venue'    => array( new WP_Term( 10, 'The Royal American', 'royal-american' ) ),
-			'location' => array( new WP_Term( 11, 'Charleston', 'charleston-sc' ) ),
-			'festival' => array( new WP_Term( 12, 'High Water Festival', 'high-water-festival' ) ),
-		);
+		$post_id = self::factory()->post->create( array( 'post_type' => 'data_machine_events' ) );
+		$terms   = array();
+		foreach (
+			array(
+				'venue'    => array( 'The Royal American', 'royal-american' ),
+				'location' => array( 'Charleston', 'charleston-sc' ),
+				'festival' => array( 'High Water Festival', 'high-water-festival' ),
+			) as $taxonomy => $term_data
+		) {
+			$term_id            = self::factory()->term->create(
+				array(
+					'taxonomy' => $taxonomy,
+					'name'     => $term_data[0],
+					'slug'     => $term_data[1],
+				)
+			);
+			$terms[ $taxonomy ] = get_term( $term_id, $taxonomy );
+			wp_set_object_terms( $post_id, array( $term_id ), $taxonomy );
+		}
 		$result = extrachill_events_add_events_by_term_taxonomy_context(
 			array(
 				'upcoming' => array(
 					array(
-						'event_id'   => 123,
+						'event_id'   => $post_id,
 						'title'      => 'A Show',
 						'venue_name' => 'The Royal American',
 					),
@@ -79,7 +117,7 @@ final class EventsByTermTaxonomyContextTest extends TestCase {
 			array(
 				'name' => 'The Royal American',
 				'slug' => 'royal-american',
-				'url'  => 'https://events.example/location/royal-american/',
+				'url'  => get_term_link( $terms['venue'] ),
 			),
 			$row['relationships']['venue']
 		);

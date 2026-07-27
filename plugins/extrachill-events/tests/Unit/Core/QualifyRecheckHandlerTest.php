@@ -2,8 +2,8 @@
 /**
  * Tests for QualifyRecheckHandler.
  *
- * Stubs FlowOps via a global recorder array + replaces wp_get_ability with
- * a closure-returning fake. Validates the handler's branching:
+ * Runs the real FlowOps implementation against a focused database double and
+ * a controlled qualification ability. Validates the handler's branching:
  *
  *  - qualified_structured → resume + no further schedule.
  *  - still-failing same verdict → reschedule with incremented failure count.
@@ -21,40 +21,110 @@ use ExtraChillEvents\Core\QualifyRecheckHandler;
 use ExtraChillEvents\Core\QualifyVerdict;
 use PHPUnit\Framework\TestCase;
 
-// Stubs MUST load before the handler so the fake FlowOps wins the
-// class-resolution race (the real FlowOps in inc/Cli/FlowOps.php is
-// deliberately not required by this test file).
-require_once __DIR__ . '/Stubs/recheck-handler-stubs.php';
+require_once __DIR__ . '/Stubs/recheck-handler-runtime-stubs.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Cli/FlowOps.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyRecheckHandler.php';
 
 class QualifyRecheckHandlerTest extends TestCase {
+	private $original_wpdb;
+	private $original_log_hooks;
+	private $schedule_callback;
+	private $enqueue_callback;
 
 	protected function setUp(): void {
 		parent::setUp();
-		$GLOBALS['ec_test_flow_rows']        = array();
-		$GLOBALS['ec_test_flowops_calls']    = array();
+		$this->original_wpdb                  = $GLOBALS['wpdb'] ?? null;
+		$this->original_log_hooks             = $GLOBALS['wp_filter']['datamachine_log'] ?? null;
+		if ( function_exists( 'remove_all_actions' ) ) {
+			remove_all_actions( 'datamachine_log' );
+		}
+		$GLOBALS['wpdb']                     = new QualifyRecheckWpdb();
 		$GLOBALS['ec_test_action_scheduler'] = array();
 		$GLOBALS['ec_test_ability_result']   = null;
+		$this->schedule_callback             = static function ( $pre, int $timestamp, string $hook, array $args, string $group ) {
+			$GLOBALS['ec_test_action_scheduler'][] = compact( 'timestamp', 'hook', 'args', 'group' );
+			return 12345;
+		};
+		add_filter( 'pre_as_schedule_single_action', $this->schedule_callback, 10, 5 );
+		$this->enqueue_callback = static fn() => 1;
+		add_filter( 'pre_as_enqueue_async_action', $this->enqueue_callback, 10, 1 );
+		$this->register_ability();
 	}
 
 	protected function tearDown(): void {
+		if ( function_exists( 'wp_unregister_ability' ) && wp_has_ability( 'extrachill/qualify-venue' ) ) {
+			wp_unregister_ability( 'extrachill/qualify-venue' );
+		}
+		if ( function_exists( 'wp_unregister_ability_category' ) && wp_has_ability_category( 'extrachill-events-tests' ) ) {
+			wp_unregister_ability_category( 'extrachill-events-tests' );
+		}
+		remove_filter( 'pre_as_schedule_single_action', $this->schedule_callback, 10 );
+		remove_filter( 'pre_as_enqueue_async_action', $this->enqueue_callback, 10 );
+		if ( null === $this->original_log_hooks ) {
+			unset( $GLOBALS['wp_filter']['datamachine_log'] );
+		} else {
+			$GLOBALS['wp_filter']['datamachine_log'] = $this->original_log_hooks;
+		}
+		$GLOBALS['wpdb'] = $this->original_wpdb;
 		unset(
-			$GLOBALS['ec_test_flow_rows'],
-			$GLOBALS['ec_test_flowops_calls'],
 			$GLOBALS['ec_test_action_scheduler'],
 			$GLOBALS['ec_test_ability_result']
 		);
 		parent::tearDown();
 	}
 
+	private function register_ability(): void {
+		if ( ! class_exists( '\\WP_Abilities_Registry' ) ) {
+			return;
+		}
+		if ( wp_has_ability( 'extrachill/qualify-venue' ) ) {
+			wp_unregister_ability( 'extrachill/qualify-venue' );
+		}
+		if ( ! wp_has_ability_category( 'extrachill-events-tests' ) ) {
+			\WP_Ability_Categories_Registry::get_instance()->register(
+				'extrachill-events-tests',
+				array(
+					'label'       => 'Extra Chill Events tests',
+					'description' => 'Test-only abilities for managed runtime validation.',
+				)
+			);
+		}
+		$ability = \WP_Abilities_Registry::get_instance()->register(
+			'extrachill/qualify-venue',
+			array(
+				'label'               => 'Qualify venue test',
+				'description'         => 'Returns the controlled qualification result.',
+				'category'            => 'extrachill-events-tests',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'url' => array( 'type' => 'string' ),
+					),
+					'required'   => array( 'url' ),
+				),
+				'execute_callback'    => static fn( array $input ) => $GLOBALS['ec_test_ability_result'],
+				'permission_callback' => '__return_true',
+			)
+		);
+		if ( null === $ability ) {
+			throw new \RuntimeException( 'Failed to register the controlled qualification ability.' );
+		}
+	}
+
 	private function seed_paused_flow( int $flow_id ): void {
-		$GLOBALS['ec_test_flow_rows'][ $flow_id ] = array(
-			'flow_id'           => $flow_id,
-			'flow_name'         => 'Test flow',
-			'scheduling_config' => array(
-				'interval'      => 'manual',
-				'paused_reason' => QualifyVerdict::EXTRACTION_GAP,
-			),
+		$GLOBALS['wpdb']->seed_row(
+			$flow_id,
+			array(
+				'flow_id'           => $flow_id,
+				'flow_name'         => 'Test flow',
+				'flow_config'       => '{}',
+				'scheduling_config' => wp_json_encode(
+					array(
+						'interval'      => 'manual',
+						'paused_reason' => QualifyVerdict::EXTRACTION_GAP,
+					)
+				),
+			)
 		);
 	}
 
@@ -74,11 +144,7 @@ class QualifyRecheckHandlerTest extends TestCase {
 			)
 		);
 
-		$resume_calls = array_filter(
-			$GLOBALS['ec_test_flowops_calls'],
-			fn( $c ) => 'resume_flow_from_qualified' === $c['method']
-		);
-		$this->assertCount( 1, $resume_calls );
+		$this->assertSame( 'daily', $GLOBALS['wpdb']->scheduling_config( 42 )['interval'] );
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'], 'No reschedule on resume' );
 	}
 
@@ -120,20 +186,16 @@ class QualifyRecheckHandlerTest extends TestCase {
 		);
 
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'] );
-		$update_calls = array_filter(
-			$GLOBALS['ec_test_flowops_calls'],
-			fn( $c ) => 'update_paused_reason' === $c['method']
-		);
-		$this->assertNotEmpty( $update_calls );
+		$this->assertSame( QualifyVerdict::RESERVATION_ONLY, $GLOBALS['wpdb']->scheduling_config( 44 )['paused_reason'] );
 	}
 
 	public function test_unpaused_flow_is_noop(): void {
 		// Flow is no longer paused — handler must short-circuit.
-		$GLOBALS['ec_test_flow_rows'][45] = array(
+		$GLOBALS['wpdb']->seed_row( 45, array(
 			'flow_id'           => 45,
 			'flow_name'         => 'Already unpaused',
-			'scheduling_config' => array( 'interval' => 'daily' ),
-		);
+			'scheduling_config' => wp_json_encode( array( 'interval' => 'daily' ) ),
+		) );
 
 		QualifyRecheckHandler::handle(
 			array(
@@ -145,7 +207,7 @@ class QualifyRecheckHandlerTest extends TestCase {
 		);
 
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'] );
-		$this->assertEmpty( $GLOBALS['ec_test_flowops_calls'] );
+		$this->assertEmpty( $GLOBALS['wpdb']->updates );
 	}
 
 	public function test_consecutive_failures_threshold_flags_stale(): void {
@@ -164,11 +226,7 @@ class QualifyRecheckHandlerTest extends TestCase {
 			)
 		);
 
-		$flag_calls = array_filter(
-			$GLOBALS['ec_test_flowops_calls'],
-			fn( $c ) => 'flag_stale_paused' === $c['method']
-		);
-		$this->assertCount( 1, $flag_calls );
+		$this->assertSame( 6, $GLOBALS['wpdb']->scheduling_config( 46 )['stale_flag']['consecutive_failures'] );
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'], 'No reschedule after stale flag' );
 	}
 
@@ -184,7 +242,7 @@ class QualifyRecheckHandlerTest extends TestCase {
 		);
 
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'] );
-		$this->assertEmpty( $GLOBALS['ec_test_flowops_calls'] );
+		$this->assertEmpty( $GLOBALS['wpdb']->updates );
 	}
 
 	public function test_invalid_payload_is_noop(): void {

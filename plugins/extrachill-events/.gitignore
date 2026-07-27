@@ -24,7 +24,6 @@ Thumbs.db
 *.temp
 
 # Additional build and development files
-composer.lock
 .claude/
 .buildignore
 docs/.docs-sync.json

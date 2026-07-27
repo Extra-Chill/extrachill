@@ -2,7 +2,27 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "php": "8.3",
+      "database_type": "mysql",
+      "settings": {
+        "wp_codebox_database_service": {
+          "provider": "external",
+          "engine": "mysql",
+          "allowed_hosts": [
+            "127.0.0.1:3306"
+          ],
+          "secret_env": {
+            "host": "WP_CODEBOX_DB_HOST",
+            "port": "WP_CODEBOX_DB_PORT",
+            "username": "WP_CODEBOX_DB_USER",
+            "password": "WP_CODEBOX_DB_PASSWORD"
+          }
+        },
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed"
+      }
+    }
   },
   "id": "extrachill-events",
   "remote_path": "wp-content/plugins/extrachill-events",

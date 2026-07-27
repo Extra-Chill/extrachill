@@ -21,6 +21,8 @@ namespace ExtraChillEvents\Tests\Unit\Abilities;
 use ExtraChillEvents\Abilities\VenueQualificationAbilities;
 use PHPUnit\Framework\TestCase;
 
+require_once dirname( __DIR__, 3 ) . '/inc/Abilities/VenueQualificationAbilities.php';
+
 class VenueQualificationTicketmasterPrecheckTest extends TestCase {
 
 	// ---- Positive cases: SHOULD disqualify (LN-owned page). ----

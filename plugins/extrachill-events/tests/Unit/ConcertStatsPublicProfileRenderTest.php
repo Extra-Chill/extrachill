@@ -5,149 +5,64 @@
  * @package ExtraChillEvents\Tests
  */
 
-use PHPUnit\Framework\TestCase;
+final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
+	private int $owner_id;
+	private int $viewer_id;
 
-// WordPress stubs intentionally share this test file with its test class.
-// phpcs:disable Squiz.Commenting.FunctionComment.Missing, Squiz.Commenting.ClassComment.Missing, Universal.Files.SeparateFunctionsFromOO.Mixed, WordPress.Security.EscapeOutput.OutputNotEscaped
-
-if ( ! function_exists( 'is_page' ) ) {
-	function is_page( $slug ) {
-		return 'my-shows' === $slug;
-	}
-}
-
-if ( ! function_exists( 'get_current_user_id' ) ) {
-	function get_current_user_id() {
-		return $GLOBALS['ec_test_current_user_id'];
-	}
-}
-
-if ( ! function_exists( 'is_user_logged_in' ) ) {
-	function is_user_logged_in() {
-		return $GLOBALS['ec_test_current_user_id'] > 0;
-	}
-}
-
-if ( ! function_exists( 'current_user_can' ) ) {
-	function current_user_can( $capability ) {
-		return 'manage_network_options' === $capability && ! empty( $GLOBALS['ec_test_is_network_admin'] );
-	}
-}
-
-if ( ! function_exists( 'get_userdata' ) ) {
-	function get_userdata( $user_id ) {
-		return in_array( (int) $user_id, $GLOBALS['ec_test_existing_user_ids'], true ) ? (object) array( 'ID' => (int) $user_id ) : false;
-	}
-}
-
-if ( ! function_exists( 'wp_unslash' ) ) {
-	function wp_unslash( $value ) {
-		return $value;
-	}
-}
-
-if ( ! function_exists( 'absint' ) ) {
-	function absint( $value ) {
-		return abs( (int) $value );
-	}
-}
-
-if ( ! function_exists( 'get_block_wrapper_attributes' ) ) {
-	function get_block_wrapper_attributes( $attributes = array() ) {
-		$rendered = array();
-		foreach ( $attributes as $name => $value ) {
-			$rendered[] = $name . '="' . htmlspecialchars( (string) $value, ENT_QUOTES ) . '"';
-		}
-		return implode( ' ', $rendered );
-	}
-}
-
-if ( ! function_exists( 'esc_attr' ) ) {
-	function esc_attr( $value ) {
-		return htmlspecialchars( (string) $value, ENT_QUOTES );
-	}
-}
-
-if ( ! function_exists( 'esc_url' ) ) {
-	function esc_url( $value ) {
-		return htmlspecialchars( (string) $value, ENT_QUOTES );
-	}
-}
-
-if ( ! function_exists( 'esc_html_e' ) ) {
-	function esc_html_e( $text ) {
-		echo htmlspecialchars( (string) $text, ENT_QUOTES );
-	}
-}
-
-if ( ! function_exists( 'home_url' ) ) {
-	function home_url( $path = '' ) {
-		return 'https://events.example' . $path;
-	}
-}
-
-if ( ! function_exists( 'wp_registration_url' ) ) {
-	function wp_registration_url() {
-		return 'https://events.example/register/';
-	}
-}
-
-if ( ! function_exists( 'wp_login_url' ) ) {
-	function wp_login_url() {
-		return 'https://events.example/login/';
-	}
-}
-
-if ( ! function_exists( 'ec_get_site_url' ) ) {
-	function ec_get_site_url( $site ) {
-		return 'https://' . $site . '.example';
-	}
-}
-
-if ( ! function_exists( 'trailingslashit' ) ) {
-	function trailingslashit( $value ) {
-		return rtrim( $value, '/' ) . '/';
-	}
-}
-
-if ( ! function_exists( 'esc_attr_e' ) ) {
-	function esc_attr_e( $text ) {
-		echo htmlspecialchars( (string) $text, ENT_QUOTES );
-	}
-}
-
-if ( ! function_exists( 'do_blocks' ) ) {
-	function do_blocks( $content ) {
-		return '<div class="embedded-block">' . htmlspecialchars( $content, ENT_QUOTES ) . '</div>';
-	}
-}
-
-if ( ! function_exists( 'current_datetime' ) ) {
-	function current_datetime() {
-		return new DateTimeImmutable( '2026-07-19 12:00:00' );
-	}
-}
-
-final class ConcertStatsPublicProfileRenderTest extends TestCase {
 	protected function setUp(): void {
-		$GLOBALS['ec_test_current_user_id']   = 0;
-		$GLOBALS['ec_test_existing_user_ids'] = array( 12, 34 );
-		$GLOBALS['ec_test_is_network_admin']  = false;
-		$GLOBALS['test_is_user_logged_in']    = false;
-		$_GET                                 = array();
+		parent::setUp();
+		if ( ! wp_has_ability_category( 'extrachill-events-tests' ) ) {
+			WP_Ability_Categories_Registry::get_instance()->register(
+				'extrachill-events-tests',
+				array(
+					'label'       => 'Extra Chill Events tests',
+					'description' => 'Managed test abilities.',
+				)
+			);
+		}
+		if ( wp_has_ability( 'extrachill/get-user-settings' ) ) {
+			wp_unregister_ability( 'extrachill/get-user-settings' );
+		}
+		WP_Abilities_Registry::get_instance()->register(
+			'extrachill/get-user-settings',
+			array(
+				'label'               => 'User settings test',
+				'description'         => 'Returns an empty managed settings fixture.',
+				'category'            => 'extrachill-events-tests',
+				'input_schema'        => array( 'type' => 'object' ),
+				'output_schema'       => array( 'type' => 'object' ),
+				'execute_callback'    => static fn() => array(),
+				'permission_callback' => '__return_true',
+			)
+		);
+
+		$this->owner_id  = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$this->viewer_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$page_id         = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'my-shows',
+				'post_title'  => 'My Shows',
+			)
+		);
+		$this->go_to( get_permalink( $page_id ) );
+		wp_set_current_user( 0 );
+		$_GET = array();
 	}
 
 	protected function tearDown(): void {
 		$_GET = array();
+		wp_set_current_user( 0 );
+		parent::tearDown();
 	}
 
 	public function test_owner_gets_dashboard_and_owner_only_embeds(): void {
-		$GLOBALS['ec_test_current_user_id'] = 12;
-		$GLOBALS['test_is_user_logged_in']  = true;
+		wp_set_current_user( $this->owner_id );
 
-		$output = $this->renderBlock();
+		$output = $this->render_block();
 
-		$this->assertStringContainsString( 'data-user-id="12"', $output );
+		$this->assertStringContainsString( 'data-user-id="' . $this->owner_id . '"', $output );
 		$this->assertStringContainsString( 'data-is-own="1"', $output );
 		$this->assertStringContainsString( 'data-public-date-to=""', $output );
 		$this->assertStringContainsString( 'data-has-calendar="1"', $output );
@@ -157,54 +72,34 @@ final class ConcertStatsPublicProfileRenderTest extends TestCase {
 	}
 
 	public function test_logged_in_viewer_gets_selected_users_public_history(): void {
-		$GLOBALS['ec_test_current_user_id'] = 12;
-		$GLOBALS['test_is_user_logged_in']  = true;
-		$_GET['user_id']                    = '34';
+		wp_set_current_user( $this->viewer_id );
+		$_GET['user_id'] = (string) $this->owner_id;
 
-		$output = $this->renderBlock();
-
-		$this->assertStringContainsString( 'data-user-id="34"', $output );
-		$this->assertStringContainsString( 'data-is-own="0"', $output );
-		$this->assertStringContainsString( 'data-public-date-to="2026-07-18"', $output );
-		$this->assertStringContainsString( 'data-has-calendar="0"', $output );
-		$this->assertStringContainsString( 'data-has-map="0"', $output );
-		$this->assertStringNotContainsString( 'ec-concert-stats__embedded-calendar', $output );
-		$this->assertStringNotContainsString( 'ec-concert-stats__embedded-map', $output );
+		$this->assert_public_history( $this->render_block() );
 	}
 
-	public function test_network_admin_does_not_receive_another_users_owner_ui(): void {
-		$GLOBALS['ec_test_current_user_id']  = 12;
-		$GLOBALS['ec_test_is_network_admin'] = true;
-		$_GET['user_id']                     = '34';
+	public function test_administrator_does_not_receive_another_users_owner_ui(): void {
+		wp_set_current_user( $this->viewer_id );
+		$_GET['user_id'] = (string) $this->owner_id;
 
-		$output = $this->renderBlock();
-
-		$this->assertStringContainsString( 'data-user-id="34"', $output );
-		$this->assertStringContainsString( 'data-is-own="0"', $output );
-		$this->assertStringContainsString( 'data-has-calendar="0"', $output );
-		$this->assertStringContainsString( 'data-has-map="0"', $output );
-		$this->assertStringNotContainsString( 'ec-concert-stats__embedded-calendar', $output );
-		$this->assertStringNotContainsString( 'ec-concert-stats__embedded-map', $output );
+		$this->assert_public_history( $this->render_block() );
 	}
 
 	public function test_logged_out_viewer_gets_selected_users_public_history(): void {
-		$_GET['user_id'] = '34';
+		$_GET['user_id'] = (string) $this->owner_id;
+		$output          = $this->render_block();
 
-		$output = $this->renderBlock();
-
-		$this->assertStringContainsString( 'data-user-id="34"', $output );
-		$this->assertStringContainsString( 'data-is-own="0"', $output );
-		$this->assertStringContainsString( 'data-public-date-to="2026-07-18"', $output );
+		$this->assert_public_history( $output );
 		$this->assertStringNotContainsString( 'ec-concert-stats-shell--marketing', $output );
 	}
 
 	public function test_logged_out_visitor_gets_complete_marketing_and_docs_surface(): void {
-		$output = $this->renderBlock();
+		$output = $this->render_block();
 
 		$this->assertStringContainsString( 'ec-concert-stats-shell--marketing', $output );
 		$this->assertStringContainsString( 'Every show has a story. Keep yours.', $output );
 		$this->assertStringContainsString( 'id="how-it-works"', $output );
-		$this->assertStringContainsString( 'https://community.example/register/', $output );
+		$this->assertStringContainsString( '/register/', $output );
 		$this->assertStringContainsString( '/events-calendar/getting-started-with-my-shows/', $output );
 		$this->assertStringContainsString( '/events-calendar/importing-concert-history/', $output );
 		$this->assertStringContainsString( '/events-calendar/concert-history-privacy/', $output );
@@ -212,29 +107,37 @@ final class ConcertStatsPublicProfileRenderTest extends TestCase {
 	}
 
 	public function test_invalid_selection_does_not_fall_back_to_viewer(): void {
-		$GLOBALS['ec_test_current_user_id'] = 12;
-		$GLOBALS['test_is_user_logged_in']  = true;
-		$_GET['user_id']                    = '999';
+		wp_set_current_user( $this->viewer_id );
+		$_GET['user_id'] = '999999';
 
-		$output = $this->renderBlock();
+		$output = $this->render_block();
 
 		$this->assertStringContainsString( 'This concert history could not be found.', $output );
-		$this->assertStringNotContainsString( 'data-user-id="12"', $output );
+		$this->assertStringNotContainsString( 'data-user-id="' . $this->viewer_id . '"', $output );
 		$this->assertStringNotContainsString( 'class="ec-concert-stats"', $output );
 	}
 
 	public function test_malformed_selection_fails_safely(): void {
-		$GLOBALS['ec_test_current_user_id'] = 12;
-		$GLOBALS['test_is_user_logged_in']  = true;
-		$_GET['user_id']                    = array( '34' );
+		wp_set_current_user( $this->viewer_id );
+		$_GET['user_id'] = array( (string) $this->owner_id );
 
-		$output = $this->renderBlock();
+		$output = $this->render_block();
 
 		$this->assertStringContainsString( 'This concert history could not be found.', $output );
-		$this->assertStringNotContainsString( 'data-user-id="12"', $output );
+		$this->assertStringNotContainsString( 'data-user-id="' . $this->viewer_id . '"', $output );
 	}
 
-	private function renderBlock(): string {
+	private function assert_public_history( string $output ): void {
+		$this->assertStringContainsString( 'data-user-id="' . $this->owner_id . '"', $output );
+		$this->assertStringContainsString( 'data-is-own="0"', $output );
+		$this->assertStringContainsString( 'data-public-date-to="' . current_datetime()->modify( '-1 day' )->format( 'Y-m-d' ) . '"', $output );
+		$this->assertStringContainsString( 'data-has-calendar="0"', $output );
+		$this->assertStringContainsString( 'data-has-map="0"', $output );
+		$this->assertStringNotContainsString( 'ec-concert-stats__embedded-calendar', $output );
+		$this->assertStringNotContainsString( 'ec-concert-stats__embedded-map', $output );
+	}
+
+	private function render_block(): string {
 		$attributes = array();
 
 		ob_start();

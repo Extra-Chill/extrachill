@@ -22,13 +22,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array{lat: float|null, lon: float|null, slug: string, term_id: int, label: string, url: string}|null
  */
 function extrachill_events_get_account_market(): ?array {
-	static $resolved = false;
-	static $market   = null;
+	static $markets = array();
+	$user_id        = get_current_user_id();
 
-	if ( $resolved ) {
-		return $market;
+	if ( array_key_exists( $user_id, $markets ) ) {
+		return $markets[ $user_id ];
 	}
-	$resolved = true;
+	$markets[ $user_id ] = null;
 
 	if ( ! is_user_logged_in() || ! function_exists( 'wp_get_ability' ) ) {
 		return null;
@@ -64,7 +64,7 @@ function extrachill_events_get_account_market(): ?array {
 		$lon = null;
 	}
 
-	$market = array(
+	$markets[ $user_id ] = array(
 		'lat'     => null !== $lat ? (float) $lat : null,
 		'lon'     => null !== $lon ? (float) $lon : null,
 		'slug'    => $slug,
@@ -73,7 +73,7 @@ function extrachill_events_get_account_market(): ?array {
 		'url'     => $url,
 	);
 
-	return $market;
+	return $markets[ $user_id ];
 }
 
 /**

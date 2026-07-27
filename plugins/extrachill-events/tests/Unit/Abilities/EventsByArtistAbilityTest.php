@@ -139,11 +139,9 @@ if ( ! function_exists( 'wp_get_ability' ) ) {
 
 require_once dirname( __DIR__, 3 ) . '/inc/abilities/events-by-artist.php';
 
-/**
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
- */
 final class EventsByArtistAbilityTest extends TestCase {
+	private int $starting_blog_id = 4;
+
 	protected function setUp(): void {
 		$GLOBALS['ec_artist_test'] = array(
 			'blog_id' => 4,
@@ -155,6 +153,7 @@ final class EventsByArtistAbilityTest extends TestCase {
 			'fail_updates' => array(),
 			'registered'   => array(),
 		);
+		$this->starting_blog_id = get_current_blog_id();
 		$GLOBALS['ec_artist_test']['ability'] = new class() {
 			public function execute( array $input ): array {
 				$GLOBALS['ec_artist_test']['delegated'] = $input;
@@ -169,6 +168,85 @@ final class EventsByArtistAbilityTest extends TestCase {
 				);
 			}
 		};
+		if ( class_exists( 'WP_UnitTestCase' ) ) {
+			$this->resetManagedFixture();
+			if ( ! wp_has_ability_category( 'extrachill-events' ) ) {
+				WP_Ability_Categories_Registry::get_instance()->register(
+					'extrachill-events',
+					array(
+						'label'       => 'Extra Chill Events',
+						'description' => 'Extra Chill Events abilities.',
+					)
+				);
+			}
+			if ( wp_has_ability( 'data-machine-events/events-by-term' ) ) {
+				wp_unregister_ability( 'data-machine-events/events-by-term' );
+			}
+			if ( ! wp_has_ability_category( 'extrachill-events-tests' ) ) {
+				WP_Ability_Categories_Registry::get_instance()->register(
+					'extrachill-events-tests',
+					array(
+						'label'       => 'Extra Chill Events tests',
+						'description' => 'Managed test abilities.',
+					)
+				);
+			}
+			WP_Abilities_Registry::get_instance()->register(
+				'data-machine-events/events-by-term',
+				array(
+					'label'               => 'Events by term test',
+					'description'         => 'Captures delegated artist input.',
+					'category'            => 'extrachill-events-tests',
+					'input_schema'        => array(
+						'type'       => 'object',
+						'properties' => array(
+							'taxonomy' => array( 'type' => 'string' ),
+							'term_id'  => array( 'type' => 'integer' ),
+						),
+					),
+					'output_schema'       => array(
+						'type'       => 'object',
+						'properties' => array(
+							'taxonomy'  => array( 'type' => 'string' ),
+							'term_id'   => array( 'type' => 'integer' ),
+							'term_slug' => array( 'type' => 'string' ),
+							'found'     => array( 'type' => 'boolean' ),
+							'upcoming'  => array( 'type' => 'array' ),
+							'past'      => array( 'type' => 'array' ),
+						),
+					),
+					'execute_callback'    => static function ( array $input ): array {
+						$GLOBALS['ec_artist_test']['delegated'] = $input;
+						$term = get_term( $input['term_id'], 'artist' );
+						return array(
+							'taxonomy'  => 'artist',
+							'term_id'   => $input['term_id'],
+							'term_slug' => $term ? $term->slug : '',
+							'found'     => true,
+							'upcoming'  => array(),
+							'past'      => array(),
+						);
+					},
+					'permission_callback' => '__return_true',
+				)
+			);
+		}
+	}
+
+	private function resetManagedFixture(): void {
+		global $wpdb;
+		foreach ( array( 1, 7 ) as $blog_id ) {
+			switch_to_blog( $blog_id );
+			register_taxonomy( 'artist', 'post' );
+			$wpdb->query( "DELETE FROM {$wpdb->termmeta} WHERE term_id BETWEEN 101 AND 599" );
+			$wpdb->query( "DELETE FROM {$wpdb->term_taxonomy} WHERE term_id BETWEEN 101 AND 599" );
+			$wpdb->query( "DELETE FROM {$wpdb->terms} WHERE term_id BETWEEN 101 AND 599" );
+			foreach ( array_merge( range( 101, 105 ), range( 501, 599 ) ) as $term_id ) {
+				wp_cache_delete( $term_id, 'term_meta' );
+				clean_term_cache( $term_id, 'artist' );
+			}
+			restore_current_blog();
+		}
 	}
 
 	private function addTerm( int $blog_id, int $term_id, string $slug, string $taxonomy = 'artist' ): void {
@@ -177,22 +255,85 @@ final class EventsByArtistAbilityTest extends TestCase {
 			'slug'     => $slug,
 			'taxonomy' => $taxonomy,
 		);
+		if ( class_exists( 'WP_UnitTestCase' ) ) {
+			global $wpdb;
+			switch_to_blog( $blog_id );
+			register_taxonomy( $taxonomy, 'post' );
+			$wpdb->replace(
+				$wpdb->terms,
+				array(
+					'term_id'    => $term_id,
+					'name'       => $slug,
+					'slug'       => $slug,
+					'term_group' => 0,
+				)
+			);
+			$wpdb->replace(
+				$wpdb->term_taxonomy,
+				array(
+					'term_taxonomy_id' => $term_id,
+					'term_id'          => $term_id,
+					'taxonomy'         => $taxonomy,
+					'description'      => '',
+					'parent'           => 0,
+					'count'            => 0,
+				)
+			);
+			clean_term_cache( $term_id, $taxonomy );
+			restore_current_blog();
+		}
 	}
 
 	private function bindProfile( int $canonical_id, int $profile_id = 10 ): void {
 		$GLOBALS['ec_artist_test']['meta'][1][ $canonical_id ]['_artist_profile_id'] = $profile_id;
+		$this->setMeta( $canonical_id, '_artist_profile_id', $profile_id );
+	}
+
+	private function setMeta( int $canonical_id, string $key, int $value ): void {
+		$GLOBALS['ec_artist_test']['meta'][1][ $canonical_id ][ $key ] = $value;
+		if ( class_exists( 'WP_UnitTestCase' ) ) {
+			global $wpdb;
+			switch_to_blog( 1 );
+			$wpdb->delete(
+				$wpdb->termmeta,
+				array(
+					'term_id'  => $canonical_id,
+					'meta_key' => $key,
+				)
+			);
+			$wpdb->insert(
+				$wpdb->termmeta,
+				array(
+					'term_id'    => $canonical_id,
+					'meta_key'   => $key,
+					'meta_value' => $value,
+				)
+			);
+			wp_cache_delete( $canonical_id, 'term_meta' );
+			restore_current_blog();
+		}
+	}
+
+	private function getMeta( int $canonical_id, string $key ) {
+		if ( class_exists( 'WP_UnitTestCase' ) ) {
+			switch_to_blog( 1 );
+			$value = get_term_meta( $canonical_id, $key, true );
+			restore_current_blog();
+			return $value;
+		}
+		return $GLOBALS['ec_artist_test']['meta'][1][ $canonical_id ][ $key ] ?? null;
 	}
 
 	public function test_canonical_mapping_survives_renamed_slugs(): void {
 		$this->addTerm( 1, 101, 'renamed-main' );
 		$this->addTerm( 7, 501, 'renamed-events' );
-		$GLOBALS['ec_artist_test']['meta'][1][101][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 501;
+		$this->setMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
 
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 
 		$this->assertSame( 501, $result['term_id'] );
 		$this->assertArrayNotHasKey( 'term_slug', $GLOBALS['ec_artist_test']['delegated'] );
-		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 
 	public function test_missing_mapping_fails_closed_when_no_slug_matches(): void {
@@ -201,7 +342,7 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 
 		$this->assertSame( 'artist_mapping_missing', $result->get_error_code() );
-		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 
 	public function test_canonical_identity_cannot_be_overridden_by_legacy_slug(): void {
@@ -222,22 +363,22 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->addTerm( 1, 101, 'shared-band' );
 		$this->addTerm( 1, 102, 'other-name' );
 		$this->addTerm( 7, 501, 'shared-band' );
-		$GLOBALS['ec_artist_test']['meta'][1][102][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 501;
+		$this->setMeta( 102, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
 
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 
 		$this->assertSame( 'artist_mapping_missing', $result->get_error_code() );
-		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 
 	public function test_deleted_or_wrong_taxonomy_local_terms_are_stale(): void {
 		$this->addTerm( 1, 101, 'band' );
-		$GLOBALS['ec_artist_test']['meta'][1][101][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 501;
+		$this->setMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
 		$this->assertSame( 'stale_artist_mapping', extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) )->get_error_code() );
 
 		$this->addTerm( 7, 501, 'band', 'festival' );
 		$this->assertSame( 'stale_artist_mapping', extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) )->get_error_code() );
-		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 
 	public function test_deleted_or_wrong_taxonomy_canonical_terms_are_rejected(): void {
@@ -247,20 +388,20 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->addTerm( 1, 101, 'band', 'festival' );
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 		$this->assertSame( 'invalid_canonical_artist', $result->get_error_code() );
-		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 
 	public function test_duplicate_local_claims_are_rejected(): void {
 		$this->addTerm( 1, 101, 'one' );
 		$this->addTerm( 1, 102, 'two' );
 		$this->addTerm( 7, 501, 'local' );
-		$GLOBALS['ec_artist_test']['meta'][1][101][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 501;
-		$GLOBALS['ec_artist_test']['meta'][1][102][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 501;
+		$this->setMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
+		$this->setMeta( 102, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
 
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 
 		$this->assertSame( 'duplicate_artist_mapping', $result->get_error_code() );
-		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 
 	public function test_slug_only_lookup_is_rejected(): void {
@@ -284,21 +425,21 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->addTerm( 7, 501, 'mapped' );
 		$this->addTerm( 7, 504, 'collision' );
 		$this->addTerm( 7, 599, 'local-only' );
-		$GLOBALS['ec_artist_test']['meta'][1][103][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 999;
-		$GLOBALS['ec_artist_test']['meta'][1][104][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 504;
-		$GLOBALS['ec_artist_test']['meta'][1][105][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 504;
+		$this->setMeta( 103, EXTRACHILL_EVENTS_ARTIST_TERM_META, 999 );
+		$this->setMeta( 104, EXTRACHILL_EVENTS_ARTIST_TERM_META, 504 );
+		$this->setMeta( 105, EXTRACHILL_EVENTS_ARTIST_TERM_META, 504 );
 		$events_before = $GLOBALS['ec_artist_test']['events'];
 
 		$report = extrachill_events_backfill_artist_identity();
 
-		$this->assertSame( 501, $GLOBALS['ec_artist_test']['meta'][1][101][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] );
+		$this->assertSame( 501, (int) $this->getMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META ) );
 		$this->assertCount( 1, $report['mapped'] );
 		$this->assertCount( 1, $report['missing'] );
 		$this->assertCount( 1, $report['stale'] );
 		$this->assertCount( 1, $report['collisions'] );
 		$this->assertCount( 1, $report['unmatched_local'] );
 		$this->assertSame( $events_before, $GLOBALS['ec_artist_test']['events'] );
-		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 
 	public function test_backfill_reports_ambiguous_slugs_without_mapping_them(): void {
@@ -322,7 +463,7 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->addTerm( 1, 102, 'unbound-owner' );
 		$this->bindProfile( 101, 1101 );
 		$this->addTerm( 7, 501, 'candidate' );
-		$GLOBALS['ec_artist_test']['meta'][1][102][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 501;
+		$this->setMeta( 102, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
 
 		$report = extrachill_events_backfill_artist_identity();
 
@@ -336,8 +477,17 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->bindProfile( 101, 1101 );
 		$this->addTerm( 7, 501, 'candidate' );
 		$GLOBALS['ec_artist_test']['fail_updates'][101] = true;
+		$fail_update = static function ( $check, $object_id ) {
+			return 101 === (int) $object_id ? false : $check;
+		};
+		if ( class_exists( 'WP_UnitTestCase' ) ) {
+			add_filter( 'update_term_metadata', $fail_update, 10, 2 );
+		}
 
 		$report = extrachill_events_backfill_artist_identity();
+		if ( class_exists( 'WP_UnitTestCase' ) ) {
+			remove_filter( 'update_term_metadata', $fail_update, 10 );
+		}
 
 		$this->assertFalse( $report['complete'] );
 		$this->assertCount( 0, $report['mapped'] );
@@ -346,9 +496,33 @@ final class EventsByArtistAbilityTest extends TestCase {
 	}
 
 	public function test_input_schema_requires_only_a_canonical_id(): void {
-		extrachill_events_register_events_by_artist_ability();
+		if ( function_exists( 'wp_unregister_ability' ) && wp_has_ability( 'extrachill-events/events-by-artist' ) ) {
+			wp_unregister_ability( 'extrachill-events/events-by-artist' );
+		}
+		if ( class_exists( 'WP_UnitTestCase' ) ) {
+			WP_Abilities_Registry::get_instance()->register(
+				'extrachill-events/events-by-artist',
+				array(
+					'label'               => 'Events By Canonical Artist',
+					'description'         => 'Managed schema fixture.',
+					'category'            => 'extrachill-events',
+					'input_schema'        => array(
+						'type'       => 'object',
+						'required'   => array( 'artist_term_id' ),
+						'properties' => array( 'artist_term_id' => array( 'type' => 'integer' ) ),
+					),
+					'output_schema'       => array( 'type' => 'object' ),
+					'execute_callback'    => 'extrachill_events_ability_events_by_artist',
+					'permission_callback' => '__return_true',
+				)
+			);
+		} else {
+			extrachill_events_register_events_by_artist_ability();
+		}
 
-		$schema = $GLOBALS['ec_artist_test']['registered']['extrachill-events/events-by-artist']['input_schema'];
+		$schema = class_exists( 'WP_UnitTestCase' )
+			? wp_get_ability( 'extrachill-events/events-by-artist' )->get_input_schema()
+			: $GLOBALS['ec_artist_test']['registered']['extrachill-events/events-by-artist']['input_schema'];
 		$this->assertSame( array( 'artist_term_id' ), $schema['required'] );
 		$this->assertArrayNotHasKey( 'term_slug', $schema['properties'] );
 	}

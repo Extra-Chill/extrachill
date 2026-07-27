@@ -127,6 +127,40 @@ final class CanonicalAdapterContractsTest extends TestCase {
 				'capacity'    => '250',
 			),
 		);
+		if ( class_exists( 'WP_UnitTestCase' ) ) {
+			global $wpdb;
+			register_taxonomy( 'venue', 'post' );
+			$wpdb->delete( $wpdb->termmeta, array( 'term_id' => 44 ) );
+			$wpdb->delete( $wpdb->term_taxonomy, array( 'term_id' => 44 ) );
+			$wpdb->delete( $wpdb->terms, array( 'term_id' => 44 ) );
+			$wpdb->replace(
+				$wpdb->terms,
+				array(
+					'term_id'    => 44,
+					'name'       => 'The Royal American',
+					'slug'       => 'the-royal-american',
+					'term_group' => 0,
+				)
+			);
+			$wpdb->replace(
+				$wpdb->term_taxonomy,
+				array(
+					'term_taxonomy_id' => 44,
+					'term_id'          => 44,
+					'taxonomy'         => 'venue',
+					'description'      => 'Neighborhood music venue.',
+					'parent'           => 0,
+					'count'            => 0,
+				)
+			);
+			foreach ( $GLOBALS['ec_adapter_venues'][44] as $key => $value ) {
+				if ( in_array( $key, array( 'term_id', 'name', 'slug', 'description' ), true ) ) {
+					continue;
+				}
+				update_term_meta( 44, '_venue_' . $key, $value );
+			}
+			clean_term_cache( 44, 'venue' );
+		}
 	}
 
 	public function test_venue_list_primes_metadata_and_matches_detail_identity_fields(): void {
@@ -147,7 +181,11 @@ final class CanonicalAdapterContractsTest extends TestCase {
 
 		$detail = extrachill_events_ability_get_venue( array( 'id' => 44 ) );
 
-		$this->assertTrue( $GLOBALS['ec_adapter_venue_reads'][0]['primed'] );
+		if ( function_exists( 'wp_cache_get' ) ) {
+			$this->assertNotFalse( wp_cache_get( 44, 'term_meta' ) );
+		} else {
+			$this->assertTrue( $GLOBALS['ec_adapter_venue_reads'][0]['primed'] );
+		}
 		foreach ( array( 'id', 'name', 'slug', 'address', 'city', 'state', 'zip', 'country', 'latitude', 'longitude', 'coordinates', 'timezone', 'website' ) as $field ) {
 			$this->assertSame( $detail[ $field ], $list[0][ $field ], $field );
 		}
@@ -244,11 +282,16 @@ final class CanonicalAdapterContractsTest extends TestCase {
 		$post_id = $fixture['event']['id'];
 		$fixture['event']['ticket']['url'] = '';
 		$GLOBALS['ec_adapter_post_meta'][ $post_id ]['_datamachine_ticket_url'] = 'https://tickets.example/fallback';
+		if ( class_exists( 'WP_UnitTestCase' ) ) {
+			update_post_meta( $post_id, '_datamachine_ticket_url', 'https://tickets.example/fallback' );
+		}
 
 		$event = extrachill_events_transform_calendar_event( $fixture );
 
 		$this->assertSame( 'https://tickets.example/fallback', $event['ticket_url'] );
-		$this->assertSame( array( array( $post_id, '_datamachine_ticket_url' ) ), $GLOBALS['ec_adapter_meta_reads'] );
+		if ( ! class_exists( 'WP_UnitTestCase' ) ) {
+			$this->assertSame( array( array( $post_id, '_datamachine_ticket_url' ) ), $GLOBALS['ec_adapter_meta_reads'] );
+		}
 	}
 
 	public function test_calendar_contract_pin_rejects_producer_version_and_hash_drift(): void {
@@ -280,6 +323,9 @@ final class CanonicalAdapterContractsTest extends TestCase {
 		$root = getenv( 'DME_CALENDAR_CONTRACT_ROOT' );
 		if ( false === $root || '' === $root ) {
 			$root = defined( 'DATA_MACHINE_EVENTS_PATH' ) ? DATA_MACHINE_EVENTS_PATH . 'contracts' : '';
+		}
+		if ( '' === $root && defined( 'WP_PLUGIN_DIR' ) ) {
+			$root = WP_PLUGIN_DIR . '/data-machine-events/contracts';
 		}
 		$this->assertDirectoryExists( $root, 'A composed Data Machine Events contract source is required.' );
 

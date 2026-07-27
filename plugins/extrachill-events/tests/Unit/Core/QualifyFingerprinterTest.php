@@ -17,6 +17,9 @@ use ExtraChillEvents\Core\QualifyFingerprinter;
 use ExtraChillEvents\Core\QualifyVerdict;
 use PHPUnit\Framework\TestCase;
 
+require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyVerdict.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyFingerprinter.php';
+
 class QualifyFingerprinterTest extends TestCase {
 
 	// ---- URL-pattern detail detection ----

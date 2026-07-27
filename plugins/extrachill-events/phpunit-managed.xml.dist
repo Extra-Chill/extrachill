@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	colors="true"
+	beStrictAboutOutputDuringTests="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnRisky="true"
+	failOnWarning="true">
+	<testsuites>
+		<testsuite name="managed-wordpress">
+			<directory>tests/Unit/Core</directory>
+			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>
+			<exclude>tests/Unit/Core/LocalSceneDigestTest.php</exclude>
+			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
+			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
+			<file>tests/Unit/Abilities/EventsByTermTaxonomyContextTest.php</file>
+			<file>tests/Unit/Abilities/CanonicalAdapterContractsTest.php</file>
+			<file>tests/Unit/FestivalNotificationsTest.php</file>
+			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
+			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

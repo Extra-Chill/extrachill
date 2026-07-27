@@ -19,14 +19,16 @@ require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyVerdictsTable.php';
 require_once __DIR__ . '/Stubs/FakeWpdb.php';
 
 class QualifyVerdictsTablePauseConfirmationTest extends TestCase {
+	private $original_wpdb;
 
 	protected function setUp(): void {
 		parent::setUp();
+		$this->original_wpdb = $GLOBALS['wpdb'] ?? null;
 		$GLOBALS['wpdb'] = new FakeWpdb();
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['wpdb'] );
+		$GLOBALS['wpdb'] = $this->original_wpdb;
 		parent::tearDown();
 	}
 

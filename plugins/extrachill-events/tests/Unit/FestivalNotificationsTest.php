@@ -5,8 +5,6 @@
  * @package ExtraChillEvents\Tests
  */
 
-use PHPUnit\Framework\TestCase;
-
 if ( ! class_exists( 'WP_Post' ) ) {
 	class WP_Post {
 		public $ID;
@@ -146,9 +144,14 @@ if ( ! defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 
 require_once dirname( __DIR__, 2 ) . '/inc/core/data-machine-events/festival-notifications.php';
 
-class FestivalNotificationsTest extends TestCase {
+class FestivalNotificationsTest extends WP_UnitTestCase {
 
 	protected function setUp(): void {
+		parent::setUp();
+		register_post_type( DATA_MACHINE_EVENTS_POST_TYPE, array( 'public' => true ) );
+		foreach ( array( 'artist', 'festival', 'location' ) as $taxonomy ) {
+			register_taxonomy( $taxonomy, DATA_MACHINE_EVENTS_POST_TYPE );
+		}
 		$GLOBALS['festival_notification_terms']            = array(
 			'artist'   => array(),
 			'festival' => array(),
@@ -160,6 +163,28 @@ class FestivalNotificationsTest extends TestCase {
 		$GLOBALS['festival_notification_meta']             = array();
 		$GLOBALS['festival_notification_delivery_results'] = array();
 		$GLOBALS['festival_notification_claim_failure']    = false;
+	}
+
+	private function event_post(): WP_Post {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_author' => self::factory()->user->create(),
+				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
+				'post_status' => 'publish',
+				'post_title'  => 'The Big Show',
+			)
+		);
+		foreach ( $GLOBALS['festival_notification_terms'] as $taxonomy => $slugs ) {
+			wp_set_object_terms( $post_id, $slugs, $taxonomy );
+		}
+
+		return get_post( $post_id );
+	}
+
+	private function assert_same_ids( array $expected, array $actual ): void {
+		sort( $expected );
+		sort( $actual );
+		$this->assertSame( $expected, $actual );
 	}
 
 	public function test_authorizes_only_event_entity_notification_resolution(): void {
@@ -184,21 +209,14 @@ class FestivalNotificationsTest extends TestCase {
 			'summer-jam' => array( 7, 9 ),
 			'river-fest' => array( 9, 11 ),
 		);
-		$post = new WP_Post(
-			array(
-				'ID'          => 42,
-				'post_author' => 3,
-				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
-				'post_title'  => 'The Big Show',
-			)
-		);
+		$post = $this->event_post();
 
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
 
 		$this->assertCount( 2, $GLOBALS['festival_notification_resolutions'] );
-		$this->assertSame( array( 7, 9, 11 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
+		$this->assert_same_ids( array( 7, 9, 11 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
 		$this->assertSame( 'New event: The Big Show', $GLOBALS['festival_notification_calls'][0]['data']['title'] );
-		$this->assertSame( 'https://events.example/events/42/', $GLOBALS['festival_notification_calls'][0]['data']['link'] );
+		$this->assertSame( get_permalink( $post ), $GLOBALS['festival_notification_calls'][0]['data']['link'] );
 	}
 
 	public function test_notifies_artist_subscribers_and_deduplicates_across_entity_terms(): void {
@@ -209,18 +227,11 @@ class FestivalNotificationsTest extends TestCase {
 			'support-act'    => array( 9, 11 ),
 			'summer-jam'     => array( 11, 13 ),
 		);
-		$post = new WP_Post(
-			array(
-				'ID'          => 42,
-				'post_author' => 3,
-				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
-				'post_title'  => 'The Big Show',
-			)
-		);
+		$post = $this->event_post();
 
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
 
-		$this->assertSame(
+		$this->assertEqualsCanonicalizing(
 			array(
 				array(
 					'producer'    => EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER,
@@ -243,7 +254,7 @@ class FestivalNotificationsTest extends TestCase {
 			),
 			$GLOBALS['festival_notification_resolutions']
 		);
-		$this->assertSame( array( 7, 9, 11, 13 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
+		$this->assert_same_ids( array( 7, 9, 11, 13 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
 	}
 
 	public function test_notifies_nearby_artist_subscribers_with_a_distinct_notification(): void {
@@ -261,35 +272,21 @@ class FestivalNotificationsTest extends TestCase {
 			9  => array( 'slug' => 'austin-tx' ),
 			11 => null,
 		);
-		$post                                        = new WP_Post(
-			array(
-				'ID'          => 42,
-				'post_author' => 3,
-				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
-				'post_title'  => 'The Big Show',
-			)
-		);
+		$post = $this->event_post();
 
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
 
 		$this->assertCount( 2, $GLOBALS['festival_notification_calls'] );
-		$this->assertSame( array( 9, 11, 13 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
+		$this->assert_same_ids( array( 9, 11, 13 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
 		$this->assertSame( 'festival_event_published', $GLOBALS['festival_notification_calls'][0]['data']['type'] );
 		$this->assertSame( 'New event: The Big Show', $GLOBALS['festival_notification_calls'][0]['data']['title'] );
-		$this->assertSame( array( 7 ), $GLOBALS['festival_notification_calls'][1]['user_ids'] );
+		$this->assert_same_ids( array( 7 ), $GLOBALS['festival_notification_calls'][1]['user_ids'] );
 		$this->assertSame( EXTRACHILL_EVENTS_NEARBY_ARTIST_EVENT_NOTIFICATION, $GLOBALS['festival_notification_calls'][1]['data']['type'] );
 		$this->assertSame( 'Nearby show: The Big Show', $GLOBALS['festival_notification_calls'][1]['data']['title'] );
 	}
 
 	public function test_does_not_notify_for_published_post_updates(): void {
-		$post = new WP_Post(
-			array(
-				'ID'          => 42,
-				'post_author' => 3,
-				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
-				'post_title'  => 'The Big Show',
-			)
-		);
+		$post = $this->event_post();
 
 		extrachill_events_notify_festival_subscribers( 'publish', 'publish', $post );
 
@@ -302,21 +299,14 @@ class FestivalNotificationsTest extends TestCase {
 		$GLOBALS['festival_notification_recipients']        = array(
 			'summer-jam' => array( 7 ),
 		);
-		$post = new WP_Post(
-			array(
-				'ID'          => 42,
-				'post_author' => 3,
-				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
-				'post_title'  => 'The Big Show',
-			)
-		);
+		$post = $this->event_post();
 
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
 
 		$this->assertCount( 1, $GLOBALS['festival_notification_calls'] );
 		$this->assertCount( 1, $GLOBALS['festival_notification_resolutions'] );
-		$this->assertNotEmpty( $GLOBALS['festival_notification_meta'][42][ EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META ] );
+		$this->assertNotEmpty( get_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META, true ) );
 	}
 
 	public function test_existing_claim_skips_concurrent_invocation_before_recipient_resolution(): void {
@@ -324,15 +314,8 @@ class FestivalNotificationsTest extends TestCase {
 		$GLOBALS['festival_notification_recipients']        = array(
 			'summer-jam' => array( 7 ),
 		);
-		$GLOBALS['festival_notification_meta'][42][ EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META ] = '2026-07-13 18:00:00';
-		$post = new WP_Post(
-			array(
-				'ID'          => 42,
-				'post_author' => 3,
-				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
-				'post_title'  => 'The Big Show',
-			)
-		);
+		$post = $this->event_post();
+		add_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META, '2026-07-13 18:00:00', true );
 
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
 
@@ -345,17 +328,11 @@ class FestivalNotificationsTest extends TestCase {
 		$GLOBALS['festival_notification_recipients']        = array(
 			'summer-jam' => array( 7 ),
 		);
-		$GLOBALS['festival_notification_claim_failure']     = true;
-		$post = new WP_Post(
-			array(
-				'ID'          => 42,
-				'post_author' => 3,
-				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
-				'post_title'  => 'The Big Show',
-			)
-		);
+		$post = $this->event_post();
+		add_filter( 'add_post_metadata', '__return_false' );
 
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
+		remove_filter( 'add_post_metadata', '__return_false' );
 
 		$this->assertCount( 1, $GLOBALS['festival_notification_resolutions'] );
 		$this->assertSame( array(), $GLOBALS['festival_notification_calls'] );
@@ -367,21 +344,14 @@ class FestivalNotificationsTest extends TestCase {
 			'summer-jam' => array( 7 ),
 		);
 		$GLOBALS['festival_notification_delivery_results']  = array( 0, 1 );
-		$post = new WP_Post(
-			array(
-				'ID'          => 42,
-				'post_author' => 3,
-				'post_type'   => DATA_MACHINE_EVENTS_POST_TYPE,
-				'post_title'  => 'The Big Show',
-			)
-		);
+		$post = $this->event_post();
 
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
-		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META, $GLOBALS['festival_notification_meta'][42] );
+		$this->assertSame( '', get_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META, true ) );
 
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
 
 		$this->assertCount( 2, $GLOBALS['festival_notification_calls'] );
-		$this->assertNotEmpty( $GLOBALS['festival_notification_meta'][42][ EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META ] );
+		$this->assertNotEmpty( get_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META, true ) );
 	}
 }

@@ -7,8 +7,6 @@
 
 // phpcs:disable -- This isolated fixture intentionally declares WordPress test doubles.
 
-use PHPUnit\Framework\TestCase;
-
 if ( ! function_exists( '__' ) ) {
 	function __( $text ) {
 		return $text;
@@ -46,9 +44,11 @@ if ( ! function_exists( 'extrachill_network_bridge_tag_url' ) ) {
 
 require_once dirname( __DIR__, 2 ) . '/inc/single-event/network-bridge.php';
 
-final class SingleEventNetworkBridgeTest extends TestCase {
+final class SingleEventNetworkBridgeTest extends WP_UnitTestCase {
 	protected function setUp(): void {
 		parent::setUp();
+		register_post_type( 'data_machine_events' );
+		register_taxonomy( 'location', 'data_machine_events' );
 		$GLOBALS['ec_events_bridge_terms']            = array();
 		$GLOBALS['ec_events_bridge_cross_site_cards'] = array();
 		$GLOBALS['ec_events_by_term_relationships']   = array();
@@ -72,27 +72,28 @@ final class SingleEventNetworkBridgeTest extends TestCase {
 	}
 
 	public function test_upcoming_cards_include_nearby_shows_and_are_bounded_to_three(): void {
+		$post_id = self::factory()->post->create( array( 'post_type' => 'data_machine_events' ) );
+		$term_id = self::factory()->term->create(
+			array(
+				'taxonomy' => 'location',
+				'name'     => 'Charleston',
+				'slug'     => 'charleston-sc',
+			)
+		);
+		wp_set_object_terms( $post_id, array( $term_id ), 'location' );
 		$GLOBALS['ec_events_bridge_cross_site_cards'] = array(
 			array( 'site_key' => 'main', 'label' => 'Blog Posts', 'url' => 'https://example.com/coverage' ),
 			array( 'site_key' => 'artist', 'label' => 'Artist Platform', 'url' => 'https://artist.example/band' ),
 			array( 'site_key' => 'community', 'label' => 'Forum Discussions', 'url' => 'https://community.example/band' ),
 		);
-		$GLOBALS['ec_events_bridge_terms'][123]['location'] = array(
-			(object) array(
-				'name' => 'Charleston',
-				'slug' => 'charleston-sc',
-			),
-		);
-		$GLOBALS['ec_events_by_term_relationships'][123]['location'] = $GLOBALS['ec_events_bridge_terms'][123]['location'];
-
-		$cards = ec_events_network_bridge_cards( ec_events_network_bridge_args( 123, 'upcoming' ) );
+		$cards = ec_events_network_bridge_cards( ec_events_network_bridge_args( $post_id, 'upcoming' ) );
 
 		$this->assertCount( 3, $cards );
 		$this->assertSame( array( 'artist', 'events', 'community' ), array_column( $cards, 'site_key' ) );
 		$this->assertSame( 'Profile', $cards[0]['label'] );
 		$this->assertSame( 'More Shows', $cards[1]['label'] );
 		$this->assertSame( 'Charleston', $cards[1]['term_name'] );
-		$this->assertSame( 'https://events.example/location/charleston-sc/', $cards[1]['url'] );
+		$this->assertSame( get_term_link( $term_id, 'location' ), $cards[1]['url'] );
 		$this->assertTrue( $cards[1]['is_same_site'] );
 	}
 

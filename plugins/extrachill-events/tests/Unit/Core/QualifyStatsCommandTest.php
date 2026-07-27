@@ -25,6 +25,8 @@ class QualifyStatsCommandTest extends TestCase {
 		$GLOBALS['ec_digest_timezone'] = 'America/New_York';
 
 		$original_wpdb = $wpdb ?? null;
+		$timezone_filter = static fn(): string => 'America/New_York';
+		add_filter( 'pre_option_timezone_string', $timezone_filter );
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated database test double.
 		$wpdb = new class() {
 			/**
@@ -115,6 +117,7 @@ class QualifyStatsCommandTest extends TestCase {
 		} finally {
 			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore original database object.
 			$wpdb = $original_wpdb;
+			remove_filter( 'pre_option_timezone_string', $timezone_filter );
 			unset( $GLOBALS['ec_digest_timezone'] );
 		}
 	}
