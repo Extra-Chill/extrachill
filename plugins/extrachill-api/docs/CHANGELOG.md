@@ -2,6 +2,20 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.27.0] - 2026-07-27
+
+### Added
+- integrate protected booking transport contracts
+
+### Changed
+- restore managed release suite
+- use managed WordPress harness
+
+### Fixed
+- close residual release lint gaps
+- restore release quality gates
+- guard null route-affinity host normalization
+
 ## [0.26.1] - 2026-07-23
 
 ### Fixed
