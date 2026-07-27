@@ -465,6 +465,17 @@ class BookingActivityRepository {
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
 
+	/** Find one booking-scoped activity by exact kind and external receipt. */
+	public function find_by_external_id( int $booking_id, string $kind, string $external_id ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND kind = %s AND external_id = %s ORDER BY id DESC LIMIT 1", $booking_id, sanitize_key( $kind ), $external_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact bounded operation receipt lookup.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_activity_read_failed', __( 'Booking activity could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return is_array( $row ) ? $this->hydrate( $row ) : null;
+	}
+
 	/** List landed source activities that do not yet have outbox requests. */
 	public function notification_sources_without_requests( int $limit ) {
 		global $wpdb;

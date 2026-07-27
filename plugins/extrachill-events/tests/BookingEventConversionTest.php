@@ -331,6 +331,7 @@ final class BookingEventConversionTest extends TestCase {
 		$this->assertSame( 2, $result['booking_version'] );
 		$this->assertSame( 'created', $result['event_action'] );
 		$this->assertFalse( $result['already_converted'] );
+		$this->assertSame( array( $result, 12 ), $GLOBALS['ec_artist_test']['fired_actions']['extrachill_events_booking_event_converted'][0] );
 		$input = $ability->calls[0];
 		$this->assertSame( 'extrachill-events-booking', $input['source'] );
 		$this->assertSame( $booking['public_id'], $input['source_id'] );

@@ -21,6 +21,12 @@
         },
         "wp_codebox_multisite": true,
         "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "validation_dependencies": [
+          "data-machine",
+          "data-machine-events",
+          "data-machine-socials",
+          "extrachill-newsletter"
+        ],
         "wp_codebox_phpunit_preload_files": [
           "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php"
         ]

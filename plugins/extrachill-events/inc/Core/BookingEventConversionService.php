@@ -71,7 +71,11 @@ class BookingEventConversionService {
 		$verified['attempt']   = $preflight['attempt'];
 		$verified['authority'] = BookingEventSyncService::authority_from_event( $preflight['input']['event'], (int) $preflight['booking']['venue_term_id'] );
 
-		return $this->finalize( $booking_id, $expected_version, $actor_id, $verified );
+		$result = $this->finalize( $booking_id, $expected_version, $actor_id, $verified );
+		if ( is_array( $result ) ) {
+			do_action( 'extrachill_events_booking_event_converted', $result, $actor_id );
+		}
+		return $result;
 	}
 
 	/** Complete authorization and data validation under the aggregate locks. */

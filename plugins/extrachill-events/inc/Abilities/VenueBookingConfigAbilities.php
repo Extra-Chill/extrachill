@@ -121,10 +121,13 @@ class VenueBookingConfigAbilities {
 						),
 						'variables'                 => array(
 							'type'                 => 'object',
-							'properties'           => array_fill_keys( array_merge( VenueBookingConfig::CORRESPONDENCE_VARIABLES, array( 'message' ) ), array(
-								'type'      => 'string',
-								'maxLength' => 10000,
-							) ),
+							'properties'           => array_fill_keys(
+								array_merge( VenueBookingConfig::CORRESPONDENCE_VARIABLES, array( 'message' ) ),
+								array(
+									'type'      => 'string',
+									'maxLength' => 10000,
+								)
+							),
 							'additionalProperties' => false,
 						),
 					),
@@ -297,9 +300,10 @@ class VenueBookingConfigAbilities {
 				'items'       => array(
 					'type'      => 'string',
 					'minLength' => 1,
-					'maxLength' => 64,
+					'maxLength' => 32,
 				),
 			),
+			'marketing_triggers'        => $this->marketing_triggers_schema(),
 			'hold_ttl_minutes'          => array(
 				'type'    => 'integer',
 				'minimum' => 5,
@@ -307,7 +311,7 @@ class VenueBookingConfigAbilities {
 			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
-		$required     = array( 'version', 'enabled', 'intake', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'hold_ttl_minutes', 'correspondence' );
+		$required     = array( 'version', 'enabled', 'intake', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		if ( $include_metadata ) {
 			$properties['revision']           = array(
 				'type'    => 'integer',
@@ -332,10 +336,15 @@ class VenueBookingConfigAbilities {
 		if ( ! $accept_legacy ) {
 			return $schema;
 		}
-		$legacy                                  = $schema;
+		$previous                                  = $schema;
+		$previous['properties']['version']['enum'] = array( VenueBookingConfig::PREVIOUS_VERSION );
+		$previous['required']                      = array_values( array_diff( $previous['required'], array( 'marketing_triggers' ) ) );
+		unset( $previous['properties']['marketing_triggers'] );
+		$legacy                                  = $previous;
 		$legacy['properties']['version']['enum'] = array( VenueBookingConfig::LEGACY_VERSION );
 		$legacy['required']                      = array_values( array_diff( $legacy['required'], array( 'correspondence' ) ) );
-		return array( 'oneOf' => array( $legacy, $schema ) );
+		unset( $legacy['properties']['correspondence'] );
+		return array( 'oneOf' => array( $legacy, $previous, $schema ) );
 	}
 
 	/** Return the strict correspondence configuration schema. */
@@ -464,6 +473,106 @@ class VenueBookingConfigAbilities {
 			),
 			'required'             => array( 'template', 'template_version', 'config_revision', 'subject', 'body' ),
 			'additionalProperties' => false,
+		);
+	}
+
+	/** Return the event-driven marketing configuration contract. */
+	private function marketing_triggers_schema(): array {
+		return array(
+			'type'     => 'array',
+			'maxItems' => 20,
+			'items'    => array(
+				'type'                 => 'object',
+				'properties'           => array(
+					'key'      => array(
+						'type'      => 'string',
+						'minLength' => 1,
+						'maxLength' => 32,
+					),
+					'event'    => array(
+						'type' => 'string',
+						'enum' => array( 'event_converted' ),
+					),
+					'channels' => array(
+						'type'     => 'array',
+						'maxItems' => 20,
+						'items'    => array(
+							'type'                 => 'object',
+							'properties'           => array(
+								'key'           => array(
+									'type'      => 'string',
+									'minLength' => 1,
+									'maxLength' => 32,
+								),
+								'action'        => array(
+									'type' => 'string',
+									'enum' => array(
+										VenueBookingConfig::SOCIAL_MARKETING_ACTION,
+										VenueBookingConfig::NEWSLETTER_MARKETING_ACTION,
+									),
+								),
+								'approval'      => array(
+									'type' => 'string',
+									'enum' => array( 'direct', 'required' ),
+								),
+								'delay_seconds' => array(
+									'type'    => 'integer',
+									'minimum' => 0,
+									'maximum' => 31536000,
+								),
+								'social'        => array(
+									'type'                 => array( 'object', 'null' ),
+									'properties'           => array(
+										'channels'   => array(
+											'type'        => 'array',
+											'maxItems'    => 6,
+											'uniqueItems' => true,
+											'items'       => array(
+												'type' => 'string',
+												'enum' => array( 'bluesky', 'facebook', 'instagram', 'pinterest', 'threads', 'twitter' ),
+											),
+										),
+										'caption'    => array(
+											'type'      => 'string',
+											'maxLength' => 2200,
+										),
+										'media_kind' => array(
+											'type' => 'string',
+											'enum' => array( 'image', 'carousel', 'reel', 'story' ),
+										),
+										'asset_refs' => array(
+											'type'        => 'array',
+											'maxItems'    => 11,
+											'uniqueItems' => true,
+											'items'       => array(
+												'type'    => 'integer',
+												'minimum' => 1,
+											),
+										),
+									),
+									'required'             => array( 'channels', 'caption', 'media_kind', 'asset_refs' ),
+									'additionalProperties' => false,
+								),
+								'newsletter'    => array(
+									'type'                 => array( 'object', 'null' ),
+									'properties'           => array(
+										'policy' => array(
+											'type' => 'string',
+											'enum' => array( 'canonical-post-draft' ),
+										),
+									),
+									'required'             => array( 'policy' ),
+									'additionalProperties' => false,
+								),
+							),
+							'required'             => array( 'key', 'action', 'approval', 'delay_seconds', 'social', 'newsletter' ),
+							'additionalProperties' => false,
+						),
+					),
+				),
+				'required'             => array( 'key', 'event', 'channels' ),
+				'additionalProperties' => false,
+			),
 		);
 	}
 }
