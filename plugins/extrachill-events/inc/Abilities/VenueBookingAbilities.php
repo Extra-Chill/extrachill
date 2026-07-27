@@ -720,7 +720,7 @@ class VenueBookingAbilities {
 	 * @param array $booking Hydrated storage record.
 	 */
 	public function present( array $booking ): array {
-		unset( $booking['inquiry_idempotency_key'], $booking['inquiry_request_hash'] );
+		unset( $booking['inquiry_idempotency_key'], $booking['inquiry_request_hash'], $booking['admission_owner_token'] );
 		return $booking;
 	}
 

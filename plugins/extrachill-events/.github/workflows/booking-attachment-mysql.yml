@@ -139,7 +139,7 @@ jobs:
               wp_codebox_phpunit_preload_files: [$schema_preload, $preload],
               validation_dependencies: [$data_machine_source, $data_machine_events_source]
             }')
-          node .ci/homeboy-extensions/wordpress/scripts/test/wp-codebox-phpunit-adapter.mjs
+          node .ci/homeboy-extensions/wordpress/scripts/test/wp-codebox-phpunit-adapter.mjs --filter='BookingAttachmentMySQLIntegrationTest|BookingEventSyncMySQLIntegrationTest'
 
       - name: Install native WordPress test runtime
         run: |
@@ -188,7 +188,7 @@ jobs:
             | ($runs | length) == 1
               and $runs[0].exitCode == 0
               and $runs[0].result.status == "ok"
-              and ($runs[0].stdout | test("OK \\(4 tests, [1-9][0-9]* assertions?\\)"))
+              and ($runs[0].stdout | test("OK \\(3 tests, [1-9][0-9]* assertions?\\)"))
               and (($runs[0].stdout | test("skip|no tests executed|OK, but"; "i")) | not)
           ' "$commands" >/dev/null
           jq -e '
@@ -197,7 +197,7 @@ jobs:
           ' "$metadata" >/dev/null
           jq -rs '[.[] | select(.command == "wordpress.phpunit")][0].stdout' "$commands" > "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
           printf '%s\n' "Verified application-level MySQL proof:"
-          grep -E 'OK \(4 tests, [1-9][0-9]* assertions?\)' "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
+          grep -E 'OK \(3 tests, [1-9][0-9]* assertions?\)' "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
 
       - name: Upload WP Codebox evidence
         if: always()

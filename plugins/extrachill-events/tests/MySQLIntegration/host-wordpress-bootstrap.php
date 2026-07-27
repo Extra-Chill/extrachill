@@ -13,3 +13,12 @@ tests_add_filter(
 );
 
 require getenv( 'WP_TESTS_DIR' ) . '/includes/bootstrap.php';
+
+$dme_directory = rtrim( (string) getenv( 'DME_PLUGIN_DIR' ), '/\\' );
+if ( '' !== $dme_directory ) {
+	require_once $dme_directory . '/inc/Core/EventDatesTable.php';
+	DataMachineEvents\Core\EventDatesTable::create_table();
+	if ( ! DataMachineEvents\Core\EventDatesTable::table_exists() ) {
+		throw new RuntimeException( 'The native hold proof requires the DME event dates table.' );
+	}
+}
