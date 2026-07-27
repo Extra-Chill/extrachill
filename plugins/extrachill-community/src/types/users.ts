@@ -14,6 +14,8 @@
  *     change-user-email, change-user-password
  *   - extrachill/get-subscriptions, update-subscriptions
  *   - extrachill/get-notification-preferences, update-notification-preferences
+ *   - extrachill/entity-subscription-status, entity-subscribe,
+ *     entity-unsubscribe
  *   - extrachill/request-artist-access
  */
 
@@ -145,6 +147,13 @@ export interface NotificationPreferences {
 	user_id: number;
 	emails_enabled: boolean;
 	auto_subscribe_replies: boolean;
+}
+
+export interface EntitySubscriptionStatus {
+	entity_type: string;
+	taxonomy: string;
+	slug: string;
+	subscribed: boolean;
 }
 
 // ─── Artist Access Request ──────────────────────────────────────────────────

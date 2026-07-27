@@ -41,6 +41,7 @@ import type {
 	ArtistEmailConsent,
 	RequestArtistAccessResponse,
 	NotificationPreferences,
+	EntitySubscriptionStatus,
 } from '../../types/users';
 
 const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {
@@ -705,40 +706,90 @@ function SubscriptionsTab() {
 	);
 }
 
-function NotificationsTab() {
+function NotificationsTab( {
+	localScene,
+}: {
+	localScene: UserSettings[ 'local_scene' ];
+} ) {
 	const [ loading, setLoading ] = useState( true );
 	const [ saving, setSaving ] = useState( false );
 	const [ emailsEnabled, setEmailsEnabled ] = useState( true );
 	const [ autoSubscribe, setAutoSubscribe ] = useState( true );
+	const [ sceneDigestEnabled, setSceneDigestEnabled ] = useState( false );
+	const [ savedSceneDigestEnabled, setSavedSceneDigestEnabled ] =
+		useState( false );
 	const [ notice, setNotice ] = useState< {
 		type: 'success' | 'error';
 		message: string;
 	} | null >( null );
 
 	useEffect( () => {
-		client
-			.execute< NotificationPreferences >(
+		setLoading( true );
+		const digestStatus = localScene
+			? client.execute< EntitySubscriptionStatus >(
+					'extrachill/entity-subscription-status',
+					{
+						entity_type: 'local_scene_digest',
+						taxonomy: 'location',
+						slug: localScene.slug,
+					}
+			  )
+			: Promise.resolve( null );
+
+		Promise.all( [
+			client.execute< NotificationPreferences >(
 				'extrachill/get-notification-preferences'
-			)
-			.then( ( result ) => {
-				setEmailsEnabled( result.emails_enabled );
-				setAutoSubscribe( result.auto_subscribe_replies );
+			),
+			digestStatus,
+		] )
+			.then( ( [ preferences, status ] ) => {
+				setEmailsEnabled( preferences.emails_enabled );
+				setAutoSubscribe( preferences.auto_subscribe_replies );
+				setSceneDigestEnabled( status?.subscribed ?? false );
+				setSavedSceneDigestEnabled( status?.subscribed ?? false );
 				setLoading( false );
 			} )
-			.catch( () => setLoading( false ) );
-	}, [] );
+			.catch( ( err ) => {
+				setNotice( {
+					type: 'error',
+					message:
+						err instanceof Error
+							? err.message
+							: 'Notification preferences could not be loaded.',
+				} );
+				setLoading( false );
+			} );
+	}, [ localScene ] );
 
 	const handleSave = useCallback( async () => {
 		setSaving( true );
 		setNotice( null );
 		try {
-			await client.execute(
-				'extrachill/update-notification-preferences',
-				{
+			const updates = [
+				client.execute( 'extrachill/update-notification-preferences', {
 					emails_enabled: emailsEnabled,
 					auto_subscribe_replies: autoSubscribe,
-				}
-			);
+				} ),
+			];
+			if (
+				localScene &&
+				sceneDigestEnabled !== savedSceneDigestEnabled
+			) {
+				updates.push(
+					client.execute(
+						sceneDigestEnabled
+							? 'extrachill/entity-subscribe'
+							: 'extrachill/entity-unsubscribe',
+						{
+							entity_type: 'local_scene_digest',
+							taxonomy: 'location',
+							slug: localScene.slug,
+						}
+					)
+				);
+			}
+			await Promise.all( updates );
+			setSavedSceneDigestEnabled( sceneDigestEnabled );
 			setNotice( {
 				type: 'success',
 				message: 'Notification preferences updated.',
@@ -750,7 +801,13 @@ function NotificationsTab() {
 			} );
 		}
 		setSaving( false );
-	}, [ emailsEnabled, autoSubscribe ] );
+	}, [
+		emailsEnabled,
+		autoSubscribe,
+		localScene,
+		sceneDigestEnabled,
+		savedSceneDigestEnabled,
+	] );
 
 	if ( loading ) {
 		return (
@@ -804,6 +861,48 @@ function NotificationsTab() {
 							Automatically subscribe to reply notifications.
 						</div>
 					</label>
+				</li>
+				<li style={ styles.checkboxItem }>
+					{ localScene ? (
+						<>
+							<input
+								type="checkbox"
+								id="ec-local-scene-digest"
+								checked={ sceneDigestEnabled }
+								onChange={ ( e ) =>
+									setSceneDigestEnabled( e.target.checked )
+								}
+							/>
+							<label
+								htmlFor="ec-local-scene-digest"
+								style={ {
+									fontWeight: 'normal',
+									cursor: 'pointer',
+								} }
+							>
+								<strong>
+									Weekly { localScene.name } Local Scene
+									digest
+								</strong>
+								<div style={ styles.mutedText }>
+									Receive weekly email and in-app event picks.
+									Email delivery also requires Email
+									notifications above.
+								</div>
+							</label>
+						</>
+					) : (
+						<div>
+							<strong>Weekly Local Scene digest</strong>
+							<div style={ styles.mutedText }>
+								Choose a Local Scene in{ ' ' }
+								<a href="#tab-account-details">
+									Account Details
+								</a>{ ' ' }
+								before subscribing.
+							</div>
+						</div>
+					) }
 				</li>
 			</ul>
 			<ActionRow>
@@ -1083,7 +1182,7 @@ export function UserSettingsApp( {
 			case 'subscriptions':
 				return <SubscriptionsTab />;
 			case 'notifications':
-				return <NotificationsTab />;
+				return <NotificationsTab localScene={ settings.local_scene } />;
 			case 'artist-platform':
 				return (
 					<ArtistPlatformTab
