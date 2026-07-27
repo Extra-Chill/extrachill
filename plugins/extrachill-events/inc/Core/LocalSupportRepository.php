@@ -141,7 +141,7 @@ class LocalSupportRepository {
 			'request_hash'    => (string) $data['request_hash'],
 			'result_version'  => (int) $data['result_version'],
 			'payload'         => $payload,
-			'created_at'      => gmdate( 'Y-m-d H:i:s' ),
+			'created_at'      => isset( $data['created_at'] ) ? (string) $data['created_at'] : gmdate( 'Y-m-d H:i:s' ),
 		);
 		if ( false === $wpdb->insert( LocalSupportSchema::activity_table(), $row ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only private audit write.
 			return new \WP_Error( 'local_support_activity_write_failed', __( 'Local support activity could not be recorded.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
@@ -159,6 +159,118 @@ class LocalSupportRepository {
 			return new \WP_Error( 'local_support_activity_read_failed', __( 'Local support activity could not be read.', 'extrachill-events' ) );
 		}
 		return is_array( $row ) ? $row : null;
+	}
+
+	/** Read one immutable activity by ID and optional request owner. */
+	public function get_activity( int $activity_id, ?int $request_id = null ) {
+		global $wpdb;
+		$table  = LocalSupportSchema::activity_table();
+		$where  = null === $request_id ? '' : ' AND request_id = %d';
+		$values = null === $request_id ? array( $activity_id ) : array( $activity_id, $request_id );
+		$row    = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d{$where} LIMIT 1", $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed optional owner clause with prepared IDs.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'local_support_activity_read_failed', __( 'Local support activity could not be read.', 'extrachill-events' ) );
+		}
+		return is_array( $row ) ? $this->hydrate_activity( $row ) : null;
+	}
+
+	/** Resolve the exact durable activity represented by an emitted change. */
+	public function find_activity_for_change( int $request_id, ?int $interest_id, string $kind, int $version ) {
+		global $wpdb;
+		$table  = LocalSupportSchema::activity_table();
+		$where  = null === $interest_id ? 'interest_id IS NULL' : 'interest_id = %d';
+		$values = null === $interest_id
+			? array( $request_id, $kind, $version )
+			: array( $request_id, $interest_id, $kind, $version );
+		$row    = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE request_id = %d AND {$where} AND kind = %s AND result_version = %d ORDER BY id DESC LIMIT 1", $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed clause with prepared change identity; the optional interest placeholder determines the runtime count.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'local_support_activity_read_failed', __( 'Local support activity could not be read.', 'extrachill-events' ) );
+		}
+		return is_array( $row ) ? $this->hydrate_activity( $row ) : null;
+	}
+
+	/** List committed notification source activities not yet durably processed. */
+	public function pending_notification_sources( int $limit = 50 ) {
+		global $wpdb;
+		$table = LocalSupportSchema::activity_table();
+		$limit = max( 1, min( 100, $limit ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reuses the trusted current-prefix activity table in the bounded subquery.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT source.* FROM {$table} source
+				WHERE source.kind IN ('request_opened', 'interest_expressed', 'interest_status_changed', 'contact_consent_granted', 'contact_consent_revoked')
+				AND NOT EXISTS (
+					SELECT 1 FROM {$table} marker
+					WHERE marker.request_id = source.request_id
+					AND marker.kind = 'notification_source_processed'
+					AND marker.request_hash = source.request_hash
+				)
+				ORDER BY source.id ASC LIMIT %d",
+				$limit
+			),
+			ARRAY_A
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded recovery query over immutable source activity.
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'local_support_notification_sources_read_failed', __( 'Local support notification source activities could not be read.', 'extrachill-events' ) );
+		}
+		return array_map( array( $this, 'hydrate_activity' ), (array) $rows );
+	}
+
+	/** List bounded due notification intents with no terminal activity. */
+	public function pending_notification_intents( int $limit = 50 ) {
+		global $wpdb;
+		$table = LocalSupportSchema::activity_table();
+		$limit = max( 1, min( 100, $limit ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reuses the trusted current-prefix activity table in bounded subqueries.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT intent.* FROM {$table} intent
+				WHERE intent.kind = 'notification_intent'
+				AND NOT EXISTS (
+					SELECT 1 FROM {$table} terminal
+					WHERE terminal.request_id = intent.request_id
+					AND terminal.request_hash = intent.request_hash
+					AND terminal.kind = 'notification_terminal'
+				)
+				AND NOT EXISTS (
+					SELECT 1 FROM {$table} deferred
+					WHERE deferred.request_id = intent.request_id
+					AND deferred.request_hash = intent.request_hash
+					AND deferred.kind = 'notification_attempt'
+					AND deferred.created_at > UTC_TIMESTAMP()
+				)
+				ORDER BY intent.id ASC LIMIT %d",
+				$limit
+			),
+			ARRAY_A
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded due outbox query over private activity.
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'local_support_notification_intents_read_failed', __( 'Local support notification intents could not be read.', 'extrachill-events' ) );
+		}
+		return array_map( array( $this, 'hydrate_activity' ), (array) $rows );
+	}
+
+	/** Return one terminal notification activity by its intent correlation hash. */
+	public function notification_terminal( int $request_id, string $request_hash ) {
+		global $wpdb;
+		$table = LocalSupportSchema::activity_table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE request_id = %d AND request_hash = %s AND kind = 'notification_terminal' ORDER BY id DESC LIMIT 1", $request_id, $request_hash ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact terminal correlation read.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'local_support_notification_terminal_read_failed', __( 'Local support notification terminal state could not be read.', 'extrachill-events' ) );
+		}
+		return is_array( $row ) ? $this->hydrate_activity( $row ) : null;
+	}
+
+	/** Count delivery attempts for one durable notification intent. */
+	public function notification_attempt_count( int $request_id, string $request_hash ) {
+		global $wpdb;
+		$table = LocalSupportSchema::activity_table();
+		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE request_id = %d AND request_hash = %s AND kind = 'notification_attempt'", $request_id, $request_hash ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact attempt count.
+		return '' === (string) $wpdb->last_error
+			? (int) $count
+			: new \WP_Error( 'local_support_notification_attempts_read_failed', __( 'Local support notification attempts could not be read.', 'extrachill-events' ) );
 	}
 
 	/** Hydrate request scalar types. */
@@ -186,6 +298,17 @@ class LocalSupportRepository {
 			$row['consent_fields'] = json_decode( (string) $stored_fields, true );
 		}
 		unset( $row['contact_payload'] );
+		return $row;
+	}
+
+	/** Hydrate activity scalar and versioned payload fields. */
+	public function hydrate_activity( array $row ): array {
+		foreach ( array( 'id', 'request_id', 'actor_user_id', 'result_version' ) as $field ) {
+			$row[ $field ] = (int) $row[ $field ];
+		}
+		$row['interest_id'] = null === $row['interest_id'] ? null : (int) $row['interest_id'];
+		$payload            = json_decode( (string) $row['payload'], true );
+		$row['payload']     = is_array( $payload ) && is_array( $payload['data'] ?? null ) ? $payload['data'] : array();
 		return $row;
 	}
 

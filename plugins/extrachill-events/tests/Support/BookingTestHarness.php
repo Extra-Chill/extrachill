@@ -1640,6 +1640,8 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportAuthorization.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingActivityRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingNotificationService.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportNotificationAdapter.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportNotificationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingCommunicationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingHoldRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingMutationService.php';
