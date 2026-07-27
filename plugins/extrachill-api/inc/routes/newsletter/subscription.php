@@ -112,8 +112,8 @@ function extrachill_api_newsletter_subscribe_handler( $request ) {
 	$emails     = $request->get_param( 'emails' );
 	$context    = $request->get_param( 'context' );
 	$list_id    = $request->get_param( 'list_id' );
-	$source     = $request->get_param( 'source' ) ?: '';
-	$source_url = $request->get_param( 'source_url' ) ?: '';
+	$source     = $request->get_param( 'source' ) ? $request->get_param( 'source' ) : '';
+	$source_url = $request->get_param( 'source_url' ) ? $request->get_param( 'source_url' ) : '';
 
 	// Determine subscription mode: direct list_id (admin) or context lookup (public).
 	// Admin-mode capability and public-mode Turnstile checks are enforced in the
@@ -180,7 +180,7 @@ function extrachill_api_newsletter_subscribe_handler( $request ) {
 	}
 
 	$total   = count( $emails );
-	$success = $failed === 0;
+	$success = 0 === $failed;
 
 	return rest_ensure_response(
 		array(

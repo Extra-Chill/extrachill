@@ -22,10 +22,10 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 
 	public function set_up() {
 		parent::set_up();
-		$this->ability_inputs  = array();
+		$this->ability_inputs    = array();
 		$this->ability_actor_ids = array();
-		$this->temporary_files = array();
-		$this->rate_counts     = array();
+		$this->temporary_files   = array();
+		$this->rate_counts       = array();
 		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 		if ( isset( wp_get_abilities()[ EXTRACHILL_API_BOOKING_ABILITY ] ) ) {
 			wp_unregister_ability( EXTRACHILL_API_BOOKING_ABILITY );
@@ -179,7 +179,7 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 	}
 
 	public function test_booking_error_headers_are_allowlisted_and_removed_from_json() {
-		$error = new WP_Error(
+		$error    = new WP_Error(
 			'public_write_rate_limited',
 			'Too many requests.',
 			array(
@@ -272,8 +272,8 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 	}
 
 	public function test_multipart_upload_and_purpose_failures_are_stable() {
-		$request = $this->valid_request();
-		$file    = $this->uploaded_file( 'press.txt', 'press notes' );
+		$request       = $this->valid_request();
+		$file          = $this->uploaded_file( 'press.txt', 'press notes' );
 		$file['error'] = UPLOAD_ERR_PARTIAL;
 		$request->set_file_params( array( 'attachments' => $file ) );
 		$request->set_param( 'attachment_purposes', array( 'press_release' ) );
@@ -292,7 +292,19 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 		$file    = $this->uploaded_file( 'press.txt', 'changed bytes' );
 		$request->set_file_params( array( 'attachments' => $file ) );
 		$request->set_param( 'attachment_purposes', array( 'press_release' ) );
-		$request->set_param( EXTRACHILL_API_BOOKING_FILES, wp_json_encode( array( array( 'name' => 'press.txt', 'size' => 1, 'purpose' => 'press_release', 'hash' => str_repeat( 'a', 64 ) ) ) ) );
+		$request->set_param(
+			EXTRACHILL_API_BOOKING_FILES,
+			wp_json_encode(
+				array(
+					array(
+						'name'    => 'press.txt',
+						'size'    => 1,
+						'purpose' => 'press_release',
+						'hash'    => str_repeat( 'a', 64 ),
+					),
+				)
+			)
+		);
 		extrachill_api_set_route_affinity_context( $request, array( 'nonce' => wp_generate_uuid4() ) );
 
 		$result = extrachill_api_normalize_booking_files( $request );
@@ -300,10 +312,10 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 	}
 
 	public function test_route_fields_cover_backing_ability_schema() {
-		$args    = extrachill_api_booking_inquiry_args();
-		$ability = wp_get_abilities()[ EXTRACHILL_API_BOOKING_ABILITY ];
-		$schema  = $ability->get_input_schema();
-		$mapped  = array_diff( array_keys( $args ), array( 'venue', 'turnstile_response', 'attachment_purposes' ) );
+		$args     = extrachill_api_booking_inquiry_args();
+		$ability  = wp_get_abilities()[ EXTRACHILL_API_BOOKING_ABILITY ];
+		$schema   = $ability->get_input_schema();
+		$mapped   = array_diff( array_keys( $args ), array( 'venue', 'turnstile_response', 'attachment_purposes' ) );
 		$mapped[] = 'venue_term_id';
 		$mapped[] = 'attachments';
 
@@ -322,10 +334,10 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 	}
 
 	public function test_domain_errors_map_to_stable_public_statuses() {
-		$conflict = extrachill_api_booking_public_error( new WP_Error( 'booking_idempotency_conflict', 'Conflict.', array( 'status' => 409 ) ) );
-		$stale = extrachill_api_booking_public_error( new WP_Error( 'venue_booking_config_version_conflict', 'Refresh configuration.', array( 'status' => 409 ) ) );
-		$attachment = extrachill_api_booking_public_error( new WP_Error( 'invalid_booking_attachment_type', 'Unsupported file.', array( 'status' => 400 ) ) );
-		$reconcile = extrachill_api_booking_public_error(
+		$conflict            = extrachill_api_booking_public_error( new WP_Error( 'booking_idempotency_conflict', 'Conflict.', array( 'status' => 409 ) ) );
+		$stale               = extrachill_api_booking_public_error( new WP_Error( 'venue_booking_config_version_conflict', 'Refresh configuration.', array( 'status' => 409 ) ) );
+		$attachment          = extrachill_api_booking_public_error( new WP_Error( 'invalid_booking_attachment_type', 'Unsupported file.', array( 'status' => 400 ) ) );
+		$reconcile           = extrachill_api_booking_public_error(
 			new WP_Error(
 				'booking_inquiry_reconciliation_required',
 				'Reconciliation required.',
@@ -336,8 +348,17 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 				)
 			)
 		);
-		$internal = extrachill_api_booking_public_error( new WP_Error( 'booking_read_failed', 'Database details.' ) );
-		$unknown_safe_status = extrachill_api_booking_public_error( new WP_Error( 'new_domain_conflict', 'Private conflict details.', array( 'status' => 409, 'field' => '/private/root' ) ) );
+		$internal            = extrachill_api_booking_public_error( new WP_Error( 'booking_read_failed', 'Database details.' ) );
+		$unknown_safe_status = extrachill_api_booking_public_error(
+			new WP_Error(
+				'new_domain_conflict',
+				'Private conflict details.',
+				array(
+					'status' => 409,
+					'field'  => '/private/root',
+				)
+			)
+		);
 
 		$this->assertSame( 409, $conflict->get_error_data()['status'] );
 		$this->assertSame( 'booking_idempotency_conflict', $conflict->get_error_code() );
@@ -375,48 +396,52 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 		}
 
 		WP_Abilities_Registry::get_instance()->register(
-				EXTRACHILL_API_BOOKING_ABILITY,
-				array(
-					'label'               => 'Test booking inquiry',
-					'description'         => 'Test hidden public booking inquiry contract.',
-					'category'            => 'test',
-					'input_schema'        => array(
-						'type'                 => 'object',
-						'properties'           => array(
-							'idempotency_key'     => array( 'type' => 'string' ),
-							'venue_term_id'       => array( 'type' => 'integer' ),
-							'artist_term_id'      => array( 'type' => array( 'integer', 'null' ) ),
-							'artist_profile_id'   => array( 'type' => array( 'integer', 'null' ) ),
-							'artist_name'         => array( 'type' => 'string' ),
-							'contact_name'        => array( 'type' => array( 'string', 'null' ) ),
-							'contact_email'       => array( 'type' => array( 'string', 'null' ) ),
-							'contact_phone'       => array( 'type' => array( 'string', 'null' ) ),
-							'requested_space_key' => array( 'type' => array( 'string', 'null' ) ),
-							'requested_start_at'  => array( 'type' => array( 'string', 'null' ) ),
-							'requested_end_at'    => array( 'type' => array( 'string', 'null' ) ),
-							'intake'              => array( 'type' => 'object' ),
-							'attachments'         => array( 'type' => 'array' ),
-						),
-						'required'             => array( 'idempotency_key', 'venue_term_id', 'intake' ),
-						'additionalProperties' => false,
+			EXTRACHILL_API_BOOKING_ABILITY,
+			array(
+				'label'               => 'Test booking inquiry',
+				'description'         => 'Test hidden public booking inquiry contract.',
+				'category'            => 'test',
+				'input_schema'        => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'idempotency_key'     => array( 'type' => 'string' ),
+						'venue_term_id'       => array( 'type' => 'integer' ),
+						'artist_term_id'      => array( 'type' => array( 'integer', 'null' ) ),
+						'artist_profile_id'   => array( 'type' => array( 'integer', 'null' ) ),
+						'artist_name'         => array( 'type' => 'string' ),
+						'contact_name'        => array( 'type' => array( 'string', 'null' ) ),
+						'contact_email'       => array( 'type' => array( 'string', 'null' ) ),
+						'contact_phone'       => array( 'type' => array( 'string', 'null' ) ),
+						'requested_space_key' => array( 'type' => array( 'string', 'null' ) ),
+						'requested_start_at'  => array( 'type' => array( 'string', 'null' ) ),
+						'requested_end_at'    => array( 'type' => array( 'string', 'null' ) ),
+						'intake'              => array( 'type' => 'object' ),
+						'attachments'         => array( 'type' => 'array' ),
 					),
-					'output_schema'       => array( 'type' => 'object' ),
-					'permission_callback' => '__return_true',
-					'execute_callback'    => static function ( $input ) use ( $test ) {
-						$test->ability_inputs[] = $input;
-						$test->ability_actor_ids[] = get_current_user_id();
-						return array(
-							'public_id'     => '11111111-1111-4111-8111-111111111111',
-							'venue_term_id' => $input['venue_term_id'],
-							'submitted_at'  => '2026-07-24 20:00:00',
-						);
-					},
-					'meta'                => array(
-						'show_in_rest' => false,
-						'annotations'  => array( 'readonly' => false, 'idempotent' => true, 'destructive' => false ),
+					'required'             => array( 'idempotency_key', 'venue_term_id', 'intake' ),
+					'additionalProperties' => false,
+				),
+				'output_schema'       => array( 'type' => 'object' ),
+				'permission_callback' => '__return_true',
+				'execute_callback'    => static function ( $input ) use ( $test ) {
+					$test->ability_inputs[] = $input;
+					$test->ability_actor_ids[] = get_current_user_id();
+					return array(
+						'public_id'     => '11111111-1111-4111-8111-111111111111',
+						'venue_term_id' => $input['venue_term_id'],
+						'submitted_at'  => '2026-07-24 20:00:00',
+					);
+				},
+				'meta'                => array(
+					'show_in_rest' => false,
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => true,
+						'destructive' => false,
 					),
-				)
-			);
+				),
+			)
+		);
 	}
 
 	private function valid_request() {
@@ -454,5 +479,4 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 		$this->rate_counts[ $key ] = ( $this->rate_counts[ $key ] ?? 0 ) + 1;
 		return $this->rate_counts[ $key ];
 	}
-
 }

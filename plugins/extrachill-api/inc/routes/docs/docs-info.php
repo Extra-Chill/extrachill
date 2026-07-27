@@ -27,7 +27,7 @@ function extrachill_api_register_docs_info_routes() {
 /**
  * Builds docs-info payload for the current site.
  *
- * @return WP_REST_Response
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_docs_info_handler() {
 	$site = get_site();
@@ -137,12 +137,13 @@ function extrachill_api_docs_info_collect_post_types() {
 		$taxonomies = get_object_taxonomies( $post_type, 'objects' );
 
 		foreach ( $taxonomies as $tax_obj ) {
-			$total_terms = (int) wp_count_terms(
+			$total_terms = wp_count_terms(
 				array(
 					'taxonomy'   => $tax_obj->name,
 					'hide_empty' => false,
 				)
 			);
+			$total_terms = is_wp_error( $total_terms ) ? 0 : (int) $total_terms;
 
 			$terms_with_counts = $wpdb->get_results(
 				$wpdb->prepare(

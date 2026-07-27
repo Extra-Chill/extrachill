@@ -95,7 +95,7 @@ function extrachill_api_team_member_admin_permission_check() {
  * Gets team members with search and pagination.
  *
  * @param WP_REST_Request $request The REST request object.
- * @return WP_REST_Response|WP_Error Response with user list or error.
+ * @return WP_REST_Response Response with user list.
  */
 function extrachill_api_get_team_members( $request ) {
 	$search   = $request->get_param( 'search' );

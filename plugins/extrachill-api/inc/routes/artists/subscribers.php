@@ -86,12 +86,12 @@ function extrachill_api_get_artist_subscribers_handler( WP_REST_Request $request
 	$input = array( 'id' => $request->get_param( 'id' ) );
 
 	$page = $request->get_param( 'page' );
-	if ( $page !== null ) {
+	if ( null !== $page ) {
 		$input['page'] = $page;
 	}
 
 	$per_page = $request->get_param( 'per_page' );
-	if ( $per_page !== null ) {
+	if ( null !== $per_page ) {
 		$input['per_page'] = $per_page;
 	}
 
@@ -119,7 +119,7 @@ function extrachill_api_export_artist_subscribers_handler( WP_REST_Request $requ
 	$input = array( 'id' => $request->get_param( 'id' ) );
 
 	$include_exported = $request->get_param( 'include_exported' );
-	if ( $include_exported !== null ) {
+	if ( null !== $include_exported ) {
 		$input['include_exported'] = $include_exported;
 	}
 

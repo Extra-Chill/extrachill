@@ -207,7 +207,7 @@ function extrachill_api_shop_products_create_args() {
 			'required'          => false,
 			'type'              => 'number',
 			'validate_callback' => function ( $value ) {
-				return $value === null || is_numeric( $value );
+				return null === $value || is_numeric( $value );
 			},
 		),
 		'description'    => array(
@@ -290,7 +290,7 @@ function extrachill_api_shop_products_update_args() {
 			'type'              => 'integer',
 			'sanitize_callback' => 'absint',
 			'validate_callback' => function ( $value ) {
-				return $value === null || ( is_numeric( $value ) && (int) $value >= 0 );
+				return null === $value || ( is_numeric( $value ) && (int) $value >= 0 );
 			},
 		),
 		'status'         => array(
@@ -305,7 +305,7 @@ function extrachill_api_shop_products_update_args() {
 			'type'              => 'array',
 			'items'             => array( 'type' => 'integer' ),
 			'sanitize_callback' => function ( $value ) {
-				if ( $value === null ) {
+				if ( null === $value ) {
 					return null;
 				}
 				if ( ! is_array( $value ) ) {
@@ -323,14 +323,14 @@ function extrachill_api_shop_products_update_args() {
 			'required'          => false,
 			'type'              => 'number',
 			'validate_callback' => function ( $value ) {
-				return $value === null || is_numeric( $value );
+				return null === $value || is_numeric( $value );
 			},
 		),
 		'sale_price'     => array(
 			'required'          => false,
 			'type'              => 'number',
 			'validate_callback' => function ( $value ) {
-				return $value === null || is_numeric( $value );
+				return null === $value || is_numeric( $value );
 			},
 		),
 		'description'    => array(
@@ -349,7 +349,7 @@ function extrachill_api_shop_products_update_args() {
 				return is_numeric( $value ) ? (int) $value : null;
 			},
 			'validate_callback' => function ( $value ) {
-				return $value === null || ( is_numeric( $value ) && (int) $value >= 0 );
+				return null === $value || ( is_numeric( $value ) && (int) $value >= 0 );
 			},
 		),
 		'image_id'       => array(
@@ -364,7 +364,7 @@ function extrachill_api_shop_products_update_args() {
 			'type'              => 'array',
 			'items'             => array( 'type' => 'integer' ),
 			'sanitize_callback' => function ( $value ) {
-				if ( $value === null ) {
+				if ( null === $value ) {
 					return null;
 				}
 				if ( ! is_array( $value ) ) {
@@ -384,7 +384,7 @@ function extrachill_api_shop_products_update_args() {
 				),
 			),
 			'sanitize_callback' => function ( $value ) {
-				if ( $value === null ) {
+				if ( null === $value ) {
 					return null;
 				}
 				if ( ! is_array( $value ) ) {
@@ -592,7 +592,7 @@ function extrachill_api_shop_products_update_handler( WP_REST_Request $request )
 	);
 	foreach ( $params as $param ) {
 		$value = $request->get_param( $param );
-		if ( $value !== null ) {
+		if ( null !== $value ) {
 			$input[ $param ] = $value;
 		}
 	}

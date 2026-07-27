@@ -138,15 +138,17 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 	}
 
 	public function test_extrachill_api_extract_submission_fields_optional_fields_empty() {
-		$request = $this->get_valid_request( array(
-			'event_time'   => '',
-			'venue_name'   => '',
-			'event_city'   => '',
-			'event_lineup' => '',
-			'event_link'   => '',
-			'notes'        => '',
-		) );
-		$result = extrachill_api_extract_submission_fields( $request );
+		$request = $this->get_valid_request(
+			array(
+				'event_time'   => '',
+				'venue_name'   => '',
+				'event_city'   => '',
+				'event_lineup' => '',
+				'event_link'   => '',
+				'notes'        => '',
+			)
+		);
+		$result  = extrachill_api_extract_submission_fields( $request );
 
 		$this->assertIsArray( $result );
 		$this->assertEquals( 'Live at The Royal American', $result['event_title'] );
@@ -156,11 +158,13 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 	}
 
 	public function test_extrachill_api_extract_submission_fields_sanitizes_html() {
-		$request = $this->get_valid_request( array(
-			'event_title' => '<script>alert("xss")</script>My Event',
-			'notes'       => '<b>Bold</b> notes with <script>alert(1)</script>',
-		) );
-		$result = extrachill_api_extract_submission_fields( $request );
+		$request = $this->get_valid_request(
+			array(
+				'event_title' => '<script>alert("xss")</script>My Event',
+				'notes'       => '<b>Bold</b> notes with <script>alert(1)</script>',
+			)
+		);
+		$result  = extrachill_api_extract_submission_fields( $request );
 
 		$this->assertIsArray( $result );
 		$this->assertStringNotContainsString( '<script>', $result['event_title'] );
@@ -249,7 +253,7 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 			'event_lineup' => 'Band A',
 			'event_link'   => 'https://example.com',
 		);
-		$flyer = array(
+		$flyer      = array(
 			'filename'    => 'flyer.jpg',
 			'stored_path' => '/tmp/stored/flyer.jpg',
 			'mime_type'   => 'image/jpeg',
@@ -286,12 +290,16 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 
 	public function test_workflow_custom_system_prompt() {
 		$submission = array(
-			'event_title' => 'Test', 'event_date' => '2026-04-15',
-			'event_time' => '', 'venue_name' => '', 'event_city' => '',
-			'event_lineup' => '', 'event_link' => '',
+			'event_title'  => 'Test',
+			'event_date'   => '2026-04-15',
+			'event_time'   => '',
+			'venue_name'   => '',
+			'event_city'   => '',
+			'event_lineup' => '',
+			'event_link'   => '',
 		);
 
-		$custom = 'Custom instructions for processing.';
+		$custom   = 'Custom instructions for processing.';
 		$workflow = extrachill_api_build_event_submission_workflow( $submission, null, 'openai', 'gpt-5-mini', $custom );
 
 		$this->assertEquals( $custom, $workflow['steps'][0]['system_prompt'] );
@@ -299,9 +307,13 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 
 	public function test_workflow_default_system_prompt() {
 		$submission = array(
-			'event_title' => 'Test', 'event_date' => '2026-04-15',
-			'event_time' => '', 'venue_name' => '', 'event_city' => '',
-			'event_lineup' => '', 'event_link' => '',
+			'event_title'  => 'Test',
+			'event_date'   => '2026-04-15',
+			'event_time'   => '',
+			'venue_name'   => '',
+			'event_city'   => '',
+			'event_lineup' => '',
+			'event_link'   => '',
 		);
 
 		$workflow = extrachill_api_build_event_submission_workflow( $submission, null, 'openai', 'gpt-5-mini', '' );
@@ -312,9 +324,13 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 
 	public function test_workflow_ai_step_enables_upsert_tool() {
 		$submission = array(
-			'event_title' => 'Test', 'event_date' => '2026-04-15',
-			'event_time' => '', 'venue_name' => '', 'event_city' => '',
-			'event_lineup' => '', 'event_link' => '',
+			'event_title'  => 'Test',
+			'event_date'   => '2026-04-15',
+			'event_time'   => '',
+			'venue_name'   => '',
+			'event_city'   => '',
+			'event_lineup' => '',
+			'event_link'   => '',
 		);
 
 		$workflow = extrachill_api_build_event_submission_workflow( $submission, null, 'anthropic', 'claude-sonnet-4-20250514' );
@@ -324,9 +340,13 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 
 	public function test_workflow_upsert_step_pending_status() {
 		$submission = array(
-			'event_title' => 'Test', 'event_date' => '2026-04-15',
-			'event_time' => '', 'venue_name' => '', 'event_city' => '',
-			'event_lineup' => '', 'event_link' => '',
+			'event_title'  => 'Test',
+			'event_date'   => '2026-04-15',
+			'event_time'   => '',
+			'venue_name'   => '',
+			'event_city'   => '',
+			'event_lineup' => '',
+			'event_link'   => '',
 		);
 
 		$workflow = extrachill_api_build_event_submission_workflow( $submission, null, 'openai', 'gpt-5-mini' );
@@ -337,9 +357,13 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 
 	public function test_workflow_passes_provider_and_model() {
 		$submission = array(
-			'event_title' => 'Test', 'event_date' => '2026-04-15',
-			'event_time' => '', 'venue_name' => '', 'event_city' => '',
-			'event_lineup' => '', 'event_link' => '',
+			'event_title'  => 'Test',
+			'event_date'   => '2026-04-15',
+			'event_time'   => '',
+			'venue_name'   => '',
+			'event_city'   => '',
+			'event_lineup' => '',
+			'event_link'   => '',
 		);
 
 		$workflow = extrachill_api_build_event_submission_workflow( $submission, null, 'anthropic', 'claude-sonnet-4-20250514' );
@@ -358,8 +382,10 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 			'event_lineup' => 'Blues Band',
 			'event_link'   => 'https://tickets.example.com/blues',
 		);
-		$flyer = array(
-			'filename' => 'blues.png', 'stored_path' => '/tmp/blues.png', 'mime_type' => 'image/png',
+		$flyer      = array(
+			'filename'    => 'blues.png',
+			'stored_path' => '/tmp/blues.png',
+			'mime_type'   => 'image/png',
 		);
 
 		$workflow = extrachill_api_build_event_submission_workflow( $submission, $flyer, 'openai', 'gpt-5-mini' );
@@ -376,12 +402,18 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 
 	public function test_workflow_include_images_with_flyer() {
 		$submission = array(
-			'event_title' => 'Test', 'event_date' => '2026-04-15',
-			'event_time' => '', 'venue_name' => '', 'event_city' => '',
-			'event_lineup' => '', 'event_link' => '',
+			'event_title'  => 'Test',
+			'event_date'   => '2026-04-15',
+			'event_time'   => '',
+			'venue_name'   => '',
+			'event_city'   => '',
+			'event_lineup' => '',
+			'event_link'   => '',
 		);
-		$flyer = array(
-			'filename' => 'poster.jpg', 'stored_path' => '/tmp/poster.jpg', 'mime_type' => 'image/jpeg',
+		$flyer      = array(
+			'filename'    => 'poster.jpg',
+			'stored_path' => '/tmp/poster.jpg',
+			'mime_type'   => 'image/jpeg',
 		);
 
 		$workflow = extrachill_api_build_event_submission_workflow( $submission, $flyer, 'openai', 'gpt-5-mini' );
@@ -392,9 +424,13 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 
 	public function test_workflow_include_images_without_flyer() {
 		$submission = array(
-			'event_title' => 'Test', 'event_date' => '2026-04-15',
-			'event_time' => '', 'venue_name' => '', 'event_city' => '',
-			'event_lineup' => '', 'event_link' => '',
+			'event_title'  => 'Test',
+			'event_date'   => '2026-04-15',
+			'event_time'   => '',
+			'venue_name'   => '',
+			'event_city'   => '',
+			'event_lineup' => '',
+			'event_link'   => '',
 		);
 
 		$workflow = extrachill_api_build_event_submission_workflow( $submission, null, 'openai', 'gpt-5-mini' );

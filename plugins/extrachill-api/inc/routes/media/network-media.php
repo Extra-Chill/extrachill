@@ -141,7 +141,7 @@ function extrachill_api_network_media_upload( WP_REST_Request $request ) {
 
 	$file = $files['file'];
 
-	if ( ! empty( $file['error'] ) && UPLOAD_ERR_OK !== $file['error'] ) {
+	if ( ! empty( $file['error'] ) && UPLOAD_ERR_OK !== (int) $file['error'] ) {
 		return new WP_Error(
 			'upload_error',
 			'PHP reported an upload error.',

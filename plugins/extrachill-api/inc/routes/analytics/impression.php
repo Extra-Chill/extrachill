@@ -115,7 +115,7 @@ function extrachill_api_impression_handler( WP_REST_Request $request ) {
 	if ( $source_site && $current_site && $source_site !== $current_site ) {
 		return new WP_Error( 'invalid_source_site', 'source_site does not match source_url.', array( 'status' => 400 ) );
 	}
-	if ( $dest_site && function_exists( 'ec_get_blog_id' ) && ( null === ec_get_blog_id( $dest_site ) || $dest_site === $current_site ) ) {
+	if ( $dest_site && function_exists( 'ec_get_blog_id' ) && ( ! ec_get_blog_id( $dest_site ) || $dest_site === $current_site ) ) {
 		return new WP_Error( 'invalid_destination_site', 'dest_site is not a valid cross-site destination.', array( 'status' => 400 ) );
 	}
 	if ( ! $source_site && $current_site ) {

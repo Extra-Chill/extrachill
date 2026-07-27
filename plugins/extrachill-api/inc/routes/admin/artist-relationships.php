@@ -231,6 +231,7 @@ function extrachill_api_artist_relationships_unlink_handler( $request ) {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_artist_relationships_orphans_handler( $request ) {
+	unset( $request );
 	$ability = wp_get_ability( 'extrachill/admin-list-orphan-artist-relationships' );
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );

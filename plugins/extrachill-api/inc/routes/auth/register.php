@@ -119,7 +119,7 @@ function extrachill_api_register_auth_register_route() {
  * Handles the auth registration request.
  *
  * @param WP_REST_Request $request Request data.
- * @return array|WP_Error
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_auth_register_handler( WP_REST_Request $request ) {
 	if ( ! function_exists( 'extrachill_users_register_with_tokens' ) ) {
@@ -154,9 +154,9 @@ function extrachill_api_auth_register_handler( WP_REST_Request $request ) {
 		'turnstile_response'   => (string) $request->get_param( 'turnstile_response' ),
 		'device_id'            => $device_id,
 		'device_name'          => (string) $request->get_param( 'device_name' ),
-		'set_cookie'           => rest_sanitize_boolean( $request->get_param( 'set_cookie' ) ),
-		'remember'             => rest_sanitize_boolean( $request->get_param( 'remember' ) ),
-		'from_join'            => rest_sanitize_boolean( $request->get_param( 'from_join' ) ),
+		'set_cookie'           => rest_sanitize_boolean( (string) $request->get_param( 'set_cookie' ) ),
+		'remember'             => rest_sanitize_boolean( (string) $request->get_param( 'remember' ) ),
+		'from_join'            => rest_sanitize_boolean( (string) $request->get_param( 'from_join' ) ),
 		'invite_token'         => sanitize_text_field( (string) $request->get_param( 'invite_token' ) ),
 		'invite_artist_id'     => absint( $request->get_param( 'invite_artist_id' ) ),
 		'registration_page'    => (string) $request->get_param( 'registration_page' ),

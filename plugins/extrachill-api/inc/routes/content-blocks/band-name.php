@@ -16,32 +16,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_content_blocks_band_name_route' );
 
 function extrachill_api_register_content_blocks_band_name_route() {
-	register_rest_route( 'extrachill/v1', '/content-blocks/band-name', array(
-		'methods'             => WP_REST_Server::CREATABLE,
-		'callback'            => 'extrachill_api_content_blocks_band_name_handler',
-		'permission_callback' => '__return_true',
-		'args'                => array(
-			'input'           => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
+	register_rest_route(
+		'extrachill/v1',
+		'/content-blocks/band-name',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'extrachill_api_content_blocks_band_name_handler',
+			'permission_callback' => '__return_true',
+			'args'                => array(
+				'input'           => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'genre'           => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'number_of_words' => array(
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'first_the'       => array(
+					'type' => 'boolean',
+				),
+				'and_the'         => array(
+					'type' => 'boolean',
+				),
 			),
-			'genre'           => array(
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
-			'number_of_words' => array(
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
-			),
-			'first_the'       => array(
-				'type' => 'boolean',
-			),
-			'and_the'         => array(
-				'type' => 'boolean',
-			),
-		),
-	) );
+		)
+	);
 }
 
 function extrachill_api_content_blocks_band_name_handler( $request ) {
@@ -54,13 +58,15 @@ function extrachill_api_content_blocks_band_name_handler( $request ) {
 		);
 	}
 
-	$result = $ability->execute( array(
-		'input'           => $request->get_param( 'input' ),
-		'genre'           => $request->get_param( 'genre' ),
-		'number_of_words' => $request->get_param( 'number_of_words' ),
-		'first_the'       => $request->get_param( 'first_the' ),
-		'and_the'         => $request->get_param( 'and_the' ),
-	) );
+	$result = $ability->execute(
+		array(
+			'input'           => $request->get_param( 'input' ),
+			'genre'           => $request->get_param( 'genre' ),
+			'number_of_words' => $request->get_param( 'number_of_words' ),
+			'first_the'       => $request->get_param( 'first_the' ),
+			'and_the'         => $request->get_param( 'and_the' ),
+		)
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

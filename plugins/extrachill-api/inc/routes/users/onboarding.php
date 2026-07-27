@@ -31,17 +31,17 @@ function extrachill_api_register_onboarding_routes() {
 				'callback'            => 'extrachill_api_onboarding_post_handler',
 				'permission_callback' => 'extrachill_api_onboarding_permission_check',
 				'args'                => array(
-					'username'             => array(
+					'username'               => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_user',
 					),
-					'user_is_artist'       => array(
+					'user_is_artist'         => array(
 						'required' => false,
 						'type'     => 'boolean',
 						'default'  => false,
 					),
-					'user_is_professional' => array(
+					'user_is_professional'   => array(
 						'required' => false,
 						'type'     => 'boolean',
 						'default'  => false,
@@ -107,7 +107,7 @@ function extrachill_api_onboarding_post_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$input = array(
+	$input       = array(
 		'user_id'                => get_current_user_id(),
 		'username'               => $request->get_param( 'username' ),
 		'user_is_artist'         => $request->get_param( 'user_is_artist' ),

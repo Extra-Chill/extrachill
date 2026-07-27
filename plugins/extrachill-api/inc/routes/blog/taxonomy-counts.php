@@ -64,7 +64,7 @@ function extrachill_api_register_blog_taxonomy_counts_route() {
 function extrachill_api_blog_taxonomy_counts_handler( WP_REST_Request $request ) {
 	$taxonomy = $request->get_param( 'taxonomy' );
 	$slug     = $request->get_param( 'slug' );
-	$limit    = $request->get_param( 'limit' ) ?: 8;
+	$limit    = $request->get_param( 'limit' ) ? $request->get_param( 'limit' ) : 8;
 
 	// Single term query.
 	if ( ! empty( $slug ) ) {
@@ -120,11 +120,15 @@ function extrachill_api_get_single_blog_term_count( $slug, $taxonomy ) {
 	}
 
 	$term = get_term_by( 'slug', $slug, $taxonomy );
-	if ( ! $term || is_wp_error( $term ) ) {
+	if ( ! $term ) {
 		return null;
 	}
 
-	$post_types = get_taxonomy( $taxonomy )->object_type;
+	$taxonomy_object = get_taxonomy( $taxonomy );
+	if ( ! $taxonomy_object ) {
+		return null;
+	}
+	$post_types = $taxonomy_object->object_type;
 
 	$query = new WP_Query(
 		array(

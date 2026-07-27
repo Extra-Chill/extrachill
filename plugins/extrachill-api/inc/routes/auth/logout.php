@@ -41,7 +41,7 @@ function extrachill_api_register_auth_logout_route() {
  * Handles the auth logout request.
  *
  * @param WP_REST_Request $request Request data.
- * @return array|WP_Error
+ * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_auth_logout_handler( WP_REST_Request $request ) {
 	if ( ! function_exists( 'extrachill_users_revoke_refresh_token' ) ) {

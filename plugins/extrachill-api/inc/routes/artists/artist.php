@@ -193,7 +193,7 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 	$optional = array( 'bio', 'local_city', 'genre' );
 	foreach ( $optional as $field ) {
 		$value = $request->get_param( $field );
-		if ( $value !== null ) {
+		if ( null !== $value ) {
 			$input[ $field ] = $value;
 		}
 	}

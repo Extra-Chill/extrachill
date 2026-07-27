@@ -86,9 +86,9 @@ function extrachill_api_canonicalize_affinity_query( $query ) {
  * @return string
  */
 function extrachill_api_route_affinity_payload( $method, $route, $target_host, $query, $body, $timestamp, $nonce, $headers = array() ) {
-	$query_digest  = hash( 'sha256', wp_json_encode( extrachill_api_canonicalize_affinity_query( $query ) ) );
-	$body_digest   = hash( 'sha256', wp_json_encode( extrachill_api_normalize_affinity_data( $body ) ) );
-	$header_digest = hash( 'sha256', wp_json_encode( extrachill_api_normalize_affinity_data( $headers ) ) );
+	$query_digest  = hash( 'sha256', (string) wp_json_encode( extrachill_api_canonicalize_affinity_query( $query ) ) );
+	$body_digest   = hash( 'sha256', (string) wp_json_encode( extrachill_api_normalize_affinity_data( $body ) ) );
+	$header_digest = hash( 'sha256', (string) wp_json_encode( extrachill_api_normalize_affinity_data( $headers ) ) );
 
 	return implode(
 		"\n",
@@ -177,9 +177,7 @@ function extrachill_api_route_affinity_request_body( WP_REST_Request $request ) 
 		$body = $request->get_body_params();
 	}
 	$body = ! empty( $body ) ? $body : array();
-	if ( is_array( $body ) ) {
-		unset( $body['_ec_affinity_client'], $body['_ec_affinity_remote_addr'] );
-	}
+	unset( $body['_ec_affinity_client'], $body['_ec_affinity_remote_addr'] );
 
 	/**
 	 * Filters the signed body representation for transport-only request data.
@@ -264,9 +262,9 @@ function extrachill_api_is_route_affinity_reentry( WP_REST_Request $request ) {
 		extrachill_api_set_route_affinity_context(
 			$request,
 			array(
-				'client'      => (string) ( $forwarded_headers['x-ec-affinity-client'] ?? '' ),
-				'remote_addr' => (string) ( $forwarded_headers['x-ec-affinity-remote-addr'] ?? '' ),
-				'nonce'       => $nonce,
+				'client'           => (string) ( $forwarded_headers['x-ec-affinity-client'] ?? '' ),
+				'remote_addr'      => (string) ( $forwarded_headers['x-ec-affinity-remote-addr'] ?? '' ),
+				'nonce'            => $nonce,
 				'download_handoff' => $download_handoff,
 			)
 		);
@@ -355,9 +353,9 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 		return new WP_Error( 'route_affinity_target_invalid', 'Could not resolve route-affinity target host.', array( 'status' => 500 ) );
 	}
 
-	$private_stream    = function_exists( 'extrachill_api_is_booking_attachment_download_route' ) && extrachill_api_is_booking_attachment_download_route( $route );
-	$outer_delivery    = null;
-	$private_spool     = null;
+	$private_stream = function_exists( 'extrachill_api_is_booking_attachment_download_route' ) && extrachill_api_is_booking_attachment_download_route( $route );
+	$outer_delivery = null;
+	$private_spool  = null;
 	if ( $private_stream ) {
 		$private_spool = apply_filters( 'extrachill_api_private_affinity_spool_path', wp_tempnam( 'extrachill-private-download' ) );
 		if ( ! is_string( $private_spool ) || '' === $private_spool ) {
@@ -375,17 +373,17 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 			return extrachill_api_fail_private_affinity_stream( $private_spool, null );
 		}
 		$forwarded_headers['x-ec-affinity-download-handoff'] = extrachill_api_encode_booking_attachment_handoff( $handoff );
-		$outer_delivery = array(
+		$outer_delivery                                      = array(
 			'booking_id'     => (int) $request->get_param( 'booking_id' ),
 			'attachment_id'  => (int) $request->get_param( 'attachment_id' ),
 			'correlation_id' => (string) $handoff['correlation_id'],
 		);
 	}
-	$timestamp         = time();
-	$nonce             = wp_generate_uuid4();
-	$payload           = extrachill_api_route_affinity_payload( $method, $route, $target_host, $query_params, $body, $timestamp, $nonce, $forwarded_headers );
-	$signature         = hash_hmac( 'sha256', $payload, wp_salt( 'auth' ) );
-	$args['headers']   = array(
+	$timestamp       = time();
+	$nonce           = wp_generate_uuid4();
+	$payload         = extrachill_api_route_affinity_payload( $method, $route, $target_host, $query_params, $body, $timestamp, $nonce, $forwarded_headers );
+	$signature       = hash_hmac( 'sha256', $payload, wp_salt( 'auth' ) );
+	$args['headers'] = array(
 		'X-EC-Affinity-Timestamp' => (string) $timestamp,
 		'X-EC-Affinity-Signature' => $signature,
 		'X-EC-Affinity-Target'    => strtolower( $target_host ),
@@ -415,7 +413,7 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 		return true;
 	};
 	$forwarded_http_response = null;
-	$stream_http_response  = static function ( $http_args ) use ( $signature, $private_spool ) {
+	$stream_http_response    = static function ( $http_args ) use ( $signature, $private_spool ) {
 		$headers = $http_args['headers'] ?? array();
 		if ( null !== $private_spool && ( $headers['X-EC-Affinity-Signature'] ?? '' ) === $signature ) {
 			$http_args['stream']              = true;
@@ -427,7 +425,7 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 
 		return $http_args;
 	};
-	$capture_http_response = static function ( $http_response, $http_args ) use ( &$forwarded_http_response, $signature ) {
+	$capture_http_response   = static function ( $http_response, $http_args ) use ( &$forwarded_http_response, $signature ) {
 		$headers = $http_args['headers'] ?? array();
 		if ( ( $headers['X-EC-Affinity-Signature'] ?? '' ) === $signature && false !== $http_response ) {
 			$forwarded_http_response = $http_response;
@@ -485,7 +483,7 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 			$headers = iterator_to_array( $headers );
 		}
 
-		return new WP_REST_Response( $data, $status, is_array( $headers ) ? $headers : array() );
+		return new WP_REST_Response( $data, (int) $status, $headers );
 	}
 
 	if ( is_wp_error( $response ) ) {

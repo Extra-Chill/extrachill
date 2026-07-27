@@ -132,7 +132,7 @@ class Test_Activity_Throttle extends TestCase {
 		$event1 = $this->get_throttleable_event();
 		extrachill_api_activity_mark_emitted( $event1 );
 
-		$event2                   = $this->get_throttleable_event();
+		$event2                  = $this->get_throttleable_event();
 		$event2['primary']['id'] = '999';
 
 		$result = extrachill_api_activity_should_throttle( $event2 );

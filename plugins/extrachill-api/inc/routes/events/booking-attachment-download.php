@@ -63,11 +63,11 @@ function extrachill_api_register_booking_attachment_download_route() {
 
 /** Admit descriptor preflight only through body-bound localhost user transport. */
 function extrachill_api_booking_attachment_handoff_internal_permission( WP_REST_Request $request ) {
-	$timestamp         = (int) $request->get_header( 'X-EC-Handoff-Timestamp' );
-	$signature         = (string) $request->get_header( 'X-EC-Handoff-Signature' );
-	$input             = (array) $request->get_json_params();
-	$expected          = extrachill_api_booking_attachment_delivery_callback_signature( $input, get_current_user_id(), $timestamp );
-	$verified          = $timestamp > 0 && abs( time() - $timestamp ) <= 60 && '' !== $signature && hash_equals( $expected, $signature );
+	$timestamp = (int) $request->get_header( 'X-EC-Handoff-Timestamp' );
+	$signature = (string) $request->get_header( 'X-EC-Handoff-Signature' );
+	$input     = (array) $request->get_json_params();
+	$expected  = extrachill_api_booking_attachment_delivery_callback_signature( $input, get_current_user_id(), $timestamp );
+	$verified  = $timestamp > 0 && abs( time() - $timestamp ) <= 60 && '' !== $signature && hash_equals( $expected, $signature );
 
 	return extrachill_api_is_local_request() && extrachill_api_booking_attachment_has_verified_internal_user() && $verified
 		? true
@@ -88,11 +88,11 @@ function extrachill_api_issue_booking_attachment_handoff_request( WP_REST_Reques
 
 /** Admit terminal callbacks only through localhost signed-user transport. */
 function extrachill_api_booking_attachment_delivery_internal_permission( WP_REST_Request $request ) {
-	$timestamp         = (int) $request->get_header( 'X-EC-Delivery-Timestamp' );
-	$signature         = (string) $request->get_header( 'X-EC-Delivery-Signature' );
-	$input             = (array) $request->get_json_params();
-	$expected          = extrachill_api_booking_attachment_delivery_callback_signature( $input, get_current_user_id(), $timestamp );
-	$verified          = $timestamp > 0 && abs( time() - $timestamp ) <= 60 && '' !== $signature && hash_equals( $expected, $signature );
+	$timestamp = (int) $request->get_header( 'X-EC-Delivery-Timestamp' );
+	$signature = (string) $request->get_header( 'X-EC-Delivery-Signature' );
+	$input     = (array) $request->get_json_params();
+	$expected  = extrachill_api_booking_attachment_delivery_callback_signature( $input, get_current_user_id(), $timestamp );
+	$verified  = $timestamp > 0 && abs( time() - $timestamp ) <= 60 && '' !== $signature && hash_equals( $expected, $signature );
 	return extrachill_api_is_local_request() && extrachill_api_booking_attachment_has_verified_internal_user() && $verified
 		? true
 		: extrachill_api_booking_attachment_download_error( 403 );
@@ -154,11 +154,11 @@ function extrachill_api_download_booking_attachment( WP_REST_Request $request ) 
 		return extrachill_api_booking_attachment_download_error( 503 );
 	}
 
-	$input   = array(
+	$input      = array(
 		'booking_id'    => (int) $request->get_param( 'booking_id' ),
 		'attachment_id' => (int) $request->get_param( 'attachment_id' ),
 	);
-	$context = function_exists( 'extrachill_api_route_affinity_context' ) ? extrachill_api_route_affinity_context( $request ) : array();
+	$context    = function_exists( 'extrachill_api_route_affinity_context' ) ? extrachill_api_route_affinity_context( $request ) : array();
 	$descriptor = is_array( $context['download_handoff'] ?? null ) ? $context['download_handoff'] : extrachill_api_issue_booking_attachment_descriptor( $input );
 	if ( is_wp_error( $descriptor ) ) {
 		return extrachill_api_booking_attachment_download_error( extrachill_api_booking_attachment_error_status( $descriptor ) );
@@ -230,7 +230,7 @@ function extrachill_api_issue_booking_attachment_descriptor( array $input ) {
 
 /** Obtain the private descriptor before opening the streamed loopback. */
 function extrachill_api_prepare_booking_attachment_affinity_handoff( WP_REST_Request $request ) {
-	$input = array(
+	$input     = array(
 		'booking_id'    => (int) $request->get_param( 'booking_id' ),
 		'attachment_id' => (int) $request->get_param( 'attachment_id' ),
 	);
@@ -264,7 +264,7 @@ function extrachill_api_validate_booking_attachment_handoff( $handoff ) {
 
 /** Encode a bounded internal handoff for one signed affinity hop. */
 function extrachill_api_encode_booking_attachment_handoff( array $handoff ) {
-	return rtrim( strtr( base64_encode( wp_json_encode( $handoff ) ), '+/', '-_' ), '=' );
+	return rtrim( strtr( base64_encode( (string) wp_json_encode( $handoff ) ), '+/', '-_' ), '=' );
 }
 
 /** Decode only a valid handoff after affinity HMAC verification. */
@@ -418,7 +418,7 @@ function extrachill_api_booking_attachment_max_bytes() {
  */
 function extrachill_api_create_private_stream_response( $stream, $filename, $mime, WP_REST_Request $request, $delivery = null ) {
 	$stat = fstat( $stream );
-	$size = is_array( $stat ) ? (int) ( $stat['size'] ?? -1 ) : -1;
+	$size = false !== $stat ? (int) $stat['size'] : -1;
 	if ( $size < 0 || $size > extrachill_api_booking_attachment_max_bytes() ) {
 		fclose( $stream );
 		return extrachill_api_booking_attachment_download_error( 413 );
@@ -459,7 +459,7 @@ function extrachill_api_create_private_stream_response( $stream, $filename, $mim
  * @return array|WP_Error
  */
 function extrachill_api_booking_attachment_range( $header, $size ) {
-	if ( '' === $header || null === $header ) {
+	if ( '' === $header ) {
 		return array(
 			'offset' => 0,
 			'length' => $size,
@@ -513,7 +513,7 @@ function extrachill_api_private_stream_headers( $filename, $mime, $length ) {
 		$safe_filename = 'attachment.bin';
 	}
 	$fallback = preg_replace( '/[^A-Za-z0-9._-]/', '_', $safe_filename );
-	$fallback = '' === $fallback ? 'attachment.bin' : $fallback;
+	$fallback = is_string( $fallback ) ? $fallback : 'attachment.bin';
 	$mime     = 1 === preg_match( '#^[a-z0-9][a-z0-9.+-]*/[a-z0-9][a-z0-9.+-]*$#i', $mime ) ? strtolower( $mime ) : 'application/octet-stream';
 
 	$headers = array(
@@ -543,7 +543,7 @@ function extrachill_api_booking_attachment_affinity_delivery_headers( array $del
 	if ( $delivery['booking_id'] < 1 || $delivery['attachment_id'] < 1 || ! wp_is_uuid( $delivery['correlation_id'], 4 ) || ! in_array( $delivery['success_outcome'], array( 'completed', 'partial' ), true ) || '' === $nonce ) {
 		return array();
 	}
-	$encoded   = rtrim( strtr( base64_encode( wp_json_encode( $delivery ) ), '+/', '-_' ), '=' );
+	$encoded   = rtrim( strtr( base64_encode( (string) wp_json_encode( $delivery ) ), '+/', '-_' ), '=' );
 	$signature = hash_hmac( 'sha256', $encoded . "\n" . $nonce, wp_salt( 'auth' ) );
 
 	return array(
@@ -673,7 +673,7 @@ function extrachill_api_cleanup_private_streams() {
  */
 function extrachill_api_serve_private_stream( $served, $result, $request, $server ) {
 	unset( $request, $server );
-	if ( $served || ! is_object( $result ) ) {
+	if ( $served ) {
 		return $served;
 	}
 
@@ -815,7 +815,7 @@ function extrachill_api_private_affinity_spool_bytes( $path ) {
 		return 0;
 	}
 	$size = filesize( $path );
-	if ( false === $size || $size < 0 || $size > extrachill_api_booking_attachment_max_bytes() ) {
+	if ( false === $size || $size > extrachill_api_booking_attachment_max_bytes() ) {
 		return new WP_Error( 'booking_attachment_spool_size_invalid' );
 	}
 

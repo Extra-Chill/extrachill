@@ -181,7 +181,7 @@ function extrachill_api_sync_term_recursive( $term, $taxonomy, $hierarchy, $pare
 	}
 
 	foreach ( $hierarchy[ $term->term_id ] ?? array() as $child_term ) {
-		extrachill_api_sync_term_recursive( $child_term, $taxonomy, $hierarchy, $synced_term_id, $site_report, $report );
+		extrachill_api_sync_term_recursive( $child_term, $taxonomy, $hierarchy, (int) $synced_term_id, $site_report, $report );
 	}
 }
 

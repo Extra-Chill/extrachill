@@ -230,7 +230,7 @@ function extrachill_api_booking_validate_canonical_identity() {
 		return true;
 	}
 	$user = wp_get_current_user();
-	if ( ! $user instanceof WP_User || ! $user->exists() || (int) $user->ID !== $user_id ) {
+	if ( ! $user->exists() || (int) $user->ID !== $user_id ) {
 		return new WP_Error( 'booking_authentication_invalid', __( 'The authenticated booking identity is invalid.', 'extrachill-api' ), array( 'status' => 401 ) );
 	}
 

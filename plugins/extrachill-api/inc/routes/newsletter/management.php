@@ -202,7 +202,11 @@ function extrachill_api_register_newsletter_campaign_management_routes() {
 // ─── Handlers ────────────────────────────────────────────────────────────────
 
 function extrachill_api_newsletter_list_campaigns_handler( $request ) {
-	$result = extrachill_newsletter_ability_list_campaigns(
+	$ability = wp_get_ability( 'extrachill/list-campaigns' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_available', 'Campaign list ability not available.', array( 'status' => 500 ) );
+	}
+	$result = $ability->execute(
 		array(
 			'per_page' => $request->get_param( 'per_page' ),
 			'offset'   => $request->get_param( 'offset' ),
@@ -218,7 +222,11 @@ function extrachill_api_newsletter_list_campaigns_handler( $request ) {
 }
 
 function extrachill_api_newsletter_get_campaign_handler( $request ) {
-	$result = extrachill_newsletter_ability_get_campaign(
+	$ability = wp_get_ability( 'extrachill/get-campaign' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_available', 'Campaign ability not available.', array( 'status' => 500 ) );
+	}
+	$result = $ability->execute(
 		array(
 			'campaign_id' => $request->get_param( 'id' ),
 		)
@@ -232,7 +240,11 @@ function extrachill_api_newsletter_get_campaign_handler( $request ) {
 }
 
 function extrachill_api_newsletter_delete_campaign_handler( $request ) {
-	$result = extrachill_newsletter_ability_delete_campaign(
+	$ability = wp_get_ability( 'extrachill/delete-campaign' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_available', 'Campaign deletion ability not available.', array( 'status' => 500 ) );
+	}
+	$result = $ability->execute(
 		array(
 			'campaign_id' => $request->get_param( 'id' ),
 		)
@@ -251,7 +263,7 @@ function extrachill_api_newsletter_get_settings_handler( $request ) {
 		return new WP_Error( 'ability_not_available', 'Settings ability not available.', array( 'status' => 500 ) );
 	}
 
-	$result = extrachill_newsletter_ability_get_settings( array() );
+	$result = $ability->execute( array() );
 
 	return rest_ensure_response( $result );
 }
@@ -287,7 +299,11 @@ function extrachill_api_newsletter_update_settings_handler( $request ) {
 }
 
 function extrachill_api_newsletter_subscriber_status_handler( $request ) {
-	$result = extrachill_newsletter_ability_subscriber_status(
+	$ability = wp_get_ability( 'extrachill/subscriber-status' );
+	if ( ! $ability ) {
+		return new WP_Error( 'ability_not_available', 'Subscriber status ability not available.', array( 'status' => 500 ) );
+	}
+	$result = $ability->execute(
 		array(
 			'email'   => $request->get_param( 'email' ),
 			'list_id' => $request->get_param( 'list_id' ),
