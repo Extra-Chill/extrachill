@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
 /** Verifies the hidden inquiry ability's complete attachment saga. */
-final class BookingInquiryAdmissionTest extends TestCase {
+final class BookingInquiryAdmissionTest extends BookingTestCase {
 
 	/**
 	 * Fake private provider.

@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
-final class BookingAttachmentTest extends TestCase {
+final class BookingAttachmentTest extends BookingTestCase {
 
 	private $provider;
 

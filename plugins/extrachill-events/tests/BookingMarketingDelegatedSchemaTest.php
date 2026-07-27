@@ -40,7 +40,7 @@ namespace {
 	require_once __DIR__ . '/Support/BookingTestHarness.php';
 	require_once dirname( __DIR__, 2 ) . '/data-machine/inc/Abilities/DelegatedOperationAbilities.php';
 
-	final class BookingMarketingDelegatedSchemaTest extends TestCase {
+	final class BookingMarketingDelegatedSchemaTest extends BookingTestCase {
 		protected function setUp(): void {
 			$GLOBALS['ec_artist_test'] = array( 'abilities' => array() );
 		}

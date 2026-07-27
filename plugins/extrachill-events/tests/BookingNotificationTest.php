@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
 /** Covers recovery, authorization, and structured receipt reconciliation. */
-final class BookingNotificationTest extends TestCase {
+final class BookingNotificationTest extends BookingTestCase {
 	/** Reset booking persistence. */
 	protected function setUp(): void {
 		$GLOBALS['ec_artist_test'] = array(

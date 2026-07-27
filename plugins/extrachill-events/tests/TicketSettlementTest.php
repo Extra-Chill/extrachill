@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
-final class TicketSettlementTest extends TestCase {
+final class TicketSettlementTest extends BookingTestCase {
 	/** @var BookingRepository */
 	private $bookings;
 	/** @var BookingTestAuthorization */

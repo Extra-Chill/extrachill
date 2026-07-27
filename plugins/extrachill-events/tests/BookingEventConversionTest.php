@@ -28,7 +28,7 @@ final class BookingConversionAbilityFake {
 	}
 }
 
-final class BookingEventConversionTest extends TestCase {
+final class BookingEventConversionTest extends BookingTestCase {
 	protected function setUp(): void {
 		$GLOBALS['ec_test_filters'] = array();
 		$GLOBALS['ec_artist_test'] = array(

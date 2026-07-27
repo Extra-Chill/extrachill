@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
-final class CanonicalEventPublicationGuardTest extends TestCase {
+final class CanonicalEventPublicationGuardTest extends BookingTestCase {
 
 	protected function setUp(): void {
 		$GLOBALS['ec_test_filters'] = array();

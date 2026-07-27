@@ -212,7 +212,7 @@ if ( ! class_exists( '\AgentsAPI\AI\Approvals\WP_Agent_Pending_Action' ) ) {
 	class_alias( BookingMarketingPendingActionFake::class, '\AgentsAPI\AI\Approvals\WP_Agent_Pending_Action' );
 }
 
-final class BookingMarketingTest extends TestCase {
+final class BookingMarketingTest extends BookingTestCase {
 	private BookingMarketingDelegatedBackendFake $backend;
 	private $original_wpdb;
 	private array $asset_files = array();
@@ -318,15 +318,19 @@ final class BookingMarketingTest extends TestCase {
 			$GLOBALS['ec_artist_test']['ability_objects'][ 'datamachine/' . $verb . '-delegated-operation' ] = new BookingMarketingDelegatedAbilityFake( $this->backend, $verb );
 		}
 		$GLOBALS['ec_test_ability_resolver'] = static fn( string $name ) => $GLOBALS['ec_artist_test']['ability_objects'][ $name ] ?? null;
-		$this->log_callback                  = static function ( $level, $message, $context ): void {
-			$GLOBALS['ec_artist_test']['fired_actions']['datamachine_log'][] = array( $level, $message, $context );
-		};
-		add_action( 'datamachine_log', $this->log_callback, 10, 3 );
+		if ( ! defined( 'EC_TEST_DO_ACTION_RECORDS_FIXTURES' ) ) {
+			$this->log_callback = static function ( $level, $message, $context ): void {
+				$GLOBALS['ec_artist_test']['fired_actions']['datamachine_log'][] = array( $level, $message, $context );
+			};
+			add_action( 'datamachine_log', $this->log_callback, 10, 3 );
+		}
 	}
 
 	protected function tearDown(): void {
 		$GLOBALS['wpdb'] = $this->original_wpdb;
-		remove_action( 'datamachine_log', $this->log_callback, 10 );
+		if ( $this->log_callback ) {
+			remove_action( 'datamachine_log', $this->log_callback, 10 );
+		}
 		unset( $GLOBALS['ec_test_ability_resolver'] );
 		foreach ( $this->asset_files as $file ) {
 			if ( is_file( $file ) ) {

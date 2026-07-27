@@ -127,7 +127,16 @@ if ( ! function_exists( 'apply_filters' ) ) {
 }
 
 if ( ! function_exists( 'do_action' ) ) {
+	define( 'EC_TEST_DO_ACTION_RECORDS_FIXTURES', true );
+
 	function do_action( $hook, ...$args ) {
+		if ( isset( $GLOBALS['ec_artist_test']['fired_actions'] ) && is_array( $GLOBALS['ec_artist_test']['fired_actions'] ) ) {
+			$GLOBALS['ec_artist_test']['fired_actions'][ $hook ][] = $args;
+		}
+		if ( isset( $GLOBALS['venue_membership_test']['fired_actions'] ) && is_array( $GLOBALS['venue_membership_test']['fired_actions'] ) ) {
+			$GLOBALS['venue_membership_test']['fired_actions'][ $hook ][] = $args;
+		}
+
 		if ( empty( $GLOBALS['ec_test_filters'][ $hook ] ) ) {
 			return;
 		}
@@ -144,8 +153,11 @@ if ( ! function_exists( 'do_action' ) ) {
 if ( ! function_exists( 'wp_get_ability' ) ) {
 	function wp_get_ability( $name ) {
 		$resolver = $GLOBALS['ec_test_ability_resolver'] ?? null;
+		$ability  = is_callable( $resolver ) ? $resolver( $name ) : null;
 
-		return is_callable( $resolver ) ? $resolver( $name ) : null;
+		return $ability
+			?? ( $GLOBALS['ec_artist_test']['ability_objects'][ $name ] ?? null )
+			?? ( $GLOBALS['venue_membership_test']['ability_objects'][ $name ] ?? null );
 	}
 }
 
@@ -182,6 +194,43 @@ if ( ! function_exists( 'mb_substr' ) && function_exists( 'substr' ) ) {
 	// PHP 8.4 with mbstring should always have mb_substr, but guard anyway.
 	function mb_substr( $string, $start, $length = null ) {
 		return null === $length ? substr( $string, $start ) : substr( $string, $start, $length );
+	}
+}
+
+/** Restores mutable plain-test globals after every test. */
+abstract class BookingTestCase extends PHPUnit\Framework\TestCase {
+	private $booking_test_globals;
+	private $booking_test_document_root_exists;
+	private $booking_test_document_root;
+
+	public function runBare(): void {
+		$keys                       = array( 'wpdb', 'ec_artist_test', 'venue_membership_test', 'ec_test_ability_resolver', 'ec_test_filters', 'extrachill_events_booking_reference_lock_uncertainty', 'extrachill_events_booking_database_connection_quarantined' );
+		$this->booking_test_globals = array();
+		foreach ( $keys as $key ) {
+			$this->booking_test_globals[ $key ] = array(
+				'exists' => array_key_exists( $key, $GLOBALS ),
+				'value'  => $GLOBALS[ $key ] ?? null,
+			);
+		}
+		$this->booking_test_document_root_exists = array_key_exists( 'DOCUMENT_ROOT', $_SERVER );
+		$this->booking_test_document_root        = $_SERVER['DOCUMENT_ROOT'] ?? null;
+
+		try {
+			parent::runBare();
+		} finally {
+			foreach ( $this->booking_test_globals as $key => $snapshot ) {
+				if ( $snapshot['exists'] ) {
+					$GLOBALS[ $key ] = $snapshot['value'];
+				} else {
+					unset( $GLOBALS[ $key ] );
+				}
+			}
+			if ( $this->booking_test_document_root_exists ) {
+				$_SERVER['DOCUMENT_ROOT'] = $this->booking_test_document_root;
+			} else {
+				unset( $_SERVER['DOCUMENT_ROOT'] );
+			}
+		}
 	}
 }
 

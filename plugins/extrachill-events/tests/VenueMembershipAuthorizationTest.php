@@ -19,6 +19,8 @@ use ExtraChillEvents\Core\VenueOnboardingService;
 use ExtraChillEvents\Core\VenueProfile;
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/Support/BookingTestHarness.php';
+
 if ( ! defined( 'ARRAY_A' ) ) {
 	define( 'ARRAY_A', 'ARRAY_A' );
 		}
@@ -849,7 +851,7 @@ require_once dirname( __DIR__ ) . '/inc/Abilities/VenueProfileAbilities.php';
  * Venue membership and profile composition coverage uses isolated WP doubles.
  *
  */
-final class VenueMembershipAuthorizationTest extends TestCase {
+final class VenueMembershipAuthorizationTest extends BookingTestCase {
 	private $original_wpdb;
 	private $original_ability_resolver;
 	private $config_updated_callback;
@@ -1020,15 +1022,19 @@ final class VenueMembershipAuthorizationTest extends TestCase {
 			},
 		);
 		$GLOBALS['ec_test_ability_resolver'] = static fn( string $name ) => $GLOBALS['venue_membership_test']['ability_objects'][ $name ] ?? null;
-		$this->config_updated_callback       = static function ( ...$args ): void {
-			$GLOBALS['venue_membership_test']['fired_actions']['extrachill_events_venue_booking_config_updated'][] = $args;
-		};
-		add_action( 'extrachill_events_venue_booking_config_updated', $this->config_updated_callback, 10, 3 );
+		if ( ! defined( 'EC_TEST_DO_ACTION_RECORDS_FIXTURES' ) ) {
+			$this->config_updated_callback = static function ( ...$args ): void {
+				$GLOBALS['venue_membership_test']['fired_actions']['extrachill_events_venue_booking_config_updated'][] = $args;
+			};
+			add_action( 'extrachill_events_venue_booking_config_updated', $this->config_updated_callback, 10, 3 );
+		}
 		$GLOBALS['wpdb']                  = new VenueMembershipWpdb( $this->original_wpdb );
 	}
 
 	protected function tearDown(): void {
-		remove_action( 'extrachill_events_venue_booking_config_updated', $this->config_updated_callback, 10 );
+		if ( $this->config_updated_callback ) {
+			remove_action( 'extrachill_events_venue_booking_config_updated', $this->config_updated_callback, 10 );
+		}
 		if ( null === $this->original_ability_resolver ) {
 			unset( $GLOBALS['ec_test_ability_resolver'] );
 		} else {

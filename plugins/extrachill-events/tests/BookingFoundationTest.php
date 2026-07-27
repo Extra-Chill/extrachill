@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
-final class BookingFoundationTest extends TestCase {
+final class BookingFoundationTest extends BookingTestCase {
 	protected function setUp(): void {
 		$GLOBALS['ec_artist_test'] = array(
 			'blog_id'       => 7,
