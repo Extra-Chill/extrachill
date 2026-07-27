@@ -3,10 +3,8 @@
  * PSR-4 Autoloader
  *
  * Registers a namespace-scoped autoloader for the `ExtraChill\CLI\` namespace
- * rooted at the plugin's `inc/` directory. Used in both the WP-CLI runtime
- * (to load command classes on demand) and in non-CLI compose contexts (so the
- * AGENTS.md section generator can reflect over command classes and resolve
- * any traits or dependencies they `use` without a fatal error).
+ * rooted at the plugin's `inc/` directory so WP-CLI can load command classes
+ * on demand.
  *
  * @package ExtraChill\CLI
  */

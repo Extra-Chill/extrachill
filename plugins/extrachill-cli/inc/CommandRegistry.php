@@ -2,12 +2,8 @@
 /**
  * Command Registry
  *
- * Single source of truth mapping `wp extrachill ...` command strings to their
- * implementing command classes. Both the WP-CLI bootstrap (which calls
- * WP_CLI::add_command for each entry) and the AGENTS.md section generator
- * (which reflects over each class to enumerate real subcommands) read from
- * this map, so the documented CLI surface can never drift from what is
- * actually registered.
+ * Maps `wp extrachill ...` command strings to their implementing command
+ * classes. The WP-CLI bootstrap registers every entry in this map.
  *
  * @package ExtraChill\CLI
  */
@@ -25,7 +21,7 @@ class CommandRegistry {
 	 *
 	 * Keys are the exact strings passed to WP_CLI::add_command (the command
 	 * namespace, e.g. "extrachill venues" or "extrachill users access").
-	 * Order here determines both registration order and documentation order.
+	 * Order here determines registration order.
 	 *
 	 * @return array<string, class-string>
 	 */

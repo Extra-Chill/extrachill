@@ -17,9 +17,7 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 	return;
 }
 
-// Register every command from the single-source-of-truth map. The same map
-// drives the AGENTS.md section generator, so documentation cannot drift from
-// what is actually registered here.
+// Register every command from the command map.
 foreach ( ExtraChill\CLI\CommandRegistry::map() as $command => $command_class ) {
 	WP_CLI::add_command( $command, $command_class );
 }

@@ -23,23 +23,16 @@ define( 'EXTRACHILL_CLI_PATH', plugin_dir_path( __FILE__ ) );
 |--------------------------------------------------------------------------
 | AGENTS.md — composable file section registration
 |--------------------------------------------------------------------------
-| Registers the Extra Chill CLI section in the AGENTS.md composable file
-| so that external agent runtimes (Claude Code, OpenCode, etc.) discover
-| the platform CLI surface automatically. Runs outside the WP_CLI guard
-| because the compose command and auto-regeneration may fire in non-CLI
-| WordPress contexts (e.g. plugin activation hooks).
+| Registers concise ownership, routing, multisite, and discovery guidance for
+| the Extra Chill CLI. Runs outside the WP_CLI guard because composition and
+| auto-regeneration may fire in non-CLI WordPress contexts.
 */
 add_action( 'plugins_loaded', function () {
 	if ( ! class_exists( '\DataMachine\Engine\AI\SectionRegistry' ) ) {
 		return;
 	}
 
-	// This section can be composed in non-CLI (web/cron) contexts where the
-	// WP_CLI guard below has not registered the autoloader. Register it here
-	// so the generator can reflect over the real command classes (and any
-	// traits they use) regardless of context.
-	require_once EXTRACHILL_CLI_PATH . 'inc/Autoloader.php';
-	\ExtraChill\CLI\Autoloader::register( EXTRACHILL_CLI_PATH );
+	require_once EXTRACHILL_CLI_PATH . 'inc/AgentsMdSection.php';
 
 	$wp = 'wp --allow-root --path=' . ABSPATH;
 
