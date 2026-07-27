@@ -133,6 +133,15 @@ function ec_users_notify( $user_ids, array $data ): int {
  * converge on one row per recipient while unrelated producers remain isolated.
  * Omitting both fields retains the historical non-idempotent insert behavior.
  *
+ * An idempotent producer that delivers its own email may also pass
+ * `producer_owns_email => true`. The insert atomically persists that ownership
+ * and stamps emailed_at equal to created_at, keeping the notification unread and
+ * visible while excluding it from the generic email sweep. A crash after this
+ * insert but before downstream
+ * queue admission leaves the suppressed receipt in place; producers should call
+ * ec_users_release_notification_receipt() only after an explicit admission
+ * failure, then retry the complete operation.
+ *
  * Requested IDs are normalized to a unique recipient set. Each receipt has an
  * inserted, existing, or failed status. A notification row ID is returned only
  * after an insert or an exact producer/key replay has been verified.
@@ -145,6 +154,9 @@ function ec_users_notify( $user_ids, array $data ): int {
  *                                   with idempotency_key.
  *     @type string $idempotency_key Optional producer-owned replay key. Must be
  *                                   paired with producer.
+ *     @type bool   $producer_owns_email Optional. When true, the producer owns
+ *                                       email delivery for this receipt. Requires
+ *                                       producer and idempotency_key.
  * }
  * @return array{requested:int, inserted:int, existing:int, failed:int, recipients:array<int,array{user_id:int,status:string,notification_id:?int,error:?string}>}
  */
@@ -181,6 +193,7 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 	$idempotency_key = isset( $data['idempotency_key'] ) ? trim( (string) $data['idempotency_key'] ) : '';
 	$has_producer    = '' !== $producer;
 	$has_key         = '' !== $idempotency_key;
+	$owns_email      = true === ( $data['producer_owns_email'] ?? false );
 	$payload_error   = null;
 
 	if ( ! $actor_id || '' === $type || '' === $link || '' === $title ) {
@@ -193,6 +206,8 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 		$payload_error = 'invalid_producer';
 	} elseif ( $has_key && ( strlen( $idempotency_key ) > 191 || preg_match( '/[\x00-\x1F\x7F]/', $idempotency_key ) ) ) {
 		$payload_error = 'invalid_idempotency_key';
+	} elseif ( $owns_email && ( ! $has_producer || ! $has_key ) ) {
+		$payload_error = 'email_ownership_requires_idempotency';
 	}
 
 	if ( null !== $payload_error ) {
@@ -225,7 +240,7 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 		if ( $has_producer ) {
 			$result = $wpdb->query(
 				$wpdb->prepare(
-					"INSERT IGNORE INTO {$table} (user_id, actor_id, type, title, link, item_id, is_read, created_at, producer, idempotency_key, delivery_key) VALUES (%d, %d, %s, %s, %s, NULLIF(%d, 0), 0, %s, %s, %s, %s)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+					"INSERT IGNORE INTO {$table} (user_id, actor_id, type, title, link, item_id, is_read, created_at, emailed_at, producer_owns_email, producer, idempotency_key, delivery_key) VALUES (%d, %d, %s, %s, %s, NULLIF(%d, 0), 0, %s, NULLIF(%s, ''), %d, %s, %s, %s)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 					$user_id,
 					$actor_id,
 					$type,
@@ -233,6 +248,8 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 					$link,
 					$item_id,
 					$created_at,
+					$owns_email ? $created_at : '',
+					(int) $owns_email,
 					$producer,
 					$idempotency_key,
 					$delivery_key
@@ -267,7 +284,7 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 		if ( $has_producer && 1 !== (int) $result ) {
 			$existing = $wpdb->get_row(
 				$wpdb->prepare(
-					"SELECT id, producer, idempotency_key FROM {$table} WHERE user_id = %d AND delivery_key = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+					"SELECT id, producer, idempotency_key, producer_owns_email FROM {$table} WHERE user_id = %d AND delivery_key = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 					$user_id,
 					$delivery_key
 				),
@@ -276,6 +293,11 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 
 			if ( ! $existing || $producer !== $existing['producer'] || $idempotency_key !== $existing['idempotency_key'] ) {
 				$receipt['recipients'][ $user_id ] = ec_users_notification_failed_receipt( $user_id, 'insert_failed' );
+				++$receipt['failed'];
+				continue;
+			}
+			if ( (int) $owns_email !== (int) $existing['producer_owns_email'] ) {
+				$receipt['recipients'][ $user_id ] = ec_users_notification_failed_receipt( $user_id, 'idempotency_contract_mismatch' );
 				++$receipt['failed'];
 				continue;
 			}
@@ -309,6 +331,63 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 	}
 
 	return $receipt;
+}
+
+/**
+ * Release one producer-owned notification receipt after queue admission fails.
+ *
+ * The delete is bounded by the receipt ID, recipient, producer, idempotency key,
+ * delivery digest, authoritative email-ownership marker, and unread state. It cannot
+ * release a normal idempotent notification or another producer's receipt.
+ * Call this only for an explicit downstream queue-admission failure. It cannot
+ * repair a process crash between notification insertion and learning the queue
+ * result, and releasing after successful admission could permit duplicate work.
+ *
+ * @param int    $notification_id Notification ID returned in the receipt.
+ * @param int    $user_id         Receipt recipient ID.
+ * @param string $producer        Exact producer namespace used for insertion.
+ * @param string $idempotency_key Exact producer replay key used for insertion.
+ * @return bool True only when the exact producer-owned receipt was deleted.
+ */
+function ec_users_release_notification_receipt( int $notification_id, int $user_id, string $producer, string $idempotency_key ): bool {
+	global $wpdb;
+
+	$producer        = strtolower( trim( $producer ) );
+	$idempotency_key = trim( $idempotency_key );
+
+	if (
+		$notification_id <= 0
+		|| $user_id <= 0
+		|| '' === $producer
+		|| '' === $idempotency_key
+		|| strlen( $producer ) > 64
+		|| ! preg_match( '/^[a-z0-9][a-z0-9._\/-]*$/', $producer )
+		|| strlen( $idempotency_key ) > 191
+		|| preg_match( '/[\x00-\x1F\x7F]/', $idempotency_key )
+	) {
+		return false;
+	}
+
+	$table        = extrachill_users_notifications_table_name();
+	$delivery_key = hash( 'sha256', $producer . "\0" . $idempotency_key );
+	$deleted      = $wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$table} WHERE id = %d AND user_id = %d AND producer = %s AND idempotency_key = %s AND delivery_key = %s AND producer_owns_email = 1 AND is_read = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			$notification_id,
+			$user_id,
+			$producer,
+			$idempotency_key,
+			$delivery_key
+		)
+	);
+
+	if ( 1 !== (int) $deleted ) {
+		return false;
+	}
+
+	ec_users_flush_unread_count_cache( $user_id );
+
+	return true;
 }
 
 /**
@@ -377,6 +456,9 @@ function ec_users_enrich_notification( array $row ): array {
  *     @type bool $unread   Only return unread notifications. Default false.
  *     @type int  $page     1-indexed page number. Default 1.
  *     @type int  $per_page Results per page (1-100). Default 50.
+ *     @type bool $exclude_producer_owned_email Exclude notifications whose
+ *                                               producer owns email delivery.
+ *                                               Default false.
  * }
  * @return array{ user_id:int, total:int, unread_count:int, page:int, pages:int, notifications:array }
  */
@@ -384,15 +466,17 @@ function ec_users_get_notifications( int $user_id, array $args = array() ): arra
 	global $wpdb;
 
 	$defaults = array(
-		'unread'   => false,
-		'page'     => 1,
-		'per_page' => 50,
+		'unread'                       => false,
+		'page'                         => 1,
+		'per_page'                     => 50,
+		'exclude_producer_owned_email' => false,
 	);
 	$args     = wp_parse_args( $args, $defaults );
 
-	$unread_only = ! empty( $args['unread'] );
-	$per_page    = max( 1, min( 100, (int) $args['per_page'] ) );
-	$page        = max( 1, (int) $args['page'] );
+	$unread_only   = ! empty( $args['unread'] );
+	$exclude_owned = ! empty( $args['exclude_producer_owned_email'] );
+	$per_page      = max( 1, min( 100, (int) $args['per_page'] ) );
+	$page          = max( 1, (int) $args['page'] );
 
 	$table = extrachill_users_notifications_table_name();
 
@@ -407,15 +491,31 @@ function ec_users_get_notifications( int $user_id, array $args = array() ): arra
 		);
 	}
 
-	$unread_count = (int) $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
-			$user_id
-		)
-	);
+	if ( $exclude_owned ) {
+		$unread_count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				$user_id
+			)
+		);
+	} else {
+		$unread_count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				$user_id
+			)
+		);
+	}
 
 	if ( $unread_only ) {
 		$total = $unread_count;
+	} elseif ( $exclude_owned ) {
+		$total = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND producer_owns_email = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				$user_id
+			)
+		);
 	} else {
 		$total = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -440,10 +540,30 @@ function ec_users_get_notifications( int $user_id, array $args = array() ): arra
 		);
 	}
 
-	if ( $unread_only ) {
+	if ( $unread_only && $exclude_owned ) {
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0 ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				$user_id,
+				$per_page,
+				$offset
+			),
+			ARRAY_A
+		);
+	} elseif ( $unread_only ) {
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$table} WHERE user_id = %d AND is_read = 0 ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				$user_id,
+				$per_page,
+				$offset
+			),
+			ARRAY_A
+		);
+	} elseif ( $exclude_owned ) {
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE user_id = %d AND producer_owns_email = 0 ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 				$user_id,
 				$per_page,
 				$offset

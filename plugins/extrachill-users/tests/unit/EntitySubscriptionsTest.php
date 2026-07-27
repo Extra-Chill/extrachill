@@ -66,6 +66,42 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 		$this->assertFalse( extrachill_users_entity_subscription_status( $user_id, 'venue', 'venue', 'the-royal-american' )['subscribed'] );
 	}
 
+	public function test_unsubscribe_is_idempotent_when_no_row_exists(): void {
+		$user_id = self::factory()->user->create();
+
+		$first  = extrachill_users_unsubscribe_from_entity( $user_id, 'venue', 'venue', 'the-royal-american' );
+		$second = extrachill_users_unsubscribe_from_entity( $user_id, 'venue', 'venue', 'the-royal-american' );
+
+		$this->assertFalse( $first['subscribed'] );
+		$this->assertFalse( $second['subscribed'] );
+	}
+
+	public function test_unsubscribe_returns_error_on_database_failure(): void {
+		global $wpdb;
+
+		$user_id = self::factory()->user->create();
+		$table   = extrachill_users_entity_subscriptions_table_name();
+		$fail    = static function ( string $query ) use ( $table ): string {
+			if ( str_contains( $query, "DELETE FROM {$table}" ) ) {
+				return 'INVALID ENTITY SUBSCRIPTION DELETE';
+			}
+
+			return $query;
+		};
+
+		$previous_suppression = $wpdb->suppress_errors( true );
+		add_filter( 'query', $fail );
+		try {
+			$result = extrachill_users_unsubscribe_from_entity( $user_id, 'venue', 'venue', 'the-royal-american' );
+		} finally {
+			remove_filter( 'query', $fail );
+			$wpdb->suppress_errors( $previous_suppression );
+		}
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'entity_subscription_delete_failed', $result->get_error_code() );
+	}
+
 	public function test_invalid_entity_pair_is_rejected(): void {
 		$user_id = self::factory()->user->create();
 		$result  = extrachill_users_subscribe_to_entity( $user_id, 'festival', 'artist', 'big-fest' );

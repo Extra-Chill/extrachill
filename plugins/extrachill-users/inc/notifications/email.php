@@ -237,12 +237,12 @@ add_action( EC_NOTIFICATIONS_EMAIL_CRON_HOOK, 'ec_notifications_email_run' );
 /**
  * Find users eligible for a digest email.
  *
- * Eligible == has at least one unread, NEVER-EMAILED notification whose
- * created_at is older than EC_NOTIFICATIONS_EMAIL_DELAY. The emailed_at IS NULL
- * predicate is what makes the digest "nudge once per notification": once a
- * notification has been included in a digest its emailed_at is stamped, so it
- * can never make the user eligible again. Without it the sweep re-nudged the
- * same stale unread notification every cooldown window, forever, until read.
+ * Eligible == has at least one ordinary unread, NEVER-EMAILED notification whose
+ * created_at is older than EC_NOTIFICATIONS_EMAIL_DELAY. Producer-owned email
+ * receipts are excluded by their persisted ownership marker. The emailed_at IS
+ * NULL predicate makes the digest "nudge once per notification": once an
+ * ordinary notification has been included, it can never make the user eligible
+ * again.
  *
  * Uses the idx_email_sweep index (is_read, emailed_at, created_at) — one
  * grouped scan, no per-row loading.
@@ -273,7 +273,7 @@ function ec_notifications_email_find_eligible_users( $limit = 50 ) {
 	// not eligible no matter how long it stays unread.
 	$rows = $wpdb->get_col(
 		$wpdb->prepare(
-			"SELECT user_id FROM {$table} WHERE is_read = 0 AND emailed_at IS NULL AND created_at <= %s GROUP BY user_id ORDER BY MIN(created_at) ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			"SELECT user_id FROM {$table} WHERE is_read = 0 AND producer_owns_email = 0 AND emailed_at IS NULL AND created_at <= %s GROUP BY user_id ORDER BY MIN(created_at) ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 			$cutoff,
 			$candidate_limit
 		)
@@ -488,9 +488,10 @@ function ec_notifications_email_send_digest( $user_id ) {
 	$result = ec_users_get_notifications(
 		$user_id,
 		array(
-			'unread'   => true,
-			'page'     => 1,
-			'per_page' => EC_NOTIFICATIONS_EMAIL_PREVIEW_COUNT,
+			'unread'                       => true,
+			'page'                         => 1,
+			'per_page'                     => EC_NOTIFICATIONS_EMAIL_PREVIEW_COUNT,
+			'exclude_producer_owned_email' => true,
 		)
 	);
 
@@ -524,9 +525,10 @@ function ec_notifications_email_send_digest( $user_id ) {
 		$wide    = ec_users_get_notifications(
 			$user_id,
 			array(
-				'unread'   => true,
-				'page'     => 1,
-				'per_page' => 100,
+				'unread'                       => true,
+				'page'                         => 1,
+				'per_page'                     => 100,
+				'exclude_producer_owned_email' => true,
 			)
 		);
 		$preview = array_slice(
@@ -590,8 +592,9 @@ function ec_notifications_email_send_digest( $user_id ) {
 /**
  * Count a user's unread notifications that have NOT yet been emailed.
  *
- * The once-per-notification eligibility signal: only notifications with
- * emailed_at IS NULL can justify a digest. Uses the idx_email_sweep index.
+ * The once-per-notification eligibility signal: only ordinary notifications
+ * with emailed_at IS NULL can justify a digest. Producer-owned email receipts
+ * are excluded independently of emailed_at. Uses the idx_email_sweep index.
  *
  * @param int $user_id User ID.
  * @return int Number of unread, never-emailed notifications.
@@ -608,7 +611,7 @@ function ec_notifications_email_count_unmailed_unread( $user_id ) {
 
 	return (int) $wpdb->get_var(
 		$wpdb->prepare(
-			"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0 AND emailed_at IS NULL", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0 AND emailed_at IS NULL", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 			$user_id
 		)
 	);
@@ -640,7 +643,7 @@ function ec_notifications_email_count_stale_unread_reminders( $user_id ) {
 
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT item_id FROM {$table} WHERE user_id = %d AND is_read = 0 AND type = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			"SELECT item_id FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0 AND type = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 			$user_id,
 			EC_USERS_SHOW_REMINDER_TYPE
 		),
@@ -717,12 +720,12 @@ function ec_notifications_email_reminder_is_stale( $event_id ) {
 }
 
 /**
- * Stamp emailed_at = now on a user's unread, not-yet-emailed notifications.
+ * Stamp emailed_at = now on a user's ordinary unread, not-yet-emailed notifications.
  *
  * After a digest is enqueued, every unread notification that was eligible to be
- * nudged is marked so it never triggers another email. Only unread + NULL
- * rows are touched: already-read rows are irrelevant and already-emailed rows
- * keep their original (earlier) stamp.
+ * nudged is marked so it never triggers another email. Only non-producer-owned,
+ * unread + NULL rows are touched: already-read rows are irrelevant and
+ * already-emailed rows keep their original (earlier) stamp.
  *
  * @param int $user_id User ID.
  * @return int Number of rows stamped.
@@ -740,7 +743,7 @@ function ec_notifications_email_mark_unread_as_emailed( $user_id ) {
 
 	return (int) $wpdb->query(
 		$wpdb->prepare(
-			"UPDATE {$table} SET emailed_at = %s WHERE user_id = %d AND is_read = 0 AND emailed_at IS NULL", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			"UPDATE {$table} SET emailed_at = %s WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0 AND emailed_at IS NULL", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 			$now,
 			$user_id
 		)
