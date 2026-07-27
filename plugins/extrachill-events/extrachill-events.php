@@ -116,11 +116,13 @@ add_action(
 			return;
 		}
 		require_once __DIR__ . '/inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
+		require_once __DIR__ . '/inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
 
 		add_filter(
 			'datamachine_tasks',
 			function ( array $tasks ): array {
-				$tasks[ \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE ] = \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::class;
+				$tasks[ \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE ]       = \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::class;
+				$tasks[ \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE ] = \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::class;
 				return $tasks;
 			}
 		);
@@ -128,6 +130,23 @@ add_action(
 		add_filter(
 			'datamachine_recurring_schedules',
 			function ( array $schedules ): array {
+				$schedules['extrachill_local_scene_digest'] = apply_filters(
+					'extrachill_local_scene_digest_schedule',
+					array(
+						'task_type'          => \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE,
+						'interval'           => 'weekly',
+						'enabled_setting'    => 'extrachill_local_scene_digest_enabled',
+						'default_enabled'    => false,
+						'label'              => 'Weekly Local Scene Digest — Thursdays 15:00 UTC',
+						'first_run_callback' => 'strtotime',
+						'first_run_arg'      => 'next thursday 15:00 UTC',
+						'task_params'        => array(
+							'days'    => 7,
+							'limit'   => 8,
+							'dry_run' => false,
+						),
+					)
+				);
 				/**
 				 * Filter the qualify digest schedule definition. Allows
 				 * operators to flip interval, change the first-run anchor,
@@ -293,6 +312,8 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/artist-map.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-seo.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/account-market.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/local-scene-digest.php';
+		extrachill_events_init_local_scene_digest();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/near-me.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/discovery-pages.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/router-pages.php';

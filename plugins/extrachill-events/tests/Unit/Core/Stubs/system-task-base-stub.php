@@ -44,3 +44,14 @@ if ( ! class_exists( __NAMESPACE__ . '\\SystemTask' ) ) {
 		}
 	}
 }
+
+namespace DataMachine\Core;
+
+if ( ! class_exists( __NAMESPACE__ . '\\PluginSettings' ) ) {
+	class PluginSettings {
+		public static function get( string $key, $default = null ) {
+			$GLOBALS['ec_test_plugin_settings_reads'][] = array( $key, $default );
+			return $GLOBALS['ec_test_plugin_settings'][ $key ] ?? $default;
+		}
+	}
+}
