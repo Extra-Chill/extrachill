@@ -54,6 +54,32 @@ function extrachill_users_register_entity_subscription_abilities(): void {
 		);
 	}
 
+	wp_register_ability(
+		'extrachill/list-entity-subscriptions',
+		array(
+			'label'               => __( 'List Entity Subscriptions', 'extrachill-users' ),
+			'description'         => __( 'List the authenticated user’s private canonical entity subscription identities.', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'page'     => array( 'type' => 'integer' ),
+					'per_page' => array( 'type' => 'integer' ),
+				),
+			),
+			'output_schema'       => array( 'type' => 'object' ),
+			'execute_callback'    => 'extrachill_users_ability_list_entity_subscriptions',
+			'permission_callback' => 'is_user_logged_in',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'   => true,
+					'idempotent' => true,
+				),
+			),
+		)
+	);
+
 	// Producer recipient enumeration is never exposed through REST. Producers
 	// use the private service directly, and privileged tooling may use this
 	// ability only when it has a network administrator's authorization.
@@ -151,6 +177,21 @@ function extrachill_users_ability_entity_unsubscribe( array $input ) {
  */
 function extrachill_users_ability_entity_subscription_status( array $input ) {
 	return extrachill_users_entity_subscription_ability( $input, 'status' );
+}
+
+/**
+ * List the authenticated user's canonical subscription identities.
+ *
+ * @param array $input Pagination input.
+ * @return array|WP_Error
+ */
+function extrachill_users_ability_list_entity_subscriptions( array $input ) {
+	$user_id = extrachill_users_resolve_self_user_id();
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
+	}
+
+	return extrachill_users_list_entity_subscriptions( $user_id, $input['page'] ?? 1, $input['per_page'] ?? 50 );
 }
 
 /**
