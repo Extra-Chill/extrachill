@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.54.0] - 2026-07-27
+
+### Added
+- reconcile booking ticket sales evidence
+
+### Changed
+- isolate booking harness globals
+
+### Fixed
+- unblock production-scale event expansion
+
 ## [0.53.0] - 2026-07-27
 
 ### Added
