@@ -9,6 +9,7 @@
 	<testsuites>
 		<testsuite name="booking-foundation">
 			<file>tests/BookingFoundationTest.php</file>
+			<file>tests/LocalSupportDomainTest.php</file>
 			<file>tests/BookingAttachmentTest.php</file>
 			<file>tests/BookingInquiryAdmissionTest.php</file>
 			<file>tests/BookingPrivateFileProviderTest.php</file>
