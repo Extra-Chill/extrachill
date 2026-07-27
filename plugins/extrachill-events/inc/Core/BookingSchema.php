@@ -1311,7 +1311,11 @@ class BookingSchema {
 
 	/** Normalize one SHOW COLUMNS row to the declared contract shape. */
 	private static function normalize_column( array $column ): array {
-		$type = preg_replace( '/\(\d+\)(?=\s+unsigned)/', '', strtolower( trim( (string) ( $column['Type'] ?? '' ) ) ) );
+		$type = preg_replace(
+			'/\A(tinyint|smallint|mediumint|int|integer|bigint)\(\d+\)(\s+unsigned)?\z/',
+			'$1$2',
+			strtolower( trim( (string) ( $column['Type'] ?? '' ) ) )
+		);
 		return array(
 			'type'     => preg_replace( '/\s+/', ' ', $type ),
 			'nullable' => 'YES' === strtoupper( (string) ( $column['Null'] ?? '' ) ),
