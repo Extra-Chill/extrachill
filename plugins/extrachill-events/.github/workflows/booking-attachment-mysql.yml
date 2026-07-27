@@ -13,6 +13,9 @@ on:
       - inc/Core/BookingAttachmentPolicy.php
       - inc/Core/BookingInquiryAdmissionService.php
       - inc/Core/BookingLifecycle.php
+      - inc/Core/BookingEventSyncService.php
+      - inc/Core/BookingEventConversionService.php
+      - inc/Core/BookingActivityRepository.php
       - inc/Core/BookingRepository.php
       - inc/Core/BookingSchema.php
       - inc/Core/VenueAuthorization.php
@@ -25,6 +28,7 @@ on:
       - tests/MySQLIntegration/BookingAdmissionConcurrencyMySQLProof.php
       - tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php
       - tests/MySQLIntegration/host-wordpress-bootstrap.php
+      - tests/Integration/booking-event-sync-mysql.php
       - tests/MySQLIntegration/wp-tests-config.php
 
 permissions:
@@ -140,6 +144,13 @@ jobs:
           if grep -Eiq 'skip|no tests executed|OK, but' "$RUNNER_TEMP/booking-admission-concurrency.txt"; then
             exit 1
           fi
+
+      - name: Run booking event synchronization proof
+        env:
+          EC_EVENTS_MYSQL_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wordpress_test
+          EC_EVENTS_MYSQL_TEST_USER: root
+          EC_EVENTS_MYSQL_TEST_PASSWORD: ""
+        run: php tests/Integration/booking-event-sync-mysql.php
 
       - name: Verify executed PHPUnit evidence
         env:

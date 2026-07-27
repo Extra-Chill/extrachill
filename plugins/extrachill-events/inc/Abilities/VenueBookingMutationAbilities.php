@@ -85,6 +85,24 @@ class VenueBookingMutationAbilities {
 	}
 
 	public function select_performance( array $input ) {
+		$booking = $this->bookings->get( (int) $input['booking_id'] );
+		if ( is_array( $booking ) && null !== $booking['event_id'] ) {
+			$result = ( new \ExtraChillEvents\Core\BookingEventSyncService( $this->bookings, null, $this->authorization ) )->reconcile(
+				(int) $input['booking_id'],
+				(int) $input['expected_version'],
+				get_current_user_id(),
+				array(
+					'space_key'            => (string) $input['space_key'],
+					'performance_start_at' => (string) $input['start_at'],
+					'performance_end_at'   => (string) $input['end_at'],
+				)
+			);
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			$current = $this->bookings->get( (int) $input['booking_id'] );
+			return is_array( $current ) ? $this->schemas->present( $current ) : $current;
+		}
 		$result = $this->mutations->select_performance( (int) $input['booking_id'], (int) $input['expected_version'], (string) $input['space_key'], (string) $input['start_at'], (string) $input['end_at'], get_current_user_id() );
 		return is_array( $result ) ? $this->schemas->present( $result ) : $result;
 	}
@@ -95,6 +113,25 @@ class VenueBookingMutationAbilities {
 	}
 
 	public function update_deal( array $input ) {
+		$booking = $this->bookings->get( (int) $input['booking_id'] );
+		if ( is_array( $booking ) && null !== $booking['event_id'] ) {
+			$normalized = BookingMutationService::normalize_deal_document( $input['deal'] );
+			if ( is_wp_error( $normalized ) ) {
+				return $normalized;
+			}
+			$current = $booking['confirmed_deal']['data'];
+			$next    = $normalized;
+			unset( $current['ticket_url'], $next['ticket_url'] );
+			if ( ! BookingMutationService::documents_equal( $current, $next ) ) {
+				return new \WP_Error( 'booking_deal_already_confirmed', __( 'Only the public ticket URL can change after confirmation.', 'extrachill-events' ), array( 'status' => 409 ) );
+			}
+			$result = ( new \ExtraChillEvents\Core\BookingEventSyncService( $this->bookings, null, $this->authorization ) )->reconcile( (int) $input['booking_id'], (int) $input['expected_version'], get_current_user_id(), array( 'ticket_url' => $normalized['ticket_url'] ) );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			$booking = $this->bookings->get( (int) $input['booking_id'] );
+			return is_array( $booking ) ? $this->schemas->present( $booking ) : $booking;
+		}
 		$result = $this->mutations->update_deal( (int) $input['booking_id'], (int) $input['expected_version'], $input['deal'], get_current_user_id() );
 		return is_array( $result ) ? $this->schemas->present( $result ) : $result;
 	}

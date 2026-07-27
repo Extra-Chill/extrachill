@@ -8,6 +8,7 @@
 use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingEventConversionService;
+use ExtraChillEvents\Core\BookingEventSyncService;
 use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
@@ -157,7 +158,7 @@ final class BookingEventConversionTest extends TestCase {
 	}
 
 	private function add_event( int $id, string $type = 'data_machine_events', string $status = 'publish' ): void {
-		$GLOBALS['ec_artist_test']['posts'][7][ $id ] = (object) array( 'ID' => $id, 'post_type' => $type, 'post_status' => $status, 'post_title' => 'Canonical Event' );
+		$GLOBALS['ec_artist_test']['posts'][7][ $id ] = (object) array( 'ID' => $id, 'post_type' => $type, 'post_status' => $status, 'post_title' => 'Canonical Event', 'post_content' => 'event-' . $id );
 		$GLOBALS['ec_artist_test']['permalinks'][7][ $id ] = 'https://events.example/event/' . $id;
 	}
 
@@ -169,6 +170,33 @@ final class BookingEventConversionTest extends TestCase {
 			'_datamachine_event_source_identity' => $identity,
 		);
 		$GLOBALS['ec_artist_test']['event_venues'][7][ $id ] = array( null === $venue_id ? 55 : $venue_id );
+		if ( isset( $input['event'] ) ) {
+			$GLOBALS['ec_artist_test']['parsed_blocks'][ 'event-' . $id ] = array(
+				array( 'blockName' => 'data-machine-events/event-details', 'attrs' => $input['event'] ),
+			);
+		}
+	}
+
+	private function install_update_ability(): BookingConversionAbilityFake {
+		$ability = new BookingConversionAbilityFake(
+			function ( array $input ): array {
+				$id = (int) $input['event'];
+				if ( isset( $input['venue'] ) ) {
+					$GLOBALS['ec_artist_test']['event_venues'][7][ $id ] = array( (int) $input['venue'] );
+				} else {
+					$attrs = $GLOBALS['ec_artist_test']['parsed_blocks'][ 'event-' . $id ][0]['attrs'];
+					foreach ( $input as $field => $value ) {
+						if ( 'event' !== $field && 'previousStartDate' !== $field ) {
+							$attrs[ $field ] = $value;
+						}
+					}
+					$GLOBALS['ec_artist_test']['parsed_blocks'][ 'event-' . $id ][0]['attrs'] = $attrs;
+				}
+				return array( 'results' => array( array( 'post_id' => $id, 'status' => 'updated', 'updated_fields' => array_keys( $input ) ) ), 'summary' => array( 'updated' => 1, 'failed' => 0, 'total' => 1 ), 'message' => 'Updated 1 event' );
+			}
+		);
+		$GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/update-event'] = $ability;
+		return $ability;
 	}
 
 	private function upstream_result( array $input, array $overrides = array() ): array {
@@ -228,6 +256,12 @@ final class BookingEventConversionTest extends TestCase {
 		$this->assertTrue( $definition['meta']['show_in_rest'] );
 		$this->assertTrue( $definition['meta']['annotations']['idempotent'] );
 		$this->assertFalse( $definition['meta']['annotations']['destructive'] );
+		$sync = $GLOBALS['ec_artist_test']['abilities']['extrachill/reconcile-booking-event'];
+		$this->assertSame( array( 'booking_id', 'expected_version' ), $sync['input_schema']['required'] );
+		$this->assertFalse( $sync['input_schema']['additionalProperties'] );
+		$this->assertFalse( $sync['input_schema']['properties']['changes']['additionalProperties'] );
+		$this->assertTrue( $sync['meta']['annotations']['idempotent'] );
+		$this->assertTrue( $sync['meta']['annotations']['destructive'] );
 		$this->assertSame( 'venue_action_forbidden', $ability->can_access_booking( array( 'booking_id' => 999 ) )->get_error_code() );
 		$booking = $this->booking();
 		$this->assertTrue( $ability->can_access_booking( array( 'booking_id' => $booking['id'] ) ) );
@@ -761,5 +795,102 @@ final class BookingEventConversionTest extends TestCase {
 		$this->assertSame( 'booking_event_upsert_failed', $error->get_error_code() );
 		$this->assertSame( 422, $error->get_error_data()['status'] );
 		$this->assertSame( 'dme_write_forbidden', $error->get_error_data()['upstream_code'] );
+	}
+
+	public function test_reschedule_reconciles_authoritative_fields_once_and_signals_marketing_owner(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$ability = $this->install_update_ability();
+		$sync    = new BookingEventSyncService( null, null, new BookingTestAuthorization() );
+		$result  = $sync->reconcile(
+			$booking['id'],
+			2,
+			12,
+			array(
+				'space_key'            => 'main-room',
+				'performance_start_at' => '2030-03-11 00:00:00',
+				'performance_end_at'   => '2030-03-11 03:00:00',
+			)
+		);
+
+		$this->assertSame( 'succeeded', $result['status'] );
+		$this->assertSame( 3, $result['booking_version'] );
+		$this->assertCount( 1, $ability->calls );
+		$this->assertSame( 'EventRescheduled', $ability->calls[0]['eventStatus'] );
+		$this->assertSame( '2030-03-10', $ability->calls[0]['startDate'] );
+		$this->assertSame( '2030-03-09', $ability->calls[0]['previousStartDate'] );
+		$retry = $sync->reconcile( $booking['id'], 2, 12, array( 'space_key' => 'main-room', 'performance_start_at' => '2030-03-11 00:00:00', 'performance_end_at' => '2030-03-11 03:00:00' ) );
+		$this->assertSame( $result, $retry );
+		$this->assertCount( 1, $ability->calls );
+		$activity = ( new BookingActivityRepository() )->list_for_booking( $booking['id'] );
+		$this->assertCount( 1, array_filter( $activity, static function ( $item ) { return 'event_sync_succeeded' === $item['kind']; } ) );
+		$signals = array_values( array_filter( $activity, static function ( $item ) { return 'event_marketing_change_signaled' === $item['kind']; } ) );
+		$this->assertCount( 1, $signals );
+		$this->assertSame( BookingEventSyncService::MARKETING_ISSUE, $signals[0]['payload']['data']['owner_issue'] );
+	}
+
+	public function test_manual_authoritative_divergence_conflicts_without_overwrite(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$ability = $this->install_update_ability();
+		$GLOBALS['ec_artist_test']['parsed_blocks']['event-901'][0]['attrs']['performer'] = 'Manual Billing';
+
+		$error = ( new BookingEventSyncService( null, null, new BookingTestAuthorization() ) )->reconcile( $booking['id'], 2, 12, array( 'ticket_url' => 'https://tickets.example/new' ) );
+
+		$this->assertSame( 'booking_event_manual_divergence', $error->get_error_code() );
+		$this->assertArrayHasKey( 'performer', $error->get_error_data()['conflicts'] );
+		$this->assertCount( 0, $ability->calls );
+		$this->assertSame( 'https://tickets.example/new', ( new BookingRepository() )->get( $booking['id'] )['confirmed_deal']['data']['ticket_url'] );
+	}
+
+	public function test_pending_crash_window_retries_same_snapshot_and_rejects_different_writer(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$ability   = $this->install_update_ability();
+		$authority = ( new BookingActivityRepository() )->latest_event_authority( $booking['id'] );
+		( new BookingActivityRepository() )->append(
+			array(
+				'booking_id'      => $booking['id'],
+				'kind'            => 'event_sync_started',
+				'idempotency_key' => 'event-sync:' . $booking['public_id'] . ':2:1',
+				'payload'         => array( 'attempt' => 1, 'booking_version' => 2, 'event_id' => 901, 'authority' => $authority ),
+			)
+		);
+		$sync  = new BookingEventSyncService( null, null, new BookingTestAuthorization() );
+		$error = $sync->reconcile( $booking['id'], 2, 12, array( 'performer' => 'Different Writer' ) );
+		$this->assertSame( 'booking_event_sync_pending', $error->get_error_code() );
+		$this->assertCount( 0, $ability->calls );
+		$result = $sync->reconcile( $booking['id'], 2, 12 );
+		$this->assertSame( 'no_change', $result['status'] );
+		$this->assertCount( 0, $ability->calls );
+		$this->assertFalse( ( new BookingActivityRepository() )->event_sync_state( $booking['id'] )['pending'] );
+	}
+
+	public function test_cancellation_and_wrong_site_identity_use_stable_policy(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$ability = $this->install_update_ability();
+		$sync    = new BookingEventSyncService( null, null, new BookingTestAuthorization() );
+		$result  = $sync->reconcile( $booking['id'], 2, 12, array( 'cancelled' => true ) );
+		$this->assertSame( 'succeeded', $result['status'] );
+		$this->assertSame( 'EventCancelled', $ability->calls[0]['eventStatus'] );
+		$this->assertSame( 'cancelled', ( new BookingRepository() )->get( $booking['id'] )['status'] );
+
+		$other = $this->booking();
+		$this->service()->convert( $other['id'], 1, 12 );
+		$GLOBALS['ec_artist_test']['post_meta'][7][901]['_datamachine_event_source_id'] = 'another-site-local-source';
+		$error = $sync->reconcile( $other['id'], 2, 12 );
+		$this->assertSame( 'booking_event_identity_mismatch', $error->get_error_code() );
+	}
+
+	public function test_wrong_venue_is_a_field_conflict_not_a_blind_overwrite(): void {
+		$booking = $this->booking();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$ability = $this->install_update_ability();
+		$GLOBALS['ec_artist_test']['event_venues'][7][901] = array( 999 );
+		$error = ( new BookingEventSyncService( null, null, new BookingTestAuthorization() ) )->reconcile( $booking['id'], 2, 12, array( 'ticket_url' => 'https://tickets.example/corrected' ) );
+		$this->assertSame( 'booking_event_manual_divergence', $error->get_error_code() );
+		$this->assertArrayHasKey( 'venue_id', $error->get_error_data()['conflicts'] );
+		$this->assertCount( 0, $ability->calls );
 	}
 }

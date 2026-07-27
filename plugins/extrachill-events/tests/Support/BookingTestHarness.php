@@ -784,6 +784,21 @@ final class BookingWpdb {
 			usort( $rows, static function ( $left, $right ) { return $right['id'] <=> $left['id']; } );
 			return $rows[0] ?? null;
 		}
+		if ( $is_activity && preg_match( "/WHERE booking_id = (\d+) AND kind = 'event_sync_started' ORDER BY id DESC LIMIT 1/", $query, $match ) ) {
+			$rows = array_values( array_filter( $this->rows[ $table ] ?? array(), static function ( $row ) use ( $match ) { return (int) $row['booking_id'] === (int) $match[1] && 'event_sync_started' === $row['kind']; } ) );
+			usort( $rows, static function ( $left, $right ) { return $right['id'] <=> $left['id']; } );
+			return $rows[0] ?? null;
+		}
+		if ( $is_activity && preg_match( "/WHERE booking_id = (\d+) AND external_id = '(\d+)' AND kind IN \('event_sync_succeeded', 'event_sync_noop', 'event_sync_conflict', 'event_sync_failed'\)/", $query, $match ) ) {
+			$rows = array_values( array_filter( $this->rows[ $table ] ?? array(), static function ( $row ) use ( $match ) { return (int) $row['booking_id'] === (int) $match[1] && (string) ( $row['external_id'] ?? '' ) === $match[2] && in_array( $row['kind'], array( 'event_sync_succeeded', 'event_sync_noop', 'event_sync_conflict', 'event_sync_failed' ), true ); } ) );
+			usort( $rows, static function ( $left, $right ) { return $right['id'] <=> $left['id']; } );
+			return $rows[0] ?? null;
+		}
+		if ( $is_activity && preg_match( "/WHERE booking_id = (\d+) AND kind IN \('event_sync_succeeded', 'event_sync_noop', 'event_converted'\)/", $query, $match ) ) {
+			$rows = array_values( array_filter( $this->rows[ $table ] ?? array(), static function ( $row ) use ( $match ) { return (int) $row['booking_id'] === (int) $match[1] && in_array( $row['kind'], array( 'event_sync_succeeded', 'event_sync_noop', 'event_converted' ), true ); } ) );
+			usort( $rows, static function ( $left, $right ) { return $right['id'] <=> $left['id']; } );
+			return $rows[0] ?? null;
+		}
 		if ( ! $is_attachment && ! $is_delivery && ! $is_activity && ! $is_state && ! $is_hold && ! $is_sales && ! $is_settlement && ! $is_membership && false !== strpos( $query, 'FOR UPDATE' ) ) {
 			++$this->booking_lock_queries;
 			if ( is_callable( $this->after_booking_lock ) ) {
@@ -1489,6 +1504,22 @@ final class BookingWpdb {
 			unset( $row );
 			return $count;
 		}
+		if ( preg_match( "/UPDATE ([^ ]*ec_booking_holds) SET venue_term_id = (\d+), space_key = '([^']+)', start_at = '([^']+)', end_at = '([^']+)', version = version \+ 1, updated_at = '([^']+)' WHERE booking_id = (\d+) AND status = 'converted'/", $query, $hold_update ) ) {
+			$count = 0;
+			foreach ( $this->rows[ $hold_update[1] ] ?? array() as &$row ) {
+				if ( (int) $row['booking_id'] === (int) $hold_update[7] && 'converted' === $row['status'] ) {
+					$row['venue_term_id'] = (int) $hold_update[2];
+					$row['space_key']     = stripslashes( $hold_update[3] );
+					$row['start_at']      = $hold_update[4];
+					$row['end_at']        = $hold_update[5];
+					$row['updated_at']    = $hold_update[6];
+					++$row['version'];
+					++$count;
+				}
+			}
+			unset( $row );
+			return $count;
+		}
 		if ( ! preg_match( '/UPDATE ([^ ]+) SET .*WHERE id = (\d+) AND version = (\d+)/', $query, $match ) ) {
 			return false; }
 		$table    = $match[1];
@@ -1545,6 +1576,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingNotificationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingCommunicationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingHoldRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingMutationService.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingEventSyncService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingEventConversionService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingLifecycle.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivateFileProvider.php';

@@ -257,6 +257,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCommunicationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingHoldRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingMutationService.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingEventSyncService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingEventConversionService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingLifecycle.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingPrivateFileProvider.php';
