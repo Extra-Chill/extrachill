@@ -5,7 +5,8 @@
     "wordpress": {
       "settings": {
         "validation_dependencies": ["/var/lib/datamachine/workspace/extrachill-network"],
-        "wordpress_runtime_php_version": "8.4"
+        "wordpress_runtime_php_version": "8.4",
+        "wp_codebox_phpunit_bootstrap_mode": "managed"
       }
     }
   },

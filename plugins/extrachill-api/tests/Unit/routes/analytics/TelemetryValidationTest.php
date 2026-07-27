@@ -13,13 +13,35 @@ require_once dirname( __DIR__, 4 ) . '/inc/routes/analytics/telemetry-validation
  * Exercises sanitized request fixtures without asserting Analytics semantics.
  */
 class TelemetryValidationTest extends TestCase {
+	/** @var int */
+	private $rate_count = 0;
+
 	/**
 	 * Disable IP admission state for deterministic validation fixtures.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		$_SERVER['HTTP_HOST'] = wp_parse_url( home_url(), PHP_URL_HOST );
-		unset( $_SERVER['REMOTE_ADDR'] );
+		$_SERVER['REMOTE_ADDR'] = '192.0.2.1';
+		$this->rate_count       = 0;
+		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_rate_limit_store' ) );
+	}
+
+	/** Remove the deterministic admission store. */
+	protected function tearDown(): void {
+		remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_rate_limit_store' ) );
+		parent::tearDown();
+	}
+
+	/** Return the deterministic admission callable. */
+	public function use_rate_limit_store() {
+		return array( $this, 'increment_rate_limit' );
+	}
+
+	/** Deterministic in-process rate-limit increment. */
+	public function increment_rate_limit( $key, $ttl ) {
+		unset( $key, $ttl );
+		return ++$this->rate_count;
 	}
 
 	/**
