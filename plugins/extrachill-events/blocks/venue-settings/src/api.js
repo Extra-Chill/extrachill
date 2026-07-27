@@ -9,6 +9,10 @@ const METHODS = {
 	'extrachill/list-venue-memberships': 'GET',
 	'extrachill/list-venue-invitations': 'GET',
 	'extrachill/list-venue-claims': 'GET',
+	'extrachill/list-venue-bookings': 'GET',
+	'extrachill/get-venue-booking': 'GET',
+	'extrachill/list-booking-holds': 'GET',
+	'extrachill/list-booking-communications': 'GET',
 	'extrachill/review-venue-claim': 'DELETE',
 	'extrachill/cancel-venue-invitation': 'DELETE',
 	'extrachill/cancel-venue-claim': 'DELETE',
@@ -34,4 +38,5 @@ export const errorDetails = ( error ) => ( {
 	code: error?.code || 'venue_settings_request_failed',
 	message: error?.message || 'The request could not be completed.',
 	status: error?.data?.status || 0,
+	conflict: error?.data?.conflict || null,
 } );

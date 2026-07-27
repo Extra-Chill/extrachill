@@ -95,7 +95,8 @@ if ( $is_admin ) {
 }
 
 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only venue selection; Ability authorization remains authoritative.
-$requested_venue_id = isset( $_GET['venue_id'] ) && is_scalar( $_GET['venue_id'] ) ? absint( wp_unslash( $_GET['venue_id'] ) ) : 0;
+$requested_venue_id   = isset( $_GET['venue_id'] ) && is_scalar( $_GET['venue_id'] ) ? absint( wp_unslash( $_GET['venue_id'] ) ) : 0;
+$requested_booking_id = isset( $_GET['booking_id'] ) && is_scalar( $_GET['booking_id'] ) ? absint( wp_unslash( $_GET['booking_id'] ) ) : 0;
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 $selected = null;
 foreach ( $managed_venues as $venue ) {
@@ -119,6 +120,7 @@ $context    = array(
 	'can_access'     => $can_access,
 	'can_manage'     => $can_manage,
 	'route_url'      => home_url( '/venue-settings/' ),
+	'booking_id'     => $can_access ? $requested_booking_id : 0,
 );
 $context_id = wp_unique_id( 'ec-venue-settings-context-' );
 ?>

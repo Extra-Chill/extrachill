@@ -37,6 +37,12 @@ jest.mock( '@extrachill/components', () => {
 		InlineStatus: Wrapper,
 		Panel: Wrapper,
 		PanelHeader: ( { title } ) => React.createElement( 'h2', null, title ),
+		SearchBox: ( { value, onSearch, placeholder } ) =>
+			React.createElement( 'input', {
+				value,
+				onChange: ( event ) => onSearch( event.target.value ),
+				placeholder,
+			} ),
 		ResponsiveTabs: ( { tabs, active, onChange, renderPanel } ) =>
 			React.createElement(
 				'div',
@@ -87,6 +93,34 @@ const config = ( id ) => ( {
 	marketing_channels: [],
 	hold_ttl_minutes: 1440,
 } );
+const booking = ( id, venueId = 44 ) => ( {
+	id,
+	public_id: `booking-${ id }`,
+	venue_term_id: venueId,
+	artist_term_id: null,
+	artist_profile_id: null,
+	artist_name: 'Kid Lake',
+	submitter_user_id: null,
+	contact_name: 'Booking Agent',
+	contact_email: 'agent@example.com',
+	contact_phone: null,
+	requested_space_key: 'main-room',
+	space_key: null,
+	status: 'submitted',
+	version: 4,
+	assignee_user_id: null,
+	requested_start_at: '2026-07-30 20:00:00',
+	requested_end_at: '2026-07-30 23:00:00',
+	performance_start_at: null,
+	performance_end_at: null,
+	intake: { version: 1, data: { hometown: 'Charleston' } },
+	production: null,
+	deal: null,
+	confirmed_deal: null,
+	event_id: null,
+	created_at: '2026-07-20 12:00:00',
+	updated_at: '2026-07-20 12:00:00',
+} );
 const context = ( overrides = {} ) => ( {
 	user: { id: 7, name: 'Operator', is_admin: false },
 	venues: [ { id: 44, name: 'Venue 44', status: 'active', is_owner: false } ],
@@ -100,6 +134,7 @@ const context = ( overrides = {} ) => ( {
 	can_access: true,
 	can_manage: false,
 	route_url: 'https://events.example/venue-settings/',
+	booking_id: 0,
 	...overrides,
 } );
 
@@ -122,7 +157,10 @@ const installApi = () =>
 		if (
 			request.path.includes( 'list-venue-memberships' ) ||
 			request.path.includes( 'list-venue-invitations' ) ||
-			request.path.includes( 'list-venue-claims' )
+			request.path.includes( 'list-venue-claims' ) ||
+			request.path.includes( 'list-venue-bookings' ) ||
+			request.path.includes( 'list-booking-holds' ) ||
+			request.path.includes( 'list-booking-communications' )
 		) {
 			return Promise.resolve( [] );
 		}
@@ -250,6 +288,7 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
+		await act( async () => buttonByText( container, 'Profile' ).click() );
 		expect( container.textContent ).toContain( 'Profile unavailable.' );
 		expect( container.textContent ).toContain( 'Retry profile' );
 		await act( async () => root.unmount() );
@@ -310,6 +349,7 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
+		await act( async () => buttonByText( container, 'Profile' ).click() );
 		await setInput(
 			container.querySelector( '#venue-profile-name' ),
 			'Locally edited venue'
@@ -383,6 +423,7 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
+		await act( async () => buttonByText( container, 'Profile' ).click() );
 		const name = container.querySelector( '#venue-profile-name' );
 		await act( async () => {
 			Object.getOwnPropertyDescriptor(
@@ -429,5 +470,52 @@ describe( 'venue settings authorization-facing states', () => {
 			);
 		expect( venueInputs ).toEqual( [ 44, 44, 88, 88 ] );
 		await act( async () => second.root.unmount() );
+	} );
+
+	it( 'hydrates a deep-linked booking and sends its expected version', async () => {
+		apiFetch.mockImplementation( ( request ) => {
+			const input = request.data?.input || requestInput( request.path );
+			if ( request.path.includes( 'get-venue-profile' ) ) {
+				return Promise.resolve( profile( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'get-venue-booking-config' ) ) {
+				return Promise.resolve( config( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'get-venue-booking' ) ) {
+				return Promise.resolve( booking( input.booking_id ) );
+			}
+			if ( request.path.includes( 'assign-venue-booking' ) ) {
+				return Promise.resolve( {
+					...booking( input.booking_id ),
+					version: 5,
+					assignee_user_id: input.assignee_user_id,
+				} );
+			}
+			return Promise.resolve( [] );
+		} );
+		const { container, root } = await renderApp(
+			context( { booking_id: 9 } )
+		);
+		expect( container.textContent ).toContain( 'Booking #9' );
+		await act( async () => {
+			const select = container.querySelector( '#booking-assignee' );
+			select.value = '7';
+			select.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		} );
+		await act( async () => {
+			buttonByText( container, 'Save assignment' ).click();
+			await Promise.resolve();
+			await Promise.resolve();
+		} );
+		expect(
+			apiFetch.mock.calls.some(
+				( [ request ] ) =>
+					request.path.includes( 'assign-venue-booking' ) &&
+					request.data.input.booking_id === 9 &&
+					request.data.input.expected_version === 4 &&
+					request.data.input.assignee_user_id === 7
+			)
+		).toBe( true );
+		await act( async () => root.unmount() );
 	} );
 } );

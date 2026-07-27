@@ -456,12 +456,14 @@ class BookingNotificationService {
 		return array_values( array_unique( $ids ) );
 	}
 
-	/** Resolve an injected destination or the public venue context. */
+	/** Resolve an injected destination or the authorized booking console route. */
 	private function resolve_destination( array $booking, array $recipient_ids, array $locked_members ) {
 		if ( $this->destination ) {
 			return call_user_func( $this->destination, $booking, $recipient_ids, $locked_members );
 		}
-		return get_term_link( (int) $booking['venue_term_id'], 'venue' );
+		return function_exists( 'ec_events_resolve_booking_console_destination' )
+			? ec_events_resolve_booking_console_destination( $booking, $recipient_ids, $locked_members )
+			: new \WP_Error( 'booking_notification_destination_unavailable', __( 'The booking management destination is unavailable.', 'extrachill-events' ) );
 	}
 
 	/** Delegate to the landed Users receipt primitive with its exact payload contract. */
