@@ -317,6 +317,8 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/account-market.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/local-scene-digest.php';
 		extrachill_events_init_local_scene_digest();
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-update-subscriptions.php';
+		extrachill_events_init_venue_update_subscriptions();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/near-me.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/discovery-pages.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/router-pages.php';
