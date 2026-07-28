@@ -22,6 +22,8 @@ define( 'EXTRACHILL_COMMUNITY_VERSION', '1.23.0' );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_FILE', __FILE__ );
+define( 'EXTRACHILL_COMMUNITY_PUBLIC_VOICE_META', '_extrachill_public_voice' );
+define( 'EXTRACHILL_COMMUNITY_AUTOMATED_META', '_extrachill_automated_agent' );
 
 require_once plugin_dir_path( __FILE__ ) . 'inc/core/activation.php';
 require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-utf8-hotfix.php';
@@ -59,6 +61,8 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/infrastructure-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/local-scene-digest-settings.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/subscription-inventory.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/public-voice-contract.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/public-voices.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-formatters.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-read.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-write.php';

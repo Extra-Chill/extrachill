@@ -1,0 +1,66 @@
+.bbp-public-voice-field {
+	margin: var(--spacing-md) 0;
+}
+
+.bbp-public-voice-field select {
+	min-height: 44px;
+}
+
+.bbp-public-voice-field .description,
+.bbp-public-voice-status,
+.bbp-public-voice-warning {
+	margin: var(--spacing-xs) 0 0;
+	color: var(--muted-text);
+	font-size: var(--font-size-sm);
+}
+
+.bbp-public-voice-warning {
+	color: var(--accent-2);
+}
+
+.bbp-public-voice {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	align-items: baseline;
+}
+
+.bbp-public-voice-name {
+	font-weight: 700;
+}
+
+.bbp-public-voice-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--accent-2);
+	color: var(--card-background);
+	font-weight: 700;
+}
+
+.bbp-public-voice-type,
+.bbp-public-voice-automated {
+	padding: 0.1rem 0.4rem;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+	color: var(--muted-text);
+	font-size: var(--font-size-xs);
+}
+
+.bbp-public-voice-accountability {
+	flex-basis: 100%;
+	color: var(--muted-text);
+	font-size: var(--font-size-sm);
+}
+
+.bbp-public-voice.is-compact .bbp-public-voice-type {
+	display: none;
+}
+
+@media (max-width: 480px) {
+
+	.bbp-public-voice-field,
+	.bbp-public-voice-field select {
+		width: 100%;
+	}
+}

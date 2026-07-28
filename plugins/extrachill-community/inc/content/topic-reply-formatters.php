@@ -53,7 +53,7 @@ function extrachill_community_maybe_convert_markdown( $content, $format ) {
  * @return array
  */
 function extrachill_community_format_topic( $post, $include_content = false ) {
-	$author = get_userdata( $post->post_author );
+	$author = get_userdata( (int) $post->post_author );
 
 	$topic = array(
 		'topic_id'    => (int) $post->ID,
@@ -72,6 +72,13 @@ function extrachill_community_format_topic( $post, $include_content = false ) {
 		$topic['content'] = $post->post_content;
 	}
 
+	if ( function_exists( 'extrachill_community_format_post_public_voice' ) ) {
+		$public_voice = extrachill_community_format_post_public_voice( $post->ID );
+		if ( $public_voice ) {
+			$topic['public_voice'] = $public_voice;
+		}
+	}
+
 	$upvote_count = (int) get_post_meta( $post->ID, 'upvote_count', true );
 	if ( $upvote_count > 0 ) {
 		$topic['upvote_count'] = $upvote_count;
@@ -87,7 +94,7 @@ function extrachill_community_format_topic( $post, $include_content = false ) {
  * @return array
  */
 function extrachill_community_format_reply( $post ) {
-	$author = get_userdata( $post->post_author );
+	$author = get_userdata( (int) $post->post_author );
 
 	$reply = array(
 		'reply_id'    => (int) $post->ID,
@@ -98,6 +105,13 @@ function extrachill_community_format_reply( $post ) {
 		'date'        => $post->post_date_gmt,
 		'reply_to'    => function_exists( 'bbp_get_reply_to' ) ? (int) bbp_get_reply_to( $post->ID ) : 0,
 	);
+
+	if ( function_exists( 'extrachill_community_format_post_public_voice' ) ) {
+		$public_voice = extrachill_community_format_post_public_voice( $post->ID );
+		if ( $public_voice ) {
+			$reply['public_voice'] = $public_voice;
+		}
+	}
 
 	$upvote_count = (int) get_post_meta( $post->ID, 'upvote_count', true );
 	if ( $upvote_count > 0 ) {

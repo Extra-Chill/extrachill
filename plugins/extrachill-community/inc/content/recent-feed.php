@@ -79,6 +79,62 @@ function extrachill_get_avatar_url_with_custom_support($user_id, $size = 80) {
 }
 
 /**
+ * Resolve the complete public identity shown by a reply/activity card.
+ *
+ * @param int        $post_id             Topic or reply ID.
+ * @param int        $human_id            Accountable human ID.
+ * @param string     $human_name          Prefetched human display name.
+ * @param string     $human_avatar_html   Human avatar markup.
+ * @param string     $human_url           Accountable human profile URL.
+ * @param array|null $prefetched_voice    Optional prefetched canonical identity.
+ * @return array<string,mixed> Card author identity.
+ */
+function extrachill_community_get_reply_card_author( $post_id, $human_id, $human_name, $human_avatar_html, $human_url, $prefetched_voice = null ) {
+	$voice = is_array( $prefetched_voice ) ? $prefetched_voice : null;
+	if ( ! $voice && function_exists( 'extrachill_community_get_post_public_voice' ) ) {
+		$voice = extrachill_community_get_post_public_voice( $post_id );
+	}
+
+	if ( ! $voice ) {
+		return array(
+			'id'          => absint( $human_id ),
+			'name'        => (string) $human_name,
+			'url'         => (string) $human_url,
+			'avatar_html' => (string) $human_avatar_html,
+			'public_voice' => false,
+		);
+	}
+
+	$avatar_url = esc_url_raw( (string) ( $voice['avatar_url'] ?? '' ) );
+	$avatar     = '' !== $avatar_url
+		? '<img src="' . esc_url( $avatar_url ) . '" alt="' . esc_attr( $voice['name'] ) . '" class="avatar" width="80" height="80">'
+		: '<span class="avatar bbp-public-voice-avatar" aria-hidden="true">' . esc_html( strtoupper( substr( (string) $voice['type'], 0, 1 ) ) ) . '</span>';
+
+	return array(
+		'id'           => absint( $human_id ),
+		'name'         => (string) $voice['name'],
+		'url'          => (string) $voice['url'],
+		'avatar_html'  => $avatar,
+		'public_voice' => true,
+	);
+}
+
+/** Render the canonical avatar/name/URL block used by reply and activity cards. */
+function extrachill_community_render_reply_card_author( array $author ) {
+	?>
+	<div class="bbp-author-avatar">
+		<a href="<?php echo esc_url( $author['url'] ); ?>" title="<?php echo esc_attr( $author['name'] ); ?>">
+			<?php echo wp_kses_post( $author['avatar_html'] ); ?>
+		</a>
+	</div>
+	<div class="author-name-badges">
+		<a href="<?php echo esc_url( $author['url'] ); ?>" class="bbp-author-name"><?php echo esc_html( $author['name'] ); ?></a>
+		<div class="forum-badges"><?php do_action( 'bbp_theme_after_reply_author_details' ); ?></div>
+	</div>
+	<?php
+}
+
+/**
  * Build base WP_Query args for a topic+reply activity feed.
  *
  * Pass an author ID to scope the feed to a single user (profile activity feed);
@@ -157,6 +213,7 @@ function extrachill_build_activity_feed($per_page = 15, $paged = null, $author =
 			'author_id'         => $author_id,
 			'author_name'       => get_the_author(),
 			'author_avatar_url' => extrachill_get_avatar_url_with_custom_support($author_id, 80),
+			'public_voice'      => function_exists( 'extrachill_community_get_post_public_voice' ) ? extrachill_community_get_post_public_voice( $post_id ) : null,
 			'topic_id'          => $topic_id,
 			'topic_url'         => $topic_id ? get_permalink($topic_id) : '',
 			'topic_title'       => $topic_id ? get_the_title($topic_id) : '',
@@ -260,6 +317,7 @@ function extrachill_render_recent_feed($feed, $empty_notice = '') {
 					set_query_var('prefetch_author_id', $feed_item['author_id']);
 					set_query_var('prefetch_author_name', $feed_item['author_name']);
 					set_query_var('prefetch_author_avatar_url', $feed_item['author_avatar_url']);
+					set_query_var('prefetch_public_voice', $feed_item['public_voice'] ?? null);
 
 					// Set pre-fetched topic/forum data for template use
 					set_query_var('prefetch_topic_id', $feed_item['topic_id']);

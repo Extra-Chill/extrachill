@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * Permission: can the current caller load this topic for editing?
  *
  * @param array $input Ability input.
- * @return bool|WP_Error
+ * @return bool
  */
 function extrachill_community_ability_get_topic_for_editor_permission( $input = array() ) {
 	if ( ! is_user_logged_in() ) {
@@ -32,7 +32,7 @@ function extrachill_community_ability_get_topic_for_editor_permission( $input = 
  * Permission: can the current caller load this reply for editing?
  *
  * @param array $input Ability input.
- * @return bool|WP_Error
+ * @return bool
  */
 function extrachill_community_ability_get_reply_for_editor_permission( $input = array() ) {
 	if ( ! is_user_logged_in() ) {
@@ -55,19 +55,19 @@ function extrachill_community_ability_get_reply_for_editor_permission( $input = 
  * @return bool|WP_Error
  */
 function extrachill_community_ability_update_topic_permission( $input = array() ) {
-	if ( ! is_user_logged_in() ) {
-		return false;
-	}
 	$topic_id = isset( $input['topic_id'] ) ? (int) $input['topic_id'] : 0;
 	if ( $topic_id <= 0 ) {
 		return false;
 	}
-	if ( ! current_user_can( 'edit_topic', $topic_id ) ) {
+	$post = get_post( $topic_id );
+	if ( ! $post || ( function_exists( 'bbp_get_topic_post_type' ) && bbp_get_topic_post_type() !== $post->post_type ) ) {
+		return false;
+	}
+	if ( is_wp_error( extrachill_community_authorize_post_update( $input, $post, 'topic' ) ) ) {
 		return false;
 	}
 	if ( function_exists( 'bbp_past_edit_lock' ) ) {
-		$post = get_post( $topic_id );
-		if ( $post && bbp_past_edit_lock( $post->post_date_gmt ) ) {
+		if ( bbp_past_edit_lock( $post->post_date_gmt ) ) {
 			return new WP_Error(
 				'edit_lock_expired',
 				__( 'The edit window for this topic has expired.', 'extra-chill-community' ),
@@ -85,19 +85,19 @@ function extrachill_community_ability_update_topic_permission( $input = array() 
  * @return bool|WP_Error
  */
 function extrachill_community_ability_update_reply_permission( $input = array() ) {
-	if ( ! is_user_logged_in() ) {
-		return false;
-	}
 	$reply_id = isset( $input['reply_id'] ) ? (int) $input['reply_id'] : 0;
 	if ( $reply_id <= 0 ) {
 		return false;
 	}
-	if ( ! current_user_can( 'edit_reply', $reply_id ) ) {
+	$post = get_post( $reply_id );
+	if ( ! $post || ( function_exists( 'bbp_get_reply_post_type' ) && bbp_get_reply_post_type() !== $post->post_type ) ) {
+		return false;
+	}
+	if ( is_wp_error( extrachill_community_authorize_post_update( $input, $post, 'reply' ) ) ) {
 		return false;
 	}
 	if ( function_exists( 'bbp_past_edit_lock' ) ) {
-		$post = get_post( $reply_id );
-		if ( $post && bbp_past_edit_lock( $post->post_date_gmt ) ) {
+		if ( bbp_past_edit_lock( $post->post_date_gmt ) ) {
 			return new WP_Error(
 				'edit_lock_expired',
 				__( 'The edit window for this reply has expired.', 'extra-chill-community' ),
@@ -122,7 +122,7 @@ function extrachill_community_build_editor_permissions( $post_id, $type ) {
 	$edit_cap   = ( 'topic' === $type ) ? 'edit_topic' : 'edit_reply';
 	$delete_cap = ( 'topic' === $type ) ? 'delete_topic' : 'delete_reply';
 
-	$can_save = current_user_can( $edit_cap, $post_id );
+	$can_save = ! is_wp_error( extrachill_community_authorize_forum_action( array(), $edit_cap, $post_id, false, 'cannot_edit' ) );
 	if ( $can_save && function_exists( 'bbp_past_edit_lock' ) ) {
 		$post = get_post( $post_id );
 		if ( $post && bbp_past_edit_lock( $post->post_date_gmt ) ) {
@@ -132,7 +132,7 @@ function extrachill_community_build_editor_permissions( $post_id, $type ) {
 
 	return array(
 		'canSave'        => (bool) $can_save,
-		'canUploadMedia' => (bool) ( is_user_logged_in() && current_user_can( 'upload_files' ) ),
-		'canDelete'      => (bool) current_user_can( $delete_cap, $post_id ),
+		'canUploadMedia' => ! is_wp_error( extrachill_community_authorize_forum_action( array(), 'upload_files', 0, false, 'cannot_upload' ) ),
+		'canDelete'      => ! is_wp_error( extrachill_community_authorize_forum_action( array(), $delete_cap, $post_id, false, 'cannot_delete' ) ),
 	);
 }

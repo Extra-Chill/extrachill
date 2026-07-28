@@ -79,6 +79,7 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 				$prefetch_author_id         = get_query_var('prefetch_author_id');
 				$prefetch_author_name       = get_query_var('prefetch_author_name');
 				$prefetch_author_avatar_url = get_query_var('prefetch_author_avatar_url');
+				$prefetch_public_voice      = get_query_var('prefetch_public_voice');
 
 				if ( $prefetch_author_id && $prefetch_author_avatar_url ) {
 					// Use pre-fetched data
@@ -95,28 +96,20 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 					$author_url    = bbp_get_reply_author_url( $reply_id );
 					$author_role   = bbp_get_user_display_role( $author_id );
 				}
+
+				$card_author = extrachill_community_get_reply_card_author(
+					$reply_id,
+					$author_id,
+					$author_name,
+					$author_avatar,
+					$author_url,
+					is_array( $prefetch_public_voice ) ? $prefetch_public_voice : null
+				);
 				?>
 
 				<div class="author-header-column">
 					<div class="author-details-header">
-						<div class="bbp-author-avatar">
-							<a href="<?php echo esc_url( $author_url ); ?>" title="View profile">
-								<?php echo wp_kses_post( $author_avatar ); ?>
-							</a>
-						</div>
-
-						<div class="author-name-badges">
-							<a href="<?php echo esc_url( $author_url ); ?>" class="bbp-author-name">
-								<?php echo esc_html( $author_name ); ?>
-							</a>
-
-							<div class="forum-badges">
-								<?php
-								do_action( 'bbp_theme_after_reply_author_details' );
-								?>
-							</div>
-
-						</div>
+						<?php extrachill_community_render_reply_card_author( $card_author ); ?>
 					</div><!-- .author-details-header -->
 
 					<?php if ( ! empty( $author_role ) ) : ?>
