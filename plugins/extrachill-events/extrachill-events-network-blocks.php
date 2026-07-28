@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Events Network Blocks
  * Description: Exposes Events-owned public blocks across the Extra Chill network without loading the Events runtime on other sites.
- * Version: 0.55.0
+ * Version: 0.55.1
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
