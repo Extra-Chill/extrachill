@@ -1,7 +1,7 @@
 /**
  * New Topic Modal
  *
- * Handles modal open/close, editor reinitialization, and accessibility.
+ * Handles modal open/close and accessibility.
  */
 ( function () {
 	'use strict';
@@ -12,130 +12,10 @@
 		return;
 	}
 
-	const discussionTrigger = document.getElementById(
-		'new-topic-modal-trigger'
-	);
-	const shareMusicTrigger = document.getElementById(
-		'share-music-modal-trigger'
-	);
+	const modalTrigger = document.getElementById( 'new-topic-modal-trigger' );
 	const closeButton = modal.querySelector( '.new-topic-modal-close' );
 
-	const modalTitle = document.getElementById( 'new-topic-modal-title' );
-	const modalDescription = document.getElementById(
-		'new-topic-modal-description'
-	);
-
-	let editorInitialized = false;
 	let activeTrigger = null;
-	let originalForumId = null;
-
-	function getForumSelectWrapper() {
-		const forumSelect = document.getElementById( 'bbp_forum_id' );
-		if ( ! forumSelect ) {
-			return null;
-		}
-
-		return forumSelect.closest( 'p' );
-	}
-
-	function setForumId( forumId ) {
-		const forumSelect = document.getElementById( 'bbp_forum_id' );
-		if ( ! forumSelect ) {
-			return;
-		}
-
-		if ( originalForumId === null ) {
-			originalForumId = forumSelect.value;
-		}
-
-		forumSelect.value = String( forumId );
-		forumSelect.dispatchEvent( new Event( 'change', { bubbles: true } ) );
-	}
-
-	function showForumDropdown() {
-		const wrapper = getForumSelectWrapper();
-		if ( ! wrapper ) {
-			return;
-		}
-
-		wrapper.style.display = '';
-	}
-
-	function hideForumDropdown() {
-		const wrapper = getForumSelectWrapper();
-		if ( ! wrapper ) {
-			return;
-		}
-
-		wrapper.style.display = 'none';
-	}
-
-	function setTopicTitlePlaceholder( placeholder ) {
-		const titleInput = document.getElementById( 'bbp_topic_title' );
-		if ( ! titleInput ) {
-			return;
-		}
-
-		titleInput.setAttribute( 'placeholder', placeholder );
-	}
-
-	function setTopicContentPlaceholder( placeholder ) {
-		const textarea = document.getElementById( 'bbp_topic_content' );
-		if ( ! textarea ) {
-			return;
-		}
-
-		textarea.setAttribute( 'placeholder', placeholder );
-	}
-
-	function setModalText( title, description ) {
-		if ( modalTitle ) {
-			modalTitle.textContent = title;
-		}
-
-		if ( modalDescription ) {
-			modalDescription.textContent = description || '';
-		}
-	}
-
-	function applyMode( triggerEl ) {
-		const mode =
-			triggerEl && triggerEl.dataset
-				? triggerEl.dataset.modalMode
-				: 'discussion';
-
-		if ( mode === 'share_music' ) {
-			setModalText(
-				'Share Music',
-				'Drop a link to share music with the community.'
-			);
-			setTopicTitlePlaceholder( 'What are you sharing?' );
-			setTopicContentPlaceholder(
-				'Paste a link and give us the scoop...'
-			);
-
-			const forumId = triggerEl.dataset.forumId;
-			if ( forumId ) {
-				setForumId( forumId );
-				hideForumDropdown();
-			}
-
-			return;
-		}
-
-		setModalText(
-			'Create Discussion',
-			'Start a new topic in the community.'
-		);
-		setTopicTitlePlaceholder( 'Title' );
-		setTopicContentPlaceholder( '' );
-
-		showForumDropdown();
-
-		if ( originalForumId !== null ) {
-			setForumId( originalForumId );
-		}
-	}
 
 	function showModal( triggerEl ) {
 		activeTrigger = triggerEl;
@@ -143,12 +23,6 @@
 		modal.classList.add( 'is-open' );
 		overlay.classList.add( 'is-open' );
 		document.body.classList.add( 'new-topic-modal-open' );
-
-		if ( ! editorInitialized ) {
-			initializeEditor();
-		}
-
-		applyMode( activeTrigger );
 
 		const firstInput = modal.querySelector(
 			'input[type="text"], textarea'
@@ -178,16 +52,14 @@
 		activeTrigger = null;
 	}
 
-	function initializeEditor() {
-		// The topic content editor is provided by Blocks Everywhere (Gutenberg),
-		// which initializes itself on the textarea. Nothing else to do here; this
-		// guard simply records that the editor has been accounted for.
-		editorInitialized = true;
-	}
-
 	function trapFocus( e ) {
 		if ( e.key !== 'Tab' ) {
-			if ( e.key === 'Escape' ) {
+			if (
+				e.key === 'Escape' &&
+				! document.documentElement.classList.contains(
+					'blocks-everywhere-editor-is-fullscreen'
+				)
+			) {
 				closeModal();
 			}
 			return;
@@ -213,12 +85,8 @@
 		}
 	}
 
-	if ( discussionTrigger ) {
-		discussionTrigger.addEventListener( 'click', openModal );
-	}
-
-	if ( shareMusicTrigger ) {
-		shareMusicTrigger.addEventListener( 'click', openModal );
+	if ( modalTrigger ) {
+		modalTrigger.addEventListener( 'click', openModal );
 	}
 
 	if ( closeButton ) {
@@ -228,6 +96,6 @@
 	overlay.addEventListener( 'click', closeModal );
 
 	if ( modal.dataset.autoOpen === 'true' ) {
-		showModal( discussionTrigger );
+		showModal( modalTrigger );
 	}
 } )();

@@ -91,6 +91,22 @@ body.new-topic-modal-open {
     overflow: hidden;
 }
 
+/* A transformed ancestor contains fixed descendants, so release the modal's
+ * desktop geometry while the embedded editor owns the viewport. */
+.blocks-everywhere-editor-is-fullscreen .new-topic-modal {
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	max-height: none;
+	transform: none;
+	overflow: visible;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
+
 .new-topic-modal .bbp-topic-form {
     margin: 0;
 }

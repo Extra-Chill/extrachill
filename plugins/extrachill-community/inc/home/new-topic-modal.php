@@ -22,8 +22,8 @@ $discussion_continuation = extrachill_community_can_continue_discussion_composer
 <div id="new-topic-modal" class="new-topic-modal" role="dialog" aria-modal="true" aria-labelledby="new-topic-modal-title" data-auto-open="<?php echo $discussion_continuation ? 'true' : 'false'; ?>">
 	<div class="new-topic-modal-content">
 		<button type="button" class="new-topic-modal-close" aria-label="<?php esc_attr_e( 'Close modal', 'extra-chill-community' ); ?>">&times;</button>
-		<h2 id="new-topic-modal-title" class="new-topic-modal-title"><?php esc_html_e( 'Create Discussion', 'extra-chill-community' ); ?></h2>
-		<p id="new-topic-modal-description" class="new-topic-modal-description"></p>
+		<h2 id="new-topic-modal-title" class="new-topic-modal-title"><?php esc_html_e( 'New Post', 'extra-chill-community' ); ?></h2>
+		<p id="new-topic-modal-description" class="new-topic-modal-description"><?php esc_html_e( 'Start a new post in the community.', 'extra-chill-community' ); ?></p>
 		<?php bbp_get_template_part( 'form', 'topic' ); ?>
 	</div>
 </div>

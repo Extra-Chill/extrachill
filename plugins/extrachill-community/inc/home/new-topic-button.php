@@ -2,10 +2,10 @@
 /**
  * New Topic Button
  *
- * Renders the "New Topic" buttons that trigger the topic-creation modal on
+ * Renders the "New Post" button that triggers the topic-creation modal on
  * the community homepage.
  *
- * No-JS fallback: each button's href points at the Music Discussion forum
+ * No-JS fallback: the button's href points at the Music Discussion forum
  * permalink, where bbPress renders a real "new topic" form
  * (bbpress/content-single-forum.php → form/topic). The previous fallback
  * pointed at the homepage ("/"), but the feed-first homepage (#66) no longer
@@ -31,10 +31,6 @@ $new_topic_fallback_url = ( $music_discussion_forum instanceof WP_Post )
 
 <div class="community-section-header">
 	<div class="community-home-topic-actions">
-		<a href="<?php echo esc_url( $new_topic_fallback_url ); ?>" id="new-topic-modal-trigger" class="button-1 button-medium" data-modal-mode="discussion"><?php esc_html_e( 'Create Discussion', 'extra-chill-community' ); ?></a>
-
-		<?php if ( $music_discussion_forum instanceof WP_Post ) : ?>
-			<a href="<?php echo esc_url( get_permalink( $music_discussion_forum ) ); ?>" id="share-music-modal-trigger" class="button-2 button-medium" data-modal-mode="share_music" data-forum-id="<?php echo esc_attr( (string) $music_discussion_forum->ID ); ?>"><?php esc_html_e( 'Share Music', 'extra-chill-community' ); ?></a>
-		<?php endif; ?>
+		<a href="<?php echo esc_url( $new_topic_fallback_url ); ?>" id="new-topic-modal-trigger" class="button-1 button-medium"><?php esc_html_e( 'New Post', 'extra-chill-community' ); ?></a>
 	</div>
 </div>
