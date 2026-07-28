@@ -557,6 +557,13 @@ final class BookingHoldTest extends BookingTestCase {
 		$list                                   = $abilities->list_bookings( array( 'venue_term_id' => 55 ) );
 		$this->assertSame( 'venue_action_forbidden', $list->get_error_code() );
 		$this->assertInstanceOf( WP_Error::class, $list );
+
+		$authorization->allowed['12:55']        = true;
+		$GLOBALS['wpdb']->after_membership_lock = static function () use ( $authorization ) {
+			unset( $authorization->allowed['12:55'] );
+		};
+		$activity                               = $abilities->get_booking_activity( array( 'booking_id' => $booking['id'] ) );
+		$this->assertSame( 'venue_action_forbidden', $activity->get_error_code() );
 	}
 
 	public function test_booking_get_and_list_deny_before_reconciliation_mutation(): void {
@@ -579,6 +586,22 @@ final class BookingHoldTest extends BookingTestCase {
 		$this->assertSame( 'venue_action_forbidden', $list->get_error_code() );
 		$this->assertSame( 'held', ( new BookingRepository() )->get( $booking['id'] )['status'] );
 		$this->assertSame( 'active', $GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][ $created['hold']['id'] ]['status'] );
+
+		$activity = $abilities->get_booking_activity( array( 'booking_id' => $booking['id'] ) );
+		$this->assertSame( 'venue_action_forbidden', $activity->get_error_code() );
+	}
+
+	public function test_booking_activity_denies_venue_change_across_locked_boundary(): void {
+		$authorization = new BookingTestAuthorization();
+		$holds         = new BookingHoldRepository( null, null, $authorization );
+		$abilities     = new VenueBookingAbilities( new BookingRepository(), null, $authorization, $holds );
+		$booking       = $this->booking();
+		$GLOBALS['wpdb']->after_membership_lock = static function () use ( $booking ) {
+			$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $booking['id'] ]['venue_term_id'] = 66;
+		};
+
+		$result = $abilities->get_booking_activity( array( 'booking_id' => $booking['id'] ) );
+		$this->assertSame( 'venue_action_forbidden', $result->get_error_code() );
 	}
 
 	public function test_selected_hold_cannot_be_explicitly_released_while_held(): void {

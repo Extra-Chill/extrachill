@@ -1456,6 +1456,18 @@ final class BookingWpdb {
 				);
 			}
 		}
+		if ( $is_activity && false !== strpos( $query, 'ORDER BY occurred_at DESC, id DESC' ) && preg_match( '/kind IN \(([^)]+)\)/', $query, $kind_filter ) ) {
+			preg_match_all( "/'([^']+)'/", $kind_filter[1], $kind_matches );
+			$allowed_kinds = array_map( 'stripslashes', $kind_matches[1] );
+			$rows          = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) use ( $allowed_kinds ) {
+						return in_array( $row['kind'], $allowed_kinds, true );
+					}
+				)
+			);
+		}
 		if ( $is_sales && preg_match( "/currency = '([A-Z]{3})'/", $query, $currency ) ) {
 			$rows = array_values(
 				array_filter(

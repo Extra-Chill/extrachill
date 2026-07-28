@@ -49,6 +49,36 @@ class VenueBookingAbilities {
 	private $authorization;
 	/** @var BookingHoldRepository */
 	private $holds;
+	private const CORE_ACTIVITY_KINDS = array(
+		'inquiry_submitted',
+		'assignment_changed',
+		'status_changed',
+		'artist_bound',
+		'intake_corrected',
+		'performance_selected',
+		'hold_created',
+		'hold_released',
+		'hold_expired',
+		'production_updated',
+		'deal_draft_updated',
+		'deal_confirmed',
+		'event_conversion_started',
+		'event_conversion_failed',
+		'event_converted',
+		'event_sync_started',
+		'event_sync_retryable',
+		'event_sync_failed',
+		'event_sync_conflict',
+		'event_sync_succeeded',
+		'event_sync_noop',
+		'booking_message_requested',
+		'booking_message_dispatching',
+		'booking_message_queued',
+		'booking_message_failed',
+		'booking_reminder_scheduling',
+		'booking_reminder_scheduled',
+		'booking_reminder_suppressed',
+	);
 
 	/**
 	 * Build and hook the booking ability surface.
@@ -144,6 +174,27 @@ class VenueBookingAbilities {
 					'show_in_rest' => true,
 					'annotations'  => array(
 						'readonly'    => false,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill/get-venue-booking-activity',
+			array(
+				'label'               => __( 'Get Venue Booking Activity', 'extrachill-events' ),
+				'description'         => __( 'Get the authoritative activity and event synchronization state for one authorized booking.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => $booking_id_input,
+				'output_schema'       => $this->activity_schema(),
+				'execute_callback'    => array( $this, 'get_booking_activity' ),
+				'permission_callback' => array( $this, 'can_access_booking' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => true,
 						'idempotent'  => true,
 						'destructive' => false,
 					),
@@ -317,6 +368,29 @@ class VenueBookingAbilities {
 	public function get_booking( array $input ) {
 		$result = $this->holds->get_booking_authorized( absint( $input['booking_id'] ?? 0 ), get_current_user_id() );
 		return is_array( $result ) ? $this->present( $result ) : $result;
+	}
+
+	/**
+	 * Get sanitized activity plus canonical conversion and synchronization state.
+	 *
+	 * @param array $input Ability input.
+	 */
+	public function get_booking_activity( array $input ) {
+		$state = $this->holds->get_booking_activity_authorized( absint( $input['booking_id'] ?? 0 ), get_current_user_id(), self::CORE_ACTIVITY_KINDS );
+		if ( ! is_array( $state ) ) {
+			return $state;
+		}
+
+		return array(
+			'activity'   => array_map( array( $this, 'present_activity' ), $state['activity'] ),
+			'conversion' => array(
+				'status'       => $state['conversion']['status'],
+				'attempt'      => (int) $state['conversion']['attempt'],
+				'failure_code' => $state['conversion']['failed']['payload']['data']['upstream_code'] ?? null,
+				'retryable'    => (bool) ( $state['conversion']['failed']['payload']['data']['retryable'] ?? false ),
+			),
+			'sync'       => $this->present_sync_state( $state['sync'] ),
+		);
 	}
 
 	/**
@@ -588,6 +662,107 @@ class VenueBookingAbilities {
 			),
 			'required'             => array( 'id', 'public_id', 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'artist_name', 'submitter_user_id', 'contact_name', 'contact_email', 'contact_phone', 'requested_space_key', 'space_key', 'status', 'version', 'assignee_user_id', 'requested_start_at', 'requested_end_at', 'performance_start_at', 'performance_end_at', 'intake', 'production', 'deal', 'confirmed_deal', 'event_id', 'created_at', 'updated_at' ),
 			'additionalProperties' => false,
+		);
+	}
+
+	/** Return the bounded operator activity projection schema. */
+	private function activity_schema(): array {
+		$nullable_string = array( 'type' => array( 'string', 'null' ) );
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'activity'   => array(
+					'type'     => 'array',
+					'maxItems' => 200,
+					'items'    => array(
+						'type'                 => 'object',
+						'properties'           => array(
+							'id'          => array( 'type' => 'integer' ),
+							'kind'        => array( 'type' => 'string' ),
+							'occurred_at' => array( 'type' => 'string' ),
+						),
+						'required'             => array( 'id', 'kind', 'occurred_at' ),
+						'additionalProperties' => false,
+					),
+				),
+				'conversion' => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'status'       => array(
+							'type' => 'string',
+							'enum' => array( 'none', 'pending', 'failed', 'completed' ),
+						),
+						'attempt'      => array(
+							'type'    => 'integer',
+							'minimum' => 0,
+						),
+						'failure_code' => $nullable_string,
+						'retryable'    => array( 'type' => 'boolean' ),
+					),
+					'required'             => array( 'status', 'attempt', 'failure_code', 'retryable' ),
+					'additionalProperties' => false,
+				),
+				'sync'       => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'status'    => array(
+							'type' => 'string',
+							'enum' => array( 'none', 'pending', 'succeeded', 'no_change', 'conflict', 'failed', 'retryable' ),
+						),
+						'code'      => $nullable_string,
+						'retryable' => array( 'type' => 'boolean' ),
+					),
+					'required'             => array( 'status', 'code', 'retryable' ),
+					'additionalProperties' => false,
+				),
+			),
+			'required'             => array( 'activity', 'conversion', 'sync' ),
+			'additionalProperties' => false,
+		);
+	}
+
+	/**
+	 * Remove activity payloads outside this console's operational scope.
+	 *
+	 * @param array $activity Hydrated activity record.
+	 */
+	public function present_activity( array $activity ): array {
+		return array(
+			'id'          => $activity['id'],
+			'kind'        => $activity['kind'],
+			'occurred_at' => $activity['occurred_at'],
+		);
+	}
+
+	/**
+	 * Present the durable latest synchronization state without private payload data.
+	 *
+	 * @param array $sync Canonical event synchronization state.
+	 */
+	private function present_sync_state( array $sync ): array {
+		$terminal = $sync['terminal'] ?? null;
+		if ( is_array( $terminal ) ) {
+			$status = str_replace( 'event_sync_', '', $terminal['kind'] );
+			if ( 'noop' === $status ) {
+				$status = 'no_change';
+			}
+			return array(
+				'status'    => $status,
+				'code'      => $terminal['payload']['data']['code'] ?? null,
+				'retryable' => (bool) ( $terminal['payload']['data']['retryable'] ?? false ),
+			);
+		}
+		if ( is_array( $sync['retry'] ?? null ) ) {
+			return array(
+				'status'    => 'retryable',
+				'code'      => $sync['retry']['payload']['data']['code'] ?? null,
+				'retryable' => true,
+			);
+		}
+		return array(
+			'status'    => ! empty( $sync['pending'] ) ? 'pending' : 'none',
+			'code'      => null,
+			'retryable' => false,
 		);
 	}
 

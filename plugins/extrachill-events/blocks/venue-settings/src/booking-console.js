@@ -123,6 +123,442 @@ const toLocalInput = ( value ) =>
 
 const statusLabel = ( status ) => STATUS_LABELS[ status ] || status;
 
+const payloadData = ( value ) => {
+	if ( value === null || value === undefined ) {
+		return null;
+	}
+	if (
+		typeof value === 'object' &&
+		! Array.isArray( value ) &&
+		Object.prototype.hasOwnProperty.call( value, 'data' )
+	) {
+		return value.data;
+	}
+	return value;
+};
+const linesToItems = ( value ) =>
+	value
+		.split( '\n' )
+		.map( ( item ) => item.trim() )
+		.filter( Boolean );
+const nullableNumber = ( value ) => ( value === '' ? null : Number( value ) );
+
+const hasExactKeys = ( value, keys ) =>
+	value !== null &&
+	typeof value === 'object' &&
+	! Array.isArray( value ) &&
+	Object.keys( value ).length === keys.length &&
+	keys.every( ( key ) => Object.prototype.hasOwnProperty.call( value, key ) );
+
+const DEAL_KEYS = [
+	'version',
+	'type',
+	'guarantee_cents',
+	'revenue_share_basis_points',
+	'revenue_share_basis',
+	'currency',
+	'capacity',
+	'advance_ticket_price_cents',
+	'door_ticket_price_cents',
+	'ticket_fee_cents',
+	'tickets_on_sale_at',
+	'ticket_url',
+	'additional_terms',
+];
+const nullableInteger = ( value ) =>
+	value === null || Number.isInteger( value );
+const nullableString = ( value ) => value === null || typeof value === 'string';
+const validDealShape = ( value ) =>
+	hasExactKeys( value, DEAL_KEYS ) &&
+	value.version === 1 &&
+	typeof value.type === 'string' &&
+	Number.isInteger( value.guarantee_cents ) &&
+	Number.isInteger( value.revenue_share_basis_points ) &&
+	typeof value.revenue_share_basis === 'string' &&
+	typeof value.currency === 'string' &&
+	[
+		'capacity',
+		'advance_ticket_price_cents',
+		'door_ticket_price_cents',
+		'ticket_fee_cents',
+	].every( ( key ) => nullableInteger( value[ key ] ) ) &&
+	[ 'tickets_on_sale_at', 'ticket_url', 'additional_terms' ].every( ( key ) =>
+		nullableString( value[ key ] )
+	);
+
+const PRODUCTION_KEYS = [
+	'version',
+	'support_requirements',
+	'support_offers',
+	'production_notes',
+];
+const validProductionShape = ( value ) =>
+	hasExactKeys( value, PRODUCTION_KEYS ) &&
+	value.version === 1 &&
+	[ 'support_requirements', 'support_offers' ].every(
+		( key ) =>
+			Array.isArray( value[ key ] ) &&
+			value[ key ].every( ( item ) => typeof item === 'string' )
+	) &&
+	nullableString( value.production_notes );
+
+export const activityLabel = ( kind ) =>
+	kind
+		.split( '_' )
+		.map( ( word ) => word.charAt( 0 ).toUpperCase() + word.slice( 1 ) )
+		.join( ' ' );
+
+const eventActionLabel = ( booking, operations ) => {
+	if ( booking.event_id ) {
+		return operations.sync.retryable
+			? 'Retry event reconciliation'
+			: 'Reconcile event';
+	}
+	if (
+		operations.conversion.status === 'failed' &&
+		! operations.conversion.retryable
+	) {
+		return 'Conversion retry unavailable';
+	}
+	return operations.conversion.status === 'failed'
+		? 'Retry event conversion'
+		: 'Convert to event';
+};
+
+const dealDocument = ( booking, fallback ) => {
+	const stored = payloadData( booking.confirmed_deal || booking.deal );
+	if ( stored !== null && ! validDealShape( stored ) ) {
+		return null;
+	}
+	const source = stored || fallback || {};
+	return {
+		version: 1,
+		type: source.type || 'custom',
+		guarantee_cents: source.guarantee_cents ?? 0,
+		revenue_share_basis_points: source.revenue_share_basis_points ?? 0,
+		revenue_share_basis: source.revenue_share_basis || 'gross_ticket_sales',
+		currency: source.currency || 'USD',
+		capacity: source.capacity ?? null,
+		advance_ticket_price_cents: source.advance_ticket_price_cents ?? null,
+		door_ticket_price_cents: source.door_ticket_price_cents ?? null,
+		ticket_fee_cents: source.ticket_fee_cents ?? null,
+		tickets_on_sale_at: source.tickets_on_sale_at ?? null,
+		ticket_url: source.ticket_url ?? null,
+		additional_terms: source.additional_terms ?? null,
+	};
+};
+
+function DealEditor( { booking, defaultDeal, pending, onSave } ) {
+	const [ deal, setDeal ] = useState( () =>
+		dealDocument( booking, defaultDeal )
+	);
+	if ( deal === null ) {
+		return (
+			<section className="ec-booking-detail__section">
+				<h3>Deal terms</h3>
+				<InlineStatus tone="error">
+					The stored deal document is malformed. Editing is
+					unavailable until the canonical record is repaired.
+				</InlineStatus>
+			</section>
+		);
+	}
+	const update = ( key, value ) => setDeal( { ...deal, [ key ]: value } );
+	return (
+		<section className="ec-booking-detail__section">
+			<h3>Deal terms</h3>
+			<form
+				className="ec-booking-console__form"
+				onSubmit={ ( event ) => {
+					event.preventDefault();
+					onSave( deal );
+				} }
+			>
+				<div className="ec-venue-settings__grid">
+					<FieldGroup label="Deal type" htmlFor="booking-deal-type">
+						<input
+							id="booking-deal-type"
+							value={ deal.type }
+							onChange={ ( event ) =>
+								update( 'type', event.target.value )
+							}
+							required
+						/>
+					</FieldGroup>
+					<FieldGroup
+						label="Currency"
+						htmlFor="booking-deal-currency"
+					>
+						<input
+							id="booking-deal-currency"
+							value={ deal.currency }
+							onChange={ ( event ) =>
+								update(
+									'currency',
+									event.target.value.toUpperCase()
+								)
+							}
+							required
+						/>
+					</FieldGroup>
+					<FieldGroup
+						label="Guarantee (cents)"
+						htmlFor="booking-deal-guarantee"
+					>
+						<input
+							id="booking-deal-guarantee"
+							type="number"
+							min="0"
+							value={ deal.guarantee_cents }
+							onChange={ ( event ) =>
+								update(
+									'guarantee_cents',
+									Number( event.target.value )
+								)
+							}
+							required
+						/>
+					</FieldGroup>
+					<FieldGroup
+						label="Revenue share (basis points)"
+						htmlFor="booking-deal-share"
+					>
+						<input
+							id="booking-deal-share"
+							type="number"
+							min="0"
+							max="10000"
+							value={ deal.revenue_share_basis_points }
+							onChange={ ( event ) =>
+								update(
+									'revenue_share_basis_points',
+									Number( event.target.value )
+								)
+							}
+							required
+						/>
+					</FieldGroup>
+					<FieldGroup
+						label="Revenue share basis"
+						htmlFor="booking-deal-basis"
+					>
+						<select
+							id="booking-deal-basis"
+							value={ deal.revenue_share_basis }
+							onChange={ ( event ) =>
+								update(
+									'revenue_share_basis',
+									event.target.value
+								)
+							}
+						>
+							<option value="gross_ticket_sales">
+								Gross ticket sales
+							</option>
+							<option value="net_ticket_sales">
+								Net ticket sales
+							</option>
+							<option value="door_receipts">Door receipts</option>
+						</select>
+					</FieldGroup>
+					{ [
+						[ 'capacity', 'Capacity', 1 ],
+						[
+							'advance_ticket_price_cents',
+							'Advance ticket price (cents)',
+							0,
+						],
+						[
+							'door_ticket_price_cents',
+							'Door ticket price (cents)',
+							0,
+						],
+						[ 'ticket_fee_cents', 'Ticket fee (cents)', 0 ],
+					].map( ( [ key, label, minimum ] ) => (
+						<FieldGroup
+							key={ key }
+							label={ label }
+							htmlFor={ `booking-deal-${ key }` }
+						>
+							<input
+								id={ `booking-deal-${ key }` }
+								type="number"
+								min={ minimum }
+								value={ deal[ key ] ?? '' }
+								onChange={ ( event ) =>
+									update(
+										key,
+										nullableNumber( event.target.value )
+									)
+								}
+							/>
+						</FieldGroup>
+					) ) }
+					<FieldGroup
+						label="Tickets on sale (UTC)"
+						htmlFor="booking-deal-on-sale"
+					>
+						<input
+							id="booking-deal-on-sale"
+							type="datetime-local"
+							value={ toLocalInput( deal.tickets_on_sale_at ) }
+							onChange={ ( event ) =>
+								update(
+									'tickets_on_sale_at',
+									toDatabaseDate( event.target.value )
+								)
+							}
+						/>
+					</FieldGroup>
+					<FieldGroup
+						label="Public ticket URL"
+						htmlFor="booking-deal-ticket-url"
+					>
+						<input
+							id="booking-deal-ticket-url"
+							type="url"
+							value={ deal.ticket_url || '' }
+							onChange={ ( event ) =>
+								update(
+									'ticket_url',
+									event.target.value || null
+								)
+							}
+						/>
+					</FieldGroup>
+				</div>
+				<FieldGroup
+					label="Additional terms"
+					htmlFor="booking-deal-terms"
+				>
+					<textarea
+						id="booking-deal-terms"
+						value={ deal.additional_terms || '' }
+						onChange={ ( event ) =>
+							update(
+								'additional_terms',
+								event.target.value || null
+							)
+						}
+					/>
+				</FieldGroup>
+				<button
+					type="submit"
+					className="button-2"
+					disabled={ pending !== '' }
+				>
+					Save deal terms
+				</button>
+			</form>
+		</section>
+	);
+}
+
+function ProductionEditor( { booking, pending, onSave } ) {
+	const stored = payloadData( booking.production );
+	const malformed = stored !== null && ! validProductionShape( stored );
+	const source = malformed ? {} : stored || {};
+	const [ requirements, setRequirements ] = useState(
+		( source.support_requirements || [] ).join( '\n' )
+	);
+	const [ offers, setOffers ] = useState(
+		( source.support_offers || [] ).join( '\n' )
+	);
+	const [ notes, setNotes ] = useState( source.production_notes || '' );
+	if ( malformed ) {
+		return (
+			<section className="ec-booking-detail__section">
+				<h3>Production details</h3>
+				<InlineStatus tone="error">
+					The stored production document is malformed. Editing is
+					unavailable until the canonical record is repaired.
+				</InlineStatus>
+			</section>
+		);
+	}
+	return (
+		<section className="ec-booking-detail__section">
+			<h3>Production details</h3>
+			<form
+				className="ec-booking-console__form"
+				onSubmit={ ( event ) => {
+					event.preventDefault();
+					onSave( {
+						version: 1,
+						support_requirements: linesToItems( requirements ),
+						support_offers: linesToItems( offers ),
+						production_notes: notes || null,
+					} );
+				} }
+			>
+				<div className="ec-venue-settings__grid">
+					<FieldGroup
+						label="Artist requirements (one per line)"
+						htmlFor="booking-production-requirements"
+					>
+						<textarea
+							id="booking-production-requirements"
+							value={ requirements }
+							onChange={ ( event ) =>
+								setRequirements( event.target.value )
+							}
+						/>
+					</FieldGroup>
+					<FieldGroup
+						label="Venue offers (one per line)"
+						htmlFor="booking-production-offers"
+					>
+						<textarea
+							id="booking-production-offers"
+							value={ offers }
+							onChange={ ( event ) =>
+								setOffers( event.target.value )
+							}
+						/>
+					</FieldGroup>
+				</div>
+				<FieldGroup
+					label="Production notes"
+					htmlFor="booking-production-notes"
+				>
+					<textarea
+						id="booking-production-notes"
+						value={ notes }
+						onChange={ ( event ) => setNotes( event.target.value ) }
+					/>
+				</FieldGroup>
+				<button
+					type="submit"
+					className="button-2"
+					disabled={ pending !== '' }
+				>
+					Save production details
+				</button>
+			</form>
+		</section>
+	);
+}
+
+function ActivityTimeline( { operations } ) {
+	return (
+		<section className="ec-booking-detail__section">
+			<h3>Activity</h3>
+			{ operations.activity.length ? (
+				<ul className="ec-booking-console__timeline">
+					{ operations.activity.map( ( item ) => (
+						<li key={ item.id }>
+							<strong>{ activityLabel( item.kind ) }</strong>
+							<small>{ formatDate( item.occurred_at ) }</small>
+						</li>
+					) ) }
+				</ul>
+			) : (
+				<p>No activity recorded.</p>
+			) }
+		</section>
+	);
+}
+
 function BookingStatus( { status } ) {
 	return (
 		<span className={ `ec-booking-status ec-booking-status--${ status }` }>
@@ -438,6 +874,8 @@ function BookingDetail( {
 	booking,
 	holds,
 	communications,
+	operations,
+	defaultDeal,
 	members,
 	currentUserId,
 	onMutate,
@@ -785,15 +1223,38 @@ function BookingDetail( {
 				value={ booking.intake }
 				empty="No intake answers were supplied."
 			/>
-			<JsonRecord
-				title="Deal state"
-				value={ booking.confirmed_deal || booking.deal }
-				empty="No deal document yet."
+			<DealEditor
+				key={ `deal-${ booking.id }-${ booking.version }` }
+				booking={ booking }
+				defaultDeal={ defaultDeal }
+				pending={ pending }
+				onSave={ ( deal ) =>
+					mutate(
+						'Deal update',
+						'extrachill/update-venue-booking-deal',
+						{
+							booking_id: booking.id,
+							expected_version: booking.version,
+							deal,
+						}
+					)
+				}
 			/>
-			<JsonRecord
-				title="Production state"
-				value={ booking.production }
-				empty="No production document yet."
+			<ProductionEditor
+				key={ `production-${ booking.id }-${ booking.version }` }
+				booking={ booking }
+				pending={ pending }
+				onSave={ ( production ) =>
+					mutate(
+						'Production update',
+						'extrachill/update-venue-booking-production',
+						{
+							booking_id: booking.id,
+							expected_version: booking.version,
+							production,
+						}
+					)
+				}
 			/>
 
 			<section className="ec-booking-detail__section">
@@ -803,10 +1264,61 @@ function BookingDetail( {
 						? `Linked event #${ booking.event_id } is synchronized through booking-owned abilities.`
 						: 'No canonical event has been created.' }
 				</p>
+				{ operations.conversion.status === 'failed' && (
+					<InlineStatus
+						tone={
+							operations.conversion.retryable
+								? 'warning'
+								: 'error'
+						}
+					>
+						Conversion attempt { operations.conversion.attempt }{ ' ' }
+						failed
+						{ operations.conversion.failure_code
+							? ` (${ operations.conversion.failure_code })`
+							: '' }
+						.{ ' ' }
+						{ operations.conversion.retryable
+							? 'Retry is available.'
+							: 'Manual review is required before retrying.' }
+					</InlineStatus>
+				) }
+				{ operations.conversion.status === 'pending' && (
+					<InlineStatus tone="warning">
+						Conversion attempt { operations.conversion.attempt } has
+						no terminal result yet.
+					</InlineStatus>
+				) }
+				{ booking.event_id && operations.sync.status !== 'none' && (
+					<InlineStatus
+						tone={
+							[ 'failed', 'conflict', 'retryable' ].includes(
+								operations.sync.status
+							)
+								? 'warning'
+								: 'info'
+						}
+					>
+						Event synchronization:{ ' ' }
+						{ activityLabel( operations.sync.status ) }
+						{ operations.sync.code
+							? ` (${ operations.sync.code })`
+							: '' }
+						.
+						{ operations.sync.retryable
+							? ' Reconciliation can be retried.'
+							: '' }
+					</InlineStatus>
+				) }
 				<button
 					type="button"
 					className="button-1"
-					disabled={ pending !== '' }
+					disabled={
+						pending !== '' ||
+						( ! booking.event_id &&
+							operations.conversion.status === 'failed' &&
+							! operations.conversion.retryable )
+					}
 					onClick={ () =>
 						mutate(
 							booking.event_id
@@ -822,9 +1334,7 @@ function BookingDetail( {
 						)
 					}
 				>
-					{ booking.event_id
-						? 'Reconcile event'
-						: 'Convert to event' }
+					{ eventActionLabel( booking, operations ) }
 				</button>
 			</section>
 
@@ -839,28 +1349,17 @@ function BookingDetail( {
 				private-file operations are not included in this focused console
 				slice.
 			</InlineStatus>
-			<section className="ec-booking-detail__section">
-				<h3>Activity</h3>
-				<ul className="ec-booking-console__timeline">
-					<li>
-						<strong>Booking created</strong>
-						<small>{ formatDate( booking.created_at ) }</small>
-					</li>
-					<li>
-						<strong>Booking last changed</strong>
-						<small>{ formatDate( booking.updated_at ) }</small>
-					</li>
-				</ul>
-			</section>
+			<ActivityTimeline operations={ operations } />
 		</Panel>
 	);
 }
 
-export function BookingConsole( { context, members, view } ) {
+export function BookingConsole( { context, members, defaultDeal, view } ) {
 	const venueId = context.selected_venue.id;
 	const [ bookings, setBookings ] = useState( [] );
 	const [ holds, setHolds ] = useState( [] );
 	const [ communications, setCommunications ] = useState( [] );
+	const [ operations, setOperations ] = useState( null );
 	const [ selectedId, setSelectedId ] = useState( context.booking_id || 0 );
 	const [ selected, setSelected ] = useState( null );
 	const [ loading, setLoading ] = useState( true );
@@ -874,6 +1373,8 @@ export function BookingConsole( { context, members, view } ) {
 	const [ filterAssignee, setFilterAssignee ] = useState( '' );
 	const [ month, setMonth ] = useState( monthKey() );
 	const requestId = useRef( 0 );
+	const detailRequestId = useRef( 0 );
+	const selectedIdRef = useRef( context.booking_id || 0 );
 
 	const loadList = async () => {
 		const currentRequest = ++requestId.current;
@@ -910,35 +1411,26 @@ export function BookingConsole( { context, members, view } ) {
 		}
 	};
 
-	const loadCommunications = async ( bookingId = selectedId ) => {
-		if ( ! bookingId ) {
-			return;
-		}
-		try {
-			setCommunications(
-				await runAbility( 'extrachill/list-booking-communications', {
-					booking_id: bookingId,
-				} )
-			);
-		} catch ( caught ) {
-			setDetailError( errorDetails( caught ).message );
-		}
-	};
-
-	const loadDetail = async ( bookingId = selectedId ) => {
+	const loadDetail = async ( bookingId = selectedIdRef.current ) => {
+		const currentRequest = ++detailRequestId.current;
 		if ( ! bookingId ) {
 			setSelected( null );
 			setCommunications( [] );
+			setOperations( null );
+			setDetailLoading( false );
 			return;
 		}
 		setDetailLoading( true );
 		setDetailError( '' );
 		try {
-			const [ booking, messages ] = await Promise.all( [
+			const [ booking, messages, activity ] = await Promise.all( [
 				runAbility( 'extrachill/get-venue-booking', {
 					booking_id: bookingId,
 				} ),
 				runAbility( 'extrachill/list-booking-communications', {
+					booking_id: bookingId,
+				} ),
+				runAbility( 'extrachill/get-venue-booking-activity', {
 					booking_id: bookingId,
 				} ),
 			] );
@@ -947,13 +1439,32 @@ export function BookingConsole( { context, members, view } ) {
 					'The booking is outside this venue workspace.'
 				);
 			}
+			if (
+				currentRequest !== detailRequestId.current ||
+				selectedIdRef.current !== bookingId
+			) {
+				return;
+			}
 			setSelected( booking );
 			setCommunications( messages );
+			setOperations( activity );
 		} catch ( caught ) {
+			if (
+				currentRequest !== detailRequestId.current ||
+				selectedIdRef.current !== bookingId
+			) {
+				return;
+			}
 			setSelected( null );
+			setOperations( null );
 			setDetailError( errorDetails( caught ).message );
 		} finally {
-			setDetailLoading( false );
+			if (
+				currentRequest === detailRequestId.current &&
+				selectedIdRef.current === bookingId
+			) {
+				setDetailLoading( false );
+			}
 		}
 	};
 
@@ -965,6 +1476,7 @@ export function BookingConsole( { context, members, view } ) {
 	}, [ selectedId ] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const selectBooking = ( bookingId ) => {
+		selectedIdRef.current = bookingId;
 		setSelectedId( bookingId );
 		const url = new URL( window.location.href );
 		url.searchParams.set( 'venue_id', venueId );
@@ -973,8 +1485,11 @@ export function BookingConsole( { context, members, view } ) {
 		window.history.replaceState( {}, '', url );
 	};
 	const closeDetail = () => {
+		selectedIdRef.current = 0;
+		++detailRequestId.current;
 		setSelectedId( 0 );
 		setSelected( null );
+		setDetailLoading( false );
 		const url = new URL( window.location.href );
 		url.searchParams.delete( 'booking_id' );
 		window.history.replaceState( {}, '', url );
@@ -1084,18 +1599,29 @@ export function BookingConsole( { context, members, view } ) {
 			{ detailLoading && (
 				<Panel>
 					<p aria-live="polite">Loading booking detail...</p>
+					{ selectedId > 0 && (
+						<button
+							type="button"
+							className="button-2"
+							onClick={ closeDetail }
+						>
+							Close detail
+						</button>
+					) }
 				</Panel>
 			) }
-			{ selected && ! detailLoading && (
+			{ selected && operations && ! detailLoading && (
 				<BookingDetail
 					booking={ selected }
 					holds={ selectedHolds }
 					communications={ communications }
+					operations={ operations }
+					defaultDeal={ defaultDeal }
 					members={ members }
 					currentUserId={ context.user.id }
 					onMutate={ refreshAfterMutation }
 					onClose={ closeDetail }
-					onRefreshCommunications={ loadCommunications }
+					onRefreshCommunications={ loadDetail }
 				/>
 			) }
 		</div>

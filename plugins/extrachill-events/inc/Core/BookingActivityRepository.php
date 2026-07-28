@@ -134,6 +134,50 @@ class BookingActivityRepository {
 		return $hydrated;
 	}
 
+	/**
+	 * List recent activity restricted to validated kinds before pagination.
+	 *
+	 * @param int   $booking_id Booking ID.
+	 * @param array $kinds      Canonical activity kinds.
+	 * @param int   $limit      Maximum rows.
+	 * @param int   $offset     Row offset.
+	 */
+	public function list_for_booking_kinds( int $booking_id, array $kinds, int $limit = 100, int $offset = 0 ) {
+		global $wpdb;
+		$booking_id = $this->positive_id( $booking_id, 'booking_id', false );
+		if ( is_wp_error( $booking_id ) ) {
+			return $booking_id;
+		}
+		$kinds = array_values( array_unique( $kinds ) );
+		if ( empty( $kinds ) || count( $kinds ) > 100 ) {
+			return new \WP_Error( 'invalid_booking_activity_kinds', __( 'At least one valid activity kind is required.', 'extrachill-events' ) );
+		}
+		foreach ( $kinds as $kind ) {
+			if ( ! is_string( $kind ) || '' === $kind || sanitize_key( $kind ) !== $kind || strlen( $kind ) > 64 ) {
+				return new \WP_Error( 'invalid_booking_activity_kinds', __( 'Activity kinds must be canonical keys.', 'extrachill-events' ) );
+			}
+		}
+
+		$table        = BookingSchema::activity_table();
+		$limit        = max( 1, min( 200, $limit ) );
+		$offset       = max( 0, $offset );
+		$placeholders = implode( ', ', array_fill( 0, count( $kinds ), '%s' ) );
+		$values       = array_merge( array( $booking_id ), $kinds, array( $limit, $offset ) );
+		$rows         = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND kind IN ({$placeholders}) ORDER BY occurred_at DESC, id DESC LIMIT %d OFFSET %d", $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Table and placeholder count are internal; every value is prepared.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_activity_list_failed', __( 'Booking activity could not be listed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		$hydrated = array();
+		foreach ( (array) $rows as $row ) {
+			$item = $this->hydrate( $row );
+			if ( is_wp_error( $item ) ) {
+				return $item;
+			}
+			$hydrated[] = $item;
+		}
+		return $hydrated;
+	}
+
 	/** List the bounded public correspondence ledger without reconstructing state. */
 	public function list_communications( int $booking_id, int $limit = 200 ) {
 		global $wpdb;

@@ -156,8 +156,55 @@ class BookingHoldRepository {
 		if ( ! is_array( $result ) ) {
 			return $this->rollback( is_wp_error( $result ) ? $result : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) ) );
 		}
+		if ( (int) $result['venue_term_id'] !== (int) $booking['venue_term_id'] ) {
+			return $this->rollback( new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) ) );
+		}
 		$committed = $this->commit();
 		return is_wp_error( $committed ) ? $committed : $result;
+	}
+
+	/**
+	 * Read booking activity and event state while exact venue authority is locked.
+	 *
+	 * @param int   $booking_id     Booking ID.
+	 * @param int   $actor_id       Acting user ID.
+	 * @param array $activity_kinds Activity kinds allowed in the result.
+	 */
+	public function get_booking_activity_authorized( int $booking_id, int $actor_id, array $activity_kinds ) {
+		$booking = $this->bookings->get( $booking_id );
+		if ( ! is_array( $booking ) ) {
+			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+		}
+		$allowed = $this->authorize_venue_now( $booking['venue_term_id'], $actor_id );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+		$started = $this->begin_venue_authorized( $booking['venue_term_id'], $actor_id );
+		if ( is_wp_error( $started ) ) {
+			return $started;
+		}
+		$current = $this->bookings->get( $booking_id );
+		if ( ! is_array( $current ) ) {
+			return $this->rollback( is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) ) );
+		}
+		if ( (int) $current['venue_term_id'] !== (int) $booking['venue_term_id'] ) {
+			return $this->rollback( new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) ) );
+		}
+
+		$activity   = $this->activity->list_for_booking_kinds( $booking_id, $activity_kinds, 200 );
+		$conversion = $this->activity->event_conversion_state( $booking_id, $current['public_id'] );
+		$sync       = $this->activity->event_sync_state( $booking_id );
+		foreach ( array( $activity, $conversion, $sync ) as $result ) {
+			if ( is_wp_error( $result ) ) {
+				return $this->rollback( $result );
+			}
+		}
+		$committed = $this->commit();
+		return is_wp_error( $committed ) ? $committed : array(
+			'activity'   => $activity,
+			'conversion' => $conversion,
+			'sync'       => $sync,
+		);
 	}
 
 	/** Reconcile, then list bookings while exact venue authority is locked. */

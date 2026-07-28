@@ -1272,6 +1272,7 @@ export function VenueSettingsApp( { context } ) {
 					key={ `${ selected.id }-${ tab }` }
 					context={ context }
 					members={ members }
+					defaultDeal={ config?.default_deal }
 					view={ tab }
 				/>
 			);

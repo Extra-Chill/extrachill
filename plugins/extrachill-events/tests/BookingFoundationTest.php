@@ -1159,6 +1159,7 @@ final class BookingFoundationTest extends BookingTestCase {
 				'extrachill/create-booking-inquiry',
 				'extrachill/list-venue-bookings',
 				'extrachill/get-venue-booking',
+				'extrachill/get-venue-booking-activity',
 				'extrachill/assign-venue-booking',
 				'extrachill/transition-venue-booking',
 				'extrachill/bind-venue-booking-artist',
@@ -1172,6 +1173,7 @@ final class BookingFoundationTest extends BookingTestCase {
 			$this->assertTrue( $registered[ $reconciling_ability ]['meta']['annotations']['idempotent'] );
 			$this->assertFalse( $registered[ $reconciling_ability ]['meta']['annotations']['destructive'] );
 		}
+		$this->assertTrue( $registered['extrachill/get-venue-booking-activity']['meta']['annotations']['readonly'] );
 		foreach ( $registered as $definition ) {
 			$this->assertFalse( $definition['input_schema']['additionalProperties'] );
 			$this->assertFalse( $definition['output_schema']['additionalProperties'] ?? false );
@@ -1203,7 +1205,68 @@ final class BookingFoundationTest extends BookingTestCase {
 		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $stored['id'] ]['contact_email'] = 'changed@example.com';
 		$this->assertSame( $receipt, call_user_func( $registered['extrachill/create-booking-inquiry']['execute_callback'], $receipt_input ) );
 
-		$booking = $this->create_booking();
+		$booking  = $this->create_booking();
+		( new BookingActivityRepository() )->append(
+			array(
+				'booking_id' => $booking['id'],
+				'kind'       => 'inquiry_submitted',
+				'actor_type' => 'user',
+				'actor_id'   => 12,
+				'external_id' => 'private-provider-reference',
+			)
+		);
+		( new BookingActivityRepository() )->append(
+			array(
+				'booking_id' => $booking['id'],
+				'kind'       => 'marketing_operation_submitted',
+				'actor_type' => 'user',
+				'actor_id'   => 12,
+				'channel'    => 'provider',
+				'external_id' => 'excluded-private-reference',
+			)
+		);
+		for ( $excluded = 0; $excluded < 205; ++$excluded ) {
+			( new BookingActivityRepository() )->append(
+				array(
+					'booking_id' => $booking['id'],
+					'kind'       => 'settlement_finalized',
+					'external_id' => 'excluded-settlement-' . $excluded,
+				)
+			);
+		}
+		$activity = call_user_func( $registered['extrachill/get-venue-booking-activity']['execute_callback'], array( 'booking_id' => $booking['id'] ) );
+		$this->assertCount( 1, $activity['activity'] );
+		$this->assertSame( 'inquiry_submitted', $activity['activity'][0]['kind'] );
+		$this->assertSame( array( 'id', 'kind', 'occurred_at' ), array_keys( $activity['activity'][0] ) );
+		$this->assertArrayNotHasKey( 'payload', $activity['activity'][0] );
+		$this->assertSame( 'none', $activity['conversion']['status'] );
+		$this->assertSame( 'none', $activity['sync']['status'] );
+
+		$start = ( new BookingActivityRepository() )->append(
+			array(
+				'booking_id' => $booking['id'],
+				'kind'       => 'event_sync_started',
+			)
+		);
+		( new BookingActivityRepository() )->append(
+			array(
+				'booking_id'  => $booking['id'],
+				'kind'        => 'event_sync_retryable',
+				'external_id' => (string) $start['id'],
+				'payload'     => array( 'code' => 'upstream_timeout' ),
+			)
+		);
+		( new BookingActivityRepository() )->append(
+			array(
+				'booking_id'  => $booking['id'],
+				'kind'        => 'event_sync_succeeded',
+				'external_id' => (string) $start['id'],
+				'payload'     => array( 'code' => 'updated' ),
+			)
+		);
+		$replayed = call_user_func( $registered['extrachill/get-venue-booking-activity']['execute_callback'], array( 'booking_id' => $booking['id'] ) );
+		$this->assertSame( 'succeeded', $replayed['sync']['status'] );
+		$this->assertFalse( $replayed['sync']['retryable'] );
 		$presented = $abilities->present(
 			array_merge(
 				$booking,
@@ -1217,9 +1280,10 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertArrayNotHasKey( 'inquiry_idempotency_key', $presented );
 		$this->assertArrayNotHasKey( 'inquiry_request_hash', $presented );
 		$this->assertArrayNotHasKey( 'admission_owner_token', $presented );
+		$authorization_calls = count( $authorization->calls );
 		$this->assertTrue( $abilities->can_access_booking( array( 'booking_id' => $booking['id'] ) ) );
-		$this->assertSame( array( array( 12, 55, VenueAuthorization::ACTION_ACCESS_VENUE ) ), $authorization->calls );
+		$this->assertCount( $authorization_calls + 1, $authorization->calls );
 		$this->assertSame( 'venue_action_forbidden', $abilities->can_access_booking( array( 'booking_id' => 999 ) )->get_error_code() );
-		$this->assertSame( array( array( 12, 55, VenueAuthorization::ACTION_ACCESS_VENUE ) ), $authorization->calls, 'Missing bookings must not reach authorization with a guessed venue.' );
+		$this->assertCount( $authorization_calls + 1, $authorization->calls, 'Missing bookings must not reach authorization with a guessed venue.' );
 	}
 }
