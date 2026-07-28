@@ -26,6 +26,17 @@ function extrachill_events_location_badges() {
 add_action( 'extrachill_events_home_before_calendar', 'extrachill_events_location_badges', 10 );
 
 /**
+ * Render aggregate calendar totals below the homepage discovery links.
+ *
+ * @hook extrachill_events_home_before_calendar
+ * @return void
+ */
+function extrachill_events_home_calendar_stats() {
+	extrachill_events_render_calendar_stats();
+}
+add_action( 'extrachill_events_home_before_calendar', 'extrachill_events_home_calendar_stats', 15 );
+
+/**
  * Render the homepage feature cards (My Shows + Submit) below the badges.
  *
  * @hook extrachill_events_home_before_calendar

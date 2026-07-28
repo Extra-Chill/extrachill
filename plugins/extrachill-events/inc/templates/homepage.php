@@ -23,7 +23,6 @@ extrachill_breadcrumbs();
 			<p class="events-home-intro">
 				<?php esc_html_e( 'Find live music near you. Pick a city below, track your shows, or see every event.', 'extrachill-events' ); ?>
 			</p>
-			<?php extrachill_events_render_calendar_stats(); ?>
 		</header>
 	</div>
 
