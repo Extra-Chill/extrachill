@@ -411,7 +411,24 @@ class VenueBookingAbilities {
 	public function transition_booking( array $input ) {
 		$before = $this->bookings->get( (int) $input['booking_id'] );
 		if ( is_array( $before ) && null !== $before['event_id'] && 'cancelled' === (string) $input['to_status'] ) {
-			$result = ( new \ExtraChillEvents\Core\BookingEventSyncService( $this->bookings, null, $this->authorization ) )->reconcile( (int) $input['booking_id'], (int) $input['expected_version'], get_current_user_id(), array( 'cancelled' => true ) );
+			$sync_ability = wp_get_ability( 'extrachill/reconcile-booking-event' );
+			if ( ! $sync_ability ) {
+				return new \WP_Error(
+					'booking_event_sync_unavailable',
+					__( 'Booking event synchronization is unavailable.', 'extrachill-events' ),
+					array(
+						'status'    => 503,
+						'retryable' => true,
+					)
+				);
+			}
+			$result = $sync_ability->execute(
+				array(
+					'booking_id'       => (int) $input['booking_id'],
+					'expected_version' => (int) $input['expected_version'],
+					'changes'          => array( 'cancelled' => true ),
+				)
+			);
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}

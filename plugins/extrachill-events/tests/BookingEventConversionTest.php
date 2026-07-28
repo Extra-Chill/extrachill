@@ -6,6 +6,7 @@
  */
 
 use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
+use ExtraChillEvents\Abilities\VenueBookingAbilities;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingEventConversionService;
 use ExtraChillEvents\Core\BookingEventSyncService;
@@ -997,6 +998,41 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$GLOBALS['ec_artist_test']['post_meta'][7][901]['_datamachine_event_source_id'] = 'another-site-local-source';
 		$error = $sync->reconcile( $other['id'], 2, 12 );
 		$this->assertSame( 'booking_event_identity_mismatch', $error->get_error_code() );
+	}
+
+	public function test_transition_ability_cancels_through_authorized_sync_wrapper(): void {
+		$booking       = $this->booking();
+		$authorization = new BookingTestAuthorization();
+		$this->service()->convert( $booking['id'], 1, 12 );
+		$sync_wrapper = new VenueBookingEventAbilities( null, null, $authorization );
+		$upstream     = $this->install_update_ability();
+		$GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/update-source-event'] = new BookingConversionAbilityFake(
+			static function ( array $input ) use ( $sync_wrapper, $upstream ) {
+				if ( ! $sync_wrapper->can_update_booking_event( false, $input ) ) {
+					return new WP_Error( 'ability_invalid_permissions', 'Denied.' );
+				}
+				return $upstream->execute( $input );
+			}
+		);
+		$GLOBALS['ec_artist_test']['ability_objects']['extrachill/reconcile-booking-event'] = new BookingConversionAbilityFake(
+			static function ( array $input ) use ( $sync_wrapper ) {
+				return $sync_wrapper->reconcile( $input );
+			}
+		);
+
+		$result = ( new VenueBookingAbilities( new BookingRepository(), new BookingLifecycle( null, null, $authorization ), $authorization ) )->transition_booking(
+			array(
+				'booking_id'       => $booking['id'],
+				'to_status'        => 'cancelled',
+				'expected_version' => 2,
+			)
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'cancelled', $result['status'] );
+		$this->assertSame( 3, $result['version'] );
+		$this->assertCount( 1, $upstream->calls );
+		$this->assertSame( 'EventCancelled', $upstream->calls[0]['eventStatus'] );
 	}
 
 	public function test_wrong_venue_is_a_field_conflict_not_a_blind_overwrite(): void {
