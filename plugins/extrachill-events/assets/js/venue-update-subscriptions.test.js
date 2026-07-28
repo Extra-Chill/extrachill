@@ -34,6 +34,9 @@ describe( 'Venue update subscriptions', () => {
 		expect( fetch.mock.calls[ 0 ][ 0 ] ).not.toContain(
 			'entity-subscribe/run'
 		);
+		expect(
+			document.querySelector( '[data-venue-update-status]' ).textContent
+		).toBe( 'Venue updates are off.' );
 	} );
 
 	it( 'subscribes with the exact venue identity after a click', async () => {
@@ -62,6 +65,9 @@ describe( 'Venue update subscriptions', () => {
 		expect( document.querySelector( 'button' ).textContent ).toBe(
 			'Subscribed to updates'
 		);
+		expect(
+			document.querySelector( '[data-venue-update-status]' ).textContent
+		).toBe( 'Venue updates are on.' );
 	} );
 
 	it( 'unsubscribes only after an explicit second click', async () => {

@@ -22,9 +22,7 @@
 			: 'Subscribe to updates';
 		status.textContent =
 			message ||
-			( subscribed
-				? 'Private venue updates are on.'
-				: 'Private venue updates are off.' );
+			( subscribed ? 'Venue updates are on.' : 'Venue updates are off.' );
 	}
 
 	function request( ability, method ) {
