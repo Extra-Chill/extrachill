@@ -158,10 +158,6 @@ function extrachill_community_register_topic_reply_abilities() {
 						'enum'        => array( 'html', 'markdown' ),
 						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
 					),
-					'user_id'  => array(
-						'type'        => 'integer',
-						'description' => 'Author user ID (defaults to current user)',
-					),
 				),
 				'required'   => array( 'forum_id', 'title', 'content' ),
 			),
@@ -176,7 +172,7 @@ function extrachill_community_register_topic_reply_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_community_ability_create_topic',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_community_ability_create_topic_permission',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
@@ -216,10 +212,6 @@ function extrachill_community_register_topic_reply_abilities() {
 						'type'        => 'integer',
 						'description' => 'Parent reply ID for threaded replies (optional)',
 					),
-					'user_id'  => array(
-						'type'        => 'integer',
-						'description' => 'Author user ID (defaults to current user)',
-					),
 				),
 				'required'   => array( 'topic_id', 'content' ),
 			),
@@ -234,7 +226,7 @@ function extrachill_community_register_topic_reply_abilities() {
 				),
 			),
 			'execute_callback'    => 'extrachill_community_ability_create_reply',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_community_ability_create_reply_permission',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(

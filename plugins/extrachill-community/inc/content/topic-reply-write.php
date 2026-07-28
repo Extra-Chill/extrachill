@@ -13,6 +13,95 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Resolve and authorize the authenticated author for a forum write.
+ *
+ * The ambient Agents API principal is host-resolved and may carry a capability
+ * ceiling. Ability input is never an authority for authorship; a legacy
+ * self-matching user_id remains accepted for existing internal callers.
+ *
+ * @param array  $input      Ability input.
+ * @param string $capability Required bbPress publish capability.
+ * @return int|WP_Error Authenticated author ID on success.
+ */
+function extrachill_community_authorize_post_creation( $input, $capability ) {
+	$current_user_id = get_current_user_id();
+	$principal       = null;
+
+	if ( class_exists( 'WP_Agent_Access' ) && class_exists( 'AgentsAPI\\AI\\WP_Agent_Execution_Principal' ) ) {
+		try {
+			$principal = WP_Agent_Access::get_current_principal(
+				array(
+					'allow_anonymous_audience' => false,
+				)
+			);
+		} catch ( Throwable $exception ) {
+			return new WP_Error( 'invalid_execution_principal', 'The execution principal could not be authenticated.' );
+		}
+	}
+
+	if ( $principal instanceof AgentsAPI\AI\WP_Agent_Execution_Principal ) {
+		$user_id = (int) $principal->acting_user_id;
+
+		if ( $current_user_id > 0 && $current_user_id !== $user_id ) {
+			return new WP_Error( 'execution_principal_mismatch', 'The execution principal does not match the authenticated user.' );
+		}
+
+		if ( $principal->capability_ceiling instanceof WP_Agent_Capability_Ceiling && (int) $principal->capability_ceiling->user_id !== $user_id ) {
+			return new WP_Error( 'execution_principal_mismatch', 'The execution principal capability boundary does not match its acting user.' );
+		}
+	} else {
+		$user_id = $current_user_id;
+	}
+
+	if ( $user_id <= 0 ) {
+		return new WP_Error( 'missing_user', 'An authenticated user is required.' );
+	}
+
+	if ( isset( $input['user_id'] ) && (int) $input['user_id'] !== $user_id ) {
+		return new WP_Error( 'author_mismatch', 'The requested author does not match the authenticated user.' );
+	}
+
+	$site = extrachill_community_switch_to_community_blog();
+	try {
+		if ( $principal instanceof AgentsAPI\AI\WP_Agent_Execution_Principal && class_exists( 'WP_Agent_WordPress_Authorization_Policy' ) ) {
+			$allowed = ( new WP_Agent_WordPress_Authorization_Policy() )->can( $principal, $capability );
+		} else {
+			$allowed = user_can( $user_id, $capability );
+		}
+	} finally {
+		if ( $site['switched'] ) {
+			restore_current_blog();
+		}
+	}
+
+	if ( ! $allowed ) {
+		return new WP_Error( 'cannot_publish', 'The authenticated user cannot publish this content.' );
+	}
+
+	return $user_id;
+}
+
+/**
+ * Permission callback for topic creation.
+ *
+ * @param array $input Ability input.
+ * @return bool
+ */
+function extrachill_community_ability_create_topic_permission( $input = array() ) {
+	return ! is_wp_error( extrachill_community_authorize_post_creation( $input, 'publish_topics' ) );
+}
+
+/**
+ * Permission callback for reply creation.
+ *
+ * @param array $input Ability input.
+ * @return bool
+ */
+function extrachill_community_ability_create_reply_permission( $input = array() ) {
+	return ! is_wp_error( extrachill_community_authorize_post_creation( $input, 'publish_replies' ) );
+}
+
+/**
  * Create a new topic.
  *
  * @param array $input Ability input.
@@ -28,7 +117,11 @@ function extrachill_community_ability_create_topic( $input ) {
 	$raw_content = isset( $input['content'] ) ? (string) $input['content'] : '';
 	$format      = isset( $input['format'] ) ? (string) $input['format'] : 'html';
 	$content     = wp_kses_post( extrachill_community_maybe_convert_markdown( $raw_content, $format ) );
-	$user_id     = extrachill_community_resolve_user_id( $input );
+	$user_id     = extrachill_community_authorize_post_creation( $input, 'publish_topics' );
+
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
+	}
 
 	if ( ! $forum_id ) {
 		return new WP_Error( 'missing_forum_id', 'A forum_id is required.' );
@@ -96,7 +189,11 @@ function extrachill_community_ability_create_reply( $input ) {
 	$format      = isset( $input['format'] ) ? (string) $input['format'] : 'html';
 	$content     = wp_kses_post( extrachill_community_maybe_convert_markdown( $raw_content, $format ) );
 	$reply_to    = isset( $input['reply_to'] ) ? (int) $input['reply_to'] : 0;
-	$user_id     = extrachill_community_resolve_user_id( $input );
+	$user_id     = extrachill_community_authorize_post_creation( $input, 'publish_replies' );
+
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
+	}
 
 	if ( ! $topic_id ) {
 		return new WP_Error( 'missing_topic_id', 'A topic_id is required.' );
