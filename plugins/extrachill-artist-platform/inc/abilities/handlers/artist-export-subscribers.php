@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Handler: extrachill/artist-export-subscribers
  *
@@ -8,6 +7,8 @@ declare(strict_types=1);
  * @package ExtraChillArtistPlatform
  * @since   1.9.0
  */
+
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -20,7 +21,7 @@ defined( 'ABSPATH' ) || exit;
  * }
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_artist_export_subscribers( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_export_subscribers( array $input ) {
 	$artist_id        = isset( $input['id'] ) ? (int) $input['id'] : 0;
 	$include_exported = ! empty( $input['include_exported'] );
 
@@ -46,12 +47,15 @@ function extrachill_artist_platform_ability_artist_export_subscribers( array $in
 		'limit'    => -1,
 		'exported' => $exported_filter,
 	) );
+	if ( is_wp_error( $subscribers ) ) {
+		return $subscribers;
+	}
 
-	$subscriber_ids_to_mark = array();
+	$subscriber_ids_to_mark = extrachill_artist_subscriber_ids_to_mark_exported( $subscribers, $include_exported );
 	$export_data            = array();
 
 	foreach ( $subscribers as $subscriber ) {
-		$is_exported = isset( $subscriber->exported ) && $subscriber->exported == 1;
+		$is_exported = isset( $subscriber->exported ) && 1 === (int) $subscriber->exported;
 
 		$export_data[] = array(
 			'email'         => $subscriber->subscriber_email,
@@ -60,9 +64,6 @@ function extrachill_artist_platform_ability_artist_export_subscribers( array $in
 			'exported'      => $is_exported,
 		);
 
-		if ( ! $is_exported && ! $include_exported ) {
-			$subscriber_ids_to_mark[] = $subscriber->subscriber_id;
-		}
 	}
 
 	// Mark newly exported subscribers.

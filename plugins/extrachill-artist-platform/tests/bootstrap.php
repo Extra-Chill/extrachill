@@ -34,6 +34,9 @@ class WP_Error {
 	}
 }
 
+class WP_Term {
+}
+
 class EcTestWpdb {
 	public $last_error = '';
 	public $options    = 'wp_options';
@@ -819,6 +822,11 @@ function get_userdata( $user_id ) {
 	);
 }
 
+function extrachill_users_entity_subscription_recipients( $producer, $entity_type, $taxonomy, $slug, $delivery ) {
+	$GLOBALS['ec_test']['recipient_resolution_calls'][] = compact( 'producer', 'entity_type', 'taxonomy', 'slug', 'delivery' );
+	return $GLOBALS['ec_test']['entity_subscription_recipients'][ $slug ] ?? array();
+}
+
 function apply_filters( $hook_name, $value, ...$args ) {
 	if ( 'extrachill_allow_external_artist_onboarding' === $hook_name ) {
 		return ! empty( $GLOBALS['ec_test']['allow_external_artist_onboarding'] );
@@ -927,6 +935,7 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get.php';
 require_once dirname( __DIR__ ) . '/inc/local-support/availability.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/helpers.php';
 require_once dirname( __DIR__ ) . '/inc/core/artist-term-binding.php';
+require_once dirname( __DIR__ ) . '/inc/artist-profiles/subscribe-data-functions.php';
 require_once dirname( __DIR__ ) . '/inc/artist-profiles/frontend/shows-section.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/registry.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/update-artist.php';
@@ -937,6 +946,7 @@ require_once dirname( __DIR__ ) . '/inc/core/filters/create.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-link-page-links.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-social-links.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-export-subscribers.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-list-subscribers.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-local-support.php';
 require_once dirname( __DIR__ ) . '/inc/core/actions/save.php';
 require_once dirname( __DIR__ ) . '/inc/core/platform-artist-provisioning.php';
