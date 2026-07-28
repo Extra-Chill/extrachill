@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.55.0] - 2026-07-28
+
+### Added
+- expose booking inquiry block across network
+
+### Changed
+- Complete core booking operator controls
+- prove ticket races and migration fidelity
+- reset inquiry temporary files between repeats
+
+### Fixed
+- synchronize companion plugin version
+- bind certified ticket settlement evidence
+- polish Events homepage surfaces and stats
+- compose booking inquiry component styles
+- recover canonical booking event conversion
+
 ## [0.54.1] - 2026-07-27
 
 ### Fixed
