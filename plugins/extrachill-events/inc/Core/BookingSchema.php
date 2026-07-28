@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns and verifies the site-scoped private booking schema. */
 class BookingSchema {
 
-	public const SCHEMA_VERSION = '13';
+	public const SCHEMA_VERSION = '14';
 	public const VERSION_OPTION = 'extrachill_events_booking_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_booking_schema_error';
 
@@ -109,6 +109,42 @@ class BookingSchema {
 	/** Create or repair all tables, stamping the version only after verification. */
 	public static function install() {
 		global $wpdb;
+		$schema_lock = null;
+		$lock_guard  = null;
+		if ( isset( $wpdb->dbh ) && $wpdb->dbh instanceof \mysqli ) {
+			$schema_lock = 'ec_booking_schema_' . substr( hash( 'sha256', (string) DB_NAME . "\0" . $wpdb->prefix ), 0, 40 );
+			$acquired    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 30)', $schema_lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes concurrent installers for this site prefix.
+			if ( 1 !== (int) $acquired ) {
+				return new \WP_Error( 'booking_schema_lock_failed', __( 'The booking schema installer could not acquire its site lock.', 'extrachill-events' ) );
+			}
+			$lock_guard = new class( $wpdb, $schema_lock ) {
+				/** Database session holding the advisory lock.
+				 *
+				 * @var \wpdb
+				 */
+				private $database;
+				/** Exact site-scoped advisory lock name.
+				 *
+				 * @var string
+				 */
+				private $name;
+
+				/** Retain the lock owner until every install return path completes.
+				 *
+				 * @param \wpdb  $database Database session.
+				 * @param string $name Lock name.
+				 */
+				public function __construct( $database, string $name ) {
+					$this->database = $database;
+					$this->name     = $name;
+				}
+
+				/** Release the exact advisory lock. */
+				public function __destruct() {
+					$this->database->get_var( $this->database->prepare( 'SELECT RELEASE_LOCK(%s)', $this->name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the exact installer lock on every return path.
+				}
+			};
+		}
 
 		$bookings            = self::bookings_table();
 		$activity            = self::activity_table();
@@ -375,6 +411,7 @@ class BookingSchema {
 			venue_term_id BIGINT UNSIGNED NOT NULL,
 			provider VARCHAR(64) NOT NULL,
 			source_key VARCHAR(191) NOT NULL,
+			source_key_hash CHAR(64) NOT NULL,
 			canonical_url LONGTEXT NOT NULL,
 			url_hash CHAR(64) NOT NULL,
 			request_hash CHAR(64) NOT NULL,
@@ -382,7 +419,7 @@ class BookingSchema {
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY (id),
 			UNIQUE KEY public_id (public_id),
-			UNIQUE KEY booking_provider_source (booking_id, provider, source_key),
+			UNIQUE KEY booking_provider_source (booking_id, provider, source_key_hash),
 			KEY event_provider (event_id, provider),
 			KEY venue_created (venue_term_id, created_at, id)
 		) ENGINE=InnoDB {$charset};";
@@ -396,7 +433,13 @@ class BookingSchema {
 			evidence_attachment_id BIGINT UNSIGNED NULL,
 			provider VARCHAR(64) NOT NULL,
 			external_report_id VARCHAR(191) NOT NULL,
+			external_report_id_hash CHAR(64) NOT NULL,
 			source_type VARCHAR(32) NOT NULL,
+			provenance_version BIGINT UNSIGNED NOT NULL DEFAULT '1',
+			ticket_source_request_hash CHAR(64) NULL,
+			evidence_attachment_request_hash CHAR(64) NULL,
+			evidence_content_hash CHAR(64) NULL,
+			evidence_byte_size BIGINT UNSIGNED NULL,
 			period_start DATETIME NOT NULL,
 			period_end DATETIME NOT NULL,
 			tickets_sold BIGINT NOT NULL,
@@ -413,7 +456,7 @@ class BookingSchema {
 			created_by_user_id BIGINT UNSIGNED NOT NULL,
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY (id),
-			UNIQUE KEY provider_external_report (booking_id, provider, external_report_id),
+			UNIQUE KEY provider_external_report (booking_id, provider, external_report_id_hash),
 			KEY booking_created (booking_id, created_at, id),
 			KEY booking_currency_id (booking_id, currency, id),
 			KEY ticket_source_id (ticket_source_id),
@@ -479,6 +522,12 @@ class BookingSchema {
 			KEY event_id (event_id),
 			KEY status_updated (status, updated_at)
 		) ENGINE=InnoDB {$charset};";
+
+		$migration = self::migrate_v13_ticket_provenance();
+		if ( is_wp_error( $migration ) ) {
+			self::record_failure( $migration );
+			return $migration;
+		}
 
 		$repair = self::drop_conflicting_indexes();
 		if ( is_wp_error( $repair ) ) {
@@ -560,6 +609,7 @@ class BookingSchema {
 
 		update_option( self::VERSION_OPTION, self::SCHEMA_VERSION, false );
 		delete_option( self::FAILURE_OPTION );
+		unset( $lock_guard );
 		return true;
 	}
 
@@ -793,6 +843,59 @@ class BookingSchema {
 			}
 		}
 
+		return true;
+	}
+
+	/** Add and backfill v14 identity/provenance storage before unique-index repair. */
+	private static function migrate_v13_ticket_provenance() {
+		global $wpdb;
+
+		if ( ! isset( $wpdb->dbh ) || ! $wpdb->dbh instanceof \mysqli || version_compare( (string) get_option( self::VERSION_OPTION, '0' ), '14', '>=' ) ) {
+			return true;
+		}
+		$tables = array(
+			self::ticket_sources_table() => array(
+				'columns'  => array( 'source_key_hash CHAR(64) NULL' ),
+				'backfill' => 'source_key_hash = SHA2(source_key, 256)',
+				'where'    => "source_key_hash IS NULL OR source_key_hash = ''",
+				'final'    => 'source_key_hash CHAR(64) NOT NULL',
+			),
+			self::sales_reports_table()  => array(
+				'columns'  => array(
+					'external_report_id_hash CHAR(64) NULL',
+					"provenance_version BIGINT UNSIGNED NOT NULL DEFAULT '1'",
+					'ticket_source_request_hash CHAR(64) NULL',
+					'evidence_attachment_request_hash CHAR(64) NULL',
+					'evidence_content_hash CHAR(64) NULL',
+					'evidence_byte_size BIGINT UNSIGNED NULL',
+				),
+				'backfill' => 'external_report_id_hash = SHA2(external_report_id, 256)',
+				'where'    => "external_report_id_hash IS NULL OR external_report_id_hash = ''",
+				'final'    => 'external_report_id_hash CHAR(64) NOT NULL',
+			),
+		);
+		foreach ( $tables as $table => $migration ) {
+			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit private schema migration.
+			if ( $found !== $table ) {
+				continue;
+			}
+			$found_columns = array_column( (array) $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ), 'Field' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit private schema migration.
+			foreach ( $migration['columns'] as $definition ) {
+				$name = strtok( $definition, ' ' );
+				if ( in_array( $name, $found_columns, true ) ) {
+					continue;
+				}
+				if ( false === $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN {$definition}" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Fixed internal migration definitions.
+					return self::database_error( __( 'Could not add ticket provenance storage.', 'extrachill-events' ), $table );
+				}
+			}
+			if ( false === $wpdb->query( "UPDATE `{$table}` SET {$migration['backfill']} WHERE {$migration['where']}" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Deterministic in-place identity hash backfill.
+				return self::database_error( __( 'Could not backfill lossless ticket identity hashes.', 'extrachill-events' ), $table );
+			}
+			if ( false === $wpdb->query( "ALTER TABLE `{$table}` MODIFY COLUMN {$migration['final']}" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Makes the completed identity migration mandatory.
+				return self::database_error( __( 'Could not finalize ticket identity hash storage.', 'extrachill-events' ), $table );
+			}
+		}
 		return true;
 	}
 
@@ -1282,6 +1385,7 @@ class BookingSchema {
 					'venue_term_id'      => $required( 'bigint unsigned', false ),
 					'provider'           => $required( 'varchar(64)', false ),
 					'source_key'         => $required( 'varchar(191)', false ),
+					'source_key_hash'    => $required( 'char(64)', false ),
 					'canonical_url'      => $required( 'longtext', false ),
 					'url_hash'           => $required( 'char(64)', false ),
 					'request_hash'       => $required( 'char(64)', false ),
@@ -1291,7 +1395,7 @@ class BookingSchema {
 				'indexes' => array(
 					'PRIMARY'                 => $index( true, 'id' ),
 					'public_id'               => $index( true, 'public_id' ),
-					'booking_provider_source' => $index( true, 'booking_id', 'provider', 'source_key' ),
+					'booking_provider_source' => $index( true, 'booking_id', 'provider', 'source_key_hash' ),
 					'event_provider'          => $index( false, 'event_id', 'provider' ),
 					'venue_created'           => $index( false, 'venue_term_id', 'created_at', 'id' ),
 				),
@@ -1299,30 +1403,36 @@ class BookingSchema {
 			self::sales_reports_table()         => array(
 				'engine'  => 'innodb',
 				'columns' => array(
-					'id'                     => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
-					'booking_id'             => $required( 'bigint unsigned', false ),
-					'event_id'               => $required( 'bigint unsigned', false ),
-					'venue_term_id'          => $required( 'bigint unsigned', false ),
-					'ticket_source_id'       => $required( 'bigint unsigned', true ),
-					'evidence_attachment_id' => $required( 'bigint unsigned', true ),
-					'provider'               => $required( 'varchar(64)', false ),
-					'external_report_id'     => $required( 'varchar(191)', false ),
-					'source_type'            => $required( 'varchar(32)', false ),
-					'period_start'           => $required( 'datetime', false ),
-					'period_end'             => $required( 'datetime', false ),
-					'tickets_sold'           => $required( 'bigint', false ),
-					'tickets_refunded'       => $required( 'bigint', false ),
-					'gross_minor'            => $required( 'bigint', false ),
-					'fees_minor'             => $required( 'bigint', false ),
-					'tax_minor'              => $required( 'bigint', false ),
-					'refunds_minor'          => $required( 'bigint', false ),
-					'net_minor'              => $required( 'bigint', false ),
-					'currency'               => $required( 'char(3)', false ),
-					'corrects_report_id'     => $required( 'bigint unsigned', true ),
-					'source_payload'         => $required( 'longtext', false ),
-					'request_hash'           => $required( 'char(64)', false ),
-					'created_by_user_id'     => $required( 'bigint unsigned', false ),
-					'created_at'             => $required( 'datetime', false ),
+					'id'                               => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
+					'booking_id'                       => $required( 'bigint unsigned', false ),
+					'event_id'                         => $required( 'bigint unsigned', false ),
+					'venue_term_id'                    => $required( 'bigint unsigned', false ),
+					'ticket_source_id'                 => $required( 'bigint unsigned', true ),
+					'evidence_attachment_id'           => $required( 'bigint unsigned', true ),
+					'provider'                         => $required( 'varchar(64)', false ),
+					'external_report_id'               => $required( 'varchar(191)', false ),
+					'external_report_id_hash'          => $required( 'char(64)', false ),
+					'source_type'                      => $required( 'varchar(32)', false ),
+					'provenance_version'               => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
+					'ticket_source_request_hash'       => $required( 'char(64)', true ),
+					'evidence_attachment_request_hash' => $required( 'char(64)', true ),
+					'evidence_content_hash'            => $required( 'char(64)', true ),
+					'evidence_byte_size'               => $required( 'bigint unsigned', true ),
+					'period_start'                     => $required( 'datetime', false ),
+					'period_end'                       => $required( 'datetime', false ),
+					'tickets_sold'                     => $required( 'bigint', false ),
+					'tickets_refunded'                 => $required( 'bigint', false ),
+					'gross_minor'                      => $required( 'bigint', false ),
+					'fees_minor'                       => $required( 'bigint', false ),
+					'tax_minor'                        => $required( 'bigint', false ),
+					'refunds_minor'                    => $required( 'bigint', false ),
+					'net_minor'                        => $required( 'bigint', false ),
+					'currency'                         => $required( 'char(3)', false ),
+					'corrects_report_id'               => $required( 'bigint unsigned', true ),
+					'source_payload'                   => $required( 'longtext', false ),
+					'request_hash'                     => $required( 'char(64)', false ),
+					'created_by_user_id'               => $required( 'bigint unsigned', false ),
+					'created_at'                       => $required( 'datetime', false ),
 				),
 				'indexes' => array(
 					'PRIMARY'                  => array(
@@ -1331,7 +1441,7 @@ class BookingSchema {
 					),
 					'provider_external_report' => array(
 						'unique'  => true,
-						'columns' => array( 'booking_id', 'provider', 'external_report_id' ),
+						'columns' => array( 'booking_id', 'provider', 'external_report_id_hash' ),
 					),
 					'booking_created'          => array(
 						'unique'  => false,

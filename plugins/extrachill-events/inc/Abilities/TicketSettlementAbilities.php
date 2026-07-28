@@ -133,35 +133,7 @@ class TicketSettlementAbilities {
 	}
 
 	public function import_csv( array $input ) {
-		$rows = $this->reconciliation->csv_report_inputs( $input, get_current_user_id() );
-		if ( is_wp_error( $rows ) ) {
-			return $rows;
-		}
-		$reports  = array();
-		$failures = array();
-		foreach ( $rows as $index => $row ) {
-			$report = $this->service->record_sales( $row, get_current_user_id() );
-			if ( is_wp_error( $report ) ) {
-				$failures[] = array(
-					'row'  => $index + 2,
-					'code' => $report->get_error_code(),
-				);
-				continue;
-			}
-			$reports[] = $report;
-		}
-		if ( ! empty( $failures ) ) {
-			return new \WP_Error(
-				'sales_csv_import_partial',
-				__( 'Some ticket-sales rows could not be imported.', 'extrachill-events' ),
-				array(
-					'status'              => 409,
-					'imported_report_ids' => array_column( $reports, 'id' ),
-					'failures'            => $failures,
-				)
-			);
-		}
-		return $reports;
+		return $this->service->import_csv( $input, get_current_user_id() );
 	}
 
 	public function diagnostics( array $input ) {
@@ -231,7 +203,7 @@ class TicketSettlementAbilities {
 			),
 			'source_type'            => array(
 				'type' => 'string',
-				'enum' => TicketSettlementService::SOURCE_TYPES,
+				'enum' => array( 'manual' ),
 			),
 			'period_start'           => $this->datetime_schema(),
 			'period_end'             => $this->datetime_schema(),
@@ -334,7 +306,7 @@ class TicketSettlementAbilities {
 				'currency'                 => $this->currency_schema(),
 				'formula_version'          => array(
 					'type' => 'integer',
-					'enum' => array( 1, TicketSettlementService::FORMULA_VERSION ),
+					'enum' => array( 1, 2, TicketSettlementService::FORMULA_VERSION ),
 				),
 				'adjustment_minor'         => array( 'type' => 'integer' ),
 			),
@@ -501,7 +473,7 @@ class TicketSettlementAbilities {
 				'currency'             => $this->currency_schema(),
 				'formula_version'      => array(
 					'type' => 'integer',
-					'enum' => array( 1, TicketSettlementService::FORMULA_VERSION ),
+					'enum' => array( 1, 2, TicketSettlementService::FORMULA_VERSION ),
 				),
 				'included_report_ids'  => array(
 					'type'     => 'array',

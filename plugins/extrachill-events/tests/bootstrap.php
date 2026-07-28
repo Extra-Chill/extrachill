@@ -55,6 +55,12 @@ if ( ! class_exists( 'WP_Error' ) ) {
 		public function get_error_data() {
 			return $this->data;
 		}
+
+		public function add_data( $data, $code = '' ) {
+			if ( '' === $code || $this->code === $code ) {
+				$this->data = $data;
+			}
+		}
 	}
 }
 

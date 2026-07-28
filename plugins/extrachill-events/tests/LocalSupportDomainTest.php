@@ -11,11 +11,10 @@ use ExtraChillEvents\Core\LocalSupportRepository;
 use ExtraChillEvents\Core\LocalSupportSchema;
 use ExtraChillEvents\Core\LocalSupportService;
 use ExtraChillEvents\Core\VenueAuthorization;
-use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
-final class LocalSupportDomainTest extends TestCase {
+final class LocalSupportDomainTest extends BookingTestCase {
 
 	/** @var LocalSupportMemoryRepository */
 	private $repository;

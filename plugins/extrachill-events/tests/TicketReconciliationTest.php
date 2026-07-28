@@ -16,12 +16,11 @@ use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\TicketReconciliationService;
 use ExtraChillEvents\Core\TicketSettlementService;
-use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
 /** Verifies that unresolved or contradictory evidence never reaches settlement. */
-final class TicketReconciliationTest extends TestCase {
+final class TicketReconciliationTest extends BookingTestCase {
 	/** @var BookingRepository */
 	private $bookings;
 	/** @var BookingTestAuthorization */
@@ -90,7 +89,7 @@ final class TicketReconciliationTest extends TestCase {
 	public function test_schema_upgrades_v12_without_replacing_settlement_tables(): void {
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '12';
 		$this->assertTrue( BookingSchema::maybe_install() );
-		$this->assertSame( '13', get_option( BookingSchema::VERSION_OPTION ) );
+		$this->assertSame( '14', get_option( BookingSchema::VERSION_OPTION ) );
 		$this->assertTrue( BookingSchema::health() );
 		$this->assertArrayHasKey( BookingSchema::ticket_sources_table(), $GLOBALS['wpdb']->schemas );
 		$this->assertArrayHasKey( BookingSchema::sales_resolutions_table(), $GLOBALS['wpdb']->schemas );
@@ -98,7 +97,7 @@ final class TicketReconciliationTest extends TestCase {
 		$sales = $GLOBALS['wpdb']->schemas[ BookingSchema::sales_reports_table() ];
 		$this->assertArrayHasKey( 'ticket_source_id', $sales['columns'] );
 		$this->assertArrayHasKey( 'evidence_attachment_id', $sales['columns'] );
-		$this->assertSame( array( 'booking_id', 'provider', 'external_report_id' ), $sales['indexes']['provider_external_report']['columns'] );
+		$this->assertSame( array( 'booking_id', 'provider', 'external_report_id_hash' ), $sales['indexes']['provider_external_report']['columns'] );
 	}
 
 	public function test_sources_are_stable_idempotent_redacted_and_venue_scoped(): void {
@@ -125,6 +124,47 @@ final class TicketReconciliationTest extends TestCase {
 		$cross['booking_id'] = $other['id'];
 		$cross['source_key'] = 'other';
 		$this->assertSame( 'venue_action_forbidden', $this->reconciliation->register_source( $cross, 12 )->get_error_code() );
+	}
+
+	public function test_opaque_source_and_report_ids_are_lossless_and_byte_bounded(): void {
+		$booking = $this->booking();
+		$upper   = $this->reconciliation->register_source(
+			array(
+				'booking_id' => $booking['id'],
+				'provider'   => 'box-office',
+				'source_key' => 'Opaque ID/Case A',
+				'ticket_url' => 'https://tickets.example.test/upper',
+			),
+			12
+		);
+		$lower   = $this->reconciliation->register_source(
+			array(
+				'booking_id' => $booking['id'],
+				'provider'   => 'box-office',
+				'source_key' => 'opaque id/case a',
+				'ticket_url' => 'https://tickets.example.test/lower',
+			),
+			12
+		);
+		$this->assertSame( 'Opaque ID/Case A', $upper['source_key'] );
+		$this->assertSame( 'opaque id/case a', $lower['source_key'] );
+		$this->assertNotSame( $upper['id'], $lower['id'] );
+
+		$first  = $this->settlements->record_sales( $this->report( $booking['id'], 'Report/Case A', $upper['id'], '2026-07-01 00:00:00', '2026-07-01 23:59:59' ), 12 );
+		$second = $this->settlements->record_sales( $this->report( $booking['id'], 'report/case a', $upper['id'], '2026-07-02 00:00:00', '2026-07-02 23:59:59' ), 12 );
+		$this->assertSame( 'Report/Case A', $first['external_report_id'] );
+		$this->assertSame( 'report/case a', $second['external_report_id'] );
+		$this->assertNotSame( $first['id'], $second['id'] );
+
+		$invalid_source = array(
+			'booking_id' => $booking['id'],
+			'provider'   => 'box-office',
+			'source_key' => "identity\ncollapse",
+			'ticket_url' => 'https://tickets.example.test/invalid',
+		);
+		$this->assertSame( 'invalid_opaque_identifier', $this->reconciliation->register_source( $invalid_source, 12 )->get_error_code() );
+		$invalid_report = $this->report( $booking['id'], "report\0id", $upper['id'], '2026-07-03 00:00:00', '2026-07-03 23:59:59' );
+		$this->assertSame( 'invalid_opaque_identifier', $this->settlements->record_sales( $invalid_report, 12 )->get_error_code() );
 	}
 
 	public function test_unattributed_evidence_requires_immutable_resolution_before_settlement(): void {
@@ -201,7 +241,7 @@ final class TicketReconciliationTest extends TestCase {
 		);
 		$this->assertSame( $resolution['id'], $second['supersedes_resolution_id'] );
 		$this->assertCount( 2, $GLOBALS['wpdb']->rows[ BookingSchema::sales_resolutions_table() ] );
-		$third      = $this->reconciliation->resolve(
+		$third   = $this->reconciliation->resolve(
 			array(
 				'booking_id'       => $booking['id'],
 				'report_id'        => $report['id'],
@@ -228,6 +268,7 @@ final class TicketReconciliationTest extends TestCase {
 		$preview    = $this->preview( $booking['id'] );
 		$settlement = $this->settlements->finalize( $this->resolution_finalization( $preview ), 12 );
 		$this->assertIsArray( $settlement, is_wp_error( $settlement ) ? $settlement->get_error_code() : '' );
+		$this->assertSame( 0, $GLOBALS['wpdb']->nested_transaction_starts, 'Settlement finalization must not release its locks through a nested attachment transaction.' );
 		$this->assertSame( $report, $this->settlements->record_sales( $input, 12 ) );
 		$after_settlement                       = $input;
 		$after_settlement['external_report_id'] = 'after-settlement';
@@ -272,7 +313,7 @@ final class TicketReconciliationTest extends TestCase {
 		$this->assertIsArray( $second_report, is_wp_error( $second_report ) ? $second_report->get_error_code() : '' );
 		$this->assertNotSame( $first_report['id'], $second_report['id'] );
 
-		$alternate_source = $this->reconciliation->register_source(
+		$alternate_source                 = $this->reconciliation->register_source(
 			array(
 				'booking_id' => $first['id'],
 				'provider'   => 'box-office',
@@ -281,7 +322,7 @@ final class TicketReconciliationTest extends TestCase {
 			),
 			12
 		);
-		$correction                         = $this->report( $first['id'], 'cross-source-correction', $alternate_source['id'], '2026-07-01 00:00:00', '2026-07-01 23:59:59' );
+		$correction                       = $this->report( $first['id'], 'cross-source-correction', $alternate_source['id'], '2026-07-01 00:00:00', '2026-07-01 23:59:59' );
 		$correction['corrects_report_id'] = $first_report['id'];
 		$this->assertSame( 'invalid_sales_report_correction', $this->settlements->record_sales( $correction, 12 )->get_error_code() );
 	}
@@ -353,25 +394,25 @@ final class TicketReconciliationTest extends TestCase {
 		$rows       = $this->reconciliation->csv_report_inputs( $input, 12 );
 		$this->assertCount( 2, $rows );
 		$this->assertSame( $attachment['id'], $rows[0]['evidence_attachment_id'] );
-		$first      = array_map(
-			function ( $row ) {
-				return $this->settlements->record_sales( $row, 12 );
-			},
-			$rows
-		);
-		$retry_rows = $this->reconciliation->csv_report_inputs( $input, 12 );
-		$retry      = array_map(
-			function ( $row ) {
-				return $this->settlements->record_sales( $row, 12 );
-			},
-			$retry_rows
-		);
+		$this->assertSame( 'sales_csv_import_required', $this->settlements->record_sales( $rows[0], 12 )->get_error_code() );
+		$first = $this->settlements->import_csv( $input, 12 );
+		$retry = $this->settlements->import_csv( $input, 12 );
 		$this->assertSame( array_column( $first, 'id' ), array_column( $retry, 'id' ) );
 		$this->assertSame( array( 'csv_certified' ), array_values( array_unique( array_column( $first, 'source_type' ) ) ) );
+		$preview = $this->preview( $booking['id'] );
+		$this->assertSame( array_column( $first, 'id' ), $preview['included_report_ids'] );
 		$this->provider->contents[ $attachment['storage_reference'] ] = substr( $csv, 0, -5 );
+		$this->assertSame( 'settlement_csv_evidence_invalid', $this->preview( $booking['id'] )->get_error_code() );
 		$this->assertSame( 'sales_csv_evidence_mismatch', $this->reconciliation->csv_report_inputs( $input, 12 )->get_error_code() );
 		$this->provider->contents[ $attachment['storage_reference'] ] = $csv . 'extra';
 		$this->assertSame( 'sales_csv_evidence_mismatch', $this->reconciliation->csv_report_inputs( $input, 12 )->get_error_code() );
+		$this->provider->contents[ $attachment['storage_reference'] ] = $csv;
+		$settlement = $this->settlements->finalize( $this->resolution_finalization( $preview ), 12 );
+		$this->assertIsArray( $settlement, is_wp_error( $settlement ) ? $settlement->get_error_code() : '' );
+		$GLOBALS['wpdb']->rows[ BookingSchema::attachments_table() ][ $attachment['id'] ]['state']     = 'purged';
+		$GLOBALS['wpdb']->rows[ BookingSchema::attachments_table() ][ $attachment['id'] ]['purged_at'] = gmdate( 'Y-m-d H:i:s' );
+		$this->assertSame( 'settlement_csv_evidence_invalid', $this->settlements->finalize( $this->resolution_finalization( $preview ), 12 )->get_error_code() );
+		$this->assertSame( $settlement['id'], $this->settlements->get( $booking['id'], 12 )['id'], 'Immutable historical reads must not depend on retained private bytes.' );
 
 		$bad_attachment = $this->csv_attachment( $booking['id'], "formula,total\n=HYPERLINK(\"https://evil.test\"),1\n", 'hostile.csv' );
 		$bad            = $this->reconciliation->csv_report_inputs(
@@ -404,6 +445,7 @@ final class TicketReconciliationTest extends TestCase {
 			$this->assertTrue( $GLOBALS['ec_artist_test']['abilities'][ $name ]['meta']['show_in_rest'] );
 		}
 		$this->assertSame( 1000, $GLOBALS['ec_artist_test']['abilities']['extrachill/import-booking-ticket-sales-csv']['output_schema']['maxItems'] );
+		$this->assertSame( array( 'manual' ), $GLOBALS['ec_artist_test']['abilities']['extrachill/record-booking-ticket-sales']['input_schema']['properties']['source_type']['enum'] );
 		$this->assertFalse( $GLOBALS['ec_artist_test']['abilities']['extrachill/resolve-booking-ticket-sales']['meta']['annotations']['readonly'] );
 
 		$booking                = $this->booking();

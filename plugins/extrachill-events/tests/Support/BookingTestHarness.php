@@ -362,6 +362,21 @@ if ( ! function_exists( 'get_term_link' ) ) {
 		return 'https://events.example/venue/' . (int) $term;
 	}
 }
+if ( ! function_exists( 'ec_events_resolve_booking_console_destination' ) ) {
+	function ec_events_resolve_booking_console_destination( array $booking, array $recipient_ids, array $locked_rows ) {
+		$venue_id = (int) ( $booking['venue_term_id'] ?? 0 );
+		foreach ( $recipient_ids as $recipient_id ) {
+			$active = false;
+			foreach ( $locked_rows as $row ) {
+				$active = $active || (int) ( $row['venue_term_id'] ?? 0 ) === $venue_id && (int) ( $row['user_id'] ?? 0 ) === (int) $recipient_id && 'active' === ( $row['status'] ?? '' );
+			}
+			if ( ! $active ) {
+				return new WP_Error( 'booking_notification_destination_forbidden' );
+			}
+		}
+		return get_term_link( $venue_id, 'venue' );
+	}
+}
 if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
 	function ec_users_notify_with_receipts( $user_ids, array $payload ): array {
 		return is_callable( $GLOBALS['ec_artist_test']['users_receipt'] ?? null )
@@ -444,6 +459,7 @@ final class BookingWpdb {
 	public $after_reference_lock                 = null;
 	public $after_reference_unlock               = null;
 	public $transaction_active                   = false;
+	public $nested_transaction_starts            = 0;
 	public $natural_key_reads_in_transaction     = 0;
 	public $get_lock_result                      = 1;
 	public $release_lock_result                  = 1;
@@ -567,7 +583,7 @@ final class BookingWpdb {
 		}
 		if ( false !== strpos( $table, 'ec_booking_sales_reports' ) ) {
 			foreach ( $this->rows[ $table ] ?? array() as $existing ) {
-				if ( (int) $existing['booking_id'] === (int) $row['booking_id'] && $existing['provider'] === $row['provider'] && $existing['external_report_id'] === $row['external_report_id'] ) {
+				if ( (int) $existing['booking_id'] === (int) $row['booking_id'] && $existing['provider'] === $row['provider'] && $existing['external_report_id_hash'] === $row['external_report_id_hash'] ) {
 					$this->last_error = 'duplicate provider report ID';
 					return false;
 				}
@@ -575,7 +591,7 @@ final class BookingWpdb {
 		}
 		if ( false !== strpos( $table, 'ec_booking_ticket_sources' ) ) {
 			foreach ( $this->rows[ $table ] ?? array() as $existing ) {
-				if ( (int) $existing['booking_id'] === (int) $row['booking_id'] && $existing['provider'] === $row['provider'] && $existing['source_key'] === $row['source_key'] ) {
+				if ( (int) $existing['booking_id'] === (int) $row['booking_id'] && $existing['provider'] === $row['provider'] && $existing['source_key_hash'] === $row['source_key_hash'] ) {
 					$this->last_error = 'duplicate ticket source identity';
 					return false;
 				}
@@ -855,17 +871,17 @@ final class BookingWpdb {
 			}
 			return null;
 		}
-		if ( $is_sales && preg_match( "/WHERE booking_id = (\d+) AND provider = '([^']+)' AND external_report_id = '([^']+)'/", $query, $external ) ) {
+		if ( $is_sales && preg_match( "/WHERE booking_id = (\d+) AND provider = '([^']+)' AND external_report_id_hash = '([^']+)'/", $query, $external ) ) {
 			foreach ( $this->rows[ $table ] ?? array() as $row ) {
-				if ( (int) $row['booking_id'] === (int) $external[1] && $row['provider'] === stripslashes( $external[2] ) && $row['external_report_id'] === stripslashes( $external[3] ) ) {
+				if ( (int) $row['booking_id'] === (int) $external[1] && $row['provider'] === stripslashes( $external[2] ) && $row['external_report_id_hash'] === stripslashes( $external[3] ) ) {
 					return $row;
 				}
 			}
 			return null;
 		}
-		if ( $is_source && preg_match( "/WHERE booking_id = (\d+) AND provider = '([^']+)' AND source_key = '([^']+)'/", $query, $identity ) ) {
+		if ( $is_source && preg_match( "/WHERE booking_id = (\d+) AND provider = '([^']+)' AND source_key_hash = '([^']+)'/", $query, $identity ) ) {
 			foreach ( $this->rows[ $table ] ?? array() as $row ) {
-				if ( (int) $row['booking_id'] === (int) $identity[1] && $row['provider'] === stripslashes( $identity[2] ) && $row['source_key'] === stripslashes( $identity[3] ) ) {
+				if ( (int) $row['booking_id'] === (int) $identity[1] && $row['provider'] === stripslashes( $identity[2] ) && $row['source_key_hash'] === stripslashes( $identity[3] ) ) {
 					return $row;
 				}
 			}
@@ -1706,6 +1722,9 @@ final class BookingWpdb {
 		$this->last_query = $query;
 		$this->last_error = '';
 		if ( 'START TRANSACTION' === $query ) {
+			if ( $this->transaction_active ) {
+				++$this->nested_transaction_starts;
+			}
 			if ( $this->fail_transaction_start ) {
 				$this->last_error = 'simulated transaction start failure';
 				return false;

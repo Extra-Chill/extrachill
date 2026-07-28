@@ -18,6 +18,10 @@ bind a ticket-source identity and, for CSV imports, the approved private booking
 attachment containing the exact evidence bytes. Arbitrary source provenance
 remains private; ability projections expose only a redaction marker plus
 server-owned attachment identity and CSV row when present.
+Provider source keys and report IDs are opaque UTF-8 identities: supported
+characters and bytes are stored losslessly, while controls, invalid UTF-8, and
+over-limit values are rejected before identity derivation. Binary SHA-256 keys,
+rather than text-collation normalization, enforce exact uniqueness.
 
 `ec_booking_sales_resolutions` is an append-only optimistic decision history.
 Every admit/exclude decision records a per-report version, optional corrected
@@ -33,18 +37,23 @@ basis amount, signed adjustment, amount due, finalizer, and a second integrity
 hash over the complete immutable financial snapshot. The snapshot hash binds
 booking/event/venue identity, frozen booking revision, basis, rate, currency,
 formula, evidence IDs/hash, and every calculated minor-unit amount. Formula
-version 2 binds each included report's immutable hash and latest reconciliation
-decision; version 1 settlements retain their legacy report-only verification.
+version 3 binds each included report's immutable hash, latest reconciliation
+decision, effective source request hash, and certified attachment request,
+content-hash, and byte-size evidence. It reopens and authenticates every private
+CSV byte before calculation, finalization, and terminal transitions. Formula
+version 2 retains report plus reconciliation verification; version 1 retains
+legacy report-only verification.
 The row also
 retains the terminal paid or void audit. Finalized evidence and terms are never
 rewritten.
 
-Schema version 13 preserves the version 12 report and settlement tables, adds
-nullable provenance references to existing observations, and creates the source
-and resolution tables. The existing `dbDelta` installer verifies exact
+Schema version 14 explicitly migrates version 13 in place. It preserves every
+current table and row, backfills exact identity hashes, and adds versioned,
+nullable source and attachment provenance columns without rewriting legacy
+report hashes. A site-scoped MySQL advisory lock serializes concurrent
+installers. The existing `dbDelta` installer then verifies exact
 columns/indexes/engines and stamps each multisite site only after health checks
-pass. Existing reports remain immutable and become explicitly unattributed
-until an operator resolves them.
+pass.
 
 ## Abilities
 
@@ -66,9 +75,10 @@ and void require active venue ownership through `manage_finances`; transport
 permission callbacks repeat the same policy.
 Transactions lock venue membership before booking, settlement, report, and
 resolution rows. Finalization requires the calculated booking version, ordered
-evidence IDs, and formula-2 evidence hash, so stale reconciliation decisions and
-concurrent writes fail with a conflict. Legacy formula-1 settlements retain
-exact retry and terminal-transition compatibility.
+evidence IDs, and formula-3 evidence hash, so stale reconciliation decisions,
+missing/corrupt private bytes, and concurrent writes fail with a conflict.
+Legacy formula-1 and formula-2 settlements retain exact retry and
+terminal-transition compatibility.
 An exact lost-response retry is resolved against the already-frozen booking
 version, terms, formula, and evidence before current mutable booking/evidence
 is considered, so later reports or booking revisions do not break idempotency.
@@ -85,7 +95,8 @@ exclusive lifecycle outcomes rather than independent stale writes.
 
 ## Formula
 
-Formula version 1 supports `gross_ticket_sales` and `net_ticket_sales` evidence.
+All formula versions support `gross_ticket_sales` and `net_ticket_sales` evidence;
+versions 2 and 3 strengthen provenance without changing the arithmetic.
 Evidence is filtered to one explicit ISO-style three-letter currency. The share
 is `basis_amount_minor * basis_points / 10000`, rounded to the nearest minor
 unit with exact halves away from zero. The signed adjustment is then added.
@@ -93,14 +104,18 @@ Integer overflow is rejected rather than converted to floating point.
 
 ## Import And Reconciliation
 
-Manual and CSV-certified paths both call the same immutable report recorder.
-CSV import accepts only an active `text/csv` booking attachment admitted under
+The generic recorder creates manual observations only and rejects
+`csv_certified`, even when called outside ability schema validation. The sole
+certified path is the authenticated CSV importer. It accepts only an active
+`text/csv` booking attachment admitted under
 the existing `other_private_evidence` policy. It obtains bytes through the
 opaque one-time private stream handoff, re-hashes and counts every streamed byte
 against immutable attachment metadata before parsing, requires an exact fixed
 header, forbids multiline records, limits rows and physical line lengths,
 rejects non-canonical integers, and never exposes bytes or storage references.
-Exact report IDs make a crash/retry replay deterministic.
+Each resulting report hash binds the source registration request hash and
+attachment request/content/size evidence. Exact report IDs make mid-loop and
+commit-uncertain crash/retry replay deterministic.
 
 Diagnostics are bounded to 1,000 observations and derive unattributed, missing
 file, currency mismatch, duplicate, overlapping, and contradictory evidence.

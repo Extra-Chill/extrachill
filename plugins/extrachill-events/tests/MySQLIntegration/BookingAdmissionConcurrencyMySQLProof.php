@@ -13,6 +13,16 @@ use ExtraChillEvents\Core\VenueBookingConfig;
 
 /** Prove overlapping application processes converge on one complete winner. */
 final class BookingAdmissionConcurrencyMySQLProof extends BookingAttachmentMySQLIntegrationTest {
+	/** Prove concurrent installers serialize on the exact site-scoped schema lock. */
+	public function test_concurrent_booking_schema_installer_waits_and_converges(): void {
+		$this->prove_concurrent_booking_schema_installer_waits_and_converges();
+	}
+
+	/** Prove a resolution racing finalization cannot alter the frozen snapshot. */
+	public function test_resolution_and_finalization_race_freezes_one_consistent_winner(): void {
+		$this->prove_resolution_and_finalization_race_freezes_one_consistent_winner();
+	}
+
 	/** Prove the loser replays the completed exact winner without duplicate effects. */
 	public function test_concurrent_exact_inquiry_retry_reuses_one_complete_winner(): void {
 		global $wpdb;

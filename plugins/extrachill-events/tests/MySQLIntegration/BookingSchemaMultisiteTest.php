@@ -56,16 +56,38 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 		$this->assertSame( 1, get_current_blog_id() );
 	}
 
-	/** Verify the v12 global provider index is replaced without dropping evidence. */
-	public function test_v12_sales_report_index_upgrade_preserves_rows(): void {
+	/** Verify explicit v13 identity/provenance migration preserves every legacy row. */
+	public function test_v13_ticket_provenance_upgrade_preserves_rows(): void {
 		global $wpdb;
 
 		switch_to_blog( 7 );
 		try {
 			$table       = BookingSchema::sales_reports_table();
-			$external_id = 'legacy-' . wp_generate_uuid4();
-			$wpdb->query( "ALTER TABLE `{$table}` DROP INDEX `provider_external_report`, ADD UNIQUE KEY `provider_external_report` (`provider`, `external_report_id`)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Recreates the exact v12 index in a disposable test database.
+			$sources     = BookingSchema::ticket_sources_table();
+			$external_id = 'Legacy/Report-é-' . wp_generate_uuid4();
+			$source_key  = 'Legacy/Case-é-' . wp_generate_uuid4();
+			$wpdb->query( "ALTER TABLE `{$sources}` DROP INDEX `booking_provider_source`, DROP COLUMN `source_key_hash`, ADD UNIQUE KEY `booking_provider_source` (`booking_id`, `provider`, `source_key`)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Recreates the exact v13 source contract in a disposable test database.
+			$wpdb->query( "ALTER TABLE `{$table}` DROP INDEX `provider_external_report`, DROP COLUMN `external_report_id_hash`, DROP COLUMN `provenance_version`, DROP COLUMN `ticket_source_request_hash`, DROP COLUMN `evidence_attachment_request_hash`, DROP COLUMN `evidence_content_hash`, DROP COLUMN `evidence_byte_size`, ADD UNIQUE KEY `provider_external_report` (`booking_id`, `provider`, `external_report_id`)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Recreates the exact v13 report contract in a disposable test database.
 			$this->assertSame( '', (string) $wpdb->last_error );
+			$this->assertSame(
+				1,
+				$wpdb->insert(
+					$sources,
+					array(
+						'public_id'          => wp_generate_uuid4(),
+						'booking_id'         => 987654,
+						'event_id'           => 876543,
+						'venue_term_id'      => 765432,
+						'provider'           => 'legacy-provider',
+						'source_key'         => $source_key,
+						'canonical_url'      => 'https://tickets.example.test/legacy',
+						'url_hash'           => hash( 'sha256', 'https://tickets.example.test/legacy' ),
+						'request_hash'       => str_repeat( 'b', 64 ),
+						'created_by_user_id' => 1,
+						'created_at'         => '2026-07-01 00:00:00',
+					)
+				)
+			); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Disposable migration fixture.
 			$inserted = $wpdb->insert(
 				$table,
 				array(
@@ -92,15 +114,18 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 				)
 			); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Disposable migration fixture.
 			$this->assertSame( 1, $inserted );
-			update_option( BookingSchema::VERSION_OPTION, '12', false );
+			update_option( BookingSchema::VERSION_OPTION, '13', false );
 
 			$this->assertTrue( BookingSchema::maybe_install() );
-			$this->assertSame( '13', get_option( BookingSchema::VERSION_OPTION ) );
+			$this->assertSame( '14', get_option( BookingSchema::VERSION_OPTION ) );
 			$this->assertSame( '987654', $wpdb->get_var( $wpdb->prepare( "SELECT booking_id FROM `{$table}` WHERE external_report_id = %s", $external_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirms migration preserved the fixture.
+			$this->assertSame( hash( 'sha256', $external_id ), $wpdb->get_var( $wpdb->prepare( "SELECT external_report_id_hash FROM `{$table}` WHERE external_report_id = %s", $external_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirms exact report identity backfill.
+			$this->assertSame( '1', $wpdb->get_var( $wpdb->prepare( "SELECT provenance_version FROM `{$table}` WHERE external_report_id = %s", $external_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Legacy hashes remain versioned and immutable.
+			$this->assertSame( hash( 'sha256', $source_key ), $wpdb->get_var( $wpdb->prepare( "SELECT source_key_hash FROM `{$sources}` WHERE source_key = %s", $source_key ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirms exact source identity backfill.
 
 			$index_rows = $wpdb->get_results( "SHOW INDEX FROM `{$table}` WHERE Key_name = 'provider_external_report'", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verifies the repaired real-MySQL index.
 			usort( $index_rows, static fn( array $left, array $right ): int => (int) $left['Seq_in_index'] <=> (int) $right['Seq_in_index'] );
-			$this->assertSame( array( 'booking_id', 'provider', 'external_report_id' ), array_column( $index_rows, 'Column_name' ) );
+			$this->assertSame( array( 'booking_id', 'provider', 'external_report_id_hash' ), array_column( $index_rows, 'Column_name' ) );
 		} finally {
 			restore_current_blog();
 		}

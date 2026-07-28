@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Owns validation, authorization, locking, and audit for ticket settlements. */
 class TicketSettlementService {
-	public const FORMULA_VERSION = 2;
+	public const FORMULA_VERSION = 3;
 	public const BASES           = array( 'gross_ticket_sales', 'net_ticket_sales' );
 	public const SOURCE_TYPES    = array( 'manual', 'csv_certified' );
 	public const STATUSES        = array( 'finalized', 'paid', 'void' );
@@ -44,6 +44,53 @@ class TicketSettlementService {
 
 	/** Record one immutable observation, returning an exact idempotent retry. */
 	public function record_sales( array $input, int $actor_id ) {
+		if ( 'csv_certified' === ( $input['source_type'] ?? null ) ) {
+			return new \WP_Error( 'sales_csv_import_required', __( 'Certified CSV observations must be created by the authenticated CSV importer.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		return $this->record_report( $input, $actor_id, null );
+	}
+
+	/** Authenticate and import every CSV row through the sole certified boundary. */
+	public function import_csv( array $input, int $actor_id ) {
+		$rows = $this->reconciliation->csv_report_inputs( $input, $actor_id );
+		if ( is_wp_error( $rows ) ) {
+			return $rows;
+		}
+		$this->after_csv_authenticated( $rows );
+		$reports  = array();
+		$failures = array();
+		foreach ( $rows as $index => $row ) {
+			$certification = $row['_certified_evidence'] ?? null;
+			unset( $row['_certified_evidence'] );
+			$report = $this->record_report( $row, $actor_id, is_array( $certification ) ? $certification : null );
+			if ( is_wp_error( $report ) && 'settlement_commit_uncertain' === $report->get_error_code() ) {
+				$report = $this->record_report( $row, $actor_id, is_array( $certification ) ? $certification : null );
+			}
+			if ( is_wp_error( $report ) ) {
+				$failures[] = array(
+					'row'  => $index + 2,
+					'code' => $report->get_error_code(),
+				);
+				continue;
+			}
+			$reports[] = $report;
+		}
+		if ( ! empty( $failures ) ) {
+			return new \WP_Error(
+				'sales_csv_import_partial',
+				__( 'Some ticket-sales rows could not be imported.', 'extrachill-events' ),
+				array(
+					'status'              => 409,
+					'imported_report_ids' => array_column( $reports, 'id' ),
+					'failures'            => $failures,
+				)
+			);
+		}
+		return $reports;
+	}
+
+	/** Record one already-normalized provenance class. */
+	private function record_report( array $input, int $actor_id, ?array $csv_certification ) {
 		$booking = $this->booking( $input['booking_id'] ?? 0 );
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
@@ -52,7 +99,7 @@ class TicketSettlementService {
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
-		$normalized = $this->normalize_report( $input, $booking, $actor_id );
+		$normalized = $this->normalize_report( $input, $booking, $actor_id, null !== $csv_certification );
 		if ( is_wp_error( $normalized ) ) {
 			return $normalized;
 		}
@@ -68,11 +115,13 @@ class TicketSettlementService {
 		if ( is_wp_error( $identity ) ) {
 			return $this->rollback( $identity );
 		}
-		$provenance = $this->reconciliation->validate_provenance( $normalized, $booking );
+		$provenance = $this->reconciliation->validate_provenance( $normalized, $booking, $csv_certification );
 		if ( is_wp_error( $provenance ) ) {
 			return $this->rollback( $provenance );
 		}
-		$settlement = $this->get_settlement( $booking['id'], true );
+		$normalized                 = array_merge( $normalized, $provenance );
+		$normalized['request_hash'] = self::report_request_hash( $normalized );
+		$settlement                 = $this->get_settlement( $booking['id'], true );
 		if ( is_wp_error( $settlement ) ) {
 			return $this->rollback( $settlement );
 		}
@@ -87,7 +136,7 @@ class TicketSettlementService {
 					return $this->rollback( $this->settlement_frozen_error( $settlement ) );
 				}
 				$committed = $this->commit();
-				return is_wp_error( $committed ) ? $committed : $existing;
+				return is_wp_error( $committed ) ? $committed : $this->present_report( $existing );
 			}
 			return $this->rollback( new \WP_Error( 'sales_report_idempotency_conflict', __( 'This provider report ID is already bound to different evidence.', 'extrachill-events' ), array( 'status' => 409 ) ) );
 		}
@@ -109,7 +158,7 @@ class TicketSettlementService {
 			$existing = $this->find_report_by_external( $booking['id'], $normalized['provider'], $normalized['external_report_id'], true );
 			if ( is_array( $existing ) && hash_equals( $existing['request_hash'], $normalized['request_hash'] ) ) {
 				$committed = $this->commit();
-				return is_wp_error( $committed ) ? $committed : $existing;
+				return is_wp_error( $committed ) ? $committed : $this->present_report( $existing );
 			}
 			return $this->rollback( new \WP_Error( 'sales_report_write_failed', __( 'The ticket-sales evidence could not be recorded.', 'extrachill-events' ) ) );
 		}
@@ -138,7 +187,7 @@ class TicketSettlementService {
 			return $this->rollback( $audit );
 		}
 		$committed = $this->commit();
-		return is_wp_error( $committed ) ? $committed : $report;
+		return is_wp_error( $committed ) ? $committed : $this->present_report( $report );
 	}
 
 	/** List a bounded page of immutable observations after operation-level authorization. */
@@ -169,7 +218,7 @@ class TicketSettlementService {
 				return $identity;
 			}
 		}
-		return $reports;
+		return array_map( array( $this, 'present_report' ), $reports );
 	}
 
 	/** Calculate a deterministic, non-persisted settlement preview. */
@@ -183,7 +232,7 @@ class TicketSettlementService {
 			return $this->denied( $allowed );
 		}
 		$terms = $this->settlement_terms( $booking, $input );
-		return is_wp_error( $terms ) ? $terms : $this->calculate_from_storage( $booking, $terms, false );
+		return is_wp_error( $terms ) ? $terms : $this->calculate_from_storage( $booking, $terms, false, $actor_id );
 	}
 
 	/** Freeze one settlement from an exact booking version and evidence snapshot. */
@@ -206,7 +255,7 @@ class TicketSettlementService {
 				return $validated;
 			}
 		}
-		if ( ! in_array( $formula_version, array( 1, self::FORMULA_VERSION ), true ) || ( self::FORMULA_VERSION === $formula_version && ! preg_match( '/^[a-f0-9]{64}$/', $expected_hash ) ) ) {
+		if ( ! in_array( $formula_version, array( 1, 2, self::FORMULA_VERSION ), true ) || ( 2 <= $formula_version && ! preg_match( '/^[a-f0-9]{64}$/', $expected_hash ) ) ) {
 			return new \WP_Error(
 				'settlement_formula_version_conflict',
 				__( 'The calculated settlement formula version or evidence hash is invalid.', 'extrachill-events' ),
@@ -216,6 +265,24 @@ class TicketSettlementService {
 				)
 			);
 		}
+		$authenticated_provenance = array();
+		$settlement_snapshot      = $this->get_settlement( $booking['id'] );
+		if ( is_wp_error( $settlement_snapshot ) ) {
+			return $settlement_snapshot;
+		}
+		if ( is_array( $settlement_snapshot ) && $this->matches_finalization_retry( $settlement_snapshot, $expected_version, $expected_reports, $expected_hash, $formula_version, $terms ) ) {
+			$authenticated_provenance = $this->verify_settlement_evidence( $settlement_snapshot, false, $actor_id, null, true );
+			if ( is_wp_error( $authenticated_provenance ) ) {
+				return $authenticated_provenance;
+			}
+		} elseif ( ! is_array( $settlement_snapshot ) && self::FORMULA_VERSION === $formula_version ) {
+			$preflight = $this->calculate_from_storage( $booking, $terms, false, $actor_id, null, true );
+			if ( is_wp_error( $preflight ) ) {
+				return $preflight;
+			}
+			$authenticated_provenance = $preflight['_provenance_evidence'];
+		}
+		$this->after_settlement_provenance_authenticated( $booking );
 		$started = $this->begin_authorized( $booking, $actor_id, VenueAuthorization::ACTION_MANAGE_FINANCES );
 		if ( is_wp_error( $started ) ) {
 			return $started;
@@ -241,7 +308,7 @@ class TicketSettlementService {
 					)
 				);
 			}
-			$integrity = $this->verify_settlement_evidence( $existing, true );
+			$integrity = $this->verify_settlement_evidence( $existing, true, $actor_id, $authenticated_provenance );
 			if ( is_wp_error( $integrity ) ) {
 				return $this->rollback( $integrity );
 			}
@@ -272,7 +339,7 @@ class TicketSettlementService {
 				)
 			);
 		}
-		$calculation = $this->calculate_from_storage( $booking, $terms, true );
+		$calculation = $this->calculate_from_storage( $booking, $terms, true, $actor_id, $authenticated_provenance );
 		if ( is_wp_error( $calculation ) ) {
 			return $this->rollback( $calculation );
 		}
@@ -391,6 +458,19 @@ class TicketSettlementService {
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
+		$authenticated_provenance = array();
+		if ( $booking['version'] === $expected_booking && ( 'paid' !== $status || 'completed' === $booking['status'] ) ) {
+			$settlement_snapshot = $this->get_settlement( $booking['id'] );
+			if ( is_wp_error( $settlement_snapshot ) ) {
+				return $settlement_snapshot;
+			}
+			if ( is_array( $settlement_snapshot ) && $settlement_snapshot['version'] === $expected_settlement && 'finalized' === $settlement_snapshot['status'] ) {
+				$authenticated_provenance = $this->verify_settlement_evidence( $settlement_snapshot, false, $actor_id, null, true );
+				if ( is_wp_error( $authenticated_provenance ) ) {
+					return $authenticated_provenance;
+				}
+			}
+		}
 		$started = $this->begin_authorized( $booking, $actor_id, VenueAuthorization::ACTION_MANAGE_FINANCES );
 		if ( is_wp_error( $started ) ) {
 			return $started;
@@ -427,10 +507,6 @@ class TicketSettlementService {
 		if ( ! is_array( $settlement ) ) {
 			return $this->rollback( is_wp_error( $settlement ) ? $settlement : new \WP_Error( 'settlement_not_found', __( 'The booking settlement was not found.', 'extrachill-events' ), array( 'status' => 404 ) ) );
 		}
-		$integrity = $this->verify_settlement_evidence( $settlement, true );
-		if ( is_wp_error( $integrity ) ) {
-			return $this->rollback( $integrity );
-		}
 		if ( $settlement['version'] !== $expected_settlement ) {
 			return $this->rollback(
 				new \WP_Error(
@@ -454,6 +530,10 @@ class TicketSettlementService {
 					)
 				)
 			);
+		}
+		$integrity = $this->verify_settlement_evidence( $settlement, true, $actor_id, $authenticated_provenance );
+		if ( is_wp_error( $integrity ) ) {
+			return $this->rollback( $integrity );
 		}
 		global $wpdb;
 		$now     = gmdate( 'Y-m-d H:i:s' );
@@ -501,7 +581,7 @@ class TicketSettlementService {
 		return is_wp_error( $committed ) ? $committed : $settlement;
 	}
 
-	private function calculate_from_storage( array $booking, array $terms, bool $lock ) {
+	private function calculate_from_storage( array $booking, array $terms, bool $lock, int $actor_id, ?array $authenticated_provenance = null, bool $include_provenance = false ) {
 		global $wpdb;
 		$table = BookingSchema::sales_reports_table();
 		$query = "SELECT * FROM {$table} WHERE booking_id = %d ORDER BY id ASC";
@@ -538,10 +618,11 @@ class TicketSettlementService {
 		if ( empty( $reports ) ) {
 			return new \WP_Error( 'settlement_evidence_required', __( 'At least one reconciled ticket-sales report is required for settlement.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		$field        = 'gross_ticket_sales' === $terms['basis'] ? 'gross_minor' : 'net_minor';
-		$basis_amount = 0;
-		$ids          = array();
-		$evidence     = array();
+		$field               = 'gross_ticket_sales' === $terms['basis'] ? 'gross_minor' : 'net_minor';
+		$basis_amount        = 0;
+		$ids                 = array();
+		$evidence            = array();
+		$provenance_evidence = array();
 		foreach ( $reports as $report ) {
 			if ( ( $report[ $field ] > 0 && $basis_amount > PHP_INT_MAX - $report[ $field ] ) || ( $report[ $field ] < 0 && $basis_amount < PHP_INT_MIN - $report[ $field ] ) ) {
 				return new \WP_Error( 'settlement_amount_out_of_range', __( 'The settlement evidence exceeds the supported integer range.', 'extrachill-events' ) );
@@ -552,10 +633,19 @@ class TicketSettlementService {
 			if ( is_wp_error( $resolution ) ) {
 				return $resolution;
 			}
-			$evidence[] = array(
+			$provenance = $this->reconciliation->settlement_provenance_evidence( $report, $booking, $resolution, $actor_id, $lock, null === $authenticated_provenance );
+			if ( is_wp_error( $provenance ) ) {
+				return $provenance;
+			}
+			if ( null !== $authenticated_provenance && ( ! isset( $authenticated_provenance[ $report['id'] ] ) || $authenticated_provenance[ $report['id'] ] !== $provenance ) ) {
+				return new \WP_Error( 'settlement_csv_evidence_changed', __( 'Settlement private-byte evidence changed after authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+			}
+			$provenance_evidence[ $report['id'] ] = $provenance;
+			$evidence[]                           = array(
 				'id'           => $report['id'],
 				'request_hash' => $report['request_hash'],
 				'resolution'   => $resolution,
+				'provenance'   => $provenance,
 			);
 		}
 		$share = self::basis_points_amount( $basis_amount, $terms['basis_points'] );
@@ -565,7 +655,7 @@ class TicketSettlementService {
 		if ( ( $terms['adjustment_minor'] > 0 && $share > PHP_INT_MAX - $terms['adjustment_minor'] ) || ( $terms['adjustment_minor'] < 0 && $share < PHP_INT_MIN - $terms['adjustment_minor'] ) ) {
 			return new \WP_Error( 'settlement_amount_out_of_range', __( 'The adjusted settlement exceeds the supported integer range.', 'extrachill-events' ) );
 		}
-		return array(
+		$result = array(
 			'booking_id'          => $booking['id'],
 			'booking_version'     => $booking['version'],
 			'event_id'            => $booking['event_id'],
@@ -581,6 +671,10 @@ class TicketSettlementService {
 			'adjustment_minor'    => $terms['adjustment_minor'],
 			'amount_due_minor'    => $share + $terms['adjustment_minor'],
 		);
+		if ( $include_provenance ) {
+			$result['_provenance_evidence'] = $provenance_evidence;
+		}
+		return $result;
 	}
 
 	private function settlement_terms( array $booking, array $input, bool $require_explicit = false ) {
@@ -619,12 +713,12 @@ class TicketSettlementService {
 		);
 	}
 
-	private function normalize_report( array $input, array $booking, int $actor_id ) {
+	private function normalize_report( array $input, array $booking, int $actor_id, bool $csv_certified ) {
 		if ( null === $booking['event_id'] ) {
 			return new \WP_Error( 'sales_report_event_required', __( 'Ticket-sales evidence requires a booking linked to an event.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		$provider         = mb_substr( sanitize_key( (string) ( $input['provider'] ?? '' ) ), 0, 64 );
-		$external         = $this->required_text( $input['external_report_id'] ?? null, 'external_report_id', 191 );
+		$external         = self::opaque_identifier( $input['external_report_id'] ?? null, 'external_report_id' );
 		$source           = sanitize_key( (string) ( $input['source_type'] ?? '' ) );
 		$start            = $this->datetime( $input['period_start'] ?? null, 'period_start' );
 		$end              = $this->datetime( $input['period_end'] ?? null, 'period_end' );
@@ -646,7 +740,7 @@ class TicketSettlementService {
 				return $validated;
 			}
 		}
-		if ( '' === $provider || ! in_array( $source, self::SOURCE_TYPES, true ) || ! preg_match( '/^[A-Z]{3}$/', $currency ) || $end < $start ) {
+		if ( '' === $provider || ! in_array( $source, self::SOURCE_TYPES, true ) || ( 'csv_certified' === $source ) !== $csv_certified || ( 'manual' === $source && null !== $attachment_id ) || ! preg_match( '/^[A-Z]{3}$/', $currency ) || $end < $start ) {
 			return new \WP_Error( 'invalid_sales_report_identity', __( 'Ticket-sales report identity, source, period, or currency is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 		$integers = array();
@@ -678,29 +772,28 @@ class TicketSettlementService {
 		if ( 8192 < strlen( $source_payload ) ) {
 			return new \WP_Error( 'sales_report_source_too_large', __( 'Ticket-sales source evidence exceeds the bounded provenance limit.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		$row                 = array_merge(
+		$row           = array_merge(
 			array(
-				'booking_id'             => $booking['id'],
-				'event_id'               => $booking['event_id'],
-				'venue_term_id'          => $booking['venue_term_id'],
-				'ticket_source_id'       => $ticket_source_id,
-				'evidence_attachment_id' => $attachment_id,
-				'provider'               => $provider,
-				'external_report_id'     => $external,
-				'source_type'            => $source,
-				'period_start'           => $start,
-				'period_end'             => $end,
-				'currency'               => $currency,
-				'corrects_report_id'     => $correction,
-				'source_payload'         => $source_payload,
-				'created_by_user_id'     => $actor_id,
-				'created_at'             => gmdate( 'Y-m-d H:i:s' ),
+				'booking_id'              => $booking['id'],
+				'event_id'                => $booking['event_id'],
+				'venue_term_id'           => $booking['venue_term_id'],
+				'ticket_source_id'        => $ticket_source_id,
+				'evidence_attachment_id'  => $attachment_id,
+				'provider'                => $provider,
+				'external_report_id'      => $external,
+				'external_report_id_hash' => hash( 'sha256', $external ),
+				'source_type'             => $source,
+				'period_start'            => $start,
+				'period_end'              => $end,
+				'currency'                => $currency,
+				'corrects_report_id'      => $correction,
+				'source_payload'          => $source_payload,
+				'created_by_user_id'      => $actor_id,
+				'created_at'              => gmdate( 'Y-m-d H:i:s' ),
 			),
 			$integers
 		);
-		$row['source']       = $input['source'];
-		$row['request_hash'] = self::report_request_hash( $row );
-		unset( $row['source'] );
+		$row['source'] = $input['source'];
 		return $row;
 	}
 
@@ -753,11 +846,11 @@ class TicketSettlementService {
 	private function find_report_by_external( int $booking_id, string $provider, string $external_id, bool $lock = false ) {
 		global $wpdb;
 		$table = BookingSchema::sales_reports_table();
-		$query = "SELECT * FROM {$table} WHERE booking_id = %d AND provider = %s AND external_report_id = %s LIMIT 1";
+		$query = "SELECT * FROM {$table} WHERE booking_id = %d AND provider = %s AND external_report_id_hash = %s LIMIT 1";
 		if ( $lock ) {
 			$query .= ' FOR UPDATE';
 		}
-		$row = $wpdb->get_row( $wpdb->prepare( $query, $booking_id, $provider, $external_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking-scoped immutable evidence lookup with internal lock suffix.
+		$row = $wpdb->get_row( $wpdb->prepare( $query, $booking_id, $provider, hash( 'sha256', $external_id ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking-scoped immutable evidence lookup with internal lock suffix.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'sales_report_read_failed', __( 'Ticket-sales evidence could not be read.', 'extrachill-events' ) );
 		}
@@ -809,16 +902,18 @@ class TicketSettlementService {
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $source ) || 1 !== ( $source['version'] ?? null ) || ! array_key_exists( 'data', $source ) ) {
 			return new \WP_Error( 'sales_report_source_invalid', __( 'Stored ticket-sales source evidence is malformed.', 'extrachill-events' ) );
 		}
-		foreach ( array( 'id', 'booking_id', 'event_id', 'venue_term_id', 'tickets_sold', 'tickets_refunded', 'gross_minor', 'fees_minor', 'tax_minor', 'refunds_minor', 'net_minor', 'created_by_user_id' ) as $field ) {
+		foreach ( array( 'id', 'booking_id', 'event_id', 'venue_term_id', 'tickets_sold', 'tickets_refunded', 'gross_minor', 'fees_minor', 'tax_minor', 'refunds_minor', 'net_minor', 'created_by_user_id', 'provenance_version' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
 		}
 		$row['corrects_report_id']     = null === $row['corrects_report_id'] ? null : (int) $row['corrects_report_id'];
 		$row['ticket_source_id']       = null === ( $row['ticket_source_id'] ?? null ) ? null : (int) $row['ticket_source_id'];
 		$row['evidence_attachment_id'] = null === ( $row['evidence_attachment_id'] ?? null ) ? null : (int) $row['evidence_attachment_id'];
+		$row['evidence_byte_size']     = null === ( $row['evidence_byte_size'] ?? null ) ? null : (int) $row['evidence_byte_size'];
 		$row['source']                 = $source['data'];
 		unset( $row['source_payload'] );
-		$stored_hash = strtolower( (string) ( $row['request_hash'] ?? '' ) );
-		if ( ! preg_match( '/^[a-f0-9]{64}$/', $stored_hash ) || ! hash_equals( $stored_hash, self::report_request_hash( $row ) ) ) {
+		$stored_hash   = strtolower( (string) ( $row['request_hash'] ?? '' ) );
+		$identity_hash = strtolower( (string) ( $row['external_report_id_hash'] ?? '' ) );
+		if ( ! preg_match( '/^[a-f0-9]{64}$/', $identity_hash ) || ! hash_equals( $identity_hash, hash( 'sha256', $row['external_report_id'] ) ) || ! preg_match( '/^[a-f0-9]{64}$/', $stored_hash ) || ! hash_equals( $stored_hash, self::report_request_hash( $row ) ) ) {
 			return new \WP_Error(
 				'sales_report_integrity_failed',
 				__( 'Stored ticket-sales evidence failed its immutable content check.', 'extrachill-events' ),
@@ -831,6 +926,12 @@ class TicketSettlementService {
 		$row['request_hash'] = $stored_hash;
 		$row['source']       = $this->project_source( $row['source'] );
 		return $row;
+	}
+
+	/** Remove private hash-key and provenance columns from public ability results. */
+	private function present_report( array $report ): array {
+		unset( $report['external_report_id_hash'], $report['provenance_version'], $report['ticket_source_request_hash'], $report['evidence_attachment_request_hash'], $report['evidence_content_hash'], $report['evidence_byte_size'] );
+		return $report;
 	}
 
 	private function hydrate_settlement( array $row ) {
@@ -865,6 +966,16 @@ class TicketSettlementService {
 		unset( $booking );
 	}
 
+	/** Test seam invoked after all bytes authenticate and before row commits begin. */
+	protected function after_csv_authenticated( array $rows ): void {
+		unset( $rows );
+	}
+
+	/** Test seam invoked between byte authentication and settlement locking. */
+	protected function after_settlement_provenance_authenticated( array $booking ): void {
+		unset( $booking );
+	}
+
 	private function matches_finalization_retry( array $settlement, int $booking_version, array $report_ids, string $evidence_hash, int $formula_version, array $terms ): bool {
 		return $settlement['booking_version'] === $booking_version
 			&& $settlement['included_report_ids'] === $report_ids
@@ -876,8 +987,16 @@ class TicketSettlementService {
 			&& $settlement['adjustment_minor'] === $terms['adjustment_minor'];
 	}
 
-	private function verify_settlement_evidence( array $settlement, bool $lock ) {
-		$evidence = array();
+	private function verify_settlement_evidence( array $settlement, bool $lock, int $actor_id, ?array $authenticated_provenance = null, bool $authenticate_bytes = false ) {
+		$evidence            = array();
+		$provenance_evidence = array();
+		$booking             = null;
+		if ( 3 <= $settlement['formula_version'] ) {
+			$booking = $this->bookings->get( $settlement['booking_id'] );
+			if ( ! is_array( $booking ) ) {
+				return new \WP_Error( 'settlement_evidence_integrity_failed', __( 'Frozen settlement booking evidence is missing.', 'extrachill-events' ), array( 'status' => 409 ) );
+			}
+		}
 		foreach ( $settlement['included_report_ids'] as $report_id ) {
 			$report = $this->get_report( $report_id, $lock );
 			if ( is_wp_error( $report ) ) {
@@ -904,10 +1023,21 @@ class TicketSettlementService {
 				}
 				$item['resolution'] = $resolution;
 			}
+			if ( 3 <= $settlement['formula_version'] ) {
+				$provenance = $this->reconciliation->settlement_provenance_evidence( $report, $booking, $resolution ?? null, $actor_id, $lock, $authenticate_bytes );
+				if ( is_wp_error( $provenance ) ) {
+					return $provenance;
+				}
+				if ( ! $authenticate_bytes && ( null === $authenticated_provenance || ! isset( $authenticated_provenance[ $report['id'] ] ) || $authenticated_provenance[ $report['id'] ] !== $provenance ) ) {
+					return new \WP_Error( 'settlement_csv_evidence_changed', __( 'Frozen private-byte evidence changed after authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+				}
+				$item['provenance']                   = $provenance;
+				$provenance_evidence[ $report['id'] ] = $provenance;
+			}
 			$evidence[] = $item;
 		}
 		return hash_equals( $settlement['evidence_hash'], $this->evidence_hash( $evidence ) )
-			? true
+			? $provenance_evidence
 			: new \WP_Error(
 				'settlement_evidence_integrity_failed',
 				__( 'Frozen settlement evidence no longer matches its canonical content hash.', 'extrachill-events' ),
@@ -950,6 +1080,9 @@ class TicketSettlementService {
 		$fields = array( 'booking_id', 'event_id', 'venue_term_id', 'provider', 'external_report_id', 'source_type', 'period_start', 'period_end', 'tickets_sold', 'tickets_refunded', 'gross_minor', 'fees_minor', 'tax_minor', 'refunds_minor', 'net_minor', 'currency', 'corrects_report_id' );
 		if ( null !== ( $report['ticket_source_id'] ?? null ) || null !== ( $report['evidence_attachment_id'] ?? null ) ) {
 			array_splice( $fields, 3, 0, array( 'ticket_source_id', 'evidence_attachment_id' ) );
+		}
+		if ( 2 <= (int) ( $report['provenance_version'] ?? 1 ) ) {
+			array_splice( $fields, 3, 0, array( 'provenance_version', 'ticket_source_request_hash', 'evidence_attachment_request_hash', 'evidence_content_hash', 'evidence_byte_size' ) );
 		}
 		$hashable = array();
 		foreach ( $fields as $field ) {
@@ -1030,6 +1163,21 @@ class TicketSettlementService {
 				'field'  => $field,
 			)
 		);
+	}
+
+	/** Preserve opaque provider identifiers byte-for-byte or reject them. */
+	public static function opaque_identifier( $value, string $field ) {
+		if ( ! is_string( $value ) || '' === $value || ! mb_check_encoding( $value, 'UTF-8' ) || 191 < mb_strlen( $value, 'UTF-8' ) || 764 < strlen( $value ) || preg_match( '/[\x00-\x1F\x7F]|\p{C}/u', $value ) ) {
+			return new \WP_Error(
+				'invalid_opaque_identifier',
+				__( 'The provider identifier contains unsupported bytes or exceeds the bounded identity policy.', 'extrachill-events' ),
+				array(
+					'status' => 400,
+					'field'  => $field,
+				)
+			);
+		}
+		return $value;
 	}
 
 	private function datetime( $value, string $field ) {

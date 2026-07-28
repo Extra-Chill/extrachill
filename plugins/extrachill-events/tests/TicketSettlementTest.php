@@ -164,6 +164,7 @@ final class TicketSettlementTest extends BookingTestCase {
 		$report   = $this->service->record_sales( $this->report_input( $booking['id'], 'integrity-1' ), 12 );
 		$report_2 = $this->service->record_sales( $this->report_input( $booking['id'], 'integrity-2' ), 12 );
 		$preview  = $this->preview( $booking['id'] );
+		$source   = $GLOBALS['wpdb']->rows[ BookingSchema::ticket_sources_table() ][ $this->source_ids[ $booking['id'] ] ];
 		$this->assertSame(
 			hash(
 				'sha256',
@@ -171,11 +172,21 @@ final class TicketSettlementTest extends BookingTestCase {
 					array(
 						array(
 							'id'           => $report['id'],
+							'provenance'   => array(
+								'attachment'       => null,
+								'ticket_source_id' => (int) $source['id'],
+								'ticket_source_request_hash' => $source['request_hash'],
+							),
 							'request_hash' => $report['request_hash'],
 							'resolution'   => null,
 						),
 						array(
 							'id'           => $report_2['id'],
+							'provenance'   => array(
+								'attachment'       => null,
+								'ticket_source_id' => (int) $source['id'],
+								'ticket_source_request_hash' => $source['request_hash'],
+							),
 							'request_hash' => $report_2['request_hash'],
 							'resolution'   => null,
 						),
@@ -255,10 +266,20 @@ final class TicketSettlementTest extends BookingTestCase {
 		$row     = $GLOBALS['wpdb']->rows[ $table ][ $current['id'] ];
 
 		$row['formula_version'] = 1;
-		$row['evidence_hash']   = hash( 'sha256', wp_json_encode( array( array( 'id' => $report['id'], 'request_hash' => $report['request_hash'] ) ) ) );
+		$row['evidence_hash']   = hash(
+			'sha256',
+			wp_json_encode(
+				array(
+					array(
+						'id'           => $report['id'],
+						'request_hash' => $report['request_hash'],
+					),
+				)
+			)
+		);
 		$integrity              = new ReflectionMethod( TicketSettlementService::class, 'settlement_integrity_hash' );
 		$integrity->setAccessible( true );
-		$row['integrity_hash']                              = $integrity->invoke( $this->service, $row );
+		$row['integrity_hash']                             = $integrity->invoke( $this->service, $row );
 		$GLOBALS['wpdb']->rows[ $table ][ $current['id'] ] = $row;
 
 		$retry                    = $this->finalize_input( $preview );
@@ -277,6 +298,33 @@ final class TicketSettlementTest extends BookingTestCase {
 		$this->assertIsArray( $voided, is_wp_error( $voided ) ? $voided->get_error_code() : '' );
 		$this->assertSame( 1, $voided['formula_version'] );
 		$this->assertSame( 'void', $voided['status'] );
+	}
+
+	public function test_formula_two_settlement_retry_remains_compatible(): void {
+		$booking                = $this->create_event_booking();
+		$report                 = $this->service->record_sales( $this->report_input( $booking['id'], 'legacy-formula-two' ), 12 );
+		$preview                = $this->preview( $booking['id'] );
+		$current                = $this->service->finalize( $this->finalize_input( $preview ), 12 );
+		$table                  = BookingSchema::settlements_table();
+		$row                    = $GLOBALS['wpdb']->rows[ $table ][ $current['id'] ];
+		$legacy_evidence        = array(
+			array(
+				'id'           => $report['id'],
+				'request_hash' => $report['request_hash'],
+				'resolution'   => null,
+			),
+		);
+		$row['formula_version'] = 2;
+		$row['evidence_hash']   = hash( 'sha256', wp_json_encode( $legacy_evidence ) );
+		$integrity              = new ReflectionMethod( TicketSettlementService::class, 'settlement_integrity_hash' );
+		$integrity->setAccessible( true );
+		$row['integrity_hash']                             = $integrity->invoke( $this->service, $row );
+		$GLOBALS['wpdb']->rows[ $table ][ $current['id'] ] = $row;
+
+		$retry                           = $this->finalize_input( $preview );
+		$retry['formula_version']        = 2;
+		$retry['expected_evidence_hash'] = $row['evidence_hash'];
+		$this->assertSame( 2, $this->service->finalize( $retry, 12 )['formula_version'] );
 	}
 
 	public function test_frozen_financial_snapshot_tampering_fails_before_return_or_payment(): void {
@@ -505,7 +553,7 @@ final class TicketSettlementTest extends BookingTestCase {
 			$this->assertTrue( $GLOBALS['ec_artist_test']['abilities'][ $name ]['meta']['show_in_rest'] );
 		}
 		$this->assertTrue( $GLOBALS['ec_artist_test']['abilities']['extrachill/finalize-booking-settlement']['meta']['annotations']['idempotent'] );
-		$this->assertSame( array( 'manual', 'csv_certified' ), $GLOBALS['ec_artist_test']['abilities']['extrachill/record-booking-ticket-sales']['input_schema']['properties']['source_type']['enum'] );
+		$this->assertSame( array( 'manual' ), $GLOBALS['ec_artist_test']['abilities']['extrachill/record-booking-ticket-sales']['input_schema']['properties']['source_type']['enum'] );
 		$this->assertContains( 'expected_booking_version', $GLOBALS['ec_artist_test']['abilities']['extrachill/mark-booking-settlement-paid']['input_schema']['required'] );
 
 		$booking = $this->create_event_booking();

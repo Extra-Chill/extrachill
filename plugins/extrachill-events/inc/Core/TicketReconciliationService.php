@@ -49,10 +49,10 @@ class TicketReconciliationService {
 			return $booking;
 		}
 		$provider = mb_substr( sanitize_key( (string) ( $input['provider'] ?? '' ) ), 0, 64 );
-		$key      = mb_substr( sanitize_text_field( (string) ( $input['source_key'] ?? '' ) ), 0, 191 );
+		$key      = TicketSettlementService::opaque_identifier( $input['source_key'] ?? null, 'source_key' );
 		$url      = $this->canonical_url( $input['ticket_url'] ?? null );
-		if ( '' === $provider || '' === $key || is_wp_error( $url ) || null === $booking['event_id'] ) {
-			return is_wp_error( $url ) ? $url : new \WP_Error( 'invalid_ticket_source_identity', __( 'A linked event and valid provider source identity are required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		if ( '' === $provider || is_wp_error( $key ) || is_wp_error( $url ) || null === $booking['event_id'] ) {
+			return is_wp_error( $key ) ? $key : ( is_wp_error( $url ) ? $url : new \WP_Error( 'invalid_ticket_source_identity', __( 'A linked event and valid provider source identity are required.', 'extrachill-events' ), array( 'status' => 400 ) ) );
 		}
 		$row                 = array(
 			'public_id'          => wp_generate_uuid4(),
@@ -61,6 +61,7 @@ class TicketReconciliationService {
 			'venue_term_id'      => $booking['venue_term_id'],
 			'provider'           => $provider,
 			'source_key'         => $key,
+			'source_key_hash'    => hash( 'sha256', $key ),
 			'canonical_url'      => $url,
 			'url_hash'           => hash( 'sha256', $url ),
 			'created_by_user_id' => $actor_id,
@@ -393,28 +394,126 @@ class TicketReconciliationService {
 		);
 	}
 
-	/** Verify report provenance against current immutable source and attachment contracts. */
-	public function validate_provenance( array $report, array $booking ) {
+	/** Bind a new observation to current immutable source and authenticated bytes. */
+	public function validate_provenance( array $report, array $booking, ?array $csv_certification = null ) {
 		$source_id = $report['ticket_source_id'] ?? null;
+		$source    = null;
 		if ( null !== $source_id ) {
-			$source = $this->get_source( (int) $source_id );
+			$source = $this->get_source( (int) $source_id, true );
 			if ( ! is_array( $source ) || $source['booking_id'] !== $booking['id'] || $source['event_id'] !== $booking['event_id'] || $source['venue_term_id'] !== $booking['venue_term_id'] || $source['provider'] !== $report['provider'] ) {
 				return new \WP_Error( 'invalid_sales_report_source_identity', __( 'The ticket source does not match this booking, event, and provider.', 'extrachill-events' ), array( 'status' => 400 ) );
 			}
 		}
 		$attachment_id = $report['evidence_attachment_id'] ?? null;
 		if ( 'csv_certified' === $report['source_type'] ) {
-			if ( null === $attachment_id ) {
+			if ( null === $attachment_id || ! is_array( $source ) || ! is_array( $csv_certification ) ) {
 				return new \WP_Error( 'sales_csv_attachment_required', __( 'Certified CSV evidence requires its approved private attachment.', 'extrachill-events' ), array( 'status' => 400 ) );
 			}
 			$attachment = $this->attachments->get_for_booking( $booking['id'], (int) $attachment_id );
 			if ( is_wp_error( $attachment ) || 'active' !== ( $attachment['state'] ?? '' ) || 'text/csv' !== ( $attachment['mime_type'] ?? '' ) || 'other_private_evidence' !== ( $attachment['purpose'] ?? '' ) ) {
 				return is_wp_error( $attachment ) ? $attachment : new \WP_Error( 'sales_csv_attachment_invalid', __( 'Certified CSV evidence requires an active approved private CSV attachment.', 'extrachill-events' ), array( 'status' => 400 ) );
 			}
+			$expected = array(
+				'ticket_source_id'                 => $source['id'],
+				'ticket_source_request_hash'       => $source['request_hash'],
+				'evidence_attachment_id'           => $attachment['id'],
+				'evidence_attachment_request_hash' => $attachment['request_hash'],
+				'evidence_content_hash'            => $attachment['content_hash'],
+				'evidence_byte_size'               => $attachment['byte_size'],
+			);
+			if ( $expected !== $csv_certification ) {
+				return new \WP_Error( 'sales_csv_certification_invalid', __( 'Certified CSV evidence no longer matches the authenticated source and attachment bytes.', 'extrachill-events' ), array( 'status' => 409 ) );
+			}
 		} elseif ( null !== $attachment_id ) {
 			return new \WP_Error( 'sales_report_attachment_invalid', __( 'Only certified CSV evidence may bind a private file.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		return true;
+		return array(
+			'provenance_version'               => 2,
+			'ticket_source_request_hash'       => is_array( $source ) ? $source['request_hash'] : null,
+			'evidence_attachment_request_hash' => isset( $attachment ) ? $attachment['request_hash'] : null,
+			'evidence_content_hash'            => isset( $attachment ) ? $attachment['content_hash'] : null,
+			'evidence_byte_size'               => isset( $attachment ) ? $attachment['byte_size'] : null,
+		);
+	}
+
+	/** Revalidate and project the exact provenance frozen by formula v3. */
+	public function settlement_provenance_evidence( array $report, array $booking, ?array $resolution, int $actor_id, bool $lock, bool $authenticate_bytes = true ) {
+		$source_id = is_array( $resolution ) && null !== $resolution['ticket_source_id'] ? $resolution['ticket_source_id'] : $report['ticket_source_id'];
+		if ( null === $source_id ) {
+			return new \WP_Error( 'settlement_source_evidence_missing', __( 'Settlement evidence has no immutable ticket source attribution.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		$source = $this->get_source( (int) $source_id, $lock );
+		if ( ! is_array( $source ) || $source['booking_id'] !== $booking['id'] || $source['event_id'] !== $booking['event_id'] || $source['venue_term_id'] !== $booking['venue_term_id'] || $source['provider'] !== $report['provider'] ) {
+			return new \WP_Error( 'settlement_source_evidence_invalid', __( 'Settlement ticket-source evidence is missing, corrupt, or belongs to another booking.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		if ( 2 <= (int) ( $report['provenance_version'] ?? 1 ) && $report['ticket_source_id'] === $source['id'] && ! hash_equals( (string) $report['ticket_source_request_hash'], $source['request_hash'] ) ) {
+			return new \WP_Error( 'settlement_source_evidence_invalid', __( 'Settlement ticket-source evidence no longer matches its observation hash.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+
+		$evidence = array(
+			'ticket_source_id'           => $source['id'],
+			'ticket_source_request_hash' => $source['request_hash'],
+			'attachment'                 => null,
+		);
+		if ( 'csv_certified' !== $report['source_type'] ) {
+			return $evidence;
+		}
+		if ( 2 > (int) ( $report['provenance_version'] ?? 1 ) ) {
+			return new \WP_Error( 'settlement_csv_evidence_legacy', __( 'Legacy CSV observations were not authenticated by the certified importer and cannot enter a new settlement.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		$attachment = $this->attachments->get_for_booking( $booking['id'], (int) $report['evidence_attachment_id'] );
+		if ( is_wp_error( $attachment ) || 'active' !== ( $attachment['state'] ?? '' ) || 'text/csv' !== ( $attachment['mime_type'] ?? '' ) || 'other_private_evidence' !== ( $attachment['purpose'] ?? '' ) ) {
+			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV evidence is retired, deleted, purged, or invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		foreach ( array(
+			'evidence_attachment_request_hash' => 'request_hash',
+			'evidence_content_hash'            => 'content_hash',
+			'evidence_byte_size'               => 'byte_size',
+		) as $report_field => $attachment_field ) {
+			if ( $report[ $report_field ] !== $attachment[ $attachment_field ] ) {
+				return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV attachment metadata no longer matches its observation hash.', 'extrachill-events' ), array( 'status' => 409 ) );
+			}
+		}
+		$verified = $authenticate_bytes ? $this->authenticate_attachment_bytes( $booking, $attachment, $actor_id ) : array(
+			'content_hash' => $attachment['content_hash'],
+			'byte_size'    => $attachment['byte_size'],
+		);
+		if ( is_wp_error( $verified ) ) {
+			return $verified;
+		}
+		$evidence['attachment'] = array(
+			'id'           => $attachment['id'],
+			'request_hash' => $attachment['request_hash'],
+			'content_hash' => $verified['content_hash'],
+			'byte_size'    => $verified['byte_size'],
+		);
+		return $evidence;
+	}
+
+	/** Authenticate the complete current private object against immutable metadata. */
+	private function authenticate_attachment_bytes( array $booking, array $attachment, int $actor_id ) {
+		$descriptor = $this->attachment_service->download_descriptor( $booking['id'], $attachment['id'], $actor_id );
+		if ( is_wp_error( $descriptor ) ) {
+			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV bytes are unavailable for authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		$stream = $this->attachment_service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], $actor_id, $descriptor['correlation_id'] );
+		if ( is_wp_error( $stream ) || ! is_resource( $stream ) ) {
+			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV bytes are unavailable for authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		$verified = $this->verified_csv_stream( $stream, $attachment );
+		fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closes the approved private stream after complete authentication.
+		if ( is_resource( $verified ) ) {
+			fclose( $verified ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- No parsing is needed during settlement revalidation.
+		}
+		$outcome = is_wp_error( $verified ) ? 'failed' : 'completed';
+		$logged  = $this->attachment_service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], $outcome, 'completed' === $outcome ? $attachment['byte_size'] : 0, $actor_id );
+		if ( is_wp_error( $verified ) || is_wp_error( $logged ) ) {
+			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV bytes failed complete authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		return array(
+			'content_hash' => $attachment['content_hash'],
+			'byte_size'    => $attachment['byte_size'],
+		);
 	}
 
 	private function diagnostics_for_booking( array $booking ) {
@@ -524,7 +623,15 @@ class TicketReconciliationService {
 		if ( self::CSV_HEADER !== $header ) {
 			return new \WP_Error( 'sales_csv_header_invalid', __( 'The CSV header does not match the canonical ticket-sales contract.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		$inputs = array();
+		$inputs        = array();
+		$certification = array(
+			'ticket_source_id'                 => $source['id'],
+			'ticket_source_request_hash'       => $source['request_hash'],
+			'evidence_attachment_id'           => $attachment['id'],
+			'evidence_attachment_request_hash' => $attachment['request_hash'],
+			'evidence_content_hash'            => $attachment['content_hash'],
+			'evidence_byte_size'               => $attachment['byte_size'],
+		);
 		while ( true ) {
 			$values = $this->read_csv_record( $stream, count( $inputs ) + 2 );
 			if ( false === $values ) {
@@ -573,6 +680,7 @@ class TicketReconciliationService {
 						'attachment_id' => $attachment['public_id'],
 						'row'           => count( $inputs ) + 2,
 					),
+					'_certified_evidence'    => $certification,
 				)
 			);
 		}
@@ -705,8 +813,8 @@ class TicketReconciliationService {
 	private function find_source_identity( int $booking_id, string $provider, string $source_key, bool $lock = false ) {
 		global $wpdb;
 		$table = BookingSchema::ticket_sources_table();
-		$query = "SELECT * FROM {$table} WHERE booking_id = %d AND provider = %s AND source_key = %s LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
-		$row   = $wpdb->get_row( $wpdb->prepare( $query, $booking_id, $provider, $source_key ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Stable source lookup.
+		$query = "SELECT * FROM {$table} WHERE booking_id = %d AND provider = %s AND source_key_hash = %s LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
+		$row   = $wpdb->get_row( $wpdb->prepare( $query, $booking_id, $provider, hash( 'sha256', $source_key ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Stable source lookup.
 		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'ticket_source_read_failed', __( 'The ticket source could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_source( $row ) : null );
 	}
 
@@ -722,8 +830,9 @@ class TicketReconciliationService {
 		foreach ( array( 'id', 'booking_id', 'event_id', 'venue_term_id', 'created_by_user_id' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
 		}
-		$stored = strtolower( (string) $row['request_hash'] );
-		return preg_match( '/^[a-f0-9]{64}$/', $stored ) && hash_equals( $stored, $this->hash( $row, array( 'booking_id', 'event_id', 'venue_term_id', 'provider', 'source_key', 'canonical_url' ) ) )
+		$stored        = strtolower( (string) $row['request_hash'] );
+		$identity_hash = strtolower( (string) ( $row['source_key_hash'] ?? '' ) );
+		return preg_match( '/^[a-f0-9]{64}$/', $identity_hash ) && hash_equals( $identity_hash, hash( 'sha256', $row['source_key'] ) ) && preg_match( '/^[a-f0-9]{64}$/', $stored ) && hash_equals( $stored, $this->hash( $row, array( 'booking_id', 'event_id', 'venue_term_id', 'provider', 'source_key', 'canonical_url' ) ) )
 			? $row
 			: new \WP_Error(
 				'ticket_source_integrity_failed',
@@ -792,16 +901,18 @@ class TicketReconciliationService {
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $source ) || 1 !== ( $source['version'] ?? null ) || ! array_key_exists( 'data', $source ) ) {
 			return new \WP_Error( 'sales_report_source_invalid', __( 'Stored ticket-sales source evidence is malformed.', 'extrachill-events' ) );
 		}
-		foreach ( array( 'id', 'booking_id', 'event_id', 'venue_term_id', 'tickets_sold', 'tickets_refunded', 'gross_minor', 'fees_minor', 'tax_minor', 'refunds_minor', 'net_minor' ) as $field ) {
+		foreach ( array( 'id', 'booking_id', 'event_id', 'venue_term_id', 'tickets_sold', 'tickets_refunded', 'gross_minor', 'fees_minor', 'tax_minor', 'refunds_minor', 'net_minor', 'provenance_version' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
 		}
 		foreach ( array( 'ticket_source_id', 'evidence_attachment_id' ) as $field ) {
 			$row[ $field ] = null === ( $row[ $field ] ?? null ) ? null : (int) $row[ $field ];
 		}
+		$row['evidence_byte_size'] = null === ( $row['evidence_byte_size'] ?? null ) ? null : (int) $row['evidence_byte_size'];
 		$row['corrects_report_id'] = null === $row['corrects_report_id'] ? null : (int) $row['corrects_report_id'];
 		$row['source']             = $source['data'];
 		$stored_hash               = strtolower( (string) ( $row['request_hash'] ?? '' ) );
-		if ( ! preg_match( '/^[a-f0-9]{64}$/', $stored_hash ) || ! hash_equals( $stored_hash, TicketSettlementService::report_request_hash( $row ) ) ) {
+		$identity_hash             = strtolower( (string) ( $row['external_report_id_hash'] ?? '' ) );
+		if ( ! preg_match( '/^[a-f0-9]{64}$/', $identity_hash ) || ! hash_equals( $identity_hash, hash( 'sha256', $row['external_report_id'] ) ) || ! preg_match( '/^[a-f0-9]{64}$/', $stored_hash ) || ! hash_equals( $stored_hash, TicketSettlementService::report_request_hash( $row ) ) ) {
 			return new \WP_Error(
 				'sales_report_integrity_failed',
 				__( 'Stored ticket-sales evidence failed its immutable content check.', 'extrachill-events' ),
