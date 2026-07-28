@@ -8,6 +8,7 @@ const METHODS = {
 	'extrachill/get-venue-booking-config': 'GET',
 	'extrachill/list-venue-memberships': 'GET',
 	'extrachill/list-venue-invitations': 'GET',
+	'extrachill/list-venue-email-subscribers': 'GET',
 	'extrachill/list-venue-claims': 'GET',
 	'extrachill/list-venue-bookings': 'GET',
 	'extrachill/get-venue-booking': 'GET',

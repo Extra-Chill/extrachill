@@ -9,6 +9,7 @@
 
 require_once dirname( __DIR__ ) . '/Support/venue-update-subscription-stubs.php';
 require_once dirname( __DIR__, 2 ) . '/inc/core/venue-update-subscriptions.php';
+require_once dirname( __DIR__, 2 ) . '/inc/core/venue-email-sharing.php';
 
 /** Verify archive consent UI and first-publication delivery behavior. */
 final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
@@ -72,6 +73,21 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		$this->assertFalse( extrachill_events_authorize_venue_update_producer( false, 'untrusted', $venue, 'notification' ) );
 	}
 
+	/** Email sharing is a separate descriptor and private producer purpose. */
+	public function test_registers_and_authorizes_only_exact_email_sharing_contract(): void {
+		$entities = extrachill_events_register_venue_email_sharing_identity( array( 'venue' => 'venue' ) );
+		$sharing  = array(
+			'entity_type' => 'venue-email-sharing',
+			'taxonomy'    => 'venue',
+		);
+
+		$this->assertSame( 'venue', $entities['venue-email-sharing']['taxonomy'] );
+		$this->assertFalse( $entities['venue-email-sharing']['uses_notification_email_preference'] );
+		$this->assertTrue( extrachill_events_authorize_venue_email_sharing_producer( false, EXTRACHILL_EVENTS_VENUE_EMAIL_SHARING_PRODUCER, $sharing, 'email' ) );
+		$this->assertFalse( extrachill_events_authorize_venue_email_sharing_producer( false, EXTRACHILL_EVENTS_VENUE_EMAIL_SHARING_PRODUCER, $sharing, 'notification' ) );
+		$this->assertFalse( extrachill_events_authorize_venue_email_sharing_producer( false, EXTRACHILL_EVENTS_VENUE_EMAIL_SHARING_PRODUCER, array( 'entity_type' => 'venue', 'taxonomy' => 'venue' ), 'email' ) );
+	}
+
 	/** Anonymous archives offer sign-in without exposing a mutation control. */
 	public function test_anonymous_archive_renders_sign_in_without_mutation_control(): void {
 		$this->venue_archive();
@@ -97,6 +113,21 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'data-venue-update-subscription', $html );
 		$this->assertStringContainsString( 'Checking your subscription...', $html );
 		$this->assertStringContainsString( 'data-slug="the-royal-american"', $html );
+	}
+
+	/** Archive email sharing remains a visibly separate explicit control. */
+	public function test_archive_renders_separate_email_sharing_control(): void {
+		$this->venue_archive();
+		wp_set_current_user( self::factory()->user->create() );
+
+		ob_start();
+		extrachill_events_render_venue_update_control();
+		extrachill_events_render_venue_email_sharing_control();
+		$html = ob_get_clean();
+
+		$this->assertStringContainsString( 'data-venue-update-subscription', $html );
+		$this->assertStringContainsString( 'data-venue-email-sharing', $html );
+		$this->assertStringContainsString( 'Share email with venue', $html );
 	}
 
 	/** First publication deduplicates subscribers across all assigned venues. */

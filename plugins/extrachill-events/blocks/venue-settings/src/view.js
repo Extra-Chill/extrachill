@@ -57,6 +57,24 @@ const INTAKE_TYPES = [
 	'url',
 ];
 
+export const venueSubscriberCsv = ( subscribers ) =>
+	[
+		[ 'user_id', 'email' ],
+		...subscribers.map( ( subscriber ) => [
+			subscriber.user_id,
+			subscriber.email,
+		] ),
+	]
+		.map( ( row ) =>
+			row
+				.map(
+					( value ) =>
+						`"${ String( value ).replaceAll( '"', '""' ) }"`
+				)
+				.join( ',' )
+		)
+		.join( '\r\n' );
+
 const profileInputType = ( key ) => {
 	if ( key === 'website' ) {
 		return 'url';
@@ -649,7 +667,7 @@ function IntakeTab( { config, setConfig } ) {
 	);
 }
 
-function TeamTab( { venueId, members, invitations, onRefresh } ) {
+function TeamTab( { venueId, members, invitations, subscribers, onRefresh } ) {
 	const [ email, setEmail ] = useState( '' );
 	const [ owner, setOwner ] = useState( false );
 	const [ action, setAction ] = useState( null );
@@ -687,8 +705,53 @@ function TeamTab( { venueId, members, invitations, onRefresh } ) {
 			setOwner( false );
 		}
 	};
+	const exportSubscribers = () => {
+		const url = window.URL.createObjectURL(
+			new window.Blob( [ venueSubscriberCsv( subscribers ) ], {
+				type: 'text/csv;charset=utf-8',
+			} )
+		);
+		const link = document.createElement( 'a' );
+		link.href = url;
+		link.download = `venue-${ venueId }-email-subscribers.csv`;
+		link.click();
+		window.URL.revokeObjectURL( url );
+	};
 	return (
 		<div className="ec-venue-settings__stack">
+			<Panel>
+				<PanelHeader
+					title="Venue email list"
+					description="Only accounts that explicitly share email access with this venue appear here. Addresses always reflect the current account email."
+				/>
+				{ subscribers.length === 0 ? (
+					<p>
+						No accounts currently share email access with this
+						venue.
+					</p>
+				) : (
+					<>
+						<ul className="ec-venue-settings__records">
+							{ subscribers.map( ( subscriber ) => (
+								<li key={ subscriber.user_id }>
+									<a href={ `mailto:${ subscriber.email }` }>
+										{ subscriber.email }
+									</a>
+								</li>
+							) ) }
+						</ul>
+						<ActionRow>
+							<button
+								type="button"
+								className="button-2"
+								onClick={ exportSubscribers }
+							>
+								Download CSV
+							</button>
+						</ActionRow>
+					</>
+				) }
+			</Panel>
 			<Panel>
 				<PanelHeader
 					title="Invite a teammate"
@@ -1033,6 +1096,7 @@ export function VenueSettingsApp( { context } ) {
 	const [ configRevision, setConfigRevision ] = useState( 0 );
 	const [ members, setMembers ] = useState( [] );
 	const [ invitations, setInvitations ] = useState( [] );
+	const [ subscribers, setSubscribers ] = useState( [] );
 	const [ claims, setClaims ] = useState( [] );
 	const [ profileStatus, setProfileStatus ] = useState( null );
 	const [ configStatus, setConfigStatus ] = useState( null );
@@ -1054,25 +1118,33 @@ export function VenueSettingsApp( { context } ) {
 		if ( ! selected || ! context.can_manage ) {
 			return;
 		}
-		const [ memberResult, invitationResult ] = await Promise.allSettled( [
-			runAbility( 'extrachill/list-venue-memberships', {
-				venue_term_id: selected.id,
-			} ),
-			runAbility( 'extrachill/list-venue-invitations', {
-				venue_term_id: selected.id,
-			} ),
-		] );
+		const [ memberResult, invitationResult, subscriberResult ] =
+			await Promise.allSettled( [
+				runAbility( 'extrachill/list-venue-memberships', {
+					venue_term_id: selected.id,
+				} ),
+				runAbility( 'extrachill/list-venue-invitations', {
+					venue_term_id: selected.id,
+				} ),
+				runAbility( 'extrachill/list-venue-email-subscribers', {
+					venue_term_id: selected.id,
+				} ),
+			] );
 		if ( memberResult.status === 'fulfilled' ) {
 			setMembers( memberResult.value );
 		}
 		if ( invitationResult.status === 'fulfilled' ) {
 			setInvitations( invitationResult.value );
 		}
+		if ( subscriberResult.status === 'fulfilled' ) {
+			setSubscribers( subscriberResult.value.subscribers || [] );
+		}
 		setLoadErrors( ( current ) => ( {
 			...current,
 			team:
 				memberResult.status === 'rejected' ||
-				invitationResult.status === 'rejected'
+				invitationResult.status === 'rejected' ||
+				subscriberResult.status === 'rejected'
 					? 'Some team records could not be loaded.'
 					: null,
 		} ) );
@@ -1359,6 +1431,7 @@ export function VenueSettingsApp( { context } ) {
 						venueId={ selected.id }
 						members={ members }
 						invitations={ invitations }
+						subscribers={ subscribers }
 						onRefresh={ loadTeam }
 					/>
 				</>
