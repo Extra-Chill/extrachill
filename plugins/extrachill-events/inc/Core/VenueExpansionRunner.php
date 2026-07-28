@@ -23,6 +23,9 @@ class VenueExpansionRunner {
 	/** @var callable */
 	private $flow_for_url;
 
+	/** @var callable */
+	private $known_venue_enricher;
+
 	/** @var array<string,array>|null */
 	private $flows_by_url = null;
 
@@ -32,14 +35,24 @@ class VenueExpansionRunner {
 	/**
 	 * Inject narrow lookups so the orchestration remains independently testable.
 	 */
-	public function __construct( ?callable $ability_resolver = null, ?callable $latest_verdict = null, ?callable $flow_for_url = null ) {
-		$this->ability_resolver = $ability_resolver ?? static function ( string $name ) {
+	public function __construct( ?callable $ability_resolver = null, ?callable $latest_verdict = null, ?callable $flow_for_url = null, ?callable $known_venue_enricher = null ) {
+		$this->ability_resolver     = $ability_resolver ?? static function ( string $name ) {
 			return function_exists( 'wp_get_ability' ) ? wp_get_ability( $name ) : null;
 		};
-		$this->latest_verdict   = $latest_verdict ?? static function ( string $url ): ?array {
+		$this->latest_verdict       = $latest_verdict ?? static function ( string $url ): ?array {
 			return QualifyVerdictsTable::latest_for_url( $url );
 		};
-		$this->flow_for_url     = $flow_for_url ?? array( $this, 'findFlowForUrl' );
+		$this->flow_for_url         = $flow_for_url ?? array( $this, 'findFlowForUrl' );
+		$this->known_venue_enricher = $known_venue_enricher ?? static function ( int $term_id, array $metadata ) {
+			if ( ! class_exists( '\DataMachineEvents\Core\VenueProfileMutations' ) ) {
+				return new \WP_Error( 'missing_venue_mutation_contract', 'Canonical venue metadata mutation is unavailable.' );
+			}
+			return \DataMachineEvents\Core\VenueProfileMutations::updateSystem(
+				$term_id,
+				$metadata,
+				\DataMachineEvents\Core\VenueProfileMutations::STRATEGY_FILL_EMPTY
+			);
+		};
 	}
 
 	/**
@@ -49,7 +62,6 @@ class VenueExpansionRunner {
 		$city                 = sanitize_text_field( (string) ( $params['city'] ?? '' ) );
 		$max_venues           = max( 1, min( 20, (int) ( $params['max_venues'] ?? 10 ) ) );
 		$qualification_budget = max( 0, min( $max_venues, (int) ( $params['qualification_budget'] ?? $max_venues ) ) );
-		$skip_existing        = ! array_key_exists( 'skip_existing', $params ) || (bool) $params['skip_existing'];
 		$country              = strtoupper( sanitize_text_field( (string) ( $params['country'] ?? '' ) ) );
 		$request_delay_ms     = max( 0, min( 10000, (int) ( $params['request_delay_ms'] ?? 0 ) ) );
 
@@ -111,46 +123,65 @@ class VenueExpansionRunner {
 		$report['rate']['discovery_used'] = 1;
 
 		foreach ( $venues as $venue ) {
-			$name    = sanitize_text_field( (string) ( $venue['name'] ?? '' ) );
-			$website = esc_url_raw( (string) ( $venue['website'] ?? '' ) );
-			$row     = array(
-				'name'       => $name,
-				'url'        => $website,
-				'status'     => '',
-				'verdict'    => '',
-				'flow_id'    => 0,
-				'events_url' => '',
+			$name                    = sanitize_text_field( (string) ( $venue['name'] ?? '' ) );
+			$website                 = esc_url_raw( (string) ( $venue['website'] ?? '' ) );
+			$is_known                = ! empty( $venue['is_known'] );
+			$term_id                 = (int) ( $venue['known_term_id'] ?? 0 );
+			$row                     = array(
+				'name'            => $name,
+				'url'             => $website,
+				'status'          => '',
+				'verdict'         => '',
+				'flow_id'         => 0,
+				'events_url'      => '',
+				'known_term_id'   => $term_id,
+				'enriched_fields' => array(),
 			);
+			$qualification_performed = false;
+
+			if ( $is_known ) {
+				if ( $term_id <= 0 ) {
+					return $this->fail( $report, 'known_venue_missing_term', 'Discovery did not identify the matched venue term.' );
+				}
+				$metadata = $this->knownVenueMetadata( $venue );
+				if ( ! empty( $metadata ) ) {
+					$enrichment = ( $this->known_venue_enricher )( $term_id, $metadata );
+					if ( is_wp_error( $enrichment ) ) {
+						return $this->fail( $report, $enrichment->get_error_code(), $enrichment->get_error_message() );
+					}
+					$row['enriched_fields'] = array_values( (array) ( $enrichment['updated_fields'] ?? array() ) );
+					if ( ! empty( $row['enriched_fields'] ) ) {
+						++$report['counts']['enriched'];
+					}
+				}
+			}
 
 			if ( '' === $website ) {
-				$this->reject( $report, $row, 'no_website' );
+				$this->reject( $report, $row, 'no_website', $is_known && ! empty( $row['enriched_fields'] ) ? 'known_enriched' : 'rejected' );
 				continue;
 			}
 			$existing_flow = $this->findExistingFlow( $website );
 			if ( is_array( $existing_flow ) ) {
-				$row['status']      = 'skipped_existing_flow';
-				$row['flow_id']     = (int) ( $existing_flow['flow_id'] ?? 0 );
-				$report['venues'][] = $row;
-				++$report['counts']['skipped'];
-				continue;
-			}
-			if ( $skip_existing && ! empty( $venue['is_known'] ) ) {
-				$row['status']      = 'skipped_existing_venue';
-				$report['venues'][] = $row;
+				$row['status']         = $is_known ? 'known_skipped_current' : 'skipped_existing_flow';
+				$row['current_reason'] = 'existing_flow';
+				$row['flow_id']        = (int) ( $existing_flow['flow_id'] ?? 0 );
+				$report['venues'][]    = $row;
 				++$report['counts']['skipped'];
 				continue;
 			}
 
 			$prior = ( $this->latest_verdict )( $website );
 			if ( is_array( $prior ) && $this->isReusableVerdict( $prior, (int) ( $params['max_verdict_age_days'] ?? 30 ) ) ) {
-				$qualification = $prior;
-				$row['status'] = 'resumed_verdict';
+				$qualification         = $prior;
+				$row['status']         = $is_known ? 'known_skipped_current' : 'resumed_verdict';
+				$row['current_reason'] = 'fresh_verdict';
 			} else {
 				if ( $report['rate']['qualification_used'] >= $qualification_budget ) {
-					$this->reject( $report, $row, 'rate_budget_exhausted' );
+					$this->reject( $report, $row, 'rate_budget_exhausted', $is_known && ! empty( $row['enriched_fields'] ) ? 'known_enriched' : 'rejected' );
 					continue;
 				}
 				++$report['rate']['qualification_used'];
+				$qualification_performed = true;
 				if ( $report['rate']['qualification_used'] > 1 && $request_delay_ms > 0 ) {
 					usleep( $request_delay_ms * 1000 );
 				}
@@ -170,31 +201,37 @@ class VenueExpansionRunner {
 			$row['verdict']    = $verdict;
 			$row['events_url'] = esc_url_raw( (string) ( $qualification['events_url'] ?? $website ) );
 			if ( QualifyVerdict::QUALIFIED_STRUCTURED !== $verdict ) {
-				$this->reject( $report, $row, '' !== $verdict ? $verdict : 'missing_verdict' );
+				$status = $is_known ? ( $qualification_performed ? 'known_qualified' : 'known_skipped_current' ) : 'rejected';
+				$this->reject( $report, $row, '' !== $verdict ? $verdict : 'missing_verdict', $status );
 				continue;
 			}
 			$events_flow = $this->findExistingFlow( $row['events_url'] );
 			if ( is_array( $events_flow ) ) {
-				$row['status']      = 'skipped_existing_flow';
-				$row['flow_id']     = (int) ( $events_flow['flow_id'] ?? 0 );
-				$report['venues'][] = $row;
+				$row['status']         = $is_known ? ( $qualification_performed ? 'known_qualified' : 'known_skipped_current' ) : 'skipped_existing_flow';
+				$row['current_reason'] = 'existing_flow';
+				$row['flow_id']        = (int) ( $events_flow['flow_id'] ?? 0 );
+				$report['venues'][]    = $row;
 				++$report['counts']['qualified'];
 				++$report['counts']['skipped'];
 				continue;
 			}
 
 			++$report['counts']['qualified'];
-			$add_result = $add->execute(
-				array(
-					'pipeline_id' => $report['pipeline']['id'],
-					'name'        => $name,
-					'url'         => $row['events_url'],
-					'website'     => $website,
-					'address'     => sanitize_text_field( (string) ( $venue['address'] ?? '' ) ),
-					'city'        => $city,
-					'interval'    => (string) ( $params['interval'] ?? 'daily' ),
-				)
+			$add_input = array(
+				'pipeline_id' => $report['pipeline']['id'],
+				'name'        => $name,
+				'url'         => $row['events_url'],
+				'website'     => $website,
+				'address'     => sanitize_text_field( (string) ( $venue['address'] ?? '' ) ),
+				'city'        => sanitize_text_field( (string) ( ! empty( $venue['city'] ) ? $venue['city'] : $city ) ),
+				'state'       => sanitize_text_field( (string) ( $venue['state'] ?? '' ) ),
+				'zip'         => sanitize_text_field( (string) ( $venue['zip'] ?? '' ) ),
+				'interval'    => (string) ( $params['interval'] ?? 'daily' ),
 			);
+			if ( $is_known ) {
+				$add_input['venue_term_id'] = $term_id;
+			}
+			$add_result = $add->execute( $add_input );
 			if ( is_wp_error( $add_result ) ) {
 				if ( 'venue_exists' !== $add_result->get_error_code() ) {
 					return $this->fail( $report, $add_result->get_error_code(), $add_result->get_error_message() );
@@ -209,6 +246,9 @@ class VenueExpansionRunner {
 				$this->rememberFlow( $website, $row );
 				$this->rememberFlow( $row['events_url'], $row );
 				++$report['counts']['added'];
+			}
+			if ( $is_known ) {
+				$row['status'] = $qualification_performed ? 'known_qualified' : 'known_skipped_current';
 			}
 			$report['venues'][] = $row;
 		}
@@ -230,6 +270,7 @@ class VenueExpansionRunner {
 			'counts'            => array(
 				'discovered' => 0,
 				'qualified'  => 0,
+				'enriched'   => 0,
 				'added'      => 0,
 				'rejected'   => 0,
 				'skipped'    => 0,
@@ -250,14 +291,30 @@ class VenueExpansionRunner {
 	}
 
 	/** Add a truthful rejection to the report. */
-	private function reject( array &$report, array $row, string $reason ): void {
-		$row['status'] = 'rejected';
+	private function reject( array &$report, array $row, string $reason, string $status = 'rejected' ): void {
+		$row['status'] = $status;
 		if ( '' === $row['verdict'] ) {
 			$row['verdict'] = $reason;
 		}
 		$report['venues'][] = $row;
 		++$report['counts']['rejected'];
 		$report['rejection_reasons'][ $reason ] = 1 + (int) ( $report['rejection_reasons'][ $reason ] ?? 0 );
+	}
+
+	/** Build bounded canonical metadata supplied by Places for fill-empty enrichment. */
+	private function knownVenueMetadata( array $venue ): array {
+		$metadata = array(
+			'website' => esc_url_raw( (string) ( $venue['website'] ?? '' ) ),
+			'address' => sanitize_text_field( (string) ( $venue['address'] ?? '' ) ),
+			'city'    => sanitize_text_field( (string) ( $venue['city'] ?? '' ) ),
+			'state'   => sanitize_text_field( (string) ( $venue['state'] ?? '' ) ),
+			'zip'     => sanitize_text_field( (string) ( $venue['zip'] ?? '' ) ),
+			'country' => sanitize_text_field( (string) ( $venue['country'] ?? '' ) ),
+		);
+		if ( is_numeric( $venue['latitude'] ?? null ) && is_numeric( $venue['longitude'] ?? null ) ) {
+			$metadata['coordinates'] = (string) (float) $venue['latitude'] . ',' . (string) (float) $venue['longitude'];
+		}
+		return array_filter( $metadata, static fn( string $value ): bool => '' !== $value );
 	}
 
 	/** Mark a task-level failure so Data Machine can retry the city safely. */

@@ -60,43 +60,47 @@ class VenueAddAbilities {
 						'type'       => 'object',
 						'required'   => array( 'pipeline_id', 'name', 'url' ),
 						'properties' => array(
-							'pipeline_id' => array(
+							'pipeline_id'   => array(
 								'type'        => 'integer',
 								'description' => 'Pipeline ID for the city this venue belongs to.',
 							),
-							'name'        => array(
+							'name'          => array(
 								'type'        => 'string',
 								'description' => 'Venue name, e.g. "Exit/In" or "The Station Inn".',
 							),
-							'url'         => array(
+							'venue_term_id' => array(
+								'type'        => 'integer',
+								'description' => 'Existing canonical venue term ID. Optional; prevents name-based duplication for known venues.',
+							),
+							'url'           => array(
 								'type'        => 'string',
 								'description' => 'Venue events page URL (the page the scraper will hit).',
 							),
-							'address'     => array(
+							'address'       => array(
 								'type'        => 'string',
 								'description' => 'Venue street address. Optional — used for geocoding.',
 							),
-							'city'        => array(
+							'city'          => array(
 								'type'        => 'string',
 								'description' => 'Venue city name. Optional — derived from pipeline if not provided.',
 							),
-							'state'       => array(
+							'state'         => array(
 								'type'        => 'string',
 								'description' => 'Venue state. Optional.',
 							),
-							'zip'         => array(
+							'zip'           => array(
 								'type'        => 'string',
 								'description' => 'Venue zip code. Optional.',
 							),
-							'website'     => array(
+							'website'       => array(
 								'type'        => 'string',
 								'description' => 'Venue homepage URL (may differ from events page URL). Optional.',
 							),
-							'interval'    => array(
+							'interval'      => array(
 								'type'        => 'string',
 								'description' => 'Scheduling interval. Defaults to "daily".',
 							),
-							'dry_run'     => array(
+							'dry_run'       => array(
 								'type'        => 'boolean',
 								'description' => 'Preview what would be created without making changes.',
 							),
@@ -130,16 +134,17 @@ class VenueAddAbilities {
 	 * @return array Result.
 	 */
 	public function executeAddVenue( array $input ): array|\WP_Error {
-		$pipeline_id = (int) ( $input['pipeline_id'] ?? 0 );
-		$name        = sanitize_text_field( $input['name'] ?? '' );
-		$url         = esc_url_raw( $input['url'] ?? '' );
-		$address     = sanitize_text_field( $input['address'] ?? '' );
-		$city        = sanitize_text_field( $input['city'] ?? '' );
-		$state       = sanitize_text_field( $input['state'] ?? '' );
-		$zip         = sanitize_text_field( $input['zip'] ?? '' );
-		$website     = esc_url_raw( $input['website'] ?? '' );
-		$interval    = sanitize_text_field( $input['interval'] ?? self::DEFAULT_INTERVAL );
-		$dry_run     = ! empty( $input['dry_run'] );
+		$pipeline_id   = (int) ( $input['pipeline_id'] ?? 0 );
+		$name          = sanitize_text_field( $input['name'] ?? '' );
+		$url           = esc_url_raw( $input['url'] ?? '' );
+		$address       = sanitize_text_field( $input['address'] ?? '' );
+		$city          = sanitize_text_field( $input['city'] ?? '' );
+		$state         = sanitize_text_field( $input['state'] ?? '' );
+		$zip           = sanitize_text_field( $input['zip'] ?? '' );
+		$website       = esc_url_raw( $input['website'] ?? '' );
+		$venue_term_id = (int) ( $input['venue_term_id'] ?? 0 );
+		$interval      = sanitize_text_field( $input['interval'] ?? self::DEFAULT_INTERVAL );
+		$dry_run       = ! empty( $input['dry_run'] );
 
 		if ( $pipeline_id <= 0 ) {
 			return new \WP_Error( 'missing_pipeline', 'pipeline_id is required.', array( 'status' => 400 ) );
@@ -149,6 +154,12 @@ class VenueAddAbilities {
 		}
 		if ( empty( $url ) ) {
 			return new \WP_Error( 'missing_url', 'Events page URL is required.', array( 'status' => 400 ) );
+		}
+		if ( $venue_term_id > 0 ) {
+			$known_term = get_term( $venue_term_id, 'venue' );
+			if ( ! $known_term || is_wp_error( $known_term ) ) {
+				return new \WP_Error( 'venue_not_found', 'The supplied canonical venue term was not found.', array( 'status' => 404 ) );
+			}
 		}
 
 		// Validate pipeline exists.
@@ -193,7 +204,7 @@ class VenueAddAbilities {
 		}
 
 		// Step 1: Create or find venue taxonomy term.
-		$venue_term_id = $this->ensureVenueTerm( $name );
+		$venue_term_id = $venue_term_id > 0 ? $venue_term_id : $this->ensureVenueTerm( $name );
 		if ( ! $venue_term_id ) {
 			return new \WP_Error( 'venue_term_failed', sprintf( 'Failed to create venue term for "%s".', $name ), array( 'status' => 500 ) );
 		}

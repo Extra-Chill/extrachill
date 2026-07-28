@@ -255,6 +255,7 @@ class VenueExpansionAbilities {
 		$aggregate = array(
 			'discovered' => 0,
 			'qualified'  => 0,
+			'enriched'   => 0,
 			'added'      => 0,
 			'rejected'   => 0,
 			'skipped'    => 0,

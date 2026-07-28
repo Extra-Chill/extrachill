@@ -139,13 +139,14 @@ class VenueDiscoveryAbilities {
 		$known_count = 0;
 
 		foreach ( $places as $place ) {
-			$name    = $place['displayName']['text'] ?? '';
-			$address = $place['formattedAddress'] ?? '';
-			$website = $place['websiteUri'] ?? '';
-			$lat     = $place['location']['latitude'] ?? null;
-			$lng     = $place['location']['longitude'] ?? null;
-			$types   = $place['types'] ?? array();
-			$maps    = $place['googleMapsUri'] ?? '';
+			$name               = $place['displayName']['text'] ?? '';
+			$address_components = $this->extractAddressComponents( $place );
+			$address            = ! empty( $address_components['address'] ) ? $address_components['address'] : ( $place['formattedAddress'] ?? '' );
+			$website            = $place['websiteUri'] ?? '';
+			$lat                = $place['location']['latitude'] ?? null;
+			$lng                = $place['location']['longitude'] ?? null;
+			$types              = $place['types'] ?? array();
+			$maps               = $place['googleMapsUri'] ?? '';
 
 			if ( empty( $name ) ) {
 				continue;
@@ -155,7 +156,8 @@ class VenueDiscoveryAbilities {
 			$website = $this->cleanWebsiteUrl( $website );
 
 			// Check if venue already exists in taxonomy.
-			$is_known = $this->isKnownVenue( $name, $existing_venues );
+			$known_term_id = $this->findKnownVenueId( $name, $existing_venues );
+			$is_known      = $known_term_id > 0;
 
 			if ( $is_known ) {
 				++$known_count;
@@ -167,14 +169,19 @@ class VenueDiscoveryAbilities {
 			}
 
 			$venues[] = array(
-				'name'      => $name,
-				'address'   => $address,
-				'website'   => $website,
-				'latitude'  => $lat,
-				'longitude' => $lng,
-				'types'     => $types,
-				'maps_url'  => $maps,
-				'is_known'  => $is_known,
+				'name'          => $name,
+				'address'       => $address,
+				'city'          => $address_components['city'] ?? '',
+				'state'         => $address_components['state'] ?? '',
+				'zip'           => $address_components['zip'] ?? '',
+				'country'       => $address_components['country'] ?? '',
+				'website'       => $website,
+				'latitude'      => $lat,
+				'longitude'     => $lng,
+				'types'         => $types,
+				'maps_url'      => $maps,
+				'is_known'      => $is_known,
+				'known_term_id' => $known_term_id,
 			);
 		}
 
@@ -283,6 +290,7 @@ class VenueDiscoveryAbilities {
 						array(
 							'places.displayName',
 							'places.formattedAddress',
+							'places.addressComponents',
 							'places.websiteUri',
 							'places.types',
 							'places.location',
@@ -348,20 +356,20 @@ class VenueDiscoveryAbilities {
 	 *
 	 * @param string $name            Venue name from Places API.
 	 * @param array  $existing_venues Map of lowercase name => term_id.
-	 * @return bool True if venue is already known.
+	 * @return int Matched venue term ID, or zero when unknown.
 	 */
-	private function isKnownVenue( string $name, array $existing_venues ): bool {
+	private function findKnownVenueId( string $name, array $existing_venues ): int {
 		$normalized = strtolower( trim( $name ) );
 
 		// Exact match.
 		if ( isset( $existing_venues[ $normalized ] ) ) {
-			return true;
+			return (int) $existing_venues[ $normalized ];
 		}
 
 		// Without "The" prefix.
 		$without_the = preg_replace( '/^the\s+/i', '', $normalized );
 		if ( $without_the !== $normalized && isset( $existing_venues[ $without_the ] ) ) {
-			return true;
+			return (int) $existing_venues[ $without_the ];
 		}
 
 		// Check if any existing venue starts with the same name (handle "Exit/In" vs "EXIT/IN Nashville").
@@ -373,12 +381,38 @@ class VenueDiscoveryAbilities {
 				// Only match if the shorter string is at least 4 chars (avoid false positives).
 				$shorter = min( strlen( $without_the ), strlen( $existing_without_the ) );
 				if ( $shorter >= 4 ) {
-					return true;
+					return (int) $term_id;
 				}
 			}
 		}
 
-		return false;
+		return 0;
+	}
+
+	/** Extract canonical venue location fields from Places address components. */
+	private function extractAddressComponents( array $place ): array {
+		$parts = array();
+		foreach ( (array) ( $place['addressComponents'] ?? array() ) as $component ) {
+			foreach ( (array) ( $component['types'] ?? array() ) as $type ) {
+				$parts[ $type ] = $component;
+			}
+		}
+
+		$long   = static fn( string $type ): string => sanitize_text_field( (string) ( $parts[ $type ]['longText'] ?? '' ) );
+		$short  = static fn( string $type ): string => sanitize_text_field( (string) ( $parts[ $type ]['shortText'] ?? $parts[ $type ]['longText'] ?? '' ) );
+		$street = trim( $long( 'street_number' ) . ' ' . $long( 'route' ) );
+		$city   = $long( 'locality' );
+		if ( '' === $city ) {
+			$city = $long( 'postal_town' );
+		}
+
+		return array(
+			'address' => $street,
+			'city'    => $city,
+			'state'   => $short( 'administrative_area_level_1' ),
+			'zip'     => $long( 'postal_code' ),
+			'country' => $short( 'country' ),
+		);
 	}
 
 	/**

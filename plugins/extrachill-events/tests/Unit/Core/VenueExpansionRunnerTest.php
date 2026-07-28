@@ -3,22 +3,32 @@
 
 namespace ExtraChillEvents\Tests\Unit\Core;
 
+use ExtraChillEvents\Abilities\VenueDiscoveryAbilities;
 use ExtraChillEvents\Core\QualifyVerdict;
 use ExtraChillEvents\Core\VenueExpansionRunner;
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueExpansionRunner.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Abilities/VenueDiscoveryAbilities.php';
 
 class VenueExpansionRunnerTest extends TestCase {
+	public function test_discovery_returns_the_matched_known_term_id(): void {
+		$method = new \ReflectionMethod( VenueDiscoveryAbilities::class, 'findKnownVenueId' );
+		$method->setAccessible( true );
+
+		$this->assertSame( 55, $method->invoke( new VenueDiscoveryAbilities(), 'The Lizard Lounge Boston', array( 'lizard lounge' => 55 ) ) );
+	}
+
 	public function test_existing_city_venue_flow_and_verdict_are_idempotent(): void {
 		$calls     = array();
 		$abilities = $this->abilities(
 			$calls,
 			array(
 				array(
-					'name'     => 'Known',
-					'website'  => 'https://known.test',
-					'is_known' => true,
+					'name'          => 'Known',
+					'website'       => 'https://known.test',
+					'is_known'      => true,
+					'known_term_id' => 55,
 				),
 				array(
 					'name'    => 'Flow',
@@ -60,10 +70,17 @@ class VenueExpansionRunnerTest extends TestCase {
 				return null;
 			},
 			static function ( string $url ) {
+				if ( 'https://known.test' === $url ) {
+					return array( 'flow_id' => 76 );
+				}
 				if ( 'https://flow.test' === $url ) {
 					return array( 'flow_id' => 77 );
 				}
-				return 'https://resume.test/events' === $url ? array( 'flow_id' => 78 ) : null; }
+				return 'https://resume.test/events' === $url ? array( 'flow_id' => 78 ) : null;
+			},
+			static function () {
+				return array( 'updated_fields' => array() );
+			}
 		);
 		$report    = $runner->runCity(
 			array(
@@ -83,6 +100,150 @@ class VenueExpansionRunnerTest extends TestCase {
 		$this->assertSame( 2, $report['counts']['rejected'] );
 		$this->assertSame( 1, $report['rejection_reasons'][ QualifyVerdict::UNSUPPORTED_SOURCE ] );
 		$this->assertSame( 1, $report['rejection_reasons']['no_website'] );
+	}
+
+	public function test_known_venue_missing_website_is_enriched_and_qualified_without_duplicate_term(): void {
+		$calls     = array();
+		$metadata  = array();
+		$term_id   = 0;
+		$add_input = array();
+		$abilities = $this->abilities(
+			$calls,
+			array(
+				array(
+					'name'          => 'Known Room',
+					'website'       => 'https://known-room.test',
+					'address'       => '123 Main St',
+					'city'          => 'Boston',
+					'state'         => 'MA',
+					'zip'           => '02118',
+					'country'       => 'US',
+					'latitude'      => 42.34,
+					'longitude'     => -71.07,
+					'is_known'      => true,
+					'known_term_id' => 55,
+				),
+			)
+		);
+		$abilities['extrachill/add-venue'] = new VenueExpansionFakeAbility(
+			static function ( array $input ) use ( &$calls, &$add_input ) {
+				++$calls['add'];
+				$add_input = $input;
+				return array(
+					'flow_id'       => 42,
+					'venue_term_id' => 55,
+				);
+			}
+		);
+		$report    = ( new VenueExpansionRunner(
+			static function ( string $name ) use ( $abilities ) {
+				return $abilities[ $name ];
+			},
+			static function () {
+				return null;
+			},
+			static function () {
+				return null;
+			},
+			static function ( int $known_term_id, array $candidate ) use ( &$term_id, &$metadata ) {
+				$term_id  = $known_term_id;
+				$metadata = $candidate;
+				return array( 'updated_fields' => array_keys( $candidate ) );
+			}
+		) )->runCity( array( 'city' => 'Boston, MA', 'qualification_budget' => 1 ) );
+
+		$this->assertSame( 55, $term_id );
+		$this->assertSame( 'https://known-room.test', $metadata['website'] );
+		$this->assertSame( '42.34,-71.07', $metadata['coordinates'] );
+		$this->assertSame( 1, $calls['qualify'] );
+		$this->assertSame( 1, $calls['add'] );
+		$this->assertSame( 55, $add_input['venue_term_id'] );
+		$this->assertSame( 1, $report['counts']['enriched'] );
+		$this->assertSame( 'known_qualified', $report['venues'][0]['status'] );
+		$this->assertSame( 55, $report['venues'][0]['known_term_id'] );
+	}
+
+	public function test_known_venue_qualification_spends_the_existing_budget(): void {
+		$calls     = array();
+		$abilities = $this->abilities(
+			$calls,
+			array(
+				array( 'name' => 'One', 'website' => 'https://one.test', 'is_known' => true, 'known_term_id' => 1 ),
+				array( 'name' => 'Two', 'website' => 'https://two.test', 'is_known' => true, 'known_term_id' => 2 ),
+			)
+		);
+		$report    = ( new VenueExpansionRunner(
+			static function ( string $name ) use ( $abilities ) {
+				return $abilities[ $name ];
+			},
+			static function () {
+				return null;
+			},
+			static function () {
+				return null;
+			},
+			static function () {
+				return array( 'updated_fields' => array( 'website' ) );
+			}
+		) )->runCity( array( 'city' => 'A', 'max_venues' => 2, 'qualification_budget' => 1 ) );
+
+		$this->assertSame( 1, $calls['qualify'] );
+		$this->assertSame( 1, $report['rate']['qualification_used'] );
+		$this->assertSame( 1, $report['rejection_reasons']['rate_budget_exhausted'] );
+		$this->assertSame( 'known_enriched', $report['venues'][1]['status'] );
+	}
+
+	public function test_known_venue_with_fresh_verdict_skips_requalification(): void {
+		$calls     = array();
+		$abilities = $this->abilities( $calls, array( array( 'name' => 'Current', 'website' => 'https://current.test', 'is_known' => true, 'known_term_id' => 8 ) ) );
+		$report    = ( new VenueExpansionRunner(
+			static function ( string $name ) use ( $abilities ) {
+				return $abilities[ $name ];
+			},
+			static function () {
+				return array(
+					'verdict'           => QualifyVerdict::EXTRACTION_GAP,
+					'qualified_at'      => gmdate( 'Y-m-d H:i:s' ),
+					'qualifier_version' => self::qualifierVersion(),
+				);
+			},
+			static function () {
+				return null;
+			},
+			static function () {
+				return array( 'updated_fields' => array() );
+			}
+		) )->runCity( array( 'city' => 'A', 'qualification_budget' => 1 ) );
+
+		$this->assertSame( 0, $calls['qualify'] );
+		$this->assertSame( 0, $report['rate']['qualification_used'] );
+		$this->assertSame( 'known_skipped_current', $report['venues'][0]['status'] );
+		$this->assertSame( 'fresh_verdict', $report['venues'][0]['current_reason'] );
+	}
+
+	public function test_known_venue_with_existing_flow_is_skipped_after_fill_empty_enrichment(): void {
+		$calls     = array();
+		$abilities = $this->abilities( $calls, array( array( 'name' => 'Covered', 'website' => 'https://covered.test', 'is_known' => true, 'known_term_id' => 9 ) ) );
+		$report    = ( new VenueExpansionRunner(
+			static function ( string $name ) use ( $abilities ) {
+				return $abilities[ $name ];
+			},
+			static function () {
+				return null;
+			},
+			static function () {
+				return array( 'flow_id' => 99 );
+			},
+			static function () {
+				return array( 'updated_fields' => array() );
+			}
+		) )->runCity( array( 'city' => 'A', 'qualification_budget' => 1 ) );
+
+		$this->assertSame( 0, $calls['qualify'] );
+		$this->assertSame( 0, $calls['add'] );
+		$this->assertSame( 'known_skipped_current', $report['venues'][0]['status'] );
+		$this->assertSame( 'existing_flow', $report['venues'][0]['current_reason'] );
+		$this->assertSame( 99, $report['venues'][0]['flow_id'] );
 	}
 
 	public function test_partial_failure_can_resume_from_persisted_verdict(): void {
