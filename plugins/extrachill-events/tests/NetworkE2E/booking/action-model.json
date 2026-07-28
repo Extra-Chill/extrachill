@@ -1,0 +1,27 @@
+{
+  "schema": "homeboy/fuzz-action-model/v1",
+  "id": "extrachill-booking-network-e2e",
+  "targets": [
+    {"id":"public-inquiry","operations":["render","submit","retry","mutate"]},
+    {"id":"authorization","operations":["read","update","cross-venue"]},
+    {"id":"booking-lifecycle","operations":["assign","transition","select-performance","update-deal"]},
+    {"id":"booking-concurrency","operations":["simultaneous-compare-and-swap","single-winner"]},
+    {"id":"holds","operations":["create","confirm","conflict"]},
+    {"id":"event-sync","operations":["convert","retry","reschedule","cancel","replay"]},
+    {"id":"configuration","operations":["read","update","stale-update"]},
+    {"id":"communications","operations":["send","retry","conflict","terminal-reject"]},
+    {"id":"multisite-block","operations":["render-main","render-studio","render-events","restore-context"]}
+  ],
+  "invariants": [
+    "one booking per venue and inquiry idempotency key",
+    "exact retries preserve receipts while changed retries conflict",
+    "exact venue membership is required for every private operation",
+    "successful mutations increment optimistic version exactly once",
+    "simultaneous mutations at one expected version produce exactly one winner",
+    "stale mutations do not change state",
+    "conversion produces one source-owned event and one terminal marker",
+    "reschedule preserves UTC booking authority and venue-local event time",
+    "cancellation leaves booking and event in matching terminal states",
+    "cross-site render restores blog context and exposes no private config"
+  ]
+}

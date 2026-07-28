@@ -1,5 +1,6 @@
 # Build output
 build/
+artifacts/
 
 # Dependencies
 node_modules/

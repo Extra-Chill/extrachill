@@ -22,7 +22,8 @@
     "scripts": {
         "lint:php": "phpcs --standard=WordPress --extensions=php .",
         "lint:fix": "phpcbf --standard=WordPress --extensions=php .",
-        "test": "phpunit"
+        "test": "phpunit",
+        "test:booking-network-e2e": "node tests/NetworkE2E/booking/run.mjs"
     },
     "config": {
         "platform": {
