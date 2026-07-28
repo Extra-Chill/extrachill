@@ -150,12 +150,21 @@ if ( ! function_exists( 'get_current_blog_id' ) ) {
 }
 if ( ! function_exists( 'switch_to_blog' ) ) {
 	function switch_to_blog( $blog_id ) {
+		if ( isset( $GLOBALS['venue_membership_test'] ) ) {
+			$GLOBALS['venue_membership_test']['blog_stack'][]  = $GLOBALS['venue_membership_test']['current_blog_id'];
+			$GLOBALS['venue_membership_test']['current_blog_id'] = (int) $blog_id;
+			return;
+		}
 		$GLOBALS['ec_artist_test']['stack'][] = $GLOBALS['ec_artist_test']['blog_id'];
 		$GLOBALS['ec_artist_test']['blog_id'] = (int) $blog_id;
 	}
 }
 if ( ! function_exists( 'restore_current_blog' ) ) {
 	function restore_current_blog() {
+		if ( isset( $GLOBALS['venue_membership_test'] ) ) {
+			$GLOBALS['venue_membership_test']['current_blog_id'] = array_pop( $GLOBALS['venue_membership_test']['blog_stack'] );
+			return;
+		}
 		$GLOBALS['ec_artist_test']['blog_id'] = array_pop( $GLOBALS['ec_artist_test']['stack'] ); }
 }
 if ( ! function_exists( 'get_term' ) ) {
@@ -359,7 +368,7 @@ if ( ! function_exists( 'get_permalink' ) ) {
 if ( ! function_exists( 'get_term_link' ) ) {
 	function get_term_link( $term, $taxonomy = '' ) {
 		unset( $taxonomy );
-		return 'https://events.example/venue/' . (int) $term;
+		return 'https://events.example/venue/' . ( is_object( $term ) ? $term->slug : (int) $term );
 	}
 }
 if ( ! function_exists( 'ec_events_resolve_booking_console_destination' ) ) {

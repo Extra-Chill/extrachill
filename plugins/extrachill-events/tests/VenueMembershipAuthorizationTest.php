@@ -8,6 +8,7 @@
 use ExtraChillEvents\Abilities\VenueMembershipAbilities;
 use ExtraChillEvents\Abilities\VenueEmailSharingAbilities;
 use ExtraChillEvents\Abilities\VenueBookingConfigAbilities;
+use ExtraChillEvents\Abilities\ManagedVenueVoicesAbilities;
 use ExtraChillEvents\Abilities\VenueProfileAbilities;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -135,6 +136,11 @@ if ( ! function_exists( 'get_term' ) ) {
 	function get_term( $term_id, $taxonomy = '' ) {
 		$term = $GLOBALS['venue_membership_test']['terms'][ $term_id ] ?? null;
 		return $term && ( '' === $taxonomy || $taxonomy === $term->taxonomy ) ? $term : null;
+	}
+}
+if ( ! function_exists( 'wp_strip_all_tags' ) ) {
+	function wp_strip_all_tags( $value ) {
+		return strip_tags( (string) $value );
 	}
 }
 if ( ! function_exists( 'get_userdata' ) ) {
@@ -659,6 +665,26 @@ final class VenueMembershipWpdb {
 		return $rows;
 	}
 
+	public function get_col( $query ) {
+		$this->last_error = '';
+		$rows             = array_values( $this->rows[ $this->prefix . 'ec_venue_members' ] ?? array() );
+		if ( preg_match( '/user_id = (\d+)/', $query, $user_match ) ) {
+			$rows = $this->filter_rows( $rows, 'user_id', (int) $user_match[1] );
+		}
+		if ( preg_match( "/status = '([^']+)'/", $query, $status_match ) ) {
+			$status = stripslashes( $status_match[1] );
+			$rows   = array_values(
+				array_filter(
+					$rows,
+					static fn( $row ) => $status === $row['status']
+				)
+			);
+		}
+		$ids = array_map( static fn( $row ) => (int) $row['venue_term_id'], $rows );
+		sort( $ids );
+		return $ids;
+	}
+
 	public function query( $query ) {
 		if ( $this->wordpress_wpdb && ( false !== strpos( $query, $this->users ) || false !== strpos( $query, $this->usermeta ) || false !== strpos( $query, $this->options ) ) ) {
 			return $this->wordpress_wpdb->query( $query );
@@ -856,6 +882,7 @@ require_once dirname( __DIR__ ) . '/inc/core/venue-email-sharing.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueEmailSharingAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueBookingConfigAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueProfileAbilities.php';
+require_once dirname( __DIR__ ) . '/inc/Abilities/ManagedVenueVoicesAbilities.php';
 
 /**
  * Venue membership and profile composition coverage uses isolated WP doubles.
@@ -989,6 +1016,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 			'feature_available' => true,
 			'current_user_id'   => 1,
 			'current_blog_id'   => 7,
+			'blog_stack'        => array(),
 			'actions'           => array(),
 			'abilities'         => array(),
 			'options'           => array( BookingSchema::VERSION_OPTION => BookingSchema::SCHEMA_VERSION ),
@@ -1972,6 +2000,72 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$GLOBALS['venue_membership_test']['current_user_id'] = 1;
 		$this->set_current_user( 1 );
 		$this->assertSame( 'venue_action_forbidden', call_user_func( $get['execute_callback'], array( 'venue_term_id' => 55 ) )->get_error_code() );
+	}
+
+	public function test_managed_venue_voices_are_self_scoped_public_and_rest_exposed(): void {
+		$this->create_member( 55, 2, true );
+		$this->create_member( 56, 3, true );
+		$GLOBALS['venue_membership_test']['current_user_id'] = 2;
+		$this->set_current_user( 2 );
+
+		$abilities = new ManagedVenueVoicesAbilities();
+		$abilities->register();
+		$ability = $GLOBALS['venue_membership_test']['abilities']['extrachill/get-managed-venue-voices'];
+		$result  = call_user_func( $ability['execute_callback'], array() );
+
+		$this->assertTrue( $ability['meta']['show_in_rest'] );
+		$this->assertTrue( $ability['meta']['annotations']['readonly'] );
+		$this->assertFalse( $ability['input_schema']['additionalProperties'] );
+		$this->assertSame( array(), $ability['input_schema']['default'] );
+		$this->assertSame(
+			array(
+				'reference'   => 'venue:55',
+				'term_id'     => 55,
+				'name'        => 'The Royal American',
+				'slug'        => 'the-royal-american',
+				'url'         => 'https://events.example/venue/the-royal-american',
+				'description' => 'Neighborhood venue.',
+			),
+			$result['voices'][0]
+		);
+		$this->assertCount( 1, $result['voices'] );
+		$this->assertSame( array( 'reference', 'term_id', 'name', 'slug', 'url', 'description' ), array_keys( $result['voices'][0] ) );
+	}
+
+	public function test_managed_venue_voices_reject_anonymous_and_spoofed_identity(): void {
+		$abilities = new ManagedVenueVoicesAbilities();
+		$GLOBALS['venue_membership_test']['current_user_id'] = 0;
+		$this->set_current_user( 0 );
+
+		$this->assertSame( 'managed_venue_voice_authentication_required', $abilities->execute( array() )->get_error_code() );
+		$GLOBALS['venue_membership_test']['current_user_id'] = 2;
+		$this->set_current_user( 2 );
+		$this->assertSame( 'managed_venue_voice_identity_claim_forbidden', $abilities->authorize( array( 'user_id' => 3 ) )->get_error_code() );
+		$this->assertSame( 'managed_venue_voice_identity_claim_forbidden', $abilities->execute( array( 'user_id' => 3 ) )->get_error_code() );
+	}
+
+	public function test_managed_venue_voices_exclude_invited_and_revoked_memberships(): void {
+		$this->create_member( 55, 2, true, VenueAuthorization::STATUS_REVOKED );
+		$this->create_member( 56, 2, true, VenueAuthorization::STATUS_INVITED );
+		$GLOBALS['venue_membership_test']['current_user_id'] = 2;
+		$this->set_current_user( 2 );
+
+		$result = ( new ManagedVenueVoicesAbilities() )->execute( array() );
+
+		$this->assertSame( array(), $result['voices'] );
+	}
+
+	public function test_managed_venue_voices_restore_multisite_context(): void {
+		$this->create_member( 55, 2, true );
+		$GLOBALS['venue_membership_test']['current_user_id'] = 2;
+		$GLOBALS['venue_membership_test']['current_blog_id'] = 1;
+		$this->set_current_user( 2 );
+
+		$result = ( new ManagedVenueVoicesAbilities() )->execute( array() );
+
+		$this->assertSame( 'venue:55', $result['voices'][0]['reference'] );
+		$this->assertSame( 1, get_current_blog_id() );
+		$this->assertSame( array(), $GLOBALS['venue_membership_test']['blog_stack'] );
 	}
 
 	public function test_profile_read_delegates_to_dme_after_authorization(): void {

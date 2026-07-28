@@ -134,6 +134,28 @@ class VenueMembershipRepository {
 		return VenueAuthorization::STATUS_ACTIVE === $membership['status'] ? $membership : null;
 	}
 
+	/**
+	 * List canonical venue IDs actively represented by one network user.
+	 *
+	 * @param int $user_id Network user ID.
+	 * @return int[]|\WP_Error Canonical venue term IDs or a database error.
+	 */
+	public function list_active_venue_ids_for_user( int $user_id ) {
+		global $wpdb;
+
+		if ( $user_id < 1 ) {
+			return array();
+		}
+
+		$table = BookingSchema::memberships_table();
+		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT venue_term_id FROM {$table} WHERE user_id = %d AND status = %s ORDER BY venue_term_id ASC", $user_id, VenueAuthorization::STATUS_ACTIVE ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private authority table, reduced to canonical public IDs.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		return array_map( 'intval', (array) $ids );
+	}
+
 	/** List memberships for one venue with bounded filters. */
 	public function list_for_venue( int $venue_term_id, array $filters = array(), int $actor_user_id = 0 ) {
 		global $wpdb;

@@ -416,6 +416,9 @@ class ExtraChillEvents {
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueProfileAbilities.php';
 			new \ExtraChillEvents\Abilities\VenueProfileAbilities();
 
+			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/ManagedVenueVoicesAbilities.php';
+			new \ExtraChillEvents\Abilities\ManagedVenueVoicesAbilities();
+
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueBookingAbilities.php';
 			new \ExtraChillEvents\Abilities\VenueBookingAbilities();
 
