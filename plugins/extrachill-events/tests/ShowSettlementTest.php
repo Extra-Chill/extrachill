@@ -207,6 +207,7 @@ final class ShowSettlementTest extends BookingTestCase {
 
 		$finalized = $this->service->finalize( $this->transition( $booking['id'], $draft, 'finalize-one' ), 12 );
 		$this->assertSame( 'finalized', $finalized['status'] );
+		$this->assertSame( $finalized['id'], $this->service->get_for_reporting( $booking['id'], 12, 200 )['id'] );
 		$this->assertSame( 2, $finalized['version'] );
 		$ack                         = $this->transition( $booking['id'], $finalized, 'ack-one' );
 		$ack['note']                 = 'Artist representative approved the statement.';

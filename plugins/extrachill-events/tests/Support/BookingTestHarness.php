@@ -2062,6 +2062,8 @@ require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingCommunicationAb
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingMarketingAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/TicketSettlementAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/ShowSettlementAbilities.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingReportingService.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/BookingReportingAbilities.php';
 
 final class BookingTestAuthorization extends VenueAuthorization {
 	public $calls                     = array();

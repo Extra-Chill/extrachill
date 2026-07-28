@@ -8,7 +8,7 @@
 namespace ExtraChillEvents\Core;
 
 // Repository convention uses concise method comments.
-// phpcs:disable Generic.Commenting.DocComment.MissingShort,Squiz.Commenting.FunctionComment.Missing,Squiz.Commenting.FunctionComment.MissingParamTag
+// phpcs:disable WordPress.Files.FileName,Generic.Commenting.DocComment.MissingShort,Squiz.Commenting.FunctionComment.Missing,Squiz.Commenting.FunctionComment.MissingParamTag
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -68,6 +68,15 @@ class ShowSettlementService {
 
 	/** Read one revision or the latest revision with derived lifecycle state. */
 	public function get( int $booking_id, int $actor_id, ?int $revision = null ) {
+		return $this->read( $booking_id, $actor_id, $revision, 10000 );
+	}
+
+	/** Read one revision with a strict ticket-evidence scan budget for reporting. */
+	public function get_for_reporting( int $booking_id, int $actor_id, int $max_sales_reports = 200 ) {
+		return $this->read( $booking_id, $actor_id, null, max( 1, min( 1000, $max_sales_reports ) ) );
+	}
+
+	private function read( int $booking_id, int $actor_id, ?int $revision, int $max_sales_reports ) {
 		$booking = $this->booking( $booking_id );
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
@@ -80,7 +89,7 @@ class ShowSettlementService {
 		if ( ! is_array( $row ) ) {
 			return is_wp_error( $row ) ? $row : new \WP_Error( 'show_settlement_not_found', __( 'The show settlement was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
-		$verified = $this->verify_revision( $row, $booking, $actor_id, false );
+		$verified = $this->verify_revision( $row, $booking, $actor_id, false, false, $max_sales_reports );
 		return is_wp_error( $verified ) ? $verified : $this->present( $verified );
 	}
 
@@ -664,7 +673,7 @@ class ShowSettlementService {
 		return true;
 	}
 
-	private function verify_revision( array $revision, array $booking, int $actor_id, bool $authenticate_bytes, bool $lock_commission = false ) {
+	private function verify_revision( array $revision, array $booking, int $actor_id, bool $authenticate_bytes, bool $lock_commission = false, int $max_sales_reports = 10000 ) {
 		if ( $revision['booking_id'] !== $booking['id'] || $revision['event_id'] !== $booking['event_id'] || $revision['venue_term_id'] !== $booking['venue_term_id'] || ! hash_equals( $revision['integrity_hash'], self::hash( self::revision_hashable( $revision ) ) ) ) {
 			return new \WP_Error( 'show_settlement_integrity_failed', __( 'The immutable show-settlement revision failed integrity verification.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
@@ -676,7 +685,7 @@ class ShowSettlementService {
 		if ( is_wp_error( $calculation ) || $calculation !== $revision['calculation'] ) {
 			return new \WP_Error( 'show_settlement_calculation_invalid', __( 'The frozen show-settlement calculation is not reproducible.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		$ticket_gross = $this->ticket_gross( $booking, $commission, $actor_id, $lock_commission );
+		$ticket_gross = $this->ticket_gross( $booking, $commission, $actor_id, $lock_commission, $max_sales_reports );
 		if ( is_wp_error( $ticket_gross ) || $ticket_gross !== $revision['terms']['ticket_gross_minor'] ) {
 			return is_wp_error( $ticket_gross ) ? $ticket_gross : new \WP_Error( 'show_settlement_ticket_gross_conflict', __( 'Frozen ticket gross no longer matches its reconciled ticket evidence.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
@@ -714,12 +723,14 @@ class ShowSettlementService {
 		return $state;
 	}
 
-	private function ticket_gross( array $booking, array $commission, int $actor_id, bool $lock = false ) {
-		$by_id  = array();
-		$found  = 0;
-		$needed = count( $commission['included_report_ids'] );
-		for ( $offset = 0; $offset < 10000 && $found < $needed; $offset += 200 ) {
-			$reports = $lock ? $this->commissions->included_reports_for_update( $commission ) : $this->commissions->list_sales( $booking['id'], $actor_id, 200, $offset );
+	private function ticket_gross( array $booking, array $commission, int $actor_id, bool $lock = false, int $max_sales_reports = 10000 ) {
+		$by_id     = array();
+		$found     = 0;
+		$needed    = count( $commission['included_report_ids'] );
+		$exhausted = false;
+		for ( $offset = 0; $offset < $max_sales_reports && $found < $needed; $offset += 200 ) {
+			$page_limit = min( 200, $max_sales_reports - $offset );
+			$reports    = $lock ? $this->commissions->included_reports_for_update( $commission ) : $this->commissions->list_sales( $booking['id'], $actor_id, $page_limit, $offset );
 			if ( is_wp_error( $reports ) ) {
 				return $reports;
 			}
@@ -729,12 +740,16 @@ class ShowSettlementService {
 					$found                  = count( $by_id );
 				}
 			}
-			if ( count( $reports ) < 200 ) {
+			if ( count( $reports ) < $page_limit ) {
+				$exhausted = true;
 				break;
 			}
 			if ( $lock ) {
 				break;
 			}
+		}
+		if ( $found < $needed && ! $lock && ! $exhausted ) {
+			return new \WP_Error( 'show_settlement_reporting_limit_exceeded', __( 'The show settlement exceeds the bounded reporting evidence limit.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		$gross = 0;
 		foreach ( $commission['included_report_ids'] as $report_id ) {
