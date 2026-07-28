@@ -12,7 +12,7 @@
  *   - extrachill/users-leaderboard
  *   - extrachill/get-user-settings, update-user-settings,
  *     change-user-email, change-user-password
- *   - extrachill/get-subscriptions, update-subscriptions
+ *   - extrachill/list-entity-subscriptions
  *   - extrachill/get-notification-preferences, update-notification-preferences
  *   - extrachill/entity-subscription-status, entity-subscribe,
  *     entity-unsubscribe
@@ -135,6 +135,26 @@ export interface UserSubscriptions {
 	artist_email_consents?: ArtistEmailConsent[];
 	/** @deprecated Compatibility field from extrachill-users. */
 	followed_artists?: ArtistEmailConsent[];
+}
+
+export interface EntitySubscriptionIdentity {
+	entity_type: string;
+	taxonomy: string;
+	slug: string;
+}
+
+export interface EntitySubscriptionList {
+	subscriptions: EntitySubscriptionIdentity[];
+	page: number;
+	per_page: number;
+	total: number;
+	total_pages: number;
+}
+
+export interface ResolvedSubscriptionEntity extends EntitySubscriptionIdentity {
+	name: string;
+	url: string;
+	resolved: boolean;
 }
 
 // ─── Notification Preferences ────────────────────────────────────────────────

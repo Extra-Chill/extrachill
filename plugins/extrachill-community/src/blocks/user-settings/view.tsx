@@ -42,6 +42,9 @@ import type {
 	RequestArtistAccessResponse,
 	NotificationPreferences,
 	EntitySubscriptionStatus,
+	EntitySubscriptionIdentity,
+	EntitySubscriptionList,
+	ResolvedSubscriptionEntity,
 } from '../../types/users';
 
 const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {
@@ -560,71 +563,202 @@ function SecurityTab( {
 }
 
 function SubscriptionsTab() {
-	const [ data, setData ] = useState< UserSubscriptions | null >( null );
+	const [ subscriptions, setSubscriptions ] = useState<
+		ResolvedSubscriptionEntity[]
+	>( [] );
+	const [ legacyArtistConsents, setLegacyArtistConsents ] = useState<
+		ArtistEmailConsent[]
+	>( [] );
+	const [ compatibilityArtistConsents, setCompatibilityArtistConsents ] =
+		useState< ArtistEmailConsent[] >( [] );
 	const [ loading, setLoading ] = useState( true );
-	const [ saving, setSaving ] = useState( false );
+	const [ removing, setRemoving ] = useState< string | null >( null );
 	const [ notice, setNotice ] = useState< {
 		type: 'success' | 'error';
 		message: string;
 	} | null >( null );
-	const [ consentedArtistIds, setConsentedArtistIds ] = useState<
-		Set< number >
-	>( new Set() );
-
 	useEffect( () => {
-		client
-			.execute< UserSubscriptions >( 'extrachill/get-subscriptions' )
-			.then( ( result ) => {
-				setData( result );
-				const artistEmailConsents =
-					result.artist_email_consents ??
-					result.followed_artists ??
-					[];
-				const ids = new Set< number >();
-				artistEmailConsents.forEach(
-					( consent: ArtistEmailConsent ) => {
-						if ( consent.email_consent ) {
-							ids.add( consent.artist_id );
-						}
-					}
+		const load = async () => {
+			try {
+				const identities: EntitySubscriptionIdentity[] = [];
+				let page = 1;
+				let totalPages = 1;
+				do {
+					const result =
+						await client.execute< EntitySubscriptionList >(
+							'extrachill/list-entity-subscriptions',
+							{ page, per_page: 100 }
+						);
+					identities.push( ...result.subscriptions );
+					totalPages = Math.max( 1, result.total_pages );
+					page += 1;
+				} while ( page <= totalPages );
+
+				const chunks: EntitySubscriptionIdentity[][] = [];
+				for (
+					let offset = 0;
+					offset < identities.length;
+					offset += 100
+				) {
+					chunks.push( identities.slice( offset, offset + 100 ) );
+				}
+				const enriched = await Promise.all(
+					chunks.map( ( chunk ) =>
+						client
+							.execute< {
+								entities: ResolvedSubscriptionEntity[];
+							} >(
+								'extrachill/community-resolve-subscription-entities',
+								{ identities: chunk }
+							)
+							.catch( () => ( {
+								entities: chunk.map( ( identity ) => ( {
+									...identity,
+									name: '',
+									url: '',
+									resolved: false,
+								} ) ),
+							} ) )
+					)
 				);
-				setConsentedArtistIds( ids );
+				setSubscriptions(
+					enriched.flatMap( ( result ) => result.entities )
+				);
+
+				const compatibility = await client
+					.execute< UserSubscriptions >(
+						'extrachill/get-subscriptions'
+					)
+					.catch( () => ( { user_id: 0 } ) );
+				const canonicalArtistSlugs = new Set(
+					identities
+						.filter(
+							( item ) =>
+								item.entity_type === 'artist-email-sharing'
+						)
+						.map( ( item ) => item.slug )
+				);
+				const compatibleArtists =
+					compatibility.artist_email_consents ??
+					compatibility.followed_artists ??
+					[];
+				setCompatibilityArtistConsents( compatibleArtists );
+				setLegacyArtistConsents(
+					compatibleArtists.filter( ( artist ) => {
+						let slug = '';
+						try {
+							slug =
+								new URL(
+									artist.url,
+									window.location.href
+								).pathname
+									.split( '/' )
+									.filter( Boolean )
+									.pop() ?? '';
+						} catch {
+							// Keep malformed legacy rows visible so access can be removed.
+						}
+						return (
+							artist.email_consent &&
+							( ! slug || ! canonicalArtistSlugs.has( slug ) )
+						);
+					} )
+				);
+			} catch ( err ) {
+				setNotice( {
+					type: 'error',
+					message:
+						err instanceof Error
+							? err.message
+							: 'Subscriptions could not be loaded.',
+				} );
+			} finally {
 				setLoading( false );
-			} )
-			.catch( () => setLoading( false ) );
-	}, [] );
-
-	const toggleConsent = useCallback( ( artistId: number ) => {
-		setConsentedArtistIds( ( prev ) => {
-			const next = new Set( prev );
-			if ( next.has( artistId ) ) {
-				next.delete( artistId );
-			} else {
-				next.add( artistId );
 			}
-			return next;
-		} );
+		};
+		load();
 	}, [] );
 
-	const handleSave = useCallback( async () => {
-		setSaving( true );
-		setNotice( null );
-		try {
-			await client.execute( 'extrachill/update-subscriptions', {
-				consented_artists: Array.from( consentedArtistIds ),
-			} );
-			setNotice( {
-				type: 'success',
-				message: 'Artist email preferences updated.',
-			} );
-		} catch ( err ) {
-			setNotice( {
-				type: 'error',
-				message: err instanceof Error ? err.message : 'Update failed.',
-			} );
-		}
-		setSaving( false );
-	}, [ consentedArtistIds ] );
+	const identityKey = ( item: EntitySubscriptionIdentity ) =>
+		`${ item.entity_type }/${ item.taxonomy }/${ item.slug }`;
+	const emailTypes = new Set( [
+		'artist-email-sharing',
+		'venue-email-sharing',
+	] );
+	const updateSubscriptions = subscriptions.filter(
+		( item ) => ! emailTypes.has( item.entity_type )
+	);
+	const emailPermissions = subscriptions.filter( ( item ) =>
+		emailTypes.has( item.entity_type )
+	);
+
+	const unsubscribe = useCallback(
+		async ( item: ResolvedSubscriptionEntity ) => {
+			const key = identityKey( item );
+			setRemoving( key );
+			setNotice( null );
+			try {
+				await client.execute( 'extrachill/entity-unsubscribe', {
+					entity_type: item.entity_type,
+					taxonomy: item.taxonomy,
+					slug: item.slug,
+				} );
+				setSubscriptions( ( current ) =>
+					current.filter(
+						( candidate ) => identityKey( candidate ) !== key
+					)
+				);
+				setNotice( {
+					type: 'success',
+					message: 'Subscription removed.',
+				} );
+			} catch ( err ) {
+				setNotice( {
+					type: 'error',
+					message:
+						err instanceof Error ? err.message : 'Update failed.',
+				} );
+			}
+			setRemoving( null );
+		},
+		[]
+	);
+
+	const removeLegacyConsent = useCallback(
+		async ( artistId: number ) => {
+			setRemoving( `legacy-${ artistId }` );
+			setNotice( null );
+			try {
+				await client.execute( 'extrachill/update-subscriptions', {
+					consented_artists: compatibilityArtistConsents
+						.filter( ( artist ) => artist.artist_id !== artistId )
+						.map( ( artist ) => artist.artist_id ),
+				} );
+				setLegacyArtistConsents( ( current ) =>
+					current.filter(
+						( artist ) => artist.artist_id !== artistId
+					)
+				);
+				setCompatibilityArtistConsents( ( current ) =>
+					current.filter(
+						( artist ) => artist.artist_id !== artistId
+					)
+				);
+				setNotice( {
+					type: 'success',
+					message: 'Email access removed.',
+				} );
+			} catch ( err ) {
+				setNotice( {
+					type: 'error',
+					message:
+						err instanceof Error ? err.message : 'Update failed.',
+				} );
+			}
+			setRemoving( null );
+		},
+		[ compatibilityArtistConsents ]
+	);
 
 	if ( loading ) {
 		return (
@@ -633,74 +767,108 @@ function SubscriptionsTab() {
 			</div>
 		);
 	}
-	const artistEmailConsents =
-		data?.artist_email_consents ?? data?.followed_artists ?? [];
+	const renderEntity = ( item: ResolvedSubscriptionEntity ) => {
+		const key = identityKey( item );
+		const label = item.name || item.slug || 'Unknown subscription';
+		const isDigest = item.entity_type === 'local_scene_digest';
+		let description = item.entity_type.replaceAll( '-', ' ' );
+		if ( ! item.resolved ) {
+			description = `Unavailable identity: ${ key }`;
+		}
+		if ( isDigest ) {
+			description =
+				'Weekly Local Scene digest. Manage delivery in Notifications.';
+		}
+		return (
+			<li key={ key } style={ styles.checkboxItem }>
+				<div style={ { flex: 1 } }>
+					<strong>
+						{ item.url ? (
+							<a href={ item.url }>{ label }</a>
+						) : (
+							label
+						) }
+					</strong>
+					<div style={ styles.mutedText }>{ description }</div>
+					{ isDigest && (
+						<a href="#tab-notifications">Notification settings</a>
+					) }
+				</div>
+				<button
+					className="button button-small"
+					disabled={ removing === key }
+					onClick={ () => unsubscribe( item ) }
+				>
+					{ removing === key ? 'Removing...' : 'Unsubscribe' }
+				</button>
+			</li>
+		);
+	};
 
 	return (
 		<Panel>
-			<PanelHeader description="Choose which artists may access your email for updates and subscriber exports." />
+			<PanelHeader description="Review your private Extra Chill update subscriptions and email-sharing permissions." />
 			{ notice && (
 				<Notice type={ notice.type } message={ notice.message } />
 			) }
-			{ artistEmailConsents.length === 0 ? (
+			<h3>Extra Chill update subscriptions</h3>
+			<p style={ styles.mutedText }>
+				Private subscriptions used by Extra Chill to send updates you
+				explicitly requested.
+			</p>
+			{ updateSubscriptions.length === 0 ? (
 				<p style={ styles.mutedText }>
-					You have not shared your email with any artists.
+					You are not subscribed to any entity updates.
 				</p>
 			) : (
-				<>
-					<ul style={ styles.checkboxList }>
-						{ artistEmailConsents.map(
-							( artist: ArtistEmailConsent ) => (
-								<li
-									key={ artist.artist_id }
-									style={ styles.checkboxItem }
-								>
-									<input
-										type="checkbox"
-										id={ `ec-consent-${ artist.artist_id }` }
-										checked={ consentedArtistIds.has(
-											artist.artist_id
-										) }
-										onChange={ () =>
-											toggleConsent( artist.artist_id )
-										}
-									/>
-									<label
-										htmlFor={ `ec-consent-${ artist.artist_id }` }
-										style={ {
-											fontWeight: 'normal',
-											cursor: 'pointer',
-										} }
-									>
-										Share my email with{ ' ' }
-										<a
-											href={ artist.url }
-											target="_blank"
-											rel="noopener noreferrer"
-											style={ {
-												color: cssVar(
-													colors.linkColor
-												),
-											} }
-										>
-											{ artist.name }
-										</a>
-									</label>
-								</li>
-							)
-						) }
-					</ul>
-					<ActionRow>
-						<button
-							className="button-1 button-small"
-							style={ saving ? styles.button : undefined }
-							onClick={ handleSave }
-							disabled={ saving }
+				<ul style={ styles.checkboxList }>
+					{ updateSubscriptions.map( renderEntity ) }
+				</ul>
+			) }
+			<h3>Email-sharing permissions</h3>
+			<p style={ styles.mutedText }>
+				These permissions grant the named artist or venue access to your
+				current account email. They do not subscribe you to Extra Chill
+				updates.
+			</p>
+			{ emailPermissions.length === 0 &&
+			legacyArtistConsents.length === 0 ? (
+				<p style={ styles.mutedText }>
+					You have not shared your email with any artists or venues.
+				</p>
+			) : (
+				<ul style={ styles.checkboxList }>
+					{ emailPermissions.map( renderEntity ) }
+					{ legacyArtistConsents.map( ( artist ) => (
+						<li
+							key={ `legacy-${ artist.artist_id }` }
+							style={ styles.checkboxItem }
 						>
-							{ saving ? 'Saving...' : 'Save Preferences' }
-						</button>
-					</ActionRow>
-				</>
+							<div style={ { flex: 1 } }>
+								<strong>
+									<a href={ artist.url }>{ artist.name }</a>
+								</strong>
+								<div style={ styles.mutedText }>
+									This artist may access your current account
+									email.
+								</div>
+							</div>
+							<button
+								className="button button-small"
+								disabled={
+									removing === `legacy-${ artist.artist_id }`
+								}
+								onClick={ () =>
+									removeLegacyConsent( artist.artist_id )
+								}
+							>
+								{ removing === `legacy-${ artist.artist_id }`
+									? 'Removing...'
+									: 'Remove access' }
+							</button>
+						</li>
+					) ) }
+				</ul>
 			) }
 		</Panel>
 	);
@@ -1158,7 +1326,7 @@ export function UserSettingsApp( {
 	const tabs: Array< { id: TabId; label: string } > = [
 		{ id: 'account-details', label: 'Account Details' },
 		{ id: 'security', label: 'Security' },
-		{ id: 'subscriptions', label: 'Artist Email Access' },
+		{ id: 'subscriptions', label: 'Subscriptions' },
 		{ id: 'notifications', label: 'Notifications' },
 		{ id: 'artist-platform', label: 'Artist Platform' },
 	];
