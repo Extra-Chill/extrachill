@@ -567,7 +567,9 @@ function extrachill_artist_platform_register_abilities() {
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_get_artist_platform_stats',
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' ) || ( defined( 'WP_CLI' ) && WP_CLI );
+				$actor = extrachill_artist_platform_ability_actor( 'manage_options' );
+
+				return $actor['trusted_system'] || ( $actor['user_id'] && user_can( $actor['user_id'], 'manage_options' ) );
 			},
 			'meta'                => array(
 				'show_in_rest' => true,

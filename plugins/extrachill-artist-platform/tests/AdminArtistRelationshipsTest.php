@@ -7,6 +7,7 @@ final class AdminArtistRelationshipsTest extends TestCase {
 		$GLOBALS['ec_test'] = array(
 			'current_blog_id' => 4,
 			'blog_stack'      => array(),
+			'current_user_id' => 1,
 			'blogs'           => array(
 				4 => array(
 					'posts' => array(

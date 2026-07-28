@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/fixtures/ExecutionPrincipal.php';
+
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'OBJECT', 'OBJECT' );
 define( 'MINUTE_IN_SECONDS', 60 );
@@ -218,6 +220,10 @@ class EcTestRegisteredAbility {
 	public function get_output_schema() {
 		return $this->args['output_schema'] ?? array();
 	}
+
+	public function get_permission_callback() {
+		return $this->args['permission_callback'];
+	}
 }
 
 function wp_register_ability( $name, $args ) {
@@ -241,6 +247,10 @@ function current_user_can( $capability ) {
 }
 
 function user_can( $user_id, $capability ) {
+	if ( (int) $user_id === get_current_user_id() && ! empty( $GLOBALS['ec_test']['capabilities'][ $capability ] ) ) {
+		return true;
+	}
+
 	return ! empty( $GLOBALS['ec_test']['user_capabilities'][ (int) $user_id ][ $capability ] );
 }
 
@@ -272,11 +282,32 @@ function did_action( $hook_name ) {
 }
 
 function ec_can_manage_artist( $user_id, $artist_id ) {
-	if ( ! empty( $GLOBALS['ec_test']['capabilities']['manage_options'] ) ) {
+	if ( user_can( $user_id, 'manage_options' ) ) {
 		return true;
 	}
 
+	if ( ! empty( $GLOBALS['ec_test']['strict_artist_objects'] ) ) {
+		$artist = get_post( $artist_id );
+		if ( ! $artist || 'artist_profile' !== ( $artist->post_type ?? '' ) || 'publish' !== ( $artist->post_status ?? '' ) ) {
+			return false;
+		}
+	}
+
 	return in_array( (int) $artist_id, $GLOBALS['ec_test']['managed_artists'][ (int) $user_id ] ?? array(), true );
+}
+
+function ec_user_can( $capability, array $context = array() ) {
+	$user_id = isset( $context['user_id'] ) ? (int) $context['user_id'] : get_current_user_id();
+
+	if ( 'manage_artist' === $capability ) {
+		return ec_can_manage_artist( $user_id, (int) ( $context['artist_id'] ?? 0 ) );
+	}
+
+	if ( 'create_artist_profile' === $capability ) {
+		return $user_id > 0 && empty( $GLOBALS['ec_test']['cannot_create_artist'][ $user_id ] );
+	}
+
+	return user_can( $user_id, $capability );
 }
 
 function sanitize_text_field( $value ) {
@@ -828,6 +859,9 @@ function extrachill_users_entity_subscription_recipients( $producer, $entity_typ
 }
 
 function apply_filters( $hook_name, $value, ...$args ) {
+	if ( 'agents_api_execution_principal' === $hook_name ) {
+		return $GLOBALS['ec_test']['execution_principal'] ?? $value;
+	}
 	if ( 'extrachill_allow_external_artist_onboarding' === $hook_name ) {
 		return ! empty( $GLOBALS['ec_test']['allow_external_artist_onboarding'] );
 	}
@@ -944,9 +978,22 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/onboard-external-arti
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-invitation.php';
 require_once dirname( __DIR__ ) . '/inc/core/filters/create.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-link-page-links.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-link-page-styles.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-link-page-settings.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-social-links.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/get-artist-data.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/get-link-page-data.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get-links.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-update-links.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get-permissions.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get-roster.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-list-socials.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-create-social.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-update-social.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-delete-social.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-export-subscribers.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-list-subscribers.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get-analytics.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-local-support.php';
 require_once dirname( __DIR__ ) . '/inc/core/actions/save.php';
 require_once dirname( __DIR__ ) . '/inc/core/platform-artist-provisioning.php';

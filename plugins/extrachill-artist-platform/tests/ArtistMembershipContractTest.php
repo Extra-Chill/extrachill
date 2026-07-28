@@ -9,6 +9,7 @@ final class ArtistMembershipContractTest extends TestCase {
 		$GLOBALS['ec_test'] = array(
 			'current_blog_id' => 1,
 			'blog_stack'      => array(),
+			'current_user_id' => 1,
 			'blogs'           => array(
 				4 => array(
 					'posts' => array(

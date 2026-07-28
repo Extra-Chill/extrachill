@@ -32,7 +32,7 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 	$bio        = isset( $input['bio'] ) ? wp_kses_post( wp_unslash( $input['bio'] ) ) : '';
 	$local_city = isset( $input['local_city'] ) ? sanitize_text_field( wp_unslash( $input['local_city'] ) ) : '';
 	$genre      = isset( $input['genre'] ) ? sanitize_text_field( wp_unslash( $input['genre'] ) ) : '';
-	$user_id    = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : get_current_user_id();
+	$user_id    = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : extrachill_artist_platform_ability_acting_user_id();
 
 	if ( ! extrachill_artist_platform_ability_create_permission( $input ) ) {
 		return new WP_Error( 'artist_access_denied', 'You are not allowed to create an artist for this user.' );
@@ -136,9 +136,8 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 
 	restore_current_blog();
 
-	$get_ability = wp_get_ability( 'extrachill/get-artist-data' );
-	if ( $get_ability ) {
-		return $get_ability->execute( array( 'artist_id' => $artist_id ) );
+	if ( function_exists( 'extrachill_artist_platform_read_artist_data' ) ) {
+		return extrachill_artist_platform_read_artist_data( $artist_id );
 	}
 
 	return array(

@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  */
 function extrachill_artist_platform_ability_artist_get_permissions( array $input ): array|WP_Error {
 	$artist_id       = isset( $input['id'] ) ? (int) $input['id'] : 0;
-	$current_user_id = get_current_user_id();
+	$current_user_id = extrachill_artist_platform_ability_acting_user_id();
 	$can_edit        = false;
 	$manage_url      = '';
 
@@ -27,7 +27,13 @@ function extrachill_artist_platform_ability_artist_get_permissions( array $input
 		return new WP_Error( 'missing_id', 'id is required.' );
 	}
 
-	if ( $artist_id && $current_user_id && function_exists( 'ec_can_manage_artist' ) && ec_can_manage_artist( $current_user_id, $artist_id ) ) {
+	if ( $artist_id && $current_user_id && function_exists( 'ec_user_can' ) && ec_user_can(
+		'manage_artist',
+		array(
+			'artist_id' => $artist_id,
+			'user_id'   => $current_user_id,
+		)
+	) ) {
 		$can_edit   = true;
 		$manage_url = home_url( '/manage-link-page/' );
 	}

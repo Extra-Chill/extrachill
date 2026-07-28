@@ -26,7 +26,7 @@ function extrachill_artist_platform_ability_update_local_support_availability( $
 		absint( $input['id'] ?? 0 ),
 		! empty( $input['available'] ),
 		array_key_exists( 'scene_slug', $input ) ? (string) $input['scene_slug'] : null,
-		get_current_user_id()
+		extrachill_artist_platform_ability_acting_user_id()
 	);
 }
 

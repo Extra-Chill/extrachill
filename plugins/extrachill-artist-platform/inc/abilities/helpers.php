@@ -11,22 +11,101 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Permission callback for artist platform abilities that require management access.
  *
- * Allows WP-CLI, Action Scheduler, and network admins unconditionally.
- * For other contexts the caller must supply artist_id via the input array
- * so that ec_can_manage_artist() can check membership.
+ * Delegated principals are bounded to their acting user and capability ceiling.
+ * Direct WP-CLI and Action Scheduler execution retain the existing trusted path.
  *
  * @return bool
  */
 function extrachill_artist_platform_ability_admin_permission() {
-	if ( defined( 'WP_CLI' ) && WP_CLI ) {
-		return true;
+	$actor = extrachill_artist_platform_ability_actor( 'manage_network_options' );
+
+	return $actor['trusted_system'] || ( $actor['user_id'] && user_can( $actor['user_id'], 'manage_network_options' ) );
+}
+
+/**
+ * Resolve the trusted actor for an ability execution.
+ *
+ * A resolved Agents API principal takes precedence over the ambient WordPress
+ * session. This prevents a delegated runtime from inheriting the capabilities
+ * of a more privileged logged-in user.
+ *
+ * @param string $capability Capability required by a delegated principal ceiling.
+ * @return array{user_id:int,trusted_system:bool}
+ */
+function extrachill_artist_platform_ability_actor( $capability ) {
+	$principal_class = '\\AgentsAPI\\AI\\WP_Agent_Execution_Principal';
+	$principal       = null;
+
+	if ( class_exists( $principal_class ) ) {
+		$request_context = ( defined( 'WP_CLI' ) && WP_CLI ) ? 'cli' : ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() ? 'cron' : 'rest' );
+		try {
+			$principal = $principal_class::resolve( array( 'request_context' => $request_context ) );
+		} catch ( Throwable $throwable ) {
+			return array(
+				'user_id'        => 0,
+				'trusted_system' => false,
+			);
+		}
 	}
 
-	if ( class_exists( 'ActionScheduler' ) && did_action( 'action_scheduler_before_execute' ) ) {
-		return true;
+	if ( $principal ) {
+		$trusted_system = 0 === (int) $principal->acting_user_id
+			&& 'system' === (string) $principal->auth_source
+			&& in_array( (string) $principal->request_context, array( 'cli', 'cron' ), true );
+
+		if ( $trusted_system ) {
+			return array(
+				'user_id'        => 0,
+				'trusted_system' => true,
+			);
+		}
+
+		$user_id = (int) $principal->acting_user_id;
+		$ceiling = $principal->capability_ceiling;
+		if ( $user_id <= 0 ) {
+			return array(
+				'user_id'        => 0,
+				'trusted_system' => false,
+			);
+		}
+
+		if ( $ceiling instanceof WP_Agent_Capability_Ceiling ) {
+			if ( (int) $ceiling->user_id !== $user_id || ! $ceiling->allows_capability( $capability ) ) {
+				return array(
+					'user_id'        => 0,
+					'trusted_system' => false,
+				);
+			}
+		}
+
+		return array(
+			'user_id'        => $user_id,
+			'trusted_system' => false,
+		);
 	}
 
-	return current_user_can( 'manage_network_options' );
+	if ( ( defined( 'WP_CLI' ) && WP_CLI ) || ( class_exists( 'ActionScheduler' ) && did_action( 'action_scheduler_before_execute' ) ) ) {
+		return array(
+			'user_id'        => get_current_user_id(),
+			'trusted_system' => true,
+		);
+	}
+
+	return array(
+		'user_id'        => get_current_user_id(),
+		'trusted_system' => false,
+	);
+}
+
+/**
+ * Return the trusted acting user rather than an ambient delegated session.
+ *
+ * @return int
+ */
+function extrachill_artist_platform_ability_acting_user_id() {
+	$actor = extrachill_artist_platform_ability_actor( 'manage_artist' );
+
+	return (int) $actor['user_id'];
 }
 
 /**
@@ -36,19 +115,26 @@ function extrachill_artist_platform_ability_admin_permission() {
  * @return bool
  */
 function extrachill_artist_platform_ability_artist_permission( $input ) {
-	if ( defined( 'WP_CLI' ) && WP_CLI ) {
-		return true;
-	}
-
-	if ( class_exists( 'ActionScheduler' ) && did_action( 'action_scheduler_before_execute' ) ) {
-		return true;
-	}
-
 	$artist_id = isset( $input['artist_id'] ) ? absint( $input['artist_id'] ) : absint( $input['id'] ?? 0 );
+	$actor     = extrachill_artist_platform_ability_actor( 'manage_artist' );
+
+	if ( isset( $input['user_id'] ) && absint( $input['user_id'] ) !== (int) $actor['user_id'] && ! $actor['trusted_system'] ) {
+		return false;
+	}
+
+	if ( $actor['trusted_system'] ) {
+		return (bool) $artist_id;
+	}
 
 	return $artist_id
-		&& function_exists( 'ec_can_manage_artist' )
-		&& ec_can_manage_artist( get_current_user_id(), $artist_id );
+		&& function_exists( 'ec_user_can' )
+		&& ec_user_can(
+			'manage_artist',
+			array(
+				'artist_id' => $artist_id,
+				'user_id'   => (int) $actor['user_id'],
+			)
+		);
 }
 
 /**
@@ -58,20 +144,49 @@ function extrachill_artist_platform_ability_artist_permission( $input ) {
  * @return bool
  */
 function extrachill_artist_platform_ability_create_permission( $input ) {
-	if ( defined( 'WP_CLI' ) && WP_CLI ) {
-		return true;
+	$actor          = extrachill_artist_platform_ability_actor( 'create_artist_profile' );
+	$actor_user_id  = (int) $actor['user_id'];
+	$target_user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : $actor_user_id;
+
+	if ( $actor['trusted_system'] ) {
+		return $target_user_id > 0;
 	}
 
-	if ( class_exists( 'ActionScheduler' ) && did_action( 'action_scheduler_before_execute' ) ) {
-		return true;
+	if ( $actor_user_id <= 0 || $target_user_id <= 0 ) {
+		return false;
 	}
 
-	$current_user_id = get_current_user_id();
-	$target_user_id  = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : $current_user_id;
+	if ( $actor_user_id !== $target_user_id ) {
+		return user_can( $actor_user_id, 'manage_options' ) || user_can( $actor_user_id, 'manage_network_options' );
+	}
 
-	return $current_user_id
-		&& $target_user_id
-		&& ( $current_user_id === $target_user_id || current_user_can( 'manage_options' ) || current_user_can( 'manage_network_options' ) );
+	return function_exists( 'ec_user_can' )
+		&& ec_user_can( 'create_artist_profile', array( 'user_id' => $actor_user_id ) );
+}
+
+/**
+ * Confirm an explicitly supplied link page belongs to the authorized artist.
+ *
+ * @param int $artist_id    Artist profile post ID.
+ * @param int $link_page_id Link page post ID.
+ * @return bool
+ */
+function extrachill_artist_platform_ability_link_page_belongs_to_artist( $artist_id, $link_page_id ) {
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : 0;
+	$did_switch     = $artist_blog_id && get_current_blog_id() !== (int) $artist_blog_id;
+
+	if ( $did_switch ) {
+		switch_to_blog( $artist_blog_id );
+	}
+
+	try {
+		return 'artist_link_page' === get_post_type( $link_page_id )
+			&& (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) === (int) $artist_id;
+	} finally {
+		if ( $did_switch ) {
+			restore_current_blog();
+		}
+	}
 }
 
 /**
@@ -81,7 +196,7 @@ function extrachill_artist_platform_ability_create_permission( $input ) {
  * @return bool
  */
 function extrachill_artist_platform_ability_local_support_producer_permission( $input ) {
-	if ( current_user_can( 'manage_network_options' ) ) {
+	if ( extrachill_artist_platform_ability_admin_permission() ) {
 		return true;
 	}
 

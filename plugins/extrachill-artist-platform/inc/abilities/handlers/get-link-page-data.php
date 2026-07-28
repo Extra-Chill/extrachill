@@ -22,6 +22,14 @@ function extrachill_artist_platform_ability_get_link_page_data( $input ) {
 		return new WP_Error( 'missing_artist_id', 'artist_id is required.' );
 	}
 
+	if ( ! extrachill_artist_platform_ability_artist_permission( $input ) ) {
+		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
+	}
+
+	if ( $link_page_id && ! extrachill_artist_platform_ability_link_page_belongs_to_artist( $artist_id, $link_page_id ) ) {
+		return new WP_Error( 'invalid_link_page', 'The link page does not belong to this artist.' );
+	}
+
 	$data = ec_get_link_page_data( $artist_id, $link_page_id );
 
 	if ( empty( $data ) || empty( $data['link_page_id'] ) ) {

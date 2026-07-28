@@ -21,6 +21,20 @@ function extrachill_artist_platform_ability_get_artist_data( $input ) {
 		return new WP_Error( 'missing_artist_id', 'artist_id is required.' );
 	}
 
+	if ( ! extrachill_artist_platform_ability_artist_permission( $input ) ) {
+		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
+	}
+
+	return extrachill_artist_platform_read_artist_data( $artist_id );
+}
+
+/**
+ * Read artist data after the caller has authorized the operation.
+ *
+ * @param int $artist_id Artist profile post ID.
+ * @return array|WP_Error
+ */
+function extrachill_artist_platform_read_artist_data( $artist_id ) {
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
 	$did_switch     = false;
 
@@ -31,7 +45,7 @@ function extrachill_artist_platform_ability_get_artist_data( $input ) {
 
 	$artist = get_post( $artist_id );
 
-	if ( ! $artist || $artist->post_type !== 'artist_profile' ) {
+	if ( ! $artist || 'artist_profile' !== $artist->post_type || 'publish' !== $artist->post_status ) {
 		if ( $did_switch ) {
 			restore_current_blog();
 		}
@@ -61,8 +75,8 @@ function extrachill_artist_platform_ability_get_artist_data( $input ) {
 		'name'              => $artist->post_title,
 		'slug'              => $artist->post_name,
 		'bio'               => $artist->post_content,
-		'local_city'        => $local_city !== '' ? $local_city : null,
-		'genre'             => $genre !== '' ? $genre : null,
+		'local_city'        => '' !== $local_city ? $local_city : null,
+		'genre'             => '' !== $genre ? $genre : null,
 		'profile_image_id'  => $profile_image_id ? (int) $profile_image_id : null,
 		'profile_image_url' => $profile_image_url,
 		'header_image_id'   => $header_image_id ? (int) $header_image_id : null,
