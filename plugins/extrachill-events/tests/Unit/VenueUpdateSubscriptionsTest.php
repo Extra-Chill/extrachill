@@ -97,6 +97,7 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		extrachill_events_render_venue_update_control();
 		$html = ob_get_clean();
 
+		$this->assertStringContainsString( 'Get notified when new events are published at this venue.', $html );
 		$this->assertStringContainsString( 'Sign in to subscribe', $html );
 		$this->assertStringNotContainsString( 'data-venue-update-subscription', $html );
 	}

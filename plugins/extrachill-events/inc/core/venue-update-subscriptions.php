@@ -61,7 +61,7 @@ function extrachill_events_render_venue_update_control(): void {
 
 	$archive_url = get_term_link( $term );
 	if ( ! is_user_logged_in() ) {
-		echo '<aside class="events-market-context events-market-context--quiet"><span>' . esc_html__( 'Get a private notification when new events are published at this venue.', 'extrachill-events' ) . '</span> <a href="' . esc_url( wp_login_url( $archive_url ) ) . '">' . esc_html__( 'Sign in to subscribe', 'extrachill-events' ) . '</a></aside>';
+		echo '<aside class="events-market-context events-market-context--quiet"><span>' . esc_html__( 'Get notified when new events are published at this venue.', 'extrachill-events' ) . '</span> <a href="' . esc_url( wp_login_url( $archive_url ) ) . '">' . esc_html__( 'Sign in to subscribe', 'extrachill-events' ) . '</a></aside>';
 		return;
 	}
 
