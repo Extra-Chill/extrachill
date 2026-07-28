@@ -46,6 +46,10 @@
       "pattern": "EXTRACHILL_EVENTS_VERSION',\\s*'([0-9.]+)'"
     },
     {
+      "file": "extrachill-events-network-blocks.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
       "file": "blocks/concert-stats/block.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\"",
       "artifact_path": "build/concert-stats/block.json"

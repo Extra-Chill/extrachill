@@ -135,6 +135,7 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$plugins  = get_plugins( '/extrachill-events' );
 		$this->assertArrayHasKey( 'extrachill-events-network-blocks.php', $plugins );
 		$this->assertTrue( $plugins['extrachill-events-network-blocks.php']['Network'] );
+		$this->assertSame( EXTRACHILL_EVENTS_VERSION, $plugins['extrachill-events-network-blocks.php']['Version'] );
 
 		foreach ( array( self::MAIN_BLOG_ID, self::STUDIO_BLOG_ID ) as $blog_id ) {
 			if ( $registry->is_registered( 'extrachill/venue-booking-inquiry' ) ) {
