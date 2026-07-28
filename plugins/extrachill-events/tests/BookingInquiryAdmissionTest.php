@@ -35,6 +35,7 @@ final class BookingInquiryAdmissionTest extends BookingTestCase {
 
 	/** Initialize one Events-site admission fixture. */
 	protected function setUp(): void {
+		$this->temporary_files = array();
 		$GLOBALS['ec_artist_test'] = array(
 			'blog_id'         => 7,
 			'stack'           => array(),
