@@ -19,6 +19,7 @@
 			<file>tests/Unit/VenueUpdateSubscriptionsTest.php</file>
 			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
+			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>
 			<file>tests/MySQLIntegration/BookingSchemaMultisiteTest.php</file>
 		</testsuite>
 	</testsuites>

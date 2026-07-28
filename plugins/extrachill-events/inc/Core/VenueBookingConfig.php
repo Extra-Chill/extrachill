@@ -51,6 +51,48 @@ class VenueBookingConfig {
 		return $this->normalize( $stored );
 	}
 
+	/**
+	 * Return the validated fields safe for the public inquiry block.
+	 *
+	 * @param int $venue_term_id Canonical venue term ID.
+	 * @return array|\WP_Error
+	 */
+	public function get_public_projection( int $venue_term_id ) {
+		$venue = $this->venue( $venue_term_id );
+		if ( is_wp_error( $venue ) ) {
+			return $venue;
+		}
+
+		$stored = get_term_meta( $venue_term_id, self::META_KEY, true );
+		if ( ! is_array( $stored ) || self::VERSION !== ( $stored['version'] ?? null ) ) {
+			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-events' ) );
+		}
+
+		$revision = $stored['revision'] ?? null;
+		if ( ! is_int( $revision ) || $revision < 0 || ! is_array( $stored['intake'] ?? null ) || 1 !== ( $stored['intake']['version'] ?? null ) ) {
+			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-events' ) );
+		}
+
+		$fields       = $this->normalize_intake_fields( $stored['intake']['fields'] ?? null );
+		$requirements = $this->normalize_public_requirements( $stored['public_requirements'] ?? null );
+		$consent      = $this->normalize_consent( $stored['consent'] ?? null );
+		$spaces       = $this->normalize_spaces( $stored['spaces'] ?? null );
+		foreach ( array( $fields, $requirements, $consent, $spaces ) as $section ) {
+			if ( is_wp_error( $section ) ) {
+				return $section;
+			}
+		}
+
+		return array(
+			'enabled'             => ! empty( $stored['enabled'] ),
+			'revision'            => $revision,
+			'fields'              => $fields,
+			'public_requirements' => $requirements,
+			'consent'             => $consent,
+			'spaces'              => $spaces,
+		);
+	}
+
 	/** Atomically replace a venue config at one expected revision. */
 	public function update( int $venue_term_id, array $config, int $expected_revision, int $actor_user_id ) {
 		global $wpdb;

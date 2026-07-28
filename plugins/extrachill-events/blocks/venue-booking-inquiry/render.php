@@ -9,38 +9,81 @@ use ExtraChillEvents\Core\VenueBookingConfig;
 
 defined( 'ABSPATH' ) || exit;
 
-$venue_id = absint( $attributes['venueId'] ?? 0 );
-if ( $venue_id < 1 && function_exists( 'extrachill_events_get_venue_archive_term' ) ) {
+$events_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'events' ) ) : 0;
+$venue_id       = absint( $attributes['venueId'] ?? 0 );
+if ( $venue_id < 1 && (int) get_current_blog_id() === $events_blog_id && function_exists( 'extrachill_events_get_venue_archive_term' ) ) {
 	$archive_venue = extrachill_events_get_venue_archive_term();
 	$venue_id      = $archive_venue ? (int) $archive_venue->term_id : 0;
 }
-$venue = $venue_id > 0 ? get_term( $venue_id, 'venue' ) : null;
-if ( ! $venue instanceof WP_Term || 'venue' !== $venue->taxonomy || ! class_exists( VenueBookingConfig::class ) ) {
+if ( $events_blog_id < 1 || $venue_id < 1 || ! class_exists( VenueBookingConfig::class ) ) {
 	return;
 }
 
-$booking_config = ( new VenueBookingConfig() )->get( $venue_id );
-if ( is_wp_error( $booking_config ) || empty( $booking_config['enabled'] ) ) {
+$canonical = ( static function () use ( $events_blog_id, $venue_id ) {
+	$switched = (int) get_current_blog_id() !== $events_blog_id;
+	if ( $switched ) {
+		if ( ! is_multisite() || ! get_site( $events_blog_id ) ) {
+			return null;
+		}
+		switch_to_blog( $events_blog_id );
+	}
+
+	try {
+		$venue = get_term( $venue_id, 'venue' );
+		if ( ! $venue instanceof WP_Term || 'venue' !== $venue->taxonomy ) {
+			return null;
+		}
+
+		$booking_config = ( new VenueBookingConfig() )->get_public_projection( $venue_id );
+		if ( is_wp_error( $booking_config ) || empty( $booking_config['enabled'] ) ) {
+			return null;
+		}
+
+		$supported_types = array( 'text', 'textarea', 'email', 'phone', 'number', 'select', 'checkbox', 'url' );
+		foreach ( $booking_config['fields'] as $field ) {
+			if ( ! in_array( $field['type'], $supported_types, true ) ) {
+				return null;
+			}
+		}
+
+		if ( function_exists( 'data_machine_events_get_venue_data' ) && function_exists( 'data_machine_events_get_venue_address' ) ) {
+			$venue_data = data_machine_events_get_venue_data( $venue_id );
+			$address    = data_machine_events_get_venue_address( $venue_id, $venue_data );
+		} else {
+			$street     = (string) get_term_meta( $venue_id, '_venue_address', true );
+			$city       = (string) get_term_meta( $venue_id, '_venue_city', true );
+			$state      = (string) get_term_meta( $venue_id, '_venue_state', true );
+			$zip        = (string) get_term_meta( $venue_id, '_venue_zip', true );
+			$city_state = implode( ', ', array_filter( array( $city, $state ) ) );
+			$address    = implode( ', ', array_filter( array( $street, $city_state, $zip ) ) );
+		}
+
+		return array(
+			'booking_config' => $booking_config,
+			'venue'          => array(
+				'id'          => $venue_id,
+				'name'        => $venue->name,
+				'description' => wp_strip_all_tags( $venue->description ),
+				'address'     => $address,
+			),
+		);
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+} )();
+if ( ! is_array( $canonical ) ) {
 	return;
 }
 
-$supported_types = array( 'text', 'textarea', 'email', 'phone', 'number', 'select', 'checkbox', 'url' );
-foreach ( $booking_config['intake']['fields'] as $field ) {
-	if ( ! in_array( $field['type'], $supported_types, true ) ) {
-		return;
-	}
+$booking_config = $canonical['booking_config'];
+$instance       = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-booking-' ) : 'ec-booking-' . $venue_id;
+$logged_in      = is_user_logged_in();
+if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+	define( 'DONOTCACHEPAGE', true );
 }
-
-$venue_data = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( $venue_id ) : array();
-$address    = function_exists( 'data_machine_events_get_venue_address' ) ? data_machine_events_get_venue_address( $venue_id, $venue_data ) : '';
-$instance   = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-booking-' ) : 'ec-booking-' . $venue_id;
-$logged_in  = is_user_logged_in();
-if ( $logged_in ) {
-	if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-		define( 'DONOTCACHEPAGE', true );
-	}
-	nocache_headers();
-}
+nocache_headers();
 if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 	ec_enqueue_turnstile_script();
 }
@@ -53,15 +96,10 @@ $public_config = array(
 	'heading'       => sanitize_text_field( (string) ( $attributes['heading'] ?? __( 'Booking inquiries', 'extrachill-events' ) ) ),
 	'buttonLabel'   => sanitize_text_field( (string) ( $attributes['buttonLabel'] ?? __( 'Send booking inquiry', 'extrachill-events' ) ) ),
 	'revision'      => (int) $booking_config['revision'],
-	'venue'         => array(
-		'id'          => $venue_id,
-		'name'        => $venue->name,
-		'description' => wp_strip_all_tags( term_description( $venue_id ) ),
-		'address'     => $address,
-	),
+	'venue'         => $canonical['venue'],
 	'requirements'  => array_values( $booking_config['public_requirements'] ),
 	'spaces'        => array_values( $booking_config['spaces'] ),
-	'fields'        => array_values( $booking_config['intake']['fields'] ),
+	'fields'        => array_values( $booking_config['fields'] ),
 	'consent'       => $booking_config['consent'],
 );
 
