@@ -215,7 +215,7 @@ class ExtraChillEvents {
 		add_filter( 'ec_feature_ceilings', array( $this, 'register_feature_ceilings' ) );
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 		add_action( 'init', array( $this, 'init_data_machine_handlers' ), 20 );
-		add_action( 'init', array( $this, 'init_abilities' ), 25 );
+		add_action( 'plugins_loaded', array( $this, 'init_abilities' ), 25 );
 		add_action( 'plugins_loaded', array( $this, 'maybe_install_schema' ), 20 );
 
 		// Artist URL Import moderation queue admin screen (migrated from
