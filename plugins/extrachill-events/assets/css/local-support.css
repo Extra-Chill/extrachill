@@ -1,0 +1,140 @@
+.ec-local-support-page {
+	padding-block: var(--wp--preset--spacing--40, 2rem);
+}
+
+.ec-local-support {
+	--support-accent: var(--wp--preset--color--primary, #1f6f5b);
+	display: grid;
+	gap: 1.25rem;
+	max-width: 72rem;
+	margin-inline: auto;
+	padding: clamp(1rem, 3vw, 2rem);
+}
+
+.ec-local-support__hero {
+	padding: clamp(1.25rem, 4vw, 2.5rem);
+	border-left: 6px solid var(--support-accent);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--support-accent) 15%, white), var(--wp--preset--color--base, #fff) 70%);
+}
+
+.ec-local-support__hero h1,
+.ec-local-support__hero p {
+	margin-block: .25rem;
+}
+
+.ec-local-support__eyebrow {
+	font-size: .78rem;
+	font-weight: 800;
+	letter-spacing: .09em;
+	text-transform: uppercase;
+}
+
+.ec-local-support__status {
+	display: inline-flex;
+	width: fit-content;
+	margin-block-start: .5rem;
+	padding: .25rem .55rem;
+	border: 1px solid currentcolor;
+	border-radius: 999px;
+	font-size: .78rem;
+	font-weight: 750;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+}
+
+.ec-local-support__section,
+.ec-local-support__artist-card,
+.ec-local-support__empty,
+.ec-local-support__consent-preview {
+	padding: 1.25rem;
+	border: 1px solid var(--wp--preset--color--contrast-3, #d3dad7);
+	border-radius: .65rem;
+	background: var(--wp--preset--color--base, #fff);
+}
+
+.ec-local-support__cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+	gap: 1rem;
+}
+
+.ec-local-support__artist-card {
+	display: grid;
+	gap: .85rem;
+	align-content: start;
+}
+
+.ec-local-support__artist-card > img {
+	width: 4rem;
+	height: 4rem;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.ec-local-support__artist-card h3,
+.ec-local-support__artist-card p {
+	margin-block: .15rem;
+}
+
+.ec-local-support__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .65rem;
+	margin-block-start: 1rem;
+}
+
+.ec-local-support__inline-form {
+	margin: 0;
+}
+
+.ec-local-support__form {
+	display: grid;
+	gap: .9rem;
+	max-width: 38rem;
+}
+
+.ec-local-support__form label {
+	display: grid;
+	gap: .35rem;
+	font-weight: 700;
+}
+
+.ec-local-support__form input:not([type="checkbox"]),
+.ec-local-support__form select {
+	box-sizing: border-box;
+	width: 100%;
+	padding: .65rem;
+}
+
+.ec-local-support__contact div {
+	display: grid;
+	grid-template-columns: 5rem 1fr;
+	gap: .5rem;
+}
+
+.ec-local-support__contact dt {
+	font-weight: 750;
+}
+
+.ec-local-support__privacy {
+	color: var(--wp--preset--color--contrast-2, #64706c);
+	font-size: .9rem;
+}
+
+.ec-local-support__notice {
+	padding: .85rem 1rem;
+	border-left: 4px solid #315f88;
+	background: #e9f2fa;
+}
+
+.ec-local-support__notice--success { border-color: #17633f; background: #e1f4e9; }
+.ec-local-support__notice--warning { border-color: #8a5700; background: #fff4d7; }
+.ec-local-support__notice--error { border-color: #9f2d25; background: #fbe8e6; }
+
+@media (max-width: 600px) {
+	.ec-local-support-page { padding-block: 0; }
+	.ec-local-support { padding-inline: .75rem; }
+	.ec-local-support__cards { grid-template-columns: 1fr; }
+	.ec-local-support__actions > * { flex: 1 1 100%; }
+	.ec-local-support__actions button { width: 100%; }
+}

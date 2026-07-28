@@ -10,6 +10,8 @@
  */
 
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\LocalSupportSchema;
+use ExtraChillEvents\Core\LocalSupportWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;
 
 $wrapper_attributes = get_block_wrapper_attributes(
@@ -106,9 +108,9 @@ foreach ( $managed_venues as $venue ) {
 	}
 }
 
-$can_access = $selected && true === $authorization->authorize( $user_id, $selected['id'], VenueAuthorization::ACTION_ACCESS_VENUE );
-$can_manage = $selected && true === $authorization->authorize( $user_id, $selected['id'], VenueAuthorization::ACTION_MANAGE_MEMBERS );
-$context    = array(
+$can_access       = $selected && true === $authorization->authorize( $user_id, $selected['id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+$can_manage       = $selected && true === $authorization->authorize( $user_id, $selected['id'], VenueAuthorization::ACTION_MANAGE_MEMBERS );
+$context          = array(
 	'user'           => array(
 		'id'       => $user_id,
 		'name'     => wp_get_current_user()->display_name,
@@ -122,7 +124,10 @@ $context    = array(
 	'route_url'      => home_url( '/venue-settings/' ),
 	'booking_id'     => $can_access ? $requested_booking_id : 0,
 );
-$context_id = wp_unique_id( 'ec-venue-settings-context-' );
+$context_id       = wp_unique_id( 'ec-venue-settings-context-' );
+$support_requests = $can_access && LocalSupportSchema::is_ready()
+	? ( new LocalSupportWorkspace() )->venue_requests( (int) $selected['id'], $user_id )
+	: array();
 ?>
 <div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?>>
 	<div class="ec-venue-settings__root" data-context-id="<?php echo esc_attr( $context_id ); ?>">
@@ -133,4 +138,17 @@ $context_id = wp_unique_id( 'ec-venue-settings-context-' );
 		</div>
 	</div>
 	<script id="<?php echo esc_attr( $context_id ); ?>" type="application/json"><?php echo wp_json_encode( $context, JSON_HEX_TAG | JSON_HEX_AMP ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for an inert script element. ?></script>
+	<?php if ( ! empty( $support_requests ) ) : ?>
+		<section class="ec-block-shell ec-venue-settings__support" aria-labelledby="ec-venue-support-heading">
+			<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
+				<h2 id="ec-venue-support-heading"><?php esc_html_e( 'Local support requests', 'extrachill-events' ); ?></h2>
+				<p><?php esc_html_e( 'Private opportunities for this exact venue.', 'extrachill-events' ); ?></p>
+				<ul class="ec-venue-settings__records">
+					<?php foreach ( $support_requests as $request ) : ?>
+						<li><span><?php echo esc_html( get_the_title( (int) $request['event_id'] ) ); ?> <small><?php echo esc_html( ucfirst( $request['status'] ) ); ?></small></span><a class="button-2 button-small" href="<?php echo esc_url( home_url( '/local-support/' . (int) $request['id'] . '/' ) ); ?>"><?php esc_html_e( 'Open workspace', 'extrachill-events' ); ?></a></li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+		</section>
+	<?php endif; ?>
 </div>

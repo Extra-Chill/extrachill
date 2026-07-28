@@ -54,6 +54,24 @@ class LocalSupportRepository {
 		return $this->row_result( $row, 'local_support_request_read_failed', array( $this, 'hydrate_request' ) );
 	}
 
+	/**
+	 * List requests for one exact venue for its private management surface.
+	 *
+	 * @param int $venue_term_id Exact venue term ID.
+	 * @param int $limit Maximum rows.
+	 * @return array|\WP_Error Requests or read error.
+	 */
+	public function list_requests_for_venue( int $venue_term_id, int $limit = 50 ) {
+		global $wpdb;
+		$table = LocalSupportSchema::requests_table();
+		$limit = max( 1, min( 100, $limit ) );
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY updated_at DESC, id DESC LIMIT %d", $venue_term_id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact private venue read.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'local_support_request_list_failed', __( 'Local support requests could not be read.', 'extrachill-events' ) );
+		}
+		return array_map( array( $this, 'hydrate_request' ), (array) $rows );
+	}
+
 	/** Create one artist interest. */
 	public function create_interest( int $request_id, int $artist_term_id, int $actor_id ) {
 		global $wpdb;

@@ -10,6 +10,7 @@ use ExtraChillEvents\Core\LocalSupportAuthorization;
 use ExtraChillEvents\Core\LocalSupportRepository;
 use ExtraChillEvents\Core\LocalSupportSchema;
 use ExtraChillEvents\Core\LocalSupportService;
+use ExtraChillEvents\Core\LocalSupportWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
@@ -187,6 +188,42 @@ final class LocalSupportDomainTest extends BookingTestCase {
 				$this->assertFalse( $definition['meta']['show_in_rest'], $name );
 			}
 		}
+	}
+
+	public function test_workspace_reauthorizes_and_reveals_contact_only_during_active_consent(): void {
+		$request   = $this->open_request();
+		$interest  = $this->service->express_interest( $request['id'], 202, 'interest-workspace', 20 );
+		$workspace = new LocalSupportWorkspace( $this->repository, $this->authorization, $this->service );
+
+		$model = $workspace->read( $request['id'], 0, 12 );
+		$this->assertSame( 'organizer', $model['role'] );
+		$this->assertCount( 1, $model['interests'] );
+		$this->assertNull( $model['interests'][0]['contact'] );
+
+		$this->service->set_contact_consent( $interest['id'], true, array( 'email' => 'artist@example.com' ), array( 'email' ), 1, 'workspace-consent', 20 );
+		$model = $workspace->read( $request['id'], 0, 12 );
+		$this->assertSame( array( 'email' => 'artist@example.com' ), $model['interests'][0]['contact'] );
+
+		$this->service->set_contact_consent( $interest['id'], false, array(), array(), 2, 'workspace-revoke', 20 );
+		$model = $workspace->read( $request['id'], 0, 12 );
+		$this->assertNull( $model['interests'][0]['contact'] );
+
+		$this->authorization->organizer_allowed = false;
+		$denied = $workspace->read( $request['id'], 0, 12 );
+		$this->assertSame( 'local_support_forbidden', $denied->get_error_code() );
+	}
+
+	public function test_withdrawal_atomically_revokes_active_contact_consent(): void {
+		$request  = $this->open_request();
+		$interest = $this->service->express_interest( $request['id'], 202, 'interest-with-contact', 20 );
+		$granted  = $this->service->set_contact_consent( $interest['id'], true, array( 'email' => 'artist@example.com' ), array( 'email' ), 1, 'withdraw-consent', 20 );
+
+		$withdrawn = $this->service->transition_interest( $interest['id'], 'withdrawn', $granted['version'], 'withdraw-contact', 20 );
+		$this->assertSame( 'withdrawn', $withdrawn['status'] );
+		$this->assertNull( $withdrawn['contact'] );
+		$this->assertSame( 2, $withdrawn['consent_version'] );
+		$this->assertSame( 20, $withdrawn['revoked_by_user_id'] );
+		$this->assertTrue( end( $this->repository->activity )['payload']['contact_consent_revoked'] );
 	}
 
 	private function open_request(): array {

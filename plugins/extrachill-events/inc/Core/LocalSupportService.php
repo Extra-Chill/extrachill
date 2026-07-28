@@ -260,6 +260,24 @@ class LocalSupportService {
 		if ( ! $artist_owned && ! in_array( $to_status, array( 'shortlisted', 'selected', 'declined' ), true ) ) {
 			return new \WP_Error( 'local_support_interest_transition_forbidden', __( 'Only the artist may withdraw interest.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
+		$changes = array( 'status' => $to_status );
+		$payload = array(
+			'from_status' => $interest['status'],
+			'to_status'   => $to_status,
+		);
+		if ( $artist_owned && null !== $interest['contact'] ) {
+			$changes                            = array_merge(
+				$changes,
+				array(
+					'contact_payload'    => null,
+					'consent_fields'     => null,
+					'consent_version'    => $interest['consent_version'] + 1,
+					'revoked_by_user_id' => $actor_id,
+					'revoked_at'         => gmdate( 'Y-m-d H:i:s' ),
+				)
+			);
+			$payload['contact_consent_revoked'] = true;
+		}
 		return $this->mutate_interest(
 			$request,
 			$interest,
@@ -267,11 +285,8 @@ class LocalSupportService {
 			$idempotency_key,
 			$actor_id,
 			'interest_status_changed',
-			array( 'status' => $to_status ),
-			array(
-				'from_status' => $interest['status'],
-				'to_status'   => $to_status,
-			),
+			$changes,
+			$payload,
 			$artist_owned
 		);
 	}
