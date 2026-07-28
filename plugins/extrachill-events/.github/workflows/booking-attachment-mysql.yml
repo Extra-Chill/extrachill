@@ -168,8 +168,8 @@ jobs:
           WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
         run: |
           set -euo pipefail
-          vendor/bin/phpunit -c phpunit-booking-concurrency.xml.dist --filter 'test_concurrent_booking_schema_installer_waits_and_converges|test_resolution_and_finalization_race_freezes_one_consistent_winner|test_concurrent_exact_inquiry_retry_reuses_one_complete_winner' | tee "$RUNNER_TEMP/booking-admission-concurrency.txt"
-          grep -E 'OK \(3 tests, [1-9][0-9]* assertions?\)' "$RUNNER_TEMP/booking-admission-concurrency.txt"
+          vendor/bin/phpunit -c phpunit-booking-concurrency.xml.dist --filter 'test_concurrent_booking_schema_installer_waits_and_converges|test_resolution_and_finalization_race_freezes_one_consistent_winner|test_concurrent_source_and_report_registrations_converge_or_conflict_exactly|test_concurrent_exact_inquiry_retry_reuses_one_complete_winner' | tee "$RUNNER_TEMP/booking-admission-concurrency.txt"
+          grep -E 'OK \(4 tests, [1-9][0-9]* assertions?\)' "$RUNNER_TEMP/booking-admission-concurrency.txt"
           if grep -Eiq 'skip|no tests executed|OK, but' "$RUNNER_TEMP/booking-admission-concurrency.txt"; then
             exit 1
           fi

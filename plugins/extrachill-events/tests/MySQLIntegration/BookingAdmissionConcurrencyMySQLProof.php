@@ -9,10 +9,90 @@ use ExtraChillEvents\Core\BookingInquiryAdmissionService;
 use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\TicketReconciliationService;
+use ExtraChillEvents\Core\TicketSettlementService;
 use ExtraChillEvents\Core\VenueBookingConfig;
 
 /** Prove overlapping application processes converge on one complete winner. */
 final class BookingAdmissionConcurrencyMySQLProof extends BookingAttachmentMySQLIntegrationTest {
+	/** Prove overlapping source and report registrations converge after real lock contention. */
+	public function test_concurrent_source_and_report_registrations_converge_or_conflict_exactly(): void {
+		global $wpdb;
+		$event_id = self::factory()->post->create(
+			array(
+				'post_type'   => defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events',
+				'post_status' => 'publish',
+			)
+		);
+		$bookings = new BookingRepository();
+		$booking  = $bookings->create(
+			array(
+				'venue_term_id' => $this->venue_id,
+				'artist_name'   => 'Concurrent Evidence Artist',
+				'intake'        => array(),
+			)
+		);
+		$booking  = $bookings->claim_event( $booking['id'], $event_id, $booking['version'] );
+		$this->assertIsArray( $booking, is_wp_error( $booking ) ? $booking->get_error_code() : '' );
+		$this->assertNotFalse( $wpdb->query( 'COMMIT' ), 'The source/report race fixture must be visible to independent sessions.' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Publishes the fixture before genuine cross-process contention.
+
+		$exact_source = array(
+			'booking_id' => $booking['id'],
+			'provider'   => 'manual-certified',
+			'source_key' => 'Concurrent/Exact Source',
+			'ticket_url' => 'https://tickets.example.test/concurrent-exact',
+		);
+		$exact_race   = $this->race_booking_services(
+			$booking['id'],
+			fn() => ( new TicketReconciliationService() )->register_source( $exact_source, $this->actor_id ),
+			fn() => ( new TicketReconciliationService() )->register_source( $exact_source, $this->actor_id ),
+			true
+		);
+		$this->assertSame( array( 'result', 'sales_reconciliation_commit_uncertain' ), $this->race_result_kinds( $exact_race ) );
+		$source = ( new TicketReconciliationService() )->register_source( $exact_source, $this->actor_id );
+		$this->assertIsArray( $source, is_wp_error( $source ) ? $source->get_error_code() : '' );
+		$sources = BookingSchema::ticket_sources_table();
+		$this->assertSame( 1, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$sources} WHERE booking_id = %d AND provider = %s AND source_key_hash = %s", $booking['id'], $exact_source['provider'], hash( 'sha256', $exact_source['source_key'] ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact post-race row count.
+
+		$conflicting_source_a               = $exact_source;
+		$conflicting_source_a['source_key'] = 'Concurrent/Conflicting Source';
+		$conflicting_source_a['ticket_url'] = 'https://tickets.example.test/concurrent-conflict-a';
+		$conflicting_source_b               = $conflicting_source_a;
+		$conflicting_source_b['ticket_url'] = 'https://tickets.example.test/concurrent-conflict-b';
+		$source_conflict                    = $this->race_booking_services(
+			$booking['id'],
+			fn() => ( new TicketReconciliationService() )->register_source( $conflicting_source_a, $this->actor_id ),
+			fn() => ( new TicketReconciliationService() )->register_source( $conflicting_source_b, $this->actor_id )
+		);
+		$this->assertSame( array( 'result', 'ticket_source_idempotency_conflict' ), $this->race_result_kinds( $source_conflict ) );
+		$this->assertSame( 1, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$sources} WHERE booking_id = %d AND provider = %s AND source_key_hash = %s", $booking['id'], $exact_source['provider'], hash( 'sha256', $conflicting_source_a['source_key'] ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Conflicting contenders cannot duplicate an identity.
+
+		$exact_report = $this->settlement_report_input( $booking['id'], 'Concurrent/Exact Report', $source['id'] );
+		$report_race  = $this->race_booking_services(
+			$booking['id'],
+			fn() => ( new TicketSettlementService() )->record_sales( $exact_report, $this->actor_id ),
+			fn() => ( new TicketSettlementService() )->record_sales( $exact_report, $this->actor_id ),
+			true
+		);
+		$this->assertSame( array( 'result', 'settlement_commit_uncertain' ), $this->race_result_kinds( $report_race ) );
+		$report = ( new TicketSettlementService() )->record_sales( $exact_report, $this->actor_id );
+		$this->assertIsArray( $report, is_wp_error( $report ) ? $report->get_error_code() : '' );
+		$reports = BookingSchema::sales_reports_table();
+		$this->assertSame( 1, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$reports} WHERE booking_id = %d AND provider = %s AND external_report_id_hash = %s", $booking['id'], $exact_report['provider'], hash( 'sha256', $exact_report['external_report_id'] ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact post-race row count.
+
+		$conflicting_report_a                       = $this->settlement_report_input( $booking['id'], 'Concurrent/Conflicting Report', $source['id'] );
+		$conflicting_report_b                       = $conflicting_report_a;
+		$conflicting_report_b['gross_minor']        = 200;
+		$conflicting_report_b['net_minor']          = 200;
+		$report_conflict                            = $this->race_booking_services(
+			$booking['id'],
+			fn() => ( new TicketSettlementService() )->record_sales( $conflicting_report_a, $this->actor_id ),
+			fn() => ( new TicketSettlementService() )->record_sales( $conflicting_report_b, $this->actor_id )
+		);
+		$this->assertSame( array( 'result', 'sales_report_idempotency_conflict' ), $this->race_result_kinds( $report_conflict ) );
+		$this->assertSame( 1, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$reports} WHERE booking_id = %d AND provider = %s AND external_report_id_hash = %s", $booking['id'], $conflicting_report_a['provider'], hash( 'sha256', $conflicting_report_a['external_report_id'] ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Conflicting contenders cannot duplicate an identity.
+	}
+
 	/** Prove concurrent installers serialize on the exact site-scoped schema lock. */
 	public function test_concurrent_booking_schema_installer_waits_and_converges(): void {
 		$this->prove_concurrent_booking_schema_installer_waits_and_converges();
@@ -141,5 +221,143 @@ final class BookingAdmissionConcurrencyMySQLProof extends BookingAttachmentMySQL
 			}
 		}
 		remove_filter( 'extrachill_events_allow_test_booking_file', '__return_true' );
+	}
+
+	/** Run two service calls while both are blocked behind the same booking lock. */
+	private function race_booking_services( int $booking_id, callable $first, callable $second, bool $first_commit_uncertain = false ): array {
+		$bookings = BookingSchema::bookings_table();
+		$this->assertTrue( $this->contender->begin_transaction() );
+		$locked = $this->contender->query( "SELECT id FROM {$bookings} WHERE id = {$booking_id} FOR UPDATE" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Independent fixture connection deliberately owns the application lock.
+		$this->assertInstanceOf( mysqli_result::class, $locked );
+		$locked->free();
+
+		$base = wp_tempnam( 'booking-service-race.txt' );
+		unlink( $base );
+		$files = array(
+			array( 'ready' => $base . '.first-ready', 'result' => $base . '.first-result' ),
+			array( 'ready' => $base . '.second-ready', 'result' => $base . '.second-result' ),
+		);
+		$pids  = array(
+			$this->fork_service_call( $first, $files[0], $first_commit_uncertain ),
+			$this->fork_service_call( $second, $files[1], false ),
+		);
+		$deadline = microtime( true ) + 5;
+		while ( ( ! file_exists( $files[0]['ready'] ) || ! file_exists( $files[1]['ready'] ) ) && microtime( true ) < $deadline ) {
+			usleep( 10000 );
+		}
+		$both_ready      = file_exists( $files[0]['ready'] ) && file_exists( $files[1]['ready'] );
+		$both_waiting    = false;
+		$booking_waiting = false;
+		if ( $both_ready ) {
+			$thread_ids = array_map( 'intval', array( file_get_contents( $files[0]['ready'] ), file_get_contents( $files[1]['ready'] ) ) );
+			$deadline   = microtime( true ) + 5;
+			do {
+				$processes = $this->contender->query( 'SELECT ID, INFO FROM information_schema.PROCESSLIST WHERE COMMAND = \'Query\' AND ID IN (' . implode( ',', $thread_ids ) . ')' );
+				if ( $processes instanceof mysqli_result ) {
+					$queries = array_column( $processes->fetch_all( MYSQLI_ASSOC ), 'INFO' );
+					$processes->free();
+					$both_waiting    = 2 === count( array_filter( $queries, static fn( string $query ): bool => false !== stripos( $query, 'FOR UPDATE' ) ) );
+					$booking_waiting = 1 === count( array_filter( $queries, static fn( string $query ): bool => false !== stripos( $query, $bookings ) && false !== stripos( $query, 'FOR UPDATE' ) ) );
+				}
+				if ( ! $both_waiting || ! $booking_waiting ) {
+					usleep( 10000 );
+				}
+			} while ( ( ! $both_waiting || ! $booking_waiting ) && microtime( true ) < $deadline );
+		}
+		$both_blocked = ! file_exists( $files[0]['result'] ) && ! file_exists( $files[1]['result'] );
+		$released     = $this->contender->commit();
+
+		$statuses = array();
+		foreach ( $pids as $pid ) {
+			$status = 0;
+			pcntl_waitpid( $pid, $status );
+			$statuses[] = pcntl_wifexited( $status ) && 0 === pcntl_wexitstatus( $status );
+		}
+		$results = array(
+			json_decode( (string) file_get_contents( $files[0]['result'] ), true ),
+			json_decode( (string) file_get_contents( $files[1]['result'] ), true ),
+		);
+		foreach ( $files as $paths ) {
+			foreach ( $paths as $path ) {
+				if ( file_exists( $path ) ) {
+					unlink( $path );
+				}
+			}
+		}
+
+		$this->assertTrue( $both_ready, 'Both service contenders must reach the held booking lock.' );
+		$this->assertTrue( $both_waiting, 'Both service contenders must overlap in production FOR UPDATE lock acquisition.' );
+		$this->assertTrue( $booking_waiting, 'At least one service contender must block on the production booking row lock.' );
+		$this->assertTrue( $both_blocked, 'A service contender bypassed the held booking lock.' );
+		$this->assertTrue( $released, 'The fixture booking lock could not be released.' );
+		$this->assertSame( array( true, true ), $statuses, 'A service contender did not exit cleanly.' );
+		$this->contender = $this->connect_race_owner_session();
+		return $results;
+	}
+
+	/** Replace the fixture session closed by forked mysqli shutdown. */
+	private function connect_race_owner_session(): mysqli {
+		$host = (string) ( getenv( 'DB_HOST' ) ?: DB_HOST );
+		$port = (int) getenv( 'DB_PORT' );
+		if ( 0 === $port && 1 === preg_match( '/^(.+):(\d+)$/', $host, $match ) ) {
+			$host = $match[1];
+			$port = (int) $match[2];
+		}
+		$connection = mysqli_init();
+		$this->assertTrue(
+			mysqli_real_connect(
+				$connection,
+				$host,
+				(string) ( getenv( 'DB_USER' ) ?: DB_USER ),
+				(string) ( getenv( 'DB_PASSWORD' ) ?: DB_PASSWORD ),
+				(string) ( getenv( 'DB_NAME' ) ?: DB_NAME ),
+				$port > 0 ? $port : 3306
+			),
+			(string) mysqli_connect_error()
+		);
+		$connection->set_charset( 'utf8mb4' );
+		$connection->query( 'SET SESSION innodb_lock_wait_timeout = 1' );
+		return $connection;
+	}
+
+	/** Fork one independent WordPress service process and persist its bounded result. */
+	private function fork_service_call( callable $call, array $files, bool $commit_uncertain ): int {
+		$pid = pcntl_fork();
+		$this->assertGreaterThanOrEqual( 0, $pid );
+		if ( 0 !== $pid ) {
+			return $pid;
+		}
+		$this->reconnect_wordpress_database();
+		if ( $commit_uncertain ) {
+			global $wpdb;
+			$original  = $wpdb;
+			$uncertain = new BookingCommitUncertainWpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
+			$uncertain->set_prefix( $original->base_prefix );
+			$uncertain->set_blog_id( $original->blogid, $original->siteid );
+			$uncertain->fail_next_commit = true;
+			$wpdb                        = $uncertain;
+			$original->dbh->close();
+		}
+		global $wpdb;
+		file_put_contents( $files['ready'], (string) mysqli_thread_id( $wpdb->dbh ), LOCK_EX );
+		$result = $call();
+		file_put_contents(
+			$files['result'],
+			wp_json_encode( is_wp_error( $result ) ? array( 'error' => $result->get_error_code() ) : array( 'result' => $result ) ),
+			LOCK_EX
+		);
+		exit( 0 );
+	}
+
+	/** Return deterministic outcome labels for an unordered two-process race. */
+	private function race_result_kinds( array $results ): array {
+		$kinds = array_map(
+			static function ( array $result ): string {
+				return isset( $result['result'] ) ? 'result' : (string) ( $result['error'] ?? 'missing' );
+			},
+			$results
+		);
+		sort( $kinds );
+		return $kinds;
 	}
 }
