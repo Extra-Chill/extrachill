@@ -89,7 +89,7 @@ final class TicketReconciliationTest extends BookingTestCase {
 	public function test_schema_upgrades_v12_without_replacing_settlement_tables(): void {
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '12';
 		$this->assertTrue( BookingSchema::maybe_install() );
-		$this->assertSame( '14', get_option( BookingSchema::VERSION_OPTION ) );
+		$this->assertSame( '15', get_option( BookingSchema::VERSION_OPTION ) );
 		$this->assertTrue( BookingSchema::health() );
 		$this->assertArrayHasKey( BookingSchema::ticket_sources_table(), $GLOBALS['wpdb']->schemas );
 		$this->assertArrayHasKey( BookingSchema::sales_resolutions_table(), $GLOBALS['wpdb']->schemas );

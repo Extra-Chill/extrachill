@@ -429,6 +429,24 @@ class TicketSettlementService {
 		return true === $allowed ? $this->get_settlement( $booking['id'] ) : $this->denied( $allowed );
 	}
 
+	/** Read and lock the exact commission inside a caller-owned booking transaction. */
+	public function get_for_update( int $booking_id ) {
+		return $this->get_settlement( $booking_id, true );
+	}
+
+	/** Lock and return the immutable report rows bound to a locked commission. */
+	public function included_reports_for_update( array $settlement ) {
+		$reports = array();
+		foreach ( $settlement['included_report_ids'] ?? array() as $report_id ) {
+			$report = $this->get_report( (int) $report_id, true );
+			if ( ! is_array( $report ) || $report['booking_id'] !== $settlement['booking_id'] || $report['currency'] !== $settlement['currency'] ) {
+				return is_wp_error( $report ) ? $report : new \WP_Error( 'settlement_evidence_integrity_failed', __( 'Frozen settlement evidence is missing or mismatched.', 'extrachill-events' ), array( 'status' => 409 ) );
+			}
+			$reports[] = $report;
+		}
+		return $reports;
+	}
+
 	/** Round a signed basis-point product to nearest minor unit, ties away from zero. */
 	public static function basis_points_amount( int $amount_minor, int $basis_points ) {
 		$out_of_range = $basis_points < 0 || $basis_points > 10000;

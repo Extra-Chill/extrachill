@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns and verifies the site-scoped private booking schema. */
 class BookingSchema {
 
-	public const SCHEMA_VERSION = '14';
+	public const SCHEMA_VERSION = '15';
 	public const VERSION_OPTION = 'extrachill_events_booking_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_booking_schema_error';
 
@@ -106,6 +106,18 @@ class BookingSchema {
 		return $wpdb->prefix . 'ec_booking_settlements';
 	}
 
+	/** Get the immutable complete show-settlement revisions table. */
+	public static function show_settlements_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ec_booking_show_settlements';
+	}
+
+	/** Get the append-only show-settlement lifecycle table. */
+	public static function show_settlement_actions_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ec_booking_show_settlement_actions';
+	}
+
 	/** Create or repair all tables, stamping the version only after verification. */
 	public static function install() {
 		global $wpdb;
@@ -160,6 +172,8 @@ class BookingSchema {
 		$sales_reports       = self::sales_reports_table();
 		$sales_resolutions   = self::sales_resolutions_table();
 		$settlements         = self::settlements_table();
+		$show_settlements    = self::show_settlements_table();
+		$show_actions        = self::show_settlement_actions_table();
 		$charset             = $wpdb->get_charset_collate();
 
 		$bookings_sql = "CREATE TABLE {$bookings} (
@@ -523,6 +537,59 @@ class BookingSchema {
 			KEY status_updated (status, updated_at)
 		) ENGINE=InnoDB {$charset};";
 
+		$show_settlements_sql = "CREATE TABLE {$show_settlements} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			public_id CHAR(36) NOT NULL,
+			booking_id BIGINT UNSIGNED NOT NULL,
+			event_id BIGINT UNSIGNED NOT NULL,
+			venue_term_id BIGINT UNSIGNED NOT NULL,
+			revision BIGINT UNSIGNED NOT NULL,
+			corrects_revision_id BIGINT UNSIGNED NULL,
+			commission_settlement_id BIGINT UNSIGNED NOT NULL,
+			commission_integrity_hash CHAR(64) NOT NULL,
+			currency CHAR(3) NOT NULL,
+			formula_version BIGINT UNSIGNED NOT NULL,
+			terms_payload LONGTEXT NOT NULL,
+			evidence_payload LONGTEXT NOT NULL,
+			calculation_payload LONGTEXT NOT NULL,
+			request_hash CHAR(64) NOT NULL,
+			integrity_hash CHAR(64) NOT NULL,
+			idempotency_key VARCHAR(191) NOT NULL,
+			created_by_user_id BIGINT UNSIGNED NOT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY (id),
+			UNIQUE KEY public_id (public_id),
+			UNIQUE KEY booking_revision (booking_id, revision),
+			UNIQUE KEY booking_idempotency (booking_id, idempotency_key),
+			KEY venue_created (venue_term_id, created_at, id),
+			KEY event_id (event_id),
+			KEY corrects_revision (corrects_revision_id),
+			KEY commission_settlement (commission_settlement_id)
+		) ENGINE=InnoDB {$charset};";
+
+		$show_actions_sql = "CREATE TABLE {$show_actions} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			public_id CHAR(36) NOT NULL,
+			booking_id BIGINT UNSIGNED NOT NULL,
+			venue_term_id BIGINT UNSIGNED NOT NULL,
+			show_settlement_id BIGINT UNSIGNED NOT NULL,
+			action VARCHAR(24) NOT NULL,
+			expected_version BIGINT UNSIGNED NOT NULL,
+			payload LONGTEXT NOT NULL,
+			request_hash CHAR(64) NOT NULL,
+			integrity_hash CHAR(64) NOT NULL,
+			idempotency_key VARCHAR(191) NOT NULL,
+			actor_user_id BIGINT UNSIGNED NOT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY (id),
+			UNIQUE KEY public_id (public_id),
+			UNIQUE KEY revision_version (show_settlement_id, expected_version),
+			UNIQUE KEY booking_idempotency (booking_id, idempotency_key),
+			KEY booking_created (booking_id, created_at, id),
+			KEY venue_action_created (venue_term_id, action, created_at),
+			KEY settlement_created (show_settlement_id, created_at, id)
+		) ENGINE=InnoDB {$charset};";
+
 		$migration = self::migrate_v13_ticket_provenance();
 		if ( is_wp_error( $migration ) ) {
 			self::record_failure( $migration );
@@ -564,7 +631,11 @@ class BookingSchema {
 		$sales_resolutions_error = (string) $wpdb->last_error;
 		dbDelta( $settlements_sql );
 		$settlements_error = (string) $wpdb->last_error;
-		if ( '' !== $bookings_error || '' !== $activity_error || '' !== $communication_state_error || '' !== $attachments_error || '' !== $deliveries_error || '' !== $members_error || '' !== $claims_error || '' !== $invites_error || '' !== $audit_error || '' !== $holds_error || '' !== $ticket_sources_error || '' !== $sales_reports_error || '' !== $sales_resolutions_error || '' !== $settlements_error ) {
+		dbDelta( $show_settlements_sql );
+		$show_settlements_error = (string) $wpdb->last_error;
+		dbDelta( $show_actions_sql );
+		$show_actions_error = (string) $wpdb->last_error;
+		if ( '' !== $bookings_error || '' !== $activity_error || '' !== $communication_state_error || '' !== $attachments_error || '' !== $deliveries_error || '' !== $members_error || '' !== $claims_error || '' !== $invites_error || '' !== $audit_error || '' !== $holds_error || '' !== $ticket_sources_error || '' !== $sales_reports_error || '' !== $sales_resolutions_error || '' !== $settlements_error || '' !== $show_settlements_error || '' !== $show_actions_error ) {
 			$error = new \WP_Error(
 				'booking_schema_dbdelta_failed',
 				__( 'The booking schema could not be reconciled.', 'extrachill-events' ),
@@ -583,6 +654,8 @@ class BookingSchema {
 					'sales_reports_error'       => $sales_reports_error,
 					'sales_resolutions_error'   => $sales_resolutions_error,
 					'settlements_error'         => $settlements_error,
+					'show_settlements_error'    => $show_settlements_error,
+					'show_actions_error'        => $show_actions_error,
 				)
 			);
 			self::record_failure( $error );
@@ -917,7 +990,7 @@ class BookingSchema {
 			);
 		};
 		return array(
-			self::bookings_table()              => array(
+			self::bookings_table()                => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                      => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -997,7 +1070,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::activity_table()              => array(
+			self::activity_table()                => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                      => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1046,7 +1119,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::communication_state_table()   => array(
+			self::communication_state_table()     => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'intent_id'           => $required( 'bigint unsigned', false ),
@@ -1069,7 +1142,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::attachments_table()           => array(
+			self::attachments_table()             => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                     => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1130,7 +1203,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::attachment_deliveries_table() => array(
+			self::attachment_deliveries_table()   => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'             => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1174,7 +1247,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::memberships_table()           => array(
+			self::memberships_table()             => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1207,7 +1280,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::claims_table()                => array(
+			self::claims_table()                  => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                  => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1248,7 +1321,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::invitations_table()           => array(
+			self::invitations_table()             => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1302,7 +1375,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::onboarding_audit_table()      => array(
+			self::onboarding_audit_table()        => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'              => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1334,7 +1407,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::holds_table()                 => array(
+			self::holds_table()                   => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                   => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1375,7 +1448,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::ticket_sources_table()        => array(
+			self::ticket_sources_table()          => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1400,7 +1473,7 @@ class BookingSchema {
 					'venue_created'           => $index( false, 'venue_term_id', 'created_at', 'id' ),
 				),
 			),
-			self::sales_reports_table()         => array(
+			self::sales_reports_table()           => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                               => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1463,7 +1536,7 @@ class BookingSchema {
 					),
 				),
 			),
-			self::sales_resolutions_table()     => array(
+			self::sales_resolutions_table()       => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                       => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1490,7 +1563,7 @@ class BookingSchema {
 					'supersedes_resolution'  => $index( false, 'supersedes_resolution_id' ),
 				),
 			),
-			self::settlements_table()           => array(
+			self::settlements_table()             => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                   => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -1544,10 +1617,75 @@ class BookingSchema {
 					),
 				),
 			),
+			self::show_settlements_table()        => array(
+				'engine'  => 'innodb',
+				'columns' => array(
+					'id'                        => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
+					'public_id'                 => $required( 'char(36)', false ),
+					'booking_id'                => $required( 'bigint unsigned', false ),
+					'event_id'                  => $required( 'bigint unsigned', false ),
+					'venue_term_id'             => $required( 'bigint unsigned', false ),
+					'revision'                  => $required( 'bigint unsigned', false ),
+					'corrects_revision_id'      => $required( 'bigint unsigned', true ),
+					'commission_settlement_id'  => $required( 'bigint unsigned', false ),
+					'commission_integrity_hash' => $required( 'char(64)', false ),
+					'currency'                  => $required( 'char(3)', false ),
+					'formula_version'           => $required( 'bigint unsigned', false ),
+					'terms_payload'             => $required( 'longtext', false ),
+					'evidence_payload'          => $required( 'longtext', false ),
+					'calculation_payload'       => $required( 'longtext', false ),
+					'request_hash'              => $required( 'char(64)', false ),
+					'integrity_hash'            => $required( 'char(64)', false ),
+					'idempotency_key'           => $required( 'varchar(191)', false ),
+					'created_by_user_id'        => $required( 'bigint unsigned', false ),
+					'created_at'                => $required( 'datetime', false ),
+				),
+				'indexes' => array(
+					'PRIMARY'               => $index( true, 'id' ),
+					'public_id'             => $index( true, 'public_id' ),
+					'booking_revision'      => $index( true, 'booking_id', 'revision' ),
+					'booking_idempotency'   => $index( true, 'booking_id', 'idempotency_key' ),
+					'venue_created'         => $index( false, 'venue_term_id', 'created_at', 'id' ),
+					'event_id'              => $index( false, 'event_id' ),
+					'corrects_revision'     => $index( false, 'corrects_revision_id' ),
+					'commission_settlement' => $index( false, 'commission_settlement_id' ),
+				),
+			),
+			self::show_settlement_actions_table() => array(
+				'engine'  => 'innodb',
+				'columns' => array(
+					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
+					'public_id'          => $required( 'char(36)', false ),
+					'booking_id'         => $required( 'bigint unsigned', false ),
+					'venue_term_id'      => $required( 'bigint unsigned', false ),
+					'show_settlement_id' => $required( 'bigint unsigned', false ),
+					'action'             => $required( 'varchar(24)', false ),
+					'expected_version'   => $required( 'bigint unsigned', false ),
+					'payload'            => $required( 'longtext', false ),
+					'request_hash'       => $required( 'char(64)', false ),
+					'integrity_hash'     => $required( 'char(64)', false ),
+					'idempotency_key'    => $required( 'varchar(191)', false ),
+					'actor_user_id'      => $required( 'bigint unsigned', false ),
+					'created_at'         => $required( 'datetime', false ),
+				),
+				'indexes' => array(
+					'PRIMARY'              => $index( true, 'id' ),
+					'public_id'            => $index( true, 'public_id' ),
+					'revision_version'     => $index( true, 'show_settlement_id', 'expected_version' ),
+					'booking_idempotency'  => $index( true, 'booking_id', 'idempotency_key' ),
+					'booking_created'      => $index( false, 'booking_id', 'created_at', 'id' ),
+					'venue_action_created' => $index( false, 'venue_term_id', 'action', 'created_at' ),
+					'settlement_created'   => $index( false, 'show_settlement_id', 'created_at', 'id' ),
+				),
+			),
 		);
 	}
 
-	/** Normalize one SHOW COLUMNS row to the declared contract shape. */
+	/**
+	 * Normalize one SHOW COLUMNS row to the declared contract shape.
+	 *
+	 * @param array $column Raw SHOW COLUMNS row.
+	 */
 	private static function normalize_column( array $column ): array {
 		$type = preg_replace(
 			'/\A(tinyint|smallint|mediumint|int|integer|bigint)\(\d+\)(\s+unsigned)?\z/',
@@ -1562,7 +1700,11 @@ class BookingSchema {
 		);
 	}
 
-	/** Normalize SHOW INDEX rows to exact uniqueness and ordered columns. */
+	/**
+	 * Normalize SHOW INDEX rows to exact uniqueness and ordered columns.
+	 *
+	 * @param array $indexes Raw SHOW INDEX rows.
+	 */
 	private static function normalize_indexes( array $indexes ): array {
 		$normalized = array();
 		foreach ( $indexes as $index ) {
@@ -1578,7 +1720,12 @@ class BookingSchema {
 		return $normalized;
 	}
 
-	/** Build a consistent database inspection error. */
+	/**
+	 * Build a consistent database inspection error.
+	 *
+	 * @param string $message Public error message.
+	 * @param string $table   Inspected table name.
+	 */
 	private static function database_error( string $message, string $table ): \WP_Error {
 		global $wpdb;
 		return new \WP_Error(
@@ -1591,7 +1738,11 @@ class BookingSchema {
 		);
 	}
 
-	/** Record an actionable install failure without advancing the version. */
+	/**
+	 * Record an actionable install failure without advancing the version.
+	 *
+	 * @param \WP_Error $error Installation failure.
+	 */
 	private static function record_failure( \WP_Error $error ): void {
 		global $wpdb;
 		update_option(

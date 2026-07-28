@@ -613,6 +613,22 @@ final class BookingWpdb {
 				}
 			}
 		}
+		if ( false !== strpos( $table, 'ec_booking_show_settlements' ) ) {
+			foreach ( $this->rows[ $table ] ?? array() as $existing ) {
+				if ( (int) $existing['booking_id'] === (int) $row['booking_id'] && ( (int) $existing['revision'] === (int) $row['revision'] || $existing['idempotency_key'] === $row['idempotency_key'] ) ) {
+					$this->last_error = 'duplicate show settlement revision';
+					return false;
+				}
+			}
+		}
+		if ( false !== strpos( $table, 'ec_booking_show_settlement_actions' ) ) {
+			foreach ( $this->rows[ $table ] ?? array() as $existing ) {
+				if ( (int) $existing['show_settlement_id'] === (int) $row['show_settlement_id'] && (int) $existing['expected_version'] === (int) $row['expected_version'] || (int) $existing['booking_id'] === (int) $row['booking_id'] && $existing['idempotency_key'] === $row['idempotency_key'] ) {
+					$this->last_error = 'duplicate show settlement action';
+					return false;
+				}
+			}
+		}
 		if ( false !== strpos( $table, 'ec_booking_attachment_deliveries' ) ) {
 			foreach ( $this->rows[ $table ] ?? array() as $existing ) {
 				if ( $existing['correlation_id'] === $row['correlation_id'] ) {
@@ -840,17 +856,19 @@ final class BookingWpdb {
 			$table = stripslashes( $match[1] );
 			return isset( $this->engines[ $table ] ) ? array( 'Engine' => $this->engines[ $table ] ) : null;
 		}
-		$is_activity   = false !== strpos( $query, 'ec_booking_activity' );
-		$is_attachment = false !== strpos( $query, 'ec_booking_attachments' );
-		$is_delivery   = false !== strpos( $query, 'ec_booking_attachment_deliveries' );
-		$is_state      = false !== strpos( $query, 'ec_booking_communication_state' );
-		$is_hold       = false !== strpos( $query, 'ec_booking_holds' );
-		$is_sales      = false !== strpos( $query, 'ec_booking_sales_reports' );
-		$is_source     = false !== strpos( $query, 'ec_booking_ticket_sources' );
-		$is_resolution = false !== strpos( $query, 'ec_booking_sales_resolutions' );
-		$is_settlement = false !== strpos( $query, 'ec_booking_settlements' );
-		$is_membership = false !== strpos( $query, 'ec_venue_members' );
-		$database_now  = $this->current_database_time();
+		$is_activity    = false !== strpos( $query, 'ec_booking_activity' );
+		$is_attachment  = false !== strpos( $query, 'ec_booking_attachments' );
+		$is_delivery    = false !== strpos( $query, 'ec_booking_attachment_deliveries' );
+		$is_state       = false !== strpos( $query, 'ec_booking_communication_state' );
+		$is_hold        = false !== strpos( $query, 'ec_booking_holds' );
+		$is_sales       = false !== strpos( $query, 'ec_booking_sales_reports' );
+		$is_source      = false !== strpos( $query, 'ec_booking_ticket_sources' );
+		$is_resolution  = false !== strpos( $query, 'ec_booking_sales_resolutions' );
+		$is_settlement  = false !== strpos( $query, 'ec_booking_settlements' );
+		$is_show        = false !== strpos( $query, 'ec_booking_show_settlements' );
+		$is_show_action = false !== strpos( $query, 'ec_booking_show_settlement_actions' );
+		$is_membership  = false !== strpos( $query, 'ec_venue_members' );
+		$database_now   = $this->current_database_time();
 		if ( null !== $this->reads_before_failure ) {
 			if ( 0 === $this->reads_before_failure ) {
 				$this->last_error = 'simulated delayed row read failure';
@@ -862,7 +880,36 @@ final class BookingWpdb {
 			$this->last_error = 'simulated row read failure';
 			return null;
 		}
-		$table = $is_membership ? $this->prefix . 'ec_venue_members' : ( $is_source ? $this->prefix . 'ec_booking_ticket_sources' : ( $is_resolution ? $this->prefix . 'ec_booking_sales_resolutions' : ( $is_sales ? $this->prefix . 'ec_booking_sales_reports' : ( $is_settlement ? $this->prefix . 'ec_booking_settlements' : ( $is_delivery ? $this->prefix . 'ec_booking_attachment_deliveries' : ( $is_attachment ? $this->prefix . 'ec_booking_attachments' : ( $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_state ? $this->prefix . 'ec_booking_communication_state' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' ) ) ) ) ) ) ) ) );
+		$table = $is_show_action ? $this->prefix . 'ec_booking_show_settlement_actions' : ( $is_show ? $this->prefix . 'ec_booking_show_settlements' : ( $is_membership ? $this->prefix . 'ec_venue_members' : ( $is_source ? $this->prefix . 'ec_booking_ticket_sources' : ( $is_resolution ? $this->prefix . 'ec_booking_sales_resolutions' : ( $is_sales ? $this->prefix . 'ec_booking_sales_reports' : ( $is_settlement ? $this->prefix . 'ec_booking_settlements' : ( $is_delivery ? $this->prefix . 'ec_booking_attachment_deliveries' : ( $is_attachment ? $this->prefix . 'ec_booking_attachments' : ( $is_activity ? $this->prefix . 'ec_booking_activity' : ( $is_state ? $this->prefix . 'ec_booking_communication_state' : ( $is_hold ? $this->prefix . 'ec_booking_holds' : $this->prefix . 'ec_bookings' ) ) ) ) ) ) ) ) ) ) );
+		if ( $is_show && preg_match( "/WHERE booking_id = (\d+) AND idempotency_key = '([^']+)'/", $query, $match ) ) {
+			foreach ( $this->rows[ $table ] ?? array() as $row ) {
+				if ( (int) $row['booking_id'] === (int) $match[1] && $row['idempotency_key'] === stripslashes( $match[2] ) ) {
+					return $row;
+				}
+			}
+			return null;
+		}
+		if ( $is_show && preg_match( '/WHERE booking_id = (\d+) AND revision = (\d+)/', $query, $match ) ) {
+			foreach ( $this->rows[ $table ] ?? array() as $row ) {
+				if ( (int) $row['booking_id'] === (int) $match[1] && (int) $row['revision'] === (int) $match[2] ) {
+					return $row;
+				}
+			}
+			return null;
+		}
+		if ( $is_show && preg_match( '/WHERE booking_id = (\d+) ORDER BY revision DESC/', $query, $match ) ) {
+			$rows = array_values( array_filter( $this->rows[ $table ] ?? array(), static fn( array $row ): bool => (int) $row['booking_id'] === (int) $match[1] ) );
+			usort( $rows, static fn( array $left, array $right ): int => (int) $right['revision'] <=> (int) $left['revision'] );
+			return $rows[0] ?? null;
+		}
+		if ( $is_show_action && preg_match( "/WHERE booking_id = (\d+) AND idempotency_key = '([^']+)'/", $query, $match ) ) {
+			foreach ( $this->rows[ $table ] ?? array() as $row ) {
+				if ( (int) $row['booking_id'] === (int) $match[1] && $row['idempotency_key'] === stripslashes( $match[2] ) ) {
+					return $row;
+				}
+			}
+			return null;
+		}
 		if ( $is_membership && preg_match( '/WHERE venue_term_id = (\d+) AND user_id = (\d+)/', $query, $membership ) ) {
 			foreach ( $this->rows[ $table ] ?? array() as $row ) {
 				if ( (int) $row['venue_term_id'] === (int) $membership[1] && (int) $row['user_id'] === (int) $membership[2] ) {
@@ -1027,7 +1074,7 @@ final class BookingWpdb {
 			);
 			return $rows[0] ?? null;
 		}
-		if ( ! $is_attachment && ! $is_delivery && ! $is_activity && ! $is_state && ! $is_hold && ! $is_sales && ! $is_source && ! $is_resolution && ! $is_settlement && ! $is_membership && false !== strpos( $query, 'FOR UPDATE' ) ) {
+		if ( ! $is_attachment && ! $is_delivery && ! $is_activity && ! $is_state && ! $is_hold && ! $is_sales && ! $is_source && ! $is_resolution && ! $is_settlement && ! $is_show && ! $is_show_action && ! $is_membership && false !== strpos( $query, 'FOR UPDATE' ) ) {
 			++$this->booking_lock_queries;
 			if ( is_callable( $this->after_booking_lock ) ) {
 				$callback                 = $this->after_booking_lock;
@@ -1036,7 +1083,7 @@ final class BookingWpdb {
 			}
 		}
 		if ( preg_match( '/WHERE id = (\d+)/', $query, $match ) ) {
-			if ( ! $is_attachment && ! $is_delivery && ! $is_activity && ! $is_state && ! $is_hold && ! $is_sales && ! $is_source && ! $is_resolution && ! $is_settlement && ! $is_membership && false !== strpos( $query, 'FOR UPDATE' ) ) {
+			if ( ! $is_attachment && ! $is_delivery && ! $is_activity && ! $is_state && ! $is_hold && ! $is_sales && ! $is_source && ! $is_resolution && ! $is_settlement && ! $is_show && ! $is_show_action && ! $is_membership && false !== strpos( $query, 'FOR UPDATE' ) ) {
 				$this->lock_sequence[] = 'booking:' . (int) $match[1];
 			}
 			$row = $this->rows[ $table ][ (int) $match[1] ] ?? null;
@@ -1364,6 +1411,16 @@ final class BookingWpdb {
 					);
 				}
 			}
+			return $rows;
+		}
+		if ( false !== strpos( $query, 'ec_booking_show_settlement_actions' ) && preg_match( '/show_settlement_id = (\d+)/', $query, $match ) ) {
+			$rows = array_values(
+				array_filter(
+					$this->rows[ $this->prefix . 'ec_booking_show_settlement_actions' ] ?? array(),
+					static fn( array $row ): bool => (int) $row['show_settlement_id'] === (int) $match[1]
+				)
+			);
+			usort( $rows, static fn( array $left, array $right ): int => (int) $left['expected_version'] <=> (int) $right['expected_version'] ?: (int) $left['id'] <=> (int) $right['id'] );
 			return $rows;
 		}
 		$is_activity   = false !== strpos( $query, 'ec_booking_activity' );
@@ -1983,6 +2040,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingInquiryAdmissionService.p
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/TicketReconciliationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/TicketSettlementService.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/ShowSettlementService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/CanonicalEventPublicationGuard.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/LocalSupportAbilities.php';
@@ -1993,6 +2051,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingEventAbilities.
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingCommunicationAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingMarketingAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/TicketSettlementAbilities.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/ShowSettlementAbilities.php';
 
 final class BookingTestAuthorization extends VenueAuthorization {
 	public $calls                     = array();

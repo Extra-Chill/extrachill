@@ -35,12 +35,14 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 				BookingSchema::sales_reports_table(),
 				BookingSchema::sales_resolutions_table(),
 				BookingSchema::settlements_table(),
+				BookingSchema::show_settlements_table(),
+				BookingSchema::show_settlement_actions_table(),
 			);
 
 			$this->assertSame( $prefix, $wpdb->prefix );
 			$this->assertTrue( BookingSchema::is_ready() );
 			$this->assertTrue( BookingSchema::health() );
-			$this->assertCount( 14, $tables );
+			$this->assertCount( 16, $tables );
 			foreach ( $tables as $table ) {
 				$this->assertStringStartsWith( $prefix, $table );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema integration assertion.
@@ -75,7 +77,7 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 			update_option( BookingSchema::VERSION_OPTION, '13', false );
 
 			$this->assertTrue( BookingSchema::maybe_install() );
-			$this->assertSame( '14', get_option( BookingSchema::VERSION_OPTION ) );
+			$this->assertSame( '15', get_option( BookingSchema::VERSION_OPTION ) );
 			$this->assert_v13_snapshots_survive( $fixtures, $snapshots );
 			$this->assert_migrated_financial_graph_readable();
 			$this->assertSame( '73001', $wpdb->get_var( $wpdb->prepare( "SELECT booking_id FROM `{$reports}` WHERE external_report_id = %s", $external_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirms migration preserved the fixture.

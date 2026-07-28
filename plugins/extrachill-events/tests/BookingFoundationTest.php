@@ -295,28 +295,28 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertSame( array(), $GLOBALS['ec_artist_test']['dbdelta'] );
 	}
 
-	public function test_stamped_v11_install_adds_settlement_tables_without_disturbing_existing_contracts(): void {
+	public function test_stamped_v14_install_adds_show_settlement_tables_without_disturbing_existing_contracts(): void {
 		$this->assertTrue( BookingSchema::install() );
-		$wpdb        = $GLOBALS['wpdb'];
-		$sales       = BookingSchema::sales_reports_table();
-		$settlements = BookingSchema::settlements_table();
-		unset( $wpdb->schemas[ $sales ], $wpdb->schemas[ $settlements ], $wpdb->engines[ $sales ], $wpdb->engines[ $settlements ], $wpdb->rows[ $sales ], $wpdb->rows[ $settlements ] );
+		$wpdb             = $GLOBALS['wpdb'];
+		$show_settlements = BookingSchema::show_settlements_table();
+		$show_actions     = BookingSchema::show_settlement_actions_table();
+		unset( $wpdb->schemas[ $show_settlements ], $wpdb->schemas[ $show_actions ], $wpdb->engines[ $show_settlements ], $wpdb->engines[ $show_actions ], $wpdb->rows[ $show_settlements ], $wpdb->rows[ $show_actions ] );
 
 		$bookings = BookingSchema::bookings_table();
-		$wpdb->rows[ $bookings ][999] = array( 'id' => 999, 'marker' => 'existing-v11-booking' );
+		$wpdb->rows[ $bookings ][999] = array( 'id' => 999, 'marker' => 'existing-v14-booking' );
 		$existing_schemas              = $wpdb->schemas;
 		$existing_engines              = $wpdb->engines;
-		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '11';
+		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '14';
 
 		$this->assertTrue( BookingSchema::maybe_install() );
-		$this->assertSame( '14', get_option( BookingSchema::VERSION_OPTION ) );
-		$this->assertArrayHasKey( $sales, $wpdb->schemas );
-		$this->assertArrayHasKey( $settlements, $wpdb->schemas );
-		$this->assertSame( 'INNODB', strtoupper( $wpdb->engines[ $sales ] ) );
-		$this->assertSame( 'INNODB', strtoupper( $wpdb->engines[ $settlements ] ) );
+		$this->assertSame( '15', get_option( BookingSchema::VERSION_OPTION ) );
+		$this->assertArrayHasKey( $show_settlements, $wpdb->schemas );
+		$this->assertArrayHasKey( $show_actions, $wpdb->schemas );
+		$this->assertSame( 'INNODB', strtoupper( $wpdb->engines[ $show_settlements ] ) );
+		$this->assertSame( 'INNODB', strtoupper( $wpdb->engines[ $show_actions ] ) );
 		$this->assertSame( $existing_schemas, array_intersect_key( $wpdb->schemas, $existing_schemas ) );
 		$this->assertSame( $existing_engines, array_intersect_key( $wpdb->engines, $existing_engines ) );
-		$this->assertSame( 'existing-v11-booking', $wpdb->rows[ $bookings ][999]['marker'] );
+		$this->assertSame( 'existing-v14-booking', $wpdb->rows[ $bookings ][999]['marker'] );
 		$this->assertTrue( BookingSchema::health() );
 	}
 

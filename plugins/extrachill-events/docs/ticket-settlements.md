@@ -47,10 +47,12 @@ The row also
 retains the terminal paid or void audit. Finalized evidence and terms are never
 rewritten.
 
-Schema version 14 explicitly migrates version 13 in place. It preserves every
-current table and row, backfills exact identity hashes, and adds versioned,
-nullable source and attachment provenance columns without rewriting legacy
-report hashes. A site-scoped MySQL advisory lock serializes concurrent
+Schema version 14 explicitly migrated version 13 in place, backfilled exact
+identity hashes, and added versioned nullable provenance without rewriting
+legacy report hashes. Schema version 15 adds complete show-settlement revision
+and lifecycle tables without changing this commission table or its formula
+compatibility, preserving every existing table and row. A site-scoped MySQL
+advisory lock serializes concurrent
 installers. The existing `dbDelta` installer then verifies exact
 columns/indexes/engines and stamps each multisite site only after health checks
 pass.
@@ -127,5 +129,6 @@ silently contribute to commission, and excluded evidence remains visible
 in diagnostics and immutable history.
 
 Provider adapters and provider-specific parsing remain outside this generic
-booking domain. Full show expenses or artist payouts from #318 are also outside
-this contract.
+booking domain. Complete show expenses and artist payouts are layered over this
+frozen commission by the separate show-settlement contract; they do not alter or
+reinterpret it.
