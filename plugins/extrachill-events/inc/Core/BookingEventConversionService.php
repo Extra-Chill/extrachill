@@ -64,7 +64,7 @@ class BookingEventConversionService {
 		if ( is_wp_error( $upstream ) ) {
 			return $this->finalize_failure( $booking_id, $actor_id, $preflight['attempt'], $upstream );
 		}
-		$verified = $this->verify_upstream( $upstream, $preflight['booking'] );
+		$verified = $this->verify_upstream( $upstream, $preflight['booking'], $preflight['input'] );
 		if ( is_wp_error( $verified ) ) {
 			return $verified;
 		}
@@ -413,18 +413,21 @@ class BookingEventConversionService {
 	}
 
 	/** Require DME to return the exact canonical identity and venue proof requested. */
-	private function verify_upstream( $upstream, array $booking ) {
-		$identity = hash( 'sha256', self::SOURCE . "\0" . $booking['public_id'] );
-		$valid    = is_array( $upstream )
+	private function verify_upstream( $upstream, array $booking, array $input ) {
+		$identity       = hash( 'sha256', self::SOURCE . "\0" . $booking['public_id'] );
+		$expected_start = $input['event']['startDate'] . ' ' . $input['event']['startTime'] . ':00';
+		$expected_end   = $input['event']['endDate'] . ' ' . $input['event']['endTime'] . ':00';
+		$valid          = is_array( $upstream )
 			&& true === ( $upstream['success'] ?? null )
 			&& 0 < (int) ( $upstream['event_id'] ?? 0 )
 			&& in_array( $upstream['action'] ?? '', array( 'created', 'updated', 'no_change' ), true )
-			&& 1 === preg_match( '/^[a-f0-9]{64}$/', (string) ( $upstream['fingerprint'] ?? '' ) )
 			&& self::SOURCE === ( $upstream['source']['name'] ?? null )
 			&& ( $upstream['source']['id'] ?? null ) === $booking['public_id']
 			&& ( $upstream['source']['identity'] ?? null ) === $identity
 			&& (int) ( $upstream['normalized']['venue_id'] ?? 0 ) === (int) $booking['venue_term_id']
-			&& 'publish' === ( $upstream['normalized']['post_status'] ?? null );
+			&& 'publish' === ( $upstream['normalized']['post_status'] ?? null )
+			&& ( $upstream['normalized']['start_datetime'] ?? null ) === $expected_start
+			&& ( $upstream['normalized']['end_datetime'] ?? null ) === $expected_end;
 		if ( ! $valid ) {
 			return new \WP_Error(
 				'booking_event_upsert_failed',
@@ -437,13 +440,86 @@ class BookingEventConversionService {
 				)
 			);
 		}
+		$fingerprint = $this->event_fingerprint( (int) $upstream['event_id'], $booking, $identity );
+		if ( is_wp_error( $fingerprint ) ) {
+			return $fingerprint;
+		}
 		return array(
 			'event_id'    => (int) $upstream['event_id'],
 			'event_url'   => (string) ( $upstream['event_url'] ?? '' ),
 			'action'      => (string) $upstream['action'],
-			'fingerprint' => (string) $upstream['fingerprint'],
+			'fingerprint' => $fingerprint,
 			'source'      => $upstream['source'],
 		);
+	}
+
+	/** Verify persisted source ownership and fingerprint the canonical event state. */
+	private function event_fingerprint( int $event_id, array $booking, string $identity ) {
+		$post = get_post( $event_id );
+		$type = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
+		if ( ! $post || ( $post->post_type ?? null ) !== $type
+			|| 'publish' !== ( $post->post_status ?? null )
+			|| self::SOURCE !== get_post_meta( $event_id, '_datamachine_event_source', true )
+			|| get_post_meta( $event_id, '_datamachine_event_source_id', true ) !== $booking['public_id']
+			|| get_post_meta( $event_id, '_datamachine_event_source_identity', true ) !== $identity ) {
+			return new \WP_Error(
+				'booking_event_upsert_failed',
+				__( 'Canonical event conversion returned an invalid source-owned event.', 'extrachill-events' ),
+				array(
+					'status'        => 502,
+					'retryable'     => true,
+					'upstream_code' => 'source_event_invalid',
+					'event_id'      => $event_id,
+				)
+			);
+		}
+		$venues = wp_get_object_terms( $event_id, 'venue', array( 'fields' => 'ids' ) );
+		if ( is_wp_error( $venues ) ) {
+			return new \WP_Error(
+				'booking_event_upsert_failed',
+				__( 'Canonical event venue ownership could not be verified.', 'extrachill-events' ),
+				array(
+					'status'        => 503,
+					'retryable'     => true,
+					'upstream_code' => $venues->get_error_code(),
+				)
+			);
+		}
+		$venues = array_values( array_unique( array_map( 'absint', (array) $venues ) ) );
+		sort( $venues, SORT_NUMERIC );
+		if ( array( (int) $booking['venue_term_id'] ) !== $venues ) {
+			return new \WP_Error(
+				'booking_event_upsert_failed',
+				__( 'Canonical event venue ownership did not match the booking.', 'extrachill-events' ),
+				array(
+					'status'        => 502,
+					'retryable'     => true,
+					'upstream_code' => 'source_event_venue_mismatch',
+					'event_id'      => $event_id,
+				)
+			);
+		}
+		$payload = wp_json_encode(
+			array(
+				'event_id'        => $event_id,
+				'post_status'     => $post->post_status,
+				'post_title'      => $post->post_title,
+				'post_content'    => $post->post_content,
+				'venue_ids'       => $venues,
+				'source'          => self::SOURCE,
+				'source_id'       => $booking['public_id'],
+				'source_identity' => $identity,
+			)
+		);
+		return false === $payload ? new \WP_Error(
+			'booking_event_upsert_failed',
+			__( 'Canonical event state could not be fingerprinted.', 'extrachill-events' ),
+			array(
+				'status'        => 503,
+				'retryable'     => true,
+				'upstream_code' => 'fingerprint_failed',
+			)
+		) : hash( 'sha256', $payload );
 	}
 
 	/** Read only DME-established canonical venue metadata. */

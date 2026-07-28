@@ -214,13 +214,19 @@ final class BookingEventConversionTest extends BookingTestCase {
 			'event_id'  => 901,
 			'event_url' => 'https://events.example/test-band',
 			'action'    => 'created',
-			'fingerprint' => hash( 'sha256', 'event-901' ),
 			'source'    => array(
 				'name'     => $input['source'],
 				'id'       => $input['source_id'],
 				'identity' => hash( 'sha256', $input['source'] . "\0" . $input['source_id'] ),
 			),
-			'normalized' => array( 'venue_id' => 55, 'post_status' => 'publish' ),
+			'normalized' => array(
+				'title'          => $input['event']['title'],
+				'post_status'    => 'publish',
+				'start_datetime' => $input['event']['startDate'] . ' ' . $input['event']['startTime'] . ':00',
+				'end_datetime'   => $input['event']['endDate'] . ' ' . $input['event']['endTime'] . ':00',
+				'venue'          => $input['event']['venue'],
+				'venue_id'       => 55,
+			),
 		);
 		return array_replace_recursive( $result, $overrides );
 	}
@@ -367,6 +373,96 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$this->assertSame( 2, $activity[0]['payload']['data']['version'] );
 		$this->assertSame( 'event_conversion_started', $activity[1]['kind'] );
 		$this->assertGreaterThanOrEqual( 2, $GLOBALS['wpdb']->booking_lock_queries );
+	}
+
+	public function test_recovers_production_created_event_by_source_identity_without_duplication(): void {
+		$booking = $this->booking(
+			array(
+				'performance_start_at' => '2027-01-05 20:00:00',
+				'performance_end_at'   => '2027-01-05 23:00:00',
+			)
+		);
+		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $booking['id'] ]['version'] = 9;
+		$booking  = ( new BookingRepository() )->get( $booking['id'] );
+		$identity = hash( 'sha256', BookingEventConversionService::SOURCE . "\0" . $booking['public_id'] );
+		( new BookingActivityRepository() )->append(
+			array(
+				'booking_id'      => $booking['id'],
+				'kind'            => 'event_conversion_started',
+				'actor_type'      => 'user',
+				'actor_id'        => 12,
+				'idempotency_key' => sprintf( 'event-conversion:%s:1:event_conversion_started', $booking['public_id'] ),
+				'payload'         => array(
+					'attempt'          => 1,
+					'source'           => BookingEventConversionService::SOURCE,
+					'source_id'        => $booking['public_id'],
+					'source_identity'  => $identity,
+					'expected_version' => 9,
+				),
+			)
+		);
+		$this->add_event( 291410, 'data_machine_events', 'draft' );
+		$this->add_event_source_proof(
+			291410,
+			array(
+				'source'    => BookingEventConversionService::SOURCE,
+				'source_id' => $booking['public_id'],
+			)
+		);
+
+		$ability = $this->install_ability(
+			function ( array $input ) use ( $booking, $identity ): array {
+				$this->assertSame( '2027-01-05', $input['event']['startDate'] );
+				$this->assertSame( '15:00', $input['event']['startTime'] );
+				$this->assertSame( 'America/New_York', $input['event']['venueTimezone'] );
+				$this->assertSame( $booking['public_id'], $input['source_id'] );
+				$this->assertSame( $identity, get_post_meta( 291410, '_datamachine_event_source_identity', true ) );
+				$GLOBALS['ec_artist_test']['posts'][7][291410]->post_status = 'publish';
+				return array(
+					'success'    => true,
+					'event_id'   => 291410,
+					'event_url'  => 'https://events.extrachill.com/events/extra-chill-production-smoke-test-at-lo-fi-brewing',
+					'action'     => 'updated',
+					'source'     => array(
+						'name'     => BookingEventConversionService::SOURCE,
+						'id'       => $booking['public_id'],
+						'identity' => $identity,
+					),
+					'normalized' => array(
+						'title'          => $input['event']['title'],
+						'post_status'    => 'publish',
+						'start_datetime' => '2027-01-05 15:00:00',
+						'end_datetime'   => '2027-01-05 18:00:00',
+						'venue'          => $input['event']['venue'],
+						'venue_id'       => 55,
+					),
+				);
+			}
+		);
+
+		$stale = $this->service()->convert( $booking['id'], 8, 12 );
+		$this->assertSame( 'booking_version_conflict', $stale->get_error_code() );
+		$this->assertCount( 0, $ability->calls );
+		$result = $this->service()->convert( $booking['id'], 9, 12 );
+		$this->assertSame( 291410, $result['event_id'] );
+		$this->assertSame( 10, $result['booking_version'] );
+		$this->assertFalse( $result['already_converted'] );
+		$this->assertSame( 'completed', ( new BookingActivityRepository() )->event_conversion_state( $booking['id'], $booking['public_id'] )['status'] );
+		$this->assertSame( 291410, ( new BookingRepository() )->get( $booking['id'] )['event_id'] );
+		$this->assertCount(
+			1,
+			array_filter(
+				$GLOBALS['ec_artist_test']['posts'][7],
+				static function ( $post ) {
+					return 291410 === $post->ID;
+				}
+			)
+		);
+
+		$retry = $this->service()->convert( $booking['id'], 9, 12 );
+		$this->assertTrue( $retry['already_converted'] );
+		$this->assertSame( 291410, $retry['event_id'] );
+		$this->assertCount( 1, $ability->calls );
 	}
 
 	/** @dataProvider priceProvider */
