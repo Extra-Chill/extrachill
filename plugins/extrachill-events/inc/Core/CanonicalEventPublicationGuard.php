@@ -612,8 +612,31 @@ class CanonicalEventPublicationGuard {
 		if ( false === $wall || $wall->format( 'Y-m-d H:i:s' ) !== $value ) {
 			return new \WP_Error( 'canonical_event_datetime_invalid', __( 'Event dates must be valid local venue wall times.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
+		$transitions = $timezone->getTransitions( $wall->getTimestamp() - DAY_IN_SECONDS, $wall->getTimestamp() + DAY_IN_SECONDS );
+		if ( ! is_array( $transitions ) ) {
+			return new \WP_Error(
+				'canonical_event_venue_timezone_transitions_unavailable',
+				__( 'The venue timezone cannot be checked safely for publication.', 'extrachill-events' ),
+				array(
+					'status'    => 409,
+					'timezone'  => $timezone->getName(),
+					'wall_time' => $value,
+				)
+			);
+		}
 		$offsets = array();
-		foreach ( (array) $timezone->getTransitions( $wall->getTimestamp() - DAY_IN_SECONDS, $wall->getTimestamp() + DAY_IN_SECONDS ) as $transition ) {
+		foreach ( $transitions as $transition ) {
+			if ( ! is_array( $transition ) || ! array_key_exists( 'offset', $transition ) ) {
+				return new \WP_Error(
+					'canonical_event_venue_timezone_transitions_unavailable',
+					__( 'The venue timezone cannot be checked safely for publication.', 'extrachill-events' ),
+					array(
+						'status'    => 409,
+						'timezone'  => $timezone->getName(),
+						'wall_time' => $value,
+					)
+				);
+			}
 			$offsets[] = (int) $transition['offset'];
 		}
 		$candidates = array();

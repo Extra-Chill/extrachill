@@ -234,6 +234,22 @@ final class CanonicalEventPublicationGuardTest extends BookingTestCase {
 		$this->assertSame( array(), $GLOBALS['wpdb']->lock_names );
 	}
 
+	public function test_missing_timezone_transitions_fail_closed_with_structured_diagnostic(): void {
+		$GLOBALS['ec_artist_test']['meta'][7][55]['_venue_timezone'] = '+00:00';
+
+		$result = $this->preflight_dme( new CanonicalEventPublicationGuard(), $this->dme_input() );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'canonical_event_venue_timezone_transitions_unavailable', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( '+00:00', $result->get_error_data()['timezone'] );
+		$this->assertSame( array(), $GLOBALS['wpdb']->lock_names );
+		$logs = $GLOBALS['ec_artist_test']['fired_actions']['datamachine_log'];
+		$this->assertSame( 'warning', $logs[0][0] );
+		$this->assertSame( 'canonical_event_venue_timezone_transitions_unavailable', $logs[0][2]['error_code'] );
+		$this->assertSame( '+00:00', $logs[0][2]['error_data']['timezone'] );
+	}
+
 	public function test_release_failure_is_audited_while_every_lock_is_attempted(): void {
 		$guard = new CanonicalEventPublicationGuard();
 		$this->assertTrue( $guard->acquire_for_publication( 55, '2030-08-01 20:00:00', '2030-08-01 23:00:00' ) );
