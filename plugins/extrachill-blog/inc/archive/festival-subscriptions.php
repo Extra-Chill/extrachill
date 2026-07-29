@@ -127,7 +127,7 @@ function extrachill_blog_notify_entity_subscribers( $new_status, $old_status, $p
 	}
 
 	$terms = extrachill_blog_get_post_entity_terms( $post->ID, $entity_type );
-	if ( empty( $terms ) || ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify' ) ) {
+	if ( empty( $terms ) || ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify_with_receipts' ) ) {
 		return;
 	}
 
@@ -163,22 +163,33 @@ function extrachill_blog_notify_entity_subscribers( $new_status, $old_status, $p
 		return;
 	}
 
-	// Claim before delivery so concurrent publish hooks cannot duplicate notices.
+	// Claim before delivery; canonical receipts make a released claim safe to retry.
 	if ( ! add_post_meta( $post->ID, $notified_meta, current_time( 'mysql', true ), true ) ) {
 		return;
 	}
 
-	ec_users_notify(
+	$receipt = ec_users_notify_with_receipts(
 		$recipient_ids,
 		array(
-			'actor_id' => $actor_id,
-			'type'     => $notification_type,
+			'actor_id'        => $actor_id,
+			'type'            => $notification_type,
 			/* translators: %s: post title. */
-			'title'    => sprintf( $notification_title, get_the_title( $post ) ),
-			'link'     => get_permalink( $post ),
-			'item_id'  => (int) $post->ID,
+			'title'           => sprintf( $notification_title, get_the_title( $post ) ),
+			'link'            => get_permalink( $post ),
+			'item_id'         => (int) $post->ID,
+			'producer'        => EXTRACHILL_BLOG_ENTITY_SUBSCRIPTION_PRODUCER,
+			'idempotency_key' => 'post:' . (int) $post->ID . ':' . $notification_type,
 		)
 	);
+
+	$recipient_receipts = is_array( $receipt ) && is_array( $receipt['recipients'] ?? null ) ? $receipt['recipients'] : array();
+	foreach ( $recipient_ids as $recipient_id ) {
+		$status = is_array( $recipient_receipts[ $recipient_id ] ?? null ) ? ( $recipient_receipts[ $recipient_id ]['status'] ?? '' ) : '';
+		if ( ! in_array( $status, array( 'inserted', 'existing' ), true ) ) {
+			delete_post_meta( $post->ID, $notified_meta );
+			return;
+		}
+	}
 }
 
 /**
