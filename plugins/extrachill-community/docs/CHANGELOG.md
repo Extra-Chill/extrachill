@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.24.0] - 2026-07-29
+
+### Added
+- add accountable managed public voices
+- centralize account subscription inventory
+- centralize Local Scene digest consent
+
+### Changed
+- migrate community notifications to receipts
+
+### Fixed
+- align subscription recipient test contract
+- satisfy receipt notification contracts
+- resolve bbPress validation dependency to the real plugin
+- resolve release lint findings from merged topic classification
+- use network classification for community topics
+- resolve scoped release lint findings
+- prevent community author spoofing
+- simplify homepage post composer
+- clarify artist email access settings
+
 ## [1.23.0] - 2026-07-20
 
 ### Added
