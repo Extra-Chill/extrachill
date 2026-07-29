@@ -605,6 +605,27 @@ class LocalSceneDigestTest extends TestCase {
 		$this->assertEmpty( $GLOBALS['local_scene_releases'] );
 	}
 
+	public function test_dry_run_previews_qualified_recipients_without_mutation(): void {
+		$tomorrow = new DateTimeImmutable( 'tomorrow', wp_timezone() );
+		$GLOBALS['local_scene_posts'] = array( new WP_Post( array( 'ID' => 8, 'post_status' => 'publish', 'post_title' => 'Qualified Show' ) ) );
+		$GLOBALS['local_scene_terms'][8] = array( 'location' => array( 44 ), 'venue' => array( $this->term( 10, 'club', 'Club' ) ), 'artist' => array( 3 ) );
+		$GLOBALS['local_scene_event_data'][8] = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'venueTimezone' => 'America/New_York' );
+		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7 ), 'email' => array( 7 ) );
+		$GLOBALS['local_scene_scenes'][7] = array( 'slug' => 'austin' );
+
+		$result = extrachill_events_run_local_scene_digest( array( 'dry_run' => true ) );
+
+		$this->assertTrue( $result['dry_run'] );
+		$this->assertSame( 1, $result['counts']['qualified_events'] );
+		$this->assertSame( 1, $result['counts']['recipients'] );
+		$this->assertSame( 0, $result['counts']['notifications_inserted'] );
+		$this->assertSame( 0, $result['counts']['emails_queued'] );
+		$this->assertEmpty( $GLOBALS['local_scene_notifications'] );
+		$this->assertEmpty( $GLOBALS['local_scene_emails'] );
+		$this->assertEmpty( $GLOBALS['local_scene_releases'] );
+		$this->assertEmpty( $GLOBALS['local_scene_unsubscribes'] );
+	}
+
 	public function test_runner_marks_location_and_recipient_resolution_failures_retryable(): void {
 		$GLOBALS['local_scene_locations'] = new WP_Error( 'location_query_failed' );
 		$location_failure = extrachill_events_run_local_scene_digest();

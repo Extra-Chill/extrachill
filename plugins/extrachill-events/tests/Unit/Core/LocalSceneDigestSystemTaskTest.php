@@ -40,7 +40,7 @@ class LocalSceneDigestSystemTaskTest extends TestCase {
 		};
 		$task->executeTask( 41, array( 'dry_run' => true ) );
 
-		$this->assertSame( array( 'extrachill_local_scene_digest_enabled', false ), $GLOBALS['ec_test_plugin_settings_reads'][0] );
+		$this->assertEmpty( $GLOBALS['ec_test_plugin_settings_reads'] );
 		$this->assertSame( 'failJob', $GLOBALS['ec_test_systemtask_calls'][0]['method'] );
 		$this->assertSame( 'Local Scene digest encountered a retryable delivery failure.', $GLOBALS['ec_test_systemtask_calls'][0]['message'] );
 		$this->assertStringNotContainsString( 'location', strtolower( $GLOBALS['ec_test_systemtask_calls'][0]['message'] ) );
@@ -63,6 +63,57 @@ class LocalSceneDigestSystemTaskTest extends TestCase {
 		$this->assertSame( 'completeJob', $GLOBALS['ec_test_systemtask_calls'][0]['method'] );
 		$this->assertFalse( $GLOBALS['ec_test_systemtask_calls'][0]['data']['retryable_failure'] );
 		$this->assertSame( 1, $GLOBALS['ec_test_systemtask_calls'][0]['data']['counts']['candidate_queries_truncated'] );
+	}
+
+	public function test_disabled_dry_run_executes_preview(): void {
+		$GLOBALS['ec_test_systemtask_calls']      = array();
+		$GLOBALS['ec_test_plugin_settings_reads'] = array();
+		$GLOBALS['ec_test_plugin_settings']       = array( 'extrachill_local_scene_digest_enabled' => false );
+		$GLOBALS['ec_test_digest_params']         = array();
+		$task = new class() extends \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask {
+			protected function runDigest( array $params ): array {
+				$GLOBALS['ec_test_digest_params'][] = $params;
+				return array(
+					'dry_run'           => true,
+					'counts'            => array( 'qualified_events' => 3, 'recipients' => 2 ),
+					'failures'          => array(),
+					'retryable_failure' => false,
+				);
+			}
+		};
+		$task->executeTask( 43, array( 'days' => 7, 'limit' => 8, 'dry_run' => true ) );
+
+		$this->assertEmpty( $GLOBALS['ec_test_plugin_settings_reads'], 'Dry runs must not depend on the live sender setting.' );
+		$this->assertSame( array( 'days' => 7, 'limit' => 8, 'dry_run' => true ), $GLOBALS['ec_test_digest_params'][0] );
+		$this->assertSame( 'completeJob', $GLOBALS['ec_test_systemtask_calls'][0]['method'] );
+		$this->assertTrue( $GLOBALS['ec_test_systemtask_calls'][0]['data']['dry_run'] );
+		$this->assertSame( 3, $GLOBALS['ec_test_systemtask_calls'][0]['data']['counts']['qualified_events'] );
+		$this->assertSame( 2, $GLOBALS['ec_test_systemtask_calls'][0]['data']['counts']['recipients'] );
+	}
+
+	public function test_disabled_live_run_remains_skipped(): void {
+		$GLOBALS['ec_test_systemtask_calls']      = array();
+		$GLOBALS['ec_test_plugin_settings_reads'] = array();
+		$GLOBALS['ec_test_plugin_settings']       = array( 'extrachill_local_scene_digest_enabled' => false );
+		$GLOBALS['ec_test_digest_params']         = array();
+		$task = new class() extends \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask {
+			protected function runDigest( array $params ): array {
+				$GLOBALS['ec_test_digest_params'][] = $params;
+				return array();
+			}
+		};
+		$task->executeTask( 44, array( 'dry_run' => false ) );
+
+		$this->assertSame( array( array( 'extrachill_local_scene_digest_enabled', false ) ), $GLOBALS['ec_test_plugin_settings_reads'] );
+		$this->assertEmpty( $GLOBALS['ec_test_digest_params'] );
+		$this->assertSame( 'completeJob', $GLOBALS['ec_test_systemtask_calls'][0]['method'] );
+		$this->assertSame(
+			array(
+				'skipped' => true,
+				'reason'  => 'Weekly Local Scene digest disabled.',
+			),
+			$GLOBALS['ec_test_systemtask_calls'][0]['data']
+		);
 	}
 
 	public function test_recurring_schedule_is_default_disabled_and_explicitly_delivers(): void {

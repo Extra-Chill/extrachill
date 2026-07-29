@@ -63,7 +63,7 @@ class LocalSceneDigestSystemTask extends SystemTask {
 	 * @param array $params Digest parameters.
 	 */
 	public function executeTask( int $jobId, array $params ): void {
-		if ( ! (bool) PluginSettings::get( 'extrachill_local_scene_digest_enabled', false ) ) {
+		if ( empty( $params['dry_run'] ) && ! (bool) PluginSettings::get( 'extrachill_local_scene_digest_enabled', false ) ) {
 			$this->completeJob(
 				$jobId,
 				array(
