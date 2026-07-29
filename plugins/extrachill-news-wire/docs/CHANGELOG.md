@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2] - 2026-07-29
+
+### Changed
+- migrate Wire notifications to receipts
+
+### Fixed
+- consume typed notification receipts
+
 ## [0.5.1] - 2026-07-13
 
 ### Fixed
