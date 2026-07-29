@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.40.0] - 2026-07-29
+
+### Added
+- support producer-owned notification email
+
+### Changed
+- canonicalize entity email consent
+
 ## [0.39.1] - 2026-07-26
 
 ### Changed
