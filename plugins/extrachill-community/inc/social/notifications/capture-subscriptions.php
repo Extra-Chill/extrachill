@@ -6,8 +6,8 @@
  *
  * - Auto-subscribes a reply author to the topic (gated on the user preference
  *   provided by extrachill-users).
- * - Notifies all other topic subscribers when a new reply lands, routed through
- *   the shared extrachill_notify action into the network notification substrate.
+ * - Notifies all other topic subscribers when a new reply lands through the
+ *   receipt-aware network notification service.
  * - Disables bbPress's parallel subscription emails so all email flows through
  *   the existing extrachill-users digest sweep.
  *
@@ -39,6 +39,10 @@ if ( ! defined('ABSPATH') ) {
  * @param int   $reply_author   Reply author user ID.
  */
 function extrachill_capture_subscription_notifications( $reply_id, $topic_id, $forum_id, $anonymous_data, $reply_author ) {
+	if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
+		return;
+	}
+
 	// Bail if bbPress subscriptions are disabled site-wide.
 	if ( ! function_exists( 'bbp_is_subscriptions_active' ) || ! bbp_is_subscriptions_active() ) {
 		return;
@@ -92,18 +96,18 @@ function extrachill_capture_subscription_notifications( $reply_id, $topic_id, $f
 	$topic_title = get_the_title( $topic_id );
 	$reply_link  = bbp_get_reply_url( $reply_id );
 
-	// Fire through the shared action; the extrachill-users substrate accepts a
-	// recipient array and inserts one notification row per user. Payload keys
-	// follow the legacy shape used by capture-replies/capture-mentions; the
-	// substrate reads topic_title/post_id with item_id as the canonical key.
-	do_action( 'extrachill_notify', $recipients, array(
-		'actor_id'    => $reply_author,
-		'type'        => 'subscription',
-		'topic_title' => $topic_title,
-		'link'        => $reply_link,
-		'item_id'     => $topic_id,
-		'post_id'     => $topic_id,
-	) );
+	ec_users_notify_with_receipts(
+		$recipients,
+		array(
+			'actor_id'        => $reply_author,
+			'type'            => 'subscription',
+			'title'           => $topic_title,
+			'link'            => $reply_link,
+			'item_id'         => $topic_id,
+			'producer'        => 'extrachill-community/topic-subscriptions',
+			'idempotency_key' => 'reply:' . $reply_id,
+		)
+	);
 }
 
 // Hook into bbPress actions (priority 11 - between reply@10 and mention@12).

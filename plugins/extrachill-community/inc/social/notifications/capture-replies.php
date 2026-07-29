@@ -25,6 +25,10 @@ if ( ! defined('ABSPATH') ) {
  * @param int   $reply_author   Reply author user ID
  */
 function extrachill_capture_reply_notifications($reply_id, $topic_id, $forum_id, $anonymous_data, $reply_author) {
+	if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
+		return;
+	}
+
 	// Prevent self-notification (author replying to own topic)
 	if ( get_post_field('post_author', $topic_id) === $reply_author ) {
 		return;
@@ -35,14 +39,19 @@ function extrachill_capture_reply_notifications($reply_id, $topic_id, $forum_id,
 	$topic_title  = get_the_title($topic_id);
 	$reply_link   = bbp_get_reply_url($reply_id);
 
-	// Send reply notification (mention handler will deduplicate if needed)
-	do_action('extrachill_notify', $topic_author, array(
-		'actor_id'    => $reply_author,
-		'type'        => 'reply',
-		'topic_title' => $topic_title,
-		'link'        => $reply_link,
-		'post_id'     => $topic_id,
-	));
+	// Send reply notification (mention handler will deduplicate if needed).
+	ec_users_notify_with_receipts(
+		$topic_author,
+		array(
+			'actor_id'        => $reply_author,
+			'type'            => 'reply',
+			'title'           => $topic_title,
+			'link'            => $reply_link,
+			'item_id'         => $topic_id,
+			'producer'        => 'extrachill-community/replies',
+			'idempotency_key' => 'reply:' . (int) $reply_id,
+		)
+	);
 }
 
 // Hook into bbPress actions (priority 10 - before mentions at priority 12)

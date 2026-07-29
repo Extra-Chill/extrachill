@@ -21,8 +21,8 @@ Receive notifications when other users reply to your forum topics.
 ### Mention Notifications
 Receive notifications when users mention you with @username in forum content.
 
-### Future Types
-Notification system extensible for additional event types via `extrachill_notify` action hook.
+### Additional Types
+Topic subscriptions and festival or artist discussions also create notifications.
 
 ## Notification Components
 
@@ -59,31 +59,29 @@ Notifications are marked as read when the user loads the `/notifications` page.
 
 ## Data Storage
 
-### User Meta
-All notifications stored in `extrachill_notifications` user meta as serialized array.
+### Network Table
+Notifications are stored in the network-wide notifications table owned by Extra Chill Users.
 
 ### Notification Structure
 ```php
 [
-    'actor_id' => 123,
-    'actor_display_name' => 'Username',
-    'actor_profile_link' => 'https://community.extrachill.com/users/username',
-    'type' => 'reply',
-    'link' => 'https://community.extrachill.com/forums/topic/...',
-    'topic_title' => 'Topic Title',
-    'time' => '2025-10-06 12:00:00',
-    'read' => false
+    'actor_id'        => 123,
+    'type'            => 'reply',
+    'title'           => 'Topic Title',
+    'link'            => 'https://community.extrachill.com/forums/topic/...',
+    'item_id'         => 456,
+    'producer'        => 'extrachill-community/replies',
+    'idempotency_key' => 'reply:789',
 ]
 ```
 
-### Notification Cache
-Global cache variable `$extrachill_notifications_cache` prevents duplicate database queries during single page load.
+The producer and idempotency key pair prevents duplicate rows when a bbPress hook is replayed.
 
-## Action Hooks
+## Notification Service
 
 ### Notification Trigger
 ```php
-do_action('extrachill_notify', $user_ids, $notification_data);
+ec_users_notify_with_receipts( $user_ids, $notification_data );
 ```
 
 **Parameters**:
@@ -92,21 +90,20 @@ do_action('extrachill_notify', $user_ids, $notification_data);
   - `actor_id` (int): User ID who triggered notification
   - `type` (string): Notification type identifier
   - `link` (string): URL to notification target
-  - `topic_title` (string): Title/subject of notification
+  - `title` (string): Title/subject of notification
+  - `item_id` (int): Related topic, reply, or content ID
+  - `producer` (string): Feature-owned producer namespace
+  - `idempotency_key` (string): Stable key derived from the triggering content ID
 
-### Handler Registration
-Notification handler registered on `extrachill_notify` action hook with automatic actor enrichment.
+The receipt reports inserted, existing, and failed deliveries per recipient. Entity-topic post-meta claims are released only when a receipt explicitly reports a failed delivery.
 
 ## Performance Optimization
 
-### Single Query Per Page
-Notifications cached in global variable after first database query.
-
 ### Unread Count Calculation
-Unread count calculated from cached array without additional queries.
+Unread counts are cached by Extra Chill Users and invalidated when rows are inserted.
 
 ### Scheduled Cleanup
-Old notifications removed via cron to prevent meta table bloat.
+Old notifications are removed via cron to prevent table bloat.
 
 ## Usage Patterns
 

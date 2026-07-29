@@ -11,6 +11,8 @@ defined( 'ABSPATH' ) || exit;
  * Community's stable entity-subscription producer identifier.
  */
 const EXTRACHILL_COMMUNITY_TOPIC_NOTIFICATION_PRODUCER    = 'extrachill-community';
+const EXTRACHILL_COMMUNITY_FESTIVAL_NOTIFICATION_PRODUCER = 'extrachill-community/festival-topics';
+const EXTRACHILL_COMMUNITY_ARTIST_NOTIFICATION_PRODUCER   = 'extrachill-community/artist-topics';
 const EXTRACHILL_COMMUNITY_FESTIVAL_TOPIC_NOTIFIED_META   = '_extrachill_community_festival_topic_notified';
 const EXTRACHILL_COMMUNITY_ARTIST_TOPIC_NOTIFIED_META     = '_extrachill_community_artist_topic_notified';
 
@@ -36,7 +38,7 @@ add_filter( 'extrachill_users_entity_subscription_producer_authorized', 'extrach
  * @return void
  */
 function extrachill_community_notify_festival_topic_subscribers( $topic_id ) {
-	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify' ) ) {
+	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify_with_receipts' ) ) {
 		return;
 	}
 
@@ -82,21 +84,27 @@ function extrachill_community_notify_festival_topic_subscribers( $topic_id ) {
 	}
 
 	// Claim before delivery so concurrent bbPress hooks cannot duplicate notices.
-	// The claim remains when delivery inserts no rows, making retries at-most-once.
+	// Release the claim only when the receipt explicitly reports a failure.
 	if ( ! add_post_meta( $topic_id, EXTRACHILL_COMMUNITY_FESTIVAL_TOPIC_NOTIFIED_META, current_time( 'mysql', true ), true ) ) {
 		return;
 	}
 
-	ec_users_notify(
+	$receipt = ec_users_notify_with_receipts(
 		$recipients,
 		array(
-			'actor_id' => $author_id,
-			'type'     => 'festival_discussion',
-			'title'    => get_the_title( $topic_id ),
-			'link'     => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $topic_id ) : get_permalink( $topic_id ),
-			'item_id'  => $topic_id,
+			'actor_id'        => $author_id,
+			'type'            => 'festival_discussion',
+			'title'           => get_the_title( $topic_id ),
+			'link'            => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $topic_id ) : get_permalink( $topic_id ),
+			'item_id'         => $topic_id,
+			'producer'        => EXTRACHILL_COMMUNITY_FESTIVAL_NOTIFICATION_PRODUCER,
+			'idempotency_key' => 'topic:' . $topic_id,
 		)
 	);
+
+	if ( is_array( $receipt ) && 0 < absint( $receipt['failed'] ?? 0 ) ) {
+		delete_post_meta( $topic_id, EXTRACHILL_COMMUNITY_FESTIVAL_TOPIC_NOTIFIED_META );
+	}
 }
 add_action( 'bbp_new_topic', 'extrachill_community_notify_festival_topic_subscribers', 30 );
 
@@ -110,7 +118,7 @@ add_action( 'bbp_new_topic', 'extrachill_community_notify_festival_topic_subscri
  * @return void
  */
 function extrachill_community_notify_artist_topic_subscribers( $topic_id ) {
-	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify' ) ) {
+	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify_with_receipts' ) ) {
 		return;
 	}
 
@@ -155,20 +163,26 @@ function extrachill_community_notify_artist_topic_subscribers( $topic_id ) {
 	}
 
 	// Claim before delivery so concurrent bbPress hooks cannot duplicate notices.
-	// The claim remains when delivery inserts no rows, making retries at-most-once.
+	// Release the claim only when the receipt explicitly reports a failure.
 	if ( ! add_post_meta( $topic_id, EXTRACHILL_COMMUNITY_ARTIST_TOPIC_NOTIFIED_META, current_time( 'mysql', true ), true ) ) {
 		return;
 	}
 
-	ec_users_notify(
+	$receipt = ec_users_notify_with_receipts(
 		$recipients,
 		array(
-			'actor_id' => $author_id,
-			'type'     => 'artist_discussion',
-			'title'    => get_the_title( $topic_id ),
-			'link'     => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $topic_id ) : get_permalink( $topic_id ),
-			'item_id'  => $topic_id,
+			'actor_id'        => $author_id,
+			'type'            => 'artist_discussion',
+			'title'           => get_the_title( $topic_id ),
+			'link'            => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $topic_id ) : get_permalink( $topic_id ),
+			'item_id'         => $topic_id,
+			'producer'        => EXTRACHILL_COMMUNITY_ARTIST_NOTIFICATION_PRODUCER,
+			'idempotency_key' => 'topic:' . $topic_id,
 		)
 	);
+
+	if ( is_array( $receipt ) && 0 < absint( $receipt['failed'] ?? 0 ) ) {
+		delete_post_meta( $topic_id, EXTRACHILL_COMMUNITY_ARTIST_TOPIC_NOTIFIED_META );
+	}
 }
 add_action( 'bbp_new_topic', 'extrachill_community_notify_artist_topic_subscribers', 30 );

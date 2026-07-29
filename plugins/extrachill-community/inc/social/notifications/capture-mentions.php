@@ -25,6 +25,10 @@ if ( ! defined('ABSPATH') ) {
  * @param int   $reply_author   Reply author ID (0 for topics)
  */
 function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id, $anonymous_data, $reply_author = 0) {
+	if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
+		return;
+	}
+
 	// Get content based on context (topic or reply)
 	$content = ( 0 === $reply_author ) ? bbp_get_topic_content($post_id) : bbp_get_reply_content($post_id);
 
@@ -44,15 +48,19 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
 
 		// Validate user exists, is active, and isn't mentioning themselves
 		if ( $user && ! bbp_is_user_inactive($user->ID) && $user->ID !== $action_author_id ) {
-			// Send mention notification
-			do_action('extrachill_notify', $user->ID, array(
-				'actor_id'    => $action_author_id,
-				'type'        => 'mention',
-				'topic_title' => get_the_title($actual_topic_id_for_context),
-				'link'        => ( 0 === $reply_author ) ? get_permalink($actual_item_id_for_context) : bbp_get_reply_url($actual_item_id_for_context),
-				'post_id'     => $actual_topic_id_for_context,
-				'item_id'     => $actual_item_id_for_context,
-			));
+			// Send mention notification.
+			ec_users_notify_with_receipts(
+				$user->ID,
+				array(
+					'actor_id'        => $action_author_id,
+					'type'            => 'mention',
+					'title'           => get_the_title($actual_topic_id_for_context),
+					'link'            => ( 0 === $reply_author ) ? get_permalink($actual_item_id_for_context) : bbp_get_reply_url($actual_item_id_for_context),
+					'item_id'         => $actual_item_id_for_context,
+					'producer'        => 'extrachill-community/mentions',
+					'idempotency_key' => 'content:' . (int) $actual_item_id_for_context,
+				)
+			);
 
 			// Priority deduplication: if the mentioned user is the topic author,
 			// remove the (more generic) reply notification the reply-capture
