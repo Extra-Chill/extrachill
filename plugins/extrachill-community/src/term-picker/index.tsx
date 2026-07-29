@@ -1,5 +1,5 @@
 /**
- * Composer term-picker entry.
+ * Edit-only topic taxonomy correction entry.
  *
  * Mounts a TermPicker into the bbPress topic form for each configured
  * taxonomy. Config is injected via wp_localize_script as
@@ -28,6 +28,7 @@ function init(): void {
 	if (
 		! config ||
 		! Array.isArray( config.taxonomies ) ||
+		config.topicId < 1 ||
 		config.taxonomies.length === 0
 	) {
 		return;
@@ -58,7 +59,9 @@ function init(): void {
 		}
 
 		const root = createRoot( mount );
-		root.render( <TermPicker config={ taxonomyConfig } /> );
+		root.render(
+			<TermPicker config={ taxonomyConfig } topicId={ config.topicId } />
+		);
 	} );
 }
 

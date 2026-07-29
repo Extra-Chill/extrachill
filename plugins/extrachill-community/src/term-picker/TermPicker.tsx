@@ -1,19 +1,11 @@
 /**
- * Composer term-picker — curated, pick-from-existing, no freeform creation.
- *
- * Autocompletes against EXISTING curated network taxonomy terms via the WP
- * REST API (NO AJAX, per the system-wide rule). Users select terms as chips;
- * the picker writes hidden inputs (`${field}[]`) that the bbPress save handler
- * reads on submit. Typing a non-matching string creates NOTHING — the network's
- * curated taxonomy tree never drifts from the composer.
- *
- * The component is taxonomy-parameterized via TaxonomyConfig, so location today
- * and artist/festival/venue later share one implementation.
+ * Edit-only taxonomy correction using network-owned term abilities.
  */
 
 /**
  * WordPress dependencies
  */
+import apiFetch from '@wordpress/api-fetch';
 import {
 	useCallback,
 	useEffect,
@@ -21,120 +13,105 @@ import {
 	useRef,
 	useState,
 } from '@wordpress/element';
-import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
-import type { TaxonomyConfig, Term } from './types';
+import type { NetworkTerm, TaxonomyConfig, Term } from './types';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const MAX_SUGGESTIONS = 10;
+const SEARCH_ABILITY = 'extrachill/search-network-terms';
+const PROJECT_ABILITY = 'extrachill/project-network-term';
 
 interface TermPickerProps {
 	config: TaxonomyConfig;
+	topicId: number;
 }
 
-/**
- * Build the REST search path for a taxonomy. Read-only: search only, the
- * picker never hits a write verb on this endpoint.
- * @param restBase
- * @param search
- */
-function buildSearchPath( restBase: string, search: string ): string {
-	const params = new URLSearchParams( {
-		search,
-		per_page: String( MAX_SUGGESTIONS ),
-		_fields: 'id,name,parent',
-		orderby: 'count',
-		order: 'desc',
+interface SearchResponse {
+	terms: NetworkTerm[];
+}
+
+interface ProjectionResponse {
+	taxonomy: string;
+	slug: string;
+	term_id: number;
+}
+
+function abilityPath( name: string ): string {
+	return `/wp-abilities/v1/abilities/${ name }/run`;
+}
+
+export function buildNetworkSearchPath(
+	taxonomy: string,
+	search: string
+): string {
+	const input = {
+		site: 'community',
+		post_type: 'topic',
+		taxonomy,
+		query: search,
+		limit: MAX_SUGGESTIONS,
+	};
+
+	return `${ abilityPath( SEARCH_ABILITY ) }?input=${ encodeURIComponent(
+		JSON.stringify( input )
+	) }`;
+}
+
+export function projectNetworkTerm(
+	topicId: number,
+	term: NetworkTerm
+): Promise< ProjectionResponse > {
+	return apiFetch< ProjectionResponse >( {
+		path: abilityPath( PROJECT_ABILITY ),
+		method: 'POST',
+		data: {
+			input: {
+				site: 'community',
+				post_id: topicId,
+				taxonomy: term.taxonomy,
+				slug: term.slug,
+			},
+		},
 	} );
-	return `/wp/v2/${ restBase }?${ params.toString() }`;
 }
 
-export function TermPicker( { config }: TermPickerProps ) {
+export function TermPicker( { config, topicId }: TermPickerProps ) {
 	const {
 		taxonomy,
-		restBase,
 		label,
 		placeholder,
-		hierarchical,
 		field,
 		selected: initialSelected,
 	} = config;
-
 	const [ query, setQuery ] = useState( '' );
-	const [ suggestions, setSuggestions ] = useState< Term[] >( [] );
+	const [ suggestions, setSuggestions ] = useState< NetworkTerm[] >( [] );
 	const [ selected, setSelected ] = useState< Term[] >( initialSelected );
 	const [ loading, setLoading ] = useState( false );
+	const [ projecting, setProjecting ] = useState( false );
 	const [ open, setOpen ] = useState( false );
 	const [ activeIndex, setActiveIndex ] = useState( -1 );
-
+	const [ unavailable, setUnavailable ] = useState( false );
 	const wrapperRef = useRef< HTMLDivElement | null >( null );
-	const debounceRef = useRef< ReturnType< typeof setTimeout > | null >(
-		null
-	);
-	// Parent-id -> name cache so hierarchical suggestions can show "Term, Parent".
-	const parentNameCache = useRef< Map< number, string > >( new Map() );
+	const searchSequence = useRef( 0 );
 
-	const selectedIds = useMemo(
-		() => new Set( selected.map( ( t ) => t.id ) ),
+	const selectedSlugs = useMemo(
+		() => new Set( selected.map( ( term ) => term.slug ) ),
 		[ selected ]
 	);
-
-	/**
-	 * Resolve parent names for hierarchical context (e.g. "Charleston, South
-	 * Carolina"). Read-only REST lookups, cached to avoid repeat fetches.
-	 */
-	const resolveParentNames = useCallback(
-		async ( terms: Term[] ) => {
-			if ( ! hierarchical ) {
-				return;
-			}
-			const missing = Array.from(
-				new Set(
-					terms
-						.map( ( t ) => t.parent )
-						.filter(
-							( id ) =>
-								id > 0 && ! parentNameCache.current.has( id )
-						)
-				)
-			);
-			if ( missing.length === 0 ) {
-				return;
-			}
-			const params = new URLSearchParams( {
-				include: missing.join( ',' ),
-				per_page: String( missing.length ),
-				_fields: 'id,name',
-			} );
-			try {
-				const parents = await apiFetch<
-					Array< { id: number; name: string } >
-				>( {
-					path: `/wp/v2/${ restBase }?${ params.toString() }`,
-				} );
-				parents.forEach( ( p ) =>
-					parentNameCache.current.set( p.id, p.name )
-				);
-				// Force a re-render so freshly resolved parent names appear.
-				setSuggestions( ( prev ) => [ ...prev ] );
-			} catch {
-				// Non-fatal: suggestions still render without parent context.
-			}
-		},
-		[ hierarchical, restBase ]
+	const visibleSuggestions = useMemo(
+		() =>
+			suggestions.filter( ( term ) => ! selectedSlugs.has( term.slug ) ),
+		[ suggestions, selectedSlugs ]
 	);
 
-	// Debounced REST search against existing terms.
 	useEffect( () => {
-		if ( debounceRef.current ) {
-			clearTimeout( debounceRef.current );
-		}
-
 		const trimmed = query.trim();
+		const sequence = ++searchSequence.current;
+
 		if ( trimmed.length < 1 ) {
 			setSuggestions( [] );
 			setLoading( false );
@@ -142,30 +119,42 @@ export function TermPicker( { config }: TermPickerProps ) {
 		}
 
 		setLoading( true );
-		debounceRef.current = setTimeout( () => {
-			apiFetch< Term[] >( { path: buildSearchPath( restBase, trimmed ) } )
-				.then( ( results ) => {
-					setSuggestions( results );
-					setActiveIndex( results.length > 0 ? 0 : -1 );
-					void resolveParentNames( results );
+		setUnavailable( false );
+		const timeout = setTimeout( () => {
+			apiFetch< SearchResponse >( {
+				path: buildNetworkSearchPath( taxonomy, trimmed ),
+				method: 'GET',
+			} )
+				.then( ( response ) => {
+					if ( sequence !== searchSequence.current ) {
+						return;
+					}
+					const terms = Array.isArray( response.terms )
+						? response.terms
+						: [];
+					setSuggestions( terms );
+					setActiveIndex( terms.length > 0 ? 0 : -1 );
 				} )
 				.catch( () => {
+					if ( sequence !== searchSequence.current ) {
+						return;
+					}
 					setSuggestions( [] );
 					setActiveIndex( -1 );
+					setUnavailable( true );
 				} )
-				.finally( () => setLoading( false ) );
+				.finally( () => {
+					if ( sequence === searchSequence.current ) {
+						setLoading( false );
+					}
+				} );
 		}, SEARCH_DEBOUNCE_MS );
 
-		return () => {
-			if ( debounceRef.current ) {
-				clearTimeout( debounceRef.current );
-			}
-		};
-	}, [ query, restBase, resolveParentNames ] );
+		return () => clearTimeout( timeout );
+	}, [ query, taxonomy ] );
 
-	// Close the suggestion list on outside click.
 	useEffect( () => {
-		function onDocClick( event: MouseEvent ) {
+		function closeOnOutsideClick( event: MouseEvent ) {
 			if (
 				wrapperRef.current &&
 				! wrapperRef.current.contains( event.target as Node )
@@ -173,41 +162,51 @@ export function TermPicker( { config }: TermPickerProps ) {
 				setOpen( false );
 			}
 		}
-		document.addEventListener( 'mousedown', onDocClick );
-		return () => document.removeEventListener( 'mousedown', onDocClick );
+
+		document.addEventListener( 'mousedown', closeOnOutsideClick );
+		return () =>
+			document.removeEventListener( 'mousedown', closeOnOutsideClick );
 	}, [] );
 
-	const termLabel = useCallback(
-		( term: Term ): string => {
-			if ( hierarchical && term.parent > 0 ) {
-				const parentName = parentNameCache.current.get( term.parent );
-				if ( parentName ) {
-					return `${ term.name }, ${ parentName }`;
+	const addTerm = useCallback(
+		async ( term: NetworkTerm ) => {
+			setProjecting( true );
+			setUnavailable( false );
+			try {
+				const projection = await projectNetworkTerm( topicId, term );
+				if ( projection.term_id < 1 ) {
+					throw new Error( 'Missing local term ID' );
 				}
+				setSelected( ( current ) =>
+					current.some( ( item ) => item.id === projection.term_id )
+						? current
+						: [
+								...current,
+								{
+									id: projection.term_id,
+									name: term.name,
+									slug: projection.slug,
+								},
+						  ]
+				);
+				setQuery( '' );
+				setSuggestions( [] );
+				setActiveIndex( -1 );
+				setOpen( false );
+			} catch {
+				setUnavailable( true );
+			} finally {
+				setProjecting( false );
 			}
-			return term.name;
 		},
-		[ hierarchical ]
+		[ topicId ]
 	);
-
-	const addTerm = useCallback( ( term: Term ) => {
-		setSelected( ( prev ) =>
-			prev.some( ( t ) => t.id === term.id ) ? prev : [ ...prev, term ]
-		);
-		setQuery( '' );
-		setSuggestions( [] );
-		setActiveIndex( -1 );
-		setOpen( false );
-	}, [] );
 
 	const removeTerm = useCallback( ( id: number ) => {
-		setSelected( ( prev ) => prev.filter( ( t ) => t.id !== id ) );
+		setSelected( ( current ) =>
+			current.filter( ( term ) => term.id !== id )
+		);
 	}, [] );
-
-	const visibleSuggestions = useMemo(
-		() => suggestions.filter( ( t ) => ! selectedIds.has( t.id ) ),
-		[ suggestions, selectedIds ]
-	);
 
 	const onKeyDown = useCallback(
 		( event: React.KeyboardEvent< HTMLInputElement > ) => {
@@ -217,30 +216,30 @@ export function TermPicker( { config }: TermPickerProps ) {
 				}
 				return;
 			}
+
 			switch ( event.key ) {
 				case 'ArrowDown':
 					event.preventDefault();
 					setActiveIndex(
-						( i ) => ( i + 1 ) % visibleSuggestions.length
+						( index ) => ( index + 1 ) % visibleSuggestions.length
 					);
 					break;
 				case 'ArrowUp':
 					event.preventDefault();
 					setActiveIndex(
-						( i ) =>
-							( i - 1 + visibleSuggestions.length ) %
+						( index ) =>
+							( index - 1 + visibleSuggestions.length ) %
 							visibleSuggestions.length
 					);
 					break;
 				case 'Enter':
-					// Only commit an existing suggestion. Never mint a new term
-					// from free text — curated taxonomy, pick-from-existing only.
 					if (
 						activeIndex >= 0 &&
-						activeIndex < visibleSuggestions.length
+						activeIndex < visibleSuggestions.length &&
+						! projecting
 					) {
 						event.preventDefault();
-						addTerm( visibleSuggestions[ activeIndex ] );
+						void addTerm( visibleSuggestions[ activeIndex ] );
 					}
 					break;
 				case 'Escape':
@@ -248,7 +247,7 @@ export function TermPicker( { config }: TermPickerProps ) {
 					break;
 			}
 		},
-		[ open, visibleSuggestions, activeIndex, addTerm, query ]
+		[ activeIndex, addTerm, open, projecting, query, visibleSuggestions ]
 	);
 
 	const listboxId = `ec-term-picker-listbox-${ taxonomy }`;
@@ -260,9 +259,6 @@ export function TermPicker( { config }: TermPickerProps ) {
 			ref={ wrapperRef }
 			data-taxonomy={ taxonomy }
 		>
-			{ /* Hidden inputs the bbPress save handler reads on submit. An empty
-			     marker guarantees the field is present even with zero selections
-			     so the server can clear the relationship. */ }
 			<input type="hidden" name={ `${ field }_submitted` } value="1" />
 			{ selected.map( ( term ) => (
 				<input
@@ -289,7 +285,7 @@ export function TermPicker( { config }: TermPickerProps ) {
 					{ selected.map( ( term ) => (
 						<li key={ term.id } className="ec-term-picker__chip">
 							<span className="ec-term-picker__chip-label">
-								{ termLabel( term ) }
+								{ term.name }
 							</span>
 							<button
 								type="button"
@@ -320,8 +316,9 @@ export function TermPicker( { config }: TermPickerProps ) {
 					aria-expanded={ open && visibleSuggestions.length > 0 }
 					aria-controls={ listboxId }
 					aria-autocomplete="list"
-					onChange={ ( e ) => {
-						setQuery( e.target.value );
+					disabled={ projecting }
+					onChange={ ( event ) => {
+						setQuery( event.target.value );
 						setOpen( true );
 					} }
 					onFocus={ () => {
@@ -332,38 +329,58 @@ export function TermPicker( { config }: TermPickerProps ) {
 					onKeyDown={ onKeyDown }
 				/>
 
-				{ open && query.trim().length > 0 && (
+				{ unavailable && (
+					<p className="ec-term-picker__status" role="status">
+						{ __(
+							'Term suggestions are unavailable. You can still save your topic.',
+							'extra-chill-community'
+						) }
+					</p>
+				) }
+
+				{ open && query.trim().length > 0 && ! unavailable && (
 					<ul
 						id={ listboxId }
 						className="ec-term-picker__suggestions"
 						role="listbox"
 					>
-						{ loading && (
+						{ ( loading || projecting ) && (
 							<li
 								className="ec-term-picker__suggestion ec-term-picker__suggestion--status"
 								role="option"
 								aria-disabled="true"
 							>
-								{ __( 'Searching…', 'extra-chill-community' ) }
-							</li>
-						) }
-						{ ! loading && visibleSuggestions.length === 0 && (
-							<li
-								className="ec-term-picker__suggestion ec-term-picker__suggestion--status"
-								role="option"
-								aria-disabled="true"
-							>
-								{ __(
-									'No matching terms. You can only pick from existing terms.',
-									'extra-chill-community'
-								) }
+								{ projecting
+									? __(
+											'Adding term…',
+											'extra-chill-community'
+									  )
+									: __(
+											'Searching…',
+											'extra-chill-community'
+									  ) }
 							</li>
 						) }
 						{ ! loading &&
+							! projecting &&
+							visibleSuggestions.length === 0 && (
+								<li
+									className="ec-term-picker__suggestion ec-term-picker__suggestion--status"
+									role="option"
+									aria-disabled="true"
+								>
+									{ __(
+										'No approved network terms found.',
+										'extra-chill-community'
+									) }
+								</li>
+							) }
+						{ ! loading &&
+							! projecting &&
 							visibleSuggestions.map( ( term, index ) => (
 								<li
-									key={ term.id }
-									id={ `${ listboxId }-option-${ term.id }` }
+									key={ `${ term.taxonomy }:${ term.slug }` }
+									id={ `${ listboxId }-option-${ term.slug }` }
 									className={
 										'ec-term-picker__suggestion' +
 										( index === activeIndex
@@ -375,13 +392,12 @@ export function TermPicker( { config }: TermPickerProps ) {
 									onMouseEnter={ () =>
 										setActiveIndex( index )
 									}
-									onMouseDown={ ( e ) => {
-										// mousedown (not click) so it fires before input blur.
-										e.preventDefault();
-										addTerm( term );
+									onMouseDown={ ( event ) => {
+										event.preventDefault();
+										void addTerm( term );
 									} }
 								>
-									{ termLabel( term ) }
+									{ term.name }
 								</li>
 							) ) }
 					</ul>

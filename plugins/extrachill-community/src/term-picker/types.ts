@@ -1,40 +1,40 @@
 /**
- * Shared types for the composer term-picker.
+ * Shared types for network-aware topic taxonomy correction.
  *
- * The picker is taxonomy-PARAMETERIZED: location is the only taxonomy wired
- * today, but artist / festival / venue can be enabled later purely by adding
- * entries to the localized `taxonomies` config — no new component per taxonomy.
+ * The picker is taxonomy-parameterized so artist, festival, and location share
+ * one network-aware implementation.
  */
 
 /**
- * A single curated network term as returned by the WP REST taxonomy endpoint
- * (e.g. GET /wp/v2/location?search=...). Users may only SELECT these; the
- * picker never creates new terms.
+ * A local term assignment. IDs are always Community-local IDs returned by the
+ * network projection ability.
  */
 export interface Term {
 	id: number;
 	name: string;
-	parent: number;
+	slug: string;
+}
+
+export interface NetworkTerm {
+	taxonomy: string;
+	slug: string;
+	name: string;
+	source: string;
 }
 
 /**
  * Per-taxonomy configuration. One entry per taxonomy the picker offers.
  *
- * `restBase` is the taxonomy's REST base (location -> /wp/v2/location). The
- * picker is read-only against that endpoint: it searches existing terms, it
- * never POSTs new ones.
+ * Search and projection use the network-owned Abilities API contracts. The
+ * submitted field still contains ordinary Community-local term IDs.
  */
 export interface TaxonomyConfig {
 	/** Taxonomy slug, e.g. "location". */
 	taxonomy: string;
-	/** REST base used to build the search URL, e.g. "location". */
-	restBase: string;
 	/** Visible field label, e.g. "Location". */
 	label: string;
 	/** Placeholder shown in the search input. */
 	placeholder: string;
-	/** Hierarchical taxonomies show parent context in suggestions. */
-	hierarchical: boolean;
 	/**
 	 * Name of the POST field the bbPress save handler reads. Values are
 	 * submitted as `${field}[]` so the server can assign multiple terms.
@@ -50,6 +50,7 @@ export interface TaxonomyConfig {
 export interface TermPickerConfig {
 	restUrl: string;
 	restNonce: string;
+	topicId: number;
 	taxonomies: TaxonomyConfig[];
 }
 

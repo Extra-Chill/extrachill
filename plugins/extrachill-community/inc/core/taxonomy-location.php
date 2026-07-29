@@ -32,7 +32,7 @@ function extrachill_community_register_location_for_forums() {
 add_action( 'init', 'extrachill_community_register_location_for_forums', 20 );
 
 /**
- * Persist a topic's location term(s) on create/edit.
+ * Persist a topic's manually corrected location terms on edit.
  *
  * Reads the composer term-picker's `bbp_topic_location[]` array from the
  * submitted topic form and assigns the matching EXISTING hierarchical location
@@ -86,7 +86,6 @@ function extrachill_community_save_topic_location( $topic_id ) {
 	// Empty (or all-invalid) selection clears the location.
 	wp_set_object_terms( $topic_id, $term_ids, 'location' );
 }
-add_action( 'bbp_new_topic', 'extrachill_community_save_topic_location', 20 );
 add_action( 'bbp_edit_topic', 'extrachill_community_save_topic_location', 20 );
 
 /**

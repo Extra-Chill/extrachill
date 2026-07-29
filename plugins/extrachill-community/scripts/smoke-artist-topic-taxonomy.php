@@ -28,8 +28,8 @@ if ( ! $artist_picker || 'bbp_topic_artist' !== $artist_picker['field'] ) {
 	WP_CLI::error( 'Artist topic picker configuration is missing or invalid.' );
 }
 
-if ( 20 !== has_action( 'bbp_new_topic', 'extrachill_community_save_topic_artist' ) || 20 !== has_action( 'bbp_edit_topic', 'extrachill_community_save_topic_artist' ) ) {
-	WP_CLI::error( 'Artist topic persistence hooks are not registered.' );
+if ( false !== has_action( 'bbp_new_topic', 'extrachill_community_save_topic_artist' ) || 20 !== has_action( 'bbp_edit_topic', 'extrachill_community_save_topic_artist' ) ) {
+	WP_CLI::error( 'Artist persistence must be registered for edits only.' );
 }
 
 $query                   = new WP_Query();

@@ -93,17 +93,6 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 					<?php endif; ?>
 
-					<?php
-					// Composer term-picker (issue #59): curated, pick-from-
-					// existing taxonomy tagging. The React picker mounts via the
-					// bbp_theme_before_topic_form_location action
-					// (extrachill_community_render_term_picker_mounts) and submits
-					// the chosen EXISTING term IDs as bbp_topic_location[]. No
-					// freeform creation, so the network's curated taxonomy tree
-					// never drifts. Hooks preserved so plugins can still target
-					// this slot; the minimal #57 <select> it supersedes is gone.
-					?>
-
 					<?php do_action( 'bbp_theme_before_topic_form_location' ); ?>
 
 					<?php do_action( 'bbp_theme_after_topic_form_location' ); ?>

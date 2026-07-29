@@ -37,6 +37,9 @@ function sanitize_title( $value ) {
 function wp_unslash( $value ) {
 	return $value;
 }
+function absint( $value ) {
+	return abs( (int) $value );
+}
 function get_taxonomy( $taxonomy ) {
 	if ( ! in_array( $taxonomy, array( 'artist', 'festival', 'location' ), true ) ) {
 		return false;
@@ -174,13 +177,12 @@ check(
 
 $_GET = $valid_query;
 $config = extrachill_community_term_picker_config();
-$artist = array_values( array_filter( $config['taxonomies'], fn( $entry ) => 'artist' === $entry['taxonomy'] ) )[0];
-check( 'authorized continuation preselects the existing picker term', 42 === $artist['selected'][0]['id'] );
+check( 'create composer never receives taxonomy correction fields', array() === $config['taxonomies'] );
+check( 'create composer config has no topic target', 0 === $config['topicId'] );
 
 $GLOBALS['_test_can_publish'] = false;
 $config                       = extrachill_community_term_picker_config();
-$artist                       = array_values( array_filter( $config['taxonomies'], fn( $entry ) => 'artist' === $entry['taxonomy'] ) )[0];
-check( 'topic permissions gate preselection', array() === $artist['selected'] );
+check( 'unauthorized continuation also has no create taxonomy fields', array() === $config['taxonomies'] );
 
 function render_topic_modal() {
 	ob_start();

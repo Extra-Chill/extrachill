@@ -37,7 +37,7 @@ function extrachill_register_artist_for_bbpress() {
 add_action( 'init', 'extrachill_register_artist_for_bbpress', 20 );
 
 /**
- * Persist existing artist terms selected in the bbPress topic composer.
+ * Persist approved artist terms selected while editing a topic.
  *
  * The picker only submits IDs for existing shared artist terms. Its marker
  * lets an intentionally empty selection clear an edited topic while leaving
@@ -70,7 +70,6 @@ function extrachill_community_save_topic_artist( $topic_id ) {
 	// Empty (or all-invalid) selection clears the artist context.
 	wp_set_object_terms( $topic_id, $term_ids, 'artist' );
 }
-add_action( 'bbp_new_topic', 'extrachill_community_save_topic_artist', 20 );
 add_action( 'bbp_edit_topic', 'extrachill_community_save_topic_artist', 20 );
 
 /**

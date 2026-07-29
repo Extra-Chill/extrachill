@@ -1,21 +1,16 @@
 <?php
 /**
- * Composer Term-Picker
+ * Topic Taxonomy Correction
  *
- * Curated, pick-from-existing taxonomy tagging for the bbPress topic composer.
+ * Optional network-aware taxonomy correction for existing bbPress topics.
  *
- * Users tag their post with EXISTING curated network taxonomy terms (location
- * festival, and artist) via an autocomplete React picker. The
- * picker searches terms through the WP REST API (NO AJAX, per the system-wide
- * rule) and submits the chosen term IDs as a hidden `${field}[]` array that the
- * server-side save handler assigns on bbp_new_topic / bbp_edit_topic.
+ * New topics rely on the network-owned asynchronous classifier and do not show
+ * taxonomy fields. Existing topics retain a collapsed correction UI that
+ * searches approved network identities, projects missing terms locally, and
+ * submits the returned local IDs through the existing edit handlers.
  *
- * Curated only: the picker NEVER creates terms. Typing a non-matching string
- * mints nothing, so the network's shared taxonomy tree never drifts.
- *
- * Taxonomy-parameterized: the picker is driven by a config array (one entry per
- * taxonomy). Enabling another taxonomy is a config addition here, not a new
- * component.
+ * Community consumes the network abilities directly. It does not load or wait
+ * on Data Machine, and an unavailable ability runtime never blocks editing.
  *
  * @package ExtraChillCommunity
  * @since 1.9.0
@@ -26,14 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Taxonomies the composer term-picker offers, in render order.
+ * Taxonomies the topic correction UI offers, in render order.
  *
- * Each taxonomy must be registered for `topic` and REST-enabled. No React
- * change is required to add a future taxonomy.
+ * Each taxonomy must be registered for `topic`.
  *
  * Each entry:
  * - taxonomy     Taxonomy slug.
- * - rest_base    REST base for /wp/v2/<rest_base> term search.
  * - label        Visible field label.
  * - placeholder  Search input placeholder.
  * - field        POST field name; values submit as `${field}[]`.
@@ -44,21 +37,18 @@ function extrachill_community_term_picker_taxonomies() {
 	$taxonomies = array(
 		array(
 			'taxonomy'    => 'location',
-			'rest_base'   => 'location',
 			'label'       => __( 'Location', 'extra-chill-community' ),
 			'placeholder' => __( 'Search locations (e.g. Charleston)…', 'extra-chill-community' ),
 			'field'       => 'bbp_topic_location',
 		),
 		array(
 			'taxonomy'    => 'festival',
-			'rest_base'   => 'festival',
 			'label'       => __( 'Festival', 'extra-chill-community' ),
 			'placeholder' => __( 'Search festivals (e.g. Bonnaroo)…', 'extra-chill-community' ),
 			'field'       => 'bbp_topic_festival',
 		),
 		array(
 			'taxonomy'    => 'artist',
-			'rest_base'   => 'artist',
 			'label'       => __( 'Artist', 'extra-chill-community' ),
 			'placeholder' => __( 'Search artists…', 'extra-chill-community' ),
 			'field'       => 'bbp_topic_artist',
@@ -283,89 +273,75 @@ function extrachill_community_maybe_redirect_discussion_composer_login() {
 add_action( 'template_redirect', 'extrachill_community_maybe_redirect_discussion_composer_login' );
 
 /**
- * Build the localized config the React picker consumes.
+ * Build the localized config the edit-only correction UI consumes.
  *
- * Filters out taxonomies that are not actually registered/REST-enabled, and
- * seeds each taxonomy's `selected` terms when editing an existing topic.
+ * New-topic forms intentionally receive no taxonomy config. Existing local
+ * assignments seed the controls with the local IDs required by wp_set_object_terms().
  *
  * @param int $topic_id Topic ID (0 on the create flow).
  * @return array<string,mixed> Localizable config.
  */
 function extrachill_community_term_picker_config( $topic_id = 0 ) {
-	$taxonomies   = array();
-	$continuation = 0 === (int) $topic_id && extrachill_community_can_continue_discussion_composer()
-		? extrachill_community_get_discussion_composer_state()
-		: null;
+	$taxonomies = array();
+	$topic_id   = absint( $topic_id );
+
+	if ( 0 === $topic_id ) {
+		return array(
+			'restUrl'    => esc_url_raw( rest_url() ),
+			'restNonce'  => wp_create_nonce( 'wp_rest' ),
+			'topicId'    => 0,
+			'taxonomies' => array(),
+		);
+	}
 
 	foreach ( extrachill_community_term_picker_taxonomies() as $entry ) {
 		$taxonomy = $entry['taxonomy'];
 
 		$tax_object = get_taxonomy( $taxonomy );
-		if ( ! $tax_object || empty( $tax_object->show_in_rest ) ) {
+		if ( ! $tax_object || ! is_object_in_taxonomy( 'topic', $taxonomy ) ) {
 			continue;
 		}
 
 		$selected = array();
-		if ( $topic_id > 0 ) {
-			$terms = get_the_terms( $topic_id, $taxonomy );
-			if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) {
-				foreach ( $terms as $term ) {
-					$selected[] = array(
-						'id'     => (int) $term->term_id,
-						'name'   => $term->name,
-						'parent' => (int) $term->parent,
-					);
-				}
+		$terms    = get_the_terms( $topic_id, $taxonomy );
+		if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) {
+			foreach ( $terms as $term ) {
+				$selected[] = array(
+					'id'   => (int) $term->term_id,
+					'name' => $term->name,
+					'slug' => $term->slug,
+				);
 			}
-		} elseif ( $continuation && $taxonomy === $continuation['taxonomy'] ) {
-			$selected[] = array(
-				'id'     => (int) $continuation['term']->term_id,
-				'name'   => $continuation['term']->name,
-				'parent' => (int) $continuation['term']->parent,
-			);
 		}
 
-		$rest_base = ! empty( $tax_object->rest_base ) ? $tax_object->rest_base : $taxonomy;
-
 		$taxonomies[] = array(
-			'taxonomy'     => $taxonomy,
-			'restBase'     => $rest_base,
-			'label'        => $entry['label'],
-			'placeholder'  => $entry['placeholder'],
-			'hierarchical' => (bool) $tax_object->hierarchical,
-			'field'        => $entry['field'],
-			'selected'     => $selected,
+			'taxonomy'    => $taxonomy,
+			'label'       => $entry['label'],
+			'placeholder' => $entry['placeholder'],
+			'field'       => $entry['field'],
+			'selected'    => $selected,
 		);
 	}
 
 	return array(
 		'restUrl'    => esc_url_raw( rest_url() ),
 		'restNonce'  => wp_create_nonce( 'wp_rest' ),
+		'topicId'    => $topic_id,
 		'taxonomies' => $taxonomies,
 	);
 }
 
 /**
- * Enqueue the term-picker script + style on the bbPress topic composer.
+ * Enqueue the correction UI only while editing an existing topic.
  *
- * Guarded to bbPress contexts where the topic form renders (single forum,
- * topic edit, or the homepage New Topic modal). Uses the wp-scripts build
- * artifact and its generated dependency manifest.
+ * Uses the wp-scripts build artifact and its generated dependency manifest.
  */
 function extrachill_community_enqueue_term_picker() {
-	if ( ! function_exists( 'is_bbpress' ) ) {
+	if ( ! function_exists( 'bbp_is_topic_edit' ) || ! bbp_is_topic_edit() ) {
 		return;
 	}
 
-	// Only where the create/edit topic form can appear.
-	$is_topic_form_context = is_bbpress() || is_front_page();
-	if ( ! $is_topic_form_context ) {
-		return;
-	}
-
-	$config = extrachill_community_term_picker_config(
-		( function_exists( 'bbp_is_topic_edit' ) && bbp_is_topic_edit() ) ? bbp_get_topic_id() : 0
-	);
+	$config = extrachill_community_term_picker_config( bbp_get_topic_id() );
 
 	// Nothing to render if no taxonomy resolved.
 	if ( empty( $config['taxonomies'] ) ) {
@@ -414,24 +390,36 @@ function extrachill_community_enqueue_term_picker() {
 add_action( 'wp_enqueue_scripts', 'extrachill_community_enqueue_term_picker', 20 );
 
 /**
- * Render the term-picker mount points inside the topic form.
+ * Render collapsed correction controls on topic edit forms only.
  *
- * One mount div per configured taxonomy; React hydrates each. Output replaces
- * the minimal #57 location <select> (the save handler is generalized to read
- * the picker's array field). Hooked on the same location-form action #57 left
- * in form-topic.php so the picker drops into the established slot.
+ * Automatic network classification owns the create flow. These controls are a
+ * secondary human correction path and remain optional when the ability runtime
+ * is unavailable.
  */
 function extrachill_community_render_term_picker_mounts() {
+	if ( ! function_exists( 'bbp_is_topic_edit' ) || ! bbp_is_topic_edit() ) {
+		return;
+	}
+
+	$mounts = array();
 	foreach ( extrachill_community_term_picker_taxonomies() as $entry ) {
 		$tax_object = get_taxonomy( $entry['taxonomy'] );
-		if ( ! $tax_object || empty( $tax_object->show_in_rest ) ) {
+		if ( ! $tax_object || ! is_object_in_taxonomy( 'topic', $entry['taxonomy'] ) ) {
 			continue;
 		}
 
-		printf(
-			'<div class="ec-term-picker-mount" data-taxonomy="%s"></div>',
-			esc_attr( $entry['taxonomy'] )
-		);
+		$mounts[] = sprintf( '<div class="ec-term-picker-mount" data-taxonomy="%s"></div>', esc_attr( $entry['taxonomy'] ) );
 	}
+
+	if ( empty( $mounts ) ) {
+		return;
+	}
+
+	printf(
+		'<details class="ec-topic-term-corrections"><summary>%s</summary><p class="ec-topic-term-corrections__description">%s</p>%s</details>',
+		esc_html__( 'Correct classifications (optional)', 'extra-chill-community' ),
+		esc_html__( 'Add or remove approved network terms. Your selections are saved as human corrections.', 'extra-chill-community' ),
+		implode( '', $mounts ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each mount is escaped above.
+	);
 }
 add_action( 'bbp_theme_before_topic_form_location', 'extrachill_community_render_term_picker_mounts' );

@@ -23,7 +23,7 @@ function extrachill_community_register_festival_for_topics() {
 add_action( 'init', 'extrachill_community_register_festival_for_topics', 20 );
 
 /**
- * Persist existing festival terms selected in the bbPress topic composer.
+ * Persist approved festival terms selected while editing a topic.
  *
  * @param int $topic_id The topic ID.
  */
@@ -53,7 +53,6 @@ function extrachill_community_save_topic_festival( $topic_id ) {
 	// Empty (or all-invalid) selection clears the festival.
 	wp_set_object_terms( $topic_id, $term_ids, 'festival' );
 }
-add_action( 'bbp_new_topic', 'extrachill_community_save_topic_festival', 20 );
 add_action( 'bbp_edit_topic', 'extrachill_community_save_topic_festival', 20 );
 
 /**
