@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.56.2] - 2026-07-29
+
+### Changed
+- migrate event notifications to receipts
+- consume public DME booking contracts
+
+### Fixed
+- consume typed import notification receipts
+- cast Local Support escape arguments to string
+- collapse venue preferences into one notice
+- scope venue workspace and privatize Local Support controls
+- guard unavailable publication timezone transitions
+- preview disabled local scene digest dry runs
+
 ## [0.56.1] - 2026-07-29
 
 ### Fixed
