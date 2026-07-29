@@ -58,8 +58,8 @@ function extrachill_events_render_venue_email_sharing_control(): void {
 		return;
 	}
 	?>
-	<div class="events-venue-preferences__row" data-venue-email-sharing-control>
-		<div class="events-market-context__copy">
+	<div class="events-venue-preferences__control" data-venue-email-sharing-control>
+		<div class="events-venue-preferences__label">
 			<strong><?php esc_html_e( 'Venue email list', 'extrachill-events' ); ?></strong>
 			<span data-venue-email-sharing-status aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-events' ); ?></span>
 		</div>

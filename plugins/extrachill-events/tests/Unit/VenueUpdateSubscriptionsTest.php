@@ -98,8 +98,9 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		$html = ob_get_clean();
 
 		$this->assertStringContainsString( 'Venue preferences', $html );
-		$this->assertStringContainsString( 'Get event notifications and choose whether to share your email with this venue.', $html );
-		$this->assertStringContainsString( 'Sign in to manage preferences', $html );
+		$this->assertStringContainsString( 'Control event alerts and email access.', $html );
+		$this->assertStringContainsString( 'events-calendar/venue-preferences/', $html );
+		$this->assertStringContainsString( 'Sign in to manage', $html );
 		$this->assertStringNotContainsString( 'data-venue-update-subscription', $html );
 		$this->assertStringNotContainsString( 'data-venue-email-sharing', $html );
 	}
@@ -119,7 +120,7 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'data-slug="the-royal-american"', $html );
 	}
 
-	/** Archive preferences compose two explicit controls in one panel. */
+	/** Archive preferences compose two explicit controls in one notice. */
 	public function test_archive_composes_independent_controls_in_one_panel(): void {
 		$this->venue_archive();
 		wp_set_current_user( self::factory()->user->create() );
@@ -129,7 +130,9 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		$html = ob_get_clean();
 
 		$this->assertSame( 1, substr_count( $html, '<aside' ) );
+		$this->assertSame( 0, substr_count( $html, 'events-venue-preferences__row' ) );
 		$this->assertStringContainsString( 'data-venue-preferences', $html );
+		$this->assertStringContainsString( 'events-calendar/venue-preferences/', $html );
 		$this->assertStringContainsString( 'data-venue-update-subscription', $html );
 		$this->assertStringContainsString( 'data-venue-email-sharing', $html );
 		$this->assertStringContainsString( 'Venue email list', $html );

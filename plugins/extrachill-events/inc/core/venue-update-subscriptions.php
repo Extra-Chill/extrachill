@@ -60,8 +60,22 @@ function extrachill_events_render_venue_update_control(): void {
 	}
 
 	$archive_url = get_term_link( $term );
+	$docs_url    = function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'docs' ) ) . 'events-calendar/venue-preferences/' : '';
 	if ( ! is_user_logged_in() ) {
-		echo '<aside class="events-market-context events-market-context--quiet"><div class="events-market-context__copy"><strong>' . esc_html__( 'Venue preferences', 'extrachill-events' ) . '</strong><span>' . esc_html__( 'Get event notifications and choose whether to share your email with this venue.', 'extrachill-events' ) . '</span></div> <a href="' . esc_url( wp_login_url( $archive_url ) ) . '">' . esc_html__( 'Sign in to manage preferences', 'extrachill-events' ) . '</a></aside>';
+		?>
+		<aside class="events-market-context events-market-context--quiet" data-venue-preferences>
+			<div class="events-market-context__copy">
+				<strong><?php esc_html_e( 'Venue preferences', 'extrachill-events' ); ?></strong>
+				<span>
+					<?php esc_html_e( 'Control event alerts and email access.', 'extrachill-events' ); ?>
+					<?php if ( $docs_url ) : ?>
+						<a href="<?php echo esc_url( $docs_url ); ?>"><?php esc_html_e( 'How preferences work', 'extrachill-events' ); ?></a>
+					<?php endif; ?>
+				</span>
+			</div>
+			<a href="<?php echo esc_url( wp_login_url( $archive_url ) ); ?>"><?php esc_html_e( 'Sign in to manage', 'extrachill-events' ); ?></a>
+		</aside>
+		<?php
 		return;
 	}
 
@@ -71,13 +85,18 @@ function extrachill_events_render_venue_update_control(): void {
 	nocache_headers();
 	?>
 	<aside class="events-market-context events-venue-preferences" data-venue-preferences>
-		<div class="events-venue-preferences__header">
+		<div class="events-market-context__copy">
 			<strong><?php esc_html_e( 'Venue preferences', 'extrachill-events' ); ?></strong>
-			<span><?php esc_html_e( 'Choose how you hear about events and whether this venue can access your email.', 'extrachill-events' ); ?></span>
+			<span>
+				<?php esc_html_e( 'Control event alerts and email access.', 'extrachill-events' ); ?>
+				<?php if ( $docs_url ) : ?>
+					<a href="<?php echo esc_url( $docs_url ); ?>"><?php esc_html_e( 'How preferences work', 'extrachill-events' ); ?></a>
+				<?php endif; ?>
+			</span>
 		</div>
-		<div class="events-venue-preferences__rows">
-			<div class="events-venue-preferences__row" data-venue-update-control>
-				<div class="events-market-context__copy">
+		<div class="events-market-context__actions events-venue-preferences__controls">
+			<div class="events-venue-preferences__control" data-venue-update-control>
+				<div class="events-venue-preferences__label">
 					<strong><?php esc_html_e( 'Event notifications', 'extrachill-events' ); ?></strong>
 					<span data-venue-update-status aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-events' ); ?></span>
 				</div>
