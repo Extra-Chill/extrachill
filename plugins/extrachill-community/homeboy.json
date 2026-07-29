@@ -2,7 +2,11 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "settings": {
+        "validation_dependencies": "/var/www/extrachill.com/wp-content/plugins/bbpress"
+      }
+    }
   },
   "extract_command": "unzip -o {{artifact}} && rm {{artifact}}",
   "id": "extrachill-community",
