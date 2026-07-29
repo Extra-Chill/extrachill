@@ -17,14 +17,12 @@
 
 	function setState( subscribed, message ) {
 		button.setAttribute( 'aria-pressed', subscribed ? 'true' : 'false' );
-		button.textContent = subscribed
-			? 'Email shared with venue'
-			: 'Share email with venue';
+		button.textContent = subscribed ? 'Stop sharing' : 'Share email';
 		status.textContent =
 			message ||
 			( subscribed
-				? 'This venue can access your current account email.'
-				: 'This venue cannot access your account email.' );
+				? 'Shared with this venue'
+				: 'Not shared with this venue' );
 	}
 
 	function request( ability, method ) {
@@ -55,13 +53,13 @@
 	}
 
 	request( 'entity-subscription-status', 'GET' )
-		.then( ( data ) => setState( Boolean( data.subscribed ) ) )
+		.then( ( data ) => {
+			setState( Boolean( data.subscribed ) );
+			button.disabled = false;
+		} )
 		.catch( () => {
 			status.textContent =
-				'Email-sharing status is unavailable. Please try again.';
-		} )
-		.finally( () => {
-			button.disabled = false;
+				"Couldn't load this setting. Refresh to try again.";
 		} );
 
 	button.addEventListener( 'click', () => {

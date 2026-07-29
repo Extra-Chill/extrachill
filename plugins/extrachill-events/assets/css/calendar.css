@@ -104,6 +104,32 @@
     flex-shrink: 0;
 }
 
+.events-venue-preferences {
+    display: block;
+    padding: 0;
+}
+
+.events-venue-preferences__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-md);
+}
+
+.events-venue-preferences__header span {
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+}
+
+.events-venue-preferences__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
 /* Progressive homepage router: search, preferred market, sample, directories. */
 .events-home-router {
     display: grid;
@@ -193,6 +219,15 @@
 
     .events-market-context__actions {
         gap: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .events-venue-preferences__row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .events-venue-preferences__row .button-1 {
+        align-self: flex-start;
     }
 
     .events-primary-market {

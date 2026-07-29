@@ -61,7 +61,7 @@ function extrachill_events_render_venue_update_control(): void {
 
 	$archive_url = get_term_link( $term );
 	if ( ! is_user_logged_in() ) {
-		echo '<aside class="events-market-context events-market-context--quiet"><span>' . esc_html__( 'Get notified when new events are published at this venue.', 'extrachill-events' ) . '</span> <a href="' . esc_url( wp_login_url( $archive_url ) ) . '">' . esc_html__( 'Sign in to subscribe', 'extrachill-events' ) . '</a></aside>';
+		echo '<aside class="events-market-context events-market-context--quiet"><div class="events-market-context__copy"><strong>' . esc_html__( 'Venue preferences', 'extrachill-events' ) . '</strong><span>' . esc_html__( 'Get event notifications and choose whether to share your email with this venue.', 'extrachill-events' ) . '</span></div> <a href="' . esc_url( wp_login_url( $archive_url ) ) . '">' . esc_html__( 'Sign in to manage preferences', 'extrachill-events' ) . '</a></aside>';
 		return;
 	}
 
@@ -70,12 +70,21 @@ function extrachill_events_render_venue_update_control(): void {
 	}
 	nocache_headers();
 	?>
-	<aside class="events-market-context" data-venue-update-control>
-		<div class="events-market-context__copy">
-			<strong><?php esc_html_e( 'Venue updates', 'extrachill-events' ); ?></strong>
-			<span data-venue-update-status><?php esc_html_e( 'Checking your subscription...', 'extrachill-events' ); ?></span>
+	<aside class="events-market-context events-venue-preferences" data-venue-preferences>
+		<div class="events-venue-preferences__header">
+			<strong><?php esc_html_e( 'Venue preferences', 'extrachill-events' ); ?></strong>
+			<span><?php esc_html_e( 'Choose how you hear about events and whether this venue can access your email.', 'extrachill-events' ); ?></span>
 		</div>
-		<button class="button-1 button-small" type="button" disabled aria-pressed="false" data-venue-update-subscription data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Subscribe to updates', 'extrachill-events' ); ?></button>
+		<div class="events-venue-preferences__rows">
+			<div class="events-venue-preferences__row" data-venue-update-control>
+				<div class="events-market-context__copy">
+					<strong><?php esc_html_e( 'Event notifications', 'extrachill-events' ); ?></strong>
+					<span data-venue-update-status aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-events' ); ?></span>
+				</div>
+				<button class="button-1 button-small" type="button" disabled aria-pressed="false" data-venue-update-subscription data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Turn on', 'extrachill-events' ); ?></button>
+			</div>
+			<?php extrachill_events_render_venue_email_sharing_control(); ?>
+		</div>
 	</aside>
 	<?php
 }

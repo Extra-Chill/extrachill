@@ -17,12 +17,8 @@
 
 	function setState( subscribed, message ) {
 		button.setAttribute( 'aria-pressed', subscribed ? 'true' : 'false' );
-		button.textContent = subscribed
-			? 'Subscribed to updates'
-			: 'Subscribe to updates';
-		status.textContent =
-			message ||
-			( subscribed ? 'Venue updates are on.' : 'Venue updates are off.' );
+		button.textContent = subscribed ? 'Turn off' : 'Turn on';
+		status.textContent = message || ( subscribed ? 'On' : 'Off' );
 	}
 
 	function request( ability, method ) {
@@ -53,13 +49,13 @@
 	}
 
 	request( 'entity-subscription-status', 'GET' )
-		.then( ( data ) => setState( Boolean( data.subscribed ) ) )
+		.then( ( data ) => {
+			setState( Boolean( data.subscribed ) );
+			button.disabled = false;
+		} )
 		.catch( () => {
 			status.textContent =
-				'Subscription status is unavailable. Please try again.';
-		} )
-		.finally( () => {
-			button.disabled = false;
+				"Couldn't load this setting. Refresh to try again.";
 		} );
 
 	button.addEventListener( 'click', () => {

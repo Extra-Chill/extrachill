@@ -97,9 +97,11 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		extrachill_events_render_venue_update_control();
 		$html = ob_get_clean();
 
-		$this->assertStringContainsString( 'Get notified when new events are published at this venue.', $html );
-		$this->assertStringContainsString( 'Sign in to subscribe', $html );
+		$this->assertStringContainsString( 'Venue preferences', $html );
+		$this->assertStringContainsString( 'Get event notifications and choose whether to share your email with this venue.', $html );
+		$this->assertStringContainsString( 'Sign in to manage preferences', $html );
 		$this->assertStringNotContainsString( 'data-venue-update-subscription', $html );
+		$this->assertStringNotContainsString( 'data-venue-email-sharing', $html );
 	}
 
 	/** Authenticated archives progressively load the exact venue identity. */
@@ -112,23 +114,26 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		$html = ob_get_clean();
 
 		$this->assertStringContainsString( 'data-venue-update-subscription', $html );
-		$this->assertStringContainsString( 'Checking your subscription...', $html );
+		$this->assertStringContainsString( 'Event notifications', $html );
+		$this->assertStringContainsString( 'aria-live="polite"', $html );
 		$this->assertStringContainsString( 'data-slug="the-royal-american"', $html );
 	}
 
-	/** Archive email sharing remains a visibly separate explicit control. */
-	public function test_archive_renders_separate_email_sharing_control(): void {
+	/** Archive preferences compose two explicit controls in one panel. */
+	public function test_archive_composes_independent_controls_in_one_panel(): void {
 		$this->venue_archive();
 		wp_set_current_user( self::factory()->user->create() );
 
 		ob_start();
 		extrachill_events_render_venue_update_control();
-		extrachill_events_render_venue_email_sharing_control();
 		$html = ob_get_clean();
 
+		$this->assertSame( 1, substr_count( $html, '<aside' ) );
+		$this->assertStringContainsString( 'data-venue-preferences', $html );
 		$this->assertStringContainsString( 'data-venue-update-subscription', $html );
 		$this->assertStringContainsString( 'data-venue-email-sharing', $html );
-		$this->assertStringContainsString( 'Share email with venue', $html );
+		$this->assertStringContainsString( 'Venue email list', $html );
+		$this->assertStringContainsString( 'Share email', $html );
 	}
 
 	/** First publication deduplicates subscribers across all assigned venues. */

@@ -36,7 +36,8 @@ describe( 'Venue update subscriptions', () => {
 		);
 		expect(
 			document.querySelector( '[data-venue-update-status]' ).textContent
-		).toBe( 'Venue updates are off.' );
+		).toBe( 'Off' );
+		expect( document.querySelector( 'button' ).disabled ).toBe( false );
 	} );
 
 	it( 'subscribes with the exact venue identity after a click', async () => {
@@ -63,11 +64,11 @@ describe( 'Venue update subscriptions', () => {
 			slug: 'the-royal-american',
 		} );
 		expect( document.querySelector( 'button' ).textContent ).toBe(
-			'Subscribed to updates'
+			'Turn off'
 		);
 		expect(
 			document.querySelector( '[data-venue-update-status]' ).textContent
-		).toBe( 'Venue updates are on.' );
+		).toBe( 'On' );
 	} );
 
 	it( 'unsubscribes only after an explicit second click', async () => {
@@ -89,7 +90,18 @@ describe( 'Venue update subscriptions', () => {
 			'entity-unsubscribe/run'
 		);
 		expect( document.querySelector( 'button' ).textContent ).toBe(
-			'Subscribe to updates'
+			'Turn on'
 		);
+	} );
+
+	it( 'keeps mutation disabled when status cannot be loaded', async () => {
+		fetch.mockRejectedValue( new Error( 'offline' ) );
+		require( './venue-update-subscriptions' );
+		await flushPromises();
+
+		expect( document.querySelector( 'button' ).disabled ).toBe( true );
+		expect(
+			document.querySelector( '[data-venue-update-status]' ).textContent
+		).toBe( "Couldn't load this setting. Refresh to try again." );
 	} );
 } );

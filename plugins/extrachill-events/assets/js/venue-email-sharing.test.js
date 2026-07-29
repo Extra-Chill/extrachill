@@ -31,6 +31,11 @@ describe( 'Venue email sharing', () => {
 		expect( fetch.mock.calls[ 0 ][ 0 ] ).toContain(
 			'entity-subscription-status'
 		);
+		expect(
+			document.querySelector( '[data-venue-email-sharing-status]' )
+				.textContent
+		).toBe( 'Not shared with this venue' );
+		expect( document.querySelector( 'button' ).disabled ).toBe( false );
 	} );
 
 	it( 'uses only the scoped venue email-sharing identity', async () => {
@@ -57,7 +62,7 @@ describe( 'Venue email sharing', () => {
 			'"entity_type":"venue"'
 		);
 		expect( document.querySelector( 'button' ).textContent ).toBe(
-			'Email shared with venue'
+			'Stop sharing'
 		);
 	} );
 
@@ -80,7 +85,19 @@ describe( 'Venue email sharing', () => {
 			'entity-unsubscribe/run'
 		);
 		expect( document.querySelector( 'button' ).textContent ).toBe(
-			'Share email with venue'
+			'Share email'
 		);
+	} );
+
+	it( 'keeps mutation disabled when status cannot be loaded', async () => {
+		fetch.mockRejectedValue( new Error( 'offline' ) );
+		require( './venue-email-sharing' );
+		await flushPromises();
+
+		expect( document.querySelector( 'button' ).disabled ).toBe( true );
+		expect(
+			document.querySelector( '[data-venue-email-sharing-status]' )
+				.textContent
+		).toBe( "Couldn't load this setting. Refresh to try again." );
 	} );
 } );

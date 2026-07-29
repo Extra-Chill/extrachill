@@ -13,7 +13,6 @@ const EXTRACHILL_EVENTS_VENUE_EMAIL_SHARING_PRODUCER = 'extrachill-events-venue-
 function extrachill_events_init_venue_email_sharing(): void {
 	add_filter( 'extrachill_users_entity_subscription_entities', 'extrachill_events_register_venue_email_sharing_identity' );
 	add_filter( 'extrachill_users_entity_subscription_producer_authorized', 'extrachill_events_authorize_venue_email_sharing_producer', 10, 4 );
-	add_action( 'extrachill_archive_below_description', 'extrachill_events_render_venue_email_sharing_control', 6 );
 	add_action( 'wp_enqueue_scripts', 'extrachill_events_venue_email_sharing_scripts' );
 }
 
@@ -52,31 +51,20 @@ function extrachill_events_authorize_venue_email_sharing_producer( $authorized, 
 		&& 'venue' === ( $entity['taxonomy'] ?? '' );
 }
 
-/** Render a separate explicit email-sharing choice on canonical venue archives. */
+/** Render the explicit email-sharing row inside venue preferences. */
 function extrachill_events_render_venue_email_sharing_control(): void {
 	$term = function_exists( 'extrachill_events_get_venue_archive_term' ) ? extrachill_events_get_venue_archive_term() : null;
-	if ( null === $term ) {
+	if ( null === $term || ! is_user_logged_in() ) {
 		return;
 	}
-
-	$archive_url = get_term_link( $term );
-	if ( ! is_user_logged_in() ) {
-		echo '<aside class="events-market-context events-market-context--quiet"><span>' . esc_html__( 'Share your account email with this venue for its own email list.', 'extrachill-events' ) . '</span> <a href="' . esc_url( wp_login_url( $archive_url ) ) . '">' . esc_html__( 'Sign in to share your email', 'extrachill-events' ) . '</a></aside>';
-		return;
-	}
-
-	if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-		define( 'DONOTCACHEPAGE', true );
-	}
-	nocache_headers();
 	?>
-	<aside class="events-market-context" data-venue-email-sharing-control>
+	<div class="events-venue-preferences__row" data-venue-email-sharing-control>
 		<div class="events-market-context__copy">
 			<strong><?php esc_html_e( 'Venue email list', 'extrachill-events' ); ?></strong>
-			<span data-venue-email-sharing-status><?php esc_html_e( 'Checking your email-sharing choice...', 'extrachill-events' ); ?></span>
+			<span data-venue-email-sharing-status aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-events' ); ?></span>
 		</div>
-		<button class="button-1 button-small" type="button" disabled aria-pressed="false" data-venue-email-sharing data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Share email with venue', 'extrachill-events' ); ?></button>
-	</aside>
+		<button class="button-1 button-small" type="button" disabled aria-pressed="false" data-venue-email-sharing data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Share email', 'extrachill-events' ); ?></button>
+	</div>
 	<?php
 }
 
