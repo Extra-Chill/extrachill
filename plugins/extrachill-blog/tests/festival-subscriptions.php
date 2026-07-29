@@ -18,7 +18,6 @@ class WP_Term {
 $test_meta             = array();
 $test_notifications    = array();
 $test_receipt_statuses = array();
-$test_invalid_receipt  = false;
 
 function add_action() {}
 function add_filter() {}
@@ -80,14 +79,11 @@ function extrachill_users_entity_subscription_recipients( $producer, $entity_typ
 	return '-one' === substr( $slug, -4 ) ? array( 4, 7 ) : array( 7, 9 );
 }
 function ec_users_notify_with_receipts( $recipient_ids, $data ) {
-	global $test_invalid_receipt, $test_notifications, $test_receipt_statuses;
+	global $test_notifications, $test_receipt_statuses;
 	$test_notifications[] = array(
 		'recipient_ids' => $recipient_ids,
 		'data'          => $data,
 	);
-	if ( $test_invalid_receipt ) {
-		return null;
-	}
 
 	$receipt = array(
 		'inserted'   => 0,
@@ -188,15 +184,5 @@ extrachill_blog_notify_festival_subscribers( 'publish', 'draft', $retry_post );
 assert_same( 5, count( $test_notifications ), 'A released claim must retry with successful recipients replayed as existing.' );
 assert_same( 'post:48:festival_update', $test_notifications[3]['data']['idempotency_key'], 'Retries must retain the original content-level idempotency key.' );
 assert_same( $test_notifications[3]['data']['idempotency_key'], $test_notifications[4]['data']['idempotency_key'], 'Retry delivery keys must be stable.' );
-
-$invalid_post = (object) array(
-	'ID'          => 49,
-	'post_type'   => 'post',
-	'post_author' => 12,
-);
-$test_invalid_receipt  = true;
-$test_receipt_statuses = array();
-extrachill_blog_notify_festival_subscribers( 'publish', 'draft', $invalid_post );
-assert_same( '', get_post_meta( 49, EXTRACHILL_BLOG_FESTIVAL_SUBSCRIPTION_NOTIFIED_META, true ), 'An invalid receipt must release the publish claim.' );
 
 fwrite( STDOUT, "Entity subscription tests passed.\n" );

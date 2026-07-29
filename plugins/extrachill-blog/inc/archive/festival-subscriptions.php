@@ -41,11 +41,15 @@ function extrachill_blog_render_festival_subscription_control() {
 	}
 
 	if ( ! is_user_logged_in() ) {
+		$redirect = get_term_link( $term );
+		if ( is_wp_error( $redirect ) ) {
+			$redirect = '';
+		}
 		?>
 		<section class="entity-pillar-subscription" aria-labelledby="festival-pillar-subscription-title">
 			<h2 id="festival-pillar-subscription-title"><?php esc_html_e( 'Get festival updates', 'extrachill-blog' ); ?></h2>
 			<p><?php esc_html_e( 'Log in to subscribe to private Extra Chill notifications for this festival.', 'extrachill-blog' ); ?></p>
-			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to subscribe', 'extrachill-blog' ); ?></a>
+			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( $redirect ) ); ?>"><?php esc_html_e( 'Log in to subscribe', 'extrachill-blog' ); ?></a>
 		</section>
 		<?php
 		return;
@@ -112,7 +116,7 @@ function extrachill_blog_get_post_festival_terms( $post_id ) {
  * @return void
  */
 function extrachill_blog_notify_entity_subscribers( $new_status, $old_status, $post, $entity_type, $notification_type, $notification_title, $notified_meta ) {
-	if ( 'publish' !== $new_status || 'publish' === $old_status || ! is_object( $post ) || 'post' !== $post->post_type ) {
+	if ( 'publish' !== $new_status || 'publish' === $old_status || 'post' !== $post->post_type ) {
 		return;
 	}
 	$is_main_site = function_exists( 'ec_get_current_site_key' )
@@ -133,10 +137,6 @@ function extrachill_blog_notify_entity_subscribers( $new_status, $old_status, $p
 
 	$recipient_ids = array();
 	foreach ( $terms as $term ) {
-		if ( ! ( $term instanceof WP_Term ) ) {
-			continue;
-		}
-
 		$recipients = extrachill_users_entity_subscription_recipients(
 			EXTRACHILL_BLOG_ENTITY_SUBSCRIPTION_PRODUCER,
 			$entity_type,
@@ -182,9 +182,9 @@ function extrachill_blog_notify_entity_subscribers( $new_status, $old_status, $p
 		)
 	);
 
-	$recipient_receipts = is_array( $receipt ) && is_array( $receipt['recipients'] ?? null ) ? $receipt['recipients'] : array();
+	$recipient_receipts = $receipt['recipients'];
 	foreach ( $recipient_ids as $recipient_id ) {
-		$status = is_array( $recipient_receipts[ $recipient_id ] ?? null ) ? ( $recipient_receipts[ $recipient_id ]['status'] ?? '' ) : '';
+		$status = $recipient_receipts[ $recipient_id ]['status'];
 		if ( ! in_array( $status, array( 'inserted', 'existing' ), true ) ) {
 			delete_post_meta( $post->ID, $notified_meta );
 			return;
