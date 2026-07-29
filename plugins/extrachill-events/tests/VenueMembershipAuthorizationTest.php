@@ -1170,6 +1170,15 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertFalse( $authorization->can( 2, 56, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
 	}
 
+	public function test_active_platform_venue_listing_excludes_catalog_only_terms(): void {
+		$repository = new VenueMembershipRepository();
+		$this->create_member( 55, 2, true );
+		$this->create_member( 55, 3, false );
+		$this->create_member( 56, 4, true, VenueAuthorization::STATUS_INVITED );
+
+		$this->assertSame( array( 55 ), $repository->list_active_venue_ids() );
+	}
+
 	public function test_admin_bootstraps_owner_and_only_owner_can_manage_exact_venue(): void {
 		$service = new VenueMembershipService();
 		$this->assertSame( 'venue_membership_owner_required', $service->create( 1, 55, 3, false )->get_error_code() );

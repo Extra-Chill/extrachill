@@ -93,6 +93,8 @@ final class LocalSupportDomainTest extends BookingTestCase {
 		$artist_request = array( 'event_id' => 900, 'venue_term_id' => 55, 'organizer_type' => 'artist', 'organizer_id' => 101 );
 		$this->assertTrue( $authorization->authorize_organizer( $artist_request, 30 ) );
 		$this->assertSame( 'local_support_forbidden', $authorization->authorize_organizer( $artist_request, 31 )->get_error_code() );
+		$GLOBALS['ec_artist_test']['user_caps'][1]['manage_options'] = true;
+		$this->assertSame( 'local_support_forbidden', $authorization->authorize_organizer( $artist_request, 1 )->get_error_code(), 'Administrative capability must not manufacture an artist organizer identity.' );
 		$GLOBALS['ec_artist_test']['event_artists'][7][900] = array();
 		$this->assertSame( 'local_support_forbidden', $authorization->authorize_organizer( $artist_request, 30 )->get_error_code() );
 	}

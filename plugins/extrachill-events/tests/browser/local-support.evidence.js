@@ -134,6 +134,34 @@ const waitForServer = async ( url ) => {
 		);
 		assert.ok( Math.abs( widths.container - widths.button ) < 2 );
 
+		await page.setViewportSize( { width: 1280, height: 900 } );
+		await page.goto(
+			`${ origin }/tests/browser/local-support-fixture.php?scenario=organizer-index`
+		);
+		assert.equal(
+			await page.locator( '.ec-local-support__artist-card' ).count(),
+			3
+		);
+		assert.equal(
+			await page.locator( 'a:has-text("Find local support")' ).count(),
+			1
+		);
+		assert.equal(
+			await page.locator( 'a:has-text("Manage request")' ).count(),
+			2
+		);
+		assert.match(
+			await page.textContent( '.ec-local-support__cards' ),
+			/Seeking/
+		);
+		assert.equal(
+			await page.getAttribute(
+				'a:has-text("Find local support")',
+				'href'
+			),
+			'/local-support/?event_id=901'
+		);
+
 		await page.goto(
 			`${ origin }/tests/browser/local-support-fixture.php?scenario=unauthorized`
 		);
@@ -157,6 +185,7 @@ const waitForServer = async ( url ) => {
 				interactions: [
 					'artist-consent-preview-submit',
 					'ineligible-consent-revoke',
+					'organizer-index-explicit-state',
 					'organizer-select',
 					'unauthorized-alert',
 					'version-conflict-status',

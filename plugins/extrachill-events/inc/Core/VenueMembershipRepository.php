@@ -153,7 +153,24 @@ class VenueMembershipRepository {
 			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
-		return array_map( 'intval', (array) $ids );
+		return array_values( array_unique( array_map( 'intval', (array) $ids ) ) );
+	}
+
+	/**
+	 * List canonical venues that have at least one active platform member.
+	 *
+	 * @return int[]|\WP_Error Canonical venue term IDs or a database error.
+	 */
+	public function list_active_venue_ids() {
+		global $wpdb;
+
+		$table = BookingSchema::memberships_table();
+		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT venue_term_id FROM {$table} WHERE status = %s ORDER BY venue_term_id ASC", VenueAuthorization::STATUS_ACTIVE ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private authority table, reduced to canonical public IDs.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		return array_values( array_unique( array_map( 'intval', (array) $ids ) ) );
 	}
 
 	/** List memberships for one venue with bounded filters. */

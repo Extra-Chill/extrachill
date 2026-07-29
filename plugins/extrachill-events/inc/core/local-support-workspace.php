@@ -6,7 +6,6 @@
  */
 
 use ExtraChillEvents\Core\LocalSupportAuthorization;
-use ExtraChillEvents\Core\LocalSupportRepository;
 use ExtraChillEvents\Core\LocalSupportWorkspace;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -69,21 +68,6 @@ function extrachill_events_process_local_support_action( array $input, int $user
 }
 
 /**
- * Add an organizer-only contextual action without exposing request state.
- *
- * @param int $event_id Canonical event ID.
- */
-function extrachill_events_local_support_event_action( $event_id ): void {
-	if ( ! is_user_logged_in() || ! is_singular( 'data_machine_events' ) || empty( extrachill_events_local_support_organizer_options( absint( $event_id ), get_current_user_id() ) ) ) {
-		return;
-	}
-	$request = ( new LocalSupportRepository() )->get_request_by_event( absint( $event_id ) );
-	$url     = is_array( $request ) ? home_url( '/local-support/' . absint( $request['id'] ) . '/' ) : add_query_arg( 'event_id', absint( $event_id ), home_url( '/local-support/' ) );
-	printf( '<a class="button-2 button-medium" href="%s">%s</a>', esc_url( $url ), esc_html__( 'Find local support', 'extrachill-events' ) );
-}
-add_action( 'data_machine_events_action_buttons', 'extrachill_events_local_support_event_action', 20, 1 );
-
-/**
  * Resolve exact venue or attached-artist organizer identities for an event.
  *
  * @param int $event_id Canonical event ID.
@@ -126,6 +110,70 @@ function extrachill_events_local_support_organizer_options( int $event_id, int $
 	return $options;
 }
 
+/**
+ * List bounded upcoming events the user explicitly represents.
+ *
+ * Request absence is the canonical "not seeking" state. Existing request
+ * rows remain the sole source of all active and terminal workflow states.
+ *
+ * @param int $user_id Acting user ID.
+ * @param int $venue_term_id Optional exact venue scope.
+ * @return array[] Private organizer event cards.
+ */
+function extrachill_events_local_support_organizer_events( int $user_id, int $venue_term_id = 0 ): array {
+	global $wpdb;
+
+	if ( $user_id < 1 ) {
+		return array();
+	}
+
+	$dates       = $wpdb->prefix . 'datamachine_event_dates';
+	$venue_where = $venue_term_id > 0 ? 'AND venue_tt.term_id = %d' : '';
+	$values      = array( 'data_machine_events', current_time( 'mysql' ) );
+	if ( $venue_term_id > 0 ) {
+		$values[] = $venue_term_id;
+	}
+	$values[] = 100;
+	$sql      = "SELECT p.ID, p.post_title, dates.start_datetime, venue_tt.term_id AS venue_term_id
+		FROM {$wpdb->posts} p
+		INNER JOIN {$dates} dates ON dates.post_id = p.ID
+		INNER JOIN {$wpdb->term_relationships} venue_tr ON venue_tr.object_id = p.ID
+		INNER JOIN {$wpdb->term_taxonomy} venue_tt ON venue_tt.term_taxonomy_id = venue_tr.term_taxonomy_id AND venue_tt.taxonomy = 'venue'
+		WHERE p.post_type = %s AND p.post_status = 'publish' AND dates.start_datetime >= %s {$venue_where}
+		ORDER BY dates.start_datetime ASC LIMIT %d";
+	$rows     = $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current-site core and canonical date tables with prepared values.
+	if ( ! is_array( $rows ) || '' !== (string) $wpdb->last_error ) {
+		return array();
+	}
+
+	$repository = new ExtraChillEvents\Core\LocalSupportRepository();
+	$events     = array();
+	foreach ( $rows as $row ) {
+		$event_id = (int) $row['ID'];
+		$options  = extrachill_events_local_support_organizer_options( $event_id, $user_id );
+		if ( empty( $options ) ) {
+			continue;
+		}
+		$request = $repository->get_request_by_event( $event_id );
+		if ( is_wp_error( $request ) ) {
+			continue;
+		}
+		$events[] = array(
+			'id'             => $event_id,
+			'title'          => (string) $row['post_title'],
+			'start_datetime' => (string) $row['start_datetime'],
+			'venue_term_id'  => (int) $row['venue_term_id'],
+			'status'         => is_array( $request ) ? (string) $request['status'] : 'not_seeking',
+			'workspace_url'  => is_array( $request )
+				? home_url( '/local-support/' . (int) $request['id'] . '/' )
+				: add_query_arg( 'event_id', $event_id, home_url( '/local-support/' ) ),
+			'permalink'      => get_permalink( $event_id ),
+		);
+	}
+
+	return $events;
+}
+
 /** Render the current private workspace or a non-enumerating denial. */
 function extrachill_events_render_local_support_workspace(): void {
 	wp_enqueue_style( 'extrachill-events-local-support', EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/css/local-support.css', array(), EXTRACHILL_EVENTS_VERSION );
@@ -141,7 +189,11 @@ function extrachill_events_render_local_support_workspace(): void {
 	$notice    = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	if ( ! $request_id ) {
-		extrachill_events_render_local_support_open( $event_id );
+		if ( $event_id ) {
+			extrachill_events_render_local_support_open( $event_id );
+		} else {
+			extrachill_events_render_local_support_index();
+		}
 		return;
 	}
 	$model = ( new LocalSupportWorkspace() )->read( $request_id, $artist_id, get_current_user_id() );
@@ -163,6 +215,34 @@ function extrachill_events_render_local_support_workspace(): void {
 			extrachill_events_render_local_support_artist( $model );
 		}
 		?>
+	</section>
+	<?php
+}
+
+/**
+ * Render the private organizer event index.
+ *
+ * @param array|null $events Optional pre-authorized organizer events.
+ */
+function extrachill_events_render_local_support_index( ?array $events = null ): void {
+	$events = null === $events ? extrachill_events_local_support_organizer_events( get_current_user_id() ) : $events;
+	?>
+	<section class="ec-local-support ec-block-shell">
+		<p class="ec-local-support__eyebrow"><?php esc_html_e( 'Private event management', 'extrachill-events' ); ?></p>
+		<h1><?php esc_html_e( 'Local Support', 'extrachill-events' ); ?></h1>
+		<p><?php esc_html_e( 'Choose an upcoming event you explicitly represent. Publishing an event does not open an opportunity.', 'extrachill-events' ); ?></p>
+		<?php if ( empty( $events ) ) : ?>
+			<div class="ec-local-support__empty"><strong><?php esc_html_e( 'No upcoming organizer events', 'extrachill-events' ); ?></strong><p><?php esc_html_e( 'Venue memberships and artist rosters determine which events appear here.', 'extrachill-events' ); ?></p></div>
+		<?php else : ?>
+			<div class="ec-local-support__cards">
+				<?php foreach ( $events as $event ) : ?>
+					<article class="ec-local-support__artist-card">
+						<div><h2><?php echo esc_html( $event['title'] ); ?></h2><p><?php echo esc_html( mysql2date( get_option( 'date_format' ), $event['start_datetime'] ) ); ?></p><span class="ec-local-support__status"><?php echo esc_html( 'open' === $event['status'] ? __( 'Seeking', 'extrachill-events' ) : ucwords( str_replace( '_', ' ', $event['status'] ) ) ); ?></span></div>
+						<a class="button-2" href="<?php echo esc_url( $event['workspace_url'] ); ?>"><?php echo esc_html( 'not_seeking' === $event['status'] ? __( 'Find local support', 'extrachill-events' ) : __( 'Manage request', 'extrachill-events' ) ); ?></a>
+					</article>
+				<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
 	</section>
 	<?php
 }

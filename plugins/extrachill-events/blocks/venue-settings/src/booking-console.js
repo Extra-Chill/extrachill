@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 import {
 	ActionRow,
 	FieldGroup,
+	Grid,
 	InlineStatus,
 	Panel,
 	PanelHeader,
@@ -274,7 +275,7 @@ function DealEditor( { booking, defaultDeal, pending, onSave } ) {
 					onSave( deal );
 				} }
 			>
-				<div className="ec-venue-settings__grid">
+				<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 					<FieldGroup label="Deal type" htmlFor="booking-deal-type">
 						<input
 							id="booking-deal-type"
@@ -426,7 +427,7 @@ function DealEditor( { booking, defaultDeal, pending, onSave } ) {
 							}
 						/>
 					</FieldGroup>
-				</div>
+				</Grid>
 				<FieldGroup
 					label="Additional terms"
 					htmlFor="booking-deal-terms"
@@ -491,7 +492,7 @@ function ProductionEditor( { booking, pending, onSave } ) {
 					} );
 				} }
 			>
-				<div className="ec-venue-settings__grid">
+				<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 					<FieldGroup
 						label="Artist requirements (one per line)"
 						htmlFor="booking-production-requirements"
@@ -516,7 +517,7 @@ function ProductionEditor( { booking, pending, onSave } ) {
 							}
 						/>
 					</FieldGroup>
-				</div>
+				</Grid>
 				<FieldGroup
 					label="Production notes"
 					htmlFor="booking-production-notes"
@@ -807,7 +808,7 @@ function Correspondence( { booking, items, onRefresh } ) {
 			) }
 			{ booking.contact_email ? (
 				<form onSubmit={ send } className="ec-booking-console__form">
-					<div className="ec-venue-settings__grid">
+					<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 						<FieldGroup
 							label="Subject"
 							htmlFor="booking-message-subject"
@@ -835,7 +836,7 @@ function Correspondence( { booking, items, onRefresh } ) {
 								required
 							/>
 						</FieldGroup>
-					</div>
+					</Grid>
 					<FieldGroup label="Message" htmlFor="booking-message-body">
 						<textarea
 							id="booking-message-body"
@@ -1013,7 +1014,7 @@ function BookingDetail( {
 
 			<section className="ec-booking-detail__section ec-booking-detail__actions">
 				<h3>Operations</h3>
-				<div className="ec-venue-settings__grid">
+				<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 					<FieldGroup label="Assignment" htmlFor="booking-assignee">
 						<select
 							id="booking-assignee"
@@ -1103,12 +1104,12 @@ function BookingDetail( {
 							Apply transition
 						</button>
 					</FieldGroup>
-				</div>
+				</Grid>
 			</section>
 
 			<section className="ec-booking-detail__section">
 				<h3>Performance and holds</h3>
-				<div className="ec-venue-settings__grid">
+				<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 					<FieldGroup label="Space key" htmlFor="booking-space">
 						<input
 							id="booking-space"
@@ -1138,7 +1139,7 @@ function BookingDetail( {
 							}
 						/>
 					</FieldGroup>
-				</div>
+				</Grid>
 				<ActionRow>
 					<button
 						type="button"

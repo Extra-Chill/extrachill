@@ -279,6 +279,24 @@ if ( ! function_exists( 'ec_user_can' ) ) {
 		return 'manage_artist' === $capability && ! empty( $GLOBALS['ec_artist_test']['artist_managers'][ (int) ( $context['artist_id'] ?? 0 ) ][ (int) ( $context['user_id'] ?? 0 ) ] );
 	}
 }
+if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
+	function ec_get_artists_for_user( $user_id = null ) {
+		$user_id = (int) $user_id;
+		return array_values(
+			array_map(
+				'intval',
+				array_keys(
+					array_filter(
+						(array) ( $GLOBALS['ec_artist_test']['artist_managers'] ?? array() ),
+						static function ( array $managers ) use ( $user_id ): bool {
+							return ! empty( $managers[ $user_id ] );
+						}
+					)
+				)
+			)
+		);
+	}
+}
 if ( ! function_exists( 'parse_blocks' ) ) {
 	function parse_blocks( $content ) {
 		return $GLOBALS['ec_artist_test']['parsed_blocks'][ $content ] ?? array();

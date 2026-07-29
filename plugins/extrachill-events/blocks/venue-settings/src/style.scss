@@ -7,12 +7,6 @@
 .ec-venue-settings {
 	--venue-accent: var(--wp--preset--color--primary, #1f6f5b);
 
-	.ec-block-shell-header {
-		background:
-			linear-gradient(135deg, color-mix(in srgb, var(--venue-accent) 18%, transparent), transparent 60%),
-			var(--wp--preset--color--base, #fff);
-	}
-
 	input:not([type="checkbox"]):not([type="radio"]),
 	select,
 	textarea {
@@ -35,30 +29,8 @@
 	}
 }
 
-.ec-venue-settings__context {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	margin-block: 1rem 1.5rem;
-	padding: 0.9rem 1rem;
-	border-left: 4px solid var(--venue-accent);
-	background: color-mix(in srgb, var(--venue-accent) 7%, transparent);
-}
-
-.ec-venue-settings__stack {
-	display: grid;
-	gap: 1rem;
-}
-
 .ec-venue-settings__support {
 	margin-block-start: 1rem;
-}
-
-.ec-venue-settings__grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 1rem;
 }
 
 .ec-venue-settings__toggle {
@@ -387,10 +359,6 @@
 }
 
 @media (max-width: 720px) {
-	.ec-venue-settings__grid {
-		grid-template-columns: 1fr;
-	}
-
 	.ec-booking-console__toolbar {
 		grid-template-columns: 1fr;
 	}
@@ -429,7 +397,6 @@
 		flex-direction: column;
 	}
 
-	.ec-venue-settings__context,
 	.ec-venue-settings__records li {
 		align-items: flex-start;
 		flex-direction: column;

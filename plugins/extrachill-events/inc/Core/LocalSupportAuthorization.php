@@ -74,13 +74,7 @@ class LocalSupportAuthorization {
 		if ( is_wp_error( $profile_id ) ) {
 			return $profile_id;
 		}
-		if ( ! function_exists( 'ec_user_can' ) || ! ec_user_can(
-			'manage_artist',
-			array(
-				'artist_id' => $profile_id,
-				'user_id'   => $user_id,
-			)
-		) ) {
+		if ( ! function_exists( 'ec_get_artists_for_user' ) || ! in_array( $profile_id, array_map( 'intval', ec_get_artists_for_user( $user_id ) ), true ) ) {
 			return $this->denied();
 		}
 		return true;

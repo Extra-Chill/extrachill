@@ -34,9 +34,17 @@ jest.mock( '@extrachill/components', () => {
 		BlockShellInner: Wrapper,
 		FieldGroup: ( { label, children } ) =>
 			React.createElement( 'label', null, label, children ),
+		Grid: Wrapper,
 		InlineStatus: Wrapper,
 		Panel: Wrapper,
-		PanelHeader: ( { title } ) => React.createElement( 'h2', null, title ),
+		PanelHeader: ( { title, description, actions } ) =>
+			React.createElement(
+				'div',
+				null,
+				React.createElement( 'h2', null, title ),
+				description && React.createElement( 'p', null, description ),
+				actions
+			),
 		SearchBox: ( { value, onSearch, placeholder } ) =>
 			React.createElement( 'input', {
 				value,
@@ -165,6 +173,7 @@ const context = ( overrides = {} ) => ( {
 	can_manage: false,
 	route_url: 'https://events.example/venue-settings/',
 	booking_id: 0,
+	support_events: [],
 	...overrides,
 } );
 
@@ -374,6 +383,34 @@ describe( 'venue settings authorization-facing states', () => {
 				request.path.includes( 'get-venue-profile' )
 			)
 		).toBe( false );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'manages explicit Local Support state from the private venue workspace', async () => {
+		const { container, root } = await renderApp(
+			context( {
+				support_events: [
+					{
+						id: 901,
+						title: 'Kid Lake at Venue 44',
+						start_datetime: '2030-08-01 20:00:00',
+						status: 'not_seeking',
+						workspace_url:
+							'https://events.example/local-support/?event_id=901',
+						permalink: 'https://events.example/kid-lake/',
+					},
+				],
+			} )
+		);
+		await act( async () =>
+			buttonByText( container, 'Local Support' ).click()
+		);
+		expect( container.textContent ).toContain( 'Kid Lake at Venue 44' );
+		expect( container.textContent ).toContain( 'Not seeking' );
+		expect( container.textContent ).toContain( 'Find local support' );
+		expect(
+			container.querySelector( 'a.button-2' ).getAttribute( 'href' )
+		).toBe( 'https://events.example/local-support/?event_id=901' );
 		await act( async () => root.unmount() );
 	} );
 

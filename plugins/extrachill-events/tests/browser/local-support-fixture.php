@@ -20,6 +20,8 @@ function esc_url( $value ) { return (string) $value; }
 function wp_generate_uuid4() { return '123e4567-e89b-42d3-a456-426614174000'; }
 function wp_nonce_field( $action, $name = '_wpnonce' ) { printf( '<input type="hidden" name="%s" value="nonce-%s" />', esc_attr( $name ), esc_attr( $action ) ); }
 function wp_get_current_user() { return (object) array( 'display_name' => 'Artist Manager', 'user_email' => 'manager@example.com' ); }
+function get_option( $key, $default = false ) { return 'date_format' === $key ? 'F j, Y' : $default; }
+function mysql2date( $format, $date ) { return gmdate( $format, strtotime( $date ) ); }
 
 require_once dirname( __DIR__, 2 ) . '/inc/core/local-support-workspace.php';
 
@@ -37,6 +39,14 @@ if ( 'organizer' === $scenario ) {
 	extrachill_events_render_local_support_organizer( array_merge( $base, array( 'role' => 'organizer', 'interests' => $interests ) ) );
 } elseif ( 'artist-consented' === $scenario ) {
 	extrachill_events_render_local_support_artist( array_merge( $base, array( 'role' => 'artist', 'artist' => $artist, 'eligible' => false, 'interest' => array( 'id' => 20, 'request_id' => 15, 'artist_term_id' => 202, 'status' => 'declined', 'version' => 3, 'contact' => array( 'email' => 'manager@example.com' ) ) ) ) );
+} elseif ( 'organizer-index' === $scenario ) {
+	extrachill_events_render_local_support_index(
+		array(
+			array( 'id' => 901, 'title' => 'Touring Band at The Room', 'start_datetime' => '2030-08-01 20:00:00', 'venue_term_id' => 55, 'status' => 'not_seeking', 'workspace_url' => '/local-support/?event_id=901', 'permalink' => '#' ),
+			array( 'id' => 902, 'title' => 'Second Show at The Room', 'start_datetime' => '2030-08-08 20:00:00', 'venue_term_id' => 55, 'status' => 'open', 'workspace_url' => '/local-support/16/', 'permalink' => '#' ),
+			array( 'id' => 903, 'title' => 'Third Show at The Room', 'start_datetime' => '2030-08-15 20:00:00', 'venue_term_id' => 55, 'status' => 'filled', 'workspace_url' => '/local-support/17/', 'permalink' => '#' ),
+		)
+	);
 } elseif ( 'unauthorized' === $scenario ) {
 	extrachill_events_render_local_support_unavailable();
 } elseif ( 'conflict' === $scenario ) {

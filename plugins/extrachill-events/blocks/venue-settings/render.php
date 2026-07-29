@@ -13,6 +13,7 @@ use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\LocalSupportSchema;
 use ExtraChillEvents\Core\LocalSupportWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\VenueMembershipRepository;
 
 $wrapper_attributes = get_block_wrapper_attributes(
 	array( 'class' => 'ec-venue-settings ec-mobile-full-width-panel' )
@@ -69,7 +70,12 @@ $claim_venues  = array_map(
 
 $managed_venues = array();
 if ( $is_admin ) {
+	$active_venue_ids = ( new VenueMembershipRepository() )->list_active_venue_ids();
+	$active_venue_ids = is_wp_error( $active_venue_ids ) ? array() : $active_venue_ids;
 	foreach ( $claim_venues as $venue ) {
+		if ( ! in_array( $venue['id'], $active_venue_ids, true ) ) {
+			continue;
+		}
 		$managed_venues[] = array_merge(
 			$venue,
 			array(
@@ -123,6 +129,9 @@ $context          = array(
 	'can_manage'     => $can_manage,
 	'route_url'      => home_url( '/venue-settings/' ),
 	'booking_id'     => $can_access ? $requested_booking_id : 0,
+	'support_events' => $can_access && function_exists( 'extrachill_events_local_support_organizer_events' )
+		? extrachill_events_local_support_organizer_events( $user_id, (int) $selected['id'] )
+		: array(),
 );
 $context_id       = wp_unique_id( 'ec-venue-settings-context-' );
 $support_requests = $can_access && LocalSupportSchema::is_ready()

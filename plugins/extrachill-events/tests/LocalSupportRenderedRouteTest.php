@@ -85,6 +85,12 @@ final class LocalSupportRenderedRouteTest extends BookingTestCase {
 		$this->service        = new LocalSupportService( $this->repository, $this->authorization );
 	}
 
+	/** Public event pages must never expose organizer workflow controls. */
+	public function test_public_event_action_is_not_registered(): void {
+		$this->assertFalse( function_exists( 'extrachill_events_local_support_event_action' ) );
+		$this->assertNotContains( 'extrachill_events_local_support_event_action', $GLOBALS['ec_artist_test']['actions']['data_machine_events_action_buttons'] ?? array() );
+	}
+
 	/** Prove organizer selection and consent grant/revoke execute from rendered nonce forms. */
 	public function test_rendered_forms_execute_selection_and_consent_lifecycle(): void {
 		$request   = $this->open_request();
