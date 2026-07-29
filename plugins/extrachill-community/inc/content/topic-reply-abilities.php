@@ -141,19 +141,19 @@ function extrachill_community_register_topic_reply_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'forum_id' => array(
+					'forum_id'     => array(
 						'type'        => 'integer',
 						'description' => 'Forum to post in',
 					),
-					'title'    => array(
+					'title'        => array(
 						'type'        => 'string',
 						'description' => 'Topic title',
 					),
-					'content'  => array(
+					'content'      => array(
 						'type'        => 'string',
 						'description' => 'Topic content (HTML or markdown depending on format)',
 					),
-					'format'   => array(
+					'format'       => array(
 						'type'        => 'string',
 						'enum'        => array( 'html', 'markdown' ),
 						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
@@ -165,11 +165,11 @@ function extrachill_community_register_topic_reply_abilities() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'topic_id'  => array( 'type' => 'integer' ),
-					'title'     => array( 'type' => 'string' ),
-					'url'       => array( 'type' => 'string' ),
-					'forum_id'  => array( 'type' => 'integer' ),
-					'author_id' => array( 'type' => 'integer' ),
+					'topic_id'     => array( 'type' => 'integer' ),
+					'title'        => array( 'type' => 'string' ),
+					'url'          => array( 'type' => 'string' ),
+					'forum_id'     => array( 'type' => 'integer' ),
+					'author_id'    => array( 'type' => 'integer' ),
 					'public_voice' => extrachill_community_public_voice_output_schema(),
 				),
 			),
@@ -197,20 +197,20 @@ function extrachill_community_register_topic_reply_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'topic_id' => array(
+					'topic_id'     => array(
 						'type'        => 'integer',
 						'description' => 'Topic to reply to',
 					),
-					'content'  => array(
+					'content'      => array(
 						'type'        => 'string',
 						'description' => 'Reply content (HTML or markdown depending on format)',
 					),
-					'format'   => array(
+					'format'       => array(
 						'type'        => 'string',
 						'enum'        => array( 'html', 'markdown' ),
 						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
 					),
-					'reply_to' => array(
+					'reply_to'     => array(
 						'type'        => 'integer',
 						'description' => 'Parent reply ID for threaded replies (optional)',
 					),
@@ -221,11 +221,11 @@ function extrachill_community_register_topic_reply_abilities() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'reply_id'  => array( 'type' => 'integer' ),
-					'topic_id'  => array( 'type' => 'integer' ),
-					'forum_id'  => array( 'type' => 'integer' ),
-					'url'       => array( 'type' => 'string' ),
-					'author_id' => array( 'type' => 'integer' ),
+					'reply_id'     => array( 'type' => 'integer' ),
+					'topic_id'     => array( 'type' => 'integer' ),
+					'forum_id'     => array( 'type' => 'integer' ),
+					'url'          => array( 'type' => 'string' ),
+					'author_id'    => array( 'type' => 'integer' ),
 					'public_voice' => extrachill_community_public_voice_output_schema(),
 				),
 			),
@@ -395,19 +395,19 @@ function extrachill_community_register_topic_reply_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'topic_id' => array( 'type' => 'integer' ),
-					'title'    => array( 'type' => 'string' ),
-					'content'  => array(
+					'topic_id'     => array( 'type' => 'integer' ),
+					'title'        => array( 'type' => 'string' ),
+					'content'      => array(
 						'type'        => 'string',
 						'description' => 'Serialized block markup.',
 					),
-					'format'   => array(
+					'format'       => array(
 						'type'        => 'string',
 						'enum'        => array( 'html', 'markdown' ),
 						'description' => 'Content format. "html" (default) is sanitised via wp_kses_post. "markdown" is converted to Gutenberg blocks via bfb_convert() before sanitisation.',
 					),
-					'blog_id'  => array( 'type' => 'integer' ),
-					'user_id'  => array(
+					'blog_id'      => array( 'type' => 'integer' ),
+					'user_id'      => array(
 						'type'        => 'integer',
 						'description' => 'Author override; requires edit_others_topics.',
 					),
@@ -418,12 +418,12 @@ function extrachill_community_register_topic_reply_abilities() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'id'         => array( 'type' => 'integer' ),
-					'status'     => array( 'type' => 'string' ),
-					'title'      => array( 'type' => 'string' ),
-					'content'    => array( 'type' => 'string' ),
-					'permalink'  => array( 'type' => 'string' ),
-					'updated_at' => array(
+					'id'           => array( 'type' => 'integer' ),
+					'status'       => array( 'type' => 'string' ),
+					'title'        => array( 'type' => 'string' ),
+					'content'      => array( 'type' => 'string' ),
+					'permalink'    => array( 'type' => 'string' ),
+					'updated_at'   => array(
 						'type'   => 'string',
 						'format' => 'date-time',
 					),
@@ -454,18 +454,18 @@ function extrachill_community_register_topic_reply_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'reply_id' => array( 'type' => 'integer' ),
-					'content'  => array(
+					'reply_id'     => array( 'type' => 'integer' ),
+					'content'      => array(
 						'type'        => 'string',
 						'description' => 'Serialized block markup.',
 					),
-					'format'   => array(
+					'format'       => array(
 						'type'        => 'string',
 						'enum'        => array( 'html', 'markdown' ),
 						'description' => 'Content format.',
 					),
-					'blog_id'  => array( 'type' => 'integer' ),
-					'user_id'  => array(
+					'blog_id'      => array( 'type' => 'integer' ),
+					'user_id'      => array(
 						'type'        => 'integer',
 						'description' => 'Author override; requires edit_others_replies.',
 					),
@@ -476,11 +476,11 @@ function extrachill_community_register_topic_reply_abilities() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'id'         => array( 'type' => 'integer' ),
-					'status'     => array( 'type' => 'string' ),
-					'content'    => array( 'type' => 'string' ),
-					'permalink'  => array( 'type' => 'string' ),
-					'updated_at' => array(
+					'id'           => array( 'type' => 'integer' ),
+					'status'       => array( 'type' => 'string' ),
+					'content'      => array( 'type' => 'string' ),
+					'permalink'    => array( 'type' => 'string' ),
+					'updated_at'   => array(
 						'type'   => 'string',
 						'format' => 'date-time',
 					),

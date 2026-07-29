@@ -74,9 +74,9 @@ function extrachill_community_resolve_subscription_entities( array $input ): arr
 		try {
 			$term = get_term_by( 'slug', $slug, $taxonomy );
 			if ( $term instanceof WP_Term ) {
-				$item['name'] = $term->name;
-				$url          = get_term_link( $term );
-				$item['url']  = is_wp_error( $url ) ? '' : (string) $url;
+				$item['name']     = $term->name;
+				$url              = get_term_link( $term );
+				$item['url']      = is_wp_error( $url ) ? '' : (string) $url;
 				$item['resolved'] = true;
 			}
 		} finally {
@@ -84,7 +84,7 @@ function extrachill_community_resolve_subscription_entities( array $input ): arr
 		}
 
 		// Artist Platform owns the canonical artist profile URL.
-		if ( $item['resolved'] && 'artist' === $taxonomy && function_exists( 'ec_get_blog_id' ) ) {
+		if ( $item['resolved'] && 'artist' === $taxonomy ) {
 			$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 			$main_blog_id   = (int) ec_get_blog_id( 'main' );
 			switch_to_blog( $main_blog_id );

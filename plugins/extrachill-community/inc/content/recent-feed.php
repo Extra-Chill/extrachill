@@ -45,7 +45,7 @@ if ( ! class_exists('ExtraChill_Community_Feed_Query') ) {
 		 * Mirror WP_Query::get() behaviour for pagination helper compatibility.
 		 *
 		 * @param string $key
-		 * @param mixed  $default
+		 * @param mixed  $default_value
 		 *
 		 * @return mixed
 		 */
@@ -71,11 +71,11 @@ if ( ! class_exists('ExtraChill_Community_Feed_Query') ) {
  */
 // phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- Feed query functions and their lightweight WP_Query-shaped helper class are a single cohesive unit; splitting would fragment includes without behavior benefit.
 function extrachill_get_avatar_url_with_custom_support($user_id, $size = 80) {
-	$avatar_html = get_avatar($user_id, $size);
+	$avatar_html = (string) get_avatar($user_id, $size);
 	if ( preg_match('/src=["\']([^"\']+)["\']/', $avatar_html, $matches) ) {
 		return $matches[1];
 	}
-	return get_avatar_url($user_id, array( 'size' => $size ));
+	return (string) get_avatar_url($user_id, array( 'size' => $size ));
 }
 
 /**
@@ -97,10 +97,10 @@ function extrachill_community_get_reply_card_author( $post_id, $human_id, $human
 
 	if ( ! $voice ) {
 		return array(
-			'id'          => absint( $human_id ),
-			'name'        => (string) $human_name,
-			'url'         => (string) $human_url,
-			'avatar_html' => (string) $human_avatar_html,
+			'id'           => absint( $human_id ),
+			'name'         => (string) $human_name,
+			'url'          => (string) $human_url,
+			'avatar_html'  => (string) $human_avatar_html,
 			'public_voice' => false,
 		);
 	}
@@ -198,8 +198,8 @@ function extrachill_build_activity_feed($per_page = 15, $paged = null, $author =
 
 	while ( $query->have_posts() ) {
 		$query->the_post();
-		$author_id = get_the_author_meta('ID');
-		$post_id   = get_the_ID();
+		$author_id = (int) get_the_author_meta('ID');
+		$post_id   = (int) get_the_ID();
 		$post_type = get_post_type();
 
 		$topic_id = ( 'topic' === $post_type ) ? $post_id : bbp_get_reply_topic_id($post_id);
@@ -307,7 +307,7 @@ function extrachill_render_recent_feed($feed, $empty_notice = '') {
 					// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentionally sets the global $post for setup_postdata() and the bbPress template part below.
 					$post = $feed_item['post'];
 
-					if ( ! $post || ! is_object($post) ) {
+					if ( ! $post instanceof WP_Post ) {
 						continue;
 					}
 

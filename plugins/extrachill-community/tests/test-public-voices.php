@@ -121,7 +121,7 @@ namespace {
 	function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES ); }
 	function esc_url( $value ) { return (string) $value; }
 	function esc_url_raw( $value ) { return preg_match( '#^https://#', (string) $value ) ? (string) $value : ''; }
-	function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+	function sanitize_text_field( $value ) { return trim( wp_strip_all_tags( (string) $value ) ); }
 	function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
 	function wp_strip_all_tags( $value ) { return strip_tags( (string) $value ); }
 	function wp_unslash( $value ) { return $value; }
@@ -345,8 +345,8 @@ namespace {
 	extrachill_community_validate_native_public_voice();
 	voice_assert( isset( $GLOBALS['_voice_errors']['bbp_public_voice_not_managed'] ), 'Native forms must reject unmanaged or spoofed voice input.' );
 
-	$ability_source = file_get_contents( __DIR__ . '/../inc/content/topic-reply-abilities.php' );
-	$voice_source   = file_get_contents( __DIR__ . '/../inc/content/public-voices.php' );
+	$ability_source = $wp_filesystem->get_contents( __DIR__ . '/../inc/content/topic-reply-abilities.php' );
+	$voice_source   = $wp_filesystem->get_contents( __DIR__ . '/../inc/content/public-voices.php' );
 	voice_assert( 2 === substr_count( $ability_source, "'public_voice' => extrachill_community_public_voice_input_schema()" ) && 2 === substr_count( $ability_source, "'public_voice' => extrachill_community_public_voice_input_schema( true )" ), 'Create abilities must require canonical voices while update abilities allow explicit clear.' );
 	voice_assert( 4 === substr_count( $ability_source, "'public_voice' => extrachill_community_public_voice_output_schema()" ), 'All four write abilities must declare the exact nullable public voice envelope.' );
 	voice_assert( false !== strpos( $voice_source, "add_filter( 'bbp_get_topic_author_display_name'" ) && false !== strpos( $voice_source, "add_filter( 'bbp_get_reply_author_display_name'" ) && false !== strpos( $voice_source, "add_filter( 'bbp_get_topic_author_link'" ) && false !== strpos( $voice_source, "add_filter( 'bbp_get_reply_author_link'" ), 'Topic lead, reply/activity cards, and freshness must use the same native bbPress identity filters.' );

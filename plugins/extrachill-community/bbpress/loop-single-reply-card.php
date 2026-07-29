@@ -32,8 +32,8 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 	?>
 	"
 	data-reply-id="<?php bbp_reply_id(); ?>"
-	data-depth="<?php echo esc_attr( $reply_depth ); ?>"
-	style="--depth: <?php echo esc_attr( $reply_depth ); ?>">
+	data-depth="<?php echo esc_attr( (string) $reply_depth ); ?>"
+	style="--depth: <?php echo esc_attr( (string) $reply_depth ); ?>">
 
 	<?php do_action( 'bbp_template_before_reply_content' ); ?>
 
@@ -49,18 +49,18 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 				$icon_id       = $is_upvoted ? 'circle-up' : 'circle-up-outline';
 
 				$upvote_count         = get_upvote_count($reply_id);
-				$display_upvote_count = $upvote_count + 1;
+				$display_upvote_count = (int) $upvote_count + 1;
 				?>
 
 				<div class="upvote-date">
 					<div class="upvote">
 						<span class="upvote-icon"
-								data-post-id="<?php echo esc_attr($reply_id); ?>"
+								data-post-id="<?php echo esc_attr( (string) $reply_id ); ?>"
 								data-type="reply"
 								data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>">
 							<?php echo ec_icon($icon_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id ?>
 						</span>
-						<span class="upvote-count"><?php echo esc_html($display_upvote_count); ?></span>
+						<span class="upvote-count"><?php echo esc_html( (string) $display_upvote_count ); ?></span>
 					</div>
 					<a href="<?php bbp_reply_url(); ?>" class="bbp-reply-post-date" id="bbp-reply-permalink">
 	<?php bbp_reply_post_date(); ?>
@@ -83,14 +83,14 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 
 				if ( $prefetch_author_id && $prefetch_author_avatar_url ) {
 					// Use pre-fetched data
-					$author_id     = $prefetch_author_id;
+					$author_id     = (int) $prefetch_author_id;
 					$author_name   = $prefetch_author_name;
 					$author_avatar = '<img src="' . esc_url($prefetch_author_avatar_url) . '" alt="' . esc_attr($author_name) . '" class="avatar" width="80" height="80">';
 					$author_url    = bbp_get_reply_author_url( $reply_id );
 					$author_role   = bbp_get_user_display_role( $author_id );
 				} else {
 					// Use standard bbPress functions
-					$author_id     = bbp_get_reply_author_id( $reply_id );
+					$author_id     = (int) bbp_get_reply_author_id( $reply_id );
 					$author_name   = bbp_get_reply_author_display_name( $reply_id );
 					$author_avatar = bbp_get_reply_author_avatar( $reply_id, 80 );
 					$author_url    = bbp_get_reply_author_url( $reply_id );
@@ -178,7 +178,7 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 						echo '<div class="content-preview">' . wp_kses_post( $truncated_content ) . '</div>';
 
 						echo '<div class="content-full collapsed">' . wp_kses_post( $content ) . '</div>';
-						echo '<button class="read-more-toggle" data-reply-id="' . esc_attr($reply_id) . '">';
+						echo '<button class="read-more-toggle" data-reply-id="' . esc_attr( (string) $reply_id ) . '">';
 						echo '<span class="read-more-text">Show More</span>';
 						echo '<span class="read-less-text">Show Less</span>';
 						echo '</button>';
@@ -214,7 +214,7 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 				}
 			} else {
 				$reply = bbp_get_reply( $reply_id );
-				if ( $reply && current_user_can( 'edit_reply', $reply_id ) && ! bbp_past_edit_lock( $reply->post_date_gmt ) ) {
+				if ( $reply instanceof WP_Post && current_user_can( 'edit_reply', $reply_id ) && ! bbp_past_edit_lock( $reply->post_date_gmt ) ) {
 					$edit_url = bbp_get_reply_edit_url( $reply_id );
 					echo '<a href="' . esc_url( $edit_url ) . '" class="button-3 button-small">' . esc_html__( 'Edit', 'extra-chill-community' ) . '</a>';
 				}
