@@ -91,14 +91,25 @@ if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) ) {
 	}
 }
 
-if ( ! function_exists( 'ec_users_notify' ) ) {
-	function ec_users_notify( $user_ids, array $data ) {
+if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
+	function ec_users_notify_with_receipts( $user_ids, array $data ) {
 		$GLOBALS['festival_notification_calls'][] = array(
 			'user_ids' => $user_ids,
 			'data'     => $data,
 		);
 
-		return array_shift( $GLOBALS['festival_notification_delivery_results'] ) ?? count( $user_ids );
+		$result = array_shift( $GLOBALS['festival_notification_delivery_results'] ) ?? count( $user_ids );
+		if ( is_array( $result ) ) {
+			return $result;
+		}
+
+		return array(
+			'requested'  => count( $user_ids ),
+			'inserted'   => $result,
+			'existing'   => 0,
+			'failed'     => count( $user_ids ) - $result,
+			'recipients' => array(),
+		);
 	}
 }
 
@@ -217,6 +228,8 @@ class FestivalNotificationsTest extends WP_UnitTestCase {
 		$this->assert_same_ids( array( 7, 9, 11 ), $GLOBALS['festival_notification_calls'][0]['user_ids'] );
 		$this->assertSame( 'New event: The Big Show', $GLOBALS['festival_notification_calls'][0]['data']['title'] );
 		$this->assertSame( get_permalink( $post ), $GLOBALS['festival_notification_calls'][0]['data']['link'] );
+		$this->assertSame( EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER, $GLOBALS['festival_notification_calls'][0]['data']['producer'] );
+		$this->assertSame( 'event:' . $post->ID . ':festival_event_published', $GLOBALS['festival_notification_calls'][0]['data']['idempotency_key'] );
 	}
 
 	public function test_notifies_artist_subscribers_and_deduplicates_across_entity_terms(): void {
@@ -283,6 +296,8 @@ class FestivalNotificationsTest extends WP_UnitTestCase {
 		$this->assert_same_ids( array( 7 ), $GLOBALS['festival_notification_calls'][1]['user_ids'] );
 		$this->assertSame( EXTRACHILL_EVENTS_NEARBY_ARTIST_EVENT_NOTIFICATION, $GLOBALS['festival_notification_calls'][1]['data']['type'] );
 		$this->assertSame( 'Nearby show: The Big Show', $GLOBALS['festival_notification_calls'][1]['data']['title'] );
+		$this->assertSame( EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER, $GLOBALS['festival_notification_calls'][1]['data']['producer'] );
+		$this->assertSame( 'event:' . $post->ID . ':' . EXTRACHILL_EVENTS_NEARBY_ARTIST_EVENT_NOTIFICATION, $GLOBALS['festival_notification_calls'][1]['data']['idempotency_key'] );
 	}
 
 	public function test_does_not_notify_for_published_post_updates(): void {
@@ -352,6 +367,28 @@ class FestivalNotificationsTest extends WP_UnitTestCase {
 		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
 
 		$this->assertCount( 2, $GLOBALS['festival_notification_calls'] );
+		$this->assertNotEmpty( get_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META, true ) );
+	}
+
+	public function test_existing_receipts_count_as_success_and_keep_the_claim(): void {
+		$GLOBALS['festival_notification_terms']['festival'] = array( 'summer-jam' );
+		$GLOBALS['festival_notification_recipients']        = array(
+			'summer-jam' => array( 7 ),
+		);
+		$GLOBALS['festival_notification_delivery_results']  = array(
+			array(
+				'requested'  => 1,
+				'inserted'   => 0,
+				'existing'   => 1,
+				'failed'     => 0,
+				'recipients' => array( 7 => array( 'status' => 'existing' ) ),
+			),
+		);
+		$post = $this->event_post();
+
+		extrachill_events_notify_festival_subscribers( 'publish', 'draft', $post );
+
+		$this->assertCount( 1, $GLOBALS['festival_notification_calls'] );
 		$this->assertNotEmpty( get_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META, true ) );
 	}
 }

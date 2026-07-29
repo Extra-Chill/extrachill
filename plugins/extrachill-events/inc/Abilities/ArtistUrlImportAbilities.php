@@ -60,6 +60,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class ArtistUrlImportAbilities {
+	/** Feature-owned producer for submitter moderation notifications. */
+	private const NOTIFICATION_PRODUCER = 'extrachill-events-artist-url-import';
 
 	/**
 	 * Registered event-import handler slug consumed for the preview probe.
@@ -1818,12 +1820,13 @@ class ArtistUrlImportAbilities {
 	 * @param int    $item_id    Optional related object ID.
 	 */
 	private function notifySubmitter( array $submission, string $type, string $title, string $link, int $item_id = 0 ): void {
-		if ( ! function_exists( 'ec_users_notify' ) ) {
+		if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
 			return;
 		}
 
-		$submitter_id = isset( $submission['user_id'] ) ? (int) $submission['user_id'] : 0;
-		if ( $submitter_id <= 0 ) {
+		$submitter_id  = isset( $submission['user_id'] ) ? (int) $submission['user_id'] : 0;
+		$submission_id = isset( $submission['id'] ) ? (int) $submission['id'] : 0;
+		if ( $submitter_id <= 0 || $submission_id <= 0 ) {
 			return;
 		}
 
@@ -1847,18 +1850,20 @@ class ArtistUrlImportAbilities {
 		}
 
 		$data = array(
-			'actor_id' => $actor_id,
-			'type'     => $type,
-			'title'    => $title,
-			'link'     => $link,
+			'actor_id'        => $actor_id,
+			'type'            => $type,
+			'title'           => $title,
+			'link'            => $link,
+			'producer'        => self::NOTIFICATION_PRODUCER,
+			'idempotency_key' => 'submission:' . $submission_id . ':' . $type,
 		);
 		if ( $item_id > 0 ) {
 			$data['item_id'] = $item_id;
 		}
 
-		$inserted = 0;
+		$receipt = null;
 		try {
-			$inserted = ec_users_notify( $submitter_id, $data );
+			$receipt = ec_users_notify_with_receipts( array( $submitter_id ), $data );
 		} catch ( \Throwable $e ) {
 			do_action(
 				'datamachine_log',
@@ -1874,15 +1879,16 @@ class ArtistUrlImportAbilities {
 			return;
 		}
 
-		if ( 0 === $inserted ) {
+		if ( ! is_array( $receipt ) || 0 < absint( $receipt['failed'] ?? 1 ) ) {
 			do_action(
 				'datamachine_log',
 				'warning',
-				'ArtistUrlImportAbilities: submitter notification was not inserted',
+				'ArtistUrlImportAbilities: submitter notification failed',
 				array(
 					'type'     => $type,
 					'user_id'  => $submitter_id,
 					'actor_id' => $actor_id,
+					'receipt'  => is_array( $receipt ) ? $receipt : array( 'result' => $receipt ),
 				)
 			);
 		}

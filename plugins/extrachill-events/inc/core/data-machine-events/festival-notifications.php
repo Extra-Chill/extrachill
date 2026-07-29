@@ -61,7 +61,7 @@ function extrachill_events_notify_festival_subscribers( $new_status, $old_status
 		return;
 	}
 
-	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify' ) ) {
+	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify_with_receipts' ) ) {
 		return;
 	}
 
@@ -105,46 +105,49 @@ function extrachill_events_notify_festival_subscribers( $new_status, $old_status
 		return;
 	}
 
-	$expected_deliveries = 0;
-	$delivered           = 0;
+	$failed_receipts = 0;
 
 	if ( ! empty( $general_recipient_ids ) ) {
-		$expected_deliveries += count( $general_recipient_ids );
-		$delivered           += ec_users_notify(
+		$receipt          = ec_users_notify_with_receipts(
 			$general_recipient_ids,
 			array(
-				'actor_id' => (int) $post->post_author,
-				'type'     => 'festival_event_published',
+				'actor_id'        => (int) $post->post_author,
+				'type'            => 'festival_event_published',
 				/* translators: %s: event title. */
-				'title'    => sprintf( __( 'New event: %s', 'extrachill-events' ), get_the_title( $post ) ),
-				'link'     => get_permalink( $post ),
-				'item_id'  => (int) $post->ID,
+				'title'           => sprintf( __( 'New event: %s', 'extrachill-events' ), get_the_title( $post ) ),
+				'link'            => get_permalink( $post ),
+				'item_id'         => (int) $post->ID,
+				'producer'        => EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER,
+				'idempotency_key' => 'event:' . (int) $post->ID . ':festival_event_published',
 			)
 		);
+		$failed_receipts += is_array( $receipt ) ? absint( $receipt['failed'] ?? count( $general_recipient_ids ) ) : count( $general_recipient_ids );
 	}
 
 	if ( empty( $nearby_recipient_ids ) ) {
-		if ( $delivered < $expected_deliveries ) {
+		if ( 0 < $failed_receipts ) {
 			delete_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META );
 		}
 
 		return;
 	}
 
-	$expected_deliveries += count( $nearby_recipient_ids );
-	$delivered           += ec_users_notify(
+	$receipt          = ec_users_notify_with_receipts(
 		$nearby_recipient_ids,
 		array(
-			'actor_id' => (int) $post->post_author,
-			'type'     => EXTRACHILL_EVENTS_NEARBY_ARTIST_EVENT_NOTIFICATION,
+			'actor_id'        => (int) $post->post_author,
+			'type'            => EXTRACHILL_EVENTS_NEARBY_ARTIST_EVENT_NOTIFICATION,
 			/* translators: %s: event title. */
-			'title'    => sprintf( __( 'Nearby show: %s', 'extrachill-events' ), get_the_title( $post ) ),
-			'link'     => get_permalink( $post ),
-			'item_id'  => (int) $post->ID,
+			'title'           => sprintf( __( 'Nearby show: %s', 'extrachill-events' ), get_the_title( $post ) ),
+			'link'            => get_permalink( $post ),
+			'item_id'         => (int) $post->ID,
+			'producer'        => EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_PRODUCER,
+			'idempotency_key' => 'event:' . (int) $post->ID . ':' . EXTRACHILL_EVENTS_NEARBY_ARTIST_EVENT_NOTIFICATION,
 		)
 	);
+	$failed_receipts += is_array( $receipt ) ? absint( $receipt['failed'] ?? count( $nearby_recipient_ids ) ) : count( $nearby_recipient_ids );
 
-	if ( $delivered < $expected_deliveries ) {
+	if ( 0 < $failed_receipts ) {
 		delete_post_meta( $post->ID, EXTRACHILL_EVENTS_FESTIVAL_NOTIFICATION_SENT_META );
 	}
 }
