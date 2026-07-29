@@ -39,7 +39,7 @@ function ec_news_wire_notify_festival_subscribers_on_publish( $new_status, $old_
 		return;
 	}
 
-	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify' ) ) {
+	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'ec_users_notify_with_receipts' ) ) {
 		return;
 	}
 
@@ -48,7 +48,7 @@ function ec_news_wire_notify_festival_subscribers_on_publish( $new_status, $old_
 		return;
 	}
 
-	// Claim the first-publication notification before resolving recipients.
+	// Claim before delivery so concurrent publication hooks cannot duplicate notices.
 	if ( ! add_post_meta( $post->ID, EC_NEWS_WIRE_FESTIVAL_NOTIFICATION_SENT_META, 1, true ) ) {
 		return;
 	}
@@ -72,19 +72,37 @@ function ec_news_wire_notify_festival_subscribers_on_publish( $new_status, $old_
 		return;
 	}
 
-	ec_users_notify(
+	$receipt = ec_users_notify_with_receipts(
 		$recipient_ids,
 		array(
-			'actor_id' => (int) $post->post_author,
-			'type'     => 'festival_wire_update',
-			'title'    => sprintf(
+			'actor_id'        => (int) $post->post_author,
+			'type'            => 'festival_wire_update',
+			'title'           => sprintf(
 				/* translators: %s: Festival Wire post title. */
 				__( 'New Festival Wire update: %s', 'extrachill' ),
 				get_the_title( $post->ID )
 			),
-			'link'     => get_permalink( $post ),
-			'item_id'  => $post->ID,
+			'link'            => get_permalink( $post ),
+			'item_id'         => $post->ID,
+			'producer'        => EC_NEWS_WIRE_FESTIVAL_NOTIFICATION_PRODUCER,
+			'idempotency_key' => 'post:' . (int) $post->ID,
 		)
 	);
+
+	$valid_receipt = is_array( $receipt )
+		&& isset( $receipt['requested'], $receipt['inserted'], $receipt['existing'], $receipt['failed'], $receipt['recipients'] )
+		&& is_int( $receipt['requested'] )
+		&& is_int( $receipt['inserted'] )
+		&& is_int( $receipt['existing'] )
+		&& is_int( $receipt['failed'] )
+		&& is_array( $receipt['recipients'] )
+		&& 0 <= $receipt['inserted']
+		&& 0 <= $receipt['existing']
+		&& 0 <= $receipt['failed']
+		&& count( $recipient_ids ) === $receipt['requested']
+		&& $receipt['requested'] === $receipt['inserted'] + $receipt['existing'] + $receipt['failed'];
+	if ( ! $valid_receipt || 0 < absint( $receipt['failed'] ?? 0 ) ) {
+		delete_post_meta( $post->ID, EC_NEWS_WIRE_FESTIVAL_NOTIFICATION_SENT_META );
+	}
 }
 add_action( 'transition_post_status', 'ec_news_wire_notify_festival_subscribers_on_publish', 10, 3 );
