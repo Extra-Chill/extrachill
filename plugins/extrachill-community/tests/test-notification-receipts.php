@@ -91,7 +91,7 @@ function get_the_terms( $post_id, $taxonomy ) {
 function is_wp_error() {
 	return false;
 }
-function extrachill_users_entity_subscription_recipients( $producer, $entity_type ) {
+function extrachill_users_entity_subscription_recipients( $producer, $entity_type, $taxonomy, $slug, $delivery = 'notification' ) {
 	return 'festival' === $entity_type ? array( 20, 30, 30 ) : array( 20, 40 );
 }
 
