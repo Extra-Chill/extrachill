@@ -428,6 +428,7 @@ function ec_users_has_artist_dispatch_delivery_receipt( $user_id, $channel, $eve
 /**
  * Build the unique user-meta key for one external delivery.
  *
+ * @param int    $user_id    User ID.
  * @param string $channel    Delivery channel.
  * @param string $event_type Lifecycle transition.
  * @param string $request_id Request UUID.
@@ -639,6 +640,11 @@ function ec_users_resolve_artist_dispatch_notification_actor( $actor_id ) {
 }
 
 /**
+ * Stable notification producer for Artist Dispatch lifecycle transitions.
+ */
+const EC_USERS_ARTIST_DISPATCH_NOTIFICATION_PRODUCER = 'extrachill-users.artist-dispatch';
+
+/**
  * Send one transition notification and mark only successful delivery.
  *
  * Must run while holding the user's transition lock.
@@ -675,7 +681,7 @@ function ec_users_maybe_notify_artist_dispatch_transition( $user_id, $event_type
 			: new WP_Error( 'artist_dispatch_notification_marker_failed', __( 'The Artist Dispatch notification delivery marker could not be repaired.', 'extrachill-users' ) );
 	}
 	$notification_actor = ec_users_resolve_artist_dispatch_notification_actor( $actor_id );
-	if ( ! $notification_actor || ! function_exists( 'ec_users_notify' ) ) {
+	if ( ! $notification_actor || ! function_exists( 'ec_users_notify_with_receipts' ) ) {
 		return new WP_Error( 'artist_dispatch_notification_actor_missing', __( 'A valid Artist Dispatch notification actor is unavailable.', 'extrachill-users' ) );
 	}
 
@@ -690,17 +696,20 @@ function ec_users_maybe_notify_artist_dispatch_transition( $user_id, $event_type
 		return new WP_Error( 'artist_dispatch_notification_receipt_failed', __( 'The Artist Dispatch notification delivery receipt could not be reserved.', 'extrachill-users' ) );
 	}
 
-	$inserted = ec_users_notify(
+	$delivery           = ec_users_notify_with_receipts(
 		$user_id,
 		array(
-			'actor_id' => $notification_actor,
-			'type'     => 'artist_dispatch_' . $event_type,
-			'link'     => $link,
-			'title'    => $titles[ $event_type ],
-			'item_id'  => isset( $state['artist_id'] ) ? absint( $state['artist_id'] ) : 0,
+			'actor_id'        => $notification_actor,
+			'type'            => 'artist_dispatch_' . $event_type,
+			'link'            => $link,
+			'title'           => $titles[ $event_type ],
+			'item_id'         => isset( $state['artist_id'] ) ? absint( $state['artist_id'] ) : 0,
+			'producer'        => EC_USERS_ARTIST_DISPATCH_NOTIFICATION_PRODUCER,
+			'idempotency_key' => sprintf( 'request:%s:event:%s', $request_id, $event_type ),
 		)
 	);
-	if ( 1 > $inserted ) {
+	$recipient_delivery = $delivery['recipients'][ $user_id ] ?? array();
+	if ( ! in_array( $recipient_delivery['status'] ?? 'failed', array( 'inserted', 'existing' ), true ) ) {
 		if ( ! ec_users_remove_artist_dispatch_delivery_receipt( $user_id, 'notification', $event_type, $request_id ) ) {
 			return new WP_Error( 'artist_dispatch_notification_reconciliation_required', __( 'Notification delivery failed and its reservation could not be cleared.', 'extrachill-users' ) );
 		}

@@ -29,6 +29,7 @@ The plugin is network-activated across all sites in the Extra Chill Platform net
 - [User Badges](badges.md) - Achievement system and badge management
 - [Online Users](online-users.md) - Real-time presence tracking and statistics
 - [Onboarding System](onboarding.md) - New user setup and welcome flow
+- [Notification Delivery](notifications.md) - Idempotent producer, key, and receipt contracts
 
 ### Administration & Security
 - [Admin Access Control](admin-access.md) - Team members, permissions, and overrides

@@ -3,12 +3,12 @@
  * Concert tracking engagement notifications.
  *
  * The first engagement consumers of the network notification substrate
- * (ec_users_notify(), inc/notifications/service.php). Two features, both
+ * (ec_users_notify_with_receipts(), inc/notifications/service.php). Two features, both
  * reacting to the concert-tracking domain hooks fired from service.php:
  *
  *   1. SHOW REMINDERS (scheduled) — when a user marks an UPCOMING show, an
  *      Action Scheduler single action is queued for ~2 days before the event
- *      start. The callback fires ec_users_notify() with a "show_reminder"
+ *      start. The callback creates an idempotent "show_reminder"
  *      in-app notification. Unmarking cancels the pending action. Past/ongoing
  *      marks (including the bulk historical importer) get no reminder, so a
  *      large past-event import never schedules a flood of actions.
@@ -18,7 +18,7 @@
  *      100), fire a "milestone" in-app notification linking to My Shows.
  *
  * This file is the consumer only: it never writes notification storage
- * directly, it always calls ec_users_notify(). It also never touches the
+ * directly, it always calls the notification service. It also never touches the
  * substrate in inc/notifications/* nor the email channel.
  *
  * Parent epic: Extra-Chill/extrachill-community#82.
@@ -45,6 +45,16 @@ const EC_USERS_SHOW_REMINDER_ACTION = 'ec_users_send_show_reminder';
  * the literal, so the staleness logic and the producer can never drift.
  */
 const EC_USERS_SHOW_REMINDER_TYPE = 'show_reminder';
+
+/**
+ * Stable notification producer for scheduled show reminders.
+ */
+const EC_USERS_SHOW_REMINDER_PRODUCER = 'extrachill-users.concert.show-reminder';
+
+/**
+ * Stable notification producer for tracked-show milestones.
+ */
+const EC_USERS_CONCERT_MILESTONE_PRODUCER = 'extrachill-users.concert.milestone';
 
 /**
  * Action Scheduler group for concert reminders (eases bulk inspection/cancel).
@@ -232,7 +242,7 @@ function ec_users_cancel_show_reminder( int $user_id, int $event_id, int $blog_i
  * Action Scheduler callback. Re-validates that the user still has the event
  * marked (they may have unmarked after the action was queued but before a
  * cancellation propagated) and that the event is still upcoming, then enqueues
- * an in-app "show_reminder" notification through ec_users_notify().
+ * an idempotent in-app "show_reminder" notification.
  *
  * @param int $user_id  User ID.
  * @param int $event_id Event post ID.
@@ -247,7 +257,7 @@ function ec_users_deliver_show_reminder( $user_id, $event_id, $blog_id ) {
 		return;
 	}
 
-	if ( ! function_exists( 'ec_users_notify' ) ) {
+	if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
 		return;
 	}
 
@@ -269,14 +279,16 @@ function ec_users_deliver_show_reminder( $user_id, $event_id, $blog_id ) {
 
 	$title = ec_users_build_reminder_title( $details );
 
-	ec_users_notify(
+	ec_users_notify_with_receipts(
 		$user_id,
 		array(
-			'actor_id' => $user_id, // System reminder: attribute to the recipient (substrate requires a valid actor).
-			'type'     => EC_USERS_SHOW_REMINDER_TYPE,
-			'title'    => $title,
-			'link'     => $details['permalink'],
-			'item_id'  => $event_id,
+			'actor_id'        => $user_id, // System reminder: attribute to the recipient (substrate requires a valid actor).
+			'type'            => EC_USERS_SHOW_REMINDER_TYPE,
+			'title'           => $title,
+			'link'            => $details['permalink'],
+			'item_id'         => $event_id,
+			'producer'        => EC_USERS_SHOW_REMINDER_PRODUCER,
+			'idempotency_key' => sprintf( 'user:%d:event:%d:blog:%d', $user_id, $event_id, $blog_id ),
 		)
 	);
 }
@@ -345,7 +357,7 @@ function ec_users_maybe_notify_milestone( int $user_id, int $event_id ) {
 		return;
 	}
 
-	if ( ! function_exists( 'ec_users_notify' ) || ! function_exists( 'ec_users_get_user_event_count' ) ) {
+	if ( ! function_exists( 'ec_users_notify_with_receipts' ) || ! function_exists( 'ec_users_get_user_event_count' ) ) {
 		return;
 	}
 
@@ -358,14 +370,16 @@ function ec_users_maybe_notify_milestone( int $user_id, int $event_id ) {
 
 	$link = ec_users_my_shows_url( $user_id );
 
-	ec_users_notify(
+	ec_users_notify_with_receipts(
 		$user_id,
 		array(
-			'actor_id' => $user_id, // Self-milestone: attribute to the recipient.
-			'type'     => 'milestone',
-			'title'    => ec_users_build_milestone_title( $count ),
-			'link'     => $link,
-			'item_id'  => $event_id,
+			'actor_id'        => $user_id, // Self-milestone: attribute to the recipient.
+			'type'            => 'milestone',
+			'title'           => ec_users_build_milestone_title( $count ),
+			'link'            => $link,
+			'item_id'         => $event_id,
+			'producer'        => EC_USERS_CONCERT_MILESTONE_PRODUCER,
+			'idempotency_key' => sprintf( 'user:%d:count:%d', $user_id, $count ),
 		)
 	);
 }

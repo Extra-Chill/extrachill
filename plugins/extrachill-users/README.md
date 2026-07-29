@@ -10,6 +10,7 @@ Extra Chill Users handles everything about user identity across the network:
 - **Profiles** — Avatars, badges, ranks, artist relationships
 - **Onboarding** — Guided first-time user experience
 - **Membership** — Lifetime membership validation (ad-free benefit)
+- **Notifications** — Network-wide idempotent delivery receipts and digest preferences
 
 ## How It Works
 
@@ -33,6 +34,7 @@ Users sign up once and get access to all Extra Chill network sites with a unifie
 | **Avatar System** | Upload and display with bbPress integration |
 | **Badge & Ranks** | Tier system based on community participation |
 | **Membership** | Lifetime membership with ad-free benefit |
+| **Notifications** | Explicit producer/key contracts with per-recipient delivery receipts |
 
 ## Auth Flow
 
@@ -77,3 +79,4 @@ homeboy review build extrachill-users
 
 - [AGENTS.md](AGENTS.md) — Technical reference for contributors
 - [docs/CHANGELOG.md](docs/CHANGELOG.md) — Version history
+- [docs/notifications.md](docs/notifications.md) — Notification producer and receipt contracts

@@ -7,7 +7,7 @@
  * post is published never hears about it. This observer fires the moment a post
  * transitions to `publish` and — if the post was registered as a "notifiable
  * submission" by some feature — enqueues a bell + email notification to the
- * recorded submitter via ec_users_notify().
+ * recorded submitter via an idempotent notification receipt.
  *
  * WHY THIS LIVES IN extrachill-users (and why it is feature-agnostic)
  * ------------------------------------------------------------------
@@ -47,7 +47,7 @@
  *
  * The observer resolves the recipient id, builds the title from the template +
  * the post title, links to the post permalink, sets item_id = post id, and
- * fires ec_users_notify() ONCE per post (a per-post meta guard prevents
+ * requests one notification per post (a per-post meta guard prevents
  * re-fire on later edits or re-publish). The batched email digest
  * (inc/notifications/email.php) then delivers the email arm for free.
  *
@@ -76,6 +76,11 @@ const EC_USERS_PUBLISH_NOTIFY_SOURCES_OPTION = 'ec_users_publish_notify_sources'
  * later re-publish/edit transition for that context.
  */
 const EC_USERS_PUBLISH_NOTIFIED_META_PREFIX = '_ec_users_publish_notified_';
+
+/**
+ * Stable notification producer for every registered publish-notify source.
+ */
+const EC_USERS_PUBLISH_NOTIFY_PRODUCER = 'extrachill-users.publish-notify';
 
 /**
  * Register (or refresh) a publish-notify source descriptor.
@@ -200,7 +205,7 @@ add_action( 'transition_post_status', 'ec_users_publish_notify_on_transition', 1
  *
  * Reads the source's marker meta off the post; if present, resolves the
  * submitter id, builds the notification payload from the descriptor, and fires
- * ec_users_notify() once (guarded by a per-context meta marker).
+ * one idempotent notification (guarded by a per-context meta marker).
  *
  * @since 0.24.0
  *
@@ -249,26 +254,28 @@ function ec_users_publish_notify_apply_source( string $context, array $descripto
 	$title      = sprintf( $title_template, $post_title );
 	$link       = (string) get_permalink( $post );
 
-	$inserted = ec_users_notify(
+	$delivery = ec_users_notify_with_receipts(
 		$user_id,
 		array(
 			// The submitter is both the subject and, for a system-authored
-			// "you're live" notice, the actor — ec_users_notify requires a
+			// "you're live" notice, the actor — the substrate requires a
 			// valid actor_id that resolves to a real user.
-			'actor_id' => $user_id,
-			'type'     => $type,
-			'title'    => $title,
-			'link'     => $link,
-			'item_id'  => (int) $post->ID,
+			'actor_id'        => $user_id,
+			'type'            => $type,
+			'title'           => $title,
+			'link'            => $link,
+			'item_id'         => (int) $post->ID,
+			'producer'        => EC_USERS_PUBLISH_NOTIFY_PRODUCER,
+			'idempotency_key' => sprintf( 'context:%s:blog:%d:post:%d', $context, get_current_blog_id(), $post->ID ),
 		)
 	);
 
-	// Set the guard whenever we attempted a real recipient, so a transient
-	// insert failure does not turn into a notification storm on later edits.
-	// (A single missed notice is preferable to repeated ones.)
+	// All receipt outcomes preserve this observer's attempt-once contract. A
+	// failed insert must not become a notification storm on later edits, while an
+	// existing receipt means a prior attempt already delivered the notification.
 	update_post_meta( $post->ID, $guard_key, current_time( 'mysql', true ) );
 
-	unset( $inserted );
+	unset( $delivery );
 }
 
 /**

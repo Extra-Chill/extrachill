@@ -621,10 +621,22 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 		$repaired = ec_users_maybe_notify_artist_dispatch_transition( $recipient, 'approved', 0, $without_marker );
 		$this->assertNotWPError( $repaired );
 		$this->assertNotEmpty( $repaired['deliveries']['notifications']['approved'] );
+		$without_any_marker = $repaired;
+		unset( $without_any_marker['deliveries']['notifications']['approved'] );
+		$this->assertNotFalse( update_user_meta( $recipient, EC_USERS_ARTIST_DISPATCH_STATE_META, $without_any_marker, $repaired ) );
+		$this->assertTrue( ec_users_remove_artist_dispatch_delivery_receipt( $recipient, 'notification', 'approved', $state['request_id'] ) );
+		$reconciled = ec_users_maybe_notify_artist_dispatch_transition( $recipient, 'approved', 0, $without_any_marker );
+		$this->assertNotWPError( $reconciled );
+		$this->assertNotEmpty( $reconciled['deliveries']['notifications']['approved'] );
 		ec_users_release_artist_dispatch_lock( $recipient, $lock );
 		$notifications = ec_users_get_notifications( $recipient );
 		$this->assertSame( 1, $notifications['total'] );
 		$this->assertSame( $bot_id, $notifications['notifications'][0]['actor_id'] );
+		global $wpdb;
+		$table = extrachill_users_notifications_table_name();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT producer, idempotency_key FROM {$table} WHERE user_id = %d", $recipient ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+		$this->assertSame( EC_USERS_ARTIST_DISPATCH_NOTIFICATION_PRODUCER, $row['producer'] );
+		$this->assertSame( sprintf( 'request:%s:event:approved', $state['request_id'] ), $row['idempotency_key'] );
 		remove_filter( 'extrachill_network_bot_user_id', $filter );
 	}
 
@@ -644,6 +656,43 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'deliveries', ec_users_get_artist_dispatch_state( $recipient ) );
 		ec_users_release_artist_dispatch_lock( $recipient, $lock );
 		remove_filter( 'extrachill_network_bot_user_id', $no_bot );
+	}
+
+	public function test_failed_notification_receipt_clears_reservation_for_retry(): void {
+		global $wpdb;
+
+		$bot_id    = self::factory()->user->create();
+		$recipient = self::factory()->user->create();
+		$state     = array(
+			'status'     => 'approved',
+			'request_id' => wp_generate_uuid4(),
+		);
+		$this->assertTrue( ec_users_write_artist_dispatch_state( $recipient, $state, array() ) );
+		$bot_filter = static fn() => $bot_id;
+		$table      = extrachill_users_notifications_table_name();
+		$fail_write = static function ( $query ) use ( $table ) {
+			return false !== strpos( $query, "INSERT IGNORE INTO {$table}" )
+				? 'INSERT INTO ec_missing_notification_table (id) VALUES (1)'
+				: $query;
+		};
+		add_filter( 'extrachill_network_bot_user_id', $bot_filter );
+		add_filter( 'query', $fail_write );
+		$previous_suppress = $wpdb->suppress_errors( true );
+		$lock              = ec_users_acquire_artist_dispatch_lock( $recipient, $state['request_id'] );
+		$this->assertNotWPError( $lock );
+		try {
+			$result = ec_users_maybe_notify_artist_dispatch_transition( $recipient, 'approved', 0, $state );
+		} finally {
+			ec_users_release_artist_dispatch_lock( $recipient, $lock );
+			$wpdb->suppress_errors( $previous_suppress );
+			remove_filter( 'query', $fail_write );
+			remove_filter( 'extrachill_network_bot_user_id', $bot_filter );
+		}
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'artist_dispatch_notification_failed', $result->get_error_code() );
+		$this->assertEmpty( ec_users_get_artist_dispatch_delivery_receipt( $recipient, 'notification', 'approved', $state['request_id'] ) );
+		$this->assertArrayNotHasKey( 'deliveries', ec_users_get_artist_dispatch_state( $recipient ) );
 	}
 
 	public function test_revocation_removes_only_product_grant_and_cleans_grant_created_membership(): void {

@@ -3,10 +3,9 @@
  * Network notification service.
  *
  * The network-callable SUBSTRATE for notifications. Because extrachill-users is
- * a Network:true plugin, ec_users_notify() is loaded on every site and ANY site
- * (community, events, artist, shop) can call it to enqueue a notification. The
- * back-compat shim keeps the legacy do_action( 'extrachill_notify' ) producers
- * working and now routes them into the table from every site.
+ * a Network:true plugin, ec_users_notify_with_receipts() is loaded on every site
+ * and any site can use an explicit producer and idempotency key to enqueue a
+ * notification safely.
  *
  * All reads/writes target the base_prefix table from inc/notifications/db.php,
  * so no switch_to_blog is needed — it is the same physical table everywhere.
@@ -48,8 +47,8 @@ function ec_users_unread_count_cache_key( int $user_id ): string {
  * Invalidate the cached unread count for one or more users.
  *
  * Called by every writer (insert / mark-read / clear) so the bell badge is
- * never stale. Accepts an array because ec_users_notify() can target multiple
- * recipients in a single call — each recipient's key must be busted.
+ * never stale. Accepts an array because notification producers can target
+ * multiple recipients in a single call — each recipient's key must be busted.
  *
  * @param int|int[] $user_ids Single user ID or array of user IDs.
  */
@@ -100,38 +99,13 @@ add_action( 'init', 'ec_users_maybe_install_notifications_table' );
 // ─── Entry Point ───────────────────────────────────────────────────────────────
 
 /**
- * Create one or more notifications.
- *
- * The single network-wide entry point. Callable from any site. Validates and
- * enriches the payload, then inserts one row per recipient into the base_prefix
- * notification table.
- *
- * @param int|int[] $user_ids Single recipient ID or array of recipient IDs.
- * @param array     $data {
- *     Notification payload.
- *
- *     @type int    $actor_id Required. User ID who triggered the notification.
- *     @type string $type     Required. Type identifier (e.g. 'reply', 'mention').
- *     @type string $link     Required. URL to the notification target.
- *     @type string $title    Required. Human-readable title/subject.
- *     @type int    $item_id  Optional. Related object ID (post/topic/reply/event).
- * }
- * @return int Number of notification rows inserted.
- */
-function ec_users_notify( $user_ids, array $data ): int {
-	$receipt = ec_users_notify_with_receipts( $user_ids, $data );
-
-	return (int) $receipt['inserted'];
-}
-
-/**
  * Create notifications and return a per-recipient delivery receipt.
  *
  * Producers that need retry safety pass both `producer` and `idempotency_key`.
  * Their exact pair is hashed into the compact delivery key protected by the
  * table's unique (user_id, delivery_key) index. Concurrent calls therefore
  * converge on one row per recipient while unrelated producers remain isolated.
- * Omitting both fields retains the historical non-idempotent insert behavior.
+ * Internal and external producers must pass both fields.
  *
  * An idempotent producer that delivers its own email may also pass
  * `producer_owns_email => true`. The insert atomically persists that ownership
@@ -148,11 +122,16 @@ function ec_users_notify( $user_ids, array $data ): int {
  *
  * @param int|int[] $user_ids Single recipient ID or array of recipient IDs.
  * @param array     $data {
- *     Notification payload. See ec_users_notify().
+ *     Notification payload.
  *
- *     @type string $producer        Optional producer namespace. Must be paired
+ *     @type int    $actor_id       Required. User ID who triggered the notification.
+ *     @type string $type           Required. Type identifier (e.g. 'reply', 'mention').
+ *     @type string $link           Required. URL to the notification target.
+ *     @type string $title          Required. Human-readable title/subject.
+ *     @type int    $item_id        Optional. Related object ID (post/topic/reply/event).
+ *     @type string $producer        Required producer namespace. Must be paired
  *                                   with idempotency_key.
- *     @type string $idempotency_key Optional producer-owned replay key. Must be
+ *     @type string $idempotency_key Required producer-owned replay key. Must be
  *                                   paired with producer.
  *     @type bool   $producer_owns_email Optional. When true, the producer owns
  *                                       email delivery for this receipt. Requires
@@ -180,14 +159,7 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 	$actor_id = isset( $data['actor_id'] ) ? (int) $data['actor_id'] : 0;
 	$type     = isset( $data['type'] ) ? sanitize_key( $data['type'] ) : '';
 	$link     = isset( $data['link'] ) ? esc_url_raw( (string) $data['link'] ) : '';
-	$title    = isset( $data['title'] ) ? (string) $data['title'] : '';
-
-	// Back-compat: the legacy payload used 'topic_title' for the title field.
-	if ( '' === $title && ! empty( $data['topic_title'] ) ) {
-		$title = (string) $data['topic_title'];
-	}
-
-	$title = sanitize_text_field( $title );
+	$title    = isset( $data['title'] ) ? sanitize_text_field( (string) $data['title'] ) : '';
 
 	$producer        = isset( $data['producer'] ) ? strtolower( trim( (string) $data['producer'] ) ) : '';
 	$idempotency_key = isset( $data['idempotency_key'] ) ? trim( (string) $data['idempotency_key'] ) : '';
@@ -208,6 +180,8 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 		$payload_error = 'invalid_idempotency_key';
 	} elseif ( $owns_email && ( ! $has_producer || ! $has_key ) ) {
 		$payload_error = 'email_ownership_requires_idempotency';
+	} elseif ( ! $has_producer ) {
+		$payload_error = 'incomplete_idempotency';
 	}
 
 	if ( null !== $payload_error ) {
@@ -220,10 +194,6 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 	}
 
 	$item_id = isset( $data['item_id'] ) ? (int) $data['item_id'] : 0;
-	if ( $item_id <= 0 && ! empty( $data['post_id'] ) ) {
-		// Back-compat: legacy callers passed the related object as 'post_id'.
-		$item_id = (int) $data['post_id'];
-	}
 
 	$table        = extrachill_users_notifications_table_name();
 	$created_at   = current_time( 'mysql', true );
@@ -237,40 +207,23 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 			continue;
 		}
 
-		if ( $has_producer ) {
-			$result = $wpdb->query(
-				$wpdb->prepare(
-					"INSERT IGNORE INTO {$table} (user_id, actor_id, type, title, link, item_id, is_read, created_at, emailed_at, producer_owns_email, producer, idempotency_key, delivery_key) VALUES (%d, %d, %s, %s, %s, NULLIF(%d, 0), 0, %s, NULLIF(%s, ''), %d, %s, %s, %s)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
-					$user_id,
-					$actor_id,
-					$type,
-					$title,
-					$link,
-					$item_id,
-					$created_at,
-					$owns_email ? $created_at : '',
-					(int) $owns_email,
-					$producer,
-					$idempotency_key,
-					$delivery_key
-				)
-			);
-		} else {
-			$result = $wpdb->insert(
-				$table,
-				array(
-					'user_id'    => $user_id,
-					'actor_id'   => $actor_id,
-					'type'       => $type,
-					'title'      => $title,
-					'link'       => $link,
-					'item_id'    => $item_id > 0 ? $item_id : null,
-					'is_read'    => 0,
-					'created_at' => $created_at,
-				),
-				array( '%d', '%d', '%s', '%s', '%s', $item_id > 0 ? '%d' : null, '%d', '%s' )
-			);
-		}
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT IGNORE INTO {$table} (user_id, actor_id, type, title, link, item_id, is_read, created_at, emailed_at, producer_owns_email, producer, idempotency_key, delivery_key) VALUES (%d, %d, %s, %s, %s, NULLIF(%d, 0), 0, %s, NULLIF(%s, ''), %d, %s, %s, %s)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				$user_id,
+				$actor_id,
+				$type,
+				$title,
+				$link,
+				$item_id,
+				$created_at,
+				$owns_email ? $created_at : '',
+				(int) $owns_email,
+				$producer,
+				$idempotency_key,
+				$delivery_key
+			)
+		);
 
 		if ( false === $result ) {
 			$receipt['recipients'][ $user_id ] = ec_users_notification_failed_receipt( $user_id, 'insert_failed' );
@@ -281,7 +234,7 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 		$notification_id = (int) $wpdb->insert_id;
 		$status          = 'inserted';
 
-		if ( $has_producer && 1 !== (int) $result ) {
+		if ( 1 !== (int) $result ) {
 			$existing = $wpdb->get_row(
 				$wpdb->prepare(
 					"SELECT id, producer, idempotency_key, producer_owns_email FROM {$table} WHERE user_id = %d AND delivery_key = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
@@ -717,26 +670,3 @@ function ec_users_clear_notifications( int $user_id, bool $all = false ): int {
 
 	return false === $removed ? 0 : (int) $removed;
 }
-
-// ─── Back-Compat Shim ──────────────────────────────────────────────────────────
-
-/**
- * Forward the legacy extrachill_notify action into the new substrate.
- *
- * Registered network-wide so the existing community producers (forum replies +
- * mentions) keep working AND now write into the table from every site. The
- * community plugin only FIRES do_action( 'extrachill_notify' ) — it does not
- * register a competing handler — so this substrate handler is the sole consumer
- * of the action and there is no double-write.
- *
- * @param int|int[] $user_ids Recipient ID(s).
- * @param mixed     $data     Notification payload (legacy shape supported).
- */
-function ec_users_handle_notify_action( $user_ids, $data ) {
-	if ( ! is_array( $data ) ) {
-		return;
-	}
-
-	ec_users_notify( $user_ids, $data );
-}
-add_action( 'extrachill_notify', 'ec_users_handle_notify_action', 10, 2 );

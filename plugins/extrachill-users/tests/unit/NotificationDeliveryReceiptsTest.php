@@ -94,24 +94,16 @@ class Test_Notification_Delivery_Receipts extends WP_UnitTestCase {
 		$this->assertSame( 0, ec_users_get_unread_count( $recipient ) );
 	}
 
-	public function test_legacy_api_remains_non_idempotent_and_returns_count(): void {
+	public function test_missing_producer_contract_is_rejected(): void {
 		$actor     = self::factory()->user->create();
 		$recipient = self::factory()->user->create();
 		$payload   = $this->payload( $actor );
 		unset( $payload['producer'], $payload['idempotency_key'] );
 
-		$this->assertSame( 1, ec_users_notify( $recipient, $payload ) );
-		$this->assertSame( 1, ec_users_notify( $recipient, $payload ) );
-		$this->assertSame( 2, ec_users_get_unread_count( $recipient ) );
-	}
+		$receipt = ec_users_notify_with_receipts( $recipient, $payload );
 
-	public function test_legacy_count_wrapper_supports_idempotent_payloads(): void {
-		$actor     = self::factory()->user->create();
-		$recipient = self::factory()->user->create();
-		$payload   = $this->payload( $actor );
-
-		$this->assertSame( 1, ec_users_notify( $recipient, $payload ) );
-		$this->assertSame( 0, ec_users_notify( $recipient, $payload ) );
+		$this->assertSame( 'incomplete_idempotency', $receipt['recipients'][ $recipient ]['error'] );
+		$this->assertSame( 0, ec_users_get_unread_count( $recipient ) );
 	}
 
 	public function test_replay_is_network_wide_across_blog_contexts(): void {

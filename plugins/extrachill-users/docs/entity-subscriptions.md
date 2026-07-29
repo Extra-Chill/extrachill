@@ -16,6 +16,6 @@ Every input includes `entity_type`, `taxonomy`, and `slug`. The default canonica
 
 ## Producer contract
 
-Main, Wire, Events, and Community producers must register their own stable producer identifier through `extrachill_users_entity_subscription_producer_authorized`. They then call `extrachill_users_entity_subscription_recipients( $producer, $entity_type, $taxonomy, $slug )` and pass the returned IDs to `ec_users_notify()`.
+Main, Wire, Events, and Community producers must register their own stable producer identifier through `extrachill_users_entity_subscription_producer_authorized`. They then call `extrachill_users_entity_subscription_recipients( $producer, $entity_type, $taxonomy, $slug )` and pass the returned IDs to `ec_users_notify_with_receipts()` with that producer identifier and a producer-owned stable idempotency key. Producers must treat `inserted` and `existing` as successful delivery and retry only `failed` recipients with the same key.
 
 Recipient resolution is a private PHP contract, not a REST ability, and only returns unique user IDs. It is denied until the producer authorizes itself through the filter. Producers must not log, render, or count recipients. For normal bell notifications, use the default `notification` delivery; the notification substrate applies the user's digest-email preference when it sends email. Producers that directly deliver email must pass `email`, which excludes users who disabled notification emails.
