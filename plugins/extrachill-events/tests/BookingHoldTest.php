@@ -792,17 +792,64 @@ final class BookingHoldTest extends BookingTestCase {
 				'venue_term_id'  => 55,
 				'post_status'    => 'publish',
 				'start_datetime' => '2030-11-03 01:05:00',
-				'end_datetime'   => null,
+				'end_datetime'   => '2030-11-03 01:30:00',
 			),
 		);
 		$dst                          = $this->booking( '2030-11-03 06:00:00', '2030-11-03 07:00:00' );
 		$this->assertSame( 'canonical_event', $holds->create( $dst['id'], 1, 12 )->get_error_data()['conflict']['conflict_type'], '06:00 UTC converts to the repeated 01:00 hour after the DST fallback.' );
 		$crossing_fold = $this->booking( '2030-11-03 05:45:00', '2030-11-03 06:15:00' );
-		$this->assertSame( 'canonical_event', $holds->create( $crossing_fold['id'], 1, 12 )->get_error_data()['conflict']['conflict_type'], 'The local window must include the early segment of the repeated fold.' );
+		$GLOBALS['ec_artist_test']['overlap_result'] = new WP_Error( 'venue_overlap_unrepresentable_interval', 'The canonical index cannot represent this interval.', array( 'status' => 400 ) );
+		$fold_error = $holds->create( $crossing_fold['id'], 1, 12 );
+		$this->assertSame( 'booking_conflict_check_failed', $fold_error->get_error_code() );
+		$this->assertSame( 'venue_overlap_unrepresentable_interval', $fold_error->get_error_data()['upstream_code'] );
 
+		$this->assertSame( array( 'publish' ), $GLOBALS['ec_artist_test']['overlap_calls'][0]['statuses'] );
+		$this->assertSame( '2030-08-01T22:00:00Z', $GLOBALS['ec_artist_test']['overlap_calls'][0]['start'] );
+	}
+
+	public function test_canonical_overlap_contract_errors_fail_closed_and_exclusions_remain_half_open(): void {
+		$holds   = $this->holds();
+		$booking = $this->booking();
+		$GLOBALS['ec_artist_test']['overlap_result'] = new WP_Error( 'venue_overlap_query_failed', 'Unavailable.' );
+		$this->assertSame( 'booking_conflict_check_failed', $holds->create( $booking['id'], 1, 12 )->get_error_code() );
+
+		$GLOBALS['ec_artist_test']['overlap_result'] = array( 'venue_id' => '55', 'events' => array() );
+		$this->assertSame( 'booking_canonical_overlap_contract_invalid', $holds->create( $booking['id'], 1, 12 )->get_error_code() );
+		$GLOBALS['ec_artist_test']['overlap_result'] = array(
+			'venue_id' => 55,
+			'timezone' => 'America/New_York',
+			'interval' => array( 'start' => '2030-08-01T15:00:00-04:00', 'end' => '2030-08-01T19:00:00-04:00' ),
+			'events'   => array(),
+			'page'     => 1,
+			'per_page' => 1,
+			'has_more' => false,
+		);
+		$this->assertSame( 'booking_canonical_overlap_contract_invalid', $holds->create( $booking['id'], 1, 12 )->get_error_code(), 'A response for a different interval must not mean no conflict.' );
+		$GLOBALS['ec_artist_test']['overlap_result']['interval'] = array( 'start' => '2030-08-01T16:00:00-04:00', 'end' => '2030-08-01T19:00:00-04:00' );
+		$GLOBALS['ec_artist_test']['overlap_result']['has_more'] = true;
+		$this->assertSame( 'booking_canonical_overlap_contract_invalid', $holds->create( $booking['id'], 1, 12 )->get_error_code(), 'An empty page cannot hide an asserted additional overlap.' );
+
+		unset( $GLOBALS['ec_artist_test']['overlap_result'] );
 		$GLOBALS['ec_artist_test']['meta'][7][55]['_venue_timezone'] = 'Not/AZone';
-		$next = $this->booking( '2030-09-01 20:00:00', '2030-09-01 22:00:00' );
-		$this->assertSame( 'booking_venue_timezone_invalid', $holds->create( $next['id'], 1, 12 )->get_error_code() );
+		$this->assertSame( 'booking_venue_timezone_invalid', $holds->create( $booking['id'], 1, 12 )->get_error_code() );
+		$GLOBALS['ec_artist_test']['meta'][7][55]['_venue_timezone'] = 'America/New_York';
+		$GLOBALS['wpdb']->event_dates = array(
+			array(
+				'post_id'        => 903,
+				'venue_term_id'  => 55,
+				'post_status'    => 'publish',
+				'start_datetime' => '2030-08-01 15:00:00',
+				'end_datetime'   => '2030-08-01 16:00:00',
+			),
+		);
+		$this->assertSame( 'active', $holds->create( $booking['id'], 1, 12 )['hold']['status'], 'An event ending exactly when the hold starts is adjacent.' );
+
+		$excluded = $this->booking( '2030-08-01 20:00:00', '2030-08-01 23:00:00', 'patio' );
+		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $excluded['id'] ]['event_id'] = 903;
+		$GLOBALS['wpdb']->event_dates[0]['start_datetime'] = '2030-08-01 16:30:00';
+		$GLOBALS['wpdb']->event_dates[0]['end_datetime']   = '2030-08-01 17:30:00';
+		$this->assertSame( 'active', $holds->create( $excluded['id'], 1, 12 )['hold']['status'], 'The booking-linked canonical event is excluded from self-conflict.' );
+		$this->assertSame( array( 903 ), end( $GLOBALS['ec_artist_test']['overlap_calls'] )['exclude'] );
 	}
 
 	public function test_lifecycle_requires_exact_hold_converts_selected_and_releases_alternatives(): void {

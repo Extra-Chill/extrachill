@@ -966,24 +966,112 @@ class BookingHoldRepository {
 		if ( is_array( $row ) ) {
 			return $row;
 		}
-		$timezone_name = get_term_meta( $booking['venue_term_id'], '_venue_timezone', true );
+		if ( ! function_exists( 'data_machine_events_query_venue_interval_overlaps' ) ) {
+			return new \WP_Error(
+				'booking_canonical_overlap_contract_unavailable',
+				__( 'Canonical event conflicts cannot be checked because the overlap service is unavailable.', 'extrachill-events' ),
+				array(
+					'status'    => 503,
+					'retryable' => true,
+				)
+			);
+		}
+		if ( ! function_exists( 'data_machine_events_get_venue_data' ) ) {
+			return new \WP_Error(
+				'booking_canonical_overlap_contract_unavailable',
+				__( 'Canonical event conflicts cannot be checked because venue data is unavailable.', 'extrachill-events' ),
+				array(
+					'status'    => 503,
+					'retryable' => true,
+				)
+			);
+		}
+		$venue_data = data_machine_events_get_venue_data( (int) $booking['venue_term_id'] );
 		try {
-			$timezone = new \DateTimeZone( (string) $timezone_name );
+			$timezone = new \DateTimeZone( is_array( $venue_data ) ? (string) ( $venue_data['timezone'] ?? '' ) : '' );
 		} catch ( \Exception $exception ) {
 			return new \WP_Error( 'booking_venue_timezone_invalid', __( 'The venue timezone is missing or invalid, so conflicts cannot be checked safely.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		$window    = $this->canonical_local_window( $booking['performance_start_at'], $booking['performance_end_at'], $timezone );
-		$start     = $window['start'];
-		$end       = $window['end'];
-		$dates     = $wpdb->prefix . 'datamachine_event_dates';
-		$post_type = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
-		// Canonical events have no space identity, so a published venue event safely blocks every configured space.
-		$sql = "SELECT p.ID AS id, 'canonical_event' AS conflict_type FROM {$wpdb->posts} p JOIN {$dates} ed ON p.ID = ed.post_id JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id WHERE p.post_type = %s AND p.post_status = 'publish' AND tt.taxonomy = 'venue' AND tt.term_id = %d AND p.ID <> %d AND ed.start_datetime < %s AND ((ed.end_datetime IS NOT NULL AND ed.end_datetime > %s) OR (ed.end_datetime IS NULL AND ed.start_datetime >= %s)) LIMIT 1"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Core/current-prefix tables only.
-		$row = $wpdb->get_row( $wpdb->prepare( $sql, $post_type, $booking['venue_term_id'], (int) $booking['event_id'], $end, $start, $start ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Values prepared.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_conflict_check_failed', __( 'Canonical event conflicts could not be checked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		$utc   = new \DateTimeZone( 'UTC' );
+		$start = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $booking['performance_start_at'], $utc );
+		$end   = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $booking['performance_end_at'], $utc );
+		if ( false === $start || false === $end || $start->format( 'Y-m-d H:i:s' ) !== $booking['performance_start_at'] || $end->format( 'Y-m-d H:i:s' ) !== $booking['performance_end_at'] ) {
+			return new \WP_Error( 'booking_conflict_check_failed', __( 'Canonical event conflicts could not be checked for an invalid booking interval.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		return is_array( $row ) ? $row : null;
+		$query  = array(
+			'venue_id' => (int) $booking['venue_term_id'],
+			'start'    => $start->format( 'Y-m-d\TH:i:s\Z' ),
+			'end'      => $end->format( 'Y-m-d\TH:i:s\Z' ),
+			'exclude'  => (int) $booking['event_id'] > 0 ? array( (int) $booking['event_id'] ) : array(),
+			'page'     => 1,
+			'per_page' => 1,
+			'statuses' => array( 'publish' ),
+		);
+		$result = data_machine_events_query_venue_interval_overlaps( $query );
+		if ( is_wp_error( $result ) ) {
+			return new \WP_Error(
+				'booking_conflict_check_failed',
+				__( 'Canonical event conflicts could not be checked.', 'extrachill-events' ),
+				array(
+					'status'        => 503,
+					'retryable'     => true,
+					'upstream_code' => $result->get_error_code(),
+					'upstream_data' => $result->get_error_data(),
+				)
+			);
+		}
+		$interval_start = is_array( $result ) && is_string( $result['interval']['start'] ?? null ) ? \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i:sP', $result['interval']['start'] ) : false;
+		$interval_end   = is_array( $result ) && is_string( $result['interval']['end'] ?? null ) ? \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i:sP', $result['interval']['end'] ) : false;
+		$valid_result   = is_array( $result )
+			&& is_int( $result['venue_id'] ?? null )
+			&& $result['venue_id'] === (int) $booking['venue_term_id']
+			&& ( $result['timezone'] ?? null ) === $timezone->getName()
+			&& false !== $interval_start
+			&& false !== $interval_end
+			&& $interval_start->format( DATE_RFC3339 ) === $result['interval']['start']
+			&& $interval_end->format( DATE_RFC3339 ) === $result['interval']['end']
+			&& $interval_start->getTimestamp() === $start->getTimestamp()
+			&& $interval_end->getTimestamp() === $end->getTimestamp()
+			&& 1 === ( $result['page'] ?? null )
+			&& 1 === ( $result['per_page'] ?? null )
+			&& is_bool( $result['has_more'] ?? null )
+			&& isset( $result['events'] )
+			&& is_array( $result['events'] )
+			&& array_is_list( $result['events'] )
+			&& count( $result['events'] ) <= 1
+			&& ( ! empty( $result['events'] ) || false === $result['has_more'] );
+		if ( ! $valid_result ) {
+			return new \WP_Error(
+				'booking_canonical_overlap_contract_invalid',
+				__( 'Canonical event conflict checking returned an invalid result.', 'extrachill-events' ),
+				array(
+					'status'    => 502,
+					'retryable' => true,
+				)
+			);
+		}
+		if ( empty( $result['events'] ) ) {
+			return null;
+		}
+		$event       = $result['events'][0];
+		$event_id    = is_array( $event ) ? ( $event['event_id'] ?? null ) : null;
+		$event_start = is_array( $event ) && is_string( $event['start'] ?? null ) ? \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i:sP', $event['start'] ) : false;
+		$event_end   = is_array( $event ) && is_string( $event['end'] ?? null ) ? \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i:sP', $event['end'] ) : false;
+		if ( ! is_int( $event_id ) || $event_id < 1 || $event_id === (int) $booking['event_id'] || 'publish' !== ( $event['status'] ?? null ) || false === $event_start || false === $event_end || $event_start->format( DATE_RFC3339 ) !== $event['start'] || $event_end->format( DATE_RFC3339 ) !== $event['end'] || $event_start >= $event_end ) {
+			return new \WP_Error(
+				'booking_canonical_overlap_contract_invalid',
+				__( 'Canonical event conflict checking returned an invalid event.', 'extrachill-events' ),
+				array(
+					'status'    => 502,
+					'retryable' => true,
+				)
+			);
+		}
+		return array(
+			'id'            => $event_id,
+			'event_id'      => $event_id,
+			'conflict_type' => 'canonical_event',
+		);
 	}
 
 	private function conflict_error( array $conflict ): \WP_Error {
@@ -1242,38 +1330,6 @@ class BookingHoldRepository {
 			return new \WP_Error( 'booking_hold_expiration_check_failed', __( 'The booking hold expiration could not be checked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return null !== $row;
-	}
-
-	private function canonical_local_window( string $start, string $end, \DateTimeZone $timezone ): array {
-		$utc         = new \DateTimeZone( 'UTC' );
-		$start_utc   = new \DateTimeImmutable( $start, $utc );
-		$end_utc     = new \DateTimeImmutable( $end, $utc );
-		$start_local = $start_utc->setTimezone( $timezone );
-		$end_local   = $end_utc->setTimezone( $timezone );
-		$local_start = $start_local->format( 'Y-m-d H:i:s' );
-		$local_end   = $end_local->format( 'Y-m-d H:i:s' );
-		$transitions = $timezone->getTransitions( $start_utc->getTimestamp(), $end_utc->getTimestamp() );
-		if ( is_array( $transitions ) ) {
-			$previous_offset = null;
-			foreach ( $transitions as $transition ) {
-				if ( ! is_array( $transition ) || ! isset( $transition['ts'], $transition['offset'] ) ) {
-					continue;
-				}
-				$new_offset = (int) $transition['offset'];
-				if ( null !== $previous_offset && $new_offset < $previous_offset ) {
-					// The canonical index lacks offsets. Include the entire repeated wall-clock fold conservatively.
-					$fold_start  = gmdate( 'Y-m-d H:i:s', (int) $transition['ts'] + $new_offset );
-					$fold_end    = gmdate( 'Y-m-d H:i:s', (int) $transition['ts'] + $previous_offset );
-					$local_start = min( $local_start, $fold_start );
-					$local_end   = max( $local_end, $fold_end );
-				}
-				$previous_offset = $new_offset;
-			}
-		}
-		return array(
-			'start' => $local_start,
-			'end'   => $local_end,
-		);
 	}
 
 	private function valid_datetime( string $value ): bool {

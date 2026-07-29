@@ -191,6 +191,69 @@ if ( ! function_exists( 'get_term_meta' ) ) {
 		return $state['meta'][ $state['blog_id'] ][ $term_id ][ $key ] ?? '';
 	}
 }
+if ( ! function_exists( 'data_machine_events_get_venue_data' ) ) {
+	function data_machine_events_get_venue_data( int $term_id ) {
+		if ( array_key_exists( 'venue_projection_result', $GLOBALS['ec_artist_test'] ?? array() ) ) {
+			$result = $GLOBALS['ec_artist_test']['venue_projection_result'];
+			return is_callable( $result ) ? $result( $term_id ) : $result;
+		}
+		$meta = $GLOBALS['ec_artist_test']['meta'][ get_current_blog_id() ][ $term_id ] ?? array();
+		return array(
+			'address'     => $meta['_venue_address'] ?? '',
+			'city'        => $meta['_venue_city'] ?? '',
+			'state'       => $meta['_venue_state'] ?? '',
+			'zip'         => $meta['_venue_zip'] ?? '',
+			'country'     => $meta['_venue_country'] ?? '',
+			'phone'       => $meta['_venue_phone'] ?? '',
+			'website'     => $meta['_venue_website'] ?? '',
+			'coordinates' => $meta['_venue_coordinates'] ?? '',
+			'capacity'    => $meta['_venue_capacity'] ?? '',
+			'timezone'    => $meta['_venue_timezone'] ?? '',
+		);
+	}
+}
+if ( ! function_exists( 'data_machine_events_query_venue_interval_overlaps' ) ) {
+	function data_machine_events_query_venue_interval_overlaps( array $params ) {
+		$GLOBALS['ec_artist_test']['overlap_calls'][] = $params;
+		if ( array_key_exists( 'overlap_result', $GLOBALS['ec_artist_test'] ?? array() ) ) {
+			$result = $GLOBALS['ec_artist_test']['overlap_result'];
+			return is_callable( $result ) ? $result( $params ) : $result;
+		}
+		$venue_id  = (int) $params['venue_id'];
+		$projection = data_machine_events_get_venue_data( $venue_id );
+		$timezone  = new DateTimeZone( (string) ( $projection['timezone'] ?? 'UTC' ) );
+		$start     = ( new DateTimeImmutable( $params['start'] ) )->setTimezone( $timezone )->format( 'Y-m-d H:i:s' );
+		$end       = ( new DateTimeImmutable( $params['end'] ) )->setTimezone( $timezone )->format( 'Y-m-d H:i:s' );
+		$excluded  = array_map( 'intval', $params['exclude'] ?? array() );
+		$events    = array();
+		foreach ( $GLOBALS['wpdb']->event_dates ?? array() as $event ) {
+			if ( (int) $event['venue_term_id'] !== $venue_id || in_array( (int) $event['post_id'], $excluded, true ) || 'publish' !== $event['post_status'] || null === $event['end_datetime'] || $event['end_datetime'] <= $event['start_datetime'] ) {
+				continue;
+			}
+			if ( $event['start_datetime'] < $end && $event['end_datetime'] > $start ) {
+				$events[] = array(
+					'event_id' => (int) $event['post_id'],
+					'start'    => DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $event['start_datetime'], $timezone )->format( DATE_RFC3339 ),
+					'end'      => DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $event['end_datetime'], $timezone )->format( DATE_RFC3339 ),
+					'status'   => 'publish',
+				);
+				break;
+			}
+		}
+		return array(
+			'venue_id' => $venue_id,
+			'timezone' => $timezone->getName(),
+			'interval' => array(
+				'start' => ( new DateTimeImmutable( $params['start'] ) )->setTimezone( $timezone )->format( DATE_RFC3339 ),
+				'end'   => ( new DateTimeImmutable( $params['end'] ) )->setTimezone( $timezone )->format( DATE_RFC3339 ),
+			),
+			'events'   => $events,
+			'page'     => 1,
+			'per_page' => 1,
+			'has_more' => false,
+		);
+	}
+}
 if ( ! function_exists( 'update_term_meta' ) ) {
 	function update_term_meta( $term_id, $key, $value ) {
 		if ( isset( $GLOBALS['venue_membership_test'] ) ) {

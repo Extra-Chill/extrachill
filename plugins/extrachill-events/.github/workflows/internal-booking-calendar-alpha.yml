@@ -14,6 +14,7 @@ on:
       - inc/Abilities/VenueMembershipAbilities.php
       - inc/Core/BookingActivityRepository.php
       - inc/Core/BookingEventConversionService.php
+      - inc/Core/BookingEventSyncService.php
       - inc/Core/BookingHoldRepository.php
       - inc/Core/BookingInquiryAdmissionService.php
       - inc/Core/BookingLifecycle.php
@@ -173,7 +174,7 @@ jobs:
           svn export --quiet "https://develop.svn.wordpress.org/tags/${wp_branch}/tests/phpunit/includes" /tmp/wordpress-tests-lib/includes
           svn export --quiet "https://develop.svn.wordpress.org/tags/${wp_branch}/tests/phpunit/data" /tmp/wordpress-tests-lib/data
 
-      - name: Run native overlapping hold proof
+      - name: Run native hold proofs
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
@@ -186,8 +187,8 @@ jobs:
           DME_PLUGIN_DIR: ${{ github.workspace }}/.ci/data-machine-events
         run: |
           set -euo pipefail
-          vendor/bin/phpunit -c phpunit-booking-alpha-concurrency.xml.dist --filter test_overlapping_public_hold_abilities_allow_one_winner | tee "$RUNNER_TEMP/internal-booking-hold-concurrency.txt"
-          grep -E 'OK \(1 test, [1-9][0-9]* assertions?\)' "$RUNNER_TEMP/internal-booking-hold-concurrency.txt"
+          vendor/bin/phpunit -c phpunit-booking-alpha-concurrency.xml.dist --filter '/test_(overlapping_public_hold_abilities_allow_one_winner|canonical_event_overlap_blocks_public_hold)$/' | tee "$RUNNER_TEMP/internal-booking-hold-concurrency.txt"
+          grep -E 'OK \(2 tests, [1-9][0-9]* assertions?\)' "$RUNNER_TEMP/internal-booking-hold-concurrency.txt"
           if grep -Eiq 'skip|no tests executed|OK, but' "$RUNNER_TEMP/internal-booking-hold-concurrency.txt"; then
             exit 1
           fi

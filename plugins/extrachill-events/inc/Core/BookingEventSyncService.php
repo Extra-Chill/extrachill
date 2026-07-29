@@ -525,8 +525,29 @@ class BookingEventSyncService {
 
 	/** Map the current booking through the same public conversion rules. */
 	private function authority_from_booking( array $booking ) {
-		$venue    = get_term( $booking['venue_term_id'], 'venue' );
-		$timezone = (string) get_term_meta( $booking['venue_term_id'], '_venue_timezone', true );
+		$venue = get_term( $booking['venue_term_id'], 'venue' );
+		if ( ! function_exists( 'data_machine_events_get_venue_data' ) ) {
+			return new \WP_Error(
+				'booking_event_venue_contract_unavailable',
+				__( 'Canonical venue data is temporarily unavailable.', 'extrachill-events' ),
+				array(
+					'status'    => 503,
+					'retryable' => true,
+				)
+			);
+		}
+		$venue_data = data_machine_events_get_venue_data( (int) $booking['venue_term_id'] );
+		if ( ! is_array( $venue_data ) ) {
+			return new \WP_Error(
+				'booking_event_venue_contract_invalid',
+				__( 'Canonical venue data returned an invalid result.', 'extrachill-events' ),
+				array(
+					'status'    => 502,
+					'retryable' => true,
+				)
+			);
+		}
+		$timezone = (string) ( $venue_data['timezone'] ?? '' );
 		try {
 			$zone = new \DateTimeZone( $timezone );
 		} catch ( \Exception $exception ) {
@@ -561,10 +582,20 @@ class BookingEventSyncService {
 		if ( ! $post || ( $post->post_type ?? '' ) !== $type ) {
 			return new \WP_Error( 'booking_event_existing_invalid', __( 'The linked site-local event is invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		$identity = hash( 'sha256', BookingEventConversionService::SOURCE . "\0" . $booking['public_id'] );
-		if ( BookingEventConversionService::SOURCE !== get_post_meta( $booking['event_id'], '_datamachine_event_source', true )
-			|| get_post_meta( $booking['event_id'], '_datamachine_event_source_id', true ) !== $booking['public_id']
-			|| get_post_meta( $booking['event_id'], '_datamachine_event_source_identity', true ) !== $identity ) {
+		$snapshot = $this->activity->latest_event_snapshot( (int) $booking['id'] );
+		if ( is_wp_error( $snapshot ) ) {
+			return $snapshot;
+		}
+		$activity = is_array( $snapshot ) ? ( $snapshot['activity'] ?? null ) : null;
+		$data     = is_array( $activity ) ? ( $activity['payload']['data'] ?? null ) : null;
+		$linked   = is_array( $data ) && (int) ( $data['event_id'] ?? 0 ) === (int) $booking['event_id'];
+		if ( $linked && 'event_converted' === ( $activity['kind'] ?? '' ) ) {
+			$identity = hash( 'sha256', BookingEventConversionService::SOURCE . "\0" . $booking['public_id'] );
+			$linked   = ( $data['source'] ?? null ) === BookingEventConversionService::SOURCE
+				&& ( $data['source_id'] ?? null ) === $booking['public_id']
+				&& ( $data['source_identity'] ?? null ) === $identity;
+		}
+		if ( ! $linked ) {
 			return new \WP_Error( 'booking_event_identity_mismatch', __( 'The linked event does not belong to this immutable booking handoff.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		$attrs = array();
@@ -592,7 +623,13 @@ class BookingEventSyncService {
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
-		if ( ! is_array( $result ) || true !== ( $result['success'] ?? null ) || ! in_array( $result['action'] ?? '', array( 'updated', 'no_change' ), true ) || 1 !== preg_match( '/^[a-f0-9]{64}$/', (string) ( $result['fingerprint'] ?? '' ) ) ) {
+		if ( ! is_array( $result )
+			|| true !== ( $result['success'] ?? null )
+			|| ! in_array( $result['action'] ?? '', array( 'updated', 'no_change' ), true )
+			|| ! is_int( $result['event_id'] ?? null )
+			|| $result['event_id'] !== $input['event']
+			|| ( $result['previous_fingerprint'] ?? null ) !== $input['expected_fingerprint']
+			|| 1 !== preg_match( '/^[a-f0-9]{64}$/', (string) ( $result['fingerprint'] ?? '' ) ) ) {
 			return new \WP_Error(
 				'booking_event_update_failed',
 				__( 'Canonical event update returned an invalid source-owned result.', 'extrachill-events' ),

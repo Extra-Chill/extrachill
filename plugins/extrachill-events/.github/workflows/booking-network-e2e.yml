@@ -48,14 +48,14 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/data-machine
-          ref: dc71db023b09b9d4cd29e9c853678b930384b033
+          ref: 25dbfc8e6c7e371afc80b64d58cd7761b902e3ac
           path: .ci/data-machine
 
       - name: Checkout Data Machine Events
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/data-machine-events
-          ref: fb445f87b4133600244d129ed53538cfde7fbb1b
+          ref: 2fb1839a241c798bff0271f0de0f7412abcd5193
           path: .ci/data-machine-events
 
       - name: Checkout Extra Chill API
@@ -119,9 +119,9 @@ jobs:
         env:
           BOOKING_E2E_ARTIFACT_ROOT: ${{ github.workspace }}/artifacts/booking-network-e2e
           BOOKING_E2E_DATA_MACHINE: ${{ github.workspace }}/.ci/data-machine
-          BOOKING_E2E_DATA_MACHINE_REV: dc71db023b09b9d4cd29e9c853678b930384b033
+          BOOKING_E2E_DATA_MACHINE_REV: 25dbfc8e6c7e371afc80b64d58cd7761b902e3ac
           BOOKING_E2E_DATA_MACHINE_EVENTS: ${{ github.workspace }}/.ci/data-machine-events
-          BOOKING_E2E_DATA_MACHINE_EVENTS_REV: fb445f87b4133600244d129ed53538cfde7fbb1b
+          BOOKING_E2E_DATA_MACHINE_EVENTS_REV: 2fb1839a241c798bff0271f0de0f7412abcd5193
           BOOKING_E2E_EXTRACHILL_API: ${{ github.workspace }}/.ci/extrachill-api
           BOOKING_E2E_EXTRACHILL_API_REV: d449ed353f17b4c81cfd466fcbbefaa5ee637609
           BOOKING_E2E_EXTRACHILL_NETWORK: ${{ github.workspace }}/.ci/extrachill-network

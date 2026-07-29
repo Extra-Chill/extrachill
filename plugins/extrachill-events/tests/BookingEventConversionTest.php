@@ -167,12 +167,6 @@ final class BookingEventConversionTest extends BookingTestCase {
 	}
 
 	private function add_event_source_proof( int $id, array $input, ?int $venue_id = null ): void {
-		$identity = hash( 'sha256', $input['source'] . "\0" . $input['source_id'] );
-		$GLOBALS['ec_artist_test']['post_meta'][7][ $id ] = array(
-			'_datamachine_event_source'          => $input['source'],
-			'_datamachine_event_source_id'       => $input['source_id'],
-			'_datamachine_event_source_identity' => $identity,
-		);
 		$GLOBALS['ec_artist_test']['event_venues'][7][ $id ] = array( null === $venue_id ? 55 : $venue_id );
 		if ( isset( $input['event'] ) ) {
 			$GLOBALS['ec_artist_test']['parsed_blocks'][ 'event-' . $id ] = array(
@@ -215,6 +209,7 @@ final class BookingEventConversionTest extends BookingTestCase {
 			'event_id'  => 901,
 			'event_url' => 'https://events.example/test-band',
 			'action'    => 'created',
+			'fingerprint' => hash( 'sha256', 'event-' . (int) ( $overrides['event_id'] ?? 901 ) ),
 			'source'    => array(
 				'name'     => $input['source'],
 				'id'       => $input['source_id'],
@@ -371,6 +366,7 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$this->assertCount( 2, $activity );
 		$this->assertSame( 'event_converted', $activity[0]['kind'] );
 		$this->assertSame( 901, $activity[0]['payload']['data']['event_id'] );
+		$this->assertSame( hash( 'sha256', 'event-901' ), $activity[0]['payload']['data']['fingerprint'] );
 		$this->assertSame( 2, $activity[0]['payload']['data']['version'] );
 		$this->assertSame( 'event_conversion_started', $activity[1]['kind'] );
 		$this->assertGreaterThanOrEqual( 2, $GLOBALS['wpdb']->booking_lock_queries );
@@ -417,13 +413,13 @@ final class BookingEventConversionTest extends BookingTestCase {
 				$this->assertSame( '15:00', $input['event']['startTime'] );
 				$this->assertSame( 'America/New_York', $input['event']['venueTimezone'] );
 				$this->assertSame( $booking['public_id'], $input['source_id'] );
-				$this->assertSame( $identity, get_post_meta( 291410, '_datamachine_event_source_identity', true ) );
 				$GLOBALS['ec_artist_test']['posts'][7][291410]->post_status = 'publish';
 				return array(
 					'success'    => true,
 					'event_id'   => 291410,
 					'event_url'  => 'https://events.extrachill.com/events/extra-chill-production-smoke-test-at-lo-fi-brewing',
 					'action'     => 'updated',
+					'fingerprint' => hash( 'sha256', 'event-291410' ),
 					'source'     => array(
 						'name'     => BookingEventConversionService::SOURCE,
 						'id'       => $booking['public_id'],
@@ -517,6 +513,9 @@ final class BookingEventConversionTest extends BookingTestCase {
 		unset( $GLOBALS['ec_artist_test']['meta'][7][55]['_venue_address'] );
 		$this->assertSame( 'booking_event_venue_incomplete', $this->service()->convert( $timezone['id'], 1, 12 )->get_error_code() );
 		$GLOBALS['ec_artist_test']['meta'][7][55]['_venue_address'] = '123 King Street';
+		$GLOBALS['ec_artist_test']['venue_projection_result'] = null;
+		$this->assertSame( 'booking_event_venue_contract_invalid', $this->service()->convert( $timezone['id'], 1, 12 )->get_error_code() );
+		unset( $GLOBALS['ec_artist_test']['venue_projection_result'] );
 		unset( $GLOBALS['ec_artist_test']['terms'][7][55] );
 		$this->assertSame( 'booking_event_venue_invalid', $this->service()->convert( $timezone['id'], 1, 12 )->get_error_code() );
 		$this->assertCount( 0, $GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/upsert-event']->calls );
@@ -704,6 +703,7 @@ final class BookingEventConversionTest extends BookingTestCase {
 			array( 'source' => array( 'name' => 'wrong-source' ) ),
 			array( 'source' => array( 'id' => 'wrong-id' ) ),
 			array( 'source' => array( 'identity' => 'wrong-identity' ) ),
+			array( 'fingerprint' => 'not-a-canonical-fingerprint' ),
 			array( 'normalized' => array( 'venue_id' => 999 ) ),
 			array( 'normalized' => array( 'post_status' => 'draft' ) ),
 		);
@@ -866,7 +866,7 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$this->assertCount( 0, $GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/upsert-event']->calls );
 	}
 
-	public function test_existing_draft_private_wrong_source_wrong_venue_and_missing_activity_are_rejected(): void {
+	public function test_existing_draft_wrong_venue_and_missing_activity_are_rejected(): void {
 		$booking = $this->booking();
 		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $booking['id'] ]['event_id'] = 901;
 		$input = array( 'source' => 'extrachill-events-booking', 'source_id' => $booking['public_id'] );
@@ -878,10 +878,6 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$GLOBALS['ec_artist_test']['posts'][7][901]->post_status = 'private';
 		$this->assertSame( 'booking_event_existing_invalid', $this->service()->convert( $booking['id'], 1, 12 )->get_error_code() );
 		$GLOBALS['ec_artist_test']['posts'][7][901]->post_status = 'publish';
-		$GLOBALS['ec_artist_test']['post_meta'][7][901]['_datamachine_event_source'] = 'wrong';
-		$error = $this->service()->convert( $booking['id'], 1, 12 );
-		$this->assertContains( 'source_name', $error->get_error_data()['integrity'] );
-		$GLOBALS['ec_artist_test']['post_meta'][7][901]['_datamachine_event_source'] = 'extrachill-events-booking';
 		$GLOBALS['ec_artist_test']['event_venues'][7][901] = array( 999 );
 		$error = $this->service()->convert( $booking['id'], 1, 12 );
 		$this->assertContains( 'venue', $error->get_error_data()['integrity'] );
@@ -995,7 +991,19 @@ final class BookingEventConversionTest extends BookingTestCase {
 
 		$other = $this->booking();
 		$this->service()->convert( $other['id'], 1, 12 );
-		$GLOBALS['ec_artist_test']['post_meta'][7][901]['_datamachine_event_source_id'] = 'another-site-local-source';
+		$snapshot = ( new BookingActivityRepository() )->latest_event_snapshot( $other['id'] );
+		( new BookingActivityRepository() )->append(
+			array(
+				'booking_id'      => $other['id'],
+				'kind'            => 'event_sync_noop',
+				'idempotency_key' => 'event-sync-noop:wrong-linkage',
+				'payload'         => array(
+					'event_id'    => 999,
+					'authority'   => $snapshot['authority'],
+					'fingerprint' => $snapshot['fingerprint'],
+				),
+			)
+		);
 		$error = $sync->reconcile( $other['id'], 2, 12 );
 		$this->assertSame( 'booking_event_identity_mismatch', $error->get_error_code() );
 	}
@@ -1044,6 +1052,27 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$this->assertSame( 'booking_event_manual_divergence', $error->get_error_code() );
 		$this->assertArrayHasKey( 'venue_id', $error->get_error_data()['conflicts'] );
 		$this->assertCount( 0, $ability->calls );
+	}
+
+	public function test_source_update_result_must_match_requested_event_and_previous_fingerprint(): void {
+		foreach ( array( 'event_id', 'previous_fingerprint' ) as $invalid_field ) {
+			$booking = $this->booking();
+			$this->service()->convert( $booking['id'], 1, 12 );
+			$GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/update-source-event'] = new BookingConversionAbilityFake(
+				static function ( array $input ) use ( $invalid_field ): array {
+					return array(
+						'success'              => true,
+						'event_id'             => 'event_id' === $invalid_field ? 999 : $input['event'],
+						'action'               => 'updated',
+						'previous_fingerprint' => 'previous_fingerprint' === $invalid_field ? hash( 'sha256', 'wrong' ) : $input['expected_fingerprint'],
+						'fingerprint'          => hash( 'sha256', 'next-' . $invalid_field ),
+						'updated_fields'       => array( 'performer' ),
+					);
+				}
+			);
+			$error = ( new BookingEventSyncService( null, null, new BookingTestAuthorization() ) )->reconcile( $booking['id'], 2, 12, array( 'performer' => 'Corrected Artist' ) );
+			$this->assertSame( 'booking_event_update_failed', $error->get_error_code() );
+		}
 	}
 
 	public function test_source_owned_update_is_combined_and_scoped_to_active_wrapper(): void {

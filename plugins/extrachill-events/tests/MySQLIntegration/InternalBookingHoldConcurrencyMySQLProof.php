@@ -15,27 +15,7 @@ final class InternalBookingHoldConcurrencyMySQLProof extends BookingAttachmentMy
 		wp_set_current_user( $this->actor_id );
 		$this->assertNotFalse( update_term_meta( $this->venue_id, '_venue_timezone', 'America/New_York' ) );
 		$this->assertTrue( DataMachineEvents\Core\EventDatesTable::table_exists() );
-
-		$config            = wp_get_ability( 'extrachill/get-venue-booking-config' )->execute( array( 'venue_term_id' => $this->venue_id ) );
-		$this->assertIsArray( $config, is_wp_error( $config ) ? $config->get_error_code() : 'Venue config was not returned.' );
-		$revision = (int) $config['revision'];
-		unset( $config['revision'], $config['updated_by_user_id'], $config['updated_at'] );
-		$config['enabled'] = true;
-		$config['spaces']  = array(
-			array(
-				'key'        => 'main-room',
-				'name'       => 'Main Room',
-				'is_default' => true,
-			),
-		);
-		$config = wp_get_ability( 'extrachill/update-venue-booking-config' )->execute(
-			array(
-				'venue_term_id'    => $this->venue_id,
-				'expected_revision' => $revision,
-				'config'           => $config,
-			)
-		);
-		$this->assertIsArray( $config, is_wp_error( $config ) ? $config->get_error_code() : 'Venue config was not committed.' );
+		$this->configure_booking_venue();
 
 		$bookings = array(
 			$this->prepare_booking( 'Native Race One' ),
@@ -117,6 +97,48 @@ final class InternalBookingHoldConcurrencyMySQLProof extends BookingAttachmentMy
 		rmdir( $directory );
 	}
 
+	/** Prove the public hold path consumes DME's real indexed overlap contract. */
+	public function test_canonical_event_overlap_blocks_public_hold(): void {
+		global $wpdb;
+		$this->register_booking_abilities();
+		wp_set_current_user( $this->actor_id );
+		$this->assertNotFalse( update_term_meta( $this->venue_id, '_venue_timezone', 'America/New_York' ) );
+		$this->configure_booking_venue();
+		$booking = $this->prepare_booking( 'Canonical Conflict Probe' );
+
+		$event_id = self::factory()->post->create(
+			array(
+				'post_type'   => DataMachineEvents\Core\Event_Post_Type::POST_TYPE,
+				'post_status' => 'publish',
+				'post_title'  => 'Canonical Venue Blocker',
+			)
+		);
+		$this->assertNotWPError( wp_set_object_terms( $event_id, array( $this->venue_id ), 'venue' ) );
+		$this->assertNotFalse(
+			$wpdb->replace(
+				DataMachineEvents\Core\EventDatesTable::table_name(),
+				array(
+					'post_id'        => $event_id,
+					'start_datetime' => '2031-06-30 21:00:00',
+					'end_datetime'   => '2031-06-30 22:00:00',
+					'post_status'    => 'publish',
+				),
+				array( '%d', '%s', '%s', '%s' )
+			)
+		);
+
+		$result = wp_get_ability( 'extrachill/create-booking-hold' )->execute(
+			array(
+				'booking_id'              => $booking['id'],
+				'expected_booking_version' => $booking['version'],
+			)
+		);
+		$this->assertWPError( $result );
+		$this->assertSame( 'booking_time_conflict', $result->get_error_code() );
+		$this->assertSame( 'canonical_event', $result->get_error_data()['conflict']['conflict_type'] );
+		$this->assertSame( $event_id, $result->get_error_data()['conflict']['event_id'] );
+	}
+
 	/** Prepare one negotiating booking through public lifecycle Abilities. */
 	private function prepare_booking( string $artist_name ): array {
 		$booking = ( new BookingRepository() )->create(
@@ -149,6 +171,30 @@ final class InternalBookingHoldConcurrencyMySQLProof extends BookingAttachmentMy
 		);
 		$this->assertIsArray( $booking, is_wp_error( $booking ) ? $booking->get_error_code() : 'Performance selection failed.' );
 		return $booking;
+	}
+
+	/** Enable one deterministic booking space for this test's venue. */
+	private function configure_booking_venue(): void {
+		$config = wp_get_ability( 'extrachill/get-venue-booking-config' )->execute( array( 'venue_term_id' => $this->venue_id ) );
+		$this->assertIsArray( $config, is_wp_error( $config ) ? $config->get_error_code() : 'Venue config was not returned.' );
+		$revision = (int) $config['revision'];
+		unset( $config['revision'], $config['updated_by_user_id'], $config['updated_at'] );
+		$config['enabled'] = true;
+		$config['spaces']  = array(
+			array(
+				'key'        => 'main-room',
+				'name'       => 'Main Room',
+				'is_default' => true,
+			),
+		);
+		$config = wp_get_ability( 'extrachill/update-venue-booking-config' )->execute(
+			array(
+				'venue_term_id'    => $this->venue_id,
+				'expected_revision' => $revision,
+				'config'            => $config,
+			)
+		);
+		$this->assertIsArray( $config, is_wp_error( $config ) ? $config->get_error_code() : 'Venue config was not committed.' );
 	}
 
 	/** Register booking definitions in Core's public Abilities registry. */
