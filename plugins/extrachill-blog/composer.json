@@ -20,6 +20,7 @@
             "php tests/newsletter-context.php",
             "php tests/network-bridge.php",
             "php tests/artist-dispatch.php",
+            "node tests/entity-subscriptions-js.js",
             "node tests/artist-dispatch-js.js",
             "node tests/geographic-bridge-experiment.js",
             "@lint:php"

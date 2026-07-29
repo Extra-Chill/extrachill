@@ -9,8 +9,8 @@
 
 	function setState( button, subscribed, message ) {
 		button.setAttribute( 'aria-pressed', subscribed ? 'true' : 'false' );
-		button.textContent = subscribed ? 'Subscribed to updates' : 'Subscribe to updates';
-		getControl( button ).querySelector( '.entity-pillar-subscription-status' ).textContent = message || '';
+		button.textContent = subscribed ? button.dataset.onLabel : button.dataset.offLabel;
+		getControl( button ).querySelector( '.entity-pillar-subscription-status' ).textContent = message || ( subscribed ? button.dataset.onStatus : button.dataset.offStatus );
 	}
 
 	function request( button, ability, method ) {
@@ -50,19 +50,18 @@
 	buttons.forEach( function ( button ) {
 		request( button, 'entity-subscription-status', 'GET' ).then( function ( data ) {
 			setState( button, Boolean( data.subscribed ) );
-		} ).catch( function () {
-			getControl( button ).querySelector( '.entity-pillar-subscription-status' ).textContent = 'Subscription status is unavailable. Please try again.';
-		} ).finally( function () {
 			button.disabled = false;
+		} ).catch( function () {
+			getControl( button ).querySelector( '.entity-pillar-subscription-status' ).textContent = "Couldn't load this setting. Refresh to try again.";
 		} );
 
 		button.addEventListener( 'click', function () {
 			const subscribed = 'true' === button.getAttribute( 'aria-pressed' );
 			button.disabled = true;
 			request( button, subscribed ? 'entity-unsubscribe' : 'entity-subscribe', 'POST' ).then( function ( data ) {
-				setState( button, Boolean( data.subscribed ), data.subscribed ? 'You will receive updates.' : 'You will no longer receive updates.' );
+				setState( button, Boolean( data.subscribed ) );
 			} ).catch( function () {
-				getControl( button ).querySelector( '.entity-pillar-subscription-status' ).textContent = 'Unable to update your subscription. Please try again.';
+				getControl( button ).querySelector( '.entity-pillar-subscription-status' ).textContent = 'Unable to update this setting. Please try again.';
 			} ).finally( function () {
 				button.disabled = false;
 			} );

@@ -515,11 +515,7 @@ function extrachill_blog_render_artist_coverage_heading() {
 }
 add_action( 'extrachill_archive_above_posts', 'extrachill_blog_render_artist_coverage_heading', 20 );
 
-/**
- * Render the private artist subscription control.
- *
- * @return void
- */
+/** Render account-owned artist preferences. */
 function extrachill_blog_render_artist_subscription_control() {
 	if ( ! extrachill_blog_is_artist_pillar() || is_paged() ) {
 		return;
@@ -532,10 +528,10 @@ function extrachill_blog_render_artist_subscription_control() {
 
 	if ( ! is_user_logged_in() ) {
 		?>
-		<section class="entity-pillar-subscription" aria-labelledby="artist-pillar-subscription-title">
-			<h2 id="artist-pillar-subscription-title"><?php esc_html_e( 'Get artist updates', 'extrachill-blog' ); ?></h2>
-			<p><?php esc_html_e( 'Log in to subscribe to private Extra Chill notifications for this artist.', 'extrachill-blog' ); ?></p>
-			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to subscribe', 'extrachill-blog' ); ?></a>
+		<section class="entity-pillar-subscription" aria-labelledby="artist-pillar-preferences-title">
+			<h2 id="artist-pillar-preferences-title"><?php esc_html_e( 'Artist preferences', 'extrachill-blog' ); ?></h2>
+			<p><?php esc_html_e( 'Get artist notifications and choose whether to share your email with this artist.', 'extrachill-blog' ); ?></p>
+			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to manage preferences', 'extrachill-blog' ); ?></a>
 		</section>
 		<?php
 		return;
@@ -543,24 +539,55 @@ function extrachill_blog_render_artist_subscription_control() {
 
 	wp_enqueue_script( 'extrachill-blog-entity-subscriptions' );
 	?>
-	<section class="entity-pillar-subscription" data-entity-subscription-control aria-labelledby="artist-pillar-subscription-title">
-		<h2 id="artist-pillar-subscription-title"><?php esc_html_e( 'Get artist updates', 'extrachill-blog' ); ?></h2>
-		<p><?php esc_html_e( 'Subscribe to private Extra Chill notifications for new editorial coverage of this artist.', 'extrachill-blog' ); ?></p>
-		<button
-			class="button-1 button-medium entity-pillar-subscription-button"
-			type="button"
-			aria-pressed="false"
-			disabled
-			data-entity-subscription
-			data-entity-type="artist"
-			data-taxonomy="artist"
-			data-slug="<?php echo esc_attr( $term->slug ); ?>"
-			data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>"
-			data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
-		>
-			<?php esc_html_e( 'Subscribe to updates', 'extrachill-blog' ); ?>
-		</button>
-		<p class="entity-pillar-subscription-status" aria-live="polite"></p>
+	<section class="entity-pillar-subscription entity-pillar-preferences" aria-labelledby="artist-pillar-preferences-title">
+		<div class="entity-pillar-preferences__header">
+			<h2 id="artist-pillar-preferences-title"><?php esc_html_e( 'Artist preferences', 'extrachill-blog' ); ?></h2>
+			<p><?php esc_html_e( 'Choose Extra Chill notifications and whether this artist can access your email.', 'extrachill-blog' ); ?></p>
+		</div>
+		<div class="entity-pillar-preferences__row" data-entity-subscription-control>
+			<div class="entity-pillar-preferences__copy">
+				<h3><?php esc_html_e( 'Artist notifications', 'extrachill-blog' ); ?></h3>
+				<p class="entity-pillar-subscription-status" aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-blog' ); ?></p>
+			</div>
+			<button
+				class="button-1 button-medium entity-pillar-subscription-button"
+				type="button"
+				aria-pressed="false"
+				disabled
+				data-entity-subscription
+				data-entity-type="artist"
+				data-taxonomy="artist"
+				data-slug="<?php echo esc_attr( $term->slug ); ?>"
+				data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>"
+				data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+				data-on-label="<?php esc_attr_e( 'Turn off', 'extrachill-blog' ); ?>"
+				data-off-label="<?php esc_attr_e( 'Turn on', 'extrachill-blog' ); ?>"
+				data-on-status="<?php esc_attr_e( 'On', 'extrachill-blog' ); ?>"
+				data-off-status="<?php esc_attr_e( 'Off', 'extrachill-blog' ); ?>"
+			><?php esc_html_e( 'Turn on', 'extrachill-blog' ); ?></button>
+		</div>
+		<div class="entity-pillar-preferences__row" data-entity-subscription-control>
+			<div class="entity-pillar-preferences__copy">
+				<h3><?php esc_html_e( 'Artist email list', 'extrachill-blog' ); ?></h3>
+				<p class="entity-pillar-subscription-status" aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-blog' ); ?></p>
+			</div>
+			<button
+				class="button-1 button-medium entity-pillar-subscription-button"
+				type="button"
+				aria-pressed="false"
+				disabled
+				data-entity-subscription
+				data-entity-type="artist-email-sharing"
+				data-taxonomy="artist"
+				data-slug="<?php echo esc_attr( $term->slug ); ?>"
+				data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>"
+				data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+				data-on-label="<?php esc_attr_e( 'Stop sharing', 'extrachill-blog' ); ?>"
+				data-off-label="<?php esc_attr_e( 'Share email', 'extrachill-blog' ); ?>"
+				data-on-status="<?php esc_attr_e( 'Shared with this artist', 'extrachill-blog' ); ?>"
+				data-off-status="<?php esc_attr_e( 'Not shared with this artist', 'extrachill-blog' ); ?>"
+			><?php esc_html_e( 'Share email', 'extrachill-blog' ); ?></button>
+		</div>
 	</section>
 	<?php
 }
