@@ -237,7 +237,7 @@ function extrachill_events_render_local_support_index( ?array $events = null ): 
 			<div class="ec-local-support__cards">
 				<?php foreach ( $events as $event ) : ?>
 					<article class="ec-local-support__artist-card">
-						<div><h2><?php echo esc_html( $event['title'] ); ?></h2><p><?php echo esc_html( mysql2date( get_option( 'date_format' ), $event['start_datetime'] ) ); ?></p><span class="ec-local-support__status"><?php echo esc_html( 'open' === $event['status'] ? __( 'Seeking', 'extrachill-events' ) : ucwords( str_replace( '_', ' ', $event['status'] ) ) ); ?></span></div>
+						<div><h2><?php echo esc_html( $event['title'] ); ?></h2><p><?php echo esc_html( (string) mysql2date( get_option( 'date_format' ), $event['start_datetime'] ) ); ?></p><span class="ec-local-support__status"><?php echo esc_html( 'open' === $event['status'] ? __( 'Seeking', 'extrachill-events' ) : ucwords( str_replace( '_', ' ', $event['status'] ) ) ); ?></span></div>
 						<a class="button-2" href="<?php echo esc_url( $event['workspace_url'] ); ?>"><?php echo esc_html( 'not_seeking' === $event['status'] ? __( 'Find local support', 'extrachill-events' ) : __( 'Manage request', 'extrachill-events' ) ); ?></a>
 					</article>
 				<?php endforeach; ?>
@@ -293,7 +293,7 @@ function extrachill_events_render_local_support_open( int $event_id ): void {
 	}
 	?>
 	<section class="ec-local-support ec-block-shell"><p class="ec-local-support__eyebrow"><?php esc_html_e( 'Create opportunity', 'extrachill-events' ); ?></p><h1><?php echo esc_html( $post->post_title ); ?></h1><p><?php esc_html_e( 'Invite eligible local artists to privately express interest. Contact information stays hidden unless an artist separately grants request-specific consent.', 'extrachill-events' ); ?></p>
-		<form method="post" class="ec-local-support__form"><?php wp_nonce_field( 'extrachill_events_local_support' ); ?><input type="hidden" name="local_support_action" value="open" /><input type="hidden" name="event_id" value="<?php echo esc_attr( $event_id ); ?>" /><input type="hidden" name="idempotency_key" value="<?php echo esc_attr( wp_generate_uuid4() ); ?>" /><label for="local-support-organizer"><?php esc_html_e( 'Open this request as', 'extrachill-events' ); ?></label><select id="local-support-organizer" data-organizer-select>
+		<form method="post" class="ec-local-support__form"><?php wp_nonce_field( 'extrachill_events_local_support' ); ?><input type="hidden" name="local_support_action" value="open" /><input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>" /><input type="hidden" name="idempotency_key" value="<?php echo esc_attr( wp_generate_uuid4() ); ?>" /><label for="local-support-organizer"><?php esc_html_e( 'Open this request as', 'extrachill-events' ); ?></label><select id="local-support-organizer" data-organizer-select>
 		<?php
 		foreach ( $options as $option ) :
 			?>
@@ -444,7 +444,7 @@ function extrachill_events_local_support_consent_fields( array $model, bool $gra
 		'expected_version'     => $interest['version'],
 		'idempotency_key'      => wp_generate_uuid4(),
 	) as $name => $value ) {
-		printf( '<input type="hidden" name="%s" value="%s" />', esc_attr( $name ), esc_attr( $value ) );
+		printf( '<input type="hidden" name="%s" value="%s" />', esc_attr( $name ), esc_attr( (string) $value ) );
 	}
 }
 
@@ -484,7 +484,7 @@ function extrachill_events_local_support_action_form( string $action, int $reque
 		'to_status'            => $status,
 		'idempotency_key'      => wp_generate_uuid4(),
 	) as $name => $value ) {
-		printf( '<input type="hidden" name="%s" value="%s" />', esc_attr( $name ), esc_attr( $value ) ); }
+		printf( '<input type="hidden" name="%s" value="%s" />', esc_attr( $name ), esc_attr( (string) $value ) ); }
 	?>
 	<button class="button-2" type="submit" data-loading-label="Updating..."><?php echo esc_html( $label ); ?></button></form>
 	<?php
