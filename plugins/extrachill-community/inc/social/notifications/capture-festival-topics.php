@@ -102,7 +102,7 @@ function extrachill_community_notify_festival_topic_subscribers( $topic_id ) {
 		)
 	);
 
-	if ( is_array( $receipt ) && 0 < absint( $receipt['failed'] ?? 0 ) ) {
+	if ( 0 < $receipt['failed'] ) {
 		delete_post_meta( $topic_id, EXTRACHILL_COMMUNITY_FESTIVAL_TOPIC_NOTIFIED_META );
 	}
 }
@@ -181,7 +181,7 @@ function extrachill_community_notify_artist_topic_subscribers( $topic_id ) {
 		)
 	);
 
-	if ( is_array( $receipt ) && 0 < absint( $receipt['failed'] ?? 0 ) ) {
+	if ( 0 < $receipt['failed'] ) {
 		delete_post_meta( $topic_id, EXTRACHILL_COMMUNITY_ARTIST_TOPIC_NOTIFIED_META );
 	}
 }

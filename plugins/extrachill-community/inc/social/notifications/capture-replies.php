@@ -35,7 +35,7 @@ function extrachill_capture_reply_notifications($reply_id, $topic_id, $forum_id,
 	}
 
 	// Get topic author and topic data
-	$topic_author = get_post_field('post_author', $topic_id);
+	$topic_author = (int) get_post_field('post_author', $topic_id);
 	$topic_title  = get_the_title($topic_id);
 	$reply_link   = bbp_get_reply_url($reply_id);
 

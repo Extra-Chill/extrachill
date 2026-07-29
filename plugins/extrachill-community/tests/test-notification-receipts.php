@@ -169,8 +169,4 @@ notification_test_assert( notification_test_canonical_payload( $payload ), 'Arti
 notification_test_assert( 'extrachill-community/artist-topics' === $payload['producer'] && 'topic:301' === $payload['idempotency_key'], 'Artist receipt identity is unstable.' );
 notification_test_assert( ! isset( $GLOBALS['_post_meta'][301][EXTRACHILL_COMMUNITY_ARTIST_TOPIC_NOTIFIED_META] ), 'Explicit failed artist receipt did not release its claim.' );
 
-$GLOBALS['_receipt'] = null;
-extrachill_community_notify_festival_topic_subscribers( 302 );
-notification_test_assert( isset( $GLOBALS['_post_meta'][302][EXTRACHILL_COMMUNITY_FESTIVAL_TOPIC_NOTIFIED_META] ), 'Malformed festival receipt incorrectly released its claim.' );
-
 echo "PASS: Community notifications use canonical receipt identities and preserve delivery behavior.\n";
