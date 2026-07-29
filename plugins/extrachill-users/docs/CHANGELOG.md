@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.41.0] - 2026-07-29
+
+### Changed
+- remove legacy notification compatibility
+- restore managed WordPress release harness
+
 ## [0.40.0] - 2026-07-29
 
 ### Added
