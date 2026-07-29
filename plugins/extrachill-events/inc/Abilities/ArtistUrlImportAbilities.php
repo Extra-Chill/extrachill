@@ -1861,7 +1861,6 @@ class ArtistUrlImportAbilities {
 			$data['item_id'] = $item_id;
 		}
 
-		$receipt = null;
 		try {
 			$receipt = ec_users_notify_with_receipts( array( $submitter_id ), $data );
 		} catch ( \Throwable $e ) {
@@ -1879,7 +1878,7 @@ class ArtistUrlImportAbilities {
 			return;
 		}
 
-		if ( ! is_array( $receipt ) || 0 < absint( $receipt['failed'] ?? 1 ) ) {
+		if ( 0 < $receipt['failed'] ) {
 			do_action(
 				'datamachine_log',
 				'warning',
@@ -1888,7 +1887,7 @@ class ArtistUrlImportAbilities {
 					'type'     => $type,
 					'user_id'  => $submitter_id,
 					'actor_id' => $actor_id,
-					'receipt'  => is_array( $receipt ) ? $receipt : array( 'result' => $receipt ),
+					'receipt'  => $receipt,
 				)
 			);
 		}
