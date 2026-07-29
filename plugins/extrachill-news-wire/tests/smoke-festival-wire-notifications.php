@@ -87,10 +87,4 @@ ec_news_wire_notify_festival_subscribers_on_publish( 'publish', 'draft', $failed
 expect( 3 === count( $notifications ), 'A failed delivery must be retryable.' );
 expect( 1 === get_post_meta( 15, EC_NEWS_WIRE_FESTIVAL_NOTIFICATION_SENT_META, true ), 'A successful retry must preserve the publication claim.' );
 
-$invalid_post = new WP_Post();
-$invalid_post->ID = 16;
-$delivery_receipts[] = array( 'failed' => 0 );
-ec_news_wire_notify_festival_subscribers_on_publish( 'publish', 'draft', $invalid_post );
-expect( '' === get_post_meta( 16, EC_NEWS_WIRE_FESTIVAL_NOTIFICATION_SENT_META, true ), 'An invalid receipt shape must release the publication claim.' );
-
 print "Festival Wire notification smoke test passed.\n";

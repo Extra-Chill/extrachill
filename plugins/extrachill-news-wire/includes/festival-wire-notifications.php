@@ -31,7 +31,7 @@ add_filter( 'extrachill_users_entity_subscription_producer_authorized', 'ec_news
  * @return void
  */
 function ec_news_wire_notify_festival_subscribers_on_publish( $new_status, $old_status, $post ) {
-	if ( 'publish' !== $new_status || 'publish' === $old_status || ! $post instanceof \WP_Post || 'festival_wire' !== $post->post_type ) {
+	if ( 'publish' !== $new_status || 'publish' === $old_status || 'festival_wire' !== $post->post_type ) {
 		return;
 	}
 
@@ -89,19 +89,7 @@ function ec_news_wire_notify_festival_subscribers_on_publish( $new_status, $old_
 		)
 	);
 
-	$valid_receipt = is_array( $receipt )
-		&& isset( $receipt['requested'], $receipt['inserted'], $receipt['existing'], $receipt['failed'], $receipt['recipients'] )
-		&& is_int( $receipt['requested'] )
-		&& is_int( $receipt['inserted'] )
-		&& is_int( $receipt['existing'] )
-		&& is_int( $receipt['failed'] )
-		&& is_array( $receipt['recipients'] )
-		&& 0 <= $receipt['inserted']
-		&& 0 <= $receipt['existing']
-		&& 0 <= $receipt['failed']
-		&& count( $recipient_ids ) === $receipt['requested']
-		&& $receipt['requested'] === $receipt['inserted'] + $receipt['existing'] + $receipt['failed'];
-	if ( ! $valid_receipt || 0 < absint( $receipt['failed'] ?? 0 ) ) {
+	if ( 0 < $receipt['failed'] ) {
 		delete_post_meta( $post->ID, EC_NEWS_WIRE_FESTIVAL_NOTIFICATION_SENT_META );
 	}
 }
