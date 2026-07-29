@@ -170,7 +170,7 @@ function extrachill_community_append_location_links_to_description( $description
 	}
 
 	$forum_id       = bbp_get_forum_id();
-	$has_subforums  = ! empty( bbp_forum_get_subforums( $forum_id ) );
+	$has_subforums  = ! empty( bbp_forum_get_subforums( array( 'post_parent' => $forum_id ) ) );
 	$location_terms = get_the_terms( $forum_id, 'location' );
 	$button_html    = '';
 

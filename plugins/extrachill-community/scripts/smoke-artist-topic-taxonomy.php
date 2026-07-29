@@ -7,7 +7,7 @@
  * @package ExtraChillCommunity
  */
 
-if ( ! defined( 'ABSPATH' ) || ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+if ( ! defined( 'ABSPATH' ) || ! defined( 'WP_CLI' ) ) {
 	exit( 1 );
 }
 
@@ -32,9 +32,10 @@ if ( false !== has_action( 'bbp_new_topic', 'extrachill_community_save_topic_art
 	WP_CLI::error( 'Artist persistence must be registered for edits only.' );
 }
 
-$query                   = new WP_Query();
-$query->is_tax           = true;
-$query->queried_object   = (object) array( 'taxonomy' => 'artist' );
+$artist_term           = new WP_Term( (object) array( 'taxonomy' => 'artist' ) );
+$query                 = new WP_Query();
+$query->is_tax         = true;
+$query->queried_object = $artist_term;
 $previous_wp_query     = $GLOBALS['wp_query'];
 $previous_wp_the_query = $GLOBALS['wp_the_query'];
 // phpcs:disable WordPress.WP.GlobalVariablesOverride.Prohibited -- Smoke script intentionally swaps the main query to simulate an artist archive request, then restores it below.

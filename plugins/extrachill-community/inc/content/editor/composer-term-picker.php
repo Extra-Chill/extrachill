@@ -133,7 +133,7 @@ add_action( 'init', 'extrachill_community_publish_discussion_composer_contract',
  * and the slug must resolve to an existing REST-enabled topic term.
  *
  * @param array<string,mixed>|null $query Query values, or null for the request.
- * @return array{taxonomy:string,term:object}|null Valid continuation state.
+ * @return array{taxonomy:string,term:WP_Term}|null Valid continuation state.
  */
 function extrachill_community_get_discussion_composer_state( $query = null ) {
 	$contract = extrachill_community_discussion_composer_contract();
@@ -171,7 +171,7 @@ function extrachill_community_get_discussion_composer_state( $query = null ) {
 	}
 
 	$term = get_term_by( 'slug', $slug, $taxonomy );
-	if ( ! $term || is_wp_error( $term ) ) {
+	if ( ! $term instanceof WP_Term ) {
 		return null;
 	}
 
@@ -383,7 +383,7 @@ function extrachill_community_enqueue_term_picker() {
 			'extrachill-community-term-picker',
 			EXTRACHILL_COMMUNITY_PLUGIN_URL . $style_rel,
 			array(),
-			filemtime( $style_path )
+			(string) filemtime( $style_path )
 		);
 	}
 }
