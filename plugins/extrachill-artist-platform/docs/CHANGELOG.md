@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0] - 2026-07-29
+
+### Added
+- add artist local support availability
+- add claimable external artist onboarding
+- use canonical artist identity for Shows
+
+### Changed
+- resolve artist email consent canonically
+
+### Fixed
+- enforce artist ability object authorization
+- make artist membership locks portable
+- Fix stale artist profile term references on deletion
+- enforce object-aware artist capabilities
+- enforce reciprocal artist membership
+- validate cross-site artist term bindings
+- enforce artist ownership in native abilities
+
 ## [1.17.0] - 2026-07-18
 
 ### Added
