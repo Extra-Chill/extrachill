@@ -30,7 +30,8 @@
  * The descriptor points the generic observer at the `_ec_studio_submission`
  * provenance marker (#107) — an array carrying the submitter's `user_id` — and
  * supplies the notification type + title copy. The substrate resolves the
- * recipient, links the live permalink, and fires ec_users_notify() once.
+ * recipient, links the live permalink, and creates one idempotent notification
+ * through the network receipt service.
  *
  * @package    ExtraChillStudio
  * @subpackage Compose
