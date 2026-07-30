@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.5.6] - 2026-07-30
+
+### Fixed
+- normalize docs sync ability failures
+
 ## [0.5.5] - 2026-07-21
 
 ### Fixed
