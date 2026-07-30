@@ -23,6 +23,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+const EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION = 2;
+
 add_action( 'wp_abilities_api_init', 'extrachill_docs_register_upsert_doc_page_ability' );
 
 /**
@@ -127,7 +129,7 @@ function extrachill_docs_upsert_doc_page_permission_callback(): bool {
 	}
 
 	// CLI context: trust the operator.
-	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	if ( defined( 'WP_CLI' ) ) {
 		return true;
 	}
 
@@ -193,8 +195,9 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 
 	// Short-circuit on unchanged content (sha match).
 	if ( $existing && '' !== $sha ) {
-		$existing_sha = (string) get_post_meta( $existing->ID, '_source_sha', true );
-		if ( $existing_sha === $sha ) {
+		$existing_sha               = (string) get_post_meta( $existing->ID, '_source_sha', true );
+		$existing_transform_version = (int) get_post_meta( $existing->ID, '_source_transform_version', true );
+		if ( $existing_sha === $sha && EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION === $existing_transform_version ) {
 			return array(
 				'success'   => true,
 				'action'    => 'unchanged',
@@ -205,6 +208,8 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 		}
 	}
 
+	$title          = extrachill_docs_extract_title_from_markdown( $markdown, $path );
+	$markdown       = extrachill_docs_strip_title_heading_from_markdown( $markdown );
 	$markdown       = extrachill_docs_resolve_internal_markdown_links( $markdown, $parent_slug );
 	$blocks_content = extrachill_docs_convert_markdown_to_blocks( $markdown );
 	if ( is_wp_error( $blocks_content ) ) {
@@ -215,8 +220,7 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 		);
 	}
 
-	$title = extrachill_docs_extract_title_from_markdown( $markdown, $path );
-	$slug  = extrachill_docs_derive_slug_from_path( $path );
+	$slug = extrachill_docs_derive_slug_from_path( $path );
 
 	if ( $dry_run ) {
 		return array(
@@ -259,6 +263,7 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 
 	update_post_meta( $page_id, '_source_repo', $repo );
 	update_post_meta( $page_id, '_source_path', $path );
+	update_post_meta( $page_id, '_source_transform_version', EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION );
 	if ( '' !== $sha ) {
 		update_post_meta( $page_id, '_source_sha', $sha );
 	}
@@ -452,6 +457,24 @@ function extrachill_docs_extract_title_from_markdown( string $markdown, string $
 
 	$slug = extrachill_docs_derive_slug_from_path( $path );
 	return ucwords( str_replace( '-', ' ', $slug ) );
+}
+
+/**
+ * Remove the first ATX H1 used as the WordPress page title.
+ *
+ * Source Markdown keeps its H1 for readability outside WordPress. The synced
+ * page template renders post_title, so retaining the same H1 in post_content
+ * would produce duplicate page headings.
+ *
+ * @since 0.5.7
+ *
+ * @param string $markdown Full markdown body.
+ * @return string Markdown without its first H1.
+ */
+function extrachill_docs_strip_title_heading_from_markdown( string $markdown ): string {
+	$stripped = preg_replace( '/^[ \t]*#[ \t]+[^\r\n]+(?:\R[ \t]*\R|\R|$)/m', '', $markdown, 1 );
+
+	return null === $stripped ? $markdown : ltrim( $stripped, "\r\n" );
 }
 
 /**

@@ -115,6 +115,16 @@ namespace {
 	\DataMachine\Core\Content\ContentFormat::$result = $conversion_error;
 	$assert( $conversion_error === extrachill_docs_convert_markdown_to_blocks( '# Hello' ), 'converter errors are preserved' );
 
+	$titled_markdown = "# Artist Preferences\n\nIntroduction.\n\n## Notifications\nDetails.";
+	$stripped_title  = extrachill_docs_strip_title_heading_from_markdown( $titled_markdown );
+	$assert( ! str_contains( $stripped_title, '# Artist Preferences' ), 'source H1 is removed from synced content' );
+	$assert( str_starts_with( $stripped_title, 'Introduction.' ), 'content begins after the removed source H1' );
+	$assert( str_contains( $stripped_title, '## Notifications' ), 'subsequent headings are preserved' );
+	$assert( 'Artist Preferences' === extrachill_docs_extract_title_from_markdown( $titled_markdown, 'artist-preferences.md' ), 'source H1 remains the page title' );
+	$assert( 'Artist Preferences' === extrachill_docs_extract_title_from_markdown( 'Introduction.', 'artist-preferences.md' ), 'title falls back to the filename without an H1' );
+	$assert( 'Introduction.' === extrachill_docs_strip_title_heading_from_markdown( 'Introduction.' ), 'markdown without an H1 is unchanged' );
+	$assert( 2 === EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION, 'content transform version forces existing pages through the corrected conversion' );
+
 	$markdown = '[Privacy](../privacy.md#sharing) [External](https://example.com/file.md) ![Image](diagram.md)';
 	$resolved = extrachill_docs_resolve_internal_markdown_links( $markdown, 'events-calendar' );
 	$assert( str_contains( $resolved, '[Privacy](https://docs.example/events-calendar/privacy/#sharing)' ), 'relative document links resolve to sibling pages' );
