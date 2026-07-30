@@ -345,8 +345,11 @@ namespace {
 	extrachill_community_validate_native_public_voice();
 	voice_assert( isset( $GLOBALS['_voice_errors']['bbp_public_voice_not_managed'] ), 'Native forms must reject unmanaged or spoofed voice input.' );
 
-	$ability_source = $wp_filesystem->get_contents( __DIR__ . '/../inc/content/topic-reply-abilities.php' );
-	$voice_source   = $wp_filesystem->get_contents( __DIR__ . '/../inc/content/public-voices.php' );
+	// These assertions inspect this plugin's own source text, so they read the
+	// files directly. `$wp_filesystem` is a WordPress admin global that is never
+	// initialized in this standalone context.
+	$ability_source = (string) file_get_contents( __DIR__ . '/../inc/content/topic-reply-abilities.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads first-party source text in a standalone test; WP_Filesystem is unavailable here.
+	$voice_source   = (string) file_get_contents( __DIR__ . '/../inc/content/public-voices.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads first-party source text in a standalone test; WP_Filesystem is unavailable here.
 	voice_assert( 2 === substr_count( $ability_source, "'public_voice' => extrachill_community_public_voice_input_schema()" ) && 2 === substr_count( $ability_source, "'public_voice' => extrachill_community_public_voice_input_schema( true )" ), 'Create abilities must require canonical voices while update abilities allow explicit clear.' );
 	voice_assert( 4 === substr_count( $ability_source, "'public_voice' => extrachill_community_public_voice_output_schema()" ), 'All four write abilities must declare the exact nullable public voice envelope.' );
 	voice_assert( false !== strpos( $voice_source, "add_filter( 'bbp_get_topic_author_display_name'" ) && false !== strpos( $voice_source, "add_filter( 'bbp_get_reply_author_display_name'" ) && false !== strpos( $voice_source, "add_filter( 'bbp_get_topic_author_link'" ) && false !== strpos( $voice_source, "add_filter( 'bbp_get_reply_author_link'" ), 'Topic lead, reply/activity cards, and freshness must use the same native bbPress identity filters.' );

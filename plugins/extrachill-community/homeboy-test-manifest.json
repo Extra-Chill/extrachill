@@ -1,0 +1,59 @@
+{
+  "schema": "homeboy/test-manifest/v1",
+  "tests": {
+    "tests/artist-platform-cta-dependency-absent-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/artist-platform-cta-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/concert-history-dependency-absent-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/concert-history-privacy-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/content-filters-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/discussion-composer-continuation-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/discussion-composer-contract-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/homepage-header-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/legacy-topic-redirects-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/local-scene-digest-settings-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/notification-receipts-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/public-profile-artist-memberships-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/public-voices-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/subscription-inventory-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/topic-reply-author-authorization-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/topic-term-correction-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/create-ability-rest-routes-smoke.php": {
+      "environment": "wordpress"
+    },
+    "tests/public-voice-wp-ability-schema-smoke.php": {
+      "environment": "wordpress"
+    }
+  }
+}

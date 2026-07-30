@@ -7,16 +7,38 @@
 
 define( 'ABSPATH', __DIR__ );
 
+/**
+ * Minimal WP_Term stand-in.
+ *
+ * `get_term_by()` returns a real `WP_Term` (or `false`), and the resolver under
+ * test narrows on that type, so fixtures must be actual instances rather than
+ * anonymous objects.
+ */
+class WP_Term {
+	public $term_id = 0;
+	public $name    = '';
+	public $slug    = '';
+	public $parent  = 0;
+
+	public function __construct( $values = array() ) {
+		foreach ( (array) $values as $key => $value ) {
+			$this->{$key} = $value;
+		}
+	}
+}
+
 $GLOBALS['_test_query']       = array();
 $GLOBALS['_test_logged_in']   = true;
 $GLOBALS['_test_can_publish'] = true;
 $GLOBALS['_test_terms']       = array(
 	'artist' => array(
-		'phish' => (object) array(
-			'term_id' => 42,
-			'name'    => 'Phish',
-			'slug'    => 'phish',
-			'parent'  => 0,
+		'phish' => new WP_Term(
+			array(
+				'term_id' => 42,
+				'name'    => 'Phish',
+				'slug'    => 'phish',
+				'parent'  => 0,
+			)
 		),
 	),
 );

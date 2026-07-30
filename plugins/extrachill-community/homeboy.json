@@ -4,7 +4,11 @@
   "extensions": {
     "wordpress": {
       "settings": {
-        "validation_dependencies": "/var/www/extrachill.com/wp-content/plugins/bbpress"
+        "validation_dependencies": [
+          "/var/www/extrachill.com/wp-content/plugins/bbpress",
+          "extrachill-users",
+          "extrachill"
+        ]
       }
     }
   },

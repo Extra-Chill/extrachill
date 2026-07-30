@@ -16,14 +16,19 @@ namespace AgentsAPI\AI {
 }
 
 namespace {
-	$wordpress_root = $argv[1] ?? getenv( 'WP_ROOT' ) ?: '';
-	if ( '' === $wordpress_root || ! file_exists( $wordpress_root . '/wp-load.php' ) ) {
-		fwrite( STDERR, "Usage: php tests/test-create-ability-rest-routes.php /path/to/wordpress\n" );
-		exit( 1 );
-	}
+	// Runs in two contexts: standalone with an explicit WordPress root, and
+	// under the host-smoke backend, which requires this file with WordPress
+	// already loaded. Only bootstrap WordPress when it is not present yet.
+	if ( ! defined( 'ABSPATH' ) ) {
+		$wordpress_root = $argv[1] ?? getenv( 'WP_ROOT' ) ?: '';
+		if ( '' === $wordpress_root || ! file_exists( $wordpress_root . '/wp-load.php' ) ) {
+			fwrite( STDERR, "Usage: php tests/create-ability-rest-routes-smoke.php /path/to/wordpress\n" );
+			exit( 1 );
+		}
 
-	define( 'SHORTINIT', true );
-	require $wordpress_root . '/wp-load.php';
+		define( 'SHORTINIT', true );
+		require $wordpress_root . '/wp-load.php';
+	}
 
 	if ( ! function_exists( '__' ) ) {
 		function __( $text ) { return $text; }
