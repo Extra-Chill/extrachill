@@ -92,6 +92,8 @@ $festival_subscriptions_source = file_get_contents( dirname( __DIR__ ) . '/inc/a
 assert_same( 3, substr_count( $artist_pillar_source, 'class="button-1 button-medium entity-pillar-subscription-button"' ), 'Artist preference controls should use theme button classes.' );
 assert_true( false !== strpos( $artist_pillar_source, 'data-entity-type="artist-email-sharing"' ), 'Artist preferences must render email sharing separately from notifications.' );
 assert_true( false !== strpos( $artist_pillar_source, 'Artist preferences' ), 'Artist preferences should use one coherent heading.' );
+assert_true( false !== strpos( $artist_pillar_source, "ec_get_site_url( 'docs' )" ), 'Artist preferences should resolve documentation through the network site registry.' );
+assert_true( false === strpos( $artist_pillar_source, 'entity-pillar-preferences__row' ), 'Artist preferences should not render nested notice rows.' );
 assert_same( 2, substr_count( $festival_subscriptions_source, 'class="button-1 button-medium entity-pillar-subscription-button"' ), 'Festival subscription controls should use theme button classes.' );
 
 $sorted = extrachill_blog_sort_artist_activity(

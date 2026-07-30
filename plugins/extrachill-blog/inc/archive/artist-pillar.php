@@ -525,13 +525,19 @@ function extrachill_blog_render_artist_subscription_control() {
 	if ( ! ( $term instanceof WP_Term ) ) {
 		return;
 	}
+	$docs_url = function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'docs' ) ) . 'artist-platform/artist-preferences/' : '';
 
 	if ( ! is_user_logged_in() ) {
 		?>
 		<section class="entity-pillar-subscription" aria-labelledby="artist-pillar-preferences-title">
 			<h2 id="artist-pillar-preferences-title"><?php esc_html_e( 'Artist preferences', 'extrachill-blog' ); ?></h2>
-			<p><?php esc_html_e( 'Get artist notifications and choose whether to share your email with this artist.', 'extrachill-blog' ); ?></p>
-			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to manage preferences', 'extrachill-blog' ); ?></a>
+			<p>
+				<?php esc_html_e( 'Control artist alerts and email access.', 'extrachill-blog' ); ?>
+				<?php if ( $docs_url ) : ?>
+					<a href="<?php echo esc_url( $docs_url ); ?>"><?php esc_html_e( 'How preferences work', 'extrachill-blog' ); ?></a>
+				<?php endif; ?>
+			</p>
+			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to manage', 'extrachill-blog' ); ?></a>
 		</section>
 		<?php
 		return;
@@ -542,14 +548,20 @@ function extrachill_blog_render_artist_subscription_control() {
 	<section class="entity-pillar-subscription entity-pillar-preferences" aria-labelledby="artist-pillar-preferences-title">
 		<div class="entity-pillar-preferences__header">
 			<h2 id="artist-pillar-preferences-title"><?php esc_html_e( 'Artist preferences', 'extrachill-blog' ); ?></h2>
-			<p><?php esc_html_e( 'Choose Extra Chill notifications and whether this artist can access your email.', 'extrachill-blog' ); ?></p>
+			<p>
+				<?php esc_html_e( 'Control artist alerts and email access.', 'extrachill-blog' ); ?>
+				<?php if ( $docs_url ) : ?>
+					<a href="<?php echo esc_url( $docs_url ); ?>"><?php esc_html_e( 'How preferences work', 'extrachill-blog' ); ?></a>
+				<?php endif; ?>
+			</p>
 		</div>
-		<div class="entity-pillar-preferences__row" data-entity-subscription-control>
-			<div class="entity-pillar-preferences__copy">
-				<h3><?php esc_html_e( 'Artist notifications', 'extrachill-blog' ); ?></h3>
-				<p class="entity-pillar-subscription-status" aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-blog' ); ?></p>
-			</div>
-			<button
+		<div class="entity-pillar-preferences__controls">
+			<div class="entity-pillar-preferences__control" data-entity-subscription-control>
+				<div class="entity-pillar-preferences__copy">
+					<h3><?php esc_html_e( 'Artist notifications', 'extrachill-blog' ); ?></h3>
+					<p class="entity-pillar-subscription-status" aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-blog' ); ?></p>
+				</div>
+				<button
 				class="button-1 button-medium entity-pillar-subscription-button"
 				type="button"
 				aria-pressed="false"
@@ -564,14 +576,14 @@ function extrachill_blog_render_artist_subscription_control() {
 				data-off-label="<?php esc_attr_e( 'Turn on', 'extrachill-blog' ); ?>"
 				data-on-status="<?php esc_attr_e( 'On', 'extrachill-blog' ); ?>"
 				data-off-status="<?php esc_attr_e( 'Off', 'extrachill-blog' ); ?>"
-			><?php esc_html_e( 'Turn on', 'extrachill-blog' ); ?></button>
-		</div>
-		<div class="entity-pillar-preferences__row" data-entity-subscription-control>
-			<div class="entity-pillar-preferences__copy">
-				<h3><?php esc_html_e( 'Artist email list', 'extrachill-blog' ); ?></h3>
-				<p class="entity-pillar-subscription-status" aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-blog' ); ?></p>
+				><?php esc_html_e( 'Turn on', 'extrachill-blog' ); ?></button>
 			</div>
-			<button
+			<div class="entity-pillar-preferences__control" data-entity-subscription-control>
+				<div class="entity-pillar-preferences__copy">
+					<h3><?php esc_html_e( 'Artist email list', 'extrachill-blog' ); ?></h3>
+					<p class="entity-pillar-subscription-status" aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-blog' ); ?></p>
+				</div>
+				<button
 				class="button-1 button-medium entity-pillar-subscription-button"
 				type="button"
 				aria-pressed="false"
@@ -586,7 +598,8 @@ function extrachill_blog_render_artist_subscription_control() {
 				data-off-label="<?php esc_attr_e( 'Share email', 'extrachill-blog' ); ?>"
 				data-on-status="<?php esc_attr_e( 'Shared with this artist', 'extrachill-blog' ); ?>"
 				data-off-status="<?php esc_attr_e( 'Not shared with this artist', 'extrachill-blog' ); ?>"
-			><?php esc_html_e( 'Share email', 'extrachill-blog' ); ?></button>
+				><?php esc_html_e( 'Share email', 'extrachill-blog' ); ?></button>
+			</div>
 		</div>
 	</section>
 	<?php
