@@ -17,11 +17,23 @@ describe( 'venue booking inquiry styles', () => {
 	} );
 
 	it( 'composes canonical form, identity, and status primitives', () => {
+		expect( view ).toContain(
+			'<BlockShellInner className="ec-panel ec-booking-inquiry__panel">'
+		);
 		expect( view ).toContain( 'Grid minColumnWidth="16rem"' );
 		expect( view ).toContain( '<PanelHeader' );
 		expect( view ).toContain( '<Badge tone="success">Now booking</Badge>' );
 		expect( view ).toContain(
 			'<Badge tone="info">Signed-in inquiry</Badge>'
+		);
+	} );
+
+	it( 'contains the shared grid within the booking panel', () => {
+		expect( styles ).toMatch(
+			/\.ec-booking-inquiry__form\s*\{[^}]*min-width:\s*0;[^}]*width:\s*100%;[^}]*\}/
+		);
+		expect( styles ).toMatch(
+			/\.ec-booking-inquiry__form > \.ec-card-grid\s*\{[^}]*min-width:\s*0;[^}]*width:\s*100%;[^}]*\}/
 		);
 	} );
 

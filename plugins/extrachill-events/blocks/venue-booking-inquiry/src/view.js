@@ -237,7 +237,7 @@ function BookingInquiry( { config, wrapper } ) {
 				title={ config.heading }
 				description={ `Send a performance inquiry directly to ${ config.venue.name }.` }
 			/>
-			<BlockShellInner>
+			<BlockShellInner className="ec-panel ec-booking-inquiry__panel">
 				<PanelHeader
 					className="ec-booking-inquiry__identity"
 					title={
