@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from '@wordpress/element';
  */
 import {
 	ActionRow,
+	Badge,
 	FieldGroup,
 	Grid,
 	InlineStatus,
@@ -45,6 +46,19 @@ const STATUS_LABELS = {
 	withdrawn: 'Withdrawn',
 	cancelled: 'Cancelled',
 	completed: 'Completed',
+};
+
+const STATUS_TONES = {
+	submitted: 'info',
+	needs_info: 'error',
+	under_review: 'info',
+	negotiating: 'warning',
+	held: 'warning',
+	confirmed: 'success',
+	declined: 'error',
+	withdrawn: 'error',
+	cancelled: 'error',
+	completed: 'success',
 };
 
 const pad = ( value ) => String( value ).padStart( 2, '0' );
@@ -562,10 +576,9 @@ function ActivityTimeline( { operations } ) {
 
 function BookingStatus( { status } ) {
 	return (
-		<span className={ `ec-booking-status ec-booking-status--${ status }` }>
-			<span className="ec-booking-status__mark" aria-hidden="true" />
+		<Badge tone={ STATUS_TONES[ status ] || 'default' }>
 			{ statusLabel( status ) }
-		</span>
+		</Badge>
 	);
 }
 
@@ -588,7 +601,9 @@ function BookingCard( { booking, active, holds, onSelect } ) {
 	return (
 		<button
 			type="button"
-			className={ `ec-booking-card${ active ? ' is-active' : '' }` }
+			className={ `ec-panel ec-booking-card${
+				active ? ' is-active' : ''
+			}` }
 			onClick={ () => onSelect( booking.id ) }
 			aria-pressed={ active }
 		>
@@ -636,40 +651,39 @@ function Calendar( { bookings, holds, month, onMonthChange, onSelect } ) {
 
 	return (
 		<Panel>
-			<div className="ec-booking-calendar__heading">
-				<div>
-					<h2>{ heading }</h2>
-					<p>
-						Requests, holds, and confirmed shows share one canonical
-						calendar.
-					</p>
-				</div>
-				<ActionRow>
-					<button
-						type="button"
-						className="button-2"
-						onClick={ () =>
-							onMonthChange( moveMonth( month, -1 ) )
-						}
-					>
-						Previous
-					</button>
-					<button
-						type="button"
-						className="button-2"
-						onClick={ () => onMonthChange( monthKey() ) }
-					>
-						Today
-					</button>
-					<button
-						type="button"
-						className="button-2"
-						onClick={ () => onMonthChange( moveMonth( month, 1 ) ) }
-					>
-						Next
-					</button>
-				</ActionRow>
-			</div>
+			<PanelHeader
+				title={ heading }
+				description="Requests, holds, and confirmed shows share one canonical calendar."
+				actions={
+					<ActionRow>
+						<button
+							type="button"
+							className="button-2"
+							onClick={ () =>
+								onMonthChange( moveMonth( month, -1 ) )
+							}
+						>
+							Previous
+						</button>
+						<button
+							type="button"
+							className="button-2"
+							onClick={ () => onMonthChange( monthKey() ) }
+						>
+							Today
+						</button>
+						<button
+							type="button"
+							className="button-2"
+							onClick={ () =>
+								onMonthChange( moveMonth( month, 1 ) )
+							}
+						>
+							Next
+						</button>
+					</ActionRow>
+				}
+			/>
 			<div className="ec-booking-calendar__weekdays" aria-hidden="true">
 				{ [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ].map(
 					( day ) => (
@@ -967,18 +981,25 @@ function BookingDetail( {
 
 	return (
 		<Panel className="ec-booking-detail">
-			<div className="ec-booking-detail__header">
-				<div>
-					<BookingStatus status={ booking.status } />
-					<h2>{ booking.artist_name }</h2>
-					<p>
-						Booking #{ booking.id } · version { booking.version }
-					</p>
-				</div>
-				<button type="button" className="button-2" onClick={ onClose }>
-					Close detail
-				</button>
-			</div>
+			<PanelHeader
+				className="ec-booking-detail__header"
+				title={
+					<>
+						<BookingStatus status={ booking.status } />
+						<span>{ booking.artist_name }</span>
+					</>
+				}
+				description={ `Booking #${ booking.id } · version ${ booking.version }` }
+				actions={
+					<button
+						type="button"
+						className="button-2"
+						onClick={ onClose }
+					>
+						Close detail
+					</button>
+				}
+			/>
 			{ status && (
 				<InlineStatus tone={ status.tone }>
 					{ status.message }
@@ -1510,7 +1531,11 @@ export function BookingConsole( { context, members, defaultDeal, view } ) {
 
 	return (
 		<div className="ec-booking-console">
-			<div className="ec-booking-console__toolbar">
+			<Grid
+				className="ec-booking-console__toolbar"
+				minColumnWidth="12rem"
+				maxColumns={ 3 }
+			>
 				<SearchBox
 					value={ search }
 					onSearch={ setSearch }
@@ -1549,7 +1574,7 @@ export function BookingConsole( { context, members, defaultDeal, view } ) {
 						</option>
 					</select>
 				</label>
-			</div>
+			</Grid>
 			{ error && <ErrorState message={ error } onRetry={ loadList } /> }
 			{ loading ? (
 				<Panel>
@@ -1572,7 +1597,11 @@ export function BookingConsole( { context, members, defaultDeal, view } ) {
 								description="A bounded venue-authorized list. Filters are reapplied by canonical abilities."
 							/>
 							{ visible.length ? (
-								<div className="ec-booking-console__list">
+								<Grid
+									className="ec-booking-console__list"
+									minColumnWidth="15rem"
+									gap="0.75rem"
+								>
 									{ visible.map( ( booking ) => (
 										<BookingCard
 											key={ booking.id }
@@ -1584,7 +1613,7 @@ export function BookingConsole( { context, members, defaultDeal, view } ) {
 											onSelect={ selectBooking }
 										/>
 									) ) }
-								</div>
+								</Grid>
 							) : (
 								<EmptyState>
 									No bookings match this venue and filter.

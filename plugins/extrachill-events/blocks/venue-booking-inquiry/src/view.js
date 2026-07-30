@@ -8,12 +8,15 @@ import { createRoot, useEffect, useRef, useState } from '@wordpress/element';
  */
 import {
 	ActionRow,
+	Badge,
 	BlockShell,
 	BlockShellHeader,
 	BlockShellInner,
 	FieldGroup,
+	Grid,
 	InlineStatus,
 	Panel,
+	PanelHeader,
 } from '@extrachill/components';
 
 /**
@@ -210,9 +213,7 @@ function BookingInquiry( { config, wrapper } ) {
 							tabIndex="-1"
 							role="status"
 						>
-							<p className="ec-booking-inquiry__eyebrow">
-								Inquiry received
-							</p>
+							<Badge tone="success">Inquiry received</Badge>
 							<h3>
 								Thanks for reaching out to { config.venue.name }
 								.
@@ -237,22 +238,21 @@ function BookingInquiry( { config, wrapper } ) {
 				description={ `Send a performance inquiry directly to ${ config.venue.name }.` }
 			/>
 			<BlockShellInner>
-				<div className="ec-booking-inquiry__identity">
-					<div>
-						<span className="ec-booking-inquiry__eyebrow">
-							Now booking
-						</span>
-						<h3>{ config.venue.name }</h3>
-						{ config.venue.address && (
-							<p>{ config.venue.address }</p>
-						) }
-					</div>
-					{ config.authenticated && (
-						<span className="ec-booking-inquiry__signed-in">
-							Signed-in inquiry
-						</span>
-					) }
-				</div>
+				<PanelHeader
+					className="ec-booking-inquiry__identity"
+					title={
+						<>
+							<Badge tone="success">Now booking</Badge>
+							<span>{ config.venue.name }</span>
+						</>
+					}
+					description={ config.venue.address }
+					actions={
+						config.authenticated ? (
+							<Badge tone="info">Signed-in inquiry</Badge>
+						) : null
+					}
+				/>
 				{ config.venue.description && (
 					<p className="ec-booking-inquiry__description">
 						{ config.venue.description }
@@ -273,7 +273,7 @@ function BookingInquiry( { config, wrapper } ) {
 					onSubmit={ submit }
 					noValidate={ false }
 				>
-					<div className="ec-booking-inquiry__grid">
+					<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 						<FieldGroup
 							label="Artist or project name"
 							htmlFor={ `${ prefix }-artist` }
@@ -410,7 +410,7 @@ function BookingInquiry( { config, wrapper } ) {
 								}
 							/>
 						) ) }
-					</div>
+					</Grid>
 					<FieldGroup
 						label="Performance details"
 						htmlFor={ `${ prefix }-message` }

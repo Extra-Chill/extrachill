@@ -5,8 +5,6 @@
 }
 
 .ec-venue-settings {
-	--venue-accent: var(--wp--preset--color--primary, #1f6f5b);
-
 	input:not([type="checkbox"]):not([type="radio"]),
 	select,
 	textarea {
@@ -24,7 +22,7 @@
 	input:focus-visible,
 	select:focus-visible,
 	textarea:focus-visible {
-		outline: 3px solid color-mix(in srgb, var(--venue-accent) 55%, white);
+		outline: 3px solid var(--focus-border-color);
 		outline-offset: 2px;
 	}
 }
@@ -46,8 +44,8 @@
 	gap: 0.8rem;
 	margin: 0 0 1rem;
 	padding: 1rem;
-	border: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
-	border-radius: 0.5rem;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
 }
 
 .ec-venue-settings__repeater legend {
@@ -69,7 +67,7 @@
 	justify-content: space-between;
 	gap: 1rem;
 	padding-block: 1rem;
-	border-bottom: 1px solid var(--wp--preset--color--contrast-3, #d9dfdc);
+	border-bottom: 1px solid var(--border-color);
 }
 
 .ec-venue-settings__records li:last-child {
@@ -79,7 +77,7 @@
 .ec-venue-settings__dirty {
 	font-size: 0.9rem;
 	font-weight: 600;
-	color: var(--wp--preset--color--contrast-2, #67520b);
+	color: var(--warning-color);
 }
 
 .ec-venue-settings__save-note {
@@ -98,10 +96,11 @@
 }
 
 .ec-booking-console__toolbar {
-	display: grid;
-	grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(10rem, 1fr));
-	gap: 0.75rem;
 	align-items: end;
+}
+
+.ec-booking-console__toolbar .ec-search-box {
+	margin-bottom: 0;
 }
 
 .ec-booking-console__toolbar label {
@@ -111,87 +110,23 @@
 	font-weight: 700;
 }
 
-.ec-booking-console__list {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-	gap: 0.75rem;
-}
-
 .ec-booking-card {
-	display: grid;
-	gap: 0.45rem;
-	padding: 1rem;
-	border: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
-	border-radius: 0.5rem;
-	background: var(--wp--preset--color--base, #fff);
+	width: 100%;
 	color: inherit;
+	font: inherit;
 	text-align: left;
 	cursor: pointer;
 }
 
 .ec-booking-card:hover,
 .ec-booking-card.is-active {
-	border-color: var(--venue-accent);
-	box-shadow: 0 0 0 2px color-mix(in srgb, var(--venue-accent) 18%, transparent);
+	border-color: var(--focus-border-color);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus-border-color) 18%, transparent);
 }
 
 .ec-booking-card__title {
 	font-size: 1.05rem;
 	font-weight: 750;
-}
-
-.ec-booking-status {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
-	width: fit-content;
-	font-size: 0.82rem;
-	font-weight: 750;
-	text-transform: uppercase;
-	letter-spacing: 0.035em;
-}
-
-.ec-booking-status__mark {
-	width: 0.65rem;
-	height: 0.65rem;
-	border: 2px solid currentcolor;
-	border-radius: 50%;
-	background: transparent;
-}
-
-.ec-booking-status--confirmed,
-.ec-booking-status--completed {
-	color: #17633f;
-}
-
-.ec-booking-status--held,
-.ec-booking-status--negotiating {
-	color: #8a5700;
-}
-
-.ec-booking-status--needs_info,
-.ec-booking-status--declined,
-.ec-booking-status--withdrawn,
-.ec-booking-status--cancelled {
-	color: #9f2d25;
-}
-
-.ec-booking-status--under_review,
-.ec-booking-status--submitted {
-	color: #315f88;
-}
-
-.ec-booking-calendar__heading {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	margin-block-end: 1rem;
-}
-
-.ec-booking-calendar__heading h2,
-.ec-booking-calendar__heading p {
-	margin: 0;
 }
 
 .ec-booking-calendar__weekdays,
@@ -209,21 +144,21 @@
 }
 
 .ec-booking-calendar {
-	border-block-start: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
-	border-inline-start: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
+	border-block-start: 1px solid var(--border-color);
+	border-inline-start: 1px solid var(--border-color);
 }
 
 .ec-booking-calendar__day {
 	min-height: 8.5rem;
 	padding: 0.35rem;
-	border-block-end: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
-	border-inline-end: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
-	background: var(--wp--preset--color--base, #fff);
+	border-block-end: 1px solid var(--border-color);
+	border-inline-end: 1px solid var(--border-color);
+	background: var(--background-color);
 }
 
 .ec-booking-calendar__day.is-outside {
-	background: color-mix(in srgb, var(--wp--preset--color--contrast, #111) 3%, transparent);
-	color: var(--wp--preset--color--contrast-2, #68716e);
+	background: color-mix(in srgb, var(--text-color) 3%, transparent);
+	color: var(--muted-text);
 }
 
 .ec-booking-calendar__date {
@@ -243,10 +178,10 @@
 	width: 100%;
 	padding: 0.35rem 0.45rem;
 	border: 0;
-	border-left: 4px solid #315f88;
-	border-radius: 0.2rem;
-	background: color-mix(in srgb, #315f88 12%, white);
-	color: #17212a;
+	border-left: 4px solid var(--info-color);
+	border-radius: var(--border-radius-sm);
+	background: var(--info-bg);
+	color: var(--text-color);
 	font-size: 0.76rem;
 	line-height: 1.2;
 	text-align: left;
@@ -255,22 +190,22 @@
 
 .ec-booking-calendar__item--held,
 .ec-booking-calendar__item--negotiating {
-	border-left-color: #b36f00;
-	background: #fff4d7;
+	border-left-color: var(--warning-color);
+	background: var(--warning-bg);
 }
 
 .ec-booking-calendar__item--confirmed,
 .ec-booking-calendar__item--completed {
-	border-left-color: #17633f;
-	background: #e1f4e9;
+	border-left-color: var(--success-color);
+	background: color-mix(in srgb, var(--success-color) 10%, transparent);
 }
 
 .ec-booking-calendar__item--needs_info,
 .ec-booking-calendar__item--declined,
 .ec-booking-calendar__item--withdrawn,
 .ec-booking-calendar__item--cancelled {
-	border-left-color: #9f2d25;
-	background: #fbe8e6;
+	border-left-color: var(--error-color);
+	background: color-mix(in srgb, var(--error-color) 10%, transparent);
 }
 
 .ec-booking-calendar__item span {
@@ -278,23 +213,18 @@
 }
 
 .ec-booking-detail__header {
-	display: flex;
 	align-items: flex-start;
-	justify-content: space-between;
-	gap: 1rem;
-	padding-block-end: 1rem;
-	border-block-end: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
 }
 
-.ec-booking-detail__header h2,
-.ec-booking-detail__header p {
-	margin: 0.25rem 0 0;
+.ec-booking-detail__header .ec-panel-header__title {
+	display: grid;
+	gap: var(--spacing-xs);
 }
 
 .ec-booking-detail__section {
 	margin-block-start: 1.5rem;
 	padding-block-start: 1.25rem;
-	border-block-start: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
+	border-block-start: 1px solid var(--border-color);
 }
 
 .ec-booking-detail__section h3 {
@@ -310,8 +240,8 @@
 
 .ec-booking-detail__facts > div {
 	padding: 0.75rem;
-	border-radius: 0.35rem;
-	background: color-mix(in srgb, var(--venue-accent) 5%, transparent);
+	border-radius: var(--border-radius-sm);
+	background: var(--card-background);
 }
 
 .ec-booking-detail__facts dt {
@@ -342,8 +272,8 @@
 	justify-content: space-between;
 	gap: 0.75rem;
 	padding: 0.7rem;
-	border-left: 3px solid var(--venue-accent);
-	background: color-mix(in srgb, var(--venue-accent) 5%, transparent);
+	border-left: 3px solid var(--focus-border-color);
+	background: var(--card-background);
 }
 
 .ec-booking-console__form {
@@ -354,21 +284,13 @@
 
 .ec-booking-console__empty {
 	padding: 2rem 1rem;
-	border: 1px dashed var(--wp--preset--color--contrast-3, #ccd4d1);
+	border: 1px dashed var(--border-color);
+	border-radius: var(--border-radius-md);
+	color: var(--muted-text);
 	text-align: center;
 }
 
-@media (max-width: 720px) {
-	.ec-booking-console__toolbar {
-		grid-template-columns: 1fr;
-	}
-
-	.ec-booking-calendar__heading,
-	.ec-booking-detail__header {
-		align-items: stretch;
-		flex-direction: column;
-	}
-
+@media screen and (max-width: 480px) {
 	.ec-booking-calendar__weekdays {
 		display: none;
 	}
@@ -384,7 +306,7 @@
 		display: grid;
 		grid-template-columns: 2.5rem minmax(0, 1fr);
 		min-height: 0;
-		border: 1px solid var(--wp--preset--color--contrast-3, #ccd4d1);
+		border: 1px solid var(--border-color);
 	}
 
 	.ec-booking-calendar__day.is-outside,

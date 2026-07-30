@@ -7,6 +7,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 
 const styles = readFileSync( path.resolve( __dirname, 'style.scss' ), 'utf8' );
+const view = readFileSync( path.resolve( __dirname, 'view.js' ), 'utf8' );
 
 describe( 'venue booking inquiry styles', () => {
 	it( 'composes the canonical shared component stylesheet', () => {
@@ -15,15 +16,24 @@ describe( 'venue booking inquiry styles', () => {
 		);
 	} );
 
-	it( 'retains inquiry-specific responsive and accessibility behavior', () => {
-		expect( styles ).toContain( '.ec-booking-inquiry__grid' );
-		expect( styles ).toContain(
-			'grid-template-columns: repeat(2, minmax(0, 1fr))'
+	it( 'composes canonical form, identity, and status primitives', () => {
+		expect( view ).toContain( 'Grid minColumnWidth="16rem"' );
+		expect( view ).toContain( '<PanelHeader' );
+		expect( view ).toContain( '<Badge tone="success">Now booking</Badge>' );
+		expect( view ).toContain(
+			'<Badge tone="info">Signed-in inquiry</Badge>'
 		);
-		expect( styles ).toContain( '@media (max-width: 700px)' );
-		expect( styles ).toContain( 'grid-template-columns: 1fr' );
+	} );
+
+	it( 'keeps unique accessibility behavior token-driven', () => {
 		expect( styles ).toContain( '.ec-booking-inquiry__result:focus' );
+		expect( styles ).toContain( 'var(--focus-border-color)' );
 		expect( styles ).toContain( '@media (prefers-reduced-motion: reduce)' );
 		expect( styles ).toContain( 'transition: none !important' );
+	} );
+
+	it( 'does not reintroduce local colors or arbitrary breakpoints', () => {
+		expect( styles ).not.toMatch( /#[0-9a-f]{3,8}\b/i );
+		expect( styles ).not.toMatch( /max-width:\s*(?:700|720)px/ );
 	} );
 } );
