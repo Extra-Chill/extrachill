@@ -526,6 +526,8 @@ function extrachill_blog_render_artist_subscription_control() {
 		return;
 	}
 	$docs_url = function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'docs' ) ) . 'artist-platform/artist-preferences/' : '';
+	$term_url = get_term_link( $term );
+	$term_url = is_wp_error( $term_url ) ? home_url( '/' ) : $term_url;
 
 	if ( ! is_user_logged_in() ) {
 		?>
@@ -537,7 +539,7 @@ function extrachill_blog_render_artist_subscription_control() {
 					<a href="<?php echo esc_url( $docs_url ); ?>"><?php esc_html_e( 'How preferences work', 'extrachill-blog' ); ?></a>
 				<?php endif; ?>
 			</p>
-			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( get_term_link( $term ) ) ); ?>"><?php esc_html_e( 'Log in to manage', 'extrachill-blog' ); ?></a>
+			<a class="button-1 button-medium entity-pillar-subscription-button" href="<?php echo esc_url( wp_login_url( $term_url ) ); ?>"><?php esc_html_e( 'Log in to manage', 'extrachill-blog' ); ?></a>
 		</section>
 		<?php
 		return;
