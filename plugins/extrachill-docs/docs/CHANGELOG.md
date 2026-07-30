@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.5.7] - 2026-07-30
+
+### Fixed
+- strip source titles from synced docs
+
 ## [0.5.6] - 2026-07-30
 
 ### Fixed
