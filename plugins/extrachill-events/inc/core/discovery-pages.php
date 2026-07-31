@@ -29,8 +29,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Valid scope slugs and their human-readable labels.
- *
- * @var array<string, string>
  */
 define(
 	'EXTRACHILL_EVENTS_DISCOVERY_SCOPES',
@@ -60,7 +58,7 @@ function extrachill_events_prevent_root_scope_permalink_guess( $redirect_url ) {
 		return null;
 	}
 
-	$request_uri  = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+	$request_uri  = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( (string) wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 	$request_path = wp_parse_url( $request_uri, PHP_URL_PATH );
 	$scope        = is_string( $request_path ) ? trim( $request_path, '/' ) : '';
 
@@ -208,7 +206,7 @@ function extrachill_events_discovery_description( string $description ): string 
 	}
 
 	$term = get_queried_object();
-	if ( ! $term || ! isset( $term->term_id ) ) {
+	if ( ! $term instanceof WP_Term ) {
 		return $description;
 	}
 
@@ -236,7 +234,7 @@ function extrachill_events_discovery_canonical( string $canonical ): string {
 	}
 
 	$term = get_queried_object();
-	if ( ! $term ) {
+	if ( ! $term instanceof WP_Term ) {
 		return $canonical;
 	}
 
@@ -277,7 +275,7 @@ function extrachill_events_discovery_og_data( array $og_data ): array {
 	}
 
 	$term = get_queried_object();
-	if ( ! $term ) {
+	if ( ! $term instanceof WP_Term ) {
 		return $og_data;
 	}
 
@@ -356,7 +354,7 @@ function extrachill_events_discovery_breadcrumbs( string $trail ): string {
 	}
 
 	$term = get_queried_object();
-	if ( ! $term ) {
+	if ( ! $term instanceof WP_Term ) {
 		return $trail;
 	}
 
@@ -368,10 +366,14 @@ function extrachill_events_discovery_breadcrumbs( string $trail ): string {
 		$ancestors = array_reverse( $ancestors );
 		foreach ( $ancestors as $ancestor_id ) {
 			$ancestor = get_term( $ancestor_id, 'location' );
-			if ( $ancestor && ! is_wp_error( $ancestor ) ) {
+			if ( $ancestor instanceof WP_Term ) {
+				$ancestor_link = get_term_link( $ancestor );
+				if ( is_wp_error( $ancestor_link ) ) {
+					continue;
+				}
 				$parts[] = sprintf(
 					'<a href="%s">%s</a>',
-					esc_url( get_term_link( $ancestor ) ),
+					esc_url( $ancestor_link ),
 					esc_html( $ancestor->name )
 				);
 			}
@@ -379,9 +381,13 @@ function extrachill_events_discovery_breadcrumbs( string $trail ): string {
 	}
 
 	// City link (back to unscoped location archive).
+	$term_link = get_term_link( $term );
+	if ( is_wp_error( $term_link ) ) {
+		return $trail;
+	}
 	$parts[] = sprintf(
 		'<a href="%s">%s</a>',
-		esc_url( get_term_link( $term ) ),
+		esc_url( $term_link ),
 		esc_html( $term->name )
 	);
 
@@ -519,12 +525,16 @@ function extrachill_events_scope_nav_query_args(): array {
 	}
 
 	if ( ! empty( $request['tax_filter'] ) && is_array( $request['tax_filter'] ) ) {
+		$tax_filter = array();
 		foreach ( $request['tax_filter'] as $taxonomy => $term_ids ) {
 			$taxonomy = sanitize_key( (string) $taxonomy );
 			$term_ids = array_values( array_filter( array_map( 'absint', (array) $term_ids ) ) );
 			if ( $taxonomy && $term_ids ) {
-				$args['tax_filter'][ $taxonomy ] = $term_ids;
+				$tax_filter[ $taxonomy ] = $term_ids;
 			}
+		}
+		if ( $tax_filter ) {
+			$args['tax_filter'] = $tax_filter;
 		}
 	}
 

@@ -81,7 +81,7 @@ function extrachill_events_get_account_market(): ?array {
  */
 function extrachill_events_is_exploring_all_markets(): bool {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public read-only discovery preference.
-	$value = isset( $_GET['explore_all'] ) && is_scalar( $_GET['explore_all'] ) ? sanitize_text_field( wp_unslash( $_GET['explore_all'] ) ) : '';
+	$value = isset( $_GET['explore_all'] ) && is_scalar( $_GET['explore_all'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['explore_all'] ) ) : '';
 
 	return '1' === $value;
 }
@@ -388,19 +388,23 @@ function extrachill_events_update_archive_scene( WP_Term $term, string $nonce ):
  */
 function extrachill_events_handle_archive_scene_update(): void {
 	$term           = extrachill_events_get_archive_scene_term();
-	$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+	$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( (string) wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
 	if ( null === $term || 'POST' !== $request_method || ! isset( $_POST['extrachill_events_scene_action'] ) || ! isset( $_POST['extrachill_events_scene_nonce'] ) ) {
 		return;
 	}
 
-	$nonce = isset( $_POST['extrachill_events_scene_nonce'] ) && is_scalar( $_POST['extrachill_events_scene_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['extrachill_events_scene_nonce'] ) ) : '';
+	$nonce       = is_scalar( $_POST['extrachill_events_scene_nonce'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['extrachill_events_scene_nonce'] ) ) : '';
+	$archive_url = get_term_link( $term );
+	if ( is_wp_error( $archive_url ) ) {
+		return;
+	}
 	if ( ! wp_verify_nonce( $nonce, 'extrachill_events_save_scene_' . $term->term_id ) ) {
-		wp_safe_redirect( add_query_arg( 'scene_status', 'failed', get_term_link( $term ) ) );
+		wp_safe_redirect( add_query_arg( 'scene_status', 'failed', $archive_url ) );
 		exit;
 	}
 
 	$status = extrachill_events_update_archive_scene( $term, $nonce ) ? 'saved' : 'failed';
-	wp_safe_redirect( add_query_arg( 'scene_status', $status, get_term_link( $term ) ) );
+	wp_safe_redirect( add_query_arg( 'scene_status', $status, $archive_url ) );
 	exit;
 }
 add_action( 'template_redirect', 'extrachill_events_handle_archive_scene_update', 5 );
@@ -414,12 +418,15 @@ function extrachill_events_render_archive_scene_cta(): void {
 		return;
 	}
 
-	$archive_url  = get_term_link( $term );
+	$archive_url = get_term_link( $term );
+	if ( is_wp_error( $archive_url ) ) {
+		return;
+	}
 	$is_logged_in = is_user_logged_in();
 	$current      = extrachill_events_get_account_market();
 	$is_current   = $current && (int) $current['term_id'] === (int) $term->term_id;
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flash status set by this handler's nonce-protected redirect.
-	$status = isset( $_GET['scene_status'] ) && is_scalar( $_GET['scene_status'] ) ? sanitize_text_field( wp_unslash( $_GET['scene_status'] ) ) : '';
+	$status = isset( $_GET['scene_status'] ) && is_scalar( $_GET['scene_status'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['scene_status'] ) ) : '';
 
 	if ( $is_logged_in ) {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
