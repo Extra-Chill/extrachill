@@ -33,8 +33,11 @@ $homepage_topic_form_access = static function () {
 		<p id="new-topic-modal-description" class="new-topic-modal-description"><?php esc_html_e( 'Start a new post in the community.', 'extra-chill-community' ); ?></p>
 		<?php
 		add_filter( 'bbp_current_user_can_access_create_topic_form', $homepage_topic_form_access );
-		bbp_get_template_part( 'form', 'topic' );
-		remove_filter( 'bbp_current_user_can_access_create_topic_form', $homepage_topic_form_access );
+		try {
+			bbp_get_template_part( 'form', 'topic' );
+		} finally {
+			remove_filter( 'bbp_current_user_can_access_create_topic_form', $homepage_topic_form_access );
+		}
 		?>
 	</div>
 </div>
