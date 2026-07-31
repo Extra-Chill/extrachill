@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.24.1] - 2026-07-31
+
+### Changed
+- Make the test suite discoverable and runnable
+
+### Fixed
+- restore homepage topic form filter after errors
+- allow homepage topic creation for participants
+
 ## [1.24.0] - 2026-07-29
 
 ### Added
