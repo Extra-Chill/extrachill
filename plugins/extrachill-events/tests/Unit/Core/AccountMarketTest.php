@@ -620,7 +620,7 @@ final class AccountMarketTest extends TestCase {
 							'lon' => -79.9311,
 						),
 						'hierarchy'   => array( 'label' => 'Charleston, South Carolina' ),
-						'archive_url' => 'https://events.example/location/charleston-sc/',
+						'url'         => 'https://events.example/location/charleston-sc/',
 					),
 				);
 			}
@@ -1147,10 +1147,10 @@ final class AccountMarketTest extends TestCase {
 			public function execute(): array {
 				return array(
 					'local_scene' => array(
-						'slug'        => 'charleston',
-						'term_id'     => 1618,
-						'hierarchy'   => array( 'label' => 'Charleston, South Carolina' ),
-						'archive_url' => 'https://events.example/location/charleston/',
+						'slug'      => 'charleston',
+						'term_id'   => 1618,
+						'hierarchy' => array( 'label' => 'Charleston, South Carolina' ),
+						'url'       => 'https://events.example/location/charleston/',
 					),
 				);
 			}
@@ -1181,13 +1181,36 @@ final class AccountMarketTest extends TestCase {
 
 		$this->assertStringContainsString( 'Your Local Scene', $output );
 		$this->assertStringContainsString( 'Charleston, South Carolina', $output );
-		$this->assertStringContainsString( 'https://events.example/location/charleston/', $output );
+		$this->assertStringContainsString( 'class="taxonomy-badge location-badge location-charleston"', $output );
+		$this->assertStringContainsString( 'href="https://events.example/location/charleston/tonight/"', $output );
+		$this->assertStringContainsString( 'href="https://events.example/location/charleston/this-weekend/"', $output );
+		$this->assertStringContainsString( 'href="https://events.example/location/charleston/">City calendar</a>', $output );
 		$this->assertStringContainsString( '883 upcoming events', $output );
-		$this->assertStringContainsString( 'location/charleston/tonight/', $output );
-		$this->assertStringContainsString( 'location/charleston/this-weekend/', $output );
 		$this->assertStringContainsString( 'Austin, Texas', $output );
+		$this->assertStringContainsString( 'href="' . esc_url( home_url( '/near-me/' ) ) . '">Shows near me', $output );
 		$this->assertStringContainsString( 'Browse all locations', $output );
 		$this->assertStringNotContainsString( 'Showing events for', $output );
+	}
+
+	/**
+	 */
+	public function test_reserved_root_scope_does_not_guess_an_event_permalink(): void {
+		$this->use_events_blog();
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Preserving the test environment verbatim.
+		$original_request_uri   = $_SERVER['REQUEST_URI'] ?? null;
+		$_SERVER['REQUEST_URI'] = '/tonight/';
+
+		try {
+			$this->assertFalse( extrachill_events_prevent_root_scope_permalink_guess( null ) );
+			$_SERVER['REQUEST_URI'] = '/events/tonight-at-the-improv/';
+			$this->assertNull( extrachill_events_prevent_root_scope_permalink_guess( null ) );
+		} finally {
+			if ( null === $original_request_uri ) {
+				unset( $_SERVER['REQUEST_URI'] );
+			} else {
+				$_SERVER['REQUEST_URI'] = $original_request_uri;
+			}
+		}
 	}
 
 	/**

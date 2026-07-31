@@ -52,7 +52,7 @@ function extrachill_events_get_account_market(): ?array {
 	$slug        = sanitize_title( $location['slug'] ?? '' );
 	$hierarchy   = is_array( $location['hierarchy'] ?? null ) ? $location['hierarchy'] : array();
 	$label       = sanitize_text_field( $hierarchy['label'] ?? $location['name'] ?? '' );
-	$url         = esc_url_raw( $location['archive_url'] ?? '' );
+	$url         = esc_url_raw( $location['url'] ?? '' );
 
 	if ( $term_id < 1 || '' === $slug ) {
 		return null;
@@ -307,7 +307,13 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 			<article class="events-primary-market">
 				<div>
 					<span class="events-primary-market__eyebrow"><?php esc_html_e( 'Your Local Scene', 'extrachill-events' ); ?></span>
-					<h3><?php echo esc_html( '' !== $market['label'] ? $market['label'] : $market['slug'] ); ?></h3>
+					<h3>
+						<?php if ( '' !== $market['url'] ) : ?>
+							<a href="<?php echo esc_url( $market['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $market['slug'] ); ?>"><?php echo esc_html( '' !== $market['label'] ? $market['label'] : $market['slug'] ); ?></a>
+						<?php else : ?>
+							<?php echo esc_html( '' !== $market['label'] ? $market['label'] : $market['slug'] ); ?>
+						<?php endif; ?>
+					</h3>
 					<?php if ( $market_count > 0 ) : ?>
 						<p><?php echo esc_html( sprintf( /* translators: %s: Number of upcoming events. */ _n( '%s upcoming event', '%s upcoming events', $market_count, 'extrachill-events' ), number_format_i18n( $market_count ) ) ); ?></p>
 					<?php endif; ?>
@@ -333,6 +339,7 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 		<?php endif; ?>
 
 		<div class="events-home-router__paths">
+			<a href="<?php echo esc_url( home_url( '/near-me/' ) ); ?>"><?php esc_html_e( 'Shows near me', 'extrachill-events' ); ?> &rarr;</a>
 			<a href="<?php echo esc_url( home_url( '/location/' ) ); ?>"><?php esc_html_e( 'Browse all locations', 'extrachill-events' ); ?> &rarr;</a>
 			<a href="<?php echo esc_url( home_url( '/all/' ) ); ?>"><?php esc_html_e( 'See every event', 'extrachill-events' ); ?> &rarr;</a>
 		</div>

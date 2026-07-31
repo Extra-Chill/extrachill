@@ -42,6 +42,32 @@ define(
 	)
 );
 
+/**
+ * Keep reserved root scope paths from fuzzy-matching unrelated event slugs.
+ *
+ * Discovery scopes are valid only beneath a location archive.
+ *
+ * @param null|string|false $redirect_url Guessed redirect URL, or null to continue guessing.
+ * @return null|string|false
+ */
+function extrachill_events_prevent_root_scope_permalink_guess( $redirect_url ) {
+	if ( null !== $redirect_url ) {
+		return $redirect_url;
+	}
+
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	if ( (int) get_current_blog_id() !== $events_blog_id ) {
+		return null;
+	}
+
+	$request_uri  = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+	$request_path = wp_parse_url( $request_uri, PHP_URL_PATH );
+	$scope        = is_string( $request_path ) ? trim( $request_path, '/' ) : '';
+
+	return isset( EXTRACHILL_EVENTS_DISCOVERY_SCOPES[ $scope ] ) ? false : null;
+}
+add_filter( 'pre_redirect_guess_404_permalink', 'extrachill_events_prevent_root_scope_permalink_guess' );
+
 // --- Rewrite Rules ---
 
 /**
