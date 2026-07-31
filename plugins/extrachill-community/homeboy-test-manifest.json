@@ -25,6 +25,9 @@
     "tests/homepage-header-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/homepage-topic-form-permissions-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/legacy-topic-redirects-smoke.php": {
       "environment": "standalone-php"
     },

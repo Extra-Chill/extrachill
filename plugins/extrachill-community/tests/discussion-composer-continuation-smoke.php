@@ -44,6 +44,8 @@ $GLOBALS['_test_terms']       = array(
 );
 
 function add_action() {}
+function add_filter() {}
+function remove_filter() {}
 function apply_filters( $hook, $value ) {
 	return $value;
 }
@@ -87,6 +89,9 @@ function is_user_logged_in() {
 }
 function bbp_current_user_can_publish_topics() {
 	return $GLOBALS['_test_can_publish'];
+}
+function bbp_is_user_active() {
+	return true;
 }
 function ec_get_site_url() {
 	return 'https://community.extrachill.com';
