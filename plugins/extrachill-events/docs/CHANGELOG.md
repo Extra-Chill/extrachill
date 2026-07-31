@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.56.3] - 2026-07-31
+
+### Changed
+- compose booking surfaces from shared tokens
+
+### Fixed
+- clear Events discovery PHPStan findings
+- restore Local Scene navigation
+- restore mobile booking inquiry gutter
+
 ## [0.56.2] - 2026-07-29
 
 ### Changed
