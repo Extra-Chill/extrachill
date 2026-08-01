@@ -172,6 +172,7 @@ const context = ( overrides = {} ) => ( {
 	can_access: true,
 	can_manage: false,
 	route_url: 'https://events.example/venue-settings/',
+	requested_venue_id: 0,
 	booking_id: 0,
 	support_events: [],
 	...overrides,
@@ -293,6 +294,23 @@ describe( 'venue settings authorization-facing states', () => {
 			await act( async () => root.unmount() );
 		}
 	);
+
+	it( 'preselects venue context for a non-member claim', async () => {
+		const { container, root } = await renderApp(
+			context( {
+				venues: [],
+				claim_venues: [
+					{ id: 44, name: 'Venue 44' },
+					{ id: 45, name: 'Venue 45' },
+				],
+				selected_venue: null,
+				can_access: false,
+				requested_venue_id: 45,
+			} )
+		);
+		expect( container.querySelector( 'select' ).value ).toBe( '45' );
+		await act( async () => root.unmount() );
+	} );
 
 	it( 'hides team controls from active non-owners', async () => {
 		const { container, root } = await renderApp( context() );

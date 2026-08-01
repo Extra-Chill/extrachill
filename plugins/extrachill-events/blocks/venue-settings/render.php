@@ -117,19 +117,20 @@ foreach ( $managed_venues as $venue ) {
 $can_access       = $selected && true === $authorization->authorize( $user_id, $selected['id'], VenueAuthorization::ACTION_ACCESS_VENUE );
 $can_manage       = $selected && true === $authorization->authorize( $user_id, $selected['id'], VenueAuthorization::ACTION_MANAGE_MEMBERS );
 $context          = array(
-	'user'           => array(
+	'user'               => array(
 		'id'       => $user_id,
 		'name'     => wp_get_current_user()->display_name,
 		'is_admin' => $is_admin,
 	),
-	'venues'         => $managed_venues,
-	'claim_venues'   => $claim_venues,
-	'selected_venue' => $selected,
-	'can_access'     => $can_access,
-	'can_manage'     => $can_manage,
-	'route_url'      => home_url( '/venue-settings/' ),
-	'booking_id'     => $can_access ? $requested_booking_id : 0,
-	'support_events' => $can_access && function_exists( 'extrachill_events_local_support_organizer_events' )
+	'venues'             => $managed_venues,
+	'claim_venues'       => $claim_venues,
+	'selected_venue'     => $selected,
+	'can_access'         => $can_access,
+	'can_manage'         => $can_manage,
+	'route_url'          => home_url( '/venue-settings/' ),
+	'requested_venue_id' => in_array( $requested_venue_id, array_column( $claim_venues, 'id' ), true ) ? $requested_venue_id : 0,
+	'booking_id'         => $can_access ? $requested_booking_id : 0,
+	'support_events'     => $can_access && function_exists( 'extrachill_events_local_support_organizer_events' )
 		? extrachill_events_local_support_organizer_events( $user_id, (int) $selected['id'] )
 		: array(),
 );

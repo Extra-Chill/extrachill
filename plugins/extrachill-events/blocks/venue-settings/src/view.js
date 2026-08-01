@@ -439,6 +439,7 @@ export function VenueSettingsApp( { context } ) {
 				<ClaimPanel
 					venues={ context.claim_venues }
 					membership={ selected }
+					initialVenueId={ context.requested_venue_id }
 				/>
 			);
 		}

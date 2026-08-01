@@ -98,8 +98,10 @@ export function ClaimsTab( { claims, venues, onRefresh } ) {
 	);
 }
 
-export function ClaimPanel( { venues, membership } ) {
-	const [ venueId, setVenueId ] = useState( venues[ 0 ]?.id || 0 );
+export function ClaimPanel( { venues, membership, initialVenueId = 0 } ) {
+	const [ venueId, setVenueId ] = useState(
+		initialVenueId || venues[ 0 ]?.id || 0
+	);
 	const [ status, setStatus ] = useState( null );
 	const submit = async ( event ) => {
 		event.preventDefault();
