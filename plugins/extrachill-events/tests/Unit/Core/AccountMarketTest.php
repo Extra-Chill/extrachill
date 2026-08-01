@@ -615,6 +615,7 @@ final class AccountMarketTest extends TestCase {
 					'local_scene' => array(
 						'slug'        => 'Charleston SC',
 						'term_id'     => 1618,
+						'name'        => 'Charleston',
 						'coordinates' => array(
 							'lat' => 32.7765,
 							'lon' => -79.9311,
@@ -632,6 +633,7 @@ final class AccountMarketTest extends TestCase {
 				'lon'     => -79.9311,
 				'slug'    => 'charleston-sc',
 				'term_id' => 1618,
+				'name'    => 'Charleston',
 				'label'   => 'Charleston, South Carolina',
 				'url'     => 'https://events.example/location/charleston-sc/',
 			),
@@ -1180,13 +1182,16 @@ final class AccountMarketTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Your Local Scene', $output );
-		$this->assertStringContainsString( 'Charleston, South Carolina', $output );
 		$this->assertStringContainsString( 'class="taxonomy-badge location-badge location-charleston"', $output );
+		$this->assertStringContainsString( '>Charleston</a>', $output );
+		$this->assertDoesNotMatchRegularExpression( '/<h3>\s*<a[^>]+location-charleston/s', $output );
+		$this->assertStringNotContainsString( 'Charleston, South Carolina', $output );
 		$this->assertStringContainsString( 'href="https://events.example/location/charleston/tonight/"', $output );
 		$this->assertStringContainsString( 'href="https://events.example/location/charleston/this-weekend/"', $output );
 		$this->assertStringContainsString( 'href="https://events.example/location/charleston/">City calendar</a>', $output );
 		$this->assertStringContainsString( '883 upcoming events', $output );
-		$this->assertStringContainsString( 'Austin, Texas', $output );
+		$this->assertStringContainsString( 'Austin (1,458)', $output );
+		$this->assertStringNotContainsString( 'Austin, Texas', $output );
 		$this->assertStringContainsString( 'href="' . esc_url( home_url( '/near-me/' ) ) . '">Shows near me', $output );
 		$this->assertStringContainsString( 'Browse all locations', $output );
 		$this->assertStringNotContainsString( 'Showing events for', $output );

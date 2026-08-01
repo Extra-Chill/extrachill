@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * When the Users Ability is unavailable or returns an invalid/empty
  * preference, this fails open.
  *
- * @return array{lat: float|null, lon: float|null, slug: string, term_id: int, label: string, url: string}|null
+ * @return array{lat: float|null, lon: float|null, slug: string, term_id: int, name: string, label: string, url: string}|null
  */
 function extrachill_events_get_account_market(): ?array {
 	static $markets = array();
@@ -50,6 +50,7 @@ function extrachill_events_get_account_market(): ?array {
 	$lon         = filter_var( $coordinates['lon'] ?? null, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE );
 	$term_id     = absint( $location['term_id'] ?? 0 );
 	$slug        = sanitize_title( $location['slug'] ?? '' );
+	$name        = sanitize_text_field( $location['name'] ?? '' );
 	$hierarchy   = is_array( $location['hierarchy'] ?? null ) ? $location['hierarchy'] : array();
 	$label       = sanitize_text_field( $hierarchy['label'] ?? $location['name'] ?? '' );
 	$url         = esc_url_raw( $location['url'] ?? '' );
@@ -69,6 +70,7 @@ function extrachill_events_get_account_market(): ?array {
 		'lon'     => null !== $lon ? (float) $lon : null,
 		'slug'    => $slug,
 		'term_id' => $term_id,
+		'name'    => $name,
 		'label'   => $label,
 		'url'     => $url,
 	);
@@ -264,9 +266,11 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 	$market        = extrachill_events_get_account_market();
 	$is_logged_in  = is_user_logged_in();
 	$market_count  = 0;
+	$market_name   = $market ? $market['name'] : '';
 	foreach ( $locations as $location ) {
 		if ( $market && (int) $location['term_id'] === (int) $market['term_id'] ) {
 			$market_count = (int) $location['count'];
+			$market_name  = (string) $location['name'];
 			break;
 		}
 	}
@@ -307,13 +311,11 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 			<article class="events-primary-market">
 				<div>
 					<span class="events-primary-market__eyebrow"><?php esc_html_e( 'Your Local Scene', 'extrachill-events' ); ?></span>
-					<h3>
-						<?php if ( '' !== $market['url'] ) : ?>
-							<a href="<?php echo esc_url( $market['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $market['slug'] ); ?>"><?php echo esc_html( '' !== $market['label'] ? $market['label'] : $market['slug'] ); ?></a>
-						<?php else : ?>
-							<?php echo esc_html( '' !== $market['label'] ? $market['label'] : $market['slug'] ); ?>
-						<?php endif; ?>
-					</h3>
+					<?php if ( '' !== $market['url'] ) : ?>
+						<a href="<?php echo esc_url( $market['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $market['slug'] ); ?>"><?php echo esc_html( '' !== $market_name ? $market_name : $market['slug'] ); ?></a>
+					<?php else : ?>
+						<span class="taxonomy-badge location-badge location-<?php echo esc_attr( $market['slug'] ); ?>"><?php echo esc_html( '' !== $market_name ? $market_name : $market['slug'] ); ?></span>
+					<?php endif; ?>
 					<?php if ( $market_count > 0 ) : ?>
 						<p><?php echo esc_html( sprintf( /* translators: %s: Number of upcoming events. */ _n( '%s upcoming event', '%s upcoming events', $market_count, 'extrachill-events' ), number_format_i18n( $market_count ) ) ); ?></p>
 					<?php endif; ?>
@@ -332,7 +334,7 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 				<h3><?php echo esc_html( $market ? __( 'Explore other active scenes', 'extrachill-events' ) : __( 'Active scenes', 'extrachill-events' ) ); ?></h3>
 				<div class="taxonomy-badges">
 					<?php foreach ( $sample as $location ) : ?>
-						<a href="<?php echo esc_url( $location['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $location['slug'] ); ?>"><?php echo esc_html( $location['label'] ); ?> (<?php echo esc_html( number_format_i18n( $location['count'] ) ); ?>)</a>
+						<a href="<?php echo esc_url( $location['url'] ); ?>" class="taxonomy-badge location-badge location-<?php echo esc_attr( $location['slug'] ); ?>"><?php echo esc_html( $location['name'] ); ?> (<?php echo esc_html( number_format_i18n( $location['count'] ) ); ?>)</a>
 					<?php endforeach; ?>
 				</div>
 			</div>
