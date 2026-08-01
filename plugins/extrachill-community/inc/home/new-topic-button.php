@@ -2,7 +2,7 @@
 /**
  * New Topic Button
  *
- * Renders the "New Post" button that triggers the topic-creation modal on
+ * Renders the "New Community Post" button that triggers the topic-creation modal on
  * the community homepage.
  *
  * No-JS fallback: the button's href points at the Music Discussion forum
@@ -31,6 +31,6 @@ $new_topic_fallback_url = ( $music_discussion_forum instanceof WP_Post )
 
 <div class="community-section-header">
 	<div class="community-home-topic-actions">
-		<a href="<?php echo esc_url( $new_topic_fallback_url ); ?>" id="new-topic-modal-trigger" class="button-1 button-medium"><?php esc_html_e( 'New Post', 'extra-chill-community' ); ?></a>
+		<a href="<?php echo esc_url( $new_topic_fallback_url ); ?>" id="new-topic-modal-trigger" class="button-1 button-medium"><?php esc_html_e( 'New Community Post', 'extra-chill-community' ); ?></a>
 	</div>
 </div>

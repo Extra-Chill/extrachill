@@ -84,7 +84,11 @@ function render_homepage_topic_modal() {
 
 $output = render_homepage_topic_modal();
 check( 'active logged-in participant can access the homepage topic form', false !== strpos( $output, '<form id="new-post">' ) );
+check( 'modal identifies the destination as a Community post', false !== strpos( $output, 'New Community Post' ) );
 check( 'homepage permission override is removed after rendering', empty( $GLOBALS['_test_filters']['bbp_current_user_can_access_create_topic_form'] ) );
+
+$button_source = (string) file_get_contents( dirname( __DIR__ ) . '/inc/home/new-topic-button.php' );
+check( 'homepage trigger identifies the destination as the Community', false !== strpos( $button_source, "'New Community Post'" ) );
 check( 'native false access remains false after successful rendering', false === apply_filters( 'bbp_current_user_can_access_create_topic_form', false ) );
 
 $GLOBALS['_test_template_throws'] = true;
