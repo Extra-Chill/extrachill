@@ -36,13 +36,17 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 			'meta'            => array(
 				7 => array(
 					55 => array(
+						'_venue_timezone'             => 'America/New_York',
 						VenueBookingConfig::META_KEY => array(
 							'enabled'        => true,
 							'spaces'         => array( array( 'key' => 'main-room', 'name' => 'Main Room', 'is_default' => true ) ),
 							'correspondence' => array( 'booking_address' => 'booking@lofi.example' ),
 						),
 					),
-					56 => array( VenueBookingConfig::META_KEY => array( 'enabled' => true ) ),
+					56 => array(
+						'_venue_timezone'             => 'America/Chicago',
+						VenueBookingConfig::META_KEY => array( 'enabled' => true ),
+					),
 				),
 			),
 			'posts'           => array(),
@@ -107,6 +111,8 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$this->assertSame( 'chubes@extrachill.com', $queued[0]['cc'] );
 		$this->assertSame( 'booking@lofi.example', $queued[0]['reply_to'] );
 		$this->assertStringContainsString( 'pending review', $queued[0]['body'] );
+		$this->assertStringContainsString( 'Thursday, August 1, 2030, 8:00 PM to 11:00 PM EDT (America/New_York)', $queued[0]['body'] );
+		$this->assertStringNotContainsString( ' UTC', $queued[0]['body'] );
 		$this->assertStringContainsString( 'does not place a hold or confirm', $queued[0]['body'] );
 		$this->assertStringContainsString( $booking['public_id'], $queued[0]['body'] );
 		$this->assertStringContainsString( "Extra Chill Bot sending on Chris's behalf.", $queued[0]['body'] );
@@ -126,14 +132,35 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$this->assertCount( 1, array_filter( $activities, static function ( array $row ): bool { return 'booking_message_requested' === $row['kind']; } ) );
 	}
 
+	public function test_receipt_fails_closed_for_nonexistent_and_ambiguous_venue_times(): void {
+		$queued = array();
+		foreach (
+			array(
+				array( '2030-03-10 02:30:00', '2030-03-10 03:30:00' ),
+				array( '2030-11-03 01:30:00', '2030-11-03 02:30:00' ),
+			) as $interval
+		) {
+			$booking = $this->booking(
+				array(
+					'requested_start_at' => $interval[0],
+					'requested_end_at'   => $interval[1],
+				)
+			);
+			$source = $this->source( $booking, 'inquiry_submitted' );
+			$result = $this->service( $queued )->reconcile_source( $source['id'] );
+			$this->assertSame( 'booking_correspondence_interval_invalid', $result->get_error_code() );
+		}
+		$this->assertCount( 0, $queued );
+	}
+
 	public function test_confirmation_notifies_only_current_half_open_same_space_competitors(): void {
 		$selected = $this->booking(
 			array(
 				'artist_name'          => 'Selected Artist',
 				'contact_email'        => 'selected@example.com',
 				'space_key'            => 'main-room',
-				'performance_start_at' => '2030-08-01 20:00:00',
-				'performance_end_at'   => '2030-08-01 23:00:00',
+				'performance_start_at' => '2030-08-02 00:00:00',
+				'performance_end_at'   => '2030-08-02 03:00:00',
 			)
 		);
 		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $selected['id'] ]['status'] = 'confirmed';
@@ -151,6 +178,8 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$this->assertSame( 'overlap@example.com', $queued[0]['to'] );
 		$this->assertStringContainsString( 'has been filled', $queued[0]['body'] );
 		$this->assertStringContainsString( 'reply to this email with another exact date', $queued[0]['body'] );
+		$this->assertStringContainsString( 'Thursday, August 1, 2030, 10:00 PM to Friday, August 2, 2030, 12:00 AM EDT (America/New_York)', $queued[0]['body'] );
+		$this->assertStringNotContainsString( ' UTC', $queued[0]['body'] );
 		$this->assertStringNotContainsString( 'Selected Artist', $queued[0]['body'] );
 		$this->assertStringNotContainsString( $selected['public_id'], $queued[0]['body'] );
 		$this->assertSame( 'submitted', ( new BookingRepository() )->get( $overlap['id'] )['status'] );
@@ -161,8 +190,8 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 			array(
 				'contact_email'        => 'selected@example.com',
 				'space_key'            => 'main-room',
-				'performance_start_at' => '2030-08-01 20:00:00',
-				'performance_end_at'   => '2030-08-01 23:00:00',
+				'performance_start_at' => '2030-08-02 00:00:00',
+				'performance_end_at'   => '2030-08-02 03:00:00',
 			)
 		);
 		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $selected['id'] ]['status'] = 'confirmed';

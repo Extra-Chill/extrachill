@@ -354,17 +354,17 @@ class BookingRepository {
 		return $hydrated;
 	}
 
-	/** List a bounded cursor page of requests competing with one confirmed interval. */
-	public function list_competing_requests( array $confirmed, int $after_id = 0, int $limit = 25 ) {
+	/** List a bounded cursor page using confirmed bounds projected into requested local storage. */
+	public function list_competing_requests( array $confirmed, string $requested_start_at, string $requested_end_at, int $after_id = 0, int $limit = 25 ) {
 		global $wpdb;
-		if ( 'confirmed' !== ( $confirmed['status'] ?? '' ) || empty( $confirmed['space_key'] ) || empty( $confirmed['performance_start_at'] ) || empty( $confirmed['performance_end_at'] ) ) {
+		if ( 'confirmed' !== ( $confirmed['status'] ?? '' ) || empty( $confirmed['space_key'] ) || empty( $confirmed['performance_start_at'] ) || empty( $confirmed['performance_end_at'] ) || is_wp_error( $this->datetime( $requested_start_at, 'requested_start_at' ) ) || is_wp_error( $this->datetime( $requested_end_at, 'requested_end_at' ) ) || $requested_end_at <= $requested_start_at ) {
 			return new \WP_Error( 'booking_competing_interval_invalid', __( 'The confirmed booking interval is invalid.', 'extrachill-events' ) );
 		}
 		$table    = BookingSchema::bookings_table();
 		$limit    = max( 1, min( 50, $limit ) );
 		$terminal = array( 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed', 'admission_pending' );
 		$sql      = "SELECT * FROM {$table} WHERE venue_term_id = %d AND requested_space_key = %s AND requested_start_at < %s AND requested_end_at > %s AND id <> %d AND id > %d AND status NOT IN ('" . implode( "','", $terminal ) . "') ORDER BY id ASC LIMIT %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed status allowlist and trusted table.
-		$rows     = $wpdb->get_results( $wpdb->prepare( $sql, $confirmed['venue_term_id'], $confirmed['space_key'], $confirmed['performance_end_at'], $confirmed['performance_start_at'], $confirmed['id'], max( 0, $after_id ), $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Values are prepared.
+		$rows     = $wpdb->get_results( $wpdb->prepare( $sql, $confirmed['venue_term_id'], $confirmed['space_key'], $requested_end_at, $requested_start_at, $confirmed['id'], max( 0, $after_id ), $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Values are prepared.
 		if ( '' !== (string) $wpdb->last_error || ! is_array( $rows ) ) {
 			return new \WP_Error( 'booking_competing_requests_read_failed', __( 'Competing booking requests could not be read.', 'extrachill-events' ) );
 		}

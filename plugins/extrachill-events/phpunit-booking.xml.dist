@@ -19,6 +19,7 @@
 			<file>tests/BookingMutationTest.php</file>
 			<file>tests/BookingEventConversionTest.php</file>
 			<file>tests/BookingCommunicationTest.php</file>
+			<file>tests/BookingCorrespondenceAutomationTest.php</file>
 			<file>tests/BookingMarketingTest.php</file>
 			<file>tests/BookingMarketingDelegatedSchemaTest.php</file>
 			<file>tests/TicketSettlementTest.php</file>

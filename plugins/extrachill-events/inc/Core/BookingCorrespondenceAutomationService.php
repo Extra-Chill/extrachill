@@ -120,12 +120,15 @@ class BookingCorrespondenceAutomationService {
 		if ( ! $venue || is_wp_error( $venue ) ) {
 			return new \WP_Error( 'booking_correspondence_venue_unavailable', __( 'The booking venue could not be resolved for correspondence.', 'extrachill-events' ) );
 		}
+		$interval = $this->requested_interval( $booking );
+		if ( is_wp_error( $interval ) ) {
+			return $interval;
+		}
 		$message = sprintf(
-			"We received your booking inquiry and it is pending review.\n\nArtist: %s\nVenue: %s\nRequested interval: %s to %s UTC\nRequested space: %s\nReference: %s\n\nSubmitting an inquiry does not place a hold or confirm the booking. Reply to this email to continue this booking thread.",
+			"We received your booking inquiry and it is pending review.\n\nArtist: %s\nVenue: %s\nRequested interval: %s\nRequested space: %s\nReference: %s\n\nSubmitting an inquiry does not place a hold or confirm the booking. Reply to this email to continue this booking thread.",
 			$booking['artist_name'],
 			$venue->name,
-			$booking['requested_start_at'] ? $booking['requested_start_at'] : 'Not specified',
-			$booking['requested_end_at'] ? $booking['requested_end_at'] : 'Not specified',
+			$interval['display'],
 			$this->space_name( $booking, true ),
 			$booking['public_id']
 		);
@@ -142,21 +145,35 @@ class BookingCorrespondenceAutomationService {
 		if ( is_wp_error( $batch ) ) {
 			return $batch;
 		}
+		$bounds = $this->confirmed_local_bounds( $confirmed );
+		if ( is_wp_error( $bounds ) ) {
+			return $bounds;
+		}
 		$after      = is_array( $batch ) ? (int) ( $batch['payload']['data']['after_booking_id'] ?? 0 ) : 0;
-		$candidates = $this->bookings->list_competing_requests( $confirmed, $after, self::BATCH_SIZE );
+		$candidates = $this->bookings->list_competing_requests( $confirmed, $bounds['start_at'], $bounds['end_at'], $after, self::BATCH_SIZE );
 		if ( is_wp_error( $candidates ) ) {
 			return $candidates;
 		}
 		foreach ( $candidates as $candidate ) {
 			$current = $this->bookings->get( (int) $candidate['id'] );
-			if ( ! is_array( $current ) || ! $this->still_competes( $current, $confirmed ) ) {
+			if ( ! is_array( $current ) ) {
 				continue;
 			}
+			$competes = $this->still_competes( $current, $confirmed );
+			if ( is_wp_error( $competes ) ) {
+				return $competes;
+			}
+			if ( ! $competes ) {
+				continue;
+			}
+			$interval = $this->requested_interval( $current );
+			if ( is_wp_error( $interval ) ) {
+				return $interval;
+			}
 			$message = sprintf(
-				'The interval you requested at %s (%s to %s UTC, %s) has been filled. Your inquiry has not been declined: reply to this email with another exact date, start/end time, and space you would like us to review.',
+				'The interval you requested at %s (%s, %s) has been filled. Your inquiry has not been declined: reply to this email with another exact date, start/end time, and space you would like us to review.',
 				$this->venue_name( $confirmed ),
-				$current['requested_start_at'],
-				$current['requested_end_at'],
+				$interval['display'],
 				$this->space_name( $current, true )
 			);
 			$result  = $this->communication->request_automatic( (int) $current['id'], (int) $source['id'], 'date_filled', $message );
@@ -183,15 +200,101 @@ class BookingCorrespondenceAutomationService {
 		return is_wp_error( $marker ) ? $marker : array( 'completed' => false );
 	}
 
-	private function still_competes( array $candidate, array $confirmed ): bool {
+	private function still_competes( array $candidate, array $confirmed ) {
 		$terminal = array( 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed' );
-		return ! in_array( $candidate['status'], $terminal, true )
-			&& (int) $candidate['venue_term_id'] === (int) $confirmed['venue_term_id']
-			&& (string) $candidate['requested_space_key'] === (string) $confirmed['space_key']
-			&& ! empty( $candidate['requested_start_at'] )
-			&& ! empty( $candidate['requested_end_at'] )
-			&& $candidate['requested_start_at'] < $confirmed['performance_end_at']
-			&& $candidate['requested_end_at'] > $confirmed['performance_start_at'];
+		if ( in_array( $candidate['status'], $terminal, true ) || (int) $candidate['venue_term_id'] !== (int) $confirmed['venue_term_id'] || (string) $candidate['requested_space_key'] !== (string) $confirmed['space_key'] || empty( $candidate['requested_start_at'] ) || empty( $candidate['requested_end_at'] ) ) {
+			return false;
+		}
+		$requested = $this->requested_interval( $candidate );
+		if ( is_wp_error( $requested ) ) {
+			return $requested;
+		}
+		$confirmed_start = $this->utc_datetime( (string) $confirmed['performance_start_at'] );
+		$confirmed_end   = $this->utc_datetime( (string) $confirmed['performance_end_at'] );
+		if ( ! $confirmed_start || ! $confirmed_end || $confirmed_end <= $confirmed_start ) {
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The confirmed booking interval is invalid for correspondence.', 'extrachill-events' ) );
+		}
+		return $requested['start']->getTimestamp() < $confirmed_end->getTimestamp() && $requested['end']->getTimestamp() > $confirmed_start->getTimestamp();
+	}
+
+	/** Resolve one requested venue-local wall-clock interval for display and comparison. */
+	private function requested_interval( array $booking ) {
+		$timezone = $this->venue_timezone( (int) $booking['venue_term_id'] );
+		if ( is_wp_error( $timezone ) ) {
+			return $timezone;
+		}
+		$start_candidates = $this->local_datetime_candidates( (string) ( $booking['requested_start_at'] ?? '' ), $timezone );
+		$end_candidates   = $this->local_datetime_candidates( (string) ( $booking['requested_end_at'] ?? '' ), $timezone );
+		if ( is_wp_error( $start_candidates ) || is_wp_error( $end_candidates ) || 1 !== count( $start_candidates ) || 1 !== count( $end_candidates ) ) {
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The requested venue-local interval is invalid or ambiguous for correspondence.', 'extrachill-events' ) );
+		}
+		$start = $start_candidates[0];
+		$end   = $end_candidates[0];
+		if ( $end <= $start ) {
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The requested venue-local interval is invalid for correspondence.', 'extrachill-events' ) );
+		}
+		$display  = $start->format( 'l, F j, Y, g:i A' ) . ' to ';
+		$display .= $start->format( 'Y-m-d' ) === $end->format( 'Y-m-d' ) ? $end->format( 'g:i A T' ) : $end->format( 'l, F j, Y, g:i A T' );
+		$display .= ' (' . $timezone->getName() . ')';
+		return compact( 'start', 'end', 'display' );
+	}
+
+	/** Project one confirmed UTC interval into the venue-local request storage domain. */
+	private function confirmed_local_bounds( array $booking ) {
+		$timezone = $this->venue_timezone( (int) $booking['venue_term_id'] );
+		$start    = $this->utc_datetime( (string) ( $booking['performance_start_at'] ?? '' ) );
+		$end      = $this->utc_datetime( (string) ( $booking['performance_end_at'] ?? '' ) );
+		if ( is_wp_error( $timezone ) ) {
+			return $timezone;
+		}
+		if ( ! $start || ! $end || $end <= $start ) {
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The confirmed booking interval is invalid for correspondence.', 'extrachill-events' ) );
+		}
+		return array(
+			'start_at' => $start->setTimezone( $timezone )->format( 'Y-m-d H:i:s' ),
+			'end_at'   => $end->setTimezone( $timezone )->format( 'Y-m-d H:i:s' ),
+		);
+	}
+
+	/** Resolve the canonical timezone owned by the venue data projection. */
+	private function venue_timezone( int $venue_id ) {
+		$venue_data = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( $venue_id ) : null;
+		$name       = is_array( $venue_data ) ? (string) ( $venue_data['timezone'] ?? '' ) : '';
+		if ( '' === $name || ! in_array( $name, timezone_identifiers_list(), true ) ) {
+			return new \WP_Error( 'booking_correspondence_timezone_invalid', __( 'The venue timezone is unavailable for correspondence.', 'extrachill-events' ) );
+		}
+		try {
+			return new \DateTimeZone( $name );
+		} catch ( \Throwable $exception ) {
+			return new \WP_Error( 'booking_correspondence_timezone_invalid', __( 'The venue timezone is unavailable for correspondence.', 'extrachill-events' ) );
+		}
+	}
+
+	/** Return every UTC instant represented by one strict local wall time. */
+	private function local_datetime_candidates( string $value, \DateTimeZone $timezone ) {
+		$wall = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, new \DateTimeZone( 'UTC' ) );
+		if ( false === $wall || $wall->format( 'Y-m-d H:i:s' ) !== $value ) {
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The requested venue-local interval is invalid for correspondence.', 'extrachill-events' ) );
+		}
+		$transitions = $timezone->getTransitions( $wall->getTimestamp() - DAY_IN_SECONDS, $wall->getTimestamp() + DAY_IN_SECONDS );
+		if ( ! is_array( $transitions ) ) {
+			return new \WP_Error( 'booking_correspondence_timezone_invalid', __( 'The venue timezone cannot be checked safely for correspondence.', 'extrachill-events' ) );
+		}
+		$candidates = array();
+		foreach ( array_unique( array_column( $transitions, 'offset' ) ) as $offset ) {
+			$candidate = ( new \DateTimeImmutable( '@' . ( $wall->getTimestamp() - (int) $offset ) ) )->setTimezone( $timezone );
+			if ( $candidate->format( 'Y-m-d H:i:s' ) === $value ) {
+				$candidates[ $candidate->getTimestamp() ] = $candidate;
+			}
+		}
+		ksort( $candidates, SORT_NUMERIC );
+		return array_values( $candidates );
+	}
+
+	/** Parse one canonical UTC performance timestamp exactly. */
+	private function utc_datetime( string $value ) {
+		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, new \DateTimeZone( 'UTC' ) );
+		return false !== $date && $date->format( 'Y-m-d H:i:s' ) === $value ? $date : false;
 	}
 
 	private function complete_source( array $source, array $payload ) {

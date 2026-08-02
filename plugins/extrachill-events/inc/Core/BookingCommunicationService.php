@@ -1068,10 +1068,56 @@ class BookingCommunicationService {
 			&& 'confirmed' === $confirmed['status']
 			&& (int) $confirmed['venue_term_id'] === (int) $booking['venue_term_id']
 			&& (string) $confirmed['space_key'] === (string) $booking['requested_space_key']
-			&& ! empty( $booking['requested_start_at'] )
-			&& ! empty( $booking['requested_end_at'] )
-			&& $booking['requested_start_at'] < $confirmed['performance_end_at']
-			&& $booking['requested_end_at'] > $confirmed['performance_start_at'];
+			&& $this->requested_interval_overlaps_confirmed( $booking, $confirmed );
+	}
+
+	/** Compare venue-local requested wall times with canonical UTC performance times. */
+	private function requested_interval_overlaps_confirmed( array $booking, array $confirmed ): bool {
+		$venue_data = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( (int) $booking['venue_term_id'] ) : null;
+		$name       = is_array( $venue_data ) ? (string) ( $venue_data['timezone'] ?? '' ) : '';
+		if ( '' === $name || ! in_array( $name, timezone_identifiers_list(), true ) ) {
+			return false;
+		}
+		try {
+			$timezone = new \DateTimeZone( $name );
+		} catch ( \Throwable $exception ) {
+			return false;
+		}
+		$requested_start = $this->strict_local_datetime( (string) ( $booking['requested_start_at'] ?? '' ), $timezone );
+		$requested_end   = $this->strict_local_datetime( (string) ( $booking['requested_end_at'] ?? '' ), $timezone );
+		$confirmed_start = $this->strict_utc_datetime( (string) ( $confirmed['performance_start_at'] ?? '' ) );
+		$confirmed_end   = $this->strict_utc_datetime( (string) ( $confirmed['performance_end_at'] ?? '' ) );
+		return $requested_start && $requested_end && $confirmed_start && $confirmed_end
+			&& $requested_end > $requested_start
+			&& $confirmed_end > $confirmed_start
+			&& $requested_start->getTimestamp() < $confirmed_end->getTimestamp()
+			&& $requested_end->getTimestamp() > $confirmed_start->getTimestamp();
+	}
+
+	/** Resolve exactly one UTC instant for a venue-local wall time. */
+	private function strict_local_datetime( string $value, \DateTimeZone $timezone ) {
+		$wall = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, new \DateTimeZone( 'UTC' ) );
+		if ( false === $wall || $wall->format( 'Y-m-d H:i:s' ) !== $value ) {
+			return false;
+		}
+		$transitions = $timezone->getTransitions( $wall->getTimestamp() - DAY_IN_SECONDS, $wall->getTimestamp() + DAY_IN_SECONDS );
+		if ( ! is_array( $transitions ) ) {
+			return false;
+		}
+		$candidates = array();
+		foreach ( array_unique( array_column( $transitions, 'offset' ) ) as $offset ) {
+			$candidate = ( new \DateTimeImmutable( '@' . ( $wall->getTimestamp() - (int) $offset ) ) )->setTimezone( $timezone );
+			if ( $candidate->format( 'Y-m-d H:i:s' ) === $value ) {
+				$candidates[ $candidate->getTimestamp() ] = $candidate;
+			}
+		}
+		return 1 === count( $candidates ) ? reset( $candidates ) : false;
+	}
+
+	/** Parse one canonical UTC performance timestamp exactly. */
+	private function strict_utc_datetime( string $value ) {
+		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, new \DateTimeZone( 'UTC' ) );
+		return false !== $date && $date->format( 'Y-m-d H:i:s' ) === $value ? $date : false;
 	}
 
 	private function request_hash( array $request, int $actor_id ): string {
