@@ -1104,6 +1104,16 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 						createElement(
 							'div',
 							{ className: 'ec-studio-compose-toolbar__controls' },
+							createElement(
+								'a',
+								{
+									className: 'button-1 button-small button-secondary',
+									href: 'https://docs.extrachill.com/studio/team-contribution-guide/',
+									target: '_blank',
+									rel: 'noopener noreferrer',
+								},
+								__( 'Contribution Guide', 'extrachill-studio' )
+							),
 							draftPicker,
 							createElement(
 								'button',
