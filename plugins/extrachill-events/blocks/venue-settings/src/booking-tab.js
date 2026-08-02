@@ -14,7 +14,12 @@ import {
  * Internal dependencies
  */
 import { Status } from './status';
-import { normalizeKey, sameDocument, validateConfig } from './state';
+import {
+	HOLD_TTL_MAX_MINUTES,
+	normalizeKey,
+	sameDocument,
+	validateConfig,
+} from './state';
 
 function SpacesEditor( { spaces, onChange } ) {
 	const update = ( index, patch ) =>
@@ -160,13 +165,13 @@ export function BookingTab( {
 				<FieldGroup
 					label="Default hold duration (minutes)"
 					htmlFor="venue-hold-ttl"
-					help="Between 5 minutes and 7 days."
+					help="Between 5 minutes and 14 days."
 				>
 					<input
 						id="venue-hold-ttl"
 						type="number"
 						min="5"
-						max="10080"
+						max={ HOLD_TTL_MAX_MINUTES }
 						value={ config.hold_ttl_minutes }
 						onChange={ ( event ) =>
 							setConfig( {

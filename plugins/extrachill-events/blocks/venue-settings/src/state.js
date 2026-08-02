@@ -1,3 +1,5 @@
+export const HOLD_TTL_MAX_MINUTES = 20160;
+
 export const editableConfig = ( config ) => {
 	const editable = { ...config };
 	delete editable.revision;
@@ -64,8 +66,11 @@ export const validateConfig = ( config ) => {
 			errors.push( 'Select fields need at least one option.' );
 		}
 	} );
-	if ( config.hold_ttl_minutes < 5 || config.hold_ttl_minutes > 10080 ) {
-		errors.push( 'Hold duration must be between 5 minutes and 7 days.' );
+	if (
+		config.hold_ttl_minutes < 5 ||
+		config.hold_ttl_minutes > HOLD_TTL_MAX_MINUTES
+	) {
+		errors.push( 'Hold duration must be between 5 minutes and 14 days.' );
 	}
 	if ( ! Number.isFinite( config.hold_ttl_minutes ) ) {
 		errors.push( 'Hold duration must be a number.' );

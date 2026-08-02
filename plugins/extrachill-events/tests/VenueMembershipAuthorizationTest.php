@@ -1862,6 +1862,8 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertContains( 'public_requirements', $config_output['required'] );
 		$this->assertContains( 'consent', $config_output['required'] );
 		$this->assertContains( 'marketing_triggers', $config_output['required'] );
+		$this->assertSame( 20160, $config_input['oneOf'][2]['properties']['hold_ttl_minutes']['maximum'] );
+		$this->assertSame( 20160, $config_output['properties']['hold_ttl_minutes']['maximum'] );
 
 		$legacy = ( new VenueBookingConfig() )->defaults();
 		$legacy['version'] = 1;

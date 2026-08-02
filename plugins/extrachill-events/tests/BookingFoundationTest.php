@@ -607,6 +607,15 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertSame( 'booking_config_version_unsupported', $service->get( 55 )->get_error_code() );
 	}
 
+	public function test_config_accepts_fourteen_day_holds_and_rejects_longer_values(): void {
+		$service = new VenueBookingConfig();
+
+		$accepted = $service->normalize( array( 'hold_ttl_minutes' => 20160 ) );
+		$this->assertSame( 20160, $accepted['hold_ttl_minutes'] );
+		$this->assertSame( 'invalid_booking_hold_ttl', $service->normalize( array( 'hold_ttl_minutes' => 20161 ) )->get_error_code() );
+		$this->assertSame( 1440, $service->defaults()['hold_ttl_minutes'] );
+	}
+
 	public function test_config_detects_truncated_collisions_and_validates_channels_currency(): void {
 		$service = new VenueBookingConfig();
 		$prefix  = str_repeat( 'a', 64 );

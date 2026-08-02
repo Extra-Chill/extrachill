@@ -25,6 +25,7 @@ class VenueBookingConfig {
 	public const CORRESPONDENCE_TEMPLATES    = array( 'operator_message', 'follow_up', 'hold_expiring' );
 	public const CORRESPONDENCE_VARIABLES    = array( 'artist_name', 'booking_id', 'contact_name', 'venue_name' );
 	public const CONSENT_VERSION             = 1;
+	public const HOLD_TTL_MAX_MINUTES        = 20160;
 	public const SOCIAL_MARKETING_ACTION     = 'datamachine-socials/cross-post';
 	public const NEWSLETTER_MARKETING_ACTION = 'extrachill-newsletter/canonical-post-campaign';
 
@@ -309,8 +310,8 @@ class VenueBookingConfig {
 			return $correspondence;
 		}
 		$hold_ttl = isset( $config['hold_ttl_minutes'] ) ? (int) $config['hold_ttl_minutes'] : 1440;
-		if ( $hold_ttl < 5 || $hold_ttl > 10080 ) {
-			return new \WP_Error( 'invalid_booking_hold_ttl', __( 'Hold TTL must be between 5 minutes and 7 days.', 'extrachill-events' ) );
+		if ( $hold_ttl < 5 || $hold_ttl > self::HOLD_TTL_MAX_MINUTES ) {
+			return new \WP_Error( 'invalid_booking_hold_ttl', __( 'Hold TTL must be between 5 minutes and 14 days.', 'extrachill-events' ) );
 		}
 
 		$revision = $config['revision'] ?? 0;

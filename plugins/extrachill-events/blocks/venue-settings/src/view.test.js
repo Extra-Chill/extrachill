@@ -32,8 +32,14 @@ jest.mock( '@extrachill/components', () => {
 		BlockShellHeader: ( { title } ) =>
 			React.createElement( 'h1', null, title ),
 		BlockShellInner: Wrapper,
-		FieldGroup: ( { label, children } ) =>
-			React.createElement( 'label', null, label, children ),
+		FieldGroup: ( { label, help, children } ) =>
+			React.createElement(
+				'label',
+				null,
+				label,
+				children,
+				help && React.createElement( 'span', null, help )
+			),
 		Grid: Wrapper,
 		InlineStatus: Wrapper,
 		Panel: Wrapper,
@@ -447,6 +453,19 @@ describe( 'venue settings authorization-facing states', () => {
 		await act( async () => buttonByText( container, 'Profile' ).click() );
 		expect( container.textContent ).toContain( 'Profile unavailable.' );
 		expect( container.textContent ).toContain( 'Retry profile' );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'shows the fourteen-day hold limit in booking settings', async () => {
+		const { container, root } = await renderApp( context() );
+		await act( async () => buttonByText( container, 'Booking' ).click() );
+
+		expect( container.querySelector( '#venue-hold-ttl' ).max ).toBe(
+			'20160'
+		);
+		expect( container.textContent ).toContain(
+			'Between 5 minutes and 14 days.'
+		);
 		await act( async () => root.unmount() );
 	} );
 

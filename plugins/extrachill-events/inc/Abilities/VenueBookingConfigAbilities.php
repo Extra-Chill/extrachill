@@ -338,7 +338,7 @@ class VenueBookingConfigAbilities {
 			'hold_ttl_minutes'          => array(
 				'type'    => 'integer',
 				'minimum' => 5,
-				'maximum' => 10080,
+				'maximum' => VenueBookingConfig::HOLD_TTL_MAX_MINUTES,
 			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
