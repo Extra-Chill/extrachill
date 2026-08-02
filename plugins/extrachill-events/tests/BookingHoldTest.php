@@ -176,15 +176,21 @@ final class BookingHoldTest extends BookingTestCase {
 		$this->assertSame( 'active', $retry['hold']['status'], 'An exactly elapsed hold must not block even before cleanup.' );
 	}
 
-	/** Public availability ignores inquiry/hold state and exposes only filled state. */
-	public function test_public_interval_availability_is_private_interval_based_and_hold_tolerant(): void {
+	/** Public availability ignores private inquiries but closes for venue-created holds. */
+	public function test_public_interval_availability_keeps_inquiries_private_and_blocks_active_holds(): void {
 		$holds = $this->holds();
 		$this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'main-room', array( 'status' => 'submitted' ) );
-		$held = $this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'main-room' );
-		$holds->create( $held['id'], 1, 12 );
-
 		$this->assertSame(
 			array( 'available' => true ),
+			$holds->public_interval_availability( 55, 'main-room', '2030-08-01 20:00:00', '2030-08-01 23:00:00' ),
+			'Pending inquiries must remain private and accept competition.'
+		);
+
+		$held = $this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'main-room' );
+		$hold = $holds->create( $held['id'], 1, 12 );
+
+		$this->assertSame(
+			array( 'available' => false ),
 			$holds->public_interval_availability( 55, 'main-room', '2030-08-01 20:00:00', '2030-08-01 23:00:00' )
 		);
 		$this->assertSame(
@@ -193,6 +199,13 @@ final class BookingHoldTest extends BookingTestCase {
 			'An adjacent same-day interval must remain open.'
 		);
 		$this->assertSame( array( 'available' ), array_keys( $holds->public_interval_availability( 55, 'main-room', '2030-08-01 20:00:00', '2030-08-01 23:00:00' ) ) );
+
+		$holds->release( $hold['hold']['id'], 1, 12, 'Venue reopened the interval.' );
+		$this->assertSame(
+			array( 'available' => true ),
+			$holds->public_interval_availability( 55, 'main-room', '2030-08-01 20:00:00', '2030-08-01 23:00:00' ),
+			'Releasing the venue hold must reopen competition.'
+		);
 	}
 
 	/** Confirmed bookings and canonical events close only overlapping intervals. */
@@ -231,6 +244,16 @@ final class BookingHoldTest extends BookingTestCase {
 			return 'accepted';
 		} ) );
 
+		$held = $this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'main-room' );
+		$holds->create( $held['id'], 1, 12 );
+		$reserved = $holds->admit_public_interval( $input, static function () use ( &$called ) {
+			++$called;
+			return 'should-not-run';
+		} );
+		$this->assertSame( 'booking_inquiry_interval_unavailable', $reserved->get_error_code() );
+		$this->assertSame( 1, $called );
+
+		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ] = array();
 		$this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'main-room', array( 'status' => 'confirmed' ) );
 		$filled = $holds->admit_public_interval( $input, static function () use ( &$called ) {
 			++$called;

@@ -1040,7 +1040,7 @@ class BookingHoldRepository {
 			$venue_id,
 			$space_key,
 			function () use ( $booking, $available_callback ) {
-				$conflict = $this->find_conflict( $booking, 0, false );
+				$conflict = $this->find_conflict( $booking, 0, true );
 				if ( is_wp_error( $conflict ) ) {
 					return $conflict;
 				}
