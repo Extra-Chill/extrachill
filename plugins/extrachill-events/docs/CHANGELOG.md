@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.57.0] - 2026-08-02
+
+### Added
+- add booking privacy and retention operations
+- add coordinator-controlled vendor requests
+- add venue booking guide
+- make venue booking inquiries date-first
+- automate booking receipt and competing-date follow-up
+- support 14-day booking holds
+
+### Fixed
+- clarify available booking submission dates
+- close public intake for active venue holds
+
 ## [0.56.5] - 2026-08-02
 
 ### Fixed
