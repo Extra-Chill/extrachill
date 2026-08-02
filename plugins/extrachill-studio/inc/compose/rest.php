@@ -356,7 +356,7 @@ function ec_studio_compose_permission_check() {
 		);
 	}
 
-	if ( ! current_user_can( 'manage_options' ) && function_exists( 'ec_is_team_member' ) && ! ec_is_team_member() ) {
+	if ( ! current_user_can( 'manage_options' ) && ( ! function_exists( 'ec_is_team_member' ) || ! ec_is_team_member() ) ) {
 		return new \WP_Error(
 			'rest_forbidden',
 			__( 'Studio is available to Extra Chill team members only.', 'extrachill-studio' ),
