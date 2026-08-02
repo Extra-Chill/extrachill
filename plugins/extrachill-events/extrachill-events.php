@@ -30,7 +30,7 @@ define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_EVENTS_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 // WP-CLI commands.
-if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCommand.php' ) ) {
+if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCommand.php' ) ) { // @phpstan-ignore booleanAnd.rightAlwaysTrue
 	require_once __DIR__ . '/inc/Core/EventSourceRampEvaluator.php';
 	require_once __DIR__ . '/inc/Cli/EventSourceRampCommand.php';
 	\WP_CLI::add_command( 'extrachill events ramp', \ExtraChillEvents\Cli\EventSourceRampCommand::class );
@@ -190,8 +190,11 @@ add_filter(
  */
 class ExtraChillEvents {
 
+	/** @var self|null */
 	private static $instance = null;
-	private $integrations    = array();
+
+	/** @var array */
+	private $integrations = array();
 
 	/**
 	 * Get singleton instance
@@ -269,9 +272,11 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistUrlSubmissionsTable.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingSchema.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportSchema.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestSchema.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueAuthorization.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportAuthorization.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestAuthorization.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationToken.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueOnboardingRepository.php';
@@ -282,6 +287,9 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportWorkspace.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestRepository.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestService.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestNotificationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingActivityRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingNotificationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportNotificationAdapter.php';
@@ -315,6 +323,7 @@ class ExtraChillEvents {
 		\ExtraChillEvents\Core\BookingCorrespondenceAutomationService::register();
 		\ExtraChillEvents\Core\BookingNotificationService::register();
 		\ExtraChillEvents\Core\LocalSupportNotificationService::register();
+		\ExtraChillEvents\Core\VendorRequestNotificationService::register();
 		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/Controllers/ArtistUrlImport.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/ArtistUrlImportRoutes.php';
@@ -343,6 +352,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/discovery-pages.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/router-pages.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/local-support-workspace.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/vendor-request-workspace.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/booking-console.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-normalizer.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/calendar-stats.php';
@@ -460,6 +470,11 @@ class ExtraChillEvents {
 			new \ExtraChillEvents\Abilities\LocalSupportAbilities();
 		}
 
+		if ( \ExtraChillEvents\Core\VendorRequestSchema::is_ready() ) {
+			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VendorRequestAbilities.php';
+			new \ExtraChillEvents\Abilities\VendorRequestAbilities();
+		}
+
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/PriorityVenueAbilities.php';
 		new \ExtraChillEvents\Abilities\PriorityVenueAbilities();
 
@@ -529,6 +544,8 @@ class ExtraChillEvents {
 
 		// Private, site-scoped venue booking tables.
 		\ExtraChillEvents\Core\BookingSchema::install();
+		\ExtraChillEvents\Core\LocalSupportSchema::install();
+		\ExtraChillEvents\Core\VendorRequestSchema::install();
 
 		flush_rewrite_rules();
 	}
@@ -561,6 +578,10 @@ class ExtraChillEvents {
 
 		if ( class_exists( '\\ExtraChillEvents\\Core\\LocalSupportSchema' ) ) {
 			\ExtraChillEvents\Core\LocalSupportSchema::maybe_install();
+		}
+
+		if ( class_exists( '\\ExtraChillEvents\\Core\\VendorRequestSchema' ) ) {
+			\ExtraChillEvents\Core\VendorRequestSchema::maybe_install();
 		}
 	}
 

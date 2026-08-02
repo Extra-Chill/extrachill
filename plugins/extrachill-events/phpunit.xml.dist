@@ -36,6 +36,7 @@
 		</testsuite>
 		<testsuite name="venue-membership-authorization">
 			<file>tests/VenueMembershipAuthorizationTest.php</file>
+			<file>tests/VendorRequestDomainTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

@@ -1,0 +1,19 @@
+.ec-vendor-request-page { padding-block: var(--wp--preset--spacing--40, 2rem); }
+.ec-vendor-request { --vendor-accent: #9c4f20; display: grid; gap: 1.25rem; max-width: 72rem; margin-inline: auto; padding: clamp(1rem, 3vw, 2rem); }
+.ec-vendor-request__hero { padding: clamp(1.25rem, 4vw, 2.5rem); border-left: 6px solid var(--vendor-accent); background: linear-gradient(135deg, color-mix(in srgb, var(--vendor-accent) 13%, white), #fff 72%); }
+.ec-vendor-request__eyebrow { margin: 0; font-size: .78rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.ec-vendor-request__status { display: inline-flex; padding: .25rem .55rem; border: 1px solid currentcolor; border-radius: 999px; font-size: .78rem; font-weight: 750; text-transform: uppercase; }
+.ec-vendor-request__section, .ec-vendor-request__card { padding: 1.25rem; border: 1px solid var(--wp--preset--color--contrast-3, #d3dad7); border-radius: .65rem; background: #fff; }
+.ec-vendor-request__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 1rem; }
+.ec-vendor-request__card { display: grid; gap: .8rem; align-content: start; }
+.ec-vendor-request__card dl { display: grid; grid-template-columns: minmax(6rem, auto) 1fr; gap: .35rem .75rem; margin: 0; }
+.ec-vendor-request__card dt { font-weight: 750; }
+.ec-vendor-request__form { display: grid; gap: .9rem; max-width: 42rem; }
+.ec-vendor-request__form label { display: grid; gap: .35rem; font-weight: 700; }
+.ec-vendor-request__form input:not([type="checkbox"]), .ec-vendor-request__form select, .ec-vendor-request__form textarea { box-sizing: border-box; width: 100%; padding: .65rem; }
+.ec-vendor-request__consent { grid-template-columns: auto 1fr; align-items: start; }
+.ec-vendor-request__privacy { color: var(--wp--preset--color--contrast-2, #64706c); font-size: .9rem; }
+.ec-vendor-request__notice { padding: .85rem 1rem; border-left: 4px solid #315f88; background: #e9f2fa; }
+.ec-vendor-request__notice--success { border-color: #17633f; background: #e1f4e9; }
+.ec-vendor-request__notice--error { border-color: #9f2d25; background: #fbe8e6; }
+@media (max-width: 600px) { .ec-vendor-request-page { padding-block: 0; } .ec-vendor-request { padding-inline: .75rem; } .ec-vendor-request__cards { grid-template-columns: 1fr; } .ec-vendor-request__form button { width: 100%; min-height: 44px; } }
