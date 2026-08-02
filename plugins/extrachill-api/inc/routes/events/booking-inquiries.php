@@ -25,7 +25,7 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_booking_i
 function extrachill_api_booking_transport_error_headers( $response, $server, $request ) {
 	unset( $server );
 	$route = $request->get_route();
-	if ( ! preg_match( '#^/extrachill/v1/(?:venues/\d+/booking-inquiries|events/bookings/\d+/attachments/\d+/download)$#', $route ) ) {
+	if ( ! preg_match( '#^/extrachill/v1/(?:venues/\d+/(?:booking-inquiries|booking-availability)|events/bookings/\d+/attachments/\d+/download)$#', $route ) ) {
 		return $response;
 	}
 	$data    = $response->get_data();

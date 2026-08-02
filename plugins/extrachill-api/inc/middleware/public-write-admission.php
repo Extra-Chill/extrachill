@@ -114,3 +114,48 @@ function extrachill_api_check_public_write_rate_limit( WP_REST_Request $request,
 
 	return true;
 }
+
+/** Apply the atomic per-client limiter to one public-read scope. */
+function extrachill_api_check_public_read_rate_limit( WP_REST_Request $request, $scope, $limit ) {
+	$limit = (int) $limit;
+	if ( $limit < 1 ) {
+		return true;
+	}
+
+	$context = function_exists( 'extrachill_api_route_affinity_context' ) ? extrachill_api_route_affinity_context( $request ) : array();
+	if ( $context ) {
+		$client = strtolower( sanitize_text_field( (string) ( $context['client'] ?? '' ) ) );
+		$ip     = sanitize_text_field( (string) ( $context['remote_addr'] ?? '' ) );
+		if ( 1 !== preg_match( '/^[a-f0-9]{64}$/', $client ) || false === filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+			return new WP_Error( 'public_read_admission_unavailable', __( 'Request admission is temporarily unavailable.', 'extrachill-api' ), array( 'status' => 503 ) );
+		}
+	} else {
+		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		if ( '' === $ip || false === filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+			return new WP_Error( 'public_read_admission_unavailable', __( 'Request admission is temporarily unavailable.', 'extrachill-api' ), array( 'status' => 503 ) );
+		}
+		$client = hash_hmac( 'sha256', $ip, wp_salt( 'nonce' ) );
+	}
+
+	$now         = time();
+	$window      = intdiv( $now, MINUTE_IN_SECONDS );
+	$retry_after = ( ( $window + 1 ) * MINUTE_IN_SECONDS ) - $now;
+	$key         = 'read_' . substr( hash( 'sha256', sanitize_key( $scope ) . ':' . $client . ':' . $window ), 0, 40 );
+	$admitted    = extrachill_api_atomic_rate_limit_admit( $key, $limit, $retry_after );
+	if ( is_wp_error( $admitted ) ) {
+		return $admitted;
+	}
+	if ( ! $admitted ) {
+		return new WP_Error(
+			'public_read_rate_limited',
+			__( 'Too many requests. Please try again later.', 'extrachill-api' ),
+			array(
+				'status'      => 429,
+				'retry_after' => $retry_after,
+				'headers'     => array( 'Retry-After' => (string) $retry_after ),
+			)
+		);
+	}
+
+	return true;
+}

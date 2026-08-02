@@ -482,6 +482,9 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 		if ( $headers instanceof Traversable ) {
 			$headers = iterator_to_array( $headers );
 		}
+		if ( preg_match( '#^/extrachill/v1/venues/\d+/booking-availability$#', $route ) && function_exists( 'extrachill_api_booking_availability_affinity_response' ) ) {
+			return extrachill_api_booking_availability_affinity_response( $data, (int) $status, $headers );
+		}
 
 		return new WP_REST_Response( $data, (int) $status, $headers );
 	}
@@ -492,6 +495,8 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 		}
 		if ( preg_match( '#^/extrachill/v1/venues/\d+/booking-inquiries$#', $route ) && function_exists( 'extrachill_api_booking_public_error' ) ) {
 			$response = extrachill_api_booking_public_error( $response );
+		} elseif ( preg_match( '#^/extrachill/v1/venues/\d+/booking-availability$#', $route ) && function_exists( 'extrachill_api_booking_availability_public_error' ) ) {
+			$response = extrachill_api_booking_availability_public_error( $response );
 		}
 		$status = $response->get_error_data()['status'] ?? 500;
 		return new WP_REST_Response(

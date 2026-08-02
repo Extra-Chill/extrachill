@@ -471,6 +471,41 @@ class Route_AffinityTest extends WP_UnitTestCase {
 		$this->assertSame( $user_id, get_current_user_id() );
 	}
 
+	/** Booking availability preserves exact JSON and signed caller identity. */
+	public function test_booking_availability_affinity_preserves_body_and_identity() {
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		$body = array(
+			'venue'               => 42,
+			'requested_space_key' => 'main-room',
+			'requested_start_at'  => '2026-08-10 20:00:00',
+			'requested_end_at'    => '2026-08-10 22:00:00',
+		);
+		$this->downstream_response = $this->http_response( 200, array( 'available' => true ) );
+
+		$response = $this->dispatch_affinity( $this->json_request( 'POST', '/extrachill/v1/venues/42/booking-availability', $body ) );
+
+		$this->assertSame( array( 'available' => true ), $response->get_data() );
+		$this->assertSame( $body, json_decode( $this->last_http_args['body'], true ) );
+		$this->assertSame( (string) $user_id, $this->last_http_args['headers']['X-EC-Internal-User'] );
+		$this->assertStringContainsString( 'events.', $this->last_http_args['headers']['Host'] );
+	}
+
+	/** Availability loopback failures and oversized success bodies are projected. */
+	public function test_booking_availability_affinity_never_relays_private_data() {
+		$route = '/extrachill/v1/venues/42/booking-availability';
+		$this->downstream_response = new WP_Error( 'http_request_failed', 'Private host /srv/events failed.', array( 'status' => 502 ) );
+		$failed                    = $this->dispatch_affinity( $this->json_request( 'POST', $route, array( 'venue' => 42 ) ) );
+
+		$this->assertSame( 503, $failed->get_status() );
+		$this->assertSame( 'booking_availability_unavailable', $failed->get_data()['code'] );
+		$this->assertStringNotContainsString( '/srv/events', wp_json_encode( $failed->get_data() ) );
+
+		$this->downstream_response = $this->http_response( 200, array( 'available' => false, 'booking_id' => 123, 'conflict_type' => 'confirmed' ) );
+		$success                   = $this->dispatch_affinity( $this->json_request( 'POST', $route, array( 'venue' => 42 ) ) );
+		$this->assertSame( array( 'available' => false ), $success->get_data() );
+	}
+
 	/** Caller-supplied affinity identity is removed and replaced from the socket. */
 	public function test_affinity_client_spoof_is_overwritten_before_signing() {
 		$request = $this->json_request(
