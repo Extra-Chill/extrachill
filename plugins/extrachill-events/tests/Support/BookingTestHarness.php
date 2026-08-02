@@ -8,6 +8,7 @@
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingAttachmentPolicy;
 use ExtraChillEvents\Core\BookingCommunicationService;
+use ExtraChillEvents\Core\BookingCorrespondenceAutomationService;
 use ExtraChillEvents\Core\BookingNotificationService;
 use ExtraChillEvents\Core\BookingPrivateFileProvider;
 use ExtraChillEvents\Core\BookingLifecycle;
@@ -1350,6 +1351,43 @@ final class BookingWpdb {
 		if ( $this->fail_reads ) {
 			$this->last_error = 'simulated result read failure';
 			return null; }
+		if ( false !== strpos( $query, 'SELECT source.* FROM' ) && false !== strpos( $query, "source.kind IN ('inquiry_submitted', 'deal_confirmed')" ) ) {
+			preg_match( '/LIMIT (\d+)/', $query, $limit );
+			$completed = array();
+			foreach ( $this->rows[ $this->prefix . 'ec_booking_activity' ] ?? array() as $row ) {
+				if ( 'booking_correspondence_source_completed' === $row['kind'] ) {
+					$completed[] = (string) $row['external_id'];
+				}
+			}
+			$rows = array_values(
+				array_filter(
+					$this->rows[ $this->prefix . 'ec_booking_activity' ] ?? array(),
+					static function ( $row ) use ( $completed ) {
+						return in_array( $row['kind'], array( 'inquiry_submitted', 'deal_confirmed' ), true ) && ! in_array( (string) $row['id'], $completed, true );
+					}
+				)
+			);
+			usort( $rows, static function ( $left, $right ) { return $left['id'] <=> $right['id']; } );
+			return array_slice( $rows, 0, (int) ( $limit[1] ?? 25 ) );
+		}
+		if ( false !== strpos( $query, 'SELECT * FROM' ) && false !== strpos( $query, 'requested_space_key =' ) && preg_match( "/venue_term_id = (\d+) AND requested_space_key = '([^']+)' AND requested_start_at < '([^']+)' AND requested_end_at > '([^']+)'.*id <> (\d+) AND id > (\d+).*LIMIT (\d+)/", $query, $match ) ) {
+			$rows = array_values(
+				array_filter(
+					$this->rows[ $this->prefix . 'ec_bookings' ] ?? array(),
+					static function ( $row ) use ( $match ) {
+						return (int) $row['venue_term_id'] === (int) $match[1]
+							&& $row['requested_space_key'] === stripslashes( $match[2] )
+							&& $row['requested_start_at'] < $match[3]
+							&& $row['requested_end_at'] > $match[4]
+							&& (int) $row['id'] !== (int) $match[5]
+							&& (int) $row['id'] > (int) $match[6]
+							&& ! in_array( $row['status'], array( 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed', 'admission_pending' ), true );
+					}
+				)
+			);
+			usort( $rows, static function ( $left, $right ) { return $left['id'] <=> $right['id']; } );
+			return array_slice( $rows, 0, (int) $match[7] );
+		}
 		if ( false !== strpos( $query, 'SELECT source.* FROM' ) && false !== strpos( $query, "source.kind IN ('inquiry_submitted'" ) ) {
 			preg_match( '/LIMIT (\d+)/', $query, $limit );
 			$requests = array();
@@ -2129,6 +2167,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentDeliveryReposit
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingInquiryAdmissionService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingConfig.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingCorrespondenceAutomationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/TicketReconciliationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/TicketSettlementService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/ShowSettlementService.php';

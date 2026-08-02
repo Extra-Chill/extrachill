@@ -529,6 +529,15 @@ class BookingActivityRepository {
 		return $this->hydrate_rows( $rows, 'booking_notification_source_scan_failed' );
 	}
 
+	/** List lifecycle sources whose automatic correspondence is incomplete. */
+	public function correspondence_sources_without_completion( int $limit ) {
+		global $wpdb;
+		$table = BookingSchema::activity_table();
+		$limit = max( 1, min( 100, $limit ) );
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT source.* FROM {$table} source WHERE source.kind IN ('inquiry_submitted', 'deal_confirmed') AND NOT EXISTS (SELECT 1 FROM {$table} done WHERE done.kind = 'booking_correspondence_source_completed' AND done.external_id = CAST(source.id AS CHAR)) ORDER BY source.id ASC LIMIT %d", $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded recovery scan over lifecycle sources.
+		return $this->hydrate_rows( $rows, 'booking_correspondence_source_scan_failed' );
+	}
+
 	/** List pending outbox requests without terminal delivery/suppression records. */
 	public function pending_notification_requests( int $limit ) {
 		global $wpdb;

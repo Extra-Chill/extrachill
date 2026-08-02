@@ -931,7 +931,13 @@ class BookingHoldRepository {
 					)
 				);
 				$committed = $this->commit();
-				return is_wp_error( $committed ) ? $committed : $output;
+				if ( is_wp_error( $committed ) ) {
+					return $committed;
+				}
+				if ( 'confirmed' === $to_status ) {
+					BookingCorrespondenceAutomationService::emit( (int) $event['id'] );
+				}
+				return $output;
 			}
 		);
 	}

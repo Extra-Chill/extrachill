@@ -19,7 +19,7 @@ class BookingCommunicationService {
 	public const SCHEDULER_GROUP        = 'extrachill-events-booking-reminders';
 	public const SUPPRESSION_BATCH_SIZE = 25;
 	public const MAX_ATTEMPTS           = 3;
-	public const TEMPLATES              = array( 'operator_message', 'follow_up', 'hold_expiring' );
+	public const TEMPLATES              = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'date_filled' );
 	public const TERMINAL_STATUSES      = array( 'declined', 'withdrawn', 'cancelled', 'completed' );
 
 	/** @var BookingRepository */
@@ -153,6 +153,85 @@ class BookingCommunicationService {
 		$initialized = $this->activity->create_communication_state( $intent );
 		if ( is_wp_error( $initialized ) ) {
 			return $this->rollback( $initialized );
+		}
+		$committed = $this->commit();
+		return is_wp_error( $committed ) ? $committed : $this->resume( $intent );
+	}
+
+	/** Persist deterministic lifecycle correspondence without operator impersonation. */
+	public function request_automatic( int $booking_id, int $source_activity_id, string $template, string $message ) {
+		$source  = $this->activity->get( $source_activity_id );
+		$booking = $this->bookings->get( $booking_id );
+		$allowed = array(
+			'inquiry_receipt' => 'inquiry_submitted',
+			'date_filled'     => 'deal_confirmed',
+		);
+		if ( ! is_array( $source ) || ! is_array( $booking ) || ( $allowed[ $template ] ?? null ) !== $source['kind'] || empty( $booking['contact_email'] ) ) {
+			return new \WP_Error( 'booking_automatic_message_invalid', __( 'The automatic booking message is invalid.', 'extrachill-events' ) );
+		}
+		if ( 'inquiry_receipt' === $template && (int) $source['booking_id'] !== $booking_id ) {
+			return new \WP_Error( 'booking_automatic_message_invalid', __( 'The automatic booking message is invalid.', 'extrachill-events' ) );
+		}
+		$key      = sprintf( 'booking-message-request:automatic:%s:%d:%d', $template, $source_activity_id, $booking_id );
+		$existing = $this->activity->find_by_idempotency( $booking_id, $key );
+		if ( is_wp_error( $existing ) ) {
+			return $existing;
+		}
+		if ( is_array( $existing ) ) {
+			return $this->resume( $existing );
+		}
+		$started = $this->begin();
+		if ( is_wp_error( $started ) ) {
+			return $started;
+		}
+		$booking = $this->bookings->get_for_update( $booking_id );
+		$source  = $this->activity->get( $source_activity_id );
+		if ( ! is_array( $booking ) || ! is_array( $source ) || empty( $booking['contact_email'] ) || ! $this->automatic_message_applicable( $booking, $source, $template ) ) {
+			return $this->rollback( new \WP_Error( 'booking_automatic_message_stale', __( 'The automatic booking message is no longer applicable.', 'extrachill-events' ) ) );
+		}
+		$request = $this->prepare_request(
+			array(
+				'booking_id'       => $booking_id,
+				'idempotency_key'  => sprintf( 'automatic:%s:%d:%d', $template, $source_activity_id, $booking_id ),
+				'template'         => $template,
+				'template_version' => null,
+				'recipient'        => $booking['contact_email'],
+				'message'          => mb_substr( sanitize_textarea_field( $message ), 0, 10000 ),
+				'reply_to'         => $booking['contact_email'],
+			),
+			$booking
+		);
+		if ( is_wp_error( $request ) ) {
+			return $this->rollback( $request );
+		}
+		$intent = $this->activity->append(
+			array(
+				'booking_id'      => $booking_id,
+				'kind'            => 'booking_message_requested',
+				'actor_type'      => 'system',
+				'direction'       => 'outbound',
+				'channel'         => 'email',
+				'idempotency_key' => $key,
+				'payload'         => array_merge(
+					$request,
+					array(
+						'request_hash'       => hash( 'sha256', $key . "\0" . $request['subject'] . "\0" . $request['body'] ),
+						'booking_version'    => (int) $booking['version'],
+						'source_activity_id' => $source_activity_id,
+						'cc'                 => 'chubes@extrachill.com',
+						'from_name'          => 'Extra Chill Bot',
+						'identity'           => 'Extra Chill Bot sending on Chris\'s behalf.',
+						'mail_site_id'       => function_exists( 'extrachill_mail_site_id' ) ? extrachill_mail_site_id() : get_current_blog_id(),
+					)
+				),
+			)
+		);
+		if ( is_wp_error( $intent ) ) {
+			return $this->rollback( $intent );
+		}
+		$state = $this->activity->create_communication_state( $intent );
+		if ( is_wp_error( $state ) ) {
+			return $this->rollback( $state );
 		}
 		$committed = $this->commit();
 		return is_wp_error( $committed ) ? $committed : $this->resume( $intent );
@@ -883,7 +962,12 @@ class BookingCommunicationService {
 		}
 		$data   = $intent['payload']['data'];
 		$reason = null;
-		if ( (int) $booking['version'] !== (int) $data['booking_version'] || in_array( $booking['status'], self::TERMINAL_STATUSES, true ) ) {
+		if ( isset( $data['source_activity_id'] ) ) {
+			$source = $this->activity->get( (int) $data['source_activity_id'] );
+			if ( ! is_array( $source ) || ! $this->automatic_message_applicable( $booking, $source, (string) $data['template'] ) ) {
+				$reason = 'booking_status_changed';
+			}
+		} elseif ( (int) $booking['version'] !== (int) $data['booking_version'] || in_array( $booking['status'], self::TERMINAL_STATUSES, true ) ) {
 			$reason = 'booking_status_changed';
 		} elseif ( strtolower( (string) $booking['contact_email'] ) !== strtolower( $data['recipient'] ) ) {
 			$reason = 'booking_recipient_changed';
@@ -969,6 +1053,25 @@ class BookingCommunicationService {
 				'reminder_policy_version' => $policy_version,
 			)
 		);
+	}
+
+	/** Revalidate server-owned automatic correspondence immediately before queueing. */
+	private function automatic_message_applicable( array $booking, array $source, string $template ): bool {
+		if ( 'inquiry_receipt' === $template ) {
+			return 'inquiry_submitted' === $source['kind'] && (int) $source['booking_id'] === (int) $booking['id'];
+		}
+		if ( 'date_filled' !== $template || 'deal_confirmed' !== $source['kind'] || in_array( $booking['status'], array( 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed' ), true ) ) {
+			return false;
+		}
+		$confirmed = $this->bookings->get( (int) $source['booking_id'] );
+		return is_array( $confirmed )
+			&& 'confirmed' === $confirmed['status']
+			&& (int) $confirmed['venue_term_id'] === (int) $booking['venue_term_id']
+			&& (string) $confirmed['space_key'] === (string) $booking['requested_space_key']
+			&& ! empty( $booking['requested_start_at'] )
+			&& ! empty( $booking['requested_end_at'] )
+			&& $booking['requested_start_at'] < $confirmed['performance_end_at']
+			&& $booking['requested_end_at'] > $confirmed['performance_start_at'];
 	}
 
 	private function request_hash( array $request, int $actor_id ): string {

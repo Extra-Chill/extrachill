@@ -22,7 +22,7 @@ class VenueBookingConfig {
 	public const CORRESPONDENCE_VERSION      = 1;
 	public const TEMPLATE_VERSION            = 1;
 	public const REMINDER_POLICY_VERSION     = 1;
-	public const CORRESPONDENCE_TEMPLATES    = array( 'operator_message', 'follow_up', 'hold_expiring' );
+	public const CORRESPONDENCE_TEMPLATES    = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'date_filled' );
 	public const CORRESPONDENCE_VARIABLES    = array( 'artist_name', 'booking_id', 'contact_name', 'venue_name' );
 	public const CONSENT_VERSION             = 1;
 	public const HOLD_TTL_MAX_MINUTES        = 20160;
@@ -407,6 +407,16 @@ class VenueBookingConfig {
 						'version' => self::TEMPLATE_VERSION,
 						'subject' => 'Booking hold update for {{artist_name}}',
 						'body'    => "A reminder about your booking hold at {{venue_name}}:\n\n{{message}}",
+					),
+					'inquiry_receipt'  => array(
+						'version' => self::TEMPLATE_VERSION,
+						'subject' => 'Booking inquiry received at {{venue_name}} [{{booking_id}}]',
+						'body'    => "Hello {{contact_name}},\n\n{{message}}",
+					),
+					'date_filled'      => array(
+						'version' => self::TEMPLATE_VERSION,
+						'subject' => 'Booking date update from {{venue_name}}',
+						'body'    => "Hello {{contact_name}},\n\n{{message}}",
 					),
 				),
 				'reminder_policies' => array(

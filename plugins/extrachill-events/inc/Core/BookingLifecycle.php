@@ -328,6 +328,7 @@ class BookingLifecycle {
 			return $committed;
 		}
 		BookingNotificationService::emit( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, (int) $event['id'] );
+		BookingCorrespondenceAutomationService::emit( (int) $event['id'] );
 		return $this->bookings->get( $locked['id'] );
 	}
 

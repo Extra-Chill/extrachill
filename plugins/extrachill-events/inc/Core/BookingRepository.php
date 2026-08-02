@@ -354,6 +354,31 @@ class BookingRepository {
 		return $hydrated;
 	}
 
+	/** List a bounded cursor page of requests competing with one confirmed interval. */
+	public function list_competing_requests( array $confirmed, int $after_id = 0, int $limit = 25 ) {
+		global $wpdb;
+		if ( 'confirmed' !== ( $confirmed['status'] ?? '' ) || empty( $confirmed['space_key'] ) || empty( $confirmed['performance_start_at'] ) || empty( $confirmed['performance_end_at'] ) ) {
+			return new \WP_Error( 'booking_competing_interval_invalid', __( 'The confirmed booking interval is invalid.', 'extrachill-events' ) );
+		}
+		$table    = BookingSchema::bookings_table();
+		$limit    = max( 1, min( 50, $limit ) );
+		$terminal = array( 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed', 'admission_pending' );
+		$sql      = "SELECT * FROM {$table} WHERE venue_term_id = %d AND requested_space_key = %s AND requested_start_at < %s AND requested_end_at > %s AND id <> %d AND id > %d AND status NOT IN ('" . implode( "','", $terminal ) . "') ORDER BY id ASC LIMIT %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed status allowlist and trusted table.
+		$rows     = $wpdb->get_results( $wpdb->prepare( $sql, $confirmed['venue_term_id'], $confirmed['space_key'], $confirmed['performance_end_at'], $confirmed['performance_start_at'], $confirmed['id'], max( 0, $after_id ), $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Values are prepared.
+		if ( '' !== (string) $wpdb->last_error || ! is_array( $rows ) ) {
+			return new \WP_Error( 'booking_competing_requests_read_failed', __( 'Competing booking requests could not be read.', 'extrachill-events' ) );
+		}
+		$items = array();
+		foreach ( $rows as $row ) {
+			$item = $this->hydrate( $row );
+			if ( is_wp_error( $item ) ) {
+				return $item;
+			}
+			$items[] = $item;
+		}
+		return $items;
+	}
+
 	/** Conditionally update mutable booking fields at an expected version. */
 	public function update( int $id, array $changes, int $expected_version ) {
 		global $wpdb;

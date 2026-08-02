@@ -287,6 +287,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportNotificationAdapter.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportNotificationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCommunicationService.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCorrespondenceAutomationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingHoldRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingMutationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingEventSyncService.php';
@@ -311,6 +312,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/CanonicalEventPublicationGuard.php';
 		\ExtraChillEvents\Core\BookingHoldRepository::register();
 		\ExtraChillEvents\Core\BookingCommunicationService::register();
+		\ExtraChillEvents\Core\BookingCorrespondenceAutomationService::register();
 		\ExtraChillEvents\Core\BookingNotificationService::register();
 		\ExtraChillEvents\Core\LocalSupportNotificationService::register();
 		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
