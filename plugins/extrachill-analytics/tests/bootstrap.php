@@ -178,6 +178,19 @@ if ( ! function_exists( 'wp_cache_incr' ) ) {
 		return $GLOBALS['extrachill_analytics_test_cache'][ $group ][ $key ];
 	}
 }
+if ( ! function_exists( 'wp_cache_delete' ) ) {
+	/**
+	 * Delete a cache fixture.
+	 *
+	 * @param string $key   Cache key.
+	 * @param string $group Cache group.
+	 * @return bool
+	 */
+	function wp_cache_delete( $key, $group = '' ) {
+		unset( $GLOBALS['extrachill_analytics_test_cache'][ $group ][ $key ] );
+		return true;
+	}
+}
 if ( ! function_exists( 'sanitize_key' ) ) {
 	/**
 	 * Stub for sanitize_key().
