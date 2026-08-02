@@ -13,6 +13,8 @@ import { markComposeRequest, registerComposeInstance } from './cross-site-middle
 import { installChatRefreshAdapter } from './refresh-adapter';
 import { openComposePreview } from './preview';
 import type { AutosavePreviewResponse, ComposeSnapshot } from './preview';
+import { recoverDraftContent } from './draft-recovery';
+import type { WpAutosave, WpPost } from './draft-recovery';
 
 /**
  * apiFetch wrapper that tags a request as Compose-pane-originated so the
@@ -45,26 +47,6 @@ interface BlocksEverywhereContentApi {
 	replaceContent: ( html: string ) => void;
 	getContent: () => string;
 	getBlocks: () => object[];
-}
-
-interface WpPost {
-	id: number;
-	title: { rendered: string; raw?: string };
-	content: { rendered: string; raw?: string };
-	status: string;
-	date: string;
-	modified: string;
-	modified_gmt?: string;
-}
-
-interface WpAutosave {
-	id: number;
-	parent: number;
-	author: number;
-	title?: { rendered: string; raw?: string };
-	content?: { rendered: string; raw?: string };
-	modified?: string;
-	modified_gmt?: string;
 }
 
 /** Autosave debounce interval in milliseconds. */
@@ -347,6 +329,20 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		}
 	}, [] );
 
+	const loadDraftContent = useCallback( async ( post: WpPost ) => {
+		const currentUser = (
+			select( 'core' ) as {
+				getCurrentUser?: () => { id?: number } | undefined;
+			}
+		).getCurrentUser?.();
+
+		return recoverDraftContent( post, currentUser?.id, ( postId ) =>
+			composeApiFetch< WpAutosave[] >( {
+				path: `/wp/v2/posts/${ postId }/autosaves?context=edit`,
+			} )
+		);
+	}, [] );
+
 	/**
 	 * Flush any unsaved changes for the current draft before switching away.
 	 * Creates a new draft on first save if no active post ID exists.
@@ -444,38 +440,19 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			// is stale relative to in-flight typing. Check for a user autosave
 			// newer than the parent and prefer it. Falls back to parent on any
 			// error so the picker always works.
-			let title = post.title.raw || post.title.rendered || '';
-			let content = post.content.raw || post.content.rendered || '';
-			try {
-				const currentUser = ( select( 'core' ) as { getCurrentUser?: () => { id?: number } | undefined } )
-					.getCurrentUser?.();
-				const currentUserId = currentUser?.id;
-				if ( currentUserId ) {
-					const autosaves = await composeApiFetch< WpAutosave[] >( {
-						path: `/wp/v2/posts/${ post.id }/autosaves?context=edit`,
-					} );
-					const userAutosave = Array.isArray( autosaves )
-						? autosaves.find( ( a ) => a?.author === currentUserId )
-						: null;
-					if (
-						userAutosave &&
-						userAutosave.modified_gmt &&
-						post.modified_gmt &&
-						userAutosave.modified_gmt > post.modified_gmt
-					) {
-						title = userAutosave.title?.raw || title;
-						content = userAutosave.content?.raw || content;
-					}
-				}
-			} catch {
-				// Best-effort recovery — fall back to parent content silently.
-			}
+			const {
+				title: recoveredTitle,
+				content: recoveredContent,
+			} = await loadDraftContent( post );
 
-			titleRef.current = title;
-			setTitle( title );
-			contentSnapshotRef.current = content;
-			replaceEditorContent( content );
-			lastSavedPayloadRef.current = JSON.stringify( { title, content } );
+			titleRef.current = recoveredTitle;
+			setTitle( recoveredTitle );
+			contentSnapshotRef.current = recoveredContent;
+			replaceEditorContent( recoveredContent );
+			lastSavedPayloadRef.current = JSON.stringify( {
+				title: recoveredTitle,
+				content: recoveredContent,
+			} );
 		} else {
 			activePostIdRef.current = null;
 			titleRef.current = '';
@@ -490,7 +467,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		setError( '' );
 		setStatus( '' );
 		scheduleClientContextUpdate();
-	}, [ flushCurrentDraft, scheduleClientContextUpdate ] );
+	}, [ flushCurrentDraft, loadDraftContent, scheduleClientContextUpdate ] );
 
 	const startNew = useCallback( async (): Promise< void > => {
 		if ( isPreviewingRef.current ) {
@@ -701,6 +678,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			// Fetch drafts first so we can pre-fill the textarea before mounting the editor.
 			setIsLoadingDrafts( true );
 			const result = await loadDrafts();
+			const initialDraft = result.length > 0
+				? await loadDraftContent( result[ 0 ] )
+				: null;
 
 			if ( cancelled ) {
 				return;
@@ -712,15 +692,16 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			// Pre-fill textarea with the most recent draft.
 			if ( result.length > 0 && textareaRef.current ) {
 				const post = result[ 0 ];
+				const { title: initialTitle, content: initialContent } = initialDraft!;
 				activePostIdRef.current = post.id;
-				titleRef.current = post.title.raw || post.title.rendered || '';
+				titleRef.current = initialTitle;
 				setActivePostId( post.id );
-				setTitle( post.title.raw || post.title.rendered || '' );
-				textareaRef.current.value = post.content.raw || post.content.rendered || '';
-				contentSnapshotRef.current = post.content.raw || post.content.rendered || '';
+				setTitle( initialTitle );
+				textareaRef.current.value = initialContent;
+				contentSnapshotRef.current = initialContent;
 				lastSavedPayloadRef.current = JSON.stringify( {
-					title: post.title.raw || post.title.rendered || '',
-					content: post.content.raw || post.content.rendered || '',
+					title: initialTitle,
+					content: initialContent,
 				} );
 			} else {
 				activePostIdRef.current = null;
@@ -755,7 +736,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		return () => {
 			cancelled = true;
 		};
-	}, [ loadDrafts, scheduleClientContextUpdate ] );
+	}, [ loadDraftContent, loadDrafts, scheduleClientContextUpdate ] );
 
 
 
