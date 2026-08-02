@@ -75,6 +75,12 @@ function extrachill_docs_register_upsert_doc_page_ability(): void {
 						'type'        => 'string',
 						'description' => __( 'Title of the parent page, used when creating the parent (e.g. Artist Platform). Ignored when parent already exists.', 'extrachill-docs' ),
 					),
+					'post_status'  => array(
+						'type'        => 'string',
+						'enum'        => array( 'publish', 'private' ),
+						'description' => __( 'WordPress visibility for the parent and synced page. Default: publish.', 'extrachill-docs' ),
+						'default'     => 'publish',
+					),
 					'dry_run'      => array(
 						'type'        => 'boolean',
 						'description' => __( 'If true, returns the action that would be taken without writing to the database. Default: false.', 'extrachill-docs' ),
@@ -162,6 +168,7 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 	$markdown     = isset( $input['markdown'] ) ? (string) $input['markdown'] : '';
 	$parent_slug  = isset( $input['parent_slug'] ) ? sanitize_title( (string) $input['parent_slug'] ) : '';
 	$parent_title = isset( $input['parent_title'] ) ? (string) $input['parent_title'] : '';
+	$post_status  = isset( $input['post_status'] ) && 'private' === $input['post_status'] ? 'private' : 'publish';
 	$dry_run      = ! empty( $input['dry_run'] );
 
 	if ( '' === $repo || '' === $path || '' === $parent_slug || '' === $parent_title ) {
@@ -181,7 +188,7 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 	}
 
 	// Resolve or create parent page.
-	$parent_id = extrachill_docs_resolve_or_create_parent_page( $parent_slug, $parent_title, $dry_run );
+	$parent_id = extrachill_docs_resolve_or_create_parent_page( $parent_slug, $parent_title, $post_status, $dry_run );
 	if ( is_wp_error( $parent_id ) ) {
 		return array(
 			'success'      => false,
@@ -197,7 +204,7 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 	if ( $existing && '' !== $sha ) {
 		$existing_sha               = (string) get_post_meta( $existing->ID, '_source_sha', true );
 		$existing_transform_version = (int) get_post_meta( $existing->ID, '_source_transform_version', true );
-		if ( $existing_sha === $sha && EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION === $existing_transform_version ) {
+		if ( $existing_sha === $sha && EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION === $existing_transform_version && $post_status === $existing->post_status ) {
 			return array(
 				'success'   => true,
 				'action'    => 'unchanged',
@@ -235,7 +242,7 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 	// Apply.
 	$postarr = array(
 		'post_type'    => 'page',
-		'post_status'  => 'publish',
+		'post_status'  => $post_status,
 		'post_title'   => $title,
 		'post_name'    => $slug,
 		'post_content' => $blocks_content,
@@ -401,12 +408,26 @@ function extrachill_docs_find_synced_page( string $repo, string $path ): ?\WP_Po
  *
  * @param string $slug    Parent slug.
  * @param string $title   Parent title (used on create).
- * @param bool   $dry_run When true, returns 0 for unknown parents instead of creating.
+ * @param string $post_status Parent page status (`publish` or `private`).
+ * @param bool   $dry_run     When true, returns 0 for unknown parents instead of creating.
  * @return int|\WP_Error
  */
-function extrachill_docs_resolve_or_create_parent_page( string $slug, string $title, bool $dry_run ) {
+function extrachill_docs_resolve_or_create_parent_page( string $slug, string $title, string $post_status, bool $dry_run ) {
 	$existing = get_page_by_path( $slug, OBJECT, 'page' );
 	if ( $existing instanceof \WP_Post ) {
+		$is_managed_parent = '1' === (string) get_post_meta( $existing->ID, '_extrachill_docs_platform_parent', true );
+		if ( ! $dry_run && $is_managed_parent && $post_status !== $existing->post_status ) {
+			$updated = wp_update_post(
+				array(
+					'ID'          => $existing->ID,
+					'post_status' => $post_status,
+				),
+				true
+			);
+			if ( is_wp_error( $updated ) ) {
+				return $updated;
+			}
+		}
 		return (int) $existing->ID;
 	}
 
@@ -417,7 +438,7 @@ function extrachill_docs_resolve_or_create_parent_page( string $slug, string $ti
 	$parent_id = wp_insert_post(
 		array(
 			'post_type'    => 'page',
-			'post_status'  => 'publish',
+			'post_status'  => $post_status,
 			'post_title'   => $title,
 			'post_name'    => $slug,
 			'post_content' => '',

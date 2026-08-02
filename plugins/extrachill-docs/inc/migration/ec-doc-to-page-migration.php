@@ -204,7 +204,7 @@ function extrachill_docs_migration_migrate_one( \WP_Post $ec_doc, bool $dry_run 
 		return $row;
 	}
 
-	$parent_id = extrachill_docs_resolve_or_create_parent_page( $parent_slug, $parent_title, false );
+	$parent_id = extrachill_docs_resolve_or_create_parent_page( $parent_slug, $parent_title, 'publish', false );
 	if ( is_wp_error( $parent_id ) ) {
 		$row['action'] = 'error';
 		$row['error']  = sprintf( 'parent page resolution failed: %s', $parent_id->get_error_message() );

@@ -18,6 +18,7 @@ namespace DataMachine\Core\Content {
 
 namespace {
 	define( 'ABSPATH', __DIR__ . '/' );
+	define( 'EXTRACHILL_DOCS_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 
 	class WP_Error {
 		private $code;
@@ -39,13 +40,14 @@ namespace {
 
 	class ExtraChillDocsTestAbility {
 		private $result;
+		public $inputs = array();
 
 		public function __construct( $result ) {
 			$this->result = $result;
 		}
 
 		public function execute( array $input ) {
-			unset( $input );
+			$this->inputs[] = $input;
 			return $this->result;
 		}
 	}
@@ -97,6 +99,7 @@ namespace {
 	}
 
 	require dirname( __DIR__ ) . '/inc/abilities/upsert-doc-page.php';
+	require dirname( __DIR__ ) . '/inc/access/team-private-docs.php';
 	require dirname( __DIR__ ) . '/inc/sync/sync-orchestrator.php';
 	require dirname( __DIR__ ) . '/inc/core/rewrite-rules.php';
 
@@ -124,6 +127,10 @@ namespace {
 	$assert( 'Artist Preferences' === extrachill_docs_extract_title_from_markdown( 'Introduction.', 'artist-preferences.md' ), 'title falls back to the filename without an H1' );
 	$assert( 'Introduction.' === extrachill_docs_strip_title_heading_from_markdown( 'Introduction.' ), 'markdown without an H1 is unchanged' );
 	$assert( 2 === EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION, 'content transform version forces existing pages through the corrected conversion' );
+	$team_caps = extrachill_docs_grant_team_private_page_access( array( 'access_studio' => true ) );
+	$assert( ! empty( $team_caps['read_private_pages'] ), 'Studio access grants private docs access' );
+	$public_caps = extrachill_docs_grant_team_private_page_access( array( 'read' => true ) );
+	$assert( empty( $public_caps['read_private_pages'] ), 'ordinary readers do not gain private docs access' );
 
 	$markdown = '[Privacy](../privacy.md#sharing) [External](https://example.com/file.md) ![Image](diagram.md)';
 	$resolved = extrachill_docs_resolve_internal_markdown_links( $markdown, 'events-calendar' );
@@ -149,6 +156,7 @@ namespace {
 		'parent_slug'  => 'example',
 		'parent_title' => 'Example',
 		'docs_subpath' => 'docs/user',
+		'post_status'  => 'publish',
 	);
 	$GLOBALS['extrachill_docs_test_abilities']['datamachine-code/list-github-tree'] = new ExtraChillDocsTestAbility( new WP_Error( 'github_unavailable', 'GitHub unavailable.' ) );
 	$listing_failure = extrachill_docs_sync_one_repo( $entry, true );
@@ -208,15 +216,27 @@ namespace {
 	$upsert_failure = extrachill_docs_sync_one_repo( $entry, true );
 	$assert( 'insert_failed; Database rejected the page.' === ( $upsert_failure['files'][0]['error'] ?? '' ), 'upsert failure preserves code and detail' );
 
-	$GLOBALS['extrachill_docs_test_abilities']['extrachill-docs/upsert-doc-page'] = new ExtraChillDocsTestAbility(
+	$upsert_ability = new ExtraChillDocsTestAbility(
 		array(
 			'success' => true,
 			'action'  => 'created',
 			'page_id' => 42,
 		)
 	);
+	$GLOBALS['extrachill_docs_test_abilities']['extrachill-docs/upsert-doc-page'] = $upsert_ability;
 	$sync_success = extrachill_docs_sync_one_repo( $entry, true );
 	$assert( 'created' === ( $sync_success['files'][0]['action'] ?? '' ) && 42 === ( $sync_success['files'][0]['page_id'] ?? 0 ) && '' === ( $sync_success['files'][0]['error'] ?? '' ), 'successful upsert mapping remains unchanged' );
+	$assert( 'publish' === ( $upsert_ability->inputs[0]['post_status'] ?? '' ), 'public status propagates to the upsert ability' );
+
+	$private_entry                = $entry;
+	$private_entry['post_status'] = 'private';
+	$upsert_ability->inputs       = array();
+	extrachill_docs_sync_one_repo( $private_entry, true );
+	$assert( 'private' === ( $upsert_ability->inputs[0]['post_status'] ?? '' ), 'private status propagates to the upsert ability' );
+
+	$platform_map = extrachill_docs_load_platform_map();
+	$studio_entry = array_values( array_filter( $platform_map, static fn( array $item ): bool => 'Extra-Chill/extrachill-studio' === $item['repo'] ) );
+	$assert( 'private' === ( $studio_entry[0]['post_status'] ?? '' ), 'Studio platform map entry is private' );
 
 	extrachill_docs_add_rewrite_rules();
 	$legacy_rule_index = array_search( array( '^([^/]+)/([^/]+)/?$', 'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]', 'top' ), $GLOBALS['extrachill_docs_test_rules'], true );
@@ -226,6 +246,7 @@ namespace {
 
 	$plugin_source = file_get_contents( dirname( __DIR__ ) . '/extrachill-docs.php' );
 	$assert( str_contains( $plugin_source, 'Requires Plugins: data-machine, data-machine-code' ), 'runtime dependencies are declared' );
+	$assert( str_contains( $plugin_source, 'inc/access/team-private-docs.php' ), 'team private-page access is loaded' );
 
 	if ( $failures ) {
 		foreach ( $failures as $failure ) {

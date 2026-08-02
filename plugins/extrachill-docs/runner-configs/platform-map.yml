@@ -20,6 +20,8 @@
 #   docs_subpath    : The path inside the target repo where user docs live.
 #                     Defaults to docs/user. Override only when a repo has
 #                     a non-standard layout.
+#   post_status     : WordPress page status. Defaults to publish; use private
+#                     for authenticated team-only documentation.
 #
 # To add a new plugin repo to the docs-agent rotation:
 #   1. Add an entry below.
@@ -74,6 +76,13 @@ repos:
     parent_slug: "chat"
     audience: "anyone chatting with the Extra Chill AI assistant, on the website or bridged through their personal messaging app"
     docs_subpath: "docs/user"
+
+  Extra-Chill/extrachill-studio:
+    platform_name: "Studio"
+    parent_slug: "studio"
+    audience: "Extra Chill team contributors and editors drafting, reviewing, and publishing editorial work"
+    docs_subpath: "docs/user"
+    post_status: "private"
 
   # The account/auth platform is cross-cutting and does not yet have a
   # dedicated repo. Candidate owners: extrachill-users or extrachill-multisite.

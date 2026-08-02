@@ -100,6 +100,7 @@ add_action( 'init', 'extrachill_docs_schedule_sync_cron' );
  *     'parent_slug'  => 'artist-platform',
  *     'parent_title' => 'Artist Platform',
  *     'docs_subpath' => 'docs/user',
+ *     'post_status'  => 'publish',
  *   ]
  *
  * @since 0.5.0
@@ -123,6 +124,7 @@ function extrachill_docs_get_sync_repos(): array {
 		$parent_slug  = isset( $entry['parent_slug'] ) ? sanitize_title( (string) $entry['parent_slug'] ) : '';
 		$parent_title = isset( $entry['parent_title'] ) ? (string) $entry['parent_title'] : '';
 		$docs_subpath = isset( $entry['docs_subpath'] ) ? trim( (string) $entry['docs_subpath'], '/' ) : 'docs/user';
+		$post_status  = isset( $entry['post_status'] ) && 'private' === $entry['post_status'] ? 'private' : 'publish';
 
 		if ( '' === $repo || '' === $parent_slug || '' === $parent_title ) {
 			continue;
@@ -133,6 +135,7 @@ function extrachill_docs_get_sync_repos(): array {
 			'parent_slug'  => $parent_slug,
 			'parent_title' => $parent_title,
 			'docs_subpath' => '' === $docs_subpath ? 'docs/user' : $docs_subpath,
+			'post_status'  => $post_status,
 		);
 	}
 
@@ -226,6 +229,7 @@ function extrachill_docs_flush_platform_map_entry( array &$out, ?string $current
 	$parent_slug  = $current['parent_slug'] ?? '';
 	$platform     = $current['platform_name'] ?? '';
 	$docs_subpath = $current['docs_subpath'] ?? 'docs/user';
+	$post_status  = isset( $current['post_status'] ) && 'private' === $current['post_status'] ? 'private' : 'publish';
 
 	if ( '' === $parent_slug || '' === $platform ) {
 		return;
@@ -236,6 +240,7 @@ function extrachill_docs_flush_platform_map_entry( array &$out, ?string $current
 		'parent_slug'  => $parent_slug,
 		'parent_title' => $platform,
 		'docs_subpath' => $docs_subpath,
+		'post_status'  => $post_status,
 	);
 }
 
@@ -359,11 +364,13 @@ function extrachill_docs_sync_one_repo( array $entry, bool $dry_run ): array {
 	$parent_slug  = $entry['parent_slug'];
 	$parent_title = $entry['parent_title'];
 	$docs_subpath = $entry['docs_subpath'] ?? 'docs/user';
+	$post_status  = $entry['post_status'] ?? 'publish';
 
 	$result = array(
 		'repo'         => $repo,
 		'parent_slug'  => $parent_slug,
 		'docs_subpath' => $docs_subpath,
+		'post_status'  => $post_status,
 		'files'        => array(),
 		'errors'       => array(),
 	);
@@ -480,6 +487,7 @@ function extrachill_docs_sync_one_repo( array $entry, bool $dry_run ): array {
 				'markdown'     => $content,
 				'parent_slug'  => $parent_slug,
 				'parent_title' => $parent_title,
+				'post_status'  => $post_status,
 				'dry_run'      => $dry_run,
 			)
 		);
