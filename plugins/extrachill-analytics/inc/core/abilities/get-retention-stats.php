@@ -89,6 +89,29 @@ function extrachill_analytics_register_retention_stats_ability() {
  * @return array Retention metrics.
  */
 function extrachill_analytics_ability_get_retention_stats( $input ) {
+	$normalized = array(
+		'days'         => isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28,
+		'end_days_ago' => isset( $input['end_days_ago'] ) ? max( 0, (int) $input['end_days_ago'] ) : 0,
+		'blog_id'      => isset( $input['blog_id'] ) ? max( 0, (int) $input['blog_id'] ) : 0,
+		'cohort_weeks' => isset( $input['cohort_weeks'] ) ? max( 1, (int) $input['cohort_weeks'] ) : 8,
+	);
+
+	return extrachill_analytics_report_cache_remember(
+		'retention_stats',
+		$normalized,
+		static function () use ( $normalized ) {
+			return extrachill_analytics_compute_retention_stats( $normalized );
+		}
+	);
+}
+
+/**
+ * Compute an uncached retention report.
+ *
+ * @param array $input Normalized input parameters.
+ * @return array Retention metrics.
+ */
+function extrachill_analytics_compute_retention_stats( $input ) {
 	global $wpdb;
 
 	$days         = isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28;

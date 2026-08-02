@@ -170,6 +170,30 @@ function extrachill_analytics_conversion_surface_map() {
  * @return array Conversion map.
  */
 function extrachill_analytics_ability_get_conversion_map( $input ) {
+	$normalized = array(
+		'days'                    => isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28,
+		'session_gap_mins'        => isset( $input['session_gap_mins'] ) ? max( 1, (int) $input['session_gap_mins'] ) : 30,
+		'top_articles'            => isset( $input['top_articles'] ) ? max( 1, (int) $input['top_articles'] ) : 25,
+		'min_entry_sessions'      => isset( $input['min_entry_sessions'] ) ? max( 1, (int) $input['min_entry_sessions'] ) : 1,
+		'return_observation_days' => isset( $input['return_observation_days'] ) ? max( 0, (int) $input['return_observation_days'] ) : 7,
+	);
+
+	return extrachill_analytics_report_cache_remember(
+		'conversion_map',
+		$normalized,
+		static function () use ( $normalized ) {
+			return extrachill_analytics_compute_conversion_map( $normalized );
+		}
+	);
+}
+
+/**
+ * Compute an uncached conversion-map report.
+ *
+ * @param array $input Normalized input parameters.
+ * @return array Conversion map.
+ */
+function extrachill_analytics_compute_conversion_map( $input ) {
 	global $wpdb;
 
 	$days                    = isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28;

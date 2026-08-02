@@ -43,5 +43,14 @@ if ( ! class_exists( 'WP_Error' ) ) {
 			$this->message = $message;
 			$this->data    = $data;
 		}
+
+		/**
+		 * Return the first error message.
+		 *
+		 * @return string Error message.
+		 */
+		public function get_error_message() {
+			return $this->message;
+		}
 	}
 }
