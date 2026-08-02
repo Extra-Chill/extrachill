@@ -72,6 +72,10 @@ if ( ! function_exists( 'sanitize_email' ) ) {
 		$sanitized = filter_var( trim( (string) $value ), FILTER_VALIDATE_EMAIL );
 		return false === $sanitized ? '' : $sanitized; }
 }
+if ( ! function_exists( 'is_email' ) ) {
+	function is_email( $value ) {
+		return false !== filter_var( (string) $value, FILTER_VALIDATE_EMAIL ); }
+}
 if ( ! function_exists( 'sanitize_text_field' ) ) {
 	function sanitize_text_field( $value ) {
 		return trim( strip_tags( (string) $value ) ); }
@@ -2184,6 +2188,8 @@ require_once dirname( __DIR__, 2 ) . '/inc/Abilities/TicketSettlementAbilities.p
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/ShowSettlementAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingReportingService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/BookingReportingAbilities.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivacyService.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/BookingPrivacyAbilities.php';
 
 final class BookingTestAuthorization extends VenueAuthorization {
 	public $calls                     = array();

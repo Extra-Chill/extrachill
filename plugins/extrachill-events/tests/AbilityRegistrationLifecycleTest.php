@@ -8,6 +8,7 @@
 use ExtraChillEvents\Abilities\PriorityVenueAbilities;
 use ExtraChillEvents\Abilities\TicketSettlementAbilities;
 use ExtraChillEvents\Abilities\BookingReportingAbilities;
+use ExtraChillEvents\Abilities\BookingPrivacyAbilities;
 use ExtraChillEvents\Abilities\VenueBookingAbilities;
 use ExtraChillEvents\Abilities\VenueBookingCommunicationAbilities;
 use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
@@ -55,6 +56,7 @@ final class AbilityRegistrationLifecycleTest extends BookingTestCase {
 		new VenueBookingCommunicationAbilities();
 		new TicketSettlementAbilities();
 		new BookingReportingAbilities();
+		new BookingPrivacyAbilities();
 		new PriorityVenueAbilities();
 
 		new VenueBookingAbilities();
@@ -64,9 +66,10 @@ final class AbilityRegistrationLifecycleTest extends BookingTestCase {
 		new VenueBookingCommunicationAbilities();
 		new TicketSettlementAbilities();
 		new BookingReportingAbilities();
+		new BookingPrivacyAbilities();
 		new PriorityVenueAbilities();
 
-		$this->assertCount( 8, $GLOBALS['ec_test_filters']['wp_abilities_api_init'][10] );
+		$this->assertCount( 9, $GLOBALS['ec_test_filters']['wp_abilities_api_init'][10] );
 
 		define( 'WP_AGENT_RUNTIME', true );
 		add_action(
@@ -87,6 +90,7 @@ final class AbilityRegistrationLifecycleTest extends BookingTestCase {
 				'extrachill/send-booking-message',
 				'extrachill/finalize-booking-settlement',
 				'extrachill/get-venue-booking-performance-report',
+				'extrachill/operate-venue-booking-privacy',
 				'extrachill/list-priority-venues',
 			) as $ability_name
 		) {

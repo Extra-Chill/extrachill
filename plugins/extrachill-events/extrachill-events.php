@@ -316,6 +316,8 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/TicketSettlementService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ShowSettlementService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingReportingService.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingPrivacyService.php';
+		\ExtraChillEvents\Core\BookingPrivacyService::register();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueProfile.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/CanonicalEventPublicationGuard.php';
 		\ExtraChillEvents\Core\BookingHoldRepository::register();
@@ -463,6 +465,9 @@ class ExtraChillEvents {
 
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/BookingReportingAbilities.php';
 			new \ExtraChillEvents\Abilities\BookingReportingAbilities();
+
+			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/BookingPrivacyAbilities.php';
+			new \ExtraChillEvents\Abilities\BookingPrivacyAbilities();
 		}
 
 		if ( \ExtraChillEvents\Core\LocalSupportSchema::is_ready() ) {

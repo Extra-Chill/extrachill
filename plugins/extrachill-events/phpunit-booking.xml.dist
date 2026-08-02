@@ -8,6 +8,7 @@
 	failOnWarning="true">
 	<testsuites>
 		<testsuite name="booking-foundation">
+			<file>tests/AbilityRegistrationLifecycleTest.php</file>
 			<file>tests/BookingFoundationTest.php</file>
 			<file>tests/LocalSupportDomainTest.php</file>
 			<file>tests/LocalSupportRenderedRouteTest.php</file>
@@ -24,6 +25,7 @@
 			<file>tests/TicketReconciliationTest.php</file>
 			<file>tests/ShowSettlementTest.php</file>
 			<file>tests/BookingReportingTest.php</file>
+			<file>tests/BookingPrivacyTest.php</file>
 			<file>tests/BookingNotificationTest.php</file>
 			<file>tests/LocalSupportNotificationTest.php</file>
 			<file>tests/CanonicalEventPublicationGuardTest.php</file>
