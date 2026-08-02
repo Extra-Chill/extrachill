@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.28.0] - 2026-08-02
+
+### Added
+- expose booking availability transport
+
 ## [0.27.0] - 2026-07-27
 
 ### Added
