@@ -183,25 +183,25 @@ class VenueBookingConfigAbilities {
 
 	/** Return the complete settings schema, optionally with read metadata. */
 	private function config_schema( bool $include_metadata, bool $accept_legacy = false ): array {
-		$field_schema = array(
+		$field_schema        = array(
 			'type'                 => 'object',
 			'properties'           => array(
-				'key'      => array(
+				'key'          => array(
 					'type'      => 'string',
 					'minLength' => 1,
 					'maxLength' => 64,
 				),
-				'label'    => array(
+				'label'        => array(
 					'type'      => 'string',
 					'minLength' => 1,
 					'maxLength' => 191,
 				),
-				'type'     => array(
+				'type'         => array(
 					'type' => 'string',
-					'enum' => array( 'text', 'textarea', 'email', 'phone', 'number', 'select', 'checkbox', 'url' ),
+					'enum' => array( 'text', 'textarea', 'email', 'phone', 'number', 'select', 'checkbox', 'url', 'url_list' ),
 				),
-				'required' => array( 'type' => 'boolean' ),
-				'options'  => array(
+				'required'     => array( 'type' => 'boolean' ),
+				'options'      => array(
 					'type'     => 'array',
 					'maxItems' => 100,
 					'items'    => array(
@@ -209,11 +209,41 @@ class VenueBookingConfigAbilities {
 						'maxLength' => 191,
 					),
 				),
+				'visible_when' => array(
+					'type'                 => array( 'object', 'null' ),
+					'properties'           => array(
+						'field' => array(
+							'type'      => 'string',
+							'minLength' => 1,
+							'maxLength' => 64,
+						),
+						'value' => array(
+							'type'      => 'string',
+							'minLength' => 1,
+							'maxLength' => 191,
+						),
+					),
+					'required'             => array( 'field', 'value' ),
+					'additionalProperties' => false,
+				),
 			),
 			'required'             => array( 'key', 'label', 'type', 'required', 'options' ),
 			'additionalProperties' => false,
 		);
-		$properties   = array(
+		$presentation_schema = array(
+			'type'                 => 'object',
+			'properties'           => array_fill_keys(
+				array( 'artist_name_label', 'contact_name_label', 'contact_email_label', 'contact_phone_label', 'message_label', 'message_help' ),
+				array(
+					'type'      => 'string',
+					'minLength' => 1,
+					'maxLength' => 500,
+				)
+			),
+			'required'             => array( 'artist_name_label', 'contact_name_label', 'contact_email_label', 'contact_phone_label', 'message_label', 'message_help' ),
+			'additionalProperties' => false,
+		);
+		$properties          = array(
 			'version'                   => array(
 				'type' => 'integer',
 				'enum' => array( VenueBookingConfig::VERSION ),
@@ -222,17 +252,18 @@ class VenueBookingConfigAbilities {
 			'intake'                    => array(
 				'type'                 => 'object',
 				'properties'           => array(
-					'version' => array(
+					'version'      => array(
 						'type' => 'integer',
 						'enum' => array( 1 ),
 					),
-					'fields'  => array(
+					'fields'       => array(
 						'type'     => 'array',
 						'maxItems' => 50,
 						'items'    => $field_schema,
 					),
+					'presentation' => $presentation_schema,
 				),
-				'required'             => array( 'version', 'fields' ),
+				'required'             => array( 'version', 'fields', 'presentation' ),
 				'additionalProperties' => false,
 			),
 			'public_requirements'       => array(
@@ -342,7 +373,7 @@ class VenueBookingConfigAbilities {
 			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
-		$required     = array( 'version', 'enabled', 'intake', 'public_requirements', 'consent', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$required            = array( 'version', 'enabled', 'intake', 'public_requirements', 'consent', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		if ( $include_metadata ) {
 			$properties['revision']           = array(
 				'type'    => 'integer',
@@ -367,9 +398,10 @@ class VenueBookingConfigAbilities {
 		if ( ! $accept_legacy ) {
 			return $schema;
 		}
-		$previous                                  = $schema;
-		$previous['properties']['version']['enum'] = array( VenueBookingConfig::PREVIOUS_VERSION );
-		$previous['required']                      = array_values( array_diff( $previous['required'], array( 'public_requirements', 'consent', 'marketing_triggers' ) ) );
+		$previous                                     = $schema;
+		$previous['properties']['version']['enum']    = array( VenueBookingConfig::PREVIOUS_VERSION );
+		$previous['required']                         = array_values( array_diff( $previous['required'], array( 'public_requirements', 'consent', 'marketing_triggers' ) ) );
+		$previous['properties']['intake']['required'] = array_values( array_diff( $previous['properties']['intake']['required'], array( 'presentation' ) ) );
 		unset( $previous['properties']['public_requirements'], $previous['properties']['consent'], $previous['properties']['marketing_triggers'] );
 		$legacy                                  = $previous;
 		$legacy['properties']['version']['enum'] = array( VenueBookingConfig::LEGACY_VERSION );

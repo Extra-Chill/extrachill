@@ -342,6 +342,7 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$this->assertSame( 'Test Band at The Canonical Room', $input['event']['title'] );
 		$this->assertSame( 'Test Band', $input['event']['performer'] );
 		$this->assertSame( 'PerformingGroup', $input['event']['performerType'] );
+		$this->assertSame( 'MusicEvent', $input['event']['eventType'] );
 		$this->assertSame( 'The Canonical Room', $input['event']['venue'] );
 		$this->assertSame( '123 King Street', $input['event']['venueAddress'] );
 		$this->assertSame( 'Charleston', $input['event']['venueCity'] );
@@ -370,6 +371,22 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$this->assertSame( 2, $activity[0]['payload']['data']['version'] );
 		$this->assertSame( 'event_conversion_started', $activity[1]['kind'] );
 		$this->assertGreaterThanOrEqual( 2, $GLOBALS['wpdb']->booking_lock_queries );
+	}
+
+	public function test_concert_intake_maps_into_existing_canonical_event_type(): void {
+		$ability = $GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/upsert-event'];
+		$booking = $this->booking( array( 'intake' => array( 'fields' => array( 'event_type' => 'Concert' ) ) ) );
+
+		$this->assertIsArray( $this->service()->convert( $booking['id'], 1, 12 ) );
+		$this->assertSame( 'MusicEvent', $ability->calls[0]['event']['eventType'] );
+	}
+
+	public function test_market_intake_uses_generic_canonical_event_type(): void {
+		$ability = $GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/upsert-event'];
+		$booking = $this->booking( array( 'intake' => array( 'fields' => array( 'event_type' => 'Market' ) ) ) );
+
+		$this->assertIsArray( $this->service()->convert( $booking['id'], 1, 12 ) );
+		$this->assertSame( 'Event', $ability->calls[0]['event']['eventType'] );
 	}
 
 	public function test_recovers_production_created_event_by_source_identity_without_duplication(): void {

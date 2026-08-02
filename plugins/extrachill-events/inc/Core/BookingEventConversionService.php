@@ -392,7 +392,7 @@ class BookingEventConversionService {
 				'performerType' => 'PerformingGroup',
 				'venue'         => $venue->name,
 				'eventStatus'   => 'EventScheduled',
-				'eventType'     => 'MusicEvent',
+				'eventType'     => $this->canonical_event_type( $booking ),
 			),
 			$metadata
 		);
@@ -410,6 +410,16 @@ class BookingEventConversionService {
 			'post_status' => 'publish',
 			'event'       => $event,
 		);
+	}
+
+	/**
+	 * Map the configured booking classification into DME's canonical Schema.org field.
+	 *
+	 * @param array $booking Hydrated confirmed booking.
+	 */
+	private function canonical_event_type( array $booking ): string {
+		$fields = is_array( $booking['intake']['data']['fields'] ?? null ) ? $booking['intake']['data']['fields'] : array();
+		return ! isset( $fields['event_type'] ) || 'Concert' === $fields['event_type'] ? 'MusicEvent' : 'Event';
 	}
 
 	/** Require DME to return the exact canonical identity and venue proof requested. */

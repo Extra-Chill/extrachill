@@ -176,6 +176,70 @@ final class BookingHoldTest extends BookingTestCase {
 		$this->assertSame( 'active', $retry['hold']['status'], 'An exactly elapsed hold must not block even before cleanup.' );
 	}
 
+	/** Public availability ignores inquiry/hold state and exposes only filled state. */
+	public function test_public_interval_availability_is_private_interval_based_and_hold_tolerant(): void {
+		$holds = $this->holds();
+		$this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'main-room', array( 'status' => 'submitted' ) );
+		$held = $this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'main-room' );
+		$holds->create( $held['id'], 1, 12 );
+
+		$this->assertSame(
+			array( 'available' => true ),
+			$holds->public_interval_availability( 55, 'main-room', '2030-08-01 20:00:00', '2030-08-01 23:00:00' )
+		);
+		$this->assertSame(
+			array( 'available' => true ),
+			$holds->public_interval_availability( 55, 'main-room', '2030-08-01 17:00:00', '2030-08-01 20:00:00' ),
+			'An adjacent same-day interval must remain open.'
+		);
+		$this->assertSame( array( 'available' ), array_keys( $holds->public_interval_availability( 55, 'main-room', '2030-08-01 20:00:00', '2030-08-01 23:00:00' ) ) );
+	}
+
+	/** Confirmed bookings and canonical events close only overlapping intervals. */
+	public function test_public_interval_availability_blocks_confirmed_and_canonical_overlaps(): void {
+		$holds = $this->holds();
+		$this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'main-room', array( 'status' => 'confirmed' ) );
+
+		$this->assertSame( array( 'available' => false ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 20:30:00', '2030-08-01 22:00:00' ) );
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'patio', '2030-08-01 20:30:00', '2030-08-01 22:00:00' ) );
+
+		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ] = array();
+		$GLOBALS['wpdb']->event_dates[] = array(
+			'post_id'        => 901,
+			'venue_term_id' => 55,
+			'start_datetime' => '2030-08-01 21:00:00',
+			'end_datetime'   => '2030-08-01 22:00:00',
+			'post_status'    => 'publish',
+		);
+		$this->assertSame( array( 'available' => false ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 20:00:00', '2030-08-01 23:00:00' ) );
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 18:00:00', '2030-08-01 21:00:00' ) );
+	}
+
+	/** Final admission callback runs under the filled-state lock and loses a race clearly. */
+	public function test_public_interval_final_admission_revalidates_before_callback(): void {
+		$holds = $this->holds();
+		$input = array(
+			'venue_term_id'        => 55,
+			'requested_space_key'  => 'main-room',
+			'requested_start_at'   => '2030-08-01 20:00:00',
+			'requested_end_at'     => '2030-08-01 23:00:00',
+			'intake'               => array( 'config_revision' => 1 ),
+		);
+		$called = 0;
+		$this->assertSame( 'accepted', $holds->admit_public_interval( $input, static function () use ( &$called ) {
+			++$called;
+			return 'accepted';
+		} ) );
+
+		$this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'main-room', array( 'status' => 'confirmed' ) );
+		$filled = $holds->admit_public_interval( $input, static function () use ( &$called ) {
+			++$called;
+			return 'should-not-run';
+		} );
+		$this->assertSame( 'booking_inquiry_interval_unavailable', $filled->get_error_code() );
+		$this->assertSame( 1, $called );
+	}
+
 	public function test_duplicate_exact_active_hold_is_rejected_without_booking_mutation(): void {
 		$holds   = $this->holds();
 		$booking = $this->booking();

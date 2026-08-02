@@ -295,10 +295,17 @@ final class InternalBookingCalendarAlphaTest extends WP_UnitTestCase {
 	/** Configure admission and multiple spaces through the public config ability. */
 	private function configure_venue( int $venue_id, int $operator_id, array $space_keys ): void {
 		$config = $this->ability_data( 'extrachill/get-venue-booking-config', array( 'venue_term_id' => $venue_id ), $operator_id );
+		$this->assertSame( 'Contact phone', $config['intake']['presentation']['contact_phone_label'] );
 		$revision = $config['revision'];
 		unset( $config['revision'], $config['updated_by_user_id'], $config['updated_at'] );
 		$config['enabled'] = true;
 		$config['spaces']  = array();
+		$config['intake']['presentation']['contact_phone_label'] = 'Phone (Emergency use only)';
+		$config['intake']['fields'] = array(
+			array( 'key' => 'event_type', 'label' => 'Event type', 'type' => 'select', 'required' => false, 'options' => array( 'Concert', 'Market', 'Other' ), 'visible_when' => null ),
+			array( 'key' => 'other_event', 'label' => 'Other event details', 'type' => 'text', 'required' => false, 'options' => array(), 'visible_when' => array( 'field' => 'event_type', 'value' => 'Other' ) ),
+			array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url_list', 'required' => false, 'options' => array(), 'visible_when' => null ),
+		);
 		$config['correspondence']['reminder_policies']['hold_expiring']['version']          += 1;
 		$config['correspondence']['reminder_policies']['hold_expiring']['enabled']           = true;
 		$config['correspondence']['reminder_policies']['hold_expiring']['delay_minutes']     = 60;
@@ -309,6 +316,9 @@ final class InternalBookingCalendarAlphaTest extends WP_UnitTestCase {
 		$updated = $this->ability_data( 'extrachill/update-venue-booking-config', array( 'venue_term_id' => $venue_id, 'expected_revision' => $revision, 'config' => $config ), $operator_id );
 		$this->assertTrue( $updated['enabled'] );
 		$this->assertCount( count( $space_keys ), $updated['spaces'] );
+		$this->assertSame( 'Phone (Emergency use only)', $updated['intake']['presentation']['contact_phone_label'] );
+		$this->assertSame( 'url_list', $updated['intake']['fields'][2]['type'] );
+		$this->assertSame( array( 'field' => 'event_type', 'value' => 'Other' ), $updated['intake']['fields'][1]['visible_when'] );
 	}
 
 	/** Submit through the protected REST route from the main site. */

@@ -4,6 +4,15 @@
 import { FieldGroup, Panel, PanelHeader } from '@extrachill/components';
 
 export default function PublicBookingDetails( { config, setConfig } ) {
+	const presentation = config.intake.presentation;
+	const labels = [
+		[ 'artist_name_label', 'Artist name label' ],
+		[ 'contact_name_label', 'Contact name label' ],
+		[ 'contact_email_label', 'Contact email label' ],
+		[ 'contact_phone_label', 'Contact phone label' ],
+		[ 'message_label', 'Additional details label' ],
+		[ 'message_help', 'Additional details help' ],
+	];
 	return (
 		<Panel>
 			<PanelHeader
@@ -29,6 +38,38 @@ export default function PublicBookingDetails( { config, setConfig } ) {
 						} )
 					}
 				/>
+			</FieldGroup>
+			<FieldGroup
+				label="Built-in field presentation"
+				htmlFor="venue-booking-presentation"
+				help="Venue-specific wording for stable contact and details fields."
+			>
+				<div id="venue-booking-presentation">
+					{ labels.map( ( [ key, label ] ) => (
+						<FieldGroup
+							key={ key }
+							label={ label }
+							htmlFor={ `venue-${ key }` }
+						>
+							<input
+								id={ `venue-${ key }` }
+								value={ presentation[ key ] }
+								onChange={ ( event ) =>
+									setConfig( {
+										...config,
+										intake: {
+											...config.intake,
+											presentation: {
+												...presentation,
+												[ key ]: event.target.value,
+											},
+										},
+									} )
+								}
+							/>
+						</FieldGroup>
+					) ) }
+				</div>
 			</FieldGroup>
 			<FieldGroup
 				label="Consent label"

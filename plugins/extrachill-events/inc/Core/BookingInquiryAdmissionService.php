@@ -53,6 +53,8 @@ final class BookingInquiryAdmissionService {
 	private $bookings;
 	/** @var BookingActivityRepository */
 	private $activity;
+	/** @var BookingHoldRepository */
+	private $availability;
 
 	/**
 	 * Build the admission coordinator from existing domain services.
@@ -62,12 +64,16 @@ final class BookingInquiryAdmissionService {
 	 * @param BookingAttachmentService|null    $attachment_service Attachment writes.
 	 * @param mixed                            $provider            Private provider.
 	 * @param BookingAttachmentPolicy|null     $policy              File policy.
+	 * @param BookingRepository|null           $bookings            Booking reads.
+	 * @param BookingActivityRepository|null   $activity            Activity writes.
+	 * @param BookingHoldRepository|null       $availability        Filled-interval policy.
 	 */
-	public function __construct( ?BookingLifecycle $lifecycle = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null, $provider = null, ?BookingAttachmentPolicy $policy = null, ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null ) {
+	public function __construct( ?BookingLifecycle $lifecycle = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null, $provider = null, ?BookingAttachmentPolicy $policy = null, ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?BookingHoldRepository $availability = null ) {
 		$this->lifecycle          = $lifecycle ? $lifecycle : new BookingLifecycle();
 		$this->attachments        = $attachments ? $attachments : new BookingAttachmentRepository();
 		$this->bookings           = $bookings ? $bookings : new BookingRepository();
 		$this->activity           = $activity ? $activity : new BookingActivityRepository();
+		$this->availability       = $availability ? $availability : new BookingHoldRepository( $this->bookings, $this->activity );
 		$this->policy             = $policy ? $policy : new BookingAttachmentPolicy();
 		$resolved                 = null !== $provider ? $provider : BookingPrivateFileProviders::resolve();
 		$this->provider           = $resolved instanceof BookingPrivateFileProvider || is_wp_error( $resolved )
@@ -130,7 +136,19 @@ final class BookingInquiryAdmissionService {
 			},
 			$files
 		);
-		$booking     = $this->lifecycle->reserve_inquiry( $input, $actor_id, $manifest ? array( 'attachments' => $manifest ) : array(), $owner_token );
+		$replay      = $this->lifecycle->replay_completed_inquiry( $input, $actor_id, $manifest ? array( 'attachments' => $manifest ) : array() );
+		if ( is_wp_error( $replay ) ) {
+			return $this->public_error( $replay );
+		}
+		if ( is_array( $replay ) ) {
+			return $this->receipt( $replay );
+		}
+		$booking = $this->availability->admit_public_interval(
+			$input,
+			function () use ( $input, $actor_id, $manifest, $owner_token ) {
+				return $this->lifecycle->reserve_inquiry( $input, $actor_id, $manifest ? array( 'attachments' => $manifest ) : array(), $owner_token );
+			}
+		);
 		if ( is_wp_error( $booking ) ) {
 			return $this->public_error( $booking );
 		}

@@ -22,7 +22,13 @@ import {
 /**
  * Internal dependencies
  */
-import { buildPayload, errorState, newIdempotencyKey } from './submission';
+import {
+	availabilityErrorState,
+	buildAvailabilityPayload,
+	buildPayload,
+	errorState,
+	newIdempotencyKey,
+} from './submission';
 
 const initialValues = ( config ) => ( {
 	artistName: '',
@@ -82,6 +88,17 @@ const Field = ( { field, value, onChange, prefix } ) => {
 				onChange={ ( event ) => onChange( event.target.value ) }
 			/>
 		);
+	} else if ( field.type === 'url_list' ) {
+		control = (
+			<textarea
+				id={ id }
+				rows="4"
+				value={ value }
+				required={ field.required }
+				placeholder="One https:// link per line"
+				onChange={ ( event ) => onChange( event.target.value ) }
+			/>
+		);
 	} else if ( field.type === 'select' ) {
 		control = (
 			<select
@@ -114,6 +131,8 @@ function BookingInquiry( { config, wrapper } ) {
 	const [ values, setValues ] = useState( () => initialValues( config ) );
 	const [ status, setStatus ] = useState( null );
 	const [ submitting, setSubmitting ] = useState( false );
+	const [ checking, setChecking ] = useState( false );
+	const [ intervalOpen, setIntervalOpen ] = useState( false );
 	const [ receipt, setReceipt ] = useState( null );
 	const key = useRef( newIdempotencyKey() );
 	const turnstileTarget = useRef();
@@ -125,17 +144,20 @@ function BookingInquiry( { config, wrapper } ) {
 		if ( source && turnstileTarget.current ) {
 			turnstileTarget.current.appendChild( source );
 		}
-	}, [ wrapper ] );
+	}, [ wrapper, intervalOpen ] );
 	useEffect( () => {
 		if ( status || receipt ) {
 			resultRef.current?.focus();
 		}
 	}, [ status, receipt ] );
 
-	const update = ( patch ) => {
+	const update = ( patch, resetInterval = false ) => {
 		key.current = newIdempotencyKey();
 		setValues( ( current ) => ( { ...current, ...patch } ) );
 		setStatus( null );
+		if ( resetInterval ) {
+			setIntervalOpen( false );
+		}
 	};
 	const updateField = ( fieldKey, value ) =>
 		update( { fields: { ...values.fields, [ fieldKey ]: value } } );
@@ -147,9 +169,57 @@ function BookingInquiry( { config, wrapper } ) {
 			window.ecTurnstileBoot?.();
 		}
 	};
+	const checkAvailability = async () => {
+		setChecking( true );
+		setStatus( { tone: 'info', message: 'Checking that exact time...' } );
+		try {
+			const headers = { 'Content-Type': 'application/json' };
+			if ( config.restNonce ) {
+				headers[ 'X-WP-Nonce' ] = config.restNonce;
+			}
+			const response = await fetch( config.availabilityEndpoint, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers,
+				body: JSON.stringify(
+					buildAvailabilityPayload( config, values )
+				),
+			} );
+			const payload = await response.json().catch( () => ( {} ) );
+			if ( ! response.ok ) {
+				setStatus( availabilityErrorState( response, payload ) );
+				return;
+			}
+			if ( payload.available !== true ) {
+				setStatus( {
+					tone: 'warning',
+					message:
+						'That exact time is unavailable. Choose another time to continue.',
+				} );
+				return;
+			}
+			setIntervalOpen( true );
+			setStatus( {
+				tone: 'success',
+				message:
+					'That time is open for inquiries. Complete the booking details below.',
+			} );
+		} catch {
+			setStatus( {
+				tone: 'error',
+				message: 'The availability check was interrupted. Try again.',
+			} );
+		} finally {
+			setChecking( false );
+		}
+	};
 	const submit = async ( event ) => {
 		event.preventDefault();
 		if ( submitting || ! event.currentTarget.reportValidity() ) {
+			return;
+		}
+		if ( ! intervalOpen ) {
+			await checkAvailability();
 			return;
 		}
 		const token =
@@ -184,6 +254,9 @@ function BookingInquiry( { config, wrapper } ) {
 				const next = errorState( response, payload );
 				if ( next.rotateKey ) {
 					key.current = newIdempotencyKey();
+				}
+				if ( next.resetAvailability ) {
+					setIntervalOpen( false );
 				}
 				setStatus( next );
 				return;
@@ -230,6 +303,24 @@ function BookingInquiry( { config, wrapper } ) {
 			</BlockShell>
 		);
 	}
+	const visibleFields = config.fields.filter( ( field ) => {
+		if ( ! field.visible_when ) {
+			return true;
+		}
+		return (
+			String( values.fields[ field.visible_when.field ] ?? '' ) ===
+			field.visible_when.value
+		);
+	} );
+	const hasLinkFields = visibleFields.some( ( field ) =>
+		[ 'url', 'url_list' ].includes( field.type )
+	);
+	let submitLabel = 'Check availability';
+	if ( checking ) {
+		submitLabel = 'Checking...';
+	} else if ( intervalOpen ) {
+		submitLabel = submitting ? 'Sending...' : config.buttonLabel;
+	}
 
 	return (
 		<BlockShell>
@@ -273,185 +364,264 @@ function BookingInquiry( { config, wrapper } ) {
 					onSubmit={ submit }
 					noValidate={ false }
 				>
-					<Grid minColumnWidth="16rem" maxColumns={ 2 }>
-						<FieldGroup
-							label="Artist or project name"
-							htmlFor={ `${ prefix }-artist` }
-							required
-						>
-							<input
-								id={ `${ prefix }-artist` }
-								value={ values.artistName }
-								maxLength="255"
-								required
-								autoComplete="organization"
-								onChange={ ( event ) =>
-									update( { artistName: event.target.value } )
-								}
-							/>
-						</FieldGroup>
-						<FieldGroup
-							label="Contact name"
-							htmlFor={ `${ prefix }-contact` }
-							required
-						>
-							<input
-								id={ `${ prefix }-contact` }
-								value={ values.contactName }
-								maxLength="255"
-								required
-								autoComplete="name"
-								onChange={ ( event ) =>
-									update( {
-										contactName: event.target.value,
-									} )
-								}
-							/>
-						</FieldGroup>
-						<FieldGroup
-							label="Contact email"
-							htmlFor={ `${ prefix }-email` }
-							required
-						>
-							<input
-								id={ `${ prefix }-email` }
-								type="email"
-								value={ values.contactEmail }
-								maxLength="255"
-								required
-								autoComplete="email"
-								onChange={ ( event ) =>
-									update( {
-										contactEmail: event.target.value,
-									} )
-								}
-							/>
-						</FieldGroup>
-						<FieldGroup
-							label="Contact phone"
-							htmlFor={ `${ prefix }-phone` }
-						>
-							<input
-								id={ `${ prefix }-phone` }
-								type="tel"
-								value={ values.contactPhone }
-								maxLength="64"
-								autoComplete="tel"
-								onChange={ ( event ) =>
-									update( {
-										contactPhone: event.target.value,
-									} )
-								}
-							/>
-						</FieldGroup>
-						{ config.spaces.length > 0 && (
+					<fieldset className="ec-booking-inquiry__step">
+						<legend>1. Check your requested time</legend>
+						<p>
+							Availability uses the exact start and end time.
+							Other non-overlapping events on the same date do not
+							block an inquiry.
+						</p>
+						<Grid minColumnWidth="16rem" maxColumns={ 2 }>
+							{ config.spaces.length > 0 && (
+								<FieldGroup
+									label="Requested space"
+									htmlFor={ `${ prefix }-space` }
+									required
+								>
+									<select
+										id={ `${ prefix }-space` }
+										value={ values.spaceKey }
+										required
+										onChange={ ( event ) =>
+											update(
+												{
+													spaceKey:
+														event.target.value,
+												},
+												true
+											)
+										}
+									>
+										{ config.spaces.map( ( space ) => (
+											<option
+												key={ space.key }
+												value={ space.key }
+											>
+												{ space.name }
+											</option>
+										) ) }
+									</select>
+								</FieldGroup>
+							) }
 							<FieldGroup
-								label="Requested space"
-								htmlFor={ `${ prefix }-space` }
+								label="Requested start"
+								htmlFor={ `${ prefix }-start` }
+								required
 							>
-								<select
-									id={ `${ prefix }-space` }
-									value={ values.spaceKey }
+								<input
+									id={ `${ prefix }-start` }
+									type="datetime-local"
+									value={ values.startAt }
+									required
+									onChange={ ( event ) =>
+										update(
+											{ startAt: event.target.value },
+											true
+										)
+									}
+								/>
+							</FieldGroup>
+							<FieldGroup
+								label="Requested end"
+								htmlFor={ `${ prefix }-end` }
+								help="An exact end time is required for interval availability."
+								required
+							>
+								<input
+									id={ `${ prefix }-end` }
+									type="datetime-local"
+									value={ values.endAt }
+									min={ values.startAt }
+									required
+									onChange={ ( event ) =>
+										update(
+											{ endAt: event.target.value },
+											true
+										)
+									}
+								/>
+							</FieldGroup>
+						</Grid>
+					</fieldset>
+					{ intervalOpen && (
+						<>
+							<fieldset className="ec-booking-inquiry__step">
+								<legend>
+									2. Complete your booking inquiry
+								</legend>
+								<p>
+									Provide the full decision-making details
+									requested by this venue.
+								</p>
+								<Grid minColumnWidth="16rem" maxColumns={ 2 }>
+									<FieldGroup
+										label={
+											config.presentation
+												.artist_name_label
+										}
+										htmlFor={ `${ prefix }-artist` }
+										required
+									>
+										<input
+											id={ `${ prefix }-artist` }
+											value={ values.artistName }
+											maxLength="255"
+											required
+											autoComplete="organization"
+											onChange={ ( event ) =>
+												update( {
+													artistName:
+														event.target.value,
+												} )
+											}
+										/>
+									</FieldGroup>
+									<FieldGroup
+										label={
+											config.presentation
+												.contact_name_label
+										}
+										htmlFor={ `${ prefix }-contact` }
+										required
+									>
+										<input
+											id={ `${ prefix }-contact` }
+											value={ values.contactName }
+											maxLength="255"
+											required
+											autoComplete="name"
+											onChange={ ( event ) =>
+												update( {
+													contactName:
+														event.target.value,
+												} )
+											}
+										/>
+									</FieldGroup>
+									<FieldGroup
+										label={
+											config.presentation
+												.contact_email_label
+										}
+										htmlFor={ `${ prefix }-email` }
+										required
+									>
+										<input
+											id={ `${ prefix }-email` }
+											type="email"
+											value={ values.contactEmail }
+											maxLength="255"
+											required
+											autoComplete="email"
+											onChange={ ( event ) =>
+												update( {
+													contactEmail:
+														event.target.value,
+												} )
+											}
+										/>
+									</FieldGroup>
+									<FieldGroup
+										label={
+											config.presentation
+												.contact_phone_label
+										}
+										htmlFor={ `${ prefix }-phone` }
+									>
+										<input
+											id={ `${ prefix }-phone` }
+											type="tel"
+											value={ values.contactPhone }
+											maxLength="64"
+											autoComplete="tel"
+											onChange={ ( event ) =>
+												update( {
+													contactPhone:
+														event.target.value,
+												} )
+											}
+										/>
+									</FieldGroup>
+									{ visibleFields.map( ( field ) => (
+										<Field
+											key={ field.key }
+											field={ field }
+											value={ values.fields[ field.key ] }
+											prefix={ prefix }
+											onChange={ ( value ) =>
+												updateField( field.key, value )
+											}
+										/>
+									) ) }
+								</Grid>
+							</fieldset>
+							{ hasLinkFields && config.linkPage.url && (
+								<Panel>
+									<h4>Share one Link Page instead</h4>
+									<p>
+										This is optional. Paste direct links
+										above, or use a free Extra Chill Link
+										Page for music, socials, videos, and
+										press. It does not affect booking
+										priority.
+									</p>
+									<a
+										href={ config.linkPage.url }
+										className="button-2"
+									>
+										{ config.linkPage.hasPage
+											? 'Use or manage your Link Page'
+											: 'Create a free Link Page' }
+									</a>
+								</Panel>
+							) }
+							<FieldGroup
+								label={ config.presentation.message_label }
+								htmlFor={ `${ prefix }-message` }
+								help={ config.presentation.message_help }
+								required
+							>
+								<textarea
+									id={ `${ prefix }-message` }
+									rows="6"
+									maxLength="10000"
+									value={ values.message }
+									required
 									onChange={ ( event ) =>
 										update( {
-											spaceKey: event.target.value,
+											message: event.target.value,
 										} )
 									}
-								>
-									{ config.spaces.map( ( space ) => (
-										<option
-											key={ space.key }
-											value={ space.key }
-										>
-											{ space.name }
-										</option>
-									) ) }
-								</select>
+								/>
 							</FieldGroup>
-						) }
-						<FieldGroup
-							label="Requested start"
-							htmlFor={ `${ prefix }-start` }
-							required
-						>
-							<input
-								id={ `${ prefix }-start` }
-								type="datetime-local"
-								value={ values.startAt }
-								required
-								onChange={ ( event ) =>
-									update( { startAt: event.target.value } )
-								}
+							<label
+								className="ec-booking-inquiry__consent"
+								htmlFor={ `${ prefix }-consent` }
+							>
+								<input
+									id={ `${ prefix }-consent` }
+									type="checkbox"
+									required={ config.consent.required }
+									checked={ values.consent }
+									onChange={ ( event ) =>
+										update( {
+											consent: event.target.checked,
+										} )
+									}
+								/>{ ' ' }
+								<span>
+									{ config.consent.label }
+									{ config.consent.required && (
+										<span aria-hidden="true"> *</span>
+									) }
+								</span>
+							</label>
+							<div
+								className="ec-booking-inquiry__turnstile"
+								ref={ turnstileTarget }
 							/>
-						</FieldGroup>
-						<FieldGroup
-							label="Requested end"
-							htmlFor={ `${ prefix }-end` }
-							help="Optional if timing is flexible."
-						>
-							<input
-								id={ `${ prefix }-end` }
-								type="datetime-local"
-								value={ values.endAt }
-								min={ values.startAt }
-								onChange={ ( event ) =>
-									update( { endAt: event.target.value } )
-								}
-							/>
-						</FieldGroup>
-						{ config.fields.map( ( field ) => (
-							<Field
-								key={ field.key }
-								field={ field }
-								value={ values.fields[ field.key ] }
-								prefix={ prefix }
-								onChange={ ( value ) =>
-									updateField( field.key, value )
-								}
-							/>
-						) ) }
-					</Grid>
-					<FieldGroup
-						label="Performance details"
-						htmlFor={ `${ prefix }-message` }
-						help="Share lineup, draw, routing, links, and anything the venue should know."
-						required
-					>
-						<textarea
-							id={ `${ prefix }-message` }
-							rows="6"
-							maxLength="10000"
-							value={ values.message }
-							required
-							onChange={ ( event ) =>
-								update( { message: event.target.value } )
-							}
-						/>
-					</FieldGroup>
-					<label
-						className="ec-booking-inquiry__consent"
-						htmlFor={ `${ prefix }-consent` }
-					>
-						<input
-							id={ `${ prefix }-consent` }
-							type="checkbox"
-							required={ config.consent.required }
-							checked={ values.consent }
-							onChange={ ( event ) =>
-								update( { consent: event.target.checked } )
-							}
-						/>{ ' ' }
-						<span>
-							{ config.consent.label }
-							{ config.consent.required && (
-								<span aria-hidden="true"> *</span>
-							) }
-						</span>
-					</label>
-					<div
-						className="ec-booking-inquiry__turnstile"
-						ref={ turnstileTarget }
-					/>
+						</>
+					) }
 					<div ref={ resultRef } tabIndex="-1" aria-live="polite">
 						{ status && (
 							<InlineStatus tone={ status.tone }>
@@ -463,9 +633,9 @@ function BookingInquiry( { config, wrapper } ) {
 						<button
 							className="button-1 button-large"
 							type="submit"
-							disabled={ submitting }
+							disabled={ submitting || checking }
 						>
-							{ submitting ? 'Sending...' : config.buttonLabel }
+							{ submitLabel }
 						</button>
 						<span className="ec-booking-inquiry__privacy">
 							Your inquiry is sent privately and never added to

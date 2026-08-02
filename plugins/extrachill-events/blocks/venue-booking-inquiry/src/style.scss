@@ -37,6 +37,34 @@
 	width: 100%;
 }
 
+.ec-booking-inquiry__step {
+	border: 0;
+	display: grid;
+	gap: 1rem;
+	margin: 0;
+	max-width: 100%;
+	min-width: 0;
+	padding: 0;
+	width: 100%;
+}
+
+.ec-booking-inquiry__step > * {
+	max-width: 100%;
+	min-width: 0;
+}
+
+.ec-booking-inquiry__step > legend {
+	font-size: 1.25rem;
+	font-weight: 700;
+	margin-bottom: 0.25rem;
+}
+
+.ec-booking-inquiry__step > p {
+	color: var(--muted-text);
+	margin: 0;
+	max-width: 70ch;
+}
+
 .ec-booking-inquiry__checkbox,
 .ec-booking-inquiry__consent {
 	align-items: start;

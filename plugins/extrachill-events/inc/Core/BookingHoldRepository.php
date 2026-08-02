@@ -953,16 +953,119 @@ class BookingHoldRepository {
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
 
-	/** Detect hold, confirmed-booking, then canonical published-event conflicts. */
-	private function find_conflict( array $booking, int $excluded_hold_id ) {
-		global $wpdb;
-		$holds = BookingSchema::holds_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT id, booking_id, 'hold' AS conflict_type FROM {$holds} WHERE venue_term_id = %d AND space_key = %s AND status = 'active' AND expires_at > UTC_TIMESTAMP() AND start_at < %s AND end_at > %s AND booking_id <> %d AND id <> %d LIMIT 1", $booking['venue_term_id'], $booking['space_key'], $booking['performance_end_at'], $booking['performance_start_at'], $booking['id'], $excluded_hold_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serialized database-time overlap check.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_conflict_check_failed', __( 'Booking conflicts could not be checked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+	/**
+	 * Return the privacy-safe filled state for one requested local venue interval.
+	 *
+	 * @param int    $venue_id Venue term ID.
+	 * @param string $space_key Configured booking space.
+	 * @param string $start_at Venue-local interval start.
+	 * @param string $end_at Venue-local interval end.
+	 */
+	public function public_interval_availability( int $venue_id, string $space_key, string $start_at, string $end_at ) {
+		return $this->with_public_interval( $venue_id, $space_key, $start_at, $end_at );
+	}
+
+	/**
+	 * Execute final public admission while filled-state writers are excluded.
+	 *
+	 * @param array    $input Public inquiry input.
+	 * @param callable $callback Admission callback.
+	 */
+	public function admit_public_interval( array $input, callable $callback ) {
+		$intake = is_array( $input['intake'] ?? null ) ? $input['intake'] : array();
+		if ( ! array_key_exists( 'config_revision', $intake ) ) {
+			return $callback();
 		}
-		if ( is_array( $row ) ) {
-			return $row;
+		return $this->with_public_interval(
+			absint( $input['venue_term_id'] ?? 0 ),
+			(string) ( $input['requested_space_key'] ?? '' ),
+			(string) ( $input['requested_start_at'] ?? '' ),
+			(string) ( $input['requested_end_at'] ?? '' ),
+			$callback
+		);
+	}
+
+	/**
+	 * Check one interval and optionally execute admission before releasing its locks.
+	 *
+	 * @param int           $venue_id Venue term ID.
+	 * @param string        $space_key Configured booking space.
+	 * @param string        $start_at Venue-local interval start.
+	 * @param string        $end_at Venue-local interval end.
+	 * @param callable|null $available_callback Optional admission callback.
+	 */
+	private function with_public_interval( int $venue_id, string $space_key, string $start_at, string $end_at, ?callable $available_callback = null ) {
+		$space_key = mb_substr( sanitize_key( $space_key ), 0, 64 );
+		if ( $venue_id < 1 || '' === $space_key || ! $this->valid_datetime( $start_at ) || ! $this->valid_datetime( $end_at ) || $end_at <= $start_at ) {
+			return new \WP_Error( 'booking_availability_interval_invalid', __( 'Choose a valid space, start time, and end time.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
+		$config = $this->config->get( $venue_id );
+		if ( is_wp_error( $config ) ) {
+			return $config;
+		}
+		if ( empty( $config['enabled'] ) || ! $this->configured_space( $config, $space_key ) ) {
+			return new \WP_Error( 'booking_availability_unavailable', __( 'Availability cannot be checked for this selection.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+
+		$venue_data = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( $venue_id ) : null;
+		try {
+			$timezone = new \DateTimeZone( is_array( $venue_data ) ? (string) ( $venue_data['timezone'] ?? '' ) : '' );
+		} catch ( \Exception $exception ) {
+			return new \WP_Error(
+				'booking_availability_unavailable',
+				__( 'Availability cannot be checked for this selection.', 'extrachill-events' ),
+				array(
+					'status'    => 503,
+					'retryable' => true,
+				)
+			);
+		}
+		$local_start = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $start_at, $timezone );
+		$local_end   = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $end_at, $timezone );
+		if ( false === $local_start || false === $local_end || $local_start->format( 'Y-m-d H:i:s' ) !== $start_at || $local_end->format( 'Y-m-d H:i:s' ) !== $end_at || $local_end <= $local_start ) {
+			return new \WP_Error( 'booking_availability_interval_invalid', __( 'Choose a valid space, start time, and end time.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		$utc     = new \DateTimeZone( 'UTC' );
+		$booking = array(
+			'id'                   => 0,
+			'event_id'             => 0,
+			'venue_term_id'        => $venue_id,
+			'space_key'            => $space_key,
+			'performance_start_at' => $local_start->setTimezone( $utc )->format( 'Y-m-d H:i:s' ),
+			'performance_end_at'   => $local_end->setTimezone( $utc )->format( 'Y-m-d H:i:s' ),
+		);
+
+		return $this->with_booking_locks(
+			$venue_id,
+			$space_key,
+			function () use ( $booking, $available_callback ) {
+				$conflict = $this->find_conflict( $booking, 0, false );
+				if ( is_wp_error( $conflict ) ) {
+					return $conflict;
+				}
+				if ( is_array( $conflict ) ) {
+					return $available_callback
+						? new \WP_Error( 'booking_inquiry_interval_unavailable', __( 'That time was filled while you completed the form. Choose another time and try again.', 'extrachill-events' ), array( 'status' => 409 ) )
+						: array( 'available' => false );
+				}
+				return $available_callback ? $available_callback() : array( 'available' => true );
+			}
+		);
+	}
+
+	/** Detect hold, confirmed-booking, then canonical published-event conflicts. */
+	private function find_conflict( array $booking, int $excluded_hold_id, bool $include_holds = true ) {
+		global $wpdb;
+		if ( $include_holds ) {
+			$holds = BookingSchema::holds_table();
+			$row   = $wpdb->get_row( $wpdb->prepare( "SELECT id, booking_id, 'hold' AS conflict_type FROM {$holds} WHERE venue_term_id = %d AND space_key = %s AND status = 'active' AND expires_at > UTC_TIMESTAMP() AND start_at < %s AND end_at > %s AND booking_id <> %d AND id <> %d LIMIT 1", $booking['venue_term_id'], $booking['space_key'], $booking['performance_end_at'], $booking['performance_start_at'], $booking['id'], $excluded_hold_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serialized database-time overlap check.
+			if ( '' !== (string) $wpdb->last_error ) {
+				return new \WP_Error( 'booking_conflict_check_failed', __( 'Booking conflicts could not be checked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			}
+			if ( is_array( $row ) ) {
+				return $row;
+			}
 		}
 		$bookings = BookingSchema::bookings_table();
 		$row      = $wpdb->get_row( $wpdb->prepare( "SELECT id, 'confirmed_booking' AS conflict_type FROM {$bookings} WHERE venue_term_id = %d AND space_key = %s AND status = 'confirmed' AND performance_start_at < %s AND performance_end_at > %s AND id <> %d LIMIT 1", $booking['venue_term_id'], $booking['space_key'], $booking['performance_end_at'], $booking['performance_start_at'], $booking['id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serialized overlap check.

@@ -980,6 +980,45 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertSame( 'booking_inquiry_field_required', $missing->get_error_code() );
 	}
 
+	public function test_public_intake_supports_conditional_details_and_validated_link_lists(): void {
+		$config                       = ( new VenueBookingConfig() )->defaults();
+		$config['enabled']            = true;
+		$config['revision']           = 4;
+		$config['intake']['fields']   = array(
+			array( 'key' => 'event_type', 'label' => 'Event type', 'type' => 'select', 'required' => true, 'options' => array( 'Concert', 'Market', 'Other' ) ),
+			array( 'key' => 'other_event', 'label' => 'Other event details', 'type' => 'text', 'required' => true, 'options' => array(), 'visible_when' => array( 'field' => 'event_type', 'value' => 'Other' ) ),
+			array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url_list', 'required' => false, 'options' => array() ),
+		);
+		$normalized                    = ( new VenueBookingConfig() )->normalize( $config );
+		$this->assertIsArray( $normalized );
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $normalized;
+		$base = array(
+			'venue_term_id' => 55,
+			'artist_name'   => 'Test Band',
+			'intake'        => array(
+				'config_revision' => 4,
+				'message'         => 'A complete proposal.',
+				'fields'          => array(
+					'event_type' => 'Concert',
+					'other_event' => '',
+					'press_links' => "https://example.com/press\nhttps://example.com/review",
+				),
+				'consent'         => array( 'id' => 'booking-privacy', 'version' => 1, 'accepted' => true ),
+			),
+		);
+		$concert = ( new BookingLifecycle() )->create_inquiry( array_merge( $base, array( 'idempotency_key' => 'conditional-concert' ) ) );
+		$this->assertSame( '', $concert['intake']['data']['fields']['other_event'] );
+		$this->assertSame( array( 'https://example.com/press', 'https://example.com/review' ), $concert['intake']['data']['fields']['press_links'] );
+
+		$other = $base;
+		$other['idempotency_key'] = 'conditional-other';
+		$other['intake']['fields']['event_type'] = 'Other';
+		$this->assertSame( 'booking_inquiry_field_required', ( new BookingLifecycle() )->create_inquiry( $other )->get_error_code() );
+		$other['intake']['fields']['other_event'] = 'Listening party';
+		$other['intake']['fields']['press_links'] = 'not-a-url';
+		$this->assertSame( 'booking_inquiry_field_invalid', ( new BookingLifecycle() )->create_inquiry( $other )->get_error_code() );
+	}
+
 	public function test_failed_idempotent_insert_without_winner_preserves_database_error(): void {
 		$lifecycle                     = new BookingLifecycle();
 		$GLOBALS['wpdb']->fail_inserts = true;
@@ -1166,6 +1205,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertSame(
 			array(
 				'extrachill/create-booking-inquiry',
+				'extrachill/check-booking-availability',
 				'extrachill/list-venue-bookings',
 				'extrachill/get-venue-booking',
 				'extrachill/get-venue-booking-activity',
@@ -1176,6 +1216,8 @@ final class BookingFoundationTest extends BookingTestCase {
 			array_keys( $registered )
 		);
 		$this->assertFalse( $registered['extrachill/create-booking-inquiry']['meta']['show_in_rest'] );
+		$this->assertFalse( $registered['extrachill/check-booking-availability']['meta']['show_in_rest'] );
+		$this->assertTrue( $registered['extrachill/check-booking-availability']['meta']['annotations']['readonly'] );
 		$this->assertTrue( $registered['extrachill/list-venue-bookings']['meta']['show_in_rest'] );
 		foreach ( array( 'extrachill/list-venue-bookings', 'extrachill/get-venue-booking' ) as $reconciling_ability ) {
 			$this->assertFalse( $registered[ $reconciling_ability ]['meta']['annotations']['readonly'] );
@@ -1189,6 +1231,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		}
 		$this->assertSame( BookingLifecycle::STATUSES, $registered['extrachill/transition-venue-booking']['input_schema']['properties']['to_status']['enum'] );
 		$this->assertSame( array( 'idempotency_key', 'venue_term_id', 'intake' ), $registered['extrachill/create-booking-inquiry']['input_schema']['required'] );
+		$this->assertSame( array( 'venue_term_id', 'requested_space_key', 'requested_start_at', 'requested_end_at' ), $registered['extrachill/check-booking-availability']['input_schema']['required'] );
 		$attachment_schema = $registered['extrachill/create-booking-inquiry']['input_schema']['properties']['attachments'];
 		$this->assertSame( 5, $attachment_schema['maxItems'] );
 		$this->assertSame( array( 'name', 'tmp_name', 'error', 'size', 'purpose' ), $attachment_schema['items']['required'] );

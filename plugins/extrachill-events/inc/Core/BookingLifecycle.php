@@ -209,37 +209,74 @@ class BookingLifecycle {
 		$values     = is_array( $intake['fields'] ?? null ) ? $intake['fields'] : array();
 		$normalized = array();
 		foreach ( $config['intake']['fields'] as $field ) {
+			$condition = $field['visible_when'] ?? null;
+			$visible   = ! is_array( $condition ) || (string) ( $normalized[ $condition['field'] ] ?? '' ) === (string) $condition['value'];
+			if ( ! $visible ) {
+				$normalized[ $field['key'] ] = 'checkbox' === $field['type'] ? false : ( 'url_list' === $field['type'] ? array() : '' );
+				continue;
+			}
 			$value = $values[ $field['key'] ] ?? ( 'checkbox' === $field['type'] ? false : '' );
 			if ( 'checkbox' === $field['type'] ) {
 				$value = true === $value;
 			} elseif ( 'number' === $field['type'] ) {
 				$value = '' === $value ? '' : filter_var( $value, FILTER_VALIDATE_FLOAT );
 				if ( false === $value ) {
-					return new \WP_Error( 'booking_inquiry_field_invalid', __( 'A configured booking field is invalid.', 'extrachill-events' ), array(
-						'status' => 400,
-						'field'  => $field['key'],
-					) );
+					return new \WP_Error(
+						'booking_inquiry_field_invalid',
+						__( 'A configured booking field is invalid.', 'extrachill-events' ),
+						array(
+							'status' => 400,
+							'field'  => $field['key'],
+						)
+					);
 				}
 			} elseif ( 'textarea' === $field['type'] ) {
 				$value = sanitize_textarea_field( (string) $value );
 			} elseif ( 'email' === $field['type'] ) {
 				$value = sanitize_email( (string) $value );
+			} elseif ( 'url_list' === $field['type'] ) {
+				$lines = is_array( $value ) ? $value : preg_split( '/\R/', (string) $value );
+				$value = array_values( array_filter( array_map( 'trim', array_slice( (array) $lines, 0, 20 ) ) ) );
+				foreach ( $value as $index => $url ) {
+					$sanitized = esc_url_raw( $url );
+					$scheme    = wp_parse_url( $sanitized, PHP_URL_SCHEME );
+					$host      = wp_parse_url( $sanitized, PHP_URL_HOST );
+					if ( '' === $sanitized || $sanitized !== $url || ! in_array( $scheme, array( 'http', 'https' ), true ) || ! is_string( $host ) || '' === $host ) {
+						return new \WP_Error(
+							'booking_inquiry_field_invalid',
+							__( 'A configured booking field is invalid.', 'extrachill-events' ),
+							array(
+								'status' => 400,
+								'field'  => $field['key'],
+							)
+						);
+					}
+					$value[ $index ] = $sanitized;
+				}
 			} elseif ( 'url' === $field['type'] ) {
 				$value = esc_url_raw( (string) $value );
 			} else {
 				$value = sanitize_text_field( (string) $value );
 			}
-			if ( $field['required'] && ( false === $value || '' === $value ) ) {
-				return new \WP_Error( 'booking_inquiry_field_required', __( 'A required booking field is missing.', 'extrachill-events' ), array(
-					'status' => 400,
-					'field'  => $field['key'],
-				) );
+			if ( $field['required'] && ( false === $value || '' === $value || array() === $value ) ) {
+				return new \WP_Error(
+					'booking_inquiry_field_required',
+					__( 'A required booking field is missing.', 'extrachill-events' ),
+					array(
+						'status' => 400,
+						'field'  => $field['key'],
+					)
+				);
 			}
 			if ( 'select' === $field['type'] && '' !== $value && ! in_array( $value, $field['options'], true ) ) {
-				return new \WP_Error( 'booking_inquiry_field_invalid', __( 'A configured booking field is invalid.', 'extrachill-events' ), array(
-					'status' => 400,
-					'field'  => $field['key'],
-				) );
+				return new \WP_Error(
+					'booking_inquiry_field_invalid',
+					__( 'A configured booking field is invalid.', 'extrachill-events' ),
+					array(
+						'status' => 400,
+						'field'  => $field['key'],
+					)
+				);
 			}
 			$normalized[ $field['key'] ] = $value;
 		}

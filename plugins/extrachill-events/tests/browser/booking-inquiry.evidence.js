@@ -14,6 +14,7 @@ const artifacts =
 const config = {
 	instanceId: 'ec-booking-browser-proof',
 	endpoint: '/booking-inquiries',
+	availabilityEndpoint: '/booking-availability',
 	restNonce: 'booking-proof-nonce',
 	authenticated: true,
 	heading: 'Booking inquiries',
@@ -37,13 +38,41 @@ const config = {
 			options: [],
 		},
 		{
-			key: 'format',
-			label: 'Performance format',
+			key: 'event_type',
+			label: 'Event type',
 			type: 'select',
 			required: true,
-			options: [ 'Full band', 'Solo' ],
+			options: [ 'Concert', 'Market', 'Other' ],
+		},
+		{
+			key: 'other_event',
+			label: 'Other event details',
+			type: 'text',
+			required: true,
+			options: [],
+			visible_when: { field: 'event_type', value: 'Other' },
+		},
+		{
+			key: 'press_links',
+			label: 'Press links',
+			type: 'url_list',
+			required: false,
+			options: [],
 		},
 	],
+	presentation: {
+		artist_name_label: 'Artist or project name',
+		contact_name_label: 'Contact name',
+		contact_email_label: 'Contact email',
+		contact_phone_label: 'Phone (Emergency use only)',
+		message_label: 'Additional performance details',
+		message_help: 'Share routing and scheduling notes.',
+	},
+	linkPage: {
+		url: 'https://artist.example/manage-link-page/',
+		hasPage: true,
+		authenticated: true,
+	},
 	consent: {
 		required: true,
 		label: 'I agree that this venue may use these details to review and respond to my booking inquiry.',
@@ -103,7 +132,7 @@ const measure = ( page ) =>
 			shell,
 			panel: bounds( '.ec-booking-inquiry__panel' ),
 			form,
-			grid: bounds( '.ec-booking-inquiry__form > .ec-card-grid' ),
+			grid: bounds( '.ec-booking-inquiry__step .ec-card-grid' ),
 			turnstile: bounds( '.ec-booking-inquiry__turnstile' ),
 			actions: bounds( '.ec-action-row' ),
 			inlineGutter: form.left - shell.left,
@@ -149,6 +178,24 @@ const measure = ( page ) =>
 					createRoot: window.ReactDOM.createRoot,
 				},
 			};
+			window.bookingAvailable = false;
+			window.fetch = async ( url ) => {
+				if ( String( url ).includes( 'booking-availability' ) ) {
+					return new Response(
+						JSON.stringify( {
+							available: window.bookingAvailable,
+						} ),
+						{
+							status: 200,
+							headers: { 'Content-Type': 'application/json' },
+						}
+					);
+				}
+				return new Response( JSON.stringify( { public_id: 'proof' } ), {
+					status: 201,
+					headers: { 'Content-Type': 'application/json' },
+				} );
+			};
 		} );
 		await page.addScriptTag( {
 			path: path.join( root, 'build/venue-booking-inquiry/view.js' ),
@@ -158,9 +205,47 @@ const measure = ( page ) =>
 		assert.equal( await page.getByText( 'Booking inquiries' ).count(), 1 );
 		assert.equal( await page.getByText( 'Now booking' ).count(), 1 );
 		assert.equal( await page.getByText( 'Signed-in inquiry' ).count(), 1 );
-		assert.ok( await page.getByLabel( 'Artist or project name' ).count() );
+		assert.equal(
+			await page.getByLabel( 'Artist or project name' ).count(),
+			0
+		);
+		assert.ok( await page.getByLabel( 'Requested start' ).count() );
+		assert.ok( await page.getByLabel( 'Requested end' ).count() );
+		await page.getByLabel( 'Requested start' ).fill( '2030-08-01T20:00' );
+		await page.getByLabel( 'Requested end' ).fill( '2030-08-01T23:00' );
+		await page
+			.getByRole( 'button', { name: 'Check availability' } )
+			.click();
+		await page.getByText( /That exact time is unavailable/ ).waitFor();
+		assert.equal(
+			await page.getByLabel( 'Artist or project name' ).count(),
+			0
+		);
+		assert.equal(
+			await page.getByLabel( 'Requested start' ).inputValue(),
+			'2030-08-01T20:00'
+		);
+		await page.evaluate( () => {
+			window.bookingAvailable = true;
+		} );
+		await page
+			.getByRole( 'button', { name: 'Check availability' } )
+			.click();
+		await page.getByLabel( 'Artist or project name' ).waitFor();
 		assert.ok( await page.getByLabel( 'Artist website' ).count() );
 		assert.ok( await page.getByLabel( /I agree that this venue/ ).count() );
+		assert.equal(
+			await page.getByLabel( 'Other event details' ).count(),
+			0
+		);
+		await page.getByLabel( 'Event type' ).selectOption( 'Other' );
+		assert.ok( await page.getByLabel( 'Other event details' ).count() );
+		await page.getByLabel( 'Event type' ).selectOption( 'Concert' );
+		assert.ok(
+			await page
+				.getByRole( 'link', { name: 'Use or manage your Link Page' } )
+				.count()
+		);
 		assert.equal(
 			await page
 				.locator( '.ec-booking-inquiry__turnstile .cf-turnstile' )
@@ -196,12 +281,9 @@ const measure = ( page ) =>
 		await page.getByLabel( 'Artist or project name' ).fill( 'Proof Band' );
 		await page.getByLabel( 'Contact name' ).fill( 'Booking Agent' );
 		await page.getByLabel( 'Contact email' ).fill( 'agent@example.com' );
-		await page.getByLabel( 'Requested start' ).fill( '2030-08-01T20:00' );
+		await page.getByLabel( 'Event type' ).selectOption( 'Concert' );
 		await page
-			.getByLabel( 'Performance format' )
-			.selectOption( 'Full band' );
-		await page
-			.getByLabel( 'Performance details' )
+			.getByLabel( 'Additional performance details' )
 			.fill( 'Routing through Charleston.' );
 		await page.getByLabel( /I agree that this venue/ ).check();
 		await page

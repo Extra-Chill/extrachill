@@ -39,6 +39,32 @@ export const buildPayload = ( config, values, idempotencyKey, token ) => ( {
 	turnstile_response: token,
 } );
 
+export const buildAvailabilityPayload = ( config, values ) => ( {
+	venue: config.venue.id,
+	requested_space_key: values.spaceKey,
+	requested_start_at: apiDate( values.startAt ),
+	requested_end_at: apiDate( values.endAt ),
+} );
+
+export const availabilityErrorState = ( response, payload ) => {
+	if (
+		response.status === 429 ||
+		payload?.code === 'public_read_rate_limited'
+	) {
+		return {
+			tone: 'warning',
+			message:
+				'Too many availability checks were made. Wait a moment and try again.',
+		};
+	}
+	return {
+		tone: response.status >= 500 ? 'error' : 'warning',
+		message:
+			payload?.message ||
+			'Availability could not be checked. Review the time and try again.',
+	};
+};
+
 export const errorState = ( response, payload ) => {
 	const code = payload?.code || '';
 	if ( response.status === 429 || code === 'public_write_rate_limited' ) {
@@ -55,6 +81,17 @@ export const errorState = ( response, payload ) => {
 			retryable: false,
 			message:
 				'This venue updated its booking form. Refresh the page before sending.',
+		};
+	}
+	if ( code === 'booking_inquiry_interval_unavailable' ) {
+		return {
+			tone: 'warning',
+			retryable: true,
+			rotateKey: true,
+			resetAvailability: true,
+			message:
+				payload?.message ||
+				'That time filled while you completed the form. Choose another time and try again.',
 		};
 	}
 	if ( code === 'booking_idempotency_conflict' ) {

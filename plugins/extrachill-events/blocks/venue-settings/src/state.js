@@ -54,7 +54,7 @@ export const validateConfig = ( config ) => {
 	}
 
 	const fieldKeys = new Set();
-	config.intake.fields.forEach( ( field ) => {
+	config.intake.fields.forEach( ( field, index ) => {
 		if ( ! field.key || ! field.label ) {
 			errors.push( 'Each intake field needs a label and key.' );
 		}
@@ -64,6 +64,20 @@ export const validateConfig = ( config ) => {
 		fieldKeys.add( field.key );
 		if ( field.type === 'select' && ! field.options.length ) {
 			errors.push( 'Select fields need at least one option.' );
+		}
+		if (
+			field.visible_when &&
+			( ! field.visible_when.value ||
+				! config.intake.fields
+					.slice( 0, index )
+					.some(
+						( candidate ) =>
+							candidate.key === field.visible_when.field
+					) )
+		) {
+			errors.push(
+				'Conditional fields need an earlier field and matching value.'
+			);
 		}
 	} );
 	if (

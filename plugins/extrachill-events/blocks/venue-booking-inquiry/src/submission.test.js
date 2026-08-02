@@ -3,7 +3,13 @@
 /**
  * Internal dependencies
  */
-import { apiDate, buildPayload, errorState } from './submission';
+import {
+	apiDate,
+	availabilityErrorState,
+	buildAvailabilityPayload,
+	buildPayload,
+	errorState,
+} from './submission';
 
 const config = {
 	venue: { id: 42 },
@@ -17,7 +23,7 @@ const values = {
 	contactPhone: '',
 	spaceKey: 'main-room',
 	startAt: '2026-08-12T20:00',
-	endAt: '',
+	endAt: '2026-08-12T23:00',
 	message: 'Routing through Charleston.',
 	fields: { draw: '150' },
 	consent: true,
@@ -45,7 +51,7 @@ describe( 'booking inquiry transport helpers', () => {
 			contact_phone: null,
 			requested_space_key: 'main-room',
 			requested_start_at: '2026-08-12 20:00:00',
-			requested_end_at: null,
+			requested_end_at: '2026-08-12 23:00:00',
 			intake: {
 				config_revision: 7,
 				message: 'Routing through Charleston.',
@@ -56,6 +62,15 @@ describe( 'booking inquiry transport helpers', () => {
 		} );
 		expect( payload ).not.toHaveProperty( 'user_id' );
 		expect( payload ).not.toHaveProperty( 'attachments' );
+	} );
+
+	test( 'builds a privacy-safe exact interval availability request', () => {
+		expect( buildAvailabilityPayload( config, values ) ).toEqual( {
+			venue: 42,
+			requested_space_key: 'main-room',
+			requested_start_at: '2026-08-12 20:00:00',
+			requested_end_at: '2026-08-12 23:00:00',
+		} );
 	} );
 
 	test( 'distinguishes safe retry, stale config, and reconciliation states', () => {
@@ -78,5 +93,17 @@ describe( 'booking inquiry transport helpers', () => {
 				{ code: 'booking_inquiry_reconciliation_required' }
 			).message
 		).toContain( 'Do not resend' );
+		expect(
+			errorState(
+				{ status: 409, headers },
+				{ code: 'booking_inquiry_interval_unavailable' }
+			).resetAvailability
+		).toBe( true );
+		expect(
+			availabilityErrorState(
+				{ status: 409 },
+				{ message: 'That exact time is unavailable.' }
+			).message
+		).toBe( 'That exact time is unavailable.' );
 	} );
 } );

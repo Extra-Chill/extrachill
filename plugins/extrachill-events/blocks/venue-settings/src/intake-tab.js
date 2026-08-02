@@ -18,6 +18,7 @@ const INTAKE_TYPES = [
 	'select',
 	'checkbox',
 	'url',
+	'url_list',
 ];
 
 export function IntakeTab( { config, setConfig } ) {
@@ -128,6 +129,61 @@ export function IntakeTab( { config, setConfig } ) {
 								/>
 							</FieldGroup>
 						) }
+						<FieldGroup
+							label="Show only when"
+							htmlFor={ `intake-condition-field-${ index }` }
+							help="Optional. Conditional fields may depend on an earlier field."
+						>
+							<select
+								id={ `intake-condition-field-${ index }` }
+								value={ field.visible_when?.field || '' }
+								onChange={ ( event ) =>
+									update( index, {
+										visible_when: event.target.value
+											? {
+													field: event.target.value,
+													value:
+														field.visible_when
+															?.value || '',
+											  }
+											: null,
+									} )
+								}
+							>
+								<option value="">Always show</option>
+								{ fields
+									.slice( 0, index )
+									.map( ( controller ) => (
+										<option
+											key={ controller.key }
+											value={ controller.key }
+										>
+											{ controller.label ||
+												controller.key }
+										</option>
+									) ) }
+							</select>
+						</FieldGroup>
+						{ field.visible_when && (
+							<FieldGroup
+								label="Matching value"
+								htmlFor={ `intake-condition-value-${ index }` }
+								required
+							>
+								<input
+									id={ `intake-condition-value-${ index }` }
+									value={ field.visible_when.value }
+									onChange={ ( event ) =>
+										update( index, {
+											visible_when: {
+												...field.visible_when,
+												value: event.target.value,
+											},
+										} )
+									}
+								/>
+							</FieldGroup>
+						) }
 						<label htmlFor={ `intake-required-${ index }` }>
 							<input
 								id={ `intake-required-${ index }` }
@@ -168,6 +224,7 @@ export function IntakeTab( { config, setConfig } ) {
 								type: 'text',
 								required: false,
 								options: [],
+								visible_when: null,
 							},
 						] )
 					}

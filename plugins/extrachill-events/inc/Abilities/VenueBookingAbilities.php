@@ -125,6 +125,32 @@ class VenueBookingAbilities {
 		);
 
 		wp_register_ability(
+			'extrachill/check-booking-availability',
+			array(
+				'label'               => __( 'Check Booking Availability', 'extrachill-events' ),
+				'description'         => __( 'Return only whether a requested venue-space interval is filled by a confirmed booking or canonical published event.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => $this->availability_schema(),
+				'output_schema'       => array(
+					'type'                 => 'object',
+					'properties'           => array( 'available' => array( 'type' => 'boolean' ) ),
+					'required'             => array( 'available' ),
+					'additionalProperties' => false,
+				),
+				'execute_callback'    => array( $this, 'check_availability' ),
+				'permission_callback' => '__return_true',
+				'meta'                => array(
+					'show_in_rest' => false,
+					'annotations'  => array(
+						'readonly'    => true,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
 			'extrachill/list-venue-bookings',
 			array(
 				'label'               => __( 'List Venue Bookings', 'extrachill-events' ),
@@ -336,6 +362,20 @@ class VenueBookingAbilities {
 	public function create_inquiry( array $input ) {
 		$user_id = get_current_user_id();
 		return $this->inquiry_admission->admit( $input, $user_id > 0 ? $user_id : null );
+	}
+
+	/**
+	 * Return the privacy-safe public interval projection.
+	 *
+	 * @param array $input Exact venue interval input.
+	 */
+	public function check_availability( array $input ) {
+		return $this->holds->public_interval_availability(
+			(int) $input['venue_term_id'],
+			(string) $input['requested_space_key'],
+			(string) $input['requested_start_at'],
+			(string) $input['requested_end_at']
+		);
 	}
 
 	/**
@@ -566,6 +606,32 @@ class VenueBookingAbilities {
 				),
 			),
 			'required'             => array( 'idempotency_key', 'venue_term_id', 'intake' ),
+			'additionalProperties' => false,
+		);
+	}
+
+	/** Return the exact local venue interval accepted by the public facade. */
+	private function availability_schema(): array {
+		$datetime = array(
+			'type'    => 'string',
+			'pattern' => '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+		);
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'venue_term_id'       => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+				'requested_space_key' => array(
+					'type'      => 'string',
+					'minLength' => 1,
+					'maxLength' => 64,
+				),
+				'requested_start_at'  => $datetime,
+				'requested_end_at'    => $datetime,
+			),
+			'required'             => array( 'venue_term_id', 'requested_space_key', 'requested_start_at', 'requested_end_at' ),
 			'additionalProperties' => false,
 		);
 	}
