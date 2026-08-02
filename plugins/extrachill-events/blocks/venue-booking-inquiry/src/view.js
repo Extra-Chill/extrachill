@@ -202,7 +202,7 @@ function BookingInquiry( { config, wrapper } ) {
 			setStatus( {
 				tone: 'success',
 				message:
-					'That time is open for inquiries. Complete the booking details below.',
+					'That time is available for submissions. Complete the booking details below.',
 			} );
 		} catch {
 			setStatus( {

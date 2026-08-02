@@ -255,6 +255,9 @@ const measure = ( page ) =>
 		await page
 			.getByRole( 'button', { name: 'Check availability' } )
 			.click();
+		await page
+			.getByText( /That time is available for submissions/ )
+			.waitFor();
 		await page.getByLabel( 'Artist or project name' ).waitFor();
 		assert.ok( await page.getByLabel( 'Artist website' ).count() );
 		assert.ok( await page.getByLabel( /I agree that this venue/ ).count() );
