@@ -599,7 +599,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$migrated = $service->normalize( array( 'version' => 1, 'enabled' => true ) );
 		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
 		$this->assertArrayHasKey( 'correspondence', $migrated );
-		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 4 ) )->get_error_code() );
+		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 5 ) )->get_error_code() );
 		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => '1junk' ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'intake' => array( 'version' => 2 ) ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'correspondence' => array( 'version' => 2 ) ) )->get_error_code() );

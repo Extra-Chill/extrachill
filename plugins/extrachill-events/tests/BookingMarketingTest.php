@@ -388,6 +388,7 @@ final class BookingMarketingTest extends BookingTestCase {
 			'version'            => VenueBookingConfig::VERSION,
 			'revision'           => $revision,
 			'enabled'            => true,
+			'booking_guide'      => array( 'version' => VenueBookingConfig::BOOKING_GUIDE_VERSION, 'entries' => array() ),
 			'marketing_channels' => array_column( $channels, 'key' ),
 			'marketing_triggers' => array(
 				array(
@@ -1191,6 +1192,7 @@ final class BookingMarketingTest extends BookingTestCase {
 		$result               = $config->normalize(
 			array(
 				'version'            => VenueBookingConfig::VERSION,
+				'booking_guide'      => array( 'version' => VenueBookingConfig::BOOKING_GUIDE_VERSION, 'entries' => array() ),
 				'marketing_channels' => array( 'social' ),
 				'marketing_triggers' => array(
 					array(
@@ -1208,6 +1210,7 @@ final class BookingMarketingTest extends BookingTestCase {
 		$result            = $config->normalize(
 			array(
 				'version'            => VenueBookingConfig::VERSION,
+				'booking_guide'      => array( 'version' => VenueBookingConfig::BOOKING_GUIDE_VERSION, 'entries' => array() ),
 				'marketing_channels' => array( 'social' ),
 				'marketing_triggers' => array(
 					array(
@@ -1225,6 +1228,7 @@ final class BookingMarketingTest extends BookingTestCase {
 		$result                = $config->normalize(
 			array(
 				'version'            => VenueBookingConfig::VERSION,
+				'booking_guide'      => array( 'version' => VenueBookingConfig::BOOKING_GUIDE_VERSION, 'entries' => array() ),
 				'marketing_channels' => array( 'social' ),
 				'marketing_triggers' => array(
 					array(
@@ -1274,6 +1278,7 @@ final class BookingMarketingTest extends BookingTestCase {
 		$result  = ( new VenueBookingConfig() )->normalize(
 			array(
 				'version'            => VenueBookingConfig::VERSION,
+				'booking_guide'      => array( 'version' => VenueBookingConfig::BOOKING_GUIDE_VERSION, 'entries' => array() ),
 				'marketing_channels' => array( 'social' ),
 				'marketing_triggers' => array(
 					array(
@@ -1295,7 +1300,7 @@ final class BookingMarketingTest extends BookingTestCase {
 	public function test_version_two_configs_migrate_without_implicit_marketing_triggers(): void {
 		$config            = ( new VenueBookingConfig() )->defaults();
 		$config['version'] = VenueBookingConfig::PREVIOUS_VERSION;
-		unset( $config['public_requirements'], $config['consent'], $config['marketing_triggers'] );
+		unset( $config['public_requirements'], $config['consent'], $config['marketing_triggers'], $config['booking_guide'] );
 		$normalized = ( new VenueBookingConfig() )->normalize( $config );
 		$this->assertSame( VenueBookingConfig::VERSION, $normalized['version'] );
 		$this->assertSame( array(), $normalized['marketing_triggers'] );

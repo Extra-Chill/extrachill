@@ -24,6 +24,45 @@
 	margin-bottom: 0;
 }
 
+.ec-booking-guide {
+	margin-block-end: var(--spacing-xl);
+}
+
+.ec-booking-guide > h2 {
+	margin-block-end: var(--spacing-xs);
+}
+
+.ec-booking-guide__entries {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+	gap: var(--spacing-md);
+	margin-block-start: var(--spacing-lg);
+}
+
+.ec-booking-guide__entry {
+	min-width: 0;
+	padding: var(--spacing-lg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-background);
+	overflow-wrap: anywhere;
+}
+
+.ec-booking-guide__entry h3,
+.ec-booking-guide__entry p:first-of-type {
+	margin-block-start: 0;
+}
+
+.ec-booking-guide__entry p:last-child {
+	margin-block-end: 0;
+}
+
+.ec-booking-guide__communication {
+	color: var(--muted-text);
+	font-size: 0.9rem;
+	margin-block-start: var(--spacing-lg);
+}
+
 .ec-booking-inquiry__form {
 	display: grid;
 	gap: 1.25rem;

@@ -102,6 +102,32 @@ class VenueBookingConfigAbilities {
 		);
 
 		wp_register_ability(
+			'extrachill/get-venue-booking-guide',
+			array(
+				'label'               => __( 'Get Venue Booking Guide', 'extrachill-events' ),
+				'description'         => __( 'Read current public and operator booking-guide entries for an authorized venue. Answers must use only returned entries; missing information is unavailable.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'                 => 'object',
+					'properties'           => array( 'venue_term_id' => $venue_property ),
+					'required'             => array( 'venue_term_id' ),
+					'additionalProperties' => false,
+				),
+				'output_schema'       => $this->guide_context_schema(),
+				'execute_callback'    => array( $this, 'get_guide' ),
+				'permission_callback' => array( $this, 'can_access_venue' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => true,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
 			'extrachill/preview-booking-correspondence-template',
 			array(
 				'label'               => __( 'Preview Booking Correspondence Template', 'extrachill-events' ),
@@ -160,6 +186,16 @@ class VenueBookingConfigAbilities {
 
 	public function get_config( array $input ) {
 		return $this->config->get( absint( $input['venue_term_id'] ?? 0 ) );
+	}
+
+	/**
+	 * Read the narrow booking-guide grounding contract.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error
+	 */
+	public function get_guide( array $input ) {
+		return $this->config->get_guide_context( absint( $input['venue_term_id'] ?? 0 ) );
 	}
 
 	public function update_config( array $input ) {
@@ -297,6 +333,7 @@ class VenueBookingConfigAbilities {
 				'required'             => array( 'id', 'version', 'label', 'required' ),
 				'additionalProperties' => false,
 			),
+			'booking_guide'             => $this->booking_guide_schema(),
 			'spaces'                    => array(
 				'type'     => 'array',
 				'maxItems' => 50,
@@ -373,7 +410,7 @@ class VenueBookingConfigAbilities {
 			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
-		$required            = array( 'version', 'enabled', 'intake', 'public_requirements', 'consent', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$required            = array( 'version', 'enabled', 'intake', 'public_requirements', 'consent', 'booking_guide', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		if ( $include_metadata ) {
 			$properties['revision']           = array(
 				'type'    => 'integer',
@@ -398,7 +435,11 @@ class VenueBookingConfigAbilities {
 		if ( ! $accept_legacy ) {
 			return $schema;
 		}
-		$previous                                     = $schema;
+		$public_intake                                  = $schema;
+		$public_intake['properties']['version']['enum'] = array( VenueBookingConfig::PUBLIC_INTAKE_VERSION );
+		$public_intake['required']                      = array_values( array_diff( $public_intake['required'], array( 'booking_guide' ) ) );
+		unset( $public_intake['properties']['booking_guide'] );
+		$previous                                     = $public_intake;
 		$previous['properties']['version']['enum']    = array( VenueBookingConfig::PREVIOUS_VERSION );
 		$previous['required']                         = array_values( array_diff( $previous['required'], array( 'public_requirements', 'consent', 'marketing_triggers' ) ) );
 		$previous['properties']['intake']['required'] = array_values( array_diff( $previous['properties']['intake']['required'], array( 'presentation' ) ) );
@@ -407,7 +448,86 @@ class VenueBookingConfigAbilities {
 		$legacy['properties']['version']['enum'] = array( VenueBookingConfig::LEGACY_VERSION );
 		$legacy['required']                      = array_values( array_diff( $legacy['required'], array( 'correspondence' ) ) );
 		unset( $legacy['properties']['correspondence'] );
-		return array( 'oneOf' => array( $legacy, $previous, $schema ) );
+		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $schema ) );
+	}
+
+	/** Return the versioned ordered booking-guide schema. */
+	private function booking_guide_schema(): array {
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'version' => array(
+					'type' => 'integer',
+					'enum' => array( VenueBookingConfig::BOOKING_GUIDE_VERSION ),
+				),
+				'entries' => array(
+					'type'     => 'array',
+					'maxItems' => 50,
+					'items'    => $this->guide_entry_schema(),
+				),
+			),
+			'required'             => array( 'version', 'entries' ),
+			'additionalProperties' => false,
+		);
+	}
+
+	/** Return one strict guide entry schema. */
+	private function guide_entry_schema(): array {
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'key'        => array(
+					'type'      => 'string',
+					'minLength' => 1,
+					'maxLength' => 64,
+				),
+				'title'      => array(
+					'type'      => 'string',
+					'minLength' => 1,
+					'maxLength' => 191,
+				),
+				'body'       => array(
+					'type'      => 'string',
+					'minLength' => 1,
+					'maxLength' => 5000,
+				),
+				'visibility' => array(
+					'type' => 'string',
+					'enum' => array( 'public', 'operator' ),
+				),
+			),
+			'required'             => array( 'key', 'title', 'body', 'visibility' ),
+			'additionalProperties' => false,
+		);
+	}
+
+	/** Return the narrow Roadie grounding contract. */
+	private function guide_context_schema(): array {
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'venue_term_id'   => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+				'venue_name'      => array( 'type' => 'string' ),
+				'config_revision' => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+				'guide_version'   => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+				'entries'         => array(
+					'type'     => 'array',
+					'maxItems' => 50,
+					'items'    => $this->guide_entry_schema(),
+				),
+			),
+			'required'             => array( 'venue_term_id', 'venue_name', 'config_revision', 'guide_version', 'entries' ),
+			'additionalProperties' => false,
+		);
 	}
 
 	/** Return the strict correspondence configuration schema. */

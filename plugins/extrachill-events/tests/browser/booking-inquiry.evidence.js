@@ -89,6 +89,21 @@ const fixture = `<!doctype html>
 	<body>
 		<main>
 			<section class="wp-block-extrachill-venue-booking-inquiry ec-venue-booking-inquiry">
+				<div class="ec-booking-guide" aria-labelledby="booking-guide-title">
+					<h2 id="booking-guide-title">Booking guide</h2>
+					<p>Venue-provided information to review before sending a booking inquiry.</p>
+					<div class="ec-booking-guide__entries">
+						<article class="ec-booking-guide__entry" data-guide-key="load_in">
+							<h3>When is load-in?</h3>
+							<p>Load-in timing is confirmed in the booking thread.</p>
+						</article>
+						<article class="ec-booking-guide__entry" data-guide-key="equipment">
+							<h3>What equipment is available?</h3>
+							<p>The current production package is shared after inquiry review.</p>
+						</article>
+					</div>
+					<p class="ec-booking-guide__communication">For details not covered here, send an inquiry below so communication stays with the booking request.</p>
+				</div>
 				<div data-booking-app></div>
 				<script type="application/json">${ JSON.stringify( config ) }</script>
 				<div data-booking-turnstile><div class="cf-turnstile">Security check</div></div>
@@ -131,6 +146,8 @@ const measure = ( page ) =>
 			scrollWidth: document.documentElement.scrollWidth,
 			shell,
 			panel: bounds( '.ec-booking-inquiry__panel' ),
+			guide: bounds( '.ec-booking-guide' ),
+			guideEntries: bounds( '.ec-booking-guide__entries' ),
 			form,
 			grid: bounds( '.ec-booking-inquiry__step .ec-card-grid' ),
 			turnstile: bounds( '.ec-booking-inquiry__turnstile' ),
@@ -203,6 +220,13 @@ const measure = ( page ) =>
 		await page.waitForSelector( '.ec-booking-inquiry__form' );
 
 		assert.equal( await page.getByText( 'Booking inquiries' ).count(), 1 );
+		assert.equal(
+			await page
+				.getByRole( 'heading', { name: 'Booking guide' } )
+				.count(),
+			1
+		);
+		assert.equal( await page.getByText( 'When is load-in?' ).count(), 1 );
 		assert.equal( await page.getByText( 'Now booking' ).count(), 1 );
 		assert.equal( await page.getByText( 'Signed-in inquiry' ).count(), 1 );
 		assert.equal(
@@ -257,6 +281,7 @@ const measure = ( page ) =>
 		assert.equal( desktop.scrollWidth, desktop.viewportWidth );
 		assert.ok( desktop.inlineGutter > 0 );
 		assert.equal( desktop.controlsInsideViewport, true );
+		assert.ok( desktop.guideEntries.width <= desktop.guide.width );
 		assert.ok(
 			Number.parseFloat(
 				await page
@@ -277,6 +302,7 @@ const measure = ( page ) =>
 		assert.ok( mobile.inlineGutter > 0 );
 		assert.ok( mobile.form.right < mobile.viewportWidth );
 		assert.equal( mobile.controlsInsideViewport, true );
+		assert.ok( mobile.guideEntries.right <= mobile.viewportWidth );
 
 		await page.getByLabel( 'Artist or project name' ).fill( 'Proof Band' );
 		await page.getByLabel( 'Contact name' ).fill( 'Booking Agent' );

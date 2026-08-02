@@ -88,7 +88,7 @@ const profile = ( id ) => ( {
 	revision: String( id ).padStart( 64, '0' ),
 } );
 const config = ( id ) => ( {
-	version: 3,
+	version: 4,
 	revision: id,
 	updated_by_user_id: null,
 	updated_at: null,
@@ -101,6 +101,7 @@ const config = ( id ) => ( {
 		label: 'I agree.',
 		required: true,
 	},
+	booking_guide: { version: 1, entries: [] },
 	spaces: [],
 	default_deal: {
 		version: 1,
@@ -1089,6 +1090,59 @@ describe( 'venue settings authorization-facing states', () => {
 		} );
 		expect( detailIds[ detailIds.length - 1 ] ).toBe( 32 );
 		expect( container.textContent ).toContain( 'Booking #32' );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'saves ordered guide entries through the revisioned venue config', async () => {
+		installApi();
+		apiFetch.mockImplementation( ( request ) => {
+			const input = request.data?.input || requestInput( request.path );
+			if ( request.path.includes( 'get-venue-profile' ) ) {
+				return Promise.resolve( profile( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'get-venue-booking-config' ) ) {
+				return Promise.resolve( config( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'update-venue-booking-config' ) ) {
+				return Promise.resolve( {
+					...input.config,
+					revision: input.expected_revision + 1,
+					updated_by_user_id: 7,
+					updated_at: '2026-08-02 20:00:00',
+				} );
+			}
+			return Promise.resolve( [] );
+		} );
+		const { container, root } = await renderApp( context() );
+		await act( async () => buttonByText( container, 'Guide' ).click() );
+		await act( async () =>
+			buttonByText( container, 'Add guide entry' ).click()
+		);
+		await setInput(
+			container.querySelector( '#guide-title-0' ),
+			'When is load-in?'
+		);
+		await setControl(
+			container.querySelector( '#guide-body-0' ),
+			'Confirm timing in the managed booking thread.'
+		);
+		await act( async () =>
+			buttonByText( container, 'Save booking guide' ).click()
+		);
+
+		const request = apiFetch.mock.calls.find( ( [ call ] ) =>
+			call.path.includes( 'update-venue-booking-config' )
+		)[ 0 ];
+		expect( request.data.input.expected_revision ).toBe( 44 );
+		expect( request.data.input.config.booking_guide.entries ).toEqual( [
+			{
+				key: 'when_is_load_in',
+				title: 'When is load-in?',
+				body: 'Confirm timing in the managed booking thread.',
+				visibility: 'public',
+			},
+		] );
+		expect( container.textContent ).toContain( 'Booking settings saved.' );
 		await act( async () => root.unmount() );
 	} );
 } );

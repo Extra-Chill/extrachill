@@ -21,6 +21,7 @@ import { errorDetails, runAbility } from './api';
 import { BookingConsole } from './booking-console';
 import { BookingTab } from './booking-tab';
 import { ClaimPanel, ClaimsTab } from './claims-tab';
+import { GuideTab } from './guide-tab';
 import { IntakeTab } from './intake-tab';
 import { LocalSupportTab } from './local-support-tab';
 import { ProfileTab } from './profile-tab';
@@ -257,7 +258,7 @@ export function VenueSettingsApp( { context } ) {
 			setConfigBaseline( editable );
 			setConfigStatus( {
 				tone: 'success',
-				message: 'Booking defaults saved.',
+				message: 'Booking settings saved.',
 			} );
 		} catch ( error ) {
 			const details = errorDetails( error );
@@ -279,6 +280,7 @@ export function VenueSettingsApp( { context } ) {
 		{ id: 'local-support', label: 'Local Support' },
 		{ id: 'profile', label: 'Profile' },
 		{ id: 'booking', label: 'Booking' },
+		{ id: 'guide', label: 'Guide' },
 		{ id: 'intake', label: 'Intake' },
 		...( context.can_manage ? [ { id: 'team', label: 'Team' } ] : [] ),
 		...( context.user.is_admin
@@ -365,6 +367,20 @@ export function VenueSettingsApp( { context } ) {
 				<IntakeTab config={ config } setConfig={ setConfig } />
 			) : (
 				<LoadingPanel label="Loading intake settings..." />
+			);
+		}
+		if ( tab === 'guide' ) {
+			return config ? (
+				<GuideTab
+					config={ config }
+					baseline={ configBaseline }
+					setConfig={ setConfig }
+					onSave={ saveConfig }
+					saving={ savingConfig }
+					status={ configStatus }
+				/>
+			) : (
+				<LoadingPanel label="Loading booking guide..." />
 			);
 		}
 		if ( tab === 'team' ) {

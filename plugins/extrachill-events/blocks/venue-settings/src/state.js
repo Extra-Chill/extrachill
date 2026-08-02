@@ -35,6 +35,22 @@ export const validateConfig = ( config ) => {
 	if ( ! config.consent.label.trim() || config.consent.version < 1 ) {
 		errors.push( 'Consent needs public wording and a positive version.' );
 	}
+	if ( config.booking_guide.entries.length > 50 ) {
+		errors.push( 'Use no more than 50 booking guide entries.' );
+	}
+	const guideKeys = new Set();
+	config.booking_guide.entries.forEach( ( entry ) => {
+		if ( ! entry.key || ! entry.title.trim() || ! entry.body.trim() ) {
+			errors.push( 'Each guide entry needs a key, title, and answer.' );
+		}
+		if ( guideKeys.has( entry.key ) ) {
+			errors.push( 'Guide entry keys must be unique.' );
+		}
+		guideKeys.add( entry.key );
+		if ( ! [ 'public', 'operator' ].includes( entry.visibility ) ) {
+			errors.push( 'Guide visibility must be public or operators only.' );
+		}
+	} );
 	const spaceKeys = new Set();
 	let defaultSpaces = 0;
 	config.spaces.forEach( ( space ) => {

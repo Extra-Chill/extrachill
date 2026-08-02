@@ -42,6 +42,8 @@ final class NetworkBookingBlockColdTest extends TestCase {
 
 		$this->assertStringContainsString( 'Cold Room', $output );
 		$this->assertStringContainsString( 'https:\/\/extrachill.com\/wp-json\/extrachill\/v1\/venues\/1524\/booking-inquiries', $output );
+		$this->assertStringContainsString( '"artist_name_label":"Artist or project name"', $output );
+		$this->assertStringNotContainsString( 'Booking guide', $output );
 		$this->assertTrue( $GLOBALS['ec_network_block_test']['turnstile_enqueued'] );
 		$this->assertTrue( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE );
 		$this->assertSame( 1, $GLOBALS['ec_network_block_test']['nocache_headers'] );
