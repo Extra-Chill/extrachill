@@ -18,7 +18,7 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import type { ChangeEvent, DragEvent, ReactElement } from 'react';
-import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import { ActionRow, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 
 import type { StudioPaneProps } from '../../types/studio';
 import { createJob, getJob, getResults, MAX_UPLOAD_BYTES, uploadAudio } from './client';
@@ -32,7 +32,6 @@ import type {
 const h = createElement as typeof import( 'react' ).createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
-const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
 const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
 
 /** Polling interval while jobs are pending or running (ms). */
@@ -51,42 +50,30 @@ const POLLING_HANDOFF_MS = 90 * 1000;
 /** Time to flash "Copied" inline feedback after a successful clipboard write. */
 const COPY_FEEDBACK_MS = 2000;
 
-interface ModelChoice {
-	value: WhisperModel;
-	label: string;
-	hint: string;
-}
+/**
+ * The one model Studio transcribes with.
+ *
+ * Model choice used to be a three-way select, which asked every uploader to
+ * predict a speed/quality tradeoff before hearing the result. `medium` is the
+ * balance that was already the default and the one people actually picked, so
+ * it is now simply what Transcribe does.
+ *
+ * The sweatpants `audio-transcription` module defaults to `base` when no model
+ * is supplied, so this must keep being sent explicitly.
+ */
+const MODEL: WhisperModel = 'medium';
+
+const DEFAULT_DIARIZE = false;
 
 /**
- * Model options surfaced in the UI.
+ * Filler removal is unconditional.
  *
- * Speed estimates are rough and depend heavily on audio length + worker
- * CPU load. They're conversational hints, not contracts.
+ * qrisg's first interview transcript ran 4400 chars with ~118 filler
+ * instances. Editorial workflows always want the cleaned version, and the raw
+ * transcript is still written alongside it by the worker, so nothing is lost
+ * by not asking.
  */
-const MODEL_OPTIONS: ReadonlyArray< ModelChoice > = [
-	{
-		value: 'base',
-		label: __( 'Quick (base)', 'extrachill-studio' ),
-		hint: __( 'fastest · lower quality, good enough for rough drafts', 'extrachill-studio' ),
-	},
-	{
-		value: 'medium',
-		label: __( 'Standard (medium)', 'extrachill-studio' ),
-		hint: __( 'balanced speed and quality · the sensible default', 'extrachill-studio' ),
-	},
-	{
-		value: 'large',
-		label: __( 'Best (large)', 'extrachill-studio' ),
-		hint: __( 'highest quality · several times slower than Standard', 'extrachill-studio' ),
-	},
-];
-
-const DEFAULT_MODEL: WhisperModel = 'medium';
-const DEFAULT_DIARIZE = false;
-// Default ON — qrisg's first interview transcript ran 4400 chars with ~118
-// filler instances. Editorial workflows almost always want the cleaned
-// version. Power users can untick.
-const DEFAULT_REMOVE_FILLERS = true;
+const REMOVE_FILLERS = true;
 
 const TERMINAL_STATUSES: ReadonlyArray< SweatpantsJobStatus > = [ 'completed', 'failed', 'stopped' ];
 
@@ -136,16 +123,17 @@ const formatElapsed = ( startedAt: number, completedAt?: number ): string => {
 const stripExtension = ( filename: string ): string => filename.replace( /\.\w+$/, '' );
 
 /**
- * Compact label for a job's three independent options — used in history.
- * e.g. "medium · speakers · clean" or "base" or "large · speakers".
+ * Compact label for a job — used in history.
+ *
+ * Speakers is the only option that varies per job now. Filler removal is
+ * always on, so listing it told the reader nothing. The model is kept because
+ * it is still useful provenance for a transcript someone is about to edit.
+ * e.g. "medium · speakers" or "medium".
  */
 const formatOptionsLabel = ( options: TranscribeOptions ): string => {
 	const parts: string[] = [ options.model ];
 	if ( options.diarize ) {
 		parts.push( __( 'speakers', 'extrachill-studio' ) );
-	}
-	if ( options.removeFillers ) {
-		parts.push( __( 'clean', 'extrachill-studio' ) );
 	}
 	return parts.join( ' · ' );
 };
@@ -169,9 +157,7 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 	const fileInputRef = useRef< HTMLInputElement >( null );
 
 	const [ selectedFile, setSelectedFile ] = useState< File | null >( null );
-	const [ model, setModel ] = useState< WhisperModel >( DEFAULT_MODEL );
 	const [ diarize, setDiarize ] = useState< boolean >( DEFAULT_DIARIZE );
-	const [ removeFillers, setRemoveFillers ] = useState< boolean >( DEFAULT_REMOVE_FILLERS );
 	const [ isDragging, setIsDragging ] = useState( false );
 
 	/** Currently-running job, if any. Only one concurrent job in v1. */
@@ -378,7 +364,7 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		}
 
 		setError( '' );
-		const options: TranscribeOptions = { model, diarize, removeFillers };
+		const options: TranscribeOptions = { model: MODEL, diarize, removeFillers: REMOVE_FILLERS };
 		const startedAt = Date.now();
 
 		try {
@@ -509,24 +495,6 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			)
 	);
 
-	const modelSelect = createElement(
-		'select',
-		{
-			id: 'ec-studio-transcribe-model',
-			className: 'ec-studio-transcribe__model',
-			value: model,
-			onChange: ( event: ChangeEvent< HTMLSelectElement > ) => setModel( event.target.value as WhisperModel ),
-			disabled: isBusy,
-		},
-		MODEL_OPTIONS.map( ( option ) =>
-			createElement(
-				'option',
-				{ key: option.value, value: option.value },
-				`${ option.label } — ${ option.hint }`
-			)
-		)
-	);
-
 	const diarizeCheckbox = createElement(
 		'label',
 		{ className: 'ec-checkbox-row', htmlFor: 'ec-studio-transcribe-diarize' },
@@ -546,28 +514,6 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			'span',
 			{ className: 'ec-checkbox-row__hint' },
 			__( 'adds ~15 min · best for multi-speaker interviews', 'extrachill-studio' )
-		)
-	);
-
-	const fillersCheckbox = createElement(
-		'label',
-		{ className: 'ec-checkbox-row', htmlFor: 'ec-studio-transcribe-fillers' },
-		createElement( 'input', {
-			id: 'ec-studio-transcribe-fillers',
-			type: 'checkbox',
-			checked: removeFillers,
-			onChange: ( event: ChangeEvent< HTMLInputElement > ) => setRemoveFillers( event.target.checked ),
-			disabled: isBusy,
-		} ),
-		createElement(
-			'span',
-			null,
-			__( 'Remove filler words', 'extrachill-studio' )
-		),
-		createElement(
-			'span',
-			{ className: 'ec-checkbox-row__hint' },
-			__( 'um, uh, like, you know — recommended for editorial polish', 'extrachill-studio' )
 		)
 	);
 
@@ -714,22 +660,16 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
 			h( PanelHeader, {
-				description: __( 'Transcribe audio with Whisper. Upload a file, pick model and options, and get a plain-text transcript.', 'extrachill-studio' ),
+				description: __( 'Transcribe audio with Whisper. Upload a file and get a plain-text transcript.', 'extrachill-studio' ),
 			} ),
 			h(
 				'div',
 				{ className: 'ec-studio-composer' },
 				dropZone,
-				h(
-					FieldGroupView,
-					{ label: __( 'Model', 'extrachill-studio' ), htmlFor: 'ec-studio-transcribe-model' },
-					modelSelect
-				),
 				createElement(
 					'div',
 					{ className: 'ec-studio-transcribe__options' },
-					diarizeCheckbox,
-					fillersCheckbox
+					diarizeCheckbox
 				),
 				h(
 					ActionRowView,
