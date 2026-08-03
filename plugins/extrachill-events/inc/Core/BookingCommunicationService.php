@@ -38,18 +38,25 @@ class BookingCommunicationService {
 	private $cancel;
 	/** @var callable|null */
 	private $find_actions;
+	/** @var callable|null */
+	private $venue_recipients;
+	/** @var array */
+	private $locked_memberships = array();
+	/** @var string|null */
+	private $delivery_cc;
 	/** @var bool */
 	private $transaction_active = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, $queue = null, $schedule = null, $cancel = null, $find_actions = null, ?VenueBookingConfig $config = null ) {
-		$this->bookings      = $bookings ? $bookings : new BookingRepository();
-		$this->activity      = $activity ? $activity : new BookingActivityRepository();
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
-		$this->config        = $config ? $config : new VenueBookingConfig( $this->authorization );
-		$this->queue         = $queue;
-		$this->schedule      = $schedule;
-		$this->cancel        = $cancel;
-		$this->find_actions  = $find_actions;
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, $queue = null, $schedule = null, $cancel = null, $find_actions = null, ?VenueBookingConfig $config = null, $venue_recipients = null ) {
+		$this->bookings         = $bookings ? $bookings : new BookingRepository();
+		$this->activity         = $activity ? $activity : new BookingActivityRepository();
+		$this->authorization    = $authorization ? $authorization : new VenueAuthorization();
+		$this->config           = $config ? $config : new VenueBookingConfig( $this->authorization );
+		$this->queue            = $queue;
+		$this->schedule         = $schedule;
+		$this->cancel           = $cancel;
+		$this->find_actions     = $find_actions;
+		$this->venue_recipients = $venue_recipients;
 	}
 
 	/** Register the policy preflight that runs before a delayed reminder is queued. */
@@ -274,13 +281,23 @@ class BookingCommunicationService {
 
 	/** Recheck the complete reminder policy while holding the booking row lock. */
 	public function dispatch_reminder( int $activity_id ) {
+		$this->delivery_cc = null;
+
 		$intent = $this->activity->get( $activity_id );
 		if ( ! is_array( $intent ) || 'booking_message_requested' !== $intent['kind'] || empty( $intent['payload']['data']['send_at'] ) ) {
 			return new \WP_Error( 'booking_reminder_invalid', __( 'The booking reminder intent is invalid.', 'extrachill-events' ) );
 		}
+		$snapshot = $this->bookings->get( (int) $intent['booking_id'] );
+		if ( ! is_array( $snapshot ) ) {
+			return is_wp_error( $snapshot ) ? $snapshot : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+		}
 		$started = $this->begin();
 		if ( is_wp_error( $started ) ) {
 			return $started;
+		}
+		$locked = $this->lock_venue_memberships( (int) $snapshot['venue_term_id'] );
+		if ( is_wp_error( $locked ) ) {
+			return $this->rollback( $locked );
 		}
 		$booking = $this->bookings->get_for_update( $intent['booking_id'] );
 		if ( ! is_array( $booking ) ) {
@@ -317,6 +334,17 @@ class BookingCommunicationService {
 			$committed = $this->commit();
 			return is_wp_error( $committed ) ? $committed : $this->state_for_intent( $intent );
 		}
+		$cc = $this->resolve_venue_cc( (int) $booking['venue_term_id'], (string) $data['recipient'] );
+		if ( is_wp_error( $cc ) ) {
+			$event = $this->append_state( $intent, 'booking_reminder_suppressed', 'suppressed', array( 'reason' => 'venue_recipients_unavailable' ) );
+			if ( is_wp_error( $event ) ) {
+				return $this->rollback( $event );
+			}
+			$committed = $this->commit();
+			return is_wp_error( $committed ) ? $committed : $this->state_for_intent( $intent );
+		}
+		$this->delivery_cc = $cc;
+
 		$claim = $this->append_state( $intent, 'booking_message_dispatching', 'dispatching', array() );
 		if ( is_wp_error( $claim ) ) {
 			return $this->rollback( $claim );
@@ -335,6 +363,9 @@ class BookingCommunicationService {
 
 	/** Call the non-idempotent queue only after a durable claim. */
 	private function deliver_claimed( array $intent, bool $commit_transaction = false ) {
+		if ( null === $this->delivery_cc ) {
+			return new \WP_Error( 'booking_correspondence_venue_recipients_unavailable', __( 'Authorized venue recipients could not be resolved for this booking message.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
 		$input = $this->queue_input( $intent );
 		try {
 			if ( $this->queue ) {
@@ -831,12 +862,11 @@ class BookingCommunicationService {
 				'args'  => array( $intent['id'] ),
 			);
 		} elseif ( 'dispatching' === $stage ) {
-			$payload             = $this->queue_input( $intent );
-			$payload['_attempt'] = 1;
-			$query               = array(
-				'hook'  => class_exists( '\DataMachine\Abilities\Publish\SendEmailQueuedAbility' ) ? \DataMachine\Abilities\Publish\SendEmailQueuedAbility::WORKER_HOOK : 'datamachine_send_email_worker',
-				'group' => class_exists( '\DataMachine\Abilities\Publish\SendEmailQueuedAbility' ) ? \DataMachine\Abilities\Publish\SendEmailQueuedAbility::GROUP : 'data-machine-email',
-				'args'  => array( $payload ),
+			$query = array(
+				'hook'                  => class_exists( '\DataMachine\Abilities\Publish\SendEmailQueuedAbility' ) ? \DataMachine\Abilities\Publish\SendEmailQueuedAbility::WORKER_HOOK : 'datamachine_send_email_worker',
+				'group'                 => class_exists( '\DataMachine\Abilities\Publish\SendEmailQueuedAbility' ) ? \DataMachine\Abilities\Publish\SendEmailQueuedAbility::GROUP : 'data-machine-email',
+				'args'                  => array( 'booking_communication_intent_ref' => 'intent:' . (int) $intent['id'] ),
+				'partial_args_matching' => 'like',
 			);
 		} else {
 			return new \WP_Error( 'booking_message_reconciliation_unavailable', __( 'The scheduler evidence contract is unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
@@ -848,7 +878,10 @@ class BookingCommunicationService {
 				unset( $throwable );
 				return new \WP_Error( 'booking_message_reconciliation_query_failed', __( 'Action Scheduler evidence could not be read.', 'extrachill-events' ), array( 'status' => 503 ) );
 			}
-			return is_array( $result ) || is_wp_error( $result ) ? $result : new \WP_Error( 'booking_message_reconciliation_evidence_invalid', __( 'Scheduler evidence for this booking message is invalid.', 'extrachill-events' ) );
+			if ( is_wp_error( $result ) || ! is_array( $result ) ) {
+				return is_wp_error( $result ) ? $result : new \WP_Error( 'booking_message_reconciliation_evidence_invalid', __( 'Scheduler evidence for this booking message is invalid.', 'extrachill-events' ) );
+			}
+			return 'dispatching' === $stage ? $this->collapse_dispatch_evidence( $result ) : $result;
 		}
 		if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
 			return new \WP_Error( 'booking_message_reconciliation_unavailable', __( 'Action Scheduler evidence is unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
@@ -861,7 +894,7 @@ class BookingCommunicationService {
 						$query,
 						array(
 							'status'   => $status,
-							'per_page' => 2,
+							'per_page' => self::MAX_ATTEMPTS + 1,
 						)
 					),
 					'ids'
@@ -877,23 +910,90 @@ class BookingCommunicationService {
 				if ( ! is_numeric( $action_id ) || (int) $action_id < 1 ) {
 					return new \WP_Error( 'booking_message_reconciliation_evidence_invalid', __( 'Scheduler evidence for this booking message is invalid.', 'extrachill-events' ) );
 				}
+				$attempt = null;
+				if ( 'dispatching' === $stage ) {
+					$payload = $this->scheduler_action_payload( (int) $action_id, (int) $intent['id'] );
+					if ( is_wp_error( $payload ) ) {
+						return $payload;
+					}
+					if ( ! is_array( $payload ) ) {
+						continue;
+					}
+					$attempt = $payload['_attempt'] ?? null;
+				}
 				$evidence[ (int) $action_id ] = array(
 					'action_id' => (int) $action_id,
 					'status'    => $status,
+					'attempt'   => $attempt,
 				);
 			}
 		}
-		return array_values( $evidence );
+		$evidence = array_values( $evidence );
+		return 'dispatching' === $stage ? $this->collapse_dispatch_evidence( $evidence ) : $evidence;
+	}
+
+	/** Read one queued payload and verify its exact non-sensitive intent marker. */
+	private function scheduler_action_payload( int $action_id, int $intent_id ) {
+		if ( ! class_exists( 'ActionScheduler_Store' ) ) {
+			return new \WP_Error( 'booking_message_reconciliation_unavailable', __( 'Action Scheduler evidence is unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		try {
+			$action = \ActionScheduler_Store::instance()->fetch_action( $action_id );
+			$args   = is_object( $action ) && method_exists( $action, 'get_args' ) ? $action->get_args() : null;
+		} catch ( \Throwable $throwable ) {
+			unset( $throwable );
+			return new \WP_Error( 'booking_message_reconciliation_query_failed', __( 'Action Scheduler evidence could not be read.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		$payload = is_array( $args ) && is_array( $args[0] ?? null ) ? $args[0] : null;
+		return is_array( $payload ) && ( $payload['context']['booking_communication_intent_ref'] ?? '' ) === 'intent:' . $intent_id ? $payload : false;
+	}
+
+	/** Collapse one legitimate retry chain while preserving duplicate-attempt ambiguity. */
+	private function collapse_dispatch_evidence( array $evidence ) {
+		if ( count( $evidence ) < 2 ) {
+			return $evidence;
+		}
+		$attempts = array();
+		foreach ( $evidence as $item ) {
+			$attempt = $item['attempt'] ?? null;
+			if ( ! is_int( $attempt ) || $attempt < 1 || isset( $attempts[ $attempt ] ) ) {
+				return $evidence;
+			}
+			$attempts[ $attempt ] = true;
+		}
+		usort( $evidence, static fn( array $left, array $right ): int => (int) $left['action_id'] <=> (int) $right['action_id'] );
+		$priority = array(
+			'canceled'    => 0,
+			'failed'      => 1,
+			'pending'     => 2,
+			'in-progress' => 3,
+			'complete'    => 4,
+		);
+		$status   = 'canceled';
+		foreach ( $evidence as $item ) {
+			if ( ( $priority[ $item['status'] ] ?? -1 ) > $priority[ $status ] ) {
+				$status = $item['status'];
+			}
+		}
+		return array(
+			array(
+				'action_id' => (int) $evidence[0]['action_id'],
+				'status'    => $status,
+			),
+		);
 	}
 
 	private function queue_input( array $intent ): array {
 		$data = $intent['payload']['data'];
 		return array(
 			'to'           => $data['recipient'],
-			'cc'           => $data['cc'],
+			'cc'           => $this->delivery_cc,
 			'subject'      => $data['subject'],
 			'body'         => $data['body'],
-			'context'      => array( 'booking_communication_intent_id' => (int) $intent['id'] ),
+			'context'      => array(
+				'booking_communication_intent_id'  => (int) $intent['id'],
+				'booking_communication_intent_ref' => 'intent:' . (int) $intent['id'],
+			),
 			'content_type' => 'text/plain',
 			'from_name'    => $data['from_name'],
 			'reply_to'     => $data['reply_to'],
@@ -921,11 +1021,22 @@ class BookingCommunicationService {
 	/** Serialize the external side effect and leave a durable retry boundary. */
 	private function claim_side_effect( array $intent, string $stage, array $allowed_statuses ) {
 		global $wpdb;
+		$this->delivery_cc = null;
+
+		$snapshot = $this->bookings->get( (int) $intent['booking_id'] );
+		if ( ! is_array( $snapshot ) ) {
+			return is_wp_error( $snapshot ) ? $snapshot : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+		}
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Side-effect claim transaction boundary.
 			return new \WP_Error( 'booking_communication_transaction_start_failed', __( 'The booking communication transaction could not start.', 'extrachill-events' ) );
 		}
 		$this->transaction_active = true;
-		$booking                  = $this->bookings->get_for_update( $intent['booking_id'] );
+
+		$locked = $this->lock_venue_memberships( (int) $snapshot['venue_term_id'] );
+		if ( is_wp_error( $locked ) ) {
+			return $this->rollback( $locked );
+		}
+		$booking = $this->bookings->get_for_update( $intent['booking_id'] );
 		if ( ! is_array( $booking ) ) {
 			return $this->rollback( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) ) );
 		}
@@ -974,6 +1085,12 @@ class BookingCommunicationService {
 			$committed = $this->commit();
 			return is_wp_error( $committed ) ? $committed : $this->state_for_intent( $intent );
 		}
+		$cc = $this->resolve_venue_cc( (int) $booking['venue_term_id'], (string) $data['recipient'] );
+		if ( is_wp_error( $cc ) ) {
+			return $this->rollback( $cc );
+		}
+		$this->delivery_cc = $cc;
+
 		$event = $this->append_state( $intent, $claim_kind, $stage, array() );
 		if ( is_wp_error( $event ) ) {
 			return $this->rollback( $event );
@@ -1015,12 +1132,12 @@ class BookingCommunicationService {
 			$request['template'],
 			$request['template_version'],
 			array(
-				'artist_name'   => (string) $booking['artist_name'],
-				'booking_id'    => (string) $booking['public_id'],
-				'contact_name'  => (string) $booking['contact_name'],
+				'artist_name'    => (string) $booking['artist_name'],
+				'booking_id'     => (string) $booking['public_id'],
+				'contact_name'   => (string) $booking['contact_name'],
 				'requested_date' => $this->requested_date_label( (string) ( $booking['requested_start_at'] ?? '' ) ),
-				'venue_name'    => (string) $venue->name,
-				'message'       => $request['message'],
+				'venue_name'     => (string) $venue->name,
+				'message'        => $request['message'],
 			)
 		);
 		if ( is_wp_error( $prepared ) ) {
@@ -1042,7 +1159,6 @@ class BookingCommunicationService {
 				'config_revision'         => (int) $prepared['config_revision'],
 				'subject'                 => $prepared['subject'],
 				'body'                    => $prepared['body'],
-				'cc'                      => $prepared['cc_address'] ? $prepared['cc_address'] : '',
 				'from_name'               => $prepared['from_name'],
 				'reply_to'                => $prepared['booking_address'] ? $prepared['booking_address'] : $request['reply_to'],
 				'send_at'                 => $send_at,
@@ -1143,13 +1259,71 @@ class BookingCommunicationService {
 			return new \WP_Error( 'booking_communication_transaction_start_failed', __( 'The booking communication transaction could not start.', 'extrachill-events' ) );
 		}
 		$this->transaction_active = true;
-		$table                    = BookingSchema::memberships_table();
-		$locked                   = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact venue authority lock.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return $this->rollback( new \WP_Error( 'booking_communication_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ) ) );
+
+		$locked = $this->lock_venue_memberships( $venue_id );
+		if ( is_wp_error( $locked ) ) {
+			return $this->rollback( $locked );
 		}
-		$allowed = $this->authorization->authorize_locked( $actor_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE, (array) $locked );
+		$allowed = $this->authorization->authorize_locked( $actor_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE, $locked );
 		return true === $allowed ? true : $this->rollback( is_wp_error( $allowed ) ? $allowed : $this->forbidden() );
+	}
+
+	/** Lock the exact venue membership set before recipient and booking reads. */
+	private function lock_venue_memberships( int $venue_id ) {
+		global $wpdb;
+		$table  = BookingSchema::memberships_table();
+		$locked = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d AND status = %s ORDER BY id ASC LIMIT 101 FOR UPDATE", $venue_id, VenueAuthorization::STATUS_ACTIVE ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes a bounded active recipient set with membership changes.
+		if ( '' !== (string) $wpdb->last_error || ! is_array( $locked ) ) {
+			return new \WP_Error( 'booking_communication_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ) );
+		}
+		if ( count( $locked ) > 100 ) {
+			return new \WP_Error( 'booking_correspondence_venue_recipients_invalid', __( 'The venue has too many membership records to resolve booking recipients safely.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		$this->locked_memberships = $locked;
+		return $locked;
+	}
+
+	/** Resolve authorized venue members without persisting their addresses. */
+	private function resolve_venue_cc( int $venue_id, string $primary_recipient ) {
+		$resolved = $this->venue_recipients
+			? call_user_func( $this->venue_recipients, $venue_id, $this->locked_memberships, $primary_recipient )
+			: $this->default_venue_recipients( $venue_id );
+		if ( is_wp_error( $resolved ) ) {
+			return $resolved;
+		}
+		if ( ! is_array( $resolved ) || count( $resolved ) > 100 ) {
+			return new \WP_Error( 'booking_correspondence_venue_recipients_invalid', __( 'Authorized venue recipients are invalid for this booking message.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		$primary = strtolower( sanitize_email( $primary_recipient ) );
+		$emails  = array();
+		foreach ( $resolved as $email ) {
+			$email = sanitize_email( (string) $email );
+			if ( '' !== $email && strtolower( $email ) !== $primary ) {
+				$emails[ strtolower( $email ) ] = $email;
+			}
+		}
+		ksort( $emails, SORT_STRING );
+		if ( empty( $emails ) ) {
+			return new \WP_Error( 'booking_correspondence_venue_recipients_unavailable', __( 'No authorized venue recipients are available for this booking message.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		return implode( ',', array_values( $emails ) );
+	}
+
+	/** Resolve active members that retain the venue booking feature gate. */
+	private function default_venue_recipients( int $venue_id ): array {
+		$emails = array();
+		foreach ( $this->locked_memberships as $row ) {
+			$user_id = (int) ( $row['user_id'] ?? 0 );
+			if ( (int) ( $row['venue_term_id'] ?? 0 ) !== $venue_id || VenueAuthorization::STATUS_ACTIVE !== ( $row['status'] ?? '' ) || true !== $this->authorization->authorize_locked( $user_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE, $this->locked_memberships ) ) {
+				continue;
+			}
+			$user  = get_userdata( $user_id );
+			$email = $user && isset( $user->user_email ) ? sanitize_email( (string) $user->user_email ) : '';
+			if ( '' !== $email ) {
+				$emails[] = $email;
+			}
+		}
+		return $emails;
 	}
 
 	private function begin() {

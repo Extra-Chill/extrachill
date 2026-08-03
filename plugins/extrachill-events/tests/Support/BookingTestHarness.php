@@ -402,6 +402,9 @@ if ( ! function_exists( 'get_userdata' ) ) {
 		if ( isset( $GLOBALS['venue_membership_test'] ) ) {
 			return $GLOBALS['venue_membership_test']['users'][ $user_id ] ?? false;
 		}
+		if ( isset( $GLOBALS['ec_artist_test']['users'][ $user_id ] ) ) {
+			return $GLOBALS['ec_artist_test']['users'][ $user_id ];
+		}
 		return (int) $user_id > 0 ? (object) array( 'ID' => (int) $user_id ) : false; }
 }
 if ( ! function_exists( 'user_can' ) ) {
@@ -1528,7 +1531,14 @@ final class BookingWpdb {
 				}
 				$this->elapse_hold_after_membership_lock = null;
 			}
-			return array_values( $this->rows[ $this->prefix . 'ec_venue_members' ] ?? array() );
+			$rows = array_values( $this->rows[ $this->prefix . 'ec_venue_members' ] ?? array() );
+			if ( isset( $venue[1] ) ) {
+				$rows = array_values( array_filter( $rows, static fn( array $row ): bool => (int) ( $row['venue_term_id'] ?? 0 ) === (int) $venue[1] ) );
+			}
+			if ( false !== strpos( $query, "status = 'active'" ) ) {
+				$rows = array_values( array_filter( $rows, static fn( array $row ): bool => 'active' === ( $row['status'] ?? '' ) ) );
+			}
+			return $rows;
 		}
 		if ( preg_match( '/SHOW INDEX FROM `([^`]+)`/', $query, $match ) ) {
 			++$this->schema_queries;

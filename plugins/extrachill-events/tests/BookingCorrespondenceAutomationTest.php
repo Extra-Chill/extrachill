@@ -93,6 +93,13 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 			static function ( array $input ) use ( &$queued, $success ) {
 				$queued[] = $input;
 				return $success ? array( 'success' => true, 'action_id' => 100 + count( $queued ) ) : array( 'success' => false, 'error' => 'temporary' );
+			},
+			null,
+			null,
+			null,
+			null,
+			static function (): array {
+				return array( 'owner@example.com', 'operator@example.com' );
 			}
 		);
 		return new BookingCorrespondenceAutomationService( null, null, $communication );
@@ -108,7 +115,7 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$this->assertSame( array( 'completed' => true ), $service->reconcile_source( $source['id'] ) );
 		$this->assertCount( 1, $queued );
 		$this->assertSame( 'artist@example.com', $queued[0]['to'] );
-		$this->assertSame( '', $queued[0]['cc'] );
+		$this->assertSame( 'operator@example.com,owner@example.com', $queued[0]['cc'] );
 		$this->assertSame( 'Extra Chill Bookings', $queued[0]['from_name'] );
 		$this->assertSame( 'booking@lofi.example', $queued[0]['reply_to'] );
 		$this->assertSame( 'Booking inquiry received: Test Band at Lo-Fi Brewing - Aug 1', $queued[0]['subject'] );
@@ -215,7 +222,10 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 			return array( 'success' => true, 'action_id' => 200 + count( $calls ) );
 		};
 		$automation = static function () use ( $queue ): BookingCorrespondenceAutomationService {
-			return new BookingCorrespondenceAutomationService( null, null, new BookingCommunicationService( null, null, null, $queue ) );
+			$recipients = static function (): array {
+				return array( 'owner@example.com', 'operator@example.com' );
+			};
+			return new BookingCorrespondenceAutomationService( null, null, new BookingCommunicationService( null, null, null, $queue, null, null, null, null, $recipients ) );
 		};
 
 		$first = $automation()->reconcile_source( $source['id'] );

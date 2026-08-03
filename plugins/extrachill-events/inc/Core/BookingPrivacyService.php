@@ -379,7 +379,7 @@ class BookingPrivacyService {
 				continue;
 			}
 			$preserved = array( 'privacy_redacted' => true );
-			foreach ( array( 'template', 'template_version', 'request_hash', 'booking_version', 'source_activity_id', 'cc', 'from_name', 'identity', 'mail_site_id', 'intent_id', 'action_id', 'attempt', 'retryable', 'reason', 'error_code' ) as $key ) {
+			foreach ( array( 'template', 'template_version', 'request_hash', 'booking_version', 'source_activity_id', 'from_name', 'mail_site_id', 'intent_id', 'action_id', 'attempt', 'retryable', 'reason', 'error_code' ) as $key ) {
 				if ( array_key_exists( $key, $data ) ) {
 					$preserved[ $key ] = $data[ $key ];
 				}

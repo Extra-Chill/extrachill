@@ -33,6 +33,9 @@ final class BookingCommunicationTest extends BookingTestCase {
 			'fired_actions' => array(),
 			'scheduled'     => array(),
 			'cache_deletes' => array(),
+			'users'         => array(
+				12 => (object) array( 'ID' => 12, 'user_email' => 'operator@example.com' ),
+			),
 			'terms'         => array(
 				7 => array(
 					55 => (object) array( 'term_id' => 55, 'taxonomy' => 'venue', 'name' => 'The Room' ),
@@ -65,6 +68,14 @@ final class BookingCommunicationTest extends BookingTestCase {
 			'post_meta'     => array(),
 		);
 		$GLOBALS['wpdb'] = new BookingWpdb();
+		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][1] = array(
+			'id'            => 1,
+			'venue_term_id' => 55,
+			'user_id'       => 12,
+			'is_owner'      => 1,
+			'status'        => 'active',
+			'version'       => 1,
+		);
 	}
 
 	private function booking( string $email = 'artist@example.com', string $status = 'under_review' ): array {
@@ -113,6 +124,11 @@ final class BookingCommunicationTest extends BookingTestCase {
 			},
 			static function ( int $action_id ) use ( &$cancelled ) {
 				$cancelled[] = $action_id;
+			},
+			null,
+			null,
+			static function (): array {
+				return array( 'owner@example.com', 'operator@example.com' );
 			}
 		);
 	}
@@ -133,7 +149,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 
 		$this->assertSame( 'queued', $result['status'] );
 		$this->assertCount( 1, $queued );
-		$this->assertSame( '', $queued[0]['cc'] );
+		$this->assertSame( 'operator@example.com,owner@example.com', $queued[0]['cc'] );
 		$this->assertSame( 'Extra Chill Bookings', $queued[0]['from_name'] );
 		$this->assertSame( 'venue-booking@example.com', $queued[0]['reply_to'] );
 		$this->assertStringContainsString( 'Powered by Extra Chill', $queued[0]['body'] );
@@ -148,6 +164,149 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$this->assertArrayNotHasKey( 'references', $queued[0] );
 	}
 
+	public function test_default_cc_uses_only_current_explicit_venue_access(): void {
+		$booking = $this->booking();
+		$rows    = array(
+			array( 'id' => 2, 'venue_term_id' => 55, 'user_id' => 21, 'status' => 'active' ),
+			array( 'id' => 3, 'venue_term_id' => 55, 'user_id' => 22, 'status' => 'active' ),
+			array( 'id' => 4, 'venue_term_id' => 56, 'user_id' => 23, 'status' => 'active' ),
+			array( 'id' => 5, 'venue_term_id' => 55, 'user_id' => 24, 'status' => 'revoked' ),
+			array( 'id' => 6, 'venue_term_id' => 55, 'user_id' => 25, 'status' => 'active' ),
+			array( 'id' => 7, 'venue_term_id' => 55, 'user_id' => 26, 'status' => 'active' ),
+			array( 'id' => 8, 'venue_term_id' => 55, 'user_id' => 28, 'status' => 'active' ),
+		);
+		foreach ( $rows as $row ) {
+			$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][ $row['id'] ] = $row;
+		}
+		$GLOBALS['ec_artist_test']['users'] += array(
+			21 => (object) array( 'ID' => 21, 'user_email' => 'owner@example.com' ),
+			22 => (object) array( 'ID' => 22, 'user_email' => 'gardner@example.com' ),
+			23 => (object) array( 'ID' => 23, 'user_email' => 'other-venue@example.com' ),
+			24 => (object) array( 'ID' => 24, 'user_email' => 'revoked@example.com' ),
+			25 => (object) array( 'ID' => 25, 'user_email' => 'owner@example.com' ),
+			26 => (object) array( 'ID' => 26 ),
+			27 => (object) array( 'ID' => 27, 'user_email' => 'team-only@example.com' ),
+			28 => (object) array( 'ID' => 28, 'user_email' => 'artist@example.com' ),
+		);
+		$authorization = new BookingTestAuthorization(
+			array(
+				'21:55' => true,
+				'22:55' => true,
+				'23:56' => true,
+				'24:55' => true,
+				'25:55' => true,
+				'26:55' => true,
+				'27:55' => true,
+				'28:55' => true,
+			)
+		);
+		$queued = array();
+		$service = new BookingCommunicationService(
+			null,
+			null,
+			$authorization,
+			static function ( array $input ) use ( &$queued ): array {
+				$queued[] = $input;
+				return array( 'success' => true, 'action_id' => 301 );
+			}
+		);
+
+		$this->assertSame( 'queued', $service->request( $this->input( $booking['id'] ), 12 )['status'] );
+		$this->assertSame( 'gardner@example.com,operator@example.com,owner@example.com', $queued[0]['cc'] );
+		$this->assertStringNotContainsString( 'artist@example.com', $queued[0]['cc'] );
+		$this->assertStringNotContainsString( 'team-only@example.com', $queued[0]['cc'] );
+		$this->assertStringNotContainsString( 'other-venue@example.com', $queued[0]['cc'] );
+		$this->assertStringNotContainsString( 'revoked@example.com', $queued[0]['cc'] );
+	}
+
+	public function test_missing_authorized_venue_recipients_fails_before_queueing(): void {
+		$booking = $this->booking();
+		$queued = $scheduled = $cancelled = array();
+		$service = new BookingCommunicationService(
+			null,
+			null,
+			new BookingTestAuthorization(),
+			static function ( array $input ) use ( &$queued ): array {
+				$queued[] = $input;
+				return array( 'success' => true, 'action_id' => 302 );
+			},
+			null,
+			null,
+			null,
+			null,
+			static function (): array {
+				return array();
+			}
+		);
+
+		$result = $service->request( $this->input( $booking['id'] ), 12 );
+
+		$this->assertSame( 'booking_correspondence_venue_recipients_unavailable', $result->get_error_code() );
+		$this->assertCount( 0, $queued );
+	}
+
+	public function test_delayed_message_re_resolves_membership_at_dispatch(): void {
+		$booking = $this->booking();
+		$GLOBALS['ec_artist_test']['users'][22] = (object) array( 'ID' => 22, 'user_email' => 'gardner@example.com' );
+		$queued = $scheduled = array();
+		$authorization = new BookingTestAuthorization( array( '22:55' => true ) );
+		$service = new BookingCommunicationService(
+			null,
+			null,
+			$authorization,
+			static function ( array $input ) use ( &$queued ): array {
+				$queued[] = $input;
+				return array( 'success' => true, 'action_id' => 303 );
+			},
+			static function ( int $timestamp, string $hook, array $args, string $group ) use ( &$scheduled ): int {
+				$scheduled[] = compact( 'timestamp', 'hook', 'args', 'group' );
+				return 304;
+			}
+		);
+		$state = $service->request( $this->input( $booking['id'], array( 'template' => 'follow_up' ) ), 12 );
+		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][1]['status'] = 'revoked';
+		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][2] = array( 'id' => 2, 'venue_term_id' => 55, 'user_id' => 22, 'status' => 'active' );
+
+		$result = $service->dispatch_reminder( $state['intent_id'] );
+
+		$this->assertSame( 'queued', $result['status'] );
+		$this->assertSame( 'gardner@example.com', $queued[0]['cc'] );
+		$this->assertStringNotContainsString( 'operator@example.com', $queued[0]['cc'] );
+	}
+
+	public function test_delayed_message_without_current_venue_recipients_is_durably_suppressed(): void {
+		$booking = $this->booking();
+		$available = true;
+		$queued = $scheduled = array();
+		$service = new BookingCommunicationService(
+			null,
+			null,
+			new BookingTestAuthorization(),
+			static function ( array $input ) use ( &$queued ): array {
+				$queued[] = $input;
+				return array( 'success' => true, 'action_id' => 305 );
+			},
+			static function ( int $timestamp, string $hook, array $args, string $group ) use ( &$scheduled ): int {
+				$scheduled[] = compact( 'timestamp', 'hook', 'args', 'group' );
+				return 306;
+			},
+			null,
+			null,
+			null,
+			static function () use ( &$available ): array {
+				return $available ? array( 'operator@example.com' ) : array();
+			}
+		);
+		$state     = $service->request( $this->input( $booking['id'], array( 'template' => 'follow_up' ) ), 12 );
+		$available = false;
+
+		$result = $service->dispatch_reminder( $state['intent_id'] );
+
+		$this->assertSame( 'suppressed', $result['status'] );
+		$this->assertCount( 0, $queued );
+		$this->assertContains( 'booking_reminder_suppressed', array_column( ( new BookingActivityRepository() )->list_for_booking( $booking['id'] ), 'kind' ) );
+	}
+
 	public function test_preview_and_queued_delivery_share_the_exact_rendering_contract(): void {
 		$booking = $this->booking();
 		$config  = ( new VenueBookingConfig() )->get( 55 );
@@ -156,7 +315,6 @@ final class BookingCommunicationTest extends BookingTestCase {
 			'subject' => '{{artist_name}} at {{venue_name}} [{{booking_id}}]',
 			'body'    => "Hello {{contact_name}},\n\n{{message}}",
 		);
-		$config['correspondence']['cc_address'] = 'audit@example.com';
 		$config['correspondence']['from_name']  = 'The Room Bookings';
 		$config['correspondence']['footer']     = 'Powered by The Room on Extra Chill';
 		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
@@ -184,7 +342,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$this->assertSame( 'queued', $result['status'] );
 		$this->assertSame( $preview['subject'], $queued[0]['subject'] );
 		$this->assertSame( $preview['body'], $queued[0]['body'] );
-		$this->assertSame( 'audit@example.com', $queued[0]['cc'] );
+		$this->assertSame( 'operator@example.com,owner@example.com', $queued[0]['cc'] );
 		$this->assertSame( 'The Room Bookings', $queued[0]['from_name'] );
 		$this->assertStringContainsString( 'Powered by The Room on Extra Chill', $queued[0]['body'] );
 		$this->assertStringNotContainsString( '<b>', $queued[0]['body'] );
@@ -208,6 +366,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 
 		$this->assertSame( 'Booking inquiry received: Test Band at The Room - Aug 1', $preview['subject'] );
 		$this->assertStringNotContainsString( 'long-public-reference', $preview['subject'] );
+		$this->assertArrayNotHasKey( 'cc_address', $GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ]['correspondence'] );
 	}
 
 	public function test_configured_policy_owns_schedule_and_stale_template_versions_fail_closed(): void {
@@ -409,7 +568,17 @@ final class BookingCommunicationTest extends BookingTestCase {
 			static function () use ( &$calls ) {
 				++$calls;
 				throw new RuntimeException( 'uncertain queue boundary' );
-			},
+			}
+		);
+
+		$first = $service->request( $this->input( $booking['id'] ), 12 );
+		$this->assertSame( 'booking_message_delivery_uncertain', $first->get_error_code() );
+		$intent = ( new BookingActivityRepository() )->find_by_idempotency( $booking['id'], 'booking-message-request:message-1' );
+		$reconciler = new BookingCommunicationService(
+			null,
+			null,
+			new BookingTestAuthorization(),
+			null,
 			null,
 			null,
 			static function ( array $evidence_query ) use ( &$query ) {
@@ -417,19 +586,15 @@ final class BookingCommunicationTest extends BookingTestCase {
 				return array( array( 'action_id' => 501, 'status' => 'complete' ) );
 			}
 		);
-
-		$first = $service->request( $this->input( $booking['id'] ), 12 );
-		$this->assertSame( 'booking_message_delivery_uncertain', $first->get_error_code() );
-		$intent = ( new BookingActivityRepository() )->find_by_idempotency( $booking['id'], 'booking-message-request:message-1' );
-		$result = $service->reconcile( $intent['id'], 12 );
+		$result = $reconciler->reconcile( $intent['id'], 12 );
 		$this->assertSame( 'queued', $result['status'] );
 		$this->assertSame( 501, $result['action_id'] );
 		$this->assertSame( 'datamachine_send_email_worker', $query['hook'] );
 		$this->assertSame( 'data-machine-email', $query['group'] );
-		$this->assertSame( 1, $query['args'][0]['_attempt'] );
-		$this->assertSame( $intent['id'], $query['args'][0]['context']['booking_communication_intent_id'] );
+		$this->assertSame( 'like', $query['partial_args_matching'] );
+		$this->assertSame( 'intent:' . $intent['id'], $query['args']['booking_communication_intent_ref'] );
 		$this->assertSame( 1, $calls );
-		$this->assertSame( 'booking_message_reconciliation_not_required', $service->reconcile( $intent['id'], 12 )->get_error_code() );
+		$this->assertSame( 'booking_message_reconciliation_not_required', $reconciler->reconcile( $intent['id'], 12 )->get_error_code() );
 	}
 
 	public function test_operator_recovers_only_live_reminder_schedule_evidence(): void {
@@ -453,6 +618,39 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$result = $service->reconcile( $intent['id'], 12 );
 		$this->assertSame( 'scheduled', $result['status'] );
 		$this->assertSame( 601, $result['action_id'] );
+	}
+
+	public function test_dispatch_reconciliation_collapses_unique_retry_attempts(): void {
+		$booking = $this->booking();
+		$service = new BookingCommunicationService(
+			null,
+			null,
+			new BookingTestAuthorization(),
+			static function () {
+				throw new RuntimeException( 'uncertain queue boundary' );
+			}
+		);
+		$this->assertSame( 'booking_message_delivery_uncertain', $service->request( $this->input( $booking['id'] ), 12 )->get_error_code() );
+		$intent = ( new BookingActivityRepository() )->find_by_idempotency( $booking['id'], 'booking-message-request:message-1' );
+		$reconciler = new BookingCommunicationService(
+			null,
+			null,
+			new BookingTestAuthorization(),
+			null,
+			null,
+			null,
+			static function (): array {
+				return array(
+					array( 'action_id' => 501, 'status' => 'failed', 'attempt' => 1 ),
+					array( 'action_id' => 502, 'status' => 'pending', 'attempt' => 2 ),
+				);
+			}
+		);
+
+		$result = $reconciler->reconcile( $intent['id'], 12 );
+
+		$this->assertSame( 'queued', $result['status'] );
+		$this->assertSame( 501, $result['action_id'] );
 	}
 
 	public function test_reconciliation_does_not_infer_replay_from_absent_or_terminal_evidence(): void {
