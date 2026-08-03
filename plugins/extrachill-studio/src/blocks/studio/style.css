@@ -749,14 +749,10 @@
 	color: var(--muted-text);
 }
 
-.ec-studio-transcribe__model {
-	width: 100%;
-}
-
 /*
- * Vertical stack for the two transcription option checkboxes
- * (`Identify speakers`, `Remove filler words`). The .ec-checkbox-row
- * primitive from the EC theme owns each row's internal layout — see
+ * Vertical stack for the transcription option checkbox (`Identify
+ * speakers`). The .ec-checkbox-row primitive from the EC theme owns each
+ * row's internal layout — see
  * https://github.com/Extra-Chill/extrachill/pull/21 — so this rule
  * only handles the spacing between rows.
  */
