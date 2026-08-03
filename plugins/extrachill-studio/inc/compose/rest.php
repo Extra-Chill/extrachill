@@ -24,6 +24,7 @@
  * Routes (all under the team-gated permission check):
  *   - GET  /extrachill/v1/studio/compose/posts                 List the user's drafts on main.
  *   - POST /extrachill/v1/studio/compose/posts                 Create a draft on main.
+ *   - GET  /extrachill/v1/studio/compose/posts/<id>            Fetch a post from main.
  *   - POST /extrachill/v1/studio/compose/posts/<id>            Update / submit-for-review on main.
  *   - GET  /extrachill/v1/studio/compose/posts/<id>/autosaves  List autosaves for a draft on main.
  *   - POST /extrachill/v1/studio/compose/posts/<id>/autosaves  Autosave a draft on main (status omitted).
@@ -38,14 +39,15 @@
  * problem #75 set out to remove.
  *
  * Two dispatch strategies, by necessity:
- *   - JSON routes (posts, autosaves, single-media GET) forward via
+ *   - JSON write/list routes (posts, autosaves, single-media GET) forward via
  *     `ec_cross_site_rest_request( 'main', ... )` and guard on that helper
  *     being available (`ec_studio_compose_require_cross_site()`).
- *   - File/header-sensitive routes (media upload, media browse) do their own
- *     `switch_to_blog( main )`: a multipart `$_FILES` upload can't ride the
- *     in-process rest_do_request cleanly, and the browse grid needs the
- *     core controller's X-WP-Total pagination headers, which the cross-site
- *     helper strips. These guard on `ec_get_blog_id()` instead.
+ *   - Header-sensitive reads and file routes (single-post GET, media upload,
+ *     media browse) do their own `switch_to_blog( main )`: the post read must
+ *     preserve core response headers, a multipart `$_FILES` upload can't ride
+ *     the in-process rest_do_request cleanly, and the browse grid needs the
+ *     core controller's X-WP-Total pagination headers. These guard on
+ *     `ec_get_blog_id()` instead.
  *
  * @package    ExtraChillStudio
  * @subpackage Compose
@@ -89,6 +91,18 @@ function ec_studio_compose_register_routes(): void {
 		EC_STUDIO_COMPOSE_NAMESPACE,
 		'/' . EC_STUDIO_COMPOSE_ROUTE . '/posts/(?P<id>\d+)',
 		array(
+			array(
+				'methods'             => 'GET',
+				'callback'            => 'ec_studio_compose_get_post',
+				'permission_callback' => 'ec_studio_compose_permission_check',
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+				),
+			),
 			array(
 				'methods'             => 'POST',
 				'callback'            => 'ec_studio_compose_update_post',
@@ -496,6 +510,62 @@ function ec_studio_compose_create_post( \WP_REST_Request $request ) {
 	);
 
 	return ec_studio_compose_relay_response( $response );
+}
+
+/**
+ * Fetch an existing post from main extrachill.com.
+ *
+ * Dispatches through main's native posts controller so context=edit and
+ * per-post read/edit permissions are enforced by WordPress core. Returning the
+ * native response preserves its status and headers; native errors are relayed
+ * as WP_Error like the other compose proxy routes.
+ *
+ * @param \WP_REST_Request $request REST request.
+ * @return \WP_REST_Response|\WP_Error
+ */
+function ec_studio_compose_get_post( \WP_REST_Request $request ) {
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return new \WP_Error(
+			'multisite_helper_missing',
+			__( 'extrachill-multisite is required for cross-site compose.', 'extrachill-studio' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
+	if ( $main_blog_id <= 0 ) {
+		return new \WP_Error(
+			'main_blog_unresolved',
+			__( 'Could not resolve the main site for compose.', 'extrachill-studio' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	$post_id = (int) $request['id'];
+	$query   = $request->get_query_params();
+	$query   = is_array( $query )
+		? array_intersect_key(
+			$query,
+			array_flip( array( 'context', 'password', 'excerpt_length', '_fields', '_embed' ) )
+		)
+		: array();
+	$result  = null;
+
+	switch_to_blog( $main_blog_id );
+	try {
+		$sub_request = new \WP_REST_Request( 'GET', '/wp/v2/posts/' . $post_id );
+		$sub_request->set_query_params( $query );
+		$sub_request->add_header( 'X-EC-Forwarded', '1' );
+
+		$response = rest_do_request( $sub_request );
+		$result   = $response->is_error()
+			? $response->as_error()
+			: ec_studio_compose_relay_response( $response );
+	} finally {
+		restore_current_blog();
+	}
+
+	return $result;
 }
 
 /**
