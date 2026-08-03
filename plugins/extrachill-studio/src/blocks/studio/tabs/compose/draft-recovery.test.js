@@ -1,5 +1,14 @@
+/* global describe, expect, it, jest */
+
+/**
+ * External dependencies
+ */
 import fs from 'node:fs';
 import path from 'node:path';
+
+/**
+ * Internal dependencies
+ */
 import { recoverDraftContent } from './draft-recovery';
 
 const parent = {

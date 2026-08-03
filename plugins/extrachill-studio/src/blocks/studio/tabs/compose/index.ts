@@ -1,13 +1,24 @@
-import { __ } from '@wordpress/i18n';
-import { createElement, useEffect, useRef, useState, useCallback } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import type { ReactElement, ChangeEvent } from 'react';
-import apiFetch from '@wordpress/api-fetch';
-import { select } from '@wordpress/data';
 import {
 	getOrCreateClientContextRegistry,
 	registerClientContextProvider,
 } from '@extrachill/chat';
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+
+/**
+ * WordPress dependencies
+ */
+import apiFetch from '@wordpress/api-fetch';
+import { select } from '@wordpress/data';
+import { createElement, useEffect, useRef, useState, useCallback } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
+
+/**
+ * Internal dependencies
+ */
 import type { StudioPaneProps } from '../../types/studio';
 import { markComposeRequest, registerComposeInstance } from './cross-site-middleware';
 import { installChatRefreshAdapter } from './refresh-adapter';
@@ -22,6 +33,9 @@ import type { WpAutosave, WpPost } from './draft-recovery';
  * on the live-instance count and no timing window. Every apiFetch call this
  * pane makes goes through here so a stray call can never escape to blog 12.
  * See cross-site-middleware.ts and Extra-Chill/extrachill-studio#106.
+ *
+ * @param options API fetch options.
+ * @return Tagged API fetch promise.
  */
 const composeApiFetch = < T = unknown >(
 	options: import('@wordpress/api-fetch').APIFetchOptions< true >
@@ -77,6 +91,9 @@ function extractPlainText( html: string ): string {
  * Auto-loads the most recent draft on mount. Autosaves every 2s — creates
  * a new draft on first activity when none is active (title or content must
  * be non-empty), then updates the same draft on subsequent autosaves.
+ *
+ * @param props Studio pane props.
+ * @return Compose pane element.
  */
 const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	const restNonce = props.context.restNonce;
@@ -172,29 +189,33 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 
 
 	/** Get the content API from the Blocks Everywhere ContentBridge. */
-	const getContentApi = (): BlocksEverywhereContentApi | null => {
+	const getContentApi = useCallback( (): BlocksEverywhereContentApi | null => {
 		if ( ! textareaRef.current || ! window.blocksEverywhereGetContentApi ) {
 			return null;
 		}
 		return window.blocksEverywhereGetContentApi( textareaRef.current );
-	};
+	}, [] );
 
 	/** Read serialized block content — prefer content API, fall back to textarea. */
-	const getContent = (): string => {
+	const getContent = useCallback( (): string => {
 		const api = getContentApi();
 		if ( api ) {
 			return api.getContent();
 		}
 		return textareaRef.current?.value || '';
-	};
+	}, [ getContentApi ] );
 
-	/** Replace editor content using the ContentBridge API. */
-	const replaceEditorContent = ( html: string ): void => {
+	/**
+	 * Replace editor content using the ContentBridge API.
+	 *
+	 * @param html Serialized block content.
+	 */
+	const replaceEditorContent = useCallback( ( html: string ): void => {
 		const api = getContentApi();
 		if ( api ) {
 			api.replaceContent( html );
 		}
-	};
+	}, [ getContentApi ] );
 
 	/**
 	 * Refetch the current content of a post from main via the compose
@@ -421,7 +442,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 
 		inFlightPromiseRef.current = operation;
 		await operation;
-	}, [] );
+	}, [ getContent ] );
 
 	/**
 	 * Switch to a draft or start blank. Flushes any unsaved changes to the
@@ -467,7 +488,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		setError( '' );
 		setStatus( '' );
 		scheduleClientContextUpdate();
-	}, [ flushCurrentDraft, loadDraftContent, scheduleClientContextUpdate ] );
+	}, [ flushCurrentDraft, loadDraftContent, replaceEditorContent, scheduleClientContextUpdate ] );
 
 	const startNew = useCallback( async (): Promise< void > => {
 		if ( isPreviewingRef.current ) {
@@ -611,7 +632,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 
 		inFlightPromiseRef.current = operation;
 		await operation;
-	}, [] );
+	}, [ getContent ] );
 
 	const scheduleAutosave = useCallback( (): void => {
 		if ( autosaveTimerRef.current ) {
@@ -765,7 +786,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				performAutosave();
 			}
 		};
-	}, [ scheduleAutosave, performAutosave, scheduleClientContextUpdate ] );
+	}, [ getContent, scheduleAutosave, performAutosave, scheduleClientContextUpdate ] );
 
 	// Sync hasUnsavedChanges state into a ref so the beforeunload/pagehide
 	// listeners (registered once with stale closures) can read the latest
@@ -913,13 +934,13 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
-		const content = getContent();
-
 		if ( ! title.trim() ) {
 			setError( __( 'Add a title before submitting.', 'extrachill-studio' ) );
 			setStatus( '' );
 			return;
 		}
+
+		const content = getContent();
 
 		if ( ! content.trim() ) {
 			setError( __( 'Write some content before submitting.', 'extrachill-studio' ) );
@@ -1086,6 +1107,12 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			)
 		)
 	);
+	let saveButtonLabel: string = __( 'Save Draft', 'extrachill-studio' );
+	if ( isSubmitting ) {
+		saveButtonLabel = __( 'Saving…', 'extrachill-studio' );
+	} else if ( activePostId ) {
+		saveButtonLabel = __( 'Update Draft', 'extrachill-studio' );
+	}
 
 	return h(
 		'div',
@@ -1189,11 +1216,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 							onClick: saveDraft,
 							disabled: isSubmitting || isSwitching || isPreviewing || ! editorReady,
 						},
-						isSubmitting ? __( 'Saving…', 'extrachill-studio' ) : (
-							activePostId
-								? __( 'Update Draft', 'extrachill-studio' )
-								: __( 'Save Draft', 'extrachill-studio' )
-						)
+						saveButtonLabel
 					)
 				)
 			),

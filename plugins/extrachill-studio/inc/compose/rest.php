@@ -405,7 +405,7 @@ function ec_studio_compose_require_cross_site() {
  *
  * @since 0.16.0
  *
- * @param array|\WP_Error $response Cross-site request result.
+ * @param array|\WP_Error|\WP_REST_Response $response Cross-site request result.
  * @return \WP_REST_Response|\WP_Error
  */
 function ec_studio_compose_relay_response( $response ) {
@@ -543,12 +543,10 @@ function ec_studio_compose_get_post( \WP_REST_Request $request ) {
 
 	$post_id = (int) $request['id'];
 	$query   = $request->get_query_params();
-	$query   = is_array( $query )
-		? array_intersect_key(
-			$query,
-			array_flip( array( 'context', 'password', 'excerpt_length', '_fields', '_embed' ) )
-		)
-		: array();
+	$query   = array_intersect_key(
+		$query,
+		array_flip( array( 'context', 'password', 'excerpt_length', '_fields', '_embed' ) )
+	);
 	$result  = null;
 
 	switch_to_blog( $main_blog_id );
@@ -647,7 +645,7 @@ function ec_studio_compose_emit_lifecycle_event( $response, string $status, int 
 		return;
 	}
 
-	$post_id = is_array( $response ) && isset( $response['id'] ) ? (int) $response['id'] : 0;
+	$post_id = isset( $response['id'] ) ? (int) $response['id'] : 0;
 	if ( $post_id <= 0 ) {
 		return;
 	}
@@ -815,13 +813,11 @@ function ec_studio_compose_create_autosave( \WP_REST_Request $request ) {
 	// characters (e.g. backslashes), so we don't.
 	$raw  = $request->get_json_params();
 	$body = array();
-	if ( is_array( $raw ) ) {
-		if ( isset( $raw['title'] ) ) {
-			$body['title'] = (string) $raw['title'];
-		}
-		if ( isset( $raw['content'] ) ) {
-			$body['content'] = (string) $raw['content'];
-		}
+	if ( isset( $raw['title'] ) ) {
+		$body['title'] = (string) $raw['title'];
+	}
+	if ( isset( $raw['content'] ) ) {
+		$body['content'] = (string) $raw['content'];
 	}
 
 	$response = ec_cross_site_rest_request(
@@ -921,7 +917,7 @@ function ec_studio_compose_list_media( \WP_REST_Request $request ) {
 	// cross-site helper returns only the decoded body and strips those
 	// headers, so we dispatch in-process here and re-emit the pagination
 	// headers onto our own WP_REST_Response.
-	return ec_studio_compose_dispatch_media_list_on_main( is_array( $query ) ? $query : array() );
+	return ec_studio_compose_dispatch_media_list_on_main( $query );
 }
 
 /**
@@ -967,6 +963,9 @@ function ec_studio_compose_dispatch_media_list_on_main( array $query ) {
 			);
 		} else {
 			$response = rest_ensure_response( $sub_response->get_data() );
+			if ( is_wp_error( $response ) ) {
+				return $response;
+			}
 			// Forward the pagination headers the grid reads via parse:false.
 			$headers = $sub_response->get_headers();
 			foreach ( array( 'X-WP-Total', 'X-WP-TotalPages' ) as $header ) {
@@ -1010,7 +1009,7 @@ function ec_studio_compose_get_media_item( \WP_REST_Request $request ) {
 		'GET',
 		'/wp/v2/media/' . $attachment_id,
 		array(
-			'query'   => is_array( $query ) ? $query : array(),
+			'query'   => $query,
 			'user_id' => $user_id,
 		)
 	);
@@ -1220,10 +1219,6 @@ function ec_studio_compose_prepare_media_response( int $attachment_id ): array {
 	$request->set_param( 'context', 'edit' );
 
 	$response = $controller->prepare_item_for_response( get_post( $attachment_id ), $request );
-
-	if ( is_wp_error( $response ) ) {
-		return array( 'id' => $attachment_id );
-	}
 
 	$data = $response->get_data();
 
