@@ -143,7 +143,7 @@ final class VendorRequestDomainTest extends BookingTestCase {
 		$this->assertSame( 'vendor_application_contact_unavailable', $this->service->contact_applicant( 1, 'Hello', 'Message', 'contact-withdrawn', 12, '__return_true' )->get_error_code() );
 	}
 
-	public function test_managed_correspondence_has_required_identity_cc_and_receipt(): void {
+	public function test_managed_correspondence_has_product_identity_footer_and_receipt(): void {
 		$this->open_request();
 		$this->apply();
 		$queued = array();
@@ -168,9 +168,11 @@ final class VendorRequestDomainTest extends BookingTestCase {
 			),
 			$result
 		);
-		$this->assertSame( 'chubes@extrachill.com', $queued['cc'] );
-		$this->assertSame( 'Extra Chill Bot', $queued['from_name'] );
-		$this->assertStringContainsString( 'Extra Chill Bot sending on Chris Huber', $queued['body'] );
+		$this->assertSame( 'Extra Chill Events', $queued['from_name'] );
+		$this->assertSame( '', $queued['cc'] );
+		$this->assertStringContainsString( 'Powered by Extra Chill', $queued['body'] );
+		$this->assertStringNotContainsString( 'Extra Chill Bot', $queued['body'] );
+		$this->assertStringNotContainsString( 'Chris', $queued['body'] );
 		$this->assertSame( 'vendor@example.com', $queued['to'] );
 		$this->assertSame(
 			$result,

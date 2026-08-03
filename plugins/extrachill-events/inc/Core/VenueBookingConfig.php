@@ -25,7 +25,7 @@ class VenueBookingConfig {
 	public const TEMPLATE_VERSION            = 1;
 	public const REMINDER_POLICY_VERSION     = 1;
 	public const CORRESPONDENCE_TEMPLATES    = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'date_filled' );
-	public const CORRESPONDENCE_VARIABLES    = array( 'artist_name', 'booking_id', 'contact_name', 'venue_name' );
+	public const CORRESPONDENCE_VARIABLES    = array( 'artist_name', 'booking_id', 'contact_name', 'requested_date', 'venue_name' );
 	public const CONSENT_VERSION             = 1;
 	public const HOLD_TTL_MAX_MINUTES        = 20160;
 	public const SOCIAL_MARKETING_ACTION     = 'datamachine-socials/cross-post';
@@ -452,6 +452,9 @@ class VenueBookingConfig {
 			'correspondence'            => array(
 				'version'           => self::CORRESPONDENCE_VERSION,
 				'booking_address'   => null,
+				'cc_address'        => null,
+				'from_name'         => 'Extra Chill Bookings',
+				'footer'            => 'Powered by Extra Chill',
 				'variables'         => $this->variable_schema(),
 				'templates'         => array(
 					'operator_message' => array(
@@ -461,7 +464,7 @@ class VenueBookingConfig {
 					),
 					'follow_up'        => array(
 						'version' => self::TEMPLATE_VERSION,
-						'subject' => 'Following up on booking {{booking_id}}',
+						'subject' => 'Following up: {{artist_name}} at {{venue_name}}',
 						'body'    => "Following up on your booking inquiry for {{venue_name}}:\n\n{{message}}",
 					),
 					'hold_expiring'    => array(
@@ -471,12 +474,12 @@ class VenueBookingConfig {
 					),
 					'inquiry_receipt'  => array(
 						'version' => self::TEMPLATE_VERSION,
-						'subject' => 'Booking inquiry received at {{venue_name}} [{{booking_id}}]',
+						'subject' => 'Booking inquiry received: {{artist_name}} at {{venue_name}} - {{requested_date}}',
 						'body'    => "Hello {{contact_name}},\n\n{{message}}",
 					),
 					'date_filled'      => array(
 						'version' => self::TEMPLATE_VERSION,
-						'subject' => 'Booking date update from {{venue_name}}',
+						'subject' => 'Booking date update: {{artist_name}} at {{venue_name}} - {{requested_date}}',
 						'body'    => "Hello {{contact_name}},\n\n{{message}}",
 					),
 				),
@@ -536,9 +539,11 @@ class VenueBookingConfig {
 			'template'         => $template_key,
 			'template_version' => $template['version'],
 			'config_revision'  => $config['revision'],
-			'subject'          => $render( $template['subject'] ),
-			'body'             => $render( $template['body'] ) . "\n\nExtra Chill Bot sending on Chris's behalf.",
+			'subject'          => mb_substr( sanitize_text_field( $render( $template['subject'] ) ), 0, 200 ),
+			'body'             => $render( $template['body'] ) . "\n\n" . $config['correspondence']['footer'],
 			'booking_address'  => $config['correspondence']['booking_address'],
+			'cc_address'       => $config['correspondence']['cc_address'],
+			'from_name'        => $config['correspondence']['from_name'],
 			'reminder_policy'  => $config['correspondence']['reminder_policies'][ $template_key ] ?? null,
 		);
 		return $result;
@@ -550,7 +555,7 @@ class VenueBookingConfig {
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
-		unset( $result['booking_address'], $result['reminder_policy'] );
+		unset( $result['booking_address'], $result['cc_address'], $result['from_name'], $result['reminder_policy'] );
 		return $result;
 	}
 
@@ -858,13 +863,30 @@ class VenueBookingConfig {
 		if ( '' !== (string) ( $correspondence['booking_address'] ?? '' ) && '' === $address ) {
 			return new \WP_Error( 'invalid_booking_correspondence_address', __( 'The booking correspondence address is invalid.', 'extrachill-events' ) );
 		}
+		$cc_address = sanitize_email( (string) ( $correspondence['cc_address'] ?? '' ) );
+		if ( '' !== (string) ( $correspondence['cc_address'] ?? '' ) && '' === $cc_address ) {
+			return new \WP_Error( 'invalid_booking_correspondence_cc_address', __( 'The booking correspondence CC address is invalid.', 'extrachill-events' ) );
+		}
+		$from_name = sanitize_text_field( (string) ( $correspondence['from_name'] ?? $defaults['from_name'] ) );
+		$footer    = sanitize_textarea_field( (string) ( $correspondence['footer'] ?? $defaults['footer'] ) );
+		if ( '' === $from_name || mb_strlen( $from_name ) > 100 || preg_match( '/[\r\n]/', $from_name ) || '' === $footer || mb_strlen( $footer ) > 500 ) {
+			return new \WP_Error( 'invalid_booking_correspondence_identity', __( 'The booking correspondence sender or footer is invalid.', 'extrachill-events' ) );
+		}
 		$templates = array();
 		$provided  = is_array( $correspondence['templates'] ?? null ) ? $correspondence['templates'] : array();
+		$legacy_subjects = array(
+			'follow_up'       => 'Following up on booking {{booking_id}}',
+			'inquiry_receipt' => 'Booking inquiry received at {{venue_name}} [{{booking_id}}]',
+			'date_filled'     => 'Booking date update from {{venue_name}}',
+		);
 		foreach ( self::CORRESPONDENCE_TEMPLATES as $key ) {
 			$template = is_array( $provided[ $key ] ?? null ) ? $provided[ $key ] : $defaults['templates'][ $key ];
 			$version  = $template['version'] ?? self::TEMPLATE_VERSION;
 			$subject  = trim( (string) ( $template['subject'] ?? '' ) );
 			$body     = trim( (string) ( $template['body'] ?? '' ) );
+			if ( ( $legacy_subjects[ $key ] ?? null ) === $subject ) {
+				$subject = $defaults['templates'][ $key ]['subject'];
+			}
 			if ( ! is_int( $version ) || $version < 1 || $version > 1000000 || '' === $subject || mb_strlen( $subject ) > 200 || preg_match( '/[\r\n]/', $subject ) || '' === $body || mb_strlen( $body ) > 10000 ) {
 				return new \WP_Error( 'invalid_booking_correspondence_template', __( 'A booking correspondence template is invalid.', 'extrachill-events' ), array( 'template' => $key ) );
 			}
@@ -906,6 +928,9 @@ class VenueBookingConfig {
 		return array(
 			'version'           => self::CORRESPONDENCE_VERSION,
 			'booking_address'   => '' === $address ? null : $address,
+			'cc_address'        => '' === $cc_address ? null : $cc_address,
+			'from_name'         => $from_name,
+			'footer'            => $footer,
 			'variables'         => $this->variable_schema(),
 			'templates'         => $templates,
 			'reminder_policies' => $policies,
@@ -929,6 +954,11 @@ class VenueBookingConfig {
 				'key'        => 'contact_name',
 				'type'       => 'string',
 				'max_length' => 255,
+			),
+			array(
+				'key'        => 'requested_date',
+				'type'       => 'string',
+				'max_length' => 32,
 			),
 			array(
 				'key'        => 'venue_name',

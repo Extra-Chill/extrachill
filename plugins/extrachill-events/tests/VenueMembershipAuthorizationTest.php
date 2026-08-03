@@ -1613,9 +1613,11 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$GLOBALS['venue_membership_test']['doing_action'] = 'action_scheduler_run_queue';
 		$delivered = ( new VenueInvitationDeliveryWorker() )->deliver( $scheduled['args'][0] );
 		$this->assertFalse( is_wp_error( $delivered ) );
-		$this->assertSame( 'chubes@extrachill.com', $GLOBALS['venue_membership_test']['sent_emails'][0]['cc'] );
-		$this->assertSame( 'Extra Chill Bot', $GLOBALS['venue_membership_test']['sent_emails'][0]['from_name'] );
-		$this->assertStringContainsString( 'acting on Chris Huber', $GLOBALS['venue_membership_test']['sent_emails'][0]['context']['body_html'] );
+		$this->assertSame( '', $GLOBALS['venue_membership_test']['sent_emails'][0]['cc'] );
+		$this->assertSame( 'Extra Chill Events', $GLOBALS['venue_membership_test']['sent_emails'][0]['from_name'] );
+		$this->assertStringContainsString( 'Powered by Extra Chill', $GLOBALS['venue_membership_test']['sent_emails'][0]['context']['body_html'] );
+		$this->assertStringNotContainsString( 'Extra Chill Bot', $GLOBALS['venue_membership_test']['sent_emails'][0]['context']['body_html'] );
+		$this->assertStringNotContainsString( 'Chris', $GLOBALS['venue_membership_test']['sent_emails'][0]['context']['body_html'] );
 		$this->assertSame( array(), $GLOBALS['venue_membership_test']['permission_boundary_failures'] );
 
 		$this->install_account_creator();
@@ -1861,6 +1863,11 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertSame( array( 4 ), $config_input['oneOf'][3]['properties']['version']['enum'] );
 		$this->assertContains( 'booking_guide', $config_input['oneOf'][3]['required'] );
 		$this->assertSame( array( 4 ), $config_output['properties']['version']['enum'] );
+		$correspondence_output = $config_output['properties']['correspondence'];
+		$this->assertSame( 6, $correspondence_output['properties']['variables']['maxItems'] );
+		$this->assertContains( 'cc_address', $correspondence_output['required'] );
+		$this->assertContains( 'from_name', $correspondence_output['required'] );
+		$this->assertContains( 'footer', $correspondence_output['required'] );
 		$intake_output = $config_output['properties']['intake'];
 		$this->assertContains( 'presentation', $intake_output['required'] );
 		$this->assertSame(

@@ -589,9 +589,23 @@ class VenueBookingConfigAbilities {
 					'type'   => array( 'string', 'null' ),
 					'format' => 'email',
 				),
+				'cc_address'        => array(
+					'type'   => array( 'string', 'null' ),
+					'format' => 'email',
+				),
+				'from_name'         => array(
+					'type'      => 'string',
+					'minLength' => 1,
+					'maxLength' => 100,
+				),
+				'footer'            => array(
+					'type'      => 'string',
+					'minLength' => 1,
+					'maxLength' => 500,
+				),
 				'variables'         => array(
 					'type'     => 'array',
-					'maxItems' => 5,
+					'maxItems' => 6,
 					'items'    => array(
 						'type'                 => 'object',
 						'properties'           => array(
@@ -629,7 +643,7 @@ class VenueBookingConfigAbilities {
 					'additionalProperties' => false,
 				),
 			),
-			'required'             => array( 'version', 'booking_address', 'variables', 'templates', 'reminder_policies' ),
+			'required'             => array( 'version', 'booking_address', 'cc_address', 'from_name', 'footer', 'variables', 'templates', 'reminder_policies' ),
 			'additionalProperties' => false,
 		);
 	}

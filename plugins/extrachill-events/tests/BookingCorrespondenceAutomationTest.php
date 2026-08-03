@@ -108,14 +108,19 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$this->assertSame( array( 'completed' => true ), $service->reconcile_source( $source['id'] ) );
 		$this->assertCount( 1, $queued );
 		$this->assertSame( 'artist@example.com', $queued[0]['to'] );
-		$this->assertSame( 'chubes@extrachill.com', $queued[0]['cc'] );
+		$this->assertSame( '', $queued[0]['cc'] );
+		$this->assertSame( 'Extra Chill Bookings', $queued[0]['from_name'] );
 		$this->assertSame( 'booking@lofi.example', $queued[0]['reply_to'] );
+		$this->assertSame( 'Booking inquiry received: Test Band at Lo-Fi Brewing - Aug 1', $queued[0]['subject'] );
+		$this->assertStringNotContainsString( $booking['public_id'], $queued[0]['subject'] );
 		$this->assertStringContainsString( 'pending review', $queued[0]['body'] );
 		$this->assertStringContainsString( 'Thursday, August 1, 2030, 8:00 PM to 11:00 PM EDT (America/New_York)', $queued[0]['body'] );
 		$this->assertStringNotContainsString( ' UTC', $queued[0]['body'] );
 		$this->assertStringContainsString( 'does not place a hold or confirm', $queued[0]['body'] );
 		$this->assertStringContainsString( $booking['public_id'], $queued[0]['body'] );
-		$this->assertStringContainsString( "Extra Chill Bot sending on Chris's behalf.", $queued[0]['body'] );
+		$this->assertStringContainsString( 'Powered by Extra Chill', $queued[0]['body'] );
+		$this->assertStringNotContainsString( 'Extra Chill Bot', $queued[0]['body'] );
+		$this->assertStringNotContainsString( 'Chris', $queued[0]['body'] );
 		$this->assertArrayNotHasKey( 'attachments', $queued[0] );
 	}
 
@@ -176,6 +181,7 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$this->assertSame( array( 'completed' => true ), $this->service( $queued )->reconcile_source( $source['id'] ) );
 		$this->assertCount( 1, $queued );
 		$this->assertSame( 'overlap@example.com', $queued[0]['to'] );
+		$this->assertSame( 'Booking date update: Overlap at Lo-Fi Brewing - Aug 1', $queued[0]['subject'] );
 		$this->assertStringContainsString( 'has been filled', $queued[0]['body'] );
 		$this->assertStringContainsString( 'reply to this email with another exact date', $queued[0]['body'] );
 		$this->assertStringContainsString( 'Thursday, August 1, 2030, 10:00 PM to Friday, August 2, 2030, 12:00 AM EDT (America/New_York)', $queued[0]['body'] );

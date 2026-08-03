@@ -139,9 +139,6 @@ class BookingCommunicationService {
 					array(
 						'request_hash'    => $hash,
 						'booking_version' => (int) $booking['version'],
-						'cc'              => 'chubes@extrachill.com',
-						'from_name'       => 'Extra Chill Bot',
-						'identity'        => 'Extra Chill Bot sending on Chris\'s behalf.',
 						'mail_site_id'    => function_exists( 'extrachill_mail_site_id' ) ? extrachill_mail_site_id() : get_current_blog_id(),
 					)
 				),
@@ -218,9 +215,6 @@ class BookingCommunicationService {
 						'request_hash'       => hash( 'sha256', $key . "\0" . $request['subject'] . "\0" . $request['body'] ),
 						'booking_version'    => (int) $booking['version'],
 						'source_activity_id' => $source_activity_id,
-						'cc'                 => 'chubes@extrachill.com',
-						'from_name'          => 'Extra Chill Bot',
-						'identity'           => 'Extra Chill Bot sending on Chris\'s behalf.',
 						'mail_site_id'       => function_exists( 'extrachill_mail_site_id' ) ? extrachill_mail_site_id() : get_current_blog_id(),
 					)
 				),
@@ -1021,11 +1015,12 @@ class BookingCommunicationService {
 			$request['template'],
 			$request['template_version'],
 			array(
-				'artist_name'  => (string) $booking['artist_name'],
-				'booking_id'   => (string) $booking['public_id'],
-				'contact_name' => (string) $booking['contact_name'],
-				'venue_name'   => (string) $venue->name,
-				'message'      => $request['message'],
+				'artist_name'   => (string) $booking['artist_name'],
+				'booking_id'    => (string) $booking['public_id'],
+				'contact_name'  => (string) $booking['contact_name'],
+				'requested_date' => $this->requested_date_label( (string) ( $booking['requested_start_at'] ?? '' ) ),
+				'venue_name'    => (string) $venue->name,
+				'message'       => $request['message'],
 			)
 		);
 		if ( is_wp_error( $prepared ) ) {
@@ -1047,12 +1042,20 @@ class BookingCommunicationService {
 				'config_revision'         => (int) $prepared['config_revision'],
 				'subject'                 => $prepared['subject'],
 				'body'                    => $prepared['body'],
+				'cc'                      => $prepared['cc_address'] ? $prepared['cc_address'] : '',
+				'from_name'               => $prepared['from_name'],
 				'reply_to'                => $prepared['booking_address'] ? $prepared['booking_address'] : $request['reply_to'],
 				'send_at'                 => $send_at,
 				'expected_statuses'       => $expected_statuses,
 				'reminder_policy_version' => $policy_version,
 			)
 		);
+	}
+
+	/** Format the venue-local requested date for concise email subjects. */
+	private function requested_date_label( string $value ): string {
+		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, new \DateTimeZone( 'UTC' ) );
+		return false !== $date && $date->format( 'Y-m-d H:i:s' ) === $value ? $date->format( 'M j' ) : '';
 	}
 
 	/** Revalidate server-owned automatic correspondence immediately before queueing. */

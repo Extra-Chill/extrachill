@@ -303,14 +303,14 @@ class VendorRequestService {
 			return hash_equals( (string) $existing['request_hash'], $hash ) ? $existing['payload'] : $this->idempotency_conflict();
 		}
 		$body   = wpautop( esc_html( $message ) );
-		$body  .= '<p><strong>Extra Chill Bot sending on Chris Huber\'s behalf.</strong> Reply through the managed vendor application workflow; applicant and coordinator directories are not shared.</p>';
+		$body  .= '<p><strong>Powered by Extra Chill.</strong> Reply through the managed vendor application workflow; applicant and coordinator directories are not shared.</p>';
 		$input  = array(
 			'to'           => $application['contact']['email'],
-			'cc'           => 'chubes@extrachill.com',
+			'cc'           => '',
 			'subject'      => $subject,
 			'body'         => $body,
 			'content_type' => 'text/html',
-			'from_name'    => 'Extra Chill Bot',
+			'from_name'    => 'Extra Chill Events',
 		);
 		$result = is_callable( $queue ) ? call_user_func( $queue, $input ) : ( function_exists( 'ec_send_email_queued' ) ? ec_send_email_queued( $input ) : new \WP_Error( 'vendor_correspondence_unavailable' ) );
 		if ( is_wp_error( $result ) || ! is_array( $result ) || empty( $result['success'] ) || absint( $result['action_id'] ?? 0 ) < 1 ) {

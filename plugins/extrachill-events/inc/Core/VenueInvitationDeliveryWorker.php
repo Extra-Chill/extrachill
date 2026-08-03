@@ -89,7 +89,7 @@ class VenueInvitationDeliveryWorker {
 			$body .= '<p>' . esc_html__( 'Set your account password first, then return to the invitation link below to accept.', 'extrachill-events' ) . '</p>';
 			$body .= '<p><a href="' . esc_url( $accept_url ) . '">' . esc_html__( 'Accept venue invitation', 'extrachill-events' ) . '</a></p>';
 		}
-		$body .= '<p>' . esc_html__( 'This message was sent by Extra Chill Bot acting on Chris Huber\'s behalf.', 'extrachill-events' ) . '</p>';
+		$body .= '<p>' . esc_html__( 'Powered by Extra Chill.', 'extrachill-events' ) . '</p>';
 
 		if ( ! function_exists( 'ec_send_email' ) ) {
 			$this->repository->finish_delivery( $delivery_id, false );
@@ -98,10 +98,10 @@ class VenueInvitationDeliveryWorker {
 		$result = ec_send_email(
 			array(
 				'to'        => $user->user_email,
-				'cc'        => 'chubes@extrachill.com',
+				'cc'        => '',
 				/* translators: %s: Venue name. */
 				'subject'   => sprintf( __( 'Invitation to manage %s', 'extrachill-events' ), $venue->name ),
-				'from_name' => 'Extra Chill Bot',
+				'from_name' => 'Extra Chill Events',
 				'template'  => 'extrachill/branded',
 				'context'   => array(
 					'recipient_name' => $user->display_name,
