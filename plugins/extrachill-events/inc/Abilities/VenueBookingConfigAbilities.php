@@ -334,6 +334,22 @@ class VenueBookingConfigAbilities {
 				'additionalProperties' => false,
 			),
 			'booking_guide'             => $this->booking_guide_schema(),
+			'embed'                     => array(
+				'type'                 => 'object',
+				'properties'           => array(
+					'allowed_parent_origins' => array(
+						'type'        => 'array',
+						'maxItems'    => 20,
+						'uniqueItems' => true,
+						'items'       => array(
+							'type'      => 'string',
+							'maxLength' => 255,
+						),
+					),
+				),
+				'required'             => array( 'allowed_parent_origins' ),
+				'additionalProperties' => false,
+			),
 			'spaces'                    => array(
 				'type'     => 'array',
 				'maxItems' => 50,
@@ -410,7 +426,7 @@ class VenueBookingConfigAbilities {
 			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
-		$required            = array( 'version', 'enabled', 'intake', 'public_requirements', 'consent', 'booking_guide', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$required            = array( 'version', 'enabled', 'intake', 'public_requirements', 'consent', 'booking_guide', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		if ( $include_metadata ) {
 			$properties['revision']           = array(
 				'type'    => 'integer',
@@ -435,7 +451,11 @@ class VenueBookingConfigAbilities {
 		if ( ! $accept_legacy ) {
 			return $schema;
 		}
-		$public_intake                                  = $schema;
+		$booking_guide                                  = $schema;
+		$booking_guide['properties']['version']['enum'] = array( VenueBookingConfig::BOOKING_GUIDE_CONFIG_VERSION );
+		$booking_guide['required']                      = array_values( array_diff( $booking_guide['required'], array( 'embed' ) ) );
+		unset( $booking_guide['properties']['embed'] );
+		$public_intake                                  = $booking_guide;
 		$public_intake['properties']['version']['enum'] = array( VenueBookingConfig::PUBLIC_INTAKE_VERSION );
 		$public_intake['required']                      = array_values( array_diff( $public_intake['required'], array( 'booking_guide' ) ) );
 		unset( $public_intake['properties']['booking_guide'] );
@@ -448,7 +468,7 @@ class VenueBookingConfigAbilities {
 		$legacy['properties']['version']['enum'] = array( VenueBookingConfig::LEGACY_VERSION );
 		$legacy['required']                      = array_values( array_diff( $legacy['required'], array( 'correspondence' ) ) );
 		unset( $legacy['properties']['correspondence'] );
-		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $schema ) );
+		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $booking_guide, $schema ) );
 	}
 
 	/** Return the versioned ordered booking-guide schema. */

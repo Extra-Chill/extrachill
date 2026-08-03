@@ -16,7 +16,8 @@ class VenueBookingConfig {
 
 	public const META_KEY                    = '_extrachill_booking_config';
 	public const HISTORY_META_KEY            = '_extrachill_booking_config_history';
-	public const VERSION                     = 4;
+	public const VERSION                     = 5;
+	public const BOOKING_GUIDE_CONFIG_VERSION = 4;
 	public const PUBLIC_INTAKE_VERSION       = 3;
 	public const PREVIOUS_VERSION            = 2;
 	public const LEGACY_VERSION              = 1;
@@ -36,6 +37,30 @@ class VenueBookingConfig {
 
 	public function __construct( ?VenueAuthorization $authorization = null ) {
 		$this->authorization = $authorization;
+	}
+
+	/**
+	 * Normalize one exact, standard-port HTTPS web origin.
+	 *
+	 * @param mixed $origin Candidate origin.
+	 * @return string|\WP_Error
+	 */
+	public static function normalize_embed_origin( $origin ) {
+		if ( ! is_string( $origin ) || trim( $origin ) !== $origin || '' === $origin || false !== strpos( $origin, '*' ) ) {
+			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Enter exact HTTPS origins without wildcards.', 'extrachill-events' ) );
+		}
+		$parts = wp_parse_url( $origin );
+		if ( ! is_array( $parts ) || 'https' !== strtolower( (string) ( $parts['scheme'] ?? '' ) ) || empty( $parts['host'] ) ) {
+			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Booking embed origins must use HTTPS.', 'extrachill-events' ) );
+		}
+		if ( isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['port'] ) || isset( $parts['query'] ) || isset( $parts['fragment'] ) || ( isset( $parts['path'] ) && '' !== $parts['path'] ) ) {
+			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Booking embed origins cannot contain credentials, ports, paths, queries, or fragments.', 'extrachill-events' ) );
+		}
+		$host = strtolower( rtrim( (string) $parts['host'], '.' ) );
+		if ( 'localhost' === $host || filter_var( $host, FILTER_VALIDATE_IP ) || ! preg_match( '/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/', $host ) ) {
+			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Booking embed origins must use a public DNS hostname.', 'extrachill-events' ) );
+		}
+		return 'https://' . $host;
 	}
 
 	/** Return validated config for a canonical venue term. */
@@ -73,7 +98,7 @@ class VenueBookingConfig {
 		}
 
 		$stored = get_term_meta( $venue_term_id, self::META_KEY, true );
-		if ( ! is_array( $stored ) || ! in_array( $stored['version'] ?? null, array( self::PUBLIC_INTAKE_VERSION, self::VERSION ), true ) ) {
+		if ( ! is_array( $stored ) || ! in_array( $stored['version'] ?? null, array( self::PUBLIC_INTAKE_VERSION, self::BOOKING_GUIDE_CONFIG_VERSION, self::VERSION ), true ) ) {
 			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-events' ) );
 		}
 
@@ -292,7 +317,7 @@ class VenueBookingConfig {
 	/** Normalize and validate the complete versioned contract. */
 	public function normalize( array $config ) {
 		$version = $config['version'] ?? self::LEGACY_VERSION;
-		if ( ! is_int( $version ) || ! in_array( $version, array( self::LEGACY_VERSION, self::PREVIOUS_VERSION, self::PUBLIC_INTAKE_VERSION, self::VERSION ), true ) ) {
+		if ( ! is_int( $version ) || ! in_array( $version, array( self::LEGACY_VERSION, self::PREVIOUS_VERSION, self::PUBLIC_INTAKE_VERSION, self::BOOKING_GUIDE_CONFIG_VERSION, self::VERSION ), true ) ) {
 			return new \WP_Error( 'booking_config_version_unsupported', __( 'The venue booking configuration version is unsupported.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
 		$version_three_fields = array( 'public_requirements', 'consent', 'marketing_triggers' );
@@ -302,11 +327,14 @@ class VenueBookingConfig {
 		if ( $version >= self::PUBLIC_INTAKE_VERSION && ! array_key_exists( 'marketing_triggers', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 3 requires marketing triggers.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
-		if ( $version < self::VERSION && array_key_exists( 'booking_guide', $config ) ) {
+		if ( $version < self::BOOKING_GUIDE_CONFIG_VERSION && array_key_exists( 'booking_guide', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Booking guide settings require venue booking configuration version 4.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
-		if ( self::VERSION === $version && ! array_key_exists( 'booking_guide', $config ) ) {
+		if ( $version >= self::BOOKING_GUIDE_CONFIG_VERSION && ! array_key_exists( 'booking_guide', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 4 requires a booking guide.', 'extrachill-events' ), array( 'version' => $version ) );
+		}
+		if ( $version < self::VERSION && array_key_exists( 'embed', $config ) ) {
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Embed settings require venue booking configuration version 5.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
 		$intake_version         = $config['intake']['version'] ?? 1;
 		$deal_version           = $config['default_deal']['version'] ?? 1;
@@ -357,6 +385,10 @@ class VenueBookingConfig {
 		if ( is_wp_error( $booking_guide ) ) {
 			return $booking_guide;
 		}
+		$embed = $this->normalize_embed( $config['embed'] ?? array() );
+		if ( is_wp_error( $embed ) ) {
+			return $embed;
+		}
 		$channels = $this->normalize_channels( $config['marketing_channels'] ?? array() );
 		if ( is_wp_error( $channels ) ) {
 			return $channels;
@@ -401,6 +433,7 @@ class VenueBookingConfig {
 			'public_requirements'       => $requirements,
 			'consent'                   => $consent,
 			'booking_guide'             => $booking_guide,
+			'embed'                     => $embed,
 			'spaces'                    => $spaces,
 			'default_deal'              => array(
 				'version'                    => 1,
@@ -442,6 +475,7 @@ class VenueBookingConfig {
 				'version' => self::BOOKING_GUIDE_VERSION,
 				'entries' => array(),
 			),
+			'embed'                     => array( 'allowed_parent_origins' => array() ),
 			'spaces'                    => array(),
 			'default_deal'              => array(
 				'version'                    => 1,
@@ -1030,9 +1064,36 @@ class VenueBookingConfig {
 		return '' === $value ? null : mb_substr( $value, 0, $length );
 	}
 
+	/**
+	 * Normalize exact HTTPS origins used by the hosted booking embed.
+	 *
+	 * @param mixed $embed Candidate embed config.
+	 * @return array|\WP_Error
+	 */
+	private function normalize_embed( $embed ) {
+		$allowed_parent_origins = is_array( $embed ) ? ( $embed['allowed_parent_origins'] ?? array() ) : null;
+		if ( ! is_array( $allowed_parent_origins ) ) {
+			return new \WP_Error( 'invalid_booking_embed_config', __( 'Booking embed settings are malformed.', 'extrachill-events' ) );
+		}
+		if ( count( $allowed_parent_origins ) > 20 ) {
+			return new \WP_Error( 'invalid_booking_embed_config', __( 'Configure no more than 20 booking embed origins.', 'extrachill-events' ) );
+		}
+
+		$origins = array();
+		foreach ( $allowed_parent_origins as $origin ) {
+			$normalized = self::normalize_embed_origin( $origin );
+			if ( is_wp_error( $normalized ) ) {
+				return $normalized;
+			}
+			$origins[] = $normalized;
+		}
+
+		return array( 'allowed_parent_origins' => array_values( array_unique( $origins ) ) );
+	}
+
 	/** Return top-level settings changed by the replacement document. */
 	private function changed_fields( array $current, array $next ): array {
-		$fields  = array( 'enabled', 'intake', 'public_requirements', 'consent', 'booking_guide', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$fields  = array( 'enabled', 'intake', 'public_requirements', 'consent', 'booking_guide', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		$changed = array();
 		foreach ( $fields as $field ) {
 			if ( $current[ $field ] !== $next[ $field ] ) {

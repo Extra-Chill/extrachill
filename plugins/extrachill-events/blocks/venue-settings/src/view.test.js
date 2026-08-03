@@ -88,7 +88,7 @@ const profile = ( id ) => ( {
 	revision: String( id ).padStart( 64, '0' ),
 } );
 const config = ( id ) => ( {
-	version: 4,
+	version: 5,
 	revision: id,
 	updated_by_user_id: null,
 	updated_at: null,
@@ -102,6 +102,7 @@ const config = ( id ) => ( {
 		required: true,
 	},
 	booking_guide: { version: 1, entries: [] },
+	embed: { allowed_parent_origins: [] },
 	spaces: [],
 	default_deal: {
 		version: 1,
@@ -179,6 +180,7 @@ const context = ( overrides = {} ) => ( {
 	can_access: true,
 	can_manage: false,
 	route_url: 'https://events.example/venue-settings/',
+	booking_url: 'https://events.example/venue/venue-44/#booking-inquiry',
 	requested_venue_id: 0,
 	booking_id: 0,
 	support_events: [],

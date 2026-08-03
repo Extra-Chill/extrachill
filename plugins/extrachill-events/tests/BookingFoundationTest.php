@@ -10,6 +10,7 @@ use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
+use ExtraChillEvents\Core\VenueBookingEmbed;
 use ExtraChillEvents\Abilities\VenueBookingAbilities;
 use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
@@ -599,12 +600,44 @@ final class BookingFoundationTest extends BookingTestCase {
 		$migrated = $service->normalize( array( 'version' => 1, 'enabled' => true ) );
 		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
 		$this->assertArrayHasKey( 'correspondence', $migrated );
-		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 5 ) )->get_error_code() );
+		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 6 ) )->get_error_code() );
 		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => '1junk' ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'intake' => array( 'version' => 2 ) ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'correspondence' => array( 'version' => 2 ) ) )->get_error_code() );
 		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = array( 'version' => 99 );
 		$this->assertSame( 'booking_config_version_unsupported', $service->get( 55 )->get_error_code() );
+	}
+
+	public function test_config_normalizes_exact_https_embed_origins_and_migrates_version_four(): void {
+		$service = new VenueBookingConfig();
+		$config  = $service->defaults();
+		$config['embed']['allowed_parent_origins'] = array( 'https://Venue.Example', 'https://venue.example' );
+		$normalized = $service->normalize( $config );
+
+		$this->assertSame( array( 'https://venue.example' ), $normalized['embed']['allowed_parent_origins'] );
+		foreach ( array( 'http://venue.example', 'https://venue.example/path', 'https://user@venue.example', 'https://*.example', 'https://localhost', 'https://127.0.0.1', 'https://venue.example:8443', 'https://venue.example#frame' ) as $origin ) {
+			$config['embed']['allowed_parent_origins'] = array( $origin );
+			$this->assertSame( 'invalid_booking_embed_origin', $service->normalize( $config )->get_error_code(), $origin );
+		}
+
+		$version_four = $service->defaults();
+		$version_four['version'] = 4;
+		unset( $version_four['embed'] );
+		$migrated = $service->normalize( $version_four );
+		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
+		$this->assertSame( array(), $migrated['embed']['allowed_parent_origins'] );
+	}
+
+	public function test_embed_admission_and_frame_policy_fail_closed(): void {
+		$config = ( new VenueBookingConfig() )->defaults();
+		$config['embed']['allowed_parent_origins'] = array( 'https://venue.example' );
+
+		$this->assertFalse( VenueBookingEmbed::is_origin_allowed( $config, 'https://venue.example' ) );
+		$config['enabled'] = true;
+		$this->assertTrue( VenueBookingEmbed::is_origin_allowed( $config, 'https://venue.example' ) );
+		$this->assertFalse( VenueBookingEmbed::is_origin_allowed( $config, 'https://attacker.example' ) );
+		$this->assertSame( "frame-ancestors 'none'", VenueBookingEmbed::frame_ancestors_policy() );
+		$this->assertSame( "frame-ancestors 'self' https://venue.example", VenueBookingEmbed::frame_ancestors_policy( 'https://venue.example' ) );
 	}
 
 	public function test_config_accepts_fourteen_day_holds_and_rejects_longer_values(): void {

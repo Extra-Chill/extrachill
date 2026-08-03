@@ -11,7 +11,7 @@ import {
 } from './state';
 
 const validConfig = () => ( {
-	version: 4,
+	version: 5,
 	enabled: true,
 	intake: { version: 1, fields: [] },
 	public_requirements: [],
@@ -22,6 +22,7 @@ const validConfig = () => ( {
 		required: true,
 	},
 	booking_guide: { version: 1, entries: [] },
+	embed: { allowed_parent_origins: [] },
 	spaces: [ { key: 'main_room', name: 'Main Room', is_default: true } ],
 	default_deal: {
 		version: 1,

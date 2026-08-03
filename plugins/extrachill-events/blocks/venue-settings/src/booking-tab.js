@@ -1,3 +1,5 @@
+import { useState } from '@wordpress/element';
+
 /**
  * External dependencies
  */
@@ -14,6 +16,7 @@ import {
  * Internal dependencies
  */
 import { Status } from './status';
+import { bookingButtonSnippet, bookingEmbedSnippet } from './booking-embed';
 import {
 	HOLD_TTL_MAX_MINUTES,
 	normalizeKey,
@@ -132,12 +135,24 @@ export function BookingTab( {
 	onSave,
 	saving,
 	status,
+	bookingUrl,
+	venueName,
 } ) {
+	const [ copied, setCopied ] = useState( '' );
 	const errors = validateConfig( config );
 	const dirty = ! sameDocument( config, baseline );
 	const deal = config.default_deal;
 	const setDeal = ( patch ) =>
 		setConfig( { ...config, default_deal: { ...deal, ...patch } } );
+	const origins = config.embed.allowed_parent_origins;
+	const buttonSnippet = bookingButtonSnippet( bookingUrl, venueName );
+	const embedSnippet = origins.length
+		? bookingEmbedSnippet( bookingUrl, venueName, origins[ 0 ] )
+		: '';
+	const copy = async ( label, value ) => {
+		await navigator.clipboard.writeText( value );
+		setCopied( label );
+	};
 	return (
 		<Grid minColumnWidth="100%">
 			<Panel>
@@ -221,6 +236,85 @@ export function BookingTab( {
 						}
 					/>
 				</FieldGroup>
+			</Panel>
+			<Panel>
+				<PanelHeader
+					title="Booking link and embed"
+					description="Share the canonical booking page or authorize one exact HTTPS website to frame the hosted form."
+				/>
+				<FieldGroup
+					label="Canonical booking link"
+					htmlFor="venue-booking-link"
+				>
+					<input
+						id="venue-booking-link"
+						readOnly
+						value={ bookingUrl }
+					/>
+				</FieldGroup>
+				<ActionRow>
+					<button
+						type="button"
+						className="button-2"
+						onClick={ () => copy( 'link', bookingUrl ) }
+					>
+						Copy link
+					</button>
+					<button
+						type="button"
+						className="button-2"
+						onClick={ () => copy( 'button', buttonSnippet ) }
+					>
+						Copy button HTML
+					</button>
+					{ copied && <span role="status">Copied { copied }.</span> }
+				</ActionRow>
+				<FieldGroup
+					label="Allowed parent origins"
+					htmlFor="venue-booking-origins"
+					help="One exact HTTPS origin per line, such as https://venue.example. Paths, wildcards, ports, credentials, localhost, and IP addresses are rejected. The first origin is used for the generated snippet."
+				>
+					<textarea
+						id="venue-booking-origins"
+						rows="4"
+						value={ origins.join( '\n' ) }
+						onChange={ ( event ) =>
+							setConfig( {
+								...config,
+								embed: {
+									allowed_parent_origins: event.target.value
+										.split( /\r?\n/ )
+										.map( ( origin ) => origin.trim() )
+										.filter( Boolean ),
+								},
+							} )
+						}
+					/>
+				</FieldGroup>
+				{ embedSnippet && (
+					<>
+						<FieldGroup
+							label="Responsive iframe snippet"
+							htmlFor="venue-booking-embed-code"
+						>
+							<textarea
+								id="venue-booking-embed-code"
+								rows="8"
+								readOnly
+								value={ embedSnippet }
+							/>
+						</FieldGroup>
+						<button
+							type="button"
+							className="button-2"
+							onClick={ () =>
+								copy( 'embed snippet', embedSnippet )
+							}
+						>
+							Copy iframe snippet
+						</button>
+					</>
+				) }
 			</Panel>
 			<SpacesEditor
 				spaces={ config.spaces }

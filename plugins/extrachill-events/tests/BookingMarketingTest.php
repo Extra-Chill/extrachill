@@ -1300,7 +1300,7 @@ final class BookingMarketingTest extends BookingTestCase {
 	public function test_version_two_configs_migrate_without_implicit_marketing_triggers(): void {
 		$config            = ( new VenueBookingConfig() )->defaults();
 		$config['version'] = VenueBookingConfig::PREVIOUS_VERSION;
-		unset( $config['public_requirements'], $config['consent'], $config['marketing_triggers'], $config['booking_guide'] );
+		unset( $config['public_requirements'], $config['consent'], $config['marketing_triggers'], $config['booking_guide'], $config['embed'] );
 		$normalized = ( new VenueBookingConfig() )->normalize( $config );
 		$this->assertSame( VenueBookingConfig::VERSION, $normalized['version'] );
 		$this->assertSame( array(), $normalized['marketing_triggers'] );

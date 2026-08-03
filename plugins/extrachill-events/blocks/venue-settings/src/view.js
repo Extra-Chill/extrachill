@@ -357,6 +357,8 @@ export function VenueSettingsApp( { context } ) {
 					onSave={ saveConfig }
 					saving={ savingConfig }
 					status={ configStatus }
+					bookingUrl={ context.booking_url }
+					venueName={ selected.name }
 				/>
 			) : (
 				<LoadingPanel label="Loading booking settings..." />

@@ -2181,6 +2181,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentDeliveryReposit
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingInquiryAdmissionService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingConfig.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingEmbed.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingCorrespondenceAutomationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/TicketReconciliationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/TicketSettlementService.php';

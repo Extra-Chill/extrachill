@@ -1,3 +1,5 @@
+import { normalizeBookingOrigin } from './booking-embed';
+
 export const HOLD_TTL_MAX_MINUTES = 20160;
 
 export const editableConfig = ( config ) => {
@@ -29,6 +31,20 @@ export const normalizeKey = ( value ) =>
 
 export const validateConfig = ( config ) => {
 	const errors = [];
+	if (
+		! config.embed ||
+		! Array.isArray( config.embed.allowed_parent_origins ) ||
+		config.embed.allowed_parent_origins.some(
+			( origin ) => normalizeBookingOrigin( origin ) !== origin
+		)
+	) {
+		errors.push(
+			'Embed parent origins must be exact normalized HTTPS origins.'
+		);
+	}
+	if ( config.embed?.allowed_parent_origins?.length > 20 ) {
+		errors.push( 'Use no more than 20 embed parent origins.' );
+	}
 	if ( config.public_requirements.length > 20 ) {
 		errors.push( 'Use no more than 20 public requirements.' );
 	}

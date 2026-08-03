@@ -125,8 +125,13 @@ $guide_heading_id = $instance . '-guide-title';
 if ( $form_enabled && false === $json ) {
 	return;
 }
+$wrapper_extra = array( 'class' => 'ec-venue-booking-inquiry' );
+if ( (int) get_current_blog_id() === $events_blog_id && is_tax( 'venue' ) ) {
+	$wrapper_extra['id'] = 'booking-inquiry';
+}
+$wrapper_attributes = get_block_wrapper_attributes( $wrapper_extra );
 ?>
-<section <?php echo get_block_wrapper_attributes( array( 'class' => 'ec-venue-booking-inquiry' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core escapes block wrapper attributes. ?>>
+<section <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core escapes block wrapper attributes. ?>>
 	<?php if ( ! empty( $guide_entries ) ) : ?>
 		<div class="ec-booking-guide" aria-labelledby="<?php echo esc_attr( $guide_heading_id ); ?>">
 			<h2 id="<?php echo esc_attr( $guide_heading_id ); ?>"><?php esc_html_e( 'Booking guide', 'extrachill-events' ); ?></h2>
