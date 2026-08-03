@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.2] - 2026-08-03
+
+### Fixed
+- clear Studio release lint blockers
+- proxy compose post reads to main
+- fail closed for missing team helper
+- restore newer autosave on initial compose load
+
 ## [0.24.1] - 2026-07-29
 
 ### Changed
