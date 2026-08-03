@@ -14,25 +14,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Validates one versioned termmeta document on canonical venue terms. */
 class VenueBookingConfig {
 
-	public const META_KEY                    = '_extrachill_booking_config';
-	public const HISTORY_META_KEY            = '_extrachill_booking_config_history';
-	public const VERSION                     = 5;
+	public const META_KEY                     = '_extrachill_booking_config';
+	public const HISTORY_META_KEY             = '_extrachill_booking_config_history';
+	public const VERSION                      = 5;
 	public const BOOKING_GUIDE_CONFIG_VERSION = 4;
-	public const PUBLIC_INTAKE_VERSION       = 3;
-	public const PREVIOUS_VERSION            = 2;
-	public const LEGACY_VERSION              = 1;
-	public const BOOKING_GUIDE_VERSION       = 1;
-	public const CORRESPONDENCE_VERSION      = 1;
-	public const TEMPLATE_VERSION            = 1;
-	public const REMINDER_POLICY_VERSION     = 1;
-	public const CORRESPONDENCE_TEMPLATES    = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'date_filled' );
-	public const CORRESPONDENCE_VARIABLES    = array( 'artist_name', 'booking_id', 'contact_name', 'requested_date', 'venue_name' );
-	public const CONSENT_VERSION             = 1;
-	public const HOLD_TTL_MAX_MINUTES        = 20160;
-	public const SOCIAL_MARKETING_ACTION     = 'datamachine-socials/cross-post';
-	public const NEWSLETTER_MARKETING_ACTION = 'extrachill-newsletter/canonical-post-campaign';
+	public const PUBLIC_INTAKE_VERSION        = 3;
+	public const PREVIOUS_VERSION             = 2;
+	public const LEGACY_VERSION               = 1;
+	public const BOOKING_GUIDE_VERSION        = 1;
+	public const CORRESPONDENCE_VERSION       = 1;
+	public const TEMPLATE_VERSION             = 1;
+	public const REMINDER_POLICY_VERSION      = 1;
+	public const CORRESPONDENCE_TEMPLATES     = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'date_filled' );
+	public const CORRESPONDENCE_VARIABLES     = array( 'artist_name', 'booking_id', 'contact_name', 'requested_date', 'venue_name' );
+	public const CONSENT_VERSION              = 1;
+	public const HOLD_TTL_MAX_MINUTES         = 20160;
+	public const SOCIAL_MARKETING_ACTION      = 'datamachine-socials/cross-post';
+	public const NEWSLETTER_MARKETING_ACTION  = 'extrachill-newsletter/canonical-post-campaign';
 
-	/** @var VenueAuthorization */
+	/** @var VenueAuthorization|null */
 	private $authorization;
 
 	public function __construct( ?VenueAuthorization $authorization = null ) {
@@ -121,6 +121,9 @@ class VenueBookingConfig {
 				return $section;
 			}
 		}
+		if ( ! is_array( $booking_guide ) ) {
+			return $booking_guide;
+		}
 
 		return array(
 			'enabled'             => ! empty( $stored['enabled'] ),
@@ -191,7 +194,7 @@ class VenueBookingConfig {
 
 		$memberships = BookingSchema::memberships_table();
 		$wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$memberships} WHERE venue_term_id = %d AND user_id = %d FOR UPDATE", $venue_term_id, $actor_user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locks the actor's exact venue scope before reauthorization.
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( $this->has_database_error() ) {
 			return $this->rollback_error( 'booking_config_authorization_lock_failed', __( 'Venue configuration authority could not be locked.', 'extrachill-events' ) );
 		}
 		$authorization = $this->authorization ? $this->authorization : new VenueAuthorization();
@@ -202,12 +205,12 @@ class VenueBookingConfig {
 		}
 
 		$locked_term = $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM {$wpdb->terms} WHERE term_id = %d FOR UPDATE", $venue_term_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes config revisions before term-meta writes.
-		if ( '' !== (string) $wpdb->last_error || $venue_term_id !== (int) $locked_term ) {
+		if ( $this->has_database_error() || $venue_term_id !== (int) $locked_term ) {
 			return $this->rollback_error( 'booking_config_lock_failed', __( 'The venue booking configuration could not be locked.', 'extrachill-events' ) );
 		}
 
 		$config_meta = $wpdb->get_row( $wpdb->prepare( "SELECT meta_id, meta_value FROM {$wpdb->termmeta} WHERE term_id = %d AND meta_key = %s ORDER BY meta_id ASC LIMIT 1 FOR UPDATE", $venue_term_id, self::META_KEY ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the committed config directly while holding the venue lock, bypassing shared metadata cache.
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( $this->has_database_error() ) {
 			return $this->rollback_error( 'booking_config_read_failed', __( 'The venue booking configuration could not be read.', 'extrachill-events' ) );
 		}
 		$stored  = is_array( $config_meta ) ? maybe_unserialize( $config_meta['meta_value'] ) : '';
@@ -272,7 +275,7 @@ class VenueBookingConfig {
 			return $this->rollback_error( 'booking_config_save_failed', __( 'The venue booking configuration could not be saved.', 'extrachill-events' ), $venue_term_id );
 		}
 		$verified_config = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->termmeta} WHERE meta_id = %d FOR UPDATE", $config_meta_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verifies the uncommitted row directly without publishing it through cache.
-		if ( '' !== (string) $wpdb->last_error || $serialized_config !== $verified_config ) {
+		if ( $this->has_database_error() || $serialized_config !== $verified_config ) {
 			return $this->rollback_error( 'booking_config_save_failed', __( 'The venue booking configuration could not be verified.', 'extrachill-events' ), $venue_term_id );
 		}
 
@@ -299,7 +302,7 @@ class VenueBookingConfig {
 			return $this->rollback_error( 'booking_config_audit_failed', __( 'The venue booking configuration audit record could not be saved.', 'extrachill-events' ), $venue_term_id );
 		}
 		$verified_audit = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->termmeta} WHERE meta_id = %d FOR UPDATE", $audit_meta_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verifies durable audit persistence before commit.
-		if ( '' !== (string) $wpdb->last_error || $serialized_audit !== $verified_audit ) {
+		if ( $this->has_database_error() || $serialized_audit !== $verified_audit ) {
 			return $this->rollback_error( 'booking_config_audit_failed', __( 'The venue booking configuration audit record could not be verified.', 'extrachill-events' ), $venue_term_id );
 		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commits config and audit as one unit.
@@ -1030,7 +1033,20 @@ class VenueBookingConfig {
 	/** Extract normalized placeholders from a template. */
 	private function template_placeholders( string $template ): array {
 		preg_match_all( '/\{\{([a-z_]+)\}\}/', $template, $matches );
-		return array_values( array_unique( $matches[1] ?? array() ) );
+		return array_values( array_unique( $matches[1] ) );
+	}
+
+	/**
+	 * Whether the most recent database operation reported an error.
+	 *
+	 * Database calls mutate this public wpdb state outside PHP's type model.
+	 *
+	 * @phpstan-impure
+	 */
+	private function has_database_error(): bool {
+		global $wpdb;
+
+		return '' !== (string) $wpdb->last_error;
 	}
 
 	/** Require content and policy changes to advance exactly one item version. */

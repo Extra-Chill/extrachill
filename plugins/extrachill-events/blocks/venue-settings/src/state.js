@@ -1,3 +1,6 @@
+/**
+ * Internal dependencies
+ */
 import { normalizeBookingOrigin } from './booking-embed';
 
 export const HOLD_TTL_MAX_MINUTES = 20160;
