@@ -1,7 +1,7 @@
 {
 	"name": "extrachill-studio",
 	"version": "0.1.0",
-	"description": "Internal studio tooling for the Extra Chill team.",
+	"description": "Extra Chill team workspace for publishing, social operations, transcription, analytics, and AI-assisted workflows.",
 	"private": true,
 	"scripts": {
 		"build": "wp-scripts build && cp src/blocks/studio/style.css build/blocks/studio/",
