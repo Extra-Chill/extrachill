@@ -200,6 +200,12 @@
 	background: color-mix(in srgb, var(--success-color) 10%, transparent);
 }
 
+.ec-booking-calendar__item--published {
+	border-left-color: var(--success-color);
+	background: color-mix(in srgb, var(--success-color) 16%, transparent);
+	text-decoration: none;
+}
+
 .ec-booking-calendar__item--needs_info,
 .ec-booking-calendar__item--declined,
 .ec-booking-calendar__item--withdrawn,

@@ -333,6 +333,20 @@ class BookingRepository {
 			$where[]  = "{$field} {$operator} %s";
 			$values[] = $date;
 		}
+		if ( ! empty( $filters['range_start'] ) && ! empty( $filters['range_end'] ) ) {
+			$range_start = $this->datetime( $filters['range_start'], 'range_start' );
+			$range_end   = $this->datetime( $filters['range_end'], 'range_end' );
+			if ( is_wp_error( $range_start ) ) {
+				return $range_start;
+			}
+			if ( is_wp_error( $range_end ) ) {
+				return $range_end;
+			}
+			$where[]  = 'COALESCE(performance_start_at, requested_start_at) < %s';
+			$values[] = $range_end;
+			$where[]  = 'COALESCE(performance_end_at, requested_end_at) > %s';
+			$values[] = $range_start;
+		}
 
 		$limit    = max( 1, min( 100, absint( $filters['limit'] ?? 50 ) ) );
 		$offset   = max( 0, absint( $filters['offset'] ?? 0 ) );

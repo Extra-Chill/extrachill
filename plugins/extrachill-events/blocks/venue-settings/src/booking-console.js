@@ -71,6 +71,11 @@ export const moveMonth = ( month, amount ) => {
 	return monthKey( new Date( year, index - 1 + amount, 1 ) );
 };
 
+export const monthRange = ( month ) => ( {
+	start: `${ month }-01 00:00:00`,
+	end: `${ moveMonth( month, 1 ) }-01 00:00:00`,
+} );
+
 export const calendarDays = ( month ) => {
 	const [ year, index ] = month.split( '-' ).map( Number );
 	const first = new Date( year, index - 1, 1 );
@@ -96,6 +101,34 @@ const bookingDate = ( booking ) =>
 		0,
 		10
 	);
+
+export const calendarEntries = ( bookings, events ) => {
+	const eventIds = new Set( events.map( ( event ) => Number( event.id ) ) );
+	return [
+		...events.map( ( event ) => ( {
+			type: 'event',
+			id: event.id,
+			date: ( event.datetime || '' ).slice( 0, 10 ),
+			title: event.title,
+			status: 'published',
+			permalink: event.permalink,
+		} ) ),
+		...bookings
+			.filter(
+				( booking ) =>
+					! booking.event_id ||
+					! eventIds.has( Number( booking.event_id ) )
+			)
+			.map( ( booking ) => ( {
+				type: 'booking',
+				id: booking.id,
+				date: bookingDate( booking ),
+				title: booking.artist_name,
+				status: booking.status,
+				booking,
+			} ) ),
+	];
+};
 
 export const filterBookings = ( bookings, search ) => {
 	const query = search.trim().toLowerCase();
@@ -631,11 +664,21 @@ function BookingCard( { booking, active, holds, onSelect } ) {
 	);
 }
 
-function Calendar( { bookings, holds, month, onMonthChange, onSelect } ) {
-	const byDay = bookings.reduce( ( grouped, booking ) => {
-		const day = bookingDate( booking );
-		if ( day ) {
-			grouped[ day ] = [ ...( grouped[ day ] || [] ), booking ];
+function Calendar( {
+	bookings,
+	events,
+	holds,
+	month,
+	onMonthChange,
+	onSelect,
+} ) {
+	const entries = calendarEntries( bookings, events );
+	const byDay = entries.reduce( ( grouped, entry ) => {
+		if ( entry.date ) {
+			grouped[ entry.date ] = [
+				...( grouped[ entry.date ] || [] ),
+				entry,
+			];
 		}
 		return grouped;
 	}, {} );
@@ -688,6 +731,11 @@ function Calendar( { bookings, holds, month, onMonthChange, onSelect } ) {
 					</ActionRow>
 				}
 			/>
+			{ entries.length === 0 && (
+				<EmptyState>
+					No bookings, holds, or published events this month.
+				</EmptyState>
+			) }
 			<div className="ec-booking-calendar__weekdays" aria-hidden="true">
 				{ [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ].map(
 					( day ) => (
@@ -712,32 +760,51 @@ function Calendar( { bookings, holds, month, onMonthChange, onSelect } ) {
 							{ day.day }
 						</span>
 						<div className="ec-booking-calendar__items">
-							{ ( byDay[ day.key ] || [] ).map( ( booking ) => (
-								<button
-									type="button"
-									key={ booking.id }
-									className={ `ec-booking-calendar__item ec-booking-calendar__item--${ booking.status }` }
-									onClick={ () => onSelect( booking.id ) }
-								>
-									<span>{ booking.artist_name }</span>
-									<small>
-										{ statusLabel( booking.status ) }
-										{ activeHoldCounts[ booking.id ]
-											? ` · ${
-													activeHoldCounts[
-														booking.id
-													]
-											  } active hold${
-													activeHoldCounts[
-														booking.id
-													] === 1
-														? ''
-														: 's'
-											  }`
-											: '' }
-									</small>
-								</button>
-							) ) }
+							{ ( byDay[ day.key ] || [] ).map( ( entry ) => {
+								const content = (
+									<>
+										<span>{ entry.title }</span>
+										<small>
+											{ entry.type === 'event'
+												? 'Published event'
+												: statusLabel( entry.status ) }
+											{ entry.type === 'booking' &&
+											activeHoldCounts[ entry.id ]
+												? ` · ${
+														activeHoldCounts[
+															entry.id
+														]
+												  } active hold${
+														activeHoldCounts[
+															entry.id
+														] === 1
+															? ''
+															: 's'
+												  }`
+												: '' }
+										</small>
+									</>
+								);
+								const className = `ec-booking-calendar__item ec-booking-calendar__item--${ entry.status }`;
+								return entry.type === 'event' ? (
+									<a
+										key={ `event-${ entry.id }` }
+										className={ className }
+										href={ entry.permalink }
+									>
+										{ content }
+									</a>
+								) : (
+									<button
+										type="button"
+										key={ `booking-${ entry.id }` }
+										className={ className }
+										onClick={ () => onSelect( entry.id ) }
+									>
+										{ content }
+									</button>
+								);
+							} ) }
 						</div>
 					</div>
 				) ) }
@@ -1383,6 +1450,7 @@ function BookingDetail( {
 export function BookingConsole( { context, members, defaultDeal, view } ) {
 	const venueId = context.selected_venue.id;
 	const [ bookings, setBookings ] = useState( [] );
+	const [ events, setEvents ] = useState( [] );
 	const [ holds, setHolds ] = useState( [] );
 	const [ communications, setCommunications ] = useState( [] );
 	const [ operations, setOperations ] = useState( null );
@@ -1408,23 +1476,42 @@ export function BookingConsole( { context, members, defaultDeal, view } ) {
 		setError( '' );
 		try {
 			const input = { venue_term_id: venueId, limit: 100, offset: 0 };
+			const range = monthRange( month );
+			if ( view === 'calendar' ) {
+				input.range_start = range.start;
+				input.range_end = range.end;
+			}
 			if ( filterStatus ) {
 				input.status = filterStatus;
 			}
 			if ( filterAssignee ) {
 				input.assignee_user_id = Number( filterAssignee );
 			}
-			const [ bookingRows, holdRows ] = await Promise.all( [
+			const [ bookingRows, holdRows, calendar ] = await Promise.all( [
 				runAbility( 'extrachill/list-venue-bookings', input ),
 				runAbility( 'extrachill/list-booking-holds', {
 					venue_term_id: venueId,
+					...( view === 'calendar'
+						? { range_start: range.start, range_end: range.end }
+						: {} ),
 					limit: 100,
 					offset: 0,
 				} ),
+				view === 'calendar'
+					? runAbility( 'extrachill/events-calendar', {
+							venue_id: venueId,
+							month,
+					  } )
+					: Promise.resolve( { dates: [] } ),
 			] );
 			if ( currentRequest === requestId.current ) {
 				setBookings( bookingRows );
 				setHolds( holdRows );
+				setEvents(
+					( calendar.dates || [] ).flatMap(
+						( date ) => date.events || []
+					)
+				);
 			}
 		} catch ( caught ) {
 			if ( currentRequest === requestId.current ) {
@@ -1496,7 +1583,7 @@ export function BookingConsole( { context, members, defaultDeal, view } ) {
 
 	useEffect( () => {
 		loadList();
-	}, [ filterStatus, filterAssignee ] ); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [ filterStatus, filterAssignee, month ] ); // eslint-disable-line react-hooks/exhaustive-deps
 	useEffect( () => {
 		loadDetail();
 	}, [ selectedId ] ); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1589,6 +1676,7 @@ export function BookingConsole( { context, members, defaultDeal, view } ) {
 					{ view === 'calendar' ? (
 						<Calendar
 							bookings={ visible }
+							events={ events }
 							holds={ holds }
 							month={ month }
 							onMonthChange={ setMonth }

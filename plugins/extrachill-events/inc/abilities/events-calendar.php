@@ -38,9 +38,19 @@ function extrachill_events_register_calendar_ability(): void {
 						'default'     => 1,
 						'minimum'     => 1,
 					),
+					'month'    => array(
+						'type'        => 'string',
+						'description' => 'Visible month in YYYY-MM format.',
+						'pattern'     => '^\\d{4}-(0[1-9]|1[0-2])$',
+					),
 					'venue'    => array(
 						'type'        => 'string',
 						'description' => 'Filter by venue taxonomy slug.',
+					),
+					'venue_id' => array(
+						'type'        => 'integer',
+						'description' => 'Filter by an exact authorized venue term ID.',
+						'minimum'     => 1,
 					),
 					'promoter' => array(
 						'type'        => 'string',
@@ -99,7 +109,7 @@ function extrachill_events_register_calendar_ability(): void {
 				),
 			),
 			'execute_callback'    => 'extrachill_events_ability_calendar',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_events_can_run_calendar',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -108,6 +118,25 @@ function extrachill_events_register_calendar_ability(): void {
 				),
 			),
 		)
+	);
+}
+
+/**
+ * Require venue workspace access when an exact management venue is requested.
+ *
+ * @param array $input Ability input.
+ * @return bool|WP_Error
+ */
+function extrachill_events_can_run_calendar( array $input ): bool|\WP_Error {
+	if ( empty( $input['venue_id'] ) ) {
+		return true;
+	}
+
+	$authorization = new \ExtraChillEvents\Core\VenueAuthorization();
+	return $authorization->authorize(
+		get_current_user_id(),
+		absint( $input['venue_id'] ),
+		\ExtraChillEvents\Core\VenueAuthorization::ACTION_ACCESS_VENUE
 	);
 }
 
@@ -138,12 +167,19 @@ function extrachill_events_ability_calendar( array $input ): array|\WP_Error {
 		$delegate_input['scope'] = sanitize_text_field( $input['scope'] );
 	}
 
+	if ( ! empty( $input['month'] ) ) {
+		$delegate_input['month'] = sanitize_text_field( $input['month'] );
+	}
+
 	if ( ! empty( $input['search'] ) ) {
 		$delegate_input['event_search'] = sanitize_text_field( $input['search'] );
 	}
 
 	// Build taxonomy filter from slug params.
 	$tax_filter = array();
+	if ( ! empty( $input['venue_id'] ) ) {
+		$tax_filter['venue'] = array( absint( $input['venue_id'] ) );
+	}
 	$mappings   = array(
 		'venue'    => 'venue',
 		'promoter' => 'promoter',
@@ -151,6 +187,9 @@ function extrachill_events_ability_calendar( array $input ): array|\WP_Error {
 	);
 
 	foreach ( $mappings as $param => $taxonomy ) {
+		if ( 'venue' === $taxonomy && isset( $tax_filter['venue'] ) ) {
+			continue;
+		}
 		$slug = $input[ $param ] ?? '';
 		if ( empty( $slug ) ) {
 			continue;

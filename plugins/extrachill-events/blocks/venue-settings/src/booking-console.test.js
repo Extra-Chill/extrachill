@@ -7,8 +7,10 @@ jest.mock( '@extrachill/components', () => ( {} ) );
  */
 import {
 	calendarDays,
+	calendarEntries,
 	filterBookings,
 	monthKey,
+	monthRange,
 	moveMonth,
 } from './booking-console';
 
@@ -28,6 +30,66 @@ describe( 'venue booking console state helpers', () => {
 		expect( moveMonth( '2026-01', -1 ) ).toBe( '2025-12' );
 		expect( moveMonth( '2026-12', 1 ) ).toBe( '2027-01' );
 		expect( monthKey( new Date( 2026, 6, 1 ) ) ).toBe( '2026-07' );
+		expect( monthRange( '2026-12' ) ).toEqual( {
+			start: '2026-12-01 00:00:00',
+			end: '2027-01-01 00:00:00',
+		} );
+	} );
+
+	it( 'keeps standalone events and unconverted bookings', () => {
+		const events = [
+			{
+				id: 900,
+				title: 'Standalone Show',
+				datetime: '2026-08-08T19:00:00',
+			},
+		];
+		const bookings = [
+			{
+				id: 10,
+				artist_name: 'Unconverted Artist',
+				requested_start_at: '2026-08-09 20:00:00',
+				event_id: null,
+				status: 'held',
+			},
+		];
+
+		expect( calendarEntries( bookings, events ) ).toEqual( [
+			expect.objectContaining( {
+				type: 'event',
+				id: 900,
+				date: '2026-08-08',
+			} ),
+			expect.objectContaining( {
+				type: 'booking',
+				id: 10,
+				date: '2026-08-09',
+			} ),
+		] );
+	} );
+
+	it( 'deduplicates a converted booking against its canonical event', () => {
+		const events = [
+			{
+				id: 900,
+				title: 'Canonical Show',
+				datetime: '2026-08-08T19:00:00',
+			},
+		];
+		const bookings = [
+			{
+				id: 10,
+				artist_name: 'Converted Artist',
+				requested_start_at: '2026-08-08 19:00:00',
+				event_id: 900,
+				status: 'confirmed',
+			},
+		];
+
+		expect( calendarEntries( bookings, events ) ).toHaveLength( 1 );
+		expect( calendarEntries( bookings, events )[ 0 ] ).toEqual(
+			expect.objectContaining( { type: 'event', id: 900 } )
+		);
 	} );
 
 	it( 'searches only the bounded venue response', () => {

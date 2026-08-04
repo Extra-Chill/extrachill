@@ -397,6 +397,8 @@ class VenueBookingAbilities {
 			'assignee_user_id'   => $input['assignee_user_id'] ?? null,
 			'requested_start_at' => $input['requested_from'] ?? null,
 			'requested_end_at'   => $input['requested_to'] ?? null,
+			'range_start'        => $input['range_start'] ?? null,
+			'range_end'          => $input['range_end'] ?? null,
 			'limit'              => $input['limit'] ?? 50,
 			'offset'             => $input['offset'] ?? 0,
 		);
@@ -682,6 +684,8 @@ class VenueBookingAbilities {
 				),
 				'requested_from'   => $this->nullable_datetime_schema(),
 				'requested_to'     => $this->nullable_datetime_schema(),
+				'range_start'      => $this->nullable_datetime_schema(),
+				'range_end'        => $this->nullable_datetime_schema(),
 				'limit'            => array(
 					'type'    => 'integer',
 					'minimum' => 1,
