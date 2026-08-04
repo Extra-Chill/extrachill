@@ -62,7 +62,7 @@ const settings = {
 };
 
 function installMocks( identities: Array< Record< string, string > > ) {
-	mockExecute.mockImplementation( ( ability: string ) => {
+	mockExecute.mockImplementation( ( ability: string, input?: unknown ) => {
 		if ( ability === 'extrachill/get-user-settings' ) {
 			return Promise.resolve( settings );
 		}
@@ -83,8 +83,11 @@ function installMocks( identities: Array< Record< string, string > > ) {
 		if (
 			ability === 'extrachill/community-resolve-subscription-entities'
 		) {
+			const resolvedIdentities = (
+				input as { identities: Array< Record< string, string > > }
+			 ).identities;
 			return Promise.resolve( {
-				entities: identities.map( ( item ) => ( {
+				entities: resolvedIdentities.map( ( item ) => ( {
 					...item,
 					name:
 						item.slug === 'missing'
@@ -97,9 +100,6 @@ function installMocks( identities: Array< Record< string, string > > ) {
 					resolved: item.slug !== 'missing',
 				} ) ),
 			} );
-		}
-		if ( ability === 'extrachill/get-subscriptions' ) {
-			return Promise.resolve( { user_id: 7, artist_email_consents: [] } );
 		}
 		return Promise.resolve( { success: true } );
 	} );
@@ -135,27 +135,66 @@ describe( 'subscription inventory', () => {
 		document.body.innerHTML = '';
 	} );
 
-	it( 'groups update and email-sharing purposes without follower language', async () => {
+	it( 'suppresses retired email-sharing rows while preserving notifications', async () => {
 		installMocks( [
 			{ entity_type: 'artist', taxonomy: 'artist', slug: 'kid-lake' },
 			{
+				entity_type: 'festival',
+				taxonomy: 'festival',
+				slug: 'high-water',
+			},
+			{
+				entity_type: 'venue',
+				taxonomy: 'venue',
+				slug: 'music-farm',
+			},
+			{
+				entity_type: 'artist-email-sharing',
+				taxonomy: 'artist',
+				slug: 'retired-artist',
+			},
+			{
 				entity_type: 'venue-email-sharing',
 				taxonomy: 'venue',
-				slug: 'royal-american',
+				slug: 'retired-venue',
 			},
 		] );
 		const { container, root } = await renderInventory();
 		expect( container.textContent ).toContain(
 			'Extra Chill update subscriptions'
 		);
-		expect( container.textContent ).toContain(
+		expect( container.textContent ).toContain( 'kid lake' );
+		expect( container.textContent ).toContain( 'high water' );
+		expect( container.textContent ).toContain( 'music farm' );
+		expect( container.textContent ).not.toContain( 'retired artist' );
+		expect( container.textContent ).not.toContain( 'retired venue' );
+		expect( container.textContent ).not.toContain(
 			'Email-sharing permissions'
 		);
-		expect( container.textContent ).toContain(
-			'grant the named artist or venue access to your current account email'
+		expect( mockExecute ).toHaveBeenCalledWith(
+			'extrachill/community-resolve-subscription-entities',
+			{
+				identities: [
+					{
+						entity_type: 'artist',
+						taxonomy: 'artist',
+						slug: 'kid-lake',
+					},
+					{
+						entity_type: 'festival',
+						taxonomy: 'festival',
+						slug: 'high-water',
+					},
+					{
+						entity_type: 'venue',
+						taxonomy: 'venue',
+						slug: 'music-farm',
+					},
+				],
+			}
 		);
-		expect( container.textContent ).not.toMatch(
-			/\bfollow(?:er|ers|ing|s|ed)?\b/i
+		expect( mockExecute ).not.toHaveBeenCalledWith(
+			'extrachill/get-subscriptions'
 		);
 		act( () => root.unmount() );
 	} );
@@ -221,49 +260,5 @@ describe( 'subscription inventory', () => {
 			rendered.container.querySelector( '[role="alert"]' )?.textContent
 		).toContain( 'Inventory unavailable' );
 		act( () => rendered.root.unmount() );
-	} );
-
-	it( 'preserves canonical artist permissions when removing legacy consent', async () => {
-		installMocks( [
-			{
-				entity_type: 'artist-email-sharing',
-				taxonomy: 'artist',
-				slug: 'canonical-artist',
-			},
-		] );
-		const implementation = mockExecute.getMockImplementation();
-		mockExecute.mockImplementation( ( ability: string, input: unknown ) => {
-			if ( ability === 'extrachill/get-subscriptions' ) {
-				return Promise.resolve( {
-					user_id: 7,
-					artist_email_consents: [
-						{
-							artist_id: 10,
-							name: 'Canonical Artist',
-							url: 'https://artist.example.com/canonical-artist/',
-							email_consent: true,
-						},
-						{
-							artist_id: 20,
-							name: 'Legacy Artist',
-							url: 'https://artist.example.com/legacy-artist/',
-							email_consent: true,
-						},
-					],
-				} );
-			}
-			return implementation?.( ability, input );
-		} );
-
-		const { container, root } = await renderInventory();
-		const removeAccess = Array.from(
-			container.querySelectorAll( 'button' )
-		).find( ( button ) => button.textContent === 'Remove access' );
-		await act( async () => removeAccess?.click() );
-		expect( mockExecute ).toHaveBeenCalledWith(
-			'extrachill/update-subscriptions',
-			{ consented_artists: [ 10 ] }
-		);
-		act( () => root.unmount() );
 	} );
 } );

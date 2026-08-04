@@ -37,8 +37,6 @@ import type {
 	UserProfile,
 	ChangeEmailResponse,
 	ChangePasswordResponse,
-	UserSubscriptions,
-	ArtistEmailConsent,
 	RequestArtistAccessResponse,
 	NotificationPreferences,
 	EntitySubscriptionStatus,
@@ -51,6 +49,10 @@ const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {
 	validateAbilityNames: false,
 } );
 const LOCATION_SEARCH_DEBOUNCE_MS = 250;
+const RETIRED_EMAIL_SHARING_TYPES = new Set( [
+	'artist-email-sharing',
+	'venue-email-sharing',
+] );
 
 interface LocalScene {
 	term_id: number;
@@ -566,11 +568,6 @@ function SubscriptionsTab() {
 	const [ subscriptions, setSubscriptions ] = useState<
 		ResolvedSubscriptionEntity[]
 	>( [] );
-	const [ legacyArtistConsents, setLegacyArtistConsents ] = useState<
-		ArtistEmailConsent[]
-	>( [] );
-	const [ compatibilityArtistConsents, setCompatibilityArtistConsents ] =
-		useState< ArtistEmailConsent[] >( [] );
 	const [ loading, setLoading ] = useState( true );
 	const [ removing, setRemoving ] = useState< string | null >( null );
 	const [ notice, setNotice ] = useState< {
@@ -589,7 +586,14 @@ function SubscriptionsTab() {
 							'extrachill/list-entity-subscriptions',
 							{ page, per_page: 100 }
 						);
-					identities.push( ...result.subscriptions );
+					identities.push(
+						...result.subscriptions.filter(
+							( item ) =>
+								! RETIRED_EMAIL_SHARING_TYPES.has(
+									item.entity_type
+								)
+						)
+					);
 					totalPages = Math.max( 1, result.total_pages );
 					page += 1;
 				} while ( page <= totalPages );
@@ -624,46 +628,6 @@ function SubscriptionsTab() {
 				setSubscriptions(
 					enriched.flatMap( ( result ) => result.entities )
 				);
-
-				const compatibility = await client
-					.execute< UserSubscriptions >(
-						'extrachill/get-subscriptions'
-					)
-					.catch( () => ( { user_id: 0 } ) );
-				const canonicalArtistSlugs = new Set(
-					identities
-						.filter(
-							( item ) =>
-								item.entity_type === 'artist-email-sharing'
-						)
-						.map( ( item ) => item.slug )
-				);
-				const compatibleArtists =
-					compatibility.artist_email_consents ??
-					compatibility.followed_artists ??
-					[];
-				setCompatibilityArtistConsents( compatibleArtists );
-				setLegacyArtistConsents(
-					compatibleArtists.filter( ( artist ) => {
-						let slug = '';
-						try {
-							slug =
-								new URL(
-									artist.url,
-									window.location.href
-								).pathname
-									.split( '/' )
-									.filter( Boolean )
-									.pop() ?? '';
-						} catch {
-							// Keep malformed legacy rows visible so access can be removed.
-						}
-						return (
-							artist.email_consent &&
-							( ! slug || ! canonicalArtistSlugs.has( slug ) )
-						);
-					} )
-				);
 			} catch ( err ) {
 				setNotice( {
 					type: 'error',
@@ -681,16 +645,6 @@ function SubscriptionsTab() {
 
 	const identityKey = ( item: EntitySubscriptionIdentity ) =>
 		`${ item.entity_type }/${ item.taxonomy }/${ item.slug }`;
-	const emailTypes = new Set( [
-		'artist-email-sharing',
-		'venue-email-sharing',
-	] );
-	const updateSubscriptions = subscriptions.filter(
-		( item ) => ! emailTypes.has( item.entity_type )
-	);
-	const emailPermissions = subscriptions.filter( ( item ) =>
-		emailTypes.has( item.entity_type )
-	);
 
 	const unsubscribe = useCallback(
 		async ( item: ResolvedSubscriptionEntity ) => {
@@ -722,42 +676,6 @@ function SubscriptionsTab() {
 			setRemoving( null );
 		},
 		[]
-	);
-
-	const removeLegacyConsent = useCallback(
-		async ( artistId: number ) => {
-			setRemoving( `legacy-${ artistId }` );
-			setNotice( null );
-			try {
-				await client.execute( 'extrachill/update-subscriptions', {
-					consented_artists: compatibilityArtistConsents
-						.filter( ( artist ) => artist.artist_id !== artistId )
-						.map( ( artist ) => artist.artist_id ),
-				} );
-				setLegacyArtistConsents( ( current ) =>
-					current.filter(
-						( artist ) => artist.artist_id !== artistId
-					)
-				);
-				setCompatibilityArtistConsents( ( current ) =>
-					current.filter(
-						( artist ) => artist.artist_id !== artistId
-					)
-				);
-				setNotice( {
-					type: 'success',
-					message: 'Email access removed.',
-				} );
-			} catch ( err ) {
-				setNotice( {
-					type: 'error',
-					message:
-						err instanceof Error ? err.message : 'Update failed.',
-				} );
-			}
-			setRemoving( null );
-		},
-		[ compatibilityArtistConsents ]
 	);
 
 	if ( loading ) {
@@ -807,7 +725,7 @@ function SubscriptionsTab() {
 
 	return (
 		<Panel>
-			<PanelHeader description="Review your private Extra Chill update subscriptions and email-sharing permissions." />
+			<PanelHeader description="Review your private Extra Chill notification subscriptions." />
 			{ notice && (
 				<Notice type={ notice.type } message={ notice.message } />
 			) }
@@ -816,58 +734,13 @@ function SubscriptionsTab() {
 				Private subscriptions used by Extra Chill to send updates you
 				explicitly requested.
 			</p>
-			{ updateSubscriptions.length === 0 ? (
+			{ subscriptions.length === 0 ? (
 				<p style={ styles.mutedText }>
 					You are not subscribed to any entity updates.
 				</p>
 			) : (
 				<ul style={ styles.checkboxList }>
-					{ updateSubscriptions.map( renderEntity ) }
-				</ul>
-			) }
-			<h3>Email-sharing permissions</h3>
-			<p style={ styles.mutedText }>
-				These permissions grant the named artist or venue access to your
-				current account email. They do not subscribe you to Extra Chill
-				updates.
-			</p>
-			{ emailPermissions.length === 0 &&
-			legacyArtistConsents.length === 0 ? (
-				<p style={ styles.mutedText }>
-					You have not shared your email with any artists or venues.
-				</p>
-			) : (
-				<ul style={ styles.checkboxList }>
-					{ emailPermissions.map( renderEntity ) }
-					{ legacyArtistConsents.map( ( artist ) => (
-						<li
-							key={ `legacy-${ artist.artist_id }` }
-							style={ styles.checkboxItem }
-						>
-							<div style={ { flex: 1 } }>
-								<strong>
-									<a href={ artist.url }>{ artist.name }</a>
-								</strong>
-								<div style={ styles.mutedText }>
-									This artist may access your current account
-									email.
-								</div>
-							</div>
-							<button
-								className="button button-small"
-								disabled={
-									removing === `legacy-${ artist.artist_id }`
-								}
-								onClick={ () =>
-									removeLegacyConsent( artist.artist_id )
-								}
-							>
-								{ removing === `legacy-${ artist.artist_id }`
-									? 'Removing...'
-									: 'Remove access' }
-							</button>
-						</li>
-					) ) }
+					{ subscriptions.map( renderEntity ) }
 				</ul>
 			) }
 		</Panel>

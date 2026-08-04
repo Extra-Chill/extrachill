@@ -121,22 +121,6 @@ export interface UserProfile {
 	artist_access: ArtistAccessStatus;
 }
 
-// ─── User Subscriptions ───────────────────────────────────────────────────────
-
-export interface ArtistEmailConsent {
-	artist_id: number;
-	name: string;
-	url: string;
-	email_consent: boolean;
-}
-
-export interface UserSubscriptions {
-	user_id: number;
-	artist_email_consents?: ArtistEmailConsent[];
-	/** @deprecated Compatibility field from extrachill-users. */
-	followed_artists?: ArtistEmailConsent[];
-}
-
 export interface EntitySubscriptionIdentity {
 	entity_type: string;
 	taxonomy: string;
