@@ -97,16 +97,27 @@ final class BookingConsoleTest extends TestCase {
 
 	/** Ensure administrators receive one canonical venue workspace link. */
 	public function test_administrator_receives_one_manage_venue_header_action(): void {
-		$this->assertSame(
-			array(
+		$events_blog_id = (int) ec_get_blog_id( 'events' );
+		$switched       = ! ec_is_events_site() && function_exists( 'switch_to_blog' );
+		if ( $switched ) {
+			switch_to_blog( $events_blog_id );
+		}
+		try {
+			$this->assertSame(
 				array(
-					'url'      => ec_events_get_booking_console_url( 0 ),
-					'label'    => 'Manage Venue',
-					'priority' => 8,
+					array(
+						'url'      => ec_events_get_booking_console_url( 0 ),
+						'label'    => 'Manage Venue',
+						'priority' => 8,
+					),
 				),
-			),
-			ec_events_add_venue_workspace_header_item( array() )
-		);
+				ec_events_add_venue_workspace_header_item( array() )
+			);
+		} finally {
+			if ( $switched ) {
+				restore_current_blog();
+			}
+		}
 	}
 
 	/**

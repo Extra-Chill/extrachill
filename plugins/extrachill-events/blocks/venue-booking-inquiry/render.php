@@ -58,6 +58,10 @@ $canonical = ( static function () use ( $events_blog_id, $venue_id ) {
 			$address    = implode( ', ', array_filter( array( $street, $city_state, $zip ) ) );
 		}
 
+		$profile  = function_exists( 'data_machine_events_get_venue_profile' ) ? data_machine_events_get_venue_profile( $venue_id ) : array();
+		$logo_url = is_array( $profile ) ? (string) ( $profile['logo_url'] ?? '' ) : '';
+		$logo_url = filter_var( $logo_url, FILTER_VALIDATE_URL ) ? $logo_url : '';
+
 		return array(
 			'booking_config' => $booking_config,
 			'venue'          => array(
@@ -65,6 +69,7 @@ $canonical = ( static function () use ( $events_blog_id, $venue_id ) {
 				'name'        => $venue->name,
 				'description' => wp_strip_all_tags( $venue->description ),
 				'address'     => $address,
+				'logoUrl'     => $logo_url,
 			),
 		);
 	} finally {
@@ -102,6 +107,7 @@ $public_config = array(
 	'spaces'               => array_values( $booking_config['spaces'] ),
 	'fields'               => array_values( $booking_config['fields'] ),
 	'presentation'         => $booking_config['presentation'],
+	'appearance'           => $booking_config['appearance'],
 	'consent'              => $booking_config['consent'],
 );
 
@@ -109,7 +115,10 @@ $json = $form_enabled ? wp_json_encode( $public_config, JSON_HEX_TAG | JSON_HEX_
 if ( $form_enabled && false === $json ) {
 	return;
 }
-$wrapper_extra = array( 'class' => 'ec-venue-booking-inquiry' );
+$wrapper_extra = array(
+	'class' => 'ec-venue-booking-inquiry',
+	'style' => VenueBookingConfig::appearance_style( $booking_config['appearance'] ),
+);
 if ( (int) get_current_blog_id() === $events_blog_id && is_tax( 'venue' ) ) {
 	$wrapper_extra['id'] = 'booking-inquiry';
 }

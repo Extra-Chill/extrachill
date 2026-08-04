@@ -11,7 +11,7 @@ import {
 } from './state';
 
 const validConfig = () => ( {
-	version: 6,
+	version: 7,
 	enabled: true,
 	intake: { version: 1, fields: [] },
 	public_requirements: [],
@@ -20,6 +20,17 @@ const validConfig = () => ( {
 		version: 1,
 		label: 'I agree.',
 		required: true,
+	},
+	appearance: {
+		mode: 'default',
+		background_color: '#121212',
+		surface_color: '#1f1f1f',
+		text_color: '#e5e5e5',
+		accent_color: '#0b5394',
+		button_text_color: '#ffffff',
+		border_color: '#3a3a3a',
+		button_radius: 8,
+		show_logo: true,
 	},
 	embed: { allowed_parent_origins: [] },
 	spaces: [ { key: 'main_room', name: 'Main Room', is_default: true } ],

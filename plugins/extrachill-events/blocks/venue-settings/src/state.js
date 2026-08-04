@@ -51,6 +51,32 @@ export const validateConfig = ( config ) => {
 	if ( config.public_requirements.length > 20 ) {
 		errors.push( 'Use no more than 20 public requirements.' );
 	}
+	if (
+		! config.appearance ||
+		! [ 'default', 'custom' ].includes( config.appearance.mode ) ||
+		! Number.isInteger( config.appearance.button_radius ) ||
+		config.appearance.button_radius < 0 ||
+		config.appearance.button_radius > 32
+	) {
+		errors.push( 'Booking appearance settings are invalid.' );
+	}
+	if (
+		config.appearance?.mode === 'custom' &&
+		[
+			'background_color',
+			'surface_color',
+			'text_color',
+			'accent_color',
+			'button_text_color',
+			'border_color',
+		].some(
+			( key ) => ! /^#[0-9a-f]{6}$/i.test( config.appearance[ key ] )
+		)
+	) {
+		errors.push(
+			'Custom appearance colors must use six-digit hex values.'
+		);
+	}
 	if ( ! config.consent.label.trim() || config.consent.version < 1 ) {
 		errors.push( 'Consent needs public wording and a positive version.' );
 	}

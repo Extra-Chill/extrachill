@@ -628,7 +628,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$migrated = $service->normalize( array( 'version' => 1, 'enabled' => true ) );
 		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
 		$this->assertArrayHasKey( 'correspondence', $migrated );
-		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 7 ) )->get_error_code() );
+		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 8 ) )->get_error_code() );
 		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => '1junk' ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'intake' => array( 'version' => 2 ) ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'correspondence' => array( 'version' => 2 ) ) )->get_error_code() );
@@ -679,6 +679,36 @@ final class BookingFoundationTest extends BookingTestCase {
 		$stored = $GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ];
 		$this->assertSame( VenueBookingConfig::VERSION, $stored['version'] );
 		$this->assertArrayNotHasKey( 'booking_guide', $stored );
+	}
+
+	public function test_config_migrates_version_six_to_bounded_default_appearance(): void {
+		$service             = new VenueBookingConfig();
+		$version_six         = $service->defaults();
+		$version_six['version'] = VenueBookingConfig::OPERATIONAL_CONFIG_VERSION;
+		unset( $version_six['appearance'] );
+
+		$migrated = $service->normalize( $version_six );
+
+		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
+		$this->assertSame( 'default', $migrated['appearance']['mode'] );
+		$this->assertSame( '#121212', $migrated['appearance']['background_color'] );
+		$this->assertSame( 8, $migrated['appearance']['button_radius'] );
+		$this->assertTrue( $migrated['appearance']['show_logo'] );
+	}
+
+	public function test_config_rejects_unbounded_appearance_values_and_scopes_output(): void {
+		$service = new VenueBookingConfig();
+		$config  = $service->defaults();
+		$config['appearance']['mode']             = 'custom';
+		$config['appearance']['background_color'] = 'linear-gradient(red, blue)';
+		$this->assertSame( 'invalid_booking_appearance_color', $service->normalize( $config )->get_error_code() );
+
+		$config                                      = $service->defaults();
+		$config['appearance']['mode']                 = 'custom';
+		$config['appearance']['button_radius']        = 33;
+		$this->assertSame( 'invalid_booking_appearance_radius', $service->normalize( $config )->get_error_code() );
+		$this->assertStringContainsString( '--ec-booking-background:#121212', VenueBookingConfig::appearance_style( $service->defaults()['appearance'] ) );
+		$this->assertStringNotContainsString( ':root', VenueBookingConfig::appearance_style( $service->defaults()['appearance'] ) );
 	}
 
 	public function test_embed_admission_and_frame_policy_fail_closed(): void {

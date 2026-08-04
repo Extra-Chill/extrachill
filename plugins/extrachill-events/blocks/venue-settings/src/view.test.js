@@ -116,7 +116,7 @@ const profile = ( id ) => ( {
 	revision: String( id ).padStart( 64, '0' ),
 } );
 const config = ( id ) => ( {
-	version: 6,
+	version: 7,
 	revision: id,
 	updated_by_user_id: null,
 	updated_at: null,
@@ -139,6 +139,17 @@ const config = ( id ) => ( {
 		version: 1,
 		label: 'I agree.',
 		required: true,
+	},
+	appearance: {
+		mode: 'default',
+		background_color: '#121212',
+		surface_color: '#1f1f1f',
+		text_color: '#e5e5e5',
+		accent_color: '#0b5394',
+		button_text_color: '#ffffff',
+		border_color: '#3a3a3a',
+		button_radius: 8,
+		show_logo: true,
 	},
 	embed: { allowed_parent_origins: [] },
 	spaces: [],
@@ -413,9 +424,15 @@ describe( 'venue settings authorization-facing states', () => {
 		expect( container.textContent ).toContain( 'Venue 45' );
 		expect(
 			[ ...container.querySelectorAll( 'button' ) ]
-				.slice( 0, 4 )
+				.slice( 0, 5 )
 				.map( ( button ) => button.textContent )
-		).toEqual( [ 'Calendar', 'Venue', 'Settings', 'Team' ] );
+		).toEqual( [
+			'Calendar',
+			'Venue',
+			'Booking Form',
+			'Settings',
+			'Team',
+		] );
 		expect( container.textContent ).not.toContain( 'Open workspace' );
 		const profileVenueIds = apiFetch.mock.calls
 			.filter( ( [ request ] ) =>
@@ -433,7 +450,7 @@ describe( 'venue settings authorization-facing states', () => {
 		expect(
 			container.querySelectorAll( '.ec-venue-settings__venue-scope > h2' )
 		).toHaveLength( 2 );
-		for ( const tab of [ 'Venue', 'Settings', 'Team' ] ) {
+		for ( const tab of [ 'Venue', 'Booking Form', 'Settings', 'Team' ] ) {
 			await act( async () => buttonByText( container, tab ).click() );
 			const ids = [ ...container.querySelectorAll( '[id]' ) ].map(
 				( element ) => element.id
@@ -585,9 +602,9 @@ describe( 'venue settings authorization-facing states', () => {
 		expect( container.textContent ).not.toContain( 'Team' );
 		expect(
 			[ ...container.querySelectorAll( 'button' ) ]
-				.slice( 0, 3 )
+				.slice( 0, 4 )
 				.map( ( button ) => button.textContent )
-		).toEqual( [ 'Calendar', 'Venue', 'Settings' ] );
+		).toEqual( [ 'Calendar', 'Venue', 'Booking Form', 'Settings' ] );
 		for ( const retired of [
 			'Bookings',
 			'Local Support',
@@ -607,7 +624,7 @@ describe( 'venue settings authorization-facing states', () => {
 		await act( async () => root.unmount() );
 	} );
 
-	it( 'shows exactly four venue tabs to authorized managers', async () => {
+	it( 'shows exactly five venue tabs to authorized managers', async () => {
 		const { container, root } = await renderApp(
 			context( {
 				user: { id: 1, name: 'Admin', is_admin: true },
@@ -616,9 +633,15 @@ describe( 'venue settings authorization-facing states', () => {
 		);
 		expect(
 			[ ...container.querySelectorAll( 'button' ) ]
-				.slice( 0, 4 )
+				.slice( 0, 5 )
 				.map( ( button ) => button.textContent )
-		).toEqual( [ 'Calendar', 'Venue', 'Settings', 'Team' ] );
+		).toEqual( [
+			'Calendar',
+			'Venue',
+			'Booking Form',
+			'Settings',
+			'Team',
+		] );
 		expect( container.textContent ).not.toContain( 'Venue claims' );
 		await act( async () => buttonByText( container, 'List' ).click() );
 		expect( container.textContent ).toContain( 'Booking pipeline' );
@@ -1447,6 +1470,9 @@ describe( 'venue settings authorization-facing states', () => {
 			'venue-account'
 		);
 		await act( async () =>
+			buttonByText( container, 'Booking Form' ).click()
+		);
+		await act( async () =>
 			buttonByText( container, 'Add intake field' ).click()
 		);
 		await setInput(
@@ -1454,7 +1480,7 @@ describe( 'venue settings authorization-facing states', () => {
 			'Recent draw'
 		);
 		await act( async () =>
-			buttonByText( container, 'Save settings' ).click()
+			buttonByText( container, 'Save booking form' ).click()
 		);
 
 		const request = apiFetch.mock.calls.find( ( [ call ] ) =>

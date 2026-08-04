@@ -10,10 +10,12 @@ const styles = readFileSync( path.resolve( __dirname, 'style.scss' ), 'utf8' );
 const view = readFileSync( path.resolve( __dirname, 'view.js' ), 'utf8' );
 
 describe( 'venue booking inquiry styles', () => {
-	it( 'composes the canonical shared component stylesheet', () => {
-		expect( styles.trim() ).toBe(
+	it( 'composes shared components and scopes appearance variables', () => {
+		expect( styles ).toContain(
 			'@use "@extrachill/components/styles/components.scss";'
 		);
+		expect( styles ).toContain( '.ec-venue-booking-inquiry {' );
+		expect( styles ).not.toContain( ':root' );
 	} );
 
 	it( 'relies on shared form components without local decoration', () => {
@@ -23,7 +25,7 @@ describe( 'venue booking inquiry styles', () => {
 		expect( view ).toContain( 'Grid minColumnWidth="16rem"' );
 		expect( view ).not.toContain( '<Badge' );
 		expect( view ).toContain( 'className="taxonomy-badge"' );
-		expect( styles ).not.toContain( '.ec-' );
+		expect( styles ).toContain( '.ec-booking-inquiry__powered' );
 	} );
 
 	it( 'does not duplicate the configured intake before availability', () => {

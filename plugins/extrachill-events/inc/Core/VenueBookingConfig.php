@@ -16,7 +16,8 @@ class VenueBookingConfig {
 
 	public const META_KEY                     = '_extrachill_booking_config';
 	public const HISTORY_META_KEY             = '_extrachill_booking_config_history';
-	public const VERSION                      = 6;
+	public const VERSION                      = 7;
+	public const OPERATIONAL_CONFIG_VERSION   = 6;
 	public const RETIRED_GUIDE_CONFIG_VERSION = 4;
 	public const EMBED_CONFIG_VERSION         = 5;
 	public const PUBLIC_INTAKE_VERSION        = 3;
@@ -98,7 +99,7 @@ class VenueBookingConfig {
 		}
 
 		$stored = get_term_meta( $venue_term_id, self::META_KEY, true );
-		if ( ! is_array( $stored ) || ! in_array( $stored['version'] ?? null, array( self::PUBLIC_INTAKE_VERSION, self::RETIRED_GUIDE_CONFIG_VERSION, self::EMBED_CONFIG_VERSION, self::VERSION ), true ) ) {
+		if ( ! is_array( $stored ) || ! in_array( $stored['version'] ?? null, array( self::PUBLIC_INTAKE_VERSION, self::RETIRED_GUIDE_CONFIG_VERSION, self::EMBED_CONFIG_VERSION, self::OPERATIONAL_CONFIG_VERSION, self::VERSION ), true ) ) {
 			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-events' ) );
 		}
 
@@ -112,10 +113,11 @@ class VenueBookingConfig {
 
 		$fields       = $this->normalize_intake_fields( $stored['intake']['fields'] ?? null );
 		$presentation = $this->normalize_intake_presentation( $stored['intake']['presentation'] ?? array() );
+		$appearance   = $this->normalize_appearance( $stored['appearance'] ?? array() );
 		$requirements = $this->normalize_public_requirements( $stored['public_requirements'] ?? null );
 		$consent      = $this->normalize_consent( $stored['consent'] ?? null );
 		$spaces       = $this->normalize_spaces( $stored['spaces'] ?? null );
-		foreach ( array( $fields, $presentation, $requirements, $consent, $spaces ) as $section ) {
+		foreach ( array( $fields, $presentation, $appearance, $requirements, $consent, $spaces ) as $section ) {
 			if ( is_wp_error( $section ) ) {
 				return $section;
 			}
@@ -126,6 +128,7 @@ class VenueBookingConfig {
 			'revision'            => $revision,
 			'fields'              => $fields,
 			'presentation'        => $presentation,
+			'appearance'          => $appearance,
 			'public_requirements' => $requirements,
 			'consent'             => $consent,
 			'spaces'              => $spaces,
@@ -280,7 +283,7 @@ class VenueBookingConfig {
 	/** Normalize and validate the complete versioned contract. */
 	public function normalize( array $config ) {
 		$version = $config['version'] ?? self::LEGACY_VERSION;
-		if ( ! is_int( $version ) || ! in_array( $version, array( self::LEGACY_VERSION, self::PREVIOUS_VERSION, self::PUBLIC_INTAKE_VERSION, self::RETIRED_GUIDE_CONFIG_VERSION, self::EMBED_CONFIG_VERSION, self::VERSION ), true ) ) {
+		if ( ! is_int( $version ) || ! in_array( $version, array( self::LEGACY_VERSION, self::PREVIOUS_VERSION, self::PUBLIC_INTAKE_VERSION, self::RETIRED_GUIDE_CONFIG_VERSION, self::EMBED_CONFIG_VERSION, self::OPERATIONAL_CONFIG_VERSION, self::VERSION ), true ) ) {
 			return new \WP_Error( 'booking_config_version_unsupported', __( 'The venue booking configuration version is unsupported.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
 		$version_three_fields = array( 'public_requirements', 'consent', 'marketing_triggers' );
@@ -348,6 +351,10 @@ class VenueBookingConfig {
 		if ( is_wp_error( $embed ) ) {
 			return $embed;
 		}
+		$appearance = $this->normalize_appearance( $config['appearance'] ?? array() );
+		if ( is_wp_error( $appearance ) ) {
+			return $appearance;
+		}
 		$channels = $this->normalize_channels( $config['marketing_channels'] ?? array() );
 		if ( is_wp_error( $channels ) ) {
 			return $channels;
@@ -391,6 +398,7 @@ class VenueBookingConfig {
 			),
 			'public_requirements'       => $requirements,
 			'consent'                   => $consent,
+			'appearance'                => $appearance,
 			'embed'                     => $embed,
 			'spaces'                    => $spaces,
 			'default_deal'              => array(
@@ -429,6 +437,7 @@ class VenueBookingConfig {
 				'label'    => __( 'I agree that this venue may use these details to review and respond to my booking inquiry.', 'extrachill-events' ),
 				'required' => true,
 			),
+			'appearance'                => $this->normalize_appearance( array() ),
 			'embed'                     => array( 'allowed_parent_origins' => array() ),
 			'spaces'                    => array(),
 			'default_deal'              => array(
@@ -492,6 +501,26 @@ class VenueBookingConfig {
 					),
 				),
 			),
+		);
+	}
+
+	/**
+	 * Return scoped custom properties for one normalized appearance.
+	 *
+	 * @param array $appearance Normalized appearance contract.
+	 */
+	public static function appearance_style( array $appearance ): string {
+		return implode(
+			';',
+			array(
+				'--ec-booking-background:' . $appearance['background_color'],
+				'--ec-booking-surface:' . $appearance['surface_color'],
+				'--ec-booking-text:' . $appearance['text_color'],
+				'--ec-booking-accent:' . $appearance['accent_color'],
+				'--ec-booking-button-text:' . $appearance['button_text_color'],
+				'--ec-booking-border:' . $appearance['border_color'],
+				'--ec-booking-button-radius:' . (int) $appearance['button_radius'] . 'px',
+			)
 		);
 	}
 
@@ -655,6 +684,51 @@ class VenueBookingConfig {
 			$defaults[ $key ] = '' === $value ? $default : $value;
 		}
 		return $defaults;
+	}
+
+	/**
+	 * Normalize the bounded public booking-form appearance contract.
+	 *
+	 * @param mixed $appearance Proposed appearance contract.
+	 * @return array|\WP_Error
+	 */
+	private function normalize_appearance( $appearance ) {
+		$defaults = array(
+			'mode'              => 'default',
+			'background_color'  => '#121212',
+			'surface_color'     => '#1f1f1f',
+			'text_color'        => '#e5e5e5',
+			'accent_color'      => '#0b5394',
+			'button_text_color' => '#ffffff',
+			'border_color'      => '#3a3a3a',
+			'button_radius'     => 8,
+			'show_logo'         => true,
+		);
+		$appearance = is_array( $appearance ) ? $appearance : array();
+		$mode       = sanitize_key( (string) ( $appearance['mode'] ?? 'default' ) );
+		if ( ! in_array( $mode, array( 'default', 'custom' ), true ) ) {
+			return new \WP_Error( 'invalid_booking_appearance_mode', __( 'Booking appearance mode must be default or custom.', 'extrachill-events' ) );
+		}
+		if ( 'default' === $mode ) {
+			$defaults['show_logo'] = ! array_key_exists( 'show_logo', $appearance ) || ! empty( $appearance['show_logo'] );
+			return $defaults;
+		}
+		$normalized         = $defaults;
+		$normalized['mode'] = 'custom';
+		foreach ( array( 'background_color', 'surface_color', 'text_color', 'accent_color', 'button_text_color', 'border_color' ) as $field ) {
+			$value = strtolower( (string) ( $appearance[ $field ] ?? $defaults[ $field ] ) );
+			if ( ! preg_match( '/^#[0-9a-f]{6}$/', $value ) ) {
+				return new \WP_Error( 'invalid_booking_appearance_color', __( 'Booking appearance colors must use six-digit hex values.', 'extrachill-events' ), array( 'field' => $field ) );
+			}
+			$normalized[ $field ] = $value;
+		}
+		$radius = $appearance['button_radius'] ?? $defaults['button_radius'];
+		if ( ! is_int( $radius ) || $radius < 0 || $radius > 32 ) {
+			return new \WP_Error( 'invalid_booking_appearance_radius', __( 'Booking button radius must be between 0 and 32 pixels.', 'extrachill-events' ) );
+		}
+		$normalized['button_radius'] = $radius;
+		$normalized['show_logo']     = ! array_key_exists( 'show_logo', $appearance ) || ! empty( $appearance['show_logo'] );
+		return $normalized;
 	}
 
 	/** Normalize public, non-operational requirements shown before inquiry intake. */

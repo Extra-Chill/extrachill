@@ -124,12 +124,12 @@ const Field = ( { field, value, onChange, prefix } ) => {
 	);
 };
 
-function BookingInquiry( { config, wrapper } ) {
+export function BookingInquiry( { config, wrapper, preview = false } ) {
 	const [ values, setValues ] = useState( () => initialValues( config ) );
 	const [ status, setStatus ] = useState( null );
 	const [ submitting, setSubmitting ] = useState( false );
 	const [ checking, setChecking ] = useState( false );
-	const [ intervalOpen, setIntervalOpen ] = useState( false );
+	const [ intervalOpen, setIntervalOpen ] = useState( preview );
 	const [ receipt, setReceipt ] = useState( null );
 	const key = useRef( newIdempotencyKey() );
 	const turnstileTarget = useRef();
@@ -137,11 +137,14 @@ function BookingInquiry( { config, wrapper } ) {
 	const prefix = config.instanceId;
 
 	useEffect( () => {
+		if ( preview || ! wrapper ) {
+			return;
+		}
 		const source = wrapper.querySelector( '[data-booking-turnstile]' );
 		if ( source && turnstileTarget.current ) {
 			turnstileTarget.current.appendChild( source );
 		}
-	}, [ wrapper, intervalOpen ] );
+	}, [ wrapper, intervalOpen, preview ] );
 	useEffect( () => {
 		if ( status || receipt ) {
 			resultRef.current?.focus();
@@ -212,6 +215,9 @@ function BookingInquiry( { config, wrapper } ) {
 	};
 	const submit = async ( event ) => {
 		event.preventDefault();
+		if ( preview ) {
+			return;
+		}
 		if ( submitting || ! event.currentTarget.reportValidity() ) {
 			return;
 		}
@@ -326,6 +332,13 @@ function BookingInquiry( { config, wrapper } ) {
 
 	return (
 		<BlockShell>
+			{ config.appearance?.show_logo && config.venue.logoUrl && (
+				<img
+					className="ec-booking-inquiry__logo"
+					src={ config.venue.logoUrl }
+					alt=""
+				/>
+			) }
 			<BlockShellHeader
 				title={ `Booking at ${ config.venue.name }` }
 				description={ config.venue.address }
@@ -593,10 +606,12 @@ function BookingInquiry( { config, wrapper } ) {
 									) }
 								</span>
 							</label>
-							<div
-								className="ec-booking-inquiry__turnstile"
-								ref={ turnstileTarget }
-							/>
+							{ ! preview && (
+								<div
+									className="ec-booking-inquiry__turnstile"
+									ref={ turnstileTarget }
+								/>
+							) }
 						</>
 					) }
 					<div ref={ resultRef } tabIndex="-1" aria-live="polite">
@@ -610,7 +625,7 @@ function BookingInquiry( { config, wrapper } ) {
 						<button
 							className="button-1 button-large"
 							type="submit"
-							disabled={ submitting || checking }
+							disabled={ preview || submitting || checking }
 						>
 							{ submitLabel }
 						</button>
@@ -619,6 +634,9 @@ function BookingInquiry( { config, wrapper } ) {
 							the public venue page.
 						</span>
 					</ActionRow>
+					<p className="ec-booking-inquiry__powered">
+						Powered by Extra Chill
+					</p>
 				</form>
 			</BlockShellInner>
 		</BlockShell>

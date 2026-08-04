@@ -1,4 +1,5 @@
 @use "@extrachill/components/styles/components.scss";
+@use "../../venue-booking-inquiry/src/style.scss" as booking-inquiry;
 
 .ec-venue-settings-page {
 	padding-block: var(--wp--preset--spacing--40, 2rem);
@@ -84,6 +85,35 @@
 	margin-block-start: 1rem;
 	font-size: 0.9rem;
 	font-style: italic;
+}
+
+.ec-booking-form-preview {
+	margin-inline: auto;
+	width: 100%;
+	transition: max-width 160ms ease;
+}
+
+.ec-booking-form-preview.is-mobile {
+	max-width: 24rem;
+}
+
+.ec-booking-form-preview .ec-venue-booking-inquiry {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	overflow: hidden;
+}
+
+.ec-booking-form-qr {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-block: 1rem;
+}
+
+.ec-booking-form-qr img {
+	width: 12rem;
+	height: 12rem;
 }
 
 .ec-inline-status .button-link {

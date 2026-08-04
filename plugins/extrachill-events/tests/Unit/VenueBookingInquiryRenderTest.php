@@ -61,6 +61,8 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 			),
 		);
 		$config['intake']['presentation']['contact_phone_label'] = 'Phone (Emergency use only)';
+		$config['appearance']['mode']                    = 'custom';
+		$config['appearance']['background_color']        = '#112233';
 		$config['ticket_provider_reference']         = 'private-provider-account';
 		$config['correspondence']['booking_address'] = 'private-booking@example.com';
 		update_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, $config );
@@ -82,6 +84,8 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'Booking guide', $output );
 		$this->assertStringContainsString( '"revision":4', $output );
 		$this->assertStringContainsString( 'Phone (Emergency use only)', $output );
+		$this->assertStringContainsString( '--ec-booking-background:#112233', $output );
+		$this->assertStringNotContainsString( ':root', $output );
 		$this->assertStringNotContainsString( 'manage-link-page', $output );
 		$this->assertStringNotContainsString( '"hasPage"', $output );
 		$this->assertStringNotContainsString( 'private-provider-account', $output );
@@ -211,6 +215,7 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 				};
 			};
 			add_filter( 'wp_die_handler', $die_handler );
+			$buffer_level = ob_get_level();
 			try {
 				activate_plugin( $plugin, '', true, false );
 				$this->fail( 'Site-only dependencies must not permit network activation.' );
@@ -218,6 +223,9 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 				$this->assertStringContainsString( 'Network-activate these required plugins first', $error->getMessage() );
 			} finally {
 				remove_filter( 'wp_die_handler', $die_handler );
+				while ( ob_get_level() > $buffer_level ) {
+					ob_end_clean();
+				}
 			}
 			$this->assertFalse( is_plugin_active_for_network( $plugin ) );
 		} finally {

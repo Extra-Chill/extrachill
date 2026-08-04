@@ -19,9 +19,9 @@ import {
  */
 import { errorDetails, runAbility } from './api';
 import { BookingConsole } from './booking-console';
+import { BookingFormTab } from './booking-form-tab';
 import { BookingTab } from './booking-tab';
 import { ClaimPanel, ClaimsTab } from './claims-tab';
-import { IntakeTab } from './intake-tab';
 import { ProfileTab } from './profile-tab';
 import { LoadingPanel, Status } from './status';
 import { TeamTab } from './team-tab';
@@ -294,6 +294,7 @@ export function VenueSettingsApp( { context } ) {
 			? [
 					{ id: 'calendar', label: 'Calendar' },
 					{ id: 'venue', label: 'Venue' },
+					{ id: 'booking-form', label: 'Booking Form' },
 					{ id: 'settings', label: 'Settings' },
 			  ]
 			: [] ),
@@ -350,7 +351,7 @@ export function VenueSettingsApp( { context } ) {
 				<LoadingPanel label="Loading profile..." />
 			);
 		}
-		if ( tab === 'settings' ) {
+		if ( tab === 'settings' || tab === 'booking-form' ) {
 			if ( errors.config ) {
 				return (
 					<Panel>
@@ -367,8 +368,11 @@ export function VenueSettingsApp( { context } ) {
 					</Panel>
 				);
 			}
-			return config ? (
-				<BookingTab
+			if ( ! config ) {
+				return <LoadingPanel label="Loading venue settings..." />;
+			}
+			return tab === 'booking-form' ? (
+				<BookingFormTab
 					config={ config }
 					baseline={ configBaselines[ venue.id ] }
 					setConfig={ ( value ) =>
@@ -379,18 +383,21 @@ export function VenueSettingsApp( { context } ) {
 					status={ configStatuses[ venue.id ] }
 					bookingUrl={ venueContext.booking_url }
 					venueName={ venue.name }
+					profile={ profiles[ venue.id ] }
 					idPrefix={ idPrefix }
-				>
-					<IntakeTab
-						config={ config }
-						setConfig={ ( value ) =>
-							setVenueState( setConfigs, venue.id, value )
-						}
-						idPrefix={ idPrefix }
-					/>
-				</BookingTab>
+				/>
 			) : (
-				<LoadingPanel label="Loading venue settings..." />
+				<BookingTab
+					config={ config }
+					baseline={ configBaselines[ venue.id ] }
+					setConfig={ ( value ) =>
+						setVenueState( setConfigs, venue.id, value )
+					}
+					onSave={ () => saveConfig( venue ) }
+					saving={ Boolean( savingConfigs[ venue.id ] ) }
+					status={ configStatuses[ venue.id ] }
+					idPrefix={ idPrefix }
+				/>
 			);
 		}
 		if ( tab === 'team' ) {

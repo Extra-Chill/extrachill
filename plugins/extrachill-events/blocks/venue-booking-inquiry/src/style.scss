@@ -1,1 +1,47 @@
 @use "@extrachill/components/styles/components.scss";
+
+.ec-venue-booking-inquiry {
+	background: var(--ec-booking-background);
+	color: var(--ec-booking-text);
+	padding: clamp(0.75rem, 2vw, 1.5rem);
+
+	.ec-block-shell,
+	.ec-block-shell-inner,
+	.ec-panel,
+	.ec-field-group input,
+	.ec-field-group select,
+	.ec-field-group textarea {
+		color: var(--ec-booking-text);
+	}
+
+	.ec-block-shell-inner,
+	.ec-panel,
+	.ec-field-group input,
+	.ec-field-group select,
+	.ec-field-group textarea {
+		background: var(--ec-booking-surface);
+		border-color: var(--ec-booking-border);
+	}
+
+	.button-1 {
+		background: var(--ec-booking-accent);
+		border-color: var(--ec-booking-accent);
+		border-radius: var(--ec-booking-button-radius);
+		color: var(--ec-booking-button-text);
+	}
+}
+
+.ec-booking-inquiry__powered {
+	margin-block: 1rem 0;
+	opacity: 0.58;
+	font-size: 0.78rem;
+	text-align: center;
+}
+
+.ec-booking-inquiry__logo {
+	display: block;
+	max-width: min(12rem, 60%);
+	max-height: 7rem;
+	margin: 0 auto 1rem;
+	object-fit: contain;
+}

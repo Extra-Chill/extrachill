@@ -243,6 +243,47 @@ class VenueBookingConfigAbilities {
 			'required'             => array( 'artist_name_label', 'contact_name_label', 'contact_email_label', 'contact_phone_label', 'message_label', 'message_help' ),
 			'additionalProperties' => false,
 		);
+		$appearance_schema = array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'mode'              => array(
+					'type' => 'string',
+					'enum' => array( 'default', 'custom' ),
+				),
+				'background_color'  => array(
+					'type'    => 'string',
+					'pattern' => '^#[0-9a-fA-F]{6}$',
+				),
+				'surface_color'     => array(
+					'type'    => 'string',
+					'pattern' => '^#[0-9a-fA-F]{6}$',
+				),
+				'text_color'        => array(
+					'type'    => 'string',
+					'pattern' => '^#[0-9a-fA-F]{6}$',
+				),
+				'accent_color'      => array(
+					'type'    => 'string',
+					'pattern' => '^#[0-9a-fA-F]{6}$',
+				),
+				'button_text_color' => array(
+					'type'    => 'string',
+					'pattern' => '^#[0-9a-fA-F]{6}$',
+				),
+				'border_color'      => array(
+					'type'    => 'string',
+					'pattern' => '^#[0-9a-fA-F]{6}$',
+				),
+				'button_radius'     => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+					'maximum' => 32,
+				),
+				'show_logo'         => array( 'type' => 'boolean' ),
+			),
+			'required'             => array( 'mode', 'background_color', 'surface_color', 'text_color', 'accent_color', 'button_text_color', 'border_color', 'button_radius', 'show_logo' ),
+			'additionalProperties' => false,
+		);
 		$properties          = array(
 			'version'                   => array(
 				'type' => 'integer',
@@ -275,6 +316,7 @@ class VenueBookingConfigAbilities {
 					'maxLength' => 500,
 				),
 			),
+			'appearance'                => $appearance_schema,
 			'consent'                   => array(
 				'type'                 => 'object',
 				'properties'           => array(
@@ -389,7 +431,7 @@ class VenueBookingConfigAbilities {
 			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
-		$required            = array( 'version', 'enabled', 'intake', 'public_requirements', 'consent', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$required            = array( 'version', 'enabled', 'intake', 'public_requirements', 'consent', 'appearance', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		if ( $include_metadata ) {
 			$properties['revision']           = array(
 				'type'    => 'integer',
@@ -414,7 +456,11 @@ class VenueBookingConfigAbilities {
 		if ( ! $accept_legacy ) {
 			return $schema;
 		}
-		$embedded_guide                                  = $schema;
+		$operational                                  = $schema;
+		$operational['properties']['version']['enum'] = array( VenueBookingConfig::OPERATIONAL_CONFIG_VERSION );
+		$operational['required']                      = array_values( array_diff( $operational['required'], array( 'appearance' ) ) );
+		unset( $operational['properties']['appearance'] );
+		$embedded_guide                                  = $operational;
 		$embedded_guide['properties']['version']['enum'] = array( VenueBookingConfig::EMBED_CONFIG_VERSION );
 		$embedded_guide['properties']['booking_guide']   = array( 'type' => 'object' );
 		$embedded_guide['required'][]                    = 'booking_guide';
@@ -435,7 +481,7 @@ class VenueBookingConfigAbilities {
 		$legacy['properties']['version']['enum'] = array( VenueBookingConfig::LEGACY_VERSION );
 		$legacy['required']                      = array_values( array_diff( $legacy['required'], array( 'correspondence' ) ) );
 		unset( $legacy['properties']['correspondence'] );
-		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $schema ) );
+		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $operational, $schema ) );
 	}
 
 	/** Return the strict correspondence configuration schema. */
