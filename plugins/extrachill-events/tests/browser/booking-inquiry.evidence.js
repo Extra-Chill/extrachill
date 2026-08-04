@@ -219,7 +219,10 @@ const measure = ( page ) =>
 		} );
 		await page.waitForSelector( '.ec-booking-inquiry__form' );
 
-		assert.equal( await page.getByText( 'Booking inquiries' ).count(), 1 );
+		assert.equal(
+			await page.getByText( 'Booking at The Room' ).count(),
+			1
+		);
 		assert.equal(
 			await page
 				.getByRole( 'heading', { name: 'Booking guide' } )
@@ -227,27 +230,43 @@ const measure = ( page ) =>
 			1
 		);
 		assert.equal( await page.getByText( 'When is load-in?' ).count(), 1 );
-		assert.equal( await page.getByText( 'Now booking' ).count(), 1 );
-		assert.equal( await page.getByText( 'Signed-in inquiry' ).count(), 1 );
+		assert.equal(
+			await page.getByText( 'Accepting inquiries' ).count(),
+			1
+		);
+		assert.equal( await page.getByText( 'Signed in' ).count(), 1 );
+		assert.equal(
+			await page.getByText( 'Have your pitch ready' ).count(),
+			1
+		);
+		assert.equal(
+			await page.getByText( 'Event type (required)' ).count(),
+			1
+		);
+		assert.equal( await page.getByText( 'Press links' ).count(), 1 );
 		assert.equal(
 			await page.getByLabel( 'Artist or project name' ).count(),
 			0
 		);
-		assert.ok( await page.getByLabel( 'Requested start' ).count() );
-		assert.ok( await page.getByLabel( 'Requested end' ).count() );
-		await page.getByLabel( 'Requested start' ).fill( '2030-08-01T20:00' );
-		await page.getByLabel( 'Requested end' ).fill( '2030-08-01T23:00' );
+		assert.ok( await page.getByLabel( 'Requested date' ).count() );
+		assert.equal( await page.getByLabel( 'Requested space' ).count(), 0 );
+		assert.equal( await page.locator( 'input[type="time"]' ).count(), 0 );
+		assert.equal(
+			await page.locator( 'input[type="datetime-local"]' ).count(),
+			0
+		);
+		await page.getByLabel( 'Requested date' ).fill( '2030-08-01' );
 		await page
 			.getByRole( 'button', { name: 'Check availability' } )
 			.click();
-		await page.getByText( /That exact time is unavailable/ ).waitFor();
+		await page.getByText( /That date is unavailable/ ).waitFor();
 		assert.equal(
 			await page.getByLabel( 'Artist or project name' ).count(),
 			0
 		);
 		assert.equal(
-			await page.getByLabel( 'Requested start' ).inputValue(),
-			'2030-08-01T20:00'
+			await page.getByLabel( 'Requested date' ).inputValue(),
+			'2030-08-01'
 		);
 		await page.evaluate( () => {
 			window.bookingAvailable = true;
@@ -256,7 +275,7 @@ const measure = ( page ) =>
 			.getByRole( 'button', { name: 'Check availability' } )
 			.click();
 		await page
-			.getByText( /That time is available for submissions/ )
+			.getByText( /That date is available for submissions/ )
 			.waitFor();
 		await page.getByLabel( 'Artist or project name' ).waitFor();
 		assert.ok( await page.getByLabel( 'Artist website' ).count() );

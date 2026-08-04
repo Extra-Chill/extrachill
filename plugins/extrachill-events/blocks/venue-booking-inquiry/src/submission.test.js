@@ -4,8 +4,8 @@
  * Internal dependencies
  */
 import {
-	apiDate,
 	availabilityErrorState,
+	bookingDateInterval,
 	buildAvailabilityPayload,
 	buildPayload,
 	errorState,
@@ -22,17 +22,22 @@ const values = {
 	contactEmail: 'alex@example.com',
 	contactPhone: '',
 	spaceKey: 'main-room',
-	startAt: '2026-08-12T20:00',
-	endAt: '2026-08-12T23:00',
+	requestedDate: '2026-08-12',
 	message: 'Routing through Charleston.',
 	fields: { draw: '150' },
 	consent: true,
 };
 
 describe( 'booking inquiry transport helpers', () => {
-	test( 'formats local date controls for the protected route', () => {
-		expect( apiDate( values.startAt ) ).toBe( '2026-08-12 20:00:00' );
-		expect( apiDate( '' ) ).toBeNull();
+	test( 'maps a requested date to its complete local day', () => {
+		expect( bookingDateInterval( values.requestedDate ) ).toEqual( {
+			start: '2026-08-12 00:00:00',
+			end: '2026-08-13 00:00:00',
+		} );
+		expect( bookingDateInterval( '2026-12-31' ) ).toEqual( {
+			start: '2026-12-31 00:00:00',
+			end: '2027-01-01 00:00:00',
+		} );
 	} );
 
 	test( 'builds only contracted transport and intake values', () => {
@@ -50,8 +55,8 @@ describe( 'booking inquiry transport helpers', () => {
 			contact_email: 'alex@example.com',
 			contact_phone: null,
 			requested_space_key: 'main-room',
-			requested_start_at: '2026-08-12 20:00:00',
-			requested_end_at: '2026-08-12 23:00:00',
+			requested_start_at: '2026-08-12 00:00:00',
+			requested_end_at: '2026-08-13 00:00:00',
 			intake: {
 				config_revision: 7,
 				message: 'Routing through Charleston.',
@@ -64,12 +69,12 @@ describe( 'booking inquiry transport helpers', () => {
 		expect( payload ).not.toHaveProperty( 'attachments' );
 	} );
 
-	test( 'builds a privacy-safe exact interval availability request', () => {
+	test( 'builds a privacy-safe date availability request', () => {
 		expect( buildAvailabilityPayload( config, values ) ).toEqual( {
 			venue: 42,
 			requested_space_key: 'main-room',
-			requested_start_at: '2026-08-12 20:00:00',
-			requested_end_at: '2026-08-12 23:00:00',
+			requested_start_at: '2026-08-12 00:00:00',
+			requested_end_at: '2026-08-13 00:00:00',
 		} );
 	} );
 

@@ -7,44 +7,53 @@ export const newIdempotencyKey = () => {
 		.slice( 2 ) }`;
 };
 
-export const apiDate = ( value ) => {
+export const bookingDateInterval = ( value ) => {
 	if ( ! value ) {
-		return null;
+		return { start: null, end: null };
 	}
-	return `${ value.replace( 'T', ' ' ) }${
-		value.length === 16 ? ':00' : ''
-	}`;
+	const [ year, month, day ] = value.split( '-' ).map( Number );
+	const next = new Date( Date.UTC( year, month - 1, day + 1 ) );
+	return {
+		start: `${ value } 00:00:00`,
+		end: `${ next.toISOString().slice( 0, 10 ) } 00:00:00`,
+	};
 };
 
-export const buildPayload = ( config, values, idempotencyKey, token ) => ( {
-	venue: config.venue.id,
-	idempotency_key: idempotencyKey,
-	artist_name: values.artistName,
-	contact_name: values.contactName || null,
-	contact_email: values.contactEmail || null,
-	contact_phone: values.contactPhone || null,
-	requested_space_key: values.spaceKey || null,
-	requested_start_at: apiDate( values.startAt ),
-	requested_end_at: apiDate( values.endAt ),
-	intake: {
-		config_revision: config.revision,
-		message: values.message,
-		fields: values.fields,
-		consent: {
-			id: config.consent.id,
-			version: config.consent.version,
-			accepted: values.consent,
+export const buildPayload = ( config, values, idempotencyKey, token ) => {
+	const interval = bookingDateInterval( values.requestedDate );
+	return {
+		venue: config.venue.id,
+		idempotency_key: idempotencyKey,
+		artist_name: values.artistName,
+		contact_name: values.contactName || null,
+		contact_email: values.contactEmail || null,
+		contact_phone: values.contactPhone || null,
+		requested_space_key: values.spaceKey || null,
+		requested_start_at: interval.start,
+		requested_end_at: interval.end,
+		intake: {
+			config_revision: config.revision,
+			message: values.message,
+			fields: values.fields,
+			consent: {
+				id: config.consent.id,
+				version: config.consent.version,
+				accepted: values.consent,
+			},
 		},
-	},
-	turnstile_response: token,
-} );
+		turnstile_response: token,
+	};
+};
 
-export const buildAvailabilityPayload = ( config, values ) => ( {
-	venue: config.venue.id,
-	requested_space_key: values.spaceKey,
-	requested_start_at: apiDate( values.startAt ),
-	requested_end_at: apiDate( values.endAt ),
-} );
+export const buildAvailabilityPayload = ( config, values ) => {
+	const interval = bookingDateInterval( values.requestedDate );
+	return {
+		venue: config.venue.id,
+		requested_space_key: values.spaceKey,
+		requested_start_at: interval.start,
+		requested_end_at: interval.end,
+	};
+};
 
 export const availabilityErrorState = ( response, payload ) => {
 	if (
@@ -61,7 +70,7 @@ export const availabilityErrorState = ( response, payload ) => {
 		tone: response.status >= 500 ? 'error' : 'warning',
 		message:
 			payload?.message ||
-			'Availability could not be checked. Review the time and try again.',
+			'Availability could not be checked. Review the date and try again.',
 	};
 };
 
@@ -91,7 +100,7 @@ export const errorState = ( response, payload ) => {
 			resetAvailability: true,
 			message:
 				payload?.message ||
-				'That time filled while you completed the form. Choose another time and try again.',
+				'That date filled while you completed the form. Choose another date and try again.',
 		};
 	}
 	if ( code === 'booking_idempotency_conflict' ) {

@@ -11,41 +11,32 @@ const view = readFileSync( path.resolve( __dirname, 'view.js' ), 'utf8' );
 
 describe( 'venue booking inquiry styles', () => {
 	it( 'composes the canonical shared component stylesheet', () => {
-		expect( styles ).toContain(
+		expect( styles.trim() ).toBe(
 			'@use "@extrachill/components/styles/components.scss";'
 		);
 	} );
 
-	it( 'composes canonical form, identity, and status primitives', () => {
+	it( 'relies on shared components and the theme badge system', () => {
 		expect( view ).toContain(
 			'<BlockShellInner className="ec-panel ec-booking-inquiry__panel">'
 		);
 		expect( view ).toContain( 'Grid minColumnWidth="16rem"' );
-		expect( view ).toContain( '<PanelHeader' );
-		expect( view ).toContain( '<Badge tone="success">Now booking</Badge>' );
-		expect( view ).toContain(
-			'<Badge tone="info">Signed-in inquiry</Badge>'
-		);
+		expect( view ).toContain( 'className="taxonomy-badge"' );
+		expect( view ).not.toContain( '<Badge' );
+		expect( styles ).not.toContain( '.ec-' );
 	} );
 
-	it( 'contains the shared grid within the booking panel', () => {
-		expect( styles ).toMatch(
-			/\.ec-booking-inquiry__form\s*\{[^}]*min-width:\s*0;[^}]*width:\s*100%;[^}]*\}/
-		);
-		expect( styles ).toMatch(
-			/\.ec-booking-inquiry__form > \.ec-card-grid\s*\{[^}]*min-width:\s*0;[^}]*width:\s*100%;[^}]*\}/
-		);
+	it( 'surfaces configured intake requirements before availability', () => {
+		expect( view ).toContain( 'Have your pitch ready' );
+		expect( view ).toContain( 'config.fields.map( ( field ) =>' );
+		expect( view ).toContain( "field.required ? ' (required)' : ''" );
 	} );
 
-	it( 'keeps unique accessibility behavior token-driven', () => {
-		expect( styles ).toContain( '.ec-booking-inquiry__result:focus' );
-		expect( styles ).toContain( 'var(--focus-border-color)' );
-		expect( styles ).toContain( '@media (prefers-reduced-motion: reduce)' );
-		expect( styles ).toContain( 'transition: none !important' );
-	} );
-
-	it( 'does not reintroduce local colors or arbitrary breakpoints', () => {
-		expect( styles ).not.toMatch( /#[0-9a-f]{3,8}\b/i );
-		expect( styles ).not.toMatch( /max-width:\s*(?:700|720)px/ );
+	it( 'asks for one date without exposing time controls', () => {
+		expect( view ).toContain( 'label="Requested date"' );
+		expect( view ).toContain( 'type="date"' );
+		expect( view ).not.toContain( 'type="datetime-local"' );
+		expect( view ).not.toContain( '<fieldset' );
+		expect( view ).toContain( 'config.spaces.length > 1' );
 	} );
 } );
