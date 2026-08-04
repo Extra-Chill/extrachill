@@ -15,7 +15,7 @@ import { act } from 'react';
 /**
  * Internal dependencies
  */
-import { VenueSettingsApp, venueSubscriberCsv } from './view';
+import { VenueSettingsApp } from './view';
 
 jest.mock( '@wordpress/api-fetch', () => ( {
 	__esModule: true,
@@ -604,45 +604,6 @@ describe( 'venue settings authorization-facing states', () => {
 				request.path.includes( 'list-venue-memberships' )
 			)
 		).toBe( false );
-		expect(
-			apiFetch.mock.calls.some( ( [ request ] ) =>
-				request.path.includes( 'list-venue-email-subscribers' )
-			)
-		).toBe( false );
-		await act( async () => root.unmount() );
-	} );
-
-	it( 'shows exact current venue email subscribers only to owners', async () => {
-		apiFetch.mockImplementation( ( request ) => {
-			const input = requestInput( request );
-			if ( request.path.includes( 'get-venue-profile' ) ) {
-				return Promise.resolve( profile( input.venue_term_id ) );
-			}
-			if ( request.path.includes( 'get-venue-booking-config' ) ) {
-				return Promise.resolve( config( input.venue_term_id ) );
-			}
-			if ( request.path.includes( 'list-venue-email-subscribers' ) ) {
-				return Promise.resolve( {
-					venue_term_id: input.venue_term_id,
-					total: 1,
-					subscribers: [
-						{ user_id: 12, email: 'current@example.com' },
-					],
-				} );
-			}
-			return Promise.resolve( [] );
-		} );
-		const { container, root } = await renderApp(
-			context( { can_manage: true } )
-		);
-		await act( async () => buttonByText( container, 'Team' ).click() );
-
-		expect( container.textContent ).toContain( 'current@example.com' );
-		expect( container.textContent ).toContain( 'Download CSV' );
-		const request = apiFetch.mock.calls.find( ( [ call ] ) =>
-			call.path.includes( 'list-venue-email-subscribers' )
-		)[ 0 ];
-		expect( requestInput( request ) ).toEqual( { venue_term_id: 44 } );
 		await act( async () => root.unmount() );
 	} );
 
@@ -707,14 +668,6 @@ describe( 'venue settings authorization-facing states', () => {
 			'button-2'
 		);
 		await act( async () => root.unmount() );
-	} );
-
-	it( 'exports only the resolved user ID and current email', () => {
-		expect(
-			venueSubscriberCsv( [
-				{ user_id: 12, email: 'current@example.com' },
-			] )
-		).toBe( '"user_id","email"\r\n"12","current@example.com"' );
 	} );
 
 	it( 'lets administrators review claims without active venue access', async () => {

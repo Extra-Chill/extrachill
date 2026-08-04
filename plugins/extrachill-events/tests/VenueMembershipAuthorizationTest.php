@@ -6,7 +6,6 @@
  */
 
 use ExtraChillEvents\Abilities\VenueMembershipAbilities;
-use ExtraChillEvents\Abilities\VenueEmailSharingAbilities;
 use ExtraChillEvents\Abilities\VenueBookingConfigAbilities;
 use ExtraChillEvents\Abilities\ManagedVenueVoicesAbilities;
 use ExtraChillEvents\Abilities\VenueProfileAbilities;
@@ -146,13 +145,6 @@ if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 if ( ! function_exists( 'get_userdata' ) ) {
 	function get_userdata( $user_id ) {
 		return $GLOBALS['venue_membership_test']['users'][ $user_id ] ?? false;
-	}
-}
-if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) ) {
-	/** Resolve configured scoped audience fixtures. */
-	function extrachill_users_entity_subscription_recipients( $producer, $entity_type, $taxonomy, $slug, $delivery = 'notification' ) {
-		$GLOBALS['venue_membership_test']['email_recipient_resolutions'][] = compact( 'producer', 'entity_type', 'taxonomy', 'slug', 'delivery' );
-		return $GLOBALS['venue_membership_test']['email_recipient_ids'][ $slug ] ?? array();
 	}
 }
 if ( ! function_exists( 'get_user_by' ) ) {
@@ -878,8 +870,6 @@ require_once dirname( __DIR__ ) . '/inc/Core/BookingRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueProfile.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueMembershipAbilities.php';
-require_once dirname( __DIR__ ) . '/inc/core/venue-email-sharing.php';
-require_once dirname( __DIR__ ) . '/inc/Abilities/VenueEmailSharingAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueBookingConfigAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueProfileAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/ManagedVenueVoicesAbilities.php';
@@ -1035,8 +1025,6 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 			'permission_boundary_failures' => array(),
 			'doing_action'      => '',
 			'rollback_attempts' => array(),
-			'email_recipient_ids' => array(),
-			'email_recipient_resolutions' => array(),
 			'reset_key_calls'   => 0,
 			'fail_reset_key'    => false,
 			'fail_delivery'     => false,
@@ -1345,50 +1333,6 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 			)
 		);
 		$this->assertSame( 'venue_action_forbidden', $denied->get_error_code() );
-	}
-
-	/** Venue email listing is owner-scoped and resolves current consent and emails. */
-	public function test_venue_email_subscriber_ability_enforces_owner_scope_and_current_resolution(): void {
-		$this->create_member( 55, 2, true );
-		$this->create_member( 55, 3, false );
-		$this->create_member( 56, 4, true );
-		$GLOBALS['venue_membership_test']['current_user_id'] = 2;
-		$this->set_current_user( 2 );
-		$GLOBALS['venue_membership_test']['email_recipient_ids']['the-royal-american'] = array( 3, 4 );
-
-		$abilities = new VenueEmailSharingAbilities();
-		$abilities->register();
-		$this->assertTrue( $abilities->can_manage_venue( array( 'venue_term_id' => 55 ) ) );
-		$this->assertSame( 'venue_action_forbidden', $abilities->can_manage_venue( array( 'venue_term_id' => 56 ) )->get_error_code() );
-
-		$first = $abilities->execute( array( 'venue_term_id' => 55 ) );
-		$this->assertSame( array( 'member3@example.com', 'member4@example.com' ), array_column( $first['subscribers'], 'email' ) );
-		$this->assertSame(
-			array(
-				'producer'    => EXTRACHILL_EVENTS_VENUE_EMAIL_SHARING_PRODUCER,
-				'entity_type' => 'venue-email-sharing',
-				'taxonomy'    => 'venue',
-				'slug'        => 'the-royal-american',
-				'delivery'    => 'email',
-			),
-			$GLOBALS['venue_membership_test']['email_recipient_resolutions'][0]
-		);
-
-		$GLOBALS['venue_membership_test']['email_recipient_ids']['the-royal-american'] = array( 4 );
-		$GLOBALS['venue_membership_test']['users'][4]->user_email = 'changed@example.com';
-		if ( $this->original_wpdb ) {
-			$this->original_wpdb->update( $this->original_wpdb->users, array( 'user_email' => 'changed@example.com' ), array( 'ID' => 4 ) );
-			clean_user_cache( 4 );
-		}
-		$after_revocation = $abilities->execute( array( 'venue_term_id' => 55 ) );
-		$this->assertSame( array( array( 'user_id' => 4, 'email' => 'changed@example.com' ) ), $after_revocation['subscribers'] );
-
-		$this->assertSame( 'venue_action_forbidden', $abilities->execute( array( 'venue_term_id' => 56 ) )->get_error_code() );
-		$this->assertCount( 2, $GLOBALS['venue_membership_test']['email_recipient_resolutions'] );
-
-		$GLOBALS['venue_membership_test']['current_user_id'] = 3;
-		$this->set_current_user( 3 );
-		$this->assertSame( 'venue_action_forbidden', $abilities->execute( array( 'venue_term_id' => 55 ) )->get_error_code() );
 	}
 
 	public function test_claim_submission_is_idempotent_and_approval_bootstraps_exact_owner(): void {

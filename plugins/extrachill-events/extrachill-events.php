@@ -350,8 +350,6 @@ class ExtraChillEvents {
 		extrachill_events_init_local_scene_digest();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-update-subscriptions.php';
 		extrachill_events_init_venue_update_subscriptions();
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-email-sharing.php';
-		extrachill_events_init_venue_email_sharing();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/near-me.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/discovery-pages.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/router-pages.php';
@@ -422,9 +420,6 @@ class ExtraChillEvents {
 		if ( \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueMembershipAbilities.php';
 			new \ExtraChillEvents\Abilities\VenueMembershipAbilities();
-
-			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueEmailSharingAbilities.php';
-			new \ExtraChillEvents\Abilities\VenueEmailSharingAbilities();
 
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueOnboardingAbilities.php';
 			new \ExtraChillEvents\Abilities\VenueOnboardingAbilities();

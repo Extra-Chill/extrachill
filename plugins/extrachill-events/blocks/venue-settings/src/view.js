@@ -28,8 +28,6 @@ import { TeamTab } from './team-tab';
 import { VenueWorkspaceHeader } from './venue-workspace-header';
 import { editableConfig, profileChanges, sameDocument } from './state';
 
-export { venueSubscriberCsv } from './team-tab';
-
 export function VenueSettingsApp( { context } ) {
 	const selected = context.selected_venue;
 	const [ activeTab, setActiveTab ] = useState( 'calendar' );
@@ -41,7 +39,6 @@ export function VenueSettingsApp( { context } ) {
 	const [ configRevisions, setConfigRevisions ] = useState( {} );
 	const [ members, setMembers ] = useState( {} );
 	const [ invitations, setInvitations ] = useState( {} );
-	const [ subscribers, setSubscribers ] = useState( {} );
 	const [ claims, setClaims ] = useState( [] );
 	const [ profileStatuses, setProfileStatuses ] = useState( {} );
 	const [ configStatuses, setConfigStatuses ] = useState( {} );
@@ -93,18 +90,14 @@ export function VenueSettingsApp( { context } ) {
 		}
 		const currentRequest = ( teamRequestIds.current[ venue.id ] || 0 ) + 1;
 		teamRequestIds.current[ venue.id ] = currentRequest;
-		const [ memberResult, invitationResult, subscriberResult ] =
-			await Promise.allSettled( [
-				runAbility( 'extrachill/list-venue-memberships', {
-					venue_term_id: venue.id,
-				} ),
-				runAbility( 'extrachill/list-venue-invitations', {
-					venue_term_id: venue.id,
-				} ),
-				runAbility( 'extrachill/list-venue-email-subscribers', {
-					venue_term_id: venue.id,
-				} ),
-			] );
+		const [ memberResult, invitationResult ] = await Promise.allSettled( [
+			runAbility( 'extrachill/list-venue-memberships', {
+				venue_term_id: venue.id,
+			} ),
+			runAbility( 'extrachill/list-venue-invitations', {
+				venue_term_id: venue.id,
+			} ),
+		] );
 		if ( currentRequest !== teamRequestIds.current[ venue.id ] ) {
 			return;
 		}
@@ -114,19 +107,11 @@ export function VenueSettingsApp( { context } ) {
 		if ( invitationResult.status === 'fulfilled' ) {
 			setVenueState( setInvitations, venue.id, invitationResult.value );
 		}
-		if ( subscriberResult.status === 'fulfilled' ) {
-			setVenueState(
-				setSubscribers,
-				venue.id,
-				subscriberResult.value.subscribers || []
-			);
-		}
 		setVenueError(
 			venue.id,
 			'team',
 			memberResult.status === 'rejected' ||
-				invitationResult.status === 'rejected' ||
-				subscriberResult.status === 'rejected'
+				invitationResult.status === 'rejected'
 				? 'Some team records could not be loaded.'
 				: null
 		);
@@ -423,7 +408,6 @@ export function VenueSettingsApp( { context } ) {
 						venueId={ venue.id }
 						members={ members[ venue.id ] || [] }
 						invitations={ invitations[ venue.id ] || [] }
-						subscribers={ subscribers[ venue.id ] || [] }
 						onRefresh={ () => loadTeam( venue ) }
 						idPrefix={ idPrefix }
 					/>

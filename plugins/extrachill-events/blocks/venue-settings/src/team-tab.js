@@ -21,29 +21,10 @@ import {
 import { errorDetails, runAbility } from './api';
 import { Status } from './status';
 
-export const venueSubscriberCsv = ( subscribers ) =>
-	[
-		[ 'user_id', 'email' ],
-		...subscribers.map( ( subscriber ) => [
-			subscriber.user_id,
-			subscriber.email,
-		] ),
-	]
-		.map( ( row ) =>
-			row
-				.map(
-					( value ) =>
-						`"${ String( value ).replaceAll( '"', '""' ) }"`
-				)
-				.join( ',' )
-		)
-		.join( '\r\n' );
-
 export function TeamTab( {
 	venueId,
 	members,
 	invitations,
-	subscribers,
 	onRefresh,
 	idPrefix = '',
 } ) {
@@ -84,53 +65,8 @@ export function TeamTab( {
 			setOwner( false );
 		}
 	};
-	const exportSubscribers = () => {
-		const url = window.URL.createObjectURL(
-			new window.Blob( [ venueSubscriberCsv( subscribers ) ], {
-				type: 'text/csv;charset=utf-8',
-			} )
-		);
-		const link = document.createElement( 'a' );
-		link.href = url;
-		link.download = `venue-${ venueId }-email-subscribers.csv`;
-		link.click();
-		window.URL.revokeObjectURL( url );
-	};
 	return (
 		<Grid minColumnWidth="100%">
-			<Panel>
-				<PanelHeader
-					title="Venue email list"
-					description="Only accounts that explicitly share email access with this venue appear here. Addresses always reflect the current account email."
-				/>
-				{ subscribers.length === 0 ? (
-					<p>
-						No accounts currently share email access with this
-						venue.
-					</p>
-				) : (
-					<>
-						<ul className="ec-venue-settings__records">
-							{ subscribers.map( ( subscriber ) => (
-								<li key={ subscriber.user_id }>
-									<a href={ `mailto:${ subscriber.email }` }>
-										{ subscriber.email }
-									</a>
-								</li>
-							) ) }
-						</ul>
-						<ActionRow>
-							<button
-								type="button"
-								className="button-2"
-								onClick={ exportSubscribers }
-							>
-								Download CSV
-							</button>
-						</ActionRow>
-					</>
-				) }
-			</Panel>
 			<Panel>
 				<PanelHeader
 					title="Invite a teammate"

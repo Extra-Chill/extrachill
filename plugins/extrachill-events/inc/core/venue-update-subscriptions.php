@@ -76,7 +76,6 @@ function extrachill_events_render_venue_update_control(): void {
 	?>
 	<div class="ec-action-row" data-venue-preferences aria-label="<?php esc_attr_e( 'Venue preferences', 'extrachill-events' ); ?>">
 		<button class="button-3 button-small" type="button" disabled aria-live="polite" aria-pressed="false" data-venue-update-subscription data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Loading alerts...', 'extrachill-events' ); ?></button>
-		<?php extrachill_events_render_venue_email_sharing_control(); ?>
 	</div>
 	<?php
 }
