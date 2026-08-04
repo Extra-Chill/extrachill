@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.24.4] - 2026-08-04
+
+### Fixed
+- prevent published posts from returning to review
+
 ## [0.24.3] - 2026-08-04
 
 ### Fixed
