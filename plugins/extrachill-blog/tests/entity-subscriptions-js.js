@@ -55,38 +55,45 @@ async function loadScript( buttons, fetch ) {
 		onStatus: 'On',
 		offStatus: 'Off',
 	} );
-	const email = makeButton( {
-		...shared,
-		entityType: 'artist-email-sharing',
-		onLabel: 'Stop sharing',
-		offLabel: 'Share email',
-		onStatus: 'Shared with this artist',
-		offStatus: 'Not shared with this artist',
-	} );
-	let request = 0;
+	let subscribed = false;
+	const requests = [];
 
-	await loadScript( [ notifications, email ], () => {
-		const current = ++request;
+	await loadScript( [ notifications ], ( url, options ) => {
+		requests.push( { url, options } );
+		if ( url.includes( '/entity-subscribe/' ) ) {
+			subscribed = true;
+		} else if ( url.includes( '/entity-unsubscribe/' ) ) {
+			subscribed = false;
+		}
 		return Promise.resolve( {
 			ok: true,
-			json: () => Promise.resolve( { subscribed: 2 === current } ),
+			json: () => Promise.resolve( { subscribed } ),
 		} );
 	} );
 
 	assert.equal( notifications.textContent, 'Turn on' );
 	assert.equal( notifications.status.textContent, 'Off' );
 	assert.equal( notifications.disabled, false );
-	assert.equal( email.textContent, 'Stop sharing' );
-	assert.equal( email.status.textContent, 'Shared with this artist' );
-	assert.equal( email.disabled, false );
+	assert.equal( requests[0].options.method, 'GET' );
+	assert.match( requests[0].url, /entity-subscription-status/ );
+
+	notifications.listeners.click();
+	await flushPromises();
+	assert.equal( notifications.textContent, 'Turn off' );
+	assert.equal( notifications.status.textContent, 'On' );
+	assert.equal( notifications.disabled, false );
+	assert.match( requests[1].url, /entity-subscribe/ );
+	assert.equal( JSON.parse( requests[1].options.body ).input.entity_type, 'artist' );
+
+	notifications.listeners.click();
+	await flushPromises();
+	assert.equal( notifications.textContent, 'Turn on' );
+	assert.equal( notifications.status.textContent, 'Off' );
+	assert.equal( notifications.disabled, false );
+	assert.match( requests[2].url, /entity-unsubscribe/ );
 
 	const unavailable = makeButton( {
-		...shared,
-		entityType: 'artist-email-sharing',
-		onLabel: 'Stop sharing',
-		offLabel: 'Share email',
-		onStatus: 'Shared with this artist',
-		offStatus: 'Not shared with this artist',
+		...notifications.dataset,
 	} );
 	await loadScript( [ unavailable ], () => Promise.reject( new Error( 'offline' ) ) );
 
