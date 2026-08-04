@@ -66,6 +66,57 @@ final class ConversionMapScopeTest extends TestCase {
 	}
 
 	/**
+	 * An author-scoped report admits only posts whose primary author matches.
+	 */
+	public function test_editorial_entries_can_be_scoped_to_primary_author(): void {
+		$first_author              = new WP_Post();
+		$first_author->ID          = 21;
+		$first_author->post_type   = 'post';
+		$first_author->post_status = 'publish';
+		$first_author->post_author = 607;
+		$other_author              = new WP_Post();
+		$other_author->ID          = 22;
+		$other_author->post_type   = 'post';
+		$other_author->post_status = 'publish';
+		$other_author->post_author = 42;
+
+		$GLOBALS['extrachill_analytics_classifier_posts'] = array(
+			21 => $first_author,
+			22 => $other_author,
+		);
+
+		$this->assertTrue(
+			extrachill_analytics_conversion_is_editorial_entry(
+				array(
+					'blog_id' => 1,
+					'post_id' => 21,
+				),
+				1,
+				607
+			)
+		);
+		$this->assertFalse(
+			extrachill_analytics_conversion_is_editorial_entry(
+				array(
+					'blog_id' => 1,
+					'post_id' => 22,
+				),
+				1,
+				607
+			)
+		);
+		$this->assertTrue(
+			extrachill_analytics_conversion_is_editorial_entry(
+				array(
+					'blog_id' => 1,
+					'post_id' => 22,
+				),
+				1
+			)
+		);
+	}
+
+	/**
 	 * Route-level destinations count without becoming editorial entries.
 	 */
 	public function test_homepage_and_archive_destinations_are_counted(): void {

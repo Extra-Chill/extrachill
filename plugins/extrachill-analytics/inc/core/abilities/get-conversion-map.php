@@ -109,6 +109,11 @@ function extrachill_analytics_register_conversion_map_ability() {
 						'description' => __( 'Minimum completed days after an entry journey before it enters the denominator. Excludes late-window entries with unequal return opportunity. Default 7.', 'extrachill-analytics' ),
 						'default'     => 7,
 					),
+					'author_id'                => array(
+						'type'        => 'integer',
+						'description' => __( 'Optional primary WordPress author ID. Zero includes all authors.', 'extrachill-analytics' ),
+						'default'     => 0,
+					),
 				),
 			),
 			'output_schema'       => array(
@@ -176,6 +181,7 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		'top_articles'            => isset( $input['top_articles'] ) ? max( 1, (int) $input['top_articles'] ) : 25,
 		'min_entry_sessions'      => isset( $input['min_entry_sessions'] ) ? max( 1, (int) $input['min_entry_sessions'] ) : 1,
 		'return_observation_days' => isset( $input['return_observation_days'] ) ? max( 0, (int) $input['return_observation_days'] ) : 7,
+		'author_id'                => isset( $input['author_id'] ) ? max( 0, (int) $input['author_id'] ) : 0,
 	);
 
 	return extrachill_analytics_report_cache_remember(
@@ -201,6 +207,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 	$top_articles            = isset( $input['top_articles'] ) ? max( 1, (int) $input['top_articles'] ) : 25;
 	$min_entry_sessions      = isset( $input['min_entry_sessions'] ) ? max( 1, (int) $input['min_entry_sessions'] ) : 1;
 	$return_observation_days = isset( $input['return_observation_days'] ) ? max( 0, (int) $input['return_observation_days'] ) : 7;
+	$author_id                = isset( $input['author_id'] ) ? max( 0, (int) $input['author_id'] ) : 0;
 
 	$gap_secs = $session_gap_mins * 60;
 
@@ -210,12 +217,12 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 	$surfaces      = extrachill_analytics_conversion_surface_map();
 	$entry_blog_id = (int) $surfaces['entry_blog_id'];
 	$platform      = $surfaces['platform'];
-	$platform_ids  = array_map( 'intval', array_values( $platform ) );
 
-	$now_utc       = gmdate( 'Y-m-d H:i:s' );
-	$since         = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-	$stream_since  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days -{$session_gap_mins} minutes" ) );
-	$mature_before = gmdate( 'Y-m-d H:i:s', strtotime( "-{$return_observation_days} days" ) );
+	$now_ts        = time();
+	$now_utc       = gmdate( 'Y-m-d H:i:s', $now_ts );
+	$since         = gmdate( 'Y-m-d H:i:s', $now_ts - ( $days * DAY_IN_SECONDS ) );
+	$stream_since  = gmdate( 'Y-m-d H:i:s', $now_ts - ( $days * DAY_IN_SECONDS ) - ( $session_gap_mins * MINUTE_IN_SECONDS ) );
+	$mature_before = gmdate( 'Y-m-d H:i:s', $now_ts - ( $return_observation_days * DAY_IN_SECONDS ) );
 
 	// Pull one inactivity-gap of pre-window context plus the in-window stream for
 	// every visitor who touched the entry blog. The buffer prevents a session
@@ -252,6 +259,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 			$entry_blog_id
 		)
 	);
+	/** @var array<int,object{visitor_id:string,blog_id:int,event_data:string,ts:int}> $rows */
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 	// Accumulators.
@@ -299,11 +307,11 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 		$visitor_id
 	) use (
 		$entry_blog_id,
-		$platform_ids,
 		$platform_id_to_key,
 		$gap_secs,
 		$since,
 		$mature_before,
+		$author_id,
 		&$overall,
 		&$by_article,
 		&$by_category,
@@ -334,7 +342,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 		// journeys, not every entry session a repeat reader starts.
 		$entry_index = null;
 		foreach ( $sessions as $i => $sess ) {
-			if ( extrachill_analytics_conversion_is_mature_entry_session( $sess[0], $entry_blog_id, $since, $mature_before ) ) {
+			if ( extrachill_analytics_conversion_is_mature_entry_session( $sess[0], $entry_blog_id, $since, $mature_before, $author_id ) ) {
 				$entry_index = $i;
 				break;
 			}
@@ -473,14 +481,15 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 		$outcome_types,
 		$since,
 		$now_utc,
-		static function ( $page ) use ( $entry_blog_id, $journeys_by_visitor, $visitor_to_user, &$outcome_records, &$outcome_coverage ) {
+		static function ( $page ) use ( $entry_blog_id, $author_id, $journeys_by_visitor, $visitor_to_user, &$outcome_records, &$outcome_coverage ) {
 			extrachill_analytics_conversion_collect_outcome_rows(
 				$page,
 				$entry_blog_id,
 				$journeys_by_visitor,
 				$visitor_to_user,
 				$outcome_records,
-				$outcome_coverage
+				$outcome_coverage,
+				$author_id
 			);
 		}
 	);
@@ -559,6 +568,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 		'by_article'                  => $article_rank,
 		'by_category'                 => $category_rank,
 		'entry_blog_id'               => $entry_blog_id,
+		'author_id'                   => $author_id,
 		'platform_blogs'              => $platform,
 		'outcomes'                    => array(
 			'overall'               => extrachill_analytics_conversion_outcome_row( $outcome_overall, $outcome_coverage ),
@@ -572,7 +582,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 		'return_observation_days'     => $return_observation_days,
 		'denominator'                 => 'One first eligible, mature editorial-entry journey per visitor. An eligible entry is a session starting in the reporting window on a published blog-1 post; late entries without the configured return observation period are excluded.',
 		'measured_destination_routes' => 'Eligible collected pageviews on events, community, and artist, including post-backed singular views and route-level homepage, archive, search, auth, and directory views. Entry journeys remain published blog-1 posts only. Historical periods before issue #182 deployment remain singular-only.',
-		'period'                      => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' ),
+		'period'                      => gmdate( 'Y-m-d', $now_ts - ( $days * DAY_IN_SECONDS ) ) . ' to ' . gmdate( 'Y-m-d', $now_ts ),
 		'since'                       => $since,
 		'as_of'                       => $now_utc,
 		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post; route views never become editorial entries. Same-session and return reach include eligible collected events/community/artist routes. Newsletter signup, registration, onboarding completion, and artist profile first publication are successful server-side outcomes reported through separate direct-source and visitor-journey lenses. Automatic registration newsletter subscriptions are excluded. Missing source or visitor identity and outcome types absent from the window remain explicit coverage, never an inferred zero. Route-level destination collection is additive from issue #182 onward, so historical periods remain singular-only. Pageviews include one inactivity-gap before the lower boundary; outcomes use two bounded keyset passes ordered by created_at then row ID for ambiguity-safe visitor/user stitching and attribution. Late entries without the configured return observation period and NULL-visitor pageviews (GPC/DNT opt-out) are excluded.',
@@ -639,6 +649,7 @@ function extrachill_analytics_conversion_each_outcome_page( $table, $outcome_typ
 			ORDER BY created_at ASC, id ASC
 			LIMIT %d";
 		$page = (array) $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+		/** @var array<int,object{id:int,event_type:string,event_data:string,source_url:string,user_id:int,visitor_id:string,created_at:string,ts:int}> $page */
 		// phpcs:enable WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery
 
 		if ( empty( $page ) ) {
@@ -647,7 +658,7 @@ function extrachill_analytics_conversion_each_outcome_page( $table, $outcome_typ
 
 		$consume( $page );
 		$page_count  = count( $page );
-		$last        = end( $page );
+		$last        = $page[ $page_count - 1 ];
 		$cursor_time = (string) $last->created_at;
 		$cursor_id   = (int) $last->id;
 	} while ( $page_count === $page_size );
@@ -656,7 +667,7 @@ function extrachill_analytics_conversion_each_outcome_page( $table, $outcome_typ
 /**
  * Normalize one stored outcome row.
  *
- * @param object $row Stored analytics event row.
+ * @param object{id:int,event_type:string,event_data:string,source_url:string,user_id:int,visitor_id:string,ts:int} $row Stored analytics event row.
  * @return array Normalized outcome.
  */
 function extrachill_analytics_conversion_normalize_outcome( $row ) {
@@ -687,7 +698,7 @@ function extrachill_analytics_conversion_outcome_is_excluded( $outcome ) {
 /**
  * Observe visitor/user bridges in one first-pass keyset page.
  *
- * @param object[] $rows          Ordered outcome rows.
+ * @param array<int,object{id:int,event_type:string,event_data:string,source_url:string,user_id:int,visitor_id:string,ts:int}> $rows Ordered outcome rows.
  * @param array    $visitor_users Observed users keyed by visitor, by reference.
  */
 function extrachill_analytics_conversion_observe_outcome_identities( $rows, &$visitor_users ) {
@@ -726,18 +737,40 @@ function extrachill_analytics_conversion_resolve_outcome_identities( $visitor_us
  * Later duplicate rows may fill direct-source or journey attribution that an
  * earlier row lacked. Input order remains created_at then row ID across pages.
  *
- * @param object[] $rows                Ordered outcome rows.
+ * @param array<int,object{id:int,event_type:string,event_data:string,source_url:string,user_id:int,visitor_id:string,ts:int}> $rows Ordered outcome rows.
  * @param int      $entry_blog_id       Editorial blog ID.
  * @param array    $journeys_by_visitor Eligible journeys keyed by visitor.
  * @param array    $visitor_to_user     Unambiguous visitor/user bridges.
  * @param array    $outcome_records     Records keyed by type/person, by reference.
  * @param array    $outcome_coverage    Coverage by event type, by reference.
+ * @param int      $author_id           Optional primary post author ID.
  */
-function extrachill_analytics_conversion_collect_outcome_rows( $rows, $entry_blog_id, $journeys_by_visitor, $visitor_to_user, &$outcome_records, &$outcome_coverage ) {
+function extrachill_analytics_conversion_collect_outcome_rows( $rows, $entry_blog_id, $journeys_by_visitor, $visitor_to_user, &$outcome_records, &$outcome_coverage, $author_id = 0 ) {
 	foreach ( $rows as $row ) {
 		$outcome = extrachill_analytics_conversion_normalize_outcome( $row );
 		$type    = $outcome['event_type'];
 		if ( ! isset( $outcome_coverage[ $type ] ) ) {
+			continue;
+		}
+
+		$visitor_id          = $outcome['visitor_id'];
+		$has_journey        = '' !== $visitor_id && isset( $journeys_by_visitor[ $visitor_id ] );
+		$has_source_url     = '' !== trim( $outcome['source_url'] );
+		$resolved_post_id   = $has_source_url ? extrachill_analytics_conversion_source_article_id( $outcome['source_url'], $entry_blog_id ) : 0;
+		$direct_post_id     = $resolved_post_id > 0 && extrachill_analytics_conversion_is_editorial_entry(
+			array(
+				'blog_id' => $entry_blog_id,
+				'post_id' => $resolved_post_id,
+			),
+			$entry_blog_id,
+			$author_id
+		) ? $resolved_post_id : 0;
+		$source_outside_scope = $author_id > 0 && $resolved_post_id > 0 && 0 === $direct_post_id;
+
+		// Author reports include only outcomes tied to that author's source post
+		// or to an already-filtered visitor journey. Unknown network-wide outcomes
+		// cannot be assigned to one author and must not pollute scoped coverage.
+		if ( $author_id > 0 && 0 === $direct_post_id && ! $has_journey ) {
 			continue;
 		}
 
@@ -755,6 +788,7 @@ function extrachill_analytics_conversion_collect_outcome_rows( $rows, $entry_blo
 			$outcome_records[ $type ][ $person_id ] = array(
 				'has_source_url'       => false,
 				'direct_post_id'       => 0,
+				'source_outside_scope' => false,
 				'has_visitor_identity' => false,
 				'saw_journey'          => false,
 				'saw_before_entry'     => false,
@@ -765,15 +799,15 @@ function extrachill_analytics_conversion_collect_outcome_rows( $rows, $entry_blo
 		$record = &$outcome_records[ $type ][ $person_id ];
 
 		// A later duplicate may still carry source instrumentation.
-		if ( '' !== trim( $outcome['source_url'] ) && 0 === $record['direct_post_id'] ) {
+		if ( $has_source_url && 0 === $record['direct_post_id'] ) {
 			$record['has_source_url'] = true;
-			$direct_post_id           = extrachill_analytics_conversion_source_article_id( $outcome['source_url'], $entry_blog_id );
 			if ( $direct_post_id > 0 ) {
 				$record['direct_post_id'] = $direct_post_id;
+			} elseif ( $source_outside_scope ) {
+				$record['source_outside_scope'] = true;
 			}
 		}
 
-		$visitor_id = $outcome['visitor_id'];
 		if ( '' === $visitor_id ) {
 			unset( $record );
 			continue;
@@ -818,6 +852,8 @@ function extrachill_analytics_conversion_apply_outcome_records( $records, &$outc
 				++$outcome_coverage[ $type ]['direct_source_attributed'];
 				extrachill_analytics_conversion_apply_outcome( $outcome_overall, $type, 'direct_source' );
 				extrachill_analytics_conversion_apply_article_outcome( $outcomes_by_article, $outcomes_by_category, $record['direct_post_id'], $type, 'direct_source' );
+			} elseif ( $record['source_outside_scope'] ) {
+				++$outcome_coverage[ $type ]['source_outside_scope'];
 			} elseif ( $record['has_source_url'] ) {
 				++$outcome_coverage[ $type ]['with_source_url'];
 				++$outcome_coverage[ $type ]['unresolved_source_url'];
@@ -879,6 +915,7 @@ function extrachill_analytics_conversion_outcome_zero_coverage() {
 		'direct_source_attributed'          => 0,
 		'missing_source_url'                => 0,
 		'unresolved_source_url'             => 0,
+		'source_outside_scope'              => 0,
 		'with_visitor_identity'             => 0,
 		'missing_visitor_identity'          => 0,
 		'visitor_journey_attributed'        => 0,
@@ -949,9 +986,10 @@ function extrachill_analytics_conversion_outcome_journey_stage( $outcome_ts, $jo
  *
  * @param string $source_url    Outcome source URL.
  * @param int    $entry_blog_id Editorial blog ID.
+ * @param int    $author_id    Optional primary post author ID.
  * @return int Published article ID, or 0 when outside coverage/unresolved.
  */
-function extrachill_analytics_conversion_source_article_id( $source_url, $entry_blog_id ) {
+function extrachill_analytics_conversion_source_article_id( $source_url, $entry_blog_id, $author_id = 0 ) {
 	$source_host = strtolower( (string) wp_parse_url( $source_url, PHP_URL_HOST ) );
 	$switched    = false;
 	if ( is_multisite() && get_current_blog_id() !== (int) $entry_blog_id ) {
@@ -977,7 +1015,8 @@ function extrachill_analytics_conversion_source_article_id( $source_url, $entry_
 			'blog_id' => $entry_blog_id,
 			'post_id' => $post_id,
 		),
-		$entry_blog_id
+		$entry_blog_id,
+		$author_id
 	) ? $post_id : 0;
 }
 
@@ -1202,15 +1241,19 @@ function extrachill_analytics_conversion_article_identity( $blog_id, $post ) {
  *
  * @param array $event         Session event.
  * @param int   $entry_blog_id Editorial blog ID.
+ * @param int   $author_id     Optional primary post author ID.
  * @return bool Whether the event is an eligible entry.
  */
-function extrachill_analytics_conversion_is_editorial_entry( $event, $entry_blog_id ) {
+function extrachill_analytics_conversion_is_editorial_entry( $event, $entry_blog_id, $author_id = 0 ) {
 	if ( (int) ( $event['blog_id'] ?? 0 ) !== (int) $entry_blog_id ) {
 		return false;
 	}
 
 	$post = extrachill_analytics_get_blog_post( $entry_blog_id, (int) ( $event['post_id'] ?? 0 ) );
-	return $post && 'post' === $post->post_type && 'publish' === $post->post_status;
+	return $post
+		&& 'post' === $post->post_type
+		&& 'publish' === $post->post_status
+		&& ( $author_id <= 0 || (int) $post->post_author === (int) $author_id );
 }
 
 /**
@@ -1220,19 +1263,20 @@ function extrachill_analytics_conversion_is_editorial_entry( $event, $entry_blog
  * @param int    $entry_blog_id Editorial blog ID.
  * @param string $since         Inclusive UTC report-window start.
  * @param string $mature_before Inclusive UTC maturity cutoff.
+ * @param int    $author_id     Optional primary post author ID.
  * @return bool Whether the entry session is eligible for the denominator.
  */
-function extrachill_analytics_conversion_is_mature_entry_session( $event, $entry_blog_id, $since, $mature_before ) {
+function extrachill_analytics_conversion_is_mature_entry_session( $event, $entry_blog_id, $since, $mature_before, $author_id = 0 ) {
 	$timestamp = (int) ( $event['ts'] ?? 0 );
 	return $timestamp >= strtotime( $since )
 		&& $timestamp <= strtotime( $mature_before )
-		&& extrachill_analytics_conversion_is_editorial_entry( $event, $entry_blog_id );
+		&& extrachill_analytics_conversion_is_editorial_entry( $event, $entry_blog_id, $author_id );
 }
 
 /**
  * Whether an event is a collected destination route within platform scope.
  *
- * @param array<int,mixed>  $event              Session event.
+ * @param array{blog_id?:mixed} $event              Session event.
  * @param array<int,string> $platform_id_to_key Platform blog IDs keyed to surface names.
  * @return bool Whether the event is a measured platform destination.
  */

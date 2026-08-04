@@ -81,6 +81,7 @@ final class ConversionMapOutcomesTest extends TestCase {
 		$post->ID          = 173;
 		$post->post_type   = 'post';
 		$post->post_status = 'publish';
+		$post->post_author = 607;
 
 		$GLOBALS['extrachill_analytics_classifier_posts']  = array( 173 => $post );
 		$GLOBALS['extrachill_analytics_test_url_post_ids'] = array(
@@ -89,6 +90,8 @@ final class ConversionMapOutcomesTest extends TestCase {
 		$GLOBALS['extrachill_analytics_test_home_urls']    = array( 1 => 'https://extrachill.com' );
 
 		$this->assertSame( 173, extrachill_analytics_conversion_source_article_id( 'https://extrachill.com/article/', 1 ) );
+		$this->assertSame( 173, extrachill_analytics_conversion_source_article_id( 'https://extrachill.com/article/', 1, 607 ) );
+		$this->assertSame( 0, extrachill_analytics_conversion_source_article_id( 'https://extrachill.com/article/', 1, 42 ) );
 		$this->assertSame( 0, extrachill_analytics_conversion_source_article_id( 'https://events.extrachill.com/article/', 1 ) );
 	}
 
@@ -297,6 +300,58 @@ final class ConversionMapOutcomesTest extends TestCase {
 	}
 
 	/**
+	 * Author reports exclude unrelated outcomes while preserving scoped journeys.
+	 */
+	public function test_author_scope_filters_outcome_population_before_coverage(): void {
+		$type                  = 'newsletter_signup';
+		$matching_post         = new WP_Post();
+		$matching_post->ID     = 173;
+		$matching_post->post_type = 'post';
+		$matching_post->post_status = 'publish';
+		$matching_post->post_author = 607;
+		$other_post            = new WP_Post();
+		$other_post->ID        = 174;
+		$other_post->post_type = 'post';
+		$other_post->post_status = 'publish';
+		$other_post->post_author = 42;
+
+		$GLOBALS['extrachill_analytics_classifier_posts'] = array(
+			173 => $matching_post,
+			174 => $other_post,
+		);
+		$GLOBALS['extrachill_analytics_test_url_post_ids'] = array(
+			'https://extrachill.com/mine/'  => 173,
+			'https://extrachill.com/other/' => 174,
+		);
+		$GLOBALS['extrachill_analytics_test_home_urls'] = array( 1 => 'https://extrachill.com' );
+
+		$matching_source             = $this->outcome_row( 101, $type, 1, '', 1200 );
+		$matching_source->source_url = 'https://extrachill.com/mine/';
+		$unrelated_source            = $this->outcome_row( 102, $type, 2, '', 1200 );
+		$unrelated_source->source_url = 'https://extrachill.com/other/';
+		$journey_source              = $this->outcome_row( 103, $type, 3, 'visitor-mine', 1400 );
+		$journey_source->source_url  = 'https://extrachill.com/other/';
+
+		$result = $this->run_outcome_pages(
+			array( array( $matching_source, $unrelated_source, $journey_source ) ),
+			array(
+				'visitor-mine' => array(
+					'post_id'              => 173,
+					'entry_ts'             => 1000,
+					'same_session_through' => 2000,
+				),
+			),
+			array( $type ),
+			607
+		);
+
+		$this->assertSame( 2, $result['coverage'][ $type ]['stored_events'] );
+		$this->assertSame( 1, $result['coverage'][ $type ]['source_outside_scope'] );
+		$this->assertSame( 1, $result['overall'][ $type ]['direct_source'] );
+		$this->assertSame( 1, $result['overall'][ $type ]['same_session'] );
+	}
+
+	/**
 	 * Build a stored outcome fixture.
 	 *
 	 * @param int    $id         Event row ID.
@@ -324,9 +379,10 @@ final class ConversionMapOutcomesTest extends TestCase {
 	 * @param array $pages                Ordered pages of outcome rows.
 	 * @param array $journeys_by_visitor Eligible journeys keyed by visitor.
 	 * @param array $types                Concrete outcome types.
+	 * @param int   $author_id            Optional primary post author ID.
 	 * @return array Aggregated fixture result.
 	 */
-	private function run_outcome_pages( array $pages, array $journeys_by_visitor, array $types ): array {
+	private function run_outcome_pages( array $pages, array $journeys_by_visitor, array $types, int $author_id = 0 ): array {
 		$visitor_users = array();
 		foreach ( $pages as $page ) {
 			extrachill_analytics_conversion_observe_outcome_identities( $page, $visitor_users );
@@ -335,7 +391,7 @@ final class ConversionMapOutcomesTest extends TestCase {
 		$records         = array();
 		$coverage        = array_fill_keys( $types, extrachill_analytics_conversion_outcome_zero_coverage() );
 		foreach ( $pages as $page ) {
-			extrachill_analytics_conversion_collect_outcome_rows( $page, 1, $journeys_by_visitor, $visitor_to_user, $records, $coverage );
+			extrachill_analytics_conversion_collect_outcome_rows( $page, 1, $journeys_by_visitor, $visitor_to_user, $records, $coverage, $author_id );
 		}
 
 		$overall     = extrachill_analytics_conversion_outcome_zero_bucket( $types );
