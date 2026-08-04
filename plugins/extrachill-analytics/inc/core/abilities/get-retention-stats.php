@@ -42,6 +42,14 @@ function extrachill_analytics_register_retention_stats_ability() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
+					'start_date'   => array(
+						'type'        => 'string',
+						'description' => __( 'Inclusive UTC window start in Y-m-d format. Must be paired with end_date and takes precedence over days/end_days_ago.', 'extrachill-analytics' ),
+					),
+					'end_date'     => array(
+						'type'        => 'string',
+						'description' => __( 'Inclusive UTC window end in Y-m-d format. Must be paired with start_date.', 'extrachill-analytics' ),
+					),
 					'days'         => array(
 						'type'        => 'integer',
 						'description' => __( 'Number of days the window spans. Default 28.', 'extrachill-analytics' ),
@@ -49,7 +57,7 @@ function extrachill_analytics_register_retention_stats_ability() {
 					),
 					'end_days_ago' => array(
 						'type'        => 'integer',
-						'description' => __( 'How many days ago the window ENDS. 0 (default) means the window ends now. A positive value shifts the whole window into the past, enabling an exact prior-period read (e.g. days=28, end_days_ago=28 reads the 28-day window immediately before the most recent 28 days). Applies to return rate, cross-site return, and session depth; the cohort curve always anchors at now.', 'extrachill-analytics' ),
+						'description' => __( 'How many days ago the window ENDS. 0 (default) means the window ends now. A positive value shifts the whole window into the past, enabling an exact prior-period read (e.g. days=28, end_days_ago=28 reads the 28-day window immediately before the most recent 28 days). Applies to return rate, cross-site return, and session depth; the cohort curve anchors at now for relative reads and at end_date for exact reads.', 'extrachill-analytics' ),
 						'default'     => 0,
 					),
 					'blog_id'      => array(
@@ -86,14 +94,21 @@ function extrachill_analytics_register_retention_stats_ability() {
  * Execute callback for get-retention-stats ability.
  *
  * @param array $input Input parameters.
- * @return array Retention metrics.
+ * @return array|WP_Error Retention metrics or date validation error.
  */
 function extrachill_analytics_ability_get_retention_stats( $input ) {
+	$date_range = extrachill_analytics_resolve_date_range( $input );
+	if ( is_wp_error( $date_range ) ) {
+		return $date_range;
+	}
+
 	$normalized = array(
-		'days'         => isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28,
-		'end_days_ago' => isset( $input['end_days_ago'] ) ? max( 0, (int) $input['end_days_ago'] ) : 0,
+		'days'         => $date_range ? $date_range['days'] : ( isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28 ),
+		'end_days_ago' => $date_range ? 0 : ( isset( $input['end_days_ago'] ) ? max( 0, (int) $input['end_days_ago'] ) : 0 ),
 		'blog_id'      => isset( $input['blog_id'] ) ? max( 0, (int) $input['blog_id'] ) : 0,
 		'cohort_weeks' => isset( $input['cohort_weeks'] ) ? max( 1, (int) $input['cohort_weeks'] ) : 8,
+		'start_date'   => $date_range ? $date_range['start_date'] : '',
+		'end_date'     => $date_range ? $date_range['end_date'] : '',
 	);
 
 	return extrachill_analytics_report_cache_remember(
@@ -109,7 +124,7 @@ function extrachill_analytics_ability_get_retention_stats( $input ) {
  * Compute an uncached retention report.
  *
  * @param array $input Normalized input parameters.
- * @return array Retention metrics.
+ * @return array|WP_Error Retention metrics or date validation error.
  */
 function extrachill_analytics_compute_retention_stats( $input ) {
 	global $wpdb;
@@ -118,6 +133,10 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	$end_days_ago = isset( $input['end_days_ago'] ) ? max( 0, (int) $input['end_days_ago'] ) : 0;
 	$blog_id      = isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
 	$cohort_weeks = isset( $input['cohort_weeks'] ) ? max( 1, (int) $input['cohort_weeks'] ) : 8;
+	$date_range   = extrachill_analytics_resolve_date_range( $input );
+	if ( is_wp_error( $date_range ) ) {
+		return $date_range;
+	}
 
 	$table      = extrachill_analytics_events_table();
 	$event_type = defined( 'EC_ANALYTICS_EVENT_PAGEVIEW' ) ? EC_ANALYTICS_EVENT_PAGEVIEW : 'pageview';
@@ -125,9 +144,11 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// The window ENDS at $end_days_ago days before now (0 = now) and SPANS
 	// $days. Shifting the end into the past yields an exact prior-period read
 	// without any end-date-less proxying.
-	$now_utc    = gmdate( 'Y-m-d H:i:s' );
-	$window_end = gmdate( 'Y-m-d H:i:s', strtotime( "-{$end_days_ago} days" ) );
-	$since      = gmdate( 'Y-m-d H:i:s', strtotime( '-' . ( $days + $end_days_ago ) . ' days' ) );
+	$now_utc    = $date_range ? $date_range['end_exclusive'] : gmdate( 'Y-m-d H:i:s' );
+	$window_end = $date_range ? $date_range['end_exclusive'] : gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$end_days_ago} days" ) );
+	$since      = $date_range ? $date_range['start_at'] : gmdate( 'Y-m-d H:i:s', (int) strtotime( '-' . ( $days + $end_days_ago ) . ' days' ) );
+	$start_date = $date_range ? $date_range['start_date'] : gmdate( 'Y-m-d', (int) strtotime( $since ) );
+	$end_date   = $date_range ? $date_range['end_date'] : gmdate( 'Y-m-d', (int) strtotime( $window_end ) );
 
 	// Common WHERE: pageviews, in window, with a non-NULL visitor_id (opted-out
 	// rows are excluded from per-visitor metrics), optional blog filter. An
@@ -136,7 +157,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	$base_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s' );
 	$base_values = array( $event_type, $since );
 
-	if ( $end_days_ago > 0 ) {
+	if ( $date_range || $end_days_ago > 0 ) {
 		$base_where[]  = 'created_at < %s';
 		$base_values[] = $window_end;
 	}
@@ -174,7 +195,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// available history (within the requested blog scope). W1 and W2 are the
 	// first and second complete ISO weeks after that acquisition week.
 	// ---------------------------------------------------------------------
-	$cohort_since = gmdate( 'Y-m-d H:i:s', strtotime( "-{$cohort_weeks} weeks" ) );
+	$cohort_since = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$cohort_weeks} weeks", (int) strtotime( $now_utc ) ) );
 
 	$cohort_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at < %s' );
 	$cohort_values = array( $event_type, $now_utc );
@@ -244,7 +265,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// ---------------------------------------------------------------------
 	$xsite_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s' );
 	$xsite_values = array( $event_type, $since );
-	if ( $end_days_ago > 0 ) {
+	if ( $date_range || $end_days_ago > 0 ) {
 		$xsite_where[]  = 'created_at < %s';
 		$xsite_values[] = $window_end;
 	}
@@ -303,7 +324,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// ---------------------------------------------------------------------
 	$ref_where  = array( 'event_type = %s', 'created_at >= %s', "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.referrer_host')) IS NOT NULL" );
 	$ref_values = array( $event_type, $since );
-	if ( $end_days_ago > 0 ) {
+	if ( $date_range || $end_days_ago > 0 ) {
 		$ref_where[]  = 'created_at < %s';
 		$ref_values[] = $window_end;
 	}
@@ -339,7 +360,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// they must not be silently presented as whole-platform route coverage.
 	$coverage_where  = array( 'event_type = %s', 'created_at >= %s' );
 	$coverage_values = array( $event_type, $since );
-	if ( $end_days_ago > 0 ) {
+	if ( $date_range || $end_days_ago > 0 ) {
 		$coverage_where[]  = 'created_at < %s';
 		$coverage_values[] = $window_end;
 	}
@@ -397,8 +418,10 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 		),
 		'days'                => $days,
 		'end_days_ago'        => $end_days_ago,
+		'start_date'          => $start_date,
+		'end_date'            => $end_date,
 		'blog_id'             => $blog_id,
-		'period'              => gmdate( 'Y-m-d', strtotime( $since ) ) . ' to ' . gmdate( 'Y-m-d', strtotime( $window_end ) ),
+		'period'              => $start_date . ' to ' . $end_date,
 		'since'               => $since,
 		'until'               => $window_end,
 		'as_of'               => $now_utc,

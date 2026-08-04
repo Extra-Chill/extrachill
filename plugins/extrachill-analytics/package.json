@@ -7,6 +7,7 @@
 		"start": "wp-scripts start",
 		"lint:js": "wp-scripts lint-js",
 		"lint:css": "wp-scripts lint-style",
+		"test:js": "wp-scripts test-unit-js",
 		"format": "wp-scripts format"
 	},
 	"author": "Chris Huber <hello@chubes.net>",
@@ -21,6 +22,7 @@
 		"@wordpress/element": "^6.0.0",
 		"@wordpress/i18n": "^5.0.0",
 		"chart.js": "^4.4.0",
+		"flatpickr": "^4.6.13",
 		"wp-native-client": "^0.0.1"
 	},
 	"private": true

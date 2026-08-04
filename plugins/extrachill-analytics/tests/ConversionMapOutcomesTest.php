@@ -242,6 +242,7 @@ final class ConversionMapOutcomesTest extends TestCase {
 		$this->assertSame( 501, end( $consumed ) );
 		$this->assertCount( 2, $db->prepared_queries );
 		$this->assertStringContainsString( 'ORDER BY created_at ASC, id ASC', $db->prepared_queries[0]['query'] );
+		$this->assertStringContainsString( 'created_at < %s', $db->prepared_queries[0]['query'] );
 		$this->assertStringContainsString( 'id > %d', $db->prepared_queries[1]['query'] );
 		$this->assertSame( 500, end( $db->prepared_queries[1]['args'] ) );
 	}
