@@ -7,6 +7,7 @@ define( 'OBJECT', 'OBJECT' );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'DAY_IN_SECONDS', 86400 );
 define( 'EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED', 'artist_profile_created' );
+define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
 
 function plugin_dir_path( $file ) {
 	return trailingslashit( dirname( $file ) );
@@ -143,8 +144,11 @@ function ec_test_blog_store( $type ) {
 }
 
 function switch_to_blog( $blog_id ) {
-	$GLOBALS['ec_test']['blog_stack'][] = $GLOBALS['ec_test']['current_blog_id'] ?? 4;
+	$previous_blog_id = $GLOBALS['ec_test']['current_blog_id'] ?? 4;
+	$GLOBALS['ec_test']['blog_stack'][] = $previous_blog_id;
+	$GLOBALS['_wp_switched_stack'][]    = $previous_blog_id;
 	$GLOBALS['ec_test']['current_blog_id'] = (int) $blog_id;
+	$GLOBALS['switched'] = true;
 	return true;
 }
 
@@ -152,6 +156,10 @@ function restore_current_blog() {
 	if ( ! empty( $GLOBALS['ec_test']['blog_stack'] ) ) {
 		$GLOBALS['ec_test']['current_blog_id'] = array_pop( $GLOBALS['ec_test']['blog_stack'] );
 	}
+	if ( ! empty( $GLOBALS['_wp_switched_stack'] ) ) {
+		array_pop( $GLOBALS['_wp_switched_stack'] );
+	}
+	$GLOBALS['switched'] = ! empty( $GLOBALS['_wp_switched_stack'] );
 	return true;
 }
 
@@ -168,6 +176,38 @@ function ec_get_blog_id( $site ) {
 
 function get_current_blog_id() {
 	return $GLOBALS['ec_test']['current_blog_id'] ?? 4;
+}
+
+function get_site( $blog_id = null ) {
+	$blog_id = $blog_id ?: get_current_blog_id();
+	if ( ! isset( $GLOBALS['ec_test']['blogs'][ $blog_id ] ) ) {
+		return null;
+	}
+	return (object) array_merge(
+		array( 'blog_id' => (int) $blog_id, 'deleted' => '0', 'archived' => '0', 'spam' => '0' ),
+		$GLOBALS['ec_test']['sites'][ $blog_id ] ?? array()
+	);
+}
+
+function post_type_exists( $post_type ) {
+	if ( isset( $GLOBALS['ec_test']['registered_post_types'][ $post_type ] ) ) {
+		return true;
+	}
+	foreach ( ec_test_blog_store( 'posts' ) as $post ) {
+		if ( $post_type === $post->post_type ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function taxonomy_exists( $taxonomy ) {
+	foreach ( ec_test_blog_store( 'terms' ) as $term ) {
+		if ( $taxonomy === $term->taxonomy ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 function add_action() {
@@ -236,6 +276,10 @@ function wp_get_ability( $name ) {
 
 function absint( $value ) {
 	return abs( (int) $value );
+}
+
+function wp_json_encode( $value ) {
+	return json_encode( $value );
 }
 
 function get_current_user_id() {
@@ -415,7 +459,16 @@ function metadata_exists( $object_type, $object_id, $key ) {
 }
 
 function add_post_meta( $post_id, $key, $value, $unique = false ) {
+	if ( isset( $GLOBALS['ec_test']['before_post_meta_add'] ) ) {
+		$callback = $GLOBALS['ec_test']['before_post_meta_add'];
+		unset( $GLOBALS['ec_test']['before_post_meta_add'] );
+		$callback( $post_id, $key, $value );
+	}
 	if ( $unique && metadata_exists( 'post', $post_id, $key ) ) {
+		return false;
+	}
+	if ( ! empty( $GLOBALS['ec_test']['fail_post_meta_add_keys'][ $key ] ) ) {
+		--$GLOBALS['ec_test']['fail_post_meta_add_keys'][ $key ];
 		return false;
 	}
 	if ( ! empty( $GLOBALS['ec_test']['fail_post_meta_add'] ) ) {
@@ -424,6 +477,67 @@ function add_post_meta( $post_id, $key, $value, $unique = false ) {
 	}
 	$blog_id = $GLOBALS['ec_test']['current_blog_id'];
 	$GLOBALS['ec_test']['blogs'][ $blog_id ]['post_meta'][ $post_id ][ $key ] = $value;
+	$meta_id = ( $GLOBALS['ec_test']['next_post_meta_id'] ?? 0 ) + 1;
+	$GLOBALS['ec_test']['next_post_meta_id'] = $meta_id;
+	$GLOBALS['ec_test']['post_meta_rows'][ $meta_id ] = array(
+		'blog_id'    => $blog_id,
+		'post_id'    => (int) $post_id,
+		'meta_key'   => $key,
+		'meta_value' => $value,
+	);
+	if ( isset( $GLOBALS['ec_test']['after_post_meta_add'] ) ) {
+		$callback = $GLOBALS['ec_test']['after_post_meta_add'];
+		unset( $GLOBALS['ec_test']['after_post_meta_add'] );
+		$callback( $meta_id, $post_id, $key, $value );
+	}
+	return $meta_id;
+}
+
+function get_metadata_by_mid( $meta_type, $meta_id ) {
+	if ( 'post' !== $meta_type || ! isset( $GLOBALS['ec_test']['post_meta_rows'][ $meta_id ] ) ) {
+		return false;
+	}
+	$row     = $GLOBALS['ec_test']['post_meta_rows'][ $meta_id ];
+	$current = $GLOBALS['ec_test']['blogs'][ $row['blog_id'] ]['post_meta'][ $row['post_id'] ][ $row['meta_key'] ] ?? null;
+	if ( null === $current || ( is_array( $current ) && ! in_array( $row['meta_value'], $current, true ) ) ) {
+		unset( $GLOBALS['ec_test']['post_meta_rows'][ $meta_id ] );
+		return false;
+	}
+	if ( ! is_array( $current ) ) {
+		$row['meta_value'] = $current;
+	}
+	return (object) $row;
+}
+
+function delete_metadata_by_mid( $meta_type, $meta_id ) {
+	$row = get_metadata_by_mid( $meta_type, $meta_id );
+	if ( ! $row || ! empty( $GLOBALS['ec_test']['fail_metadata_delete_by_mid'] ) ) {
+		return false;
+	}
+	$current = $GLOBALS['ec_test']['blogs'][ $row->blog_id ]['post_meta'][ $row->post_id ][ $row->meta_key ];
+	if ( is_array( $current ) ) {
+		$removed = false;
+		$current = array_values(
+			array_filter(
+				$current,
+				static function ( $stored_value ) use ( $row, &$removed ) {
+					if ( ! $removed && $stored_value === $row->meta_value ) {
+						$removed = true;
+						return false;
+					}
+					return true;
+				}
+			)
+		);
+		if ( empty( $current ) ) {
+			unset( $GLOBALS['ec_test']['blogs'][ $row->blog_id ]['post_meta'][ $row->post_id ][ $row->meta_key ] );
+		} else {
+			$GLOBALS['ec_test']['blogs'][ $row->blog_id ]['post_meta'][ $row->post_id ][ $row->meta_key ] = $current;
+		}
+	} else {
+		unset( $GLOBALS['ec_test']['blogs'][ $row->blog_id ]['post_meta'][ $row->post_id ][ $row->meta_key ] );
+	}
+	unset( $GLOBALS['ec_test']['post_meta_rows'][ $meta_id ] );
 	return true;
 }
 
@@ -561,6 +675,25 @@ function delete_post_meta( $post_id, $key, $value = '' ) {
 		return false;
 	}
 	$current = $GLOBALS['ec_test']['blogs'][ $blog_id ]['post_meta'][ $post_id ][ $key ] ?? null;
+	if ( EC_LINK_PAGE_OWNER_META_KEY === $key && is_array( $current ) && '' !== $value ) {
+		$remaining = array_values(
+			array_filter(
+				$current,
+				static function ( $stored_value ) use ( $value ) {
+					return (string) $stored_value !== (string) $value;
+				}
+			)
+		);
+		if ( count( $remaining ) === count( $current ) ) {
+			return false;
+		}
+		if ( empty( $remaining ) ) {
+			unset( $GLOBALS['ec_test']['blogs'][ $blog_id ]['post_meta'][ $post_id ][ $key ] );
+		} else {
+			$GLOBALS['ec_test']['blogs'][ $blog_id ]['post_meta'][ $post_id ][ $key ] = $remaining;
+		}
+		return true;
+	}
 	if ( '' === $value || (string) $current === (string) $value ) {
 		unset( $GLOBALS['ec_test']['blogs'][ $blog_id ]['post_meta'][ $post_id ][ $key ] );
 		return true;
@@ -690,7 +823,15 @@ function get_posts( $args ) {
 		}
 		$ids[] = (int) $post_id;
 	}
-	return $ids;
+	if ( 'ID' === ( $args['orderby'] ?? '' ) ) {
+		sort( $ids, SORT_NUMERIC );
+		if ( 'DESC' === ( $args['order'] ?? 'ASC' ) ) {
+			$ids = array_reverse( $ids );
+		}
+	}
+	$offset = (int) ( $args['offset'] ?? 0 );
+	$limit  = isset( $args['posts_per_page'] ) && $args['posts_per_page'] >= 0 ? (int) $args['posts_per_page'] : null;
+	return array_slice( $ids, $offset, $limit );
 }
 
 function wp_insert_term( $title, $taxonomy, $args = array() ) {
@@ -976,6 +1117,8 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/update-artist.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/create-artist.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/onboard-external-artist.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-invitation.php';
+require_once dirname( __DIR__ ) . '/inc/link-pages/owner-reference.php';
+require_once dirname( __DIR__ ) . '/inc/link-pages/artist-owner-compatibility.php';
 require_once dirname( __DIR__ ) . '/inc/core/filters/create.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-link-page-links.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-link-page-styles.php';
