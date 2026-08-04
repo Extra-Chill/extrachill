@@ -109,7 +109,7 @@ function extrachill_analytics_register_conversion_map_ability() {
 						'description' => __( 'Minimum completed days after an entry journey before it enters the denominator. Excludes late-window entries with unequal return opportunity. Default 7.', 'extrachill-analytics' ),
 						'default'     => 7,
 					),
-					'author_id'                => array(
+					'author_id'               => array(
 						'type'        => 'integer',
 						'description' => __( 'Optional primary WordPress author ID. Zero includes all authors.', 'extrachill-analytics' ),
 						'default'     => 0,
@@ -181,7 +181,7 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
 		'top_articles'            => isset( $input['top_articles'] ) ? max( 1, (int) $input['top_articles'] ) : 25,
 		'min_entry_sessions'      => isset( $input['min_entry_sessions'] ) ? max( 1, (int) $input['min_entry_sessions'] ) : 1,
 		'return_observation_days' => isset( $input['return_observation_days'] ) ? max( 0, (int) $input['return_observation_days'] ) : 7,
-		'author_id'                => isset( $input['author_id'] ) ? max( 0, (int) $input['author_id'] ) : 0,
+		'author_id'               => isset( $input['author_id'] ) ? max( 0, (int) $input['author_id'] ) : 0,
 	);
 
 	return extrachill_analytics_report_cache_remember(
@@ -207,7 +207,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 	$top_articles            = isset( $input['top_articles'] ) ? max( 1, (int) $input['top_articles'] ) : 25;
 	$min_entry_sessions      = isset( $input['min_entry_sessions'] ) ? max( 1, (int) $input['min_entry_sessions'] ) : 1;
 	$return_observation_days = isset( $input['return_observation_days'] ) ? max( 0, (int) $input['return_observation_days'] ) : 7;
-	$author_id                = isset( $input['author_id'] ) ? max( 0, (int) $input['author_id'] ) : 0;
+	$author_id               = isset( $input['author_id'] ) ? max( 0, (int) $input['author_id'] ) : 0;
 
 	$gap_secs = $session_gap_mins * 60;
 
@@ -753,11 +753,11 @@ function extrachill_analytics_conversion_collect_outcome_rows( $rows, $entry_blo
 			continue;
 		}
 
-		$visitor_id          = $outcome['visitor_id'];
-		$has_journey        = '' !== $visitor_id && isset( $journeys_by_visitor[ $visitor_id ] );
-		$has_source_url     = '' !== trim( $outcome['source_url'] );
-		$resolved_post_id   = $has_source_url ? extrachill_analytics_conversion_source_article_id( $outcome['source_url'], $entry_blog_id ) : 0;
-		$direct_post_id     = $resolved_post_id > 0 && extrachill_analytics_conversion_is_editorial_entry(
+		$visitor_id           = $outcome['visitor_id'];
+		$has_journey          = '' !== $visitor_id && isset( $journeys_by_visitor[ $visitor_id ] );
+		$has_source_url       = '' !== trim( $outcome['source_url'] );
+		$resolved_post_id     = $has_source_url ? extrachill_analytics_conversion_source_article_id( $outcome['source_url'], $entry_blog_id ) : 0;
+		$direct_post_id       = $resolved_post_id > 0 && extrachill_analytics_conversion_is_editorial_entry(
 			array(
 				'blog_id' => $entry_blog_id,
 				'post_id' => $resolved_post_id,
