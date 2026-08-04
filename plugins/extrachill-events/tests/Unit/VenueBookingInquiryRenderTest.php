@@ -78,12 +78,12 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'ec-venue-booking-inquiry', $output );
 		$this->assertStringContainsString( 'Test Room', $output );
 		$this->assertStringContainsString( '42 Test Street, Charleston, SC, 29403', $output );
-		$this->assertStringContainsString( 'Include recent draw and routing.', $output );
+		$this->assertStringNotContainsString( 'Include recent draw and routing.', $output );
 		$this->assertStringNotContainsString( 'Booking guide', $output );
 		$this->assertStringContainsString( '"revision":4', $output );
 		$this->assertStringContainsString( 'Phone (Emergency use only)', $output );
-		$this->assertStringContainsString( 'manage-link-page', $output );
-		$this->assertStringContainsString( '"hasPage":false', $output );
+		$this->assertStringNotContainsString( 'manage-link-page', $output );
+		$this->assertStringNotContainsString( '"hasPage"', $output );
 		$this->assertStringNotContainsString( 'private-provider-account', $output );
 		$this->assertStringNotContainsString( 'private-booking@example.com', $output );
 		$this->assertStringNotContainsString( 'attachment', strtolower( $output ) );

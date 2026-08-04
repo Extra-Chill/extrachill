@@ -311,9 +311,6 @@ function BookingInquiry( { config, wrapper } ) {
 			field.visible_when.value
 		);
 	} );
-	const hasLinkFields = visibleFields.some( ( field ) =>
-		[ 'url', 'url_list' ].includes( field.type )
-	);
 	const proposalFields = visibleFields.filter(
 		( field ) => ! [ 'url', 'url_list' ].includes( field.type )
 	);
@@ -334,58 +331,6 @@ function BookingInquiry( { config, wrapper } ) {
 				description={ config.venue.address }
 			/>
 			<BlockShellInner className="ec-panel ec-booking-inquiry__panel">
-				<div className="ec-booking-inquiry__intro">
-					<div>
-						<span className="taxonomy-badge">
-							Accepting inquiries
-						</span>
-						<p className="ec-booking-inquiry__lede">
-							Request a date and send the details the venue needs
-							to evaluate your event. This is an inquiry, not a
-							confirmed booking.
-						</p>
-					</div>
-					{ config.authenticated && (
-						<span className="taxonomy-badge">Signed in</span>
-					) }
-				</div>
-				{ config.venue.description && (
-					<p className="ec-booking-inquiry__description">
-						{ config.venue.description }
-					</p>
-				) }
-				<Panel>
-					<div className="ec-booking-inquiry__prepare-copy">
-						<p className="ec-booking-inquiry__eyebrow">
-							Before you start
-						</p>
-						<h3>Have your pitch ready</h3>
-						<p>
-							You will check a date first. If it is open, the
-							application asks for:
-						</p>
-					</div>
-					<ul className="ec-booking-inquiry__field-preview">
-						<li>Artist or project and booking contact</li>
-						{ config.fields.map( ( field ) => (
-							<li key={ field.key }>
-								{ field.label }
-								{ field.required ? ' (required)' : '' }
-							</li>
-						) ) }
-						<li>Routing, scheduling, and event details</li>
-					</ul>
-				</Panel>
-				{ config.requirements.length > 0 && (
-					<section className="ec-booking-inquiry__venue-notes">
-						<h3>{ config.venue.name } submission notes</h3>
-						<ul className="ec-booking-inquiry__requirements">
-							{ config.requirements.map( ( requirement ) => (
-								<li key={ requirement }>{ requirement }</li>
-							) ) }
-						</ul>
-					</section>
-				) }
 				<form
 					className="ec-booking-inquiry__form"
 					onSubmit={ submit }
@@ -393,10 +338,6 @@ function BookingInquiry( { config, wrapper } ) {
 				>
 					<section className="ec-booking-inquiry__step">
 						<h3>1. Check your requested date</h3>
-						<p>
-							Choose the date you want to play. Timing and
-							schedule details can be worked out with the venue.
-						</p>
 						<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 							{ config.spaces.length > 1 && (
 								<FieldGroup
@@ -456,16 +397,8 @@ function BookingInquiry( { config, wrapper } ) {
 						<>
 							<section className="ec-booking-inquiry__step">
 								<h3>2. Complete your booking inquiry</h3>
-								<p>
-									Provide the full decision-making details
-									requested by this venue.
-								</p>
 								<section className="ec-booking-inquiry__section">
 									<h3>Your contact</h3>
-									<p>
-										Who should the venue contact about this
-										request?
-									</p>
 									<Grid
 										minColumnWidth="16rem"
 										maxColumns={ 2 }
@@ -562,11 +495,7 @@ function BookingInquiry( { config, wrapper } ) {
 								</section>
 								{ proposalFields.length > 0 && (
 									<section className="ec-booking-inquiry__section">
-										<h3>About the event</h3>
-										<p>
-											Give the venue the context it needs
-											to decide whether this is a fit.
-										</p>
+										<h3>Event details</h3>
 										<Grid
 											minColumnWidth="16rem"
 											maxColumns={ 2 }
@@ -594,11 +523,7 @@ function BookingInquiry( { config, wrapper } ) {
 								) }
 								{ linkFields.length > 0 && (
 									<section className="ec-booking-inquiry__section">
-										<h3>Music, video, and press</h3>
-										<p>
-											Share public links the venue can
-											review without requesting access.
-										</p>
+										<h3>Links</h3>
 										<Grid
 											minColumnWidth="16rem"
 											maxColumns={ 2 }
@@ -625,28 +550,7 @@ function BookingInquiry( { config, wrapper } ) {
 									</section>
 								) }
 							</section>
-							{ hasLinkFields && config.linkPage.url && (
-								<aside className="ec-booking-inquiry__link-page">
-									<h3>
-										Already have an Extra Chill Link Page?
-									</h3>
-									<p>
-										Keep it current, then paste its URL into
-										the relevant link field above. Using one
-										does not affect booking priority.
-									</p>
-									<a
-										href={ config.linkPage.url }
-										className="button-2"
-									>
-										{ config.linkPage.hasPage
-											? 'Use or manage your Link Page'
-											: 'Create a free Link Page' }
-									</a>
-								</aside>
-							) }
 							<section className="ec-booking-inquiry__section">
-								<h3>Final details</h3>
 								<FieldGroup
 									label={ config.presentation.message_label }
 									htmlFor={ `${ prefix }-message` }

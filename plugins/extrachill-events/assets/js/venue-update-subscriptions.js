@@ -6,19 +6,19 @@
 		return;
 	}
 
-	const status = button
-		.closest( '[data-venue-update-control]' )
-		.querySelector( '[data-venue-update-status]' );
 	const input = {
 		entity_type: 'venue',
 		taxonomy: 'venue',
 		slug: button.dataset.slug,
 	};
 
-	function setState( subscribed, message ) {
+	function setState( subscribed ) {
 		button.setAttribute( 'aria-pressed', subscribed ? 'true' : 'false' );
-		button.textContent = subscribed ? 'Turn off' : 'Turn on';
-		status.textContent = message || ( subscribed ? 'On' : 'Off' );
+		button.classList.toggle( 'button-2', subscribed );
+		button.classList.toggle( 'button-3', ! subscribed );
+		button.textContent = subscribed
+			? 'Event alerts on'
+			: 'Get event alerts';
 	}
 
 	function request( ability, method ) {
@@ -54,8 +54,7 @@
 			button.disabled = false;
 		} )
 		.catch( () => {
-			status.textContent =
-				"Couldn't load this setting. Refresh to try again.";
+			button.textContent = 'Event alerts unavailable';
 		} );
 
 	button.addEventListener( 'click', () => {
@@ -67,8 +66,7 @@
 		)
 			.then( ( data ) => setState( Boolean( data.subscribed ) ) )
 			.catch( () => {
-				status.textContent =
-					'Unable to update your subscription. Please try again.';
+				button.textContent = 'Try event alerts again';
 			} )
 			.finally( () => {
 				button.disabled = false;

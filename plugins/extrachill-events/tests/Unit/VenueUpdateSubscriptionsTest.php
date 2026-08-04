@@ -88,7 +88,7 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		$this->assertFalse( extrachill_events_authorize_venue_email_sharing_producer( false, EXTRACHILL_EVENTS_VENUE_EMAIL_SHARING_PRODUCER, array( 'entity_type' => 'venue', 'taxonomy' => 'venue' ), 'email' ) );
 	}
 
-	/** Anonymous archives offer sign-in without exposing a mutation control. */
+	/** Anonymous archives offer one compact sign-in action without mutation controls. */
 	public function test_anonymous_archive_renders_sign_in_without_mutation_control(): void {
 		$this->venue_archive();
 		wp_set_current_user( 0 );
@@ -97,10 +97,9 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		extrachill_events_render_venue_update_control();
 		$html = ob_get_clean();
 
-		$this->assertStringContainsString( 'Venue preferences', $html );
-		$this->assertStringContainsString( 'Control event alerts and email access.', $html );
-		$this->assertStringContainsString( 'events-calendar/venue-preferences/', $html );
-		$this->assertStringContainsString( 'Sign in to manage', $html );
+		$this->assertStringContainsString( 'ec-action-row', $html );
+		$this->assertStringContainsString( 'Sign in for venue alerts', $html );
+		$this->assertStringNotContainsString( '<aside', $html );
 		$this->assertStringNotContainsString( 'data-venue-update-subscription', $html );
 		$this->assertStringNotContainsString( 'data-venue-email-sharing', $html );
 	}
@@ -115,13 +114,13 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		$html = ob_get_clean();
 
 		$this->assertStringContainsString( 'data-venue-update-subscription', $html );
-		$this->assertStringContainsString( 'Event notifications', $html );
+		$this->assertStringContainsString( 'Loading alerts...', $html );
 		$this->assertStringContainsString( 'aria-live="polite"', $html );
 		$this->assertStringContainsString( 'data-slug="the-royal-american"', $html );
 	}
 
-	/** Archive preferences compose two explicit controls in one notice. */
-	public function test_archive_composes_independent_controls_in_one_panel(): void {
+	/** Archive preferences compose two compact actions without a standalone card. */
+	public function test_archive_composes_independent_controls_in_one_action_row(): void {
 		$this->venue_archive();
 		wp_set_current_user( self::factory()->user->create() );
 
@@ -129,14 +128,12 @@ final class VenueUpdateSubscriptionsTest extends WP_UnitTestCase {
 		extrachill_events_render_venue_update_control();
 		$html = ob_get_clean();
 
-		$this->assertSame( 1, substr_count( $html, '<aside' ) );
-		$this->assertSame( 0, substr_count( $html, 'events-venue-preferences__row' ) );
+		$this->assertSame( 0, substr_count( $html, '<aside' ) );
+		$this->assertStringContainsString( 'ec-action-row', $html );
 		$this->assertStringContainsString( 'data-venue-preferences', $html );
-		$this->assertStringContainsString( 'events-calendar/venue-preferences/', $html );
 		$this->assertStringContainsString( 'data-venue-update-subscription', $html );
 		$this->assertStringContainsString( 'data-venue-email-sharing', $html );
-		$this->assertStringContainsString( 'Venue email list', $html );
-		$this->assertStringContainsString( 'Share email', $html );
+		$this->assertStringContainsString( 'Loading email sharing...', $html );
 	}
 
 	/** First publication deduplicates subscribers across all assigned venues. */

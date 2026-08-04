@@ -16,20 +16,22 @@ describe( 'venue booking inquiry styles', () => {
 		);
 	} );
 
-	it( 'relies on shared components and the theme badge system', () => {
+	it( 'relies on shared form components without local decoration', () => {
 		expect( view ).toContain(
 			'<BlockShellInner className="ec-panel ec-booking-inquiry__panel">'
 		);
 		expect( view ).toContain( 'Grid minColumnWidth="16rem"' );
-		expect( view ).toContain( 'className="taxonomy-badge"' );
 		expect( view ).not.toContain( '<Badge' );
+		expect( view ).toContain( 'className="taxonomy-badge"' );
 		expect( styles ).not.toContain( '.ec-' );
 	} );
 
-	it( 'surfaces configured intake requirements before availability', () => {
-		expect( view ).toContain( 'Have your pitch ready' );
-		expect( view ).toContain( 'config.fields.map( ( field ) =>' );
-		expect( view ).toContain( "field.required ? ' (required)' : ''" );
+	it( 'does not duplicate the configured intake before availability', () => {
+		expect( view ).not.toContain( 'Have your pitch ready' );
+		expect( view ).not.toContain( 'ec-booking-inquiry__field-preview' );
+		expect( view ).not.toContain( 'submission notes' );
+		expect( view ).not.toContain( 'Link Page' );
+		expect( view ).not.toContain( 'Accepting inquiries' );
 	} );
 
 	it( 'asks for one date without exposing time controls', () => {

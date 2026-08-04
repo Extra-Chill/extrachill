@@ -6,23 +6,17 @@
 		return;
 	}
 
-	const status = button
-		.closest( '[data-venue-email-sharing-control]' )
-		.querySelector( '[data-venue-email-sharing-status]' );
 	const input = {
 		entity_type: 'venue-email-sharing',
 		taxonomy: 'venue',
 		slug: button.dataset.slug,
 	};
 
-	function setState( subscribed, message ) {
+	function setState( subscribed ) {
 		button.setAttribute( 'aria-pressed', subscribed ? 'true' : 'false' );
-		button.textContent = subscribed ? 'Stop sharing' : 'Share email';
-		status.textContent =
-			message ||
-			( subscribed
-				? 'Shared with this venue'
-				: 'Not shared with this venue' );
+		button.classList.toggle( 'button-2', subscribed );
+		button.classList.toggle( 'button-3', ! subscribed );
+		button.textContent = subscribed ? 'Email shared' : 'Share email';
 	}
 
 	function request( ability, method ) {
@@ -58,8 +52,7 @@
 			button.disabled = false;
 		} )
 		.catch( () => {
-			status.textContent =
-				"Couldn't load this setting. Refresh to try again.";
+			button.textContent = 'Email sharing unavailable';
 		} );
 
 	button.addEventListener( 'click', () => {
@@ -71,8 +64,7 @@
 		)
 			.then( ( data ) => setState( Boolean( data.subscribed ) ) )
 			.catch( () => {
-				status.textContent =
-					'Unable to update email sharing. Please try again.';
+				button.textContent = 'Try email sharing again';
 			} )
 			.finally( () => {
 				button.disabled = false;

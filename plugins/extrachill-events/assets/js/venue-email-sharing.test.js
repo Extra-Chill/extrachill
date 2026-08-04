@@ -9,12 +9,9 @@ describe( 'Venue email sharing', () => {
 	beforeEach( () => {
 		jest.resetModules();
 		document.body.innerHTML = `
-			<div data-venue-email-sharing-control>
-				<span data-venue-email-sharing-status></span>
-				<button disabled aria-pressed="false" data-venue-email-sharing
-					data-endpoint="https://example.com/wp-json/wp-abilities/v1/abilities/"
-					data-nonce="nonce" data-slug="the-royal-american"></button>
-			</div>`;
+			<button class="button-3" disabled aria-pressed="false" data-venue-email-sharing
+				data-endpoint="https://example.com/wp-json/wp-abilities/v1/abilities/"
+				data-nonce="nonce" data-slug="the-royal-american"></button>`;
 		global.fetch = jest.fn();
 	} );
 
@@ -31,11 +28,10 @@ describe( 'Venue email sharing', () => {
 		expect( fetch.mock.calls[ 0 ][ 0 ] ).toContain(
 			'entity-subscription-status'
 		);
-		expect(
-			document.querySelector( '[data-venue-email-sharing-status]' )
-				.textContent
-		).toBe( 'Not shared with this venue' );
-		expect( document.querySelector( 'button' ).disabled ).toBe( false );
+		const button = document.querySelector( 'button' );
+		expect( button.textContent ).toBe( 'Share email' );
+		expect( button.classList.contains( 'button-3' ) ).toBe( true );
+		expect( button.disabled ).toBe( false );
 	} );
 
 	it( 'uses only the scoped venue email-sharing identity', async () => {
@@ -62,8 +58,11 @@ describe( 'Venue email sharing', () => {
 			'"entity_type":"venue"'
 		);
 		expect( document.querySelector( 'button' ).textContent ).toBe(
-			'Stop sharing'
+			'Email shared'
 		);
+		expect(
+			document.querySelector( 'button' ).classList.contains( 'button-2' )
+		).toBe( true );
 	} );
 
 	it( 'revokes only after an explicit second click', async () => {
@@ -95,9 +94,8 @@ describe( 'Venue email sharing', () => {
 		await flushPromises();
 
 		expect( document.querySelector( 'button' ).disabled ).toBe( true );
-		expect(
-			document.querySelector( '[data-venue-email-sharing-status]' )
-				.textContent
-		).toBe( "Couldn't load this setting. Refresh to try again." );
+		expect( document.querySelector( 'button' ).textContent ).toBe(
+			'Email sharing unavailable'
+		);
 	} );
 } );

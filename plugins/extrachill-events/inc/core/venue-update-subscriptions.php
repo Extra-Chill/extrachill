@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 const EXTRACHILL_EVENTS_VENUE_UPDATE_PRODUCER  = 'extrachill-events-venue-updates';
 const EXTRACHILL_EVENTS_VENUE_UPDATE_SENT_META = '_extrachill_events_venue_update_notification_sent';
 
-/** Register venue archive controls and private notification delivery. */
+/** Register compact venue archive controls and private notification delivery. */
 function extrachill_events_init_venue_update_subscriptions(): void {
 	add_filter( 'extrachill_users_entity_subscription_producer_authorized', 'extrachill_events_authorize_venue_update_producer', 10, 4 );
 	add_action( 'transition_post_status', 'extrachill_events_notify_venue_subscribers', 10, 3 );
@@ -60,21 +60,11 @@ function extrachill_events_render_venue_update_control(): void {
 	}
 
 	$archive_url = get_term_link( $term );
-	$docs_url    = function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'docs' ) ) . 'events-calendar/venue-preferences/' : '';
 	if ( ! is_user_logged_in() ) {
 		?>
-		<aside class="events-market-context events-market-context--quiet" data-venue-preferences>
-			<div class="events-market-context__copy">
-				<strong><?php esc_html_e( 'Venue preferences', 'extrachill-events' ); ?></strong>
-				<span>
-					<?php esc_html_e( 'Control event alerts and email access.', 'extrachill-events' ); ?>
-					<?php if ( $docs_url ) : ?>
-						<a href="<?php echo esc_url( $docs_url ); ?>"><?php esc_html_e( 'How preferences work', 'extrachill-events' ); ?></a>
-					<?php endif; ?>
-				</span>
-			</div>
-			<a href="<?php echo esc_url( wp_login_url( $archive_url ) ); ?>"><?php esc_html_e( 'Sign in to manage', 'extrachill-events' ); ?></a>
-		</aside>
+		<div class="ec-action-row" data-venue-preferences aria-label="<?php esc_attr_e( 'Venue preferences', 'extrachill-events' ); ?>">
+			<a class="button-3 button-small" href="<?php echo esc_url( wp_login_url( $archive_url ) ); ?>"><?php esc_html_e( 'Sign in for venue alerts', 'extrachill-events' ); ?></a>
+		</div>
 		<?php
 		return;
 	}
@@ -84,27 +74,10 @@ function extrachill_events_render_venue_update_control(): void {
 	}
 	nocache_headers();
 	?>
-	<aside class="events-market-context events-venue-preferences" data-venue-preferences>
-		<div class="events-market-context__copy">
-			<strong><?php esc_html_e( 'Venue preferences', 'extrachill-events' ); ?></strong>
-			<span>
-				<?php esc_html_e( 'Control event alerts and email access.', 'extrachill-events' ); ?>
-				<?php if ( $docs_url ) : ?>
-					<a href="<?php echo esc_url( $docs_url ); ?>"><?php esc_html_e( 'How preferences work', 'extrachill-events' ); ?></a>
-				<?php endif; ?>
-			</span>
-		</div>
-		<div class="events-market-context__actions events-venue-preferences__controls">
-			<div class="events-venue-preferences__control" data-venue-update-control>
-				<div class="events-venue-preferences__label">
-					<strong><?php esc_html_e( 'Event notifications', 'extrachill-events' ); ?></strong>
-					<span data-venue-update-status aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-events' ); ?></span>
-				</div>
-				<button class="button-1 button-small" type="button" disabled aria-pressed="false" data-venue-update-subscription data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Turn on', 'extrachill-events' ); ?></button>
-			</div>
-			<?php extrachill_events_render_venue_email_sharing_control(); ?>
-		</div>
-	</aside>
+	<div class="ec-action-row" data-venue-preferences aria-label="<?php esc_attr_e( 'Venue preferences', 'extrachill-events' ); ?>">
+		<button class="button-3 button-small" type="button" disabled aria-live="polite" aria-pressed="false" data-venue-update-subscription data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Loading alerts...', 'extrachill-events' ); ?></button>
+		<?php extrachill_events_render_venue_email_sharing_control(); ?>
+	</div>
 	<?php
 }
 

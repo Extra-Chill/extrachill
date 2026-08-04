@@ -9,12 +9,9 @@ describe( 'Venue update subscriptions', () => {
 	beforeEach( () => {
 		jest.resetModules();
 		document.body.innerHTML = `
-			<div data-venue-update-control>
-				<span data-venue-update-status></span>
-				<button disabled aria-pressed="false" data-venue-update-subscription
-					data-endpoint="https://example.com/wp-json/wp-abilities/v1/abilities/"
-					data-nonce="nonce" data-slug="the-royal-american"></button>
-			</div>`;
+			<button class="button-3" disabled aria-pressed="false" data-venue-update-subscription
+				data-endpoint="https://example.com/wp-json/wp-abilities/v1/abilities/"
+				data-nonce="nonce" data-slug="the-royal-american"></button>`;
 		global.fetch = jest.fn();
 	} );
 
@@ -34,10 +31,10 @@ describe( 'Venue update subscriptions', () => {
 		expect( fetch.mock.calls[ 0 ][ 0 ] ).not.toContain(
 			'entity-subscribe/run'
 		);
-		expect(
-			document.querySelector( '[data-venue-update-status]' ).textContent
-		).toBe( 'Off' );
-		expect( document.querySelector( 'button' ).disabled ).toBe( false );
+		const button = document.querySelector( 'button' );
+		expect( button.textContent ).toBe( 'Get event alerts' );
+		expect( button.classList.contains( 'button-3' ) ).toBe( true );
+		expect( button.disabled ).toBe( false );
 	} );
 
 	it( 'subscribes with the exact venue identity after a click', async () => {
@@ -64,11 +61,11 @@ describe( 'Venue update subscriptions', () => {
 			slug: 'the-royal-american',
 		} );
 		expect( document.querySelector( 'button' ).textContent ).toBe(
-			'Turn off'
+			'Event alerts on'
 		);
 		expect(
-			document.querySelector( '[data-venue-update-status]' ).textContent
-		).toBe( 'On' );
+			document.querySelector( 'button' ).classList.contains( 'button-2' )
+		).toBe( true );
 	} );
 
 	it( 'unsubscribes only after an explicit second click', async () => {
@@ -90,7 +87,7 @@ describe( 'Venue update subscriptions', () => {
 			'entity-unsubscribe/run'
 		);
 		expect( document.querySelector( 'button' ).textContent ).toBe(
-			'Turn on'
+			'Get event alerts'
 		);
 	} );
 
@@ -100,8 +97,8 @@ describe( 'Venue update subscriptions', () => {
 		await flushPromises();
 
 		expect( document.querySelector( 'button' ).disabled ).toBe( true );
-		expect(
-			document.querySelector( '[data-venue-update-status]' ).textContent
-		).toBe( "Couldn't load this setting. Refresh to try again." );
+		expect( document.querySelector( 'button' ).textContent ).toBe(
+			'Event alerts unavailable'
+		);
 	} );
 } );

@@ -234,4 +234,3 @@ function ec_events_render_venue_archive_workspace_action(): void {
 	</aside>
 	<?php
 }
-add_action( 'extrachill_archive_below_description', 'ec_events_render_venue_archive_workspace_action', 8 );

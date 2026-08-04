@@ -81,12 +81,6 @@ $booking_config       = $canonical['booking_config'];
 $instance             = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-booking-' ) : 'ec-booking-' . $venue_id;
 $logged_in            = is_user_logged_in();
 $form_enabled         = ! empty( $booking_config['enabled'] );
-$manage_link_page_url = function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'artist' ) ) . 'manage-link-page/' : '';
-$link_page_count      = $logged_in && function_exists( 'ec_get_link_page_count_for_user' ) ? ec_get_link_page_count_for_user( get_current_user_id() ) : 0;
-$link_page_url        = $manage_link_page_url;
-if ( ! $logged_in && '' !== $manage_link_page_url && function_exists( 'ec_users_login_url_with_redirect' ) && function_exists( 'ec_get_site_url' ) ) {
-	$link_page_url = ec_users_login_url_with_redirect( trailingslashit( ec_get_site_url( 'community' ) ) . 'login/', $manage_link_page_url );
-}
 if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 	define( 'DONOTCACHEPAGE', true );
 }
@@ -102,21 +96,13 @@ $public_config = array(
 	'endpoint'             => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-inquiries' ),
 	'availabilityEndpoint' => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-availability' ),
 	'restNonce'            => $logged_in ? wp_create_nonce( 'wp_rest' ) : '',
-	'authenticated'        => $logged_in,
-	'heading'              => sanitize_text_field( (string) ( $attributes['heading'] ?? __( 'Booking inquiries', 'extrachill-events' ) ) ),
 	'buttonLabel'          => sanitize_text_field( (string) ( $attributes['buttonLabel'] ?? __( 'Send booking inquiry', 'extrachill-events' ) ) ),
 	'revision'             => (int) $booking_config['revision'],
 	'venue'                => $canonical['venue'],
-	'requirements'         => array_values( $booking_config['public_requirements'] ),
 	'spaces'               => array_values( $booking_config['spaces'] ),
 	'fields'               => array_values( $booking_config['fields'] ),
 	'presentation'         => $booking_config['presentation'],
 	'consent'              => $booking_config['consent'],
-	'linkPage'             => array(
-		'url'           => (string) $link_page_url,
-		'hasPage'       => $link_page_count > 0,
-		'authenticated' => $logged_in,
-	),
 );
 
 $json = $form_enabled ? wp_json_encode( $public_config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) : '';

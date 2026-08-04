@@ -208,18 +208,18 @@ const measure = ( page ) =>
 		);
 		assert.equal(
 			await page.getByText( 'Accepting inquiries' ).count(),
-			1
+			0
 		);
-		assert.equal( await page.getByText( 'Signed in' ).count(), 1 );
+		assert.equal( await page.getByText( 'Signed in' ).count(), 0 );
 		assert.equal(
 			await page.getByText( 'Have your pitch ready' ).count(),
-			1
+			0
 		);
 		assert.equal(
 			await page.getByText( 'Event type (required)' ).count(),
-			1
+			0
 		);
-		assert.equal( await page.getByText( 'Press links' ).count(), 1 );
+		assert.equal( await page.getByText( 'Press links' ).count(), 0 );
 		assert.equal(
 			await page.getByLabel( 'Artist or project name' ).count(),
 			0
@@ -263,11 +263,7 @@ const measure = ( page ) =>
 		await page.getByLabel( 'Event type' ).selectOption( 'Other' );
 		assert.ok( await page.getByLabel( 'Other event details' ).count() );
 		await page.getByLabel( 'Event type' ).selectOption( 'Concert' );
-		assert.ok(
-			await page
-				.getByRole( 'link', { name: 'Use or manage your Link Page' } )
-				.count()
-		);
+		assert.equal( await page.getByText( /Link Page/ ).count(), 0 );
 		assert.equal(
 			await page
 				.locator( '.ec-booking-inquiry__turnstile .cf-turnstile' )

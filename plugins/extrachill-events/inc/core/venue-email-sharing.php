@@ -51,20 +51,14 @@ function extrachill_events_authorize_venue_email_sharing_producer( $authorized, 
 		&& 'venue' === ( $entity['taxonomy'] ?? '' );
 }
 
-/** Render the explicit email-sharing row inside venue preferences. */
+/** Render the compact email-sharing action inside venue preferences. */
 function extrachill_events_render_venue_email_sharing_control(): void {
 	$term = function_exists( 'extrachill_events_get_venue_archive_term' ) ? extrachill_events_get_venue_archive_term() : null;
 	if ( null === $term || ! is_user_logged_in() ) {
 		return;
 	}
 	?>
-	<div class="events-venue-preferences__control" data-venue-email-sharing-control>
-		<div class="events-venue-preferences__label">
-			<strong><?php esc_html_e( 'Venue email list', 'extrachill-events' ); ?></strong>
-			<span data-venue-email-sharing-status aria-live="polite"><?php esc_html_e( 'Checking...', 'extrachill-events' ); ?></span>
-		</div>
-		<button class="button-1 button-small" type="button" disabled aria-pressed="false" data-venue-email-sharing data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Share email', 'extrachill-events' ); ?></button>
-	</div>
+	<button class="button-3 button-small" type="button" disabled aria-live="polite" aria-pressed="false" data-venue-email-sharing data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Loading email sharing...', 'extrachill-events' ); ?></button>
 	<?php
 }
 
