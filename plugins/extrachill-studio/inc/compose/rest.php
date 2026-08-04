@@ -575,8 +575,9 @@ function ec_studio_compose_get_post( \WP_REST_Request $request ) {
  * Update an existing post on main extrachill.com.
  *
  * Handles "Update Draft" (status=draft) and "Submit for Review"
- * (status=pending). The status the frontend sends is forwarded verbatim —
- * the proxy does not demote or override it.
+ * (status=pending). Before forwarding the write, the proxy verifies that the
+ * parent is still in Studio's draft/review lifecycle. This prevents a stale
+ * Compose tab from demoting and overwriting a post published out of band.
  *
  * @since 0.16.0
  *
@@ -592,6 +593,10 @@ function ec_studio_compose_update_post( \WP_REST_Request $request ) {
 	$user_id = (int) get_current_user_id();
 	$post_id = (int) $request['id'];
 	$params  = ec_studio_compose_whitelist_post_params( $request->get_json_params() );
+	$guard   = ec_studio_compose_guard_reviewable_post( $post_id );
+	if ( is_wp_error( $guard ) ) {
+		return $guard;
+	}
 
 	$response = ec_cross_site_rest_request(
 		'main',
@@ -626,6 +631,63 @@ function ec_studio_compose_update_post( \WP_REST_Request $request ) {
 	);
 
 	return ec_studio_compose_relay_response( $response );
+}
+
+/**
+ * Prevent stale Compose tabs from changing posts that left editorial review.
+ *
+ * Autosaves use the dedicated core autosaves route and remain available as
+ * non-destructive per-user snapshots. Parent writes through this update route
+ * are valid only while the post itself is still a draft or pending review.
+ *
+ * @param int $post_id Main-site post ID.
+ * @return true|\WP_Error True when the parent remains reviewable.
+ */
+function ec_studio_compose_guard_reviewable_post( int $post_id ) {
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return new \WP_Error(
+			'multisite_helper_missing',
+			__( 'extrachill-multisite is required for cross-site compose.', 'extrachill-studio' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
+	if ( $main_blog_id <= 0 ) {
+		return new \WP_Error(
+			'main_blog_unresolved',
+			__( 'Could not resolve the main site for compose.', 'extrachill-studio' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	switch_to_blog( $main_blog_id );
+	try {
+		$post = get_post( $post_id );
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( ! $post instanceof \WP_Post ) {
+		return new \WP_Error(
+			'rest_post_invalid_id',
+			__( 'Invalid post ID.', 'extrachill-studio' ),
+			array( 'status' => 404 )
+		);
+	}
+
+	if ( ! in_array( $post->post_status, array( 'draft', 'pending' ), true ) ) {
+		return new \WP_Error(
+			'ec_studio_compose_post_state_conflict',
+			__( 'This post has already moved out of Studio review. Refresh Studio before making further changes, or contact an editor.', 'extrachill-studio' ),
+			array(
+				'status'         => 409,
+				'current_status' => $post->post_status,
+			)
+		);
+	}
+
+	return true;
 }
 
 /**
