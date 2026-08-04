@@ -1,5 +1,5 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, useState } from '@wordpress/element';
+import { createElement, useRef, useState } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
 import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 
@@ -207,6 +207,21 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
 	const [ hasPreview, setHasPreview ] = useState( false );
+	const previewRequestRef = useRef( 0 );
+
+	const resetPreview = (): void => {
+		previewRequestRef.current += 1;
+		setAllComments( [] );
+		setStats( null );
+		setWinners( [] );
+		setExcludedWinners( [] );
+		setIsLoading( false );
+		setIsDrawing( false );
+		setIsAnnouncing( '' );
+		setStatus( '' );
+		setError( '' );
+		setHasPreview( false );
+	};
 
 	const updateRule = < K extends keyof GiveawayRules >( key: K, value: GiveawayRules[K] ): void => {
 		setRules( ( current ) => ( { ...current, [ key ]: value } ) );
@@ -222,6 +237,7 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 	 * Fetch all comments and compute preview stats.
 	 */
 	const loadPreview = async (): Promise< void > => {
+		const requestId = ++previewRequestRef.current;
 		const parsed = parseMediaInput( mediaInput );
 
 		if ( ! parsed || ! parsed.mediaId ) {
@@ -238,6 +254,9 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 
 		try {
 			const response = await studioSocialsApi.getAllComments( parsed.platform, parsed.mediaId );
+			if ( requestId !== previewRequestRef.current ) {
+				return;
+			}
 
 			if ( ! response.success ) {
 				throw new Error( response.error || __( 'Failed to fetch comments.', 'extrachill-studio' ) );
@@ -260,10 +279,14 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 				partialInfo
 			) );
 		} catch ( fetchError ) {
-			setError( ( fetchError as Error )?.message || __( 'Failed to fetch comments.', 'extrachill-studio' ) );
-			setStatus( '' );
+			if ( requestId === previewRequestRef.current ) {
+				setError( ( fetchError as Error )?.message || __( 'Failed to fetch comments.', 'extrachill-studio' ) );
+				setStatus( '' );
+			}
 		} finally {
-			setIsLoading( false );
+			if ( requestId === previewRequestRef.current ) {
+				setIsLoading( false );
+			}
 		}
 	};
 
@@ -360,8 +383,10 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 						type: 'text',
 						value: mediaInput,
 						onChange: ( event: ChangeEvent< HTMLInputElement > ) => {
-							setMediaInput( event.target.value );
-							setHasPreview( false );
+							if ( event.target.value !== mediaInput ) {
+								setMediaInput( event.target.value );
+								resetPreview();
+							}
 						},
 						placeholder: __( 'https://www.instagram.com/p/... or numeric media ID', 'extrachill-studio' ),
 					} )

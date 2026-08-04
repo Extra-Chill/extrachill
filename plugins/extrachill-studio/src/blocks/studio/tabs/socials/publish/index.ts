@@ -20,13 +20,20 @@ export interface PlatformPublishPaneProps {
 	label: string;
 	username: string | null;
 	config: SocialPlatformConfig;
+	draft: PlatformPublishDraft;
+	onDraftChange: ( draft: PlatformPublishDraft ) => void;
+}
+
+export interface PlatformPublishDraft {
+	caption: string;
+	images: SelectedImage[];
 }
 
 interface WpPost {
 	id: number;
 }
 
-interface SelectedImage {
+export interface SelectedImage {
 	url: string;
 	alt?: string;
 	title?: string;
@@ -39,9 +46,8 @@ interface SelectedImage {
  * Provides caption textarea, image management, publish/submit actions,
  * and comment management via the generic comments API.
  */
-const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublishPaneProps ): ReactElement => {
-	const [ caption, setCaption ] = useState( '' );
-	const [ images, setImages ] = useState< SelectedImage[] >( [] );
+const PlatformPublishPane = ( { slug, label, username, config, draft, onDraftChange }: PlatformPublishPaneProps ): ReactElement => {
+	const { caption, images } = draft;
 	const [ isPublishing, setIsPublishing ] = useState( false );
 	const [ status, setStatus ] = useState( '' );
 	const [ error, setError ] = useState( '' );
@@ -55,14 +61,14 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 	const supportsImages = ( config.maxImages || 0 ) > 0 || config.supportsCarousel;
 
 	const handleMediaSelect = ( url: string, item: NetworkMediaItem ): void => {
-		setImages( ( current ) => [
-			...current,
-			{
+		onDraftChange( {
+			...draft,
+			images: [ ...images, {
 				url,
 				alt: item.alt || undefined,
 				title: item.title || undefined,
-			},
-		] );
+			} ],
+		} );
 		setError( '' );
 		setStatus(
 			sprintf(
@@ -74,22 +80,20 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 	};
 
 	const removeImageAt = ( index: number ): void => {
-		setImages( ( current ) => current.filter( ( _item, itemIndex ) => itemIndex !== index ) );
+		onDraftChange( { ...draft, images: images.filter( ( _item, itemIndex ) => itemIndex !== index ) } );
 		setStatus( __( 'Image removed from publish queue.', 'extrachill-studio' ) );
 		setError( '' );
 	};
 
 	const moveImage = ( index: number, direction: -1 | 1 ): void => {
-		setImages( ( current ) => {
-			const target = index + direction;
-			if ( target < 0 || target >= current.length ) {
-				return current;
-			}
-			const next = [ ...current ];
-			const [ moved ] = next.splice( index, 1 );
-			next.splice( target, 0, moved );
-			return next;
-		} );
+		const target = index + direction;
+		if ( target < 0 || target >= images.length ) {
+			return;
+		}
+		const next = [ ...images ];
+		const [ moved ] = next.splice( index, 1 );
+		next.splice( target, 0, moved );
+		onDraftChange( { ...draft, images: next } );
 	};
 
 	/**
@@ -258,8 +262,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			// Success — clear form inputs.
 			setJobResult( platformResult );
 			setStatus( sprintf( __( '%s publish completed.', 'extrachill-studio' ), platformLabel ) );
-			setCaption( '' );
-			setImages( [] );
+			onDraftChange( { caption: '', images: [] } );
 		} catch ( publishError ) {
 			if ( abortController?.signal.aborted ) {
 				// Silently swallow — a new publish was started.
@@ -316,8 +319,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 			setStatus(
 				sprintf( __( 'Draft #%d submitted for review. An admin will approve it before it goes live.', 'extrachill-studio' ), post.id )
 			);
-			setCaption( '' );
-			setImages( [] );
+			onDraftChange( { caption: '', images: [] } );
 		} catch ( submitError ) {
 			setStatus( '' );
 			setError( ( submitError as Error )?.message || __( 'Failed to submit draft.', 'extrachill-studio' ) );
@@ -365,7 +367,7 @@ const PlatformPublishPane = ( { slug, label, username, config }: PlatformPublish
 						id: `ec-studio-${ slug }-caption`,
 						rows: 6,
 						value: caption,
-						onChange: ( event: ChangeEvent< HTMLTextAreaElement > ) => setCaption( event.target.value ),
+						onChange: ( event: ChangeEvent< HTMLTextAreaElement > ) => onDraftChange( { ...draft, caption: event.target.value } ),
 						placeholder: sprintf( __( 'Write your %s caption here…', 'extrachill-studio' ), platformLabel ),
 						maxLength: charLimit > 0 ? charLimit : undefined,
 					} )

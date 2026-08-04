@@ -9,6 +9,7 @@ import type { StudioPaneProps } from '../../types/studio';
 import SocialsSidebar from './sidebar';
 import type { SidebarPlatform } from './sidebar';
 import PlatformPublishPane from './publish';
+import type { PlatformPublishDraft } from './publish';
 import CommentsView from './comments';
 import GiveawayView from '../giveaway';
 
@@ -38,6 +39,7 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ activePlatform, setActivePlatform ] = useState< string | null >( null );
 	const [ activeCapability, setActiveCapability ] = useState( 'publish' );
+	const [ publishDrafts, setPublishDrafts ] = useState< Record< string, PlatformPublishDraft > >( {} );
 
 	useEffect( () => {
 		const loadPlatforms = async (): Promise< void > => {
@@ -178,13 +180,22 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 			} );
 		}
 
-		return h( ViewComponent, {
+		const viewProps: Record< string, unknown > = {
 			key: `${ activeCapability }-${ selectedPlatform.slug }`,
 			slug: selectedPlatform.slug,
 			label: selectedPlatform.label,
 			username: selectedPlatform.username,
 			config: selectedPlatform,
-		} );
+		};
+
+		if ( activeCapability === 'publish' ) {
+			viewProps.draft = publishDrafts[ selectedPlatform.slug ] || { caption: '', images: [] };
+			viewProps.onDraftChange = ( draft: PlatformPublishDraft ) => {
+				setPublishDrafts( ( current ) => ( { ...current, [ selectedPlatform.slug ]: draft } ) );
+			};
+		}
+
+		return h( ViewComponent, viewProps );
 	};
 
 	return h(

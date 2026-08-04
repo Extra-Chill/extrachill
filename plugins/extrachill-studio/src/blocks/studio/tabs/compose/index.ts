@@ -54,6 +54,9 @@ declare global {
 			options?: { settings?: Record< string, unknown > }
 		) => void;
 		blocksEverywhereGetContentApi?: ( textarea: HTMLTextAreaElement ) => BlocksEverywhereContentApi | null;
+		blocksEverywhere?: {
+			unmount: ( mountOrTextarea: HTMLElement ) => void;
+		};
 	}
 }
 
@@ -788,6 +791,18 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		};
 	}, [ getContent, scheduleAutosave, performAutosave, scheduleClientContextUpdate ] );
 
+	// This effect follows autosave cleanup so the latest editor value is
+	// captured before Blocks Everywhere removes its React tree.
+	useEffect( () => {
+		return () => {
+			const textarea = textareaRef.current;
+			if ( editorMountedRef.current && textarea && window.blocksEverywhere?.unmount ) {
+				window.blocksEverywhere.unmount( textarea );
+				editorMountedRef.current = false;
+			}
+		};
+	}, [] );
+
 	// Sync hasUnsavedChanges state into a ref so the beforeunload/pagehide
 	// listeners (registered once with stale closures) can read the latest
 	// value without re-binding on every change.
@@ -1088,6 +1103,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		'select',
 		{
 			className: 'ec-studio-compose-draft-picker',
+			'aria-label': __( 'Choose draft', 'extrachill-studio' ),
 			value: activePostId || 'new',
 			onChange: onDraftSelect,
 			disabled: isLoadingDrafts || isSwitching || isPreviewing,

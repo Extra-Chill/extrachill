@@ -17,7 +17,7 @@
 
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useCallback, useEffect, useRef, useState } from '@wordpress/element';
-import type { ChangeEvent, DragEvent, ReactElement } from 'react';
+import type { ChangeEvent, DragEvent, KeyboardEvent, ReactElement } from 'react';
 import { ActionRow, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 
 import type { StudioPaneProps } from '../../types/studio';
@@ -445,6 +445,13 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		setExpandedJobId( ( current ) => ( current === jobId ? null : jobId ) );
 	};
 
+	const onDropZoneKeyDown = ( event: KeyboardEvent< HTMLDivElement > ): void => {
+		if ( event.key === 'Enter' || event.key === ' ' ) {
+			event.preventDefault();
+			onPickButtonClick();
+		}
+	};
+
 	// ── Render ────────────────────────────────────────────────────────
 
 	const dropZoneClass = `ec-studio-transcribe__dropzone${ isDragging ? ' is-dragging' : '' }${ selectedFile ? ' has-file' : '' }`;
@@ -457,6 +464,7 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			onDragLeave,
 			onDrop,
 			onClick: onPickButtonClick,
+			onKeyDown: onDropZoneKeyDown,
 			role: 'button',
 			tabIndex: 0,
 		},
