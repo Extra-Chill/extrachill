@@ -88,12 +88,23 @@ const profile = ( id ) => ( {
 	revision: String( id ).padStart( 64, '0' ),
 } );
 const config = ( id ) => ( {
-	version: 5,
+	version: 6,
 	revision: id,
 	updated_by_user_id: null,
 	updated_at: null,
 	enabled: false,
-	intake: { version: 1, fields: [] },
+	intake: {
+		version: 1,
+		fields: [],
+		presentation: {
+			artist_name_label: 'Artist or project name',
+			contact_name_label: 'Contact name',
+			contact_email_label: 'Contact email',
+			contact_phone_label: 'Contact phone',
+			message_label: 'Anything else?',
+			message_help: 'Share routing, timing, or context.',
+		},
+	},
 	public_requirements: [],
 	consent: {
 		id: 'booking-privacy',
@@ -101,7 +112,6 @@ const config = ( id ) => ( {
 		label: 'I agree.',
 		required: true,
 	},
-	booking_guide: { version: 1, entries: [] },
 	embed: { allowed_parent_origins: [] },
 	spaces: [],
 	default_deal: {
@@ -358,6 +368,22 @@ describe( 'venue settings authorization-facing states', () => {
 		const { container, root } = await renderApp( context() );
 		expect( container.textContent ).not.toContain( 'Team' );
 		expect(
+			[ ...container.querySelectorAll( 'button' ) ]
+				.slice( 0, 3 )
+				.map( ( button ) => button.textContent )
+		).toEqual( [ 'Calendar', 'Venue', 'Settings' ] );
+		for ( const retired of [
+			'Bookings',
+			'Local Support',
+			'Profile',
+			'Booking',
+			'Guide',
+			'Intake',
+			'Claims',
+		] ) {
+			expect( buttonByText( container, retired ) ).toBeUndefined();
+		}
+		expect(
 			apiFetch.mock.calls.some( ( [ request ] ) =>
 				request.path.includes( 'list-venue-memberships' )
 			)
@@ -404,6 +430,24 @@ describe( 'venue settings authorization-facing states', () => {
 		await act( async () => root.unmount() );
 	} );
 
+	it( 'shows exactly four venue tabs to authorized managers', async () => {
+		const { container, root } = await renderApp(
+			context( {
+				user: { id: 1, name: 'Admin', is_admin: true },
+				can_manage: true,
+			} )
+		);
+		expect(
+			[ ...container.querySelectorAll( 'button' ) ]
+				.slice( 0, 4 )
+				.map( ( button ) => button.textContent )
+		).toEqual( [ 'Calendar', 'Venue', 'Settings', 'Team' ] );
+		expect( container.textContent ).not.toContain( 'Venue claims' );
+		await act( async () => buttonByText( container, 'List' ).click() );
+		expect( container.textContent ).toContain( 'Booking pipeline' );
+		await act( async () => root.unmount() );
+	} );
+
 	it( 'exports only the resolved user ID and current email', () => {
 		expect(
 			venueSubscriberCsv( [
@@ -434,10 +478,8 @@ describe( 'venue settings authorization-facing states', () => {
 				can_manage: true,
 			} )
 		);
-		expect( container.textContent ).toContain(
-			'Administrator claim review is available'
-		);
 		expect( container.textContent ).toContain( 'Claimant user #19' );
+		expect( buttonByText( container, 'Claims' ) ).toBeUndefined();
 		expect(
 			apiFetch.mock.calls.some( ( [ request ] ) =>
 				request.path.includes( 'get-venue-profile' )
@@ -446,14 +488,41 @@ describe( 'venue settings authorization-facing states', () => {
 		await act( async () => root.unmount() );
 	} );
 
-	it( 'manages explicit Local Support state from the private venue workspace', async () => {
+	it( 'surfaces local-support actions on matching calendar events', async () => {
+		apiFetch.mockImplementation( ( request ) => {
+			const input = requestInput( request.path );
+			if ( request.path.includes( 'get-venue-profile' ) ) {
+				return Promise.resolve( profile( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'get-venue-booking-config' ) ) {
+				return Promise.resolve( config( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'events-calendar' ) ) {
+				return Promise.resolve( {
+					dates: [
+						{
+							events: [
+								{
+									id: 901,
+									title: 'Kid Lake at Venue 44',
+									datetime: '2026-08-01 20:00:00',
+									permalink:
+										'https://events.example/kid-lake/',
+								},
+							],
+						},
+					],
+				} );
+			}
+			return Promise.resolve( [] );
+		} );
 		const { container, root } = await renderApp(
 			context( {
 				support_events: [
 					{
 						id: 901,
 						title: 'Kid Lake at Venue 44',
-						start_datetime: '2030-08-01 20:00:00',
+						start_datetime: '2026-08-01 20:00:00',
 						status: 'not_seeking',
 						workspace_url:
 							'https://events.example/local-support/?event_id=901',
@@ -462,14 +531,12 @@ describe( 'venue settings authorization-facing states', () => {
 				],
 			} )
 		);
-		await act( async () =>
-			buttonByText( container, 'Local Support' ).click()
-		);
 		expect( container.textContent ).toContain( 'Kid Lake at Venue 44' );
-		expect( container.textContent ).toContain( 'Not seeking' );
 		expect( container.textContent ).toContain( 'Find local support' );
 		expect(
-			container.querySelector( 'a.button-2' ).getAttribute( 'href' )
+			[ ...container.querySelectorAll( 'a' ) ]
+				.find( ( link ) => link.textContent === 'Find local support' )
+				.getAttribute( 'href' )
 		).toBe( 'https://events.example/local-support/?event_id=901' );
 		await act( async () => root.unmount() );
 	} );
@@ -486,7 +553,7 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
-		await act( async () => buttonByText( container, 'Profile' ).click() );
+		await act( async () => buttonByText( container, 'Venue' ).click() );
 		expect( container.textContent ).toContain( 'Profile unavailable.' );
 		expect( container.textContent ).toContain( 'Retry profile' );
 		await act( async () => root.unmount() );
@@ -494,7 +561,7 @@ describe( 'venue settings authorization-facing states', () => {
 
 	it( 'shows the fourteen-day hold limit in booking settings', async () => {
 		const { container, root } = await renderApp( context() );
-		await act( async () => buttonByText( container, 'Booking' ).click() );
+		await act( async () => buttonByText( container, 'Settings' ).click() );
 
 		expect( container.querySelector( '#venue-hold-ttl' ).max ).toBe(
 			'20160'
@@ -523,17 +590,17 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
-		await act( async () => buttonByText( container, 'Booking' ).click() );
+		await act( async () => buttonByText( container, 'Settings' ).click() );
 		await setInput(
 			container.querySelector( '#venue-ticket-provider' ),
 			'dirty-ticket-account'
 		);
-		await act( async () => buttonByText( container, 'Profile' ).click() );
+		await act( async () => buttonByText( container, 'Venue' ).click() );
 		await act( async () => {
 			buttonByText( container, 'Retry profile' ).click();
 			await Promise.resolve();
 		} );
-		await act( async () => buttonByText( container, 'Booking' ).click() );
+		await act( async () => buttonByText( container, 'Settings' ).click() );
 		expect(
 			container.querySelector( '#venue-ticket-provider' ).value
 		).toBe( 'dirty-ticket-account' );
@@ -560,17 +627,17 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
-		await act( async () => buttonByText( container, 'Profile' ).click() );
+		await act( async () => buttonByText( container, 'Venue' ).click() );
 		await setInput(
 			container.querySelector( '#venue-profile-name' ),
 			'Locally edited venue'
 		);
-		await act( async () => buttonByText( container, 'Booking' ).click() );
+		await act( async () => buttonByText( container, 'Settings' ).click() );
 		await act( async () => {
 			buttonByText( container, 'Retry booking settings' ).click();
 			await Promise.resolve();
 		} );
-		await act( async () => buttonByText( container, 'Profile' ).click() );
+		await act( async () => buttonByText( container, 'Venue' ).click() );
 		expect( container.querySelector( '#venue-profile-name' ).value ).toBe(
 			'Locally edited venue'
 		);
@@ -637,7 +704,7 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
-		await act( async () => buttonByText( container, 'Profile' ).click() );
+		await act( async () => buttonByText( container, 'Venue' ).click() );
 		const name = container.querySelector( '#venue-profile-name' );
 		await act( async () => {
 			Object.getOwnPropertyDescriptor(
@@ -1131,7 +1198,7 @@ describe( 'venue settings authorization-facing states', () => {
 		await act( async () => root.unmount() );
 	} );
 
-	it( 'saves ordered guide entries through the revisioned venue config', async () => {
+	it( 'saves booking and intake settings in one revisioned document', async () => {
 		installApi();
 		apiFetch.mockImplementation( ( request ) => {
 			const input = request.data?.input || requestInput( request.path );
@@ -1152,35 +1219,43 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
-		await act( async () => buttonByText( container, 'Guide' ).click() );
+		await act( async () => buttonByText( container, 'Settings' ).click() );
+		await setInput(
+			container.querySelector( '#venue-ticket-provider' ),
+			'venue-account'
+		);
 		await act( async () =>
-			buttonByText( container, 'Add guide entry' ).click()
+			buttonByText( container, 'Add intake field' ).click()
 		);
 		await setInput(
-			container.querySelector( '#guide-title-0' ),
-			'When is load-in?'
-		);
-		await setControl(
-			container.querySelector( '#guide-body-0' ),
-			'Confirm timing in the managed booking thread.'
+			container.querySelector( '#intake-label-0' ),
+			'Recent draw'
 		);
 		await act( async () =>
-			buttonByText( container, 'Save booking guide' ).click()
+			buttonByText( container, 'Save settings' ).click()
 		);
 
 		const request = apiFetch.mock.calls.find( ( [ call ] ) =>
 			call.path.includes( 'update-venue-booking-config' )
 		)[ 0 ];
 		expect( request.data.input.expected_revision ).toBe( 44 );
-		expect( request.data.input.config.booking_guide.entries ).toEqual( [
+		expect( request.data.input.config.ticket_provider_reference ).toBe(
+			'venue-account'
+		);
+		expect( request.data.input.config.intake.fields ).toEqual( [
 			{
-				key: 'when_is_load_in',
-				title: 'When is load-in?',
-				body: 'Confirm timing in the managed booking thread.',
-				visibility: 'public',
+				key: 'recent_draw',
+				label: 'Recent draw',
+				type: 'text',
+				required: false,
+				options: [],
+				visible_when: null,
 			},
 		] );
-		expect( container.textContent ).toContain( 'Booking settings saved.' );
+		expect( request.data.input.config ).not.toHaveProperty(
+			'booking_guide'
+		);
+		expect( container.textContent ).toContain( 'Venue settings saved.' );
 		await act( async () => root.unmount() );
 	} );
 } );

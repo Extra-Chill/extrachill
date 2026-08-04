@@ -232,8 +232,7 @@ export function IntakeTab( { config, setConfig } ) {
 					Add intake field
 				</button>
 				<p className="ec-venue-settings__save-note">
-					Intake changes are saved with the Booking tab’s single
-					revisioned document.
+					Intake changes are saved with this settings revision.
 				</p>
 			</Panel>
 		</Grid>

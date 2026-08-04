@@ -11,7 +11,7 @@ import {
 } from './state';
 
 const validConfig = () => ( {
-	version: 5,
+	version: 6,
 	enabled: true,
 	intake: { version: 1, fields: [] },
 	public_requirements: [],
@@ -21,7 +21,6 @@ const validConfig = () => ( {
 		label: 'I agree.',
 		required: true,
 	},
-	booking_guide: { version: 1, entries: [] },
 	embed: { allowed_parent_origins: [] },
 	spaces: [ { key: 'main_room', name: 'Main Room', is_default: true } ],
 	default_deal: {
@@ -78,15 +77,6 @@ describe( 'venue settings state', () => {
 			required: false,
 			options: [],
 		} );
-		config.booking_guide.entries.push(
-			{ key: 'load_in', title: '', body: '', visibility: 'public' },
-			{
-				key: 'load_in',
-				title: 'Private notes',
-				body: 'Details',
-				visibility: 'private',
-			}
-		);
 		config.hold_ttl_minutes = 1;
 		expect( validateConfig( config ) ).toEqual(
 			expect.arrayContaining( [
@@ -94,9 +84,6 @@ describe( 'venue settings state', () => {
 				'Space keys must be unique.',
 				'Choose one default space.',
 				'Select fields need at least one option.',
-				'Each guide entry needs a key, title, and answer.',
-				'Guide entry keys must be unique.',
-				'Guide visibility must be public or operators only.',
 				'Hold duration must be between 5 minutes and 14 days.',
 			] )
 		);

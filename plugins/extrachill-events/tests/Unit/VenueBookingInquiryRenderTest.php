@@ -37,20 +37,6 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$config['enabled']                           = true;
 		$config['revision']                          = 4;
 		$config['public_requirements']               = array( 'Include recent draw and routing.' );
-		$config['booking_guide']['entries']          = array(
-			array(
-				'key'        => 'load_in',
-				'title'      => 'When is load-in?',
-				'body'       => "Load-in timing is confirmed in the booking thread.\nBring your stage plot.",
-				'visibility' => 'public',
-			),
-			array(
-				'key'        => 'settlement',
-				'title'      => 'Settlement notes',
-				'body'       => 'Private operator instructions.',
-				'visibility' => 'operator',
-			),
-		);
 		$config['spaces']                            = array(
 			array(
 				'key'        => 'main-room',
@@ -93,10 +79,7 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Test Room', $output );
 		$this->assertStringContainsString( '42 Test Street, Charleston, SC, 29403', $output );
 		$this->assertStringContainsString( 'Include recent draw and routing.', $output );
-		$this->assertStringContainsString( 'When is load-in?', $output );
-		$this->assertStringContainsString( 'Bring your stage plot.', $output );
-		$this->assertStringNotContainsString( 'Private operator instructions.', $output );
-		$this->assertStringNotContainsString( 'Settlement notes', $output );
+		$this->assertStringNotContainsString( 'Booking guide', $output );
 		$this->assertStringContainsString( '"revision":4', $output );
 		$this->assertStringContainsString( 'Phone (Emergency use only)', $output );
 		$this->assertStringContainsString( 'manage-link-page', $output );
@@ -112,25 +95,10 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		switch_to_blog( self::EVENTS_BLOG_ID );
 		$config            = get_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, true );
 		$config['enabled']                          = false;
-		$config['booking_guide']['entries']         = array();
 		update_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, $config );
 		restore_current_blog();
 
 		$this->assertSame( '', $this->render_on( self::MAIN_BLOG_ID, array( 'venueId' => $this->venue_id ) ) );
-	}
-
-	/** A public guide remains useful when inquiry intake is temporarily closed. */
-	public function test_public_guide_renders_without_disabled_inquiry_app(): void {
-		switch_to_blog( self::EVENTS_BLOG_ID );
-		$config            = get_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, true );
-		$config['enabled'] = false;
-		update_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, $config );
-		restore_current_blog();
-
-		$output = $this->render_on( self::MAIN_BLOG_ID, array( 'venueId' => $this->venue_id ) );
-		$this->assertStringContainsString( 'When is load-in?', $output );
-		$this->assertStringNotContainsString( 'data-booking-app', $output );
-		$this->assertStringNotContainsString( 'private-booking@example.com', $output );
 	}
 
 	/** Render the same canonical venue through Events, main, and Studio. */

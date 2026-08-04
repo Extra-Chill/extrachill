@@ -600,7 +600,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$migrated = $service->normalize( array( 'version' => 1, 'enabled' => true ) );
 		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
 		$this->assertArrayHasKey( 'correspondence', $migrated );
-		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 6 ) )->get_error_code() );
+		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 7 ) )->get_error_code() );
 		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => '1junk' ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'intake' => array( 'version' => 2 ) ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'correspondence' => array( 'version' => 2 ) ) )->get_error_code() );
@@ -622,10 +622,35 @@ final class BookingFoundationTest extends BookingTestCase {
 
 		$version_four = $service->defaults();
 		$version_four['version'] = 4;
+		$version_four['booking_guide'] = array(
+			'version' => 1,
+			'entries' => array(
+				array(
+					'key'        => 'load_in',
+					'title'      => 'When is load-in?',
+					'body'       => 'Retired venue-authored guidance.',
+					'visibility' => 'public',
+				),
+			),
+		);
 		unset( $version_four['embed'] );
 		$migrated = $service->normalize( $version_four );
 		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
 		$this->assertSame( array(), $migrated['embed']['allowed_parent_origins'] );
+		$this->assertArrayNotHasKey( 'booking_guide', $migrated );
+
+		$version_five                           = $service->defaults();
+		$version_five['version']                = VenueBookingConfig::EMBED_CONFIG_VERSION;
+		$version_five['revision']               = 9;
+		$version_five['booking_guide']          = $version_four['booking_guide'];
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $version_five;
+		$migrated = $service->get( 55 );
+		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
+		$this->assertSame( 9, $migrated['revision'] );
+		$this->assertArrayNotHasKey( 'booking_guide', $migrated );
+		$stored = $GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ];
+		$this->assertSame( VenueBookingConfig::VERSION, $stored['version'] );
+		$this->assertArrayNotHasKey( 'booking_guide', $stored );
 	}
 
 	public function test_embed_admission_and_frame_policy_fail_closed(): void {

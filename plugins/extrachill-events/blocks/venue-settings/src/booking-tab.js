@@ -140,6 +140,7 @@ export function BookingTab( {
 	status,
 	bookingUrl,
 	venueName,
+	children,
 } ) {
 	const [ copied, setCopied ] = useState( '' );
 	const errors = validateConfig( config );
@@ -413,6 +414,7 @@ export function BookingTab( {
 					</FieldGroup>
 				</Grid>
 			</Panel>
+			{ children }
 			{ errors.length > 0 && (
 				<InlineStatus tone="error">
 					<strong>Resolve before saving:</strong>
@@ -431,11 +433,11 @@ export function BookingTab( {
 					disabled={ ! dirty || saving || errors.length > 0 }
 					onClick={ onSave }
 				>
-					{ saving ? 'Saving...' : 'Save booking defaults' }
+					{ saving ? 'Saving...' : 'Save settings' }
 				</button>
 				{ dirty && (
 					<span className="ec-venue-settings__dirty">
-						Unsaved booking changes
+						Unsaved settings changes
 					</span>
 				) }
 			</ActionRow>

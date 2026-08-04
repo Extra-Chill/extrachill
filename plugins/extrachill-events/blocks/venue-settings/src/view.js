@@ -21,9 +21,7 @@ import { errorDetails, runAbility } from './api';
 import { BookingConsole } from './booking-console';
 import { BookingTab } from './booking-tab';
 import { ClaimPanel, ClaimsTab } from './claims-tab';
-import { GuideTab } from './guide-tab';
 import { IntakeTab } from './intake-tab';
-import { LocalSupportTab } from './local-support-tab';
 import { ProfileTab } from './profile-tab';
 import { LoadingPanel, Status } from './status';
 import { TeamTab } from './team-tab';
@@ -293,7 +291,7 @@ export function VenueSettingsApp( { context } ) {
 			setConfigBaseline( editable );
 			setConfigStatus( {
 				tone: 'success',
-				message: 'Booking settings saved.',
+				message: 'Venue settings saved.',
 			} );
 		} catch ( error ) {
 			const details = errorDetails( error );
@@ -311,33 +309,23 @@ export function VenueSettingsApp( { context } ) {
 
 	const tabs = [
 		{ id: 'calendar', label: 'Calendar' },
-		{ id: 'bookings', label: 'Bookings' },
-		{ id: 'local-support', label: 'Local Support' },
-		{ id: 'profile', label: 'Profile' },
-		{ id: 'booking', label: 'Booking' },
-		{ id: 'guide', label: 'Guide' },
-		{ id: 'intake', label: 'Intake' },
+		{ id: 'venue', label: 'Venue' },
+		{ id: 'settings', label: 'Settings' },
 		...( context.can_manage ? [ { id: 'team', label: 'Team' } ] : [] ),
-		...( context.user.is_admin
-			? [ { id: 'claims', label: 'Claims' } ]
-			: [] ),
 	];
 	const renderPanel = ( tab ) => {
-		if ( tab === 'local-support' ) {
-			return <LocalSupportTab events={ context.support_events } />;
-		}
-		if ( tab === 'calendar' || tab === 'bookings' ) {
+		if ( tab === 'calendar' ) {
 			return (
 				<BookingConsole
-					key={ `${ selected.id }-${ tab }` }
+					key={ selected.id }
 					context={ context }
 					members={ members }
 					defaultDeal={ config?.default_deal }
-					view={ tab }
+					supportEvents={ context.support_events }
 				/>
 			);
 		}
-		if ( tab === 'profile' ) {
+		if ( tab === 'venue' ) {
 			if ( loadErrors.profile ) {
 				return (
 					<Panel>
@@ -367,7 +355,7 @@ export function VenueSettingsApp( { context } ) {
 				<LoadingPanel label="Loading profile..." />
 			);
 		}
-		if ( tab === 'booking' ) {
+		if ( tab === 'settings' ) {
 			if ( loadErrors.config ) {
 				return (
 					<Panel>
@@ -394,30 +382,11 @@ export function VenueSettingsApp( { context } ) {
 					status={ configStatus }
 					bookingUrl={ context.booking_url }
 					venueName={ selected.name }
-				/>
+				>
+					<IntakeTab config={ config } setConfig={ setConfig } />
+				</BookingTab>
 			) : (
-				<LoadingPanel label="Loading booking settings..." />
-			);
-		}
-		if ( tab === 'intake' ) {
-			return config ? (
-				<IntakeTab config={ config } setConfig={ setConfig } />
-			) : (
-				<LoadingPanel label="Loading intake settings..." />
-			);
-		}
-		if ( tab === 'guide' ) {
-			return config ? (
-				<GuideTab
-					config={ config }
-					baseline={ configBaseline }
-					setConfig={ setConfig }
-					onSave={ saveConfig }
-					saving={ savingConfig }
-					status={ configStatus }
-				/>
-			) : (
-				<LoadingPanel label="Loading booking guide..." />
+				<LoadingPanel label="Loading venue settings..." />
 			);
 		}
 		if ( tab === 'team' ) {
@@ -441,42 +410,32 @@ export function VenueSettingsApp( { context } ) {
 				</>
 			);
 		}
-		return (
-			<>
-				<Status
-					state={
-						loadErrors.claims
-							? { tone: 'error', message: loadErrors.claims }
-							: null
-					}
-					onRetry={ loadClaims }
-				/>
-				<ClaimsTab
-					claims={ claims }
-					venues={ context.claim_venues }
-					onRefresh={ loadClaims }
-				/>
-			</>
-		);
+		return null;
 	};
+	const claimsQueue =
+		context.user.is_admin && claims.length > 0 ? (
+			<ClaimsTab
+				claims={ claims }
+				venues={ context.claim_venues }
+				onRefresh={ loadClaims }
+			/>
+		) : null;
 	const renderWorkspace = () => {
 		if ( ! selected && context.venues.length > 0 ) {
 			return (
-				<AllVenues
-					venues={ context.venues }
-					routeUrl={ context.route_url }
-				/>
+				<>
+					{ claimsQueue }
+					<AllVenues
+						venues={ context.venues }
+						routeUrl={ context.route_url }
+					/>
+				</>
 			);
 		}
 		if ( ! selected || ! context.can_access ) {
 			if ( context.user.is_admin ) {
 				return (
 					<>
-						<InlineStatus tone="info">
-							Administrator claim review is available without an
-							active venue membership. Profile and booking
-							settings still require canonical venue access.
-						</InlineStatus>
 						<Status
 							state={
 								loadErrors.claims
@@ -488,11 +447,7 @@ export function VenueSettingsApp( { context } ) {
 							}
 							onRetry={ loadClaims }
 						/>
-						<ClaimsTab
-							claims={ claims }
-							venues={ context.claim_venues }
-							onRefresh={ loadClaims }
-						/>
+						{ claimsQueue }
 					</>
 				);
 			}
@@ -507,6 +462,7 @@ export function VenueSettingsApp( { context } ) {
 
 		return (
 			<>
+				{ claimsQueue }
 				{ loading && (
 					<p className="screen-reader-text" aria-live="polite">
 						Loading venue workspace.
