@@ -131,6 +131,8 @@ class Test_Notification_Producer_Contracts extends WP_UnitTestCase {
 
 		$this->assertSame( EC_USERS_PUBLISH_NOTIFY_PRODUCER, $row['producer'] );
 		$this->assertSame( sprintf( 'context:producer-contract:blog:%d:post:%d', get_current_blog_id(), $post->ID ), $row['idempotency_key'] );
+		$this->assertSame( '1', $row['producer_owns_email'] );
+		$this->assertNotEmpty( $row['emailed_at'] );
 		$this->assertSame( 1, $this->notification_count( 'producer_contract_published' ) );
 	}
 
@@ -156,6 +158,45 @@ class Test_Notification_Producer_Contracts extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A failed immediate-email admission releases the receipt for retry.
+	 */
+	public function test_publish_source_releases_receipt_when_email_cannot_queue(): void {
+		wp_update_user(
+			array(
+				'ID'         => $this->user_id,
+				'user_email' => '',
+			)
+		);
+		$post = self::factory()->post->create_and_get( array( 'post_title' => 'Retry Contract' ) );
+		update_post_meta( $post->ID, '_retry_contract_submitter', $this->user_id );
+		$descriptor = array(
+			'meta_key'       => '_retry_contract_submitter',
+			'type'           => 'retry_contract_published',
+			'title_template' => 'Published: %s',
+		);
+
+		ec_users_publish_notify_apply_source(
+			'retry-contract',
+			$descriptor,
+			$post
+		);
+
+		$this->assertEmpty( get_post_meta( $post->ID, EC_USERS_PUBLISH_NOTIFIED_META_PREFIX . 'retry-contract', true ) );
+		$this->assertSame( 0, $this->notification_count( 'retry_contract_published' ) );
+
+		wp_update_user(
+			array(
+				'ID'         => $this->user_id,
+				'user_email' => 'retry@example.com',
+			)
+		);
+		ec_users_publish_notify_apply_source( 'retry-contract', $descriptor, $post );
+
+		$this->assertNotEmpty( get_post_meta( $post->ID, EC_USERS_PUBLISH_NOTIFIED_META_PREFIX . 'retry-contract', true ) );
+		$this->assertSame( 1, $this->notification_count( 'retry_contract_published' ) );
+	}
+
+	/**
 	 * Fetch one notification contract row.
 	 *
 	 * @param string $type Notification type.
@@ -165,7 +206,7 @@ class Test_Notification_Producer_Contracts extends WP_UnitTestCase {
 		global $wpdb;
 
 		$table = extrachill_users_notifications_table_name();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT producer, idempotency_key FROM {$table} WHERE user_id = %d AND type = %s", $this->user_id, $type ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT producer, idempotency_key, producer_owns_email, emailed_at FROM {$table} WHERE user_id = %d AND type = %s", $this->user_id, $type ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 
 		$this->assertIsArray( $row );
 		return $row;

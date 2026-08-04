@@ -48,8 +48,9 @@
  * The observer resolves the recipient id, builds the title from the template +
  * the post title, links to the post permalink, sets item_id = post id, and
  * requests one notification per post (a per-post meta guard prevents
- * re-fire on later edits or re-publish). The batched email digest
- * (inc/notifications/email.php) then delivers the email arm for free.
+ * re-fire on later edits or re-publish). Publication is a transactional
+ * lifecycle event, so this producer owns and immediately queues the email arm;
+ * the generic unread-notification digest excludes the claimed receipt.
  *
  * @package ExtraChill\Users
  * @since 0.24.0
@@ -253,6 +254,8 @@ function ec_users_publish_notify_apply_source( string $context, array $descripto
 	$post_title = get_the_title( $post );
 	$title      = sprintf( $title_template, $post_title );
 	$link       = (string) get_permalink( $post );
+	$producer   = EC_USERS_PUBLISH_NOTIFY_PRODUCER;
+	$key        = sprintf( 'context:%s:blog:%d:post:%d', $context, get_current_blog_id(), $post->ID );
 
 	$delivery = ec_users_notify_with_receipts(
 		$user_id,
@@ -260,22 +263,89 @@ function ec_users_publish_notify_apply_source( string $context, array $descripto
 			// The submitter is both the subject and, for a system-authored
 			// "you're live" notice, the actor — the substrate requires a
 			// valid actor_id that resolves to a real user.
-			'actor_id'        => $user_id,
-			'type'            => $type,
-			'title'           => $title,
-			'link'            => $link,
-			'item_id'         => (int) $post->ID,
-			'producer'        => EC_USERS_PUBLISH_NOTIFY_PRODUCER,
-			'idempotency_key' => sprintf( 'context:%s:blog:%d:post:%d', $context, get_current_blog_id(), $post->ID ),
+			'actor_id'            => $user_id,
+			'type'                => $type,
+			'title'               => $title,
+			'link'                => $link,
+			'item_id'             => (int) $post->ID,
+			'producer'            => $producer,
+			'idempotency_key'     => $key,
+			'producer_owns_email' => true,
 		)
 	);
 
-	// All receipt outcomes preserve this observer's attempt-once contract. A
-	// failed insert must not become a notification storm on later edits, while an
-	// existing receipt means a prior attempt already delivered the notification.
-	update_post_meta( $post->ID, $guard_key, current_time( 'mysql', true ) );
+	$recipient_receipt = is_array( $delivery['recipients'][ $user_id ] ?? null ) ? $delivery['recipients'][ $user_id ] : array();
+	$status            = (string) ( $recipient_receipt['status'] ?? 'failed' );
+	$notification_id   = (int) ( $recipient_receipt['notification_id'] ?? 0 );
 
-	unset( $delivery );
+	if ( 'existing' === $status ) {
+		// Another request owns this claim. The receipt itself is the dedupe;
+		// do not write the permanent guard until queue admission is confirmed.
+		return;
+	}
+
+	if ( 'inserted' !== $status || $notification_id <= 0 ) {
+		// Stable receipt failures preserve the historical attempt-once behavior.
+		update_post_meta( $post->ID, $guard_key, current_time( 'mysql', true ) );
+		return;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user instanceof \WP_User || ! ec_users_publish_notify_queue_email( $user, $title, $post_title, $link ) ) {
+		$released = function_exists( 'ec_users_release_notification_receipt' )
+			&& ec_users_release_notification_receipt( $notification_id, $user_id, $producer, $key );
+		if ( ! $released ) {
+			// The claim cannot be retried safely when its exact receipt remains.
+			update_post_meta( $post->ID, $guard_key, current_time( 'mysql', true ) );
+		}
+		error_log( sprintf( 'ec_users_publish_notify: immediate email enqueue failed for user %d, post %d.', $user_id, $post->ID ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Canonical operational logging surface.
+		return;
+	}
+
+	update_post_meta( $post->ID, $guard_key, current_time( 'mysql', true ) );
+}
+
+/**
+ * Queue the immediate branded publication email for a submitter.
+ *
+ * @param \WP_User $user       Recipient.
+ * @param string   $subject    Descriptor-resolved notification title.
+ * @param string   $post_title Published post title.
+ * @param string   $link       Public post permalink.
+ * @return bool True when the email was accepted by the queue.
+ */
+function ec_users_publish_notify_queue_email( \WP_User $user, string $subject, string $post_title, string $link ): bool {
+	if ( ! is_email( $user->user_email ) || '' === $subject || '' === $post_title || ! wp_http_validate_url( $link ) || ! function_exists( 'ec_send_email_queued' ) ) {
+		return false;
+	}
+
+	$body_html = '<p>' . sprintf(
+		/* translators: %s: published post title. */
+		esc_html__( 'Your submission “%s” has been published on Extra Chill.', 'extrachill-users' ),
+		esc_html( $post_title )
+	) . '</p><p>' . esc_html__( 'Thanks for contributing. Your post is live and ready to share.', 'extrachill-users' ) . '</p>';
+	try {
+		$result = ec_send_email_queued(
+			array(
+				'to'       => $user->user_email,
+				'subject'  => $subject,
+				'template' => 'extrachill/branded',
+				'context'  => array(
+					'subject_html'   => esc_html( $subject ),
+					'recipient_name' => $user->display_name,
+					'body_html'      => $body_html,
+					'cta_url'        => $link,
+					'cta_label'      => __( 'Read your post', 'extrachill-users' ),
+					'preheader'      => __( 'Your Extra Chill submission is live.', 'extrachill-users' ),
+				),
+			)
+		);
+	} catch ( \Throwable $exception ) {
+		error_log( sprintf( 'ec_users_publish_notify: email queue exception for user %1$d: %2$s', $user->ID, $exception->getMessage() ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Canonical operational logging surface.
+		return false;
+	}
+
+	return ! empty( $result['success'] );
 }
 
 /**
