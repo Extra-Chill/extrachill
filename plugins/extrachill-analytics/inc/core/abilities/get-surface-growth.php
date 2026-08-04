@@ -201,9 +201,9 @@ function extrachill_analytics_compute_surface_growth( $input ) {
 	if ( is_wp_error( $date_range ) ) {
 		return $date_range;
 	}
-	$weeks      = isset( $input['weeks'] ) ? max( 1, (int) $input['weeks'] ) : 4;
-	$days       = $date_range ? $date_range['days'] : $weeks * 7;
-	$weeks      = $days / 7;
+	$weeks = isset( $input['weeks'] ) ? max( 1, (int) $input['weeks'] ) : 4;
+	$days  = $date_range ? $date_range['days'] : $weeks * 7;
+	$weeks = $days / 7;
 
 	$now_utc      = gmdate( 'Y-m-d H:i:s' );
 	$window_start = $date_range ? $date_range['start_at'] : gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );

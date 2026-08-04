@@ -41,7 +41,7 @@ function extrachill_analytics_visitor_cookie_domain() {
 
 	// 1. Prefer WP's COOKIE_DOMAIN when defined and non-empty. On this network
 	// it is the leading-dot network root already.
-	if ( defined( 'COOKIE_DOMAIN' ) && is_string( COOKIE_DOMAIN ) && '' !== COOKIE_DOMAIN ) {
+	if ( defined( 'COOKIE_DOMAIN' ) && '' !== COOKIE_DOMAIN ) {
 		$domain = COOKIE_DOMAIN;
 	} elseif ( function_exists( 'get_network' ) ) {
 		// 2. Multisite-derived: leading dot + network primary domain so the
@@ -90,7 +90,7 @@ function extrachill_analytics_visitor_opted_out() {
 /**
  * Validate a string as a canonical lowercase UUID v4.
  *
- * @param string $value Candidate value.
+ * @param mixed $value Candidate value.
  * @return bool True when the value is a well-formed UUID v4.
  */
 function extrachill_analytics_is_valid_visitor_id( $value ) {
@@ -215,11 +215,8 @@ function extrachill_analytics_get_or_mint_visitor_id() {
 	// every subdomain on this multisite — without it each subdomain mints its
 	// own id and cross-site retention is unmeasurable.
 	// Guarded against headers_sent() as defense-in-depth; the early
-	// template_redirect hook below is what actually makes this succeed. The
-	// non-empty $cookie_name guard is belt-and-suspenders: an empty name throws
-	// an uncaught ValueError on PHP 8 (setcookie() rejects an empty $name), so
-	// we never call setcookie() unless we have a real cookie name to set.
-	if ( '' !== $cookie_name && ! headers_sent() ) {
+	// template_redirect hook below is what actually makes this succeed.
+	if ( ! headers_sent() ) {
 		setcookie(
 			$cookie_name,
 			$visitor_id,
@@ -281,7 +278,7 @@ function extrachill_analytics_is_eligible_public_template_request() {
 		|| wp_doing_ajax()
 		|| wp_doing_cron()
 		|| ( defined( 'REST_REQUEST' ) && REST_REQUEST )
-		|| ( defined( 'WP_CLI' ) && WP_CLI )
+		|| defined( 'WP_CLI' )
 	) {
 		return false;
 	}

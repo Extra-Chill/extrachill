@@ -81,7 +81,7 @@ final class DateRangeContractTest extends TestCase {
 		$conversion = $this->source( 'get-conversion-map.php' );
 
 		$this->assertStringContainsString( '$date_range[\'end_exclusive\']', $retention );
-		$this->assertStringContainsString( 'strtotime( "-{$cohort_weeks} weeks", strtotime( $now_utc ) )', $retention );
+		$this->assertStringContainsString( 'strtotime( "-{$cohort_weeks} weeks", (int) strtotime( $now_utc ) )', $retention );
 		$this->assertStringContainsString( 'extrachill_analytics_previous_date_range( $date_range )', $growth );
 		$this->assertStringContainsString( 'post_date_gmt >= %s AND post_date_gmt < %s', $growth );
 		$this->assertStringNotContainsString( 'get_blog_option( $blog_id, \'gmt_offset\'', $growth );

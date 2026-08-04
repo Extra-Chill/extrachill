@@ -112,7 +112,7 @@ final class VisitorCookiePrimingTest extends TestCase {
 		$source = file_get_contents( dirname( __DIR__ ) . '/inc/core/assets.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local source fixture.
 
 		$this->assertStringContainsString( "defined( 'REST_REQUEST' ) && REST_REQUEST", $source );
-		$this->assertStringContainsString( "defined( 'WP_CLI' ) && WP_CLI", $source );
+		$this->assertStringContainsString( "defined( 'WP_CLI' )", $source );
 	}
 
 	/**
