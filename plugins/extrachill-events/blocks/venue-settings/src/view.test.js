@@ -196,7 +196,11 @@ const context = ( overrides = {} ) => ( {
 	...overrides,
 } );
 
-const requestInput = ( path ) => {
+const requestInput = ( request ) => {
+	if ( request.data?.input ) {
+		return request.data.input;
+	}
+	const path = request.path || request;
 	const input = new URL( `https://events.example${ path }` ).searchParams.get(
 		'input'
 	);
@@ -205,7 +209,7 @@ const requestInput = ( path ) => {
 
 const installApi = () =>
 	apiFetch.mockImplementation( ( request ) => {
-		const input = requestInput( request.path );
+		const input = requestInput( request );
 		if ( request.path.includes( 'get-venue-profile' ) ) {
 			return Promise.resolve( profile( input.venue_term_id ) );
 		}
@@ -397,7 +401,7 @@ describe( 'venue settings authorization-facing states', () => {
 
 	it( 'shows exact current venue email subscribers only to owners', async () => {
 		apiFetch.mockImplementation( ( request ) => {
-			const input = requestInput( request.path );
+			const input = requestInput( request );
 			if ( request.path.includes( 'get-venue-profile' ) ) {
 				return Promise.resolve( profile( input.venue_term_id ) );
 			}
@@ -425,7 +429,7 @@ describe( 'venue settings authorization-facing states', () => {
 		const request = apiFetch.mock.calls.find( ( [ call ] ) =>
 			call.path.includes( 'list-venue-email-subscribers' )
 		)[ 0 ];
-		expect( requestInput( request.path ) ).toEqual( { venue_term_id: 44 } );
+		expect( requestInput( request ) ).toEqual( { venue_term_id: 44 } );
 		await act( async () => root.unmount() );
 	} );
 
@@ -489,7 +493,7 @@ describe( 'venue settings authorization-facing states', () => {
 
 	it( 'surfaces local-support actions on matching calendar events', async () => {
 		apiFetch.mockImplementation( ( request ) => {
-			const input = requestInput( request.path );
+			const input = requestInput( request );
 			if ( request.path.includes( 'get-venue-profile' ) ) {
 				return Promise.resolve( profile( input.venue_term_id ) );
 			}
@@ -546,7 +550,7 @@ describe( 'venue settings authorization-facing states', () => {
 				return Promise.reject( { message: 'Profile unavailable.' } );
 			}
 			if ( request.path.includes( 'get-venue-booking-config' ) ) {
-				const input = requestInput( request.path );
+				const input = requestInput( request );
 				return Promise.resolve( config( input.venue_term_id ) );
 			}
 			return Promise.resolve( [] );
@@ -575,7 +579,7 @@ describe( 'venue settings authorization-facing states', () => {
 		let profileAttempts = 0;
 		let configAttempts = 0;
 		apiFetch.mockImplementation( ( request ) => {
-			const input = requestInput( request.path );
+			const input = requestInput( request );
 			if ( request.path.includes( 'get-venue-profile' ) ) {
 				profileAttempts += 1;
 				return profileAttempts === 1
@@ -612,7 +616,7 @@ describe( 'venue settings authorization-facing states', () => {
 		let profileAttempts = 0;
 		let configAttempts = 0;
 		apiFetch.mockImplementation( ( request ) => {
-			const input = requestInput( request.path );
+			const input = requestInput( request );
 			if ( request.path.includes( 'get-venue-profile' ) ) {
 				profileAttempts += 1;
 				return Promise.resolve( profile( input.venue_term_id ) );
@@ -686,7 +690,7 @@ describe( 'venue settings authorization-facing states', () => {
 
 	it( 'preserves dirty profile data and reports a stale-write conflict', async () => {
 		apiFetch.mockImplementation( ( request ) => {
-			const input = requestInput( request.path );
+			const input = requestInput( request );
 			if ( request.path.includes( 'get-venue-profile' ) ) {
 				return Promise.resolve( profile( input.venue_term_id ) );
 			}
@@ -745,9 +749,7 @@ describe( 'venue settings authorization-facing states', () => {
 		expect( second.container.textContent ).not.toContain( 'Venue 44' );
 		const venueInputs = apiFetch.mock.calls
 			.filter( ( [ request ] ) => request.path.includes( 'get-venue-' ) )
-			.map(
-				( [ request ] ) => requestInput( request.path ).venue_term_id
-			);
+			.map( ( [ request ] ) => requestInput( request ).venue_term_id );
 		expect( venueInputs ).toEqual( [ 44, 44, 88, 88 ] );
 		await act( async () => second.root.unmount() );
 	} );
