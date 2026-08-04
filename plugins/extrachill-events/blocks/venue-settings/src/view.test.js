@@ -352,12 +352,21 @@ describe( 'venue settings authorization-facing states', () => {
 
 	it( 'shows all manageable venues by default', async () => {
 		const venues = [
-			{ id: 44, name: 'Venue 44', status: 'active', is_owner: true },
+			{
+				id: 44,
+				name: 'Venue 44',
+				status: 'active',
+				is_owner: true,
+				can_access: true,
+				can_manage: true,
+			},
 			{
 				id: 45,
 				name: 'Venue 45',
-				status: 'administrator',
+				status: 'active',
 				is_owner: false,
+				can_access: true,
+				can_manage: false,
 			},
 		];
 		const { container, root } = await renderApp(
@@ -370,16 +379,175 @@ describe( 'venue settings authorization-facing states', () => {
 
 		const selector = container.querySelector( '#venue-workspace' );
 		expect( selector.value ).toBe( '0' );
-		expect( selector.options[ 0 ].textContent ).toBe( 'All venues' );
+		expect( selector.options[ 0 ].textContent ).toBe( 'My Venues' );
 		expect( container.textContent ).toContain( 'Venue 44' );
 		expect( container.textContent ).toContain( 'Venue 45' );
-		expect( container.textContent ).toContain( 'owner' );
 		expect(
-			container
-				.querySelector( 'a[href*="venue_id=45"]' )
-				.getAttribute( 'href' )
-		).toBe( 'https://events.example/venue-settings/?venue_id=45' );
-		expect( apiFetch ).not.toHaveBeenCalled();
+			[ ...container.querySelectorAll( 'button' ) ]
+				.slice( 0, 4 )
+				.map( ( button ) => button.textContent )
+		).toEqual( [ 'Calendar', 'Venue', 'Settings', 'Team' ] );
+		expect( container.textContent ).not.toContain( 'Open workspace' );
+		const profileVenueIds = apiFetch.mock.calls
+			.filter( ( [ request ] ) =>
+				request.path.includes( 'get-venue-profile' )
+			)
+			.map( ( [ request ] ) =>
+				request.data?.input
+					? request.data.input.venue_term_id
+					: requestInput( request.path ).venue_term_id
+			);
+		expect( profileVenueIds ).toEqual( [ 44, 45 ] );
+
+		await act( async () => buttonByText( container, 'Venue' ).click() );
+		expect( container.textContent ).toContain( 'Public venue profile' );
+		expect(
+			container.querySelectorAll( '.ec-venue-settings__venue-scope > h2' )
+		).toHaveLength( 2 );
+		for ( const tab of [ 'Venue', 'Settings', 'Team' ] ) {
+			await act( async () => buttonByText( container, tab ).click() );
+			const ids = [ ...container.querySelectorAll( '[id]' ) ].map(
+				( element ) => element.id
+			);
+			expect( new Set( ids ).size ).toBe( ids.length );
+		}
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'combines events, submissions, and holds across My Venues', async () => {
+		apiFetch.mockImplementation( ( request ) => {
+			const input = request.data?.input || requestInput( request.path );
+			const venueId = input.venue_term_id || input.venue_id;
+			if ( request.path.includes( 'get-venue-profile' ) ) {
+				return Promise.resolve( profile( venueId ) );
+			}
+			if ( request.path.includes( 'get-venue-booking-config' ) ) {
+				return Promise.resolve( config( venueId ) );
+			}
+			if ( request.path.includes( 'list-venue-bookings' ) ) {
+				return Promise.resolve( [
+					{
+						...booking( 100 + venueId, venueId ),
+						artist_name: `Artist ${ venueId }`,
+						requested_start_at: '2026-08-05 20:00:00',
+					},
+				] );
+			}
+			if ( request.path.includes( 'list-booking-holds' ) ) {
+				return Promise.resolve( [
+					{
+						id: 200 + venueId,
+						booking_id: 100 + venueId,
+						status: 'active',
+					},
+				] );
+			}
+			if ( request.path.includes( 'events-calendar' ) ) {
+				return Promise.resolve( {
+					dates: [
+						{
+							events: [
+								{
+									id: 300 + venueId,
+									title: `Published ${ venueId }`,
+									datetime: '2026-08-06 20:00:00',
+									permalink: `https://events.example/event-${ venueId }/`,
+								},
+							],
+						},
+					],
+				} );
+			}
+			return Promise.resolve( [] );
+		} );
+		const venues = [ 44, 45 ].map( ( id ) => ( {
+			id,
+			name: `Venue ${ id }`,
+			status: 'active',
+			is_owner: false,
+			can_access: true,
+			can_manage: false,
+		} ) );
+		const { container, root } = await renderApp(
+			context( {
+				venues,
+				selected_venue: null,
+				can_access: false,
+			} )
+		);
+
+		for ( const id of [ 44, 45 ] ) {
+			expect( container.textContent ).toContain( `Artist ${ id }` );
+			expect( container.textContent ).toContain( `Published ${ id }` );
+			expect( container.textContent ).toContain( `Venue ${ id }` );
+		}
+		expect( container.textContent.match( /1 active hold/g ) ).toHaveLength(
+			2
+		);
+		window.history.replaceState( {}, '', '/venue-settings/' );
+		await act( async () => {
+			buttonContaining( container, 'Artist 44' ).click();
+			await Promise.resolve();
+		} );
+		const selectedUrl = new URL( window.location.href );
+		expect( selectedUrl.searchParams.get( 'booking_id' ) ).toBe( '144' );
+		expect( selectedUrl.searchParams.get( 'booking_venue_id' ) ).toBe(
+			'44'
+		);
+		expect( selectedUrl.searchParams.has( 'venue_id' ) ).toBe( false );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'keeps profile edits and saves isolated by venue', async () => {
+		let updateInput;
+		apiFetch.mockImplementation( ( request ) => {
+			const input = request.data?.input || {};
+			if ( request.path.includes( 'get-venue-profile' ) ) {
+				return Promise.resolve( profile( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'get-venue-booking-config' ) ) {
+				return Promise.resolve( config( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'update-venue-profile' ) ) {
+				updateInput = input;
+				return Promise.resolve( {
+					profile: {
+						...profile( input.venue_term_id ),
+						...input.profile,
+					},
+				} );
+			}
+			if ( request.path.includes( 'events-calendar' ) ) {
+				return Promise.resolve( { dates: [], has_more: false } );
+			}
+			return Promise.resolve( [] );
+		} );
+		const venues = [ 44, 45 ].map( ( id ) => ( {
+			id,
+			name: `Venue ${ id }`,
+			status: 'active',
+			is_owner: false,
+			can_access: true,
+			can_manage: false,
+		} ) );
+		const { container, root } = await renderApp(
+			context( { venues, selected_venue: null, can_access: false } )
+		);
+		await act( async () => buttonByText( container, 'Venue' ).click() );
+		await setInput(
+			container.querySelector( '#venue-44-venue-profile-name' ),
+			'Edited Venue 44'
+		);
+		await act( async () => {
+			buttonByText( container, 'Save profile' ).click();
+			await Promise.resolve();
+		} );
+
+		expect( updateInput.venue_term_id ).toBe( 44 );
+		expect( updateInput.profile ).toEqual( { name: 'Edited Venue 44' } );
+		expect(
+			container.querySelector( '#venue-45-venue-profile-name' ).value
+		).toBe( 'Venue 45' );
 		await act( async () => root.unmount() );
 	} );
 

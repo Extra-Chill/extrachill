@@ -21,7 +21,7 @@ const INTAKE_TYPES = [
 	'url_list',
 ];
 
-export function IntakeTab( { config, setConfig } ) {
+export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 	const fields = config.intake.fields;
 	const setFields = ( next ) =>
 		setConfig( { ...config, intake: { ...config.intake, fields: next } } );
@@ -33,7 +33,11 @@ export function IntakeTab( { config, setConfig } ) {
 		);
 	return (
 		<Grid minColumnWidth="100%">
-			<PublicBookingDetails config={ config } setConfig={ setConfig } />
+			<PublicBookingDetails
+				config={ config }
+				setConfig={ setConfig }
+				idPrefix={ idPrefix }
+			/>
 			<Panel>
 				<PanelHeader
 					title="Inquiry fields"
@@ -51,11 +55,11 @@ export function IntakeTab( { config, setConfig } ) {
 						<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 							<FieldGroup
 								label="Label"
-								htmlFor={ `intake-label-${ index }` }
+								htmlFor={ `${ idPrefix }intake-label-${ index }` }
 								required
 							>
 								<input
-									id={ `intake-label-${ index }` }
+									id={ `${ idPrefix }intake-label-${ index }` }
 									value={ field.label }
 									onChange={ ( event ) =>
 										update( index, {
@@ -71,11 +75,11 @@ export function IntakeTab( { config, setConfig } ) {
 							</FieldGroup>
 							<FieldGroup
 								label="Key"
-								htmlFor={ `intake-key-${ index }` }
+								htmlFor={ `${ idPrefix }intake-key-${ index }` }
 								required
 							>
 								<input
-									id={ `intake-key-${ index }` }
+									id={ `${ idPrefix }intake-key-${ index }` }
 									value={ field.key }
 									onChange={ ( event ) =>
 										update( index, {
@@ -88,10 +92,10 @@ export function IntakeTab( { config, setConfig } ) {
 							</FieldGroup>
 							<FieldGroup
 								label="Type"
-								htmlFor={ `intake-type-${ index }` }
+								htmlFor={ `${ idPrefix }intake-type-${ index }` }
 							>
 								<select
-									id={ `intake-type-${ index }` }
+									id={ `${ idPrefix }intake-type-${ index }` }
 									value={ field.type }
 									onChange={ ( event ) =>
 										update( index, {
@@ -110,11 +114,11 @@ export function IntakeTab( { config, setConfig } ) {
 						{ field.type === 'select' && (
 							<FieldGroup
 								label="Options"
-								htmlFor={ `intake-options-${ index }` }
+								htmlFor={ `${ idPrefix }intake-options-${ index }` }
 								help="One option per line."
 							>
 								<textarea
-									id={ `intake-options-${ index }` }
+									id={ `${ idPrefix }intake-options-${ index }` }
 									value={ field.options.join( '\n' ) }
 									onChange={ ( event ) =>
 										update( index, {
@@ -131,11 +135,11 @@ export function IntakeTab( { config, setConfig } ) {
 						) }
 						<FieldGroup
 							label="Show only when"
-							htmlFor={ `intake-condition-field-${ index }` }
+							htmlFor={ `${ idPrefix }intake-condition-field-${ index }` }
 							help="Optional. Conditional fields may depend on an earlier field."
 						>
 							<select
-								id={ `intake-condition-field-${ index }` }
+								id={ `${ idPrefix }intake-condition-field-${ index }` }
 								value={ field.visible_when?.field || '' }
 								onChange={ ( event ) =>
 									update( index, {
@@ -167,11 +171,11 @@ export function IntakeTab( { config, setConfig } ) {
 						{ field.visible_when && (
 							<FieldGroup
 								label="Matching value"
-								htmlFor={ `intake-condition-value-${ index }` }
+								htmlFor={ `${ idPrefix }intake-condition-value-${ index }` }
 								required
 							>
 								<input
-									id={ `intake-condition-value-${ index }` }
+									id={ `${ idPrefix }intake-condition-value-${ index }` }
 									value={ field.visible_when.value }
 									onChange={ ( event ) =>
 										update( index, {
@@ -184,9 +188,11 @@ export function IntakeTab( { config, setConfig } ) {
 								/>
 							</FieldGroup>
 						) }
-						<label htmlFor={ `intake-required-${ index }` }>
+						<label
+							htmlFor={ `${ idPrefix }intake-required-${ index }` }
+						>
 							<input
-								id={ `intake-required-${ index }` }
+								id={ `${ idPrefix }intake-required-${ index }` }
 								type="checkbox"
 								checked={ field.required }
 								onChange={ ( event ) =>

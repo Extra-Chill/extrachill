@@ -30,105 +30,106 @@ import { editableConfig, profileChanges, sameDocument } from './state';
 
 export { venueSubscriberCsv } from './team-tab';
 
-function AllVenues( { venues, routeUrl } ) {
-	return (
-		<Panel>
-			<h2>All venues</h2>
-			<p>
-				Open a venue to manage its calendar, bookings, profile, and
-				team.
-			</p>
-			<ul className="ec-venue-settings__records">
-				{ venues.map( ( venue ) => {
-					const url = new URL( routeUrl );
-					url.searchParams.set( 'venue_id', venue.id );
-					return (
-						<li key={ venue.id }>
-							<span>
-								<strong>{ venue.name }</strong>{ ' ' }
-								<small>
-									{ venue.status }
-									{ venue.is_owner ? ' - owner' : '' }
-								</small>
-							</span>
-							<a
-								className="button-2 button-small"
-								href={ url.toString() }
-							>
-								Open workspace
-							</a>
-						</li>
-					);
-				} ) }
-			</ul>
-		</Panel>
-	);
-}
-
 export function VenueSettingsApp( { context } ) {
 	const selected = context.selected_venue;
 	const [ activeTab, setActiveTab ] = useState( 'calendar' );
-	const [ loading, setLoading ] = useState( Boolean( context.can_access ) );
 	const [ loadErrors, setLoadErrors ] = useState( {} );
-	const [ profile, setProfile ] = useState( null );
-	const [ profileBaseline, setProfileBaseline ] = useState( null );
-	const [ config, setConfig ] = useState( null );
-	const [ configBaseline, setConfigBaseline ] = useState( null );
-	const [ configRevision, setConfigRevision ] = useState( 0 );
-	const [ members, setMembers ] = useState( [] );
-	const [ invitations, setInvitations ] = useState( [] );
-	const [ subscribers, setSubscribers ] = useState( [] );
+	const [ profiles, setProfiles ] = useState( {} );
+	const [ profileBaselines, setProfileBaselines ] = useState( {} );
+	const [ configs, setConfigs ] = useState( {} );
+	const [ configBaselines, setConfigBaselines ] = useState( {} );
+	const [ configRevisions, setConfigRevisions ] = useState( {} );
+	const [ members, setMembers ] = useState( {} );
+	const [ invitations, setInvitations ] = useState( {} );
+	const [ subscribers, setSubscribers ] = useState( {} );
 	const [ claims, setClaims ] = useState( [] );
-	const [ profileStatus, setProfileStatus ] = useState( null );
-	const [ configStatus, setConfigStatus ] = useState( null );
-	const [ savingProfile, setSavingProfile ] = useState( false );
-	const [ savingConfig, setSavingConfig ] = useState( false );
-	const profileRequestId = useRef( 0 );
-	const configRequestId = useRef( 0 );
-	const dirty =
-		Boolean(
-			profile &&
-				profileBaseline &&
-				! sameDocument( profile, profileBaseline )
-		) ||
-		Boolean(
-			config && configBaseline && ! sameDocument( config, configBaseline )
+	const [ profileStatuses, setProfileStatuses ] = useState( {} );
+	const [ configStatuses, setConfigStatuses ] = useState( {} );
+	const [ savingProfiles, setSavingProfiles ] = useState( {} );
+	const [ savingConfigs, setSavingConfigs ] = useState( {} );
+	const profileRequestIds = useRef( {} );
+	const configRequestIds = useRef( {} );
+	const teamRequestIds = useRef( {} );
+	const scopedVenues = selected ? [ selected ] : context.venues;
+	const canAccess = ( venue ) =>
+		typeof venue.can_access === 'boolean'
+			? venue.can_access
+			: selected?.id === venue.id && Boolean( context.can_access );
+	const canManage = ( venue ) =>
+		typeof venue.can_manage === 'boolean'
+			? venue.can_manage
+			: selected?.id === venue.id && Boolean( context.can_manage );
+	const accessibleVenues = scopedVenues.filter( canAccess );
+	const manageableVenues = scopedVenues.filter( canManage );
+	const setVenueState = ( setter, venueId, value ) =>
+		setter( ( current ) => ( { ...current, [ venueId ]: value } ) );
+	const setVenueError = ( venueId, key, value ) =>
+		setLoadErrors( ( current ) => ( {
+			...current,
+			[ venueId ]: { ...current[ venueId ], [ key ]: value },
+		} ) );
+	const dirty = scopedVenues.some( ( venue ) => {
+		const profile = profiles[ venue.id ];
+		const profileBaseline = profileBaselines[ venue.id ];
+		const config = configs[ venue.id ];
+		const configBaseline = configBaselines[ venue.id ];
+		return (
+			Boolean(
+				profile &&
+					profileBaseline &&
+					! sameDocument( profile, profileBaseline )
+			) ||
+			Boolean(
+				config &&
+					configBaseline &&
+					! sameDocument( config, configBaseline )
+			)
 		);
+	} );
 
-	const loadTeam = async () => {
-		if ( ! selected || ! context.can_manage ) {
+	const loadTeam = async ( venue ) => {
+		if ( ! canManage( venue ) ) {
 			return;
 		}
+		const currentRequest = ( teamRequestIds.current[ venue.id ] || 0 ) + 1;
+		teamRequestIds.current[ venue.id ] = currentRequest;
 		const [ memberResult, invitationResult, subscriberResult ] =
 			await Promise.allSettled( [
 				runAbility( 'extrachill/list-venue-memberships', {
-					venue_term_id: selected.id,
+					venue_term_id: venue.id,
 				} ),
 				runAbility( 'extrachill/list-venue-invitations', {
-					venue_term_id: selected.id,
+					venue_term_id: venue.id,
 				} ),
 				runAbility( 'extrachill/list-venue-email-subscribers', {
-					venue_term_id: selected.id,
+					venue_term_id: venue.id,
 				} ),
 			] );
+		if ( currentRequest !== teamRequestIds.current[ venue.id ] ) {
+			return;
+		}
 		if ( memberResult.status === 'fulfilled' ) {
-			setMembers( memberResult.value );
+			setVenueState( setMembers, venue.id, memberResult.value );
 		}
 		if ( invitationResult.status === 'fulfilled' ) {
-			setInvitations( invitationResult.value );
+			setVenueState( setInvitations, venue.id, invitationResult.value );
 		}
 		if ( subscriberResult.status === 'fulfilled' ) {
-			setSubscribers( subscriberResult.value.subscribers || [] );
+			setVenueState(
+				setSubscribers,
+				venue.id,
+				subscriberResult.value.subscribers || []
+			);
 		}
-		setLoadErrors( ( current ) => ( {
-			...current,
-			team:
-				memberResult.status === 'rejected' ||
+		setVenueError(
+			venue.id,
+			'team',
+			memberResult.status === 'rejected' ||
 				invitationResult.status === 'rejected' ||
 				subscriberResult.status === 'rejected'
-					? 'Some team records could not be loaded.'
-					: null,
-		} ) );
+				? 'Some team records could not be loaded.'
+				: null
+		);
 	};
 	const loadClaims = async () => {
 		if ( ! context.user.is_admin ) {
@@ -144,75 +145,64 @@ export function VenueSettingsApp( { context } ) {
 			} ) );
 		}
 	};
-	const loadProfile = async () => {
-		const currentRequest = ++profileRequestId.current;
-		setLoadErrors( ( current ) => ( { ...current, profile: null } ) );
+	const loadProfile = async ( venue ) => {
+		const currentRequest =
+			( profileRequestIds.current[ venue.id ] || 0 ) + 1;
+		profileRequestIds.current[ venue.id ] = currentRequest;
+		setVenueError( venue.id, 'profile', null );
 		try {
 			const result = await runAbility( 'extrachill/get-venue-profile', {
-				venue_term_id: selected.id,
+				venue_term_id: venue.id,
 			} );
-			if ( currentRequest !== profileRequestId.current ) {
+			if ( currentRequest !== profileRequestIds.current[ venue.id ] ) {
 				return;
 			}
-			setProfile( result );
-			setProfileBaseline( result );
+			setVenueState( setProfiles, venue.id, result );
+			setVenueState( setProfileBaselines, venue.id, result );
 		} catch ( error ) {
-			if ( currentRequest !== profileRequestId.current ) {
+			if ( currentRequest !== profileRequestIds.current[ venue.id ] ) {
 				return;
 			}
-			setLoadErrors( ( current ) => ( {
-				...current,
-				profile: errorDetails( error ).message,
-			} ) );
+			setVenueError( venue.id, 'profile', errorDetails( error ).message );
 		}
 	};
-	const loadConfig = async () => {
-		const currentRequest = ++configRequestId.current;
-		setLoadErrors( ( current ) => ( { ...current, config: null } ) );
+	const loadConfig = async ( venue ) => {
+		const currentRequest =
+			( configRequestIds.current[ venue.id ] || 0 ) + 1;
+		configRequestIds.current[ venue.id ] = currentRequest;
+		setVenueError( venue.id, 'config', null );
 		try {
 			const result = await runAbility(
 				'extrachill/get-venue-booking-config',
 				{
-					venue_term_id: selected.id,
+					venue_term_id: venue.id,
 				}
 			);
-			if ( currentRequest !== configRequestId.current ) {
+			if ( currentRequest !== configRequestIds.current[ venue.id ] ) {
 				return;
 			}
-			setConfigRevision( result.revision );
+			setVenueState( setConfigRevisions, venue.id, result.revision );
 			const editable = editableConfig( result );
-			setConfig( editable );
-			setConfigBaseline( editable );
+			setVenueState( setConfigs, venue.id, editable );
+			setVenueState( setConfigBaselines, venue.id, editable );
 		} catch ( error ) {
-			if ( currentRequest !== configRequestId.current ) {
+			if ( currentRequest !== configRequestIds.current[ venue.id ] ) {
 				return;
 			}
-			setLoadErrors( ( current ) => ( {
-				...current,
-				config: errorDetails( error ).message,
-			} ) );
+			setVenueError( venue.id, 'config', errorDetails( error ).message );
 		}
 	};
-	const loadVenue = async () => {
-		if ( ! selected || ! context.can_access ) {
-			return;
+	const loadVenue = async ( venue ) => {
+		if ( canAccess( venue ) ) {
+			await Promise.all( [ loadProfile( venue ), loadConfig( venue ) ] );
 		}
-		setLoading( true );
-		setLoadErrors( {} );
-		setProfile( null );
-		setConfig( null );
-		await Promise.all( [ loadProfile(), loadConfig() ] );
-		setLoading( false );
-		await Promise.all( [ loadTeam(), loadClaims() ] );
+		await loadTeam( venue );
 	};
 
 	useEffect( () => {
-		if ( context.can_access ) {
-			loadVenue();
-		} else {
-			loadClaims();
-		}
-		// The selected venue is immutable for this mount; switching performs a full route navigation.
+		Promise.all( scopedVenues.map( loadVenue ) );
+		loadClaims();
+		// The scope is immutable for this mount; switching performs a full route navigation.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [] );
 	useEffect( () => {
@@ -242,27 +232,29 @@ export function VenueSettingsApp( { context } ) {
 		}
 		window.location.assign( url.toString() );
 	};
-	const saveProfile = async () => {
-		setSavingProfile( true );
-		setProfileStatus( null );
+	const saveProfile = async ( venue ) => {
+		const profile = profiles[ venue.id ];
+		const baseline = profileBaselines[ venue.id ];
+		setVenueState( setSavingProfiles, venue.id, true );
+		setVenueState( setProfileStatuses, venue.id, null );
 		try {
 			const result = await runAbility(
 				'extrachill/update-venue-profile',
 				{
-					venue_term_id: selected.id,
-					expected_revision: profileBaseline.revision,
-					profile: profileChanges( profile, profileBaseline ),
+					venue_term_id: venue.id,
+					expected_revision: baseline.revision,
+					profile: profileChanges( profile, baseline ),
 				}
 			);
-			setProfile( result.profile );
-			setProfileBaseline( result.profile );
-			setProfileStatus( {
+			setVenueState( setProfiles, venue.id, result.profile );
+			setVenueState( setProfileBaselines, venue.id, result.profile );
+			setVenueState( setProfileStatuses, venue.id, {
 				tone: 'success',
 				message: 'Venue profile saved.',
 			} );
 		} catch ( error ) {
 			const details = errorDetails( error );
-			setProfileStatus( {
+			setVenueState( setProfileStatuses, venue.id, {
 				tone: details.status === 409 ? 'warning' : 'error',
 				message:
 					details.status === 409
@@ -270,32 +262,33 @@ export function VenueSettingsApp( { context } ) {
 						: details.message,
 			} );
 		} finally {
-			setSavingProfile( false );
+			setVenueState( setSavingProfiles, venue.id, false );
 		}
 	};
-	const saveConfig = async () => {
-		setSavingConfig( true );
-		setConfigStatus( null );
+	const saveConfig = async ( venue ) => {
+		const config = configs[ venue.id ];
+		setVenueState( setSavingConfigs, venue.id, true );
+		setVenueState( setConfigStatuses, venue.id, null );
 		try {
 			const result = await runAbility(
 				'extrachill/update-venue-booking-config',
 				{
-					venue_term_id: selected.id,
-					expected_revision: configRevision,
+					venue_term_id: venue.id,
+					expected_revision: configRevisions[ venue.id ],
 					config,
 				}
 			);
 			const editable = editableConfig( result );
-			setConfigRevision( result.revision );
-			setConfig( editable );
-			setConfigBaseline( editable );
-			setConfigStatus( {
+			setVenueState( setConfigRevisions, venue.id, result.revision );
+			setVenueState( setConfigs, venue.id, editable );
+			setVenueState( setConfigBaselines, venue.id, editable );
+			setVenueState( setConfigStatuses, venue.id, {
 				tone: 'success',
 				message: 'Venue settings saved.',
 			} );
 		} catch ( error ) {
 			const details = errorDetails( error );
-			setConfigStatus( {
+			setVenueState( setConfigStatuses, venue.id, {
 				tone: details.status === 409 ? 'warning' : 'error',
 				message:
 					details.status === 409
@@ -303,68 +296,82 @@ export function VenueSettingsApp( { context } ) {
 						: details.message,
 			} );
 		} finally {
-			setSavingConfig( false );
+			setVenueState( setSavingConfigs, venue.id, false );
 		}
 	};
 
 	const tabs = [
-		{ id: 'calendar', label: 'Calendar' },
-		{ id: 'venue', label: 'Venue' },
-		{ id: 'settings', label: 'Settings' },
-		...( context.can_manage ? [ { id: 'team', label: 'Team' } ] : [] ),
+		...( accessibleVenues.length
+			? [
+					{ id: 'calendar', label: 'Calendar' },
+					{ id: 'venue', label: 'Venue' },
+					{ id: 'settings', label: 'Settings' },
+			  ]
+			: [] ),
+		...( manageableVenues.length ? [ { id: 'team', label: 'Team' } ] : [] ),
 	];
-	const renderPanel = ( tab ) => {
-		if ( tab === 'calendar' ) {
-			return (
-				<BookingConsole
-					key={ selected.id }
-					context={ context }
-					defaultDeal={ config?.default_deal }
-					supportEvents={ context.support_events }
-				/>
-			);
-		}
+	const resolvedActiveTab = tabs.some( ( tab ) => tab.id === activeTab )
+		? activeTab
+		: tabs[ 0 ]?.id;
+	const renderVenuePanel = ( venue, tab ) => {
+		const venueContext = {
+			...context,
+			selected_venue: venue,
+			can_access: canAccess( venue ),
+			can_manage: canManage( venue ),
+			booking_id: selected?.id === venue.id ? context.booking_id : 0,
+			booking_url: venue.booking_url || context.booking_url || '',
+			support_events:
+				venue.support_events ||
+				( selected?.id === venue.id ? context.support_events : [] ),
+		};
+		const errors = loadErrors[ venue.id ] || {};
+		const config = configs[ venue.id ];
+		const idPrefix = selected ? '' : `venue-${ venue.id }-`;
 		if ( tab === 'venue' ) {
-			if ( loadErrors.profile ) {
+			if ( errors.profile ) {
 				return (
 					<Panel>
 						<InlineStatus tone="error">
-							{ loadErrors.profile }
+							{ errors.profile }
 						</InlineStatus>
 						<button
 							type="button"
 							className="button-2"
-							onClick={ loadProfile }
+							onClick={ () => loadProfile( venue ) }
 						>
 							Retry profile
 						</button>
 					</Panel>
 				);
 			}
-			return profile ? (
+			return profiles[ venue.id ] ? (
 				<ProfileTab
-					profile={ profile }
-					baseline={ profileBaseline }
-					setProfile={ setProfile }
-					onSave={ saveProfile }
-					saving={ savingProfile }
-					status={ profileStatus }
+					profile={ profiles[ venue.id ] }
+					baseline={ profileBaselines[ venue.id ] }
+					setProfile={ ( value ) =>
+						setVenueState( setProfiles, venue.id, value )
+					}
+					onSave={ () => saveProfile( venue ) }
+					saving={ Boolean( savingProfiles[ venue.id ] ) }
+					status={ profileStatuses[ venue.id ] }
+					idPrefix={ idPrefix }
 				/>
 			) : (
 				<LoadingPanel label="Loading profile..." />
 			);
 		}
 		if ( tab === 'settings' ) {
-			if ( loadErrors.config ) {
+			if ( errors.config ) {
 				return (
 					<Panel>
 						<InlineStatus tone="error">
-							{ loadErrors.config }
+							{ errors.config }
 						</InlineStatus>
 						<button
 							type="button"
 							className="button-2"
-							onClick={ loadConfig }
+							onClick={ () => loadConfig( venue ) }
 						>
 							Retry booking settings
 						</button>
@@ -374,15 +381,24 @@ export function VenueSettingsApp( { context } ) {
 			return config ? (
 				<BookingTab
 					config={ config }
-					baseline={ configBaseline }
-					setConfig={ setConfig }
-					onSave={ saveConfig }
-					saving={ savingConfig }
-					status={ configStatus }
-					bookingUrl={ context.booking_url }
-					venueName={ selected.name }
+					baseline={ configBaselines[ venue.id ] }
+					setConfig={ ( value ) =>
+						setVenueState( setConfigs, venue.id, value )
+					}
+					onSave={ () => saveConfig( venue ) }
+					saving={ Boolean( savingConfigs[ venue.id ] ) }
+					status={ configStatuses[ venue.id ] }
+					bookingUrl={ venueContext.booking_url }
+					venueName={ venue.name }
+					idPrefix={ idPrefix }
 				>
-					<IntakeTab config={ config } setConfig={ setConfig } />
+					<IntakeTab
+						config={ config }
+						setConfig={ ( value ) =>
+							setVenueState( setConfigs, venue.id, value )
+						}
+						idPrefix={ idPrefix }
+					/>
 				</BookingTab>
 			) : (
 				<LoadingPanel label="Loading venue settings..." />
@@ -393,64 +409,106 @@ export function VenueSettingsApp( { context } ) {
 				<>
 					<Status
 						state={
-							loadErrors.team
-								? { tone: 'warning', message: loadErrors.team }
+							errors.team
+								? { tone: 'warning', message: errors.team }
 								: null
 						}
-						onRetry={ loadTeam }
+						onRetry={ () => loadTeam( venue ) }
 					/>
 					<TeamTab
-						venueId={ selected.id }
-						members={ members }
-						invitations={ invitations }
-						subscribers={ subscribers }
-						onRefresh={ loadTeam }
+						venueId={ venue.id }
+						members={ members[ venue.id ] || [] }
+						invitations={ invitations[ venue.id ] || [] }
+						subscribers={ subscribers[ venue.id ] || [] }
+						onRefresh={ () => loadTeam( venue ) }
+						idPrefix={ idPrefix }
 					/>
 				</>
 			);
 		}
 		return null;
 	};
-	const claimsQueue =
-		context.user.is_admin && claims.length > 0 ? (
-			<ClaimsTab
-				claims={ claims }
-				venues={ context.claim_venues }
-				onRefresh={ loadClaims }
-			/>
-		) : null;
-	const renderWorkspace = () => {
-		if ( ! selected && context.venues.length > 0 ) {
+	const renderPanel = ( tab ) => {
+		if ( tab === 'calendar' ) {
 			return (
-				<>
-					{ claimsQueue }
-					<AllVenues
-						venues={ context.venues }
-						routeUrl={ context.route_url }
-					/>
-				</>
+				<BookingConsole
+					context={ context }
+					venues={ accessibleVenues }
+					defaultDeals={ Object.fromEntries(
+						accessibleVenues.map( ( venue ) => [
+							venue.id,
+							configs[ venue.id ]?.default_deal,
+						] )
+					) }
+					supportEvents={ accessibleVenues.flatMap( ( venue ) =>
+						(
+							venue.support_events ||
+							( selected?.id === venue.id
+								? context.support_events
+								: [] )
+						).map( ( event ) => ( {
+							...event,
+							venue_term_id: venue.id,
+							venue_name: venue.name,
+						} ) )
+					) }
+				/>
 			);
 		}
-		if ( ! selected || ! context.can_access ) {
+		const venues = tab === 'team' ? manageableVenues : accessibleVenues;
+		return venues.map( ( venue ) => (
+			<section
+				className="ec-venue-settings__venue-scope"
+				key={ venue.id }
+				aria-labelledby={
+					selected ? undefined : `venue-scope-${ tab }-${ venue.id }`
+				}
+			>
+				{ ! selected && (
+					<h2 id={ `venue-scope-${ tab }-${ venue.id }` }>
+						{ venue.name }
+					</h2>
+				) }
+				{ renderVenuePanel( venue, tab ) }
+			</section>
+		) );
+	};
+	const claimsQueue = context.user.is_admin ? (
+		<>
+			<Status
+				state={
+					loadErrors.claims
+						? { tone: 'error', message: loadErrors.claims }
+						: null
+				}
+				onRetry={ loadClaims }
+			/>
+			{ claims.length > 0 && (
+				<ClaimsTab
+					claims={ claims }
+					venues={ context.claim_venues }
+					onRefresh={ loadClaims }
+				/>
+			) }
+		</>
+	) : null;
+	const renderWorkspace = () => {
+		if ( selected && ! canAccess( selected ) && ! canManage( selected ) ) {
 			if ( context.user.is_admin ) {
-				return (
-					<>
-						<Status
-							state={
-								loadErrors.claims
-									? {
-											tone: 'error',
-											message: loadErrors.claims,
-									  }
-									: null
-							}
-							onRetry={ loadClaims }
-						/>
-						{ claimsQueue }
-					</>
-				);
+				return claimsQueue;
 			}
 			return (
+				<ClaimPanel
+					venues={ context.claim_venues }
+					membership={ selected }
+					initialVenueId={ context.requested_venue_id }
+				/>
+			);
+		}
+		if ( tabs.length === 0 ) {
+			return context.user.is_admin ? (
+				claimsQueue
+			) : (
 				<ClaimPanel
 					venues={ context.claim_venues }
 					membership={ selected }
@@ -462,14 +520,9 @@ export function VenueSettingsApp( { context } ) {
 		return (
 			<>
 				{ claimsQueue }
-				{ loading && (
-					<p className="screen-reader-text" aria-live="polite">
-						Loading venue workspace.
-					</p>
-				) }
 				<ResponsiveTabs
 					tabs={ tabs }
-					active={ activeTab }
+					active={ resolvedActiveTab }
 					onChange={ setActiveTab }
 					renderPanel={ renderPanel }
 					mobileBreakpoint={ 720 }

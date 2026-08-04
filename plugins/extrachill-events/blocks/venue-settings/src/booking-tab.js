@@ -27,7 +27,7 @@ import {
 	validateConfig,
 } from './state';
 
-function SpacesEditor( { spaces, onChange } ) {
+function SpacesEditor( { spaces, onChange, idPrefix } ) {
 	const update = ( index, patch ) =>
 		onChange(
 			spaces.map( ( space, current ) => {
@@ -56,11 +56,11 @@ function SpacesEditor( { spaces, onChange } ) {
 					<legend>Space { index + 1 }</legend>
 					<FieldGroup
 						label="Name"
-						htmlFor={ `space-name-${ index }` }
+						htmlFor={ `${ idPrefix }space-name-${ index }` }
 						required
 					>
 						<input
-							id={ `space-name-${ index }` }
+							id={ `${ idPrefix }space-name-${ index }` }
 							value={ space.name }
 							onChange={ ( event ) =>
 								update( index, {
@@ -74,12 +74,12 @@ function SpacesEditor( { spaces, onChange } ) {
 					</FieldGroup>
 					<FieldGroup
 						label="Key"
-						htmlFor={ `space-key-${ index }` }
+						htmlFor={ `${ idPrefix }space-key-${ index }` }
 						help="Stable machine-readable key used by booking records."
 						required
 					>
 						<input
-							id={ `space-key-${ index }` }
+							id={ `${ idPrefix }space-key-${ index }` }
 							value={ space.key }
 							onChange={ ( event ) =>
 								update( index, {
@@ -88,11 +88,11 @@ function SpacesEditor( { spaces, onChange } ) {
 							}
 						/>
 					</FieldGroup>
-					<label htmlFor={ `space-default-${ index }` }>
+					<label htmlFor={ `${ idPrefix }space-default-${ index }` }>
 						<input
-							id={ `space-default-${ index }` }
+							id={ `${ idPrefix }space-default-${ index }` }
 							type="radio"
-							name="default-space"
+							name={ `${ idPrefix }default-space` }
 							checked={ space.is_default }
 							onChange={ () =>
 								update( index, { is_default: true } )
@@ -141,6 +141,7 @@ export function BookingTab( {
 	bookingUrl,
 	venueName,
 	children,
+	idPrefix = '',
 } ) {
 	const [ copied, setCopied ] = useState( '' );
 	const errors = validateConfig( config );
@@ -166,10 +167,10 @@ export function BookingTab( {
 				/>
 				<label
 					className="ec-venue-settings__toggle"
-					htmlFor="venue-booking-enabled"
+					htmlFor={ `${ idPrefix }venue-booking-enabled` }
 				>
 					<input
-						id="venue-booking-enabled"
+						id={ `${ idPrefix }venue-booking-enabled` }
 						type="checkbox"
 						checked={ config.enabled }
 						onChange={ ( event ) =>
@@ -183,11 +184,11 @@ export function BookingTab( {
 				</label>
 				<FieldGroup
 					label="Default hold duration (minutes)"
-					htmlFor="venue-hold-ttl"
+					htmlFor={ `${ idPrefix }venue-hold-ttl` }
 					help="Between 5 minutes and 14 days."
 				>
 					<input
-						id="venue-hold-ttl"
+						id={ `${ idPrefix }venue-hold-ttl` }
 						type="number"
 						min="5"
 						max={ HOLD_TTL_MAX_MINUTES }
@@ -202,11 +203,11 @@ export function BookingTab( {
 				</FieldGroup>
 				<FieldGroup
 					label="Ticket provider reference"
-					htmlFor="venue-ticket-provider"
+					htmlFor={ `${ idPrefix }venue-ticket-provider` }
 					help="Account, venue, or provider reference used when ticket records are connected."
 				>
 					<input
-						id="venue-ticket-provider"
+						id={ `${ idPrefix }venue-ticket-provider` }
 						value={ config.ticket_provider_reference || '' }
 						onChange={ ( event ) =>
 							setConfig( {
@@ -219,11 +220,11 @@ export function BookingTab( {
 				</FieldGroup>
 				<FieldGroup
 					label="Default marketing channels"
-					htmlFor="venue-marketing-channels"
+					htmlFor={ `${ idPrefix }venue-marketing-channels` }
 					help="Comma-separated canonical channel keys, for example instagram, newsletter."
 				>
 					<input
-						id="venue-marketing-channels"
+						id={ `${ idPrefix }venue-marketing-channels` }
 						value={ config.marketing_channels.join( ', ' ) }
 						onChange={ ( event ) =>
 							setConfig( {
@@ -248,10 +249,10 @@ export function BookingTab( {
 				/>
 				<FieldGroup
 					label="Canonical booking link"
-					htmlFor="venue-booking-link"
+					htmlFor={ `${ idPrefix }venue-booking-link` }
 				>
 					<input
-						id="venue-booking-link"
+						id={ `${ idPrefix }venue-booking-link` }
 						readOnly
 						value={ bookingUrl }
 					/>
@@ -275,11 +276,11 @@ export function BookingTab( {
 				</ActionRow>
 				<FieldGroup
 					label="Allowed parent origins"
-					htmlFor="venue-booking-origins"
+					htmlFor={ `${ idPrefix }venue-booking-origins` }
 					help="One exact HTTPS origin per line, such as https://venue.example. Paths, wildcards, ports, credentials, localhost, and IP addresses are rejected. The first origin is used for the generated snippet."
 				>
 					<textarea
-						id="venue-booking-origins"
+						id={ `${ idPrefix }venue-booking-origins` }
 						rows="4"
 						value={ origins.join( '\n' ) }
 						onChange={ ( event ) =>
@@ -299,10 +300,10 @@ export function BookingTab( {
 					<>
 						<FieldGroup
 							label="Responsive iframe snippet"
-							htmlFor="venue-booking-embed-code"
+							htmlFor={ `${ idPrefix }venue-booking-embed-code` }
 						>
 							<textarea
-								id="venue-booking-embed-code"
+								id={ `${ idPrefix }venue-booking-embed-code` }
 								rows="8"
 								readOnly
 								value={ embedSnippet }
@@ -323,6 +324,7 @@ export function BookingTab( {
 			<SpacesEditor
 				spaces={ config.spaces }
 				onChange={ ( spaces ) => setConfig( { ...config, spaces } ) }
+				idPrefix={ idPrefix }
 			/>
 			<Panel>
 				<PanelHeader
@@ -330,9 +332,12 @@ export function BookingTab( {
 					description="Starting terms only; each booking keeps its own negotiated deal."
 				/>
 				<Grid minColumnWidth="16rem" maxColumns={ 2 }>
-					<FieldGroup label="Deal type" htmlFor="venue-deal-type">
+					<FieldGroup
+						label="Deal type"
+						htmlFor={ `${ idPrefix }venue-deal-type` }
+					>
 						<input
-							id="venue-deal-type"
+							id={ `${ idPrefix }venue-deal-type` }
 							value={ deal.type }
 							onChange={ ( event ) =>
 								setDeal( {
@@ -343,11 +348,11 @@ export function BookingTab( {
 					</FieldGroup>
 					<FieldGroup
 						label="Guarantee"
-						htmlFor="venue-guarantee"
+						htmlFor={ `${ idPrefix }venue-guarantee` }
 						help="Amount in major currency units."
 					>
 						<input
-							id="venue-guarantee"
+							id={ `${ idPrefix }venue-guarantee` }
 							type="number"
 							min="0"
 							step="0.01"
@@ -361,9 +366,12 @@ export function BookingTab( {
 							}
 						/>
 					</FieldGroup>
-					<FieldGroup label="Revenue share (%)" htmlFor="venue-share">
+					<FieldGroup
+						label="Revenue share (%)"
+						htmlFor={ `${ idPrefix }venue-share` }
+					>
 						<input
-							id="venue-share"
+							id={ `${ idPrefix }venue-share` }
 							type="number"
 							min="0"
 							max="100"
@@ -380,10 +388,10 @@ export function BookingTab( {
 					</FieldGroup>
 					<FieldGroup
 						label="Revenue basis"
-						htmlFor="venue-share-basis"
+						htmlFor={ `${ idPrefix }venue-share-basis` }
 					>
 						<select
-							id="venue-share-basis"
+							id={ `${ idPrefix }venue-share-basis` }
 							value={ deal.revenue_share_basis }
 							onChange={ ( event ) =>
 								setDeal( {
@@ -400,9 +408,12 @@ export function BookingTab( {
 							<option value="door_receipts">Door receipts</option>
 						</select>
 					</FieldGroup>
-					<FieldGroup label="Currency" htmlFor="venue-currency">
+					<FieldGroup
+						label="Currency"
+						htmlFor={ `${ idPrefix }venue-currency` }
+					>
 						<input
-							id="venue-currency"
+							id={ `${ idPrefix }venue-currency` }
 							maxLength="3"
 							value={ deal.currency }
 							onChange={ ( event ) =>

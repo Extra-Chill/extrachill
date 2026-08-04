@@ -3,7 +3,11 @@
  */
 import { FieldGroup, Panel, PanelHeader } from '@extrachill/components';
 
-export default function PublicBookingDetails( { config, setConfig } ) {
+export default function PublicBookingDetails( {
+	config,
+	setConfig,
+	idPrefix = '',
+} ) {
 	const presentation = config.intake.presentation;
 	const labels = [
 		[ 'artist_name_label', 'Artist name label' ],
@@ -21,11 +25,11 @@ export default function PublicBookingDetails( { config, setConfig } ) {
 			/>
 			<FieldGroup
 				label="Public requirements"
-				htmlFor="venue-public-requirements"
+				htmlFor={ `${ idPrefix }venue-public-requirements` }
 				help="One plain-text requirement per line. Internal deal and contact details do not belong here."
 			>
 				<textarea
-					id="venue-public-requirements"
+					id={ `${ idPrefix }venue-public-requirements` }
 					rows="5"
 					value={ config.public_requirements.join( '\n' ) }
 					onChange={ ( event ) =>
@@ -41,18 +45,18 @@ export default function PublicBookingDetails( { config, setConfig } ) {
 			</FieldGroup>
 			<FieldGroup
 				label="Built-in field presentation"
-				htmlFor="venue-booking-presentation"
+				htmlFor={ `${ idPrefix }venue-booking-presentation` }
 				help="Venue-specific wording for stable contact and details fields."
 			>
-				<div id="venue-booking-presentation">
+				<div id={ `${ idPrefix }venue-booking-presentation` }>
 					{ labels.map( ( [ key, label ] ) => (
 						<FieldGroup
 							key={ key }
 							label={ label }
-							htmlFor={ `venue-${ key }` }
+							htmlFor={ `${ idPrefix }venue-${ key }` }
 						>
 							<input
-								id={ `venue-${ key }` }
+								id={ `${ idPrefix }venue-${ key }` }
 								value={ presentation[ key ] }
 								onChange={ ( event ) =>
 									setConfig( {
@@ -73,12 +77,12 @@ export default function PublicBookingDetails( { config, setConfig } ) {
 			</FieldGroup>
 			<FieldGroup
 				label="Consent label"
-				htmlFor="venue-booking-consent"
+				htmlFor={ `${ idPrefix }venue-booking-consent` }
 				help="Increment the version whenever this wording or policy changes."
 				required
 			>
 				<textarea
-					id="venue-booking-consent"
+					id={ `${ idPrefix }venue-booking-consent` }
 					rows="3"
 					value={ config.consent.label }
 					onChange={ ( event ) =>
@@ -94,11 +98,11 @@ export default function PublicBookingDetails( { config, setConfig } ) {
 			</FieldGroup>
 			<FieldGroup
 				label="Consent version"
-				htmlFor="venue-consent-version"
+				htmlFor={ `${ idPrefix }venue-consent-version` }
 				required
 			>
 				<input
-					id="venue-consent-version"
+					id={ `${ idPrefix }venue-consent-version` }
 					type="number"
 					min="1"
 					value={ config.consent.version }

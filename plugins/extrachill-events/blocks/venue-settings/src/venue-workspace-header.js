@@ -14,7 +14,7 @@ export function VenueWorkspaceHeader( { venues, selected, onSwitchVenue } ) {
 		<>
 			<BlockShellHeader
 				title="Manage venues"
-				description="Choose all venues for an overview or open an individual venue workspace."
+				description="Manage every venue together or filter the workspace to one venue."
 			/>
 			{ venues.length > 0 && (
 				<FieldGroup label="Venue workspace" htmlFor="venue-workspace">
@@ -23,7 +23,7 @@ export function VenueWorkspaceHeader( { venues, selected, onSwitchVenue } ) {
 						value={ selected?.id || 0 }
 						onChange={ onSwitchVenue }
 					>
-						<option value="0">All venues</option>
+						<option value="0">My Venues</option>
 						{ venues.map( ( venue ) => (
 							<option key={ venue.id } value={ venue.id }>
 								{ venue.name }

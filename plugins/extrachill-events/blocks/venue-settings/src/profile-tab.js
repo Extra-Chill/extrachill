@@ -44,6 +44,7 @@ export function ProfileTab( {
 	onSave,
 	saving,
 	status,
+	idPrefix = '',
 } ) {
 	const dirty = profile && baseline && ! sameDocument( profile, baseline );
 	return (
@@ -56,12 +57,12 @@ export function ProfileTab( {
 				<FieldGroup
 					key={ key }
 					label={ label }
-					htmlFor={ `venue-profile-${ key }` }
+					htmlFor={ `${ idPrefix }venue-profile-${ key }` }
 					required={ required }
 				>
 					{ key === 'description' ? (
 						<textarea
-							id={ `venue-profile-${ key }` }
+							id={ `${ idPrefix }venue-profile-${ key }` }
 							rows="5"
 							value={ profile[ key ] }
 							onChange={ ( event ) =>
@@ -73,7 +74,7 @@ export function ProfileTab( {
 						/>
 					) : (
 						<input
-							id={ `venue-profile-${ key }` }
+							id={ `${ idPrefix }venue-profile-${ key }` }
 							type={ profileInputType( key ) }
 							value={ profile[ key ] }
 							required={ required }

@@ -45,6 +45,7 @@ export function TeamTab( {
 	invitations,
 	subscribers,
 	onRefresh,
+	idPrefix = '',
 } ) {
 	const [ email, setEmail ] = useState( '' );
 	const [ owner, setOwner ] = useState( false );
@@ -138,11 +139,11 @@ export function TeamTab( {
 				<form onSubmit={ invite }>
 					<FieldGroup
 						label="Email"
-						htmlFor="venue-invite-email"
+						htmlFor={ `${ idPrefix }venue-invite-email` }
 						required
 					>
 						<input
-							id="venue-invite-email"
+							id={ `${ idPrefix }venue-invite-email` }
 							type="email"
 							required
 							value={ email }
@@ -151,9 +152,9 @@ export function TeamTab( {
 							}
 						/>
 					</FieldGroup>
-					<label htmlFor="venue-invite-owner">
+					<label htmlFor={ `${ idPrefix }venue-invite-owner` }>
 						<input
-							id="venue-invite-owner"
+							id={ `${ idPrefix }venue-invite-owner` }
 							type="checkbox"
 							checked={ owner }
 							onChange={ ( event ) =>
