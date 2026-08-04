@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.58.1] - 2026-08-04
+
+### Fixed
+- collapse venue workspace header actions
+- include published events in venue calendar
+- show all venues by default
+- simplify public booking intake
+- restore venue booking surfaces
+- defer booking admission service construction
+
 ## [0.58.0] - 2026-08-03
 
 ### Added
