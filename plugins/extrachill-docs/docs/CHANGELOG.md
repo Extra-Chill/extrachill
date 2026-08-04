@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.6.0] - 2026-08-04
+
+### Added
+- support team-only documentation
+
 ## [0.5.7] - 2026-07-30
 
 ### Fixed
