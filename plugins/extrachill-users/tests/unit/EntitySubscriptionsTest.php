@@ -25,7 +25,7 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 	}
 
 	public function register_scoped_test_identities( array $entities ): array {
-		$entities['venue-email-sharing'] = array(
+		$entities['venue-announcements'] = array(
 			'taxonomy'                           => 'venue',
 			'uses_notification_email_preference' => false,
 		);
@@ -73,7 +73,7 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 		$user_id       = self::factory()->user->create();
 		$other_user_id = self::factory()->user->create();
 		extrachill_users_subscribe_to_entity( $user_id, 'venue', 'venue', 'the-royal-american' );
-		extrachill_users_subscribe_to_entity( $user_id, 'venue-email-sharing', 'venue', 'the-royal-american' );
+		extrachill_users_subscribe_to_entity( $user_id, 'venue-announcements', 'venue', 'the-royal-american' );
 		extrachill_users_subscribe_to_entity( $other_user_id, 'artist', 'artist', 'phish' );
 		wp_set_current_user( $user_id );
 
@@ -87,7 +87,7 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 		$this->assertSame( 2, $result['total'] );
 		$this->assertSame( 1, $result['per_page'] );
 		$this->assertSame( 2, $result['total_pages'] );
-		$this->assertContains( $result['subscriptions'][0]['entity_type'], array( 'venue', 'venue-email-sharing' ) );
+		$this->assertContains( $result['subscriptions'][0]['entity_type'], array( 'venue', 'venue-announcements' ) );
 	}
 
 	public function test_status_and_unsubscribe_are_self_contained(): void {

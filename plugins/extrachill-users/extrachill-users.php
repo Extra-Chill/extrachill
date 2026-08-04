@@ -185,6 +185,7 @@ function extrachill_users_init() {
 
 	// Private, network-wide entity update subscriptions.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/entity-subscriptions/service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/account-email-sharing-retirement.php';
 
 	// wp-native-auth bridge: layer EC policy (membership, blocking, Turnstile)
 	// onto the generic wp-native-auth filter surface when both plugins are active.
