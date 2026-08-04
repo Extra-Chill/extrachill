@@ -133,6 +133,14 @@ function is_wp_error( $value ) {
 	return $value instanceof WP_Error;
 }
 
+function wp_parse_args( $args, $defaults = array() ) {
+	return array_merge( $defaults, $args );
+}
+
+function current_time( $type, $gmt = 0 ) {
+	return 'Y-m-d' === $type ? '2026-08-04' : '2026-08-04 12:00:00';
+}
+
 $GLOBALS['ec_test'] = array(
 	'current_blog_id' => 4,
 	'blog_stack'      => array(),
@@ -994,11 +1002,6 @@ function get_userdata( $user_id ) {
 	);
 }
 
-function extrachill_users_entity_subscription_recipients( $producer, $entity_type, $taxonomy, $slug, $delivery ) {
-	$GLOBALS['ec_test']['recipient_resolution_calls'][] = compact( 'producer', 'entity_type', 'taxonomy', 'slug', 'delivery' );
-	return $GLOBALS['ec_test']['entity_subscription_recipients'][ $slug ] ?? array();
-}
-
 function apply_filters( $hook_name, $value, ...$args ) {
 	if ( 'agents_api_execution_principal' === $hook_name ) {
 		return $GLOBALS['ec_test']['execution_principal'] ?? $value;
@@ -1134,6 +1137,7 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-list-socials.p
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-create-social.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-update-social.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-delete-social.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-subscribe.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-export-subscribers.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-list-subscribers.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get-analytics.php';
