@@ -136,7 +136,11 @@ export function VenueSettingsApp( { context } ) {
 			return;
 		}
 		try {
-			setClaims( await runAbility( 'extrachill/list-venue-claims' ) );
+			setClaims(
+				await runAbility( 'extrachill/list-venue-claims', {
+					status: 'pending',
+				} )
+			);
 			setLoadErrors( ( current ) => ( { ...current, claims: null } ) );
 		} catch ( error ) {
 			setLoadErrors( ( current ) => ( {

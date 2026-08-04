@@ -42,6 +42,16 @@ describe( 'venue settings ability transport', () => {
 		} );
 	} );
 
+	it( 'serializes the pending claims filter as object input', async () => {
+		await runAbility( 'extrachill/list-venue-claims', {
+			status: 'pending',
+		} );
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: '/wp-abilities/v1/abilities/extrachill/list-venue-claims/run?input%5Bstatus%5D=pending',
+			method: 'GET',
+		} );
+	} );
+
 	it( 'uses POST with JSON object input for updates', async () => {
 		const input = { venue_term_id: 44, config: {} };
 		await runAbility( 'extrachill/update-venue-booking-config', input );

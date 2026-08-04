@@ -741,6 +741,12 @@ describe( 'venue settings authorization-facing states', () => {
 		);
 		expect( container.textContent ).toContain( 'Claimant user #19' );
 		expect( buttonByText( container, 'Claims' ) ).toBeUndefined();
+		const claimsRequest = apiFetch.mock.calls.find( ( [ request ] ) =>
+			request.path.includes( 'list-venue-claims' )
+		)[ 0 ];
+		expect( requestInput( claimsRequest ) ).toEqual( {
+			status: 'pending',
+		} );
 		expect(
 			apiFetch.mock.calls.some( ( [ request ] ) =>
 				request.path.includes( 'get-venue-profile' )
