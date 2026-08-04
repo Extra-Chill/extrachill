@@ -869,7 +869,7 @@ function ec_studio_notify_editor_for_post( int $post_id, int $user_id ): bool {
 			'error'   => $exception->getMessage(),
 		);
 	}
-	$queued = is_array( $queue ) && ! empty( $queue['success'] );
+	$queued = ! empty( $queue['success'] );
 	if ( ! $queued ) {
 		$released = ec_users_release_notification_receipt( $notification_id, $recipient_id, $producer, $idempotency_key );
 		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Canonical operational logging surface.

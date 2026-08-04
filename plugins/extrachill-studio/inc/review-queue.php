@@ -92,6 +92,28 @@ function ec_studio_review_queue_main_blog_id(): int {
 }
 
 /**
+ * Check the current user's editorial capability in the main-site context.
+ *
+ * Multisite roles are site-specific, so Studio access does not imply main-site
+ * review access.
+ *
+ * @param int $main_blog_id Main site blog ID.
+ * @return bool Whether the current user can review others' posts on main.
+ */
+function ec_studio_review_queue_user_can_review_main( int $main_blog_id ): bool {
+	if ( $main_blog_id <= 0 ) {
+		return false;
+	}
+
+	switch_to_blog( $main_blog_id );
+	try {
+		return current_user_can( EC_STUDIO_REVIEW_QUEUE_CAP );
+	} finally {
+		restore_current_blog();
+	}
+}
+
+/**
  * Fetch pending Studio submissions from main extrachill.com.
  *
  * Runs a WP_Query inside `switch_to_blog( main )` for pending posts authored by
@@ -257,14 +279,7 @@ function ec_studio_review_queue_render_page(): void {
 		return;
 	}
 
-	switch_to_blog( $main_blog_id );
-	try {
-		$can_review_main = current_user_can( EC_STUDIO_REVIEW_QUEUE_CAP );
-	} finally {
-		restore_current_blog();
-	}
-
-	if ( ! $can_review_main ) {
+	if ( ! ec_studio_review_queue_user_can_review_main( $main_blog_id ) ) {
 		wp_die( esc_html__( 'You do not have permission to review submissions on the main site.', 'extrachill-studio' ) );
 	}
 
