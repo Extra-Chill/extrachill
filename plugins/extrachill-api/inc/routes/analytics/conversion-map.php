@@ -52,6 +52,12 @@ function extrachill_api_register_analytics_conversion_map_route() {
 					'type'     => 'integer',
 					'default'  => 1,
 				),
+				'author_id'           => array(
+					'required' => false,
+					'type'     => 'integer',
+					'default'  => 0,
+					'minimum'  => 0,
+				),
 			),
 		)
 	);
@@ -77,6 +83,7 @@ function extrachill_api_analytics_conversion_map_handler( WP_REST_Request $reque
 			'session_gap_mins'   => (int) $request->get_param( 'session_gap_mins' ),
 			'top_articles'       => (int) $request->get_param( 'top_articles' ),
 			'min_entry_sessions' => (int) $request->get_param( 'min_entry_sessions' ),
+			'author_id'           => max( 0, (int) $request->get_param( 'author_id' ) ),
 		)
 	);
 
