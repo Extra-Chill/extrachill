@@ -105,8 +105,11 @@ if ( $is_admin ) {
 foreach ( $managed_venues as &$venue ) {
 	$venue_id                = (int) $venue['id'];
 	$venue_term              = get_term( $venue_id, 'venue' );
+	$archive_url             = $venue_term instanceof WP_Term ? get_term_link( $venue_term ) : '';
 	$venue['can_access']     = true === $authorization->authorize( $user_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE );
 	$venue['can_manage']     = true === $authorization->authorize( $user_id, $venue_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
+	$venue['slug']           = $venue_term instanceof WP_Term ? $venue_term->slug : '';
+	$venue['archive_url']    = is_wp_error( $archive_url ) ? '' : $archive_url;
 	$venue['booking_url']    = $venue['can_access'] && $venue_term instanceof WP_Term ? \ExtraChillEvents\Core\VenueBookingEmbed::booking_url( $venue_term ) : '';
 	$venue['support_events'] = $venue['can_access'] && function_exists( 'extrachill_events_local_support_organizer_events' )
 		? extrachill_events_local_support_organizer_events( $user_id, $venue_id )

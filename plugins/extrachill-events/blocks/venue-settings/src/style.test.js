@@ -19,6 +19,8 @@ describe( 'venue booking workspace composition', () => {
 		);
 		expect( consoleSource ).toContain( '<Badge tone=' );
 		expect( consoleSource ).toContain( '<PanelHeader' );
+		expect( consoleSource ).toContain( '<Tabs' );
+		expect( consoleSource ).not.toContain( 'aria-pressed={ view ===' );
 		expect( consoleSource ).toContain(
 			'className="ec-booking-console__toolbar"'
 		);

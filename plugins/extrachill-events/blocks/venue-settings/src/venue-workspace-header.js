@@ -9,7 +9,17 @@ import {
 	Panel,
 } from '@extrachill/components';
 
+const STATUS_TONES = {
+	administrator: 'info',
+	active: 'success',
+};
+
 export function VenueWorkspaceHeader( { venues, selected, onSwitchVenue } ) {
+	const statusTone = STATUS_TONES[ selected?.status ] || 'warning';
+	const statusLabel = selected?.status
+		? selected.status.charAt( 0 ).toUpperCase() + selected.status.slice( 1 )
+		: '';
+
 	return (
 		<>
 			<BlockShellHeader
@@ -38,11 +48,20 @@ export function VenueWorkspaceHeader( { venues, selected, onSwitchVenue } ) {
 			{ selected && (
 				<Panel compact depth={ 2 }>
 					<ActionRow align="between">
-						<strong>{ selected.name }</strong>
+						<a
+							href={ selected.archive_url }
+							className={ `taxonomy-badge venue-badge venue-${ selected.slug }` }
+						>
+							{ selected.name }
+						</a>
 						<span>
-							<Badge>{ selected.status }</Badge>{ ' ' }
+							<Badge tone={ statusTone } variant="solid">
+								{ statusLabel }
+							</Badge>{ ' ' }
 							{ selected.is_owner && (
-								<Badge tone="success">owner</Badge>
+								<Badge tone="success" variant="solid">
+									Owner
+								</Badge>
 							) }
 						</span>
 					</ActionRow>

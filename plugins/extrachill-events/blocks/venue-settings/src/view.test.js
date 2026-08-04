@@ -28,7 +28,14 @@ jest.mock( '@extrachill/components', () => {
 		React.createElement( 'div', null, children );
 	return {
 		ActionRow: Wrapper,
-		Badge: Wrapper,
+		Badge: ( { children, tone = 'default', variant = 'subtle' } ) =>
+			React.createElement(
+				'span',
+				{
+					className: `ec-badge ec-badge--${ tone } ec-badge--${ variant }`,
+				},
+				children
+			),
 		BlockShell: Wrapper,
 		BlockShellHeader: ( { title } ) =>
 			React.createElement( 'h1', null, title ),
@@ -58,6 +65,26 @@ jest.mock( '@extrachill/components', () => {
 				onChange: ( event ) => onSearch( event.target.value ),
 				placeholder,
 			} ),
+		Tabs: ( { tabs, active, onChange } ) =>
+			React.createElement(
+				'div',
+				{ role: 'tablist' },
+				tabs.map( ( tab ) =>
+					React.createElement(
+						'button',
+						{
+							key: tab.id,
+							role: 'tab',
+							'aria-selected': active === tab.id,
+							className: `ec-tabs__tab${
+								active === tab.id ? ' is-active' : ''
+							}`,
+							onClick: () => onChange( tab.id ),
+						},
+						tab.label
+					)
+				)
+			),
 		ResponsiveTabs: ( { tabs, active, onChange, renderPanel } ) =>
 			React.createElement(
 				'div',
@@ -184,6 +211,8 @@ const context = ( overrides = {} ) => ( {
 	selected_venue: {
 		id: 44,
 		name: 'Venue 44',
+		slug: 'venue-44',
+		archive_url: 'https://events.example/venue/venue-44/',
 		status: 'active',
 		is_owner: false,
 	},
@@ -501,7 +530,7 @@ describe( 'venue settings authorization-facing states', () => {
 	it( 'keeps profile edits and saves isolated by venue', async () => {
 		let updateInput;
 		apiFetch.mockImplementation( ( request ) => {
-			const input = request.data?.input || {};
+			const input = requestInput( request );
 			if ( request.path.includes( 'get-venue-profile' ) ) {
 				return Promise.resolve( profile( input.venue_term_id ) );
 			}
@@ -632,6 +661,51 @@ describe( 'venue settings authorization-facing states', () => {
 		expect( container.textContent ).not.toContain( 'Venue claims' );
 		await act( async () => buttonByText( container, 'List' ).click() );
 		expect( container.textContent ).toContain( 'Booking pipeline' );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'composes the selected venue identity and calendar view controls from shared primitives', async () => {
+		const { container, root } = await renderApp(
+			context( {
+				user: { id: 1, name: 'Admin', is_admin: true },
+				selected_venue: {
+					id: 44,
+					name: 'Venue 44',
+					slug: 'venue-44',
+					archive_url: 'https://events.example/venue/venue-44/',
+					status: 'administrator',
+					is_owner: false,
+				},
+			} )
+		);
+
+		const venueBadge = container.querySelector(
+			'a.taxonomy-badge.venue-badge.venue-venue-44'
+		);
+		expect( venueBadge.getAttribute( 'href' ) ).toBe(
+			'https://events.example/venue/venue-44/'
+		);
+		const administrator = [
+			...container.querySelectorAll( '.ec-badge' ),
+		].find( ( badge ) => badge.textContent === 'Administrator' );
+		expect( administrator.classList.contains( 'ec-badge--info' ) ).toBe(
+			true
+		);
+		expect( administrator.classList.contains( 'ec-badge--solid' ) ).toBe(
+			true
+		);
+		const viewTabs = [
+			...container.querySelectorAll( '[role="tab"]' ),
+		].filter( ( tab ) =>
+			[ 'Calendar', 'List' ].includes( tab.textContent )
+		);
+		expect( viewTabs ).toHaveLength( 2 );
+		expect( buttonByText( container, 'List' ).className ).toContain(
+			'ec-tabs__tab'
+		);
+		expect( buttonByText( container, 'List' ).className ).not.toContain(
+			'button-2'
+		);
 		await act( async () => root.unmount() );
 	} );
 
