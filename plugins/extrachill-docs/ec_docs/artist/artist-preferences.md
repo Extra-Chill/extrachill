@@ -1,18 +1,22 @@
 # Artist Preferences
 
-Artist preferences let you choose how Extra Chill keeps you updated and whether an artist can contact you directly. The two choices are separate, so you can turn on either one, both, or neither.
+Artist preferences let you choose whether Extra Chill sends account notifications about an artist. Following an artist does not share the email address on your Extra Chill account or add you to a mailing list.
 
 ## Artist notifications
 
-Turn on artist notifications to get an Extra Chill notification when new coverage of that artist is published.
+Turn on artist notifications to get an Extra Chill account notification when new coverage of that artist is published.
 
-Turning this off stops those Extra Chill notifications. It does not change any email list you joined directly through the artist.
+Turning this off stops those notifications.
 
-## Email access
+## Direct artist subscriptions
 
-Choose **Share email** to let the artist's approved team see the current email address on your Extra Chill account. This can help the artist send announcements or offers directly.
+An email form on an artist's Link Page or public artist profile is separate from artist notifications. When you submit that form, you subscribe directly to that artist and the artist's team manages that subscriber list.
 
-Choose **Stop sharing** to remove that access. This does not remove your address from a separate artist mailing list you joined directly.
+Extra Chill does not add your account email to an artist's subscriber list. Turning artist notifications on or off does not change a direct artist subscription.
+
+## Extra Chill newsletters
+
+A newsletter form from Extra Chill subscribes you to Extra Chill, not to an artist. Extra Chill newsletter subscriptions, direct artist subscriptions, and artist account notifications are separate choices.
 
 ## Change your preferences
 
@@ -20,4 +24,4 @@ Choose **Stop sharing** to remove that access. This does not remove your address
 2. Open the artist's page.
 3. Use the controls under **Artist preferences**.
 
-You can change either choice at any time.
+You can turn artist notifications on or off at any time.

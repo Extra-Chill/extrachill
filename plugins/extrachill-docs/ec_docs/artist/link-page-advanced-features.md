@@ -43,7 +43,7 @@ YouTube links will now open YouTube.com in a new tab instead of embedding.
 
 ## Email Subscription Settings
 
-Control how the email subscription feature appears on your public link page.
+Control how the email subscription feature appears on your public link page. When a visitor submits this form, they subscribe directly to your artist mailing list. Your artist team owns and manages the subscriber list; the form does not subscribe the visitor to an Extra Chill newsletter or use the email address from their Extra Chill account.
 
 **Display options:**
 

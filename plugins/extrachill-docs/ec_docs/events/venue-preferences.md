@@ -1,18 +1,18 @@
 # Venue Preferences
 
-Venue preferences let you choose how Extra Chill keeps you updated and whether a venue can contact you directly. The two choices are separate, so you can turn on either one, both, or neither.
+Venue preferences let you choose whether Extra Chill sends account notifications about events at a venue. Following a venue does not share the email address on your Extra Chill account or add you to a mailing list.
 
 ## Event notifications
 
-Turn on event notifications to get an Extra Chill notification when a new event is published for that venue.
+Turn on event notifications to get an Extra Chill account notification when a new event is published for that venue.
 
-Turning this off stops those Extra Chill notifications. It does not change any email list you joined directly through the venue.
+Turning this off stops those notifications.
 
-## Email access
+## Subscriptions are separate
 
-Choose **Share email** to let the venue's approved team see the current email address on your Extra Chill account. This can help the venue send announcements or offers directly.
+Venue event notifications do not subscribe you to a venue mailing list or an Extra Chill newsletter. If you submit an Extra Chill newsletter form, that subscription belongs to Extra Chill and remains separate from your venue preferences.
 
-Choose **Stop sharing** to remove that access. This does not remove your address from a separate venue mailing list you joined directly.
+Changing your venue preferences does not change any subscription you joined through a separate signup form.
 
 ## Change your preferences
 
@@ -20,4 +20,4 @@ Choose **Stop sharing** to remove that access. This does not remove your address
 2. Open the venue's event page.
 3. Use the controls under **Venue preferences**.
 
-You can change either choice at any time.
+You can turn venue event notifications on or off at any time.

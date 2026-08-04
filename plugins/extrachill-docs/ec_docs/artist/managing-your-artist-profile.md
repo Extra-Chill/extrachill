@@ -64,7 +64,7 @@ The Profile Managers tab allows you to invite team members to help manage your a
 
 ## Subscribers Tab
 
-The Subscribers tab displays email addresses collected from your link page.
+The Subscribers tab displays people who subscribed directly through your Link Page or public artist profile. This artist-owned list is separate from Extra Chill newsletters and account notifications.
 
 **Viewing Subscribers**
 - Subscribers appear in a list with their email address

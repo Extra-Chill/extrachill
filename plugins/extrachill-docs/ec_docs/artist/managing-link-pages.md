@@ -49,7 +49,7 @@ Monitor which links get the most clicks to understand what content resonates wit
 
 ### Subscriber Collection
 
-Add email collection forms to build your mailing list directly from your link page.
+Add an email form so visitors can subscribe directly to your artist mailing list from your Link Page or public artist profile. Your artist team owns and manages this list separately from Extra Chill newsletters and account notifications.
 
 ## Publishing Changes
 
