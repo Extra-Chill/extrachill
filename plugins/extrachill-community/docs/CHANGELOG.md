@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.2] - 2026-08-04
+
+### Changed
+- remove email-sharing permissions
+
+### Fixed
+- distinguish Community posts from blog articles
+
 ## [1.24.1] - 2026-07-31
 
 ### Changed
