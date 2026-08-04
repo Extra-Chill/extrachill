@@ -39,7 +39,11 @@ class VenueBookingAbilities {
 	 * @var BookingLifecycle
 	 */
 	private $lifecycle;
-	/** @var BookingInquiryAdmissionService */
+	/**
+	 * Inquiry admission service, constructed only when an inquiry executes.
+	 *
+	 * @var BookingInquiryAdmissionService|null
+	 */
 	private $inquiry_admission;
 	/**
 	 * Exact venue authorization policy.
@@ -94,7 +98,7 @@ class VenueBookingAbilities {
 		$this->authorization     = $authorization ? $authorization : new VenueAuthorization();
 		$this->holds             = $holds ? $holds : new BookingHoldRepository( $this->bookings, null, $this->authorization );
 		$this->lifecycle         = $lifecycle ? $lifecycle : new BookingLifecycle( $this->bookings, null, $this->authorization, null, $this->holds );
-		$this->inquiry_admission = $inquiry_admission ? $inquiry_admission : new BookingInquiryAdmissionService( $this->lifecycle );
+		$this->inquiry_admission = $inquiry_admission;
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
@@ -360,6 +364,9 @@ class VenueBookingAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function create_inquiry( array $input ) {
+		if ( null === $this->inquiry_admission ) {
+			$this->inquiry_admission = new BookingInquiryAdmissionService( $this->lifecycle );
+		}
 		$user_id = get_current_user_id();
 		return $this->inquiry_admission->admit( $input, $user_id > 0 ? $user_id : null );
 	}

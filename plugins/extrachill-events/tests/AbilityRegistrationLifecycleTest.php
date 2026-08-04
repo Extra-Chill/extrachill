@@ -49,7 +49,10 @@ final class AbilityRegistrationLifecycleTest extends BookingTestCase {
 		$this->assertStringContainsString( 'BookingSchema::is_ready()', $bootstrap );
 		$this->assertStringContainsString( 'LocalSupportSchema::is_ready()', $bootstrap );
 
-		new VenueBookingAbilities();
+		$booking_abilities = new VenueBookingAbilities();
+		$admission_service = new ReflectionProperty( VenueBookingAbilities::class, 'inquiry_admission' );
+		$admission_service->setAccessible( true );
+		$this->assertNull( $admission_service->getValue( $booking_abilities ) );
 		new VenueMembershipAbilities();
 		new VenueBookingHoldAbilities();
 		new VenueBookingEventAbilities();
