@@ -1,7 +1,18 @@
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
+
+/**
+ * External dependencies
+ */
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
 import type { SocialMediaUploadResponse } from '@extrachill/api-client';
+
+/**
+ * Internal dependencies
+ */
 import type {
 	AnalyticsSummaryResponse,
 	ConversionMapResponse,
@@ -270,12 +281,14 @@ export const studioAnalyticsApi = {
 	 * @param params.days
 	 * @param params.top_articles
 	 * @param params.min_entry_sessions
+	 * @param params.author_id
 	 */
 	getConversionMap(
 		params: {
 			days?: number;
 			top_articles?: number;
 			min_entry_sessions?: number;
+			author_id?: number;
 		} = {}
 	): Promise< ConversionMapResponse > {
 		const query = new URLSearchParams();
@@ -290,6 +303,9 @@ export const studioAnalyticsApi = {
 				'min_entry_sessions',
 				String( params.min_entry_sessions )
 			);
+		}
+		if ( params.author_id ) {
+			query.set( 'author_id', String( params.author_id ) );
 		}
 		const qs = query.toString();
 		return apiFetch( {

@@ -7,8 +7,15 @@
  * labels — a table reads better than a bar here and keeps the entry-article
  * titles legible. The overall reach rate is the headline.
  */
+/**
+ * WordPress dependencies
+ */
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+
+/**
+ * External dependencies
+ */
 import type { ReactElement } from 'react';
 import {
 	DataTable,
@@ -17,6 +24,9 @@ import {
 	type DataTableColumn,
 } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import { studioAnalyticsApi } from '../../app/client';
 import type {
 	ConversionMapResponse,
@@ -35,10 +45,12 @@ interface ArticleTableRow extends Record< string, unknown > {
 
 interface ConversionMapChartProps {
 	days: number;
+	authorId: number;
 }
 
 export const ConversionMapChart = ( {
 	days,
+	authorId,
 }: ConversionMapChartProps ): ReactElement => {
 	const [ data, setData ] = useState< ConversionMapResponse | null >( null );
 	const [ state, setState ] = useState< ChartCardState >( 'loading' );
@@ -53,7 +65,8 @@ export const ConversionMapChart = ( {
 			.getConversionMap( {
 				days,
 				top_articles: 10,
-				min_entry_sessions: 5,
+				min_entry_sessions: authorId ? 1 : 5,
+				author_id: authorId,
 			} )
 			.then( ( response ) => {
 				if ( cancelled ) {
@@ -75,7 +88,7 @@ export const ConversionMapChart = ( {
 		return () => {
 			cancelled = true;
 		};
-	}, [ days ] );
+	}, [ authorId, days ] );
 
 	const rows = useMemo< ArticleTableRow[] >( () => {
 		const articles = data?.by_article ?? [];

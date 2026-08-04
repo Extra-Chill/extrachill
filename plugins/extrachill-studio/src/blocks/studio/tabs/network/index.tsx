@@ -17,8 +17,16 @@
  * analytics — mirroring how the Compose pane layers its richer draft context on
  * top of the generic tab broadcast.
  */
+/**
+ * WordPress dependencies
+ */
 import { useEffect, useId, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { useSelect } from '@wordpress/data';
+
+/**
+ * External dependencies
+ */
 import type { ReactElement, ReactNode } from 'react';
 import {
 	getOrCreateClientContextRegistry,
@@ -26,6 +34,9 @@ import {
 } from '@extrachill/chat';
 import { ResponsiveTabs, Toolbar } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import type { StudioPaneProps } from '../../types/studio';
 import { ConversionMapChart } from './conversion-map-chart';
 import { RetentionChart } from './retention-chart';
@@ -51,9 +62,21 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 	const [ activeReport, setActiveReport ] = useState( 'sessions' );
 	const [ days, setDays ] = useState( 28 );
 	const [ selectedBlogId, setSelectedBlogId ] = useState( 0 );
+	const [ conversionAuthorScope, setConversionAuthorScope ] = useState( 'all' );
 	const controlId = useId().replace( /:/g, '' );
 	const rangeControlId = `${ controlId }-range`;
 	const siteControlId = `${ controlId }-site`;
+	const authorControlId = `${ controlId }-author`;
+	const currentUserId = useSelect( ( selectStore ) => {
+		const currentUser = (
+			selectStore( 'core' ) as {
+				getCurrentUser?: () => { id?: number } | undefined;
+			}
+		).getCurrentUser?.();
+		return Number( currentUser?.id ?? 0 );
+	}, [] );
+	const conversionAuthorId =
+		conversionAuthorScope === 'mine' ? currentUserId : 0;
 	const selectedSite = context.networkSites.find(
 		( site ) => site.id === selectedBlogId
 	);
@@ -89,10 +112,9 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 			'extrachill-studio'
 		);
 	} else if ( activeReport === 'conversion' ) {
-		scopeDescription = __(
-			'Scope: main blog to Events, Community, and Artist',
-			'extrachill-studio'
-		);
+		scopeDescription = conversionAuthorId
+			? __( 'Scope: my main-blog posts to Events, Community, and Artist', 'extrachill-studio' )
+			: __( 'Scope: all main-blog posts to Events, Community, and Artist', 'extrachill-studio' );
 	} else if ( selectedSite ) {
 		scopeDescription =
 			activeReport === 'retention'
@@ -165,6 +187,29 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 							</select>
 						</label>
 					) : null }
+					{ activeReport === 'conversion' ? (
+						<label
+							className="ec-studio-network__filter"
+							htmlFor={ authorControlId }
+						>
+							<span>{ __( 'Posts', 'extrachill-studio' ) }</span>
+							<select
+								id={ authorControlId }
+								className="ec-toolbar__select"
+								value={ conversionAuthorScope }
+								onChange={ ( event ) =>
+									setConversionAuthorScope( event.currentTarget.value )
+								}
+							>
+								<option value="all">
+									{ __( 'All posts', 'extrachill-studio' ) }
+								</option>
+								<option value="mine" disabled={ ! currentUserId }>
+									{ __( 'My posts', 'extrachill-studio' ) }
+								</option>
+							</select>
+						</label>
+					) : null }
 				</>
 			}
 		>
@@ -186,7 +231,12 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 				);
 				break;
 			case 'conversion':
-				report = <ConversionMapChart days={ days } />;
+				report = (
+					<ConversionMapChart
+						days={ days }
+						authorId={ conversionAuthorId }
+					/>
+				);
 				break;
 			case 'sessions':
 			default:

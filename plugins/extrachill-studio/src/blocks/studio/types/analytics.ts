@@ -192,6 +192,7 @@ export interface ConversionMapResponse {
 	by_article: ConversionRow[];
 	by_category: ConversionRow[];
 	entry_blog_id: number;
+	author_id: number;
 	days: number;
 	period: string;
 	as_of: string;
