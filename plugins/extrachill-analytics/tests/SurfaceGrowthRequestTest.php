@@ -69,4 +69,30 @@ final class SurfaceGrowthRequestTest extends TestCase {
 		$this->assertTrue( $result['not_instrumented'] );
 		$this->assertStringContainsString( 'truncated daily series', $result['reason'] );
 	}
+
+	/** Exact ranges pass the selected and preceding windows through unchanged. */
+	public function test_exact_range_uses_equal_preceding_ga_window(): void {
+		$ability = new SurfaceGrowthGaAbilityFixture();
+		$current = extrachill_analytics_resolve_date_range(
+			array(
+				'start_date' => '2026-07-08',
+				'end_date'   => '2026-07-14',
+			)
+		);
+		$prior   = extrachill_analytics_previous_date_range( $current );
+
+		extrachill_analytics_surface_demand_growth(
+			array( 'host' => 'extrachill.com' ),
+			$ability,
+			true,
+			7,
+			$current,
+			$prior
+		);
+
+		$this->assertSame( '2026-07-08', $ability->requests[0]['start_date'] );
+		$this->assertSame( '2026-07-14', $ability->requests[0]['end_date'] );
+		$this->assertSame( '2026-07-01', $ability->requests[1]['start_date'] );
+		$this->assertSame( '2026-07-07', $ability->requests[1]['end_date'] );
+	}
 }

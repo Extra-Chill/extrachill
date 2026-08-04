@@ -348,6 +348,9 @@ add_action( 'template_redirect', 'extrachill_analytics_prime_visitor_cookie' );
  */
 const EXTRACHILL_ANALYTICS_CHART_HANDLE = 'extrachill-analytics-chart';
 
+/** Shared on-demand analytics date-range script and style handle. */
+const EXTRACHILL_ANALYTICS_DATE_RANGE_HANDLE = 'extrachill-analytics-date-range';
+
 /**
  * Register (do NOT enqueue) the shared Chart.js v4 script handle.
  *
@@ -394,6 +397,50 @@ add_action( 'wp_enqueue_scripts', 'extrachill_analytics_register_chart_asset', 5
 add_action( 'admin_enqueue_scripts', 'extrachill_analytics_register_chart_asset', 5 );
 
 /**
+ * Register, but do not enqueue, the shared analytics date-range runtime.
+ *
+ * Consumers declare the handle as a dependency. The bundled Flatpickr runtime
+ * exposes `window.ExtraChillAnalyticsDateRange.create()` for plain JavaScript or
+ * framework wrappers, while the matching style handle owns Flatpickr's base and
+ * analytics theme CSS.
+ *
+ * @return bool True when the built runtime is available.
+ */
+function extrachill_analytics_register_date_range_asset() {
+	if (
+		wp_script_is( EXTRACHILL_ANALYTICS_DATE_RANGE_HANDLE, 'registered' )
+		&& wp_style_is( EXTRACHILL_ANALYTICS_DATE_RANGE_HANDLE, 'registered' )
+	) {
+		return true;
+	}
+
+	$asset_file = EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'build/date-range.asset.php';
+	$style_file = EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'build/date-range.css';
+	if ( ! file_exists( $asset_file ) || ! file_exists( $style_file ) ) {
+		return false;
+	}
+
+	$asset = require $asset_file;
+	wp_register_script(
+		EXTRACHILL_ANALYTICS_DATE_RANGE_HANDLE,
+		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'build/date-range.js',
+		isset( $asset['dependencies'] ) ? $asset['dependencies'] : array(),
+		isset( $asset['version'] ) ? $asset['version'] : EXTRACHILL_ANALYTICS_VERSION,
+		true
+	);
+	wp_register_style(
+		EXTRACHILL_ANALYTICS_DATE_RANGE_HANDLE,
+		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'build/date-range.css',
+		array(),
+		isset( $asset['version'] ) ? $asset['version'] : EXTRACHILL_ANALYTICS_VERSION
+	);
+
+	return true;
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_analytics_register_date_range_asset', 5 );
+add_action( 'admin_enqueue_scripts', 'extrachill_analytics_register_date_range_asset', 5 );
+
+/**
  * Enqueue view tracking on eligible public routes.
  */
 function extrachill_analytics_enqueue_view_tracking() {
@@ -401,7 +448,7 @@ function extrachill_analytics_enqueue_view_tracking() {
 		return;
 	}
 
-	$post_id = is_singular() ? get_the_ID() : 0;
+	$post_id = is_singular() ? (int) get_the_ID() : 0;
 	// Existing custom-domain singular views remain anonymous and post-backed;
 	// route-level collection is first-party only.
 	if ( $post_id <= 0 && ! extrachill_analytics_request_host_is_first_party() ) {
@@ -432,7 +479,7 @@ function extrachill_analytics_enqueue_view_tracking() {
 		'extrachill-view-tracking',
 		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'assets/js/view-tracking.js',
 		array(),
-		filemtime( $js_path ),
+		(string) filemtime( $js_path ),
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,
@@ -502,7 +549,7 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 		'extrachill-outbound-tracking',
 		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'assets/js/outbound-tracking.js',
 		array(),
-		filemtime( $js_path ),
+		(string) filemtime( $js_path ),
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,

@@ -68,7 +68,15 @@ function extrachill_analytics_register_surface_growth_ability() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'weeks' => array(
+					'start_date' => array(
+						'type'        => 'string',
+						'description' => __( 'Inclusive UTC window start in Y-m-d format. Must be paired with end_date and takes precedence over weeks.', 'extrachill-analytics' ),
+					),
+					'end_date'   => array(
+						'type'        => 'string',
+						'description' => __( 'Inclusive UTC window end in Y-m-d format. The comparison is the immediately preceding equal-length window.', 'extrachill-analytics' ),
+					),
+					'weeks'      => array(
 						'type'        => 'integer',
 						'description' => __( 'Number of weeks the growth window spans. Default 4. The demand slope compares this window against the immediately-preceding window of equal length.', 'extrachill-analytics' ),
 						'default'     => 4,
@@ -157,16 +165,27 @@ function extrachill_analytics_surface_growth_map() {
  * Execute callback for get-surface-growth ability.
  *
  * @param array $input Input parameters.
- * @return array Cross-surface growth read.
+ * @return array|WP_Error Cross-surface growth read or date validation error.
  */
 function extrachill_analytics_ability_get_surface_growth( $input ) {
-	$weeks = isset( $input['weeks'] ) ? max( 1, (int) $input['weeks'] ) : 4;
+	$date_range = extrachill_analytics_resolve_date_range( $input );
+	if ( is_wp_error( $date_range ) ) {
+		return $date_range;
+	}
+
+	$weeks      = isset( $input['weeks'] ) ? max( 1, (int) $input['weeks'] ) : 4;
+	$normalized = $date_range
+		? array(
+			'start_date' => $date_range['start_date'],
+			'end_date'   => $date_range['end_date'],
+		)
+		: array( 'weeks' => $weeks );
 
 	return extrachill_analytics_report_cache_remember(
 		'surface_growth',
-		array( 'weeks' => $weeks ),
-		static function () use ( $weeks ) {
-			return extrachill_analytics_compute_surface_growth( array( 'weeks' => $weeks ) );
+		$normalized,
+		static function () use ( $normalized ) {
+			return extrachill_analytics_compute_surface_growth( $normalized );
 		}
 	);
 }
@@ -175,17 +194,24 @@ function extrachill_analytics_ability_get_surface_growth( $input ) {
  * Compute an uncached surface-growth report.
  *
  * @param array $input Normalized input parameters.
- * @return array Cross-surface growth read.
+ * @return array|WP_Error Cross-surface growth read or date validation error.
  */
 function extrachill_analytics_compute_surface_growth( $input ) {
-	$weeks = isset( $input['weeks'] ) ? max( 1, (int) $input['weeks'] ) : 4;
-	$days  = $weeks * 7;
+	$date_range = extrachill_analytics_resolve_date_range( $input );
+	if ( is_wp_error( $date_range ) ) {
+		return $date_range;
+	}
+	$weeks      = isset( $input['weeks'] ) ? max( 1, (int) $input['weeks'] ) : 4;
+	$days       = $date_range ? $date_range['days'] : $weeks * 7;
+	$weeks      = $days / 7;
 
 	$now_utc      = gmdate( 'Y-m-d H:i:s' );
-	$window_start = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
+	$window_start = $date_range ? $date_range['start_at'] : gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
+	$window_end   = $date_range ? $date_range['end_exclusive'] : $now_utc;
 	// Prior equal-length window, used for both the supply % (prior_total is
 	// everything before the window) and the demand slope (previous period).
-	$prior_start = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days", (int) strtotime( $window_start ) ) );
+	$prior_window = $date_range ? extrachill_analytics_previous_date_range( $date_range ) : null;
+	$prior_start  = $prior_window ? $prior_window['start_at'] : gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days", (int) strtotime( $window_start ) ) );
 
 	// Resolve the GA ability once. Its absence is a demand coverage gap, not a
 	// fatal: every surface's demand figure degrades to not_instrumented.
@@ -197,8 +223,8 @@ function extrachill_analytics_compute_surface_growth( $input ) {
 	$surfaces = array();
 
 	foreach ( extrachill_analytics_surface_growth_map() as $key => $surface ) {
-		$supply = extrachill_analytics_surface_supply_growth( $surface, $window_start, $days );
-		$demand = extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_available, $days );
+		$supply = extrachill_analytics_surface_supply_growth( $surface, $window_start, $days, $window_end );
+		$demand = extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_available, $days, $date_range, $prior_window );
 
 		$surfaces[ $key ] = array(
 			'surface'             => $key,
@@ -223,9 +249,11 @@ function extrachill_analytics_compute_surface_growth( $input ) {
 		'fastest_growing' => extrachill_analytics_fastest_growing( $surfaces ),
 		'weeks'           => $weeks,
 		'days'            => $days,
+		'start_date'      => $date_range ? $date_range['start_date'] : gmdate( 'Y-m-d', strtotime( $window_start ) ),
+		'end_date'        => $date_range ? $date_range['end_date'] : gmdate( 'Y-m-d', strtotime( $window_end ) ),
 		'window'          => array(
 			'start' => $window_start,
-			'end'   => $now_utc,
+			'end'   => $window_end,
 		),
 		'prior_window'    => array(
 			'start' => $prior_start,
@@ -249,9 +277,10 @@ function extrachill_analytics_compute_surface_growth( $input ) {
  * @param array  $surface      Surface definition.
  * @param string $window_start UTC lower bound of the window (Y-m-d H:i:s).
  * @param int    $days         Window length in days.
+ * @param string $window_end   Exclusive UTC upper bound.
  * @return array Supply growth figure, or a not_instrumented marker.
  */
-function extrachill_analytics_surface_supply_growth( $surface, $window_start, $days ) {
+function extrachill_analytics_surface_supply_growth( $surface, $window_start, $days, $window_end = '' ) {
 	global $wpdb;
 
 	$blog_id   = (int) $surface['blog_id'];
@@ -261,10 +290,9 @@ function extrachill_analytics_surface_supply_growth( $surface, $window_start, $d
 		return extrachill_analytics_not_instrumented( 'Surface has no countable blog/post type.' );
 	}
 
-	// post_date is stored in the site's local timezone, but the window bound is
-	// UTC. Convert the bound to the blog's local time so the COUNT(*) compares
-	// like with like. We switch into the blog only to read its timezone + table
-	// prefix; the query itself is a single aggregate.
+	// Published posts carry post_date_gmt, so compare directly against the UTC
+	// report bounds. This avoids applying today's numeric site offset to a
+	// historical window that may cross a daylight-saving transition.
 	$prefix = $wpdb->get_blog_prefix( $blog_id );
 	$table  = $prefix . 'posts';
 
@@ -276,34 +304,38 @@ function extrachill_analytics_surface_supply_growth( $surface, $window_start, $d
 		return extrachill_analytics_not_instrumented( 'Posts table for this surface is not available.' );
 	}
 
-	// Express the UTC window bound in the blog's local time for post_date
-	// comparison. get_post_time/Date helpers need blog context, so resolve the
-	// offset from the blog's gmt_offset option directly to avoid a switch.
-	$gmt_offset   = (float) get_blog_option( $blog_id, 'gmt_offset', 0 );
-	$offset_secs  = (int) round( $gmt_offset * HOUR_IN_SECONDS );
-	$window_local = gmdate( 'Y-m-d H:i:s', strtotime( $window_start ) + $offset_secs );
-
 	// $table is an internal, trusted blog-prefix table name from
 	// $wpdb->get_blog_prefix() — never user input — and cannot be passed as a
 	// prepare() placeholder. Values are placeholdered. Direct aggregate reads
 	// are intentional (no cache layer for these cross-surface counts).
 	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	// New items inside the window.
-	$new_count = (int) $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT COUNT(*) FROM {$table} WHERE post_type = %s AND post_status = 'publish' AND post_date >= %s",
-			$post_type,
-			$window_local
-		)
-	);
+	if ( '' !== $window_end ) {
+		$new_count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE post_type = %s AND post_status = 'publish' AND post_date_gmt >= %s AND post_date_gmt < %s",
+				$post_type,
+				$window_start,
+				$window_end
+			)
+		);
+	} else {
+		$new_count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE post_type = %s AND post_status = 'publish' AND post_date_gmt >= %s",
+				$post_type,
+				$window_start
+			)
+		);
+	}
 
 	// Prior total: everything published before the window. Basis for the
 	// percent-growth figure (new_in_window / prior_total).
 	$prior_total = (int) $wpdb->get_var(
 		$wpdb->prepare(
-			"SELECT COUNT(*) FROM {$table} WHERE post_type = %s AND post_status = 'publish' AND post_date < %s",
+			"SELECT COUNT(*) FROM {$table} WHERE post_type = %s AND post_status = 'publish' AND post_date_gmt < %s",
 			$post_type,
-			$window_local
+			$window_start
 		)
 	);
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -346,9 +378,11 @@ function extrachill_analytics_surface_supply_growth( $surface, $window_start, $d
  * @param WP_Ability|null $ga_ability   Resolved GA ability (or null).
  * @param bool            $ga_available Whether the GA ability resolved.
  * @param int             $days         Window length in days.
+ * @param array|null      $date_range   Exact current window, or null for relative mode.
+ * @param array|null      $prior_window Exact previous window, or null for relative mode.
  * @return array Demand growth figure, or a not_instrumented marker.
  */
-function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_available, $days ) {
+function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_available, $days, $date_range = null, $prior_window = null ) {
 	if ( ! $ga_available ) {
 		return extrachill_analytics_not_instrumented( 'Google Analytics ability (datamachine/google-analytics) is not available on this install.' );
 	}
@@ -358,10 +392,10 @@ function extrachill_analytics_surface_demand_growth( $surface, $ga_ability, $ga_
 	// Window boundaries as GA-style YYYY-MM-DD dates. GA date_stats excludes
 	// "today" (defaults to yesterday) so we mirror that: the current window ends
 	// yesterday; the previous window is the equal-length span before it.
-	$cur_end    = gmdate( 'Y-m-d', (int) strtotime( '-1 day' ) );
-	$cur_start  = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
-	$prev_end   = gmdate( 'Y-m-d', (int) strtotime( '-' . ( $days + 1 ) . ' days' ) );
-	$prev_start = gmdate( 'Y-m-d', (int) strtotime( '-' . ( $days * 2 ) . ' days' ) );
+	$cur_end    = $date_range ? $date_range['end_date'] : gmdate( 'Y-m-d', (int) strtotime( '-1 day' ) );
+	$cur_start  = $date_range ? $date_range['start_date'] : gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
+	$prev_end   = $prior_window ? $prior_window['end_date'] : gmdate( 'Y-m-d', (int) strtotime( '-' . ( $days + 1 ) . ' days' ) );
+	$prev_start = $prior_window ? $prior_window['start_date'] : gmdate( 'Y-m-d', (int) strtotime( '-' . ( $days * 2 ) . ' days' ) );
 
 	// The window is $days long; date_stats returns one row per day, so the
 	// expected series length is $days. Pass it through so the helper can both

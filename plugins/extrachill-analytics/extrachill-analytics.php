@@ -30,6 +30,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/link-page-analytics
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/event-types.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/events.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/report-result-cache.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/date-range.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/security-classifier.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/visitor-classifier.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/search-source-classifier.php';

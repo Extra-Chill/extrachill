@@ -84,6 +84,14 @@ function extrachill_analytics_register_conversion_map_ability() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
+					'start_date'              => array(
+						'type'        => 'string',
+						'description' => __( 'Inclusive UTC window start in Y-m-d format. Must be paired with end_date and takes precedence over days.', 'extrachill-analytics' ),
+					),
+					'end_date'                => array(
+						'type'        => 'string',
+						'description' => __( 'Inclusive UTC window end in Y-m-d format. Pageviews and outcomes are strictly capped at this day.', 'extrachill-analytics' ),
+					),
 					'days'                    => array(
 						'type'        => 'integer',
 						'description' => __( 'Number of days to look back for the window. Default 28.', 'extrachill-analytics' ),
@@ -172,16 +180,23 @@ function extrachill_analytics_conversion_surface_map() {
  * exact same per-visitor semantics get-retention-stats documents.
  *
  * @param array $input Input parameters.
- * @return array Conversion map.
+ * @return array|WP_Error Conversion map or date validation error.
  */
 function extrachill_analytics_ability_get_conversion_map( $input ) {
+	$date_range = extrachill_analytics_resolve_date_range( $input );
+	if ( is_wp_error( $date_range ) ) {
+		return $date_range;
+	}
+
 	$normalized = array(
-		'days'                    => isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28,
+		'days'                    => $date_range ? $date_range['days'] : ( isset( $input['days'] ) ? max( 1, (int) $input['days'] ) : 28 ),
 		'session_gap_mins'        => isset( $input['session_gap_mins'] ) ? max( 1, (int) $input['session_gap_mins'] ) : 30,
 		'top_articles'            => isset( $input['top_articles'] ) ? max( 1, (int) $input['top_articles'] ) : 25,
 		'min_entry_sessions'      => isset( $input['min_entry_sessions'] ) ? max( 1, (int) $input['min_entry_sessions'] ) : 1,
 		'return_observation_days' => isset( $input['return_observation_days'] ) ? max( 0, (int) $input['return_observation_days'] ) : 7,
 		'author_id'               => isset( $input['author_id'] ) ? max( 0, (int) $input['author_id'] ) : 0,
+		'start_date'              => $date_range ? $date_range['start_date'] : '',
+		'end_date'                => $date_range ? $date_range['end_date'] : '',
 	);
 
 	return extrachill_analytics_report_cache_remember(
@@ -197,7 +212,7 @@ function extrachill_analytics_ability_get_conversion_map( $input ) {
  * Compute an uncached conversion-map report.
  *
  * @param array $input Normalized input parameters.
- * @return array Conversion map.
+ * @return array|WP_Error Conversion map or date validation error.
  */
 function extrachill_analytics_compute_conversion_map( $input ) {
 	global $wpdb;
@@ -208,6 +223,10 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 	$min_entry_sessions      = isset( $input['min_entry_sessions'] ) ? max( 1, (int) $input['min_entry_sessions'] ) : 1;
 	$return_observation_days = isset( $input['return_observation_days'] ) ? max( 0, (int) $input['return_observation_days'] ) : 7;
 	$author_id               = isset( $input['author_id'] ) ? max( 0, (int) $input['author_id'] ) : 0;
+	$date_range              = extrachill_analytics_resolve_date_range( $input );
+	if ( is_wp_error( $date_range ) ) {
+		return $date_range;
+	}
 
 	$gap_secs = $session_gap_mins * 60;
 
@@ -220,9 +239,13 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 
 	$now_ts        = time();
 	$now_utc       = gmdate( 'Y-m-d H:i:s', $now_ts );
-	$since         = gmdate( 'Y-m-d H:i:s', $now_ts - ( $days * DAY_IN_SECONDS ) );
-	$stream_since  = gmdate( 'Y-m-d H:i:s', $now_ts - ( $days * DAY_IN_SECONDS ) - ( $session_gap_mins * MINUTE_IN_SECONDS ) );
-	$mature_before = gmdate( 'Y-m-d H:i:s', $now_ts - ( $return_observation_days * DAY_IN_SECONDS ) );
+	$since         = $date_range ? $date_range['start_at'] : gmdate( 'Y-m-d H:i:s', $now_ts - ( $days * DAY_IN_SECONDS ) );
+	$window_end    = $date_range ? $date_range['end_exclusive'] : $now_utc;
+	$window_end_ts = (int) strtotime( $window_end . ' UTC' );
+	$stream_since  = gmdate( 'Y-m-d H:i:s', strtotime( $since . ' UTC' ) - ( $session_gap_mins * MINUTE_IN_SECONDS ) );
+	$mature_before = gmdate( 'Y-m-d H:i:s', $window_end_ts - ( $return_observation_days * DAY_IN_SECONDS ) );
+	$start_date    = $date_range ? $date_range['start_date'] : gmdate( 'Y-m-d', strtotime( $since ) );
+	$end_date      = $date_range ? $date_range['end_date'] : gmdate( 'Y-m-d', $now_ts );
 
 	// Pull one inactivity-gap of pre-window context plus the in-window stream for
 	// every visitor who touched the entry blog. The buffer prevents a session
@@ -241,6 +264,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 			WHERE e.event_type = %s
 				AND e.visitor_id IS NOT NULL AND e.visitor_id != ''
 				AND e.created_at >= %s
+				AND e.created_at < %s
 				AND e.visitor_id IN (
 					SELECT visitor_id FROM (
 						SELECT DISTINCT visitor_id
@@ -248,14 +272,17 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 						WHERE event_type = %s
 							AND visitor_id IS NOT NULL AND visitor_id != ''
 							AND created_at >= %s
+							AND created_at < %s
 							AND blog_id = %d
 					) AS entry_visitors
 				)
 			ORDER BY e.visitor_id ASC, e.created_at ASC, e.id ASC",
 			$event_type,
 			$stream_since,
+			$window_end,
 			$event_type,
 			$stream_since,
+			$window_end,
 			$entry_blog_id
 		)
 	);
@@ -469,7 +496,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 		$table,
 		$outcome_types,
 		$since,
-		$now_utc,
+		$window_end,
 		static function ( $page ) use ( &$visitor_users ) {
 			extrachill_analytics_conversion_observe_outcome_identities( $page, $visitor_users );
 		}
@@ -480,7 +507,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 		$table,
 		$outcome_types,
 		$since,
-		$now_utc,
+		$window_end,
 		static function ( $page ) use ( $entry_blog_id, $author_id, $journeys_by_visitor, $visitor_to_user, &$outcome_records, &$outcome_coverage ) {
 			extrachill_analytics_conversion_collect_outcome_rows(
 				$page,
@@ -578,12 +605,15 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 			'attribution_semantics' => 'direct_source resolves the outcome event source_url to a published main-site article. visitor_journey attributes an identified outcome occurring after that visitor\'s first eligible mature entry journey, split at the configured pageview-session boundary. Outcome identity is event_data.user_id then stored user_id, with visitor_id stitched to a user only when this window observes exactly one user for that visitor; ambiguous visitors are not merged. Repeated person/outcome rows count once, while later rows may supply attribution missing from an earlier duplicate. The lenses are independent and may both attribute one outcome; do not add them as unique people. Coverage status measured, partial, or not_instrumented must be read with each count.',
 		),
 		'days'                        => $days,
+		'start_date'                  => $start_date,
+		'end_date'                    => $end_date,
 		'session_gap_mins'            => $session_gap_mins,
 		'return_observation_days'     => $return_observation_days,
 		'denominator'                 => 'One first eligible, mature editorial-entry journey per visitor. An eligible entry is a session starting in the reporting window on a published blog-1 post; late entries without the configured return observation period are excluded.',
 		'measured_destination_routes' => 'Eligible collected pageviews on events, community, and artist, including post-backed singular views and route-level homepage, archive, search, auth, and directory views. Entry journeys remain published blog-1 posts only. Historical periods before issue #182 deployment remain singular-only.',
-		'period'                      => gmdate( 'Y-m-d', $now_ts - ( $days * DAY_IN_SECONDS ) ) . ' to ' . gmdate( 'Y-m-d', $now_ts ),
+		'period'                      => $start_date . ' to ' . $end_date,
 		'since'                       => $since,
+		'until'                       => $window_end,
 		'as_of'                       => $now_utc,
 		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post; route views never become editorial entries. Same-session and return reach include eligible collected events/community/artist routes. Newsletter signup, registration, onboarding completion, and artist profile first publication are successful server-side outcomes reported through separate direct-source and visitor-journey lenses. Automatic registration newsletter subscriptions are excluded. Missing source or visitor identity and outcome types absent from the window remain explicit coverage, never an inferred zero. Route-level destination collection is additive from issue #182 onward, so historical periods remain singular-only. Pageviews include one inactivity-gap before the lower boundary; outcomes use two bounded keyset passes ordered by created_at then row ID for ambiguity-safe visitor/user stitching and attribution. Late entries without the configured return observation period and NULL-visitor pageviews (GPC/DNT opt-out) are excluded.',
 	);
@@ -614,10 +644,10 @@ function extrachill_analytics_conversion_outcome_types() {
  * @param string   $table         Trusted analytics events table name.
  * @param string[] $outcome_types Concrete outcome event names.
  * @param string   $since         Inclusive UTC lower bound.
- * @param string   $as_of         Inclusive UTC upper bound.
+ * @param string   $end_exclusive Exclusive UTC upper bound.
  * @param callable $consume       Receives each ordered page.
  */
-function extrachill_analytics_conversion_each_outcome_page( $table, $outcome_types, $since, $as_of, $consume ) {
+function extrachill_analytics_conversion_each_outcome_page( $table, $outcome_types, $since, $end_exclusive, $consume ) {
 	global $wpdb;
 
 	$page_size          = 500;
@@ -629,9 +659,9 @@ function extrachill_analytics_conversion_each_outcome_page( $table, $outcome_typ
 		$where  = array(
 			"event_type IN ({$event_placeholders})",
 			'created_at >= %s',
-			'created_at <= %s',
+			'created_at < %s',
 		);
-		$values = array_merge( array_map( 'sanitize_key', $outcome_types ), array( $since, $as_of ) );
+		$values = array_merge( array_map( 'sanitize_key', $outcome_types ), array( $since, $end_exclusive ) );
 
 		if ( null !== $cursor_time ) {
 			$where[]  = '(created_at > %s OR (created_at = %s AND id > %d))';

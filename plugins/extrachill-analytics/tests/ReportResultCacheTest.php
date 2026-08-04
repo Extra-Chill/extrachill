@@ -65,6 +65,26 @@ final class ReportResultCacheTest extends TestCase {
 		);
 	}
 
+	/** Canonical selected windows remain part of report identity. */
+	public function test_cache_key_distinguishes_exact_date_windows(): void {
+		$first = extrachill_analytics_report_cache_key(
+			'surface_growth',
+			array(
+				'start_date' => '2026-07-01',
+				'end_date'   => '2026-07-28',
+			)
+		);
+		$next  = extrachill_analytics_report_cache_key(
+			'surface_growth',
+			array(
+				'start_date' => '2026-07-02',
+				'end_date'   => '2026-07-29',
+			)
+		);
+
+		$this->assertNotSame( $first, $next );
+	}
+
 	/**
 	 * A warm read returns the original measurement without recomputation.
 	 */
