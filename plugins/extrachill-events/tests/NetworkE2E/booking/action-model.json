@@ -4,7 +4,7 @@
   "targets": [
     {"id":"public-inquiry","operations":["render","submit","retry","mutate"]},
     {"id":"authorization","operations":["read","update","cross-venue"]},
-    {"id":"booking-lifecycle","operations":["assign","transition","select-performance","update-deal"]},
+    {"id":"booking-lifecycle","operations":["transition","select-performance","update-deal"]},
     {"id":"booking-concurrency","operations":["simultaneous-compare-and-swap","single-winner"]},
     {"id":"holds","operations":["create","confirm","conflict"]},
     {"id":"event-sync","operations":["convert","retry","reschedule","cancel","replay"]},

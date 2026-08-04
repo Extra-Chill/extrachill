@@ -388,56 +388,6 @@ class BookingLifecycle {
 	}
 
 	/**
-	 * Assign or unassign an operator at an expected booking version.
-	 *
-	 * @param int      $booking_id      Booking ID.
-	 * @param int|null $assignee_user_id Assignee, or null to unassign.
-	 * @param int      $expected_version Expected aggregate version.
-	 * @param int      $actor_id         Acting operator.
-	 */
-	public function assign( int $booking_id, $assignee_user_id, int $expected_version, int $actor_id ) {
-		if ( null !== $assignee_user_id && ( ( ! is_int( $assignee_user_id ) && ! ( is_string( $assignee_user_id ) && ctype_digit( $assignee_user_id ) ) ) || (int) $assignee_user_id < 1 ) ) {
-			return new \WP_Error( 'invalid_booking_assignee', __( 'The assignee is not authorized for this venue.', 'extrachill-events' ), array( 'status' => 403 ) );
-		}
-		$assignee_user_id = null === $assignee_user_id ? null : (int) $assignee_user_id;
-		$current          = $this->bookings->get( $booking_id );
-		if ( is_wp_error( $current ) || null === $current ) {
-			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
-		}
-		$current = $this->holds->reconcile_booking( $current );
-		if ( is_wp_error( $current ) ) {
-			return $current;
-		}
-		if ( (int) $current['version'] !== $expected_version ) {
-			return $this->version_conflict( $current );
-		}
-		if ( null !== $assignee_user_id && true !== $this->authorization->authorize( $assignee_user_id, $current['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE ) ) {
-			return new \WP_Error( 'invalid_booking_assignee', __( 'The assignee is not authorized for this venue.', 'extrachill-events' ), array( 'status' => 403 ) );
-		}
-		if ( $current['assignee_user_id'] === $assignee_user_id ) {
-			$started = $this->begin_authorized( $current, $actor_id, $assignee_user_id );
-			if ( is_wp_error( $started ) ) {
-				return $started;
-			}
-			$committed = $this->commit();
-			return is_wp_error( $committed ) ? $committed : $current;
-		}
-
-		return $this->mutate(
-			$current,
-			array( 'assignee_user_id' => $assignee_user_id ),
-			$expected_version,
-			'assignment_changed',
-			array(
-				'from_assignee_user_id' => $current['assignee_user_id'],
-				'to_assignee_user_id'   => $assignee_user_id,
-			),
-			$actor_id,
-			$assignee_user_id
-		);
-	}
-
-	/**
 	 * Bind an unresolved booking to existing artist identities.
 	 *
 	 * @param int      $booking_id       Booking ID.
@@ -595,17 +545,16 @@ class BookingLifecycle {
 	/**
 	 * Execute one optimistic mutation and activity append in one transaction.
 	 *
-	 * @param array    $current          Current booking.
-	 * @param array    $changes          Database column changes.
-	 * @param int      $expected_version Expected aggregate version.
-	 * @param string   $kind             Activity kind.
-	 * @param array    $payload          Activity payload.
-	 * @param int      $actor_id         Acting operator.
-	 * @param int|null $target_user_id Assignment target when applicable.
+	 * @param array  $current          Current booking.
+	 * @param array  $changes          Database column changes.
+	 * @param int    $expected_version Expected aggregate version.
+	 * @param string $kind             Activity kind.
+	 * @param array  $payload          Activity payload.
+	 * @param int    $actor_id         Acting operator.
 	 */
-	private function mutate( array $current, array $changes, int $expected_version, string $kind, array $payload, int $actor_id, ?int $target_user_id = null ) {
+	private function mutate( array $current, array $changes, int $expected_version, string $kind, array $payload, int $actor_id ) {
 		global $wpdb;
-		$started = $this->begin_authorized( $current, $actor_id, $target_user_id );
+		$started = $this->begin_authorized( $current, $actor_id );
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
@@ -675,9 +624,7 @@ class BookingLifecycle {
 		if ( is_wp_error( $committed ) ) {
 			return $committed;
 		}
-		if ( 'assignment_changed' === $kind ) {
-			BookingNotificationService::emit( BookingNotificationService::TYPE_ASSIGNMENT_CHANGED, (int) $event['id'] );
-		} elseif ( 'status_changed' === $kind && 'needs_info' === ( $payload['from_status'] ?? '' ) && 'submitted' === ( $payload['to_status'] ?? '' ) ) {
+		if ( 'status_changed' === $kind && 'needs_info' === ( $payload['from_status'] ?? '' ) && 'submitted' === ( $payload['to_status'] ?? '' ) ) {
 			BookingNotificationService::emit( BookingNotificationService::TYPE_INFORMATION_RECEIVED, (int) $event['id'] );
 		}
 		return $this->bookings->get( $current['id'] );
@@ -753,11 +700,10 @@ class BookingLifecycle {
 	/**
 	 * Start, lock venue authority rows, and reauthorize transaction actors.
 	 *
-	 * @param array    $booking        Current booking.
-	 * @param int      $actor_id       Acting operator.
-	 * @param int|null $target_user_id Assignment target when applicable.
+	 * @param array $booking  Current booking.
+	 * @param int   $actor_id Acting operator.
 	 */
-	private function begin_authorized( array $booking, int $actor_id, ?int $target_user_id = null ) {
+	private function begin_authorized( array $booking, int $actor_id ) {
 		global $wpdb;
 		$started = $this->begin();
 		if ( is_wp_error( $started ) ) {
@@ -771,9 +717,6 @@ class BookingLifecycle {
 		$actor_allowed = $this->authorization->authorize_locked( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE, (array) $locked );
 		if ( true !== $actor_allowed ) {
 			return $this->rollback( is_wp_error( $actor_allowed ) ? $actor_allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) ) );
-		}
-		if ( null !== $target_user_id && true !== $this->authorization->authorize_locked( $target_user_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE, (array) $locked ) ) {
-			return $this->rollback( new \WP_Error( 'invalid_booking_assignee', __( 'The assignee is not authorized for this venue.', 'extrachill-events' ), array( 'status' => 403 ) ) );
 		}
 		return true;
 	}

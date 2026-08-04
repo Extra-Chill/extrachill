@@ -20,7 +20,6 @@ class BookingNotificationService {
 	public const MAX_ATTEMPTS    = 5;
 
 	public const TYPE_INQUIRY_SUBMITTED    = 'booking_inquiry_submitted';
-	public const TYPE_ASSIGNMENT_CHANGED   = 'booking_assignment_changed';
 	public const TYPE_INFORMATION_RECEIVED = 'booking_information_received';
 	public const TYPE_HOLD_EXPIRED         = 'booking_hold_expired';
 	public const TYPE_EVENT_HANDOFF_FAILED = 'booking_event_handoff_failed';
@@ -222,6 +221,14 @@ class BookingNotificationService {
 		if ( is_wp_error( $due ) || ! $due ) {
 			return is_wp_error( $due ) ? $due : new \WP_Error( 'booking_notification_retry_not_due', __( 'The booking notification retry is not due yet.', 'extrachill-events' ), array( 'status' => 425 ) );
 		}
+		if ( 'booking_assignment_changed' === (string) $data['notification_type'] ) {
+			$started = $this->begin();
+			if ( is_wp_error( $started ) ) {
+				return $started;
+			}
+			$record = $this->terminal_record( $request, 'notification_suppressed', 'retired_notification_type', array() );
+			return is_wp_error( $record ) ? $this->rollback( $record ) : $this->finish( $record );
+		}
 		$source = $this->validated_source( (string) $data['notification_type'], (int) $data['source_activity_id'] );
 		if ( is_wp_error( $source ) || (int) $source['booking_id'] !== (int) $request['booking_id'] ) {
 			return is_wp_error( $source ) ? $source : new \WP_Error( 'booking_notification_source_invalid', __( 'The booking notification source activity is invalid.', 'extrachill-events' ) );
@@ -245,7 +252,7 @@ class BookingNotificationService {
 			return $this->rollback( new \WP_Error( 'booking_notification_booking_changed', __( 'The booking notification target changed.', 'extrachill-events' ) ) );
 		}
 		$definition    = $this->definition( (string) $data['notification_type'] );
-		$recipient_ids = $this->recipient_ids( (array) $members, $locked, $source, $definition );
+		$recipient_ids = $this->recipient_ids( (array) $members, $locked );
 		if ( empty( $recipient_ids ) ) {
 			$record = $this->terminal_record( $request, 'notification_suppressed', 'no_active_recipients', array() );
 			return is_wp_error( $record ) ? $this->rollback( $record ) : $this->finish( $record );
@@ -373,30 +380,24 @@ class BookingNotificationService {
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
-			self::TYPE_ASSIGNMENT_CHANGED      => array(
-				'kind'       => 'assignment_changed',
-				'title'      => __( 'Booking assignment changed', 'extrachill-events' ),
-				'recipients' => 'owners_and_assignee',
-				'landed'     => true,
-			),
 			self::TYPE_INFORMATION_RECEIVED    => array(
 				'kind'       => 'status_changed',
 				'title'      => __( 'Booking information received', 'extrachill-events' ),
 				'from'       => 'needs_info',
 				'to'         => 'submitted',
-				'recipients' => 'assignee',
+				'recipients' => 'owners',
 				'landed'     => true,
 			),
 			self::TYPE_HOLD_EXPIRED            => array(
 				'kind'       => 'hold_expired',
 				'title'      => __( 'Booking hold expired', 'extrachill-events' ),
-				'recipients' => 'owners_and_assignee',
+				'recipients' => 'owners',
 				'landed'     => true,
 			),
 			self::TYPE_EVENT_HANDOFF_FAILED    => array(
 				'kind'       => 'event_conversion_failed',
 				'title'      => __( 'Booking event handoff failed', 'extrachill-events' ),
-				'recipients' => 'owners_and_assignee',
+				'recipients' => 'owners',
 				'landed'     => true,
 			),
 			self::TYPE_ARTIST_REPLIED          => array(
@@ -429,10 +430,9 @@ class BookingNotificationService {
 			&& ( ! isset( $definition['from'] ) || ( ( $data['from_status'] ?? null ) === $definition['from'] && ( $data['to_status'] ?? null ) === $definition['to'] ) );
 	}
 
-	/** Resolve the event type's exact owner/assignee policy under membership lock. */
-	private function recipient_ids( array $rows, array $booking, array $source, array $definition ): array {
+	/** Resolve active venue owners under membership lock. */
+	private function recipient_ids( array $rows, array $booking ): array {
 		$owners     = array();
-		$active     = array();
 		$repository = new VenueMembershipRepository();
 		foreach ( $rows as $row ) {
 			if ( (int) ( $row['venue_term_id'] ?? 0 ) !== (int) $booking['venue_term_id'] || VenueAuthorization::STATUS_ACTIVE !== ( $row['status'] ?? '' ) ) {
@@ -440,20 +440,12 @@ class BookingNotificationService {
 			}
 			$member = $repository->hydrate( $row );
 			if ( ! is_wp_error( $member ) && get_userdata( $member['user_id'] ) ) {
-				$active[ (int) $member['user_id'] ] = true;
 				if ( $member['is_owner'] ) {
 					$owners[] = (int) $member['user_id'];
 				}
 			}
 		}
-		$policy      = $definition['recipients'] ?? 'owners';
-		$source_data = $source['payload']['data'] ?? array();
-		$assignee    = 'assignment_changed' === ( $source['kind'] ?? '' ) ? absint( $source_data['to_assignee_user_id'] ?? 0 ) : absint( $booking['assignee_user_id'] ?? 0 );
-		$ids         = 'assignee' === $policy ? array() : $owners;
-		if ( in_array( $policy, array( 'assignee', 'owners_and_assignee' ), true ) && isset( $active[ $assignee ] ) ) {
-			$ids[] = $assignee;
-		}
-		return array_values( array_unique( $ids ) );
+		return array_values( array_unique( $owners ) );
 	}
 
 	/** Resolve an injected destination or the authorized booking console route. */

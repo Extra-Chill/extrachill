@@ -55,7 +55,6 @@ class VenueBookingAbilities {
 	private $holds;
 	private const CORE_ACTIVITY_KINDS = array(
 		'inquiry_submitted',
-		'assignment_changed',
 		'status_changed',
 		'artist_bound',
 		'intake_corrected',
@@ -233,45 +232,6 @@ class VenueBookingAbilities {
 		);
 
 		wp_register_ability(
-			'extrachill/assign-venue-booking',
-			array(
-				'label'               => __( 'Assign Venue Booking', 'extrachill-events' ),
-				'description'         => __( 'Assign or unassign a booking at an expected version.', 'extrachill-events' ),
-				'category'            => 'extrachill-events',
-				'input_schema'        => array(
-					'type'                 => 'object',
-					'properties'           => array(
-						'booking_id'       => array(
-							'type'    => 'integer',
-							'minimum' => 1,
-						),
-						'assignee_user_id' => array(
-							'type'    => array( 'integer', 'null' ),
-							'minimum' => 1,
-						),
-						'expected_version' => array(
-							'type'    => 'integer',
-							'minimum' => 1,
-						),
-					),
-					'required'             => array( 'booking_id', 'assignee_user_id', 'expected_version' ),
-					'additionalProperties' => false,
-				),
-				'output_schema'       => $this->booking_schema(),
-				'execute_callback'    => array( $this, 'assign_booking' ),
-				'permission_callback' => array( $this, 'can_access_booking' ),
-				'meta'                => array(
-					'show_in_rest' => true,
-					'annotations'  => array(
-						'readonly'    => false,
-						'idempotent'  => false,
-						'destructive' => true,
-					),
-				),
-			)
-		);
-
-		wp_register_ability(
 			'extrachill/transition-venue-booking',
 			array(
 				'label'               => __( 'Transition Venue Booking', 'extrachill-events' ),
@@ -394,7 +354,6 @@ class VenueBookingAbilities {
 		$filters = array(
 			'venue_term_id'      => $input['venue_term_id'],
 			'status'             => $input['status'] ?? null,
-			'assignee_user_id'   => $input['assignee_user_id'] ?? null,
 			'requested_start_at' => $input['requested_from'] ?? null,
 			'requested_end_at'   => $input['requested_to'] ?? null,
 			'range_start'        => $input['range_start'] ?? null,
@@ -440,16 +399,6 @@ class VenueBookingAbilities {
 			),
 			'sync'       => $this->present_sync_state( $state['sync'] ),
 		);
-	}
-
-	/**
-	 * Execute an optimistic assignment.
-	 *
-	 * @param array $input Ability input.
-	 */
-	public function assign_booking( array $input ) {
-		$result = $this->lifecycle->assign( (int) $input['booking_id'], $input['assignee_user_id'], (int) $input['expected_version'], get_current_user_id() );
-		return is_array( $result ) ? $this->present( $result ) : $result;
 	}
 
 	/**
@@ -670,28 +619,24 @@ class VenueBookingAbilities {
 		return array(
 			'type'                 => 'object',
 			'properties'           => array(
-				'venue_term_id'    => array(
+				'venue_term_id'  => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'status'           => array(
+				'status'         => array(
 					'type' => array( 'string', 'null' ),
 					'enum' => array_merge( BookingLifecycle::STATUSES, array( null ) ),
 				),
-				'assignee_user_id' => array(
-					'type'    => array( 'integer', 'null' ),
-					'minimum' => 1,
-				),
-				'requested_from'   => $this->nullable_datetime_schema(),
-				'requested_to'     => $this->nullable_datetime_schema(),
-				'range_start'      => $this->nullable_datetime_schema(),
-				'range_end'        => $this->nullable_datetime_schema(),
-				'limit'            => array(
+				'requested_from' => $this->nullable_datetime_schema(),
+				'requested_to'   => $this->nullable_datetime_schema(),
+				'range_start'    => $this->nullable_datetime_schema(),
+				'range_end'      => $this->nullable_datetime_schema(),
+				'limit'          => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 					'maximum' => 100,
 				),
-				'offset'           => array(
+				'offset'         => array(
 					'type'    => 'integer',
 					'minimum' => 0,
 					'maximum' => 10000,
@@ -741,7 +686,6 @@ class VenueBookingAbilities {
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'assignee_user_id'     => $nullable_id,
 				'requested_start_at'   => $this->nullable_datetime_schema(),
 				'requested_end_at'     => $this->nullable_datetime_schema(),
 				'performance_start_at' => $this->nullable_datetime_schema(),
@@ -754,7 +698,7 @@ class VenueBookingAbilities {
 				'created_at'           => array( 'type' => 'string' ),
 				'updated_at'           => array( 'type' => 'string' ),
 			),
-			'required'             => array( 'id', 'public_id', 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'artist_name', 'submitter_user_id', 'contact_name', 'contact_email', 'contact_phone', 'requested_space_key', 'space_key', 'status', 'version', 'assignee_user_id', 'requested_start_at', 'requested_end_at', 'performance_start_at', 'performance_end_at', 'intake', 'production', 'deal', 'confirmed_deal', 'event_id', 'created_at', 'updated_at' ),
+			'required'             => array( 'id', 'public_id', 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'artist_name', 'submitter_user_id', 'contact_name', 'contact_email', 'contact_phone', 'requested_space_key', 'space_key', 'status', 'version', 'requested_start_at', 'requested_end_at', 'performance_start_at', 'performance_end_at', 'intake', 'production', 'deal', 'confirmed_deal', 'event_id', 'created_at', 'updated_at' ),
 			'additionalProperties' => false,
 		);
 	}

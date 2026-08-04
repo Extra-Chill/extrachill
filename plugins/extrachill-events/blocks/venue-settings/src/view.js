@@ -319,7 +319,6 @@ export function VenueSettingsApp( { context } ) {
 				<BookingConsole
 					key={ selected.id }
 					context={ context }
-					members={ members }
 					defaultDeal={ config?.default_deal }
 					supportEvents={ context.support_events }
 				/>

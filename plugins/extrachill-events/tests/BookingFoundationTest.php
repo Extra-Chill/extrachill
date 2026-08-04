@@ -210,6 +210,34 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertFalse( get_option( BookingSchema::FAILURE_OPTION, false ) );
 	}
 
+	public function test_assignment_storage_migration_removes_obsolete_contract_and_preserves_booking(): void {
+		$this->assertTrue( BookingSchema::install() );
+		$table = BookingSchema::bookings_table();
+		$GLOBALS['wpdb']->schemas[ $table ]['columns']['assignee_user_id'] = array(
+			'Type'    => 'bigint unsigned',
+			'Null'    => 'YES',
+			'Default' => null,
+			'Extra'   => '',
+		);
+		$GLOBALS['wpdb']->schemas[ $table ]['indexes']['assignee_status'] = array(
+			'unique'  => false,
+			'columns' => array( 'assignee_user_id', 'status' ),
+		);
+		$GLOBALS['wpdb']->rows[ $table ][99] = array(
+			'id'               => 99,
+			'artist_name'      => 'Preserved Artist',
+			'assignee_user_id' => 12,
+		);
+		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '15';
+
+		$this->assertTrue( BookingSchema::maybe_install() );
+		$this->assertArrayNotHasKey( 'assignee_status', $GLOBALS['wpdb']->schemas[ $table ]['indexes'] );
+		$this->assertArrayNotHasKey( 'assignee_user_id', $GLOBALS['wpdb']->schemas[ $table ]['columns'] );
+		$this->assertSame( 'Preserved Artist', $GLOBALS['wpdb']->rows[ $table ][99]['artist_name'] );
+		$this->assertArrayNotHasKey( 'assignee_user_id', $GLOBALS['wpdb']->rows[ $table ][99] );
+		$this->assertSame( BookingSchema::SCHEMA_VERSION, get_option( BookingSchema::VERSION_OPTION ) );
+	}
+
 	public function test_unrepairable_column_attributes_are_not_stamped(): void {
 		$this->assertTrue( BookingSchema::install() );
 		$GLOBALS['wpdb']->schemas['wp_7_ec_bookings']['columns']['status']['Null'] = 'YES';
@@ -310,7 +338,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '14';
 
 		$this->assertTrue( BookingSchema::maybe_install() );
-		$this->assertSame( '15', get_option( BookingSchema::VERSION_OPTION ) );
+		$this->assertSame( '16', get_option( BookingSchema::VERSION_OPTION ) );
 		$this->assertArrayHasKey( $show_settlements, $wpdb->schemas );
 		$this->assertArrayHasKey( $show_actions, $wpdb->schemas );
 		$this->assertSame( 'INNODB', strtoupper( $wpdb->engines[ $show_settlements ] ) );
@@ -759,7 +787,6 @@ final class BookingFoundationTest extends BookingTestCase {
 	public function test_repository_rejects_invalid_ids_dates_filters_and_normalizes_updates(): void {
 		$repository = new BookingRepository();
 		$this->assertSame( 'invalid_booking_id', $this->create_booking( array( 'venue_term_id' => -55 ) )->get_error_code() );
-		$this->assertSame( 'invalid_booking_id', $this->create_booking( array( 'assignee_user_id' => -2 ) )->get_error_code() );
 		$this->assertSame(
 			'invalid_booking_date_range',
 			$this->create_booking(
@@ -1136,8 +1163,8 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertSame( array(), $GLOBALS['wpdb']->rows );
 	}
 
-	public function test_transition_and_assignment_are_atomic_and_optimistic(): void {
-		$authorization = new BookingTestAuthorization( array( '20:55' => true ) );
+	public function test_transition_is_atomic_and_optimistic(): void {
+		$authorization = new BookingTestAuthorization();
 		$lifecycle     = new BookingLifecycle( null, null, $authorization );
 		$booking       = $this->create_booking();
 		$reviewing     = $lifecycle->transition( $booking['id'], 'under_review', 1, 12, 'Review started' );
@@ -1145,50 +1172,12 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertSame( 2, $reviewing['version'] );
 		$this->assertSame( 'booking_version_conflict', $lifecycle->transition( $booking['id'], 'needs_info', 1, 12 )->get_error_code() );
 
-		$assigned = $lifecycle->assign( $booking['id'], 20, 2, 12 );
-		$this->assertSame( 20, $assigned['assignee_user_id'] );
-		$this->assertSame( 3, $assigned['version'] );
-
 		$GLOBALS['wpdb']->fail_activity_inserts = true;
-		$result                                 = $lifecycle->transition( $booking['id'], 'negotiating', 3, 12 );
+		$result                                 = $lifecycle->transition( $booking['id'], 'negotiating', 2, 12 );
 		$this->assertSame( 'booking_activity_write_failed', $result->get_error_code() );
 		$current = ( new BookingRepository() )->get( $booking['id'] );
 		$this->assertSame( 'under_review', $current['status'] );
-		$this->assertSame( 3, $current['version'] );
-	}
-
-	public function test_assignment_requires_target_access_to_the_exact_booking_venue(): void {
-		$authorization = new BookingTestAuthorization(
-			array(
-				'20:55' => true,
-				'21:56' => true,
-			)
-		);
-		$lifecycle     = new BookingLifecycle( null, null, $authorization );
-		$booking       = $this->create_booking();
-
-		$this->assertSame( 'invalid_booking_assignee', $lifecycle->assign( $booking['id'], 21, 1, 12 )->get_error_code(), 'Access to a different venue must not permit assignment.' );
-		$this->assertSame( 'invalid_booking_assignee', $lifecycle->assign( $booking['id'], 22, 1, 12 )->get_error_code(), 'An unauthorized target must not permit assignment.' );
-		$this->assertSame( 1, ( new BookingRepository() )->get( $booking['id'] )['version'] );
-
-		$assigned = $lifecycle->assign( $booking['id'], 20, 1, 12 );
-		$this->assertSame( 20, $assigned['assignee_user_id'] );
-		$this->assertSame( 2, $assigned['version'] );
-		$unassigned = $lifecycle->assign( $booking['id'], null, 2, 12 );
-		$this->assertNull( $unassigned['assignee_user_id'] );
-		$this->assertSame( 3, $unassigned['version'] );
-		$this->assertSame(
-			array(
-				array( 21, 55, VenueAuthorization::ACTION_ACCESS_VENUE ),
-				array( 22, 55, VenueAuthorization::ACTION_ACCESS_VENUE ),
-				array( 20, 55, VenueAuthorization::ACTION_ACCESS_VENUE ),
-				array( 12, 55, VenueAuthorization::ACTION_ACCESS_VENUE ),
-				array( 20, 55, VenueAuthorization::ACTION_ACCESS_VENUE ),
-				array( 12, 55, VenueAuthorization::ACTION_ACCESS_VENUE ),
-			),
-			$authorization->calls,
-			'Unassignment must not attempt target authorization.'
-		);
+		$this->assertSame( 2, $current['version'] );
 	}
 
 	public function test_transaction_lock_reauthorizes_actor_and_atomic_artist_binding(): void {
@@ -1216,20 +1205,6 @@ final class BookingFoundationTest extends BookingTestCase {
 		$completed = $lifecycle->bind_artist( $term_only['id'], null, 501, 1, 12 );
 		$this->assertSame( 101, $completed['artist_term_id'] );
 		$this->assertSame( 501, $completed['artist_profile_id'] );
-	}
-
-	public function test_assignment_target_is_reauthorized_after_venue_lock(): void {
-		$authorization                          = new BookingTestAuthorization( array( '20:55' => true ) );
-		$lifecycle                              = new BookingLifecycle( null, null, $authorization );
-		$booking                                = $this->create_booking();
-		$GLOBALS['wpdb']->after_membership_lock = static function () use ( $authorization ) {
-			unset( $authorization->allowed['20:55'] );
-		};
-		$result                                 = $lifecycle->assign( $booking['id'], 20, 1, 12 );
-		$this->assertSame( 'invalid_booking_assignee', $result->get_error_code() );
-		$current = ( new BookingRepository() )->get( $booking['id'] );
-		$this->assertNull( $current['assignee_user_id'] );
-		$this->assertSame( 1, $current['version'] );
 	}
 
 	public function test_transaction_control_failures_are_explicit(): void {
@@ -1267,7 +1242,6 @@ final class BookingFoundationTest extends BookingTestCase {
 				'extrachill/list-venue-bookings',
 				'extrachill/get-venue-booking',
 				'extrachill/get-venue-booking-activity',
-				'extrachill/assign-venue-booking',
 				'extrachill/transition-venue-booking',
 				'extrachill/bind-venue-booking-artist',
 			),

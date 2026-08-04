@@ -142,7 +142,6 @@ const booking = ( id, venueId = 44 ) => ( {
 	space_key: null,
 	status: 'submitted',
 	version: 4,
-	assignee_user_id: null,
 	requested_start_at: '2026-07-30 20:00:00',
 	requested_end_at: '2026-07-30 23:00:00',
 	performance_start_at: null,
@@ -768,11 +767,11 @@ describe( 'venue settings authorization-facing states', () => {
 			if ( request.path.includes( 'get-venue-booking' ) ) {
 				return Promise.resolve( booking( input.booking_id ) );
 			}
-			if ( request.path.includes( 'assign-venue-booking' ) ) {
+			if ( request.path.includes( 'transition-venue-booking' ) ) {
 				return Promise.resolve( {
 					...booking( input.booking_id ),
 					version: 5,
-					assignee_user_id: input.assignee_user_id,
+					status: input.to_status,
 				} );
 			}
 			return Promise.resolve( [] );
@@ -783,22 +782,22 @@ describe( 'venue settings authorization-facing states', () => {
 		expect( container.textContent ).toContain( 'Booking #9' );
 		expect( container.textContent ).toContain( 'Booking Submitted' );
 		await act( async () => {
-			const select = container.querySelector( '#booking-assignee' );
-			select.value = '7';
+			const select = container.querySelector( '#booking-transition' );
+			select.value = 'under_review';
 			select.dispatchEvent( new Event( 'change', { bubbles: true } ) );
 		} );
 		await act( async () => {
-			buttonByText( container, 'Save assignment' ).click();
+			buttonByText( container, 'Apply transition' ).click();
 			await Promise.resolve();
 			await Promise.resolve();
 		} );
 		expect(
 			apiFetch.mock.calls.some(
 				( [ request ] ) =>
-					request.path.includes( 'assign-venue-booking' ) &&
+					request.path.includes( 'transition-venue-booking' ) &&
 					request.data.input.booking_id === 9 &&
 					request.data.input.expected_version === 4 &&
-					request.data.input.assignee_user_id === 7
+					request.data.input.to_status === 'under_review'
 			)
 		).toBe( true );
 		await act( async () => root.unmount() );
@@ -1164,7 +1163,7 @@ describe( 'venue settings authorization-facing states', () => {
 					input.booking_id === 31 ? first : second
 				);
 			}
-			if ( request.path.includes( 'assign-venue-booking' ) ) {
+			if ( request.path.includes( 'transition-venue-booking' ) ) {
 				return mutation.promise;
 			}
 			if ( request.path.includes( 'list-venue-bookings' ) ) {
@@ -1177,19 +1176,23 @@ describe( 'venue settings authorization-facing states', () => {
 			buttonContaining( container, 'Mutation Artist A' ).click()
 		);
 		await act( async () => {
-			const select = container.querySelector( '#booking-assignee' );
-			select.value = '7';
+			const select = container.querySelector( '#booking-transition' );
+			select.value = 'under_review';
 			select.dispatchEvent( new Event( 'change', { bubbles: true } ) );
 		} );
 		await act( async () =>
-			buttonByText( container, 'Save assignment' ).click()
+			buttonByText( container, 'Apply transition' ).click()
 		);
 		await act( async () =>
 			buttonContaining( container, 'Mutation Artist B' ).click()
 		);
 		expect( container.textContent ).toContain( 'Booking #32' );
 		await act( async () => {
-			mutation.resolve( { ...first, assignee_user_id: 7, version: 5 } );
+			mutation.resolve( {
+				...first,
+				status: 'under_review',
+				version: 5,
+			} );
 			await mutation.promise;
 			await Promise.resolve();
 		} );

@@ -525,7 +525,7 @@ class BookingActivityRepository {
 		global $wpdb;
 		$table = BookingSchema::activity_table();
 		$limit = max( 1, min( 100, $limit ) );
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT source.* FROM {$table} source WHERE source.kind IN ('inquiry_submitted', 'assignment_changed', 'status_changed', 'hold_expired', 'event_conversion_failed') AND NOT EXISTS (SELECT 1 FROM {$table} request WHERE request.kind IN ('notification_requested', 'notification_source_ignored') AND request.external_id = CAST(source.id AS CHAR)) ORDER BY source.id ASC LIMIT %d", $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded recovery scan over the append-only outbox ledger.
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT source.* FROM {$table} source WHERE source.kind IN ('inquiry_submitted', 'assignment_changed', 'status_changed', 'hold_expired', 'event_conversion_failed') AND NOT EXISTS (SELECT 1 FROM {$table} request WHERE request.kind IN ('notification_requested', 'notification_source_ignored') AND request.external_id = CAST(source.id AS CHAR)) ORDER BY source.id ASC LIMIT %d", $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Includes retired assignment sources so they receive an idempotent ignored terminal.
 		return $this->hydrate_rows( $rows, 'booking_notification_source_scan_failed' );
 	}
 

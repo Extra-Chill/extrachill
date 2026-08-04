@@ -342,11 +342,12 @@ if ( is_array( $race_created ) && is_array( $race_booking ) && class_exists( 'my
 	);
 	// phpcs:enable WordPress.DB.RestrictedClasses.mysql__mysqli
 	$race_table = \ExtraChillEvents\Core\BookingSchema::bookings_table();
-	foreach ( array( $operator_id, $outsider_id ) as $index => $assignee_id ) {
+	$race_names = array( 'Concurrent CAS Alpha', 'Concurrent CAS Beta' );
+	foreach ( $race_names as $index => $artist_name ) {
 		$race_sql = sprintf(
-			'UPDATE `%s` SET assignee_user_id = %d, version = version + 1 WHERE id = %d AND version = %d',
+			"UPDATE `%s` SET artist_name = '%s', version = version + 1 WHERE id = %d AND version = %d",
 			str_replace( '`', '``', $race_table ),
-			$assignee_id,
+			$race_connections[ $index ]->real_escape_string( $artist_name ),
 			(int) $race_booking['id'],
 			(int) $race_booking['version']
 		);
@@ -362,7 +363,7 @@ sort( $race_affected );
 $race_final = is_array( $race_booking ) ? $repository->get( (int) $race_booking['id'] ) : null;
 booking_network_e2e_case(
 	'concurrent-booking-cas-single-winner',
-	array( 0, 1 ) === $race_affected && is_array( $race_final ) && (int) $race_final['version'] === (int) $race_booking['version'] + 1 && in_array( (int) $race_final['assignee_user_id'], array( $operator_id, $outsider_id ), true ),
+	array( 0, 1 ) === $race_affected && is_array( $race_final ) && (int) $race_final['version'] === (int) $race_booking['version'] + 1 && in_array( $race_final['artist_name'], $race_names, true ),
 	array(
 		'affected_rows' => $race_affected,
 		'before'        => $race_booking,
@@ -380,53 +381,33 @@ booking_network_e2e_case( 'anonymous-private-list-denied', is_wp_error( $anonymo
 wp_set_current_user( $operator_id );
 $operator_get = booking_network_e2e_execute( 'extrachill/get-venue-booking', array( 'booking_id' => (int) $booking['id'] ) );
 booking_network_e2e_case( 'operator-private-read-allowed', is_array( $operator_get ), array( 'code' => booking_network_e2e_code( $operator_get ) ) );
-$booking  = is_array( $operator_get ) ? $operator_get : $booking;
-$assigned = booking_network_e2e_execute(
-	'extrachill/assign-venue-booking',
-	array(
-		'booking_id'       => (int) $booking['id'],
-		'assignee_user_id' => $operator_id,
-		'expected_version' => (int) $booking['version'],
-	)
-);
-booking_network_e2e_case(
-	'assignment-increments-once',
-	is_array( $assigned ) && (int) $assigned['version'] === (int) $booking['version'] + 1,
-	array(
-		'before' => $booking['version'],
-		'after'  => is_array( $assigned ) ? $assigned['version'] : null,
-	)
-);
-if ( ! is_array( $assigned ) ) {
-	$assigned = $booking;
-}
-$stale_assign = booking_network_e2e_execute(
-	'extrachill/assign-venue-booking',
-	array(
-		'booking_id'       => (int) $booking['id'],
-		'assignee_user_id' => null,
-		'expected_version' => (int) $booking['version'],
-	)
-);
-booking_network_e2e_case( 'stale-assignment-conflicts', 'booking_version_conflict' === booking_network_e2e_code( $stale_assign ), array( 'code' => booking_network_e2e_code( $stale_assign ) ) );
+$booking = is_array( $operator_get ) ? $operator_get : $booking;
 $invalid_transition = booking_network_e2e_execute(
 	'extrachill/transition-venue-booking',
 	array(
 		'booking_id'       => (int) $booking['id'],
 		'to_status'        => 'confirmed',
-		'expected_version' => (int) $assigned['version'],
+		'expected_version' => (int) $booking['version'],
 	)
 );
 booking_network_e2e_case( 'invalid-transition-rejected', is_wp_error( $invalid_transition ), array( 'code' => booking_network_e2e_code( $invalid_transition ) ) );
-
 $under_review = booking_network_e2e_execute(
 	'extrachill/transition-venue-booking',
 	array(
 		'booking_id'       => (int) $booking['id'],
 		'to_status'        => 'under_review',
-		'expected_version' => (int) $assigned['version'],
+		'expected_version' => (int) $booking['version'],
 	)
 );
+$stale_transition = booking_network_e2e_execute(
+	'extrachill/transition-venue-booking',
+	array(
+		'booking_id'       => (int) $booking['id'],
+		'to_status'        => 'needs_info',
+		'expected_version' => (int) $booking['version'],
+	)
+);
+booking_network_e2e_case( 'stale-transition-conflicts', 'booking_version_conflict' === booking_network_e2e_code( $stale_transition ), array( 'code' => booking_network_e2e_code( $stale_transition ) ) );
 $negotiating  = is_array( $under_review ) ? booking_network_e2e_execute(
 	'extrachill/transition-venue-booking',
 	array(

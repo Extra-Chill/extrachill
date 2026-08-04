@@ -86,7 +86,7 @@ final class AbilityRegistrationLifecycleTest extends BookingTestCase {
 
 		foreach (
 			array(
-				'extrachill/assign-venue-booking',
+				'extrachill/transition-venue-booking',
 				'extrachill/create-venue-membership',
 				'extrachill/create-booking-hold',
 				'extrachill/convert-booking-to-event',

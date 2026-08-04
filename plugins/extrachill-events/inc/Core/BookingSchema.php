@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns and verifies the site-scoped private booking schema. */
 class BookingSchema {
 
-	public const SCHEMA_VERSION = '15';
+	public const SCHEMA_VERSION = '16';
 	public const VERSION_OPTION = 'extrachill_events_booking_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_booking_schema_error';
 
@@ -194,7 +194,6 @@ class BookingSchema {
 			space_key VARCHAR(64) NULL,
 			status VARCHAR(32) NOT NULL DEFAULT 'submitted',
 			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
-			assignee_user_id BIGINT UNSIGNED NULL,
 			requested_start_at DATETIME NULL,
 			requested_end_at DATETIME NULL,
 			performance_start_at DATETIME NULL,
@@ -215,7 +214,6 @@ class BookingSchema {
 			KEY venue_performance_start (venue_term_id, performance_start_at),
 			KEY artist_term_created (artist_term_id, created_at),
 			KEY artist_profile_created (artist_profile_id, created_at),
-			KEY assignee_status (assignee_user_id, status),
 			KEY status_updated (status, updated_at)
 		) ENGINE=InnoDB {$charset};";
 
@@ -596,6 +594,12 @@ class BookingSchema {
 			return $migration;
 		}
 
+		$migration = self::migrate_v16_remove_booking_assignment();
+		if ( is_wp_error( $migration ) ) {
+			self::record_failure( $migration );
+			return $migration;
+		}
+
 		$repair = self::drop_conflicting_indexes();
 		if ( is_wp_error( $repair ) ) {
 			self::record_failure( $repair );
@@ -767,12 +771,36 @@ class BookingSchema {
 					}
 				}
 			}
+			foreach ( $contract['absent_columns'] ?? array() as $name ) {
+				if ( isset( $found_columns[ $name ] ) ) {
+					return new \WP_Error(
+						'booking_schema_obsolete_column_present',
+						__( 'An obsolete booking column is still present.', 'extrachill-events' ),
+						array(
+							'table'  => $table,
+							'column' => $name,
+						)
+					);
+				}
+			}
 
 			$indexes = $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
 			if ( '' !== (string) $wpdb->last_error ) {
 				return self::database_error( __( 'Could not inspect booking indexes.', 'extrachill-events' ), $table );
 			}
 			$found_indexes = self::normalize_indexes( (array) $indexes );
+			foreach ( $contract['absent_indexes'] ?? array() as $name ) {
+				if ( isset( $found_indexes[ $name ] ) ) {
+					return new \WP_Error(
+						'booking_schema_obsolete_index_present',
+						__( 'An obsolete booking index is still present.', 'extrachill-events' ),
+						array(
+							'table' => $table,
+							'index' => $name,
+						)
+					);
+				}
+			}
 			foreach ( $contract['indexes'] as $name => $required_index ) {
 				if ( ! isset( $found_indexes[ $name ] ) || $required_index !== $found_indexes[ $name ] ) {
 					return new \WP_Error(
@@ -919,6 +947,40 @@ class BookingSchema {
 		return true;
 	}
 
+	/** Remove the retired per-user booking assignment storage. */
+	private static function migrate_v16_remove_booking_assignment() {
+		global $wpdb;
+
+		$table = self::bookings_table();
+		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit private schema migration.
+		if ( $found !== $table ) {
+			return '' === (string) $wpdb->last_error ? true : self::database_error( __( 'Could not inspect retired booking assignment storage.', 'extrachill-events' ), $table );
+		}
+
+		$indexes = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit private schema migration.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return self::database_error( __( 'Could not inspect retired booking assignment indexes.', 'extrachill-events' ), $table );
+		}
+		if ( isset( $indexes['assignee_status'] ) && false === $wpdb->query( "ALTER TABLE `{$table}` DROP INDEX `assignee_status`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes the obsolete private index under the installer lock.
+			$current = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes completed removal from failure.
+			if ( '' !== (string) $wpdb->last_error || isset( $current['assignee_status'] ) ) {
+				return self::database_error( __( 'Could not remove the retired booking assignment index.', 'extrachill-events' ), $table );
+			}
+		}
+
+		$columns = array_column( (array) $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ), 'Field' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit private schema migration.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return self::database_error( __( 'Could not inspect retired booking assignment columns.', 'extrachill-events' ), $table );
+		}
+		if ( in_array( 'assignee_user_id', $columns, true ) && false === $wpdb->query( "ALTER TABLE `{$table}` DROP COLUMN `assignee_user_id`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes the obsolete private column under the installer lock.
+			$current = array_column( (array) $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ), 'Field' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes completed removal from failure.
+			if ( '' !== (string) $wpdb->last_error || in_array( 'assignee_user_id', $current, true ) ) {
+				return self::database_error( __( 'Could not remove the retired booking assignment column.', 'extrachill-events' ), $table );
+			}
+		}
+		return true;
+	}
+
 	/** Add and backfill v14 identity/provenance storage before unique-index repair. */
 	private static function migrate_v13_ticket_provenance() {
 		global $wpdb;
@@ -991,8 +1053,8 @@ class BookingSchema {
 		};
 		return array(
 			self::bookings_table()                => array(
-				'engine'  => 'innodb',
-				'columns' => array(
+				'engine'         => 'innodb',
+				'columns'        => array(
 					'id'                      => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
 					'public_id'               => $required( 'char(36)', false ),
 					'venue_term_id'           => $required( 'bigint unsigned', false ),
@@ -1010,7 +1072,6 @@ class BookingSchema {
 					'space_key'               => $required( 'varchar(64)', true ),
 					'status'                  => $required( 'varchar(32)', false, array( 'default' => 'submitted' ) ),
 					'version'                 => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
-					'assignee_user_id'        => $required( 'bigint unsigned', true ),
 					'requested_start_at'      => $required( 'datetime', true ),
 					'requested_end_at'        => $required( 'datetime', true ),
 					'performance_start_at'    => $required( 'datetime', true ),
@@ -1023,7 +1084,7 @@ class BookingSchema {
 					'created_at'              => $required( 'datetime', false ),
 					'updated_at'              => $required( 'datetime', false ),
 				),
-				'indexes' => array(
+				'indexes'        => array(
 					'PRIMARY'                   => array(
 						'unique'  => true,
 						'columns' => array( 'id' ),
@@ -1060,15 +1121,13 @@ class BookingSchema {
 						'unique'  => false,
 						'columns' => array( 'artist_profile_id', 'created_at' ),
 					),
-					'assignee_status'           => array(
-						'unique'  => false,
-						'columns' => array( 'assignee_user_id', 'status' ),
-					),
 					'status_updated'            => array(
 						'unique'  => false,
 						'columns' => array( 'status', 'updated_at' ),
 					),
 				),
+				'absent_columns' => array( 'assignee_user_id' ),
+				'absent_indexes' => array( 'assignee_status' ),
 			),
 			self::activity_table()                => array(
 				'engine'  => 'innodb',

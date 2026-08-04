@@ -283,7 +283,7 @@ final class BookingInquiryAdmissionTest extends BookingTestCase {
 			$repository          = new BookingRepository();
 			$observed['get']     = $repository->get( $reservation['id'] );
 			$observed['list']    = $repository->list( array( 'venue_term_id' => 55 ) );
-			$observed['mutate']  = ( new BookingLifecycle() )->assign( $reservation['id'], null, $reservation['version'], 10 );
+			$observed['mutate']  = ( new BookingLifecycle() )->transition( $reservation['id'], 'under_review', $reservation['version'], 10 );
 			$observed['status']  = $reservation['status'];
 		};
 

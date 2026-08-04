@@ -44,12 +44,9 @@ class BookingRepository {
 			return $artist_name;
 		}
 
-		$ids = array();
-		foreach ( array( 'submitter_user_id', 'assignee_user_id' ) as $field ) {
-			$ids[ $field ] = $this->positive_id( $data[ $field ] ?? null, $field, true );
-			if ( is_wp_error( $ids[ $field ] ) ) {
-				return $ids[ $field ];
-			}
+		$submitter_user_id = $this->positive_id( $data['submitter_user_id'] ?? null, 'submitter_user_id', true );
+		if ( is_wp_error( $submitter_user_id ) ) {
+			return $submitter_user_id;
 		}
 
 		$start = $this->datetime( $data['requested_start_at'] ?? null, 'requested_start_at' );
@@ -114,7 +111,7 @@ class BookingRepository {
 			'artist_term_id'          => $identity['artist_term_id'],
 			'artist_profile_id'       => $identity['artist_profile_id'],
 			'artist_name'             => $artist_name,
-			'submitter_user_id'       => $ids['submitter_user_id'],
+			'submitter_user_id'       => $submitter_user_id,
 			'contact_name'            => $this->nullable_text( $data['contact_name'] ?? null, 255 ),
 			'contact_email'           => $this->nullable_email( $data['contact_email'] ?? null ),
 			'contact_phone'           => $this->nullable_text( $data['contact_phone'] ?? null, 64 ),
@@ -125,7 +122,6 @@ class BookingRepository {
 			'status'                  => 'admission_pending' === ( $data['status'] ?? '' ) ? 'admission_pending' : 'submitted',
 			'admission_owner_token'   => $this->nullable_text( $data['admission_owner_token'] ?? null, 36 ),
 			'version'                 => 1,
-			'assignee_user_id'        => $ids['assignee_user_id'],
 			'requested_start_at'      => $start,
 			'requested_end_at'        => $end,
 			'performance_start_at'    => $performance_start,
@@ -307,7 +303,7 @@ class BookingRepository {
 			$where[]  = 'status = %s';
 			$values[] = $status;
 		}
-		foreach ( array( 'artist_term_id', 'artist_profile_id', 'assignee_user_id' ) as $field ) {
+		foreach ( array( 'artist_term_id', 'artist_profile_id' ) as $field ) {
 			if ( ! array_key_exists( $field, $filters ) || null === $filters[ $field ] || '' === $filters[ $field ] ) {
 				continue;
 			}
@@ -636,7 +632,7 @@ class BookingRepository {
 			return $status;
 		}
 		$row['status'] = $status;
-		foreach ( array( 'id', 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'submitter_user_id', 'version', 'assignee_user_id', 'event_id' ) as $key ) {
+		foreach ( array( 'id', 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'submitter_user_id', 'version', 'event_id' ) as $key ) {
 			$row[ $key ] = isset( $row[ $key ] ) ? (int) $row[ $key ] : null;
 		}
 		foreach ( array(

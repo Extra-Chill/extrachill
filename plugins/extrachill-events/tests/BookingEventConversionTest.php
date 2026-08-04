@@ -605,35 +605,30 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$this->assertGreaterThanOrEqual( 3, $GLOBALS['wpdb']->booking_lock_queries );
 	}
 
-	public function test_pending_conversion_blocks_assignment_and_artist_binding_without_mutation(): void {
+	public function test_pending_conversion_blocks_artist_binding_without_mutation(): void {
 		$booking = $this->booking();
 		$this->install_ability( function ( $input ) { return $this->upstream_result( $input, array( 'success' => false ) ); } );
 		$this->service()->convert( $booking['id'], 1, 12 );
-		$authorization = new BookingTestAuthorization( array( '20:55' => true ) );
+		$authorization = new BookingTestAuthorization();
 		$lifecycle     = new BookingLifecycle( null, null, $authorization );
 		$before        = ( new BookingActivityRepository() )->list_for_booking( $booking['id'] );
-		$assigned      = $lifecycle->assign( $booking['id'], 20, 1, 12 );
-		$this->assertSame( 'booking_event_conversion_pending', $assigned->get_error_code() );
 		$bound = $lifecycle->bind_artist( $booking['id'], 101, 501, 1, 12 );
 		$this->assertSame( 'booking_event_conversion_pending', $bound->get_error_code() );
 		$current = ( new BookingRepository() )->get( $booking['id'] );
 		$this->assertSame( 1, $current['version'] );
-		$this->assertNull( $current['assignee_user_id'] );
 		$this->assertNull( $current['artist_term_id'] );
 		$this->assertNull( $current['artist_profile_id'] );
 		$this->assertCount( count( $before ), ( new BookingActivityRepository() )->list_for_booking( $booking['id'] ) );
 		$this->assertGreaterThanOrEqual( 2, $GLOBALS['wpdb']->booking_lock_queries );
 	}
 
-	public function test_failed_state_allows_binding_while_completed_state_allows_only_private_assignment(): void {
+	public function test_failed_state_allows_binding_while_completed_state_freezes_artist_identity(): void {
 		$failed = $this->booking();
 		$this->install_ability( static function () { return new WP_Error( 'failed', 'failed', array( 'status' => 422 ) ); } );
 		$this->service()->convert( $failed['id'], 1, 12 );
-		$lifecycle = new BookingLifecycle( null, null, new BookingTestAuthorization( array( '20:55' => true ) ) );
-		$assigned  = $lifecycle->assign( $failed['id'], 20, 1, 12 );
-		$this->assertSame( 2, $assigned['version'] );
-		$bound = $lifecycle->bind_artist( $failed['id'], 101, 501, 2, 12 );
-		$this->assertSame( 3, $bound['version'] );
+		$lifecycle = new BookingLifecycle( null, null, new BookingTestAuthorization() );
+		$bound     = $lifecycle->bind_artist( $failed['id'], 101, 501, 1, 12 );
+		$this->assertSame( 2, $bound['version'] );
 		$failed_state = ( new BookingActivityRepository() )->event_conversion_state( $failed['id'], $failed['public_id'] );
 		$this->assertSame( 'failed', $failed_state['status'] );
 		$this->assertFalse( $failed_state['pending'] );
@@ -641,15 +636,12 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$completed = $this->booking();
 		$this->install_ability();
 		$this->service()->convert( $completed['id'], 1, 12 );
-		$assigned = $lifecycle->assign( $completed['id'], 20, 2, 12 );
-		$this->assertSame( 3, $assigned['version'] );
 		$activity_count = count( ( new BookingActivityRepository() )->list_for_booking( $completed['id'] ) );
-		$bound = $lifecycle->bind_artist( $completed['id'], 101, 501, 3, 12 );
+		$bound = $lifecycle->bind_artist( $completed['id'], 101, 501, 2, 12 );
 		$this->assertSame( 'booking_event_artist_frozen', $bound->get_error_code() );
 		$this->assertSame( 409, $bound->get_error_data()['status'] );
 		$current = ( new BookingRepository() )->get( $completed['id'] );
-		$this->assertSame( 3, $current['version'] );
-		$this->assertSame( 20, $current['assignee_user_id'] );
+		$this->assertSame( 2, $current['version'] );
 		$this->assertNull( $current['artist_term_id'] );
 		$this->assertNull( $current['artist_profile_id'] );
 		$this->assertCount( $activity_count, ( new BookingActivityRepository() )->list_for_booking( $completed['id'] ) );

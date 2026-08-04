@@ -234,13 +234,14 @@ final class BookingNotificationTest extends BookingTestCase {
 		$this->assertCount( 3, $resolved );
 	}
 
-	/** Event definitions select owners and assignees instead of every member. */
-	public function test_recipient_policy_is_role_and_event_type_aware(): void {
+	/** Every operational event selects active owners instead of other members. */
+	public function test_recipient_policy_targets_active_owners(): void {
 		$booking = $this->booking();
 		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
 		$this->member( 2, 55, 11, VenueAuthorization::STATUS_ACTIVE, false );
 		$this->member( 3, 55, 12, VenueAuthorization::STATUS_ACTIVE, false );
 		$deliveries = array();
+		$resolved   = array();
 		$service    = new BookingNotificationService(
 			null,
 			null,
@@ -252,21 +253,18 @@ final class BookingNotificationTest extends BookingTestCase {
 				}
 				return array( 'recipients' => $rows );
 			},
-			$this->destination( $deliveries ),
+			$this->destination( $resolved ),
 			static function (): int { return 99; }
 		);
-		$inquiry   = $this->source( $booking );
-		$assignment = $this->source( $booking, 'assignment_changed', array( 'to_assignee_user_id' => 11 ) );
+		$inquiry     = $this->source( $booking );
 		$information = $this->source( $booking, 'status_changed', array( 'from_status' => 'needs_info', 'to_status' => 'submitted' ) );
-		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $booking['id'] ]['assignee_user_id'] = 11;
+		$expired     = $this->source( $booking, 'hold_expired' );
 
 		$service->reconcile( $service->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $inquiry['id'] )['id'] );
-		$service->reconcile( $service->request( BookingNotificationService::TYPE_ASSIGNMENT_CHANGED, $assignment['id'] )['id'] );
 		$service->reconcile( $service->request( BookingNotificationService::TYPE_INFORMATION_RECEIVED, $information['id'] )['id'] );
+		$service->reconcile( $service->request( BookingNotificationService::TYPE_HOLD_EXPIRED, $expired['id'] )['id'] );
 
-		$this->assertSame( array( 10 ), $deliveries[1] );
-		$this->assertSame( array( 10, 11 ), $deliveries[3] );
-		$this->assertSame( array( 11 ), $deliveries[5] );
+		$this->assertSame( array( array( 10 ), array( 10 ), array( 10 ) ), $deliveries );
 	}
 
 	/** Permanent dependency failures become terminal so later requests can advance. */
@@ -295,8 +293,8 @@ final class BookingNotificationTest extends BookingTestCase {
 		$failed      = new BookingNotificationService( null, null, null, static function () { return new WP_Error( 'permanent_route_failure' ); } );
 		$failed->reconcile_pending();
 
-		$new_source  = $this->source( $booking, 'assignment_changed', array( 'to_assignee_user_id' => 10 ) );
-		$new_request = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_ASSIGNMENT_CHANGED, $new_source['id'] );
+		$new_source  = $this->source( $booking, 'status_changed', array( 'from_status' => 'needs_info', 'to_status' => 'submitted' ) );
+		$new_request = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INFORMATION_RECEIVED, $new_source['id'] );
 		$resolved    = array();
 		$delivered   = new BookingNotificationService(
 			null,
@@ -378,13 +376,12 @@ final class BookingNotificationTest extends BookingTestCase {
 		$this->assertSame( 1, ( new BookingActivityRepository() )->notification_attempt_count( $request['id'] ) );
 	}
 
-	/** Revocation between attempts suppresses the user before retry delivery. */
+	/** Revocation between attempts suppresses the former owner before retry delivery. */
 	public function test_revocation_race_reselects_exact_active_recipients(): void {
 		$booking = $this->booking();
-		$source  = $this->source( $booking, 'assignment_changed', array( 'to_assignee_user_id' => 11 ) );
+		$source  = $this->source( $booking );
 		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
-		$this->member( 2, 55, 11, VenueAuthorization::STATUS_ACTIVE, false );
-		$request    = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_ASSIGNMENT_CHANGED, $source['id'] );
+		$request    = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $source['id'] );
 		$deliveries = array();
 		$resolved   = array();
 		$service    = new BookingNotificationService(
@@ -405,19 +402,19 @@ final class BookingNotificationTest extends BookingTestCase {
 
 		$service->reconcile( $request['id'] );
 		$this->make_retry_due( $request['id'] );
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][2]['status'] = VenueAuthorization::STATUS_REVOKED;
-		$service->reconcile( $request['id'] );
+		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][1]['status'] = VenueAuthorization::STATUS_REVOKED;
+		$terminal = $service->reconcile( $request['id'] );
 
-		$this->assertSame( array( 10, 11 ), $deliveries[0] );
-		$this->assertSame( array( 10 ), $deliveries[1] );
+		$this->assertSame( array( array( 10 ) ), $deliveries );
+		$this->assertSame( 'notification_suppressed', $terminal['kind'] );
+		$this->assertSame( 'no_active_recipients', $terminal['payload']['data']['reason'] );
 	}
 
-	/** Recovery emits only the five landed event mappings. */
+	/** Recovery emits only the four current landed event mappings. */
 	public function test_landed_and_future_source_seams_remain_explicit(): void {
 		$booking = $this->booking();
 		$events  = array(
 			array( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, 'inquiry_submitted', array() ),
-			array( BookingNotificationService::TYPE_ASSIGNMENT_CHANGED, 'assignment_changed', array() ),
 			array(
 				BookingNotificationService::TYPE_INFORMATION_RECEIVED,
 				'status_changed',
@@ -436,5 +433,30 @@ final class BookingNotificationTest extends BookingTestCase {
 		}
 		$future = $this->source( $booking, 'settlement_ready', array() );
 		$this->assertSame( BookingNotificationService::TYPE_SETTLEMENT_READY, $service->request( BookingNotificationService::TYPE_SETTLEMENT_READY, $future['id'] )['payload']['data']['notification_type'] );
+	}
+
+	/** Retired assignment outbox rows become terminal without delivery. */
+	public function test_retired_assignment_notification_state_is_suppressed(): void {
+		$booking = $this->booking();
+		$source  = $this->source( $booking, 'assignment_changed' );
+		$summary = ( new BookingNotificationService() )->reconcile_pending();
+		$ignored = ( new BookingActivityRepository() )->find_by_external_id( $booking['id'], 'notification_source_ignored', (string) $source['id'] );
+		$this->assertSame( 0, $summary['recovered'] );
+		$this->assertIsArray( $ignored );
+		$request = ( new BookingActivityRepository() )->append(
+			array(
+				'booking_id'  => $booking['id'],
+				'kind'        => 'notification_requested',
+				'external_id' => (string) $source['id'],
+				'payload'     => array(
+					'notification_type'  => 'booking_assignment_changed',
+					'source_activity_id' => $source['id'],
+				),
+			)
+		);
+
+		$terminal = ( new BookingNotificationService() )->reconcile( $request['id'] );
+		$this->assertSame( 'notification_suppressed', $terminal['kind'] );
+		$this->assertSame( 'retired_notification_type', $terminal['payload']['data']['reason'] );
 	}
 }

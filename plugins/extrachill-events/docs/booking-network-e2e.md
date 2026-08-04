@@ -41,7 +41,7 @@ No production URL, database credential, plugin directory, upload, or content exp
 
 ## Scenario And Evidence
 
-The gate independently asserts protected inquiry admission, exact and changed retries, identity injection rejection, venue-scoped idempotency, private authorization, assignment, stale versions, valid and invalid transitions, successful and conflicting message retries, performance/deal selection, holds, confirmation, canonical conversion and retry, reschedule, linked cancellation, timezone alignment, source uniqueness, configuration revision conflicts, cross-site rendering/context restoration, and a real two-connection one-winner compare-and-swap race.
+The gate independently asserts protected inquiry admission, exact and changed retries, identity injection rejection, venue-scoped idempotency, private authorization, stale versions, valid and invalid transitions, successful and conflicting message retries, performance/deal selection, holds, confirmation, canonical conversion and retry, reschedule, linked cancellation, timezone alignment, source uniqueness, configuration revision conflicts, cross-site rendering/context restoration, and a real two-connection one-winner compare-and-swap race using the remaining artist-name mutation.
 
 Every run writes the following under `artifacts/booking-network-e2e` by default:
 

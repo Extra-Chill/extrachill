@@ -137,7 +137,7 @@ jobs:
       - name: Verify campaign and teardown evidence
         if: always()
         run: |
-          jq -e '.status == "passed" and .failure_class == null and .metrics.assertions >= 33 and .metrics.passed == .metrics.assertions and .metrics.open_findings == 0 and .metrics.target_coverage_ratio == 1 and .metrics.operation_coverage_ratio == 1' artifacts/booking-network-e2e/result-envelope.json
+          jq -e '.status == "passed" and .failure_class == null and .metrics.assertions == 32 and .metrics.passed == .metrics.assertions and .metrics.open_findings == 0 and .metrics.target_coverage_ratio == 1 and .metrics.declared_operations == 16 and .metrics.executable_operations == 16 and .metrics.proven_operations == 16 and .metrics.operation_coverage_ratio == 1' artifacts/booking-network-e2e/result-envelope.json
           jq -e '.managedRuntimeServices | any(.kind == "mysql" and .provider == "docker" and .readiness == "ready" and .lifecycle == "released" and .teardown == "completed")' artifacts/booking-network-e2e/runtime-result.json
           test -s artifacts/booking-network-e2e/case-log.jsonl
           test -s artifacts/booking-network-e2e/provenance.json

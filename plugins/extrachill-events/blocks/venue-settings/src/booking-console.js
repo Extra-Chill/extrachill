@@ -653,11 +653,6 @@ function BookingCard( { booking, active, holds, onSelect } ) {
 			</span>
 			<BookingStatus status={ booking.status } />
 			<span>{ formatDate( booking.requested_start_at ) }</span>
-			<span>
-				{ booking.assignee_user_id
-					? `Assigned to user #${ booking.assignee_user_id }`
-					: 'Unassigned' }
-			</span>
 			{ holds.length > 0 && (
 				<span>
 					{ holds.length } active{ ' ' }
@@ -980,8 +975,6 @@ function BookingDetail( {
 	communications,
 	operations,
 	defaultDeal,
-	members,
-	currentUserId,
 	onMutate,
 	onClose,
 	onRefreshCommunications,
@@ -990,9 +983,6 @@ function BookingDetail( {
 	const [ pending, setPending ] = useState( '' );
 	const [ transition, setTransition ] = useState( '' );
 	const [ note, setNote ] = useState( '' );
-	const [ assignee, setAssignee ] = useState(
-		booking.assignee_user_id || ''
-	);
 	const [ space, setSpace ] = useState(
 		booking.space_key || booking.requested_space_key || ''
 	);
@@ -1006,7 +996,6 @@ function BookingDetail( {
 	);
 
 	useEffect( () => {
-		setAssignee( booking.assignee_user_id || '' );
 		setSpace( booking.space_key || booking.requested_space_key || '' );
 		setStarts(
 			toLocalInput(
@@ -1053,21 +1042,6 @@ function BookingDetail( {
 		}
 	};
 	const activeHolds = holds.filter( ( hold ) => hold.status === 'active' );
-	const assigneeOptions = [
-		...( members || [] ).filter( ( member ) => member.status === 'active' ),
-		...( ( members || [] ).some(
-			( member ) => member.user_id === currentUserId
-		)
-			? []
-			: [
-					{
-						user_id: currentUserId,
-						display_name: 'Me',
-						status: 'active',
-					},
-			  ] ),
-	];
-
 	return (
 		<Panel className="ec-booking-detail">
 			<PanelHeader
@@ -1124,47 +1098,7 @@ function BookingDetail( {
 
 			<section className="ec-booking-detail__section ec-booking-detail__actions">
 				<h3>Operations</h3>
-				<Grid minColumnWidth="16rem" maxColumns={ 2 }>
-					<FieldGroup label="Assignment" htmlFor="booking-assignee">
-						<select
-							id="booking-assignee"
-							value={ assignee }
-							onChange={ ( event ) =>
-								setAssignee( event.target.value )
-							}
-						>
-							<option value="">Unassigned</option>
-							{ assigneeOptions.map( ( member ) => (
-								<option
-									key={ member.user_id }
-									value={ member.user_id }
-								>
-									{ member.display_name ||
-										`User #${ member.user_id }` }
-								</option>
-							) ) }
-						</select>
-						<button
-							type="button"
-							className="button-2"
-							disabled={ pending !== '' }
-							onClick={ () =>
-								mutate(
-									'Assignment',
-									'extrachill/assign-venue-booking',
-									{
-										booking_id: booking.id,
-										assignee_user_id: assignee
-											? Number( assignee )
-											: null,
-										expected_version: booking.version,
-									}
-								)
-							}
-						>
-							Save assignment
-						</button>
-					</FieldGroup>
+				<Grid minColumnWidth="16rem" maxColumns={ 1 }>
 					<FieldGroup
 						label="Lifecycle status"
 						htmlFor="booking-transition"
@@ -1465,12 +1399,7 @@ function BookingDetail( {
 	);
 }
 
-export function BookingConsole( {
-	context,
-	members,
-	defaultDeal,
-	supportEvents = [],
-} ) {
+export function BookingConsole( { context, defaultDeal, supportEvents = [] } ) {
 	const venueId = context.selected_venue.id;
 	const [ bookings, setBookings ] = useState( [] );
 	const [ events, setEvents ] = useState( [] );
@@ -1487,7 +1416,6 @@ export function BookingConsole( {
 	const [ detailError, setDetailError ] = useState( '' );
 	const [ search, setSearch ] = useState( '' );
 	const [ filterStatus, setFilterStatus ] = useState( '' );
-	const [ filterAssignee, setFilterAssignee ] = useState( '' );
 	const [ month, setMonth ] = useState( monthKey() );
 	const [ view, setView ] = useState( 'calendar' );
 	const requestId = useRef( 0 );
@@ -1507,9 +1435,6 @@ export function BookingConsole( {
 			}
 			if ( filterStatus ) {
 				input.status = filterStatus;
-			}
-			if ( filterAssignee ) {
-				input.assignee_user_id = Number( filterAssignee );
 			}
 			const [ bookingRows, holdRows, calendar ] = await Promise.all( [
 				runAbility( 'extrachill/list-venue-bookings', input ),
@@ -1607,7 +1532,7 @@ export function BookingConsole( {
 
 	useEffect( () => {
 		loadList();
-	}, [ filterStatus, filterAssignee, month, view ] ); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [ filterStatus, month, view ] ); // eslint-disable-line react-hooks/exhaustive-deps
 	useEffect( () => {
 		loadDetail();
 	}, [ selectedId ] ); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1667,7 +1592,7 @@ export function BookingConsole( {
 			<Grid
 				className="ec-booking-console__toolbar"
 				minColumnWidth="12rem"
-				maxColumns={ 3 }
+				maxColumns={ 2 }
 			>
 				<SearchBox
 					value={ search }
@@ -1690,21 +1615,6 @@ export function BookingConsole( {
 								{ statusLabel( item ) }
 							</option>
 						) ) }
-					</select>
-				</label>
-				<label htmlFor="booking-assignee-filter">
-					Assignment
-					<select
-						id="booking-assignee-filter"
-						value={ filterAssignee }
-						onChange={ ( event ) =>
-							setFilterAssignee( event.target.value )
-						}
-					>
-						<option value="">Anyone</option>
-						<option value={ context.user.id }>
-							Assigned to me
-						</option>
 					</select>
 				</label>
 			</Grid>
@@ -1782,8 +1692,6 @@ export function BookingConsole( {
 					communications={ communications }
 					operations={ operations }
 					defaultDeal={ defaultDeal }
-					members={ members }
-					currentUserId={ context.user.id }
 					onMutate={ refreshAfterMutation }
 					onClose={ closeDetail }
 					onRefreshCommunications={ loadDetail }

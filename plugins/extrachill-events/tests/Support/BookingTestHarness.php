@@ -1642,7 +1642,7 @@ final class BookingWpdb {
 				)
 			);
 		}
-		$filters = array( 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'assignee_user_id', 'booking_id' );
+		$filters = array( 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'booking_id' );
 		foreach ( $filters as $field ) {
 			if ( preg_match( "/{$field} = (\\d+)/", $query, $filter ) ) {
 				$rows = array_values(

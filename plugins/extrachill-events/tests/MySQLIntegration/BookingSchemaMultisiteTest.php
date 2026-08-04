@@ -58,6 +58,50 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 		$this->assertSame( 1, get_current_blog_id() );
 	}
 
+	/** Verify the v16 upgrade physically removes assignment storage without losing the booking. */
+	public function test_v16_upgrade_drops_assignment_storage_and_preserves_booking_data(): void {
+		global $wpdb;
+
+		switch_to_blog( 7 );
+		try {
+			$table = BookingSchema::bookings_table();
+			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `assignee_user_id` BIGINT UNSIGNED NULL, ADD KEY `assignee_status` (`assignee_user_id`, `status`)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Recreates the exact v15 storage in a disposable database.
+			$this->assertSame( '', (string) $wpdb->last_error );
+			$created = '2026-08-04 00:00:00';
+			$this->assertSame(
+				1,
+				$wpdb->insert(
+					$table,
+					array(
+						'public_id'        => wp_generate_uuid4(),
+						'venue_term_id'    => 560,
+						'artist_name'      => 'Migration Survivor',
+						'status'           => 'submitted',
+						'version'          => 7,
+						'assignee_user_id' => 42,
+						'intake_payload'   => '{"version":1,"data":{"preserve":true}}',
+						'created_at'       => $created,
+						'updated_at'       => $created,
+					)
+				)
+			);
+			$booking_id = (int) $wpdb->insert_id;
+			update_option( BookingSchema::VERSION_OPTION, '15', false );
+
+			$this->assertTrue( BookingSchema::maybe_install() );
+			$this->assertNull( $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'assignee_user_id'" ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Physical migration assertion.
+			$this->assertNull( $wpdb->get_var( "SHOW INDEX FROM `{$table}` WHERE Key_name = 'assignee_status'" ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Physical migration assertion.
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT artist_name, status, version, intake_payload FROM `{$table}` WHERE id = %d", $booking_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Unrelated booking data survival assertion.
+			$this->assertSame( 'Migration Survivor', $row['artist_name'] );
+			$this->assertSame( 'submitted', $row['status'] );
+			$this->assertSame( '7', $row['version'] );
+			$this->assertSame( '{"version":1,"data":{"preserve":true}}', $row['intake_payload'] );
+			$this->assertSame( '16', get_option( BookingSchema::VERSION_OPTION ) );
+		} finally {
+			restore_current_blog();
+		}
+	}
+
 	/** Verify explicit v13 identity/provenance migration preserves every legacy table. */
 	public function test_v13_ticket_provenance_upgrade_preserves_rows(): void {
 		global $wpdb;
@@ -77,7 +121,7 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 			update_option( BookingSchema::VERSION_OPTION, '13', false );
 
 			$this->assertTrue( BookingSchema::maybe_install() );
-			$this->assertSame( '15', get_option( BookingSchema::VERSION_OPTION ) );
+			$this->assertSame( '16', get_option( BookingSchema::VERSION_OPTION ) );
 			$this->assert_v13_snapshots_survive( $fixtures, $snapshots );
 			$this->assert_migrated_financial_graph_readable();
 			$this->assertSame( '73001', $wpdb->get_var( $wpdb->prepare( "SELECT booking_id FROM `{$reports}` WHERE external_report_id = %s", $external_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirms migration preserved the fixture.

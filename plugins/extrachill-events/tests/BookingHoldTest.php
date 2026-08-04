@@ -132,7 +132,7 @@ final class BookingHoldTest extends BookingTestCase {
 	}
 
 	public function test_combined_schema_installs_site_scoped_holds_contract(): void {
-		$this->assertSame( '15', BookingSchema::SCHEMA_VERSION );
+		$this->assertSame( '16', BookingSchema::SCHEMA_VERSION );
 		$this->assertTrue( BookingSchema::install() );
 		$table = BookingSchema::holds_table();
 		$this->assertSame( 'wp_7_ec_booking_holds', $table );
@@ -579,17 +579,9 @@ final class BookingHoldTest extends BookingTestCase {
 		);
 	}
 
-	public function test_assign_and_bind_reconcile_before_expected_version_checks(): void {
-		$holds         = $this->holds();
-		$lifecycle     = new BookingLifecycle( null, null, null, null, $holds );
-		$assigned      = $this->booking( '2031-04-01 20:00:00', '2031-04-01 23:00:00' );
-		$assigned_hold = $holds->create( $assigned['id'], 1, 12 );
-		$lifecycle->transition( $assigned['id'], 'held', 2, 12 );
-		$GLOBALS['wpdb']->rows[ BookingSchema::holds_table() ][ $assigned_hold['hold']['id'] ]['expires_at'] = gmdate( 'Y-m-d H:i:s' );
-		$assign_result = $lifecycle->assign( $assigned['id'], null, 3, 12 );
-		$this->assertSame( 'booking_version_conflict', $assign_result->get_error_code() );
-		$this->assertSame( 4, $assign_result->get_error_data()['current_version'] );
-
+	public function test_bind_reconciles_before_expected_version_check(): void {
+		$holds      = $this->holds();
+		$lifecycle  = new BookingLifecycle( null, null, null, null, $holds );
 		$bound      = $this->booking( '2031-05-01 20:00:00', '2031-05-01 23:00:00' );
 		$bound_hold = $holds->create( $bound['id'], 1, 12 );
 		$lifecycle->transition( $bound['id'], 'held', 2, 12 );
