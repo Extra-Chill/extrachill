@@ -183,13 +183,14 @@ class VenueProfileAbilities {
 				'country'     => $text,
 				'phone'       => $text,
 				'website'     => $text,
+				'ticketing_url' => $text,
 				'capacity'    => $text,
 				'revision'    => array(
 					'type'    => 'string',
 					'pattern' => '^[a-f0-9]{64}$',
 				),
 			),
-			'required'             => array( 'term_id', 'name', 'description', 'address', 'city', 'state', 'zip', 'country', 'phone', 'website', 'capacity', 'revision' ),
+			'required'             => array( 'term_id', 'name', 'description', 'address', 'city', 'state', 'zip', 'country', 'phone', 'website', 'ticketing_url', 'capacity', 'revision' ),
 			'additionalProperties' => false,
 		);
 	}

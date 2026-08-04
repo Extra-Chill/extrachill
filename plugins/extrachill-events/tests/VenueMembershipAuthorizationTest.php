@@ -2037,6 +2037,8 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertFalse( $get['input_schema']['additionalProperties'] );
 		$this->assertFalse( $update['input_schema']['properties']['profile']['additionalProperties'] );
 		$this->assertSame( 'string', $update['input_schema']['properties']['expected_revision']['type'] );
+		$this->assertSame( 'string', $get['output_schema']['properties']['ticketing_url']['type'] );
+		$this->assertContains( 'ticketing_url', $get['output_schema']['required'] );
 
 		$GLOBALS['venue_membership_test']['current_user_id'] = 4;
 		$this->set_current_user( 4 );
