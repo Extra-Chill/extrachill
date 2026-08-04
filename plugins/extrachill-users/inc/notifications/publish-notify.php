@@ -186,7 +186,7 @@ function ec_users_publish_notify_on_transition( string $new_status, string $old_
 	}
 
 	// Skip auto-drafts / revisions and anything that is not a real post row.
-	if ( 'auto-draft' === $post->post_status && '' === $post->post_title ) {
+	if ( 'auto-draft' === get_post_status( $post ) && '' === $post->post_title ) {
 		return;
 	}
 
@@ -253,7 +253,7 @@ function ec_users_publish_notify_apply_source( string $context, array $descripto
 
 	$post_title = get_the_title( $post );
 	$title      = sprintf( $title_template, $post_title );
-	$link       = (string) get_permalink( $post );
+	$link       = (string) get_permalink( $post->ID );
 	$producer   = EC_USERS_PUBLISH_NOTIFY_PRODUCER;
 	$key        = sprintf( 'context:%s:blog:%d:post:%d', $context, get_current_blog_id(), $post->ID );
 

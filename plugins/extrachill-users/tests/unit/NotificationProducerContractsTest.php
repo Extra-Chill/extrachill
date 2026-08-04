@@ -112,6 +112,23 @@ class Test_Notification_Producer_Contracts extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Empty auto-drafts never enter the publish-notification producer loop.
+	 */
+	public function test_publish_observer_ignores_empty_auto_drafts(): void {
+		$post = self::factory()->post->create_and_get(
+			array(
+				'post_status' => 'auto-draft',
+				'post_title'  => '',
+			)
+		);
+
+		ec_users_publish_notify_on_transition( 'publish', 'auto-draft', $post );
+
+		$this->assertSame( 'auto-draft', get_post_status( $post ) );
+		$this->assertSame( 0, $this->notification_count( 'producer_contract_published' ) );
+	}
+
+	/**
 	 * A registered source uses context, blog, and post identity.
 	 */
 	public function test_publish_source_replay_uses_context_blog_post_contract(): void {
