@@ -136,18 +136,11 @@ function ec_events_add_venue_workspace_header_item( array $items ): array {
 	}
 
 	$user_id = get_current_user_id();
-	if ( current_user_can( 'manage_options' ) ) {
-		$items[] = array(
-			'url'      => ec_events_get_venue_claim_review_url(),
-			'label'    => __( 'Review Venue Claims', 'extrachill-events' ),
-			'priority' => 8,
-		);
-	}
-	if ( ec_events_user_has_active_venue_membership( $user_id ) ) {
+	if ( current_user_can( 'manage_options' ) || ec_events_user_has_active_venue_membership( $user_id ) ) {
 		$items[] = array(
 			'url'      => ec_events_get_booking_console_url( 0 ),
 			'label'    => __( 'Manage Venue', 'extrachill-events' ),
-			'priority' => 9,
+			'priority' => 8,
 		);
 	}
 

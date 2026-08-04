@@ -47,6 +47,34 @@ if ( ! function_exists( 'wp_login_url' ) ) {
 		return home_url( '/wp-login.php?redirect_to=' . rawurlencode( $redirect ) );
 	}
 }
+if ( ! function_exists( 'ec_is_events_site' ) ) {
+	/** Treat the unit test as the Events site. */
+	function ec_is_events_site() {
+		return true;
+	}
+}
+if ( ! function_exists( 'is_user_logged_in' ) ) {
+	/** Return an authenticated test state. */
+	function is_user_logged_in() {
+		return true;
+	}
+}
+if ( ! function_exists( 'get_current_user_id' ) ) {
+	/** Return the deterministic test user. */
+	function get_current_user_id() {
+		return 1;
+	}
+}
+if ( ! function_exists( 'current_user_can' ) ) {
+	/**
+	 * Grant administrator capabilities in this test fixture.
+	 *
+	 * @param string $capability Requested capability.
+	 */
+	function current_user_can( $capability ) {
+		return 'manage_options' === $capability;
+	}
+}
 
 require_once dirname( __DIR__, 3 ) . '/inc/core/booking-console.php';
 
@@ -64,6 +92,20 @@ final class BookingConsoleTest extends TestCase {
 		$this->assertSame(
 			$base_url . '#tab-calendar',
 			ec_events_get_booking_console_url( 0 )
+		);
+	}
+
+	/** Ensure administrators receive one canonical venue workspace link. */
+	public function test_administrator_receives_one_manage_venue_header_action(): void {
+		$this->assertSame(
+			array(
+				array(
+					'url'      => ec_events_get_booking_console_url( 0 ),
+					'label'    => 'Manage Venue',
+					'priority' => 8,
+				),
+			),
+			ec_events_add_venue_workspace_header_item( array() )
 		);
 	}
 
