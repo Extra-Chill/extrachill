@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.3] - 2026-08-04
+
+### Fixed
+- clear Studio release lint blockers
+- recover missed editorial submission alerts
+- harden Studio editor and Socials usability
+- expose one model and drop the per-job config
+
 ## [0.24.2] - 2026-08-03
 
 ### Fixed
