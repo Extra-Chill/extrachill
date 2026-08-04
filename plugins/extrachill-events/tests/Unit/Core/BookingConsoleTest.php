@@ -97,12 +97,27 @@ final class BookingConsoleTest extends TestCase {
 
 	/** Ensure administrators receive one canonical venue workspace link. */
 	public function test_administrator_receives_one_manage_venue_header_action(): void {
-		$events_blog_id = (int) ec_get_blog_id( 'events' );
-		$switched       = ! ec_is_events_site() && function_exists( 'switch_to_blog' );
+		$previous_user_id = get_current_user_id();
+		$test_user_id     = 0;
+		$events_blog_id   = (int) ec_get_blog_id( 'events' );
+		$switched         = ! ec_is_events_site() && function_exists( 'switch_to_blog' );
 		if ( $switched ) {
 			switch_to_blog( $events_blog_id );
 		}
 		try {
+			if ( function_exists( 'wp_insert_user' ) && function_exists( 'wp_set_current_user' ) ) {
+				$test_user_id = wp_insert_user(
+					array(
+						'user_login' => 'booking-console-admin-' . wp_generate_uuid4(),
+						'user_pass'  => wp_generate_password( 24 ),
+						'role'       => 'administrator',
+					)
+				);
+				if ( is_wp_error( $test_user_id ) ) {
+					$this->fail( $test_user_id->get_error_message() );
+				}
+				wp_set_current_user( $test_user_id );
+			}
 			$this->assertSame(
 				array(
 					array(
@@ -114,6 +129,12 @@ final class BookingConsoleTest extends TestCase {
 				ec_events_add_venue_workspace_header_item( array() )
 			);
 		} finally {
+			if ( $test_user_id > 0 ) {
+				wp_set_current_user( $previous_user_id );
+				if ( function_exists( 'wp_delete_user' ) ) {
+					wp_delete_user( $test_user_id );
+				}
+			}
 			if ( $switched ) {
 				restore_current_blog();
 			}
