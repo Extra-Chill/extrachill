@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.25.0] - 2026-08-04
+
+### Added
+- add My posts analytics filter
+
 ## [0.24.4] - 2026-08-04
 
 ### Fixed
