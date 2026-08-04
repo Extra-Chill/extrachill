@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.41.2] - 2026-08-04
+
+### Changed
+- retire account email-sharing identities
+
 ## [0.41.1] - 2026-08-04
 
 ### Fixed
