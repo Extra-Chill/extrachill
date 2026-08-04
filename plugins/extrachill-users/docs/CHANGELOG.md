@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.41.1] - 2026-08-04
+
+### Fixed
+- clear publish notification lint blockers
+- send immediate publication emails
+
 ## [0.41.0] - 2026-07-29
 
 ### Changed
