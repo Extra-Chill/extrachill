@@ -508,6 +508,11 @@ function ec_studio_compose_create_post( \WP_REST_Request $request ) {
 		$user_id,
 		true
 	);
+	ec_studio_compose_schedule_editor_notification(
+		$response,
+		isset( $params['status'] ) ? (string) $params['status'] : 'draft',
+		$user_id
+	);
 
 	return ec_studio_compose_relay_response( $response );
 }
@@ -614,6 +619,11 @@ function ec_studio_compose_update_post( \WP_REST_Request $request ) {
 		$user_id,
 		false
 	);
+	ec_studio_compose_schedule_editor_notification(
+		$response,
+		isset( $params['status'] ) ? (string) $params['status'] : '',
+		$user_id
+	);
 
 	return ec_studio_compose_relay_response( $response );
 }
@@ -667,6 +677,214 @@ function ec_studio_compose_emit_lifecycle_event( $response, string $status, int 
 		);
 	}
 }
+
+/**
+ * Schedule the main site's editorial-owner notification in a trusted worker.
+ *
+ * Studio submissions run under contributor credentials, while the mail ability
+ * is intentionally restricted to administrators and background workers. A
+ * unique Action Scheduler action crosses that boundary without elevating the
+ * submitting request. The delivery receipt still provides the final dedupe.
+ *
+ * @param array|\WP_Error $response Cross-site write result.
+ * @param string          $status   Resolved post status that was written.
+ * @param int             $user_id  Submitting user ID.
+ * @return void
+ */
+function ec_studio_compose_schedule_editor_notification( $response, string $status, int $user_id ): void {
+	if ( 'pending' !== $status || is_wp_error( $response ) ) {
+		return;
+	}
+
+	$post_id = isset( $response['id'] ) ? (int) $response['id'] : 0;
+	if ( $post_id <= 0 ) {
+		return;
+	}
+
+	ec_studio_schedule_editor_notification( $post_id, $user_id );
+}
+
+/**
+ * Enqueue one unique background delivery for a pending editorial submission.
+ *
+ * @param int $post_id Post awaiting review on main.
+ * @param int $user_id Submitting user ID.
+ * @return bool True when delivery was queued.
+ */
+function ec_studio_schedule_editor_notification( int $post_id, int $user_id ): bool {
+	if ( $post_id <= 0 || $user_id <= 0 || ! function_exists( 'as_enqueue_async_action' ) ) {
+		return false;
+	}
+
+	try {
+		$action_id = as_enqueue_async_action(
+			'ec_studio_deliver_editor_notification',
+			array( $post_id, $user_id ),
+			'extrachill-studio-email',
+			true
+		);
+	} catch ( \Throwable $exception ) {
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Canonical operational logging surface.
+			sprintf( '[extrachill-studio] Failed to schedule the editor notification for pending post %1$d: %2$s', $post_id, $exception->getMessage() )
+		);
+		return false;
+	}
+
+	return (int) $action_id > 0;
+}
+
+/**
+ * Create an idempotent editorial-review notification for one pending post.
+ *
+ * Kept separate from the REST response adapter so the review-queue recovery
+ * scan can repair notifications for writes that bypassed the Compose proxy.
+ *
+ * @param int $post_id Post awaiting review on main.
+ * @param int $user_id Submitting user ID.
+ * @return bool True when the notification exists or was inserted.
+ */
+function ec_studio_notify_editor_for_post( int $post_id, int $user_id ): bool {
+	if ( $post_id <= 0 || $user_id <= 0 || ! function_exists( 'ec_users_notify_with_receipts' ) || ! function_exists( 'ec_get_blog_id' ) ) {
+		return false;
+	}
+
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
+	if ( $main_blog_id <= 0 ) {
+		return false;
+	}
+
+	$recipient_id = 0;
+	$recipient    = null;
+	$author_name  = '';
+	$post_title   = '';
+	$title        = '';
+	$link         = '';
+
+	switch_to_blog( $main_blog_id );
+	try {
+		$admin = get_user_by( 'email', (string) get_option( 'admin_email' ) );
+		if ( ! $admin instanceof \WP_User || ! user_can( $admin, 'edit_others_posts' ) ) {
+			$editors = get_users(
+				array(
+					'capability' => 'edit_others_posts',
+					'orderby'    => 'ID',
+					'order'      => 'ASC',
+				)
+			);
+			$admin   = null;
+			foreach ( $editors as $editor ) {
+				if ( $editor instanceof \WP_User && user_can( $editor, 'edit_others_posts' ) ) {
+					$admin = $editor;
+					break;
+				}
+			}
+		}
+		$post = get_post( $post_id );
+		if ( $admin instanceof \WP_User && $post instanceof \WP_Post && 'pending' === $post->post_status && user_can( $admin, 'edit_others_posts' ) ) {
+			$recipient_id = (int) $admin->ID;
+			$recipient    = $admin;
+			$author_name  = (string) get_the_author_meta( 'display_name', $user_id );
+			$post_title   = (string) get_the_title( $post );
+			$link         = (string) admin_url( 'post.php?post=' . $post_id . '&action=edit' );
+			$title        = sprintf(
+				/* translators: 1: author name, 2: submitted post title. */
+				__( 'New post submitted for review by %1$s: %2$s', 'extrachill-studio' ),
+				$author_name,
+				$post_title
+			);
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( $recipient_id <= 0 || ! $recipient instanceof \WP_User || '' === $link || '' === $title ) {
+		return false;
+	}
+
+	$producer        = 'extrachill-studio/editorial-review';
+	$idempotency_key = 'submitted:' . $post_id;
+	$owns_email      = is_email( $recipient->user_email ) && function_exists( 'ec_users_release_notification_receipt' ) && function_exists( 'ec_send_email_queued' );
+	$receipt         = ec_users_notify_with_receipts(
+		array( $recipient_id ),
+		array(
+			'actor_id'            => $user_id,
+			'type'                => 'editorial_submission',
+			'link'                => $link,
+			'title'               => $title,
+			'item_id'             => $post_id,
+			'producer'            => $producer,
+			'idempotency_key'     => $idempotency_key,
+			'producer_owns_email' => $owns_email,
+		)
+	);
+
+	$recipient_receipt = is_array( $receipt['recipients'][ $recipient_id ] ?? null ) ? $receipt['recipients'][ $recipient_id ] : array();
+	$status            = (string) ( $recipient_receipt['status'] ?? 'failed' );
+	$notification_id   = (int) ( $recipient_receipt['notification_id'] ?? 0 );
+	if ( 'existing' === $status ) {
+		return true;
+	}
+	if ( 'inserted' !== $status || $notification_id <= 0 ) {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Gated observability for a failed editor handoff.
+				sprintf( '[extrachill-studio] Failed to claim the editor notification for pending post %d.', $post_id )
+			);
+		}
+		return false;
+	}
+	if ( ! $owns_email ) {
+		return true;
+	}
+
+	$subject = sprintf(
+		/* translators: %s: submitted post title. */
+		__( 'New post submitted for review: %s', 'extrachill-studio' ),
+		$post_title
+	);
+	$body_html = '<p>' . sprintf(
+		/* translators: 1: author name, 2: submitted post title. */
+		esc_html__( '%1$s submitted “%2$s” for editorial review.', 'extrachill-studio' ),
+		esc_html( $author_name ),
+		esc_html( $post_title )
+	) . '</p><p>' . esc_html__( 'The draft is ready to review on Extra Chill.', 'extrachill-studio' ) . '</p>';
+	try {
+		$queue = ec_send_email_queued(
+			array(
+				'to'       => $recipient->user_email,
+				'subject'  => $subject,
+				'template' => 'extrachill/branded',
+				'context'  => array(
+					'subject_html'   => esc_html( $subject ),
+					'recipient_name' => $recipient->display_name,
+					'body_html'      => $body_html,
+					'cta_url'        => $link,
+					'cta_label'      => __( 'Review submission', 'extrachill-studio' ),
+					'preheader'      => __( 'A new post is ready for editorial review.', 'extrachill-studio' ),
+				),
+			)
+		);
+	} catch ( \Throwable $exception ) {
+		$queue = array(
+			'success' => false,
+			'error'   => $exception->getMessage(),
+		);
+	}
+	$queued = is_array( $queue ) && ! empty( $queue['success'] );
+	if ( ! $queued ) {
+		$released = ec_users_release_notification_receipt( $notification_id, $recipient_id, $producer, $idempotency_key );
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Canonical operational logging surface.
+			sprintf(
+				'[extrachill-studio] Failed to queue the editor email for pending post %1$d; receipt released: %2$s.',
+				$post_id,
+				$released ? 'yes' : 'no'
+			)
+		);
+		return false;
+	}
+
+	return true;
+}
+add_action( 'ec_studio_deliver_editor_notification', 'ec_studio_notify_editor_for_post', 10, 2 );
 
 /**
  * Post-meta key stamped on a main-site post created via the Studio compose

@@ -11,10 +11,12 @@
  *
  * This page closes the editorial loop. It registers a wp-admin screen on the
  * Studio subsite (blog 12) — where team editors already work — and queries
- * MAIN for pending posts carrying the Studio-submission provenance marker
- * (`_ec_studio_submission`, stamped by the compose proxy). Each row links
- * straight to the review/edit/preview surfaces on main so an editor can pick
- * the submission up and publish it.
+ * MAIN for pending posts by Extra Chill team members and administrators. Studio
+ * provenance (`_ec_studio_submission`) enriches the submitted timestamp when
+ * present, but is deliberately not an admission rule: a failed or bypassed
+ * marker write must not make pending editorial work invisible. Each row links
+ * straight to the review/edit/preview surfaces on main so an editor can pick the
+ * submission up and publish it.
  *
  * Why a Studio-subsite admin page (not a page ON main):
  *   - This plugin is active only on Studio (blog 12); it is not present on
@@ -47,6 +49,9 @@ const EC_STUDIO_REVIEW_QUEUE_CAP = 'edit_others_posts';
  * Admin page slug for the review queue.
  */
 const EC_STUDIO_REVIEW_QUEUE_SLUG = 'ec-studio-review-queue';
+
+/** Hourly recovery hook for pending submissions that missed their live alert. */
+const EC_STUDIO_REVIEW_NOTIFICATION_CRON = 'ec_studio_recover_review_notifications';
 
 /**
  * Register the review-queue admin page under the Posts menu.
@@ -89,10 +94,10 @@ function ec_studio_review_queue_main_blog_id(): int {
 /**
  * Fetch pending Studio submissions from main extrachill.com.
  *
- * Runs a WP_Query inside `switch_to_blog( main )` for posts that:
- *   - have post_status `pending`, and
- *   - carry the `_ec_studio_submission` provenance meta (EXISTS) — the marker
- *     the compose proxy stamps on every born-on-main submission.
+ * Runs a WP_Query inside `switch_to_blog( main )` for pending posts authored by
+ * Extra Chill team members or administrators. WordPress's pending status is the
+ * authoritative editorial handoff; Studio provenance is optional metadata and
+ * must never gate visibility.
  *
  * Each returned row is a plain array of the fields the table renders, resolved
  * WHILE STILL in main's context (author display name, edit/preview URLs) so the
@@ -113,20 +118,25 @@ function ec_studio_review_queue_fetch_submissions( int $main_blog_id ): array {
 
 	switch_to_blog( $main_blog_id );
 	try {
+		$team_author_ids = get_users(
+			array(
+				'role__in' => array( 'extra_chill_team', 'administrator' ),
+				'fields'   => 'ID',
+			)
+		);
+		$team_author_ids = array_map( 'intval', $team_author_ids );
+		if ( empty( $team_author_ids ) ) {
+			return array();
+		}
+
 		$query = new \WP_Query(
 			array(
 				'post_type'      => 'post',
 				'post_status'    => 'pending',
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_meta_query -- Editorial queue: a bounded, editor-only admin screen keyed on the provenance marker. This is the intended query.
-				'meta_query'     => array(
-					array(
-						'key'     => '_ec_studio_submission',
-						'compare' => 'EXISTS',
-					),
-				),
+				'author__in'     => $team_author_ids,
 				'orderby'        => 'modified',
 				'order'          => 'DESC',
-				'posts_per_page' => 100,
+				'posts_per_page' => -1,
 				'no_found_rows'  => true,
 			)
 		);
@@ -152,6 +162,7 @@ function ec_studio_review_queue_fetch_submissions( int $main_blog_id ): array {
 
 			$rows[] = array(
 				'id'           => (int) $post->ID,
+				'author_id'    => $author_id,
 				'title'        => '' !== $title ? $title : __( '(no title)', 'extrachill-studio' ),
 				'author'       => '' !== $author_name ? $author_name : __( 'Unknown', 'extrachill-studio' ),
 				'submitted_at' => $submitted_at,
@@ -166,6 +177,35 @@ function ec_studio_review_queue_fetch_submissions( int $main_blog_id ): array {
 
 	return $rows;
 }
+
+/** Ensure missed or bypassed submission alerts are retried hourly. */
+function ec_studio_review_queue_schedule_notification_recovery(): void {
+	if ( ! wp_next_scheduled( EC_STUDIO_REVIEW_NOTIFICATION_CRON ) ) {
+		wp_schedule_event( time() + ( 5 * MINUTE_IN_SECONDS ), 'hourly', EC_STUDIO_REVIEW_NOTIFICATION_CRON );
+	}
+}
+add_action( 'init', 'ec_studio_review_queue_schedule_notification_recovery' );
+
+/** Retry notifications for every pending post; queued actions and receipts deduplicate. */
+function ec_studio_review_queue_recover_notifications(): void {
+	$main_blog_id = ec_studio_review_queue_main_blog_id();
+	if ( $main_blog_id <= 0 || ! function_exists( 'ec_studio_schedule_editor_notification' ) ) {
+		return;
+	}
+
+	foreach ( ec_studio_review_queue_fetch_submissions( $main_blog_id ) as $submission ) {
+		$post_id   = (int) $submission['id'];
+		$author_id = (int) $submission['author_id'];
+		ec_studio_schedule_editor_notification( $post_id, $author_id );
+	}
+}
+add_action( EC_STUDIO_REVIEW_NOTIFICATION_CRON, 'ec_studio_review_queue_recover_notifications' );
+
+/** Remove the recovery event when Studio is deactivated. */
+function ec_studio_review_queue_unschedule_notification_recovery(): void {
+	wp_clear_scheduled_hook( EC_STUDIO_REVIEW_NOTIFICATION_CRON );
+}
+register_deactivation_hook( EXTRACHILL_STUDIO_PLUGIN_FILE, 'ec_studio_review_queue_unschedule_notification_recovery' );
 
 /**
  * Format an ISO-8601 / MySQL datetime for display in the site's timezone.
@@ -215,6 +255,17 @@ function ec_studio_review_queue_render_page(): void {
 		echo '<div class="notice notice-error"><p>' . esc_html__( 'Could not resolve the main site. The Extra Chill multisite helpers may be unavailable.', 'extrachill-studio' ) . '</p></div>';
 		echo '</div>';
 		return;
+	}
+
+	switch_to_blog( $main_blog_id );
+	try {
+		$can_review_main = current_user_can( EC_STUDIO_REVIEW_QUEUE_CAP );
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( ! $can_review_main ) {
+		wp_die( esc_html__( 'You do not have permission to review submissions on the main site.', 'extrachill-studio' ) );
 	}
 
 	$rows = ec_studio_review_queue_fetch_submissions( $main_blog_id );
