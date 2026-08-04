@@ -17,7 +17,7 @@ export const Status = ( { state, onRetry } ) => {
 				{ onRetry && (
 					<button
 						type="button"
-						className="button-link"
+						className="button-2 button-small"
 						onClick={ onRetry }
 					>
 						Retry

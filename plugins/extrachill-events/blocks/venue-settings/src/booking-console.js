@@ -590,7 +590,11 @@ function ErrorState( { message, onRetry } ) {
 	return (
 		<InlineStatus tone="error">
 			{ message }
-			<button type="button" className="button-link" onClick={ onRetry }>
+			<button
+				type="button"
+				className="button-2 button-small"
+				onClick={ onRetry }
+			>
 				Retry
 			</button>
 		</InlineStatus>

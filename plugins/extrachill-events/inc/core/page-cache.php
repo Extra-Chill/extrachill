@@ -10,6 +10,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_filter( 'extrachill_cache_post_change_urls', 'extrachill_events_cache_invalidation_urls', 10, 3 );
+add_action( 'extrachill_events_venue_booking_config_updated', 'extrachill_events_purge_booking_archive_cache', 10, 1 );
+
+/** Purge the public venue archive after its booking form configuration changes. */
+function extrachill_events_purge_booking_archive_cache( $venue_term_id ) {
+	if ( ! function_exists( 'extrachill_cache_delete_url' ) ) {
+		return;
+	}
+
+	$venue_url = get_term_link( absint( $venue_term_id ), 'venue' );
+	if ( ! is_wp_error( $venue_url ) ) {
+		extrachill_cache_delete_url( $venue_url, get_current_blog_id() );
+	}
+}
 
 /**
  * Return event pages affected by an event save.

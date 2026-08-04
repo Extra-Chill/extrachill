@@ -573,6 +573,9 @@ describe( 'venue settings authorization-facing states', () => {
 			} )
 		);
 		expect( container.textContent ).toContain( 'Claims unavailable.' );
+		expect( buttonByText( container, 'Retry' ).className ).toBe(
+			'button-2 button-small'
+		);
 		await act( async () => {
 			buttonByText( container, 'Retry' ).click();
 			await Promise.resolve();

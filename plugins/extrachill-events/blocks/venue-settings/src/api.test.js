@@ -32,6 +32,19 @@ describe( 'venue settings ability transport', () => {
 		);
 	} );
 
+	it.each( [
+		'extrachill/list-venue-bookings',
+		'extrachill/get-venue-booking',
+	] )( 'uses POST for reconciliation read %s', async ( ability ) => {
+		const input = { venue_term_id: 44 };
+		await runAbility( ability, input );
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: `/wp-abilities/v1/abilities/${ ability }/run`,
+			method: 'POST',
+			data: { input },
+		} );
+	} );
+
 	it( 'uses DELETE for idempotent destructive cancellation', async () => {
 		await runAbility( 'extrachill/cancel-venue-invitation', {
 			invitation_id: 9,
