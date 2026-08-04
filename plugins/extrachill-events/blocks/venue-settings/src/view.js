@@ -32,6 +32,41 @@ import { editableConfig, profileChanges, sameDocument } from './state';
 
 export { venueSubscriberCsv } from './team-tab';
 
+function AllVenues( { venues, routeUrl } ) {
+	return (
+		<Panel>
+			<h2>All venues</h2>
+			<p>
+				Open a venue to manage its calendar, bookings, profile, and
+				team.
+			</p>
+			<ul className="ec-venue-settings__records">
+				{ venues.map( ( venue ) => {
+					const url = new URL( routeUrl );
+					url.searchParams.set( 'venue_id', venue.id );
+					return (
+						<li key={ venue.id }>
+							<span>
+								<strong>{ venue.name }</strong>{ ' ' }
+								<small>
+									{ venue.status }
+									{ venue.is_owner ? ' - owner' : '' }
+								</small>
+							</span>
+							<a
+								className="button-2 button-small"
+								href={ url.toString() }
+							>
+								Open workspace
+							</a>
+						</li>
+					);
+				} ) }
+			</ul>
+		</Panel>
+	);
+}
+
 export function VenueSettingsApp( { context } ) {
 	const selected = context.selected_venue;
 	const [ activeTab, setActiveTab ] = useState( 'calendar' );
@@ -425,6 +460,14 @@ export function VenueSettingsApp( { context } ) {
 		);
 	};
 	const renderWorkspace = () => {
+		if ( ! selected && context.venues.length > 0 ) {
+			return (
+				<AllVenues
+					venues={ context.venues }
+					routeUrl={ context.route_url }
+				/>
+			);
+		}
 		if ( ! selected || ! context.can_access ) {
 			if ( context.user.is_admin ) {
 				return (

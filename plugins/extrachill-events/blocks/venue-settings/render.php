@@ -108,7 +108,7 @@ $requested_booking_id = isset( $_GET['booking_id'] ) && is_scalar( $_GET['bookin
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 $selected = null;
 foreach ( $managed_venues as $venue ) {
-	if ( $requested_venue_id === $venue['id'] || ( ! $requested_venue_id && 'active' === $venue['status'] ) ) {
+	if ( $requested_venue_id === $venue['id'] ) {
 		$selected = $venue;
 		break;
 	}

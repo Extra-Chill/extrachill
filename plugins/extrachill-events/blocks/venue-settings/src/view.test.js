@@ -321,6 +321,39 @@ describe( 'venue settings authorization-facing states', () => {
 		await act( async () => root.unmount() );
 	} );
 
+	it( 'shows all manageable venues by default', async () => {
+		const venues = [
+			{ id: 44, name: 'Venue 44', status: 'active', is_owner: true },
+			{
+				id: 45,
+				name: 'Venue 45',
+				status: 'administrator',
+				is_owner: false,
+			},
+		];
+		const { container, root } = await renderApp(
+			context( {
+				venues,
+				selected_venue: null,
+				can_access: false,
+			} )
+		);
+
+		const selector = container.querySelector( '#venue-workspace' );
+		expect( selector.value ).toBe( '0' );
+		expect( selector.options[ 0 ].textContent ).toBe( 'All venues' );
+		expect( container.textContent ).toContain( 'Venue 44' );
+		expect( container.textContent ).toContain( 'Venue 45' );
+		expect( container.textContent ).toContain( 'owner' );
+		expect(
+			container
+				.querySelector( 'a[href*="venue_id=45"]' )
+				.getAttribute( 'href' )
+		).toBe( 'https://events.example/venue-settings/?venue_id=45' );
+		expect( apiFetch ).not.toHaveBeenCalled();
+		await act( async () => root.unmount() );
+	} );
+
 	it( 'hides team controls from active non-owners', async () => {
 		const { container, root } = await renderApp( context() );
 		expect( container.textContent ).not.toContain( 'Team' );
