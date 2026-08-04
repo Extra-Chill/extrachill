@@ -4,6 +4,7 @@
  * WordPress dependencies
  */
 import apiFetch from '@wordpress/api-fetch';
+import { getQueryArgs } from '@wordpress/url';
 import { createRoot } from '@wordpress/element';
 
 /**
@@ -196,15 +197,30 @@ const context = ( overrides = {} ) => ( {
 	...overrides,
 } );
 
+const normalizeQueryInput = ( value ) => {
+	if ( Array.isArray( value ) ) {
+		return value.map( normalizeQueryInput );
+	}
+	if ( value && typeof value === 'object' ) {
+		return Object.fromEntries(
+			Object.entries( value ).map( ( [ key, item ] ) => [
+				key,
+				normalizeQueryInput( item ),
+			] )
+		);
+	}
+	return typeof value === 'string' && /^-?\d+(?:\.\d+)?$/.test( value )
+		? Number( value )
+		: value;
+};
+
 const requestInput = ( request ) => {
 	if ( request.data?.input ) {
 		return request.data.input;
 	}
-	const path = request.path || request;
-	const input = new URL( `https://events.example${ path }` ).searchParams.get(
-		'input'
+	return normalizeQueryInput(
+		getQueryArgs( request.path || request ).input || {}
 	);
-	return input ? JSON.parse( input ) : {};
 };
 
 const installApi = () =>

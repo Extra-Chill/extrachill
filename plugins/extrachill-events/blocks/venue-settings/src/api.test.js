@@ -23,16 +23,30 @@ describe( 'venue settings ability transport', () => {
 		'extrachill/get-venue-booking-config',
 		'extrachill/list-venue-memberships',
 		'extrachill/list-booking-holds',
-		'extrachill/list-venue-bookings',
-		'extrachill/get-venue-booking',
-		'extrachill/update-venue-booking-config',
-		'extrachill/review-venue-claim',
-		'extrachill/cancel-venue-invitation',
-	] )( 'sends object input through POST for %s', async ( ability ) => {
+	] )( 'sends object input through GET for %s', async ( ability ) => {
 		const input = { venue_term_id: 44 };
 		await runAbility( ability, input );
 		expect( apiFetch ).toHaveBeenCalledWith( {
-			path: `/wp-abilities/v1/abilities/${ ability }/run`,
+			path: `/wp-abilities/v1/abilities/${ ability }/run?input%5Bvenue_term_id%5D=44`,
+			method: 'GET',
+		} );
+	} );
+
+	it( 'uses DELETE with nested object input for destructive actions', async () => {
+		await runAbility( 'extrachill/cancel-venue-invitation', {
+			invitation_id: 9,
+		} );
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: '/wp-abilities/v1/abilities/extrachill/cancel-venue-invitation/run?input%5Binvitation_id%5D=9',
+			method: 'DELETE',
+		} );
+	} );
+
+	it( 'uses POST with JSON object input for updates', async () => {
+		const input = { venue_term_id: 44, config: {} };
+		await runAbility( 'extrachill/update-venue-booking-config', input );
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: '/wp-abilities/v1/abilities/extrachill/update-venue-booking-config/run',
 			method: 'POST',
 			data: { input },
 		} );
