@@ -74,6 +74,31 @@ if ( ! function_exists( '__' ) ) {
 		return $text;
 	}
 }
+if ( ! function_exists( 'absint' ) ) {
+	/**
+	 * Return a non-negative integer fixture.
+	 *
+	 * @param mixed $value Candidate value.
+	 * @return int Non-negative integer.
+	 */
+	function absint( $value ) {
+		return abs( (int) $value );
+	}
+}
+if ( ! function_exists( 'current_time' ) ) {
+	/**
+	 * Return a site-calendar time fixture.
+	 *
+	 * @param string $format Date format.
+	 * @return string Formatted date.
+	 */
+	function current_time( $format ) {
+		$timestamp = isset( $GLOBALS['extrachill_analytics_test_current_time'] )
+			? (int) $GLOBALS['extrachill_analytics_test_current_time']
+			: time();
+		return gmdate( $format, $timestamp );
+	}
+}
 if ( ! function_exists( 'wp_json_encode' ) ) {
 	/**
 	 * Encode a fixture value as JSON.

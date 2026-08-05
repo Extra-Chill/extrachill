@@ -8,6 +8,7 @@
  * @package ExtraChill\Analytics
  * @since 0.8.0
  */
+
 declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
@@ -33,6 +34,14 @@ function extrachill_analytics_register_get_link_page_analytics_ability(): void {
 						'type'        => 'integer',
 						'description' => __( 'Number of days to query. Defaults to 30.', 'extrachill-analytics' ),
 						'default'     => 30,
+					),
+					'start_date'   => array(
+						'type'        => 'string',
+						'description' => __( 'Inclusive start date in Y-m-d format. Requires end_date.', 'extrachill-analytics' ),
+					),
+					'end_date'     => array(
+						'type'        => 'string',
+						'description' => __( 'Inclusive end date in Y-m-d format. Requires start_date.', 'extrachill-analytics' ),
 					),
 				),
 				'required'   => array( 'link_page_id' ),
@@ -74,6 +83,11 @@ function extrachill_analytics_register_get_link_page_analytics_ability(): void {
 function extrachill_analytics_ability_get_link_page_analytics( array $input ) {
 	$link_page_id = isset( $input['link_page_id'] ) ? (int) $input['link_page_id'] : 0;
 	$date_range   = isset( $input['date_range'] ) ? (int) $input['date_range'] : 30;
+	$date_window  = extrachill_analytics_resolve_date_range( $input, 90 );
+
+	if ( is_wp_error( $date_window ) ) {
+		return $date_window;
+	}
 
 	if ( $link_page_id <= 0 ) {
 		return new \WP_Error(
@@ -111,8 +125,12 @@ function extrachill_analytics_ability_get_link_page_analytics( array $input ) {
 		);
 	}
 
-	/** @var array|WP_Error|null $result */
-	$result = apply_filters( 'extrachill_get_link_page_analytics', null, $link_page_id, $date_range );
+	/**
+	 * Analytics provider result.
+	 *
+	 * @var array|WP_Error|null $result
+	 */
+	$result = apply_filters( 'extrachill_get_link_page_analytics', null, $link_page_id, $date_range, $date_window );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

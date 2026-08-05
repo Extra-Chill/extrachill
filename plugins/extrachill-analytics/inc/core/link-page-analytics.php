@@ -43,7 +43,7 @@ add_action( 'extrachill_link_click_recorded', 'extrachill_analytics_handle_link_
 /*
  * ECA read provider for the extrachill_get_link_page_analytics filter.
  */
-add_filter( 'extrachill_get_link_page_analytics', 'extrachill_analytics_provide_link_page_analytics', 20, 3 );
+add_filter( 'extrachill_get_link_page_analytics', 'extrachill_analytics_provide_link_page_analytics', 20, 5 );
 
 /**
  * Supplies link-page analytics data for the extrachill_get_link_page_analytics
@@ -55,12 +55,19 @@ add_filter( 'extrachill_get_link_page_analytics', 'extrachill_analytics_provide_
  *   chart_data{labels[],datasets[{label,data[]}]}
  *   top_links[{text,identifier,clicks}]
  *
- * @param mixed $data         Prior filter value (unused).
- * @param int   $link_page_id Link page post ID.
- * @param int   $date_range   Number of days to include (1-90).
+ * The optional exact-window arguments preserve the numeric third argument used
+ * by existing consumers. The Analytics ability passes a canonical window as
+ * argument four; external consumers may pass raw start/end strings as arguments
+ * four and five for validation by this owning provider.
+ *
+ * @param mixed             $data         Prior filter value (unused).
+ * @param int               $link_page_id Link page post ID.
+ * @param int               $date_range   Number of days to include (1-90).
+ * @param array|string|null $date_window Canonical window or raw start date.
+ * @param string|null       $end_date_input Raw inclusive end date.
  * @return array|WP_Error
  */
-function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id, $date_range ) {
+function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id, $date_range, $date_window = null, $end_date_input = null ) {
 	global $wpdb;
 
 	$link_page_id = absint( $link_page_id );
@@ -68,13 +75,32 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 		return new WP_Error( 'invalid_link_page', 'Invalid or missing link page ID.', array( 'status' => 400 ) );
 	}
 
-	$range = absint( $date_range );
-	$range = $range ? $range : 30;
-	$range = max( 1, min( 90, $range ) );
-
-	$today       = current_time( 'Y-m-d' );
-	$start_stamp = strtotime( $today . ' -' . ( $range - 1 ) . ' days' );
-	$start_date  = gmdate( 'Y-m-d', $start_stamp );
+	if ( is_array( $date_window ) ) {
+		$range      = (int) $date_window['days'];
+		$start_date = $date_window['start_date'];
+		$end_date   = $date_window['end_date'];
+	} elseif ( is_string( $date_window ) || is_string( $end_date_input ) ) {
+		$resolved_window = extrachill_analytics_resolve_date_range(
+			array(
+				'start_date' => is_string( $date_window ) ? $date_window : '',
+				'end_date'   => is_string( $end_date_input ) ? $end_date_input : '',
+			),
+			90
+		);
+		if ( is_wp_error( $resolved_window ) ) {
+			return $resolved_window;
+		}
+		$range      = (int) $resolved_window['days'];
+		$start_date = $resolved_window['start_date'];
+		$end_date   = $resolved_window['end_date'];
+	} else {
+		$range       = absint( $date_range );
+		$range       = $range ? $range : 30;
+		$range       = max( 1, min( 90, $range ) );
+		$end_date    = current_time( 'Y-m-d' );
+		$start_stamp = strtotime( $end_date . ' -' . ( $range - 1 ) . ' days' );
+		$start_date  = gmdate( 'Y-m-d', (int) $start_stamp );
+	}
 
 	$views_table  = extrachill_analytics_link_page_views_table();
 	$clicks_table = extrachill_analytics_link_page_clicks_table();
@@ -84,7 +110,7 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 			"SELECT stat_date, view_count FROM {$views_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s ORDER BY stat_date ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $views_table is a code-defined table name; all values bound via prepare().
 			$link_page_id,
 			$start_date,
-			$today
+			$end_date
 		)
 	);
 
@@ -93,7 +119,7 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 			"SELECT stat_date, SUM(click_count) AS click_count FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY stat_date ORDER BY stat_date ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $clicks_table is a code-defined table name; all values bound via prepare().
 			$link_page_id,
 			$start_date,
-			$today
+			$end_date
 		)
 	);
 
@@ -102,7 +128,7 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 			"SELECT link_url, link_text, SUM(click_count) AS total_clicks FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY link_url, link_text ORDER BY total_clicks DESC LIMIT 20", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $clicks_table is a code-defined table name; all values bound via prepare().
 			$link_page_id,
 			$start_date,
-			$today
+			$end_date
 		)
 	);
 
@@ -122,7 +148,7 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 	$click_series = array();
 
 	for ( $i = 0; $i < $range; $i++ ) {
-		$date           = gmdate( 'Y-m-d', strtotime( $start_date . ' +' . $i . ' days' ) );
+		$date           = gmdate( 'Y-m-d', (int) strtotime( $start_date . ' +' . $i . ' days' ) );
 		$labels[]       = $date;
 		$view_series[]  = isset( $view_map[ $date ] ) ? $view_map[ $date ] : 0;
 		$click_series[] = isset( $click_map[ $date ] ) ? $click_map[ $date ] : 0;
@@ -143,6 +169,9 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 	);
 
 	return array(
+		'start_date' => $start_date,
+		'end_date'   => $end_date,
+		'days'       => $range,
 		'summary'    => array(
 			'total_views'  => $total_views,
 			'total_clicks' => $total_clicks,
