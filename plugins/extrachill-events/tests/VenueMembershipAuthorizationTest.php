@@ -1836,6 +1836,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertContains( 'public_requirements', $config_output['required'] );
 		$this->assertContains( 'consent', $config_output['required'] );
 		$this->assertContains( 'appearance', $config_output['required'] );
+		$this->assertSame( '^#[0-9a-fA-F]{6}$', $config_output['properties']['appearance']['properties']['background_color']['pattern'] );
 		$this->assertContains( 'marketing_triggers', $config_output['required'] );
 		$this->assertNotContains( 'booking_guide', $config_output['required'] );
 		$this->assertArrayNotHasKey( 'booking_guide', $config_output['properties'] );

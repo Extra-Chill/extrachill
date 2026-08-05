@@ -243,7 +243,7 @@ class VenueBookingConfigAbilities {
 			'required'             => array( 'artist_name_label', 'contact_name_label', 'contact_email_label', 'contact_phone_label', 'message_label', 'message_help' ),
 			'additionalProperties' => false,
 		);
-		$appearance_schema = array(
+		$appearance_schema   = array(
 			'type'                 => 'object',
 			'properties'           => array(
 				'mode'              => array(

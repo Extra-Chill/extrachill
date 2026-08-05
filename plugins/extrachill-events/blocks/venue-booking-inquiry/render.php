@@ -82,18 +82,15 @@ if ( ! is_array( $canonical ) ) {
 	return;
 }
 
-$booking_config       = $canonical['booking_config'];
-$instance             = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-booking-' ) : 'ec-booking-' . $venue_id;
-$logged_in            = is_user_logged_in();
-$form_enabled         = ! empty( $booking_config['enabled'] );
+$booking_config = $canonical['booking_config'];
+$instance       = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-booking-' ) : 'ec-booking-' . $venue_id;
+$logged_in      = is_user_logged_in();
 if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 	define( 'DONOTCACHEPAGE', true );
 }
 nocache_headers();
-if ( $form_enabled ) {
-	if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
-		ec_enqueue_turnstile_script();
-	}
+if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
+	ec_enqueue_turnstile_script();
 }
 
 $public_config = array(
@@ -111,8 +108,8 @@ $public_config = array(
 	'consent'              => $booking_config['consent'],
 );
 
-$json = $form_enabled ? wp_json_encode( $public_config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) : '';
-if ( $form_enabled && false === $json ) {
+$json = wp_json_encode( $public_config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
+if ( false === $json ) {
 	return;
 }
 $wrapper_extra = array(
@@ -125,17 +122,15 @@ if ( (int) get_current_blog_id() === $events_blog_id && is_tax( 'venue' ) ) {
 $wrapper_attributes = get_block_wrapper_attributes( $wrapper_extra );
 ?>
 <section <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core escapes block wrapper attributes. ?>>
-	<?php if ( $form_enabled ) : ?>
-		<div data-booking-app></div>
-		<script type="application/json"><?php echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON_HEX flags make the script payload inert. ?></script>
-		<div data-booking-turnstile>
-			<?php
-			if ( function_exists( 'ec_render_turnstile_widget' ) ) {
-				echo wp_kses_post( ec_render_turnstile_widget( array( 'data-appearance' => 'always' ) ) );
-			} else {
-				esc_html_e( 'Security challenge unavailable. Please contact the venue directly.', 'extrachill-events' );
-			}
-			?>
-		</div>
-	<?php endif; ?>
+	<div data-booking-app></div>
+	<script type="application/json"><?php echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON_HEX flags make the script payload inert. ?></script>
+	<div data-booking-turnstile>
+		<?php
+		if ( function_exists( 'ec_render_turnstile_widget' ) ) {
+			echo wp_kses_post( ec_render_turnstile_widget( array( 'data-appearance' => 'always' ) ) );
+		} else {
+			esc_html_e( 'Security challenge unavailable. Please contact the venue directly.', 'extrachill-events' );
+		}
+		?>
+	</div>
 </section>

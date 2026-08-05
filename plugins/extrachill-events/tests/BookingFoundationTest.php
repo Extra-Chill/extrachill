@@ -707,6 +707,9 @@ final class BookingFoundationTest extends BookingTestCase {
 		$config['appearance']['mode']                 = 'custom';
 		$config['appearance']['button_radius']        = 33;
 		$this->assertSame( 'invalid_booking_appearance_radius', $service->normalize( $config )->get_error_code() );
+		$config['appearance']['button_radius']        = 8;
+		$config['appearance']['background_color']     = '#AABBCC';
+		$this->assertSame( '#aabbcc', $service->normalize( $config )['appearance']['background_color'] );
 		$this->assertStringContainsString( '--ec-booking-background:#121212', VenueBookingConfig::appearance_style( $service->defaults()['appearance'] ) );
 		$this->assertStringNotContainsString( ':root', VenueBookingConfig::appearance_style( $service->defaults()['appearance'] ) );
 	}

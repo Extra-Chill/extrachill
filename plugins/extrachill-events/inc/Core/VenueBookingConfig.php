@@ -693,7 +693,7 @@ class VenueBookingConfig {
 	 * @return array|\WP_Error
 	 */
 	private function normalize_appearance( $appearance ) {
-		$defaults = array(
+		$defaults   = array(
 			'mode'              => 'default',
 			'background_color'  => '#121212',
 			'surface_color'     => '#1f1f1f',
