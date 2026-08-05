@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.26.0] - 2026-08-05
+
+### Added
+- add exact Network analytics date ranges
+
+### Fixed
+- satisfy exact-date release lint
+
 ## [0.25.0] - 2026-08-04
 
 ### Added
