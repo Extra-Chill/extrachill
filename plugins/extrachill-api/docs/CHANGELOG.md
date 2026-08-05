@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.30.0] - 2026-08-05
+
+### Added
+- forward exact analytics date windows
+
 ## [0.29.0] - 2026-08-04
 
 ### Added
