@@ -52,11 +52,19 @@ function extrachill_api_register_analytics_conversion_map_route() {
 					'type'     => 'integer',
 					'default'  => 1,
 				),
-				'author_id'           => array(
+				'author_id'          => array(
 					'required' => false,
 					'type'     => 'integer',
 					'default'  => 0,
 					'minimum'  => 0,
+				),
+				'start_date'         => array(
+					'required' => false,
+					'type'     => 'string',
+				),
+				'end_date'           => array(
+					'required' => false,
+					'type'     => 'string',
 				),
 			),
 		)
@@ -77,15 +85,21 @@ function extrachill_api_analytics_conversion_map_handler( WP_REST_Request $reque
 		return new WP_Error( 'ability_not_found', 'extrachill-analytics plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute(
-		array(
-			'days'               => (int) $request->get_param( 'days' ),
-			'session_gap_mins'   => (int) $request->get_param( 'session_gap_mins' ),
-			'top_articles'       => (int) $request->get_param( 'top_articles' ),
-			'min_entry_sessions' => (int) $request->get_param( 'min_entry_sessions' ),
-			'author_id'           => max( 0, (int) $request->get_param( 'author_id' ) ),
-		)
+	$input = array(
+		'days'               => (int) $request->get_param( 'days' ),
+		'session_gap_mins'   => (int) $request->get_param( 'session_gap_mins' ),
+		'top_articles'       => (int) $request->get_param( 'top_articles' ),
+		'min_entry_sessions' => (int) $request->get_param( 'min_entry_sessions' ),
+		'author_id'          => max( 0, (int) $request->get_param( 'author_id' ) ),
 	);
+
+	foreach ( array( 'start_date', 'end_date' ) as $date_param ) {
+		if ( null !== $request->get_param( $date_param ) ) {
+			$input[ $date_param ] = $request->get_param( $date_param );
+		}
+	}
+
+	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

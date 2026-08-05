@@ -30,10 +30,18 @@ function extrachill_api_register_analytics_surface_growth_route() {
 			'callback'            => 'extrachill_api_analytics_surface_growth_handler',
 			'permission_callback' => 'extrachill_api_analytics_reports_permission_check',
 			'args'                => array(
-				'weeks' => array(
+				'weeks'      => array(
 					'required' => false,
 					'type'     => 'integer',
 					'default'  => 4,
+				),
+				'start_date' => array(
+					'required' => false,
+					'type'     => 'string',
+				),
+				'end_date'   => array(
+					'required' => false,
+					'type'     => 'string',
 				),
 			),
 		)
@@ -54,11 +62,17 @@ function extrachill_api_analytics_surface_growth_handler( WP_REST_Request $reque
 		return new WP_Error( 'ability_not_found', 'extrachill-analytics plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute(
-		array(
-			'weeks' => (int) $request->get_param( 'weeks' ),
-		)
+	$input = array(
+		'weeks' => (int) $request->get_param( 'weeks' ),
 	);
+
+	foreach ( array( 'start_date', 'end_date' ) as $date_param ) {
+		if ( null !== $request->get_param( $date_param ) ) {
+			$input[ $date_param ] = $request->get_param( $date_param );
+		}
+	}
+
+	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

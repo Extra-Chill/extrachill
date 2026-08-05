@@ -46,6 +46,14 @@ function extrachill_api_register_analytics_retention_route() {
 					'type'     => 'integer',
 					'default'  => 8,
 				),
+				'start_date'   => array(
+					'required' => false,
+					'type'     => 'string',
+				),
+				'end_date'     => array(
+					'required' => false,
+					'type'     => 'string',
+				),
 			),
 		)
 	);
@@ -65,13 +73,19 @@ function extrachill_api_analytics_retention_handler( WP_REST_Request $request ) 
 		return new WP_Error( 'ability_not_found', 'extrachill-analytics plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute(
-		array(
-			'days'         => (int) $request->get_param( 'days' ),
-			'blog_id'      => (int) $request->get_param( 'blog_id' ),
-			'cohort_weeks' => (int) $request->get_param( 'cohort_weeks' ),
-		)
+	$input = array(
+		'days'         => (int) $request->get_param( 'days' ),
+		'blog_id'      => (int) $request->get_param( 'blog_id' ),
+		'cohort_weeks' => (int) $request->get_param( 'cohort_weeks' ),
 	);
+
+	foreach ( array( 'start_date', 'end_date' ) as $date_param ) {
+		if ( null !== $request->get_param( $date_param ) ) {
+			$input[ $date_param ] = $request->get_param( $date_param );
+		}
+	}
+
+	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

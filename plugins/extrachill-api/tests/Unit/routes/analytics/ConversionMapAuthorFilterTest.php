@@ -19,6 +19,6 @@ final class ConversionMapAuthorFilterTest extends TestCase {
 		$this->assertIsString( $source );
 		$this->assertStringContainsString( "'author_id'", $source );
 		$this->assertStringContainsString( "'minimum'  => 0", $source );
-		$this->assertStringContainsString( "'author_id'           => max( 0, (int) \$request->get_param( 'author_id' ) )", $source );
+		$this->assertStringContainsString( "'author_id'          => max( 0, (int) \$request->get_param( 'author_id' ) )", $source );
 	}
 }
