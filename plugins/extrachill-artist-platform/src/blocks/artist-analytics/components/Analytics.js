@@ -4,8 +4,15 @@
  * Main analytics dashboard with Chart.js visualization.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+
+/**
+ * External dependencies
+ */
 import {
 	ActionRow,
 	BlockShell,
@@ -15,6 +22,10 @@ import {
 	PanelHeader,
 	Section,
 } from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import { useAnalyticsContext } from '../context/AnalyticsContext';
 import useAnalytics from '../hooks/useAnalytics';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
@@ -51,7 +62,7 @@ export default function Analytics() {
 			// scales, and elements already registered). Resolve defensively
 			// across those shapes. The external mapping is why the
 			// extraneous-dependency lint rule is suppressed here.
-			// eslint-disable-next-line import/no-extraneous-dependencies, import/no-unresolved
+			// eslint-disable-next-line import/no-unresolved
 			const ChartModule = await import( 'chart.js/auto' );
 			const Chart =
 				ChartModule?.default || ChartModule?.Chart || ChartModule;

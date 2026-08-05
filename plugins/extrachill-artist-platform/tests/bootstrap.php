@@ -187,7 +187,7 @@ function get_current_blog_id() {
 }
 
 function get_site( $blog_id = null ) {
-	$blog_id = $blog_id ?: get_current_blog_id();
+	$blog_id = $blog_id ? $blog_id : get_current_blog_id();
 	if ( ! isset( $GLOBALS['ec_test']['blogs'][ $blog_id ] ) ) {
 		return null;
 	}
@@ -421,7 +421,7 @@ function get_post_status( $post_id ) {
 function get_post_meta( $post_id, $key = '', $single = false ) {
 	$blog_meta = ec_test_blog_store( 'post_meta' );
 	$meta      = $blog_meta[ $post_id ] ?? ( $GLOBALS['ec_test']['meta'][ $post_id ] ?? array() );
-	if ( $key === '' ) {
+	if ( '' === $key ) {
 		return $meta;
 	}
 	$value = $meta[ $key ] ?? ( $single ? '' : array() );

@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Handler: extrachill/artist-get-analytics
  *
@@ -9,20 +8,17 @@ declare(strict_types=1);
  * @since   1.9.0
  */
 
+declare(strict_types=1);
+
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Get link page analytics for an artist.
  *
- * @param array $input {
- *     @type int    $id         Artist profile post ID.
- *     @type int    $date_range Number of days to query (default 30, max 90).
- *     @type string $start_date Inclusive exact window start in Y-m-d format.
- *     @type string $end_date   Inclusive exact window end in Y-m-d format.
- * }
+ * @param array $input Input parameters.
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_artist_get_analytics( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_get_analytics( array $input ) {
 	$artist_id  = isset( $input['id'] ) ? (int) $input['id'] : 0;
 	$date_range = isset( $input['date_range'] ) ? (int) $input['date_range'] : 30;
 	$start_date = isset( $input['start_date'] ) ? (string) $input['start_date'] : '';

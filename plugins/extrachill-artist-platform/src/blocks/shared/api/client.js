@@ -9,7 +9,14 @@
  * cross-origin and cannot go through the api-client transport.
  */
 
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
+
+/**
+ * External dependencies
+ */
 import { ExtraChillClient } from '@extrachill/api-client';
 import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
 

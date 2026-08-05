@@ -4,7 +4,14 @@
  * Manages analytics data fetching, date range state, and loading/error states.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useEffect, useCallback, useRef } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
 import { getAnalytics } from '../../shared/api/client';
 
 const DEFAULT_SELECTION = { mode: 'preset', days: 30 };
