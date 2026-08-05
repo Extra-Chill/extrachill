@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0] - 2026-08-05
+
+### Added
+- support exact artist analytics dates
+
+### Fixed
+- add artist email consent type
+
 ## [0.8.0] - 2026-07-18
 
 ### Added
