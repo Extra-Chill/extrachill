@@ -232,14 +232,18 @@ export const studioAnalyticsApi = {
 	/**
 	 * GET /extrachill/v1/analytics/surface-growth — ranked cross-surface growth.
 	 * @param params
-	 * @param params.weeks
+	 * @param params.start_date
+	 * @param params.end_date
 	 */
 	getSurfaceGrowth(
-		params: { weeks?: number } = {}
+		params: { start_date?: string; end_date?: string } = {}
 	): Promise< SurfaceGrowthResponse > {
 		const query = new URLSearchParams();
-		if ( params.weeks !== undefined ) {
-			query.set( 'weeks', String( params.weeks ) );
+		if ( params.start_date ) {
+			query.set( 'start_date', params.start_date );
+		}
+		if ( params.end_date ) {
+			query.set( 'end_date', params.end_date );
 		}
 		const qs = query.toString();
 		return apiFetch( {
@@ -253,15 +257,29 @@ export const studioAnalyticsApi = {
 	 * GET /extrachill/v1/analytics/retention — visitor return-rate + cohorts.
 	 * @param params
 	 * @param params.days
+	 * @param params.start_date
+	 * @param params.end_date
 	 * @param params.blog_id
 	 * @param params.cohort_weeks
 	 */
 	getRetention(
-		params: { days?: number; blog_id?: number; cohort_weeks?: number } = {}
+		params: {
+			days?: number;
+			start_date?: string;
+			end_date?: string;
+			blog_id?: number;
+			cohort_weeks?: number;
+		} = {}
 	): Promise< RetentionResponse > {
 		const query = new URLSearchParams();
 		if ( params.days !== undefined ) {
 			query.set( 'days', String( params.days ) );
+		}
+		if ( params.start_date ) {
+			query.set( 'start_date', params.start_date );
+		}
+		if ( params.end_date ) {
+			query.set( 'end_date', params.end_date );
 		}
 		if ( params.blog_id ) {
 			query.set( 'blog_id', String( params.blog_id ) );
@@ -279,6 +297,8 @@ export const studioAnalyticsApi = {
 	 * GET /extrachill/v1/analytics/conversion-map — article -> platform reach.
 	 * @param params
 	 * @param params.days
+	 * @param params.start_date
+	 * @param params.end_date
 	 * @param params.top_articles
 	 * @param params.min_entry_sessions
 	 * @param params.author_id
@@ -286,6 +306,8 @@ export const studioAnalyticsApi = {
 	getConversionMap(
 		params: {
 			days?: number;
+			start_date?: string;
+			end_date?: string;
 			top_articles?: number;
 			min_entry_sessions?: number;
 			author_id?: number;
@@ -294,6 +316,12 @@ export const studioAnalyticsApi = {
 		const query = new URLSearchParams();
 		if ( params.days !== undefined ) {
 			query.set( 'days', String( params.days ) );
+		}
+		if ( params.start_date ) {
+			query.set( 'start_date', params.start_date );
+		}
+		if ( params.end_date ) {
+			query.set( 'end_date', params.end_date );
 		}
 		if ( params.top_articles !== undefined ) {
 			query.set( 'top_articles', String( params.top_articles ) );

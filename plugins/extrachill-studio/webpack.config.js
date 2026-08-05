@@ -1,9 +1,8 @@
 /**
  * Webpack configuration for extrachill-studio.
  *
- * Extends the @wordpress/scripts default config to externalize Chart.js v4
- * onto the shared, network-activated `extrachill-analytics-chart` script
- * handle (registered by extrachill-analytics, see extrachill-analytics#93/#96).
+ * Extends the @wordpress/scripts default config to externalize Analytics-owned
+ * browser runtimes onto their shared, network-registered script handles.
  *
  * Why externalize instead of bundling:
  *   extrachill-analytics is network-activated, so exactly ONE copy of Chart.js
@@ -30,6 +29,8 @@ const DependencyExtractionWebpackPlugin = require( '@wordpress/dependency-extrac
  */
 const CHART_HANDLE = 'extrachill-analytics-chart';
 const CHART_GLOBAL = 'ExtraChillChart';
+const DATE_RANGE_REQUEST = 'extrachill-analytics-date-range';
+const DATE_RANGE_GLOBAL = 'ExtraChillAnalyticsDateRange';
 
 /**
  * Resolve a webpack request to its external global. Returns undefined for
@@ -41,6 +42,9 @@ const CHART_GLOBAL = 'ExtraChillChart';
 const requestToExternal = ( request ) => {
 	if ( request === 'chart.js' || request === 'chart.js/auto' ) {
 		return CHART_GLOBAL;
+	}
+	if ( request === DATE_RANGE_REQUEST ) {
+		return DATE_RANGE_GLOBAL;
 	}
 
 	return undefined;
@@ -57,6 +61,9 @@ const requestToExternal = ( request ) => {
 const requestToHandle = ( request ) => {
 	if ( request === 'chart.js' || request === 'chart.js/auto' ) {
 		return CHART_HANDLE;
+	}
+	if ( request === DATE_RANGE_REQUEST ) {
+		return DATE_RANGE_REQUEST;
 	}
 
 	return undefined;

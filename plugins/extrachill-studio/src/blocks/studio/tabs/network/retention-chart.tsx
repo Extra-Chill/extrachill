@@ -13,24 +13,30 @@ import { StatGroup, StatTile } from '@extrachill/components';
 
 import { studioAnalyticsApi } from '../../app/client';
 import type { RetentionResponse } from '../../types/analytics';
+import type { AnalyticsDateRange } from '../../types/date-range';
 import { ChartCard, type ChartCardState } from './chart-card';
 import { ChartCanvas } from './chart-canvas';
 import type { ChartConfiguration } from './chart-loader';
+import { getRangeDays } from './date-range-state';
 
 const pct = ( rate: number ): string => `${ Math.round( rate * 1000 ) / 10 }%`;
 
 interface RetentionChartProps {
-	days: number;
+	dateRange: AnalyticsDateRange;
 	blogId: number;
 }
 
 export const RetentionChart = ( {
-	days,
+	dateRange,
 	blogId,
 }: RetentionChartProps ): ReactElement => {
 	const [ data, setData ] = useState< RetentionResponse | null >( null );
 	const [ state, setState ] = useState< ChartCardState >( 'loading' );
 	const [ errorMessage, setErrorMessage ] = useState( '' );
+	const cohortWeeks = Math.max(
+		4,
+		Math.ceil( getRangeDays( dateRange ) / 7 )
+	);
 
 	useEffect( () => {
 		let cancelled = false;
@@ -39,9 +45,10 @@ export const RetentionChart = ( {
 
 		studioAnalyticsApi
 			.getRetention( {
-				days,
+				start_date: dateRange.startDate,
+				end_date: dateRange.endDate,
 				blog_id: blogId,
-				cohort_weeks: Math.max( 4, Math.ceil( days / 7 ) ),
+				cohort_weeks: cohortWeeks,
 			} )
 			.then( ( response ) => {
 				if ( cancelled ) {
@@ -65,7 +72,7 @@ export const RetentionChart = ( {
 		return () => {
 			cancelled = true;
 		};
-	}, [ blogId, days ] );
+	}, [ blogId, cohortWeeks, dateRange.endDate, dateRange.startDate ] );
 
 	const configuration = useMemo< ChartConfiguration | null >( () => {
 		const cohorts = data?.cohort_retention?.cohorts ?? [];

@@ -32,6 +32,7 @@ import type {
 	ConversionMapResponse,
 	ConversionRow,
 } from '../../types/analytics';
+import type { AnalyticsDateRange } from '../../types/date-range';
 import { ChartCard, type ChartCardState } from './chart-card';
 
 const pct = ( rate: number ): string => `${ Math.round( rate * 1000 ) / 10 }%`;
@@ -44,12 +45,12 @@ interface ArticleTableRow extends Record< string, unknown > {
 }
 
 interface ConversionMapChartProps {
-	days: number;
+	dateRange: AnalyticsDateRange;
 	authorId: number;
 }
 
 export const ConversionMapChart = ( {
-	days,
+	dateRange,
 	authorId,
 }: ConversionMapChartProps ): ReactElement => {
 	const [ data, setData ] = useState< ConversionMapResponse | null >( null );
@@ -63,7 +64,8 @@ export const ConversionMapChart = ( {
 
 		studioAnalyticsApi
 			.getConversionMap( {
-				days,
+				start_date: dateRange.startDate,
+				end_date: dateRange.endDate,
 				top_articles: 10,
 				min_entry_sessions: authorId ? 1 : 5,
 				author_id: authorId,
@@ -88,7 +90,7 @@ export const ConversionMapChart = ( {
 		return () => {
 			cancelled = true;
 		};
-	}, [ authorId, days ] );
+	}, [ authorId, dateRange.endDate, dateRange.startDate ] );
 
 	const rows = useMemo< ArticleTableRow[] >( () => {
 		const articles = data?.by_article ?? [];

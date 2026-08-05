@@ -42,6 +42,13 @@ import { ConversionMapChart } from './conversion-map-chart';
 import { RetentionChart } from './retention-chart';
 import { SessionsChart } from './sessions-chart';
 import { SurfaceGrowthChart } from './surface-growth-chart';
+import { DateRangeInput } from './date-range-input';
+import {
+	createPresetRange,
+	DEFAULT_DATE_RANGE_DAYS,
+	getPresetDays,
+} from './date-range-state';
+import type { AnalyticsDateRange } from '../../types/date-range';
 
 const CLIENT_CONTEXT_PROVIDER_ID = 'extrachill-studio.network';
 
@@ -60,10 +67,14 @@ const DATE_RANGES = [
 
 const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 	const [ activeReport, setActiveReport ] = useState( 'sessions' );
-	const [ days, setDays ] = useState( 28 );
+	const [ dateRange, setDateRange ] = useState< AnalyticsDateRange >( () =>
+		createPresetRange( DEFAULT_DATE_RANGE_DAYS )
+	);
 	const [ selectedBlogId, setSelectedBlogId ] = useState( 0 );
-	const [ conversionAuthorScope, setConversionAuthorScope ] = useState( 'all' );
+	const [ conversionAuthorScope, setConversionAuthorScope ] =
+		useState( 'all' );
 	const controlId = useId().replace( /:/g, '' );
+	const rangePresetControlId = `${ controlId }-range-preset`;
 	const rangeControlId = `${ controlId }-range`;
 	const siteControlId = `${ controlId }-site`;
 	const authorControlId = `${ controlId }-author`;
@@ -72,7 +83,7 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 			selectStore( 'core' ) as {
 				getCurrentUser?: () => { id?: number } | undefined;
 			}
-		).getCurrentUser?.();
+		 ).getCurrentUser?.();
 		return Number( currentUser?.id ?? 0 );
 	}, [] );
 	const conversionAuthorId =
@@ -80,6 +91,7 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 	const selectedSite = context.networkSites.find(
 		( site ) => site.id === selectedBlogId
 	);
+	const presetDays = getPresetDays( dateRange );
 
 	// Broadcast `surface: 'network'` to Roadie while this pane is active.
 	useEffect( () => {
@@ -113,8 +125,14 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 		);
 	} else if ( activeReport === 'conversion' ) {
 		scopeDescription = conversionAuthorId
-			? __( 'Scope: my main-blog posts to Events, Community, and Artist', 'extrachill-studio' )
-			: __( 'Scope: all main-blog posts to Events, Community, and Artist', 'extrachill-studio' );
+			? __(
+					'Scope: my main-blog posts to Events, Community, and Artist',
+					'extrachill-studio'
+			  )
+			: __(
+					'Scope: all main-blog posts to Events, Community, and Artist',
+					'extrachill-studio'
+			  );
 	} else if ( selectedSite ) {
 		scopeDescription =
 			activeReport === 'retention'
@@ -134,18 +152,26 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 			className="ec-studio-network__toolbar"
 			actions={
 				<>
-					<label
-						className="ec-studio-network__filter"
-						htmlFor={ rangeControlId }
-					>
-						<span>{ __( 'Range', 'extrachill-studio' ) }</span>
+					<fieldset className="ec-studio-network__filter ec-studio-network__range-filter">
+						<legend>{ __( 'Range', 'extrachill-studio' ) }</legend>
 						<select
-							id={ rangeControlId }
+							id={ rangePresetControlId }
 							className="ec-toolbar__select"
-							value={ days }
-							onChange={ ( event ) =>
-								setDays( Number( event.currentTarget.value ) )
-							}
+							aria-label={ __(
+								'Range preset',
+								'extrachill-studio'
+							) }
+							value={ presetDays ?? 'custom' }
+							onChange={ ( event ) => {
+								const nextDays = Number(
+									event.currentTarget.value
+								);
+								if ( nextDays ) {
+									setDateRange(
+										createPresetRange( nextDays )
+									);
+								}
+							} }
 						>
 							{ DATE_RANGES.map( ( range ) => (
 								<option
@@ -155,8 +181,27 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 									{ range.label }
 								</option>
 							) ) }
+							<option value="custom">
+								{ __( 'Custom dates', 'extrachill-studio' ) }
+							</option>
 						</select>
-					</label>
+						<DateRangeInput
+							id={ rangeControlId }
+							value={ dateRange }
+							onChange={ setDateRange }
+						/>
+						<button
+							type="button"
+							className="ec-toolbar__button"
+							onClick={ () =>
+								setDateRange(
+									createPresetRange( DEFAULT_DATE_RANGE_DAYS )
+								)
+							}
+						>
+							{ __( 'Reset', 'extrachill-studio' ) }
+						</button>
+					</fieldset>
 					{ supportsSiteScope ? (
 						<label
 							className="ec-studio-network__filter"
@@ -198,13 +243,18 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 								className="ec-toolbar__select"
 								value={ conversionAuthorScope }
 								onChange={ ( event ) =>
-									setConversionAuthorScope( event.currentTarget.value )
+									setConversionAuthorScope(
+										event.currentTarget.value
+									)
 								}
 							>
 								<option value="all">
 									{ __( 'All posts', 'extrachill-studio' ) }
 								</option>
-								<option value="mine" disabled={ ! currentUserId }>
+								<option
+									value="mine"
+									disabled={ ! currentUserId }
+								>
 									{ __( 'My posts', 'extrachill-studio' ) }
 								</option>
 							</select>
@@ -223,17 +273,20 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 		let report: ReactNode;
 		switch ( reportId ) {
 			case 'growth':
-				report = <SurfaceGrowthChart days={ days } />;
+				report = <SurfaceGrowthChart dateRange={ dateRange } />;
 				break;
 			case 'retention':
 				report = (
-					<RetentionChart days={ days } blogId={ selectedBlogId } />
+					<RetentionChart
+						dateRange={ dateRange }
+						blogId={ selectedBlogId }
+					/>
 				);
 				break;
 			case 'conversion':
 				report = (
 					<ConversionMapChart
-						days={ days }
+						dateRange={ dateRange }
 						authorId={ conversionAuthorId }
 					/>
 				);
@@ -241,7 +294,10 @@ const NetworkPane = ( { context }: StudioPaneProps ): ReactElement => {
 			case 'sessions':
 			default:
 				report = (
-					<SessionsChart days={ days } host={ selectedSite?.host } />
+					<SessionsChart
+						dateRange={ dateRange }
+						host={ selectedSite?.host }
+					/>
 				);
 		}
 

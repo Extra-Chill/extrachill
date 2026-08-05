@@ -13,6 +13,7 @@ import type { ReactElement } from 'react';
 
 import { studioAnalyticsApi } from '../../app/client';
 import type { SurfaceGrowthResponse } from '../../types/analytics';
+import type { AnalyticsDateRange } from '../../types/date-range';
 import { ChartCard, type ChartCardState } from './chart-card';
 import { ChartCanvas } from './chart-canvas';
 import type { ChartConfiguration } from './chart-loader';
@@ -21,11 +22,11 @@ const BAR_COLOR = 'rgba(60, 132, 206, 0.75)';
 const BAR_BORDER = 'rgba(60, 132, 206, 1)';
 
 interface SurfaceGrowthChartProps {
-	days: number;
+	dateRange: AnalyticsDateRange;
 }
 
 export const SurfaceGrowthChart = ( {
-	days,
+	dateRange,
 }: SurfaceGrowthChartProps ): ReactElement => {
 	const [ data, setData ] = useState< SurfaceGrowthResponse | null >( null );
 	const [ state, setState ] = useState< ChartCardState >( 'loading' );
@@ -38,7 +39,8 @@ export const SurfaceGrowthChart = ( {
 
 		studioAnalyticsApi
 			.getSurfaceGrowth( {
-				weeks: Math.max( 1, Math.round( days / 7 ) ),
+				start_date: dateRange.startDate,
+				end_date: dateRange.endDate,
 			} )
 			.then( ( response ) => {
 				if ( cancelled ) {
@@ -59,7 +61,7 @@ export const SurfaceGrowthChart = ( {
 		return () => {
 			cancelled = true;
 		};
-	}, [ days ] );
+	}, [ dateRange.endDate, dateRange.startDate ] );
 
 	const configuration = useMemo< ChartConfiguration | null >( () => {
 		const ranked = data?.supply_ranking?.ranked ?? [];

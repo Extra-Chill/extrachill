@@ -1015,6 +1015,26 @@
 	font-size: var(--font-size-sm);
 }
 
+.ec-studio-network__range-filter {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.ec-studio-network__range-filter legend {
+	float: left;
+	margin-right: var(--spacing-xs);
+}
+
+.ec-studio-network__date-input {
+	min-width: 14rem;
+}
+
+.ec-studio-network__date-error {
+	flex-basis: 100%;
+	color: var(--color-error, #b3261e);
+}
+
 .ec-studio-network__card {
 	min-width: 0;
 }
@@ -1067,6 +1087,16 @@
 
 	.ec-studio-network__filter {
 		display: grid;
+		width: 100%;
+	}
+
+	.ec-studio-network__range-filter legend {
+		float: none;
+	}
+
+	.ec-studio-network__date-input,
+	.ec-studio-network__range-filter .ec-toolbar__select,
+	.ec-studio-network__range-filter .ec-toolbar__button {
 		width: 100%;
 	}
 }

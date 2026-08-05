@@ -1,5 +1,3 @@
-/* global describe, expect, it */
-
 /**
  * External dependencies
  */
@@ -21,16 +19,20 @@ const clientSource = fs.readFileSync(
 
 describe( 'Network conversion author filter', () => {
 	it( 'offers all-post and current-user scopes', () => {
-		expect( networkSource ).toContain( "<option value=\"all\">" );
-		expect( networkSource ).toContain( "<option value=\"mine\"" );
-		expect( networkSource ).toContain( "useSelect( ( selectStore )" );
+		expect( networkSource ).toContain( '<option value="all">' );
+		expect( networkSource ).toContain( 'value="mine"' );
+		expect( networkSource ).toContain( 'useSelect( ( selectStore )' );
 		expect( networkSource ).toContain( "selectStore( 'core' )" );
 		expect( networkSource ).toContain( 'authorId={ conversionAuthorId }' );
 	} );
 
 	it( 'requests a server-filtered conversion report', () => {
 		expect( chartSource ).toContain( 'author_id: authorId' );
-		expect( chartSource ).toContain( '[ authorId, days ]' );
+		expect( chartSource ).toContain(
+			'[ authorId, dateRange.endDate, dateRange.startDate ]'
+		);
+		expect( chartSource ).toContain( 'start_date: dateRange.startDate' );
+		expect( chartSource ).toContain( 'end_date: dateRange.endDate' );
 		expect( clientSource ).toContain( "query.set( 'author_id'" );
 	} );
 } );

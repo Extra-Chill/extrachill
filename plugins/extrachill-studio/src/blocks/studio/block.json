@@ -7,7 +7,7 @@
 	"category": "widgets",
 	"icon": "format-audio",
 	"description": "Publishing tools, social workflows, and AI chat for the Extra Chill team.",
-	"keywords": ["studio", "team", "publishing"],
+	"keywords": [ "studio", "team", "publishing" ],
 	"textdomain": "extrachill-studio",
 	"attributes": {
 		"headline": {
@@ -28,12 +28,12 @@
 		"multiple": true,
 		"align": false,
 		"spacing": {
-			"margin": ["top", "bottom"]
+			"margin": [ "top", "bottom" ]
 		}
 	},
 	"editorScript": "file:./index.js",
 	"render": "file:./render.php",
 	"style": "file:./style.css",
 	"viewScript": "file:./view.js",
-	"viewStyle": "file:./view.css"
+	"viewStyle": [ "file:./view.css", "extrachill-analytics-date-range" ]
 }

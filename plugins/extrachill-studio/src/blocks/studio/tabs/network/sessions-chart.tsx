@@ -20,6 +20,7 @@ import type { ReactElement } from 'react';
 
 import { studioAnalyticsApi } from '../../app/client';
 import type { GaDateStatsResponse } from '../../types/analytics';
+import type { AnalyticsDateRange } from '../../types/date-range';
 import { ChartCard, type ChartCardState } from './chart-card';
 import { ChartCanvas } from './chart-canvas';
 import type { ChartConfiguration } from './chart-loader';
@@ -27,17 +28,11 @@ import type { ChartConfiguration } from './chart-loader';
 interface SessionsChartProps {
 	/** Empty means the full GA property; otherwise scope to one network host. */
 	host?: string;
-	days: number;
+	dateRange: AnalyticsDateRange;
 }
 
 /** Extra state: GA4 not authorized for this user (the expected degrade path). */
 type SessionsState = ChartCardState | 'unauthorized';
-
-const toDate = ( daysAgo: number ): string => {
-	const d = new Date();
-	d.setUTCDate( d.getUTCDate() - daysAgo );
-	return d.toISOString().slice( 0, 10 );
-};
 
 /**
  * HTTP statuses that mean "not allowed yet", i.e. degrade rather than error.
@@ -60,7 +55,7 @@ const isUnauthorizedError = ( error: unknown ): boolean => {
 
 export const SessionsChart = ( {
 	host = '',
-	days,
+	dateRange,
 }: SessionsChartProps ): ReactElement => {
 	const [ data, setData ] = useState< GaDateStatsResponse | null >( null );
 	const [ state, setState ] = useState< SessionsState >( 'loading' );
@@ -86,9 +81,8 @@ export const SessionsChart = ( {
 		studioAnalyticsApi
 			.getGaDateStats( {
 				hostname: host,
-				start_date: toDate( days ),
-				end_date: toDate( 1 ),
-				limit: days + 5,
+				start_date: dateRange.startDate,
+				end_date: dateRange.endDate,
 			} )
 			.then( ( response ) => {
 				if ( cancelled ) {
@@ -119,7 +113,7 @@ export const SessionsChart = ( {
 		return () => {
 			cancelled = true;
 		};
-	}, [ days, host ] );
+	}, [ dateRange.endDate, dateRange.startDate, host ] );
 
 	const configuration = useMemo< ChartConfiguration | null >( () => {
 		const rows = [ ...( data?.results ?? [] ) ].sort( ( a, b ) =>
