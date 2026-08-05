@@ -58,4 +58,5 @@ export { SocialsResource } from './resources/socials';
 // Resource param types
 export type { CalendarParams } from './resources/events';
 export type { AnalyticsEventsParams } from './resources/analytics';
+export type { ArtistAnalyticsOptions } from './resources/artists';
 export type { NetworkMediaListParams } from './resources/network-media';

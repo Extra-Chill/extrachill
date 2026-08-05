@@ -11,6 +11,12 @@ import type {
   SubscriberExport,
 } from '../types';
 
+export interface ArtistAnalyticsOptions {
+  date_range?: number | undefined;
+  start_date?: string | undefined;
+  end_date?: string | undefined;
+}
+
 export class ArtistsResource extends BaseResource {
   // ─── CRUD ────────────────────────────────────────────────────────────
 
@@ -49,8 +55,16 @@ export class ArtistsResource extends BaseResource {
 
   // ─── Analytics ───────────────────────────────────────────────────────
 
-  getAnalytics(artistId: number, dateRange = 30): Promise<ArtistAnalytics> {
-    return this.get(`extrachill/v1/artists/${artistId}/analytics?date_range=${dateRange}`);
+  getAnalytics(artistId: number, options: number | ArtistAnalyticsOptions = 30): Promise<ArtistAnalytics> {
+    const params = typeof options === 'number'
+      ? { date_range: options }
+      : {
+          date_range: options.date_range,
+          start_date: options.start_date,
+          end_date: options.end_date,
+        };
+    const query = this.buildQuery(params);
+    return this.get(`extrachill/v1/artists/${artistId}/analytics${query}`);
   }
 
   // ─── Permissions ─────────────────────────────────────────────────────
