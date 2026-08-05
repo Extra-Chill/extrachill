@@ -1,3 +1,5 @@
+/* eslint-disable no-undef -- Homeboy's file-scoped ESLint runner does not load the Jest environment. */
+
 /**
  * External dependencies
  */

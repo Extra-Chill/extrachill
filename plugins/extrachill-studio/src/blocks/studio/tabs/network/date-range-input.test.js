@@ -1,4 +1,13 @@
+/* eslint-disable no-undef -- Homeboy's file-scoped ESLint runner does not load the Jest environment. */
+
+/**
+ * WordPress dependencies
+ */
 import { createElement, createRoot } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import { act } from 'react';
 
 window.IS_REACT_ACT_ENVIRONMENT = true;
@@ -13,6 +22,9 @@ jest.mock(
 	{ virtual: true }
 );
 
+/**
+ * Internal dependencies
+ */
 import { DateRangeInput } from './date-range-input';
 
 const INITIAL = { startDate: '2026-07-07', endDate: '2026-08-03' };

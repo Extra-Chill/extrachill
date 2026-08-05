@@ -7,10 +7,20 @@
  * rank on supply and surface the GA availability as a footnote rather than
  * fabricating demand bars.
  */
+/**
+ * WordPress dependencies
+ */
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
+
+/**
+ * External dependencies
+ */
 import type { ReactElement } from 'react';
 
+/**
+ * Internal dependencies
+ */
 import { studioAnalyticsApi } from '../../app/client';
 import type { SurfaceGrowthResponse } from '../../types/analytics';
 import type { AnalyticsDateRange } from '../../types/date-range';

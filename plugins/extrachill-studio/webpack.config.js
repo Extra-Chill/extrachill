@@ -19,6 +19,9 @@
  * so the chart code path is a code-split chunk that loads when a team member
  * opens the tab rather than on every Studio page load.
  */
+/**
+ * WordPress dependencies
+ */
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const DependencyExtractionWebpackPlugin = require( '@wordpress/dependency-extraction-webpack-plugin' );
 

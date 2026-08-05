@@ -6,11 +6,21 @@
  * per-cohort week-1 / week-2 retention so a flattening or climbing curve is
  * visible over the cohort series.
  */
+/**
+ * WordPress dependencies
+ */
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+
+/**
+ * External dependencies
+ */
 import type { ReactElement } from 'react';
 import { StatGroup, StatTile } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import { studioAnalyticsApi } from '../../app/client';
 import type { RetentionResponse } from '../../types/analytics';
 import type { AnalyticsDateRange } from '../../types/date-range';

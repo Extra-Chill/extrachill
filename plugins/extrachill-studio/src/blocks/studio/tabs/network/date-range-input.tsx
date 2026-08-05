@@ -1,8 +1,18 @@
+/**
+ * WordPress dependencies
+ */
 import { useEffect, useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+
+/**
+ * External dependencies
+ */
 import type { ReactElement } from 'react';
 import analyticsDateRangeRuntime from 'extrachill-analytics-date-range';
 
+/**
+ * Internal dependencies
+ */
 import type {
 	AnalyticsDateRange,
 	AnalyticsDateRangeController,

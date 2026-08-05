@@ -14,10 +14,20 @@
  * error. This keeps the tab fully useful for the team today while the GA4
  * permission wiring catches up.
  */
+/**
+ * WordPress dependencies
+ */
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+
+/**
+ * External dependencies
+ */
 import type { ReactElement } from 'react';
 
+/**
+ * Internal dependencies
+ */
 import { studioAnalyticsApi } from '../../app/client';
 import type { GaDateStatsResponse } from '../../types/analytics';
 import type { AnalyticsDateRange } from '../../types/date-range';
