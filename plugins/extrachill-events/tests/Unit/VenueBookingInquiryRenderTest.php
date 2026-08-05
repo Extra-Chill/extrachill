@@ -124,20 +124,19 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 
 	/** Preserve automatic venue resolution on canonical Events archives. */
 	public function test_events_archive_still_resolves_venue_automatically(): void {
-		global $wp_query;
+		global $wp_query, $wp_the_query;
 
 		switch_to_blog( self::EVENTS_BLOG_ID );
-		$previous_query              = $wp_query;
-		$wp_query                    = new WP_Query();
-		$wp_query->is_tax            = true;
-		$wp_query->queried_object    = get_term( $this->venue_id, 'venue' );
-		$wp_query->queried_object_id = $this->venue_id;
+		$previous_query      = $wp_query;
+		$previous_main_query = $wp_the_query;
 
 		try {
+			$this->go_to( get_term_link( $this->venue_id, 'venue' ) );
 			$output = $this->render( array() );
 			$this->assertStringContainsString( 'Test Room', $output );
 		} finally {
-			$wp_query = $previous_query;
+			$wp_query     = $previous_query;
+			$wp_the_query = $previous_main_query;
 			restore_current_blog();
 		}
 	}

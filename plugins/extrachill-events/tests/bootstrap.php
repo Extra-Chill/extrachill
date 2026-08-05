@@ -258,3 +258,14 @@ if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'ge
 		}
 	}
 }
+
+if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'wp_is_site_initialized' ) && function_exists( 'wp_initialize_site' ) ) {
+	foreach ( array( 7, 12 ) as $site_id ) {
+		if ( get_site( $site_id ) && ! wp_is_site_initialized( $site_id ) ) {
+			$initialized = wp_initialize_site( $site_id, array( 'user_id' => 1 ) );
+			if ( is_wp_error( $initialized ) ) {
+				throw new RuntimeException( 'Unable to initialize the Extra Chill multisite test fixture.' );
+			}
+		}
+	}
+}

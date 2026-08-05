@@ -75,6 +75,18 @@ function ec_events_network_bridge_cards( $args ) {
 		$args['cache_prefix']
 	);
 
+	return ec_events_network_bridge_order_cards( $args, $cards );
+}
+
+/**
+ * Apply event-specific labels and slot ordering to resolved network cards.
+ *
+ * @param array $args  Bridge arguments from ec_events_network_bridge_args().
+ * @param array $cards Cards resolved by the shared network bridge.
+ * @return array
+ */
+function ec_events_network_bridge_order_cards( $args, $cards ) {
+
 	$labels  = array(
 		'artist'    => __( 'Profile', 'extrachill-events' ),
 		'main'      => __( 'Coverage', 'extrachill-events' ),

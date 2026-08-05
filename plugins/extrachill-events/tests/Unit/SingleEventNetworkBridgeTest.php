@@ -31,11 +31,6 @@ if ( ! function_exists( 'get_term_link' ) ) {
 		return 'https://events.example/location/' . $term->slug . '/';
 	}
 }
-if ( ! function_exists( 'extrachill_network_bridge_get_cards' ) ) {
-	function extrachill_network_bridge_get_cards() {
-		return $GLOBALS['ec_events_bridge_cross_site_cards'];
-	}
-}
 if ( ! function_exists( 'extrachill_network_bridge_tag_url' ) ) {
 	function extrachill_network_bridge_tag_url( $url, $site_key, $source ) {
 		return $url . '?utm_source=' . $source . '&utm_campaign=' . $site_key;
@@ -49,9 +44,8 @@ final class SingleEventNetworkBridgeTest extends WP_UnitTestCase {
 		parent::setUp();
 		register_post_type( 'data_machine_events' );
 		register_taxonomy( 'location', 'data_machine_events' );
-		$GLOBALS['ec_events_bridge_terms']            = array();
-		$GLOBALS['ec_events_bridge_cross_site_cards'] = array();
-		$GLOBALS['ec_events_by_term_relationships']   = array();
+		$GLOBALS['ec_events_bridge_terms']          = array();
+		$GLOBALS['ec_events_by_term_relationships'] = array();
 	}
 
 	public function test_upcoming_events_prioritize_profile_then_discussion_then_coverage(): void {
@@ -81,12 +75,12 @@ final class SingleEventNetworkBridgeTest extends WP_UnitTestCase {
 			)
 		);
 		wp_set_object_terms( $post_id, array( $term_id ), 'location' );
-		$GLOBALS['ec_events_bridge_cross_site_cards'] = array(
+		$resolved_cards = array(
 			array( 'site_key' => 'main', 'label' => 'Blog Posts', 'url' => 'https://example.com/coverage' ),
 			array( 'site_key' => 'artist', 'label' => 'Artist Platform', 'url' => 'https://artist.example/band' ),
 			array( 'site_key' => 'community', 'label' => 'Forum Discussions', 'url' => 'https://community.example/band' ),
 		);
-		$cards = ec_events_network_bridge_cards( ec_events_network_bridge_args( $post_id, 'upcoming' ) );
+		$cards          = ec_events_network_bridge_order_cards( ec_events_network_bridge_args( $post_id, 'upcoming' ), $resolved_cards );
 
 		$this->assertCount( 3, $cards );
 		$this->assertSame( array( 'artist', 'events', 'community' ), array_column( $cards, 'site_key' ) );
@@ -98,13 +92,13 @@ final class SingleEventNetworkBridgeTest extends WP_UnitTestCase {
 	}
 
 	public function test_past_cards_do_not_add_nearby_shows_and_prioritize_coverage(): void {
-		$GLOBALS['ec_events_bridge_cross_site_cards'] = array(
+		$resolved_cards = array(
 			array( 'site_key' => 'community', 'label' => 'Forum Discussions', 'url' => 'https://community.example/band' ),
 			array( 'site_key' => 'artist', 'label' => 'Artist Platform', 'url' => 'https://artist.example/band' ),
 			array( 'site_key' => 'main', 'label' => 'Blog Posts', 'url' => 'https://example.com/coverage' ),
 		);
 
-		$cards = ec_events_network_bridge_cards( ec_events_network_bridge_args( 456, 'past' ) );
+		$cards = ec_events_network_bridge_order_cards( ec_events_network_bridge_args( 456, 'past' ), $resolved_cards );
 
 		$this->assertCount( 3, $cards );
 		$this->assertSame( array( 'main', 'artist', 'community' ), array_column( $cards, 'site_key' ) );

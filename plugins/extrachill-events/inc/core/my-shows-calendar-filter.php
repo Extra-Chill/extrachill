@@ -96,7 +96,7 @@ add_filter( 'data_machine_events_calendar_scope_token', 'ec_events_my_shows_emit
  * @return array Modified $query_args.
  */
 function ec_events_my_shows_filter_calendar_query( $query_args, $input = array() ) {
-	$token   = is_array( $input ) ? ( $input['scope_token'] ?? '' ) : '';
+	$token   = $input['scope_token'] ?? '';
 	$user_id = ec_events_my_shows_verify_scope_token( $token );
 
 	if ( $user_id < 1 ) {
@@ -162,6 +162,11 @@ function ec_events_my_shows_get_tracked_post_ids( $user_id ) {
 		: 7;
 
 	$table = $wpdb->base_prefix . 'ec_concert_tracking';
+	// The owning Users plugin is optional outside the full network runtime.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- A table-existence guard prevents the optional integration from emitting a database error.
+	if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+		return array();
+	}
 
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$ids = $wpdb->get_col(
